@@ -3,7 +3,8 @@ import { FRONTEND_CONFIG } from './config.js';
 import { parseNarrative } from './narrative.js';
 import { renderChoices, renderHistory, renderNarrative, renderState, text } from './render.js';
 import { consumeStorySse } from './sse.js';
-import { clearPending, committedTurn, contextChoices, loadPending, recoveryFor, resolveGameId, savePending, validateContext } from './state.js';
+import { clearPending, committedTurn, loadPending, recoveryFor, resolveGameId, savePending, validateContext } from './state.js';
+import { buildCompanyGameViewModel } from './view-model.js';
 
 const recoveryLabels = {
   retry_story: 'Story 다시 시도', resume_extract: 'Extract 이어서 실행', retry_extract: 'Extract 다시 시도',
@@ -76,6 +77,14 @@ export function createBusyGuard({ onChange = () => {} } = {}) {
   };
 }
 
+function hasFourChoices(value) {
+  return Array.isArray(value) && value.length === 4 && value.every(choice => typeof choice === 'string' && choice.trim());
+}
+
+export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
+  return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
+}
+
 export function createFrontendApp({ documentRef = globalThis.document, storage = globalThis.localStorage, api = createApiClient(), locationSearch = globalThis.location?.search ?? '' } = {}) {
   if (!documentRef) return null;
   const get = id => documentRef.querySelector(`#${id}`);
@@ -84,7 +93,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     history: get('story-history'), current: get('current-story'), currentAction: get('current-action'), choices: get('choice-list'), input: get('player-action'), submit: get('submit-action'),
     recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), mind: get('mind-monitor'), warnings: get('warning-list')
   };
-  const gameId = resolveGameId(locationSearch); let context = null, latestResult = {}, busy = false, recoveryPending = false, progressTimer = null;
+  const gameId = resolveGameId(locationSearch); let context = null, latestResult = {}, viewModel = null, viewModelResult = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null;
   const showStatus = value => text(elements.status, value);
   const clearProgressTimer = () => { if (progressTimer) { clearInterval(progressTimer); progressTimer = null; } };
   const showProgress = value => { clearProgressTimer(); let elapsed = 0; text(elements.stream, value); progressTimer = setInterval(() => { elapsed += 1; text(elements.stream, `${value} ${elapsed}초`); }, 1000); };
@@ -92,13 +101,19 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
   const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; renderNarrative(elements.current, null); };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
+  function refreshViewModel() {
+    const currentExtract = Object.keys(latestResult).length > 0 ? latestResult : null;
+    viewModel = buildCompanyGameViewModel(context, currentExtract ? { currentExtract } : undefined);
+    viewModelResult = latestResult;
+  }
   function render() {
-    renderState({ title: elements.title, turn: elements.turn, scene: elements.scene, mind: elements.mind, warnings: elements.warnings }, context, latestResult);
+    if (!viewModel || viewModelResult !== latestResult) refreshViewModel();
+    renderState({ title: elements.title, turn: elements.turn, scene: elements.scene, mind: elements.mind, warnings: elements.warnings }, viewModel, { title: context?.game?.title, warnings: latestResult.warnings ?? [] });
     renderHistory(elements.history, context?.recent_turns);
     const actionDisabled = busy || recoveryPending;
     if (elements.input) elements.input.disabled = actionDisabled;
     if (elements.submit) elements.submit.disabled = actionDisabled;
-    renderChoices(elements.choices, latestResult.choices?.length ? latestResult.choices : contextChoices(context), { busy: actionDisabled, onChoose: startNewAction });
+    renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: actionDisabled, onChoose: startNewAction });
   }
   const setBusy = value => { busy = value; render(); };
   function clearRecoveryUi() {
@@ -115,13 +130,13 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   async function refreshContext() {
     showStatus('현재 상태를 불러오는 중…'); const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
-    context = data.context; latestResult = {}; render();
+    context = data.context; latestResult = {}; streamedStoryChoices = []; refreshViewModel(); render();
     if (!loadPending(storage, gameId)) clearRecoveryUi();
     text(elements.api, 'API 연결됨'); showStatus('준비되었습니다.'); return context;
   }
   const coordinator = createTurnCoordinator({
     api, storage, gameId, getContext: () => context, refreshContext,
-    onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (Array.isArray(parsed.choices) && parsed.choices.length > 0) { latestResult = { ...latestResult, choices: parsed.choices }; renderChoices(elements.choices, parsed.choices, { busy: true, onChoose: startNewAction }); } },
+    onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (hasFourChoices(parsed.choices)) { streamedStoryChoices = parsed.choices; render(); } },
     onExtract: extracted => { latestResult = { choices: extracted.extract?.choices ?? [], mind_monitor: extracted.extract?.mind_monitor ?? {}, warnings: extracted.warnings ?? [] }; showProgress('상태를 정리하는 중…'); render(); },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
     onCommitted: () => { clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.'); }

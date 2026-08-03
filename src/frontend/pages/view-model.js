@@ -91,6 +91,9 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
     },
     scene: {
       scene_state: scene,
+      world_state: object(save.world_state) ?? {},
+      story_summary_recent: text(save.story_summary_recent),
+      csa_active: strings(save.csa_active),
       npcs_present: strings(save.last_npcs_present),
       action_target_id: '',
       clothing_state: null

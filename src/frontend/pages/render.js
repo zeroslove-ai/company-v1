@@ -10,8 +10,13 @@ export function parsedTurnNarrative(turn) {
   return parseNarrative(turn?.story_text ?? '');
 }
 
-export function stateDisplayValues(context) {
-  const save = context?.save?.data ?? context?.save ?? {}, scene = save.scene_state ?? {}, world = save.world_state ?? {};
+export function stateDisplayValues(viewModel) {
+  const scene = viewModel?.scene?.scene_state ?? {}, world = viewModel?.scene?.world_state ?? {};
+  const save = {
+    focal_character_id: viewModel?.focal_character?.id,
+    story_summary_recent: viewModel?.scene?.story_summary_recent,
+    csa_active: viewModel?.scene?.csa_active
+  };
   return {
     위치: displayValue(scene.location_id), 시간: displayValue(world.time_block), 업무: workHook(world.work_hook),
     초점: displayValue(save.focal_character_id), 목표: displayValue(scene.scene_goal),
@@ -41,16 +46,15 @@ export function renderHistory(container, turns) {
     container.append(card);
   }
 }
-export function latestMindMonitor(context, result = {}) {
-  const current = result?.mind_monitor;
-  if (current && typeof current === 'object' && !Array.isArray(current) && Object.keys(current).length > 0) return current;
-  const latest = Array.isArray(context?.recent_turns) ? context.recent_turns.at(-1)?.mind_monitor : undefined;
-  return latest && typeof latest === 'object' && !Array.isArray(latest) ? latest : {};
+export function latestMindMonitor(viewModel) {
+  const monitor = viewModel?.media?.mind_monitor;
+  return monitor && typeof monitor === 'object' && !Array.isArray(monitor) ? monitor : {};
 }
-export function renderState(elements, context, result = {}) {
-  const save = context?.save?.data ?? context?.save ?? {};
+export function renderState(elements, viewModel, result = {}) {
+  const context = { game: { title: result.title } };
+  const save = { turn_state: { committed_turn: viewModel?.turn?.committed_turn ?? 0 } };
   text(elements.title, context?.game?.title ?? '회사편'); text(elements.turn, `Turn ${save.turn_state?.committed_turn ?? 0}`);
-  if (elements.scene) { elements.scene.replaceChildren(); for (const [label, value] of Object.entries(stateDisplayValues(context))) { if (!value) continue; const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = label; dd.textContent = value; elements.scene.append(dt, dd); } }
-  if (elements.mind) { elements.mind.replaceChildren(); for (const [id, value] of Object.entries(latestMindMonitor(context, result))) { const card = document.createElement('p'); card.textContent = `${id}: ${typeof value === 'string' ? value : JSON.stringify(value)}`; elements.mind.append(card); } }
+  if (elements.scene) { elements.scene.replaceChildren(); for (const [label, value] of Object.entries(stateDisplayValues(viewModel))) { if (!value) continue; const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = label; dd.textContent = value; elements.scene.append(dt, dd); } }
+  if (elements.mind) { elements.mind.replaceChildren(); for (const [id, value] of Object.entries(latestMindMonitor(viewModel))) { const card = document.createElement('p'); card.textContent = `${id}: ${typeof value === 'string' ? value : JSON.stringify(value)}`; elements.mind.append(card); } }
   if (elements.warnings) { elements.warnings.replaceChildren(); for (const warning of result.warnings ?? []) { const item = document.createElement('li'); item.textContent = warning; elements.warnings.append(item); } }
 }

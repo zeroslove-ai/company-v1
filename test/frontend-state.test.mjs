@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createBusyGuard, createFrontendApp, createTurnCoordinator } from '../src/frontend/pages/app.js';
-import { latestMindMonitor, parsedTurnNarrative, renderHistory, stateDisplayValues } from '../src/frontend/pages/render.js';
+import { choicesForRenderer, createBusyGuard, createFrontendApp, createTurnCoordinator } from '../src/frontend/pages/app.js';
+import { latestMindMonitor, parsedTurnNarrative, renderHistory, renderState, stateDisplayValues } from '../src/frontend/pages/render.js';
 import { clearPending, committedTurn, contextChoices, loadPending, pendingKey, recoveryFor, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
+import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const storage = () => { const values = new Map(); return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) }; };
@@ -16,13 +17,20 @@ test('frontend state resolves game IDs and validates Company v1 context', () => 
   assert.equal(resolveGameId('?game=not-a-uuid'), gameId);
   const context = { game: { edition_id: 'company-v1' }, save: { data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 3 }, last_choices: ['A', '', 'B'] } } };
   assert.equal(validateContext(context), true); assert.equal(saveFromContext(context).edition, 'company-v1'); assert.equal(committedTurn(context), 3); assert.deepEqual(contextChoices(context), ['A', 'B']);
+  context.save.committed_turn = 4;
+  assert.equal(committedTurn(context), 4);
 });
 
-test('frontend falls back to the newest committed choices and mind monitor', () => {
+test('frontend renderer consumes view-model choices and Mind Monitor', () => {
   const context = { save: { data: { last_choices: [] } }, recent_turns: [{ choices: ['old'] }, { choices: ['new', '', 'newer'], mind_monitor: { focus: 'stable' } }] };
   assert.deepEqual(contextChoices(context), ['new', 'newer']);
-  assert.deepEqual(latestMindMonitor(context), { focus: 'stable' });
-  assert.deepEqual(latestMindMonitor(context, { mind_monitor: { current: 'preferred' } }), { current: 'preferred' });
+  const turnModel = buildCompanyGameViewModel(context);
+  const extractModel = buildCompanyGameViewModel(context, { currentExtract: { mind_monitor: { current: 'preferred' } } });
+  assert.deepEqual(choicesForRenderer(turnModel), turnModel.story.choices);
+  assert.deepEqual(choicesForRenderer(turnModel, ['one', 'two', 'three', 'four']), ['one', 'two', 'three', 'four']);
+  assert.deepEqual(choicesForRenderer(turnModel, ['incomplete']), turnModel.story.choices);
+  assert.deepEqual(latestMindMonitor(turnModel), { focus: 'stable' });
+  assert.deepEqual(latestMindMonitor(extractModel), { current: 'preferred' });
 });
 
 test('frontend pending actions preserve only recovery metadata', () => {
@@ -145,9 +153,33 @@ test('complete recovery clears pending UI and re-enables action controls', async
 });
 
 test('state panel uses canonical save fields without object stringification', () => {
-  const values = stateDisplayValues({ save: { data: { scene_state: { location_id: 'office', scene_goal: 'review' }, world_state: { time_block: 'morning', work_hook: { id: 'audit' } }, focal_character_id: 'npc-hayeon', csa_active: ['csa-1'] } } });
+  const model = buildCompanyGameViewModel({ save: { data: { scene_state: { location_id: 'office', scene_goal: 'review' }, world_state: { time_block: 'morning', work_hook: { id: 'audit' } }, focal_character_id: 'npc-hayeon', csa_active: ['csa-1'] } } });
+  const values = stateDisplayValues(model);
   assert.deepEqual({ 위치: values.위치, 시간: values.시간, 업무: values.업무, 초점: values.초점, 목표: values.목표 }, { 위치: 'office', 시간: 'morning', 업무: 'audit', 초점: 'npc-hayeon', 목표: 'review' });
   assert.equal(Object.values(values).some(value => value.includes('[object Object]')), false);
+});
+
+test('renderer receives adapter output without mutating Context or current Extract', () => {
+  const previousDocument = globalThis.document; globalThis.document = { createElement: tag => new FakeNode(tag) };
+  try {
+    const context = validContext();
+    context.save.committed_turn = 9;
+    context.save.data.last_image_id = 123;
+    context.save.data.focal_character_id = 'npc-hayeon';
+    context.save.data.last_speaker_id = 'npc-areum';
+    const runtime = { currentExtract: { mind_monitor: { source: 'current Extract' } } };
+    const contextSnapshot = structuredClone(context), runtimeSnapshot = structuredClone(runtime);
+    const model = buildCompanyGameViewModel(context, runtime);
+    const elements = { title: new FakeNode('title'), turn: new FakeNode('turn'), scene: new FakeNode('scene'), mind: new FakeNode('mind'), warnings: new FakeNode('warnings') };
+    renderState(elements, model, { title: context.game.title });
+    assert.equal(elements.turn.textContent, 'Turn 9');
+    assert.equal(model.media.image_id, 123);
+    assert.equal(model.focal_character.id, 'npc-hayeon');
+    assert.equal(model.focal_character.last_speaker_id, 'npc-areum');
+    assert.equal(elements.mind.children[0].textContent, 'source: current Extract');
+    assert.deepEqual(context, contextSnapshot);
+    assert.deepEqual(runtime, runtimeSnapshot);
+  } finally { globalThis.document = previousDocument; }
 });
 
 test('frontend static contract keeps API URL in config and excludes direct backend access', () => {
@@ -157,4 +189,9 @@ test('frontend static contract keeps API URL in config and excludes direct backe
   assert.match(fs.readFileSync(path.join(pages, 'index.html'), 'utf8'), /id="current-action"/);
   assert.match(fs.readFileSync(path.join(pages, 'config.js'), 'utf8'), /game-proxy-company-v1/);
   assert.doesNotMatch(source, /supabase\.co\/rest|SUPABASE_SERVICE_ROLE_KEY|LLM_API_KEY|\/api\/save-turn|\/api\/set-save/);
+  const appSource = fs.readFileSync(path.join(pages, 'app.js'), 'utf8');
+  const renderSource = fs.readFileSync(path.join(pages, 'render.js'), 'utf8');
+  assert.match(appSource, /buildCompanyGameViewModel\(context/);
+  assert.doesNotMatch(appSource, /contextChoices/);
+  assert.doesNotMatch(renderSource, /context\?\.save|save\?\.data/);
 });
