@@ -1,7 +1,13 @@
 {
   "csa_active": ["csa-global"],
   "csa_rules": { "csa-global": { "lifecycle": "temporarily_interrupted" } },
-  "csa_runtime_state": { "csa-global": { "lifecycle": "temporarily_interrupted" } },
+  "csa_runtime_state": {
+    "csa-global": {
+      "lifecycle": "temporarily_interrupted",
+      "applicability": "applicable",
+      "execution_state": "interrupted"
+    }
+  },
   "csa_aftereffect_state": {},
   "csa_attitudes": {
     "npc-a": { "csa-global": { "familiarity": 10, "resistance": 80, "acceptance": 0, "discomfort": 60, "conscious_violation": true, "last_changed_turn": 4 } },

@@ -154,16 +154,18 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
   };
   state.arousal = clamp(state.arousal + (integer(patch.arousal_delta) ?? 0), 0, 100);
   state.ejaculation_progress = clamp(state.ejaculation_progress + (integer(patch.ejaculation_progress_delta) ?? 0), 0, 100);
+  const warnings = [];
   if (patch.ejaculation_completed === true) {
     if (!object(storyEvidence) || storyEvidence.sexual_resolution !== true) {
-      throw new GameCoreError('UNAUTHORIZED_SEXUAL_COMPLETION', 'Sexual completion requires explicit Story evidence');
+      warnings.push('unauthorized_ejaculation_completion_ignored');
+    } else {
+      state.ejaculation_count += 1;
+      state.ejaculation_progress = 0;
+      state.arousal = 0;
     }
-    state.ejaculation_count += 1;
-    state.ejaculation_progress = 0;
-    state.arousal = 0;
   }
   if (integer(updatedTurn) !== null && updatedTurn >= 0) state.updated_turn = updatedTurn;
-  return state;
+  return { state, warnings };
 }
 
 function leaves(value, prefix = '') {
@@ -200,7 +202,7 @@ export function migrateCompanySave(save) {
   next.world_state = object(next.world_state) ? next.world_state : {};
   if (!object(next.world_state.game_time)) next.world_state.game_time = { day: 1, minute_of_day: 540 };
   else next.world_state.game_time = canonicalGameTime(next.world_state.game_time);
-  next.player_sexual_state = reducePlayerSexualState(next.player_sexual_state);
+  next.player_sexual_state = reducePlayerSexualState(next.player_sexual_state).state;
   return next;
 }
 

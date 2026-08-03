@@ -15,7 +15,6 @@ import {
   parseNarrative,
   reducePlayerSexualState
 } from '../src/engine/index.js';
-import { GameCoreError } from '../src/engine/errors.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -30,13 +29,17 @@ test('gameplay state documents fix v1 compatibility and global CSA ownership', (
   assert.match(state, /active_suggestions.*forbidden/i);
   assert.match(narrative, /exactly four parsed Story choices are authoritative/i);
   assert.match(narrative, /never selects the player's next action/i);
+  assert.match(narrative, /\[1\. 서사 및 행동\].*\[2\. 플레이어 속마음\].*\[3\. 플레이어 상황판\].*\[4\. 선택지\]/s);
+  assert.match(narrative, /no separate user-visible `\[DIALOGUE\]` section/i);
 });
 
 test('Story parser keeps authored inner thought and malformed story nonblocking', () => {
   const structured = parseNarrative(read('fixtures/gameplay-state-v1/story-structured.txt'));
   const malformedRaw = read('fixtures/gameplay-state-v1/story-malformed-nonblocking.txt');
   const malformed = parseNarrative(malformedRaw);
-  assert.equal(structured.player_inner_thought, 'I should make the next decision carefully.');
+  assert.ok(structured.player_inner_thought.length >= 180);
+  assert.ok(structured.player_inner_thought.length <= 500);
+  assert.equal(structured.player_inner_thought.includes('"'), false);
   assert.ok(structured.blocks.some(block => block.type === 'player_inner_thought'));
   assert.equal(structured.choices.length, 4);
   assert.equal(malformed.raw, malformedRaw);
@@ -55,6 +58,15 @@ test('gameplay Extract preserves parser authority and independent identity IDs',
   assert.equal(normalized.focal_character_id, 'npc-focal');
   assert.equal(normalized.last_speaker_id, 'npc-last');
   assert.equal(normalized.image_character_id, 'npc-image');
+  assert.equal(normalized.mind_monitor['npc-existing'].surface, extract.mind_monitor['npc-existing'].surface);
+  assert.equal(normalized.mind_monitor['npc-existing'].subconscious, extract.mind_monitor['npc-existing'].subconscious);
+  assert.equal(normalized.mind_monitor['npc-existing'].body, undefined);
+  assert.ok(normalized.mind_monitor['npc-existing'].surface.length >= 150);
+  assert.ok(normalized.mind_monitor['npc-existing'].surface.length <= 300);
+  assert.ok(normalized.mind_monitor['npc-existing'].subconscious.length >= 180);
+  assert.ok(normalized.mind_monitor['npc-existing'].subconscious.length <= 350);
+  assert.equal(normalized.mind_monitor['npc-existing'].surface.includes('calm'), false);
+  assert.equal(normalized.mind_monitor['npc-existing'].subconscious.includes('uncertain'), false);
   assert.deepEqual(input, extract);
   assert.deepEqual(parsedInput, story);
 });
@@ -85,12 +97,14 @@ test('time proposals default safely and advance rolls across days', () => {
   assert.equal(formatGameTime({ day: 3, minute_of_day: 3 }), 'Day 3 00:03');
 });
 
-test('sexual reducer clamps deltas and blocks completion without Story evidence', () => {
+test('sexual reducer clamps deltas and ignores unsupported completion without blocking the turn', () => {
   const base = { arousal: 95, ejaculation_progress: 99, ejaculation_count: 2, updated_turn: 4 };
-  assert.throws(() => reducePlayerSexualState(base, { arousal_delta: 10, ejaculation_progress_delta: 10, ejaculation_completed: true }), GameCoreError);
+  const ignored = reducePlayerSexualState(base, { arousal_delta: 10, ejaculation_progress_delta: 10, ejaculation_completed: true });
+  assert.deepEqual(ignored.state, { arousal: 100, ejaculation_progress: 100, ejaculation_count: 2, updated_turn: 4 });
+  assert.deepEqual(ignored.warnings, ['unauthorized_ejaculation_completion_ignored']);
   assert.deepEqual(
     reducePlayerSexualState(base, { arousal_delta: 10, ejaculation_progress_delta: 10, ejaculation_completed: true }, { storyEvidence: { sexual_resolution: true }, updatedTurn: 5 }),
-    { arousal: 0, ejaculation_progress: 0, ejaculation_count: 3, updated_turn: 5 }
+    { state: { arousal: 0, ejaculation_progress: 0, ejaculation_count: 3, updated_turn: 5 }, warnings: [] }
   );
 });
 
@@ -122,14 +136,25 @@ test('turn changes use only guarded before and after state', () => {
   ]);
 });
 
-test('required gameplay fixtures define global CSA and an unresolved five-character skeleton', () => {
+test('required gameplay fixtures define three CSA axes and a resolved heroine1 only', () => {
   const csa = readJson('fixtures/gameplay-state-v1/global-csa-npc-attitudes.json');
   const master = readJson('fixtures/gameplay-state-v1/five-character-master-skeleton.json');
   assert.equal(csa.csa_active.length, 1);
   assert.equal(csa.csa_attitudes['npc-a']['csa-global'].resistance, 80);
   assert.equal(master.characters.length, 5);
-  assert.ok(master.characters.every(character => character.mapping_status === 'unresolved'));
-  assert.ok(master.characters.every(character => 'storage_prefix' in character && 'adult_image_prefix' in character));
+  assert.deepEqual(master.characters[0], {
+    character_id: 'heroine1', name: null, age: null, department: null, position: null,
+    addressing_rules: [], appearance: null, personality: null, initial_relationship: {}, initial_stats: {}, initial_csa_attitudes: {}, voice_id: null,
+    storage_bucket: 'Image', storage_prefix: 'Heroine1', primary_image_path: 'Heroine1/one_main.jpg', adult_image_prefix: 'Heroine1/adult/', mapping_status: 'resolved'
+  });
+  assert.deepEqual(master.characters.slice(1).map(character => character.character_id), ['heroine2', 'heroine3', 'heroine4', 'heroine5']);
+  assert.ok(master.characters.slice(1).every(character => character.mapping_status === 'unresolved'));
+  assert.deepEqual(csa.csa_runtime_state['csa-global'], {
+    lifecycle: 'temporarily_interrupted', applicability: 'applicable', execution_state: 'interrupted'
+  });
   assert.equal(normalizeGameplayExtractEnvelope(readJson('fixtures/gameplay-state-v1/extract-invalid-time.json')).elapsed_minutes, 3);
-  assert.throws(() => reducePlayerSexualState({}, readJson('fixtures/gameplay-state-v1/extract-invalid-sexual-completion.json').state_delta.player_sexual_state), GameCoreError);
+  assert.deepEqual(
+    reducePlayerSexualState({}, readJson('fixtures/gameplay-state-v1/extract-invalid-sexual-completion.json').state_delta.player_sexual_state).warnings,
+    ['unauthorized_ejaculation_completion_ignored']
+  );
 });
