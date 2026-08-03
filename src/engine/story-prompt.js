@@ -2,6 +2,32 @@ function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
 }
 
+const STORY_CANON_FIELDS = [
+  'name', 'age', 'department', 'position', 'role_title', 'public_role_summary',
+  'appearance', 'personality', 'speech_style', 'addressing_rules', 'habits',
+  'work_profile', 'relationship_hooks', 'csa_response_profile', 'youngest_line'
+];
+
+/**
+ * Filters the registered character map down to the narrative fields Story is allowed to
+ * see. Storage paths, voice IDs, mapping_status, and raw stat/attitude numbers never
+ * reach the LLM. Never mutates the edition it reads from.
+ */
+export function buildCharacterCanonSnapshot(edition) {
+  const charactersMap = object(edition?.characters?.characters);
+  if (!charactersMap) return {};
+  const canon = {};
+  for (const [id, character] of Object.entries(charactersMap)) {
+    if (!object(character)) continue;
+    const entry = {};
+    for (const field of STORY_CANON_FIELDS) {
+      if (field in character) entry[field] = character[field];
+    }
+    canon[id] = entry;
+  }
+  return canon;
+}
+
 function statusSnapshot(save) {
   const world = object(save?.world_state) ?? {};
   const gameTime = object(world.game_time) ?? {};
@@ -37,7 +63,9 @@ const SYSTEM_INSTRUCTIONS = [
 
   'CSA(공통 인식 규칙)는 항상 전역 규칙이며 NPC는 이를 거절할 수 있지만, 어떤 CSA도 플레이어의 자유 입력 자체를 막지 않는다.',
 
-  '제공된 context에 없는 NPC나 장면을 새로 만들지 않는다.'
+  '제공된 context에 없는 NPC나 장면을 새로 만들지 않는다.',
+
+  'character_canon은 등록된 캐릭터에 대한 유일한 사실 기준이다. 이름, 나이, 부서, 직급, 외모, 성격, 말투와 호칭 규칙을 임의로 바꾸지 않는다. 캐릭터를 다른 직급이나 직무로 승격·변경하지 않는다. 현재 장면에 등장하지 않은 캐릭터를 억지로 출연시키지 않는다.'
 ].join(' ');
 
 export function buildStoryPrompt({ edition, context, playerAction, expectedTurn }) {
@@ -56,6 +84,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn 
         expected_turn: expectedTurn,
         player_action: playerAction,
         status_snapshot: statusSnapshot(save),
+        character_canon: buildCharacterCanonSnapshot(edition),
         context: relevant
       })
     }

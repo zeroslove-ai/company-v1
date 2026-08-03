@@ -1,8 +1,25 @@
+function object(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
+}
+
+/** The stable id/name pairs Extract may resolve identity fields and Mind Monitor keys to. */
+export function buildRegisteredCharacters(edition) {
+  const charactersMap = object(edition?.characters?.characters);
+  if (!charactersMap) return [];
+  const registered = [];
+  for (const [id, character] of Object.entries(charactersMap)) {
+    if (!object(character) || typeof character.name !== 'string') continue;
+    registered.push({ character_id: id, name: character.name });
+  }
+  return registered;
+}
+
 const SYSTEM_INSTRUCTIONS = [
   'Return one JSON object only, with no explanation or Markdown fences.',
   'The object must include exactly these fields: state_delta (object), outcome, evidence (object), turn_summary (string), mind_monitor (object), choices (array), dialogue_lines (array), npcs_present (array), action_target_id, focal_character_id, last_speaker_id, image_character_id, player_inner_thought (string), player_status (string), elapsed_minutes (number), warnings (array).',
   'state_delta holds changed values only; never return a full save. outcome is one of success, partial, refused, interrupted, blocked.',
   'action_target_id, focal_character_id, last_speaker_id, and image_character_id are independent: never copy one into another, never infer a narrator as an NPC id, and use null for anything unknown.',
+  'registered_characters lists the only stable character ids you may use. Return an id only when its name matches a Story character exactly; never invent, guess, or reuse an id for someone not in that list or not actually in Story, and never turn the narrator into an NPC id. Include every NPC actually present in Story in npcs_present.',
   'If parsed Story already produced exactly four choices, return an empty choices array; Story choices are always authoritative over Extract choices.',
   'Do not invent player_inner_thought or player_status text; if the parser already has verbatim values you may leave these fields empty, since Extract can never override the Story-authored versions.',
   'Do not invent dialogue not present in Story; only add dialogue_lines to help resolve a speaker_id the parser could not match, and never change parser-original wording or order.',
@@ -15,12 +32,15 @@ const SYSTEM_INSTRUCTIONS = [
   'All human-readable strings must be Korean. IDs remain unchanged. Do not repeat Story text verbatim in turn_summary; keep turn_summary, state_delta, and mind_monitor concise.'
 ].join(' ');
 
-export function buildExtractPrompt({ context, storyText, parsedStory, playerAction, expectedTurn }) {
+export function buildExtractPrompt({ context, storyText, parsedStory, playerAction, expectedTurn, edition }) {
   return [
     { role: 'system', content: SYSTEM_INSTRUCTIONS },
     {
       role: 'user',
-      content: JSON.stringify({ expected_turn: expectedTurn, player_action: playerAction, context, story_text: storyText, parsed_story: parsedStory })
+      content: JSON.stringify({
+        expected_turn: expectedTurn, player_action: playerAction, context, story_text: storyText, parsed_story: parsedStory,
+        registered_characters: buildRegisteredCharacters(edition)
+      })
     }
   ];
 }

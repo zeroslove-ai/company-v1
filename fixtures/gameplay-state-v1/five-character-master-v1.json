@@ -1,6 +1,7 @@
 {
-  "characters": {
-    "heroine1": {
+  "mapping_status": "resolved",
+  "characters": [
+    {
       "character_id": "heroine1",
       "name": "서원희",
       "age": 33,
@@ -88,10 +89,15 @@
         "closeness": "acquaintance",
         "romance_status": "none",
         "current_boundary": "professional",
-        "milestones": { "first_kiss_turn": null, "sexual_relationship_started_turn": null },
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "브랜드전략팀에 합류한 플레이어를 팀원으로 대하며 실무 능력, 책임감, 타인을 대하는 태도를 관찰하고 있다."
       },
-      "initial_stats": { "affection": 0 },
+      "initial_stats": {
+        "affection": 0
+      },
       "initial_csa_attitudes": {},
       "csa_response_profile": {
         "adaptability": "medium",
@@ -116,7 +122,7 @@
       "adult_image_prefix": "Heroine1/adult/",
       "mapping_status": "resolved"
     },
-    "heroine2": {
+    {
       "character_id": "heroine2",
       "name": "윤민아",
       "age": 29,
@@ -208,10 +214,15 @@
         "closeness": "acquaintance",
         "romance_status": "none",
         "current_boundary": "professional",
-        "milestones": { "first_kiss_turn": null, "sexual_relationship_started_turn": null },
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "플레이어를 프로젝트 구성원으로 대하며 말보다 결과를 만드는 사람인지, 책임을 남에게 넘기지 않는지 관찰한다."
       },
-      "initial_stats": { "affection": 0 },
+      "initial_stats": {
+        "affection": 0
+      },
       "initial_csa_attitudes": {},
       "csa_response_profile": {
         "adaptability": "high",
@@ -236,7 +247,7 @@
       "adult_image_prefix": "Heroine2/adult/",
       "mapping_status": "resolved"
     },
-    "heroine3": {
+    {
       "character_id": "heroine3",
       "name": "김제나",
       "age": 24,
@@ -326,10 +337,15 @@
         "closeness": "acquaintance",
         "romance_status": "none",
         "current_boundary": "cautious_professional",
-        "milestones": { "first_kiss_turn": null, "sexual_relationship_started_turn": null },
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "플레이어에게 먼저 다가가기보다 말투와 표정을 관찰하며 안전하고 존중할 수 있는 동료인지 확인하고 있다."
       },
-      "initial_stats": { "affection": 0 },
+      "initial_stats": {
+        "affection": 0
+      },
       "initial_csa_attitudes": {},
       "csa_response_profile": {
         "adaptability": "medium",
@@ -358,7 +374,7 @@
       "adult_image_prefix": "Heroine3/adult/",
       "mapping_status": "resolved"
     },
-    "heroine4": {
+    {
       "character_id": "heroine4",
       "name": "한리브",
       "age": 27,
@@ -447,10 +463,15 @@
         "closeness": "acquaintance",
         "romance_status": "none",
         "current_boundary": "reserved_professional",
-        "milestones": { "first_kiss_turn": null, "sexual_relationship_started_turn": null },
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "플레이어에게 친절하지만 일정한 거리를 유지하며, 말과 행동의 일관성을 조용히 기억하고 판단한다."
       },
-      "initial_stats": { "affection": 0 },
+      "initial_stats": {
+        "affection": 0
+      },
       "initial_csa_attitudes": {},
       "csa_response_profile": {
         "adaptability": "medium_low",
@@ -475,7 +496,7 @@
       "adult_image_prefix": "Heroine4/adult/",
       "mapping_status": "resolved"
     },
-    "heroine5": {
+    {
       "character_id": "heroine5",
       "name": "이메이",
       "age": 24,
@@ -566,10 +587,15 @@
         "closeness": "acquaintance",
         "romance_status": "none",
         "current_boundary": "friendly_professional",
-        "milestones": { "first_kiss_turn": null, "sexual_relationship_started_turn": null },
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "플레이어를 처음에는 조심스럽게 관찰하며, 안전한 동료라고 판단하면 아이디어와 일상적인 이야기를 빠르게 공유한다."
       },
-      "initial_stats": { "affection": 0 },
+      "initial_stats": {
+        "affection": 0
+      },
       "initial_csa_attitudes": {},
       "csa_response_profile": {
         "adaptability": "high",
@@ -598,5 +624,5 @@
       "adult_image_prefix": "Heroine5/adult/",
       "mapping_status": "resolved"
     }
-  }
+  ]
 }

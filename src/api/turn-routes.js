@@ -215,7 +215,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const promptStart = Date.now();
-          const messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn });
+          const messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition });
           timing.extract_prompt_ms = Date.now() - promptStart;
           const llmStart = Date.now();
           const raw = await runExtract({ env, fetchImpl, messages });

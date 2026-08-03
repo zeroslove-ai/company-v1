@@ -46,11 +46,11 @@ test('runtime identifiers and relocated entries are fixed', () => {
   assert.match(read('src/api/edition.js'), /\.\.\/engine\/index\.js/);
 });
 
-test('content remains the company edition skeleton', () => {
+test('content is the company edition with registered heroine content', () => {
   const edition = readJson('content/edition.json');
   const organization = readJson('content/organization.json');
   assert.equal(edition.edition_id, 'company-v1');
-  assert.equal(edition.content_version, '0.0.1-skeleton');
+  assert.equal(edition.content_version, '0.1.0-heroines-v1');
   assert.equal(organization.company.company_id, 'luminous_brand_group');
 });
 
