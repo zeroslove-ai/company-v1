@@ -9,14 +9,15 @@
 - Phase 0 independent repository bootstrap: complete and merged.
 - Phase 0.5 gameplay, recovery, and state contracts: complete and merged.
 - Phase 1 company database migration package: complete, merged, applied, and verified.
-- Main base SHA: `19ffdfbd962cd883330466ba826025f625fd6b0b`.
-- Current work branch: `phase/2-vertical-loop`.
-- Current work: **Phase 2 context → Story SSE → Extract → guarded Commit vertical loop implementation**.
+- Main base SHA: `4cd7bd34e3e97720550e2ebd0ee611abae6657ac`.
+- Current work branch: `phase/3-api-worker`.
+- Phase 2 context → Story SSE → Extract → guarded Commit vertical loop: complete, including local live E2E verification.
+- Current work: **Phase 3 API Worker configuration, deployment, and remote read-only smoke verification**.
 - Target Supabase project: `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), project name `company-v1`, region `ap-northeast-1`.
 - Four migrations and the fixed development seed are applied.
-- Phase 2 tests use mock Supabase and mock LLM calls only.
-- Real Story and Extract model calls have not been performed.
-- Cloudflare resources and deployment remain unperformed.
+- Phase 2 contract tests use mock Supabase and mock LLM calls; its separately authorized live E2E is complete.
+- Phase 3 smoke uses remote read-only endpoints only and performs no Story or Extract model call.
+- Cloudflare API Worker `game-proxy-company-v1` is deployed and remote smoke verification is complete.
 - The retired Dify project is not used and must not be modified.
 
 ## Phase 2 implementation target
@@ -48,14 +49,9 @@ Runtime principles:
 
 ## Sequence
 
-1. Complete the Phase 2 API and engine implementation.
-2. Validate the implementation with mock Supabase and mock LLM tests.
-3. Review and merge the Phase 2 pull request.
-4. Configure local runtime secrets outside the repository.
-5. Run one live development-game turn against the independent Supabase project and selected Story/Extract models.
-6. Fix only errors found in that live vertical-loop test.
-7. Create and configure the API Cloudflare Worker after the local vertical loop is stable.
-8. Add company content, CSA presentation, frontend gameplay, images, and TTS in later phases.
+1. Review and merge the Phase 3 API Worker pull request.
+2. Implement the frontend vertical loop against the deployed API Worker.
+3. Add company content, CSA presentation, images, and TTS in later phases.
 
 ## Current Phase 2 boundaries
 
@@ -88,4 +84,4 @@ Not included:
 
 ## Phase 2 live E2E result
 
-Phase 2 core live Context → Story → Extract → Commit passed against the independent development game. The final harness failure was a false negative from an absolute save-revision expectation; cleanup completed successfully. Live replay remains unverified, and no additional LLM calls will be made in this phase. Next: review and merge the live E2E PR, then prepare API Worker deployment. Cloudflare resources are still not created.
+Phase 2 core live Context → Story → Extract → Commit passed against the independent development game. The final harness failure was a false negative from an absolute save-revision expectation; cleanup completed successfully. Live replay remains unverified, and no additional LLM calls will be made in this phase. The subsequent Phase 3 API Worker deployment and read-only remote smoke test completed successfully.

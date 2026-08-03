@@ -2,8 +2,18 @@
   "name": "game-proxy-company-v1",
   "main": "src/api/index.js",
   "compatibility_date": "2026-08-03",
+  "workers_dev": true,
   "vars": {
     "GAME_EDITION": "company-v1",
-    "SUPABASE_URL": "https://fmcrspgxstsmxxsmkeee.supabase.co"
+    "SUPABASE_URL": "https://fmcrspgxstsmxxsmkeee.supabase.co",
+    "LLM_API_URL": "https://api.deepseek.com",
+    "STORY_MODEL": "deepseek-v4-flash",
+    "EXTRACT_MODEL": "deepseek-v4-flash"
+  },
+  "secrets": {
+    "required": [
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "LLM_API_KEY"
+    ]
   }
 }
