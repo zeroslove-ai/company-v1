@@ -1,0 +1,13 @@
+{
+  "state_delta": {
+    "npc_emotion": { "npc-hayeon": { "mood": "encouraged", "updated_turn": 8 } },
+    "event_ledger": [{ "event_id": "event-2", "event_type": "work_event", "turn": 8, "summary": "Campaign review advanced.", "participants": ["npc-hayeon"], "importance": 1, "active": true }],
+    "last_choices": ["수정안을 함께 검토한다.", "김하연에게 우선순위를 묻는다.", "윤아름에게 일정을 확인한다.", "잠시 더 생각한다."]
+  },
+  "outcome": "partial",
+  "evidence": {},
+  "turn_summary": "캠페인 검토가 진전됐다.",
+  "mind_monitor": { "npc-hayeon": "협업에 집중하고 있다." },
+  "choices": ["수정안을 함께 검토한다.", "김하연에게 우선순위를 묻는다.", "윤아름에게 일정을 확인한다.", "잠시 더 생각한다."],
+  "dialogue_lines": [{ "speaker": "김하연", "direction": "자료를 펼치며", "text": "수정안을 같이 확인해 볼까요?" }]
+}
