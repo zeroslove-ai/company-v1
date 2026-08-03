@@ -1,0 +1,9 @@
+{
+  "save_schema_version": 1,
+  "edition": "company-v1",
+  "turn_state": { "committed_turn": 2 },
+  "world_state": { "time_block": "morning" },
+  "player_sexual_state": { "arousal": 15, "updated_turn": 2 },
+  "npc_stats": { "npc-existing": { "affection": 4 } },
+  "unknown_legacy_field": { "keep": true }
+}

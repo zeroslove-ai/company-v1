@@ -1,0 +1,10 @@
+{
+  "mapping_status": "unresolved_fixture_only",
+  "characters": [
+    { "character_id": "heroine1", "name": null, "age": null, "department": null, "position": null, "addressing_rules": [], "appearance": null, "personality": null, "initial_relationship": {}, "initial_stats": {}, "initial_csa_attitudes": {}, "voice_id": null, "storage_bucket": "Image", "storage_prefix": "Heroine1", "primary_image_path": "Heroine1/one_main.jpg", "adult_image_prefix": "Heroine1/adult/", "mapping_status": "resolved" },
+    { "character_id": "heroine2", "name": null, "age": null, "department": null, "position": null, "addressing_rules": [], "appearance": null, "personality": null, "initial_relationship": {}, "initial_stats": {}, "initial_csa_attitudes": {}, "voice_id": null, "storage_bucket": null, "storage_prefix": null, "primary_image_path": null, "adult_image_prefix": null, "mapping_status": "unresolved" },
+    { "character_id": "heroine3", "name": null, "age": null, "department": null, "position": null, "addressing_rules": [], "appearance": null, "personality": null, "initial_relationship": {}, "initial_stats": {}, "initial_csa_attitudes": {}, "voice_id": null, "storage_bucket": null, "storage_prefix": null, "primary_image_path": null, "adult_image_prefix": null, "mapping_status": "unresolved" },
+    { "character_id": "heroine4", "name": null, "age": null, "department": null, "position": null, "addressing_rules": [], "appearance": null, "personality": null, "initial_relationship": {}, "initial_stats": {}, "initial_csa_attitudes": {}, "voice_id": null, "storage_bucket": null, "storage_prefix": null, "primary_image_path": null, "adult_image_prefix": null, "mapping_status": "unresolved" },
+    { "character_id": "heroine5", "name": null, "age": null, "department": null, "position": null, "addressing_rules": [], "appearance": null, "personality": null, "initial_relationship": {}, "initial_stats": {}, "initial_csa_attitudes": {}, "voice_id": null, "storage_bucket": null, "storage_prefix": null, "primary_image_path": null, "adult_image_prefix": null, "mapping_status": "unresolved" }
+  ]
+}

@@ -1,0 +1,6 @@
+[SCENE]
+The room is quiet.
+[DIALOGUE speaker="npc-a"
+This marker is incomplete.
+[CHOICES]
+1. Only one choice.

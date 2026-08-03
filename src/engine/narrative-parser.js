@@ -7,15 +7,16 @@ function parseChoices(text) {
 
 export function parseNarrative(rawText) {
   const raw = String(rawText ?? '');
-  const marker = /\[(SCENE|PLAYER_STATUS|CHOICES|DIALOGUE\s+[^\[\]]*)\]/g;
+  const marker = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|DIALOGUE\s+[^\[\]]*)\]/g;
   const matches = [...raw.matchAll(marker)];
   const blocks = [];
   const warnings = [];
   let playerStatus = '';
+  let playerInnerThought = '';
   let choices = [];
 
   if (matches.length === 0) {
-    return { raw, blocks: raw.trim() ? [{ type: 'unparsed', text: raw.trim() }] : [], player_status: '', choices: [], warnings: ['no_recognized_markers', 'choices_not_exactly_four'] };
+    return { raw, blocks: raw.trim() ? [{ type: 'unparsed', text: raw.trim() }] : [], player_status: '', player_inner_thought: '', choices: [], warnings: ['no_recognized_markers', 'choices_not_exactly_four'] };
   }
 
   const prefix = raw.slice(0, matches[0].index).trim();
@@ -32,7 +33,7 @@ export function parseNarrative(rawText) {
     const text = raw.slice(start, end).trim();
 
     if (label === 'SCENE') {
-      const malformedMarkerIndex = text.search(/\[(?:SCENE|PLAYER_STATUS|CHOICES|DIALOGUE)\b/);
+      const malformedMarkerIndex = text.search(/\[(?:SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|DIALOGUE)\b/);
       if (malformedMarkerIndex === -1) {
         if (text) blocks.push({ type: 'scene', text });
       } else {
@@ -46,6 +47,11 @@ export function parseNarrative(rawText) {
     }
     if (label === 'PLAYER_STATUS') {
       playerStatus = text;
+      continue;
+    }
+    if (label === 'PLAYER_INNER_THOUGHT') {
+      playerInnerThought = text;
+      if (text) blocks.push({ type: 'player_inner_thought', text });
       continue;
     }
     if (label === 'CHOICES') {
@@ -68,5 +74,5 @@ export function parseNarrative(rawText) {
     warnings.push('choices_not_exactly_four');
   }
   if (/\[DIALOGUE\b(?![^\]]*\])/.test(raw)) warnings.push('incomplete_dialogue_marker');
-  return { raw, blocks, player_status: playerStatus, choices, warnings };
+  return { raw, blocks, player_status: playerStatus, player_inner_thought: playerInnerThought, choices, warnings };
 }
