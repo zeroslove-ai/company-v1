@@ -185,6 +185,74 @@ test('a reloaded reserved setup retries the same opening without a second player
   });
 });
 
+test('a failed opening retry surfaces the error in the shared setup area, keeps the reserved section active, and never calls player-setup again', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const reserved = validContext({ choices: [] });
+    reserved.save.data.player_setup = { version: 1, setup_id: 'reserved-setup', status: 'reserved', completed: false };
+    reserved.save.data.opening_state = { setup_id: 'reserved-setup', status: 'planned', plan: { weekday: '월요일' } };
+    let openingCalls = 0, playerSetupCalls = 0;
+    const api = {
+      context: async () => ({ context: reserved }),
+      actionStatus: async () => ({}),
+      playerSetup: async () => { playerSetupCalls += 1; throw new Error('must not create a new setup'); },
+      opening: async ({ setup_id }) => {
+        openingCalls += 1;
+        assert.equal(setup_id, 'reserved-setup');
+        throw new ApiError({ endpoint: '/api/opening', status: 502, code: 'opening_failed', message: '오프닝 생성에 실패했습니다.' });
+      }
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    assert.equal(nodes['player-setup-form'].hidden, true);
+    assert.equal(nodes['reserved-opening'].hidden, false);
+
+    await nodes['retry-opening'].onclick();
+
+    assert.equal(openingCalls, 1);
+    assert.equal(playerSetupCalls, 0);
+    assert.equal(nodes['setup-error'].hidden, false);
+    assert.equal(nodes['setup-error'].textContent, '오프닝 생성에 실패했습니다.');
+    assert.equal(nodes['player-setup-form'].hidden, true);
+    assert.equal(nodes['reserved-opening'].hidden, false);
+    assert.equal(nodes['retry-opening'].disabled, false);
+    assert.equal(reservedPlayerSetupId(app.context), 'reserved-setup');
+  });
+});
+
+test('a failed new player-setup submission shows the error in the shared setup area and preserves the entered values', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const fresh = validContext({ choices: [] });
+    delete fresh.save.data.player_setup;
+    let playerSetupCalls = 0;
+    const api = {
+      context: async () => ({ context: fresh }),
+      actionStatus: async () => ({}),
+      playerSetup: async () => { playerSetupCalls += 1; throw new ApiError({ endpoint: '/api/player-setup', status: 400, code: 'invalid_player_setup', message: '입력값을 확인해 주세요.' }); }
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    assert.equal(nodes['player-setup-overlay'].hidden, false);
+    nodes['setup-name'].value = '김하늘';
+    nodes['setup-department'].value = 'brand_strategy';
+    nodes['setup-position'].value = 'intern';
+    nodes['setup-height'].value = '170';
+    nodes['setup-weight'].value = '65';
+    nodes['setup-penis-length'].value = '13';
+    nodes['setup-body-type'].value = 'balanced';
+    nodes['setup-speech-style'].value = 'polite';
+
+    await nodes['player-setup-form'].listeners.get('submit')();
+
+    assert.equal(playerSetupCalls, 1);
+    assert.equal(nodes['setup-error'].hidden, false);
+    assert.equal(nodes['setup-error'].textContent, '입력값을 확인해 주세요.');
+    assert.equal(nodes['setup-name'].value, '김하늘');
+    assert.equal(nodes['setup-height'].value, '170');
+    assert.equal(nodes['setup-weight'].value, '65');
+    assert.equal(nodes['player-setup-overlay'].hidden, false);
+  });
+});
+
 test('pending action keeps recovery UI ahead of resume and preserves recovery endpoint behavior', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     const local = storage(); const pending = { game_id: gameId, action_id: 'saved-action', expected_turn: 4, player_action: 'Saved action', created_at: 'now', step: 'story' }; savePending(local, pending);
@@ -271,6 +339,10 @@ test('state and shell keep renderer free of raw Context fallback and developer p
   assert.equal(html.indexOf('id="story-panel"') < html.indexOf('id="character-state"'), true);
   assert.equal(html.indexOf('id="character-state"') < html.indexOf('id="player-panel"'), true);
   assert.equal(html.indexOf('id="player-panel"') < html.indexOf('id="choice-list"'), true);
+  // setup-error must be a shared sibling of the form and the reserved-opening section, not nested
+  // inside the form, so it stays visible while the form is hidden during a reserved-opening retry.
+  assert.equal(html.indexOf('id="setup-error"') < html.indexOf('id="player-setup-form"'), true);
+  assert.equal(html.indexOf('id="player-setup-form"') < html.indexOf('id="reserved-opening"'), true);
   assert.equal(html.indexOf('id="choice-list"') < html.indexOf('class="utility-toolbar"'), true);
   const values = stateDisplayValues(buildCompanyGameViewModel(validContext()));
   assert.equal(Object.values(values).some(value => value.includes('[object Object]')), false);

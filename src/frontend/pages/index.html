@@ -60,9 +60,10 @@
     </main>
 
     <div id="player-setup-overlay" class="player-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="player-setup-heading" hidden>
+      <p id="setup-error" class="status-banner error" role="alert" aria-live="assertive" hidden></p>
+
       <form id="player-setup-form" class="player-setup-form">
         <h2 id="player-setup-heading">플레이어 설정</h2>
-        <p id="setup-error" class="status-banner error" role="alert" hidden></p>
 
         <label for="setup-name">이름</label>
         <input id="setup-name" type="text" maxlength="20" required>
