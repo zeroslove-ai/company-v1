@@ -84,3 +84,33 @@ test('bootstrap has no legacy runtime dependency or deployment scripts', () => {
   const scripts = readJson('package.json').scripts;
   assert.deepEqual(scripts, { test: 'node --test test/*.test.mjs', verify: 'npm test' });
 });
+
+test('active planning documents use the independent repository baseline', () => {
+  const docs = [
+    'docs/CODEX_IMPLEMENTATION_PLAN.md',
+    'docs/MASTER_ARCHITECTURE.md',
+    'docs/INFRASTRUCTURE_PLAN.md',
+    'docs/NEW_SESSION_HANDOFF.md',
+    'docs/NEXT_PHASE_PLAN.md'
+  ];
+  const required = ['zeroslove-ai/company-v1', 'main', 'src/api', 'src/engine', 'src/frontend', 'Phase 0.5'];
+  const obsoleteActiveInstructions = [
+    '저장소: `zeroslove-ai/py-all`',
+    '회사편 브랜치: `feature/company-v1`',
+    'git pull --ff-only origin feature/company-v1',
+    'apps/company-v1/api',
+    'apps/company-v1/frontend',
+    'packages/game-core',
+    'content/company-v1',
+    'docs/company_v1',
+    'PR #10을'
+  ];
+
+  for (const file of docs) {
+    const source = read(file);
+    for (const token of required) assert.ok(source.includes(token), `${file} is missing ${token}`);
+    for (const token of obsoleteActiveInstructions) {
+      assert.equal(source.includes(token), false, `${file} retains obsolete active instruction: ${token}`);
+    }
+  }
+});

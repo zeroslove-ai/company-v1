@@ -1,56 +1,31 @@
-# 회사편 v1 다음 단계 계획
+# Next phase plan
 
-상태: active sequence plan
-기준일: 2026-08-03
+## Current PR state
 
-## 현재 상태
+- Repository: `zeroslove-ai/company-v1`
+- Stable base: `main`
+- PR #1: **Phase 0 independent repository bootstrap**
+- Head branch: `phase/0-bootstrap`
+- Head commit: `3e0d0d5e05179f045b9e656436ca80750651f8cc`
+- Status: documentation correction is required before the PR is validated and merged.
+- Supabase, Cloudflare, and deployment have not been performed.
 
-- Phase 0 골격 PR: #10
-- PR head: `company/phase-0-scaffold`
-- PR commit: `59ad5a236159e88a1959048c03d4fd3dc21d9f4f`
-- base: `feature/company-v1`
-- Supabase·Cloudflare·외부 모델 호출 미실행
+The active roots are `src/api`, `src/engine`, `src/frontend`, `content`, `docs`, `fixtures`, `test`, `scripts`, `supabase/migrations`, and `supabase/seed`.
 
-## 다음 순서
+## Required sequence
 
-1. PR #10을 `feature/company-v1`에 merge
-2. `GAMEPLAY_DESIGN_OPTIONS.md`의 사용자 선택 확정
-3. Phase 0.5 gameplay contract 문서와 fixture 작성
-4. 정적 계약 테스트 작성
-5. Phase 0.5 PR 검토·merge
-6. 확정 schema를 기준으로 Phase 1 DB migration 작성
+1. Correct and validate the Phase 0 documentation on PR #1.
+2. Squash-merge PR #1 into `main` only when explicit authorization is given.
+3. Create a `phase/0.5-*` branch from `main`.
+4. Implement **Phase 0.5** gameplay, recovery, and state contracts, fixtures, and static tests; open a dedicated PR.
+5. Implement the Phase 1 company-only migration package without applying it.
+6. Implement the Phase 2 context → Story SSE → Extract → guarded Commit vertical loop.
+7. Add later content, CSA, choices, parser, frontend, images, and TTS work in Phase 3 and later.
 
-DB migration을 Phase 0.5보다 먼저 만들지 않는다.
+## Phase 0.5 boundaries
 
-## Phase 0.5 산출물
+Phase 0.5 produces only contracts, fixtures, and static tests. It does not create a Supabase project, apply migrations, create Cloudflare Workers, deploy, or call external game services.
 
-- 관계 multi-axis schema
-- global common-sense baseline + per-CSA attitude schema
-- active rule slot/scene applicability contract
-- rule conflict precedence
-- activation/deactivation/aftereffect contract
-- scene state
-- NPC soft availability
-- event ledger
-- risk outcome contract
-- player setup contract
-- character behavior core schema
-- fixture JSON
-- 정적 계약 테스트
+## Repository boundary
 
-## Phase 0.5 금지
-
-- Supabase project 생성
-- migration apply
-- Cloudflare 배포
-- Story/Extract 실호출
-- 병원편 변경
-- 게임 reset
-
-## 기준 문서
-
-- `GAMEPLAY_DESIGN_OPTIONS.md`
-- `GAME_SYSTEM_DESIGN.md`
-- `DESIGN_REVIEW_BACKLOG.md`
-- `NARRATIVE_OUTPUT_CONTRACT.md`
-- `UI_UX_REDESIGN.md`
+`zeroslove-ai/company-v1` is the only active baseline. Legacy material is historical reference only, superseded, and prohibited as a runtime dependency, direct import, or fallback.
