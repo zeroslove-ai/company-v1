@@ -2,7 +2,9 @@
 
 ## Status
 
-This repository contains an unapplied SQL package for a future, independent Company v1 Supabase project. No project has been created or connected, and no migration or seed has been applied.
+This repository contains an unapplied SQL package for the independent Company v1 Supabase project. The target project is `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), named `company-v1` in `ap-northeast-1`. Its public schema was verified empty. Migration and seed have not yet been applied.
+
+The retired Dify project is not used and must not be modified.
 
 ## Migration order
 
@@ -16,7 +18,7 @@ This repository contains an unapplied SQL package for a future, independent Comp
 - `games` stores the product game identity and lifecycle status without an `is_active` flag.
 - `game_master` stores immutable master data and `initial_save`; reset never modifies it.
 - `game_save` is the current state. Its `committed_turn` column is the database authority and is synchronized with JSON turn state by RPCs.
-- `game_actions` makes action IDs idempotent and records Story/Extract/Commit recovery state.
+- `game_actions` makes action IDs idempotent, records Story/Extract/Commit recovery state, and pins feedback reservations to `target_turn_id`.
 - `game_turns` stores full Story text, parsed blocks, Extract delta, pre-save, post-save, summary, monitor data, and choices. Feedback preserves the replaced row as `superseded`.
 - `image_library` reserves independent image metadata without seeding images or fallback identifiers.
 
@@ -24,18 +26,18 @@ This repository contains an unapplied SQL package for a future, independent Comp
 
 Action reservation rejects expected-turn conflicts and returns an existing action for the same action ID. Story and Extract results are immutable once recorded. Commit locks the action and save, validates canonical save v1, preserves pre-save, and replays a completed action instead of creating another turn.
 
-Feedback targets only the latest active turn. It preserves the original player action and pre-save, records feedback separately, adds a higher revision row, and marks the previous record `superseded`. Reset requires an exact title confirmation, deletes only that game's turn/action rows, restores `game_save` from `game_master.initial_save`, and leaves master data unchanged.
+Feedback targets only the latest active turn. A reservation stores that original turn ID, and replay returns its original turn ID, player action, and pre-save. Commit locks the reserved target and rejects a stale reservation before it can overwrite a newer revision. A valid revision preserves the original player action and pre-save, records feedback separately, adds a higher revision row, and marks the previous record `superseded`. Reset requires an exact title confirmation, deletes only that game's turn/action rows, restores `game_save` from `game_master.initial_save`, and leaves master data unchanged.
 
 ## Access boundary
 
 Every table has RLS enabled. The package grants no direct browser table access and grants RPC execution only to `service_role`; functions revoke public execution before that grant. Browser clients must not access Supabase directly.
 
-## Required user work before application
+## Next authorized steps
 
-1. Create a new Supabase project.
-2. Select its region.
-3. Confirm the new project ref and API URL.
-4. Store the service-role secret only in local or Cloudflare secret configuration.
-5. Explicitly approve migration application.
+1. Final-review and merge PR #3.
+2. Apply the three migrations to the target project.
+3. Apply the development seed.
+4. Verify tables, RPCs, RLS, and seed data.
+5. Begin the Phase 2 vertical loop.
 
-Those actions are outside Phase 1 package authoring. Cloudflare resources and deployment are also outside this phase.
+Migration and seed application require explicit authorization. Store the service-role secret only in local or Cloudflare secret configuration and never in this repository. Cloudflare resources and deployment remain outside this work.

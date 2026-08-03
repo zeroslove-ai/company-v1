@@ -56,6 +56,7 @@ create table public.game_actions (
   turn_id uuid not null default gen_random_uuid(),
   action_kind text not null default 'player_turn' check (action_kind in ('player_turn', 'feedback_revision')),
   expected_turn integer not null check (expected_turn >= 0),
+  target_turn_id uuid,
   player_action text,
   feedback_text text,
   revision_request_id uuid,
@@ -111,6 +112,14 @@ create unique index game_turns_revision_request_id_key
   where revision_request_id is not null;
 create index game_turns_game_committed_at_idx
   on public.game_turns (game_id, committed_at desc);
+
+alter table public.game_actions
+  add constraint game_actions_target_turn_id_fkey
+  foreign key (target_turn_id)
+  references public.game_turns(turn_id)
+  on delete set null;
+create index game_actions_game_target_turn_idx
+  on public.game_actions (game_id, target_turn_id);
 
 create table public.image_library (
   id uuid primary key default gen_random_uuid(),
@@ -214,5 +223,6 @@ begin
 end;
 $$;
 
+revoke all on function public.set_updated_at() from public;
 revoke all on function public.validate_company_save_v1(jsonb) from public;
 grant execute on function public.validate_company_save_v1(jsonb) to service_role;

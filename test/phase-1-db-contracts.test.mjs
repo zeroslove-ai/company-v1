@@ -28,6 +28,9 @@ test('core schema has independent Company v1 tables and save validator', () => {
     assert.match(core, new RegExp(`create table public\\.${table}`, 'i'));
   }
   assert.match(core, /validate_company_save_v1/i);
+  assert.match(core, /target_turn_id uuid/i);
+  assert.match(core, /game_actions_target_turn_id_fkey[\s\S]*on delete set null/i);
+  assert.match(core, /revoke all on function public\.set_updated_at\(\) from public/i);
   for (const key of ['save_schema_version', 'edition', 'turn_state', 'player', 'scene_state', 'csa_attitudes', 'event_ledger', 'last_choices']) assert.ok(core.includes(key));
   assert.doesNotMatch(core, /is_active|game_sessions|emotion_id/i);
   assert.match(core, /enable row level security/i);
@@ -45,6 +48,15 @@ test('turn and feedback RPCs preserve idempotency, conflicts, revisions, and res
   assert.match(turn, /replayed/i);
   assert.match(feedback, /latest active turn/i);
   assert.match(feedback, /record_status = 'superseded'/i);
+  assert.match(feedback, /target_turn_id/i);
+  assert.match(feedback, /original_turn_id/i);
+  assert.match(feedback, /original_player_action/i);
+  assert.match(feedback, /pre_save/i);
+  assert.match(feedback, /where turn_id = v_action\.target_turn_id/i);
+  assert.match(feedback, /v_original\.record_status <> 'active'/i);
+  assert.match(feedback, /feedback target is no longer the latest active turn/i);
+  assert.match(feedback, /revision request id is required/i);
+  assert.match(feedback, /feedback text is required/i);
   assert.match(feedback, /delete from public\.game_turns where game_id = p_game_id/i);
   assert.match(feedback, /delete from public\.game_actions where game_id = p_game_id/i);
   assert.doesNotMatch(feedback, /update public\.game_master/i);

@@ -9,7 +9,10 @@
 - Current task: Phase 1 database migration package.
 - PR #2 was merged before this phase began.
 - Phase 0.5 gameplay contracts: completed and merged through PR #2
-- Supabase project not created; Cloudflare resources not created; deployment not performed.
+- Target Supabase project: `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), project name `company-v1`, region `ap-northeast-1`.
+- The new project's public schema was verified empty. Migration and seed have not been applied.
+- The retired Dify project is not used and must not be modified.
+- Cloudflare resources not created; deployment not performed.
 
 ### Current repository structure
 

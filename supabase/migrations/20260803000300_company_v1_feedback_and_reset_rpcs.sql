@@ -16,6 +16,13 @@ declare
   v_original public.game_turns%rowtype;
   v_action public.game_actions%rowtype;
 begin
+  if p_revision_request_id is null then
+    raise exception 'revision request id is required' using errcode = '22023';
+  end if;
+  if nullif(btrim(p_feedback_text), '') is null then
+    raise exception 'feedback text is required' using errcode = '22023';
+  end if;
+
   select * into v_save from public.game_save where game_id = p_game_id for update;
   if not found then
     raise exception 'company game save not found' using errcode = 'P0002';
@@ -25,13 +32,21 @@ begin
   end if;
 
   select * into v_existing from public.game_actions
-  where game_id = p_game_id and revision_request_id = p_revision_request_id;
+  where game_id = p_game_id and revision_request_id = p_revision_request_id for update;
   if found then
+    select * into v_original from public.game_turns
+    where turn_id = v_existing.target_turn_id and game_id = p_game_id;
+    if not found then
+      raise exception 'feedback replay target integrity error' using errcode = 'XX000';
+    end if;
     return jsonb_build_object(
       'revision_request_id', p_revision_request_id,
       'action_id', v_existing.action_id,
       'replacement_turn_id', v_existing.turn_id,
-      'target_turn_number', v_existing.expected_turn,
+      'target_turn_number', v_original.turn_number,
+      'original_turn_id', v_original.turn_id,
+      'original_player_action', v_original.player_action,
+      'pre_save', v_original.pre_save,
       'processing_status', v_existing.processing_status,
       'replayed', true
     );
@@ -47,10 +62,10 @@ begin
   end if;
 
   insert into public.game_actions (
-    action_id, game_id, action_kind, expected_turn, player_action,
+    action_id, game_id, action_kind, expected_turn, target_turn_id, player_action,
     feedback_text, revision_request_id, processing_status
   ) values (
-    gen_random_uuid(), p_game_id, 'feedback_revision', v_save.committed_turn,
+    gen_random_uuid(), p_game_id, 'feedback_revision', v_save.committed_turn, v_original.turn_id,
     v_original.player_action, p_feedback_text, p_revision_request_id, 'story_streaming'
   ) returning * into v_action;
 
@@ -109,12 +124,14 @@ begin
   end if;
 
   select * into v_original from public.game_turns
-  where game_id = p_game_id
-    and turn_number = v_save.committed_turn
-    and record_status = 'active'
+  where turn_id = v_action.target_turn_id
+    and game_id = p_game_id
   for update;
-  if not found or v_original.turn_number <> v_action.expected_turn then
-    raise exception 'only the latest active turn may be revised' using errcode = '40001';
+  if not found
+     or v_original.record_status <> 'active'
+     or v_original.turn_number <> v_save.committed_turn
+     or v_original.turn_number <> v_action.expected_turn then
+    raise exception 'feedback target is no longer the latest active turn' using errcode = '40001';
   end if;
 
   v_next_save := jsonb_set(p_next_save, '{turn_state,committed_turn}', to_jsonb(v_save.committed_turn), true);
