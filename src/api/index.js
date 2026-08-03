@@ -1,6 +1,7 @@
 import edition from './edition.js';
 import { fail, HttpError, jsonResponse, optionsResponse } from './http.js';
 import { createTurnRoutes } from './turn-routes.js';
+import { GameCoreError } from '../engine/errors.js';
 
 const PHASE = 'phase-2-vertical-loop';
 
@@ -32,7 +33,9 @@ export function createApiWorker({ fetchImpl = fetch } = {}) {
         if (request.method === 'POST' && pathname === '/api/action-status') return await routes.actionStatus(request, env, ctx);
         return fail(new HttpError(404, 'not_found', 'Route not found'));
       } catch (error) {
-        return fail(error);
+        return fail(error instanceof GameCoreError
+          ? new HttpError(422, error.code.toLowerCase(), error.message)
+          : error);
       }
     }
   };

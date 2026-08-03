@@ -216,3 +216,13 @@ test('Phase 2 does not make duplicate LLM calls while Story or Extract is alread
   assert.equal(extract.status, 409);
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 0);
 });
+
+test('Phase 2 exposes invalid Extract envelopes as contract errors', async () => {
+  const mock = createMockFetch({ extractContentSequence: [JSON.stringify({ state_delta: {}, outcome: 'not_allowed' })] });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'validate extract' };
+  await (await worker.fetch(request('/api/story', body), env)).text();
+  const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.equal(response.status, 422);
+  assert.equal((await response.json()).error.code, 'invalid_extract');
+});

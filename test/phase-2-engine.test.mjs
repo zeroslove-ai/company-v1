@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   applyGuardedStateDelta,
+  buildExtractPrompt,
   deriveRecoverableStep,
   normalizeExtractEnvelope,
   parseNarrative
@@ -118,4 +119,9 @@ test('recovery states require the persisted result needed by the next step', () 
   assert.equal(deriveRecoverableStep({ processing_status: 'extract_failed' }), 'retry_extract');
   assert.equal(deriveRecoverableStep({ processing_status: 'commit_failed' }), 'retry_commit');
   assert.equal(deriveRecoverableStep({ processing_status: 'committed' }), 'complete');
+});
+
+test('Extract prompt requires the complete normalized envelope', () => {
+  const prompt = buildExtractPrompt({ context: {}, storyText: '[SCENE]\nTest', parsedStory: {}, playerAction: 'test', expectedTurn: 1 });
+  assert.match(prompt[0].content, /state_delta \(object\).*outcome.*evidence \(object\).*turn_summary.*mind_monitor.*choices.*dialogue_lines/i);
 });
