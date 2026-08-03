@@ -1,0 +1,19 @@
+import { createEditionAdapter } from '../engine/index.js';
+import editionContent from '../../content/edition.json' with { type: 'json' };
+import organization from '../../content/organization.json' with { type: 'json' };
+import map from '../../content/map.json' with { type: 'json' };
+import characters from '../../content/characters.json' with { type: 'json' };
+import generalNpcs from '../../content/general_npcs.json' with { type: 'json' };
+import csaPresets from '../../content/csa_presets.json' with { type: 'json' };
+
+const edition = createEditionAdapter({
+  editionId: editionContent.edition_id,
+  contentVersion: editionContent.content_version,
+  organization,
+  map,
+  characters,
+  generalNpcs,
+  csaPresets
+});
+
+export default edition;
