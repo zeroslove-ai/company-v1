@@ -13,3 +13,11 @@
 .utility-toolbar { justify-content: flex-end; margin-top: 1rem; }.utility-toolbar button { min-height: 2.5rem; background: transparent; text-align: center; }
 @media (max-width: 720px) { .game-shell { padding: .75rem; }.game-header { align-items: flex-start; }.game-layout { grid-template-columns: 1fr; gap: .75rem; }.story-panel { min-height: 0; }.choice-list { grid-template-columns: 1fr; }.status-column { gap: .75rem; }.utility-toolbar { justify-content: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }.utility-toolbar button { width: 100%; }.state-panel:not([open]) + .player-panel { margin-top: 0; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+.player-setup-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 1rem; overflow-y: auto; background: rgb(5 10 16 / .76); backdrop-filter: blur(4px); }
+.player-setup-overlay[hidden] { display: none; }
+.player-setup-form { width: min(100%, 34rem); max-height: calc(100dvh - 2rem); overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: .55rem; padding: 1.25rem; border: 1px solid #4d7188; border-radius: .8rem; color: #e8f2f7; background: #16232e; box-shadow: 0 1.25rem 4rem rgb(0 0 0 / .5); }
+.player-setup-form h2 { margin: 0 0 .35rem; }
+.player-setup-form input, .player-setup-form select, .player-setup-form button { min-height: 2.75rem; box-sizing: border-box; border: 1px solid #4d7188; border-radius: .5rem; color: #f5fbff; background: #111923; padding: .55rem .7rem; }
+.player-setup-form button { margin-top: .4rem; cursor: pointer; background: #38677d; }
+.player-setup-form button:disabled { cursor: wait; }
+@media (max-width: 720px) { .player-setup-overlay { align-items: start; padding: .75rem; }.player-setup-form { width: 100%; max-height: calc(100dvh - 1.5rem); grid-template-columns: 1fr; padding: 1rem; } }

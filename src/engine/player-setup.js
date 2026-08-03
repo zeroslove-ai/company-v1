@@ -138,7 +138,9 @@ export function buildOpeningPlan({ positionId, seedBytes, heroineIds }) {
 }
 
 const BODY_KEYWORDS = ['외모', '체형', '옷', '벗', '신체', '몸매', '근육', '키가', '몸무게', '헬스', '운동'];
-const SEXUAL_KEYWORDS = ['성적', '섹스', '키스', '애무', '자위', '가슴', '성기', '벗기', '스킨십', '포옹'];
+// This is deliberately narrower than general intimacy. Measurements are relevant only
+// when the action directly concerns genitals, penetration/intercourse, or exposure.
+const SEXUAL_KEYWORDS = ['성기', '음경', '페니스', '삽입', '성교', '섹스', '노출', '발기', '질내', '구강성교', '항문성교'];
 const BACKGROUND_KEYWORDS = ['경력', '이력', '예전', '과거', '입사 전', '이전 직장', '전 직장', '대학교', '졸업'];
 
 function mentionsAny(text, keywords) {
@@ -173,7 +175,7 @@ export function buildPlayerPromptProjection({ player, canonical, playerAction = 
   return base;
 }
 
-/** The opening turn always sees the full player profile, since it is writing the character's first scene. */
+/** The opening sees the canonical profile and non-sensitive body context only. */
 export function buildOpeningPlayerProjection({ player, canonical } = {}) {
   return {
     name: typeof player?.name === 'string' ? player.name : null,
@@ -182,8 +184,7 @@ export function buildOpeningPlayerProjection({ player, canonical } = {}) {
     speech_style: canonical?.speechStyleName ?? null,
     height_cm: player?.height_cm ?? null,
     weight_kg: player?.weight_kg ?? null,
-    body_type: canonical?.bodyTypeName ?? null,
-    penis_length_cm: player?.penis_length_cm ?? null
+    body_type: canonical?.bodyTypeName ?? null
   };
 }
 
@@ -192,7 +193,7 @@ function plainObject(value) {
 }
 
 /**
- * Assembles the opening's next save purely from the already-persisted opening_plan and the
+ * Assembles the opening's next save purely from the already-persisted opening plan and the
  * parsed opening Story — no Extract call is needed since the scene/time facts were already
  * decided deterministically at player-setup time. Never mutates preSave. The opening is
  * turn 0: turn_state.committed_turn is left untouched so the player's first real action
@@ -222,7 +223,8 @@ export function buildOpeningNextSave({ preSave, player, openingPlan, background,
   next.last_npcs_present = participants;
   next.focal_character_id = openingPlan?.primary_character_id ?? null;
   next.opening_state = {
-    story: typeof parsedOpening?.raw === 'string' ? parsedOpening.raw : '',
+    plan: structuredClone(plainObject(openingPlan) ? openingPlan : {}),
+    story_text: typeof parsedOpening?.raw === 'string' ? parsedOpening.raw : '',
     choices: Array.isArray(parsedOpening?.choices) ? parsedOpening.choices : [],
     status: 'complete'
   };

@@ -5,7 +5,6 @@ import {
   applyGuardedStateDelta,
   buildDegradedExtractEnvelope,
   buildExtractPrompt,
-  buildOpeningNextSave,
   buildOpeningPlan,
   buildOpeningPrompt,
   buildStableNpcIdSet,
@@ -396,10 +395,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         if (!validation.valid) throw new HttpError(400, 'invalid_player_setup', `Invalid player setup: ${validation.errors.join(', ')}`, false);
         const setupId = randomUuid();
         const openingPlan = buildOpeningPlan({ positionId: validation.player.position_id, seedBytes: randomSeedBytes(), heroineIds });
-        const result = await db.callRpc('save_company_player_setup', {
+        const result = await db.callRpc('reserve_company_player_setup', {
           p_game_id: gameId, p_setup_id: setupId, p_player: validation.player, p_opening_plan: openingPlan
         });
-        return ok({ setup_id: result.setup_id, player: result.player, opening_plan: result.opening_plan });
+        return ok({ setup_id: result.setup_id, player: result.player, opening_state: result.opening_state });
       } finally {
         logTurnTiming({ event_stage: 'player_setup', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
@@ -420,7 +419,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
 
       if (preSave?.player_setup?.completed === true && preSave?.opening_state?.status === 'complete') {
         return storySse({ meta: { setup_id: setupId, replayed: true }, run: async emit => {
-          emit('delta', { text: preSave.opening_state.story });
+          emit('delta', { text: preSave.opening_state.story_text });
           emit('complete', { setup_id: setupId, choices: preSave.opening_state.choices, replayed: true });
         } });
       }
@@ -428,7 +427,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       return storySse({ meta: { setup_id: setupId, replayed: false }, run: async emit => {
         const timing = {};
         try {
-          const openingPlan = preSave.opening_plan;
+          const openingPlan = preSave.opening_state?.plan;
           if (!openingPlan) throw new HttpError(409, 'opening_plan_missing', 'No opening plan was saved for this setup', false);
           const player = preSave.player ?? {};
           const canonical = resolvePlayerCanonicalNames(player, catalogs);
@@ -441,8 +440,13 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           }
           const { background, body: sections, warnings: splitWarnings } = splitOpeningSections(raw);
           const parsedOpening = parseNarrative(sections, { master });
-          const nextSave = buildOpeningNextSave({ preSave, player, openingPlan, background, parsedOpening });
-          const commit = await db.callRpc('commit_company_opening', { p_game_id: gameId, p_setup_id: setupId, p_next_save: nextSave });
+          const commit = await db.callRpc('commit_company_opening', {
+            p_game_id: gameId,
+            p_setup_id: setupId,
+            p_background: background,
+            p_story_text: parsedOpening.raw,
+            p_choices: parsedOpening.choices
+          });
           emit('complete', {
             setup_id: setupId, choices: parsedOpening.choices, background,
             warnings: [...splitWarnings, ...parsedOpening.warnings], replayed: false, commit

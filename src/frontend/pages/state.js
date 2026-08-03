@@ -26,6 +26,6 @@ export function recoveryFor(status) { const step = status?.recoverable_step ?? '
 export function playerSetupCompleted(context) { return saveFromContext(context)?.player_setup?.completed === true; }
 export function openingHistoryTurn(context) {
   const opening = saveFromContext(context)?.opening_state;
-  if (!opening || opening.status !== 'complete' || typeof opening.story !== 'string' || !opening.story.trim()) return null;
-  return { player_action: '(오프닝)', story_text: opening.story, turn_summary: '', choices: Array.isArray(opening.choices) ? opening.choices : [] };
+  if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
+  return { player_action: '(오프닝)', story_text: opening.story_text, turn_summary: '', choices: Array.isArray(opening.choices) ? opening.choices : [] };
 }

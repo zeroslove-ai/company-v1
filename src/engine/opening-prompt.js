@@ -12,7 +12,7 @@ export function splitOpeningSections(rawText) {
   const backgroundMatch = /\[배경\]\s*([\s\S]*)/.exec(head);
   const rawBackground = (backgroundMatch ? backgroundMatch[1] : head).trim();
   const truncated = Array.from(rawBackground).length > BACKGROUND_MAX;
-  const background = truncated ? `${Array.from(rawBackground).slice(0, BACKGROUND_MAX).join('')}…` : rawBackground;
+  const background = truncated ? `${Array.from(rawBackground).slice(0, BACKGROUND_MAX - 1).join('')}…` : rawBackground;
   return { background, body, warnings: truncated ? ['opening_background_truncated'] : [] };
 }
 
@@ -31,7 +31,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   '[4. 선택지]: 정확히 4개를 목표로 하며 각각 플레이어가 다음에 실제로 수행할 하나의 핵심 행동이다.',
 
-  'player의 height_cm/weight_kg/body_type/penis_length_cm은 배경 설명이나 외모 묘사가 실제로 필요할 때만 자연스럽게 반영하고, 매 문장 나열하지 않는다. speech_style은 플레이어의 대사와 속마음 문체에만 영향을 준다 — 말투만으로 플레이어가 입력하지 않은 폭언·행동·범죄를 자동 수행하지 않는다.'
+  'player의 height_cm/weight_kg/body_type은 배경 설명이나 외모 묘사가 실제로 필요할 때만 자연스럽게 반영하고, 매 문장 나열하지 않는다. speech_style은 플레이어의 대사와 속마음 문체에만 영향을 준다 — 말투만으로 플레이어가 입력하지 않은 폭언·행동·범죄를 자동 수행하지 않는다.'
 ].join(' ');
 
 export function buildOpeningPrompt({ edition, player, canonical, openingPlan, expectedTitle }) {

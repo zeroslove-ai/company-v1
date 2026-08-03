@@ -62,14 +62,14 @@ test('every heroine is an adult in 브랜드전략팀 with no invented unsupport
   }
 });
 
-test('required content fields are never null; only voice_id may be null; the compact field list has no detailed-doc-only fields', () => {
+test('required content fields and configured voice IDs are never null; the compact field list has no detailed-doc-only fields', () => {
   const chars = characters();
   const requiredNonNull = ['name', 'age', 'position', 'role_title', 'gender', 'company_tenure'];
   const detailedDocOnlyFields = ['public_role_summary', 'appearance', 'personality', 'speech_style', 'addressing_rules', 'habits', 'work_profile', 'relationship_hooks', 'csa_response_profile', 'youngest_line'];
   for (const id of HEROINE_IDS) {
     const c = chars[id];
     for (const field of requiredNonNull) assert.notEqual(c[field], null, `${id}.${field}`);
-    assert.equal(c.voice_id, null, `${id}.voice_id`);
+    assert.match(c.voice_id, /^[0-9a-f]{32}$/i, `${id}.voice_id`);
     assert.equal(c.mapping_status, 'resolved', `${id}.mapping_status`);
     for (const field of detailedDocOnlyFields) assert.equal(field in c, false, `${id} must not carry ${field}`);
   }

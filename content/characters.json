@@ -40,7 +40,7 @@
       "storage_prefix": "Heroine1",
       "primary_image_path": "Heroine1/one_main.jpg",
       "adult_image_prefix": "Heroine1/adult/",
-      "voice_id": null,
+      "voice_id": "259d7fde62cd445fbde3ce2d8d4f2f3b",
       "mapping_status": "resolved"
     },
     "heroine2": {
@@ -83,7 +83,7 @@
       "storage_prefix": "Heroine2",
       "primary_image_path": "Heroine2/minami_main.jpg",
       "adult_image_prefix": "Heroine2/adult/",
-      "voice_id": null,
+      "voice_id": "85ac82e33b014a16abe9d0b4b9b0cb68",
       "mapping_status": "resolved"
     },
     "heroine3": {
@@ -126,7 +126,7 @@
       "storage_prefix": "Heroine3",
       "primary_image_path": "Heroine3/jena_main.jpg",
       "adult_image_prefix": "Heroine3/adult/",
-      "voice_id": null,
+      "voice_id": "46939387dd944a45a399bd92b8de52cb",
       "mapping_status": "resolved"
     },
     "heroine4": {
@@ -169,7 +169,7 @@
       "storage_prefix": "Heroine4",
       "primary_image_path": "Heroine4/live_main.jpg",
       "adult_image_prefix": "Heroine4/adult/",
-      "voice_id": null,
+      "voice_id": "d06889767ac5416293584676309fa740",
       "mapping_status": "resolved"
     },
     "heroine5": {
@@ -212,7 +212,7 @@
       "storage_prefix": "Heroine5",
       "primary_image_path": "Heroine5/may_main.jpg",
       "adult_image_prefix": "Heroine5/adult/",
-      "voice_id": null,
+      "voice_id": "03a79d68ca184930a1215f9b1b8eb5b5",
       "mapping_status": "resolved"
     }
   }

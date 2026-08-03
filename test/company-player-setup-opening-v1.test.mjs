@@ -91,17 +91,31 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
       currentSave = structuredClone(masterInitialSave);
       return json({ success: true, game_id: args.p_game_id, committed_turn: 0 });
     }
-    if (rpc === 'save_company_player_setup') {
+    if (rpc === 'reserve_company_player_setup') {
       if (currentSave.player_setup?.completed === true) {
         return json({ code: '22023', message: 'player setup is already completed for this game; reset to configure again' }, 500);
       }
-      currentSave = { ...currentSave, player: { ...currentSave.player, ...args.p_player }, player_setup: { version: 1, completed: false, setup_id: args.p_setup_id }, opening_plan: args.p_opening_plan };
-      return json({ setup_id: args.p_setup_id, completed: false, player: currentSave.player, opening_plan: currentSave.opening_plan });
+      currentSave = {
+        ...currentSave,
+        player: { ...currentSave.player, ...args.p_player },
+        player_setup: { version: 1, completed: false, setup_id: args.p_setup_id },
+        opening_state: { plan: args.p_opening_plan, story_text: null, choices: [], status: 'reserved' }
+      };
+      return json({ setup_id: args.p_setup_id, completed: false, player: currentSave.player, opening_state: currentSave.opening_state });
     }
     if (rpc === 'commit_company_opening') {
       if (currentSave.player_setup?.setup_id !== args.p_setup_id) return json({ code: '22023', message: 'player setup identity mismatch' }, 500);
       if (currentSave.player_setup?.completed === true) return json({ success: true, replayed: true, save_revision: saveRevision });
-      currentSave = args.p_next_save;
+      const plan = currentSave.opening_state?.plan;
+      currentSave = {
+        ...currentSave,
+        player: { ...currentSave.player, background: args.p_background },
+        opening_state: { plan, story_text: args.p_story_text, choices: args.p_choices, status: 'complete' },
+        player_setup: { ...currentSave.player_setup, completed: true },
+        last_choices: args.p_choices,
+        last_npcs_present: [plan?.primary_character_id, ...(plan?.supporting_character_ids ?? [])].filter(Boolean),
+        focal_character_id: plan?.primary_character_id ?? null
+      };
       saveRevision += 1;
       return json({ success: true, replayed: false, save_revision: saveRevision });
     }
@@ -203,7 +217,12 @@ test('buildPlayerPromptProjection always sends canonical identity and speech sty
   assert.equal(bodyRelevant.body_type, '균형 잡힌 체형');
   assert.equal('penis_length_cm' in bodyRelevant, false);
 
-  const sexualRelevant = buildPlayerPromptProjection({ player, canonical, playerAction: '은밀하게 스킨십을 시도한다.' });
+  for (const playerAction of ['키스한다.', '포옹한다.', '가슴에 손을 댄다.', '가벼운 스킨십을 시도한다.']) {
+    const nonDirect = buildPlayerPromptProjection({ player, canonical, playerAction });
+    assert.equal('penis_length_cm' in nonDirect, false, playerAction);
+  }
+
+  const sexualRelevant = buildPlayerPromptProjection({ player, canonical, playerAction: '성기를 노출하고 삽입을 시도한다.' });
   assert.equal(sexualRelevant.penis_length_cm, 13);
 
   const backgroundRelevant = buildPlayerPromptProjection({ player, canonical, playerAction: '이전 직장에서의 경력을 이야기한다.' });
@@ -225,7 +244,7 @@ test('buildStoryPrompt never leaks body measurements into an ordinary Story turn
   assert.equal('height_cm' in ordinaryPayload.context.player, false);
   assert.equal(ordinaryPayload.context.player.speech_style, '정중한 존댓말');
 
-  const sexual = buildStoryPrompt({ edition, context, playerAction: '가슴에 손을 뻗어 스킨십을 시도한다.', expectedTurn: 1, npcIds: new Set(heroineIds), catalogs });
+  const sexual = buildStoryPrompt({ edition, context, playerAction: '성기를 노출하고 삽입을 시도한다.', expectedTurn: 1, npcIds: new Set(heroineIds), catalogs });
   const sexualPayload = JSON.parse(sexual[1].content);
   assert.equal(sexualPayload.context.player.penis_length_cm, 13);
 });
@@ -238,7 +257,8 @@ test('splitOpeningSections extracts a background under the 120-char cap and trun
 
   const longBackground = '가'.repeat(150);
   const truncated = splitOpeningSections(`[배경] ${longBackground}\n[1. 서사 및 행동]\n본문`);
-  assert.equal(Array.from(truncated.background).length, 121);
+  assert.equal(Array.from(truncated.background).length, 120);
+  assert.equal(truncated.background.endsWith('…'), true);
   assert.equal(truncated.warnings.includes('opening_background_truncated'), true);
 });
 
@@ -247,6 +267,7 @@ test('buildOpeningPrompt only surfaces the plan\'s active heroines and adds the 
   const canonical = { departmentName: '브랜드전략팀', positionName: '인턴', bodyTypeName: '균형 잡힌 체형', speechStyleName: '정중한 존댓말' };
   const prompt = buildOpeningPrompt({ edition, player: { name: '김하늘', position_id: 'intern', department_id: 'brand_strategy' }, canonical, openingPlan });
   const payload = JSON.parse(prompt[1].content);
+  assert.equal('penis_length_cm' in payload.player, false);
   const activeIds = [openingPlan.primary_character_id, ...openingPlan.supporting_character_ids].filter(Boolean);
   assert.deepEqual(Object.keys(payload.active_character_canon).sort(), [...new Set(activeIds)].sort());
   assert.equal(payload.cross_team_note, null);
@@ -267,6 +288,9 @@ test('buildOpeningNextSave marks setup complete, leaves committed_turn at 0, and
   assert.equal(nextSave.turn_state.committed_turn, 0);
   assert.equal(nextSave.player_setup.completed, true);
   assert.equal(nextSave.opening_state.status, 'complete');
+  assert.deepEqual(nextSave.opening_state.plan, openingPlan);
+  assert.equal(nextSave.opening_state.story_text, parsedOpening.raw);
+  assert.equal('opening_plan' in nextSave, false);
   assert.equal(nextSave.player.background, '배경 요약.');
   assert.deepEqual(nextSave.scene_state.participants, [openingPlan.primary_character_id, ...openingPlan.supporting_character_ids].filter(Boolean));
 });
@@ -293,6 +317,17 @@ test('frontend catalogs mirror the authoritative content catalogs exactly, and e
   for (const entry of [...organization.departments, ...positions.positions]) {
     assert.equal(Array.from(entry.ui_hint).length < 10, true, `${entry.name} ui_hint too long`);
   }
+});
+
+test('all five Company heroines retain their configured voice IDs', () => {
+  const characters = readJsonFile('content/characters.json').characters;
+  assert.deepEqual(Object.fromEntries(Object.entries(characters).map(([id, character]) => [id, character.voice_id])), {
+    heroine1: '259d7fde62cd445fbde3ce2d8d4f2f3b',
+    heroine2: '85ac82e33b014a16abe9d0b4b9b0cb68',
+    heroine3: '46939387dd944a45a399bd92b8de52cb',
+    heroine4: 'd06889767ac5416293584676309fa740',
+    heroine5: '03a79d68ca184930a1215f9b1b8eb5b5'
+  });
 });
 
 test('forbidden player-setup fields never appear in catalogs, engine source, or the opening prompt contract', () => {
@@ -344,15 +379,15 @@ test('/api/player-setup re-validates server-side, rejects invalid submissions be
   const invalid = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: { ...validPlayerBody(), height_cm: 999 } }), env);
   assert.equal(invalid.status, 400);
   assert.equal((await invalid.json()).error.code, 'invalid_player_setup');
-  assert.equal(mock.calls.some(call => call.url.includes('/save_company_player_setup')), false);
+  assert.equal(mock.calls.some(call => call.url.includes('/reserve_company_player_setup')), false);
 
   const response = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
   assert.equal(response.status, 200);
   const payload = (await response.json()).data;
   assert.match(payload.setup_id, /^[0-9a-f-]{36}$/i);
   assert.deepEqual(Object.keys(payload.player).sort(), ['body_type_id', 'department_id', 'height_cm', 'name', 'penis_length_cm', 'position_id', 'speech_style_id', 'weight_kg'].sort());
-  assert.equal(heroineIds.includes(payload.opening_plan.primary_character_id), true);
-  assert.equal(payload.opening_plan.supporting_character_ids.length <= 1, true);
+  assert.equal(heroineIds.includes(payload.opening_state.plan.primary_character_id), true);
+  assert.equal(payload.opening_state.plan.supporting_character_ids.length <= 1, true);
 });
 
 test('/api/player-setup rejects a resubmission once setup is already completed for the game', async () => {
@@ -377,7 +412,7 @@ test('/api/opening streams background plus four choices, commits turn 0, and nev
   const completeLine = text.split('\n\n').find(frame => frame.includes('event: complete'));
   const completeData = JSON.parse(completeLine.split('data:')[1].trim());
   assert.equal(completeData.choices.length, 4);
-  assert.equal(completeData.background.length <= 121, true);
+  assert.equal(completeData.background.length <= 120, true);
   assert.equal(completeData.replayed, false);
 
   const save = mock.getSave();
@@ -410,12 +445,12 @@ test('/api/opening never seats more than two heroines and a failed attempt prese
   const failingMock = createSetupMockFetch({ storyThrows: true });
   const worker = createApiWorker({ fetchImpl: failingMock.fetchImpl });
   const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
-  const { setup_id: setupId, opening_plan: planBeforeFailure } = (await setupResponse.json()).data;
+  const { setup_id: setupId, opening_state: openingStateBeforeFailure } = (await setupResponse.json()).data;
 
   const failed = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
   const failedText = await readSseText(failed);
   assert.match(failedText, /event: error/);
-  assert.deepEqual(failingMock.getSave().opening_plan, planBeforeFailure);
+  assert.deepEqual(failingMock.getSave().opening_state.plan, openingStateBeforeFailure.plan);
   assert.equal(failingMock.getSave().player_setup.completed, false, 'a failed opening attempt must not mark setup complete');
   assert.equal(failingMock.storyCallCount(), 1);
 });

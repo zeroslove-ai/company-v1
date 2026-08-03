@@ -95,7 +95,7 @@ test('migration package excludes destructive, deployment, legacy, and secret-lik
 
 test('player setup and opening RPCs guard identity, reject completed resubmission, and stay service-role-only', () => {
   const setupOpening = read(migrations[4]);
-  for (const fn of ['save_company_player_setup', 'commit_company_opening']) {
+  for (const fn of ['reserve_company_player_setup', 'commit_company_opening']) {
     assert.match(setupOpening, new RegExp(`function public\\.${fn}`, 'i'));
   }
   assert.match(setupOpening, /player setup is already completed for this game/i);
@@ -104,8 +104,11 @@ test('player setup and opening RPCs guard identity, reject completed resubmissio
   assert.match(setupOpening, /turn_state,committed_turn[\s\S]*?v_save\.committed_turn/i);
   assert.match(setupOpening, /validate_company_save_v1/i);
   assert.match(setupOpening, /for update/i);
-  assert.match(setupOpening, /revoke all on function public\.save_company_player_setup\([\s\S]*?from public, anon, authenticated/i);
+  assert.match(setupOpening, /reserve_company_player_setup\(\s*p_game_id uuid,\s*p_setup_id uuid,\s*p_player jsonb,\s*p_opening_plan jsonb\s*\)/i);
+  assert.match(setupOpening, /commit_company_opening\(\s*p_game_id uuid,\s*p_setup_id uuid,\s*p_background text,\s*p_story_text text,\s*p_choices jsonb\s*\)/i);
+  assert.match(setupOpening, /revoke all on function public\.reserve_company_player_setup\([\s\S]*?from public, anon, authenticated/i);
   assert.match(setupOpening, /revoke all on function public\.commit_company_opening\([\s\S]*?from public, anon, authenticated/i);
+  assert.doesNotMatch(setupOpening, /p_next_save/i);
   assert.doesNotMatch(setupOpening, /grant execute[\s\S]*to (?:anon|authenticated)/i);
   assert.match(setupOpening, /grant execute[\s\S]*to service_role/i);
   assert.doesNotMatch(setupOpening, /update public\.game_master/i);
