@@ -5,7 +5,7 @@ import { parseNarrative } from './narrative.js';
 import { renderChoices, renderHistory, renderNarrative, renderState, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
-import { clearPending, committedTurn, loadPending, openingHistoryTurn, playerSetupCompleted, recoveryFor, resolveGameId, savePending, validateContext } from './state.js';
+import { clearPending, committedTurn, loadPending, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, validateContext } from './state.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 
 const recoveryLabels = {
@@ -104,7 +104,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const setupElements = {
     overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
     name: get('setup-name'), department: get('setup-department'), position: get('setup-position'), height: get('setup-height'), weight: get('setup-weight'),
-    penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
+    penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style'),
+    reserved: get('reserved-opening'), reservedStatus: get('reserved-opening-status'), retryOpening: get('retry-opening')
   };
   const gameId = resolveGameId(locationSearch);
   let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null;
@@ -162,7 +163,14 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     const openingTurn = openingHistoryTurn(context);
     renderHistory(elements.history, openingTurn ? [openingTurn, ...(context?.recent_turns ?? [])] : context?.recent_turns);
     const setupOpen = setupPending();
+    const reservedSetupId = reservedPlayerSetupId(context);
     if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen;
+    if (setupElements.form) setupElements.form.hidden = Boolean(reservedSetupId);
+    if (setupElements.reserved) setupElements.reserved.hidden = !reservedSetupId;
+    if (setupElements.retryOpening) {
+      setupElements.retryOpening.disabled = busy || recoveryPending;
+      setupElements.retryOpening.onclick = reservedSetupId ? () => retryOpening(reservedSetupId) : null;
+    }
     const actionDisabled = busy || recoveryPending || setupOpen;
     if (elements.input) elements.input.disabled = actionDisabled;
     if (elements.submit) elements.submit.disabled = actionDisabled;
@@ -241,19 +249,43 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       try {
         text(setupElements.status, '설정 저장 중…');
         const saveResult = await api.playerSetup({ game_id: gameId, player: validation.player });
-        text(setupElements.status, '오프닝을 준비하는 중…');
-        const response = await api.opening({ game_id: gameId, setup_id: saveResult.setup_id });
-        let raw = '';
-        await consumeStorySse(response, item => { if (item.event === 'delta') { raw += item.data?.text ?? ''; renderNarrative(elements.current, parseNarrative(raw)); } });
-        text(setupElements.status, '');
-        await refreshContext();
+        await streamOpening(saveResult.setup_id, setupElements.status);
         return true;
       } catch (error) {
+        await refreshContext().catch(() => undefined);
         showSetupError(error);
         text(setupElements.status, '');
         return false;
       } finally {
         if (setupElements.submit) setupElements.submit.disabled = false;
+      }
+    });
+  }
+  async function streamOpening(setupId, statusElement = setupElements.reservedStatus) {
+    text(statusElement, '오프닝을 준비하는 중…');
+    const response = await api.opening({ game_id: gameId, setup_id: setupId });
+    let raw = '';
+    await consumeStorySse(response, item => {
+      if (item.event === 'delta') {
+        raw += item.data?.text ?? '';
+        renderNarrative(elements.current, parseNarrative(raw));
+      }
+    });
+    text(statusElement, '');
+    await refreshContext();
+  }
+  async function retryOpening(setupId) {
+    if (busy || !setupId) return false;
+    return busyGuard.run(async () => {
+      clearSetupError();
+      try {
+        await streamOpening(setupId);
+        return true;
+      } catch (error) {
+        showSetupError(error);
+        return false;
+      } finally {
+        text(setupElements.reservedStatus, '');
       }
     });
   }
@@ -276,7 +308,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
     await refreshContext(); await checkRecovery();
   }
-  return { gameId, init, refreshContext, startNewAction, checkRecovery, resumePending, resumePlay, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId)); }, get busy() { return busy; } };
+  return { gameId, init, refreshContext, startNewAction, checkRecovery, resumePending, resumePlay, retryOpening, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId)); }, get busy() { return busy; } };
 }
 
 if (globalThis.document?.querySelector('#game-main')) {

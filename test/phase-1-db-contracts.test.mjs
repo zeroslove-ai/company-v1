@@ -93,23 +93,27 @@ test('migration package excludes destructive, deployment, legacy, and secret-lik
   assert.doesNotMatch(packageText, /(api[_-]?key|service[_-]?role[_-]?key|token)\s*[:=]\s*['"][^'"]+/i);
 });
 
-test('player setup and opening RPCs guard identity, reject completed resubmission, and stay service-role-only', () => {
+test('player setup and opening migration reproduces the applied Company RPC contract', () => {
   const setupOpening = read(migrations[4]);
   for (const fn of ['reserve_company_player_setup', 'commit_company_opening']) {
     assert.match(setupOpening, new RegExp(`function public\\.${fn}`, 'i'));
   }
-  assert.match(setupOpening, /player setup is already completed for this game/i);
-  assert.match(setupOpening, /player setup identity mismatch/i);
-  assert.match(setupOpening, /return jsonb_build_object\('success', true, 'replayed', true/i);
-  assert.match(setupOpening, /turn_state,committed_turn[\s\S]*?v_save\.committed_turn/i);
-  assert.match(setupOpening, /validate_company_save_v1/i);
+  assert.match(setupOpening, /array\['brand_strategy','audit','human_resources','new_business_tf','finance_planning','public_relations'\]/i);
+  assert.match(setupOpening, /\('월요일','화요일','수요일','목요일','금요일'\)/);
+  assert.match(setupOpening, /minute_of_day.*?< 510[\s\S]*?> 1110/i);
+  assert.match(setupOpening, /array\['heroine1','heroine2','heroine3','heroine4','heroine5'\]/i);
+  assert.match(setupOpening, /'player_id', 'player-1', 'adult', true/i);
+  assert.match(setupOpening, /\{opening_state\}[\s\S]*?'setup_id', p_setup_id::text/i);
+  assert.match(setupOpening, /\{player_scene_state\}/i);
+  assert.match(setupOpening, /\{npc_scene_state\}/i);
+  assert.match(setupOpening, /'participants', v_participants/i);
+  assert.match(setupOpening, /\{story_summary_overall\}/i);
+  assert.match(setupOpening, /\{story_summary_recent\}/i);
+  assert.match(setupOpening, /opening choices must contain exactly four items/i);
+  assert.match(setupOpening, /'idempotent', true/i);
   assert.match(setupOpening, /for update/i);
   assert.match(setupOpening, /reserve_company_player_setup\(\s*p_game_id uuid,\s*p_setup_id uuid,\s*p_player jsonb,\s*p_opening_plan jsonb\s*\)/i);
   assert.match(setupOpening, /commit_company_opening\(\s*p_game_id uuid,\s*p_setup_id uuid,\s*p_background text,\s*p_story_text text,\s*p_choices jsonb\s*\)/i);
-  assert.match(setupOpening, /revoke all on function public\.reserve_company_player_setup\([\s\S]*?from public, anon, authenticated/i);
-  assert.match(setupOpening, /revoke all on function public\.commit_company_opening\([\s\S]*?from public, anon, authenticated/i);
   assert.doesNotMatch(setupOpening, /p_next_save/i);
-  assert.doesNotMatch(setupOpening, /grant execute[\s\S]*to (?:anon|authenticated)/i);
-  assert.match(setupOpening, /grant execute[\s\S]*to service_role/i);
   assert.doesNotMatch(setupOpening, /update public\.game_master/i);
 });

@@ -1,190 +1,236 @@
--- Company v1 player setup and turn-0 opening RPCs. These functions are
--- service-role-only and build the authoritative save inside the database.
+-- Exact definitions currently applied to the Company v1 Supabase project.
 
-drop function if exists public.save_company_player_setup(uuid, uuid, jsonb, jsonb);
-drop function if exists public.commit_company_opening(uuid, uuid, jsonb);
-
-create or replace function public.reserve_company_player_setup(
-  p_game_id uuid,
-  p_setup_id uuid,
-  p_player jsonb,
-  p_opening_plan jsonb
-)
+create or replace function public.reserve_company_player_setup(p_game_id uuid, p_setup_id uuid, p_player jsonb, p_opening_plan jsonb)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path to 'public', 'pg_temp'
 as $$
 declare
+  v_game public.games%rowtype;
   v_save public.game_save%rowtype;
-  v_next_save jsonb;
-  v_existing_setup_id text;
+  v_data jsonb;
+  v_existing_setup jsonb;
+  v_name text;
+  v_department text;
+  v_position text;
+  v_body_type text;
+  v_speech_style text;
+  v_height integer;
+  v_weight integer;
+  v_penis integer;
+  v_primary text;
+  v_supporting jsonb;
+  v_participants jsonb;
+  v_npc_scene jsonb := '{}'::jsonb;
+  v_item text;
 begin
-  if p_setup_id is null then
-    raise exception 'setup id is required' using errcode = '22023';
-  end if;
   if p_player is null or jsonb_typeof(p_player) <> 'object' then
     raise exception 'player must be an object' using errcode = '22023';
   end if;
   if p_opening_plan is null or jsonb_typeof(p_opening_plan) <> 'object' then
     raise exception 'opening plan must be an object' using errcode = '22023';
   end if;
-  if nullif(btrim(p_player ->> 'name'), '') is null or char_length(p_player ->> 'name') > 20
-     or nullif(p_player ->> 'department_id', '') is null
-     or nullif(p_player ->> 'position_id', '') is null
-     or nullif(p_player ->> 'body_type_id', '') is null
-     or nullif(p_player ->> 'speech_style_id', '') is null
-     or jsonb_typeof(p_player -> 'height_cm') <> 'number'
-     or (p_player ->> 'height_cm')::integer not between 140 and 220
-     or jsonb_typeof(p_player -> 'weight_kg') <> 'number'
-     or (p_player ->> 'weight_kg')::integer not between 40 and 180
-     or jsonb_typeof(p_player -> 'penis_length_cm') <> 'number'
-     or (p_player ->> 'penis_length_cm')::integer not between 5 and 30 then
-    raise exception 'invalid player setup' using errcode = '22023';
+
+  v_name := btrim(coalesce(p_player ->> 'name', ''));
+  v_department := p_player ->> 'department_id';
+  v_position := p_player ->> 'position_id';
+  v_body_type := p_player ->> 'body_type_id';
+  v_speech_style := p_player ->> 'speech_style_id';
+
+  if char_length(v_name) < 1 or char_length(v_name) > 20 then
+    raise exception 'player name must be 1-20 characters' using errcode = '22023';
   end if;
-  if nullif(p_opening_plan ->> 'primary_character_id', '') is null
-     or jsonb_typeof(p_opening_plan -> 'supporting_character_ids') <> 'array'
-     or jsonb_array_length(p_opening_plan -> 'supporting_character_ids') > 1
-     or (p_opening_plan -> 'supporting_character_ids') ? (p_opening_plan ->> 'primary_character_id')
-     or nullif(p_opening_plan ->> 'location_id', '') is null
-     or nullif(p_opening_plan ->> 'work_hook_id', '') is null
-     or jsonb_typeof(p_opening_plan -> 'minute_of_day') <> 'number' then
-    raise exception 'invalid opening plan' using errcode = '22023';
+  if not (v_department = any(array['brand_strategy','audit','human_resources','new_business_tf','finance_planning','public_relations'])) then
+    raise exception 'invalid department_id' using errcode = '22023';
+  end if;
+  if not (v_position = any(array['intern','assistant_manager','tf_lead','executive'])) then
+    raise exception 'invalid position_id' using errcode = '22023';
+  end if;
+  if not (v_body_type = any(array['balanced','muscular','athletic','slender','large_frame'])) then
+    raise exception 'invalid body_type_id' using errcode = '22023';
+  end if;
+  if not (v_speech_style = any(array['polite','calm','friendly','playful','cold','rough_yangachi'])) then
+    raise exception 'invalid speech_style_id' using errcode = '22023';
   end if;
 
+  if coalesce(p_player ->> 'height_cm','') !~ '^[0-9]+$'
+     or coalesce(p_player ->> 'weight_kg','') !~ '^[0-9]+$'
+     or coalesce(p_player ->> 'penis_length_cm','') !~ '^[0-9]+$' then
+    raise exception 'body measurements must be integers' using errcode = '22023';
+  end if;
+  v_height := (p_player ->> 'height_cm')::integer;
+  v_weight := (p_player ->> 'weight_kg')::integer;
+  v_penis := (p_player ->> 'penis_length_cm')::integer;
+  if v_height < 140 or v_height > 220 then
+    raise exception 'height_cm out of range' using errcode = '22023';
+  end if;
+  if v_weight < 40 or v_weight > 180 then
+    raise exception 'weight_kg out of range' using errcode = '22023';
+  end if;
+  if v_penis < 5 or v_penis > 30 then
+    raise exception 'penis_length_cm out of range' using errcode = '22023';
+  end if;
+
+  if coalesce(p_opening_plan ->> 'weekday','') not in ('월요일','화요일','수요일','목요일','금요일') then
+    raise exception 'invalid opening weekday' using errcode = '22023';
+  end if;
+  if coalesce(p_opening_plan ->> 'minute_of_day','') !~ '^[0-9]+$'
+     or (p_opening_plan ->> 'minute_of_day')::integer < 510
+     or (p_opening_plan ->> 'minute_of_day')::integer > 1110 then
+    raise exception 'opening minute_of_day out of range' using errcode = '22023';
+  end if;
+  if nullif(btrim(coalesce(p_opening_plan ->> 'location_id','')), '') is null
+     or nullif(btrim(coalesce(p_opening_plan ->> 'work_hook_id','')), '') is null
+     or nullif(btrim(coalesce(p_opening_plan ->> 'scene_goal','')), '') is null then
+    raise exception 'opening plan is incomplete' using errcode = '22023';
+  end if;
+  v_primary := p_opening_plan ->> 'primary_character_id';
+  if not (v_primary = any(array['heroine1','heroine2','heroine3','heroine4','heroine5'])) then
+    raise exception 'invalid primary_character_id' using errcode = '22023';
+  end if;
+  v_supporting := coalesce(p_opening_plan -> 'supporting_character_ids', '[]'::jsonb);
+  if jsonb_typeof(v_supporting) <> 'array' or jsonb_array_length(v_supporting) > 1 then
+    raise exception 'supporting_character_ids must contain at most one id' using errcode = '22023';
+  end if;
+  for v_item in select jsonb_array_elements_text(v_supporting)
+  loop
+    if not (v_item = any(array['heroine1','heroine2','heroine3','heroine4','heroine5']))
+       or v_item = v_primary then
+      raise exception 'invalid supporting character id' using errcode = '22023';
+    end if;
+  end loop;
+
+  select * into v_game from public.games where id = p_game_id;
+  if not found or v_game.edition_id <> 'company-v1' then
+    raise exception 'company game not found' using errcode = 'P0002';
+  end if;
   select * into v_save from public.game_save where game_id = p_game_id for update;
   if not found then
-    raise exception 'company game save not found' using errcode = 'P0002';
+    raise exception 'company save not found' using errcode = 'P0002';
   end if;
-  if not exists (select 1 from public.games where id = p_game_id and edition_id = 'company-v1') then
-    raise exception 'company edition required' using errcode = '22023';
+  if v_save.committed_turn <> 0 then
+    raise exception 'player setup is allowed only before turn 1' using errcode = '22023';
   end if;
 
-  v_existing_setup_id := v_save.data -> 'player_setup' ->> 'setup_id';
-  if coalesce((v_save.data -> 'player_setup' ->> 'completed')::boolean, false) then
-    raise exception 'player setup is already completed for this game; reset to configure again' using errcode = '22023';
-  end if;
-  if v_existing_setup_id is not null then
-    if v_existing_setup_id <> p_setup_id::text then
-      raise exception 'player setup is already reserved for this game' using errcode = '40001';
+  v_existing_setup := coalesce(v_save.data -> 'player_setup', '{}'::jsonb);
+  if coalesce((v_existing_setup ->> 'completed')::boolean, false) then
+    if v_existing_setup ->> 'setup_id' = p_setup_id::text then
+      return jsonb_build_object('success', true, 'idempotent', true, 'data', v_save.data);
     end if;
-    return jsonb_build_object(
-      'setup_id', p_setup_id, 'completed', false, 'replayed', true,
-      'player', v_save.data -> 'player', 'opening_state', v_save.data -> 'opening_state'
-    );
+    raise exception 'player setup already completed' using errcode = '23505';
+  end if;
+  if nullif(v_existing_setup ->> 'setup_id','') is not null
+     and v_existing_setup ->> 'setup_id' <> p_setup_id::text then
+    raise exception 'another player setup is already reserved' using errcode = '23505';
   end if;
 
-  v_next_save := jsonb_set(v_save.data, '{player}', coalesce(v_save.data -> 'player', '{}'::jsonb) || p_player, true);
-  v_next_save := jsonb_set(v_next_save, '{player_setup}', jsonb_build_object(
-    'version', 1, 'completed', false, 'setup_id', p_setup_id
-  ), true);
-  v_next_save := jsonb_set(v_next_save, '{opening_state}', jsonb_build_object(
-    'plan', p_opening_plan, 'story_text', null, 'choices', '[]'::jsonb, 'status', 'reserved'
-  ), true);
+  v_participants := jsonb_build_array('player-1', v_primary) || v_supporting;
+  v_npc_scene := jsonb_build_object(v_primary, jsonb_build_object('present', true));
+  for v_item in select jsonb_array_elements_text(v_supporting)
+  loop
+    v_npc_scene := v_npc_scene || jsonb_build_object(v_item, jsonb_build_object('present', true));
+  end loop;
 
-  update public.game_save set data = v_next_save where game_id = p_game_id;
+  v_data := v_save.data;
+  v_data := jsonb_set(v_data, '{player}', jsonb_build_object(
+    'player_id', 'player-1', 'adult', true, 'name', v_name,
+    'department_id', v_department, 'position_id', v_position,
+    'height_cm', v_height, 'weight_kg', v_weight, 'penis_length_cm', v_penis,
+    'body_type_id', v_body_type, 'speech_style_id', v_speech_style, 'background', ''
+  ), true);
+  v_data := jsonb_set(v_data, '{player_setup}', jsonb_build_object(
+    'version', 1, 'setup_id', p_setup_id::text, 'status', 'reserved', 'completed', false
+  ), true);
+  v_data := jsonb_set(v_data, '{opening_state}', jsonb_build_object(
+    'setup_id', p_setup_id::text, 'status', 'planned', 'plan', p_opening_plan
+  ), true);
+  v_data := jsonb_set(v_data, '{world_state}', coalesce(v_data -> 'world_state','{}'::jsonb) || jsonb_build_object(
+    'game_time', jsonb_build_object('day', 1, 'minute_of_day', (p_opening_plan ->> 'minute_of_day')::integer),
+    'weekday', p_opening_plan ->> 'weekday', 'date_label', coalesce(p_opening_plan ->> 'date_label', 'Day 1'),
+    'time_block', case
+      when (p_opening_plan ->> 'minute_of_day')::integer < 720 then 'morning'
+      when (p_opening_plan ->> 'minute_of_day')::integer < 1080 then 'afternoon'
+      else 'evening'
+    end,
+    'work_hook', jsonb_build_object('id', p_opening_plan ->> 'work_hook_id', 'status', 'open')
+  ), true);
+  v_data := jsonb_set(v_data, '{scene_state}', jsonb_build_object(
+    'scene_id', 'opening', 'location_id', p_opening_plan ->> 'location_id', 'participants', v_participants,
+    'focus_thread', p_opening_plan ->> 'work_hook_id', 'scene_goal', p_opening_plan ->> 'scene_goal',
+    'beat', 0, 'exit_conditions', '[]'::jsonb, 'updated_turn', 0
+  ), true);
+  v_data := jsonb_set(v_data, '{player_scene_state}', jsonb_build_object(
+    'location_id', p_opening_plan ->> 'location_id', 'updated_turn', 0
+  ), true);
+  v_data := jsonb_set(v_data, '{npc_scene_state}', v_npc_scene, true);
+  v_data := jsonb_set(v_data, '{focal_character_id}', to_jsonb(v_primary), true);
+  v_data := jsonb_set(v_data, '{last_speaker_id}', 'null'::jsonb, true);
+  v_data := jsonb_set(v_data, '{last_npcs_present}', jsonb_build_array(v_primary) || v_supporting, true);
+  v_data := jsonb_set(v_data, '{last_choices}', '[]'::jsonb, true);
+  v_data := jsonb_set(v_data, '{last_choice_meta}', '[]'::jsonb, true);
 
-  return jsonb_build_object(
-    'setup_id', p_setup_id, 'completed', false, 'replayed', false,
-    'player', v_next_save -> 'player', 'opening_state', v_next_save -> 'opening_state'
-  );
+  update public.game_save set data = v_data, save_revision = save_revision + 1, updated_at = now() where game_id = p_game_id;
+  return jsonb_build_object('success', true, 'idempotent', false, 'setup_id', p_setup_id, 'opening_plan', p_opening_plan);
 end;
 $$;
 
-create or replace function public.commit_company_opening(
-  p_game_id uuid,
-  p_setup_id uuid,
-  p_background text,
-  p_story_text text,
-  p_choices jsonb
-)
+create or replace function public.commit_company_opening(p_game_id uuid, p_setup_id uuid, p_background text, p_story_text text, p_choices jsonb)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path to 'public', 'pg_temp'
 as $$
 declare
+  v_game public.games%rowtype;
   v_save public.game_save%rowtype;
-  v_next_save jsonb;
-  v_validation jsonb;
-  v_plan jsonb;
-  v_participants jsonb;
+  v_data jsonb;
+  v_setup jsonb;
+  v_opening jsonb;
 begin
-  if p_setup_id is null then
-    raise exception 'setup id is required' using errcode = '22023';
+  if char_length(btrim(coalesce(p_background,''))) > 120 then
+    raise exception 'background must be at most 120 characters' using errcode = '22023';
   end if;
-  if nullif(btrim(p_background), '') is null or char_length(p_background) > 120 then
-    raise exception 'opening background must be 1 to 120 characters' using errcode = '22023';
+  if nullif(btrim(coalesce(p_story_text,'')), '') is null then
+    raise exception 'opening story is required' using errcode = '22023';
   end if;
-  if nullif(btrim(p_story_text), '') is null then
-    raise exception 'opening story text is required' using errcode = '22023';
+  if p_choices is null or jsonb_typeof(p_choices) <> 'array' or jsonb_array_length(p_choices) <> 4 then
+    raise exception 'opening choices must contain exactly four items' using errcode = '22023';
   end if;
-  if p_choices is null or jsonb_typeof(p_choices) <> 'array' or jsonb_array_length(p_choices) <> 4
-     or exists (select 1 from jsonb_array_elements_text(p_choices) choice where nullif(btrim(choice), '') is null) then
-    raise exception 'opening choices must contain exactly four non-empty strings' using errcode = '22023';
+  if exists (select 1 from jsonb_array_elements(p_choices) item where jsonb_typeof(item) <> 'string' or nullif(btrim(item #>> '{}'),'') is null) then
+    raise exception 'opening choices must be non-empty strings' using errcode = '22023';
   end if;
 
+  select * into v_game from public.games where id = p_game_id;
+  if not found or v_game.edition_id <> 'company-v1' then
+    raise exception 'company game not found' using errcode = 'P0002';
+  end if;
   select * into v_save from public.game_save where game_id = p_game_id for update;
   if not found then
-    raise exception 'company game save not found' using errcode = 'P0002';
+    raise exception 'company save not found' using errcode = 'P0002';
   end if;
-  if not exists (select 1 from public.games where id = p_game_id and edition_id = 'company-v1') then
-    raise exception 'company edition required' using errcode = '22023';
-  end if;
-  if v_save.data -> 'player_setup' ->> 'setup_id' is distinct from p_setup_id::text then
-    raise exception 'player setup identity mismatch' using errcode = '22023';
-  end if;
-  if coalesce((v_save.data -> 'player_setup' ->> 'completed')::boolean, false) then
-    if v_save.data -> 'opening_state' ->> 'story_text' is distinct from p_story_text
-       or v_save.data -> 'opening_state' -> 'choices' is distinct from p_choices
-       or v_save.data -> 'player' ->> 'background' is distinct from p_background then
-      raise exception 'opening result cannot be overwritten' using errcode = '23505';
-    end if;
-    return jsonb_build_object('success', true, 'replayed', true, 'save_revision', v_save.save_revision);
+  if v_save.committed_turn <> 0 then
+    raise exception 'opening can be committed only before turn 1' using errcode = '22023';
   end if;
 
-  v_plan := v_save.data -> 'opening_state' -> 'plan';
-  if v_save.data -> 'opening_state' ->> 'status' <> 'reserved'
-     or v_plan is null or jsonb_typeof(v_plan) <> 'object' then
-    raise exception 'opening plan is not reserved' using errcode = '22023';
+  v_setup := coalesce(v_save.data -> 'player_setup', '{}'::jsonb);
+  v_opening := coalesce(v_save.data -> 'opening_state', '{}'::jsonb);
+  if v_setup ->> 'setup_id' <> p_setup_id::text or v_opening ->> 'setup_id' <> p_setup_id::text then
+    raise exception 'setup_id does not match reserved opening' using errcode = '22023';
   end if;
-  v_participants := jsonb_build_array(v_plan ->> 'primary_character_id')
-    || coalesce(v_plan -> 'supporting_character_ids', '[]'::jsonb);
-
-  v_next_save := jsonb_set(v_save.data, '{player}', coalesce(v_save.data -> 'player', '{}'::jsonb) || jsonb_build_object('background', p_background), true);
-  v_next_save := jsonb_set(v_next_save, '{world_state}', coalesce(v_next_save -> 'world_state', '{}'::jsonb) || jsonb_build_object(
-    'game_time', jsonb_build_object('day', 1, 'minute_of_day', v_plan -> 'minute_of_day'),
-    'weekday', v_plan -> 'weekday', 'date', v_plan -> 'date_label',
-    'work_hook', jsonb_build_object('id', v_plan -> 'work_hook_id', 'status', 'active')
-  ), true);
-  v_next_save := jsonb_set(v_next_save, '{scene_state}', coalesce(v_next_save -> 'scene_state', '{}'::jsonb) || jsonb_build_object(
-    'scene_id', concat('opening-', coalesce(v_plan ->> 'location_id', 'unknown')),
-    'location_id', v_plan -> 'location_id', 'participants', v_participants,
-    'scene_goal', v_plan -> 'scene_goal', 'beat', 0
-  ), true);
-  v_next_save := jsonb_set(v_next_save, '{last_choices}', p_choices, true);
-  v_next_save := jsonb_set(v_next_save, '{last_npcs_present}', v_participants, true);
-  v_next_save := jsonb_set(v_next_save, '{focal_character_id}', v_plan -> 'primary_character_id', true);
-  v_next_save := jsonb_set(v_next_save, '{opening_state}', jsonb_build_object(
-    'plan', v_plan, 'story_text', p_story_text, 'choices', p_choices, 'status', 'complete'
-  ), true);
-  v_next_save := jsonb_set(v_next_save, '{player_setup}', coalesce(v_next_save -> 'player_setup', '{}'::jsonb) || jsonb_build_object('completed', true), true);
-  v_next_save := jsonb_set(v_next_save, '{turn_state,committed_turn}', to_jsonb(v_save.committed_turn), true);
-
-  v_validation := public.validate_company_save_v1(v_next_save);
-  if not coalesce((v_validation ->> 'valid')::boolean, false) then
-    raise exception 'invalid opening save: %', v_validation -> 'errors' using errcode = '22023';
+  if coalesce((v_setup ->> 'completed')::boolean, false) then
+    return jsonb_build_object('success', true, 'idempotent', true, 'opening_state', v_opening);
   end if;
 
-  update public.game_save
-  set save_revision = save_revision + 1, data = v_next_save
-  where game_id = p_game_id;
+  v_data := v_save.data;
+  v_data := jsonb_set(v_data, '{player,background}', to_jsonb(btrim(coalesce(p_background,''))), true);
+  v_data := jsonb_set(v_data, '{player_setup}', v_setup || jsonb_build_object('status', 'complete', 'completed', true), true);
+  v_data := jsonb_set(v_data, '{opening_state}', v_opening || jsonb_build_object('status', 'complete', 'story_text', p_story_text, 'choices', p_choices), true);
+  v_data := jsonb_set(v_data, '{last_choices}', p_choices, true);
+  v_data := jsonb_set(v_data, '{story_summary_overall}', to_jsonb(case when nullif(btrim(coalesce(p_background,'')),'') is null then '회사에서의 첫 장면이 시작되었다.' else btrim(p_background) end), true);
+  v_data := jsonb_set(v_data, '{story_summary_recent}', to_jsonb(left(p_story_text, 500)), true);
 
-  return jsonb_build_object('success', true, 'replayed', false, 'save_revision', v_save.save_revision + 1);
+  update public.game_save set data = v_data, save_revision = save_revision + 1, updated_at = now() where game_id = p_game_id;
+  return jsonb_build_object('success', true, 'idempotent', false, 'setup_id', p_setup_id, 'opening_state', v_data -> 'opening_state');
 end;
 $$;
-
-revoke all on function public.reserve_company_player_setup(uuid, uuid, jsonb, jsonb) from public, anon, authenticated;
-revoke all on function public.commit_company_opening(uuid, uuid, text, text, jsonb) from public, anon, authenticated;
-grant execute on function public.reserve_company_player_setup(uuid, uuid, jsonb, jsonb) to service_role;
-grant execute on function public.commit_company_opening(uuid, uuid, text, text, jsonb) to service_role;

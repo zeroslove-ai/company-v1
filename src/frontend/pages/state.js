@@ -24,6 +24,11 @@ export function savePending(storage, action) { storage?.setItem(pendingKey(actio
 export function clearPending(storage, gameId) { storage?.removeItem(pendingKey(gameId)); }
 export function recoveryFor(status) { const step = status?.recoverable_step ?? 'unknown'; return ['retry_story', 'resume_extract', 'retry_extract', 'resume_commit', 'retry_commit', 'complete', 'wait_story'].includes(step) ? step : 'unknown'; }
 export function playerSetupCompleted(context) { return saveFromContext(context)?.player_setup?.completed === true; }
+export function reservedPlayerSetupId(context) {
+  const setup = saveFromContext(context)?.player_setup;
+  const setupId = setup?.setup_id;
+  return setup?.completed !== true && typeof setupId === 'string' && setupId.trim() ? setupId : null;
+}
 export function openingHistoryTurn(context) {
   const opening = saveFromContext(context)?.opening_state;
   if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;

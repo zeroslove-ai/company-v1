@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { choicesForRenderer, createBusyGuard, createFrontendApp, createTurnCoordinator, toolbarCapabilities } from '../src/frontend/pages/app.js';
 import { ApiError } from '../src/frontend/pages/api.js';
 import { choiceLabel, mindMonitorDisplay, parsedTurnNarrative, renderChoices, renderHistory, renderNarrative, renderState, stateDisplayValues } from '../src/frontend/pages/render.js';
-import { clearPending, committedTurn, contextChoices, loadPending, pendingKey, recoveryFor, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
+import { clearPending, committedTurn, contextChoices, loadPending, pendingKey, recoveryFor, reservedPlayerSetupId, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -22,7 +22,7 @@ class FakeNode {
 }
 
 function pageFixture() {
-  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps', 'reset-game', 'player-setup-overlay', 'player-setup-form', 'setup-error', 'setup-status', 'setup-submit', 'setup-name', 'setup-department', 'setup-position', 'setup-height', 'setup-weight', 'setup-penis-length', 'setup-body-type', 'setup-speech-style'];
+  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps', 'reset-game', 'player-setup-overlay', 'player-setup-form', 'setup-error', 'setup-status', 'setup-submit', 'setup-name', 'setup-department', 'setup-position', 'setup-height', 'setup-weight', 'setup-penis-length', 'setup-body-type', 'setup-speech-style', 'reserved-opening', 'reserved-opening-status', 'retry-opening'];
   const nodes = Object.fromEntries(ids.map(id => [id, new FakeNode(id)]));
   return { nodes, documentRef: { querySelector: selector => nodes[selector.slice(1)] ?? null, createElement: tag => new FakeNode(tag) } };
 }
@@ -146,6 +146,42 @@ test('reconnect renders the latest Story and choices and resume makes no API cal
     app.resumePlay();
     assert.equal(contextCalls, 1); assert.equal(statusCalls, 0);
     assert.deepEqual(context, snapshot);
+  });
+});
+
+test('a reloaded reserved setup retries the same opening without a second player-setup request, then closes the modal for Turn 1 choices', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const reserved = validContext({ choices: [] });
+    reserved.save.data.player_setup = { version: 1, setup_id: 'reserved-setup', status: 'reserved', completed: false };
+    reserved.save.data.opening_state = { setup_id: 'reserved-setup', status: 'planned', plan: { weekday: '월요일' } };
+    const completed = structuredClone(reserved);
+    completed.save.data.player_setup = { ...completed.save.data.player_setup, status: 'complete', completed: true };
+    completed.save.data.opening_state = { ...completed.save.data.opening_state, status: 'complete', story_text: 'Opening story', choices: ['A', 'B', 'C', 'D'] };
+    completed.save.data.last_choices = ['A', 'B', 'C', 'D'];
+    let openingCalls = 0, playerSetupCalls = 0, useCompleted = false;
+    const api = {
+      context: async () => ({ context: useCompleted ? completed : reserved }),
+      actionStatus: async () => ({}),
+      playerSetup: async () => { playerSetupCalls += 1; throw new Error('must not create a new setup'); },
+      opening: async ({ setup_id }) => {
+        openingCalls += 1;
+        assert.equal(setup_id, 'reserved-setup');
+        useCompleted = true;
+        return new Response('event: delta\ndata: {"text":"Opening story"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } });
+      }
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    assert.equal(reservedPlayerSetupId(app.context), 'reserved-setup');
+    assert.equal(nodes['player-setup-form'].hidden, true);
+    assert.equal(nodes['reserved-opening'].hidden, false);
+
+    await nodes['retry-opening'].onclick();
+    assert.equal(openingCalls, 1);
+    assert.equal(playerSetupCalls, 0);
+    assert.equal(nodes['player-setup-overlay'].hidden, true);
+    assert.equal(nodes['player-action'].disabled, false);
+    assert.equal(nodes['choice-list'].children.length, 4);
   });
 });
 

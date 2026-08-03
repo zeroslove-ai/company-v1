@@ -89,7 +89,7 @@ const LOCATIONS_BY_POSITION = {
     { location_id: 'project_report_room', name: '프로젝트 보고실' }
   ]
 };
-const WEEKDAYS = ['월', '화', '수', '목', '금'];
+const WEEKDAYS = ['월요일', '화요일', '수요일', '목요일', '금요일'];
 const WORK_HOOKS = [
   { work_hook_id: 'orientation', label: '오리엔테이션' },
   { work_hook_id: 'team_meeting', label: '팀 회의' },
@@ -125,7 +125,7 @@ export function buildOpeningPlan({ positionId, seedBytes, heroineIds }) {
   const sceneGoal = SCENE_GOALS[next(SCENE_GOALS.length)];
   return {
     weekday,
-    date_label: `${weekday}요일`,
+    date_label: `Day 1 · ${weekday}`,
     minute_of_day: minuteOfDay,
     location_id: location.location_id,
     location_name: location.name,
@@ -223,11 +223,12 @@ export function buildOpeningNextSave({ preSave, player, openingPlan, background,
   next.last_npcs_present = participants;
   next.focal_character_id = openingPlan?.primary_character_id ?? null;
   next.opening_state = {
+    setup_id: typeof next.player_setup?.setup_id === 'string' ? next.player_setup.setup_id : null,
     plan: structuredClone(plainObject(openingPlan) ? openingPlan : {}),
     story_text: typeof parsedOpening?.raw === 'string' ? parsedOpening.raw : '',
     choices: Array.isArray(parsedOpening?.choices) ? parsedOpening.choices : [],
     status: 'complete'
   };
-  next.player_setup = { ...(plainObject(next.player_setup) ? next.player_setup : {}), completed: true };
+  next.player_setup = { ...(plainObject(next.player_setup) ? next.player_setup : {}), status: 'complete', completed: true };
   return next;
 }

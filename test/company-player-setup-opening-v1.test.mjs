@@ -68,6 +68,7 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
   masterInitialSave = structuredClone(masterInitialSave);
   let saveRevision = 1;
   let storyCallCount = 0;
+  let remainingStoryFailures = Number(storyThrows) || 0;
 
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
@@ -76,7 +77,7 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
       const body = JSON.parse(init.body);
       if (body.stream) {
         storyCallCount += 1;
-        if (storyThrows) throw new Error('llm upstream unavailable');
+        if (remainingStoryFailures > 0) { remainingStoryFailures -= 1; throw new Error('llm upstream unavailable'); }
         return new Response(storySseText, { headers: { 'content-type': 'text/event-stream' } });
       }
       throw new Error('unexpected non-streaming LLM call in setup/opening flow');
@@ -95,13 +96,18 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
       if (currentSave.player_setup?.completed === true) {
         return json({ code: '22023', message: 'player setup is already completed for this game; reset to configure again' }, 500);
       }
+      const plan = args.p_opening_plan;
+      const participants = ['player-1', plan.primary_character_id, ...plan.supporting_character_ids];
       currentSave = {
         ...currentSave,
-        player: { ...currentSave.player, ...args.p_player },
-        player_setup: { version: 1, completed: false, setup_id: args.p_setup_id },
-        opening_state: { plan: args.p_opening_plan, story_text: null, choices: [], status: 'reserved' }
+        player: { player_id: 'player-1', adult: true, ...args.p_player, background: '' },
+        player_setup: { version: 1, completed: false, status: 'reserved', setup_id: args.p_setup_id },
+        opening_state: { setup_id: args.p_setup_id, plan, status: 'planned' },
+        scene_state: { scene_id: 'opening', location_id: plan.location_id, participants, scene_goal: plan.scene_goal, beat: 0 },
+        player_scene_state: { location_id: plan.location_id, updated_turn: 0 },
+        npc_scene_state: Object.fromEntries([plan.primary_character_id, ...plan.supporting_character_ids].map(id => [id, { present: true }]))
       };
-      return json({ setup_id: args.p_setup_id, completed: false, player: currentSave.player, opening_state: currentSave.opening_state });
+      return json({ success: true, idempotent: false, setup_id: args.p_setup_id, opening_plan: plan });
     }
     if (rpc === 'commit_company_opening') {
       if (currentSave.player_setup?.setup_id !== args.p_setup_id) return json({ code: '22023', message: 'player setup identity mismatch' }, 500);
@@ -110,11 +116,13 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
       currentSave = {
         ...currentSave,
         player: { ...currentSave.player, background: args.p_background },
-        opening_state: { plan, story_text: args.p_story_text, choices: args.p_choices, status: 'complete' },
-        player_setup: { ...currentSave.player_setup, completed: true },
+        opening_state: { ...currentSave.opening_state, story_text: args.p_story_text, choices: args.p_choices, status: 'complete' },
+        player_setup: { ...currentSave.player_setup, status: 'complete', completed: true },
         last_choices: args.p_choices,
         last_npcs_present: [plan?.primary_character_id, ...(plan?.supporting_character_ids ?? [])].filter(Boolean),
-        focal_character_id: plan?.primary_character_id ?? null
+        focal_character_id: plan?.primary_character_id ?? null,
+        story_summary_overall: args.p_background || '회사에서의 첫 장면이 시작되었다.',
+        story_summary_recent: args.p_story_text.slice(0, 500)
       };
       saveRevision += 1;
       return json({ success: true, replayed: false, save_revision: saveRevision });
@@ -180,6 +188,9 @@ test('buildOpeningPlan is deterministic, picks exactly one primary and at most o
   const planA1 = buildOpeningPlan({ positionId: 'intern', seedBytes: seedA, heroineIds });
   const planA2 = buildOpeningPlan({ positionId: 'intern', seedBytes: seedA, heroineIds });
   assert.deepEqual(planA1, planA2);
+  assert.equal(['월요일', '화요일', '수요일', '목요일', '금요일'].includes(planA1.weekday), true);
+  assert.equal(planA1.date_label, `Day 1 · ${planA1.weekday}`);
+  assert.equal(planA1.date_label.includes('요일요일'), false);
 
   const internLocations = new Set(['office', 'training_room', 'lobby', 'small_meeting_room']);
   assert.equal(internLocations.has(planA1.location_id), true);
@@ -385,9 +396,8 @@ test('/api/player-setup re-validates server-side, rejects invalid submissions be
   assert.equal(response.status, 200);
   const payload = (await response.json()).data;
   assert.match(payload.setup_id, /^[0-9a-f-]{36}$/i);
-  assert.deepEqual(Object.keys(payload.player).sort(), ['body_type_id', 'department_id', 'height_cm', 'name', 'penis_length_cm', 'position_id', 'speech_style_id', 'weight_kg'].sort());
-  assert.equal(heroineIds.includes(payload.opening_state.plan.primary_character_id), true);
-  assert.equal(payload.opening_state.plan.supporting_character_ids.length <= 1, true);
+  assert.equal(heroineIds.includes(payload.opening_plan.primary_character_id), true);
+  assert.equal(payload.opening_plan.supporting_character_ids.length <= 1, true);
 });
 
 test('/api/player-setup rejects a resubmission once setup is already completed for the game', async () => {
@@ -396,7 +406,7 @@ test('/api/player-setup rejects a resubmission once setup is already completed f
   const mock = createSetupMockFetch({ initialSave: primed });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const response = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
-  assert.equal(response.status, 400);
+  assert.equal(response.status, 409);
 });
 
 test('/api/opening streams background plus four choices, commits turn 0, and never advances committed_turn', async () => {
@@ -445,14 +455,50 @@ test('/api/opening never seats more than two heroines and a failed attempt prese
   const failingMock = createSetupMockFetch({ storyThrows: true });
   const worker = createApiWorker({ fetchImpl: failingMock.fetchImpl });
   const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
-  const { setup_id: setupId, opening_state: openingStateBeforeFailure } = (await setupResponse.json()).data;
+  const { setup_id: setupId, opening_plan: planBeforeFailure } = (await setupResponse.json()).data;
 
   const failed = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
   const failedText = await readSseText(failed);
   assert.match(failedText, /event: error/);
-  assert.deepEqual(failingMock.getSave().opening_state.plan, openingStateBeforeFailure.plan);
+  assert.deepEqual(failingMock.getSave().opening_state.plan, planBeforeFailure);
   assert.equal(failingMock.getSave().player_setup.completed, false, 'a failed opening attempt must not mark setup complete');
   assert.equal(failingMock.storyCallCount(), 1);
+});
+
+test('/api/opening retries an existing reserved setup without another player-setup RPC or setup ID', async () => {
+  const mock = createSetupMockFetch({ storyThrows: 1 });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
+  const { setup_id: setupId, opening_plan: initialPlan } = (await setupResponse.json()).data;
+
+  const failed = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
+  await readSseText(failed);
+  const retry = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
+  const retryText = await readSseText(retry);
+
+  assert.match(retryText, /event: complete/);
+  assert.equal(mock.calls.filter(call => call.url.includes('/reserve_company_player_setup')).length, 1);
+  assert.deepEqual(mock.getSave().opening_state.plan, initialPlan);
+  assert.equal(mock.getSave().opening_state.setup_id, setupId);
+  assert.equal(mock.getSave().player_setup.completed, true);
+  assert.equal(mock.storyCallCount(), 2);
+});
+
+test('/api/player-setup permits a new setup only after reset clears a reserved setup', async () => {
+  const reserved = freshSave();
+  reserved.player_setup = { version: 1, setup_id: 'reserved-setup', status: 'reserved', completed: false };
+  reserved.opening_state = { setup_id: 'reserved-setup', status: 'planned', plan: {} };
+  const mock = createSetupMockFetch({ initialSave: reserved, masterInitialSave: freshSave() });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+
+  const blocked = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
+  assert.equal(blocked.status, 409);
+  assert.equal(mock.calls.filter(call => call.url.includes('/reserve_company_player_setup')).length, 0);
+
+  await worker.fetch(request('/api/reset', { game_id: gameId }), env);
+  const allowed = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
+  assert.equal(allowed.status, 200);
+  assert.equal(mock.calls.filter(call => call.url.includes('/reserve_company_player_setup')).length, 1);
 });
 
 test('/api/opening active_character_canon sent to the LLM never includes more than two heroines', async () => {

@@ -393,12 +393,17 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       try {
         const validation = validatePlayerSetupInput(body.player, catalogs);
         if (!validation.valid) throw new HttpError(400, 'invalid_player_setup', `Invalid player setup: ${validation.errors.join(', ')}`, false);
+        const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        const existingSetupId = (context?.save?.data ?? context?.save)?.player_setup?.setup_id;
+        if (typeof existingSetupId === 'string' && existingSetupId) {
+          throw new HttpError(409, 'opening_retry_required', 'A player setup is already reserved; retry the opening or reset the game first', false);
+        }
         const setupId = randomUuid();
         const openingPlan = buildOpeningPlan({ positionId: validation.player.position_id, seedBytes: randomSeedBytes(), heroineIds });
         const result = await db.callRpc('reserve_company_player_setup', {
           p_game_id: gameId, p_setup_id: setupId, p_player: validation.player, p_opening_plan: openingPlan
         });
-        return ok({ setup_id: result.setup_id, player: result.player, opening_state: result.opening_state });
+        return ok({ setup_id: result.setup_id, opening_plan: result.opening_plan, idempotent: Boolean(result.idempotent) });
       } finally {
         logTurnTiming({ event_stage: 'player_setup', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }

@@ -20,4 +20,5 @@
 .player-setup-form input, .player-setup-form select, .player-setup-form button { min-height: 2.75rem; box-sizing: border-box; border: 1px solid #4d7188; border-radius: .5rem; color: #f5fbff; background: #111923; padding: .55rem .7rem; }
 .player-setup-form button { margin-top: .4rem; cursor: pointer; background: #38677d; }
 .player-setup-form button:disabled { cursor: wait; }
+.reserved-opening p { margin: 0; line-height: 1.6; color: #c6d1da; }
 @media (max-width: 720px) { .player-setup-overlay { align-items: start; padding: .75rem; }.player-setup-form { width: 100%; max-height: calc(100dvh - 1.5rem); grid-template-columns: 1fr; padding: 1rem; } }
