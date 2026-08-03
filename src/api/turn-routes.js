@@ -60,6 +60,14 @@ export function npcIdsFromEdition(edition) {
   });
 }
 
+function activeCountFromNpcState(activeNpcState) {
+  const ids = new Set();
+  for (const map of Object.values(plainObject(activeNpcState) ? activeNpcState : {})) {
+    for (const id of Object.keys(plainObject(map) ? map : {})) ids.add(id);
+  }
+  return ids.size;
+}
+
 function hydratedSaveContext(context, master) {
   const wrapped = context?.save && typeof context.save === 'object' && 'data' in context.save;
   const save = wrapped ? context.save.data : context.save;
@@ -153,8 +161,15 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const promptStart = Date.now();
-          const messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn });
+          const messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds });
           timing.story_prompt_ms = Date.now() - promptStart;
+          const storyUserPayload = JSON.parse(messages[1].content);
+          timing.story_system_chars = messages[0].content.length;
+          timing.story_context_chars = JSON.stringify(storyUserPayload.context).length;
+          timing.active_character_canon_chars = JSON.stringify(storyUserPayload.active_character_canon).length;
+          timing.story_request_chars = messages[0].content.length + messages[1].content.length;
+          timing.active_character_count = Object.keys(storyUserPayload.active_character_canon ?? {}).length;
+          timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
           const stream = await streamStory({ env, fetchImpl, messages, timing });
           for await (const text of stream.chunks) {
             raw += text;
@@ -174,7 +189,11 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn,
             context_rpc_ms: timing.context_rpc_ms, story_prompt_ms: timing.story_prompt_ms, story_headers_ms: timing.story_headers_ms,
             story_first_content_ms: timing.story_first_content_ms, story_network_total_ms: timing.story_network_total_ms,
-            story_character_count: timing.story_character_count, turn_total_ms: Date.now() - startedAt
+            story_character_count: timing.story_character_count,
+            story_system_chars: timing.story_system_chars, story_context_chars: timing.story_context_chars,
+            active_character_canon_chars: timing.active_character_canon_chars, story_request_chars: timing.story_request_chars,
+            active_character_count: timing.active_character_count, recent_turn_count: timing.recent_turn_count,
+            turn_total_ms: Date.now() - startedAt
           });
         }
       } });
@@ -215,8 +234,14 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const promptStart = Date.now();
-          const messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn });
+          const messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           timing.extract_prompt_ms = Date.now() - promptStart;
+          const extractUserPayload = JSON.parse(messages[1].content);
+          timing.extract_system_chars = messages[0].content.length;
+          timing.extract_context_chars = JSON.stringify(extractUserPayload.context).length;
+          timing.parsed_story_chars = JSON.stringify(extractUserPayload.parsed_story).length;
+          timing.extract_request_chars = messages[0].content.length + messages[1].content.length;
+          timing.active_character_count = activeCountFromNpcState(extractUserPayload.context?.active_npc_state);
           const llmStart = Date.now();
           const raw = await runExtract({ env, fetchImpl, messages });
           timing.extract_llm_ms = Date.now() - llmStart;
@@ -251,7 +276,11 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         logTurnTiming({
           event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId,
           context_rpc_ms: timing.context_rpc_ms, extract_prompt_ms: timing.extract_prompt_ms, extract_llm_ms: timing.extract_llm_ms,
-          extract_parse_ms: timing.extract_parse_ms, extract_degraded: degraded, turn_total_ms: Date.now() - startedAt
+          extract_parse_ms: timing.extract_parse_ms, extract_degraded: degraded,
+          extract_system_chars: timing.extract_system_chars, extract_context_chars: timing.extract_context_chars,
+          parsed_story_chars: timing.parsed_story_chars, extract_request_chars: timing.extract_request_chars,
+          active_character_count: timing.active_character_count,
+          turn_total_ms: Date.now() - startedAt
         });
       }
     },

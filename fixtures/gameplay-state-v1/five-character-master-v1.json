@@ -1,6 +1,7 @@
 {
-  "characters": {
-    "heroine1": {
+  "mapping_status": "resolved",
+  "characters": [
+    {
       "character_id": "heroine1",
       "name": "서원희",
       "age": 33,
@@ -43,7 +44,7 @@
       "voice_id": null,
       "mapping_status": "resolved"
     },
-    "heroine2": {
+    {
       "character_id": "heroine2",
       "name": "윤민아",
       "age": 29,
@@ -86,7 +87,7 @@
       "voice_id": null,
       "mapping_status": "resolved"
     },
-    "heroine3": {
+    {
       "character_id": "heroine3",
       "name": "김제나",
       "age": 24,
@@ -129,7 +130,7 @@
       "voice_id": null,
       "mapping_status": "resolved"
     },
-    "heroine4": {
+    {
       "character_id": "heroine4",
       "name": "한리브",
       "age": 27,
@@ -172,7 +173,7 @@
       "voice_id": null,
       "mapping_status": "resolved"
     },
-    "heroine5": {
+    {
       "character_id": "heroine5",
       "name": "이메이",
       "age": 24,
@@ -215,5 +216,5 @@
       "voice_id": null,
       "mapping_status": "resolved"
     }
-  }
+  ]
 }

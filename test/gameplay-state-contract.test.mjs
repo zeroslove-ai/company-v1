@@ -136,19 +136,20 @@ test('turn changes use only guarded before and after state', () => {
   ]);
 });
 
-test('required gameplay fixtures define three CSA axes and a resolved heroine1 only', () => {
+test('required gameplay fixtures define three CSA axes and five resolved heroine characters', () => {
   const csa = readJson('fixtures/gameplay-state-v1/global-csa-npc-attitudes.json');
-  const master = readJson('fixtures/gameplay-state-v1/five-character-master-skeleton.json');
+  const master = readJson('fixtures/gameplay-state-v1/five-character-master-v1.json');
   assert.equal(csa.csa_active.length, 1);
   assert.equal(csa.csa_attitudes['npc-a']['csa-global'].resistance, 80);
   assert.equal(master.characters.length, 5);
-  assert.deepEqual(master.characters[0], {
-    character_id: 'heroine1', name: null, age: null, department: null, position: null,
-    addressing_rules: [], appearance: null, personality: null, initial_relationship: {}, initial_stats: {}, initial_csa_attitudes: {}, voice_id: null,
-    storage_bucket: 'Image', storage_prefix: 'Heroine1', primary_image_path: 'Heroine1/one_main.jpg', adult_image_prefix: 'Heroine1/adult/', mapping_status: 'resolved'
-  });
-  assert.deepEqual(master.characters.slice(1).map(character => character.character_id), ['heroine2', 'heroine3', 'heroine4', 'heroine5']);
-  assert.ok(master.characters.slice(1).every(character => character.mapping_status === 'unresolved'));
+  assert.deepEqual(master.characters.map(character => character.character_id), ['heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5']);
+  assert.ok(master.characters.every(character => character.mapping_status === 'resolved'));
+  assert.ok(master.characters.every(character => character.voice_id === null));
+  assert.deepEqual(master.characters.map(character => character.initial_csa_attitudes), [{}, {}, {}, {}, {}]);
+  const requiredNonNullFields = ['name', 'age', 'department', 'position', 'role_title', 'prompt_card', 'storage_bucket', 'storage_prefix', 'primary_image_path', 'adult_image_prefix'];
+  for (const character of master.characters) {
+    for (const field of requiredNonNullFields) assert.notEqual(character[field], null, `${character.character_id}.${field}`);
+  }
   assert.deepEqual(csa.csa_runtime_state['csa-global'], {
     lifecycle: 'temporarily_interrupted', applicability: 'applicable', execution_state: 'interrupted'
   });

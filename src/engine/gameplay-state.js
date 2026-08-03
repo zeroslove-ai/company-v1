@@ -39,6 +39,99 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+/**
+ * Orders the character ids a Story/Extract prompt should actually carry state for this
+ * turn: exact full-name mentions in the player's own input first, then focal_character_id,
+ * then last_speaker_id, then scene participants — each validated against the stable id
+ * set (or, if none is supplied, against the registered character map itself) and deduped.
+ * Partial name matches never count as a mention.
+ */
+export function selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction } = {}) {
+  const map = object(charactersMap) ? charactersMap : {};
+  const validIds = npcIds instanceof Set ? npcIds : new Set(Object.keys(map));
+  const text = stringOrEmpty(playerAction);
+  const ordered = [];
+  const seen = new Set();
+  const push = id => {
+    if (typeof id !== 'string' || !id.trim() || seen.has(id) || !validIds.has(id)) return;
+    seen.add(id);
+    ordered.push(id);
+  };
+  for (const [id, character] of Object.entries(map)) {
+    const name = character?.name;
+    if (typeof name === 'string' && name && text.includes(name)) push(id);
+  }
+  const currentSave = object(save) ? save : {};
+  push(currentSave.focal_character_id);
+  push(currentSave.last_speaker_id);
+  const participants = Array.isArray(currentSave.scene_state?.participants) ? currentSave.scene_state.participants : [];
+  for (const id of participants) push(id);
+  return ordered;
+}
+
+/**
+ * The first three active ids get their full prompt_card; the rest get identity-only
+ * fields. A character not actually active this turn is never included at all.
+ */
+export function buildActiveCharacterCanon(charactersMap, activeIds) {
+  const map = object(charactersMap) ? charactersMap : {};
+  const canon = {};
+  (Array.isArray(activeIds) ? activeIds : []).forEach((id, index) => {
+    const character = map[id];
+    if (!object(character)) return;
+    const identityFields = {
+      character_id: id,
+      name: typeof character.name === 'string' ? character.name : null,
+      position: typeof character.position === 'string' ? character.position : null,
+      role_title: typeof character.role_title === 'string' ? character.role_title : null
+    };
+    canon[id] = index < 3 ? { ...identityFields, prompt_card: object(character.prompt_card) ? character.prompt_card : null } : identityFields;
+  });
+  return canon;
+}
+
+const ACTIVE_NPC_MAPS = ['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes'];
+
+/**
+ * The compact scene/time/CSA/active-NPC-state core shared by the Story and Extract
+ * context projections. Only state for ids in activeIds is included, never the full save.
+ */
+export function buildSceneContextCore(save, activeIds = []) {
+  const s = object(save) ? save : {};
+  const scene = object(s.scene_state) ? s.scene_state : {};
+  const world = object(s.world_state) ? s.world_state : {};
+  const gameTime = object(world.game_time) ? world.game_time : {};
+  const activeSet = new Set(Array.isArray(activeIds) ? activeIds : []);
+  const activeNpcState = {};
+  for (const mapName of ACTIVE_NPC_MAPS) {
+    const map = object(s[mapName]) ? s[mapName] : {};
+    for (const id of activeSet) {
+      if (object(map[id])) {
+        activeNpcState[mapName] = activeNpcState[mapName] ?? {};
+        activeNpcState[mapName][id] = map[id];
+      }
+    }
+  }
+  return {
+    turn: { committed_turn: integer(object(s.turn_state) ? s.turn_state.committed_turn : null) ?? 0 },
+    time: { day: integer(gameTime.day) ?? 1, minute_of_day: integer(gameTime.minute_of_day) ?? 540 },
+    scene: {
+      scene_id: identity(scene.scene_id),
+      location_id: identity(scene.location_id),
+      participants: Array.isArray(scene.participants) ? scene.participants : [],
+      focus_thread: identity(scene.focus_thread),
+      scene_goal: identity(scene.scene_goal),
+      beat: integer(scene.beat)
+    },
+    global_csa: {
+      active_ids: Array.isArray(s.csa_active) ? s.csa_active : [],
+      rules: object(s.csa_rules) ? s.csa_rules : {},
+      runtime_state: object(s.csa_runtime_state) ? s.csa_runtime_state : {}
+    },
+    active_npc_state: activeNpcState
+  };
+}
+
 function canonicalGameTime(value) {
   const current = object(value) ? value : {};
   return {
