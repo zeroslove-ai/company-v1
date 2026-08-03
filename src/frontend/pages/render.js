@@ -32,7 +32,7 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
 }
 export function renderHistory(container, turns) {
   if (!container) return; container.replaceChildren();
-  for (const turn of [...(turns ?? [])].reverse()) {
+  for (const turn of turns ?? []) {
     const card = document.createElement('article'); card.className = 'turn-card';
     const action = document.createElement('p'); action.className = 'action-chip'; action.textContent = turn.player_action ?? '이전 행동';
     const narrative = document.createElement('div'); narrative.className = 'turn-narrative';

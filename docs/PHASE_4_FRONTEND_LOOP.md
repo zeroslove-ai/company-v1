@@ -26,6 +26,8 @@ On reload, `/api/action-status` controls recovery. `retry_story` reuses the orig
 
 Committed history preserves player action, narrative, and turn summary in that order. It accepts both persisted `parsed_blocks.blocks` objects and direct `parsed_blocks` arrays, then falls back to parsing `story_text`. The state panel reads canonical `scene_state.location_id`, `world_state.time_block`, `world_state.work_hook`, `focal_character_id`, and `scene_state.scene_goal` fields.
 
+Recent turns are rendered in the database order returned by Context, from the oldest retained turn toward the streaming turn. Any pending action blocks new choices and free-text submission until it reaches `complete` or a Commit succeeds. If action-status reports `action_not_found`, the browser keeps the local pending metadata and exposes `retry_story` with the same action ID instead of creating a replacement action. Completing recovery clears the button handler and re-enables the action controls.
+
 ## Validation and next step
 
 Mock unit tests cover API requests and errors, chunked SSE, narrative parsing, context/pending state, recovery mappings, and static frontend constraints. The frontend Wrangler configuration is bundle-checked with dry-run only.
