@@ -5,6 +5,7 @@ import {
   applyGuardedStateDelta,
   buildDegradedExtractEnvelope,
   buildExtractPrompt,
+  buildStableNpcIdSet,
   buildStoryPrompt,
   deriveRecoverableStep,
   deriveTurnChanges,
@@ -35,8 +36,28 @@ function actionIds(body) {
   };
 }
 
-function masterFromEdition(edition) {
-  return { characters: Array.isArray(edition?.characters) ? edition.characters : [] };
+function plainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** Normalizes either an already-array character/NPC list or an id-keyed content map into an array. */
+function toEntryArray(mapOrArray, idField) {
+  if (Array.isArray(mapOrArray)) return mapOrArray;
+  if (plainObject(mapOrArray)) {
+    return Object.entries(mapOrArray).map(([id, value]) => ({ [idField]: id, ...(plainObject(value) ? value : {}) }));
+  }
+  return [];
+}
+
+export function masterFromEdition(edition) {
+  return { characters: toEntryArray(edition?.characters?.characters, 'character_id') };
+}
+
+export function npcIdsFromEdition(edition) {
+  return buildStableNpcIdSet({
+    characters: toEntryArray(edition?.characters?.characters, 'character_id'),
+    generalNpcs: toEntryArray(edition?.generalNpcs?.profiles, 'npc_id')
+  });
 }
 
 function hydratedSaveContext(context, master) {
@@ -67,6 +88,7 @@ function storySse({ meta, run }) {
 
 export function createTurnRoutes({ fetchImpl, edition }) {
   const master = masterFromEdition(edition);
+  const npcIds = npcIdsFromEdition(edition);
 
   return {
     async context(request, env) {
@@ -76,13 +98,14 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const gameId = requireString(body.game_id, 'game_id');
       const recentTurns = Math.min(Math.max(Number.isInteger(body.recent_turns) ? body.recent_turns : 15, 1), 50);
       const db = createSupabaseClient(env, fetchImpl);
+      const timing = {};
       try {
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: recentTurns });
-        const context_rpc_ms = Date.now() - contextRpcStart;
+        timing.context_rpc_ms = Date.now() - contextRpcStart;
         return ok({ context: hydratedSaveContext(context, master) });
       } finally {
-        logTurnTiming({ event_stage: 'context', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+        logTurnTiming({ event_stage: 'context', request_id: requestId, game_id: gameId, context_rpc_ms: timing.context_rpc_ms, turn_total_ms: Date.now() - startedAt });
       }
     },
 
@@ -166,7 +189,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const action = actionOrNotFound(await db.getAction(gameId, actionId));
       if (!action.story_text) throw new HttpError(409, 'story_required', 'A completed Story is required before Extract', true);
       if (action.extract_delta) {
-        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: action.parsed_blocks ?? parseNarrative(action.story_text, { master }) });
+        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: action.parsed_blocks ?? parseNarrative(action.story_text, { master }), npcIds });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true });
       }
@@ -190,14 +213,15 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const contextRpcStart = Date.now();
           const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
+          const hydratedContext = hydratedSaveContext(context, master);
           const promptStart = Date.now();
-          const messages = buildExtractPrompt({ context, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn });
+          const messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn });
           timing.extract_prompt_ms = Date.now() - promptStart;
           const llmStart = Date.now();
           const raw = await runExtract({ env, fetchImpl, messages });
           timing.extract_llm_ms = Date.now() - llmStart;
           const parseStart = Date.now();
-          extract = normalizeGameplayExtractEnvelope(raw, { parsedStory });
+          extract = normalizeGameplayExtractEnvelope(raw, { parsedStory, npcIds });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
           const degradable = (error instanceof HttpError && EXTRACT_DEGRADE_CODES.has(error.code))
@@ -209,8 +233,19 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           degraded = true;
           extract = buildDegradedExtractEnvelope({ parsedStory, playerAction: action.player_action, extraWarnings: [`extract_error:${error.code ?? error.name ?? 'unknown'}`] });
         }
-        await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
-        await db.updateActionStatus(gameId, actionId, 'committing').catch(() => undefined);
+        try {
+          await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
+        } catch (error) {
+          await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
+          throw error;
+        }
+        try {
+          await db.updateActionStatus(gameId, actionId, 'committing');
+        } catch {
+          // The Extract result is already durably saved; a failed status-transition patch must
+          // not turn a successful Extract into a stuck action, so resync with the source of truth.
+          await db.getAction(gameId, actionId).catch(() => null);
+        }
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, degraded });
       } finally {
         logTurnTiming({
@@ -238,11 +273,11 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const currentSave = context.save?.data ?? context.save;
         const parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
-        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory });
+        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory, npcIds });
 
         const mergeStart = Date.now();
         const merged = applyGuardedStateDelta(currentSave, extract, {
-          expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master
+          expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;

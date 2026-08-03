@@ -15,9 +15,12 @@ const ALLOWED = new Set([
   'story_summary_overall', 'story_summary_recent', 'focal_character_id', 'last_speaker_id',
   'last_npcs_present', 'last_image_id', 'last_choices', 'last_choice_meta'
 ]);
-const SNAPSHOTS = new Set(['last_npcs_present', 'last_choices', 'last_choice_meta']);
-const NULLABLE = new Set(['focal_character_id', 'last_speaker_id', 'last_image_id']);
+const SNAPSHOTS = new Set(['last_choice_meta']);
+const NULLABLE = new Set(['last_image_id']);
 const NPC_MAPS = new Set(['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes']);
+// The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present)
+// is the sole writer for these paths; a state_delta proposal for the same path is redundant.
+const ENVELOPE_AUTHORITATIVE = new Set(['focal_character_id', 'last_speaker_id', 'last_choices', 'last_npcs_present']);
 
 function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -50,17 +53,31 @@ function allowedNpcIds(save) {
   return ids;
 }
 
-function sexualCompletionWithoutEvidence(currentSave, delta, evidence) {
+function sexualCompletionWithoutEvidence(delta, evidence) {
   const state = delta.player_sexual_state;
   const playerMarksCompletion = plainObject(state) && Object.entries(state).some(([key, value]) =>
     /sexual.*(complete|relationship)|(?:complete|relationship).*sexual/i.test(key) && Boolean(value)
   );
-  const milestoneMarksCompletion = Object.entries(delta.npc_relationship_state ?? {}).some(([npcId, patch]) => {
-    const nextTurn = patch?.milestones?.sexual_relationship_started_turn;
-    const currentTurn = currentSave.npc_relationship_state?.[npcId]?.milestones?.sexual_relationship_started_turn;
-    return nextTurn !== null && nextTurn !== undefined && nextTurn !== currentTurn;
-  });
-  return (playerMarksCompletion || milestoneMarksCompletion) && evidence?.sexual_resolution !== true;
+  return playerMarksCompletion && evidence?.sexual_resolution !== true;
+}
+
+/**
+ * A new npc_relationship_state.milestones.sexual_relationship_started_turn value requires
+ * evidence.sexual_resolution === true. Without it, only that one field is dropped with a
+ * warning — the rest of the NPC's relationship patch, and the rest of the turn, still apply.
+ */
+function sanitizeRelationshipMilestonePatch(currentSave, npcId, patch, evidence) {
+  const nextTurn = patch?.milestones?.sexual_relationship_started_turn;
+  const currentTurn = currentSave.npc_relationship_state?.[npcId]?.milestones?.sexual_relationship_started_turn;
+  const attemptsChange = nextTurn !== null && nextTurn !== undefined && nextTurn !== currentTurn;
+  if (!attemptsChange || evidence?.sexual_resolution === true || !plainObject(patch.milestones)) {
+    return { patch, warning: null };
+  }
+  const { sexual_relationship_started_turn, ...restMilestones } = patch.milestones;
+  return {
+    patch: { ...patch, milestones: restMilestones },
+    warning: `unauthorized_sexual_milestone_ignored:${npcId}`
+  };
 }
 
 function mergeEventLedger(current, patch) {
@@ -77,16 +94,24 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     throw new GameCoreError('INVALID_SAVE', 'Current save edition or schema is invalid');
   }
   const preSave = hydrateGameplayState(currentSave, options?.master ?? {});
-  const envelope = normalizeGameplayExtractEnvelope(extractEnvelope, { parsedStory: options?.parsedStory });
-  if (sexualCompletionWithoutEvidence(preSave, envelope.state_delta, envelope.evidence)) {
+  const envelope = normalizeGameplayExtractEnvelope(extractEnvelope, { parsedStory: options?.parsedStory, npcIds: options?.npcIds });
+  if (sexualCompletionWithoutEvidence(envelope.state_delta, envelope.evidence)) {
     throw new GameCoreError('UNAUTHORIZED_SEXUAL_COMPLETION', 'Sexual completion requires evidence');
   }
 
   const nextSave = clone(preSave);
   const warnings = [...envelope.warnings];
   const allowedNpcs = allowedNpcIds(preSave);
+  if (options?.npcIds instanceof Set) {
+    for (const id of envelope.npcs_present) allowedNpcs.add(id);
+    if (envelope.action_target_id) allowedNpcs.add(envelope.action_target_id);
+  }
 
   for (const [path, patch] of Object.entries(envelope.state_delta)) {
+    if (ENVELOPE_AUTHORITATIVE.has(path)) {
+      warnings.push(`duplicate_state_path:${path}`);
+      continue;
+    }
     if (!ALLOWED.has(path)) {
       warnings.push(`unknown_state_path:${path}`);
       continue;
@@ -143,11 +168,17 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
           warnings.push(`absent_npc_patch:${path}:${npcId}`);
           continue;
         }
-        if (isStale(nextSave[path][npcId], npcPatch)) {
+        let sanitizedPatch = npcPatch;
+        if (path === 'npc_relationship_state' && plainObject(npcPatch)) {
+          const sanitized = sanitizeRelationshipMilestonePatch(preSave, npcId, npcPatch, envelope.evidence);
+          sanitizedPatch = sanitized.patch;
+          if (sanitized.warning) warnings.push(sanitized.warning);
+        }
+        if (isStale(nextSave[path][npcId], sanitizedPatch)) {
           warnings.push(`stale_updated_turn:${path}:${npcId}`);
           continue;
         }
-        nextSave[path][npcId] = plainObject(npcPatch) ? deepMerge(nextSave[path][npcId] ?? {}, npcPatch) : clone(npcPatch);
+        nextSave[path][npcId] = plainObject(sanitizedPatch) ? deepMerge(nextSave[path][npcId] ?? {}, sanitizedPatch) : clone(sanitizedPatch);
       }
       continue;
     }

@@ -7,8 +7,15 @@ import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { applyGuardedStateDelta } from '../src/engine/guarded-merge.js';
-import { buildDegradedExtractEnvelope, hydrateGameplayState, migrateCompanySave } from '../src/engine/gameplay-state.js';
+import {
+  buildDegradedExtractEnvelope,
+  hydrateGameplayState,
+  migrateCompanySave,
+  normalizeGameplayExtractEnvelope,
+  reducePlayerSexualState
+} from '../src/engine/gameplay-state.js';
 import { createApiWorker } from '../src/api/index.js';
+import { createTurnRoutes, masterFromEdition, npcIdsFromEdition } from '../src/api/turn-routes.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -243,4 +250,292 @@ test('read-only Context hydrates missing game_time and player_sexual_state witho
   assert.deepEqual(payload.data.context.save.data.player_sexual_state, { arousal: 0, ejaculation_progress: 0, ejaculation_count: 0, updated_turn: 7 });
   assert.equal(calls.every(call => call.method === 'GET' || call.url.includes('get_company_context')), true);
   assert.equal(calls.some(call => call.method === 'PATCH'), false);
+});
+
+const GAME_ID = '11111111-1111-4111-8111-111111111111';
+const ACTION_ID = '22222222-2222-4222-8222-222222222222';
+const ENV = { SUPABASE_URL: 'https://supabase.test', SUPABASE_SERVICE_ROLE_KEY: 'k', LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'k', STORY_MODEL: 's', EXTRACT_MODEL: 'e' };
+
+function json(value, status = 200) {
+  return new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
+}
+
+/**
+ * A fuller lifecycle mock than the read-only fixtures above: it does not auto-advance
+ * processing_status on record_extract_result, so status-transition-failure recovery can
+ * be exercised, and it supports failing a named RPC N times or a specific status PATCH.
+ */
+function createLifecycleMock({ saveOverride, storySse, extractContent, extractFinishReason, failRpc = {}, failPatchTo = null } = {}) {
+  const actions = new Map();
+  const save = saveOverride ?? readJson('fixtures/phase-0.5/canonical-save-v1.json');
+  const context = { game: { id: GAME_ID }, save: { data: save }, recent_turns: [] };
+  const calls = [];
+  const rpcCallCounts = {};
+  let lastExtractRequestBody = null;
+
+  const fetchImpl = async (url, init = {}) => {
+    const textUrl = String(url);
+    calls.push({ url: textUrl, method: init.method ?? 'GET', body: init.body });
+    if (textUrl.startsWith('https://llm.test')) {
+      const body = JSON.parse(init.body);
+      if (body.stream) {
+        return new Response(storySse ?? 'data: {"choices":[{"delta":{"content":"[SCENE]\\nhi"}}]}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
+      }
+      lastExtractRequestBody = body;
+      const content = extractContent ?? JSON.stringify({ state_delta: {}, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] });
+      return json({ choices: [{ finish_reason: extractFinishReason, message: { content } }] });
+    }
+    const parsed = new URL(textUrl);
+    if (parsed.pathname === '/rest/v1/game_actions' && (init.method ?? 'GET') === 'GET') {
+      const found = actions.get(parsed.searchParams.get('action_id')?.replace('eq.', ''));
+      return json([found].filter(Boolean));
+    }
+    if (parsed.pathname === '/rest/v1/game_actions' && init.method === 'PATCH') {
+      const id = parsed.searchParams.get('action_id').replace('eq.', '');
+      const action = actions.get(id);
+      const body = JSON.parse(init.body);
+      if (failPatchTo && body.processing_status === failPatchTo) return json({ code: 'XXUNK', message: 'patch failed' }, 500);
+      const expectedStatus = parsed.searchParams.get('processing_status')?.replace('eq.', '');
+      const requiresEmptyErrorCode = parsed.searchParams.get('error_code') === 'is.null';
+      if (!action || (expectedStatus && action.processing_status !== expectedStatus) || (requiresEmptyErrorCode && action.error_code != null)) return json([]);
+      Object.assign(action, body);
+      if (init.headers?.prefer === 'return=representation') return json([action]);
+      return new Response(null, { status: 204 });
+    }
+    const rpc = parsed.pathname.split('/').pop();
+    const args = JSON.parse(init.body);
+    rpcCallCounts[rpc] = (rpcCallCounts[rpc] ?? 0) + 1;
+    if (failRpc[rpc] && rpcCallCounts[rpc] <= failRpc[rpc]) return json({ code: 'XXUNK', message: `${rpc} failed` }, 500);
+    if (rpc === 'get_company_context') return json(context);
+    if (rpc === 'reserve_turn_action') {
+      let action = actions.get(args.p_action_id);
+      if (!action) {
+        action = { action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn, player_action: args.p_player_action, processing_status: 'story_streaming' };
+        actions.set(args.p_action_id, action);
+        return json({ ...action, replayed: false });
+      }
+      return json({ ...action, replayed: true });
+    }
+    if (rpc === 'record_story_result') {
+      const action = actions.get(args.p_action_id);
+      Object.assign(action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting' });
+      return json({ replayed: false });
+    }
+    if (rpc === 'record_extract_result') {
+      const action = actions.get(args.p_action_id);
+      Object.assign(action, { extract_delta: args.p_extract_delta });
+      return json({ replayed: false });
+    }
+    if (rpc === 'commit_company_turn') {
+      const action = actions.get(args.p_action_id);
+      action.processing_status = 'committed';
+      return json({ success: true, replayed: false, turn_number: args.p_expected_turn, turn_id: action.turn_id, save_revision: 1 });
+    }
+    if (rpc === 'get_action_status') {
+      const action = actions.get(args.p_action_id);
+      return json({ action_id: action.action_id, turn_id: action.turn_id, expected_turn: action.expected_turn, processing_status: action.processing_status, has_story: Boolean(action.story_text), has_extract: Boolean(action.extract_delta), error_code: action.error_code ?? null });
+    }
+    throw new Error(`Unhandled mock RPC: ${rpc}`);
+  };
+  return { fetchImpl, actions, calls, getLastExtractRequestBody: () => lastExtractRequestBody };
+}
+
+async function driveStoryToExtracting(worker, playerAction = 'x') {
+  await (await worker.fetch(new Request(`https://worker.test/api/story`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID, expected_turn: 8, player_action: playerAction })
+  }), ENV)).text();
+}
+
+test('Extract prompt receives the same hydrated Context as Story (defaulted game_time and sexual state)', async () => {
+  const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
+  assert.equal('game_time' in save.world_state, false);
+  const mock = createLifecycleMock({ saveOverride: save });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  await driveStoryToExtracting(worker);
+  await worker.fetch(new Request('https://worker.test/api/extract', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
+  const requestPayload = JSON.parse(mock.getLastExtractRequestBody().messages[1].content);
+  assert.deepEqual(requestPayload.context.save.data.world_state.game_time, { day: 1, minute_of_day: 540 });
+  assert.deepEqual(requestPayload.context.save.data.player_sexual_state, { arousal: 0, ejaculation_progress: 0, ejaculation_count: 0, updated_turn: 7 });
+});
+
+test('record_extract_result failure marks the action extract_failed and stays recoverable via retry_extract', async () => {
+  const mock = createLifecycleMock({ failRpc: { record_extract_result: 1 } });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  await driveStoryToExtracting(worker);
+  const failed = await worker.fetch(new Request('https://worker.test/api/extract', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
+  assert.equal(failed.status, 502);
+  assert.equal(mock.actions.get(ACTION_ID).processing_status, 'extract_failed');
+  const status = await worker.fetch(new Request('https://worker.test/api/action-status', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
+  assert.equal((await status.json()).data.recoverable_step, 'retry_extract');
+  const recovered = await worker.fetch(new Request('https://worker.test/api/extract', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
+  assert.equal(recovered.status, 200);
+});
+
+test('a failed committing status-transition patch never leaves the action stuck: Extract still succeeds and Commit still completes', async () => {
+  const mock = createLifecycleMock({ failPatchTo: 'committing' });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  await driveStoryToExtracting(worker);
+  const extractResponse = await worker.fetch(new Request('https://worker.test/api/extract', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
+  assert.equal(extractResponse.status, 200);
+  assert.ok(mock.actions.get(ACTION_ID).extract_delta);
+  const status = await worker.fetch(new Request('https://worker.test/api/action-status', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
+  assert.equal((await status.json()).data.recoverable_step, 'resume_extract');
+  const replay = await worker.fetch(new Request('https://worker.test/api/extract', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
+  assert.equal((await replay.json()).data.replayed, true);
+  const commit = await worker.fetch(new Request('https://worker.test/api/commit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID, expected_turn: 8 }) }), ENV);
+  assert.equal(commit.status, 200);
+  const llmCalls = mock.calls.filter(call => call.url.startsWith('https://llm.test'));
+  assert.equal(llmCalls.length, 2);
+});
+
+test('Context timing log includes context_rpc_ms', async () => {
+  const mock = createLifecycleMock();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const originalLog = console.log;
+  const lines = [];
+  console.log = message => lines.push(message);
+  try {
+    await worker.fetch(new Request('https://worker.test/api/context', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID }) }), ENV);
+  } finally {
+    console.log = originalLog;
+  }
+  const timingLine = lines.map(line => JSON.parse(line)).find(entry => entry.event === 'company_turn_timing' && entry.event_stage === 'context');
+  assert.ok(timingLine);
+  assert.equal(typeof timingLine.context_rpc_ms, 'number');
+});
+
+test('masterFromEdition and npcIdsFromEdition convert id-keyed content maps into stable arrays and an NPC id set', () => {
+  const edition = {
+    characters: { characters: { 'npc-hayeon': { name: 'Hayeon', initial_stats: { affection: 0 } } } },
+    generalNpcs: { profiles: { 'npc-general-1': { name: 'General' } } }
+  };
+  const master = masterFromEdition(edition);
+  assert.deepEqual(master.characters, [{ character_id: 'npc-hayeon', name: 'Hayeon', initial_stats: { affection: 0 } }]);
+  const npcIds = npcIdsFromEdition(edition);
+  assert.equal(npcIds.has('npc-hayeon'), true);
+  assert.equal(npcIds.has('npc-general-1'), true);
+  assert.equal(npcIds.has('npc-unknown'), false);
+});
+
+test('normalizeGameplayExtractEnvelope drops unknown identity ids and Mind Monitor entries with warnings', () => {
+  const npcIds = new Set(['npc-hayeon']);
+  const raw = {
+    state_delta: {}, outcome: 'success', evidence: {}, dialogue_lines: [],
+    npcs_present: ['npc-hayeon', 'npc-ghost'],
+    action_target_id: 'npc-ghost', focal_character_id: 'npc-hayeon', last_speaker_id: 'npc-unknown', image_character_id: 'npc-hayeon',
+    mind_monitor: { 'npc-hayeon': { surface: 'x'.repeat(150), subconscious: 'y'.repeat(180) }, 'npc-ghost': { surface: 'x'.repeat(150), subconscious: 'y'.repeat(180) } }
+  };
+  const normalized = normalizeGameplayExtractEnvelope(raw, { parsedStory: {}, npcIds });
+  assert.deepEqual(normalized.npcs_present, ['npc-hayeon']);
+  assert.equal(normalized.action_target_id, null);
+  assert.equal(normalized.focal_character_id, 'npc-hayeon');
+  assert.equal(normalized.last_speaker_id, null);
+  assert.equal(normalized.image_character_id, 'npc-hayeon');
+  assert.deepEqual(Object.keys(normalized.mind_monitor), ['npc-hayeon']);
+  assert.ok(normalized.warnings.includes('unknown_npc_id:npcs_present:npc-ghost'));
+  assert.ok(normalized.warnings.includes('unknown_npc_id:action_target_id:npc-ghost'));
+  assert.ok(normalized.warnings.includes('unknown_npc_id:last_speaker_id:npc-unknown'));
+  assert.ok(normalized.warnings.includes('unknown_npc_id:mind_monitor:npc-ghost'));
+});
+
+test('normalizeGameplayExtractEnvelope skips NPC id validation entirely when no npcIds set is supplied', () => {
+  const raw = { state_delta: {}, outcome: 'success', evidence: {}, dialogue_lines: [], npcs_present: ['npc-anything'], focal_character_id: 'npc-anything', mind_monitor: {} };
+  const normalized = normalizeGameplayExtractEnvelope(raw, { parsedStory: {} });
+  assert.deepEqual(normalized.npcs_present, ['npc-anything']);
+  assert.equal(normalized.focal_character_id, 'npc-anything');
+  assert.equal(normalized.warnings.some(w => w.startsWith('unknown_npc_id')), false);
+});
+
+test('guarded merge allows a state delta for a newly-present NPC validated this turn', () => {
+  const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
+  const npcIds = new Set(['npc-newcomer']);
+  const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x', npcIds };
+  const result = applyGuardedStateDelta(save, {
+    state_delta: { npc_stats: { 'npc-newcomer': { affection: 1 } } }, outcome: 'success', evidence: {},
+    choices: [], mind_monitor: {}, dialogue_lines: [], npcs_present: ['npc-newcomer']
+  }, options);
+  assert.equal(result.nextSave.npc_stats['npc-newcomer'].affection, 1);
+  assert.ok(!result.warnings.some(w => w.startsWith('absent_npc_patch')));
+
+  const withoutValidation = applyGuardedStateDelta(save, {
+    state_delta: { npc_stats: { 'npc-newcomer': { affection: 1 } } }, outcome: 'success', evidence: {},
+    choices: [], mind_monitor: {}, dialogue_lines: [], npcs_present: ['npc-newcomer']
+  }, { ...options, npcIds: undefined });
+  assert.ok(withoutValidation.warnings.some(w => w.startsWith('absent_npc_patch:npc_stats:npc-newcomer')));
+});
+
+test('Extract may only enrich a parser dialogue line speaker_id for a matching order and text, never rewrite it', () => {
+  const parsedStory = {
+    dialogue_lines: [
+      { speaker_id: null, speaker_name: '서원희', direction: '웃으며', text: '안녕하세요.', order: 0 },
+      { speaker_id: 'npc-already-known', speaker_name: '민준', direction: '', text: '네.', order: 1 }
+    ]
+  };
+  const raw = {
+    state_delta: {}, outcome: 'success', evidence: {}, npcs_present: [], mind_monitor: {},
+    dialogue_lines: [
+      { speaker_id: 'npc-seowonhee', speaker_name: '서원희', direction: 'REWRITTEN', text: '안녕하세요.', order: 0 },
+      { speaker_id: 'npc-different', speaker_name: '민준', direction: '', text: '네.', order: 1 },
+      { speaker_id: 'npc-x', speaker_name: '???', direction: '', text: '전혀 다른 대사', order: 0 }
+    ]
+  };
+  const normalized = normalizeGameplayExtractEnvelope(raw, { parsedStory });
+  assert.equal(normalized.dialogue_lines.length, 2);
+  assert.equal(normalized.dialogue_lines[0].speaker_id, 'npc-seowonhee');
+  assert.equal(normalized.dialogue_lines[0].direction, '웃으며');
+  assert.equal(normalized.dialogue_lines[0].text, '안녕하세요.');
+  assert.equal(normalized.dialogue_lines[1].speaker_id, 'npc-already-known');
+});
+
+test('reducePlayerSexualState and migrateCompanySave preserve unknown nested player_sexual_state fields', () => {
+  const base = { arousal: 10, ejaculation_progress: 0, ejaculation_count: 0, updated_turn: 3, custom_note: { source: 'story', tags: ['a', 'b'] } };
+  const reduced = reducePlayerSexualState(base, { arousal_delta: 5 });
+  assert.deepEqual(reduced.state.custom_note, { source: 'story', tags: ['a', 'b'] });
+  assert.equal(reduced.state.arousal, 15);
+
+  const save = { save_schema_version: 1, edition: 'company-v1', player_sexual_state: base, world_state: {} };
+  const migrated = migrateCompanySave(save);
+  assert.deepEqual(migrated.player_sexual_state.custom_note, { source: 'story', tags: ['a', 'b'] });
+});
+
+test('the top-level envelope is the sole writer for identity/snapshot fields; a duplicate state_delta path is dropped with a warning', () => {
+  const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
+  const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
+  const result = applyGuardedStateDelta(save, {
+    state_delta: { focal_character_id: 'npc-areum', last_speaker_id: 'npc-hayeon', last_choices: ['stale-a', 'stale-b'] },
+    outcome: 'success', evidence: {}, choices: ['real-1', 'real-2', 'real-3', 'real-4'], mind_monitor: {}, dialogue_lines: [],
+    focal_character_id: 'npc-hayeon', last_speaker_id: 'npc-areum'
+  }, options);
+  assert.equal(result.nextSave.focal_character_id, 'npc-hayeon');
+  assert.equal(result.nextSave.last_speaker_id, 'npc-areum');
+  assert.deepEqual(result.nextSave.last_choices, ['real-1', 'real-2', 'real-3', 'real-4']);
+  assert.ok(result.warnings.includes('duplicate_state_path:focal_character_id'));
+  assert.ok(result.warnings.includes('duplicate_state_path:last_speaker_id'));
+  assert.ok(result.warnings.includes('duplicate_state_path:last_choices'));
+  assert.ok(!result.warnings.some(w => w.startsWith('unknown_state_path:focal_character_id')));
+});
+
+test('hydrateGameplayState fills npc_relationship_state, npc_stats, and csa_attitudes from the contract canonical initial_* fields', () => {
+  const save = migrateCompanySave({ save_schema_version: 1, edition: 'company-v1', world_state: {} });
+  const master = {
+    characters: [{
+      character_id: 'npc-hayeon',
+      initial_stats: { affection: 2 },
+      initial_relationship: { closeness: 'acquaintance' },
+      initial_csa_attitudes: { 'csa-dress-code': { familiarity: 0, resistance: 10, acceptance: 0, discomfort: 0, conscious_violation: false, last_changed_turn: 0 } }
+    }]
+  };
+  const hydrated = hydrateGameplayState(save, master);
+  assert.deepEqual(hydrated.npc_stats['npc-hayeon'], { affection: 2 });
+  assert.deepEqual(hydrated.npc_relationship_state['npc-hayeon'], { closeness: 'acquaintance' });
+  assert.deepEqual(hydrated.csa_attitudes['npc-hayeon']['csa-dress-code'], { familiarity: 0, resistance: 10, acceptance: 0, discomfort: 0, conscious_violation: false, last_changed_turn: 0 });
+
+  const legacyAliasMaster = { characters: [{ character_id: 'npc-legacy', initial_relationship_state: { closeness: 'familiar' } }] };
+  const hydratedLegacy = hydrateGameplayState(save, legacyAliasMaster);
+  assert.deepEqual(hydratedLegacy.npc_relationship_state['npc-legacy'], { closeness: 'familiar' });
+
+  const bothMaster = { characters: [{ character_id: 'npc-both', initial_relationship: { closeness: 'canonical' }, initial_relationship_state: { closeness: 'legacy' } }] };
+  const hydratedBoth = hydrateGameplayState(save, bothMaster);
+  assert.deepEqual(hydratedBoth.npc_relationship_state['npc-both'], { closeness: 'canonical' });
 });

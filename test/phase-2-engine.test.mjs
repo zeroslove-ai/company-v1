@@ -105,17 +105,32 @@ test('extract envelope preserves normalized warnings when replayed', () => {
   assert.equal(replay.warnings.includes('unknown_extract_field:warnings'), false);
 });
 
-test('guarded merge requires evidence for new relationship sexual milestones', () => {
+test('guarded merge drops an unauthorized relationship sexual milestone delta instead of failing the whole turn', () => {
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
-  const state_delta = { npc_relationship_state: { 'npc-hayeon': { milestones: { sexual_relationship_started_turn: 8 } } } };
+  const state_delta = {
+    npc_relationship_state: { 'npc-hayeon': { milestones: { sexual_relationship_started_turn: 8 }, closeness: 'trusted' } }
+  };
   const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
   const envelope = evidence => ({ state_delta, outcome: 'success', evidence, choices: [], mind_monitor: {}, dialogue_lines: [] });
-  assert.throws(() => applyGuardedStateDelta(save, envelope({}), options), GameCoreError);
-  assert.doesNotThrow(() => applyGuardedStateDelta(save, envelope({ sexual_resolution: true }), options));
+
+  const withoutEvidence = applyGuardedStateDelta(save, envelope({}), options);
+  assert.equal(withoutEvidence.nextSave.npc_relationship_state['npc-hayeon'].milestones.sexual_relationship_started_turn, null);
+  assert.equal(withoutEvidence.nextSave.npc_relationship_state['npc-hayeon'].closeness, 'trusted');
+  assert.ok(withoutEvidence.warnings.includes('unauthorized_sexual_milestone_ignored:npc-hayeon'));
+
+  const withEvidence = applyGuardedStateDelta(save, envelope({ sexual_resolution: true }), options);
+  assert.equal(withEvidence.nextSave.npc_relationship_state['npc-hayeon'].milestones.sexual_relationship_started_turn, 8);
+  assert.ok(!withEvidence.warnings.includes('unauthorized_sexual_milestone_ignored:npc-hayeon'));
+
   save.npc_relationship_state['npc-hayeon'].milestones.sexual_relationship_started_turn = 8;
-  assert.doesNotThrow(() => applyGuardedStateDelta(save, envelope({}), options));
+  const unchanged = applyGuardedStateDelta(save, envelope({}), options);
+  assert.equal(unchanged.nextSave.npc_relationship_state['npc-hayeon'].milestones.sexual_relationship_started_turn, 8);
+  assert.ok(!unchanged.warnings.includes('unauthorized_sexual_milestone_ignored:npc-hayeon'));
+
   const changed = { npc_relationship_state: { 'npc-hayeon': { milestones: { sexual_relationship_started_turn: 9 } } } };
-  assert.throws(() => applyGuardedStateDelta(save, { ...envelope({}), state_delta: changed }, options), GameCoreError);
+  const alsoDropped = applyGuardedStateDelta(save, { ...envelope({}), state_delta: changed }, options);
+  assert.equal(alsoDropped.nextSave.npc_relationship_state['npc-hayeon'].milestones.sexual_relationship_started_turn, 8);
+  assert.ok(alsoDropped.warnings.includes('unauthorized_sexual_milestone_ignored:npc-hayeon'));
 });
 
 test('recovery states require the persisted result needed by the next step', () => {
