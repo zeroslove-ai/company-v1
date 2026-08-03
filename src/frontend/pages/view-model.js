@@ -6,6 +6,16 @@ function text(value) {
   return typeof value === 'string' ? value : '';
 }
 
+function integer(value) {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (typeof value === 'string' && value.trim() && Number.isInteger(Number(value))) return Number(value);
+  return null;
+}
+
+function imageId(value) {
+  return typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value)) ? value : null;
+}
+
 function strings(value) {
   return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) : [];
 }
@@ -31,8 +41,12 @@ function choices(save, turn) {
   return strings(parsed(turn).choices);
 }
 
-function mindMonitor(turn) {
-  return object(turn.mind_monitor) ?? {};
+function committedTurn(context, save) {
+  return integer(context?.save?.committed_turn) ?? integer(save.turn_state?.committed_turn) ?? 0;
+}
+
+function mindMonitor(currentExtract, turn) {
+  return object(object(currentExtract)?.mind_monitor) ?? object(turn.mind_monitor) ?? {};
 }
 
 function npcView(save, id) {
@@ -48,17 +62,18 @@ function npcView(save, id) {
  * Converts immutable Company Context data to display-safe values.
  * It deliberately does not merge, persist, fetch, or infer missing game state.
  */
-export function buildCompanyGameViewModel(context) {
+export function buildCompanyGameViewModel(context, runtime = {}) {
   const save = saveFromContext(context);
   const turn = latestTurn(context);
   const parsedStory = parsed(turn);
+  const currentExtract = object(runtime)?.currentExtract;
   const focalId = text(save.focal_character_id);
   const lastSpeakerId = text(save.last_speaker_id);
   const scene = object(save.scene_state) ?? {};
 
   return {
     turn: {
-      committed_turn: Number(save.turn_state?.committed_turn ?? 0),
+      committed_turn: committedTurn(context, save),
       turn_id: text(turn.turn_id),
       action_id: text(turn.action_id),
       player_action: text(turn.player_action),
@@ -92,10 +107,10 @@ export function buildCompanyGameViewModel(context) {
       inner_thought: ''
     },
     media: {
-      image_id: text(save.last_image_id),
+      image_id: imageId(save.last_image_id),
       image_character_id: '',
       image_selection: null,
-      mind_monitor: mindMonitor(turn)
+      mind_monitor: mindMonitor(currentExtract, turn)
     }
   };
 }

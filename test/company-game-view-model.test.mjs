@@ -20,6 +20,28 @@ test('Company game view model uses authoritative choices and the newest committe
   assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: [], turns: [latest] })).media.mind_monitor, latest.mind_monitor);
 });
 
+test('Company game view model preserves an external committed turn and numeric image ID', () => {
+  const input = context();
+  input.save.committed_turn = 12;
+  delete input.save.data.turn_state;
+  input.save.data.last_image_id = 123;
+  const model = buildCompanyGameViewModel(input);
+  assert.equal(model.turn.committed_turn, 12);
+  assert.equal(model.media.image_id, 123);
+});
+
+test('Company game view model prefers current Extract Mind Monitor without mutating inputs', () => {
+  const input = context({ turns: [{ mind_monitor: { source: 'committed turn' } }] });
+  const runtime = { currentExtract: { mind_monitor: { source: 'current Extract' } } };
+  const inputSnapshot = structuredClone(input);
+  const runtimeSnapshot = structuredClone(runtime);
+  const model = buildCompanyGameViewModel(input, runtime);
+  assert.deepEqual(model.media.mind_monitor, { source: 'current Extract' });
+  assert.deepEqual(buildCompanyGameViewModel(input).media.mind_monitor, { source: 'committed turn' });
+  assert.deepEqual(input, inputSnapshot);
+  assert.deepEqual(runtime, runtimeSnapshot);
+});
+
 test('Company game view model keeps identity axes separate and does not invent NPC state', () => {
   const input = context({ turns: [{ parsed_blocks: { player_status: 'ready' } }] });
   input.save.data.focal_character_id = 'npc-hayeon';

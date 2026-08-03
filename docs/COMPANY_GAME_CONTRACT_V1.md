@@ -61,9 +61,9 @@ Commit receives `action_id` and `expected_turn`, writes the authoritative next s
 
 ## Context reload and UI contract
 
-The frontend reloads Context after Commit. Choices resolve in this order: non-empty `save.last_choices`, newest `recent_turns[].choices`, newest `recent_turns[].parsed_blocks.choices`, then `[]`. Mind monitor resolves from the current Extract result first, then newest turn `mind_monitor`, then `{}`.
+The frontend reloads Context after Commit. Choices resolve in this order: non-empty `save.last_choices`, newest `recent_turns[].choices`, newest `recent_turns[].parsed_blocks.choices`, then `[]`. Mind monitor resolves from `currentExtract.mind_monitor` passed to the view-model adapter, then newest turn `mind_monitor`, then `{}`.
 
-UI renderers must not read raw save ad hoc because persistence layout, turn history, missing-field semantics, and fallback priority are contract concerns. `buildCompanyGameViewModel(context)` is a pure boundary: it does not fetch, mutate Context, touch the DOM, read global state, or create NPC state for a missing NPC.
+UI renderers must not read raw save ad hoc because persistence layout, turn history, missing-field semantics, and fallback priority are contract concerns. `buildCompanyGameViewModel(context, { currentExtract: null } = {})` is a pure boundary: it does not fetch, mutate either input, touch the DOM, read global state, or create NPC state for a missing NPC.
 
 ## Field authority
 
