@@ -139,6 +139,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const messages = buildExtractPrompt({ context, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn });
         const raw = await runExtract({ env, fetchImpl, messages });
         const extract = normalizeExtractEnvelope(raw);
+        const storyChoices = Array.isArray(parsedStory?.choices)
+          ? parsedStory.choices.filter(choice => typeof choice === 'string' && choice.trim())
+          : [];
+        if (storyChoices.length > 0) extract.choices = storyChoices;
         await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
         await db.updateActionStatus(gameId, actionId, 'committing').catch(() => undefined);
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false });

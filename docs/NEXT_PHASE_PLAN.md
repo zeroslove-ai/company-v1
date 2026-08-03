@@ -23,7 +23,9 @@
 - Frontend Worker `gamebuilder-company-v1` is deployed at `https://gamebuilder-company-v1.zeroslove.workers.dev`.
 - Public game URL: `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=11111111-1111-4111-8111-111111111111`.
 - Public asset and read-only Context smoke tests passed. No public Story, Extract, or Commit request was performed.
-- The API Worker is unchanged.
+- The API Worker is updated by the first-turn choices and Extract latency hotfix.
+- First-turn choices and Extract latency hotfix: deployed to the API and frontend Workers; Context reload now restores committed choices and Mind monitor.
+- Next live gameplay validation: user-run Turn 2. No automatic Story, Extract, or Commit request is authorized for this hotfix.
 - The retired Dify project is not used and must not be modified.
 
 ## Phase 2 implementation target

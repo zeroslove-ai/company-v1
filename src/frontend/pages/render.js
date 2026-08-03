@@ -41,10 +41,16 @@ export function renderHistory(container, turns) {
     container.append(card);
   }
 }
+export function latestMindMonitor(context, result = {}) {
+  const current = result?.mind_monitor;
+  if (current && typeof current === 'object' && !Array.isArray(current) && Object.keys(current).length > 0) return current;
+  const latest = Array.isArray(context?.recent_turns) ? context.recent_turns.at(-1)?.mind_monitor : undefined;
+  return latest && typeof latest === 'object' && !Array.isArray(latest) ? latest : {};
+}
 export function renderState(elements, context, result = {}) {
   const save = context?.save?.data ?? context?.save ?? {};
   text(elements.title, context?.game?.title ?? '회사편'); text(elements.turn, `Turn ${save.turn_state?.committed_turn ?? 0}`);
   if (elements.scene) { elements.scene.replaceChildren(); for (const [label, value] of Object.entries(stateDisplayValues(context))) { if (!value) continue; const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = label; dd.textContent = value; elements.scene.append(dt, dd); } }
-  if (elements.mind) { elements.mind.replaceChildren(); for (const [id, value] of Object.entries(result.mind_monitor ?? {})) { const card = document.createElement('p'); card.textContent = `${id}: ${typeof value === 'string' ? value : JSON.stringify(value)}`; elements.mind.append(card); } }
+  if (elements.mind) { elements.mind.replaceChildren(); for (const [id, value] of Object.entries(latestMindMonitor(context, result))) { const card = document.createElement('p'); card.textContent = `${id}: ${typeof value === 'string' ? value : JSON.stringify(value)}`; elements.mind.append(card); } }
   if (elements.warnings) { elements.warnings.replaceChildren(); for (const warning of result.warnings ?? []) { const item = document.createElement('li'); item.textContent = warning; elements.warnings.append(item); } }
 }

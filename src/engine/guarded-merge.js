@@ -125,6 +125,9 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     nextSave[path] = plainObject(patch) ? deepMerge(nextSave[path] ?? {}, patch) : clone(patch);
   }
 
+  nextSave.last_choices = clone(envelope.choices);
+  if (envelope.choices.length !== 4) warnings.push('choices_not_exactly_four');
+
   nextSave.turn_state = buildTurnState({
     currentTurn: currentSave.turn_state?.committed_turn ?? 0,
     expectedTurn: options.expectedTurn,

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBusyGuard, createFrontendApp, createTurnCoordinator } from '../src/frontend/pages/app.js';
-import { parsedTurnNarrative, renderHistory, stateDisplayValues } from '../src/frontend/pages/render.js';
+import { latestMindMonitor, parsedTurnNarrative, renderHistory, stateDisplayValues } from '../src/frontend/pages/render.js';
 import { clearPending, committedTurn, contextChoices, loadPending, pendingKey, recoveryFor, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -16,6 +16,13 @@ test('frontend state resolves game IDs and validates Company v1 context', () => 
   assert.equal(resolveGameId('?game=not-a-uuid'), gameId);
   const context = { game: { edition_id: 'company-v1' }, save: { data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 3 }, last_choices: ['A', '', 'B'] } } };
   assert.equal(validateContext(context), true); assert.equal(saveFromContext(context).edition, 'company-v1'); assert.equal(committedTurn(context), 3); assert.deepEqual(contextChoices(context), ['A', 'B']);
+});
+
+test('frontend falls back to the newest committed choices and mind monitor', () => {
+  const context = { save: { data: { last_choices: [] } }, recent_turns: [{ choices: ['old'] }, { choices: ['new', '', 'newer'], mind_monitor: { focus: 'stable' } }] };
+  assert.deepEqual(contextChoices(context), ['new', 'newer']);
+  assert.deepEqual(latestMindMonitor(context), { focus: 'stable' });
+  assert.deepEqual(latestMindMonitor(context, { mind_monitor: { current: 'preferred' } }), { current: 'preferred' });
 });
 
 test('frontend pending actions preserve only recovery metadata', () => {
