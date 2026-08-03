@@ -11,7 +11,8 @@ const migrations = [
   'supabase/migrations/20260803000100_company_v1_core_schema.sql',
   'supabase/migrations/20260803000200_company_v1_turn_rpcs.sql',
   'supabase/migrations/20260803000300_company_v1_feedback_and_reset_rpcs.sql',
-  'supabase/migrations/20260803000400_company_v1_lock_down_rpc_access.sql'
+  'supabase/migrations/20260803000400_company_v1_lock_down_rpc_access.sql',
+  'supabase/migrations/20260803000500_company_v1_player_setup_and_opening_rpcs.sql'
 ];
 const seed = 'supabase/seed/20260803000100_company_v1_dev_seed.sql';
 
@@ -90,4 +91,22 @@ test('migration package excludes destructive, deployment, legacy, and secret-lik
   assert.doesNotMatch(packageText, /game-proxy-v2|gamebuilder-v2|game-builder-v2/i);
   assert.doesNotMatch(packageText, /ovltkzwddxsekcfeskds/i);
   assert.doesNotMatch(packageText, /(api[_-]?key|service[_-]?role[_-]?key|token)\s*[:=]\s*['"][^'"]+/i);
+});
+
+test('player setup and opening RPCs guard identity, reject completed resubmission, and stay service-role-only', () => {
+  const setupOpening = read(migrations[4]);
+  for (const fn of ['save_company_player_setup', 'commit_company_opening']) {
+    assert.match(setupOpening, new RegExp(`function public\\.${fn}`, 'i'));
+  }
+  assert.match(setupOpening, /player setup is already completed for this game/i);
+  assert.match(setupOpening, /player setup identity mismatch/i);
+  assert.match(setupOpening, /return jsonb_build_object\('success', true, 'replayed', true/i);
+  assert.match(setupOpening, /turn_state,committed_turn[\s\S]*?v_save\.committed_turn/i);
+  assert.match(setupOpening, /validate_company_save_v1/i);
+  assert.match(setupOpening, /for update/i);
+  assert.match(setupOpening, /revoke all on function public\.save_company_player_setup\([\s\S]*?from public, anon, authenticated/i);
+  assert.match(setupOpening, /revoke all on function public\.commit_company_opening\([\s\S]*?from public, anon, authenticated/i);
+  assert.doesNotMatch(setupOpening, /grant execute[\s\S]*to (?:anon|authenticated)/i);
+  assert.match(setupOpening, /grant execute[\s\S]*to service_role/i);
+  assert.doesNotMatch(setupOpening, /update public\.game_master/i);
 });

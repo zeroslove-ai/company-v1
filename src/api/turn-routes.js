@@ -5,13 +5,19 @@ import {
   applyGuardedStateDelta,
   buildDegradedExtractEnvelope,
   buildExtractPrompt,
+  buildOpeningNextSave,
+  buildOpeningPlan,
+  buildOpeningPrompt,
   buildStableNpcIdSet,
   buildStoryPrompt,
   deriveRecoverableStep,
   deriveTurnChanges,
   hydrateGameplayState,
   normalizeGameplayExtractEnvelope,
-  parseNarrative
+  parseNarrative,
+  resolvePlayerCanonicalNames,
+  splitOpeningSections,
+  validatePlayerSetupInput
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -60,6 +66,24 @@ export function npcIdsFromEdition(edition) {
   });
 }
 
+function catalogsFromEdition(edition) {
+  return {
+    departments: toEntryArray(edition?.organization?.departments, 'department_id'),
+    positions: toEntryArray(edition?.positions?.positions, 'position_id'),
+    bodyTypes: toEntryArray(edition?.bodyTypes?.body_types, 'body_type_id'),
+    speechStyles: toEntryArray(edition?.speechStyles?.speech_styles, 'speech_style_id')
+  };
+}
+
+function randomSeedBytes(length = 16) {
+  if (typeof crypto?.getRandomValues === 'function') return Array.from(crypto.getRandomValues(new Uint8Array(length)));
+  return Array.from({ length }, () => Math.floor(Math.random() * 256));
+}
+
+function randomUuid() {
+  return typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function activeCountFromNpcState(activeNpcState) {
   const ids = new Set();
   for (const map of Object.values(plainObject(activeNpcState) ? activeNpcState : {})) {
@@ -97,6 +121,8 @@ function storySse({ meta, run }) {
 export function createTurnRoutes({ fetchImpl, edition }) {
   const master = masterFromEdition(edition);
   const npcIds = npcIdsFromEdition(edition);
+  const catalogs = catalogsFromEdition(edition);
+  const heroineIds = Object.keys(edition?.characters?.characters ?? {});
 
   return {
     async context(request, env) {
@@ -161,7 +187,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const promptStart = Date.now();
-          const messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds });
+          const messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs });
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
           timing.story_system_chars = messages[0].content.length;
@@ -338,6 +364,98 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const db = createSupabaseClient(env, fetchImpl);
       const status = await db.callRpc('get_action_status', { p_game_id: gameId, p_action_id: actionId });
       return ok({ status, recoverable_step: deriveRecoverableStep(status) });
+    },
+
+    /** Restores turn/action/history/player/opening_state to the game_master initial save. Static content and game_master are never touched. */
+    async reset(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        const title = context?.game?.title;
+        if (typeof title !== 'string' || !title) throw new HttpError(502, 'invalid_game_title', 'Game title is missing or invalid', false);
+        const result = await db.callRpc('reset_company_game', { p_game_id: gameId, p_expected_title: title });
+        return ok({ reset: result });
+      } finally {
+        logTurnTiming({ event_stage: 'reset', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /** Server-side re-validates the submission against the catalog allow-lists and rolls one crypto-seeded opening plan, reused by every /api/opening retry. */
+    async playerSetup(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const validation = validatePlayerSetupInput(body.player, catalogs);
+        if (!validation.valid) throw new HttpError(400, 'invalid_player_setup', `Invalid player setup: ${validation.errors.join(', ')}`, false);
+        const setupId = randomUuid();
+        const openingPlan = buildOpeningPlan({ positionId: validation.player.position_id, seedBytes: randomSeedBytes(), heroineIds });
+        const result = await db.callRpc('save_company_player_setup', {
+          p_game_id: gameId, p_setup_id: setupId, p_player: validation.player, p_opening_plan: openingPlan
+        });
+        return ok({ setup_id: result.setup_id, player: result.player, opening_plan: result.opening_plan });
+      } finally {
+        logTurnTiming({ event_stage: 'player_setup', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /** Streams and commits the turn-0 opening. Never re-sends player profile or plan from the client; the server reads its own saved values. A completed setup_id replays with zero LLM calls. */
+    async opening(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const setupId = requireString(body.setup_id, 'setup_id');
+      const db = createSupabaseClient(env, fetchImpl);
+      const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+      const hydratedContext = hydratedSaveContext(context, master);
+      const preSave = hydratedContext.save?.data ?? hydratedContext.save;
+      if (preSave?.player_setup?.setup_id !== setupId) throw new HttpError(409, 'setup_id_mismatch', 'Player setup does not match the current game state', false);
+
+      if (preSave?.player_setup?.completed === true && preSave?.opening_state?.status === 'complete') {
+        return storySse({ meta: { setup_id: setupId, replayed: true }, run: async emit => {
+          emit('delta', { text: preSave.opening_state.story });
+          emit('complete', { setup_id: setupId, choices: preSave.opening_state.choices, replayed: true });
+        } });
+      }
+
+      return storySse({ meta: { setup_id: setupId, replayed: false }, run: async emit => {
+        const timing = {};
+        try {
+          const openingPlan = preSave.opening_plan;
+          if (!openingPlan) throw new HttpError(409, 'opening_plan_missing', 'No opening plan was saved for this setup', false);
+          const player = preSave.player ?? {};
+          const canonical = resolvePlayerCanonicalNames(player, catalogs);
+          const messages = buildOpeningPrompt({ edition, player, canonical, openingPlan });
+          const stream = await streamStory({ env, fetchImpl, messages, timing });
+          let raw = '';
+          for await (const text of stream.chunks) {
+            raw += text;
+            emit('delta', { text });
+          }
+          const { background, body: sections, warnings: splitWarnings } = splitOpeningSections(raw);
+          const parsedOpening = parseNarrative(sections, { master });
+          const nextSave = buildOpeningNextSave({ preSave, player, openingPlan, background, parsedOpening });
+          const commit = await db.callRpc('commit_company_opening', { p_game_id: gameId, p_setup_id: setupId, p_next_save: nextSave });
+          emit('complete', {
+            setup_id: setupId, choices: parsedOpening.choices, background,
+            warnings: [...splitWarnings, ...parsedOpening.warnings], replayed: false, commit
+          });
+        } finally {
+          logTurnTiming({
+            event_stage: 'opening', request_id: requestId, game_id: gameId,
+            story_headers_ms: timing.story_headers_ms, story_first_content_ms: timing.story_first_content_ms,
+            story_network_total_ms: timing.story_network_total_ms, story_character_count: timing.story_character_count,
+            turn_total_ms: Date.now() - startedAt
+          });
+        }
+      } });
     }
   };
 }

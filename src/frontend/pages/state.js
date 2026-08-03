@@ -23,3 +23,9 @@ export function loadPending(storage, gameId) { try { const value = JSON.parse(st
 export function savePending(storage, action) { storage?.setItem(pendingKey(action.game_id), JSON.stringify(action)); }
 export function clearPending(storage, gameId) { storage?.removeItem(pendingKey(gameId)); }
 export function recoveryFor(status) { const step = status?.recoverable_step ?? 'unknown'; return ['retry_story', 'resume_extract', 'retry_extract', 'resume_commit', 'retry_commit', 'complete', 'wait_story'].includes(step) ? step : 'unknown'; }
+export function playerSetupCompleted(context) { return saveFromContext(context)?.player_setup?.completed === true; }
+export function openingHistoryTurn(context) {
+  const opening = saveFromContext(context)?.opening_state;
+  if (!opening || opening.status !== 'complete' || typeof opening.story !== 'string' || !opening.story.trim()) return null;
+  return { player_action: '(오프닝)', story_text: opening.story, turn_summary: '', choices: Array.isArray(opening.choices) ? opening.choices : [] };
+}

@@ -27,3 +27,13 @@ export {
   CSA_APPLICABILITY,
   CSA_EXECUTION_STATE
 } from './gameplay-state.js';
+export {
+  validatePlayerSetupInput,
+  canonicalCatalogName,
+  resolvePlayerCanonicalNames,
+  buildOpeningPlan,
+  buildPlayerPromptProjection,
+  buildOpeningPlayerProjection,
+  buildOpeningNextSave
+} from './player-setup.js';
+export { buildOpeningPrompt, splitOpeningSections } from './opening-prompt.js';

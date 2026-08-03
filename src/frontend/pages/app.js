@@ -1,9 +1,11 @@
 import { createApiClient, ApiError } from './api.js';
+import { CATALOGS } from './catalogs.js';
 import { FRONTEND_CONFIG } from './config.js';
 import { parseNarrative } from './narrative.js';
 import { renderChoices, renderHistory, renderNarrative, renderState, text } from './render.js';
+import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
-import { clearPending, committedTurn, loadPending, recoveryFor, resolveGameId, savePending, validateContext } from './state.js';
+import { clearPending, committedTurn, loadPending, openingHistoryTurn, playerSetupCompleted, recoveryFor, resolveGameId, savePending, validateContext } from './state.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 
 const recoveryLabels = {
@@ -90,14 +92,19 @@ export function createBusyGuard({ onChange = () => {} } = {}) {
   };
 }
 
-export function createFrontendApp({ documentRef = globalThis.document, storage = globalThis.localStorage, api = createApiClient(), locationSearch = globalThis.location?.search ?? '' } = {}) {
+export function createFrontendApp({ documentRef = globalThis.document, storage = globalThis.localStorage, api = createApiClient(), locationSearch = globalThis.location?.search ?? '', confirmImpl = (...args) => globalThis.confirm?.(...args) ?? false } = {}) {
   if (!documentRef) return null;
   const get = id => documentRef.querySelector(`#${id}`);
   const elements = {
     title: get('game-title'), dayTime: get('day-time'), turn: get('turn-number'), api: get('api-status'), status: get('status-banner'), error: get('error-banner'),
     history: get('story-history'), current: get('current-story'), currentAction: get('current-action'), choices: get('choice-list'), input: get('player-action'), submit: get('submit-action'),
     recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), focal: get('focal-character'), mind: get('mind-monitor'), player: get('player-situation'),
-    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps')
+    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps'), reset: get('reset-game')
+  };
+  const setupElements = {
+    overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
+    name: get('setup-name'), department: get('setup-department'), position: get('setup-position'), height: get('setup-height'), weight: get('setup-weight'),
+    penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
   let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null;
@@ -124,11 +131,39 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       if (!element) continue; element.disabled = !enabled; element.onclick = null;
     }
   }
+  function setupPending() { return !playerSetupCompleted(context); }
+  function populateSetupSelect(select, list, idField) {
+    if (!select) return;
+    select.replaceChildren();
+    for (const option of catalogOptions(list, idField)) {
+      const optionEl = documentRef.createElement('option');
+      optionEl.value = option.value; optionEl.textContent = option.label;
+      select.append(optionEl);
+    }
+  }
+  function populateSetupOptions() {
+    populateSetupSelect(setupElements.department, CATALOGS.departments, 'department_id');
+    populateSetupSelect(setupElements.position, CATALOGS.positions, 'position_id');
+    populateSetupSelect(setupElements.bodyType, CATALOGS.bodyTypes, 'body_type_id');
+    populateSetupSelect(setupElements.speechStyle, CATALOGS.speechStyles, 'speech_style_id');
+  }
+  const showSetupError = error => { text(setupElements.error, typeof error === 'string' ? error : messageFor(error)); if (setupElements.error) setupElements.error.hidden = false; };
+  const clearSetupError = () => { if (setupElements.error) setupElements.error.hidden = true; text(setupElements.error, ''); };
+  function readSetupFormValues() {
+    return {
+      name: setupElements.name?.value ?? '', department_id: setupElements.department?.value ?? '', position_id: setupElements.position?.value ?? '',
+      height_cm: Number(setupElements.height?.value), weight_kg: Number(setupElements.weight?.value), penis_length_cm: Number(setupElements.penisLength?.value),
+      body_type_id: setupElements.bodyType?.value ?? '', speech_style_id: setupElements.speechStyle?.value ?? ''
+    };
+  }
   function render() {
     if (!viewModel || viewModelContext !== context || viewModelExtract !== currentExtract) refreshViewModel();
     renderState(elements, viewModel, { title: context?.game?.title });
-    renderHistory(elements.history, context?.recent_turns);
-    const actionDisabled = busy || recoveryPending;
+    const openingTurn = openingHistoryTurn(context);
+    renderHistory(elements.history, openingTurn ? [openingTurn, ...(context?.recent_turns ?? [])] : context?.recent_turns);
+    const setupOpen = setupPending();
+    if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen;
+    const actionDisabled = busy || recoveryPending || setupOpen;
     if (elements.input) elements.input.disabled = actionDisabled;
     if (elements.submit) elements.submit.disabled = actionDisabled;
     renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: actionDisabled, onChoose: startNewAction });
@@ -184,7 +219,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     });
   }
   async function startNewAction(playerAction) {
-    const action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context) return false;
+    const action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
     if (loadPending(storage, gameId)) { showStatus('이전 행동을 먼저 복구해야 합니다.'); await checkRecovery(); return false; }
     return withBusy(async () => { showCurrentAction(action); if (elements.input) elements.input.value = ''; text(elements.stream, 'Story를 생성하는 중…'); await coordinator.startNewAction(action); });
   }
@@ -195,7 +230,52 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       await coordinator.runRecovery(pending, step);
     });
   }
-  async function init() { elements.submit?.addEventListener('click', () => startNewAction()); await refreshContext(); await checkRecovery(); }
+  async function handleSetupSubmit(event) {
+    event?.preventDefault?.();
+    if (busy) return false;
+    return busyGuard.run(async () => {
+      clearSetupError();
+      const validation = validateSetupValues(readSetupFormValues(), CATALOGS);
+      if (!validation.valid) { showSetupError('입력값을 확인해 주세요.'); return false; }
+      if (setupElements.submit) setupElements.submit.disabled = true;
+      try {
+        text(setupElements.status, '설정 저장 중…');
+        const saveResult = await api.playerSetup({ game_id: gameId, player: validation.player });
+        text(setupElements.status, '오프닝을 준비하는 중…');
+        const response = await api.opening({ game_id: gameId, setup_id: saveResult.setup_id });
+        let raw = '';
+        await consumeStorySse(response, item => { if (item.event === 'delta') { raw += item.data?.text ?? ''; renderNarrative(elements.current, parseNarrative(raw)); } });
+        text(setupElements.status, '');
+        await refreshContext();
+        return true;
+      } catch (error) {
+        showSetupError(error);
+        text(setupElements.status, '');
+        return false;
+      } finally {
+        if (setupElements.submit) setupElements.submit.disabled = false;
+      }
+    });
+  }
+  async function handleReset() {
+    if (busy) return false;
+    if (!confirmImpl('정말로 초기화하시겠습니까? 진행 상황이 모두 사라집니다.')) return false;
+    return withBusy(async () => {
+      await api.reset({ game_id: gameId });
+      clearPending(storage, gameId);
+      clearCurrentTurn();
+      if (setupElements.form) for (const field of [setupElements.name, setupElements.height, setupElements.weight, setupElements.penisLength]) if (field) field.value = '';
+      clearSetupError(); text(setupElements.status, '');
+      await refreshContext();
+    });
+  }
+  async function init() {
+    populateSetupOptions();
+    elements.submit?.addEventListener('click', () => startNewAction());
+    elements.reset?.addEventListener('click', () => handleReset());
+    setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
+    await refreshContext(); await checkRecovery();
+  }
   return { gameId, init, refreshContext, startNewAction, checkRecovery, resumePending, resumePlay, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId)); }, get busy() { return busy; } };
 }
 

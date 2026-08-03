@@ -1,0 +1,8 @@
+{
+  "positions": [
+    { "position_id": "intern", "name": "인턴", "ui_hint": "신입 관찰" },
+    { "position_id": "assistant_manager", "name": "대리", "ui_hint": "실무 중심" },
+    { "position_id": "tf_lead", "name": "TF팀장", "ui_hint": "조율 권한" },
+    { "position_id": "executive", "name": "임원", "ui_hint": "전략 권한" }
+  ]
+}

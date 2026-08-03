@@ -1,0 +1,9 @@
+{
+  "body_types": [
+    { "body_type_id": "balanced", "name": "균형 잡힌 체형" },
+    { "body_type_id": "muscular", "name": "근육질" },
+    { "body_type_id": "athletic", "name": "탄탄한 체형" },
+    { "body_type_id": "slender", "name": "호리호리한 체형" },
+    { "body_type_id": "large_frame", "name": "큰 체격" }
+  ]
+}

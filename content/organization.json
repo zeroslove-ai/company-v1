@@ -3,5 +3,12 @@
     "company_id": "luminous_brand_group",
     "name": "루미너스 브랜드 그룹"
   },
-  "teams": []
+  "departments": [
+    { "department_id": "brand_strategy", "name": "브랜드전략팀", "ui_hint": "히로인 5명" },
+    { "department_id": "audit", "name": "감사실", "ui_hint": "조사 권한" },
+    { "department_id": "human_resources", "name": "인사팀", "ui_hint": "인사 정보" },
+    { "department_id": "new_business_tf", "name": "신사업TF", "ui_hint": "신규 사업" },
+    { "department_id": "finance_planning", "name": "재무기획팀", "ui_hint": "예산 권한" },
+    { "department_id": "public_relations", "name": "홍보팀", "ui_hint": "외부 대응" }
+  ]
 }

@@ -1,0 +1,10 @@
+{
+  "speech_styles": [
+    { "speech_style_id": "polite", "name": "정중한 존댓말" },
+    { "speech_style_id": "calm", "name": "차분한 말투" },
+    { "speech_style_id": "friendly", "name": "친근한 말투" },
+    { "speech_style_id": "playful", "name": "능글맞은 말투" },
+    { "speech_style_id": "cold", "name": "냉정한 말투" },
+    { "speech_style_id": "rough_yangachi", "name": "거친 양아치 말투" }
+  ]
+}

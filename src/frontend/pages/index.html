@@ -55,8 +55,43 @@
         <button id="open-history" type="button" disabled>플레이 기록</button>
         <button id="send-feedback" type="button" disabled>피드백</button>
         <button id="open-apps" type="button" disabled>앱</button>
+        <button id="reset-game" type="button">초기화</button>
       </nav>
     </main>
+
+    <div id="player-setup-overlay" class="player-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="player-setup-heading" hidden>
+      <form id="player-setup-form" class="player-setup-form">
+        <h2 id="player-setup-heading">플레이어 설정</h2>
+        <p id="setup-error" class="status-banner error" role="alert" hidden></p>
+
+        <label for="setup-name">이름</label>
+        <input id="setup-name" type="text" maxlength="20" required>
+
+        <label for="setup-department">부서</label>
+        <select id="setup-department" required></select>
+
+        <label for="setup-position">직급</label>
+        <select id="setup-position" required></select>
+
+        <label for="setup-height">키(cm)</label>
+        <input id="setup-height" type="number" min="140" max="220" step="1" required>
+
+        <label for="setup-weight">몸무게(kg)</label>
+        <input id="setup-weight" type="number" min="40" max="180" step="1" required>
+
+        <label for="setup-penis-length">음경 길이(cm)</label>
+        <input id="setup-penis-length" type="number" min="5" max="30" step="1" required>
+
+        <label for="setup-body-type">체형</label>
+        <select id="setup-body-type" required></select>
+
+        <label for="setup-speech-style">말투</label>
+        <select id="setup-speech-style" required></select>
+
+        <button id="setup-submit" type="submit">설정 완료</button>
+        <p id="setup-status" aria-live="polite"></p>
+      </form>
+    </div>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

@@ -22,7 +22,7 @@ class FakeNode {
 }
 
 function pageFixture() {
-  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps'];
+  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps', 'reset-game', 'player-setup-overlay', 'player-setup-form', 'setup-error', 'setup-status', 'setup-submit', 'setup-name', 'setup-department', 'setup-position', 'setup-height', 'setup-weight', 'setup-penis-length', 'setup-body-type', 'setup-speech-style'];
   const nodes = Object.fromEntries(ids.map(id => [id, new FakeNode(id)]));
   return { nodes, documentRef: { querySelector: selector => nodes[selector.slice(1)] ?? null, createElement: tag => new FakeNode(tag) } };
 }
@@ -30,7 +30,7 @@ function pageFixture() {
 function validContext({ turns = [], choices = ['A', 'B', 'C', 'D'] } = {}) {
   return {
     game: { edition_id: 'company-v1', title: '상식개변: 회사편' },
-    save: { committed_turn: 2, data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 1 }, last_choices: choices, scene_state: { location_id: 'office' }, world_state: { day: 1, time_block: 'morning' }, csa_active: ['csa-1'] } },
+    save: { committed_turn: 2, data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 1 }, last_choices: choices, scene_state: { location_id: 'office' }, world_state: { day: 1, time_block: 'morning' }, csa_active: ['csa-1'], player_setup: { completed: true } } },
     recent_turns: turns
   };
 }

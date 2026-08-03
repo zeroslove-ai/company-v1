@@ -1,22 +1,20 @@
 import { buildActiveCharacterCanon, buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js';
+import { buildPlayerPromptProjection, resolvePlayerCanonicalNames } from './player-setup.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
 }
 
 /** Compact Story context: only the active characters' state, never the full save or full turn history. */
-function buildStoryContextProjection(context, activeIds) {
+function buildStoryContextProjection(context, activeIds, { catalogs, playerAction } = {}) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const game = object(context?.game) ?? {};
   const player = object(save.player) ?? {};
+  const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
   return {
     game: { id: typeof game.id === 'string' ? game.id : null, title: typeof game.title === 'string' ? game.title : null },
-    player: {
-      name: typeof player.name === 'string' ? player.name : null,
-      department: typeof player.department === 'string' ? player.department : null,
-      position: typeof player.position === 'string' ? player.position : null
-    },
+    player: buildPlayerPromptProjection({ player, canonical, playerAction }),
     ...buildSceneContextCore(save, activeIds),
     story_summary: {
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
@@ -52,7 +50,7 @@ const SYSTEM_INSTRUCTIONS = [
   'active_character_canon은 그 턴에 등장한 등록 캐릭터에 대한 유일한 사실 기준이다. 이름·나이·부서·직급·외모·성격·말투·호칭 규칙을 임의로 바꾸거나 다른 직급·직무로 승격하지 않으며, canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다.'
 ].join(' ');
 
-export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds }) {
+export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const activeIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
@@ -65,7 +63,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
         expected_turn: expectedTurn,
         player_action: playerAction,
         active_character_canon: buildActiveCharacterCanon(charactersMap, activeIds),
-        context: buildStoryContextProjection(context, activeIds)
+        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction })
       })
     }
   ];
