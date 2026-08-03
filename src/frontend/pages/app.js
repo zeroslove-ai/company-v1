@@ -3,7 +3,8 @@ import { FRONTEND_CONFIG } from './config.js';
 import { parseNarrative } from './narrative.js';
 import { renderChoices, renderHistory, renderNarrative, renderState, text } from './render.js';
 import { consumeStorySse } from './sse.js';
-import { clearPending, committedTurn, contextChoices, loadPending, recoveryFor, resolveGameId, savePending, validateContext } from './state.js';
+import { clearPending, committedTurn, loadPending, recoveryFor, resolveGameId, savePending, validateContext } from './state.js';
+import { buildCompanyGameViewModel } from './view-model.js';
 
 const recoveryLabels = {
   retry_story: 'Story 다시 시도', resume_extract: 'Extract 이어서 실행', retry_extract: 'Extract 다시 시도',
@@ -15,13 +16,27 @@ function messageFor(error) {
   if (error instanceof ApiError) return error.code === 'turn_conflict' ? '턴 충돌이 발생했습니다. 현재 상태를 다시 불러오세요.' : error.message;
   return '예상하지 못한 오류가 발생했습니다.';
 }
+function hasFourChoices(value) { return Array.isArray(value) && value.length === 4 && value.every(choice => typeof choice === 'string' && choice.trim()); }
+
+export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
+  return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
+}
+
+export function toolbarCapabilities(viewModel, pendingAction) {
+  return {
+    canResume: (viewModel?.turn?.committed_turn ?? 0) >= 1 && !pendingAction,
+    canOpenHistory: false,
+    canSendFeedback: false,
+    canOpenApps: false
+  };
+}
 
 export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitStart, onCommitted, createActionId = newActionId, consumeStory = consumeStorySse }) {
   async function runCommitForPending(pending) {
     pending.step = 'commit'; savePending(storage, pending);
     onCommitStart?.();
     const committed = await api.commit({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn });
-    if (committed.commit?.success !== true) throw new ApiError({ endpoint: '/api/commit', status: 502, code: 'invalid_commit', message: '턴 저장 결과가 올바르지 않습니다.' });
+    if (committed.commit?.success !== true) throw new ApiError({ endpoint: '/api/commit', status: 502, code: 'invalid_commit', message: 'Commit 결과가 올바르지 않습니다.' });
     clearPending(storage, pending.game_id); await refreshContext(); onCommitted?.(committed); return committed;
   }
 
@@ -70,8 +85,7 @@ export function createBusyGuard({ onChange = () => {} } = {}) {
     async run(operation) {
       if (active) return false;
       active = true; onChange(true);
-      try { return await operation(); }
-      finally { active = false; onChange(false); }
+      try { return await operation(); } finally { active = false; onChange(false); }
     }
   };
 }
@@ -80,25 +94,45 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   if (!documentRef) return null;
   const get = id => documentRef.querySelector(`#${id}`);
   const elements = {
-    title: get('game-title'), turn: get('turn-number'), api: get('api-status'), status: get('status-banner'), error: get('error-banner'),
+    title: get('game-title'), dayTime: get('day-time'), turn: get('turn-number'), api: get('api-status'), status: get('status-banner'), error: get('error-banner'),
     history: get('story-history'), current: get('current-story'), currentAction: get('current-action'), choices: get('choice-list'), input: get('player-action'), submit: get('submit-action'),
-    recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), mind: get('mind-monitor'), warnings: get('warning-list')
+    recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), focal: get('focal-character'), mind: get('mind-monitor'), player: get('player-situation'),
+    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps')
   };
-  const gameId = resolveGameId(locationSearch); let context = null, latestResult = {}, busy = false, recoveryPending = false, progressTimer = null;
+  const gameId = resolveGameId(locationSearch);
+  let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null;
   const showStatus = value => text(elements.status, value);
+  const setConnection = ready => { text(elements.api, ready ? '●' : '○'); if (elements.api) { elements.api.title = ready ? '연결됨' : '연결 확인 중'; elements.api.ariaLabel = ready ? '연결됨' : '연결 확인 중'; } };
   const clearProgressTimer = () => { if (progressTimer) { clearInterval(progressTimer); progressTimer = null; } };
   const showProgress = value => { clearProgressTimer(); let elapsed = 0; text(elements.stream, value); progressTimer = setInterval(() => { elapsed += 1; text(elements.stream, `${value} ${elapsed}초`); }, 1000); };
   const showError = error => { text(elements.error, messageFor(error)); if (elements.error) elements.error.hidden = false; };
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
   const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; renderNarrative(elements.current, null); };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
+  function refreshViewModel() {
+    viewModel = buildCompanyGameViewModel(context, currentExtract ? { currentExtract } : undefined);
+    viewModelContext = context; viewModelExtract = currentExtract;
+  }
+  function resumePlay() {
+    const target = elements.current?.children?.length ? elements.current : elements.history;
+    target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  }
+  function renderToolbar() {
+    const capabilities = toolbarCapabilities(viewModel, loadPending(storage, gameId));
+    if (elements.resume) { elements.resume.disabled = !capabilities.canResume; elements.resume.onclick = capabilities.canResume ? resumePlay : null; }
+    for (const [element, enabled] of [[elements.historyButton, capabilities.canOpenHistory], [elements.feedback, capabilities.canSendFeedback], [elements.apps, capabilities.canOpenApps]]) {
+      if (!element) continue; element.disabled = !enabled; element.onclick = null;
+    }
+  }
   function render() {
-    renderState({ title: elements.title, turn: elements.turn, scene: elements.scene, mind: elements.mind, warnings: elements.warnings }, context, latestResult);
+    if (!viewModel || viewModelContext !== context || viewModelExtract !== currentExtract) refreshViewModel();
+    renderState(elements, viewModel, { title: context?.game?.title });
     renderHistory(elements.history, context?.recent_turns);
     const actionDisabled = busy || recoveryPending;
     if (elements.input) elements.input.disabled = actionDisabled;
     if (elements.submit) elements.submit.disabled = actionDisabled;
-    renderChoices(elements.choices, latestResult.choices?.length ? latestResult.choices : contextChoices(context), { busy: actionDisabled, onChoose: startNewAction });
+    renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: actionDisabled, onChoose: startNewAction });
+    renderToolbar();
   }
   const setBusy = value => { busy = value; render(); };
   function clearRecoveryUi() {
@@ -113,16 +147,17 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   const busyGuard = createBusyGuard({ onChange: setBusy });
   async function refreshContext() {
-    showStatus('현재 상태를 불러오는 중…'); const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
+    showStatus('현재 상태를 불러오는 중…'); setConnection(false);
+    const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
-    context = data.context; latestResult = {}; render();
+    context = data.context; currentExtract = null; streamedStoryChoices = []; refreshViewModel(); render();
     if (!loadPending(storage, gameId)) clearRecoveryUi();
-    text(elements.api, 'API 연결됨'); showStatus('준비되었습니다.'); return context;
+    setConnection(true); showStatus('준비되었습니다.'); return context;
   }
   const coordinator = createTurnCoordinator({
     api, storage, gameId, getContext: () => context, refreshContext,
-    onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (Array.isArray(parsed.choices) && parsed.choices.length > 0) { latestResult = { ...latestResult, choices: parsed.choices }; renderChoices(elements.choices, parsed.choices, { busy: true, onChoose: startNewAction }); } },
-    onExtract: extracted => { latestResult = { choices: extracted.extract?.choices ?? [], mind_monitor: extracted.extract?.mind_monitor ?? {}, warnings: extracted.warnings ?? [] }; showProgress('상태를 정리하는 중…'); render(); },
+    onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (hasFourChoices(parsed.choices)) { streamedStoryChoices = parsed.choices; render(); } },
+    onExtract: extracted => { currentExtract = extracted.extract ?? null; showProgress('상태를 정리하는 중…'); render(); },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
     onCommitted: () => { clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.'); }
   });
@@ -161,7 +196,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     });
   }
   async function init() { elements.submit?.addEventListener('click', () => startNewAction()); await refreshContext(); await checkRecovery(); }
-  return { gameId, init, refreshContext, startNewAction, checkRecovery, resumePending, get context() { return context; }, get busy() { return busy; } };
+  return { gameId, init, refreshContext, startNewAction, checkRecovery, resumePending, resumePlay, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId)); }, get busy() { return busy; } };
 }
 
 if (globalThis.document?.querySelector('#game-main')) {

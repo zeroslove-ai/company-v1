@@ -16,6 +16,10 @@ function imageId(value) {
   return typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value)) ? value : null;
 }
 
+function numberOrNull(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
 function strings(value) {
   return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) : [];
 }
@@ -70,6 +74,8 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const focalId = text(save.focal_character_id);
   const lastSpeakerId = text(save.last_speaker_id);
   const scene = object(save.scene_state) ?? {};
+  const player = object(save.player) ?? {};
+  const playerStats = object(save.player_stats) ?? {};
 
   return {
     turn: {
@@ -91,6 +97,9 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
     },
     scene: {
       scene_state: scene,
+      world_state: object(save.world_state) ?? {},
+      story_summary_recent: text(save.story_summary_recent),
+      csa_active: strings(save.csa_active),
       npcs_present: strings(save.last_npcs_present),
       action_target_id: '',
       clothing_state: null
@@ -101,8 +110,11 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       character: npcView(save, focalId)
     },
     player: {
-      state: object(save.player) ?? {},
-      stats: object(save.player_stats) ?? {},
+      state: player,
+      stats: playerStats,
+      name: text(player.name ?? save.player_name),
+      department: text(player.department ?? save.player_department),
+      excitement: numberOrNull(playerStats.sexual_arousal ?? playerStats.excitement ?? playerStats.성적흥분도),
       status: text(parsedStory.player_status),
       inner_thought: ''
     },
