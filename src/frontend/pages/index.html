@@ -3,42 +3,60 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>상식개변 회사편 v1</title>
+    <title>상식개변: 회사편</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body data-edition-id="company-v1" data-phase="phase-4-frontend-loop">
-    <a class="skip-link" href="#game-main">본문으로 이동</a>
-    <main id="game-main" class="app-shell">
-      <header class="app-header">
-        <div><p class="eyebrow">COMPANY V1</p><h1 id="game-title">회사편</h1></div>
-        <div class="header-meta"><span id="turn-number">Turn —</span><span id="api-status" aria-live="polite">연결 준비</span></div>
+    <a class="skip-link" href="#story-panel">본문으로 이동</a>
+    <main id="game-main" class="game-shell">
+      <header class="game-header">
+        <div class="title-group"><h1 id="game-title">상식개변: 회사편</h1><p id="day-time" class="time-display"></p></div>
+        <div class="header-status"><span id="turn-number">Turn 0</span><span id="api-status" class="connection-indicator" role="status" aria-label="연결 확인 중" title="연결 확인 중">●</span></div>
       </header>
-      <p id="status-banner" class="banner" aria-live="polite"></p>
-      <p id="error-banner" class="banner error" role="alert" hidden></p>
-      <section class="game-grid" aria-label="게임 화면">
-        <section class="story-panel" aria-labelledby="story-heading">
-          <h2 id="story-heading">Story</h2>
+      <p id="status-banner" class="status-banner" aria-live="polite"></p>
+      <p id="error-banner" class="status-banner error" role="alert" hidden></p>
+
+      <section class="game-layout" aria-label="게임 화면">
+        <section id="story-panel" class="story-panel" aria-label="이야기">
           <div id="story-history" class="story-history"></div>
           <div id="current-turn" class="current-turn">
             <p id="current-action" class="action-chip" hidden></p>
             <div id="current-story" class="current-story" aria-live="polite"></div>
           </div>
         </section>
-        <aside class="state-panel" aria-labelledby="state-heading">
-          <h2 id="state-heading">현재 상황</h2>
-          <dl id="scene-state" class="state-list"></dl>
-          <h3>Mind monitor</h3><div id="mind-monitor" class="mind-monitor"></div>
-          <h3>Warnings</h3><ul id="warning-list" class="warning-list"></ul>
+        <aside class="status-column" aria-label="캐릭터와 플레이어 상태">
+          <details id="character-state" class="state-panel" open>
+            <summary>캐릭터와 현재 상태</summary>
+            <dl id="scene-state" class="state-list"></dl>
+            <section id="focal-character" class="focal-character" hidden></section>
+            <section class="mind-panel" aria-labelledby="mind-heading"><h2 id="mind-heading">Mind Monitor</h2><div id="mind-monitor" class="mind-monitor"></div></section>
+          </details>
+          <section id="player-panel" class="player-panel" aria-labelledby="player-heading">
+            <h2 id="player-heading">플레이어 상황</h2><dl id="player-situation" class="state-list"></dl>
+            <div id="player-inner-thought" class="future-slot" hidden></div>
+            <div id="game-time-slot" class="future-slot" hidden></div>
+            <div id="ejaculation-progress-slot" class="future-slot" hidden></div>
+            <div id="personal-suggestions-slot" class="future-slot" hidden></div>
+            <div id="turn-changes-slot" class="future-slot" hidden></div>
+          </section>
         </aside>
       </section>
-      <section class="action-panel" aria-labelledby="action-heading">
+
+      <section id="action-panel" class="action-panel" aria-labelledby="action-heading">
         <h2 id="action-heading">다음 행동</h2>
         <div id="choice-list" class="choice-list" aria-label="선택지"></div>
-        <label for="player-action">직접 행동 입력</label>
-        <textarea id="player-action" rows="3" maxlength="2000" placeholder="원하는 행동을 입력하세요."></textarea>
+        <label for="player-action">직접 입력</label>
+        <textarea id="player-action" rows="3" maxlength="2000" placeholder="원하는 행동을 입력하세요"></textarea>
         <div class="action-controls"><button id="submit-action" type="button">행동 실행</button><button id="recovery-action" type="button" hidden></button></div>
         <p id="stream-status" aria-live="polite"></p>
       </section>
+
+      <nav class="utility-toolbar" aria-label="게임 도구">
+        <button id="resume-play" type="button" disabled>플레이 재개</button>
+        <button id="open-history" type="button" disabled>플레이 기록</button>
+        <button id="send-feedback" type="button" disabled>피드백</button>
+        <button id="open-apps" type="button" disabled>앱</button>
+      </nav>
     </main>
     <script type="module" src="./app.js"></script>
   </body>

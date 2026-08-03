@@ -5,7 +5,12 @@ export const pendingKey = gameId => `company-v1:pending-action:${gameId}`;
 export function resolveGameId(search = '', fallback = FRONTEND_CONFIG.defaultGameId) { const value = new URLSearchParams(search).get('game'); return value && uuid.test(value) ? value : fallback; }
 export function saveFromContext(context) { return context?.save?.data ?? context?.save ?? {}; }
 export function validateContext(context, editionId = FRONTEND_CONFIG.editionId) { const save = saveFromContext(context); return context?.game?.edition_id === editionId && save.edition === editionId && save.save_schema_version === 1; }
-export function committedTurn(context) { return Number(saveFromContext(context)?.turn_state?.committed_turn ?? 0); }
+function integer(value) {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (typeof value === 'string' && value.trim() && Number.isInteger(Number(value))) return Number(value);
+  return null;
+}
+export function committedTurn(context) { return integer(context?.save?.committed_turn) ?? integer(saveFromContext(context)?.turn_state?.committed_turn) ?? 0; }
 const validChoice = value => typeof value === 'string' && value.trim();
 export function contextChoices(context) {
   const saved = saveFromContext(context)?.last_choices;
