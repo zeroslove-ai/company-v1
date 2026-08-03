@@ -1,0 +1,16 @@
+{
+  "state_delta": { "npc_stats": { "npc-existing": { "affection": 5 } } },
+  "outcome": "success",
+  "evidence": {},
+  "turn_summary": "The review advances.",
+  "mind_monitor": { "npc-existing": { "surface": "calm", "subconscious": "uncertain", "body": "must not display" } },
+  "choices": ["extract one", "extract two", "extract three", "extract four"],
+  "dialogue_lines": [{ "speaker_id": "npc-existing", "speaker_name": "A", "direction": "quiet", "text": "Continue.", "order": 0 }],
+  "npcs_present": ["npc-existing"],
+  "action_target_id": "npc-existing",
+  "focal_character_id": "npc-focal",
+  "last_speaker_id": "npc-last",
+  "image_character_id": "npc-image",
+  "elapsed_minutes": 5,
+  "turn_changes": []
+}

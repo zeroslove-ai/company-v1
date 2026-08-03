@@ -6,3 +6,14 @@ export { parseNarrative } from './narrative-parser.js';
 export { normalizeExtractEnvelope } from './extract-envelope.js';
 export { applyGuardedStateDelta } from './guarded-merge.js';
 export { deriveRecoverableStep } from './turn-state.js';
+export {
+  normalizeMindMonitor,
+  normalizeGameplayExtractEnvelope,
+  normalizeElapsedMinutes,
+  advanceGameTime,
+  formatGameTime,
+  reducePlayerSexualState,
+  deriveTurnChanges,
+  migrateCompanySave,
+  hydrateGameplayState
+} from './gameplay-state.js';

@@ -1,0 +1,13 @@
+[SCENE]
+The review room settles after the presentation.
+[DIALOGUE speaker="npc-a" direction="measured"]
+The timeline is still possible.
+[PLAYER_INNER_THOUGHT]
+I should make the next decision carefully.
+[PLAYER_STATUS]
+Focused on the campaign review.
+[CHOICES]
+1. Ask for the revised schedule.
+2. Check the budget notes.
+3. Invite a second opinion.
+4. Pause and summarize.
