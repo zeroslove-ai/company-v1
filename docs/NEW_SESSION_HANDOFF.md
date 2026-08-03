@@ -21,7 +21,7 @@ Read these documents before changing the implementation:
 - Stable base branch: `main`
 - Bootstrap PR: #1
 - Bootstrap head branch: `phase/0-bootstrap`
-- Bootstrap commit: `3e0d0d5e05179f045b9e656436ca80750651f8cc`
+- Bootstrap head commit: verify the current remote branch head instead of relying on a hardcoded SHA.
 - Next authorized implementation phase: **Phase 0.5** gameplay, recovery, and state contracts.
 
 The active product roots are `src/api`, `src/engine`, `src/frontend`, `content`, `docs`, `fixtures`, `test`, `scripts`, `supabase/migrations`, and `supabase/seed`. The planned Worker identifiers are `game-proxy-company-v1` and `gamebuilder-company-v1`.
@@ -32,4 +32,4 @@ The repository is independent. Legacy material is historical reference only, sup
 
 Do not create Supabase projects, apply migrations, create Cloudflare Workers, configure secrets, deploy, or call real Story, Extract, Commit, or TTS services without explicit authorization. Do not force-push, reset, rebase, or merge a PR automatically.
 
-Proceed in this order: Phase 0 bootstrap review, then Phase 0.5 contracts with fixtures and static tests, then the Phase 1 migration package, then the Phase 2 vertical loop.
+Proceed in this order: finish and merge the Phase 0 bootstrap PR, then Phase 0.5 contracts with fixtures and static tests, then the Phase 1 migration package, then the Phase 2 vertical loop.
