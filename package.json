@@ -1,0 +1,13 @@
+{
+  "name": "company-v1",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1-bootstrap",
+  "exports": {
+    "./engine": "./src/engine/index.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "verify": "npm test"
+  }
+}
