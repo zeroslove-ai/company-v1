@@ -146,7 +146,7 @@ test('required gameplay fixtures define three CSA axes and five resolved heroine
   assert.ok(master.characters.every(character => character.mapping_status === 'resolved'));
   assert.ok(master.characters.every(character => character.voice_id === null));
   assert.deepEqual(master.characters.map(character => character.initial_csa_attitudes), [{}, {}, {}, {}, {}]);
-  const requiredNonNullFields = ['name', 'age', 'department', 'position', 'role_title', 'appearance', 'personality', 'addressing_rules', 'storage_bucket', 'storage_prefix', 'primary_image_path', 'adult_image_prefix'];
+  const requiredNonNullFields = ['name', 'age', 'department', 'position', 'role_title', 'prompt_card', 'storage_bucket', 'storage_prefix', 'primary_image_path', 'adult_image_prefix'];
   for (const character of master.characters) {
     for (const field of requiredNonNullFields) assert.notEqual(character[field], null, `${character.character_id}.${field}`);
   }

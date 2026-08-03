@@ -20,6 +20,9 @@ export {
   buildDegradedExtractEnvelope,
   buildDegradedTurnSummary,
   buildStableNpcIdSet,
+  selectActiveCharacterIds,
+  buildActiveCharacterCanon,
+  buildSceneContextCore,
   CSA_LIFECYCLE,
   CSA_APPLICABILITY,
   CSA_EXECUTION_STATE

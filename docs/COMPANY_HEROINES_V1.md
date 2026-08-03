@@ -1,6 +1,10 @@
 # Company heroines v1
 
-This registers the five Company edition heroine profiles in `content/characters.json` (`heroine1`–`heroine5`, map key = stable `character_id`) and connects a filtered narrative canon to the Story and Extract prompts. It does not create an image catalog, touch Storage, add voice IDs, or add CSA presets.
+This registers the five Company edition heroine profiles in `content/characters.json` (`heroine1`–`heroine5`, map key = stable `character_id`) and connects a small, active-character-scoped narrative canon to the Story and Extract prompts. It does not create an image catalog, touch Storage, add voice IDs, or add CSA presets.
+
+## Detailed setting vs. runtime content
+
+This document is the single place that holds the full, unabridged setting for all five characters — detailed appearance, personality, habits, work profile, strengths/weaknesses, relationship hooks, per-teammate address forms, an example line of dialogue, and long-form CSA response notes (see "Full character detail" below). `content/characters.json` deliberately does **not** carry any of that: each character there is reduced to identity fields plus one compact `prompt_card` (`identity`, `appearance`, `personality`, `speech`, `addressing`, `distinctive_traits`, `csa_style`; serialized ≤600 characters, no dialogue examples, no long lists). This document is documentation only — it is never imported by anything under `src/**` or `content/**`, so it never reaches a Worker bundle or an LLM prompt. When expanding a character's content, edit the detail here first, then re-derive a compact `prompt_card` from it — never the reverse.
 
 ## Not real people
 
@@ -22,28 +26,451 @@ Each of the five has one clearly distinct core role — none are interchangeable
 
 ## Team relationships and the youngest line
 
-All five sit on the same 브랜드전략팀 under 서원희. `addressing_rules` on each profile fixes how that character addresses every other registered colleague and the player, so Story never has to invent a title. `heroine3`과 `heroine5`는 동갑 입사 동기로, 서로의 `youngest_line.partner_character_id`가 상대를 가리키며 우정과 은근한 경쟁 관계를 `youngest_line.relationship`에 기록한다. 이 필드는 두 사람에게만 존재한다.
+All five sit on the same 브랜드전략팀 under 서원희; each character's `addressing_rules` (below) fixes how they address every other registered colleague and the player, and `prompt_card.addressing` compresses that into one runtime line. `heroine3`(김제나)과 `heroine5`(이메이)는 동갑 입사 동기이자 가장 가까운 친구다 — 자세한 내용은 각자의 "youngest_line" 항목 참고. `content/characters.json`에는 이 관계 필드가 없다(narrative-detail 범위이지 runtime-required 범위가 아니므로).
 
-## Story canon fields
+## Full character detail (documentation only — not read by any runtime code)
 
-`content/characters.json` carries the full profile per character. Only a filtered subset — built by `buildCharacterCanonSnapshot(edition)` in `src/engine/story-prompt.js` — reaches the Story prompt's `character_canon` payload:
+### 서원희 (heroine1)
 
-`name`, `age`, `department`, `position`, `role_title`, `public_role_summary`, `appearance`, `personality`, `speech_style`, `addressing_rules`, `habits`, `work_profile`, `relationship_hooks`, `csa_response_profile`, and (`heroine3`/`heroine5` only) `youngest_line`.
+- character_id: `heroine1` · age: 33 · gender: female · department: 브랜드전략팀 · position: 차장 · role_title: 브랜드전략팀 팀장 · company_tenure: 9년 차
 
-`storage_bucket`, `storage_prefix`, `primary_image_path`, `adult_image_prefix`, `voice_id`, `mapping_status`, and the internal `initial_stats`/`initial_relationship`/`initial_csa_attitudes` numbers never reach Story or Extract. `buildCharacterCanonSnapshot` is a pure read of `edition` — it never mutates the edition object, and since only five characters exist, all five are sent every turn rather than being filtered further.
+**public_role_summary**: 팀원의 상태와 의견을 세심하게 살피면서도 문제를 숨기거나 책임을 회피하는 태도에는 단호한 브랜드전략팀장. 사람과 방향을 책임지는 생활형 리더.
 
-The Story system prompt states that `character_canon` is the only fact source for a registered character, that Story must not change a character's name, age, department, position, appearance, personality, speech style, or addressing rules, must not promote or reassign a character to a different position or role, and must not force an unregistered-in-scene character into the current scene.
+**appearance**
 
-## Extract stable-ID mapping
+- 어깨 아래로 흐르는 흑갈색 웨이브 헤어
+- 차분한 갈색 눈
+- 눈가의 작은 점
+- 표정이 밝고 친근하지만 집중할 때는 시선이 단단해짐
+- 네이비 정장 재킷
+- 아이보리 셔츠
+- 단정한 H라인 스커트
+- 실용적이고 신뢰감을 주는 오피스 스타일
+- 피곤해도 옷차림과 자세가 쉽게 흐트러지지 않음
 
-`buildRegisteredCharacters(edition)` in `src/engine/extract-prompt.js` produces only `{ character_id, name }` pairs for `heroine1`–`heroine5` and is sent to Extract as `registered_characters`. Storage/adult/voice fields are excluded. The Extract system prompt instructs the model to use only those stable IDs, to return an ID only when the name matches a Story character exactly, never to invent an ID for someone not in Story or not in that list, never to turn the narrator into an NPC ID, and to keep `action_target_id`/`focal_character_id`/`last_speaker_id`/`image_character_id` independent — unchanged from the existing identity-axis contract. The existing post-normalization ID validation (`buildStableNpcIdSet` / `npcIdsFromEdition` in `src/api/turn-routes.js`, enforced inside `normalizeGameplayExtractEnvelope`) still runs regardless of what the model returns, so an unknown ID is dropped/nulled with a warning either way.
+**personality**
+
+- 밝고 세심한 생활형 리더
+- 권위로 밀어붙이기보다 의견을 공유하고 발언 기회를 보장
+- 팀원의 표정·컨디션·업무 부담을 잘 파악
+- 불필요한 야근과 보여주기식 보고를 싫어함
+- 실수 자체보다 문제 은폐와 책임 회피에 단호함
+- 팀이 흔들리면 자신이 먼저 책임을 짊어짐
+- 과로와 피로를 숨기는 경향
+- 따뜻하지만 무조건적인 보호자는 아님
+- 플레이어가 스스로 판단하고 성장하기를 기대
+
+**speech_style**
+
+- 기본적으로 부드럽고 분명한 존댓말
+- 상대의 말을 받은 뒤 결론과 이유를 정리
+- 업무 지시는 구체적이지만 압박감은 낮음
+- 친해지면 가벼운 장난과 생활적인 잔소리가 늘어남
+- 화가 나도 소리를 높이기보다 말수가 줄고 표현이 정확해짐
+- 예: "그 방향도 가능해요. 다만 지금 일정으로는 두 가지를 다 잡기 어려우니까, 무엇을 먼저 살릴지 정해봅시다."
+
+**addressing_rules**
+
+- 신규 팀원·플레이어: 이름 또는 성 + "씨"
+- 공식 회의: 직급이 있으면 직급 + "님"
+- 팀원에게 반말 사용 금지
+- 친밀도가 높아져도 기본 존댓말 유지
+- 친밀한 상황에서는 이름 + "씨"와 부드러운 장난 허용
+- 상대가 요청한 호칭이 save에 명시되면 그 호칭 우선
+
+**habits**
+
+- 회의 시작 전에 참석자 표정을 한 번씩 확인
+- 간식이나 음료를 자연스럽게 나눔
+- 파일명과 포스트잇을 일정한 규칙으로 정리
+- 중요한 말을 할 때 상대 눈을 똑바로 봄
+- 피곤하면 관자놀이를 잠깐 누르지만 들키면 웃어넘김
+- 팀원이 퇴근하지 못하면 자신도 쉽게 먼저 퇴근하지 못함
+
+**work_profile**
+
+- specialties: 브랜드 방향 설정, 팀 리딩과 업무 배분, 캠페인 전략, 부서 간 갈등 조정, 임원 보고, 팀원 육성
+- strengths: 사람과 일정의 균형, 팀 분위기 안정, 책임 있는 의사결정, 실무자의 의견을 경영 언어로 정리
+- weaknesses: 책임을 혼자 떠안음, 자신의 피로와 불안을 숨김, 팀원을 보호하다 자신의 업무가 과중해짐
+
+**relationship_hooks**
+
+- 플레이어가 책임을 회피하지 않는지 관찰
+- 작은 의견도 논리적으로 설명하면 진지하게 들어줌
+- 팀원을 존중하면서 결과를 만드는 사람에게 빠르게 신뢰가 생김
+- 자신을 상사나 보호자로만 보지 않고 한 사람으로 이해할 때 흔들림
+- 그녀의 과로를 과장 없이 알아채고 실질적으로 돕는 행동에 약함
+
+**initial_relationship.relationship_summary**: 브랜드전략팀에 합류한 플레이어를 팀원으로 대하며 실무 능력, 책임감, 타인을 대하는 태도를 관찰하고 있다. (closeness: acquaintance, current_boundary: professional)
+
+**csa_response_profile**
+
+- adaptability: medium · baseline_familiarity: 0 · baseline_resistance: 78 · baseline_acceptance: 2 · baseline_discomfort: 12 · conscious_analysis: high · outward_composure: high · conscious_violation: false
+- 주변이 자연스럽게 행동해도 팀원 안전과 선택권을 먼저 확인한다.
+- 자신보다 팀원에게 영향을 주는 규칙에 더 강하게 저항한다.
+- 겉으로 침착하게 대응하지만 모순을 오래 검토한다.
+- 전역 규칙에 적응하더라도 책임감과 리더 역할을 기준으로 합리화한다.
+
+---
+
+### 윤민아 (heroine2)
+
+- character_id: `heroine2` · age: 29 · gender: female · department: 브랜드전략팀 · position: 대리 · role_title: 글로벌 캠페인 PM · company_tenure: 5년 차
+
+**public_role_summary**: 새로운 시장과 트렌드를 빠르게 이해하고, 복잡하게 꼬인 프로젝트를 실행 가능한 기획안과 결과물로 바꾸는 브랜드전략팀의 실질적인 에이스.
+
+**appearance**
+
+- 허리 가까이 내려오는 부드러운 연갈색 장발
+- 자연스럽게 넘긴 앞머리
+- 맑고 선명한 푸른 눈
+- 눈 아래의 작은 점
+- 긴 눈매와 부드럽게 올라간 입꼬리
+- 크고 각진 실버 귀걸이
+- 옅은 하늘색 블라우스
+- 짙은 네이비 H라인 스커트
+- 사원증을 단정하게 착용
+- 세련됐지만 과하게 힘을 준 인상은 아님
+- 웃고 있어도 상대의 반응을 세밀하게 관찰하는 시선
+
+**personality**
+
+- 높은 사회적 적응력
+- 상대에 맞춰 설명 방식과 분위기를 바꾸는 능력
+- 자연스러운 분위기 메이커
+- 즉흥적으로 보이지만 실제로는 철저히 준비
+- 발표·기획·외부 대응을 모두 수행하는 올라운더
+- 외모나 분위기만으로 평가받는 것을 싫어함
+- 본업과 결과물에 대한 자존심이 강함
+- 유능하다는 기대를 거절하지 못하고 일을 떠안음
+- 완벽하지 않은 모습을 공개적으로 보이기 어려움
+- 빠른 판단을 하지만 자신의 선택권 침해에는 단호함
+
+**speech_style**
+
+- 빠르고 명료한 존댓말
+- 결론과 실행안을 먼저 제시
+- 좋은 아이디어를 발견하면 말이 빨라짐
+- 반대할 때도 근거와 대안을 함께 말함
+- 친해지면 커피나 업무를 소재로 장난
+- 지쳤을 때도 처음에는 밝은 말투를 유지
+
+**addressing_rules**
+
+- 서원희: "팀장님"
+- 한리브: "리브 대리님" 또는 업무 중 "리브님"
+- 제나·메이: 이름 + "씨"
+- 플레이어: 초기에는 이름 + "씨" 또는 직급 + "님"
+- 사적 친밀도가 높아져도 공식 자리에서는 직급 호칭 유지
+
+**habits**
+
+- 첫 커피는 자주 식혀버림
+- 생각이 정리되면 펜을 한 번 돌리고 말함
+- 문서 정렬·색·표현 오류를 빠르게 발견
+- 해외 메일을 보내기 전에 소리 내어 읽음
+- 긴장하면 액세서리를 만짐
+- 야근 중 혼자 있다고 생각하면 작게 노래를 흥얼거림
+
+**work_profile**
+
+- specialties: 글로벌 브랜드 캠페인, 해외 파트너 커뮤니케이션, 소비자 트렌드 분석, 캠페인 콘셉트 개발, 프레젠테이션과 피칭, 위기 프로젝트 정상화
+- strengths: 빠른 상황 파악, 기획과 실행의 연결, 발표와 설득, 부서 간 중재, 예상 질문 대응
+- weaknesses: 유능한 이미지에 대한 부담, 도움을 늦게 요청함, 화려한 이미지로만 평가받는 것을 경계, 실패를 준비 부족으로만 해석
+
+**relationship_hooks**
+
+- 플레이어가 외모보다 실무 판단을 먼저 알아보면 관심 증가
+- 자신의 빈틈을 조롱하지 않고 보완하는 사람을 신뢰
+- "민아가 알아서 하겠지"라는 태도에는 차갑게 선을 그음
+- 플레이어 앞에서 미완성 아이디어를 말하기 시작하면 신뢰 진전
+- 완벽한 에이스가 아닌 지친 모습을 인정받고 싶어 함
+
+**initial_relationship.relationship_summary**: 플레이어를 프로젝트 구성원으로 대하며 말보다 결과를 만드는 사람인지, 책임을 남에게 넘기지 않는지 관찰한다. (closeness: acquaintance, current_boundary: professional)
+
+**csa_response_profile**
+
+- adaptability: high · baseline_familiarity: 0 · baseline_resistance: 74 · baseline_acceptance: 3 · baseline_discomfort: 8 · conscious_analysis: high · outward_composure: very_high · conscious_violation: false
+- 새로운 사회적 분위기를 빠르게 읽는다.
+- 표면적 적응 속도와 내면의 수용 속도가 다르다.
+- 이상한 상황에서도 우선 대처한 뒤 나중에 원인을 분석한다.
+- 자신의 선택권과 업무 권한 침해에는 저항이 높다.
+
+---
+
+### 김제나 (heroine3)
+
+- character_id: `heroine3` · age: 24 · gender: female · department: 브랜드전략팀 · position: 사원 · role_title: 주니어 브랜드 플래너 · company_tenure: 입사 3개월 차
+
+**public_role_summary**: 얌전하고 긴장 많은 신입처럼 보이지만 사람의 표정과 분위기를 빠르게 읽고, 결정적인 순간에는 신입답지 않은 의견을 내는 관찰형 막내.
+
+**appearance**
+
+- 허리 아래까지 곧게 내려오는 따뜻한 적갈색 장발
+- 비껴 나눈 정돈된 가르마
+- 크고 맑은 회갈색 눈
+- 선명하지만 공격적이지 않은 눈매
+- 작은 얼굴과 옅은 분홍빛 입술
+- 짙은 차콜 셔츠
+- 검정 H라인 스커트
+- 액세서리를 거의 사용하지 않는 단정한 스타일
+- 긴장하면 소매를 만짐
+- 감정이 눈썹과 입꼬리에 잘 드러남
+
+**personality**
+
+- 수줍지만 수동적이지 않음
+- 먼저 분위기와 결정권자를 관찰
+- 확신이 없을 때는 조용하지만 핵심을 발견하면 분명히 말함
+- 표정과 분위기 변화에 민감
+- 조용한 타이밍형 유머
+- 연습과 준비를 통해 실력을 끌어올림
+- 신입으로만 보호받는 것을 싫어함
+- 내면의 승부욕과 성장 욕구가 강함
+- 공개적인 지적과 평가에 오래 위축됨
+- 말보다 표정에 감정이 먼저 나타남
+
+**speech_style**
+
+- 조심스럽고 단정한 존댓말
+- 의견을 낼 때 전제를 붙이지만 확신이 생기면 단호해짐
+- 친해지면 무표정한 농담과 표정 모사를 사용
+- 위축되면 자신의 준비 부족을 먼저 탓함
+- 신뢰하는 상대에게는 불안과 평가 부담을 솔직하게 말함
+
+**addressing_rules**
+
+- 서원희: "팀장님"
+- 윤민아: "민아 선배" 또는 공식 자리에서 "윤 대리님"
+- 한리브: "리브 선배" 또는 "한 대리님"
+- 이메이: 둘만 있을 때 "메이", 선배 앞에서는 "메이 씨"
+- 플레이어: 초기에는 이름 + "님" 또는 "씨"; 상대 직급이 있으면 직급 + "님"
+
+**habits**
+
+- 발표 문장을 여러 번 소리 내어 연습
+- 휴대폰으로 자신의 표정과 자세를 확인
+- 긴장하면 소매 끝을 만짐
+- 실수한 날 같은 작업을 집에서 다시 연습
+- 칭찬받으면 어떤 부분이 좋았는지 정확히 기억
+- 거짓말하거나 감정을 숨길 때 시선이 짧아짐
+
+**work_profile**
+
+- specialties: 소비자 반응 관찰, 광고 비주얼 레퍼런스 수집, 소셜 트렌드 모니터링, 인터뷰 기록과 인사이트 정리, 브랜드 무드보드, 발표 시연
+- strengths: 표정과 분위기 감지, 시각적 콘셉트 이해, 빠른 학습, 피드백 흡수, 신선한 소비자 관점
+- weaknesses: 모르는 것을 바로 질문하지 못함, 실수하지 않으려 속도가 느려짐, 평가를 과도하게 의식, 준비되지 않았다고 느끼면 의견을 숨김
+
+**relationship_hooks**
+
+- 작은 의견도 무시하지 않는 플레이어에게 마음이 열림
+- 실수를 공개적으로 몰아붙이지 않는 사람을 신뢰
+- 막내 취급 대신 실제 업무를 맡기면 빠르게 관심 증가
+- 자신의 결과물에 대한 플레이어의 평가를 점점 의식
+- 가까워질수록 감정을 표정으로 숨기지 못함
+
+**initial_relationship.relationship_summary**: 플레이어에게 먼저 다가가기보다 말투와 표정을 관찰하며 안전하고 존중할 수 있는 동료인지 확인하고 있다. (closeness: acquaintance, current_boundary: cautious_professional)
+
+**csa_response_profile**
+
+- adaptability: medium · baseline_familiarity: 0 · baseline_resistance: 66 · baseline_acceptance: 2 · baseline_discomfort: 14 · conscious_analysis: medium_high · outward_composure: medium · conscious_violation: false
+- 주변 사람들의 표정을 먼저 확인한다.
+- 다수가 자연스럽게 행동하면 자신의 판단을 의심한다.
+- 겉으로는 적응해도 내면의 이상함과 불안이 오래 남는다.
+- 명백한 공개 모욕이나 선택권 침해에는 예상보다 강하게 저항한다.
+
+**youngest_line**: partner `heroine5` — 동갑 입사 동기이자 친구. 서로의 실수를 감싸지만 업무 평가에서는 은근히 경쟁한다.
+
+---
+
+### 한리브 (heroine4)
+
+- character_id: `heroine4` · age: 27 · gender: female · department: 브랜드전략팀 · position: 대리 · role_title: 브랜드 보이스·콘텐츠 리드 · company_tenure: 4년 차
+
+**public_role_summary**: 차갑고 빈틈없어 보이지만 부드러운 목소리와 세심한 기억력으로 팀의 문장과 결과물을 안정시키는 조용한 버팀목.
+
+**appearance**
+
+- 윤기 나는 짙은 흑발을 단정하게 묶음
+- 얇은 시스루 앞머리
+- 길고 차분한 눈매
+- 웃을 때 확실히 부드러워지는 인상
+- 작은 붉은색 드롭 귀걸이
+- 소매를 자연스럽게 걷은 흰 셔츠
+- 검정 H라인 스커트
+- 붉은 사원증 목걸이
+- 반듯한 체형과 안정적인 자세
+- 꾸밈은 절제됐지만 정돈 상태가 일정함
+
+**personality**
+
+- 낯선 사람 앞에서는 필요한 말만 정확히 함
+- 친해지면 장난과 무표정한 유머가 늘어남
+- 팀의 메시지와 결과물을 안정시키는 역할
+- 사람의 과거 발언과 취향을 잘 기억
+- 문장·목소리·표현의 온도 차이에 민감
+- 감정적인 상황에서도 침착
+- 자신의 기여를 적극적으로 드러내지 않음
+- 도움을 늦게 요청하고 피곤할수록 더 조용해짐
+- 감정을 말보다 행동으로 표현
+
+**speech_style**
+
+- 낮고 차분하며 정돈된 존댓말
+- 문장의 의미뿐 아니라 상대가 어떻게 받아들일지 설명
+- 불필요한 수식 없이 정확하게 말함
+- 친해지면 무표정한 농담이 늘어남
+- 걱정이나 호감은 직접 말하기보다 행동으로 나타냄
+
+**addressing_rules**
+
+- 서원희: "팀장님"
+- 윤민아: "민아 대리님", 둘만 있을 때는 "민아 씨"
+- 제나·메이: 이름 + "씨"
+- 플레이어: 초기에는 이름 + "씨" 또는 직급 + "님"
+- 공식 자리에서 사적인 별명 사용 금지
+
+**habits**
+
+- 이전 회의의 작은 표현까지 기억
+- 문장을 보내기 전에 소리와 호흡을 확인
+- 피곤할수록 말수가 줄어듦
+- 걱정되는 동료의 파일을 먼저 검토
+- 따뜻한 음료를 말없이 옆에 놓음
+- 친한 사람 앞에서 웃음이 터지면 평소 이미지가 무너짐
+
+**work_profile**
+
+- specialties: 브랜드 카피, 캠페인 메시지 톤, 발표와 영상 대본, 고객 커뮤니케이션 문구, 콘텐츠 최종 검수, 보이스 콘텐츠 기획
+- strengths: 좋은 기억력, 섬세한 언어 감각, 안정적인 발표, 품질 유지, 다른 사람의 결과물을 자연스럽게 보완
+- weaknesses: 자신의 기여를 드러내지 않음, 도움을 늦게 요청, 서운함을 직접 표현하지 못함, 문제 해결을 혼자 오래 붙잡음
+
+**relationship_hooks**
+
+- 플레이어의 작은 말과 취향을 오래 기억
+- 자신의 보이지 않는 기여를 알아봐 주면 크게 흔들림
+- 감정을 재촉하지 않고 행동을 알아채는 상대에게 신뢰 증가
+- 가까워질수록 둘만 있을 때 말수가 많아짐
+- 질투나 서운함도 말보다 행동 변화로 먼저 나타남
+
+**initial_relationship.relationship_summary**: 플레이어에게 친절하지만 일정한 거리를 유지하며, 말과 행동의 일관성을 조용히 기억하고 판단한다. (closeness: acquaintance, current_boundary: reserved_professional)
+
+**csa_response_profile**
+
+- adaptability: medium_low · baseline_familiarity: 0 · baseline_resistance: 82 · baseline_acceptance: 1 · baseline_discomfort: 10 · conscious_analysis: very_high · outward_composure: very_high · conscious_violation: false
+- 다른 사람이 자연스럽게 행동해도 즉시 따라가기보다 관찰한다.
+- 논리와 언어의 모순을 잘 감지한다.
+- 겉으로 평온하지만 내면의 의심이 오래 지속된다.
+- 자신의 선택권을 직접 침해하면 단호하게 저항한다.
+
+---
+
+### 이메이 (heroine5)
+
+- character_id: `heroine5` · age: 24 · gender: female · department: 브랜드전략팀 · position: 사원 · role_title: 브랜드 커뮤니티·SNS 주니어 플래너 · company_tenure: 입사 3개월 차
+
+**public_role_summary**: 처음에는 낯을 가리지만 친해지면 말과 아이디어가 넘치며, 밝은 에너지와 예상 밖의 분석력으로 고객 참여와 팀 분위기를 움직이는 행동형 막내.
+
+**appearance**
+
+- 턱선 근처까지 오는 짙은 갈색 단발
+- 눈썹 위로 자연스럽게 내려오는 둥근 앞머리
+- 크고 부드러운 회갈색 눈
+- 생기 있는 눈웃음
+- 밝고 친근한 미소
+- 작은 골드 링 귀걸이
+- 얇은 목걸이
+- 소매를 걷은 흰 셔츠
+- 검정 하이웨이스트 버튼 쇼츠
+- 활동성과 개성을 살린 오피스룩
+- 작은 액세서리와 소품으로 취향을 드러냄
+
+**personality**
+
+- 낯가림이 풀리면 말과 감정 표현이 크게 늘어남
+- 팀의 분위기를 밝히는 역할
+- 실패에서 남은 가능성을 먼저 찾음
+- 귀엽고 독특한 시각적 취향
+- 사람과 커뮤니티의 반응 패턴을 분석하는 능력
+- 먼저 시도하고 실패 후 회복이 빠름
+- 진지한 갈등을 밝은 말로 넘기려는 경향
+- 밝은 사람으로만 평가받는 것에 지침
+- 취향이 가볍게 평가되면 전문성을 적극적으로 증명
+
+**speech_style**
+
+- 초기에는 예의 바르고 짧은 존댓말
+- 친해지면 말이 길어지고 즉흥적인 아이디어를 바로 공유
+- 자연스러운 농담과 별명 사용
+- 분위기가 가라앉으면 가능한 다음 행동을 제시
+- 진지한 감정을 말할 때는 평소보다 말수가 줄어듦
+
+**addressing_rules**
+
+- 서원희: "팀장님"
+- 윤민아: "민아 선배" 또는 "윤 대리님"
+- 한리브: "리브 선배" 또는 "한 대리님"
+- 김제나: 둘만 있을 때 "제나", 공식 자리에서는 "제나 씨"
+- 플레이어: 초기에는 이름 + "님" 또는 "씨"; 친해지면 이름 + "씨"와 장난스러운 별명 가능
+- 공식 회의에서는 별명 금지
+
+**habits**
+
+- 노트북과 수첩에 작은 스티커 사용
+- 프로젝트 폴더 아이콘을 직접 만듦
+- 재미있는 사진이나 메신저 스티커를 공유
+- 아이디어가 떠오르면 바로 메모하거나 말함
+- 분위기가 무거울 때 작은 업무부터 함께 시작하자고 제안
+- 심각한 감정을 숨길 때 웃음이 평소보다 짧아짐
+
+**work_profile**
+
+- specialties: 브랜드 SNS 운영, 커뮤니티 반응 분석, 소비자 참여 이벤트, 짧은 콘텐츠 아이디어, 캠페인 네이밍, 댓글과 후기 패턴 분석
+- strengths: 긍정적인 에너지, 친밀한 커뮤니케이션, 독특한 시각적 취향, 사용자 반응 패턴 분석, 빠른 회복력
+- weaknesses: 낯선 자리에서 의견 제시가 느림, 관심 있는 일을 지나치게 확장, 반복 업무 집중력 저하, 갈등을 직접 말하지 않고 분위기로 풀려 함
+
+**relationship_hooks**
+
+- 안전한 사람이라고 판단하면 대화와 메시지가 급격히 많아짐
+- 자신의 취향을 전문성으로 인정하는 플레이어에게 호감 증가
+- 밝은 모습만 요구하지 않고 조용한 상태도 받아주는 상대를 신뢰
+- 제나와의 우정·경쟁을 존중하지 않고 비교 대상으로만 쓰면 반감
+- 가까워질수록 질투와 불편함을 밝은 말로 감추려 함
+
+**initial_relationship.relationship_summary**: 플레이어를 처음에는 조심스럽게 관찰하며, 안전한 동료라고 판단하면 아이디어와 일상적인 이야기를 빠르게 공유한다. (closeness: acquaintance, current_boundary: friendly_professional)
+
+**csa_response_profile**
+
+- adaptability: high · baseline_familiarity: 0 · baseline_resistance: 58 · baseline_acceptance: 5 · baseline_discomfort: 8 · conscious_analysis: medium_high · outward_composure: medium · conscious_violation: false
+- 주변이 자연스럽게 행동하면 비교적 빠르게 적응한다.
+- 낯선 상황에서도 긍정적인 이유를 먼저 찾는다.
+- 사람들의 반응 패턴과 숨은 규칙을 분석한다.
+- 자신이나 가까운 사람의 선택권이 침해되면 강하게 반발한다.
+
+**youngest_line**: partner `heroine3` — 동갑 입사 동기이자 가장 가까운 친구. 메이는 행동을 시작하고 제나는 상대의 반응과 위험을 확인한다.
+
+---
+
+## Story canon: active-character selection, not a full-cast snapshot
+
+Story no longer receives all five characters' data on every turn. `selectActiveCharacterIds` (`src/engine/gameplay-state.js`) orders the characters actually relevant to the current turn — an exact full-name mention in the player's own input first (never a partial match), then `save.focal_character_id`, then `save.last_speaker_id`, then the scene's `participants`, each validated against the stable NPC id set and deduplicated. `buildActiveCharacterCanon` then gives the first three active ids their full `prompt_card` and everyone after that only `{ character_id, name, position, role_title }` (identity-only, no `prompt_card`). A character not active this turn is not sent at all. The Story prompt's `active_character_canon` payload field carries this result; `storage_bucket`/`storage_prefix`/`primary_image_path`/`adult_image_prefix`/`voice_id`/`mapping_status`/`initial_stats`/`initial_relationship`/`initial_csa_attitudes` never reach it. None of this reads or mutates the `edition` object or the input context.
+
+The Story system prompt states that `active_character_canon` is the only fact source for a registered character this turn, that Story must not change a character's name, age, department, position, appearance, personality, speech style, or addressing rules, must not promote or reassign a character to a different position or role, and must not force a character absent from `active_character_canon` into the current scene.
+
+Story's own context payload (`buildStoryContextProjection`) is similarly scoped: `game`/`player`/`turn`/`time`/`scene`/`global_csa`/`story_summary` plus `active_npc_state`, which holds only the mutable NPC-map entries (`npc_stats`/`npc_emotion`/`npc_relationship_state`/`npc_scene_state`/`npc_work_state`/`csa_attitudes`) for the active ids — never the full save, and `recent_turns` is capped at the last 3 turns with only `turn`/`player_action`/`turn_summary` (plus `choices` on the newest one only), not full historical Story text or full turn snapshots.
+
+## Extract stable-ID mapping and payload deduplication
+
+`buildRegisteredCharacters(edition)` in `src/engine/extract-prompt.js` still produces `{ character_id, name }` pairs for all `heroine1`–`heroine5` (Extract needs the full stable-ID roster, not just the active subset, since it must recognize any registered name Story used) and is sent as `registered_characters`. Storage/adult/voice/`prompt_card` fields are excluded. The Extract system prompt instructs the model to use only those stable IDs, to return an ID only when the name matches a Story character exactly, never to invent an ID for someone not in Story or not in that list, never to turn the narrator into an NPC ID, and to keep `action_target_id`/`focal_character_id`/`last_speaker_id`/`image_character_id` independent. The existing post-normalization ID validation (`buildStableNpcIdSet` / `npcIdsFromEdition` in `src/api/turn-routes.js`, enforced inside `normalizeGameplayExtractEnvelope`) still runs regardless of what the model returns.
+
+Extract's own payload no longer duplicates Story's full text or a full save: `story_text` is the only copy of the Story's raw text; `parsed_story` (`buildParsedStoryProjection`) carries only `player_inner_thought`/`player_status`/`choices`/`dialogue_lines`/`warnings`, never the parser's `raw`/`scene_text`/`blocks`; and `context` (`buildExtractContextProjection`, sharing the same active-character-scoped core as Story) carries only `turn`/`time`/`scene`/`global_csa`/`active_npc_state` — no `game`, `player`, `story_summary`, `recent_turns`, or character `prompt_card`/personality/appearance data at all.
 
 ## Global CSA stays global
 
-There is still no per-player suggestion list and no per-NPC list of currently-active common-sense rules. The only per-NPC variation is `csa_attitudes[npc_id][csa_id]`, and every character's `initial_csa_attitudes` is `{}` in this PR because `content/csa_presets.json` has no registered rule items yet — see `docs/COMPANY_GAMEPLAY_STATE_CONTRACT_V1.md` for why inventing a rule ID here would be unsafe. Each character's narrative disposition toward common-sense change instead lives in `csa_response_profile` (`adaptability`, `baseline_familiarity`, `baseline_resistance`, `baseline_acceptance`, `baseline_discomfort`, `conscious_analysis`, `outward_composure`, `conscious_violation`, `notes`) — Story-facing canon, not persisted per-rule attitude state. The five profiles deliberately differ (e.g. `baseline_resistance` ranges from 58 to 82, `adaptability` from `medium_low` to `high`) so no two characters react identically to a common-sense change.
+There is still no per-player suggestion list and no per-NPC list of currently-active common-sense rules. The only per-NPC variation is `csa_attitudes[npc_id][csa_id]`, and every character's `initial_csa_attitudes` is `{}` in this PR because `content/csa_presets.json` has no registered rule items yet — see `docs/COMPANY_GAMEPLAY_STATE_CONTRACT_V1.md` for why inventing a rule ID here would be unsafe. Each character's narrative disposition toward common-sense change has a one-line runtime summary in `prompt_card.csa_style`; the fuller `csa_response_profile` reasoning is in "Full character detail" above and is documentation-only design detail, not a runtime content field. The five profiles deliberately differ — `baseline_resistance` ranges from 58 to 82 and `adaptability` from `medium_low` to `high` across the five — so no two characters were written to react identically to a common-sense change; `prompt_card.csa_style` preserves that distinction in one line per character.
 
 ## Deferred to follow-up PRs
 
 - **Voice IDs**: `voice_id` is `null` for all five; no ID was guessed or assigned.
-- **CSA preset IDs**: `content/csa_presets.json` stays empty; converting `csa_response_profile` into real `initial_csa_attitudes[csa_id]` entries needs an approved global CSA rule set first.
+- **CSA preset IDs**: `content/csa_presets.json` stays empty; converting the CSA design detail in this document into real `initial_csa_attitudes[csa_id]` entries needs an approved global CSA rule set first.
 - **Image catalog / Storage runtime**: this PR only records the five existing Storage bindings (bucket/prefix/primary path/adult prefix) as content; it does not query, upload, move, rename, or delete anything in Storage, and does not build an image catalog or shortlist.

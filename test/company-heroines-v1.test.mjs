@@ -5,16 +5,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import edition from '../src/api/edition.js';
 import { masterFromEdition, npcIdsFromEdition } from '../src/api/turn-routes.js';
-import { buildCharacterCanonSnapshot, buildStoryPrompt } from '../src/engine/story-prompt.js';
+import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt, buildRegisteredCharacters } from '../src/engine/extract-prompt.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
-import { hydrateGameplayState, migrateCompanySave } from '../src/engine/gameplay-state.js';
+import { buildActiveCharacterCanon, hydrateGameplayState, migrateCompanySave, selectActiveCharacterIds } from '../src/engine/gameplay-state.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const readJson = file => JSON.parse(read(file));
 
 const HEROINE_IDS = ['heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5'];
+const NAMES = { heroine1: '서원희', heroine2: '윤민아', heroine3: '김제나', heroine4: '한리브', heroine5: '이메이' };
 const STORAGE_MAP = {
   heroine1: { storage_prefix: 'Heroine1', primary_image_path: 'Heroine1/one_main.jpg', adult_image_prefix: 'Heroine1/adult/' },
   heroine2: { storage_prefix: 'Heroine2', primary_image_path: 'Heroine2/minami_main.jpg', adult_image_prefix: 'Heroine2/adult/' },
@@ -25,6 +26,14 @@ const STORAGE_MAP = {
 
 function characters() {
   return readJson('content/characters.json').characters;
+}
+
+function charactersMap() {
+  return edition.characters.characters;
+}
+
+function saveWithParticipants(ids) {
+  return { save_schema_version: 1, edition: 'company-v1', world_state: {}, scene_state: { participants: ids }, focal_character_id: null, last_speaker_id: null };
 }
 
 // --- Content shape ---------------------------------------------------------
@@ -53,14 +62,33 @@ test('every heroine is an adult in 브랜드전략팀 with no invented unsupport
   }
 });
 
-test('required content fields are never null; only voice_id may be null', () => {
+test('required content fields are never null; only voice_id may be null; the compact field list has no detailed-doc-only fields', () => {
   const chars = characters();
-  const requiredNonNull = ['name', 'age', 'position', 'role_title', 'gender', 'company_tenure', 'public_role_summary'];
+  const requiredNonNull = ['name', 'age', 'position', 'role_title', 'gender', 'company_tenure'];
+  const detailedDocOnlyFields = ['public_role_summary', 'appearance', 'personality', 'speech_style', 'addressing_rules', 'habits', 'work_profile', 'relationship_hooks', 'csa_response_profile', 'youngest_line'];
   for (const id of HEROINE_IDS) {
     const c = chars[id];
     for (const field of requiredNonNull) assert.notEqual(c[field], null, `${id}.${field}`);
     assert.equal(c.voice_id, null, `${id}.voice_id`);
     assert.equal(c.mapping_status, 'resolved', `${id}.mapping_status`);
+    for (const field of detailedDocOnlyFields) assert.equal(field in c, false, `${id} must not carry ${field}`);
+  }
+});
+
+test('prompt_card has the canonical shape, stays within budget, and never repeats dialogue examples', () => {
+  const chars = characters();
+  for (const id of HEROINE_IDS) {
+    const card = chars[id].prompt_card;
+    for (const field of ['identity', 'appearance', 'personality', 'speech', 'addressing', 'distinctive_traits', 'csa_style']) {
+      assert.ok(Object.hasOwn(card, field), `${id}.prompt_card.${field}`);
+    }
+    for (const field of ['identity', 'appearance', 'personality', 'speech', 'addressing', 'csa_style']) {
+      assert.equal(typeof card[field], 'string', `${id}.prompt_card.${field}`);
+      assert.equal(card[field].includes('"'), false, `${id}.prompt_card.${field} must not contain a quoted dialogue example`);
+    }
+    assert.ok(Array.isArray(card.distinctive_traits) && card.distinctive_traits.length <= 4, `${id} distinctive_traits`);
+    const cardChars = JSON.stringify(card).length;
+    assert.ok(cardChars <= 600, `${id} prompt_card chars: ${cardChars}`);
   }
 });
 
@@ -102,15 +130,15 @@ test('initial_csa_attitudes is empty for every heroine because no CSA preset ite
   for (const id of HEROINE_IDS) assert.deepEqual(chars[id].initial_csa_attitudes, {}, id);
 });
 
-test('every heroine has a distinct csa_response_profile with an integer baseline_resistance in 0..100', () => {
+test('every heroine has a distinct one-line csa_style narrative disposition', () => {
   const chars = characters();
-  const resistances = HEROINE_IDS.map(id => {
-    const profile = chars[id].csa_response_profile;
-    assert.ok(profile && typeof profile === 'object', `${id} csa_response_profile`);
-    assert.ok(Number.isInteger(profile.baseline_resistance) && profile.baseline_resistance >= 0 && profile.baseline_resistance <= 100, `${id} baseline_resistance`);
-    return profile.baseline_resistance;
+  const styles = HEROINE_IDS.map(id => {
+    const style = chars[id].prompt_card.csa_style;
+    assert.equal(typeof style, 'string', `${id} csa_style`);
+    assert.ok(style.length > 0, `${id} csa_style not empty`);
+    return style;
   });
-  assert.ok(new Set(resistances).size > 1, 'resistances must not all be identical');
+  assert.equal(new Set(styles).size, styles.length, 'csa_style must not be identical across heroines');
 });
 
 // --- Relationship --------------------------------------------------------
@@ -160,8 +188,7 @@ test('masterFromEdition and npcIdsFromEdition resolve exactly the five registere
 
 test('the parser resolves each heroine name to its correct stable ID and never partial-matches', () => {
   const master = masterFromEdition(edition);
-  const names = { heroine1: '서원희', heroine2: '윤민아', heroine3: '김제나', heroine4: '한리브', heroine5: '이메이' };
-  for (const [id, name] of Object.entries(names)) {
+  for (const [id, name] of Object.entries(NAMES)) {
     const text = `[SCENE]\n${name} (담담하게): "확인했습니다."\n[PLAYER_STATUS]\nx\n[PLAYER_INNER_THOUGHT]\nx\n[CHOICES]\n1. a\n2. b\n3. c\n4. d`;
     const parsed = parseNarrative(text, { master });
     assert.equal(parsed.dialogue_lines[0].speaker_id, id, name);
@@ -170,59 +197,95 @@ test('the parser resolves each heroine name to its correct stable ID and never p
   assert.equal(parseNarrative(partial, { master }).dialogue_lines[0].speaker_id, null);
 });
 
+// --- Active character selection ---------------------------------------------
+
+test('selectActiveCharacterIds excludes characters not in the scene, includes exact full-name mentions first, and never partial-matches', () => {
+  const map = charactersMap();
+  const npcIds = npcIdsFromEdition(edition);
+  const emptyScene = selectActiveCharacterIds({ charactersMap: map, npcIds, save: saveWithParticipants([]), playerAction: '보고서를 작성한다.' });
+  assert.deepEqual(emptyScene, []);
+
+  const mentioned = selectActiveCharacterIds({ charactersMap: map, npcIds, save: saveWithParticipants(['heroine2']), playerAction: '서원희에게 인사한다.' });
+  assert.deepEqual(mentioned, ['heroine1', 'heroine2']);
+
+  const partialMention = selectActiveCharacterIds({ charactersMap: map, npcIds, save: saveWithParticipants([]), playerAction: '서 팀장에게 말을 건다.' });
+  assert.deepEqual(partialMention, []);
+});
+
+test('active_character_canon includes at most 3 full prompt_card entries; the 4th and beyond are identity-only', () => {
+  const map = charactersMap();
+  const oneActive = buildActiveCharacterCanon(map, ['heroine1']);
+  assert.deepEqual(Object.keys(oneActive), ['heroine1']);
+  assert.ok(oneActive.heroine1.prompt_card);
+
+  const threeActive = buildActiveCharacterCanon(map, ['heroine1', 'heroine2', 'heroine3']);
+  assert.equal(Object.keys(threeActive).length, 3);
+  for (const id of Object.keys(threeActive)) assert.ok(threeActive[id].prompt_card, id);
+
+  const fiveActive = buildActiveCharacterCanon(map, [...HEROINE_IDS]);
+  assert.equal(Object.keys(fiveActive).length, 5);
+  const withCard = Object.values(fiveActive).filter(entry => 'prompt_card' in entry);
+  const identityOnly = Object.values(fiveActive).filter(entry => !('prompt_card' in entry));
+  assert.equal(withCard.length, 3);
+  assert.equal(identityOnly.length, 2);
+  for (const entry of identityOnly) {
+    assert.deepEqual(Object.keys(entry).sort(), ['character_id', 'name', 'position', 'role_title'].sort());
+  }
+});
+
+test('a character absent from the current scene is never sent at all', () => {
+  const map = charactersMap();
+  const canon = buildActiveCharacterCanon(map, ['heroine1']);
+  assert.equal('heroine2' in canon, false);
+  assert.equal('heroine3' in canon, false);
+});
+
 // --- Story canon -----------------------------------------------------------
 
-test('buildCharacterCanonSnapshot exposes exactly the narrative fields and excludes Storage/voice/mapping/internal-stat fields', () => {
-  const canon = buildCharacterCanonSnapshot(edition);
-  assert.deepEqual(Object.keys(canon).sort(), [...HEROINE_IDS].sort());
-  const forbidden = ['storage_bucket', 'storage_prefix', 'primary_image_path', 'adult_image_prefix', 'voice_id', 'mapping_status', 'initial_stats', 'initial_relationship', 'initial_csa_attitudes'];
-  for (const id of HEROINE_IDS) {
-    const entry = canon[id];
-    assert.equal(typeof entry.name, 'string', id);
-    assert.ok(Array.isArray(entry.personality) && entry.personality.length > 0, id);
-    assert.ok(Array.isArray(entry.speech_style) && entry.speech_style.length > 0, id);
-    assert.ok(Array.isArray(entry.addressing_rules) && entry.addressing_rules.length > 0, id);
-    for (const field of forbidden) assert.equal(field in entry, false, `${id}.${field}`);
+test('Story prompt active_character_canon scales 1/3/5 participants correctly, excludes Storage/voice fields, and never mutates edition or context', () => {
+  const buildFor = ids => buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants(ids), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
+
+  const one = JSON.parse(buildFor(['heroine1'])[1].content);
+  assert.equal(Object.keys(one.active_character_canon).length, 1);
+
+  const three = JSON.parse(buildFor(['heroine1', 'heroine2', 'heroine3'])[1].content);
+  assert.equal(Object.keys(three.active_character_canon).length, 3);
+  for (const entry of Object.values(three.active_character_canon)) assert.ok(entry.prompt_card);
+
+  const five = JSON.parse(buildFor([...HEROINE_IDS])[1].content);
+  const entries = Object.values(five.active_character_canon);
+  assert.equal(entries.filter(e => 'prompt_card' in e).length, 3);
+  assert.equal(entries.filter(e => !('prompt_card' in e)).length, 2);
+
+  for (const entry of Object.values(five.active_character_canon)) {
+    for (const forbidden of ['storage_bucket', 'storage_prefix', 'primary_image_path', 'adult_image_prefix', 'voice_id', 'mapping_status', 'initial_stats', 'initial_relationship', 'initial_csa_attitudes']) {
+      assert.equal(forbidden in entry, false, `${entry.character_id}.${forbidden}`);
+    }
   }
-  assert.ok(canon.heroine3.youngest_line);
-  assert.ok(canon.heroine5.youngest_line);
-  assert.equal('youngest_line' in canon.heroine1, false);
+
+  const editionBefore = JSON.stringify(edition);
+  const contextInput = { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] };
+  const contextBefore = JSON.stringify(contextInput);
+  buildStoryPrompt({ edition, context: contextInput, playerAction: 'x', expectedTurn: 1 });
+  assert.equal(JSON.stringify(edition), editionBefore);
+  assert.equal(JSON.stringify(contextInput), contextBefore);
 });
 
-test('buildCharacterCanonSnapshot never mutates the edition it reads', () => {
-  const before = JSON.stringify(edition);
-  buildCharacterCanonSnapshot(edition);
-  assert.equal(JSON.stringify(edition), before);
-});
-
-test('Story prompt user payload carries character_canon for all five heroines and the system prompt forbids changing canon facts', () => {
-  const prompt = buildStoryPrompt({
-    edition: { editionId: edition.editionId, characters: edition.characters },
-    context: { game: {}, save: {}, recent_turns: [] },
-    playerAction: '인사한다.',
-    expectedTurn: 1
-  });
-  const payload = JSON.parse(prompt[1].content);
-  assert.deepEqual(Object.keys(payload.character_canon).sort(), [...HEROINE_IDS].sort());
-  assert.equal(payload.character_canon.heroine1.name, '서원희');
+test('Story prompt system instruction names active_character_canon as the sole fact source and forbids inventing characters', () => {
+  const prompt = buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants(['heroine1']), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
   const system = prompt[0].content;
-  assert.match(system, /character_canon.{0,20}유일한 사실 기준/);
-  assert.match(system, /승격.*변경하지 않는다/);
+  assert.match(system, /active_character_canon은.{0,40}유일한 사실 기준/);
+  assert.match(system, /승격/);
   assert.match(system, /억지로 출연시키지 않는다/);
 });
 
 test('no real-world group or model name appears in the built Story prompt', () => {
-  const prompt = buildStoryPrompt({
-    edition: { editionId: edition.editionId, characters: edition.characters },
-    context: { game: {}, save: {}, recent_turns: [] },
-    playerAction: 'x',
-    expectedTurn: 1
-  });
+  const prompt = buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
   const combined = prompt.map(m => m.content).join('\n');
   for (const forbidden of ['RESCENE', '리센느', '미나미']) assert.equal(combined.includes(forbidden), false, forbidden);
 });
 
-// --- Extract mapping -------------------------------------------------------
+// --- Extract mapping and payload deduplication ------------------------------
 
 test('buildRegisteredCharacters returns only heroine id/name pairs with no Storage fields', () => {
   const registered = buildRegisteredCharacters(edition);
@@ -242,6 +305,39 @@ test('Extract prompt user payload carries registered_characters and the system p
   assert.match(system, /registered_characters lists the only stable character ids/);
   assert.match(system, /never invent, guess, or reuse an id/);
   assert.match(system, /never copy one into another/);
+});
+
+test('Extract payload carries Story text exactly once and strips raw/scene_text/blocks from the parsed projection', () => {
+  const parsedStory = {
+    raw: '[1. 서사 및 행동]\n전체 원문 그대로.',
+    scene_text: '전체 원문 그대로.',
+    blocks: [{ type: 'scene', text: '전체 원문 그대로.' }],
+    player_inner_thought: '생각.',
+    player_status: '상태.',
+    choices: ['a', 'b', 'c', 'd'],
+    dialogue_lines: [],
+    warnings: []
+  };
+  const prompt = buildExtractPrompt({ context: {}, storyText: '[1. 서사 및 행동]\n전체 원문 그대로.', parsedStory, playerAction: 'x', expectedTurn: 1, edition });
+  const payload = JSON.parse(prompt[1].content);
+  assert.equal(payload.story_text, '[1. 서사 및 행동]\n전체 원문 그대로.');
+  assert.equal('raw' in payload.parsed_story, false);
+  assert.equal('scene_text' in payload.parsed_story, false);
+  assert.equal('blocks' in payload.parsed_story, false);
+  assert.deepEqual(Object.keys(payload.parsed_story).sort(), ['choices', 'dialogue_lines', 'player_inner_thought', 'player_status', 'warnings'].sort());
+  const occurrences = prompt[1].content.split('전체 원문 그대로').length - 1;
+  assert.equal(occurrences, 1, 'Story text must not be duplicated inside the Extract payload');
+});
+
+test('Extract context has no full save, no character prompt_card/personality/appearance, and only the active NPCs\' mutable state', () => {
+  const save = { ...saveWithParticipants(['heroine1']), npc_stats: { heroine1: { affection: 3 }, heroine2: { affection: 9 } } };
+  const prompt = buildExtractPrompt({ context: { game: {}, save, recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
+  const payload = JSON.parse(prompt[1].content);
+  assert.equal('save' in payload.context, false);
+  assert.equal('prompt_card' in payload.context, false);
+  assert.equal('personality' in payload.context, false);
+  assert.equal('appearance' in payload.context, false);
+  assert.deepEqual(Object.keys(payload.context.active_npc_state.npc_stats), ['heroine1']);
 });
 
 // --- Title -----------------------------------------------------------------
@@ -264,17 +360,32 @@ test('content files, the heroines doc, and built prompt payloads contain none of
     read('content/characters.json'), read('content/edition.json'), read('content/general_npcs.json'), read('content/csa_presets.json'),
     read('fixtures/gameplay-state-v1/five-character-master-v1.json'), read('docs/COMPANY_HEROINES_V1.md')
   ];
-  const storyPrompt = buildStoryPrompt({ edition: { editionId: edition.editionId, characters: edition.characters }, context: { game: {}, save: {}, recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
-  const extractPrompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
+  const save = saveWithParticipants([...HEROINE_IDS]);
+  const storyPrompt = buildStoryPrompt({ edition, context: { game: {}, save, recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
+  const extractPrompt = buildExtractPrompt({ context: { game: {}, save, recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
   const allPromptText = [...storyPrompt, ...extractPrompt].map(m => m.content);
-  // real-person names must never appear anywhere, including system instructions
   for (const source of [...contentSources, ...allPromptText]) {
     for (const term of realPersonTokens) assert.equal(source.includes(term), false, term);
   }
-  // active_suggestions/personal-suggestion legitimately appear in system instructions as a
-  // prohibition; they must not appear in actual content or in the user-facing data payload
   const userPayloads = [storyPrompt[1].content, extractPrompt[1].content];
   for (const source of [...contentSources, ...userPayloads]) {
     for (const term of contentFeatureTokens) assert.equal(source.includes(term), false, term);
   }
+});
+
+// --- Size budgets ------------------------------------------------------------
+
+test('Story request size budgets: system <=4500, 3-character active canon <=1800, 5-participant scene still caps at 3 full cards', () => {
+  const prompt = buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
+  const systemChars = prompt[0].content.length;
+  const payload = JSON.parse(prompt[1].content);
+  const canonChars = JSON.stringify(payload.active_character_canon).length;
+  assert.ok(systemChars <= 4500, `story system chars: ${systemChars}`);
+  assert.ok(canonChars <= 1800, `active_character_canon chars: ${canonChars}`);
+  assert.equal(Object.values(payload.active_character_canon).filter(e => 'prompt_card' in e).length, 3);
+});
+
+test('Extract request size budget: system <=3000', () => {
+  const prompt = buildExtractPrompt({ context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
+  assert.ok(prompt[0].content.length <= 3000, `extract system chars: ${prompt[0].content.length}`);
 });

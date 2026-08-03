@@ -22,37 +22,41 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const readJson = file => JSON.parse(read(file));
 const clone = value => structuredClone(value);
 
-test('Story prompt carries the four-section, freedom, choices, and status-board contract without a separate DIALOGUE section', () => {
+test('Story prompt carries the four-section, freedom, choices, and status-board contract without a separate DIALOGUE section, and stays under the size budget', () => {
   const prompt = buildStoryPrompt({
-    edition: { editionId: 'company-v1' },
+    edition: { editionId: 'company-v1', characters: { characters: {} } },
     context: { game: {}, save: { player: { name: 'X' } }, recent_turns: [] },
     playerAction: '검토한다.',
     expectedTurn: 3
   });
   const system = prompt[0].content;
   assert.match(system, /\[1\. 서사 및 행동\].*\[2\. 플레이어 속마음\].*\[3\. 플레이어 상황판\].*\[4\. 선택지\]/);
-  assert.match(system, /사용자용.*별도의.*\[DIALOGUE\].*만들지 않는다/);
+  assert.match(system, /사용자용 섹션\(예: 별도 \[DIALOGUE\]\).*쓰지 않는다/);
   assert.match(system, /800~1000자/);
   assert.match(system, /1000~1500자/);
   assert.match(system, /1200~2000자/);
   assert.match(system, /대신 완료하지 않는다/);
   assert.match(system, /정확히 4개를 목표로/);
-  assert.match(system, /어떤 CSA도 플레이어의 자유 입력 자체를 막지 않는다/);
+  assert.match(system, /플레이어의 자유 입력 자체는 막지 않는다/);
+  assert.ok(system.length <= 4500, `story system chars: ${system.length}`);
   const userPayload = JSON.parse(prompt[1].content);
   assert.equal(userPayload.expected_turn, 3);
-  assert.ok('status_snapshot' in userPayload);
+  assert.ok('context' in userPayload);
+  assert.ok('active_character_canon' in userPayload);
+  assert.equal('status_snapshot' in userPayload, false);
 });
 
-test('Extract prompt requires independent identity axes, Story-authoritative precedence, and elapsed_minutes-only time proposals', () => {
+test('Extract prompt requires independent identity axes, Story-authoritative precedence, elapsed_minutes-only time proposals, and stays under the size budget', () => {
   const prompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1 });
   const system = prompt[0].content;
   assert.match(system, /never copy one into another/);
   assert.match(system, /Story choices are always authoritative/);
-  assert.match(system, /can never override the Story-authored versions/);
+  assert.match(system, /Extract can never override them/);
   assert.match(system, /elapsed_minutes is your only time proposal/);
   assert.match(system, /csa_runtime_state\[csa_id\]/);
   assert.match(system, /arousal_delta, ejaculation_progress_delta, and ejaculation_completed/);
   assert.match(system, /evidence\.sexual_resolution === true/);
+  assert.ok(system.length <= 3000, `extract system chars: ${system.length}`);
 });
 
 test('Parser recognizes the Korean four-section output, extracts inline dialogue with a resolved speaker_id, and preserves legacy internal markers', () => {
@@ -347,7 +351,7 @@ async function driveStoryToExtracting(worker, playerAction = 'x') {
   }), ENV)).text();
 }
 
-test('Extract prompt receives the same hydrated Context as Story (defaulted game_time and sexual state)', async () => {
+test('Extract prompt receives the same hydrated Context as Story (defaulted game_time) through the compact context projection', async () => {
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   assert.equal('game_time' in save.world_state, false);
   const mock = createLifecycleMock({ saveOverride: save });
@@ -355,8 +359,8 @@ test('Extract prompt receives the same hydrated Context as Story (defaulted game
   await driveStoryToExtracting(worker);
   await worker.fetch(new Request('https://worker.test/api/extract', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
   const requestPayload = JSON.parse(mock.getLastExtractRequestBody().messages[1].content);
-  assert.deepEqual(requestPayload.context.save.data.world_state.game_time, { day: 1, minute_of_day: 540 });
-  assert.deepEqual(requestPayload.context.save.data.player_sexual_state, { arousal: 0, ejaculation_progress: 0, ejaculation_count: 0, updated_turn: 7 });
+  assert.deepEqual(requestPayload.context.time, { day: 1, minute_of_day: 540 });
+  assert.equal('save' in requestPayload.context, false);
 });
 
 test('record_extract_result failure marks the action extract_failed and stays recoverable via retry_extract', async () => {
