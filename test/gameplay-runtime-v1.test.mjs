@@ -539,3 +539,51 @@ test('hydrateGameplayState fills npc_relationship_state, npc_stats, and csa_atti
   const hydratedBoth = hydrateGameplayState(save, bothMaster);
   assert.deepEqual(hydratedBoth.npc_relationship_state['npc-both'], { closeness: 'canonical' });
 });
+
+test('an unknown player_sexual_state delta key never fails the whole turn, and only that key is removed with a warning', () => {
+  const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
+  const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
+  const envelope = {
+    state_delta: { player_sexual_state: { sexual_relationship_completed: true, arousal_delta: 12 } },
+    outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: []
+  };
+  assert.doesNotThrow(() => applyGuardedStateDelta(save, envelope, options));
+  const result = applyGuardedStateDelta(save, envelope, options);
+  assert.equal(result.nextSave.player_sexual_state.arousal, save.player_sexual_state.arousal + 12);
+  assert.equal(result.nextSave.player_sexual_state.ejaculation_count, 0);
+  assert.ok(result.warnings.includes('unauthorized_sexual_completion_field_ignored:sexual_relationship_completed'));
+});
+
+test('a genuinely unrelated player_sexual_state key is dropped as unknown_player_sexual_state_delta, not a completion claim', () => {
+  const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
+  const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
+  const result = applyGuardedStateDelta(save, {
+    state_delta: { player_sexual_state: { mood_hint: 'flushed', arousal_delta: 3 } },
+    outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: []
+  }, options);
+  assert.equal(result.nextSave.player_sexual_state.arousal, save.player_sexual_state.arousal + 3);
+  assert.ok(result.warnings.includes('unknown_player_sexual_state_delta:mood_hint'));
+  assert.equal(result.warnings.some(w => w.startsWith('unauthorized_sexual_completion_field_ignored')), false);
+});
+
+test('ejaculation_completed without evidence still only drops that flag; with evidence it applies normally, alongside the sanitized delta', () => {
+  const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
+  save.player_sexual_state = { arousal: 50, ejaculation_progress: 80, ejaculation_count: 0, updated_turn: 7 };
+  const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
+  const envelope = evidence => ({
+    state_delta: { player_sexual_state: { ejaculation_completed: true, illegal_field: 'x' } },
+    outcome: 'success', evidence, choices: [], mind_monitor: {}, dialogue_lines: []
+  });
+
+  const withoutEvidence = applyGuardedStateDelta(save, envelope({}), options);
+  assert.equal(withoutEvidence.nextSave.player_sexual_state.ejaculation_count, 0);
+  assert.equal(withoutEvidence.nextSave.player_sexual_state.arousal, 50);
+  assert.ok(withoutEvidence.warnings.includes('unauthorized_ejaculation_completion_ignored'));
+  assert.ok(withoutEvidence.warnings.includes('unknown_player_sexual_state_delta:illegal_field'));
+
+  const withEvidence = applyGuardedStateDelta(save, envelope({ sexual_resolution: true }), options);
+  assert.equal(withEvidence.nextSave.player_sexual_state.ejaculation_count, 1);
+  assert.equal(withEvidence.nextSave.player_sexual_state.arousal, 0);
+  assert.equal(withEvidence.nextSave.player_sexual_state.ejaculation_progress, 0);
+  assert.ok(!withEvidence.warnings.includes('unauthorized_ejaculation_completion_ignored'));
+});

@@ -81,11 +81,16 @@ test('guarded merge persists top-level Extract choices as the authoritative snap
   assert.deepEqual(empty.nextSave.last_choices, []);
 });
 
-test('guarded merge rejects sexual completion without evidence and exposes recovery states', () => {
+test('guarded merge drops an unauthorized player_sexual_state completion field instead of failing the whole turn', () => {
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
-  assert.throws(() => applyGuardedStateDelta(save, {
-    state_delta: { player_sexual_state: { sexual_relationship_completed: true } }, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: []
-  }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' }), GameCoreError);
+  const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
+  const result = applyGuardedStateDelta(save, {
+    state_delta: { player_sexual_state: { sexual_relationship_completed: true, arousal_delta: 5 } },
+    outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: []
+  }, options);
+  assert.equal(result.nextSave.player_sexual_state.ejaculation_count, 0);
+  assert.equal(result.nextSave.player_sexual_state.arousal, 5);
+  assert.ok(result.warnings.includes('unauthorized_sexual_completion_field_ignored:sexual_relationship_completed'));
   assert.equal(deriveRecoverableStep({ processing_status: 'extracting', has_story: true }), 'resume_extract');
   assert.equal(deriveRecoverableStep({ processing_status: 'committed' }), 'complete');
 });

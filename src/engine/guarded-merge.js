@@ -53,12 +53,30 @@ function allowedNpcIds(save) {
   return ids;
 }
 
-function sexualCompletionWithoutEvidence(delta, evidence) {
-  const state = delta.player_sexual_state;
-  const playerMarksCompletion = plainObject(state) && Object.entries(state).some(([key, value]) =>
-    /sexual.*(complete|relationship)|(?:complete|relationship).*sexual/i.test(key) && Boolean(value)
-  );
-  return playerMarksCompletion && evidence?.sexual_resolution !== true;
+const ALLOWED_SEXUAL_DELTA_KEYS = new Set(['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed']);
+const SEXUAL_COMPLETION_CLAIM_PATTERN = /sexual.*(complete|relationship)|(?:complete|relationship).*sexual/i;
+
+/**
+ * player_sexual_state deltas may only propose arousal_delta, ejaculation_progress_delta,
+ * and ejaculation_completed. Any other key is dropped with a warning instead of failing
+ * the whole turn; reducePlayerSexualState alone decides whether ejaculation_completed
+ * actually applies, based on evidence.sexual_resolution.
+ */
+function sanitizePlayerSexualStateDelta(patch) {
+  const clean = {};
+  const warnings = [];
+  for (const [key, value] of Object.entries(patch)) {
+    if (ALLOWED_SEXUAL_DELTA_KEYS.has(key)) {
+      clean[key] = value;
+      continue;
+    }
+    if (SEXUAL_COMPLETION_CLAIM_PATTERN.test(key) && Boolean(value)) {
+      warnings.push(`unauthorized_sexual_completion_field_ignored:${key}`);
+    } else {
+      warnings.push(`unknown_player_sexual_state_delta:${key}`);
+    }
+  }
+  return { patch: clean, warnings };
 }
 
 /**
@@ -95,9 +113,6 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
   }
   const preSave = hydrateGameplayState(currentSave, options?.master ?? {});
   const envelope = normalizeGameplayExtractEnvelope(extractEnvelope, { parsedStory: options?.parsedStory, npcIds: options?.npcIds });
-  if (sexualCompletionWithoutEvidence(envelope.state_delta, envelope.evidence)) {
-    throw new GameCoreError('UNAUTHORIZED_SEXUAL_COMPLETION', 'Sexual completion requires evidence');
-  }
 
   const nextSave = clone(preSave);
   const warnings = [...envelope.warnings];
@@ -136,7 +151,9 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
         warnings.push('invalid_player_sexual_state');
         continue;
       }
-      const reduced = reducePlayerSexualState(nextSave.player_sexual_state, patch, {
+      const sanitized = sanitizePlayerSexualStateDelta(patch);
+      warnings.push(...sanitized.warnings);
+      const reduced = reducePlayerSexualState(nextSave.player_sexual_state, sanitized.patch, {
         storyEvidence: envelope.evidence, updatedTurn: options.expectedTurn
       });
       nextSave.player_sexual_state = reduced.state;
