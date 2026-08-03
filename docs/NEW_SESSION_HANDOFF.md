@@ -7,9 +7,9 @@
 - Phase 0 independent repository bootstrap: complete and merged.
 - Phase 0.5 gameplay contracts: complete and merged through PR #2.
 - Phase 1 database migration package: complete, merged, applied, and verified.
-- Main base SHA: `9e8e6a59e373cc0a74100b98f13cc24cc0d9610c`.
-- Current work branch: `phase/4-frontend-loop`.
-- Current phase: Phase 4 minimum frontend vertical loop implementation.
+- Main base SHA: `7e74ed6c07fd39c05be7ddebc74c3a1743a04b65`.
+- Current work branch: `phase/5-frontend-deploy`.
+- Current phase: Phase 5 frontend Worker deployment, public asset smoke, and Context smoke.
 - Target Supabase project: `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), project name `company-v1`, region `ap-northeast-1`.
 - Four migrations and the fixed development seed are applied and verified.
 - Six application tables have RLS enabled.
@@ -18,7 +18,11 @@
 - The Phase 3 smoke test performs no Story or Extract model call.
 - Cloudflare API Worker `game-proxy-company-v1` is deployed and verified by remote read-only smoke tests.
 - API Worker URL: `https://game-proxy-company-v1.zeroslove.workers.dev` (version `5b6471ab-d212-4f91-be11-bc9be463c129`).
-- The frontend is implemented with mock tests only. The frontend Worker has not been deployed and no remote Story, Extract, or Commit request is authorized in this PR.
+- Phase 4 frontend vertical loop: complete and merged.
+- Frontend Worker `gamebuilder-company-v1` is deployed at `https://gamebuilder-company-v1.zeroslove.workers.dev`.
+- Public game URL: `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=11111111-1111-4111-8111-111111111111`.
+- Public asset and read-only Context smoke tests passed. The first public browser Story turn is reserved for user validation; no public Story, Extract, or Commit request was performed.
+- The API Worker is unchanged.
 - The retired Dify project is not used and must not be modified.
 
 ### Current repository structure
@@ -40,7 +44,7 @@
 9. `docs/PHASE_2_VERTICAL_LOOP.md`
 10. `docs/NEXT_PHASE_PLAN.md`
 
-Phase 2's API and engine vertical loop is complete. Phase 3 deploys the independent API Worker; its smoke test is limited to health, version, and read-only context checks.
+Phase 2's API and engine vertical loop is complete. The API Worker and frontend Worker are deployed. The next user validation is one public browser Story turn, followed by Company v1 content configuration. A future enhancement backlog includes a game clock with default elapsed minutes and Extract-proposed time progression.
 
 Do not expose Supabase directly to the browser, place secrets in the repository, modify the retired Dify project, perform remote Story/Extract/Commit calls during smoke tests, force-push, reset, or rebase.
 
