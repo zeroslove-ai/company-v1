@@ -2,16 +2,17 @@
 
 ## Status
 
-This repository contains an unapplied SQL package for the independent Company v1 Supabase project. The target project is `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), named `company-v1` in `ap-northeast-1`. Its public schema was verified empty. Migration and seed have not yet been applied.
+Phase 1 is applied and verified on the independent Company v1 Supabase project `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), named `company-v1` in `ap-northeast-1`.
 
-The retired Dify project is not used and must not be modified.
+The retired Dify project is not used and must not be modified. Cloudflare resources and deployment remain outside this phase.
 
 ## Migration order
 
-1. `20260803000100_company_v1_core_schema.sql` creates the extension, updated-at helper, core tables, indexes, RLS, save validator, and service-role-only access boundary.
+1. `20260803000100_company_v1_core_schema.sql` creates the extension, updated-at helper, core tables, indexes, RLS, save validator, and initial service-role boundary.
 2. `20260803000200_company_v1_turn_rpcs.sql` creates game initialization, context, action reservation, Story and Extract recording, action status, and guarded turn commit RPCs.
 3. `20260803000300_company_v1_feedback_and_reset_rpcs.sql` creates latest-turn feedback revision and title-confirmed reset RPCs.
-4. `20260803000100_company_v1_dev_seed.sql` upserts one fixed development game only; it creates no image rows.
+4. `20260803000400_company_v1_lock_down_rpc_access.sql` removes Supabase default RPC execution from `anon` and `authenticated`, then preserves execution for `service_role` only.
+5. `20260803000100_company_v1_dev_seed.sql` upserts one fixed development game only; it creates no image rows.
 
 ## Table roles
 
@@ -30,14 +31,19 @@ Feedback targets only the latest active turn. A reservation stores that original
 
 ## Access boundary
 
-Every table has RLS enabled. The package grants no direct browser table access and grants RPC execution only to `service_role`; functions revoke public execution before that grant. Browser clients must not access Supabase directly.
+Every table has RLS enabled and no browser-facing policies. Direct table privileges are absent for `anon` and `authenticated`. All Company v1 `SECURITY DEFINER` RPCs revoke execution from `public`, `anon`, and `authenticated`; all eleven application RPCs are executable by `service_role` only. Browser clients must not access Supabase directly.
 
-## Next authorized steps
+## Applied verification
 
-1. Final-review and merge PR #3.
-2. Apply the three migrations to the target project.
-3. Apply the development seed.
-4. Verify tables, RPCs, RLS, and seed data.
-5. Begin the Phase 2 vertical loop.
+- Six application tables exist with RLS enabled.
+- Eleven application RPCs exist as `SECURITY DEFINER` functions with `search_path = public, pg_temp`.
+- `anon` executable RPC count: `0`.
+- `authenticated` executable RPC count: `0`.
+- `service_role` executable RPC count: `11`.
+- The fixed development game exists with `save_schema_version = 1`, `committed_turn = 0`, and two active CSA rules.
+- A rollback-only integration smoke test completed normal turn commit, feedback replay, and stale concurrent feedback rejection.
+- The smoke test left zero actions and zero turns after rollback.
 
-Migration and seed application require explicit authorization. Store the service-role secret only in local or Cloudflare secret configuration and never in this repository. Cloudflare resources and deployment remain outside this work.
+## Next step
+
+Begin Phase 2: implement the context → Story SSE → Extract → guarded Commit vertical loop. Store the service-role secret only in local or Cloudflare secret configuration and never in this repository.
