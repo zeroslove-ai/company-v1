@@ -16,7 +16,37 @@ import {
   parseNarrative,
   resolvePlayerCanonicalNames,
   splitOpeningSections,
-  validatePlayerSetupInput
+  validatePlayerSetupInput,
+  appStrengthId,
+  buildAppManualPayload,
+  buildAppStatePayload,
+  buildAppUsageStorySection,
+  buildCsaAcceptanceScopeSection,
+  buildCsaApplicationCheckSection,
+  buildCsaDeactivationStorySection,
+  buildCsaDirectExecutionPrioritySection,
+  buildCsaPersistentSceneSection,
+  buildCsaPhysicalTransitionSection,
+  buildCsaPublicSceneSection,
+  buildCsaRuntimeSection,
+  buildCsaWeakSynergySection,
+  buildMindEffectExtractFirewallSection,
+  buildNpcCsaEpistemicFirewallSection,
+  buildStructuredActionStorySection,
+  calculateCsaCapability,
+  classifyAppOperationStrengths,
+  collectSemanticStrengthCandidates,
+  getApplicableCsaEntries,
+  getCsaLimits,
+  getCsaRules,
+  isAppUsageInfoRequest,
+  normalizeStructuredAction,
+  planCsaTransaction,
+  semanticStrengthIssues,
+  sha256Base64url,
+  signAppValidationProof,
+  stableStringify,
+  verifyStructuredActionValidation
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -117,11 +147,77 @@ function storySse({ meta, run }) {
   }));
 }
 
+function csaCatalogFromEdition(edition) {
+  return plainObject(edition?.csaPresets) ? edition.csaPresets : { actor_options: [], target_options: [], trigger_options: [], duration_options: [], categories: [], items: [], sexual_action_contract: {} };
+}
+
+function appValidationSecret(env) {
+  return env?.APP_VALIDATION_SECRET || env?.SUPABASE_SERVICE_ROLE_KEY;
+}
+
+function playerInfoPayload(save, catalogs, capability) {
+  const player = plainObject(save?.player) ? save.player : {};
+  const canonical = resolvePlayerCanonicalNames(player, catalogs);
+  return {
+    name: typeof player.name === 'string' ? player.name : '',
+    department: canonical.departmentName,
+    position: canonical.positionName,
+    speech_style: canonical.speechStyleName,
+    level: capability.current_level,
+    exp: capability.exp,
+    next_level_exp: capability.next_level_exp,
+    active_csa_count: capability.csa_active_count,
+    max_active_csa: capability.csa_max_active
+  };
+}
+
+/**
+ * Re-verifies a structured_action's validation proof and re-derives its plan
+ * fresh from the currently-persisted save — never trusts the client's own
+ * plan content, only that the signed operations digest matches. Called
+ * independently at Story, Extract, and Commit (matching the donor's own
+ * re-derive-at-each-stage pattern) instead of persisting the plan once.
+ */
+async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, csaCatalog, expectedTurn }) {
+  if (structuredAction == null) return null;
+  const normalized = normalizeStructuredAction(structuredAction);
+  if (!normalized) throw new HttpError(400, 'invalid_structured_action', 'structured_action has an invalid shape');
+  const verification = await verifyStructuredActionValidation(appValidationSecret(env), gameId, structuredAction);
+  if (!verification.ok) throw new HttpError(409, 'structured_action_invalid', 'structured_action failed validation-proof verification', false);
+  if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', '상식개변 앱을 연 뒤 게임 상태가 변경되었습니다.', false);
+  const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
+  const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, level: capability.current_level });
+  if (!plan.ok) throw new HttpError(422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '상식개변 앱 변경사항을 적용할 수 없습니다.', false);
+  return plan;
+}
+
+/** Appends the CSA-specific Story prompt sections onto an already-built messages array, only when relevant. */
+function applyCsaStorySections(messages, { save, plan }) {
+  const applicableCsa = getApplicableCsaEntries(save);
+  const hasApplicableCsa = applicableCsa.length > 0;
+  const isAppTransactionTurn = Boolean(plan);
+  if (!hasApplicableCsa && !isAppTransactionTurn) return messages;
+  let extra = buildCsaRuntimeSection() + buildCsaAcceptanceScopeSection() + buildCsaDirectExecutionPrioritySection()
+    + buildCsaPersistentSceneSection() + buildCsaPublicSceneSection() + buildCsaWeakSynergySection()
+    + buildCsaPhysicalTransitionSection(hasApplicableCsa, isAppTransactionTurn);
+  if (plan) {
+    const csaOperations = plan.canonical_action.operations;
+    const activeCsaCount = plan.next_csa_active.length;
+    const level = calculateCsaCapability(save, activeCsaCount).current_level;
+    extra += buildStructuredActionStorySection(csaOperations, activeCsaCount, getCsaLimits(level).max_active);
+    extra += buildCsaDeactivationStorySection(csaOperations.some(operation => operation.operation === 'deactivate'));
+  }
+  const next = [{ ...messages[0], content: messages[0].content + extra }, ...messages.slice(1)];
+  next.push({ role: 'system', content: buildNpcCsaEpistemicFirewallSection() });
+  return next;
+}
+
 export function createTurnRoutes({ fetchImpl, edition }) {
   const master = masterFromEdition(edition);
   const npcIds = npcIdsFromEdition(edition);
   const catalogs = catalogsFromEdition(edition);
   const heroineIds = Object.keys(edition?.characters?.characters ?? {});
+  const csaCatalog = csaCatalogFromEdition(edition);
 
   return {
     async context(request, env) {
@@ -149,6 +245,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const { gameId, actionId } = actionIds(body);
       const expectedTurn = body.expected_turn;
       const playerAction = requireString(body.player_action, 'player_action');
+      const structuredAction = body.structured_action ?? null;
       if (!Number.isInteger(expectedTurn) || expectedTurn < 1) throw new HttpError(400, 'invalid_request', 'expected_turn must be a positive integer');
       const db = createSupabaseClient(env, fetchImpl);
       const reservation = await db.callRpc('reserve_turn_action', {
@@ -185,8 +282,14 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
+          const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
+          const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
           const promptStart = Date.now();
-          const messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs });
+          let messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs });
+          messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan });
+          if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
+            messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
+          }
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
           timing.story_system_chars = messages[0].content.length;
@@ -232,6 +335,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const db = createSupabaseClient(env, fetchImpl);
       const action = actionOrNotFound(await db.getAction(gameId, actionId));
       if (!action.story_text) throw new HttpError(409, 'story_required', 'A completed Story is required before Extract', true);
+      const structuredAction = body.structured_action ?? null;
       if (action.extract_delta) {
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: action.parsed_blocks ?? parseNarrative(action.story_text, { master }), npcIds });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
@@ -258,8 +362,14 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
+          const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
+          const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
+          const applicableCsa = getApplicableCsaEntries(hydratedSave);
           const promptStart = Date.now();
-          const messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          let messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
+            + buildCsaApplicationCheckSection(applicableCsa);
+          if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
           timing.extract_prompt_ms = Date.now() - promptStart;
           const extractUserPayload = JSON.parse(messages[1].content);
           timing.extract_system_chars = messages[0].content.length;
@@ -316,6 +426,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
       const expectedTurn = body.expected_turn;
+      const structuredAction = body.structured_action ?? null;
       if (!Number.isInteger(expectedTurn) || expectedTurn < 1) throw new HttpError(400, 'invalid_request', 'expected_turn must be a positive integer');
       const db = createSupabaseClient(env, fetchImpl);
       const timing = {};
@@ -335,6 +446,13 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
+        // The app transaction never gets its own save API — its csa_active/csa_rules result rides
+        // through this same guarded-merge commit, applied on top of the normal Extract delta.
+        const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
+        if (csaPlan) {
+          nextSave.csa_active = csaPlan.next_csa_active;
+          nextSave.csa_rules = csaPlan.next_csa_rules;
+        }
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         const commitRpcStart = Date.now();
@@ -465,6 +583,105 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           });
         }
       } });
+    },
+
+    /** Read-only. Context fetch only — no mutation, no LLM call. */
+    async appManual(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        const save = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        return ok({ manual: buildAppManualPayload(save, csaCatalog) });
+      } finally {
+        logTurnTiming({ event_stage: 'app_manual', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /** Read-only. Context fetch only — no mutation, no LLM call. Single source for every dropdown the app UI renders. */
+    async appState(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        const save = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
+        const player = playerInfoPayload(save, catalogs, capability);
+        return ok({ app: buildAppStatePayload(save, csaCatalog, csaCatalog.sexual_action_contract, player) });
+      } finally {
+        logTurnTiming({ event_stage: 'app_state', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /**
+     * Read-only preflight: plans the transaction deterministically (activate/update/deactivate,
+     * preset validation, slot/strength caps), and — only for custom (non-preset) operations —
+     * makes exactly one LLM call to classify the required strength. Signs a validation_proof the
+     * client carries unmodified into /api/story, /api/extract, /api/commit, each of which
+     * independently re-verifies it and re-derives the same plan; this route never mutates state.
+     */
+    async appValidate(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const db = createSupabaseClient(env, fetchImpl);
+      let contextRpcCalls = 0;
+      let llmCalls = 0;
+      try {
+        const normalized = normalizeStructuredAction(body.structured_action);
+        if (!normalized) throw new HttpError(400, 'invalid_structured_action', 'structured_action has an invalid shape', false);
+        contextRpcCalls += 1;
+        const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        const save = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        const committedTurn = Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : 0;
+        if (normalized.base_turn_count !== committedTurn) {
+          throw new HttpError(409, 'app_stale_state', '상식개변 앱을 연 뒤 게임 상태가 변경되었습니다.', false);
+        }
+        const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
+        const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: committedTurn + 1, level: capability.current_level });
+        if (!plan.ok) {
+          throw new HttpError(plan.status ?? 422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '변경사항을 적용할 수 없습니다.', false);
+        }
+
+        const candidates = collectSemanticStrengthCandidates(save, plan.canonical_action, getCsaRules(save));
+        let semanticResults = [];
+        if (candidates.length) {
+          llmCalls += 1;
+          semanticResults = await classifyAppOperationStrengths(candidates, async systemPrompt =>
+            runExtract({ env, fetchImpl, messages: [{ role: 'system', content: systemPrompt }] }));
+          const issues = semanticStrengthIssues(candidates, semanticResults, appStrengthId(capability.available_strength));
+          if (issues.length) throw new HttpError(422, 'app_action_invalid', '변경사항을 적용할 수 없습니다.', false);
+        }
+
+        let canonicalAction = plan.canonical_action;
+        if (semanticResults.length) {
+          const contractByClientId = new Map(semanticResults.map(item => [item.client_id, item.semantic_contract]));
+          canonicalAction = {
+            ...canonicalAction,
+            operations: canonicalAction.operations.map(operation => (
+              operation.source_type === 'custom' && contractByClientId.has(operation.client_id)
+                ? { ...operation, semantic_contract: contractByClientId.get(operation.client_id) }
+                : operation
+            ))
+          };
+        }
+        const actionDigest = await sha256Base64url(stableStringify({ version: canonicalAction.version, type: canonicalAction.type, base_turn_count: canonicalAction.base_turn_count, operations: canonicalAction.operations }));
+        const resolvedResults = semanticResults.map(item => ({ client_id: item.client_id, required_strength: item.required_strength, semantic_contract: item.semantic_contract }));
+        const semantic_validation = { version: 1, game_id: gameId, base_turn_count: canonicalAction.base_turn_count, action_digest: actionDigest, results: resolvedResults };
+        const validation_proof = await signAppValidationProof(appValidationSecret(env), { game_id: gameId, base_turn_count: canonicalAction.base_turn_count, action_digest: actionDigest, semantic_results: resolvedResults });
+        canonicalAction = { ...canonicalAction, semantic_validation, validation_proof };
+
+        return ok({ canonical_action: canonicalAction, display_input: plan.display_input, summary: plan.summary });
+      } finally {
+        logTurnTiming({ event_stage: 'app_validate', request_id: requestId, game_id: gameId, context_rpc_ms: contextRpcCalls, llm_calls: llmCalls, turn_total_ms: Date.now() - startedAt });
+      }
     }
   };
 }
