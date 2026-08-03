@@ -186,8 +186,7 @@ export function buildStructuredActionStorySection(canonicalOperations, activeCsa
         : operation.operation === 'update' ? '교체(기존 규범은 이 순간부터 소멸, 새 규범만 즉시 유효)'
         : operation.operation === 'deactivate' ? '해제(즉시 종료)'
         : operation.operation;
-      const strongNote = operation.strength === 'strong' ? ' — 회사 전체에 즉시 구속력을 갖는 공식 규정 변경으로 취급한다' : '';
-      return `- 상식개변 ${verb}: ${operation.scope_type || '기존 범위'}${strongNote}`;
+      return `- 상식개변 ${verb}: ${operation.scope_type || '기존 범위'}`;
     })
     .join('\n');
   const hasUpdate = canonicalOperations.some(operation => operation.operation === 'update');
