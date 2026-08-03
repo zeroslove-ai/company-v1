@@ -47,6 +47,9 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
     actionStatus: body => postJson('/api/action-status', body),
     reset: body => postJson('/api/reset', body),
     playerSetup: body => postJson('/api/player-setup', body),
-    opening
+    opening,
+    appManual: body => postJson('/api/app-manual', body),
+    appState: body => postJson('/api/app-state', body),
+    validateAppAction: (gameId, structuredAction) => postJson('/api/app-validate', { game_id: gameId, structured_action: structuredAction })
   };
 }

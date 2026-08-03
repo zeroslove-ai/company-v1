@@ -318,7 +318,7 @@ test('busy guard admits one operation and toolbar capabilities do not invent end
   const states = []; const guard = createBusyGuard({ onChange: value => states.push(value) });
   let nested; await guard.run(async () => { nested = await guard.run(async () => true); });
   assert.equal(nested, false); assert.deepEqual(states, [true, false]);
-  assert.deepEqual(toolbarCapabilities({ turn: { committed_turn: 2 } }, null), { canResume: true, canOpenHistory: false, canSendFeedback: false, canOpenApps: false });
+  assert.deepEqual(toolbarCapabilities({ turn: { committed_turn: 2 } }, null), { canResume: true, canOpenHistory: false, canSendFeedback: false, canOpenApps: true });
   assert.equal(toolbarCapabilities({ turn: { committed_turn: 2 } }, { action_id: 'pending' }).canResume, false);
   assert.equal(recoveryFor({ recoverable_step: 'resume_commit' }), 'resume_commit');
   assert.equal(loadPending(storage(), gameId), null);
