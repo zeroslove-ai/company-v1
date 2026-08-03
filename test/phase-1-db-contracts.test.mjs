@@ -10,7 +10,8 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const migrations = [
   'supabase/migrations/20260803000100_company_v1_core_schema.sql',
   'supabase/migrations/20260803000200_company_v1_turn_rpcs.sql',
-  'supabase/migrations/20260803000300_company_v1_feedback_and_reset_rpcs.sql'
+  'supabase/migrations/20260803000300_company_v1_feedback_and_reset_rpcs.sql',
+  'supabase/migrations/20260803000400_company_v1_lock_down_rpc_access.sql'
 ];
 const seed = 'supabase/seed/20260803000100_company_v1_dev_seed.sql';
 
@@ -60,6 +61,27 @@ test('turn and feedback RPCs preserve idempotency, conflicts, revisions, and res
   assert.match(feedback, /delete from public\.game_turns where game_id = p_game_id/i);
   assert.match(feedback, /delete from public\.game_actions where game_id = p_game_id/i);
   assert.doesNotMatch(feedback, /update public\.game_master/i);
+});
+
+test('client roles cannot execute Company v1 security-definer RPCs', () => {
+  const lockdown = read(migrations[3]);
+  for (const fn of [
+    'validate_company_save_v1',
+    'create_company_game',
+    'get_company_context',
+    'reserve_turn_action',
+    'record_story_result',
+    'record_extract_result',
+    'get_action_status',
+    'commit_company_turn',
+    'reserve_feedback_revision',
+    'commit_feedback_revision',
+    'reset_company_game'
+  ]) {
+    assert.match(lockdown, new RegExp(`revoke all on function public\\.${fn}\\([\\s\\S]*?from public, anon, authenticated`, 'i'), fn);
+  }
+  assert.doesNotMatch(lockdown, /grant execute[\s\S]*to (?:anon|authenticated)/i);
+  assert.match(lockdown, /grant execute[\s\S]*to service_role/i);
 });
 
 test('migration package excludes destructive, deployment, legacy, and secret-like material', () => {
