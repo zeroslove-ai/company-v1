@@ -9,17 +9,21 @@
 - Phase 0 independent repository bootstrap: complete and merged.
 - Phase 0.5 gameplay, recovery, and state contracts: complete and merged.
 - Phase 1 company database migration package: complete, merged, applied, and verified.
-- Main base SHA: `9e8e6a59e373cc0a74100b98f13cc24cc0d9610c`.
-- Current work branch: `phase/4-frontend-loop`.
+- Main base SHA: `7e74ed6c07fd39c05be7ddebc74c3a1743a04b65`.
+- Current work branch: `phase/5-frontend-deploy`.
 - Phase 2 context → Story SSE → Extract → guarded Commit vertical loop: complete, including local live E2E verification.
-- Current work: **Phase 4 minimum frontend vertical loop implementation**.
+- Phase 4 frontend vertical loop: complete and merged.
+- Current work: **Phase 5 frontend Worker deployment, public asset smoke, and Context smoke**.
 - Target Supabase project: `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), project name `company-v1`, region `ap-northeast-1`.
 - Four migrations and the fixed development seed are applied.
 - Phase 2 contract tests use mock Supabase and mock LLM calls; its separately authorized live E2E is complete.
 - Phase 3 smoke uses remote read-only endpoints only and performs no Story or Extract model call.
 - Cloudflare API Worker `game-proxy-company-v1` is deployed and remote smoke verification is complete.
 - API Worker URL: `https://game-proxy-company-v1.zeroslove.workers.dev` (version `5b6471ab-d212-4f91-be11-bc9be463c129`).
-- The Phase 4 frontend is mock-tested only; frontend deployment has not been performed.
+- Frontend Worker `gamebuilder-company-v1` is deployed at `https://gamebuilder-company-v1.zeroslove.workers.dev`.
+- Public game URL: `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=11111111-1111-4111-8111-111111111111`.
+- Public asset and read-only Context smoke tests passed. No public Story, Extract, or Commit request was performed.
+- The API Worker is unchanged.
 - The retired Dify project is not used and must not be modified.
 
 ## Phase 2 implementation target
@@ -51,9 +55,10 @@ Runtime principles:
 
 ## Sequence
 
-1. Review and merge the Phase 4 frontend pull request.
-2. Deploy the frontend Worker and run one browser vertical-loop validation.
-3. Add company content, CSA presentation, images, and TTS in later phases.
+1. User validates the first public browser Story turn.
+2. Configure Company v1 content and CSA presentation.
+3. Add images and TTS in later phases.
+4. Consider a game clock with default elapsed minutes and Extract-proposed time progression; do not implement it before the gameplay requirement is approved.
 
 ## Current Phase 2 boundaries
 
