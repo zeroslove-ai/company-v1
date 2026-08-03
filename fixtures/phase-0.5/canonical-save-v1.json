@@ -1,0 +1,78 @@
+{
+  "save_schema_version": 1,
+  "edition": "company-v1",
+  "turn_state": {
+    "committed_turn": 7,
+    "processing_status": "ready",
+    "turn_id": "turn-7",
+    "action_id": "action-7",
+    "expected_turn": 8
+  },
+  "player": { "player_id": "player-1", "name": "Player", "department": "marketing" },
+  "player_scene_state": { "location_id": "meeting_room_5f", "updated_turn": 7 },
+  "player_sexual_state": { "arousal": 0, "updated_turn": 7 },
+  "world_state": { "time_block": "afternoon", "work_hook": { "id": "campaign-review", "status": "active" } },
+  "scene_state": {
+    "scene_id": "campaign-review",
+    "location_id": "meeting_room_5f",
+    "participants": ["player-1", "npc-hayeon", "npc-areum", "npc-minsu"],
+    "focus_thread": "campaign-review",
+    "scene_goal": "review campaign copy",
+    "beat": 2,
+    "exit_conditions": ["review-complete"],
+    "updated_turn": 7
+  },
+  "npc_stats": { "npc-hayeon": { "affection": 12 }, "npc-areum": { "affection": 4 }, "npc-minsu": { "affection": 0 } },
+  "npc_emotion": { "npc-hayeon": { "mood": "focused" }, "npc-areum": { "mood": "guarded" } },
+  "npc_relationship_state": {
+    "npc-hayeon": {
+      "closeness": "familiar",
+      "romance_status": "interest",
+      "current_boundary": "cautious",
+      "milestones": { "first_kiss_turn": null, "sexual_relationship_started_turn": null },
+      "relationship_summary": "Campaign partners."
+    },
+    "npc-areum": {
+      "closeness": "acquaintance",
+      "romance_status": "none",
+      "current_boundary": "open",
+      "milestones": { "first_kiss_turn": null, "sexual_relationship_started_turn": null },
+      "relationship_summary": "Knows the player from meetings."
+    }
+  },
+  "npc_scene_state": { "npc-hayeon": { "present": true }, "npc-areum": { "present": true }, "npc-minsu": { "present": true } },
+  "npc_work_state": { "npc-hayeon": { "task": "campaign-review" }, "npc-areum": { "task": "campaign-review" } },
+  "csa_active": ["csa-dress-code", "csa-reporting"],
+  "csa_rules": {
+    "csa-dress-code": { "execution_mode": "mandatory", "required_action": "wear campaign badge", "strength": 2 },
+    "csa-reporting": { "execution_mode": "normative", "required_action": "give a status update", "strength": 1 }
+  },
+  "csa_attitudes": {
+    "npc-hayeon": {
+      "common_sense_baseline": 1,
+      "csa_attitudes": {
+        "csa-dress-code": { "familiarity": 3, "resistance": 1, "last_changed_turn": 6 },
+        "csa-reporting": { "familiarity": 1, "resistance": 2, "last_changed_turn": 7 }
+      }
+    },
+    "npc-areum": {
+      "common_sense_baseline": 0,
+      "csa_attitudes": {
+        "csa-dress-code": { "familiarity": 0, "resistance": 3, "last_changed_turn": 7 }
+      }
+    }
+  },
+  "csa_runtime_state": {},
+  "csa_aftereffect_state": {},
+  "event_ledger": [
+    { "event_id": "event-1", "event_type": "work_event", "turn": 7, "summary": "Campaign review started.", "participants": ["npc-hayeon", "npc-areum"], "importance": 2, "active": true }
+  ],
+  "story_summary_overall": "The marketing team is preparing a campaign review.",
+  "story_summary_recent": "Hayeon and Areum are reviewing copy with the player.",
+  "focal_character_id": "npc-hayeon",
+  "last_speaker_id": "npc-areum",
+  "last_npcs_present": ["npc-hayeon", "npc-areum", "npc-minsu"],
+  "last_image_id": null,
+  "last_choices": ["Review copy", "Ask Hayeon", "Request status", "Wait"],
+  "last_choice_meta": []
+}

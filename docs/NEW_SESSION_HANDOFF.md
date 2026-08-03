@@ -1,35 +1,29 @@
 # New session handoff
 
-## Read first
-
-Read these documents before changing the implementation:
-
-1. `docs/INDEPENDENT_RUNTIME_DECISION.md`
-2. `docs/MASTER_ARCHITECTURE.md`
-3. `docs/INFRASTRUCTURE_PLAN.md`
-4. `docs/GAME_SYSTEM_DESIGN.md`
-5. `docs/GAMEPLAY_DESIGN_OPTIONS.md`
-6. `docs/NARRATIVE_OUTPUT_CONTRACT.md`
-7. `docs/UI_UX_REDESIGN.md`
-8. `docs/DESIGN_REVIEW_BACKLOG.md`
-9. `docs/NEXT_PHASE_PLAN.md`
-10. `docs/CODEX_IMPLEMENTATION_PLAN.md`
-
-## Current state
+## Current baseline
 
 - Repository: `zeroslove-ai/company-v1`
-- Stable base branch: `main`
-- Bootstrap PR: #1
-- Bootstrap head branch: `phase/0-bootstrap`
-- Bootstrap head commit: verify the current remote branch head instead of relying on a hardcoded SHA.
-- Next authorized implementation phase: **Phase 0.5** gameplay, recovery, and state contracts.
+- Stable branch: `main`
+- Main base SHA: `609d7fad76d829a2de4b745b96f1d02b6705659b`
+- Current work branch: `phase/0.5-gameplay-contracts`
+- Current task: Phase 0.5 gameplay, recovery, and state contracts.
+- PR #1 was merged before this phase began.
 
-The active product roots are `src/api`, `src/engine`, `src/frontend`, `content`, `docs`, `fixtures`, `test`, `scripts`, `supabase/migrations`, and `supabase/seed`. The planned Worker identifiers are `game-proxy-company-v1` and `gamebuilder-company-v1`.
+### Current repository structure
 
-## Scope guardrails
+- API runtime: `src/api`
+- Engine: `src/engine`
+- Frontend: `src/frontend`
 
-The repository is independent. Legacy material is historical reference only, superseded, and prohibited as a runtime dependency, direct import, or fallback.
+## Read before editing
 
-Do not create Supabase projects, apply migrations, create Cloudflare Workers, configure secrets, deploy, or call real Story, Extract, Commit, or TTS services without explicit authorization. Do not force-push, reset, rebase, or merge a PR automatically.
+1. `docs/INDEPENDENT_RUNTIME_DECISION.md`
+2. `docs/PHASE_0_5_GAMEPLAY_CONTRACT.md`
+3. `docs/TURN_RECOVERY_CONTRACT.md`
+4. `docs/GUARDED_STATE_MERGE_CONTRACT.md`
+5. `docs/FEEDBACK_REVISION_CONTRACT.md`
+6. `docs/SAVE_SCHEMA_MIGRATION_CONTRACT.md`
+7. `docs/NARRATIVE_OUTPUT_CONTRACT.md`
+8. `docs/NEXT_PHASE_PLAN.md`
 
-Proceed in this order: finish and merge the Phase 0 bootstrap PR, then Phase 0.5 contracts with fixtures and static tests, then the Phase 1 migration package, then the Phase 2 vertical loop.
+Phase 0.5 permits contracts, fixtures, and static tests only. Do not modify `src/**`, `content/**`, root Wrangler configuration, or `package.json`; do not write SQL; do not provision Supabase or Cloudflare; do not deploy; and do not call Story, Extract, Commit, or TTS services. Do not force-push, reset, rebase, make merge commits, or automatically merge pull requests.

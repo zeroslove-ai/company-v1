@@ -1,8 +1,8 @@
 # 회사편 v1 실제 게임플레이 취약점 및 선택안
 
-상태: pending user decisions
+상태: adopted
 기준일: 2026-08-03
-적용 시점: Phase 0 merge 후, DB migration 이전의 Phase 0.5 설계 확정
+적용 시점: Phase 0.5 확정 계약
 
 ## 0. 목적
 
@@ -17,7 +17,28 @@ Phase 0 골격은 코드와 에디션 경계를 만드는 단계다. 그러나 �
 - 위험 행동이 어떤 방식으로 성공·거절·부분 성공하는가
 - 규정 해제 뒤 무엇이 원상복구되고 무엇이 남는가
 
-이 문서는 구현 전 선택해야 할 대안을 제시한다. 아직 확정 설계가 아니며 사용자의 선택 뒤 `GAME_SYSTEM_DESIGN.md`, `SCHEMA`, migration, prompt 계약에 반영한다.
+## 확정 결정
+
+- **2C**: 자유 샌드박스 + 가벼운 장기 진행
+- **3C2**: canonical compile 후 한 화면 확인
+- **4C**: 활성 CSA 슬롯 4개, 무료 교체·해제
+- **5C**: 적용성 → 구체 scope → explicit override → strength → 최신순
+- **6C**: 현재 상식 즉시 정상화, 과거 기억 재해석
+- **7C**: 규정 해제 뒤 사건·감정·관계·기억 유지
+- **8C**: scene state 기반 진행
+- **9C**: soft availability와 speaking focus 최대 3명
+- **10C**: 최근 summary + event ledger
+- **11C**: 경량 행동 코어
+- **12C**: 축별 독립 지속성
+- **13C**: 극단 bold에만 확률
+- **14C**: mandatory exact action만 강제
+- **15C**: 점수 없는 업무 hook
+- **16C**: 간단 선택 + 자유 입력 + 자동 보완
+- 관계는 multi-axis로 관리한다.
+- 상식 반응은 `common_sense_baseline + csa_attitudes[csa_id]`로 관리한다.
+
+아래 대안과 검토 내용은 설계 결정의 근거를 보존하기 위한 기록이다.
+현재 구현 기준은 위 확정 결정을 따른다.
 
 ## 1. 핵심 발견
 
@@ -418,11 +439,11 @@ mandatory 의미가 사라진다.
 
 ## 17. 구현 순서 변경안
 
-PR #10 Phase 0 merge 후 바로 DB migration으로 가지 않는다.
+Phase 0 완료 후 바로 DB migration으로 가지 않는다.
 
 ### Phase 0.5 — gameplay contract
 
-1. 본 문서의 사용자 선택 확정
+1. 본 문서의 확정 결정과 계약 문서 확인
 2. 상태 schema 확정
 3. 관계 multi-axis 확정
 4. 규정별 attitude 확정
@@ -432,11 +453,11 @@ PR #10 Phase 0 merge 후 바로 DB migration으로 가지 않는다.
 
 이 단계에서는 Supabase 생성, migration 적용, 외부 모델 호출, Cloudflare 배포를 하지 않는다.
 
-그다음 Phase 1 DB migration이 확정된 상태 schema를 구현한다.
+그다음 Phase 1 migration package가 확정된 상태 schema를 구현한다.
 
-## 18. 권장 일괄안
+## 18. 확정 일괄안
 
-사용자가 개별 선택을 생략할 경우 권장 기본안:
+Phase 0.5에서 채택한 기준:
 
 ```text
 2C  게임 루프: 자유 샌드박스 + 가벼운 장기 진행

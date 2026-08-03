@@ -2,6 +2,23 @@
 
 기준일: 2026-08-03
 
+## 현재 계약 권위
+
+- 게임플레이·관계·CSA·장면 계약:
+  `PHASE_0_5_GAMEPLAY_CONTRACT.md`
+- 턴 복구:
+  `TURN_RECOVERY_CONTRACT.md`
+- 상태 병합:
+  `GUARDED_STATE_MERGE_CONTRACT.md`
+- 피드백 수정:
+  `FEEDBACK_REVISION_CONTRACT.md`
+- save version:
+  `SAVE_SCHEMA_MIGRATION_CONTRACT.md`
+- Story 출력:
+  `NARRATIVE_OUTPUT_CONTRACT.md`
+
+충돌 시 위 계약 문서가 이 문서의 구식 예시보다 우선한다.
+
 ## 1. 설계 목표
 
 회사편은 병원편의 안정된 턴 루프와 상태 저장 방식을 유지하되, 병원 고유 규칙을 제거하고 다음 문제를 개선한다.
@@ -93,9 +110,10 @@ Story가 자연스럽게 진행시키고 Extract는 명시적 변화가 있을 �
   "voice_id": "",
   "initial_stats": {
     "호감도": 0,
-    "상식수용도": 0,
     "성적흥분도": 0
   },
+  "common_sense_baseline": 0,
+  "csa_attitudes": {},
   "relationship_boundaries": []
 }
 ```
@@ -133,9 +151,25 @@ Story가 자연스럽게 진행시키고 Extract는 명시적 변화가 있을 �
 - 단순 성행위 완료
 - 거절하지 않음
 
-### 5.2 상식수용도
+### 5.2 상식 반응
 
-활성 규정이 자연스럽다고 느끼는 정도다. 규정 자체를 알고 있는지는 별도 문제가 아니다. 활성 규정은 관련 NPC가 항상 알고 있다.
+```json
+{
+  "common_sense_baseline": 0,
+  "csa_attitudes": {
+    "csa_id": {
+      "familiarity": 0,
+      "resistance": 0,
+      "last_changed_turn": 0
+    }
+  }
+}
+```
+
+- 규정 인식은 수치가 아니다.
+- 활성 규정의 관련자는 규정을 정확히 알고 있다.
+- 한 CSA 경험이 다른 CSA familiarity를 올리지 않는다.
+- baseline, familiarity, resistance, 호감도, 흥분도, 동의는 자동 연동하지 않는다.
 
 ### 5.3 성적흥분도
 
@@ -151,23 +185,24 @@ Story가 자연스럽게 진행시키고 Extract는 명시적 변화가 있을 �
 
 ## 6. 관계 시스템
 
-관계 stage:
-
-- none
-- familiar
-- trusted
-- romantic_interest
-- dating
-- kissed
-- sexual_relationship
+```json
+{
+  "closeness": "stranger|acquaintance|familiar|trusted|intimate",
+  "romance_status": "none|interest|mutual_interest|dating|ended",
+  "current_boundary": "open|cautious|refusing|hostile",
+  "milestones": {
+    "first_kiss_turn": null,
+    "sexual_relationship_started_turn": null
+  },
+  "relationship_summary": ""
+}
+```
 
 원칙:
 
-- `romantic_interest`는 비성적 단계
-- 연애 수락은 호감도만으로 자동 결정하지 않음
-- 현재 NPC 대사와 장면 evidence 필요
-- 성적 관계는 현재 행동별 동의와 완료 evidence 필요
-- 과거 경험은 미래 자동 동의가 아님
+- 키스·성적 사건이 관계 축을 자동 승격하지 않음
+- 과거 경험은 미래 동의가 아님
+- 호감·신뢰·연애·성적 이력·현재 경계는 독립
 - 상사·부하 관계는 동의를 대체하지 않음
 
 ## 7. CSA 시스템
@@ -220,8 +255,9 @@ Story가 자연스럽게 진행시키고 Extract는 명시적 변화가 있을 �
 
 `mandatory`
 
-- actor/target/trigger 충족 시 직접 행동 실행
-- 개인 감정은 표현 가능하나 행동 생략 불가
+- actor/target/trigger 충족 시 exact `required_action`만 직접 행동 실행
+- 개인 감정은 표현 가능하나 required action은 생략 불가
+- direct scope 밖 추가 행동은 자동 허가하지 않음
 
 `normative`
 
@@ -327,34 +363,13 @@ Story가 자연스럽게 진행시키고 Extract는 명시적 변화가 있을 �
 
 ## 12. Story 출력 계약
 
-기본 형식:
+Story의 marker, block, fallback, 원문 보존과 TTS 분리는
+`NARRATIVE_OUTPUT_CONTRACT.md`를 최종 권위로 사용한다.
 
-```text
-[1. 서사 및 행동]
-...
-
-[2. 플레이어 상황]
-...
-
-[3. 선택지]
-1. ...
-2. ...
-3. ...
-4. ...
-```
-
-NPC 대사:
-
-```text
-화자명 (연기지시): “대사”
-```
-
-원칙:
-
-- NPC 발언과 행동 충분히 포함
-- 선택지에 내부 지시문 노출 금지
-- Story가 확정하지 않은 상태를 Extract가 만들지 않음
-- 배경 단역을 장면 목적 없이 늘리지 않음
+- NPC 발언과 행동을 충분히 포함한다.
+- 선택지에 내부 지시문을 노출하지 않는다.
+- Story가 확정하지 않은 상태를 Extract가 만들지 않는다.
+- 배경 단역을 장면 목적 없이 늘리지 않는다.
 
 ## 13. Extract 계약
 
@@ -400,7 +415,7 @@ Extract는 delta만 반환한다.
 - 플레이어 복장
 - 사정 게이지
 - 메인 NPC 정보
-- 호감도·상식수용도·성적흥분도
+- 호감도·상식 반응·성적흥분도
 - Mind Monitor
 - 이미지
 - 활성 CSA
