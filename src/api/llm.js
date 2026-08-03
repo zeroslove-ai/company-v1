@@ -67,12 +67,14 @@ function parseExtractContent(content) {
 }
 
 export async function runExtract({ env, fetchImpl, messages }) {
-  const response = await postCompletion(env, fetchImpl, { model: requireEnv(env, 'EXTRACT_MODEL'), messages, stream: false });
+  const response = await postCompletion(env, fetchImpl, { model: requireEnv(env, 'EXTRACT_MODEL'), messages, stream: false, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 2048 });
   let payload;
   try {
     payload = await response.json();
   } catch {
     throw new HttpError(502, 'extract_invalid_json', 'Extract upstream response is not JSON', true);
   }
-  return parseExtractContent(payload.choices?.[0]?.message?.content);
+  const choice = payload.choices?.[0];
+  if (choice?.finish_reason === 'length') throw new HttpError(502, 'extract_truncated', 'Extract response exceeded its output limit', true);
+  return parseExtractContent(choice?.message?.content);
 }

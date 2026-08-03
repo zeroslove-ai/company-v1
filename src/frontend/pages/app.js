@@ -16,9 +16,10 @@ function messageFor(error) {
   return '예상하지 못한 오류가 발생했습니다.';
 }
 
-export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitted, createActionId = newActionId, consumeStory = consumeStorySse }) {
+export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitStart, onCommitted, createActionId = newActionId, consumeStory = consumeStorySse }) {
   async function runCommitForPending(pending) {
     pending.step = 'commit'; savePending(storage, pending);
+    onCommitStart?.();
     const committed = await api.commit({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn });
     if (committed.commit?.success !== true) throw new ApiError({ endpoint: '/api/commit', status: 502, code: 'invalid_commit', message: '턴 저장 결과가 올바르지 않습니다.' });
     clearPending(storage, pending.game_id); await refreshContext(); onCommitted?.(committed); return committed;
@@ -83,8 +84,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     history: get('story-history'), current: get('current-story'), currentAction: get('current-action'), choices: get('choice-list'), input: get('player-action'), submit: get('submit-action'),
     recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), mind: get('mind-monitor'), warnings: get('warning-list')
   };
-  const gameId = resolveGameId(locationSearch); let context = null, latestResult = {}, busy = false, recoveryPending = false;
+  const gameId = resolveGameId(locationSearch); let context = null, latestResult = {}, busy = false, recoveryPending = false, progressTimer = null;
   const showStatus = value => text(elements.status, value);
+  const clearProgressTimer = () => { if (progressTimer) { clearInterval(progressTimer); progressTimer = null; } };
+  const showProgress = value => { clearProgressTimer(); let elapsed = 0; text(elements.stream, value); progressTimer = setInterval(() => { elapsed += 1; text(elements.stream, `${value} ${elapsed}초`); }, 1000); };
   const showError = error => { text(elements.error, messageFor(error)); if (elements.error) elements.error.hidden = false; };
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
   const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; renderNarrative(elements.current, null); };
@@ -118,8 +121,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   const coordinator = createTurnCoordinator({
     api, storage, gameId, getContext: () => context, refreshContext,
-    onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); },
-    onExtract: extracted => { latestResult = { choices: extracted.extract?.choices ?? [], mind_monitor: extracted.extract?.mind_monitor ?? {}, warnings: extracted.warnings ?? [] }; render(); },
+    onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (Array.isArray(parsed.choices) && parsed.choices.length > 0) { latestResult = { ...latestResult, choices: parsed.choices }; renderChoices(elements.choices, parsed.choices, { busy: true, onChoose: startNewAction }); } },
+    onExtract: extracted => { latestResult = { choices: extracted.extract?.choices ?? [], mind_monitor: extracted.extract?.mind_monitor ?? {}, warnings: extracted.warnings ?? [] }; showProgress('상태를 정리하는 중…'); render(); },
+    onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
     onCommitted: () => { clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.'); }
   });
   async function checkRecovery() {
@@ -141,7 +145,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     return busyGuard.run(async () => {
       try { await operation(); return true; }
       catch (error) { showError(error); await checkRecovery(); return false; }
-      finally { text(elements.stream, ''); }
+      finally { clearProgressTimer(); text(elements.stream, ''); }
     });
   }
   async function startNewAction(playerAction) {

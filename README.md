@@ -11,6 +11,7 @@
 - Phase 5 frontend Worker: deployed at `https://gamebuilder-company-v1.zeroslove.workers.dev`.
 - Public game URL: `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=11111111-1111-4111-8111-111111111111`.
 - Public asset and read-only Context smoke tests passed. The first public browser Story turn is reserved for user validation.
+- First-turn choices and Extract latency hotfix: deployed to both Workers; the next live gameplay validation is user-run Turn 2.
 
 The browser frontend uses the API Worker for Context, Story SSE, Extract, Commit, and action recovery. It does not contain Supabase or LLM credentials and does not call Supabase directly.
 

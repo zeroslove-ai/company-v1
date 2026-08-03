@@ -72,6 +72,15 @@ test('guarded merge deduplicates ledger, replaces snapshots, permits graded outc
   assert.deepEqual(result.nextSave.turn_state, { committed_turn: 7, processing_status: 'ready', turn_id: 'turn-8', action_id: 'action-8', expected_turn: 9 });
 });
 
+test('guarded merge persists top-level Extract choices as the authoritative snapshot', () => {
+  const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
+  const result = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['one', 'two'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
+  assert.deepEqual(result.nextSave.last_choices, ['one', 'two']);
+  assert.ok(result.warnings.includes('choices_not_exactly_four'));
+  const empty = applyGuardedStateDelta(save, { state_delta: { last_choices: ['stale'] }, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
+  assert.deepEqual(empty.nextSave.last_choices, []);
+});
+
 test('guarded merge rejects sexual completion without evidence and exposes recovery states', () => {
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
   assert.throws(() => applyGuardedStateDelta(save, {

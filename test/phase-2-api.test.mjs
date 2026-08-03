@@ -22,7 +22,7 @@ const env = {
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
 const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
-function createMockFetch({ incompleteStory = false, conflict = false, missingContext = false, storySseSequence, extractContentSequence, extractEnvelope } = {}) {
+function createMockFetch({ incompleteStory = false, conflict = false, missingContext = false, storySseSequence, extractContentSequence, extractEnvelope, extractFinishReason } = {}) {
   const calls = [];
   const actions = new Map();
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
@@ -40,7 +40,7 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
     if (textUrl.startsWith('https://llm.test')) {
       const body = JSON.parse(init.body);
       if (body.stream) return new Response(storySses[Math.min(storyCall++, storySses.length - 1)], { headers: { 'content-type': 'text/event-stream' } });
-      return json({ choices: [{ message: { content: extractContents[Math.min(extractCall++, extractContents.length - 1)] } }] });
+      return json({ choices: [{ finish_reason: extractFinishReason, message: { content: extractContents[Math.min(extractCall++, extractContents.length - 1)] } }] });
     }
     const parsed = new URL(textUrl);
     if (parsed.pathname === '/rest/v1/game_actions' && (init.method ?? 'GET') === 'GET') {
@@ -225,4 +225,20 @@ test('Phase 2 exposes invalid Extract envelopes as contract errors', async () =>
   const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(response.status, 422);
   assert.equal((await response.json()).error.code, 'invalid_extract');
+});
+
+test('Extract uses Story choices, disables thinking, and rejects truncated JSON', async () => {
+  const storySse = 'data: {"choices":[{"delta":{"content":"[CHOICES]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\ndata: [DONE]\n\n';
+  const mock = createMockFetch({ storySseSequence: [storySse], extractEnvelope: { ...readJson('fixtures/phase-2/extract-valid.json'), choices: ['wrong'] } });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  await (await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'test' }), env)).text();
+  const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(mock.actions.get(actionId).extract_delta.choices, mock.actions.get(actionId).parsed_blocks.choices);
+  const extractCall = mock.calls.map(call => ({ ...call, parsed: call.body && JSON.parse(call.body) })).find(call => call.url.startsWith('https://llm.test') && !call.parsed.stream);
+  assert.deepEqual(extractCall.parsed.thinking, { type: 'disabled' }); assert.deepEqual(extractCall.parsed.response_format, { type: 'json_object' }); assert.equal(extractCall.parsed.max_tokens, 2048);
+  const truncated = createMockFetch({ extractFinishReason: 'length' }); const truncatedWorker = createApiWorker({ fetchImpl: truncated.fetchImpl });
+  await (await truncatedWorker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'test' }), env)).text();
+  const failed = await truncatedWorker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.equal((await failed.json()).error.code, 'extract_truncated');
 });

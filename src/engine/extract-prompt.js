@@ -7,7 +7,10 @@ export function buildExtractPrompt({ context, storyText, parsedStory, playerActi
         'Use state_delta for changed values only; never return a full save.',
         'Do not invent actions or outcomes absent from Story.',
         'Use one graded outcome: success, partial, refused, interrupted, or blocked.',
-        'Keep choices from Story, omit uncertain values, and do not auto-link relationship, emotion, or CSA values.',
+        'All human-readable strings must be Korean. IDs remain unchanged.',
+        'Choices are authoritative from parsed Story; return an empty choices array unless no Story choices exist.',
+        'Keep state_delta minimal. Keep turn_summary concise. Keep mind_monitor concise.',
+        'Do not repeat Story text. Do not explain the JSON. Do not auto-link relationship, emotion, or CSA values.',
         'The object must include state_delta (object), outcome, evidence (object), turn_summary (string), mind_monitor (object), choices (array), and dialogue_lines (array).'
       ].join(' ')
     },
