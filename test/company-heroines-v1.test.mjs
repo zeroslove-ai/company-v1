@@ -123,9 +123,10 @@ test('no active_suggestions, personal suggestion, or per-NPC active-CSA list exi
   }
 });
 
-test('initial_csa_attitudes is empty for every heroine because no CSA preset items exist yet', () => {
-  const presets = readJson('content/csa_presets.json');
-  assert.deepEqual(presets.items, []);
+test('initial_csa_attitudes is empty for every heroine regardless of the CSA preset catalog', () => {
+  // The CSA-app port (company/csa-app-port-v1) populated content/csa_presets.json with the
+  // real preset catalog; per-heroine initial_csa_attitudes stays {} independently of that —
+  // attitude tracking is runtime state, never seeded from the catalog itself.
   const chars = characters();
   for (const id of HEROINE_IDS) assert.deepEqual(chars[id].initial_csa_attitudes, {}, id);
 });

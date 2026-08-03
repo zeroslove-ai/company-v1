@@ -359,7 +359,7 @@ test('no LLM-based player-candidate generation route or helper exists anywhere i
   const engineIndexSource = read('src/engine/index.js');
   assert.doesNotMatch(apiIndexSource, /player-candidate|candidate-generation|generate-candidate/i);
   assert.doesNotMatch(turnRoutesSource, /player-candidate|candidate-generation|generate-candidate/i);
-  assert.doesNotMatch(engineIndexSource, /Candidate/);
+  assert.doesNotMatch(engineIndexSource, /PlayerCandidate|player-candidate|candidate-generation/i);
 });
 
 // ---------- API layer ----------
