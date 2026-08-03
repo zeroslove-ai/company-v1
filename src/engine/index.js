@@ -15,5 +15,12 @@ export {
   reducePlayerSexualState,
   deriveTurnChanges,
   migrateCompanySave,
-  hydrateGameplayState
+  hydrateGameplayState,
+  validateCsaRuntimeStatePatch,
+  buildDegradedExtractEnvelope,
+  buildDegradedTurnSummary,
+  buildStableNpcIdSet,
+  CSA_LIFECYCLE,
+  CSA_APPLICABILITY,
+  CSA_EXECUTION_STATE
 } from './gameplay-state.js';
