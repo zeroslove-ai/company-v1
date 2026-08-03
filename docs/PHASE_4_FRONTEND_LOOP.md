@@ -22,7 +22,9 @@ The page resolves `?game=<uuid>` before falling back to the fixed development ga
 
 Before Story starts, the client persists only action metadata under `company-v1:pending-action:<game-id>`; it never stores secrets, full saves, Extract payloads, or Story text. Story delta text is parsed and rendered incrementally while preserving malformed text as fallback blocks. After Story completes, Extract and guarded Commit run with the same action ID. Commit success clears the pending action and reloads Context.
 
-On reload, `/api/action-status` controls recovery. `retry_story`, `resume_extract`, `retry_extract`, `resume_commit`, `retry_commit`, `complete`, and `wait_story` are rendered as explicit recovery state; unknown states retain the pending action for inspection.
+On reload, `/api/action-status` controls recovery. `retry_story` reuses the original action ID, expected turn, and player action for Story → Extract → Commit. `resume_extract` and `retry_extract` run Extract → Commit; `resume_commit` and `retry_commit` run Commit only. `complete` clears pending state and reloads Context, while `wait_story` and unknown states only check action status again. The top-level busy guard admits one recovery operation without turning the retry itself into a no-op.
+
+Committed history preserves player action, narrative, and turn summary in that order. It accepts both persisted `parsed_blocks.blocks` objects and direct `parsed_blocks` arrays, then falls back to parsing `story_text`. The state panel reads canonical `scene_state.location_id`, `world_state.time_block`, `world_state.work_hook`, `focal_character_id`, and `scene_state.scene_goal` fields.
 
 ## Validation and next step
 
