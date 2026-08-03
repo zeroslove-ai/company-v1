@@ -47,7 +47,7 @@ Extract normalizes to:
 }
 ```
 
-Only allowed state-delta paths merge. Unknown paths, stale `updated_turn` patches, invalid snapshots, and absent NPC patches become warnings. Sexual-completion changes without evidence are blocking errors. The merge clones the current save, applies allowed deltas, and then makes top-level Extract choices the authoritative `nextSave.last_choices` snapshot. A non-four count warns but still commits; an empty array intentionally clears stale choices.
+Only allowed state-delta paths merge. Unknown paths, stale `updated_turn` patches, invalid snapshots, and absent NPC patches become warnings. Sexual-completion changes without evidence are blocking errors. The merge clones the current save, applies allowed deltas, and sets `nextSave.last_choices` from parsed Story choices when they contain exactly four valid choices; otherwise it uses top-level Extract choices. Extract must not overwrite valid Story choices. A non-four Story count warns but still commits; an empty Extract array intentionally clears stale choices only when Story has no valid four-choice result.
 
 Commit receives `action_id` and `expected_turn`, writes the authoritative next save, and records the turn's Story, parsed blocks, Extract delta, summary, Mind monitor, and choices. The UI must not submit a full save.
 
@@ -70,7 +70,7 @@ UI renderers must not read raw save ad hoc because persistence layout, turn hist
 | Field | Authoritative source | Missing meaning |
 | --- | --- | --- |
 | `story_text` | stored action, then `game_turns.story_text` | no completed Story |
-| `choices` | parsed Story when valid; otherwise Extract; committed save snapshot for reload | no available next choices |
+| `choices` | parsed Story when it has exactly four valid choices; otherwise Extract; committed save snapshot for reload | no available next choices |
 | `player_status` | parsed Story `PLAYER_STATUS` | no display status |
 | `player_inner_thought` | not yet in Company contract | empty display only, no inferred thought |
 | `dialogue_lines` | Extract envelope | no structured dialogue metadata |
