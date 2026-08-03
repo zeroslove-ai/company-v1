@@ -16,6 +16,21 @@ function requireEnv(env, name) {
   return value;
 }
 
+function upstreamError(payload, response) {
+  const body = payload !== null && typeof payload === 'object' ? payload : null;
+  const code = body?.code ?? body?.error?.code;
+  const message = body?.message ?? body?.error?.message ?? String(payload ?? 'Supabase request failed');
+  const mapped = {
+    '40001': [409, 'turn_conflict', false],
+    P0002: [404, 'not_found', false],
+    '22023': [400, 'invalid_request', false],
+    '23505': [409, 'action_conflict', false]
+  }[code];
+  if (mapped) return new HttpError(mapped[0], mapped[1], message, mapped[2]);
+  if (response.status >= 400 && response.status < 500) return new HttpError(response.status, 'supabase_error', message, false);
+  return new HttpError(502, 'supabase_error', message, true);
+}
+
 export function createSupabaseClient(env, fetchImpl) {
   const baseUrl = requireEnv(env, 'SUPABASE_URL').replace(/\/$/, '');
   const secret = requireEnv(env, 'SUPABASE_SERVICE_ROLE_KEY');
@@ -25,8 +40,7 @@ export function createSupabaseClient(env, fetchImpl) {
     const response = await fetchImpl(url, { ...init, headers: { ...headers, ...(init?.headers ?? {}) } });
     const payload = await responsePayload(response);
     if (!response.ok) {
-      const message = typeof payload === 'object' && payload?.message ? payload.message : String(payload ?? 'Supabase request failed');
-      throw new HttpError(response.status === 409 ? 409 : 502, response.status === 409 ? 'turn_conflict' : 'supabase_error', message, response.status >= 500);
+      throw upstreamError(payload, response);
     }
     return payload;
   }
@@ -47,6 +61,16 @@ export function createSupabaseClient(env, fetchImpl) {
         headers: { prefer: 'return=minimal' },
         body: JSON.stringify({ processing_status: status, error_code: errorCode })
       });
+    },
+    async claimActionStatus(gameId, actionId, expectedStatus, nextStatus, errorCode, requireEmptyErrorCode = false) {
+      const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}`, processing_status: `eq.${expectedStatus}` });
+      if (requireEmptyErrorCode) query.set('error_code', 'is.null');
+      const payload = await request(`${baseUrl}/rest/v1/game_actions?${query}`, {
+        method: 'PATCH',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify({ processing_status: nextStatus, error_code: errorCode })
+      });
+      return Array.isArray(payload) ? payload[0] ?? null : payload;
     }
   };
 }

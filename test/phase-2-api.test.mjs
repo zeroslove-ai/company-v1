@@ -22,21 +22,25 @@ const env = {
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
 const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
-function createMockFetch({ incompleteStory = false, conflict = false } = {}) {
+function createMockFetch({ incompleteStory = false, conflict = false, missingContext = false, storySseSequence, extractContentSequence, extractEnvelope } = {}) {
   const calls = [];
   const actions = new Map();
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   const context = { game: { id: gameId, edition_id: 'company-v1' }, save: { data: save }, recent_turns: [] };
-  const storySse = incompleteStory ? 'data: {"choices":[{"delta":{"content":"[SCENE] broken"}}]}\n\n' : read('fixtures/phase-2/openai-story-sse.txt');
-  const extract = readJson('fixtures/phase-2/extract-valid.json');
+  const incompleteSse = 'data: {"choices":[{"delta":{"content":"[SCENE] broken"}}]}\n\n';
+  const storySses = storySseSequence ?? [incompleteStory ? incompleteSse : read('fixtures/phase-2/openai-story-sse.txt')];
+  const extract = extractEnvelope ?? readJson('fixtures/phase-2/extract-valid.json');
+  const extractContents = extractContentSequence ?? [JSON.stringify(extract)];
+  let storyCall = 0;
+  let extractCall = 0;
 
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
     calls.push({ url: textUrl, method: init.method ?? 'GET', body: init.body });
     if (textUrl.startsWith('https://llm.test')) {
       const body = JSON.parse(init.body);
-      if (body.stream) return new Response(storySse, { headers: { 'content-type': 'text/event-stream' } });
-      return json({ choices: [{ message: { content: JSON.stringify(extract) } }] });
+      if (body.stream) return new Response(storySses[Math.min(storyCall++, storySses.length - 1)], { headers: { 'content-type': 'text/event-stream' } });
+      return json({ choices: [{ message: { content: extractContents[Math.min(extractCall++, extractContents.length - 1)] } }] });
     }
     const parsed = new URL(textUrl);
     if (parsed.pathname === '/rest/v1/game_actions' && (init.method ?? 'GET') === 'GET') {
@@ -44,12 +48,20 @@ function createMockFetch({ incompleteStory = false, conflict = false } = {}) {
     }
     if (parsed.pathname === '/rest/v1/game_actions' && init.method === 'PATCH') {
       const id = parsed.searchParams.get('action_id').replace('eq.', '');
-      Object.assign(actions.get(id), JSON.parse(init.body));
+      const action = actions.get(id);
+      const expectedStatus = parsed.searchParams.get('processing_status')?.replace('eq.', '');
+      const requiresEmptyErrorCode = parsed.searchParams.get('error_code') === 'is.null';
+      if (!action || (expectedStatus && action.processing_status !== expectedStatus) || (requiresEmptyErrorCode && action.error_code != null)) return json([]);
+      Object.assign(action, JSON.parse(init.body));
+      if (init.headers?.prefer === 'return=representation') return json([action]);
       return new Response(null, { status: 204 });
     }
     const rpc = parsed.pathname.split('/').pop();
     const args = JSON.parse(init.body);
-    if (rpc === 'get_company_context') return json(context);
+    if (rpc === 'get_company_context') {
+      if (missingContext) return json({ code: 'P0002', message: 'game not found' }, 500);
+      return json(context);
+    }
     if (rpc === 'reserve_turn_action') {
       let action = actions.get(args.p_action_id);
       if (!action) {
@@ -70,7 +82,7 @@ function createMockFetch({ incompleteStory = false, conflict = false } = {}) {
       return json({ replayed: false });
     }
     if (rpc === 'commit_company_turn') {
-      if (conflict) return json({ message: 'expected turn conflict' }, 409);
+      if (conflict) return json({ code: '40001', message: 'expected turn conflict', details: null, hint: null }, 500);
       const action = actions.get(args.p_action_id);
       action.processing_status = 'committed';
       return json({ success: true, replayed: false, turn_number: args.p_expected_turn, turn_id: action.turn_id, save_revision: 1 });
@@ -130,6 +142,9 @@ test('Phase 2 incomplete Story is not recorded and Extract plus Commit use store
   const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8, next_save: { ignored: true } }), env);
   assert.equal(commit.status, 200);
   assert.equal(mock.calls.filter(call => call.url.includes('/commit_company_turn')).length, 1);
+  const commitReplay = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
+  assert.equal(commitReplay.status, 200);
+  assert.equal(mock.calls.filter(call => call.url.includes('/commit_company_turn')).length, 2);
   const status = await worker.fetch(request('/api/action-status', { game_id: gameId, action_id: actionId }), env);
   assert.equal((await status.json()).data.recoverable_step, 'complete');
 });
@@ -142,5 +157,62 @@ test('Phase 2 maps commit conflicts without repair calls', async () => {
   await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(commit.status, 409);
+  assert.deepEqual((await commit.json()).error, { code: 'turn_conflict', message: 'expected turn conflict', retryable: false });
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
+});
+
+test('Phase 2 maps PostgREST not-found SQLSTATE responses', async () => {
+  const mock = createMockFetch({ missingContext: true });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const response = await worker.fetch(request('/api/context', { game_id: gameId }), env);
+  assert.equal(response.status, 404);
+  assert.deepEqual((await response.json()).error, { code: 'not_found', message: 'game not found', retryable: false });
+});
+
+test('Phase 2 retries one failed Story explicitly and then replays the persisted result', async () => {
+  const mock = createMockFetch({ storySseSequence: [
+    'data: {"choices":[{"delta":{"content":"[SCENE] broken"}}]}\n\n',
+    read('fixtures/phase-2/openai-story-sse.txt')
+  ] });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '재시도한다.' };
+  assert.match(await (await worker.fetch(request('/api/story', body), env)).text(), /story_incomplete/);
+  const failedStatus = await worker.fetch(request('/api/action-status', { game_id: gameId, action_id: actionId }), env);
+  assert.equal((await failedStatus.json()).data.recoverable_step, 'retry_story');
+  assert.match(await (await worker.fetch(request('/api/story', body), env)).text(), /event: complete/);
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
+  assert.equal(mock.actions.get(actionId).processing_status, 'extracting');
+  await (await worker.fetch(request('/api/story', body), env)).text();
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
+});
+
+test('Phase 2 retries one failed Extract explicitly and preserves Extract warnings on replay and Commit', async () => {
+  const extract = { ...readJson('fixtures/phase-2/extract-valid.json'), unexpected: true, warnings: ['model_warning', '', 'model_warning'] };
+  const mock = createMockFetch({ extractEnvelope: extract, extractContentSequence: ['not JSON', JSON.stringify(extract)] });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const storyBody = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '재시도한다.' };
+  await (await worker.fetch(request('/api/story', storyBody), env)).text();
+  const failedExtract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.equal(failedExtract.status, 502);
+  const failedStatus = await worker.fetch(request('/api/action-status', { game_id: gameId, action_id: actionId }), env);
+  assert.equal((await failedStatus.json()).data.recoverable_step, 'retry_extract');
+  const recovered = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.deepEqual((await recovered.json()).data.warnings, ['model_warning', 'unknown_extract_field:unexpected']);
+  const replay = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.deepEqual((await replay.json()).data.warnings, ['model_warning', 'unknown_extract_field:unexpected']);
+  const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
+  assert.deepEqual((await commit.json()).data.warnings, ['model_warning', 'unknown_extract_field:unexpected']);
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 3);
+});
+
+test('Phase 2 does not make duplicate LLM calls while Story or Extract is already in progress', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming' });
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'wait' }), env);
+  assert.equal(story.status, 409);
+  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', story_text: '[SCENE]\nSaved', processing_status: 'extracting', error_code: 'extract_in_progress' });
+  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.equal(extract.status, 409);
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 0);
 });

@@ -13,10 +13,9 @@ export function parseNarrative(rawText) {
   const warnings = [];
   let playerStatus = '';
   let choices = [];
-  const choicesMarkerPresent = raw.includes('[CHOICES]');
 
   if (matches.length === 0) {
-    return { raw, blocks: raw.trim() ? [{ type: 'unparsed', text: raw.trim() }] : [], player_status: '', choices: [], warnings: ['no_recognized_markers'] };
+    return { raw, blocks: raw.trim() ? [{ type: 'unparsed', text: raw.trim() }] : [], player_status: '', choices: [], warnings: ['no_recognized_markers', 'choices_not_exactly_four'] };
   }
 
   const prefix = raw.slice(0, matches[0].index).trim();
@@ -65,7 +64,7 @@ export function parseNarrative(rawText) {
     blocks.push({ type: 'dialogue', speaker, direction, text });
   }
 
-  if (choicesMarkerPresent && choices.length !== 4 && !warnings.includes('choices_not_exactly_four')) {
+  if (choices.length !== 4 && !warnings.includes('choices_not_exactly_four')) {
     warnings.push('choices_not_exactly_four');
   }
   if (/\[DIALOGUE\b(?![^\]]*\])/.test(raw)) warnings.push('incomplete_dialogue_marker');

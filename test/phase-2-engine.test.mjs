@@ -79,3 +79,43 @@ test('guarded merge rejects sexual completion without evidence and exposes recov
   assert.equal(deriveRecoverableStep({ processing_status: 'extracting', has_story: true }), 'resume_extract');
   assert.equal(deriveRecoverableStep({ processing_status: 'committed' }), 'complete');
 });
+
+test('Phase 2 parser warns whenever final choices are not exactly four', () => {
+  for (const raw of ['[SCENE]\nNo choices.', '[CHOICES]\n1. only one', 'unparsed Story']) {
+    assert.ok(parseNarrative(raw).warnings.includes('choices_not_exactly_four'));
+  }
+  assert.equal(parseNarrative('[CHOICES]\n1. a\n2. b\n3. c\n4. d').warnings.includes('choices_not_exactly_four'), false);
+});
+
+test('extract envelope preserves normalized warnings when replayed', () => {
+  const first = normalizeExtractEnvelope({ ...readJson('fixtures/phase-2/extract-valid.json'), unknown: true, warnings: ['first', '', 'first'] });
+  const replay = normalizeExtractEnvelope(first);
+  assert.deepEqual(first.warnings, ['first', 'unknown_extract_field:unknown']);
+  assert.deepEqual(replay.warnings, first.warnings);
+  assert.equal(replay.warnings.includes('unknown_extract_field:warnings'), false);
+});
+
+test('guarded merge requires evidence for new relationship sexual milestones', () => {
+  const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
+  const state_delta = { npc_relationship_state: { 'npc-hayeon': { milestones: { sexual_relationship_started_turn: 8 } } } };
+  const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
+  const envelope = evidence => ({ state_delta, outcome: 'success', evidence, choices: [], mind_monitor: {}, dialogue_lines: [] });
+  assert.throws(() => applyGuardedStateDelta(save, envelope({}), options), GameCoreError);
+  assert.doesNotThrow(() => applyGuardedStateDelta(save, envelope({ sexual_resolution: true }), options));
+  save.npc_relationship_state['npc-hayeon'].milestones.sexual_relationship_started_turn = 8;
+  assert.doesNotThrow(() => applyGuardedStateDelta(save, envelope({}), options));
+  const changed = { npc_relationship_state: { 'npc-hayeon': { milestones: { sexual_relationship_started_turn: 9 } } } };
+  assert.throws(() => applyGuardedStateDelta(save, { ...envelope({}), state_delta: changed }, options), GameCoreError);
+});
+
+test('recovery states require the persisted result needed by the next step', () => {
+  assert.equal(deriveRecoverableStep({ processing_status: 'story_streaming', has_story: false }), 'wait_story');
+  assert.equal(deriveRecoverableStep({ processing_status: 'extracting', has_story: true }), 'resume_extract');
+  assert.equal(deriveRecoverableStep({ processing_status: 'extracting', has_story: false }), 'retry_story');
+  assert.equal(deriveRecoverableStep({ processing_status: 'committing', has_extract: true }), 'resume_commit');
+  assert.equal(deriveRecoverableStep({ processing_status: 'committing', has_extract: false }), 'retry_extract');
+  assert.equal(deriveRecoverableStep({ processing_status: 'story_failed' }), 'retry_story');
+  assert.equal(deriveRecoverableStep({ processing_status: 'extract_failed' }), 'retry_extract');
+  assert.equal(deriveRecoverableStep({ processing_status: 'commit_failed' }), 'retry_commit');
+  assert.equal(deriveRecoverableStep({ processing_status: 'committed' }), 'complete');
+});

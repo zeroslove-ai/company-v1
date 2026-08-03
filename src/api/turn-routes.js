@@ -69,6 +69,13 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn, p_player_action: playerAction
       });
       const action = actionOrNotFound(await db.getAction(gameId, actionId));
+      let retryingStory = false;
+      if (!action.story_text && action.processing_status === 'story_failed') {
+        const claimed = await db.claimActionStatus(gameId, actionId, 'story_failed', 'story_streaming', null);
+        if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
+        Object.assign(action, claimed);
+        retryingStory = true;
+      }
       const meta = { action_id: reservation.action_id ?? actionId, turn_id: reservation.turn_id ?? action.turn_id, expected_turn: reservation.expected_turn ?? expectedTurn, replayed: Boolean(action.story_text) };
 
       if (action.story_text) {
@@ -78,12 +85,13 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], replayed: true });
         } });
       }
-      if (reservation.replayed || action.processing_status !== 'story_streaming') {
+      if ((reservation.replayed && !retryingStory) || action.processing_status !== 'story_streaming') {
         throw new HttpError(409, 'action_in_progress', 'Action already has recoverable work in progress', true);
       }
 
       return storySse({ meta, run: async emit => {
         let raw = '';
+        let storyPersisted = false;
         try {
           const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
           const messages = buildStoryPrompt({ edition, context, playerAction, expectedTurn });
@@ -94,9 +102,12 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           }
           const parsed = parseNarrative(raw);
           await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: parsed });
+          storyPersisted = true;
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false });
         } catch (error) {
-          await db.updateActionStatus(gameId, actionId, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
+          if (!storyPersisted) {
+            await db.updateActionStatus(gameId, actionId, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
+          }
           throw error;
         }
       } });
@@ -112,7 +123,16 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const extract = normalizeExtractEnvelope(action.extract_delta);
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true });
       }
+      if (action.processing_status === 'extract_failed') {
+        const claimedRetry = await db.claimActionStatus(gameId, actionId, 'extract_failed', 'extracting', null);
+        if (!claimedRetry) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
+        Object.assign(action, claimedRetry);
+      }
       if (action.processing_status !== 'extracting') throw new HttpError(409, 'action_in_progress', 'Action is not ready for Extract', true);
+      if (action.error_code === 'extract_in_progress') throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
+      const claimedExtract = await db.claimActionStatus(gameId, actionId, 'extracting', 'extracting', 'extract_in_progress', true);
+      if (!claimedExtract) throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
+      Object.assign(action, claimedExtract);
       try {
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         const parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text);
@@ -120,6 +140,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const raw = await runExtract({ env, fetchImpl, messages });
         const extract = normalizeExtractEnvelope(raw);
         await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
+        await db.updateActionStatus(gameId, actionId, 'committing').catch(() => undefined);
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false });
       } catch (error) {
         await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);

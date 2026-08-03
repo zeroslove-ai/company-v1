@@ -20,7 +20,7 @@ The API preserves `GET /health` and `GET /api/version` and adds these JSON/SSE e
 - `POST /api/commit`
 - `POST /api/action-status`
 
-JSON successes use `{ "ok": true, "data": {} }`. JSON failures use `{ "ok": false, "error": { "code", "message", "retryable" } }`. Story output is streamed as SSE, including a terminal `done` event or an SSE `error` event.
+JSON successes use `{ "ok": true, "data": {} }`. JSON failures use `{ "ok": false, "error": { "code", "message", "retryable" } }`. Story output is streamed as SSE, including a terminal `complete` event or an SSE `error` event. The upstream OpenAI-compatible `[DONE]` sentinel is distinct from the Worker `complete` event.
 
 ## Required sequence
 

@@ -44,13 +44,17 @@ function allowedNpcIds(save) {
   return ids;
 }
 
-function sexualCompletionWithoutEvidence(delta, evidence) {
+function sexualCompletionWithoutEvidence(currentSave, delta, evidence) {
   const state = delta.player_sexual_state;
-  if (!plainObject(state)) return false;
-  const marksCompletion = Object.entries(state).some(([key, value]) =>
+  const playerMarksCompletion = plainObject(state) && Object.entries(state).some(([key, value]) =>
     /sexual.*(complete|relationship)|(?:complete|relationship).*sexual/i.test(key) && Boolean(value)
   );
-  return marksCompletion && evidence?.sexual_resolution !== true;
+  const milestoneMarksCompletion = Object.entries(delta.npc_relationship_state ?? {}).some(([npcId, patch]) => {
+    const nextTurn = patch?.milestones?.sexual_relationship_started_turn;
+    const currentTurn = currentSave.npc_relationship_state?.[npcId]?.milestones?.sexual_relationship_started_turn;
+    return nextTurn !== null && nextTurn !== undefined && nextTurn !== currentTurn;
+  });
+  return (playerMarksCompletion || milestoneMarksCompletion) && evidence?.sexual_resolution !== true;
 }
 
 function mergeEventLedger(current, patch) {
@@ -67,7 +71,7 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     throw new GameCoreError('INVALID_SAVE', 'Current save edition or schema is invalid');
   }
   const envelope = normalizeExtractEnvelope(extractEnvelope);
-  if (sexualCompletionWithoutEvidence(envelope.state_delta, envelope.evidence)) {
+  if (sexualCompletionWithoutEvidence(currentSave, envelope.state_delta, envelope.evidence)) {
     throw new GameCoreError('UNAUTHORIZED_SEXUAL_COMPLETION', 'Sexual completion requires evidence');
   }
 
