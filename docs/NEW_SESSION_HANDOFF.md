@@ -4,10 +4,12 @@
 
 - Repository: `zeroslove-ai/company-v1`
 - Stable branch: `main`
-- Main base SHA: `609d7fad76d829a2de4b745b96f1d02b6705659b`
-- Current work branch: `phase/0.5-gameplay-contracts`
-- Current task: Phase 0.5 gameplay, recovery, and state contracts.
-- PR #1 was merged before this phase began.
+- Main base SHA: `aee7262d2b3fc7dc22f49315b411cf79fbc61a80`
+- Current work branch: `phase/1-db-migration-package`
+- Current task: Phase 1 database migration package.
+- PR #2 was merged before this phase began.
+- Phase 0.5 gameplay contracts: completed and merged through PR #2
+- Supabase project not created; Cloudflare resources not created; deployment not performed.
 
 ### Current repository structure
 
@@ -25,5 +27,6 @@
 6. `docs/SAVE_SCHEMA_MIGRATION_CONTRACT.md`
 7. `docs/NARRATIVE_OUTPUT_CONTRACT.md`
 8. `docs/NEXT_PHASE_PLAN.md`
+9. `docs/PHASE_1_DB_MIGRATION_PACKAGE.md`
 
-Phase 0.5 permits contracts, fixtures, and static tests only. Do not modify `src/**`, `content/**`, root Wrangler configuration, or `package.json`; do not write SQL; do not provision Supabase or Cloudflare; do not deploy; and do not call Story, Extract, Commit, or TTS services. Do not force-push, reset, rebase, make merge commits, or automatically merge pull requests.
+Phase 1 permits the unapplied SQL package, related documentation, and static tests only. Do not modify `src/**`, `content/**`, root Wrangler configuration, or `package.json`; do not provision Supabase or Cloudflare, apply migrations or seed data, deploy, or call Story, Extract, Commit, or TTS services. Do not force-push, reset, rebase, make merge commits, or automatically merge pull requests.
