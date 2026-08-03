@@ -1,11 +1,15 @@
 import { GameCoreError } from './errors.js';
 
-const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked']);
+const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked', 'degraded']);
 const FORBIDDEN_MIND_KEYS = new Set(['body', 'physical', 'body_reaction', 'physical_action', '신체반응', '신체·행동 반응']);
 const TURN_CHANGE_ROOTS = new Set([
   'player_sexual_state', 'npc_stats', 'npc_relationship_state', 'npc_emotion',
   'scene_state', 'world_state', 'csa_runtime_state', 'csa_aftereffect_state'
 ]);
+
+export const CSA_LIFECYCLE = new Set(['active', 'temporarily_interrupted', 'suspended', 'completed', 'deactivated']);
+export const CSA_APPLICABILITY = new Set(['applicable', 'not_applicable', 'unknown']);
+export const CSA_EXECUTION_STATE = new Set(['not_started', 'proposed', 'executed', 'refused', 'interrupted']);
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -120,6 +124,93 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {} } = {
     turn_changes: Array.isArray(value.turn_changes) ? clone(value.turn_changes) : [],
     elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
     warnings
+  };
+}
+
+/**
+ * Validates one csa_runtime_state[csa_id] patch against the three independent axes.
+ * Invalid individual fields are dropped with a warning; valid fields are kept so a
+ * single bad axis never discards the rest of an otherwise valid CSA update.
+ */
+export function validateCsaRuntimeStatePatch(csaId, patch) {
+  const warnings = [];
+  if (!object(patch)) return { patch: null, warnings: [`invalid_csa_runtime_state:${csaId}`] };
+  const clean = {};
+  if ('lifecycle' in patch) {
+    if (CSA_LIFECYCLE.has(patch.lifecycle)) clean.lifecycle = patch.lifecycle;
+    else warnings.push(`invalid_csa_lifecycle:${csaId}`);
+  }
+  if ('applicability' in patch) {
+    if (CSA_APPLICABILITY.has(patch.applicability)) clean.applicability = patch.applicability;
+    else warnings.push(`invalid_csa_applicability:${csaId}`);
+  }
+  if ('execution_state' in patch) {
+    if (CSA_EXECUTION_STATE.has(patch.execution_state)) clean.execution_state = patch.execution_state;
+    else warnings.push(`invalid_csa_execution_state:${csaId}`);
+  }
+  for (const key of Object.keys(patch)) {
+    if (!['lifecycle', 'applicability', 'execution_state'].includes(key)) clean[key] = clone(patch[key]);
+  }
+  return { patch: clean, warnings };
+}
+
+function collectDialogueLines(parsedStory) {
+  if (Array.isArray(parsedStory?.dialogue_lines) && parsedStory.dialogue_lines.length > 0) {
+    return normalDialogueLines(parsedStory.dialogue_lines);
+  }
+  const dialogueBlocks = Array.isArray(parsedStory?.blocks) ? parsedStory.blocks.filter(block => block?.type === 'dialogue') : [];
+  return normalDialogueLines(dialogueBlocks.map((block, order) => ({
+    speaker_id: identity(block.speaker_id),
+    speaker_name: stringOrEmpty(block.speaker ?? block.speaker_name),
+    direction: stringOrEmpty(block.direction),
+    text: stringOrEmpty(block.text),
+    order
+  })));
+}
+
+/** A short, deterministic Korean turn summary built without any additional LLM call. */
+export function buildDegradedTurnSummary(playerAction, sceneText) {
+  const action = stringOrEmpty(playerAction).trim();
+  const firstSentence = stringOrEmpty(sceneText).trim().split(/(?<=[.!?。])\s+|\n/)[0]?.trim() ?? '';
+  const truncate = (text, max) => (text.length > max ? `${text.slice(0, max)}…` : text);
+  const parts = [truncate(action, 60), truncate(firstSentence, 100)].filter(Boolean);
+  return parts.length > 0 ? truncate(parts.join(' — '), 160) : '턴이 진행되었습니다.';
+}
+
+/**
+ * Builds the deterministic degraded Extract envelope used when the real Extract call
+ * fails or cannot be normalized. No LLM call is made; every field the Story parser
+ * already produced is preserved verbatim so the turn can still commit.
+ */
+export function buildDegradedExtractEnvelope({ parsedStory = {}, playerAction = '', extraWarnings = [] } = {}) {
+  const story = object(parsedStory) ? parsedStory : {};
+  const sceneText = stringOrEmpty(story.scene_text) || (Array.isArray(story.blocks)
+    ? story.blocks.filter(block => block?.type === 'scene').map(block => block.text).join(' ')
+    : '');
+  const storyChoices = choices(story.choices);
+  return {
+    state_delta: {},
+    outcome: 'degraded',
+    evidence: {},
+    turn_summary: buildDegradedTurnSummary(playerAction, sceneText),
+    mind_monitor: {},
+    legacy_mind_monitor_text: '',
+    choices: storyChoices,
+    dialogue_lines: collectDialogueLines(story),
+    npcs_present: [],
+    action_target_id: null,
+    focal_character_id: null,
+    last_speaker_id: null,
+    image_character_id: null,
+    player_inner_thought: stringOrEmpty(story.player_inner_thought),
+    player_status: stringOrEmpty(story.player_status),
+    turn_changes: [],
+    elapsed_minutes: 3,
+    warnings: [...new Set([
+      'extract_degraded',
+      ...(storyChoices.length !== 4 ? ['choices_not_exactly_four'] : []),
+      ...extraWarnings
+    ])]
   };
 }
 

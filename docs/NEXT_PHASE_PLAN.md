@@ -27,6 +27,7 @@
 - First-turn choices and Extract latency hotfix: deployed to the API and frontend Workers; Context reload now restores committed choices and Mind monitor.
 - Next live gameplay validation: user-run Turn 2. No automatic Story, Extract, or Commit request is authorized for this hotfix.
 - The retired Dify project is not used and must not be modified.
+- Gameplay runtime v1 (`docs/COMPANY_GAMEPLAY_STATE_CONTRACT_V1.md` and `docs/COMPANY_NARRATIVE_CONTRACT_V1.md` wired into Story/Extract/guarded Commit) is implemented on branch `company/gameplay-runtime-v1`; see `docs/GAMEPLAY_RUNTIME_V1.md`. No live Story, Extract, or Commit call and no deployment were made for this work.
 
 ## Phase 2 implementation target
 
