@@ -7,9 +7,9 @@
 - Phase 0 independent repository bootstrap: complete and merged.
 - Phase 0.5 gameplay contracts: complete and merged through PR #2.
 - Phase 1 database migration package: complete, merged, applied, and verified.
-- Main base SHA: `4cd7bd34e3e97720550e2ebd0ee611abae6657ac`.
-- Current work branch: `phase/3-api-worker`.
-- Current phase: Phase 3 API Worker configuration, deployment, and remote read-only smoke verification.
+- Main base SHA: `9e8e6a59e373cc0a74100b98f13cc24cc0d9610c`.
+- Current work branch: `phase/4-frontend-loop`.
+- Current phase: Phase 4 minimum frontend vertical loop implementation.
 - Target Supabase project: `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), project name `company-v1`, region `ap-northeast-1`.
 - Four migrations and the fixed development seed are applied and verified.
 - Six application tables have RLS enabled.
@@ -17,6 +17,8 @@
 - Phase 2 contract tests use mock Supabase and mock LLM calls; its separately authorized live E2E is complete.
 - The Phase 3 smoke test performs no Story or Extract model call.
 - Cloudflare API Worker `game-proxy-company-v1` is deployed and verified by remote read-only smoke tests.
+- API Worker URL: `https://game-proxy-company-v1.zeroslove.workers.dev` (version `5b6471ab-d212-4f91-be11-bc9be463c129`).
+- The frontend is implemented with mock tests only. The frontend Worker has not been deployed and no remote Story, Extract, or Commit request is authorized in this PR.
 - The retired Dify project is not used and must not be modified.
 
 ### Current repository structure

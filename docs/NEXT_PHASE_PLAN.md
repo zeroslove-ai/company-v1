@@ -9,15 +9,17 @@
 - Phase 0 independent repository bootstrap: complete and merged.
 - Phase 0.5 gameplay, recovery, and state contracts: complete and merged.
 - Phase 1 company database migration package: complete, merged, applied, and verified.
-- Main base SHA: `4cd7bd34e3e97720550e2ebd0ee611abae6657ac`.
-- Current work branch: `phase/3-api-worker`.
+- Main base SHA: `9e8e6a59e373cc0a74100b98f13cc24cc0d9610c`.
+- Current work branch: `phase/4-frontend-loop`.
 - Phase 2 context → Story SSE → Extract → guarded Commit vertical loop: complete, including local live E2E verification.
-- Current work: **Phase 3 API Worker configuration, deployment, and remote read-only smoke verification**.
+- Current work: **Phase 4 minimum frontend vertical loop implementation**.
 - Target Supabase project: `fmcrspgxstsmxxsmkeee` (`https://fmcrspgxstsmxxsmkeee.supabase.co`), project name `company-v1`, region `ap-northeast-1`.
 - Four migrations and the fixed development seed are applied.
 - Phase 2 contract tests use mock Supabase and mock LLM calls; its separately authorized live E2E is complete.
 - Phase 3 smoke uses remote read-only endpoints only and performs no Story or Extract model call.
 - Cloudflare API Worker `game-proxy-company-v1` is deployed and remote smoke verification is complete.
+- API Worker URL: `https://game-proxy-company-v1.zeroslove.workers.dev` (version `5b6471ab-d212-4f91-be11-bc9be463c129`).
+- The Phase 4 frontend is mock-tested only; frontend deployment has not been performed.
 - The retired Dify project is not used and must not be modified.
 
 ## Phase 2 implementation target
@@ -49,8 +51,8 @@ Runtime principles:
 
 ## Sequence
 
-1. Review and merge the Phase 3 API Worker pull request.
-2. Implement the frontend vertical loop against the deployed API Worker.
+1. Review and merge the Phase 4 frontend pull request.
+2. Deploy the frontend Worker and run one browser vertical-loop validation.
 3. Add company content, CSA presentation, images, and TTS in later phases.
 
 ## Current Phase 2 boundaries
