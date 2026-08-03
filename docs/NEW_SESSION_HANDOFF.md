@@ -41,3 +41,7 @@
 Phase 2 may implement the API and engine vertical loop against the independent Company v1 database. The required runtime sequence is context → one Story SSE call → one Extract call → one guarded Commit call, with zero LLM repair calls.
 
 Do not expose Supabase directly to the browser, place secrets in the repository, modify the retired Dify project, create Cloudflare resources, deploy, or perform real Story/Extract calls during this implementation PR. Do not force-push, reset, or rebase.
+
+## Phase 2 live E2E result
+
+The core live vertical loop passed: Context, Story persistence, Extract persistence, guarded Commit at turn 1, and cleanup all succeeded. The final harness verdict was a false negative because `reset_company_game` increments `save_revision`; validation now compares revisions relative to the run baseline. Live replay was not completed, and the two-attempt LLM limit has been reached. No further live calls are authorized in this phase. Cloudflare resources remain uncreated.
