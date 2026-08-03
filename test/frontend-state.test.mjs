@@ -4,8 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { choicesForRenderer, createBusyGuard, createFrontendApp, createTurnCoordinator, toolbarCapabilities } from '../src/frontend/pages/app.js';
-import { choiceLabel, mindMonitorDisplay, renderChoices, renderNarrative, renderState, stateDisplayValues } from '../src/frontend/pages/render.js';
-import { clearPending, committedTurn, loadPending, pendingKey, recoveryFor, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
+import { ApiError } from '../src/frontend/pages/api.js';
+import { choiceLabel, mindMonitorDisplay, parsedTurnNarrative, renderChoices, renderHistory, renderNarrative, renderState, stateDisplayValues } from '../src/frontend/pages/render.js';
+import { clearPending, committedTurn, contextChoices, loadPending, pendingKey, recoveryFor, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -50,6 +51,16 @@ test('frontend state resolves game IDs and keeps the external committed turn aut
   assert.equal(committedTurn(context), 1);
 });
 
+test('frontend state preserves pending metadata and committed choice fallback', () => {
+  const local = storage();
+  const action = { game_id: gameId, action_id: 'action-1', expected_turn: 3, player_action: 'Keep action', created_at: 'now', step: 'story' };
+  savePending(local, action);
+  assert.deepEqual(loadPending(local, gameId), action);
+  clearPending(local, gameId);
+  assert.equal(local.getItem(pendingKey(gameId)), null);
+  assert.deepEqual(contextChoices({ save: { data: { last_choices: [] } }, recent_turns: [{ choices: ['old'] }, { choices: ['new', '', 'newer'] }] }), ['new', 'newer']);
+});
+
 test('Story renderer separates dialogue speaker, direction, and line', () => {
   const previousDocument = globalThis.document; globalThis.document = { createElement: tag => new FakeNode(tag) };
   try {
@@ -61,6 +72,22 @@ test('Story renderer separates dialogue speaker, direction, and line', () => {
     assert.equal(dialogue.children[0].children[0].textContent, 'Hayeon');
     assert.equal(dialogue.children[0].children[1].textContent, 'quietly');
     assert.equal(dialogue.children[1].textContent, 'Dialogue');
+  } finally { globalThis.document = previousDocument; }
+});
+
+test('history preserves accepted parsed blocks, summaries, and database order', () => {
+  const previousDocument = globalThis.document; globalThis.document = { createElement: tag => new FakeNode(tag) };
+  try {
+    const container = new FakeNode('history');
+    renderHistory(container, [
+      { player_action: 'Turn 1 action', parsed_blocks: [{ type: 'scene', text: 'Turn 1 story' }], turn_summary: 'Turn 1 summary' },
+      { player_action: 'Turn 2 action', parsed_blocks: { blocks: [{ type: 'scene', text: 'Turn 2 story' }] }, turn_summary: 'Turn 2 summary' }
+    ]);
+    assert.equal(container.children[0].children[0].textContent, 'Turn 1 action');
+    assert.equal(container.children[1].children[0].textContent, 'Turn 2 action');
+    assert.equal(container.children[0].children[1].children[0].textContent, 'Turn 1 story');
+    assert.equal(container.children[1].children[2].textContent, 'Turn 2 summary');
+    assert.equal(parsedTurnNarrative({ story_text: 'fallback' }).blocks[0].type, 'unparsed');
   } finally { globalThis.document = previousDocument; }
 });
 
@@ -131,6 +158,34 @@ test('pending action keeps recovery UI ahead of resume and preserves recovery en
     assert.equal(nodes['resume-play'].disabled, true);
     assert.equal(nodes['player-action'].disabled, true);
     assert.equal(typeof nodes['recovery-action'].onclick, 'function');
+  });
+});
+
+test('action_not_found blocks a new action and exposes retry_story recovery', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const local = storage(); savePending(local, { game_id: gameId, action_id: 'saved', expected_turn: 3, player_action: 'Saved action', created_at: 'now', step: 'story' });
+    let storyCalls = 0;
+    const api = {
+      context: async () => ({ context: validContext() }),
+      actionStatus: async () => { throw new ApiError({ endpoint: '/api/action-status', status: 404, code: 'action_not_found', message: 'missing' }); },
+      story: async () => { storyCalls += 1; return new Response(); }
+    };
+    const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
+    assert.equal(nodes['recovery-action'].hidden, false);
+    assert.equal(await app.startNewAction('New action'), false);
+    assert.equal(storyCalls, 0);
+    assert.equal(loadPending(local, gameId).action_id, 'saved');
+  });
+});
+
+test('complete recovery clears pending UI and re-enables controls', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const local = storage(); savePending(local, { game_id: gameId, action_id: 'done', expected_turn: 3, player_action: 'Done', created_at: 'now', step: 'commit' });
+    const api = { context: async () => ({ context: validContext() }), actionStatus: async () => ({ recoverable_step: 'complete' }) };
+    const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
+    assert.equal(loadPending(local, gameId), null);
+    assert.equal(nodes['recovery-action'].hidden, true);
+    assert.equal(nodes['player-action'].disabled, false);
   });
 });
 
