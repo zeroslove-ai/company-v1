@@ -10,8 +10,8 @@ const SECTION_LABELS = {
 };
 
 const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
-
 const INLINE_DIALOGUE = /([\p{L}][^\n():"“”]{0,40}?)\s*\(([^()\n]{0,160})\)\s*[:：]\s*["“]([^"”]*)["”]/gsu;
+const CHOICE_LABEL = /^\[([^\[\]\r\n]{2,6})\]\s*(.+)$/u;
 
 function labelRole(label) {
   if (SECTION_LABELS[label]) return SECTION_LABELS[label];
@@ -21,10 +21,21 @@ function labelRole(label) {
 }
 
 function parseChoices(text) {
-  return text
-    .split(/\r?\n/)
-    .map(line => /^\d+\.\s+(.+)$/.exec(line.trim())?.[1]?.trim())
-    .filter(Boolean);
+  const choices = [];
+  const choiceLabels = [];
+  for (const line of text.split(/\r?\n/)) {
+    const numbered = /^\d+\.\s+(.+)$/.exec(line.trim())?.[1]?.trim();
+    if (!numbered) continue;
+    const labeled = CHOICE_LABEL.exec(numbered);
+    if (labeled) {
+      choiceLabels.push(labeled[1].trim());
+      choices.push(labeled[2].trim());
+    } else {
+      choiceLabels.push('');
+      choices.push(numbered);
+    }
+  }
+  return { choices, choice_labels: choiceLabels };
 }
 
 function resolveSpeakerId(name, master) {
@@ -66,6 +77,7 @@ export function parseNarrative(rawText, { master } = {}) {
   let playerStatus = '';
   let playerInnerThought = '';
   let choices = [];
+  let choiceLabels = [];
   const sceneParts = [];
 
   if (matches.length === 0) {
@@ -76,6 +88,7 @@ export function parseNarrative(rawText, { master } = {}) {
       player_status: '',
       player_inner_thought: '',
       choices: [],
+      choice_labels: [],
       dialogue_lines: [],
       warnings: ['no_recognized_markers', 'choices_not_exactly_four']
     };
@@ -126,8 +139,12 @@ export function parseNarrative(rawText, { master } = {}) {
       continue;
     }
     if (role === 'choices') {
-      choices = parseChoices(text);
+      const parsed = parseChoices(text);
+      choices = parsed.choices;
+      choiceLabels = parsed.choice_labels;
       if (choices.length !== 4) warnings.push('choices_not_exactly_four');
+      if (choices.length === 4 && choiceLabels.some(label => !label)) warnings.push('choice_labels_missing');
+      if (new Set(choiceLabels.filter(Boolean)).size !== choiceLabels.filter(Boolean).length) warnings.push('choice_labels_duplicated');
       continue;
     }
 
@@ -159,6 +176,7 @@ export function parseNarrative(rawText, { master } = {}) {
     player_status: playerStatus,
     player_inner_thought: playerInnerThought,
     choices,
+    choice_labels: choiceLabels,
     dialogue_lines: dialogueLines,
     warnings
   };
