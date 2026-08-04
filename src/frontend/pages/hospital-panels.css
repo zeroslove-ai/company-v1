@@ -1,0 +1,94 @@
+.future-slot[hidden] {
+  display: none !important;
+}
+
+.future-slot:not([hidden]) {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: var(--hospital-bg-tertiary);
+}
+
+.future-slot-heading {
+  margin: 0;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.future-slot-value {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.player-inner-thought-card .future-slot-value {
+  padding-left: 9px;
+  border-left: 2px solid var(--hospital-accent);
+  font-style: italic;
+}
+
+.player-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+}
+
+.player-progress-head strong {
+  color: var(--hospital-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-progress-track {
+  position: relative;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid var(--hospital-border);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 7%);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 45%);
+}
+
+.player-progress-fill {
+  height: 100%;
+  width: var(--progress, 0%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #60a5fa 0%, #a78bfa 52%, #f472b6 80%, #fff 100%);
+  box-shadow: 0 0 10px rgb(244 114 182 / 42%);
+  transition: width 0.25s ease;
+}
+
+.player-progress-threshold {
+  position: absolute;
+  inset: -2px auto -2px 50%;
+  width: 2px;
+  background: rgb(255 255 255 / 60%);
+}
+
+.player-progress-card.ready .player-progress-head strong {
+  color: #f9a8d4;
+}
+
+.player-progress-card.maximum .player-progress-fill {
+  filter: brightness(1.35);
+  box-shadow: 0 0 16px rgb(255 255 255 / 68%);
+}
+
+.turn-change-card .future-slot-value {
+  color: #cbd5df;
+}
+
+@media (max-width: 900px) {
+  .future-slot:not([hidden]) {
+    padding: 9px;
+  }
+}
