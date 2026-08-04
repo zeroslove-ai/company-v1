@@ -106,11 +106,33 @@ export function isPresetPayloadComplete(appState, preset, selectedStrength) {
   return true;
 }
 
+function currentPresetPayload(item) {
+  return {
+    template_id: item.template_id || null,
+    actor_group: item.actor_group || null,
+    target_group: item.target_group || null,
+    trigger: item.trigger || null,
+    duration: item.duration || null,
+    modifier: normalize(item.modifier || '')
+  };
+}
+
 function payloadFields(appState, item) {
-  return item.source_type === 'preset'
-    ? { source_type: 'preset', strength: item.strength, content: presetPreviewContent(appState, item) || '',
-        preset: { template_id: item.template_id || null, actor_group: item.actor_group || null, target_group: item.target_group || null, trigger: item.trigger || null, duration: item.duration || null, modifier: normalize(item.modifier || '') } }
-    : { source_type: 'custom', strength: item.strength, content: normalize(item.content || '') };
+  if (item.source_type !== 'preset') {
+    return { source_type: 'custom', strength: item.strength, content: normalize(item.content || '') };
+  }
+
+  const preset = currentPresetPayload(item);
+  // The UI edits flat fields for convenient rendering, while applyDraft performs
+  // its final completeness check against item.preset. Materializing operations is
+  // therefore also the single synchronization point between those two shapes.
+  item.preset = preset;
+  return {
+    source_type: 'preset',
+    strength: item.strength,
+    content: presetPreviewContent(appState, item) || '',
+    preset
+  };
 }
 
 function presetStructureEqual(appState, item, beforePreset) {
