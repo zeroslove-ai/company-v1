@@ -49,6 +49,15 @@ export function createSupabaseClient(env, fetchImpl) {
     callRpc(name, args) {
       return request(`${baseUrl}/rest/v1/rpc/${name}`, { method: 'POST', body: JSON.stringify(args) });
     },
+    reserveTurnAction(gameId, actionId, expectedTurn, playerAction, structuredAction = null) {
+      return this.callRpc('reserve_turn_action', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_expected_turn: expectedTurn,
+        p_player_action: playerAction,
+        p_structured_action: structuredAction
+      });
+    },
     async getAction(gameId, actionId) {
       const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}`, select: '*' });
       const payload = await request(`${baseUrl}/rest/v1/game_actions?${query}`, { method: 'GET' });
@@ -76,7 +85,7 @@ export function createSupabaseClient(env, fetchImpl) {
     async listTurns(gameId, { beforeTurn = null, limit = 20 } = {}) {
       const query = new URLSearchParams({
         game_id: `eq.${gameId}`, record_status: 'eq.active',
-        select: 'turn_number,player_action,feedback_text,story_text,parsed_blocks,turn_summary,mind_monitor,choices,committed_at',
+        select: 'turn_number,player_action,structured_action,feedback_text,story_text,parsed_blocks,turn_summary,mind_monitor,choices,committed_at',
         order: 'turn_number.desc', limit: String(limit)
       });
       if (Number.isInteger(beforeTurn)) query.set('turn_number', `lt.${beforeTurn}`);
