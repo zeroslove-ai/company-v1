@@ -52,7 +52,10 @@ import {
   sha256Base64url,
   signAppValidationProof,
   stableStringify,
-  verifyStructuredActionValidation
+  verifyStructuredActionValidation,
+  findNpc,
+  getGeneralNpc,
+  isGeneralNpcId
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -157,6 +160,11 @@ function csaCatalogFromEdition(edition) {
   return plainObject(edition?.csaPresets) ? edition.csaPresets : { actor_options: [], target_options: [], trigger_options: [], duration_options: [], categories: [], items: [], sexual_action_contract: {} };
 }
 
+function mapLocationIdsFromEdition(edition) {
+  const locations = Array.isArray(edition?.map?.locations) ? edition.map.locations : [];
+  return new Set(locations.map(location => location?.location_id).filter(id => typeof id === 'string'));
+}
+
 function appValidationSecret(env) {
   return env?.APP_VALIDATION_SECRET || env?.SUPABASE_SERVICE_ROLE_KEY;
 }
@@ -245,6 +253,9 @@ export function createTurnRoutes({ fetchImpl, edition }) {
   const catalogs = catalogsFromEdition(edition);
   const heroineIds = Object.keys(edition?.characters?.characters ?? {});
   const csaCatalog = csaCatalogFromEdition(edition);
+  const generalNpcCatalog = plainObject(edition?.generalNpcs) ? edition.generalNpcs : { profiles: {} };
+  const mapLocationIds = mapLocationIdsFromEdition(edition);
+  const isKnownCharacterId = id => heroineIds.includes(id) || isGeneralNpcId(generalNpcCatalog, id);
 
   return {
     async context(request, env) {
@@ -665,6 +676,31 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         return ok({ app: buildAppStatePayload(save, csaCatalog, csaCatalog.sexual_action_contract, player) });
       } finally {
         logTurnTiming({ event_stage: 'app_state', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /**
+     * Zero-LLM, zero-turn lookup: does the game know where character_id currently is? Never
+     * mutates state, never consumes a turn. The frontend uses the returned location_label to
+     * let the player type/choose an ordinary action to go there — that move is a completely
+     * normal turn through /api/story -> /api/extract -> /api/commit, not a special pipeline.
+     */
+    async findNpc(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const characterId = requireString(body.character_id, 'character_id');
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        const save = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        const result = findNpc({ save, characterId, isKnownCharacterId, validLocationIds: mapLocationIds });
+        if (!result.ok) throw new HttpError(422, result.code.toLowerCase(), 'NPC 위치를 확인할 수 없습니다.', false);
+        const npc = getGeneralNpc(generalNpcCatalog, characterId);
+        return ok({ character_id: characterId, name: npc?.name ?? null, location_label: result.location_label, location_id: result.location_id });
+      } finally {
+        logTurnTiming({ event_stage: 'find_npc', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
     },
 

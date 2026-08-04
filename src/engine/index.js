@@ -75,3 +75,7 @@ export {
   buildStructuredActionStorySection, buildCsaDeactivationStorySection
 } from './csa/prompt-sections.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
+
+export { listGeneralNpcs, getGeneralNpc, isGeneralNpcId } from './npc/catalog.js';
+export { resolveGeneralNpcForGroup } from './npc/resolver.js';
+export { findNpc } from './npc/location.js';

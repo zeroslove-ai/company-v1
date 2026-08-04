@@ -265,3 +265,35 @@ test('json-repair: valid JSON passes through unchanged on the first attempt (rep
   const parsed = repairAndParseExtractJson('{"outcome":"success","state_delta":{}}');
   assert.deepEqual(parsed, { outcome: 'success', state_delta: {} });
 });
+
+// ---------- Commit 4: /api/find-npc route ----------
+
+test('/api/find-npc: zero-LLM, zero-turn lookup succeeds for a general NPC with a known location', async () => {
+  const save = freshSave({ npc_scene_state: { general_park_jungwoo: { location_label: '대회의실', location_id: 'large_meeting_room' } } });
+  const mock = createMockFetch({ initialSave: save });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const res = await worker.fetch(request('/api/find-npc', { game_id: gameId, character_id: 'general_park_jungwoo' }), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.data.location_id, 'large_meeting_room');
+  assert.equal(body.data.name, '박정우');
+  assert.equal(mock.calls.some(call => call.url.startsWith('https://llm.test')), false, 'find_npc must never call the LLM');
+});
+
+test('/api/find-npc: rejects an id that is neither a heroine nor a general NPC', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const res = await worker.fetch(request('/api/find-npc', { game_id: gameId, character_id: 'not_a_real_person' }), env);
+  assert.equal(res.status, 422);
+  const body = await res.json();
+  assert.equal(body.error.code, 'npc_not_found');
+});
+
+test('/api/find-npc: rejects with NPC_LOCATION_UNKNOWN when nothing has ever been recorded', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const res = await worker.fetch(request('/api/find-npc', { game_id: gameId, character_id: 'general_oh_sehoon' }), env);
+  assert.equal(res.status, 422);
+  const body = await res.json();
+  assert.equal(body.error.code, 'npc_location_unknown');
+});
