@@ -38,9 +38,9 @@ test('keeps the action controls in the viewport shell', () => {
 });
 
 test('preserves the Company engine DOM contracts while replacing the shell', () => {
+  assert.match(indexHtml, /<aside class=["']status-column["']/);
   for (const id of [
     'story-panel',
-    'status-column',
     'character-image',
     'tts-enabled',
     'play-tts',
