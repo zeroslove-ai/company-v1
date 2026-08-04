@@ -31,4 +31,19 @@ export const SPEECH_STYLES = [
   { speech_style_id: 'rough_yangachi', name: '거친 양아치 말투' }
 ];
 
-export const CATALOGS = { departments: DEPARTMENTS, positions: POSITIONS, bodyTypes: BODY_TYPES, speechStyles: SPEECH_STYLES };
+// Display-only identity projection. The Company engine and save remain the authority.
+export const CHARACTERS = [
+  { character_id: 'heroine1', name: '서원희' },
+  { character_id: 'heroine2', name: '윤민아' },
+  { character_id: 'heroine3', name: '김제나' },
+  { character_id: 'heroine4', name: '한리브' },
+  { character_id: 'heroine5', name: '이메이' }
+];
+
+export const CATALOGS = {
+  departments: DEPARTMENTS,
+  positions: POSITIONS,
+  bodyTypes: BODY_TYPES,
+  speechStyles: SPEECH_STYLES,
+  characters: CHARACTERS
+};
