@@ -91,6 +91,16 @@ export function createSupabaseClient(env, fetchImpl) {
         p_game_id: gameId, p_action_id: actionId, p_revision_request_id: revisionRequestId,
         p_next_save: nextSave, p_turn_summary: turnSummary, p_mind_monitor: mindMonitor, p_choices: choices
       });
+    },
+    /** At most 8 active candidates for one character+pool — image-selector.js scores exactly this set, never the whole catalog. */
+    async listImageCandidates(characterId, pool) {
+      const query = new URLSearchParams({
+        character_id: `eq.${characterId}`, active: 'eq.true', image_pool: `eq.${pool}`,
+        select: 'image_id,character_id,situation,tags,image_pool,is_sexual,curation_rank,image_url',
+        order: 'curation_rank.asc.nullslast', limit: '8'
+      });
+      const payload = await request(`${baseUrl}/rest/v1/image_library?${query}`, { method: 'GET' });
+      return Array.isArray(payload) ? payload : [];
     }
   };
 }

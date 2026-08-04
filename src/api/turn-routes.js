@@ -57,7 +57,8 @@ import {
   getGeneralNpc,
   isGeneralNpcId,
   buildRegenerationFeedbackSection,
-  resolveNumberedChoiceInput
+  resolveNumberedChoiceInput,
+  selectImage
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -591,6 +592,34 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           context_rpc_ms: timing.context_rpc_ms, guarded_merge_ms: timing.guarded_merge_ms, commit_rpc_ms: timing.commit_rpc_ms,
           turn_total_ms: Date.now() - startedAt
         });
+      }
+    },
+
+    /**
+     * Deterministic, zero-LLM image selection. Queries only the requested character's active
+     * rows for the requested pool (at most 8, already ordered by curation_rank at the DB layer)
+     * and scores them in image-selector.js — the full image_library catalog never reaches this
+     * route's caller, let alone a Story prompt. A selection failure (no candidates in either
+     * pool) returns image: null rather than throwing; this must never block a turn.
+     */
+    async image(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const characterId = requireString(body.character_id, 'character_id');
+      const pool = body.pool === 'sex' ? 'sex' : 'general';
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const candidates = await db.listImageCandidates(characterId, pool);
+        const selected = selectImage(candidates, {
+          situation: typeof body.situation === 'string' ? body.situation : null,
+          tags: Array.isArray(body.tags) ? body.tags : [],
+          locationId: typeof body.location_id === 'string' ? body.location_id : null
+        });
+        return ok({ character_id: characterId, image: selected });
+      } finally {
+        logTurnTiming({ event_stage: 'image', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
     },
 

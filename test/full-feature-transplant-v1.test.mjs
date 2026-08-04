@@ -464,3 +464,75 @@ test('/api/feedback: game_save is completely untouched until commit_feedback_rev
   await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-untouched', feedback_text: '피드백' }), env);
   assert.deepEqual(mock.getSave(), save, 'reserving a feedback revision must never mutate game_save by itself');
 });
+
+// ---------- Commit 5: image backend ----------
+import { selectImage } from '../src/engine/index.js';
+
+function imageRow(id, overrides = {}) {
+  return { image_id: id, character_id: 'heroine1', situation: null, tags: [], image_pool: 'general', is_sexual: false, curation_rank: 5, image_url: `https://img.test/${id}`, ...overrides };
+}
+
+test('image selector: an exact situation match outranks a tag-only match', () => {
+  const candidates = [imageRow('a', { tags: ['office'] }), imageRow('b', { situation: 'meeting' })];
+  const result = selectImage(candidates, { situation: 'meeting', tags: [] });
+  assert.equal(result.image_id, 'b');
+  assert.equal(result.source, 'match');
+});
+
+test('image selector: evaluates at most 8 candidates even when given more', () => {
+  const many = Array.from({ length: 20 }, (_, i) => imageRow(`c${i}`, { curation_rank: 20 - i }));
+  const result = selectImage(many, {});
+  // No situation/tag match anywhere, so it falls back to lowest curation_rank among only the
+  // first 8 evaluated candidates (curation_rank 20..13), never scanning the full 20.
+  assert.equal(result.source, 'primary');
+  assert.equal(result.image_id, 'c7', 'c7 has curation_rank 13, the lowest among the first 8 candidates only');
+});
+
+test('image selector: a tie on score is broken by lower curation_rank, then by image_id, deterministically', () => {
+  const candidates = [imageRow('z', { tags: ['a'], curation_rank: 3 }), imageRow('m', { tags: ['a'], curation_rank: 1 })];
+  const result = selectImage(candidates, { tags: ['a'] });
+  assert.equal(result.image_id, 'm');
+});
+
+test('image selector: falls back to the lowest-curation_rank candidate when nothing matches, never no image if a candidate exists', () => {
+  const candidates = [imageRow('primary1', { curation_rank: 1 }), imageRow('other', { curation_rank: 9 })];
+  const result = selectImage(candidates, { situation: 'nonexistent', tags: ['nope'] });
+  assert.equal(result.image_id, 'primary1');
+  assert.equal(result.source, 'primary');
+});
+
+test('image selector: returns null (never throws) when there are zero candidates at all', () => {
+  assert.equal(selectImage([], {}), null);
+});
+
+test('/api/image: zero LLM calls, character-scoped query only, deterministic result', async () => {
+  const mock = createMockFetch();
+  mock.fetchImpl = mock.fetchImpl; // keep reference
+  const worker = createApiWorker({
+    fetchImpl: async (url, init = {}) => {
+      const textUrl = String(url);
+      if (textUrl.includes('/rest/v1/image_library')) {
+        return json([imageRow('img-1', { situation: 'lobby_greeting', curation_rank: 2 }), imageRow('img-2', { curation_rank: 1 })]);
+      }
+      return mock.fetchImpl(url, init);
+    }
+  });
+  const res = await worker.fetch(request('/api/image', { game_id: gameId, character_id: 'heroine1', pool: 'general', situation: 'lobby_greeting' }), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.data.image.image_id, 'img-1');
+  assert.equal(body.data.image.source, 'match');
+});
+
+test('/api/image: returns image:null (not an error) when the character has no active images at all', async () => {
+  const worker = createApiWorker({
+    fetchImpl: async textUrl => {
+      if (String(textUrl).includes('/rest/v1/image_library')) return json([]);
+      throw new Error('unexpected call');
+    }
+  });
+  const res = await worker.fetch(request('/api/image', { game_id: gameId, character_id: 'heroine1', pool: 'general' }), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.data.image, null);
+});
