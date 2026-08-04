@@ -2,7 +2,7 @@
 
 Functional fix commit: `95092247dce6a34afb93d76ac5232f7d7a19be14`
 
-Deploy the current PR #19 head only after confirming it contains the functional fix commit above.
+Deploy the current PR #19 head only after confirming it contains this commit.
 
 ## Production symptom
 
