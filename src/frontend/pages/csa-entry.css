@@ -1,0 +1,69 @@
+.csa-entry-panel {
+  position: sticky;
+  bottom: .75rem;
+  z-index: 6;
+  display: grid;
+  gap: .65rem;
+  padding: .9rem;
+  border: 1px solid #4d7188;
+  border-radius: .85rem;
+  background: rgb(22 35 46 / .96);
+  box-shadow: 0 .8rem 2.4rem rgb(0 0 0 / .32);
+  backdrop-filter: blur(8px);
+}
+
+.csa-entry-heading {
+  margin: 0;
+  color: #d8f0ff;
+  font-size: .95rem;
+}
+
+.csa-entry-copy {
+  margin: 0;
+  color: #aab9c5;
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+.csa-entry-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: .55rem;
+}
+
+.csa-entry-actions button {
+  min-height: 3rem;
+  border: 1px solid #5d8da7;
+  border-radius: .6rem;
+  padding: .65rem .75rem;
+  color: #fff;
+  background: #294d61;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.csa-entry-actions #open-apps {
+  background: #38677d;
+}
+
+.csa-entry-actions button:disabled {
+  cursor: not-allowed;
+  opacity: .52;
+}
+
+.csa-app-card-link-label {
+  color: #9fc9df;
+  font-size: .78rem;
+}
+
+@media (max-width: 720px) {
+  .csa-entry-panel {
+    position: static;
+    bottom: auto;
+  }
+
+  .csa-entry-actions {
+    grid-template-columns: 1fr;
+  }
+}
