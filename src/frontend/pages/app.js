@@ -7,6 +7,7 @@ import { renderChoices, renderHistory, renderNarrative, renderState, text } from
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
+import { createUtilityUi } from './utility-ui.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 
@@ -46,17 +47,15 @@ export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
   return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
 }
 
-/**
- * canOpenApps additionally requires player_setup completed, opening complete, and
- * neither a turn in flight (busy) nor an unresolved recovery — the CSA app's own
- * turn cycle would otherwise collide with an in-progress or broken one.
- */
 export function toolbarCapabilities(viewModel, pendingAction, { context, busy = false, recoveryPending = false } = {}) {
+  const committed = (viewModel?.turn?.committed_turn ?? 0) >= 1;
+  const ready = playerSetupCompleted(context) && openingCompleted(context) && !busy && !pendingAction && !recoveryPending;
   return {
-    canResume: (viewModel?.turn?.committed_turn ?? 0) >= 1 && !pendingAction,
-    canOpenHistory: false,
-    canSendFeedback: false,
-    canOpenApps: playerSetupCompleted(context) && openingCompleted(context) && !busy && !pendingAction && !recoveryPending
+    canResume: committed && !pendingAction,
+    canOpenHistory: committed && !busy && !pendingAction,
+    canSendFeedback: committed && !busy && !pendingAction && !recoveryPending,
+    canFindNpc: ready,
+    canOpenApps: ready
   };
 }
 
@@ -73,7 +72,7 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     onCommitStart?.();
     const committed = await api.commit(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn }, pending));
     if (committed.commit?.success !== true) throw new ApiError({ endpoint: '/api/commit', status: 502, code: 'invalid_commit', message: 'Commit 결과가 올바르지 않습니다.' });
-    dropPending(pending.game_id); await refreshContext(); onCommitted?.(committed); return committed;
+    dropPending(pending.game_id); await refreshContext(); onCommitted?.(committed, pending); return committed;
   }
 
   async function runExtractForPending(pending) {
@@ -103,6 +102,23 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     persistPending(pending); return runStoryForPending(pending);
   }
 
+  async function startReservedAction(reservation) {
+    const action = String(reservation?.original_player_action ?? reservation?.player_action ?? '').trim();
+    if (!action || !reservation?.action_id || !Number.isInteger(reservation?.expected_turn)) return null;
+    const pending = {
+      game_id: gameId,
+      action_id: reservation.action_id,
+      expected_turn: reservation.expected_turn,
+      player_action: action,
+      structured_action: reservation.structured_action ?? null,
+      revision_request_id: reservation.revision_request_id ?? null,
+      created_at: new Date().toISOString(),
+      step: 'story'
+    };
+    persistPending(pending);
+    return runStoryForPending(pending);
+  }
+
   async function runRecovery(pending, step) {
     if (step === 'retry_story') return runStoryForPending(pending);
     if (step === 'resume_extract' || step === 'retry_extract') return runExtractForPending(pending);
@@ -111,7 +127,7 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     return null;
   }
 
-  return { startNewAction, runStoryForPending, runExtractForPending, runCommitForPending, runRecovery };
+  return { startNewAction, startReservedAction, runStoryForPending, runExtractForPending, runCommitForPending, runRecovery };
 }
 
 export function createBusyGuard({ onChange = () => {} } = {}) {
@@ -133,7 +149,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     title: get('game-title'), dayTime: get('day-time'), turn: get('turn-number'), api: get('api-status'), status: get('status-banner'), error: get('error-banner'),
     history: get('story-history'), current: get('current-story'), currentAction: get('current-action'), choices: get('choice-list'), input: get('player-action'), submit: get('submit-action'),
     recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), focal: get('focal-character'), mind: get('mind-monitor'), player: get('player-situation'),
-    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps'), reset: get('reset-game')
+    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), findNpc: get('find-npc'), apps: get('open-apps'), reset: get('reset-game')
   };
   const setupElements = {
     overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
@@ -142,7 +158,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     reserved: get('reserved-opening'), reservedStatus: get('reserved-opening-status'), retryOpening: get('retry-opening')
   };
   const gameId = resolveGameId(locationSearch);
-  let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, currentImage = null;
+  let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null;
   const showStatus = value => text(elements.status, value);
   const setConnection = ready => { text(elements.api, ready ? '●' : '○'); if (elements.api) { elements.api.title = ready ? '연결됨' : '연결 확인 중'; elements.api.ariaLabel = ready ? '연결됨' : '연결 확인 중'; } };
   const clearProgressTimer = () => { if (progressTimer) { clearInterval(progressTimer); progressTimer = null; } };
@@ -162,9 +178,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   function renderToolbar() {
     const capabilities = toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending });
     if (elements.resume) { elements.resume.disabled = !capabilities.canResume; elements.resume.onclick = capabilities.canResume ? resumePlay : null; }
-    for (const [element, enabled] of [[elements.historyButton, capabilities.canOpenHistory], [elements.feedback, capabilities.canSendFeedback], [elements.apps, capabilities.canOpenApps]]) {
-      if (!element) continue; element.disabled = !enabled; element.onclick = null;
-    }
+    if (elements.historyButton) { elements.historyButton.disabled = !capabilities.canOpenHistory; elements.historyButton.onclick = capabilities.canOpenHistory ? () => utilityUi?.openHistory() : null; }
+    if (elements.feedback) { elements.feedback.disabled = !capabilities.canSendFeedback; elements.feedback.onclick = capabilities.canSendFeedback ? () => utilityUi?.openFeedback() : null; }
+    if (elements.findNpc) { elements.findNpc.disabled = !capabilities.canFindNpc; elements.findNpc.onclick = capabilities.canFindNpc ? () => utilityUi?.openNpcFinder() : null; }
+    if (elements.apps) { elements.apps.disabled = !capabilities.canOpenApps; elements.apps.onclick = capabilities.canOpenApps ? () => csaApp.open('home') : null; }
   }
   function setupPending() { return !playerSetupCompleted(context); }
   function populateSetupSelect(select, list, idField) {
@@ -214,6 +231,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     renderToolbar();
   }
   const setBusy = value => { busy = value; render(); };
+  const setMediaLoading = value => { mediaLoading = value; render(); };
   function clearRecoveryUi() {
     recoveryPending = false;
     if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
@@ -238,7 +256,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (hasFourChoices(parsed.choices)) { streamedStoryChoices = parsed.choices; render(); } },
     onExtract: extracted => { currentExtract = extracted.extract ?? null; showProgress('상태를 정리하는 중…'); render(); },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
-    onCommitted: () => { clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.'); },
+    onCommitted: () => {
+      clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.');
+      utilityUi?.loadMedia().catch(showError);
+    },
     onPendingChange: () => renderToolbar()
   });
   async function checkRecovery() {
@@ -272,6 +293,14 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (numbered && !numbered.ok) { showError(new ApiError({ endpoint: 'choice-input', status: 422, code: numbered.code.toLowerCase(), message: '지금은 그 번호의 선택지가 없습니다.' })); return false; }
     if (numbered?.ok) action = numbered.text;
     return withBusy(async () => { showCurrentAction(action); if (elements.input) elements.input.value = ''; text(elements.stream, 'Story를 생성하는 중…'); await coordinator.startNewAction(action, structuredAction); });
+  }
+  async function startFeedbackRevision(reservation) {
+    if (busy || loadPending(storage, gameId)) return false;
+    return withBusy(async () => {
+      showCurrentAction(reservation.original_player_action);
+      text(elements.stream, '피드백을 반영해 Story를 다시 생성하는 중…');
+      await coordinator.startReservedAction(reservation);
+    });
   }
   async function resumePending(pending, step) {
     return withBusy(async () => {
@@ -348,15 +377,27 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     onSubmit: (displayInput, canonicalAction) => startNewAction(displayInput, canonicalAction),
     onError: showError
   });
+  utilityUi = createUtilityUi({
+    documentRef,
+    api,
+    gameId,
+    getContext: () => context,
+    getViewModel: () => viewModel,
+    onFeedbackReserved: startFeedbackRevision,
+    onPrepareAction: action => { if (elements.input) { elements.input.value = action; elements.input.focus?.(); } },
+    onError: showError,
+    onStatus: showStatus,
+    onMediaLoading: setMediaLoading
+  });
   async function init() {
     populateSetupOptions();
     elements.submit?.addEventListener('click', () => startNewAction());
     elements.reset?.addEventListener('click', () => handleReset());
-    elements.apps?.addEventListener('click', () => csaApp.open('home'));
     setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
     await refreshContext(); await checkRecovery();
+    if (committedTurn(context) >= 1) utilityUi.loadMedia().catch(showError);
   }
-  return { gameId, init, refreshContext, startNewAction, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending }); }, get busy() { return busy; } };
+  return { gameId, init, refreshContext, startNewAction, startFeedbackRevision, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, utilityUi, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending }); }, get busy() { return busy; } };
 }
 
 if (globalThis.document?.querySelector('#game-main')) {
