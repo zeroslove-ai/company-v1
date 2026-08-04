@@ -95,11 +95,15 @@ test('csa app modal: open() fetches app-state once and renders the home tab', as
   const { nodes, documentRef } = pageFixture();
   const appState = sampleAppState({ common_sense: [] });
   let appStateCalls = 0;
-  const api = { appState: async () => { appStateCalls += 1; return { app: appState }; } };
+  let appStateArgs = null;
+  const api = { appState: async (...args) => { appStateCalls += 1; appStateArgs = args; return { app: appState }; } };
   const csaApp = createCsaApp({ documentRef, api, gameId: 'game-1' });
 
   await csaApp.open('home');
   assert.equal(appStateCalls, 1);
+  assert.equal(appStateArgs.length, 1, 'api.appState is called with exactly one argument');
+  assert.notEqual(typeof appStateArgs[0], 'string', 'the argument must not be the bare game id string (that produces a non-object JSON body)');
+  assert.deepEqual(appStateArgs[0], { game_id: 'game-1' });
   assert.equal(nodes['csa-app-overlay'].hidden, false);
   assert.equal(csaApp.isOpen(), true);
   assert.ok(findByText(nodes['csa-app-body'], 'Lv.1'));

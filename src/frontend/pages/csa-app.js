@@ -504,7 +504,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     keydownHandler = event => { if (event.key === 'Escape') requestClose(); };
     documentRef.addEventListener?.('keydown', keydownHandler);
     try {
-      const result = await api.appState(gameId);
+      const result = await api.appState({ game_id: gameId });
       appState = result.app;
       draft = createDraft(appState, initialTab);
       renderTab(initialTab);
