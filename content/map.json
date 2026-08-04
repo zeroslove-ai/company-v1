@@ -1,3 +1,20 @@
 {
-  "locations": []
+  "locations": [
+    { "location_id": "lobby", "label": "로비" },
+    { "location_id": "training_room", "label": "교육장" },
+    { "location_id": "office", "label": "사무실" },
+    { "location_id": "team_office", "label": "팀 사무공간" },
+    { "location_id": "small_meeting_room", "label": "소회의실" },
+    { "location_id": "meeting_room", "label": "회의실" },
+    { "location_id": "project_room", "label": "프로젝트룸" },
+    { "location_id": "cross_team_space", "label": "협업 공간" },
+    { "location_id": "cross_dept_meeting_room", "label": "부서간 회의실" },
+    { "location_id": "large_meeting_room", "label": "대회의실" },
+    { "location_id": "executive_meeting_room", "label": "임원 회의실" },
+    { "location_id": "project_report_room", "label": "프로젝트 보고실" },
+    { "location_id": "pantry", "label": "탕비실" },
+    { "location_id": "employee_lounge", "label": "직원 라운지" },
+    { "location_id": "elevator_hall", "label": "엘리베이터 홀" },
+    { "location_id": "archive_room", "label": "자료보관실" }
+  ]
 }
