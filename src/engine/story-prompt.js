@@ -61,6 +61,34 @@ export function buildRegenerationFeedbackSection(feedbackText) {
   return `\n\n[사용자 피드백 — 재생성 최우선 지시]\n이번 턴의 이전 버전은 더 이상 존재하지 않는다. 아래 피드백을 이번 재생성에서 최우선으로 반영해 새로 작성한다.\n${text}`;
 }
 
+/**
+ * Repeats the already-selected canon as the final system message after every
+ * CSA/feedback section has been assembled. This adds no new source of truth: it
+ * merely gives the existing active_character_canon final prompt authority.
+ */
+export function appendLateAuthoritativeCharacterCanon(messages) {
+  if (!Array.isArray(messages)) return messages;
+  const userMessage = messages.find(message => message?.role === 'user' && typeof message.content === 'string');
+  if (!userMessage) return messages;
+  let payload;
+  try { payload = JSON.parse(userMessage.content); } catch { return messages; }
+  const canon = object(payload?.active_character_canon) ?? {};
+  const context = object(payload?.context) ?? {};
+  if (!Object.keys(canon).length) return messages;
+  const addressingState = object(context?.npc_relationship_state) ?? {};
+  const section = [
+    '[최종 권위 캐릭터 캐논 — 이 메시지가 앞선 모든 캐릭터 묘사보다 우선한다]',
+    JSON.stringify(canon),
+    '[호칭 계약]',
+    '1) 각 캐릭터의 prompt_card.addressing과 현재 회사 직급·관계를 기본값으로 사용한다.',
+    '2) 플레이어가 이번 입력에서 특정 호칭을 요청해 NPC가 수용하더라도 그 효력은 현재 장면에 한정한다.',
+    '3) 이후 턴에도 지속되는 호칭으로 취급하려면 저장된 npc_relationship_state 또는 캐릭터 canon에 그 변화가 명시되어 있어야 한다.',
+    '4) 업무상 직급 호칭과 사적 친밀 호칭을 혼동하지 않고, 일회성 농담·CSA 수용·성적 반응만으로 영구 호칭을 만들지 않는다.',
+    `현재 저장된 관계 상태: ${JSON.stringify(addressingState)}`
+  ].join('\n');
+  return [...messages, { role: 'system', content: section }];
+}
+
 export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
