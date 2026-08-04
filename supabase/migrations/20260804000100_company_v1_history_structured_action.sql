@@ -1,4 +1,4 @@
--- NOT APPLIED.
+-- APPLIED to Supabase project fmcrspgxstsmxxsmkeee as migration 20260804102357_company_v1_history_structured_action.
 -- Extends the existing action -> active turn/revision pipeline. No parallel history
 -- store or replacement feedback model is introduced.
 
