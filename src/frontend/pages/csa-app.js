@@ -28,6 +28,14 @@ function messageFor(error) {
   return error instanceof ApiError ? error.message : '상식개변 앱 요청에 실패했습니다.';
 }
 
+/** Prefers the server's specific per-operation issues (slot full, strength locked, unsupported, etc.) over the generic envelope message. */
+function issuesFor(error) {
+  if (error instanceof ApiError && Array.isArray(error.issues) && error.issues.length) {
+    return error.issues.map(issue => ({ message: typeof issue?.message === 'string' && issue.message ? issue.message : messageFor(error) }));
+  }
+  return [{ message: messageFor(error) }];
+}
+
 export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
   const get = id => documentRef.querySelector(`#${id}`);
   const el = (tag, className = '', text = '') => {
@@ -243,15 +251,34 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     if (ops.some(item => item.operation !== 'deactivate' && item.source_type === 'custom' && !item.content?.trim())) { draft.issues = [{ message: '상식개변 내용을 입력해 주세요.' }]; return renderTab('csa'); }
     if (ops.some(item => item.operation !== 'deactivate' && item.source_type === 'preset' && !isPresetPayloadComplete(appState, item.preset, item.strength))) { draft.issues = [{ message: '프리셋의 모든 항목을 선택해 주세요.' }]; return renderTab('csa'); }
     applying = true; renderTab(draft.tab);
+    let validated;
     try {
-      const result = await api.validateAppAction(gameId, { version: 1, type: 'app_transaction', base_turn_count: appState.turn_count, operations: ops });
-      applying = false;
-      close();
-      await onSubmit?.(result.display_input, result.canonical_action);
+      validated = await api.validateAppAction(gameId, { version: 1, type: 'app_transaction', base_turn_count: appState.turn_count, operations: ops });
     } catch (error) {
       applying = false;
-      draft.issues = [{ message: messageFor(error) }];
+      draft.issues = issuesFor(error);
       renderTab('csa');
+      onError?.(error);
+      return;
+    }
+    // Validation passed, but the modal must stay open — with the draft, strength/preset
+    // selection, and custom text intact — until the turn hand-off itself is confirmed to
+    // have taken over. Closing on validate-success alone would silently lose the change
+    // if startNewAction rejects it (busy, stale context, network failure).
+    try {
+      const handedOff = await onSubmit?.(validated.display_input, validated.canonical_action);
+      if (handedOff === false) {
+        applying = false;
+        draft.issues = [{ message: '변경사항은 확인되었지만 적용에 실패했습니다. 다시 시도해 주세요.' }];
+        renderTab(draft.tab);
+        return;
+      }
+      applying = false;
+      close();
+    } catch (error) {
+      applying = false;
+      draft.issues = issuesFor(error);
+      renderTab(draft.tab);
       onError?.(error);
     }
   }

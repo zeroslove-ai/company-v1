@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createCsaApp } from '../src/frontend/pages/csa-app.js';
+import { ApiError } from '../src/frontend/pages/api.js';
 import { activeItems, applyPresetDefaults, createDraft, dirty, operations, presetPreviewContent } from '../src/frontend/pages/csa-app-state.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -146,4 +147,64 @@ test('csa app modal: a custom activation goes through app-validate exactly once,
   assert.ok(submitted, 'onSubmit should fire with the server-validated canonical_action + display_input');
   assert.equal(submitted.canonicalAction.validation_proof, 'sig');
   assert.equal(csaApp.isOpen(), false, 'the modal closes once the transaction is handed off to the normal turn pipeline');
+});
+
+function driveCustomActivation(nodes, { content = '자유로운 근무복을 허용한다' } = {}) {
+  findByText(nodes['csa-app-body'], '+ 상식개변 추가').onclick();
+  findByText(findByTag(nodes['csa-app-body'], 'article'), '직접 작성').onclick();
+  const strengthSelect = findAllByTag(findByTag(nodes['csa-app-body'], 'article'), 'select')[0];
+  strengthSelect.value = 'weak'; strengthSelect.onchange();
+  const textarea = findByTag(findByTag(nodes['csa-app-body'], 'article'), 'textarea');
+  textarea.value = content; textarea.oninput();
+  return findByText(nodes['csa-app-draft-bar'], '적용');
+}
+
+test('csa app modal: a handoff failure (onSubmit returns false) keeps the modal open with the draft and shows an error, without a second validate call', async () => {
+  const { nodes, documentRef } = pageFixture();
+  const appState = sampleAppState({ common_sense: [] });
+  let validateCalls = 0;
+  const api = {
+    appState: async () => ({ app: appState }),
+    validateAppAction: async (gameId, structuredAction) => {
+      validateCalls += 1;
+      return { canonical_action: { ...structuredAction, validation_proof: 'sig' }, display_input: '상식개변 앱에서 상식개변 1건의 변경사항을 적용한다.', summary: { total: 1 } };
+    }
+  };
+  const csaApp = createCsaApp({ documentRef, api, gameId: 'game-1', onSubmit: async () => false });
+
+  await csaApp.open('csa');
+  const applyButton = driveCustomActivation(nodes);
+  await applyButton.onclick();
+
+  assert.equal(validateCalls, 1, 'a failed hand-off must never trigger a second app-validate call');
+  assert.equal(csaApp.isOpen(), true, 'the modal stays open when the hand-off to the turn pipeline fails');
+  assert.ok(findByTag(nodes['csa-app-body'], 'textarea'), 'the custom draft (source_type/content) survives the failed hand-off');
+  assert.ok(findByText(nodes['csa-app-body'], '변경사항은 확인되었지만 적용에 실패했습니다. 다시 시도해 주세요.'), 'the specific hand-off failure message is shown, not silence');
+});
+
+test('csa app modal: app-validate issue codes (slot full, strength locked, etc.) are surfaced individually, not collapsed into one generic message', async () => {
+  const { nodes, documentRef } = pageFixture();
+  const appState = sampleAppState({ common_sense: [] });
+  const api = {
+    appState: async () => ({ app: appState }),
+    validateAppAction: async () => {
+      throw new ApiError({
+        endpoint: '/api/app-validate', status: 422, code: 'app_action_invalid', message: '변경사항을 적용할 수 없습니다.', retryable: false,
+        issues: [
+          { code: 'CSA_SLOT_FULL', message: '상식개변 활성 슬롯이 부족합니다.' },
+          { code: 'STRENGTH_LOCKED', message: '현재 레벨에서 사용할 수 없는 강도입니다.' }
+        ]
+      });
+    }
+  };
+  const csaApp = createCsaApp({ documentRef, api, gameId: 'game-1', onSubmit: async () => true });
+
+  await csaApp.open('csa');
+  const applyButton = driveCustomActivation(nodes);
+  await applyButton.onclick();
+
+  assert.equal(csaApp.isOpen(), true);
+  assert.ok(findByText(nodes['csa-app-body'], '상식개변 활성 슬롯이 부족합니다.'), 'the slot-full reason is shown verbatim');
+  assert.ok(findByText(nodes['csa-app-body'], '현재 레벨에서 사용할 수 없는 강도입니다.'), 'the strength-locked reason is shown verbatim');
+  assert.equal(findByText(nodes['csa-app-body'], '변경사항을 적용할 수 없습니다.'), null, 'the generic envelope message is not shown when specific issues exist');
 });

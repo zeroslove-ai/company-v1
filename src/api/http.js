@@ -1,10 +1,11 @@
 export class HttpError extends Error {
-  constructor(status, code, message, retryable = false) {
+  constructor(status, code, message, retryable = false, issues = null) {
     super(message);
     this.name = 'HttpError';
     this.status = status;
     this.code = code;
     this.retryable = retryable;
+    this.issues = Array.isArray(issues) && issues.length ? issues : null;
   }
 }
 
@@ -29,7 +30,7 @@ export function fail(error) {
   const normalized = error instanceof HttpError
     ? error
     : new HttpError(500, 'internal_error', 'Unexpected server error');
-  return jsonResponse({ ok: false, error: { code: normalized.code, message: normalized.message, retryable: normalized.retryable } }, normalized.status);
+  return jsonResponse({ ok: false, error: { code: normalized.code, message: normalized.message, retryable: normalized.retryable, ...(normalized.issues ? { issues: normalized.issues } : {}) } }, normalized.status);
 }
 
 export async function readJson(request) {

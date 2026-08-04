@@ -674,7 +674,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
         const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: committedTurn + 1, capability });
         if (!plan.ok) {
-          throw new HttpError(plan.status ?? 422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '변경사항을 적용할 수 없습니다.', false);
+          throw new HttpError(plan.status ?? 422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '변경사항을 적용할 수 없습니다.', false, plan.issues);
         }
 
         const candidates = collectSemanticStrengthCandidates(save, plan.canonical_action, getCsaRules(save));
@@ -684,7 +684,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           semanticResults = await classifyAppOperationStrengths(candidates, async systemPrompt =>
             runExtract({ env, fetchImpl, messages: [{ role: 'system', content: systemPrompt }] }));
           const issues = semanticStrengthIssues(candidates, semanticResults, capability.available_strength_id);
-          if (issues.length) throw new HttpError(422, 'app_action_invalid', '변경사항을 적용할 수 없습니다.', false);
+          if (issues.length) throw new HttpError(422, 'app_action_invalid', '변경사항을 적용할 수 없습니다.', false, issues);
         }
 
         let canonicalAction = plan.canonical_action;
