@@ -44,6 +44,25 @@ test('toolbar enables implemented utilities only when their actual DOM/API contr
   });
 });
 
+test('legacy progressed Company save still exposes the CSA app entry', () => {
+  const context = {
+    save: {
+      committed_turn: 4,
+      data: {
+        turn_state: { committed_turn: 4 },
+        event_ledger: [],
+        npc_stats: {}
+      }
+    }
+  };
+  const capabilities = toolbarCapabilities(
+    { turn: { committed_turn: 4 } },
+    null,
+    { context, utilityAvailable: { history: true, feedback: true, npcFinder: true } }
+  );
+  assert.equal(capabilities.canOpenApps, true);
+});
+
 test('feedback revision reuses the action reserved by the existing revision RPC', async () => {
   const calls = [];
   const structuredAction = { version: 1, type: 'csa_app_transaction', base_turn_count: 2, operations: [] };
@@ -98,12 +117,24 @@ test('TTS disabled means zero TTS requests even when a dialogue line exists', as
   assert.equal(ttsCalls, 0);
 });
 
-test('frontend shell includes the utility controls and responsive stylesheet', () => {
+test('frontend shell exposes a dedicated hospital-style CSA app entry beside game state', () => {
   const html = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
-  const css = fs.readFileSync(path.join(root, 'src/frontend/pages/utility.css'), 'utf8');
-  for (const id of ['character-image', 'tts-enabled', 'open-history', 'send-feedback', 'find-npc', 'history-overlay', 'feedback-overlay', 'npc-finder-overlay']) {
+  const utilityCss = fs.readFileSync(path.join(root, 'src/frontend/pages/utility.css'), 'utf8');
+  const entryCss = fs.readFileSync(path.join(root, 'src/frontend/pages/csa-entry.css'), 'utf8');
+  const csaApp = fs.readFileSync(path.join(root, 'src/frontend/pages/csa-app.js'), 'utf8');
+
+  for (const id of ['character-image', 'tts-enabled', 'open-history', 'send-feedback', 'find-npc', 'open-apps', 'resume-play', 'history-overlay', 'feedback-overlay', 'npc-finder-overlay']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
+  assert.match(html, /class="csa-entry-panel"[\s\S]*id="open-apps"[\s\S]*📱 상식개변 앱/);
+  assert.match(html, /data-tab="player">플레이어 정보/);
+  assert.doesNotMatch(html, /<nav class="utility-toolbar"[\s\S]*id="open-apps"/);
   assert.match(html, /utility\.css/);
-  assert.match(css, /@media \(max-width: 720px\)/);
+  assert.match(html, /csa-entry\.css/);
+  assert.match(utilityCss, /@media \(max-width: 720px\)/);
+  assert.match(entryCss, /\.csa-entry-panel/);
+  assert.match(entryCss, /position: sticky/);
+  assert.match(csaApp, /function renderPlayer\(body\)/);
+  assert.match(csaApp, /\['home', 'player', 'csa', 'manual'\]/);
+  assert.match(csaApp, /Story -> Extract -> Commit/);
 });
