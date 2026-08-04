@@ -9,22 +9,26 @@ import {
   parsedTurnNarrative,
   physicalRelationDisplay,
   renderChoices,
+  renderHistory,
   renderNarrative,
   stateDisplayValues
 } from '../src/frontend/pages/render.js';
+import { parseNarrative as parseFrontendNarrative } from '../src/frontend/pages/narrative.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 class FakeNode {
-  constructor(tag) {
+  constructor(tag, id = '') {
     this.tag = tag;
+    this.id = id;
     this.children = [];
     this.className = '';
     this.textContent = '';
     this.title = '';
     this.ariaLabel = '';
     this.disabled = false;
+    this.dataset = {};
     this.listeners = new Map();
   }
   append(...nodes) { this.children.push(...nodes); }
@@ -38,27 +42,56 @@ function withFakeDocument(run) {
   try { return run(); } finally { globalThis.document = previous; }
 }
 
-test('compact choice buttons use about five characters while preserving the full action payload', () => {
+test('Story-authored compact labels drive the buttons while the full action payload is preserved', () => {
   const choices = [
-    '김제나 선배가 바닥에 무릎을 꿇은 채 자료를 보여주는 것을 살펴본다.',
-    '이메이 선배와 대화에 합류한다.',
-    '보고서 범위에 대해 질문한다.',
-    '잠시 물러나 조용히 지켜본다.'
+    '김제나가 가리키는 브랜드 포지셔닝 문구를 함께 살펴보고 의견을 말한다.',
+    '무릎을 꿇고 있는 김제나 곁에 빈 의자를 가져다 놓는다.',
+    '이메이에게 타깃 정렬을 해결했던 사례를 묻는다.',
+    '김제나가 더 편한 자세를 취해도 된다고 말한다.'
   ];
-  assert.equal(choiceLabel(choices[0]), '자료보기');
-  assert.equal(choiceLabel(choices[1]), '대화합류');
-  assert.equal(Array.from(choiceLabel(choices[2])).length <= 5, true);
+  const labels = ['자료검토', '의자가져오기', '사례질문', '자세배려'];
+  const parsed = parseFrontendNarrative(`[1. 서사 및 행동]\n본문\n[2. 플레이어 속마음]\n생각\n[3. 플레이어 상황판]\n상태\n[4. 선택지]\n${choices.map((choice, index) => `${index + 1}. [${labels[index]}] ${choice}`).join('\n')}`);
+  assert.deepEqual(parsed.choices, choices);
+  assert.deepEqual(parsed.choice_labels, labels);
 
   withFakeDocument(() => {
-    const container = new FakeNode('choices');
+    const current = new FakeNode('div', 'current-story');
+    renderNarrative(current, parsed);
+    const container = new FakeNode('div', 'choice-list');
     let selected = '';
     renderChoices(container, choices, { onChoose: value => { selected = value; } });
     assert.equal(container.children.length, 4);
-    assert.equal(container.children[0].textContent, '1 자료보기');
+    assert.deepEqual(container.children.map(button => button.textContent), ['1 자료검토', '2 의자가져오기', '3 사례질문', '4 자세배려']);
     assert.equal(container.children[0].title, choices[0]);
     assert.equal(container.children[0].ariaLabel, `1번 선택지: ${choices[0]}`);
     container.children[0].listeners.get('click')();
     assert.equal(selected, choices[0]);
+  });
+});
+
+test('legacy unlabeled choices use a neutral prefix fallback rather than semantic guessing', () => {
+  const choice = '김제나 선배가 바닥에 무릎을 꿇은 채 자료를 보여준다.';
+  assert.equal(choiceLabel(choice), '김제나선배');
+  assert.notEqual(choiceLabel(choice), '자료보기');
+});
+
+test('committed labels are reused only when the exact four full choices match', () => {
+  const choices = ['첫 행동 전문', '둘 행동 전문', '셋 행동 전문', '넷 행동 전문'];
+  const labels = ['첫행동', '둘행동', '셋행동', '넷행동'];
+  withFakeDocument(() => {
+    const storyHistory = new FakeNode('div', 'story-history');
+    renderHistory(storyHistory, [{
+      player_action: '이전 행동',
+      parsed_blocks: { blocks: [{ type: 'scene', text: '본문' }], choices, choice_labels: labels },
+      choices
+    }]);
+    const matched = new FakeNode('div', 'choice-list');
+    renderChoices(matched, choices);
+    assert.deepEqual(matched.children.map(button => button.textContent), ['1 첫행동', '2 둘행동', '3 셋행동', '4 넷행동']);
+
+    const different = new FakeNode('div', 'choice-list');
+    renderChoices(different, ['다른 선택지 하나', '다른 선택지 둘', '다른 선택지 셋', '다른 선택지 넷']);
+    assert.equal(different.children[0].textContent, '1 다른선택지');
   });
 });
 
@@ -93,6 +126,7 @@ test('status projection removes focus, last-speaker, duplicate time, and fake re
   assert.equal(values.장소, '사무실');
   assert.equal(values.업무, '보고서 검토');
   assert.equal(values.활성규정, '1');
+  assert.equal(values.흐름, '');
   assert.equal('초점' in values, false);
   assert.equal('마지막 화자' in values, false);
   assert.equal('시간' in values, false);
