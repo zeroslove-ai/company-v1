@@ -90,6 +90,19 @@ function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/**
+ * Once an action has been reserved, its stored structured_action is authoritative.
+ * Repeated stages may resend the same value, but cannot substitute a different one.
+ */
+function structuredActionFor(action, requestedStructuredAction = null) {
+  const stored = action?.structured_action ?? null;
+  const requested = requestedStructuredAction ?? null;
+  if (stored !== null && requested !== null && stableStringify(stored) !== stableStringify(requested)) {
+    throw new HttpError(409, 'structured_action_mismatch', 'structured_action does not match the reserved action', false);
+  }
+  return stored ?? requested;
+}
+
 /** Normalizes either an already-array character/NPC list or an id-keyed content map into an array. */
 function toEntryArray(mapOrArray, idField) {
   if (Array.isArray(mapOrArray)) return mapOrArray;
@@ -314,7 +327,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             turn_summary: row.turn_summary,
             mind_monitor: row.mind_monitor,
             player_inner_thought: typeof parsedBlocks?.player_inner_thought === 'string' ? parsedBlocks.player_inner_thought : '',
-            structured_action: null,
+            structured_action: row.structured_action ?? null,
             feedback_text: row.feedback_text ?? null,
             committed_at: row.committed_at
           };
@@ -331,8 +344,8 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
       const expectedTurn = body.expected_turn;
+      const requestedStructuredAction = body.structured_action ?? null;
       const playerAction = requireString(body.player_action, 'player_action');
-      const structuredAction = body.structured_action ?? null;
       if (!Number.isInteger(expectedTurn) || expectedTurn < 1) throw new HttpError(400, 'invalid_request', 'expected_turn must be a positive integer');
       const db = createSupabaseClient(env, fetchImpl);
       // A feedback_revision action is reserved by /api/feedback (reserve_feedback_revision), not
@@ -342,8 +355,9 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const existingAction = await db.getAction(gameId, actionId).catch(() => null);
       const reservation = existingAction?.action_kind === 'feedback_revision'
         ? { action_id: existingAction.action_id, turn_id: existingAction.turn_id, expected_turn: existingAction.expected_turn, replayed: false }
-        : await db.callRpc('reserve_turn_action', { p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn, p_player_action: playerAction });
+        : await db.reserveTurnAction(gameId, actionId, expectedTurn, playerAction, requestedStructuredAction);
       const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, actionId));
+      const structuredAction = structuredActionFor(action, requestedStructuredAction);
       let retryingStory = false;
       if (!action.story_text && action.processing_status === 'story_failed') {
         const claimed = await db.claimActionStatus(gameId, actionId, 'story_failed', 'story_streaming', null);
@@ -430,7 +444,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const db = createSupabaseClient(env, fetchImpl);
       const action = actionOrNotFound(await db.getAction(gameId, actionId));
       if (!action.story_text) throw new HttpError(409, 'story_required', 'A completed Story is required before Extract', true);
-      const structuredAction = body.structured_action ?? null;
+      const structuredAction = structuredActionFor(action, body.structured_action ?? null);
       if (action.extract_delta) {
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: action.parsed_blocks ?? parseNarrative(action.story_text, { master }), npcIds });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
@@ -524,12 +538,12 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
       const expectedTurn = body.expected_turn;
-      const structuredAction = body.structured_action ?? null;
       if (!Number.isInteger(expectedTurn) || expectedTurn < 1) throw new HttpError(400, 'invalid_request', 'expected_turn must be a positive integer');
       const db = createSupabaseClient(env, fetchImpl);
       const timing = {};
       try {
         const action = actionOrNotFound(await db.getAction(gameId, actionId));
+        const structuredAction = structuredActionFor(action, body.structured_action ?? null);
         if (!action.story_text || !action.extract_delta) throw new HttpError(409, 'action_incomplete', 'Story and Extract are required before Commit', true);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
@@ -715,8 +729,11 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       try {
         const reservation = await db.reserveFeedbackRevision(gameId, revisionRequestId, feedbackText);
         return ok({
-          action_id: reservation.action_id, expected_turn: reservation.target_turn_number,
-          original_player_action: reservation.original_player_action, revision_request_id: revisionRequestId,
+          action_id: reservation.action_id,
+          expected_turn: reservation.target_turn_number,
+          original_player_action: reservation.original_player_action,
+          structured_action: reservation.structured_action ?? null,
+          revision_request_id: revisionRequestId,
           replayed: Boolean(reservation.replayed)
         });
       } finally {
