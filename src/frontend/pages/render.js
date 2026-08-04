@@ -146,11 +146,83 @@ function renderPlayer(container, player, scene) {
     ['시간 블록', displayValue(scene?.world_state?.time_block)],
     ['적용 규정', Array.isArray(scene?.csa_active) ? String(scene.csa_active.length) : ''],
     ['상태', displayValue(player?.status)],
-    ['속마음', displayValue(player?.inner_thought)],
-    ['흥분도', player?.excitement === null ? '' : displayValue(player?.excitement)],
-    ['사정 진행도', player?.ejaculation_progress === null ? '' : displayValue(player?.ejaculation_progress)],
-    ['누적 사정 횟수', player?.ejaculation_count === null ? '' : displayValue(player?.ejaculation_count)]
+    ['흥분도', player?.excitement === null ? '' : displayValue(player?.excitement)]
   ]);
+}
+
+function supplementalElement(elements, key, id) {
+  if (elements?.[key]) return elements[key];
+  const documentRef = elements?.player?.ownerDocument ?? globalThis.document;
+  return documentRef?.getElementById?.(id) ?? null;
+}
+
+function renderTextSlot(container, { heading, value, className = '' }) {
+  if (!container) return;
+  container.replaceChildren();
+  const normalized = displayValue(value).trim();
+  if (!normalized) { container.hidden = true; container.className = 'future-slot'; return; }
+  container.hidden = false;
+  container.className = ['future-slot', className].filter(Boolean).join(' ');
+  const title = document.createElement('p'); title.className = 'future-slot-heading'; title.textContent = heading;
+  const detail = document.createElement('p'); detail.className = 'future-slot-value'; detail.textContent = normalized;
+  container.append(title, detail);
+}
+
+function progressValue(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : null;
+}
+
+export function playerSupplementalDisplay(viewModel) {
+  const model = viewModel ?? {};
+  const world = object(model.scene?.world_state) ?? {};
+  const day = displayValue(world.day ?? world.day_index);
+  const timeBlock = displayValue(world.time_block);
+  const progress = progressValue(model.player?.ejaculation_progress);
+  const count = typeof model.player?.ejaculation_count === 'number' && Number.isFinite(model.player.ejaculation_count)
+    ? model.player.ejaculation_count
+    : null;
+  return {
+    innerThought: displayValue(model.player?.inner_thought),
+    gameTime: [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '),
+    ejaculationProgress: progress,
+    ejaculationCount: count,
+    turnSummary: displayValue(model.turn?.turn_summary)
+  };
+}
+
+function renderProgressSlot(container, { progress, count }) {
+  if (!container) return;
+  container.replaceChildren();
+  if (progress === null) { container.hidden = true; container.className = 'future-slot'; return; }
+  container.hidden = false;
+  container.className = ['future-slot', 'player-progress-card', progress >= 50 ? 'ready' : '', progress >= 100 ? 'maximum' : ''].filter(Boolean).join(' ');
+
+  const head = document.createElement('div'); head.className = 'player-progress-head';
+  const label = document.createElement('span'); label.textContent = count === null ? '사정 진행도' : `사정 진행도 · 누적 ${count}회`;
+  const value = document.createElement('strong'); value.textContent = `${Math.round(progress)}%`;
+  head.append(label, value);
+
+  const track = document.createElement('div'); track.className = 'player-progress-track';
+  const fill = document.createElement('div'); fill.className = 'player-progress-fill'; fill.style.setProperty('--progress', `${progress}%`);
+  const threshold = document.createElement('span'); threshold.className = 'player-progress-threshold'; threshold.ariaHidden = 'true';
+  track.append(fill, threshold);
+  container.append(head, track);
+}
+
+function renderSupplementalPanels(elements, model) {
+  const display = playerSupplementalDisplay(model);
+  renderTextSlot(supplementalElement(elements, 'playerInnerThought', 'player-inner-thought'), {
+    heading: '플레이어 속마음', value: display.innerThought, className: 'player-inner-thought-card'
+  });
+  renderTextSlot(supplementalElement(elements, 'gameTime', 'game-time-slot'), {
+    heading: '현재 시간', value: display.gameTime, className: 'game-time-card'
+  });
+  renderProgressSlot(supplementalElement(elements, 'ejaculationProgress', 'ejaculation-progress-slot'), {
+    progress: display.ejaculationProgress, count: display.ejaculationCount
+  });
+  renderTextSlot(supplementalElement(elements, 'turnChanges', 'turn-changes-slot'), {
+    heading: '최근 턴 변화', value: display.turnSummary, className: 'turn-change-card'
+  });
 }
 
 export function renderState(elements, viewModel, { title = '상식개변: 회사편' } = {}) {
@@ -165,4 +237,5 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   renderFocalCharacter(elements.focal, model.focal_character);
   renderMindMonitor(elements.mind, model.media?.mind_monitor);
   renderPlayer(elements.player, model.player, model.scene);
+  renderSupplementalPanels(elements, model);
 }
