@@ -1,3 +1,5 @@
+import { CATALOGS } from './catalogs.js';
+
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
 }
@@ -53,6 +55,20 @@ function mindMonitor(currentExtract, turn) {
   return object(object(currentExtract)?.mind_monitor) ?? object(turn.mind_monitor) ?? {};
 }
 
+function catalogName(list, idField, id) {
+  if (typeof id !== 'string' || !id) return '';
+  return text(list.find(item => item?.[idField] === id)?.name);
+}
+
+function dialogueLines(currentExtract, parsedStory) {
+  if (Array.isArray(currentExtract?.dialogue_lines)) return currentExtract.dialogue_lines;
+  if (Array.isArray(parsedStory?.dialogue_lines)) return parsedStory.dialogue_lines;
+  if (!Array.isArray(parsedStory?.blocks)) return [];
+  return parsedStory.blocks
+    .filter(block => block?.type === 'dialogue' && typeof block.text === 'string' && block.text.trim())
+    .map(block => ({ speaker: text(block.speaker), character_id: text(block.character_id), text: block.text, direction: text(block.direction) }));
+}
+
 function npcView(save, id) {
   if (!id) return null;
   const stats = object(save.npc_stats)?.[id];
@@ -75,7 +91,10 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const lastSpeakerId = text(save.last_speaker_id);
   const scene = object(save.scene_state) ?? {};
   const player = object(save.player) ?? {};
-  const playerStats = object(save.player_stats) ?? {};
+  const playerSexualState = object(save.player_sexual_state) ?? {};
+  const playerSceneState = object(save.player_scene_state) ?? {};
+  const focalSceneState = object(object(save.npc_scene_state)?.[focalId]) ?? {};
+  const extractCharacterId = text(currentExtract?.character_id);
 
   return {
     turn: {
@@ -91,37 +110,54 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
       choices: choices(save, turn),
       player_status: text(parsedStory.player_status),
-      player_inner_thought: '',
-      dialogue_lines: [],
+      player_inner_thought: text(parsedStory.player_inner_thought),
+      dialogue_lines: dialogueLines(currentExtract, parsedStory),
       warnings: strings(parsedStory.warnings)
     },
     scene: {
       scene_state: scene,
       world_state: object(save.world_state) ?? {},
       story_summary_recent: text(save.story_summary_recent),
-      csa_active: strings(save.csa_active),
+      csa_active: Array.isArray(save.csa_active) ? save.csa_active : [],
       npcs_present: strings(save.last_npcs_present),
-      action_target_id: '',
-      clothing_state: null
+      action_target_id: text(currentExtract?.action_target_id),
+      clothing_state: object(currentExtract?.clothing_state)
     },
     focal_character: {
       id: focalId,
       last_speaker_id: lastSpeakerId,
-      character: npcView(save, focalId)
+      character: npcView(save, focalId),
+      scene_state: {
+        location_label: text(focalSceneState.location_label),
+        posture: text(focalSceneState.posture),
+        clothing: object(focalSceneState.clothing) ?? {}
+      }
     },
     player: {
       state: player,
-      stats: playerStats,
+      stats: object(save.npc_stats)?.player ?? {},
       name: text(player.name ?? save.player_name),
-      department: text(player.department ?? save.player_department),
-      excitement: numberOrNull(playerStats.sexual_arousal ?? playerStats.excitement ?? playerStats.성적흥분도),
+      department: text(player.department)
+        || catalogName(CATALOGS.departments, 'department_id', player.department_id)
+        || text(save.player_department),
+      position: text(player.position)
+        || catalogName(CATALOGS.positions, 'position_id', player.position_id),
+      excitement: numberOrNull(playerSexualState.arousal),
+      ejaculation_progress: numberOrNull(playerSexualState.ejaculation_progress),
+      ejaculation_count: numberOrNull(playerSexualState.ejaculation_count),
       status: text(parsedStory.player_status),
-      inner_thought: ''
+      inner_thought: text(parsedStory.player_inner_thought),
+      location_label: text(playerSceneState.location_label),
+      posture: text(playerSceneState.posture),
+      clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
-      image_id: imageId(save.last_image_id),
-      image_character_id: '',
-      image_selection: null,
+      image_id: imageId(currentExtract?.image_id ?? save.last_image_id),
+      image_character_id: extractCharacterId || focalId || lastSpeakerId,
+      image_selection: object(currentExtract?.image_selection),
+      image_pool: currentExtract?.is_sexual === true ? 'sex' : 'general',
+      image_situation: text(currentExtract?.image_reasoning) || text(turn.turn_summary),
+      dialogue_lines: dialogueLines(currentExtract, parsedStory),
       mind_monitor: mindMonitor(currentExtract, turn)
     }
   };

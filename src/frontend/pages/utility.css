@@ -1,0 +1,58 @@
+.media-panel {
+  display: grid;
+  gap: .7rem;
+  padding: 1rem;
+  border: 1px solid #2f4051;
+  border-radius: .85rem;
+  background: #19212c;
+}
+.media-panel h2 { margin: 0; font-size: 1rem; }
+.character-image { width: 100%; max-height: 26rem; object-fit: contain; border-radius: .65rem; background: #0e141c; }
+.media-status, .utility-status { margin: 0; color: #b9c9d4; font-size: .9rem; }
+.media-controls { display: flex; align-items: center; justify-content: space-between; gap: .7rem; }
+.tts-toggle { display: inline-flex; align-items: center; gap: .4rem; }
+.media-controls button, .utility-modal button, .utility-modal select {
+  min-height: 2.6rem;
+  border: 1px solid #4d7188;
+  border-radius: .5rem;
+  color: #f5fbff;
+  background: #243d4e;
+  padding: .5rem .75rem;
+}
+.utility-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgb(5 10 16 / .8);
+  backdrop-filter: blur(4px);
+}
+.utility-overlay[hidden] { display: none; }
+.utility-modal {
+  width: min(100%, 34rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  display: grid;
+  gap: .8rem;
+  padding: 1.1rem;
+  border: 1px solid #4d7188;
+  border-radius: .8rem;
+  color: #e8f2f7;
+  background: #16232e;
+  box-shadow: 0 1.25rem 4rem rgb(0 0 0 / .5);
+}
+.utility-modal-wide { width: min(100%, 56rem); }
+.utility-modal-header { display: flex; align-items: center; justify-content: space-between; gap: .8rem; border-bottom: 1px solid #2f4051; padding-bottom: .7rem; }
+.utility-modal-header h2 { margin: 0; font-size: 1.1rem; }
+.utility-modal textarea, .utility-modal select { width: 100%; }
+.utility-history-list { display: grid; gap: .8rem; }
+.utility-history-list .turn-card { background: #1e2a37; }
+@media (max-width: 720px) {
+  .utility-overlay { align-items: start; padding: .5rem; }
+  .utility-modal { width: 100%; max-height: calc(100dvh - 1rem); }
+  .media-controls { align-items: stretch; flex-direction: column; }
+  .media-controls button { width: 100%; }
+}

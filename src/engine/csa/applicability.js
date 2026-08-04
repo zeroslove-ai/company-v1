@@ -25,13 +25,33 @@ export function getCsaRules(save) {
   return isPlainObject(save?.csa_rules) ? save.csa_rules : {};
 }
 
-/** Full entry objects for the ids currently listed as active, in csa_active order. */
+function legacyContent(rule) {
+  if (typeof rule?.content === 'string' && rule.content.trim()) return rule.content;
+  return typeof rule?.required_action === 'string' ? rule.required_action : '';
+}
+
+/**
+ * Full entry objects for ids currently listed in csa_active, in that order.
+ * Early Company saves predate the app port and therefore omit active/content/
+ * source_type on their rule bodies. Membership in csa_active was already the
+ * canonical active signal, so missing active is normalized to true at this
+ * read boundary; an explicit active:false is still authoritative.
+ */
 export function getActiveCsaEntries(save) {
   const ids = Array.isArray(save?.csa_active) ? save.csa_active : [];
   const rules = getCsaRules(save);
   return ids
     .filter(id => typeof id === 'string' && isPlainObject(rules[id]))
-    .map(id => ({ id, ...rules[id] }));
+    .map(id => {
+      const rule = rules[id];
+      return {
+        id,
+        ...rule,
+        active: rule.active !== false,
+        content: legacyContent(rule),
+        source_type: rule.source_type === 'preset' ? 'preset' : 'custom'
+      };
+    });
 }
 
 export function isCsaApplicable(csa) {

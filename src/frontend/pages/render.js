@@ -113,19 +113,43 @@ function renderFocalCharacter(container, focal) {
   const heading = document.createElement('h2'); heading.textContent = '주요 인물'; container.append(heading);
   const values = [['초점', displayValue(focal?.id)], ['마지막 화자', displayValue(focal?.last_speaker_id)]];
   for (const [label, value] of values) { if (!value) continue; const line = document.createElement('p'); line.textContent = `${label}: ${value}`; container.append(line); }
-  for (const [label, value] of [['상태', character?.stats], ['관계', character?.relationship], ['감정', character?.emotion]]) {
-    if (!value || Object.keys(value).length === 0) continue;
-    const line = document.createElement('p'); line.textContent = `${label}: ${JSON.stringify(value)}`; container.append(line);
+  const sceneState = object(focal?.scene_state) ?? {};
+  for (const [label, value] of [['위치', sceneState.location_label], ['자세', sceneState.posture]]) {
+    if (!value) continue;
+    const line = document.createElement('p'); line.textContent = `${label}: ${value}`; container.append(line);
+  }
+  const stats = object(character?.stats) ?? {};
+  const statLabels = { affinity: '호감도', csa_acceptance: '상식수용도', sexual_arousal: '성적흥분도', work_trust: '업무 신뢰도' };
+  for (const [key, label] of Object.entries(statLabels)) {
+    if (!(key in stats)) continue;
+    const line = document.createElement('p'); line.textContent = `${label}: ${stats[key]}`; container.append(line);
+  }
+  const relationship = object(character?.relationship) ?? {};
+  if (typeof relationship.intimacy_stage === 'string' && relationship.intimacy_stage) {
+    const line = document.createElement('p'); line.textContent = `관계 단계: ${relationship.intimacy_stage}`; container.append(line);
+  }
+  const emotion = object(character?.emotion) ?? {};
+  for (const [label, value] of [['표면 감정', emotion.surface], ['속마음', emotion.subconscious]]) {
+    if (!value) continue;
+    const line = document.createElement('p'); line.textContent = `${label}: ${value}`; container.append(line);
   }
 }
 
 function renderPlayer(container, player, scene) {
+  const clothing = object(player?.clothing) ?? {};
+  const clothingSummary = Object.values(clothing).some(value => value === 'removed' || value === 'open') ? '흐트러짐' : (Object.keys(clothing).length ? '정상 착용' : '');
   definitionList(container, [
     ['이름', displayValue(player?.name)], ['부서', displayValue(player?.department)],
-    ['현재 장소', displayValue(scene?.scene_state?.location_id)], ['시간 블록', displayValue(scene?.world_state?.time_block)],
+    ['현재 장소', displayValue(player?.location_label) || displayValue(scene?.scene_state?.location_id)],
+    ['자세', displayValue(player?.posture)],
+    ['복장', clothingSummary],
+    ['시간 블록', displayValue(scene?.world_state?.time_block)],
     ['적용 규정', Array.isArray(scene?.csa_active) ? String(scene.csa_active.length) : ''],
     ['상태', displayValue(player?.status)],
-    ['흥분도', player?.excitement === null ? '' : displayValue(player?.excitement)]
+    ['속마음', displayValue(player?.inner_thought)],
+    ['흥분도', player?.excitement === null ? '' : displayValue(player?.excitement)],
+    ['사정 진행도', player?.ejaculation_progress === null ? '' : displayValue(player?.ejaculation_progress)],
+    ['누적 사정 횟수', player?.ejaculation_count === null ? '' : displayValue(player?.ejaculation_count)]
   ]);
 }
 

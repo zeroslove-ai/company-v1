@@ -30,6 +30,8 @@ import {
   buildCsaPhysicalTransitionSection,
   buildCsaPublicSceneSection,
   buildCsaRuntimeExtractContractSection,
+  buildChoiceStructuredMetaExtractContractSection,
+  buildCsaSemanticContract,
   buildCsaRuntimeSection,
   buildCsaWeakSynergySection,
   buildMindEffectExtractFirewallSection,
@@ -50,7 +52,16 @@ import {
   sha256Base64url,
   signAppValidationProof,
   stableStringify,
-  verifyStructuredActionValidation
+  verifyStructuredActionValidation,
+  findNpc,
+  getGeneralNpc,
+  isGeneralNpcId,
+  buildRegenerationFeedbackSection,
+  resolveNumberedChoiceInput,
+  selectImage,
+  resolveTtsEligibility,
+  calculateProgress,
+  calculateCsaProgression
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -77,6 +88,19 @@ function actionIds(body) {
 
 function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Once an action has been reserved, its stored structured_action is authoritative.
+ * Repeated stages may resend the same value, but cannot substitute a different one.
+ */
+function structuredActionFor(action, requestedStructuredAction = null) {
+  const stored = action?.structured_action ?? null;
+  const requested = requestedStructuredAction ?? null;
+  if (stored !== null && requested !== null && stableStringify(stored) !== stableStringify(requested)) {
+    throw new HttpError(409, 'structured_action_mismatch', 'structured_action does not match the reserved action', false);
+  }
+  return stored ?? requested;
 }
 
 /** Normalizes either an already-array character/NPC list or an id-keyed content map into an array. */
@@ -153,6 +177,11 @@ function storySse({ meta, run }) {
 
 function csaCatalogFromEdition(edition) {
   return plainObject(edition?.csaPresets) ? edition.csaPresets : { actor_options: [], target_options: [], trigger_options: [], duration_options: [], categories: [], items: [], sexual_action_contract: {} };
+}
+
+function mapLocationIdsFromEdition(edition) {
+  const locations = Array.isArray(edition?.map?.locations) ? edition.map.locations : [];
+  return new Set(locations.map(location => location?.location_id).filter(id => typeof id === 'string'));
 }
 
 function appValidationSecret(env) {
@@ -243,6 +272,9 @@ export function createTurnRoutes({ fetchImpl, edition }) {
   const catalogs = catalogsFromEdition(edition);
   const heroineIds = Object.keys(edition?.characters?.characters ?? {});
   const csaCatalog = csaCatalogFromEdition(edition);
+  const generalNpcCatalog = plainObject(edition?.generalNpcs) ? edition.generalNpcs : { profiles: {} };
+  const mapLocationIds = mapLocationIdsFromEdition(edition);
+  const isKnownCharacterId = id => heroineIds.includes(id) || isGeneralNpcId(generalNpcCatalog, id);
 
   return {
     async context(request, env) {
@@ -263,20 +295,69 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       }
     },
 
+    /**
+     * Read-only, paginated turn history. game_turns already carries everything needed (no new
+     * RPC); record_status='active' dedupes a revised turn to only its current revision. Zero
+     * LLM calls, zero mutation. player_inner_thought is read from the stored parsed_blocks;
+     * only falls back to re-parsing story_text (never writing the result back to the DB) for a
+     * legacy/empty parsed_blocks row.
+     */
+    async history(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const beforeTurn = Number.isInteger(body.before_turn) && body.before_turn > 0 ? body.before_turn : null;
+      const limit = Math.min(Math.max(Number.isInteger(body.limit) ? body.limit : 20, 1), 50);
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const rows = await db.listTurns(gameId, { beforeTurn, limit: limit + 1 });
+        const hasMore = rows.length > limit;
+        const page = hasMore ? rows.slice(0, limit) : rows;
+        const records = page.map(row => {
+          const parsedBlocks = plainObject(row.parsed_blocks) && Object.keys(row.parsed_blocks).length
+            ? row.parsed_blocks
+            : parseNarrative(row.story_text ?? '', { master });
+          return {
+            turn_number: row.turn_number,
+            player_input: row.player_action,
+            player_action: row.player_action,
+            story_text: row.story_text,
+            parsed_blocks: parsedBlocks,
+            turn_summary: row.turn_summary,
+            mind_monitor: row.mind_monitor,
+            player_inner_thought: typeof parsedBlocks?.player_inner_thought === 'string' ? parsedBlocks.player_inner_thought : '',
+            structured_action: row.structured_action ?? null,
+            feedback_text: row.feedback_text ?? null,
+            committed_at: row.committed_at
+          };
+        });
+        return ok({ records, has_more: hasMore, next_before_turn: hasMore ? page[page.length - 1]?.turn_number ?? null : null });
+      } finally {
+        logTurnTiming({ event_stage: 'history', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
     async story(request, env) {
       const requestId = newRequestId();
       const startedAt = Date.now();
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
       const expectedTurn = body.expected_turn;
+      const requestedStructuredAction = body.structured_action ?? null;
       const playerAction = requireString(body.player_action, 'player_action');
-      const structuredAction = body.structured_action ?? null;
       if (!Number.isInteger(expectedTurn) || expectedTurn < 1) throw new HttpError(400, 'invalid_request', 'expected_turn must be a positive integer');
       const db = createSupabaseClient(env, fetchImpl);
-      const reservation = await db.callRpc('reserve_turn_action', {
-        p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn, p_player_action: playerAction
-      });
-      const action = actionOrNotFound(await db.getAction(gameId, actionId));
+      // A feedback_revision action is reserved by /api/feedback (reserve_feedback_revision), not
+      // reserve_turn_action — that RPC's "already exists" branch would report replayed:true even
+      // though no Story has been generated for it yet, wrongly tripping the in-progress guard
+      // below. Skip the normal-turn reservation entirely when the action already exists as one.
+      const existingAction = await db.getAction(gameId, actionId).catch(() => null);
+      const reservation = existingAction?.action_kind === 'feedback_revision'
+        ? { action_id: existingAction.action_id, turn_id: existingAction.turn_id, expected_turn: existingAction.expected_turn, replayed: false }
+        : await db.reserveTurnAction(gameId, actionId, expectedTurn, playerAction, requestedStructuredAction);
+      const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, actionId));
+      const structuredAction = structuredActionFor(action, requestedStructuredAction);
       let retryingStory = false;
       if (!action.story_text && action.processing_status === 'story_failed') {
         const claimed = await db.claimActionStatus(gameId, actionId, 'story_failed', 'story_streaming', null);
@@ -314,6 +395,9 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
+          }
+          if (action.action_kind === 'feedback_revision' && action.feedback_text) {
+            messages = [{ ...messages[0], content: messages[0].content + buildRegenerationFeedbackSection(action.feedback_text) }, ...messages.slice(1)];
           }
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
@@ -360,7 +444,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const db = createSupabaseClient(env, fetchImpl);
       const action = actionOrNotFound(await db.getAction(gameId, actionId));
       if (!action.story_text) throw new HttpError(409, 'story_required', 'A completed Story is required before Extract', true);
-      const structuredAction = body.structured_action ?? null;
+      const structuredAction = structuredActionFor(action, body.structured_action ?? null);
       if (action.extract_delta) {
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: action.parsed_blocks ?? parseNarrative(action.story_text, { master }), npcIds });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
@@ -390,11 +474,13 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
+          const hasSexualCsa = applicableCsa.some(csa => buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract).sexual_authorization === true);
           const promptStart = Date.now();
           let messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
-            + buildCsaRuntimeExtractContractSection(applicableCsa);
+            + buildCsaRuntimeExtractContractSection(applicableCsa)
+            + buildChoiceStructuredMetaExtractContractSection(hasSexualCsa);
           if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
           timing.extract_prompt_ms = Date.now() - promptStart;
           const extractUserPayload = JSON.parse(messages[1].content);
@@ -452,12 +538,12 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
       const expectedTurn = body.expected_turn;
-      const structuredAction = body.structured_action ?? null;
       if (!Number.isInteger(expectedTurn) || expectedTurn < 1) throw new HttpError(400, 'invalid_request', 'expected_turn must be a positive integer');
       const db = createSupabaseClient(env, fetchImpl);
       const timing = {};
       try {
         const action = actionOrNotFound(await db.getAction(gameId, actionId));
+        const structuredAction = structuredActionFor(action, body.structured_action ?? null);
         if (!action.story_text || !action.extract_delta) throw new HttpError(409, 'action_incomplete', 'Story and Extract are required before Commit', true);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
@@ -468,7 +554,8 @@ export function createTurnRoutes({ fetchImpl, edition }) {
 
         const mergeStart = Date.now();
         const merged = applyGuardedStateDelta(currentSave, extract, {
-          expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds
+          expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds,
+          storyText: action.story_text
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
@@ -497,14 +584,41 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             if (aftereffectPatch) nextSave.csa_aftereffect_state = aftereffectPatch;
           }
         }
+        // Player level/exp — ported verbatim from donor's live calculateProgress/
+        // calculateCsaProgression (see src/engine/progression.js); Company had no progression
+        // writer of its own before this. Never grants exp on a degraded-Extract turn or for a
+        // feedback revision (replacing a turn's content is not a new turn earning fresh exp).
+        if (action.action_kind !== 'feedback_revision') {
+          const experiencedThisTurn = (Array.isArray(extract.csa_runtime_updates) ? extract.csa_runtime_updates : [])
+            .filter(update => update.status === 'active')
+            .map(update => ({ character_id: update.character_id, csa_id: update.csa_id }));
+          const previouslyExperienced = new Set(Array.isArray(currentSave.csa_experienced_ids) ? currentSave.csa_experienced_ids : []);
+          const progressionAmount = calculateCsaProgression({
+            csaOperations: csaPlan?.canonical_action?.operations ?? [], experiencedThisTurn, previouslyExperienced,
+            degraded: extract.outcome === 'degraded'
+          });
+          if (progressionAmount.newly_experienced_keys.length) {
+            nextSave.csa_experienced_ids = [...previouslyExperienced, ...progressionAmount.newly_experienced_keys];
+          }
+          if (progressionAmount.amount > 0) {
+            const progress = calculateProgress(currentSave.player_progress, progressionAmount.amount);
+            nextSave.player_progress = { level: progress.level, exp: progress.exp };
+          }
+        }
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         const commitRpcStart = Date.now();
-        const commit = await db.callRpc('commit_company_turn', {
-          p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn,
-          p_next_save: nextSave, p_turn_summary: extract.turn_summary,
-          p_mind_monitor: merged.mind_monitor, p_choices: extract.choices
-        });
+        // A feedback-revision action never advances committed_turn — it replaces the content of
+        // the turn it targets, preserved as a new revision row (record_status flips the prior
+        // one to 'superseded'), so it goes through commit_feedback_revision instead of the
+        // normal expected_turn-advancing commit_company_turn.
+        const commit = action.action_kind === 'feedback_revision'
+          ? await db.commitFeedbackRevision(gameId, actionId, action.revision_request_id, nextSave, extract.turn_summary, merged.mind_monitor, extract.choices)
+          : await db.callRpc('commit_company_turn', {
+              p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn,
+              p_next_save: nextSave, p_turn_summary: extract.turn_summary,
+              p_mind_monitor: merged.mind_monitor, p_choices: extract.choices
+            });
         timing.commit_rpc_ms = Date.now() - commitRpcStart;
         return ok({
           commit, next_save: nextSave, warnings, turn_changes: turnChanges,
@@ -519,12 +633,112 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       }
     },
 
+    /**
+     * Deterministic, zero-LLM image selection. Queries only the requested character's active
+     * rows for the requested pool (at most 8, already ordered by curation_rank at the DB layer)
+     * and scores them in image-selector.js — the full image_library catalog never reaches this
+     * route's caller, let alone a Story prompt. A selection failure (no candidates in either
+     * pool) returns image: null rather than throwing; this must never block a turn.
+     */
+    async image(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const characterId = requireString(body.character_id, 'character_id');
+      const pool = body.pool === 'sex' ? 'sex' : 'general';
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const candidates = await db.listImageCandidates(characterId, pool);
+        const selected = selectImage(candidates, {
+          situation: typeof body.situation === 'string' ? body.situation : null,
+          tags: Array.isArray(body.tags) ? body.tags : [],
+          locationId: typeof body.location_id === 'string' ? body.location_id : null
+        });
+        return ok({ character_id: characterId, image: selected });
+      } finally {
+        logTurnTiming({ event_stage: 'image', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /**
+     * TTS is opt-in and only ever called by the frontend for a confirmed, already-rendered
+     * dialogue line — this route's own job is the server-side backstop: narrator lines, unknown
+     * speakers, and characters with no voice_id are all rejected before any external call is
+     * made, regardless of what the client requests. A rejection or an upstream TTS failure
+     * returns a normal error response; it can never fail Story/Extract/Commit since nothing in
+     * that pipeline ever calls this route.
+     */
+    async tts(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const text = requireString(body.text, 'text');
+      const speakerId = typeof body.character_id === 'string' ? body.character_id : null;
+      try {
+        const eligibility = resolveTtsEligibility({ speakerId, text, master });
+        if (!eligibility.eligible) throw new HttpError(422, eligibility.code.toLowerCase(), 'TTS를 재생할 수 없습니다.', false);
+        const ttsUrl = env?.TTS_API_URL;
+        const ttsKey = env?.TTS_API_KEY;
+        if (typeof ttsUrl !== 'string' || !ttsUrl || typeof ttsKey !== 'string' || !ttsKey) {
+          throw new HttpError(500, 'configuration_error', 'TTS_API_URL/TTS_API_KEY is not configured', false);
+        }
+        let response;
+        try {
+          response = await fetchImpl(ttsUrl, {
+            method: 'POST',
+            headers: { authorization: `Bearer ${ttsKey}`, 'content-type': 'application/json' },
+            body: JSON.stringify({ voice_id: eligibility.voice_id, text })
+          });
+        } catch {
+          throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
+        }
+        if (!response.ok) throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
+        return new Response(response.body, { headers: { 'content-type': response.headers.get('content-type') ?? 'audio/mpeg', 'cache-control': 'public, max-age=86400' } });
+      } finally {
+        logTurnTiming({ event_stage: 'tts', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
     async actionStatus(request, env) {
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
       const db = createSupabaseClient(env, fetchImpl);
       const status = await db.callRpc('get_action_status', { p_game_id: gameId, p_action_id: actionId });
       return ok({ status, recoverable_step: deriveRecoverableStep(status) });
+    },
+
+    /**
+     * Rollback-only: reserve_feedback_revision never calls Story/Extract itself, it just stages
+     * a feedback_revision action targeting the latest committed turn and returns everything the
+     * frontend needs to regenerate it through the completely normal /api/story -> /api/extract
+     * -> /api/commit pipeline (commit() branches to commit_feedback_revision for this
+     * action_kind). revision_request_id is client-supplied, matching action_id's own
+     * idempotency contract — the same request replayed with the same id returns the same
+     * pending/committed action rather than reserving a second one.
+     */
+    async feedback(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const revisionRequestId = requireString(body.revision_request_id, 'revision_request_id');
+      const feedbackText = requireString(body.feedback_text, 'feedback_text');
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const reservation = await db.reserveFeedbackRevision(gameId, revisionRequestId, feedbackText);
+        return ok({
+          action_id: reservation.action_id,
+          expected_turn: reservation.target_turn_number,
+          original_player_action: reservation.original_player_action,
+          structured_action: reservation.structured_action ?? null,
+          revision_request_id: revisionRequestId,
+          replayed: Boolean(reservation.replayed)
+        });
+      } finally {
+        logTurnTiming({ event_stage: 'feedback', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
     },
 
     /** Restores turn/action/history/player/opening_state to the game_master initial save. Static content and game_master are never touched. */
@@ -660,6 +874,31 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         return ok({ app: buildAppStatePayload(save, csaCatalog, csaCatalog.sexual_action_contract, player) });
       } finally {
         logTurnTiming({ event_stage: 'app_state', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /**
+     * Zero-LLM, zero-turn lookup: does the game know where character_id currently is? Never
+     * mutates state, never consumes a turn. The frontend uses the returned location_label to
+     * let the player type/choose an ordinary action to go there — that move is a completely
+     * normal turn through /api/story -> /api/extract -> /api/commit, not a special pipeline.
+     */
+    async findNpc(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const characterId = requireString(body.character_id, 'character_id');
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        const save = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        const result = findNpc({ save, characterId, isKnownCharacterId, validLocationIds: mapLocationIds });
+        if (!result.ok) throw new HttpError(422, result.code.toLowerCase(), 'NPC 위치를 확인할 수 없습니다.', false);
+        const npc = getGeneralNpc(generalNpcCatalog, characterId);
+        return ok({ character_id: characterId, name: npc?.name ?? null, location_label: result.location_label, location_id: result.location_id });
+      } finally {
+        logTurnTiming({ event_stage: 'find_npc', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
     },
 

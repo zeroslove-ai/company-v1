@@ -23,7 +23,31 @@ export function loadPending(storage, gameId) { try { const value = JSON.parse(st
 export function savePending(storage, action) { storage?.setItem(pendingKey(action.game_id), JSON.stringify(action)); }
 export function clearPending(storage, gameId) { storage?.removeItem(pendingKey(gameId)); }
 export function recoveryFor(status) { const step = status?.recoverable_step ?? 'unknown'; return ['retry_story', 'resume_extract', 'retry_extract', 'resume_commit', 'retry_commit', 'complete', 'wait_story'].includes(step) ? step : 'unknown'; }
-export function playerSetupCompleted(context) { return saveFromContext(context)?.player_setup?.completed === true; }
+
+function legacyProgressedSave(context) {
+  const save = saveFromContext(context);
+  return !Object.prototype.hasOwnProperty.call(save, 'player_setup')
+    && !Object.prototype.hasOwnProperty.call(save, 'opening_state')
+    && committedTurn(context) > 0
+    && Array.isArray(save.event_ledger)
+    && save.npc_stats !== null
+    && typeof save.npc_stats === 'object'
+    && !Array.isArray(save.npc_stats);
+}
+
+/**
+ * Setup/opening were added after early Company saves already had committed turns.
+ * Explicit setup/opening state remains authoritative. Only a genuinely legacy
+ * gameplay save — both keys absent, committed turns present, and canonical
+ * pre-setup gameplay state already populated — is treated as complete. This keeps
+ * the real turn-3 save playable without letting a synthetic or partially-created
+ * setup state skip the turn-0 contract.
+ */
+export function playerSetupCompleted(context) {
+  const save = saveFromContext(context);
+  if (save?.player_setup?.completed === true) return true;
+  return legacyProgressedSave(context);
+}
 export function reservedPlayerSetupId(context) {
   const setup = saveFromContext(context)?.player_setup;
   const setupId = setup?.setup_id;
@@ -34,4 +58,8 @@ export function openingHistoryTurn(context) {
   if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
   return { player_action: '(오프닝)', story_text: opening.story_text, turn_summary: '', choices: Array.isArray(opening.choices) ? opening.choices : [] };
 }
-export function openingCompleted(context) { return saveFromContext(context)?.opening_state?.status === 'complete'; }
+export function openingCompleted(context) {
+  const save = saveFromContext(context);
+  if (save?.opening_state?.status === 'complete') return true;
+  return legacyProgressedSave(context);
+}

@@ -7,20 +7,23 @@ import {
   reducePlayerSexualState,
   validateCsaRuntimeStatePatch
 } from './gameplay-state.js';
+import { buildSceneStatePatch } from './state/physical-state.js';
+import { applyNpcStatChanges } from './relationship/reducer.js';
+import { appendSexualEvents, reduceEjaculationCounts } from './sexual-state/ledger.js';
 
 const ALLOWED = new Set([
   'player', 'player_scene_state', 'player_sexual_state', 'world_state', 'scene_state',
   'npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state',
-  'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'event_ledger',
+  'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'event_ledger', 'sexual_event_ledger',
   'story_summary_overall', 'story_summary_recent', 'focal_character_id', 'last_speaker_id',
   'last_npcs_present', 'last_image_id', 'last_choices', 'last_choice_meta'
 ]);
-const SNAPSHOTS = new Set(['last_choice_meta']);
 const NULLABLE = new Set(['last_image_id']);
 const NPC_MAPS = new Set(['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes']);
-// The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present)
-// is the sole writer for these paths; a state_delta proposal for the same path is redundant.
-const ENVELOPE_AUTHORITATIVE = new Set(['focal_character_id', 'last_speaker_id', 'last_choices', 'last_npcs_present']);
+// The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present/
+// choice_structured_meta) is the sole writer for these paths; a state_delta proposal for the
+// same path is redundant and only ever warns.
+const ENVELOPE_AUTHORITATIVE = new Set(['focal_character_id', 'last_speaker_id', 'last_choices', 'last_npcs_present', 'last_choice_meta']);
 
 function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -106,6 +109,11 @@ function mergeEventLedger(current, patch) {
   return [...byId.values()];
 }
 
+function characterNameFromMaster(master, characterId) {
+  const characters = Array.isArray(master?.characters) ? master.characters : [];
+  return characters.find(character => character?.character_id === characterId)?.name ?? characterId ?? '';
+}
+
 export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
   if (!plainObject(currentSave)) throw new GameCoreError('INVALID_SAVE', 'Current save must be an object');
   if (currentSave.save_schema_version !== 1 || currentSave.edition !== 'company-v1') {
@@ -141,11 +149,6 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
       else warnings.push('invalid_event_ledger');
       continue;
     }
-    if (SNAPSHOTS.has(path)) {
-      if (Array.isArray(patch)) nextSave[path] = clone(patch);
-      else warnings.push(`invalid_snapshot:${path}`);
-      continue;
-    }
     if (path === 'player_sexual_state') {
       if (!plainObject(patch)) {
         warnings.push('invalid_player_sexual_state');
@@ -158,6 +161,56 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
       });
       nextSave.player_sexual_state = reduced.state;
       warnings.push(...reduced.warnings);
+      continue;
+    }
+    if (path === 'player_scene_state') {
+      if (!plainObject(patch)) {
+        warnings.push('invalid_player_scene_state');
+        continue;
+      }
+      // No characterName check for the player — there is exactly one player, and Story text
+      // typically refers to them generically ("플레이어", "당신") rather than by literal name,
+      // unlike NPC evidence which must name the specific character it's about.
+      const { state, warnings: sceneWarnings } = buildSceneStatePatch({
+        previous: nextSave.player_scene_state ?? {}, proposal: patch, evidenceMap: patch.evidence,
+        narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
+        characterName: '', turnNumber: options.expectedTurn
+      });
+      nextSave.player_scene_state = state;
+      warnings.push(...sceneWarnings.map(code => `player_scene_state:${code}`));
+      continue;
+    }
+    if (path === 'sexual_event_ledger') {
+      // sexual_event_ledger is the ONLY writer of ejaculation_counts/last_sexual_event — no
+      // other state_delta path may touch either (ejaculation_counts isn't even in ALLOWED, so
+      // Extract cannot propose it directly at all; a completion is only ever counted through an
+      // accepted ledger entry here). Because the counter and the ledger's dedupe both derive
+      // from the exact same `accepted` array in this one code path, they can never drift apart
+      // the way two independently-updated stores could — there is no separate write path to
+      // "self-heal" against. (The ledger array itself is capped to the most recent 80 entries;
+      // the counter is a running total incremented only by genuinely new accepted events each
+      // turn, never re-derived from the — possibly truncated — array, so capping the ledger
+      // never loses count history.)
+      if (!Array.isArray(patch)) {
+        warnings.push('invalid_sexual_event_ledger');
+        continue;
+      }
+      const { ledger, accepted, warnings: ledgerWarnings } = appendSexualEvents(nextSave.sexual_event_ledger, patch, {
+        turnNumber: options.expectedTurn, actionId: options.actionId
+      });
+      nextSave.sexual_event_ledger = ledger;
+      warnings.push(...ledgerWarnings);
+      if (accepted.length) {
+        const counts = reduceEjaculationCounts(nextSave.ejaculation_counts ?? {}, accepted);
+        nextSave.ejaculation_counts = counts;
+        const playerEvent = [...accepted].reverse().find(event => event.actor_id === 'player' || event.target_id === 'player');
+        if (playerEvent) {
+          nextSave.player_sexual_state = {
+            ...(nextSave.player_sexual_state ?? {}),
+            last_sexual_event: { turn: playerEvent.turn, type: playerEvent.action_type, evidence: playerEvent.evidence }
+          };
+        }
+      }
       continue;
     }
     if (path === 'csa_runtime_state') {
@@ -185,6 +238,23 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
           warnings.push(`absent_npc_patch:${path}:${npcId}`);
           continue;
         }
+        if (path === 'npc_scene_state' && plainObject(npcPatch)) {
+          const { state, warnings: sceneWarnings } = buildSceneStatePatch({
+            previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: npcPatch, evidenceMap: npcPatch.evidence,
+            narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
+            characterName: characterNameFromMaster(options?.master, npcId), turnNumber: options.expectedTurn
+          });
+          nextSave.npc_scene_state[npcId] = { ...state, present: nextSave.npc_scene_state[npcId]?.present ?? npcPatch.present ?? false };
+          warnings.push(...sceneWarnings.map(code => `npc_scene_state:${npcId}:${code}`));
+          continue;
+        }
+        if (path === 'npc_stats' && plainObject(npcPatch)) {
+          const { reason, ...deltas } = npcPatch;
+          const { state, warnings: statWarnings } = applyNpcStatChanges(nextSave.npc_stats[npcId] ?? {}, deltas, { reason: typeof reason === 'string' ? reason : '' });
+          nextSave.npc_stats[npcId] = state;
+          warnings.push(...statWarnings.map(code => `npc_stats:${npcId}:${code}`));
+          continue;
+        }
         let sanitizedPatch = npcPatch;
         if (path === 'npc_relationship_state' && plainObject(npcPatch)) {
           const sanitized = sanitizeRelationshipMilestonePatch(preSave, npcId, npcPatch, envelope.evidence);
@@ -207,6 +277,7 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
   }
 
   nextSave.last_choices = clone(envelope.choices);
+  nextSave.last_choice_meta = clone(envelope.choice_structured_meta);
   if (envelope.choices.length !== 4) warnings.push('choices_not_exactly_four');
   if (envelope.npcs_present.length > 0) nextSave.last_npcs_present = clone(envelope.npcs_present);
   if (envelope.focal_character_id !== null) nextSave.focal_character_id = envelope.focal_character_id;

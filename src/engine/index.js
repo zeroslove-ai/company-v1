@@ -1,6 +1,6 @@
 export { GameCoreError } from './errors.js';
 export { createEditionAdapter, validateEditionAdapter } from './edition.js';
-export { buildStoryPrompt } from './story-prompt.js';
+export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
 export { buildExtractPrompt } from './extract-prompt.js';
 export { parseNarrative } from './narrative-parser.js';
 export { normalizeExtractEnvelope } from './extract-envelope.js';
@@ -70,7 +70,16 @@ export {
   buildCsaRuntimeSection, buildCsaAcceptanceScopeSection, buildCsaDirectExecutionPrioritySection,
   buildCsaPhysicalTransitionSection, buildNpcCsaEpistemicFirewallSection, buildCsaPersistentSceneSection,
   buildCsaPublicSceneSection, buildCsaWeakSynergySection, isAppUsageInfoRequest, buildAppUsageStorySection,
-  buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection, buildMindEffectExtractFirewallSection,
+  buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection, buildChoiceStructuredMetaExtractContractSection,
+  buildMindEffectExtractFirewallSection,
   buildStructuredActionStorySection, buildCsaDeactivationStorySection
 } from './csa/prompt-sections.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
+
+export { listGeneralNpcs, getGeneralNpc, isGeneralNpcId } from './npc/catalog.js';
+export { resolveGeneralNpcForGroup } from './npc/resolver.js';
+export { findNpc } from './npc/location.js';
+export { resolveNumberedChoiceInput } from './choice-input.js';
+export { selectImage } from './media/image-selector.js';
+export { resolveTtsEligibility, ttsCacheKey } from './media/tts-contract.js';
+export { calculateProgress, calculateCsaProgression, expForNextLevel } from './progression.js';

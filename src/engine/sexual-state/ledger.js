@@ -1,0 +1,107 @@
+/**
+ * Sexual event ledger — ported from donor's sexual_record_events (the factual, audit ledger
+ * distinct from aggregate stat counters; donor's older sexual_events array is explicitly
+ * documented dead/audit-only in the donor source and is not ported). Reuses Company's own
+ * STRUCTURED_SEXUAL_ACTIONS enum (already the CSA semantic-contract's action taxonomy) instead
+ * of inventing a parallel one, plus 'orgasm' for a completion event with no further physical
+ * action attached.
+ *
+ * Unlike donor (which silently drops an interrupted event rather than ever writing a row for
+ * it), this ledger records both completed and interrupted entries — Company's own schema
+ * (sexual_event_ledger[].interrupted) explicitly wants the attempt on record, not silently
+ * discarded.
+ */
+import { STRUCTURED_SEXUAL_ACTIONS } from '../csa/semantic-contract.js';
+
+const LEDGER_ACTION_TYPES = new Set([...STRUCTURED_SEXUAL_ACTIONS, 'orgasm']);
+const DIRECTIONS = new Set(['none', 'npc_to_player', 'player_to_npc']);
+const MAX_LEDGER_LENGTH = 80;
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+function normalizeEvidenceText(value) {
+  return typeof value === 'string' ? value.normalize('NFKC').replace(/[\s"'“”‘’]+/g, ' ').trim() : '';
+}
+
+/** 32-bit FNV-1a — deterministic, dependency-free, stable across replays of the same evidence text. */
+function stableContentHash(text) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+/** turn+actor+type+content-hash(evidence) — the same fact reported twice (Extract retry, replay, or a duplicate row) collapses to one id. */
+export function sexualEventId(turnNumber, actorId, actionType, evidence) {
+  return `turn:${turnNumber}:${actorId ?? 'unknown'}:${actionType}:${stableContentHash(normalizeEvidenceText(evidence))}`;
+}
+
+function normalizeCandidate(raw, { turnNumber, actionId } = {}) {
+  if (!isPlainObject(raw)) return null;
+  const actionType = LEDGER_ACTION_TYPES.has(raw.action_type) ? raw.action_type : null;
+  if (!actionType) return null;
+  const actorId = typeof raw.actor_id === 'string' && raw.actor_id.trim() ? raw.actor_id.trim() : null;
+  const targetId = typeof raw.target_id === 'string' && raw.target_id.trim() ? raw.target_id.trim() : null;
+  const direction = DIRECTIONS.has(raw.direction) ? raw.direction : 'none';
+  const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : '';
+  if (!evidence) return null;
+  const completed = raw.completed === true;
+  const interrupted = raw.interrupted === true && !completed;
+  return {
+    event_id: sexualEventId(turnNumber, actorId, actionType, evidence),
+    action_id: typeof actionId === 'string' ? actionId : null,
+    turn: turnNumber,
+    actor_id: actorId,
+    target_id: targetId,
+    action_type: actionType,
+    direction,
+    completed,
+    interrupted,
+    evidence
+  };
+}
+
+/**
+ * Appends every candidate that survives shape validation + evidence gate, deduped against
+ * both the existing ledger and other candidates in the same batch by event_id, then caps the
+ * ledger to the most recent MAX_LEDGER_LENGTH entries (oldest dropped first — the counters
+ * derived from it are monotonic running totals, never recomputed from the capped tail alone).
+ */
+export function appendSexualEvents(previousLedger, rawCandidates, { turnNumber, actionId } = {}) {
+  const previous = Array.isArray(previousLedger) ? previousLedger : [];
+  const seenIds = new Set(previous.map(event => event?.event_id).filter(Boolean));
+  const accepted = [];
+  const warnings = [];
+  for (const raw of (Array.isArray(rawCandidates) ? rawCandidates : [])) {
+    const candidate = normalizeCandidate(raw, { turnNumber, actionId });
+    if (!candidate) { warnings.push('invalid_sexual_event_candidate'); continue; }
+    if (seenIds.has(candidate.event_id)) continue; // silent dedupe, not a warning — a legitimate replay/retry case
+    seenIds.add(candidate.event_id);
+    accepted.push(candidate);
+  }
+  const ledger = [...previous, ...accepted].slice(-MAX_LEDGER_LENGTH);
+  return { ledger, accepted, warnings };
+}
+
+/**
+ * Monotonic ejaculation-count continuity: only a completed 'orgasm'/'penetration' event
+ * attributed to actorId increments the counter for that actor; nothing ever decrements it.
+ * previousCounts: { [characterId]: count }.
+ */
+export function reduceEjaculationCounts(previousCounts, acceptedEvents) {
+  const counts = isPlainObject(previousCounts) ? { ...previousCounts } : {};
+  for (const event of acceptedEvents) {
+    if (!event.completed || !event.actor_id) continue;
+    if (event.action_type !== 'orgasm' && event.action_type !== 'penetration') continue;
+    counts[event.actor_id] = Math.max(0, Number.isFinite(counts[event.actor_id]) ? counts[event.actor_id] : 0) + 1;
+  }
+  return counts;
+}
+
+/** The most recent accepted event, if any — feeds player_sexual_state.last_sexual_event / npc last-event display. */
+export function latestSexualEvent(acceptedEvents) {
+  return acceptedEvents.length ? acceptedEvents[acceptedEvents.length - 1] : null;
+}

@@ -386,7 +386,12 @@ test('Story request size budgets: system <=4500, 3-character active canon <=1800
   assert.equal(Object.values(payload.active_character_canon).filter(e => 'prompt_card' in e).length, 3);
 });
 
-test('Extract request size budget: system <=3000', () => {
+test('Extract request size budget: system <=3300', () => {
+  // Raised from 3000 when the full-feature-transplant branch added the always-needed
+  // player_scene_state/npc_scene_state/npc_stats/sexual_event_ledger instruction sentence
+  // (these apply to every normal turn, not just CSA turns, so they can't be gated off) — the
+  // new real floor is ~3141 chars; 3300 keeps real headroom without pretending the old 3000
+  // cap is still achievable.
   const prompt = buildExtractPrompt({ context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
-  assert.ok(prompt[0].content.length <= 3000, `extract system chars: ${prompt[0].content.length}`);
+  assert.ok(prompt[0].content.length <= 3300, `extract system chars: ${prompt[0].content.length}`);
 });

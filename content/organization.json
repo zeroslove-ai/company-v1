@@ -10,5 +10,13 @@
     { "department_id": "new_business_tf", "name": "신사업TF", "ui_hint": "신규 사업" },
     { "department_id": "finance_planning", "name": "재무기획팀", "ui_hint": "예산 권한" },
     { "department_id": "public_relations", "name": "홍보팀", "ui_hint": "외부 대응" }
+  ],
+  "general_npc_departments": [
+    { "department_id": "design", "name": "디자인팀" },
+    { "department_id": "finance", "name": "재무팀" },
+    { "department_id": "hr", "name": "인사팀(현업)" },
+    { "department_id": "operations", "name": "시설·보안" },
+    { "department_id": "marketing", "name": "마케팅팀" },
+    { "department_id": "management_support", "name": "경영지원팀" }
   ]
 }

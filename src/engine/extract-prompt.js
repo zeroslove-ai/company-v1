@@ -45,6 +45,7 @@ const SYSTEM_INSTRUCTIONS = [
   'elapsed_minutes is your only time proposal; never compute Day or absolute time. Use 1-30 normally, up to 480 only with evidence.time_advance === true.',
   'CSA changes belong only under state_delta.csa_runtime_state[csa_id] (lifecycle/applicability/execution_state) and state_delta.csa_attitudes[npc_id][csa_id]; never a personal or per-NPC-only suggestion list.',
   'player_sexual_state deltas use arousal_delta, ejaculation_progress_delta, and ejaculation_completed only; set ejaculation_completed true only when evidence.sexual_resolution === true.',
+  'state_delta may add player_scene_state/npc_scene_state[id]{location_label,posture,clothing:{uniform_top,uniform_bottom,underwear_top,underwear_bottom},evidence} and npc_stats[id]{affinity,csa_acceptance,sexual_arousal,work_trust,reason} deltas, and sexual_event_ledger[{actor_id,target_id,action_type,direction,completed,interrupted,evidence}]. Every physical/stat change needs its own exact Story quote as evidence.',
   'Distinguish attempt/refusal/partial/conditional-acceptance/pause/completion; never assume automatic completion.',
   'All human-readable strings must be Korean. IDs remain unchanged. Do not repeat Story text in turn_summary; keep turn_summary, state_delta, and mind_monitor concise.'
 ].join(' ');

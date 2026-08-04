@@ -1,0 +1,126 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { createApiWorker } from '../src/api/index.js';
+import { createSupabaseClient } from '../src/api/supabase.js';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const gameId = '11111111-1111-4111-8111-111111111111';
+const actionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const storedStructuredAction = {
+  version: 1,
+  type: 'csa_app_transaction',
+  base_turn_count: 3,
+  operations: [{ client_id: 'op-1', operation: 'deactivate', id: 'csa_0' }],
+  validation_proof: 'signed-proof'
+};
+
+const env = {
+  SUPABASE_URL: 'https://supabase.test',
+  SUPABASE_SERVICE_ROLE_KEY: 'service-role-test'
+};
+
+function json(value, status = 200) {
+  return new Response(JSON.stringify(value), {
+    status,
+    headers: { 'content-type': 'application/json' }
+  });
+}
+
+function post(pathname, body) {
+  return new Request(`https://worker.test${pathname}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
+test('Supabase reservation sends structured_action in the existing reserve_turn_action RPC', async () => {
+  let captured = null;
+  const client = createSupabaseClient(env, async (url, init) => {
+    captured = { url: String(url), body: JSON.parse(init.body) };
+    return json({ action_id: actionId });
+  });
+
+  await client.reserveTurnAction(gameId, actionId, 4, '앱 변경을 적용한다', storedStructuredAction);
+
+  assert.match(captured.url, /\/rest\/v1\/rpc\/reserve_turn_action$/);
+  assert.deepEqual(captured.body.p_structured_action, storedStructuredAction);
+  assert.equal(captured.body.p_expected_turn, 4);
+});
+
+test('history query selects and API returns the persisted structured_action', async () => {
+  const worker = createApiWorker({
+    fetchImpl: async (url) => {
+      const parsed = new URL(String(url));
+      assert.equal(parsed.pathname, '/rest/v1/game_turns');
+      assert.match(parsed.searchParams.get('select'), /structured_action/);
+      return json([{
+        turn_number: 3,
+        player_action: '앱 변경을 적용한다',
+        structured_action: storedStructuredAction,
+        feedback_text: null,
+        story_text: '[1. 서사 및 행동]\n본문',
+        parsed_blocks: { player_inner_thought: '확인한다.' },
+        turn_summary: '요약',
+        mind_monitor: {},
+        choices: ['A', 'B', 'C', 'D'],
+        committed_at: '2026-08-04T00:00:00Z'
+      }]);
+    }
+  });
+
+  const response = await worker.fetch(post('/api/history', { game_id: gameId, limit: 20 }), env);
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.deepEqual(payload.data.records[0].structured_action, storedStructuredAction);
+});
+
+test('a later stage cannot replace the structured action already reserved on game_actions', async () => {
+  const worker = createApiWorker({
+    fetchImpl: async (url, init = {}) => {
+      const parsed = new URL(String(url));
+      if (parsed.pathname === '/rest/v1/game_actions') {
+        return json([{
+          action_id: actionId,
+          game_id: gameId,
+          turn_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          expected_turn: 4,
+          action_kind: 'player_turn',
+          processing_status: 'extracting',
+          story_text: '[1. 서사 및 행동]\n본문',
+          parsed_blocks: {},
+          extract_delta: null,
+          structured_action: storedStructuredAction
+        }]);
+      }
+      throw new Error(`unexpected request: ${init.method ?? 'GET'} ${parsed.pathname}`);
+    }
+  });
+
+  const substituted = { ...storedStructuredAction, operations: [] };
+  const response = await worker.fetch(post('/api/extract', {
+    game_id: gameId,
+    action_id: actionId,
+    structured_action: substituted
+  }), env);
+
+  assert.equal(response.status, 409);
+  const payload = await response.json();
+  assert.equal(payload.error.code, 'structured_action_mismatch');
+});
+
+test('migration extends the existing action/turn/revision lifecycle and keeps DB slot cap aligned', () => {
+  const sql = fs.readFileSync(path.join(root, 'supabase/migrations/20260804000100_company_v1_history_structured_action.sql'), 'utf8');
+  assert.match(sql, /alter table public\.game_actions[\s\S]*structured_action jsonb/i);
+  assert.match(sql, /alter table public\.game_turns[\s\S]*structured_action jsonb/i);
+  assert.match(sql, /insert into public\.game_actions[\s\S]*structured_action/i);
+  assert.match(sql, /insert into public\.game_turns[\s\S]*v_action\.structured_action/i);
+  assert.match(sql, /reserve_feedback_revision[\s\S]*v_original\.structured_action/i);
+  assert.match(sql, /commit_feedback_revision[\s\S]*v_action\.structured_action/i);
+  assert.match(sql, /jsonb_array_length\(p_save -> 'csa_active'\) > 5/i);
+  assert.match(sql, /grant execute[\s\S]*to service_role/i);
+});

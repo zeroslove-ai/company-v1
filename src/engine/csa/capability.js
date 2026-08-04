@@ -1,3 +1,5 @@
+import { expForNextLevel } from '../progression.js';
+
 /**
  * Level/EXP/slot/strength arithmetic — the single canonical source every
  * caller (UI, manual payload, catalog availability, preset validator,
@@ -36,15 +38,11 @@ export function getCsaLimits(level) {
   return { max_active: 2 };
 }
 
-function expForNextLevel(level) {
-  return Math.max(1, Number(level) || 1) * 100;
-}
-
 /** Display/payload single source: current level/exp, available strength, and slot usage. */
 export function calculateCsaCapability(save = {}, activeCsaCount = 0) {
   const level = Math.max(1, Number(save?.player_progress?.level) || 1);
   const exp = Math.max(0, Number(save?.player_progress?.exp) || 0);
-  const nextLevelExp = level >= 10 ? 0 : expForNextLevel(level);
+  const nextLevelExp = level >= 10 ? 0 : (expForNextLevel(level) ?? 0);
   const availableStrength = level >= 7 ? '강함' : level >= 3 ? '중간' : '약함';
   const maxStrengthRank = csaStrengthRank(availableStrength);
   const csaLimits = getCsaLimits(level);

@@ -49,6 +49,15 @@ export function createSupabaseClient(env, fetchImpl) {
     callRpc(name, args) {
       return request(`${baseUrl}/rest/v1/rpc/${name}`, { method: 'POST', body: JSON.stringify(args) });
     },
+    reserveTurnAction(gameId, actionId, expectedTurn, playerAction, structuredAction = null) {
+      return this.callRpc('reserve_turn_action', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_expected_turn: expectedTurn,
+        p_player_action: playerAction,
+        p_structured_action: structuredAction
+      });
+    },
     async getAction(gameId, actionId) {
       const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}`, select: '*' });
       const payload = await request(`${baseUrl}/rest/v1/game_actions?${query}`, { method: 'GET' });
@@ -71,6 +80,36 @@ export function createSupabaseClient(env, fetchImpl) {
         body: JSON.stringify({ processing_status: nextStatus, error_code: errorCode })
       });
       return Array.isArray(payload) ? payload[0] ?? null : payload;
+    },
+    /** Read-only, paginated, active-only (record_status=active dedupes revisions to the current one) turn history — no RPC needed, table already carries everything /api/history needs. */
+    async listTurns(gameId, { beforeTurn = null, limit = 20 } = {}) {
+      const query = new URLSearchParams({
+        game_id: `eq.${gameId}`, record_status: 'eq.active',
+        select: 'turn_number,player_action,structured_action,feedback_text,story_text,parsed_blocks,turn_summary,mind_monitor,choices,committed_at',
+        order: 'turn_number.desc', limit: String(limit)
+      });
+      if (Number.isInteger(beforeTurn)) query.set('turn_number', `lt.${beforeTurn}`);
+      const payload = await request(`${baseUrl}/rest/v1/game_turns?${query}`, { method: 'GET' });
+      return Array.isArray(payload) ? payload : [];
+    },
+    reserveFeedbackRevision(gameId, revisionRequestId, feedbackText) {
+      return this.callRpc('reserve_feedback_revision', { p_game_id: gameId, p_revision_request_id: revisionRequestId, p_feedback_text: feedbackText });
+    },
+    commitFeedbackRevision(gameId, actionId, revisionRequestId, nextSave, turnSummary, mindMonitor, choices) {
+      return this.callRpc('commit_feedback_revision', {
+        p_game_id: gameId, p_action_id: actionId, p_revision_request_id: revisionRequestId,
+        p_next_save: nextSave, p_turn_summary: turnSummary, p_mind_monitor: mindMonitor, p_choices: choices
+      });
+    },
+    /** At most 8 active candidates for one character+pool — image-selector.js scores exactly this set, never the whole catalog. */
+    async listImageCandidates(characterId, pool) {
+      const query = new URLSearchParams({
+        character_id: `eq.${characterId}`, active: 'eq.true', image_pool: `eq.${pool}`,
+        select: 'image_id,character_id,situation,tags,image_pool,is_sexual,curation_rank,image_url',
+        order: 'curation_rank.asc.nullslast', limit: '8'
+      });
+      const payload = await request(`${baseUrl}/rest/v1/image_library?${query}`, { method: 'GET' });
+      return Array.isArray(payload) ? payload : [];
     }
   };
 }

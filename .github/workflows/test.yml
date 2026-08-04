@@ -1,0 +1,26 @@
+name: Company v1 tests
+
+on:
+  push:
+    branches:
+      - company/full-feature-transplant-v1
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run regression tests
+        run: npm test
+      - name: API Worker dry-run
+        run: npx --yes wrangler deploy --dry-run --config wrangler.api.jsonc
+      - name: Frontend Worker dry-run
+        run: npx --yes wrangler deploy --dry-run --config wrangler.frontend.jsonc

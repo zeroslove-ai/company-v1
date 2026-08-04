@@ -15,6 +15,18 @@ test('frontend API client sends only the Phase 2 request contracts', async () =>
   assert.equal(JSON.parse(calls[2].init.body).next_save, undefined);
 });
 
+test('frontend API client serializes the /api/app-state request body as a JSON object, never a bare id string', async () => {
+  const calls = [];
+  const api = createApiClient({ baseUrl: 'https://worker.example', fetchImpl: async (url, init) => { calls.push({ url, init }); return json({ ok: true, data: { app: {} } }); } });
+  await api.appState({ game_id: 'game-1' });
+  assert.equal(calls.length, 1);
+  assert.equal(new URL(calls[0].url).pathname, '/api/app-state');
+  const parsedBody = JSON.parse(calls[0].init.body);
+  assert.equal(typeof parsedBody, 'object');
+  assert.ok(parsedBody !== null && !Array.isArray(parsedBody));
+  assert.deepEqual(parsedBody, { game_id: 'game-1' });
+});
+
 test('frontend API client normalizes JSON and network errors', async () => {
   const rejected = createApiClient({ fetchImpl: async () => json({ ok: false, error: { code: 'turn_conflict', message: 'conflict', retryable: false } }, 409) });
   await assert.rejects(() => rejected.context({}), error => error instanceof ApiError && error.status === 409 && error.code === 'turn_conflict');

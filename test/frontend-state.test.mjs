@@ -348,3 +348,36 @@ test('state and shell keep renderer free of raw Context fallback and developer p
   const values = stateDisplayValues(buildCompanyGameViewModel(validContext()));
   assert.equal(Object.values(values).some(value => value.includes('[object Object]')), false);
 });
+
+test('numbered choice input ("2", "b", "②") resolves to the exact stored choice text before submitting, never the literal digit/letter', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const context = validContext({ choices: ['보고서를 제출한다', '회의에 참석한다', '휴식을 취한다', '상사에게 문의한다'] });
+    const calls = [];
+    const api = {
+      context: async () => ({ context }),
+      actionStatus: async () => ({}),
+      story: async body => { calls.push(body); return new Response('event: meta\ndata: {}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    nodes['player-action'].value = '2';
+    await app.startNewAction();
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].player_action, '회의에 참석한다');
+  });
+});
+
+test('numbered choice input with no matching current choice set is rejected with an explicit error, never silently submitted as literal text', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const context = validContext({ choices: [] });
+    let storyCalls = 0;
+    const api = { context: async () => ({ context }), actionStatus: async () => ({}), story: async () => { storyCalls += 1; return new Response(); } };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    const result = await app.startNewAction('2');
+    assert.equal(result, false);
+    assert.equal(storyCalls, 0, 'a numbered form with no current choice set must never reach /api/story at all, not even as literal "2"');
+  });
+});
