@@ -76,7 +76,7 @@ test('history query selects and API returns the persisted structured_action', as
   const response = await worker.fetch(post('/api/history', { game_id: gameId, limit: 20 }), env);
   assert.equal(response.status, 200);
   const payload = await response.json();
-  assert.deepEqual(payload.records[0].structured_action, storedStructuredAction);
+  assert.deepEqual(payload.data.records[0].structured_action, storedStructuredAction);
 });
 
 test('a later stage cannot replace the structured action already reserved on game_actions', async () => {
