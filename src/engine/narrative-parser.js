@@ -88,7 +88,6 @@ export function parseNarrative(rawText, { master } = {}) {
       player_status: '',
       player_inner_thought: '',
       choices: [],
-      choice_labels: [],
       dialogue_lines: [],
       warnings: ['no_recognized_markers', 'choices_not_exactly_four']
     };
@@ -143,8 +142,9 @@ export function parseNarrative(rawText, { master } = {}) {
       choices = parsed.choices;
       choiceLabels = parsed.choice_labels;
       if (choices.length !== 4) warnings.push('choices_not_exactly_four');
-      if (choices.length === 4 && choiceLabels.some(label => !label)) warnings.push('choice_labels_missing');
-      if (new Set(choiceLabels.filter(Boolean)).size !== choiceLabels.filter(Boolean).length) warnings.push('choice_labels_duplicated');
+      const suppliedLabels = choiceLabels.filter(Boolean);
+      if (suppliedLabels.length > 0 && suppliedLabels.length !== choices.length) warnings.push('choice_labels_missing');
+      if (new Set(suppliedLabels).size !== suppliedLabels.length) warnings.push('choice_labels_duplicated');
       continue;
     }
 
@@ -169,15 +169,16 @@ export function parseNarrative(rawText, { master } = {}) {
     warnings.push('choices_not_exactly_four');
   }
   if (/\[DIALOGUE\b(?![^\]]*\])/.test(raw)) warnings.push('incomplete_dialogue_marker');
-  return {
+  const result = {
     raw,
     scene_text: sceneParts.join('\n'),
     blocks,
     player_status: playerStatus,
     player_inner_thought: playerInnerThought,
     choices,
-    choice_labels: choiceLabels,
     dialogue_lines: dialogueLines,
     warnings
   };
+  if (choiceLabels.some(Boolean)) result.choice_labels = choiceLabels;
+  return result;
 }
