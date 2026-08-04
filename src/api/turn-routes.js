@@ -20,6 +20,8 @@ import {
   buildAppManualPayload,
   buildAppStatePayload,
   buildAppUsageStorySection,
+  buildCsaAftereffectPatch,
+  buildCsaSceneRuntimeStatePatch,
   buildCsaAcceptanceScopeSection,
   buildCsaApplicationCheckSection,
   buildCsaDeactivationStorySection,
@@ -27,6 +29,7 @@ import {
   buildCsaPersistentSceneSection,
   buildCsaPhysicalTransitionSection,
   buildCsaPublicSceneSection,
+  buildCsaRuntimeExtractContractSection,
   buildCsaRuntimeSection,
   buildCsaWeakSynergySection,
   buildMindEffectExtractFirewallSection,
@@ -373,7 +376,8 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const promptStart = Date.now();
           let messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
-            + buildCsaApplicationCheckSection(applicableCsa);
+            + buildCsaApplicationCheckSection(applicableCsa)
+            + buildCsaRuntimeExtractContractSection(applicableCsa);
           if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
           timing.extract_prompt_ms = Date.now() - promptStart;
           const extractUserPayload = JSON.parse(messages[1].content);
@@ -457,6 +461,24 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         if (csaPlan) {
           nextSave.csa_active = csaPlan.next_csa_active;
           nextSave.csa_rules = csaPlan.next_csa_rules;
+        }
+        // Extract's csa_trigger_evaluations/csa_runtime_updates persist scene-execution
+        // status (active/temporarily_interrupted/paused/ended) into next turn's Context.
+        // Validated per-item against the *post-transaction* active-preset-CSA set and the
+        // NPCs actually present this turn — an item naming anything else is silently
+        // dropped inside buildCsaRuntimeStatePatch itself.
+        const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
+        const runtimeStatePatch = buildCsaSceneRuntimeStatePatch({
+          previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
+          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn
+        });
+        if (runtimeStatePatch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeStatePatch };
+        if (csaPlan) {
+          const deactivatedIds = csaPlan.canonical_action.operations.filter(operation => operation.operation === 'deactivate').map(operation => operation.id);
+          if (deactivatedIds.length) {
+            const aftereffectPatch = buildCsaAftereffectPatch({ previousSave: nextSave, deactivatedIds, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn });
+            if (aftereffectPatch) nextSave.csa_aftereffect_state = aftereffectPatch;
+          }
         }
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 

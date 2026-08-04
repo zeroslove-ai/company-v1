@@ -163,6 +163,12 @@ export function buildCsaApplicationCheckSection(applicableCsa) {
   return `\n\n[CSA APPLICATION CHECK CONTRACT]\n다음은 이번 턴에 실제로 집행되어야 했던 강제 상식개변 규칙이다. 방금 서사를 다시 확인해, 아래 규칙 중 조건("~마다", "~할 때", "~하면" 등)을 충족하는 상황이 실제로 있었는데도 그 행동이 실행되지 않은 규칙이 있으면 csa_omission에 짧게 설명해 넣는다. 조건이 발생하지 않았거나 정상적으로 실행됐다면 넣지 않는다.\n${lines}`;
 }
 
+/** Extract-only runtime tracking contract — only worth the tokens when a CSA is actually active this turn. */
+export function buildCsaRuntimeExtractContractSection(applicableCsa) {
+  if (!applicableCsa || !applicableCsa.length) return '';
+  return '\n\ncsa_trigger_evaluations: [{csa_id, status}] per relevant active CSA, status one of satisfied/continuing/temporarily_interrupted/not_satisfied/ended, only for csa_ids already listed active; never invent one. csa_runtime_updates: [{csa_id, character_id, status}] only when Story showed the required_action physically performed or paused, status one of inactive/active/paused/ended, character_id an NPC present this turn. Leave both empty when nothing changed.';
+}
+
 const MIND_EFFECT_EXTRACT_FIREWALL = `
 [COMMON-SENSE CHANGE MEMORY FIREWALL]
 - 실제 사건과 현재 반응만 저장하고 개변의 의미 범위 확대나 항목 간 합성 해석은 저장하지 않는다.

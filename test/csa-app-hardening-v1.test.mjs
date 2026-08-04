@@ -4,7 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  resolveCsaDirectCoverage, buildCsaDirectCoverageSection
+  resolveCsaDirectCoverage, buildCsaDirectCoverageSection,
+  buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch,
+  normalizeGameplayExtractEnvelope
 } from '../src/engine/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -87,4 +89,118 @@ test('direct coverage: a sexual choice bundling an action not covered by the con
   }]);
   const coverage = resolveCsaDirectCoverage(save, '키스하면서 성기를 만진다', { sexualActionContract });
   assert.equal(coverage.covered, false, 'a bundled uncovered action (kiss) makes the whole choice uncovered even though genital_touch alone would qualify');
+});
+
+// ---------- Extract runtime tracking: csa_trigger_evaluations / csa_runtime_updates ----------
+
+function activeCsaFixture(id = 'csa_0') {
+  return [{ id, active: true, source_type: 'preset', content: '테스트', strength: 'weak' }];
+}
+
+test('runtime tracking: a csa_runtime_updates status="active" report persists execution_state="executed" for the acting NPC', () => {
+  const activeCsa = activeCsaFixture();
+  const patch = buildCsaSceneRuntimeStatePatch({
+    previousSave: {},
+    csaRuntimeUpdates: [{ csa_id: 'csa_0', character_id: 'heroine1', status: 'active' }],
+    csaTriggerEvaluations: [],
+    activeCsa,
+    npcsPresent: ['heroine1'],
+    turnNumber: 5
+  });
+  assert.ok(patch, 'a runtime update should produce a patch');
+  assert.equal(patch.csa_0.lifecycle, 'active');
+  assert.equal(patch.csa_0.execution_state, 'executed');
+  assert.equal(patch.csa_0.character_id, 'heroine1');
+  assert.equal(patch.csa_0.last_confirmed_turn, 5);
+
+  // The next turn's reducer call must see this exact state carried forward unchanged
+  // when no new update arrives — this is the "persists into next turn's Context" contract.
+  const nextTurnPatch = buildCsaSceneRuntimeStatePatch({
+    previousSave: { csa_runtime_state: patch },
+    csaRuntimeUpdates: [],
+    csaTriggerEvaluations: [],
+    activeCsa,
+    npcsPresent: ['heroine1'],
+    turnNumber: 6
+  });
+  assert.equal(nextTurnPatch, null, 'nothing changed, so the reducer reports no patch (previous state remains authoritative as-is)');
+});
+
+test('runtime tracking: a csa_trigger_evaluations status="temporarily_interrupted" report moves execution_state to "interrupted" and persists', () => {
+  const activeCsa = activeCsaFixture();
+  const previousSave = {
+    csa_runtime_state: { csa_0: { lifecycle: 'active', applicability: 'applicable', execution_state: 'executed', character_id: 'heroine1', started_turn: 3, last_confirmed_turn: 3, end_reason: null } }
+  };
+  const patch = buildCsaSceneRuntimeStatePatch({
+    previousSave,
+    csaRuntimeUpdates: [],
+    csaTriggerEvaluations: [{ csa_id: 'csa_0', status: 'temporarily_interrupted' }],
+    activeCsa,
+    npcsPresent: ['heroine1'],
+    turnNumber: 4
+  });
+  assert.ok(patch);
+  assert.equal(patch.csa_0.execution_state, 'interrupted');
+  assert.equal(patch.csa_0.last_confirmed_turn, 4);
+
+  // Persists forward into the next turn's context when nothing else touches it.
+  const nextTurnPatch = buildCsaSceneRuntimeStatePatch({
+    previousSave: { csa_runtime_state: patch },
+    csaRuntimeUpdates: [],
+    csaTriggerEvaluations: [],
+    activeCsa,
+    npcsPresent: ['heroine1'],
+    turnNumber: 5
+  });
+  assert.equal(nextTurnPatch, null);
+});
+
+test('runtime tracking: a csa_runtime_updates status="ended" report transitions execution_state back to "not_started" with an end_reason', () => {
+  const activeCsa = activeCsaFixture();
+  const previousSave = {
+    csa_runtime_state: { csa_0: { lifecycle: 'active', applicability: 'applicable', execution_state: 'executed', character_id: 'heroine1', started_turn: 2, last_confirmed_turn: 2, end_reason: null } }
+  };
+  const patch = buildCsaSceneRuntimeStatePatch({
+    previousSave,
+    csaRuntimeUpdates: [{ csa_id: 'csa_0', character_id: 'heroine1', status: 'ended', reason: '업무 종료' }],
+    csaTriggerEvaluations: [],
+    activeCsa,
+    npcsPresent: ['heroine1'],
+    turnNumber: 6
+  });
+  assert.ok(patch);
+  assert.equal(patch.csa_0.execution_state, 'not_started');
+  assert.equal(patch.csa_0.end_reason, '업무 종료');
+});
+
+test('runtime tracking: an invalid csa_runtime_updates item (missing character_id) is dropped with a warning, valid items in the same array survive', () => {
+  const npcIds = new Set(['heroine1']);
+  const envelope = normalizeGameplayExtractEnvelope({
+    state_delta: {}, outcome: 'success', evidence: {}, turn_summary: '', mind_monitor: {},
+    choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], npcs_present: ['heroine1'],
+    action_target_id: null, focal_character_id: null, last_speaker_id: null, image_character_id: null,
+    player_inner_thought: '', player_status: '', elapsed_minutes: 5,
+    csa_runtime_updates: [
+      { csa_id: 'csa_0', status: 'active' }, // missing character_id -> dropped
+      { csa_id: 'csa_1', character_id: 'heroine1', status: 'active' } // valid -> survives
+    ],
+    csa_trigger_evaluations: []
+  }, { parsedStory: {}, npcIds });
+  assert.equal(envelope.csa_runtime_updates.length, 1);
+  assert.equal(envelope.csa_runtime_updates[0].csa_id, 'csa_1');
+  assert.ok(envelope.warnings.includes('invalid_csa_runtime_update'));
+});
+
+test('deactivate aftermath: the executing NPC is identified from runtime_state and gets a fresh shock-phase aftereffect entry, current physical state untouched', () => {
+  const previousSave = {
+    csa_rules: { csa_0: { active: false, content: '테스트 규범', strength: 'medium' } },
+    csa_runtime_state: { csa_0: { lifecycle: 'deactivated', applicability: 'not_applicable', execution_state: 'executed', character_id: 'heroine1', started_turn: 1, last_confirmed_turn: 7, end_reason: null } },
+    csa_aftereffect_state: {}
+  };
+  const patch = buildCsaAftereffectPatch({ previousSave, deactivatedIds: ['csa_0'], npcsPresent: ['heroine1'], turnNumber: 8 });
+  assert.ok(patch, 'an executing NPC should be identifiable and produce an aftermath entry');
+  assert.equal(patch.heroine1.csa_0.phase, 'shock');
+  assert.equal(patch.heroine1.csa_0.canonical_content, '테스트 규범');
+  // No player/npc physical-state fields are touched by this patch — it is purely a memory/aftermath ledger.
+  assert.equal(previousSave.csa_rules.csa_0.active, false);
 });

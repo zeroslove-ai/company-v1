@@ -35,18 +35,28 @@ function normalizeRuntimeEntry(entry = {}) {
   };
 }
 
+const TRIGGER_STATUS_TO_EXECUTION_STATE = { not_satisfied: 'not_started', ended: 'not_started', temporarily_interrupted: 'interrupted' };
+
 /**
  * Builds the next csa_runtime_state patch from Extract-reported updates.
  * Never trusts an update naming a csa_id that isn't currently active-preset,
  * or a character who isn't actually present this scene. A rule that stopped
  * being an active preset (deactivated, edited to custom) is auto-marked
  * lifecycle:'deactivated' by the reducer itself, with no Extract involvement.
+ *
+ * csaTriggerEvaluations is a lighter companion signal (no character_id) —
+ * for a csa_id it names that csaRuntimeUpdates didn't already touch this
+ * turn, a not_satisfied/ended/temporarily_interrupted evaluation still
+ * moves execution_state, so a rule whose condition clearly lapsed doesn't
+ * stay stuck at its last reported status just because Extract didn't also
+ * send a full runtime update for it.
  */
-export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], activeCsa = [], npcsPresent = [], turnNumber } = {}) {
+export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber } = {}) {
   const previous = isPlainObject(previousSave?.csa_runtime_state) ? previousSave.csa_runtime_state : {};
   const presentIds = new Set(Array.isArray(npcsPresent) ? npcsPresent.filter(id => typeof id === 'string' && id) : []);
   const activeById = new Map(activeCsa.map(item => [item.id, item]));
   const next = {};
+  const touchedByRuntimeUpdate = new Set();
   let changed = false;
 
   for (const [csaId, entry] of Object.entries(previous)) {
@@ -69,6 +79,7 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     if (!characterId || !presentIds.has(characterId)) continue;
     const donorStatus = ['inactive', 'active', 'paused', 'ended'].includes(update.status) ? update.status : null;
     if (!donorStatus) continue;
+    touchedByRuntimeUpdate.add(csaId);
     const existing = previous[csaId] ? normalizeRuntimeEntry(previous[csaId]) : null;
     const executionState = DONOR_STATUS_TO_EXECUTION_STATE[donorStatus];
     next[csaId] = {
@@ -80,6 +91,19 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
       last_confirmed_turn: turnNumber,
       end_reason: donorStatus === 'ended' ? (typeof update.reason === 'string' && update.reason.trim() ? update.reason.trim().slice(0, 100) : (existing?.end_reason ?? null)) : null
     };
+    changed = true;
+  }
+
+  for (const evaluation of (Array.isArray(csaTriggerEvaluations) ? csaTriggerEvaluations : [])) {
+    if (!isPlainObject(evaluation)) continue;
+    const csaId = typeof evaluation.csa_id === 'string' ? evaluation.csa_id : '';
+    const csa = activeById.get(csaId);
+    if (!csa || csa.source_type !== 'preset' || touchedByRuntimeUpdate.has(csaId)) continue;
+    const executionState = TRIGGER_STATUS_TO_EXECUTION_STATE[evaluation.status];
+    if (!executionState) continue;
+    const existing = next[csaId] ? next[csaId] : (previous[csaId] ? normalizeRuntimeEntry(previous[csaId]) : normalizeRuntimeEntry());
+    if (existing.execution_state === executionState) continue;
+    next[csaId] = { ...existing, execution_state: executionState, last_confirmed_turn: turnNumber };
     changed = true;
   }
 

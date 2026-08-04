@@ -240,6 +240,46 @@ export function normalizeMindMonitor(input) {
 }
 
 /** Normalizes the extended gameplay Extract contract while retaining parser authority. */
+const CSA_TRIGGER_STATUSES = new Set(['satisfied', 'continuing', 'temporarily_interrupted', 'not_satisfied', 'ended']);
+const CSA_RUNTIME_UPDATE_STATUSES = new Set(['inactive', 'active', 'paused', 'ended']);
+
+/**
+ * Shape-only normalization for Extract's csa_trigger_evaluations — cross-
+ * referencing against the currently-active preset CSA id set happens later,
+ * at commit time (buildCsaRuntimeStatePatch), since this function has no
+ * access to CSA state. An item with an unknown csa_id or invalid status is
+ * dropped with a warning; the rest of the array survives.
+ */
+function normalizeCsaTriggerEvaluations(value, warnings) {
+  if (!Array.isArray(value)) return [];
+  const result = [];
+  for (const item of value) {
+    const csaId = identity(item?.csa_id);
+    if (!csaId || !CSA_TRIGGER_STATUSES.has(item?.status)) { warnings.push('invalid_csa_trigger_evaluation'); continue; }
+    result.push({ csa_id: csaId, status: item.status });
+  }
+  return result;
+}
+
+/** Shape-only normalization for Extract's csa_runtime_updates — see normalizeCsaTriggerEvaluations. */
+function normalizeCsaRuntimeUpdates(value, warnings) {
+  if (!Array.isArray(value)) return [];
+  const result = [];
+  for (const item of value) {
+    const csaId = identity(item?.csa_id);
+    const characterId = identity(item?.character_id);
+    if (!csaId || !characterId || !CSA_RUNTIME_UPDATE_STATUSES.has(item?.status)) { warnings.push('invalid_csa_runtime_update'); continue; }
+    result.push({
+      csa_id: csaId, character_id: characterId, status: item.status,
+      target_type: typeof item?.target_type === 'string' ? item.target_type.slice(0, 40) : null,
+      action_state: typeof item?.action_state === 'string' ? item.action_state.slice(0, 60) : null,
+      position_label: typeof item?.position_label === 'string' ? item.position_label.trim().slice(0, 100) : null,
+      reason: typeof item?.reason === 'string' ? item.reason.trim().slice(0, 100) : null
+    });
+  }
+  return result;
+}
+
 export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcIds } = {}) {
   if (!object(value) || !object(value.state_delta)) {
     throw new GameCoreError('INVALID_EXTRACT', 'Extract must contain an object state_delta');
@@ -257,6 +297,8 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
   const lastSpeakerId = validatedNpcId(value.last_speaker_id, npcIds, idWarnings, 'last_speaker_id');
   const imageCharacterId = validatedNpcId(value.image_character_id, npcIds, idWarnings, 'image_character_id');
   const mindMonitor = validatedMindMonitor(normalizedMonitor.mind_monitor, npcIds, idWarnings);
+  const csaTriggerEvaluations = normalizeCsaTriggerEvaluations(value.csa_trigger_evaluations, idWarnings);
+  const csaRuntimeUpdates = normalizeCsaRuntimeUpdates(value.csa_runtime_updates, idWarnings);
   const warnings = [...new Set([
     ...(Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string' && item.trim()) : []),
     ...normalizedMonitor.warnings,
@@ -282,6 +324,8 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
     player_status: stringOrEmpty(parsedStory?.player_status),
     turn_changes: Array.isArray(value.turn_changes) ? clone(value.turn_changes) : [],
     elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
+    csa_trigger_evaluations: csaTriggerEvaluations,
+    csa_runtime_updates: csaRuntimeUpdates,
     warnings
   };
 }
@@ -365,6 +409,8 @@ export function buildDegradedExtractEnvelope({ parsedStory = {}, playerAction = 
     player_status: stringOrEmpty(story.player_status),
     turn_changes: [],
     elapsed_minutes: 3,
+    csa_trigger_evaluations: [],
+    csa_runtime_updates: [],
     warnings: [...new Set([
       'extract_degraded',
       ...(storyChoices.length !== 4 ? ['choices_not_exactly_four'] : []),
