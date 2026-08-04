@@ -307,3 +307,29 @@ test('wiring: sexual_event_ledger entries are appended with dedupe and drive eja
   assert.equal(replay.nextSave.sexual_event_ledger.length, 1, 'a retry/replay of the same commit must not double the ledger');
   assert.equal(replay.nextSave.ejaculation_counts.player, 1);
 });
+
+// ---------- Commit 5: factual ledger single-writer guarantee ----------
+
+test('wiring: ejaculation_counts cannot be set directly via state_delta — sexual_event_ledger is the only writer', () => {
+  const save = freshSaveForMerge();
+  const result = applyGuardedStateDelta(save, {
+    state_delta: { ejaculation_counts: { player: 999 } },
+    outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']
+  }, mergeOptions);
+  assert.equal(result.nextSave.ejaculation_counts, undefined, 'no direct write path exists for ejaculation_counts');
+  assert.ok(result.warnings.includes('unknown_state_path:ejaculation_counts'));
+});
+
+test('wiring: npc_relationship_state and mind_monitor deltas can never smuggle in a counter field — only sexual_event_ledger increments ejaculation_counts', () => {
+  const save = freshSaveForMerge();
+  const result = applyGuardedStateDelta(save, {
+    state_delta: {
+      npc_relationship_state: { heroine1: { ejaculation_count: 50 } },
+      sexual_event_ledger: [{ actor_id: 'player', target_id: 'heroine1', action_type: 'penetration', direction: 'player_to_npc', completed: true, evidence: '실제 사건' }]
+    },
+    outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']
+  }, mergeOptions);
+  // The npc_relationship_state field passes through generically (it's not a recognized counter
+  // path there), but the REAL counter (ejaculation_counts.player) only reflects the ledger.
+  assert.equal(result.nextSave.ejaculation_counts.player, 1);
+});

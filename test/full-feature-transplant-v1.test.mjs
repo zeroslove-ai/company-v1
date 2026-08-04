@@ -355,3 +355,46 @@ test('/api/history: limit is clamped to a maximum of 50 and defaults to 20', asy
   const defaultLimit = await (await worker.fetch(request('/api/history', { game_id: gameId }), env)).json();
   assert.equal(defaultLimit.data.records.length, 20);
 });
+
+// ---------- Commit 5: numbered choice input resolution ----------
+import { resolveNumberedChoiceInput } from '../src/engine/index.js';
+
+function saveWithChoices(choices, meta = []) {
+  return { last_choices: choices, last_choice_meta: meta };
+}
+
+test('choice input: digits, letters (upper/lower), and circled numerals all resolve to the same stored choice text', () => {
+  const save = saveWithChoices(['첫째', '둘째', '셋째', '넷째']);
+  for (const input of ['2', 'b', 'B', '②']) {
+    const result = resolveNumberedChoiceInput(input, save);
+    assert.equal(result.ok, true, `input "${input}" should resolve`);
+    assert.equal(result.choice_index, 1);
+    assert.equal(result.text, '둘째');
+  }
+});
+
+test('choice input: resolving restores the stored structured_meta for that index', () => {
+  const meta = [{ choice_index: 2, action_types: ['kiss'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'csa_direct', direct_csa_ids: ['csa_0'] }];
+  const save = saveWithChoices(['첫째', '둘째', '셋째', '넷째'], meta);
+  const result = resolveNumberedChoiceInput('3', save);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.structured_meta, meta[0]);
+});
+
+test('choice input: plain free-typed text (not a numbered form) resolves to null, falling through to ordinary text handling', () => {
+  const save = saveWithChoices(['첫째', '둘째', '셋째', '넷째']);
+  assert.equal(resolveNumberedChoiceInput('오늘 날씨가 좋다', save), null);
+  assert.equal(resolveNumberedChoiceInput('5', save), null, 'out of the 1-4 digit range is not a recognized numbered form at all');
+});
+
+test('choice input: a numbered form is never silently executed as free text when there is no current choice set (explicit error, not fallback)', () => {
+  const save = saveWithChoices([]);
+  const result = resolveNumberedChoiceInput('2', save);
+  assert.deepEqual(result, { ok: false, code: 'CHOICE_INDEX_OUT_OF_RANGE' });
+});
+
+test('choice input: an in-range letter but with fewer than 4 currently-rendered choices is rejected, not guessed', () => {
+  const save = saveWithChoices(['첫째', '둘째']);
+  const result = resolveNumberedChoiceInput('c', save);
+  assert.deepEqual(result, { ok: false, code: 'CHOICE_INDEX_OUT_OF_RANGE' });
+});

@@ -181,6 +181,16 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
       continue;
     }
     if (path === 'sexual_event_ledger') {
+      // sexual_event_ledger is the ONLY writer of ejaculation_counts/last_sexual_event — no
+      // other state_delta path may touch either (ejaculation_counts isn't even in ALLOWED, so
+      // Extract cannot propose it directly at all; a completion is only ever counted through an
+      // accepted ledger entry here). Because the counter and the ledger's dedupe both derive
+      // from the exact same `accepted` array in this one code path, they can never drift apart
+      // the way two independently-updated stores could — there is no separate write path to
+      // "self-heal" against. (The ledger array itself is capped to the most recent 80 entries;
+      // the counter is a running total incremented only by genuinely new accepted events each
+      // turn, never re-derived from the — possibly truncated — array, so capping the ledger
+      // never loses count history.)
       if (!Array.isArray(patch)) {
         warnings.push('invalid_sexual_event_ledger');
         continue;
