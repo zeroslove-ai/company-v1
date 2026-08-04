@@ -59,7 +59,9 @@ import {
   buildRegenerationFeedbackSection,
   resolveNumberedChoiceInput,
   selectImage,
-  resolveTtsEligibility
+  resolveTtsEligibility,
+  calculateProgress,
+  calculateCsaProgression
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -566,6 +568,27 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           if (deactivatedIds.length) {
             const aftereffectPatch = buildCsaAftereffectPatch({ previousSave: nextSave, deactivatedIds, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn });
             if (aftereffectPatch) nextSave.csa_aftereffect_state = aftereffectPatch;
+          }
+        }
+        // Player level/exp — ported verbatim from donor's live calculateProgress/
+        // calculateCsaProgression (see src/engine/progression.js); Company had no progression
+        // writer of its own before this. Never grants exp on a degraded-Extract turn or for a
+        // feedback revision (replacing a turn's content is not a new turn earning fresh exp).
+        if (action.action_kind !== 'feedback_revision') {
+          const experiencedThisTurn = (Array.isArray(extract.csa_runtime_updates) ? extract.csa_runtime_updates : [])
+            .filter(update => update.status === 'active')
+            .map(update => ({ character_id: update.character_id, csa_id: update.csa_id }));
+          const previouslyExperienced = new Set(Array.isArray(currentSave.csa_experienced_ids) ? currentSave.csa_experienced_ids : []);
+          const progressionAmount = calculateCsaProgression({
+            csaOperations: csaPlan?.canonical_action?.operations ?? [], experiencedThisTurn, previouslyExperienced,
+            degraded: extract.outcome === 'degraded'
+          });
+          if (progressionAmount.newly_experienced_keys.length) {
+            nextSave.csa_experienced_ids = [...previouslyExperienced, ...progressionAmount.newly_experienced_keys];
+          }
+          if (progressionAmount.amount > 0) {
+            const progress = calculateProgress(currentSave.player_progress, progressionAmount.amount);
+            nextSave.player_progress = { level: progress.level, exp: progress.exp };
           }
         }
         const turnChanges = deriveTurnChanges(currentSave, nextSave);

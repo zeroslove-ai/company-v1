@@ -625,3 +625,54 @@ test('view-model: surfaces player_inner_thought, location/posture/clothing, and 
   assert.equal(model.focal_character.character.relationship.intimacy_stage, 'romantic_interest');
   assert.equal(model.focal_character.scene_state.posture, 'standing');
 });
+
+// ---------- Commit 6: EXP progression (ported from donor's live calculateProgress/calculateCsaProgression) ----------
+import { calculateProgress, calculateCsaProgression, expForNextLevel } from '../src/engine/progression.js';
+
+test('progression: exp thresholds match donor exactly (15,23,50,63,75,105,120,135,150 for levels 1-9), capped at level 10', () => {
+  assert.equal(expForNextLevel(1), 15);
+  assert.equal(expForNextLevel(5), 75);
+  assert.equal(expForNextLevel(9), 150);
+  assert.equal(expForNextLevel(10), null);
+});
+
+test('progression: calculateProgress advances exactly one level when exp crosses the threshold, carrying the remainder forward', () => {
+  const result = calculateProgress({ level: 1, exp: 14 }, 3);
+  assert.equal(result.level, 2);
+  assert.equal(result.exp, 2);
+  assert.equal(result.leveled_up, true);
+});
+
+test('progression: calculateProgress can cascade multiple level-ups in one call if exp is large enough', () => {
+  const result = calculateProgress({ level: 1, exp: 0 }, 15 + 23 + 5);
+  assert.equal(result.level, 3);
+  assert.equal(result.exp, 5);
+});
+
+test('progression: level never exceeds 10, exp never overflows past the final threshold', () => {
+  const result = calculateProgress({ level: 10, exp: 100 }, 50);
+  assert.equal(result.level, 10);
+});
+
+test('progression: CSA activate=+3, update=+1, newly-experienced=+2, already-experienced=+1, total capped at 3/turn', () => {
+  const activateOnly = calculateCsaProgression({ csaOperations: [{ operation: 'activate' }] });
+  assert.equal(activateOnly.amount, 3);
+
+  const updateOnly = calculateCsaProgression({ csaOperations: [{ operation: 'update' }] });
+  assert.equal(updateOnly.amount, 1);
+
+  const newExperience = calculateCsaProgression({ experiencedThisTurn: [{ character_id: 'heroine1', csa_id: 'csa_0' }] });
+  assert.equal(newExperience.amount, 2);
+  assert.deepEqual(newExperience.newly_experienced_keys, ['heroine1:csa_0']);
+
+  const repeatExperience = calculateCsaProgression({ experiencedThisTurn: [{ character_id: 'heroine1', csa_id: 'csa_0' }], previouslyExperienced: new Set(['heroine1:csa_0']) });
+  assert.equal(repeatExperience.amount, 1);
+
+  const capped = calculateCsaProgression({ csaOperations: [{ operation: 'activate' }], experiencedThisTurn: [{ character_id: 'heroine1', csa_id: 'csa_0' }] });
+  assert.equal(capped.amount, 3, 'activate(3) + new-experience(2) = 5, capped to the 3/turn maximum');
+});
+
+test('progression: a degraded turn earns zero exp, matching donor\'s "no exp on degraded extract" rule', () => {
+  const result = calculateCsaProgression({ csaOperations: [{ operation: 'activate' }], degraded: true });
+  assert.equal(result.amount, 0);
+});
