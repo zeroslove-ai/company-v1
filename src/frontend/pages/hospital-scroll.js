@@ -1,3 +1,5 @@
+import './hospital-mobile.js';
+
 const DEFAULT_NEAR_BOTTOM_PX = 120;
 const DEFAULT_RELEASE_PX = 84;
 const DEFAULT_STEP_PX = 48;
