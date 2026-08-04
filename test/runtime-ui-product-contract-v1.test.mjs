@@ -106,7 +106,8 @@ test('Mind Monitor normalizer permanently drops physical/body reaction fields', 
   assert.deepEqual(normalized.mind_monitor, {
     heroine3: { surface: '겉으로 인식하는 생각', subconscious: '말로 인정하지 않는 속마음' }
   });
-  assert.equal(normalized.warnings.some(warning => warning.includes('physical_reaction')), true);
+  assert.equal(JSON.stringify(normalized.mind_monitor).includes('physical_reaction'), false);
+  assert.equal(JSON.stringify(normalized.mind_monitor).includes('body'), false);
   assert.equal(normalized.warnings.some(warning => warning.includes(':body')), true);
 });
 
