@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="./csa-entry.css">
     <link rel="stylesheet" href="./hospital-shell.css">
     <link rel="stylesheet" href="./hospital-panels.css">
+    <link rel="stylesheet" href="./product-contract.css">
   </head>
   <body data-edition-id="company-v1" data-phase="phase-4-frontend-loop">
     <a class="skip-link" href="#story-panel">본문으로 이동</a>
@@ -38,11 +39,14 @@
               <button id="play-tts" type="button" disabled>대사 재생</button>
             </div>
           </section>
+          <section class="mind-panel" aria-labelledby="mind-heading">
+            <h2 id="mind-heading">Mind Monitor</h2>
+            <div id="mind-monitor" class="mind-monitor"></div>
+          </section>
           <details id="character-state" class="state-panel" open>
             <summary>캐릭터와 현재 상태</summary>
             <dl id="scene-state" class="state-list"></dl>
             <section id="focal-character" class="focal-character" hidden></section>
-            <section class="mind-panel" aria-labelledby="mind-heading"><h2 id="mind-heading">Mind Monitor</h2><div id="mind-monitor" class="mind-monitor"></div></section>
           </details>
           <section id="player-panel" class="player-panel" aria-labelledby="player-heading">
             <h2 id="player-heading">플레이어 상황</h2><dl id="player-situation" class="state-list"></dl>
