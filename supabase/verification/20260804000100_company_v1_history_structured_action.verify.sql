@@ -1,5 +1,5 @@
 -- Read-only verification for 20260804000100_company_v1_history_structured_action.sql
--- Run only after the migration is explicitly approved and applied.
+-- Applied migration: 20260804102357_company_v1_history_structured_action
 
 -- 1. Both lifecycle tables expose the canonical structured action column.
 select table_name, column_name, data_type, is_nullable
