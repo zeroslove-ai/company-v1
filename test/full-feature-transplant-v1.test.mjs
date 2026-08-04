@@ -536,3 +536,58 @@ test('/api/image: returns image:null (not an error) when the character has no ac
   const body = await res.json();
   assert.equal(body.data.image, null);
 });
+
+// ---------- Commit 5: TTS backend ----------
+import { resolveTtsEligibility, ttsCacheKey } from '../src/engine/index.js';
+
+const ttsMaster = { characters: [{ character_id: 'heroine1', name: '서원희', voice_id: 'voice-abc' }, { character_id: 'general_park_jungwoo', name: '박정우' }] };
+
+test('TTS eligibility: a confirmed line from a registered character with a voice_id is eligible', () => {
+  const result = resolveTtsEligibility({ speakerId: 'heroine1', text: '안녕하세요.', master: ttsMaster });
+  assert.equal(result.eligible, true);
+  assert.equal(result.voice_id, 'voice-abc');
+});
+
+test('TTS eligibility: the narrator (null/absent speaker, or literal "narrator") is never eligible', () => {
+  assert.equal(resolveTtsEligibility({ speakerId: null, text: '서술문', master: ttsMaster }).code, 'NARRATOR_NOT_ELIGIBLE');
+  assert.equal(resolveTtsEligibility({ speakerId: 'narrator', text: '서술문', master: ttsMaster }).code, 'NARRATOR_NOT_ELIGIBLE');
+});
+
+test('TTS eligibility: an unknown speaker id (not a registered character at all) is rejected', () => {
+  const result = resolveTtsEligibility({ speakerId: 'not_a_real_character', text: '대사', master: ttsMaster });
+  assert.equal(result.eligible, false);
+  assert.equal(result.code, 'UNKNOWN_SPEAKER');
+});
+
+test('TTS eligibility: a general NPC with no voice_id is rejected, even though they are a known/present character', () => {
+  const result = resolveTtsEligibility({ speakerId: 'general_park_jungwoo', text: '대사', master: ttsMaster });
+  assert.equal(result.eligible, false);
+  assert.equal(result.code, 'NO_VOICE_ID');
+});
+
+test('TTS eligibility: empty text is rejected before any speaker check', () => {
+  assert.equal(resolveTtsEligibility({ speakerId: 'heroine1', text: '   ', master: ttsMaster }).code, 'EMPTY_TEXT');
+});
+
+test('ttsCacheKey: identical speaker+text always produce the same key, enabling same-line replay caching', () => {
+  assert.equal(ttsCacheKey('heroine1', '안녕하세요.'), ttsCacheKey('heroine1', '안녕하세요.'));
+  assert.notEqual(ttsCacheKey('heroine1', '안녕하세요.'), ttsCacheKey('heroine1', '다른 대사'));
+});
+
+test('/api/tts: OFF-by-default is a frontend concern (this route never gets called unless the user opted in), but the server never calls narrator/unknown/no-voice speakers', async () => {
+  let upstreamCalls = 0;
+  const worker = createApiWorker({
+    fetchImpl: async textUrl => {
+      if (String(textUrl).startsWith('https://tts.test')) { upstreamCalls += 1; return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'audio/mpeg' } }); }
+      throw new Error(`unexpected call: ${textUrl}`);
+    }
+  });
+  const ttsEnv = { ...env, TTS_API_URL: 'https://tts.test/synthesize', TTS_API_KEY: 'tts-key' };
+  const narratorRes = await worker.fetch(request('/api/tts', { game_id: gameId, character_id: null, text: '서술문' }), ttsEnv);
+  assert.equal(narratorRes.status, 422);
+  assert.equal(upstreamCalls, 0, 'a rejected narrator request must never reach the TTS provider');
+
+  const eligibleRes = await worker.fetch(request('/api/tts', { game_id: gameId, character_id: 'heroine1', text: '안녕하세요.' }), ttsEnv);
+  assert.equal(eligibleRes.status, 200);
+  assert.equal(upstreamCalls, 1);
+});

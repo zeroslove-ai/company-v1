@@ -58,7 +58,8 @@ import {
   isGeneralNpcId,
   buildRegenerationFeedbackSection,
   resolveNumberedChoiceInput,
-  selectImage
+  selectImage,
+  resolveTtsEligibility
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -620,6 +621,46 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         return ok({ character_id: characterId, image: selected });
       } finally {
         logTurnTiming({ event_stage: 'image', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /**
+     * TTS is opt-in and only ever called by the frontend for a confirmed, already-rendered
+     * dialogue line — this route's own job is the server-side backstop: narrator lines, unknown
+     * speakers, and characters with no voice_id are all rejected before any external call is
+     * made, regardless of what the client requests. A rejection or an upstream TTS failure
+     * returns a normal error response; it can never fail Story/Extract/Commit since nothing in
+     * that pipeline ever calls this route.
+     */
+    async tts(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const text = requireString(body.text, 'text');
+      const speakerId = typeof body.character_id === 'string' ? body.character_id : null;
+      try {
+        const eligibility = resolveTtsEligibility({ speakerId, text, master });
+        if (!eligibility.eligible) throw new HttpError(422, eligibility.code.toLowerCase(), 'TTS를 재생할 수 없습니다.', false);
+        const ttsUrl = env?.TTS_API_URL;
+        const ttsKey = env?.TTS_API_KEY;
+        if (typeof ttsUrl !== 'string' || !ttsUrl || typeof ttsKey !== 'string' || !ttsKey) {
+          throw new HttpError(500, 'configuration_error', 'TTS_API_URL/TTS_API_KEY is not configured', false);
+        }
+        let response;
+        try {
+          response = await fetchImpl(ttsUrl, {
+            method: 'POST',
+            headers: { authorization: `Bearer ${ttsKey}`, 'content-type': 'application/json' },
+            body: JSON.stringify({ voice_id: eligibility.voice_id, text })
+          });
+        } catch {
+          throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
+        }
+        if (!response.ok) throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
+        return new Response(response.body, { headers: { 'content-type': response.headers.get('content-type') ?? 'audio/mpeg', 'cache-control': 'public, max-age=86400' } });
+      } finally {
+        logTurnTiming({ event_stage: 'tts', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
     },
 
