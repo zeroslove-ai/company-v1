@@ -16,6 +16,8 @@ function characterEntries(context) {
   return [...ids].sort().map(id => ({ id, name: characterMap[id]?.name ?? id }));
 }
 
+const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAA=';
+
 export function createUtilityUi({
   documentRef,
   api,
@@ -26,14 +28,16 @@ export function createUtilityUi({
   onPrepareAction,
   onError,
   onStatus,
-  onMediaLoading
+  onMediaLoading,
+  AudioImpl = globalThis.Audio,
+  urlApi = globalThis.URL
 }) {
   const get = id => documentRef.querySelector(`#${id}`);
   const elements = {
     historyOverlay: get('history-overlay'), historyList: get('history-list'), historyClose: get('history-close'), historyMore: get('history-more'), historyStatus: get('history-status'),
     feedbackOverlay: get('feedback-overlay'), feedbackForm: get('feedback-form'), feedbackText: get('feedback-text'), feedbackClose: get('feedback-close'), feedbackStatus: get('feedback-status'),
     npcOverlay: get('npc-finder-overlay'), npcSelect: get('npc-finder-character'), npcClose: get('npc-finder-close'), npcFind: get('npc-finder-submit'), npcUse: get('npc-finder-use'), npcStatus: get('npc-finder-status'),
-    image: get('character-image'), imageStatus: get('image-status'), ttsEnabled: get('tts-enabled'), ttsPlay: get('play-tts')
+    image: get('character-image'), imageStatus: get('image-status'), ttsEnabled: get('tts-enabled'), ttsPlay: get('play-tts'), mind: get('mind-monitor')
   };
   const available = {
     history: Boolean(elements.historyOverlay && elements.historyList && typeof api.history === 'function'),
@@ -47,6 +51,7 @@ export function createUtilityUi({
   let nextBeforeTurn = null;
   let lastNpcResult = null;
   let audioObjectUrl = null;
+  let audio = null;
 
   function setOverlay(element, open) {
     if (element) element.hidden = !open;
@@ -63,7 +68,7 @@ export function createUtilityUi({
     const result = await api.history({ game_id: gameId, limit: 20, ...(nextBeforeTurn ? { before_turn: nextBeforeTurn } : {}) });
     historyRecords = [...historyRecords, ...(result.records ?? [])];
     nextBeforeTurn = result.next_before_turn ?? null;
-    renderHistory(elements.historyList, historyRecords);
+    renderHistory(elements.historyList, historyRecords, { showSummary: true });
     if (elements.historyMore) elements.historyMore.hidden = result.has_more !== true;
     text(elements.historyStatus, historyRecords.length ? `${historyRecords.length}개 턴` : '저장된 기록이 없습니다.');
   }
@@ -144,21 +149,25 @@ export function createUtilityUi({
 
   function renderImage(image) {
     const url = image?.image_url;
+    const situation = typeof image?.situation === 'string' ? image.situation.trim() : '';
     if (elements.image) {
       elements.image.hidden = !url;
-      if (url) { elements.image.src = url; elements.image.alt = image?.situation ?? '현재 장면 이미지'; }
+      if (url) { elements.image.src = url; elements.image.alt = situation || '현재 장면 이미지'; }
       else elements.image.removeAttribute?.('src');
     }
-    text(elements.imageStatus, url ? (image?.situation ?? '현재 장면') : '표시할 이미지가 없습니다.');
+    const generic = !situation || situation === '현재 장면';
+    if (elements.imageStatus) elements.imageStatus.hidden = Boolean(url && generic);
+    text(elements.imageStatus, url ? (generic ? '' : situation) : '표시할 이미지가 없습니다.');
   }
 
   async function loadMedia() {
-    if (!available.media) return null;
+    if (!available.media) { syncTtsControl(); return null; }
     const viewModel = getViewModel?.();
     const characterId = viewModel?.media?.image_character_id;
-    if (!characterId) { renderImage(null); return null; }
+    if (!characterId) { renderImage(null); syncTtsControl(); return null; }
     onMediaLoading?.(true);
     text(elements.imageStatus, '장면 이미지를 찾는 중…');
+    if (elements.imageStatus) elements.imageStatus.hidden = false;
     try {
       const result = await api.image({
         game_id: gameId,
@@ -175,28 +184,86 @@ export function createUtilityUi({
       return null;
     } finally {
       onMediaLoading?.(false);
+      syncTtsControl();
     }
   }
 
+  function playableDialogueLine() {
+    const viewModel = getViewModel?.();
+    const lines = Array.isArray(viewModel?.media?.dialogue_lines)
+      ? viewModel.media.dialogue_lines.filter(line => typeof line?.text === 'string' && line.text.trim())
+      : [];
+    if (!lines.length) return null;
+    const selectedMindId = elements.mind?.dataset?.selectedCharacterId;
+    const preferredIds = [
+      selectedMindId,
+      viewModel?.media?.image_character_id,
+      viewModel?.focal_character?.id,
+      viewModel?.focal_character?.last_speaker_id
+    ].filter(Boolean);
+    const reversed = [...lines].sort((left, right) => Number(right?.order ?? 0) - Number(left?.order ?? 0));
+    for (const characterId of preferredIds) {
+      const matched = reversed.find(line => (line.speaker_id || line.character_id) === characterId);
+      if (matched) return matched;
+    }
+    return reversed.find(line => line.speaker_id || line.character_id) ?? null;
+  }
+
   function syncTtsControl() {
-    if (elements.ttsPlay) elements.ttsPlay.disabled = !available.tts || elements.ttsEnabled?.checked !== true;
+    const line = playableDialogueLine();
+    if (elements.ttsPlay) {
+      elements.ttsPlay.disabled = !available.tts || !line;
+      elements.ttsPlay.title = line ? `${line.speaker_name || '캐릭터'}: ${line.text}` : '재생할 캐릭터 대사가 없습니다.';
+    }
+  }
+
+  function ensureAudio() {
+    if (audio || typeof AudioImpl !== 'function') return audio;
+    audio = new AudioImpl();
+    return audio;
   }
 
   async function playTts() {
-    if (!available.tts || elements.ttsEnabled?.checked !== true) return;
-    const viewModel = getViewModel?.();
-    const line = viewModel?.media?.dialogue_lines?.find(item => typeof item?.text === 'string' && item.text.trim());
-    const characterId = line?.character_id || viewModel?.media?.image_character_id;
-    if (!line || !characterId) { onStatus?.('재생할 캐릭터 대사가 없습니다.'); return; }
+    if (!available.tts) return false;
+    const line = playableDialogueLine();
+    const characterId = line?.speaker_id || line?.character_id;
+    if (!line || !characterId) { onStatus?.('재생할 캐릭터 대사가 없습니다.'); syncTtsControl(); return false; }
+
+    const playback = ensureAudio();
+    let primePromise = null;
+    if (playback) {
+      try {
+        playback.muted = true;
+        playback.src = SILENT_WAV;
+        primePromise = playback.play?.();
+      } catch {
+        primePromise = null;
+      }
+    }
+
     try {
-      const response = await api.tts({ game_id: gameId, character_id: characterId, text: line.text });
+      const response = await api.tts({
+        game_id: gameId,
+        character_id: characterId,
+        text: line.text,
+        direction: typeof line.direction === 'string' ? line.direction : ''
+      });
       const blob = await response.blob();
-      if (audioObjectUrl) URL.revokeObjectURL(audioObjectUrl);
-      audioObjectUrl = URL.createObjectURL(blob);
-      const audio = new Audio(audioObjectUrl);
-      await audio.play();
+      if (primePromise && typeof primePromise.catch === 'function') await primePromise.catch(() => undefined);
+      if (audioObjectUrl && typeof urlApi?.revokeObjectURL === 'function') urlApi.revokeObjectURL(audioObjectUrl);
+      audioObjectUrl = typeof urlApi?.createObjectURL === 'function' ? urlApi.createObjectURL(blob) : null;
+      if (!playback || !audioObjectUrl) throw new Error('Audio playback is unavailable');
+      playback.pause?.();
+      playback.muted = false;
+      playback.src = audioObjectUrl;
+      playback.currentTime = 0;
+      await playback.play();
+      onStatus?.(`${line.speaker_name || '캐릭터'}의 마지막 대사를 재생합니다.`);
+      return true;
     } catch (error) {
+      if (playback) playback.muted = false;
       onError?.(error);
+      return false;
     }
   }
 
@@ -211,5 +278,17 @@ export function createUtilityUi({
   elements.ttsPlay?.addEventListener('click', playTts);
   syncTtsControl();
 
-  return { available, openHistory, openFeedback, openNpcFinder, loadMedia, closeHistory, closeFeedback, closeNpcFinder };
+  return {
+    available,
+    openHistory,
+    openFeedback,
+    openNpcFinder,
+    loadMedia,
+    closeHistory,
+    closeFeedback,
+    closeNpcFinder,
+    syncTtsControl,
+    playTts,
+    playableDialogueLine
+  };
 }
