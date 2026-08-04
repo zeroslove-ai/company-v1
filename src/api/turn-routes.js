@@ -472,7 +472,8 @@ export function createTurnRoutes({ fetchImpl, edition }) {
 
         const mergeStart = Date.now();
         const merged = applyGuardedStateDelta(currentSave, extract, {
-          expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds
+          expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds,
+          storyText: action.story_text
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
