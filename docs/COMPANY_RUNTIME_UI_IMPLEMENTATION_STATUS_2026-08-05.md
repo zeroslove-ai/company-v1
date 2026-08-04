@@ -33,6 +33,12 @@
 - Story → Extract → guarded merge → Commit 파이프라인 유지
 - CSA 앱·structured action·recovery 계약 유지
 
+## 검증 기준
+
+- 최신 브랜치 HEAD와 PR 임시 merge ref가 일치하는 새 Actions 실행만 유효하다.
+- 이전 임시 merge ref를 체크아웃한 과거 실패 실행은 최종 판정에 사용하지 않는다.
+- 전체 회귀 테스트, API Worker dry-run, Frontend Worker dry-run이 모두 통과한 exact SHA만 배포 대상으로 확정한다.
+
 ## 배포 상태
 
 코드 및 회귀 테스트 구현 단계이며 Worker 배포 전이다. 최종 CI와 Wrangler dry-run이 모두 통과한 exact SHA만 별도 배포 지시 대상으로 사용한다.
