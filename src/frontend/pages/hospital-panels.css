@@ -164,6 +164,102 @@
   margin-top: 2px;
 }
 
+/* Mind Monitor is a primary gameplay panel, not an optional debug block. */
+.mind-monitor {
+  display: grid;
+  gap: 8px;
+  background: transparent !important;
+}
+
+.mind-monitor-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.mind-monitor-tab {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: 999px;
+  background: var(--hospital-bg-primary);
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.mind-monitor-tab[aria-selected="true"] {
+  border-color: var(--hospital-accent);
+  background: color-mix(in srgb, var(--hospital-accent) 24%, var(--hospital-bg-tertiary));
+  color: var(--hospital-text-primary);
+}
+
+.mind-monitor-content,
+.mind-monitor-body {
+  display: grid;
+  gap: 8px;
+}
+
+.mind-card {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: var(--hospital-bg-tertiary);
+}
+
+.mind-card h3 {
+  margin: 0 0 6px;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.mind-card p,
+.mind-monitor-empty {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.mind-monitor-empty {
+  padding: 10px;
+  border: 1px dashed var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  color: var(--hospital-text-secondary);
+}
+
+/* TTS is one compact toolbar. The checkbox controls auto playback only. */
+.media-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.tts-toggle {
+  min-height: 34px;
+  padding: 0 9px;
+  font-size: 0.8rem;
+}
+
+#play-tts {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.media-status[hidden] {
+  display: none !important;
+}
+
 .choice-list {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
@@ -271,5 +367,9 @@
 
   .narrative-choices li {
     font-size: 0.82rem;
+  }
+
+  .mind-card {
+    padding: 9px;
   }
 }
