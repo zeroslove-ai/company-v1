@@ -16,11 +16,23 @@ function storage() {
 }
 
 class FakeNode {
-  constructor() { this.children = []; this.listeners = new Map(); this.hidden = false; this.disabled = false; this.checked = false; this.value = ''; this.textContent = ''; }
+  constructor() { this.children = []; this.listeners = new Map(); this.hidden = false; this.disabled = false; this.checked = false; this.value = ''; this.textContent = ''; this.dataset = {}; this.title = ''; }
   addEventListener(type, listener) { this.listeners.set(type, listener); }
   replaceChildren(...children) { this.children = children; }
   append(...children) { this.children.push(...children); }
   focus() {}
+}
+
+class FakeAudio {
+  constructor() {
+    this.playCalls = 0;
+    this.pauseCalls = 0;
+    this.muted = false;
+    this.src = '';
+    this.currentTime = 0;
+  }
+  play() { this.playCalls += 1; return Promise.resolve(); }
+  pause() { this.pauseCalls += 1; }
 }
 
 function documentWith(ids) {
@@ -101,20 +113,52 @@ test('feedback revision reuses the action reserved by the existing revision RPC'
   assert.deepEqual(calls[2][1].structured_action, structuredAction);
 });
 
-test('TTS disabled means zero TTS requests even when a dialogue line exists', async () => {
-  const { nodes, documentRef } = documentWith(['tts-enabled', 'play-tts']);
-  let ttsCalls = 0;
-  createUtilityUi({
+test('TTS OFF makes no automatic request but manual replay still plays the selected NPC line', async () => {
+  const { nodes, documentRef } = documentWith(['tts-enabled', 'play-tts', 'mind-monitor']);
+  nodes['mind-monitor'].dataset.selectedCharacterId = 'heroine1';
+  const ttsBodies = [];
+  let createdAudio = null;
+  class CapturedAudio extends FakeAudio {
+    constructor() { super(); createdAudio = this; }
+  }
+  const ui = createUtilityUi({
     documentRef,
-    api: { tts: async () => { ttsCalls += 1; return new Response(); } },
+    api: {
+      tts: async body => {
+        ttsBodies.push(body);
+        return new Response(new Blob(['audio']), { headers: { 'content-type': 'audio/mpeg' } });
+      }
+    },
     gameId,
-    getViewModel: () => ({ media: { image_character_id: 'heroine1', dialogue_lines: [{ text: '대사' }] } })
+    getViewModel: () => ({
+      media: {
+        image_character_id: 'heroine1',
+        dialogue_lines: [
+          { speaker_id: 'heroine2', speaker_name: '윤민아', text: '다른 대사', direction: '담담하게', order: 0 },
+          { speaker_id: 'heroine1', speaker_name: '서원희', text: '재생할 대사', direction: '조심스럽게', order: 1 }
+        ]
+      },
+      focal_character: { id: 'heroine2', last_speaker_id: 'heroine1' }
+    }),
+    AudioImpl: CapturedAudio,
+    urlApi: { createObjectURL: () => 'blob:tts-audio', revokeObjectURL() {} }
   });
 
   assert.equal(nodes['tts-enabled'].checked, false);
-  assert.equal(nodes['play-tts'].disabled, true);
-  await nodes['play-tts'].listeners.get('click')();
-  assert.equal(ttsCalls, 0);
+  assert.equal(ttsBodies.length, 0, 'OFF 상태에서 자동 TTS 요청은 없어야 한다');
+  assert.equal(nodes['play-tts'].disabled, false, '수동 재생은 TTS 토글과 독립이어야 한다');
+
+  const played = await ui.playTts();
+  assert.equal(played, true);
+  assert.deepEqual(ttsBodies, [{
+    game_id: gameId,
+    character_id: 'heroine1',
+    text: '재생할 대사',
+    direction: '조심스럽게'
+  }]);
+  assert.equal(createdAudio.playCalls, 2, '모바일 priming과 실제 음원 재생을 각각 수행한다');
+  assert.equal(createdAudio.src, 'blob:tts-audio');
+  assert.equal(createdAudio.muted, false);
 });
 
 test('frontend shell exposes a dedicated hospital-style CSA app entry beside game state', () => {
