@@ -276,6 +276,49 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       }
     },
 
+    /**
+     * Read-only, paginated turn history. game_turns already carries everything needed (no new
+     * RPC); record_status='active' dedupes a revised turn to only its current revision. Zero
+     * LLM calls, zero mutation. player_inner_thought is read from the stored parsed_blocks;
+     * only falls back to re-parsing story_text (never writing the result back to the DB) for a
+     * legacy/empty parsed_blocks row.
+     */
+    async history(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const beforeTurn = Number.isInteger(body.before_turn) && body.before_turn > 0 ? body.before_turn : null;
+      const limit = Math.min(Math.max(Number.isInteger(body.limit) ? body.limit : 20, 1), 50);
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const rows = await db.listTurns(gameId, { beforeTurn, limit: limit + 1 });
+        const hasMore = rows.length > limit;
+        const page = hasMore ? rows.slice(0, limit) : rows;
+        const records = page.map(row => {
+          const parsedBlocks = plainObject(row.parsed_blocks) && Object.keys(row.parsed_blocks).length
+            ? row.parsed_blocks
+            : parseNarrative(row.story_text ?? '', { master });
+          return {
+            turn_number: row.turn_number,
+            player_input: row.player_action,
+            player_action: row.player_action,
+            story_text: row.story_text,
+            parsed_blocks: parsedBlocks,
+            turn_summary: row.turn_summary,
+            mind_monitor: row.mind_monitor,
+            player_inner_thought: typeof parsedBlocks?.player_inner_thought === 'string' ? parsedBlocks.player_inner_thought : '',
+            structured_action: null,
+            feedback_text: row.feedback_text ?? null,
+            committed_at: row.committed_at
+          };
+        });
+        return ok({ records, has_more: hasMore, next_before_turn: hasMore ? page[page.length - 1]?.turn_number ?? null : null });
+      } finally {
+        logTurnTiming({ event_stage: 'history', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
     async story(request, env) {
       const requestId = newRequestId();
       const startedAt = Date.now();

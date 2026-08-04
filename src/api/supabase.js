@@ -71,6 +71,26 @@ export function createSupabaseClient(env, fetchImpl) {
         body: JSON.stringify({ processing_status: nextStatus, error_code: errorCode })
       });
       return Array.isArray(payload) ? payload[0] ?? null : payload;
+    },
+    /** Read-only, paginated, active-only (record_status=active dedupes revisions to the current one) turn history — no RPC needed, table already carries everything /api/history needs. */
+    async listTurns(gameId, { beforeTurn = null, limit = 20 } = {}) {
+      const query = new URLSearchParams({
+        game_id: `eq.${gameId}`, record_status: 'eq.active',
+        select: 'turn_number,player_action,feedback_text,story_text,parsed_blocks,turn_summary,mind_monitor,choices,committed_at',
+        order: 'turn_number.desc', limit: String(limit)
+      });
+      if (Number.isInteger(beforeTurn)) query.set('turn_number', `lt.${beforeTurn}`);
+      const payload = await request(`${baseUrl}/rest/v1/game_turns?${query}`, { method: 'GET' });
+      return Array.isArray(payload) ? payload : [];
+    },
+    reserveFeedbackRevision(gameId, revisionRequestId, feedbackText) {
+      return this.callRpc('reserve_feedback_revision', { p_game_id: gameId, p_revision_request_id: revisionRequestId, p_feedback_text: feedbackText });
+    },
+    commitFeedbackRevision(gameId, actionId, revisionRequestId, nextSave, turnSummary, mindMonitor, choices) {
+      return this.callRpc('commit_feedback_revision', {
+        p_game_id: gameId, p_action_id: actionId, p_revision_request_id: revisionRequestId,
+        p_next_save: nextSave, p_turn_summary: turnSummary, p_mind_monitor: mindMonitor, p_choices: choices
+      });
     }
   };
 }

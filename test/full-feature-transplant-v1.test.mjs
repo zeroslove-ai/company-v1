@@ -34,7 +34,7 @@ function freshSave(overrides = {}) {
   };
 }
 
-function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonResponses = [] } = {}) {
+function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonResponses = [], turnsFixture = [] } = {}) {
   const calls = [];
   let currentSave = structuredClone(initialSave);
   let saveRevision = 1;
@@ -56,6 +56,13 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
     const parsed = new URL(textUrl);
     if (parsed.pathname === '/rest/v1/game_actions' && (init.method ?? 'GET') === 'GET') {
       return json([calls.__action].filter(Boolean));
+    }
+    if (parsed.pathname === '/rest/v1/game_turns' && (init.method ?? 'GET') === 'GET') {
+      const before = parsed.searchParams.get('turn_number')?.startsWith('lt.') ? Number(parsed.searchParams.get('turn_number').slice(3)) : null;
+      const limit = Number(parsed.searchParams.get('limit') ?? '20');
+      let rows = [...turnsFixture].sort((a, b) => b.turn_number - a.turn_number);
+      if (before !== null) rows = rows.filter(row => row.turn_number < before);
+      return json(rows.slice(0, limit));
     }
     if (parsed.pathname === '/rest/v1/game_actions' && init.method === 'PATCH') {
       const expectedStatus = parsed.searchParams.get('processing_status')?.replace('eq.', '');
@@ -296,4 +303,55 @@ test('/api/find-npc: rejects with NPC_LOCATION_UNKNOWN when nothing has ever bee
   assert.equal(res.status, 422);
   const body = await res.json();
   assert.equal(body.error.code, 'npc_location_unknown');
+});
+
+// ---------- Commit 5: /api/history ----------
+
+function turnFixture(n, overrides = {}) {
+  return {
+    turn_number: n, player_action: `행동 ${n}`, feedback_text: null, story_text: `[1. 서사 및 행동]\n본문 ${n}`,
+    parsed_blocks: { player_inner_thought: `속마음 ${n}`, player_status: '', choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], warnings: [] },
+    turn_summary: `요약 ${n}`, mind_monitor: {}, choices: ['a', 'b', 'c', 'd'], committed_at: `2026-01-0${Math.min(n, 9)}T00:00:00Z`,
+    ...overrides
+  };
+}
+
+test('/api/history: returns committed-turn-only records with narrative_text/turn_summary kept separate, zero LLM calls', async () => {
+  const turnsFixture = [turnFixture(1), turnFixture(2), turnFixture(3)];
+  const mock = createMockFetch({ turnsFixture });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const res = await worker.fetch(request('/api/history', { game_id: gameId, limit: 20 }), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.data.records.length, 3);
+  assert.equal(body.data.records[0].turn_number, 3, 'newest turn first');
+  assert.equal(body.data.records[0].turn_summary, '요약 3');
+  assert.equal(body.data.records[0].story_text, '[1. 서사 및 행동]\n본문 3');
+  assert.notEqual(body.data.records[0].turn_summary, body.data.records[0].story_text, 'summary and raw story stay distinct fields');
+  assert.equal(body.data.records[0].player_inner_thought, '속마음 3');
+  assert.equal(body.data.has_more, false);
+  assert.equal(mock.calls.some(call => call.url.startsWith('https://llm.test')), false, '/api/history must never call the LLM');
+});
+
+test('/api/history: pagination via before_turn returns next_before_turn and has_more correctly', async () => {
+  const turnsFixture = Array.from({ length: 5 }, (_, i) => turnFixture(i + 1));
+  const mock = createMockFetch({ turnsFixture });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const first = await (await worker.fetch(request('/api/history', { game_id: gameId, limit: 2 }), env)).json();
+  assert.deepEqual(first.data.records.map(r => r.turn_number), [5, 4]);
+  assert.equal(first.data.has_more, true);
+  assert.equal(first.data.next_before_turn, 4);
+  const second = await (await worker.fetch(request('/api/history', { game_id: gameId, limit: 2, before_turn: first.data.next_before_turn }), env)).json();
+  assert.deepEqual(second.data.records.map(r => r.turn_number), [3, 2]);
+  assert.equal(second.data.has_more, true);
+});
+
+test('/api/history: limit is clamped to a maximum of 50 and defaults to 20', async () => {
+  const turnsFixture = Array.from({ length: 60 }, (_, i) => turnFixture(i + 1));
+  const mock = createMockFetch({ turnsFixture });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const overLimit = await (await worker.fetch(request('/api/history', { game_id: gameId, limit: 200 }), env)).json();
+  assert.equal(overLimit.data.records.length, 50);
+  const defaultLimit = await (await worker.fetch(request('/api/history', { game_id: gameId }), env)).json();
+  assert.equal(defaultLimit.data.records.length, 20);
 });
