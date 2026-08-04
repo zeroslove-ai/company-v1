@@ -591,3 +591,37 @@ test('/api/tts: OFF-by-default is a frontend concern (this route never gets call
   assert.equal(eligibleRes.status, 200);
   assert.equal(upstreamCalls, 1);
 });
+
+// ---------- Commit 5: view-model surfaces player physical/sexual state and focal NPC stats ----------
+import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
+
+test('view-model: surfaces player_inner_thought, location/posture/clothing, and sexual-state fields from the real save shape', () => {
+  const context = {
+    save: {
+      committed_turn: 4,
+      data: {
+        focal_character_id: 'heroine1',
+        player: { name: '김하늘', department: '브랜드전략팀' },
+        player_sexual_state: { arousal: 42, ejaculation_progress: 10, ejaculation_count: 2 },
+        player_scene_state: { location_label: '회의실', posture: 'sitting', clothing: { uniform_top: 'worn' } },
+        npc_stats: { heroine1: { affinity: 30, csa_acceptance: 10, sexual_arousal: 5, work_trust: 20 } },
+        npc_relationship_state: { heroine1: { intimacy_stage: 'romantic_interest' } },
+        npc_emotion: { heroine1: { surface: '차분함', subconscious: '긴장' } },
+        npc_scene_state: { heroine1: { location_label: '회의실', posture: 'standing' } },
+        scene_state: {}, world_state: {}, csa_active: [], last_choices: [], last_npcs_present: []
+      }
+    },
+    recent_turns: [{ turn_number: 4, player_action: 'x', story_text: 'y', parsed_blocks: { player_inner_thought: '오늘따라 긴장된다.', player_status: '평온함', choices: [] } }]
+  };
+  const model = buildCompanyGameViewModel(context);
+  assert.equal(model.player.inner_thought, '오늘따라 긴장된다.');
+  assert.equal(model.story.player_inner_thought, '오늘따라 긴장된다.');
+  assert.equal(model.player.excitement, 42);
+  assert.equal(model.player.ejaculation_progress, 10);
+  assert.equal(model.player.ejaculation_count, 2);
+  assert.equal(model.player.location_label, '회의실');
+  assert.equal(model.player.posture, 'sitting');
+  assert.equal(model.focal_character.character.stats.affinity, 30);
+  assert.equal(model.focal_character.character.relationship.intimacy_stage, 'romantic_interest');
+  assert.equal(model.focal_character.scene_state.posture, 'standing');
+});

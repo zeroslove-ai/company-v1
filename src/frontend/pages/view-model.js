@@ -75,7 +75,9 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const lastSpeakerId = text(save.last_speaker_id);
   const scene = object(save.scene_state) ?? {};
   const player = object(save.player) ?? {};
-  const playerStats = object(save.player_stats) ?? {};
+  const playerSexualState = object(save.player_sexual_state) ?? {};
+  const playerSceneState = object(save.player_scene_state) ?? {};
+  const focalSceneState = object(object(save.npc_scene_state)?.[focalId]) ?? {};
 
   return {
     turn: {
@@ -91,7 +93,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
       choices: choices(save, turn),
       player_status: text(parsedStory.player_status),
-      player_inner_thought: '',
+      player_inner_thought: text(parsedStory.player_inner_thought),
       dialogue_lines: [],
       warnings: strings(parsedStory.warnings)
     },
@@ -107,16 +109,26 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
     focal_character: {
       id: focalId,
       last_speaker_id: lastSpeakerId,
-      character: npcView(save, focalId)
+      character: npcView(save, focalId),
+      scene_state: {
+        location_label: text(focalSceneState.location_label),
+        posture: text(focalSceneState.posture),
+        clothing: object(focalSceneState.clothing) ?? {}
+      }
     },
     player: {
       state: player,
-      stats: playerStats,
+      stats: object(save.npc_stats)?.player ?? {},
       name: text(player.name ?? save.player_name),
       department: text(player.department ?? save.player_department),
-      excitement: numberOrNull(playerStats.sexual_arousal ?? playerStats.excitement ?? playerStats.성적흥분도),
+      excitement: numberOrNull(playerSexualState.arousal),
+      ejaculation_progress: numberOrNull(playerSexualState.ejaculation_progress),
+      ejaculation_count: numberOrNull(playerSexualState.ejaculation_count),
       status: text(parsedStory.player_status),
-      inner_thought: ''
+      inner_thought: text(parsedStory.player_inner_thought),
+      location_label: text(playerSceneState.location_label),
+      posture: text(playerSceneState.posture),
+      clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
       image_id: imageId(save.last_image_id),

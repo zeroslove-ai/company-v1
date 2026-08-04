@@ -8,6 +8,7 @@ import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, validateContext } from './state.js';
 import { buildCompanyGameViewModel } from './view-model.js';
+import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 
 const recoveryLabels = {
   retry_story: 'Story 다시 시도', resume_extract: 'Extract 이어서 실행', retry_extract: 'Extract 다시 시도',
@@ -121,7 +122,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     reserved: get('reserved-opening'), reservedStatus: get('reserved-opening-status'), retryOpening: get('retry-opening')
   };
   const gameId = resolveGameId(locationSearch);
-  let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null;
+  let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, currentImage = null;
   const showStatus = value => text(elements.status, value);
   const setConnection = ready => { text(elements.api, ready ? '●' : '○'); if (elements.api) { elements.api.title = ready ? '연결됨' : '연결 확인 중'; elements.api.ariaLabel = ready ? '연결됨' : '연결 확인 중'; } };
   const clearProgressTimer = () => { if (progressTimer) { clearInterval(progressTimer); progressTimer = null; } };
@@ -184,10 +185,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       setupElements.retryOpening.disabled = busy || recoveryPending;
       setupElements.retryOpening.onclick = reservedSetupId ? () => retryOpening(reservedSetupId) : null;
     }
-    const actionDisabled = busy || recoveryPending || setupOpen;
-    if (elements.input) elements.input.disabled = actionDisabled;
-    if (elements.submit) elements.submit.disabled = actionDisabled;
-    renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: actionDisabled, onChoose: startNewAction });
+    const pendingStep = loadPending(storage, gameId)?.step ?? null;
+    const phase = computeTurnPhase({ busy, recoveryPending, pendingStep, mediaLoading });
+    const flags = turnPhaseUiFlags(phase);
+    if (elements.input) elements.input.disabled = !flags.inputEditable || setupOpen;
+    if (elements.submit) elements.submit.disabled = flags.inputSubmitDisabled || setupOpen;
+    renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: flags.choicesDisabled || setupOpen, onChoose: startNewAction });
     renderToolbar();
   }
   const setBusy = value => { busy = value; render(); };
