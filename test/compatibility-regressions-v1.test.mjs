@@ -22,10 +22,20 @@ test('level 10 exposes the canonical fifth CSA slot', () => {
   assert.equal(calculateCsaCapability({ player_progress: { level: 10, exp: 0 } }, 4).csa_max_active, 5);
 });
 
-test('legacy progressed save without setup/opening keys remains playable', () => {
-  const context = contextFor({ turn_state: { committed_turn: 3 } }, 3);
+test('canonical legacy progressed save without setup/opening keys remains playable', () => {
+  const context = contextFor({
+    turn_state: { committed_turn: 3 },
+    event_ledger: [],
+    npc_stats: { heroine1: {} }
+  }, 3);
   assert.equal(playerSetupCompleted(context), true);
   assert.equal(openingCompleted(context), true);
+});
+
+test('synthetic progressed state without canonical gameplay keys cannot bypass setup', () => {
+  const context = contextFor({ turn_state: { committed_turn: 3 } }, 3);
+  assert.equal(playerSetupCompleted(context), false);
+  assert.equal(openingCompleted(context), false);
 });
 
 test('new turn-zero save without setup/opening keys still requires setup', () => {
@@ -37,6 +47,8 @@ test('new turn-zero save without setup/opening keys still requires setup', () =>
 test('explicit incomplete setup/opening state is never overridden by legacy compatibility', () => {
   const context = contextFor({
     turn_state: { committed_turn: 3 },
+    event_ledger: [],
+    npc_stats: { heroine1: {} },
     player_setup: { completed: false },
     opening_state: { status: 'reserved' }
   }, 3);
