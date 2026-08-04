@@ -8,8 +8,15 @@
     "SUPABASE_URL": "https://fmcrspgxstsmxxsmkeee.supabase.co",
     "LLM_API_URL": "https://api.deepseek.com",
     "STORY_MODEL": "deepseek-v4-flash",
-    "EXTRACT_MODEL": "deepseek-v4-flash"
+    "EXTRACT_MODEL": "deepseek-v4-flash",
+    "TTS_WORKER_URL": "https://fancy-dust-7f8c.zeroslove.workers.dev/"
   },
+  "services": [
+    {
+      "binding": "TTS_WORKER",
+      "service": "fancy-dust-7f8c"
+    }
+  ],
   "secrets": {
     "required": [
       "SUPABASE_SERVICE_ROLE_KEY",
