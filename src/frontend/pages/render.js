@@ -15,6 +15,9 @@ const DISPLAY_LABELS = {
   crouching: '몸을 낮추고 있음', walking: '이동 중', leaning: '기대어 있음', bent_forward: '몸을 앞으로 숙이고 있음'
 };
 
+let currentChoiceSet = null;
+let committedChoiceSet = null;
+
 function localizedValue(value) {
   const raw = displayValue(value).trim();
   if (!raw) return '';
@@ -36,13 +39,45 @@ function definitionList(container, entries) {
   }
 }
 
+function normalizedStrings(value) {
+  return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()).map(item => item.trim()) : [];
+}
+
 function parsedChoices(turn, parsed) {
   const candidates = [parsed?.choices, turn?.choices, turn?.parsed_blocks?.choices];
   for (const candidate of candidates) {
-    if (Array.isArray(candidate) && candidate.some(choice => typeof choice === 'string' && choice.trim())) {
-      return candidate.filter(choice => typeof choice === 'string' && choice.trim());
-    }
+    const normalized = normalizedStrings(candidate);
+    if (normalized.length) return normalized;
   }
+  return [];
+}
+
+function parsedChoiceLabels(turn, parsed, choiceCount) {
+  const candidates = [parsed?.choice_labels, turn?.choice_labels, turn?.parsed_blocks?.choice_labels];
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate) || candidate.length !== choiceCount) continue;
+    const labels = candidate.map(label => typeof label === 'string' ? label.trim() : '');
+    if (labels.every(label => Array.from(label).length >= 2 && Array.from(label).length <= 6)
+      && new Set(labels).size === labels.length) return labels;
+  }
+  return [];
+}
+
+function choiceSignature(choices) {
+  return JSON.stringify(normalizedStrings(choices));
+}
+
+function choiceSet(choices, labels) {
+  const normalizedChoices = normalizedStrings(choices);
+  if (!normalizedChoices.length) return null;
+  const normalizedLabels = parsedChoiceLabels({ choice_labels: labels }, {}, normalizedChoices.length);
+  return { signature: choiceSignature(normalizedChoices), choices: normalizedChoices, labels: normalizedLabels };
+}
+
+function labelsForChoices(choices) {
+  const signature = choiceSignature(choices);
+  if (currentChoiceSet?.signature === signature && currentChoiceSet.labels.length === normalizedStrings(choices).length) return currentChoiceSet.labels;
+  if (committedChoiceSet?.signature === signature && committedChoiceSet.labels.length === normalizedStrings(choices).length) return committedChoiceSet.labels;
   return [];
 }
 
@@ -51,7 +86,8 @@ export function parsedTurnNarrative(turn) {
   if (Array.isArray(turn?.parsed_blocks)) parsed = { blocks: turn.parsed_blocks };
   else if (Array.isArray(turn?.parsed_blocks?.blocks)) parsed = turn.parsed_blocks;
   else parsed = parseNarrative(turn?.story_text ?? '');
-  return { ...parsed, choices: parsedChoices(turn, parsed) };
+  const choices = parsedChoices(turn, parsed);
+  return { ...parsed, choices, choice_labels: parsedChoiceLabels(turn, parsed, choices.length) };
 }
 
 export function stateDisplayValues(viewModel) {
@@ -68,36 +104,26 @@ export function stateDisplayValues(viewModel) {
   };
 }
 
-const CHOICE_INTENTS = [
-  { pattern: /자료|문서|보고서|화면|파일/, label: '자료보기' },
-  { pattern: /대화.*(?:합류|끼어)|(?:합류|끼어).*대화/, label: '대화합류' },
-  { pattern: /질문|물어|묻/, label: '질문하기' },
-  { pattern: /도와|돕|지원/, label: '도와주기' },
-  { pattern: /거절|중단|물러|하지 않/, label: '거절하기' },
-  { pattern: /기다|지켜보|관찰|살펴보/, label: '지켜보기' },
-  { pattern: /무릎|곁|옆.*앉|앉아|착석/, label: '곁에앉기' },
-  { pattern: /다가가|접근|이동|찾아가/, label: '다가가기' },
-  { pattern: /인사|말을 걸|대화를 시작|말을 꺼/, label: '말걸기' },
-  { pattern: /설명|이야기|말해/, label: '설명하기' },
-  { pattern: /검토|확인|점검/, label: '확인하기' },
-  { pattern: /업무|집중|정리|작성/, label: '업무집중' }
-];
-
-export function choiceLabel(choice, maxLength = 5) {
-  const value = String(choice ?? '').replace(/^\s*\d+\.\s*/, '').trim();
-  const matched = CHOICE_INTENTS.find(intent => intent.pattern.test(value));
-  const label = matched?.label ?? value.replace(/[“”"'()[\]{}]/g, '').trim();
-  return Array.from(label).slice(0, Math.max(1, maxLength)).join('');
+export function choiceLabel(choice, maxLength = 5, explicitLabel = '') {
+  const label = typeof explicitLabel === 'string' ? explicitLabel.trim() : '';
+  if (Array.from(label).length >= 2 && Array.from(label).length <= 6) return label;
+  const value = String(choice ?? '')
+    .replace(/^\s*\d+\.\s*/, '')
+    .replace(/[“”"'()[\]{}.,!?…·:;\s]/g, '')
+    .trim();
+  return Array.from(value || '선택').slice(0, Math.max(1, maxLength)).join('');
 }
 
-function renderNarrativeChoices(container, choices) {
-  const normalized = Array.isArray(choices) ? choices.filter(choice => typeof choice === 'string' && choice.trim()) : [];
+function renderNarrativeChoices(container, choices, labels = []) {
+  const normalized = normalizedStrings(choices);
   if (!container || normalized.length === 0) return;
   const section = document.createElement('section'); section.className = 'narrative-choices';
   const heading = document.createElement('h3'); heading.textContent = '선택지';
   const list = document.createElement('ol');
-  for (const choice of normalized) {
-    const item = document.createElement('li'); item.textContent = choice; list.append(item);
+  for (const [index, choice] of normalized.entries()) {
+    const item = document.createElement('li'); item.textContent = choice;
+    if (labels[index]) item.dataset.choiceLabel = labels[index];
+    list.append(item);
   }
   section.append(heading, list); container.append(section);
 }
@@ -105,10 +131,13 @@ function renderNarrativeChoices(container, choices) {
 export function renderNarrative(container, parsed) {
   if (!container) return;
   container.replaceChildren();
+  const choices = normalizedStrings(parsed?.choices);
+  const labels = parsedChoiceLabels({ choice_labels: parsed?.choice_labels }, {}, choices.length);
+  if (container.id === 'current-story') currentChoiceSet = choiceSet(choices, labels);
   let embeddedChoices = false;
   for (const block of parsed?.blocks ?? []) {
     if (block.type === 'choices') {
-      renderNarrativeChoices(container, block.choices ?? parsed?.choices);
+      renderNarrativeChoices(container, block.choices ?? choices, block.choice_labels ?? labels);
       embeddedChoices = true;
       continue;
     }
@@ -123,15 +152,17 @@ export function renderNarrative(container, parsed) {
     }
     const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`; paragraph.textContent = block.text ?? ''; container.append(paragraph);
   }
-  if (!embeddedChoices) renderNarrativeChoices(container, parsed?.choices);
+  if (!embeddedChoices) renderNarrativeChoices(container, choices, labels);
 }
 
 export function renderChoices(container, choices, { busy = false, onChoose } = {}) {
   if (!container) return;
   container.replaceChildren();
-  for (const [index, choice] of (choices ?? []).entries()) {
+  const normalized = normalizedStrings(choices);
+  const labels = labelsForChoices(normalized);
+  for (const [index, choice] of normalized.entries()) {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'choice-button';
-    button.textContent = `${index + 1} ${choiceLabel(choice)}`;
+    button.textContent = `${index + 1} ${choiceLabel(choice, 5, labels[index])}`;
     button.title = choice;
     button.ariaLabel = `${index + 1}번 선택지: ${choice}`;
     button.disabled = busy;
@@ -142,11 +173,16 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
 export function renderHistory(container, turns, { showSummary = container?.id !== 'story-history' } = {}) {
   if (!container) return;
   container.replaceChildren();
-  for (const turn of turns ?? []) {
+  const parsedTurns = (turns ?? []).map(turn => ({ turn, parsed: parsedTurnNarrative(turn) }));
+  if (container.id === 'story-history') {
+    const latest = parsedTurns.at(-1)?.parsed;
+    committedChoiceSet = latest ? choiceSet(latest.choices, latest.choice_labels) : null;
+  }
+  for (const { turn, parsed } of parsedTurns) {
     const card = document.createElement('article'); card.className = 'turn-card';
     const action = document.createElement('p'); action.className = 'action-chip'; action.textContent = turn.player_action ?? '이전 행동';
     const narrative = document.createElement('div'); narrative.className = 'turn-narrative';
-    card.append(action, narrative); renderNarrative(narrative, parsedTurnNarrative(turn));
+    card.append(action, narrative); renderNarrative(narrative, parsed);
     if (showSummary && turn.turn_summary) {
       const summary = document.createElement('p'); summary.className = 'turn-summary'; summary.textContent = turn.turn_summary; card.append(summary);
     }
