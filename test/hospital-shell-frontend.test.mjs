@@ -7,7 +7,7 @@ const shellCss = readFileSync(new URL('../src/frontend/pages/hospital-shell.css'
 
 function rule(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = shellCss.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\}`));
+  const match = shellCss.match(new RegExp(`(?:^|\\n)${escaped}\\s*\\{([\\s\\S]*?)\\}`));
   assert.ok(match, `missing CSS rule for ${selector}`);
   return match[1];
 }
@@ -17,10 +17,11 @@ test('loads the transplanted hospital shell after existing Company styles', () =
   const shellIndex = indexHtml.indexOf('./hospital-shell.css');
   assert.ok(stylesIndex >= 0);
   assert.ok(shellIndex > stylesIndex);
+  assert.match(indexHtml, /src=["']\.\/hospital-scroll\.js["']/);
 });
 
 test('uses independent desktop scrolling instead of scrolling the whole document', () => {
-  assert.match(rule('body'), /overflow:\s*hidden/);
+  assert.match(shellCss, /body\s*\{\s*margin:\s*0;[\s\S]*?overflow:\s*hidden/);
   assert.match(rule('.game-shell'), /height:\s*100dvh/);
   assert.match(rule('.game-shell'), /overflow:\s*hidden/);
   assert.match(rule('.game-layout'), /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+320px/);
