@@ -69,13 +69,51 @@ function characterName(save, id) {
   return catalogName(CATALOGS.characters ?? [], 'character_id', id);
 }
 
+function normalizeDialogueLines(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(item => object(item))
+    .map((item, index) => ({
+      speaker_id: text(item.speaker_id ?? item.character_id),
+      speaker_name: text(item.speaker_name ?? item.speaker),
+      direction: text(item.direction),
+      text: text(item.text),
+      order: integer(item.order) ?? index
+    }))
+    .filter(item => item.text.trim())
+    .sort((left, right) => left.order - right.order);
+}
+
 function dialogueLines(currentExtract, parsedStory) {
-  if (Array.isArray(currentExtract?.dialogue_lines)) return currentExtract.dialogue_lines;
-  if (Array.isArray(parsedStory?.dialogue_lines)) return parsedStory.dialogue_lines;
+  const extractLines = normalizeDialogueLines(currentExtract?.dialogue_lines);
+  if (extractLines.length) return extractLines;
+  const parsedLines = normalizeDialogueLines(parsedStory?.dialogue_lines);
+  if (parsedLines.length) return parsedLines;
   if (!Array.isArray(parsedStory?.blocks)) return [];
-  return parsedStory.blocks
+  return normalizeDialogueLines(parsedStory.blocks
     .filter(block => block?.type === 'dialogue' && typeof block.text === 'string' && block.text.trim())
-    .map(block => ({ speaker: text(block.speaker), character_id: text(block.character_id), text: block.text, direction: text(block.direction) }));
+    .map((block, order) => ({
+      speaker_id: block.speaker_id ?? block.character_id,
+      speaker_name: block.speaker ?? block.speaker_name,
+      text: block.text,
+      direction: block.direction,
+      order
+    })));
+}
+
+function mindMonitorEntries(save, monitor, preferredIds = []) {
+  const source = object(monitor) ?? {};
+  const entries = Object.entries(source)
+    .filter(([, value]) => object(value))
+    .map(([id, value]) => ({
+      id,
+      name: characterName(save, id) || id,
+      surface: text(value.surface ?? value['표면의식']),
+      subconscious: text(value.subconscious ?? value.latent ?? value['잠재의식'])
+    }))
+    .filter(entry => entry.surface || entry.subconscious);
+  const rank = new Map(preferredIds.filter(Boolean).map((id, index) => [id, index]));
+  return entries.sort((left, right) => (rank.get(left.id) ?? 99) - (rank.get(right.id) ?? 99));
 }
 
 function npcView(save, id) {
@@ -103,7 +141,9 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const playerSexualState = object(save.player_sexual_state) ?? {};
   const playerSceneState = object(save.player_scene_state) ?? {};
   const focalSceneState = object(object(save.npc_scene_state)?.[focalId]) ?? {};
-  const extractCharacterId = text(currentExtract?.character_id);
+  const imageCharacterId = text(currentExtract?.image_character_id ?? currentExtract?.character_id) || focalId || lastSpeakerId;
+  const monitor = mindMonitor(currentExtract, turn);
+  const monitorEntries = mindMonitorEntries(save, monitor, [imageCharacterId, focalId, lastSpeakerId]);
 
   return {
     turn: {
@@ -141,6 +181,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
         location_label: text(focalSceneState.location_label),
         posture: text(focalSceneState.posture),
         posture_detail: text(focalSceneState.posture_detail ?? focalSceneState.posture_description),
+        position_label: text(focalSceneState.position_label),
         relative_position: text(
           focalSceneState.relative_position
           ?? focalSceneState.position_relative_to_player
@@ -167,16 +208,19 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       location_label: text(playerSceneState.location_label),
       posture: text(playerSceneState.posture),
       posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
+      position_label: text(playerSceneState.position_label),
       clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
       image_id: imageId(currentExtract?.image_id ?? save.last_image_id),
-      image_character_id: extractCharacterId || focalId || lastSpeakerId,
+      image_character_id: imageCharacterId,
       image_selection: object(currentExtract?.image_selection),
       image_pool: currentExtract?.is_sexual === true ? 'sex' : 'general',
       image_situation: text(currentExtract?.image_reasoning) || text(turn.turn_summary),
       dialogue_lines: dialogueLines(currentExtract, parsedStory),
-      mind_monitor: mindMonitor(currentExtract, turn)
+      mind_monitor: monitor,
+      mind_monitor_entries: monitorEntries,
+      default_mind_character_id: monitorEntries[0]?.id ?? ''
     }
   };
 }
