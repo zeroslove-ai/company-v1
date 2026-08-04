@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createApiWorker } from '../src/api/index.js';
+import { normalizeMindMonitor } from '../src/engine/gameplay-state.js';
+import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-parser.js';
+import { buildSceneStatePatch } from '../src/engine/state/physical-state.js';
 import { renderHistory, renderMindMonitor } from '../src/frontend/pages/render.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
@@ -91,6 +94,22 @@ test('view model projects the NPC-keyed two-field Mind Monitor with canonical na
   assert.equal(model.media.default_mind_character_id, 'heroine3');
 });
 
+test('Mind Monitor normalizer permanently drops physical/body reaction fields', () => {
+  const normalized = normalizeMindMonitor({
+    heroine3: {
+      surface: '겉으로 인식하는 생각',
+      subconscious: '말로 인정하지 않는 속마음',
+      physical_reaction: '삭제 대상',
+      body: '삭제 대상'
+    }
+  });
+  assert.deepEqual(normalized.mind_monitor, {
+    heroine3: { surface: '겉으로 인식하는 생각', subconscious: '말로 인정하지 않는 속마음' }
+  });
+  assert.equal(normalized.warnings.some(warning => warning.includes('physical_reaction')), true);
+  assert.equal(normalized.warnings.some(warning => warning.includes(':body')), true);
+});
+
 test('Mind Monitor renders character tabs and surface/subconscious only', () => {
   const model = buildCompanyGameViewModel(contextWithMindMonitor());
   withFakeDocument(() => {
@@ -120,6 +139,72 @@ test('Mind Monitor keeps an explicit empty state instead of disappearing', () =>
     assert.equal(container.children.length, 1);
     assert.equal(container.children[0].textContent, '이번 턴 Mind Monitor 정보가 없습니다.');
   });
+});
+
+test('engine parser strips compact labels from authoritative full choices', () => {
+  const parsed = parseEngineNarrative(`[1. 서사 및 행동]\n본문\n[2. 플레이어 속마음]\n생각\n[3. 플레이어 상황판]\n상태\n[4. 선택지]\n1. [자료검토] 보고서를 함께 검토한다.\n2. [사례질문] 이메이에게 사례를 묻는다.\n3. [의자배려] 김제나 곁에 의자를 놓는다.\n4. [대화종료] 대화를 마무리한다.`);
+  assert.deepEqual(parsed.choice_labels, ['자료검토', '사례질문', '의자배려', '대화종료']);
+  assert.deepEqual(parsed.choices, [
+    '보고서를 함께 검토한다.',
+    '이메이에게 사례를 묻는다.',
+    '김제나 곁에 의자를 놓는다.',
+    '대화를 마무리한다.'
+  ]);
+  assert.equal(parsed.choices.some(choice => choice.includes('[자료검토]')), false);
+});
+
+test('physical state accepts evidenced position labels and carries them across unrelated turns', () => {
+  const evidence = '김제나는 플레이어 앞에 무릎을 꿇고 보고서를 무릎 위에 펼쳐 보이고 있다.';
+  const first = buildSceneStatePatch({
+    previous: {},
+    proposal: {
+      posture: 'kneeling',
+      position_label: '플레이어 앞에 무릎을 꿇고 보고서를 무릎 위에 펼쳐 보이고 있다',
+      evidence: { posture: evidence, position: evidence }
+    },
+    evidenceMap: { posture: evidence, position: evidence },
+    narrativeText: evidence,
+    characterName: '김제나',
+    turnNumber: 4
+  });
+  assert.equal(first.state.posture, 'kneeling');
+  assert.equal(first.state.position_label, '플레이어 앞에 무릎을 꿇고 보고서를 무릎 위에 펼쳐 보이고 있다');
+  assert.deepEqual(first.warnings, []);
+
+  const carried = buildSceneStatePatch({ previous: first.state, proposal: {}, narrativeText: '김제나는 업무 이야기를 계속한다.', characterName: '김제나', turnNumber: 5 });
+  assert.equal(carried.state.posture, 'kneeling');
+  assert.equal(carried.state.position_label, first.state.position_label);
+});
+
+test('physical state rejects invented posture and position changes without exact Story evidence', () => {
+  const previous = {
+    location_label: '사무실',
+    posture: 'sitting',
+    position_label: '플레이어 맞은편 의자에 앉아 있다',
+    clothing: {},
+    updated_turn: 2
+  };
+  const result = buildSceneStatePatch({
+    previous,
+    proposal: {
+      posture: 'kneeling',
+      position_label: '플레이어 앞에 무릎을 꿇고 있다',
+      posture_end_reason: 'explicit_change'
+    },
+    evidenceMap: {
+      posture: 'Story에 존재하지 않는 문장',
+      position: 'Story에 존재하지 않는 문장',
+      posture_end_reason: 'Story에 존재하지 않는 문장'
+    },
+    narrativeText: '김제나는 보고서 이야기를 계속한다.',
+    characterName: '김제나',
+    turnNumber: 3
+  });
+  assert.equal(result.state.posture, 'sitting');
+  assert.equal(result.state.position_label, previous.position_label);
+  assert.equal(result.warnings.includes('unevidenced_posture_change'), true);
+  assert.equal(result.warnings.includes('unevidenced_position_label'), true);
+  assert.equal(result.warnings.includes('unevidenced_posture_end_reason'), true);
 });
 
 test('main story history omits duplicate turn summaries while the history modal keeps them', () => {
