@@ -50,6 +50,17 @@ const SYSTEM_INSTRUCTIONS = [
   'active_character_canon은 그 턴에 등장한 등록 캐릭터에 대한 유일한 사실 기준이다. 이름·나이·부서·직급·외모·성격·말투·호칭 규칙을 임의로 바꾸거나 다른 직급·직무로 승격하지 않으며, canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다.'
 ].join(' ');
 
+/**
+ * Injected only when this turn is regenerating a feedback-revised turn (ported from donor's
+ * buildRegenerationFeedbackSection contract): the cancelled previous version of this turn no
+ * longer exists, and the feedback text is the highest-priority correction for the new one.
+ */
+export function buildRegenerationFeedbackSection(feedbackText) {
+  const text = typeof feedbackText === 'string' ? feedbackText.trim() : '';
+  if (!text) return '';
+  return `\n\n[사용자 피드백 — 재생성 최우선 지시]\n이번 턴의 이전 버전은 더 이상 존재하지 않는다. 아래 피드백을 이번 재생성에서 최우선으로 반영해 새로 작성한다.\n${text}`;
+}
+
 export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};

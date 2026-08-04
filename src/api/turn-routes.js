@@ -55,7 +55,9 @@ import {
   verifyStructuredActionValidation,
   findNpc,
   getGeneralNpc,
-  isGeneralNpcId
+  isGeneralNpcId,
+  buildRegenerationFeedbackSection,
+  resolveNumberedChoiceInput
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -329,10 +331,15 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const structuredAction = body.structured_action ?? null;
       if (!Number.isInteger(expectedTurn) || expectedTurn < 1) throw new HttpError(400, 'invalid_request', 'expected_turn must be a positive integer');
       const db = createSupabaseClient(env, fetchImpl);
-      const reservation = await db.callRpc('reserve_turn_action', {
-        p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn, p_player_action: playerAction
-      });
-      const action = actionOrNotFound(await db.getAction(gameId, actionId));
+      // A feedback_revision action is reserved by /api/feedback (reserve_feedback_revision), not
+      // reserve_turn_action — that RPC's "already exists" branch would report replayed:true even
+      // though no Story has been generated for it yet, wrongly tripping the in-progress guard
+      // below. Skip the normal-turn reservation entirely when the action already exists as one.
+      const existingAction = await db.getAction(gameId, actionId).catch(() => null);
+      const reservation = existingAction?.action_kind === 'feedback_revision'
+        ? { action_id: existingAction.action_id, turn_id: existingAction.turn_id, expected_turn: existingAction.expected_turn, replayed: false }
+        : await db.callRpc('reserve_turn_action', { p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn, p_player_action: playerAction });
+      const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, actionId));
       let retryingStory = false;
       if (!action.story_text && action.processing_status === 'story_failed') {
         const claimed = await db.claimActionStatus(gameId, actionId, 'story_failed', 'story_streaming', null);
@@ -370,6 +377,9 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
+          }
+          if (action.action_kind === 'feedback_revision' && action.feedback_text) {
+            messages = [{ ...messages[0], content: messages[0].content + buildRegenerationFeedbackSection(action.feedback_text) }, ...messages.slice(1)];
           }
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
@@ -559,11 +569,17 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         const commitRpcStart = Date.now();
-        const commit = await db.callRpc('commit_company_turn', {
-          p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn,
-          p_next_save: nextSave, p_turn_summary: extract.turn_summary,
-          p_mind_monitor: merged.mind_monitor, p_choices: extract.choices
-        });
+        // A feedback-revision action never advances committed_turn — it replaces the content of
+        // the turn it targets, preserved as a new revision row (record_status flips the prior
+        // one to 'superseded'), so it goes through commit_feedback_revision instead of the
+        // normal expected_turn-advancing commit_company_turn.
+        const commit = action.action_kind === 'feedback_revision'
+          ? await db.commitFeedbackRevision(gameId, actionId, action.revision_request_id, nextSave, extract.turn_summary, merged.mind_monitor, extract.choices)
+          : await db.callRpc('commit_company_turn', {
+              p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn,
+              p_next_save: nextSave, p_turn_summary: extract.turn_summary,
+              p_mind_monitor: merged.mind_monitor, p_choices: extract.choices
+            });
         timing.commit_rpc_ms = Date.now() - commitRpcStart;
         return ok({
           commit, next_save: nextSave, warnings, turn_changes: turnChanges,
@@ -584,6 +600,35 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const db = createSupabaseClient(env, fetchImpl);
       const status = await db.callRpc('get_action_status', { p_game_id: gameId, p_action_id: actionId });
       return ok({ status, recoverable_step: deriveRecoverableStep(status) });
+    },
+
+    /**
+     * Rollback-only: reserve_feedback_revision never calls Story/Extract itself, it just stages
+     * a feedback_revision action targeting the latest committed turn and returns everything the
+     * frontend needs to regenerate it through the completely normal /api/story -> /api/extract
+     * -> /api/commit pipeline (commit() branches to commit_feedback_revision for this
+     * action_kind). revision_request_id is client-supplied, matching action_id's own
+     * idempotency contract — the same request replayed with the same id returns the same
+     * pending/committed action rather than reserving a second one.
+     */
+    async feedback(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const revisionRequestId = requireString(body.revision_request_id, 'revision_request_id');
+      const feedbackText = requireString(body.feedback_text, 'feedback_text');
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const reservation = await db.reserveFeedbackRevision(gameId, revisionRequestId, feedbackText);
+        return ok({
+          action_id: reservation.action_id, expected_turn: reservation.target_turn_number,
+          original_player_action: reservation.original_player_action, revision_request_id: revisionRequestId,
+          replayed: Boolean(reservation.replayed)
+        });
+      } finally {
+        logTurnTiming({ event_stage: 'feedback', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
+      }
     },
 
     /** Restores turn/action/history/player/opening_state to the game_master initial save. Static content and game_master are never touched. */

@@ -1,6 +1,6 @@
 export { GameCoreError } from './errors.js';
 export { createEditionAdapter, validateEditionAdapter } from './edition.js';
-export { buildStoryPrompt } from './story-prompt.js';
+export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
 export { buildExtractPrompt } from './extract-prompt.js';
 export { parseNarrative } from './narrative-parser.js';
 export { normalizeExtractEnvelope } from './extract-envelope.js';

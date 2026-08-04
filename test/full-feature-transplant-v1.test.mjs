@@ -78,7 +78,8 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       return json({ game: { id: gameId, edition_id: 'company-v1', title: 'T' }, save: { data: currentSave, committed_turn: currentSave.turn_state.committed_turn }, recent_turns: [] });
     }
     if (rpc === 'reserve_turn_action') {
-      calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, processing_status: 'story_streaming' };
+      if (calls.__action && calls.__action.action_id === args.p_action_id) return json({ ...calls.__action, replayed: true });
+      calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, processing_status: 'story_streaming', action_kind: 'player_turn' };
       return json({ ...calls.__action, replayed: false });
     }
     if (rpc === 'record_story_result') {
@@ -93,6 +94,23 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       currentSave = args.p_next_save;
       saveRevision += 1;
       return json({ success: true, replayed: false, turn_number: args.p_expected_turn, turn_id: 'turn-1', save_revision: saveRevision });
+    }
+    if (rpc === 'reserve_feedback_revision') {
+      calls.__action = {
+        action_id: 'feedback-action-1', turn_id: 'turn-1', expected_turn: currentSave.turn_state.committed_turn,
+        player_action: calls.__lastPlayerAction ?? '원래 행동', feedback_text: args.p_feedback_text,
+        revision_request_id: args.p_revision_request_id, processing_status: 'story_streaming', action_kind: 'feedback_revision'
+      };
+      return json({
+        revision_request_id: args.p_revision_request_id, action_id: calls.__action.action_id, replacement_turn_id: 'turn-1',
+        target_turn_number: currentSave.turn_state.committed_turn, original_turn_id: 'turn-0',
+        original_player_action: calls.__action.player_action, pre_save: currentSave, processing_status: 'story_streaming', replayed: false
+      });
+    }
+    if (rpc === 'commit_feedback_revision') {
+      currentSave = args.p_next_save;
+      saveRevision += 1;
+      return json({ success: true, replayed: false, turn_number: calls.__action.expected_turn, turn_id: calls.__action.turn_id, save_revision: saveRevision });
     }
     throw new Error(`Unhandled mock RPC: ${rpc}`);
   }
@@ -397,4 +415,52 @@ test('choice input: an in-range letter but with fewer than 4 currently-rendered 
   const save = saveWithChoices(['첫째', '둘째']);
   const result = resolveNumberedChoiceInput('c', save);
   assert.deepEqual(result, { ok: false, code: 'CHOICE_INDEX_OUT_OF_RANGE' });
+});
+
+// ---------- Commit 5: feedback/restore ----------
+
+test('/api/feedback -> normal Story/Extract/Commit pipeline regenerates the last turn via commit_feedback_revision, never advancing committed_turn', async () => {
+  const save = freshSave({ turn_state: { committed_turn: 3 } });
+  const mock = createMockFetch({ initialSave: save });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+
+  const feedbackRes = await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-1', feedback_text: '더 자세하게 써줘' }), env);
+  assert.equal(feedbackRes.status, 200);
+  const feedbackBody = (await feedbackRes.json()).data;
+  assert.equal(feedbackBody.expected_turn, 3, 'targets the currently-committed turn, not turn+1');
+
+  const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: feedbackBody.action_id, expected_turn: feedbackBody.expected_turn, player_action: feedbackBody.original_player_action }), env);
+  assert.equal(storyRes.status, 200);
+  const storyText = await storyRes.text();
+  assert.match(storyText, /event: complete/);
+  const storyCall = mock.calls.filter(c => c.url.startsWith('https://llm.test')).at(-1);
+  const systemPrompt = JSON.parse(storyCall.body).messages[0].content;
+  assert.match(systemPrompt, /재생성 최우선 지시/, 'the feedback text must be injected into the Story system prompt as highest priority');
+  assert.match(systemPrompt, /더 자세하게 써줘/);
+
+  const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: feedbackBody.action_id }), env);
+  assert.equal(extractRes.status, 200);
+
+  const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: feedbackBody.action_id, expected_turn: feedbackBody.expected_turn }), env);
+  assert.equal(commitRes.status, 200);
+  assert.equal(mock.getSave().turn_state.committed_turn, 3, 'a feedback revision replaces the targeted turn, it never advances committed_turn');
+  assert.equal(mock.calls.some(c => c.url.includes('commit_feedback_revision')), true);
+  assert.equal(mock.calls.some(c => c.url.includes('commit_company_turn')), false, 'must never call the normal turn-advancing commit RPC for a feedback revision');
+});
+
+test('/api/feedback: the same revision_request_id replayed is idempotent (returns the same pending action, never reserves twice)', async () => {
+  const save = freshSave({ turn_state: { committed_turn: 5 } });
+  const mock = createMockFetch({ initialSave: save });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const first = await (await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-idempotent', feedback_text: '피드백' }), env)).json();
+  const second = await (await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-idempotent', feedback_text: '피드백' }), env)).json();
+  assert.equal(first.data.action_id, second.data.action_id);
+});
+
+test('/api/feedback: game_save is completely untouched until commit_feedback_revision actually runs — nothing destructive happens upfront', async () => {
+  const save = freshSave({ turn_state: { committed_turn: 5 } });
+  const mock = createMockFetch({ initialSave: save });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-untouched', feedback_text: '피드백' }), env);
+  assert.deepEqual(mock.getSave(), save, 'reserving a feedback revision must never mutate game_save by itself');
 });
