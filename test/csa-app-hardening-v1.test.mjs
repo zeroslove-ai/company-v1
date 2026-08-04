@@ -8,6 +8,7 @@ import {
   buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch,
   normalizeGameplayExtractEnvelope
 } from '../src/engine/index.js';
+import { toolbarCapabilities } from '../src/frontend/pages/app.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -189,6 +190,24 @@ test('runtime tracking: an invalid csa_runtime_updates item (missing character_i
   assert.equal(envelope.csa_runtime_updates.length, 1);
   assert.equal(envelope.csa_runtime_updates[0].csa_id, 'csa_1');
   assert.ok(envelope.warnings.includes('invalid_csa_runtime_update'));
+});
+
+// ---------- App button toolbar gating ----------
+
+const readyContext = { save: { data: { player_setup: { completed: true }, opening_state: { status: 'complete' } } } };
+
+test('toolbar: the app button is disabled before player_setup or opening is complete', () => {
+  assert.equal(toolbarCapabilities({}, null, { context: undefined }).canOpenApps, false, 'no context at all');
+  assert.equal(toolbarCapabilities({}, null, { context: { save: { data: { player_setup: { completed: false }, opening_state: { status: 'complete' } } } } }).canOpenApps, false, 'setup incomplete');
+  assert.equal(toolbarCapabilities({}, null, { context: { save: { data: { player_setup: { completed: true }, opening_state: { status: 'pending' } } } } }).canOpenApps, false, 'opening not complete');
+  assert.equal(toolbarCapabilities({}, null, { context: readyContext }).canOpenApps, true, 'setup and opening both complete, otherwise idle');
+});
+
+test('toolbar: the app button is disabled while busy, while a turn is pending, or during recovery', () => {
+  assert.equal(toolbarCapabilities({}, null, { context: readyContext, busy: true }).canOpenApps, false, 'busy');
+  assert.equal(toolbarCapabilities({}, { action_id: 'pending' }, { context: readyContext }).canOpenApps, false, 'pending action');
+  assert.equal(toolbarCapabilities({}, null, { context: readyContext, recoveryPending: true }).canOpenApps, false, 'recovery pending');
+  assert.equal(toolbarCapabilities({}, null, { context: readyContext, busy: false, recoveryPending: false }).canOpenApps, true, 'none of the blockers apply');
 });
 
 test('deactivate aftermath: the executing NPC is identified from runtime_state and gets a fresh shock-phase aftereffect entry, current physical state untouched', () => {

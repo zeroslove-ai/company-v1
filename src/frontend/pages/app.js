@@ -6,7 +6,7 @@ import { parseNarrative } from './narrative.js';
 import { renderChoices, renderHistory, renderNarrative, renderState, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
-import { clearPending, committedTurn, loadPending, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, validateContext } from './state.js';
+import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, validateContext } from './state.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 
 const recoveryLabels = {
@@ -25,12 +25,17 @@ export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
   return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
 }
 
-export function toolbarCapabilities(viewModel, pendingAction) {
+/**
+ * canOpenApps additionally requires player_setup completed, opening complete, and
+ * neither a turn in flight (busy) nor an unresolved recovery — the CSA app's own
+ * turn cycle would otherwise collide with an in-progress or broken one.
+ */
+export function toolbarCapabilities(viewModel, pendingAction, { context, busy = false, recoveryPending = false } = {}) {
   return {
     canResume: (viewModel?.turn?.committed_turn ?? 0) >= 1 && !pendingAction,
     canOpenHistory: false,
     canSendFeedback: false,
-    canOpenApps: !pendingAction
+    canOpenApps: playerSetupCompleted(context) && openingCompleted(context) && !busy && !pendingAction && !recoveryPending
   };
 }
 
@@ -38,24 +43,27 @@ function withStructuredAction(body, pending) {
   return pending.structured_action ? { ...body, structured_action: pending.structured_action } : body;
 }
 
-export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitStart, onCommitted, createActionId = newActionId, consumeStory = consumeStorySse }) {
+export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitStart, onCommitted, onPendingChange, createActionId = newActionId, consumeStory = consumeStorySse }) {
+  function persistPending(pending) { savePending(storage, pending); onPendingChange?.(pending); }
+  function dropPending(pendingGameId) { clearPending(storage, pendingGameId); onPendingChange?.(null); }
+
   async function runCommitForPending(pending) {
-    pending.step = 'commit'; savePending(storage, pending);
+    pending.step = 'commit'; persistPending(pending);
     onCommitStart?.();
     const committed = await api.commit(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn }, pending));
     if (committed.commit?.success !== true) throw new ApiError({ endpoint: '/api/commit', status: 502, code: 'invalid_commit', message: 'Commit 결과가 올바르지 않습니다.' });
-    clearPending(storage, pending.game_id); await refreshContext(); onCommitted?.(committed); return committed;
+    dropPending(pending.game_id); await refreshContext(); onCommitted?.(committed); return committed;
   }
 
   async function runExtractForPending(pending) {
-    pending.step = 'extract'; savePending(storage, pending);
+    pending.step = 'extract'; persistPending(pending);
     const extracted = await api.extract(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id }, pending));
-    onExtract?.(extracted); pending.step = 'commit'; savePending(storage, pending);
+    onExtract?.(extracted); pending.step = 'commit'; persistPending(pending);
     return runCommitForPending(pending);
   }
 
   async function runStoryForPending(pending) {
-    pending.step = 'story'; savePending(storage, pending);
+    pending.step = 'story'; persistPending(pending);
     let rawStory = '', sawMeta = false;
     const response = await api.story(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn, player_action: pending.player_action }, pending));
     await consumeStory(response, item => {
@@ -63,7 +71,7 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
       if (item.event === 'delta') { rawStory += item.data?.text ?? ''; onStory?.({ rawStory, parsed: parseNarrative(rawStory), item, pending }); }
     });
     if (!sawMeta || !rawStory.trim()) throw new ApiError({ endpoint: '/api/story', status: 502, code: 'incomplete_story_stream', message: '서사 스트림이 불완전합니다.', retryable: true });
-    pending.step = 'extract'; savePending(storage, pending);
+    pending.step = 'extract'; persistPending(pending);
     return runExtractForPending(pending);
   }
 
@@ -71,7 +79,7 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     const action = String(playerAction ?? '').trim(); const context = getContext();
     if (!action || !context) return null;
     const pending = { game_id: gameId, action_id: createActionId(), expected_turn: committedTurn(context) + 1, player_action: action, structured_action: structuredAction, created_at: new Date().toISOString(), step: 'story' };
-    savePending(storage, pending); return runStoryForPending(pending);
+    persistPending(pending); return runStoryForPending(pending);
   }
 
   async function runRecovery(pending, step) {
@@ -131,7 +139,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   }
   function renderToolbar() {
-    const capabilities = toolbarCapabilities(viewModel, loadPending(storage, gameId));
+    const capabilities = toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending });
     if (elements.resume) { elements.resume.disabled = !capabilities.canResume; elements.resume.onclick = capabilities.canResume ? resumePlay : null; }
     for (const [element, enabled] of [[elements.historyButton, capabilities.canOpenHistory], [elements.feedback, capabilities.canSendFeedback], [elements.apps, capabilities.canOpenApps]]) {
       if (!element) continue; element.disabled = !enabled; element.onclick = null;
@@ -207,7 +215,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (hasFourChoices(parsed.choices)) { streamedStoryChoices = parsed.choices; render(); } },
     onExtract: extracted => { currentExtract = extracted.extract ?? null; showProgress('상태를 정리하는 중…'); render(); },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
-    onCommitted: () => { clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.'); }
+    onCommitted: () => { clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.'); },
+    onPendingChange: () => renderToolbar()
   });
   async function checkRecovery() {
     const pending = loadPending(storage, gameId);
@@ -319,7 +328,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
     await refreshContext(); await checkRecovery();
   }
-  return { gameId, init, refreshContext, startNewAction, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId)); }, get busy() { return busy; } };
+  return { gameId, init, refreshContext, startNewAction, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending }); }, get busy() { return busy; } };
 }
 
 if (globalThis.document?.querySelector('#game-main')) {

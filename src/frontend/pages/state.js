@@ -34,3 +34,4 @@ export function openingHistoryTurn(context) {
   if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
   return { player_action: '(오프닝)', story_text: opening.story_text, turn_summary: '', choices: Array.isArray(opening.choices) ? opening.choices : [] };
 }
+export function openingCompleted(context) { return saveFromContext(context)?.opening_state?.status === 'complete'; }
