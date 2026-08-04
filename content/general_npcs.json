@@ -1,12 +1,12 @@
 {
   "profiles": {
-    "general_park_jungwoo": { "id": "general_park_jungwoo", "name": "박정우", "sex": "male", "age": 38, "role": "브랜드전략1팀 팀장", "department_id": "brand_strategy", "type": "employee" },
-    "general_lee_minseok": { "id": "general_lee_minseok", "name": "이민석", "sex": "male", "age": 29, "role": "디자인팀 대리", "department_id": "design", "type": "employee" },
-    "general_choi_yujin": { "id": "general_choi_yujin", "name": "최유진", "sex": "female", "age": 27, "role": "재무팀 사원", "department_id": "finance", "type": "employee" },
-    "general_seo_hyejin": { "id": "general_seo_hyejin", "name": "서혜진", "sex": "female", "age": 34, "role": "인사팀 과장", "department_id": "hr", "type": "employee" },
-    "general_oh_sehoon": { "id": "general_oh_sehoon", "name": "오세훈", "sex": "male", "age": 46, "role": "시설·보안 담당", "department_id": "operations", "type": "employee" },
-    "general_yoon_taekyung": { "id": "general_yoon_taekyung", "name": "윤태경", "sex": "male", "age": 31, "role": "협력사 프로젝트 매니저", "department_id": "external", "type": "partner" },
-    "general_jung_daeun": { "id": "general_jung_daeun", "name": "정다은", "sex": "female", "age": 25, "role": "마케팅 인턴", "department_id": "marketing", "type": "employee" },
-    "general_han_jiseok": { "id": "general_han_jiseok", "name": "한지석", "sex": "male", "age": 40, "role": "경영지원팀 차장", "department_id": "management_support", "type": "employee" }
+    "general_park_jungwoo": { "id": "general_park_jungwoo", "name": "박정우", "sex": "male", "age": 38, "role": "브랜드전략1팀 팀장", "department_id": "brand_strategy", "type": "employee", "affiliation_type": "employee" },
+    "general_lee_minseok": { "id": "general_lee_minseok", "name": "이민석", "sex": "male", "age": 29, "role": "디자인팀 대리", "department_id": "design", "type": "employee", "affiliation_type": "employee" },
+    "general_choi_yujin": { "id": "general_choi_yujin", "name": "최유진", "sex": "female", "age": 27, "role": "재무팀 사원", "department_id": "finance", "type": "employee", "affiliation_type": "employee" },
+    "general_seo_hyejin": { "id": "general_seo_hyejin", "name": "서혜진", "sex": "female", "age": 34, "role": "인사팀 과장", "department_id": "hr", "type": "employee", "affiliation_type": "employee" },
+    "general_oh_sehoon": { "id": "general_oh_sehoon", "name": "오세훈", "sex": "male", "age": 46, "role": "시설·보안 담당", "department_id": "operations", "type": "employee", "affiliation_type": "employee" },
+    "general_yoon_taekyung": { "id": "general_yoon_taekyung", "name": "윤태경", "sex": "male", "age": 31, "role": "협력사 프로젝트 매니저", "department_id": null, "type": "partner", "affiliation_type": "partner" },
+    "general_jung_daeun": { "id": "general_jung_daeun", "name": "정다은", "sex": "female", "age": 25, "role": "마케팅 인턴", "department_id": "marketing", "type": "employee", "affiliation_type": "employee" },
+    "general_han_jiseok": { "id": "general_han_jiseok", "name": "한지석", "sex": "male", "age": 40, "role": "경영지원팀 차장", "department_id": "management_support", "type": "employee", "affiliation_type": "employee" }
   }
 }

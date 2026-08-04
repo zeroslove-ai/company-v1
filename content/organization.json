@@ -16,7 +16,6 @@
     { "department_id": "finance", "name": "재무팀" },
     { "department_id": "hr", "name": "인사팀(현업)" },
     { "department_id": "operations", "name": "시설·보안" },
-    { "department_id": "external", "name": "협력사" },
     { "department_id": "marketing", "name": "마케팅팀" },
     { "department_id": "management_support", "name": "경영지원팀" }
   ]

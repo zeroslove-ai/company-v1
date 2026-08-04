@@ -19,7 +19,7 @@ const EXPECTED = [
   { id: 'general_choi_yujin', name: '최유진', sex: 'female', age: 27, department_id: 'finance', type: 'employee' },
   { id: 'general_seo_hyejin', name: '서혜진', sex: 'female', age: 34, department_id: 'hr', type: 'employee' },
   { id: 'general_oh_sehoon', name: '오세훈', sex: 'male', age: 46, department_id: 'operations', type: 'employee' },
-  { id: 'general_yoon_taekyung', name: '윤태경', sex: 'male', age: 31, department_id: 'external', type: 'partner' },
+  { id: 'general_yoon_taekyung', name: '윤태경', sex: 'male', age: 31, department_id: null, type: 'partner' },
   { id: 'general_jung_daeun', name: '정다은', sex: 'female', age: 25, department_id: 'marketing', type: 'employee' },
   { id: 'general_han_jiseok', name: '한지석', sex: 'male', age: 40, department_id: 'management_support', type: 'employee' }
 ];
@@ -44,12 +44,19 @@ test('general NPC catalog: none of the 8 ids collide with an existing heroine id
   for (const npc of listGeneralNpcs(generalNpcs)) assert.equal(heroineIds.has(npc.id), false, `${npc.id} collides with a heroine id`);
 });
 
-test('general NPC catalog: department_ids referenced by general NPCs are all defined (either in the player-setup departments list or general_npc_departments)', () => {
+test('general NPC catalog: every non-null department_id referenced by a general NPC is defined (either in the player-setup departments list or general_npc_departments); external partners use department_id:null + affiliation_type:"partner" instead of a fake internal department', () => {
   const validDepartments = new Set([
     ...organization.departments.map(d => d.department_id),
     ...organization.general_npc_departments.map(d => d.department_id)
   ]);
-  for (const npc of listGeneralNpcs(generalNpcs)) assert.ok(validDepartments.has(npc.department_id), `undefined department_id: ${npc.department_id}`);
+  for (const npc of listGeneralNpcs(generalNpcs)) {
+    if (npc.department_id === null) {
+      assert.equal(npc.affiliation_type, 'partner', `${npc.id} has department_id:null but is not tagged affiliation_type:'partner'`);
+      continue;
+    }
+    assert.ok(validDepartments.has(npc.department_id), `undefined department_id: ${npc.department_id}`);
+    assert.equal(npc.affiliation_type, 'employee');
+  }
 });
 
 test('general NPC catalog: general_npc_departments never duplicates a department_id already in the player-facing departments list', () => {
@@ -62,6 +69,54 @@ test('map catalog: all 16 specified location_ids are present', () => {
   const actualIds = map.locations.map(l => l.location_id);
   assert.equal(actualIds.length, 16);
   for (const id of expectedIds) assert.ok(actualIds.includes(id), `missing location_id: ${id}`);
+});
+
+const VISIBILITY_VALUES = new Set(['public', 'restricted', 'private']);
+
+test('map catalog: every location has the full required schema (location_id, name, floor, department_id-or-null, location_type, visibility, access_roles, adjacent_location_ids, default_npc_ids, scene_tags)', () => {
+  for (const location of map.locations) {
+    assert.equal(typeof location.location_id, 'string');
+    assert.equal(typeof location.name, 'string');
+    assert.ok(location.name, `${location.location_id} has an empty name`);
+    assert.equal(typeof location.floor, 'number');
+    assert.ok(location.department_id === null || typeof location.department_id === 'string');
+    assert.equal(typeof location.location_type, 'string');
+    assert.ok(VISIBILITY_VALUES.has(location.visibility), `${location.location_id} has an invalid visibility: ${location.visibility}`);
+    assert.ok(Array.isArray(location.access_roles));
+    assert.ok(Array.isArray(location.adjacent_location_ids));
+    assert.ok(Array.isArray(location.default_npc_ids));
+    assert.ok(Array.isArray(location.scene_tags));
+  }
+});
+
+test('map catalog: every adjacent_location_id refers to a real location in this same catalog', () => {
+  const validIds = new Set(map.locations.map(l => l.location_id));
+  for (const location of map.locations) {
+    for (const adjacentId of location.adjacent_location_ids) {
+      assert.ok(validIds.has(adjacentId), `${location.location_id} references unknown adjacent location: ${adjacentId}`);
+    }
+  }
+});
+
+test('map catalog: every default_npc_id refers to a real general NPC or heroine', () => {
+  const heroines = readJson('content/characters.json');
+  const heroineIds = new Set(Object.keys(heroines.characters ?? heroines));
+  for (const location of map.locations) {
+    for (const npcId of location.default_npc_ids) {
+      assert.ok(isGeneralNpcId(generalNpcs, npcId) || heroineIds.has(npcId), `${location.location_id} references unknown default_npc_id: ${npcId}`);
+    }
+  }
+});
+
+test('map catalog: every non-null location department_id is a real defined department', () => {
+  const validDepartments = new Set([
+    ...organization.departments.map(d => d.department_id),
+    ...organization.general_npc_departments.map(d => d.department_id)
+  ]);
+  for (const location of map.locations) {
+    if (location.department_id === null) continue;
+    assert.ok(validDepartments.has(location.department_id), `${location.location_id} references undefined department_id: ${location.department_id}`);
+  }
 });
 
 // ---------- Role/sex/department resolver ----------
