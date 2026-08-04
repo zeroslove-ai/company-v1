@@ -1,7 +1,8 @@
 # Company v1 CSA activation hotfix
 
-Deployment head: `477e984311f9b04a198e4084a3658dcc697f13c4`
 Functional fix head: `95092247dce6a34afb93d76ac5232f7d7a19be14`
+
+Deploy the current PR #19 head after confirming it contains this functional fix commit.
 
 ## Production symptom
 
@@ -27,4 +28,4 @@ GitHub Actions run `30904001774` on the functional fix:
 - API Worker Wrangler `4.118.0` dry-run passed
 - Frontend Worker Wrangler `4.118.0` dry-run passed
 
-The public Workers still serve the older deployed SHA until the deployment head is redeployed.
+The public Workers still serve the older deployed SHA until the current PR head is redeployed.
