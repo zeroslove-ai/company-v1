@@ -60,6 +60,15 @@ function catalogName(list, idField, id) {
   return text(list.find(item => item?.[idField] === id)?.name);
 }
 
+function characterName(save, id) {
+  if (!id) return '';
+  for (const source of [save.characters, save.npc_profiles, save.npc_identity_state, save.npc_state]) {
+    const name = text(object(object(source)?.[id])?.name);
+    if (name) return name;
+  }
+  return catalogName(CATALOGS.characters ?? [], 'character_id', id);
+}
+
 function dialogueLines(currentExtract, parsedStory) {
   if (Array.isArray(currentExtract?.dialogue_lines)) return currentExtract.dialogue_lines;
   if (Array.isArray(parsedStory?.dialogue_lines)) return parsedStory.dialogue_lines;
@@ -125,11 +134,19 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
     },
     focal_character: {
       id: focalId,
+      name: characterName(save, focalId),
       last_speaker_id: lastSpeakerId,
       character: npcView(save, focalId),
       scene_state: {
         location_label: text(focalSceneState.location_label),
         posture: text(focalSceneState.posture),
+        posture_detail: text(focalSceneState.posture_detail ?? focalSceneState.posture_description),
+        relative_position: text(
+          focalSceneState.relative_position
+          ?? focalSceneState.position_relative_to_player
+          ?? focalSceneState.relative_to_player
+          ?? focalSceneState.physical_relation
+        ),
         clothing: object(focalSceneState.clothing) ?? {}
       }
     },
@@ -149,6 +166,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       inner_thought: text(parsedStory.player_inner_thought),
       location_label: text(playerSceneState.location_label),
       posture: text(playerSceneState.posture),
+      posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
       clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
