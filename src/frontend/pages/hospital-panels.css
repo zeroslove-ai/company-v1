@@ -1,4 +1,5 @@
-.future-slot[hidden] {
+.future-slot[hidden],
+.mind-panel[hidden] {
   display: none !important;
 }
 
@@ -29,6 +30,8 @@
 }
 
 .player-inner-thought-card .future-slot-value {
+  max-height: 8.4em;
+  overflow-y: auto;
   padding-left: 9px;
   border-left: 2px solid var(--hospital-accent);
   font-style: italic;
@@ -84,11 +87,189 @@
 }
 
 .turn-change-card .future-slot-value {
+  display: -webkit-box;
+  overflow: hidden;
   color: #cbd5df;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Full choices stay readable inside the narrative; the bottom row is only a compact launcher. */
+.narrative-choices {
+  margin: 18px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: color-mix(in srgb, var(--hospital-bg-tertiary) 78%, transparent);
+}
+
+.narrative-choices h3 {
+  margin: 0 0 8px;
+  color: var(--hospital-text-secondary);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
+.narrative-choices ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.4rem;
+}
+
+.narrative-choices li {
+  padding-left: 3px;
+  color: var(--hospital-text-primary);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.status-column .state-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 5px 10px;
+  margin: 10px 0 0;
+}
+
+.status-column .state-list dt,
+.status-column .state-list dd {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.focal-character {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: var(--hospital-bg-tertiary);
+}
+
+.focal-character h2 {
+  margin: 0 0 6px;
+  font-size: 0.76rem;
+}
+
+.physical-relation {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  font-size: 0.86rem;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.player-panel > .state-list {
+  margin-top: 2px;
+}
+
+.choice-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  max-height: none;
+  overflow: visible;
+}
+
+.choice-button {
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 4px;
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-align: center;
+  letter-spacing: -0.03em;
+}
+
+#player-action {
+  height: 46px;
+  min-height: 46px;
+  max-height: 96px;
+  padding: 9px 10px;
+}
+
+#stream-status:empty {
+  display: none;
 }
 
 @media (max-width: 900px) {
   .future-slot:not([hidden]) {
     padding: 9px;
+  }
+
+  .narrative-choices {
+    margin-top: 14px;
+    padding: 10px 11px;
+  }
+
+  .choice-button {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .action-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 82px;
+    gap: 6px;
+    padding: 7px 8px 8px;
+  }
+
+  .choice-list {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    margin: 0;
+    gap: 4px;
+  }
+
+  .choice-button {
+    min-height: 32px;
+    padding: 5px 2px;
+    font-size: clamp(0.64rem, 2.8vw, 0.72rem);
+  }
+
+  #player-action {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    height: 42px;
+    min-height: 42px;
+    margin: 0;
+    resize: none;
+  }
+
+  .action-panel > .action-controls {
+    grid-column: 2;
+    grid-row: 2;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    align-self: stretch;
+  }
+
+  #submit-action,
+  #recovery-action {
+    width: 100%;
+    height: 100%;
+    min-height: 42px;
+    padding: 5px 6px;
+    font-size: 0.78rem;
+  }
+
+  .action-panel > #stream-status {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
+    margin: 0;
+  }
+
+  .status-column .state-list {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 4px 8px;
+  }
+
+  .narrative-choices li {
+    font-size: 0.82rem;
   }
 }
