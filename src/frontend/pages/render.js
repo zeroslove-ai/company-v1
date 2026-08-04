@@ -11,7 +11,8 @@ const DISPLAY_LABELS = {
   morning: '오전', afternoon: '오후', evening: '저녁', night: '밤',
   report_review: '보고서 검토', team_meeting: '팀 회의', onboarding: '신입 적응',
   standing: '서 있음', sitting: '앉아 있음', kneeling: '무릎을 꿇고 있음',
-  lying: '누워 있음', crouching: '몸을 낮추고 있음', walking: '이동 중'
+  lying: '누워 있음', lying_supine: '바로 누워 있음', lying_prone: '엎드려 있음', side_lying: '옆으로 누워 있음',
+  crouching: '몸을 낮추고 있음', walking: '이동 중', leaning: '기대어 있음', bent_forward: '몸을 앞으로 숙이고 있음'
 };
 
 function localizedValue(value) {
@@ -56,11 +57,13 @@ export function parsedTurnNarrative(turn) {
 export function stateDisplayValues(viewModel) {
   const scene = object(viewModel?.scene?.scene_state) ?? {};
   const world = object(viewModel?.scene?.world_state) ?? {};
+  const work = workHook(world.work_hook);
+  const flow = localizedValue(scene.focus_thread) || localizedValue(scene.beat);
   return {
     장소: localizedValue(scene.location_label || scene.location_id),
-    업무: workHook(world.work_hook),
+    업무: work,
     목표: localizedValue(scene.scene_goal),
-    흐름: localizedValue(scene.focus_thread) || localizedValue(scene.beat),
+    흐름: flow && flow !== work ? flow : '',
     활성규정: Array.isArray(viewModel?.scene?.csa_active) ? String(viewModel.scene.csa_active.length) : ''
   };
 }
@@ -136,7 +139,7 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
   }
 }
 
-export function renderHistory(container, turns) {
+export function renderHistory(container, turns, { showSummary = container?.id !== 'story-history' } = {}) {
   if (!container) return;
   container.replaceChildren();
   for (const turn of turns ?? []) {
@@ -144,7 +147,9 @@ export function renderHistory(container, turns) {
     const action = document.createElement('p'); action.className = 'action-chip'; action.textContent = turn.player_action ?? '이전 행동';
     const narrative = document.createElement('div'); narrative.className = 'turn-narrative';
     card.append(action, narrative); renderNarrative(narrative, parsedTurnNarrative(turn));
-    if (turn.turn_summary) { const summary = document.createElement('p'); summary.className = 'turn-summary'; summary.textContent = turn.turn_summary; card.append(summary); }
+    if (showSummary && turn.turn_summary) {
+      const summary = document.createElement('p'); summary.className = 'turn-summary'; summary.textContent = turn.turn_summary; card.append(summary);
+    }
     container.append(card);
   }
 }
@@ -162,20 +167,79 @@ export function mindMonitorDisplay(monitor) {
   ].filter(([, value]) => value !== null).map(([label, value]) => [label, typeof value === 'string' ? value : JSON.stringify(value)]);
 }
 
-export function renderMindMonitor(container, monitor) {
-  if (!container) return;
-  container.replaceChildren();
-  for (const [label, value] of mindMonitorDisplay(monitor)) {
+function normalizedMindEntries(value) {
+  if (Array.isArray(value)) {
+    return value.filter(entry => object(entry) && (displayValue(entry.surface).trim() || displayValue(entry.subconscious).trim()));
+  }
+  const source = object(value) ?? {};
+  const direct = mindMonitorDisplay(source);
+  if (direct.length) return [{ id: '', name: '', surface: direct.find(([label]) => label === '표면의식')?.[1] ?? '', subconscious: direct.find(([label]) => label === '잠재의식')?.[1] ?? '' }];
+  return Object.entries(source).filter(([, entry]) => object(entry)).map(([id, entry]) => ({
+    id,
+    name: id,
+    surface: displayValue(entry.surface ?? entry['표면의식']),
+    subconscious: displayValue(entry.subconscious ?? entry.latent ?? entry['잠재의식'])
+  })).filter(entry => entry.surface || entry.subconscious);
+}
+
+function renderMindEntry(container, entry) {
+  const body = document.createElement('div'); body.className = 'mind-monitor-body';
+  for (const [label, value] of [['표면의식', entry.surface], ['잠재의식', entry.subconscious]]) {
     const card = document.createElement('section'); card.className = 'mind-card';
     const heading = document.createElement('h3'); heading.textContent = label;
-    const detail = document.createElement('p'); detail.textContent = value;
-    card.append(heading, detail); container.append(card);
+    const detail = document.createElement('p'); detail.textContent = value || '이번 턴에는 확인할 수 없습니다.';
+    card.append(heading, detail); body.append(card);
   }
+  container.append(body);
+}
+
+export function renderMindMonitor(container, monitor, { preferredId = '' } = {}) {
+  if (!container) return;
+  container.replaceChildren();
+  const entries = normalizedMindEntries(monitor);
+  if (!entries.length) {
+    container.dataset = container.dataset ?? {};
+    container.dataset.selectedCharacterId = '';
+    const empty = document.createElement('p'); empty.className = 'mind-monitor-empty'; empty.textContent = '이번 턴 Mind Monitor 정보가 없습니다.';
+    container.append(empty);
+    return;
+  }
+
+  let selected = entries.find(entry => entry.id === preferredId) ?? entries[0];
+  container.dataset = container.dataset ?? {};
+  container.dataset.selectedCharacterId = selected.id ?? '';
+  const bodyHost = document.createElement('div'); bodyHost.className = 'mind-monitor-content';
+
+  const show = entry => {
+    selected = entry;
+    container.dataset.selectedCharacterId = entry.id ?? '';
+    bodyHost.replaceChildren();
+    renderMindEntry(bodyHost, entry);
+  };
+
+  if (entries.length > 1) {
+    const tabs = document.createElement('div'); tabs.className = 'mind-monitor-tabs'; tabs.setAttribute?.('role', 'tablist');
+    for (const entry of entries) {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'mind-monitor-tab';
+      button.textContent = entry.name || entry.id;
+      button.dataset = button.dataset ?? {}; button.dataset.characterId = entry.id;
+      button.ariaSelected = entry.id === selected.id ? 'true' : 'false';
+      button.addEventListener('click', () => {
+        for (const sibling of tabs.children ?? []) sibling.ariaSelected = sibling === button ? 'true' : 'false';
+        show(entry);
+      });
+      tabs.append(button);
+    }
+    container.append(tabs);
+  }
+  container.append(bodyHost);
+  show(selected);
 }
 
 const POSTURE_SENTENCES = {
   standing: '서 있다', sitting: '앉아 있다', kneeling: '무릎을 꿇고 있다',
-  lying: '누워 있다', crouching: '몸을 낮추고 있다', walking: '이동하고 있다'
+  lying: '누워 있다', lying_supine: '바로 누워 있다', lying_prone: '엎드려 있다', side_lying: '옆으로 누워 있다',
+  crouching: '몸을 낮추고 있다', walking: '이동하고 있다', leaning: '기대어 있다', bent_forward: '몸을 앞으로 숙이고 있다'
 };
 
 const RELATIVE_POSITIONS = {
@@ -201,20 +265,38 @@ function postureSentence(value, detail = '') {
   return POSTURE_SENTENCES[raw] ?? `${localizedValue(raw)} 자세를 취하고 있다`;
 }
 
+function sentence(value) {
+  const normalized = displayValue(value).trim().replace(/[.。]$/, '');
+  return normalized ? `${normalized}.` : '';
+}
+
 export function physicalRelationDisplay(focal, player) {
   const sceneState = object(focal?.scene_state) ?? {};
   const name = displayValue(focal?.name).trim() || displayValue(focal?.id).trim() || '상대';
-  const relativeRaw = displayValue(sceneState.relative_position).trim();
-  const relative = RELATIVE_POSITIONS[relativeRaw] ?? (relativeRaw ? localizedValue(relativeRaw) : '같은 공간에서');
-  const counterpartPosture = postureSentence(sceneState.posture, sceneState.posture_detail);
+  const playerPosition = displayValue(player?.position_label).trim();
+  const counterpartPosition = displayValue(sceneState.position_label).trim();
   const playerPosture = postureSentence(player?.posture, player?.posture_detail);
-  const counterpart = counterpartPosture ? `${topicName(name)} ${relative} ${counterpartPosture}` : `${topicName(name)} ${relative} 플레이어와 함께 있다`;
-  return playerPosture ? `플레이어는 ${playerPosture}. ${counterpart}.` : `${counterpart}.`;
+  const counterpartPosture = postureSentence(sceneState.posture, sceneState.posture_detail);
+  const parts = [];
+
+  if (playerPosition) parts.push(sentence(`플레이어는 ${playerPosition}`));
+  else if (playerPosture) parts.push(sentence(`플레이어는 ${playerPosture}`));
+
+  if (counterpartPosition) parts.push(sentence(`${topicName(name)} ${counterpartPosition}`));
+  else {
+    const relativeRaw = displayValue(sceneState.relative_position).trim();
+    const location = localizedValue(sceneState.location_label || player?.location_label);
+    const relative = RELATIVE_POSITIONS[relativeRaw] ?? (relativeRaw ? localizedValue(relativeRaw) : (location ? `${location}에서` : ''));
+    if (counterpartPosture) parts.push(sentence(`${topicName(name)} ${relative} ${counterpartPosture}`.replace(/\s+/g, ' ')));
+    else if (relative) parts.push(sentence(`${topicName(name)} ${relative} 플레이어와 함께 있다`));
+  }
+
+  return parts.filter(Boolean).join(' ') || '현재 자세 정보가 없습니다.';
 }
 
 function renderFocalCharacter(container, focal, player) {
   if (!container) return;
-  const hasPhysicalState = Boolean(focal?.name || focal?.id || focal?.scene_state?.posture || player?.posture);
+  const hasPhysicalState = Boolean(focal?.name || focal?.id || focal?.scene_state?.posture || focal?.scene_state?.position_label || player?.posture || player?.position_label);
   if (!hasPhysicalState) { container.hidden = true; container.replaceChildren(); return; }
   container.hidden = false; container.replaceChildren();
   const heading = document.createElement('h2'); heading.textContent = '현재 자세';
@@ -244,12 +326,13 @@ function supplementalElement(elements, key, id) {
 function renderTextSlot(container, { heading, value, className = '' }) {
   if (!container) return;
   container.replaceChildren();
+  container.scrollTop = 0;
   const normalized = displayValue(value).trim();
   if (!normalized) { container.hidden = true; container.className = 'future-slot'; return; }
   container.hidden = false;
   container.className = ['future-slot', className].filter(Boolean).join(' ');
   const title = document.createElement('p'); title.className = 'future-slot-heading'; title.textContent = heading;
-  const detail = document.createElement('p'); detail.className = 'future-slot-value'; detail.textContent = normalized; detail.title = normalized;
+  const detail = document.createElement('p'); detail.className = 'future-slot-value'; detail.textContent = normalized; detail.title = normalized; detail.scrollTop = 0;
   container.append(title, detail);
 }
 
@@ -306,7 +389,6 @@ function renderSupplementalPanels(elements, model) {
   renderTextSlot(supplementalElement(elements, 'playerInnerThought', 'player-inner-thought'), {
     heading: '플레이어 속마음', value: display.innerThought, className: 'player-inner-thought-card'
   });
-  // Time already appears in the fixed header; keep the legacy slot hidden to avoid duplicate vertical space.
   renderTextSlot(supplementalElement(elements, 'gameTime', 'game-time-slot'), {
     heading: '현재 시간', value: '', className: 'game-time-card'
   });
@@ -328,7 +410,9 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   text(elements.dayTime, [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '));
   definitionList(elements.scene, Object.entries(stateDisplayValues(model)));
   renderFocalCharacter(elements.focal, model.focal_character, model.player);
-  renderMindMonitor(elements.mind, model.media?.mind_monitor);
+  renderMindMonitor(elements.mind, model.media?.mind_monitor_entries ?? model.media?.mind_monitor, {
+    preferredId: model.media?.default_mind_character_id
+  });
   renderPlayer(elements.player, model.player, model.scene);
   renderSupplementalPanels(elements, model);
 }
