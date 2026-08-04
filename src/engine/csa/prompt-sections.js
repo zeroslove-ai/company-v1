@@ -166,7 +166,17 @@ export function buildCsaApplicationCheckSection(applicableCsa) {
 /** Extract-only runtime tracking contract — only worth the tokens when a CSA is actually active this turn. */
 export function buildCsaRuntimeExtractContractSection(applicableCsa) {
   if (!applicableCsa || !applicableCsa.length) return '';
-  return '\n\ncsa_trigger_evaluations: [{csa_id, status}] per relevant active CSA, status one of satisfied/continuing/temporarily_interrupted/not_satisfied/ended, only for csa_ids already listed active; never invent one. csa_runtime_updates: [{csa_id, character_id, status}] only when Story showed the required_action physically performed or paused, status one of inactive/active/paused/ended, character_id an NPC present this turn. Leave both empty when nothing changed.';
+  return '\n\ncsa_trigger_evaluations:[{csa_id,status}] status: satisfied|continuing|temporarily_interrupted|not_satisfied|ended, csa_id must already be active. csa_runtime_updates:[{csa_id,character_id,status}] status: inactive|active|paused|ended, only if Story showed it happening; character_id must be present.';
+}
+
+/**
+ * Structured per-choice signal for direct-coverage matching — only worth the tokens when at
+ * least one currently applicable CSA is sexual-authorized (the only coverage path that
+ * consults it; the nonsexual path stays tag-based and needs none of this).
+ */
+export function buildChoiceStructuredMetaExtractContractSection(hasSexualCsa) {
+  if (!hasSexualCsa) return '';
+  return '\n\nchoice_structured_meta:[{choice_index,action_types,actor_id,target_id,suggested_route,direct_csa_ids}], one entry per sexual choice (index = its position). action_types: kiss|sexual_touch|genital_exposure|genital_touch|oral|penetration. actor_id/target_id: an id present this turn or player, never invented. suggested_route: none|csa_direct|voluntary|blocked, your best guess only.';
 }
 
 const MIND_EFFECT_EXTRACT_FIREWALL = `

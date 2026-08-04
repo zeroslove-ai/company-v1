@@ -30,6 +30,8 @@ import {
   buildCsaPhysicalTransitionSection,
   buildCsaPublicSceneSection,
   buildCsaRuntimeExtractContractSection,
+  buildChoiceStructuredMetaExtractContractSection,
+  buildCsaSemanticContract,
   buildCsaRuntimeSection,
   buildCsaWeakSynergySection,
   buildMindEffectExtractFirewallSection,
@@ -390,11 +392,13 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
+          const hasSexualCsa = applicableCsa.some(csa => buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract).sexual_authorization === true);
           const promptStart = Date.now();
           let messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
-            + buildCsaRuntimeExtractContractSection(applicableCsa);
+            + buildCsaRuntimeExtractContractSection(applicableCsa)
+            + buildChoiceStructuredMetaExtractContractSection(hasSexualCsa);
           if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
           timing.extract_prompt_ms = Date.now() - promptStart;
           const extractUserPayload = JSON.parse(messages[1].content);

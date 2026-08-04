@@ -1,4 +1,5 @@
 import { GameCoreError } from './errors.js';
+import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
 
 const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked', 'degraded']);
 const FORBIDDEN_MIND_KEYS = new Set(['body', 'physical', 'body_reaction', 'physical_action', '신체반응', '신체·행동 반응']);
@@ -280,6 +281,43 @@ function normalizeCsaRuntimeUpdates(value, warnings) {
   return result;
 }
 
+const CHOICE_SUGGESTED_ROUTES = new Set(['none', 'csa_direct', 'voluntary', 'blocked']);
+
+/**
+ * Shape-only per-choice structured signal (donor's choice_structured_meta), one entry per
+ * currently-rendered choice at the same index as last_choices. This is what lets a later
+ * turn's direct-coverage resolution cross-validate actor_id/target_id against a real,
+ * Extract-classified signal instead of guessing them from the player's free-typed text.
+ * An entry naming an out-of-range choice_index, or with an invalid status, is dropped with
+ * a warning; entries are never trusted alone — the caller still re-validates actor_id/
+ * target_id against the live save at match time.
+ */
+function normalizeChoiceStructuredMeta(value, choiceCount, warnings) {
+  if (!Array.isArray(value)) return [];
+  const seenIndexes = new Set();
+  const result = [];
+  for (const item of value) {
+    const choiceIndex = integer(item?.choice_index);
+    if (choiceIndex === null || choiceIndex < 0 || choiceIndex >= choiceCount || seenIndexes.has(choiceIndex)) {
+      warnings.push('invalid_choice_structured_meta');
+      continue;
+    }
+    seenIndexes.add(choiceIndex);
+    const actionTypes = [...new Set((Array.isArray(item?.action_types) ? item.action_types : [])
+      .filter(action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none'))];
+    result.push({
+      choice_index: choiceIndex,
+      action_types: actionTypes,
+      actor_id: identity(item?.actor_id),
+      target_id: identity(item?.target_id),
+      suggested_route: CHOICE_SUGGESTED_ROUTES.has(item?.suggested_route) ? item.suggested_route : 'none',
+      direct_csa_ids: [...new Set((Array.isArray(item?.direct_csa_ids) ? item.direct_csa_ids : [])
+        .filter(id => typeof id === 'string' && id.trim()))].slice(0, 4)
+    });
+  }
+  return result;
+}
+
 export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcIds } = {}) {
   if (!object(value) || !object(value.state_delta)) {
     throw new GameCoreError('INVALID_EXTRACT', 'Extract must contain an object state_delta');
@@ -299,6 +337,8 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
   const mindMonitor = validatedMindMonitor(normalizedMonitor.mind_monitor, npcIds, idWarnings);
   const csaTriggerEvaluations = normalizeCsaTriggerEvaluations(value.csa_trigger_evaluations, idWarnings);
   const csaRuntimeUpdates = normalizeCsaRuntimeUpdates(value.csa_runtime_updates, idWarnings);
+  const finalChoices = parserHasChoices ? storyChoices : choices(value.choices);
+  const choiceStructuredMeta = normalizeChoiceStructuredMeta(value.choice_structured_meta, finalChoices.length, idWarnings);
   const warnings = [...new Set([
     ...(Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string' && item.trim()) : []),
     ...normalizedMonitor.warnings,
@@ -313,7 +353,8 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
     turn_summary: stringOrEmpty(value.turn_summary),
     mind_monitor: mindMonitor,
     legacy_mind_monitor_text: normalizedMonitor.legacy_text,
-    choices: parserHasChoices ? storyChoices : choices(value.choices),
+    choices: finalChoices,
+    choice_structured_meta: choiceStructuredMeta,
     dialogue_lines: mergeDialogueLines(parsedStory?.dialogue_lines, value.dialogue_lines),
     npcs_present: npcsPresent,
     action_target_id: actionTargetId,
@@ -399,6 +440,7 @@ export function buildDegradedExtractEnvelope({ parsedStory = {}, playerAction = 
     mind_monitor: {},
     legacy_mind_monitor_text: '',
     choices: storyChoices,
+    choice_structured_meta: [],
     dialogue_lines: collectDialogueLines(story),
     npcs_present: [],
     action_target_id: null,

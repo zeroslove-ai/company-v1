@@ -15,12 +15,12 @@ const ALLOWED = new Set([
   'story_summary_overall', 'story_summary_recent', 'focal_character_id', 'last_speaker_id',
   'last_npcs_present', 'last_image_id', 'last_choices', 'last_choice_meta'
 ]);
-const SNAPSHOTS = new Set(['last_choice_meta']);
 const NULLABLE = new Set(['last_image_id']);
 const NPC_MAPS = new Set(['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes']);
-// The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present)
-// is the sole writer for these paths; a state_delta proposal for the same path is redundant.
-const ENVELOPE_AUTHORITATIVE = new Set(['focal_character_id', 'last_speaker_id', 'last_choices', 'last_npcs_present']);
+// The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present/
+// choice_structured_meta) is the sole writer for these paths; a state_delta proposal for the
+// same path is redundant and only ever warns.
+const ENVELOPE_AUTHORITATIVE = new Set(['focal_character_id', 'last_speaker_id', 'last_choices', 'last_npcs_present', 'last_choice_meta']);
 
 function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -141,11 +141,6 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
       else warnings.push('invalid_event_ledger');
       continue;
     }
-    if (SNAPSHOTS.has(path)) {
-      if (Array.isArray(patch)) nextSave[path] = clone(patch);
-      else warnings.push(`invalid_snapshot:${path}`);
-      continue;
-    }
     if (path === 'player_sexual_state') {
       if (!plainObject(patch)) {
         warnings.push('invalid_player_sexual_state');
@@ -207,6 +202,7 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
   }
 
   nextSave.last_choices = clone(envelope.choices);
+  nextSave.last_choice_meta = clone(envelope.choice_structured_meta);
   if (envelope.choices.length !== 4) warnings.push('choices_not_exactly_four');
   if (envelope.npcs_present.length > 0) nextSave.last_npcs_present = clone(envelope.npcs_present);
   if (envelope.focal_character_id !== null) nextSave.focal_character_id = envelope.focal_character_id;
