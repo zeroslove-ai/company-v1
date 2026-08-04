@@ -99,6 +99,22 @@
         <button id="retry-opening" type="button">오프닝 다시 시도</button>
       </section>
     </div>
+
+    <div id="csa-app-overlay" class="csa-app-overlay" role="dialog" aria-modal="true" aria-labelledby="csa-app-heading" hidden>
+      <div class="csa-app-modal">
+        <header class="csa-app-header">
+          <h2 id="csa-app-heading">📱 상식개변 앱</h2>
+          <button id="csa-app-close" type="button" class="app-manual-close" aria-label="상식개변 앱 닫기">닫기</button>
+        </header>
+        <div id="csa-app-tabs" class="csa-app-tabs" role="tablist">
+          <button type="button" class="csa-app-tab" role="tab" data-tab="home">홈</button>
+          <button type="button" class="csa-app-tab" role="tab" data-tab="csa">상식개변</button>
+          <button type="button" class="csa-app-tab" role="tab" data-tab="manual">매뉴얼</button>
+        </div>
+        <div id="csa-app-body" class="csa-app-body"></div>
+        <div id="csa-app-draft-bar" class="csa-app-draft-bar"></div>
+      </div>
+    </div>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

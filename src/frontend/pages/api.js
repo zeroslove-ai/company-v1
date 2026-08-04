@@ -1,13 +1,14 @@
 import { FRONTEND_CONFIG } from './config.js';
 
 export class ApiError extends Error {
-  constructor({ endpoint, status, code, message, retryable = false }) {
+  constructor({ endpoint, status, code, message, retryable = false, issues = null }) {
     super(message);
     this.name = 'ApiError';
     this.endpoint = endpoint;
     this.status = status;
     this.code = code;
     this.retryable = retryable;
+    this.issues = Array.isArray(issues) && issues.length ? issues : null;
   }
 }
 
@@ -24,7 +25,7 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
     try { payload = await response.json(); } catch { throw new ApiError({ endpoint, status: response.status, code: 'invalid_json_response', message: 'API 응답 형식이 올바르지 않습니다.' }); }
     if (!response.ok || payload?.ok !== true) {
       const error = payload?.error ?? {};
-      throw new ApiError({ endpoint, status: response.status, code: error.code ?? 'request_failed', message: error.message ?? '요청에 실패했습니다.', retryable: Boolean(error.retryable) });
+      throw new ApiError({ endpoint, status: response.status, code: error.code ?? 'request_failed', message: error.message ?? '요청에 실패했습니다.', retryable: Boolean(error.retryable), issues: error.issues });
     }
     return payload.data;
   }
@@ -47,6 +48,9 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
     actionStatus: body => postJson('/api/action-status', body),
     reset: body => postJson('/api/reset', body),
     playerSetup: body => postJson('/api/player-setup', body),
-    opening
+    opening,
+    appManual: body => postJson('/api/app-manual', body),
+    appState: body => postJson('/api/app-state', body),
+    validateAppAction: (gameId, structuredAction) => postJson('/api/app-validate', { game_id: gameId, structured_action: structuredAction })
   };
 }

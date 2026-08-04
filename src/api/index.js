@@ -34,6 +34,9 @@ export function createApiWorker({ fetchImpl = fetch } = {}) {
         if (request.method === 'POST' && pathname === '/api/reset') return await routes.reset(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/player-setup') return await routes.playerSetup(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/opening') return await routes.opening(request, env, ctx);
+        if (request.method === 'POST' && pathname === '/api/app-manual') return await routes.appManual(request, env, ctx);
+        if (request.method === 'POST' && pathname === '/api/app-state') return await routes.appState(request, env, ctx);
+        if (request.method === 'POST' && pathname === '/api/app-validate') return await routes.appValidate(request, env, ctx);
         return fail(new HttpError(404, 'not_found', 'Route not found'));
       } catch (error) {
         return fail(error instanceof GameCoreError
