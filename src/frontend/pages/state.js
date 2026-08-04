@@ -24,19 +24,29 @@ export function savePending(storage, action) { storage?.setItem(pendingKey(actio
 export function clearPending(storage, gameId) { storage?.removeItem(pendingKey(gameId)); }
 export function recoveryFor(status) { const step = status?.recoverable_step ?? 'unknown'; return ['retry_story', 'resume_extract', 'retry_extract', 'resume_commit', 'retry_commit', 'complete', 'wait_story'].includes(step) ? step : 'unknown'; }
 
+function legacyProgressedSave(context) {
+  const save = saveFromContext(context);
+  return !Object.prototype.hasOwnProperty.call(save, 'player_setup')
+    && !Object.prototype.hasOwnProperty.call(save, 'opening_state')
+    && committedTurn(context) > 0
+    && Array.isArray(save.event_ledger)
+    && save.npc_stats !== null
+    && typeof save.npc_stats === 'object'
+    && !Array.isArray(save.npc_stats);
+}
+
 /**
  * Setup/opening were added after early Company saves already had committed turns.
- * Explicit setup/opening state remains authoritative. Only a genuinely legacy save
- * where both keys are absent and at least one turn is committed is treated as
- * complete, preventing an existing playthrough from being trapped behind a
- * turn-0-only RPC without masking a partially-created setup/opening state.
+ * Explicit setup/opening state remains authoritative. Only a genuinely legacy
+ * gameplay save — both keys absent, committed turns present, and canonical
+ * pre-setup gameplay state already populated — is treated as complete. This keeps
+ * the real turn-3 save playable without letting a synthetic or partially-created
+ * setup state skip the turn-0 contract.
  */
 export function playerSetupCompleted(context) {
   const save = saveFromContext(context);
   if (save?.player_setup?.completed === true) return true;
-  return !Object.prototype.hasOwnProperty.call(save, 'player_setup')
-    && !Object.prototype.hasOwnProperty.call(save, 'opening_state')
-    && committedTurn(context) > 0;
+  return legacyProgressedSave(context);
 }
 export function reservedPlayerSetupId(context) {
   const setup = saveFromContext(context)?.player_setup;
@@ -51,7 +61,5 @@ export function openingHistoryTurn(context) {
 export function openingCompleted(context) {
   const save = saveFromContext(context);
   if (save?.opening_state?.status === 'complete') return true;
-  return !Object.prototype.hasOwnProperty.call(save, 'player_setup')
-    && !Object.prototype.hasOwnProperty.call(save, 'opening_state')
-    && committedTurn(context) > 0;
+  return legacyProgressedSave(context);
 }
