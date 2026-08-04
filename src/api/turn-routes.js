@@ -41,6 +41,8 @@ import {
   isAppUsageInfoRequest,
   normalizeStructuredAction,
   planCsaTransaction,
+  resolveCsaDirectCoverage,
+  buildCsaDirectCoverageSection,
   semanticStrengthIssues,
   sha256Base64url,
   signAppValidationProof,
@@ -191,7 +193,7 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
 }
 
 /** Appends the CSA-specific Story prompt sections onto an already-built messages array, only when relevant. */
-function applyCsaStorySections(messages, { save, plan }) {
+function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog }) {
   const applicableCsa = getApplicableCsaEntries(save);
   const hasApplicableCsa = applicableCsa.length > 0;
   const isAppTransactionTurn = Boolean(plan);
@@ -205,6 +207,10 @@ function applyCsaStorySections(messages, { save, plan }) {
     const level = calculateCsaCapability(save, activeCsaCount).current_level;
     extra += buildStructuredActionStorySection(csaOperations, activeCsaCount, getCsaLimits(level).max_active);
     extra += buildCsaDeactivationStorySection(csaOperations.some(operation => operation.operation === 'deactivate'));
+  }
+  if (hasApplicableCsa && playerAction) {
+    const coverage = resolveCsaDirectCoverage(save, playerAction, { sexualActionContract: csaCatalog?.sexual_action_contract });
+    extra += buildCsaDirectCoverageSection(coverage);
   }
   const next = [{ ...messages[0], content: messages[0].content + extra }, ...messages.slice(1)];
   next.push({ role: 'system', content: buildNpcCsaEpistemicFirewallSection() });
@@ -285,7 +291,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
           const promptStart = Date.now();
           let messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs });
-          messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan });
+          messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
           }
