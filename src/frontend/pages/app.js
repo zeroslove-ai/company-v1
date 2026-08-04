@@ -47,16 +47,17 @@ export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
   return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
 }
 
-export function toolbarCapabilities(viewModel, pendingAction, { context, busy = false, recoveryPending = false } = {}) {
+export function toolbarCapabilities(viewModel, pendingAction, { context, busy = false, recoveryPending = false, utilityAvailable = null } = {}) {
   const committed = (viewModel?.turn?.committed_turn ?? 0) >= 1;
   const ready = playerSetupCompleted(context) && openingCompleted(context) && !busy && !pendingAction && !recoveryPending;
-  return {
+  const capabilities = {
     canResume: committed && !pendingAction,
-    canOpenHistory: committed && !busy && !pendingAction,
-    canSendFeedback: committed && !busy && !pendingAction && !recoveryPending,
-    canFindNpc: ready,
+    canOpenHistory: committed && !busy && !pendingAction && utilityAvailable?.history === true,
+    canSendFeedback: committed && !busy && !pendingAction && !recoveryPending && utilityAvailable?.feedback === true,
     canOpenApps: ready
   };
+  if (utilityAvailable) capabilities.canFindNpc = ready && utilityAvailable.npcFinder === true;
+  return capabilities;
 }
 
 function withStructuredAction(body, pending) {
@@ -176,7 +177,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
   }
   function renderToolbar() {
-    const capabilities = toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending });
+    const capabilities = toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending, utilityAvailable: utilityUi?.available ?? null });
     if (elements.resume) { elements.resume.disabled = !capabilities.canResume; elements.resume.onclick = capabilities.canResume ? resumePlay : null; }
     if (elements.historyButton) { elements.historyButton.disabled = !capabilities.canOpenHistory; elements.historyButton.onclick = capabilities.canOpenHistory ? () => utilityUi?.openHistory() : null; }
     if (elements.feedback) { elements.feedback.disabled = !capabilities.canSendFeedback; elements.feedback.onclick = capabilities.canSendFeedback ? () => utilityUi?.openFeedback() : null; }
@@ -397,7 +398,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     await refreshContext(); await checkRecovery();
     if (committedTurn(context) >= 1) utilityUi.loadMedia().catch(showError);
   }
-  return { gameId, init, refreshContext, startNewAction, startFeedbackRevision, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, utilityUi, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending }); }, get busy() { return busy; } };
+  return { gameId, init, refreshContext, startNewAction, startFeedbackRevision, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, utilityUi, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending, utilityAvailable: utilityUi?.available ?? null }); }, get busy() { return busy; } };
 }
 
 if (globalThis.document?.querySelector('#game-main')) {
