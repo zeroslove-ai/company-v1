@@ -1,5 +1,6 @@
 import { HttpError } from './http.js';
 import { repairAndParseExtractJson } from '../engine/extract/json-repair.js';
+import { appendLateAuthoritativeCharacterCanon } from '../engine/story-prompt.js';
 
 const EXTRACT_TIMEOUT_MS = 75000;
 
@@ -76,9 +77,10 @@ async function* parseOpenAiSse(body, timing, startedAt) {
 /** Streams the Story completion. thinking stays disabled and the model name is never hardcoded. */
 export async function streamStory({ env, fetchImpl, messages, timing = {} }) {
   const startedAt = Date.now();
+  const finalMessages = appendLateAuthoritativeCharacterCanon(messages);
   const response = await postCompletion(env, fetchImpl, {
     model: requireEnv(env, 'STORY_MODEL'),
-    messages,
+    messages: finalMessages,
     stream: true,
     thinking: { type: 'disabled' },
     max_tokens: 5000
