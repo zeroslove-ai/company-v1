@@ -35,6 +35,13 @@ export function createUtilityUi({
     npcOverlay: get('npc-finder-overlay'), npcSelect: get('npc-finder-character'), npcClose: get('npc-finder-close'), npcFind: get('npc-finder-submit'), npcUse: get('npc-finder-use'), npcStatus: get('npc-finder-status'),
     image: get('character-image'), imageStatus: get('image-status'), ttsEnabled: get('tts-enabled'), ttsPlay: get('play-tts')
   };
+  const available = {
+    history: Boolean(elements.historyOverlay && elements.historyList && typeof api.history === 'function'),
+    feedback: Boolean(elements.feedbackOverlay && elements.feedbackForm && typeof api.feedback === 'function'),
+    npcFinder: Boolean(elements.npcOverlay && elements.npcSelect && typeof api.findNpc === 'function'),
+    media: Boolean(elements.image && typeof api.image === 'function'),
+    tts: Boolean(elements.ttsEnabled && elements.ttsPlay && typeof api.tts === 'function')
+  };
 
   let historyRecords = [];
   let nextBeforeTurn = null;
@@ -50,6 +57,7 @@ export function createUtilityUi({
   function closeNpcFinder() { setOverlay(elements.npcOverlay, false); text(elements.npcStatus, ''); lastNpcResult = null; if (elements.npcUse) elements.npcUse.disabled = true; }
 
   async function loadHistory({ reset = false } = {}) {
+    if (!available.history) return;
     if (reset) { historyRecords = []; nextBeforeTurn = null; }
     text(elements.historyStatus, '기록을 불러오는 중…');
     const result = await api.history({ game_id: gameId, limit: 20, ...(nextBeforeTurn ? { before_turn: nextBeforeTurn } : {}) });
@@ -61,11 +69,13 @@ export function createUtilityUi({
   }
 
   async function openHistory() {
+    if (!available.history) return;
     setOverlay(elements.historyOverlay, true);
     try { await loadHistory({ reset: true }); } catch (error) { onError?.(error); closeHistory(); }
   }
 
   function openFeedback() {
+    if (!available.feedback) return;
     if (elements.feedbackText) elements.feedbackText.value = '';
     setOverlay(elements.feedbackOverlay, true);
     elements.feedbackText?.focus?.();
@@ -99,10 +109,12 @@ export function createUtilityUi({
   }
 
   function openNpcFinder() {
+    if (!available.npcFinder) return;
     populateNpcOptions();
     lastNpcResult = null;
     if (elements.npcUse) elements.npcUse.disabled = true;
-    text(elements.npcStatus, elements.npcSelect?.options?.length ? '찾을 인물을 선택하세요.' : '찾을 수 있는 인물 정보가 없습니다.');
+    const count = elements.npcSelect?.children?.length ?? elements.npcSelect?.options?.length ?? 0;
+    text(elements.npcStatus, count ? '찾을 인물을 선택하세요.' : '찾을 수 있는 인물 정보가 없습니다.');
     setOverlay(elements.npcOverlay, true);
   }
 
@@ -135,12 +147,13 @@ export function createUtilityUi({
     if (elements.image) {
       elements.image.hidden = !url;
       if (url) { elements.image.src = url; elements.image.alt = image?.situation ?? '현재 장면 이미지'; }
-      else elements.image.removeAttribute('src');
+      else elements.image.removeAttribute?.('src');
     }
     text(elements.imageStatus, url ? (image?.situation ?? '현재 장면') : '표시할 이미지가 없습니다.');
   }
 
   async function loadMedia() {
+    if (!available.media) return null;
     const viewModel = getViewModel?.();
     const characterId = viewModel?.media?.image_character_id;
     if (!characterId) { renderImage(null); return null; }
@@ -166,11 +179,11 @@ export function createUtilityUi({
   }
 
   function syncTtsControl() {
-    if (elements.ttsPlay) elements.ttsPlay.disabled = elements.ttsEnabled?.checked !== true;
+    if (elements.ttsPlay) elements.ttsPlay.disabled = !available.tts || elements.ttsEnabled?.checked !== true;
   }
 
   async function playTts() {
-    if (elements.ttsEnabled?.checked !== true) return;
+    if (!available.tts || elements.ttsEnabled?.checked !== true) return;
     const viewModel = getViewModel?.();
     const line = viewModel?.media?.dialogue_lines?.find(item => typeof item?.text === 'string' && item.text.trim());
     const characterId = line?.character_id || viewModel?.media?.image_character_id;
@@ -198,5 +211,5 @@ export function createUtilityUi({
   elements.ttsPlay?.addEventListener('click', playTts);
   syncTtsControl();
 
-  return { openHistory, openFeedback, openNpcFinder, loadMedia, closeHistory, closeFeedback, closeNpcFinder };
+  return { available, openHistory, openFeedback, openNpcFinder, loadMedia, closeHistory, closeFeedback, closeNpcFinder };
 }
