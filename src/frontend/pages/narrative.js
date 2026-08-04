@@ -43,7 +43,6 @@ export function parseNarrative(rawText) {
       player_status,
       player_inner_thought,
       choices,
-      choice_labels,
       warnings: ['no_recognized_markers', 'choices_not_exactly_four']
     };
   }
@@ -78,7 +77,10 @@ export function parseNarrative(rawText) {
   }
 
   if (choices.length !== 4) warnings.push('choices_not_exactly_four');
-  if (choices.length === 4 && choice_labels.some(label => !label)) warnings.push('choice_labels_missing');
+  const suppliedLabels = choice_labels.filter(Boolean);
+  if (suppliedLabels.length > 0 && suppliedLabels.length !== choices.length) warnings.push('choice_labels_missing');
   if (/\[DIALOGUE\b(?![^\]]*\])/.test(raw)) warnings.push('incomplete_dialogue_marker');
-  return { raw, blocks, player_status, player_inner_thought, choices, choice_labels, warnings };
+  const result = { raw, blocks, player_status, player_inner_thought, choices, warnings };
+  if (choice_labels.some(Boolean)) result.choice_labels = choice_labels;
+  return result;
 }
