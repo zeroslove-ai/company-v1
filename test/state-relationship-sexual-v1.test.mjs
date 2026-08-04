@@ -228,3 +228,82 @@ test('intimacy stage: repeated sexual contact alone (multiple completed events, 
   const result = validateIntimacyStagePatch({ proposedStage: 'intercourse', currentStage: 'romantic_interest', acceptedEventsWithRoutes });
   assert.equal(result.ok, false, 'intercourse is not the immediate next rank after romantic_interest, even with a voluntary penetration event present');
 });
+
+// ---------- Commit 3: wiring into applyGuardedStateDelta ----------
+import { applyGuardedStateDelta } from '../src/engine/guarded-merge.js';
+
+function freshSaveForMerge(overrides = {}) {
+  return {
+    save_schema_version: 1, edition: 'company-v1',
+    turn_state: { committed_turn: 5 },
+    player: { name: '김하늘' }, player_progress: { level: 1, exp: 0 }, scene_state: { participants: ['heroine1'] }, world_state: {},
+    npc_stats: {}, npc_emotion: {}, npc_relationship_state: {}, npc_scene_state: {}, npc_work_state: {},
+    csa_active: [], csa_rules: {}, csa_attitudes: {}, csa_runtime_state: {}, csa_aftereffect_state: {},
+    event_ledger: [], sexual_event_ledger: [], story_summary_overall: '', story_summary_recent: '',
+    focal_character_id: 'heroine1', last_speaker_id: null, last_npcs_present: ['heroine1'], last_image_id: null,
+    last_choices: [], last_choice_meta: [], player_setup: { completed: true },
+    ...overrides
+  };
+}
+
+const mergeOptions = { expectedTurn: 6, actionId: 'action-1', turnId: 'turn-1', playerAction: 'x', master: { characters: [{ character_id: 'heroine1', name: '한소영' }] } };
+
+test('wiring: player_scene_state clothing changes only apply through the evidence gate, routed from Extract state_delta', () => {
+  const save = freshSaveForMerge({ player_scene_state: { clothing: { uniform_top: 'worn' } } });
+  const result = applyGuardedStateDelta(save, {
+    state_delta: {
+      player_scene_state: {
+        clothing: { uniform_top: 'removed' },
+        evidence: { clothing: { uniform_top: '플레이어는 상의를 벗었다.' } }
+      }
+    },
+    outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']
+  }, { ...mergeOptions, storyText: '플레이어는 상의를 벗었다.' });
+  assert.equal(result.nextSave.player_scene_state.clothing.uniform_top, 'removed');
+});
+
+test('wiring: player_scene_state clothing change WITHOUT matching Story evidence is rejected, previous value kept', () => {
+  const save = freshSaveForMerge({ player_scene_state: { clothing: { uniform_top: 'worn' } } });
+  const result = applyGuardedStateDelta(save, {
+    state_delta: { player_scene_state: { clothing: { uniform_top: 'removed' } } },
+    outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']
+  }, { ...mergeOptions, storyText: '평범한 대화가 이어졌다.' });
+  assert.equal(result.nextSave.player_scene_state.clothing.uniform_top, 'worn');
+  assert.ok(result.warnings.some(w => w.includes('unevidenced_clothing_change')));
+});
+
+test('wiring: npc_scene_state clothing changes are evidence-gated per NPC, keyed by the character\'s real name', () => {
+  const save = freshSaveForMerge({ npc_scene_state: { heroine1: { clothing: { uniform_top: 'worn' }, present: true } } });
+  const result = applyGuardedStateDelta(save, {
+    state_delta: {
+      npc_scene_state: {
+        heroine1: { clothing: { uniform_top: 'removed' }, evidence: { clothing: { uniform_top: '한소영은 상의를 벗었다.' } } }
+      }
+    },
+    outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']
+  }, { ...mergeOptions, storyText: '한소영은 상의를 벗었다.' });
+  assert.equal(result.nextSave.npc_scene_state.heroine1.clothing.uniform_top, 'removed');
+});
+
+test('wiring: npc_stats deltas are clamped through the relationship reducer, not applied as a free-form set', () => {
+  const save = freshSaveForMerge({ npc_stats: { heroine1: { affinity: 40 } } });
+  const result = applyGuardedStateDelta(save, {
+    state_delta: { npc_stats: { heroine1: { affinity: 100, reason: '상식개변을 성실히 수행했다' } } },
+    outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']
+  }, mergeOptions);
+  assert.equal(result.nextSave.npc_stats.heroine1.affinity, 40, 'a +60 raw delta with CSA-compliance-only evidence never applies');
+});
+
+test('wiring: sexual_event_ledger entries are appended with dedupe and drive ejaculation_counts, deduped across a commit retry with the same turn/actor/type/evidence', () => {
+  const save = freshSaveForMerge();
+  const extract = {
+    state_delta: { sexual_event_ledger: [{ actor_id: 'player', target_id: 'heroine1', action_type: 'penetration', direction: 'player_to_npc', completed: true, evidence: '두 사람은 관계를 맺었다.' }] },
+    outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']
+  };
+  const first = applyGuardedStateDelta(save, extract, mergeOptions);
+  assert.equal(first.nextSave.sexual_event_ledger.length, 1);
+  assert.equal(first.nextSave.ejaculation_counts.player, 1);
+  const replay = applyGuardedStateDelta(save, extract, mergeOptions);
+  assert.equal(replay.nextSave.sexual_event_ledger.length, 1, 'a retry/replay of the same commit must not double the ledger');
+  assert.equal(replay.nextSave.ejaculation_counts.player, 1);
+});

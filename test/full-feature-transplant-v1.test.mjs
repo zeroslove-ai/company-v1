@@ -232,3 +232,36 @@ test('normalizeGameplayExtractEnvelope drops an unknown action_type/suggested_ro
   assert.deepEqual(envelope.choice_structured_meta[0].action_types, ['genital_touch']);
   assert.equal(envelope.choice_structured_meta[0].suggested_route, 'none');
 });
+
+// ---------- Commit 3: Extract JSON repair ----------
+import { extractBalancedJsonObject, stripTrailingCommas, repairAndParseExtractJson } from '../src/engine/extract/json-repair.js';
+
+test('json-repair: extracts a balanced {...} object even when the model wrapped it in stray prose', () => {
+  const text = 'Sure, here is the JSON:\n{"a":1,"b":{"c":2}}\nHope that helps!';
+  assert.equal(extractBalancedJsonObject(text), '{"a":1,"b":{"c":2}}');
+});
+
+test('json-repair: respects braces inside quoted strings when finding the balanced object', () => {
+  const text = '{"note":"a { b } c","n":1}';
+  assert.equal(extractBalancedJsonObject(text), text);
+});
+
+test('json-repair: strips a trailing comma before a closing brace or bracket, but not inside strings', () => {
+  assert.equal(stripTrailingCommas('{"a":1,"b":[1,2,],}'), '{"a":1,"b":[1,2],}'.replace(',}', '}'));
+  assert.equal(stripTrailingCommas('{"note":"a, b,"}'), '{"note":"a, b,"}');
+});
+
+test('json-repair: repairAndParseExtractJson recovers from stray-prose-wrapped JSON with a trailing comma', () => {
+  const text = 'Here you go:\n{"outcome":"success","state_delta":{},}\nDone.';
+  const parsed = repairAndParseExtractJson(text);
+  assert.equal(parsed.outcome, 'success');
+});
+
+test('json-repair: repairAndParseExtractJson still throws when nothing is recoverable (unbalanced braces)', () => {
+  assert.throws(() => repairAndParseExtractJson('{"outcome":"success"'));
+});
+
+test('json-repair: valid JSON passes through unchanged on the first attempt (repair never mutates already-valid content)', () => {
+  const parsed = repairAndParseExtractJson('{"outcome":"success","state_delta":{}}');
+  assert.deepEqual(parsed, { outcome: 'success', state_delta: {} });
+});

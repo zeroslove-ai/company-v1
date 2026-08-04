@@ -455,11 +455,14 @@ test('guarded merge allows a state delta for a newly-present NPC validated this 
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
   const npcIds = new Set(['npc-newcomer']);
   const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x', npcIds };
+  // npc_stats deltas are clamped through the relationship reducer (affinity/csa_acceptance/
+  // sexual_arousal/work_trust), not free-form assignment — a bare +1 affinity delta with no
+  // reason string is well within the +-5/turn cap and applies cleanly.
   const result = applyGuardedStateDelta(save, {
-    state_delta: { npc_stats: { 'npc-newcomer': { affection: 1 } } }, outcome: 'success', evidence: {},
+    state_delta: { npc_stats: { 'npc-newcomer': { affinity: 1 } } }, outcome: 'success', evidence: {},
     choices: [], mind_monitor: {}, dialogue_lines: [], npcs_present: ['npc-newcomer']
   }, options);
-  assert.equal(result.nextSave.npc_stats['npc-newcomer'].affection, 1);
+  assert.equal(result.nextSave.npc_stats['npc-newcomer'].affinity, 1);
   assert.ok(!result.warnings.some(w => w.startsWith('absent_npc_patch')));
 
   const withoutValidation = applyGuardedStateDelta(save, {

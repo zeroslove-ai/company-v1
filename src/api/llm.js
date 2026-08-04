@@ -1,4 +1,5 @@
 import { HttpError } from './http.js';
+import { repairAndParseExtractJson } from '../engine/extract/json-repair.js';
 
 const EXTRACT_TIMEOUT_MS = 75000;
 
@@ -89,7 +90,7 @@ export async function streamStory({ env, fetchImpl, messages, timing = {} }) {
 function parseExtractContent(content) {
   const stripped = String(content ?? '').trim().replace(/^```json\s*/i, '').replace(/\s*```$/, '');
   try {
-    return JSON.parse(stripped);
+    return repairAndParseExtractJson(stripped);
   } catch {
     throw new HttpError(502, 'extract_invalid_json', 'Extract response is not valid JSON', true);
   }
