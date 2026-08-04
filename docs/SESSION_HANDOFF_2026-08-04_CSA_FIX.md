@@ -1,6 +1,7 @@
 # Company v1 CSA activation hotfix
 
-Current functional head: `95092247dce6a34afb93d76ac5232f7d7a19be14`
+Deployment head: `477e984311f9b04a198e4084a3658dcc697f13c4`
+Functional fix head: `95092247dce6a34afb93d76ac5232f7d7a19be14`
 
 ## Production symptom
 
@@ -20,10 +21,10 @@ The deployed `81168a9ac22092d9ad7ee635bd9b0fec1ce8e650` build loads, but the cor
 
 ## Verification
 
-GitHub Actions run `30904001774`:
+GitHub Actions run `30904001774` on the functional fix:
 
 - `319/319` tests passed
 - API Worker Wrangler `4.118.0` dry-run passed
 - Frontend Worker Wrangler `4.118.0` dry-run passed
 
-The public Workers still serve the older deployed SHA until this head is redeployed.
+The public Workers still serve the older deployed SHA until the deployment head is redeployed.
