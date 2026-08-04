@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
 import edition from '../src/api/edition.js';
 import {
-  calculateCsaCapability, getCsaLimits, getCsaStrengthLimits, appStrengthId,
+  calculateCsaCapability, getCsaLimits, appStrengthId,
   getPresetCatalogItem, buildPresetCatalogPayload, renderPresetContent,
   planCsaTransaction, validatePresetOperation,
   normalizeCsaSemanticContract, buildPresetCsaSemanticContract,
@@ -117,18 +117,17 @@ test('preset catalog is ported intact: 68 items, five populated categories, comp
   assert.doesNotMatch(flat, /병원|간호사|의사(?!소통)|환자|보호자|병동|병실/);
 });
 
-test('capability numbers match donor thresholds exactly (getCsaLimits / getCsaStrengthLimits / calculateCsaCapability)', () => {
+test('capability numbers are canonical: weak/medium/strong unlock at Lv.1/3/7, slots at Lv.1=2/3=3/5=4/10=5', () => {
   assert.deepEqual(getCsaLimits(1), { max_active: 2 });
   assert.deepEqual(getCsaLimits(3), { max_active: 3 });
   assert.deepEqual(getCsaLimits(5), { max_active: 4 });
   assert.deepEqual(getCsaLimits(10), { max_active: 5 });
-  assert.deepEqual(getCsaStrengthLimits(1), { max_active: 1, available_strength: '약함' });
-  assert.deepEqual(getCsaStrengthLimits(3), { max_active: 2, available_strength: '중간' });
-  assert.deepEqual(getCsaStrengthLimits(5), { max_active: 3, available_strength: '강함' });
-  const capability = calculateCsaCapability(freshSave(), 0);
-  assert.equal(capability.current_level, 1);
-  assert.equal(capability.available_strength, '약함');
-  assert.equal(capability.csa_max_active, 2);
+  const lv1 = calculateCsaCapability(freshSave(), 0);
+  assert.equal(lv1.current_level, 1); assert.equal(lv1.available_strength_id, 'weak'); assert.equal(lv1.csa_max_active, 2);
+  const lv3 = calculateCsaCapability({ ...freshSave(), player_progress: { level: 3, exp: 0 } }, 0);
+  assert.equal(lv3.available_strength_id, 'medium'); assert.equal(lv3.csa_max_active, 3);
+  const lv7 = calculateCsaCapability({ ...freshSave(), player_progress: { level: 7, exp: 0 } }, 0);
+  assert.equal(lv7.available_strength_id, 'strong');
 });
 
 test('activate/update/deactivate planner enforces slots, presets, duplicate content, and content-only strength caps', () => {
@@ -140,9 +139,10 @@ test('activate/update/deactivate planner enforces slots, presets, duplicate cont
   assert.equal(validated.ok, true);
   assert.match(validated.content, /꿇|앉|사이|밀착|기대|안/);
 
+  const lv1Capability = calculateCsaCapability(freshSave(), 0);
   const activatePlan = planCsaTransaction(freshSave(), catalog, [
     { client_id: 'a', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: { template_id: presetItem.id, actor_group: presetItem.default_actor, target_group: presetItem.default_target, trigger: presetItem.default_trigger, duration: presetItem.default_duration, modifier: '' } }
-  ], { turnNumber: 1, level: 1 });
+  ], { turnNumber: 1, capability: lv1Capability });
   assert.equal(activatePlan.ok, true);
   assert.equal(activatePlan.next_csa_active.length, 1);
   const newId = activatePlan.next_csa_active[0];
@@ -152,18 +152,29 @@ test('activate/update/deactivate planner enforces slots, presets, duplicate cont
   const overflowSave = { ...freshSave(), csa_active: ['x1', 'x2'], csa_rules: { x1: { active: true, content: 'one', strength: 'weak' }, x2: { active: true, content: 'two', strength: 'weak' } } };
   const overflowPlan = planCsaTransaction(overflowSave, catalog, [
     { client_id: 'b', domain: 'csa', operation: 'activate', source_type: 'custom', strength: 'weak', content: 'three' }
-  ], { turnNumber: 1, level: 1 });
+  ], { turnNumber: 1, capability: calculateCsaCapability(overflowSave, 2) });
   assert.equal(overflowPlan.ok, false);
   assert.equal(overflowPlan.error_code, 'CSA_SLOT_FULL');
 
   // deactivate: id stays in csa_rules forever, but leaves csa_active
-  const deactivatePlan = planCsaTransaction(activatePlan.next_csa_active.reduce((save, id) => save, { ...freshSave(), csa_active: activatePlan.next_csa_active, csa_rules: activatePlan.next_csa_rules }), catalog, [
+  const deactivateSave = { ...freshSave(), csa_active: activatePlan.next_csa_active, csa_rules: activatePlan.next_csa_rules };
+  const deactivatePlan = planCsaTransaction(deactivateSave, catalog, [
     { client_id: 'c', domain: 'csa', operation: 'deactivate', id: newId }
-  ], { turnNumber: 2, level: 1 });
+  ], { turnNumber: 2, capability: calculateCsaCapability(deactivateSave, 1) });
   assert.equal(deactivatePlan.ok, true);
   assert.equal(deactivatePlan.next_csa_active.includes(newId), false);
   assert.equal(deactivatePlan.next_csa_rules[newId].active, false);
   assert.equal(typeof deactivatePlan.next_csa_rules[newId].content, 'string');
+});
+
+test('preset operations are checked against the player\'s actual level, never against the request\'s own claimed strength', () => {
+  const strongPreset = catalog.items.find(item => item.strength === 'strong');
+  const lv1Capability = calculateCsaCapability(freshSave(), 0);
+  const bypassAttempt = planCsaTransaction(freshSave(), catalog, [
+    { client_id: 'x', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'strong', preset: { template_id: strongPreset.id, actor_group: strongPreset.default_actor, target_group: strongPreset.default_target ?? null, trigger: strongPreset.default_trigger, duration: strongPreset.default_duration, modifier: '' } }
+  ], { turnNumber: 1, capability: lv1Capability });
+  assert.equal(bypassAttempt.ok, false, 'a Lv.1 player must never activate a strong-tier preset by simply claiming strength:"strong" in the payload');
+  assert.equal(bypassAttempt.issues[0].code, 'STRENGTH_LOCKED');
 });
 
 test('semantic contract: preset-derived contract is exact-confidence; custom contract without full fields is rejected when it claims sexual_authorization', () => {

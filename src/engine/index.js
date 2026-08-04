@@ -39,7 +39,7 @@ export {
 export { buildOpeningPrompt, splitOpeningSections } from './opening-prompt.js';
 
 export {
-  calculateCsaCapability, getCsaLimits, getCsaStrengthLimits, appStrengthId,
+  calculateCsaCapability, getCsaLimits, appStrengthId,
   csaStrengthRank, APP_STRENGTHS, APP_STRENGTH_LABELS, APP_STRENGTH_RANK, APP_STRENGTH_UNLOCKS
 } from './csa/capability.js';
 export {

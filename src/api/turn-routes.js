@@ -17,7 +17,6 @@ import {
   resolvePlayerCanonicalNames,
   splitOpeningSections,
   validatePlayerSetupInput,
-  appStrengthId,
   buildAppManualPayload,
   buildAppStatePayload,
   buildAppUsageStorySection,
@@ -186,7 +185,7 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
   if (!verification.ok) throw new HttpError(409, 'structured_action_invalid', 'structured_action failed validation-proof verification', false);
   if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', '상식개변 앱을 연 뒤 게임 상태가 변경되었습니다.', false);
   const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
-  const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, level: capability.current_level });
+  const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, capability });
   if (!plan.ok) throw new HttpError(422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '상식개변 앱 변경사항을 적용할 수 없습니다.', false);
   return plan;
 }
@@ -645,7 +644,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           throw new HttpError(409, 'app_stale_state', '상식개변 앱을 연 뒤 게임 상태가 변경되었습니다.', false);
         }
         const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
-        const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: committedTurn + 1, level: capability.current_level });
+        const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: committedTurn + 1, capability });
         if (!plan.ok) {
           throw new HttpError(plan.status ?? 422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '변경사항을 적용할 수 없습니다.', false);
         }
@@ -656,7 +655,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           llmCalls += 1;
           semanticResults = await classifyAppOperationStrengths(candidates, async systemPrompt =>
             runExtract({ env, fetchImpl, messages: [{ role: 'system', content: systemPrompt }] }));
-          const issues = semanticStrengthIssues(candidates, semanticResults, appStrengthId(capability.available_strength));
+          const issues = semanticStrengthIssues(candidates, semanticResults, capability.available_strength_id);
           if (issues.length) throw new HttpError(422, 'app_action_invalid', '변경사항을 적용할 수 없습니다.', false);
         }
 

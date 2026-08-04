@@ -1,10 +1,12 @@
 /**
- * Level/EXP/slot/strength arithmetic ported verbatim from the donor's final
- * numbers (docs: getCsaLimits / getCsaStrengthLimits / calculateCsaCapability).
- * The donor itself keeps three independently-threshold tables that don't
- * fully agree with each other (a pre-existing donor quirk, not introduced
- * here) — each is preserved exactly, used at the same call sites donor uses
- * them, rather than reconciled into a single "corrected" table.
+ * Level/EXP/slot/strength arithmetic — the single canonical source every
+ * caller (UI, manual payload, catalog availability, preset validator,
+ * custom validator, transaction planner) must use. The donor kept three
+ * independently-threshold tables (getCsaLimits / getCsaStrengthLimits /
+ * calculateCsaCapability's own inline threshold) that didn't fully agree
+ * with each other; that divergence is not preserved here. Canonical
+ * numbers: weak unlocks at Lv.1, medium at Lv.3, strong at Lv.7; slots are
+ * 2 at Lv.1, 3 at Lv.3, 4 at Lv.5, 5 at Lv.10.
  */
 
 export const STRENGTH_TIERS_KO = ['약함', '중간', '강함'];
@@ -34,14 +36,6 @@ export function getCsaLimits(level) {
   return { max_active: 2 };
 }
 
-/** Enforcement-path strength cap, keyed by level. Independent table from getCsaLimits — see module docstring. */
-export function getCsaStrengthLimits(level) {
-  const clamped = Math.max(1, Number(level) || 1);
-  const availableStrength = clamped >= 5 ? '강함' : clamped >= 3 ? '중간' : '약함';
-  const maxActive = clamped >= 8 ? 4 : clamped >= 5 ? 3 : clamped >= 3 ? 2 : 1;
-  return { max_active: maxActive, available_strength: availableStrength };
-}
-
 function expForNextLevel(level) {
   return Math.max(1, Number(level) || 1) * 100;
 }
@@ -59,6 +53,7 @@ export function calculateCsaCapability(save = {}, activeCsaCount = 0) {
     exp,
     next_level_exp: nextLevelExp,
     available_strength: availableStrength,
+    available_strength_id: appStrengthId(availableStrength),
     max_strength_rank: maxStrengthRank,
     can_use_weak: true,
     can_use_medium: maxStrengthRank >= 1,

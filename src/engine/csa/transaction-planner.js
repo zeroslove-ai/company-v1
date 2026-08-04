@@ -1,4 +1,4 @@
-import { APP_STRENGTH_RANK, APP_STRENGTH_LABELS, APP_STRENGTHS, APP_STRENGTH_UNLOCKS, getCsaLimits } from './capability.js';
+import { APP_STRENGTH_RANK, APP_STRENGTH_LABELS, APP_STRENGTHS, getCsaLimits } from './capability.js';
 import { getPresetCatalogItem, renderPresetContent, presetModifierExceedsTemplate, MODIFIER_MAX_LENGTH } from './catalog.js';
 import { normalizeCsaScope, getCsaRules, getActiveCsaEntries } from './applicability.js';
 import { normalizeCsaSemanticContract } from './semantic-contract.js';
@@ -101,8 +101,14 @@ export function validatePresetOperation(catalog, raw, { availableStrength } = {}
  * slot/content/strength checks, same preset-vs-custom branching. Never
  * mutates previousSave; returns the full next csa_active id list and
  * csa_rules map for the caller to commit through the normal turn pipeline.
+ *
+ * `capability` (from calculateCsaCapability, computed by the caller from the
+ * player's actual level — never from the request) is the single source for
+ * every strength/slot ceiling here. Preset operations are checked against
+ * the exact same available_strength_id as custom operations — a client
+ * cannot raise its own ceiling by claiming a strength in the payload.
  */
-export function planCsaTransaction(previousSave, catalog, rawOperations, { turnNumber, level } = {}) {
+export function planCsaTransaction(previousSave, catalog, rawOperations, { turnNumber, capability } = {}) {
   if (!Array.isArray(rawOperations) || !rawOperations.length) {
     return { ok: false, status: 422, error_code: 'NO_CHANGES', issues: [appIssue(null, 'NO_CHANGES', '적용할 변경사항이 없습니다.')] };
   }
@@ -110,7 +116,9 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
     return { ok: false, status: 422, error_code: 'TOO_MANY_OPERATIONS', issues: [appIssue(null, 'TOO_MANY_OPERATIONS', '한 번에 최대 12개 작업만 적용할 수 있습니다.')] };
   }
 
-  const csaLimits = getCsaLimits(level);
+  const availableStrengthId = capability?.available_strength_id ?? 'weak';
+  const availableRank = APP_STRENGTH_RANK[availableStrengthId] ?? 1;
+  const csaLimits = getCsaLimits(capability?.current_level ?? 1);
   const activeIds = Array.isArray(previousSave?.csa_active) ? [...previousSave.csa_active] : [];
   const rules = { ...getCsaRules(previousSave) };
   const issues = [];
@@ -145,7 +153,7 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
       return true;
     };
     const validateStrength = () => {
-      if (!APP_STRENGTHS.has(strength) || level < APP_STRENGTH_UNLOCKS[strength]) {
+      if (!APP_STRENGTHS.has(strength) || APP_STRENGTH_RANK[strength] > availableRank) {
         issues.push(appIssue(raw, 'STRENGTH_LOCKED', '현재 레벨에서 사용할 수 없는 강도입니다.', index));
         return null;
       }
@@ -156,7 +164,7 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
 
     if (raw.operation === 'activate') {
       if (isPresetOperation) {
-        const validated = validatePresetOperation(catalog, raw, { availableStrength: strength || undefined });
+        const validated = validatePresetOperation(catalog, raw, { availableStrength: availableStrengthId });
         if (!validated.ok) { issues.push(appIssue(raw, validated.code, validated.message, index)); continue; }
         if (activeContents().includes(validated.content)) { issues.push(appIssue(raw, 'DUPLICATE_TARGET', '같은 범위에 동일한 활성 상식개변이 있습니다.', index)); continue; }
         const newId = nextCsaId(Object.keys(rules), turnNumber);
@@ -190,7 +198,7 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
 
     // update
     if (isPresetOperation) {
-      const validated = validatePresetOperation(catalog, raw, { availableStrength: strength || undefined });
+      const validated = validatePresetOperation(catalog, raw, { availableStrength: availableStrengthId });
       if (!validated.ok) { issues.push(appIssue(raw, validated.code, validated.message, index)); continue; }
       if (normalizeAppContent(target.content) === validated.content && target.strength === validated.strength) {
         issues.push(appIssue(raw, 'NO_CHANGES', '상식개변의 실제 변경사항이 없습니다.', index)); continue;
