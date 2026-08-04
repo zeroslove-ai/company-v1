@@ -1,0 +1,55 @@
+/* Company runtime/UI product contract refinements.
+ * Loaded last so these rules express product decisions rather than donor defaults.
+ */
+
+.mind-panel {
+  display: grid;
+  gap: 9px;
+  background: color-mix(in srgb, var(--hospital-bg-tertiary) 34%, transparent) !important;
+}
+
+.mind-panel > h2 {
+  margin: 0;
+}
+
+.media-panel h2,
+.state-panel summary,
+.player-panel h2,
+.mind-panel h2 {
+  margin-top: 0;
+}
+
+.character-image {
+  object-position: top center;
+}
+
+@media (max-width: 900px) {
+  .character-image {
+    height: clamp(260px, 46dvh, 340px);
+    max-height: 340px;
+    object-fit: cover;
+  }
+}
+
+@media (max-width: 560px) {
+  .media-panel,
+  .mind-panel,
+  .state-panel,
+  .player-panel {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .character-image {
+    height: clamp(250px, 43dvh, 320px);
+    max-height: 320px;
+  }
+
+  .media-controls {
+    min-height: 34px;
+  }
+
+  .mind-monitor-tabs {
+    margin-top: -1px;
+  }
+}
