@@ -195,14 +195,31 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
   return plan;
 }
 
-/** Appends the CSA-specific Story prompt sections onto an already-built messages array, only when relevant. */
+/**
+ * Appends the CSA-specific Story prompt sections onto an already-built messages array, only when
+ * relevant. Runtime/acceptance/direct-execution-priority/persistent-scene and the physical-
+ * transition guard are foundational contract language that applies to any active or just-changed
+ * CSA regardless of its specific content, so they stay unconditional whenever this function
+ * contributes anything at all (same as before). Public-scene and weak-synergy, by contrast, are
+ * gated on properties the plan/catalog already validated — no active CSA is public, or fewer than
+ * two are active — because false-including them costs tokens without changing any behavior, and
+ * false-excluding them is never possible without a real signal (public_normalization is a
+ * classified/validated field, not a guess; synergy is definitionally about >=2 rules). Deactivation
+ * (hasDeactivation) and CSA direct coverage (coverage.covered) were already conditional before this
+ * pass. This only trims prompt tokens — every gated section's underlying feature contract is
+ * unchanged when its condition holds.
+ */
 function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog }) {
   const applicableCsa = getApplicableCsaEntries(save);
   const hasApplicableCsa = applicableCsa.length > 0;
   const isAppTransactionTurn = Boolean(plan);
   if (!hasApplicableCsa && !isAppTransactionTurn) return messages;
+  const hasPublicCsa = applicableCsa.some(csa => csa.preset?.public_normalization === true || csa.semantic_contract?.public_normalization === true);
+  const hasSynergyCandidate = applicableCsa.length >= 2;
   let extra = buildCsaRuntimeSection() + buildCsaAcceptanceScopeSection() + buildCsaDirectExecutionPrioritySection()
-    + buildCsaPersistentSceneSection() + buildCsaPublicSceneSection() + buildCsaWeakSynergySection()
+    + buildCsaPersistentSceneSection()
+    + (hasPublicCsa ? buildCsaPublicSceneSection() : '')
+    + (hasSynergyCandidate ? buildCsaWeakSynergySection() : '')
     + buildCsaPhysicalTransitionSection(hasApplicableCsa, isAppTransactionTurn);
   if (plan) {
     const csaOperations = plan.canonical_action.operations;

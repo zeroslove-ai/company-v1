@@ -311,3 +311,49 @@ test('a structured app_transaction with a tampered validation_proof is rejected 
   assert.match(storyText, /event: error/);
   assert.match(storyText, /structured_action_invalid/);
 });
+
+function storySystemPromptFrom(mock) {
+  const llmCall = mock.calls.find(call => call.url.startsWith('https://llm.test'));
+  return JSON.parse(llmCall.body).messages[0].content;
+}
+
+test('Story prompt: public-scene and weak-synergy CSA sections are omitted when no active CSA is public and only one is active', async () => {
+  const save = freshSave({
+    csa_active: ['csa_0'],
+    csa_rules: {
+      csa_0: {
+        active: true, content: '이 회의실 안에서만 적용되는 소규모 관행이다', strength: 'weak', source_type: 'custom', preset: null,
+        semantic_contract: { version: 1, sexual_authorization: false, directions: [], actions: [], actor_group: 'unknown', target_group: 'unknown', trigger: 'custom_condition', duration: 'continuous', public_normalization: false, direct_execution: false, confidence: 'exact' }
+      }
+    }
+  });
+  const mock = createMockFetch({ initialSave: save });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: '44444444-4444-4444-8444-444444444444', expected_turn: 1, player_action: '평범하게 대화한다.' }), env);
+  assert.equal(storyRes.status, 200);
+  const storyText = await storyRes.text();
+  assert.match(storyText, /event: complete/);
+  const system = storySystemPromptFrom(mock);
+  assert.match(system, /COMMON-SENSE CHANGE RUNTIME CONTRACT/, 'the always-needed common section is still present');
+  assert.doesNotMatch(system, /PUBLIC COMMON-SENSE SCENE/, 'the only active CSA is explicitly non-public, so the public-scene section is skipped');
+  assert.doesNotMatch(system, /CSA WEAK SYNERGY/, 'only one CSA is active, so there is nothing to synergize');
+});
+
+test('Story prompt: public-scene and weak-synergy CSA sections are included when two public presets are active', async () => {
+  const presetA = catalog.items.find(item => item.strength === 'weak' && item.category === 'posture');
+  const presetB = catalog.items.find(item => item.strength === 'weak' && item.category === 'contact');
+  const presetEntry = item => ({
+    active: true, content: 'x', strength: 'weak', source_type: 'preset',
+    preset: { template_id: item.id, actor_group: item.default_actor, target_group: item.default_target ?? null, trigger: item.default_trigger, duration: item.default_duration, required_action: item.required_action, public_normalization: item.public_normalization === true, persistent: item.persistent === true, direct_meaning_tags: item.direct_meaning_tags }
+  });
+  const save = freshSave({ csa_active: ['csa_0', 'csa_1'], csa_rules: { csa_0: presetEntry(presetA), csa_1: presetEntry(presetB) } });
+  const mock = createMockFetch({ initialSave: save });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: '55555555-5555-4555-8555-555555555555', expected_turn: 1, player_action: '평범하게 대화한다.' }), env);
+  assert.equal(storyRes.status, 200);
+  const storyText = await storyRes.text();
+  assert.match(storyText, /event: complete/);
+  const system = storySystemPromptFrom(mock);
+  assert.match(system, /PUBLIC COMMON-SENSE SCENE/, 'both active presets are public, so the section applies');
+  assert.match(system, /CSA WEAK SYNERGY/, 'two CSAs are active simultaneously, so synergy guidance applies');
+});
