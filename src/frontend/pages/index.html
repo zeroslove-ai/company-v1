@@ -6,6 +6,7 @@
     <title>상식개변: 회사편</title>
     <link rel="stylesheet" href="./styles.css">
     <link rel="stylesheet" href="./utility.css">
+    <link rel="stylesheet" href="./csa-entry.css">
   </head>
   <body data-edition-id="company-v1" data-phase="phase-4-frontend-loop">
     <a class="skip-link" href="#story-panel">본문으로 이동</a>
@@ -48,6 +49,14 @@
             <div id="ejaculation-progress-slot" class="future-slot" hidden></div>
             <div id="turn-changes-slot" class="future-slot" hidden></div>
           </section>
+          <section class="csa-entry-panel" aria-labelledby="csa-entry-heading">
+            <h2 id="csa-entry-heading" class="csa-entry-heading">상식개변 도구</h2>
+            <p class="csa-entry-copy">규칙 생성·수정·해제는 이 앱에서 관리합니다. 적용하면 일반 행동과 동일하게 Story → Extract → Commit 한 턴으로 처리됩니다.</p>
+            <div class="csa-entry-actions">
+              <button id="open-apps" type="button" disabled>📱 상식개변 앱</button>
+              <button id="resume-play" type="button" disabled>▶ 플레이 재개</button>
+            </div>
+          </section>
         </aside>
       </section>
 
@@ -61,11 +70,9 @@
       </section>
 
       <nav class="utility-toolbar" aria-label="게임 도구">
-        <button id="resume-play" type="button" disabled>플레이 재개</button>
         <button id="open-history" type="button" disabled>플레이 기록</button>
         <button id="send-feedback" type="button" disabled>피드백</button>
         <button id="find-npc" type="button" disabled>NPC 찾기</button>
-        <button id="open-apps" type="button" disabled>앱</button>
         <button id="reset-game" type="button">초기화</button>
       </nav>
     </main>
@@ -119,6 +126,7 @@
         </header>
         <div id="csa-app-tabs" class="csa-app-tabs" role="tablist">
           <button type="button" class="csa-app-tab" role="tab" data-tab="home">홈</button>
+          <button type="button" class="csa-app-tab" role="tab" data-tab="player">플레이어 정보</button>
           <button type="button" class="csa-app-tab" role="tab" data-tab="csa">상식개변</button>
           <button type="button" class="csa-app-tab" role="tab" data-tab="manual">매뉴얼</button>
         </div>
