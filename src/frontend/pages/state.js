@@ -26,14 +26,17 @@ export function recoveryFor(status) { const step = status?.recoverable_step ?? '
 
 /**
  * Setup/opening were added after early Company saves already had committed turns.
- * Explicit setup/opening state remains authoritative. Only a legacy save where the
- * key is entirely absent and at least one turn is committed is treated as complete,
- * preventing an existing playthrough from being trapped behind a turn-0-only RPC.
+ * Explicit setup/opening state remains authoritative. Only a genuinely legacy save
+ * where both keys are absent and at least one turn is committed is treated as
+ * complete, preventing an existing playthrough from being trapped behind a
+ * turn-0-only RPC without masking a partially-created setup/opening state.
  */
 export function playerSetupCompleted(context) {
   const save = saveFromContext(context);
   if (save?.player_setup?.completed === true) return true;
-  return !Object.prototype.hasOwnProperty.call(save, 'player_setup') && committedTurn(context) > 0;
+  return !Object.prototype.hasOwnProperty.call(save, 'player_setup')
+    && !Object.prototype.hasOwnProperty.call(save, 'opening_state')
+    && committedTurn(context) > 0;
 }
 export function reservedPlayerSetupId(context) {
   const setup = saveFromContext(context)?.player_setup;
@@ -48,5 +51,7 @@ export function openingHistoryTurn(context) {
 export function openingCompleted(context) {
   const save = saveFromContext(context);
   if (save?.opening_state?.status === 'complete') return true;
-  return !Object.prototype.hasOwnProperty.call(save, 'opening_state') && committedTurn(context) > 0;
+  return !Object.prototype.hasOwnProperty.call(save, 'player_setup')
+    && !Object.prototype.hasOwnProperty.call(save, 'opening_state')
+    && committedTurn(context) > 0;
 }
