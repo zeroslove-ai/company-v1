@@ -6,9 +6,29 @@ import { parseNarrative } from './narrative.js';
 import { renderChoices, renderHistory, renderNarrative, renderState, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
-import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, validateContext } from './state.js';
+import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
+
+// Duplicated (deliberately, not imported) from src/engine/choice-input.js: the frontend Worker
+// serves only src/frontend/pages as static assets (wrangler.frontend.jsonc), so a relative
+// import reaching into src/engine/ would 404 in production even though it resolves locally.
+const CHOICE_DIGIT_INDEX = { 1: 0, 2: 1, 3: 2, 4: 3 };
+const CHOICE_LETTER_INDEX = { a: 0, b: 1, c: 2, d: 3, A: 0, B: 1, C: 2, D: 3 };
+const CHOICE_CIRCLED_INDEX = { '①': 0, '②': 1, '③': 2, '④': 3 };
+function resolveNumberedChoiceInput(rawInput, save) {
+  const trimmed = typeof rawInput === 'string' ? rawInput.trim() : '';
+  let index = null;
+  if (trimmed.length === 1) {
+    if (trimmed in CHOICE_DIGIT_INDEX) index = CHOICE_DIGIT_INDEX[trimmed];
+    else if (trimmed in CHOICE_LETTER_INDEX) index = CHOICE_LETTER_INDEX[trimmed];
+    else if (trimmed in CHOICE_CIRCLED_INDEX) index = CHOICE_CIRCLED_INDEX[trimmed];
+  }
+  if (index === null) return null;
+  const choices = Array.isArray(save?.last_choices) ? save.last_choices : [];
+  if (choices.length !== 4 || typeof choices[index] !== 'string' || !choices[index].trim()) return { ok: false, code: 'CHOICE_INDEX_OUT_OF_RANGE' };
+  return { ok: true, choice_index: index, text: choices[index] };
+}
 
 const recoveryLabels = {
   retry_story: 'Story 다시 시도', resume_extract: 'Extract 이어서 실행', retry_extract: 'Extract 다시 시도',
@@ -244,8 +264,13 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     });
   }
   async function startNewAction(playerAction, structuredAction = null) {
-    const action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
+    let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
     if (loadPending(storage, gameId)) { showStatus('이전 행동을 먼저 복구해야 합니다.'); await checkRecovery(); return false; }
+    // "2", "b", "②" etc. resolve to the exact stored choice text — never silently executed as
+    // free text, and never guessed when there's no matching current choice set.
+    const numbered = resolveNumberedChoiceInput(action, saveFromContext(context));
+    if (numbered && !numbered.ok) { showError(new ApiError({ endpoint: 'choice-input', status: 422, code: numbered.code.toLowerCase(), message: '지금은 그 번호의 선택지가 없습니다.' })); return false; }
+    if (numbered?.ok) action = numbered.text;
     return withBusy(async () => { showCurrentAction(action); if (elements.input) elements.input.value = ''; text(elements.stream, 'Story를 생성하는 중…'); await coordinator.startNewAction(action, structuredAction); });
   }
   async function resumePending(pending, step) {
