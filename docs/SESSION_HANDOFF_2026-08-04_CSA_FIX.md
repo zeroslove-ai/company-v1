@@ -1,12 +1,10 @@
 # Company v1 CSA activation hotfix
 
-Functional fix commit: `95092247dce6a34afb93d76ac5232f7d7a19be14`
-
-Deploy the current PR #19 head only after confirming it contains this commit.
+Deploy the current PR #19 head after confirming its history contains the CSA activation regression fix.
 
 ## Production symptom
 
-The deployed `81168a9ac22092d9ad7ee635bd9b0fec1ce8e650` build loads, but the core 상식개변 flow is blocked or does not recognize the existing save's rules.
+The previously deployed build loads, but the core 상식개변 flow is blocked or does not recognize the existing save's rules.
 
 ## Root causes fixed
 
@@ -22,10 +20,10 @@ The deployed `81168a9ac22092d9ad7ee635bd9b0fec1ce8e650` build loads, but the cor
 
 ## Verification
 
-GitHub Actions run `30904001774` on the functional fix:
+The functional fix passed:
 
-- `319/319` tests passed
-- API Worker Wrangler `4.118.0` dry-run passed
-- Frontend Worker Wrangler `4.118.0` dry-run passed
+- `319/319` tests
+- API Worker Wrangler `4.118.0` dry-run
+- Frontend Worker Wrangler `4.118.0` dry-run
 
-The public Workers still serve the older deployed SHA until the current PR head is redeployed.
+The public Workers continue serving the older deployment until the current PR head is redeployed.
