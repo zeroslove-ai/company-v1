@@ -322,7 +322,7 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   const model = viewModel ?? {};
   const world = object(model.scene?.world_state) ?? {};
   const day = displayValue(world.day ?? world.day_index);
-  const timeBlock = localizedValue(world.time_block);
+  const timeBlock = displayValue(world.time_block);
   text(elements.title, title || '상식개변: 회사편');
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
   text(elements.dayTime, [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '));
