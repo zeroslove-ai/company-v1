@@ -7,16 +7,58 @@ function object(value) {
 function characterEntries(context) {
   const master = object(context?.master?.data ?? context?.master);
   const characterMap = object(master?.characters?.characters ?? master?.characters);
-  const save = object(context?.save?.data ?? context?.save);
+  const projected = object(context?.display?.npc_directory);
   const ids = new Set([
     ...Object.keys(characterMap),
-    ...Object.keys(object(save.npc_scene_state)),
-    ...(Array.isArray(save.last_npcs_present) ? save.last_npcs_present : [])
+    ...Object.keys(projected),
+    ...Object.keys(object((context?.save?.data ?? context?.save)?.npc_scene_state)),
+    ...(Array.isArray((context?.save?.data ?? context?.save)?.last_npcs_present) ? (context?.save?.data ?? context?.save).last_npcs_present : [])
   ]);
-  return [...ids].sort().map(id => ({ id, name: characterMap[id]?.name ?? id }));
+  return [...ids].sort().map(id => ({ id, name: projected[id]?.name ?? characterMap[id]?.name ?? id }));
 }
 
 const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAA=';
+const DIRECTED_LINE = /^([^\n():："“”]{1,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
+const NAMED_LINE = /^([^\n:："“”]{1,40}?)\s*[:：]\s*(?:["“]([^"”]*)["”]|(.+))$/u;
+
+function fallbackDialogueLines(context, viewModel) {
+  const directory = characterEntries(context);
+  const idByName = new Map(directory.map(entry => [entry.name, entry.id]));
+  const storyText = typeof viewModel?.story?.story_text === 'string' ? viewModel.story.story_text : '';
+  const scene = storyText.split(/\[2\.\s*플레이어\s*속마음\]/)[0] ?? storyText;
+  const lines = [];
+  for (const rawLine of scene.split(/\r?\n/)) {
+    const value = rawLine.trim();
+    if (!value || value.startsWith('[')) continue;
+    const directed = DIRECTED_LINE.exec(value);
+    if (directed) {
+      const speakerName = directed[1].trim();
+      const speakerId = idByName.get(speakerName);
+      if (!speakerId) continue;
+      lines.push({
+        speaker_id: speakerId,
+        speaker_name: speakerName,
+        direction: directed[2].trim(),
+        text: String(directed[3] ?? directed[4] ?? '').trim().replace(/^["“”']+|["“”']+$/g, ''),
+        order: lines.length
+      });
+      continue;
+    }
+    const named = NAMED_LINE.exec(value);
+    if (!named) continue;
+    const speakerName = named[1].trim();
+    const speakerId = idByName.get(speakerName);
+    if (!speakerId) continue;
+    lines.push({
+      speaker_id: speakerId,
+      speaker_name: speakerName,
+      direction: '자연스럽게',
+      text: String(named[2] ?? named[3] ?? '').trim().replace(/^["“”']+|["“”']+$/g, ''),
+      order: lines.length
+    });
+  }
+  return lines.filter(line => line.text);
+}
 
 export function createUtilityUi({
   documentRef,
@@ -52,6 +94,7 @@ export function createUtilityUi({
   let lastNpcResult = null;
   let audioObjectUrl = null;
   let audio = null;
+  let audioPrimed = false;
 
   function setOverlay(element, open) {
     if (element) element.hidden = !open;
@@ -162,9 +205,10 @@ export function createUtilityUi({
 
   function playableDialogueLine() {
     const viewModel = getViewModel?.();
-    const lines = Array.isArray(viewModel?.media?.dialogue_lines)
+    const storedLines = Array.isArray(viewModel?.media?.dialogue_lines)
       ? viewModel.media.dialogue_lines.filter(line => typeof line?.text === 'string' && line.text.trim())
       : [];
+    const lines = storedLines.length ? storedLines : fallbackDialogueLines(getContext?.(), viewModel);
     if (!lines.length) return null;
     const selectedMindId = elements.mind?.dataset?.selectedCharacterId;
     const preferredIds = [
@@ -185,7 +229,7 @@ export function createUtilityUi({
     const line = playableDialogueLine();
     if (elements.ttsPlay) {
       elements.ttsPlay.disabled = !available.tts || !line;
-      elements.ttsPlay.title = line ? `${line.speaker_name || '캐릭터'}: ${line.text}` : '재생할 캐릭터 대사가 없습니다.';
+      elements.ttsPlay.title = line ? `${line.speaker_name || '캐릭터'}: ${line.text}` : '재생할 등록 캐릭터 대사가 없습니다.';
     }
   }
 
@@ -195,33 +239,41 @@ export function createUtilityUi({
     return audio;
   }
 
+  async function primeAudio() {
+    if (audioPrimed) return true;
+    const playback = ensureAudio();
+    if (!playback) return false;
+    try {
+      playback.muted = true;
+      playback.src = SILENT_WAV;
+      await playback.play?.();
+      playback.pause?.();
+      playback.currentTime = 0;
+      playback.muted = false;
+      audioPrimed = true;
+      return true;
+    } catch {
+      playback.muted = false;
+      return false;
+    }
+  }
+
   async function playTts() {
     if (!available.tts) return false;
     const line = playableDialogueLine();
     const characterId = line?.speaker_id || line?.character_id;
-    if (!line || !characterId) { onStatus?.('재생할 캐릭터 대사가 없습니다.'); syncTtsControl(); return false; }
+    if (!line || !characterId) { onStatus?.('재생할 등록 캐릭터 대사가 없습니다.'); syncTtsControl(); return false; }
 
     const playback = ensureAudio();
-    let primePromise = null;
-    if (playback) {
-      try {
-        playback.muted = true;
-        playback.src = SILENT_WAV;
-        primePromise = playback.play?.();
-      } catch {
-        primePromise = null;
-      }
-    }
-
+    await primeAudio();
     try {
       const response = await api.tts({
         game_id: gameId,
         character_id: characterId,
         text: line.text,
-        direction: typeof line.direction === 'string' ? line.direction : ''
+        direction: typeof line.direction === 'string' && line.direction.trim() ? line.direction : '자연스럽게'
       });
       const blob = await response.blob();
-      if (primePromise && typeof primePromise.catch === 'function') await primePromise.catch(() => undefined);
       if (audioObjectUrl && typeof urlApi?.revokeObjectURL === 'function') urlApi.revokeObjectURL(audioObjectUrl);
       audioObjectUrl = typeof urlApi?.createObjectURL === 'function' ? urlApi.createObjectURL(blob) : null;
       if (!playback || !audioObjectUrl) throw new Error('Audio playback is unavailable');
@@ -288,8 +340,11 @@ export function createUtilityUi({
   elements.npcClose?.addEventListener('click', closeNpcFinder);
   elements.npcFind?.addEventListener('click', () => findNpc());
   elements.npcUse?.addEventListener('click', prepareNpcMove);
-  elements.ttsEnabled?.addEventListener('change', syncTtsControl);
-  elements.ttsPlay?.addEventListener('click', playTts);
+  elements.ttsEnabled?.addEventListener('change', () => {
+    syncTtsControl();
+    if (elements.ttsEnabled?.checked === true) primeAudio().catch(() => undefined);
+  });
+  elements.ttsPlay?.addEventListener('click', () => playTts());
   syncTtsControl();
 
   return {
@@ -303,6 +358,7 @@ export function createUtilityUi({
     closeNpcFinder,
     syncTtsControl,
     playTts,
-    playableDialogueLine
+    playableDialogueLine,
+    primeAudio
   };
 }
