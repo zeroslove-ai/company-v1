@@ -234,7 +234,6 @@ export function renderMindMonitor(container, monitor, { preferredId = '' } = {})
   container.replaceChildren();
   const entries = normalizedMindEntries(monitor);
   if (!entries.length) {
-    container.dataset = container.dataset ?? {};
     container.dataset.selectedCharacterId = '';
     const empty = document.createElement('p'); empty.className = 'mind-monitor-empty'; empty.textContent = '이번 턴 Mind Monitor 정보가 없습니다.';
     container.append(empty);
@@ -242,7 +241,6 @@ export function renderMindMonitor(container, monitor, { preferredId = '' } = {})
   }
 
   let selected = entries.find(entry => entry.id === preferredId) ?? entries[0];
-  container.dataset = container.dataset ?? {};
   container.dataset.selectedCharacterId = selected.id ?? '';
   const bodyHost = document.createElement('div'); bodyHost.className = 'mind-monitor-content';
 
@@ -258,7 +256,7 @@ export function renderMindMonitor(container, monitor, { preferredId = '' } = {})
     for (const entry of entries) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'mind-monitor-tab';
       button.textContent = entry.name || entry.id;
-      button.dataset = button.dataset ?? {}; button.dataset.characterId = entry.id;
+      button.dataset.characterId = entry.id;
       button.ariaSelected = entry.id === selected.id ? 'true' : 'false';
       button.addEventListener('click', () => {
         for (const sibling of tabs.children ?? []) sibling.ariaSelected = sibling === button ? 'true' : 'false';
