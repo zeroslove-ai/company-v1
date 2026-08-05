@@ -10,26 +10,40 @@ function speakerId(card, documentRef = globalThis.document) {
   return '';
 }
 
+function eligibleSpeakerIds(documentRef = globalThis.document) {
+  const ids = new Set();
+  const selected = String(documentRef?.getElementById?.('mind-monitor')?.dataset?.selectedCharacterId ?? '').trim();
+  if (selected) ids.add(selected);
+  const tabs = documentRef?.querySelectorAll?.('.mind-monitor-tab') ?? [];
+  for (const tab of tabs) {
+    const id = String(tab?.dataset?.characterId ?? '').trim();
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
+/** Automatic TTS is limited to the selected/focal Mind Monitor character. */
 export function primaryDialogueSpeakerId(cards, documentRef = globalThis.document) {
+  const eligible = eligibleSpeakerIds(documentRef);
+  if (!eligible.size) return '';
   const values = Array.from(cards ?? []).filter(Boolean);
   const counts = new Map();
   for (const card of values) {
     const id = speakerId(card, documentRef);
-    if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
+    if (id && eligible.has(id)) counts.set(id, (counts.get(id) ?? 0) + 1);
   }
   if (!counts.size) return '';
-
   const selected = String(documentRef?.getElementById?.('mind-monitor')?.dataset?.selectedCharacterId ?? '').trim();
+  if (selected && counts.has(selected)) return selected;
   let maximum = 0;
   for (const count of counts.values()) maximum = Math.max(maximum, count);
-  if (selected && counts.get(selected) === maximum) return selected;
   return [...counts.entries()].find(([, count]) => count === maximum)?.[0] ?? '';
 }
 
 export function filterPrimaryDialogueCards(cards, documentRef = globalThis.document) {
   const values = Array.from(cards ?? []).filter(Boolean);
   const primaryId = primaryDialogueSpeakerId(values, documentRef);
-  if (!primaryId) return values;
+  if (!primaryId) return [];
   return values.filter(card => speakerId(card, documentRef) === primaryId);
 }
 

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   resolveCsaDirectCoverage, buildCsaDirectCoverageSection,
   buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch,
-  normalizeGameplayExtractEnvelope
+  normalizeGameplayExtractEnvelope, canonicalizeCsaGroup
 } from '../src/engine/index.js';
 import { toolbarCapabilities } from '../src/frontend/pages/app.js';
 
@@ -32,7 +32,7 @@ test('direct coverage: an exact core-tag match on an active preset is covered, w
   const coverage = resolveCsaDirectCoverage(save, `${coreTag} 자세를 취한다`, {});
   assert.equal(coverage.covered, true);
   assert.equal(coverage.route, 'csa_direct');
-  assert.equal(coverage.actor_group, presetItem.default_actor);
+  assert.equal(coverage.actor_group, canonicalizeCsaGroup(presetItem.default_actor));
   assert.equal(coverage.direction === 'npc_to_player' || coverage.direction === 'player_to_npc' || coverage.direction === 'none', true);
   const section = buildCsaDirectCoverageSection(coverage);
   assert.match(section, /확정 사실/);

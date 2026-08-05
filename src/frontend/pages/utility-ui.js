@@ -116,7 +116,6 @@ export function createUtilityUi({
   getContext,
   getViewModel,
   onFeedbackReserved,
-  onPrepareAction,
   onError,
   onStatus,
   onMediaLoading,
@@ -127,20 +126,17 @@ export function createUtilityUi({
   const elements = {
     historyOverlay: get('history-overlay'), historyList: get('history-list'), historyClose: get('history-close'), historyMore: get('history-more'), historyStatus: get('history-status'),
     feedbackOverlay: get('feedback-overlay'), feedbackForm: get('feedback-form'), feedbackText: get('feedback-text'), feedbackClose: get('feedback-close'), feedbackStatus: get('feedback-status'),
-    npcOverlay: get('npc-finder-overlay'), npcSelect: get('npc-finder-character'), npcClose: get('npc-finder-close'), npcFind: get('npc-finder-submit'), npcUse: get('npc-finder-use'), npcStatus: get('npc-finder-status'),
     image: get('character-image'), imageStatus: get('image-status'), ttsEnabled: get('tts-enabled'), ttsPlay: get('play-tts'), mind: get('mind-monitor')
   };
   const available = {
     history: Boolean(elements.historyOverlay && elements.historyList && typeof api.history === 'function'),
     feedback: Boolean(elements.feedbackOverlay && elements.feedbackForm && typeof api.feedback === 'function'),
-    npcFinder: Boolean(elements.npcOverlay && elements.npcSelect && typeof api.findNpc === 'function'),
     media: Boolean(elements.image && typeof api.image === 'function'),
     tts: Boolean(elements.ttsEnabled && elements.ttsPlay && typeof api.tts === 'function')
   };
 
   let historyRecords = [];
   let nextBeforeTurn = null;
-  let lastNpcResult = null;
   let audioObjectUrl = null;
   let audio = null;
   let audioPrimed = false;
@@ -151,7 +147,6 @@ export function createUtilityUi({
 
   function closeHistory() { setOverlay(elements.historyOverlay, false); }
   function closeFeedback() { setOverlay(elements.feedbackOverlay, false); text(elements.feedbackStatus, ''); }
-  function closeNpcFinder() { setOverlay(elements.npcOverlay, false); text(elements.npcStatus, ''); lastNpcResult = null; if (elements.npcUse) elements.npcUse.disabled = true; }
 
   async function loadHistory({ reset = false } = {}) {
     if (!available.history) return;
@@ -192,51 +187,6 @@ export function createUtilityUi({
       text(elements.feedbackStatus, '예약하지 못했습니다.');
       onError?.(error);
     }
-  }
-
-  function populateNpcOptions() {
-    if (!elements.npcSelect) return;
-    elements.npcSelect.replaceChildren();
-    for (const character of characterEntries(getContext?.())) {
-      const option = documentRef.createElement('option');
-      option.value = character.id;
-      option.textContent = `${character.name} (${character.id})`;
-      elements.npcSelect.append(option);
-    }
-  }
-
-  function openNpcFinder() {
-    if (!available.npcFinder) return;
-    populateNpcOptions();
-    lastNpcResult = null;
-    if (elements.npcUse) elements.npcUse.disabled = true;
-    const count = elements.npcSelect?.children?.length ?? elements.npcSelect?.options?.length ?? 0;
-    text(elements.npcStatus, count ? '찾을 인물을 선택하세요.' : '찾을 수 있는 인물 정보가 없습니다.');
-    setOverlay(elements.npcOverlay, true);
-  }
-
-  async function findNpc() {
-    const characterId = elements.npcSelect?.value;
-    if (!characterId) return;
-    text(elements.npcStatus, '현재 위치를 확인하는 중…');
-    try {
-      lastNpcResult = await api.findNpc(gameId, characterId);
-      const label = lastNpcResult.location_label || lastNpcResult.location_id;
-      text(elements.npcStatus, `${lastNpcResult.name ?? characterId}: ${label}`);
-      if (elements.npcUse) elements.npcUse.disabled = !label;
-    } catch (error) {
-      lastNpcResult = null;
-      if (elements.npcUse) elements.npcUse.disabled = true;
-      onError?.(error);
-    }
-  }
-
-  function prepareNpcMove() {
-    if (!lastNpcResult) return;
-    const who = lastNpcResult.name ?? lastNpcResult.character_id;
-    const where = lastNpcResult.location_label ?? lastNpcResult.location_id;
-    onPrepareAction?.(`${where}로 이동해 ${who}를 찾아간다.`);
-    closeNpcFinder();
   }
 
   function renderImage(image) {
@@ -388,9 +338,6 @@ export function createUtilityUi({
   elements.historyMore?.addEventListener('click', () => loadHistory().catch(onError));
   elements.feedbackClose?.addEventListener('click', closeFeedback);
   elements.feedbackForm?.addEventListener('submit', submitFeedback);
-  elements.npcClose?.addEventListener('click', closeNpcFinder);
-  elements.npcFind?.addEventListener('click', () => findNpc());
-  elements.npcUse?.addEventListener('click', prepareNpcMove);
   elements.ttsEnabled?.addEventListener('change', () => {
     syncTtsControl();
     if (elements.ttsEnabled?.checked === true) primeAudio().catch(() => undefined);
@@ -402,11 +349,9 @@ export function createUtilityUi({
     available,
     openHistory,
     openFeedback,
-    openNpcFinder,
     loadMedia,
     closeHistory,
     closeFeedback,
-    closeNpcFinder,
     syncTtsControl,
     playTts,
     playableDialogueLine,

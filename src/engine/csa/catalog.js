@@ -1,9 +1,19 @@
+import {
+  canonicalizeCsaDuration,
+  canonicalizeCsaGroup,
+  canonicalizeCsaTrigger
+} from './semantic-contract.js';
+
 const MODIFIER_MAX_LENGTH = 60;
 const MODIFIER_UPGRADE_KEYWORDS = [
   '삽입', '펠라티오', '커닐링구스', '애널', '항문섹스', '질내사정', '사정',
   '오르가즘', '절정', '딥스로트', '피스톤', '자위', '성기', '성관계', '섹스'
 ];
 const STRENGTH_RANK = { weak: 1, medium: 2, strong: 3 };
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
 
 function hasKoreanBatchim(text) {
   const trimmed = String(text || '').trim();
@@ -18,6 +28,64 @@ export function withTopicParticle(word) {
 
 export function withConjParticle(word) {
   return `${word}${hasKoreanBatchim(word) ? '과' : '와'}`;
+}
+
+function uniqueOptions(options, canonicalize) {
+  const result = [];
+  const seen = new Set();
+  for (const option of Array.isArray(options) ? options : []) {
+    if (!isPlainObject(option)) continue;
+    const id = canonicalize(option.id);
+    if (!id || id === 'unknown' || seen.has(id)) continue;
+    seen.add(id);
+    result.push({ ...option, id });
+  }
+  return result;
+}
+
+function uniqueIds(values, canonicalize) {
+  const result = [];
+  const seen = new Set();
+  for (const value of Array.isArray(values) ? values : []) {
+    const id = canonicalize(value);
+    if (!id || id === 'unknown' || seen.has(id)) continue;
+    seen.add(id);
+    result.push(id);
+  }
+  return result;
+}
+
+/**
+ * Converts the donor-era hospital identifiers in the bundled preset file at the edition boundary.
+ * The source JSON stays readable for old saves and pending payloads, while every runtime/API/UI
+ * consumer receives Company-native identifiers. This is an adapter, not a second catalog.
+ */
+export function normalizeCompanyCsaCatalog(catalog = {}) {
+  const source = isPlainObject(catalog) ? catalog : {};
+  const actor = value => canonicalizeCsaGroup(value);
+  const target = value => canonicalizeCsaGroup(value, { target: true });
+  const trigger = value => canonicalizeCsaTrigger(value);
+  const duration = value => canonicalizeCsaDuration(value);
+  return {
+    ...source,
+    actor_options: uniqueOptions(source.actor_options, actor),
+    target_options: uniqueOptions(source.target_options, target),
+    trigger_options: uniqueOptions(source.trigger_options, trigger),
+    duration_options: uniqueOptions(source.duration_options, duration),
+    categories: Array.isArray(source.categories) ? source.categories : [],
+    items: (Array.isArray(source.items) ? source.items : []).map(item => ({
+      ...item,
+      actor_options: uniqueIds(item?.actor_options, actor),
+      target_options: uniqueIds(item?.target_options, target),
+      default_actor: item?.default_actor ? actor(item.default_actor) : null,
+      default_target: item?.default_target ? target(item.default_target) : null,
+      allowed_triggers: uniqueIds(item?.allowed_triggers, trigger),
+      default_trigger: item?.default_trigger ? trigger(item.default_trigger) : 'none',
+      allowed_durations: uniqueIds(item?.allowed_durations, duration),
+      default_duration: item?.default_duration ? duration(item.default_duration) : 'continuous'
+    })),
+    sexual_action_contract: isPlainObject(source.sexual_action_contract) ? source.sexual_action_contract : {}
+  };
 }
 
 /** Looks up one catalog item by its stable template_id, or null when unknown. */
@@ -54,7 +122,7 @@ export function renderPresetContent(catalog, item, { actorId, targetId, triggerI
     Object.prototype.hasOwnProperty.call(params, key) ? params[key] : '');
 }
 
-/** A modifier smuggling in explicit sexual vocabulary is rejected outright rather than silently accepted at a low tier. */
+/** A modifier smuggling in explicit sexual vocabulary is rejected rather than silently upgraded. */
 export function presetModifierExceedsTemplate(modifier, minimumStrength) {
   const text = typeof modifier === 'string' ? modifier : '';
   if (!text.trim()) return false;
@@ -62,17 +130,18 @@ export function presetModifierExceedsTemplate(modifier, minimumStrength) {
   return MODIFIER_UPGRADE_KEYWORDS.some(keyword => text.includes(keyword));
 }
 
-/** /api/app-state's single source for every dropdown the preset UI renders — the frontend never hardcodes option lists. */
+/** /api/app-state's single source for every dropdown the preset UI renders. */
 export function buildPresetCatalogPayload(catalog, availableStrength) {
+  const normalized = normalizeCompanyCsaCatalog(catalog);
   const availableRank = STRENGTH_RANK[availableStrength] ?? 1;
   return {
     version: 1,
-    actor_options: catalog.actor_options,
-    target_options: catalog.target_options,
-    trigger_options: catalog.trigger_options,
-    duration_options: catalog.duration_options,
-    categories: catalog.categories,
-    items: catalog.items.map(item => ({
+    actor_options: normalized.actor_options,
+    target_options: normalized.target_options,
+    trigger_options: normalized.trigger_options,
+    duration_options: normalized.duration_options,
+    categories: normalized.categories,
+    items: normalized.items.map(item => ({
       id: item.id, category: item.category, label: item.label,
       strength: item.strength, minimum_strength: item.minimum_strength,
       available: STRENGTH_RANK[item.strength] <= availableRank,

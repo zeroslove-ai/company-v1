@@ -155,6 +155,22 @@ test('resolver: ambiguous match (two present NPCs satisfy the same group) never 
   assert.equal(result, null);
 });
 
+test('resolver: Company-native groups and legacy aliases resolve identically', () => {
+  const scene = present('general_choi_yujin', 'general_yoon_taekyung');
+  assert.deepEqual(resolveGeneralNpcForGroup('female_employee', scene), { id: 'general_choi_yujin' });
+  assert.deepEqual(resolveGeneralNpcForGroup('female_staff', scene), { id: 'general_choi_yujin' });
+  assert.deepEqual(resolveGeneralNpcForGroup('business_visitor', scene), { id: 'general_yoon_taekyung' });
+  assert.deepEqual(resolveGeneralNpcForGroup('visitor', scene), { id: 'general_yoon_taekyung' });
+});
+
+test('resolver: manager and stable selectors resolve one exact present NPC only', () => {
+  const scene = present('general_park_jungwoo', 'general_choi_yujin');
+  assert.deepEqual(resolveGeneralNpcForGroup('manager', scene), { id: 'general_park_jungwoo' });
+  assert.deepEqual(resolveGeneralNpcForGroup('character:general_choi_yujin', scene), { id: 'general_choi_yujin' });
+  assert.deepEqual(resolveGeneralNpcForGroup('department:finance', scene), { id: 'general_choi_yujin' });
+  assert.equal(resolveGeneralNpcForGroup('company_employee', scene), null, 'two employees remain ambiguous');
+});
+
 // ---------- find_npc ----------
 
 function isKnown(id) { return isGeneralNpcId(generalNpcs, id) || id === 'heroine1'; }

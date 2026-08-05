@@ -12,6 +12,7 @@ import {
   filterPrimaryDialogueCards,
   waitForMediaCompletion
 } from '../src/frontend/pages/tts-product-policy.js';
+import { characterIdForSpeaker } from '../src/frontend/pages/tts.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const master = {
@@ -94,7 +95,16 @@ test('automatic TTS keeps only one primary speaker', () => {
     { dataset: { speakerId: 'heroine2' } }
   ];
   const documentRef = { getElementById: () => ({ dataset: { selectedCharacterId: 'heroine1' } }) };
-  assert.deepEqual(filterPrimaryDialogueCards(cards, documentRef), cards.slice(1));
+  assert.deepEqual(filterPrimaryDialogueCards(cards, documentRef), [cards[0]], 'selected/focal heroine wins automatic TTS');
+});
+
+test('unregistered or minor speaker never inherits the selected heroine voice', () => {
+  const documentRef = {
+    getElementById: () => ({ dataset: { selectedCharacterId: 'heroine2' } }),
+    querySelectorAll: () => [{ textContent: '윤민아', dataset: { characterId: 'heroine2' } }]
+  };
+  assert.equal(characterIdForSpeaker('박정우', documentRef), '');
+  assert.deepEqual(filterPrimaryDialogueCards([{ dataset: { speakerId: 'general_park_jungwoo' } }], documentRef), []);
 });
 
 test('TTS queue waits for playback completion instead of resolving when playback merely starts', async () => {
@@ -119,7 +129,7 @@ test('loading is nonblocking, inner thought is boxed, and NPC finder is not load
   assert.match(css, /\.turn-loading-overlay[\s\S]*pointer-events:\s*none/);
   assert.doesNotMatch(css, /backdrop-filter:\s*blur/);
   assert.match(css, /\.narrative-player_inner_thought[\s\S]*content:\s*'플레이어 속마음'/);
-  assert.match(css, /#find-npc,[\s\S]*display:\s*none/);
+  assert.doesNotMatch(html, /find-npc|npc-finder/);
   assert.match(html, /runtime-hotfix\.css/);
   assert.match(html, /tts-product-policy\.js[\s\S]*tts\.js/);
   assert.doesNotMatch(html, /src="\.\/npc-finder\.js"/);

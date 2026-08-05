@@ -45,14 +45,13 @@ test('toolbar enables implemented utilities only when their actual DOM/API contr
   const capabilities = toolbarCapabilities(
     { turn: { committed_turn: 3 } },
     null,
-    { context, utilityAvailable: { history: true, feedback: true, npcFinder: true } }
+    { context, utilityAvailable: { history: true, feedback: true } }
   );
   assert.deepEqual(capabilities, {
     canResume: true,
     canOpenHistory: true,
     canSendFeedback: true,
-    canOpenApps: true,
-    canFindNpc: true
+    canOpenApps: true
   });
 });
 
@@ -70,7 +69,7 @@ test('legacy progressed Company save still exposes the CSA app entry', () => {
   const capabilities = toolbarCapabilities(
     { turn: { committed_turn: 4 } },
     null,
-    { context, utilityAvailable: { history: true, feedback: true, npcFinder: true } }
+    { context, utilityAvailable: { history: true, feedback: true } }
   );
   assert.equal(capabilities.canOpenApps, true);
 });
@@ -212,7 +211,7 @@ test('frontend shell exposes hospital-style TTS, relationship, and CSA app surfa
   const relationship = fs.readFileSync(path.join(root, 'src/frontend/pages/relationship-icons.js'), 'utf8');
   const parityCss = fs.readFileSync(path.join(root, 'src/frontend/pages/hospital-parity.css'), 'utf8');
 
-  for (const id of ['character-image', 'tts-toggle', 'tts-replay', 'tts-status', 'audio-player', 'open-history', 'send-feedback', 'find-npc', 'open-apps', 'resume-play', 'history-overlay', 'feedback-overlay', 'npc-finder-overlay']) {
+  for (const id of ['character-image', 'tts-toggle', 'tts-replay', 'tts-status', 'audio-player', 'open-history', 'send-feedback', 'open-apps', 'resume-play', 'history-overlay', 'feedback-overlay']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.match(html, /src="\.\/tts\.js"/);

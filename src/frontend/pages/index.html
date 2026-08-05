@@ -92,7 +92,6 @@
       <nav class="utility-toolbar" aria-label="게임 도구">
         <button id="open-history" type="button" disabled>플레이 기록</button>
         <button id="send-feedback" type="button" disabled>피드백</button>
-        <button id="find-npc" type="button" hidden aria-hidden="true" tabindex="-1" disabled>NPC 찾기</button>
         <button id="reset-game" type="button">초기화</button>
       </nav>
     </main>
@@ -156,15 +155,6 @@
       </form>
     </div>
 
-    <div id="npc-finder-overlay" class="utility-overlay" role="dialog" aria-modal="true" aria-labelledby="npc-finder-heading" hidden aria-hidden="true">
-      <section class="utility-modal">
-        <header class="utility-modal-header"><h2 id="npc-finder-heading">NPC 찾기</h2><button id="npc-finder-close" type="button">닫기</button></header>
-        <label for="npc-finder-character">인물</label><select id="npc-finder-character"></select>
-        <button id="npc-finder-submit" type="button">현재 위치 확인</button>
-        <p id="npc-finder-status" class="utility-status" aria-live="polite"></p>
-        <button id="npc-finder-use" type="button" disabled>이동 행동으로 입력</button>
-      </section>
-    </div>
 
     <script type="module" src="./app.js"></script>
     <script type="module" src="./tts-product-policy.js"></script>

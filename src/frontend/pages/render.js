@@ -160,6 +160,7 @@ export function renderNarrative(container, parsed) {
     }
     if (block.type === 'dialogue') {
       const card = document.createElement('article'); card.className = 'narrative-dialogue dialogue-card';
+      if (block.speaker_id) setDataValue(card, 'speakerId', block.speaker_id);
       const meta = document.createElement('header'); meta.className = 'dialogue-meta';
       const speaker = document.createElement('strong'); speaker.className = 'dialogue-speaker'; speaker.textContent = block.speaker ?? block.speaker_name ?? '';
       const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = block.direction ?? '';
