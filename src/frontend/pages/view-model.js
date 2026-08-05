@@ -60,8 +60,10 @@ function catalogName(list, idField, id) {
   return text(list.find(item => item?.[idField] === id)?.name);
 }
 
-function characterName(save, id) {
+function characterName(save, id, directory = {}) {
   if (!id) return '';
+  const projectedName = text(object(directory)?.[id]?.name);
+  if (projectedName) return projectedName;
   for (const source of [save.characters, save.npc_profiles, save.npc_identity_state, save.npc_state]) {
     const name = text(object(object(source)?.[id])?.name);
     if (name) return name;
@@ -101,13 +103,13 @@ function dialogueLines(currentExtract, parsedStory) {
     })));
 }
 
-function mindMonitorEntries(save, monitor, preferredIds = []) {
+function mindMonitorEntries(save, monitor, preferredIds = [], directory = {}) {
   const source = object(monitor) ?? {};
   const entries = Object.entries(source)
     .filter(([, value]) => object(value))
     .map(([id, value]) => ({
       id,
-      name: characterName(save, id) || id,
+      name: characterName(save, id, directory) || id,
       surface: text(value.surface ?? value['표면의식']),
       subconscious: text(value.subconscious ?? value.latent ?? value['잠재의식'])
     }))
@@ -125,6 +127,21 @@ function npcView(save, id) {
   return { id, stats: object(stats) ?? {}, relationship: object(relationship) ?? {}, emotion: object(emotion) ?? {} };
 }
 
+function fallbackActiveRules(save) {
+  const rules = object(save.csa_rules) ?? {};
+  return strings(save.csa_active).flatMap(id => {
+    const rule = object(rules[id]);
+    if (!rule || rule.active === false) return [];
+    return [{
+      id,
+      strength: text(rule.strength),
+      strength_label: text(rule.strength),
+      scope_label: text(rule.scope_label) || '회사 전체',
+      content: text(rule.content ?? rule.required_action)
+    }];
+  });
+}
+
 /**
  * Converts immutable Company Context data to display-safe values.
  * It deliberately does not merge, persist, fetch, or infer missing game state.
@@ -134,16 +151,21 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const turn = latestTurn(context);
   const parsedStory = parsed(turn);
   const currentExtract = object(runtime)?.currentExtract;
+  const display = object(context?.display) ?? {};
+  const directory = object(display.npc_directory) ?? {};
+  const capability = object(display.player_capability) ?? {};
+  const activeRules = Array.isArray(display.active_csa) ? display.active_csa.filter(object) : fallbackActiveRules(save);
   const focalId = text(save.focal_character_id);
   const lastSpeakerId = text(save.last_speaker_id);
   const scene = object(save.scene_state) ?? {};
   const player = object(save.player) ?? {};
+  const playerProgress = object(save.player_progress) ?? {};
   const playerSexualState = object(save.player_sexual_state) ?? {};
   const playerSceneState = object(save.player_scene_state) ?? {};
   const focalSceneState = object(object(save.npc_scene_state)?.[focalId]) ?? {};
   const imageCharacterId = text(currentExtract?.image_character_id ?? currentExtract?.character_id) || focalId || lastSpeakerId;
   const monitor = mindMonitor(currentExtract, turn);
-  const monitorEntries = mindMonitorEntries(save, monitor, [imageCharacterId, focalId, lastSpeakerId]);
+  const monitorEntries = mindMonitorEntries(save, monitor, [imageCharacterId, focalId, lastSpeakerId], directory);
 
   return {
     turn: {
@@ -168,13 +190,14 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       world_state: object(save.world_state) ?? {},
       story_summary_recent: text(save.story_summary_recent),
       csa_active: Array.isArray(save.csa_active) ? save.csa_active : [],
+      csa_rules: activeRules,
       npcs_present: strings(save.last_npcs_present),
       action_target_id: text(currentExtract?.action_target_id),
       clothing_state: object(currentExtract?.clothing_state)
     },
     focal_character: {
       id: focalId,
-      name: characterName(save, focalId),
+      name: characterName(save, focalId, directory),
       last_speaker_id: lastSpeakerId,
       character: npcView(save, focalId),
       scene_state: {
@@ -200,12 +223,24 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
         || text(save.player_department),
       position: text(player.position)
         || catalogName(CATALOGS.positions, 'position_id', player.position_id),
+      level: integer(capability.level) ?? integer(playerProgress.level) ?? 1,
+      exp: integer(capability.exp) ?? integer(playerProgress.exp) ?? 0,
+      next_level_exp: integer(capability.next_level_exp),
+      active_csa_count: integer(capability.active_csa_count) ?? activeRules.length,
+      max_active_csa: integer(capability.max_active_csa),
+      active_csa: activeRules.map(rule => ({
+        id: text(rule.id),
+        strength: text(rule.strength),
+        strength_label: text(rule.strength_label),
+        scope_label: text(rule.scope_label) || '회사 전체',
+        content: text(rule.content)
+      })),
       excitement: numberOrNull(playerSexualState.arousal),
-      ejaculation_progress: numberOrNull(playerSexualState.ejaculation_progress),
+      ejaculation_progress: numberOrNull(playerSexualState.ejaculation_progress ?? playerSexualState.ejaculation_meter),
       ejaculation_count: numberOrNull(playerSexualState.ejaculation_count),
       status: text(parsedStory.player_status),
       inner_thought: text(parsedStory.player_inner_thought),
-      location_label: text(playerSceneState.location_label),
+      location_label: text(playerSceneState.location_label) || text(scene.location_label) || text(scene.location_id),
       posture: text(playerSceneState.posture),
       posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
       position_label: text(playerSceneState.position_label),
