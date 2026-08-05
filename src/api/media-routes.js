@@ -8,17 +8,33 @@ function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-async function parseTtsUrl(response) {
+function bytesToBase64(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  if (typeof btoa === 'function') return btoa(binary);
+  return globalThis.Buffer?.from?.(bytes)?.toString?.('base64') ?? '';
+}
+
+async function parseTtsUrl(response, { allowAudioCompatibility = false } = {}) {
   if (!response?.ok) {
     throw new HttpError(502, 'tts_upstream_failure', 'TTS Worker request failed', true);
   }
-  let payload;
-  try { payload = await response.json(); }
-  catch { throw new HttpError(502, 'tts_invalid_response', 'TTS Worker returned an invalid response', true); }
-  if (!plainObject(payload) || typeof payload.url !== 'string' || !/^https?:\/\//i.test(payload.url)) {
-    throw new HttpError(502, 'tts_invalid_response', 'TTS Worker returned no audio URL', true);
+  const contentType = response.headers?.get?.('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    let payload;
+    try { payload = await response.json(); }
+    catch { throw new HttpError(502, 'tts_invalid_response', 'TTS Worker returned an invalid response', true); }
+    if (!plainObject(payload) || typeof payload.url !== 'string' || !/^(?:https?:|data:audio\/)/i.test(payload.url)) {
+      throw new HttpError(502, 'tts_invalid_response', 'TTS Worker returned no audio URL', true);
+    }
+    return payload.url;
   }
-  return payload.url;
+  if (allowAudioCompatibility && /^audio\//i.test(contentType)) {
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const encoded = bytesToBase64(bytes);
+    if (encoded) return `data:${contentType.split(';')[0] || 'audio/mpeg'};base64,${encoded}`;
+  }
+  throw new HttpError(502, 'tts_invalid_response', 'TTS Worker returned no audio URL', true);
 }
 
 async function synthesizeViaServiceBinding({ env, eligibility, spokenText, direction }) {
@@ -47,14 +63,14 @@ async function synthesizeViaLegacyProvider({ env, eligibility, spokenText, direc
   } catch {
     throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
   }
-  return parseTtsUrl(response);
+  return parseTtsUrl(response, { allowAudioCompatibility: true });
 }
 
 /**
  * Company uses the same playback contract as the Hospital frontend:
  * the independent TTS Worker returns a stable audio URL and the browser's
  * persistent <audio> element plays that URL directly. The API Worker never
- * downloads and re-wraps the audio as a Blob.
+ * downloads and re-wraps production service-binding audio as a Blob.
  */
 export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) {
   const routes = createBaseTurnRoutes({ fetchImpl, edition });
