@@ -22,7 +22,7 @@ class FakeNode {
 }
 
 function pageFixture() {
-  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps', 'reset-game', 'player-setup-overlay', 'player-setup-form', 'setup-error', 'setup-status', 'setup-submit', 'setup-name', 'setup-department', 'setup-position', 'setup-height', 'setup-weight', 'setup-penis-length', 'setup-body-type', 'setup-speech-style', 'reserved-opening', 'reserved-opening-status', 'retry-opening'];
+  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps', 'reset-game', 'player-setup-overlay', 'player-setup-form', 'setup-error', 'setup-status', 'setup-submit', 'setup-name', 'setup-department', 'setup-position', 'setup-age', 'setup-height', 'setup-weight', 'setup-penis-length', 'setup-body-type', 'setup-speech-style', 'reserved-opening', 'reserved-opening-status', 'retry-opening'];
   const nodes = Object.fromEntries(ids.map(id => [id, new FakeNode(id)]));
   return { nodes, documentRef: { querySelector: selector => nodes[selector.slice(1)] ?? null, createElement: tag => new FakeNode(tag) } };
 }
@@ -226,6 +226,7 @@ test('a failed new player-setup submission shows the error in the shared setup a
     nodes['setup-name'].value = '김하늘';
     nodes['setup-department'].value = 'brand_strategy';
     nodes['setup-position'].value = 'intern';
+    nodes['setup-age'].value = '30';
     nodes['setup-height'].value = '170';
     nodes['setup-weight'].value = '65';
     nodes['setup-penis-length'].value = '13';

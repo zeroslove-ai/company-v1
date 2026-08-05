@@ -1,6 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
+import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
   buildDegradedExtractEnvelope,
@@ -862,7 +863,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
         const save = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
         const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
-        const player = playerInfoPayload(save, catalogs, capability);
+        const player = buildFullPlayerInfo(save, edition);
         return ok({ app: buildAppStatePayload(save, csaCatalog, csaCatalog.sexual_action_contract, player) });
       } finally {
         logTurnTiming({ event_stage: 'app_state', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });

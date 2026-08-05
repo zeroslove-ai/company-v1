@@ -111,7 +111,7 @@ function normalizedStats(value) {
   const source = object(value) ?? {};
   return {
     affinity: numberOrNull(source.affinity ?? source.affection ?? source['호감도']) ?? 0,
-    work_trust: numberOrNull(source.work_trust ?? source['업무신뢰도']) ?? 0,
+    resistance: numberOrNull(source.resistance ?? source['저항도']) ?? 0,
     csa_acceptance: numberOrNull(source.csa_acceptance ?? source.acceptance ?? source['상식수용도']) ?? 0,
     sexual_arousal: numberOrNull(source.sexual_arousal ?? source.arousal ?? source['성적흥분도']) ?? 0
   };
@@ -120,7 +120,7 @@ function normalizedStats(value) {
 function normalizedChanges(value) {
   const source = object(value) ?? {};
   const result = {};
-  for (const key of ['affinity', 'work_trust', 'csa_acceptance', 'sexual_arousal']) {
+  for (const key of ['affinity', 'resistance', 'csa_acceptance', 'sexual_arousal']) {
     const entry = object(source[key]);
     const delta = numberOrNull(entry?.delta);
     if (delta === null || delta === 0) continue;

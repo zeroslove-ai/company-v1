@@ -157,7 +157,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   };
   const setupElements = {
     overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
-    name: get('setup-name'), department: get('setup-department'), position: get('setup-position'), height: get('setup-height'), weight: get('setup-weight'),
+    name: get('setup-name'), department: get('setup-department'), position: get('setup-position'), age: get('setup-age'), height: get('setup-height'), weight: get('setup-weight'),
     penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
@@ -206,7 +206,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   function readSetupFormValues() {
     return {
       name: setupElements.name?.value ?? '', department_id: setupElements.department?.value ?? '', position_id: setupElements.position?.value ?? '',
-      height_cm: Number(setupElements.height?.value), weight_kg: Number(setupElements.weight?.value), penis_length_cm: Number(setupElements.penisLength?.value),
+      age: Number(setupElements.age?.value), height_cm: Number(setupElements.height?.value), weight_kg: Number(setupElements.weight?.value), penis_length_cm: Number(setupElements.penisLength?.value),
       body_type_id: setupElements.bodyType?.value ?? '', speech_style_id: setupElements.speechStyle?.value ?? ''
     };
   }

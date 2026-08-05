@@ -25,7 +25,7 @@ const DISPLAY_LABELS = {
   weak: '약함', medium: '중간', strong: '강함'
 };
 const STAT_LABELS = {
-  affinity: '호감', work_trust: '신뢰', csa_acceptance: '수용', sexual_arousal: '흥분'
+  affinity: '호감', csa_acceptance: '수용', sexual_arousal: '흥분', resistance: '저항'
 };
 const SEXUAL_ACTION_LABELS = {
   none: '기타', touch: '접촉', exposure: '노출', masturbation: '자위', oral: '구강',

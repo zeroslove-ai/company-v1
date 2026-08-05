@@ -16,7 +16,7 @@ const edition = {
       heroine1: {
         character_id: 'heroine1', name: '서원희', age: 32,
         department: '브랜드전략팀', position: '차장', role_title: '팀장',
-        initial_stats: { affection: 0 }
+        initial_stats: { affinity: 0 }
       }
     }
   },
@@ -48,7 +48,7 @@ const save = {
   focal_character_id: 'heroine1',
   last_speaker_id: 'heroine1',
   last_npcs_present: ['heroine1'],
-  npc_stats: { heroine1: { affinity: 2, work_trust: 1, csa_acceptance: 3, sexual_arousal: 4 } },
+  npc_stats: { heroine1: { affinity: 2, resistance: 40, csa_acceptance: 3, sexual_arousal: 4 } },
   npc_scene_state: { heroine1: { location_id: 'large_meeting_room', location_label: '대회의실', posture: 'sitting' } },
   csa_active: [],
   csa_rules: {}
@@ -87,7 +87,7 @@ test('app enrichment writes complete player and registered NPC data into payload
   assert.equal(enriched.data.app.player_info.penis_length_cm, 19);
   assert.equal(enriched.data.app.npcs.length, 2);
   assert.equal(enriched.data.app.npcs[0].name, '서원희');
-  assert.equal(enriched.data.app.npcs[0].stats.work_trust, 1);
+  assert.equal(enriched.data.app.npcs[0].stats.resistance, 40);
   assert.equal(enriched.data.app.npcs[0].mind.surface, '업무를 확인한다.');
   assert.equal(enriched.data.app.finder_npcs.length, 2);
 });

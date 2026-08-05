@@ -142,7 +142,7 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {
   const save = baseSave();
-  save.npc_stats = { general_manager: { affection: 0 } };
+  save.npc_stats = { general_manager: { affinity: 0 } };
   save.npc_emotion = { general_manager: { current: 'focused' } };
 
   const storyMessages = buildStoryPrompt({

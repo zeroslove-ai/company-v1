@@ -35,6 +35,7 @@ export function renderCompletePlayerInfo(documentRef, root, info) {
   const grid = documentRef.createElement('div');
   grid.className = 'csa-app-status-grid';
   [
+    ['나이', info.age ? `${info.age}세` : '미설정'],
     ['키', info.height_cm ? `${info.height_cm}cm` : '미설정'],
     ['몸무게', info.weight_kg ? `${info.weight_kg}kg` : '미설정'],
     ['체형', info.body_type],
@@ -93,7 +94,7 @@ function npcCard(documentRef, npc) {
   stats.className = 'csa-app-npc-stats';
   [
     ['호감도', npc.stats?.affection ?? 0],
-    ['업무신뢰도', npc.stats?.work_trust ?? 0],
+
     ['상식수용도', npc.stats?.acceptance ?? 0],
     ['성적흥분도', npc.stats?.arousal ?? 0]
   ].forEach(([label, content]) => stats.append(field(documentRef, label, content)));
@@ -159,7 +160,7 @@ export function installCsaProductUi({ documentRef = document, api = createApiCli
 
   async function state() {
     if (cache) return cache;
-    if (!loading) loading = api.appState({ game_id: gameId }).then(result => (cache = result)).finally(() => { loading = null; });
+    if (!loading) loading = api.appState({ game_id: gameId }).then(result => (cache = result?.app ?? result)).finally(() => { loading = null; });
     return loading;
   }
 

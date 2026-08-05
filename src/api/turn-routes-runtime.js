@@ -95,7 +95,7 @@ function appTransactionInputFirewall() {
 }
 
 function extractAuthorityContract() {
-  return `\n\n[CSA AUTHORITY AND NPC STAT EXTRACTION]\n- 약함은 인사팀 공식 공지·사내 운영지침, 중간은 취업규칙·전사 준수 규정, 강함은 국가 법령·관계 당국 의무 지침이다.\n- 권위가 높을수록 규정 준수 압력과 업무상 자기합리화가 강해질 수 있지만 호감·사적 복종·성적 동의를 뜻하지 않는다.\n- npc_stats는 affinity, work_trust, csa_acceptance, sexual_arousal 네 축만 사용한다. 각 변화는 Story의 별도 근거가 있어야 한다.\n- 규정 공지나 직접 수행만으로 affinity를 올리지 않는다. csa_acceptance는 활성 규정의 직접 의미를 실제 판단·행동에 반영한 경우에만 변경한다.`;
+  return `\n\n[CSA AUTHORITY AND NPC STAT EXTRACTION]\n- 약함은 인사팀 공식 공지·사내 운영지침, 중간은 취업규칙·전사 준수 규정, 강함은 국가 법령·관계 당국 의무 지침이다.\n- 권위가 높을수록 규정 준수 압력과 업무상 자기합리화가 강해질 수 있지만 호감·사적 복종·성적 동의를 뜻하지 않는다.\n- npc_stats는 affinity, csa_acceptance, sexual_arousal 세 축만 사용한다. resistance는 NPC 고정값으로 절대 변경하지 않는다. 각 변화는 Story의 별도 근거가 있어야 한다.\n- 규정 공지나 직접 수행만으로 affinity를 올리지 않는다. csa_acceptance는 활성 규정의 직접 의미를 실제 판단·행동에 반영한 경우에만 변경한다.`;
 }
 
 function replaceGlobalCsaContext(messages, save) {
@@ -224,7 +224,7 @@ function mergeNpcPayload(save, edition, latestMindMonitor, details) {
       role: finder.role,
       present_now: finder.present_now,
       location: { known: finder.known, location_label: finder.location_label, location_id: finder.location_id },
-      stats: { affection: 0, work_trust: 0, acceptance: 0, arousal: 0 },
+      stats: { affection: 0, acceptance: 0, arousal: 0, resistance: 0 },
       mind: { surface: '', subconscious: '' },
       scene_state: {},
       relationship_summary: ''

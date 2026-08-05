@@ -111,6 +111,7 @@ export function buildFullPlayerInfo(save, edition) {
   const capability = calculateCsaCapability(save, active.length);
   return {
     name: text(player.name),
+    age: numberOrNull(player.age),
     adult: player.adult === true,
     department_id: text(player.department_id),
     department: canonical.departmentName || catalogName(catalogs.departments, 'department_id', player.department_id),

@@ -361,7 +361,7 @@
   }
 
   .status-column .state-list {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
     gap: 4px 8px;
   }
 
@@ -387,7 +387,7 @@
 /* 플레이어 상태창 2열: 모바일에서도 2열 유지 (사용자 요구), 초협소만 1열 */
 @media (max-width: 480px) {
   .status-column .state-list {
-    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
   }
 }
 
@@ -399,8 +399,5 @@
   gap: 4px 10px;
 }
 @media (max-width: 480px) {
-  .focal-character .state-list,
-  .focal-character dl {
-    grid-template-columns: max-content minmax(0, 1fr);
-  }
+
 }

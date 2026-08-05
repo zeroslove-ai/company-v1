@@ -140,7 +140,7 @@ test('manual TTS recovers a registered line from an existing Story without store
 
 test('character display derives stat deltas from pre/post saves and unlocks private records from committed ledger', () => {
   const save = {
-    npc_stats: { heroine1: { affection: 4, work_trust: 7, csa_acceptance: 12, sexual_arousal: 3 } },
+    npc_stats: { heroine1: { affinity: 4, resistance: 40, csa_acceptance: 12, sexual_arousal: 3 } },
     npc_relationship_state: { heroine1: { relationship_summary: '서로의 경계를 확인한 관계다.', milestones: { sexual_relationship_started_turn: 4 } } },
     sexual_event_ledger: [
       { turn: 4, actor_id: 'player', target_id: 'heroine1', action_type: 'ejaculation', completed: true, interrupted: false, evidence: '합의된 장면이 완료되었다.' }
@@ -148,13 +148,12 @@ test('character display derives stat deltas from pre/post saves and unlocks priv
     player_sexual_state: { arousal: 22, ejaculation_progress: 60, ejaculation_count: 1 }
   };
   const latestTurn = {
-    pre_save: { npc_stats: { heroine1: { affection: 2, work_trust: 9, csa_acceptance: 5, sexual_arousal: 0 } } },
+    pre_save: { npc_stats: { heroine1: { affinity: 2, resistance: 40, csa_acceptance: 5, sexual_arousal: 0 } } },
     post_save: { npc_stats: save.npc_stats }
   };
   const details = buildCharacterDisplayDetails(save, edition, latestTurn).heroine1;
   assert.deepEqual(details.stat_changes, {
     affinity: { from: 2, to: 4, delta: 2 },
-    work_trust: { from: 9, to: 7, delta: -2 },
     csa_acceptance: { from: 5, to: 12, delta: 7 },
     sexual_arousal: { from: 0, to: 3, delta: 3 }
   });

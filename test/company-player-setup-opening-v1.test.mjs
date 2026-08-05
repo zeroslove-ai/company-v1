@@ -135,7 +135,7 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
 function validPlayerBody() {
   return {
     name: '김하늘', department_id: 'brand_strategy', position_id: 'intern',
-    height_cm: 170, weight_kg: 65, penis_length_cm: 13,
+    age: 30, height_cm: 170, weight_kg: 65, penis_length_cm: 13,
     body_type_id: 'balanced', speech_style_id: 'polite'
   };
 }
@@ -157,9 +157,10 @@ async function readSseText(response) {
 test('validatePlayerSetupInput enforces every range and catalog allow-list and never trusts client-only checks', () => {
   const valid = validatePlayerSetupInput(validPlayerBody(), catalogs);
   assert.equal(valid.valid, true);
-  assert.deepEqual(Object.keys(valid.player).sort(), ['body_type_id', 'department_id', 'height_cm', 'name', 'penis_length_cm', 'position_id', 'speech_style_id', 'weight_kg'].sort());
+  assert.deepEqual(Object.keys(valid.player).sort(), ['age', 'body_type_id', 'department_id', 'height_cm', 'name', 'penis_length_cm', 'position_id', 'speech_style_id', 'weight_kg'].sort());
 
   const cases = [
+    [{ age: 17 }, 'invalid_age'], [{ age: 71 }, 'invalid_age'],
     [{ height_cm: 139 }, 'invalid_height_cm'], [{ height_cm: 221 }, 'invalid_height_cm'],
     [{ weight_kg: 39 }, 'invalid_weight_kg'], [{ weight_kg: 181 }, 'invalid_weight_kg'],
     [{ penis_length_cm: 4 }, 'invalid_penis_length_cm'], [{ penis_length_cm: 31 }, 'invalid_penis_length_cm'],

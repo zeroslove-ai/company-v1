@@ -17,7 +17,8 @@ function profiles(edition) {
 
 const STAT_KEYS = {
   affinity: ['affinity', 'affection', '호감도'],
-  work_trust: ['work_trust', '업무신뢰도'],
+  resistance: ['resistance', '저항도'],
+
   csa_acceptance: ['csa_acceptance', 'acceptance', '상식수용도'],
   sexual_arousal: ['sexual_arousal', 'arousal', '성적흥분도']
 };
@@ -140,7 +141,7 @@ export function buildCharacterDisplayDetails(save, edition, latestTurn = {}) {
       },
       stats: {
         affinity: statValue(stats, STAT_KEYS.affinity),
-        work_trust: statValue(stats, STAT_KEYS.work_trust),
+        resistance: statValue(stats, STAT_KEYS.resistance),
         csa_acceptance: statValue(stats, STAT_KEYS.csa_acceptance),
         sexual_arousal: statValue(stats, STAT_KEYS.sexual_arousal)
       },

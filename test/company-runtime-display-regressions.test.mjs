@@ -58,7 +58,7 @@ function baseSave() {
     last_speaker_id: 'heroine1',
     last_npcs_present: ['heroine1', 'general_seen'],
     npc_stats: {
-      heroine1: { affinity: 11, work_trust: 17, csa_acceptance: 22, sexual_arousal: 5 },
+      heroine1: { affinity: 11, resistance: 45, csa_acceptance: 22, sexual_arousal: 5 },
       general_seen: { affinity: 3 }
     },
     csa_attitudes: { general_seen: { acceptance: 44 } },
@@ -218,12 +218,12 @@ test('NPC app payload includes five heroines and evidence-backed general NPCs wi
   assert.deepEqual(Object.keys(heroine.mind).sort(), ['subconscious', 'surface']);
   assert.equal(heroine.mind.surface, '침착하게 보고를 듣는다.');
   assert.equal(heroine.mind.subconscious, '실수를 걱정한다.');
-  assert.deepEqual(heroine.stats, { affection: 11, work_trust: 17, acceptance: 22, arousal: 5 });
+  assert.deepEqual(heroine.stats, { affection: 11, acceptance: 22, arousal: 5, resistance: 45 });
   const general = npcs.find(npc => npc.id === 'general_seen');
   assert.equal(general.stats.affection, 3);
   assert.equal(general.stats.acceptance, 44);
   const unseen = npcs.find(npc => npc.id === 'heroine2');
-  assert.deepEqual(unseen.stats, { affection: 0, work_trust: 0, acceptance: 0, arousal: 0 });
+  assert.deepEqual(unseen.stats, { affection: 0, acceptance: 0, arousal: 0, resistance: 0 });
 });
 
 test('transaction details and official notices use HR, employment rules, and national law authority tiers', () => {
