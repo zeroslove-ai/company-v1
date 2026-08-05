@@ -12,7 +12,8 @@ const DISPLAY_LABELS = {
   report_review: '보고서 검토', team_meeting: '팀 회의', onboarding: '신입 적응',
   standing: '서 있음', sitting: '앉아 있음', kneeling: '무릎을 꿇고 있음',
   lying: '누워 있음', lying_supine: '바로 누워 있음', lying_prone: '엎드려 있음', side_lying: '옆으로 누워 있음',
-  crouching: '몸을 낮추고 있음', walking: '이동 중', leaning: '기대어 있음', bent_forward: '몸을 앞으로 숙이고 있음'
+  crouching: '몸을 낮추고 있음', walking: '이동 중', leaning: '기대어 있음', bent_forward: '몸을 앞으로 숙이고 있음',
+  weak: '약함', medium: '중간', strong: '강함'
 };
 
 let currentChoiceSet = null;
@@ -338,17 +339,47 @@ function renderFocalCharacter(container, focal, player) {
   container.append(heading, relation);
 }
 
+function clothingDisplay(clothing) {
+  const source = object(clothing) ?? {};
+  if (!Object.keys(source).length) return '';
+  return Object.values(source).some(value => value === 'removed' || value === 'open') ? '흐트러짐' : '정상 착용';
+}
+
+function playerPositionDisplay(player) {
+  return displayValue(player?.position_label).trim()
+    || postureSentence(player?.posture, player?.posture_detail)
+    || '';
+}
+
+function playerProgressDisplay(player) {
+  const exp = typeof player?.exp === 'number' ? player.exp : null;
+  const next = typeof player?.next_level_exp === 'number' ? player.next_level_exp : null;
+  if (exp === null) return '';
+  return next === null || next <= 0 ? String(exp) : `${exp} / ${next}`;
+}
+
 function renderPlayer(container, player, scene) {
-  const clothing = object(player?.clothing) ?? {};
-  const clothingSummary = Object.values(clothing).some(value => value === 'removed' || value === 'open') ? '흐트러짐' : (Object.keys(clothing).length ? '정상 착용' : '');
-  definitionList(container, [
+  const activeRules = Array.isArray(player?.active_csa) ? player.active_csa : [];
+  const activeCount = typeof player?.active_csa_count === 'number' ? player.active_csa_count : activeRules.length;
+  const activeMax = typeof player?.max_active_csa === 'number' ? player.max_active_csa : null;
+  const entries = [
     ['이름', displayValue(player?.name)],
     ['소속', [displayValue(player?.department), displayValue(player?.position)].filter(Boolean).join(' · ')],
     ['현재 장소', localizedValue(player?.location_label || scene?.scene_state?.location_label || scene?.scene_state?.location_id)],
-    ['복장', clothingSummary],
-    ['적용 규정', Array.isArray(scene?.csa_active) ? String(scene.csa_active.length) : ''],
-    ['흥분도', typeof player?.excitement === 'number' && player.excitement > 0 ? String(player.excitement) : '']
-  ]);
+    ['현재 자세', playerPositionDisplay(player)],
+    ['복장', clothingDisplay(player?.clothing)],
+    ['레벨', typeof player?.level === 'number' ? `Lv.${player.level}` : ''],
+    ['EXP', playerProgressDisplay(player)],
+    ['활성 규정', activeMax === null ? String(activeCount) : `${activeCount} / ${activeMax}`],
+    ['흥분도', typeof player?.excitement === 'number' ? String(player.excitement) : ''],
+    ['현재 상황', displayValue(player?.status)]
+  ];
+  activeRules.forEach((rule, index) => {
+    const strength = localizedValue(rule?.strength_label || rule?.strength);
+    const scope = displayValue(rule?.scope_label) || '회사 전체';
+    entries.push([`규정 ${index + 1}${strength ? ` · ${strength}` : ''}`, `${scope} · ${displayValue(rule?.content)}`]);
+  });
+  definitionList(container, entries);
 }
 
 function supplementalElement(elements, key, id) {
@@ -420,11 +451,14 @@ function renderProgressSlot(container, { progress, count }) {
 
 function renderSupplementalPanels(elements, model) {
   const display = playerSupplementalDisplay(model);
-  renderTextSlot(supplementalElement(elements, 'playerInnerThought', 'player-inner-thought'), {
-    heading: '플레이어 속마음', value: display.innerThought, className: 'player-inner-thought-card'
-  });
+  const duplicateInnerThought = supplementalElement(elements, 'playerInnerThought', 'player-inner-thought');
+  if (duplicateInnerThought) {
+    duplicateInnerThought.replaceChildren();
+    duplicateInnerThought.hidden = true;
+    duplicateInnerThought.className = 'future-slot';
+  }
   renderTextSlot(supplementalElement(elements, 'gameTime', 'game-time-slot'), {
-    heading: '현재 시간', value: '', className: 'game-time-card'
+    heading: '현재 시간', value: display.gameTime, className: 'game-time-card'
   });
   renderProgressSlot(supplementalElement(elements, 'ejaculationProgress', 'ejaculation-progress-slot'), {
     progress: display.ejaculationProgress, count: display.ejaculationCount
@@ -438,7 +472,7 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   const model = viewModel ?? {};
   const world = object(model.scene?.world_state) ?? {};
   const day = displayValue(world.day ?? world.day_index);
-  const timeBlock = displayValue(world.time_block);
+  const timeBlock = localizedValue(world.time_block);
   text(elements.title, title || '상식개변: 회사편');
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
   text(elements.dayTime, [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '));
