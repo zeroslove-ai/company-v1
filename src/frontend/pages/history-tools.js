@@ -35,6 +35,14 @@ export function mergeHistoryRecords(current, incoming) {
   return [...map.values()].sort((a, b) => b.turn_number - a.turn_number);
 }
 
+export function historyPageState(result = {}) {
+  const nextBeforeTurn = Number.isInteger(result.next_before_turn) && result.next_before_turn > 0
+    ? result.next_before_turn
+    : null;
+  const hasMore = result.has_more === true && nextBeforeTurn !== null;
+  return { next_before_turn: nextBeforeTurn, has_more: hasMore, hide_more: !hasMore };
+}
+
 export function formatHistoryMarkdown(records, title = '상식개변: 회사편 플레이 기록') {
   const lines = [`# ${title}`, ''];
   for (const record of [...(records ?? [])].sort((a, b) => a.turn_number - b.turn_number)) {
@@ -130,9 +138,10 @@ export function installHistoryTools({ documentRef = document, api = createApiCli
     try {
       const result = await api.history({ game_id: gameId, limit: 20, ...(nextBeforeTurn ? { before_turn: nextBeforeTurn } : {}) });
       records = mergeHistoryRecords(records, result.records ?? []);
-      nextBeforeTurn = result.next_before_turn ?? null;
+      const pageState = historyPageState(result);
+      nextBeforeTurn = pageState.next_before_turn;
       renderHistory(list, records, { showSummary: true });
-      more.hidden = result.has_more !== true || !nextBeforeTurn;
+      more.hidden = pageState.hide_more;
       text(status, records.length ? `${records.length}개 턴` : '저장된 기록이 없습니다.');
     } catch (error) {
       text(status, '기록을 불러오지 못했습니다.');
@@ -149,8 +158,9 @@ export function installHistoryTools({ documentRef = document, api = createApiCli
     for (let page = 0; page < 1000; page += 1) {
       const result = await api.history({ game_id: gameId, limit: 50, ...(cursor ? { before_turn: cursor } : {}) });
       all = mergeHistoryRecords(all, result.records ?? []);
-      const next = result.next_before_turn ?? null;
-      if (result.has_more !== true || !next || seen.has(next)) break;
+      const pageState = historyPageState(result);
+      const next = pageState.next_before_turn;
+      if (!pageState.has_more || !next || seen.has(next)) break;
       seen.add(next);
       cursor = next;
     }
