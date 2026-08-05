@@ -30,7 +30,10 @@ function departmentDirectory(edition) {
     ...entries(edition?.organization?.departments),
     ...entries(edition?.organization?.general_npc_departments)
   ];
-  return new Map(rows.map(item => [item.department_id ?? item.id, text(item.name) || item.department_id ?? item.id]));
+  return new Map(rows.map(item => {
+    const id = item.department_id ?? item.id;
+    return [id, text(item.name) || id];
+  }));
 }
 
 function locationDirectory(edition) {
@@ -83,9 +86,9 @@ function defaultLocationForProfile(edition, profile) {
 
 function clothingSummary(clothing) {
   const source = object(clothing);
-  const values = Object.entries(source).flatMap(([key, value]) => {
-    if (typeof value === 'string' && value.trim()) return [`${key}: ${value.trim()}`];
-    if (value === true) return [key];
+  const values = Object.entries(source).flatMap(([key, item]) => {
+    if (typeof item === 'string' && item.trim()) return [`${key}: ${item.trim()}`];
+    if (item === true) return [key];
     return [];
   });
   return values.join(' · ');
