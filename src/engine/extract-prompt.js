@@ -1,4 +1,9 @@
 import { buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js';
+import {
+  buildGeneralNpcCanon,
+  buildRegisteredGeneralNpcs,
+  selectActiveGeneralNpcIds
+} from './workplace-context.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -62,9 +67,10 @@ const SYSTEM_INSTRUCTIONS = [
   'Return one JSON object only; no prose or Markdown.',
   'Include exactly: state_delta (object), outcome, evidence (object), turn_summary(string), mind_monitor(object), choices(array), dialogue_lines(array), npcs_present(array), action_target_id, focal_character_id, last_speaker_id, image_character_id, player_inner_thought(string), player_status(string), elapsed_minutes(number), warnings(array); with active CSA also csa_trigger_evaluations(array), csa_runtime_updates(array).',
   'state_delta is changed values only. outcome: success, partial, refused, interrupted, or blocked. Ground every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence; never invent changes.',
-  'Identity fields are independent; never copy one into another. Narrator is never an NPC; unknown is null. registered_characters lists the only stable character ids: never invent, guess, or reuse an id. Use exact ids/names and list every present NPC.',
+  'Identity fields are independent; never copy one into another. Narrator is never an NPC; unknown is null. registered_characters lists the only stable character ids: never invent, guess, or reuse an id. registered_general_npcs lists the only stable general-NPC ids. Use exact ids/names and list every present NPC.',
+  'A nearby/default/eligible NPC is not present merely because a catalog or location suggests them. Add a general NPC to npcs_present or identity fields only when Story explicitly shows their entrance, presence, action, or dialogue.',
   'If parsed Story has four choices, return choices:[]; Story choices are always authoritative. Leave parsed player_inner_thought/player_status empty because Extract can never override them. dialogue_lines may only add a missing speaker_id to the same text/order.',
-  'mind_monitor is only {"npc-id":{"surface":"...","subconscious":"..."}} for present NPCs. For Mind Monitor interpretation, use exact Story dialogue/actions, active_character_canon, and saved relationship/emotion. It may not invent a new event, memory, agreement, contact, or fact. surface=conscious current judgment; subconscious=a distinct unadmitted motive/conflict. Reflect personality, speech, boundaries, and traits; do not repeat. Natural first-person Korean: surface 150-300 chars, subconscious 180-350 chars. No quotes, labels, keyword lists, CSA/system terms, physical_reaction or other body/action fields, or player thoughts.',
+  'mind_monitor is only {"npc-id":{"surface":"...","subconscious":"..."}} for present NPCs. For Mind Monitor interpretation, use exact Story dialogue/actions, active_character_canon, active_general_npc_canon, and saved relationship/emotion. It may not invent a new event, memory, agreement, contact, or fact. surface=conscious current judgment; subconscious=a distinct unadmitted motive/conflict. Reflect personality, speech, boundaries, and traits; do not repeat. Natural first-person Korean: surface 150-300 chars, subconscious 180-350 chars. No quotes, labels, keyword lists, CSA/system terms, physical_reaction or other body/action fields, or player thoughts.',
   'elapsed_minutes is your only time proposal: 1-30 normally, up to 480 only with evidence.time_advance===true; never compute Day/absolute time.',
   'CSA changes only in state_delta.csa_runtime_state[csa_id]{lifecycle,applicability,execution_state} and csa_attitudes[npc_id][csa_id].',
   'player_sexual_state uses only arousal_delta, ejaculation_progress_delta, and ejaculation_completed; completion requires evidence.sexual_resolution === true.',
@@ -75,7 +81,9 @@ const SYSTEM_INSTRUCTIONS = [
 export function buildExtractPrompt({ context, storyText, parsedStory, playerAction, expectedTurn, edition, npcIds }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
-  const activeIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
+  const heroineActiveIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
+  const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: storyText });
+  const activeIds = [...heroineActiveIds, ...generalActiveIds.filter(id => !heroineActiveIds.includes(id))];
   return [
     { role: 'system', content: SYSTEM_INSTRUCTIONS },
     {
@@ -87,7 +95,9 @@ export function buildExtractPrompt({ context, storyText, parsedStory, playerActi
         parsed_story: buildParsedStoryProjection(parsedStory),
         context: buildExtractContextProjection(context, activeIds),
         registered_characters: buildRegisteredCharacters(edition),
-        active_character_canon: buildExtractCharacterCanon(charactersMap, activeIds)
+        registered_general_npcs: buildRegisteredGeneralNpcs(edition),
+        active_character_canon: buildExtractCharacterCanon(charactersMap, heroineActiveIds),
+        active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds)
       })
     }
   ];
