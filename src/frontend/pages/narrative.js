@@ -7,6 +7,7 @@ const SECTION_LABELS = {
 const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
 const DIALOGUE_LINE = /^([\p{L}][^\n():："“”]{0,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const REGISTERED_SPEAKER_LINE = /^([^\n:："“”]{1,40}?)\s*[:：]\s*(?:["“]([^"”]*)["”]|(.+))$/u;
+const QUOTE_ONLY_LINE = /^["“]([^"”]+)["”]$/u;
 const CHOICE_LABEL = /^\[([^\[\]\r\n]{2,6})\]\s*(.+)$/u;
 
 function labelRole(label) {
@@ -41,6 +42,20 @@ function speakerId(name, speakerDirectory) {
   return matches.length === 1 ? matches[0].id : '';
 }
 
+function lastMentionedSpeaker(value, speakerDirectory, previous = null) {
+  const line = String(value ?? '');
+  let selected = previous;
+  let selectedIndex = -1;
+  for (const entry of directoryEntries(speakerDirectory)) {
+    const index = line.lastIndexOf(entry.name);
+    if (index > selectedIndex) {
+      selected = entry;
+      selectedIndex = index;
+    }
+  }
+  return selected;
+}
+
 function normalizedDialogue(name, direction, value, speakerDirectory, order) {
   const speaker = String(name ?? '').trim();
   const acting = String(direction ?? '').trim();
@@ -63,17 +78,13 @@ function parseDialogueLine(rawLine, speakerDirectory, order) {
 
 function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory) {
   const narrative = [];
+  let recentSpeaker = null;
   const flush = () => {
     const text = narrative.join('\n').trim();
     narrative.length = 0;
     if (text) blocks.push({ type: 'scene', text });
   };
-  for (const rawLine of value.split(/\r?\n/)) {
-    const dialogue = parseDialogueLine(rawLine, speakerDirectory, dialogueLines.length);
-    if (!dialogue) {
-      narrative.push(rawLine);
-      continue;
-    }
+  const appendDialogue = dialogue => {
     flush();
     dialogueLines.push(dialogue);
     blocks.push({
@@ -84,6 +95,24 @@ function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory) {
       direction: dialogue.direction,
       text: dialogue.text
     });
+  };
+
+  for (const rawLine of value.split(/\r?\n/)) {
+    const dialogue = parseDialogueLine(rawLine, speakerDirectory, dialogueLines.length);
+    if (dialogue) {
+      recentSpeaker = dialogue.speaker_id ? { id: dialogue.speaker_id, name: dialogue.speaker_name } : recentSpeaker;
+      appendDialogue(dialogue);
+      continue;
+    }
+
+    const quote = QUOTE_ONLY_LINE.exec(rawLine.trim());
+    if (quote && recentSpeaker && !/^\([^)]*\)$/.test(quote[1].trim())) {
+      appendDialogue(normalizedDialogue(recentSpeaker.name, '자연스럽게', quote[1], speakerDirectory, dialogueLines.length));
+      continue;
+    }
+
+    recentSpeaker = lastMentionedSpeaker(rawLine, speakerDirectory, recentSpeaker);
+    narrative.push(rawLine);
   }
   flush();
 }
