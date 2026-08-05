@@ -147,13 +147,17 @@ function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory, playe
     }
 
     const quote = QUOTE_ONLY_LINE.exec(rawLine.trim());
-    // 화자명 없는 따옴표 대사: 직전 서술이 "XXX가 말했다/입을 열었다"로 화자를 지목하면 그 NPC,
-    // 아니면 플레이어 대사 (최근 화자로 오표기 방지)
+    // 화자명 없는 따옴표 대사: 직전 서술 화행 지목 → 그 NPC, 플레이어 호칭(감사님) → 직전 언급 NPC,
+    // 팀 내부 지칭(저희) → 직전 언급 NPC, 아니면 플레이어 (최근 화자로 오표기 방지)
     if (quote && !/^\([^)]*\)$/.test(quote[1].trim())) {
       const mentioned = lastMentionedSpeaker(lastLine, speakerDirectory, recentSpeaker);
-      const speaker = mentioned && isSpeechAttribution(lastLine, mentioned) ? mentioned : { id: 'player', name: playerName };
-      appendDialogue(normalizedDialogue(speaker.name, '자연스럽게', quote[1], speakerDirectory, dialogueLines.length));
-      recentSpeaker = { id: speaker.id, name: speaker.name };
+      const text = quote[1];
+      let speaker = null;
+      if (mentioned && isSpeechAttribution(lastLine, mentioned)) speaker = mentioned;
+      else if (mentioned && (/(감사님|임원님|금 감사님)/.test(text) || /(저희가|저희는|저희 팀|저희도)/.test(text))) speaker = mentioned;
+      const resolved = speaker ?? { id: 'player', name: playerName };
+      appendDialogue(normalizedDialogue(resolved.name, '자연스럽게', text, speakerDirectory, dialogueLines.length));
+      recentSpeaker = { id: resolved.id, name: resolved.name };
       continue;
     }
 

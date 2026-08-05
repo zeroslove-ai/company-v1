@@ -168,11 +168,14 @@ let lastLine = '';
     if (quote && !isInternalQuotedThought(quote[1])) {
       // 직전 서술이 화자를 지목하면 그 NPC, 아니면 플레이어
       const mentioned = lastMentionedSpeaker(lastLine, speakers, recentSpeaker);
-      const speaker = mentioned && isSpeechAttribution(lastLine, mentioned) ? mentioned : null;
+      const text = quote[1];
+      let speaker = null;
+      if (mentioned && isSpeechAttribution(lastLine, mentioned)) speaker = mentioned;
+      else if (mentioned && (/(감사님|임원님|금 감사님)/.test(text) || /(저희가|저희는|저희 팀|저희도)/.test(text))) speaker = mentioned;
       const indent = rawLine.slice(0, rawLine.indexOf(trimmed));
       if (speaker) {
         recentSpeaker = speaker;
-        output.push(`${indent}${speaker.name} (자연스럽게): “${quote[1].trim()}”`);
+        output.push(`${indent}${speaker.name} (자연스럽게): “${text.trim()}”`);
       } else {
         output.push(rawLine);
       }
