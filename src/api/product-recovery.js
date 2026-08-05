@@ -212,7 +212,7 @@ export function buildNpcFinderPayload(save, edition, characterId) {
   if (location.status === 'present') {
     throw new HttpError(422, 'npc_already_present', `${text(profile.name) || characterId}은(는) 현재 같은 장면에 있습니다.`, false);
   }
-  if (location.status === 'unknown') {
+  if (location.status === 'unknown' || location.inferred === true) {
     throw new HttpError(422, 'npc_location_unknown', `${text(profile.name) || characterId}의 현재 위치가 아직 기록되지 않았습니다.`, false);
   }
   const departments = departmentDirectory(edition);
