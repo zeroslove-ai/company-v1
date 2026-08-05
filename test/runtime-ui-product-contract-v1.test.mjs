@@ -111,7 +111,7 @@ test('Mind Monitor normalizer permanently drops physical/body reaction fields', 
   assert.equal(normalized.warnings.some(warning => warning.includes(':body')), true);
 });
 
-test('Mind Monitor renders character tabs and surface/subconscious only', () => {
+test('Mind Monitor renders a separate stat strip plus surface/subconscious cards', () => {
   const model = buildCompanyGameViewModel(contextWithMindMonitor());
   withFakeDocument(() => {
     const container = new FakeNode('div', 'mind-monitor');
@@ -122,14 +122,15 @@ test('Mind Monitor renders character tabs and surface/subconscious only', () => 
     const content = container.children[1];
     assert.deepEqual(tabs.children.map(button => button.textContent), ['김제나', '이메이']);
     assert.equal(tabs.children[0].ariaSelected, 'true');
-    assert.equal(content.children[0].children[0].children[0].textContent, '표면의식');
-    assert.equal(content.children[0].children[1].children[0].textContent, '잠재의식');
+    assert.deepEqual(content.children[0].children.map(item => item.children[0].textContent), ['호감', '신뢰', '수용', '흥분']);
+    assert.equal(content.children[1].children[0].children[0].textContent, '표면의식');
+    assert.equal(content.children[1].children[1].children[0].textContent, '잠재의식');
     assert.equal(JSON.stringify(container).includes('physical_reaction'), false);
 
     tabs.children[1].listeners.get('click')();
     assert.equal(container.dataset.selectedCharacterId, 'heroine5');
     assert.equal(tabs.children[1].ariaSelected, 'true');
-    assert.equal(content.children[0].children[0].children[1].textContent, '분위기를 편하게 만들어야겠다.');
+    assert.equal(content.children[1].children[0].children[1].textContent, '분위기를 편하게 만들어야겠다.');
   });
 });
 
