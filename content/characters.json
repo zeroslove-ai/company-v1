@@ -22,6 +22,22 @@
         ],
         "csa_style": "겉으로 침착하지만 팀원의 안전과 선택권을 먼저 따진다."
       },
+      "body": {
+        "height_cm": 168,
+        "weight_kg": 55,
+        "body_type": "균형 잡힌 성숙한 체형",
+        "cup": "C컵"
+      },
+      "private_info": {
+        "nipple": "차분한 분홍빛",
+        "areola_size": "보통",
+        "areola_color": "옅은 갈색",
+        "pubic_hair": "단정하게 정리",
+        "past_partner_count": 2,
+        "past_orgasm_count": 7,
+        "relationship": "현재 연인 없음",
+        "intimate_notes": "주도권을 쉽게 내주지 않으며 충분한 신뢰와 명확한 합의를 중요하게 여긴다."
+      },
       "initial_relationship": {
         "closeness": "acquaintance",
         "romance_status": "none",
@@ -33,7 +49,10 @@
         "relationship_summary": "브랜드전략팀에 합류한 플레이어를 팀원으로 대하며 실무 능력, 책임감, 타인을 대하는 태도를 관찰하고 있다."
       },
       "initial_stats": {
-        "affection": 0
+        "affinity": 0,
+        "work_trust": 20,
+        "csa_acceptance": 0,
+        "sexual_arousal": 0
       },
       "initial_csa_attitudes": {},
       "storage_bucket": "Image",
@@ -65,6 +84,22 @@
         ],
         "csa_style": "표면 적응은 빠르지만 자신의 선택권 침해에는 단호히 반응한다."
       },
+      "body": {
+        "height_cm": 165,
+        "weight_kg": 51,
+        "body_type": "슬림하고 탄탄한 체형",
+        "cup": "B컵"
+      },
+      "private_info": {
+        "nipple": "선명한 분홍빛",
+        "areola_size": "작은 편",
+        "areola_color": "분홍빛 갈색",
+        "pubic_hair": "깔끔하게 제모",
+        "past_partner_count": 1,
+        "past_orgasm_count": 4,
+        "relationship": "장기 연애 종료 후 현재 솔로",
+        "intimate_notes": "자신의 통제권과 준비가 확보되어야 긴장을 풀며, 예상 밖의 상황에는 방어적으로 반응한다."
+      },
       "initial_relationship": {
         "closeness": "acquaintance",
         "romance_status": "none",
@@ -76,7 +111,10 @@
         "relationship_summary": "플레이어를 프로젝트 구성원으로 대하며 말보다 결과를 만드는 사람인지, 책임을 남에게 넘기지 않는지 관찰한다."
       },
       "initial_stats": {
-        "affection": 0
+        "affinity": 0,
+        "work_trust": 15,
+        "csa_acceptance": 0,
+        "sexual_arousal": 0
       },
       "initial_csa_attitudes": {},
       "storage_bucket": "Image",
@@ -108,6 +146,22 @@
         ],
         "csa_style": "주변 반응을 먼저 살피며 겉으로 적응해도 불안이 오래 남는다."
       },
+      "body": {
+        "height_cm": 160,
+        "weight_kg": 48,
+        "body_type": "작고 부드러운 체형",
+        "cup": "B컵"
+      },
+      "private_info": {
+        "nipple": "연한 분홍빛",
+        "areola_size": "작은 편",
+        "areola_color": "연분홍",
+        "pubic_hair": "자연스럽게 다듬음",
+        "past_partner_count": 0,
+        "past_orgasm_count": 1,
+        "relationship": "연애 경험이 거의 없음",
+        "intimate_notes": "불안을 숨기지 못하지만 신뢰가 생기면 자신의 감각과 경계를 솔직하게 설명하려 한다."
+      },
       "initial_relationship": {
         "closeness": "acquaintance",
         "romance_status": "none",
@@ -119,7 +173,10 @@
         "relationship_summary": "플레이어에게 먼저 다가가기보다 말투와 표정을 관찰하며 안전하고 존중할 수 있는 동료인지 확인하고 있다."
       },
       "initial_stats": {
-        "affection": 0
+        "affinity": 0,
+        "work_trust": 5,
+        "csa_acceptance": 0,
+        "sexual_arousal": 0
       },
       "initial_csa_attitudes": {},
       "storage_bucket": "Image",
@@ -151,6 +208,22 @@
         ],
         "csa_style": "즉시 따르기보다 관찰하며 모순을 오래 검토한다."
       },
+      "body": {
+        "height_cm": 170,
+        "weight_kg": 56,
+        "body_type": "길고 단정한 체형",
+        "cup": "C컵"
+      },
+      "private_info": {
+        "nipple": "옅은 갈색",
+        "areola_size": "보통",
+        "areola_color": "차분한 갈색",
+        "pubic_hair": "짧게 정리",
+        "past_partner_count": 1,
+        "past_orgasm_count": 3,
+        "relationship": "현재 연인 없음",
+        "intimate_notes": "말보다 행동의 일관성을 오래 확인하며, 사적인 정보를 쉽게 공개하지 않는다."
+      },
       "initial_relationship": {
         "closeness": "acquaintance",
         "romance_status": "none",
@@ -162,7 +235,10 @@
         "relationship_summary": "플레이어에게 친절하지만 일정한 거리를 유지하며, 말과 행동의 일관성을 조용히 기억하고 판단한다."
       },
       "initial_stats": {
-        "affection": 0
+        "affinity": 0,
+        "work_trust": 10,
+        "csa_acceptance": 0,
+        "sexual_arousal": 0
       },
       "initial_csa_attitudes": {},
       "storage_bucket": "Image",
@@ -194,6 +270,22 @@
         ],
         "csa_style": "낯선 상황에서도 긍정적 이유를 먼저 찾으며 빠르게 적응한다."
       },
+      "body": {
+        "height_cm": 158,
+        "weight_kg": 47,
+        "body_type": "작고 활동적인 체형",
+        "cup": "A컵"
+      },
+      "private_info": {
+        "nipple": "밝은 분홍빛",
+        "areola_size": "작은 편",
+        "areola_color": "연분홍",
+        "pubic_hair": "부분 제모",
+        "past_partner_count": 1,
+        "past_orgasm_count": 2,
+        "relationship": "가벼운 연애 이후 현재 솔로",
+        "intimate_notes": "호기심은 많지만 분위기에 휩쓸린 뒤에도 자신의 경계와 감정을 다시 확인하려 한다."
+      },
       "initial_relationship": {
         "closeness": "acquaintance",
         "romance_status": "none",
@@ -205,7 +297,10 @@
         "relationship_summary": "플레이어를 처음에는 조심스럽게 관찰하며, 안전한 동료라고 판단하면 아이디어와 일상적인 이야기를 빠르게 공유한다."
       },
       "initial_stats": {
-        "affection": 0
+        "affinity": 0,
+        "work_trust": 5,
+        "csa_acceptance": 0,
+        "sexual_arousal": 0
       },
       "initial_csa_attitudes": {},
       "storage_bucket": "Image",
