@@ -633,50 +633,24 @@ function renderSupplementalPanels(elements, model) {
   });
 }
 
-
-function renderScenePanel(container, model, values) {
-  if (!container) return;
-  container.replaceChildren();
-  const activeRules = Array.isArray(model?.scene?.csa_rules) && model.scene.csa_rules.length
-    ? model.scene.csa_rules
-    : (Array.isArray(model?.scene?.csa_active) ? model.scene.csa_active : []);
-  const activeIds = Array.isArray(model?.scene?.csa_active) ? model.scene.csa_active : [];
-  const count = activeRules.length || activeIds.length;
-  const max = typeof model?.player?.max_active_csa === 'number' ? model.player.max_active_csa : null;
-
-  const header = document.createElement('p'); header.className = 'scene-active-rules-heading';
-  header.textContent = max === null ? `활성 규정 (${count})` : `활성 규정 (${count} / ${max})`;
-  container.append(header);
-
-  const list = document.createElement('ul'); list.className = 'scene-active-rules-list';
-  const ruleItems = activeRules
-    .map(rule => {
-      if (typeof rule === 'string') return rule;
-      const label = displayValue(rule?.label) || displayValue(rule?.content) || displayValue(rule?.required_action) || displayValue(rule?.id);
-      const strength = localizedValue(rule?.strength_label || rule?.strength);
-      return strength && strength !== rule?.strength_label ? `[${strength}] ${label}` : label;
-    })
-    .filter(Boolean);
-  if (ruleItems.length) {
-    ruleItems.forEach(text => { const li = document.createElement('li'); li.textContent = text; list.append(li); });
-  } else {
-    const li = document.createElement('li'); li.className = 'scene-active-rules-none'; li.textContent = '활성 규정 없음';
-    list.append(li);
-  }
-  container.append(list);
+function formatClock(minuteOfDay) {
+  if (!Number.isInteger(minuteOfDay) || minuteOfDay < 0) return '';
+  const hour = Math.floor(minuteOfDay / 60);
+  const minute = String(minuteOfDay % 60).padStart(2, '0');
+  return `${hour}:${minute}`;
 }
 
 export function renderState(elements, viewModel, { title = '상식개변: 회사편' } = {}) {
   const model = viewModel ?? {};
   const world = object(model.scene?.world_state) ?? {};
-  const day = displayValue(world.day ?? world.day_index);
+  const gameTime = object(world.game_time) ?? {};
+  const day = displayValue(gameTime.day ?? world.day ?? world.day_index);
+  const clock = formatClock(gameTime.minute_of_day);
   const timeBlock = localizedValue(world.time_block);
   text(elements.title, title || '상식개변: 회사편');
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
-  text(elements.dayTime, [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '));
-  // 현재 장면 패널: 장소·업무·목표·흐름·활성규정 단순 나열 대신
-  // 활성 규정 (N/M) + 규정 목록만 집중 표시 (사용자 요구)
-  renderScenePanel(elements.scene, model, stateDisplayValues(model));
+  text(elements.dayTime, [day ? `Day ${day}` : '', clock, timeBlock].filter(Boolean).join(' · '));
+  // scene-state: 활성 규정은 플레이어 상태창으로 통합되어 여기선 비움 (중복 방지)
   const characterPanel = elements.focal?.closest?.('details');
   if (characterPanel) characterPanel.open = true;
   renderFocalCharacter(elements.focal, model.focal_character, model.player);
