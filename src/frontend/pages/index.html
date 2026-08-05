@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="./hospital-shell.css">
     <link rel="stylesheet" href="./hospital-panels.css">
     <link rel="stylesheet" href="./product-contract.css">
+    <link rel="stylesheet" href="./hospital-parity.css">
   </head>
   <body data-edition-id="company-v1" data-phase="phase-4-frontend-loop">
     <a class="skip-link" href="#story-panel">본문으로 이동</a>
@@ -34,10 +35,12 @@
             <h2 id="media-heading">현재 장면</h2>
             <img id="character-image" class="character-image" alt="" hidden>
             <p id="image-status" class="media-status">표시할 이미지가 없습니다.</p>
-            <div class="media-controls">
-              <label class="tts-toggle"><input id="tts-enabled" type="checkbox"> TTS 사용</label>
-              <button id="play-tts" type="button" disabled>대사 재생</button>
+            <div class="media-controls tts-controls">
+              <button id="tts-toggle" type="button" aria-pressed="true">🔊 음성 ON</button>
+              <button id="tts-replay" type="button" hidden disabled>▶ 마지막 대사 재생</button>
+              <p id="tts-status" class="tts-status" aria-live="polite"></p>
             </div>
+            <audio id="audio-player" class="audio-player" controls preload="none"></audio>
           </section>
           <section class="mind-panel" aria-labelledby="mind-heading">
             <h2 id="mind-heading">Mind Monitor</h2>
@@ -173,6 +176,8 @@
     </div>
 
     <script type="module" src="./app.js"></script>
+    <script type="module" src="./tts.js"></script>
+    <script type="module" src="./relationship-icons.js"></script>
     <script type="module" src="./hospital-scroll.js"></script>
   </body>
 </html>
