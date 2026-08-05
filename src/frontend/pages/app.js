@@ -1,4 +1,4 @@
-import { createApiClient, ApiError } from './api.js';
+﻿import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
@@ -233,7 +233,14 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (elements.submit) elements.submit.disabled = flags.inputSubmitDisabled || setupOpen;
     renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: flags.choicesDisabled || setupOpen, onChoose: startNewAction });
     renderToolbar();
+    // 초기 로드 시 최근 턴(current)이 보이도록 1회 스크롤 — 오프닝부터 쭉 내려야 하는 낭비 제거.
+    // 이후 렌더링(턴 갱신)에서는 사용자 스크롤 위치를 침범하지 않는다.
+    if (!initialScrollDone && elements.current && elements.current.children?.length) {
+      initialScrollDone = true;
+      elements.current.scrollIntoView?.({ block: 'start', inline: 'nearest' });
+    }
   }
+  let initialScrollDone = false;
   const setBusy = value => { busy = value; render(); };
   const setMediaLoading = value => { mediaLoading = value; render(); };
   function clearRecoveryUi() {
