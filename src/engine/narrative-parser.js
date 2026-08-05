@@ -10,9 +10,11 @@ const SECTION_LABELS = {
 };
 
 const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
+const SECTION_LINE = /^\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지)\]$/;
 const QUOTED_INLINE_DIALOGUE = /([\p{L}][^\n():"“”]{0,40}?)\s*\(([^()\n]{0,160})\)\s*[:：]\s*["“]([^"”]*)["”]/gsu;
 const DIALOGUE_LINE = /^([\p{L}][^\n():："“”]{0,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const REGISTERED_SPEAKER_LINE = /^([^\n:："“”]{1,40}?)\s*[:：]\s*(?:["“]([^"”]*)["”]|(.+))$/u;
+const QUOTE_ONLY_LINE = /^["“]([^"”]+)["”]$/u;
 const CHOICE_LABEL = /^\[([^\[\]\r\n]{2,6})\]\s*(.+)$/u;
 
 function labelRole(label) {
@@ -47,13 +49,95 @@ function masterCharacters(master) {
   ];
 }
 
+function registeredSpeakers(master) {
+  return masterCharacters(master)
+    .map(character => ({
+      id: character?.character_id ?? character?.npc_id ?? character?.id ?? null,
+      name: typeof character?.name === 'string' ? character.name.trim() : ''
+    }))
+    .filter(character => character.id && character.name);
+}
+
 function resolveSpeakerId(name, master) {
   const trimmed = typeof name === 'string' ? name.trim() : '';
   if (!trimmed) return null;
-  const matches = masterCharacters(master).filter(character => typeof character?.name === 'string' && character.name.trim() === trimmed);
-  if (matches.length !== 1) return null;
-  const id = matches[0].character_id ?? matches[0].npc_id ?? matches[0].id;
-  return typeof id === 'string' ? id : null;
+  const matches = registeredSpeakers(master).filter(character => character.name === trimmed);
+  return matches.length === 1 ? matches[0].id : null;
+}
+
+function lastMentionedSpeaker(line, speakers, previous = null) {
+  const value = String(line ?? '');
+  let selected = previous;
+  let selectedIndex = -1;
+  for (const speaker of speakers) {
+    const index = value.lastIndexOf(speaker.name);
+    if (index > selectedIndex) {
+      selected = speaker;
+      selectedIndex = index;
+    }
+  }
+  return selected;
+}
+
+function isInternalQuotedThought(value) {
+  const text = String(value ?? '').trim();
+  return /^\([^)]*\)$/.test(text);
+}
+
+/**
+ * Actual production Story rows sometimes contain only “대사” even though the
+ * prompt asks for a speaker. Recover those lines only when the preceding scene
+ * prose names one registered character. Unknown or ambiguous speakers remain
+ * untouched rather than being guessed.
+ */
+export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
+  const source = String(rawText ?? '');
+  const speakers = registeredSpeakers(master);
+  if (!source || !speakers.length) return source;
+
+  let role = null;
+  let recentSpeaker = null;
+  const output = [];
+  for (const rawLine of source.split(/\r?\n/)) {
+    const trimmed = rawLine.trim();
+    const section = SECTION_LINE.exec(trimmed);
+    if (section) {
+      role = labelRole(section[1]);
+      recentSpeaker = null;
+      output.push(rawLine);
+      continue;
+    }
+    if (role !== 'scene') {
+      output.push(rawLine);
+      continue;
+    }
+
+    const canonical = DIALOGUE_LINE.exec(trimmed);
+    if (canonical) {
+      const id = resolveSpeakerId(canonical[1], master);
+      if (id) recentSpeaker = { id, name: canonical[1].trim() };
+      output.push(rawLine);
+      continue;
+    }
+    const named = REGISTERED_SPEAKER_LINE.exec(trimmed);
+    if (named) {
+      const id = resolveSpeakerId(named[1], master);
+      if (id) recentSpeaker = { id, name: named[1].trim() };
+      output.push(rawLine);
+      continue;
+    }
+
+    const quote = QUOTE_ONLY_LINE.exec(trimmed);
+    if (quote && recentSpeaker && !isInternalQuotedThought(quote[1])) {
+      const indent = rawLine.slice(0, rawLine.indexOf(trimmed));
+      output.push(`${indent}${recentSpeaker.name} (자연스럽게): “${quote[1].trim()}”`);
+      continue;
+    }
+
+    recentSpeaker = lastMentionedSpeaker(rawLine, speakers, recentSpeaker);
+    output.push(rawLine);
+  }
+  return output.join('\n');
 }
 
 function normalizedDialogue({ speakerName, direction, dialogueText }, master, order) {
@@ -145,7 +229,9 @@ function appendSceneBlocks(blocks, dialogueLines, sceneText, master, orderRef) {
 }
 
 export function parseNarrative(rawText, { master } = {}) {
-  const raw = String(rawText ?? '');
+  const originalRaw = String(rawText ?? '');
+  const normalizedRaw = normalizeQuoteOnlyDialogue(originalRaw, { master });
+  const raw = normalizedRaw;
   const matches = [...raw.matchAll(MARKER)];
   const blocks = [];
   const warnings = [];
@@ -159,7 +245,8 @@ export function parseNarrative(rawText, { master } = {}) {
 
   if (matches.length === 0) {
     return {
-      raw,
+      raw: originalRaw,
+      normalized_raw: normalizedRaw,
       scene_text: '',
       blocks: raw.trim() ? [{ type: 'unparsed', text: raw.trim() }] : [],
       player_status: '',
@@ -241,7 +328,8 @@ export function parseNarrative(rawText, { master } = {}) {
   }
   if (/\[DIALOGUE\b(?![^\]]*\])/.test(raw)) warnings.push('incomplete_dialogue_marker');
   const result = {
-    raw,
+    raw: originalRaw,
+    normalized_raw: normalizedRaw,
     scene_text: sceneParts.join('\n'),
     blocks,
     player_status: playerStatus,
