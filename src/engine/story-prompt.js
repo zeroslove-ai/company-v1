@@ -113,7 +113,9 @@ const SYSTEM_INSTRUCTIONS = [
 
   'CSA(공통 인식 규칙)는 항상 전역 규칙이며 NPC는 거절할 수 있지만 플레이어의 자유 입력 자체는 막지 않는다. context, active_character_canon, active_general_npc_canon, eligible_nearby_npcs에 없는 NPC나 장면을 새로 만들지 않는다.',
 
-  'active_character_canon은 활성 등록 캐릭터의 유일한 사실 기준이고 active_general_npc_canon과 eligible_nearby_npcs는 일반 NPC의 유일한 사실 기준이다. 이름·나이·부서·직급·성격·말투를 임의로 바꾸거나 승격하지 않는다. canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 행동·대사·거리감의 생성 근거로 사용한다.'
+  'active_character_canon은 활성 등록 캐릭터의 유일한 사실 기준이고 active_general_npc_canon과 eligible_nearby_npcs는 일반 NPC의 유일한 사실 기준이다. 이름·나이·부서·직급·성격·말투를 임의로 바꾸거나 승격하지 않는다. canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 행동·대사·거리감의 생성 근거로 사용한다.',
+
+  '[최종 대사 출력 계약 — 앞선 모든 문체 지시보다 우선] 모든 실제 발화는 반드시 별도 한 줄에 `등록된 전체 이름 (비어 있지 않은 짧고 구체적인 연기톤): “대사”`로 쓴다. 괄호·연기톤·콜론·한국어 큰따옴표 중 하나라도 생략하지 않는다. `이름: 대사`, 따옴표만 있는 대사, 서술문 안에 섞인 발화, 등록되지 않은 별명·직급만을 화자명으로 쓰는 형식은 금지한다. 발화가 아닌 서술에는 이 형식을 쓰지 않는다.'
 ].join(' ');
 
 export function buildRegenerationFeedbackSection(feedbackText) {
