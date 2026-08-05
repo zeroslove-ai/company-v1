@@ -20,6 +20,13 @@ export function finderStatusText(result) {
   return `${result.name}의 현재 위치가 아직 기록되지 않았습니다.`;
 }
 
+export function finderErrorText(error) {
+  if (error?.code === 'npc_not_found') return '등록된 인물이 아닙니다.';
+  if (error?.code === 'npc_location_unknown') return error.message || '현재 위치가 아직 기록되지 않았습니다.';
+  if (error?.code === 'npc_already_present') return error.message || '현재 같은 장면에 있는 인물입니다.';
+  return error?.message || '위치를 확인하지 못했습니다.';
+}
+
 export function installNpcFinder({ documentRef = document, api = createApiClient(), gameId = resolveGameId() } = {}) {
   const open = documentRef.querySelector('#find-npc');
   const overlay = documentRef.querySelector('#npc-finder-overlay');
@@ -77,7 +84,7 @@ export function installNpcFinder({ documentRef = document, api = createApiClient
       use.disabled = current?.can_move !== true;
     } catch (error) {
       current = null;
-      text(status, error?.message || '위치를 확인하지 못했습니다.');
+      text(status, finderErrorText(error));
     } finally {
       setLoading(false);
     }
