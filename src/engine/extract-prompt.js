@@ -90,15 +90,15 @@ export function buildExtractPrompt({ context, storyText, parsedStory, playerActi
     {
       role: 'user',
       content: JSON.stringify({
-        expected_turn: expectedTurn,
-        player_action: playerAction,
-        story_text: storyText,
-        parsed_story: buildParsedStoryProjection(parsedStory),
-        context: buildExtractContextProjection(context, activeIds),
         registered_characters: buildRegisteredCharacters(edition),
         registered_general_npcs: buildRegisteredGeneralNpcs(edition),
         active_character_canon: buildExtractCharacterCanon(charactersMap, heroineActiveIds),
-        active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds)
+        active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
+        story_text: storyText,
+        parsed_story: buildParsedStoryProjection(parsedStory),
+        context: buildExtractContextProjection(context, activeIds),
+        player_action: playerAction,
+        expected_turn: expectedTurn
       })
     }
   ];
