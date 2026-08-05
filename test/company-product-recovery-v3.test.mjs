@@ -258,14 +258,14 @@ test('new CSA card is promoted directly under the add button and focused once', 
   assert.equal(fresh.scrolls, 1, '같은 신규 카드는 한 번만 스크롤한다');
 });
 
-test('static shell exposes fallback, downloads, and dedicated recovery modules', () => {
+test('static shell exposes fallback, downloads, and dedicated recovery modules without the removed NPC finder UI', () => {
   const html = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
   assert.match(html, /id="boot-fallback"/);
   assert.match(html, /<noscript>/);
   assert.match(html, /id="history-download-md"/);
   assert.match(html, /id="history-download-txt"/);
   assert.match(html, /history-tools\.js/);
-  assert.match(html, /npc-finder\.js/);
+  assert.doesNotMatch(html, /src="\.\/npc-finder\.js"/);
   assert.match(html, /csa-product-ui\.js/);
   assert.match(html, /boot-guard\.js/);
 });
