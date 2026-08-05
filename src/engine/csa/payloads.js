@@ -89,13 +89,11 @@ export function buildAppManualPayload(save, catalog) {
 }
 
 /**
- * State payload feeding the 홈/상식개변 tabs. Deliberately excludes donor's
- * npcs[] array (location/mind/private-info) — that surface belongs to
- * systems out of this port's scope (NPC location tracking, sexual-history
- * ledger); the CSA app itself never depended on it for activate/update/
- * deactivate.
+ * State payload feeding every app tab. NPC data is a display-safe projection
+ * prepared by the API from registered Company canon plus persisted evidence;
+ * this module never invents identity, location, Mind, or relationship fields.
  */
-export function buildAppStatePayload(save, catalog, sexualActionContract, player) {
+export function buildAppStatePayload(save, catalog, sexualActionContract, player, npcs = []) {
   const manual = buildAppManualPayload(save, catalog);
   const activeCsa = getActiveCsaEntries(save);
   const strengthOptions = [['weak', '약함', 1], ['medium', '중간', 3], ['strong', '강함', 7]]
@@ -119,6 +117,7 @@ export function buildAppStatePayload(save, catalog, sexualActionContract, player
     common_sense: commonSense,
     csa_presets: buildPresetCatalogPayload(catalog, appStrengthId(manual.status.available_strength)),
     manual,
-    player_info: player
+    player_info: player,
+    npcs: Array.isArray(npcs) ? npcs : []
   };
 }

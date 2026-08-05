@@ -9,8 +9,22 @@
     <link rel="stylesheet" href="./csa-entry.css">
     <link rel="stylesheet" href="./hospital-shell.css">
     <link rel="stylesheet" href="./hospital-panels.css">
+    <link rel="stylesheet" href="./product-contract.css">
+    <link rel="stylesheet" href="./hospital-parity.css">
+    <link rel="stylesheet" href="./recovery-ui.css">
+    <link rel="stylesheet" href="./runtime-hotfix.css">
   </head>
   <body data-edition-id="company-v1" data-phase="phase-4-frontend-loop">
+    <section id="boot-fallback" class="boot-fallback" role="status" aria-live="polite">
+      <div class="boot-fallback-card">
+        <h1>상식개변: 회사편</h1>
+        <p id="boot-fallback-message">게임 화면을 불러오는 중입니다.</p>
+        <p>화면이 계속 열리지 않으면 네트워크 상태를 확인한 뒤 새로고침해 주세요.</p>
+        <button type="button" onclick="location.reload()">새로고침</button>
+        <noscript><p>이 게임은 JavaScript가 필요합니다. 브라우저에서 JavaScript를 허용해 주세요.</p></noscript>
+      </div>
+    </section>
+
     <a class="skip-link" href="#story-panel">본문으로 이동</a>
     <main id="game-main" class="game-shell">
       <header class="game-header">
@@ -33,20 +47,24 @@
             <h2 id="media-heading">현재 장면</h2>
             <img id="character-image" class="character-image" alt="" hidden>
             <p id="image-status" class="media-status">표시할 이미지가 없습니다.</p>
-            <div class="media-controls">
-              <label class="tts-toggle"><input id="tts-enabled" type="checkbox"> TTS 사용</label>
-              <button id="play-tts" type="button" disabled>대사 재생</button>
+            <div class="media-controls tts-controls">
+              <button id="tts-toggle" type="button" aria-pressed="true">🔊 음성 ON</button>
+              <button id="tts-replay" type="button" hidden disabled>▶ 마지막 대사 재생</button>
+              <p id="tts-status" class="tts-status" aria-live="polite"></p>
             </div>
+            <audio id="audio-player" class="audio-player" controls preload="none"></audio>
+          </section>
+          <section class="mind-panel" aria-labelledby="mind-heading">
+            <h2 id="mind-heading">Mind Monitor</h2>
+            <div id="mind-monitor" class="mind-monitor"></div>
           </section>
           <details id="character-state" class="state-panel" open>
             <summary>캐릭터와 현재 상태</summary>
             <dl id="scene-state" class="state-list"></dl>
             <section id="focal-character" class="focal-character" hidden></section>
-            <section class="mind-panel" aria-labelledby="mind-heading"><h2 id="mind-heading">Mind Monitor</h2><div id="mind-monitor" class="mind-monitor"></div></section>
           </details>
           <section id="player-panel" class="player-panel" aria-labelledby="player-heading">
             <h2 id="player-heading">플레이어 상황</h2><dl id="player-situation" class="state-list"></dl>
-            <div id="player-inner-thought" class="future-slot" hidden></div>
             <div id="game-time-slot" class="future-slot" hidden></div>
             <div id="ejaculation-progress-slot" class="future-slot" hidden></div>
             <div id="turn-changes-slot" class="future-slot" hidden></div>
@@ -74,43 +92,24 @@
       <nav class="utility-toolbar" aria-label="게임 도구">
         <button id="open-history" type="button" disabled>플레이 기록</button>
         <button id="send-feedback" type="button" disabled>피드백</button>
-        <button id="find-npc" type="button" disabled>NPC 찾기</button>
+        <button id="find-npc" type="button" hidden aria-hidden="true" tabindex="-1" disabled>NPC 찾기</button>
         <button id="reset-game" type="button">초기화</button>
       </nav>
     </main>
 
     <div id="player-setup-overlay" class="player-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="player-setup-heading" hidden>
       <p id="setup-error" class="status-banner error" role="alert" aria-live="assertive" hidden></p>
-
       <form id="player-setup-form" class="player-setup-form">
         <h2 id="player-setup-heading">플레이어 설정</h2>
-
-        <label for="setup-name">이름</label>
-        <input id="setup-name" type="text" maxlength="20" required>
-
-        <label for="setup-department">부서</label>
-        <select id="setup-department" required></select>
-
-        <label for="setup-position">직급</label>
-        <select id="setup-position" required></select>
-
-        <label for="setup-height">키(cm)</label>
-        <input id="setup-height" type="number" min="140" max="220" step="1" required>
-
-        <label for="setup-weight">몸무게(kg)</label>
-        <input id="setup-weight" type="number" min="40" max="180" step="1" required>
-
-        <label for="setup-penis-length">음경 길이(cm)</label>
-        <input id="setup-penis-length" type="number" min="5" max="30" step="1" required>
-
-        <label for="setup-body-type">체형</label>
-        <select id="setup-body-type" required></select>
-
-        <label for="setup-speech-style">말투</label>
-        <select id="setup-speech-style" required></select>
-
-        <button id="setup-submit" type="submit">설정 완료</button>
-        <p id="setup-status" aria-live="polite"></p>
+        <label for="setup-name">이름</label><input id="setup-name" type="text" maxlength="20" required>
+        <label for="setup-department">부서</label><select id="setup-department" required></select>
+        <label for="setup-position">직급</label><select id="setup-position" required></select>
+        <label for="setup-height">키(cm)</label><input id="setup-height" type="number" min="140" max="220" step="1" required>
+        <label for="setup-weight">몸무게(kg)</label><input id="setup-weight" type="number" min="40" max="180" step="1" required>
+        <label for="setup-penis-length">음경 길이(cm)</label><input id="setup-penis-length" type="number" min="5" max="30" step="1" required>
+        <label for="setup-body-type">체형</label><select id="setup-body-type" required></select>
+        <label for="setup-speech-style">말투</label><select id="setup-speech-style" required></select>
+        <button id="setup-submit" type="submit">설정 완료</button><p id="setup-status" aria-live="polite"></p>
       </form>
       <section id="reserved-opening" class="player-setup-form reserved-opening" aria-labelledby="reserved-opening-heading" hidden>
         <h2 id="reserved-opening-heading">오프닝 준비 완료</h2>
@@ -122,13 +121,11 @@
 
     <div id="csa-app-overlay" class="csa-app-overlay" role="dialog" aria-modal="true" aria-labelledby="csa-app-heading" hidden>
       <div class="csa-app-modal">
-        <header class="csa-app-header">
-          <h2 id="csa-app-heading">📱 상식개변 앱</h2>
-          <button id="csa-app-close" type="button" class="app-manual-close" aria-label="상식개변 앱 닫기">닫기</button>
-        </header>
+        <header class="csa-app-header"><h2 id="csa-app-heading">📱 상식개변 앱</h2><button id="csa-app-close" type="button" class="app-manual-close" aria-label="상식개변 앱 닫기">닫기</button></header>
         <div id="csa-app-tabs" class="csa-app-tabs" role="tablist">
           <button type="button" class="csa-app-tab" role="tab" data-tab="home">홈</button>
           <button type="button" class="csa-app-tab" role="tab" data-tab="player">플레이어 정보</button>
+          <button type="button" class="csa-app-tab" role="tab" data-tab="npc">NPC 정보</button>
           <button type="button" class="csa-app-tab" role="tab" data-tab="csa">상식개변</button>
           <button type="button" class="csa-app-tab" role="tab" data-tab="manual">매뉴얼</button>
         </div>
@@ -141,6 +138,10 @@
       <section class="utility-modal utility-modal-wide">
         <header class="utility-modal-header"><h2 id="history-heading">플레이 기록</h2><button id="history-close" type="button">닫기</button></header>
         <p id="history-status" class="utility-status" aria-live="polite"></p>
+        <div class="history-download-actions" aria-label="플레이 기록 다운로드">
+          <button id="history-download-md" type="button">MD 다운로드</button>
+          <button id="history-download-txt" type="button">TXT 다운로드</button>
+        </div>
         <div id="history-list" class="utility-history-list"></div>
         <button id="history-more" type="button" hidden>이전 기록 더 보기</button>
       </section>
@@ -150,18 +151,15 @@
       <form id="feedback-form" class="utility-modal">
         <header class="utility-modal-header"><h2 id="feedback-heading">마지막 턴 피드백</h2><button id="feedback-close" type="button">닫기</button></header>
         <p>마지막 턴에서 고칠 내용을 적으면 기존 revision 구조로 다시 생성합니다. 저장은 새 결과가 Commit될 때만 바뀝니다.</p>
-        <label for="feedback-text">수정 요청</label>
-        <textarea id="feedback-text" rows="6" maxlength="2000" required></textarea>
-        <p id="feedback-status" class="utility-status" aria-live="polite"></p>
-        <button type="submit">피드백으로 재생성</button>
+        <label for="feedback-text">수정 요청</label><textarea id="feedback-text" rows="6" maxlength="2000" required></textarea>
+        <p id="feedback-status" class="utility-status" aria-live="polite"></p><button type="submit">피드백으로 재생성</button>
       </form>
     </div>
 
-    <div id="npc-finder-overlay" class="utility-overlay" role="dialog" aria-modal="true" aria-labelledby="npc-finder-heading" hidden>
+    <div id="npc-finder-overlay" class="utility-overlay" role="dialog" aria-modal="true" aria-labelledby="npc-finder-heading" hidden aria-hidden="true">
       <section class="utility-modal">
         <header class="utility-modal-header"><h2 id="npc-finder-heading">NPC 찾기</h2><button id="npc-finder-close" type="button">닫기</button></header>
-        <label for="npc-finder-character">인물</label>
-        <select id="npc-finder-character"></select>
+        <label for="npc-finder-character">인물</label><select id="npc-finder-character"></select>
         <button id="npc-finder-submit" type="button">현재 위치 확인</button>
         <p id="npc-finder-status" class="utility-status" aria-live="polite"></p>
         <button id="npc-finder-use" type="button" disabled>이동 행동으로 입력</button>
@@ -169,6 +167,12 @@
     </div>
 
     <script type="module" src="./app.js"></script>
+    <script type="module" src="./tts-product-policy.js"></script>
+    <script type="module" src="./tts.js"></script>
+    <script type="module" src="./relationship-icons.js"></script>
+    <script type="module" src="./history-tools.js"></script>
+    <script type="module" src="./csa-product-ui.js"></script>
+    <script type="module" src="./boot-guard.js"></script>
     <script type="module" src="./hospital-scroll.js"></script>
   </body>
 </html>

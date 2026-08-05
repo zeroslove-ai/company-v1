@@ -79,15 +79,22 @@ export function resetPresetSelection(item, { preserveStrength = true } = {}) {
   if (!preserveStrength) item.strength = null;
 }
 
-export function hydrateDraftItem(item) {
+/**
+ * Rebuilds the flat edit fields from the persisted preset payload. The database
+ * stores the canonical preset correctly; the category is catalog metadata and
+ * must be restored here so a reopened item does not look blank or dirty.
+ */
+export function hydrateDraftItem(item, appState = null) {
   if (item.source_type === 'preset' && item.preset) {
+    const catalogItem = presetCatalogItem(appState, item.preset.template_id);
     item.template_id = item.preset.template_id;
-    item.category = null;
-    item.actor_group = item.preset.actor_group || null;
-    item.target_group = item.preset.target_group || null;
-    item.trigger = item.preset.trigger || null;
-    item.duration = item.preset.duration || null;
+    item.category = catalogItem?.category ?? item.category ?? null;
+    item.actor_group = item.preset.actor_group || catalogItem?.default_actor || null;
+    item.target_group = item.preset.target_group ?? catalogItem?.default_target ?? null;
+    item.trigger = item.preset.trigger || catalogItem?.default_trigger || null;
+    item.duration = item.preset.duration || catalogItem?.default_duration || null;
     item.modifier = item.preset.modifier || '';
+    item.strength = normalizeStrengthId(appState, item.strength) || presetStrength(catalogItem) || null;
   } else {
     item.source_type = 'custom';
   }
@@ -168,5 +175,11 @@ export function dirty(appState, draft) {
 
 export function createDraft(appState, tab = 'home', notice = '') {
   const commonSense = clone(appState.common_sense);
-  return { tab, notice, original: commonSense, csa: clone(appState.common_sense).map(hydrateDraftItem), issues: [] };
+  return {
+    tab,
+    notice,
+    original: commonSense,
+    csa: clone(appState.common_sense).map(item => hydrateDraftItem(item, appState)),
+    issues: []
+  };
 }

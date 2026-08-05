@@ -1,7 +1,7 @@
 /**
  * 상식개변 앱 modal — 병원편의 실제 사용 흐름을 회사편 UI에 맞게 이식한다.
- * 홈/플레이어 정보/상식개변/매뉴얼 탭, draft 기반 편집, 미적용 변경 보호,
- * ESC·바깥 클릭 닫기와 모바일 overlay를 제공한다.
+ * 홈/플레이어 정보/NPC 정보/상식개변/매뉴얼 탭, draft 기반 편집,
+ * 미적용 변경 보호, ESC·바깥 클릭 닫기와 모바일 overlay를 제공한다.
  *
  * 적용은 별도 저장 API를 만들지 않는다. 서버가 검증한 canonical_action과
  * display_input을 기존 Story -> Extract -> Commit 파이프라인에 넘긴다.
@@ -14,9 +14,9 @@ import {
 } from './csa-app-state.js';
 
 const STRENGTH_DESCRIPTIONS = {
-  weak: '민망한 자세·거리·비접촉적 신체 접촉·자유로운 옷차림을 회사 전체의 정상적인 관행으로 만듭니다.',
-  medium: '강한 노출·민감 부위 확인·성적 생리현상 처리를 회사 전체의 정상 업무로 만듭니다.',
-  strong: '플레이어의 직접적인 성적 요구와 권한을 회사 전체의 최우선 규정으로 만듭니다.'
+  weak: '인사팀 공식 공지·사내 운영지침으로 전사에 시행됩니다. 직원은 지침의 실무적 타당성을 묻거나 불평·거리 두기·최소한의 수행을 보일 수 있습니다.',
+  medium: '정식 취업규칙·전사 준수 규정으로 시행됩니다. 직원은 인사·노무상 의무와 불이익을 의식해 준수하면서도 불편함을 업무상 필요로 자기합리화하거나 적용 범위를 확인할 수 있습니다.',
+  strong: '국가 법령·관계 당국 의무 지침으로 시행됩니다. 법적 의무로 받아들이지만 충격·수치·불안·실행 방식에 대한 항의와 개인적 저항은 남을 수 있습니다. 법적 준수는 호감이나 성적 동의가 아닙니다.'
 };
 
 function messageFor(error) {
@@ -139,6 +139,79 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
       grid.appendChild(card);
     });
     body.appendChild(grid);
+  }
+
+  function displayStat(value) {
+    return typeof value === 'number' && Number.isFinite(value) ? String(value) : '미확인';
+  }
+
+  function renderNpcMind(card, npc) {
+    const mind = npc?.mind || {};
+    if (!mind.surface && !mind.subconscious) return;
+    const box = el('div', 'csa-app-npc-mind');
+    const surface = el('section', 'csa-app-npc-mind-item');
+    surface.append(el('strong', '', '표면의식'), el('p', '', mind.surface || '미확인'));
+    const subconscious = el('section', 'csa-app-npc-mind-item');
+    subconscious.append(el('strong', '', '잠재의식'), el('p', '', mind.subconscious || '미확인'));
+    box.append(surface, subconscious);
+    card.appendChild(box);
+  }
+
+  function renderNpcCard(npc) {
+    const card = el('article', `csa-app-npc-card${npc.present_now ? ' present' : ''}`);
+    const head = el('div', 'csa-app-npc-head');
+    const identity = el('div');
+    identity.append(el('h3', '', npc.name || npc.id || 'NPC'));
+    const role = [npc.department, npc.position, npc.role].filter(Boolean).join(' · ');
+    identity.append(el('p', 'csa-app-npc-role', role || '소속·직무 미확인'));
+    head.append(identity, el('span', `csa-app-npc-presence${npc.present_now ? ' active' : ''}`, npc.present_now ? '현재 장면' : '장면 밖'));
+    card.appendChild(head);
+
+    const location = npc.location?.known ? npc.location.location_label : '위치 미확인';
+    const scene = npc.scene_state || {};
+    const currentPosition = scene.position_label || scene.posture_detail || scene.posture || '자세 미확인';
+    const summary = el('div', 'csa-app-npc-summary');
+    summary.append(
+      el('p', '', `위치: ${location}`),
+      el('p', '', `현재 자세: ${currentPosition}`)
+    );
+    card.appendChild(summary);
+
+    const stats = npc.stats || {};
+    const statGrid = el('div', 'csa-app-npc-stats');
+    [
+      ['호감도', displayStat(stats.affection)],
+      ['업무신뢰도', displayStat(stats.work_trust)],
+      ['상식수용도', displayStat(stats.acceptance)],
+      ['성적흥분도', displayStat(stats.arousal)]
+    ].forEach(([label, value]) => {
+      const item = el('div', 'csa-app-npc-stat');
+      item.append(el('small', '', label), el('strong', '', value));
+      statGrid.appendChild(item);
+    });
+    card.appendChild(statGrid);
+    renderNpcMind(card, npc);
+
+    if (npc.relationship_summary) {
+      const relationship = el('details', 'csa-app-npc-details');
+      relationship.append(el('summary', '', '관계 요약'), el('p', '', npc.relationship_summary));
+      card.appendChild(relationship);
+    }
+    return card;
+  }
+
+  function renderNpcs(body) {
+    const npcs = Array.isArray(appState.npcs) ? [...appState.npcs] : [];
+    body.appendChild(el('h3', '', 'NPC 정보'));
+    body.appendChild(el('p', 'csa-app-scope-label', '주요 인물과 이미 등장·확인된 일반 인물만 표시합니다. Mind Monitor는 표면의식과 잠재의식만 사용합니다.'));
+    if (!npcs.length) {
+      body.appendChild(el('p', '', '표시할 NPC 정보가 없습니다.'));
+      return;
+    }
+    npcs.sort((left, right) => Number(right.present_now) - Number(left.present_now));
+    const list = el('div', 'csa-app-npc-list');
+    npcs.forEach(npc => list.appendChild(renderNpcCard(npc)));
+    body.appendChild(list);
   }
 
   function selectField(label, value, options, onChange, disabled = false) {
@@ -424,10 +497,10 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
 
   function renderTab(tab) {
     if (!elements.body || !draft) return;
-    draft.tab = ['home', 'player', 'csa', 'manual'].includes(tab) ? tab : 'home';
+    draft.tab = ['home', 'player', 'npc', 'csa', 'manual'].includes(tab) ? tab : 'home';
     elements.body.replaceChildren();
     (draft.issues || []).forEach(issue => elements.body.appendChild(el('p', 'csa-app-error', issue.message || String(issue))));
-    ({ home: renderHome, player: renderPlayer, csa: renderCsa, manual: renderManual })[draft.tab](elements.body);
+    ({ home: renderHome, player: renderPlayer, npc: renderNpcs, csa: renderCsa, manual: renderManual })[draft.tab](elements.body);
     if (draft.notice) {
       elements.body.prepend(el('p', 'csa-app-diagnostic info', draft.notice));
       draft.notice = '';

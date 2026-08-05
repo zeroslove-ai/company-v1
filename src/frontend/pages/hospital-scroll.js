@@ -1,4 +1,5 @@
 import './hospital-mobile.js';
+import './loading-overlay.js';
 
 const DEFAULT_NEAR_BOTTOM_PX = 120;
 const DEFAULT_RELEASE_PX = 84;

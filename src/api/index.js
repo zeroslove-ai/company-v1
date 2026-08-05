@@ -1,6 +1,6 @@
 import edition from './edition.js';
 import { fail, HttpError, jsonResponse, optionsResponse } from './http.js';
-import { createTurnRoutes } from './turn-routes.js';
+import { createMediaAwareTurnRoutes } from './media-routes.js';
 import { GameCoreError } from '../engine/errors.js';
 
 const PHASE = 'phase-2-vertical-loop';
@@ -15,7 +15,7 @@ function buildStatus() {
 }
 
 export function createApiWorker({ fetchImpl = fetch } = {}) {
-  const routes = createTurnRoutes({ fetchImpl, edition });
+  const routes = createMediaAwareTurnRoutes({ fetchImpl, edition });
   return {
     async fetch(request) {
       const env = arguments[1] ?? {};

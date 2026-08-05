@@ -89,7 +89,11 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     const response = await api.story(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn, player_action: pending.player_action }, pending));
     await consumeStory(response, item => {
       if (item.event === 'meta') sawMeta = true;
-      if (item.event === 'delta') { rawStory += item.data?.text ?? ''; onStory?.({ rawStory, parsed: parseNarrative(rawStory), item, pending }); }
+      if (item.event === 'delta') {
+        rawStory += item.data?.text ?? '';
+        const directory = getContext?.()?.display?.npc_directory ?? {};
+        onStory?.({ rawStory, parsed: parseNarrative(rawStory, { speakerDirectory: directory }), item, pending });
+      }
     });
     if (!sawMeta || !rawStory.trim()) throw new ApiError({ endpoint: '/api/story', status: 502, code: 'incomplete_story_stream', message: '서사 스트림이 불완전합니다.', retryable: true });
     pending.step = 'extract'; persistPending(pending);
@@ -214,6 +218,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     renderState(elements, viewModel, { title: context?.game?.title });
     const openingTurn = openingHistoryTurn(context);
     renderHistory(elements.history, openingTurn ? [openingTurn, ...(context?.recent_turns ?? [])] : context?.recent_turns);
+    utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
     const reservedSetupId = reservedPlayerSetupId(context);
     if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen;
@@ -288,8 +293,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   async function startNewAction(playerAction, structuredAction = null) {
     let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
     if (loadPending(storage, gameId)) { showStatus('이전 행동을 먼저 복구해야 합니다.'); await checkRecovery(); return false; }
-    // "2", "b", "②" etc. resolve to the exact stored choice text — never silently executed as
-    // free text, and never guessed when there's no matching current choice set.
     const numbered = resolveNumberedChoiceInput(action, saveFromContext(context));
     if (numbered && !numbered.ok) { showError(new ApiError({ endpoint: 'choice-input', status: 422, code: numbered.code.toLowerCase(), message: '지금은 그 번호의 선택지가 없습니다.' })); return false; }
     if (numbered?.ok) action = numbered.text;
@@ -340,7 +343,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     await consumeStorySse(response, item => {
       if (item.event === 'delta') {
         raw += item.data?.text ?? '';
-        renderNarrative(elements.current, parseNarrative(raw));
+        renderNarrative(elements.current, parseNarrative(raw, { speakerDirectory: context?.display?.npc_directory ?? {} }));
       }
     });
     text(statusElement, '');
@@ -375,7 +378,13 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   const csaApp = createCsaApp({
     documentRef, api, gameId,
-    onSubmit: (displayInput, canonicalAction) => startNewAction(displayInput, canonicalAction),
+    onSubmit: (displayInput, canonicalAction) => {
+      const handoff = startNewAction(displayInput, canonicalAction);
+      Promise.resolve(handoff).then(result => {
+        if (result === false) showStatus('상식개변 적용 행동을 시작하지 못했습니다. 복구 상태를 확인해 주세요.');
+      }).catch(showError);
+      return true;
+    },
     onError: showError
   });
   utilityUi = createUtilityUi({

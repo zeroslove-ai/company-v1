@@ -10,8 +10,12 @@ const SECTION_LABELS = {
 };
 
 const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
-
-const INLINE_DIALOGUE = /([\p{L}][^\n():"“”]{0,40}?)\s*\(([^()\n]{0,160})\)\s*[:：]\s*["“]([^"”]*)["”]/gsu;
+const SECTION_LINE = /^\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지)\]$/;
+const QUOTED_INLINE_DIALOGUE = /([\p{L}][^\n():"“”]{0,40}?)\s*\(([^()\n]{0,160})\)\s*[:：]\s*["“]([^"”]*)["”]/gsu;
+const DIALOGUE_LINE = /^([\p{L}][^\n():："“”]{0,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
+const REGISTERED_SPEAKER_LINE = /^([^\n:："“”]{1,40}?)\s*[:：]\s*(?:["“]([^"”]*)["”]|(.+))$/u;
+const QUOTE_ONLY_LINE = /^["“]([^"”]+)["”]$/u;
+const CHOICE_LABEL = /^\[([^\[\]\r\n]{2,6})\]\s*(.+)$/u;
 
 function labelRole(label) {
   if (SECTION_LABELS[label]) return SECTION_LABELS[label];
@@ -21,43 +25,244 @@ function labelRole(label) {
 }
 
 function parseChoices(text) {
-  return text
-    .split(/\r?\n/)
-    .map(line => /^\d+\.\s+(.+)$/.exec(line.trim())?.[1]?.trim())
-    .filter(Boolean);
+  const choices = [];
+  const choiceLabels = [];
+  for (const line of text.split(/\r?\n/)) {
+    const numbered = /^\d+\.\s+(.+)$/.exec(line.trim())?.[1]?.trim();
+    if (!numbered) continue;
+    const labeled = CHOICE_LABEL.exec(numbered);
+    if (labeled) {
+      choiceLabels.push(labeled[1].trim());
+      choices.push(labeled[2].trim());
+    } else {
+      choiceLabels.push('');
+      choices.push(numbered);
+    }
+  }
+  return { choices, choice_labels: choiceLabels };
+}
+
+function masterCharacters(master) {
+  return [
+    ...(Array.isArray(master?.characters) ? master.characters : []),
+    ...(Array.isArray(master?.general_npcs) ? master.general_npcs : [])
+  ];
+}
+
+function registeredSpeakers(master) {
+  return masterCharacters(master)
+    .map(character => ({
+      id: character?.character_id ?? character?.npc_id ?? character?.id ?? null,
+      name: typeof character?.name === 'string' ? character.name.trim() : ''
+    }))
+    .filter(character => character.id && character.name);
+}
+
+function shortAlias(name) {
+  const characters = Array.from(String(name ?? '').trim());
+  if (characters.length !== 3 || !characters.every(character => /[가-힣]/u.test(character))) return '';
+  return characters.slice(1).join('');
+}
+
+function resolveRegisteredSpeaker(name, master) {
+  const trimmed = typeof name === 'string' ? name.trim() : '';
+  if (!trimmed) return null;
+  const speakers = registeredSpeakers(master);
+  const exact = speakers.filter(character => character.name === trimmed);
+  if (exact.length === 1) return exact[0];
+  const alias = shortAlias(trimmed) || trimmed;
+  const aliasMatches = speakers.filter(character => shortAlias(character.name) === alias);
+  return aliasMatches.length === 1 ? aliasMatches[0] : null;
 }
 
 function resolveSpeakerId(name, master) {
-  const trimmed = typeof name === 'string' ? name.trim() : '';
-  if (!trimmed) return null;
-  const characters = Array.isArray(master?.characters) ? master.characters : [];
-  const matches = characters.filter(character => typeof character?.name === 'string' && character.name.trim() === trimmed);
-  return matches.length === 1 && typeof matches[0].character_id === 'string' ? matches[0].character_id : null;
+  return resolveRegisteredSpeaker(name, master)?.id ?? null;
 }
 
-function extractInlineDialogue(text, master, orderRef) {
-  const lines = [];
-  if (!text) return lines;
-  INLINE_DIALOGUE.lastIndex = 0;
-  let match;
-  while ((match = INLINE_DIALOGUE.exec(text)) !== null) {
-    const speakerName = match[1].trim();
-    const direction = match[2].trim();
-    const dialogueText = match[3].trim();
-    if (!speakerName || !dialogueText) continue;
-    lines.push({
-      speaker_id: resolveSpeakerId(speakerName, master),
-      speaker_name: speakerName,
-      direction,
-      text: dialogueText,
-      order: orderRef.value++
-    });
+function lastMentionedSpeaker(line, speakers, previous = null) {
+  const value = String(line ?? '');
+  let selected = previous;
+  let selectedIndex = -1;
+  const aliasOwners = new Map();
+  for (const speaker of speakers) {
+    const alias = shortAlias(speaker.name);
+    if (!alias) continue;
+    const owners = aliasOwners.get(alias) ?? [];
+    owners.push(speaker);
+    aliasOwners.set(alias, owners);
   }
-  return lines;
+  for (const speaker of speakers) {
+    const exactIndex = value.lastIndexOf(speaker.name);
+    if (exactIndex > selectedIndex) {
+      selected = speaker;
+      selectedIndex = exactIndex;
+    }
+    const alias = shortAlias(speaker.name);
+    if (!alias || aliasOwners.get(alias)?.length !== 1) continue;
+    const aliasIndex = value.lastIndexOf(alias);
+    if (aliasIndex > selectedIndex) {
+      selected = speaker;
+      selectedIndex = aliasIndex;
+    }
+  }
+  return selected;
+}
+
+function isInternalQuotedThought(value) {
+  const text = String(value ?? '').trim();
+  return /^\([^)]*\)$/.test(text);
+}
+
+/**
+ * Actual production Story rows sometimes contain only “대사” even though the
+ * prompt asks for a speaker. Recover those lines only when the preceding scene
+ * prose names one uniquely registered character, including a unique Korean
+ * given-name reference such as “민아” -> “윤민아”.
+ */
+export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
+  const source = String(rawText ?? '');
+  const speakers = registeredSpeakers(master);
+  if (!source || !speakers.length) return source;
+
+  let role = null;
+  let recentSpeaker = null;
+  const output = [];
+  for (const rawLine of source.split(/\r?\n/)) {
+    const trimmed = rawLine.trim();
+    const section = SECTION_LINE.exec(trimmed);
+    if (section) {
+      role = labelRole(section[1]);
+      recentSpeaker = null;
+      output.push(rawLine);
+      continue;
+    }
+    if (role !== 'scene') {
+      output.push(rawLine);
+      continue;
+    }
+
+    const canonical = DIALOGUE_LINE.exec(trimmed);
+    if (canonical) {
+      const resolved = resolveRegisteredSpeaker(canonical[1], master);
+      if (resolved) recentSpeaker = resolved;
+      output.push(rawLine);
+      continue;
+    }
+    const named = REGISTERED_SPEAKER_LINE.exec(trimmed);
+    if (named) {
+      const resolved = resolveRegisteredSpeaker(named[1], master);
+      if (resolved) recentSpeaker = resolved;
+      output.push(rawLine);
+      continue;
+    }
+
+    const quote = QUOTE_ONLY_LINE.exec(trimmed);
+    if (quote && recentSpeaker && !isInternalQuotedThought(quote[1])) {
+      const indent = rawLine.slice(0, rawLine.indexOf(trimmed));
+      output.push(`${indent}${recentSpeaker.name} (자연스럽게): “${quote[1].trim()}”`);
+      continue;
+    }
+
+    recentSpeaker = lastMentionedSpeaker(rawLine, speakers, recentSpeaker);
+    output.push(rawLine);
+  }
+  return output.join('\n');
+}
+
+function normalizedDialogue({ speakerName, direction, dialogueText }, master, order) {
+  const suppliedName = typeof speakerName === 'string' ? speakerName.trim() : '';
+  const resolved = resolveRegisteredSpeaker(suppliedName, master);
+  const name = resolved?.name ?? suppliedName;
+  const acting = typeof direction === 'string' ? direction.trim() : '';
+  const text = typeof dialogueText === 'string' ? dialogueText.trim().replace(/^["“”']+|["“”']+$/g, '').trim() : '';
+  if (!name || !acting || !text) return null;
+  return {
+    speaker_id: resolved?.id ?? null,
+    speaker_name: name,
+    direction: acting,
+    text,
+    order
+  };
+}
+
+function parseDialogueLine(rawLine, master, order) {
+  const line = typeof rawLine === 'string' ? rawLine.trim() : '';
+  if (!line) return null;
+  const canonical = DIALOGUE_LINE.exec(line);
+  if (canonical) {
+    return normalizedDialogue({
+      speakerName: canonical[1],
+      direction: canonical[2],
+      dialogueText: canonical[3] ?? canonical[4]
+    }, master, order);
+  }
+  const fallback = REGISTERED_SPEAKER_LINE.exec(line);
+  if (!fallback) return null;
+  const speakerName = fallback[1].trim();
+  if (!resolveSpeakerId(speakerName, master)) return null;
+  return normalizedDialogue({
+    speakerName,
+    direction: '자연스럽게',
+    dialogueText: fallback[2] ?? fallback[3]
+  }, master, order);
+}
+
+function appendSceneBlocks(blocks, dialogueLines, sceneText, master, orderRef) {
+  const narrativeLines = [];
+  const signatures = new Set();
+  const flushNarrative = () => {
+    const value = narrativeLines.join('\n').trim();
+    narrativeLines.length = 0;
+    if (value) blocks.push({ type: 'scene', text: value });
+  };
+  const appendLine = line => {
+    const signature = `${line.speaker_name}\n${line.direction}\n${line.text}`;
+    if (signatures.has(signature)) return;
+    signatures.add(signature);
+    dialogueLines.push(line);
+    blocks.push({
+      type: 'dialogue',
+      speaker_id: line.speaker_id,
+      speaker: line.speaker_name,
+      speaker_name: line.speaker_name,
+      direction: line.direction,
+      text: line.text
+    });
+  };
+
+  for (const rawLine of sceneText.split(/\r?\n/)) {
+    const dialogue = parseDialogueLine(rawLine, master, orderRef.value);
+    if (!dialogue) {
+      narrativeLines.push(rawLine);
+      continue;
+    }
+    flushNarrative();
+    orderRef.value += 1;
+    appendLine(dialogue);
+  }
+  flushNarrative();
+
+  QUOTED_INLINE_DIALOGUE.lastIndex = 0;
+  let match;
+  while ((match = QUOTED_INLINE_DIALOGUE.exec(sceneText)) !== null) {
+    const dialogue = normalizedDialogue({
+      speakerName: match[1],
+      direction: match[2],
+      dialogueText: match[3]
+    }, master, orderRef.value);
+    if (!dialogue) continue;
+    const signature = `${dialogue.speaker_name}\n${dialogue.direction}\n${dialogue.text}`;
+    if (signatures.has(signature)) continue;
+    signatures.add(signature);
+    dialogueLines.push(dialogue);
+    orderRef.value += 1;
+  }
 }
 
 export function parseNarrative(rawText, { master } = {}) {
-  const raw = String(rawText ?? '');
+  const originalRaw = String(rawText ?? '');
+  const normalizedRaw = normalizeQuoteOnlyDialogue(originalRaw, { master });
+  const raw = normalizedRaw;
   const matches = [...raw.matchAll(MARKER)];
   const blocks = [];
   const warnings = [];
@@ -66,11 +271,13 @@ export function parseNarrative(rawText, { master } = {}) {
   let playerStatus = '';
   let playerInnerThought = '';
   let choices = [];
+  let choiceLabels = [];
   const sceneParts = [];
 
   if (matches.length === 0) {
     return {
-      raw,
+      raw: originalRaw,
+      normalized_raw: normalizedRaw,
       scene_text: '',
       blocks: raw.trim() ? [{ type: 'unparsed', text: raw.trim() }] : [],
       player_status: '',
@@ -99,17 +306,15 @@ export function parseNarrative(rawText, { master } = {}) {
       const malformedMarkerIndex = text.search(/\[(?:SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|DIALOGUE|\d\.\s*(?:서사\s*및\s*행동|플레이어\s*속마음|플레이어\s*상황판|선택지))\b/);
       if (malformedMarkerIndex === -1) {
         if (text) {
-          blocks.push({ type: 'scene', text });
           sceneParts.push(text);
-          dialogueLines.push(...extractInlineDialogue(text, master, orderRef));
+          appendSceneBlocks(blocks, dialogueLines, text, master, orderRef);
         }
       } else {
         const sceneText = text.slice(0, malformedMarkerIndex).trim();
         const fallbackText = text.slice(malformedMarkerIndex).trim();
         if (sceneText) {
-          blocks.push({ type: 'scene', text: sceneText });
           sceneParts.push(sceneText);
-          dialogueLines.push(...extractInlineDialogue(sceneText, master, orderRef));
+          appendSceneBlocks(blocks, dialogueLines, sceneText, master, orderRef);
         }
         if (fallbackText) blocks.push({ type: 'unparsed', text: fallbackText });
         warnings.push('malformed_marker_fallback');
@@ -126,8 +331,13 @@ export function parseNarrative(rawText, { master } = {}) {
       continue;
     }
     if (role === 'choices') {
-      choices = parseChoices(text);
+      const parsed = parseChoices(text);
+      choices = parsed.choices;
+      choiceLabels = parsed.choice_labels;
       if (choices.length !== 4) warnings.push('choices_not_exactly_four');
+      const suppliedLabels = choiceLabels.filter(Boolean);
+      if (suppliedLabels.length > 0 && suppliedLabels.length !== choices.length) warnings.push('choice_labels_missing');
+      if (new Set(suppliedLabels).size !== suppliedLabels.length) warnings.push('choice_labels_duplicated');
       continue;
     }
 
@@ -138,22 +348,19 @@ export function parseNarrative(rawText, { master } = {}) {
       warnings.push('malformed_dialogue_marker');
       continue;
     }
-    blocks.push({ type: 'dialogue', speaker, direction, text });
-    dialogueLines.push({
-      speaker_id: resolveSpeakerId(speaker, master),
-      speaker_name: speaker,
-      direction,
-      text,
-      order: orderRef.value++
-    });
+    const dialogue = normalizedDialogue({ speakerName: speaker, direction, dialogueText: text }, master, orderRef.value++);
+    if (!dialogue) continue;
+    blocks.push({ type: 'dialogue', speaker_id: dialogue.speaker_id, speaker: dialogue.speaker_name, speaker_name: dialogue.speaker_name, direction, text: dialogue.text });
+    dialogueLines.push(dialogue);
   }
 
   if (choices.length !== 4 && !warnings.includes('choices_not_exactly_four')) {
     warnings.push('choices_not_exactly_four');
   }
   if (/\[DIALOGUE\b(?![^\]]*\])/.test(raw)) warnings.push('incomplete_dialogue_marker');
-  return {
-    raw,
+  const result = {
+    raw: originalRaw,
+    normalized_raw: normalizedRaw,
     scene_text: sceneParts.join('\n'),
     blocks,
     player_status: playerStatus,
@@ -162,4 +369,6 @@ export function parseNarrative(rawText, { master } = {}) {
     dialogue_lines: dialogueLines,
     warnings
   };
+  if (choiceLabels.some(Boolean)) result.choice_labels = choiceLabels;
+  return result;
 }
