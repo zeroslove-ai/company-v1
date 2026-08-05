@@ -20,8 +20,20 @@ export function contextChoices(context) {
   return Array.isArray(committedChoices) ? committedChoices.filter(validChoice) : [];
 }
 export function loadPending(storage, gameId) { try { const value = JSON.parse(storage?.getItem(pendingKey(gameId)) ?? 'null'); return value?.game_id === gameId && value.action_id && value.player_action ? value : null; } catch { return null; } }
-export function savePending(storage, action) { storage?.setItem(pendingKey(action.game_id), JSON.stringify(action)); }
-export function clearPending(storage, gameId) { storage?.removeItem(pendingKey(gameId)); }
+
+function notifyPendingStage(action) {
+  if (typeof globalThis.dispatchEvent !== 'function' || typeof globalThis.CustomEvent !== 'function') return;
+  globalThis.dispatchEvent(new globalThis.CustomEvent('company:pending-step', { detail: action ?? null }));
+}
+
+export function savePending(storage, action) {
+  storage?.setItem(pendingKey(action.game_id), JSON.stringify(action));
+  notifyPendingStage(action);
+}
+export function clearPending(storage, gameId) {
+  storage?.removeItem(pendingKey(gameId));
+  notifyPendingStage(null);
+}
 export function recoveryFor(status) { const step = status?.recoverable_step ?? 'unknown'; return ['retry_story', 'resume_extract', 'retry_extract', 'resume_commit', 'retry_commit', 'complete', 'wait_story'].includes(step) ? step : 'unknown'; }
 
 function legacyProgressedSave(context) {
