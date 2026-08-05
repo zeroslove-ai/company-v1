@@ -326,9 +326,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       try {
         text(setupElements.status, '설정 저장 중…');
         const saveResult = await api.playerSetup({ game_id: gameId, player: validation.player });
-        await streamOpening(saveResult.setup_id, setupElements.status);
-        // 설정 완료 → 팝업 즉시 닫기 (사용자 요구). context 갱신과 무관하게 확실히 닫는다.
+        // 설정 저장 성공 → 팝업 즉시 닫기. 서사 출력 시작과 동시에 창이 닫히도록
+        // 스트리밍 완료를 기다리지 않는다 (사용자 요구).
         if (setupElements.overlay) setupElements.overlay.hidden = true;
+        await streamOpening(saveResult.setup_id, setupElements.status);
         return true;
       } catch (error) {
         await refreshContext().catch(() => undefined);
