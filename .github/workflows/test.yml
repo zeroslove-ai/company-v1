@@ -25,11 +25,12 @@ jobs:
           npm test 2>&1 | tee test-output.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
-            output=$(tail -n 100 test-output.log)
+            output=$(grep -n -B 12 -A 28 '^not ok' test-output.log | tail -n 240)
+            if [ -z "$output" ]; then output=$(tail -n 120 test-output.log); fi
             output=${output//'%'/'%25'}
             output=${output//$'\r'/'%0D'}
             output=${output//$'\n'/'%0A'}
-            echo "::error title=Regression test output::$output"
+            echo "::error title=Regression failure blocks::$output"
           fi
           exit "$status"
       - name: API Worker dry-run
