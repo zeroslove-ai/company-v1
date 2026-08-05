@@ -31,6 +31,11 @@
         <div class="title-group"><h1 id="game-title">상식개변: 회사편</h1><p id="day-time" class="time-display"></p></div>
         <div class="header-status"><span id="turn-number">Turn 0</span><span id="api-status" class="connection-indicator" role="status" aria-label="연결 확인 중" title="연결 확인 중">●</span></div>
       </header>
+      <div class="media-controls tts-controls tts-bar">
+        <button id="tts-toggle" type="button" aria-pressed="true">🔊 음성 ON</button>
+        <button id="tts-replay" type="button" hidden disabled>▶ 마지막 대사 재생</button>
+        <p id="tts-status" class="tts-status" aria-live="polite"></p>
+      </div>
       <p id="status-banner" class="status-banner" aria-live="polite"></p>
       <p id="error-banner" class="status-banner error" role="alert" hidden></p>
 
@@ -47,12 +52,7 @@
             <h2 id="media-heading">현재 장면</h2>
             <img id="character-image" class="character-image" alt="" hidden>
             <p id="image-status" class="media-status">표시할 이미지가 없습니다.</p>
-            <div class="media-controls tts-controls">
-              <button id="tts-toggle" type="button" aria-pressed="true">🔊 음성 ON</button>
-              <button id="tts-replay" type="button" hidden disabled>▶ 마지막 대사 재생</button>
-              <p id="tts-status" class="tts-status" aria-live="polite"></p>
-            </div>
-            <audio id="audio-player" class="audio-player" controls preload="none"></audio>
+
           </section>
           <section class="mind-panel" aria-labelledby="mind-heading">
             <h2 id="mind-heading">Mind Monitor</h2>
