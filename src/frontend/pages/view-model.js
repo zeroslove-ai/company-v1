@@ -136,6 +136,7 @@ function fallbackActiveRules(save) {
       id,
       strength: text(rule.strength),
       strength_label: text(rule.strength),
+      authority_label: text(rule.authority_label),
       scope_label: text(rule.scope_label) || '회사 전체',
       content: text(rule.content ?? rule.required_action)
     }];
@@ -232,6 +233,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
         id: text(rule.id),
         strength: text(rule.strength),
         strength_label: text(rule.strength_label),
+        authority_label: text(rule.authority_label),
         scope_label: text(rule.scope_label) || '회사 전체',
         content: text(rule.content)
       })),
