@@ -1,6 +1,7 @@
 import { HttpError, ok, readJson, requireString } from './http.js';
 import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes-runtime.js';
 import { resolveTtsEligibility } from '../engine/index.js';
+import { createRegisteredNpcPolicyFetch } from './npc-policy-fetch.js';
 
 const TTS_WORKER_URL = 'https://fancy-dust-7f8c.zeroslove.workers.dev/';
 
@@ -73,7 +74,8 @@ async function synthesizeViaLegacyProvider({ env, eligibility, spokenText, direc
  * downloads and re-wraps production service-binding audio as a Blob.
  */
 export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) {
-  const routes = createBaseTurnRoutes({ fetchImpl, edition });
+  const policyFetch = createRegisteredNpcPolicyFetch(fetchImpl);
+  const routes = createBaseTurnRoutes({ fetchImpl: policyFetch, edition });
   const master = masterFromEdition(edition);
 
   return {
@@ -93,7 +95,7 @@ export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) 
       if (env?.TTS_WORKER && typeof env.TTS_WORKER.fetch === 'function') {
         url = await synthesizeViaServiceBinding({ env, eligibility, spokenText, direction });
       } else if (typeof env?.TTS_API_URL === 'string' && env.TTS_API_URL && typeof env?.TTS_API_KEY === 'string' && env.TTS_API_KEY) {
-        url = await synthesizeViaLegacyProvider({ env, eligibility, spokenText, direction, fetchImpl });
+        url = await synthesizeViaLegacyProvider({ env, eligibility, spokenText, direction, fetchImpl: policyFetch });
       } else {
         throw new HttpError(500, 'configuration_error', 'TTS_WORKER service binding is not configured', false);
       }
