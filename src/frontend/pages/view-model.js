@@ -124,11 +124,7 @@ function normalizedChanges(value) {
     const entry = object(source[key]);
     const delta = numberOrNull(entry?.delta);
     if (delta === null || delta === 0) continue;
-    result[key] = {
-      from: numberOrNull(entry.from),
-      to: numberOrNull(entry.to),
-      delta
-    };
+    result[key] = { from: numberOrNull(entry.from), to: numberOrNull(entry.to), delta };
   }
   return result;
 }
@@ -148,30 +144,29 @@ function detailFor(details, id) {
 
 function mindMonitorEntries(save, monitor, preferredIds = [], directory = {}, details = {}) {
   const source = object(monitor) ?? {};
-  const ids = new Set([
-    ...Object.keys(source),
-    ...preferredIds.filter(Boolean),
-    ...strings(save.last_npcs_present)
-  ]);
+  const ids = new Set([...Object.keys(source), ...preferredIds.filter(Boolean), ...strings(save.last_npcs_present)]);
   const rank = new Map(preferredIds.filter(Boolean).map((id, index) => [id, index]));
   return [...ids].map(id => {
     const value = object(source[id]) ?? {};
     const detail = detailFor(details, id);
-    const savedStats = object(object(save.npc_stats)?.[id]) ?? {};
+    const savedStats = object(object(save.npc_stats)?.[id]);
     const hasDetail = Boolean(object(details)?.[id]);
-    const surface = text(value.surface ?? value['표면의식']);
-    const subconscious = text(value.subconscious ?? value.latent ?? value['잠재의식']);
-    return {
+    const entry = {
       id,
       name: characterName(save, id, directory, details) || id,
-      surface,
-      subconscious,
-      stats: hasDetail ? detail.stats : normalizedStats(savedStats),
-      stat_changes: detail.stat_changes,
-      relationship_summary: detail.relationship_summary,
-      relationship_record: detail.relationship_record,
-      private_info: detail.private_info
+      surface: text(value.surface ?? value['표면의식']),
+      subconscious: text(value.subconscious ?? value.latent ?? value['잠재의식'])
     };
+    if (hasDetail || savedStats) {
+      entry.stats = hasDetail ? detail.stats : normalizedStats(savedStats);
+      entry.stat_changes = hasDetail ? detail.stat_changes : {};
+    }
+    if (hasDetail) {
+      entry.relationship_summary = detail.relationship_summary;
+      entry.relationship_record = detail.relationship_record;
+      entry.private_info = detail.private_info;
+    }
+    return entry;
   }).filter(entry => entry.id && (entry.surface || entry.subconscious || object(details)?.[entry.id] || object(save.npc_stats)?.[entry.id]))
     .sort((left, right) => (rank.get(left.id) ?? 99) - (rank.get(right.id) ?? 99));
 }
@@ -202,18 +197,10 @@ function fallbackActiveRules(save) {
   return strings(save.csa_active).flatMap(id => {
     const rule = object(rules[id]);
     if (!rule || rule.active === false) return [];
-    return [{
-      id,
-      strength: text(rule.strength),
-      strength_label: text(rule.strength),
-      authority_label: text(rule.authority_label),
-      scope_label: text(rule.scope_label) || '회사 전체',
-      content: text(rule.content ?? rule.required_action)
-    }];
+    return [{ id, strength: text(rule.strength), strength_label: text(rule.strength), authority_label: text(rule.authority_label), scope_label: text(rule.scope_label) || '회사 전체', content: text(rule.content ?? rule.required_action) }];
   });
 }
 
-/** Converts immutable Company Context data to display-safe values. */
 export function buildCompanyGameViewModel(context, runtime = {}) {
   const save = saveFromContext(context);
   const turn = latestTurn(context);
@@ -239,98 +226,53 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
 
   return {
     turn: {
-      committed_turn: committedTurn(context, save),
-      turn_id: text(turn.turn_id),
-      action_id: text(turn.action_id),
-      player_action: text(turn.player_action),
-      turn_summary: text(turn.turn_summary),
-      turn_changes: Array.isArray(turn.turn_changes) ? turn.turn_changes : [],
-      replayed: turn.replayed === true
+      committed_turn: committedTurn(context, save), turn_id: text(turn.turn_id), action_id: text(turn.action_id),
+      player_action: text(turn.player_action), turn_summary: text(turn.turn_summary),
+      turn_changes: Array.isArray(turn.turn_changes) ? turn.turn_changes : [], replayed: turn.replayed === true
     },
     story: {
-      story_text: text(turn.story_text),
-      blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
-      choices: choices(save, turn),
-      player_status: text(parsedStory.player_status),
-      player_inner_thought: text(parsedStory.player_inner_thought),
-      dialogue_lines: dialogueLines(currentExtract, parsedStory),
-      warnings: strings(parsedStory.warnings)
+      story_text: text(turn.story_text), blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
+      choices: choices(save, turn), player_status: text(parsedStory.player_status), player_inner_thought: text(parsedStory.player_inner_thought),
+      dialogue_lines: dialogueLines(currentExtract, parsedStory), warnings: strings(parsedStory.warnings)
     },
     scene: {
-      scene_state: scene,
-      world_state: object(save.world_state) ?? {},
-      story_summary_recent: text(save.story_summary_recent),
-      csa_active: Array.isArray(save.csa_active) ? save.csa_active : [],
-      csa_rules: activeRules,
-      npcs_present: strings(save.last_npcs_present),
-      action_target_id: text(currentExtract?.action_target_id),
-      clothing_state: object(currentExtract?.clothing_state)
+      scene_state: scene, world_state: object(save.world_state) ?? {}, story_summary_recent: text(save.story_summary_recent),
+      csa_active: Array.isArray(save.csa_active) ? save.csa_active : [], csa_rules: activeRules,
+      npcs_present: strings(save.last_npcs_present), action_target_id: text(currentExtract?.action_target_id), clothing_state: object(currentExtract?.clothing_state)
     },
     focal_character: {
-      id: focalId,
-      name: characterName(save, focalId, directory, details),
-      last_speaker_id: lastSpeakerId,
+      id: focalId, name: characterName(save, focalId, directory, details), last_speaker_id: lastSpeakerId,
       character: npcView(save, focalId, details),
       scene_state: {
-        location_label: text(focalSceneState.location_label),
-        posture: text(focalSceneState.posture),
-        posture_detail: text(focalSceneState.posture_detail ?? focalSceneState.posture_description),
-        position_label: text(focalSceneState.position_label),
-        relative_position: text(
-          focalSceneState.relative_position
-          ?? focalSceneState.position_relative_to_player
-          ?? focalSceneState.relative_to_player
-          ?? focalSceneState.physical_relation
-        ),
+        location_label: text(focalSceneState.location_label), posture: text(focalSceneState.posture),
+        posture_detail: text(focalSceneState.posture_detail ?? focalSceneState.posture_description), position_label: text(focalSceneState.position_label),
+        relative_position: text(focalSceneState.relative_position ?? focalSceneState.position_relative_to_player ?? focalSceneState.relative_to_player ?? focalSceneState.physical_relation),
         clothing: object(focalSceneState.clothing) ?? {}
       }
     },
     player: {
-      state: player,
-      stats: object(save.npc_stats)?.player ?? {},
-      name: text(player.name ?? save.player_name),
-      department: text(player.department)
-        || catalogName(CATALOGS.departments, 'department_id', player.department_id)
-        || text(save.player_department),
-      position: text(player.position)
-        || catalogName(CATALOGS.positions, 'position_id', player.position_id),
+      state: player, stats: object(save.npc_stats)?.player ?? {}, name: text(player.name ?? save.player_name),
+      department: text(player.department) || catalogName(CATALOGS.departments, 'department_id', player.department_id) || text(save.player_department),
+      position: text(player.position) || catalogName(CATALOGS.positions, 'position_id', player.position_id),
       level: integer(capability.level) ?? integer(playerProgress.level) ?? 1,
       exp: integer(capability.exp) ?? integer(playerProgress.exp) ?? 0,
-      next_level_exp: integer(capability.next_level_exp),
-      active_csa_count: integer(capability.active_csa_count) ?? activeRules.length,
+      next_level_exp: integer(capability.next_level_exp), active_csa_count: integer(capability.active_csa_count) ?? activeRules.length,
       max_active_csa: integer(capability.max_active_csa),
-      active_csa: activeRules.map(rule => ({
-        id: text(rule.id),
-        strength: text(rule.strength),
-        strength_label: text(rule.strength_label),
-        authority_label: text(rule.authority_label),
-        scope_label: text(rule.scope_label) || '회사 전체',
-        content: text(rule.content)
-      })),
+      active_csa: activeRules.map(rule => ({ id: text(rule.id), strength: text(rule.strength), strength_label: text(rule.strength_label), authority_label: text(rule.authority_label), scope_label: text(rule.scope_label) || '회사 전체', content: text(rule.content) })),
       excitement: numberOrNull(sexualDisplay.arousal) ?? numberOrNull(playerSexualState.arousal),
-      ejaculation_progress: numberOrNull(sexualDisplay.ejaculation_progress)
-        ?? numberOrNull(playerSexualState.ejaculation_progress ?? playerSexualState.ejaculation_meter),
+      ejaculation_progress: numberOrNull(sexualDisplay.ejaculation_progress) ?? numberOrNull(playerSexualState.ejaculation_progress ?? playerSexualState.ejaculation_meter),
       ejaculation_count: numberOrNull(sexualDisplay.ejaculation_count) ?? numberOrNull(playerSexualState.ejaculation_count),
-      total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events),
-      last_sexual_event: object(sexualDisplay.last_sexual_event),
-      status: text(parsedStory.player_status),
-      inner_thought: text(parsedStory.player_inner_thought),
+      total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events), last_sexual_event: object(sexualDisplay.last_sexual_event),
+      status: text(parsedStory.player_status), inner_thought: text(parsedStory.player_inner_thought),
       location_label: text(playerSceneState.location_label) || text(scene.location_label) || text(scene.location_id),
-      posture: text(playerSceneState.posture),
-      posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
-      position_label: text(playerSceneState.position_label),
-      clothing: object(playerSceneState.clothing) ?? {}
+      posture: text(playerSceneState.posture), posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
+      position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
-      image_id: imageId(currentExtract?.image_id ?? save.last_image_id),
-      image_character_id: imageCharacterId,
-      image_selection: object(currentExtract?.image_selection),
-      image_pool: currentExtract?.is_sexual === true ? 'sex' : 'general',
-      image_situation: text(currentExtract?.image_reasoning) || text(turn.turn_summary),
-      dialogue_lines: dialogueLines(currentExtract, parsedStory),
-      mind_monitor: monitor,
-      mind_monitor_entries: monitorEntries,
-      default_mind_character_id: monitorEntries[0]?.id ?? ''
+      image_id: imageId(currentExtract?.image_id ?? save.last_image_id), image_character_id: imageCharacterId,
+      image_selection: object(currentExtract?.image_selection), image_pool: currentExtract?.is_sexual === true ? 'sex' : 'general',
+      image_situation: text(currentExtract?.image_reasoning) || text(turn.turn_summary), dialogue_lines: dialogueLines(currentExtract, parsedStory),
+      mind_monitor: monitor, mind_monitor_entries: monitorEntries, default_mind_character_id: monitorEntries[0]?.id ?? ''
     }
   };
 }
