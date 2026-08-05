@@ -1,5 +1,5 @@
 import { HttpError, readJson, requireString } from './http.js';
-import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes.js';
+import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes-runtime.js';
 import { resolveTtsEligibility } from '../engine/index.js';
 
 const TTS_WORKER_URL = 'https://fancy-dust-7f8c.zeroslove.workers.dev/';
