@@ -401,3 +401,14 @@
 @media (max-width: 480px) {
 
 }
+
+/* 현재 상황 패널 — [3. 플레이어 상황판] 별도 표시 (여러 줄 보존) */
+.player-status-card {
+  border-color: #2f4051;
+}
+.player-status-card .future-slot-value {
+  white-space: pre-line;
+  font-size: .72rem;
+  line-height: 1.5;
+  color: #c9d8e4;
+}

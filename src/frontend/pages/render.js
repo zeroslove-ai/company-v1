@@ -541,8 +541,7 @@ function renderPlayer(container, player, scene) {
     ['흥분도', typeof player?.excitement === 'number' ? String(player.excitement) : ''],
     ['누적 사정', typeof player?.ejaculation_count === 'number' ? `${player.ejaculation_count}회` : '0회'],
     ['성적 이벤트', typeof player?.total_sexual_events === 'number' ? `${player.total_sexual_events}건` : '0건'],
-    ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event) || '없음'],
-    ['현재 상황', displayValue(player?.status)]
+    ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event) || '없음']
   ];
   activeRules.forEach((rule, index) => {
     const strength = localizedValue(rule?.strength_label || rule?.strength);
@@ -586,15 +585,17 @@ export function compactSummary(value, maxLength = 140) {
 export function playerSupplementalDisplay(viewModel) {
   const model = viewModel ?? {};
   const world = object(model.scene?.world_state) ?? {};
-  const day = displayValue(world.day ?? world.day_index);
-  const timeBlock = localizedValue(world.time_block);
+  const gameTime = object(world.game_time) ?? {};
+  const day = displayValue(gameTime.day ?? world.day ?? world.day_index);
+  const clock = formatClock(gameTime.minute_of_day);
   const progress = progressValue(model.player?.ejaculation_progress);
   const count = typeof model.player?.ejaculation_count === 'number' && Number.isFinite(model.player.ejaculation_count)
     ? model.player.ejaculation_count
     : null;
   return {
     innerThought: displayValue(model.player?.inner_thought),
-    gameTime: [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '),
+    playerStatus: displayValue(model.player?.status),
+    gameTime: [day ? `Day ${day}` : '', clock].filter(Boolean).join(' · '),
     ejaculationProgress: progress,
     ejaculationCount: count,
     turnSummary: compactSummary(model.turn?.turn_summary)
@@ -628,6 +629,9 @@ function renderSupplementalPanels(elements, model) {
     duplicateInnerThought.hidden = true;
     duplicateInnerThought.className = 'future-slot';
   }
+  renderTextSlot(supplementalElement(elements, 'playerStatus', 'player-status-slot'), {
+    heading: '현재 상황', value: display.playerStatus, className: 'player-status-card'
+  });
   renderTextSlot(supplementalElement(elements, 'gameTime', 'game-time-slot'), {
     heading: '현재 시간', value: display.gameTime, className: 'game-time-card'
   });
@@ -652,10 +656,9 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   const gameTime = object(world.game_time) ?? {};
   const day = displayValue(gameTime.day ?? world.day ?? world.day_index);
   const clock = formatClock(gameTime.minute_of_day);
-  const timeBlock = localizedValue(world.time_block);
   text(elements.title, title || '상식개변: 회사편');
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
-  text(elements.dayTime, [day ? `Day ${day}` : '', clock, timeBlock].filter(Boolean).join(' · '));
+  text(elements.dayTime, [day ? `Day ${day}` : '', clock].filter(Boolean).join(' · '));
   // scene-state: 활성 규정은 플레이어 상태창으로 통합되어 여기선 비움 (중복 방지)
   const characterPanel = elements.focal?.closest?.('details');
   if (characterPanel) characterPanel.open = true;

@@ -30,7 +30,7 @@ function pageFixture() {
 function validContext({ turns = [], choices = ['A', 'B', 'C', 'D'] } = {}) {
   return {
     game: { edition_id: 'company-v1', title: '상식개변: 회사편' },
-    save: { committed_turn: 2, data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 1 }, last_choices: choices, scene_state: { location_id: 'office' }, world_state: { day: 1, time_block: 'morning' }, csa_active: ['csa-1'], player_setup: { completed: true } } },
+    save: { committed_turn: 2, data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 1 }, last_choices: choices, scene_state: { location_id: 'office' }, world_state: { day: 1, time_block: 'morning', game_time: { day: 1, minute_of_day: 742 } }, csa_active: ['csa-1'], player_setup: { completed: true } } },
     recent_turns: turns
   };
 }
@@ -140,7 +140,7 @@ test('reconnect renders the latest Story and choices and resume makes no API cal
     assert.equal(nodes['story-history'].children[0].children[1].children[0].textContent, 'Latest Story');
     assert.equal(nodes['choice-list'].children.length, 4);
     assert.equal(nodes['resume-play'].disabled, false);
-    assert.equal(nodes['day-time'].textContent, 'Day 1 · 오전');
+    assert.equal(nodes['day-time'].textContent, 'Day 1 · 12:22');
     assert.equal(nodes['open-history'].disabled, true);
     assert.equal(nodes['open-history'].onclick, null);
     app.resumePlay();
