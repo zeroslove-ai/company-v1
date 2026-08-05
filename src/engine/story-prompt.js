@@ -107,7 +107,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   'CSA(공통 인식 규칙)는 항상 전역 규칙이며 NPC는 거절할 수 있지만 플레이어의 자유 입력 자체는 막지 않는다. context와 active_character_canon에 없는 NPC나 장면을 새로 만들지 않는다.',
 
-  'active_character_canon은 그 턴에 등장한 등록 캐릭터에 대한 유일한 사실 기준이다. 이름·나이·부서·직급·외모·성격·말투·호칭 규칙을 임의로 바꾸거나 다른 직급·직무로 승격하지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 장면 행동·대사·거리감의 실제 생성 근거로 사용한다.'
+  'active_character_canon은 그 턴에 등장한 등록 캐릭터에 대한 유일한 사실 기준이다. 이름·나이·부서·직급·외모·성격·말투·호칭 규칙을 임의로 바꾸거나 다른 직급·직무로 승격하지 않는다. canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 장면 행동·대사·거리감의 실제 생성 근거로 사용한다.'
 ].join(' ');
 
 export function buildRegenerationFeedbackSection(feedbackText) {
