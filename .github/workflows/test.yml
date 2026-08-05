@@ -19,7 +19,19 @@ jobs:
         with:
           node-version: '22'
       - name: Run regression tests
-        run: npm test
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee test-output.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            output=$(tail -n 100 test-output.log)
+            output=${output//'%'/'%25'}
+            output=${output//$'\r'/'%0D'}
+            output=${output//$'\n'/'%0A'}
+            echo "::error title=Regression test output::$output"
+          fi
+          exit "$status"
       - name: API Worker dry-run
         run: npx --yes wrangler deploy --dry-run --config wrangler.api.jsonc
       - name: Frontend Worker dry-run
