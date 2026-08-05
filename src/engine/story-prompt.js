@@ -6,6 +6,8 @@ import {
   selectActiveGeneralNpcIds
 } from './workplace-context.js';
 
+const MOVEMENT_TARGET_ACTION = /(찾으러|찾아가|찾아보|보러\s*가|만나러|이동하|가본다|가겠다|방문하)/u;
+
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
 }
@@ -44,6 +46,34 @@ function dialogueTail(turn) {
     direction: typeof line.direction === 'string' ? line.direction : '',
     text: clip(line.text, 260)
   }));
+}
+
+function koreanGivenName(name) {
+  const characters = Array.from(typeof name === 'string' ? name.trim() : '');
+  if (characters.length !== 3 || !characters.every(character => /[가-힣]/u.test(character))) return '';
+  return characters.slice(1).join('');
+}
+
+/**
+ * A partial name is normally never enough to activate a character. The sole
+ * exception is an explicit find/visit/movement action whose Korean given name
+ * resolves to exactly one registered heroine (e.g. 민아 -> 윤민아).
+ */
+export function resolveMovementCharacterTarget(charactersMap, playerAction) {
+  const map = object(charactersMap) ?? {};
+  const action = typeof playerAction === 'string' ? playerAction.trim() : '';
+  if (!action || !MOVEMENT_TARGET_ACTION.test(action)) return null;
+  const exact = Object.entries(map).filter(([, character]) => {
+    const name = typeof character?.name === 'string' ? character.name.trim() : '';
+    return name && action.includes(name);
+  });
+  if (exact.length === 1) return exact[0][0];
+  if (exact.length > 1) return null;
+  const aliasMatches = Object.entries(map).filter(([, character]) => {
+    const alias = koreanGivenName(character?.name);
+    return alias && action.includes(alias);
+  });
+  return aliasMatches.length === 1 ? aliasMatches[0][0] : null;
 }
 
 /** Detailed continuity is intentionally limited to the immediately previous turn. */
@@ -152,7 +182,11 @@ export function appendLateAuthoritativeCharacterCanon(messages) {
 export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
-  const heroineActiveIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
+  const selectedHeroineIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
+  const movementTargetId = resolveMovementCharacterTarget(charactersMap, playerAction);
+  const heroineActiveIds = movementTargetId
+    ? [movementTargetId, ...selectedHeroineIds.filter(id => id !== movementTargetId)]
+    : selectedHeroineIds;
   const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: playerAction });
   const activeIds = [...heroineActiveIds, ...generalActiveIds.filter(id => !heroineActiveIds.includes(id))];
   return [

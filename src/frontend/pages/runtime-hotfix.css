@@ -1,0 +1,91 @@
+/* Live-play UX hotfixes. Loaded after every existing stylesheet. */
+
+#find-npc,
+#npc-finder-overlay {
+  display: none !important;
+}
+
+.turn-loading-overlay {
+  position: fixed !important;
+  inset: auto auto calc(68px + env(safe-area-inset-bottom, 0px)) 50% !important;
+  z-index: 90 !important;
+  display: block !important;
+  width: min(430px, calc(100vw - 24px)) !important;
+  padding: 0 !important;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.turn-loading-overlay[hidden] {
+  display: none !important;
+}
+
+.turn-loading-card {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center;
+  gap: .45rem !important;
+  width: 100% !important;
+  padding: .45rem .65rem !important;
+  border: 1px solid rgb(116 168 198 / 75%) !important;
+  border-radius: .65rem !important;
+  background: rgb(20 34 44 / 94%) !important;
+  box-shadow: 0 5px 16px rgb(0 0 0 / 28%) !important;
+}
+
+.turn-loading-spinner {
+  grid-row: auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-width: 2px !important;
+}
+
+.turn-loading-title {
+  font-size: .82rem !important;
+  line-height: 1.25;
+}
+
+.turn-loading-detail {
+  display: none !important;
+}
+
+.turn-loading-elapsed {
+  margin: 0 !important;
+  color: #b8cad5;
+  font-size: .74rem;
+  white-space: nowrap;
+}
+
+.narrative-player_inner_thought,
+.narrative-player-inner-thought {
+  position: relative;
+  margin: .8rem 0 !important;
+  padding: 2rem .85rem .8rem !important;
+  border: 1px solid #4a6476;
+  border-radius: .65rem;
+  background: linear-gradient(135deg, #1b2934, #202d38);
+  color: #dceaf2;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.narrative-player_inner_thought::before,
+.narrative-player-inner-thought::before {
+  content: '플레이어 속마음';
+  position: absolute;
+  top: .55rem;
+  left: .85rem;
+  color: #9ecce5;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+@media (max-width: 560px) {
+  .turn-loading-overlay {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+    width: calc(100vw - 18px) !important;
+  }
+}

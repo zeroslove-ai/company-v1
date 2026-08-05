@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="./product-contract.css">
     <link rel="stylesheet" href="./hospital-parity.css">
     <link rel="stylesheet" href="./recovery-ui.css">
+    <link rel="stylesheet" href="./runtime-hotfix.css">
   </head>
   <body data-edition-id="company-v1" data-phase="phase-4-frontend-loop">
     <section id="boot-fallback" class="boot-fallback" role="status" aria-live="polite">
@@ -91,7 +92,7 @@
       <nav class="utility-toolbar" aria-label="게임 도구">
         <button id="open-history" type="button" disabled>플레이 기록</button>
         <button id="send-feedback" type="button" disabled>피드백</button>
-        <button id="find-npc" type="button" disabled>NPC 찾기</button>
+        <button id="find-npc" type="button" hidden aria-hidden="true" tabindex="-1" disabled>NPC 찾기</button>
         <button id="reset-game" type="button">초기화</button>
       </nav>
     </main>
@@ -155,7 +156,7 @@
       </form>
     </div>
 
-    <div id="npc-finder-overlay" class="utility-overlay" role="dialog" aria-modal="true" aria-labelledby="npc-finder-heading" hidden>
+    <div id="npc-finder-overlay" class="utility-overlay" role="dialog" aria-modal="true" aria-labelledby="npc-finder-heading" hidden aria-hidden="true">
       <section class="utility-modal">
         <header class="utility-modal-header"><h2 id="npc-finder-heading">NPC 찾기</h2><button id="npc-finder-close" type="button">닫기</button></header>
         <label for="npc-finder-character">인물</label><select id="npc-finder-character"></select>
@@ -166,10 +167,10 @@
     </div>
 
     <script type="module" src="./app.js"></script>
+    <script type="module" src="./tts-product-policy.js"></script>
     <script type="module" src="./tts.js"></script>
     <script type="module" src="./relationship-icons.js"></script>
     <script type="module" src="./history-tools.js"></script>
-    <script type="module" src="./npc-finder.js"></script>
     <script type="module" src="./csa-product-ui.js"></script>
     <script type="module" src="./boot-guard.js"></script>
     <script type="module" src="./hospital-scroll.js"></script>

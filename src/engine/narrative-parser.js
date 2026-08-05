@@ -58,22 +58,51 @@ function registeredSpeakers(master) {
     .filter(character => character.id && character.name);
 }
 
-function resolveSpeakerId(name, master) {
+function shortAlias(name) {
+  const characters = Array.from(String(name ?? '').trim());
+  if (characters.length !== 3 || !characters.every(character => /[가-힣]/u.test(character))) return '';
+  return characters.slice(1).join('');
+}
+
+function resolveRegisteredSpeaker(name, master) {
   const trimmed = typeof name === 'string' ? name.trim() : '';
   if (!trimmed) return null;
-  const matches = registeredSpeakers(master).filter(character => character.name === trimmed);
-  return matches.length === 1 ? matches[0].id : null;
+  const speakers = registeredSpeakers(master);
+  const exact = speakers.filter(character => character.name === trimmed);
+  if (exact.length === 1) return exact[0];
+  const alias = shortAlias(trimmed) || trimmed;
+  const aliasMatches = speakers.filter(character => shortAlias(character.name) === alias);
+  return aliasMatches.length === 1 ? aliasMatches[0] : null;
+}
+
+function resolveSpeakerId(name, master) {
+  return resolveRegisteredSpeaker(name, master)?.id ?? null;
 }
 
 function lastMentionedSpeaker(line, speakers, previous = null) {
   const value = String(line ?? '');
   let selected = previous;
   let selectedIndex = -1;
+  const aliasOwners = new Map();
   for (const speaker of speakers) {
-    const index = value.lastIndexOf(speaker.name);
-    if (index > selectedIndex) {
+    const alias = shortAlias(speaker.name);
+    if (!alias) continue;
+    const owners = aliasOwners.get(alias) ?? [];
+    owners.push(speaker);
+    aliasOwners.set(alias, owners);
+  }
+  for (const speaker of speakers) {
+    const exactIndex = value.lastIndexOf(speaker.name);
+    if (exactIndex > selectedIndex) {
       selected = speaker;
-      selectedIndex = index;
+      selectedIndex = exactIndex;
+    }
+    const alias = shortAlias(speaker.name);
+    if (!alias || aliasOwners.get(alias)?.length !== 1) continue;
+    const aliasIndex = value.lastIndexOf(alias);
+    if (aliasIndex > selectedIndex) {
+      selected = speaker;
+      selectedIndex = aliasIndex;
     }
   }
   return selected;
@@ -87,8 +116,8 @@ function isInternalQuotedThought(value) {
 /**
  * Actual production Story rows sometimes contain only “대사” even though the
  * prompt asks for a speaker. Recover those lines only when the preceding scene
- * prose names one registered character. Unknown or ambiguous speakers remain
- * untouched rather than being guessed.
+ * prose names one uniquely registered character, including a unique Korean
+ * given-name reference such as “민아” -> “윤민아”.
  */
 export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
   const source = String(rawText ?? '');
@@ -114,15 +143,15 @@ export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
 
     const canonical = DIALOGUE_LINE.exec(trimmed);
     if (canonical) {
-      const id = resolveSpeakerId(canonical[1], master);
-      if (id) recentSpeaker = { id, name: canonical[1].trim() };
+      const resolved = resolveRegisteredSpeaker(canonical[1], master);
+      if (resolved) recentSpeaker = resolved;
       output.push(rawLine);
       continue;
     }
     const named = REGISTERED_SPEAKER_LINE.exec(trimmed);
     if (named) {
-      const id = resolveSpeakerId(named[1], master);
-      if (id) recentSpeaker = { id, name: named[1].trim() };
+      const resolved = resolveRegisteredSpeaker(named[1], master);
+      if (resolved) recentSpeaker = resolved;
       output.push(rawLine);
       continue;
     }
@@ -141,12 +170,14 @@ export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
 }
 
 function normalizedDialogue({ speakerName, direction, dialogueText }, master, order) {
-  const name = typeof speakerName === 'string' ? speakerName.trim() : '';
+  const suppliedName = typeof speakerName === 'string' ? speakerName.trim() : '';
+  const resolved = resolveRegisteredSpeaker(suppliedName, master);
+  const name = resolved?.name ?? suppliedName;
   const acting = typeof direction === 'string' ? direction.trim() : '';
   const text = typeof dialogueText === 'string' ? dialogueText.trim().replace(/^["“”']+|["“”']+$/g, '').trim() : '';
   if (!name || !acting || !text) return null;
   return {
-    speaker_id: resolveSpeakerId(name, master),
+    speaker_id: resolved?.id ?? null,
     speaker_name: name,
     direction: acting,
     text,
@@ -319,7 +350,7 @@ export function parseNarrative(rawText, { master } = {}) {
     }
     const dialogue = normalizedDialogue({ speakerName: speaker, direction, dialogueText: text }, master, orderRef.value++);
     if (!dialogue) continue;
-    blocks.push({ type: 'dialogue', speaker_id: dialogue.speaker_id, speaker, speaker_name: speaker, direction, text: dialogue.text });
+    blocks.push({ type: 'dialogue', speaker_id: dialogue.speaker_id, speaker: dialogue.speaker_name, speaker_name: dialogue.speaker_name, direction, text: dialogue.text });
     dialogueLines.push(dialogue);
   }
 

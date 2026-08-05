@@ -37,31 +37,65 @@ function directoryEntries(speakerDirectory) {
   })).filter(entry => entry.name);
 }
 
+function shortAlias(name) {
+  const characters = Array.from(String(name ?? '').trim());
+  if (characters.length !== 3 || !characters.every(character => /[가-힣]/u.test(character))) return '';
+  return characters.slice(1).join('');
+}
+
+function resolveSpeaker(name, speakerDirectory) {
+  const value = String(name ?? '').trim();
+  if (!value) return null;
+  const entries = directoryEntries(speakerDirectory);
+  const exact = entries.filter(entry => entry.name === value);
+  if (exact.length === 1) return exact[0];
+  const alias = shortAlias(value) || value;
+  const matches = entries.filter(entry => shortAlias(entry.name) === alias);
+  return matches.length === 1 ? matches[0] : null;
+}
+
 function speakerId(name, speakerDirectory) {
-  const matches = directoryEntries(speakerDirectory).filter(entry => entry.name === String(name ?? '').trim());
-  return matches.length === 1 ? matches[0].id : '';
+  return resolveSpeaker(name, speakerDirectory)?.id ?? '';
 }
 
 function lastMentionedSpeaker(value, speakerDirectory, previous = null) {
   const line = String(value ?? '');
+  const entries = directoryEntries(speakerDirectory);
+  const aliasOwners = new Map();
+  for (const entry of entries) {
+    const alias = shortAlias(entry.name);
+    if (!alias) continue;
+    const owners = aliasOwners.get(alias) ?? [];
+    owners.push(entry);
+    aliasOwners.set(alias, owners);
+  }
   let selected = previous;
   let selectedIndex = -1;
-  for (const entry of directoryEntries(speakerDirectory)) {
-    const index = line.lastIndexOf(entry.name);
-    if (index > selectedIndex) {
+  for (const entry of entries) {
+    const exactIndex = line.lastIndexOf(entry.name);
+    if (exactIndex > selectedIndex) {
       selected = entry;
-      selectedIndex = index;
+      selectedIndex = exactIndex;
+    }
+    const alias = shortAlias(entry.name);
+    if (!alias || aliasOwners.get(alias)?.length !== 1) continue;
+    const aliasIndex = line.lastIndexOf(alias);
+    if (aliasIndex > selectedIndex) {
+      selected = entry;
+      selectedIndex = aliasIndex;
     }
   }
   return selected;
 }
 
 function normalizedDialogue(name, direction, value, speakerDirectory, order) {
-  const speaker = String(name ?? '').trim();
+  const supplied = String(name ?? '').trim();
+  const resolved = resolveSpeaker(supplied, speakerDirectory);
+  const speaker = resolved?.name ?? supplied;
   const acting = String(direction ?? '').trim();
   const text = String(value ?? '').trim().replace(/^["“”']+|["“”']+$/g, '').trim();
   if (!speaker || !acting || !text) return null;
-  return { speaker_id: speakerId(speaker, speakerDirectory), speaker_name: speaker, direction: acting, text, order };
+  return { speaker_id: resolved?.id ?? '', speaker_name: speaker, direction: acting, text, order };
 }
 
 function parseDialogueLine(rawLine, speakerDirectory, order) {
@@ -169,7 +203,7 @@ export function parseNarrative(rawText, { speakerDirectory = {} } = {}) {
     const dialogue = normalizedDialogue(speaker, direction, value, speakerDirectory, dialogue_lines.length);
     if (!dialogue) continue;
     dialogue_lines.push(dialogue);
-    blocks.push({ type: 'dialogue', speaker_id: dialogue.speaker_id, speaker, speaker_name: speaker, direction, text: dialogue.text });
+    blocks.push({ type: 'dialogue', speaker_id: dialogue.speaker_id, speaker: dialogue.speaker_name, speaker_name: dialogue.speaker_name, direction, text: dialogue.text });
   }
 
   if (choices.length !== 4) warnings.push('choices_not_exactly_four');
