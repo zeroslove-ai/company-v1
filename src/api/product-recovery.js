@@ -70,7 +70,7 @@ function profileDepartmentId(edition, profile) {
   return [...directory.entries()].find(([, label]) => label === name)?.[0] ?? '';
 }
 
-function defaultLocationForProfile(edition, profile) {
+function suggestedLocationForProfile(edition, profile) {
   const map = entries(edition?.map?.locations);
   const profileId = text(profile?.character_id ?? profile?.npc_id ?? profile?.id);
   const exact = map.find(location => Array.isArray(location.default_npc_ids) && location.default_npc_ids.includes(profileId));
@@ -166,7 +166,7 @@ export function buildFinderNpcList(save, edition) {
 
 export function resolveNpcLocation(save, edition, characterId) {
   const profile = profileFor(edition, characterId);
-  if (!profile) return { known: false, status: 'not_found', present_now: false, can_move: false, location_id: '', location_label: '' };
+  if (!profile) return { known: false, status: 'not_found', present_now: false, can_move: false, location_id: '', location_label: '', suggested_location_id: '', suggested_location_label: '' };
   const presentIds = new Set([
     ...(Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []),
     ...(Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : []),
@@ -179,32 +179,25 @@ export function resolveNpcLocation(save, edition, characterId) {
   const worldScene = object(save?.scene_state);
   let locationId = text(scene.location_id) || text(work.location_id);
   let label = text(scene.location_label) || text(work.location_label);
-  let inferred = false;
-  let inferenceSource = '';
   if (presentNow) {
     locationId ||= text(worldScene.location_id);
     label ||= text(worldScene.location_label) || locationLabel(edition, locationId);
   }
-  if (!locationId && !label) {
-    const fallback = defaultLocationForProfile(edition, profile);
-    if (fallback?.location) {
-      locationId = text(fallback.location.location_id ?? fallback.location.id);
-      label = text(fallback.location.name) || locationLabel(edition, locationId);
-      inferred = true;
-      inferenceSource = fallback.source;
-    }
-  }
   label ||= locationLabel(edition, locationId);
   const known = Boolean(locationId || label);
+  const suggestion = known ? null : suggestedLocationForProfile(edition, profile);
+  const suggestedLocationId = text(suggestion?.location?.location_id ?? suggestion?.location?.id);
+  const suggestedLocationLabel = text(suggestion?.location?.name) || locationLabel(edition, suggestedLocationId);
   return {
     known,
-    status: presentNow ? 'present' : known ? (inferred ? 'inferred_workplace' : 'located') : 'unknown',
+    status: presentNow ? 'present' : known ? 'located' : 'unknown',
     present_now: presentNow,
     can_move: known && !presentNow,
     location_id: locationId,
     location_label: label,
-    inferred,
-    inference_source: inferenceSource
+    suggested_location_id: suggestedLocationId,
+    suggested_location_label: suggestedLocationLabel,
+    suggestion_source: suggestion?.source ?? ''
   };
 }
 
@@ -215,8 +208,9 @@ export function buildNpcFinderPayload(save, edition, characterId) {
   if (location.status === 'present') {
     throw new HttpError(422, 'npc_already_present', `${text(profile.name) || characterId}은(는) 현재 같은 장면에 있습니다.`, false);
   }
-  if (location.status === 'unknown' || location.inference_source === 'department_guess') {
-    throw new HttpError(422, 'npc_location_unknown', `${text(profile.name) || characterId}의 현재 위치가 아직 기록되지 않았습니다.`, false);
+  if (location.status === 'unknown') {
+    const suggestion = location.suggested_location_label ? ` 참고 근무지는 ${location.suggested_location_label}이지만 현재 위치 기록은 없습니다.` : '';
+    throw new HttpError(422, 'npc_location_unknown', `${text(profile.name) || characterId}의 현재 위치가 아직 기록되지 않았습니다.${suggestion}`, false);
   }
   const departments = departmentDirectory(edition);
   const departmentId = profileDepartmentId(edition, profile);
