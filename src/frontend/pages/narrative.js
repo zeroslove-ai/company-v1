@@ -110,7 +110,13 @@ function parseDialogueLine(rawLine, speakerDirectory, order) {
   return normalizedDialogue(fallback[1], '자연스럽게', fallback[2] ?? fallback[3], speakerDirectory, order);
 }
 
-function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory) {
+// 직전 서술이 "XXX가 말했다/입을 열었다"처럼 화자를 지목하면 true
+function isSpeechAttribution(line, mentioned) {
+  if (!line || !mentioned) return false;
+  return /(말했|말하며|말하고|말했다|말을 꺼냈|말을 이었|말을 건넸|물었|물어보|대답했|대꾸했|속삭였|외쳤|중얼거렸|되물었|덧붙였|맞장구|입을 열|입을 뗐|인사하며|인사했다|인사를 건넸|소개했다|사과했다|부탁했다|설명했다|알렸|통보했|대답하며|이어 말|웃으며 말|한숨|넘겨받아 말)/.test(line);
+}
+
+function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory, playerName) {
   const narrative = [];
   let recentSpeaker = null;
   const flush = () => {
@@ -131,6 +137,7 @@ function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory) {
     });
   };
 
+  let lastLine = '';
   for (const rawLine of value.split(/\r?\n/)) {
     const dialogue = parseDialogueLine(rawLine, speakerDirectory, dialogueLines.length);
     if (dialogue) {
@@ -140,18 +147,24 @@ function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory) {
     }
 
     const quote = QUOTE_ONLY_LINE.exec(rawLine.trim());
-    if (quote && recentSpeaker && !/^\([^)]*\)$/.test(quote[1].trim())) {
-      appendDialogue(normalizedDialogue(recentSpeaker.name, '자연스럽게', quote[1], speakerDirectory, dialogueLines.length));
+    // 화자명 없는 따옴표 대사: 직전 서술이 "XXX가 말했다/입을 열었다"로 화자를 지목하면 그 NPC,
+    // 아니면 플레이어 대사 (최근 화자로 오표기 방지)
+    if (quote && !/^\([^)]*\)$/.test(quote[1].trim())) {
+      const mentioned = lastMentionedSpeaker(lastLine, speakerDirectory, recentSpeaker);
+      const speaker = mentioned && isSpeechAttribution(lastLine, mentioned) ? mentioned : { id: 'player', name: playerName };
+      appendDialogue(normalizedDialogue(speaker.name, '자연스럽게', quote[1], speakerDirectory, dialogueLines.length));
+      recentSpeaker = { id: speaker.id, name: speaker.name };
       continue;
     }
 
     recentSpeaker = lastMentionedSpeaker(rawLine, speakerDirectory, recentSpeaker);
     narrative.push(rawLine);
+    lastLine = rawLine;
   }
   flush();
 }
 
-export function parseNarrative(rawText, { speakerDirectory = {} } = {}) {
+export function parseNarrative(rawText, { speakerDirectory = {}, playerName = '플레이어' } = {}) {
   const raw = String(rawText ?? '');
   const matches = [...raw.matchAll(MARKER)];
   const blocks = [];
@@ -184,7 +197,7 @@ export function parseNarrative(rawText, { speakerDirectory = {} } = {}) {
     const start = current.index + current[0].length;
     const end = index + 1 < matches.length ? matches[index + 1].index : raw.length;
     const value = raw.slice(start, end).trim();
-    if (role === 'scene') { if (value) appendSceneBlocks(blocks, dialogue_lines, value, speakerDirectory); continue; }
+    if (role === 'scene') { if (value) appendSceneBlocks(blocks, dialogue_lines, value, speakerDirectory, playerName); continue; }
     if (role === 'thought') {
       player_inner_thought = value;
       if (value) blocks.push({ type: 'player_inner_thought', text: value });

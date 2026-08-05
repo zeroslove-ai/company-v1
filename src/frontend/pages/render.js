@@ -145,6 +145,15 @@ function renderNarrativeChoices(container, choices, labels = []) {
   section.append(heading, list); container.append(section);
 }
 
+// 대사칸 왼쪽 바 색: 플레이어=파랑, 히로인 5명=각각, 기타 NPC=기본(검정)
+function dialogueToneClass(speakerId) {
+  const id = String(speakerId ?? '');
+  if (id === 'player') return 'speaker-player';
+  const heroine = /^heroine([1-9])$/.exec(id);
+  if (heroine) return `speaker-heroine${heroine[1]}`;
+  return '';
+}
+
 export function renderNarrative(container, parsed) {
   if (!container) return;
   container.replaceChildren();
@@ -161,6 +170,8 @@ export function renderNarrative(container, parsed) {
     if (block.type === 'dialogue') {
       const card = document.createElement('article'); card.className = 'narrative-dialogue dialogue-card';
       if (block.speaker_id) setDataValue(card, 'speakerId', block.speaker_id);
+      const speakerTone = dialogueToneClass(block.speaker_id);
+      if (speakerTone) card.classList.add(speakerTone);
       const meta = document.createElement('header'); meta.className = 'dialogue-meta';
       const speaker = document.createElement('strong'); speaker.className = 'dialogue-speaker'; speaker.textContent = block.speaker ?? block.speaker_name ?? '';
       const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = block.direction ?? '';

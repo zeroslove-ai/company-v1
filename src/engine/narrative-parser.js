@@ -127,12 +127,20 @@ export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
   let role = null;
   let recentSpeaker = null;
   const output = [];
+  // 직전 서술이 "XXX가 말했다/입을 열었다"처럼 화자를 지목하면 true
+function isSpeechAttribution(line, mentioned) {
+  if (!line || !mentioned) return false;
+  return /(말했|말하며|말하고|말했다|말을 꺼냈|말을 이었|말을 건넸|물었|물어보|대답했|대꾸했|속삭였|외쳤|중얼거렸|되물었|덧붙였|맞장구|입을 열|입을 뗐|인사하며|인사했다|인사를 건넸|소개했다|사과했다|부탁했다|설명했다|알렸|통보했|대답하며|이어 말|웃으며 말|한숨|넘겨받아 말)/.test(line);
+}
+
+let lastLine = '';
   for (const rawLine of source.split(/\r?\n/)) {
     const trimmed = rawLine.trim();
     const section = SECTION_LINE.exec(trimmed);
     if (section) {
       role = labelRole(section[1]);
       recentSpeaker = null;
+      lastLine = '';
       output.push(rawLine);
       continue;
     }
@@ -157,14 +165,23 @@ export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
     }
 
     const quote = QUOTE_ONLY_LINE.exec(trimmed);
-    if (quote && recentSpeaker && !isInternalQuotedThought(quote[1])) {
+    if (quote && !isInternalQuotedThought(quote[1])) {
+      // 직전 서술이 화자를 지목하면 그 NPC, 아니면 플레이어
+      const mentioned = lastMentionedSpeaker(lastLine, speakers, recentSpeaker);
+      const speaker = mentioned && isSpeechAttribution(lastLine, mentioned) ? mentioned : null;
       const indent = rawLine.slice(0, rawLine.indexOf(trimmed));
-      output.push(`${indent}${recentSpeaker.name} (자연스럽게): “${quote[1].trim()}”`);
+      if (speaker) {
+        recentSpeaker = speaker;
+        output.push(`${indent}${speaker.name} (자연스럽게): “${quote[1].trim()}”`);
+      } else {
+        output.push(rawLine);
+      }
       continue;
     }
 
     recentSpeaker = lastMentionedSpeaker(rawLine, speakers, recentSpeaker);
     output.push(rawLine);
+    lastLine = rawLine;
   }
   return output.join('\n');
 }

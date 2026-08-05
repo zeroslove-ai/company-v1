@@ -73,3 +73,18 @@
     overflow-y: auto;
   }
 }
+
+/* 대사칸 발화자별 색 구분 — 왼쪽 바 */
+.narrative-dialogue { border-left-color: #7e8a96; }
+.narrative-dialogue.speaker-player { border-left-color: #4d9fff; }
+.narrative-dialogue.speaker-heroine1 { border-left-color: #ff6b8a; }
+.narrative-dialogue.speaker-heroine2 { border-left-color: #b07cff; }
+.narrative-dialogue.speaker-heroine3 { border-left-color: #4dd0a0; }
+.narrative-dialogue.speaker-heroine4 { border-left-color: #ff9f4d; }
+.narrative-dialogue.speaker-heroine5 { border-left-color: #ffd24d; }
+.speaker-player .dialogue-speaker { color: #8cc2ff; }
+.speaker-heroine1 .dialogue-speaker { color: #ff9db2; }
+.speaker-heroine2 .dialogue-speaker { color: #cba6ff; }
+.speaker-heroine3 .dialogue-speaker { color: #7ee0bb; }
+.speaker-heroine4 .dialogue-speaker { color: #ffc08a; }
+.speaker-heroine5 .dialogue-speaker { color: #ffe08a; }

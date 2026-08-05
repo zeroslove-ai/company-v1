@@ -86,7 +86,7 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
       if (item.event === 'delta') {
         rawStory += item.data?.text ?? '';
         const directory = getContext?.()?.display?.npc_directory ?? {};
-        onStory?.({ rawStory, parsed: parseNarrative(rawStory, { speakerDirectory: directory }), item, pending });
+        onStory?.({ rawStory, parsed: parseNarrative(rawStory, { speakerDirectory: directory, playerName: getContext?.()?.save?.data?.player?.name ?? '플레이어' }), item, pending });
       }
     });
     if (!sawMeta || !rawStory.trim()) throw new ApiError({ endpoint: '/api/story', status: 502, code: 'incomplete_story_stream', message: '서사 스트림이 불완전합니다.', retryable: true });
@@ -349,7 +349,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     await consumeStorySse(response, item => {
       if (item.event === 'delta') {
         raw += item.data?.text ?? '';
-        renderNarrative(elements.current, parseNarrative(raw, { speakerDirectory: context?.display?.npc_directory ?? {} }));
+        renderNarrative(elements.current, parseNarrative(raw, { speakerDirectory: context?.display?.npc_directory ?? {}, playerName: context?.save?.data?.player?.name ?? viewModel?.player?.name ?? '플레이어' }));
       }
     });
     text(statusElement, '');

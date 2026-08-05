@@ -146,7 +146,6 @@ body.setup-modal-open {
 }
 
 .narrative-dialogue {
-  border-left-color: var(--hospital-accent);
   background: var(--hospital-bg-tertiary);
 }
 
