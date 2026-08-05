@@ -43,6 +43,16 @@ function recentChanges(turn, id) {
     if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) continue;
     changes[canonical] = { from, to, delta: to - from };
   }
+  if (Object.keys(changes).length) return changes;
+
+  const before = object(object(turn?.pre_save).npc_stats)[id] ?? {};
+  const after = object(object(turn?.post_save).npc_stats)[id] ?? {};
+  for (const [canonical, aliases] of Object.entries(STAT_KEYS)) {
+    const from = statValue(before, aliases);
+    const to = statValue(after, aliases);
+    if (from === to) continue;
+    changes[canonical] = { from, to, delta: to - from };
+  }
   return changes;
 }
 
@@ -55,7 +65,7 @@ function eventRecord(save, id) {
   const interrupted = ledger.filter(event => event?.interrupted === true);
   const playerEjaculations = completed.filter(event => event?.actor_id === 'player'
     && event?.target_id === id
-    && ['orgasm', 'penetration'].includes(event?.action_type)).length;
+    && ['orgasm', 'penetration', 'ejaculation'].includes(event?.action_type)).length;
   const npcOrgasms = completed.filter(event => event?.actor_id === id
     && ['orgasm', 'penetration'].includes(event?.action_type)).length;
   const turnValues = ledger.map(event => Number(event?.turn)).filter(Number.isInteger).sort((a, b) => a - b);
