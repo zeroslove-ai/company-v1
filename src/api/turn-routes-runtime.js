@@ -141,7 +141,7 @@ function captureAction(state, payload) {
   computePlan(state);
 }
 
-function patchCompletionBody(init, state) {
+export function patchCompletionBody(init, state) {
   if (!state.plan || !state.postSave || typeof init?.body !== 'string') return init;
   let body;
   try { body = JSON.parse(init.body); }
