@@ -160,34 +160,6 @@ export function createUtilityUi({
     text(elements.imageStatus, url ? (generic ? '' : situation) : '표시할 이미지가 없습니다.');
   }
 
-  async function loadMedia() {
-    if (!available.media) { syncTtsControl(); return null; }
-    const viewModel = getViewModel?.();
-    const characterId = viewModel?.media?.image_character_id;
-    if (!characterId) { renderImage(null); syncTtsControl(); return null; }
-    onMediaLoading?.(true);
-    text(elements.imageStatus, '장면 이미지를 찾는 중…');
-    if (elements.imageStatus) elements.imageStatus.hidden = false;
-    try {
-      const result = await api.image({
-        game_id: gameId,
-        character_id: characterId,
-        pool: viewModel?.media?.image_pool ?? 'general',
-        situation: viewModel?.media?.image_situation ?? '',
-        location_id: viewModel?.scene?.scene_state?.location_id ?? null
-      });
-      renderImage(result.image ?? null);
-      return result.image ?? null;
-    } catch (error) {
-      renderImage(null);
-      onError?.(error);
-      return null;
-    } finally {
-      onMediaLoading?.(false);
-      syncTtsControl();
-    }
-  }
-
   function playableDialogueLine() {
     const viewModel = getViewModel?.();
     const lines = Array.isArray(viewModel?.media?.dialogue_lines)
@@ -265,6 +237,48 @@ export function createUtilityUi({
       onError?.(error);
       return false;
     }
+  }
+
+  async function maybeAutoplayTts(autoplayTts) {
+    syncTtsControl();
+    if (!autoplayTts || elements.ttsEnabled?.checked !== true) return false;
+    return playTts();
+  }
+
+  async function loadMedia({ autoplayTts = false } = {}) {
+    if (!available.media) {
+      await maybeAutoplayTts(autoplayTts);
+      return null;
+    }
+    const viewModel = getViewModel?.();
+    const characterId = viewModel?.media?.image_character_id;
+    if (!characterId) {
+      renderImage(null);
+      await maybeAutoplayTts(autoplayTts);
+      return null;
+    }
+    onMediaLoading?.(true);
+    text(elements.imageStatus, '장면 이미지를 찾는 중…');
+    if (elements.imageStatus) elements.imageStatus.hidden = false;
+    let image = null;
+    try {
+      const result = await api.image({
+        game_id: gameId,
+        character_id: characterId,
+        pool: viewModel?.media?.image_pool ?? 'general',
+        situation: viewModel?.media?.image_situation ?? '',
+        location_id: viewModel?.scene?.scene_state?.location_id ?? null
+      });
+      image = result.image ?? null;
+      renderImage(image);
+    } catch (error) {
+      renderImage(null);
+      onError?.(error);
+    } finally {
+      onMediaLoading?.(false);
+      await maybeAutoplayTts(autoplayTts);
+    }
+    return image;
   }
 
   elements.historyClose?.addEventListener('click', closeHistory);
