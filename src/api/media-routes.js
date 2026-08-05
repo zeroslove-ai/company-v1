@@ -2,6 +2,7 @@ import { HttpError, ok, readJson, requireString } from './http.js';
 import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes-runtime.js';
 import { resolveTtsEligibility } from '../engine/index.js';
 import { createRegisteredNpcPolicyFetch } from './npc-policy-fetch.js';
+import { enrichAppEnvelope, enrichContextEnvelope, envelopeContext } from './product-response.js';
 
 const TTS_WORKER_URL = 'https://fancy-dust-7f8c.zeroslove.workers.dev/';
 
@@ -67,6 +68,30 @@ async function synthesizeViaLegacyProvider({ env, eligibility, spokenText, direc
   return parseTtsUrl(response, { allowAudioCompatibility: true });
 }
 
+async function jsonPayload(response) {
+  try { return await response.clone().json(); }
+  catch { return null; }
+}
+
+function responseWithJson(response, payload) {
+  const headers = new Headers(response.headers);
+  headers.set('content-type', 'application/json; charset=utf-8');
+  return new Response(JSON.stringify(payload), {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
+async function requestObject(request) {
+  try {
+    const value = await request.clone().json();
+    return plainObject(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Company uses the same playback contract as the Hospital frontend:
  * the independent TTS Worker returns a stable audio URL and the browser's
@@ -80,6 +105,37 @@ export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) 
 
   return {
     ...routes,
+
+    async context(request, env, ctx) {
+      const response = await routes.context(request, env, ctx);
+      if (!response?.ok) return response;
+      const payload = await jsonPayload(response);
+      if (!plainObject(payload)) return response;
+      enrichContextEnvelope(payload, edition);
+      return responseWithJson(response, payload);
+    },
+
+    async appState(request, env, ctx) {
+      const body = await requestObject(request);
+      const response = await routes.appState(request, env, ctx);
+      if (!response?.ok || typeof body.game_id !== 'string' || !body.game_id) return response;
+      const payload = await jsonPayload(response);
+      if (!plainObject(payload)) return response;
+
+      const contextRequest = new Request(request.url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ game_id: body.game_id, recent_turns: 2 })
+      });
+      const contextResponse = await routes.context(contextRequest, env, ctx);
+      if (!contextResponse?.ok) return response;
+      const contextPayload = await jsonPayload(contextResponse);
+      const context = envelopeContext(contextPayload);
+      if (!context) return response;
+      enrichAppEnvelope(payload, context, edition);
+      return responseWithJson(response, payload);
+    },
+
     async tts(request, env) {
       const body = await readJson(request);
       requireString(body.game_id, 'game_id');
