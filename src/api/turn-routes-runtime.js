@@ -20,6 +20,7 @@ import {
   buildCsaTransactionDetailsSection,
   buildNpcAppPayload
 } from './runtime-display.js';
+import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from './character-display.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -58,9 +59,13 @@ async function responseJson(response) {
   catch { return null; }
 }
 
-function latestMind(context) {
+function latestTurn(context) {
   const turns = Array.isArray(context?.recent_turns) ? context.recent_turns : [];
-  return object(turns.at(-1)?.mind_monitor) ?? {};
+  return object(turns.at(-1)) ?? {};
+}
+
+function latestMind(context) {
+  return object(latestTurn(context)?.mind_monitor) ?? {};
 }
 
 function authorityLabel(strength) {
@@ -220,9 +225,14 @@ export function createTurnRoutes({ fetchImpl = fetch, edition } = {}) {
       const payload = await responseJson(response);
       if (!object(payload?.context)) return response;
       const save = hydratedSave(payload.context, master);
+      const currentTurn = latestTurn(payload.context);
       payload.context = {
         ...payload.context,
-        display: buildContextDisplayPayload(save, edition, latestMind(payload.context))
+        display: {
+          ...buildContextDisplayPayload(save, edition, latestMind(payload.context)),
+          character_details: buildCharacterDisplayDetails(save, edition, currentTurn),
+          player_sexual: buildPlayerSexualDisplay(save)
+        }
       };
       return responseWithJson(response, payload);
     },
@@ -233,9 +243,21 @@ export function createTurnRoutes({ fetchImpl = fetch, edition } = {}) {
       const response = await routes.appState(request, env, ctx);
       const payload = await responseJson(response);
       if (!object(payload?.app) || !state.previousSave) return response;
+      const details = buildCharacterDisplayDetails(state.previousSave, edition, latestTurn(state.context));
       payload.app = {
         ...payload.app,
-        npcs: buildNpcAppPayload(state.previousSave, edition, latestMind(state.context))
+        npcs: buildNpcAppPayload(state.previousSave, edition, latestMind(state.context)).map(npc => {
+          const detail = details[npc.id] ?? {};
+          return {
+            ...npc,
+            profile: detail.profile ?? {},
+            body: detail.body ?? {},
+            stat_changes: detail.stat_changes ?? {},
+            relationship_summary: npc.relationship_summary || detail.relationship_summary || '',
+            relationship_record: detail.relationship_record ?? {},
+            private_info: detail.private_info ?? { unlocked: false }
+          };
+        })
       };
       return responseWithJson(response, payload);
     },
