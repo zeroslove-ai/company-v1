@@ -6,6 +6,12 @@ import {
 } from '../engine/index.js';
 
 const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
+const AUTHORITY_LABELS = {
+  weak: '인사팀 공식 공지·사내 운영지침',
+  medium: '취업규칙·전사 준수 규정',
+  strong: '국가 법령·관계 당국 의무 지침'
+};
+const NOTICE_CHANNELS = ['전사 메신저', '업무용 PC 팝업', '사내 이메일', '전자게시판', '직원 휴대전화 알림'];
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -49,16 +55,25 @@ export function applyCsaPlanToContext(context, plan) {
   return { context: withSave(context, save), save };
 }
 
+function strengthId(value) {
+  return appStrengthId(value) || 'weak';
+}
+
 function strengthLabel(value) {
-  const id = appStrengthId(value);
+  const id = strengthId(value);
   return STRENGTH_LABELS[id] ?? (text(value) || '약함');
+}
+
+function authorityLabel(value) {
+  return AUTHORITY_LABELS[strengthId(value)] ?? AUTHORITY_LABELS.weak;
 }
 
 function activeCsaProjection(save) {
   return getApplicableCsaEntries(save).map(item => ({
     id: item.id,
-    strength: appStrengthId(item.strength),
+    strength: strengthId(item.strength),
     strength_label: strengthLabel(item.strength),
+    authority_label: authorityLabel(item.strength),
     content: text(item.content),
     scope_label: text(item.scope_label) || '회사 전체'
   }));
@@ -199,9 +214,14 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
     present_now: presentNow,
     location: npcLocation(save, id, presentNow),
     stats: {
-      affection: statValue(stats, '호감도', 'affection', 'affinity'),
-      acceptance: statValue(stats, '상식수용도', 'acceptance') ?? statValue(attitude, 'acceptance', '상식수용도'),
-      arousal: statValue(stats, '성적흥분도', 'arousal') ?? statValue(sexualState, 'arousal', '성적흥분도')
+      affection: statValue(stats, '호감도', 'affection', 'affinity') ?? 0,
+      work_trust: statValue(stats, '업무신뢰도', 'work_trust') ?? 0,
+      acceptance: statValue(stats, '상식수용도', 'acceptance', 'csa_acceptance')
+        ?? statValue(attitude, 'acceptance', '상식수용도')
+        ?? 0,
+      arousal: statValue(stats, '성적흥분도', 'arousal', 'sexual_arousal')
+        ?? statValue(sexualState, 'arousal', '성적흥분도')
+        ?? 0
     },
     mind,
     scene_state: {
@@ -256,7 +276,47 @@ export function buildCsaTransactionDetailsSection(plan, previousSave = {}) {
     const strength = strengthLabel(rule?.strength);
     const content = text(rule?.content) || '(내용 미확인)';
     const id = text(operation.id);
-    return `- ${verb}${id ? ` ${id}` : ''} · 강도 ${strength} · 내용: ${content}`;
+    return `- ${verb}${id ? ` ${id}` : ''} · 강도 ${strength} · 권위 ${authorityLabel(rule?.strength)} · 내용: ${content}`;
   }).join('\n');
   return `\n\n[CSA TRANSACTION EXACT RULES — HIGHEST PRIORITY]\n아래 문장이 이번 턴부터 실제로 적용되거나 해제된 규정의 정확한 내용이다. 범위 이름이나 조작 종류만 보고 내용을 추측하지 말고 이 문장을 그대로 기준으로 삼는다.\n${lines}`;
+}
+
+function operationLabel(operation = '') {
+  if (operation === 'activate') return '신규 시행';
+  if (operation === 'update') return '개정 시행';
+  if (operation === 'deactivate') return '시행 종료';
+  return '변경';
+}
+
+function operationRecord(operation, previousSave, postSave) {
+  const previousRules = getCsaRules(previousSave);
+  const postRules = getCsaRules(postSave);
+  if (operation?.id) return operation.operation === 'deactivate'
+    ? previousRules[operation.id] ?? postRules[operation.id] ?? operation
+    : postRules[operation.id] ?? previousRules[operation.id] ?? operation;
+  const content = text(operation?.content);
+  if (!content) return operation;
+  return Object.values(postRules).find(rule => text(rule?.content) === content) ?? operation;
+}
+
+/**
+ * Company-specific official notice contract, adapted from the Hospital main donor.
+ * The authority tier changes social pressure and rationalization, never affection,
+ * sexual consent, or the NPC's right to object to out-of-scope conduct.
+ */
+export function buildCsaOfficialNoticeSection(plan, previousSave = {}, postSave = {}) {
+  const operations = plan?.canonical_action?.operations;
+  if (!Array.isArray(operations)) return '';
+  const relevant = operations.filter(operation => operation?.domain === 'csa'
+    && ['activate', 'update', 'deactivate'].includes(operation?.operation));
+  if (!relevant.length) return '';
+
+  const notices = relevant.map((operation, index) => {
+    const record = operationRecord(operation, previousSave, postSave);
+    const strength = strengthId(operation?.strength ?? record?.strength);
+    const content = text(operation?.content ?? record?.content) || '해당 상식 규정';
+    return `${index + 1}. [${AUTHORITY_LABELS[strength]} / ${operationLabel(operation.operation)}] ${content}`;
+  }).join('\n');
+
+  return `\n\n[상식개변 전사 공식 공지 — 변경 턴 전용, 최우선]\n이번 변경은 장면 초반에 ${NOTICE_CHANNELS.join('·')}을 통해 전사에 한 번의 짧은 공지 묶음으로 동시에 전달한다. 여러 변경이 있어도 채널별로 같은 설명을 반복하지 않는다.\n${notices}\n\n[강도별 권위와 반응]\n- 약함은 인사팀의 공식 공지와 사내 운영지침이다. 직원은 실무적 타당성을 묻고 민망함·불평·거리 두기·최소한의 업무상 수행을 보일 수 있다. 다만 존재하지 않는 공지라고 부정하지 않고, 개인 감정과 별개로 회사 지침으로 이해한다.\n- 중간은 정식 취업규칙과 전사 준수 규정이다. 직원은 인사·노무상 의무와 징계 가능성을 의식해 더 강하게 준수하지만, 사적 동의나 호감으로 받아들이지 않는다. 불편함을 업무상 필요·규정 준수로 자기합리화하거나 적용 범위와 절차를 확인할 수 있다.\n- 강함은 국가 법령과 관계 당국의 의무 지침이다. 회사와 개인 모두 법적 의무로 인식해 규정 자체를 임의로 거부하지 않지만, 충격·수치·불안·실행 방식에 대한 항의와 개인적 저항은 남을 수 있다. 법적 준수는 애정·복종·성적 동의가 아니다.\n- 모든 강도에서 NPC의 성격, 관계, 호감도, 업무신뢰도, 상식수용도에 따라 표정·말투·선제성·자기합리화·불편함이 달라진다. 규정 직접 범위를 벗어난 플레이어 행동은 거절하거나 경계를 세울 수 있다.\n- NPC는 상식개변 앱이나 현실 변경을 인식하지 않는다. 공지와 규정을 세계 내부의 정상적인 인사 공지·취업규칙·국가 법령으로만 받아들인다.\n- 해제는 같은 권위 채널의 시행 종료 공지로 처리하고, 이미 겪은 기억·당혹감·관계 결과를 지우지 않는다.`;
 }
