@@ -74,13 +74,13 @@ function defaultLocationForProfile(edition, profile) {
   const map = entries(edition?.map?.locations);
   const profileId = text(profile?.character_id ?? profile?.npc_id ?? profile?.id);
   const exact = map.find(location => Array.isArray(location.default_npc_ids) && location.default_npc_ids.includes(profileId));
-  if (exact) return exact;
+  if (exact) return { location: exact, source: 'explicit_default' };
   const departmentId = profileDepartmentId(edition, profile);
   if (departmentId) {
     const departmentLocation = map.find(location => location.department_id === departmentId && ['office_floor', 'team_space', 'project_space'].includes(location.location_type));
-    if (departmentLocation) return departmentLocation;
+    if (departmentLocation) return { location: departmentLocation, source: 'department_guess' };
     const anyDepartmentLocation = map.find(location => location.department_id === departmentId);
-    if (anyDepartmentLocation) return anyDepartmentLocation;
+    if (anyDepartmentLocation) return { location: anyDepartmentLocation, source: 'department_guess' };
   }
   return null;
 }
@@ -180,16 +180,18 @@ export function resolveNpcLocation(save, edition, characterId) {
   let locationId = text(scene.location_id) || text(work.location_id);
   let label = text(scene.location_label) || text(work.location_label);
   let inferred = false;
+  let inferenceSource = '';
   if (presentNow) {
     locationId ||= text(worldScene.location_id);
     label ||= text(worldScene.location_label) || locationLabel(edition, locationId);
   }
   if (!locationId && !label) {
     const fallback = defaultLocationForProfile(edition, profile);
-    if (fallback) {
-      locationId = text(fallback.location_id ?? fallback.id);
-      label = text(fallback.name) || locationLabel(edition, locationId);
+    if (fallback?.location) {
+      locationId = text(fallback.location.location_id ?? fallback.location.id);
+      label = text(fallback.location.name) || locationLabel(edition, locationId);
       inferred = true;
+      inferenceSource = fallback.source;
     }
   }
   label ||= locationLabel(edition, locationId);
@@ -201,7 +203,8 @@ export function resolveNpcLocation(save, edition, characterId) {
     can_move: known && !presentNow,
     location_id: locationId,
     location_label: label,
-    inferred
+    inferred,
+    inference_source: inferenceSource
   };
 }
 
@@ -212,7 +215,7 @@ export function buildNpcFinderPayload(save, edition, characterId) {
   if (location.status === 'present') {
     throw new HttpError(422, 'npc_already_present', `${text(profile.name) || characterId}은(는) 현재 같은 장면에 있습니다.`, false);
   }
-  if (location.status === 'unknown' || location.inferred === true) {
+  if (location.status === 'unknown' || location.inference_source === 'department_guess') {
     throw new HttpError(422, 'npc_location_unknown', `${text(profile.name) || characterId}의 현재 위치가 아직 기록되지 않았습니다.`, false);
   }
   const departments = departmentDirectory(edition);
