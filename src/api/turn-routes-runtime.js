@@ -21,6 +21,7 @@ import {
   buildNpcAppPayload
 } from './runtime-display.js';
 import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from './character-display.js';
+import { buildFullPlayerInfo, buildFinderNpcList, buildNpcFinderPayload } from './product-recovery.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -52,6 +53,13 @@ function responseWithJson(response, payload) {
   const headers = new Headers(response.headers);
   headers.set('content-type', 'application/json; charset=utf-8');
   return new Response(JSON.stringify(payload), { status: response.status, statusText: response.statusText, headers });
+}
+
+function okResponse(data) {
+  return new Response(JSON.stringify({ ok: true, data }), {
+    status: 200,
+    headers: { 'content-type': 'application/json; charset=utf-8' }
+  });
 }
 
 async function responseJson(response) {
@@ -205,6 +213,41 @@ async function requestBody(request) {
   catch { return {}; }
 }
 
+function mergeNpcPayload(save, edition, latestMindMonitor, details) {
+  const existing = new Map(buildNpcAppPayload(save, edition, latestMindMonitor).map(item => [item.id, item]));
+  return buildFinderNpcList(save, edition).map(finder => {
+    const base = existing.get(finder.id) ?? {
+      id: finder.id,
+      name: finder.name,
+      department: finder.department,
+      position: finder.position,
+      role: finder.role,
+      present_now: finder.present_now,
+      location: { known: finder.known, location_label: finder.location_label, location_id: finder.location_id },
+      stats: { affection: 0, work_trust: 0, acceptance: 0, arousal: 0 },
+      mind: { surface: '', subconscious: '' },
+      scene_state: {},
+      relationship_summary: ''
+    };
+    const detail = details[finder.id] ?? {};
+    return {
+      ...base,
+      name: base.name || finder.name,
+      department: base.department || finder.department,
+      position: base.position || finder.position,
+      role: base.role || finder.role,
+      present_now: finder.present_now,
+      location: { known: finder.known, location_label: finder.location_label, location_id: finder.location_id },
+      profile: detail.profile ?? {},
+      body: detail.body ?? {},
+      stat_changes: detail.stat_changes ?? {},
+      relationship_summary: base.relationship_summary || detail.relationship_summary || '',
+      relationship_record: detail.relationship_record ?? {},
+      private_info: detail.private_info ?? { unlocked: false }
+    };
+  });
+}
+
 /**
  * Adds current-turn CSA projection and display payloads without changing the
  * base action/commit/recovery contracts. No extra LLM call, DB write, or RPC.
@@ -230,6 +273,8 @@ export function createTurnRoutes({ fetchImpl = fetch, edition } = {}) {
         ...payload.context,
         display: {
           ...buildContextDisplayPayload(save, edition, latestMind(payload.context)),
+          player_info: buildFullPlayerInfo(save, edition),
+          npc_finder: buildFinderNpcList(save, edition),
           character_details: buildCharacterDisplayDetails(save, edition, currentTurn),
           player_sexual: buildPlayerSexualDisplay(save)
         }
@@ -246,20 +291,27 @@ export function createTurnRoutes({ fetchImpl = fetch, edition } = {}) {
       const details = buildCharacterDisplayDetails(state.previousSave, edition, latestTurn(state.context));
       payload.app = {
         ...payload.app,
-        npcs: buildNpcAppPayload(state.previousSave, edition, latestMind(state.context)).map(npc => {
-          const detail = details[npc.id] ?? {};
-          return {
-            ...npc,
-            profile: detail.profile ?? {},
-            body: detail.body ?? {},
-            stat_changes: detail.stat_changes ?? {},
-            relationship_summary: npc.relationship_summary || detail.relationship_summary || '',
-            relationship_record: detail.relationship_record ?? {},
-            private_info: detail.private_info ?? { unlocked: false }
-          };
-        })
+        player_info: buildFullPlayerInfo(state.previousSave, edition),
+        npcs: mergeNpcPayload(state.previousSave, edition, latestMind(state.context), details),
+        finder_npcs: buildFinderNpcList(state.previousSave, edition)
       };
       return responseWithJson(response, payload);
+    },
+
+    async findNpc(request, env, ctx) {
+      const body = await requestBody(request);
+      const gameId = typeof body.game_id === 'string' ? body.game_id : '';
+      const characterId = typeof body.character_id === 'string' ? body.character_id : '';
+      const contextRequest = new Request(request.url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ game_id: gameId, recent_turns: 1 })
+      });
+      const contextResponse = await base.context(contextRequest, env, ctx);
+      const contextPayload = await responseJson(contextResponse);
+      const context = object(contextPayload?.data?.context) ?? object(contextPayload?.context);
+      const save = hydratedSave(context, master);
+      return okResponse(buildNpcFinderPayload(save, edition, characterId));
     },
 
     async story(request, env, ctx) {
