@@ -158,8 +158,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const setupElements = {
     overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
     name: get('setup-name'), department: get('setup-department'), position: get('setup-position'), height: get('setup-height'), weight: get('setup-weight'),
-    penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style'),
-    reserved: get('reserved-opening'), reservedStatus: get('reserved-opening-status'), retryOpening: get('retry-opening')
+    penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
   let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null;
@@ -220,17 +219,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     renderHistory(elements.history, recent.length ? recent.slice(-1) : (openingTurn ? [openingTurn] : recent));
     utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
-    const reservedSetupId = reservedPlayerSetupId(context);
-    const setupErrorVisible = !setupElements.error?.hidden;
-    // 저장된 설정(reserved): 정상이면 오버레이 없이 init 자동 재시도가 게임 화면에 바로 스트리밍.
-    // 실패 시에만 오버레이를 띄우되, 설정 폼(설정완료)을 항상 보여준다.
-    if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen || (Boolean(reservedSetupId) && !setupErrorVisible);
+    // 오버레이는 순수 설정 폼 전용. 저장된 설정(reserved)은 init에서 자동 진행되고
+    // 재시도 팝업은 완전히 제거되었다(사용자 요구).
+    if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen;
     if (setupElements.form) setupElements.form.hidden = false;
-    if (setupElements.reserved) setupElements.reserved.hidden = !reservedSetupId || !setupErrorVisible;
-    if (setupElements.retryOpening) {
-      setupElements.retryOpening.disabled = busy || recoveryPending;
-      setupElements.retryOpening.onclick = reservedSetupId ? () => retryOpening(reservedSetupId) : null;
-    }
     const pendingStep = loadPending(storage, gameId)?.step ?? null;
     const phase = computeTurnPhase({ busy, recoveryPending, pendingStep, mediaLoading });
     const flags = turnPhaseUiFlags(phase);
@@ -371,7 +363,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         render();
         return false;
       } finally {
-        text(setupElements.reservedStatus, '');
       }
     });
   }

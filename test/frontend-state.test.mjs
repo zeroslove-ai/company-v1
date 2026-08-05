@@ -206,7 +206,6 @@ test('a failed opening retry surfaces the error in the shared setup area, keeps 
     assert.equal(nodes['setup-error'].textContent, '오프닝 생성에 실패했습니다.');
     assert.equal(nodes['player-setup-overlay'].hidden, false);
     assert.equal(nodes['player-setup-form'].hidden, false);
-    assert.equal(nodes['reserved-opening'].hidden, false);
     assert.equal(reservedPlayerSetupId(app.context), 'reserved-setup');
   });
 });
@@ -332,10 +331,11 @@ test('state and shell keep renderer free of raw Context fallback and developer p
   assert.equal(html.indexOf('id="story-panel"') < html.indexOf('id="character-state"'), true);
   assert.equal(html.indexOf('id="character-state"') < html.indexOf('id="player-panel"'), true);
   assert.equal(html.indexOf('id="player-panel"') < html.indexOf('id="choice-list"'), true);
-  // setup-error must be a shared sibling of the form and the reserved-opening section, not nested
-  // inside the form, so it stays visible while the form is hidden during a reserved-opening retry.
+  // setup-error must be a shared sibling of the form, not nested inside it,
+  // so it stays visible while the form renders.
   assert.equal(html.indexOf('id="setup-error"') < html.indexOf('id="player-setup-form"'), true);
-  assert.equal(html.indexOf('id="player-setup-form"') < html.indexOf('id="reserved-opening"'), true);
+  // reserved-opening(재시도 팝업)은 사용자 요구로 완전히 제거되었다.
+  assert.equal(html.includes('id="reserved-opening"'), false);
   assert.equal(html.indexOf('id="choice-list"') < html.indexOf('class="utility-toolbar"'), true);
   const values = stateDisplayValues(buildCompanyGameViewModel(validContext()));
   assert.equal(Object.values(values).some(value => value.includes('[object Object]')), false);
