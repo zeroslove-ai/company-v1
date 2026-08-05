@@ -201,7 +201,9 @@ export function renderHistory(container, turns, { showSummary = true } = {}) {
     const narrative = document.createElement('div'); narrative.className = 'turn-narrative';
     card.append(action, narrative); renderNarrative(narrative, parsed);
     if (showSummary && turn.turn_summary) {
-      const summary = document.createElement('p'); summary.className = 'turn-summary'; summary.textContent = turn.turn_summary; summary.setAttribute?.('aria-label', '요약 기록'); card.append(summary);
+      const summary = document.createElement('p'); summary.className = 'turn-summary'; summary.textContent = turn.turn_summary; summary.setAttribute?.('aria-label', '요약 기록 ·');
+      if (container.id === 'story-history') narrative.append(summary);
+      else card.append(summary);
     }
     container.append(card);
   }
