@@ -187,7 +187,7 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
   }
 }
 
-export function renderHistory(container, turns, { showSummary = container?.id !== 'story-history' } = {}) {
+export function renderHistory(container, turns, { showSummary = true } = {}) {
   if (!container) return;
   container.replaceChildren();
   const parsedTurns = (turns ?? []).map(turn => ({ turn, parsed: parsedTurnNarrative(turn) }));
@@ -201,7 +201,7 @@ export function renderHistory(container, turns, { showSummary = container?.id !=
     const narrative = document.createElement('div'); narrative.className = 'turn-narrative';
     card.append(action, narrative); renderNarrative(narrative, parsed);
     if (showSummary && turn.turn_summary) {
-      const summary = document.createElement('p'); summary.className = 'turn-summary'; summary.textContent = turn.turn_summary; card.append(summary);
+      const summary = document.createElement('p'); summary.className = 'turn-summary'; summary.textContent = `요약 기록 · ${turn.turn_summary}`; card.append(summary);
     }
     container.append(card);
   }
@@ -448,7 +448,7 @@ function renderFocalCharacter(container, focal, player) {
       ['몸무게', body.weight_kg === null || body.weight_kg === undefined ? '' : `${body.weight_kg}kg`],
       ['체형', displayValue(body.body_type)],
       ['가슴', displayValue(body.cup)],
-      ['관계', displayValue(character.relationship_summary)]
+      ['관계', displayValue(character.relationship_summary) || '기록 없음']
     ]));
     renderRelationshipRecord(container, character);
     renderPrivateInfo(container, character);
@@ -497,9 +497,9 @@ function renderPlayer(container, player, scene) {
     ['EXP', playerProgressDisplay(player)],
     ['활성 규정', activeMax === null ? String(activeCount) : `${activeCount} / ${activeMax}`],
     ['흥분도', typeof player?.excitement === 'number' ? String(player.excitement) : ''],
-    ['누적 사정', typeof player?.ejaculation_count === 'number' ? `${player.ejaculation_count}회` : ''],
-    ['성적 이벤트', typeof player?.total_sexual_events === 'number' ? `${player.total_sexual_events}건` : ''],
-    ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event)],
+    ['누적 사정', typeof player?.ejaculation_count === 'number' ? `${player.ejaculation_count}회` : '0회'],
+    ['성적 이벤트', typeof player?.total_sexual_events === 'number' ? `${player.total_sexual_events}건` : '0건'],
+    ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event) || '없음'],
     ['현재 상황', displayValue(player?.status)]
   ];
   activeRules.forEach((rule, index) => {
@@ -593,7 +593,7 @@ function renderSupplementalPanels(elements, model) {
     progress: display.ejaculationProgress, count: display.ejaculationCount
   });
   renderTextSlot(supplementalElement(elements, 'turnChanges', 'turn-changes-slot'), {
-    heading: '이번 턴 요약', value: display.turnSummary, className: 'turn-change-card'
+    heading: '요약 기록', value: display.turnSummary, className: 'turn-change-card'
   });
 }
 
@@ -606,6 +606,8 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
   text(elements.dayTime, [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '));
   definitionList(elements.scene, Object.entries(stateDisplayValues(model)));
+  const characterPanel = elements.focal?.closest?.('details');
+  if (characterPanel) characterPanel.open = true;
   renderFocalCharacter(elements.focal, model.focal_character, model.player);
   renderMindMonitor(elements.mind, model.media?.mind_monitor_entries ?? model.media?.mind_monitor, {
     preferredId: model.media?.default_mind_character_id
