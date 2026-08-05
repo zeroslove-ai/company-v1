@@ -50,7 +50,7 @@ export function applyCsaPlanToContext(context, plan) {
 
 function strengthLabel(value) {
   const id = appStrengthId(value);
-  return STRENGTH_LABELS[id] ?? text(value) || '약함';
+  return STRENGTH_LABELS[id] ?? (text(value) || '약함');
 }
 
 function activeCsaProjection(save) {
