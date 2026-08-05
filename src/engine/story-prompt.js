@@ -1,5 +1,10 @@
 import { buildActiveCharacterCanon, buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js';
 import { buildPlayerPromptProjection, resolvePlayerCanonicalNames } from './player-setup.js';
+import {
+  buildGeneralNpcCanon,
+  buildWorkplaceContext,
+  selectActiveGeneralNpcIds
+} from './workplace-context.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -56,8 +61,8 @@ export function buildLastTurnContinuity(turn) {
     : null;
 }
 
-/** Compact Story context: active state plus summaries and one detailed previous-turn block. */
-export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction } = {}) {
+/** Compact Story context: active state plus summaries, workplace context, and one detailed previous-turn block. */
+export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition } = {}) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const game = object(context?.game) ?? {};
   const player = object(save.player) ?? {};
@@ -67,6 +72,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     game: { id: typeof game.id === 'string' ? game.id : null, title: typeof game.title === 'string' ? game.title : null },
     player: buildPlayerPromptProjection({ player, canonical, playerAction }),
     ...buildSceneContextCore(save, activeIds),
+    workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
     story_summary: {
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
       recent: typeof save.story_summary_recent === 'string' ? save.story_summary_recent : ''
@@ -89,11 +95,11 @@ const SYSTEM_INSTRUCTIONS = [
 
   '[1. 서사 및 행동]: 대사는 서술과 자연스럽게 교차하며 형식은 "화자명 (짧고 구체적인 연기지시): “대사”" 이다. 분량 목표(제외: Context/action/선택지/속마음/상황판)는 가벼운 확인·즉각 반응이면 800~1000자(A), 대화 요청·갈등·구체적 행동이면 1000~1500자(B), 장소 이동·다수 NPC 성장·중요 CSA 실행이면 1200~2000자(C)이다. NPC가 등장하는 일반 턴은 의미 있는 NPC 발언(질문 응답/새 정보/확인/수락·거절/감정 변화/행동 시작 중 하나를 새로 수행) 3회 이상을 목표로 하며, 같은 말을 줄만 나눠 채우지 않는다. 이 문단의 모든 분량·횟수 목표는 생성 목표일 뿐 검증 게이트가 아니며, 부족해도 재생성·반려하지 않는다.',
 
-  '장면 연속성: context.last_turn_continuity가 있으면 turn_summary보다 그 안의 실제 narrative_tail과 dialogue_tail을 구체적 연속성의 우선 근거로 사용한다. 직전 질문·약속·결정·말투·놓인 물건·자세를 무시하고 장면을 다시 시작하지 않는다. 직전 질문에는 답변·회피·보류 중 하나로 실제 반응하고, 같은 설명을 처음부터 반복하지 않는다.',
+  '장면 연속성: context.last_turn_continuity가 있으면 turn_summary보다 실제 narrative_tail과 dialogue_tail을 우선한다. 직전 질문·약속·결정·말투·물건·자세를 무시하고 장면을 재시작하지 않으며, 질문에는 답변·회피·보류 중 하나로 반응하고 같은 설명을 반복하지 않는다.',
 
-  'NPC 자율성: 관련 NPC는 플레이어의 입력만 기다리지 않는다. 장면당 최소 한 명은 자기 업무·목적·성격에 따른 작은 행동을 한다. 문서, 모니터, 메신저, 전화, 일정, 회의실, 자리 이동 등 현재 회사 장면에 맞는 행동을 사용하되, 플레이어가 입력하지 않은 플레이어 행동을 대신 수행하거나 강제하지 않는다. 큰 사건이 필요하지 않은 턴에는 작은 업무 진행이나 주변 변화 하나면 충분하다.',
+  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 업무·목적·성격에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 등 현재 workplace에 맞는 행동을 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. context.workplace.eligible_nearby_npcs는 진입 허용 후보일 뿐 현장 인원이 아니다. 구체적 업무 이유가 있을 때 최대 1명만 노크·호출·이동을 보여준 뒤 등장시킬 수 있고 후보 밖 NPC는 만들지 않는다.',
 
-  '대화 기능: 발언 수만 채우지 않는다. 첫 발언은 즉각 반응·질문·확인, 중간 발언은 새 정보·조건·반론·감정 변화, 마지막 발언은 결정·행동 시작·다음 쟁점 중 서로 다른 기능을 수행한다. 다인 장면에서는 가능할 때 NPC끼리도 최소 한 번 서로의 말이나 행동에 반응한다.',
+  '대화 기능: 첫 발언은 반응·질문·확인, 중간은 새 정보·조건·반론·감정 변화, 마지막은 결정·행동 시작·다음 쟁점 중 서로 다른 기능을 맡는다. 다인 장면은 가능하면 NPC끼리 한 번 이상 직접 반응하고, 모두 같은 의견을 반복하지 않는다.',
 
   '관계 의미를 분리한다. 업무 협조는 호감이 아니고, 직급 수행은 사적 복종이 아니며, CSA 수용은 애정·성적 동의가 아니다. 친절과 친밀감, 흥분과 수용, 거절과 적대감을 자동으로 동일시하지 않는다. 같은 행동에 업무상 수용과 개인적 불편이 동시에 존재할 수 있다.',
 
@@ -103,11 +109,11 @@ const SYSTEM_INSTRUCTIONS = [
 
   '[3. 플레이어 상황판]: context로 실제 전달된 값만 표시한다(이름/부서/직급/장소/Day·시각/현재 턴/이번 턴 확정 변화/활성 CSA/arousal). 없는 값은 생략하고, 개인 암시나 추측한 숫자·예상 변화량·미확정 provisional 값의 확정 표시는 금지된다.',
 
-  '[4. 선택지]: 정확히 4개를 목표로 생성한다. 각 줄은 반드시 `번호. [짧은라벨] 선택지 전문` 형식이다. 짧은라벨은 공백 없이 2~5글자(불가피하면 최대 6글자), 네 개가 서로 달라야 하며 행동과 대상을 구분해야 한다. 전문은 플레이어가 다음에 실제 수행할 하나의 핵심 행동이고 결과를 선확정하지 않는다. 상황에 맞는 업무 진행·관계 확인·탐색·경계 설정·직접 제안·관찰 중 최소 3가지 서로 다른 접근 방향을 포함하고, 같은 대상·동사의 표현만 바꾼 네 문장을 만들지 않는다. 라벨은 표시용일 뿐 전문을 생략하거나 바꾸지 않는다.',
+  '[4. 선택지]: 정확히 4개를 목표로 생성한다. 각 줄은 반드시 `번호. [짧은라벨] 선택지 전문` 형식이다. 짧은라벨은 공백 없이 2~5글자(불가피하면 최대 6글자), 네 개가 서로 달라야 한다. 전문은 결과를 선확정하지 않는 하나의 핵심 행동이다. 업무 진행·관계 확인·탐색·경계 설정·직접 제안·관찰 중 최소 3방향을 쓰고, 최소 1개는 scene_goal을 직접 진전시키며 최소 1개는 다른 방향을 열어둔다. 같은 대상·동사의 표현만 바꾸지 않는다.',
 
-  'CSA(공통 인식 규칙)는 항상 전역 규칙이며 NPC는 거절할 수 있지만 플레이어의 자유 입력 자체는 막지 않는다. context와 active_character_canon에 없는 NPC나 장면을 새로 만들지 않는다.',
+  'CSA(공통 인식 규칙)는 항상 전역 규칙이며 NPC는 거절할 수 있지만 플레이어의 자유 입력 자체는 막지 않는다. context, active_character_canon, active_general_npc_canon, eligible_nearby_npcs에 없는 NPC나 장면을 새로 만들지 않는다.',
 
-  'active_character_canon은 그 턴에 등장한 등록 캐릭터에 대한 유일한 사실 기준이다. 이름·나이·부서·직급·외모·성격·말투·호칭 규칙을 임의로 바꾸거나 다른 직급·직무로 승격하지 않는다. canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 장면 행동·대사·거리감의 실제 생성 근거로 사용한다.'
+  'active_character_canon은 활성 등록 캐릭터의 유일한 사실 기준이고 active_general_npc_canon과 eligible_nearby_npcs는 일반 NPC의 유일한 사실 기준이다. 이름·나이·부서·직급·성격·말투를 임의로 바꾸거나 승격하지 않는다. canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 행동·대사·거리감의 생성 근거로 사용한다.'
 ].join(' ');
 
 export function buildRegenerationFeedbackSection(feedbackText) {
@@ -123,17 +129,19 @@ export function appendLateAuthoritativeCharacterCanon(messages) {
   let payload;
   try { payload = JSON.parse(userMessage.content); } catch { return messages; }
   const canon = object(payload?.active_character_canon) ?? {};
+  const generalCanon = object(payload?.active_general_npc_canon) ?? {};
   const context = object(payload?.context) ?? {};
-  if (!Object.keys(canon).length) return messages;
+  if (!Object.keys(canon).length && !Object.keys(generalCanon).length) return messages;
   const addressingState = object(context?.npc_relationship_state) ?? {};
   const section = [
     '[최종 권위 캐릭터 캐논 — 이 메시지가 앞선 모든 캐릭터 묘사보다 우선한다]',
-    JSON.stringify(canon),
+    JSON.stringify({ registered_characters: canon, active_general_npcs: generalCanon }),
     '[호칭 계약]',
     '1) 각 캐릭터의 prompt_card.addressing과 현재 회사 직급·관계를 기본값으로 사용한다.',
-    '2) 플레이어가 이번 입력에서 특정 호칭을 요청해 NPC가 수용하더라도 그 효력은 현재 장면에 한정한다.',
-    '3) 이후 턴에도 지속되는 호칭으로 취급하려면 저장된 npc_relationship_state 또는 캐릭터 canon에 그 변화가 명시되어 있어야 한다.',
-    '4) 업무상 직급 호칭과 사적 친밀 호칭을 혼동하지 않고, 일회성 농담·CSA 수용·성적 반응만으로 영구 호칭을 만들지 않는다.',
+    '2) 일반 NPC는 active_general_npc_canon의 role과 department_id를 기준으로 업무 호칭을 사용한다.',
+    '3) 플레이어가 이번 입력에서 특정 호칭을 요청해 NPC가 수용하더라도 그 효력은 현재 장면에 한정한다.',
+    '4) 이후 턴에도 지속되는 호칭으로 취급하려면 저장된 npc_relationship_state 또는 캐릭터 canon에 그 변화가 명시되어 있어야 한다.',
+    '5) 업무상 직급 호칭과 사적 친밀 호칭을 혼동하지 않고, 일회성 농담·CSA 수용·성적 반응만으로 영구 호칭을 만들지 않는다.',
     `현재 저장된 관계 상태: ${JSON.stringify(addressingState)}`
   ].join('\n');
   return [...messages, { role: 'system', content: section }];
@@ -142,7 +150,9 @@ export function appendLateAuthoritativeCharacterCanon(messages) {
 export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
-  const activeIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
+  const heroineActiveIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
+  const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: playerAction });
+  const activeIds = [...heroineActiveIds, ...generalActiveIds.filter(id => !heroineActiveIds.includes(id))];
   return [
     { role: 'system', content: SYSTEM_INSTRUCTIONS },
     {
@@ -151,8 +161,9 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
         edition: edition.editionId,
         expected_turn: expectedTurn,
         player_action: playerAction,
-        active_character_canon: buildActiveCharacterCanon(charactersMap, activeIds),
-        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction })
+        active_character_canon: buildActiveCharacterCanon(charactersMap, heroineActiveIds),
+        active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
+        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition })
       })
     }
   ];
