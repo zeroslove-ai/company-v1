@@ -38,7 +38,7 @@ let committedChoiceSet = null;
 function localizedValue(value) {
   const raw = displayValue(value).trim();
   if (!raw) return '';
-  return DISPLAY_LABELS[raw] ?? raw.replaceAll('_', ' ');
+  return DISPLAY_LABELS[raw] ?? (/^[a-z0-9_:-]+$/i.test(raw) ? '' : raw);
 }
 
 function workHook(value) {
@@ -342,7 +342,7 @@ function postureSentence(value, detail = '') {
   if (detailed) return detailed.replace(/[.。]$/, '');
   const raw = displayValue(value).trim();
   if (!raw) return '';
-  return POSTURE_SENTENCES[raw] ?? `${localizedValue(raw)} 자세를 취하고 있다`;
+  return POSTURE_SENTENCES[raw] ?? localizedValue(raw).replace(/[.。]$/, '');
 }
 
 function sentence(value) {
@@ -457,10 +457,18 @@ function renderFocalCharacter(container, focal, player) {
   }
 }
 
+const LEGACY_CLOTHING_LABELS = {
+  uniform_top: '상의', uniform_bottom: '하의', underwear_top: '상의 속옷', underwear_bottom: '하의 속옷',
+  worn: '착용', removed: '벗음', open: '풀어 둠'
+};
+
 function clothingDisplay(clothing) {
   const source = object(clothing) ?? {};
-  if (!Object.keys(source).length) return '';
-  return Object.values(source).some(value => value === 'removed' || value === 'open') ? '흐트러짐' : '정상 착용';
+  return Object.entries(source).flatMap(([key, value]) => {
+    const label = LEGACY_CLOTHING_LABELS[key] ?? localizedValue(key);
+    const state = LEGACY_CLOTHING_LABELS[value] ?? localizedValue(value);
+    return label && state ? [`${label} ${state}`] : [];
+  }).join(' · ');
 }
 
 function playerPositionDisplay(player) {

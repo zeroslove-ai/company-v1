@@ -264,7 +264,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       ejaculation_count: numberOrNull(sexualDisplay.ejaculation_count) ?? numberOrNull(playerSexualState.ejaculation_count),
       total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events), last_sexual_event: object(sexualDisplay.last_sexual_event),
       status: text(parsedStory.player_status), inner_thought: text(parsedStory.player_inner_thought),
-      location_label: text(playerSceneState.location_label) || text(scene.location_label) || text(scene.location_id),
+      location_label: text(playerSceneState.location_label) || text(scene.location_label),
       posture: text(playerSceneState.posture), posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
       position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}
     },

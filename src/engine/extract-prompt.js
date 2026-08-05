@@ -75,7 +75,7 @@ const SYSTEM_INSTRUCTIONS = [
   'elapsed_minutes is your only time proposal: 1-30 normally; <=480 only when evidence.time_advance=true. Never compute Day/absolute time.',
   'CSA deltas only state_delta.csa_runtime_state[csa_id]{lifecycle,applicability,execution_state} and csa_attitudes[npc_id][csa_id].',
   'player_sexual_state uses only arousal_delta, ejaculation_progress_delta, and ejaculation_completed; completion requires evidence.sexual_resolution === true.',
-  'Physical patches may set location_label, posture, position_label, clothing, evidence, posture_end_reason only from exact Story. Posture change needs movement|task_ended|explicit_change|physical_interruption|player_request.',
+  'Physical patches may set concise Korean location_label, posture, position_label, and arbitrary Korean clothing keys/state strings only from exact Story evidence. Omit unchanged or uncertain fields; legacy English codes are compatibility input, not an output catalog.',
   'npc_stats and sexual_event_ledger each need an exact Story quote. Distinguish attempt, refusal, partial, conditional acceptance, pause, completion. Human-readable strings are Korean; IDs unchanged.'
 ].join(' ');
 

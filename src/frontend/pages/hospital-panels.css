@@ -373,3 +373,13 @@
     padding: 9px;
   }
 }
+
+
+/* Open-state UI: summaries are records, not teaser text. */
+.turn-summary,
+.turn-change-card .future-slot-value {
+  display: block;
+  max-height: none;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
