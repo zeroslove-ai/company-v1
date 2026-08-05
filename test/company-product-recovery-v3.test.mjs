@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 import {
   buildFinderNpcList,
   buildFullPlayerInfo,
-  buildNpcFinderPayload
+  buildNpcFinderPayload,
+  resolveNpcLocation
 } from '../src/api/product-recovery.js';
 import {
   applyRegisteredNpcPolicy,
@@ -19,7 +20,7 @@ import {
   historyPageState,
   mergeHistoryRecords
 } from '../src/frontend/pages/history-tools.js';
-import { finderStatusText } from '../src/frontend/pages/npc-finder.js';
+import { finderErrorText, finderStatusText } from '../src/frontend/pages/npc-finder.js';
 import { promoteNewCsaCard } from '../src/frontend/pages/csa-product-ui.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -140,24 +141,29 @@ test('finder directory exposes only five heroines and eight registered general N
   assert.equal(defaultGeneral.can_move, true);
 });
 
-test('finder payload distinguishes present, inferred workplace, and unknown ids', () => {
-  const current = buildNpcFinderPayload(save(), edition, 'heroine1');
-  assert.equal(current.known_character, true);
-  assert.equal(current.status, 'present');
-  assert.match(finderStatusText(current), /현재 같은 장면/);
+test('finder preserves existing 422 contracts and frontend maps them precisely', () => {
+  const currentLocation = resolveNpcLocation(save(), edition, 'heroine1');
+  assert.equal(currentLocation.status, 'present');
+  assert.match(finderStatusText({ name: '히로인1', known_character: true, ...currentLocation }), /현재 같은 장면/);
+  assert.throws(
+    () => buildNpcFinderPayload(save(), edition, 'heroine1'),
+    error => error?.status === 422 && error?.code === 'npc_already_present'
+  );
 
   const inferred = buildNpcFinderPayload(save(), edition, 'general_1');
   assert.equal(inferred.status, 'inferred_workplace');
   assert.equal(inferred.location_label, '프로젝트룸');
   assert.match(finderStatusText(inferred), /기본 근무지/);
 
-  const unknown = buildNpcFinderPayload(save(), edition, 'extra_visitor');
-  assert.equal(unknown.known_character, false);
-  assert.equal(unknown.can_move, false);
-  assert.equal(finderStatusText(unknown), '등록된 인물이 아닙니다.');
+  assert.throws(
+    () => buildNpcFinderPayload(save(), edition, 'extra_visitor'),
+    error => error?.status === 422 && error?.code === 'npc_not_found'
+  );
+  assert.equal(finderErrorText({ code: 'npc_not_found' }), '등록된 인물이 아닙니다.');
+  assert.match(finderErrorText({ code: 'npc_location_unknown', message: '일반8의 현재 위치가 아직 기록되지 않았습니다.' }), /위치가 아직 기록되지/);
 });
 
-test('registered NPC policy is static, cache-friendly, and excludes transient extras from continuity', () => {
+test('registered NPC policy is static, cache-friendly, and Story-only', () => {
   const init = {
     body: JSON.stringify({
       stream: true,
@@ -172,8 +178,19 @@ test('registered NPC policy is static, cache-friendly, and excludes transient ex
   assert.match(patched.messages[0].content, /등록 NPC 전용 등장 정책/);
   assert.match(patched.messages[0].content, /이름 없는 직원·비서·동료·경비·방문객/);
   assert.match(patched.messages[0].content, /일회성 배경 오류/);
-  assert.match(patched.messages[0].content, /다음 턴 Context에 유지하지 않는다/);
-  assert.match(REGISTERED_NPC_POLICY, /등록 ID가 없는 인물/);
+  assert.match(patched.messages[0].content, /다음 턴의 서사 연속성에 유지하지 않는다/);
+  assert.match(REGISTERED_NPC_POLICY, /등록되지 않은 단역/);
+
+  const extract = {
+    body: JSON.stringify({
+      stream: false,
+      messages: [
+        { role: 'system', content: 'VERIFIED EXTRACT PREFIX' },
+        { role: 'user', content: JSON.stringify({ registered_characters: [{ character_id: 'heroine1' }] }) }
+      ]
+    })
+  };
+  assert.equal(applyRegisteredNpcPolicy(extract), extract, 'Extract의 기존 ID guard와 프롬프트 예산을 유지한다');
 
   const classifier = { body: JSON.stringify({ messages: [{ role: 'system', content: 'CLASSIFIER' }] }) };
   assert.equal(applyRegisteredNpcPolicy(classifier), classifier);
