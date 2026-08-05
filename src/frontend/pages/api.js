@@ -41,7 +41,6 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
   }
   const story = body => streamingPost('/api/story', body, { code: 'story_failed', message: '서사 생성에 실패했습니다.' });
   const opening = body => streamingPost('/api/opening', body, { code: 'opening_failed', message: '오프닝 생성에 실패했습니다.' });
-  const tts = body => streamingPost('/api/tts', body, { code: 'tts_failed', message: 'TTS 재생에 실패했습니다.' });
   return {
     context: body => postJson('/api/context', body), story,
     extract: body => postJson('/api/extract', body),
@@ -57,6 +56,6 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
     history: body => postJson('/api/history', body),
     feedback: (gameId, revisionRequestId, feedbackText) => postJson('/api/feedback', { game_id: gameId, revision_request_id: revisionRequestId, feedback_text: feedbackText }),
     image: body => postJson('/api/image', body),
-    tts
+    tts: body => postJson('/api/tts', body)
   };
 }
