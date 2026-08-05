@@ -245,7 +245,7 @@ export function createUtilityUi({
     return playTts();
   }
 
-  async function loadMedia({ autoplayTts = false } = {}) {
+  async function loadMedia({ autoplayTts = true } = {}) {
     if (!available.media) {
       await maybeAutoplayTts(autoplayTts);
       return null;
