@@ -7,10 +7,12 @@ import { fileURLToPath } from 'node:url';
 import {
   applyCsaPlanToContext,
   buildContextDisplayPayload,
+  buildCsaOfficialNoticeSection,
   buildCsaTransactionDetailsSection,
   buildNpcAppPayload
 } from '../src/api/runtime-display.js';
 import { patchCompletionBody } from '../src/api/turn-routes-runtime.js';
+import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -56,8 +58,8 @@ function baseSave() {
     last_speaker_id: 'heroine1',
     last_npcs_present: ['heroine1', 'general_seen'],
     npc_stats: {
-      heroine1: { affection: 11, acceptance: 22, arousal: 5 },
-      general_seen: { affection: 3 }
+      heroine1: { affinity: 11, work_trust: 17, csa_acceptance: 22, sexual_arousal: 5 },
+      general_seen: { affinity: 3 }
     },
     csa_attitudes: { general_seen: { acceptance: 44 } },
     npc_scene_state: {
@@ -103,7 +105,7 @@ test('activate CSA is visible to the same Story turn with exact content and stre
       csa_5: { active: true, strength: 'medium', content: '모든 직원은 보고 전에 안경을 벗는다.', scope_label: '회사 전체' }
     },
     canonical_action: {
-      operations: [{ operation: 'activate', strength: 'medium', content: '모든 직원은 보고 전에 안경을 벗는다.' }]
+      operations: [{ domain: 'csa', operation: 'activate', strength: 'medium', content: '모든 직원은 보고 전에 안경을 벗는다.' }]
     }
   };
   const projected = applyCsaPlanToContext({ save: { data: previousSave } }, plan);
@@ -119,6 +121,8 @@ test('activate CSA is visible to the same Story turn with exact content and stre
   assert.equal(context.global_csa.rules.csa_5.content, '모든 직원은 보고 전에 안경을 벗는다.');
   assert.match(system, /모든 직원은 보고 전에 안경을 벗는다\./);
   assert.match(system, /강도 중간/);
+  assert.match(system, /취업규칙·전사 준수 규정/);
+  assert.match(system, /상식개변 전사 공식 공지/);
   assert.match(system, /APP TRANSACTION INPUT FIREWALL/);
 });
 
@@ -134,7 +138,7 @@ test('updated CSA replaces the old rule in the same Story and Extract context', 
       csa_2: { active: true, strength: 'medium', content: '수정된 규정', scope_label: '회사 전체' }
     },
     canonical_action: {
-      operations: [{ operation: 'update', id: 'csa_2', strength: 'medium', content: '수정된 규정' }]
+      operations: [{ domain: 'csa', operation: 'update', id: 'csa_2', strength: 'medium', content: '수정된 규정' }]
     }
   };
   const postSave = applyCsaPlanToContext({ save: previousSave }, plan).save;
@@ -158,7 +162,7 @@ test('deactivated CSA is excluded from same-turn active checks while its exact h
     next_csa_rules: {
       csa_3: { active: false, strength: 'weak', content: '해제할 규정', scope_label: '회사 전체' }
     },
-    canonical_action: { operations: [{ operation: 'deactivate', id: 'csa_3' }] }
+    canonical_action: { operations: [{ domain: 'csa', operation: 'deactivate', id: 'csa_3' }] }
   };
   const postSave = applyCsaPlanToContext({ save: previousSave }, plan).save;
   const messages = patchedMessages(completionInit({ stream: false }), {
@@ -195,11 +199,12 @@ test('context display and view model expose progression, active rule content, an
   assert.equal(model.player.active_csa_count, 1);
   assert.equal(model.player.active_csa[0].content, '회의 중에는 이름으로 부른다.');
   assert.equal(model.player.active_csa[0].strength_label, '중간');
+  assert.equal(model.player.active_csa[0].authority_label, '취업규칙·전사 준수 규정');
   assert.equal(model.player.status, '보고를 마치고 다음 지시를 기다리는 중이다.');
   assert.equal(model.player.location_label, '사무실');
 });
 
-test('NPC app payload includes five heroines and evidence-backed general NPCs with two-field Mind only', () => {
+test('NPC app payload includes five heroines and evidence-backed general NPCs with canonical stats and two-field Mind only', () => {
   const save = baseSave();
   const monitor = {
     heroine1: { surface: '침착하게 보고를 듣는다.', subconscious: '실수를 걱정한다.', physical_reaction: '금지 필드' },
@@ -213,27 +218,59 @@ test('NPC app payload includes five heroines and evidence-backed general NPCs wi
   assert.deepEqual(Object.keys(heroine.mind).sort(), ['subconscious', 'surface']);
   assert.equal(heroine.mind.surface, '침착하게 보고를 듣는다.');
   assert.equal(heroine.mind.subconscious, '실수를 걱정한다.');
+  assert.deepEqual(heroine.stats, { affection: 11, work_trust: 17, acceptance: 22, arousal: 5 });
+  const general = npcs.find(npc => npc.id === 'general_seen');
+  assert.equal(general.stats.affection, 3);
+  assert.equal(general.stats.acceptance, 44);
   const unseen = npcs.find(npc => npc.id === 'heroine2');
-  assert.equal(unseen.stats.affection, null);
-  assert.equal(unseen.stats.acceptance, null);
-  assert.equal(unseen.stats.arousal, null);
+  assert.deepEqual(unseen.stats, { affection: 0, work_trust: 0, acceptance: 0, arousal: 0 });
 });
 
-test('transaction details contain exact activate/update/deactivate content', () => {
+test('transaction details and official notices use HR, employment rules, and national law authority tiers', () => {
   const previousSave = baseSave();
   previousSave.csa_rules = { old: { strength: 'weak', content: '예전 규정' } };
-  const section = buildCsaTransactionDetailsSection({
+  const plan = {
+    next_csa_active: [], next_csa_rules: {},
     canonical_action: {
       operations: [
-        { operation: 'activate', strength: 'weak', content: '새 규정' },
-        { operation: 'update', id: 'updated', strength: 'medium', content: '수정 규정' },
-        { operation: 'deactivate', id: 'old' }
+        { domain: 'csa', operation: 'activate', strength: 'weak', content: '새 규정' },
+        { domain: 'csa', operation: 'update', id: 'updated', strength: 'medium', content: '수정 규정' },
+        { domain: 'csa', operation: 'activate', strength: 'strong', content: '법령 규정' },
+        { domain: 'csa', operation: 'deactivate', id: 'old' }
       ]
     }
-  }, previousSave);
-  assert.match(section, /신설 · 강도 약함 · 내용: 새 규정/);
-  assert.match(section, /수정 updated · 강도 중간 · 내용: 수정 규정/);
-  assert.match(section, /해제 old · 강도 약함 · 내용: 예전 규정/);
+  };
+  const details = buildCsaTransactionDetailsSection(plan, previousSave);
+  assert.match(details, /신설 · 강도 약함 · 권위 인사팀 공식 공지·사내 운영지침 · 내용: 새 규정/);
+  assert.match(details, /수정 updated · 강도 중간 · 권위 취업규칙·전사 준수 규정 · 내용: 수정 규정/);
+  assert.match(details, /법령 규정/);
+  assert.match(details, /해제 old · 강도 약함 · 권위 인사팀 공식 공지·사내 운영지침 · 내용: 예전 규정/);
+
+  const notice = buildCsaOfficialNoticeSection(plan, previousSave, {});
+  assert.match(notice, /인사팀 공식 공지·사내 운영지침/);
+  assert.match(notice, /취업규칙·전사 준수 규정/);
+  assert.match(notice, /국가 법령·관계 당국 의무 지침/);
+  assert.match(notice, /자기합리화/);
+  assert.match(notice, /애정·복종·성적 동의가 아니다/);
+});
+
+test('dialogue parser preserves TTS lines even when quotes or the colon are omitted', () => {
+  const parsed = parseNarrative([
+    '[1. 서사 및 행동]',
+    '히로인1 (낮고 단호하게) 보고서를 다시 봐요.',
+    '히로인1 (숨을 고르며): “괜찮아요.”',
+    '[2. 플레이어 속마음]',
+    '다시 확인하자.',
+    '[3. 플레이어 상황판]',
+    '검토 중.',
+    '[4. 선택지]',
+    '1. A', '2. B', '3. C', '4. D'
+  ].join('\n'), { master: { characters: [{ character_id: 'heroine1', name: '히로인1' }] } });
+  assert.equal(parsed.dialogue_lines.length, 2);
+  assert.equal(parsed.dialogue_lines[0].speaker_id, 'heroine1');
+  assert.equal(parsed.dialogue_lines[0].direction, '낮고 단호하게');
+  assert.equal(parsed.dialogue_lines[0].text, '보고서를 다시 봐요.');
+  assert.equal(parsed.dialogue_lines[1].text, '괜찮아요.');
 });
 
 test('frontend contracts keep inner thought in Story only and preserve safe dataset writes', () => {
