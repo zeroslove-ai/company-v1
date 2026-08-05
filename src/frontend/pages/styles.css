@@ -61,17 +61,20 @@
   .player-setup-overlay {
     place-items: end center;
     padding: 0;
-    background: rgb(5 10 16 / 55%);
+    background: transparent;
     backdrop-filter: none;
+    pointer-events: none;
   }
   .player-setup-overlay .player-setup-form {
+    pointer-events: auto;
     width: 100%;
-    max-height: 46dvh;
+    max-height: 32dvh;
     border-radius: .9rem .9rem 0 0;
     border-left: none;
     border-right: none;
     border-bottom: none;
-    padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+    padding: .8rem 1rem max(.8rem, env(safe-area-inset-bottom));
     overflow-y: auto;
+    font-size: .8rem;
   }
 }

@@ -221,9 +221,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
     const reservedSetupId = reservedPlayerSetupId(context);
-    if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen;
-    if (setupElements.form) setupElements.form.hidden = Boolean(reservedSetupId);
-    if (setupElements.reserved) setupElements.reserved.hidden = !reservedSetupId;
+    const setupErrorVisible = !setupElements.error?.hidden;
+    // 저장된 설정(reserved): 정상이면 오버레이 없이 init 자동 재시도가 게임 화면에 바로 스트리밍.
+    // 실패 시에만 오버레이를 띄우되, 설정 폼(설정완료)을 항상 보여준다.
+    if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen || (Boolean(reservedSetupId) && !setupErrorVisible);
+    if (setupElements.form) setupElements.form.hidden = false;
+    if (setupElements.reserved) setupElements.reserved.hidden = !reservedSetupId || !setupErrorVisible;
     if (setupElements.retryOpening) {
       setupElements.retryOpening.disabled = busy || recoveryPending;
       setupElements.retryOpening.onclick = reservedSetupId ? () => retryOpening(reservedSetupId) : null;
@@ -365,6 +368,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         return true;
       } catch (error) {
         showSetupError(error);
+        render();
         return false;
       } finally {
         text(setupElements.reservedStatus, '');
@@ -411,6 +415,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     elements.reset?.addEventListener('click', () => handleReset());
     setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
     await refreshContext(); await checkRecovery();
+    // 저장된 설정이 있으면 오프닝을 자동으로 재시도 — 사용자가 버튼을 눌러야만
+    // 시작할 수 있는 막힌 화면(모바일에서 화면을 가리는)을 제거한다.
+    const reservedSetupId = reservedPlayerSetupId(context);
+    if (reservedSetupId) await retryOpening(reservedSetupId);
     if (committedTurn(context) >= 1) utilityUi.loadMedia().catch(showError);
   }
   return { gameId, init, refreshContext, startNewAction, startFeedbackRevision, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, utilityUi, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending, utilityAvailable: utilityUi?.available ?? null }); }, get busy() { return busy; } };

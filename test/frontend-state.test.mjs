@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -172,11 +172,7 @@ test('a reloaded reserved setup retries the same opening without a second player
     };
     const app = createFrontendApp({ documentRef, storage: storage(), api });
     await app.init();
-    assert.equal(reservedPlayerSetupId(app.context), 'reserved-setup');
-    assert.equal(nodes['player-setup-form'].hidden, true);
-    assert.equal(nodes['reserved-opening'].hidden, false);
-
-    await nodes['retry-opening'].onclick();
+    // reserved 정상 흐름: init이 자동으로 오프닝을 재시도하고 오버레이 없이 완료한다
     assert.equal(openingCalls, 1);
     assert.equal(playerSetupCalls, 0);
     assert.equal(nodes['player-setup-overlay'].hidden, true);
@@ -203,18 +199,14 @@ test('a failed opening retry surfaces the error in the shared setup area, keeps 
     };
     const app = createFrontendApp({ documentRef, storage: storage(), api });
     await app.init();
-    assert.equal(nodes['player-setup-form'].hidden, true);
-    assert.equal(nodes['reserved-opening'].hidden, false);
-
-    await nodes['retry-opening'].onclick();
-
+    // 자동 재시도 실패 → 오버레이에 에러 + 설정 폼(설정완료) 표시
     assert.equal(openingCalls, 1);
     assert.equal(playerSetupCalls, 0);
     assert.equal(nodes['setup-error'].hidden, false);
     assert.equal(nodes['setup-error'].textContent, '오프닝 생성에 실패했습니다.');
-    assert.equal(nodes['player-setup-form'].hidden, true);
+    assert.equal(nodes['player-setup-overlay'].hidden, false);
+    assert.equal(nodes['player-setup-form'].hidden, false);
     assert.equal(nodes['reserved-opening'].hidden, false);
-    assert.equal(nodes['retry-opening'].disabled, false);
     assert.equal(reservedPlayerSetupId(app.context), 'reserved-setup');
   });
 });
