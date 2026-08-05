@@ -136,3 +136,33 @@
   color: #7f95a5;
   padding-left: 0;
 }
+
+/* 히스토리 모달 — 턴당 요약 + 상세보기 접기 (병원편 패턴) */
+.history-detail-section {
+  margin: .45rem 0 0;
+  border: 1px solid rgba(74, 100, 118, .45);
+  border-radius: .45rem;
+  background: rgba(74, 100, 118, .08);
+}
+.history-detail-section summary {
+  padding: .45rem .65rem;
+  cursor: pointer;
+  font-size: .76rem;
+  font-weight: 700;
+  color: #9ecce5;
+  list-style-position: inside;
+  user-select: none;
+}
+.history-detail-section summary:hover {
+  background: rgba(74, 100, 118, .15);
+}
+.history-detail-section[open] summary {
+  border-bottom: 1px solid rgba(74, 100, 118, .45);
+}
+.history-detail-body {
+  padding: .5rem .65rem;
+  font-size: .76rem;
+  line-height: 1.65;
+  color: #dceaf2;
+  white-space: pre-wrap;
+}

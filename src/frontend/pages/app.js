@@ -215,7 +215,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (!viewModel || viewModelContext !== context || viewModelExtract !== currentExtract) refreshViewModel();
     renderState(elements, viewModel, { title: context?.game?.title });
     const openingTurn = openingHistoryTurn(context);
-    renderHistory(elements.history, openingTurn ? [openingTurn, ...(context?.recent_turns ?? [])] : context?.recent_turns);
+    const recent = context?.recent_turns ?? [];
+    // 초기 본문: 진행 턴이 있으면 최신 1턴만, 아직 시작 전이면 오프닝만 표시
+    renderHistory(elements.history, recent.length ? recent.slice(-1) : (openingTurn ? [openingTurn] : recent));
     utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
     const reservedSetupId = reservedPlayerSetupId(context);

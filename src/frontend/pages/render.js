@@ -194,7 +194,7 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
   }
 }
 
-export function renderHistory(container, turns, { showSummary = true } = {}) {
+export function renderHistory(container, turns, { showSummary = true, collapsible = false } = {}) {
   if (!container) return;
   container.replaceChildren();
   const parsedTurns = (turns ?? []).map(turn => ({ turn, parsed: parsedTurnNarrative(turn) }));
@@ -212,8 +212,27 @@ export function renderHistory(container, turns, { showSummary = true } = {}) {
       if (container.id === 'story-history') narrative.append(summary);
       else card.append(summary);
     }
+    // 병원편 스타일 상세보기: 모달에서 턴 요약은 펼쳐 두고 세부(속마음/상황/선택지/원문)는 접기
+    if (collapsible) {
+      appendCollapsibleSection(card, '💭 플레이어 속마음', displayValue(turn.player_inner_thought) || parsed?.player_inner_thought);
+      appendCollapsibleSection(card, '📋 플레이어 상황', displayValue(turn.player_status) || parsed?.player_status);
+      const choiceItems = (parsed?.choices ?? []).map((c, i) => `${i + 1}. ${c}`).join('\n');
+      appendCollapsibleSection(card, '🔀 선택지', choiceItems);
+      appendCollapsibleSection(card, '📄 원문', displayValue(turn.story_text));
+    }
     container.append(card);
   }
+}
+
+function appendCollapsibleSection(card, title, value) {
+  const textValue = String(value ?? '').trim();
+  if (!textValue) return;
+  const details = document.createElement('details'); details.className = 'history-detail-section';
+  const summary = document.createElement('summary'); summary.textContent = title;
+  const body = document.createElement('div'); body.className = 'history-detail-body';
+  body.textContent = textValue;
+  details.append(summary, body);
+  card.append(details);
 }
 
 function firstMonitorValue(monitor, keys) {
