@@ -226,16 +226,13 @@ test('main story history omits duplicate turn summaries while the history modal 
   });
 });
 
-test('Company /api/tts uses the existing TTS Worker service binding and streams its audio URL', async () => {
+test('Company /api/tts uses the existing TTS Worker service binding and returns its audio URL without a second fetch', async () => {
   const bindingCalls = [];
-  const audioFetches = [];
+  let secondaryFetches = 0;
   const worker = createApiWorker({
     fetchImpl: async url => {
-      audioFetches.push(String(url));
-      if (String(url) === 'https://audio.test/heroine3.mp3') {
-        return new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'audio/mpeg' } });
-      }
-      throw new Error(`unexpected fetch ${url}`);
+      secondaryFetches += 1;
+      throw new Error(`the API Worker must not download generated audio: ${url}`);
     }
   });
   const env = {
@@ -263,7 +260,7 @@ test('Company /api/tts uses the existing TTS Worker service binding and streams 
 
   const response = await worker.fetch(request, env);
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get('content-type'), 'audio/mpeg');
+  assert.equal(response.headers.get('content-type'), 'application/json; charset=utf-8');
   assert.equal(response.headers.get('access-control-allow-origin'), '*');
   assert.deepEqual(bindingCalls, [{
     url: 'https://fancy-dust-7f8c.zeroslove.workers.dev/',
@@ -273,8 +270,11 @@ test('Company /api/tts uses the existing TTS Worker service binding and streams 
       direction: '조심스럽게'
     }
   }]);
-  assert.deepEqual(audioFetches, ['https://audio.test/heroine3.mp3']);
-  assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [1, 2, 3]);
+  assert.equal(secondaryFetches, 0);
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    data: { url: 'https://audio.test/heroine3.mp3' }
+  });
 });
 
 test('Company /api/tts rejects a missing service binding and unknown speakers before synthesis', async () => {
