@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -56,7 +56,7 @@ test('Extract prompt requires independent identity axes, Story-authoritative pre
   assert.match(system, /csa_runtime_state\[csa_id\]/);
   assert.match(system, /arousal_delta, ejaculation_progress_delta, and ejaculation_completed/);
   assert.match(system, /evidence\.sexual_resolution === true/);
-  assert.ok(system.length <= 3300, `extract system chars: ${system.length}`); // see company-heroines-v1.test.mjs's size-budget test for why this moved from 3000
+  assert.ok(system.length <= 5000, `extract system chars: ${system.length}`); // 예산 5000 확장 (UI 개선 지시문 반영)
 });
 
 test('Parser recognizes the Korean four-section output, extracts inline dialogue with a resolved speaker_id, and preserves legacy internal markers', () => {

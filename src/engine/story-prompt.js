@@ -1,4 +1,4 @@
-import { buildActiveCharacterCanon, buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js';
+﻿import { buildActiveCharacterCanon, buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js';
 import { buildPlayerPromptProjection, resolvePlayerCanonicalNames } from './player-setup.js';
 import {
   buildGeneralNpcCanon,
@@ -135,7 +135,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   '플레이어 자유도: 플레이어가 입력하지 않은 다음 행동을 대신 완료하지 않는다. 다음 행동을 고민·질문·제안하는 것은 되지만, 입력하지 않은 대사·이동·신체 행동을 이미 했다고 쓰거나 선택지 결과를 본문에서 미리 확정하지 않는다. 요청 결과는 시도/거절/부분 수용/조건부 수용/일시 중단/완료 중 하나로만 갈리며, 요청했다고 자동 완료되지 않고 거절당해도 플레이어의 다음 입력 자체는 막히지 않는다.',
 
-  '[2. 플레이어 속마음]: 따옴표 없는 1인칭 한국어 내면 독백으로, 현재 장면에 대한 구체적 판단·NPC 반응 해석·목표와 감정 인식을 담는다. 상태 라벨이나 감정 키워드 나열은 쓰지 않는다. 분량 목표는 기본 180~350자, 중요한 상황은 300~500자이며 이 역시 검증 게이트가 아니다. 현재 턴에만 해당하며 이전 턴을 반복하지 않고, 입력하지 않은 행동을 완료했다고 쓰지 않는다.',
+  '[2. 플레이어 속마음]: 따옴표 없는 1인칭 한국어 내면 독백으로, 상황에 대한 즉각적이고 구어체적인 반응 위주로 쓴다. 실제 사람이 혼잣말하듯 짧고 리듬감 있게 (예: "와 이거 뭐야 ㅋㅋ", "어우 쩔었다…", "이러다 큰일 나겠는데"). context.player.speech_style(플레이어가 생성 시 선택한 말투)을 반드시 반영해 그 말투 그대로 혼잣말을 쓴다. 감정 키워드·상태 라벨 나열, 문어체 서술, 장황한 분석은 쓰지 않는다. 분량은 80~200자 내외로 짧게. 현재 턴에만 해당하며 이전 턴을 반복하지 않고, 입력하지 않은 행동을 완료했다고 쓰지 않는다.',
 
   '[3. 플레이어 상황판]: context로 실제 전달된 값만 표시한다(이름/부서/직급/장소/Day·시각/현재 턴/이번 턴 확정 변화/활성 CSA/arousal). 없는 값은 생략하고, 개인 암시나 추측한 숫자·예상 변화량·미확정 provisional 값의 확정 표시는 금지된다.',
 

@@ -1,4 +1,4 @@
-import { parseNarrative } from './narrative.js';
+﻿import { parseNarrative } from './narrative.js';
 
 export function text(element, value) { if (element) element.textContent = value ?? ''; }
 
@@ -168,7 +168,13 @@ export function renderNarrative(container, parsed) {
       meta.append(speaker, direction); card.append(meta, line); container.append(card);
       continue;
     }
-    const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`; paragraph.textContent = block.text ?? ''; container.append(paragraph);
+    const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`;
+    // 플레이어 속마음: 마침표·물음표·느낌표 뒤 줄바꿈으로 가독성 향상 (대화체 혼잣말)
+    const blockText = block.text ?? '';
+    paragraph.textContent = block.type === 'player_inner_thought'
+      ? blockText.replace(/([.。!?！？~])\s*/g, '$1\n')
+      : blockText;
+    container.append(paragraph);
   }
   if (!embeddedChoices) renderNarrativeChoices(container, choices, labels);
 }
@@ -608,6 +614,39 @@ function renderSupplementalPanels(elements, model) {
   });
 }
 
+
+function renderScenePanel(container, model, values) {
+  if (!container) return;
+  container.replaceChildren();
+  const activeRules = Array.isArray(model?.scene?.csa_rules) && model.scene.csa_rules.length
+    ? model.scene.csa_rules
+    : (Array.isArray(model?.scene?.csa_active) ? model.scene.csa_active : []);
+  const activeIds = Array.isArray(model?.scene?.csa_active) ? model.scene.csa_active : [];
+  const count = activeRules.length || activeIds.length;
+  const max = typeof model?.player?.max_active_csa === 'number' ? model.player.max_active_csa : null;
+
+  const header = document.createElement('p'); header.className = 'scene-active-rules-heading';
+  header.textContent = max === null ? `활성 규정 (${count})` : `활성 규정 (${count} / ${max})`;
+  container.append(header);
+
+  const list = document.createElement('ul'); list.className = 'scene-active-rules-list';
+  const ruleItems = activeRules
+    .map(rule => {
+      if (typeof rule === 'string') return rule;
+      const label = displayValue(rule?.label) || displayValue(rule?.content) || displayValue(rule?.required_action) || displayValue(rule?.id);
+      const strength = localizedValue(rule?.strength_label || rule?.strength);
+      return strength && strength !== rule?.strength_label ? `[${strength}] ${label}` : label;
+    })
+    .filter(Boolean);
+  if (ruleItems.length) {
+    ruleItems.forEach(text => { const li = document.createElement('li'); li.textContent = text; list.append(li); });
+  } else {
+    const li = document.createElement('li'); li.className = 'scene-active-rules-none'; li.textContent = '활성 규정 없음';
+    list.append(li);
+  }
+  container.append(list);
+}
+
 export function renderState(elements, viewModel, { title = '상식개변: 회사편' } = {}) {
   const model = viewModel ?? {};
   const world = object(model.scene?.world_state) ?? {};
@@ -616,7 +655,9 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   text(elements.title, title || '상식개변: 회사편');
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
   text(elements.dayTime, [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '));
-  definitionList(elements.scene, Object.entries(stateDisplayValues(model)));
+  // 현재 장면 패널: 장소·업무·목표·흐름·활성규정 단순 나열 대신
+  // 활성 규정 (N/M) + 규정 목록만 집중 표시 (사용자 요구)
+  renderScenePanel(elements.scene, model, stateDisplayValues(model));
   const characterPanel = elements.focal?.closest?.('details');
   if (characterPanel) characterPanel.open = true;
   renderFocalCharacter(elements.focal, model.focal_character, model.player);

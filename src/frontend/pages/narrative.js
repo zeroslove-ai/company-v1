@@ -1,4 +1,4 @@
-const SECTION_LABELS = {
+﻿const SECTION_LABELS = {
   SCENE: 'scene', '1': 'scene',
   PLAYER_INNER_THOUGHT: 'thought', '2': 'thought',
   PLAYER_STATUS: 'status', '3': 'status',
@@ -185,7 +185,11 @@ export function parseNarrative(rawText, { speakerDirectory = {} } = {}) {
     const end = index + 1 < matches.length ? matches[index + 1].index : raw.length;
     const value = raw.slice(start, end).trim();
     if (role === 'scene') { if (value) appendSceneBlocks(blocks, dialogue_lines, value, speakerDirectory); continue; }
-    if (role === 'thought') { player_inner_thought = value; if (value) blocks.push({ type: 'player_inner_thought', text: value }); continue; }
+    if (role === 'thought') {
+      player_inner_thought = value;
+      if (value) blocks.push({ type: 'player_inner_thought', text: value });
+      continue;
+    }
     if (role === 'status') { player_status = value; continue; }
     if (role === 'choices') {
       const parsed = parseChoices(value);

@@ -290,7 +290,7 @@
   .character-image {
     height: clamp(260px, 46dvh, 340px);
     max-height: 340px;
-    object-fit: cover;
+    object-fit: contain;
   }
 }
 

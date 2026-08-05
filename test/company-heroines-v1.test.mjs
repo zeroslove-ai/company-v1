@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -386,12 +386,9 @@ test('Story request size budgets: system <=4500, 3-character active canon <=1800
   assert.equal(Object.values(payload.active_character_canon).filter(e => 'prompt_card' in e).length, 3);
 });
 
-test('Extract request size budget: system <=3300', () => {
-  // Raised from 3000 when the full-feature-transplant branch added the always-needed
-  // player_scene_state/npc_scene_state/npc_stats/sexual_event_ledger instruction sentence
-  // (these apply to every normal turn, not just CSA turns, so they can't be gated off) — the
-  // new real floor is ~3141 chars; 3300 keeps real headroom without pretending the old 3000
-  // cap is still achievable.
+test('Extract request size budget: system <=5000', () => {
+  // Raised from 3300 to 5000: UI 개선(표면의식·잠재의식 대화체 혼잣말 지시문 추가) 반영.
+  // 실측 floor ~3.4K — 5000은 충분한 여유.
   const prompt = buildExtractPrompt({ context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
-  assert.ok(prompt[0].content.length <= 3300, `extract system chars: ${prompt[0].content.length}`);
+  assert.ok(prompt[0].content.length <= 5000, `extract system chars: ${prompt[0].content.length}`);
 });

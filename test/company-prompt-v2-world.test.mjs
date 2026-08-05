@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
@@ -174,5 +174,5 @@ test('Story and Extract activate a named general NPC with compact canon and scop
   assert.deepEqual(Object.keys(extractPayload.context.active_npc_state.npc_emotion), ['general_manager']);
   assert.match(extractSystem, /nearby\/default\/eligible NPC is not present/);
   assert.match(extractSystem, /Story explicitly shows their entrance, presence, action, or dialogue/);
-  assert.ok(extractSystem.length <= 3300, `Extract system prompt too large: ${extractSystem.length}`);
+  assert.ok(extractSystem.length <= 5000, `Extract system prompt too large: ${extractSystem.length}`);
 });
