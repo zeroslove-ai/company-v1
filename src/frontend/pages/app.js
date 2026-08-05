@@ -31,11 +31,6 @@ function resolveNumberedChoiceInput(rawInput, save) {
   return { ok: true, choice_index: index, text: choices[index] };
 }
 
-const recoveryLabels = {
-  retry_story: 'Story 다시 시도', resume_extract: 'Extract 이어서 실행', retry_extract: 'Extract 다시 시도',
-  resume_commit: 'Commit 이어서 실행', retry_commit: 'Commit 다시 시도', wait_story: '상태 다시 확인', unknown: '복구 상태 다시 확인'
-};
-
 function newActionId() { return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`; }
 function messageFor(error) {
   if (error instanceof ApiError) return error.code === 'turn_conflict' ? '턴 충돌이 발생했습니다. 현재 상태를 다시 불러오세요.' : error.message;
@@ -245,11 +240,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
     render();
   }
-  function showRecoveryUi(pending, step) {
-    recoveryPending = true;
-    if (elements.recovery) { elements.recovery.hidden = false; elements.recovery.textContent = recoveryLabels[step]; elements.recovery.onclick = () => resumePending(pending, step); }
-    render();
-  }
   const busyGuard = createBusyGuard({ onChange: setBusy });
   async function refreshContext() {
     showStatus('현재 상태를 불러오는 중…'); setConnection(false);
@@ -276,11 +266,22 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     try {
       const data = await api.actionStatus({ game_id: gameId, action_id: pending.action_id }); const step = recoveryFor(data);
       if (step === 'complete') { await coordinator.runRecovery(pending, step); clearRecoveryUi(); return; }
-      showRecoveryUi(pending, step);
-      showStatus(step === 'wait_story' ? '서사 처리가 진행 중입니다.' : '이전 행동의 복구가 필요합니다.');
+      // 사용자 요구: 복구 버튼 없이 자동으로 이어서 실행
+      recoveryPending = true;
+      if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
+      await resumePending(pending, step);
+      recoveryPending = false;
     } catch (error) {
-      if (error instanceof ApiError && error.code === 'action_not_found') { showRecoveryUi(pending, 'retry_story'); return; }
+      if (error instanceof ApiError && error.code === 'action_not_found') {
+        recoveryPending = true;
+        if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
+        await resumePending(pending, 'retry_story');
+        recoveryPending = false;
+        return;
+      }
       showError(error);
+      recoveryPending = false;
+      if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
     }
   }
   async function withBusy(operation) {

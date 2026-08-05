@@ -248,12 +248,13 @@ test('a failed new player-setup submission shows the error in the shared setup a
 test('pending action keeps recovery UI ahead of resume and preserves recovery endpoint behavior', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     const local = storage(); const pending = { game_id: gameId, action_id: 'saved-action', expected_turn: 4, player_action: 'Saved action', created_at: 'now', step: 'story' }; savePending(local, pending);
-    const api = { context: async () => ({ context: validContext() }), actionStatus: async () => ({ recoverable_step: 'retry_story' }) };
+    const api = { context: async () => ({ context: validContext() }), actionStatus: async () => ({ recoverable_step: 'retry_story' }), story: async () => new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 재개된 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }), extract: async () => ({ extract: { choices: [], mind_monitor: {} } }), commit: async () => ({ commit: { success: true } }) };
     const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
-    assert.equal(nodes['recovery-action'].hidden, false);
-    assert.equal(nodes['resume-play'].disabled, true);
-    assert.equal(nodes['player-action'].disabled, true);
-    assert.equal(typeof nodes['recovery-action'].onclick, 'function');
+    // 사용자 요구: 복구 버튼 노출 없이 자동으로 이어서 실행 (완료 후 정상 상태)
+    assert.equal(nodes['recovery-action'].hidden, true);
+    assert.equal(nodes['recovery-action'].onclick, null);
+    assert.equal(nodes['resume-play'].disabled, false);
+    assert.equal(nodes['player-action'].disabled, false);
   });
 });
 
@@ -264,13 +265,17 @@ test('action_not_found blocks a new action and exposes retry_story recovery', as
     const api = {
       context: async () => ({ context: validContext() }),
       actionStatus: async () => { throw new ApiError({ endpoint: '/api/action-status', status: 404, code: 'action_not_found', message: 'missing' }); },
-      story: async () => { storyCalls += 1; return new Response(); }
+      story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 재시도 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
     };
     const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
-    assert.equal(nodes['recovery-action'].hidden, false);
-    assert.equal(await app.startNewAction('New action'), false);
-    assert.equal(storyCalls, 0);
-    assert.equal(loadPending(local, gameId).action_id, 'saved');
+    assert.equal(nodes['recovery-action'].hidden, true);
+    // 자동 재개로 Story를 다시 시도해 완료된다 (버튼 대신)
+    assert.equal(storyCalls, 1);
+    assert.equal(loadPending(local, gameId), null);
+    // 재개가 끝났으므로 새 액션을 시작할 수 있다
+    assert.equal(await app.startNewAction('New action'), true);
   });
 });
 

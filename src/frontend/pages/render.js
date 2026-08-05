@@ -543,13 +543,30 @@ function renderPlayer(container, player, scene) {
     ['성적 이벤트', typeof player?.total_sexual_events === 'number' ? `${player.total_sexual_events}건` : '0건'],
     ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event) || '없음']
   ];
-  activeRules.forEach((rule, index) => {
-    const strength = localizedValue(rule?.strength_label || rule?.strength);
-    const authority = displayValue(rule?.authority_label);
-    const scope = displayValue(rule?.scope_label) || '회사 전체';
-    entries.push([`규정 ${index + 1}${strength ? ` · ${strength}` : ''}`, [authority, scope, displayValue(rule?.content)].filter(Boolean).join(' · ')]);
-  });
   definitionList(container, entries);
+  // 상식개변(활성 규정)은 별도 칸 — 2열 그리드에 넣으면 내용이 잘리므로 분리
+  if (activeRules.length) {
+    const section = document.createElement('section');
+    section.className = 'player-active-rules';
+    const heading = document.createElement('h3');
+    heading.textContent = '상식개변';
+    section.append(heading);
+    const list = document.createElement('ul');
+    activeRules.forEach((rule, index) => {
+      const strength = localizedValue(rule?.strength_label || rule?.strength);
+      const authority = displayValue(rule?.authority_label);
+      const scope = displayValue(rule?.scope_label) || '회사 전체';
+      const li = document.createElement('li');
+      const title = document.createElement('strong');
+      title.textContent = [`규정 ${index + 1}`, strength].filter(Boolean).join(' · ');
+      const body = document.createElement('span');
+      body.textContent = [authority, scope, displayValue(rule?.content)].filter(Boolean).join(' · ');
+      li.append(title, body);
+      list.append(li);
+    });
+    section.append(list);
+    container.append(section);
+  }
 }
 
 function supplementalElement(elements, key, id) {

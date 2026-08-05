@@ -412,3 +412,40 @@
   line-height: 1.5;
   color: #c9d8e4;
 }
+
+/* 상식개변(활성 규정) 별도 칸 — 전체 폭, 내용 잘림 방지 */
+.player-active-rules {
+  margin-top: .7rem;
+  padding-top: .6rem;
+  border-top: 1px solid var(--hospital-border, #2a2a4a);
+}
+.player-active-rules h3 {
+  margin: 0 0 .35rem;
+  font-size: .76rem;
+  color: #9fc9df;
+}
+.player-active-rules ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: .4rem;
+}
+.player-active-rules li {
+  display: grid;
+  gap: .1rem;
+  padding: .5rem .6rem;
+  border: 1px solid #345267;
+  border-radius: .45rem;
+  background: #1d2a35;
+  font-size: .72rem;
+  line-height: 1.45;
+}
+.player-active-rules li strong {
+  color: #dceaf2;
+  font-size: .72rem;
+}
+.player-active-rules li span {
+  color: #c9d8e4;
+  word-break: break-word;
+}
