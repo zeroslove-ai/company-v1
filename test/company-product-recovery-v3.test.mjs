@@ -135,10 +135,11 @@ test('finder directory exposes only five heroines and eight registered general N
   assert.equal(current.can_move, false);
   assert.equal(current.location_label, '대회의실');
 
-  const defaultGeneral = rows.find(row => row.id === 'general_1');
-  assert.equal(defaultGeneral.status, 'inferred_workplace');
-  assert.equal(defaultGeneral.location_label, '프로젝트룸');
-  assert.equal(defaultGeneral.can_move, true);
+  const suggestedGeneral = rows.find(row => row.id === 'general_1');
+  assert.equal(suggestedGeneral.status, 'unknown');
+  assert.equal(suggestedGeneral.known, false);
+  assert.equal(suggestedGeneral.suggested_location_label, '프로젝트룸');
+  assert.equal(suggestedGeneral.can_move, false);
 });
 
 test('finder preserves existing 422 contracts and frontend maps them precisely', () => {
@@ -150,10 +151,18 @@ test('finder preserves existing 422 contracts and frontend maps them precisely',
     error => error?.status === 422 && error?.code === 'npc_already_present'
   );
 
-  const inferred = buildNpcFinderPayload(save(), edition, 'general_1');
-  assert.equal(inferred.status, 'inferred_workplace');
-  assert.equal(inferred.location_label, '프로젝트룸');
-  assert.match(finderStatusText(inferred), /기본 근무지/);
+  assert.throws(
+    () => buildNpcFinderPayload(save(), edition, 'general_1'),
+    error => error?.status === 422 && error?.code === 'npc_location_unknown' && /프로젝트룸/.test(error.message)
+  );
+
+  const recordedSave = save();
+  recordedSave.npc_scene_state.general_1 = { location_id: 'project_room', location_label: '프로젝트룸' };
+  const located = buildNpcFinderPayload(recordedSave, edition, 'general_1');
+  assert.equal(located.status, 'located');
+  assert.equal(located.location_label, '프로젝트룸');
+  assert.equal(located.can_move, true);
+  assert.match(finderStatusText(located), /프로젝트룸/);
 
   assert.throws(
     () => buildNpcFinderPayload(save(), edition, 'extra_visitor'),
