@@ -145,6 +145,7 @@ test('TTS OFF makes no automatic request but manual replay still plays the selec
   });
 
   assert.equal(nodes['tts-enabled'].checked, false);
+  await ui.loadMedia();
   assert.equal(ttsBodies.length, 0, 'OFF 상태에서 자동 TTS 요청은 없어야 한다');
   assert.equal(nodes['play-tts'].disabled, false, '수동 재생은 TTS 토글과 독립이어야 한다');
 
@@ -158,6 +159,47 @@ test('TTS OFF makes no automatic request but manual replay still plays the selec
   }]);
   assert.equal(createdAudio.playCalls, 2, '모바일 priming과 실제 음원 재생을 각각 수행한다');
   assert.equal(createdAudio.src, 'blob:tts-audio');
+  assert.equal(createdAudio.muted, false);
+});
+
+test('TTS ON automatically requests and plays the selected NPC line during media loading', async () => {
+  const { nodes, documentRef } = documentWith(['tts-enabled', 'play-tts', 'mind-monitor']);
+  nodes['tts-enabled'].checked = true;
+  nodes['mind-monitor'].dataset.selectedCharacterId = 'heroine1';
+  const ttsBodies = [];
+  let createdAudio = null;
+  class CapturedAudio extends FakeAudio {
+    constructor() { super(); createdAudio = this; }
+  }
+  const ui = createUtilityUi({
+    documentRef,
+    api: {
+      tts: async body => {
+        ttsBodies.push(body);
+        return new Response(new Blob(['audio']), { headers: { 'content-type': 'audio/mpeg' } });
+      }
+    },
+    gameId,
+    getViewModel: () => ({
+      media: {
+        image_character_id: 'heroine1',
+        dialogue_lines: [{ speaker_id: 'heroine1', speaker_name: '서원희', text: '자동 재생할 대사', direction: '차분하게', order: 0 }]
+      },
+      focal_character: { id: 'heroine1', last_speaker_id: 'heroine1' }
+    }),
+    AudioImpl: CapturedAudio,
+    urlApi: { createObjectURL: () => 'blob:tts-auto', revokeObjectURL() {} }
+  });
+
+  await ui.loadMedia();
+  assert.deepEqual(ttsBodies, [{
+    game_id: gameId,
+    character_id: 'heroine1',
+    text: '자동 재생할 대사',
+    direction: '차분하게'
+  }]);
+  assert.equal(createdAudio.playCalls, 2);
+  assert.equal(createdAudio.src, 'blob:tts-auto');
   assert.equal(createdAudio.muted, false);
 });
 
@@ -182,5 +224,9 @@ test('frontend shell exposes a dedicated hospital-style CSA app entry beside gam
   assert.match(csaApp, /function renderPlayer\(body\)/);
   assert.match(csaApp, /function renderNpcs\(body\)/);
   assert.match(csaApp, /\['home', 'player', 'npc', 'csa', 'manual'\]/);
+  assert.match(csaApp, /업무신뢰도/);
+  assert.match(csaApp, /인사팀 공식 공지·사내 운영지침/);
+  assert.match(csaApp, /취업규칙·전사 준수 규정/);
+  assert.match(csaApp, /국가 법령·관계 당국 의무 지침/);
   assert.match(csaApp, /Story -> Extract -> Commit/);
 });
