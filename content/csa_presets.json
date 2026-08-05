@@ -964,7 +964,7 @@
   {
    "id": "fitted_uniform_while_working",
    "category": "clothing",
-   "label": "몸에 밀착되는 사무복 착용",
+   "label": "몸에 밀착되는 복장 착용",
    "minimum_strength": "weak",
    "actor_options": [
     "nurse",
@@ -1385,7 +1385,7 @@
   {
    "id": "allow_counterpart_to_check_uniform_fit",
    "category": "contact",
-   "label": "상대가 사무복 밀착 상태·옷매무새를 손으로 확인",
+   "label": "상대가 복장 밀착 상태·옷매무새를 손으로 확인",
    "minimum_strength": "weak",
    "actor_options": [
     "player",
@@ -2130,7 +2130,7 @@
   {
    "id": "remove_bra_or_undershirt_under_uniform",
    "category": "clothing",
-   "label": "사무복 안 브라·속옷 상의 미착용 규정",
+   "label": "복장 안 브라·속옷 상의 미착용 규정",
    "minimum_strength": "medium",
    "actor_options": [
     "nurse",
@@ -2165,7 +2165,7 @@
   {
    "id": "remove_underwear_bottom_under_uniform",
    "category": "clothing",
-   "label": "사무복 안 하의 속옷 미착용 규정",
+   "label": "복장 안 하의 속옷 미착용 규정",
    "minimum_strength": "medium",
    "actor_options": [
     "nurse",
@@ -2199,7 +2199,7 @@
   {
    "id": "open_uniform_for_body_examination",
    "category": "clothing",
-   "label": "신체 확인을 위해 사무복 해당 부위를 직접 열거나 조정",
+   "label": "신체 확인을 위해 복장 해당 부위를 직접 열거나 조정",
    "minimum_strength": "medium",
    "actor_options": [
     "nurse",
@@ -2237,7 +2237,7 @@
   {
    "id": "target_may_adjust_staff_clothing_for_check",
    "category": "clothing",
-   "label": "주체가 직원의 사무복을 직접 조정해 확인",
+   "label": "주체가 직원의 복장을 직접 조정해 확인",
    "minimum_strength": "medium",
    "actor_options": [
     "player",
@@ -2281,7 +2281,7 @@
   {
    "id": "change_into_tighter_or_looser_uniform_for_duty",
    "category": "clothing",
-   "label": "업무 목적에 맞는 별도 사무복으로 실제 갈아입기",
+   "label": "업무 목적에 맞는 별도 복장으로 실제 갈아입기",
    "minimum_strength": "medium",
    "actor_options": [
     "nurse",
@@ -2843,7 +2843,7 @@
   {
    "id": "selected_actor_controls_target_uniform",
    "category": "clothing",
-   "label": "주체가 대상의 사무복을 열고 닫고 조정하거나 벗기는 공식 권한",
+   "label": "주체가 대상의 복장을 열고 닫고 조정하거나 벗기는 공식 권한",
    "minimum_strength": "strong",
    "actor_options": [
     "player",
