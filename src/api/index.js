@@ -37,7 +37,6 @@ export function createApiWorker({ fetchImpl = fetch } = {}) {
         if (request.method === 'POST' && pathname === '/api/app-manual') return await routes.appManual(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/app-state') return await routes.appState(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/app-validate') return await routes.appValidate(request, env, ctx);
-        if (request.method === 'POST' && pathname === '/api/find-npc') return await routes.findNpc(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/history') return await routes.history(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/feedback') return await routes.feedback(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/image') return await routes.image(request, env, ctx);

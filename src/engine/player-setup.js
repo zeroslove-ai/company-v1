@@ -65,47 +65,66 @@ export function resolvePlayerCanonicalNames(player, catalogs = {}) {
   };
 }
 
-const LOCATIONS_BY_POSITION = {
-  intern: [
-    { location_id: 'office', name: '사무실' },
-    { location_id: 'training_room', name: '교육실' },
-    { location_id: 'lobby', name: '로비' },
-    { location_id: 'small_meeting_room', name: '소회의실' }
-  ],
-  assistant_manager: [
-    { location_id: 'team_office', name: '팀 사무실' },
-    { location_id: 'meeting_room', name: '회의실' },
-    { location_id: 'project_room', name: '프로젝트룸' },
-    { location_id: 'cross_team_space', name: '타 부서 협업 공간' }
-  ],
-  tf_lead: [
-    { location_id: 'project_room', name: '프로젝트룸' },
-    { location_id: 'large_meeting_room', name: '대회의실' },
-    { location_id: 'cross_dept_meeting_room', name: '부서 간 회의실' }
-  ],
-  executive: [
-    { location_id: 'executive_meeting_room', name: '임원 회의실' },
-    { location_id: 'large_meeting_room', name: '대회의실' },
-    { location_id: 'project_report_room', name: '프로젝트 보고실' }
-  ]
-};
 const WEEKDAYS = ['월요일', '화요일', '수요일', '목요일', '금요일'];
-const WORK_HOOKS = [
-  { work_hook_id: 'orientation', label: '오리엔테이션' },
-  { work_hook_id: 'team_meeting', label: '팀 회의' },
-  { work_hook_id: 'project_kickoff', label: '프로젝트 킥오프' },
-  { work_hook_id: 'report_review', label: '보고서 검토' },
-  { work_hook_id: 'client_visit', label: '외부 미팅 준비' }
-];
-const SCENE_GOALS = ['팀에 첫인사를 한다', '오늘 업무 범위를 파악한다', '담당자와 첫 대면 미팅을 한다', '자리와 업무 환경을 정리한다'];
+
+function compactText(value, maxLength = 120) {
+  if (typeof value !== 'string') return '';
+  return Array.from(value.trim().replace(/\s+/g, ' ')).slice(0, maxLength).join('');
+}
+
+function openingLocationCandidates(locations, positionId) {
+  const source = Array.isArray(locations) ? locations : [];
+  const normalized = source.flatMap(location => {
+    const locationId = compactText(location?.location_id, 100);
+    const name = compactText(location?.name, 100);
+    if (!locationId || !name || location?.opening_enabled === false) return [];
+    const explicitPositions = Array.isArray(location?.opening_position_ids)
+      ? location.opening_position_ids.filter(id => typeof id === 'string' && id.trim())
+      : [];
+    if (explicitPositions.length && !explicitPositions.includes(positionId)) return [];
+    if (location?.location_type === 'storage' && location?.opening_enabled !== true) return [];
+    if (location?.visibility === 'private' && positionId !== 'executive' && !explicitPositions.length) return [];
+    return [{
+      location_id: locationId,
+      name,
+      opening_hooks: Array.isArray(location?.opening_hooks) ? location.opening_hooks : [],
+      opening_goals: Array.isArray(location?.opening_goals) ? location.opening_goals : []
+    }];
+  });
+  return normalized.length ? normalized : [{ location_id: 'office', name: '사무실', opening_hooks: [], opening_goals: [] }];
+}
+
+function normalizedHook(value, location) {
+  if (typeof value === 'string') {
+    const label = compactText(value);
+    return label ? { work_hook_id: `location:${location.location_id}:${label}`, work_hook_label: label } : null;
+  }
+  const label = compactText(value?.label);
+  if (!label) return null;
+  const id = compactText(value?.id ?? value?.work_hook_id, 100) || `location:${location.location_id}:${label}`;
+  return { work_hook_id: id, work_hook_label: label };
+}
+
+function openingHooks(location) {
+  const hooks = location.opening_hooks.map(value => normalizedHook(value, location)).filter(Boolean);
+  return hooks.length ? hooks : [{
+    work_hook_id: `location:${location.location_id}`,
+    work_hook_label: `${location.name} 첫 업무`
+  }];
+}
+
+function openingGoals(location) {
+  const goals = location.opening_goals.map(value => compactText(value, 180)).filter(Boolean);
+  return goals.length ? goals : [`${location.name}에서 현재 상황을 파악하고 첫 업무 관계를 만든다`];
+}
 
 /**
- * Pure random opening-plan selection. The caller supplies crypto-sourced seed bytes so
- * this stays deterministic and testable; nothing here calls an LLM. Exactly one primary
- * heroine and at most one supporting heroine are chosen — never all five at once.
+ * Pure deterministic opening selection from edition content. Locations, hooks and goals are not
+ * hardcoded in the engine: content/map.json (or another edition adapter) supplies them. Exactly
+ * one primary heroine and at most one supporting heroine are still selected for scene clarity.
  */
-export function buildOpeningPlan({ positionId, seedBytes, heroineIds }) {
-  const locations = LOCATIONS_BY_POSITION[positionId] ?? LOCATIONS_BY_POSITION.intern;
+export function buildOpeningPlan({ positionId, seedBytes, heroineIds, locations = [] }) {
+  const candidates = openingLocationCandidates(locations, positionId);
   const bytes = seedBytes && seedBytes.length > 0 ? seedBytes : [0];
   let cursor = 0;
   const next = max => {
@@ -115,14 +134,16 @@ export function buildOpeningPlan({ positionId, seedBytes, heroineIds }) {
   };
   const weekday = WEEKDAYS[next(WEEKDAYS.length)];
   const minuteOfDay = 540 + next(541);
-  const location = locations[next(locations.length)];
+  const location = candidates[next(candidates.length)];
   const ids = Array.isArray(heroineIds) ? heroineIds : [];
   const primaryCharacterId = ids.length > 0 ? ids[next(ids.length)] : null;
   const remaining = ids.filter(id => id !== primaryCharacterId);
   const includeSupporting = remaining.length > 0 && next(2) === 1;
   const supportingCharacterIds = includeSupporting ? [remaining[next(remaining.length)]] : [];
-  const workHook = WORK_HOOKS[next(WORK_HOOKS.length)];
-  const sceneGoal = SCENE_GOALS[next(SCENE_GOALS.length)];
+  const hooks = openingHooks(location);
+  const hook = hooks[next(hooks.length)];
+  const goals = openingGoals(location);
+  const sceneGoal = goals[next(goals.length)];
   return {
     weekday,
     date_label: `Day 1 · ${weekday}`,
@@ -131,8 +152,8 @@ export function buildOpeningPlan({ positionId, seedBytes, heroineIds }) {
     location_name: location.name,
     primary_character_id: primaryCharacterId,
     supporting_character_ids: supportingCharacterIds,
-    work_hook_id: workHook.work_hook_id,
-    work_hook_label: workHook.label,
+    work_hook_id: hook.work_hook_id,
+    work_hook_label: hook.work_hook_label,
     scene_goal: sceneGoal
   };
 }

@@ -20,7 +20,6 @@ import {
   historyPageState,
   mergeHistoryRecords
 } from '../src/frontend/pages/history-tools.js';
-import { finderErrorText, finderStatusText } from '../src/frontend/pages/npc-finder.js';
 import { promoteNewCsaCard } from '../src/frontend/pages/csa-product-ui.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -123,54 +122,6 @@ test('full player app projection preserves setup, physical, sexual, and CSA fiel
   assert.equal(info.active_csa[0].content, '회의 중에는 이름으로 부른다.');
 });
 
-test('finder directory exposes only five heroines and eight registered general NPCs', () => {
-  const rows = buildFinderNpcList(save(), edition);
-  assert.equal(rows.length, 13);
-  assert.equal(rows.filter(row => row.type === 'heroine').length, 5);
-  assert.equal(rows.filter(row => row.type === 'general').length, 8);
-  assert.ok(!rows.some(row => row.id === 'unnamed_employee'));
-
-  const current = rows.find(row => row.id === 'heroine1');
-  assert.equal(current.status, 'present');
-  assert.equal(current.can_move, false);
-  assert.equal(current.location_label, '대회의실');
-
-  const suggestedGeneral = rows.find(row => row.id === 'general_1');
-  assert.equal(suggestedGeneral.status, 'unknown');
-  assert.equal(suggestedGeneral.known, false);
-  assert.equal(suggestedGeneral.suggested_location_label, '프로젝트룸');
-  assert.equal(suggestedGeneral.can_move, false);
-});
-
-test('finder preserves existing 422 contracts and frontend maps them precisely', () => {
-  const currentLocation = resolveNpcLocation(save(), edition, 'heroine1');
-  assert.equal(currentLocation.status, 'present');
-  assert.match(finderStatusText({ name: '히로인1', known_character: true, ...currentLocation }), /현재 같은 장면/);
-  assert.throws(
-    () => buildNpcFinderPayload(save(), edition, 'heroine1'),
-    error => error?.status === 422 && error?.code === 'npc_already_present'
-  );
-
-  assert.throws(
-    () => buildNpcFinderPayload(save(), edition, 'general_1'),
-    error => error?.status === 422 && error?.code === 'npc_location_unknown' && /프로젝트룸/.test(error.message)
-  );
-
-  const recordedSave = save();
-  recordedSave.npc_scene_state.general_1 = { location_id: 'project_room', location_label: '프로젝트룸' };
-  const located = buildNpcFinderPayload(recordedSave, edition, 'general_1');
-  assert.equal(located.status, 'located');
-  assert.equal(located.location_label, '프로젝트룸');
-  assert.equal(located.can_move, true);
-  assert.match(finderStatusText(located), /프로젝트룸/);
-
-  assert.throws(
-    () => buildNpcFinderPayload(save(), edition, 'extra_visitor'),
-    error => error?.status === 422 && error?.code === 'npc_not_found'
-  );
-  assert.equal(finderErrorText({ code: 'npc_not_found' }), '등록된 인물이 아닙니다.');
-  assert.match(finderErrorText({ code: 'npc_location_unknown', message: '일반8의 현재 위치가 아직 기록되지 않았습니다.' }), /위치가 아직 기록되지/);
-});
 
 test('registered NPC policy is static, cache-friendly, and Story-only', () => {
   const init = {

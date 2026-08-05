@@ -38,12 +38,9 @@ function isPlainObject(value) {
 }
 
 const PLAYER_GROUPS = new Set(['player']);
-// Every other actor/target group id in the ported catalog (nurse, doctor,
-// medical_staff, hospital_staff, female_staff, male_staff, patient,
-// assigned_patient, guardian, visitor, everyone_in_hospital,
-// conversation_partner, another_present_person, nearby_person) resolves to
-// "whichever NPC is actually present in this scene" — Company has no
-// role-tag pool to further discriminate between them.
+// Every non-player Company group or explicit stable selector currently resolves to the
+// concrete NPC present in this scene. The group id is still preserved as audit evidence; a
+// future role-tag resolver can narrow it without changing the semantic-contract shape.
 
 /** Resolves an actor_group/target_group id to a concrete participant given the current scene. */
 function resolveParticipant(groupId, { save, presentCharacterId } = {}) {

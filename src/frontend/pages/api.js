@@ -52,7 +52,6 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
     appManual: body => postJson('/api/app-manual', body),
     appState: body => postJson('/api/app-state', body),
     validateAppAction: (gameId, structuredAction) => postJson('/api/app-validate', { game_id: gameId, structured_action: structuredAction }),
-    findNpc: (gameId, characterId) => postJson('/api/find-npc', { game_id: gameId, character_id: characterId }),
     history: body => postJson('/api/history', body),
     feedback: (gameId, revisionRequestId, feedbackText) => postJson('/api/feedback', { game_id: gameId, revision_request_id: revisionRequestId, feedback_text: feedbackText }),
     image: body => postJson('/api/image', body),

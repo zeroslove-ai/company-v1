@@ -43,7 +43,7 @@ export {
   csaStrengthRank, APP_STRENGTHS, APP_STRENGTH_LABELS, APP_STRENGTH_RANK, APP_STRENGTH_UNLOCKS
 } from './csa/capability.js';
 export {
-  getPresetCatalogItem, buildPresetCatalogPayload, renderPresetContent,
+  getPresetCatalogItem, buildPresetCatalogPayload, renderPresetContent, normalizeCompanyCsaCatalog,
   presetModifierClause, presetModifierExceedsTemplate, withTopicParticle, withConjParticle
 } from './csa/catalog.js';
 export {
@@ -54,7 +54,8 @@ export {
   normalizeCsaSemanticContract, validateCustomCsaSemanticContract,
   buildPresetCsaSemanticContract, buildCsaSemanticContract,
   STRUCTURED_SEXUAL_ACTIONS, STRUCTURED_SEXUAL_DIRECTIONS,
-  CSA_CONTRACT_ACTOR_GROUPS, CSA_CONTRACT_TARGET_GROUPS
+  CSA_CONTRACT_ACTOR_GROUPS, CSA_CONTRACT_TARGET_GROUPS,
+  canonicalizeCsaGroup, canonicalizeCsaTrigger, canonicalizeCsaDuration
 } from './csa/semantic-contract.js';
 export {
   planCsaTransaction, validatePresetOperation, summarizeOperations, normalizeAppContent, appIssue

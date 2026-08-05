@@ -56,7 +56,6 @@ export function toolbarCapabilities(viewModel, pendingAction, { context, busy = 
     canSendFeedback: committed && !busy && !pendingAction && !recoveryPending && utilityAvailable?.feedback === true,
     canOpenApps: ready
   };
-  if (utilityAvailable) capabilities.canFindNpc = ready && utilityAvailable.npcFinder === true;
   return capabilities;
 }
 
@@ -154,7 +153,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     title: get('game-title'), dayTime: get('day-time'), turn: get('turn-number'), api: get('api-status'), status: get('status-banner'), error: get('error-banner'),
     history: get('story-history'), current: get('current-story'), currentAction: get('current-action'), choices: get('choice-list'), input: get('player-action'), submit: get('submit-action'),
     recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), focal: get('focal-character'), mind: get('mind-monitor'), player: get('player-situation'),
-    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), findNpc: get('find-npc'), apps: get('open-apps'), reset: get('reset-game')
+    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps'), reset: get('reset-game')
   };
   const setupElements = {
     overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
@@ -185,7 +184,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (elements.resume) { elements.resume.disabled = !capabilities.canResume; elements.resume.onclick = capabilities.canResume ? resumePlay : null; }
     if (elements.historyButton) { elements.historyButton.disabled = !capabilities.canOpenHistory; elements.historyButton.onclick = capabilities.canOpenHistory ? () => utilityUi?.openHistory() : null; }
     if (elements.feedback) { elements.feedback.disabled = !capabilities.canSendFeedback; elements.feedback.onclick = capabilities.canSendFeedback ? () => utilityUi?.openFeedback() : null; }
-    if (elements.findNpc) { elements.findNpc.disabled = !capabilities.canFindNpc; elements.findNpc.onclick = capabilities.canFindNpc ? () => utilityUi?.openNpcFinder() : null; }
     if (elements.apps) { elements.apps.disabled = !capabilities.canOpenApps; elements.apps.onclick = capabilities.canOpenApps ? () => csaApp.open('home') : null; }
   }
   function setupPending() { return !playerSetupCompleted(context); }
@@ -394,7 +392,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     getContext: () => context,
     getViewModel: () => viewModel,
     onFeedbackReserved: startFeedbackRevision,
-    onPrepareAction: action => { if (elements.input) { elements.input.value = action; elements.input.focus?.(); } },
     onError: showError,
     onStatus: showStatus,
     onMediaLoading: setMediaLoading

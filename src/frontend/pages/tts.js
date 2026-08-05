@@ -30,13 +30,13 @@ function selectedCharacterId(documentRef) {
   return documentRef?.getElementById?.('mind-monitor')?.dataset?.selectedCharacterId || '';
 }
 
-function characterIdForSpeaker(name, documentRef) {
+export function characterIdForSpeaker(name, documentRef) {
   const normalized = String(name ?? '').trim();
   const tabs = documentRef?.querySelectorAll?.('.mind-monitor-tab') ?? [];
   for (const tab of tabs) {
     if (tab.textContent?.trim() === normalized && tab.dataset?.characterId) return tab.dataset.characterId;
   }
-  return selectedCharacterId(documentRef);
+  return '';
 }
 
 function normalizeCardLine(card, order, documentRef) {
@@ -52,7 +52,7 @@ function fallbackLines(root, documentRef) {
   const raw = root?.innerText || root?.textContent || '';
   const lines = [];
   let recentSpeakerName = '';
-  let recentCharacterId = selectedCharacterId(documentRef);
+  let recentCharacterId = '';
   for (const source of raw.split(/\r?\n/)) {
     const value = source.trim();
     if (!value) continue;

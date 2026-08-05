@@ -183,24 +183,19 @@ test('validatePlayerSetupInput enforces every range and catalog allow-list and n
   assert.equal('personality_list' in withJunk.player, false);
 });
 
-test('buildOpeningPlan is deterministic, picks exactly one primary and at most one distinct supporting heroine, and gates locations by position', () => {
+test('buildOpeningPlan is deterministic, map-driven, and keeps one primary plus at most one distinct supporting heroine', () => {
   const seedA = [1, 2, 3, 4, 5, 6, 7, 8];
-  const planA1 = buildOpeningPlan({ positionId: 'intern', seedBytes: seedA, heroineIds });
-  const planA2 = buildOpeningPlan({ positionId: 'intern', seedBytes: seedA, heroineIds });
+  const locations = edition.map.locations;
+  const planA1 = buildOpeningPlan({ positionId: 'intern', seedBytes: seedA, heroineIds, locations });
+  const planA2 = buildOpeningPlan({ positionId: 'intern', seedBytes: seedA, heroineIds, locations });
   assert.deepEqual(planA1, planA2);
   assert.equal(['월요일', '화요일', '수요일', '목요일', '금요일'].includes(planA1.weekday), true);
   assert.equal(planA1.date_label, `Day 1 · ${planA1.weekday}`);
   assert.equal(planA1.date_label.includes('요일요일'), false);
-
-  const internLocations = new Set(['office', 'training_room', 'lobby', 'small_meeting_room']);
-  assert.equal(internLocations.has(planA1.location_id), true);
-
-  const executiveLocations = new Set(['executive_meeting_room', 'large_meeting_room', 'project_report_room']);
-  const execPlan = buildOpeningPlan({ positionId: 'executive', seedBytes: seedA, heroineIds });
-  assert.equal(executiveLocations.has(execPlan.location_id), true);
+  assert.equal(locations.some(location => location.location_id === planA1.location_id), true);
 
   for (let seed = 0; seed < 40; seed += 1) {
-    const plan = buildOpeningPlan({ positionId: 'assistant_manager', seedBytes: [seed, seed + 7, seed + 13], heroineIds });
+    const plan = buildOpeningPlan({ positionId: 'assistant_manager', seedBytes: [seed, seed + 7, seed + 13], heroineIds, locations });
     assert.equal(heroineIds.includes(plan.primary_character_id), true);
     assert.equal(plan.supporting_character_ids.length <= 1, true);
     assert.equal(plan.supporting_character_ids.includes(plan.primary_character_id), false);
@@ -208,9 +203,19 @@ test('buildOpeningPlan is deterministic, picks exactly one primary and at most o
     assert.equal(present.size < heroineIds.length, true, 'opening never seats every heroine at once');
   }
 
-  const seedB = [9, 40, 121, 200];
-  const planB = buildOpeningPlan({ positionId: 'intern', seedBytes: seedB, heroineIds });
-  assert.notDeepEqual(planA1, planB);
+  const custom = buildOpeningPlan({
+    positionId: 'intern', seedBytes: [0, 0, 0, 0, 0, 0, 0, 0], heroineIds,
+    locations: [{
+      location_id: 'sky_lounge', name: '하늘정원 라운지', opening_enabled: true,
+      opening_position_ids: ['intern'],
+      opening_hooks: [{ id: 'coffee_briefing', label: '커피 브리핑' }],
+      opening_goals: ['새 프로젝트의 비공식 브리핑을 듣는다']
+    }]
+  });
+  assert.equal(custom.location_id, 'sky_lounge');
+  assert.equal(custom.work_hook_id, 'coffee_briefing');
+  assert.equal(custom.work_hook_label, '커피 브리핑');
+  assert.equal(custom.scene_goal, '새 프로젝트의 비공식 브리핑을 듣는다');
 });
 
 test('buildPlayerPromptProjection always sends canonical identity and speech style, and gates body/sexual/background fields on relevance', () => {

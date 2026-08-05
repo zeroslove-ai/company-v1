@@ -53,7 +53,6 @@ test('preserves the Company engine and Hospital TTS DOM contracts while replacin
     'submit-action',
     'open-history',
     'send-feedback',
-    'find-npc',
     'reset-game',
     'csa-app-overlay',
   ]) {
