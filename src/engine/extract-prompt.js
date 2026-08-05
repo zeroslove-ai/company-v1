@@ -6,23 +6,18 @@ function object(value) {
 
 function text(value, maxLength = 420) {
   if (typeof value !== 'string') return '';
-  const normalized = value.trim();
-  return Array.from(normalized).slice(0, maxLength).join('');
+  return Array.from(value.trim()).slice(0, maxLength).join('');
 }
 
-/** The stable id/name pairs Extract may resolve identity fields and Mind Monitor keys to. */
 export function buildRegisteredCharacters(edition) {
   const charactersMap = object(edition?.characters?.characters);
   if (!charactersMap) return [];
-  const registered = [];
-  for (const [id, character] of Object.entries(charactersMap)) {
-    if (!object(character) || typeof character.name !== 'string') continue;
-    registered.push({ character_id: id, name: character.name });
-  }
-  return registered;
+  return Object.entries(charactersMap)
+    .filter(([, character]) => object(character) && typeof character.name === 'string')
+    .map(([character_id, character]) => ({ character_id, name: character.name }));
 }
 
-/** Compact author canon used only to make each NPC's Mind Monitor sound like that character. */
+/** Compact author canon for character-specific Mind Monitor prose; never a state authority. */
 export function buildExtractCharacterCanon(charactersMap, activeIds) {
   const map = object(charactersMap) ?? {};
   const result = {};
@@ -30,9 +25,6 @@ export function buildExtractCharacterCanon(charactersMap, activeIds) {
     const character = object(map[id]);
     if (!character) continue;
     const card = object(character.prompt_card) ?? {};
-    const traits = Array.isArray(card.distinctive_traits)
-      ? card.distinctive_traits.filter(item => typeof item === 'string' && item.trim()).slice(0, 5)
-      : [];
     result[id] = {
       name: text(character.name, 60),
       position: text(character.position, 60),
@@ -41,14 +33,15 @@ export function buildExtractCharacterCanon(charactersMap, activeIds) {
       personality: text(card.personality),
       speech: text(card.speech),
       addressing: text(card.addressing),
-      distinctive_traits: traits,
+      distinctive_traits: Array.isArray(card.distinctive_traits)
+        ? card.distinctive_traits.filter(item => typeof item === 'string' && item.trim()).slice(0, 5)
+        : [],
       csa_style: text(card.csa_style)
     };
   }
   return result;
 }
 
-/** Only the parser fields Extract actually needs; raw/scene_text/blocks never duplicate story_text. */
 export function buildParsedStoryProjection(parsedStory) {
   const p = object(parsedStory) ?? {};
   return {
@@ -60,25 +53,23 @@ export function buildParsedStoryProjection(parsedStory) {
   };
 }
 
-/** Compact Extract context: current turn/time/scene/global CSA and only the active NPCs' mutable state. */
 function buildExtractContextProjection(context, activeIds) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   return buildSceneContextCore(save, activeIds);
 }
 
 const SYSTEM_INSTRUCTIONS = [
-  'Return one JSON object only, no explanation or Markdown.',
-  'Include exactly: state_delta (object), outcome, evidence (object), turn_summary(string), mind_monitor(object), choices(array), dialogue_lines(array), npcs_present(array), action_target_id, focal_character_id, last_speaker_id, image_character_id, player_inner_thought(string), player_status(string), elapsed_minutes(number), warnings(array); with active CSA also include csa_trigger_evaluations(array), csa_runtime_updates(array).',
-  'state_delta contains changed values only. outcome is success, partial, refused, interrupted, or blocked. Ground every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence; never invent NPCs or changes.',
-  'action_target_id, focal_character_id, last_speaker_id, image_character_id are independent: never copy one into another. Narrator is never an NPC; unknown is null. registered_characters lists the only stable character ids. Use only their exact ids/names and list every present NPC in npcs_present.',
-  'If parsed Story has exactly four choices, return choices:[]; Story choices are always authoritative. Leave parsed player_inner_thought/player_status empty because Extract can never override them. dialogue_lines may only add a missing speaker_id to the same text/order.',
-  'mind_monitor uses only { "npc-id": { "surface": "...", "subconscious": "..." } } for present NPCs. For Mind Monitor interpretation, use the NPC’s exact Story dialogue/actions, active_character_canon, and saved relationship/emotion state. This interpretation does not require one exact quote, but it may not invent a new event, memory, agreement, contact, or fact absent from those sources. surface is what the NPC consciously admits now; subconscious is a distinct unadmitted fear, desire, jealousy, conflict, or self-justification. Reflect each character’s personality, speech rhythm, work motive, boundaries, and distinctive traits. Do not repeat the same idea with different words. Write natural first-person Korean: surface 150-300 chars, subconscious 180-350 chars. No quotes, labels, keyword lists, CSA/system terms, physical_reaction, physical/body/action reaction fields, or player thoughts.',
-  'elapsed_minutes is your only time proposal; never compute Day/absolute time. Use 1-30, or up to 480 only when evidence.time_advance === true.',
-  'CSA changes belong only in state_delta.csa_runtime_state[csa_id]{lifecycle,applicability,execution_state} and state_delta.csa_attitudes[npc_id][csa_id].',
-  'player_sexual_state uses only arousal_delta, ejaculation_progress_delta, and ejaculation_completed; completion requires evidence.sexual_resolution === true.',
-  'Only when Story clearly proves it, state_delta may set player_scene_state or npc_scene_state[id]{location_label,posture,position_label,clothing,evidence,posture_end_reason}. position_label briefly states relative position/current action. evidence.posture and evidence.position must be exact Story substrings; omit unknown player posture/position. posture_end_reason is only for a real posture change and one of movement, task_ended, explicit_change, physical_interruption, player_request with exact evidence.',
-  'state_delta may also set npc_stats[id]{affinity,csa_acceptance,sexual_arousal,work_trust,reason} and sexual_event_ledger[{actor_id,target_id,action_type,direction,completed,interrupted,evidence}]. Every physical/stat change needs its own exact Story quote.',
-  'Distinguish attempt, refusal, partial, conditional acceptance, pause, completion; never assume completion. Human-readable strings are Korean; IDs stay unchanged. Keep summaries/deltas/monitor concise.'
+  'Return one JSON object only; no prose or Markdown.',
+  'Include exactly: state_delta (object), outcome, evidence (object), turn_summary(string), mind_monitor(object), choices(array), dialogue_lines(array), npcs_present(array), action_target_id, focal_character_id, last_speaker_id, image_character_id, player_inner_thought(string), player_status(string), elapsed_minutes(number), warnings(array); with active CSA also csa_trigger_evaluations(array), csa_runtime_updates(array).',
+  'state_delta is changed values only. outcome: success, partial, refused, interrupted, or blocked. Ground every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence; never invent changes.',
+  'Identity fields are independent; never copy them. Narrator is never an NPC; unknown is null. registered_characters lists the only stable character ids: never invent, guess, or reuse an id. Use exact ids/names and list every present NPC.',
+  'If parsed Story has four choices, return choices:[]; Story choices are authoritative. Leave parsed player_inner_thought/player_status empty. dialogue_lines may only add a missing speaker_id to the same text/order.',
+  'mind_monitor is only {"npc-id":{"surface":"...","subconscious":"..."}} for present NPCs. For Mind Monitor interpretation, use exact Story dialogue/actions, active_character_canon, and saved relationship/emotion. It may not invent a new event, memory, agreement, contact, or fact. surface=conscious current judgment; subconscious=a distinct unadmitted motive/conflict. Reflect personality, speech, boundaries, and traits; do not repeat. Natural first-person Korean: surface 150-300 chars, subconscious 180-350 chars. No quotes, labels, keyword lists, CSA/system terms, physical_reaction or other body/action fields, or player thoughts.',
+  'elapsed_minutes is the only time proposal: 1-30 normally, up to 480 only with evidence.time_advance===true; never compute Day/absolute time.',
+  'CSA changes only in state_delta.csa_runtime_state[csa_id]{lifecycle,applicability,execution_state} and csa_attitudes[npc_id][csa_id].',
+  'player_sexual_state uses only arousal_delta, ejaculation_progress_delta, ejaculation_completed; completion requires evidence.sexual_resolution===true.',
+  'With clear Story proof, player_scene_state or npc_scene_state[id] may set location_label, posture, position_label, clothing, evidence, posture_end_reason. evidence.posture/position must be exact Story substrings; omit unknowns. A real posture change needs an evidenced reason: movement, task_ended, explicit_change, physical_interruption, or player_request.',
+  'npc_stats and sexual_event_ledger changes each need their own exact Story quote. Distinguish attempt, refusal, partial, conditional acceptance, pause, and completion; never assume completion. Human-readable strings are Korean; IDs stay unchanged.'
 ].join(' ');
 
 export function buildExtractPrompt({ context, storyText, parsedStory, playerAction, expectedTurn, edition, npcIds }) {
