@@ -24,6 +24,13 @@ const DISPLAY_LABELS = {
   crouching: '몸을 낮추고 있음', walking: '이동 중', leaning: '기대어 있음', bent_forward: '몸을 앞으로 숙이고 있음',
   weak: '약함', medium: '중간', strong: '강함'
 };
+const STAT_LABELS = {
+  affinity: '호감', work_trust: '신뢰', csa_acceptance: '수용', sexual_arousal: '흥분'
+};
+const SEXUAL_ACTION_LABELS = {
+  none: '기타', touch: '접촉', exposure: '노출', masturbation: '자위', oral: '구강',
+  penetration: '삽입', orgasm: '절정', ejaculation: '사정', kissing: '키스'
+};
 
 let currentChoiceSet = null;
 let committedChoiceSet = null;
@@ -154,7 +161,7 @@ export function renderNarrative(container, parsed) {
     if (block.type === 'dialogue') {
       const card = document.createElement('article'); card.className = 'narrative-dialogue dialogue-card';
       const meta = document.createElement('header'); meta.className = 'dialogue-meta';
-      const speaker = document.createElement('strong'); speaker.className = 'dialogue-speaker'; speaker.textContent = block.speaker ?? '';
+      const speaker = document.createElement('strong'); speaker.className = 'dialogue-speaker'; speaker.textContent = block.speaker ?? block.speaker_name ?? '';
       const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = block.direction ?? '';
       const line = document.createElement('p'); line.className = 'dialogue-text'; line.textContent = block.text ?? '';
       meta.append(speaker, direction); card.append(meta, line); container.append(card);
@@ -214,21 +221,48 @@ export function mindMonitorDisplay(monitor) {
 }
 
 function normalizedMindEntries(value) {
-  if (Array.isArray(value)) {
-    return value.filter(entry => object(entry) && (displayValue(entry.surface).trim() || displayValue(entry.subconscious).trim()));
-  }
+  if (Array.isArray(value)) return value.filter(entry => object(entry) && entry.id);
   const source = object(value) ?? {};
   const direct = mindMonitorDisplay(source);
-  if (direct.length) return [{ id: '', name: '', surface: direct.find(([label]) => label === '표면의식')?.[1] ?? '', subconscious: direct.find(([label]) => label === '잠재의식')?.[1] ?? '' }];
+  if (direct.length) return [{ id: '', name: '', surface: direct.find(([label]) => label === '표면의식')?.[1] ?? '', subconscious: direct.find(([label]) => label === '잠재의식')?.[1] ?? '', stats: {}, stat_changes: {} }];
   return Object.entries(source).filter(([, entry]) => object(entry)).map(([id, entry]) => ({
     id,
     name: id,
     surface: displayValue(entry.surface ?? entry['표면의식']),
-    subconscious: displayValue(entry.subconscious ?? entry.latent ?? entry['잠재의식'])
-  })).filter(entry => entry.surface || entry.subconscious);
+    subconscious: displayValue(entry.subconscious ?? entry.latent ?? entry['잠재의식']),
+    stats: object(entry.stats) ?? {},
+    stat_changes: object(entry.stat_changes) ?? {}
+  })).filter(entry => entry.surface || entry.subconscious || Object.keys(entry.stats).length);
+}
+
+function statDisplay(entry, key) {
+  const value = Number(entry?.stats?.[key]);
+  const change = object(entry?.stat_changes?.[key]);
+  const delta = Number(change?.delta);
+  return { value: Number.isFinite(value) ? value : null, delta: Number.isFinite(delta) && delta !== 0 ? delta : null };
+}
+
+function renderStatStrip(container, entry) {
+  const stats = document.createElement('div'); stats.className = 'mind-stat-strip';
+  for (const key of Object.keys(STAT_LABELS)) {
+    const display = statDisplay(entry, key);
+    const item = document.createElement('span'); item.className = 'mind-stat';
+    const label = document.createElement('small'); label.textContent = STAT_LABELS[key];
+    const value = document.createElement('strong'); value.textContent = display.value === null ? '-' : String(display.value);
+    item.append(label, value);
+    if (display.delta !== null) {
+      const delta = document.createElement('small');
+      delta.className = display.delta > 0 ? 'delta-up' : 'delta-down';
+      delta.textContent = `${display.delta > 0 ? '▲' : '▼'}${Math.abs(display.delta)}`;
+      item.append(delta);
+    }
+    stats.append(item);
+  }
+  container.append(stats);
 }
 
 function renderMindEntry(container, entry) {
+  renderStatStrip(container, entry);
   const body = document.createElement('div'); body.className = 'mind-monitor-body';
   for (const [label, value] of [['표면의식', entry.surface], ['잠재의식', entry.subconscious]]) {
     const card = document.createElement('section'); card.className = 'mind-card';
@@ -338,14 +372,87 @@ export function physicalRelationDisplay(focal, player) {
   return parts.filter(Boolean).join(' ') || '현재 자세 정보가 없습니다.';
 }
 
+function recordValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, number) : 0;
+}
+
+function detailsSection(title, rows, className = '') {
+  const section = document.createElement('section');
+  section.className = ['character-detail-section', className].filter(Boolean).join(' ');
+  const heading = document.createElement('h3'); heading.textContent = title;
+  const list = document.createElement('dl'); list.className = 'state-list character-detail-list';
+  definitionList(list, rows);
+  section.append(heading, list);
+  return section;
+}
+
+function renderRelationshipRecord(container, character) {
+  const record = object(character?.relationship_record) ?? {};
+  container.append(detailsSection('관계·사정 기록', [
+    ['플레이어 사정', `${recordValue(record.player_ejaculation_count)}회`],
+    ['NPC 절정', `${recordValue(record.npc_orgasm_count)}회`],
+    ['질 성교', `${recordValue(record.vaginal_sex_count)}회`],
+    ['애널 성교', `${recordValue(record.anal_sex_count)}회`],
+    ['구강 성교', `${recordValue(record.oral_sex_count)}회`],
+    ['질내 사정', `${recordValue(record.vaginal_ejaculation_count)}회`],
+    ['애널내 사정', `${recordValue(record.anal_ejaculation_count)}회`],
+    ['입안 사정', `${recordValue(record.oral_ejaculation_count)}회`],
+    ['얼굴 사정', `${recordValue(record.facial_ejaculation_count)}회`],
+    ['몸 사정', `${recordValue(record.body_ejaculation_count)}회`],
+    ['성적 이벤트', `${recordValue(record.total_events)}건`],
+    ['완료/중단', `${recordValue(record.completed_events)} / ${recordValue(record.interrupted_events)}`],
+    ['첫 기록', Number.isInteger(record.first_event_turn) ? `${record.first_event_turn}턴` : '없음'],
+    ['최근 기록', Number.isInteger(record.last_event_turn) ? `${record.last_event_turn}턴` : '없음']
+  ]));
+}
+
+function renderPrivateInfo(container, character) {
+  const privateInfo = object(character?.private_info) ?? { unlocked: false };
+  if (privateInfo.unlocked !== true) {
+    container.append(detailsSection('은밀정보', [['잠금', '해당 NPC와의 사정·절정 또는 성적 관계 기록이 생기면 공개됩니다.']], 'private-info-locked'));
+    return;
+  }
+  container.append(detailsSection('은밀정보', [
+    ['유두', displayValue(privateInfo.nipple)],
+    ['유륜 크기', displayValue(privateInfo.areola_size)],
+    ['유륜 색', displayValue(privateInfo.areola_color)],
+    ['음모 상태', displayValue(privateInfo.pubic_hair)],
+    ['과거 남성 경험', privateInfo.past_partner_count === null || privateInfo.past_partner_count === undefined ? '' : `${privateInfo.past_partner_count}명`],
+    ['과거 절정 경험', privateInfo.past_orgasm_count === null || privateInfo.past_orgasm_count === undefined ? '' : `${privateInfo.past_orgasm_count}회`],
+    ['연인 관계', displayValue(privateInfo.relationship)],
+    ['은밀 메모', displayValue(privateInfo.intimate_notes)]
+  ], 'private-info-unlocked'));
+}
+
 function renderFocalCharacter(container, focal, player) {
   if (!container) return;
-  const hasPhysicalState = Boolean(focal?.name || focal?.id || focal?.scene_state?.posture || focal?.scene_state?.position_label || player?.posture || player?.position_label);
-  if (!hasPhysicalState) { container.hidden = true; container.replaceChildren(); return; }
+  const character = object(focal?.character) ?? {};
+  const hasState = Boolean(focal?.name || focal?.id || focal?.scene_state?.posture || focal?.scene_state?.position_label || player?.posture || player?.position_label || Object.keys(character).length);
+  if (!hasState) { container.hidden = true; container.replaceChildren(); return; }
   container.hidden = false; container.replaceChildren();
-  const heading = document.createElement('h2'); heading.textContent = '현재 자세';
+  const heading = document.createElement('h2'); heading.textContent = focal?.name ? `${focal.name} 현재 상태` : '현재 캐릭터 상태';
   const relation = document.createElement('p'); relation.className = 'physical-relation'; relation.textContent = physicalRelationDisplay(focal, player);
   container.append(heading, relation);
+  if (Object.keys(character).length) {
+    renderStatStrip(container, { stats: character.stats, stat_changes: character.stat_changes });
+    const profile = object(character.profile) ?? {};
+    const body = object(character.body) ?? {};
+    container.append(detailsSection('인물정보', [
+      ['나이', profile.age === null || profile.age === undefined ? '' : `${profile.age}세`],
+      ['소속', displayValue(profile.department)],
+      ['직급', displayValue(profile.position)],
+      ['역할', displayValue(profile.role)],
+      ['근속', displayValue(profile.company_tenure)],
+      ['키', body.height_cm === null || body.height_cm === undefined ? '' : `${body.height_cm}cm`],
+      ['몸무게', body.weight_kg === null || body.weight_kg === undefined ? '' : `${body.weight_kg}kg`],
+      ['체형', displayValue(body.body_type)],
+      ['가슴', displayValue(body.cup)],
+      ['관계', displayValue(character.relationship_summary)]
+    ]));
+    renderRelationshipRecord(container, character);
+    renderPrivateInfo(container, character);
+  }
 }
 
 function clothingDisplay(clothing) {
@@ -367,6 +474,15 @@ function playerProgressDisplay(player) {
   return next === null || next <= 0 ? String(exp) : `${exp} / ${next}`;
 }
 
+function sexualEventDisplay(event) {
+  const source = object(event);
+  if (!source) return '';
+  const type = SEXUAL_ACTION_LABELS[source.type] ?? localizedValue(source.type);
+  const turn = Number.isInteger(source.turn) ? `${source.turn}턴` : '';
+  const status = source.completed === true ? '완료' : source.interrupted === true ? '중단' : '';
+  return [turn, type, status].filter(Boolean).join(' · ');
+}
+
 function renderPlayer(container, player, scene) {
   const activeRules = Array.isArray(player?.active_csa) ? player.active_csa : [];
   const activeCount = typeof player?.active_csa_count === 'number' ? player.active_csa_count : activeRules.length;
@@ -381,12 +497,16 @@ function renderPlayer(container, player, scene) {
     ['EXP', playerProgressDisplay(player)],
     ['활성 규정', activeMax === null ? String(activeCount) : `${activeCount} / ${activeMax}`],
     ['흥분도', typeof player?.excitement === 'number' ? String(player.excitement) : ''],
+    ['누적 사정', typeof player?.ejaculation_count === 'number' ? `${player.ejaculation_count}회` : ''],
+    ['성적 이벤트', typeof player?.total_sexual_events === 'number' ? `${player.total_sexual_events}건` : ''],
+    ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event)],
     ['현재 상황', displayValue(player?.status)]
   ];
   activeRules.forEach((rule, index) => {
     const strength = localizedValue(rule?.strength_label || rule?.strength);
+    const authority = displayValue(rule?.authority_label);
     const scope = displayValue(rule?.scope_label) || '회사 전체';
-    entries.push([`규정 ${index + 1}${strength ? ` · ${strength}` : ''}`, `${scope} · ${displayValue(rule?.content)}`]);
+    entries.push([`규정 ${index + 1}${strength ? ` · ${strength}` : ''}`, [authority, scope, displayValue(rule?.content)].filter(Boolean).join(' · ')]);
   });
   definitionList(container, entries);
 }
