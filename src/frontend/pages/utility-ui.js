@@ -4,6 +4,10 @@ function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
 
+function saveFromContext(context) {
+  return object(context?.save?.data ?? context?.save);
+}
+
 function characterEntries(context) {
   const master = object(context?.master?.data ?? context?.master);
   const characterMap = object(master?.characters?.characters ?? master?.characters);
@@ -11,8 +15,8 @@ function characterEntries(context) {
   const ids = new Set([
     ...Object.keys(characterMap),
     ...Object.keys(projected),
-    ...Object.keys(object((context?.save?.data ?? context?.save)?.npc_scene_state)),
-    ...(Array.isArray((context?.save?.data ?? context?.save)?.last_npcs_present) ? (context?.save?.data ?? context?.save).last_npcs_present : [])
+    ...Object.keys(object(saveFromContext(context).npc_scene_state)),
+    ...(Array.isArray(saveFromContext(context).last_npcs_present) ? saveFromContext(context).last_npcs_present : [])
   ]);
   return [...ids].sort().map(id => ({ id, name: projected[id]?.name ?? characterMap[id]?.name ?? id }));
 }
@@ -20,13 +24,38 @@ function characterEntries(context) {
 const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAA=';
 const DIRECTED_LINE = /^([^\n():："“”]{1,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const NAMED_LINE = /^([^\n:："“”]{1,40}?)\s*[:：]\s*(?:["“]([^"”]*)["”]|(.+))$/u;
+const QUOTE_ONLY_LINE = /^["“]([^"”]+)["”]$/u;
 
-function fallbackDialogueLines(context, viewModel) {
+function mentionedSpeaker(value, directory, previous = null) {
+  const line = String(value ?? '');
+  let selected = previous;
+  let selectedIndex = -1;
+  for (const entry of directory) {
+    const index = line.lastIndexOf(entry.name);
+    if (index > selectedIndex) {
+      selected = entry;
+      selectedIndex = index;
+    }
+  }
+  return selected;
+}
+
+/**
+ * Recovers old committed Company turns whose Story stored quote-only dialogue
+ * and therefore has an empty parsed dialogue_lines array. It uses only a
+ * registered name seen in the scene or the persisted last/focal speaker id.
+ */
+export function fallbackDialogueLines(context, viewModel) {
   const directory = characterEntries(context);
   const idByName = new Map(directory.map(entry => [entry.name, entry.id]));
+  const byId = new Map(directory.map(entry => [entry.id, entry]));
+  const save = saveFromContext(context);
+  const persistedSpeaker = byId.get(save.last_speaker_id) ?? byId.get(save.focal_character_id) ?? null;
   const storyText = typeof viewModel?.story?.story_text === 'string' ? viewModel.story.story_text : '';
   const scene = storyText.split(/\[2\.\s*플레이어\s*속마음\]/)[0] ?? storyText;
   const lines = [];
+  let recentSpeaker = null;
+
   for (const rawLine of scene.split(/\r?\n/)) {
     const value = rawLine.trim();
     if (!value || value.startsWith('[')) continue;
@@ -35,6 +64,7 @@ function fallbackDialogueLines(context, viewModel) {
       const speakerName = directed[1].trim();
       const speakerId = idByName.get(speakerName);
       if (!speakerId) continue;
+      recentSpeaker = { id: speakerId, name: speakerName };
       lines.push({
         speaker_id: speakerId,
         speaker_name: speakerName,
@@ -45,17 +75,36 @@ function fallbackDialogueLines(context, viewModel) {
       continue;
     }
     const named = NAMED_LINE.exec(value);
-    if (!named) continue;
-    const speakerName = named[1].trim();
-    const speakerId = idByName.get(speakerName);
-    if (!speakerId) continue;
-    lines.push({
-      speaker_id: speakerId,
-      speaker_name: speakerName,
-      direction: '자연스럽게',
-      text: String(named[2] ?? named[3] ?? '').trim().replace(/^["“”']+|["“”']+$/g, ''),
-      order: lines.length
-    });
+    if (named) {
+      const speakerName = named[1].trim();
+      const speakerId = idByName.get(speakerName);
+      if (!speakerId) continue;
+      recentSpeaker = { id: speakerId, name: speakerName };
+      lines.push({
+        speaker_id: speakerId,
+        speaker_name: speakerName,
+        direction: '자연스럽게',
+        text: String(named[2] ?? named[3] ?? '').trim().replace(/^["“”']+|["“”']+$/g, ''),
+        order: lines.length
+      });
+      continue;
+    }
+
+    const quote = QUOTE_ONLY_LINE.exec(value);
+    if (quote && !/^\([^)]*\)$/.test(quote[1].trim())) {
+      const speaker = recentSpeaker ?? persistedSpeaker;
+      if (speaker) {
+        lines.push({
+          speaker_id: speaker.id,
+          speaker_name: speaker.name,
+          direction: '자연스럽게',
+          text: quote[1].trim(),
+          order: lines.length
+        });
+        continue;
+      }
+    }
+    recentSpeaker = mentionedSpeaker(rawLine, directory, recentSpeaker);
   }
   return lines.filter(line => line.text);
 }
@@ -267,6 +316,7 @@ export function createUtilityUi({
     const playback = ensureAudio();
     await primeAudio();
     try {
+      onStatus?.(`${line.speaker_name || '캐릭터'}의 음성을 생성하는 중입니다.`);
       const response = await api.tts({
         game_id: gameId,
         character_id: characterId,
@@ -286,6 +336,7 @@ export function createUtilityUi({
       return true;
     } catch (error) {
       if (playback) playback.muted = false;
+      onStatus?.('TTS 재생에 실패했습니다. 오류 표시를 확인해 주세요.');
       onError?.(error);
       return false;
     }
