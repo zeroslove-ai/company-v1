@@ -5,6 +5,15 @@ export function text(element, value) { if (element) element.textContent = value 
 function displayValue(value) { return typeof value === 'string' || typeof value === 'number' ? String(value) : ''; }
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null; }
 
+function dataAttributeName(key) {
+  return `data-${String(key).replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
+}
+
+function setDataValue(node, key, value) {
+  if (node?.dataset) node.dataset[key] = value;
+  else node?.setAttribute?.(dataAttributeName(key), value);
+}
+
 const DISPLAY_LABELS = {
   office: '사무실', meeting_room: '회의실', conference_room: '대회의실', lobby: '로비',
   hallway: '복도', elevator: '엘리베이터', break_room: '휴게실', cafeteria: '구내식당',
@@ -123,7 +132,7 @@ function renderNarrativeChoices(container, choices, labels = []) {
   const list = document.createElement('ol');
   for (const [index, choice] of normalized.entries()) {
     const item = document.createElement('li'); item.textContent = choice;
-    if (labels[index]) item.dataset.choiceLabel = labels[index];
+    if (labels[index]) setDataValue(item, 'choiceLabel', labels[index]);
     list.append(item);
   }
   section.append(heading, list); container.append(section);
@@ -235,19 +244,19 @@ export function renderMindMonitor(container, monitor, { preferredId = '' } = {})
   container.replaceChildren();
   const entries = normalizedMindEntries(monitor);
   if (!entries.length) {
-    container.dataset.selectedCharacterId = '';
+    setDataValue(container, 'selectedCharacterId', '');
     const empty = document.createElement('p'); empty.className = 'mind-monitor-empty'; empty.textContent = '이번 턴 Mind Monitor 정보가 없습니다.';
     container.append(empty);
     return;
   }
 
   let selected = entries.find(entry => entry.id === preferredId) ?? entries[0];
-  container.dataset.selectedCharacterId = selected.id ?? '';
+  setDataValue(container, 'selectedCharacterId', selected.id ?? '');
   const bodyHost = document.createElement('div'); bodyHost.className = 'mind-monitor-content';
 
   const show = entry => {
     selected = entry;
-    container.dataset.selectedCharacterId = entry.id ?? '';
+    setDataValue(container, 'selectedCharacterId', entry.id ?? '');
     bodyHost.replaceChildren();
     renderMindEntry(bodyHost, entry);
   };
@@ -257,7 +266,7 @@ export function renderMindMonitor(container, monitor, { preferredId = '' } = {})
     for (const entry of entries) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'mind-monitor-tab';
       button.textContent = entry.name || entry.id;
-      button.dataset.characterId = entry.id;
+      setDataValue(button, 'characterId', entry.id);
       button.ariaSelected = entry.id === selected.id ? 'true' : 'false';
       button.addEventListener('click', () => {
         for (const sibling of tabs.children ?? []) sibling.ariaSelected = sibling === button ? 'true' : 'false';
