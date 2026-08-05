@@ -1,4 +1,4 @@
-/* Hospital-route shell transplanted for Company v1.
+﻿/* Hospital-route shell transplanted for Company v1.
  * Existing Company DOM ids and engine adapters remain canonical.
  */
 :root {
@@ -26,7 +26,8 @@ body {
 body {
   margin: 0;
   overflow: hidden;
-  background: var(--hospital-bg-primary);
+  /* 스트리밍 서사가 항상 같은 남색 톤에 보이도록 배경 통일 (오프닝과 턴 서사 일관성) */
+  background: var(--hospital-bg-tertiary);
   color: var(--hospital-text-primary);
 }
 
@@ -45,7 +46,7 @@ body.setup-modal-open {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   overflow: hidden;
-  background: var(--hospital-bg-primary);
+  background: var(--hospital-bg-tertiary);
 }
 
 .game-header {
@@ -115,7 +116,7 @@ body.setup-modal-open {
   padding: 20px clamp(18px, 3vw, 36px) 28px;
   border: 0;
   border-radius: 0;
-  background: var(--hospital-bg-primary);
+  background: var(--hospital-bg-tertiary);
 }
 
 .story-history,
