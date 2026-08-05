@@ -390,3 +390,17 @@
     grid-template-columns: max-content minmax(0, 1fr);
   }
 }
+
+/* 인물정보(focal-character)도 2열로 — 칸 낭비 제거 */
+.focal-character .state-list,
+.focal-character dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+  gap: 4px 10px;
+}
+@media (max-width: 480px) {
+  .focal-character .state-list,
+  .focal-character dl {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+}

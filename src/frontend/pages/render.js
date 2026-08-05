@@ -299,6 +299,12 @@ function renderMindEntry(container, entry) {
     card.append(heading, detail); body.append(card);
   }
   container.append(body);
+  // 캐릭터 이름: 컨테이너 마지막에 추가 (CSS order로 최상단 표시, 카드 구조 유지)
+  const name = displayValue(entry.name) || displayValue(entry.id);
+  if (name && !container.querySelector?.('.mind-monitor-name')) {
+    const nameHeading = document.createElement('h3'); nameHeading.className = 'mind-monitor-name'; nameHeading.textContent = name;
+    container.append(nameHeading);
+  }
 }
 
 export function renderMindMonitor(container, monitor, { preferredId = '' } = {}) {

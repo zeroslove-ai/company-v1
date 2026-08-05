@@ -166,3 +166,43 @@
   color: #dceaf2;
   white-space: pre-wrap;
 }
+
+/* TTS 컨트롤 바 — 화면 최상단 (헤더 아래) */
+.tts-bar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem .9rem;
+  border-bottom: 1px solid var(--hospital-border, #2a2a4a);
+  background: var(--hospital-bg-secondary, #1a1a2e);
+}
+.tts-bar button {
+  font-size: .74rem;
+  padding: .3rem .7rem;
+  border-radius: .45rem;
+  border: 1px solid var(--hospital-border, #2a2a4a);
+  background: var(--hospital-bg-tertiary, #16213e);
+  color: var(--hospital-text-primary, #e0e0e0);
+}
+.tts-bar .tts-status {
+  margin: 0;
+  font-size: .7rem;
+  color: var(--hospital-text-secondary, #a0a0b0);
+}
+
+/* 오디오 재생바 — 화면 최하단 (툴바 위) */
+.audio-bar {
+  width: 100%;
+  border-radius: 0;
+  border-top: 1px solid var(--hospital-border, #2a2a4a);
+  background: var(--hospital-bg-secondary, #1a1a2e);
+}
+/* Mind Monitor 캐릭터 이름 — 최상단 표시 */
+.mind-monitor-name {
+  margin: 0 0 .35rem !important;
+  order: -1;
+  font-size: .82rem;
+  font-weight: 800;
+  color: #dceaf2;
+  letter-spacing: .02em;
+}
