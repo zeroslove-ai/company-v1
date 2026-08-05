@@ -10,7 +10,8 @@ const SECTION_LABELS = {
 };
 
 const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
-const INLINE_DIALOGUE = /([\p{L}][^\n():"“”]{0,40}?)\s*\(([^()\n]{0,160})\)\s*[:：]\s*["“]([^"”]*)["”]/gsu;
+const QUOTED_INLINE_DIALOGUE = /([\p{L}][^\n():"“”]{0,40}?)\s*\(([^()\n]{0,160})\)\s*[:：]\s*["“]([^"”]*)["”]/gsu;
+const DIALOGUE_LINE = /^([\p{L}][^\n():："“”]{0,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const CHOICE_LABEL = /^\[([^\[\]\r\n]{2,6})\]\s*(.+)$/u;
 
 function labelRole(label) {
@@ -38,31 +39,62 @@ function parseChoices(text) {
   return { choices, choice_labels: choiceLabels };
 }
 
+function masterCharacters(master) {
+  return [
+    ...(Array.isArray(master?.characters) ? master.characters : []),
+    ...(Array.isArray(master?.general_npcs) ? master.general_npcs : [])
+  ];
+}
+
 function resolveSpeakerId(name, master) {
   const trimmed = typeof name === 'string' ? name.trim() : '';
   if (!trimmed) return null;
-  const characters = Array.isArray(master?.characters) ? master.characters : [];
-  const matches = characters.filter(character => typeof character?.name === 'string' && character.name.trim() === trimmed);
-  return matches.length === 1 && typeof matches[0].character_id === 'string' ? matches[0].character_id : null;
+  const matches = masterCharacters(master).filter(character => typeof character?.name === 'string' && character.name.trim() === trimmed);
+  if (matches.length !== 1) return null;
+  const id = matches[0].character_id ?? matches[0].npc_id ?? matches[0].id;
+  return typeof id === 'string' ? id : null;
+}
+
+function appendDialogue(lines, seen, { speakerName, direction, dialogueText }, master, orderRef) {
+  const name = typeof speakerName === 'string' ? speakerName.trim() : '';
+  const acting = typeof direction === 'string' ? direction.trim() : '';
+  const text = typeof dialogueText === 'string' ? dialogueText.trim().replace(/^["“”']+|["“”']+$/g, '').trim() : '';
+  if (!name || !acting || !text) return;
+  const signature = `${name}\n${acting}\n${text}`;
+  if (seen.has(signature)) return;
+  seen.add(signature);
+  lines.push({
+    speaker_id: resolveSpeakerId(name, master),
+    speaker_name: name,
+    direction: acting,
+    text,
+    order: orderRef.value++
+  });
 }
 
 function extractInlineDialogue(text, master, orderRef) {
   const lines = [];
+  const seen = new Set();
   if (!text) return lines;
-  INLINE_DIALOGUE.lastIndex = 0;
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const match = DIALOGUE_LINE.exec(rawLine.trim());
+    if (!match) continue;
+    appendDialogue(lines, seen, {
+      speakerName: match[1],
+      direction: match[2],
+      dialogueText: match[3] ?? match[4]
+    }, master, orderRef);
+  }
+
+  QUOTED_INLINE_DIALOGUE.lastIndex = 0;
   let match;
-  while ((match = INLINE_DIALOGUE.exec(text)) !== null) {
-    const speakerName = match[1].trim();
-    const direction = match[2].trim();
-    const dialogueText = match[3].trim();
-    if (!speakerName || !dialogueText) continue;
-    lines.push({
-      speaker_id: resolveSpeakerId(speakerName, master),
-      speaker_name: speakerName,
-      direction,
-      text: dialogueText,
-      order: orderRef.value++
-    });
+  while ((match = QUOTED_INLINE_DIALOGUE.exec(text)) !== null) {
+    appendDialogue(lines, seen, {
+      speakerName: match[1],
+      direction: match[2],
+      dialogueText: match[3]
+    }, master, orderRef);
   }
   return lines;
 }
