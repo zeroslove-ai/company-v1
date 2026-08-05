@@ -203,15 +203,31 @@ test('TTS ON automatically requests and plays the selected NPC line during media
   assert.equal(createdAudio.muted, false);
 });
 
-test('frontend shell exposes a dedicated hospital-style CSA app entry beside game state', () => {
+test('frontend shell exposes hospital-style TTS, relationship, and CSA app surfaces', () => {
   const html = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
   const utilityCss = fs.readFileSync(path.join(root, 'src/frontend/pages/utility.css'), 'utf8');
   const entryCss = fs.readFileSync(path.join(root, 'src/frontend/pages/csa-entry.css'), 'utf8');
   const csaApp = fs.readFileSync(path.join(root, 'src/frontend/pages/csa-app.js'), 'utf8');
+  const tts = fs.readFileSync(path.join(root, 'src/frontend/pages/tts.js'), 'utf8');
+  const relationship = fs.readFileSync(path.join(root, 'src/frontend/pages/relationship-icons.js'), 'utf8');
+  const parityCss = fs.readFileSync(path.join(root, 'src/frontend/pages/hospital-parity.css'), 'utf8');
 
-  for (const id of ['character-image', 'tts-enabled', 'open-history', 'send-feedback', 'find-npc', 'open-apps', 'resume-play', 'history-overlay', 'feedback-overlay', 'npc-finder-overlay']) {
+  for (const id of ['character-image', 'tts-toggle', 'tts-replay', 'tts-status', 'audio-player', 'open-history', 'send-feedback', 'find-npc', 'open-apps', 'resume-play', 'history-overlay', 'feedback-overlay', 'npc-finder-overlay']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
+  assert.match(html, /src="\.\/tts\.js"/);
+  assert.match(html, /src="\.\/relationship-icons\.js"/);
+  assert.match(html, /hospital-parity\.css/);
+  assert.doesNotMatch(html, /id="tts-enabled"|id="play-tts"/);
+  assert.match(tts, /playedCompanyTtsKeys/);
+  assert.match(tts, /lastAudioResult/);
+  assert.match(tts, /audio\.src = result\.url/);
+  assert.match(relationship, /✨ 절정/);
+  assert.match(relationship, /💦 사정/);
+  assert.match(relationship, /🌸 질/);
+  assert.match(relationship, /🍑 애널/);
+  assert.match(relationship, /👄 구강/);
+  assert.match(parityCss, /\.relationship-row/);
   assert.match(html, /class="csa-entry-panel"[\s\S]*id="open-apps"[\s\S]*📱 상식개변 앱/);
   assert.match(html, /data-tab="player">플레이어 정보/);
   assert.match(html, /data-tab="npc">NPC 정보/);
