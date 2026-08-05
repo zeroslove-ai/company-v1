@@ -37,7 +37,7 @@ export function installNpcFinder({ documentRef = document, api = createApiClient
   function setLoading(value) {
     loading = value;
     find.disabled = value;
-    open.disabled = value ? true : open.disabled;
+    select.disabled = value;
   }
 
   async function populate() {
@@ -63,7 +63,7 @@ export function installNpcFinder({ documentRef = document, api = createApiClient
     setLoading(true);
     try { await populate(); }
     catch { text(status, '인물 목록을 불러오지 못했습니다.'); }
-    finally { setLoading(false); find.disabled = false; }
+    finally { setLoading(false); }
   }
 
   async function locate() {
@@ -80,7 +80,6 @@ export function installNpcFinder({ documentRef = document, api = createApiClient
       text(status, error?.message || '위치를 확인하지 못했습니다.');
     } finally {
       setLoading(false);
-      find.disabled = false;
     }
   }
 
