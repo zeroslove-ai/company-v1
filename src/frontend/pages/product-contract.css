@@ -112,6 +112,17 @@
   background: #2a2230;
 }
 
+.turn-summary {
+  margin: .75rem 0 0;
+  padding: .65rem .75rem;
+  border-left: 3px solid #6baed6;
+  border-radius: .35rem;
+  background: #172631;
+  color: #c9dce7;
+  font-size: .82rem;
+  line-height: 1.55;
+}
+
 .csa-app-npc-list {
   display: grid;
   gap: .75rem;
@@ -217,6 +228,64 @@
   color: #cfe3ee;
 }
 
+.turn-loading-overlay[hidden] {
+  display: none !important;
+}
+
+.turn-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(4 11 17 / 72%);
+  backdrop-filter: blur(4px);
+}
+
+.turn-loading-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .45rem .8rem;
+  width: min(390px, 100%);
+  padding: 1.1rem 1.2rem;
+  border: 1px solid #4d7188;
+  border-radius: .8rem;
+  background: #17242e;
+  box-shadow: 0 18px 55px rgb(0 0 0 / 48%);
+}
+
+.turn-loading-spinner {
+  grid-row: 1 / span 3;
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgb(158 204 229 / 25%);
+  border-top-color: #9ecce5;
+  border-radius: 50%;
+  animation: company-turn-spin .8s linear infinite;
+}
+
+.turn-loading-title {
+  color: #f3f8fb;
+  font-size: 1rem;
+}
+
+.turn-loading-detail,
+.turn-loading-elapsed {
+  margin: 0;
+  color: #b8cad5;
+  line-height: 1.45;
+}
+
+.turn-loading-elapsed {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes company-turn-spin {
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 900px) {
   .character-image {
     height: clamp(260px, 46dvh, 340px);
@@ -254,5 +323,9 @@
 
   .csa-app-npc-mind {
     grid-template-columns: 1fr;
+  }
+
+  .turn-loading-card {
+    padding: 1rem;
   }
 }
