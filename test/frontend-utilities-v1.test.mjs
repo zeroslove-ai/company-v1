@@ -172,6 +172,7 @@ test('frontend shell exposes a dedicated hospital-style CSA app entry beside gam
   }
   assert.match(html, /class="csa-entry-panel"[\s\S]*id="open-apps"[\s\S]*📱 상식개변 앱/);
   assert.match(html, /data-tab="player">플레이어 정보/);
+  assert.match(html, /data-tab="npc">NPC 정보/);
   assert.doesNotMatch(html, /<nav class="utility-toolbar"[\s\S]*id="open-apps"/);
   assert.match(html, /utility\.css/);
   assert.match(html, /csa-entry\.css/);
@@ -179,6 +180,7 @@ test('frontend shell exposes a dedicated hospital-style CSA app entry beside gam
   assert.match(entryCss, /\.csa-entry-panel/);
   assert.match(entryCss, /position: sticky/);
   assert.match(csaApp, /function renderPlayer\(body\)/);
-  assert.match(csaApp, /\['home', 'player', 'csa', 'manual'\]/);
+  assert.match(csaApp, /function renderNpcs\(body\)/);
+  assert.match(csaApp, /\['home', 'player', 'npc', 'csa', 'manual'\]/);
   assert.match(csaApp, /Story -> Extract -> Commit/);
 });
