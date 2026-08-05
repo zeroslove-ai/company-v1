@@ -37,13 +37,15 @@ test('keeps the action controls in the viewport shell', () => {
   assert.match(rule('.choice-list'), /grid-template-columns:\s*1fr/);
 });
 
-test('preserves the Company engine DOM contracts while replacing the shell', () => {
+test('preserves the Company engine and Hospital TTS DOM contracts while replacing the shell', () => {
   assert.match(indexHtml, /<aside class=["']status-column["']/);
   for (const id of [
     'story-panel',
     'character-image',
-    'tts-enabled',
-    'play-tts',
+    'tts-toggle',
+    'tts-replay',
+    'tts-status',
+    'audio-player',
     'open-apps',
     'resume-play',
     'choice-list',
@@ -57,4 +59,6 @@ test('preserves the Company engine DOM contracts while replacing the shell', () 
   ]) {
     assert.match(indexHtml, new RegExp(`id=["']${id}["']`));
   }
+  assert.match(indexHtml, /src=["']\.\/tts\.js["']/);
+  assert.match(indexHtml, /src=["']\.\/relationship-icons\.js["']/);
 });
