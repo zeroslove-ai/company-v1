@@ -19,7 +19,9 @@ function imageId(value) {
 }
 
 function numberOrNull(value) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  return null;
 }
 
 function strings(value) {
@@ -60,8 +62,10 @@ function catalogName(list, idField, id) {
   return text(list.find(item => item?.[idField] === id)?.name);
 }
 
-function characterName(save, id, directory = {}) {
+function characterName(save, id, directory = {}, details = {}) {
   if (!id) return '';
+  const detailedName = text(object(details)?.[id]?.name);
+  if (detailedName) return detailedName;
   const projectedName = text(object(directory)?.[id]?.name);
   if (projectedName) return projectedName;
   for (const source of [save.characters, save.npc_profiles, save.npc_identity_state, save.npc_state]) {
@@ -103,28 +107,94 @@ function dialogueLines(currentExtract, parsedStory) {
     })));
 }
 
-function mindMonitorEntries(save, monitor, preferredIds = [], directory = {}) {
-  const source = object(monitor) ?? {};
-  const entries = Object.entries(source)
-    .filter(([, value]) => object(value))
-    .map(([id, value]) => ({
-      id,
-      name: characterName(save, id, directory) || id,
-      surface: text(value.surface ?? value['표면의식']),
-      subconscious: text(value.subconscious ?? value.latent ?? value['잠재의식'])
-    }))
-    .filter(entry => entry.surface || entry.subconscious);
-  const rank = new Map(preferredIds.filter(Boolean).map((id, index) => [id, index]));
-  return entries.sort((left, right) => (rank.get(left.id) ?? 99) - (rank.get(right.id) ?? 99));
+function normalizedStats(value) {
+  const source = object(value) ?? {};
+  return {
+    affinity: numberOrNull(source.affinity ?? source.affection ?? source['호감도']) ?? 0,
+    work_trust: numberOrNull(source.work_trust ?? source['업무신뢰도']) ?? 0,
+    csa_acceptance: numberOrNull(source.csa_acceptance ?? source.acceptance ?? source['상식수용도']) ?? 0,
+    sexual_arousal: numberOrNull(source.sexual_arousal ?? source.arousal ?? source['성적흥분도']) ?? 0
+  };
 }
 
-function npcView(save, id) {
+function normalizedChanges(value) {
+  const source = object(value) ?? {};
+  const result = {};
+  for (const key of ['affinity', 'work_trust', 'csa_acceptance', 'sexual_arousal']) {
+    const entry = object(source[key]);
+    const delta = numberOrNull(entry?.delta);
+    if (delta === null || delta === 0) continue;
+    result[key] = {
+      from: numberOrNull(entry.from),
+      to: numberOrNull(entry.to),
+      delta
+    };
+  }
+  return result;
+}
+
+function detailFor(details, id) {
+  const detail = object(object(details)?.[id]) ?? {};
+  return {
+    profile: object(detail.profile) ?? {},
+    body: object(detail.body) ?? {},
+    stats: normalizedStats(detail.stats),
+    stat_changes: normalizedChanges(detail.stat_changes),
+    relationship_summary: text(detail.relationship_summary),
+    relationship_record: object(detail.relationship_record) ?? {},
+    private_info: object(detail.private_info) ?? { unlocked: false }
+  };
+}
+
+function mindMonitorEntries(save, monitor, preferredIds = [], directory = {}, details = {}) {
+  const source = object(monitor) ?? {};
+  const ids = new Set([
+    ...Object.keys(source),
+    ...preferredIds.filter(Boolean),
+    ...strings(save.last_npcs_present)
+  ]);
+  const rank = new Map(preferredIds.filter(Boolean).map((id, index) => [id, index]));
+  return [...ids].map(id => {
+    const value = object(source[id]) ?? {};
+    const detail = detailFor(details, id);
+    const savedStats = object(object(save.npc_stats)?.[id]) ?? {};
+    const hasDetail = Boolean(object(details)?.[id]);
+    const surface = text(value.surface ?? value['표면의식']);
+    const subconscious = text(value.subconscious ?? value.latent ?? value['잠재의식']);
+    return {
+      id,
+      name: characterName(save, id, directory, details) || id,
+      surface,
+      subconscious,
+      stats: hasDetail ? detail.stats : normalizedStats(savedStats),
+      stat_changes: detail.stat_changes,
+      relationship_summary: detail.relationship_summary,
+      relationship_record: detail.relationship_record,
+      private_info: detail.private_info
+    };
+  }).filter(entry => entry.id && (entry.surface || entry.subconscious || object(details)?.[entry.id] || object(save.npc_stats)?.[entry.id]))
+    .sort((left, right) => (rank.get(left.id) ?? 99) - (rank.get(right.id) ?? 99));
+}
+
+function npcView(save, id, details = {}) {
   if (!id) return null;
   const stats = object(save.npc_stats)?.[id];
   const relationship = object(save.npc_relationship_state)?.[id];
   const emotion = object(save.npc_emotion)?.[id];
-  if (!stats && !relationship && !emotion) return null;
-  return { id, stats: object(stats) ?? {}, relationship: object(relationship) ?? {}, emotion: object(emotion) ?? {} };
+  const detail = object(details?.[id]);
+  if (!stats && !relationship && !emotion && !detail) return null;
+  return {
+    id,
+    stats: detail ? normalizedStats(detail.stats) : normalizedStats(stats),
+    stat_changes: normalizedChanges(detail?.stat_changes),
+    relationship: object(relationship) ?? {},
+    emotion: object(emotion) ?? {},
+    profile: object(detail?.profile) ?? {},
+    body: object(detail?.body) ?? {},
+    relationship_summary: text(detail?.relationship_summary),
+    relationship_record: object(detail?.relationship_record) ?? {},
+    private_info: object(detail?.private_info) ?? { unlocked: false }
+  };
 }
 
 function fallbackActiveRules(save) {
@@ -143,10 +213,7 @@ function fallbackActiveRules(save) {
   });
 }
 
-/**
- * Converts immutable Company Context data to display-safe values.
- * It deliberately does not merge, persist, fetch, or infer missing game state.
- */
+/** Converts immutable Company Context data to display-safe values. */
 export function buildCompanyGameViewModel(context, runtime = {}) {
   const save = saveFromContext(context);
   const turn = latestTurn(context);
@@ -154,7 +221,9 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const currentExtract = object(runtime)?.currentExtract;
   const display = object(context?.display) ?? {};
   const directory = object(display.npc_directory) ?? {};
+  const details = object(display.character_details) ?? {};
   const capability = object(display.player_capability) ?? {};
+  const sexualDisplay = object(display.player_sexual) ?? {};
   const activeRules = Array.isArray(display.active_csa) ? display.active_csa.filter(object) : fallbackActiveRules(save);
   const focalId = text(save.focal_character_id);
   const lastSpeakerId = text(save.last_speaker_id);
@@ -166,7 +235,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const focalSceneState = object(object(save.npc_scene_state)?.[focalId]) ?? {};
   const imageCharacterId = text(currentExtract?.image_character_id ?? currentExtract?.character_id) || focalId || lastSpeakerId;
   const monitor = mindMonitor(currentExtract, turn);
-  const monitorEntries = mindMonitorEntries(save, monitor, [imageCharacterId, focalId, lastSpeakerId], directory);
+  const monitorEntries = mindMonitorEntries(save, monitor, [imageCharacterId, focalId, lastSpeakerId], directory, details);
 
   return {
     turn: {
@@ -175,6 +244,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       action_id: text(turn.action_id),
       player_action: text(turn.player_action),
       turn_summary: text(turn.turn_summary),
+      turn_changes: Array.isArray(turn.turn_changes) ? turn.turn_changes : [],
       replayed: turn.replayed === true
     },
     story: {
@@ -198,9 +268,9 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
     },
     focal_character: {
       id: focalId,
-      name: characterName(save, focalId, directory),
+      name: characterName(save, focalId, directory, details),
       last_speaker_id: lastSpeakerId,
-      character: npcView(save, focalId),
+      character: npcView(save, focalId, details),
       scene_state: {
         location_label: text(focalSceneState.location_label),
         posture: text(focalSceneState.posture),
@@ -237,9 +307,12 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
         scope_label: text(rule.scope_label) || '회사 전체',
         content: text(rule.content)
       })),
-      excitement: numberOrNull(playerSexualState.arousal),
-      ejaculation_progress: numberOrNull(playerSexualState.ejaculation_progress ?? playerSexualState.ejaculation_meter),
-      ejaculation_count: numberOrNull(playerSexualState.ejaculation_count),
+      excitement: numberOrNull(sexualDisplay.arousal) ?? numberOrNull(playerSexualState.arousal),
+      ejaculation_progress: numberOrNull(sexualDisplay.ejaculation_progress)
+        ?? numberOrNull(playerSexualState.ejaculation_progress ?? playerSexualState.ejaculation_meter),
+      ejaculation_count: numberOrNull(sexualDisplay.ejaculation_count) ?? numberOrNull(playerSexualState.ejaculation_count),
+      total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events),
+      last_sexual_event: object(sexualDisplay.last_sexual_event),
       status: text(parsedStory.player_status),
       inner_thought: text(parsedStory.player_inner_thought),
       location_label: text(playerSceneState.location_label) || text(scene.location_label) || text(scene.location_id),
