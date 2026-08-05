@@ -3,6 +3,7 @@ import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './t
 import { createTurnRoutes as createRawTurnRoutes } from './turn-routes.js';
 import { resolveTtsEligibility } from '../engine/index.js';
 import { createRegisteredNpcPolicyFetch } from './npc-policy-fetch.js';
+import { createPromptCacheOrderFetch } from './prompt-cache-order.js';
 import { enrichAppEnvelope, enrichContextEnvelope } from './product-response.js';
 
 const TTS_WORKER_URL = 'https://fancy-dust-7f8c.zeroslove.workers.dev/';
@@ -100,7 +101,8 @@ function responseWithJson(response, payload) {
  */
 export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) {
   const policyFetch = createRegisteredNpcPolicyFetch(fetchImpl);
-  const routes = createBaseTurnRoutes({ fetchImpl: policyFetch, edition });
+  const llmFetch = createPromptCacheOrderFetch(policyFetch);
+  const routes = createBaseTurnRoutes({ fetchImpl: llmFetch, edition });
   const master = masterFromEdition(edition);
 
   return {
@@ -118,7 +120,7 @@ export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) 
     async appState(request, env, ctx) {
       let capturedContext = null;
       const captureFetch = async (input, init = {}) => {
-        const response = await policyFetch(input, init);
+        const response = await llmFetch(input, init);
         if (response?.ok && isContextRpc(requestUrl(input))) {
           capturedContext = await jsonPayload(response);
         }
@@ -148,7 +150,7 @@ export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) 
       if (env?.TTS_WORKER && typeof env.TTS_WORKER.fetch === 'function') {
         url = await synthesizeViaServiceBinding({ env, eligibility, spokenText, direction });
       } else if (typeof env?.TTS_API_URL === 'string' && env.TTS_API_URL && typeof env?.TTS_API_KEY === 'string' && env.TTS_API_KEY) {
-        url = await synthesizeViaLegacyProvider({ env, eligibility, spokenText, direction, fetchImpl: policyFetch });
+        url = await synthesizeViaLegacyProvider({ env, eligibility, spokenText, direction, fetchImpl: llmFetch });
       } else {
         throw new HttpError(500, 'configuration_error', 'TTS_WORKER service binding is not configured', false);
       }
