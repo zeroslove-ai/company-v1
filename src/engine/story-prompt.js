@@ -161,11 +161,11 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
       role: 'user',
       content: JSON.stringify({
         edition: edition.editionId,
-        expected_turn: expectedTurn,
-        player_action: playerAction,
         active_character_canon: buildActiveCharacterCanon(charactersMap, heroineActiveIds),
         active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
-        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition })
+        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition }),
+        player_action: playerAction,
+        expected_turn: expectedTurn
       })
     }
   ];
