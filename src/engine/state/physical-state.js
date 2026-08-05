@@ -1,18 +1,19 @@
 /**
- * Combines clothing + posture + location into the full scene-state patch builders for the
- * player and for a single NPC. Deactivate (or any CSA activate/update) never reaches these
- * builders with a physical-change proposal of its own — CSA transaction application and
- * physical-state application are structurally separate.
+ * Combines clothing, posture and display location into one Story-grounded
+ * scene-state patch. Physical fields are open natural-language values.
+ * Existing legacy codes remain readable, while exact evidence gates every
+ * changed field independently so auxiliary metadata never blocks Commit.
  */
 import { retainEvidencedClothing } from './clothing.js';
-import { buildPosturePatch, POSTURE_VALUES } from './posture.js';
+import { buildPosturePatch, normalizePhysicalText } from './posture.js';
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function identity(value) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
+function identity(value, maxLength = 180) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return Array.from(value.trim().replace(/\s+/g, ' ')).slice(0, maxLength).join('');
 }
 
 function evidenceObject(value) {
@@ -23,19 +24,13 @@ function evidenceObject(value) {
 
 function exactStoryEvidence(evidence, narrativeText, characterName = '') {
   if (typeof evidence !== 'string' || !evidence.trim()) return false;
-  const text = typeof narrativeText === 'string' ? narrativeText : '';
   const quote = evidence.trim();
+  const text = typeof narrativeText === 'string' ? narrativeText : '';
   if (!text.includes(quote)) return false;
   if (typeof characterName === 'string' && characterName.trim() && !quote.includes(characterName.trim())) return false;
   return true;
 }
 
-/**
- * Builds the next scene-state object for one character. Posture, position_label and location
- * are accepted only when an exact supporting Story substring is supplied. Missing or rejected
- * proposals carry the previous physical state forward; a turn boundary or CSA deactivation is
- * never an implicit reset.
- */
 export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceMap = {}, narrativeText = '', characterName = '', turnNumber = null } = {}) {
   const prev = isPlainObject(previous) ? previous : {};
   const raw = isPlainObject(proposal) ? proposal : {};
@@ -43,52 +38,62 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
   const warnings = [];
 
   const { clothing: acceptedClothing, rejections } = retainEvidencedClothing({
-    previousClothing: prev.clothing ?? {}, proposedClothing: raw.clothing ?? {},
-    evidenceMap: isPlainObject(evidence.clothing) ? evidence.clothing : {}, narrativeText, characterName
+    previousClothing: prev.clothing ?? {},
+    proposedClothing: raw.clothing ?? {},
+    evidenceMap: isPlainObject(evidence.clothing) ? evidence.clothing : {},
+    narrativeText,
+    characterName
   });
-  for (const rejection of rejections) warnings.push(rejection);
+  warnings.push(...rejections);
 
-  const postureRequested = POSTURE_VALUES.has(raw.posture);
-  const postureChanges = postureRequested && raw.posture !== prev.posture;
-  const postureEvidenceValid = postureRequested && exactStoryEvidence(evidence.posture, narrativeText, characterName);
-  const positionRequested = identity(raw.position_label);
-  const positionEvidenceValid = Boolean(positionRequested) && exactStoryEvidence(evidence.position ?? evidence.posture, narrativeText, characterName);
-  const endReasonRequested = identity(raw.posture_end_reason);
+  const requestedPosture = normalizePhysicalText(raw.posture);
+  const requestedPosition = normalizePhysicalText(raw.position_label, 140);
+  const previousPosture = normalizePhysicalText(prev.posture);
+  const previousPosition = normalizePhysicalText(prev.position_label, 140);
+  const postureChanges = Boolean(requestedPosture && requestedPosture !== previousPosture);
+  const positionChanges = Boolean(requestedPosition && requestedPosition !== previousPosition);
+  const postureEvidenceValid = Boolean(requestedPosture) && exactStoryEvidence(evidence.posture, narrativeText, characterName);
+  const positionEvidenceValid = Boolean(requestedPosition) && exactStoryEvidence(evidence.position ?? evidence.posture, narrativeText, characterName);
+  const endReasonRequested = identity(raw.posture_end_reason, 80);
   const endReasonEvidenceValid = Boolean(endReasonRequested)
     && exactStoryEvidence(evidence.posture_end_reason ?? evidence.posture, narrativeText, characterName);
 
-  if (postureRequested && !postureEvidenceValid && postureChanges) warnings.push('unevidenced_posture_change');
-  if (positionRequested && !positionEvidenceValid && positionRequested !== prev.position_label) warnings.push('unevidenced_position_label');
+  if (postureChanges && !postureEvidenceValid) warnings.push('unevidenced_posture_change');
+  if (positionChanges && !positionEvidenceValid) warnings.push('unevidenced_position_label');
   if (endReasonRequested && postureChanges && !endReasonEvidenceValid) warnings.push('unevidenced_posture_end_reason');
 
-  const acceptedPosture = postureRequested && (!postureChanges || postureEvidenceValid) ? raw.posture : prev.posture;
-  const acceptedPosition = positionEvidenceValid ? positionRequested : (prev.position_label ?? null);
-  const canBuildPosture = POSTURE_VALUES.has(acceptedPosture);
-  const postureProposal = canBuildPosture && (postureRequested || positionEvidenceValid)
-    ? {
-        posture: acceptedPosture,
-        position_label: acceptedPosition,
-        end_reason: postureChanges && endReasonEvidenceValid ? endReasonRequested : null
-      }
-    : null;
+  const postureProposal = postureEvidenceValid || positionEvidenceValid ? {
+    posture: postureEvidenceValid ? requestedPosture : previousPosture,
+    position_label: positionEvidenceValid ? requestedPosition : previousPosition,
+    end_reason: endReasonEvidenceValid ? endReasonRequested : null,
+    evidence_valid: postureEvidenceValid
+  } : null;
   const posturePatch = buildPosturePatch({
-    previous: prev.posture ? { posture: prev.posture, position_label: prev.position_label, updated_turn: prev.updated_turn } : null,
+    previous: prev.posture || prev.position_label ? {
+      posture: prev.posture,
+      position_label: prev.position_label,
+      updated_turn: prev.updated_turn
+    } : null,
     proposal: postureProposal,
     turnNumber
   });
   if (posturePatch?.rejected && !warnings.includes(posturePatch.rejected)) warnings.push(posturePatch.rejected);
 
-  const locationRequested = identity(raw.location_label);
-  const locationEvidenceValid = Boolean(locationRequested) && exactStoryEvidence(evidence.location, narrativeText, characterName);
-  const locationLabel = locationEvidenceValid ? locationRequested.slice(0, 60) : (prev.location_label ?? null);
-  if (locationRequested && !locationEvidenceValid && locationRequested !== prev.location_label) warnings.push('unevidenced_location_change');
+  const locationRequested = identity(raw.location_label, 100);
+  const locationEvidenceValid = Boolean(locationRequested)
+    && exactStoryEvidence(evidence.location, narrativeText, characterName);
+  if (locationRequested && locationRequested !== prev.location_label && !locationEvidenceValid) {
+    warnings.push('unevidenced_location_change');
+  }
 
-  const next = {
-    location_label: locationLabel,
-    posture: posturePatch?.posture ?? prev.posture ?? 'unknown',
-    position_label: posturePatch?.position_label ?? acceptedPosition ?? null,
-    clothing: { ...(prev.clothing ?? {}), ...acceptedClothing },
-    updated_turn: posturePatch?.updated_turn ?? turnNumber
+  return {
+    state: {
+      location_label: locationEvidenceValid ? locationRequested : (prev.location_label ?? null),
+      posture: posturePatch?.posture ?? prev.posture ?? 'unknown',
+      position_label: posturePatch?.position_label ?? prev.position_label ?? null,
+      clothing: { ...(isPlainObject(prev.clothing) ? prev.clothing : {}), ...acceptedClothing },
+      updated_turn: posturePatch?.updated_turn ?? prev.updated_turn ?? turnNumber
+    },
+    warnings
   };
-  return { state: next, warnings };
 }

@@ -1,11 +1,10 @@
 /**
- * Posture continuity — ported from donor's persistent-scene-state contract
- * (buildPlayerSceneStatePatch / buildNpcSceneStatePatch carry-forward +
- * buildCsaPersistentSceneSection's narrative rules). A posture set in an
- * earlier turn persists across later turns without being re-started from
- * scratch, until a real ending reason appears in evidence (movement, task
- * end, explicit change, physical interruption) — never merely because a
- * turn passed with unrelated dialogue.
+ * Story-grounded posture continuity.
+ *
+ * Legacy posture codes remain readable for existing saves, but they are not an
+ * allow-list. New Story/Extract output may carry any concise Korean posture or
+ * relative-position description. A persisted posture still changes only when
+ * the caller has exact Story evidence or an established legacy end reason.
  */
 
 export const POSTURE_VALUES = new Set([
@@ -13,33 +12,52 @@ export const POSTURE_VALUES = new Set([
   'straddling', 'bent_forward', 'leaning', 'walking', 'crouching', 'carrying', 'unknown'
 ]);
 
-const END_REASON_VALUES = new Set(['movement', 'task_ended', 'explicit_change', 'physical_interruption', 'player_request']);
+const END_REASON_VALUES = new Set([
+  'movement', 'task_ended', 'explicit_change', 'physical_interruption', 'player_request'
+]);
+const UNKNOWN_VALUES = new Set(['unknown', 'none', 'null', 'n/a', '알 수 없음', '미상', '자세 미확인']);
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-/**
- * Builds the next posture state from the previous one plus an optional proposal. A proposal is
- * only accepted (replacing the carried-forward previous posture) when it names a real
- * end_reason; without one, the previous posture persists untouched regardless of what turn
- * number it is or how long the conversation continued. A first-ever posture (previous is null)
- * is always accepted since there's nothing being interrupted.
- */
+export function normalizePhysicalText(value, maxLength = 180) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().replace(/\s+/g, ' ');
+  if (!normalized || UNKNOWN_VALUES.has(normalized.toLowerCase())) return null;
+  return Array.from(normalized).slice(0, maxLength).join('');
+}
+
 export function buildPosturePatch({ previous = null, proposal = null, turnNumber = null } = {}) {
   const prev = isPlainObject(previous) ? previous : null;
   const next = isPlainObject(proposal) ? proposal : null;
-  if (!next || !POSTURE_VALUES.has(next.posture)) {
-    return prev ? { posture: prev.posture, position_label: prev.position_label ?? null, updated_turn: prev.updated_turn ?? null } : null;
+  const previousPosture = normalizePhysicalText(prev?.posture);
+  const previousPosition = normalizePhysicalText(prev?.position_label, 140);
+  const proposedPosture = normalizePhysicalText(next?.posture);
+  const proposedPosition = normalizePhysicalText(next?.position_label, 140);
+
+  if (!proposedPosture && !proposedPosition) {
+    return prev ? {
+      posture: previousPosture ?? prev.posture ?? null,
+      position_label: previousPosition,
+      updated_turn: prev.updated_turn ?? null
+    } : null;
   }
-  const hasRealEndReason = END_REASON_VALUES.has(next.end_reason);
-  if (prev && prev.posture !== next.posture && !hasRealEndReason) {
-    // No real reason to end the previous posture — it persists, the proposal is dropped.
-    return { posture: prev.posture, position_label: prev.position_label ?? null, updated_turn: prev.updated_turn ?? null, rejected: 'unevidenced_posture_change' };
+
+  const postureChanges = Boolean(previousPosture && proposedPosture && previousPosture !== proposedPosture);
+  const hasRealEndReason = END_REASON_VALUES.has(next?.end_reason) || next?.evidence_valid === true;
+  if (postureChanges && !hasRealEndReason) {
+    return {
+      posture: previousPosture,
+      position_label: previousPosition,
+      updated_turn: prev?.updated_turn ?? null,
+      rejected: 'unevidenced_posture_change'
+    };
   }
+
   return {
-    posture: next.posture,
-    position_label: typeof next.position_label === 'string' ? next.position_label.trim().slice(0, 100) : null,
-    updated_turn: turnNumber
+    posture: proposedPosture ?? previousPosture,
+    position_label: proposedPosition ?? previousPosition,
+    updated_turn: Number.isInteger(turnNumber) ? turnNumber : (prev?.updated_turn ?? null)
   };
 }
