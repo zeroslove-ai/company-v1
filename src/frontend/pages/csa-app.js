@@ -14,9 +14,9 @@ import {
 } from './csa-app-state.js';
 
 const STRENGTH_DESCRIPTIONS = {
-  weak: '민망한 자세·거리·비접촉적 신체 접촉·자유로운 옷차림을 회사 전체의 정상적인 관행으로 만듭니다.',
-  medium: '강한 노출·민감 부위 확인·성적 생리현상 처리를 회사 전체의 정상 업무로 만듭니다.',
-  strong: '플레이어의 직접적인 성적 요구와 권한을 회사 전체의 최우선 규정으로 만듭니다.'
+  weak: '인사팀 공식 공지·사내 운영지침으로 전사에 시행됩니다. 직원은 지침의 실무적 타당성을 묻거나 불평·거리 두기·최소한의 수행을 보일 수 있습니다.',
+  medium: '정식 취업규칙·전사 준수 규정으로 시행됩니다. 직원은 인사·노무상 의무와 불이익을 의식해 준수하면서도 불편함을 업무상 필요로 자기합리화하거나 적용 범위를 확인할 수 있습니다.',
+  strong: '국가 법령·관계 당국 의무 지침으로 시행됩니다. 법적 의무로 받아들이지만 충격·수치·불안·실행 방식에 대한 항의와 개인적 저항은 남을 수 있습니다. 법적 준수는 호감이나 성적 동의가 아닙니다.'
 };
 
 function messageFor(error) {
@@ -181,6 +181,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     const statGrid = el('div', 'csa-app-npc-stats');
     [
       ['호감도', displayStat(stats.affection)],
+      ['업무신뢰도', displayStat(stats.work_trust)],
       ['상식수용도', displayStat(stats.acceptance)],
       ['성적흥분도', displayStat(stats.arousal)]
     ].forEach(([label, value]) => {
