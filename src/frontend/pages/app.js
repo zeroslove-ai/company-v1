@@ -327,6 +327,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         text(setupElements.status, '설정 저장 중…');
         const saveResult = await api.playerSetup({ game_id: gameId, player: validation.player });
         await streamOpening(saveResult.setup_id, setupElements.status);
+        // 설정 완료 → 팝업 즉시 닫기 (사용자 요구). context 갱신과 무관하게 확실히 닫는다.
+        if (setupElements.overlay) setupElements.overlay.hidden = true;
         return true;
       } catch (error) {
         await refreshContext().catch(() => undefined);
