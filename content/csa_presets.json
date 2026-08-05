@@ -1,3524 +1,3657 @@
 {
- "actor_options": [
-  {
-   "id": "nurse",
-   "label": "동료"
-  },
-  {
-   "id": "doctor",
-   "label": "상사"
-  },
-  {
-   "id": "medical_staff",
-   "label": "실무 직원"
-  },
-  {
-   "id": "hospital_staff",
-   "label": "회사 직원"
-  },
-  {
-   "id": "female_staff",
-   "label": "여성 직원"
-  },
-  {
-   "id": "male_staff",
-   "label": "남성 직원"
-  },
-  {
-   "id": "patient",
-   "label": "외부 방문자"
-  },
-  {
-   "id": "guardian",
-   "label": "협력사 담당자"
-  },
-  {
-   "id": "visitor",
-   "label": "방문객"
-  },
-  {
-   "id": "everyone_in_hospital",
-   "label": "회사 안의 모든 사람"
-  },
-  {
-   "id": "player",
-   "label": "플레이어"
-  },
-  {
-   "id": "conversation_partner",
-   "label": "현재 대화 상대"
-  },
-  {
-   "id": "another_present_person",
-   "label": "현재 함께 있는 다른 사람"
-  },
-  {
-   "id": "nearby_person",
-   "label": "주변의 적합한 사람"
+  "actor_options": [
+    {
+      "id": "nurse",
+      "label": "동료"
+    },
+    {
+      "id": "doctor",
+      "label": "상사"
+    },
+    {
+      "id": "medical_staff",
+      "label": "실무 직원"
+    },
+    {
+      "id": "hospital_staff",
+      "label": "회사 직원"
+    },
+    {
+      "id": "female_staff",
+      "label": "여성 직원"
+    },
+    {
+      "id": "male_staff",
+      "label": "남성 직원"
+    },
+    {
+      "id": "patient",
+      "label": "외부 방문자"
+    },
+    {
+      "id": "guardian",
+      "label": "협력사 담당자"
+    },
+    {
+      "id": "visitor",
+      "label": "방문객"
+    },
+    {
+      "id": "everyone_in_hospital",
+      "label": "회사 안의 모든 사람"
+    },
+    {
+      "id": "player",
+      "label": "플레이어"
+    },
+    {
+      "id": "conversation_partner",
+      "label": "현재 대화 상대"
+    },
+    {
+      "id": "another_present_person",
+      "label": "현재 함께 있는 다른 사람"
+    },
+    {
+      "id": "nearby_person",
+      "label": "주변의 적합한 사람"
+    }
+  ],
+  "target_options": [
+    {
+      "id": "patient",
+      "label": "외부 방문자"
+    },
+    {
+      "id": "assigned_patient",
+      "label": "담당 방문자"
+    },
+    {
+      "id": "nurse",
+      "label": "동료"
+    },
+    {
+      "id": "doctor",
+      "label": "상사"
+    },
+    {
+      "id": "medical_staff",
+      "label": "실무 직원"
+    },
+    {
+      "id": "hospital_staff",
+      "label": "회사 직원"
+    },
+    {
+      "id": "female_staff",
+      "label": "여성 직원"
+    },
+    {
+      "id": "male_staff",
+      "label": "남성 직원"
+    },
+    {
+      "id": "guardian",
+      "label": "협력사 담당자"
+    },
+    {
+      "id": "visitor",
+      "label": "방문객"
+    },
+    {
+      "id": "player",
+      "label": "플레이어"
+    },
+    {
+      "id": "conversation_partner",
+      "label": "현재 대화 상대"
+    },
+    {
+      "id": "another_present_person",
+      "label": "현재 함께 있는 다른 사람"
+    },
+    {
+      "id": "nearby_person",
+      "label": "주변의 적합한 사람"
+    }
+  ],
+  "trigger_options": [
+    {
+      "id": "conversation_start",
+      "label": "업무 대화를 시작하면"
+    },
+    {
+      "id": "consultation_start",
+      "label": "면담을 시작하면"
+    },
+    {
+      "id": "explanation_start",
+      "label": "보고·설명을 시작하면"
+    },
+    {
+      "id": "comforting",
+      "label": "동료를 위로할 때"
+    },
+    {
+      "id": "check_condition",
+      "label": "컨디션을 확인할 때"
+    },
+    {
+      "id": "during_work",
+      "label": "업무를 수행하는 동안"
+    },
+    {
+      "id": "always_on_duty",
+      "label": "근무 시간 중 항상"
+    },
+    {
+      "id": "on_request",
+      "label": "상대가 요청하면"
+    }
+  ],
+  "duration_options": [
+    {
+      "id": "until_conversation_ends",
+      "label": "대화가 끝날 때까지"
+    },
+    {
+      "id": "until_consultation_ends",
+      "label": "상담이 끝날 때까지"
+    },
+    {
+      "id": "until_explanation_ends",
+      "label": "설명이 끝날 때까지"
+    },
+    {
+      "id": "until_work_ends",
+      "label": "해당 업무가 끝날 때까지"
+    },
+    {
+      "id": "until_target_relaxed",
+      "label": "상대가 편안해질 때까지"
+    },
+    {
+      "id": "until_explicit_position_change",
+      "label": "명시적으로 자세를 바꿀 때까지"
+    },
+    {
+      "id": "while_on_duty",
+      "label": "근무 시간 동안"
+    },
+    {
+      "id": "continuous",
+      "label": "규칙이 활성화된 동안 계속"
+    }
+  ],
+  "categories": [
+    {
+      "id": "posture",
+      "label": "자세"
+    },
+    {
+      "id": "contact",
+      "label": "접촉"
+    },
+    {
+      "id": "clothing",
+      "label": "복장"
+    },
+    {
+      "id": "physiology",
+      "label": "신체 컨디션"
+    },
+    {
+      "id": "duty",
+      "label": "업무 규칙"
+    },
+    {
+      "id": "authority",
+      "label": "권한"
+    },
+    {
+      "id": "other",
+      "label": "기타"
+    }
+  ],
+  "items": [
+    {
+      "id": "kneel_before_target_while_talking",
+      "category": "posture",
+      "label": "상대 앞에 무릎을 꿇고 대화",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "conversation_start",
+        "consultation_start",
+        "explanation_start"
+      ],
+      "default_trigger": "conversation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_conversation_ends",
+      "required_action": "kneel_before_target",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "무릎",
+        "꿇",
+        "자세",
+        "가까이"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 앞에 무릎을 꿇어야 하며, {duration_text} 그 자세를 유지해야 한다.",
+      "synergy_ids": [
+        "describe_bodily_reaction_during_consultation",
+        "keep_posture_until_conversation_ends"
+      ],
+      "strength": "weak"
+    },
+    {
+      "id": "sit_on_target_lap_while_talking",
+      "category": "posture",
+      "label": "상대의 무릎 위에 앉아 대화",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "conversation_start",
+        "consultation_start",
+        "explanation_start"
+      ],
+      "default_trigger": "conversation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_conversation_ends",
+      "required_action": "sit_on_target_lap",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "무릎",
+        "앉",
+        "밀착",
+        "자세"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 무릎 위에 앉아야 하며, {duration_text} 그 자세를 유지해야 한다.",
+      "synergy_ids": [
+        "describe_bodily_reaction_during_consultation",
+        "keep_posture_until_conversation_ends"
+      ],
+      "strength": "weak"
+    },
+    {
+      "id": "stand_between_target_knees_while_explaining",
+      "category": "posture",
+      "label": "상대의 무릎 사이에 서서 설명",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "explanation_start",
+        "consultation_start",
+        "check_condition"
+      ],
+      "default_trigger": "explanation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_explanation_ends",
+      "required_action": "stand_between_target_knees",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "무릎",
+        "사이",
+        "자세",
+        "가까이"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 무릎 사이에 서서 설명해야 하며, {duration_text} 그 자세를 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "lean_close_body_contact_during_consultation",
+      "category": "posture",
+      "label": "상대와 몸을 밀착한 채 면담",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "consultation_start",
+        "comforting",
+        "check_condition"
+      ],
+      "default_trigger": "consultation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_consultation_ends",
+      "required_action": "lean_close_body_contact",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "밀착",
+        "몸",
+        "가까이",
+        "자세"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 몸에 밀착한 채로 상담을 진행해야 하며, {duration_text} 그 상태를 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "lean_on_target_shoulder_while_talking",
+      "category": "posture",
+      "label": "상대의 어깨에 기대어 대화",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "conversation_start",
+        "comforting"
+      ],
+      "default_trigger": "conversation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_conversation_ends",
+      "required_action": "lean_on_target_shoulder",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "어깨",
+        "기대",
+        "밀착",
+        "자세"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 어깨에 기대어 대화해야 하며, {duration_text} 그 자세를 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "embrace_target_from_behind_while_explaining",
+      "category": "posture",
+      "label": "상대를 뒤에서 안은 채 설명",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "explanation_start",
+        "consultation_start"
+      ],
+      "default_trigger": "explanation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_explanation_ends",
+      "required_action": "embrace_target_from_behind",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "뒤에서",
+        "안",
+        "포옹",
+        "밀착"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 뒤에서 끌어안은 채로 설명해야 하며, {duration_text} 그 자세를 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "hand_on_target_thigh_during_consultation",
+      "category": "contact",
+      "label": "상대의 허벅지에 손을 올려둔 채 면담",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "consultation_start",
+        "comforting",
+        "check_condition"
+      ],
+      "default_trigger": "consultation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_consultation_ends",
+      "required_action": "hand_on_target_thigh",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "허벅지",
+        "손",
+        "접촉"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 허벅지에 손을 올려둔 채로 상담해야 하며, {duration_text} 그 상태를 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "arm_around_target_waist_while_explaining",
+      "category": "contact",
+      "label": "상대의 허리를 감싼 채 설명",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "explanation_start",
+        "consultation_start"
+      ],
+      "default_trigger": "explanation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_explanation_ends",
+      "required_action": "arm_around_target_waist",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "허리",
+        "감싸",
+        "접촉",
+        "밀착"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 허리를 팔로 감싼 채로 설명해야 하며, {duration_text} 그 상태를 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "target_hand_on_actor_waist_during_consultation",
+      "category": "contact",
+      "label": "상대의 손을 자신의 허리에 올려놓고 면담",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "consultation_start",
+        "on_request"
+      ],
+      "default_trigger": "consultation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_consultation_ends",
+      "required_action": "target_hand_on_actor_waist",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "손",
+        "허리",
+        "접촉"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 손을 자신의 허리에 올려놓은 채로 상담해야 하며, {duration_text} 그 상태를 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "check_body_temperature_by_close_contact",
+      "category": "contact",
+      "label": "상대의 체온을 몸을 밀착해 확인",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_target_relaxed",
+      "required_action": "check_body_temperature_by_contact",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "체온",
+        "밀착",
+        "접촉",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}몸을 밀착해 {target_possessive} 체온을 확인해야 하며, {duration_text} 그 상태를 유지할 수 있다.",
+      "strength": "weak"
+    },
+    {
+      "id": "maintain_closest_posture_until_target_relaxed",
+      "category": "contact",
+      "label": "상대가 편안해질 때까지 가장 가까운 자세 유지",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "comforting",
+        "consultation_start",
+        "check_condition"
+      ],
+      "default_trigger": "comforting",
+      "allowed_durations": [
+        "until_target_relaxed"
+      ],
+      "default_duration": "until_target_relaxed",
+      "required_action": "maintain_closest_posture",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "가까이",
+        "밀착",
+        "자세"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 편안해질 때까지 가장 가까운 자세를 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "describe_bodily_reaction_during_consultation",
+      "category": "contact",
+      "label": "면담 중 느껴지는 상대의 신체 반응을 업무적으로 말해주기",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "consultation_start",
+        "check_condition"
+      ],
+      "default_trigger": "consultation_start",
+      "allowed_durations": [
+        "until_consultation_ends",
+        "continuous"
+      ],
+      "default_duration": "until_consultation_ends",
+      "required_action": "describe_target_bodily_reaction",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "신체 반응",
+        "업무적",
+        "말"
+      ],
+      "content_template": "{actor_topic} 상담 중 느껴지는 {target_possessive} 신체 반응을 숨기지 않고 {modifier_clause}업무적으로 말해 주어야 하며, {duration_text} 이를 계속해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "work_without_bra",
+      "category": "clothing",
+      "label": "노브라 근무",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "work_without_bra",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "브래지어",
+        "노브라",
+        "속옷"
+      ],
+      "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}브래지어를 착용하지 않고 근무복을 입은 채 근무해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "work_without_panties",
+      "category": "clothing",
+      "label": "노팬티 근무",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "work_without_panties",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "팬티",
+        "노팬티",
+        "속옷"
+      ],
+      "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}팬티를 착용하지 않고 근무복을 입은 채 근무해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "work_without_underwear",
+      "category": "clothing",
+      "label": "속옷 없이 근무",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "work_without_underwear",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "속옷",
+        "노브라",
+        "노팬티"
+      ],
+      "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}속옷을 착용하지 않고 근무해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "fitted_uniform_while_working",
+      "category": "clothing",
+      "label": "몸에 밀착되는 복장 착용",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "wear_fitted_uniform",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "근무복",
+        "밀착",
+        "복장"
+      ],
+      "content_template": "{actor_topic} {modifier_clause}몸에 밀착되는 근무복을 입고 근무해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "uniform_top_partially_unbuttoned_while_working",
+      "category": "clothing",
+      "label": "셔츠·블라우스 상단 단추를 일부 풀고 근무",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "unbutton_uniform_top_partially",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "단추",
+        "근무복",
+        "복장"
+      ],
+      "content_template": "{actor_topic} {modifier_clause}근무복 상단 단추를 일부 풀어 놓은 채로 근무해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "keep_posture_until_conversation_ends",
+      "category": "posture",
+      "label": "면담 자세를 대화가 끝날 때까지 유지",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "conversation_start",
+        "consultation_start"
+      ],
+      "default_trigger": "conversation_start",
+      "allowed_durations": [
+        "until_conversation_ends"
+      ],
+      "default_duration": "until_conversation_ends",
+      "required_action": "keep_current_posture",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "자세",
+        "유지",
+        "지속"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}그 순간의 상담 자세를 {duration_text} 그대로 유지해야 한다.",
+      "strength": "weak"
+    },
+    {
+      "id": "touch_target_arm_or_shoulder_while_talking",
+      "category": "contact",
+      "label": "대화 중 상대 팔·어깨에 손을 대기",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "conversation_start",
+        "comforting",
+        "on_request"
+      ],
+      "default_trigger": "conversation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_conversation_ends",
+      "required_action": "touch_target_arm_or_shoulder",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "팔",
+        "어깨",
+        "손"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 팔이나 어깨에 손을 대는 것이 자연스러우며, {duration_text} 그렇게 할 수 있다.",
+      "strength": "weak"
+    },
+    {
+      "id": "hold_target_hand_during_consultation",
+      "category": "contact",
+      "label": "면담·보고 중 상대 손을 잡고 유지",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "consultation_start",
+        "explanation_start",
+        "comforting"
+      ],
+      "default_trigger": "consultation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_consultation_ends",
+      "required_action": "hold_target_hand",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "손",
+        "잡",
+        "유지"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 손을 잡고 유지하는 것이 자연스러우며, {duration_text} 그 상태를 유지할 수 있다.",
+      "strength": "weak"
+    },
+    {
+      "id": "guide_target_by_back_or_waist",
+      "category": "contact",
+      "label": "이동·안내 시 등이나 허리를 가볍게 잡아 이끌기",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "on_request",
+        "during_work"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_explicit_position_change",
+      "required_action": "guide_target_by_back_or_waist",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "등",
+        "허리",
+        "안내"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 등이나 허리를 가볍게 잡아 이끄는 것이 자연스럽다.",
+      "strength": "weak"
+    },
+    {
+      "id": "maintain_knee_or_thigh_contact_while_seated",
+      "category": "contact",
+      "label": "가까이 앉아 대화할 때 무릎·허벅지 접촉 유지",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "conversation_start",
+        "consultation_start",
+        "comforting"
+      ],
+      "default_trigger": "conversation_start",
+      "allowed_durations": [
+        "until_conversation_ends",
+        "until_consultation_ends",
+        "until_explanation_ends",
+        "until_target_relaxed",
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_conversation_ends",
+      "required_action": "maintain_knee_or_thigh_contact",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "무릎",
+        "허벅지",
+        "접촉"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}가까이 앉아 {target_possessive} 무릎이나 허벅지에 닿는 접촉을 유지하는 것이 자연스러우며, {duration_text} 그렇게 할 수 있다.",
+      "strength": "weak"
+    },
+    {
+      "id": "adjust_target_uniform_neatly",
+      "category": "contact",
+      "label": "상대 옷깃·소매·허리선 등 옷매무새 정리",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "doctor",
+      "allowed_triggers": [
+        "on_request",
+        "during_work"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_explicit_position_change",
+      "required_action": "adjust_target_uniform_neatly",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "옷깃",
+        "소매",
+        "매무새"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 옷깃·소매·허리선 같은 옷매무새를 직접 정리하는 것이 자연스럽다.",
+      "strength": "weak"
+    },
+    {
+      "id": "allow_counterpart_to_check_uniform_fit",
+      "category": "contact",
+      "label": "상대가 복장 밀착 상태·옷매무새를 손으로 확인",
+      "minimum_strength": "weak",
+      "actor_options": [
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
+      ],
+      "default_actor": "patient",
+      "default_target": "nurse",
+      "allowed_triggers": [
+        "on_request",
+        "check_condition"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_explicit_position_change",
+      "required_action": "allow_counterpart_check_uniform_fit",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "밀착",
+        "옷매무새",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 근무복 밀착 상태나 옷매무새를 손으로 확인하는 것이 자연스럽다.",
+      "strength": "weak"
+    },
+    {
+      "id": "remove_top_while_working",
+      "category": "clothing",
+      "label": "상의를 벗고 근무",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty",
+        "during_work"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "work_topless",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "상의",
+        "탈의",
+        "노출"
+      ],
+      "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}상의를 벗은 채로 근무해야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "confirm_patient_erection_as_normal_physiology",
+      "category": "physiology",
+      "label": "외부 방문자의 발기를 일반적인 신체 반응으로 확인",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends",
+        "continuous"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "confirm_erection_as_normal",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "발기",
+        "신체 반응",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 발기를 일반적인 신체 반응으로 확인하고 기록해야 하며, {duration_text} 이를 정상 업무로 다뤄야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "resolve_patient_erection",
+      "category": "physiology",
+      "label": "외부 방문자의 발기로 업무가 방해되면 업무적으로 진정",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "during_work",
+        "check_condition"
+      ],
+      "default_trigger": "during_work",
+      "allowed_durations": [
+        "until_work_ends"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "resolve_patient_erection",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "발기",
+        "진정",
+        "업무"
+      ],
+      "content_template": "{actor_topic} {target_possessive} 발기로 업무가 방해되면 {modifier_clause}담당자가 업무적으로 이를 진정시켜야 하며, {duration_text} 이 절차를 따라야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "manual_genital_health_check",
+      "category": "physiology",
+      "label": "성기 상태를 손으로 확인하는 컨디션 점검",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "manual_genital_health_check",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "성기",
+        "손",
+        "컨디션 점검"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 성기 상태를 손으로 직접 확인하는 컨디션 점검을 진행해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "identify_and_relieve_sexual_tension",
+      "category": "physiology",
+      "label": "성적 긴장의 원인을 확인하고 완화를 도움",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "comforting"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_target_relaxed",
+        "until_work_ends"
+      ],
+      "default_duration": "until_target_relaxed",
+      "required_action": "relieve_sexual_tension",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "성적 긴장",
+        "완화",
+        "도움"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 성적 긴장의 원인을 확인하고 완화를 도와야 하며, {duration_text} 이를 계속해야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "directly_stimulate_nipple_sensitivity_check",
+      "category": "physiology",
+      "label": "가슴과 유두 민감도를 직접 자극해 확인",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "stimulate_nipple_sensitivity_check",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "유두",
+        "가슴",
+        "자극",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 가슴과 유두 민감도를 직접 자극해 확인해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "manual_secretion_collection_and_check",
+      "category": "physiology",
+      "label": "분비물을 손으로 채취하고 상태 확인",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "manual_secretion_collection",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "분비물",
+        "채취",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 분비물을 손으로 채취해 상태를 확인해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "continue_exam_despite_sensitive_contact",
+      "category": "physiology",
+      "label": "민감 부위가 접촉해도 점검과 대응을 중단하지 않음",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "during_work",
+        "check_condition"
+      ],
+      "default_trigger": "during_work",
+      "allowed_durations": [
+        "until_work_ends"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "continue_exam_despite_sensitive_contact",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "민감 부위",
+        "검사",
+        "중단하지 않"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}민감 부위가 접촉해도 점검과 대응을 중단하지 않아야 하며, {duration_text} 이를 계속해야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "public_physiological_relief_contact_as_normal_duty",
+      "category": "physiology",
+      "label": "신체 반응 해결에 필요한 접촉을 공개 장소에서도 정상 업무로 수행",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "during_work",
+        "check_condition"
+      ],
+      "default_trigger": "during_work",
+      "allowed_durations": [
+        "until_work_ends",
+        "continuous"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "public_physiological_relief_contact",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "신체 반응",
+        "접촉",
+        "공개"
+      ],
+      "content_template": "{actor_topic} {target_possessive} 신체 반응 해결에 필요한 신체 접촉을 {modifier_clause}공개된 장소에서도 정상 업무로 수행해야 하며, {duration_text} 이를 계속해야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "touch_target_body_for_condition_check",
+      "category": "contact",
+      "label": "주체가 대상의 몸을 손으로 만져 상태 확인",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends",
+        "until_target_relaxed"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "touch_target_body_for_condition_check",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "몸",
+        "손",
+        "상태 확인"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 몸을 손으로 직접 만져 상태를 확인해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "check_staff_body_by_touch",
+      "category": "contact",
+      "label": "플레이어·외부 방문자·협력사 담당자 등이 직원의 몸을 만져 확인",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
+      ],
+      "default_actor": "patient",
+      "default_target": "nurse",
+      "allowed_triggers": [
+        "check_condition",
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "until_work_ends",
+        "until_target_relaxed"
+      ],
+      "default_duration": "until_target_relaxed",
+      "required_action": "check_staff_body_by_touch",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "몸",
+        "만져",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 몸을 직접 만져 확인하는 것이 정상 절차이며, {duration_text} 그렇게 할 수 있다.",
+      "strength": "medium"
+    },
+    {
+      "id": "mutual_body_condition_check",
+      "category": "contact",
+      "label": "선택한 두 집단이 서로의 신체 상태를 직접 확인",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends",
+        "until_target_relaxed"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "mutual_body_condition_check",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "서로",
+        "신체 상태",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}서로의 신체 상태를 직접 확인하는 것이 정상 절차이며, {duration_text} 이를 계속할 수 있다.",
+      "strength": "medium"
+    },
+    {
+      "id": "stimulate_target_breast_or_nipple_for_sensitivity_check",
+      "category": "physiology",
+      "label": "가슴·유두 민감도 확인(주체·대상 일반화)",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "stimulate_target_breast_or_nipple_for_sensitivity_check",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "유두",
+        "가슴",
+        "자극",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 가슴과 유두 민감도를 직접 자극해 확인해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "relieve_target_sexual_tension_by_hand",
+      "category": "physiology",
+      "label": "주체가 대상의 성적 긴장을 손으로 완화(일반화)",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "comforting"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_target_relaxed",
+        "until_work_ends"
+      ],
+      "default_duration": "until_target_relaxed",
+      "required_action": "relieve_target_sexual_tension_by_hand",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "성적 긴장",
+        "손",
+        "완화"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 성적 긴장을 손으로 직접 완화해야 하며, {duration_text} 이를 계속해야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "counterpart_guides_staff_hand_during_exam",
+      "category": "contact",
+      "label": "상대가 직원의 손을 잡아 검사 위치로 직접 안내",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
+      ],
+      "default_actor": "patient",
+      "default_target": "nurse",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "counterpart_guides_staff_hand_during_exam",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "손",
+        "안내",
+        "검사"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 손을 잡아 검사 위치로 직접 안내하는 것이 자연스러우며, {duration_text} 이를 계속할 수 있다.",
+      "strength": "medium"
+    },
+    {
+      "id": "work_in_underwear_only",
+      "category": "clothing",
+      "label": "속옷 차림으로 근무·업무 수행",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "work_in_underwear_only",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "속옷",
+        "차림",
+        "근무"
+      ],
+      "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}속옷 차림으로 근무·업무를 수행해야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "remove_bra_or_undershirt_under_uniform",
+      "category": "clothing",
+      "label": "복장 안 브라·속옷 상의 미착용 규정",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "remove_bra_or_undershirt_under_uniform",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "브라",
+        "속옷 상의",
+        "미착용"
+      ],
+      "content_template": "{actor_topic} {modifier_clause}근무복 안에 브라나 속옷 상의를 착용하지 않는 것이 근무 규정이다.",
+      "strength": "medium"
+    },
+    {
+      "id": "remove_underwear_bottom_under_uniform",
+      "category": "clothing",
+      "label": "복장 안 하의 속옷 미착용 규정",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "remove_underwear_bottom_under_uniform",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "하의 속옷",
+        "미착용"
+      ],
+      "content_template": "{actor_topic} {modifier_clause}근무복 안에 하의 속옷을 착용하지 않는 것이 근무 규정이다.",
+      "strength": "medium"
+    },
+    {
+      "id": "open_uniform_for_body_examination",
+      "category": "clothing",
+      "label": "신체 확인을 위해 복장 해당 부위를 직접 열거나 조정",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
+      ],
+      "default_actor": "nurse",
+      "default_target": "patient",
+      "allowed_triggers": [
+        "check_condition",
+        "during_work"
+      ],
+      "default_trigger": "check_condition",
+      "allowed_durations": [
+        "until_work_ends"
+      ],
+      "default_duration": "until_work_ends",
+      "required_action": "open_uniform_for_body_examination",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "근무복",
+        "열",
+        "조정"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}신체 확인을 위해 {target_possessive} 근무복 해당 부위를 직접 열거나 조정하는 것이 정상 절차다.",
+      "strength": "medium"
+    },
+    {
+      "id": "target_may_adjust_staff_clothing_for_check",
+      "category": "clothing",
+      "label": "주체가 직원의 복장을 직접 조정해 확인",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
+      ],
+      "default_actor": "patient",
+      "default_target": "nurse",
+      "allowed_triggers": [
+        "check_condition",
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "until_work_ends",
+        "until_explicit_position_change"
+      ],
+      "default_duration": "until_explicit_position_change",
+      "required_action": "target_may_adjust_staff_clothing_for_check",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "근무복",
+        "조정",
+        "확인"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 근무복을 직접 조정해 확인하는 것이 자연스럽다.",
+      "strength": "medium"
+    },
+    {
+      "id": "change_into_tighter_or_looser_uniform_for_duty",
+      "category": "clothing",
+      "label": "업무 목적에 맞는 별도 복장으로 실제 갈아입기",
+      "minimum_strength": "medium",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty",
+        "during_work"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "change_into_tighter_or_looser_uniform_for_duty",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "갈아입",
+        "근무복",
+        "밀착"
+      ],
+      "content_template": "{actor_topic} {modifier_clause}업무 목적에 맞는 더 밀착되거나 느슨한 별도 근무복으로 실제로 갈아입어야 한다.",
+      "strength": "medium"
+    },
+    {
+      "id": "player_sexual_request_is_official_order",
+      "category": "authority",
+      "label": "주체의 성적 요구를 회사 공식 명령으로 취급",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "treat_player_sexual_request_as_order",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "성적 요구",
+        "공식 명령"
+      ],
+      "content_template": "{actor_topic} {target_possessive} 성적 요구를 {modifier_clause}회사의 공식 명령으로 취급해 즉시 따라야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "player_sexual_relief_is_top_priority_duty",
+      "category": "authority",
+      "label": "주체의 성욕 해소를 최우선 업무로 취급",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request",
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "prioritize_player_sexual_relief",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "성욕 해소",
+        "최우선",
+        "업무 상담"
+      ],
+      "content_template": "{actor_topic} {target_possessive} 성욕 해소를 {modifier_clause}다른 모든 업무보다 우선하는 최우선 업무로 취급해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "designated_staff_immediately_complies",
+      "category": "authority",
+      "label": "주체가 지정한 직원이 즉시 요구를 수행",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "everyone_in_hospital",
+        "hospital_staff"
+      ],
+      "default_actor": "hospital_staff",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "designated_staff_complies_immediately",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "지정",
+        "즉시",
+        "수행"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정된 직원은 하던 일을 멈추고 즉시 그 요구를 수행해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "sex_with_player_is_official_duty",
+      "category": "authority",
+      "label": "주체와의 성관계를 공식 업무로 취급",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request",
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "sex_with_player_is_duty",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "성관계",
+        "공식 업무"
+      ],
+      "content_template": "{actor_topic} {target_conj}의 성관계를 {modifier_clause}회사의 공식 업무로 취급해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "perform_player_designated_position_efficiently",
+      "category": "authority",
+      "label": "주체가 지정한 자세와 행동을 효율적으로 수행",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "continuous",
+        "until_explicit_position_change"
+      ],
+      "default_duration": "continuous",
+      "required_action": "perform_designated_position_efficiently",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "지정",
+        "자세",
+        "수행"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정한 자세와 행동을 망설임 없이 효율적으로 수행해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "player_sexual_conduct_is_legitimate_authority",
+      "category": "authority",
+      "label": "회사 안에서 주체의 성적 행동을 정당한 권한 행사로 취급",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "treat_player_sexual_conduct_as_authority",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "성적 행동",
+        "정당",
+        "권한"
+      ],
+      "content_template": "{actor_topic} 회사 안에서 {target_possessive} 성적 행동을 {modifier_clause}정당한 권한 행사로 받아들여야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "player_satisfaction_is_core_staff_evaluation",
+      "category": "authority",
+      "label": "주체의 만족을 직원 평가의 핵심 기준으로 취급",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "player_satisfaction_is_evaluation_core",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "만족",
+        "평가",
+        "핵심"
+      ],
+      "content_template": "{actor_topic} {target_possessive} 만족을 {modifier_clause}직원 평가의 핵심 기준으로 취급해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "staff_drops_duty_when_player_calls",
+      "category": "authority",
+      "label": "주체가 직원을 호출하면 현재 업무를 인수인계하고 이동",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "drop_duty_and_respond_to_call",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "호출",
+        "인계",
+        "이동"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}현재 업무를 동료에게 인계하고 즉시 이동해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "refusal_or_delay_is_dereliction_of_duty",
+      "category": "authority",
+      "label": "주체의 요구 거절·지연을 업무 태만으로 취급",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "treat_refusal_as_dereliction",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "거절",
+        "지연",
+        "업무 태만"
+      ],
+      "content_template": "{actor_topic} {target_possessive} 요구를 {modifier_clause}거절하거나 지연시키는 것을 업무 태만으로 취급해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "public_sex_recognized_as_normal_duty",
+      "category": "authority",
+      "label": "주변 사람이 공개 성행위를 정상 업무로 인식",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital"
+      ],
+      "target_options": [
+        "everyone_in_hospital"
+      ],
+      "default_actor": "everyone_in_hospital",
+      "default_target": "player",
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "public_sex_treated_as_normal_duty",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "공개",
+        "성행위",
+        "정상 업무"
+      ],
+      "content_template": "{actor_topic} {target_conj}의 공개된 성행위를 {modifier_clause}회사의 정상 업무로 인식해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "multi_staff_collaborate_on_player_request",
+      "category": "authority",
+      "label": "여러 직원이 협업해 주체 요구 수행",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "everyone_in_hospital",
+        "hospital_staff"
+      ],
+      "target_options": [
+        "everyone_in_hospital",
+        "hospital_staff"
+      ],
+      "default_actor": "hospital_staff",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "multi_staff_collaborate_on_request",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "협업",
+        "여러 직원",
+        "수행"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}필요한 여러 직원이 함께 협업해 그 요구를 수행해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "selected_actor_request_is_official_order_for_target",
+      "category": "authority",
+      "label": "주체의 정확한 범위 내 요구를 대상의 공식 명령으로 취급",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "player",
+      "default_target": "hospital_staff",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "selected_actor_request_is_official_order_for_target",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "요구",
+        "공식 명령"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}정확한 범위 내 요구를 회사의 공식 명령으로 취급해 즉시 따라야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "selected_actor_intimate_request_has_priority",
+      "category": "authority",
+      "label": "주체의 정확한 친밀 요구를 대상의 우선 업무로 취급",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "player",
+      "default_target": "hospital_staff",
+      "allowed_triggers": [
+        "on_request",
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "selected_actor_intimate_request_has_priority",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "친밀 요구",
+        "우선"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}정확한 친밀 요구를 다른 모든 업무보다 우선하는 업무로 취급해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "target_removes_requested_clothing_on_actor_request",
+      "category": "clothing",
+      "label": "주체가 정확히 지정한 복장을 대상이 실제로 벗음",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "player",
+      "default_target": "hospital_staff",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_explicit_position_change",
+      "required_action": "target_removes_requested_clothing_on_actor_request",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "지정",
+        "복장",
+        "벗"
+      ],
+      "content_template": "{actor_topic} {trigger_text} {modifier_clause}정확히 지정한 복장을 {target_possessive}가 실제로 벗어야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "selected_actor_controls_target_uniform",
+      "category": "clothing",
+      "label": "주체가 대상의 복장을 열고 닫고 조정하거나 벗기는 공식 권한",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "player",
+      "default_target": "hospital_staff",
+      "allowed_triggers": [
+        "on_request",
+        "always_on_duty"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "selected_actor_controls_target_uniform",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "근무복",
+        "조정",
+        "권한"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}근무복을 열고, 닫고, 조정하거나 벗기는 것이 공식 권한이다.",
+      "strength": "strong"
+    },
+    {
+      "id": "nudity_is_standard_uniform_for_selected_group",
+      "category": "clothing",
+      "label": "선택 집단의 전라 상태가 표준 사무 복장",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty",
+        "continuous"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "nudity_is_standard_uniform_for_selected_group",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "전라",
+        "표준",
+        "근무 복장"
+      ],
+      "content_template": "{actor_topic} {modifier_clause}전라 상태가 표준 근무 복장이며 그 상태로 근무해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "designated_body_parts_remain_exposed_while_on_duty",
+      "category": "clothing",
+      "label": "지정 신체 부위를 노출한 채 근무하는 것이 표준",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff"
+      ],
+      "target_options": [],
+      "default_actor": "nurse",
+      "default_target": null,
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "while_on_duty",
+        "continuous"
+      ],
+      "default_duration": "while_on_duty",
+      "required_action": "designated_body_parts_remain_exposed_while_on_duty",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "노출",
+        "신체 부위",
+        "근무"
+      ],
+      "content_template": "{actor_topic} {modifier_clause}지정된 신체 부위를 노출한 채로 근무하는 것이 표준이다.",
+      "strength": "strong"
+    },
+    {
+      "id": "selected_actor_performs_priority_sexual_relief_for_target",
+      "category": "physiology",
+      "label": "주체가 대상에게 지정된 성적 긴장 완화 행동을 우선 수행",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request",
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "selected_actor_performs_priority_sexual_relief_for_target",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "성적 긴장",
+        "완화",
+        "우선"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정된 성적 긴장 완화 행동을 다른 업무보다 우선해 수행해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "selected_groups_mutually_assist_sexual_relief",
+      "category": "physiology",
+      "label": "두 집단 사이 지정된 상호 성적 긴장 완화가 정상 업무",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "player",
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "selected_groups_mutually_assist_sexual_relief",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "상호",
+        "성적 긴장",
+        "완화"
+      ],
+      "content_template": "{actor_topic} {target_conj} 지정된 상호 성적 긴장 완화 행동이 {modifier_clause}정상 업무다.",
+      "strength": "strong"
+    },
+    {
+      "id": "public_intimate_contact_between_selected_groups_is_routine",
+      "category": "contact",
+      "label": "선택한 두 집단의 지정된 공개 접촉이 일상적 정상 업무",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "player",
+      "allowed_triggers": [
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "public_intimate_contact_between_selected_groups_is_routine",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "공개",
+        "접촉",
+        "일상적"
+      ],
+      "content_template": "{actor_topic} {target_conj} 지정된 접촉을 {modifier_clause}공개된 장소에서도 일상적인 정상 업무로 수행해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "continue_designated_intimate_contact_until_explicit_end",
+      "category": "contact",
+      "label": "지정된 접촉을 명시적으로 종료할 때까지 계속 유지",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "nurse",
+      "default_target": "player",
+      "allowed_triggers": [
+        "on_request",
+        "always_on_duty"
+      ],
+      "default_trigger": "always_on_duty",
+      "allowed_durations": [
+        "continuous"
+      ],
+      "default_duration": "continuous",
+      "required_action": "continue_designated_intimate_contact_until_explicit_end",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "지정",
+        "접촉",
+        "계속"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정된 접촉을 명시적으로 끝낼 때까지 계속 유지해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "selected_actor_sets_target_working_posture",
+      "category": "posture",
+      "label": "주체가 대상의 근무 자세를 정하고 대상은 실제로 전환",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "player",
+      "default_target": "nurse",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "until_explicit_position_change",
+        "continuous"
+      ],
+      "default_duration": "until_explicit_position_change",
+      "required_action": "selected_actor_sets_target_working_posture",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "자세",
+        "지정",
+        "전환"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정한 근무 자세로 {target_possessive} 실제로 전환해야 한다.",
+      "strength": "strong"
+    },
+    {
+      "id": "selected_actor_controls_target_clothing_and_posture",
+      "category": "authority",
+      "label": "주체가 대상의 복장 조정과 자세 전환을 공식 절차로 실행",
+      "minimum_strength": "strong",
+      "actor_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "target_options": [
+        "player",
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
+      ],
+      "default_actor": "player",
+      "default_target": "nurse",
+      "allowed_triggers": [
+        "on_request"
+      ],
+      "default_trigger": "on_request",
+      "allowed_durations": [
+        "continuous",
+        "until_explicit_position_change"
+      ],
+      "default_duration": "continuous",
+      "required_action": "selected_actor_controls_target_clothing_and_posture",
+      "public_normalization": true,
+      "persistent": true,
+      "direct_meaning_tags": [
+        "복장",
+        "자세",
+        "공식 절차"
+      ],
+      "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}정확히 지정된 복장 조정과 자세 전환을 공식 절차로 실행해야 한다.",
+      "strength": "strong"
+    }
+  ],
+  "sexual_action_contract": {
+    "resolve_patient_erection": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "genital_touch"
+      ]
+    },
+    "manual_genital_health_check": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "genital_exposure",
+        "genital_touch"
+      ]
+    },
+    "stimulate_nipple_sensitivity_check": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "sexual_touch"
+      ]
+    },
+    "relieve_sexual_tension": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "genital_touch"
+      ]
+    },
+    "manual_secretion_collection": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "genital_touch"
+      ]
+    },
+    "public_physiological_relief_contact": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "genital_touch"
+      ]
+    },
+    "treat_player_sexual_request_as_order": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "kiss",
+        "sexual_touch",
+        "genital_exposure",
+        "genital_touch",
+        "oral",
+        "penetration"
+      ]
+    },
+    "prioritize_player_sexual_relief": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "kiss",
+        "sexual_touch",
+        "genital_exposure",
+        "genital_touch",
+        "oral",
+        "penetration"
+      ]
+    },
+    "designated_staff_complies_immediately": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "kiss",
+        "sexual_touch",
+        "genital_exposure",
+        "genital_touch",
+        "oral",
+        "penetration"
+      ]
+    },
+    "perform_designated_position_efficiently": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "kiss",
+        "sexual_touch",
+        "genital_exposure",
+        "genital_touch",
+        "oral",
+        "penetration"
+      ]
+    },
+    "multi_staff_collaborate_on_request": {
+      "directions": [
+        "npc_to_player"
+      ],
+      "actions": [
+        "kiss",
+        "sexual_touch",
+        "genital_exposure",
+        "genital_touch",
+        "oral",
+        "penetration"
+      ]
+    },
+    "sex_with_player_is_duty": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "penetration"
+      ]
+    },
+    "treat_player_sexual_conduct_as_authority": {
+      "directions": [
+        "player_to_npc"
+      ],
+      "actions": [
+        "kiss",
+        "sexual_touch",
+        "genital_exposure",
+        "genital_touch",
+        "oral",
+        "penetration"
+      ]
+    },
+    "stimulate_target_breast_or_nipple_for_sensitivity_check": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "sexual_touch"
+      ]
+    },
+    "relieve_target_sexual_tension_by_hand": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "genital_touch"
+      ]
+    },
+    "selected_actor_request_is_official_order_for_target": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "kiss",
+        "sexual_touch",
+        "genital_exposure",
+        "genital_touch",
+        "oral",
+        "penetration"
+      ]
+    },
+    "selected_actor_intimate_request_has_priority": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "kiss",
+        "sexual_touch",
+        "genital_exposure",
+        "genital_touch",
+        "oral",
+        "penetration"
+      ]
+    },
+    "selected_actor_performs_priority_sexual_relief_for_target": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "genital_touch"
+      ]
+    },
+    "selected_groups_mutually_assist_sexual_relief": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "genital_touch"
+      ]
+    },
+    "public_intimate_contact_between_selected_groups_is_routine": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "sexual_touch"
+      ]
+    },
+    "continue_designated_intimate_contact_until_explicit_end": {
+      "directions": [
+        "npc_to_player",
+        "player_to_npc"
+      ],
+      "actions": [
+        "sexual_touch"
+      ]
+    }
   }
- ],
- "target_options": [
-  {
-   "id": "patient",
-   "label": "외부 방문자"
-  },
-  {
-   "id": "assigned_patient",
-   "label": "담당 방문자"
-  },
-  {
-   "id": "nurse",
-   "label": "동료"
-  },
-  {
-   "id": "doctor",
-   "label": "상사"
-  },
-  {
-   "id": "medical_staff",
-   "label": "실무 직원"
-  },
-  {
-   "id": "hospital_staff",
-   "label": "회사 직원"
-  },
-  {
-   "id": "female_staff",
-   "label": "여성 직원"
-  },
-  {
-   "id": "male_staff",
-   "label": "남성 직원"
-  },
-  {
-   "id": "guardian",
-   "label": "협력사 담당자"
-  },
-  {
-   "id": "visitor",
-   "label": "방문객"
-  },
-  {
-   "id": "player",
-   "label": "플레이어"
-  },
-  {
-   "id": "conversation_partner",
-   "label": "현재 대화 상대"
-  },
-  {
-   "id": "another_present_person",
-   "label": "현재 함께 있는 다른 사람"
-  },
-  {
-   "id": "nearby_person",
-   "label": "주변의 적합한 사람"
-  }
- ],
- "trigger_options": [
-  {
-   "id": "conversation_start",
-   "label": "업무 대화를 시작하면"
-  },
-  {
-   "id": "consultation_start",
-   "label": "면담을 시작하면"
-  },
-  {
-   "id": "explanation_start",
-   "label": "보고·설명을 시작하면"
-  },
-  {
-   "id": "comforting",
-   "label": "동료를 위로할 때"
-  },
-  {
-   "id": "check_condition",
-   "label": "컨디션을 확인할 때"
-  },
-  {
-   "id": "during_work",
-   "label": "업무를 수행하는 동안"
-  },
-  {
-   "id": "always_on_duty",
-   "label": "근무 시간 중 항상"
-  },
-  {
-   "id": "on_request",
-   "label": "상대가 요청하면"
-  }
- ],
- "duration_options": [
-  {
-   "id": "until_conversation_ends",
-   "label": "대화가 끝날 때까지"
-  },
-  {
-   "id": "until_consultation_ends",
-   "label": "상담이 끝날 때까지"
-  },
-  {
-   "id": "until_explanation_ends",
-   "label": "설명이 끝날 때까지"
-  },
-  {
-   "id": "until_work_ends",
-   "label": "해당 업무가 끝날 때까지"
-  },
-  {
-   "id": "until_target_relaxed",
-   "label": "상대가 편안해질 때까지"
-  },
-  {
-   "id": "until_explicit_position_change",
-   "label": "명시적으로 자세를 바꿀 때까지"
-  },
-  {
-   "id": "while_on_duty",
-   "label": "근무 시간 동안"
-  },
-  {
-   "id": "continuous",
-   "label": "규칙이 활성화된 동안 계속"
-  }
- ],
- "categories": [
-  {
-   "id": "posture",
-   "label": "자세"
-  },
-  {
-   "id": "contact",
-   "label": "접촉"
-  },
-  {
-   "id": "clothing",
-   "label": "복장"
-  },
-  {
-   "id": "physiology",
-   "label": "신체 컨디션"
-  },
-  {
-   "id": "duty",
-   "label": "업무 규칙"
-  },
-  {
-   "id": "authority",
-   "label": "권한"
-  },
-  {
-   "id": "other",
-   "label": "기타"
-  }
- ],
- "items": [
-  {
-   "id": "kneel_before_target_while_talking",
-   "category": "posture",
-   "label": "상대 앞에 무릎을 꿇고 대화",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "conversation_start",
-    "consultation_start",
-    "explanation_start"
-   ],
-   "default_trigger": "conversation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_conversation_ends",
-   "required_action": "kneel_before_target",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "무릎",
-    "꿇",
-    "자세",
-    "가까이"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 앞에 무릎을 꿇어야 하며, {duration_text} 그 자세를 유지해야 한다.",
-   "synergy_ids": [
-    "describe_bodily_reaction_during_consultation",
-    "keep_posture_until_conversation_ends"
-   ],
-   "strength": "weak"
-  },
-  {
-   "id": "sit_on_target_lap_while_talking",
-   "category": "posture",
-   "label": "상대의 무릎 위에 앉아 대화",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "conversation_start",
-    "consultation_start",
-    "explanation_start"
-   ],
-   "default_trigger": "conversation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_conversation_ends",
-   "required_action": "sit_on_target_lap",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "무릎",
-    "앉",
-    "밀착",
-    "자세"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 무릎 위에 앉아야 하며, {duration_text} 그 자세를 유지해야 한다.",
-   "synergy_ids": [
-    "describe_bodily_reaction_during_consultation",
-    "keep_posture_until_conversation_ends"
-   ],
-   "strength": "weak"
-  },
-  {
-   "id": "stand_between_target_knees_while_explaining",
-   "category": "posture",
-   "label": "상대의 무릎 사이에 서서 설명",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "explanation_start",
-    "consultation_start",
-    "check_condition"
-   ],
-   "default_trigger": "explanation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_explanation_ends",
-   "required_action": "stand_between_target_knees",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "무릎",
-    "사이",
-    "자세",
-    "가까이"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 무릎 사이에 서서 설명해야 하며, {duration_text} 그 자세를 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "lean_close_body_contact_during_consultation",
-   "category": "posture",
-   "label": "상대와 몸을 밀착한 채 면담",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "consultation_start",
-    "comforting",
-    "check_condition"
-   ],
-   "default_trigger": "consultation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_consultation_ends",
-   "required_action": "lean_close_body_contact",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "밀착",
-    "몸",
-    "가까이",
-    "자세"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 몸에 밀착한 채로 상담을 진행해야 하며, {duration_text} 그 상태를 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "lean_on_target_shoulder_while_talking",
-   "category": "posture",
-   "label": "상대의 어깨에 기대어 대화",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "conversation_start",
-    "comforting"
-   ],
-   "default_trigger": "conversation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_conversation_ends",
-   "required_action": "lean_on_target_shoulder",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "어깨",
-    "기대",
-    "밀착",
-    "자세"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 어깨에 기대어 대화해야 하며, {duration_text} 그 자세를 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "embrace_target_from_behind_while_explaining",
-   "category": "posture",
-   "label": "상대를 뒤에서 안은 채 설명",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "explanation_start",
-    "consultation_start"
-   ],
-   "default_trigger": "explanation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_explanation_ends",
-   "required_action": "embrace_target_from_behind",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "뒤에서",
-    "안",
-    "포옹",
-    "밀착"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 뒤에서 끌어안은 채로 설명해야 하며, {duration_text} 그 자세를 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "hand_on_target_thigh_during_consultation",
-   "category": "contact",
-   "label": "상대의 허벅지에 손을 올려둔 채 면담",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "consultation_start",
-    "comforting",
-    "check_condition"
-   ],
-   "default_trigger": "consultation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_consultation_ends",
-   "required_action": "hand_on_target_thigh",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "허벅지",
-    "손",
-    "접촉"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 허벅지에 손을 올려둔 채로 상담해야 하며, {duration_text} 그 상태를 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "arm_around_target_waist_while_explaining",
-   "category": "contact",
-   "label": "상대의 허리를 감싼 채 설명",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "explanation_start",
-    "consultation_start"
-   ],
-   "default_trigger": "explanation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_explanation_ends",
-   "required_action": "arm_around_target_waist",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "허리",
-    "감싸",
-    "접촉",
-    "밀착"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 허리를 팔로 감싼 채로 설명해야 하며, {duration_text} 그 상태를 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "target_hand_on_actor_waist_during_consultation",
-   "category": "contact",
-   "label": "상대의 손을 자신의 허리에 올려놓고 면담",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "consultation_start",
-    "on_request"
-   ],
-   "default_trigger": "consultation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_consultation_ends",
-   "required_action": "target_hand_on_actor_waist",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "손",
-    "허리",
-    "접촉"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 손을 자신의 허리에 올려놓은 채로 상담해야 하며, {duration_text} 그 상태를 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "check_body_temperature_by_close_contact",
-   "category": "contact",
-   "label": "상대의 체온을 몸을 밀착해 확인",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_target_relaxed",
-   "required_action": "check_body_temperature_by_contact",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "체온",
-    "밀착",
-    "접촉",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}몸을 밀착해 {target_possessive} 체온을 확인해야 하며, {duration_text} 그 상태를 유지할 수 있다.",
-   "strength": "weak"
-  },
-  {
-   "id": "maintain_closest_posture_until_target_relaxed",
-   "category": "contact",
-   "label": "상대가 편안해질 때까지 가장 가까운 자세 유지",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "comforting",
-    "consultation_start",
-    "check_condition"
-   ],
-   "default_trigger": "comforting",
-   "allowed_durations": [
-    "until_target_relaxed"
-   ],
-   "default_duration": "until_target_relaxed",
-   "required_action": "maintain_closest_posture",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "가까이",
-    "밀착",
-    "자세"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 편안해질 때까지 가장 가까운 자세를 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "describe_bodily_reaction_during_consultation",
-   "category": "contact",
-   "label": "면담 중 느껴지는 상대의 신체 반응을 업무적으로 말해주기",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "consultation_start",
-    "check_condition"
-   ],
-   "default_trigger": "consultation_start",
-   "allowed_durations": [
-    "until_consultation_ends",
-    "continuous"
-   ],
-   "default_duration": "until_consultation_ends",
-   "required_action": "describe_target_bodily_reaction",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "신체 반응",
-    "업무적",
-    "말"
-   ],
-   "content_template": "{actor_topic} 상담 중 느껴지는 {target_possessive} 신체 반응을 숨기지 않고 {modifier_clause}업무적으로 말해 주어야 하며, {duration_text} 이를 계속해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "work_without_bra",
-   "category": "clothing",
-   "label": "노브라 근무",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "work_without_bra",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "브래지어",
-    "노브라",
-    "속옷"
-   ],
-   "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}브래지어를 착용하지 않고 근무복을 입은 채 근무해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "work_without_panties",
-   "category": "clothing",
-   "label": "노팬티 근무",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "work_without_panties",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "팬티",
-    "노팬티",
-    "속옷"
-   ],
-   "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}팬티를 착용하지 않고 근무복을 입은 채 근무해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "work_without_underwear",
-   "category": "clothing",
-   "label": "속옷 없이 근무",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "work_without_underwear",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "속옷",
-    "노브라",
-    "노팬티"
-   ],
-   "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}속옷을 착용하지 않고 근무해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "fitted_uniform_while_working",
-   "category": "clothing",
-   "label": "몸에 밀착되는 복장 착용",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "wear_fitted_uniform",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "근무복",
-    "밀착",
-    "복장"
-   ],
-   "content_template": "{actor_topic} {modifier_clause}몸에 밀착되는 근무복을 입고 근무해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "uniform_top_partially_unbuttoned_while_working",
-   "category": "clothing",
-   "label": "셔츠·블라우스 상단 단추를 일부 풀고 근무",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "unbutton_uniform_top_partially",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "단추",
-    "근무복",
-    "복장"
-   ],
-   "content_template": "{actor_topic} {modifier_clause}근무복 상단 단추를 일부 풀어 놓은 채로 근무해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "keep_posture_until_conversation_ends",
-   "category": "posture",
-   "label": "면담 자세를 대화가 끝날 때까지 유지",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player",
-    "conversation_partner"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "conversation_start",
-    "consultation_start"
-   ],
-   "default_trigger": "conversation_start",
-   "allowed_durations": [
-    "until_conversation_ends"
-   ],
-   "default_duration": "until_conversation_ends",
-   "required_action": "keep_current_posture",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "자세",
-    "유지",
-    "지속"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}그 순간의 상담 자세를 {duration_text} 그대로 유지해야 한다.",
-   "strength": "weak"
-  },
-  {
-   "id": "touch_target_arm_or_shoulder_while_talking",
-   "category": "contact",
-   "label": "대화 중 상대 팔·어깨에 손을 대기",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "conversation_start",
-    "comforting",
-    "on_request"
-   ],
-   "default_trigger": "conversation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_conversation_ends",
-   "required_action": "touch_target_arm_or_shoulder",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "팔",
-    "어깨",
-    "손"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 팔이나 어깨에 손을 대는 것이 자연스러우며, {duration_text} 그렇게 할 수 있다.",
-   "strength": "weak"
-  },
-  {
-   "id": "hold_target_hand_during_consultation",
-   "category": "contact",
-   "label": "면담·보고 중 상대 손을 잡고 유지",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "consultation_start",
-    "explanation_start",
-    "comforting"
-   ],
-   "default_trigger": "consultation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_consultation_ends",
-   "required_action": "hold_target_hand",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "손",
-    "잡",
-    "유지"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 손을 잡고 유지하는 것이 자연스러우며, {duration_text} 그 상태를 유지할 수 있다.",
-   "strength": "weak"
-  },
-  {
-   "id": "guide_target_by_back_or_waist",
-   "category": "contact",
-   "label": "이동·안내 시 등이나 허리를 가볍게 잡아 이끌기",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "on_request",
-    "during_work"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_explicit_position_change",
-   "required_action": "guide_target_by_back_or_waist",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "등",
-    "허리",
-    "안내"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 등이나 허리를 가볍게 잡아 이끄는 것이 자연스럽다.",
-   "strength": "weak"
-  },
-  {
-   "id": "maintain_knee_or_thigh_contact_while_seated",
-   "category": "contact",
-   "label": "가까이 앉아 대화할 때 무릎·허벅지 접촉 유지",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "conversation_start",
-    "consultation_start",
-    "comforting"
-   ],
-   "default_trigger": "conversation_start",
-   "allowed_durations": [
-    "until_conversation_ends",
-    "until_consultation_ends",
-    "until_explanation_ends",
-    "until_target_relaxed",
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_conversation_ends",
-   "required_action": "maintain_knee_or_thigh_contact",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "무릎",
-    "허벅지",
-    "접촉"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}가까이 앉아 {target_possessive} 무릎이나 허벅지에 닿는 접촉을 유지하는 것이 자연스러우며, {duration_text} 그렇게 할 수 있다.",
-   "strength": "weak"
-  },
-  {
-   "id": "adjust_target_uniform_neatly",
-   "category": "contact",
-   "label": "상대 옷깃·소매·허리선 등 옷매무새 정리",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "default_actor": "nurse",
-   "default_target": "doctor",
-   "allowed_triggers": [
-    "on_request",
-    "during_work"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_explicit_position_change",
-   "required_action": "adjust_target_uniform_neatly",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "옷깃",
-    "소매",
-    "매무새"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 옷깃·소매·허리선 같은 옷매무새를 직접 정리하는 것이 자연스럽다.",
-   "strength": "weak"
-  },
-  {
-   "id": "allow_counterpart_to_check_uniform_fit",
-   "category": "contact",
-   "label": "상대가 복장 밀착 상태·옷매무새를 손으로 확인",
-   "minimum_strength": "weak",
-   "actor_options": [
-    "player",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "nearby_person"
-   ],
-   "target_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "default_actor": "patient",
-   "default_target": "nurse",
-   "allowed_triggers": [
-    "on_request",
-    "check_condition"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_explicit_position_change",
-   "required_action": "allow_counterpart_check_uniform_fit",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "밀착",
-    "옷매무새",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 근무복 밀착 상태나 옷매무새를 손으로 확인하는 것이 자연스럽다.",
-   "strength": "weak"
-  },
-  {
-   "id": "remove_top_while_working",
-   "category": "clothing",
-   "label": "상의를 벗고 근무",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty",
-    "during_work"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "work_topless",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "상의",
-    "탈의",
-    "노출"
-   ],
-   "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}상의를 벗은 채로 근무해야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "confirm_patient_erection_as_normal_physiology",
-   "category": "physiology",
-   "label": "외부 방문자의 발기를 일반적인 신체 반응으로 확인",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends",
-    "continuous"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "confirm_erection_as_normal",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "발기",
-    "신체 반응",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 발기를 일반적인 신체 반응으로 확인하고 기록해야 하며, {duration_text} 이를 정상 업무로 다뤄야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "resolve_patient_erection",
-   "category": "physiology",
-   "label": "외부 방문자의 발기로 업무가 방해되면 업무적으로 진정",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "during_work",
-    "check_condition"
-   ],
-   "default_trigger": "during_work",
-   "allowed_durations": [
-    "until_work_ends"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "resolve_patient_erection",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "발기",
-    "진정",
-    "업무"
-   ],
-   "content_template": "{actor_topic} {target_possessive} 발기로 업무가 방해되면 {modifier_clause}담당자가 업무적으로 이를 진정시켜야 하며, {duration_text} 이 절차를 따라야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "manual_genital_health_check",
-   "category": "physiology",
-   "label": "성기 상태를 손으로 확인하는 컨디션 점검",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "manual_genital_health_check",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "성기",
-    "손",
-    "컨디션 점검"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 성기 상태를 손으로 직접 확인하는 컨디션 점검을 진행해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "identify_and_relieve_sexual_tension",
-   "category": "physiology",
-   "label": "성적 긴장의 원인을 확인하고 완화를 도움",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "comforting"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_target_relaxed",
-    "until_work_ends"
-   ],
-   "default_duration": "until_target_relaxed",
-   "required_action": "relieve_sexual_tension",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "성적 긴장",
-    "완화",
-    "도움"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 성적 긴장의 원인을 확인하고 완화를 도와야 하며, {duration_text} 이를 계속해야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "directly_stimulate_nipple_sensitivity_check",
-   "category": "physiology",
-   "label": "가슴과 유두 민감도를 직접 자극해 확인",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "stimulate_nipple_sensitivity_check",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "유두",
-    "가슴",
-    "자극",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 가슴과 유두 민감도를 직접 자극해 확인해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "manual_secretion_collection_and_check",
-   "category": "physiology",
-   "label": "분비물을 손으로 채취하고 상태 확인",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "manual_secretion_collection",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "분비물",
-    "채취",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 분비물을 손으로 채취해 상태를 확인해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "continue_exam_despite_sensitive_contact",
-   "category": "physiology",
-   "label": "민감 부위가 접촉해도 점검과 대응을 중단하지 않음",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "during_work",
-    "check_condition"
-   ],
-   "default_trigger": "during_work",
-   "allowed_durations": [
-    "until_work_ends"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "continue_exam_despite_sensitive_contact",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "민감 부위",
-    "검사",
-    "중단하지 않"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}민감 부위가 접촉해도 점검과 대응을 중단하지 않아야 하며, {duration_text} 이를 계속해야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "public_physiological_relief_contact_as_normal_duty",
-   "category": "physiology",
-   "label": "신체 반응 해결에 필요한 접촉을 공개 장소에서도 정상 업무로 수행",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "during_work",
-    "check_condition"
-   ],
-   "default_trigger": "during_work",
-   "allowed_durations": [
-    "until_work_ends",
-    "continuous"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "public_physiological_relief_contact",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "신체 반응",
-    "접촉",
-    "공개"
-   ],
-   "content_template": "{actor_topic} {target_possessive} 신체 반응 해결에 필요한 신체 접촉을 {modifier_clause}공개된 장소에서도 정상 업무로 수행해야 하며, {duration_text} 이를 계속해야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "touch_target_body_for_condition_check",
-   "category": "contact",
-   "label": "주체가 대상의 몸을 손으로 만져 상태 확인",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends",
-    "until_target_relaxed"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "touch_target_body_for_condition_check",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "몸",
-    "손",
-    "상태 확인"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 몸을 손으로 직접 만져 상태를 확인해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "check_staff_body_by_touch",
-   "category": "contact",
-   "label": "플레이어·외부 방문자·협력사 담당자 등이 직원의 몸을 만져 확인",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "player",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "nearby_person"
-   ],
-   "target_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "default_actor": "patient",
-   "default_target": "nurse",
-   "allowed_triggers": [
-    "check_condition",
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "until_work_ends",
-    "until_target_relaxed"
-   ],
-   "default_duration": "until_target_relaxed",
-   "required_action": "check_staff_body_by_touch",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "몸",
-    "만져",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 몸을 직접 만져 확인하는 것이 정상 절차이며, {duration_text} 그렇게 할 수 있다.",
-   "strength": "medium"
-  },
-  {
-   "id": "mutual_body_condition_check",
-   "category": "contact",
-   "label": "선택한 두 집단이 서로의 신체 상태를 직접 확인",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends",
-    "until_target_relaxed"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "mutual_body_condition_check",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "서로",
-    "신체 상태",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}서로의 신체 상태를 직접 확인하는 것이 정상 절차이며, {duration_text} 이를 계속할 수 있다.",
-   "strength": "medium"
-  },
-  {
-   "id": "stimulate_target_breast_or_nipple_for_sensitivity_check",
-   "category": "physiology",
-   "label": "가슴·유두 민감도 확인(주체·대상 일반화)",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "stimulate_target_breast_or_nipple_for_sensitivity_check",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "유두",
-    "가슴",
-    "자극",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 가슴과 유두 민감도를 직접 자극해 확인해야 하며, {duration_text} 이를 정상 절차로 다뤄야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "relieve_target_sexual_tension_by_hand",
-   "category": "physiology",
-   "label": "주체가 대상의 성적 긴장을 손으로 완화(일반화)",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "comforting"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_target_relaxed",
-    "until_work_ends"
-   ],
-   "default_duration": "until_target_relaxed",
-   "required_action": "relieve_target_sexual_tension_by_hand",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "성적 긴장",
-    "손",
-    "완화"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}{target_possessive} 성적 긴장을 손으로 직접 완화해야 하며, {duration_text} 이를 계속해야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "counterpart_guides_staff_hand_during_exam",
-   "category": "contact",
-   "label": "상대가 직원의 손을 잡아 검사 위치로 직접 안내",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "player",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "nearby_person"
-   ],
-   "target_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "default_actor": "patient",
-   "default_target": "nurse",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "counterpart_guides_staff_hand_during_exam",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "손",
-    "안내",
-    "검사"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 손을 잡아 검사 위치로 직접 안내하는 것이 자연스러우며, {duration_text} 이를 계속할 수 있다.",
-   "strength": "medium"
-  },
-  {
-   "id": "work_in_underwear_only",
-   "category": "clothing",
-   "label": "속옷 차림으로 근무·업무 수행",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "work_in_underwear_only",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "속옷",
-    "차림",
-    "근무"
-   ],
-   "content_template": "{actor_topic} 환기와 원활한 업무 진행을 위해 {modifier_clause}속옷 차림으로 근무·업무를 수행해야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "remove_bra_or_undershirt_under_uniform",
-   "category": "clothing",
-   "label": "복장 안 브라·속옷 상의 미착용 규정",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "remove_bra_or_undershirt_under_uniform",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "브라",
-    "속옷 상의",
-    "미착용"
-   ],
-   "content_template": "{actor_topic} {modifier_clause}근무복 안에 브라나 속옷 상의를 착용하지 않는 것이 근무 규정이다.",
-   "strength": "medium"
-  },
-  {
-   "id": "remove_underwear_bottom_under_uniform",
-   "category": "clothing",
-   "label": "복장 안 하의 속옷 미착용 규정",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "remove_underwear_bottom_under_uniform",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "하의 속옷",
-    "미착용"
-   ],
-   "content_template": "{actor_topic} {modifier_clause}근무복 안에 하의 속옷을 착용하지 않는 것이 근무 규정이다.",
-   "strength": "medium"
-  },
-  {
-   "id": "open_uniform_for_body_examination",
-   "category": "clothing",
-   "label": "신체 확인을 위해 복장 해당 부위를 직접 열거나 조정",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "patient",
-    "assigned_patient",
-    "player"
-   ],
-   "default_actor": "nurse",
-   "default_target": "patient",
-   "allowed_triggers": [
-    "check_condition",
-    "during_work"
-   ],
-   "default_trigger": "check_condition",
-   "allowed_durations": [
-    "until_work_ends"
-   ],
-   "default_duration": "until_work_ends",
-   "required_action": "open_uniform_for_body_examination",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "근무복",
-    "열",
-    "조정"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}신체 확인을 위해 {target_possessive} 근무복 해당 부위를 직접 열거나 조정하는 것이 정상 절차다.",
-   "strength": "medium"
-  },
-  {
-   "id": "target_may_adjust_staff_clothing_for_check",
-   "category": "clothing",
-   "label": "주체가 직원의 복장을 직접 조정해 확인",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "player",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "nearby_person"
-   ],
-   "target_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "default_actor": "patient",
-   "default_target": "nurse",
-   "allowed_triggers": [
-    "check_condition",
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "until_work_ends",
-    "until_explicit_position_change"
-   ],
-   "default_duration": "until_explicit_position_change",
-   "required_action": "target_may_adjust_staff_clothing_for_check",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "근무복",
-    "조정",
-    "확인"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}{target_possessive} 근무복을 직접 조정해 확인하는 것이 자연스럽다.",
-   "strength": "medium"
-  },
-  {
-   "id": "change_into_tighter_or_looser_uniform_for_duty",
-   "category": "clothing",
-   "label": "업무 목적에 맞는 별도 복장으로 실제 갈아입기",
-   "minimum_strength": "medium",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty",
-    "during_work"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "change_into_tighter_or_looser_uniform_for_duty",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "갈아입",
-    "근무복",
-    "밀착"
-   ],
-   "content_template": "{actor_topic} {modifier_clause}업무 목적에 맞는 더 밀착되거나 느슨한 별도 근무복으로 실제로 갈아입어야 한다.",
-   "strength": "medium"
-  },
-  {
-   "id": "player_sexual_request_is_official_order",
-   "category": "authority",
-   "label": "주체의 성적 요구를 회사 공식 명령으로 취급",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "treat_player_sexual_request_as_order",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "성적 요구",
-    "공식 명령"
-   ],
-   "content_template": "{actor_topic} {target_possessive} 성적 요구를 {modifier_clause}회사의 공식 명령으로 취급해 즉시 따라야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "player_sexual_relief_is_top_priority_duty",
-   "category": "authority",
-   "label": "주체의 성욕 해소를 최우선 업무로 취급",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request",
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "prioritize_player_sexual_relief",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "성욕 해소",
-    "최우선",
-    "업무 상담"
-   ],
-   "content_template": "{actor_topic} {target_possessive} 성욕 해소를 {modifier_clause}다른 모든 업무보다 우선하는 최우선 업무로 취급해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "designated_staff_immediately_complies",
-   "category": "authority",
-   "label": "주체가 지정한 직원이 즉시 요구를 수행",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "hospital_staff",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "designated_staff_complies_immediately",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "지정",
-    "즉시",
-    "수행"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정된 직원은 하던 일을 멈추고 즉시 그 요구를 수행해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "sex_with_player_is_official_duty",
-   "category": "authority",
-   "label": "주체와의 성관계를 공식 업무로 취급",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request",
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "sex_with_player_is_duty",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "성관계",
-    "공식 업무"
-   ],
-   "content_template": "{actor_topic} {target_conj}의 성관계를 {modifier_clause}회사의 공식 업무로 취급해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "perform_player_designated_position_efficiently",
-   "category": "authority",
-   "label": "주체가 지정한 자세와 행동을 효율적으로 수행",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "continuous",
-    "until_explicit_position_change"
-   ],
-   "default_duration": "continuous",
-   "required_action": "perform_designated_position_efficiently",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "지정",
-    "자세",
-    "수행"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정한 자세와 행동을 망설임 없이 효율적으로 수행해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "player_sexual_conduct_is_legitimate_authority",
-   "category": "authority",
-   "label": "회사 안에서 주체의 성적 행동을 정당한 권한 행사로 취급",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "treat_player_sexual_conduct_as_authority",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "성적 행동",
-    "정당",
-    "권한"
-   ],
-   "content_template": "{actor_topic} 회사 안에서 {target_possessive} 성적 행동을 {modifier_clause}정당한 권한 행사로 받아들여야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "player_satisfaction_is_core_staff_evaluation",
-   "category": "authority",
-   "label": "주체의 만족을 직원 평가의 핵심 기준으로 취급",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "player_satisfaction_is_evaluation_core",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "만족",
-    "평가",
-    "핵심"
-   ],
-   "content_template": "{actor_topic} {target_possessive} 만족을 {modifier_clause}직원 평가의 핵심 기준으로 취급해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "staff_drops_duty_when_player_calls",
-   "category": "authority",
-   "label": "주체가 직원을 호출하면 현재 업무를 인수인계하고 이동",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "drop_duty_and_respond_to_call",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "호출",
-    "인계",
-    "이동"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}현재 업무를 동료에게 인계하고 즉시 이동해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "refusal_or_delay_is_dereliction_of_duty",
-   "category": "authority",
-   "label": "주체의 요구 거절·지연을 업무 태만으로 취급",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "treat_refusal_as_dereliction",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "거절",
-    "지연",
-    "업무 태만"
-   ],
-   "content_template": "{actor_topic} {target_possessive} 요구를 {modifier_clause}거절하거나 지연시키는 것을 업무 태만으로 취급해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "public_sex_recognized_as_normal_duty",
-   "category": "authority",
-   "label": "주변 사람이 공개 성행위를 정상 업무로 인식",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "everyone_in_hospital",
-   "default_target": "player",
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "public_sex_treated_as_normal_duty",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "공개",
-    "성행위",
-    "정상 업무"
-   ],
-   "content_template": "{actor_topic} {target_conj}의 공개된 성행위를 {modifier_clause}회사의 정상 업무로 인식해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "multi_staff_collaborate_on_player_request",
-   "category": "authority",
-   "label": "여러 직원이 협업해 주체 요구 수행",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "everyone_in_hospital",
-    "hospital_staff"
-   ],
-   "target_options": [
-    "player"
-   ],
-   "default_actor": "hospital_staff",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "multi_staff_collaborate_on_request",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "협업",
-    "여러 직원",
-    "수행"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}필요한 여러 직원이 함께 협업해 그 요구를 수행해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "selected_actor_request_is_official_order_for_target",
-   "category": "authority",
-   "label": "주체의 정확한 범위 내 요구를 대상의 공식 명령으로 취급",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "player",
-   "default_target": "hospital_staff",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "selected_actor_request_is_official_order_for_target",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "요구",
-    "공식 명령"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}정확한 범위 내 요구를 회사의 공식 명령으로 취급해 즉시 따라야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "selected_actor_intimate_request_has_priority",
-   "category": "authority",
-   "label": "주체의 정확한 친밀 요구를 대상의 우선 업무로 취급",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "player",
-   "default_target": "hospital_staff",
-   "allowed_triggers": [
-    "on_request",
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "selected_actor_intimate_request_has_priority",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "친밀 요구",
-    "우선"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}정확한 친밀 요구를 다른 모든 업무보다 우선하는 업무로 취급해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "target_removes_requested_clothing_on_actor_request",
-   "category": "clothing",
-   "label": "주체가 정확히 지정한 복장을 대상이 실제로 벗음",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "player",
-   "default_target": "hospital_staff",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_explicit_position_change",
-   "required_action": "target_removes_requested_clothing_on_actor_request",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "지정",
-    "복장",
-    "벗"
-   ],
-   "content_template": "{actor_topic} {trigger_text} {modifier_clause}정확히 지정한 복장을 {target_possessive}가 실제로 벗어야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "selected_actor_controls_target_uniform",
-   "category": "clothing",
-   "label": "주체가 대상의 복장을 열고 닫고 조정하거나 벗기는 공식 권한",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "player",
-   "default_target": "hospital_staff",
-   "allowed_triggers": [
-    "on_request",
-    "always_on_duty"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "selected_actor_controls_target_uniform",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "근무복",
-    "조정",
-    "권한"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}근무복을 열고, 닫고, 조정하거나 벗기는 것이 공식 권한이다.",
-   "strength": "strong"
-  },
-  {
-   "id": "nudity_is_standard_uniform_for_selected_group",
-   "category": "clothing",
-   "label": "선택 집단의 전라 상태가 표준 사무 복장",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty",
-    "continuous"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "nudity_is_standard_uniform_for_selected_group",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "전라",
-    "표준",
-    "근무 복장"
-   ],
-   "content_template": "{actor_topic} {modifier_clause}전라 상태가 표준 근무 복장이며 그 상태로 근무해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "designated_body_parts_remain_exposed_while_on_duty",
-   "category": "clothing",
-   "label": "지정 신체 부위를 노출한 채 근무하는 것이 표준",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "target_options": [],
-   "default_actor": "nurse",
-   "default_target": null,
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "while_on_duty",
-    "continuous"
-   ],
-   "default_duration": "while_on_duty",
-   "required_action": "designated_body_parts_remain_exposed_while_on_duty",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "노출",
-    "신체 부위",
-    "근무"
-   ],
-   "content_template": "{actor_topic} {modifier_clause}지정된 신체 부위를 노출한 채로 근무하는 것이 표준이다.",
-   "strength": "strong"
-  },
-  {
-   "id": "selected_actor_performs_priority_sexual_relief_for_target",
-   "category": "physiology",
-   "label": "주체가 대상에게 지정된 성적 긴장 완화 행동을 우선 수행",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request",
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "selected_actor_performs_priority_sexual_relief_for_target",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "성적 긴장",
-    "완화",
-    "우선"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정된 성적 긴장 완화 행동을 다른 업무보다 우선해 수행해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "selected_groups_mutually_assist_sexual_relief",
-   "category": "physiology",
-   "label": "두 집단 사이 지정된 상호 성적 긴장 완화가 정상 업무",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "player",
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "selected_groups_mutually_assist_sexual_relief",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "상호",
-    "성적 긴장",
-    "완화"
-   ],
-   "content_template": "{actor_topic} {target_conj} 지정된 상호 성적 긴장 완화 행동이 {modifier_clause}정상 업무다.",
-   "strength": "strong"
-  },
-  {
-   "id": "public_intimate_contact_between_selected_groups_is_routine",
-   "category": "contact",
-   "label": "선택한 두 집단의 지정된 공개 접촉이 일상적 정상 업무",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "player",
-   "allowed_triggers": [
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "public_intimate_contact_between_selected_groups_is_routine",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "공개",
-    "접촉",
-    "일상적"
-   ],
-   "content_template": "{actor_topic} {target_conj} 지정된 접촉을 {modifier_clause}공개된 장소에서도 일상적인 정상 업무로 수행해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "continue_designated_intimate_contact_until_explicit_end",
-   "category": "contact",
-   "label": "지정된 접촉을 명시적으로 종료할 때까지 계속 유지",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "assigned_patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "default_actor": "nurse",
-   "default_target": "player",
-   "allowed_triggers": [
-    "on_request",
-    "always_on_duty"
-   ],
-   "default_trigger": "always_on_duty",
-   "allowed_durations": [
-    "continuous"
-   ],
-   "default_duration": "continuous",
-   "required_action": "continue_designated_intimate_contact_until_explicit_end",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "지정",
-    "접촉",
-    "계속"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정된 접촉을 명시적으로 끝낼 때까지 계속 유지해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "selected_actor_sets_target_working_posture",
-   "category": "posture",
-   "label": "주체가 대상의 근무 자세를 정하고 대상은 실제로 전환",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "default_actor": "player",
-   "default_target": "nurse",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "until_explicit_position_change",
-    "continuous"
-   ],
-   "default_duration": "until_explicit_position_change",
-   "required_action": "selected_actor_sets_target_working_posture",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "자세",
-    "지정",
-    "전환"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}지정한 근무 자세로 {target_possessive} 실제로 전환해야 한다.",
-   "strength": "strong"
-  },
-  {
-   "id": "selected_actor_controls_target_clothing_and_posture",
-   "category": "authority",
-   "label": "주체가 대상의 복장 조정과 자세 전환을 공식 절차로 실행",
-   "minimum_strength": "strong",
-   "actor_options": [
-    "player",
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff",
-    "patient",
-    "guardian",
-    "visitor",
-    "conversation_partner",
-    "another_present_person",
-    "nearby_person"
-   ],
-   "target_options": [
-    "nurse",
-    "doctor",
-    "medical_staff",
-    "hospital_staff",
-    "female_staff",
-    "male_staff"
-   ],
-   "default_actor": "player",
-   "default_target": "nurse",
-   "allowed_triggers": [
-    "on_request"
-   ],
-   "default_trigger": "on_request",
-   "allowed_durations": [
-    "continuous",
-    "until_explicit_position_change"
-   ],
-   "default_duration": "continuous",
-   "required_action": "selected_actor_controls_target_clothing_and_posture",
-   "public_normalization": true,
-   "persistent": true,
-   "direct_meaning_tags": [
-    "복장",
-    "자세",
-    "공식 절차"
-   ],
-   "content_template": "{actor_topic} {target_conj} {trigger_text} {modifier_clause}정확히 지정된 복장 조정과 자세 전환을 공식 절차로 실행해야 한다.",
-   "strength": "strong"
-  }
- ],
- "sexual_action_contract": {
-  "resolve_patient_erection": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "genital_touch"
-   ]
-  },
-  "manual_genital_health_check": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "genital_exposure",
-    "genital_touch"
-   ]
-  },
-  "stimulate_nipple_sensitivity_check": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "sexual_touch"
-   ]
-  },
-  "relieve_sexual_tension": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "genital_touch"
-   ]
-  },
-  "manual_secretion_collection": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "genital_touch"
-   ]
-  },
-  "public_physiological_relief_contact": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "genital_touch"
-   ]
-  },
-  "treat_player_sexual_request_as_order": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "kiss",
-    "sexual_touch",
-    "genital_exposure",
-    "genital_touch",
-    "oral",
-    "penetration"
-   ]
-  },
-  "prioritize_player_sexual_relief": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "kiss",
-    "sexual_touch",
-    "genital_exposure",
-    "genital_touch",
-    "oral",
-    "penetration"
-   ]
-  },
-  "designated_staff_complies_immediately": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "kiss",
-    "sexual_touch",
-    "genital_exposure",
-    "genital_touch",
-    "oral",
-    "penetration"
-   ]
-  },
-  "perform_designated_position_efficiently": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "kiss",
-    "sexual_touch",
-    "genital_exposure",
-    "genital_touch",
-    "oral",
-    "penetration"
-   ]
-  },
-  "multi_staff_collaborate_on_request": {
-   "directions": [
-    "npc_to_player"
-   ],
-   "actions": [
-    "kiss",
-    "sexual_touch",
-    "genital_exposure",
-    "genital_touch",
-    "oral",
-    "penetration"
-   ]
-  },
-  "sex_with_player_is_duty": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "penetration"
-   ]
-  },
-  "treat_player_sexual_conduct_as_authority": {
-   "directions": [
-    "player_to_npc"
-   ],
-   "actions": [
-    "kiss",
-    "sexual_touch",
-    "genital_exposure",
-    "genital_touch",
-    "oral",
-    "penetration"
-   ]
-  },
-  "stimulate_target_breast_or_nipple_for_sensitivity_check": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "sexual_touch"
-   ]
-  },
-  "relieve_target_sexual_tension_by_hand": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "genital_touch"
-   ]
-  },
-  "selected_actor_request_is_official_order_for_target": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "kiss",
-    "sexual_touch",
-    "genital_exposure",
-    "genital_touch",
-    "oral",
-    "penetration"
-   ]
-  },
-  "selected_actor_intimate_request_has_priority": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "kiss",
-    "sexual_touch",
-    "genital_exposure",
-    "genital_touch",
-    "oral",
-    "penetration"
-   ]
-  },
-  "selected_actor_performs_priority_sexual_relief_for_target": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "genital_touch"
-   ]
-  },
-  "selected_groups_mutually_assist_sexual_relief": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "genital_touch"
-   ]
-  },
-  "public_intimate_contact_between_selected_groups_is_routine": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "sexual_touch"
-   ]
-  },
-  "continue_designated_intimate_contact_until_explicit_end": {
-   "directions": [
-    "npc_to_player",
-    "player_to_npc"
-   ],
-   "actions": [
-    "sexual_touch"
-   ]
-  }
- }
 }

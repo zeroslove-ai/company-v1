@@ -1,4 +1,4 @@
-﻿<!doctype html>
+﻿﻿<!doctype html>
 <html lang="ko">
   <head>
     <meta charset="utf-8">
@@ -29,13 +29,16 @@
     <main id="game-main" class="game-shell">
       <header class="game-header">
         <div class="title-group"><h1 id="game-title">상식개변: 회사편</h1><p id="day-time" class="time-display"></p></div>
-        <div class="header-status"><span id="turn-number">Turn 0</span><span id="api-status" class="connection-indicator" role="status" aria-label="연결 확인 중" title="연결 확인 중">●</span></div>
+        <div class="header-status">
+          <span id="turn-number">Turn 0</span>
+          <span class="header-tts" title="음성 설정">
+            <button id="tts-toggle" type="button" aria-pressed="true" class="tts-mini">🔊</button>
+            <button id="tts-replay" type="button" hidden disabled class="tts-mini">▶</button>
+            <span id="tts-status" class="tts-status sr-only" aria-live="polite"></span>
+          </span>
+          <span id="api-status" class="connection-indicator" role="status" aria-label="연결 확인 중" title="연결 확인 중">●</span>
+        </div>
       </header>
-      <div class="media-controls tts-controls tts-bar">
-        <button id="tts-toggle" type="button" aria-pressed="true">🔊 음성 ON</button>
-        <button id="tts-replay" type="button" hidden disabled>▶ 마지막 대사 재생</button>
-        <p id="tts-status" class="tts-status" aria-live="polite"></p>
-      </div>
       <p id="status-banner" class="status-banner" aria-live="polite"></p>
       <p id="error-banner" class="status-banner error" role="alert" hidden></p>
 

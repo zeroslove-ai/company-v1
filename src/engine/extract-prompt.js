@@ -76,6 +76,8 @@ const SYSTEM_INSTRUCTIONS = [
   'CSA deltas only state_delta.csa_runtime_state[csa_id]{lifecycle,applicability,execution_state} and csa_attitudes[npc_id][csa_id].',
   'player_sexual_state uses only arousal_delta, ejaculation_progress_delta, and ejaculation_completed; completion requires evidence.sexual_resolution === true.',
   'Physical patches may set concise Korean location_label, posture, position_label, and arbitrary Korean clothing keys/state strings only from exact Story evidence. Omit unchanged or uncertain fields; legacy English codes are compatibility input, not an output catalog.',
+  'npc_scene_state[npc_id].clothing tracks each present NPC wearing state per garment: worn|removed|open|unknown or a short Korean state. Only set it when the Story explicitly shows that character completing the change (undressing, dressing, opening, fastening). A CSA activation/deactivation or rule text alone is never evidence; the magical-transition wording (저절로/스스로/순식간에/규칙 적용되자) is rejected. When a change is rejected, keep the previous value and put nothing in evidence.',
+  'clothing evidence quotes must appear verbatim in the final Story text AND contain the character name (or the Korean name shown for them). Evidence not in the Story, or naming nobody, is rejected.',
   'npc_stats and sexual_event_ledger each need an exact Story quote. Distinguish attempt, refusal, partial, conditional acceptance, pause, completion. Human-readable strings are Korean; IDs unchanged.'
 ].join(' ');
 
