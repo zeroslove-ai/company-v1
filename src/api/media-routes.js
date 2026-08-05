@@ -1,13 +1,22 @@
 import { HttpError, ok, readJson, requireString } from './http.js';
 import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes-runtime.js';
+import { createTurnRoutes as createRawTurnRoutes } from './turn-routes.js';
 import { resolveTtsEligibility } from '../engine/index.js';
 import { createRegisteredNpcPolicyFetch } from './npc-policy-fetch.js';
-import { enrichAppEnvelope, enrichContextEnvelope, envelopeContext } from './product-response.js';
+import { enrichAppEnvelope, enrichContextEnvelope } from './product-response.js';
 
 const TTS_WORKER_URL = 'https://fancy-dust-7f8c.zeroslove.workers.dev/';
 
 function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function requestUrl(input) {
+  return typeof input === 'string' ? input : input?.url ?? '';
+}
+
+function isContextRpc(url) {
+  return url.includes('/rest/v1/rpc/get_company_context');
 }
 
 function bytesToBase64(bytes) {
@@ -83,15 +92,6 @@ function responseWithJson(response, payload) {
   });
 }
 
-async function requestObject(request) {
-  try {
-    const value = await request.clone().json();
-    return plainObject(value) ? value : {};
-  } catch {
-    return {};
-  }
-}
-
 /**
  * Company uses the same playback contract as the Hospital frontend:
  * the independent TTS Worker returns a stable audio URL and the browser's
@@ -116,23 +116,20 @@ export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) 
     },
 
     async appState(request, env, ctx) {
-      const body = await requestObject(request);
-      const response = await routes.appState(request, env, ctx);
-      if (!response?.ok || typeof body.game_id !== 'string' || !body.game_id) return response;
+      let capturedContext = null;
+      const captureFetch = async (input, init = {}) => {
+        const response = await policyFetch(input, init);
+        if (response?.ok && isContextRpc(requestUrl(input))) {
+          capturedContext = await jsonPayload(response);
+        }
+        return response;
+      };
+      const rawRoutes = createRawTurnRoutes({ fetchImpl: captureFetch, edition });
+      const response = await rawRoutes.appState(request, env, ctx);
+      if (!response?.ok || !plainObject(capturedContext)) return response;
       const payload = await jsonPayload(response);
       if (!plainObject(payload)) return response;
-
-      const contextRequest = new Request(request.url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ game_id: body.game_id, recent_turns: 2 })
-      });
-      const contextResponse = await routes.context(contextRequest, env, ctx);
-      if (!contextResponse?.ok) return response;
-      const contextPayload = await jsonPayload(contextResponse);
-      const context = envelopeContext(contextPayload);
-      if (!context) return response;
-      enrichAppEnvelope(payload, context, edition);
+      enrichAppEnvelope(payload, capturedContext, edition);
       return responseWithJson(response, payload);
     },
 
