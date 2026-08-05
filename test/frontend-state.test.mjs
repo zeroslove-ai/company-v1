@@ -140,7 +140,7 @@ test('reconnect renders the latest Story and choices and resume makes no API cal
     assert.equal(nodes['story-history'].children[0].children[1].children[0].textContent, 'Latest Story');
     assert.equal(nodes['choice-list'].children.length, 4);
     assert.equal(nodes['resume-play'].disabled, false);
-    assert.equal(nodes['day-time'].textContent, 'Day 1 · morning');
+    assert.equal(nodes['day-time'].textContent, 'Day 1 · 오전');
     assert.equal(nodes['open-history'].disabled, true);
     assert.equal(nodes['open-history'].onclick, null);
     app.resumePlay();
