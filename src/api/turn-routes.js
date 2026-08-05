@@ -458,6 +458,9 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       let degraded = false;
       try {
         const parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        // 근본 해결: extract는 원본이 아니라 파서가 화자명을 확정·삽입한 normalized_raw를 본다.
+        // → 화자명 없는 대사가 있어도 extract가 추론할 필요 없이 명시된 화자명을 그대로 쓴다.
+        const storyForExtract = (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text;
         let extract;
         try {
           const contextRpcStart = Date.now();
@@ -469,7 +472,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
           const hasSexualCsa = applicableCsa.some(csa => buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract).sexual_authorization === true);
           const promptStart = Date.now();
-          let messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa)
@@ -548,7 +551,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const mergeStart = Date.now();
         const merged = applyGuardedStateDelta(currentSave, extract, {
           expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds,
-          storyText: action.story_text
+          storyText: (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
