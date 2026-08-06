@@ -794,11 +794,27 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           // 정본 story_text는 게이트를 통과한 내용만으로 구성된다.
           raw = gated.story_text;
           const parsed = parseNarrative(raw, { master });
+          // V2: 레거시 파서는 [DIALOGUE speaker="이름" direction="..."] 블록을 unparsed로
+          // 남기므로, 검증된 게이트 블록(dialogue)을 파서 결과에 병합한다.
+          // scene 블록은 파서가 만든 것을 유지하고, dialogue는 게이트 블록이 정본이다.
+          const gatedDialogueBlocks = gated.blocks.filter(b => b.type === 'dialogue');
+          const v2Blocks = [
+            ...(parsed.blocks ?? []).filter(b => b.type !== 'unparsed' && b.type !== 'dialogue'),
+            ...gatedDialogueBlocks
+          ];
+          const v2DialogueLines = gatedDialogueBlocks.map(b => ({
+            speaker_id: b.speaker_id,
+            speaker_name: b.speaker_name,
+            acting_direction: b.acting_direction,
+            text: b.text
+          }));
           const contractPersisted = {
             ...parsed,
+            blocks: v2Blocks,
+            dialogue_lines: v2DialogueLines,
             structured_story_version: STRUCTURED_STORY_VERSION,
             scene_cast_contract: sceneCastContract,
-            dialogue_blocks: gated.blocks,
+            dialogue_blocks: gatedDialogueBlocks,
             warnings: [...(parsed.warnings ?? []), ...gated.warnings],
             action_execution_contract: actionContract
           };

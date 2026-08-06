@@ -133,11 +133,13 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
 
   assert.deepEqual(Object.keys(payload.active_general_npc_canon), []);
   assert.deepEqual(payload.context.workplace.eligible_nearby_npcs.map(npc => npc.npc_id), ['general_designer', 'general_manager']);
-  assert.match(system, /진입 허용 후보일 뿐 현장 인원이 아니다/);
-  assert.match(system, /최대 1명만/);
+  assert.match(system, /scene_cast_contract가 이미 확정/);
+  assert.match(system, /NPC 등장 여부를 결정할 권한이 없다/);
   assert.match(system, /scene_goal 또는 focus_thread/);
   assert.match(system, /최소 1개는 scene_goal을 직접 진전/);
-  assert.ok(system.length <= 4500, `Story system prompt too large: ${system.length}`);
+  assert.match(system, /\[DIALOGUE speaker_id=/);
+  assert.match(system, /acting_direction=/);
+  assert.ok(system.length <= 5600, `Story system prompt too large: ${system.length}`);
 });
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {

@@ -88,7 +88,7 @@ test('engine and frontend parsers split canonical dialogue into visible TTS line
   assert.equal(frontend.blocks.filter(block => block.type === 'dialogue').length, 2);
 });
 
-test('Story prompt ends with an exact registered-name acting-tone dialogue contract', () => {
+test('Story prompt ends with the structured V2 dialogue contract (cast-scoped, acting_direction required)', () => {
   const messages = buildStoryPrompt({
     edition,
     context: { game: {}, save: { edition: 'company-v1', save_schema_version: 1, scene_state: { participants: ['heroine1'] }, world_state: {} }, recent_turns: [] },
@@ -96,9 +96,11 @@ test('Story prompt ends with an exact registered-name acting-tone dialogue contr
     expectedTurn: 1
   });
   const system = messages[0].content;
-  assert.match(system, /최종 대사 출력 계약/);
-  assert.match(system, /등록된 전체 이름/);
-  assert.match(system, /괄호·연기톤·콜론·한국어 큰따옴표/);
+  assert.match(system, /최종 출연·대사 출력 계약/);
+  assert.match(system, /scene_cast_contract가 유일한 기준/);
+  assert.match(system, /\[DIALOGUE speaker_id=/);
+  assert.match(system, /acting_direction=/);
+  assert.match(system, /따옴표만 있는 대사/);
   assert.match(system, /서술문 안에 섞인 발화/);
 });
 

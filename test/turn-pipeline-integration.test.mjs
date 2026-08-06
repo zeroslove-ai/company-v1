@@ -24,19 +24,44 @@ const env = {
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
 const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
-// Story: 대사 2개 — 하나는 명시 화자(이메이), 하나는 화자명 없는 미확정 대사
+// Story: V2 구조화 형식 — [SCENE]/[DIALOGUE speaker_id="..." acting_direction="..."]
+// 대사 2개 모두 허용된 cast(heroine5) 안에서 명시 화자 + 구체 연기 지시
 const STORY_LINES = [
-  '[1. 서사 및 행동]',
+  '[SCENE]',
   '이메이의 눈동자가 흔들렸다.',
-  '이메이 (떨리는 목소리로): “저... 이번 주말에 시간 괜찮으세요?”',
-  '“처음이니까 더 잘해주고 싶은 거예요.”',
-  '[2. 플레이어 속마음]', '정신 차리자.',
-  '[3. 플레이어 상황판]', '회의실.',
-  '[4. 선택지]', '1. A', '2. B', '3. C', '4. D'
+  '',
+  '[DIALOGUE speaker_id="heroine5" acting_direction="떨리는 목소리로 손끝을 만지작거리며"]',
+  '저... 이번 주말에 시간 괜찮으세요?',
+  '',
+  '[DIALOGUE speaker_id="heroine5" acting_direction="고개를 숙이며 조심스럽게"]',
+  '처음이니까 더 잘해주고 싶은 거예요.',
+  '',
+  '[SCENE]',
+  '잠시 침묵이 흘렀다.'
 ].join('\n');
 // SSE data 라인은 JSON.stringify가 개행을 자동 이스케이프한다
 const STORY = STORY_LINES;
 const storySse = `data: ${JSON.stringify({ choices: [{ delta: { content: STORY } }] })}\n\ndata: [DONE]\n\n`;
+
+// V2 테스트용 save — 실제 등록 NPC(heroine5=이메이)가 장면에 참가한 회사편 상태.
+// 레거시 fixture(canonical-save-v1)는 병원편 NPC(npc-hayeon 등)라 V2 cast가 비게 된다.
+function v2Save() {
+  const base = readJson('fixtures/phase-0.5/canonical-save-v1.json');
+  return {
+    ...base,
+    scene_state: {
+      ...(base.scene_state ?? {}),
+      scene_id: 'campaign-review',
+      location_id: 'meeting_room_5f',
+      participants: ['player-1', 'heroine5'],
+      updated_turn: 7
+    },
+    last_npcs_present: ['heroine5'],
+    npc_scene_state: { heroine5: { present: true, location_id: 'meeting_room_5f' } },
+    focal_character_id: 'heroine5',
+    last_speaker_id: 'heroine5'
+  };
+}
 
 function createMockFetch({
   taggerEnvelope,
@@ -44,12 +69,14 @@ function createMockFetch({
   storySseOverride,
   taggerBehavior = 'ok',        // 'ok' | 'timeout' | 'invalid' | 'null_only'
   failParsedBlocksSave = false, // 태거 최종 결과 PATCH를 0행으로 (저장 실패)
-  failRecordExtract = false     // record_extract_result RPC 실패
+  failRecordExtract = false,    // record_extract_result RPC 실패
+  saveOverride = null           // V2 테스트용 — 실제 등록 NPC(heroine*)가 참가한 save
 } = {}) {
   const calls = [];
   const actions = new Map();
   const gameTurns = new Map();
-  const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
+  const baseSave = readJson('fixtures/phase-0.5/canonical-save-v1.json');
+  const save = saveOverride ?? baseSave;
   const context = { game: { id: gameId, edition_id: 'company-v1' }, save: { data: save }, recent_turns: [] };
   const tagger = taggerEnvelope ?? { choices: [{ finish_reason: 'stop', message: { content: '{"speakers":[{"dialogue_index":1,"speaker_id":"heroine5"}]}' } }] };
   const extract = extractEnvelope ?? readJson('fixtures/phase-2/extract-valid.json');
@@ -135,8 +162,8 @@ function createMockFetch({
   return { fetchImpl, calls, actions, gameTurns };
 }
 
-test('14-4: full turn pipeline — story → tagger(1 call) → tagged parsed_blocks saved → extract(1 call) → commit', async () => {
-  const mock = createMockFetch();
+test('14-4: full turn pipeline — story(V2 gate) → extract(1 call, no tagger) → commit', async () => {
+  const mock = createMockFetch({ saveOverride: v2Save() });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
 
   // 1) Story — SSE
@@ -150,11 +177,11 @@ test('14-4: full turn pipeline — story → tagger(1 call) → tagged parsed_bl
   assert.ok(saved.story_text);
   const dialogueCount = saved.parsed_blocks.blocks.filter(b => b.type === 'dialogue').length;
   assert.equal(dialogueCount, 2);
-  // 태거는 extract 라우트(extracting 상태)에서 실행 → 아직 story 단계에선 0회
+  // V2는 게이트가 화자 없는 대사를 애초에 차단하므로 story 단계에서 태거 0회
   const taggerCallsBefore = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && c.body && JSON.parse(c.body).max_tokens === 400).length;
   assert.equal(taggerCallsBefore, 0);
 
-  // 2) Extract — 태거 1회 호출 + extract 1회
+  // 2) Extract — V2 경로는 태거 미호출 + extract 1회
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(extract.status, 200);
   const extractBody = await extract.json();
@@ -163,17 +190,20 @@ test('14-4: full turn pipeline — story → tagger(1 call) → tagged parsed_bl
   const llmBody = c => (c.body ? JSON.parse(c.body) : null);
   const taggerCalls = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && c.body && llmBody(c).max_tokens === 400 && !llmBody(c).stream).length;
   const extractCalls = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && c.body && llmBody(c).max_tokens === 5000 && !llmBody(c).stream).length;
-  assert.equal(taggerCalls, 1, '미확정 대사가 있으면 태거 정확히 1회');
+  assert.equal(taggerCalls, 0, 'V2 신규 턴은 레거시 화자 태거 호출 0회 (spec 11)');
   assert.equal(extractCalls, 1, 'extract 1회');
 
-  // 3) tagged parsed_blocks가 조건부 PATCH로 저장됨 (tagged 플래그 + 미확정 해소)
+  // 3) V2 블록이 그대로 저장됨 — 명시 화자 + canon 이름, tagged 플래그 없음
   const savedAfter = mock.actions.get(actionId);
   const dialogues = savedAfter.parsed_blocks.blocks.filter(b => b.type === 'dialogue');
-  assert.equal(dialogues[0].speaker_id, 'heroine5'); // 명시 화자 유지
-  assert.equal(dialogues[1].speaker_id, 'heroine5'); // 태거가 확정 (tagging 응답)
-  assert.equal(dialogues[1].text, '처음이니까 더 잘해주고 싶은 거예요.');
   assert.equal(dialogues.length, 2, '대사 수 보존');
-  assert.equal(savedAfter.parsed_blocks.tagged, true);
+  for (const d of dialogues) {
+    assert.equal(d.speaker_id, 'heroine5');
+    assert.equal(d.speaker_name, '이메이', 'canon 기반 이름');
+    assert.ok(d.acting_direction && d.acting_direction.length > 0, '구체 연기 지시 보존');
+  }
+  assert.equal(savedAfter.parsed_blocks.tagged, undefined, 'V2는 tagged 플래그 없음');
+  assert.equal(savedAfter.parsed_blocks.structured_story_version, 2, 'V2 버전 저장');
 
   // 4) Commit
   const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
@@ -181,7 +211,7 @@ test('14-4: full turn pipeline — story → tagger(1 call) → tagged parsed_bl
   const commitBody = await commit.json();
   assert.equal(commitBody.data.commit.success, true);
 
-  // 5) Replay — extract_delta가 있으면 태거/추가 LLM 호출 없음
+  // 5) Replay — extract_delta가 있으면 추가 LLM 호출 없음
   const beforeReplay = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && !llmBody(c).stream).length;
   const replay = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(replay.status, 200);
@@ -191,9 +221,9 @@ test('14-4: full turn pipeline — story → tagger(1 call) → tagged parsed_bl
   assert.equal(afterReplay, beforeReplay, 'replay 시 추가 LLM 호출 없음');
 });
 
-test('14-4b: fully assigned story → tagger is never called (zero extra LLM calls)', async () => {
-  // 화자명 없는 대사가 없는 스토리 — 전부 확정이면 태거 호출 자체가 없어야 한다
-  const noUnresolvedSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[1. 서사 및 행동]\n이메이 (차분하게): “알겠습니다.”\n[2. 플레이어 속마음]\n좋아.\n[3. 플레이어 상황판]\n회의실.\n[4. 선택지]\n1. A\n2. B\n3. C\n4. D' } }] })}\n\ndata: [DONE]\n\n`;
+test('14-4b: V2 story with resolved speakers → tagger never called (zero extra LLM calls)', async () => {
+  // V2 구조화 형식 — cast 안 명시 화자 + 구체 연기 지시 → 태거 호출 자체가 없어야 한다
+  const noUnresolvedSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\n이메이가 고개를 끄덕였다.\n\n[DIALOGUE speaker_id="heroine5" acting_direction="차분한 목소리로 서류를 앞으로 밀며"]\n알겠습니다.\n' } }] })}\n\ndata: [DONE]\n\n`;
   const mock = createMockFetch({ storySseOverride: noUnresolvedSse });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
 
@@ -206,7 +236,7 @@ test('14-4b: fully assigned story → tagger is never called (zero extra LLM cal
 
   const llmBody2 = c => (c.body ? JSON.parse(c.body) : null);
   const taggerCalls = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && c.body && llmBody2(c).max_tokens === 400 && !llmBody2(c).stream).length;
-  assert.equal(taggerCalls, 0, '모두 확정된 정상 턴은 태거 호출 0회');
+  assert.equal(taggerCalls, 0, 'V2 턴은 태거 호출 0회');
 });
 
 
@@ -217,7 +247,7 @@ function dialogueSpeakers(parsedStory) {
   return (parsedStory?.blocks ?? []).filter(b => b.type === 'dialogue').map(b => b.speaker_id);
 }
 
-test('보완-1: 운영 master 조립 — characters 5 + general_npcs 8, 실제 createApiWorker 태거 roster에 일반 NPC·in_scene·플레이어 정보 포함', async () => {
+test('보완-1: 운영 master 조립 — characters 5 + general_npcs 8, V2 cast에 일반 NPC·플레이어 정보 포함', async () => {
   const master = masterFromEdition(edition);
   assert.equal(master.characters.length, 5);
   assert.equal(master.general_npcs.length, 8);
@@ -227,23 +257,28 @@ test('보완-1: 운영 master 조립 — characters 5 + general_npcs 8, 실제 c
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '주말에 만나자고 한다.' }), env);
   assert.equal(story.status, 200);
-  await story.text();
+  const storyBody = await story.text();
+  assert.ok(storyBody.includes('scene_cast_contract'), 'SSE complete에 scene_cast_contract 포함');
+
+  // V2 cast — present/entering/remote 기반 발화 권한, 태거 roster 없음
+  const storyPayload = JSON.parse(storyBody.split('event: complete').pop().replace(/^data: /m, '').trim());
+  const cast = storyPayload.parsed_blocks?.scene_cast_contract;
+  assert.ok(cast, 'scene_cast_contract 존재');
+  assert.ok(Array.isArray(cast.allowed_speaker_ids) && cast.allowed_speaker_ids.includes('player'), '플레이어 발화 허용');
+  assert.equal(cast.anonymous_speech_allowed, false);
+  assert.equal(cast.unregistered_character_allowed, false);
+  assert.equal(cast.model_selected_entrance_allowed, false);
+
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(extract.status, 200);
   await extract.json();
 
+  // V2에서는 레거시 태거 호출이 없다
   const taggerBody = mock.calls.find(c => String(c.url).startsWith('https://llm.test') && c.body && JSON.parse(c.body).max_tokens === 400 && !JSON.parse(c.body).stream);
-  assert.ok(taggerBody, '태거 호출 확인');
-  const userContent = JSON.parse(taggerBody.body).messages[1].content;
-  assert.ok(userContent.includes('general_park_jungwoo'), '일반 NPC roster 포함');
-  assert.ok(userContent.includes('"in_scene"'), '장면 참여 여부 포함');
-  assert.ok(userContent.includes('"department"'), '부서 정보 포함');
-  // 미확정 대사 1개 + 장면 후보(heroine5, player)가 in_scene true로 우선 배치
-  const rosterLines = userContent.split('\n').filter(l => l.startsWith('{'));
-  assert.ok(rosterLines.length >= 9, `roster ${rosterLines.length}개 (player 1 + heroine 5 + general 8)`);
+  assert.equal(taggerBody, undefined, 'V2 신규 턴은 레거시 태거 호출 없음 (spec 11)');
 });
 
-test('보완-2a: 태거 timeout 후 Extract 재시도 — 동일 action 태거 LLM 총합 1회, 상태 timeout', async () => {
+test('보완-2a: V2 턴은 태거 timeout 시나리오와 무관 — 태거 호출 0회, extract 정상', async () => {
   const mock = createMockFetch({ taggerBehavior: 'timeout' });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'x' }), env);
@@ -251,17 +286,17 @@ test('보완-2a: 태거 timeout 후 Extract 재시도 — 동일 action 태거 L
   await story.text();
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(extract.status, 200);
-  await extract.json();
+  const eb = await extract.json();
+  assert.ok(eb.data.extract);
   const replay = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(replay.status, 200);
   const rb = await replay.json();
   assert.equal(rb.data.replayed, true);
-  assert.equal(llmCallFilter(mock, 400), 1, '태거 호출 총합 1회');
-  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_attempted, true);
-  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_status, 'timeout');
+  assert.equal(llmCallFilter(mock, 400), 0, 'V2는 레거시 태거 호출 0회 (timeout 시나리오 무관)');
+  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_attempted, undefined, '태거 시도 상태 없음');
 });
 
-test('보완-2b: 태거 null-only 결과 후 Extract 재시도 — 태거 총합 1회, 상태 unresolved', async () => {
+test('보완-2b: V2 턴은 태거 null-only 결과와 무관 — 태거 호출 0회', async () => {
   const mock = createMockFetch({ taggerBehavior: 'null_only' });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'x' }), env);
@@ -272,11 +307,11 @@ test('보완-2b: 태거 null-only 결과 후 Extract 재시도 — 태거 총합
   const replay = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   const rb = await replay.json();
   assert.equal(rb.data.replayed, true);
-  assert.equal(llmCallFilter(mock, 400), 1, '태거 호출 총합 1회');
-  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_status, 'unresolved');
+  assert.equal(llmCallFilter(mock, 400), 0, 'V2는 태거 호출 0회');
+  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_status, undefined, '태거 상태 없음');
 });
 
-test('보완-2c: 태거 invalid JSON 후 Extract 재시도 — 태거 총합 1회, 상태 invalid_response', async () => {
+test('보완-2c: V2 턴은 태거 invalid JSON과 무관 — 태거 호출 0회', async () => {
   const mock = createMockFetch({ taggerBehavior: 'invalid' });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'x' }), env);
@@ -287,29 +322,29 @@ test('보완-2c: 태거 invalid JSON 후 Extract 재시도 — 태거 총합 1�
   const replay = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   const rb = await replay.json();
   assert.equal(rb.data.replayed, true);
-  assert.equal(llmCallFilter(mock, 400), 1, '태거 호출 총합 1회');
-  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_status, 'invalid_response');
+  assert.equal(llmCallFilter(mock, 400), 0, 'V2는 태거 호출 0회');
+  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_status, undefined, '태거 상태 없음');
 });
 
-test('보완-2d: Extract 결과 저장 실패 후 재시도 — 태거 총합 1회(재시도는 태거 생략)', async () => {
+test('보완-2d: Extract 결과 저장 실패 후 재시도 — V2는 태거 미호출, extract만 재시도', async () => {
   const mock = createMockFetch({ failRecordExtract: true });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'x' }), env);
   await story.text();
-  // 1차 extract: 태거 1회 호출 + record_extract_result 실패 → extract_failed
+  // 1차 extract: record_extract_result 실패 → extract_failed
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.ok(extract.status >= 500, `record_extract_result 실패로 extract_failed (${extract.status})`);
-  // 2차 extract 재시도: attempted=true이므로 태거 호출 없이 extract만 재시도
+  // 2차 extract 재시도: 태거 없이 extract만 재시도
   const retry = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(retry.status, 200);
   await retry.json();
-  assert.equal(llmCallFilter(mock, 400), 1, '태거 호출 총합 1회');
+  assert.equal(llmCallFilter(mock, 400), 0, 'V2는 태거 호출 0회');
   const extractCalls = llmCallFilter(mock, 5000);
   assert.equal(extractCalls, 2, 'extract는 재시도로 2회');
 });
 
-test('보완-3: 태거 결과 저장 실패 시 로컬 결과 미사용 — 화면·extract·DB 모두 parser 결과로 일관', async () => {
-  const mock = createMockFetch({ failParsedBlocksSave: true });
+test('보완-3: V2 턴은 태거 저장 실패 시나리오와 무관 — 화면·extract·DB 모두 게이트 통과 블록으로 일관', async () => {
+  const mock = createMockFetch({ failParsedBlocksSave: true, saveOverride: v2Save() });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '주말에 만나자고 한다.' }), env);
   assert.equal(story.status, 200);
@@ -318,46 +353,44 @@ test('보완-3: 태거 결과 저장 실패 시 로컬 결과 미사용 — 화�
   assert.equal(extract.status, 200);
   const eb = await extract.json();
 
-  // Extract 응답 parsed_blocks = parser 결과 (태거 미적용 — 저장 실패)
+  // Extract 응답 parsed_blocks = 게이트 통과 V2 블록 (명시 화자)
   const respSpeakers = dialogueSpeakers(eb.data.parsed_blocks);
-  assert.equal(respSpeakers[1], null, '로컬 태거 결과가 canonical로 승격되지 않음');
-  // DB(game_actions.parsed_blocks)도 동일 parser 결과
+  assert.equal(respSpeakers.length, 2, 'V2 대사 2개');
+  assert.ok(respSpeakers.every(s => s === 'heroine5'), '모든 대사 명시 화자');
+  // DB(game_actions.parsed_blocks)도 동일
   const dbSpeakers = dialogueSpeakers(mock.actions.get(actionId).parsed_blocks);
   assert.deepEqual(dbSpeakers, respSpeakers, 'DB와 Extract 응답 일치');
-  // 시도 상태는 영속됨 (멱등성), 최종 상태는 unresolved
-  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_attempted, true);
-  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_status, 'unresolved');
-  // 2차 재시도는 replay — 태거 추가 호출 없음
+  // V2는 태거 시도 상태 없음
+  assert.equal(mock.actions.get(actionId).parsed_blocks?.speaker_tagging_attempted, undefined);
+  // 2차 재시도는 replay — 추가 LLM 호출 없음
   const replay = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   const rb = await replay.json();
   assert.equal(rb.data.replayed, true);
-  assert.equal(llmCallFilter(mock, 400), 1, '태거 호출 총합 1회');
+  assert.equal(llmCallFilter(mock, 400), 0, 'V2는 태거 호출 0회');
 });
 
-test('보완-4: Extract→프론트 카드→game_actions→game_turns→reload→TTS 화자 일치', async () => {
-  const mock = createMockFetch(); // 태거가 heroine5로 확정
+test('보완-4: V2 Extract→프론트 카드→game_actions→game_turns→reload→TTS 화자 일치', async () => {
+  const mock = createMockFetch({ saveOverride: v2Save() }); // V2 게이트가 heroine5로 확정
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '주말에 만나자고 한다.' }), env);
   assert.equal(story.status, 200);
   await story.text();
 
-  // 1) Story SSE complete의 parsed_blocks는 parser_canonical — 태거 적용 전
+  // 1) Story SSE complete의 parsed_blocks는 게이트 통과 V2 블록
   const storyBody = await (async () => {
     const r = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'x' }), env);
     return r.text();
   })();
   void storyBody;
 
-  // 2) Extract — 태거 결과 canonical 수신
+  // 2) Extract — V2 블록 canonical 수신
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(extract.status, 200);
   const eb = await extract.json();
   const extractSpeakers = dialogueSpeakers(eb.data.parsed_blocks);
-  assert.equal(extractSpeakers[1], 'heroine5', '태거 적용');
-  assert.equal(extractSpeakers[0], 'heroine5', '명시 화자 유지');
+  assert.deepEqual(extractSpeakers, ['heroine5', 'heroine5'], 'V2 명시 화자 유지');
 
   // 3) 프론트 대사 카드 — renderNarrative가 data-speaker-id로 사용하는 값 == blocks.speaker_id
-  //    (app.js onExtract가 extracted.parsed_blocks를 renderNarrative에 전달 — canonical 객체가 곧 카드 화자)
   const frontendSpeakers = dialogueSpeakers(eb.data.parsed_blocks);
   assert.deepEqual(frontendSpeakers, extractSpeakers, '프론트 카드 화자 = Extract 응답');
 
