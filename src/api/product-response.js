@@ -23,6 +23,31 @@ function latestMind(context) {
   return object(latestTurn(context)?.mind_monitor) ?? {};
 }
 
+function canonicalMapLocations(edition) {
+  return (Array.isArray(edition?.map?.locations) ? edition.map.locations : [])
+    .filter(location => typeof location?.location_id === 'string' && location.location_id);
+}
+
+function canonicalNpcDefaultLocations(edition) {
+  const defaults = {};
+  for (const [id, profile] of Object.entries(object(edition?.characters?.characters) ?? {})) {
+    if (typeof profile?.default_location_id === 'string' && profile.default_location_id) {
+      defaults[id] = profile.default_location_id;
+    }
+  }
+  for (const [id, profile] of Object.entries(object(edition?.generalNpcs?.profiles) ?? {})) {
+    if (typeof profile?.default_location_id === 'string' && profile.default_location_id) {
+      defaults[id] = profile.default_location_id;
+    }
+  }
+  for (const location of canonicalMapLocations(edition)) {
+    for (const id of Array.isArray(location.default_npc_ids) ? location.default_npc_ids : []) {
+      if (typeof id === 'string' && id && !defaults[id]) defaults[id] = location.location_id;
+    }
+  }
+  return defaults;
+}
+
 function mergeNpcPayload(save, edition, latestMindMonitor, details) {
   const existing = new Map(buildNpcAppPayload(save, edition, latestMindMonitor).map(item => [item.id, item]));
   return buildFinderNpcList(save, edition).map(finder => {
@@ -76,11 +101,16 @@ export function enrichContextEnvelope(payload, edition) {
   if (!data || !context) return payload;
   const save = contextSave(context);
   const currentTurn = latestTurn(context);
+  const baseDisplay = buildContextDisplayPayload(save, edition, latestMind(context));
   data.context = {
     ...context,
     display: {
       ...(object(context.display) ?? {}),
-      ...buildContextDisplayPayload(save, edition, latestMind(context)),
+      ...baseDisplay,
+      // 회사 맵은 축약 projection이 아니라 번들 정본 전체를 보낸다.
+      // description/zone/type/default_npcs가 빠지면 프론트가 빈 구조도로 축약된다.
+      map_locations: canonicalMapLocations(edition),
+      npc_default_locations: canonicalNpcDefaultLocations(edition),
       player_info: buildFullPlayerInfo(save, edition),
       npc_finder: buildFinderNpcList(save, edition),
       character_details: buildCharacterDisplayDetails(save, edition, currentTurn),
