@@ -217,7 +217,7 @@ function resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterI
  * structured entry exists at all (custom-typed action, or a save predating
  * this field) does resolution fall back to the free-text tag/keyword matcher.
  */
-export function resolveCsaDirectCoverage(save, playerActionText, { sexualActionContract } = {}) {
+export function resolveCsaDirectCoverage(save, playerActionText, { sexualActionContract, actionTypes } = {}) {
   const text = typeof playerActionText === 'string' ? playerActionText : '';
   if (!text.trim()) return { covered: false };
   const applicableCsa = getApplicableCsaEntries(save);
@@ -225,6 +225,12 @@ export function resolveCsaDirectCoverage(save, playerActionText, { sexualActionC
   const presentCharacterId = typeof save?.focal_character_id === 'string' && save.focal_character_id
     ? save.focal_character_id
     : (Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants.find(id => typeof id === 'string') : null) ?? null;
+
+  // 호출부(ActionExecutionContract)가 조합 matcher로 판정한 actionTypes가 주어지면
+  // free-text 경로에서 이를 사용한다 (기본은 이 모듈의 좁은 ACTION_KEYWORDS).
+  const providedActionTypes = Array.isArray(actionTypes)
+    ? actionTypes.filter(action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none')
+    : [];
 
   const structuredMeta = findChoiceStructuredMeta(save, text);
   if (structuredMeta) {
@@ -244,9 +250,9 @@ export function resolveCsaDirectCoverage(save, playerActionText, { sexualActionC
 
   // No structured signal for this exact text (custom input, or a choice that
   // predates this field) — fall back to the original tag/keyword matcher.
-  const actionTypes = classifyMaterialActions(text);
-  if (actionTypes.length) {
-    const sexualResult = resolveSexualCoverage(applicableCsa, text, actionTypes, { save, presentCharacterId, sexualActionContract });
+  const actionTypeList = providedActionTypes.length ? providedActionTypes : classifyMaterialActions(text);
+  if (actionTypeList.length) {
+    const sexualResult = resolveSexualCoverage(applicableCsa, text, actionTypeList, { save, presentCharacterId, sexualActionContract });
     if (sexualResult.covered) return sexualResult;
     // A materially sexual choice never falls through to the nonsexual tag-match path
     // (README-derived rule: a sexual act's coverage must always go through the full

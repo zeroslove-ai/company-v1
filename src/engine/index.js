@@ -1,5 +1,6 @@
 export { GameCoreError } from './errors.js';
 export { createEditionAdapter, validateEditionAdapter } from './edition.js';
+export { resolveActionExecutionContract, buildActionExecutionContractSection, classifyMaterialActions, classifyExecutionMode } from './action-execution-contract.js';
 export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
 export { buildExtractPrompt } from './extract-prompt.js';
 export { parseNarrative } from './narrative-parser.js';
