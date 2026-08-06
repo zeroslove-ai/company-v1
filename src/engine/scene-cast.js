@@ -161,7 +161,7 @@ export function registeredTargetNames(master) {
 export function resolvePlayerDialoguePolicy(playerAction, master = null) {
   const source = typeof playerAction === 'string' ? playerAction.trim() : '';
   const base = { max_lines: 1, max_characters: 30, allowed_material_actions: [] };
-  const targetIds = namedNpcIds(master, source);
+  const targetIds = resolveUserMentionedNpcIds(master, source);
   const allRegistered = registeredTargetNames(master);
   const targetNames = allRegistered.filter(e => targetIds.includes(e.id)).map(e => e.name);
 
@@ -305,20 +305,66 @@ function hasUnknownNpcName(body, policy) {
 // ---------------------------------------------------------------------------
 
 /** 자유 입력에서 이름이 정확히 언급된 등록 NPC를 찾는다 (부분 일치는 인정하지 않는다). */
-function namedNpcIds(master, text) {
+/**
+ * 사용자 입력에서 등장하는 NPC ID를 해석한다 (검토 수정 1).
+ * 판정 순서:
+ *   1. 등록된 전체 이름 정확 일치
+ *   2. 전체 이름이 없을 때만 한국 3글자 이름의 뒷두 글자 확인 (allowUniqueKoreanGivenName)
+ *   3. 뒷두 글자가 정확히 한 명에게만 해당하면 그 ID 사용
+ *   4. 두 명 이상이면 불명확 — 아무도 선택하지 않음
+ * 모델 출력 검증은 계속 전체 이름만 검사한다. 이 함수는 사용자 입력 해석 전용.
+ */
+export function resolveUserMentionedNpcIds(master, text, options = {}) {
   const source = typeof text === 'string' ? text : '';
   if (!source.trim()) return [];
-  const found = [];
+  const allowUnique = options.allowUniqueKoreanGivenName !== false;
+  const entries = [];
   const push = (id, name) => {
-    if (id && name && source.includes(name) && !found.includes(id)) found.push(id);
+    const cleanId = identity(id);
+    const cleanName = identity(name);
+    if (cleanId && cleanName && !entries.some(e => e.id === cleanId)) {
+      entries.push({ id: cleanId, name: cleanName });
+    }
   };
   for (const entry of Array.isArray(master?.characters) ? master.characters : []) {
-    push(identity(entry?.character_id ?? entry?.id), identity(entry?.name));
+    push(entry?.character_id ?? entry?.id, entry?.name);
   }
   for (const entry of Array.isArray(master?.general_npcs) ? master.general_npcs : []) {
-    push(identity(entry?.npc_id ?? entry?.id), identity(entry?.name));
+    push(entry?.npc_id ?? entry?.id, entry?.name);
   }
+
+  const found = [];
+
+  // 1) 전체 이름 정확 일치
+  for (const entry of entries) {
+    if (source.includes(entry.name) && !found.includes(entry.id)) found.push(entry.id);
+  }
+  if (found.length) return found;
+
+  // 2~4) 전체 이름이 없으면 한국 3글자 이름 뒷두 글자 유일 매칭
+  if (allowUnique) {
+    const candidates = entries.filter(e => /^[가-힣]{3}$/.test(e.name));
+    const givenNameCounts = new Map();
+    for (const entry of candidates) {
+      const given = entry.name.slice(1); // 뒷두 글자
+      givenNameCounts.set(given, (givenNameCounts.get(given) ?? 0) + 1);
+    }
+    const uniqueGiven = new Map(); // given → id (유일한 것만)
+    for (const entry of candidates) {
+      const given = entry.name.slice(1);
+      if (givenNameCounts.get(given) === 1) uniqueGiven.set(given, entry.id);
+    }
+    for (const [given, id] of uniqueGiven) {
+      if (source.includes(given) && !found.includes(id)) found.push(id);
+    }
+  }
+
   return found;
+}
+
+/** @deprecated resolveUserMentionedNpcIds로 통일 */
+function namedNpcIds(master, text) {
+  return resolveUserMentionedNpcIds(master, text, { allowUniqueKoreanGivenName: false });
 }
 
 /**
@@ -417,7 +463,7 @@ function resolveEnteringNpcIds({ save, master, playerAction, registeredIds, pres
 
   // 1. 사용자 호출 대상 — "민아를 이쪽으로 부른다" (수정 F 8.5)
   if (CALL_ACTION.test(source) && !MOVE_ACTION.test(source)) {
-    for (const id of namedNpcIds(master, source)) push(id);
+    for (const id of resolveUserMentionedNpcIds(master, source)) push(id);
   }
 
   // 2. 저장된 pending scene entrance 대상
@@ -446,7 +492,7 @@ function resolveDestinationNpcIds({ save, master, playerAction, registeredIds, p
   };
   const source = typeof playerAction === 'string' ? playerAction : '';
   if (MOVE_ACTION.test(source) && !CALL_ACTION.test(source)) {
-    for (const id of namedNpcIds(master, source)) push(id);
+    for (const id of resolveUserMentionedNpcIds(master, source)) push(id);
   }
   return destination;
 }
@@ -463,7 +509,7 @@ function resolveRemoteNpcIds({ save, master, playerAction, registeredIds, presen
 
   // 1. 사용자가 전화 또는 메시지를 보낸 대상
   if (REMOTE_ACTION.test(source)) {
-    for (const id of namedNpcIds(master, source)) push(id);
+    for (const id of resolveUserMentionedNpcIds(master, source)) push(id);
   }
   // 2·3. 직전 턴 예정 원격 연락 / 저장된 원격 이벤트 대상
   for (const item of Array.isArray(save?.pending_remote_contacts) ? save.pending_remote_contacts : []) {
@@ -503,12 +549,19 @@ export function buildSceneCastContract({
     save, master, playerAction, registeredIds, presentIds: presentNpcIds, enteringIds: enteringNpcIds
   });
 
-  // 수정 2 — 이동 턴은 전환 전용 턴: 현재 장소 NPC·목적지 NPC 모두 발화 금지.
+  // 수정 2 — 이동 턴: 현재 장소 NPC·목적지 NPC 모두 발화 금지.
   // allowed_speaker_ids = ['player', ...remoteNpcIds]
   const transitionMode = destinationNpcIds.length ? 'movement' : 'stationary';
   const isMovementTurn = transitionMode === 'movement';
   const effectivePresent = isMovementTurn ? [] : presentNpcIds;
   const effectiveEntering = isMovementTurn ? [] : enteringNpcIds;
+
+  // 검토 수정 2 — 이동 목적지 장소: 대상 NPC의 저장 위치(location_id)를 사용한다.
+  // 저장 위치가 없으면 임의 장소를 만들지 않고 null로 둔다.
+  const npcSceneState = isPlainObject(save?.npc_scene_state) ? save.npc_scene_state : {};
+  const destinationLocationId = isMovementTurn && destinationNpcIds.length
+    ? (identity(npcSceneState[destinationNpcIds[0]]?.location_id) ?? null)
+    : null;
 
   // 문맥 참고용 — focal/last_speaker는 여기에는 들어가지만 present에는 별도 근거가 필요하다.
   const contextNpcIds = [];
@@ -538,6 +591,7 @@ export function buildSceneCastContract({
     present_npc_ids: effectivePresent,
     entering_npc_ids: effectiveEntering,
     destination_npc_ids: destinationNpcIds,
+    destination_location_id: destinationLocationId,
     remote_npc_ids: remoteNpcIds,
     allowed_speaker_ids: allowedSpeakerIds,
     player_dialogue: resolvePlayerDialoguePolicy(playerAction, master),

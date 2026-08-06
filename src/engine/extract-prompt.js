@@ -117,15 +117,24 @@ const SYSTEM_INSTRUCTIONS = [
   'CSA deltas only state_delta.csa_runtime_state[csa_id]{lifecycle,applicability,execution_state} and csa_attitudes[npc_id][csa_id].',
   'player_sexual_state uses only arousal_delta, ejaculation_progress_delta, and ejaculation_completed; completion requires evidence.sexual_resolution === true.',
   'Physical patches may set concise Korean location_label, posture, position_label, and arbitrary Korean clothing keys/state strings only from exact Story evidence; clothing values are worn|removed|open|unknown, CSA rule text alone or magical wording (저절로/순식간에) is rejected, and evidence quotes must be verbatim in Story and name the character. Omit unchanged or uncertain fields; legacy English codes are compatibility input, not an output catalog.',
-  'npc_stats and sexual_event_ledger each need an exact Story quote. Distinguish attempt, refusal, partial, conditional acceptance, pause, completion. Human-readable strings are Korean; IDs unchanged.'
+  'npc_stats and sexual_event_ledger each need an exact Story quote. Distinguish attempt, refusal, partial, conditional acceptance, pause, completion. Human-readable strings are Korean; IDs unchanged.',
+  'Movement transition contract: scene_cast_contract.transition_mode=movement일 때 이번 턴은 장소 이동 완료 턴이다. destination_location_id가 존재하고 Story가 목적지 도착(발견·마주침 서술)까지 완료했다면 state_delta.scene_state.location_id는 destination_location_id로, scene_state.participants는 player와 Story에서 실제로 발견된 destination NPC만 기록한다. 기존 장소 NPC를 participants에 유지하지 않는다. npcs_present와 last_npcs_present도 destination NPC로 갱신하고 focal_character_id는 destination NPC로 옮긴다. Story가 목적지 도착 전에 중단됐다면(이동 도중 중단) destination NPC를 participants에 넣지 않는다.'
 ].join(' ');
 
-export function buildExtractPrompt({ context, storyText, parsedStory, playerAction, expectedTurn, edition, npcIds }) {
+export function buildExtractPrompt({ context, storyText, parsedStory, playerAction, expectedTurn, edition, npcIds, sceneCastContract }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const heroineActiveIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
   const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: storyText });
   const activeIds = [...heroineActiveIds, ...generalActiveIds.filter(id => !heroineActiveIds.includes(id))];
+  const cast = object(sceneCastContract) ?? {};
+  const movementContract = cast.transition_mode === 'movement'
+    ? {
+        transition_mode: 'movement',
+        destination_npc_ids: Array.isArray(cast.destination_npc_ids) ? cast.destination_npc_ids : [],
+        destination_location_id: typeof cast.destination_location_id === 'string' ? cast.destination_location_id : null
+      }
+    : null;
   return [
     { role: 'system', content: SYSTEM_INSTRUCTIONS },
     {
@@ -137,6 +146,7 @@ export function buildExtractPrompt({ context, storyText, parsedStory, playerActi
         active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
         story_text: storyText,
         parsed_story: buildParsedStoryProjection(parsedStory),
+        ...(movementContract ? { scene_cast_contract: movementContract } : {}),
         context: buildExtractContextProjection(context, activeIds),
         player_action: playerAction,
         expected_turn: expectedTurn

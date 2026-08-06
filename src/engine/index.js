@@ -5,7 +5,7 @@ export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prom
 export { buildExtractPrompt, buildStructuredStoryV2ExtractText } from './extract-prompt.js';
 export { parseNarrative } from './narrative-parser.js';
 export { normalizeExtractEnvelope } from './extract-envelope.js';
-export { applyGuardedStateDelta } from './guarded-merge.js';
+export { applyGuardedStateDelta, sanitizeMovementCommit } from './guarded-merge.js';
 export { deriveRecoverableStep } from './turn-state.js';
 export {
   normalizeMindMonitor,

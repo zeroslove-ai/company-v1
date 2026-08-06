@@ -17,6 +17,7 @@ import { createStructuredStoryGate, STRUCTURED_STORY_VERSION } from '../engine/s
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
+  sanitizeMovementCommit,
   buildDegradedExtractEnvelope,
   buildExtractPrompt,
   buildOpeningPlan,
@@ -1027,7 +1028,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           }
 
           const promptStart = Date.now();
-          let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds, sceneCastContract: parsedStory.scene_cast_contract ?? action.scene_cast_contract });
           // 저장된 ActionExecutionContract를 Extract에 전달 — CSA direct와 ordinary 행동 구분,
           // CSA 범위 밖 행동을 csa_id로 기록하지 않도록 한다 (추가 Extract 호출 없음)
           const storedContract = action.parsed_blocks?.action_execution_contract;
@@ -1140,6 +1141,8 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
+        // 검토 수정 2 — 이동 결과 deterministic 보정 (guarded-merge의 sanitizeMovementCommit)
+        sanitizeMovementCommit(nextSave, action.parsed_blocks?.scene_cast_contract, firewalledExtract);
         // 다음 턴 경계 복원 follow-up 예약/삭제 — 계약 기반 deterministic (Story 검사 없음)
         const commitContract = action.parsed_blocks?.action_execution_contract;
         if (commitContract?.schedule_boundary_followup && commitContract.route === 'ordinary_direct_blocked') {

@@ -114,6 +114,50 @@ function characterNameFromMaster(master, characterId) {
   return characters.find(character => character?.character_id === characterId)?.name ?? characterId ?? '';
 }
 
+/**
+ * 검토 수정 2 — 이동 결과 deterministic 보정 (commit 직전 sanitizer).
+ * movement 턴이고 destination_location_id가 확인되고 Story가 도착 전에 중단되지
+ * 않았다면(interrupted/blocked 아님) 최소한 다음을 보정한다:
+ *   scene_state.location_id = destination_location_id
+ *   scene_state.participants = 기존 player + destination NPC
+ *   last_npcs_present / focal_character_id = destination NPC
+ *   기존 장소 NPC npc_scene_state.present = false
+ *   목적지 NPC npc_scene_state = { present: true, location_id }
+ * 새 DB 필드/migration 없이 기존 canonical 구조만 쓴다.
+ */
+export function sanitizeMovementCommit(nextSave, sceneCastContract, extractEnvelope) {
+  const castContract = plainObject(sceneCastContract) ? sceneCastContract : {};
+  const envelope = plainObject(extractEnvelope) ? extractEnvelope : {};
+  if (
+    castContract.transition_mode !== 'movement' ||
+    typeof castContract.destination_location_id !== 'string' ||
+    !Array.isArray(castContract.destination_npc_ids) ||
+    castContract.destination_npc_ids.length === 0
+  ) {
+    return;
+  }
+  if (['interrupted', 'blocked'].includes(envelope.outcome)) return;
+  const destIds = castContract.destination_npc_ids.filter(id => !String(id).startsWith('player'));
+  if (!destIds.length) return;
+  const destLocation = castContract.destination_location_id;
+  const prevParticipants = Array.isArray(nextSave.scene_state?.participants) ? nextSave.scene_state.participants : [];
+  const playerIds = prevParticipants.filter(p => p === 'player' || String(p).startsWith('player'));
+  const nextParticipants = [...playerIds, ...destIds.filter(id => !playerIds.includes(id))];
+  nextSave.scene_state = {
+    ...(nextSave.scene_state ?? {}),
+    location_id: destLocation,
+    participants: nextParticipants
+  };
+  nextSave.last_npcs_present = [...destIds];
+  if (destIds.length) nextSave.focal_character_id = destIds[0];
+  const npcState = { ...(nextSave.npc_scene_state ?? {}) };
+  for (const id of Object.keys(npcState)) {
+    if (!destIds.includes(id)) npcState[id] = { ...npcState[id], present: false };
+  }
+  for (const id of destIds) npcState[id] = { present: true, location_id: destLocation };
+  nextSave.npc_scene_state = npcState;
+}
+
 export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
   if (!plainObject(currentSave)) throw new GameCoreError('INVALID_SAVE', 'Current save must be an object');
   if (currentSave.save_schema_version !== 1 || currentSave.edition !== 'company-v1') {
