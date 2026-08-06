@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import edition from '../src/api/edition.js';
 import { enrichContextEnvelope } from '../src/api/product-response.js';
+import { renderHistory } from '../src/frontend/pages/render.js';
 import {
   buildCompanyMapModel,
   locationPromptText,
@@ -135,4 +136,43 @@ test('회사맵 제품: 실제 DOM 렌더가 빈 패널이 아니며 클릭은 �
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+// ── History timeline 회귀 (이전 작업 미작성 항목) ─────────────────────────
+
+test('timeline: 프론트가 최근 20턴을 요청한다 (recentTurns=1이면 slice(-20)이 무의미)', async () => {
+  const { FRONTEND_CONFIG } = await import('../src/frontend/pages/config.js');
+  assert.equal(FRONTEND_CONFIG.recentTurns, 20, '요청 자체가 20턴이어야 timeline이 이어진다');
+});
+
+test('timeline: renderHistory는 넘겨받은 턴 수만큼 카드를 만든다 (1/5/20/21)', async () => {
+  const { renderHistory } = await import('../src/frontend/pages/render.js');
+  const turn = n => ({
+    turn_number: n,
+    player_action: `행동 ${n}`,
+    turn_summary: `요약 ${n}`,
+    parsed_blocks: { blocks: [{ type: 'scene', text: `장면 ${n}` }], choices: [] }
+  });
+  const cases = [[1, 1], [5, 5], [20, 20], [25, 20]];
+  for (const [total, expected] of cases) {
+    const turns = Array.from({ length: total }, (_, i) => turn(i + 1));
+    const shown = turns.length ? turns.slice(-20) : turns;
+    const doc = new FakeDocument();
+    const container = new FakeNode('div', doc);
+    const previousDocument = globalThis.document;
+    globalThis.document = doc;
+    try { renderHistory(container, shown, { showSummary: true }); }
+    finally { globalThis.document = previousDocument; }
+    const cards = container.children.filter(child => child.className === 'turn-card');
+    assert.equal(cards.length, expected, `${total}턴 → ${expected}장 기대`);
+  }
+});
+
+test('timeline: recent_turns가 비어 있을 때만 opening turn fallback을 쓴다', () => {
+  const openingTurn = { turn_number: 0, player_action: '오프닝' };
+  const pick = recent => (recent.length ? recent.slice(-20) : (openingTurn ? [openingTurn] : recent));
+  assert.equal(pick([]).length, 1, '비어 있으면 opening');
+  assert.equal(pick([])[0], openingTurn);
+  const three = [{ turn_number: 1 }, { turn_number: 2 }, { turn_number: 3 }];
+  assert.deepEqual(pick(three), three, '턴이 있으면 opening을 쓰지 않는다');
 });
