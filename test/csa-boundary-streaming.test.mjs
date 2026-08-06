@@ -448,15 +448,24 @@ test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-
 
 // ---------- 조건부 허용: Extract 정본화 / LLM 회귀 (19-13, 19-14, 19-19) ----------
 
-test('19-13: contextual attempt + Extract accepted+voluntary → 성공 정본화 허용', async () => {
+test('19-13: accepted+voluntary는 completed 범위만 정본화 — sexual_touch 완료는 kiss milestone을 열지 않음', async () => {
   const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
   const attemptContract = { version: 1, route: 'ordinary_direct_attempt', action_types: ['sexual_touch'], target_id: 'heroine5' };
   const extract = {
     action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['sexual_touch'] },
-    state_delta: { npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8 } } } }
+    state_delta: {
+      npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8, sexual_relationship_started_turn: 8 } } },
+      event_ledger: [
+        { event_id: 'st', event_type: 'sexual_event', turn: 8, summary: '가슴 접촉이 이루어졌다.', action_type: 'sexual_touch', participants: ['heroine5'] }
+      ]
+    }
   };
   const out = applyContractStateFirewall(extract, attemptContract);
-  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, 8, 'accepted+voluntary는 milestone 허용');
+  // sexual_touch 완료 event는 보존
+  assert.ok(out.state_delta.event_ledger.some(e => e.event_id === 'st'), 'completed 범위 event 보존');
+  // kiss/explicit 완료가 없으므로 milestone은 열리지 않는다
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, undefined, 'kiss 미완료 → first_kiss 차단');
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.sexual_relationship_started_turn, undefined, 'explicit 미완료 → sexual milestone 차단');
 });
 
 test('19-14: contextual attempt + ambiguous → milestone·완료 event 차단, 감정 변화 보존', async () => {

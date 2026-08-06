@@ -142,26 +142,55 @@ function inferTargetId(save, text, characters, npcIds) {
  * 직전 선택지에 등장한 인물이어야 유효하다. 실패 시 자유 입력의 명시적 전체 이름으로
  * 다시 찾고, 그것도 실패하면 null (unclear_target blocker로 차단된다).
  */
-function validateStructuredTarget(structuredSignal, save, characters, npcIds, text) {
-  const targetId = structuredSignal?.target_id;
-  if (!targetId || targetId === 'player') return null;
-  const stableIds = new Set([
+/** stable NPC ID 집합 — characters + general_npcs에서 수집. */
+function stableNpcIds(characters, npcIds) {
+  return new Set([
     ...(Array.isArray(characters) ? characters : []).map(entry => entry.character_id ?? entry.id ?? entry.npc_id).filter(Boolean),
     ...(Array.isArray(npcIds) ? npcIds : []).map(entry => entry.npc_id ?? entry.id).filter(Boolean)
   ]);
-  if (!stableIds.has(targetId)) return null;
-  if (structuredSignal?.actor_id !== 'player') return null;
-  if (structuredSignal?.actor_id === targetId) return null;
-  const present = new Set([
-    ...(Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : []),
-    ...(Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : [])
-  ]);
-  const appearsInChoice = Array.isArray(save?.last_choice_meta)
-    && save.last_choice_meta.some(meta => meta?.target_id === targetId);
-  if (present.has(targetId) || appearsInChoice) return targetId;
-  // 장면/선택지에 없으면 자유 입력 명시적 전체 이름으로 재탐색
-  const fallback = inferTargetId(save, text, characters, npcIds);
-  return fallback === targetId ? targetId : null;
+}
+
+/**
+ * material(친밀/성적) 행동 전용 strict target 결정.
+ * 허용 근거는 다음 둘 중 하나만 인정한다:
+ *  1. 검증된 structured target — stable NPC ID + actor_id=player + actor≠target +
+ *     target이 현재 scene_state.participants에 존재 + choice_index가 정확히 일치
+ *  2. 플레이어 입력 또는 실제 last_choices[choice_index] 원문에 등록 인물의 전체 이름 명시
+ * focal_character_id/last_speaker_id/last_npcs_present/metadata 배열 내 자기존재는
+ * 검증 근거가 아니다. 명시적 전체 이름도 없으면 null (unclear_target으로 차단).
+ */
+function resolveStrictMaterialTarget({ structuredSignal, save, characters, npcIds, text } = {}) {
+  const stable = stableNpcIds(characters, npcIds);
+  const sceneParticipants = Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : [];
+  // 1) 검증된 structured target
+  if (structuredSignal && typeof structuredSignal === 'object') {
+    const targetId = structuredSignal.target_id;
+    const actorId = structuredSignal.actor_id;
+    const choiceIndex = structuredSignal.choice_index;
+    if (targetId && targetId !== 'player' && actorId === 'player'
+      && stable.has(targetId) && sceneParticipants.includes(targetId)
+      && Number.isInteger(choiceIndex)) {
+      return targetId;
+    }
+  }
+  // 2) 입력 또는 실제 선택지 원문의 명시적 전체 이름
+  const source = typeof text === 'string' ? text : '';
+  const choiceText = (structuredSignal?.choice_index != null && Array.isArray(save?.last_choices)
+    && typeof save.last_choices[structuredSignal.choice_index] === 'string')
+    ? save.last_choices[structuredSignal.choice_index] : '';
+  const combined = `${source} ${choiceText}`;
+  const entries = [
+    ...(Array.isArray(characters) ? characters : []),
+    ...(Array.isArray(npcIds) ? npcIds : [])
+  ].filter(Boolean);
+  for (const entry of entries) {
+    const name = typeof entry?.name === 'string' ? entry.name : '';
+    if (name && combined.includes(name)) {
+      return entry.character_id ?? entry.npc_id ?? entry.id ?? null;
+    }
+  }
+  // focal fallback 금지 — 명시적 이름이 없으면 null
+  return null;
 }
 
 function detectCompanyAuthorityMisuse(text) {
@@ -283,29 +312,34 @@ function bandFor(value, bands) {
 const PUBLIC_LOCATION_RE = /(lobby|hall|plaza|event|conference|stage|common|cafeteria|cafe|restaurant|lounge|street|public|auditorium)/i;
 const CLOSED_LOCATION_RE = /(meeting_room|office|room|private|storage|restroom|bathroom|warehouse|project_report|report_room)/i;
 
-/** 사생활 판정 — 추가 LLM 없이 scene state만으로 계산한다. */
+/** 사생활 판정 — 추가 LLM 없이 현재 정본 장면(scene_state)만으로 계산한다. */
 export function resolvePrivacyContext({ save, targetId } = {}) {
   const scene = save?.scene_state ?? {};
-  const participants = Array.isArray(scene.participants) && scene.participants.length
-    ? scene.participants
-    : (Array.isArray(save?.last_npcs_present) ? ['player', ...save.last_npcs_present] : []);
+  const participants = Array.isArray(scene.participants) ? scene.participants : [];
+  // 과거 장면(last_npcs_present)·focal·last_speaker_id·턴 이력은 privacy 증거로 사용하지 않는다.
   const isPlayer = id => id === 'player' || id === 'player-1' || /^player([-_]|$)/.test(String(id));
   const npcParticipants = participants.filter(id => !isPlayer(id));
   const observerCount = npcParticipants.filter(id => id !== targetId).length;
-  const locationId = String(scene.location_id ?? save?.location_id ?? '');
+  const locationId = String(scene.location_id ?? '');
   const publicLocation = PUBLIC_LOCATION_RE.test(locationId);
   const closedLocation = CLOSED_LOCATION_RE.test(locationId) && !publicLocation;
   const playerPresent = participants.some(isPlayer);
-  const targetPresent = !targetId || npcParticipants.includes(targetId);
+  const targetPresent = targetId && npcParticipants.includes(targetId);
 
-  // fail-open 방지: 참가자 정보가 비었거나 player/target 중 하나가 실제 장면에 없으면
-  // private으로 승인하지 않는다 — 높은 arousal/affinity와 결합해 attempt로 풀리는 것을 막는다.
+  // fail-open 방지: scene_state.participants가 없거나 비었거나, player/target 중 하나가
+  // 현재 장면에 없으면 unknown — 높은 arousal/affinity와 결합해 attempt로 풀리는 것을 막는다.
   let privacy;
-  if (!participants.length || !playerPresent || !targetPresent) privacy = 'unknown';
-  else if (publicLocation || observerCount >= 2 || participants.length >= 4) privacy = 'public';
-  else if (observerCount === 0 && participants.length <= 2) privacy = 'private';
-  else if (observerCount === 1 || closedLocation) privacy = 'semi_private';
-  else privacy = 'unknown';
+  if (!participants.length || !playerPresent || !targetPresent || participants.some(id => typeof id !== 'string' || !id.trim())) {
+    privacy = 'unknown';
+  } else if (publicLocation || observerCount >= 2 || participants.length >= 4) {
+    privacy = 'public';
+  } else if (observerCount === 0 && participants.length <= 2) {
+    privacy = 'private';
+  } else if (observerCount === 1 || closedLocation) {
+    privacy = 'semi_private';
+  } else {
+    privacy = 'unknown';
+  }
   return { privacy, observer_count: observerCount };
 }
 
@@ -460,11 +494,14 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     else if (structuredSignal.suggested_route === 'voluntary' && freeMode === 'unknown') executionMode = 'request';
   }
   // structured actor_id/target_id — 저장값을 그대로 신뢰하지 않고 검증한다.
-  // target: stable NPC ID + actor=player + 장면/선택지 등장. 실패 시 free-text로 재탐색, 그것도 실패 시 null.
+  // material(친밀/성적) 행동의 target은 strict 결정(검증된 structured 또는 명시적 전체 이름)을
+  // 사용하고 focal fallback을 허용하지 않는다. 비material 행동은 일반 서사 추론(focal 허용).
   const structuredActorId = structuredSignal?.actor_id === 'player' ? 'player' : null;
-  const structuredTargetId = validateStructuredTarget(structuredSignal, save, characters, npcIds, text);
   const actorId = structuredActorId ?? 'player';
-  const targetId = structuredTargetId ?? inferTargetId(save, text, characters, npcIds);
+  const materialTarget = actionTypes.length > 0;
+  const targetId = materialTarget
+    ? resolveStrictMaterialTarget({ structuredSignal, save, characters, npcIds, text })
+    : inferTargetId(save, text, characters, npcIds);
   const coverage = resolveCsaDirectCoverage(save, text, {
     sexualActionContract: csaCatalog?.sexual_action_contract,
     actionTypes

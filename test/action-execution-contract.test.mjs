@@ -242,6 +242,7 @@ test('contract: material_action/actor_id/relationship_basis shape', () => {
 test('검토2: 완곡한 선택지 텍스트 + structured action_types → ordinary_direct_blocked', () => {
   // Story가 만든 선택지: 텍스트에는 성적 단어가 없지만 structured metadata가 genital_touch를 기록
   const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
     last_choices: ['그녀에게 좀 더 과감한 도움을 부탁한다.'],
     last_choice_meta: [
       { choice_index: 0, action_types: ['genital_touch'], actor_id: 'player', target_id: 'heroine5', suggested_route: 'blocked', direct_csa_ids: [] }
@@ -550,10 +551,12 @@ test('검토R3: structured target이 stable ID가 아니면 검증 실패 → fr
     last_choices: ['그녀에게 조금 더 다가간다.'],
     last_choice_meta: [ { choice_index: 0, action_types: ['sexual_touch'], actor_id: 'player', target_id: 'heroine9', suggested_route: 'blocked', direct_csa_ids: [] } ]
   });
-  // heroine9는 stable ID가 아님 → 검증 실패 → free-text에도 없음 → target은 focal(heroine5)로
-  // 돌아가되, 검증되지 않은 metadata는 신뢰하지 않는다
+  // heroine9는 stable ID가 아님 → 검증 실패 → free-text에도 명시적 이름 없음 →
+  // focal fallback 금지 → target_id=null (unclear_target)
   const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 조금 더 다가간다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
-  assert.ok(['heroine5', null].includes(c.target_id), `target=${c.target_id}`);
+  assert.equal(c.target_id, null, 'focal fallback 금지 — 대명사만으로는 target 확정 불가');
+  assert.ok(c.contextual_permission.blockers.includes('unclear_target'), 'unclear_target blocker');
+  assert.equal(c.route, 'ordinary_direct_blocked');
 });
 
 test('검토R4: follow-up은 강압/회사 권한/경계 위반만 — 일반 insufficient는 예약 안 함', () => {
@@ -606,4 +609,241 @@ test('검토R7: 일상적 부탁형 -해줘/-줘는 request', () => {
   assert.equal(show.execution_mode, 'request', '보여줘 → request');
   const explicit = resolve('이메이의 손목을 잡아 직접 만져줘', save);
   assert.equal(explicit.execution_mode, 'direct_act', '직접 신체 조작은 direct_act 우선');
+});
+
+// ---------- 최종 무결성: sexual ledger / player completion / scope / strict target ----------
+
+const BLOCKED = { version: 1, route: 'ordinary_direct_blocked', action_types: ['genital_touch'], target_id: 'heroine5' };
+const ATTEMPT = { version: 1, route: 'ordinary_direct_attempt', action_types: ['kiss', 'genital_touch'], target_id: 'heroine5' };
+
+test('무결성1: blocked 턴의 sexual_event_ledger completed 제거', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { sexual_event_ledger: [
+    { event_id: 'p1', action_type: 'penetration', actor_id: 'player', target_id: 'heroine5', completed: true, interrupted: false, evidence: '지퍼 안으로 밀어 넣었다.' }
+  ] } };
+  const out = applyContractStateFirewall(extract, BLOCKED);
+  assert.deepEqual(out.state_delta.sexual_event_ledger, [], 'completed penetration ledger 제거');
+});
+
+test('무결성2: blocked 턴의 interrupted sexual ledger 보존', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { sexual_event_ledger: [
+    { event_id: 'i1', action_type: 'genital_touch', actor_id: 'player', target_id: 'heroine5', completed: false, interrupted: true, evidence: '손을 뿌리쳤다.' }
+  ] } };
+  const out = applyContractStateFirewall(extract, BLOCKED);
+  assert.equal(out.state_delta.sexual_event_ledger.length, 1, 'interrupted ledger 보존');
+  assert.equal(out.state_delta.sexual_event_ledger[0].interrupted, true);
+});
+
+test('무결성3: 다른 NPC의 sexual ledger 보존', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { sexual_event_ledger: [
+    { event_id: 'h1', action_type: 'penetration', actor_id: 'player', target_id: 'heroine1', completed: true, interrupted: false, evidence: '서원희와의 완료.' }
+  ] } };
+  const out = applyContractStateFirewall(extract, BLOCKED);
+  assert.equal(out.state_delta.sexual_event_ledger.length, 1, '다른 NPC ledger 보존');
+});
+
+test('무결성4: blocked 턴의 ejaculation completion 제거 (arousal/progress 보존)', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = {
+    evidence: { sexual_resolution: true, story_quote: '속으로는...' },
+    state_delta: {
+      player_sexual_state: { arousal_delta: 20, ejaculation_progress_delta: 10, ejaculation_completed: true },
+      npc_emotion: { heroine5: { mood: 'surprised' } }
+    }
+  };
+  const out = applyContractStateFirewall(extract, BLOCKED);
+  assert.equal(out.state_delta.player_sexual_state.ejaculation_completed, undefined, 'completion 제거');
+  assert.equal(out.state_delta.player_sexual_state.arousal_delta, 20, 'arousal 보존');
+  assert.equal(out.state_delta.player_sexual_state.ejaculation_progress_delta, 10, 'progress 보존');
+  assert.equal(out.evidence.sexual_resolution, undefined, 'sexual_resolution 무효화');
+  assert.equal(out.state_delta.npc_emotion.heroine5.mood, 'surprised', '감정 보존');
+});
+
+test('무결성5: refused attempt의 ejaculation completion 제거', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'refused', voluntary: false, completed_action_types: [] },
+    state_delta: { player_sexual_state: { ejaculation_completed: true, arousal_delta: 5 } }
+  };
+  const out = applyContractStateFirewall(extract, ATTEMPT);
+  assert.equal(out.state_delta.player_sexual_state.ejaculation_completed, undefined, 'completion 제거');
+  assert.equal(out.state_delta.player_sexual_state.arousal_delta, 5, 'arousal 보존');
+});
+
+test('무결성6: accepted kiss + ejaculation 제안 → completion 제거', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const kissContract = { version: 1, route: 'ordinary_direct_attempt', action_types: ['kiss'], target_id: 'heroine5' };
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['kiss'] },
+    state_delta: { player_sexual_state: { ejaculation_completed: true } }
+  };
+  const out = applyContractStateFirewall(extract, kissContract);
+  assert.equal(out.state_delta.player_sexual_state.ejaculation_completed, undefined, 'kiss는 ejaculation 근거 아님');
+});
+
+test('무결성7: accepted penetration 완료 시 player completion 조건부 허용', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const explicitContract = { version: 1, route: 'ordinary_direct_attempt', action_types: ['penetration'], target_id: 'heroine5' };
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['penetration'] },
+    evidence: { sexual_resolution: true },
+    state_delta: { player_sexual_state: { ejaculation_completed: true } }
+  };
+  const out = applyContractStateFirewall(extract, explicitContract);
+  assert.equal(out.state_delta.player_sexual_state.ejaculation_completed, true, 'explicit 완료 시 허용');
+});
+
+test('무결성8: 빈 participants + last_npcs_present 존재 → privacy unknown', () => {
+  const save = csaSave({
+    npc_stats: { heroine5: { affinity: 90, sexual_arousal: 90 } },
+    scene_state: { scene_id: 'x', location_id: '', participants: [], updated_turn: 8 },
+    last_npcs_present: ['heroine5']
+  });
+  const c = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(c.contextual_permission.privacy, 'unknown', '과거 NPC 목록은 privacy 증거 아님');
+  assert.equal(c.route, 'ordinary_direct_blocked');
+});
+
+test('무결성9: scene_state.participants 누락 + last_npcs_present 존재 → unknown', () => {
+  const save = csaSave({
+    npc_stats: { heroine5: { affinity: 90, sexual_arousal: 90 } },
+    last_npcs_present: ['heroine5']
+  });
+  const c = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(c.contextual_permission.privacy, 'unknown');
+  assert.equal(c.route, 'ordinary_direct_blocked');
+});
+
+test('무결성10: invalid structured target + 대명사 + focal 존재 → target null', () => {
+  const save = csaSave({
+    npc_stats: { heroine5: { affinity: 90, sexual_arousal: 90 } },
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
+    last_choices: ['그녀에게 조금 더 다가간다.'],
+    last_choice_meta: [ { choice_index: 0, action_types: ['sexual_touch'], actor_id: 'player', target_id: 'heroine9', suggested_route: 'blocked', direct_csa_ids: [] } ]
+  });
+  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 조금 더 다가간다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
+  assert.equal(c.target_id, null, 'focal fallback 금지');
+  assert.ok(c.contextual_permission.blockers.includes('unclear_target'));
+  assert.equal(c.route, 'ordinary_direct_blocked');
+});
+
+test('무결성11: invalid structured target이지만 입력에 전체 이름 → 정확한 target 복구', () => {
+  const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
+    last_choices: ['이메이의 가슴을 만진다.'],
+    last_choice_meta: [ { choice_index: 0, action_types: ['sexual_touch'], actor_id: 'player', target_id: 'heroine9', suggested_route: 'blocked', direct_csa_ids: [] } ]
+  });
+  const c = resolveActionExecutionContract({ save, playerAction: '이메이의 가슴을 만진다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
+  assert.equal(c.target_id, 'heroine5', '전체 이름으로 복구');
+});
+
+test('무결성12: stable ID지만 현재 scene 부재 structured target → invalid → null', () => {
+  const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
+    last_choices: ['그녀에게 조금 더 다가간다.'],
+    last_choice_meta: [ { choice_index: 0, action_types: ['sexual_touch'], actor_id: 'player', target_id: 'heroine1', suggested_route: 'blocked', direct_csa_ids: [] } ]
+  });
+  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 조금 더 다가간다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
+  assert.equal(c.target_id, null, 'scene 부재 stable ID도 무효');
+});
+
+test('무결성13: metadata 자기증명 불가 — 같은 meta 배열에 target 존재는 증거 아님', () => {
+  // scene에 heroine2가 없고 입력에 이름도 없으면, meta 배열에 heroine2가 있어도 무효
+  const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
+    last_choices: ['그녀에게 조금 더 다가간다.'],
+    last_choice_meta: [ { choice_index: 0, action_types: ['kiss'], actor_id: 'player', target_id: 'heroine2', suggested_route: 'blocked', direct_csa_ids: [] } ]
+  });
+  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 조금 더 다가간다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
+  assert.equal(c.target_id, null, '자기증명 불가');
+});
+
+test('무결성14: bundle kiss+genital_touch, completed kiss만 → kiss 범위만 허용', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['kiss'] },
+    state_delta: {
+      npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8, sexual_relationship_started_turn: 8 } } },
+      event_ledger: [
+        { event_id: 'k', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', action_type: 'kiss', participants: ['heroine5'] },
+        { event_id: 'g', event_type: 'sexual_event', turn: 8, summary: '접촉이 이루어졌다.', action_type: 'genital_touch', participants: ['heroine5'] }
+      ],
+      sexual_event_ledger: [
+        { event_id: 'p', action_type: 'penetration', actor_id: 'player', target_id: 'heroine5', completed: true, interrupted: false, evidence: '완료' }
+      ]
+    }
+  };
+  const out = applyContractStateFirewall(extract, ATTEMPT);
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, 8, 'kiss 완료 → first_kiss 보존');
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.sexual_relationship_started_turn, undefined, 'sexual milestone 제거');
+  const events = out.state_delta.event_ledger.map(e => e.event_id);
+  assert.ok(events.includes('k'), 'kiss event 보존');
+  assert.ok(!events.includes('g'), 'genital_touch event 제거');
+  assert.deepEqual(out.state_delta.sexual_event_ledger, [], 'penetration ledger 제거');
+});
+
+test('무결성15: kiss accepted → sexual relationship milestone 제거', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const kissContract = { version: 1, route: 'ordinary_direct_attempt', action_types: ['kiss'], target_id: 'heroine5' };
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['kiss'] },
+    state_delta: { npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8, sexual_relationship_started_turn: 8 } } } }
+  };
+  const out = applyContractStateFirewall(extract, kissContract);
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, 8);
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.sexual_relationship_started_turn, undefined);
+});
+
+test('무결성16: genital_touch accepted → sexual relationship milestone 자동 생성 금지', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const touchContract = { version: 1, route: 'ordinary_direct_attempt', action_types: ['genital_touch'], target_id: 'heroine5' };
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['genital_touch'] },
+    state_delta: { npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8, sexual_relationship_started_turn: 8 } } } }
+  };
+  const out = applyContractStateFirewall(extract, touchContract);
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.sexual_relationship_started_turn, undefined, 'touch로 sexual milestone 불가');
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, undefined, 'kiss 미완료 → first_kiss도 차단');
+});
+
+test('무결성17: completed action 밖의 event_ledger 제거', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['kiss'] },
+    state_delta: { event_ledger: [
+      { event_id: 'g2', event_type: 'sexual_event', turn: 8, summary: '접촉이 완료되었다.', action_type: 'genital_touch', participants: ['heroine5'] }
+    ] }
+  };
+  const out = applyContractStateFirewall(extract, ATTEMPT);
+  assert.ok(!out.state_delta.event_ledger.some(e => e.event_id === 'g2'), '범위 밖 성적 완료 event 제거');
+});
+
+test('무결성18: completed action 밖의 sexual_event_ledger 제거', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['kiss'] },
+    state_delta: { sexual_event_ledger: [
+      { event_id: 'g3', action_type: 'penetration', actor_id: 'player', target_id: 'heroine5', completed: true, interrupted: false, evidence: '완료' }
+    ] }
+  };
+  const out = applyContractStateFirewall(extract, ATTEMPT);
+  assert.deepEqual(out.state_delta.sexual_event_ledger, [], 'kiss 완료로 penetration ledger 불가');
+});
+
+test('무결성19: invalid resolution에서도 감정·일반 업무 event 보존', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = {
+    action_resolution: { target_id: 'heroine1', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['kiss'] },
+    state_delta: {
+      npc_emotion: { heroine5: { mood: 'confused' } },
+      event_ledger: [ { event_id: 'w', event_type: 'work_event', turn: 8, summary: '회의가 마무리됐다.', participants: ['heroine5'] } ],
+      npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8 } } }
+    }
+  };
+  const out = applyContractStateFirewall(extract, ATTEMPT);
+  assert.equal(out.state_delta.npc_emotion.heroine5.mood, 'confused', '감정 보존');
+  assert.ok(out.state_delta.event_ledger.some(e => e.event_id === 'w'), '일반 업무 event 보존');
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, undefined, 'milestone 차단');
 });

@@ -328,13 +328,62 @@ function validateActionResolution(resolution, contract) {
   if (resolution.route !== contract.route) return null;
   if (!RESOLUTION_RESPONSES.has(resolution.npc_response)) return null;
   if (typeof resolution.voluntary !== 'boolean') return null;
-  const completed = Array.isArray(resolution.completed_action_types) ? resolution.completed_action_types : [];
+  const rawCompleted = Array.isArray(resolution.completed_action_types) ? resolution.completed_action_types : [];
   const contractTypes = new Set(Array.isArray(contract.action_types) ? contract.action_types : []);
-  for (const action of completed) {
-    if (!contractTypes.has(action)) return null;
+  const completed = [];
+  for (const action of rawCompleted) {
+    if (typeof action !== 'string' || !action) return null;
+    if (completed.includes(action)) return null; // 중복이면 invalid
+    if (!contractTypes.has(action)) return null; // contract.action_types 부분집합
+    completed.push(action);
   }
+  // accepted인데 completed가 비어 있으면 성공 불허 / refused·interrupted·ambiguous에
+  // completed가 있으면 성공 범위로 사용하지 않는다 (voluntary=false면 completed 무시)
+  if (resolution.npc_response === 'accepted' && completed.length === 0) return null;
+  if (resolution.npc_response !== 'accepted' && resolution.npc_response !== 'partially_accepted') {
+    if (completed.length) return null;
+  }
+  if (!resolution.voluntary && completed.length) return null;
   return { npc_response: resolution.npc_response, voluntary: resolution.voluntary, completed_action_types: completed };
 }
+
+/**
+ * sexual_event_ledger 필터 — 계약 대상 NPC 관련 completed 이벤트만 제거한다.
+ * interrupted/attempt 성격의 ledger와 다른 NPC ledger는 보존. accepted 범위가 주어지면
+ * completed_action_types에 포함된 action만 보존한다.
+ */
+function filterContractSexualLedger(events, contract, completedActionTypes = []) {
+  if (!Array.isArray(events)) return events;
+  const targetId = contract?.target_id;
+  const completedSet = new Set(completedActionTypes);
+  return events.filter(ev => {
+    if (!ev || typeof ev !== 'object') return false;
+    const related = (ev.target_id && ev.target_id === targetId) || (ev.actor_id && ev.actor_id === targetId);
+    if (!related) return true; // 다른 NPC 사건 보존
+    if (ev.completed !== true) return true; // interrupted/attempt ledger 보존
+    // completed — accepted 범위 내 action만 보존
+    if (typeof ev.action_type === 'string' && completedSet.has(ev.action_type)) return true;
+    return false;
+  });
+}
+
+/** player sexual completion(사정/성적 해소) 제거 — arousal_delta/progress_delta는 보존. */
+function stripPlayerSexualCompletion(extract) {
+  const next = { ...extract, state_delta: { ...(extract?.state_delta ?? {}) } };
+  if (next.state_delta.player_sexual_state && typeof next.state_delta.player_sexual_state === 'object') {
+    const p = { ...next.state_delta.player_sexual_state };
+    delete p.ejaculation_completed;
+    next.state_delta.player_sexual_state = p;
+  }
+  if (next.evidence && typeof next.evidence === 'object') {
+    next.evidence = { ...next.evidence };
+    delete next.evidence.sexual_resolution;
+  }
+  return next;
+}
+
+/** explicit 관계 성립 행동 — sexual relationship milestone을 여는 canonical 목록 (임의 확장 금지). */
+const SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS = new Set(['penetration', 'oral']);
 
 function stripAttemptMilestones(extract, targetId) {
   const next = { ...extract, state_delta: { ...(extract?.state_delta ?? {}) } };
@@ -355,38 +404,107 @@ function stripAttemptMilestones(extract, targetId) {
   return next;
 }
 
+export /** accepted 정본 범위 축소 — completed_action_types 밖의 milestone/event/ledger/completion을 제거한다. */
+function applyAcceptedActionScope(extract, contract, validated) {
+  const completed = new Set(validated.completed_action_types);
+  const next = { ...extract, state_delta: { ...(extract?.state_delta ?? {}) } };
+  const targetId = contract.target_id;
+  // milestone — first_kiss는 kiss 완료, sexual relationship은 explicit 완료 행동일 때만
+  if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
+    const rel = {};
+    for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
+      const p = { ...patch };
+      if (id === targetId && p.milestones && typeof p.milestones === 'object') {
+        const m = { ...p.milestones };
+        if (m.first_kiss_turn !== undefined && !completed.has('kiss')) delete m.first_kiss_turn;
+        const explicitCompleted = [...completed].some(action => SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS.has(action));
+        if (m.sexual_relationship_started_turn !== undefined && !explicitCompleted) delete m.sexual_relationship_started_turn;
+        p.milestones = m;
+      }
+      rel[id] = p;
+    }
+    next.state_delta.npc_relationship_state = rel;
+  }
+  // event_ledger — target 관련 성적 완료 event는 action type이 completed 범위일 때만 보존
+  if (Array.isArray(next.state_delta.event_ledger)) {
+    next.state_delta.event_ledger = next.state_delta.event_ledger.filter(ev => {
+      const type = typeof ev?.event_type === 'string' ? ev.event_type : '';
+      const summary = typeof ev?.summary === 'string' ? ev.summary : '';
+      if (/(refused|blocked|interrupted|reported|complaint|harassment|attempt|시도|거절|중단|막음|신고|항의|불쾌|경계|거부)/i.test(type + ' ' + summary)) return true;
+      const participants = Array.isArray(ev?.participants) ? ev.participants : [];
+      if (targetId && participants.length && !participants.includes(targetId)) return true;
+      const sexual = /(sexual|kiss|intimate|foreplay|penetration|oral|genital|성적|성관계|성행위|키스|삽입|친밀|사정|오르가즘)/i.test(type + ' ' + summary);
+      if (!sexual) return true;
+      const completion = /(completed|consummated)/i.test(type) || /(했다|완료|이루어졌|시작됐|끝났|성사|이뤄졌|하게 했|완료됐|끝났다)/i.test(summary);
+      if (!completion) return true;
+      const evAction = typeof ev?.action_type === 'string' ? ev.action_type : null;
+      if (evAction && completed.has(evAction)) return true;
+      return false; // 범위 밖 또는 generic 성적 완료 → fail-closed
+    });
+  }
+  // sexual_event_ledger — completed_action_types 범위만
+  next.state_delta.sexual_event_ledger = filterContractSexualLedger(next.state_delta.sexual_event_ledger, contract, validated.completed_action_types);
+  // player ejaculation — explicit 완료 행동이 뒷받침할 때만
+  if (next.state_delta.player_sexual_state?.ejaculation_completed === true) {
+    const explicitCompleted = [...completed].some(action => SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS.has(action));
+    if (!explicitCompleted) {
+      const p = { ...next.state_delta.player_sexual_state };
+      delete p.ejaculation_completed;
+      next.state_delta.player_sexual_state = p;
+      if (next.evidence && typeof next.evidence === 'object') {
+        next.evidence = { ...next.evidence };
+        delete next.evidence.sexual_resolution;
+      }
+    }
+  }
+  return next;
+}
+
 export function applyContractStateFirewall(extract, contract) {
   if (!contract) return extract;
   if (contract.route === 'ordinary_direct_blocked') {
-    return applyBlockedContractFirewall(extract, contract);
+    // blocked — milestone + 완료 event + sexual ledger completed + player completion 전부 차단
+    const scoped = {
+      ...extract,
+      state_delta: {
+        ...(extract?.state_delta ?? {}),
+        event_ledger: filterSexualCompletionEvents(extract?.state_delta?.event_ledger, contract.target_id),
+        sexual_event_ledger: filterContractSexualLedger(extract?.state_delta?.sexual_event_ledger, contract, [])
+      }
+    };
+    return stripPlayerSexualCompletion(applyBlockedContractFirewall(scoped, contract));
   }
   if (contract.route === 'ordinary_direct_attempt') {
     // attempt는 Extract의 action_resolution이 deterministic 검증을 통과하고
-    // accepted/partially_accepted + voluntary=true + 완료 행동이 있을 때만 성공 정본화를 허용한다.
+    // accepted + voluntary=true + 완료 행동이 있을 때만 성공 정본화를 허용한다.
     const resolution = extract?.action_resolution ?? extract?.state_delta?.action_resolution ?? null;
     const validated = validateActionResolution(resolution, contract);
     if (!validated) {
+      // 검증 실패 — milestone + 완료 event + ledger completed + player completion 차단 (감정·일반 업무 보존)
       const filtered = {
         ...extract,
         state_delta: {
           ...(extract?.state_delta ?? {}),
-          event_ledger: filterSexualCompletionEvents(extract?.state_delta?.event_ledger, contract.target_id)
+          event_ledger: filterSexualCompletionEvents(extract?.state_delta?.event_ledger, contract.target_id),
+          sexual_event_ledger: filterContractSexualLedger(extract?.state_delta?.sexual_event_ledger, contract, [])
         }
       };
-      return stripAttemptMilestones(filtered, contract.target_id);
+      return stripPlayerSexualCompletion(stripAttemptMilestones(filtered, contract.target_id));
     }
-    // accepted + voluntary + 실제 완료 행동일 때만 성공 정본화 허용.
-    // partially_accepted는 "완료된 범위만" 정본화되므로 성적 milestone을 통째로 승격하지 않는다.
-    const completedSome = validated.completed_action_types.length > 0;
-    if (validated.npc_response === 'accepted' && validated.voluntary && completedSome) {
-      return extract;
+    if (validated.npc_response === 'accepted' && validated.voluntary && validated.completed_action_types.length) {
+      // accepted도 completed_action_types 범위만 정본화
+      return applyAcceptedActionScope(extract, contract, validated);
     }
-    // accepted인데 completed가 비었거나 / partially_accepted / ambiguous·refused·interrupted
-    // → milestone·완료 event 차단
-    return stripAttemptMilestones(
-      { ...extract, state_delta: { ...(extract?.state_delta ?? {}), event_ledger: filterSexualCompletionEvents(extract?.state_delta?.event_ledger, contract.target_id) } },
-      contract.target_id
-    );
+    // partially_accepted / refused / interrupted / ambiguous — milestone·완료 event·ledger·completion 차단
+    const filtered = {
+      ...extract,
+      state_delta: {
+        ...(extract?.state_delta ?? {}),
+        event_ledger: filterSexualCompletionEvents(extract?.state_delta?.event_ledger, contract.target_id),
+        sexual_event_ledger: filterContractSexualLedger(extract?.state_delta?.sexual_event_ledger, contract, [])
+      }
+    };
+    return stripPlayerSexualCompletion(stripAttemptMilestones(filtered, contract.target_id));
   }
   return extract;
 }
