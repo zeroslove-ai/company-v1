@@ -10,6 +10,7 @@ import { clearPending, committedTurn, loadPending, openingCompleted, openingHist
 import { createUtilityUi } from './utility-ui.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
+import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
 
 // Duplicated (deliberately, not imported) from src/engine/choice-input.js: the frontend Worker
 // serves only src/frontend/pages as static assets (wrangler.frontend.jsonc), so a relative
@@ -214,13 +215,38 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       body_type_id: setupElements.bodyType?.value ?? '', speech_style_id: setupElements.speechStyle?.value ?? ''
     };
   }
+  /** 회사 맵 — 이미 받은 context.save만 읽는다. 추가 API 요청 0회. */
+  function renderCompanyMapPanel() {
+    // 테스트 하네스는 최소 document 스텁만 제공하므로 조회 자체를 방어한다.
+    if (typeof document?.getElementById !== 'function') return;
+    const container = document.getElementById('company-map');
+    if (!container) return;
+    const save = context?.save?.data ?? context?.save ?? {};
+    const model = buildCompanyMapModel({
+      save,
+      characters: context?.master?.characters ?? {},
+      locations: context?.master?.map?.locations ?? []
+    });
+    renderCompanyMap(container, model, {
+      onFill: value => {
+        const field = document.getElementById('player-action');
+        if (!field) return;
+        field.value = value;
+        field.focus();
+      }
+    });
+  }
+
   function render() {
     if (!viewModel || viewModelContext !== context || viewModelExtract !== currentExtract) refreshViewModel();
     renderState(elements, viewModel, { title: context?.game?.title });
     const openingTurn = openingHistoryTurn(context);
     const recent = context?.recent_turns ?? [];
-    // 초기 본문: 진행 턴이 있으면 최신 1턴만, 아직 시작 전이면 오프닝만 표시
-    renderHistory(elements.history, recent.length ? recent.slice(-1) : (openingTurn ? [openingTurn] : recent));
+    // 본문 timeline: 최근 20턴을 연속으로 유지한다. 새 턴이 생겨도 이전 Story가
+    // 중앙 화면에서 사라지지 않는다 (이전에는 slice(-1)로 최신 1턴만 남겨
+    // 브라우저를 닫지 않아도 과거 턴을 읽을 수 없었다).
+    renderHistory(elements.history, recent.length ? recent.slice(-20) : (openingTurn ? [openingTurn] : recent));
+    renderCompanyMapPanel();
     utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
     // 오버레이는 순수 설정 폼 전용. 저장된 설정(reserved)은 init에서 자동 진행되고

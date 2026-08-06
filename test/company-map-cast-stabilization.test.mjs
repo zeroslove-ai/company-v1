@@ -171,3 +171,45 @@ test('맵4b: 말 걸기 의도가 없는 순수 이동은 도착까지만 — �
   assert.equal(contract.transition_mode, 'movement');
   assert.deepEqual(contract.allowed_speaker_ids, ['player'], '도착 서술만, 발화는 다음 턴');
 });
+
+// ── O-8/9/10/13: 맵 패널 상호작용 ─────────────────────────────────────────
+
+const mapModule = await import('../src/frontend/pages/company-map.js');
+
+test('맵8/9: 장소·NPC 클릭 문장은 입력창 채우기용일 뿐 턴을 실행하지 않는다', () => {
+  assert.equal(mapModule.locationPromptText('브랜드전략팀 사무실'), '브랜드전략팀 사무실로 이동한다');
+  assert.equal(mapModule.npcPromptText('윤민아'), '윤민아를 찾아간다');
+});
+
+test('맵10/13: 맵 모델은 이미 받은 save만 읽고 네트워크를 호출하지 않는다', () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = () => { calls += 1; throw new Error('맵은 별도 API를 호출하면 안 된다'); };
+  let model;
+  try {
+    model = mapModule.buildCompanyMapModel({
+      save: save({ participants: ['player-1', 'heroine2'] }),
+      characters: CHARACTERS,
+      locations: LOCATIONS
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert.equal(calls, 0, '맵 전용 API 요청 0회');
+  assert.equal(model.player_location_id, 'brand_strategy_meeting_room');
+  assert.ok(model.floors.length, '층별 목록 생성');
+});
+
+test('맵10b: 위치 기록이 없는 NPC도 default location으로 배치되고 participants만 별도 표시된다', () => {
+  const model = mapModule.buildCompanyMapModel({
+    save: save({ participants: ['player-1', 'heroine2'] }),
+    characters: CHARACTERS,
+    locations: LOCATIONS
+  });
+  const everyone = model.floors.flatMap(floor => floor.places.flatMap(place => place.npcs));
+  const minah = everyone.find(npc => npc.npc_id === 'heroine2');
+  const wonhee = everyone.find(npc => npc.npc_id === 'heroine1');
+  assert.ok(minah?.inScene, '참가자는 강조 표시');
+  assert.ok(wonhee && !wonhee.inScene, '같은 장소여도 비참가자는 강조되지 않음');
+  assert.equal(model.unknown.length, 0, 'default location 덕분에 위치 미확인 없음');
+});
