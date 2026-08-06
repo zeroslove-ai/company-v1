@@ -6,6 +6,8 @@ import { parseNarrative as parseFrontendNarrative } from '../src/frontend/pages/
 import {
   collectUnresolvedDialogue,
   buildTaggingMessages,
+  buildSceneCandidateIds,
+  buildKnownAddresses,
   parseTaggingResponse,
   applySpeakerTags,
   allowedSpeakerIds,
@@ -17,12 +19,14 @@ import { applyNpcStatChanges } from '../src/engine/relationship/reducer.js';
 
 const MASTER = {
   characters: [
-    { character_id: 'heroine1', name: '서원희', role_title: '브랜드전략팀 팀장' },
-    { character_id: 'heroine2', name: '윤민아', role_title: '브랜드전략팀 사원' },
-    { character_id: 'heroine5', name: '이메이', role_title: '브랜드전략팀 사원' }
+    { character_id: 'heroine1', name: '서원희', role_title: '브랜드전략팀 팀장', position: '차장', prompt_card: { addressing: '팀원에게는 이름+씨, 공식 자리에서는 직급+님을 쓰며 항상 존댓말을 유지한다.' } },
+    { character_id: 'heroine2', name: '윤민아', role_title: '글로벌 캠페인 PM', position: '대리', prompt_card: { addressing: '선배에게는 직급 호칭, 후배에게는 이름+씨를 쓰며 공식 자리에서는 존댓말을 지킨다.' } },
+    { character_id: 'heroine5', name: '이메이', role_title: '브랜드 커뮤니티·SNS 주니어 플래너', position: '사원', prompt_card: { addressing: '공식 회의에서는 별명을 쓰지 않고, 친해지면 이름+씨와 장난스러운 호칭을 쓴다.' } }
   ],
   general_npcs: [
-    { npc_id: 'npc_secretary', name: '비서', role_title: '총무팀 비서' }
+    { npc_id: 'npc_secretary', name: '비서', role_title: '총무팀 비서' },
+    { npc_id: 'general_park_jungwoo', name: '박정우', role: '브랜드전략1팀 팀장' },
+    { npc_id: 'general_lee_minseok', name: '이민석', role: '디자인팀 대리' }
   ]
 };
 
@@ -356,4 +360,140 @@ test('5-2: applySpeakerTags는 비대사 블록 타입(player_inner_thought 등)
   // choices/choice_labels 보존
   assert.deepEqual(applied.parsedStory.choices, beforeChoices);
   assert.deepEqual(applied.parsedStory.choice_labels, beforeLabels);
+});
+
+
+// ---------- minor 보완: 실제 호칭 생성 / scene 등장 인물 / inline 안전 ----------
+
+test('minor-speaker-1: 운영 플레이어 동적 호칭 생성 (감사실 임원 금태양)', () => {
+  const addresses = buildKnownAddresses({
+    id: 'player', name: '금태양', department: '감사실', position: '임원', roleTitle: '', isPlayer: true
+  });
+  for (const expected of ['감사님', '임원님', '금 감사님', '금 임원님', '금태양 감사님', '금태양 임원님']) {
+    assert.ok(addresses.includes(expected), `플레이어 호칭: ${expected}`);
+  }
+  // 중복 없음
+  assert.equal(new Set(addresses).size, addresses.length, '중복 제거');
+  // 12개 이하
+  assert.ok(addresses.length <= 12, `최대 12개 (${addresses.length})`);
+});
+
+test('minor-speaker-2: 팀장 NPC 호칭 생성 (서원희)', () => {
+  const addresses = buildKnownAddresses({
+    id: 'heroine1', name: '서원희', department: '브랜드전략팀', position: '차장', roleTitle: '브랜드전략팀 팀장'
+  });
+  for (const expected of ['팀장님', '서 팀장님', '서원희 팀장님', '차장님', '서 차장님']) {
+    assert.ok(addresses.includes(expected), `서원희 호칭: ${expected}`);
+  }
+});
+
+test('minor-speaker-3: 일반 사원 NPC 호칭 생성 (이메이)', () => {
+  const addresses = buildKnownAddresses({
+    id: 'heroine5', name: '이메이', position: '사원', roleTitle: '브랜드 커뮤니티·SNS 주니어 플래너'
+  });
+  for (const expected of ['이메이 씨', '메이 씨', '이 사원님', '사원님']) {
+    assert.ok(addresses.includes(expected), `이메이 호칭: ${expected}`);
+  }
+});
+
+test('minor-speaker-4: 별칭 충돌 시 짧은 이름 호칭 제외', () => {
+  // 다른 등록 인물 "김민아"가 있으면 윤민아의 "민아 씨" 별칭은 충돌로 생성하지 않는다
+  const addresses = buildKnownAddresses({
+    id: 'heroine2', name: '윤민아', position: '대리', roleTitle: '글로벌 캠페인 PM',
+    otherNames: ['윤민아', '김민아']
+  });
+  assert.ok(!addresses.includes('민아 씨'), '충돌 별칭 제외');
+  assert.ok(addresses.includes('윤민아 씨'), '전체 이름 씨는 유지');
+  assert.ok(addresses.includes('대리님'), '직급 호칭 유지');
+  // 충돌이 없으면 별칭 생성
+  const noConflict = buildKnownAddresses({
+    id: 'heroine2', name: '윤민아', position: '대리', otherNames: ['윤민아']
+  });
+  assert.ok(noConflict.includes('민아 씨'), '충돌 없으면 별칭 생성');
+});
+
+test('minor-speaker-5: 일반 NPC 명시적 기존 addresses 보존', () => {
+  const addresses = buildKnownAddresses({
+    id: 'npc_secretary', name: '비서', roleTitle: '총무팀 비서',
+    explicitAddresses: ['박 과장님', '사무장님']
+  });
+  assert.ok(addresses.includes('박 과장님'), '명시 주소 보존 1');
+  assert.ok(addresses.includes('사무장님'), '명시 주소 보존 2');
+  assert.ok(addresses.includes('비서님'), '역할 기반 호칭도 생성');
+});
+
+test('minor-speaker-6: Scene 서술에서 신규 일반 NPC full name 탐지', () => {
+  const story = fourSections('박정우가 회의실 문을 열고 들어왔다.\n“팀장님, 요청하신 자료입니다.”');
+  const parsed = parseEngineNarrative(story, { master: MASTER });
+  const ids = buildSceneCandidateIds(parsed, { master: MASTER });
+  assert.ok(ids.includes('general_park_jungwoo'), '박정우가 scene 후보에 포함');
+});
+
+test('minor-speaker-7: Scene에 없는 NPC는 in_scene 후보 제외', () => {
+  const story = fourSections('이메이의 눈동자가 흔들렸다.\n“처음이니까 더 잘해주고 싶은 거예요.”');
+  const parsed = parseEngineNarrative(story, { master: MASTER });
+  const ids = buildSceneCandidateIds(parsed, { master: MASTER });
+  assert.ok(!ids.includes('general_lee_minseok'), '이민석 미등장 → 후보 제외');
+  assert.ok(ids.includes('heroine5'), '이메이는 dialogue로 등장 → 후보 포함');
+});
+
+test('minor-speaker-8: 동명이인은 scene 텍스트만으로 in_scene 판단하지 않음', () => {
+  const dupMaster = {
+    characters: [{ character_id: 'heroine9', name: '박정우' }],
+    general_npcs: [{ npc_id: 'general_park_jungwoo', name: '박정우' }]
+  };
+  const story = fourSections('박정우가 회의실 문을 열고 들어왔다.');
+  const parsed = parseEngineNarrative(story, { master: dupMaster });
+  const ids = buildSceneCandidateIds(parsed, { master: dupMaster });
+  assert.ok(!ids.includes('heroine9'), '동명이인 A 보류');
+  assert.ok(!ids.includes('general_park_jungwoo'), '동명이인 B 보류');
+});
+
+test('minor-speaker-9: Inline dialogue 태깅 후 blocks 화자 적용', () => {
+  // 화행 주어가 없는 inline — parser가 미확정으로 남기고 태거가 판별한다
+  const story = fourSections('화면을 보며 “확인해 보겠습니다.”라고 말했다.');
+  const parsed = parseEngineNarrative(story, { master: MASTER });
+  const items = collectUnresolvedDialogue(parsed);
+  assert.equal(items.length, 1, '미확정 inline 1개');
+  const tags = parseTaggingResponse('{"speakers":[{"dialogue_index":0,"speaker_id":"heroine5"}]}', allowedSpeakerIds(MASTER));
+  const applied = applySpeakerTags(parsed, tags, MASTER, { playerName: '금재완', unresolvedItems: items, rawStory: story });
+  const d = applied.parsedStory.blocks.filter(b => b.type === 'dialogue')[0];
+  assert.equal(d.speaker_id, 'heroine5');
+  assert.equal(d.speaker_name, '이메이');
+  assert.equal(d.text, '확인해 보겠습니다.');
+  // scene 앞뒤 서술 유지 (text는 trim된 형태)
+  const scenes = applied.parsedStory.blocks.filter(b => b.type === 'scene');
+  assert.ok(scenes.some(s => s.text === '화면을 보며'), '앞 서술 유지');
+  assert.ok(scenes.some(s => s.text === '라고 말했다.'), '뒤 서술 유지');
+});
+
+test('minor-speaker-10: Inline dialogue의 normalized_raw 원문 보존 + 4개 섹션', () => {
+  const story = [
+    '[1. 서사 및 행동]',
+    '이메이는 화면을 보며 “확인해 보겠습니다.”라고 말했다.',
+    '[2. 플레이어 속마음]', '좋아.',
+    '[3. 플레이어 상황판]', '회의실.',
+    '[4. 선택지]', '1. 같이 밥 먹자', '2. 노코멘트', '3. 넘어간다', '4. 조용히 한다'
+  ].join('\n');
+  const parsed = parseEngineNarrative(story, { master: MASTER });
+  const items = collectUnresolvedDialogue(parsed);
+  // parser가 확정(heroine5)했거나 태거가 확정 — 어느 쪽이든 normalized_raw는 원문 보존
+  const tags = parseTaggingResponse('{"speakers":[{"dialogue_index":0,"speaker_id":"heroine5"}]}', allowedSpeakerIds(MASTER));
+  const applied = applySpeakerTags(parsed, tags, MASTER, { playerName: '금재완', unresolvedItems: items, rawStory: story });
+  const after = applied.parsedStory.normalized_raw;
+  // 원문 라인 완전 동일
+  assert.ok(after.includes('이메이는 화면을 보며 “확인해 보겠습니다.”라고 말했다.'), 'inline 원문 라인 보존');
+  // 잘못된 화자명 삽입 문자열이 생기지 않아야 한다
+  assert.ok(!after.includes('이메이는 화면을 보며 이메이'), '이중 화자명 없음');
+  assert.ok(!after.includes('이메이는 화면을 보며 이메이 (자연스럽게):'), '부자연스러운 삽입 없음');
+  // 4개 섹션 보존
+  for (const marker of ['[1. 서사 및 행동]', '[2. 플레이어 속마음]', '[3. 플레이어 상황판]', '[4. 선택지]']) {
+    assert.ok(after.includes(marker), `섹션 보존: ${marker}`);
+  }
+  for (const choice of ['1. 같이 밥 먹자', '2. 노코멘트', '3. 넘어간다', '4. 조용히 한다']) {
+    assert.ok(after.includes(choice), `선택지 보존: ${choice}`);
+  }
+  // blocks 화자는 정상 적용
+  const d = applied.parsedStory.blocks.filter(b => b.type === 'dialogue')[0];
+  assert.equal(d.speaker_id, 'heroine5');
 });

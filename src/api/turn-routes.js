@@ -498,12 +498,14 @@ export function createTurnRoutes({ fetchImpl, edition }) {
               departmentName: playerCanonical?.departmentName ?? hydratedSave?.player?.department ?? '',
               positionName: playerCanonical?.positionName ?? '',
               roleTitle: typeof hydratedSave?.player?.role_title === 'string' ? hydratedSave.player.role_title : '',
-              addresses: []
+              addresses: [],
+              addressingDescription: hydratedSave?.player?.prompt_card?.addressing ?? ''
             };
             const sceneParticipantIds = buildSceneCandidateIds(parsedStory, {
               sceneParticipants: Array.isArray(hydratedSave?.last_npcs_present) ? hydratedSave.last_npcs_present : [],
               focalCharacterId: hydratedSave?.focal_character_id ?? null,
-              lastSpeakerId: hydratedSave?.last_speaker_id ?? null
+              lastSpeakerId: hydratedSave?.last_speaker_id ?? null,
+              master
             });
             const unresolvedItems = collectUnresolvedDialogue(parsedStory);
             const attempted = action.parsed_blocks?.speaker_tagging_attempted === true;
@@ -537,7 +539,9 @@ export function createTurnRoutes({ fetchImpl, edition }) {
                 else if (tagResult.speakers?.some(s => s.speaker_id)) status = 'applied';
 
                 if (status === 'applied') {
-                  const applied = applySpeakerTags(parsedStory, tagResult.speakers, master, { playerName, unresolvedItems });
+                  const applied = applySpeakerTags(parsedStory, tagResult.speakers, master, {
+                    playerName, unresolvedItems, rawStory: action.story_text
+                  });
                   timing.speaker_tagging_resolved_count = applied.appliedCount;
                   timing.speaker_tagging_rejected_count = applied.rejectedCount;
                   if (applied.changed) {
@@ -546,7 +550,11 @@ export function createTurnRoutes({ fetchImpl, edition }) {
                     if (saved) {
                       // 저장이 확인된 taggedParsedStory만 canonical로 승격 (화면·extract·commit·reload 일치)
                       parsedStory = applied.parsedStory;
-                      storyForExtract = applied.parsedStory.normalized_raw.trim() ? applied.parsedStory.normalized_raw : storyForExtract;
+                      // extract는 분리+화자명 삽입 버전(normalized_raw_extract)을 사용 —
+                      // extract-prompt가 "모든 발화 라인에 화자명 존재"를 기대하므로 원문 보존 버전은 extract에 쓰지 않는다
+                      storyForExtract = applied.parsedStory.normalized_raw_extract.trim()
+                        ? applied.parsedStory.normalized_raw_extract
+                        : (applied.parsedStory.normalized_raw.trim() ? applied.parsedStory.normalized_raw : storyForExtract);
                     } else {
                       // 저장 실패 → 로컬 태거 결과 사용 금지, parser 결과로 계속
                       timing.speaker_tagging_error = 'parsed_blocks_save_failed';
