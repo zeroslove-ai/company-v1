@@ -432,6 +432,18 @@ function detailsSection(title, rows, className = '') {
   return section;
 }
 
+// 관계 서사 요약은 2열 grid에 넣으면 긴 문장이 레이아웃을 깨므로 별도 전체 폭 섹션으로
+function renderRelationshipSummary(container, character) {
+  const summary = displayValue(character?.relationship_summary);
+  if (!summary) return;
+  const section = document.createElement('section');
+  section.className = 'character-detail-section relationship-summary-section';
+  const heading = document.createElement('h3'); heading.textContent = '관계';
+  const body = document.createElement('p'); body.className = 'physical-relation'; body.textContent = summary;
+  section.append(heading, body);
+  container.append(section);
+}
+
 function renderRelationshipRecord(container, character) {
   const record = object(character?.relationship_record) ?? {};
   container.append(detailsSection('관계·사정 기록', [
@@ -492,9 +504,9 @@ function renderFocalCharacter(container, focal, player) {
       ['키', body.height_cm === null || body.height_cm === undefined ? '' : `${body.height_cm}cm`],
       ['몸무게', body.weight_kg === null || body.weight_kg === undefined ? '' : `${body.weight_kg}kg`],
       ['체형', displayValue(body.body_type)],
-      ['가슴', displayValue(body.cup)],
-      ['관계', displayValue(character.relationship_summary) || '기록 없음']
+      ['가슴', displayValue(body.cup)]
     ]));
+    renderRelationshipSummary(container, character);
     renderRelationshipRecord(container, character);
     renderPrivateInfo(container, character);
   }
@@ -576,7 +588,9 @@ function renderPlayer(container, player, scene) {
       list.append(li);
     });
     section.append(list);
-    container.append(section);
+    // dl(#player-situation) 안에 넣으면 2열 grid 아이템이 되어 좁은 칸에 찌그러진다.
+    // dl 바로 뒤(부모 패널)에 배치해 전체 폭을 사용한다.
+    container.after?.(section) ?? container.parentElement?.append(section);
   }
 }
 

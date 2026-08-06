@@ -434,6 +434,7 @@
 .player-active-rules li {
   display: grid;
   gap: .1rem;
+  min-width: 0;
   padding: .5rem .6rem;
   border: 1px solid #345267;
   border-radius: .45rem;
@@ -447,5 +448,8 @@
 }
 .player-active-rules li span {
   color: #c9d8e4;
-  word-break: break-word;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.5;
 }
