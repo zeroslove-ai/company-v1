@@ -211,6 +211,13 @@ test('Story request streams, disables thinking, uses a 5000 max_tokens envelope,
       const found = actions.get(parsed.searchParams.get('action_id')?.replace('eq.', ''));
       return new Response(JSON.stringify([found].filter(Boolean)), { status: 200, headers: { 'content-type': 'application/json' } });
     }
+    if (parsed.pathname === '/rest/v1/game_actions' && init.method === 'PATCH') {
+      const found = actions.get(parsed.searchParams.get('action_id')?.replace('eq.', ''));
+      const expectedStatus = parsed.searchParams.get('processing_status')?.replace('eq.', '');
+      if (!found || (expectedStatus && found.processing_status !== expectedStatus)) return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
+      Object.assign(found, JSON.parse(init.body));
+      return new Response(JSON.stringify([found]), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
     const rpc = parsed.pathname.split('/').pop();
     const args = JSON.parse(init.body);
     if (rpc === 'reserve_turn_action') {

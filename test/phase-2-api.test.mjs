@@ -226,16 +226,20 @@ test('Phase 2 retries one genuinely failed Extract after an infrastructure error
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
 });
 
-test('Phase 2 does not make duplicate LLM calls while Story or Extract is already in progress', async () => {
+test('a stuck story_streaming action retries the story once, but Extract in progress still blocks duplicates', async () => {
   const mock = createMockFetch();
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  // story_streaming + 스토리 없음 = 좌초 액션 → 재시도 허용 (재개 경로)
   mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming' });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'wait' }), env);
-  assert.equal(story.status, 409);
+  assert.equal(story.status, 200);
+  await story.text();  // SSE body 소비 → run 실행 → LLM 호출
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
+  // extract 진행 중(extracting + 스토리 있음)이면 중복 extract 차단 (409 유지)
   mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', story_text: '[SCENE]\nSaved', processing_status: 'extracting', error_code: 'extract_in_progress' });
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(extract.status, 409);
-  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 0);
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
 });
 
 test('Phase 2 degrades Extract envelopes that fail contract normalization', async () => {
