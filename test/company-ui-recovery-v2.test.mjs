@@ -177,7 +177,7 @@ test('CSA app handoff closes synchronously instead of awaiting Story Extract Com
   assert.doesNotMatch(source, /onSubmit:\s*async\s*\(displayInput, canonicalAction\)/);
 });
 
-test('production Turn 20 speaker rules: vocative 씨 → player, 팀장님 excludes team lead, speech-subject wins', () => {
+test('production Turn 20 speaker rules — server keeps high-confidence rules, frontend leaves the rest unassigned', () => {
   const story = [
     '[1. 서사 및 행동]',
     '이메이의 손끝이 내 바지 위에서 망설이듯 멈춰 있었다.',
@@ -194,20 +194,20 @@ test('production Turn 20 speaker rules: vocative 씨 → player, 팀장님 exclu
     '[3. 플레이어 상황판]', '보고실.',
     '[4. 선택지]', '1. A', '2. B', '3. C', '4. D'
   ].join('\n');
-  const expected = ['player', 'heroine5', 'player', 'heroine1', 'heroine5', 'heroine1'];
   const dir = { heroine1: { name: '서원희' }, heroine5: { name: '이메이' } };
   const mstr = { characters: [
     { character_id: 'heroine1', name: '서원희' },
     { character_id: 'heroine5', name: '이메이' }
   ]};
-  for (const parsed of [
-    parseFrontendNarrative(story, { speakerDirectory: dir }),
-    parseEngineNarrative(story, { master: mstr })
-  ]) {
-    const dialogues = parsed.blocks.filter(b => b.type === 'dialogue');
-    assert.equal(dialogues.length, expected.length);
-    expected.forEach((exp, i) => {
-      assert.equal(dialogues[i].speaker_id, exp, `대사 ${i + 1} 화자`);
-    });
-  }
+  // 서버(정본): 화행 주어·팀장님 제외 규칙으로 최대한 확정, 추론 불충분(교대 추론 금지)은 null
+  const engine = parseEngineNarrative(story, { master: mstr });
+  const engineD = engine.blocks.filter(b => b.type === 'dialogue');
+  const engineExpected = ['player', 'heroine5', null, 'heroine1', 'heroine5', 'heroine1'];
+  engineExpected.forEach((exp, i) => assert.equal(engineD[i].speaker_id, exp, `서버 대사 ${i + 1}`));
+  // 프론트(스트리밍 임시): 명시적 화자 + 확신도 높은 핵심 규칙만, 추론 불충분은 미확정 — 완료 후 서버 canonical로 교체됨
+  const front = parseFrontendNarrative(story, { speakerDirectory: dir });
+  const frontD = front.blocks.filter(b => b.type === 'dialogue');
+  // 프론트 스트리밍 임시 규칙도 서버와 동일한 확신도 높은 규칙만 사용 → 같은 결과
+  const frontExpected = ['player', 'heroine5', null, 'heroine1', 'heroine5', 'heroine1'];
+  frontExpected.forEach((exp, i) => assert.equal(frontD[i].speaker_id, exp, `프론트 대사 ${i + 1}`));
 });

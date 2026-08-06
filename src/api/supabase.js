@@ -71,6 +71,20 @@ export function createSupabaseClient(env, fetchImpl) {
         body: JSON.stringify({ processing_status: status, error_code: errorCode })
       });
     },
+    /** 태거 적용 결과를 기존 parsed_blocks 컬럼에 조건부 PATCH로 저장한다 (스키마 변경 없음). */
+    updateActionParsedBlocks(gameId, actionId, parsedBlocks) {
+      const query = new URLSearchParams({
+        game_id: `eq.${gameId}`,
+        action_id: `eq.${actionId}`,
+        processing_status: 'eq.extracting',
+        story_text: 'not.is.null'
+      });
+      return request(`${baseUrl}/rest/v1/game_actions?${query}`, {
+        method: 'PATCH',
+        headers: { prefer: 'return=minimal' },
+        body: JSON.stringify({ parsed_blocks: parsedBlocks })
+      });
+    },
     async claimActionStatus(gameId, actionId, expectedStatus, nextStatus, errorCode, requireEmptyErrorCode = false) {
       const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}`, processing_status: `eq.${expectedStatus}` });
       if (requireEmptyErrorCode) query.set('error_code', 'is.null');

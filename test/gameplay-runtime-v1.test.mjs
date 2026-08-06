@@ -541,7 +541,7 @@ test('hydrateGameplayState fills npc_relationship_state, npc_stats, and csa_atti
     }]
   };
   const hydrated = hydrateGameplayState(save, master);
-  assert.deepEqual(hydrated.npc_stats['npc-hayeon'], { affection: 2 });
+  assert.deepEqual(hydrated.npc_stats['npc-hayeon'], { affinity: 2, sexual_arousal: 0 }); // 레거시 affection은 affinity로 정본화 + sexual_arousal 0 보충
   assert.deepEqual(hydrated.npc_relationship_state['npc-hayeon'], { closeness: 'acquaintance' });
   assert.deepEqual(hydrated.csa_attitudes['npc-hayeon']['csa-dress-code'], { familiarity: 0, resistance: 10, acceptance: 0, discomfort: 0, conscious_violation: false, last_changed_turn: 0 });
 

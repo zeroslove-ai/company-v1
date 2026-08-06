@@ -1,6 +1,12 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
-import { runExtract, streamStory } from './llm.js';
+import { runExtract, streamStory, runSpeakerTagging } from './llm.js';
+import {
+  collectUnresolvedDialogue,
+  buildTaggingMessages,
+  applySpeakerTags,
+  allowedSpeakerIds
+} from '../engine/speaker-tagger.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
@@ -411,7 +417,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const parsed = parseNarrative(raw, { master });
           await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: parsed });
           storyPersisted = true;
-          emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false });
+          emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false, parsed_blocks: parsed });
         } catch (error) {
           if (!storyPersisted) {
             await db.updateActionStatus(gameId, actionId, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
@@ -460,7 +466,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const timing = {};
       let degraded = false;
       try {
-        const parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
         // 근본 해결: extract는 원본이 아니라 파서가 화자명을 확정·삽입한 normalized_raw를 본다.
         // → 화자명 없는 대사가 있어도 extract가 추론할 필요 없이 명시된 화자명을 그대로 쓴다.
         let storyForExtract = (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text;
@@ -474,24 +480,41 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
           const hasSexualCsa = applicableCsa.some(csa => buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract).sexual_authorization === true);
-          // 스피커 태깅: 규칙 파서로 화자명 없는 대사가 남아 있으면 전용 LLM 호출로 확정한다.
-          // extract는 확정된 normalized_raw를 보고 화자명을 복사만 한다.
+          // 스피커 태깅: parser가 dialogue block으로 분류했으나 화자 미확정(speaker_id=null)인
+          // 대사가 있을 때만 전용 LLM을 1회 호출한다. 정상 턴(모두 확정)에서는 호출하지 않는다.
+          // 실패는 파이프라인을 막지 않되, 빈 catch로 숨기지 않고 timing/warning으로 기록한다.
           try {
-            const unlabeled = collectUnlabeledQuotes(action.story_text);
-            if (unlabeled.length) {
-              const tagMessages = buildTaggingMessages(action.story_text, master);
+            const playerName = hydratedSave?.player?.name ?? '플레이어';
+            const unresolvedItems = collectUnresolvedDialogue(parsedStory);
+            const alreadyTagged = Boolean(action.parsed_blocks?.tagged);
+            if (unresolvedItems.length && !alreadyTagged) {
+              const tagMessages = buildTaggingMessages(parsedStory, master, { playerName });
               const tagStart = Date.now();
-              const tagRaw = await runSpeakerTagging({ env, fetchImpl, messages: tagMessages });
+              const tagResult = await runSpeakerTagging({
+                env, fetchImpl,
+                messages: tagMessages,
+                allowlist: allowedSpeakerIds(master),
+                timeoutMs: 10000
+              });
               timing.tagging_ms = Date.now() - tagStart;
-              const tags = parseTaggingResponse(tagRaw && (tagRaw.content ?? JSON.stringify(tagRaw)));
-              if (tags.length) {
-                const tagged = applySpeakerTags(parsedStory?.normalized_raw, parsedStory?.dialogue_lines ?? [], unlabeled, tags);
-                if (parsedStory) parsedStory.normalized_raw = tagged.normalized_raw;
-                if (parsedStory) parsedStory.dialogue_lines = tagged.dialogue_lines;
-                storyForExtract = tagged.normalized_raw.trim() ? tagged.normalized_raw : storyForExtract;
+              timing.speaker_tagging_attempted = 1;
+              timing.speaker_tagging_unresolved_count = unresolvedItems.length;
+              if (tagResult.warning) timing.speaker_tagging_warning = tagResult.warning;
+              if (tagResult.speakers?.length) {
+                const applied = applySpeakerTags(parsedStory, tagResult.speakers, master, { playerName, unresolvedItems });
+                timing.speaker_tagging_resolved_count = applied.appliedCount;
+                timing.speaker_tagging_rejected_count = applied.rejectedCount;
+                if (applied.changed) {
+                  parsedStory = applied.parsedStory; // 정본: 이후 extract/guarded merge/commit 전부 이 객체를 사용
+                  storyForExtract = applied.parsedStory.normalized_raw.trim() ? applied.parsedStory.normalized_raw : storyForExtract;
+                  // 조건부 PATCH 저장 — 실패해도 턴 전체는 막지 않는다 (최종 commit에 taggedParsedStory가 들어가도록 보장)
+                  await db.updateActionParsedBlocks(gameId, actionId, applied.parsedStory).catch(() => undefined);
+                }
               }
             }
-          } catch { /* 태깅 실패는 파이프라인을 막지 않는다 */ }
+          } catch (tagError) {
+            timing.speaker_tagging_error = String(tagError?.message ?? tagError).slice(0, 200);
+          }
 
           const promptStart = Date.now();
           let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
@@ -567,7 +590,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const currentSave = context.save?.data ?? context.save;
-        const parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory, npcIds });
 
         const mergeStart = Date.now();

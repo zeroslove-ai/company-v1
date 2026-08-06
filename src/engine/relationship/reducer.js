@@ -47,5 +47,9 @@ export function applyNpcStatChanges(previous = {}, deltas = {}, { reason = '' } 
     }
         state[key] = clamp(current + delta, 0, 100);
   }
+  // resistance는 이 reducer의 변경 대상이 아니다 — 유효한 기존 값이 있으면 새 state에 보존한다.
+  // Extract가 resistance delta를 제안해도 별도 허용 계약이 없으므로 무시하고 warning만 남긴다.
+  if (Number.isFinite(base.resistance)) state.resistance = clamp(base.resistance, 0, 100);
+  if (Number.isFinite(proposed.resistance)) warnings.push('stat_resistance_change_ignored');
   return { state, warnings };
 }

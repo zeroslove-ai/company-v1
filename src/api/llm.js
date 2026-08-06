@@ -1,6 +1,7 @@
 import { HttpError } from './http.js';
 import { repairAndParseExtractJson } from '../engine/extract/json-repair.js';
 import { appendLateAuthoritativeCharacterCanon } from '../engine/story-prompt.js';
+import { parseTaggingResponse } from '../engine/speaker-tagger.js';
 
 const EXTRACT_TIMEOUT_MS = 75000;
 
@@ -98,25 +99,42 @@ function parseExtractContent(content) {
   }
 }
 
-/** 단일 대사 화자 판별 호출 — 화자명 없는 대사만 문맥과 함께 보낸다. 실패는 조용히 무시된다. */
-export async function runSpeakerTagging({ env, fetchImpl, messages }) {
-  const response = await postCompletion(env, fetchImpl, {
-    model: requireEnv(env, 'EXTRACT_MODEL'),
-    messages,
-    stream: false,
-    thinking: { type: 'disabled' },
-    response_format: { type: 'json_object' },
-    max_tokens: 800
-  });
-  const raw = await response.text();
-  const stripped = String(raw ?? '').trim().replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+/**
+ * 단일 대사 화자 판별 호출 — parser가 미확정으로 남긴 대사만 문맥과 함께 보낸다.
+ * OpenAI 호환 envelope에서 choices[0].message.content를 추출해 태거 결과 객체를 반환한다
+ * (envelope 전체를 반환하지 않는다). 실패는 파이프라인을 막지 않는다 — 호출부가 warning으로 기록.
+ */
+export async function runSpeakerTagging({ env, fetchImpl, messages, allowlist = [], timeoutMs = 10000 }) {
+  const signal = typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(timeoutMs) : undefined;
+  let response;
   try {
-    return JSON.parse(stripped);
-  } catch {
-    const m = /\{[\s\S]*\}/.exec(stripped);
-    if (m) { try { return JSON.parse(m[0]); } catch { return null; } }
-    return null;
+    response = await postCompletion(env, fetchImpl, {
+      model: requireEnv(env, 'EXTRACT_MODEL'),
+      messages,
+      stream: false,
+      thinking: { type: 'disabled' },
+      response_format: { type: 'json_object' },
+      max_tokens: 400
+    }, { signal });
+  } catch (error) {
+    if (error instanceof HttpError && (error.code === 'extract_timeout' || error.code === 'llm_upstream_failure')) {
+      return { speakers: [], warning: 'speaker_tagging_timeout' };
+    }
+    throw error;
   }
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    return { speakers: [], warning: 'speaker_tagging_invalid_json' };
+  }
+  const choice = payload?.choices?.[0];
+  if (!choice || choice.finish_reason === 'length') {
+    return { speakers: [], warning: choice?.finish_reason === 'length' ? 'speaker_tagging_truncated' : 'speaker_tagging_invalid_json' };
+  }
+  const content = choice?.message?.content;
+  const speakers = parseTaggingResponse(content, allowlist);
+  return { speakers, warning: null };
 }
 
 /** Runs the single Extract completion. No automatic retry or repair call is ever issued here. */

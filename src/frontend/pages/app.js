@@ -88,6 +88,13 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
         const directory = getContext?.()?.display?.npc_directory ?? {};
         onStory?.({ rawStory, parsed: parseNarrative(rawStory, { speakerDirectory: directory, playerName: getContext?.()?.save?.data?.player?.name ?? '플레이어' }), item, pending });
       }
+      if (item.event === 'complete') {
+        // 서버가 보낸 canonical parsed_blocks로 최종 렌더 교체 — 프론트 화자 추론 이중화 제거
+        const canonical = item.data?.parsed_blocks;
+        if (canonical?.blocks) {
+          onStory?.({ rawStory, parsed: canonical, item, pending, canonical: true });
+        }
+      }
     });
     if (!sawMeta || !rawStory.trim()) throw new ApiError({ endpoint: '/api/story', status: 502, code: 'incomplete_story_stream', message: '서사 스트림이 불완전합니다.', retryable: true });
     pending.step = 'extract'; persistPending(pending);

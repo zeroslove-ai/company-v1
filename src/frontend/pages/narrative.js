@@ -72,6 +72,15 @@ function speakerId(name, speakerDirectory) {
   return resolveSpeaker(name, speakerDirectory)?.id ?? '';
 }
 
+// 큰따옴표가 실제 발화가 아니라 인용/표기(문서 제목·슬로건·규정·메일 제목 등)인지 판별
+function isQuotationText(line, quoteStart) {
+  const before = line.slice(0, quoteStart);
+  const after = line.slice(quoteStart);
+  if (/(제목|문구|슬로건|규정|메일|이메일|채팅|메시지|인용|표지|문서|규칙|방침|공지|글|포스트|알림)\s*(?:은|는|이|가)?\s*(?:에는)?\s*$/u.test(before)) return true;
+  if (/(이라는|라고 적혀|라고 쓰여|라고 표시|이라고 적혀|이라고 쓰여|라는 문구|라고 명시|라고 써 있)/u.test(after)) return true;
+  return false;
+}
+
 function lastMentionedSpeaker(value, speakerDirectory, previous = null) {
   const line = String(value ?? '');
   const entries = directoryEntries(speakerDirectory);
@@ -145,7 +154,7 @@ function normalizedDialogue(name, direction, value, speakerDirectory, order, pla
   const text = String(value ?? '').trim().replace(/^["“”']+|["“”']+$/g, '').trim();
   // 화자명이 비어 있어도 대사칸은 생성한다 (미확정 화자 — 플레이어로 오표기하는 것보다 낫다)
   if (!acting || !text) return null;
-  return { speaker_id: isPlayer ? 'player' : (resolved?.id ?? ''), speaker_name: speaker, direction: acting, text, order };
+  return { speaker_id: isPlayer ? 'player' : (resolved?.id ?? null), speaker_name: speaker, direction: acting, text, order };
 }
 
 function parseDialogueLine(rawLine, speakerDirectory, order) {
@@ -200,64 +209,65 @@ function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory, playe
     }
 
     const quote = QUOTE_ONLY_LINE.exec(rawLine.trim());
-    // 화자명 없는 따옴표 대사: 직전 서술 화행 지목 → 그 NPC, 플레이어 호칭(감사님) → 직전 언급 NPC,
-    // 팀 내부 지칭(저희) → 직전 언급 NPC, 아니면 플레이어 (최근 화자로 오표기 방지)
+    // 화자명 없는 따옴표 대사: 확신도 높은 규칙 3개(화행 주어·감사님 호칭·호격)만 적용하고,
+    // 그 외는 미확정(speaker_id=null)으로 남긴다 — 플레이어 오표기 금지, 교대 추론 금지.
+    // 최종 화자는 서버 parser + 태거가 확정한 canonical parsed_blocks가 교체한다 (complete 이벤트).
     if (quote && !/^\([^)]*\)$/.test(quote[1].trim())) {
-      const mentioned = lastMentionedSpeaker(lastLine, speakerDirectory, recentSpeaker);
       const text = quote[1];
-      let speaker = null;
-      // 화행 주어를 최우선 mentioned로 (감사님/팀장님 규칙의 기준점)
-      const attrSubject = speechAttributionSubject(lastLine, speakerDirectory);
-      const baseMentioned = attrSubject ?? mentioned;
       const prevDialogue = dialogueLines[dialogueLines.length - 1];
-      // 1) 감사님 호칭 → 직전 언급 NPC (화행 주어 우선)
-      if (baseMentioned && /(감사님|임원님|금 감사님)/.test(text)) speaker = baseMentioned;
-      // 2) 팀장님 호칭 → 서원희를 부르는 말이므로 서원희 제외 언급 (없으면 플레이어)
-      else if (/팀장님/.test(text)) {
-        const nonLeader = lastMentionedSpeakerExcluding(lastLine, speakerDirectory, recentSpeaker, '서원희');
-        speaker = nonLeader ?? { id: 'player', name: playerName };
-      }
-      // 3) "이메이 씨," 호격으로 NPC를 직접 부르면 → 플레이어 (상대방을 부르는 말)
-      else if (namesAddressIn(text, speakerDirectory)) speaker = { id: 'player', name: playerName };
-      // 4) 팀 내부 지칭(저희) → 직전 언급 NPC
-      else if (mentioned && /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text)) speaker = mentioned;
-      // 5) 화행 주어: "서원희가 … 말했다" → 그 NPC (직전 대사 화자를 설명하는 화행이면 미적용)
-      else if (attrSubject && !(prevDialogue?.speaker_name && (attrSubject.name === prevDialogue.speaker_name || attrSubject.id === prevDialogue.speaker_id))) speaker = attrSubject;
-      // 6) 직전 서술 화행 지목 (직전 대사의 화자를 설명하는 화행이면 미적용)
+      const attrSubject = speechAttributionSubject(lastLine, speakerDirectory);
+      const mentioned = lastMentionedSpeaker(lastLine, speakerDirectory, recentSpeaker);
+      let speaker = null;
+      if (attrSubject && isSpeechAttribution(lastLine, attrSubject) && !(prevDialogue?.speaker_name === attrSubject.name)) speaker = attrSubject;
       else if (mentioned && isSpeechAttribution(lastLine, mentioned) && !(prevDialogue?.speaker_name === mentioned.name)) speaker = mentioned;
-      // 7) 직전 대사가 화자명 확정 NPC면 → 플레이어 (대화 교대 — 직전 서술 언급이 아니라 직전 대사 기준)
-      else if (prevDialogue && prevDialogue.speaker_id && prevDialogue.speaker_id !== 'player') speaker = { id: 'player', name: playerName };
-      // 8) 직전 서술에 NPC가 언급되면 → 그 NPC (첫 대사 포함, 대화 흐름 기본값)
-      else if (mentioned) speaker = mentioned;
+      else if (attrSubject && /(감사님|임원님|금 감사님)/.test(text)) speaker = attrSubject;
+      else if (mentioned && /(감사님|임원님|금 감사님)/.test(text)) speaker = mentioned;
+      else if (namesAddressIn(text, speakerDirectory)) speaker = { id: 'player', name: playerName };
       const resolved = speaker ?? { id: null, name: '' };
       appendDialogue(normalizedDialogue(resolved.name, '자연스럽게', text, speakerDirectory, dialogueLines.length, playerName));
       recentSpeaker = { id: resolved.id, name: resolved.name };
       continue;
     }
-
-    // 라인 중간/끝에 큰따옴표 대사가 섞여 있으면 서술 + 대사 + 서술로 분리해 전부 대사칸화
+// 라인 중간/끝에 큰따옴표 — 인용/표기(문서 제목·슬로건·규정·메일 제목)는 대사로 만들지 않는다.
     const parts = splitQuotedParts(rawLine);
     if (parts.length > 1) {
-      let ctxLine = lastLine;
+      let speechCount = 0;
+      let offset = 0;
       for (const part of parts) {
-        if (part.quoted && part.text.trim()) {
-          const mentioned = lastMentionedSpeaker(ctxLine, speakerDirectory, recentSpeaker);
+        if (part.quoted && part.text.trim() && !/^\([^)]*\)$/.test(part.text.trim()) && !isQuotationText(rawLine, offset)) speechCount += 1;
+        offset += part.text.length + (part.quoted ? 2 : 0);
+      }
+      if (speechCount === 0) {
+        recentSpeaker = lastMentionedSpeaker(rawLine, speakerDirectory, recentSpeaker);
+        narrative.push(rawLine);
+        lastLine = rawLine;
+        continue;
+      }
+      const prevDialogue = dialogueLines[dialogueLines.length - 1];
+      let ctxLine = lastLine;
+      offset = 0;
+      for (const part of parts) {
+        if (part.quoted && part.text.trim() && !/^\([^)]*\)$/.test(part.text.trim()) && !isQuotationText(rawLine, offset)) {
           const text = part.text;
-          let speaker = null;
           const attrSubject = speechAttributionSubject(ctxLine, speakerDirectory);
-          if (attrSubject) speaker = attrSubject;
-          else if (mentioned && isSpeechAttribution(ctxLine, mentioned)) speaker = mentioned;
-          else if (mentioned && (/(감사님|임원님|금 감사님|팀장님)/.test(text) || /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text))) speaker = mentioned;
+          const mentioned = lastMentionedSpeaker(ctxLine, speakerDirectory, recentSpeaker);
+          let speaker = null;
+          if (attrSubject && isSpeechAttribution(ctxLine, attrSubject) && !(prevDialogue?.speaker_name === attrSubject.name)) speaker = attrSubject;
+          else if (mentioned && isSpeechAttribution(ctxLine, mentioned) && !(prevDialogue?.speaker_name === mentioned.name)) speaker = mentioned;
+          else if (attrSubject && /(감사님|임원님|금 감사님)/.test(text)) speaker = attrSubject;
+          else if (mentioned && /(감사님|임원님|금 감사님)/.test(text)) speaker = mentioned;
           else if (namesAddressIn(text, speakerDirectory)) speaker = { id: 'player', name: playerName };
-          else if (recentSpeaker && recentSpeaker.id && recentSpeaker.id !== 'player') speaker = { id: 'player', name: playerName };
           const resolved = speaker ?? { id: null, name: '' };
           appendDialogue(normalizedDialogue(resolved.name, '자연스럽게', text, speakerDirectory, dialogueLines.length, playerName));
           recentSpeaker = { id: resolved.id, name: resolved.name };
+        } else if (part.quoted) {
+          narrative.push(`“${part.text}”`);
         } else if (part.text.trim()) {
           recentSpeaker = lastMentionedSpeaker(part.text, speakerDirectory, recentSpeaker);
           narrative.push(part.text);
           ctxLine = part.text;
         }
+        offset += part.text.length + (part.quoted ? 2 : 0);
       }
       continue;
     }
