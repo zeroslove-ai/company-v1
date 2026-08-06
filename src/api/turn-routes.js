@@ -768,7 +768,8 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           // Scene Cast Gateway — Story 호출 전에 이번 턴 출연·발화 권한을 확정한다.
           // 순수 함수이며 LLM/네트워크/DB 호출이 없다.
           const sceneCastContract = buildSceneCastContract({
-            save: hydratedSave, master, playerAction, structuredAction, actionContract
+            save: hydratedSave, master, playerAction, structuredAction, actionContract,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           const speakerNames = speakerNameById(master, hydratedSave?.player?.name);
           timing.cast_present_count = sceneCastContract.present_npc_ids.length;

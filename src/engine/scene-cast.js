@@ -417,6 +417,26 @@ export function isNpcPresentAtCurrentScene({
  * default_location_id로 보완한다. present 여부와 무관하게 "회사 어디에 있는가"만
  * 답한다 — present=false여도 위치는 계속 유지된다.
  */
+/** master.characters(배열)를 id→캐릭터 맵으로 바꾼다. */
+function charactersMapOf(master) {
+  const map = {};
+  for (const entry of Array.isArray(master?.characters) ? master.characters : []) {
+    const id = identity(entry?.character_id ?? entry?.id);
+    if (id) map[id] = entry;
+  }
+  return map;
+}
+
+/** master.general_npcs(배열)를 id→프로필 맵으로 바꾼다. */
+function generalNpcProfilesOf(master) {
+  const map = {};
+  for (const entry of Array.isArray(master?.general_npcs) ? master.general_npcs : []) {
+    const id = identity(entry?.npc_id ?? entry?.id);
+    if (id) map[id] = entry;
+  }
+  return map;
+}
+
 export function resolveNpcLocationId({ save, npcId, charactersMap = {}, generalNpcProfiles = {}, mapLocations = [] }) {
   const stored = identity(save?.npc_scene_state?.[npcId]?.location_id);
   if (stored) return stored;
@@ -547,7 +567,8 @@ export function buildSceneCastContract({
   master = {},
   playerAction = '',
   structuredAction = null,
-  actionContract = null
+  actionContract = null,
+  mapLocations = []
 } = {}) {
   const registeredIds = registeredNpcIdSet(master);
   const sceneState = isPlainObject(save?.scene_state) ? save.scene_state : {};
@@ -578,8 +599,20 @@ export function buildSceneCastContract({
   const destinationNpcState = isMovementTurn && destinationNpcIds.length === 1
     ? npcSceneState[destinationNpcIds[0]]
     : null;
+  // 안정화 수정 H — 저장 위치가 없으면 캐릭터 canon의 default_location_id(그다음
+  // map.locations의 default_npc_ids)로 보완한다. 예전에는 여기서 null이 나와
+  // 이동 Commit 자체가 적용되지 않았고("민아 보러 가야지" → 이동 저장 안 됨),
+  // 대상 NPC는 계속 장면 밖에 남았다. 여전히 근거가 없으면 null을 유지한다.
   const destinationLocationId = isMovementTurn && destinationNpcIds.length === 1
-    ? (identity(destinationNpcState?.location_id) ?? null)
+    ? (identity(destinationNpcState?.location_id)
+      ?? resolveNpcLocationId({
+        save,
+        npcId: destinationNpcIds[0],
+        charactersMap: charactersMapOf(master),
+        generalNpcProfiles: generalNpcProfilesOf(master),
+        mapLocations
+      })
+      ?? null)
     : null;
   // scene_id는 NPC 저장 상태에 있으면 사용하고, 없으면 검증된 location_id로 대체.
   // 새 장소 이름을 추측하거나 생성하지 않는다.
