@@ -123,7 +123,7 @@ test('회사맵 제품: 실제 DOM 렌더가 빈 패널이 아니며 클릭은 �
     renderCompanyMap(container, model, { onFill: value => filled.push(value) });
     const nodes = walk(container);
     assert.ok(nodes.some(node => node.className.includes('company-map-current')));
-    assert.equal(nodes.filter(node => node.className.includes('company-map-place ')).length, 24);
+    assert.equal(nodes.filter(node => String(node.className).split(/\s+/).includes('company-map-place')).length, 24);
     const office = nodes.find(node => node.className === 'company-map-place-name' && node.textContent.includes('브랜드전략팀 사무실'));
     const minah = nodes.find(node => node.className.includes('company-map-npc') && node.textContent === '윤민아');
     assert.ok(office?.listeners.click, '장소 클릭 handler 없음');
