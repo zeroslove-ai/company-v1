@@ -15,132 +15,295 @@
         "personality": "팀원의 상태를 세심히 살피지만 책임 회피에는 단호하다. 힘들어도 내색하지 않는다.",
         "speech": "부드럽고 분명한 존댓말로 결론과 이유를 함께 전한다.",
         "addressing": "팀원에게는 이름+씨, 공식 자리에서는 직급+님을 쓰며 항상 존댓말을 유지한다.",
-        "distinctive_traits": ["책임을 먼저 짊어짐", "과로를 숨김", "팀 분위기를 세심히 관찰"],
+        "distinctive_traits": [
+          "책임을 먼저 짊어짐",
+          "과로를 숨김",
+          "팀 분위기를 세심히 관찰"
+        ],
         "csa_style": "겉으로 침착하지만 팀원의 안전과 선택권을 먼저 따진다."
       },
-      "body": {"height_cm": 168, "weight_kg": 55, "body_type": "균형 잡힌 성숙한 체형", "cup": "C컵"},
+      "body": {
+        "height_cm": 168,
+        "weight_kg": 55,
+        "body_type": "균형 잡힌 성숙한 체형",
+        "cup": "C컵"
+      },
       "private_info": {
-        "nipple": "차분한 분홍빛", "areola_size": "보통", "areola_color": "옅은 갈색", "pubic_hair": "단정하게 정리",
-        "past_partner_count": 2, "past_orgasm_count": 7, "relationship": "현재 연인 없음",
+        "nipple": "차분한 분홍빛",
+        "areola_size": "보통",
+        "areola_color": "옅은 갈색",
+        "pubic_hair": "단정하게 정리",
+        "past_partner_count": 2,
+        "past_orgasm_count": 7,
+        "relationship": "현재 연인 없음",
         "intimate_notes": "주도권을 쉽게 내주지 않으며 충분한 신뢰와 명확한 합의를 중요하게 여긴다."
       },
       "initial_relationship": {
-        "closeness": "acquaintance", "romance_status": "none", "current_boundary": "professional",
-        "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null},
+        "closeness": "acquaintance",
+        "romance_status": "none",
+        "current_boundary": "professional",
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "브랜드전략팀에 합류한 플레이어를 팀원으로 대하며 실무 능력, 책임감, 타인을 대하는 태도를 관찰하고 있다."
       },
-      "initial_stats": {"affection": 0},
+      "initial_stats": {
+        "affinity": 10,
+        "resistance": 45,
+        "csa_acceptance": 50
+      },
       "initial_csa_attitudes": {},
-      "storage_bucket": "Image", "storage_prefix": "Heroine1", "primary_image_path": "Heroine1/one_main.jpg", "adult_image_prefix": "Heroine1/adult/",
-      "voice_id": "259d7fde62cd445fbde3ce2d8d4f2f3b", "mapping_status": "resolved"
+      "storage_bucket": "Image",
+      "storage_prefix": "Heroine1",
+      "primary_image_path": "Heroine1/one_main.jpg",
+      "adult_image_prefix": "Heroine1/adult/",
+      "voice_id": "259d7fde62cd445fbde3ce2d8d4f2f3b",
+      "mapping_status": "resolved"
     },
     "heroine2": {
-      "character_id": "heroine2", "name": "윤민아", "age": 29, "gender": "female", "department": "브랜드전략팀", "position": "대리",
-      "role_title": "글로벌 캠페인 PM", "company_tenure": "5년 차",
+      "character_id": "heroine2",
+      "name": "윤민아",
+      "age": 29,
+      "gender": "female",
+      "department": "브랜드전략팀",
+      "position": "대리",
+      "role_title": "글로벌 캠페인 PM",
+      "company_tenure": "5년 차",
       "prompt_card": {
         "identity": "글로벌 캠페인을 이끄는 29세 대리. 실행과 결과를 책임지는 팀의 에이스.",
         "appearance": "연갈색 장발과 또렷한 눈매, 세련된 하늘색 블라우스 차림.",
         "personality": "빠른 판단과 준비성을 갖췄지만 완벽해 보여야 한다는 부담을 안고 있다.",
         "speech": "빠르고 명료한 존댓말로 결론과 실행안을 먼저 제시한다.",
         "addressing": "선배에게는 직급 호칭, 후배에게는 이름+씨를 쓰며 공식 자리에서는 존댓말을 지킨다.",
-        "distinctive_traits": ["빈틈을 숨김", "도움 요청이 늦음", "빠른 상황 판단"],
+        "distinctive_traits": [
+          "빈틈을 숨김",
+          "도움 요청이 늦음",
+          "빠른 상황 판단"
+        ],
         "csa_style": "표면 적응은 빠르지만 자신의 선택권 침해에는 단호히 반응한다."
       },
-      "body": {"height_cm": 165, "weight_kg": 51, "body_type": "슬림하고 탄탄한 체형", "cup": "B컵"},
+      "body": {
+        "height_cm": 165,
+        "weight_kg": 51,
+        "body_type": "슬림하고 탄탄한 체형",
+        "cup": "B컵"
+      },
       "private_info": {
-        "nipple": "선명한 분홍빛", "areola_size": "작은 편", "areola_color": "분홍빛 갈색", "pubic_hair": "깔끔하게 제모",
-        "past_partner_count": 1, "past_orgasm_count": 4, "relationship": "장기 연애 종료 후 현재 솔로",
+        "nipple": "선명한 분홍빛",
+        "areola_size": "작은 편",
+        "areola_color": "분홍빛 갈색",
+        "pubic_hair": "깔끔하게 제모",
+        "past_partner_count": 1,
+        "past_orgasm_count": 4,
+        "relationship": "장기 연애 종료 후 현재 솔로",
         "intimate_notes": "자신의 통제권과 준비가 확보되어야 긴장을 풀며, 예상 밖의 상황에는 방어적으로 반응한다."
       },
       "initial_relationship": {
-        "closeness": "acquaintance", "romance_status": "none", "current_boundary": "professional",
-        "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null},
+        "closeness": "acquaintance",
+        "romance_status": "none",
+        "current_boundary": "professional",
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "플레이어를 프로젝트 구성원으로 대하며 말보다 결과를 만드는 사람인지, 책임을 남에게 넘기지 않는지 관찰한다."
       },
-      "initial_stats": {"affection": 0}, "initial_csa_attitudes": {},
-      "storage_bucket": "Image", "storage_prefix": "Heroine2", "primary_image_path": "Heroine2/minami_main.jpg", "adult_image_prefix": "Heroine2/adult/",
-      "voice_id": "85ac82e33b014a16abe9d0b4b9b0cb68", "mapping_status": "resolved"
+      "initial_stats": {
+        "affinity": 8,
+        "resistance": 60,
+        "csa_acceptance": 35
+      },
+      "initial_csa_attitudes": {},
+      "storage_bucket": "Image",
+      "storage_prefix": "Heroine2",
+      "primary_image_path": "Heroine2/minami_main.jpg",
+      "adult_image_prefix": "Heroine2/adult/",
+      "voice_id": "85ac82e33b014a16abe9d0b4b9b0cb68",
+      "mapping_status": "resolved"
     },
     "heroine3": {
-      "character_id": "heroine3", "name": "김제나", "age": 24, "gender": "female", "department": "브랜드전략팀", "position": "사원",
-      "role_title": "주니어 브랜드 플래너", "company_tenure": "입사 3개월 차",
+      "character_id": "heroine3",
+      "name": "김제나",
+      "age": 24,
+      "gender": "female",
+      "department": "브랜드전략팀",
+      "position": "사원",
+      "role_title": "주니어 브랜드 플래너",
+      "company_tenure": "입사 3개월 차",
       "prompt_card": {
         "identity": "입사 3개월 차 24세 사원. 표정과 분위기를 읽는 관찰형 신입.",
         "appearance": "적갈색 장발과 맑은 회갈색 눈, 액세서리 없는 단정한 차림.",
         "personality": "수줍지만 수동적이지 않다. 확신이 생기면 조용히 핵심을 짚는다.",
         "speech": "조심스러운 존댓말로 전제를 붙이다가도 확신이 서면 분명해진다.",
         "addressing": "선배에게는 직급·선배 호칭, 동갑 동기에게는 이름을 편하게 쓴다.",
-        "distinctive_traits": ["표정에 감정이 드러남", "준비 부족을 자책", "타이밍형 유머"],
+        "distinctive_traits": [
+          "표정에 감정이 드러남",
+          "준비 부족을 자책",
+          "타이밍형 유머"
+        ],
         "csa_style": "주변 반응을 먼저 살피며 겉으로 적응해도 불안이 오래 남는다."
       },
-      "body": {"height_cm": 160, "weight_kg": 48, "body_type": "작고 부드러운 체형", "cup": "B컵"},
+      "body": {
+        "height_cm": 160,
+        "weight_kg": 48,
+        "body_type": "작고 부드러운 체형",
+        "cup": "B컵"
+      },
       "private_info": {
-        "nipple": "연한 분홍빛", "areola_size": "작은 편", "areola_color": "연분홍", "pubic_hair": "자연스럽게 다듬음",
-        "past_partner_count": 0, "past_orgasm_count": 1, "relationship": "연애 경험이 거의 없음",
+        "nipple": "연한 분홍빛",
+        "areola_size": "작은 편",
+        "areola_color": "연분홍",
+        "pubic_hair": "자연스럽게 다듬음",
+        "past_partner_count": 0,
+        "past_orgasm_count": 1,
+        "relationship": "연애 경험이 거의 없음",
         "intimate_notes": "불안을 숨기지 못하지만 신뢰가 생기면 자신의 감각과 경계를 솔직하게 설명하려 한다."
       },
       "initial_relationship": {
-        "closeness": "acquaintance", "romance_status": "none", "current_boundary": "cautious_professional",
-        "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null},
+        "closeness": "acquaintance",
+        "romance_status": "none",
+        "current_boundary": "cautious_professional",
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "플레이어에게 먼저 다가가기보다 말투와 표정을 관찰하며 안전하고 존중할 수 있는 동료인지 확인하고 있다."
       },
-      "initial_stats": {"affection": 0}, "initial_csa_attitudes": {},
-      "storage_bucket": "Image", "storage_prefix": "Heroine3", "primary_image_path": "Heroine3/jena_main.jpg", "adult_image_prefix": "Heroine3/adult/",
-      "voice_id": "46939387dd944a45a399bd92b8de52cb", "mapping_status": "resolved"
+      "initial_stats": {
+        "affinity": 12,
+        "resistance": 35,
+        "csa_acceptance": 65
+      },
+      "initial_csa_attitudes": {},
+      "storage_bucket": "Image",
+      "storage_prefix": "Heroine3",
+      "primary_image_path": "Heroine3/jena_main.jpg",
+      "adult_image_prefix": "Heroine3/adult/",
+      "voice_id": "46939387dd944a45a399bd92b8de52cb",
+      "mapping_status": "resolved"
     },
     "heroine4": {
-      "character_id": "heroine4", "name": "한리브", "age": 27, "gender": "female", "department": "브랜드전략팀", "position": "대리",
-      "role_title": "브랜드 보이스·콘텐츠 리드", "company_tenure": "4년 차",
+      "character_id": "heroine4",
+      "name": "한리브",
+      "age": 27,
+      "gender": "female",
+      "department": "브랜드전략팀",
+      "position": "대리",
+      "role_title": "브랜드 보이스·콘텐츠 리드",
+      "company_tenure": "4년 차",
       "prompt_card": {
         "identity": "4년 차 27세 대리. 언어와 완성도를 책임지는 조용한 버팀목.",
         "appearance": "단정히 묶은 흑발과 차분한 눈매, 절제된 화이트 셔츠 차림.",
         "personality": "낯선 사람 앞에서는 필요한 말만 하지만 기억력이 좋고 세심하다.",
         "speech": "낮고 정돈된 존댓말로 정확하게 말하며 수식을 아낀다.",
         "addressing": "공식 자리에서 사적 별명을 쓰지 않고 직급 호칭을 지킨다.",
-        "distinctive_traits": ["기여를 드러내지 않음", "행동으로 마음을 표현", "좋은 기억력"],
+        "distinctive_traits": [
+          "기여를 드러내지 않음",
+          "행동으로 마음을 표현",
+          "좋은 기억력"
+        ],
         "csa_style": "즉시 따르기보다 관찰하며 모순을 오래 검토한다."
       },
-      "body": {"height_cm": 170, "weight_kg": 56, "body_type": "길고 단정한 체형", "cup": "C컵"},
+      "body": {
+        "height_cm": 170,
+        "weight_kg": 56,
+        "body_type": "길고 단정한 체형",
+        "cup": "C컵"
+      },
       "private_info": {
-        "nipple": "옅은 갈색", "areola_size": "보통", "areola_color": "차분한 갈색", "pubic_hair": "짧게 정리",
-        "past_partner_count": 1, "past_orgasm_count": 3, "relationship": "현재 연인 없음",
+        "nipple": "옅은 갈색",
+        "areola_size": "보통",
+        "areola_color": "차분한 갈색",
+        "pubic_hair": "짧게 정리",
+        "past_partner_count": 1,
+        "past_orgasm_count": 3,
+        "relationship": "현재 연인 없음",
         "intimate_notes": "말보다 행동의 일관성을 오래 확인하며, 사적인 정보를 쉽게 공개하지 않는다."
       },
       "initial_relationship": {
-        "closeness": "acquaintance", "romance_status": "none", "current_boundary": "reserved_professional",
-        "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null},
+        "closeness": "acquaintance",
+        "romance_status": "none",
+        "current_boundary": "reserved_professional",
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "플레이어에게 친절하지만 일정한 거리를 유지하며, 말과 행동의 일관성을 조용히 기억하고 판단한다."
       },
-      "initial_stats": {"affection": 0}, "initial_csa_attitudes": {},
-      "storage_bucket": "Image", "storage_prefix": "Heroine4", "primary_image_path": "Heroine4/live_main.jpg", "adult_image_prefix": "Heroine4/adult/",
-      "voice_id": "d06889767ac5416293584676309fa740", "mapping_status": "resolved"
+      "initial_stats": {
+        "affinity": 6,
+        "resistance": 65,
+        "csa_acceptance": 30
+      },
+      "initial_csa_attitudes": {},
+      "storage_bucket": "Image",
+      "storage_prefix": "Heroine4",
+      "primary_image_path": "Heroine4/live_main.jpg",
+      "adult_image_prefix": "Heroine4/adult/",
+      "voice_id": "d06889767ac5416293584676309fa740",
+      "mapping_status": "resolved"
     },
     "heroine5": {
-      "character_id": "heroine5", "name": "이메이", "age": 24, "gender": "female", "department": "브랜드전략팀", "position": "사원",
-      "role_title": "브랜드 커뮤니티·SNS 주니어 플래너", "company_tenure": "입사 3개월 차",
+      "character_id": "heroine5",
+      "name": "이메이",
+      "age": 24,
+      "gender": "female",
+      "department": "브랜드전략팀",
+      "position": "사원",
+      "role_title": "브랜드 커뮤니티·SNS 주니어 플래너",
+      "company_tenure": "입사 3개월 차",
       "prompt_card": {
         "identity": "입사 3개월 차 24세 사원. 커뮤니티와 참여를 움직이는 행동형 신입.",
         "appearance": "짙은 갈색 단발과 생기 있는 눈웃음, 활동적인 오피스룩 차림.",
         "personality": "낯가림이 풀리면 아이디어가 넘치고 팀 분위기를 밝힌다.",
         "speech": "친해지면 말이 길어지고 즉흥적인 아이디어를 바로 공유한다.",
         "addressing": "공식 회의에서는 별명을 쓰지 않고, 친해지면 이름+씨와 장난스러운 호칭을 쓴다.",
-        "distinctive_traits": ["실패 후 회복이 빠름", "밝음으로 갈등을 넘기려 함", "독특한 시각적 취향"],
+        "distinctive_traits": [
+          "실패 후 회복이 빠름",
+          "밝음으로 갈등을 넘기려 함",
+          "독특한 시각적 취향"
+        ],
         "csa_style": "낯선 상황에서도 긍정적 이유를 먼저 찾으며 빠르게 적응한다."
       },
-      "body": {"height_cm": 158, "weight_kg": 47, "body_type": "작고 활동적인 체형", "cup": "A컵"},
+      "body": {
+        "height_cm": 158,
+        "weight_kg": 47,
+        "body_type": "작고 활동적인 체형",
+        "cup": "A컵"
+      },
       "private_info": {
-        "nipple": "밝은 분홍빛", "areola_size": "작은 편", "areola_color": "연분홍", "pubic_hair": "부분 제모",
-        "past_partner_count": 1, "past_orgasm_count": 2, "relationship": "가벼운 연애 이후 현재 솔로",
+        "nipple": "밝은 분홍빛",
+        "areola_size": "작은 편",
+        "areola_color": "연분홍",
+        "pubic_hair": "부분 제모",
+        "past_partner_count": 1,
+        "past_orgasm_count": 2,
+        "relationship": "가벼운 연애 이후 현재 솔로",
         "intimate_notes": "호기심은 많지만 분위기에 휩쓸린 뒤에도 자신의 경계와 감정을 다시 확인하려 한다."
       },
       "initial_relationship": {
-        "closeness": "acquaintance", "romance_status": "none", "current_boundary": "friendly_professional",
-        "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null},
+        "closeness": "acquaintance",
+        "romance_status": "none",
+        "current_boundary": "friendly_professional",
+        "milestones": {
+          "first_kiss_turn": null,
+          "sexual_relationship_started_turn": null
+        },
         "relationship_summary": "플레이어를 처음에는 조심스럽게 관찰하며, 안전한 동료라고 판단하면 아이디어와 일상적인 이야기를 빠르게 공유한다."
       },
-      "initial_stats": {"affection": 0}, "initial_csa_attitudes": {},
-      "storage_bucket": "Image", "storage_prefix": "Heroine5", "primary_image_path": "Heroine5/may_main.jpg", "adult_image_prefix": "Heroine5/adult/",
-      "voice_id": "03a79d68ca184930a1215f9b1b8eb5b5", "mapping_status": "resolved"
+      "initial_stats": {
+        "affinity": 14,
+        "resistance": 30,
+        "csa_acceptance": 70
+      },
+      "initial_csa_attitudes": {},
+      "storage_bucket": "Image",
+      "storage_prefix": "Heroine5",
+      "primary_image_path": "Heroine5/may_main.jpg",
+      "adult_image_prefix": "Heroine5/adult/",
+      "voice_id": "03a79d68ca184930a1215f9b1b8eb5b5",
+      "mapping_status": "resolved"
     }
   }
 }

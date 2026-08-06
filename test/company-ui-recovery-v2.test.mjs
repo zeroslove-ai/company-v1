@@ -140,7 +140,7 @@ test('manual TTS recovers a registered line from an existing Story without store
 
 test('character display derives stat deltas from pre/post saves and unlocks private records from committed ledger', () => {
   const save = {
-    npc_stats: { heroine1: { affection: 4, work_trust: 7, csa_acceptance: 12, sexual_arousal: 3 } },
+    npc_stats: { heroine1: { affinity: 4, resistance: 40, csa_acceptance: 12, sexual_arousal: 3 } },
     npc_relationship_state: { heroine1: { relationship_summary: '서로의 경계를 확인한 관계다.', milestones: { sexual_relationship_started_turn: 4 } } },
     sexual_event_ledger: [
       { turn: 4, actor_id: 'player', target_id: 'heroine1', action_type: 'ejaculation', completed: true, interrupted: false, evidence: '합의된 장면이 완료되었다.' }
@@ -148,13 +148,12 @@ test('character display derives stat deltas from pre/post saves and unlocks priv
     player_sexual_state: { arousal: 22, ejaculation_progress: 60, ejaculation_count: 1 }
   };
   const latestTurn = {
-    pre_save: { npc_stats: { heroine1: { affection: 2, work_trust: 9, csa_acceptance: 5, sexual_arousal: 0 } } },
+    pre_save: { npc_stats: { heroine1: { affinity: 2, resistance: 40, csa_acceptance: 5, sexual_arousal: 0 } } },
     post_save: { npc_stats: save.npc_stats }
   };
   const details = buildCharacterDisplayDetails(save, edition, latestTurn).heroine1;
   assert.deepEqual(details.stat_changes, {
     affinity: { from: 2, to: 4, delta: 2 },
-    work_trust: { from: 9, to: 7, delta: -2 },
     csa_acceptance: { from: 5, to: 12, delta: 7 },
     sexual_arousal: { from: 0, to: 3, delta: 3 }
   });
@@ -176,4 +175,39 @@ test('CSA app handoff closes synchronously instead of awaiting Story Extract Com
   assert.match(source, /Promise\.resolve\(handoff\)/);
   assert.match(source, /return true;/);
   assert.doesNotMatch(source, /onSubmit:\s*async\s*\(displayInput, canonicalAction\)/);
+});
+
+test('production Turn 20 speaker rules — server keeps high-confidence rules, frontend leaves the rest unassigned', () => {
+  const story = [
+    '[1. 서사 및 행동]',
+    '이메이의 손끝이 내 바지 위에서 망설이듯 멈춰 있었다.',
+    '"이메이 씨, 여기까지 오면 좀 더 편하게 해줘도 되지 않겠어?"',
+    '이메이의 눈동자가 흔들렸다.',
+    '"저... 감사님, 이거 진짜 처음인데..."',
+    '"처음이니까 더 잘해주고 싶은 거 아니야? 느낌 가는 대로 해."',
+    '그때, 서원희가 슬라이드 정리를 멈추고 우리 쪽을 바라보고 있었다.',
+    '"태양 감사님, 시간 괜찮으시면 슬라이드 마지막 부분만 짚고 넘어가려고요. 이메이 씨, 감사님이랑 준비됐어?"',
+    '서원희가 딱딱하게 말했다. 이메이가 화들짝 놀라 손을 빼려는 듯 움직였다.',
+    '"네... 팀장님, 조금만, 저... 정리하고 바로."',
+    '"그럼 천천히 해. 일단 감사님한테 핵심만 말씀드릴게."',
+    '[2. 플레이어 속마음]', '아이고.',
+    '[3. 플레이어 상황판]', '보고실.',
+    '[4. 선택지]', '1. A', '2. B', '3. C', '4. D'
+  ].join('\n');
+  const dir = { heroine1: { name: '서원희' }, heroine5: { name: '이메이' } };
+  const mstr = { characters: [
+    { character_id: 'heroine1', name: '서원희' },
+    { character_id: 'heroine5', name: '이메이' }
+  ]};
+  // 서버(정본): 화행 주어·팀장님 제외 규칙으로 최대한 확정, 추론 불충분(교대 추론 금지)은 null
+  const engine = parseEngineNarrative(story, { master: mstr });
+  const engineD = engine.blocks.filter(b => b.type === 'dialogue');
+  const engineExpected = ['player', 'heroine5', null, 'heroine1', 'heroine5', 'heroine1'];
+  engineExpected.forEach((exp, i) => assert.equal(engineD[i].speaker_id, exp, `서버 대사 ${i + 1}`));
+  // 프론트(스트리밍 임시): 명시적 화자 + 확신도 높은 핵심 규칙만, 추론 불충분은 미확정 — 완료 후 서버 canonical로 교체됨
+  const front = parseFrontendNarrative(story, { speakerDirectory: dir });
+  const frontD = front.blocks.filter(b => b.type === 'dialogue');
+  // 프론트 스트리밍 임시 규칙도 서버와 동일한 확신도 높은 규칙만 사용 → 같은 결과
+  const frontExpected = ['player', 'heroine5', null, 'heroine1', 'heroine5', 'heroine1'];
+  frontExpected.forEach((exp, i) => assert.equal(frontD[i].speaker_id, exp, `프론트 대사 ${i + 1}`));
 });

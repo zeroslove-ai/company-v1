@@ -1,6 +1,14 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
-import { runExtract, streamStory } from './llm.js';
+import { runExtract, streamStory, runSpeakerTagging } from './llm.js';
+import {
+  collectUnresolvedDialogue,
+  buildTaggingMessages,
+  buildSceneCandidateIds,
+  applySpeakerTags,
+  allowedSpeakerIds
+} from '../engine/speaker-tagger.js';
+import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
   buildDegradedExtractEnvelope,
@@ -111,7 +119,10 @@ function toEntryArray(mapOrArray, idField) {
 }
 
 export function masterFromEdition(edition) {
-  return { characters: toEntryArray(edition?.characters?.characters, 'character_id') };
+  return {
+    characters: toEntryArray(edition?.characters?.characters, 'character_id'),
+    general_npcs: toEntryArray(edition?.generalNpcs?.profiles, 'npc_id')
+  };
 }
 
 export function npcIdsFromEdition(edition) {
@@ -351,8 +362,11 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, actionId));
       const structuredAction = structuredActionFor(action, requestedStructuredAction);
       let retryingStory = false;
-      if (!action.story_text && action.processing_status === 'story_failed') {
-        const claimed = await db.claimActionStatus(gameId, actionId, 'story_failed', 'story_streaming', null);
+      // story_failed뿐 아니라 story_streaming(스토리 미완료 좌초)도 재시도를 허용한다.
+      // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,
+      // 이 claim 없이는 (replayed && !retryingStory) 조건이 항상 409로 거부된다.
+      if (!action.story_text && (action.processing_status === 'story_failed' || action.processing_status === 'story_streaming')) {
+        const claimed = await db.claimActionStatus(gameId, actionId, action.processing_status, 'story_streaming', null);
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
         retryingStory = true;
@@ -407,7 +421,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const parsed = parseNarrative(raw, { master });
           await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: parsed });
           storyPersisted = true;
-          emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false });
+          emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false, parsed_blocks: parsed });
         } catch (error) {
           if (!storyPersisted) {
             await db.updateActionStatus(gameId, actionId, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
@@ -438,9 +452,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       if (!action.story_text) throw new HttpError(409, 'story_required', 'A completed Story is required before Extract', true);
       const structuredAction = structuredActionFor(action, body.structured_action ?? null);
       if (action.extract_delta) {
-        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: action.parsed_blocks ?? parseNarrative(action.story_text, { master }), npcIds });
+        const replayParsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: replayParsedStory, npcIds });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
-        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true });
+        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
       if (action.processing_status === 'extract_failed') {
         const claimedRetry = await db.claimActionStatus(gameId, actionId, 'extract_failed', 'extracting', null);
@@ -456,7 +471,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const timing = {};
       let degraded = false;
       try {
-        const parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        // 근본 해결: extract는 원본이 아니라 파서가 화자명을 확정·삽입한 normalized_raw를 본다.
+        // → 화자명 없는 대사가 있어도 extract가 추론할 필요 없이 명시된 화자명을 그대로 쓴다.
+        let storyForExtract = (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text;
         let extract;
         try {
           const contextRpcStart = Date.now();
@@ -467,8 +485,98 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
           const hasSexualCsa = applicableCsa.some(csa => buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract).sexual_authorization === true);
+          // 스피커 태깅: parser가 dialogue block으로 분류했으나 화자 미확정(speaker_id=null)인
+          // 대사가 있을 때만 전용 LLM을 1회 호출한다. 정상 턴(모두 확정)에서는 호출하지 않는다.
+          // 멱등성: 태거 호출 전에 speaker_tagging_attempted=true를 조건부 PATCH로 먼저 영속하고,
+          // 1행 갱신이 확인된 경우에만 호출한다. 저장 실패/타임아웃/무효 응답은 파이프라인을
+          // 막지 않되, 로컬 태거 결과는 DB 저장이 확인된 경우에만 canonical로 승격한다.
+          try {
+            const playerName = hydratedSave?.player?.name ?? '플레이어';
+            // 플레이어 정보는 master.player를 읽지 않고 실제 save + catalogs에서 동적으로 만든다
+            const playerCanonical = resolvePlayerCanonicalNames(hydratedSave?.player ?? {}, catalogs);
+            const playerInfo = {
+              departmentName: playerCanonical?.departmentName ?? hydratedSave?.player?.department ?? '',
+              positionName: playerCanonical?.positionName ?? '',
+              roleTitle: typeof hydratedSave?.player?.role_title === 'string' ? hydratedSave.player.role_title : '',
+              addresses: [],
+              addressingDescription: hydratedSave?.player?.prompt_card?.addressing ?? ''
+            };
+            const sceneParticipantIds = buildSceneCandidateIds(parsedStory, {
+              sceneParticipants: Array.isArray(hydratedSave?.last_npcs_present) ? hydratedSave.last_npcs_present : [],
+              focalCharacterId: hydratedSave?.focal_character_id ?? null,
+              lastSpeakerId: hydratedSave?.last_speaker_id ?? null,
+              master
+            });
+            const unresolvedItems = collectUnresolvedDialogue(parsedStory);
+            const attempted = action.parsed_blocks?.speaker_tagging_attempted === true;
+            if (unresolvedItems.length && !attempted) {
+              // 1) 호출 전 시도 상태 영속 — 1행 갱신이 확인돼야 태거를 호출한다
+              const claimed = await db.markSpeakerTaggingAttempted(gameId, actionId, parsedStory);
+              if (claimed) {
+                const tagMessages = buildTaggingMessages(parsedStory, master, {
+                  playerName, playerInfo,
+                  sceneParticipants: sceneParticipantIds,
+                  focalCharacterId: hydratedSave?.focal_character_id ?? null,
+                  lastSpeakerId: hydratedSave?.last_speaker_id ?? null
+                });
+                const tagStart = Date.now();
+                const tagResult = await runSpeakerTagging({
+                  env, fetchImpl,
+                  messages: tagMessages,
+                  allowlist: allowedSpeakerIds(master),
+                  timeoutMs: 10000
+                });
+                timing.tagging_ms = Date.now() - tagStart;
+                timing.speaker_tagging_attempted = 1;
+                timing.speaker_tagging_unresolved_count = unresolvedItems.length;
+                if (tagResult.warning) timing.speaker_tagging_warning = tagResult.warning;
+
+                // 상태 결정: applied | unresolved | timeout | invalid_response | upstream_failure
+                let status = 'unresolved';
+                if (tagResult.warning === 'speaker_tagging_timeout') status = 'timeout';
+                else if (tagResult.warning === 'speaker_tagging_upstream_failure') status = 'upstream_failure';
+                else if (tagResult.warning === 'speaker_tagging_invalid_json' || tagResult.warning === 'speaker_tagging_truncated') status = 'invalid_response';
+                else if (tagResult.speakers?.some(s => s.speaker_id)) status = 'applied';
+
+                if (status === 'applied') {
+                  const applied = applySpeakerTags(parsedStory, tagResult.speakers, master, {
+                    playerName, unresolvedItems, rawStory: action.story_text
+                  });
+                  timing.speaker_tagging_resolved_count = applied.appliedCount;
+                  timing.speaker_tagging_rejected_count = applied.rejectedCount;
+                  if (applied.changed) {
+                    // 2) 최종 결과 PATCH — return=representation으로 실제 저장 성공 확인
+                    const saved = await db.updateActionParsedBlocks(gameId, actionId, applied.parsedStory);
+                    if (saved) {
+                      // 저장이 확인된 taggedParsedStory만 canonical로 승격 (화면·extract·commit·reload 일치)
+                      parsedStory = applied.parsedStory;
+                      // extract는 분리+화자명 삽입 버전(normalized_raw_extract)을 사용 —
+                      // extract-prompt가 "모든 발화 라인에 화자명 존재"를 기대하므로 원문 보존 버전은 extract에 쓰지 않는다
+                      storyForExtract = applied.parsedStory.normalized_raw_extract.trim()
+                        ? applied.parsedStory.normalized_raw_extract
+                        : (applied.parsedStory.normalized_raw.trim() ? applied.parsedStory.normalized_raw : storyForExtract);
+                    } else {
+                      // 저장 실패 → 로컬 태거 결과 사용 금지, parser 결과로 계속
+                      timing.speaker_tagging_error = 'parsed_blocks_save_failed';
+                      await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, 'unresolved').catch(() => undefined);
+                    }
+                  } else {
+                    await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, 'unresolved').catch(() => undefined);
+                  }
+                } else {
+                  // 적용할 항목 없음 — 시도 상태만 남기고 parser 결과로 계속
+                  await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, status).catch(() => undefined);
+                }
+              } else {
+                timing.speaker_tagging_error = 'attempt_marker_save_failed';
+              }
+            }
+          } catch (tagError) {
+            timing.speaker_tagging_error = String(tagError?.message ?? tagError).slice(0, 200);
+          }
+
           const promptStart = Date.now();
-          let messages = buildExtractPrompt({ context: hydratedContext, storyText: action.story_text, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa)
@@ -510,7 +618,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           // not turn a successful Extract into a stuck action, so resync with the source of truth.
           await db.getAction(gameId, actionId).catch(() => null);
         }
-        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, degraded });
+        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, degraded, parsed_blocks: parsedStory });
       } finally {
         logTurnTiming({
           event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId,
@@ -519,6 +627,12 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           extract_system_chars: timing.extract_system_chars, extract_context_chars: timing.extract_context_chars,
           parsed_story_chars: timing.parsed_story_chars, extract_request_chars: timing.extract_request_chars,
           active_character_count: timing.active_character_count,
+          tagging_ms: timing.tagging_ms, speaker_tagging_attempted: timing.speaker_tagging_attempted,
+          speaker_tagging_unresolved_count: timing.speaker_tagging_unresolved_count,
+          speaker_tagging_resolved_count: timing.speaker_tagging_resolved_count,
+          speaker_tagging_rejected_count: timing.speaker_tagging_rejected_count,
+          speaker_tagging_warning: timing.speaker_tagging_warning,
+          speaker_tagging_error: timing.speaker_tagging_error,
           turn_total_ms: Date.now() - startedAt
         });
       }
@@ -541,13 +655,13 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const currentSave = context.save?.data ?? context.save;
-        const parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory, npcIds });
 
         const mergeStart = Date.now();
         const merged = applyGuardedStateDelta(currentSave, extract, {
           expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds,
-          storyText: action.story_text
+          storyText: (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
@@ -862,7 +976,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
         const save = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
         const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
-        const player = playerInfoPayload(save, catalogs, capability);
+        const player = buildFullPlayerInfo(save, edition);
         return ok({ app: buildAppStatePayload(save, csaCatalog, csaCatalog.sexual_action_contract, player) });
       } finally {
         logTurnTiming({ event_stage: 'app_state', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });

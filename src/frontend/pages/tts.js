@@ -102,6 +102,7 @@ function toneGroup(direction = '') {
 }
 
 export function batchDialogueLines(lines) {
+  // 같은 화자 + 같은 톤 + 350자 이하일 때만 병합 (톤 무관 병합은 톤을 뭉개므로 원복)
   const batches = [];
   let current = null;
   for (const line of Array.isArray(lines) ? lines : []) {

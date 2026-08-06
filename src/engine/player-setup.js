@@ -1,4 +1,5 @@
 const NAME_MAX = 20;
+const AGE_RANGE = [18, 70];
 const HEIGHT_RANGE = [140, 220];
 const WEIGHT_RANGE = [40, 180];
 const PENIS_LENGTH_RANGE = [5, 30];
@@ -21,6 +22,8 @@ export function validatePlayerSetupInput(input, catalogs = {}) {
   const name = typeof input?.name === 'string' ? input.name.trim() : '';
   if (!name || name.length > NAME_MAX) errors.push('invalid_name');
 
+  const age = Number(input?.age);
+  if (!inRange(age, AGE_RANGE)) errors.push('invalid_age');
   const heightCm = Number(input?.height_cm);
   if (!inRange(heightCm, HEIGHT_RANGE)) errors.push('invalid_height_cm');
   const weightKg = Number(input?.weight_kg);
@@ -41,6 +44,7 @@ export function validatePlayerSetupInput(input, catalogs = {}) {
       name,
       department_id: input.department_id,
       position_id: input.position_id,
+      age,
       height_cm: heightCm,
       weight_kg: weightKg,
       penis_length_cm: penisLengthCm,

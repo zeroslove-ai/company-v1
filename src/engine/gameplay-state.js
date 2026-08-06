@@ -553,7 +553,14 @@ const HYDRATION_SOURCES = [
   { mapName: 'npc_scene_state', canonicalKey: 'initial_scene_state' }
 ];
 
-/** Hydrates only master-defined characters that have no stored NPC map entry. */
+/**
+ * Hydrates master-defined characters into gameplay maps.
+ * - npc_stats는 필드 단위로 보충한다: 기존 값이 있는 필드는 보존, 없는 필드만 초기 정본값으로 채운다.
+ *   (NPC map entry가 존재한다는 이유만으로 전체 주입을 건너뛰지 않는다)
+ * - 레거시 affection→affinity 변환: affinity가 없고 affection만 있으면 affinity = affection.
+ *   이미 affinity가 있으면 affection으로 덮어쓰지 않는다. 변환 후에는 내부 상태에서 affection을 갱신하지 않는다.
+ * - 나머지 map(relationship/emotion/scene_state/csa_attitudes)은 entry 단위 hydration 유지.
+ */
 export function hydrateGameplayState(save, master = {}) {
   const next = migrateCompanySave(save);
   const characters = Array.isArray(master?.characters) ? master.characters : [];
@@ -562,9 +569,28 @@ export function hydrateGameplayState(save, master = {}) {
     if (!id) continue;
     for (const { mapName, canonicalKey, aliasKey } of HYDRATION_SOURCES) {
       next[mapName] = object(next[mapName]) ? next[mapName] : {};
-      if (id in next[mapName]) continue;
       const source = object(character[canonicalKey]) ? character[canonicalKey]
         : (aliasKey && object(character[aliasKey]) ? character[aliasKey] : null);
+      if (mapName === 'npc_stats') {
+        const entry = object(next[mapName][id]) ? next[mapName][id] : {};
+        const canon = object(source) ? source : {};
+        // 레거시 affection → affinity 이전 (affinity가 없을 때만). 변환 후에도 affection 필드는
+        // 표시 계층 호환용으로 유지한다(갱신은 안 함) — 정본 읽기는 항상 affinity가 우선.
+        const legacyAffection = Number.isFinite(entry.affection) ? entry.affection : undefined;
+        const hasAffinity = Number.isFinite(entry.affinity);
+        if (!hasAffinity && legacyAffection !== undefined) entry.affinity = legacyAffection;
+        // 필드 단위 보충 — 기존 값이 있는 필드는 보존
+        if (!Number.isFinite(entry.affinity)) {
+          if (Number.isFinite(canon.affinity)) entry.affinity = canon.affinity;
+          else if (Number.isFinite(canon.affection)) entry.affinity = canon.affection; // 레거시 초기값도 affinity로 정본화
+        }
+        if (!Number.isFinite(entry.resistance) && Number.isFinite(canon.resistance)) entry.resistance = canon.resistance;
+        if (!Number.isFinite(entry.csa_acceptance) && Number.isFinite(canon.csa_acceptance)) entry.csa_acceptance = canon.csa_acceptance;
+        if (!Number.isFinite(entry.sexual_arousal)) entry.sexual_arousal = 0;
+        next[mapName][id] = entry;
+        continue;
+      }
+      if (id in next[mapName]) continue;
       if (source) next[mapName][id] = clone(source);
     }
   }

@@ -1,4 +1,4 @@
-.future-slot[hidden],
+﻿.future-slot[hidden],
 .mind-panel[hidden] {
   display: none !important;
 }
@@ -128,7 +128,7 @@
 
 .status-column .state-list {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
   gap: 5px 10px;
   margin: 10px 0 0;
 }
@@ -361,7 +361,7 @@
   }
 
   .status-column .state-list {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
     gap: 4px 8px;
   }
 
@@ -382,4 +382,74 @@
   max-height: none;
   overflow: visible;
   -webkit-line-clamp: unset;
+}
+
+/* 플레이어 상태창 2열: 모바일에서도 2열 유지 (사용자 요구), 초협소만 1열 */
+@media (max-width: 480px) {
+  .status-column .state-list {
+    grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+  }
+}
+
+/* 인물정보(focal-character)도 2열로 — 칸 낭비 제거 */
+.focal-character .state-list,
+.focal-character dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+  gap: 4px 10px;
+}
+@media (max-width: 480px) {
+
+}
+
+/* 현재 상황 패널 — [3. 플레이어 상황판] 별도 표시 (여러 줄 보존) */
+.player-status-card {
+  border-color: #2f4051;
+}
+.player-status-card .future-slot-value {
+  white-space: pre-line;
+  font-size: .72rem;
+  line-height: 1.5;
+  color: #c9d8e4;
+}
+
+/* 상식개변(활성 규정) 별도 칸 — 전체 폭, 내용 잘림 방지 */
+.player-active-rules {
+  margin-top: .7rem;
+  padding-top: .6rem;
+  border-top: 1px solid var(--hospital-border, #2a2a4a);
+}
+.player-active-rules h3 {
+  margin: 0 0 .35rem;
+  font-size: .76rem;
+  color: #9fc9df;
+}
+.player-active-rules ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: .4rem;
+}
+.player-active-rules li {
+  display: grid;
+  gap: .1rem;
+  min-width: 0;
+  padding: .5rem .6rem;
+  border: 1px solid #345267;
+  border-radius: .45rem;
+  background: #1d2a35;
+  font-size: .72rem;
+  line-height: 1.45;
+}
+.player-active-rules li strong {
+  color: #dceaf2;
+  font-size: .72rem;
+}
+.player-active-rules li span {
+  color: #c9d8e4;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.5;
 }

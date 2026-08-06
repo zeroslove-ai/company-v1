@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -58,7 +58,12 @@ test('every heroine is an adult in 브랜드전략팀 with no invented unsupport
     const c = chars[id];
     assert.ok(Number.isInteger(c.age) && c.age >= 20, `${id} age`);
     assert.equal(c.department, '브랜드전략팀');
-    assert.deepEqual(c.initial_stats, { affection: 0 });
+    assert.deepEqual(
+      c.initial_stats,
+      { affinity: c.initial_stats.affinity, resistance: c.initial_stats.resistance, csa_acceptance: c.initial_stats.csa_acceptance }
+    );
+    assert.ok(c.initial_stats.affinity >= 1 && c.initial_stats.affinity <= 20, `${id} affinity 1~20`);
+    assert.ok(c.initial_stats.resistance >= 0 && c.initial_stats.resistance <= 100, `${id} resistance 0~100`);
   }
 });
 
@@ -162,18 +167,18 @@ test('hydration fills all five heroines into a save that has none of them, witho
   const master = masterFromEdition(edition);
   const hydrated = hydrateGameplayState(bareSave, master);
   for (const id of HEROINE_IDS) {
-    assert.deepEqual(hydrated.npc_stats[id], { affection: 0 }, id);
+    assert.ok(hydrated.npc_stats[id].affinity >= 1 && hydrated.npc_stats[id].affinity <= 20, id);
     assert.ok(hydrated.npc_relationship_state[id], id);
     assert.deepEqual(hydrated.csa_attitudes[id], {}, id);
   }
 
   const existingSave = migrateCompanySave({
     save_schema_version: 1, edition: 'company-v1', world_state: {},
-    npc_stats: { heroine1: { affection: 42 } }
+    npc_stats: { heroine1: { affinity: 42 } }
   });
   const preserved = hydrateGameplayState(existingSave, master);
-  assert.equal(preserved.npc_stats.heroine1.affection, 42);
-  assert.deepEqual(preserved.npc_stats.heroine2, { affection: 0 });
+  assert.equal(preserved.npc_stats.heroine1.affinity, 42);
+  assert.ok(preserved.npc_stats.heroine2.affinity >= 1 && preserved.npc_stats.heroine2.affinity <= 20);
 });
 
 // --- Stable IDs ----------------------------------------------------------
@@ -331,7 +336,7 @@ test('Extract payload carries Story text exactly once and strips raw/scene_text/
 });
 
 test('Extract context has no full save, no character prompt_card/personality/appearance, and only the active NPCs\' mutable state', () => {
-  const save = { ...saveWithParticipants(['heroine1']), npc_stats: { heroine1: { affection: 3 }, heroine2: { affection: 9 } } };
+  const save = { ...saveWithParticipants(['heroine1']), npc_stats: { heroine1: { affinity: 3 }, heroine2: { affinity: 9 } } };
   const prompt = buildExtractPrompt({ context: { game: {}, save, recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
   const payload = JSON.parse(prompt[1].content);
   assert.equal('save' in payload.context, false);
@@ -386,12 +391,9 @@ test('Story request size budgets: system <=4500, 3-character active canon <=1800
   assert.equal(Object.values(payload.active_character_canon).filter(e => 'prompt_card' in e).length, 3);
 });
 
-test('Extract request size budget: system <=3300', () => {
-  // Raised from 3000 when the full-feature-transplant branch added the always-needed
-  // player_scene_state/npc_scene_state/npc_stats/sexual_event_ledger instruction sentence
-  // (these apply to every normal turn, not just CSA turns, so they can't be gated off) — the
-  // new real floor is ~3141 chars; 3300 keeps real headroom without pretending the old 3000
-  // cap is still achievable.
+test('Extract request size budget: system <=5000', () => {
+  // Raised from 3300 to 5000: UI 개선(표면의식·잠재의식 대화체 혼잣말 지시문 추가) 반영.
+  // 실측 floor ~3.4K — 5000은 충분한 여유.
   const prompt = buildExtractPrompt({ context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
-  assert.ok(prompt[0].content.length <= 3300, `extract system chars: ${prompt[0].content.length}`);
+  assert.ok(prompt[0].content.length <= 5000, `extract system chars: ${prompt[0].content.length}`);
 });

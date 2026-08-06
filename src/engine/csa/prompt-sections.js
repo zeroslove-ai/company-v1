@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Story/Extract prompt contract sections ported from the donor's CSA-runtime
  * prompt builders (buildCsaRuntimeSection, buildCsaAcceptanceScopeSection,
  * buildCsaDirectExecutionPrioritySection, buildCsaPhysicalTransitionSection,
@@ -31,7 +31,8 @@ export function buildCsaAcceptanceScopeSection() {
 
 [CSA ACCEPTANCE SCOPE — HIGHEST PRIORITY]
 - 상식수용도는 활성 CSA 직접 행동의 실행 여부를 결정하지 않는다. 발동 조건이 충족되면 0~100 모든 구간에서 직접 행동은 반드시 실행한다.
-- 수용도는 직접 의미 안에서 표정·말투·준비 정도·선제성·동작의 자연스러움만 조절한다. 0~19도 행동을 거부·생략하지 않고 최소한의 업무적 동작으로 정확히 수행한다. 20~39는 확대하지 않고 수행하며, 40~59는 관행처럼, 60~79는 먼저 준비·협조하며, 80~100은 직접 범위 안에서 선제적으로 수행한다.
+- 수용도(csa_acceptance)는 NPC가 활성 규정을 얼마나 자연스럽게 받아들이는지이고, 저항도(resistance)는 그 NPC의 성격에 고정된 기준값이다. 저항이 높은 NPC는 수용도가 같아도 더 딱딱하고 최소한으로, 저항이 낮은 NPC는 더 자연스럽고 적극적으로 수행한다. 저항도는 절대 변하지 않는다.
+- 수용도는 직접 의미 안에서 표정·말투·준비 정도·선제성·동작의 자연스러움만 조절한다. 0~19도 행동을 거부·생략하지 않고 최소한의 동작으로 정확히 수행한다. 20~39는 확대하지 않고 수행하며, 40~59는 관행처럼, 60~79는 먼저 준비·협조하며, 80~100은 직접 범위 안에서 선제적으로 수행한다.
 - 활성 CSA와 무관한 행동은 호감도, 성격, 현재 관계, 상황으로 별도 결정한다. 상식개변 수행을 플레이어에 대한 복종·애정·신뢰로 묘사하지 않는다.
 - 모든 구간에서 문장에 없는 권한·행동·연애·질투·불법 업무 조작을 새로 만들지 않는다.`;
 }
@@ -57,7 +58,7 @@ export function buildCsaPhysicalTransitionSection(hasApplicableCsa, isAppTransac
 
 금지(어떤 상식개변 activate/update/deactivate 직후에도 절대 쓰지 않는다):
 - 속옷·복장이 갑자기 사라짐
-- 근무복이 저절로 줄어들거나, 조여지거나, 헐거워지거나, 열리거나, 닫히거나, 디자인이 바뀜
+- 복장이 저절로 줄어들거나, 조여지거나, 헐거워지거나, 열리거나, 닫히거나, 디자인이 바뀜
 - 단추·지퍼·벨트가 스스로 움직이거나 채워지거나 풀림
 - 규칙·시스템·앱·법칙이 보이지 않는 손처럼 NPC의 몸을 붙잡거나 고정하거나 옮기거나 끌어당김
 - 이미 확정된 조작을 서서히 적용하거나, 다시 선택하게 하거나, "지금 적용할까요?"처럼 재확인을 구함

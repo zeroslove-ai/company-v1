@@ -1,4 +1,4 @@
-import { createApiClient, ApiError } from './api.js';
+﻿import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
@@ -30,11 +30,6 @@ function resolveNumberedChoiceInput(rawInput, save) {
   if (choices.length !== 4 || typeof choices[index] !== 'string' || !choices[index].trim()) return { ok: false, code: 'CHOICE_INDEX_OUT_OF_RANGE' };
   return { ok: true, choice_index: index, text: choices[index] };
 }
-
-const recoveryLabels = {
-  retry_story: 'Story 다시 시도', resume_extract: 'Extract 이어서 실행', retry_extract: 'Extract 다시 시도',
-  resume_commit: 'Commit 이어서 실행', retry_commit: 'Commit 다시 시도', wait_story: '상태 다시 확인', unknown: '복구 상태 다시 확인'
-};
 
 function newActionId() { return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`; }
 function messageFor(error) {
@@ -91,7 +86,14 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
       if (item.event === 'delta') {
         rawStory += item.data?.text ?? '';
         const directory = getContext?.()?.display?.npc_directory ?? {};
-        onStory?.({ rawStory, parsed: parseNarrative(rawStory, { speakerDirectory: directory }), item, pending });
+        onStory?.({ rawStory, parsed: parseNarrative(rawStory, { speakerDirectory: directory, playerName: getContext?.()?.save?.data?.player?.name ?? '플레이어' }), item, pending });
+      }
+      if (item.event === 'complete') {
+        // 서버가 보낸 canonical parsed_blocks로 최종 렌더 교체 — 프론트 화자 추론 이중화 제거
+        const canonical = item.data?.parsed_blocks;
+        if (canonical?.blocks) {
+          onStory?.({ rawStory, parsed: canonical, item, pending, canonical: true });
+        }
       }
     });
     if (!sawMeta || !rawStory.trim()) throw new ApiError({ endpoint: '/api/story', status: 502, code: 'incomplete_story_stream', message: '서사 스트림이 불완전합니다.', retryable: true });
@@ -124,6 +126,8 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
   }
 
   async function runRecovery(pending, step) {
+    // wait_story: 스토리가 아직 시작되지 않은 좌초 액션 → 스토리 생성을 새로 시작한다
+    if (step === 'wait_story') return runStoryForPending(pending);
     if (step === 'retry_story') return runStoryForPending(pending);
     if (step === 'resume_extract' || step === 'retry_extract') return runExtractForPending(pending);
     if (step === 'resume_commit' || step === 'retry_commit') return runCommitForPending(pending);
@@ -157,9 +161,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   };
   const setupElements = {
     overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
-    name: get('setup-name'), department: get('setup-department'), position: get('setup-position'), height: get('setup-height'), weight: get('setup-weight'),
-    penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style'),
-    reserved: get('reserved-opening'), reservedStatus: get('reserved-opening-status'), retryOpening: get('retry-opening')
+    name: get('setup-name'), department: get('setup-department'), position: get('setup-position'), age: get('setup-age'), height: get('setup-height'), weight: get('setup-weight'),
+    penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
   let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null;
@@ -207,7 +210,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   function readSetupFormValues() {
     return {
       name: setupElements.name?.value ?? '', department_id: setupElements.department?.value ?? '', position_id: setupElements.position?.value ?? '',
-      height_cm: Number(setupElements.height?.value), weight_kg: Number(setupElements.weight?.value), penis_length_cm: Number(setupElements.penisLength?.value),
+      age: Number(setupElements.age?.value), height_cm: Number(setupElements.height?.value), weight_kg: Number(setupElements.weight?.value), penis_length_cm: Number(setupElements.penisLength?.value),
       body_type_id: setupElements.bodyType?.value ?? '', speech_style_id: setupElements.speechStyle?.value ?? ''
     };
   }
@@ -215,17 +218,15 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (!viewModel || viewModelContext !== context || viewModelExtract !== currentExtract) refreshViewModel();
     renderState(elements, viewModel, { title: context?.game?.title });
     const openingTurn = openingHistoryTurn(context);
-    renderHistory(elements.history, openingTurn ? [openingTurn, ...(context?.recent_turns ?? [])] : context?.recent_turns);
+    const recent = context?.recent_turns ?? [];
+    // 초기 본문: 진행 턴이 있으면 최신 1턴만, 아직 시작 전이면 오프닝만 표시
+    renderHistory(elements.history, recent.length ? recent.slice(-1) : (openingTurn ? [openingTurn] : recent));
     utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
-    const reservedSetupId = reservedPlayerSetupId(context);
+    // 오버레이는 순수 설정 폼 전용. 저장된 설정(reserved)은 init에서 자동 진행되고
+    // 재시도 팝업은 완전히 제거되었다(사용자 요구).
     if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen;
-    if (setupElements.form) setupElements.form.hidden = Boolean(reservedSetupId);
-    if (setupElements.reserved) setupElements.reserved.hidden = !reservedSetupId;
-    if (setupElements.retryOpening) {
-      setupElements.retryOpening.disabled = busy || recoveryPending;
-      setupElements.retryOpening.onclick = reservedSetupId ? () => retryOpening(reservedSetupId) : null;
-    }
+    if (setupElements.form) setupElements.form.hidden = false;
     const pendingStep = loadPending(storage, gameId)?.step ?? null;
     const phase = computeTurnPhase({ busy, recoveryPending, pendingStep, mediaLoading });
     const flags = turnPhaseUiFlags(phase);
@@ -233,17 +234,19 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (elements.submit) elements.submit.disabled = flags.inputSubmitDisabled || setupOpen;
     renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: flags.choicesDisabled || setupOpen, onChoose: startNewAction });
     renderToolbar();
+    // 초기 로드 시 최근 턴(current)이 보이도록 1회 스크롤 — 오프닝부터 쭉 내려야 하는 낭비 제거.
+    // 이후 렌더링(턴 갱신)에서는 사용자 스크롤 위치를 침범하지 않는다.
+    if (!initialScrollDone && elements.current && elements.current.children?.length) {
+      initialScrollDone = true;
+      elements.current.scrollIntoView?.({ block: 'start', inline: 'nearest' });
+    }
   }
+  let initialScrollDone = false;
   const setBusy = value => { busy = value; render(); };
   const setMediaLoading = value => { mediaLoading = value; render(); };
   function clearRecoveryUi() {
     recoveryPending = false;
     if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
-    render();
-  }
-  function showRecoveryUi(pending, step) {
-    recoveryPending = true;
-    if (elements.recovery) { elements.recovery.hidden = false; elements.recovery.textContent = recoveryLabels[step]; elements.recovery.onclick = () => resumePending(pending, step); }
     render();
   }
   const busyGuard = createBusyGuard({ onChange: setBusy });
@@ -258,7 +261,16 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const coordinator = createTurnCoordinator({
     api, storage, gameId, getContext: () => context, refreshContext,
     onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (hasFourChoices(parsed.choices)) { streamedStoryChoices = parsed.choices; render(); } },
-    onExtract: extracted => { currentExtract = extracted.extract ?? null; showProgress('상태를 정리하는 중…'); render(); },
+    onExtract: extracted => {
+      currentExtract = extracted.extract ?? null;
+      // Extract 응답의 canonical parsed_blocks(서버가 최종 사용한 태거/파서 결과)로
+      // 현재 턴 대사 카드를 교체한다 — Story SSE(parser_canonical)보다 정확한 화자 표시.
+      if (extracted.parsed_blocks?.blocks?.length) {
+        renderNarrative(elements.current, extracted.parsed_blocks);
+      }
+      showProgress('상태를 정리하는 중…');
+      render();
+    },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
     onCommitted: () => {
       clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.');
@@ -272,11 +284,22 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     try {
       const data = await api.actionStatus({ game_id: gameId, action_id: pending.action_id }); const step = recoveryFor(data);
       if (step === 'complete') { await coordinator.runRecovery(pending, step); clearRecoveryUi(); return; }
-      showRecoveryUi(pending, step);
-      showStatus(step === 'wait_story' ? '서사 처리가 진행 중입니다.' : '이전 행동의 복구가 필요합니다.');
+      // 사용자 요구: 복구 버튼 없이 자동으로 이어서 실행
+      recoveryPending = true;
+      if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
+      await resumePending(pending, step);
+      recoveryPending = false;
     } catch (error) {
-      if (error instanceof ApiError && error.code === 'action_not_found') { showRecoveryUi(pending, 'retry_story'); return; }
+      if (error instanceof ApiError && error.code === 'action_not_found') {
+        recoveryPending = true;
+        if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
+        await resumePending(pending, 'retry_story');
+        recoveryPending = false;
+        return;
+      }
       showError(error);
+      recoveryPending = false;
+      if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
     }
   }
   async function withBusy(operation) {
@@ -306,7 +329,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   async function resumePending(pending, step) {
     return withBusy(async () => {
-      if (step === 'wait_story' || step === 'unknown') return checkRecovery();
+      // wait_story/unknown을 checkRecovery()로 되돌리면 무한 재귀 — coordinator가 직접 처리한다
+      if (step === 'wait_story' || step === 'unknown') { await coordinator.runRecovery(pending, step); return; }
       if (step === 'retry_story') { showCurrentAction(pending.player_action); text(elements.stream, 'Story를 다시 시도하는 중…'); }
       await coordinator.runRecovery(pending, step);
     });
@@ -322,6 +346,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       try {
         text(setupElements.status, '설정 저장 중…');
         const saveResult = await api.playerSetup({ game_id: gameId, player: validation.player });
+        // 설정 저장 성공 → 팝업 즉시 닫기. 서사 출력 시작과 동시에 창이 닫히도록
+        // 스트리밍 완료를 기다리지 않는다 (사용자 요구).
+        if (setupElements.overlay) setupElements.overlay.hidden = true;
         await streamOpening(saveResult.setup_id, setupElements.status);
         return true;
       } catch (error) {
@@ -341,7 +368,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     await consumeStorySse(response, item => {
       if (item.event === 'delta') {
         raw += item.data?.text ?? '';
-        renderNarrative(elements.current, parseNarrative(raw, { speakerDirectory: context?.display?.npc_directory ?? {} }));
+        renderNarrative(elements.current, parseNarrative(raw, { speakerDirectory: context?.display?.npc_directory ?? {}, playerName: context?.save?.data?.player?.name ?? viewModel?.player?.name ?? '플레이어' }));
       }
     });
     text(statusElement, '');
@@ -356,9 +383,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         return true;
       } catch (error) {
         showSetupError(error);
+        render();
         return false;
       } finally {
-        text(setupElements.reservedStatus, '');
       }
     });
   }
@@ -402,6 +429,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     elements.reset?.addEventListener('click', () => handleReset());
     setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
     await refreshContext(); await checkRecovery();
+    // 저장된 설정이 있으면 오프닝을 자동으로 재시도 — 사용자가 버튼을 눌러야만
+    // 시작할 수 있는 막힌 화면(모바일에서 화면을 가리는)을 제거한다.
+    const reservedSetupId = reservedPlayerSetupId(context);
+    if (reservedSetupId) await retryOpening(reservedSetupId);
     if (committedTurn(context) >= 1) utilityUi.loadMedia().catch(showError);
   }
   return { gameId, init, refreshContext, startNewAction, startFeedbackRevision, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, utilityUi, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending, utilityAvailable: utilityUi?.available ?? null }); }, get busy() { return busy; } };

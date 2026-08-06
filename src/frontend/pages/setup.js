@@ -1,4 +1,5 @@
 const NAME_MAX = 20;
+const AGE_RANGE = [18, 70];
 const HEIGHT_RANGE = [140, 220];
 const WEIGHT_RANGE = [40, 180];
 const PENIS_LENGTH_RANGE = [5, 30];
@@ -20,6 +21,8 @@ export function validateSetupValues(values, catalogs = {}) {
   const name = typeof values?.name === 'string' ? values.name.trim() : '';
   if (!name || name.length > NAME_MAX) errors.push('invalid_name');
 
+  const age = Number(values?.age);
+  if (!inRange(age, AGE_RANGE)) errors.push('invalid_age');
   const heightCm = Number(values?.height_cm);
   if (!inRange(heightCm, HEIGHT_RANGE)) errors.push('invalid_height_cm');
   const weightKg = Number(values?.weight_kg);
@@ -40,6 +43,7 @@ export function validateSetupValues(values, catalogs = {}) {
       name,
       department_id: values.department_id,
       position_id: values.position_id,
+      age,
       height_cm: heightCm,
       weight_kg: weightKg,
       penis_length_cm: penisLengthCm,

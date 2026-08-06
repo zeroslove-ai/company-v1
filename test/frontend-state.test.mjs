@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,7 +22,7 @@ class FakeNode {
 }
 
 function pageFixture() {
-  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps', 'reset-game', 'player-setup-overlay', 'player-setup-form', 'setup-error', 'setup-status', 'setup-submit', 'setup-name', 'setup-department', 'setup-position', 'setup-height', 'setup-weight', 'setup-penis-length', 'setup-body-type', 'setup-speech-style', 'reserved-opening', 'reserved-opening-status', 'retry-opening'];
+  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps', 'reset-game', 'player-setup-overlay', 'player-setup-form', 'setup-error', 'setup-status', 'setup-submit', 'setup-name', 'setup-department', 'setup-position', 'setup-age', 'setup-height', 'setup-weight', 'setup-penis-length', 'setup-body-type', 'setup-speech-style', 'reserved-opening', 'reserved-opening-status', 'retry-opening'];
   const nodes = Object.fromEntries(ids.map(id => [id, new FakeNode(id)]));
   return { nodes, documentRef: { querySelector: selector => nodes[selector.slice(1)] ?? null, createElement: tag => new FakeNode(tag) } };
 }
@@ -30,7 +30,7 @@ function pageFixture() {
 function validContext({ turns = [], choices = ['A', 'B', 'C', 'D'] } = {}) {
   return {
     game: { edition_id: 'company-v1', title: '상식개변: 회사편' },
-    save: { committed_turn: 2, data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 1 }, last_choices: choices, scene_state: { location_id: 'office' }, world_state: { day: 1, time_block: 'morning' }, csa_active: ['csa-1'], player_setup: { completed: true } } },
+    save: { committed_turn: 2, data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 1 }, last_choices: choices, scene_state: { location_id: 'office' }, world_state: { day: 1, time_block: 'morning', game_time: { day: 1, minute_of_day: 742 } }, csa_active: ['csa-1'], player_setup: { completed: true } } },
     recent_turns: turns
   };
 }
@@ -140,7 +140,7 @@ test('reconnect renders the latest Story and choices and resume makes no API cal
     assert.equal(nodes['story-history'].children[0].children[1].children[0].textContent, 'Latest Story');
     assert.equal(nodes['choice-list'].children.length, 4);
     assert.equal(nodes['resume-play'].disabled, false);
-    assert.equal(nodes['day-time'].textContent, 'Day 1 · 오전');
+    assert.equal(nodes['day-time'].textContent, 'Day 1 · 12:22');
     assert.equal(nodes['open-history'].disabled, true);
     assert.equal(nodes['open-history'].onclick, null);
     app.resumePlay();
@@ -172,11 +172,7 @@ test('a reloaded reserved setup retries the same opening without a second player
     };
     const app = createFrontendApp({ documentRef, storage: storage(), api });
     await app.init();
-    assert.equal(reservedPlayerSetupId(app.context), 'reserved-setup');
-    assert.equal(nodes['player-setup-form'].hidden, true);
-    assert.equal(nodes['reserved-opening'].hidden, false);
-
-    await nodes['retry-opening'].onclick();
+    // reserved 정상 흐름: init이 자동으로 오프닝을 재시도하고 오버레이 없이 완료한다
     assert.equal(openingCalls, 1);
     assert.equal(playerSetupCalls, 0);
     assert.equal(nodes['player-setup-overlay'].hidden, true);
@@ -203,18 +199,13 @@ test('a failed opening retry surfaces the error in the shared setup area, keeps 
     };
     const app = createFrontendApp({ documentRef, storage: storage(), api });
     await app.init();
-    assert.equal(nodes['player-setup-form'].hidden, true);
-    assert.equal(nodes['reserved-opening'].hidden, false);
-
-    await nodes['retry-opening'].onclick();
-
+    // 자동 재시도 실패 → 오버레이에 에러 + 설정 폼(설정완료) 표시
     assert.equal(openingCalls, 1);
     assert.equal(playerSetupCalls, 0);
     assert.equal(nodes['setup-error'].hidden, false);
     assert.equal(nodes['setup-error'].textContent, '오프닝 생성에 실패했습니다.');
-    assert.equal(nodes['player-setup-form'].hidden, true);
-    assert.equal(nodes['reserved-opening'].hidden, false);
-    assert.equal(nodes['retry-opening'].disabled, false);
+    assert.equal(nodes['player-setup-overlay'].hidden, false);
+    assert.equal(nodes['player-setup-form'].hidden, false);
     assert.equal(reservedPlayerSetupId(app.context), 'reserved-setup');
   });
 });
@@ -235,6 +226,7 @@ test('a failed new player-setup submission shows the error in the shared setup a
     nodes['setup-name'].value = '김하늘';
     nodes['setup-department'].value = 'brand_strategy';
     nodes['setup-position'].value = 'intern';
+    nodes['setup-age'].value = '30';
     nodes['setup-height'].value = '170';
     nodes['setup-weight'].value = '65';
     nodes['setup-penis-length'].value = '13';
@@ -256,12 +248,13 @@ test('a failed new player-setup submission shows the error in the shared setup a
 test('pending action keeps recovery UI ahead of resume and preserves recovery endpoint behavior', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     const local = storage(); const pending = { game_id: gameId, action_id: 'saved-action', expected_turn: 4, player_action: 'Saved action', created_at: 'now', step: 'story' }; savePending(local, pending);
-    const api = { context: async () => ({ context: validContext() }), actionStatus: async () => ({ recoverable_step: 'retry_story' }) };
+    const api = { context: async () => ({ context: validContext() }), actionStatus: async () => ({ recoverable_step: 'retry_story' }), story: async () => new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 재개된 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }), extract: async () => ({ extract: { choices: [], mind_monitor: {} } }), commit: async () => ({ commit: { success: true } }) };
     const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
-    assert.equal(nodes['recovery-action'].hidden, false);
-    assert.equal(nodes['resume-play'].disabled, true);
-    assert.equal(nodes['player-action'].disabled, true);
-    assert.equal(typeof nodes['recovery-action'].onclick, 'function');
+    // 사용자 요구: 복구 버튼 노출 없이 자동으로 이어서 실행 (완료 후 정상 상태)
+    assert.equal(nodes['recovery-action'].hidden, true);
+    assert.equal(nodes['recovery-action'].onclick, null);
+    assert.equal(nodes['resume-play'].disabled, false);
+    assert.equal(nodes['player-action'].disabled, false);
   });
 });
 
@@ -272,13 +265,37 @@ test('action_not_found blocks a new action and exposes retry_story recovery', as
     const api = {
       context: async () => ({ context: validContext() }),
       actionStatus: async () => { throw new ApiError({ endpoint: '/api/action-status', status: 404, code: 'action_not_found', message: 'missing' }); },
-      story: async () => { storyCalls += 1; return new Response(); }
+      story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 재시도 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
     };
     const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
-    assert.equal(nodes['recovery-action'].hidden, false);
-    assert.equal(await app.startNewAction('New action'), false);
-    assert.equal(storyCalls, 0);
-    assert.equal(loadPending(local, gameId).action_id, 'saved');
+    assert.equal(nodes['recovery-action'].hidden, true);
+    // 자동 재개로 Story를 다시 시도해 완료된다 (버튼 대신)
+    assert.equal(storyCalls, 1);
+    assert.equal(loadPending(local, gameId), null);
+    // 재개가 끝났으므로 새 액션을 시작할 수 있다
+    assert.equal(await app.startNewAction('New action'), true);
+  });
+});
+
+test('wait_story recovery starts a fresh story exactly once (no recursion deadlock)', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const local = storage(); savePending(local, { game_id: gameId, action_id: 'waiting', expected_turn: 5, player_action: 'Stuck action', created_at: 'now', step: 'story' });
+    let storyCalls = 0;
+    const api = {
+      context: async () => ({ context: validContext() }),
+      actionStatus: async () => ({ recoverable_step: 'wait_story' }),
+      story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 재개된 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
+    // 좌초(story_streaming) 액션은 새 스토리 1회로 재개된다 — checkRecovery↔resumePending 무한 왕복 금지
+    assert.equal(storyCalls, 1);
+    assert.equal(loadPending(local, gameId), null);
+    assert.equal(nodes['player-action'].disabled, false);
+    assert.equal(await app.startNewAction('New action'), true);
   });
 });
 
@@ -340,10 +357,11 @@ test('state and shell keep renderer free of raw Context fallback and developer p
   assert.equal(html.indexOf('id="story-panel"') < html.indexOf('id="character-state"'), true);
   assert.equal(html.indexOf('id="character-state"') < html.indexOf('id="player-panel"'), true);
   assert.equal(html.indexOf('id="player-panel"') < html.indexOf('id="choice-list"'), true);
-  // setup-error must be a shared sibling of the form and the reserved-opening section, not nested
-  // inside the form, so it stays visible while the form is hidden during a reserved-opening retry.
+  // setup-error must be a shared sibling of the form, not nested inside it,
+  // so it stays visible while the form renders.
   assert.equal(html.indexOf('id="setup-error"') < html.indexOf('id="player-setup-form"'), true);
-  assert.equal(html.indexOf('id="player-setup-form"') < html.indexOf('id="reserved-opening"'), true);
+  // reserved-opening(재시도 팝업)은 사용자 요구로 완전히 제거되었다.
+  assert.equal(html.includes('id="reserved-opening"'), false);
   assert.equal(html.indexOf('id="choice-list"') < html.indexOf('class="utility-toolbar"'), true);
   const values = stateDisplayValues(buildCompanyGameViewModel(validContext()));
   assert.equal(Object.values(values).some(value => value.includes('[object Object]')), false);

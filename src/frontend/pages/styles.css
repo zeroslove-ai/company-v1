@@ -1,4 +1,4 @@
-:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #11151d; color: #eef2f6; }
+﻿:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #11151d; color: #eef2f6; }
 * { box-sizing: border-box; } body { margin: 0; } button, textarea { font: inherit; } button { cursor: pointer; } button:disabled { cursor: not-allowed; }
 .skip-link { position: absolute; left: -999px; } .skip-link:focus { left: 1rem; top: 1rem; z-index: 5; }
 .game-shell { max-width: 1280px; margin: 0 auto; padding: 1.25rem; }
@@ -55,3 +55,36 @@
 .app-manual-list { margin: .3rem 0; padding-left: 1.2rem; }
 .app-manual-active-item { margin: 0; padding: .4rem .6rem; border-radius: .5rem; background: #1c2732; }
 @media (max-width: 720px) { .csa-app-overlay { align-items: start; padding: .5rem; } .csa-app-modal { width: 100%; max-height: calc(100dvh - 1rem); } .csa-app-status-grid { grid-template-columns: 1fr 1fr; } }
+
+/* 모바일: 설정 폼은 중앙 모달로 표시 (게임 화면 위에 떠 있되 화면을 다 가리지 않게) */
+@media (max-width: 768px) {
+  .player-setup-overlay {
+    place-items: center;
+    padding: .75rem;
+    background: rgb(5 10 16 / 62%);
+    backdrop-filter: blur(2px);
+  }
+  .player-setup-overlay .player-setup-form {
+    width: min(100%, 26rem);
+    max-height: 78dvh;
+    border-radius: .9rem;
+    border: 1px solid #4d7188;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+}
+
+/* 대사칸 발화자별 색 구분 — 왼쪽 바 */
+.narrative-dialogue { border-left-color: #7e8a96; }
+.narrative-dialogue.speaker-player { border-left-color: #4d9fff; }
+.narrative-dialogue.speaker-heroine1 { border-left-color: #ff6b8a; }
+.narrative-dialogue.speaker-heroine2 { border-left-color: #b07cff; }
+.narrative-dialogue.speaker-heroine3 { border-left-color: #4dd0a0; }
+.narrative-dialogue.speaker-heroine4 { border-left-color: #ff9f4d; }
+.narrative-dialogue.speaker-heroine5 { border-left-color: #ffd24d; }
+.speaker-player .dialogue-speaker { color: #8cc2ff; }
+.speaker-heroine1 .dialogue-speaker { color: #ff9db2; }
+.speaker-heroine2 .dialogue-speaker { color: #cba6ff; }
+.speaker-heroine3 .dialogue-speaker { color: #7ee0bb; }
+.speaker-heroine4 .dialogue-speaker { color: #ffc08a; }
+.speaker-heroine5 .dialogue-speaker { color: #ffe08a; }

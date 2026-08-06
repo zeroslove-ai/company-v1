@@ -35,6 +35,7 @@ export function renderCompletePlayerInfo(documentRef, root, info) {
   const grid = documentRef.createElement('div');
   grid.className = 'csa-app-status-grid';
   [
+    ['나이', info.age ? `${info.age}세` : '미설정'],
     ['키', info.height_cm ? `${info.height_cm}cm` : '미설정'],
     ['몸무게', info.weight_kg ? `${info.weight_kg}kg` : '미설정'],
     ['체형', info.body_type],
@@ -79,9 +80,9 @@ export function renderCompletePlayerInfo(documentRef, root, info) {
   root.append(section);
 }
 
-function npcCard(documentRef, npc) {
+function npcCard(documentRef, npc, { detailed = true } = {}) {
   const article = documentRef.createElement('article');
-  article.className = `csa-app-npc-card${npc.present_now ? ' present' : ''}`;
+  article.className = `csa-app-npc-card${npc.present_now ? ' present' : ''}${detailed ? '' : ' compact'}`;
   const heading = documentRef.createElement('h3');
   heading.textContent = npc.name || npc.id;
   const role = documentRef.createElement('p');
@@ -89,15 +90,18 @@ function npcCard(documentRef, npc) {
   role.textContent = [npc.department, npc.position, npc.role].filter(Boolean).join(' · ') || '소속·직무 미확인';
   const presence = documentRef.createElement('p');
   presence.textContent = npc.present_now ? `현재 장면 · ${npc.location?.location_label || '위치 미확인'}` : `장면 밖 · ${npc.location?.location_label || '위치 미확인'}`;
+  article.append(heading, role, presence);
+  // 스탯·마인드는 메인 히로인(상세)에게만
+  if (!detailed) return article;
   const stats = documentRef.createElement('div');
   stats.className = 'csa-app-npc-stats';
   [
     ['호감도', npc.stats?.affection ?? 0],
-    ['업무신뢰도', npc.stats?.work_trust ?? 0],
+
     ['상식수용도', npc.stats?.acceptance ?? 0],
     ['성적흥분도', npc.stats?.arousal ?? 0]
   ].forEach(([label, content]) => stats.append(field(documentRef, label, content)));
-  article.append(heading, role, presence, stats);
+  article.append(stats);
   if (npc.mind?.surface || npc.mind?.subconscious) {
     const mind = documentRef.createElement('div');
     mind.className = 'csa-app-npc-mind';
@@ -126,11 +130,29 @@ function npcCard(documentRef, npc) {
   return article;
 }
 
+const HEROINE_ID_RE = /^heroine[1-9]$/;
+
 export function renderNpcFallback(documentRef, root, npcs) {
   if (!root || root.querySelector('.csa-app-npc-card') || root.querySelector('.csa-product-npc-list')) return;
+  const all = npcs ?? [];
+  // 메인 히로인 5명만 상세 카드(스탯·마인드 포함), 나머지는 하단 간단 정보
+  const heroines = all.filter(npc => HEROINE_ID_RE.test(npc.id ?? ''));
+  const others = all.filter(npc => !HEROINE_ID_RE.test(npc.id ?? ''));
   const list = documentRef.createElement('div');
   list.className = 'csa-app-npc-list csa-product-npc-list';
-  for (const npc of npcs ?? []) list.append(npcCard(documentRef, npc));
+  for (const npc of heroines) list.append(npcCard(documentRef, npc, { detailed: true }));
+  if (others.length) {
+    const section = documentRef.createElement('section');
+    section.className = 'csa-product-npc-others';
+    const title = documentRef.createElement('h3');
+    title.textContent = '그 외 인물';
+    section.append(title);
+    const grid = documentRef.createElement('div');
+    grid.className = 'csa-product-npc-others-grid';
+    for (const npc of others) grid.append(npcCard(documentRef, npc, { detailed: false }));
+    section.append(grid);
+    list.append(section);
+  }
   if (list.children.length) root.append(list);
 }
 
@@ -159,7 +181,7 @@ export function installCsaProductUi({ documentRef = document, api = createApiCli
 
   async function state() {
     if (cache) return cache;
-    if (!loading) loading = api.appState({ game_id: gameId }).then(result => (cache = result)).finally(() => { loading = null; });
+    if (!loading) loading = api.appState({ game_id: gameId }).then(result => (cache = result?.app ?? result)).finally(() => { loading = null; });
     return loading;
   }
 

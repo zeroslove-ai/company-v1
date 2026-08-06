@@ -71,6 +71,57 @@ export function createSupabaseClient(env, fetchImpl) {
         body: JSON.stringify({ processing_status: status, error_code: errorCode })
       });
     },
+    /** 태거 적용 결과를 기존 parsed_blocks 컬럼에 조건부 PATCH로 저장한다 (스키마 변경 없음).
+     * return=representation으로 실제 갱신된 행 수를 확인한다 — 0행이면 저장 실패로 간주하고
+     * 호출부는 로컬 태거 결과를 canonical로 사용하지 않아야 한다. */
+    async updateActionParsedBlocks(gameId, actionId, parsedBlocks) {
+      const query = new URLSearchParams({
+        game_id: `eq.${gameId}`,
+        action_id: `eq.${actionId}`,
+        processing_status: 'eq.extracting',
+        story_text: 'not.is.null'
+      });
+      const rows = await request(`${baseUrl}/rest/v1/game_actions?${query}`, {
+        method: 'PATCH',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify({ parsed_blocks: parsedBlocks })
+      });
+      return Array.isArray(rows) && rows.length > 0;
+    },
+    /** 태거 호출 전에 시도 상태를 parsed_blocks 안에 영속한다. 1행 갱신이 확인되어야 태거를
+     * 호출한다 (멱등성). parsedBlocks는 호출부의 현재 정본(parser 결과)을 통째로 받아
+     * speaker_tagging_attempted/status만 추가해 저장한다. */
+    async markSpeakerTaggingAttempted(gameId, actionId, parsedBlocks) {
+      const query = new URLSearchParams({
+        game_id: `eq.${gameId}`,
+        action_id: `eq.${actionId}`,
+        processing_status: 'eq.extracting',
+        story_text: 'not.is.null'
+      });
+      const rows = await request(`${baseUrl}/rest/v1/game_actions?${query}`, {
+        method: 'PATCH',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify({
+          parsed_blocks: { ...parsedBlocks, speaker_tagging_attempted: true, speaker_tagging_status: 'in_progress' }
+        })
+      });
+      return Array.isArray(rows) && rows.length > 0;
+    },
+    /** 태거 시도 결과 상태를 parsed_blocks 안에 기록한다 (applied/unresolved/timeout/invalid_response/upstream_failure). */
+    async updateSpeakerTaggingStatus(gameId, actionId, parsedBlocks, status) {
+      const query = new URLSearchParams({
+        game_id: `eq.${gameId}`,
+        action_id: `eq.${actionId}`,
+        processing_status: 'eq.extracting',
+        story_text: 'not.is.null'
+      });
+      const rows = await request(`${baseUrl}/rest/v1/game_actions?${query}`, {
+        method: 'PATCH',
+        headers: { prefer: 'return=representation' },
+        body: JSON.stringify({ parsed_blocks: { ...parsedBlocks, speaker_tagging_status: status } })
+      });
+      return Array.isArray(rows) && rows.length > 0;
+    },
     async claimActionStatus(gameId, actionId, expectedStatus, nextStatus, errorCode, requireEmptyErrorCode = false) {
       const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}`, processing_status: `eq.${expectedStatus}` });
       if (requireEmptyErrorCode) query.set('error_code', 'is.null');

@@ -179,7 +179,7 @@ test('Opening Prompt v2 establishes workplace activity and leaves player agency 
   });
   const system = messages[0].content;
 
-  assert.match(system, /업무적·감각적 디테일/);
+  assert.match(system, /감각적 디테일/);
   assert.match(system, /자신의 업무·성격에 따른 작은 행동을 먼저/);
   assert.match(system, /업무 행동, 말투, 거리감/);
   assert.match(system, /최소 3가지 서로 다른 접근 방향/);

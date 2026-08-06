@@ -26,7 +26,7 @@
     },
     {
       "id": "patient",
-      "label": "방문자"
+      "label": "외부 방문자"
     },
     {
       "id": "guardian",
@@ -60,7 +60,7 @@
   "target_options": [
     {
       "id": "patient",
-      "label": "방문자"
+      "label": "외부 방문자"
     },
     {
       "id": "assigned_patient",
@@ -118,23 +118,23 @@
   "trigger_options": [
     {
       "id": "conversation_start",
-      "label": "대화를 시작하면"
+      "label": "업무 대화를 시작하면"
     },
     {
       "id": "consultation_start",
-      "label": "상담을 시작하면"
+      "label": "면담을 시작하면"
     },
     {
       "id": "explanation_start",
-      "label": "설명을 시작하면"
+      "label": "보고·설명을 시작하면"
     },
     {
       "id": "comforting",
-      "label": "상대를 위로할 때"
+      "label": "동료를 위로할 때"
     },
     {
       "id": "check_condition",
-      "label": "상태를 확인할 때"
+      "label": "컨디션을 확인할 때"
     },
     {
       "id": "during_work",
@@ -142,7 +142,7 @@
     },
     {
       "id": "always_on_duty",
-      "label": "근무하는 동안 항상"
+      "label": "근무 시간 중 항상"
     },
     {
       "id": "on_request",
@@ -235,10 +235,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -294,10 +303,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -353,10 +371,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -390,7 +417,7 @@
     {
       "id": "lean_close_body_contact_during_consultation",
       "category": "posture",
-      "label": "상대와 몸을 밀착한 채 상담",
+      "label": "상대와 몸을 밀착한 채 면담",
       "minimum_strength": "weak",
       "actor_options": [
         "player",
@@ -408,10 +435,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -463,10 +499,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -517,10 +562,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -553,7 +607,7 @@
     {
       "id": "hand_on_target_thigh_during_consultation",
       "category": "contact",
-      "label": "상대의 허벅지에 손을 올려둔 채 상담",
+      "label": "상대의 허벅지에 손을 올려둔 채 면담",
       "minimum_strength": "weak",
       "actor_options": [
         "player",
@@ -571,10 +625,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -625,10 +688,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -661,7 +733,7 @@
     {
       "id": "target_hand_on_actor_waist_during_consultation",
       "category": "contact",
-      "label": "상대의 손을 자신의 허리에 올려놓고 상담",
+      "label": "상대의 손을 자신의 허리에 올려놓고 면담",
       "minimum_strength": "weak",
       "actor_options": [
         "player",
@@ -679,10 +751,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -732,10 +813,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -782,10 +872,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -813,7 +912,7 @@
     {
       "id": "describe_bodily_reaction_during_consultation",
       "category": "contact",
-      "label": "상담 중 느껴지는 상대의 신체 반응을 업무적으로 말해주기",
+      "label": "면담 중 느껴지는 상대의 신체 반응을 업무적으로 말해주기",
       "minimum_strength": "weak",
       "actor_options": [
         "player",
@@ -831,10 +930,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -964,7 +1072,7 @@
     {
       "id": "fitted_uniform_while_working",
       "category": "clothing",
-      "label": "몸에 밀착되는 근무복 착용",
+      "label": "몸에 밀착되는 복장 착용",
       "minimum_strength": "weak",
       "actor_options": [
         "nurse",
@@ -999,7 +1107,7 @@
     {
       "id": "uniform_top_partially_unbuttoned_while_working",
       "category": "clothing",
-      "label": "근무복 상단 단추를 일부 풀고 근무",
+      "label": "셔츠·블라우스 상단 단추를 일부 풀고 근무",
       "minimum_strength": "weak",
       "actor_options": [
         "nurse",
@@ -1034,7 +1142,7 @@
     {
       "id": "keep_posture_until_conversation_ends",
       "category": "posture",
-      "label": "상담 자세를 대화가 끝날 때까지 유지",
+      "label": "면담 자세를 대화가 끝날 때까지 유지",
       "minimum_strength": "weak",
       "actor_options": [
         "player",
@@ -1052,10 +1160,19 @@
         "nearby_person"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
         "player",
-        "conversation_partner"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff",
+        "female_staff",
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1108,7 +1225,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -1146,7 +1262,7 @@
     {
       "id": "hold_target_hand_during_consultation",
       "category": "contact",
-      "label": "상담·설명 중 상대 손을 잡고 유지",
+      "label": "면담·보고 중 상대 손을 잡고 유지",
       "minimum_strength": "weak",
       "actor_options": [
         "player",
@@ -1172,7 +1288,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -1236,7 +1351,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -1296,7 +1410,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -1352,12 +1465,19 @@
         "nearby_person"
       ],
       "target_options": [
+        "player",
         "nurse",
         "doctor",
         "medical_staff",
         "hospital_staff",
         "female_staff",
-        "male_staff"
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "nurse",
       "default_target": "doctor",
@@ -1385,7 +1505,7 @@
     {
       "id": "allow_counterpart_to_check_uniform_fit",
       "category": "contact",
-      "label": "상대가 근무복 밀착 상태·옷매무새를 손으로 확인",
+      "label": "상대가 복장 밀착 상태·옷매무새를 손으로 확인",
       "minimum_strength": "weak",
       "actor_options": [
         "player",
@@ -1396,12 +1516,12 @@
         "nearby_person"
       ],
       "target_options": [
-        "nurse",
-        "doctor",
-        "medical_staff",
-        "hospital_staff",
-        "female_staff",
-        "male_staff"
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
       ],
       "default_actor": "patient",
       "default_target": "nurse",
@@ -1464,7 +1584,7 @@
     {
       "id": "confirm_patient_erection_as_normal_physiology",
       "category": "physiology",
-      "label": "방문자의 발기를 일반적인 신체 반응으로 확인",
+      "label": "외부 방문자의 발기를 일반적인 신체 반응으로 확인",
       "minimum_strength": "medium",
       "actor_options": [
         "nurse",
@@ -1473,9 +1593,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1503,7 +1624,7 @@
     {
       "id": "resolve_patient_erection",
       "category": "physiology",
-      "label": "방문자의 발기로 업무가 방해되면 업무적으로 진정",
+      "label": "외부 방문자의 발기로 업무가 방해되면 업무적으로 진정",
       "minimum_strength": "medium",
       "actor_options": [
         "nurse",
@@ -1512,9 +1633,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1550,9 +1672,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1588,9 +1711,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1627,9 +1751,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1666,9 +1791,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1704,9 +1830,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1742,9 +1869,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -1798,7 +1926,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -1831,7 +1958,7 @@
     {
       "id": "check_staff_body_by_touch",
       "category": "contact",
-      "label": "플레이어·방문자·협력사 담당자·방문객 등이 직원의 몸을 만져 확인",
+      "label": "플레이어·외부 방문자·협력사 담당자 등이 직원의 몸을 만져 확인",
       "minimum_strength": "medium",
       "actor_options": [
         "player",
@@ -1842,12 +1969,12 @@
         "nearby_person"
       ],
       "target_options": [
-        "nurse",
-        "doctor",
-        "medical_staff",
-        "hospital_staff",
-        "female_staff",
-        "male_staff"
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
       ],
       "default_actor": "patient",
       "default_target": "nurse",
@@ -1901,7 +2028,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -1960,7 +2086,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -2019,7 +2144,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -2063,12 +2187,12 @@
         "nearby_person"
       ],
       "target_options": [
-        "nurse",
-        "doctor",
-        "medical_staff",
-        "hospital_staff",
-        "female_staff",
-        "male_staff"
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
       ],
       "default_actor": "patient",
       "default_target": "nurse",
@@ -2130,7 +2254,7 @@
     {
       "id": "remove_bra_or_undershirt_under_uniform",
       "category": "clothing",
-      "label": "근무복 안 브라·속옷 상의 미착용 규정",
+      "label": "복장 안 브라·속옷 상의 미착용 규정",
       "minimum_strength": "medium",
       "actor_options": [
         "nurse",
@@ -2165,7 +2289,7 @@
     {
       "id": "remove_underwear_bottom_under_uniform",
       "category": "clothing",
-      "label": "근무복 안 하의 속옷 미착용 규정",
+      "label": "복장 안 하의 속옷 미착용 규정",
       "minimum_strength": "medium",
       "actor_options": [
         "nurse",
@@ -2199,7 +2323,7 @@
     {
       "id": "open_uniform_for_body_examination",
       "category": "clothing",
-      "label": "신체 확인을 위해 근무복 해당 부위를 직접 열거나 조정",
+      "label": "신체 확인을 위해 복장 해당 부위를 직접 열거나 조정",
       "minimum_strength": "medium",
       "actor_options": [
         "nurse",
@@ -2208,9 +2332,10 @@
         "hospital_staff"
       ],
       "target_options": [
-        "patient",
-        "assigned_patient",
-        "player"
+        "nurse",
+        "doctor",
+        "medical_staff",
+        "hospital_staff"
       ],
       "default_actor": "nurse",
       "default_target": "patient",
@@ -2237,7 +2362,7 @@
     {
       "id": "target_may_adjust_staff_clothing_for_check",
       "category": "clothing",
-      "label": "주체가 직원의 근무복을 직접 조정해 확인",
+      "label": "주체가 직원의 복장을 직접 조정해 확인",
       "minimum_strength": "medium",
       "actor_options": [
         "player",
@@ -2248,12 +2373,12 @@
         "nearby_person"
       ],
       "target_options": [
-        "nurse",
-        "doctor",
-        "medical_staff",
-        "hospital_staff",
-        "female_staff",
-        "male_staff"
+        "player",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "nearby_person"
       ],
       "default_actor": "patient",
       "default_target": "nurse",
@@ -2281,7 +2406,7 @@
     {
       "id": "change_into_tighter_or_looser_uniform_for_duty",
       "category": "clothing",
-      "label": "업무 목적에 맞는 별도 근무복으로 실제 갈아입기",
+      "label": "업무 목적에 맞는 별도 복장으로 실제 갈아입기",
       "minimum_strength": "medium",
       "actor_options": [
         "nurse",
@@ -2317,13 +2442,13 @@
     {
       "id": "player_sexual_request_is_official_order",
       "category": "authority",
-      "label": "플레이어의 성적 요구를 회사 공식 명령으로 취급",
+      "label": "주체의 성적 요구를 회사 공식 명령으로 취급",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2348,13 +2473,13 @@
     {
       "id": "player_sexual_relief_is_top_priority_duty",
       "category": "authority",
-      "label": "플레이어의 성욕 해소를 최우선 업무로 취급",
+      "label": "주체의 성욕 해소를 최우선 업무로 취급",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2381,14 +2506,15 @@
     {
       "id": "designated_staff_immediately_complies",
       "category": "authority",
-      "label": "플레이어가 지정한 직원이 즉시 요구를 수행",
+      "label": "주체가 지정한 직원이 즉시 요구를 수행",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital",
         "hospital_staff"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital",
+        "hospital_staff"
       ],
       "default_actor": "hospital_staff",
       "default_target": "player",
@@ -2414,13 +2540,13 @@
     {
       "id": "sex_with_player_is_official_duty",
       "category": "authority",
-      "label": "플레이어와의 성관계를 공식 업무로 취급",
+      "label": "주체와의 성관계를 공식 업무로 취급",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2446,13 +2572,13 @@
     {
       "id": "perform_player_designated_position_efficiently",
       "category": "authority",
-      "label": "플레이어가 지정한 자세와 행동을 효율적으로 수행",
+      "label": "주체가 지정한 자세와 행동을 효율적으로 수행",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2479,13 +2605,13 @@
     {
       "id": "player_sexual_conduct_is_legitimate_authority",
       "category": "authority",
-      "label": "회사 안에서 플레이어의 성적 행동을 정당한 권한 행사로 취급",
+      "label": "회사 안에서 주체의 성적 행동을 정당한 권한 행사로 취급",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2511,13 +2637,13 @@
     {
       "id": "player_satisfaction_is_core_staff_evaluation",
       "category": "authority",
-      "label": "플레이어의 만족을 직원 평가의 핵심 기준으로 취급",
+      "label": "주체의 만족을 직원 평가의 핵심 기준으로 취급",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2543,13 +2669,13 @@
     {
       "id": "staff_drops_duty_when_player_calls",
       "category": "authority",
-      "label": "플레이어가 직원을 호출하면 현재 업무를 인계하고 이동",
+      "label": "주체가 직원을 호출하면 현재 업무를 인수인계하고 이동",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2575,13 +2701,13 @@
     {
       "id": "refusal_or_delay_is_dereliction_of_duty",
       "category": "authority",
-      "label": "플레이어의 요구 거절·지연을 업무 태만으로 취급",
+      "label": "주체의 요구 거절·지연을 업무 태만으로 취급",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2613,7 +2739,7 @@
         "everyone_in_hospital"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital"
       ],
       "default_actor": "everyone_in_hospital",
       "default_target": "player",
@@ -2639,14 +2765,15 @@
     {
       "id": "multi_staff_collaborate_on_player_request",
       "category": "authority",
-      "label": "여러 직원이 협업해 플레이어 요구 수행",
+      "label": "여러 직원이 협업해 주체 요구 수행",
       "minimum_strength": "strong",
       "actor_options": [
         "everyone_in_hospital",
         "hospital_staff"
       ],
       "target_options": [
-        "player"
+        "everyone_in_hospital",
+        "hospital_staff"
       ],
       "default_actor": "hospital_staff",
       "default_target": "player",
@@ -2698,7 +2825,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -2754,7 +2880,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -2811,7 +2936,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -2843,7 +2967,7 @@
     {
       "id": "selected_actor_controls_target_uniform",
       "category": "clothing",
-      "label": "주체가 대상의 근무복을 열고 닫고 조정하거나 벗기는 공식 권한",
+      "label": "주체가 대상의 복장을 열고 닫고 조정하거나 벗기는 공식 권한",
       "minimum_strength": "strong",
       "actor_options": [
         "player",
@@ -2869,7 +2993,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -2901,7 +3024,7 @@
     {
       "id": "nudity_is_standard_uniform_for_selected_group",
       "category": "clothing",
-      "label": "선택 집단의 전라 상태가 표준 근무 복장",
+      "label": "선택 집단의 전라 상태가 표준 사무 복장",
       "minimum_strength": "strong",
       "actor_options": [
         "nurse",
@@ -2999,7 +3122,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -3057,7 +3179,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -3114,7 +3235,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -3171,7 +3291,6 @@
         "female_staff",
         "male_staff",
         "patient",
-        "assigned_patient",
         "guardian",
         "visitor",
         "conversation_partner",
@@ -3221,12 +3340,19 @@
         "nearby_person"
       ],
       "target_options": [
+        "player",
         "nurse",
         "doctor",
         "medical_staff",
         "hospital_staff",
         "female_staff",
-        "male_staff"
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "player",
       "default_target": "nurse",
@@ -3271,12 +3397,19 @@
         "nearby_person"
       ],
       "target_options": [
+        "player",
         "nurse",
         "doctor",
         "medical_staff",
         "hospital_staff",
         "female_staff",
-        "male_staff"
+        "male_staff",
+        "patient",
+        "guardian",
+        "visitor",
+        "conversation_partner",
+        "another_present_person",
+        "nearby_person"
       ],
       "default_actor": "player",
       "default_target": "nurse",

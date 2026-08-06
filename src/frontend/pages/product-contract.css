@@ -290,7 +290,7 @@
   .character-image {
     height: clamp(260px, 46dvh, 340px);
     max-height: 340px;
-    object-fit: cover;
+    object-fit: contain;
   }
 }
 
@@ -316,7 +316,9 @@
     margin-top: -1px;
   }
 
-  .mind-stat-strip,
+  .mind-stat-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
   .csa-app-npc-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -327,5 +329,47 @@
 
   .turn-loading-card {
     padding: 1rem;
+  }
+}
+
+/* 그 외 인물 — 메인 히로인 외 NPC는 스탯 없이 간단 정보만 */
+.csa-product-npc-others {
+  margin-top: .9rem;
+  padding-top: .7rem;
+  border-top: 1px solid #2a3a4a;
+}
+.csa-product-npc-others > h3 {
+  margin: 0 0 .45rem;
+  font-size: .76rem;
+  color: #9fc9df;
+}
+.csa-product-npc-others-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .4rem;
+}
+.csa-app-npc-card.compact {
+  padding: .45rem .6rem;
+}
+.csa-app-npc-card.compact h3 {
+  font-size: .78rem;
+  margin: 0;
+}
+.csa-app-npc-card.compact .csa-app-npc-role {
+  margin: .15rem 0 0;
+  font-size: .68rem;
+  color: #9fc9df;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.csa-app-npc-card.compact .csa-app-npc-role + p {
+  margin: .1rem 0 0;
+  font-size: .66rem;
+  color: #6f8aa0;
+}
+@media (max-width: 480px) {
+  .csa-product-npc-others-grid {
+    grid-template-columns: 1fr;
   }
 }

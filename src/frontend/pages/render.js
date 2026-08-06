@@ -1,4 +1,4 @@
-import { parseNarrative } from './narrative.js';
+﻿import { parseNarrative } from './narrative.js';
 
 export function text(element, value) { if (element) element.textContent = value ?? ''; }
 
@@ -25,7 +25,7 @@ const DISPLAY_LABELS = {
   weak: '약함', medium: '중간', strong: '강함'
 };
 const STAT_LABELS = {
-  affinity: '호감', work_trust: '신뢰', csa_acceptance: '수용', sexual_arousal: '흥분'
+  affinity: '호감', csa_acceptance: '수용', sexual_arousal: '흥분', resistance: '저항'
 };
 const SEXUAL_ACTION_LABELS = {
   none: '기타', touch: '접촉', exposure: '노출', masturbation: '자위', oral: '구강',
@@ -145,6 +145,15 @@ function renderNarrativeChoices(container, choices, labels = []) {
   section.append(heading, list); container.append(section);
 }
 
+// 대사칸 왼쪽 바 색: 플레이어=파랑, 히로인 5명=각각, 기타 NPC=기본(검정)
+function dialogueToneClass(speakerId) {
+  const id = String(speakerId ?? '');
+  if (id === 'player') return 'speaker-player';
+  const heroine = /^heroine([1-9])$/.exec(id);
+  if (heroine) return `speaker-heroine${heroine[1]}`;
+  return '';
+}
+
 export function renderNarrative(container, parsed) {
   if (!container) return;
   container.replaceChildren();
@@ -152,23 +161,41 @@ export function renderNarrative(container, parsed) {
   const labels = parsedChoiceLabels({ choice_labels: parsed?.choice_labels }, {}, choices.length);
   if (container.id === 'current-story') currentChoiceSet = choiceSet(choices, labels);
   let embeddedChoices = false;
+  let lastDialogueCard = null;
   for (const block of parsed?.blocks ?? []) {
     if (block.type === 'choices') {
       renderNarrativeChoices(container, block.choices ?? choices, block.choice_labels ?? labels);
       embeddedChoices = true;
+      lastDialogueCard = null;
       continue;
     }
     if (block.type === 'dialogue') {
+      // 같은 화자가 연속으로 말하면 한 대사칸에 이어 붙인다
+      if (lastDialogueCard && lastDialogueCard.dataset?.speakerId === block.speaker_id) {
+        const line = lastDialogueCard.querySelector('.dialogue-text');
+        if (line) line.textContent += `\n${block.text}`;
+        continue;
+      }
       const card = document.createElement('article'); card.className = 'narrative-dialogue dialogue-card';
       if (block.speaker_id) setDataValue(card, 'speakerId', block.speaker_id);
+      const speakerTone = dialogueToneClass(block.speaker_id);
+      if (speakerTone) card.classList.add(speakerTone);
       const meta = document.createElement('header'); meta.className = 'dialogue-meta';
       const speaker = document.createElement('strong'); speaker.className = 'dialogue-speaker'; speaker.textContent = block.speaker ?? block.speaker_name ?? '';
       const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = block.direction ?? '';
       const line = document.createElement('p'); line.className = 'dialogue-text'; line.textContent = block.text ?? '';
       meta.append(speaker, direction); card.append(meta, line); container.append(card);
+      lastDialogueCard = card;
       continue;
     }
-    const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`; paragraph.textContent = block.text ?? ''; container.append(paragraph);
+    lastDialogueCard = null;
+    const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`;
+    // 플레이어 속마음: 마침표·물음표·느낌표 뒤 줄바꿈으로 가독성 향상 (대화체 혼잣말)
+    const blockText = block.text ?? '';
+    paragraph.textContent = block.type === 'player_inner_thought'
+      ? blockText.replace(/([.。!?！？~])\s*/g, '$1\n')
+      : blockText;
+    container.append(paragraph);
   }
   if (!embeddedChoices) renderNarrativeChoices(container, choices, labels);
 }
@@ -188,7 +215,7 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
   }
 }
 
-export function renderHistory(container, turns, { showSummary = true } = {}) {
+export function renderHistory(container, turns, { showSummary = true, collapsible = false } = {}) {
   if (!container) return;
   container.replaceChildren();
   const parsedTurns = (turns ?? []).map(turn => ({ turn, parsed: parsedTurnNarrative(turn) }));
@@ -206,8 +233,27 @@ export function renderHistory(container, turns, { showSummary = true } = {}) {
       if (container.id === 'story-history') narrative.append(summary);
       else card.append(summary);
     }
+    // 병원편 스타일 상세보기: 모달에서 턴 요약은 펼쳐 두고 세부(속마음/상황/선택지/원문)는 접기
+    if (collapsible) {
+      appendCollapsibleSection(card, '💭 플레이어 속마음', displayValue(turn.player_inner_thought) || parsed?.player_inner_thought);
+      appendCollapsibleSection(card, '📋 플레이어 상황', displayValue(turn.player_status) || parsed?.player_status);
+      const choiceItems = (parsed?.choices ?? []).map((c, i) => `${i + 1}. ${c}`).join('\n');
+      appendCollapsibleSection(card, '🔀 선택지', choiceItems);
+      appendCollapsibleSection(card, '📄 원문', displayValue(turn.story_text));
+    }
     container.append(card);
   }
+}
+
+function appendCollapsibleSection(card, title, value) {
+  const textValue = String(value ?? '').trim();
+  if (!textValue) return;
+  const details = document.createElement('details'); details.className = 'history-detail-section';
+  const summary = document.createElement('summary'); summary.textContent = title;
+  const body = document.createElement('div'); body.className = 'history-detail-body';
+  body.textContent = textValue;
+  details.append(summary, body);
+  card.append(details);
 }
 
 function firstMonitorValue(monitor, keys) {
@@ -274,6 +320,12 @@ function renderMindEntry(container, entry) {
     card.append(heading, detail); body.append(card);
   }
   container.append(body);
+  // 캐릭터 이름: 컨테이너 마지막에 추가 (CSS order로 최상단 표시, 카드 구조 유지)
+  const name = displayValue(entry.name) || displayValue(entry.id);
+  if (name && !container.querySelector?.('.mind-monitor-name')) {
+    const nameHeading = document.createElement('h3'); nameHeading.className = 'mind-monitor-name'; nameHeading.textContent = name;
+    container.append(nameHeading);
+  }
 }
 
 export function renderMindMonitor(container, monitor, { preferredId = '' } = {}) {
@@ -390,6 +442,18 @@ function detailsSection(title, rows, className = '') {
   return section;
 }
 
+// 관계 서사 요약은 2열 grid에 넣으면 긴 문장이 레이아웃을 깨므로 별도 전체 폭 섹션으로
+function renderRelationshipSummary(container, character) {
+  const summary = displayValue(character?.relationship_summary);
+  if (!summary) return;
+  const section = document.createElement('section');
+  section.className = 'character-detail-section relationship-summary-section';
+  const heading = document.createElement('h3'); heading.textContent = '관계';
+  const body = document.createElement('p'); body.className = 'physical-relation'; body.textContent = summary;
+  section.append(heading, body);
+  container.append(section);
+}
+
 function renderRelationshipRecord(container, character) {
   const record = object(character?.relationship_record) ?? {};
   container.append(detailsSection('관계·사정 기록', [
@@ -450,9 +514,9 @@ function renderFocalCharacter(container, focal, player) {
       ['키', body.height_cm === null || body.height_cm === undefined ? '' : `${body.height_cm}cm`],
       ['몸무게', body.weight_kg === null || body.weight_kg === undefined ? '' : `${body.weight_kg}kg`],
       ['체형', displayValue(body.body_type)],
-      ['가슴', displayValue(body.cup)],
-      ['관계', displayValue(character.relationship_summary) || '기록 없음']
+      ['가슴', displayValue(body.cup)]
     ]));
+    renderRelationshipSummary(container, character);
     renderRelationshipRecord(container, character);
     renderPrivateInfo(container, character);
   }
@@ -495,6 +559,8 @@ function sexualEventDisplay(event) {
 }
 
 function renderPlayer(container, player, scene) {
+  // 상식개변 칸은 매 렌더링마다 새로 그리므로, 이전에 붙인 중복 섹션을 먼저 제거한다
+  (container.parentElement ?? container)?.querySelector?.('.player-active-rules')?.remove();
   const activeRules = Array.isArray(player?.active_csa) ? player.active_csa : [];
   const activeCount = typeof player?.active_csa_count === 'number' ? player.active_csa_count : activeRules.length;
   const activeMax = typeof player?.max_active_csa === 'number' ? player.max_active_csa : null;
@@ -510,16 +576,34 @@ function renderPlayer(container, player, scene) {
     ['흥분도', typeof player?.excitement === 'number' ? String(player.excitement) : ''],
     ['누적 사정', typeof player?.ejaculation_count === 'number' ? `${player.ejaculation_count}회` : '0회'],
     ['성적 이벤트', typeof player?.total_sexual_events === 'number' ? `${player.total_sexual_events}건` : '0건'],
-    ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event) || '없음'],
-    ['현재 상황', displayValue(player?.status)]
+    ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event) || '없음']
   ];
-  activeRules.forEach((rule, index) => {
-    const strength = localizedValue(rule?.strength_label || rule?.strength);
-    const authority = displayValue(rule?.authority_label);
-    const scope = displayValue(rule?.scope_label) || '회사 전체';
-    entries.push([`규정 ${index + 1}${strength ? ` · ${strength}` : ''}`, [authority, scope, displayValue(rule?.content)].filter(Boolean).join(' · ')]);
-  });
   definitionList(container, entries);
+  // 상식개변(활성 규정)은 별도 칸 — 2열 그리드에 넣으면 내용이 잘리므로 분리
+  if (activeRules.length) {
+    const section = document.createElement('section');
+    section.className = 'player-active-rules';
+    const heading = document.createElement('h3');
+    heading.textContent = '상식개변';
+    section.append(heading);
+    const list = document.createElement('ul');
+    activeRules.forEach((rule, index) => {
+      const strength = localizedValue(rule?.strength_label || rule?.strength);
+      const authority = displayValue(rule?.authority_label);
+      const scope = displayValue(rule?.scope_label) || '회사 전체';
+      const li = document.createElement('li');
+      const title = document.createElement('strong');
+      title.textContent = [`규정 ${index + 1}`, strength].filter(Boolean).join(' · ');
+      const body = document.createElement('span');
+      body.textContent = [authority, scope, displayValue(rule?.content)].filter(Boolean).join(' · ');
+      li.append(title, body);
+      list.append(li);
+    });
+    section.append(list);
+    // dl(#player-situation) 안에 넣으면 2열 grid 아이템이 되어 좁은 칸에 찌그러진다.
+    // dl 바로 뒤(부모 패널)에 배치해 전체 폭을 사용한다.
+    container.after?.(section) ?? container.parentElement?.append(section);
+  }
 }
 
 function supplementalElement(elements, key, id) {
@@ -555,15 +639,17 @@ export function compactSummary(value, maxLength = 140) {
 export function playerSupplementalDisplay(viewModel) {
   const model = viewModel ?? {};
   const world = object(model.scene?.world_state) ?? {};
-  const day = displayValue(world.day ?? world.day_index);
-  const timeBlock = localizedValue(world.time_block);
+  const gameTime = object(world.game_time) ?? {};
+  const day = displayValue(gameTime.day ?? world.day ?? world.day_index);
+  const clock = formatClock(gameTime.minute_of_day);
   const progress = progressValue(model.player?.ejaculation_progress);
   const count = typeof model.player?.ejaculation_count === 'number' && Number.isFinite(model.player.ejaculation_count)
     ? model.player.ejaculation_count
     : null;
   return {
     innerThought: displayValue(model.player?.inner_thought),
-    gameTime: [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '),
+    playerStatus: displayValue(model.player?.status),
+    gameTime: [day ? `Day ${day}` : '', clock].filter(Boolean).join(' · '),
     ejaculationProgress: progress,
     ejaculationCount: count,
     turnSummary: compactSummary(model.turn?.turn_summary)
@@ -597,6 +683,9 @@ function renderSupplementalPanels(elements, model) {
     duplicateInnerThought.hidden = true;
     duplicateInnerThought.className = 'future-slot';
   }
+  renderTextSlot(supplementalElement(elements, 'playerStatus', 'player-status-slot'), {
+    heading: '현재 상황', value: display.playerStatus, className: 'player-status-card'
+  });
   renderTextSlot(supplementalElement(elements, 'gameTime', 'game-time-slot'), {
     heading: '현재 시간', value: display.gameTime, className: 'game-time-card'
   });
@@ -608,15 +697,23 @@ function renderSupplementalPanels(elements, model) {
   });
 }
 
+function formatClock(minuteOfDay) {
+  if (!Number.isInteger(minuteOfDay) || minuteOfDay < 0) return '';
+  const hour = Math.floor(minuteOfDay / 60);
+  const minute = String(minuteOfDay % 60).padStart(2, '0');
+  return `${hour}:${minute}`;
+}
+
 export function renderState(elements, viewModel, { title = '상식개변: 회사편' } = {}) {
   const model = viewModel ?? {};
   const world = object(model.scene?.world_state) ?? {};
-  const day = displayValue(world.day ?? world.day_index);
-  const timeBlock = localizedValue(world.time_block);
+  const gameTime = object(world.game_time) ?? {};
+  const day = displayValue(gameTime.day ?? world.day ?? world.day_index);
+  const clock = formatClock(gameTime.minute_of_day);
   text(elements.title, title || '상식개변: 회사편');
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
-  text(elements.dayTime, [day ? `Day ${day}` : '', timeBlock].filter(Boolean).join(' · '));
-  definitionList(elements.scene, Object.entries(stateDisplayValues(model)));
+  text(elements.dayTime, [day ? `Day ${day}` : '', clock].filter(Boolean).join(' · '));
+  // scene-state: 활성 규정은 플레이어 상태창으로 통합되어 여기선 비움 (중복 방지)
   const characterPanel = elements.focal?.closest?.('details');
   if (characterPanel) characterPanel.open = true;
   renderFocalCharacter(elements.focal, model.focal_character, model.player);

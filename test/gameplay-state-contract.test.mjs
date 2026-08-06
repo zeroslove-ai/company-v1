@@ -119,20 +119,20 @@ test('pure v1 migration preserves unknown fields and hydration never overwrites 
   assert.deepEqual(migrateCompanySave(migrated), migrated);
   const hydrated = hydrateGameplayState(migrated, {
     characters: [
-      { character_id: 'npc-existing', initial_stats: { affection: 0 } },
-      { character_id: 'npc-new', initial_stats: { affection: 1 } }
+      { character_id: 'npc-existing', initial_stats: { affinity: 0 } },
+      { character_id: 'npc-new', initial_stats: { affinity: 1 } }
     ]
   });
   assert.equal(hydrated.npc_stats['npc-existing'].affection, 4);
-  assert.equal(hydrated.npc_stats['npc-new'].affection, 1);
+  assert.equal(hydrated.npc_stats['npc-new'].affinity, 1);
 });
 
 test('turn changes use only guarded before and after state', () => {
-  const before = { player_sexual_state: { arousal: 10 }, npc_stats: { 'npc-a': { affection: 1 } } };
-  const after = { player_sexual_state: { arousal: 12 }, npc_stats: { 'npc-a': { affection: 2 } } };
+  const before = { player_sexual_state: { arousal: 10 }, npc_stats: { 'npc-a': { affinity: 1 } } };
+  const after = { player_sexual_state: { arousal: 12 }, npc_stats: { 'npc-a': { affinity: 2 } } };
   assert.deepEqual(deriveTurnChanges(before, after), [
     { path: 'player_sexual_state.arousal', from: 10, to: 12 },
-    { path: 'npc_stats.npc-a.affection', from: 1, to: 2 }
+    { path: 'npc_stats.npc-a.affinity', from: 1, to: 2 }
   ]);
 });
 

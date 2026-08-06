@@ -40,7 +40,7 @@ function mergeNpcPayload(save, edition, latestMindMonitor, details) {
         suggested_location_label: finder.suggested_location_label,
         suggested_location_id: finder.suggested_location_id
       },
-      stats: { affection: 0, work_trust: 0, acceptance: 0, arousal: 0 },
+      stats: { affection: 0, acceptance: 0, arousal: 0, resistance: 0 },
       mind: { surface: '', subconscious: '' },
       scene_state: {},
       relationship_summary: ''

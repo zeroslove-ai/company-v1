@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -56,7 +56,7 @@ test('Extract prompt requires independent identity axes, Story-authoritative pre
   assert.match(system, /csa_runtime_state\[csa_id\]/);
   assert.match(system, /arousal_delta, ejaculation_progress_delta, and ejaculation_completed/);
   assert.match(system, /evidence\.sexual_resolution === true/);
-  assert.ok(system.length <= 3300, `extract system chars: ${system.length}`); // see company-heroines-v1.test.mjs's size-budget test for why this moved from 3000
+  assert.ok(system.length <= 5000, `extract system chars: ${system.length}`); // 예산 5000 확장 (UI 개선 지시문 반영)
 });
 
 test('Parser recognizes the Korean four-section output, extracts inline dialogue with a resolved speaker_id, and preserves legacy internal markers', () => {
@@ -210,6 +210,13 @@ test('Story request streams, disables thinking, uses a 5000 max_tokens envelope,
     if (parsed.pathname === '/rest/v1/game_actions' && (init.method ?? 'GET') === 'GET') {
       const found = actions.get(parsed.searchParams.get('action_id')?.replace('eq.', ''));
       return new Response(JSON.stringify([found].filter(Boolean)), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (parsed.pathname === '/rest/v1/game_actions' && init.method === 'PATCH') {
+      const found = actions.get(parsed.searchParams.get('action_id')?.replace('eq.', ''));
+      const expectedStatus = parsed.searchParams.get('processing_status')?.replace('eq.', '');
+      if (!found || (expectedStatus && found.processing_status !== expectedStatus)) return new Response(JSON.stringify([]), { status: 200, headers: { 'content-type': 'application/json' } });
+      Object.assign(found, JSON.parse(init.body));
+      return new Response(JSON.stringify([found]), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     const rpc = parsed.pathname.split('/').pop();
     const args = JSON.parse(init.body);
@@ -534,7 +541,7 @@ test('hydrateGameplayState fills npc_relationship_state, npc_stats, and csa_atti
     }]
   };
   const hydrated = hydrateGameplayState(save, master);
-  assert.deepEqual(hydrated.npc_stats['npc-hayeon'], { affection: 2 });
+  assert.deepEqual(hydrated.npc_stats['npc-hayeon'], { affinity: 2, sexual_arousal: 0 }); // 레거시 affection은 affinity로 정본화 + sexual_arousal 0 보충
   assert.deepEqual(hydrated.npc_relationship_state['npc-hayeon'], { closeness: 'acquaintance' });
   assert.deepEqual(hydrated.csa_attitudes['npc-hayeon']['csa-dress-code'], { familiarity: 0, resistance: 10, acceptance: 0, discomfort: 0, conscious_violation: false, last_changed_turn: 0 });
 

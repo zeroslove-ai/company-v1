@@ -215,7 +215,8 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
     location: npcLocation(save, id, presentNow),
     stats: {
       affection: statValue(stats, '호감도', 'affection', 'affinity') ?? 0,
-      work_trust: statValue(stats, '업무신뢰도', 'work_trust') ?? 0,
+      resistance: statValue(stats, '저항도', 'resistance') ?? 0,
+
       acceptance: statValue(stats, '상식수용도', 'acceptance', 'csa_acceptance')
         ?? statValue(attitude, 'acceptance', '상식수용도')
         ?? 0,

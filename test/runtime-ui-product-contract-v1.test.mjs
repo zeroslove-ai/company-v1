@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createApiWorker } from '../src/api/index.js';
@@ -122,9 +122,11 @@ test('Mind Monitor renders a separate stat strip plus surface/subconscious cards
     const content = container.children[1];
     assert.deepEqual(tabs.children.map(button => button.textContent), ['김제나', '이메이']);
     assert.equal(tabs.children[0].ariaSelected, 'true');
-    assert.deepEqual(content.children[0].children.map(item => item.children[0].textContent), ['호감', '신뢰', '수용', '흥분']);
+    assert.deepEqual(content.children[0].children.map(item => item.children[0].textContent), ['호감', '수용', '흥분', '저항']);
     assert.equal(content.children[1].children[0].children[0].textContent, '표면의식');
     assert.equal(content.children[1].children[1].children[0].textContent, '잠재의식');
+    // 캐릭터 이름이 Mind Monitor에 표시된다 (신규)
+    assert.equal(content.children[2].textContent, '김제나');
     assert.equal(JSON.stringify(container).includes('physical_reaction'), false);
 
     tabs.children[1].listeners.get('click')();

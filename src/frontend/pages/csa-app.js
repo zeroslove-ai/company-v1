@@ -181,7 +181,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     const statGrid = el('div', 'csa-app-npc-stats');
     [
       ['호감도', displayStat(stats.affection)],
-      ['업무신뢰도', displayStat(stats.work_trust)],
+      ['저항도', displayStat(stats.resistance)],
       ['상식수용도', displayStat(stats.acceptance)],
       ['성적흥분도', displayStat(stats.arousal)]
     ].forEach(([label, value]) => {

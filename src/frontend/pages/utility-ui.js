@@ -1,4 +1,4 @@
-import { renderHistory, text } from './render.js';
+﻿import { renderHistory, text } from './render.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -155,7 +155,7 @@ export function createUtilityUi({
     const result = await api.history({ game_id: gameId, limit: 20, ...(nextBeforeTurn ? { before_turn: nextBeforeTurn } : {}) });
     historyRecords = [...historyRecords, ...(result.records ?? [])];
     nextBeforeTurn = result.next_before_turn ?? null;
-    renderHistory(elements.historyList, historyRecords, { showSummary: true });
+    renderHistory(elements.historyList, historyRecords, { showSummary: true, collapsible: true });
     if (elements.historyMore) elements.historyMore.hidden = result.has_more !== true;
     text(elements.historyStatus, historyRecords.length ? `${historyRecords.length}개 턴` : '저장된 기록이 없습니다.');
   }

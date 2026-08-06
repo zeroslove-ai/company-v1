@@ -1,6 +1,7 @@
 import { HttpError } from './http.js';
 import { repairAndParseExtractJson } from '../engine/extract/json-repair.js';
 import { appendLateAuthoritativeCharacterCanon } from '../engine/story-prompt.js';
+import { parseTaggingResponse } from '../engine/speaker-tagger.js';
 
 const EXTRACT_TIMEOUT_MS = 75000;
 
@@ -96,6 +97,55 @@ function parseExtractContent(content) {
   } catch {
     throw new HttpError(502, 'extract_invalid_json', 'Extract response is not valid JSON', true);
   }
+}
+
+/**
+ * 단일 대사 화자 판별 호출 — parser가 미확정으로 남긴 대사만 문맥과 함께 보낸다.
+ * OpenAI 호환 envelope에서 choices[0].message.content를 추출해 태거 결과 객체를 반환한다
+ * (envelope 전체를 반환하지 않는다). 실패는 파이프라인을 막지 않는다 — 호출부가 warning으로 기록.
+ */
+export async function runSpeakerTagging({ env, fetchImpl, messages, allowlist = [], timeoutMs = 10000 }) {
+  const signal = typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(timeoutMs) : undefined;
+  let response;
+  try {
+    response = await postCompletion(env, fetchImpl, {
+      model: requireEnv(env, 'EXTRACT_MODEL'),
+      messages,
+      stream: false,
+      thinking: { type: 'disabled' },
+      response_format: { type: 'json_object' },
+      max_tokens: 400
+    }, { signal });
+  } catch (error) {
+    if (error instanceof HttpError) {
+      // timeout과 upstream failure를 구분해 기록한다 (logTurnTiming에 그대로 노출)
+      if (error.code === 'extract_timeout') return { speakers: [], warning: 'speaker_tagging_timeout' };
+      if (error.code === 'llm_upstream_failure') return { speakers: [], warning: 'speaker_tagging_upstream_failure' };
+    }
+    throw error;
+  }
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    return { speakers: [], warning: 'speaker_tagging_invalid_json' };
+  }
+  const choice = payload?.choices?.[0];
+  if (!choice || choice.finish_reason === 'length') {
+    return { speakers: [], warning: choice?.finish_reason === 'length' ? 'speaker_tagging_truncated' : 'speaker_tagging_invalid_json' };
+  }
+  const content = choice?.message?.content;
+  const speakers = parseTaggingResponse(content, allowlist);
+  let warning = null;
+  if (!speakers.length) {
+    // 빈 결과를 구분한다: content가 유효한 {"speakers": [...]} JSON이 아니면 invalid_response,
+    // 유효하지만 전부 null/빈이면 null-only(unresolved)로 기록한다.
+    const stripped = String(content ?? '').trim().replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+    let validJson = false;
+    try { validJson = Array.isArray(JSON.parse(stripped)?.speakers); } catch { validJson = false; }
+    if (!validJson) warning = 'speaker_tagging_invalid_json';
+  }
+  return { speakers, warning };
 }
 
 /** Runs the single Extract completion. No automatic retry or repair call is ever issued here. */

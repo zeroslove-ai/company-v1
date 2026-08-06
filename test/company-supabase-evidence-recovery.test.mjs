@@ -119,15 +119,16 @@ test('NPC stat changes are derived from the real pre_save/post_save shape', () =
     characters: { characters: { heroine1: { character_id: 'heroine1', name: '서원희', age: 33, prompt_card: {} } } }
   };
   const save = {
-    npc_stats: { heroine1: { affection: 0, work_trust: 1, csa_acceptance: 0, sexual_arousal: 6 } },
+    npc_stats: { heroine1: { affection: 0, resistance: 40, csa_acceptance: 0, sexual_arousal: 6 } },
     npc_relationship_state: { heroine1: { relationship_summary: '업무 관계를 유지한다.', milestones: {} } }
   };
   const latestTurn = {
-    pre_save: { npc_stats: { heroine1: { affection: 0, work_trust: 0, csa_acceptance: 0, sexual_arousal: 3 } } },
-    post_save: { npc_stats: { heroine1: { affection: 0, work_trust: 1, csa_acceptance: 0, sexual_arousal: 6 } } }
+    pre_save: { npc_stats: { heroine1: { affection: 0, resistance: 40, csa_acceptance: 0, sexual_arousal: 3 } } },
+    post_save: { npc_stats: { heroine1: { affection: 0, resistance: 40, csa_acceptance: 0, sexual_arousal: 6 } } }
   };
   const details = buildCharacterDisplayDetails(save, edition, latestTurn);
-  assert.deepEqual(details.heroine1.stat_changes.work_trust, { from: 0, to: 1, delta: 1 });
+  // resistance는 고정값이라 stat_changes에 포함되지 않는다 (변화 없음)
+  assert.equal(details.heroine1.stat_changes.resistance, undefined);
   assert.deepEqual(details.heroine1.stat_changes.sexual_arousal, { from: 3, to: 6, delta: 3 });
   assert.equal(details.heroine1.relationship_record.total_events, 0);
   assert.deepEqual(details.heroine1.private_info, { unlocked: false });
