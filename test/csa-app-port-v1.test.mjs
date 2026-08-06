@@ -107,10 +107,10 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
 
 // ---------- Engine layer ----------
 
-test('preset catalog is ported intact: 68 items, five populated categories, company terms', () => {
-  assert.equal(catalog.items.length, 68);
+test('preset catalog is ported intact: 73 items, six populated categories, company terms', () => {
+  assert.equal(catalog.items.length, 73);
   const populatedCategories = new Set(catalog.items.map(item => item.category));
-  assert.deepEqual([...populatedCategories].sort(), ['authority', 'clothing', 'contact', 'physiology', 'posture']);
+  assert.deepEqual([...populatedCategories].sort(), ['authority', 'clothing', 'contact', 'duty', 'physiology', 'posture']);
   assert.equal(catalog.categories.some(c => c.id === 'duty'), true);
   assert.equal(catalog.categories.some(c => c.id === 'other'), true);
   const flat = JSON.stringify(catalog);
@@ -212,7 +212,7 @@ test('buildAppManualPayload and buildAppStatePayload expose company-wide scope a
   const state = buildAppStatePayload(freshSave(), catalog, catalog.sexual_action_contract, { name: '김하늘' });
   assert.equal(state.scope_options[0].label, '회사 전체');
   assert.equal(Array.isArray(state.csa_presets.items), true);
-  assert.equal(state.csa_presets.items.length, 68);
+  assert.equal(state.csa_presets.items.length, 73);
 });
 
 // ---------- API layer ----------
@@ -228,7 +228,7 @@ test('/api/app-manual and /api/app-state are read-only: single context fetch, ze
   const stateRes = await worker.fetch(request('/api/app-state', { game_id: gameId }), env);
   assert.equal(stateRes.status, 200);
   const stateData = (await stateRes.json()).data;
-  assert.equal(stateData.app.csa_presets.items.length, 68);
+  assert.equal(stateData.app.csa_presets.items.length, 73);
   assert.equal(stateData.app.player_info.name, '김하늘');
 
   assert.equal(mock.calls.filter(call => call.url.includes('get_company_context')).length, 2);
