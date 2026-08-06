@@ -389,9 +389,13 @@ export function resolveHardBlockers({ playerAction, targetId, actionTier, privac
   if (boundary === 'closed' || boundary === 'hostile') blockers.push('closed_boundary');
   if (!targetId && (actionTier === 'intimate' || actionTier === 'explicit')) blockers.push('unclear_target');
   // privacy가 unknown이면(참가자 누락/빈 배열/player·target 부재) 장면 맥락을
-  // 특정할 수 없으므로 affectionate(kiss)를 포함한 모든 direct material 행동을
+  // 특정할 수 없으므로 affectionate(kiss)를 포함한 모든 material 행동을
   // hard-block한다. 관계 milestone이나 높은 수치 근거로 상쇄할 수 없다.
-  if (privacy === 'unknown' && actionTier && (executionMode === 'direct_act' || executionMode === 'instruction')) {
+  // request만 예외다 — NPC가 판단하는 요청형은 자동 완료가 아니기 때문이다.
+  // "이메이와 키스" 같은 명사형 입력은 execution mode가 unknown으로 남을 수 있는데,
+  // 이를 열어 두면 milestone이 있을 때 ordinary_direct_attempt로 풀리는 우회가
+  // 생기므로 direct_act/instruction/unknown을 모두 fail-closed로 막는다.
+  if (privacy === 'unknown' && actionTier && executionMode !== 'request') {
     blockers.push('unknown_scene_context');
   }
   if (privacy === 'public' && (actionTier === 'intimate' || actionTier === 'explicit') && (executionMode === 'direct_act' || executionMode === 'instruction')) blockers.push('public_strong_action');

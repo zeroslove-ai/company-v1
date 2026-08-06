@@ -308,24 +308,30 @@ function isSexualCompletionEvent(ev) {
   return sexual && completion;
 }
 
+/** player 참조 판정 — 기존 player ID 호환(player, player-1, player_, player-)을 유지한다. */
+function isPlayerRef(id) {
+  if (!id) return false;
+  const s = String(id);
+  return s === 'player' || s === 'player-1' || /^player([-_]|$)/.test(s);
+}
+
 function filterSexualCompletionEvents(events, targetId) {
   if (!Array.isArray(events)) return events;
-  const isPlayerRef = id => {
-    if (!id) return false;
-    const s = String(id);
-    return s === 'player' || s === 'player-1' || /^player([-_]|$)/.test(s);
-  };
   return events.filter(ev => {
+    // 성적 완료 사건이 아니면(거절·중단·시도·신고·항의·경계 설정, 일반 감정·관계·업무
+    // event) 그대로 보존한다.
+    if (!isSexualCompletionEvent(ev)) return true;
     const participants = Array.isArray(ev?.participants) ? ev.participants : [];
-    // 계약 대상이 유효하고 사건에 대상이 포함돼 있지 않으면 다른 NPC 사건으로 보존.
-    if (targetId && participants.length && !participants.includes(targetId)) return true;
-    // player도 계약 대상도 참여하지 않은 명확한 NPC↔NPC 성적 완료 사건만 보존.
-    const actorIsPlayer = isPlayerRef(ev?.actor_id);
-    const targetIsPlayer = isPlayerRef(ev?.target_id);
-    const participantsIncludePlayer = participants.some(isPlayerRef);
-    const participantsIncludeTarget = targetId ? participants.includes(targetId) : false;
-    if (!actorIsPlayer && !targetIsPlayer && !participantsIncludePlayer && !participantsIncludeTarget) return true;
-    return !isSexualCompletionEvent(ev);
+    // participants 배열만 보고 "다른 NPC 사건"으로 판단하면 actor_id=player 우회가
+    // 통과한다. actor_id/target_id/participants를 함께 확인해, player가 어디든
+    // 참여한 성적 완료 사건은 fail-closed로 제거한다.
+    if (isPlayerRef(ev?.actor_id) || isPlayerRef(ev?.target_id) || participants.some(isPlayerRef)) return false;
+    // 계약 대상이 참여한 완료 사건도 정본 병합 대상이므로 여기서 보존하지 않는다.
+    if (targetId && (ev?.actor_id === targetId || ev?.target_id === targetId || participants.includes(targetId))) return false;
+    // player도 계약 대상도 참여하지 않은 사건은 다른 NPC 사이의 일로 보존한다.
+    // 다만 누구의 사건인지 전혀 특정되지 않은(actor/target/participants가 모두 빈)
+    // 완료 사건은 귀속 불가이므로 fail-closed로 제거한다.
+    return Boolean(ev?.actor_id) || Boolean(ev?.target_id) || participants.length > 0;
   });
 }
 
@@ -368,32 +374,30 @@ function filterContractSexualLedger(events, contract, completedActionTypes = [])
   if (!Array.isArray(events)) return events;
   const targetId = contract?.target_id;
   const completedSet = new Set(completedActionTypes);
-  const isPlayerRef = id => {
-    if (!id) return false;
-    const s = String(id);
-    return s === 'player' || s === 'player-1' || /^player([-_]|$)/.test(s);
-  };
+  // 판정 순서가 곧 보안 경계다. ev.target_id가 계약 target과 다르다는 이유로 먼저
+  // 보존하면, player가 참여한 현재 턴의 완료 사건이 "다른 NPC 사건"으로 위장해
+  // 통과한다. 반드시 completed → contract target null → player 참여 →
+  // contract target 참여 → accepted 범위 → unrelated NPC↔NPC 순으로 판단한다.
   return events.filter(ev => {
+    // 1. 객체 유효성
     if (!ev || typeof ev !== 'object') return false;
-    // 이벤트에 target_id가 명시돼 있으면 그 대상 기준으로 판단한다.
-    // 계약 대상과 다른 NPC의 사건(명시적 target_id)은 player가 actor여도 보존 —
-    // 검토자 우회 시나리오는 target_id가 비어 있는 사건이다.
-    if (ev.target_id) {
-      if (ev.target_id !== targetId) return true; // 다른 NPC 사건 보존
-      if (ev.completed !== true) return true; // interrupted/attempt ledger 보존
-      if (typeof ev.action_type === 'string' && completedSet.has(ev.action_type)) return true;
-      return false;
-    }
-    // target_id가 없는 사건: player가 참여(actor/target이 player)하면
-    // 현재 플레이어 행동과 관련된 것으로 간주한다. "다른 NPC 사건"으로
-    // 오인해 보존하는 우회를 막는다.
-    const involvedPlayer = isPlayerRef(ev.actor_id) || isPlayerRef(ev.target_id);
-    if (!involvedPlayer) return true; // player 미참여 NPC↔NPC 사건 보존
-    if (ev.completed !== true) return true; // interrupted/attempt ledger 보존
-    // 계약 target이 null이면(fail-closed) 귀속 대상을 특정할 수 없으므로 제거.
+    // 2. 완료되지 않은 ledger(attempt/interrupted/refused/incomplete)는 그대로 보존.
+    if (ev.completed !== true) return true;
+    // 3. 계약 target을 정본으로 특정하지 못한 상태 — 완료 사건의 귀속 대상을 알 수
+    //    없으므로 player 참여 여부와 무관하게 fail-closed로 모두 제거한다.
     if (!targetId) return false;
-    if (typeof ev.action_type === 'string' && completedSet.has(ev.action_type)) return true;
-    return false;
+    // 4·5. player 참여 여부와 계약 target 참여 여부
+    const involvedPlayer = isPlayerRef(ev.actor_id) || isPlayerRef(ev.target_id);
+    const involvedTarget = ev.actor_id === targetId || ev.target_id === targetId;
+    if (involvedPlayer || involvedTarget) {
+      // player가 참여했지만 계약 target 사건이 아니면(다른 NPC를 target으로 적었어도)
+      // 현재 턴의 플레이어 완료 행동이므로 제거한다.
+      if (!involvedTarget) return false;
+      // 6. 계약 target 사건은 검증된 completed_action_types 범위 안에서만 보존.
+      return typeof ev.action_type === 'string' && completedSet.has(ev.action_type);
+    }
+    // 7. player도 계약 target도 참여하지 않은, actor/target이 명확한 NPC↔NPC 사건만 보존.
+    return Boolean(ev.actor_id) && Boolean(ev.target_id);
   });
 }
 

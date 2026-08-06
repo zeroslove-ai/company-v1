@@ -638,13 +638,25 @@ test('무결성2: blocked 턴의 interrupted sexual ledger 보존', async () => 
   assert.equal(out.state_delta.sexual_event_ledger[0].interrupted, true);
 });
 
-test('무결성3: 다른 NPC의 sexual ledger 보존', async () => {
+// 정책 변경: player가 참여한 completed 사건은 target_id가 계약 대상과 다르더라도
+// 현재 턴의 플레이어 완료 행동이므로 "다른 NPC 사건"으로 보존하지 않는다.
+// (player 미참여 NPC↔NPC ledger 보존은 아래 '무결성3b'가 계속 검증한다.)
+test('무결성3: player가 참여한 다른 NPC target sexual ledger는 제거', async () => {
   const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
   const extract = { state_delta: { sexual_event_ledger: [
     { event_id: 'h1', action_type: 'penetration', actor_id: 'player', target_id: 'heroine1', completed: true, interrupted: false, evidence: '서원희와의 완료.' }
   ] } };
   const out = applyContractStateFirewall(extract, BLOCKED);
-  assert.equal(out.state_delta.sexual_event_ledger.length, 1, '다른 NPC ledger 보존');
+  assert.equal(out.state_delta.sexual_event_ledger.length, 0, 'player 참여 completed ledger 제거');
+});
+
+test('무결성3b: player 미참여 NPC↔NPC sexual ledger 보존', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { sexual_event_ledger: [
+    { event_id: 'n2n', action_type: 'kiss', actor_id: 'heroine1', target_id: 'heroine2', completed: true, interrupted: false, evidence: '두 사람의 키스.' }
+  ] } };
+  const out = applyContractStateFirewall(extract, BLOCKED);
+  assert.equal(out.state_delta.sexual_event_ledger.length, 1, '비관련 NPC↔NPC ledger 보존');
 });
 
 test('무결성4: blocked 턴의 ejaculation completion 제거 (arousal/progress 보존)', async () => {
@@ -893,4 +905,177 @@ test('검토B3c: privacy private + first_kiss milestone → 키스 attempt 유�
   });
   const kiss = resolve('갑자기 이메이에게 키스한다.', save);
   assert.equal(kiss.route, 'ordinary_direct_attempt', 'private면 milestone 기반 attempt 정상');
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// 남은 정본 무결성 우회 회귀 — player가 참여한 completed 사건이 "다른 NPC 사건"
+// 으로 위장해 정본에 병합되는 경로, 그리고 privacy unknown + 명사형(execution
+// mode unknown) 입력이 milestone을 근거로 attempt로 풀리는 경로를 고정한다.
+// ─────────────────────────────────────────────────────────────────────────
+
+const NULL_TARGET_CONTRACT = { version: 1, route: 'ordinary_direct_blocked', action_types: ['kiss'], target_id: null };
+const H5_CONTRACT = { version: 1, route: 'ordinary_direct_attempt', action_types: ['kiss'], target_id: 'heroine5' };
+
+/** 정본 병합까지 통과시켜 실제 저장 결과를 확인한다 (helper 반환값만 보지 않는다). */
+async function mergeThroughCanonical(extract, contract) {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const { applyGuardedStateDelta } = await import('../src/engine/guarded-merge.js');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const save = JSON.parse(fs.readFileSync(path.join(here, '../fixtures/phase-0.5/canonical-save-v1.json'), 'utf8'));
+  const firewalled = applyContractStateFirewall(extract, contract);
+  const merged = applyGuardedStateDelta(save, {
+    outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [],
+    ...firewalled
+  }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
+  return { firewalled, merged };
+}
+
+test('우회A-1: contract target null + 명시 NPC target의 player completed ledger는 제거되고 정본 count도 오르지 않는다', async () => {
+  const extract = { state_delta: { sexual_event_ledger: [
+    { action_type: 'orgasm', actor_id: 'player', target_id: 'heroine5', completed: true, evidence: '완료됐다.' }
+  ] } };
+  const { firewalled, merged } = await mergeThroughCanonical(extract, NULL_TARGET_CONTRACT);
+  assert.equal(firewalled.state_delta.sexual_event_ledger.length, 0, 'null contract target이면 completed 전부 제거');
+  assert.equal(merged.nextSave.ejaculation_counts?.player ?? 0, 0, 'player ejaculation count 증가 없음');
+  assert.equal((merged.nextSave.sexual_event_ledger ?? []).length, 0, '정본 ledger에 완료 결과 없음');
+});
+
+test('우회A-2: 유효 contract target + player가 다른 NPC와 완료한 ledger는 보존되지 않는다', async () => {
+  const extract = { state_delta: { sexual_event_ledger: [
+    { action_type: 'penetration', actor_id: 'player', target_id: 'heroine1', completed: true, evidence: '다른 NPC와 완료.' }
+  ] } };
+  const { firewalled, merged } = await mergeThroughCanonical(extract, H5_CONTRACT);
+  assert.equal(firewalled.state_delta.sexual_event_ledger.length, 0, '다른 NPC 사건으로 보존되지 않음');
+  assert.equal(merged.nextSave.ejaculation_counts?.player ?? 0, 0, 'canonical count 증가 없음');
+});
+
+test('우회A-3: accepted kiss 범위를 벗어난 player orgasm은 kiss 완료로 위장 통과하지 못한다', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['kiss'] },
+    state_delta: { sexual_event_ledger: [
+      { action_type: 'orgasm', actor_id: 'player', target_id: 'heroine1', completed: true, evidence: '다른 NPC와 절정.' }
+    ] }
+  };
+  const out = applyContractStateFirewall(extract, H5_CONTRACT);
+  assert.equal(out.state_delta.sexual_event_ledger.length, 0, 'accepted kiss 범위로 위장 통과 불가');
+});
+
+test('우회A-4: player·contract target 미참여 NPC↔NPC completed ledger는 보존된다', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { sexual_event_ledger: [
+    { action_type: 'kiss', actor_id: 'heroine1', target_id: 'heroine2', completed: true, evidence: '두 사람의 키스.' }
+  ] } };
+  const out = applyContractStateFirewall(extract, H5_CONTRACT);
+  assert.equal(out.state_delta.sexual_event_ledger.length, 1, '비관련 NPC↔NPC 사건 보존');
+});
+
+test('우회A-5: interrupted player ledger는 보존되지만 완료 count/milestone은 생기지 않는다', async () => {
+  const extract = { state_delta: { sexual_event_ledger: [
+    { action_type: 'penetration', actor_id: 'player', target_id: null, completed: false, interrupted: true, evidence: '중단됐다.' }
+  ] } };
+  const { firewalled, merged } = await mergeThroughCanonical(extract, NULL_TARGET_CONTRACT);
+  assert.equal(firewalled.state_delta.sexual_event_ledger.length, 1, 'interrupted 기록 보존');
+  assert.equal(merged.nextSave.ejaculation_counts?.player ?? 0, 0, '완료 count 증가 없음');
+  for (const rel of Object.values(merged.nextSave.npc_relationship_state ?? {})) {
+    assert.equal(rel?.milestones?.first_kiss_turn ?? null, null, 'first_kiss milestone 생성 없음');
+    assert.equal(rel?.milestones?.sexual_relationship_started_turn ?? null, null, 'sexual milestone 생성 없음');
+  }
+});
+
+test('우회B-6: participants에 다른 NPC만 있어도 actor가 player인 성적 완료 event는 제거된다', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { event_ledger: [
+    { event_id: 'bypass', event_type: 'sexual_completed', turn: 8, actor_id: 'player', target_id: 'heroine1', participants: ['heroine1'], summary: '플레이어와 heroine1의 성적 행동이 완료됐다.' }
+  ] } };
+  const out = applyContractStateFirewall(extract, H5_CONTRACT);
+  assert.ok(!out.state_delta.event_ledger.some(e => e.event_id === 'bypass'), 'actor=player 우회 제거');
+});
+
+test('우회B-7: player·contract target 미참여 NPC↔NPC event는 보존된다', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { event_ledger: [
+    { event_id: 'n2n', event_type: 'kiss_completed', turn: 8, actor_id: 'heroine1', target_id: 'heroine2', participants: ['heroine1', 'heroine2'], summary: '두 사람의 키스가 이루어졌다.' }
+  ] } };
+  const out = applyContractStateFirewall(extract, H5_CONTRACT);
+  assert.ok(out.state_delta.event_ledger.some(e => e.event_id === 'n2n'), '명확한 NPC↔NPC event 보존');
+});
+
+test('우회B-8: 거절·중단·신고·경계 event는 player가 참여해도 보존된다', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { event_ledger: [
+    { event_id: 'r1', event_type: 'kiss_refused', turn: 8, actor_id: 'player', target_id: 'heroine5', participants: ['heroine5'], summary: '키스를 거절했다.' },
+    { event_id: 'r2', event_type: 'sexual_attempt_interrupted', turn: 8, actor_id: 'player', target_id: 'heroine5', participants: ['heroine5'], summary: '시도가 중단됐다.' },
+    { event_id: 'r3', event_type: 'harassment_reported', turn: 8, actor_id: 'heroine5', target_id: 'player', participants: ['heroine5'], summary: '불쾌감을 신고했다.' },
+    { event_id: 'r4', event_type: 'boundary_reasserted', turn: 8, actor_id: 'heroine5', target_id: 'player', participants: ['heroine5'], summary: '경계를 다시 밝혔다.' }
+  ] } };
+  const out = applyContractStateFirewall(extract, H5_CONTRACT);
+  const ids = out.state_delta.event_ledger.map(e => e.event_id);
+  assert.deepEqual(ids, ['r1', 'r2', 'r3', 'r4'], '거절·중단·신고·경계 event 전부 보존');
+});
+
+/** privacy unknown 장면(참가자 정보 없음/한쪽 부재)에서의 계약 판정 fixture. */
+function unknownPrivacySave(participants, extra = {}) {
+  return csaSave({
+    scene_state: { scene_id: 'meeting_room', location_id: 'meeting_room', participants, updated_turn: 8 },
+    npc_relationship_state: {
+      heroine5: {
+        closeness: 'close', romance_status: 'dating', current_boundary: 'intimate',
+        milestones: { first_kiss_turn: 12, sexual_relationship_started_turn: null }
+      }
+    },
+    ...extra
+  });
+}
+
+test('우회C-9: privacy unknown + 명사형 키스는 milestone이 있어도 unknown_scene_context로 blocked', () => {
+  const out = resolve('이메이와 키스', unknownPrivacySave([]));
+  assert.equal(out.route, 'ordinary_direct_blocked', '명사형도 blocked');
+  assert.ok(out.contextual_permission.blockers.includes('unknown_scene_context'), 'unknown_scene_context blocker');
+});
+
+test('우회C-10: scene participants에 target이 없으면 milestone/romance가 상쇄하지 못한다', () => {
+  const out = resolve('이메이와 키스', unknownPrivacySave(['player-1']));
+  assert.equal(out.route, 'ordinary_direct_blocked', 'target 부재 blocked');
+  assert.ok(out.contextual_permission.blockers.includes('unknown_scene_context'), 'unknown_scene_context blocker');
+});
+
+test('우회C-11: scene participants에 player가 없으면 blocked', () => {
+  const out = resolve('이메이와 키스', unknownPrivacySave(['heroine5']));
+  assert.equal(out.route, 'ordinary_direct_blocked', 'player 부재 blocked');
+  assert.ok(out.contextual_permission.blockers.includes('unknown_scene_context'), 'unknown_scene_context blocker');
+});
+
+test('우회C-12: 높은 affinity/arousal/dating/first_kiss도 unknown privacy를 상쇄하지 못한다', () => {
+  const save = unknownPrivacySave([], {
+    npc_stats: { heroine5: { affinity: 95, sexual_arousal: 95, resistance: 10, csa_acceptance: 60 } }
+  });
+  const out = resolve('이메이와 키스', save);
+  assert.equal(out.route, 'ordinary_direct_blocked', '높은 수치로도 blocked');
+  assert.ok(out.contextual_permission.blockers.includes('unknown_scene_context'), 'unknown_scene_context blocker');
+});
+
+test('우회C-13: privacy unknown이어도 요청형은 ordinary_request로 유지된다 (자동 완료 아님)', () => {
+  const out = resolve('이메이와 키스해도 될까요?', unknownPrivacySave([]));
+  assert.equal(out.execution_mode, 'request', 'request 유지');
+  assert.equal(out.route, 'ordinary_request', 'NPC가 판단하는 요청형');
+  assert.ok(!out.contextual_permission.blockers.includes('unknown_scene_context'), 'request는 unknown_scene_context 예외');
+});
+
+test('우회C-14: private scene이 명확하면 기존 direct-act attempt는 계속 가능하다 (과차단 방지)', () => {
+  const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
+    npc_relationship_state: {
+      heroine5: {
+        closeness: 'close', romance_status: 'dating', current_boundary: 'intimate',
+        milestones: { first_kiss_turn: 12, sexual_relationship_started_turn: null }
+      }
+    }
+  });
+  const out = resolve('이메이에게 키스한다', save);
+  assert.equal(out.route, 'ordinary_direct_attempt', 'private scene direct-act는 attempt 유지');
+  assert.ok(!out.contextual_permission.blockers.includes('unknown_scene_context'), 'private면 unknown blocker 없음');
 });
