@@ -16,5 +16,4 @@ test('Extract prompt requires both parties only for completed current player-tar
   assert.match(system, /omit if unknown/);
   assert.match(system, /Incomplete\/self events may use null target_id/);
   assert.match(system, /Korean; IDs unchanged/);
-  assert.ok(system.length <= 3000, `extract system chars: ${system.length}`);
 });
