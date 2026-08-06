@@ -261,7 +261,16 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const coordinator = createTurnCoordinator({
     api, storage, gameId, getContext: () => context, refreshContext,
     onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (hasFourChoices(parsed.choices)) { streamedStoryChoices = parsed.choices; render(); } },
-    onExtract: extracted => { currentExtract = extracted.extract ?? null; showProgress('상태를 정리하는 중…'); render(); },
+    onExtract: extracted => {
+      currentExtract = extracted.extract ?? null;
+      // Extract 응답의 canonical parsed_blocks(서버가 최종 사용한 태거/파서 결과)로
+      // 현재 턴 대사 카드를 교체한다 — Story SSE(parser_canonical)보다 정확한 화자 표시.
+      if (extracted.parsed_blocks?.blocks?.length) {
+        renderNarrative(elements.current, extracted.parsed_blocks);
+      }
+      showProgress('상태를 정리하는 중…');
+      render();
+    },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
     onCommitted: () => {
       clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.');

@@ -9,6 +9,10 @@
  *   dialogue block에서 생성한다 (비발화 인용문이 대사로 오인되는 경로 차단)
  * - 응답은 ID 기반 allowlist로 제한하고, 텍스트 매칭(byText) 대신 dialogue_index로 적용한다
  * - 실패는 파이프라인을 막지 않고, 1 action당 최대 1회만 호출한다
+ * - roster는 실제 master(edition 기반)와 현재 장면 정보로 동적으로 구성한다 — "플레이어는
+ *   항상 감사팀 임원" 같은 고정 전제를 시스템 프롬프트에 두지 않는다
+ * - normalized_raw는 섹션 마커/플레이어 속마음/상황판/선택지/choice labels를 전부 보존하고
+ *   dialogue 라인만 화자명을 반영한다
  */
 
 const TAGGER_SYSTEM = `너는 한국어 게임 서사의 "대사 화자 판별기"다.
@@ -20,6 +24,11 @@ const TAGGER_SYSTEM = `너는 한국어 게임 서사의 "대사 화자 판별�
 - 대화 흐름: 직전 대사가 누구였는지, 누가 누구에게 답하는지
 - 화자가 플레이어로 확실할 때만 "player"로 지정하고, 확신이 없으면 null로 표시한다
   (플레이어로 추정하지 않는다 — 불확실하면 미확정으로 남긴다)
+
+로스터 사용법:
+- 각 인물에 in_scene 필드가 있다. in_scene: true는 현재 장면에 등장하는 인물이다.
+  화자 후보를 고를 때 현재 장면 인물(in_scene: true)을 우선 고려하라.
+- scene participants / focal_character_id / last_speaker_id / 대사에 이미 등장한 인물이 우선순위다.
 
 응답은 반드시 JSON 한 개만:
 {"speakers":[{"dialogue_index":0,"speaker_id":"heroine2"},{"dialogue_index":1,"speaker_id":null}]}
@@ -40,8 +49,6 @@ export function collectUnresolvedDialogue(parsedStory) {
     const block = blocks[i];
     if (block?.type !== 'dialogue') continue;
     if (!block.speaker_id) {
-      const beforeBlock = null;
-      const afterBlock = null;
       let before = '';
       let after = '';
       for (let j = i - 1; j >= 0; j -= 1) {
@@ -67,27 +74,37 @@ export function collectUnresolvedDialogue(parsedStory) {
 /** master에서 화자 후보 ID 집합 (player + 등록 캐릭터 + 일반 NPC) */
 export function allowedSpeakerIds(master) {
   const ids = ['player'];
-  for (const character of [
-    ...(Array.isArray(master?.characters) ? master.characters : []),
-    ...(Array.isArray(master?.general_npcs) ? master.general_npcs : [])
-  ]) {
+  for (const character of rosterEntries(master)) {
     const id = character?.character_id ?? character?.npc_id ?? character?.id ?? null;
     if (typeof id === 'string' && id) ids.push(id);
   }
   return ids;
 }
 
+/** master의 모든 등록 인물을 통일된 { id, name, role_title, department, addresses } 형태로 */
+function rosterEntries(master) {
+  const entries = [];
+  const push = (character, idField) => {
+    const id = character?.[idField] ?? character?.id ?? null;
+    const name = typeof character?.name === 'string' ? character.name.trim() : '';
+    if (!id || !name) return;
+    entries.push({
+      id,
+      name,
+      role_title: character?.role_title ?? character?.role ?? character?.position ?? '',
+      department: character?.department ?? character?.department_name ?? '',
+      addresses: addressesFor(character)
+    });
+  };
+  for (const character of Array.isArray(master?.characters) ? master.characters : []) push(character, 'character_id');
+  for (const npc of Array.isArray(master?.general_npcs) ? master.general_npcs : []) push(npc, 'npc_id');
+  return entries;
+}
+
 /** roster id → { id, name } 매핑 (태깅 적용 시 이름 확정용) */
 export function speakerNameMap(master) {
   const map = new Map();
-  for (const character of [
-    ...(Array.isArray(master?.characters) ? master.characters : []),
-    ...(Array.isArray(master?.general_npcs) ? master.general_npcs : [])
-  ]) {
-    const id = character?.character_id ?? character?.npc_id ?? character?.id ?? null;
-    const name = typeof character?.name === 'string' ? character.name.trim() : '';
-    if (id && name) map.set(id, { id, name });
-  }
+  for (const entry of rosterEntries(master)) map.set(entry.id, { id: entry.id, name: entry.name });
   return map;
 }
 
@@ -99,37 +116,81 @@ function addressesFor(character) {
 }
 
 /**
- * 태깅 LLM 요청 메시지. 미확정 대사가 없으면 null 반환.
- * roster는 현재 장면 정보(플레이어/등장인물/일반 NPC + 직급 + 호칭)를 동적으로 전달한다 —
- * "플레이어는 항상 감사팀 임원", "팀장님은 항상 서원희" 같은 고정 전제를 시스템 프롬프트에 두지 않는다.
+ * 현재 장면 참여자 후보 ID를 구성한다 (지시서: scene participants + focal + last_speaker +
+ * parsed Story에 등장한 인물 + player). 전체 일반 NPC를 동등 후보로 나열하지 않기 위해
+ * 이 우선 그룹이 roster 앞쪽에 in_scene: true로 배치된다.
  */
-export function buildTaggingMessages(parsedStory, master, { playerName = '플레이어' } = {}) {
+export function buildSceneCandidateIds(parsedStory, { sceneParticipants = [], focalCharacterId = null, lastSpeakerId = null } = {}) {
+  const ids = new Set();
+  for (const id of sceneParticipants) if (typeof id === 'string' && id) ids.add(id);
+  if (typeof focalCharacterId === 'string' && focalCharacterId) ids.add(focalCharacterId);
+  if (typeof lastSpeakerId === 'string' && lastSpeakerId) ids.add(lastSpeakerId);
+  for (const line of parsedStory?.dialogue_lines ?? []) {
+    if (typeof line?.speaker_id === 'string' && line.speaker_id) ids.add(line.speaker_id);
+  }
+  ids.add('player');
+  return [...ids];
+}
+
+/**
+ * 태깅 LLM 요청 메시지. 미확정 대사가 없으면 null 반환.
+ * - player: master.player를 읽지 않고 호출부가 hydratedSave.player + catalogs로 만든
+ *   playerInfo(departmentName/positionName/roleTitle)를 전달한다
+ * - roster: 현재 장면 후보(in_scene: true)를 우선 배치하고, 나머지 등록 인물은 뒤에
+ *   in_scene: false로 나열한다
+ */
+export function buildTaggingMessages(parsedStory, master, {
+  playerName = '플레이어',
+  playerInfo = {},
+  sceneParticipants = [],
+  focalCharacterId = null,
+  lastSpeakerId = null
+} = {}) {
   const items = collectUnresolvedDialogue(parsedStory);
   if (!items.length) return null;
 
-  const playerRole = typeof master?.player?.role_title === 'string' && master.player.role_title
-    ? master.player.role_title
-    : (typeof master?.player?.role === 'string' ? master.player.role : '');
-  const playerAddresses = addressesFor(master?.player ?? {});
+  const entries = rosterEntries(master);
+  const byId = new Map(entries.map(e => [e.id, e]));
+
+  // 장면 참여자 우선 그룹
+  const participantIds = buildSceneCandidateIds(parsedStory, { sceneParticipants, focalCharacterId, lastSpeakerId });
+  const participantSet = new Set(participantIds);
+
   const rosterLines = [];
-  rosterLines.push(JSON.stringify({
-    speaker_id: 'player',
-    name: playerName,
-    role_title: playerRole,
-    known_addresses: playerAddresses
-  }));
-  for (const character of [
-    ...(Array.isArray(master?.characters) ? master.characters : []),
-    ...(Array.isArray(master?.general_npcs) ? master.general_npcs : [])
-  ]) {
-    const id = character?.character_id ?? character?.npc_id ?? character?.id ?? null;
-    if (!id || typeof character?.name !== 'string') continue;
+  const seen = new Set();
+  const pushRoster = (id, entry, inScene) => {
+    if (seen.has(id)) return;
+    seen.add(id);
     rosterLines.push(JSON.stringify({
       speaker_id: id,
-      name: character.name.trim(),
-      role_title: character?.role_title ?? character?.role ?? character?.position ?? '',
-      known_addresses: addressesFor(character)
+      name: entry.name,
+      role_title: entry.role_title,
+      department: entry.department,
+      in_scene: inScene,
+      known_addresses: entry.addresses
     }));
+  };
+
+  // 1) player — 실제 플레이어 정보
+  const playerRoleTitle = typeof playerInfo?.roleTitle === 'string' && playerInfo.roleTitle
+    ? playerInfo.roleTitle
+    : (typeof playerInfo?.positionName === 'string' ? playerInfo.positionName : '');
+  pushRoster('player', {
+    name: playerName,
+    role_title: playerRoleTitle,
+    department: playerInfo?.departmentName ?? '',
+    addresses: playerInfo?.addresses ?? []
+  }, participantSet.has('player'));
+
+  // 2) 현재 장면 후보 우선 (in_scene: true)
+  for (const id of participantIds) {
+    const entry = byId.get(id);
+    if (entry && id !== 'player') pushRoster(id, entry, true);
+  }
+
+  // 3) 나머지 등록 인물 (in_scene: false) — 장면 후보가 부족할 때만 참고하도록 뒤에 배치
+  for (const entry of entries) {
+    pushRoster(entry.id, entry, participantSet.has(entry.id));
   }
 
   const lines = items.map(item =>
@@ -179,10 +240,39 @@ export function parseTaggingResponse(content, allowlist = []) {
 }
 
 /**
+ * normalized_raw의 dialogue 라인만 화자명을 반영해 다시 조합한다.
+ * 섹션 마커 / 플레이어 속마음 / 플레이어 상황판 / 선택지 / choice labels / 기타 원문 라인은
+ * 그대로 보존한다. dialogue 라인 판별은 따옴표 내용이 blocks의 dialogue.text와 일치할 때만
+ * 수행하므로 인용문·선택지 따옴표는 절대 건드리지 않는다.
+ */
+function applyTaggedNamesToRaw(normalizedRaw, blocks) {
+  const lines = String(normalizedRaw ?? '').split('\n');
+  const dialogues = blocks.filter(b => b?.type === 'dialogue');
+  let d = 0;
+  const out = [];
+  for (const line of lines) {
+    const block = dialogues[d];
+    const trimmed = line.trim();
+    // "화자명 (지시): "text"" 또는 순수 "text" 라인 — 닫는 따옴표가 라인 끝이어야 대사 라인
+    const m = /^(?:([\p{L}][^\n“”"]{0,40}?)\s*\(([^()\n]{0,80})\)\s*[:：]?\s*)?[“"]([^”"]*)[”"]\s*$/u.exec(trimmed);
+    if (block && m && m[3] === block.text) {
+      const name = block.speaker_name || '';
+      const direction = block.direction || '자연스럽게';
+      out.push(name ? `${name} (${direction}): “${block.text}”` : `“${block.text}”`);
+      d += 1;
+    } else {
+      out.push(line);
+    }
+  }
+  return out.join('\n');
+}
+
+/**
  * 태깅 결과를 parsedStory에 적용한다 (정본 taggedParsedStory 생성).
  * - dialogue_index로 매칭, 해당 index의 원문 text가 요청 당시 text와 같을 때만 적용
  * - 이미 확정된 화자(speaker_id 존재)는 태거가 바꾸려 해도 무시
  * - 미확정(speaker_id null)은 그대로 유지
+ * - normalized_raw는 라인 교체 방식으로 4개 섹션(서사/속마음/상황판/선택지) 전체 보존
  * 반환: { parsedStory(새 객체), changed, appliedCount, rejectedCount }
  */
 export function applySpeakerTags(parsedStory, tags, master, { playerName = '플레이어', unresolvedItems = [] } = {}) {
@@ -250,25 +340,18 @@ export function applySpeakerTags(parsedStory, tags, master, { playerName = '플�
     dialogueIndex += 1;
   }
 
-  // normalized_raw 재생성 — 대사 block은 "화자명 (지시): "text"", 미확정은 "text" 유지
-  const normalizedLines = [];
-  for (const block of nextBlocks) {
-    if (block?.type === 'dialogue') {
-      const name = block.speaker_name || '';
-      const direction = block.direction || '자연스럽게';
-      normalizedLines.push(name ? `${name} (${direction}): “${block.text}”` : `“${block.text}”`);
-    } else if (block?.type === 'scene') {
-      normalizedLines.push(block.text);
-    }
-  }
+  // normalized_raw: 원본 구조(섹션 마커/속마음/상황판/선택지/choice labels)를 보존한 채
+  // dialogue 라인만 화자명 반영 — blocks 재조합으로 섹션을 잃지 않는다
+  const normalizedRaw = applyTaggedNamesToRaw(parsedStory?.normalized_raw, nextBlocks);
 
   return {
     parsedStory: {
       ...parsedStory,
       blocks: nextBlocks,
       dialogue_lines: nextDialogueLines,
-      normalized_raw: normalizedLines.join('\n'),
-      tagged: applied > 0
+      normalized_raw: normalizedRaw,
+      tagged: applied > 0,
+      speaker_tagging_status: applied > 0 ? 'applied' : 'unresolved'
     },
     changed: applied > 0,
     appliedCount: applied,

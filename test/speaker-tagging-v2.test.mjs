@@ -289,3 +289,71 @@ test('roster and name map cover player + characters + general_npcs', () => {
   assert.equal(names.get('heroine2').name, '윤민아');
   assert.equal(names.get('npc_secretary').name, '비서');
 });
+
+
+// ---------- 5. normalized_raw 4개 섹션 보존 ----------
+
+const FOUR_SECTION_STORY = [
+  '[1. 서사 및 행동]',
+  '이메이의 눈동자가 흔들렸다.',
+  '“처음이니까 더 잘해주고 싶은 거예요.”',
+  '[2. 플레이어 속마음]',
+  '정신 차리자.',
+  '[3. 플레이어 상황판]',
+  '회의실.',
+  '[4. 선택지]',
+  '1. 같이 밥 먹자',
+  '2. 노코멘트',
+  '3. 넘어간다',
+  '4. 조용히 한다'
+].join('\n');
+
+test('5-1: applySpeakerTags는 normalized_raw의 4개 섹션 전부를 보존하고 화자명만 반영한다', () => {
+  const parsed = parseEngineNarrative(FOUR_SECTION_STORY, { master: MASTER });
+  const items = collectUnresolvedDialogue(parsed);
+  assert.equal(items.length, 1);
+  const tags = parseTaggingResponse('{"speakers":[{"dialogue_index":0,"speaker_id":"heroine5"}]}', allowedSpeakerIds(MASTER));
+  const applied = applySpeakerTags(parsed, tags, MASTER, { playerName: '금재완', unresolvedItems: items });
+  const after = applied.parsedStory.normalized_raw;
+
+  // 4개 섹션 마커 전부 존재
+  for (const marker of ['[1. 서사 및 행동]', '[2. 플레이어 속마음]', '[3. 플레이어 상황판]', '[4. 선택지]']) {
+    assert.ok(after.includes(marker), `마커 보존: ${marker}`);
+  }
+  // 플레이어 속마음 / 상황판 / 선택지 / choice labels 보존
+  assert.ok(after.includes('정신 차리자.'), '속마음 보존');
+  assert.ok(after.includes('회의실.'), '상황판 보존');
+  for (const choice of ['1. 같이 밥 먹자', '2. 노코멘트', '3. 넘어간다', '4. 조용히 한다']) {
+    assert.ok(after.includes(choice), `선택지 보존: ${choice}`);
+  }
+  // scene 보존
+  assert.ok(after.includes('이메이의 눈동자가 흔들렸다.'), 'scene 보존');
+  // 화자명만 삽입
+  assert.ok(after.includes('이메이 (자연스럽게): “처음이니까 더 잘해주고 싶은 거예요.”'), '화자명 삽입');
+  // 화자명 없는 원문 대사 라인은 더 이상 존재하지 않아야 한다 (라인 단위 정확 일치)
+  const rawLines = after.split('\n');
+  assert.ok(!rawLines.some(l => l.trim() === '“처음이니까 더 잘해주고 싶은 거예요.”'), '원문 무화자 라인 제거');
+  // 라인 수 동일 (화자명 삽입만, 구조 변경 없음)
+  assert.equal(after.split('\n').length, parsed.normalized_raw.split('\n').length, '라인 수 동일');
+});
+
+test('5-2: applySpeakerTags는 비대사 블록 타입(player_inner_thought 등)과 choices/choice_labels를 그대로 보존한다', () => {
+  const parsed = parseEngineNarrative(FOUR_SECTION_STORY, { master: MASTER });
+  const beforeInnerThought = parsed.blocks.filter(b => b.type === 'player_inner_thought');
+  const beforeChoices = parsed.choices;
+  const beforeLabels = parsed.choice_labels;
+  const items = collectUnresolvedDialogue(parsed);
+  const tags = parseTaggingResponse('{"speakers":[{"dialogue_index":0,"speaker_id":"heroine5"}]}', allowedSpeakerIds(MASTER));
+  const applied = applySpeakerTags(parsed, tags, MASTER, { playerName: '금재완', unresolvedItems: items });
+
+  // non-dialogue 블록은 동일 객체 그대로
+  assert.deepEqual(applied.parsedStory.blocks.filter(b => b.type === 'player_inner_thought'), beforeInnerThought);
+  // 대사 수·순서·원문 텍스트 동일
+  const beforeDialogues = parsed.blocks.filter(b => b.type === 'dialogue');
+  const afterDialogues = applied.parsedStory.blocks.filter(b => b.type === 'dialogue');
+  assert.equal(afterDialogues.length, beforeDialogues.length, '대사 수 동일');
+  afterDialogues.forEach((d, i) => assert.equal(d.text, beforeDialogues[i].text, `대사 ${i} 텍스트 동일`));
+  // choices/choice_labels 보존
+  assert.deepEqual(applied.parsedStory.choices, beforeChoices);
+  assert.deepEqual(applied.parsedStory.choice_labels, beforeLabels);
+});

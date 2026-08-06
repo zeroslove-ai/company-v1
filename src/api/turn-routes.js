@@ -4,6 +4,7 @@ import { runExtract, streamStory, runSpeakerTagging } from './llm.js';
 import {
   collectUnresolvedDialogue,
   buildTaggingMessages,
+  buildSceneCandidateIds,
   applySpeakerTags,
   allowedSpeakerIds
 } from '../engine/speaker-tagger.js';
@@ -118,7 +119,10 @@ function toEntryArray(mapOrArray, idField) {
 }
 
 export function masterFromEdition(edition) {
-  return { characters: toEntryArray(edition?.characters?.characters, 'character_id') };
+  return {
+    characters: toEntryArray(edition?.characters?.characters, 'character_id'),
+    general_npcs: toEntryArray(edition?.generalNpcs?.profiles, 'npc_id')
+  };
 }
 
 export function npcIdsFromEdition(edition) {
@@ -448,9 +452,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       if (!action.story_text) throw new HttpError(409, 'story_required', 'A completed Story is required before Extract', true);
       const structuredAction = structuredActionFor(action, body.structured_action ?? null);
       if (action.extract_delta) {
-        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: action.parsed_blocks ?? parseNarrative(action.story_text, { master }), npcIds });
+        const replayParsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: replayParsedStory, npcIds });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
-        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true });
+        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
       if (action.processing_status === 'extract_failed') {
         const claimedRetry = await db.claimActionStatus(gameId, actionId, 'extract_failed', 'extracting', null);
@@ -482,34 +487,80 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const hasSexualCsa = applicableCsa.some(csa => buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract).sexual_authorization === true);
           // 스피커 태깅: parser가 dialogue block으로 분류했으나 화자 미확정(speaker_id=null)인
           // 대사가 있을 때만 전용 LLM을 1회 호출한다. 정상 턴(모두 확정)에서는 호출하지 않는다.
-          // 실패는 파이프라인을 막지 않되, 빈 catch로 숨기지 않고 timing/warning으로 기록한다.
+          // 멱등성: 태거 호출 전에 speaker_tagging_attempted=true를 조건부 PATCH로 먼저 영속하고,
+          // 1행 갱신이 확인된 경우에만 호출한다. 저장 실패/타임아웃/무효 응답은 파이프라인을
+          // 막지 않되, 로컬 태거 결과는 DB 저장이 확인된 경우에만 canonical로 승격한다.
           try {
             const playerName = hydratedSave?.player?.name ?? '플레이어';
+            // 플레이어 정보는 master.player를 읽지 않고 실제 save + catalogs에서 동적으로 만든다
+            const playerCanonical = resolvePlayerCanonicalNames(hydratedSave?.player ?? {}, catalogs);
+            const playerInfo = {
+              departmentName: playerCanonical?.departmentName ?? hydratedSave?.player?.department ?? '',
+              positionName: playerCanonical?.positionName ?? '',
+              roleTitle: typeof hydratedSave?.player?.role_title === 'string' ? hydratedSave.player.role_title : '',
+              addresses: []
+            };
+            const sceneParticipantIds = buildSceneCandidateIds(parsedStory, {
+              sceneParticipants: Array.isArray(hydratedSave?.last_npcs_present) ? hydratedSave.last_npcs_present : [],
+              focalCharacterId: hydratedSave?.focal_character_id ?? null,
+              lastSpeakerId: hydratedSave?.last_speaker_id ?? null
+            });
             const unresolvedItems = collectUnresolvedDialogue(parsedStory);
-            const alreadyTagged = Boolean(action.parsed_blocks?.tagged);
-            if (unresolvedItems.length && !alreadyTagged) {
-              const tagMessages = buildTaggingMessages(parsedStory, master, { playerName });
-              const tagStart = Date.now();
-              const tagResult = await runSpeakerTagging({
-                env, fetchImpl,
-                messages: tagMessages,
-                allowlist: allowedSpeakerIds(master),
-                timeoutMs: 10000
-              });
-              timing.tagging_ms = Date.now() - tagStart;
-              timing.speaker_tagging_attempted = 1;
-              timing.speaker_tagging_unresolved_count = unresolvedItems.length;
-              if (tagResult.warning) timing.speaker_tagging_warning = tagResult.warning;
-              if (tagResult.speakers?.length) {
-                const applied = applySpeakerTags(parsedStory, tagResult.speakers, master, { playerName, unresolvedItems });
-                timing.speaker_tagging_resolved_count = applied.appliedCount;
-                timing.speaker_tagging_rejected_count = applied.rejectedCount;
-                if (applied.changed) {
-                  parsedStory = applied.parsedStory; // 정본: 이후 extract/guarded merge/commit 전부 이 객체를 사용
-                  storyForExtract = applied.parsedStory.normalized_raw.trim() ? applied.parsedStory.normalized_raw : storyForExtract;
-                  // 조건부 PATCH 저장 — 실패해도 턴 전체는 막지 않는다 (최종 commit에 taggedParsedStory가 들어가도록 보장)
-                  await db.updateActionParsedBlocks(gameId, actionId, applied.parsedStory).catch(() => undefined);
+            const attempted = action.parsed_blocks?.speaker_tagging_attempted === true;
+            if (unresolvedItems.length && !attempted) {
+              // 1) 호출 전 시도 상태 영속 — 1행 갱신이 확인돼야 태거를 호출한다
+              const claimed = await db.markSpeakerTaggingAttempted(gameId, actionId, parsedStory);
+              if (claimed) {
+                const tagMessages = buildTaggingMessages(parsedStory, master, {
+                  playerName, playerInfo,
+                  sceneParticipants: sceneParticipantIds,
+                  focalCharacterId: hydratedSave?.focal_character_id ?? null,
+                  lastSpeakerId: hydratedSave?.last_speaker_id ?? null
+                });
+                const tagStart = Date.now();
+                const tagResult = await runSpeakerTagging({
+                  env, fetchImpl,
+                  messages: tagMessages,
+                  allowlist: allowedSpeakerIds(master),
+                  timeoutMs: 10000
+                });
+                timing.tagging_ms = Date.now() - tagStart;
+                timing.speaker_tagging_attempted = 1;
+                timing.speaker_tagging_unresolved_count = unresolvedItems.length;
+                if (tagResult.warning) timing.speaker_tagging_warning = tagResult.warning;
+
+                // 상태 결정: applied | unresolved | timeout | invalid_response | upstream_failure
+                let status = 'unresolved';
+                if (tagResult.warning === 'speaker_tagging_timeout') status = 'timeout';
+                else if (tagResult.warning === 'speaker_tagging_upstream_failure') status = 'upstream_failure';
+                else if (tagResult.warning === 'speaker_tagging_invalid_json' || tagResult.warning === 'speaker_tagging_truncated') status = 'invalid_response';
+                else if (tagResult.speakers?.some(s => s.speaker_id)) status = 'applied';
+
+                if (status === 'applied') {
+                  const applied = applySpeakerTags(parsedStory, tagResult.speakers, master, { playerName, unresolvedItems });
+                  timing.speaker_tagging_resolved_count = applied.appliedCount;
+                  timing.speaker_tagging_rejected_count = applied.rejectedCount;
+                  if (applied.changed) {
+                    // 2) 최종 결과 PATCH — return=representation으로 실제 저장 성공 확인
+                    const saved = await db.updateActionParsedBlocks(gameId, actionId, applied.parsedStory);
+                    if (saved) {
+                      // 저장이 확인된 taggedParsedStory만 canonical로 승격 (화면·extract·commit·reload 일치)
+                      parsedStory = applied.parsedStory;
+                      storyForExtract = applied.parsedStory.normalized_raw.trim() ? applied.parsedStory.normalized_raw : storyForExtract;
+                    } else {
+                      // 저장 실패 → 로컬 태거 결과 사용 금지, parser 결과로 계속
+                      timing.speaker_tagging_error = 'parsed_blocks_save_failed';
+                      await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, 'unresolved').catch(() => undefined);
+                    }
+                  } else {
+                    await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, 'unresolved').catch(() => undefined);
+                  }
+                } else {
+                  // 적용할 항목 없음 — 시도 상태만 남기고 parser 결과로 계속
+                  await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, status).catch(() => undefined);
                 }
+              } else {
+                timing.speaker_tagging_error = 'attempt_marker_save_failed';
               }
             }
           } catch (tagError) {
@@ -559,7 +610,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           // not turn a successful Extract into a stuck action, so resync with the source of truth.
           await db.getAction(gameId, actionId).catch(() => null);
         }
-        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, degraded });
+        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, degraded, parsed_blocks: parsedStory });
       } finally {
         logTurnTiming({
           event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId,
@@ -568,6 +619,12 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           extract_system_chars: timing.extract_system_chars, extract_context_chars: timing.extract_context_chars,
           parsed_story_chars: timing.parsed_story_chars, extract_request_chars: timing.extract_request_chars,
           active_character_count: timing.active_character_count,
+          tagging_ms: timing.tagging_ms, speaker_tagging_attempted: timing.speaker_tagging_attempted,
+          speaker_tagging_unresolved_count: timing.speaker_tagging_unresolved_count,
+          speaker_tagging_resolved_count: timing.speaker_tagging_resolved_count,
+          speaker_tagging_rejected_count: timing.speaker_tagging_rejected_count,
+          speaker_tagging_warning: timing.speaker_tagging_warning,
+          speaker_tagging_error: timing.speaker_tagging_error,
           turn_total_ms: Date.now() - startedAt
         });
       }

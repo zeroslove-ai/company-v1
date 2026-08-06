@@ -117,8 +117,10 @@ export async function runSpeakerTagging({ env, fetchImpl, messages, allowlist = 
       max_tokens: 400
     }, { signal });
   } catch (error) {
-    if (error instanceof HttpError && (error.code === 'extract_timeout' || error.code === 'llm_upstream_failure')) {
-      return { speakers: [], warning: 'speaker_tagging_timeout' };
+    if (error instanceof HttpError) {
+      // timeout과 upstream failure를 구분해 기록한다 (logTurnTiming에 그대로 노출)
+      if (error.code === 'extract_timeout') return { speakers: [], warning: 'speaker_tagging_timeout' };
+      if (error.code === 'llm_upstream_failure') return { speakers: [], warning: 'speaker_tagging_upstream_failure' };
     }
     throw error;
   }
@@ -134,7 +136,16 @@ export async function runSpeakerTagging({ env, fetchImpl, messages, allowlist = 
   }
   const content = choice?.message?.content;
   const speakers = parseTaggingResponse(content, allowlist);
-  return { speakers, warning: null };
+  let warning = null;
+  if (!speakers.length) {
+    // 빈 결과를 구분한다: content가 유효한 {"speakers": [...]} JSON이 아니면 invalid_response,
+    // 유효하지만 전부 null/빈이면 null-only(unresolved)로 기록한다.
+    const stripped = String(content ?? '').trim().replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+    let validJson = false;
+    try { validJson = Array.isArray(JSON.parse(stripped)?.speakers); } catch { validJson = false; }
+    if (!validJson) warning = 'speaker_tagging_invalid_json';
+  }
+  return { speakers, warning };
 }
 
 /** Runs the single Extract completion. No automatic retry or repair call is ever issued here. */
