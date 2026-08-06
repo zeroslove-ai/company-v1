@@ -245,12 +245,16 @@ test('15-3: upstream 완료 전에 클라이언트가 첫 delta를 수신 — �
   }
   assert.ok(firstDeltaSeen, 'upstream 완료 전 첫 delta 수신');
   assert.ok(upstreamStillPending, '게이트 미해제 상태에서 첫 delta 도달');
-  // 이제 업스트림 완료 허용 → 나머지 스트림 소비
+  // 이제 업스트림 완료 허용 → 나머지 스트림 소비 + complete 이벤트 명시 확인
   release();
+  let completeSeen = false;
   while (true) {
-    const { done } = await reader.read();
+    const { value, done } = await reader.read();
     if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    if (buffer.includes('event: complete')) completeSeen = true;
   }
+  assert.ok(completeSeen, 'release 후 complete 이벤트 수신');
 });
 
 test('15-4: action_contract_ms/action_route/action_csa_covered timing 로그', async () => {

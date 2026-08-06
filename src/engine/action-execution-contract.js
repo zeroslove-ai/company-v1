@@ -91,8 +91,9 @@ const DIRECT_ACT_SIGNALS = [
   '손목을 잡아', '손을 가져가', '손을 올려', '몸을 끌어당', '입을 맞춘', '옷을 걷',
   '지퍼 안으로 넣', '직접 잡게', '끌어안', '잡아당', '눕히', '덮치', '붙잡'
 ];
-const INSTRUCTION_SIGNALS = ['하세요', '해야 합니다', '야 합니다', '벗으세요', '지시한다', '명령한다', '내리세요', '보여줘', '해줘', '앉아라', '넣어라', '만져라', '보여라', '하라'];
-const REQUEST_SIGNALS = ['해줄래', '해주시겠', '할 수 있나요', '가능할까요', '부탁', '원해요', '어때요', '도 될까요', '해도 될까요', '주실 수', '주세요', '줄래', '해주세요', '보여주세요', '만져주실', '해주실'];
+const INSTRUCTION_SIGNALS = ['하세요', '해야 합니다', '야 합니다', '벗으세요', '지시한다', '명령한다', '내리세요', '앉아라', '넣어라', '만져라', '보여라', '하라'];
+// 일상적 부탁형(-줘/-해줘/-해줄래/-해줄 수 있어?)은 request — 명시적 명령·의무형만 instruction
+const REQUEST_SIGNALS = ['해줄래', '해주시겠', '할 수 있나요', '가능할까요', '부탁', '원해요', '어때요', '도 될까요', '해도 될까요', '주실 수', '주세요', '줄래', '해주세요', '보여주세요', '만져주실', '해주실', '해줘', '보여줘', '줘', '만져줘', '안아줘', '벗어줘', '해줄 수'];
 
 /** 판정 우선순위: direct_act → instruction → request → unknown */
 export function classifyExecutionMode(text) {
@@ -135,6 +136,34 @@ function inferTargetId(save, text, characters, npcIds) {
   return byName ? (byName.character_id ?? byName.npc_id ?? byName.id ?? null) : focal;
 }
 
+/**
+ * structured target 검증 — 저장된 last_choice_meta의 target_id를 그대로 신뢰하지 않는다.
+ * stable NPC ID 목록 존재 + actor_id가 player + actor≠target + 현재 장면 참여 또는
+ * 직전 선택지에 등장한 인물이어야 유효하다. 실패 시 자유 입력의 명시적 전체 이름으로
+ * 다시 찾고, 그것도 실패하면 null (unclear_target blocker로 차단된다).
+ */
+function validateStructuredTarget(structuredSignal, save, characters, npcIds, text) {
+  const targetId = structuredSignal?.target_id;
+  if (!targetId || targetId === 'player') return null;
+  const stableIds = new Set([
+    ...(Array.isArray(characters) ? characters : []).map(entry => entry.character_id ?? entry.id ?? entry.npc_id).filter(Boolean),
+    ...(Array.isArray(npcIds) ? npcIds : []).map(entry => entry.npc_id ?? entry.id).filter(Boolean)
+  ]);
+  if (!stableIds.has(targetId)) return null;
+  if (structuredSignal?.actor_id !== 'player') return null;
+  if (structuredSignal?.actor_id === targetId) return null;
+  const present = new Set([
+    ...(Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : []),
+    ...(Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : [])
+  ]);
+  const appearsInChoice = Array.isArray(save?.last_choice_meta)
+    && save.last_choice_meta.some(meta => meta?.target_id === targetId);
+  if (present.has(targetId) || appearsInChoice) return targetId;
+  // 장면/선택지에 없으면 자유 입력 명시적 전체 이름으로 재탐색
+  const fallback = inferTargetId(save, text, characters, npcIds);
+  return fallback === targetId ? targetId : null;
+}
+
 function detectCompanyAuthorityMisuse(text) {
   const source = typeof text === 'string' ? text : '';
   const authority = ['감사 업무', '감사업무', '인사팀', '공지', '지시', '규정', '업무상', '직무', '명령'];
@@ -144,6 +173,9 @@ function detectCompanyAuthorityMisuse(text) {
 // ---------------------------------------------------------------------------
 // route 결정
 // ---------------------------------------------------------------------------
+
+// follow-up은 blocker 기반으로만 예약 — 단순 근거 부족/공개 상황의 정상 거절은 확대하지 않는다.
+const FOLLOWUP_BLOCKERS = new Set(['coercive_physical_control', 'company_authority_misuse', 'explicit_recent_refusal', 'closed_boundary']);
 
 function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relationship, companyAuthorityMisuse, permission }) {
   if (coverage?.covered) {
@@ -178,16 +210,18 @@ function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relations
     };
   }
   if (executionMode === 'instruction') {
-    // 명령형은 관계 milestone과 무관하게 강제 명령 — blocked (회사 권한 악용 포함 시 reason 기록)
+    // 명령형은 관계 milestone과 무관하게 강제 명령 — blocked.
+    // follow-up은 회사 권한 악용 등 blocker 기반으로만 예약
     return {
       route: 'ordinary_direct_blocked',
       completion_policy: 'attempt_only',
       csa_attribution_allowed: false,
       company_authority_attribution_allowed: false,
-      schedule_boundary_followup: true,
+      schedule_boundary_followup: blockers.some(blocker => FOLLOWUP_BLOCKERS.has(blocker)),
       reason_code: companyAuthorityMisuse ? 'COMPANY_AUTHORITY_MISUSE' : 'OUTSIDE_CSA_WITHOUT_RELATIONSHIP_PERMISSION'
     };
   }
+  const scheduleFollowup = blockers.some(blocker => FOLLOWUP_BLOCKERS.has(blocker));
   // hard blocker는 어떤 양수 근거(milestone/흥분도/호감도)로도 상쇄하지 않는다.
   if (blockers.length) {
     return {
@@ -195,7 +229,7 @@ function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relations
       completion_policy: 'attempt_only',
       csa_attribution_allowed: false,
       company_authority_attribution_allowed: false,
-      schedule_boundary_followup: true,
+      schedule_boundary_followup: scheduleFollowup,
       reason_code: companyAuthorityMisuse ? 'COMPANY_AUTHORITY_MISUSE' : 'HARD_BLOCKER',
       attempt_basis: 'hard_blocker'
     };
@@ -225,7 +259,7 @@ function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relations
     completion_policy: 'attempt_only',
     csa_attribution_allowed: false,
     company_authority_attribution_allowed: false,
-    schedule_boundary_followup: true,
+    schedule_boundary_followup: false,
     reason_code: 'OUTSIDE_CSA_WITHOUT_RELATIONSHIP_PERMISSION',
     attempt_basis: 'insufficient'
   };
@@ -261,9 +295,14 @@ export function resolvePrivacyContext({ save, targetId } = {}) {
   const locationId = String(scene.location_id ?? save?.location_id ?? '');
   const publicLocation = PUBLIC_LOCATION_RE.test(locationId);
   const closedLocation = CLOSED_LOCATION_RE.test(locationId) && !publicLocation;
+  const playerPresent = participants.some(isPlayer);
+  const targetPresent = !targetId || npcParticipants.includes(targetId);
 
+  // fail-open 방지: 참가자 정보가 비었거나 player/target 중 하나가 실제 장면에 없으면
+  // private으로 승인하지 않는다 — 높은 arousal/affinity와 결합해 attempt로 풀리는 것을 막는다.
   let privacy;
-  if (publicLocation || observerCount >= 2 || participants.length >= 4) privacy = 'public';
+  if (!participants.length || !playerPresent || !targetPresent) privacy = 'unknown';
+  else if (publicLocation || observerCount >= 2 || participants.length >= 4) privacy = 'public';
   else if (observerCount === 0 && participants.length <= 2) privacy = 'private';
   else if (observerCount === 1 || closedLocation) privacy = 'semi_private';
   else privacy = 'unknown';
@@ -420,9 +459,10 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     if (structuredSignal.suggested_route === 'blocked') executionMode = 'direct_act';
     else if (structuredSignal.suggested_route === 'voluntary' && freeMode === 'unknown') executionMode = 'request';
   }
-  // 검증된 structured actor_id/target_id 우선 — focal이 달라도 metadata의 target을 따른다
-  const structuredActorId = typeof structuredSignal?.actor_id === 'string' && structuredSignal.actor_id ? structuredSignal.actor_id : null;
-  const structuredTargetId = typeof structuredSignal?.target_id === 'string' && structuredSignal.target_id ? structuredSignal.target_id : null;
+  // structured actor_id/target_id — 저장값을 그대로 신뢰하지 않고 검증한다.
+  // target: stable NPC ID + actor=player + 장면/선택지 등장. 실패 시 free-text로 재탐색, 그것도 실패 시 null.
+  const structuredActorId = structuredSignal?.actor_id === 'player' ? 'player' : null;
+  const structuredTargetId = validateStructuredTarget(structuredSignal, save, characters, npcIds, text);
   const actorId = structuredActorId ?? 'player';
   const targetId = structuredTargetId ?? inferTargetId(save, text, characters, npcIds);
   const coverage = resolveCsaDirectCoverage(save, text, {
