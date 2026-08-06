@@ -101,17 +101,18 @@ function toneGroup(direction = '') {
   return 'neutral';
 }
 
-export function batchDialogueLines(lines) {
+export function batchDialogueLines(lines, { maxChars = 500 } = {}) {
+  // 같은 화자의 연속 대사는 톤과 무관하게 한 번에 묶는다 (끊김 없는 자연스러운 음성).
+  // 최대 길이는 maxChars(기본 500자) — Fish Audio 실측으로 이 범위는 안정적으로 합성된다.
   const batches = [];
   let current = null;
   for (const line of Array.isArray(lines) ? lines : []) {
-    const tone = toneGroup(line.direction);
     const merged = current ? `${current.text} ${line.text}` : line.text;
-    if (current && current.character_id === line.character_id && current.tone === tone && merged.length <= 350) {
+    if (current && current.character_id === line.character_id && merged.length <= maxChars) {
       current.text = merged;
       current.lines.push(line);
     } else {
-      current = { speaker: line.speaker, character_id: line.character_id, tone, direction: line.direction, text: line.text, lines: [line] };
+      current = { speaker: line.speaker, character_id: line.character_id, tone: toneGroup(line.direction), direction: line.direction, text: line.text, lines: [line] };
       batches.push(current);
     }
   }

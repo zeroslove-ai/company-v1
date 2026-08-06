@@ -460,7 +460,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
         // 근본 해결: extract는 원본이 아니라 파서가 화자명을 확정·삽입한 normalized_raw를 본다.
         // → 화자명 없는 대사가 있어도 extract가 추론할 필요 없이 명시된 화자명을 그대로 쓴다.
-        const storyForExtract = (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text;
+        let storyForExtract = (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text;
         let extract;
         try {
           const contextRpcStart = Date.now();
@@ -471,6 +471,25 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
           const hasSexualCsa = applicableCsa.some(csa => buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract).sexual_authorization === true);
+          // 스피커 태깅: 규칙 파서로 화자명 없는 대사가 남아 있으면 전용 LLM 호출로 확정한다.
+          // extract는 확정된 normalized_raw를 보고 화자명을 복사만 한다.
+          try {
+            const unlabeled = collectUnlabeledQuotes(action.story_text);
+            if (unlabeled.length) {
+              const tagMessages = buildTaggingMessages(action.story_text, master);
+              const tagStart = Date.now();
+              const tagRaw = await runSpeakerTagging({ env, fetchImpl, messages: tagMessages });
+              timing.tagging_ms = Date.now() - tagStart;
+              const tags = parseTaggingResponse(tagRaw && (tagRaw.content ?? JSON.stringify(tagRaw)));
+              if (tags.length) {
+                const tagged = applySpeakerTags(parsedStory?.normalized_raw, parsedStory?.dialogue_lines ?? [], unlabeled, tags);
+                if (parsedStory) parsedStory.normalized_raw = tagged.normalized_raw;
+                if (parsedStory) parsedStory.dialogue_lines = tagged.dialogue_lines;
+                storyForExtract = tagged.normalized_raw.trim() ? tagged.normalized_raw : storyForExtract;
+              }
+            }
+          } catch { /* 태깅 실패는 파이프라인을 막지 않는다 */ }
+
           const promptStart = Date.now();
           let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })

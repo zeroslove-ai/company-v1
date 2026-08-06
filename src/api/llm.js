@@ -98,6 +98,27 @@ function parseExtractContent(content) {
   }
 }
 
+/** 단일 대사 화자 판별 호출 — 화자명 없는 대사만 문맥과 함께 보낸다. 실패는 조용히 무시된다. */
+export async function runSpeakerTagging({ env, fetchImpl, messages }) {
+  const response = await postCompletion(env, fetchImpl, {
+    model: requireEnv(env, 'EXTRACT_MODEL'),
+    messages,
+    stream: false,
+    thinking: { type: 'disabled' },
+    response_format: { type: 'json_object' },
+    max_tokens: 800
+  });
+  const raw = await response.text();
+  const stripped = String(raw ?? '').trim().replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+  try {
+    return JSON.parse(stripped);
+  } catch {
+    const m = /\{[\s\S]*\}/.exec(stripped);
+    if (m) { try { return JSON.parse(m[0]); } catch { return null; } }
+    return null;
+  }
+}
+
 /** Runs the single Extract completion. No automatic retry or repair call is ever issued here. */
 export async function runExtract({ env, fetchImpl, messages }) {
   const signal = typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(EXTRACT_TIMEOUT_MS) : undefined;

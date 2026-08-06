@@ -8,6 +8,20 @@ const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사
 const DIALOGUE_LINE = /^([\p{L}][^\n():："“”]{0,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const REGISTERED_SPEAKER_LINE = /^([^\n:："“”]{1,40}?)\s*[:：]\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const QUOTE_ONLY_LINE = /^["“]([^"”]+)["”]$/u;
+
+// 라인 어디에 있든 큰따옴표("…"/“…”)를 찾아 [서술, 대사, 서술, …]로 분리 (작은따옴표는 제외 — 강조/인용)
+function splitQuotedParts(line) {
+  const parts = [];
+  const re = /["“]([^"”]*)["”]/g;
+  let last = 0, m;
+  while ((m = re.exec(line)) !== null) {
+    if (m.index > last) parts.push({ quoted: false, text: line.slice(last, m.index) });
+    parts.push({ quoted: true, text: m[1] });
+    last = m.index + m[0].length;
+  }
+  if (last < line.length) parts.push({ quoted: false, text: line.slice(last) });
+  return parts;
+}
 const CHOICE_LABEL = /^\[([^\[\]\r\n]{2,6})\]\s*(.+)$/u;
 
 function labelRole(label) {
@@ -94,7 +108,8 @@ function normalizedDialogue(name, direction, value, speakerDirectory, order) {
   const speaker = resolved?.name ?? supplied;
   const acting = String(direction ?? '').trim();
   const text = String(value ?? '').trim().replace(/^["“”']+|["“”']+$/g, '').trim();
-  if (!speaker || !acting || !text) return null;
+  // 화자명이 비어 있어도 대사칸은 생성한다 (미확정 화자 — 플레이어로 오표기하는 것보다 낫다)
+  if (!acting || !text) return null;
   return { speaker_id: resolved?.id ?? '', speaker_name: speaker, direction: acting, text, order };
 }
 
@@ -155,9 +170,32 @@ function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory, playe
       let speaker = null;
       if (mentioned && isSpeechAttribution(lastLine, mentioned)) speaker = mentioned;
       else if (mentioned && (/(감사님|임원님|금 감사님|팀장님)/.test(text) || /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text))) speaker = mentioned;
-      const resolved = speaker ?? { id: 'player', name: playerName };
+      const resolved = speaker ?? { id: null, name: '' };
       appendDialogue(normalizedDialogue(resolved.name, '자연스럽게', text, speakerDirectory, dialogueLines.length));
       recentSpeaker = { id: resolved.id, name: resolved.name };
+      continue;
+    }
+
+    // 라인 중간/끝에 큰따옴표 대사가 섞여 있으면 서술 + 대사 + 서술로 분리해 전부 대사칸화
+    const parts = splitQuotedParts(rawLine);
+    if (parts.length > 1) {
+      let ctxLine = lastLine;
+      for (const part of parts) {
+        if (part.quoted && part.text.trim()) {
+          const mentioned = lastMentionedSpeaker(ctxLine, speakerDirectory, recentSpeaker);
+          const text = part.text;
+          let speaker = null;
+          if (mentioned && isSpeechAttribution(ctxLine, mentioned)) speaker = mentioned;
+          else if (mentioned && (/(감사님|임원님|금 감사님|팀장님)/.test(text) || /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text))) speaker = mentioned;
+          const resolved = speaker ?? { id: null, name: '' };
+          appendDialogue(normalizedDialogue(resolved.name, '자연스럽게', text, speakerDirectory, dialogueLines.length));
+          recentSpeaker = { id: resolved.id, name: resolved.name };
+        } else if (part.text.trim()) {
+          recentSpeaker = lastMentionedSpeaker(part.text, speakerDirectory, recentSpeaker);
+          narrative.push(part.text);
+          ctxLine = part.text;
+        }
+      }
       continue;
     }
 

@@ -115,7 +115,7 @@ test('Hospital TTS extracts a rendered dialogue card and plays the Worker URL di
   assert.ok(audio.playCalls >= 2, 'silent priming and real URL playback must both touch the persistent audio element');
 });
 
-test('Hospital TTS batches only adjacent lines with the same speaker and tone', () => {
+test('Hospital TTS batches adjacent lines of the same speaker regardless of tone', () => {
   const batches = batchDialogueLines([
     { speaker: '서원희', character_id: 'heroine1', direction: '차분하게', text: '첫 문장' },
     { speaker: '서원희', character_id: 'heroine1', direction: '담담하게', text: '둘째 문장' },
@@ -161,4 +161,15 @@ test('relationship record is transformed into Hospital icon summary and collapsi
   assert.ok(labels.includes('3'));
   assert.ok(labels.includes('2'));
   assert.equal(renderHospitalRelationshipIcons(section), false, 'an already enhanced card must not be transformed twice');
+});
+
+test('Hospital TTS splits a speaker batch at the 500-char cap', () => {
+  const long = '가나다라마바사'.repeat(80);
+  const batches = batchDialogueLines([
+    { speaker: '이메이', character_id: 'heroine5', direction: '자연스럽게', text: long },
+    { speaker: '이메이', character_id: 'heroine5', direction: '자연스럽게', text: '짧은 후속 대사' }
+  ]);
+  assert.equal(batches.length, 2);
+  assert.ok(batches[0].text.length > 500);
+  assert.equal(batches[1].text, '짧은 후속 대사');
 });
