@@ -559,6 +559,8 @@ function sexualEventDisplay(event) {
 }
 
 function renderPlayer(container, player, scene) {
+  // 상식개변 칸은 매 렌더링마다 새로 그리므로, 이전에 붙인 중복 섹션을 먼저 제거한다
+  (container.parentElement ?? container)?.querySelector?.('.player-active-rules')?.remove();
   const activeRules = Array.isArray(player?.active_csa) ? player.active_csa : [];
   const activeCount = typeof player?.active_csa_count === 'number' ? player.active_csa_count : activeRules.length;
   const activeMax = typeof player?.max_active_csa === 'number' ? player.max_active_csa : null;
