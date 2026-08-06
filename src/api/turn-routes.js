@@ -57,6 +57,8 @@ import {
   planCsaTransaction,
   resolveCsaDirectCoverage,
   buildCsaDirectCoverageSection,
+  resolveActionExecutionContract,
+  buildActionExecutionContractSection,
   semanticStrengthIssues,
   sha256Base64url,
   signAppValidationProof,
@@ -244,11 +246,19 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
  * pass. This only trims prompt tokens — every gated section's underlying feature contract is
  * unchanged when its condition holds.
  */
-function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog }) {
+function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog, actionContract }) {
   const applicableCsa = getApplicableCsaEntries(save);
   const hasApplicableCsa = applicableCsa.length > 0;
   const isAppTransactionTurn = Boolean(plan);
-  if (!hasApplicableCsa && !isAppTransactionTurn) return messages;
+  if (!hasApplicableCsa && !isAppTransactionTurn) {
+    // 음수 ordinary gate(actionContract section)는 활성 CSA 유무와 관계없이 작동한다.
+    // CSA가 없으면 다른 CSA sections 없이 계약 section만 붙인다.
+    if (playerAction && actionContract) {
+      const section = buildActionExecutionContractSection(actionContract, { applicableCsa: [] });
+      if (section) return [{ ...messages[0], content: messages[0].content + section }, ...messages.slice(1)];
+    }
+    return messages;
+  }
   const hasPublicCsa = applicableCsa.some(csa => csa.preset?.public_normalization === true || csa.semantic_contract?.public_normalization === true);
   const hasSynergyCandidate = applicableCsa.length >= 2;
   let extra = buildCsaRuntimeSection() + buildCsaAcceptanceScopeSection() + buildCsaDirectExecutionPrioritySection()
@@ -267,9 +277,322 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog 
     const coverage = resolveCsaDirectCoverage(save, playerAction, { sexualActionContract: csaCatalog?.sexual_action_contract });
     extra += buildCsaDirectCoverageSection(coverage);
   }
+  // ActionExecutionContract section — 음수 ordinary gate는 활성 CSA 유무와 관계없이 작동한다.
+  // csa_direct면 exact-scope 제한만, 범위 밖 material action이면 짧고 강한 음수 계약
+  // (회사 규정·감사 업무·인사팀 지시로 정당화 금지)
+  if (playerAction && actionContract) {
+    extra += buildActionExecutionContractSection(actionContract, { applicableCsa });
+  }
   const next = [{ ...messages[0], content: messages[0].content + extra }, ...messages.slice(1)];
   next.push({ role: 'system', content: buildNpcCsaEpistemicFirewallSection() });
   return next;
+}
+
+/**
+ * 계약 기반 state firewall — Story 결과를 검사하는 verifier가 아니다.
+ * ordinary_direct_blocked 계약일 때 Extract가 무엇을 반환하든 다음 정본 승격을 막는다:
+ * - first_kiss / sexual relationship milestone
+ * - 성적 행동 완료 event
+ * 허용: affinity/resistance(관계 규칙)/emotion/arousal/scene/대화 변화.
+ */
+export const RESOLUTION_RESPONSES = new Set(['accepted', 'partially_accepted', 'refused', 'interrupted', 'ambiguous']);
+
+/** 성적 완료 사건 판정 — 단독 '성'은 제외(성과/완성 오탐 방지), event_type의 _completed도 검사. */
+function isSexualCompletionEvent(ev) {
+  const type = typeof ev?.event_type === 'string' ? ev.event_type : '';
+  const summary = typeof ev?.summary === 'string' ? ev.summary : '';
+  const preserve = /(refused|blocked|interrupted|reported|complaint|harassment|attempt|시도|거절|중단|막음|신고|항의|불쾌|경계|거부)/i.test(type + ' ' + summary);
+  if (preserve) return false;
+  const sexual = /(sexual|kiss|intimate|foreplay|penetration|oral|genital|성적|성관계|성행위|키스|삽입|친밀|사정|오르가즘)/i.test(type + ' ' + summary);
+  const completion = /(completed|consummated)/i.test(type) || /(했다|완료|이루어졌|시작됐|끝났|성사|이뤄졌|하게 했|완료됐|끝났다)/i.test(summary);
+  return sexual && completion;
+}
+
+/** player 참조 판정 — 기존 player ID 호환(player, player-1, player_, player-)을 유지한다. */
+function isPlayerRef(id) {
+  if (!id) return false;
+  const s = String(id);
+  return s === 'player' || s === 'player-1' || /^player([-_]|$)/.test(s);
+}
+
+function filterSexualCompletionEvents(events, targetId) {
+  if (!Array.isArray(events)) return events;
+  return events.filter(ev => {
+    // 성적 완료 사건이 아니면(거절·중단·시도·신고·항의·경계 설정, 일반 감정·관계·업무
+    // event) 그대로 보존한다.
+    if (!isSexualCompletionEvent(ev)) return true;
+    const participants = Array.isArray(ev?.participants) ? ev.participants : [];
+    // participants 배열만 보고 "다른 NPC 사건"으로 판단하면 actor_id=player 우회가
+    // 통과한다. actor_id/target_id/participants를 함께 확인해, player가 어디든
+    // 참여한 성적 완료 사건은 fail-closed로 제거한다.
+    if (isPlayerRef(ev?.actor_id) || isPlayerRef(ev?.target_id) || participants.some(isPlayerRef)) return false;
+    // 계약 대상이 참여한 완료 사건도 정본 병합 대상이므로 여기서 보존하지 않는다.
+    if (targetId && (ev?.actor_id === targetId || ev?.target_id === targetId || participants.includes(targetId))) return false;
+    // player도 계약 대상도 참여하지 않은, 양쪽 당사자가 명확한 NPC↔NPC 사건만 보존한다.
+    // 한 명만 적힌 성적 완료 사건("participants:['heroine1']", actor/target 없음)은
+    // 나머지 한쪽이 player일 가능성을 배제할 수 없으므로 fail-closed로 제거한다 —
+    // 이름이 빠진 상대가 곧 우회 경로가 된다.
+    if (ev?.actor_id && ev?.target_id && ev.actor_id !== ev.target_id) return true;
+    return new Set(participants.filter(Boolean)).size >= 2;
+  });
+}
+
+/**
+ * action_resolution 검증 — accepted/voluntary를 그대로 신뢰하지 않는다.
+ * target_id/route 일치, npc_response enum, voluntary boolean, completed_action_types가
+ * contract.action_types의 부분집합이어야 유효하다.
+ */
+function validateActionResolution(resolution, contract) {
+  if (!resolution || typeof resolution !== 'object') return null;
+  if (resolution.target_id !== contract.target_id) return null;
+  if (resolution.route !== contract.route) return null;
+  if (!RESOLUTION_RESPONSES.has(resolution.npc_response)) return null;
+  if (typeof resolution.voluntary !== 'boolean') return null;
+  const rawCompleted = Array.isArray(resolution.completed_action_types) ? resolution.completed_action_types : [];
+  const contractTypes = new Set(Array.isArray(contract.action_types) ? contract.action_types : []);
+  const completed = [];
+  for (const action of rawCompleted) {
+    if (typeof action !== 'string' || !action) return null;
+    if (completed.includes(action)) return null; // 중복이면 invalid
+    if (!contractTypes.has(action)) return null; // contract.action_types 부분집합
+    completed.push(action);
+  }
+  // accepted인데 completed가 비어 있으면 성공 불허 / refused·interrupted·ambiguous에
+  // completed가 있으면 성공 범위로 사용하지 않는다 (voluntary=false면 completed 무시)
+  if (resolution.npc_response === 'accepted' && completed.length === 0) return null;
+  if (resolution.npc_response !== 'accepted' && resolution.npc_response !== 'partially_accepted') {
+    if (completed.length) return null;
+  }
+  if (!resolution.voluntary && completed.length) return null;
+  return { npc_response: resolution.npc_response, voluntary: resolution.voluntary, completed_action_types: completed };
+}
+
+/**
+ * sexual_event_ledger 필터 — 계약 대상 NPC 관련 completed 이벤트만 제거한다.
+ * interrupted/attempt 성격의 ledger와 다른 NPC ledger는 보존. accepted 범위가 주어지면
+ * completed_action_types에 포함된 action만 보존한다.
+ */
+function filterContractSexualLedger(events, contract, completedActionTypes = []) {
+  if (!Array.isArray(events)) return events;
+  const targetId = contract?.target_id;
+  const completedSet = new Set(completedActionTypes);
+  // 판정 순서가 곧 보안 경계다. ev.target_id가 계약 target과 다르다는 이유로 먼저
+  // 보존하면, player가 참여한 현재 턴의 완료 사건이 "다른 NPC 사건"으로 위장해
+  // 통과한다. 반드시 completed → contract target null → player 참여 →
+  // contract target 참여 → accepted 범위 → unrelated NPC↔NPC 순으로 판단한다.
+  return events.filter(ev => {
+    // 1. 객체 유효성
+    if (!ev || typeof ev !== 'object') return false;
+    // 2. 완료되지 않은 ledger(attempt/interrupted/refused/incomplete)는 그대로 보존.
+    if (ev.completed !== true) return true;
+    // 3. 계약 target을 정본으로 특정하지 못한 상태 — 완료 사건의 귀속 대상을 알 수
+    //    없으므로 player 참여 여부와 무관하게 fail-closed로 모두 제거한다.
+    if (!targetId) return false;
+    // 4·5. player 참여 여부와 계약 target 참여 여부
+    const involvedPlayer = isPlayerRef(ev.actor_id) || isPlayerRef(ev.target_id);
+    const involvedTarget = ev.actor_id === targetId || ev.target_id === targetId;
+    if (involvedPlayer || involvedTarget) {
+      // 6. accepted 범위의 완료는 "player와 계약 target 사이의 사건"만 정본이다.
+      //    한쪽만 참여한 사건은 현재 턴 계약의 결과가 아니므로 제거한다:
+      //    player→다른 NPC(플레이어의 별도 완료 행동)도, 계약 target→다른 NPC
+      //    (heroine5↔heroine1처럼 player가 빠진 사건)도 accepted 범위를 빌려
+      //    정본으로 승격될 수 없다. 참여자가 한쪽만 적힌 사건도 귀속 불가로 제거한다.
+      if (!(involvedPlayer && involvedTarget)) return false;
+      return typeof ev.action_type === 'string' && completedSet.has(ev.action_type);
+    }
+    // 7. player도 계약 target도 참여하지 않은, actor/target이 명확한 NPC↔NPC 사건만 보존.
+    return Boolean(ev.actor_id) && Boolean(ev.target_id);
+  });
+}
+
+/** player sexual completion(사정/성적 해소) 제거 — arousal_delta/progress_delta는 보존. */
+function stripPlayerSexualCompletion(extract) {
+  const next = { ...extract, state_delta: { ...(extract?.state_delta ?? {}) } };
+  if (next.state_delta.player_sexual_state && typeof next.state_delta.player_sexual_state === 'object') {
+    const p = { ...next.state_delta.player_sexual_state };
+    delete p.ejaculation_completed;
+    next.state_delta.player_sexual_state = p;
+  }
+  if (next.evidence && typeof next.evidence === 'object') {
+    next.evidence = { ...next.evidence };
+    delete next.evidence.sexual_resolution;
+  }
+  return next;
+}
+
+/** 관계 milestone을 계약 결과에 따라 정리하는 공통 helper.
+ *  - targetId가 유효하면 해당 NPC의 milestone만 제거/조건 보존
+ *  - targetId가 null이면(fail-closed) 어느 NPC로 귀속할지 특정할 수 없으므로
+ *    모든 NPC 패치에서 first_kiss_turn과 sexual_relationship_started_turn을 제거한다.
+ */
+/** explicit 관계 성립 행동 — sexual relationship milestone을 여는 canonical 목록 (임의 확장 금지). */
+const SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS = new Set(['penetration', 'oral']);
+
+function stripContractMilestones(rel, targetId, completed = null) {
+  const p = { ...rel };
+  if (p.milestones && typeof p.milestones === 'object') {
+    const milestones = { ...p.milestones };
+    if (targetId == null) {
+      delete milestones.first_kiss_turn;
+      delete milestones.sexual_relationship_started_turn;
+    } else {
+      if (milestones.first_kiss_turn !== undefined && !(completed && completed.has('kiss'))) {
+        delete milestones.first_kiss_turn;
+      }
+      const explicitCompleted = completed && [...completed].some(action => SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS.has(action));
+      if (milestones.sexual_relationship_started_turn !== undefined && !explicitCompleted) {
+        delete milestones.sexual_relationship_started_turn;
+      }
+    }
+    p.milestones = milestones;
+  }
+  return p;
+}
+
+
+
+function stripAttemptMilestones(extract, targetId) {
+  const next = { ...extract, state_delta: { ...(extract?.state_delta ?? {}) } };
+  if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
+    const rel = {};
+    for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
+      const p = (targetId == null || id === targetId) ? stripContractMilestones(patch, targetId, null) : patch;
+      rel[id] = p;
+    }
+    next.state_delta.npc_relationship_state = rel;
+  }
+  return next;
+}
+
+export /** accepted 정본 범위 축소 — completed_action_types 밖의 milestone/event/ledger/completion을 제거한다. */
+function applyAcceptedActionScope(extract, contract, validated) {
+  const completed = new Set(validated.completed_action_types);
+  const next = { ...extract, state_delta: { ...(extract?.state_delta ?? {}) } };
+  const targetId = contract.target_id;
+  // milestone — first_kiss는 kiss 완료, sexual relationship은 explicit 완료 행동일 때만
+  if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
+    const rel = {};
+    for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
+      const p = (targetId == null || id === targetId) ? stripContractMilestones(patch, targetId, completed) : patch;
+      rel[id] = p;
+    }
+    next.state_delta.npc_relationship_state = rel;
+  }
+  // event_ledger — target 관련 성적 완료 event는 action type이 completed 범위일 때만 보존
+  if (Array.isArray(next.state_delta.event_ledger)) {
+    next.state_delta.event_ledger = next.state_delta.event_ledger.filter(ev => {
+      const type = typeof ev?.event_type === 'string' ? ev.event_type : '';
+      const summary = typeof ev?.summary === 'string' ? ev.summary : '';
+      if (/(refused|blocked|interrupted|reported|complaint|harassment|attempt|시도|거절|중단|막음|신고|항의|불쾌|경계|거부)/i.test(type + ' ' + summary)) return true;
+      const participants = Array.isArray(ev?.participants) ? ev.participants : [];
+      if (targetId && participants.length && !participants.includes(targetId)) return true;
+      const sexual = /(sexual|kiss|intimate|foreplay|penetration|oral|genital|성적|성관계|성행위|키스|삽입|친밀|사정|오르가즘)/i.test(type + ' ' + summary);
+      if (!sexual) return true;
+      const completion = /(completed|consummated)/i.test(type) || /(했다|완료|이루어졌|시작됐|끝났|성사|이뤄졌|하게 했|완료됐|끝났다)/i.test(summary);
+      if (!completion) return true;
+      const evAction = typeof ev?.action_type === 'string' ? ev.action_type : null;
+      if (evAction && completed.has(evAction)) return true;
+      return false; // 범위 밖 또는 generic 성적 완료 → fail-closed
+    });
+  }
+  // sexual_event_ledger — completed_action_types 범위만
+  next.state_delta.sexual_event_ledger = filterContractSexualLedger(next.state_delta.sexual_event_ledger, contract, validated.completed_action_types);
+  // player ejaculation — explicit 완료 행동이 뒷받침할 때만
+  if (next.state_delta.player_sexual_state?.ejaculation_completed === true) {
+    const explicitCompleted = [...completed].some(action => SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS.has(action));
+    if (!explicitCompleted) {
+      const p = { ...next.state_delta.player_sexual_state };
+      delete p.ejaculation_completed;
+      next.state_delta.player_sexual_state = p;
+      if (next.evidence && typeof next.evidence === 'object') {
+        next.evidence = { ...next.evidence };
+        delete next.evidence.sexual_resolution;
+      }
+    }
+  }
+  return next;
+}
+
+export function applyContractStateFirewall(extract, contract) {
+  if (!contract) return extract;
+  if (contract.route === 'ordinary_direct_blocked') {
+    // blocked — milestone + 완료 event + sexual ledger completed + player completion 전부 차단
+    const scoped = {
+      ...extract,
+      state_delta: {
+        ...(extract?.state_delta ?? {}),
+        event_ledger: filterSexualCompletionEvents(extract?.state_delta?.event_ledger, contract.target_id),
+        sexual_event_ledger: filterContractSexualLedger(extract?.state_delta?.sexual_event_ledger, contract, [])
+      }
+    };
+    return stripPlayerSexualCompletion(applyBlockedContractFirewall(scoped, contract));
+  }
+  if (contract.route === 'ordinary_direct_attempt') {
+    // attempt는 Extract의 action_resolution이 deterministic 검증을 통과하고
+    // accepted + voluntary=true + 완료 행동이 있을 때만 성공 정본화를 허용한다.
+    const resolution = extract?.action_resolution ?? extract?.state_delta?.action_resolution ?? null;
+    const validated = validateActionResolution(resolution, contract);
+    if (!validated) {
+      // 검증 실패 — milestone + 완료 event + ledger completed + player completion 차단 (감정·일반 업무 보존)
+      const filtered = {
+        ...extract,
+        state_delta: {
+          ...(extract?.state_delta ?? {}),
+          event_ledger: filterSexualCompletionEvents(extract?.state_delta?.event_ledger, contract.target_id),
+          sexual_event_ledger: filterContractSexualLedger(extract?.state_delta?.sexual_event_ledger, contract, [])
+        }
+      };
+      return stripPlayerSexualCompletion(stripAttemptMilestones(filtered, contract.target_id));
+    }
+    if (validated.npc_response === 'accepted' && validated.voluntary && validated.completed_action_types.length) {
+      // accepted도 completed_action_types 범위만 정본화
+      return applyAcceptedActionScope(extract, contract, validated);
+    }
+    // partially_accepted / refused / interrupted / ambiguous — milestone·완료 event·ledger·completion 차단
+    const filtered = {
+      ...extract,
+      state_delta: {
+        ...(extract?.state_delta ?? {}),
+        event_ledger: filterSexualCompletionEvents(extract?.state_delta?.event_ledger, contract.target_id),
+        sexual_event_ledger: filterContractSexualLedger(extract?.state_delta?.sexual_event_ledger, contract, [])
+      }
+    };
+    return stripPlayerSexualCompletion(stripAttemptMilestones(filtered, contract.target_id));
+  }
+  return extract;
+}
+
+function applyBlockedContractFirewall(extract, contract) {
+  const stateDelta = extract?.state_delta ?? {};
+  const next = { ...extract, state_delta: { ...stateDelta } };
+  const targetId = contract.target_id;
+  // 관계 milestone 차단은 계약 대상 NPC에만 적용한다 (다른 NPC의 정상 변화는 보존)
+  if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
+    const rel = {};
+    for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
+      const p = (targetId == null || id === targetId) ? stripContractMilestones(patch, targetId, null) : patch;
+      rel[id] = p;
+    }
+    next.state_delta.npc_relationship_state = rel;
+  }
+  // event 필터: "성적 행동 완료" 사건만 제거한다. 거절·중단·신고·항의·불쾌·경계·시도 사건은
+  // 반드시 보존해야 하는 결과이므로 절대 삭제하지 않는다. 대상이 다른 NPC의 사건도 보존한다.
+  next.state_delta.event_ledger = filterSexualCompletionEvents(next.state_delta.event_ledger, targetId);
+  return next;
+}
+
+/** 다음 턴 경계 복원 follow-up section — 사전 계약 기반으로만 생성 (Story 검사 없음). */
+function buildBoundaryFollowupSection(save, expectedTurn, master) {
+  const pending = save?.pending_boundary_followup;
+  if (!pending || typeof pending !== 'object') return '';
+  // 정확히 다음 한 턴에서만 사용 — stale/미래 pending은 주입하지 않는다
+  if (pending.expires_after_turn !== expectedTurn) return '';
+  const targetId = pending.target_character_id;
+  const targetEntry = [...(master?.characters ?? []), ...(master?.general_npcs ?? [])]
+    .find(entry => (entry.character_id ?? entry.npc_id ?? entry.id) === targetId);
+  const targetName = typeof targetEntry?.name === 'string' && targetEntry.name ? targetEntry.name : (targetId ?? '상대');
+  const actionLabel = Array.isArray(pending.action_types) && pending.action_types.length ? pending.action_types.join(', ') : '친밀 행동';
+  return `\n\n[BOUNDARY CONTINUITY FOLLOW-UP — ${targetName}]\n직전 턴(${pending.source_turn})의 ${targetName}에 대한 행동(${actionLabel})은 활성 CSA나 회사 규정이 허용한 범위가 아니었다.\n직전 서사에서 ${targetName}이(가) 이미 분명히 거절하거나 중단했다면 같은 말을 반복하지 말고 그 경계를 일관되게 유지한다.\n직전 서사가 모호하거나 ${targetName}이(가) 순간적으로 행동을 따라간 것처럼 보였다면, ${targetName}은(는) 이번 턴 초반에 그것이 규정 때문이 아니었음을 스스로 인식한다. 순간적인 당황, 얼어붙음, 상황 오해, 뒤늦은 판단으로 자연스럽게 설명할 수 있다.\n${targetName}은(는) "아까는 순간적으로 공지 범위를 잘못 받아들였다", "다시 생각해 보니 그건 규정에 포함되지 않는다"처럼 자연스럽게 선을 긋고, 현재의 자발적인 선택과 경계를 회복한다. 이 후속 처리는 ${targetName}에게만 적용되며 다른 NPC에게 전파하지 않는다.`;
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
@@ -396,14 +719,36 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          // ActionExecutionContract — 순수 결정 함수 (await/fetch/LLM 없음, 수 ms).
+          // retry 시 저장된 계약을 재사용해 같은 action을 다시 분류해 다른 route를 만들지 않는다.
+          const contractStart = Date.now();
+          const actionContract = action.parsed_blocks?.action_execution_contract ?? resolveActionExecutionContract({
+            save: hydratedSave,
+            playerAction,
+            csaCatalog,
+            characters: master.characters,
+            npcIds: master.general_npcs
+          });
+          timing.action_contract_ms = Date.now() - contractStart;
+          timing.action_route = actionContract.route;
+          timing.action_material = actionContract.material_action ? 1 : 0;
+          timing.action_csa_covered = actionContract.csa_coverage.covered ? 1 : 0;
+          timing.action_permission_level = actionContract.contextual_permission?.level ?? 'none';
+          timing.action_privacy = actionContract.contextual_permission?.privacy ?? 'unknown';
+          timing.action_attempt_basis = actionContract.attempt_basis ?? 'insufficient';
           const promptStart = Date.now();
           let messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs });
-          messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog });
+          messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog, actionContract });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
           }
           if (action.action_kind === 'feedback_revision' && action.feedback_text) {
             messages = [{ ...messages[0], content: messages[0].content + buildRegenerationFeedbackSection(action.feedback_text) }, ...messages.slice(1)];
+          }
+          // 다음 턴 경계 복원 follow-up — 저장된 pending_boundary_followup이 이번 턴 유효하면 주입
+          const boundarySection = buildBoundaryFollowupSection(hydratedSave, expectedTurn, master);
+          if (boundarySection) {
+            messages = [{ ...messages[0], content: messages[0].content + boundarySection }, ...messages.slice(1)];
           }
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
@@ -419,9 +764,14 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             emit('delta', { text });
           }
           const parsed = parseNarrative(raw, { master });
-          await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: parsed });
+          const contractPersisted = { ...parsed, action_execution_contract: actionContract };
+          await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
           storyPersisted = true;
-          emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false, parsed_blocks: parsed });
+          emit('complete', {
+            action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false,
+            parsed_blocks: contractPersisted,
+            action_route: actionContract.route, csa_covered: actionContract.csa_coverage.covered
+          });
         } catch (error) {
           if (!storyPersisted) {
             await db.updateActionStatus(gameId, actionId, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
@@ -436,6 +786,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             story_system_chars: timing.story_system_chars, story_context_chars: timing.story_context_chars,
             active_character_canon_chars: timing.active_character_canon_chars, story_request_chars: timing.story_request_chars,
             active_character_count: timing.active_character_count, recent_turn_count: timing.recent_turn_count,
+            action_contract_ms: timing.action_contract_ms, action_route: timing.action_route,
+            action_material: timing.action_material, action_csa_covered: timing.action_csa_covered,
+            action_permission_level: timing.action_permission_level, action_privacy: timing.action_privacy,
+            action_attempt_basis: timing.action_attempt_basis,
             turn_total_ms: Date.now() - startedAt
           });
         }
@@ -577,6 +931,26 @@ export function createTurnRoutes({ fetchImpl, edition }) {
 
           const promptStart = Date.now();
           let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          // 저장된 ActionExecutionContract를 Extract에 전달 — CSA direct와 ordinary 행동 구분,
+          // CSA 범위 밖 행동을 csa_id로 기록하지 않도록 한다 (추가 Extract 호출 없음)
+          const storedContract = action.parsed_blocks?.action_execution_contract;
+          if (storedContract) {
+            try {
+              const payload = JSON.parse(messages[1].content);
+              payload.action_execution_contract = storedContract;
+              messages[1] = { ...messages[1], content: JSON.stringify(payload) };
+            } catch {
+              // payload가 JSON이 아니면 contract 주입을 건너뛴다 (extract는 계속 진행)
+            }
+            // action_resolution 지시는 attempt/blocked 턴에만 시스템에 추가한다 (상시 추가로
+            // CSA-active 시스템 프롬프트 cap을 넘기지 않기 위해)
+            if (storedContract.route === 'ordinary_direct_attempt' || storedContract.route === 'ordinary_direct_blocked') {
+              messages[0] = {
+                ...messages[0],
+                content: messages[0].content + '\nIf the contract route is attempt/blocked, also output action_resolution:{target_id,route,npc_response,voluntary,completed_action_types}. npc_response: accepted|partially_accepted|refused|interrupted|ambiguous. accepted requires explicit allowance, mutual response, or conditioned consent in the story — arousal/body reactions(흥분, 붉음, 젖음, 떨림, 얼어붙음, 저항 없음) alone are NOT accepted grounds. blocked면 completed_action_types는 빈 배열.'
+              };
+            }
+          }
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa)
@@ -657,14 +1031,32 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const currentSave = context.save?.data ?? context.save;
         let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory, npcIds });
+        // 계약 기반 state firewall — blocked 계약이면 완료 milestone/event 정본 승격 차단
+        // (Story output 분석·verifier가 아니라 사전 계약만 사용)
+        const blockedContract = action.parsed_blocks?.action_execution_contract;
+        const firewalledExtract = applyContractStateFirewall(extract, blockedContract);
 
         const mergeStart = Date.now();
-        const merged = applyGuardedStateDelta(currentSave, extract, {
+        const merged = applyGuardedStateDelta(currentSave, firewalledExtract, {
           expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds,
           storyText: (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
+        // 다음 턴 경계 복원 follow-up 예약/삭제 — 계약 기반 deterministic (Story 검사 없음)
+        const commitContract = action.parsed_blocks?.action_execution_contract;
+        if (commitContract?.schedule_boundary_followup && commitContract.route === 'ordinary_direct_blocked') {
+          nextSave.pending_boundary_followup = {
+            source_turn: expectedTurn,
+            target_character_id: commitContract.target_id,
+            action_types: commitContract.action_types,
+            reason_code: commitContract.reason_code,
+            expires_after_turn: expectedTurn + 1
+          };
+        } else if (nextSave.pending_boundary_followup?.expires_after_turn <= expectedTurn) {
+          // 정확히 다음 한 턴에서만 사용하고 소비 후 삭제 (무한 반복 금지)
+          delete nextSave.pending_boundary_followup;
+        }
         // The app transaction never gets its own save API — its csa_active/csa_rules result rides
         // through this same guarded-merge commit, applied on top of the normal Extract delta.
         const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
