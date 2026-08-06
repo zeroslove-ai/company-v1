@@ -60,7 +60,7 @@
       "adult_image_prefix": "Heroine1/adult/",
       "voice_id": "259d7fde62cd445fbde3ce2d8d4f2f3b",
       "mapping_status": "resolved",
-      "default_location_id": "team_office"
+      "default_location_id": "brand_strategy_office"
     },
     "heroine2": {
       "character_id": "heroine2",
@@ -122,7 +122,7 @@
       "adult_image_prefix": "Heroine2/adult/",
       "voice_id": "85ac82e33b014a16abe9d0b4b9b0cb68",
       "mapping_status": "resolved",
-      "default_location_id": "team_office"
+      "default_location_id": "brand_strategy_office"
     },
     "heroine3": {
       "character_id": "heroine3",
@@ -184,7 +184,7 @@
       "adult_image_prefix": "Heroine3/adult/",
       "voice_id": "46939387dd944a45a399bd92b8de52cb",
       "mapping_status": "resolved",
-      "default_location_id": "team_office"
+      "default_location_id": "brand_strategy_office"
     },
     "heroine4": {
       "character_id": "heroine4",
@@ -246,7 +246,7 @@
       "adult_image_prefix": "Heroine4/adult/",
       "voice_id": "d06889767ac5416293584676309fa740",
       "mapping_status": "resolved",
-      "default_location_id": "team_office"
+      "default_location_id": "brand_strategy_office"
     },
     "heroine5": {
       "character_id": "heroine5",
@@ -308,7 +308,7 @@
       "adult_image_prefix": "Heroine5/adult/",
       "voice_id": "03a79d68ca184930a1215f9b1b8eb5b5",
       "mapping_status": "resolved",
-      "default_location_id": "team_office"
+      "default_location_id": "brand_strategy_office"
     }
   }
 }

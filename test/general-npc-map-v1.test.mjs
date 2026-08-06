@@ -64,10 +64,10 @@ test('general NPC catalog: general_npc_departments never duplicates a department
   for (const dept of organization.general_npc_departments) assert.equal(playerFacing.has(dept.department_id), false, `${dept.department_id} duplicated across both lists`);
 });
 
-test('map catalog: all 16 specified location_ids are present', () => {
+test('map catalog: the base 16 location_ids are present (brand-strategy rooms added later)', () => {
   const expectedIds = ['lobby', 'training_room', 'office', 'team_office', 'small_meeting_room', 'meeting_room', 'project_room', 'cross_team_space', 'cross_dept_meeting_room', 'large_meeting_room', 'executive_meeting_room', 'project_report_room', 'pantry', 'employee_lounge', 'elevator_hall', 'archive_room'];
   const actualIds = map.locations.map(l => l.location_id);
-  assert.equal(actualIds.length, 16);
+  assert.ok(actualIds.length >= 16, `expected at least the 16 base locations, got ${actualIds.length}`);
   for (const id of expectedIds) assert.ok(actualIds.includes(id), `missing location_id: ${id}`);
 });
 

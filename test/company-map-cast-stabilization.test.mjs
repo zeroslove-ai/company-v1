@@ -47,7 +47,7 @@ test('맵2b: 저장 위치가 없으면 default_location_id로 보완하고, 저
   const charactersMap = Object.fromEntries(Object.entries(CHARACTERS).map(([id, v]) => [id, v]));
   assert.equal(
     resolveNpcLocationId({ save: save(), npcId: 'heroine2', charactersMap, mapLocations: LOCATIONS }),
-    'team_office'
+    'brand_strategy_office'
   );
   assert.equal(
     resolveNpcLocationId({
@@ -65,7 +65,7 @@ test('맵3: "민아 보러 간다" → 위치 기록이 없어도 목적지가 �
   const contract = cast('이제 민아보러 가야지~', { npcSceneState: { heroine2: { present: true } } });
   assert.equal(contract.transition_mode, 'movement');
   assert.deepEqual(contract.destination_npc_ids, ['heroine2']);
-  assert.equal(contract.destination_location_id, 'team_office', '저장 위치가 없어도 default로 확정');
+  assert.equal(contract.destination_location_id, 'brand_strategy_office', '저장 위치가 없어도 default로 확정');
 });
 
 // ── O-5 / O-6: participants 단일 출연 정본 ────────────────────────────────
@@ -73,10 +73,10 @@ test('맵3: "민아 보러 간다" → 위치 기록이 없어도 목적지가 �
 test('맵5: 같은 위치의 서원희도 participants가 아니면 발화할 수 없다', () => {
   const contract = cast('민아씨 안녕?', {
     participants: ['player-1', 'heroine2'],
-    locationId: 'team_office',
+    locationId: 'brand_strategy_office',
     npcSceneState: {
-      heroine2: { present: true, location_id: 'team_office' },
-      heroine1: { present: true, location_id: 'team_office' }
+      heroine2: { present: true, location_id: 'brand_strategy_office' },
+      heroine1: { present: true, location_id: 'brand_strategy_office' }
     }
   });
   assert.ok(contract.present_npc_ids.includes('heroine2'), '참가자는 출연');

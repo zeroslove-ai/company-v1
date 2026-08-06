@@ -1,20 +1,357 @@
 {
   "locations": [
-    { "location_id": "lobby", "name": "로비", "floor": 1, "department_id": null, "location_type": "public_entrance", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["elevator_hall"], "default_npc_ids": ["general_oh_sehoon"], "scene_tags": ["entrance", "public"] },
-    { "location_id": "elevator_hall", "name": "엘리베이터 홀", "floor": 1, "department_id": null, "location_type": "circulation", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["lobby", "office", "training_room", "pantry", "employee_lounge", "archive_room"], "default_npc_ids": [], "scene_tags": ["circulation", "public"] },
-    { "location_id": "training_room", "name": "교육장", "floor": 2, "department_id": null, "location_type": "training", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["elevator_hall"], "default_npc_ids": [], "scene_tags": ["training"] },
-    { "location_id": "office", "name": "사무실", "floor": 3, "department_id": "brand_strategy", "location_type": "office_floor", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["elevator_hall", "team_office", "small_meeting_room"], "default_npc_ids": ["general_park_jungwoo"], "scene_tags": ["office"] },
-    { "location_id": "team_office", "name": "팀 사무공간", "floor": 3, "department_id": "brand_strategy", "location_type": "team_space", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["office", "small_meeting_room"], "default_npc_ids": [], "scene_tags": ["office", "team"] },
-    { "location_id": "small_meeting_room", "name": "소회의실", "floor": 3, "department_id": null, "location_type": "meeting_room", "visibility": "restricted", "access_roles": ["employee"], "adjacent_location_ids": ["office", "team_office", "meeting_room"], "default_npc_ids": ["general_seo_hyejin"], "scene_tags": ["meeting"] },
-    { "location_id": "meeting_room", "name": "회의실", "floor": 3, "department_id": null, "location_type": "meeting_room", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["small_meeting_room", "project_room", "cross_dept_meeting_room"], "default_npc_ids": ["general_choi_yujin"], "scene_tags": ["meeting"] },
-    { "location_id": "project_room", "name": "프로젝트룸", "floor": 4, "department_id": "design", "location_type": "project_space", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["meeting_room", "cross_team_space"], "default_npc_ids": ["general_lee_minseok"], "scene_tags": ["project"] },
-    { "location_id": "cross_team_space", "name": "협업 공간", "floor": 4, "department_id": null, "location_type": "collaboration", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["project_room", "cross_dept_meeting_room"], "default_npc_ids": ["general_yoon_taekyung"], "scene_tags": ["collaboration"] },
-    { "location_id": "cross_dept_meeting_room", "name": "부서간 회의실", "floor": 4, "department_id": null, "location_type": "meeting_room", "visibility": "restricted", "access_roles": ["employee", "manager"], "adjacent_location_ids": ["meeting_room", "cross_team_space", "large_meeting_room"], "default_npc_ids": [], "scene_tags": ["meeting"] },
-    { "location_id": "large_meeting_room", "name": "대회의실", "floor": 5, "department_id": null, "location_type": "meeting_room", "visibility": "restricted", "access_roles": ["employee"], "adjacent_location_ids": ["cross_dept_meeting_room", "executive_meeting_room"], "default_npc_ids": [], "scene_tags": ["meeting"] },
-    { "location_id": "executive_meeting_room", "name": "임원 회의실", "floor": 5, "department_id": "management_support", "location_type": "meeting_room", "visibility": "private", "access_roles": ["executive", "manager"], "adjacent_location_ids": ["large_meeting_room", "project_report_room"], "default_npc_ids": ["general_han_jiseok"], "scene_tags": ["meeting", "executive"] },
-    { "location_id": "project_report_room", "name": "프로젝트 보고실", "floor": 5, "department_id": null, "location_type": "report_room", "visibility": "restricted", "access_roles": ["employee", "manager"], "adjacent_location_ids": ["executive_meeting_room"], "default_npc_ids": [], "scene_tags": ["meeting", "report"] },
-    { "location_id": "pantry", "name": "탕비실", "floor": 3, "department_id": null, "location_type": "amenity", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["elevator_hall", "employee_lounge"], "default_npc_ids": [], "scene_tags": ["amenity"] },
-    { "location_id": "employee_lounge", "name": "직원 라운지", "floor": 3, "department_id": null, "location_type": "amenity", "visibility": "public", "access_roles": [], "adjacent_location_ids": ["pantry", "elevator_hall"], "default_npc_ids": ["general_jung_daeun"], "scene_tags": ["amenity"] },
-    { "location_id": "archive_room", "name": "자료보관실", "floor": 1, "department_id": "operations", "location_type": "storage", "visibility": "restricted", "access_roles": ["employee"], "adjacent_location_ids": ["elevator_hall"], "default_npc_ids": [], "scene_tags": ["storage"] }
+    {
+      "location_id": "lobby",
+      "name": "로비",
+      "floor": 1,
+      "department_id": null,
+      "location_type": "public_entrance",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "elevator_hall"
+      ],
+      "default_npc_ids": [
+        "general_oh_sehoon"
+      ],
+      "scene_tags": [
+        "entrance",
+        "public"
+      ]
+    },
+    {
+      "location_id": "elevator_hall",
+      "name": "엘리베이터 홀",
+      "floor": 1,
+      "department_id": null,
+      "location_type": "circulation",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "lobby",
+        "office",
+        "training_room",
+        "pantry",
+        "employee_lounge",
+        "archive_room"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "circulation",
+        "public"
+      ]
+    },
+    {
+      "location_id": "training_room",
+      "name": "교육장",
+      "floor": 2,
+      "department_id": null,
+      "location_type": "training",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "elevator_hall"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "training"
+      ]
+    },
+    {
+      "location_id": "office",
+      "name": "사무실",
+      "floor": 3,
+      "department_id": "brand_strategy",
+      "location_type": "office_floor",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "elevator_hall",
+        "team_office",
+        "small_meeting_room"
+      ],
+      "default_npc_ids": [
+        "general_park_jungwoo"
+      ],
+      "scene_tags": [
+        "office"
+      ]
+    },
+    {
+      "location_id": "team_office",
+      "name": "팀 사무공간",
+      "floor": 3,
+      "department_id": "brand_strategy",
+      "location_type": "team_space",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "office",
+        "small_meeting_room"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "office",
+        "team"
+      ]
+    },
+    {
+      "location_id": "small_meeting_room",
+      "name": "소회의실",
+      "floor": 3,
+      "department_id": null,
+      "location_type": "meeting_room",
+      "visibility": "restricted",
+      "access_roles": [
+        "employee"
+      ],
+      "adjacent_location_ids": [
+        "office",
+        "team_office",
+        "meeting_room"
+      ],
+      "default_npc_ids": [
+        "general_seo_hyejin"
+      ],
+      "scene_tags": [
+        "meeting"
+      ]
+    },
+    {
+      "location_id": "meeting_room",
+      "name": "회의실",
+      "floor": 3,
+      "department_id": null,
+      "location_type": "meeting_room",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "small_meeting_room",
+        "project_room",
+        "cross_dept_meeting_room"
+      ],
+      "default_npc_ids": [
+        "general_choi_yujin"
+      ],
+      "scene_tags": [
+        "meeting"
+      ]
+    },
+    {
+      "location_id": "project_room",
+      "name": "프로젝트룸",
+      "floor": 4,
+      "department_id": "design",
+      "location_type": "project_space",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "meeting_room",
+        "cross_team_space"
+      ],
+      "default_npc_ids": [
+        "general_lee_minseok"
+      ],
+      "scene_tags": [
+        "project"
+      ]
+    },
+    {
+      "location_id": "cross_team_space",
+      "name": "협업 공간",
+      "floor": 4,
+      "department_id": null,
+      "location_type": "collaboration",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "project_room",
+        "cross_dept_meeting_room"
+      ],
+      "default_npc_ids": [
+        "general_yoon_taekyung"
+      ],
+      "scene_tags": [
+        "collaboration"
+      ]
+    },
+    {
+      "location_id": "cross_dept_meeting_room",
+      "name": "부서간 회의실",
+      "floor": 4,
+      "department_id": null,
+      "location_type": "meeting_room",
+      "visibility": "restricted",
+      "access_roles": [
+        "employee",
+        "manager"
+      ],
+      "adjacent_location_ids": [
+        "meeting_room",
+        "cross_team_space",
+        "large_meeting_room"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "meeting"
+      ]
+    },
+    {
+      "location_id": "large_meeting_room",
+      "name": "대회의실",
+      "floor": 5,
+      "department_id": null,
+      "location_type": "meeting_room",
+      "visibility": "restricted",
+      "access_roles": [
+        "employee"
+      ],
+      "adjacent_location_ids": [
+        "cross_dept_meeting_room",
+        "executive_meeting_room"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "meeting"
+      ]
+    },
+    {
+      "location_id": "executive_meeting_room",
+      "name": "임원 회의실",
+      "floor": 5,
+      "department_id": "management_support",
+      "location_type": "meeting_room",
+      "visibility": "private",
+      "access_roles": [
+        "executive",
+        "manager"
+      ],
+      "adjacent_location_ids": [
+        "large_meeting_room",
+        "project_report_room"
+      ],
+      "default_npc_ids": [
+        "general_han_jiseok"
+      ],
+      "scene_tags": [
+        "meeting",
+        "executive"
+      ]
+    },
+    {
+      "location_id": "project_report_room",
+      "name": "프로젝트 보고실",
+      "floor": 5,
+      "department_id": null,
+      "location_type": "report_room",
+      "visibility": "restricted",
+      "access_roles": [
+        "employee",
+        "manager"
+      ],
+      "adjacent_location_ids": [
+        "executive_meeting_room"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "meeting",
+        "report"
+      ]
+    },
+    {
+      "location_id": "pantry",
+      "name": "탕비실",
+      "floor": 3,
+      "department_id": null,
+      "location_type": "amenity",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "elevator_hall",
+        "employee_lounge"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "amenity"
+      ]
+    },
+    {
+      "location_id": "employee_lounge",
+      "name": "직원 라운지",
+      "floor": 3,
+      "department_id": null,
+      "location_type": "amenity",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "pantry",
+        "elevator_hall"
+      ],
+      "default_npc_ids": [
+        "general_jung_daeun"
+      ],
+      "scene_tags": [
+        "amenity"
+      ]
+    },
+    {
+      "location_id": "archive_room",
+      "name": "자료보관실",
+      "floor": 1,
+      "department_id": "operations",
+      "location_type": "storage",
+      "visibility": "restricted",
+      "access_roles": [
+        "employee"
+      ],
+      "adjacent_location_ids": [
+        "elevator_hall"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "storage"
+      ]
+    },
+    {
+      "location_id": "brand_strategy_office",
+      "name": "브랜드전략팀 사무실",
+      "floor": 3,
+      "department_id": "brand_strategy",
+      "location_type": "team_space",
+      "visibility": "public",
+      "access_roles": [],
+      "adjacent_location_ids": [
+        "brand_strategy_meeting_room",
+        "office",
+        "team_office",
+        "employee_lounge"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "office",
+        "team"
+      ]
+    },
+    {
+      "location_id": "brand_strategy_meeting_room",
+      "name": "브랜드전략팀 회의실",
+      "floor": 3,
+      "department_id": "brand_strategy",
+      "location_type": "meeting_room",
+      "visibility": "restricted",
+      "access_roles": [
+        "employee"
+      ],
+      "adjacent_location_ids": [
+        "brand_strategy_office",
+        "office",
+        "small_meeting_room"
+      ],
+      "default_npc_ids": [],
+      "scene_tags": [
+        "meeting",
+        "team"
+      ]
+    }
   ]
 }
