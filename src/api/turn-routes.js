@@ -8,6 +8,8 @@ import {
   applySpeakerTags,
   allowedSpeakerIds
 } from '../engine/speaker-tagger.js';
+import { buildSceneCastContract, speakerNameById } from '../engine/scene-cast.js';
+import { createStructuredStoryGate, STRUCTURED_STORY_VERSION } from '../engine/structured-story-v2.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
@@ -736,8 +738,17 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           timing.action_permission_level = actionContract.contextual_permission?.level ?? 'none';
           timing.action_privacy = actionContract.contextual_permission?.privacy ?? 'unknown';
           timing.action_attempt_basis = actionContract.attempt_basis ?? 'insufficient';
+          // Scene Cast Gateway — Story 호출 전에 이번 턴 출연·발화 권한을 확정한다.
+          // 순수 함수이며 LLM/네트워크/DB 호출이 없다.
+          const sceneCastContract = buildSceneCastContract({
+            save: hydratedSave, master, playerAction, structuredAction, actionContract
+          });
+          const speakerNames = speakerNameById(master, hydratedSave?.player?.name);
+          timing.cast_present_count = sceneCastContract.present_npc_ids.length;
+          timing.cast_entering_count = sceneCastContract.entering_npc_ids.length;
+          timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
           const promptStart = Date.now();
-          let messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs });
+          let messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
           messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog, actionContract });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
@@ -759,12 +770,41 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           timing.active_character_count = Object.keys(storyUserPayload.active_character_canon ?? {}).length;
           timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
           const stream = await streamStory({ env, fetchImpl, messages, timing });
+          // Streaming Speaker Gateway — 전체 Story를 버퍼링하지 않는다. 완성된 줄만
+          // 처리하고 대사 블록이 닫히는 즉시 흘려보낸다. 차단된 블록은 화면·정본·
+          // Extract 어디에도 남지 않고 경고 코드만 기록된다.
+          const gate = createStructuredStoryGate({ contract: sceneCastContract, speakerNames });
+          const flush = emissions => {
+            for (const emission of emissions) {
+              if (emission.kind === 'block') {
+                emit('block', { block: emission.block });
+                emit('delta', { text: emission.text });
+              } else if (emission.text) {
+                emit('delta', { text: emission.text });
+              }
+            }
+          };
+          let upstreamRaw = '';
           for await (const text of stream.chunks) {
-            raw += text;
-            emit('delta', { text });
+            upstreamRaw += text;
+            flush(gate.push(text));
           }
+          const gated = gate.end();
+          flush(gated.emissions);
+          // 정본 story_text는 게이트를 통과한 내용만으로 구성된다.
+          raw = gated.story_text;
           const parsed = parseNarrative(raw, { master });
-          const contractPersisted = { ...parsed, action_execution_contract: actionContract };
+          const contractPersisted = {
+            ...parsed,
+            structured_story_version: STRUCTURED_STORY_VERSION,
+            scene_cast_contract: sceneCastContract,
+            dialogue_blocks: gated.blocks,
+            warnings: [...(parsed.warnings ?? []), ...gated.warnings],
+            action_execution_contract: actionContract
+          };
+          timing.gated_dialogue_blocks = gated.blocks.length;
+          timing.gated_dialogue_warnings = gated.warnings.length;
+          timing.upstream_story_chars = upstreamRaw.length;
           await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
           storyPersisted = true;
           emit('complete', {
@@ -863,7 +903,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             });
             const unresolvedItems = collectUnresolvedDialogue(parsedStory);
             const attempted = action.parsed_blocks?.speaker_tagging_attempted === true;
-            if (unresolvedItems.length && !attempted) {
+            // structured_story_version 2에서는 화자 없는 대사가 애초에 게이트에서
+            // 차단되므로 사후 추론이 필요 없다. 레거시 태거를 호출하지 않는다.
+            const structuredV2 = parsedStory?.structured_story_version === STRUCTURED_STORY_VERSION;
+            if (unresolvedItems.length && !attempted && !structuredV2) {
               // 1) 호출 전 시도 상태 영속 — 1행 갱신이 확인돼야 태거를 호출한다
               const claimed = await db.markSpeakerTaggingAttempted(gameId, actionId, parsedStory);
               if (claimed) {

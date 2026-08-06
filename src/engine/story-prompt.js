@@ -134,7 +134,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   '장면 연속성: context.last_turn_continuity가 있으면 turn_summary보다 실제 narrative_tail과 dialogue_tail을 우선한다. 직전 질문·약속·결정·말투·물건·자세를 무시하고 장면을 재시작하지 않으며, 질문에는 답변·회피·보류 중 하나로 반응하고 같은 설명을 반복하지 않는다.',
 
-  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. context.workplace.eligible_nearby_npcs는 진입 허용 후보일 뿐 현장 인원이 아니다. 구체적 업무 이유가 있을 때 최대 1명만 노크·호출·이동을 보여준 뒤 등장시킬 수 있고 후보 밖 NPC는 만들지 않는다.',
+  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. 이번 턴에 누가 현장에 있고 누가 새로 등장하는지는 scene_cast_contract가 이미 확정했다. 너에게는 NPC 등장 여부를 결정할 권한이 없다. context.workplace.eligible_nearby_npcs는 서버가 cast를 계산할 때 쓴 내부 참고 목록일 뿐이며, 그 목록을 근거로 누구도 등장시키지 마라.',
 
   '대화 기능: 첫 발언은 반응·질문·확인, 중간은 새 정보·조건·반론·감정 변화, 마지막은 결정·행동 시작·다음 쟁점 중 서로 다른 기능을 맡는다. 다인 장면은 가능하면 NPC끼리 한 번 이상 직접 반응하고, 모두 같은 의견을 반복하지 않는다.',
 
@@ -152,7 +152,11 @@ const SYSTEM_INSTRUCTIONS = [
 
   'active_character_canon은 활성 등록 캐릭터의 유일한 사실 기준이고 active_general_npc_canon과 eligible_nearby_npcs는 일반 NPC의 유일한 사실 기준이다. 이름·나이·부서·직급·성격·말투를 임의로 바꾸거나 승격하지 않는다. canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 행동·대사·거리감의 생성 근거로 사용한다.',
 
-  '[최종 대사 출력 계약 — 앞선 모든 문체 지시보다 우선] 모든 실제 발화는 반드시 별도 한 줄에 `등록된 전체 이름 (비어 있지 않은 짧고 구체적인 연기톤): “대사”`로 쓴다. 괄호·연기톤·콜론·한국어 큰따옴표 중 하나라도 생략하지 않는다. `이름: 대사`, 따옴표만 있는 대사, 서술문 안에 섞인 발화, 등록되지 않은 별명·직급만을 화자명으로 쓰는 형식은 금지한다. 발화가 아닌 서술에는 이 형식을 쓰지 않는다.'
+  '[최종 출연·대사 출력 계약 — 앞선 모든 문체 지시보다 우선] 이번 턴에 실제로 존재하거나 발화할 수 있는 인물은 scene_cast_contract가 유일한 기준이다. present_npc_ids, entering_npc_ids, remote_npc_ids에 없는 NPC를 현장에 등장시키거나 행동시키거나 말하게 하지 마라. entering_npc_ids가 비어 있으면 이번 턴에는 누구도 새로 등장하지 않는다. context_npc_ids는 관계·직전 대화를 참고하기 위한 목록일 뿐이며 그 목록에 있다는 이유로 현장에서 행동하거나 말할 수 없다. 익명 직원·행인·군중은 배경 서술에만 스칠 수 있고 절대 발화하지 않는다. '
+    + '모든 발화는 반드시 아래 두 줄 형식으로만 출력한다. 첫 줄은 `[DIALOGUE speaker_id="허용된 ID" acting_direction="구체적이고 관찰 가능한 연기 지시"]`이고, 다음 줄부터 대사 본문이다. speaker_id에는 이름이 아니라 scene_cast_contract.allowed_speaker_ids 안의 ID를 그대로 쓴다. '
+    + '따옴표만 있는 대사, 서술문 안에 섞인 발화, `이름: 대사`, 이름·직급·별명만 표시한 대사는 모두 금지한다. 서술은 `[SCENE]` 줄 뒤에 쓰고 그 안에는 발화를 넣지 않는다. '
+    + 'acting_direction에는 표정·시선·손동작·자세·몸의 움직임·목소리·호흡·상대를 향한 행동·주변 물건과의 상호작용 중 하나 이상의 구체적 정보가 있어야 한다. `자연스럽게`, `평범하게`, `적당히`, `보통 말투로`, `대답하며`, `말하며`, `진지하게`, `차분하게`처럼 추상적인 단어만 쓰지 마라. 다만 `차분한 목소리로 서류를 앞으로 밀며`처럼 관찰 가능한 행동이 함께 있으면 된다. '
+    + '플레이어 발화는 scene_cast_contract.player_dialogue 정책 범위 안에서만 생성한다. mode가 explicit이면 source_text의 의미를 유지해 다듬고, paraphrase면 intent 범위 안에서만 말하며, minor_reaction이면 max_lines·max_characters를 넘기지 않는 짧은 반응 한 줄만 쓴다. 어느 경우에도 사용자 입력에 근거가 없는 새 명령·요청·수락·거절·약속·고백·성적 제안·협박·이동 결정·조사 방향 결정을 플레이어가 말하게 하지 않는다.'
 ].join(' ');
 
 export function buildRegenerationFeedbackSection(feedbackText) {
@@ -186,7 +190,7 @@ export function appendLateAuthoritativeCharacterCanon(messages) {
   return [...messages, { role: 'system', content: section }];
 }
 
-export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs }) {
+export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const selectedHeroineIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
@@ -202,6 +206,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
       role: 'user',
       content: JSON.stringify({
         edition: edition.editionId,
+        ...(sceneCastContract ? { scene_cast_contract: sceneCastContract } : {}),
         active_character_canon: buildActiveCharacterCanon(charactersMap, heroineActiveIds),
         active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
         context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition }),
