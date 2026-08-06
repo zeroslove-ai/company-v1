@@ -110,6 +110,60 @@ test('맵7: 휴게실로 이동해도 그곳 NPC가 자동으로 참가자가 �
   assert.ok(!contract.allowed_speaker_ids.includes('heroine1'));
 });
 
+// ── O-8: NPC 이름 없이 장소 이름만으로 이동하는 순수 이동 ──────────────────
+// "이동하다"의 활용형 "이동한다"는 "이동하" 부분 문자열을 포함하지 않는다(하→한).
+// 실플레이 검증에서 발견된 회귀 — NPC를 함께 언급하지 않는 순수 장소 이동이
+// transition_mode를 전혀 'movement'로 바꾸지 못하고 destination_location_id가
+// 항상 null로 남아 Story가 이전 장면을 그대로 이어가는 버그였다.
+
+test('맵8: "브랜드전략팀 사무실로 이동한다" (NPC 미언급) → movement, destination_location_id 확정', () => {
+  const contract = cast('브랜드전략팀 사무실로 이동한다', {
+    locationId: 'brand_strategy_meeting_room',
+    participants: ['player-1', 'heroine2'],
+    npcSceneState: { heroine2: { present: true, location_id: 'brand_strategy_meeting_room' } }
+  });
+  assert.equal(contract.transition_mode, 'movement');
+  assert.equal(contract.destination_location_id, 'brand_strategy_office');
+  assert.deepEqual(contract.destination_npc_ids, [], 'NPC 이름이 없으므로 목적지 NPC는 비어 있어야 한다');
+  assert.deepEqual(contract.present_npc_ids, [], '말 걸기 의도가 없는 순수 이동은 아무도 발화하지 않는다');
+});
+
+test('맵9: "직원 라운지로 이동한다" (기본 NPC 없는 장소) → movement, 아무도 자동 등장하지 않는다', () => {
+  const contract = cast('직원 라운지로 이동한다', {
+    locationId: 'brand_strategy_office',
+    participants: ['player-1']
+  });
+  assert.equal(contract.transition_mode, 'movement');
+  assert.equal(contract.destination_location_id, 'employee_lounge');
+  assert.deepEqual(contract.destination_npc_ids, []);
+  assert.deepEqual(contract.present_npc_ids, []);
+  assert.deepEqual(contract.allowed_speaker_ids, ['player']);
+});
+
+test('맵9b: "서원희를 찾아간다" (스펙 시나리오 3 리터럴 입력) → movement, heroine1 목적지 확정', () => {
+  const contract = cast('서원희를 찾아간다', {
+    locationId: 'brand_strategy_meeting_room',
+    participants: ['player-1', 'heroine2'],
+    npcSceneState: {
+      heroine2: { present: true, location_id: 'brand_strategy_meeting_room' },
+      heroine1: { present: false, location_id: 'brand_strategy_office' }
+    }
+  });
+  assert.equal(contract.transition_mode, 'movement');
+  assert.deepEqual(contract.destination_npc_ids, ['heroine1']);
+  assert.equal(contract.destination_location_id, 'brand_strategy_office');
+});
+
+test('맵10: 이미 있는 장소로 "이동한다"고 말해도 movement로 취급하지 않는다 (목적지=현재 위치)', () => {
+  const contract = cast('브랜드전략팀 회의실로 이동한다', {
+    locationId: 'brand_strategy_meeting_room',
+    participants: ['player-1', 'heroine2'],
+    npcSceneState: { heroine2: { present: true, location_id: 'brand_strategy_meeting_room' } }
+  });
+  assert.equal(contract.transition_mode, 'stationary');
+  assert.equal(contract.destination_location_id, null);
+});
+
 // ── O-11 / O-12: 업무 선택지 0개 ──────────────────────────────────────────
 
 const storySystemPrompt = playerAction => buildStoryPrompt({

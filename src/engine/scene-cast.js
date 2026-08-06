@@ -489,8 +489,32 @@ export function hasTalkIntent(playerAction) {
   const source = typeof playerAction === 'string' ? playerAction.trim() : '';
   return Boolean(source) && TALK_INTENT.test(source);
 }
-/** 사용자가 NPC가 있는 곳으로 이동·방문·찾으러 가는 행동 (destination 근거 — entering 아님). */
-const MOVE_ACTION = /(찾으러|찾아가|찾아보|보러|만나러|이동하|가본다|가겠다|방문하|들어간다|향한다|자리로|사무실로|팀으로)/u;
+/**
+ * 사용자가 NPC가 있는 곳으로 이동·방문·찾으러 가는 행동 (destination 근거 — entering 아님).
+ * 동사 어간형("이동하", "찾아가", "찾아보", "방문하")은 그 자체의 현재형 활용("이동한다",
+ * "찾아간다", "찾아본다", "방문한다")과 문자열이 겹치지 않는다 — 하다→한다·가다→간다·보다→본다
+ * 축약 때문이다(인사하다→인사한다와 같은 패턴). 활용형을 넣지 않으면 "서원희를 찾아간다"처럼
+ * 스펙에 명시된 리터럴 입력조차 이동으로 인식하지 못한다.
+ */
+const MOVE_ACTION = /(찾으러|찾아가|찾아간|찾아보|찾아본|보러|만나러|이동하|이동한|가본다|가겠다|방문하|방문한|들어간다|향한다|자리로|사무실로|팀으로)/u;
+/** 장소 이름/별칭이 문장에 그대로 등장하면(NPC 언급 없이도) 이동 목적지 장소로 인정한다. 가장 긴 이름을 우선한다. */
+function resolveDestinationLocationId({ playerAction, mapLocations, currentLocationId }) {
+  const source = typeof playerAction === 'string' ? playerAction : '';
+  if (!source || !MOVE_ACTION.test(source)) return null;
+  let best = null;
+  for (const location of Array.isArray(mapLocations) ? mapLocations : []) {
+    const id = identity(location?.location_id);
+    if (!id) continue;
+    const names = [location?.name, ...(Array.isArray(location?.aliases) ? location.aliases : [])];
+    for (const name of names) {
+      const trimmed = identity(name);
+      if (!trimmed || !source.includes(trimmed)) continue;
+      if (!best || trimmed.length > best.name.length) best = { id, name: trimmed };
+    }
+  }
+  if (!best || best.id === identity(currentLocationId)) return null;
+  return best.id;
+}
 const REMOTE_ACTION = /(전화|통화|메신저|메시지|문자|사내망|카톡|연락한다|연락했다|콜한다)/u;
 
 /**
@@ -600,9 +624,15 @@ export function buildSceneCastContract({
     save, master, playerAction, registeredIds, presentIds: presentNpcIds, enteringIds: enteringNpcIds
   });
 
+  // NPC 언급 없이 장소 이름만으로 이동하는 순수 이동 입력("…사무실로 이동한다") —
+  // destinationNpcIds는 NPC 이름이 문장에 있어야만 채워지므로 이 경로가 없으면
+  // 목적지가 NPC 언급 없는 순수 이동을 전혀 인식하지 못한다.
+  const explicitDestinationLocationId = resolveDestinationLocationId({
+    playerAction, mapLocations, currentLocationId: locationId
+  });
   // 수정 2 — 이동 턴: 현재 장소 NPC·목적지 NPC 모두 발화 금지.
   // allowed_speaker_ids = ['player', ...remoteNpcIds]
-  const transitionMode = destinationNpcIds.length ? 'movement' : 'stationary';
+  const transitionMode = destinationNpcIds.length || explicitDestinationLocationId ? 'movement' : 'stationary';
   const isMovementTurn = transitionMode === 'movement';
   // 안정화 수정 H — 이동을 여러 턴으로 나누지 않는다. 도착과 만남이 같은 턴에
   // 일어나고, 사용자의 입력에 말 걸기 의도가 있으면 목적지 NPC가 같은 턴에
@@ -623,22 +653,27 @@ export function buildSceneCastContract({
   // map.locations의 default_npc_ids)로 보완한다. 예전에는 여기서 null이 나와
   // 이동 Commit 자체가 적용되지 않았고("민아 보러 가야지" → 이동 저장 안 됨),
   // 대상 NPC는 계속 장면 밖에 남았다. 여전히 근거가 없으면 null을 유지한다.
-  const destinationLocationId = isMovementTurn && destinationNpcIds.length === 1
-    ? (identity(destinationNpcState?.location_id)
-      ?? resolveNpcLocationId({
-        save,
-        npcId: destinationNpcIds[0],
-        charactersMap: charactersMapOf(master),
-        generalNpcProfiles: generalNpcProfilesOf(master),
-        mapLocations
-      })
-      ?? null)
-    : null;
+  const destinationLocationId = !isMovementTurn
+    ? null
+    : destinationNpcIds.length === 1
+      ? (identity(destinationNpcState?.location_id)
+        ?? resolveNpcLocationId({
+          save,
+          npcId: destinationNpcIds[0],
+          charactersMap: charactersMapOf(master),
+          generalNpcProfiles: generalNpcProfilesOf(master),
+          mapLocations
+        })
+        ?? explicitDestinationLocationId
+        ?? null)
+      : (explicitDestinationLocationId ?? null);
   // scene_id는 NPC 저장 상태에 있으면 사용하고, 없으면 검증된 location_id로 대체.
   // 새 장소 이름을 추측하거나 생성하지 않는다.
-  const destinationSceneId = isMovementTurn && destinationNpcIds.length === 1
-    ? (identity(destinationNpcState?.scene_id) ?? destinationLocationId)
-    : null;
+  const destinationSceneId = !isMovementTurn
+    ? null
+    : destinationNpcIds.length === 1
+      ? (identity(destinationNpcState?.scene_id) ?? destinationLocationId)
+      : destinationLocationId;
 
   // 문맥 참고용 — focal/last_speaker는 여기에는 들어가지만 present에는 별도 근거가 필요하다.
   const contextNpcIds = [];
