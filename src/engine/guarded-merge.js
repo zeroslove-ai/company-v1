@@ -115,47 +115,205 @@ function characterNameFromMaster(master, characterId) {
 }
 
 /**
- * 검토 수정 2 — 이동 결과 deterministic 보정 (commit 직전 sanitizer).
- * movement 턴이고 destination_location_id가 확인되고 Story가 도착 전에 중단되지
- * 않았다면(interrupted/blocked 아님) 최소한 다음을 보정한다:
- *   scene_state.location_id = destination_location_id
- *   scene_state.participants = 기존 player + destination NPC
- *   last_npcs_present / focal_character_id = destination NPC
- *   기존 장소 NPC npc_scene_state.present = false
- *   목적지 NPC npc_scene_state = { present: true, location_id }
- * 새 DB 필드/migration 없이 기존 canonical 구조만 쓴다.
+ * 안전화 패치 — 실패·중단 이동은 시작 상태(beforeSave) 기준으로 복원한다.
+ * Extract가 잘못된 이동 state를 먼저 적용했을 수 있으므로 이동 관련 root를 clone한다.
+ * beforeSave는 절대 mutation하지 않는다.
  */
-export function sanitizeMovementCommit(nextSave, sceneCastContract, extractEnvelope) {
-  const castContract = plainObject(sceneCastContract) ? sceneCastContract : {};
-  const envelope = plainObject(extractEnvelope) ? extractEnvelope : {};
-  if (
-    castContract.transition_mode !== 'movement' ||
-    typeof castContract.destination_location_id !== 'string' ||
-    !Array.isArray(castContract.destination_npc_ids) ||
-    castContract.destination_npc_ids.length === 0
-  ) {
-    return;
+function restoreMovementState(beforeSave, nextSave) {
+  nextSave.scene_state = structuredClone(beforeSave.scene_state ?? {});
+  nextSave.last_npcs_present = Array.isArray(beforeSave.last_npcs_present)
+    ? structuredClone(beforeSave.last_npcs_present)
+    : [];
+  if ('focal_character_id' in beforeSave) {
+    nextSave.focal_character_id = beforeSave.focal_character_id ?? null;
+  } else {
+    delete nextSave.focal_character_id;
   }
-  if (['interrupted', 'blocked'].includes(envelope.outcome)) return;
-  const destIds = castContract.destination_npc_ids.filter(id => !String(id).startsWith('player'));
-  if (!destIds.length) return;
-  const destLocation = castContract.destination_location_id;
-  const prevParticipants = Array.isArray(nextSave.scene_state?.participants) ? nextSave.scene_state.participants : [];
-  const playerIds = prevParticipants.filter(p => p === 'player' || String(p).startsWith('player'));
-  const nextParticipants = [...playerIds, ...destIds.filter(id => !playerIds.includes(id))];
+  if ('last_speaker_id' in beforeSave) {
+    nextSave.last_speaker_id = beforeSave.last_speaker_id ?? null;
+  } else {
+    delete nextSave.last_speaker_id;
+  }
+  nextSave.npc_scene_state = structuredClone(beforeSave.npc_scene_state ?? {});
+}
+
+/**
+ * 안전화 패치 — 플레이어 ID는 반드시 beforeSave에서 가져온다.
+ * Extract가 participants에서 player를 누락해도 플레이어가 사라지면 안 된다.
+ */
+function resolveCanonicalPlayerId(save) {
+  const candidates = [
+    save?.player?.player_id,
+    save?.player?.id,
+    ...(Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : [])
+  ];
+  return candidates.find(id =>
+    typeof id === 'string' && (id === 'player' || id.startsWith('player'))
+  ) ?? 'player';
+}
+
+/** player 참조 ID 판정 — 'player' 또는 'player-*'. */
+function isPlayerRefId(id) {
+  return typeof id === 'string' && (id === 'player' || id.startsWith('player'));
+}
+
+/**
+ * 검토 수정 2 + 안전화 패치 — 이동 결과 deterministic 보정 (commit 직전 sanitizer).
+ * object argument 인터페이스. 반환 { applied, reason, warnings }.
+ *
+ * 이동을 적용하는 조건은 정확히 하나:
+ *   transition_mode=movement
+ *   + destination NPC 정확히 1명
+ *   + destination location 확인됨
+ *   + outcome === 'success'
+ *   + feedback revision 아님
+ * 그 외(partial/interrupted/blocked/refused/degraded/목적지 불명확/위치 불명/
+ * feedback_revision)에서는 이동을 적용하지 않고, Extract가 잘못 제안한 이동
+ * state를 beforeSave 기준으로 복원한다.
+ *
+ * 성공 시:
+ *   scene_state = { ...기존, scene_id: destinationSceneId, location_id: destinationLocationId,
+ *                   participants: [playerId, destinationId], updated_turn: expectedTurn }
+ *   last_npcs_present = [destinationId]
+ *   focal_character_id = destinationId
+ *   last_speaker_id는 유지 (목적지 NPC가 이번 턴에 말하지 않았으므로 설정하지 않는다)
+ *   기존 장소 NPC(participants ∪ last_npcs_present)만 present:false — 전체 NPC 순회 금지
+ *   목적지 NPC state는 병합(present/scene_id/location_id/updated_turn) — posture/clothing 보존
+ */
+export function sanitizeMovementCommit({
+  beforeSave,
+  nextSave,
+  sceneCastContract,
+  extractEnvelope,
+  actionKind,
+  expectedTurn
+} = {}) {
+  const warnings = [];
+
+  if (!plainObject(beforeSave) || !plainObject(nextSave)) {
+    return {
+      applied: false,
+      reason: 'invalid_save',
+      warnings: ['movement_commit_skipped:invalid_save']
+    };
+  }
+
+  const cast = plainObject(sceneCastContract) ? sceneCastContract : {};
+
+  if (cast.transition_mode !== 'movement') {
+    return {
+      applied: false,
+      reason: 'not_movement',
+      warnings
+    };
+  }
+
+  // 호출부에서 막더라도 함수 내부에도 방어를 둔다 (안전화 패치 5.3)
+  if (actionKind === 'feedback_revision') {
+    return {
+      applied: false,
+      reason: 'feedback_revision',
+      warnings
+    };
+  }
+
+  const destinationIds = Array.isArray(cast.destination_npc_ids)
+    ? [...new Set(
+        cast.destination_npc_ids
+          .filter(id => typeof id === 'string' && id.trim() && !isPlayerRefId(id))
+      )]
+    : [];
+
+  if (destinationIds.length !== 1) {
+    restoreMovementState(beforeSave, nextSave);
+    const reason = destinationIds.length === 0 ? 'missing_destination' : 'ambiguous_destination';
+    return {
+      applied: false,
+      reason,
+      warnings: [`movement_commit_skipped:${reason}`]
+    };
+  }
+
+  const destinationId = destinationIds[0];
+
+  const destinationLocationId =
+    typeof cast.destination_location_id === 'string' && cast.destination_location_id.trim()
+      ? cast.destination_location_id.trim()
+      : null;
+
+  const destinationSceneId =
+    typeof cast.destination_scene_id === 'string' && cast.destination_scene_id.trim()
+      ? cast.destination_scene_id.trim()
+      : destinationLocationId;
+
+  if (!destinationLocationId) {
+    restoreMovementState(beforeSave, nextSave);
+    return {
+      applied: false,
+      reason: 'unknown_destination_location',
+      warnings: ['movement_commit_skipped:unknown_destination_location']
+    };
+  }
+
+  const outcome = typeof extractEnvelope?.outcome === 'string'
+    ? extractEnvelope.outcome
+    : 'unknown';
+
+  if (outcome !== 'success') {
+    restoreMovementState(beforeSave, nextSave);
+    return {
+      applied: false,
+      reason: 'movement_not_successful',
+      warnings: [`movement_commit_skipped:${outcome}`]
+    };
+  }
+
+  const playerId = resolveCanonicalPlayerId(beforeSave);
+
+  // 기존 장소 NPC 후보 — participants ∪ last_npcs_present (전체 NPC 순회 금지)
+  const oldSceneNpcIds = new Set([
+    ...(Array.isArray(beforeSave.scene_state?.participants) ? beforeSave.scene_state.participants : []),
+    ...(Array.isArray(beforeSave.last_npcs_present) ? beforeSave.last_npcs_present : [])
+  ]);
+
+  const npcState = structuredClone(nextSave.npc_scene_state ?? {});
+  for (const npcId of oldSceneNpcIds) {
+    if (isPlayerRefId(npcId)) continue;
+    if (npcId === destinationId) continue;
+    npcState[npcId] = {
+      ...(npcState[npcId] ?? {}),
+      present: false,
+      updated_turn: expectedTurn
+    };
+  }
+
+  // 목적지 NPC는 덮어쓰지 않고 병합 — posture/clothing/position 등 보존
+  npcState[destinationId] = {
+    ...(npcState[destinationId] ?? {}),
+    present: true,
+    scene_id: destinationSceneId,
+    location_id: destinationLocationId,
+    updated_turn: expectedTurn
+  };
+
   nextSave.scene_state = {
     ...(nextSave.scene_state ?? {}),
-    location_id: destLocation,
-    participants: nextParticipants
+    scene_id: destinationSceneId,
+    location_id: destinationLocationId,
+    participants: [playerId, destinationId],
+    updated_turn: expectedTurn
   };
-  nextSave.last_npcs_present = [...destIds];
-  if (destIds.length) nextSave.focal_character_id = destIds[0];
-  const npcState = { ...(nextSave.npc_scene_state ?? {}) };
-  for (const id of Object.keys(npcState)) {
-    if (!destIds.includes(id)) npcState[id] = { ...npcState[id], present: false };
-  }
-  for (const id of destIds) npcState[id] = { present: true, location_id: destLocation };
+
+  nextSave.last_npcs_present = [destinationId];
+  nextSave.focal_character_id = destinationId;
   nextSave.npc_scene_state = npcState;
+  // last_speaker_id는 유지 — 목적지 NPC가 이번 턴에 말하지 않았으므로 설정하지 않는다
+
+  return {
+    applied: true,
+    reason: 'movement_committed',
+    warnings
+  };
 }
 
 export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {

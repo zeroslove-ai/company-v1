@@ -1141,8 +1141,21 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
-        // 검토 수정 2 — 이동 결과 deterministic 보정 (guarded-merge의 sanitizeMovementCommit)
-        sanitizeMovementCommit(nextSave, action.parsed_blocks?.scene_cast_contract, firewalledExtract);
+        // 안전화 패치 — 이동 결과 deterministic 보정.
+        // feedback_revision에서는 sanitizer 자체를 호출하지 않는다
+        // (과거 턴 피드백 재생성으로 현재 save 위치가 바뀌면 안 된다).
+        let movementResult = { applied: false, reason: 'not_checked', warnings: [] };
+        if (action.action_kind !== 'feedback_revision') {
+          movementResult = sanitizeMovementCommit({
+            beforeSave: currentSave,
+            nextSave,
+            sceneCastContract: action.parsed_blocks?.scene_cast_contract ?? null,
+            extractEnvelope: firewalledExtract,
+            actionKind: action.action_kind,
+            expectedTurn
+          });
+          warnings.push(...movementResult.warnings);
+        }
         // 다음 턴 경계 복원 follow-up 예약/삭제 — 계약 기반 deterministic (Story 검사 없음)
         const commitContract = action.parsed_blocks?.action_execution_contract;
         if (commitContract?.schedule_boundary_followup && commitContract.route === 'ordinary_direct_blocked') {

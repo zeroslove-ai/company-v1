@@ -556,11 +556,19 @@ export function buildSceneCastContract({
   const effectivePresent = isMovementTurn ? [] : presentNpcIds;
   const effectiveEntering = isMovementTurn ? [] : enteringNpcIds;
 
-  // 검토 수정 2 — 이동 목적지 장소: 대상 NPC의 저장 위치(location_id)를 사용한다.
+  // 검토 수정 2 + 안전화 패치 — 이동 목적지 장소: 대상 NPC의 저장 위치를 사용한다.
   // 저장 위치가 없으면 임의 장소를 만들지 않고 null로 둔다.
   const npcSceneState = isPlainObject(save?.npc_scene_state) ? save.npc_scene_state : {};
-  const destinationLocationId = isMovementTurn && destinationNpcIds.length
-    ? (identity(npcSceneState[destinationNpcIds[0]]?.location_id) ?? null)
+  const destinationNpcState = isMovementTurn && destinationNpcIds.length === 1
+    ? npcSceneState[destinationNpcIds[0]]
+    : null;
+  const destinationLocationId = isMovementTurn && destinationNpcIds.length === 1
+    ? (identity(destinationNpcState?.location_id) ?? null)
+    : null;
+  // scene_id는 NPC 저장 상태에 있으면 사용하고, 없으면 검증된 location_id로 대체.
+  // 새 장소 이름을 추측하거나 생성하지 않는다.
+  const destinationSceneId = isMovementTurn && destinationNpcIds.length === 1
+    ? (identity(destinationNpcState?.scene_id) ?? destinationLocationId)
     : null;
 
   // 문맥 참고용 — focal/last_speaker는 여기에는 들어가지만 present에는 별도 근거가 필요하다.
@@ -592,6 +600,7 @@ export function buildSceneCastContract({
     entering_npc_ids: effectiveEntering,
     destination_npc_ids: destinationNpcIds,
     destination_location_id: destinationLocationId,
+    destination_scene_id: destinationSceneId,
     remote_npc_ids: remoteNpcIds,
     allowed_speaker_ids: allowedSpeakerIds,
     player_dialogue: resolvePlayerDialoguePolicy(playerAction, master),
