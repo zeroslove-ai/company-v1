@@ -209,12 +209,16 @@ test('section: blocked 계약은 AUTHORITATIVE 음수 계약 생성', () => {
   assert.ok(section.includes('완료 사실로 바로 확정하지 말고'));
 });
 
-test('section: csa_direct는 exact-scope 강화 문장 포함', () => {
+test('검토1: csa_direct section은 EXACT-SCOPE LIMIT만 — coverage 중복·undefined 없음', () => {
   const c = resolve('이메이와 업무 대화를 계속하며 무릎 위에 앉게 한다.');
   const section = buildActionExecutionContractSection(c);
-  assert.ok(section.includes('CSA DIRECT COVERAGE'));
-  assert.ok(section.includes('exact action'));
-  assert.ok(section.includes('확장하지 않는다'));
+  assert.ok(section.includes('[CSA EXACT-SCOPE LIMIT]'), 'limit section');
+  assert.ok(!section.includes('undefined'), 'undefined 없음');
+  assert.ok(!section.includes('exact action('), '빈 행동명 없음');
+  assert.ok(!section.includes('[CSA DIRECT COVERAGE]'), 'coverage 중복 없음 (applyCsaStorySections가 담당)');
+  // csa_2 정확 행동은 여전히 csa_direct로 확정
+  assert.equal(c.route, 'csa_direct');
+  assert.equal(c.csa_coverage.csa_id, 'csa_2');
 });
 
 test('section: ordinary는 빈 문자열', () => {
@@ -229,4 +233,87 @@ test('contract: material_action/actor_id/relationship_basis shape', () => {
   assert.equal(c.target_id, 'heroine5');
   assert.deepEqual(Object.keys(c.relationship_basis), ['closeness', 'romance_status', 'current_boundary', 'first_kiss_turn', 'sexual_relationship_started_turn']);
   assert.equal(c.relationship_basis.first_kiss_turn, null);
+});
+
+// ---------- 검토 보완: structured metadata / bundle milestone / 오탐·누락 ----------
+
+test('검토2: 완곡한 선택지 텍스트 + structured action_types → ordinary_direct_blocked', () => {
+  // Story가 만든 선택지: 텍스트에는 성적 단어가 없지만 structured metadata가 genital_touch를 기록
+  const save = csaSave({
+    last_choices: ['그녀에게 좀 더 과감한 도움을 부탁한다.'],
+    last_choice_meta: [
+      { choice_index: 0, action_types: ['genital_touch'], actor_id: 'player', target_id: 'heroine5', suggested_route: 'blocked', direct_csa_ids: [] }
+    ]
+  });
+  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 좀 더 과감한 도움을 부탁한다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
+  assert.deepEqual(c.action_types, ['genital_touch'], 'structured action_types 최우선');
+  assert.equal(c.material_action, true);
+  assert.equal(c.target_id, 'heroine5', 'structured target_id');
+  assert.equal(c.route, 'ordinary_direct_blocked');
+  assert.equal(c.schedule_boundary_followup, true);
+});
+
+test('검토2b: structured target_id=heroine2가 focal(heroine5)보다 우선 — 관계 basis와 follow-up 대상', () => {
+  const save = csaSave({
+    npc_relationship_state: {
+      heroine2: {
+        closeness: 'familiar', romance_status: 'interest', current_boundary: 'cautious',
+        milestones: { first_kiss_turn: null, sexual_relationship_started_turn: null }
+      }
+    },
+    last_choices: ['윤민아에게 키스한다'],
+    last_choice_meta: [
+      { choice_index: 0, action_types: ['kiss'], actor_id: 'player', target_id: 'heroine2', suggested_route: 'blocked', direct_csa_ids: [] }
+    ]
+  });
+  const c = resolveActionExecutionContract({ save, playerAction: '윤민아에게 키스한다', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
+  assert.equal(c.target_id, 'heroine2', 'structured target이 focal보다 우선');
+  assert.equal(c.relationship_basis.closeness, 'familiar', 'heroine2 관계 사용');
+});
+
+test('검토4: 키스+성기 bundle — first_kiss만 있어도 sexual milestone 없으면 blocked', () => {
+  const save = csaSave({
+    npc_relationship_state: {
+      heroine5: {
+        closeness: 'close', romance_status: 'dating', current_boundary: 'intimate',
+        milestones: { first_kiss_turn: 12, sexual_relationship_started_turn: null }
+      }
+    }
+  });
+  const c = resolve('이메이에게 키스하면서 성기를 만진다.', save);
+  assert.deepEqual(c.action_types, ['kiss', 'genital_touch']);
+  assert.equal(c.route, 'ordinary_direct_blocked', 'bundle에서 가장 강한 행동 기준');
+});
+
+test('검토5a: 일반 사물 접촉은 성적 행동 아님', () => {
+  assert.deepEqual(resolve('서류를 만진다').action_types, [], '서류');
+  assert.deepEqual(resolve('마우스를 만져주세요').action_types, [], '마우스');
+  const c = resolve('서류를 만진다');
+  assert.equal(c.route, 'ordinary');
+  assert.equal(c.schedule_boundary_followup, false);
+});
+
+test('검토5b: 무대상 만지는 요청형은 여전히 성적 요청', () => {
+  const c = resolve('살짝 만져주실 수 있나요?');
+  assert.deepEqual(c.action_types, ['sexual_touch']);
+  assert.equal(c.route, 'ordinary_request');
+});
+
+test('검토5c: 전신 탈의 표현은 대상 단어 없이 exposure → blocked', () => {
+  const c1 = resolve('다 벗으세요.');
+  assert.deepEqual(c1.action_types, ['genital_exposure']);
+  assert.equal(c1.route, 'ordinary_direct_blocked');
+  const c2 = resolve('전부 벗어.');
+  assert.deepEqual(c2.action_types, ['genital_exposure']);
+  assert.equal(c2.route, 'ordinary_direct_blocked');
+  const c3 = resolve('옷을 전부 벗는다.');
+  assert.ok(c3.action_types.includes('genital_exposure'));
+});
+
+test('검토3: 활성 CSA가 없어도 직접 성적 행동은 blocked + AUTHORITATIVE section 존재', () => {
+  const save = csaSave({ csa_active: [], csa_rules: {} });
+  const c = resolve('이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.', save);
+  assert.equal(c.route, 'ordinary_direct_blocked');
+  const section = buildActionExecutionContractSection(c);
+  assert.ok(section.includes('[ACTION EXECUTION CONTRACT — AUTHORITATIVE]'), 'CSA 유무와 무관한 음수 계약');
 });

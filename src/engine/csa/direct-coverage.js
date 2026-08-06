@@ -117,6 +117,10 @@ function normalizedChoiceText(value) {
  * and always falls through to the tag/keyword matcher below, exactly like donor's own
  * fallback path for choices predating structured metadata.
  */
+export function resolveChoiceStructuredSignal(save, playerActionText) {
+  return findChoiceStructuredMeta(save, playerActionText);
+}
+
 function findChoiceStructuredMeta(save, playerActionText) {
   const choices = Array.isArray(save?.last_choices) ? save.last_choices : [];
   const meta = Array.isArray(save?.last_choice_meta) ? save.last_choice_meta : [];

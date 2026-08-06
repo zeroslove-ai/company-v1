@@ -10,11 +10,15 @@
  *   인사팀 지시로 정당화되지 않도록 하는 음수 계약을 생성한다.
  */
 
-import { resolveCsaDirectCoverage, buildCsaDirectCoverageSection } from './csa/direct-coverage.js';
+import { resolveCsaDirectCoverage, buildCsaDirectCoverageSection, resolveChoiceStructuredSignal } from './csa/direct-coverage.js';
+import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
 
 // ---------------------------------------------------------------------------
 // 5-3. deterministic free-text matcher — 행동 동사 + 신체/대상 신호 조합
 // ---------------------------------------------------------------------------
+
+const PERSON_PRONOUNS = ['이메이', '서원희', '윤민아', '한리브', '김제나', '박정우', '이민석', '그녀', '그녀를'];
+const OBJECT_NOUNS = ['서류', '마우스', '전시품', '문서', '책', '물건', '기기', '폰', '휴대폰', '키보드', '자판', '볼펜', '컵', '잔', '서랍', '문', '볼', '공', '화분', '상자', '가방', '서류함', '필기구'];
 
 const BODY_SIGNALS = {
   breast: ['가슴', '유방', '유두'],
@@ -58,9 +62,19 @@ export function classifyMaterialActions(text) {
 
   if (genitalTarget && genitalTouching) actions.add('genital_touch');
   if (exposureTarget && exposing) actions.add('genital_exposure');
+  // 전신 탈의 표현("다 벗어", "전부 벗으세요", "옷을 전부 벗다")은 대상 단어 없이 exposure로 분류
+  if (/(다|전부|모두|그냥|옷을 전부)\s*(벗|탈의)/.test(source)) actions.add('genital_exposure');
   if (bodyTarget && touching) actions.add('sexual_touch');
-  // 성적 요청 문맥: "살짝 만져주실 수 있나요?"처럼 신체 지정 없이 만지는 요청/명령도 성적 접촉으로 본다
-  if (!bodyTarget && !genitalTarget && (source.includes('만지') || source.includes('만져'))) actions.add('sexual_touch');
+  // 무대상 '만지다' fallback — 사람·친밀 문맥(등장인물 이름/대명사) 또는 요청형 무대상일 때만 성적 접촉으로 본다.
+  // 일반 사물 목적어("서류를 만진다", "마우스를 만져주세요")는 제외.
+  if (!bodyTarget && !genitalTarget && (source.includes('만지') || source.includes('만져'))) {
+    const personContext = PERSON_PRONOUNS.some(t => source.includes(t))
+      || /(그녀|그를|상대|사람|여자|남자|누나|형|언니|오빠)/.test(source);
+    const objectContext = OBJECT_NOUNS.some(t => source.includes(t));
+    if (personContext || (!objectContext && /(주실|주세요|해줄래|해주시|부탁|줄래|해도 될까요|할 수 있나요)/.test(source))) {
+      actions.add('sexual_touch');
+    }
+  }
 
   if (hasAny(source, ORAL_SIGNALS) && (genitalTarget || hasAny(source, ['성기', '음부', '입으로']))) actions.add('oral');
   const genitalOnly = hasAny(source, BODY_SIGNALS.genital);
@@ -171,11 +185,12 @@ function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relations
       reason_code: companyAuthorityMisuse ? 'COMPANY_AUTHORITY_MISUSE' : 'OUTSIDE_CSA_WITHOUT_RELATIONSHIP_PERMISSION'
     };
   }
-  // direct_act / statement / unknown — 관계 milestone gate
-  const highest = actionTypes[0];
-  const milestoneBacked = highest === 'kiss'
-    ? Boolean(relationship.first_kiss_turn)
-    : Boolean(relationship.sexual_relationship_started_turn);
+  // direct_act / statement / unknown — 관계 milestone gate.
+  // bundle 전체에서 가장 강한 행동 기준: kiss 외 다른 행동이 하나라도 있으면 sexual milestone 필요
+  const requiresSexualMilestone = actionTypes.some(type => type !== 'kiss');
+  const milestoneBacked = requiresSexualMilestone
+    ? Boolean(relationship.sexual_relationship_started_turn)
+    : Boolean(relationship.first_kiss_turn);
   if (milestoneBacked) {
     return {
       route: 'ordinary_direct_attempt',
@@ -213,13 +228,30 @@ function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relations
  */
 export function resolveActionExecutionContract({ save, playerAction, csaCatalog, characters = [], npcIds = [] } = {}) {
   const text = typeof playerAction === 'string' ? playerAction : '';
-  const actionTypes = classifyMaterialActions(text);
-  const executionMode = classifyExecutionMode(text);
+  // structured path: exact choice metadata를 최우선 신호로 사용한다 (자유 입력 분류기보다 신뢰도 우선).
+  // resolveCsaDirectCoverage가 actor/target/direction을 현재 save·참가자로 재검증하므로,
+  // 여기서는 검증된 structured 값만 계약에 반영한다.
+  const structuredSignal = resolveChoiceStructuredSignal(save, text);
+  const structuredActionTypes = Array.isArray(structuredSignal?.action_types)
+    ? structuredSignal.action_types.filter(action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none')
+    : [];
+  const actionTypes = structuredActionTypes.length ? structuredActionTypes : classifyMaterialActions(text);
+  const freeMode = classifyExecutionMode(text);
+  // suggested_route는 단독 신뢰하지 않되 request/direct 보조 신호로 사용한다
+  let executionMode = freeMode;
+  if (structuredSignal?.suggested_route && actionTypes.length) {
+    if (structuredSignal.suggested_route === 'blocked') executionMode = 'direct_act';
+    else if (structuredSignal.suggested_route === 'voluntary' && freeMode === 'unknown') executionMode = 'request';
+  }
+  // 검증된 structured actor_id/target_id 우선 — focal이 달라도 metadata의 target을 따른다
+  const structuredActorId = typeof structuredSignal?.actor_id === 'string' && structuredSignal.actor_id ? structuredSignal.actor_id : null;
+  const structuredTargetId = typeof structuredSignal?.target_id === 'string' && structuredSignal.target_id ? structuredSignal.target_id : null;
+  const actorId = structuredActorId ?? 'player';
+  const targetId = structuredTargetId ?? inferTargetId(save, text, characters, npcIds);
   const coverage = resolveCsaDirectCoverage(save, text, {
     sexualActionContract: csaCatalog?.sexual_action_contract,
     actionTypes
   });
-  const targetId = inferTargetId(save, text, characters, npcIds);
   const relationship = relationshipFor(save, targetId);
   const companyAuthorityMisuse = detectCompanyAuthorityMisuse(text);
 
@@ -232,7 +264,7 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     material_action: actionTypes.length > 0,
     action_types: actionTypes,
     execution_mode: executionMode,
-    actor_id: 'player',
+    actor_id: actorId,
     target_id: targetId,
     csa_coverage: {
       covered: coverage?.covered === true,
@@ -270,9 +302,10 @@ function csaScopeLine(applicableCsa) {
 export function buildActionExecutionContractSection(contract, { applicableCsa = [] } = {}) {
   if (!contract) return '';
   if (contract.route === 'csa_direct') {
-    const base = buildCsaDirectCoverageSection(contract.csa_coverage);
-    if (!base) return '';
-    return `${base} 이 확정은 명시된 exact action(${contract.action_types.join(', ')})에만 적용된다. 유사 행동, 더 강한 신체 접촉, 노출, 성적 행동으로 확장하지 않는다.`;
+    // applyCsaStorySections가 이미 정상 coverage section(buildCsaDirectCoverageSection)을 넣으므로,
+    // 여기서는 중복 section 대신 exact-scope 제한 문장만 반환한다 (actor_group 등이 빠진
+    // contract.csa_coverage로 두 번째 coverage를 만들면 undefined가 깨져 들어간다).
+    return '\n[CSA EXACT-SCOPE LIMIT]\n위 CSA DIRECT COVERAGE에서 명시한 행동만 확정한다. 유사하거나 더 강한 행동으로 확장하지 않는다.';
   }
   if (contract.route === 'ordinary') return '';
   if (contract.route === 'ordinary_request') {

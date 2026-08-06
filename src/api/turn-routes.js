@@ -250,7 +250,15 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog,
   const applicableCsa = getApplicableCsaEntries(save);
   const hasApplicableCsa = applicableCsa.length > 0;
   const isAppTransactionTurn = Boolean(plan);
-  if (!hasApplicableCsa && !isAppTransactionTurn) return messages;
+  if (!hasApplicableCsa && !isAppTransactionTurn) {
+    // 음수 ordinary gate(actionContract section)는 활성 CSA 유무와 관계없이 작동한다.
+    // CSA가 없으면 다른 CSA sections 없이 계약 section만 붙인다.
+    if (playerAction && actionContract) {
+      const section = buildActionExecutionContractSection(actionContract, { applicableCsa: [] });
+      if (section) return [{ ...messages[0], content: messages[0].content + section }, ...messages.slice(1)];
+    }
+    return messages;
+  }
   const hasPublicCsa = applicableCsa.some(csa => csa.preset?.public_normalization === true || csa.semantic_contract?.public_normalization === true);
   const hasSynergyCandidate = applicableCsa.length >= 2;
   let extra = buildCsaRuntimeSection() + buildCsaAcceptanceScopeSection() + buildCsaDirectExecutionPrioritySection()
@@ -268,9 +276,12 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog,
   if (hasApplicableCsa && playerAction) {
     const coverage = resolveCsaDirectCoverage(save, playerAction, { sexualActionContract: csaCatalog?.sexual_action_contract });
     extra += buildCsaDirectCoverageSection(coverage);
-    // ActionExecutionContract section — csa_direct는 exact-scope 강화, 범위 밖 material action은
-    // 짧고 강한 음수 계약 (회사 규정·감사 업무·인사팀 지시로 정당화 금지)
-    if (actionContract) extra += buildActionExecutionContractSection(actionContract, { applicableCsa });
+  }
+  // ActionExecutionContract section — 음수 ordinary gate는 활성 CSA 유무와 관계없이 작동한다.
+  // csa_direct면 exact-scope 제한만, 범위 밖 material action이면 짧고 강한 음수 계약
+  // (회사 규정·감사 업무·인사팀 지시로 정당화 금지)
+  if (playerAction && actionContract) {
+    extra += buildActionExecutionContractSection(actionContract, { applicableCsa });
   }
   const next = [{ ...messages[0], content: messages[0].content + extra }, ...messages.slice(1)];
   next.push({ role: 'system', content: buildNpcCsaEpistemicFirewallSection() });
@@ -288,11 +299,13 @@ export function applyContractStateFirewall(extract, contract) {
   if (!contract || contract.route !== 'ordinary_direct_blocked') return extract;
   const stateDelta = extract?.state_delta ?? {};
   const next = { ...extract, state_delta: { ...stateDelta } };
+  const targetId = contract.target_id;
+  // 관계 milestone 차단은 계약 대상 NPC에만 적용한다 (다른 NPC의 정상 변화는 보존)
   if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
     const rel = {};
     for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
       const p = { ...patch };
-      if (p.milestones && typeof p.milestones === 'object') {
+      if (id === targetId && p.milestones && typeof p.milestones === 'object') {
         const milestones = { ...p.milestones };
         delete milestones.first_kiss_turn;
         delete milestones.sexual_relationship_started_turn;
@@ -302,25 +315,37 @@ export function applyContractStateFirewall(extract, contract) {
     }
     next.state_delta.npc_relationship_state = rel;
   }
+  // event 필터: "성적 행동 완료" 사건만 제거한다. 거절·중단·신고·항의·불쾌·경계·시도 사건은
+  // 반드시 보존해야 하는 결과이므로 절대 삭제하지 않는다. 대상이 다른 NPC의 사건도 보존한다.
   if (Array.isArray(next.state_delta.event_ledger)) {
     next.state_delta.event_ledger = next.state_delta.event_ledger.filter(ev => {
       const type = typeof ev?.event_type === 'string' ? ev.event_type : '';
       const summary = typeof ev?.summary === 'string' ? ev.summary : '';
-      const sexualCompletionType = /sexual|kiss|intimate|foreplay|penetration|oral|genital/i.test(type);
-      const sexualCompletionSummary = /(성|키스|삽입|친밀|성적|사정|오르가즘)/.test(summary)
-        && /(했다|완료|시작|하게 했다|이루어졌|되었다|끝났)/.test(summary);
-      return !(sexualCompletionType || sexualCompletionSummary);
+      const participants = Array.isArray(ev?.participants) ? ev.participants : [];
+      const preserve = /(refused|blocked|interrupted|reported|complaint|harassment|attempt|시도|거절|중단|막음|신고|항의|불쾌|경계|거부)/i.test(type + ' ' + summary);
+      if (preserve) return true;
+      const involvesTarget = !targetId || participants.length === 0 || participants.includes(targetId);
+      if (!involvesTarget) return true;
+      const sexual = /(sexual|kiss|intimate|foreplay|penetration|oral|genital|성|키스|삽입|친밀|성적|사정|오르가즘)/i.test(type + ' ' + summary);
+      const completion = /(completed|consummated|했다|완료|이루어졌|시작됐|끝났|성사|이뤄졌|하게 했)/i.test(summary);
+      return !(sexual && completion);
     });
   }
   return next;
 }
 
 /** 다음 턴 경계 복원 follow-up section — 사전 계약 기반으로만 생성 (Story 검사 없음). */
-function buildBoundaryFollowupSection(save, expectedTurn) {
+function buildBoundaryFollowupSection(save, expectedTurn, master) {
   const pending = save?.pending_boundary_followup;
   if (!pending || typeof pending !== 'object') return '';
-  if (!(pending.expires_after_turn >= expectedTurn)) return '';
-  return `\n\n[BOUNDARY CONTINUITY FOLLOW-UP]\n직전 턴의 행동은 활성 CSA나 회사 규정이 허용한 범위가 아니었다.\n직전 서사에서 NPC가 이미 분명히 거절하거나 중단했다면 같은 말을 반복하지 말고 그 경계를 일관되게 유지한다.\n직전 서사가 모호하거나 NPC가 순간적으로 행동을 따라간 것처럼 보였다면, NPC는 이번 턴 초반에 그것이 규정 때문이 아니었음을 스스로 인식한다. 순간적인 당황, 얼어붙음, 상황 오해, 뒤늦은 판단으로 자연스럽게 설명할 수 있다.\nNPC는 "아까는 순간적으로 공지 범위를 잘못 받아들였다", "다시 생각해 보니 그건 규정에 포함되지 않는다"처럼 자연스럽게 선을 긋고, 현재의 자발적인 선택과 경계를 회복한다.`;
+  // 정확히 다음 한 턴에서만 사용 — stale/미래 pending은 주입하지 않는다
+  if (pending.expires_after_turn !== expectedTurn) return '';
+  const targetId = pending.target_character_id;
+  const targetEntry = [...(master?.characters ?? []), ...(master?.general_npcs ?? [])]
+    .find(entry => (entry.character_id ?? entry.npc_id ?? entry.id) === targetId);
+  const targetName = typeof targetEntry?.name === 'string' && targetEntry.name ? targetEntry.name : (targetId ?? '상대');
+  const actionLabel = Array.isArray(pending.action_types) && pending.action_types.length ? pending.action_types.join(', ') : '친밀 행동';
+  return `\n\n[BOUNDARY CONTINUITY FOLLOW-UP — ${targetName}]\n직전 턴(${pending.source_turn})의 ${targetName}에 대한 행동(${actionLabel})은 활성 CSA나 회사 규정이 허용한 범위가 아니었다.\n직전 서사에서 ${targetName}이(가) 이미 분명히 거절하거나 중단했다면 같은 말을 반복하지 말고 그 경계를 일관되게 유지한다.\n직전 서사가 모호하거나 ${targetName}이(가) 순간적으로 행동을 따라간 것처럼 보였다면, ${targetName}은(는) 이번 턴 초반에 그것이 규정 때문이 아니었음을 스스로 인식한다. 순간적인 당황, 얼어붙음, 상황 오해, 뒤늦은 판단으로 자연스럽게 설명할 수 있다.\n${targetName}은(는) "아까는 순간적으로 공지 범위를 잘못 받아들였다", "다시 생각해 보니 그건 규정에 포함되지 않는다"처럼 자연스럽게 선을 긋고, 현재의 자발적인 선택과 경계를 회복한다. 이 후속 처리는 ${targetName}에게만 적용되며 다른 NPC에게 전파하지 않는다.`;
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
@@ -471,7 +496,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             messages = [{ ...messages[0], content: messages[0].content + buildRegenerationFeedbackSection(action.feedback_text) }, ...messages.slice(1)];
           }
           // 다음 턴 경계 복원 follow-up — 저장된 pending_boundary_followup이 이번 턴 유효하면 주입
-          const boundarySection = buildBoundaryFollowupSection(hydratedSave, expectedTurn);
+          const boundarySection = buildBoundaryFollowupSection(hydratedSave, expectedTurn, master);
           if (boundarySection) {
             messages = [{ ...messages[0], content: messages[0].content + boundarySection }, ...messages.slice(1)];
           }

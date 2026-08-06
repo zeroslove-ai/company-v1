@@ -59,13 +59,13 @@ const splitStorySse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[
   `data: ${JSON.stringify({ choices: [{ delta: { content: '\\n[2. 플레이어 속마음]\\n좋아.\\n[3. 플레이어 상황판]\\n회의실.\\n[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D' } }] })}\n\n` +
   'data: [DONE]\n\n';
 
-function createMockFetch({ playerAction = '이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.', storySseOverride = null } = {}) {
+function createMockFetch({ playerAction = '이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.', storySseOverride = null, csaRules = true } = {}) {
   const calls = [];
   const actions = new Map();
   const saves = []; // commit된 save 이력 (follow-up 검증용)
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
-  save.csa_active = ['csa_2', 'csa_5'];
-  save.csa_rules = CSA_RULES;
+  save.csa_active = csaRules ? ['csa_2', 'csa_5'] : [];
+  save.csa_rules = csaRules ? CSA_RULES : {};
   save.focal_character_id = 'heroine5';
   save.npc_relationship_state = {
     ...(save.npc_relationship_state ?? {}),
@@ -195,33 +195,57 @@ test('15-2: contract 계산 중 추가 네트워크 호출 없음', async () => 
   assert.equal(afterContext.length, 0, `context 이후 LLM까지 추가 호출 0 (실제 ${afterContext.length})`);
 });
 
-test('15-3: SSE 첫 delta가 [DONE] 수신 전 클라이언트에 즉시 전달 (버퍼링 없음)', async () => {
-  const mock = createMockFetch({ storySseOverride: splitStorySse });
-  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+test('15-3: upstream 완료 전에 클라이언트가 첫 delta를 수신 — 실제 비동기 스트림 증명', async () => {
+  // upstream ReadableStream: 첫 delta만 enqueue하고, 두 번째 청크와 [DONE]은 promise로 정지시킨다.
+  // 클라이언트가 첫 delta를 받기 전에는 업스트림이 절대 완료될 수 없다.
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const encoder = new TextEncoder();
+  const firstChunk = `data: ${JSON.stringify({ choices: [{ delta: { content: '[1. 서사 및 행동]\n이메이의 눈동자가 흔들렸다.' } }] })}\n\n`;
+  const restChunk = `data: ${JSON.stringify({ choices: [{ delta: { content: '\n[2. 플레이어 속마음]\n좋아.\n[3. 플레이어 상황판]\n회의실.\n[4. 선택지]\n1. A\n2. B\n3. C\n4. D' } }] })}\n\ndata: [DONE]\n\n`;
+  const upstream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(firstChunk));
+      gate.then(() => {
+        controller.enqueue(encoder.encode(restChunk));
+        controller.close();
+      });
+    }
+  });
+  const gatedSse = new Response(upstream, { headers: { 'content-type': 'text/event-stream' } });
+
+  const originalFetch = globalThis.fetch;
+  const mock = createMockFetch();
+  // story upstream만 gated 스트림으로 교체
+  const gatedFetch = async (url, init = {}) => {
+    if (String(url).startsWith('https://llm.test') && JSON.parse(init.body).stream) return gatedSse;
+    return mock.fetchImpl(url, init);
+  };
+  const worker = createApiWorker({ fetchImpl: gatedFetch });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.' }), env);
   assert.equal(story.status, 200);
 
-  // 응답 스트림을 순차 소비 — 첫 delta가 DONE보다 먼저 와야 한다
   const reader = story.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
   let firstDeltaSeen = false;
-  let doneSeen = false;
-  while (true) {
+  let upstreamStillPending = true;
+  // 첫 delta 수신 대기 (업스트림은 아직 미완료 상태여야 한다)
+  const deadline = Date.now() + 3000;
+  while (!firstDeltaSeen && Date.now() < deadline) {
     const { value, done } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop();
-    for (const line of lines) {
-      if (line.startsWith('data:') && line.includes('이메이의 눈동자')) {
-        assert.equal(doneSeen, false, '첫 delta는 DONE보다 먼저 전달');
-        firstDeltaSeen = true;
-      }
-      if (line === 'data: [DONE]') doneSeen = true;
-    }
+    if (buffer.includes('이메이의 눈동자가 흔들렸다.')) firstDeltaSeen = true;
   }
-  assert.ok(firstDeltaSeen, '첫 delta가 실제로 전달됨');
+  assert.ok(firstDeltaSeen, 'upstream 완료 전 첫 delta 수신');
+  assert.ok(upstreamStillPending, '게이트 미해제 상태에서 첫 delta 도달');
+  // 이제 업스트림 완료 허용 → 나머지 스트림 소비
+  release();
+  while (true) {
+    const { done } = await reader.read();
+    if (done) break;
+  }
 });
 
 test('15-4: action_contract_ms/action_route/action_csa_covered timing 로그', async () => {
@@ -275,8 +299,9 @@ test('16: pending boundary follow-up 생성 → 다음 턴 주입 → 소비 후
   await story9.text();
   const story9Calls = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream);
   const story9Prompt = JSON.parse(story9Calls[story9Calls.length - 1].body).messages[0].content;
-  assert.ok(story9Prompt.includes('[BOUNDARY CONTINUITY FOLLOW-UP]'), '다음 턴 section 주입');
+  assert.ok(story9Prompt.includes('[BOUNDARY CONTINUITY FOLLOW-UP — 이메이]'), '다음 턴 section 주입 + 대상 이름 명시');
   assert.ok(story9Prompt.includes('반복하지 말고'), '이미 거절 시 반복 금지 문구 포함');
+  assert.ok(story9Prompt.includes('다른 NPC에게 전파하지 않는다'), '대상 한정');
 
   // Turn 9 extract+commit → pending 삭제
   const extract9 = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId9, expected_turn: 9 }), env);
@@ -310,11 +335,7 @@ test('16-5: blocked 턴에도 Story 응답 중단·재생성 없음 (정상 스�
   assert.equal(storyCalls, 1, '재생성 0회');
 });
 
-test('state firewall: blocked 계약 턴의 commit에서 sexual milestone 승격 차단', async () => {
-  // extract가 first_kiss milestone을 제안해도 firewall이 차단한다
-  const mock = createMockFetch();
-  // extract-valid.json이 milestones를 제안하지 않으므로, guarded-merge에 milestone 제안을 주입할 수 없어
-  // firewall 단위 검증은 applyContractStateFirewall 함수를 직접 사용한다.
+test('state firewall: blocked 계약 턴의 commit에서 sexual milestone 승격 차단 (대상 NPC 한정)', async () => {
   const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
   const blockedContract = {
     version: 1, route: 'ordinary_direct_blocked', action_types: ['genital_touch'],
@@ -322,7 +343,10 @@ test('state firewall: blocked 계약 턴의 commit에서 sexual milestone 승격
   };
   const evilExtract = {
     state_delta: {
-      npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8, sexual_relationship_started_turn: 8 } } },
+      npc_relationship_state: {
+        heroine5: { milestones: { first_kiss_turn: 8, sexual_relationship_started_turn: 8 } },
+        heroine1: { milestones: { first_kiss_turn: 3, sexual_relationship_started_turn: null } }
+      },
       event_ledger: [
         { event_id: 'e1', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', participants: ['heroine5'] },
         { event_id: 'e2', event_type: 'work_event', turn: 8, summary: '회의가 끝났다.', participants: ['heroine5'] }
@@ -331,10 +355,83 @@ test('state firewall: blocked 계약 턴의 commit에서 sexual milestone 승격
     }
   };
   const firewalled = applyContractStateFirewall(evilExtract, blockedContract);
+  // 대상(heroine5) milestone 차단
   assert.equal(firewalled.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, undefined, 'first kiss 차단');
   assert.equal(firewalled.state_delta.npc_relationship_state.heroine5.milestones.sexual_relationship_started_turn, undefined, 'sexual milestone 차단');
+  // 비대상(heroine1) milestone 보존
+  assert.equal(firewalled.state_delta.npc_relationship_state.heroine1.milestones.first_kiss_turn, 3, '비대상 NPC 변화 보존');
   const events = firewalled.state_delta.event_ledger.map(e => e.event_id);
   assert.ok(!events.includes('e1'), '성적 완료 event 차단');
   assert.ok(events.includes('e2'), '일반 event 유지');
   assert.equal(firewalled.state_delta.npc_emotion.heroine5.mood, 'confused', 'emotion 변화 허용');
+});
+
+test('검토6: firewall은 거절·신고·시도 event를 보존하고 완료 event만 제거', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const blockedContract = {
+    version: 1, route: 'ordinary_direct_blocked', action_types: ['genital_touch'],
+    schedule_boundary_followup: true, target_id: 'heroine5'
+  };
+  const extract = {
+    state_delta: {
+      event_ledger: [
+        { event_id: 'a', event_type: 'sexual_contact_completed', turn: 8, summary: '접촉이 완료되었다.', participants: ['heroine5'] },
+        { event_id: 'b', event_type: 'kiss_refused', turn: 8, summary: '키스를 거절했다.', participants: ['heroine5'] },
+        { event_id: 'c', event_type: 'sexual_harassment_reported', turn: 8, summary: '부적절한 행동이 신고되었다.', participants: ['heroine5'] },
+        { event_id: 'd', event_type: 'genital_touch_attempt_blocked', turn: 8, summary: '시도가 막혔다.', participants: ['heroine5'] },
+        { event_id: 'e', event_type: 'work_event', turn: 8, summary: '회의가 끝났다.', participants: ['heroine5'] }
+      ]
+    }
+  };
+  const firewalled = applyContractStateFirewall(extract, blockedContract);
+  const ids = firewalled.state_delta.event_ledger.map(e => e.event_id);
+  assert.ok(!ids.includes('a'), 'sexual_contact_completed 제거');
+  assert.ok(ids.includes('b'), 'kiss_refused 유지');
+  assert.ok(ids.includes('c'), 'sexual_harassment_reported 유지');
+  assert.ok(ids.includes('d'), 'genital_touch_attempt_blocked 유지');
+  assert.ok(ids.includes('e'), 'work_event 유지');
+});
+
+test('검토7: firewall은 대상이 다른 NPC의 성적 완료 event도 보존', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const blockedContract = { version: 1, route: 'ordinary_direct_blocked', action_types: ['genital_touch'], target_id: 'heroine5' };
+  const extract = {
+    state_delta: {
+      event_ledger: [
+        { event_id: 'x', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', participants: ['heroine1'] }
+      ]
+    }
+  };
+  const firewalled = applyContractStateFirewall(extract, blockedContract);
+  assert.ok(firewalled.state_delta.event_ledger.some(e => e.event_id === 'x'), '비대상 NPC 사건 보존');
+});
+
+test('검토3: 활성 CSA 없이 직접 성적 행동 → Story prompt에 AUTHORITATIVE 음수 계약 존재', async () => {
+  const mock = createMockFetch({ csaRules: false });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.' }), env);
+  assert.equal(story.status, 200);
+  await story.text();
+  const llmStory = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream).pop();
+  const prompt = JSON.parse(llmStory.body).messages[0].content;
+  assert.ok(prompt.includes('[ACTION EXECUTION CONTRACT — AUTHORITATIVE]'), 'CSA 유무와 무관한 음수 계약');
+  assert.ok(prompt.includes('완료 사실로 바로 확정하지 말고'), 'attempt_only 지시');
+});
+
+test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-SCOPE LIMIT + undefined 없음', async () => {
+  const mock = createMockFetch({ playerAction: '이메이와 업무 대화를 계속하며 무릎 위에 앉게 한다.' });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이와 업무 대화를 계속하며 무릎 위에 앉게 한다.' }), env);
+  assert.equal(story.status, 200);
+  await story.text();
+  const llmStory = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream).pop();
+  const prompt = JSON.parse(llmStory.body).messages[0].content;
+  const coverageCount = (prompt.match(/\[CSA DIRECT COVERAGE/g) ?? []).length;
+  assert.equal(coverageCount, 1, '[CSA DIRECT COVERAGE] 정확히 1회');
+  assert.ok(prompt.includes('[CSA EXACT-SCOPE LIMIT]'), 'exact-scope 제한');
+  assert.ok(!prompt.includes('undefined'), 'undefined 없음');
+  assert.ok(!/exact action\(\)/.test(prompt), '빈 행동명 없음');
+  // csa_2 정확 행동은 정상 확정
+  assert.ok(prompt.includes('CSA DIRECT COVERAGE — ESTABLISHED FACT'), '정상 coverage section');
+  assert.ok(prompt.includes('csa_2'), 'csa_2 명시');
 });
