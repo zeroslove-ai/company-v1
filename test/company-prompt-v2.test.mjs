@@ -126,7 +126,7 @@ test('Story Prompt v2 explicitly requires continuity, NPC agency, functional dia
   assert.match(system, /last_turn_continuity/);
   assert.match(system, /NPC 자율성/);
   assert.match(system, /대화 기능/);
-  assert.match(system, /최소 3가지 서로 다른 접근 방향/);
+  assert.match(system, /업무 선택지는 하나도 만들지 않는다/);
   assert.match(system, /업무 협조는 호감이 아니고/);
   assert.equal(payload.context.last_turn_continuity.turn, 3);
   assert.ok(system.length < 9000, `Story system prompt too large: ${system.length}`);

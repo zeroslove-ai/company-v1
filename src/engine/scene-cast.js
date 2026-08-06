@@ -397,23 +397,39 @@ export function isNpcPresentAtCurrentScene({
   // 명시적 부재가 항상 최우선
   if (state?.present === false) return false;
 
+  // 안정화 수정 G — scene_state.participants만 현재 장면의 실제 참가자 정본이다.
+  // "같은 장소에 있음"과 "현재 대화 장면에 참가 중"은 서로 다른 개념이며,
+  // 같은 장소라는 이유만으로 자동 등장·발화할 수 없다. 오래 남아 있던
+  // present=true도 자동 출연 근거가 아니다 (turn 32에서 서원희가 커피를 들고
+  // 난입한 원인). 사용자가 직접 부르거나 찾아가면 그때 participants에 추가된다.
+  if (!Array.isArray(participants) || !participants.includes(id)) return false;
+
+  // participants에 있어도 위치가 명시적으로 충돌하면 제외한다.
   const npcLocationId = typeof state?.location_id === 'string' ? state.location_id : null;
+  if (sceneLocationId && npcLocationId && sceneLocationId !== npcLocationId) return false;
 
-  // 위치가 명시적으로 충돌하면 제외
-  if (sceneLocationId && npcLocationId && sceneLocationId !== npcLocationId) {
-    return false;
+  return true;
+}
+
+/**
+ * NPC의 현재 회사 내 위치 (안정화 수정 F).
+ * 정본은 save.npc_scene_state[id].location_id이고, 없으면 캐릭터 canon의
+ * default_location_id로 보완한다. present 여부와 무관하게 "회사 어디에 있는가"만
+ * 답한다 — present=false여도 위치는 계속 유지된다.
+ */
+export function resolveNpcLocationId({ save, npcId, charactersMap = {}, generalNpcProfiles = {}, mapLocations = [] }) {
+  const stored = identity(save?.npc_scene_state?.[npcId]?.location_id);
+  if (stored) return stored;
+  const fromCharacter = identity(charactersMap?.[npcId]?.default_location_id);
+  if (fromCharacter) return fromCharacter;
+  const fromProfile = identity(generalNpcProfiles?.[npcId]?.default_location_id);
+  if (fromProfile) return fromProfile;
+  // 일반 NPC는 map.locations[].default_npc_ids가 기본 배치 정본이다.
+  for (const location of Array.isArray(mapLocations) ? mapLocations : []) {
+    const ids = Array.isArray(location?.default_npc_ids) ? location.default_npc_ids : [];
+    if (ids.includes(npcId)) return identity(location.location_id);
   }
-
-  // 현재 participants
-  if (Array.isArray(participants) && participants.includes(id)) return true;
-
-  // 현재 위치와 명시적 일치
-  if (sceneLocationId && npcLocationId === sceneLocationId) return true;
-
-  // present=true이며 위치 충돌이 없음
-  if (state?.present === true) return true;
-
-  return false;
+  return null;
 }
 
 function resolvePresentNpcIds({ save, registeredIds }) {

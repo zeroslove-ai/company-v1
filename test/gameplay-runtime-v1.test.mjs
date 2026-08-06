@@ -36,7 +36,7 @@ test('Story prompt carries the four-section, freedom, choices, and status-board 
   assert.match(system, /1000~1500자/);
   assert.match(system, /1200~2000자/);
   assert.match(system, /대신 완료하지 않는다/);
-  assert.match(system, /정확히 4개를 목표로/);
+  assert.match(system, /정확히 4개\. 각 줄은/);
   assert.match(system, /플레이어의 자유 입력 자체는 막지 않는다/);
   assert.ok(system.length <= 5800, `story system chars: ${system.length}`);
   const userPayload = JSON.parse(prompt[1].content);

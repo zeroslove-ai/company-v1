@@ -358,9 +358,22 @@ test('30. "last_npcs_present"만 있는 NPC → present 아님', () => {
   assert.ok(contract.context_npc_ids.includes('heroine2'), 'context 참고용으로는 포함');
 });
 
-test('31. "present=true + location 일치" → present', () => {
+// 안정화 수정 G — participants만 출연 정본. 같은 장소·present=true만으로는
+// 자동 출연하지 않는다 (turn 32 서원희 난입 원인).
+test('31. "present=true + location 일치"라도 participants가 아니면 present 아님', () => {
+  const base = baseSave();
   const contract = buildSceneCastContract({
-    save: baseSave({ scene_state: { ...baseSave().scene_state, location_id: 'design_team' }, npc_scene_state: { heroine2: { present: true, location_id: 'design_team' } }, last_npcs_present: [] }),
+    save: baseSave({ scene_state: { ...base.scene_state, location_id: 'design_team', participants: ['player-1'] }, npc_scene_state: { heroine2: { present: true, location_id: 'design_team' } }, last_npcs_present: [] }),
+    master,
+    playerAction: 'x'
+  });
+  assert.ok(!contract.present_npc_ids.includes('heroine2'), '같은 장소라도 participants가 아니면 출연 불가');
+});
+
+test('31b. participants에 있으면 present', () => {
+  const base = baseSave();
+  const contract = buildSceneCastContract({
+    save: baseSave({ scene_state: { ...base.scene_state, location_id: 'design_team', participants: ['player-1', 'heroine2'] }, npc_scene_state: { heroine2: { present: true, location_id: 'design_team' } }, last_npcs_present: [] }),
     master,
     playerAction: 'x'
   });
