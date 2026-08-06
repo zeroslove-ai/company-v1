@@ -256,7 +256,7 @@ test('Phase 2 degrades Extract envelopes that fail contract normalization', asyn
 });
 
 test('Extract uses Story choices, disables thinking, uses the 5000-token envelope, and degrades on truncated JSON', async () => {
-  const storySse = 'data: {"choices":[{"delta":{"content":"[CHOICES]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\ndata: [DONE]\n\n';
+  const storySse = 'data: {"choices":[{"delta":{"content":"[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\ndata: [DONE]\n\n';
   const mock = createMockFetch({ storySseSequence: [storySse], extractEnvelope: { ...readJson('fixtures/phase-2/extract-valid.json'), choices: ['wrong'] } });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   await (await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'test' }), env)).text();

@@ -8,7 +8,11 @@ import {
   applySpeakerTags,
   allowedSpeakerIds
 } from '../engine/speaker-tagger.js';
-import { buildSceneCastContract, speakerNameById } from '../engine/scene-cast.js';
+import { buildSceneCastContract, speakerNameById, wireMaterialClassifier } from '../engine/scene-cast.js';
+import { classifyMaterialActions } from '../engine/action-execution-contract.js';
+// 플레이어 대사 의미 범위 검증(수정 A) — canonical material classifier를 lazy 주입한다.
+// (structured-story-v2 게이트가 플레이어 대사의 sexual_proposal intent를 결정적으로 판정할 때 사용)
+wireMaterialClassifier(classifyMaterialActions);
 import { createStructuredStoryGate, STRUCTURED_STORY_VERSION } from '../engine/structured-story-v2.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
@@ -19,6 +23,7 @@ import {
   buildOpeningPrompt,
   buildStableNpcIdSet,
   buildStoryPrompt,
+  buildStructuredStoryV2ExtractText,
   deriveRecoverableStep,
   deriveTurnChanges,
   hydrateGameplayState,
@@ -701,9 +706,27 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       if (action.story_text) {
         logTurnTiming({ event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn, replayed: true, turn_total_ms: Date.now() - startedAt });
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
-          emit('delta', { text: action.story_text });
-          const parsed = action.parsed_blocks ?? parseNarrative(action.story_text);
-          emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], replayed: true });
+          // 수정 H — V2 턴은 저장된 stream_segments 순서대로 block/delta를 재생해
+          // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
+          const replayBlocks = action.parsed_blocks;
+          if (replayBlocks?.structured_story_version === STRUCTURED_STORY_VERSION && Array.isArray(replayBlocks.stream_segments)) {
+            for (const segment of replayBlocks.stream_segments) {
+              if (segment?.kind === 'block' && segment.block) {
+                emit('block', { block: segment.block });
+                emit('delta', { text: segment.text });
+              } else if (segment?.text) {
+                emit('delta', { text: segment.text });
+              }
+            }
+            emit('complete', {
+              action_id: meta.action_id, turn_id: meta.turn_id,
+              warnings: replayBlocks.warnings ?? [], parsed_blocks: replayBlocks, replayed: true
+            });
+          } else {
+            emit('delta', { text: action.story_text });
+            const parsed = action.parsed_blocks ?? parseNarrative(action.story_text);
+            emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: action.parsed_blocks ?? parsed, replayed: true });
+          }
         } });
       }
       if ((reservation.replayed && !retryingStory) || action.processing_status !== 'story_streaming') {
@@ -794,28 +817,33 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           // 정본 story_text는 게이트를 통과한 내용만으로 구성된다.
           raw = gated.story_text;
           const parsed = parseNarrative(raw, { master });
-          // V2: 레거시 파서는 [DIALOGUE speaker="이름" direction="..."] 블록을 unparsed로
-          // 남기므로, 검증된 게이트 블록(dialogue)을 파서 결과에 병합한다.
-          // scene 블록은 파서가 만든 것을 유지하고, dialogue는 게이트 블록이 정본이다.
-          const gatedDialogueBlocks = gated.blocks.filter(b => b.type === 'dialogue');
-          const v2Blocks = [
-            ...(parsed.blocks ?? []).filter(b => b.type !== 'unparsed' && b.type !== 'dialogue'),
-            ...gatedDialogueBlocks
-          ];
-          const v2DialogueLines = gatedDialogueBlocks.map(b => ({
+          // 수정 D — V2 blocks는 gate의 ordered segments가 유일한 정본이다.
+          // 레거시 파서의 scene/dialogue 블록을 섞지 않고, scene→dialogue→scene 원래
+          // 순서를 그대로 보존한다. player_inner_thought/player_status/choices는
+          // parseNarrative가 섹션 마커에서 추출한 값을 유지한다.
+          const v2Blocks = (gated.segments ?? []).map(seg =>
+            seg.type === 'dialogue' ? seg : { type: 'scene', text: seg.text }
+          );
+          const v2DialogueLines = (gated.blocks ?? []).map(b => ({
             speaker_id: b.speaker_id,
             speaker_name: b.speaker_name,
             acting_direction: b.acting_direction,
-            text: b.text
+            direction: b.direction,
+            text: b.text,
+            order: b.order
           }));
+          // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
+          const mergedWarnings = [...(parsed.warnings ?? []), ...gated.warnings];
           const contractPersisted = {
             ...parsed,
             blocks: v2Blocks,
             dialogue_lines: v2DialogueLines,
             structured_story_version: STRUCTURED_STORY_VERSION,
             scene_cast_contract: sceneCastContract,
-            dialogue_blocks: gatedDialogueBlocks,
-            warnings: [...(parsed.warnings ?? []), ...gated.warnings],
+            dialogue_blocks: gated.blocks,
+            // 수정 H — live/replay 동일 순서 재생용
+            stream_segments: gated.stream_segments,
+            warnings: mergedWarnings,
             action_execution_contract: actionContract
           };
           timing.gated_dialogue_blocks = gated.blocks.length;
@@ -824,7 +852,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
           storyPersisted = true;
           emit('complete', {
-            action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false,
+            action_id: meta.action_id, turn_id: meta.turn_id, warnings: mergedWarnings, replayed: false,
             parsed_blocks: contractPersisted,
             action_route: actionContract.route, csa_covered: actionContract.csa_coverage.covered
           });
@@ -882,9 +910,13 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       let degraded = false;
       try {
         let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
-        // 근본 해결: extract는 원본이 아니라 파서가 화자명을 확정·삽입한 normalized_raw를 본다.
-        // → 화자명 없는 대사가 있어도 extract가 추론할 필요 없이 명시된 화자명을 그대로 쓴다.
-        let storyForExtract = (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text;
+        // 수정 E — V2 턴은 검증된 구조화 블록만 Extract 입력으로 쓴다.
+        // 레거시 parser의 normalized_raw(따옴표 추론·화자 추론·플레이어 라벨 삽입)를
+        // V2 경로에서 절대 사용하지 않는다.
+        const structuredV2 = parsedStory?.structured_story_version === STRUCTURED_STORY_VERSION;
+        let storyForExtract = structuredV2
+          ? buildStructuredStoryV2ExtractText(parsedStory)
+          : ((parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text);
         let extract;
         try {
           const contextRpcStart = Date.now();

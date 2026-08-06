@@ -58,6 +58,47 @@ export function buildParsedStoryProjection(parsedStory) {
   };
 }
 
+/**
+ * 수정 E — V2 Extract 전용 직렬화.
+ * 검증된 구조화 블록(gate ordered segments)만 사용해 Extract 입력 텍스트를 만든다.
+ * 화자 추론·이름 추정·대명사 추정·따옴표 추론·직전 화자 추정·교대 규칙을 절대 사용하지 않는다.
+ * speaker_name은 서버 canon에서 이미 확정된 값을 그대로 쓴다.
+ */
+export function buildStructuredStoryV2ExtractText(parsedStory) {
+  const p = object(parsedStory) ?? {};
+  const parts = [];
+  const blocks = Array.isArray(p.blocks) ? p.blocks : [];
+  // ordered segments가 있으면 그 순서를 유지한다 (수정 D)
+  const ordered = Array.isArray(p.stream_segments) && p.stream_segments.length
+    ? p.stream_segments.filter(seg => seg?.kind === 'block' && seg.block).map(seg => seg.block)
+    : blocks;
+  for (const block of ordered) {
+    if (!block || typeof block !== 'object') continue;
+    if (block.type === 'scene' && typeof block.text === 'string') {
+      parts.push(block.text.trim());
+      continue;
+    }
+    if (block.type === 'dialogue') {
+      const name = typeof block.speaker_name === 'string' && block.speaker_name ? block.speaker_name
+        : (typeof block.speaker === 'string' && block.speaker ? block.speaker : '');
+      const direction = typeof block.acting_direction === 'string' && block.acting_direction
+        ? block.acting_direction : (typeof block.direction === 'string' ? block.direction : '');
+      const text = typeof block.text === 'string' ? block.text.trim() : '';
+      if (!name || !text) continue;
+      parts.push(direction ? `${name} (${direction}): “${text}”` : `${name}: “${text}”`);
+      continue;
+    }
+  }
+  const inner = typeof p.player_inner_thought === 'string' && p.player_inner_thought ? p.player_inner_thought.trim() : '';
+  const status = typeof p.player_status === 'string' && p.player_status ? p.player_status.trim() : '';
+  if (inner) parts.push(`[2. 플레이어 속마음]\n${inner}`);
+  if (status) parts.push(`[3. 플레이어 상황판]\n${status}`);
+  if (Array.isArray(p.choices) && p.choices.length) {
+    parts.push('[4. 선택지]\n' + p.choices.map((c, i) => `${i + 1}. ${c}`).join('\n'));
+  }
+  return parts.join('\n\n');
+}
+
 function buildExtractContextProjection(context, activeIds) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   return buildSceneContextCore(save, activeIds);
