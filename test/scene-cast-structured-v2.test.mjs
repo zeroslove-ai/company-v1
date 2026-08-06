@@ -285,6 +285,30 @@ test('14.4-2: 서술문 안 인용문은 대사 카드로 분리하지 않고 �
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED));
 });
 
+test('14.4-2b: 비허용 NPC의 태그 없는 산문 행동은 차단 (Story Gate 우회 방지)', () => {
+  const gate = gateFor(contract, speakerNames);
+  gate.push('[SCENE]\n윤민아가 문을 열고 들어와 플레이어를 바라봤다.\n이메이가 서류를 정리했다.\n');
+  const end = gate.end();
+  assert.ok(!end.story_text.includes('윤민아'), 'cast에 없는 NPC의 산문 서술은 정본에서 제거');
+  assert.ok(end.story_text.includes('이메이'), '참가 중인 NPC의 서술은 유지');
+  assert.ok(end.warnings.some(w => w.startsWith('scene_cast_blocked_prose_npc:heroine2')), '차단 warning에 NPC id 기록');
+});
+
+test('14.4-2c: 비허용 NPC의 태그 없는 산문 대사도 차단', () => {
+  const gate = gateFor(contract, speakerNames);
+  gate.push('[SCENE]\n윤민아가 "여기 계셨네요"라고 말했다.\n');
+  const end = gate.end();
+  assert.equal(end.blocks.length, 0);
+  assert.ok(!end.story_text.includes('여기 계셨네요'));
+});
+
+test('14.4-2d: 활성 CSA가 있어도 비허용 NPC의 산문 행동은 차단', () => {
+  const gate = gateFor(contract, speakerNames);
+  gate.push('[SCENE]\n활성 규칙에 따라 윤민아가 자연스럽게 플레이어의 무릎 위에 앉았다.\n');
+  const end = gate.end();
+  assert.ok(!end.story_text.includes('윤민아'));
+});
+
 test('14.4-3: [SCENE]과 [DIALOGUE]만 정상 블록으로 인정', () => {
   const gate = gateFor(contract, speakerNames);
   gate.push('[SCENE]\n사무실이 조용했다.\n[FOO]\n알 수 없는 마커.\n[DIALOGUE speaker_id="heroine5" acting_direction="서류를 정리하며"]\n정리했습니다.');

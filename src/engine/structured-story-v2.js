@@ -38,7 +38,8 @@ export const DIALOGUE_WARNINGS = {
   MALFORMED: 'malformed_structured_story_block',
   UNSTRUCTURED: 'unstructured_dialogue_blocked',
   UNKNOWN_MARKER: 'unknown_structured_story_marker',
-  BEFORE_SCENE: 'dialogue_before_scene'
+  BEFORE_SCENE: 'dialogue_before_scene',
+  BLOCKED_PROSE_NPC: 'scene_cast_blocked_prose_npc'
 };
 
 // ---------------------------------------------------------------------------
@@ -237,6 +238,38 @@ function appendSceneText(segments, text) {
 // 스트리밍 게이트 (수정 3/4/5/9)
 // ---------------------------------------------------------------------------
 
+/**
+ * 이번 턴 물리적으로 현장에 있을 수 있는 NPC 이름 목록에서 빠진, 즉 산문에
+ * 등장하면 안 되는 등록 NPC 이름 목록을 만든다. present/entering만 물리적
+ * 근거가 있다 — destination/remote/context는 아직 현장에 없다(수정 F 8.4/13).
+ * 이름 매칭은 [DIALOGUE]/따옴표 대사 검증과 동일하게 등록된 전체 이름만 쓴다.
+ */
+function disallowedProseNpcNames(contract, speakerNames) {
+  const allowed = new Set([
+    ...(Array.isArray(contract?.present_npc_ids) ? contract.present_npc_ids : []),
+    ...(Array.isArray(contract?.entering_npc_ids) ? contract.entering_npc_ids : [])
+  ]);
+  const entries = [];
+  if (speakerNames instanceof Map) {
+    for (const [id, name] of speakerNames) {
+      if (id === 'player' || allowed.has(id) || !name) continue;
+      entries.push({ id, name });
+    }
+  }
+  // 짧은 이름이 긴 이름의 부분 문자열이면 긴 이름부터 검사해 과대 매칭을 줄인다.
+  entries.sort((a, b) => b.name.length - a.name.length);
+  return entries;
+}
+
+/** 산문 한 줄에 비허용 NPC의 등록된 전체 이름이 있으면 그 항목을 반환한다. */
+function findDisallowedNpcInLine(line, disallowedNames) {
+  const text = typeof line === 'string' ? line : '';
+  for (const entry of disallowedNames) {
+    if (text.includes(entry.name)) return entry;
+  }
+  return null;
+}
+
 export function createStructuredStoryGate({ contract, speakerNames }) {
   let lineBuffer = '';                  // 현재 작성 중인 한 줄 (수정 3)
   let currentSection = 'none';          // none | story | thought | status | choices (수정 4)
@@ -246,6 +279,7 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
   let openBody = '';                    // 열려 있는 대사 본문
   let discardMalformedDialogueBody = false; // 수정 5
   let order = 0;
+  const disallowedNames = disallowedProseNpcNames(contract, speakerNames);
 
   const segments = [];                  // semantic blocks (scene/dialogue 순서)
   const warnings = [];
@@ -369,6 +403,15 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
           }
           if (cls === 'malformed_marker') {
             recordWarning(DIALOGUE_WARNINGS.UNKNOWN_MARKER);
+            return;
+          }
+          // 비허용 NPC가 [DIALOGUE] 태그 없이 일반 산문으로 행동·발화하는 우회 차단.
+          // present_npc_ids/entering_npc_ids에 없는 등록 NPC의 전체 이름이 scene
+          // 서술문에 등장하면 그 줄 전체를 fail-closed로 제거한다 — CSA가 활성
+          // 상태여도 이 판정 근거는 cast contract뿐이며 CSA는 등장 근거가 아니다.
+          const blockedNpc = findDisallowedNpcInLine(trimmed, disallowedNames);
+          if (blockedNpc) {
+            recordWarning(`${DIALOGUE_WARNINGS.BLOCKED_PROSE_NPC}:${blockedNpc.id}`);
             return;
           }
         }

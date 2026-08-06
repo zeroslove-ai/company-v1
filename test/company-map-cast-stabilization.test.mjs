@@ -164,6 +164,22 @@ test('맵10: 이미 있는 장소로 "이동한다"고 말해도 movement로 취
   assert.equal(contract.destination_location_id, null);
 });
 
+// ── O-9c: 출발 participants에 이미 있던 대상이 이동+대화에서 사라지던 버그 ──
+
+test('맵9c: 출발 장면에 이미 있던 윤민아를 "이동해서 인사한다" → destination/present에서 빠지지 않는다', () => {
+  const contract = cast('브랜드전략팀 사무실로 가서 윤민아에게 인사한다', {
+    locationId: 'brand_strategy_meeting_room',
+    participants: ['player-1', 'heroine2'],
+    npcSceneState: { heroine2: { present: true, location_id: 'brand_strategy_meeting_room' } }
+  });
+  assert.equal(contract.transition_mode, 'movement');
+  assert.equal(contract.destination_location_id, 'brand_strategy_office', '문장에 명시된 목적지 장소가 우선이다');
+  assert.deepEqual(contract.destination_npc_ids, ['heroine2']);
+  assert.deepEqual(contract.present_npc_ids, ['heroine2'], '말 걸기 의도가 있으므로 같은 턴에 발화 가능해야 한다');
+  assert.ok(contract.allowed_speaker_ids.includes('heroine2'));
+  assert.ok(!contract.allowed_speaker_ids.includes('heroine1'), '다른 NPC는 등장하지 않는다');
+});
+
 // ── O-11 / O-12: 업무 선택지 0개 ──────────────────────────────────────────
 
 const storySystemPrompt = playerAction => buildStoryPrompt({

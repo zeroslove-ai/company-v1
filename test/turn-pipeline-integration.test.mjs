@@ -224,7 +224,10 @@ test('14-4: full turn pipeline — story(V2 gate) → extract(1 call, no tagger)
 test('14-4b: V2 story with resolved speakers → tagger never called (zero extra LLM calls)', async () => {
   // V2 구조화 형식 — cast 안 명시 화자 + 구체 연기 지시 → 태거 호출 자체가 없어야 한다
   const noUnresolvedSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\n이메이가 고개를 끄덕였다.\n\n[DIALOGUE speaker_id="heroine5" acting_direction="차분한 목소리로 서류를 앞으로 밀며"]\n알겠습니다.\n' } }] })}\n\ndata: [DONE]\n\n`;
-  const mock = createMockFetch({ storySseOverride: noUnresolvedSse });
+  // saveOverride 없이 기본 fixture(canonical-save-v1, 병원편 NPC)를 쓰면 이메이(heroine5)가
+  // 애초에 어떤 cast에도 없어 이 테스트가 검증하려는 "cast 안 명시 화자" 상황이 성립하지 않는다.
+  // 14-4와 동일하게 heroine5가 실제 참가자인 v2Save()로 맞춘다.
+  const mock = createMockFetch({ storySseOverride: noUnresolvedSse, saveOverride: v2Save() });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
 
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 9, player_action: 'x' }), env);
