@@ -407,8 +407,10 @@ test('검토7: firewall은 대상이 다른 NPC의 성적 완료 event도 보존
   const blockedContract = { version: 1, route: 'ordinary_direct_blocked', action_types: ['genital_touch'], target_id: 'heroine5' };
   const extract = {
     state_delta: {
+      // 당사자가 둘 다 명확해야 비대상 NPC↔NPC 사건으로 보존된다 (한 명만 적힌
+      // 성적 완료는 나머지 한쪽이 player일 수 있어 fail-closed로 제거).
       event_ledger: [
-        { event_id: 'x', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', participants: ['heroine1'] }
+        { event_id: 'x', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', participants: ['heroine1', 'heroine2'] }
       ]
     }
   };

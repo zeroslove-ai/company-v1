@@ -592,8 +592,11 @@ test('검토R6: attempt firewall도 대상 NPC 참여 사건만 필터 (다른 N
   const contract = { version: 1, route: 'ordinary_direct_attempt', action_types: ['sexual_touch'], target_id: 'heroine5' };
   const extract = {
     action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'refused', voluntary: false, completed_action_types: [] },
+    // 당사자가 둘 다 명확한 NPC↔NPC 사건이어야 "다른 NPC 사건"으로 보존된다.
+    // (한 명만 적힌 성적 완료는 나머지 한쪽이 player일 수 있어 fail-closed로 제거 —
+    //  아래 '우회B-9'가 그 경계를 별도로 검증한다.)
     state_delta: { event_ledger: [
-      { event_id: 'other', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', participants: ['heroine1'] },
+      { event_id: 'other', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', participants: ['heroine1', 'heroine2'] },
       { event_id: 'self', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', participants: ['heroine5'] }
     ] }
   };
@@ -1078,4 +1081,65 @@ test('우회C-14: private scene이 명확하면 기존 direct-act attempt는 계
   const out = resolve('이메이에게 키스한다', save);
   assert.equal(out.route, 'ordinary_direct_attempt', 'private scene direct-act는 attempt 유지');
   assert.ok(!out.contextual_permission.blockers.includes('unknown_scene_context'), 'private면 unknown blocker 없음');
+});
+
+// ── 2차 검토 반영: accepted 범위 target-only 우회 + 단일 participant 모호 사건 ──
+
+const ACCEPTED_KISS_RESOLUTION = {
+  target_id: 'heroine5', route: 'ordinary_direct_attempt',
+  npc_response: 'accepted', voluntary: true, completed_action_types: ['kiss']
+};
+
+/** accepted kiss 계약 아래에서 주어진 ledger row들이 살아남는지 확인한다. */
+async function acceptedLedgerIds(rows) {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const out = applyContractStateFirewall(
+    { action_resolution: ACCEPTED_KISS_RESOLUTION, state_delta: { sexual_event_ledger: rows } },
+    H5_CONTRACT
+  );
+  return out.state_delta.sexual_event_ledger.map(r => r.event_id);
+}
+
+test('우회A-6: accepted 범위여도 계약 target이 다른 NPC와 완료한 사건은 정본이 되지 않는다', async () => {
+  const ids = await acceptedLedgerIds([
+    { event_id: 't2n', action_type: 'kiss', actor_id: 'heroine5', target_id: 'heroine1', completed: true, evidence: 'heroine5와 heroine1의 키스.' },
+    { event_id: 'n2t', action_type: 'kiss', actor_id: 'heroine1', target_id: 'heroine5', completed: true, evidence: 'heroine1과 heroine5의 키스.' }
+  ]);
+  assert.deepEqual(ids, [], 'player가 빠진 계약 target 사건은 accepted 범위를 빌려 승격될 수 없다');
+});
+
+test('우회A-7: player와 계약 target 사이의 accepted 완료는 양방향 모두 정상 보존된다', async () => {
+  const ids = await acceptedLedgerIds([
+    { event_id: 'p2t', action_type: 'kiss', actor_id: 'player', target_id: 'heroine5', completed: true, evidence: '플레이어가 heroine5에게 키스.' },
+    { event_id: 't2p', action_type: 'kiss', actor_id: 'heroine5', target_id: 'player', completed: true, evidence: 'heroine5가 플레이어에게 키스.' }
+  ]);
+  assert.deepEqual(ids, ['p2t', 't2p'], '과차단 방지 — 정상 accepted 완료는 유지');
+});
+
+test('우회A-8: accepted 범위에서도 계약 target·player 미참여 NPC↔NPC 사건은 그대로 보존된다', async () => {
+  const ids = await acceptedLedgerIds([
+    { event_id: 'n2n', action_type: 'kiss', actor_id: 'heroine1', target_id: 'heroine2', completed: true, evidence: '두 사람의 키스.' }
+  ]);
+  assert.deepEqual(ids, ['n2n'], '비관련 NPC↔NPC 사건 보존');
+});
+
+test('우회B-9: 한 명만 적힌 성적 완료 event는 나머지 한쪽이 player일 수 있으므로 제거된다', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { event_ledger: [
+    { event_id: 'ambig', event_type: 'sexual_event', turn: 8, participants: ['heroine1'], summary: '키스가 이루어졌다.' },
+    { event_id: 'dup', event_type: 'sexual_event', turn: 8, participants: ['heroine1', 'heroine1'], summary: '키스가 이루어졌다.' },
+    { event_id: 'clear', event_type: 'sexual_event', turn: 8, participants: ['heroine1', 'heroine2'], summary: '키스가 이루어졌다.' }
+  ] } };
+  const ids = applyContractStateFirewall(extract, H5_CONTRACT).state_delta.event_ledger.map(e => e.event_id);
+  assert.deepEqual(ids, ['clear'], '상대가 명확한 사건만 보존 (중복 이름도 2명으로 치지 않는다)');
+});
+
+test('우회B-10: 당사자 한 명뿐이어도 성적 완료가 아닌 일반 event는 계속 보존된다', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const extract = { state_delta: { event_ledger: [
+    { event_id: 'work', event_type: 'task_completed', turn: 8, participants: ['heroine1'], summary: '보고서를 제출했다.' },
+    { event_id: 'refuse', event_type: 'kiss_refused', turn: 8, participants: ['heroine1'], summary: '키스를 거절했다.' }
+  ] } };
+  const ids = applyContractStateFirewall(extract, H5_CONTRACT).state_delta.event_ledger.map(e => e.event_id);
+  assert.deepEqual(ids, ['work', 'refuse'], '일반 업무·거절 event는 참가자 수와 무관하게 보존');
 });

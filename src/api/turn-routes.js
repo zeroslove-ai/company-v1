@@ -328,10 +328,12 @@ function filterSexualCompletionEvents(events, targetId) {
     if (isPlayerRef(ev?.actor_id) || isPlayerRef(ev?.target_id) || participants.some(isPlayerRef)) return false;
     // 계약 대상이 참여한 완료 사건도 정본 병합 대상이므로 여기서 보존하지 않는다.
     if (targetId && (ev?.actor_id === targetId || ev?.target_id === targetId || participants.includes(targetId))) return false;
-    // player도 계약 대상도 참여하지 않은 사건은 다른 NPC 사이의 일로 보존한다.
-    // 다만 누구의 사건인지 전혀 특정되지 않은(actor/target/participants가 모두 빈)
-    // 완료 사건은 귀속 불가이므로 fail-closed로 제거한다.
-    return Boolean(ev?.actor_id) || Boolean(ev?.target_id) || participants.length > 0;
+    // player도 계약 대상도 참여하지 않은, 양쪽 당사자가 명확한 NPC↔NPC 사건만 보존한다.
+    // 한 명만 적힌 성적 완료 사건("participants:['heroine1']", actor/target 없음)은
+    // 나머지 한쪽이 player일 가능성을 배제할 수 없으므로 fail-closed로 제거한다 —
+    // 이름이 빠진 상대가 곧 우회 경로가 된다.
+    if (ev?.actor_id && ev?.target_id && ev.actor_id !== ev.target_id) return true;
+    return new Set(participants.filter(Boolean)).size >= 2;
   });
 }
 
@@ -390,10 +392,12 @@ function filterContractSexualLedger(events, contract, completedActionTypes = [])
     const involvedPlayer = isPlayerRef(ev.actor_id) || isPlayerRef(ev.target_id);
     const involvedTarget = ev.actor_id === targetId || ev.target_id === targetId;
     if (involvedPlayer || involvedTarget) {
-      // player가 참여했지만 계약 target 사건이 아니면(다른 NPC를 target으로 적었어도)
-      // 현재 턴의 플레이어 완료 행동이므로 제거한다.
-      if (!involvedTarget) return false;
-      // 6. 계약 target 사건은 검증된 completed_action_types 범위 안에서만 보존.
+      // 6. accepted 범위의 완료는 "player와 계약 target 사이의 사건"만 정본이다.
+      //    한쪽만 참여한 사건은 현재 턴 계약의 결과가 아니므로 제거한다:
+      //    player→다른 NPC(플레이어의 별도 완료 행동)도, 계약 target→다른 NPC
+      //    (heroine5↔heroine1처럼 player가 빠진 사건)도 accepted 범위를 빌려
+      //    정본으로 승격될 수 없다. 참여자가 한쪽만 적힌 사건도 귀속 불가로 제거한다.
+      if (!(involvedPlayer && involvedTarget)) return false;
       return typeof ev.action_type === 'string' && completedSet.has(ev.action_type);
     }
     // 7. player도 계약 target도 참여하지 않은, actor/target이 명확한 NPC↔NPC 사건만 보존.
