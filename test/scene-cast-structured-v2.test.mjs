@@ -230,17 +230,17 @@ test('14.3-6: 관찰 가능한 행동이 함께 있으면 허용', () => {
 
 test('14.3-7: 유효한 NPC 대사는 SCENE 다음에 정상 스트리밍', () => {
   const gate = gateFor(contract, speakerNames);
-  // 수정 G — 첫 유효 블록이 DIALOGUE면 dialogue_before_scene 차단
-  const first = gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="떨리는 목소리로 손끝을 만지작거리며"]\n저... 괜찮으세요?');
+  // 수정 G + 수정 4 — story 섹션에서 SCENE 없이 DIALOGUE가 오면 dialogue_before_scene 차단
+  const first = gate.push('[1. 서사 및 행동]\n[DIALOGUE speaker_id="heroine5" acting_direction="떨리는 목소리로 손끝을 만지작거리며"]\n저... 괜찮으세요?\n');
   assert.ok(!first.some(e => e.kind === 'block'), 'SCENE 이전 DIALOGUE는 차단');
   // SCENE 후 정상 대사는 통과
-  gate.push('\n[SCENE]\n회의실 안이 조용해졌다.\n');
+  gate.push('[SCENE]\n회의실 안이 조용해졌다.\n');
   const out = gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="떨리는 목소리로 손끝을 만지작거리며"]\n저... 괜찮으세요?\n');
   const end = gate.end();
   assert.equal(end.blocks.length, 1, 'SCENE 다음 대사는 저장');
   assert.equal(end.blocks[0].speaker_id, 'heroine5');
   assert.equal(end.blocks[0].speaker_name, '이메이');
-  assert.equal(end.warnings[0], DIALOGUE_WARNINGS.BEFORE_SCENE, 'dialogue_before_scene 경고');
+  assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.BEFORE_SCENE), 'dialogue_before_scene 경고');
 });
 
 test('14.3-8: 차단된 대사는 저장 및 Extract에서 제외', () => {
@@ -305,13 +305,13 @@ test('14.4-4: 모델이 출력한 이름이 아니라 canon의 ID→이름 매�
 // 14.5 성능·스트리밍 테스트
 // ---------------------------------------------------------------------------
 
-test('14.5-1: 전체 Story 버퍼링 없음 — 첫 SCENE 텍스트가 즉시 emit', () => {
+test('14.5-1: 전체 Story 버퍼링 없음 — 첫 완성 라인이 개행 도착 즉시 emit (수정 3)', () => {
   const gate = gateFor(contract, speakerNames);
-  // 서술 텍스트는 라인 완성 전이라도 (발화/마커 후보가 아니면) 즉시 emit — 전체 버퍼링 없음
+  // 한 줄 버퍼 — 개행 전에는 emit하지 않는다
   const out = gate.push('[SCENE]\n첫 문장');
-  assert.ok(out.some(e => e.kind === 'text'), '첫 SCENE 서술 즉시 emit');
+  assert.ok(!out.some(e => e.kind === 'text'), '개행 전 미완성 라인은 emit 금지');
   const out2 = gate.push('입니다.\n');
-  assert.ok(out2.some(e => e.kind === 'text'), '이어지는 조각도 emit');
+  assert.ok(out2.some(e => e.kind === 'text'), '개행 도착 즉시 완성 라인 emit');
   // 대사도 다음 마커 도착 시 즉시 블록 emit (end() 대기 없음)
   const out3 = gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n네.\n\n[SCENE]');
   assert.ok(out3.some(e => e.kind === 'block'), '다음 마커 도착 즉시 블록 emit');
@@ -358,7 +358,7 @@ test('14.6-2: isConcreteActingDirection — 추상 단어만 있으면 false, �
   assert.equal(isConcreteActingDirection('시선을 피한 채 손가락을 꼼지락거리며'), true);
 });
 
-test('14.6-3: 이동 대상은 destination — entering이 아님 (수정 F 8.4)', () => {
+test('14.6-3: 이동 대상은 destination — entering 아님, 이동 턴 발화 금지 (수정 2)', () => {
   const contract2 = buildSceneCastContract({
     save: baseSave({ scene_state: { ...baseSave().scene_state, participants: ['player-1'] }, last_npcs_present: [], npc_scene_state: {} }),
     master,
@@ -366,7 +366,9 @@ test('14.6-3: 이동 대상은 destination — entering이 아님 (수정 F 8.4)
   });
   assert.ok(contract2.destination_npc_ids.includes('heroine2'), '이동 대상은 destination');
   assert.ok(!contract2.entering_npc_ids.includes('heroine2'), '이동 대상은 entering 아님');
-  assert.equal(contract2.speaker_scope?.heroine2, 'after_destination_arrival', '발화 scope 제한');
+  assert.equal(contract2.transition_mode, 'movement', '이동 턴 판정');
+  assert.ok(!contract2.allowed_speaker_ids.includes('heroine2'), '이동 턴 destination 발화 금지');
+  assert.ok(!contract2.allowed_speaker_ids.includes('heroine1'), '이동 턴 기존 장소 NPC 발화 금지');
 });
 
 test('14.6-4: 구조화 액션(app_transaction) 대상은 entering에 포함되지 않는다 (수정 F 8.3)', () => {

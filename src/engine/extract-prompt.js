@@ -59,42 +59,42 @@ export function buildParsedStoryProjection(parsedStory) {
 }
 
 /**
- * 수정 E — V2 Extract 전용 직렬화.
- * 검증된 구조화 블록(gate ordered segments)만 사용해 Extract 입력 텍스트를 만든다.
+ * 수정 E + 최종 단순화 수정 1 — V2 Extract 전용 직렬화.
+ * parsedStory.blocks만 사용한다 (stream_segments는 transport/replay 전용이며 참조하지 않는다).
+ * 검증된 구조화 블록(장면·대사)을 원래 순서대로 직렬화한다.
  * 화자 추론·이름 추정·대명사 추정·따옴표 추론·직전 화자 추정·교대 규칙을 절대 사용하지 않는다.
  * speaker_name은 서버 canon에서 이미 확정된 값을 그대로 쓴다.
  */
 export function buildStructuredStoryV2ExtractText(parsedStory) {
-  const p = object(parsedStory) ?? {};
+  const blocks = Array.isArray(parsedStory?.blocks) ? parsedStory.blocks : [];
   const parts = [];
-  const blocks = Array.isArray(p.blocks) ? p.blocks : [];
-  // ordered segments가 있으면 그 순서를 유지한다 (수정 D)
-  const ordered = Array.isArray(p.stream_segments) && p.stream_segments.length
-    ? p.stream_segments.filter(seg => seg?.kind === 'block' && seg.block).map(seg => seg.block)
-    : blocks;
-  for (const block of ordered) {
+
+  for (const block of blocks) {
     if (!block || typeof block !== 'object') continue;
     if (block.type === 'scene' && typeof block.text === 'string') {
-      parts.push(block.text.trim());
+      const text = block.text.trim();
+      if (text) parts.push(text);
       continue;
     }
     if (block.type === 'dialogue') {
-      const name = typeof block.speaker_name === 'string' && block.speaker_name ? block.speaker_name
-        : (typeof block.speaker === 'string' && block.speaker ? block.speaker : '');
-      const direction = typeof block.acting_direction === 'string' && block.acting_direction
-        ? block.acting_direction : (typeof block.direction === 'string' ? block.direction : '');
+      const name = typeof block.speaker_name === 'string' ? block.speaker_name.trim() : '';
+      const direction = typeof block.acting_direction === 'string'
+        ? block.acting_direction.trim()
+        : (typeof block.direction === 'string' ? block.direction.trim() : '');
       const text = typeof block.text === 'string' ? block.text.trim() : '';
       if (!name || !text) continue;
       parts.push(direction ? `${name} (${direction}): “${text}”` : `${name}: “${text}”`);
       continue;
     }
   }
-  const inner = typeof p.player_inner_thought === 'string' && p.player_inner_thought ? p.player_inner_thought.trim() : '';
-  const status = typeof p.player_status === 'string' && p.player_status ? p.player_status.trim() : '';
+
+  // 기존 속마음·상황판·선택지 직렬화 유지 — blocks의 장면·대사 뒤에 기존 순서대로 추가
+  const inner = typeof parsedStory?.player_inner_thought === 'string' && parsedStory.player_inner_thought ? parsedStory.player_inner_thought.trim() : '';
+  const status = typeof parsedStory?.player_status === 'string' && parsedStory.player_status ? parsedStory.player_status.trim() : '';
   if (inner) parts.push(`[2. 플레이어 속마음]\n${inner}`);
   if (status) parts.push(`[3. 플레이어 상황판]\n${status}`);
-  if (Array.isArray(p.choices) && p.choices.length) {
-    parts.push('[4. 선택지]\n' + p.choices.map((c, i) => `${i + 1}. ${c}`).join('\n'));
+  if (Array.isArray(parsedStory?.choices) && parsedStory.choices.length) {
+    parts.push('[4. 선택지]\n' + parsedStory.choices.map((c, i) => `${i + 1}. ${c}`).join('\n'));
   }
   return parts.join('\n\n');
 }

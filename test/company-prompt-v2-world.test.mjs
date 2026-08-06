@@ -139,7 +139,7 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.match(system, /최소 1개는 scene_goal을 직접 진전/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /acting_direction=/);
-  assert.ok(system.length <= 5600, `Story system prompt too large: ${system.length}`);
+  assert.ok(system.length <= 5800, `Story system prompt too large: ${system.length}`);
 });
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {

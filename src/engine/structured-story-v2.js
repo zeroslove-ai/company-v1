@@ -1,23 +1,26 @@
 /**
- * Structured Story V2 — 스트리밍 블록 게이트 (안정화 패치 반영).
+ * Structured Story V2 — 스트리밍 블록 게이트 (최종 단순화 패치 반영).
  *
- * Story 전체를 버퍼링하지 않는다. 완성된 라인 단위로 처리하고, 헤더 한 줄과
- * 진행 중인 대사 블록 하나 정도만 임시로 들고 있다가 블록이 닫히는 즉시 흘려보낸다.
+ * 스트리밍 원칙:
+ *   - 전체 Story를 버퍼링하지 않는다. 현재 작성 중인 한 줄만 버퍼링한다.
+ *   - 개행이 도착하기 전에는 해당 라인을 emit하지 않는다.
+ *   - 개행이 도착하면 완성된 한 줄을 검사한 뒤 emit 또는 차단한다.
+ *   - Story EOF에서는 남은 마지막 한 줄을 한 번 검사한다.
  *
- * 게이트를 통과하지 못한 대사 블록은:
- *   - 화면에 출력되지 않고
- *   - parsed_blocks에 저장되지 않고
- *   - story_text 정본에 포함되지 않고
- *   - Extract 입력에 전달되지 않으며
- *   - 경고 코드만 남기고 다음 정상 블록부터 스트리밍이 계속된다.
+ * 섹션 상태 머신 (수정 4):
+ *   currentSection: none | story | thought | status | choices
+ *   [1. 서사 및 행동]→story / [2. 플레이어 속마음]→thought /
+ *   [3. 플레이어 상황판]→status / [4. 선택지]→choices
+ *   [SCENE]과 [DIALOGUE]는 currentSection === 'story'일 때만 구조화 마커로 인정한다.
+ *   비구조화 대사 검사는 story && inScene일 때만 실행한다.
  *
- * 안정화 패치:
- *   A — 플레이어 대사 의미 범위 검증 (validatePlayerDialogueAgainstPolicy)
- *   B — 비구조화 대사(따옴표 단독·이름: 대사·구형 형식·서술문 내 발화) 우회 차단
- *   C — malformed 구조화 블록 fail-closed (닫히지 않은 헤더·속성 오류·미지 마커)
- *   D — ordered segments (장면·대사의 원래 순서 보존)
- *   G — SCENE-first (첫 유효 블록이 DIALOGUE면 dialogue_before_scene 차단)
- *   H — stream_segments (live/replay 동일 순서 재생용)
+ * malformed 처리 (수정 5):
+ *   malformed DIALOGUE header 발견 시 discardMalformedDialogueBody=true.
+ *   다음 유효 marker([SCENE]/[DIALOGUE]/섹션 마커)까지 일반 라인을 전부 버린다.
+ *
+ * canonical segments (수정 9):
+ *   semantic blocks(scene/dialogue)는 원래 순서대로, 인접 scene은 하나로 병합.
+ *   stream_segments는 완성된 line/block 단위로 저장 — 청크 분할과 무관하게 동일.
  */
 
 import { canSpeak, validatePlayerDialogueAgainstPolicy } from './scene-cast.js';
@@ -62,16 +65,22 @@ export function isConcreteActingDirection(direction) {
 }
 
 // ---------------------------------------------------------------------------
-// 수정 C — 허용 마커 / malformed / 미지 마커
+// 마커 / 섹션
 // ---------------------------------------------------------------------------
 
-/** V2에서 허용되는 top-level 섹션 마커. */
 const SECTION_MARKERS = new Set([
   '[1. 서사 및 행동]',
   '[2. 플레이어 속마음]',
   '[3. 플레이어 상황판]',
   '[4. 선택지]'
 ]);
+
+const SECTION_TO_CURRENT = {
+  '[1. 서사 및 행동]': 'story',
+  '[2. 플레이어 속마음]': 'thought',
+  '[3. 플레이어 상황판]': 'status',
+  '[4. 선택지]': 'choices'
+};
 
 const SCENE_MARKER = '[SCENE]';
 const DIALOGUE_OPEN = '[DIALOGUE';
@@ -87,7 +96,6 @@ function isSectionMarker(line) {
  */
 export function parseDialogueHeader(headerSource) {
   const source = typeof headerSource === 'string' ? headerSource : '';
-  // 닫는 ] 누락
   if (!/\]\s*$/.test(source)) return { ok: false };
   const attrs = {};
   const seen = new Set();
@@ -96,14 +104,12 @@ export function parseDialogueHeader(headerSource) {
   while ((match = attrPattern.exec(source)) !== null) {
     const name = match[1];
     const value = match[2].trim();
-    if (seen.has(name)) return { ok: false }; // 중복 속성
+    if (seen.has(name)) return { ok: false };
     seen.add(name);
     attrs[name] = value;
   }
-  // 필수 속성 존재 + 따옴표 형태 검증
   if (!('speaker_id' in attrs) || attrs.speaker_id === '') return { ok: false };
   if (!('acting_direction' in attrs) || attrs.acting_direction === '') return { ok: false };
-  // 알 수 없는 필수 구조 속성 (옵션 허용 목록)
   const allowedAttrs = new Set(['speaker_id', 'acting_direction']);
   for (const name of seen) {
     if (!allowedAttrs.has(name)) return { ok: false };
@@ -112,7 +118,7 @@ export function parseDialogueHeader(headerSource) {
 }
 
 // ---------------------------------------------------------------------------
-// 수정 B — 비구조화 대사 라인 분류
+// 비구조화 대사 라인 분류 (수정 B)
 // ---------------------------------------------------------------------------
 
 /** 비발화 인용(문서·메일·공지·슬라이드·메신저) 보존 패턴. */
@@ -156,6 +162,11 @@ export function classifyV2SceneLine(line, context = {}) {
 // 대사 블록 검증
 // ---------------------------------------------------------------------------
 
+function attribute(source, name) {
+  const match = new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'u').exec(source);
+  return match ? match[1].trim() : null;
+}
+
 /**
  * 대사 블록 하나를 계약에 대조해 검증한다 (수정 A: 플레이어 의미 범위 포함).
  * 반환: { ok: true, block } 또는 { ok: false, warning }
@@ -168,7 +179,6 @@ export function validateDialogueBlock({ headerAttributes, body, contract, speake
   if (!text) return { ok: false, warning: DIALOGUE_WARNINGS.MALFORMED };
   if (!speakerId) return { ok: false, warning: DIALOGUE_WARNINGS.MISSING_SPEAKER };
 
-  // 등록되지 않은 인물(익명 직원·행인 포함)은 발화할 수 없다.
   const known = speakerNames instanceof Map ? speakerNames.has(speakerId) : false;
   if (!known) {
     return { ok: false, warning: speakerId === 'player' ? DIALOGUE_WARNINGS.UNKNOWN_SPEAKER : DIALOGUE_WARNINGS.ANONYMOUS };
@@ -193,7 +203,6 @@ export function validateDialogueBlock({ headerAttributes, body, contract, speake
     if (!meaningCheck.ok) return { ok: false, warning: DIALOGUE_WARNINGS.PLAYER_POLICY };
   }
 
-  // speaker_name은 모델 출력이 아니라 서버 canon에서 채운다.
   return {
     ok: true,
     block: {
@@ -209,61 +218,68 @@ export function validateDialogueBlock({ headerAttributes, body, contract, speake
   };
 }
 
-function attribute(source, name) {
-  const match = new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'u').exec(source);
-  return match ? match[1].trim() : null;
+// ---------------------------------------------------------------------------
+// scene block 병합 (수정 9.1)
+// ---------------------------------------------------------------------------
+
+function appendSceneText(segments, text) {
+  const value = typeof text === 'string' ? text.trim() : '';
+  if (!value) return;
+  const last = segments.length ? segments[segments.length - 1] : null;
+  if (last?.type === 'scene') {
+    last.text = `${last.text}\n${value}`;
+    return;
+  }
+  segments.push({ type: 'scene', text: value });
 }
 
-/**
- * 스트리밍 게이트를 만든다.
- *
- * `push(chunk)`는 이번 청크로 확정된 출력들을 순서대로 돌려준다:
- *   { kind: 'text', text }   — 화면에 그대로 흘려보낼 서술/섹션 텍스트
- *   { kind: 'block', block } — 검증을 통과한 구조화 블록
- * `end()`는 남은 내용을 flush하고 최종 결과(blocks/segments/stream_segments/warnings/story_text)를 돌려준다.
- */
+// ---------------------------------------------------------------------------
+// 스트리밍 게이트 (수정 3/4/5/9)
+// ---------------------------------------------------------------------------
+
 export function createStructuredStoryGate({ contract, speakerNames }) {
-  let lineBuffer = '';           // passthrough 라인 버퍼 (마커/발화 분류용)
-  let openHeaderAttrs = null;    // 파싱 완료된 [DIALOGUE ...] 헤더
-  let openHeaderRaw = '';        // 헤더 속성 원문 (재검증용)
-  let openBody = '';             // 열려 있는 대사 본문
-  let seenScene = false;         // SCENE-first (수정 G)
-  let inScene = false;           // 현재 SCENE 영역 안 (scene 세그먼트 기록용)
-  let firstMarkerSeen = false;   // 첫 구조화 마커 여부
+  let lineBuffer = '';                  // 현재 작성 중인 한 줄 (수정 3)
+  let currentSection = 'none';          // none | story | thought | status | choices (수정 4)
+  let inScene = false;                  // story 영역 안에서 SCENE 이후 여부
+  let seenScene = false;                // SCENE-first (수정 G)
+  let openHeaderRaw = null;             // 검증 대기 중인 [DIALOGUE ...] 헤더
+  let openBody = '';                    // 열려 있는 대사 본문
+  let discardMalformedDialogueBody = false; // 수정 5
   let order = 0;
 
-  const segments = [];           // 수정 D — 승인된 순서 기록
+  const segments = [];                  // semantic blocks (scene/dialogue 순서)
   const warnings = [];
-  const canonicalParts = [];     // story_text 정본 (검증 통과분만)
-  const streamSegments = [];     // 수정 H — live/replay 동일 재생용
+  const canonicalParts = [];            // story_text 정본 (검증 통과분만)
+  const streamSegments = [];            // 완성된 line/block 단위 재생 기록 (수정 9.2)
 
   const recordWarning = warning => {
     if (!warnings.includes(warning)) warnings.push(warning);
   };
 
-  const emitText = (out, text, { scene = false } = {}) => {
+  const emitText = (out, text) => {
     if (!text) return;
     canonicalParts.push(text);
     out.push({ kind: 'text', text });
     streamSegments.push({ order: order++, kind: 'text', text });
-    if (scene) segments.push({ type: 'scene', text: text.replace(/^\n+|\n+$/g, '') });
+    // story 영역의 서술만 scene semantic block으로 병합
+    if (currentSection === 'story' && inScene) {
+      appendSceneText(segments, text.replace(/\n+$/g, ''));
+    }
   };
 
   const closeDialogue = out => {
-    if (openHeaderAttrs === null) return;
+    if (openHeaderRaw === null) return;
     // 수정 G — 첫 유효 블록이 DIALOGUE면 차단
     if (!seenScene) {
       recordWarning(DIALOGUE_WARNINGS.BEFORE_SCENE);
-      openHeaderAttrs = null;
-      openHeaderRaw = '';
+      openHeaderRaw = null;
       openBody = '';
       return;
     }
     const result = validateDialogueBlock({
       headerAttributes: openHeaderRaw, body: openBody, contract, speakerNames
     });
-    openHeaderAttrs = null;
-    openHeaderRaw = '';
+    openHeaderRaw = null;
     openBody = '';
     if (!result.ok) {
       recordWarning(result.warning);
@@ -280,115 +296,152 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
     streamSegments.push({ order: order++, kind: 'block', block, text: canonical });
   };
 
-  // passthrough 라인을 확정 처리한다 (수정 B: 비구조화 대사 차단, 수정 C: 미지 마커).
+  /** 유효 marker인가 (discard 해제 조건). */
+  const isValidResumeMarker = line => {
+    if (line === SCENE_MARKER) return true;
+    if (line.startsWith(DIALOGUE_OPEN)) {
+      return parseDialogueHeader(line).ok;
+    }
+    return isSectionMarker(line);
+  };
+
+  /** 완성된 라인 하나를 처리한다. */
   const settleLine = (out, line) => {
-    if (line === '') {
-      emitText(out, '\n');
+    const raw = typeof line === 'string' ? line : '';
+    const trimmed = raw.trim();
+
+    // 수정 5 — malformed DIALOGUE 본문 discard 상태
+    if (discardMalformedDialogueBody) {
+      if (trimmed.startsWith('[') && isValidResumeMarker(trimmed)) {
+        discardMalformedDialogueBody = false;
+        // 유효 marker부터 정상 처리
+      } else {
+        return; // 본문 후보 폐기
+      }
+    }
+
+    if (trimmed === '') {
+      emitText(out, raw);
       return;
     }
-    if (line.startsWith('[')) {
-      // 수정 C — 허용 마커 확인
-      if (line === SCENE_MARKER) {
+
+    // 섹션 마커 — currentSection 전환 (모든 섹션에서 인정)
+    if (isSectionMarker(trimmed)) {
+      currentSection = SECTION_TO_CURRENT[trimmed] ?? 'none';
+      inScene = false;
+      emitText(out, trimmed + '\n');
+      return;
+    }
+
+    // story 섹션에서만 구조화 마커 인정 (수정 4)
+    if (currentSection === 'story' || currentSection === 'none') {
+      // [SCENE]은 story 영역 진입 신호 — none/story에서 인정하고 story로 전환
+      if (trimmed === SCENE_MARKER) {
+        currentSection = 'story';
         seenScene = true;
         inScene = true;
-        firstMarkerSeen = true;
         return; // SCENE 마커 자체는 정본/화면에 포함하지 않는다
       }
-      if (line.startsWith(DIALOGUE_OPEN)) {
-        firstMarkerSeen = true;
+      if (currentSection === 'story' && trimmed.startsWith(DIALOGUE_OPEN)) {
         inScene = false;
-        openHeaderRaw = line;
-        openHeaderAttrs = { pending: true };
+        const parsed = parseDialogueHeader(trimmed);
+        if (!parsed.ok) {
+          // 수정 5 — malformed 헤더는 본문까지 폐기
+          recordWarning(DIALOGUE_WARNINGS.MALFORMED);
+          discardMalformedDialogueBody = true;
+          return;
+        }
+        openHeaderRaw = trimmed;
         return;
       }
-      if (isSectionMarker(line)) {
-        inScene = false;
-        emitText(out, line + '\n');
-        return;
+      if (currentSection === 'story') {
+        // 알 수 없는 마커 → 마커 라인 제거 (이후 텍스트는 일반 규칙으로 계속)
+        if (trimmed.startsWith('[') && /\]\s*$/.test(trimmed)) {
+          recordWarning(DIALOGUE_WARNINGS.UNKNOWN_MARKER);
+          return;
+        }
+        // story && inScene — 비구조화 대사 검사 (수정 B)
+        if (inScene) {
+          const cls = classifyV2SceneLine(trimmed);
+          if (cls === 'unstructured_dialogue') {
+            recordWarning(DIALOGUE_WARNINGS.UNSTRUCTURED);
+            return; // 라인 전체 제거
+          }
+          if (cls === 'malformed_marker') {
+            recordWarning(DIALOGUE_WARNINGS.UNKNOWN_MARKER);
+            return;
+          }
+        }
       }
-      // 알 수 없는 마커 → 마커 라인 제거 (이후 텍스트는 일반 규칙으로 계속)
-      recordWarning(DIALOGUE_WARNINGS.UNKNOWN_MARKER);
-      return;
     }
-    // 일반 텍스트 라인 — 비구조화 발화 분류 (수정 B)
-    const cls = classifyV2SceneLine(line);
-    if (cls === 'unstructured_dialogue') {
-      recordWarning(DIALOGUE_WARNINGS.UNSTRUCTURED);
-      return; // 라인 전체 제거
-    }
-    if (cls === 'malformed_marker') {
-      recordWarning(DIALOGUE_WARNINGS.UNKNOWN_MARKER);
-      return;
-    }
-    // plain_narration / non_speech_quotation — 보존 (SCENE 영역 안이면 scene 세그먼트)
-    emitText(out, line + '\n', { scene: inScene });
+
+    // thought/status/choices 또는 story의 일반 서술 — 정상 text로 보존
+    emitText(out, raw + '\n');
   };
+
+  /** 대사 본문 수집 중인지 (헤더가 열려 있고 본문이 진행 중). */
+  const inDialogueBody = () => openHeaderRaw !== null;
 
   const drain = (out, final) => {
     for (;;) {
-      if (openHeaderAttrs === null) {
-        // ── passthrough ── 라인 단위로 분류 (전체 버퍼링 없음)
-        const breakIndex = lineBuffer.indexOf('\n');
-        if (breakIndex === -1) {
-          if (final && lineBuffer) { settleLine(out, lineBuffer); lineBuffer = ''; return; }
-          // 미완성 라인 — 발화/마커 후보(따옴표·'[')가 없으면 즉시 emit해
-          // 첫 콘텐츠 표시가 개행 대기로 늦어지지 않게 한다 (수정 G 9.3).
-          if (lineBuffer && !/["“”'[\[]/.test(lineBuffer)) {
-            emitText(out, lineBuffer, { scene: inScene });
+      if (inDialogueBody()) {
+        // 대사 본문 — 다음 줄머리 마커('\n[')에서 블록을 닫는다.
+        const nextMarker = lineBuffer.search(/\r?\n\s*\[/u);
+        if (nextMarker === -1) {
+          if (final) {
+            openBody += lineBuffer;
             lineBuffer = '';
+            closeDialogue(out);
+            return;
+          }
+          const lastBreak = lineBuffer.lastIndexOf('\n');
+          if (lastBreak > 0) {
+            openBody += lineBuffer.slice(0, lastBreak);
+            lineBuffer = lineBuffer.slice(lastBreak);
           }
           return;
         }
-        const line = lineBuffer.slice(0, breakIndex).replace(/\r$/, '');
-        lineBuffer = lineBuffer.slice(breakIndex + 1);
-        // '[' 시작 라인은 마커 후보 — 헤더가 닫힐 때까지 버퍼 유지 (부분 emit 금지)
-        if (line.startsWith('[') && line !== SCENE_MARKER && !isSectionMarker(line)) {
-          if (line.startsWith(DIALOGUE_OPEN)) {
-            // 헤더가 아직 닫히지 않았으면 다음 청크에서 완성 대기
-            if (!/\]\s*$/.test(line)) {
-              if (final) {
-                // 수정 C — EOF까지 닫히지 않은 header: header와 body 후보까지 폐기
-                recordWarning(DIALOGUE_WARNINGS.MALFORMED);
-                const nextMarker = lineBuffer.search(/\r?\n\s*\[/u);
-                if (nextMarker === -1) { lineBuffer = ''; return; }
-                lineBuffer = lineBuffer.slice(nextMarker).replace(/^\r?\n/u, '');
-                continue;
-              }
-              lineBuffer = line + '\n' + lineBuffer; // 다시 버퍼로 (다음 청크와 합침)
-              return;
-            }
-            // 헤더 파싱 (수정 C: 따옴표·중복·미지 속성)
-            const parsed = parseDialogueHeader(line);
-            if (!parsed.ok) {
-              recordWarning(DIALOGUE_WARNINGS.MALFORMED);
-              // 본문 후보까지 폐기 — 다음 줄부터 재개
-              continue;
-            }
-            firstMarkerSeen = true;
-            openHeaderRaw = line;
-            openHeaderAttrs = parsed.attrs;
-            continue;
-          }
-          // 알 수 없는 마커 (예: [FOO])
-          if (line.startsWith('[') && /\]\s*$/.test(line)) {
-            recordWarning(DIALOGUE_WARNINGS.UNKNOWN_MARKER);
-            continue;
-          }
-        }
-        settleLine(out, line);
+        openBody += lineBuffer.slice(0, nextMarker);
+        lineBuffer = lineBuffer.slice(nextMarker).replace(/^\r?\n/u, '');
+        closeDialogue(out);
         continue;
       }
-      // ── 대사 본문 ── 다음 줄머리 마커('\n[')에서 블록을 닫는다.
-      const nextMarker = lineBuffer.search(/\r?\n\s*\[/u);
-      if (nextMarker === -1) {
-        if (final) { openBody += lineBuffer; lineBuffer = ''; closeDialogue(out); return; }
-        const lastBreak = lineBuffer.lastIndexOf('\n');
-        if (lastBreak > 0) { openBody += lineBuffer.slice(0, lastBreak); lineBuffer = lineBuffer.slice(lastBreak); }
+
+      // ── passthrough ── 한 줄 버퍼 (수정 3: 개행 전 emit 금지)
+      const breakIndex = lineBuffer.indexOf('\n');
+      if (breakIndex === -1) {
+        if (final && lineBuffer) {
+          // Story EOF — 남은 마지막 한 줄을 한 번 검사한다
+          const lastLine = lineBuffer.replace(/\r$/, '');
+          lineBuffer = '';
+          settleLine(out, lastLine);
+        }
         return;
       }
-      openBody += lineBuffer.slice(0, nextMarker);
-      lineBuffer = lineBuffer.slice(nextMarker).replace(/^\r?\n/u, '');
-      closeDialogue(out);
+      const line = lineBuffer.slice(0, breakIndex).replace(/\r$/, '');
+      lineBuffer = lineBuffer.slice(breakIndex + 1);
+      // '[' 시작 라인은 마커 후보 — 헤더가 닫힐 때까지 버퍼 유지 (부분 emit 금지)
+      if (line.startsWith('[') && !isSectionMarker(line) && line !== SCENE_MARKER) {
+        if (line.startsWith(DIALOGUE_OPEN)) {
+          if (!/\]\s*$/.test(line)) {
+            // 헤더가 아직 닫히지 않았으면 다음 청크에서 완성 대기
+            if (final) {
+              // 수정 C/5 — EOF까지 닫히지 않은 header: header와 body 후보까지 폐기 후
+              // 다음 유효 marker부터 재개한다.
+              recordWarning(DIALOGUE_WARNINGS.MALFORMED);
+              discardMalformedDialogueBody = true;
+              const nextMarker = lineBuffer.search(/\r?\n\s*\[/u);
+              if (nextMarker === -1) { lineBuffer = ''; return; }
+              lineBuffer = lineBuffer.slice(nextMarker).replace(/^\r?\n/u, '');
+              continue;
+            }
+            lineBuffer = line + '\n' + lineBuffer;
+            return;
+          }
+          // 헤더 파싱은 settleLine에서 — 여기서는 라인 완성만 확인
+        }
+      }
+      settleLine(out, line);
     }
   };
 

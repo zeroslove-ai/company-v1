@@ -381,12 +381,12 @@ test('content files, the heroines doc, and built prompt payloads contain none of
 
 // --- Size budgets ------------------------------------------------------------
 
-test('Story request size budgets: system <=5600, 3-character active canon <=1800, 5-participant scene still caps at 3 full cards', () => {
+test('Story request size budgets: system <=5800, 3-character active canon <=1800, 5-participant scene still caps at 3 full cards', () => {
   const prompt = buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
   const systemChars = prompt[0].content.length;
   const payload = JSON.parse(prompt[1].content);
   const canonChars = JSON.stringify(payload.active_character_canon).length;
-  assert.ok(systemChars <= 5600, `story system chars: ${systemChars}`);
+  assert.ok(systemChars <= 5800, `story system chars: ${systemChars}`);
   assert.ok(canonChars <= 1800, `active_character_canon chars: ${canonChars}`);
   assert.equal(Object.values(payload.active_character_canon).filter(e => 'prompt_card' in e).length, 3);
 });

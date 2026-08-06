@@ -720,7 +720,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             }
             emit('complete', {
               action_id: meta.action_id, turn_id: meta.turn_id,
-              warnings: replayBlocks.warnings ?? [], parsed_blocks: replayBlocks, replayed: true
+              warnings: replayBlocks.warnings ?? [], parsed_blocks: replayBlocks,
+              replayed: true,
+              action_route: replayBlocks.action_route,
+              csa_covered: replayBlocks.csa_covered
             });
           } else {
             emit('delta', { text: action.story_text });
@@ -844,7 +847,10 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             // 수정 H — live/replay 동일 순서 재생용
             stream_segments: gated.stream_segments,
             warnings: mergedWarnings,
-            action_execution_contract: actionContract
+            action_execution_contract: actionContract,
+            // 수정 10 — replay complete에서 live와 동일하게 제공할 route/csa_covered
+            action_route: actionContract.route,
+            csa_covered: actionContract.csa_coverage.covered
           };
           timing.gated_dialogue_blocks = gated.blocks.length;
           timing.gated_dialogue_warnings = gated.warnings.length;

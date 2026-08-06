@@ -131,17 +131,41 @@ export function wireMaterialClassifier(classifier) {
   globalThis.__companyV2MaterialClassifier = { classifyMaterialActions: classifier };
 }
 
+/** 등록된 전체 이름 목록 (별명·직급·대명사 제외 — 전체 이름만). */
+export function registeredTargetNames(master) {
+  const entries = [];
+  const push = (id, name) => {
+    const cleanId = identity(id);
+    const cleanName = identity(name);
+    if (cleanId && cleanName && !entries.some(e => e.id === cleanId)) {
+      entries.push({ id: cleanId, name: cleanName });
+    }
+  };
+  for (const entry of Array.isArray(master?.characters) ? master.characters : []) {
+    push(entry?.character_id ?? entry?.id, entry?.name);
+  }
+  for (const entry of Array.isArray(master?.general_npcs) ? master.general_npcs : []) {
+    push(entry?.npc_id ?? entry?.id, entry?.name);
+  }
+  return entries;
+}
+
 /**
  * 사용자 입력을 기준으로 이번 턴 플레이어 발화 허용 범위를 계산한다 (안정화 수정 A 3.2).
  * - explicit: 사용자가 실제 대사를 직접 인용해 입력함
  * - paraphrase: 말하는 행동은 입력했지만 정확한 문장은 쓰지 않음
  * - minor_reaction: 대사 없이 행동만 입력함 (짧은 반응 한 줄만 허용)
  * 허용 범위(allowed_intents/allowed_target_ids/allowed_material_actions)를 결정적으로 채운다.
+ * 수정 6 — allowed_target_names/registered_target_names를 포함해 NPC 대상 범위를 실제 검증한다.
  */
 export function resolvePlayerDialoguePolicy(playerAction, master = null) {
   const source = typeof playerAction === 'string' ? playerAction.trim() : '';
   const base = { max_lines: 1, max_characters: 30, allowed_material_actions: [] };
-  if (!source) return { mode: 'minor_reaction', ...base, allowed_intents: ['reaction'], allowed_target_ids: [], explicit_source_text: null, high_impact_intents_allowed: [] };
+  const targetIds = namedNpcIds(master, source);
+  const allRegistered = registeredTargetNames(master);
+  const targetNames = allRegistered.filter(e => targetIds.includes(e.id)).map(e => e.name);
+
+  if (!source) return { mode: 'minor_reaction', ...base, allowed_intents: ['reaction'], allowed_target_ids: [], allowed_target_names: [], registered_target_names: allRegistered, explicit_source_text: null, high_impact_intents_allowed: [] };
 
   const quoted = QUOTED_SPEECH.exec(source);
   const quotedText = quoted ? identity(quoted[1] ?? quoted[2]) : null;
@@ -152,7 +176,9 @@ export function resolvePlayerDialoguePolicy(playerAction, master = null) {
       max_lines: 2,
       explicit_source_text: quotedText,
       allowed_intents: quotedIntents.length ? quotedIntents : ['reaction'],
-      allowed_target_ids: namedNpcIds(master, source),
+      allowed_target_ids: targetIds,
+      allowed_target_names: targetNames,
+      registered_target_names: allRegistered,
       allowed_material_actions: materialActionsOf(quotedText),
       high_impact_intents_allowed: quotedIntents.filter(i => HIGH_IMPACT_INTENTS.includes(i))
     };
@@ -172,7 +198,9 @@ export function resolvePlayerDialoguePolicy(playerAction, master = null) {
       max_lines: 2,
       intent_text: intentText,
       allowed_intents: allowed.length ? allowed : ['reaction'],
-      allowed_target_ids: namedNpcIds(master, source),
+      allowed_target_ids: targetIds,
+      allowed_target_names: targetNames,
+      registered_target_names: allRegistered,
       allowed_material_actions: materialActionsOf(intentText),
       high_impact_intents_allowed: []
     };
@@ -181,7 +209,9 @@ export function resolvePlayerDialoguePolicy(playerAction, master = null) {
     mode: 'minor_reaction',
     ...base,
     allowed_intents: ['reaction'],
-    allowed_target_ids: namedNpcIds(master, source),
+    allowed_target_ids: targetIds,
+    allowed_target_names: targetNames,
+    registered_target_names: allRegistered,
     explicit_source_text: null,
     high_impact_intents_allowed: []
   };
@@ -220,10 +250,9 @@ export function validatePlayerDialogueAgainstPolicy(text, policy) {
     const sourceIntents = new Set(classifyDialogueIntents(source));
     const newHighImpact = highImpact.filter(i => !sourceIntents.has(i));
     if (newHighImpact.length) return { ok: false, reason: `new_high_impact:${newHighImpact.join(',')}` };
-    // 2) 입력에 없는 새 NPC 이름 추가 → 차단 (표시 이름으로 감지)
-    const allowedTargets = Array.isArray(policy.allowed_target_ids) ? policy.allowed_target_ids : [];
-    const allowedNames = new Set(allowedTargets.map(id => id));
-    if (allowedNames.size && hasUnknownNpcName(body, policy)) return { ok: false, reason: 'new_npc_target' };
+    // 2) 입력에 없는 새 NPC 이름 추가 → 차단 (수정 6: 실제 전체 이름 매칭)
+    const unknownTarget = findUnknownNpcName(body, policy);
+    if (unknownTarget) return { ok: false, reason: `new_npc_target:${unknownTarget}` };
     // 3) 입력에 없는 material action 추가 → 차단
     const allowedMaterial = new Set(policy.allowed_material_actions ?? []);
     const newMaterial = materialActionsOf(body).filter(a => !allowedMaterial.has(a));
@@ -237,6 +266,9 @@ export function validatePlayerDialogueAgainstPolicy(text, policy) {
     const allowedIntents = new Set(policy.allowed_intents ?? []);
     const unexpected = intents.filter(i => !allowedIntents.has(i));
     if (unexpected.length) return { ok: false, reason: `intent_out_of_scope:${unexpected.join(',')}` };
+    // 수정 6 — 입력에 없는 NPC 이름 차단
+    const unknownTarget = findUnknownNpcName(body, policy);
+    if (unknownTarget) return { ok: false, reason: `new_npc_target:${unknownTarget}` };
     const allowedMaterial = new Set(policy.allowed_material_actions ?? []);
     const newMaterial = materialActionsOf(body).filter(a => !allowedMaterial.has(a));
     if (newMaterial.length) return { ok: false, reason: `new_material:${newMaterial.join(',')}` };
@@ -246,14 +278,26 @@ export function validatePlayerDialogueAgainstPolicy(text, policy) {
   return { ok: true };
 }
 
+/**
+ * 수정 6 — 생성 대사에서 등록된 전체 이름을 찾아 allowed 대상인지 검증한다.
+ * 전체 이름만 매칭한다 (별명·직급·대명사는 근거로 쓰지 않는다).
+ * 입력에서 허용된 NPC가 없는데 등록 NPC 이름이 등장하면 차단 대상으로 반환한다.
+ * minor_reaction은 이름 단독으로는 차단하지 않는다 (고위험 intent와 함께일 때만).
+ */
+function findUnknownNpcName(generatedText, policy) {
+  const text = typeof generatedText === 'string' ? generatedText : '';
+  const allowedIds = new Set(policy.allowed_target_ids ?? []);
+  const registered = Array.isArray(policy.registered_target_names) ? policy.registered_target_names : [];
+  for (const entry of registered) {
+    if (!entry?.name || !text.includes(entry.name)) continue;
+    if (!allowedIds.has(entry.id)) return entry.name;
+  }
+  return null;
+}
+
 /** explicit에서 입력에 없는 새 NPC 이름 등장 감지 (canon 대상만). */
 function hasUnknownNpcName(body, policy) {
-  // policy.allowed_target_ids에 이미 있는 NPC 이름은 허용
-  const allowedIds = new Set(policy.allowed_target_ids ?? []);
-  // 실제로는 speakerNames canon이 필요하므로, 여기서는 material/새 인물 검증을
-  // gate 단계에서 speakerNames와 함께 수행한다 — 이 함수는 이름 목록을 알 수 없으므로
-  // 기본적으로 false (실검증은 validateDialogueBlock에서 canSpeak로 이미 수행됨).
-  return false;
+  return findUnknownNpcName(body, policy) !== null;
 }
 
 // ---------------------------------------------------------------------------
@@ -286,7 +330,47 @@ function namedNpcIds(master, text) {
  * last_npcs_present는 단독 present 근거가 아니다 (context 참고용).
  * npc_scene_state[id]가 없으면 last_npcs_present만으로 승계하지 않는다.
  */
-function resolvePresentNpcIds({ save, registeredIds, actionTargetIds }) {
+/**
+ * NPC별 present 판정 helper (최종 단순화 수정 7).
+ * present 승인 근거는 다음뿐이다:
+ *   - participants 직접 포함
+ *   - NPC location_id가 현재 location_id와 명시적 일치
+ *   - present === true (위치 충돌 없을 때)
+ * 명시적 부재(present===false)가 항상 최우선이고, 위치 충돌도 제외다.
+ * last_npcs_present / focal / last_speaker / action target / pending boundary는
+ * present 근거가 아니다 (context 전용).
+ */
+export function isNpcPresentAtCurrentScene({
+  id,
+  participants = [],
+  sceneLocationId = null,
+  npcSceneState = {}
+}) {
+  const state = npcSceneState[id];
+
+  // 명시적 부재가 항상 최우선
+  if (state?.present === false) return false;
+
+  const npcLocationId = typeof state?.location_id === 'string' ? state.location_id : null;
+
+  // 위치가 명시적으로 충돌하면 제외
+  if (sceneLocationId && npcLocationId && sceneLocationId !== npcLocationId) {
+    return false;
+  }
+
+  // 현재 participants
+  if (Array.isArray(participants) && participants.includes(id)) return true;
+
+  // 현재 위치와 명시적 일치
+  if (sceneLocationId && npcLocationId === sceneLocationId) return true;
+
+  // present=true이며 위치 충돌이 없음
+  if (state?.present === true) return true;
+
+  return false;
+}
+
+function resolvePresentNpcIds({ save, registeredIds }) {
   const present = [];
   const push = id => {
     if (!id || isPlayerRefId(id) || !registeredIds.has(id) || present.includes(id)) return;
@@ -295,34 +379,13 @@ function resolvePresentNpcIds({ save, registeredIds, actionTargetIds }) {
   const sceneState = isPlainObject(save?.scene_state) ? save.scene_state : {};
   const locationId = identity(sceneState.location_id);
   const npcSceneState = isPlainObject(save?.npc_scene_state) ? save.npc_scene_state : {};
+  const participants = Array.isArray(sceneState.participants) ? sceneState.participants : [];
 
-  // 1. 현재 scene_state.participants
-  for (const id of Array.isArray(sceneState.participants) ? sceneState.participants : []) push(id);
-
-  // 2. 현재 위치가 저장된 NPC (location 일치가 명시적 근거)
-  if (locationId) {
-    for (const [id, state] of Object.entries(npcSceneState)) {
-      if (isPlainObject(state) && identity(state.location_id) === locationId) push(id);
+  // 모든 등록 NPC를 helper로 판정 (action target 승격 경로 없음 — 수정 7)
+  for (const id of registeredIds) {
+    if (isNpcPresentAtCurrentScene({ id, participants, sceneLocationId: locationId, npcSceneState })) {
+      push(id);
     }
-  }
-
-  // 3. last_npcs_present — 단독 present 승계 금지 (수정 F 8.1).
-  //    npc_scene_state[id]가 있고 present !== false이면서 위치가 현재 장소와
-  //    충돌하지 않을 때만 보조 근거로 인정한다.
-  for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) {
-    const state = npcSceneState[id];
-    if (!isPlainObject(state)) continue; // 상태 기록이 없으면 승계하지 않는다
-    if (state.present === false) continue;
-    const stateLocation = identity(state.location_id);
-    if (locationId && stateLocation && stateLocation !== locationId) continue;
-    // present===true 또는 위치 일치가 이미 2번에서 push됐을 수 있다 — 중복은 push가 걸러준다
-    if (state.present === true) push(id);
-  }
-
-  // 4·5. 명시적 행동 대상 / CSA 대상이면서 이미 현장에 있는 NPC
-  for (const id of actionTargetIds) {
-    const state = npcSceneState[id];
-    if (isPlainObject(state) && state.present === true) push(id);
   }
 
   return present;
@@ -428,11 +491,8 @@ export function buildSceneCastContract({
   const sceneState = isPlainObject(save?.scene_state) ? save.scene_state : {};
   const locationId = identity(sceneState.location_id);
 
-  const actionTargetIds = [];
-  const contractTarget = identity(actionContract?.target_id);
-  if (contractTarget) actionTargetIds.push(contractTarget);
-
-  const presentNpcIds = resolvePresentNpcIds({ save, registeredIds, actionTargetIds });
+  // 수정 7 — action target은 present 승격 근거가 아니다
+  const presentNpcIds = resolvePresentNpcIds({ save, registeredIds });
   const enteringNpcIds = resolveEnteringNpcIds({
     save, master, playerAction, registeredIds, presentIds: presentNpcIds, structuredAction
   });
@@ -442,6 +502,13 @@ export function buildSceneCastContract({
   const remoteNpcIds = resolveRemoteNpcIds({
     save, master, playerAction, registeredIds, presentIds: presentNpcIds, enteringIds: enteringNpcIds
   });
+
+  // 수정 2 — 이동 턴은 전환 전용 턴: 현재 장소 NPC·목적지 NPC 모두 발화 금지.
+  // allowed_speaker_ids = ['player', ...remoteNpcIds]
+  const transitionMode = destinationNpcIds.length ? 'movement' : 'stationary';
+  const isMovementTurn = transitionMode === 'movement';
+  const effectivePresent = isMovementTurn ? [] : presentNpcIds;
+  const effectiveEntering = isMovementTurn ? [] : enteringNpcIds;
 
   // 문맥 참고용 — focal/last_speaker는 여기에는 들어가지만 present에는 별도 근거가 필요하다.
   const contextNpcIds = [];
@@ -460,24 +527,18 @@ export function buildSceneCastContract({
   pushContext(identity(save?.last_speaker_id));
   for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) pushContext(id);
 
-  const allowedSpeakerIds = ['player', ...presentNpcIds, ...enteringNpcIds, ...remoteNpcIds];
-
-  // 수정 F 8.4 — destination 대상은 allowed_speaker에 포함하되 발화 scope를 제한한다
-  const speakerScope = {};
-  for (const id of destinationNpcIds) {
-    if (!allowedSpeakerIds.includes(id)) allowedSpeakerIds.push(id);
-    speakerScope[id] = 'after_destination_arrival';
-  }
+  // 수정 2 — 이동 턴은 destination NPC를 allowed_speaker에 넣지 않는다
+  const allowedSpeakerIds = ['player', ...effectivePresent, ...effectiveEntering, ...remoteNpcIds];
 
   return {
     version: 1,
+    transition_mode: transitionMode,
     location_id: locationId,
     context_npc_ids: contextNpcIds,
-    present_npc_ids: presentNpcIds,
-    entering_npc_ids: enteringNpcIds,
+    present_npc_ids: effectivePresent,
+    entering_npc_ids: effectiveEntering,
     destination_npc_ids: destinationNpcIds,
     remote_npc_ids: remoteNpcIds,
-    speaker_scope: Object.keys(speakerScope).length ? speakerScope : undefined,
     allowed_speaker_ids: allowedSpeakerIds,
     player_dialogue: resolvePlayerDialoguePolicy(playerAction, master),
     anonymous_speech_allowed: false,

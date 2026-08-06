@@ -203,10 +203,11 @@ test('15-2: contract 계산 중 추가 네트워크 호출 없음', async () => 
 test('15-3: upstream 완료 전에 클라이언트가 첫 delta를 수신 — 실제 비동기 스트림 증명', async () => {
   // upstream ReadableStream: 첫 delta만 enqueue하고, 두 번째 청크와 [DONE]은 promise로 정지시킨다.
   // 클라이언트가 첫 delta를 받기 전에는 업스트림이 절대 완료될 수 없다.
+  // (수정 3: 한 줄 버퍼 — 개행이 포함된 완성 라인이 첫 delta가 된다)
   let release;
   const gate = new Promise(resolve => { release = resolve; });
   const encoder = new TextEncoder();
-  const firstChunk = `data: ${JSON.stringify({ choices: [{ delta: { content: '[1. 서사 및 행동]\n이메이의 눈동자가 흔들렸다.' } }] })}\n\n`;
+  const firstChunk = `data: ${JSON.stringify({ choices: [{ delta: { content: '[1. 서사 및 행동]\n이메이의 눈동자가 흔들렸다.\n' } }] })}\n\n`;
   const restChunk = `data: ${JSON.stringify({ choices: [{ delta: { content: '\n[2. 플레이어 속마음]\n좋아.\n[3. 플레이어 상황판]\n회의실.\n[4. 선택지]\n1. A\n2. B\n3. C\n4. D' } }] })}\n\ndata: [DONE]\n\n`;
   const upstream = new ReadableStream({
     start(controller) {

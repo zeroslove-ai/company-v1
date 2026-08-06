@@ -460,9 +460,9 @@ test('40. 실제 async upstream에서 첫 SCENE delta가 completion 전 도착',
   assert.equal(end.blocks.length, 1);
 });
 
-test('41. DIALOGUE-first leak 없음', () => {
+test('41. DIALOGUE-first leak 없음 (story 섹션에서)', () => {
   const gate = gateFor(baseContract());
-  const out = gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n네.\n');
+  const out = gate.push('[1. 서사 및 행동]\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n네.\n');
   assert.ok(!out.some(e => e.kind === 'block'), 'SCENE 전 DIALOGUE 화면 누출 없음');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.BEFORE_SCENE));
@@ -531,19 +531,20 @@ test('50. 청크 크기 1과 전체 청크 결과 동일', () => {
 // 실게임형 fixture (spec 14)
 // ---------------------------------------------------------------------------
 
-test('이동 fixture — 서원희 자동 동행 없음, 미등록 인물 차단, 이름 오표기 없음', () => {
-  // 현재 장면: 서원희(heroine1)와 회의실, last_npcs_present: 서원희
+test('이동 fixture — 이동 턴 발화 금지, 미등록 인물 차단, 이름 오표기 없음', () => {
+  // 현재 장면: 서원희(heroine1)와 회의실
   const save = baseSave({
     scene_state: { ...baseSave().scene_state, participants: ['player-1', 'heroine1'], location_id: 'meeting_room_5f' },
     npc_scene_state: { heroine1: { present: true, location_id: 'meeting_room_5f' } },
     last_npcs_present: ['heroine1']
   });
   const contract = buildSceneCastContract({ save, master, playerAction: '윤민아를 보러 디자인팀으로 간다.' });
-  // 서원희는 present (기존 장면)
-  assert.ok(contract.present_npc_ids.includes('heroine1'));
-  // 윤민아는 destination (기존 회의실로 갑자기 들어오지 않음)
-  assert.ok(contract.destination_npc_ids.includes('heroine2'));
-  assert.ok(!contract.entering_npc_ids.includes('heroine2'));
+  // 수정 2 — 이동 턴: 현재 장소 NPC(서원희)·목적지 NPC(윤민아) 모두 발화 금지
+  assert.equal(contract.transition_mode, 'movement');
+  assert.ok(contract.destination_npc_ids.includes('heroine2'), '윤민아는 destination');
+  assert.ok(!contract.allowed_speaker_ids.includes('heroine1'), '서원희 발화 불가');
+  assert.ok(!contract.allowed_speaker_ids.includes('heroine2'), '윤민아 발화 불가');
+  assert.deepEqual(contract.present_npc_ids, [], '이동 턴 present 비움');
   // 미등록 인물 "김민아"는 어떤 목록에도 없음
   assert.equal(canSpeak(contract, 'npc_kimmina'), false);
   // 윤민아 대사가 서원희 이름으로 표시되지 않음 — canon 매핑 확인
