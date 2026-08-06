@@ -279,6 +279,26 @@ test('action_not_found blocks a new action and exposes retry_story recovery', as
   });
 });
 
+test('wait_story recovery starts a fresh story exactly once (no recursion deadlock)', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const local = storage(); savePending(local, { game_id: gameId, action_id: 'waiting', expected_turn: 5, player_action: 'Stuck action', created_at: 'now', step: 'story' });
+    let storyCalls = 0;
+    const api = {
+      context: async () => ({ context: validContext() }),
+      actionStatus: async () => ({ recoverable_step: 'wait_story' }),
+      story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 재개된 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
+    // 좌초(story_streaming) 액션은 새 스토리 1회로 재개된다 — checkRecovery↔resumePending 무한 왕복 금지
+    assert.equal(storyCalls, 1);
+    assert.equal(loadPending(local, gameId), null);
+    assert.equal(nodes['player-action'].disabled, false);
+    assert.equal(await app.startNewAction('New action'), true);
+  });
+});
+
 test('complete recovery clears pending UI and re-enables controls', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     const local = storage(); savePending(local, { game_id: gameId, action_id: 'done', expected_turn: 3, player_action: 'Done', created_at: 'now', step: 'commit' });

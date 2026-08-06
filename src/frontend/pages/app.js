@@ -119,6 +119,8 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
   }
 
   async function runRecovery(pending, step) {
+    // wait_story: 스토리가 아직 시작되지 않은 좌초 액션 → 스토리 생성을 새로 시작한다
+    if (step === 'wait_story') return runStoryForPending(pending);
     if (step === 'retry_story') return runStoryForPending(pending);
     if (step === 'resume_extract' || step === 'retry_extract') return runExtractForPending(pending);
     if (step === 'resume_commit' || step === 'retry_commit') return runCommitForPending(pending);
@@ -311,7 +313,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   async function resumePending(pending, step) {
     return withBusy(async () => {
-      if (step === 'wait_story' || step === 'unknown') return checkRecovery();
+      // wait_story/unknown을 checkRecovery()로 되돌리면 무한 재귀 — coordinator가 직접 처리한다
+      if (step === 'wait_story' || step === 'unknown') { await coordinator.runRecovery(pending, step); return; }
       if (step === 'retry_story') { showCurrentAction(pending.player_action); text(elements.stream, 'Story를 다시 시도하는 중…'); }
       await coordinator.runRecovery(pending, step);
     });

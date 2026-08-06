@@ -26,12 +26,14 @@ export function collectUnlabeledQuotes(storyText) {
   const section = sectionMatch ? sectionMatch[1] : storyText ?? '';
   const lines = [];
   let lastNarrative = '';
+  let lastNamedDialogue = '';
   let index = 0;
   for (const rawLine of section.split(/\r?\n/)) {
     const trimmed = rawLine.trim();
     if (!trimmed) continue;
-    // 화자명 명시 대사(XX: "…" / XX (지시): "…")는 이미 화자가 확정 — 제외
+    // 화자명 명시 대사(XX: "…" / XX (지시): "…")는 이미 화자가 확정 — 문맥용으로만 기록
     if (/^[^\n:："“”]{1,40}?\s*(?:\([^()\n]{0,160}\))?\s*[:：]\s*["“]/.test(trimmed)) {
+      lastNamedDialogue = trimmed;
       if (trimmed) lastNarrative = trimmed;
       continue;
     }
@@ -41,7 +43,10 @@ export function collectUnlabeledQuotes(storyText) {
     while ((m = re.exec(trimmed)) !== null) {
       index += 1;
       const before = trimmed.slice(0, m.index).trim();
-      lines.push({ index, text: m[1].trim(), context: (prev || before || lastNarrative).slice(-80) });
+      // 문맥 = 직전 서술 + 직전 화자명 명시 대사(교대 흐름 파악용). 최대 300자.
+      const parts = [prev || before || lastNarrative];
+      if (lastNamedDialogue) parts.push(`직전 대사: ${lastNamedDialogue}`);
+      lines.push({ index, text: m[1].trim(), context: parts.join(' ').slice(-300) });
       prev = before;
     }
     if (trimmed) lastNarrative = trimmed;
