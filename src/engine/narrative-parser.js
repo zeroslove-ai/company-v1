@@ -171,7 +171,7 @@ let lastLine = '';
       const text = quote[1];
       let speaker = null;
       if (mentioned && isSpeechAttribution(lastLine, mentioned)) speaker = mentioned;
-      else if (mentioned && (/(감사님|임원님|금 감사님)/.test(text) || /(저희가|저희는|저희 팀|저희도)/.test(text))) speaker = mentioned;
+      else if (mentioned && (/(감사님|임원님|금 감사님|팀장님)/.test(text) || /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text))) speaker = mentioned;
       const indent = rawLine.slice(0, rawLine.indexOf(trimmed));
       if (speaker) {
         recentSpeaker = speaker;

@@ -154,7 +154,7 @@ function appendSceneBlocks(blocks, dialogueLines, value, speakerDirectory, playe
       const text = quote[1];
       let speaker = null;
       if (mentioned && isSpeechAttribution(lastLine, mentioned)) speaker = mentioned;
-      else if (mentioned && (/(감사님|임원님|금 감사님)/.test(text) || /(저희가|저희는|저희 팀|저희도)/.test(text))) speaker = mentioned;
+      else if (mentioned && (/(감사님|임원님|금 감사님|팀장님)/.test(text) || /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text))) speaker = mentioned;
       const resolved = speaker ?? { id: 'player', name: playerName };
       appendDialogue(normalizedDialogue(resolved.name, '자연스럽게', text, speakerDirectory, dialogueLines.length));
       recentSpeaker = { id: resolved.id, name: resolved.name };

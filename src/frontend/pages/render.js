@@ -161,13 +161,21 @@ export function renderNarrative(container, parsed) {
   const labels = parsedChoiceLabels({ choice_labels: parsed?.choice_labels }, {}, choices.length);
   if (container.id === 'current-story') currentChoiceSet = choiceSet(choices, labels);
   let embeddedChoices = false;
+  let lastDialogueCard = null;
   for (const block of parsed?.blocks ?? []) {
     if (block.type === 'choices') {
       renderNarrativeChoices(container, block.choices ?? choices, block.choice_labels ?? labels);
       embeddedChoices = true;
+      lastDialogueCard = null;
       continue;
     }
     if (block.type === 'dialogue') {
+      // 같은 화자가 연속으로 말하면 한 대사칸에 이어 붙인다
+      if (lastDialogueCard && lastDialogueCard.dataset?.speakerId === block.speaker_id) {
+        const line = lastDialogueCard.querySelector('.dialogue-text');
+        if (line) line.textContent += `\n${block.text}`;
+        continue;
+      }
       const card = document.createElement('article'); card.className = 'narrative-dialogue dialogue-card';
       if (block.speaker_id) setDataValue(card, 'speakerId', block.speaker_id);
       const speakerTone = dialogueToneClass(block.speaker_id);
@@ -177,8 +185,10 @@ export function renderNarrative(container, parsed) {
       const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = block.direction ?? '';
       const line = document.createElement('p'); line.className = 'dialogue-text'; line.textContent = block.text ?? '';
       meta.append(speaker, direction); card.append(meta, line); container.append(card);
+      lastDialogueCard = card;
       continue;
     }
+    lastDialogueCard = null;
     const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`;
     // 플레이어 속마음: 마침표·물음표·느낌표 뒤 줄바꿈으로 가독성 향상 (대화체 혼잣말)
     const blockText = block.text ?? '';
