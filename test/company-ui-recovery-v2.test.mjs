@@ -176,3 +176,38 @@ test('CSA app handoff closes synchronously instead of awaiting Story Extract Com
   assert.match(source, /return true;/);
   assert.doesNotMatch(source, /onSubmit:\s*async\s*\(displayInput, canonicalAction\)/);
 });
+
+test('production Turn 20 speaker rules: vocative 씨 → player, 팀장님 excludes team lead, speech-subject wins', () => {
+  const story = [
+    '[1. 서사 및 행동]',
+    '이메이의 손끝이 내 바지 위에서 망설이듯 멈춰 있었다.',
+    '"이메이 씨, 여기까지 오면 좀 더 편하게 해줘도 되지 않겠어?"',
+    '이메이의 눈동자가 흔들렸다.',
+    '"저... 감사님, 이거 진짜 처음인데..."',
+    '"처음이니까 더 잘해주고 싶은 거 아니야? 느낌 가는 대로 해."',
+    '그때, 서원희가 슬라이드 정리를 멈추고 우리 쪽을 바라보고 있었다.',
+    '"태양 감사님, 시간 괜찮으시면 슬라이드 마지막 부분만 짚고 넘어가려고요. 이메이 씨, 감사님이랑 준비됐어?"',
+    '서원희가 딱딱하게 말했다. 이메이가 화들짝 놀라 손을 빼려는 듯 움직였다.',
+    '"네... 팀장님, 조금만, 저... 정리하고 바로."',
+    '"그럼 천천히 해. 일단 감사님한테 핵심만 말씀드릴게."',
+    '[2. 플레이어 속마음]', '아이고.',
+    '[3. 플레이어 상황판]', '보고실.',
+    '[4. 선택지]', '1. A', '2. B', '3. C', '4. D'
+  ].join('\n');
+  const expected = ['player', 'heroine5', 'player', 'heroine1', 'heroine5', 'heroine1'];
+  const dir = { heroine1: { name: '서원희' }, heroine5: { name: '이메이' } };
+  const mstr = { characters: [
+    { character_id: 'heroine1', name: '서원희' },
+    { character_id: 'heroine5', name: '이메이' }
+  ]};
+  for (const parsed of [
+    parseFrontendNarrative(story, { speakerDirectory: dir }),
+    parseEngineNarrative(story, { master: mstr })
+  ]) {
+    const dialogues = parsed.blocks.filter(b => b.type === 'dialogue');
+    assert.equal(dialogues.length, expected.length);
+    expected.forEach((exp, i) => {
+      assert.equal(dialogues[i].speaker_id, exp, `대사 ${i + 1} 화자`);
+    });
+  }
+});

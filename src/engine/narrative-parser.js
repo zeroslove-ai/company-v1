@@ -30,6 +30,48 @@ function splitQuotedParts(line) {
   return parts;
 }
 const CHOICE_LABEL = /^\[([^\[\]\r\n]{2,6})\]\s*(.+)$/u;
+const PLAYER_LABEL = '플레이어';
+
+// 직전 서술에서 "NPC가 … 말했다/물었다…" 화행 동사의 주어를 직접 찾는다
+function speechAttributionSubject(value, speakers) {
+  const line = String(value ?? '');
+  const re = /([\p{L}]{1,6})\s*(?:이|가)\s*[^\n。.!?]{0,14}?\s*(?:말했|물었|입을 열었|대꾸했|외쳤|중얼거렸|속삭였|되물었|덧붙였|대답했|반문했|설명했|인사하며|고개를 끄덕이며|목소리를 내|숨을 고르며)/u;
+  const m = re.exec(line);
+  if (!m) return null;
+  const name = m[1].trim();
+  return (speakers ?? []).find(s => s.name === name || shortAlias(s.name) === name) ?? null;
+}
+
+// 대사가 등록 NPC를 "이름 씨,"처럼 호격으로 직접 부르면 true — 화자는 플레이어 (지칭 "씨가"는 제외)
+function namesAddressIn(text, speakers) {
+  const value = String(text ?? '');
+  return (speakers ?? []).some(entry => {
+    const full = entry.name;
+    const alias = shortAlias(entry.name);
+    const names = [full, alias].filter(Boolean).map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    if (!names.length) return false;
+    const pattern = `(${names.join('|')})\\s*씨\\s*[,，.!?…]`;
+    return new RegExp(pattern).test(value) || new RegExp(`^(${names.join('|')})\\s*씨\\b`).test(value);
+  });
+}
+
+// "팀장님"(서원희)을 부르는 말의 화자는 서원희가 아니다 — 서원희 제외 마지막 언급 NPC
+function lastMentionedSpeakerExcluding(value, speakers, previous, excludedName) {
+  const line = String(value ?? '');
+  const filtered = (speakers ?? []).filter(s => s.name !== excludedName);
+  let result = previous;
+  let bestIndex = -1;
+  for (const s of filtered) {
+    const i = line.lastIndexOf(s.name);
+    if (i > bestIndex) { result = s; bestIndex = i; }
+    const alias = shortAlias(s.name);
+    if (alias) {
+      const ai = line.lastIndexOf(alias);
+      if (ai > bestIndex) { result = s; bestIndex = ai; }
+    }
+  }
+  return result;
+}
 
 function labelRole(label) {
   if (SECTION_LABELS[label]) return SECTION_LABELS[label];
@@ -140,6 +182,7 @@ export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
 
   let role = null;
   let recentSpeaker = null;
+  let lastDialogueSpeaker = null;
   const output = [];
   // 직전 서술이 "XXX가 말했다/입을 열었다"처럼 화자를 지목하면 true
 function isSpeechAttribution(line, mentioned) {
@@ -150,6 +193,7 @@ function isSpeechAttribution(line, mentioned) {
 let lastLine = '';
   for (const rawLine of source.split(/\r?\n/)) {
     const trimmed = rawLine.trim();
+    if (!trimmed) continue;
     const section = SECTION_LINE.exec(trimmed);
     if (section) {
       role = labelRole(section[1]);
@@ -180,15 +224,35 @@ let lastLine = '';
 
     const quote = QUOTE_ONLY_LINE.exec(trimmed);
     if (quote && !isInternalQuotedThought(quote[1])) {
-      // 직전 서술이 화자를 지목하면 그 NPC, 아니면 플레이어
       const mentioned = lastMentionedSpeaker(lastLine, speakers, recentSpeaker);
       const text = quote[1];
       let speaker = null;
-      if (mentioned && isSpeechAttribution(lastLine, mentioned)) speaker = mentioned;
-      else if (mentioned && (/(감사님|임원님|금 감사님|팀장님)/.test(text) || /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text))) speaker = mentioned;
+      // 화행 주어를 mentioned의 우선 기준점으로
+      const attrSubject = speechAttributionSubject(lastLine, speakers);
+      const baseMentioned = attrSubject ?? mentioned;
+      // 1) 감사님 호칭 → 직전 언급 NPC (화행 주어 우선)
+      if (baseMentioned && /(감사님|임원님|금 감사님)/.test(text)) speaker = baseMentioned;
+      // 2) 팀장님 호칭 → 서원희를 부르는 말 → 서원희 제외 언급 (없으면 플레이어)
+      else if (/팀장님/.test(text)) {
+        const nonLeader = lastMentionedSpeakerExcluding(lastLine, speakers, recentSpeaker, '서원희');
+        speaker = nonLeader ?? { id: null, name: PLAYER_LABEL };
+      }
+      // 3) "이메이 씨," 호격 → 플레이어
+      else if (namesAddressIn(text, speakers)) speaker = { id: null, name: PLAYER_LABEL };
+      // 4) 팀 내부 지칭(저희) → 직전 언급 NPC
+      else if (mentioned && /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text)) speaker = mentioned;
+      // 5) 화행 주어 (직전 대사 화자를 설명하는 화행이면 미적용)
+      else if (attrSubject && !(lastDialogueSpeaker && (attrSubject.name === lastDialogueSpeaker.name || attrSubject.id === lastDialogueSpeaker.id))) speaker = attrSubject;
+      // 6) 직전 서술 화행 지목 (직전 대사의 화자를 설명하는 화행이면 미적용)
+      else if (mentioned && isSpeechAttribution(lastLine, mentioned) && !(lastDialogueSpeaker?.name === mentioned.name)) speaker = mentioned;
+      // 7) 직전 대사가 화자명 확정 NPC면 → 플레이어 (교대 — 직전 대사 기준)
+      else if (lastDialogueSpeaker && lastDialogueSpeaker.id && lastDialogueSpeaker.id !== 'player') speaker = { id: null, name: PLAYER_LABEL };
+      // 8) 직전 서술에 NPC 언급 → 그 NPC
+      else if (mentioned) speaker = mentioned;
       const indent = rawLine.slice(0, rawLine.indexOf(trimmed));
       if (speaker) {
         recentSpeaker = speaker;
+        lastDialogueSpeaker = speaker;
         output.push(`${indent}${speaker.name} (자연스럽게): “${text.trim()}”`);
       } else {
         output.push(rawLine);
@@ -205,8 +269,12 @@ let lastLine = '';
           const mentioned = lastMentionedSpeaker(ctxLine, speakers, recentSpeaker);
           const text = part.text;
           let speaker = null;
-          if (mentioned && isSpeechAttribution(ctxLine, mentioned)) speaker = mentioned;
+          const attrSubject = speechAttributionSubject(ctxLine, speakers);
+          if (attrSubject) speaker = attrSubject;
+          else if (mentioned && isSpeechAttribution(ctxLine, mentioned)) speaker = mentioned;
           else if (mentioned && (/(감사님|임원님|금 감사님|팀장님)/.test(text) || /(저희가|저희는|저희 팀|저희도|저희 브랜드|저희 캠페인)/.test(text))) speaker = mentioned;
+          else if (namesAddressIn(text, speakers)) speaker = { id: null, name: PLAYER_LABEL };
+          else if (recentSpeaker && recentSpeaker.id && recentSpeaker.id !== 'player') speaker = { id: null, name: PLAYER_LABEL };
           if (speaker) {
             recentSpeaker = speaker;
             output.push(`${speaker.name} (자연스럽게): “${text.trim()}”`);
@@ -233,11 +301,13 @@ function normalizedDialogue({ speakerName, direction, dialogueText }, master, or
   const suppliedName = typeof speakerName === 'string' ? speakerName.trim() : '';
   const resolved = resolveRegisteredSpeaker(suppliedName, master);
   const name = resolved?.name ?? suppliedName;
+  // normalizeQuoteOnlyDialogue가 '플레이어' 라벨로 삽입한 대사 → 플레이어 id 확정
+  const isPlayerLabel = suppliedName === PLAYER_LABEL;
   const acting = typeof direction === 'string' ? direction.trim() : '';
   const text = typeof dialogueText === 'string' ? dialogueText.trim().replace(/^["“”']+|["“”']+$/g, '').trim() : '';
   if (!name || !acting || !text) return null;
   return {
-    speaker_id: resolved?.id ?? null,
+    speaker_id: isPlayerLabel ? 'player' : (resolved?.id ?? null),
     speaker_name: name,
     direction: acting,
     text,
