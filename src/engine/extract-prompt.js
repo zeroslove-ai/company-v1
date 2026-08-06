@@ -76,8 +76,7 @@ const SYSTEM_INSTRUCTIONS = [
   'CSA deltas only state_delta.csa_runtime_state[csa_id]{lifecycle,applicability,execution_state} and csa_attitudes[npc_id][csa_id].',
   'player_sexual_state uses only arousal_delta, ejaculation_progress_delta, and ejaculation_completed; completion requires evidence.sexual_resolution === true.',
   'Physical patches may set concise Korean location_label, posture, position_label, and arbitrary Korean clothing keys/state strings only from exact Story evidence; clothing values are worn|removed|open|unknown, CSA rule text alone or magical wording (저절로/순식간에) is rejected, and evidence quotes must be verbatim in Story and name the character. Omit unchanged or uncertain fields; legacy English codes are compatibility input, not an output catalog.',
-  'npc_stats and sexual_event_ledger each need an exact Story quote. Distinguish attempt, refusal, partial, conditional acceptance, pause, completion. Human-readable strings are Korean; IDs unchanged.',
-  'sexual_event_ledger completed=true for the current player-target sexual action requires both actor_id and target_id: one must be "player", the other the registered target NPC stable id. If exact Story evidence cannot identify both parties, omit the completed event. This does not apply to attempts, refusals, interruptions, pauses, reports, boundaries, ordinary work, or genuinely self-directed events; target_id may be null for those when evidenced.'
+  'npc_stats/sexual_event_ledger need Story quotes and correct outcomes. Player-target completion needs "player"+registered target IDs; omit if unknown. Incomplete/self events may use null target_id. Korean; IDs unchanged.'
 ].join(' ');
 
 export function buildExtractPrompt({ context, storyText, parsedStory, playerAction, expectedTurn, edition, npcIds }) {

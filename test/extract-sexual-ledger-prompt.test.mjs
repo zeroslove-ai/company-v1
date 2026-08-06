@@ -11,12 +11,10 @@ test('Extract prompt requires both parties only for completed current player-tar
     expectedTurn: 1
   })[0].content;
 
-  assert.match(system, /sexual_event_ledger completed=true/);
-  assert.match(system, /requires both actor_id and target_id/);
-  assert.match(system, /one must be "player"/);
-  assert.match(system, /registered target NPC stable id/);
-  assert.match(system, /cannot identify both parties, omit the completed event/);
-  assert.match(system, /does not apply to attempts, refusals, interruptions, pauses, reports, boundaries, ordinary work, or genuinely self-directed events/);
-  assert.match(system, /target_id may be null for those when evidenced/);
-  assert.ok(system.length <= 5000, `extract system chars: ${system.length}`);
+  assert.match(system, /sexual_event_ledger need Story quotes and correct outcomes/);
+  assert.match(system, /Player-target completion needs "player"\+registered target IDs/);
+  assert.match(system, /omit if unknown/);
+  assert.match(system, /Incomplete\/self events may use null target_id/);
+  assert.match(system, /Korean; IDs unchanged/);
+  assert.ok(system.length <= 3000, `extract system chars: ${system.length}`);
 });
