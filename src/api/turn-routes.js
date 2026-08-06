@@ -57,6 +57,8 @@ import {
   planCsaTransaction,
   resolveCsaDirectCoverage,
   buildCsaDirectCoverageSection,
+  resolveActionExecutionContract,
+  buildActionExecutionContractSection,
   semanticStrengthIssues,
   sha256Base64url,
   signAppValidationProof,
@@ -244,7 +246,7 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
  * pass. This only trims prompt tokens — every gated section's underlying feature contract is
  * unchanged when its condition holds.
  */
-function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog }) {
+function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog, actionContract }) {
   const applicableCsa = getApplicableCsaEntries(save);
   const hasApplicableCsa = applicableCsa.length > 0;
   const isAppTransactionTurn = Boolean(plan);
@@ -266,10 +268,59 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog 
   if (hasApplicableCsa && playerAction) {
     const coverage = resolveCsaDirectCoverage(save, playerAction, { sexualActionContract: csaCatalog?.sexual_action_contract });
     extra += buildCsaDirectCoverageSection(coverage);
+    // ActionExecutionContract section — csa_direct는 exact-scope 강화, 범위 밖 material action은
+    // 짧고 강한 음수 계약 (회사 규정·감사 업무·인사팀 지시로 정당화 금지)
+    if (actionContract) extra += buildActionExecutionContractSection(actionContract, { applicableCsa });
   }
   const next = [{ ...messages[0], content: messages[0].content + extra }, ...messages.slice(1)];
   next.push({ role: 'system', content: buildNpcCsaEpistemicFirewallSection() });
   return next;
+}
+
+/**
+ * 계약 기반 state firewall — Story 결과를 검사하는 verifier가 아니다.
+ * ordinary_direct_blocked 계약일 때 Extract가 무엇을 반환하든 다음 정본 승격을 막는다:
+ * - first_kiss / sexual relationship milestone
+ * - 성적 행동 완료 event
+ * 허용: affinity/resistance(관계 규칙)/emotion/arousal/scene/대화 변화.
+ */
+export function applyContractStateFirewall(extract, contract) {
+  if (!contract || contract.route !== 'ordinary_direct_blocked') return extract;
+  const stateDelta = extract?.state_delta ?? {};
+  const next = { ...extract, state_delta: { ...stateDelta } };
+  if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
+    const rel = {};
+    for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
+      const p = { ...patch };
+      if (p.milestones && typeof p.milestones === 'object') {
+        const milestones = { ...p.milestones };
+        delete milestones.first_kiss_turn;
+        delete milestones.sexual_relationship_started_turn;
+        p.milestones = milestones;
+      }
+      rel[id] = p;
+    }
+    next.state_delta.npc_relationship_state = rel;
+  }
+  if (Array.isArray(next.state_delta.event_ledger)) {
+    next.state_delta.event_ledger = next.state_delta.event_ledger.filter(ev => {
+      const type = typeof ev?.event_type === 'string' ? ev.event_type : '';
+      const summary = typeof ev?.summary === 'string' ? ev.summary : '';
+      const sexualCompletionType = /sexual|kiss|intimate|foreplay|penetration|oral|genital/i.test(type);
+      const sexualCompletionSummary = /(성|키스|삽입|친밀|성적|사정|오르가즘)/.test(summary)
+        && /(했다|완료|시작|하게 했다|이루어졌|되었다|끝났)/.test(summary);
+      return !(sexualCompletionType || sexualCompletionSummary);
+    });
+  }
+  return next;
+}
+
+/** 다음 턴 경계 복원 follow-up section — 사전 계약 기반으로만 생성 (Story 검사 없음). */
+function buildBoundaryFollowupSection(save, expectedTurn) {
+  const pending = save?.pending_boundary_followup;
+  if (!pending || typeof pending !== 'object') return '';
+  if (!(pending.expires_after_turn >= expectedTurn)) return '';
+  return `\n\n[BOUNDARY CONTINUITY FOLLOW-UP]\n직전 턴의 행동은 활성 CSA나 회사 규정이 허용한 범위가 아니었다.\n직전 서사에서 NPC가 이미 분명히 거절하거나 중단했다면 같은 말을 반복하지 말고 그 경계를 일관되게 유지한다.\n직전 서사가 모호하거나 NPC가 순간적으로 행동을 따라간 것처럼 보였다면, NPC는 이번 턴 초반에 그것이 규정 때문이 아니었음을 스스로 인식한다. 순간적인 당황, 얼어붙음, 상황 오해, 뒤늦은 판단으로 자연스럽게 설명할 수 있다.\nNPC는 "아까는 순간적으로 공지 범위를 잘못 받아들였다", "다시 생각해 보니 그건 규정에 포함되지 않는다"처럼 자연스럽게 선을 긋고, 현재의 자발적인 선택과 경계를 회복한다.`;
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
@@ -396,14 +447,33 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          // ActionExecutionContract — 순수 결정 함수 (await/fetch/LLM 없음, 수 ms).
+          // retry 시 저장된 계약을 재사용해 같은 action을 다시 분류해 다른 route를 만들지 않는다.
+          const contractStart = Date.now();
+          const actionContract = action.parsed_blocks?.action_execution_contract ?? resolveActionExecutionContract({
+            save: hydratedSave,
+            playerAction,
+            csaCatalog,
+            characters: master.characters,
+            npcIds: master.general_npcs
+          });
+          timing.action_contract_ms = Date.now() - contractStart;
+          timing.action_route = actionContract.route;
+          timing.action_material = actionContract.material_action ? 1 : 0;
+          timing.action_csa_covered = actionContract.csa_coverage.covered ? 1 : 0;
           const promptStart = Date.now();
           let messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs });
-          messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog });
+          messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog, actionContract });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
           }
           if (action.action_kind === 'feedback_revision' && action.feedback_text) {
             messages = [{ ...messages[0], content: messages[0].content + buildRegenerationFeedbackSection(action.feedback_text) }, ...messages.slice(1)];
+          }
+          // 다음 턴 경계 복원 follow-up — 저장된 pending_boundary_followup이 이번 턴 유효하면 주입
+          const boundarySection = buildBoundaryFollowupSection(hydratedSave, expectedTurn);
+          if (boundarySection) {
+            messages = [{ ...messages[0], content: messages[0].content + boundarySection }, ...messages.slice(1)];
           }
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
@@ -419,9 +489,14 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             emit('delta', { text });
           }
           const parsed = parseNarrative(raw, { master });
-          await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: parsed });
+          const contractPersisted = { ...parsed, action_execution_contract: actionContract };
+          await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
           storyPersisted = true;
-          emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false, parsed_blocks: parsed });
+          emit('complete', {
+            action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings, replayed: false,
+            parsed_blocks: contractPersisted,
+            action_route: actionContract.route, csa_covered: actionContract.csa_coverage.covered
+          });
         } catch (error) {
           if (!storyPersisted) {
             await db.updateActionStatus(gameId, actionId, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
@@ -436,6 +511,8 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             story_system_chars: timing.story_system_chars, story_context_chars: timing.story_context_chars,
             active_character_canon_chars: timing.active_character_canon_chars, story_request_chars: timing.story_request_chars,
             active_character_count: timing.active_character_count, recent_turn_count: timing.recent_turn_count,
+            action_contract_ms: timing.action_contract_ms, action_route: timing.action_route,
+            action_material: timing.action_material, action_csa_covered: timing.action_csa_covered,
             turn_total_ms: Date.now() - startedAt
           });
         }
@@ -577,6 +654,18 @@ export function createTurnRoutes({ fetchImpl, edition }) {
 
           const promptStart = Date.now();
           let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          // 저장된 ActionExecutionContract를 Extract에 전달 — CSA direct와 ordinary 행동 구분,
+          // CSA 범위 밖 행동을 csa_id로 기록하지 않도록 한다 (추가 Extract 호출 없음)
+          const storedContract = action.parsed_blocks?.action_execution_contract;
+          if (storedContract) {
+            try {
+              const payload = JSON.parse(messages[1].content);
+              payload.action_execution_contract = storedContract;
+              messages[1] = { ...messages[1], content: JSON.stringify(payload) };
+            } catch {
+              // payload가 JSON이 아니면 contract 주입을 건너뛴다 (extract는 계속 진행)
+            }
+          }
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa)
@@ -657,14 +746,32 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         const currentSave = context.save?.data ?? context.save;
         let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory, npcIds });
+        // 계약 기반 state firewall — blocked 계약이면 완료 milestone/event 정본 승격 차단
+        // (Story output 분석·verifier가 아니라 사전 계약만 사용)
+        const blockedContract = action.parsed_blocks?.action_execution_contract;
+        const firewalledExtract = applyContractStateFirewall(extract, blockedContract);
 
         const mergeStart = Date.now();
-        const merged = applyGuardedStateDelta(currentSave, extract, {
+        const merged = applyGuardedStateDelta(currentSave, firewalledExtract, {
           expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds,
           storyText: (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;
+        // 다음 턴 경계 복원 follow-up 예약/삭제 — 계약 기반 deterministic (Story 검사 없음)
+        const commitContract = action.parsed_blocks?.action_execution_contract;
+        if (commitContract?.schedule_boundary_followup && commitContract.route === 'ordinary_direct_blocked') {
+          nextSave.pending_boundary_followup = {
+            source_turn: expectedTurn,
+            target_character_id: commitContract.target_id,
+            action_types: commitContract.action_types,
+            reason_code: commitContract.reason_code,
+            expires_after_turn: expectedTurn + 1
+          };
+        } else if (nextSave.pending_boundary_followup?.expires_after_turn <= expectedTurn) {
+          // 정확히 다음 한 턴에서만 사용하고 소비 후 삭제 (무한 반복 금지)
+          delete nextSave.pending_boundary_followup;
+        }
         // The app transaction never gets its own save API — its csa_active/csa_rules result rides
         // through this same guarded-merge commit, applied on top of the normal Extract delta.
         const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
