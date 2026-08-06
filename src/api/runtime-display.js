@@ -156,7 +156,22 @@ export function buildContextDisplayPayload(save, edition, latestMindMonitor = {}
       max_active_csa: capability.csa_max_active
     },
     active_csa: activeCsa,
-    npc_directory: npcDirectory(save, edition, latestMindMonitor)
+    npc_directory: npcDirectory(save, edition, latestMindMonitor),
+    // 회사 맵 패널용 장소 정본. 운영 game_master.map은 null이라 프론트가 직접
+    // 읽을 수 없으므로, 번들된 edition의 map을 표시용으로만 함께 내려준다.
+    // 별도 맵 API를 만들지 않기 위한 것이며 출연 판정과는 무관하다.
+    map_locations: (Array.isArray(edition?.map?.locations) ? edition.map.locations : []).map(location => ({
+      location_id: location?.location_id ?? null,
+      name: location?.name ?? null,
+      floor: Number.isInteger(location?.floor) ? location.floor : null,
+      default_npc_ids: Array.isArray(location?.default_npc_ids) ? location.default_npc_ids : []
+    })).filter(location => location.location_id),
+    // 저장 위치가 없는 NPC를 맵에 배치하기 위한 기본 위치 (표시 전용).
+    npc_default_locations: Object.fromEntries(
+      Object.entries(edition?.characters?.characters ?? {})
+        .map(([id, character]) => [id, character?.default_location_id ?? null])
+        .filter(([, locationId]) => typeof locationId === 'string' && locationId)
+    )
   };
 }
 

@@ -215,6 +215,21 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       body_type_id: setupElements.bodyType?.value ?? '', speech_style_id: setupElements.speechStyle?.value ?? ''
     };
   }
+  /** 맵 표시용 캐릭터 — 이름과 default_location_id만 필요하다. */
+  function mapCharacters() {
+    const directory = context?.display?.npc_directory ?? {};
+    const defaults = context?.display?.npc_default_locations ?? {};
+    const fromMaster = context?.master?.characters ?? {};
+    const ids = new Set([...Object.keys(directory), ...Object.keys(defaults), ...Object.keys(fromMaster)]);
+    const out = {};
+    for (const id of ids) {
+      const name = fromMaster[id]?.name ?? directory[id]?.name ?? null;
+      if (!name) continue;
+      out[id] = { name, default_location_id: fromMaster[id]?.default_location_id ?? defaults[id] ?? null };
+    }
+    return out;
+  }
+
   /** 회사 맵 — 이미 받은 context.save만 읽는다. 추가 API 요청 0회. */
   function renderCompanyMapPanel() {
     // 테스트 하네스는 최소 document 스텁만 제공하므로 조회 자체를 방어한다.
@@ -224,8 +239,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     const save = context?.save?.data ?? context?.save ?? {};
     const model = buildCompanyMapModel({
       save,
-      characters: context?.master?.characters ?? {},
-      locations: context?.master?.map?.locations ?? []
+      characters: mapCharacters(),
+      locations: context?.display?.map_locations ?? context?.master?.map?.locations ?? []
     });
     renderCompanyMap(container, model, {
       onFill: value => {
