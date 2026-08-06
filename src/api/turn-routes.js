@@ -310,9 +310,21 @@ function isSexualCompletionEvent(ev) {
 
 function filterSexualCompletionEvents(events, targetId) {
   if (!Array.isArray(events)) return events;
+  const isPlayerRef = id => {
+    if (!id) return false;
+    const s = String(id);
+    return s === 'player' || s === 'player-1' || /^player([-_]|$)/.test(s);
+  };
   return events.filter(ev => {
     const participants = Array.isArray(ev?.participants) ? ev.participants : [];
+    // 계약 대상이 유효하고 사건에 대상이 포함돼 있지 않으면 다른 NPC 사건으로 보존.
     if (targetId && participants.length && !participants.includes(targetId)) return true;
+    // player도 계약 대상도 참여하지 않은 명확한 NPC↔NPC 성적 완료 사건만 보존.
+    const actorIsPlayer = isPlayerRef(ev?.actor_id);
+    const targetIsPlayer = isPlayerRef(ev?.target_id);
+    const participantsIncludePlayer = participants.some(isPlayerRef);
+    const participantsIncludeTarget = targetId ? participants.includes(targetId) : false;
+    if (!actorIsPlayer && !targetIsPlayer && !participantsIncludePlayer && !participantsIncludeTarget) return true;
     return !isSexualCompletionEvent(ev);
   });
 }
@@ -356,12 +368,30 @@ function filterContractSexualLedger(events, contract, completedActionTypes = [])
   if (!Array.isArray(events)) return events;
   const targetId = contract?.target_id;
   const completedSet = new Set(completedActionTypes);
+  const isPlayerRef = id => {
+    if (!id) return false;
+    const s = String(id);
+    return s === 'player' || s === 'player-1' || /^player([-_]|$)/.test(s);
+  };
   return events.filter(ev => {
     if (!ev || typeof ev !== 'object') return false;
-    const related = (ev.target_id && ev.target_id === targetId) || (ev.actor_id && ev.actor_id === targetId);
-    if (!related) return true; // 다른 NPC 사건 보존
+    // 이벤트에 target_id가 명시돼 있으면 그 대상 기준으로 판단한다.
+    // 계약 대상과 다른 NPC의 사건(명시적 target_id)은 player가 actor여도 보존 —
+    // 검토자 우회 시나리오는 target_id가 비어 있는 사건이다.
+    if (ev.target_id) {
+      if (ev.target_id !== targetId) return true; // 다른 NPC 사건 보존
+      if (ev.completed !== true) return true; // interrupted/attempt ledger 보존
+      if (typeof ev.action_type === 'string' && completedSet.has(ev.action_type)) return true;
+      return false;
+    }
+    // target_id가 없는 사건: player가 참여(actor/target이 player)하면
+    // 현재 플레이어 행동과 관련된 것으로 간주한다. "다른 NPC 사건"으로
+    // 오인해 보존하는 우회를 막는다.
+    const involvedPlayer = isPlayerRef(ev.actor_id) || isPlayerRef(ev.target_id);
+    if (!involvedPlayer) return true; // player 미참여 NPC↔NPC 사건 보존
     if (ev.completed !== true) return true; // interrupted/attempt ledger 보존
-    // completed — accepted 범위 내 action만 보존
+    // 계약 target이 null이면(fail-closed) 귀속 대상을 특정할 수 없으므로 제거.
+    if (!targetId) return false;
     if (typeof ev.action_type === 'string' && completedSet.has(ev.action_type)) return true;
     return false;
   });
@@ -382,21 +412,43 @@ function stripPlayerSexualCompletion(extract) {
   return next;
 }
 
+/** 관계 milestone을 계약 결과에 따라 정리하는 공통 helper.
+ *  - targetId가 유효하면 해당 NPC의 milestone만 제거/조건 보존
+ *  - targetId가 null이면(fail-closed) 어느 NPC로 귀속할지 특정할 수 없으므로
+ *    모든 NPC 패치에서 first_kiss_turn과 sexual_relationship_started_turn을 제거한다.
+ */
 /** explicit 관계 성립 행동 — sexual relationship milestone을 여는 canonical 목록 (임의 확장 금지). */
 const SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS = new Set(['penetration', 'oral']);
+
+function stripContractMilestones(rel, targetId, completed = null) {
+  const p = { ...rel };
+  if (p.milestones && typeof p.milestones === 'object') {
+    const milestones = { ...p.milestones };
+    if (targetId == null) {
+      delete milestones.first_kiss_turn;
+      delete milestones.sexual_relationship_started_turn;
+    } else {
+      if (milestones.first_kiss_turn !== undefined && !(completed && completed.has('kiss'))) {
+        delete milestones.first_kiss_turn;
+      }
+      const explicitCompleted = completed && [...completed].some(action => SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS.has(action));
+      if (milestones.sexual_relationship_started_turn !== undefined && !explicitCompleted) {
+        delete milestones.sexual_relationship_started_turn;
+      }
+    }
+    p.milestones = milestones;
+  }
+  return p;
+}
+
+
 
 function stripAttemptMilestones(extract, targetId) {
   const next = { ...extract, state_delta: { ...(extract?.state_delta ?? {}) } };
   if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
     const rel = {};
     for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
-      const p = { ...patch };
-      if (id === targetId && p.milestones && typeof p.milestones === 'object') {
-        const milestones = { ...p.milestones };
-        delete milestones.first_kiss_turn;
-        delete milestones.sexual_relationship_started_turn;
-        p.milestones = milestones;
-      }
+      const p = (targetId == null || id === targetId) ? stripContractMilestones(patch, targetId, null) : patch;
       rel[id] = p;
     }
     next.state_delta.npc_relationship_state = rel;
@@ -413,14 +465,7 @@ function applyAcceptedActionScope(extract, contract, validated) {
   if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
     const rel = {};
     for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
-      const p = { ...patch };
-      if (id === targetId && p.milestones && typeof p.milestones === 'object') {
-        const m = { ...p.milestones };
-        if (m.first_kiss_turn !== undefined && !completed.has('kiss')) delete m.first_kiss_turn;
-        const explicitCompleted = [...completed].some(action => SEXUAL_RELATIONSHIP_MILESTONE_ACTIONS.has(action));
-        if (m.sexual_relationship_started_turn !== undefined && !explicitCompleted) delete m.sexual_relationship_started_turn;
-        p.milestones = m;
-      }
+      const p = (targetId == null || id === targetId) ? stripContractMilestones(patch, targetId, completed) : patch;
       rel[id] = p;
     }
     next.state_delta.npc_relationship_state = rel;
@@ -517,13 +562,7 @@ function applyBlockedContractFirewall(extract, contract) {
   if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
     const rel = {};
     for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
-      const p = { ...patch };
-      if (id === targetId && p.milestones && typeof p.milestones === 'object') {
-        const milestones = { ...p.milestones };
-        delete milestones.first_kiss_turn;
-        delete milestones.sexual_relationship_started_turn;
-        p.milestones = milestones;
-      }
+      const p = (targetId == null || id === targetId) ? stripContractMilestones(patch, targetId, null) : patch;
       rel[id] = p;
     }
     next.state_delta.npc_relationship_state = rel;

@@ -131,6 +131,7 @@ test('14-6: 흥분·CSA acceptance가 높아도 milestone 없으면 blocked 유�
 
 test('14-7: first_kiss milestone만 있으면 키스는 attempt, 성기 접촉은 blocked', () => {
   const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
     npc_relationship_state: {
       heroine5: {
         closeness: 'close', romance_status: 'dating', current_boundary: 'intimate',
@@ -147,6 +148,7 @@ test('14-7: first_kiss milestone만 있으면 키스는 attempt, 성기 접촉�
 
 test('14-8: sexual relationship milestone 존재 — 성적 접촉은 attempt, csa_attribution false', () => {
   const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
     npc_relationship_state: {
       heroine5: {
         closeness: 'intimate', romance_status: 'dating', current_boundary: 'intimate',
@@ -277,6 +279,7 @@ test('검토2b: structured target_id=heroine2가 focal(heroine5)보다 우선 �
 
 test('검토4: 키스+성기 bundle — first_kiss만 있어도 sexual milestone 없으면 blocked', () => {
   const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
     npc_relationship_state: {
       heroine5: {
         closeness: 'close', romance_status: 'dating', current_boundary: 'intimate',
@@ -846,4 +849,48 @@ test('무결성19: invalid resolution에서도 감정·일반 업무 event 보�
   assert.equal(out.state_delta.npc_emotion.heroine5.mood, 'confused', '감정 보존');
   assert.ok(out.state_delta.event_ledger.some(e => e.event_id === 'w'), '일반 업무 event 보존');
   assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, undefined, 'milestone 차단');
+});
+
+
+test('검토B3: privacy unknown + first_kiss milestone 존재 → 키스 blocked (milestone이 blocker를 넘지 못함)', () => {
+  const save = csaSave({
+    scene_state: { scene_id: 'meeting_room', location_id: 'meeting_room', participants: [], updated_turn: 8 },
+    npc_relationship_state: {
+      heroine5: {
+        closeness: 'close', romance_status: 'dating', current_boundary: 'intimate',
+        milestones: { first_kiss_turn: 12, sexual_relationship_started_turn: null }
+      }
+    }
+  });
+  const kiss = resolve('갑자기 이메이에게 키스한다.', save);
+  assert.equal(kiss.route, 'ordinary_direct_blocked', 'privacy unknown이면 milestone이 있어도 blocked');
+  assert.ok(kiss.contextual_permission?.blockers?.includes('unknown_scene_context'), 'unknown_scene_context blocker 부여');
+});
+
+test('검토B3b: privacy unknown + romance_status 존재 → 키스 blocked', () => {
+  const save = csaSave({
+    scene_state: { scene_id: 'meeting_room', location_id: 'meeting_room', participants: ['player-1'], updated_turn: 8 },
+    npc_relationship_state: {
+      heroine5: {
+        closeness: 'close', romance_status: 'dating', current_boundary: 'intimate',
+        milestones: { first_kiss_turn: null, sexual_relationship_started_turn: null }
+      }
+    }
+  });
+  const kiss = resolve('갑자기 이메이에게 키스한다.', save);
+  assert.equal(kiss.route, 'ordinary_direct_blocked', 'player 부재 → privacy unknown → blocked');
+});
+
+test('검토B3c: privacy private + first_kiss milestone → 키스 attempt 유지 (과차단 아님)', () => {
+  const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
+    npc_relationship_state: {
+      heroine5: {
+        closeness: 'close', romance_status: 'dating', current_boundary: 'intimate',
+        milestones: { first_kiss_turn: 12, sexual_relationship_started_turn: null }
+      }
+    }
+  });
+  const kiss = resolve('갑자기 이메이에게 키스한다.', save);
+  assert.equal(kiss.route, 'ordinary_direct_attempt', 'private면 milestone 기반 attempt 정상');
 });

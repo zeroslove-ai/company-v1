@@ -388,6 +388,12 @@ export function resolveHardBlockers({ playerAction, targetId, actionTier, privac
   const boundary = save?.npc_relationship_state?.[targetId]?.current_boundary;
   if (boundary === 'closed' || boundary === 'hostile') blockers.push('closed_boundary');
   if (!targetId && (actionTier === 'intimate' || actionTier === 'explicit')) blockers.push('unclear_target');
+  // privacy가 unknown이면(참가자 누락/빈 배열/player·target 부재) 장면 맥락을
+  // 특정할 수 없으므로 affectionate(kiss)를 포함한 모든 direct material 행동을
+  // hard-block한다. 관계 milestone이나 높은 수치 근거로 상쇄할 수 없다.
+  if (privacy === 'unknown' && actionTier && (executionMode === 'direct_act' || executionMode === 'instruction')) {
+    blockers.push('unknown_scene_context');
+  }
   if (privacy === 'public' && (actionTier === 'intimate' || actionTier === 'explicit') && (executionMode === 'direct_act' || executionMode === 'instruction')) blockers.push('public_strong_action');
   return blockers;
 }
