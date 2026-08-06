@@ -475,6 +475,20 @@ function resolvePresentNpcIds({ save, registeredIds }) {
 
 /** 사용자가 해당 NPC를 부르거나 호출하는 행동 (entering 근거). */
 const CALL_ACTION = /(부른다|불렀다|호출한다|호출했다|오라고|오라 한다|불러온다|불러서|소환한다|이쪽으로)/u;
+
+/**
+ * 안정화 수정 H — 이동 입력에 "말을 건다"는 의도가 함께 있는지 판정한다.
+ * 인용 대사, 인사말, 말하기 동사, 물음표가 모두 근거다. 이 의도가 있으면
+ * 도착과 대화가 같은 턴에 끝난다.
+ */
+// 한국어 활용 주의: '인사하다 → 인사한다'처럼 어간 '하'가 '한'으로 바뀌므로
+// 어간이 아니라 명사형(인사/대화/얘기/질문)으로 매칭한다.
+const TALK_INTENT = /(인사|말을?\s*걸|말한다|말했다|말하고|묻는다|물어보|물었다|질문|대화|얘기|이야기|불러세우|안녕|반갑|어떻게\s*지내|잘\s*지냈|\?|["“”'].{1,}["“”'])/u;
+
+export function hasTalkIntent(playerAction) {
+  const source = typeof playerAction === 'string' ? playerAction.trim() : '';
+  return Boolean(source) && TALK_INTENT.test(source);
+}
 /** 사용자가 NPC가 있는 곳으로 이동·방문·찾으러 가는 행동 (destination 근거 — entering 아님). */
 const MOVE_ACTION = /(찾으러|찾아가|찾아보|보러|만나러|이동하|가본다|가겠다|방문하|들어간다|향한다|자리로|사무실로|팀으로)/u;
 const REMOTE_ACTION = /(전화|통화|메신저|메시지|문자|사내망|카톡|연락한다|연락했다|콜한다)/u;
@@ -590,7 +604,13 @@ export function buildSceneCastContract({
   // allowed_speaker_ids = ['player', ...remoteNpcIds]
   const transitionMode = destinationNpcIds.length ? 'movement' : 'stationary';
   const isMovementTurn = transitionMode === 'movement';
-  const effectivePresent = isMovementTurn ? [] : presentNpcIds;
+  // 안정화 수정 H — 이동을 여러 턴으로 나누지 않는다. 도착과 만남이 같은 턴에
+  // 일어나고, 사용자의 입력에 말 걸기 의도가 있으면 목적지 NPC가 같은 턴에
+  // 대답한다. 말 걸기 의도가 없는 순수 이동이면 도착 서술까지만 하고 발화는
+  // 다음 턴으로 미룬다(도착하자마자 NPC가 먼저 말을 걸어버리는 것 방지).
+  const wantsTalkOnArrival = hasTalkIntent(playerAction);
+  const arrivalSpeakers = isMovementTurn && wantsTalkOnArrival ? destinationNpcIds : [];
+  const effectivePresent = isMovementTurn ? arrivalSpeakers : presentNpcIds;
   const effectiveEntering = isMovementTurn ? [] : enteringNpcIds;
 
   // 검토 수정 2 + 안전화 패치 — 이동 목적지 장소: 대상 NPC의 저장 위치를 사용한다.

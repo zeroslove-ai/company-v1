@@ -154,3 +154,20 @@ test('맵15: cast 계산은 순수 함수 — fetch/LLM 호출이 전혀 없다'
   }
   assert.equal(calls, 0);
 });
+
+// ── O-4: 같은 턴 이동 + 만남 + 대화 ───────────────────────────────────────
+
+test('맵4: "민아에게 인사한다" → 같은 턴에 도착하고 윤민아가 대답할 수 있다', () => {
+  const contract = cast('브랜드전략팀으로 가서 민아에게 인사한다', {
+    npcSceneState: { heroine2: { present: true } }
+  });
+  assert.equal(contract.transition_mode, 'movement');
+  assert.equal(contract.destination_location_id, 'brand_strategy_office');
+  assert.ok(contract.allowed_speaker_ids.includes('heroine2'), '말 걸기 의도가 있으면 같은 턴 응답 허용');
+});
+
+test('맵4b: 말 걸기 의도가 없는 순수 이동은 도착까지만 — 목적지 NPC가 먼저 말하지 않는다', () => {
+  const contract = cast('이제 민아보러 가야지~', { npcSceneState: { heroine2: { present: true } } });
+  assert.equal(contract.transition_mode, 'movement');
+  assert.deepEqual(contract.allowed_speaker_ids, ['player'], '도착 서술만, 발화는 다음 턴');
+});
