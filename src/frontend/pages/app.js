@@ -39,6 +39,22 @@ function messageFor(error) {
 }
 function hasFourChoices(value) { return Array.isArray(value) && value.length === 4 && value.every(choice => typeof choice === 'string' && choice.trim()); }
 
+/**
+ * 세션 단위 Story 타임라인 병합 — 새 브라우저 세션에서 진행한 턴을 누적한다.
+ * - turn_number가 유효한 턴만 취급한다.
+ * - 같은 turn_number는 교체한다(피드백 revision이 같은 턴 카드를 갱신).
+ * - 결과는 최신 턴이 앞에 오도록 내림차순 정렬한다.
+ * refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않게 하는 유일한 게이트다.
+ */
+export function mergeSessionTurns(current, incoming) {
+  const map = new Map();
+  for (const item of [...(current ?? []), ...(incoming ?? [])]) {
+    if (!Number.isInteger(item?.turn_number)) continue;
+    map.set(item.turn_number, item);
+  }
+  return [...map.values()].sort((a, b) => b.turn_number - a.turn_number);
+}
+
 export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
   return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
 }
@@ -167,6 +183,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   };
   const gameId = resolveGameId(locationSearch);
   let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null;
+  // 세션 단위 Story 타임라인 — 페이지 로드 시 최신 1턴으로 시작하고, 같은 세션에서
+  // 완료된 턴을 메모리에 누적한다. 새로고침하면 다시 최신 1턴만 표시한다.
+  let sessionHistory = [];
   const showStatus = value => text(elements.status, value);
   const setConnection = ready => { text(elements.api, ready ? '●' : '○'); if (elements.api) { elements.api.title = ready ? '연결됨' : '연결 확인 중'; elements.api.ariaLabel = ready ? '연결됨' : '연결 확인 중'; } };
   const clearProgressTimer = () => { if (progressTimer) { clearInterval(progressTimer); progressTimer = null; } };
@@ -256,11 +275,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (!viewModel || viewModelContext !== context || viewModelExtract !== currentExtract) refreshViewModel();
     renderState(elements, viewModel, { title: context?.game?.title });
     const openingTurn = openingHistoryTurn(context);
-    const recent = context?.recent_turns ?? [];
-    // 본문 timeline: 최근 20턴을 연속으로 유지한다. 새 턴이 생겨도 이전 Story가
-    // 중앙 화면에서 사라지지 않는다 (이전에는 slice(-1)로 최신 1턴만 남겨
-    // 브라우저를 닫지 않아도 과거 턴을 읽을 수 없었다).
-    renderHistory(elements.history, recent.length ? recent.slice(-20) : (openingTurn ? [openingTurn] : recent));
+    // 본문 timeline: 세션 단위 누적 기록(sessionHistory)을 표시한다.
+    // 세션 기록이 비어 있으면(최초 로드 직후 등) API recent_turns를 사용하고,
+    // 그것마저 비어 있으면 오프닝 턴으로 대체한다.
+    const recent = sessionHistory.length ? sessionHistory : (context?.recent_turns ?? []);
+    renderHistory(elements.history, recent.length ? recent : (openingTurn ? [openingTurn] : []));
     renderCompanyMapPanel();
     utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
@@ -295,7 +314,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     showStatus('현재 상태를 불러오는 중…'); setConnection(false);
     const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
-    context = data.context; currentExtract = null; streamedStoryChoices = []; refreshViewModel(); render();
+    context = data.context; currentExtract = null; streamedStoryChoices = [];
+    // 세션 타임라인 누적 — refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않는다.
+    // 같은 turn_number는 교체(피드백 revision이 해당 카드를 갱신), 새 턴만 추가, 중복 금지.
+    sessionHistory = mergeSessionTurns(sessionHistory, context?.recent_turns ?? []);
+    refreshViewModel(); render();
     if (!loadPending(storage, gameId)) clearRecoveryUi();
     setConnection(true); showStatus('준비되었습니다.'); return context;
   }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import edition from '../src/api/edition.js';
 import { enrichContextEnvelope } from '../src/api/product-response.js';
 import { renderHistory } from '../src/frontend/pages/render.js';
+import { createFrontendApp, mergeSessionTurns } from '../src/frontend/pages/app.js';
 import {
   buildCompanyMapModel,
   locationPromptText,
@@ -138,14 +139,14 @@ test('회사맵 제품: 실제 DOM 렌더가 빈 패널이 아니며 클릭은 �
   }
 });
 
-// ── History timeline 회귀 (이전 작업 미작성 항목) ─────────────────────────
+// ── History timeline: 세션 단위 누적 (새 브라우저 세션 = 최신 1턴 + 메모리 누적) ─
 
-test('timeline: 프론트가 최근 20턴을 요청한다 (recentTurns=1이면 slice(-20)이 무의미)', async () => {
+test('timeline: 프론트는 최초 로드에 최근 1턴만 요청한다', async () => {
   const { FRONTEND_CONFIG } = await import('../src/frontend/pages/config.js');
-  assert.equal(FRONTEND_CONFIG.recentTurns, 20, '요청 자체가 20턴이어야 timeline이 이어진다');
+  assert.equal(FRONTEND_CONFIG.recentTurns, 1, '최초 로드는 최신 1턴만 받아온다');
 });
 
-test('timeline: renderHistory는 넘겨받은 턴 수만큼 카드를 만든다 (1/5/20/21)', async () => {
+test('timeline: renderHistory는 넘겨받은 턴 수만큼 카드를 만든다 (1/5/20/25)', async () => {
   const { renderHistory } = await import('../src/frontend/pages/render.js');
   const turn = n => ({
     turn_number: n,
@@ -153,26 +154,113 @@ test('timeline: renderHistory는 넘겨받은 턴 수만큼 카드를 만든다 
     turn_summary: `요약 ${n}`,
     parsed_blocks: { blocks: [{ type: 'scene', text: `장면 ${n}` }], choices: [] }
   });
-  const cases = [[1, 1], [5, 5], [20, 20], [25, 20]];
+  // 세션 누적 기록은 잘리지 않는다 — 넘겨받은 만큼 그대로 카드가 된다.
+  const cases = [[1, 1], [5, 5], [20, 20], [25, 25]];
   for (const [total, expected] of cases) {
     const turns = Array.from({ length: total }, (_, i) => turn(i + 1));
-    const shown = turns.length ? turns.slice(-20) : turns;
     const doc = new FakeDocument();
     const container = new FakeNode('div', doc);
     const previousDocument = globalThis.document;
     globalThis.document = doc;
-    try { renderHistory(container, shown, { showSummary: true }); }
+    try { renderHistory(container, turns, { showSummary: true }); }
     finally { globalThis.document = previousDocument; }
     const cards = container.children.filter(child => child.className === 'turn-card');
     assert.equal(cards.length, expected, `${total}턴 → ${expected}장 기대`);
   }
 });
 
-test('timeline: recent_turns가 비어 있을 때만 opening turn fallback을 쓴다', () => {
+test('timeline: 세션 기록이 비어 있을 때만 recent_turns/opening fallback을 쓴다', () => {
   const openingTurn = { turn_number: 0, player_action: '오프닝' };
-  const pick = recent => (recent.length ? recent.slice(-20) : (openingTurn ? [openingTurn] : recent));
-  assert.equal(pick([]).length, 1, '비어 있으면 opening');
-  assert.equal(pick([])[0], openingTurn);
+  const pick = (session, recent) => (session.length ? session : (recent.length ? recent : (openingTurn ? [openingTurn] : [])));
+  assert.equal(pick([], []).length, 1, '세션·API 모두 비어 있으면 opening');
+  assert.equal(pick([], [])[0], openingTurn);
   const three = [{ turn_number: 1 }, { turn_number: 2 }, { turn_number: 3 }];
-  assert.deepEqual(pick(three), three, '턴이 있으면 opening을 쓰지 않는다');
+  assert.deepEqual(pick(three, [{ turn_number: 4 }]), three, '세션 기록이 있으면 API recent_turns로 덮어쓰지 않는다');
+  assert.deepEqual(pick([], [{ turn_number: 9 }]), [{ turn_number: 9 }], '세션이 비면 API recent_turns를 사용');
+});
+
+// ── 세션 단위 타임라인 통합 (createFrontendApp + mock api) ────────────────
+
+function pageFixture() {
+  const ids = ['game-main', 'game-title', 'day-time', 'turn-number', 'api-status', 'status-banner', 'error-banner', 'story-history', 'current-story', 'current-action', 'choice-list', 'player-action', 'submit-action', 'recovery-action', 'stream-status', 'scene-state', 'focal-character', 'mind-monitor', 'player-situation', 'resume-play', 'open-history', 'send-feedback', 'open-apps', 'reset-game', 'player-setup-overlay', 'player-setup-form', 'setup-error', 'setup-status', 'setup-submit', 'setup-name', 'setup-department', 'setup-position', 'setup-age', 'setup-height', 'setup-weight', 'setup-penis-length', 'setup-body-type', 'setup-speech-style'];
+  const nodes = Object.fromEntries(ids.map(id => [id, new FakeNode(id)]));
+  return { nodes, documentRef: { querySelector: selector => nodes[selector.slice(1)] ?? null, createElement: tag => new FakeNode(tag) } };
+}
+
+function validContext({ turns = [] } = {}) {
+  return {
+    game: { edition_id: 'company-v1', title: '상식개변: 회사편' },
+    save: { committed_turn: 2, data: { edition: 'company-v1', save_schema_version: 1, turn_state: { committed_turn: 1 }, last_choices: ['A', 'B', 'C', 'D'], scene_state: { location_id: 'office' }, world_state: { day: 1, time_block: 'morning', game_time: { day: 1, minute_of_day: 742 } }, csa_active: ['csa-1'], player_setup: { completed: true } } },
+    recent_turns: turns
+  };
+}
+
+async function withFakeDocument(run) {
+  const previousDocument = globalThis.document;
+  const fixture = pageFixture();
+  globalThis.document = fixture.documentRef;
+  try { return await run(fixture); } finally { globalThis.document = previousDocument; }
+}
+
+function fakeStorage() {
+  const values = new Map();
+  return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
+}
+
+const sessionTurn = n => ({
+  turn_number: n,
+  player_action: `행동 ${n}`,
+  turn_summary: `요약 ${n}`,
+  parsed_blocks: { blocks: [{ type: 'scene', text: `장면 ${n}` }], choices: [] }
+});
+
+test('session timeline: 최초 로드는 recent_turns=1을 요청하고 최신 1턴만 표시한다', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const context = validContext({ turns: [sessionTurn(32)] });
+    let requestedTurns = null;
+    const api = {
+      context: async ({ recent_turns }) => { requestedTurns = recent_turns; return { context }; },
+      actionStatus: async () => ({})
+    };
+    const app = createFrontendApp({ documentRef, storage: fakeStorage(), api });
+    await app.refreshContext();
+    assert.equal(requestedTurns, 1, '최초 API 요청은 recent_turns=1');
+    const cards = nodes['story-history'].children.filter(child => child.className === 'turn-card');
+    assert.equal(cards.length, 1, '최신 1턴만 표시한다');
+    assert.equal(cards[0].children[0].textContent, '행동 32');
+  });
+});
+
+test('session timeline: 같은 페이지에서 2턴 진행하면 카드가 누적되고 refresh는 삭제하지 않는다', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    let recentTurns = [sessionTurn(32)];
+    const base = validContext({ turns: recentTurns });
+    const sseStory = () => new Response(
+      'event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[1. 서사 및 행동]\\n새로운 턴의 이야기입니다."}\n\nevent: complete\ndata: {"parsed_blocks":{"blocks":[{"type":"scene","text":"새로운 턴의 이야기입니다."}]}}\n\n',
+      { headers: { 'content-type': 'text/event-stream' } }
+    );
+    const api = {
+      context: async () => ({ context: { ...base, recent_turns: recentTurns } }),
+      actionStatus: async () => ({}),
+      story: async () => sseStory(),
+      extract: async () => ({ extract: {}, parsed_blocks: { blocks: [] } }),
+      commit: async () => {
+        recentTurns = [...recentTurns, sessionTurn(recentTurns.length + 32)];
+        return { commit: { success: true } };
+      }
+    };
+    const app = createFrontendApp({ documentRef, storage: fakeStorage(), api });
+    await app.refreshContext(); // 최초 로드: 최신 1턴
+    const cards = () => nodes['story-history'].children.filter(child => child.className === 'turn-card');
+    assert.equal(cards().length, 1, '최초 1턴');
+    await app.startNewAction('새 행동 1'); // 턴 33 commit
+    assert.equal(cards().length, 2, '1턴 진행 후 2턴');
+    await app.startNewAction('새 행동 2'); // 턴 34 commit
+    assert.equal(cards().length, 3, '2턴 진행 후 3턴');
+    await app.refreshContext(); // refresh가 최신 1턴(34)만 돌려줘도 세션 기록 유지
+    assert.equal(cards().length, 3, 'context refresh 후에도 3턴 유지');
+    const merged = mergeSessionTurns(recentTurns, [sessionTurn(34)]);
+    assert.equal(merged.length, 3, '동일 턴 재수신에도 중복이 생기지 않는다');
+    assert.equal(new Set(merged.map(t => t.turn_number)).size, 3, 'turn_number 중복 없음');
+  });
 });
