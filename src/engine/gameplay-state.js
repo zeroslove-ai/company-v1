@@ -348,6 +348,7 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
   ])];
   return {
     state_delta: clone(value.state_delta),
+    action_resolution: (typeof value.action_resolution === 'object' && value.action_resolution !== null) ? clone(value.action_resolution) : null,
     outcome: value.outcome,
     evidence: object(value.evidence) ? clone(value.evidence) : {},
     turn_summary: stringOrEmpty(value.turn_summary),

@@ -98,7 +98,8 @@ test('14-3: 직접 손목 조작 — genital_touch + direct_act + blocked', () =
   assert.equal(c.route, 'ordinary_direct_blocked');
   assert.equal(c.completion_policy, 'attempt_only');
   assert.equal(c.schedule_boundary_followup, true);
-  assert.equal(c.reason_code, 'OUTSIDE_CSA_WITHOUT_RELATIONSHIP_PERMISSION');
+  assert.equal(c.reason_code, 'HARD_BLOCKER');
+  assert.ok(c.contextual_permission.blockers.includes('coercive_physical_control'), '강압 blocker');
 });
 
 test('14-4: 정확한 무릎 착석 — csa_direct (nonsexual direct_meaning_tags match)', () => {
@@ -316,4 +317,167 @@ test('검토3: 활성 CSA가 없어도 직접 성적 행동은 blocked + AUTHORI
   assert.equal(c.route, 'ordinary_direct_blocked');
   const section = buildActionExecutionContractSection(c);
   assert.ok(section.includes('[ACTION EXECUTION CONTRACT — AUTHORITATIVE]'), 'CSA 유무와 무관한 음수 계약');
+});
+
+// ---------- 조건부 허용 게이트: 다중 근거 기반 (19-1 ~ 19-17) ----------
+
+/** 정황 근거 save 헬퍼 — npc_stats + scene participants + 관계 설정 */
+function ctxSave(overrides = {}) {
+  const save = csaSave();
+  save.npc_stats = {
+    heroine5: { affinity: 50, sexual_arousal: 75, resistance: 30, csa_acceptance: 18 }
+  };
+  save.scene_state = {
+    scene_id: 'private_room', location_id: 'private_room',
+    participants: ['player-1', 'heroine5'], updated_turn: 8
+  };
+  return { ...save, ...overrides };
+}
+
+test('19-1: 높은 흥분도+적당한 호감도+private → intimate attempt (contextual_signals)', () => {
+  const save = ctxSave();
+  const c = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(c.route, 'ordinary_direct_attempt');
+  assert.equal(c.attempt_basis, 'contextual_signals');
+  assert.equal(c.contextual_permission.eligible, true);
+  assert.equal(c.contextual_permission.level, 'conditional');
+  assert.equal(c.contextual_permission.action_tier, 'intimate');
+  assert.deepEqual(c.contextual_permission.basis, ['high_arousal', 'moderate_affinity', 'private_scene', 'boundary_not_closed']);
+  assert.equal(c.contextual_permission.privacy, 'private');
+  assert.equal(c.contextual_permission.observer_count, 0);
+});
+
+test('19-2: 매우 높은 흥분도+적당한 호감도+private genital touch → attempt', () => {
+  const save = ctxSave({
+    npc_stats: { heroine5: { affinity: 55, sexual_arousal: 85, resistance: 30, csa_acceptance: 18 } },
+    npc_relationship_state: {
+      heroine5: { closeness: 'familiar', romance_status: 'interest', current_boundary: 'flirtatious', milestones: { first_kiss_turn: null, sexual_relationship_started_turn: null } }
+    }
+  });
+  const c = resolve('이메이의 허벅지 안쪽을 조심스럽게 만진다.', save);
+  assert.ok(c.action_types.includes('sexual_touch'));
+  assert.equal(c.route, 'ordinary_direct_attempt');
+});
+
+test('19-3: 같은 값이지만 public(observer 2) → 직접 행동은 blocked, 요청은 ordinary_request', () => {
+  const save = ctxSave({
+    scene_state: { scene_id: 'lobby', location_id: 'company_lobby', participants: ['player-1', 'heroine5', 'heroine1', 'heroine2'], updated_turn: 8 }
+  });
+  const direct = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(direct.contextual_permission.privacy, 'public');
+  assert.equal(direct.contextual_permission.observer_count, 2);
+  assert.equal(direct.route, 'ordinary_direct_blocked');
+  const request = resolve('이메이의 가슴을 만져주실 수 있나요?', save);
+  assert.equal(request.route, 'ordinary_request');
+});
+
+test('19-4: 높은 흥분도지만 낮은 호감도 → blocked', () => {
+  const save = ctxSave({ npc_stats: { heroine5: { affinity: 10, sexual_arousal: 90 } } });
+  const c = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(c.route, 'ordinary_direct_blocked');
+});
+
+test('19-5: 높은 호감도지만 흥분도 낮음 → intimate direct blocked, request는 ordinary_request', () => {
+  const save = ctxSave({ npc_stats: { heroine5: { affinity: 80, sexual_arousal: 10 } } });
+  const direct = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(direct.route, 'ordinary_direct_blocked');
+  const request = resolve('이메이의 가슴을 만져주실 수 있나요?', save);
+  assert.equal(request.route, 'ordinary_request');
+});
+
+test('19-6: 강압 표현은 모든 근거를 무시하고 blocked (hard_blocker=coercive_physical_control)', () => {
+  const save = ctxSave({
+    npc_stats: { heroine5: { affinity: 100, sexual_arousal: 100 } },
+    npc_relationship_state: {
+      heroine5: { closeness: 'intimate', romance_status: 'dating', current_boundary: 'intimate', milestones: { first_kiss_turn: 5, sexual_relationship_started_turn: 8 } }
+    }
+  });
+  const c = resolve('이메이의 손목을 붙잡아 억지로 움직인다.', save);
+  assert.equal(c.route, 'ordinary_direct_blocked');
+  assert.ok(c.contextual_permission.blockers.includes('coercive_physical_control'));
+  assert.equal(c.attempt_basis, 'hard_blocker');
+});
+
+test('19-7: 회사 권한 악용은 높은 근거에도 blocked', () => {
+  const save = ctxSave({ npc_stats: { heroine5: { affinity: 90, sexual_arousal: 90 } } });
+  const c = resolve('감사 업무니까 이메이의 가슴을 만져야 합니다.', save);
+  assert.equal(c.route, 'ordinary_direct_blocked');
+  assert.ok(c.contextual_permission.blockers.includes('company_authority_misuse'));
+});
+
+test('19-8: 키스 contextual attempt (affinity 50/arousal 65/private)', () => {
+  const save = ctxSave({ npc_stats: { heroine5: { affinity: 50, sexual_arousal: 65 } } });
+  const c = resolve('이메이에게 조심스럽게 입을 맞춘다.', save);
+  assert.equal(c.route, 'ordinary_direct_attempt');
+  assert.equal(c.contextual_permission.action_tier, 'affectionate');
+});
+
+test('19-9: 키스+genital_touch bundle — first_kiss만 있고 정황 부족 → blocked, 정황 충족 → attempt', () => {
+  const saveBase = ctxSave({
+    npc_relationship_state: {
+      heroine5: { closeness: 'close', romance_status: 'dating', current_boundary: 'intimate', milestones: { first_kiss_turn: 12, sexual_relationship_started_turn: null } }
+    }
+  });
+  // 정황 부족 (arousal/affinity 낮음)
+  const weak = resolve('이메이에게 키스하면서 성기를 만진다.', { ...saveBase, npc_stats: { heroine5: { affinity: 10, sexual_arousal: 10 } } });
+  assert.equal(weak.route, 'ordinary_direct_blocked', 'first_kiss만으로는 intimate bundle 미허용');
+  // contextual 충족
+  const strong = resolve('이메이에게 키스하면서 성기를 만진다.', { ...saveBase, npc_stats: { heroine5: { affinity: 55, sexual_arousal: 80 } } });
+  assert.equal(strong.route, 'ordinary_direct_attempt', 'intimate contextual 조건 충족 시 attempt');
+  assert.equal(strong.contextual_permission.action_tier, 'intimate');
+});
+
+test('19-10: explicit tier — milestone+private만 attempt, 없으면 blocked, 요청이면 ordinary_request', () => {
+  const milestoneSave = ctxSave({
+    npc_relationship_state: {
+      heroine5: { closeness: 'intimate', romance_status: 'dating', current_boundary: 'intimate', milestones: { first_kiss_turn: 5, sexual_relationship_started_turn: 18 } }
+    }
+  });
+  const withMilestone = resolve('이메이에게 삽입한다.', milestoneSave);
+  assert.equal(withMilestone.route, 'ordinary_direct_attempt', 'sexual milestone + private');
+  const noMilestone = resolve('이메이에게 삽입한다.', ctxSave());
+  assert.equal(noMilestone.route, 'ordinary_direct_blocked', 'milestone 없이 직접 행동');
+  const request = resolve('이메이와 성관계를 가져도 될까요?', ctxSave());
+  assert.equal(request.route, 'ordinary_request', 'milestone 없이 요청');
+});
+
+test('19-11: attempt section에 근거 band와 "자동 거절 금지" 취지 포함', () => {
+  const c = resolve('이메이의 가슴을 만진다.', ctxSave());
+  const section = buildActionExecutionContractSection(c);
+  assert.ok(section.includes('[ACTION EXECUTION CONTRACT — ATTEMPT]'));
+  assert.ok(section.includes('자동으로 거절하지 않는다'));
+  assert.ok(section.includes('둘만 있는 공간'));
+  assert.ok(section.includes('흥분도 high'), 'band 근거 포함');
+  assert.ok(section.includes('호감도 medium'));
+  assert.ok(section.includes('CSA나 회사 규정 때문에 허용하는 것으로 묘사하지 않는다'), '규정 정당화 금지 명시');
+});
+
+test('19-12: blocked(강압) section에 조건부 허용 문구 없음 + 다양한 반응 허용', () => {
+  const c = resolve('이메이의 손목을 붙잡아 억지로 움직인다.', ctxSave());
+  const section = buildActionExecutionContractSection(c);
+  assert.ok(section.includes('[ACTION EXECUTION CONTRACT — AUTHORITATIVE]'));
+  assert.ok(section.includes('coercive_physical_control'), 'blocker 명시');
+  assert.ok(!section.includes('자동으로 거절하지 않는다'), '조건부 허용 문구 없음');
+  assert.ok(!section.includes('조심스럽게 호응'), '호응 유도 없음');
+  assert.ok(section.includes('손을 막거나'), '다양한 반응 허용');
+});
+
+test('19-15: arousal 단독(100) — affinity/privacy unknown → attempt 아님', () => {
+  const save = csaSave({ npc_stats: { heroine5: { sexual_arousal: 100 } } });
+  const c = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(c.route, 'ordinary_direct_blocked');
+});
+
+test('19-16: affinity 단독(높음) — intimate 자동 허용 안 됨', () => {
+  const save = csaSave({ npc_stats: { heroine5: { affinity: 90 } } });
+  const c = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(c.route, 'ordinary_direct_blocked');
+});
+
+test('19-17: privacy 단독(둘만 있는 공간) — 자동 허용 안 됨', () => {
+  const save = csaSave({
+    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 }
+  });
+  const c = resolve('이메이의 가슴을 만진다.', save);
+  assert.equal(c.route, 'ordinary_direct_blocked');
 });

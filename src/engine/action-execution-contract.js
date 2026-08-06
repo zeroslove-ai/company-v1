@@ -29,7 +29,7 @@ const BODY_SIGNALS = {
   inner: ['지퍼 안', '팬티 안', '속옷 안', '바지 안', '옷 안']
 };
 
-const KISS_SIGNALS = ['키스', '입맞춤', '입술을 맞댄', '입술에 입을', '입술을 부딪'];
+const KISS_SIGNALS = ['키스', '입맞춤', '입술을 맞댄', '입술에 입을', '입술을 부딪', '입을 맞추', '입을 맞춘', '입맞추'];
 // 한국어 활용형(만지→만진/만져/만집, 가져가→가져간)을 함께 매칭한다
 const TOUCH_SIGNALS = ['만지', '만져', '만진', '만집', '만졌', '주무르', '주물러', '주물렀', '비비', '비볐', '문지르', '문질러', '문질렀', '애무', '스킨십', '쓰다듬', '쓰다듬어', '움켜쥐', '움켜잡', '잡', '잡아', '잡는', '끌어안'];
 const EXPOSE_SIGNALS = ['벗', '벗어', '벗은', '내리', '내려', '올리', '올려', '걷', '걷어', '걷은', '벌리', '벌려', '보여', '노출', '확인', '들추'];
@@ -91,15 +91,17 @@ const DIRECT_ACT_SIGNALS = [
   '손목을 잡아', '손을 가져가', '손을 올려', '몸을 끌어당', '입을 맞춘', '옷을 걷',
   '지퍼 안으로 넣', '직접 잡게', '끌어안', '잡아당', '눕히', '덮치', '붙잡'
 ];
-const INSTRUCTION_SIGNALS = ['하세요', '해야 합니다', '벗으세요', '지시한다', '명령한다', '내리세요', '보여줘', '해줘', '앉아라', '넣어라', '만져라', '보여라', '하라'];
-const REQUEST_SIGNALS = ['해줄래', '해주시겠', '할 수 있나요', '가능할까요', '부탁', '원해요', '어때요', '해도 될까요', '주실 수', '주세요', '줄래', '해주세요', '보여주세요', '만져주실', '해주실'];
+const INSTRUCTION_SIGNALS = ['하세요', '해야 합니다', '야 합니다', '벗으세요', '지시한다', '명령한다', '내리세요', '보여줘', '해줘', '앉아라', '넣어라', '만져라', '보여라', '하라'];
+const REQUEST_SIGNALS = ['해줄래', '해주시겠', '할 수 있나요', '가능할까요', '부탁', '원해요', '어때요', '도 될까요', '해도 될까요', '주실 수', '주세요', '줄래', '해주세요', '보여주세요', '만져주실', '해주실'];
 
 /** 판정 우선순위: direct_act → instruction → request → unknown */
 export function classifyExecutionMode(text) {
   const source = typeof text === 'string' ? text : '';
   if (hasAny(source, DIRECT_ACT_SIGNALS)) return 'direct_act';
   // 서술형 직접 행동("…을 만진다", "…가져간다", "…했다") — 직접 신체 조작을 완료 서술하는 형태
-  if (/(?:한다|했다|해 버린|시켰|시킨다)$/.test(source.trim()) || /[가-힣]다$/.test(source.trim())) return 'direct_act';
+  const stripped = source.trim().replace(/[.!?。！？\s]+$/, '');
+  if (/(?:한다|했다|해 버린|시켰|시킨다)$/.test(stripped)) return 'direct_act';
+  if (/[가-힣](?:ㄴ다|는다)$/.test(stripped) || (/[가-힣]다$/.test(stripped) && !/(니다|습니다|읍니다|이다|있습니다|없습니다)$/.test(stripped))) return 'direct_act';
   if (hasAny(source, INSTRUCTION_SIGNALS)) return 'instruction';
   if (hasAny(source, REQUEST_SIGNALS)) return 'request';
   return 'unknown';
@@ -143,7 +145,7 @@ function detectCompanyAuthorityMisuse(text) {
 // route 결정
 // ---------------------------------------------------------------------------
 
-function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relationship, companyAuthorityMisuse }) {
+function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relationship, companyAuthorityMisuse, permission }) {
   if (coverage?.covered) {
     return {
       route: 'csa_direct',
@@ -154,7 +156,8 @@ function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relations
       reason_code: 'CSA_DIRECT_EXACT_MATCH'
     };
   }
-  if (!actionTypes.length) {
+  const blockers = Array.isArray(permission?.blockers) ? permission.blockers : [];
+  if (!actionTypes.length && !blockers.length) {
     return {
       route: 'ordinary',
       completion_policy: 'default',
@@ -185,20 +188,36 @@ function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relations
       reason_code: companyAuthorityMisuse ? 'COMPANY_AUTHORITY_MISUSE' : 'OUTSIDE_CSA_WITHOUT_RELATIONSHIP_PERMISSION'
     };
   }
-  // direct_act / statement / unknown — 관계 milestone gate.
+  // hard blocker는 어떤 양수 근거(milestone/흥분도/호감도)로도 상쇄하지 않는다.
+  if (blockers.length) {
+    return {
+      route: 'ordinary_direct_blocked',
+      completion_policy: 'attempt_only',
+      csa_attribution_allowed: false,
+      company_authority_attribution_allowed: false,
+      schedule_boundary_followup: true,
+      reason_code: companyAuthorityMisuse ? 'COMPANY_AUTHORITY_MISUSE' : 'HARD_BLOCKER',
+      attempt_basis: 'hard_blocker'
+    };
+  }
+  // direct_act — 관계 milestone gate + 다중 정황 근거(조건부 허용) gate.
   // bundle 전체에서 가장 강한 행동 기준: kiss 외 다른 행동이 하나라도 있으면 sexual milestone 필요
   const requiresSexualMilestone = actionTypes.some(type => type !== 'kiss');
   const milestoneBacked = requiresSexualMilestone
     ? Boolean(relationship.sexual_relationship_started_turn)
     : Boolean(relationship.first_kiss_turn);
-  if (milestoneBacked) {
+  // 조건부 허용: hard blocker가 없고(eligible) 정황 근거가 충분하면 attempt.
+  // attempt는 자동 성공이 아니라 "받아들여질 가능성이 있다"는 서버 정본이다.
+  const contextualEligible = executionMode === 'direct_act' && permission?.eligible === true && permission.level !== 'none';
+  if (milestoneBacked || contextualEligible) {
     return {
       route: 'ordinary_direct_attempt',
       completion_policy: 'npc_response_required',
       csa_attribution_allowed: false,
       company_authority_attribution_allowed: false,
       schedule_boundary_followup: false,
-      reason_code: 'RELATIONSHIP_MILESTONE_BACKED'
+      reason_code: milestoneBacked ? 'RELATIONSHIP_MILESTONE_BACKED' : 'CONTEXTUAL_PERMISSION',
+      attempt_basis: milestoneBacked ? 'relationship_milestone' : 'contextual_signals'
     };
   }
   return {
@@ -207,7 +226,165 @@ function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relations
     csa_attribution_allowed: false,
     company_authority_attribution_allowed: false,
     schedule_boundary_followup: true,
-    reason_code: companyAuthorityMisuse ? 'COMPANY_AUTHORITY_MISUSE' : 'OUTSIDE_CSA_WITHOUT_RELATIONSHIP_PERMISSION'
+    reason_code: 'OUTSIDE_CSA_WITHOUT_RELATIONSHIP_PERMISSION',
+    attempt_basis: 'insufficient'
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 7. 정황 신호 정규화 — 다중 근거 기반 조건부 허용 게이트
+// ---------------------------------------------------------------------------
+
+const AFFINITY_BANDS = { low: [0, 29], moderate: [30, 44], medium: [45, 64], high: [65, 100] };
+const AROUSAL_BANDS = { low: [0, 29], medium: [30, 59], high: [60, 79], very_high: [80, 100] };
+
+function bandFor(value, bands) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return null;
+  for (const [name, [lo, hi]] of Object.entries(bands)) {
+    if (value >= lo && value <= hi) return name;
+  }
+  return value > 100 ? Object.keys(bands).pop() : Object.keys(bands)[0];
+}
+
+const PUBLIC_LOCATION_RE = /(lobby|hall|plaza|event|conference|stage|common|cafeteria|cafe|restaurant|lounge|street|public|auditorium)/i;
+const CLOSED_LOCATION_RE = /(meeting_room|office|room|private|storage|restroom|bathroom|warehouse|project_report|report_room)/i;
+
+/** 사생활 판정 — 추가 LLM 없이 scene state만으로 계산한다. */
+export function resolvePrivacyContext({ save, targetId } = {}) {
+  const scene = save?.scene_state ?? {};
+  const participants = Array.isArray(scene.participants) && scene.participants.length
+    ? scene.participants
+    : (Array.isArray(save?.last_npcs_present) ? ['player', ...save.last_npcs_present] : []);
+  const isPlayer = id => id === 'player' || id === 'player-1' || /^player([-_]|$)/.test(String(id));
+  const npcParticipants = participants.filter(id => !isPlayer(id));
+  const observerCount = npcParticipants.filter(id => id !== targetId).length;
+  const locationId = String(scene.location_id ?? save?.location_id ?? '');
+  const publicLocation = PUBLIC_LOCATION_RE.test(locationId);
+  const closedLocation = CLOSED_LOCATION_RE.test(locationId) && !publicLocation;
+
+  let privacy;
+  if (publicLocation || observerCount >= 2 || participants.length >= 4) privacy = 'public';
+  else if (observerCount === 0 && participants.length <= 2) privacy = 'private';
+  else if (observerCount === 1 || closedLocation) privacy = 'semi_private';
+  else privacy = 'unknown';
+  return { privacy, observer_count: observerCount };
+}
+
+/** 관계·수치 신호 — 실제 저장 필드만 사용하며, 값이 없으면 unknown(null)로 둔다. */
+export function resolveRelationshipSignals({ save, targetId } = {}) {
+  const rel = save?.npc_relationship_state?.[targetId] ?? {};
+  const stats = save?.npc_stats?.[targetId] ?? {};
+  const arousal = typeof stats.sexual_arousal === 'number' && Number.isFinite(stats.sexual_arousal) ? stats.sexual_arousal : null;
+  const affinity = typeof stats.affinity === 'number' && Number.isFinite(stats.affinity)
+    ? stats.affinity
+    : (typeof stats.affection === 'number' && Number.isFinite(stats.affection) ? stats.affection : null);
+  return {
+    arousal,
+    affinity,
+    arousal_band: bandFor(arousal, AROUSAL_BANDS),
+    affinity_band: bandFor(affinity, AFFINITY_BANDS),
+    closeness: rel.closeness ?? null,
+    romance_status: rel.romance_status ?? null,
+    current_boundary: rel.current_boundary ?? null,
+    first_kiss_turn: rel.milestones?.first_kiss_turn ?? null,
+    sexual_relationship_started_turn: rel.milestones?.sexual_relationship_started_turn ?? null
+  };
+}
+
+/** 행동 강도 tier — bundle은 가장 강한 행동 기준. */
+export function resolveActionTier(actionTypes) {
+  if (!Array.isArray(actionTypes) || !actionTypes.length) return null;
+  if (actionTypes.some(t => t === 'oral' || t === 'penetration')) return 'explicit';
+  if (actionTypes.some(t => t === 'sexual_touch' || t === 'genital_exposure' || t === 'genital_touch')) return 'intimate';
+  if (actionTypes.every(t => t === 'kiss')) return 'affectionate';
+  return null;
+}
+
+const COERCIVE_RE = /(붙잡|강제|억지로|억지|도망|못 가게|눕히|끌고|강요|밀어 넣|움직이지 못하게|잠그|가둬|붙들|강하게 잡|잡아서|붙들어)/;
+const COMPELLED_RE = /(잡게 한다|만지게 한다|하게 시킨다|시킨다|직접 잡게|직접 하게)/;
+const AUTHORITY_RE = /(감사 업무|감사업무|인사팀|지시한다|명령한다|규정|평가|업무 협조|협조 의무|상사 명령|회사 규정|공지|업무상)/;
+
+/** hard blocker — 높은 흥분도·호감도로 해제하지 않는다. */
+export function resolveHardBlockers({ playerAction, targetId, actionTier, privacy, save, executionMode } = {}) {
+  const source = String(playerAction ?? '');
+  const blockers = [];
+  if (COERCIVE_RE.test(source) || COMPELLED_RE.test(source)) blockers.push('coercive_physical_control');
+  if (AUTHORITY_RE.test(source) && (executionMode === 'direct_act' || executionMode === 'instruction')) blockers.push('company_authority_misuse');
+  const pending = save?.pending_boundary_followup;
+  if (pending && typeof pending === 'object' && (!targetId || pending.target_character_id === targetId)) blockers.push('explicit_recent_refusal');
+  const boundary = save?.npc_relationship_state?.[targetId]?.current_boundary;
+  if (boundary === 'closed' || boundary === 'hostile') blockers.push('closed_boundary');
+  if (!targetId && (actionTier === 'intimate' || actionTier === 'explicit')) blockers.push('unclear_target');
+  if (privacy === 'public' && (actionTier === 'intimate' || actionTier === 'explicit') && (executionMode === 'direct_act' || executionMode === 'instruction')) blockers.push('public_strong_action');
+  return blockers;
+}
+
+/**
+ * 조건부 허용 판정 — 단순 점수 합산 금지. 순서: hard blocker → tier → privacy →
+ * 관계·호감도·흥분도 근거 → tier별 최소 조합. hard blocker는 양수 근거로 상쇄하지 않는다.
+ */
+export function resolveContextualPermission({ save, targetId, actionTypes, executionMode, playerAction } = {}) {
+  const privacyCtx = resolvePrivacyContext({ save, targetId });
+  const signals = resolveRelationshipSignals({ save, targetId });
+  const actionTier = resolveActionTier(actionTypes);
+  const blockers = resolveHardBlockers({ playerAction, targetId, actionTier, privacy: privacyCtx.privacy, save, executionMode });
+  const isDirect = executionMode === 'direct_act';
+  const basis = [];
+  let level = 'none';
+  let eligible = blockers.length === 0;
+
+  if (eligible && actionTier && isDirect) {
+    if (actionTier === 'affectionate') {
+      // A. 관계 근거
+      if (signals.first_kiss_turn != null) { level = 'strong'; basis.push('relationship_milestone'); }
+      else if (['dating', 'lover', 'mutual_interest', 'interest', 'close'].includes(signals.romance_status)) { level = 'strong'; basis.push('romance_status'); }
+      // B. 정황 근거 — 호감도 적당함 이상 + 흥분도 중간 이상 + 사생활 + 경계 닫힘 아님
+      else if ((signals.affinity_band === 'medium' || signals.affinity_band === 'high')
+        && (signals.arousal_band === 'medium' || signals.arousal_band === 'high' || signals.arousal_band === 'very_high')
+        && (privacyCtx.privacy === 'private' || privacyCtx.privacy === 'semi_private')) {
+        level = 'conditional';
+        basis.push('moderate_affinity', 'moderate_arousal', privacyCtx.privacy === 'private' ? 'private_scene' : 'semi_private_scene');
+      }
+      // C. 강한 정황 근거 — 흥분도 높음 이상 + 호감도 적당함 이상 + 관찰자 0
+      else if ((signals.arousal_band === 'high' || signals.arousal_band === 'very_high')
+        && (signals.affinity_band === 'medium' || signals.affinity_band === 'high')
+        && privacyCtx.observer_count === 0) {
+        level = 'conditional';
+        basis.push('high_arousal', 'moderate_affinity', 'private_scene');
+      }
+    } else if (actionTier === 'intimate') {
+      // A. 기존 성적 관계
+      if (signals.sexual_relationship_started_turn != null) { level = 'strong'; basis.push('sexual_relationship'); }
+      // B. 높은 흥분도 + 적당한 호감도 + 완전 사생활 + 관찰자 0 + 경계 닫힘/직급 잠금 아님
+      else if ((signals.arousal_band === 'high' || signals.arousal_band === 'very_high')
+        && (signals.affinity_band === 'medium' || signals.affinity_band === 'high')
+        && privacyCtx.privacy === 'private'
+        && privacyCtx.observer_count === 0
+        && !['closed', 'hostile', 'professional_locked', 'professional_lock'].includes(signals.current_boundary)) {
+        level = 'conditional';
+        basis.push('high_arousal', 'moderate_affinity', 'private_scene', 'boundary_not_closed');
+      }
+    } else if (actionTier === 'explicit') {
+      // 기본: sexual milestone + private. milestone 없으면 요청형으로만 진행.
+      if (signals.sexual_relationship_started_turn != null && privacyCtx.privacy === 'private') {
+        level = 'strong';
+        basis.push('sexual_relationship', 'private_scene');
+      }
+    }
+  }
+  return {
+    eligible,
+    level,
+    action_tier: actionTier,
+    basis,
+    blockers,
+    privacy: privacyCtx.privacy,
+    observer_count: privacyCtx.observer_count,
+    signals: {
+      arousal_band: signals.arousal_band,
+      affinity_band: signals.affinity_band,
+      boundary: signals.current_boundary
+    }
   };
 }
 
@@ -254,14 +431,19 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
   });
   const relationship = relationshipFor(save, targetId);
   const companyAuthorityMisuse = detectCompanyAuthorityMisuse(text);
-
-  const routeInfo = resolveRouteAndPolicy({
-    actionTypes, executionMode, coverage, relationship, companyAuthorityMisuse
+  // 다중 근거 기반 조건부 허용 — 순수 함수 (추가 LLM/네트워크 없음)
+  const permission = resolveContextualPermission({
+    save, targetId, actionTypes, executionMode, playerAction: text
   });
 
+  const routeInfo = resolveRouteAndPolicy({
+    actionTypes, executionMode, coverage, relationship, companyAuthorityMisuse, permission
+  });
+
+  const coerciveMaterial = (COERCIVE_RE.test(text) || COMPELLED_RE.test(text)) && actionTypes.length === 0;
   const contract = {
     version: 1,
-    material_action: actionTypes.length > 0,
+    material_action: actionTypes.length > 0 || coerciveMaterial,
     action_types: actionTypes,
     execution_mode: executionMode,
     actor_id: actorId,
@@ -276,6 +458,17 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     csa_attribution_allowed: routeInfo.csa_attribution_allowed,
     company_authority_attribution_allowed: routeInfo.company_authority_attribution_allowed,
     relationship_basis: relationship,
+    contextual_permission: {
+      eligible: permission.eligible,
+      level: permission.level,
+      action_tier: permission.action_tier,
+      basis: permission.basis,
+      blockers: permission.blockers,
+      privacy: permission.privacy,
+      observer_count: permission.observer_count,
+      signals: permission.signals
+    },
+    attempt_basis: routeInfo.attempt_basis ?? (coverage?.covered ? 'csa_exact' : 'insufficient'),
     schedule_boundary_followup: routeInfo.schedule_boundary_followup,
     reason_code: routeInfo.reason_code
   };
@@ -309,11 +502,30 @@ export function buildActionExecutionContractSection(contract, { applicableCsa = 
   }
   if (contract.route === 'ordinary') return '';
   if (contract.route === 'ordinary_request') {
-    return `\n\n[ACTION EXECUTION CONTRACT — REQUEST]\n이번 플레이어 입력(${contract.action_types.join(', ')})은 활성 상식개변의 직접 범위를 벗어난 요청이다. 요청 자체는 전달되지만, NPC가 관계·성격·현재 경계에 따라 수락·거절·조건을 제시한다. 요청했다는 이유만으로 바로 완료하지 않는다. CSA acceptance나 신체적 흥분은 동의가 아니다. 회사 규정·감사 업무·인사팀 지시로 정당화하지 않는다.`;
+    const ctx = permissionContextLine(contract);
+    return `\n\n[ACTION EXECUTION CONTRACT — REQUEST]\n이번 플레이어 입력(${contract.action_types.join(', ')})은 활성 상식개변의 직접 범위를 벗어난 요청이다. 요청 자체는 전달되지만, NPC가 관계·성격·현재 경계를 실제로 반영해 수락·거절·조건을 제시한다.${ctx ? `\n현재 NPC 상태: ${ctx}` : ''}\nNPC는 무조건 거절하지 않는다. 흥분도가 높고 호감도와 사생활 조건이 갖춰졌다면 수락 가능성을 충분히 열어둔다. 허용되는 반응: 즉시 수락, 머뭇거리며 수락, 주변 확인 후 수락, 조금만 허용, 장소 변경 제안, 다음 단계는 거절, 거절. 요청했다는 이유만으로 자동 완료하지 않는다. CSA acceptance나 신체적 흥분 자체가 동의는 아니다. 회사 규정·감사 업무·인사팀 지시로 정당화하지 않는다.`;
   }
   if (contract.route === 'ordinary_direct_attempt') {
-    return `\n\n[ACTION EXECUTION CONTRACT — ATTEMPT]\n이번 입력(${contract.action_types.join(', ')})은 활성 상식개변 범위 밖의 직접 시도이며 기존 관계가 이를 뒷받침한다. 자동 성공도 자동 실패도 아니다. NPC 반응이 반드시 서사에 존재해야 한다. CSA나 회사 권한 때문이 아니라 일반 관계 행동으로 처리한다.`;
+    const ctx = permissionContextLine(contract);
+    return `\n\n[ACTION EXECUTION CONTRACT — ATTEMPT]\n이번 입력(${contract.action_types.join(', ')})은 CSA의 직접 범위는 아니지만, 현재 관계와 정황상 NPC가 받아들일 가능성이 있는 비강압적 시도다.${ctx ? `\n현재 NPC 상태: ${ctx}` : ''}\nNPC는 자동으로 거절하지 않는다. 현재 호감도, 흥분도, 사생활, 성격, 경계를 반영해 수락·망설임·조건부 허용·중단 중 자연스러운 반응을 선택한다. 흥분도가 높고 둘만 있는 상황이며 호감이 충분하다면, 주변을 확인하거나 눈을 감고 조심스럽게 호응하는 반응도 가능하다. NPC 반응이 반드시 서사에 존재해야 한다. 다만 CSA나 회사 규정 때문에 허용하는 것으로 묘사하지 않는다. 더 강한 행동까지 포괄 허용된 것으로 확대하지 않는다.`;
   }
-  // ordinary_direct_blocked
-  return `\n\n[ACTION EXECUTION CONTRACT — AUTHORITATIVE]\n이번 플레이어 입력에는 활성 상식개변의 직접 범위를 벗어난 행동이 포함되어 있다(${contract.action_types.join(', ')}, 직접 신체 조작).${csaScopeLine(applicableCsa)}\nNPC는 이를 회사 규정, 감사 업무, 인사팀 공지, 상식개변 의무로 해석해서는 안 된다. CSA acceptance나 신체적 흥분은 동의가 아니다. 플레이어가 직접 행동을 시도한 경우 완료 사실로 바로 확정하지 말고, NPC의 즉각적인 선택·중단·거리 확보·경계 표현을 서사에 포함한다.`;
+  // ordinary_direct_blocked — hard blocker 또는 근거 부족일 때만 사용
+  const ctx = permissionContextLine(contract);
+  const blockerNote = Array.isArray(contract.contextual_permission?.blockers) && contract.contextual_permission.blockers.length
+    ? `\n차단 사유: ${contract.contextual_permission.blockers.join(', ')}`
+    : '';
+  return `\n\n[ACTION EXECUTION CONTRACT — AUTHORITATIVE]\n이번 플레이어 입력에는 활성 상식개변의 직접 범위를 벗어난 행동이 포함되어 있다(${contract.action_types.join(', ')}, 직접 신체 조작).${blockerNote}${csaScopeLine(applicableCsa)}${ctx ? `\n현재 NPC 상태: ${ctx}` : ''}\nNPC는 이를 회사 규정, 감사 업무, 인사팀 공지, 상식개변 의무로 해석해서는 안 된다. CSA acceptance나 신체적 흥분은 동의가 아니다. 플레이어가 직접 행동을 시도한 경우 완료 사실로 바로 확정하지 말고, NPC가 손을 막거나, 몸을 빼거나, 행동을 멈추거나, 이유를 묻거나, 조건을 제시하는 등 상황에 맞는 다양한 반응을 서사에 포함한다. 매번 같은 거절 문장을 반복하지 않는다.`;
+}
+
+/** 계약의 조건부 허용 정보를 band 단위(민감 원문 제외)로 요약한다. */
+function permissionContextLine(contract) {
+  const p = contract?.contextual_permission;
+  if (!p) return '';
+  const parts = [];
+  const sig = p.signals ?? {};
+  if (sig.arousal_band) parts.push(`흥분도 ${sig.arousal_band}`);
+  if (sig.affinity_band) parts.push(`호감도 ${sig.affinity_band}`);
+  if (p.privacy) parts.push(p.privacy === 'private' ? '둘만 있는 공간' : (p.privacy === 'semi_private' ? '반사적인 공간' : '사람이 있는 공간'));
+  if (sig.boundary) parts.push(`현재 경계 ${sig.boundary}`);
+  return parts.join(', ');
 }

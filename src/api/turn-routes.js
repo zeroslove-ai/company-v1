@@ -296,7 +296,50 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog,
  * 허용: affinity/resistance(관계 규칙)/emotion/arousal/scene/대화 변화.
  */
 export function applyContractStateFirewall(extract, contract) {
-  if (!contract || contract.route !== 'ordinary_direct_blocked') return extract;
+  if (!contract) return extract;
+  if (contract.route === 'ordinary_direct_blocked') {
+    return applyBlockedContractFirewall(extract, contract);
+  }
+  if (contract.route === 'ordinary_direct_attempt') {
+    // attempt는 Extract의 action_resolution이 accepted/partially_accepted + voluntary=true일
+    // 때만 성공 정본화를 허용한다. ambiguous/refused/interrupted는 milestone 승격 금지.
+    const resolution = extract?.action_resolution ?? extract?.state_delta?.action_resolution ?? null;
+    const accepted = ['accepted', 'partially_accepted'].includes(resolution?.npc_response);
+    const voluntary = resolution?.voluntary === true;
+    if (accepted && voluntary) return extract;
+    const next = { ...extract, state_delta: { ...(extract?.state_delta ?? {}) } };
+    const targetId = contract.target_id;
+    if (next.state_delta.npc_relationship_state && typeof next.state_delta.npc_relationship_state === 'object') {
+      const rel = {};
+      for (const [id, patch] of Object.entries(next.state_delta.npc_relationship_state)) {
+        const p = { ...patch };
+        if (id === targetId && p.milestones && typeof p.milestones === 'object') {
+          const milestones = { ...p.milestones };
+          delete milestones.first_kiss_turn;
+          delete milestones.sexual_relationship_started_turn;
+          p.milestones = milestones;
+        }
+        rel[id] = p;
+      }
+      next.state_delta.npc_relationship_state = rel;
+    }
+    if (Array.isArray(next.state_delta.event_ledger)) {
+      next.state_delta.event_ledger = next.state_delta.event_ledger.filter(ev => {
+        const type = typeof ev?.event_type === 'string' ? ev.event_type : '';
+        const summary = typeof ev?.summary === 'string' ? ev.summary : '';
+        const preserve = /(refused|blocked|interrupted|reported|complaint|harassment|attempt|시도|거절|중단|막음|신고|항의|불쾌|경계|거부)/i.test(type + ' ' + summary);
+        if (preserve) return true;
+        const sexual = /(sexual|kiss|intimate|foreplay|penetration|oral|genital|성|키스|삽입|친밀|성적|사정|오르가즘)/i.test(type + ' ' + summary);
+        const completion = /(completed|consummated|했다|완료|이루어졌|시작됐|끝났|성사|이뤄졌|하게 했)/i.test(summary);
+        return !(sexual && completion);
+      });
+    }
+    return next;
+  }
+  return extract;
+}
+
+function applyBlockedContractFirewall(extract, contract) {
   const stateDelta = extract?.state_delta ?? {};
   const next = { ...extract, state_delta: { ...stateDelta } };
   const targetId = contract.target_id;
@@ -486,6 +529,9 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           timing.action_route = actionContract.route;
           timing.action_material = actionContract.material_action ? 1 : 0;
           timing.action_csa_covered = actionContract.csa_coverage.covered ? 1 : 0;
+          timing.action_permission_level = actionContract.contextual_permission?.level ?? 'none';
+          timing.action_privacy = actionContract.contextual_permission?.privacy ?? 'unknown';
+          timing.action_attempt_basis = actionContract.attempt_basis ?? 'insufficient';
           const promptStart = Date.now();
           let messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs });
           messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog, actionContract });
@@ -538,6 +584,8 @@ export function createTurnRoutes({ fetchImpl, edition }) {
             active_character_count: timing.active_character_count, recent_turn_count: timing.recent_turn_count,
             action_contract_ms: timing.action_contract_ms, action_route: timing.action_route,
             action_material: timing.action_material, action_csa_covered: timing.action_csa_covered,
+            action_permission_level: timing.action_permission_level, action_privacy: timing.action_privacy,
+            action_attempt_basis: timing.action_attempt_basis,
             turn_total_ms: Date.now() - startedAt
           });
         }
@@ -689,6 +737,14 @@ export function createTurnRoutes({ fetchImpl, edition }) {
               messages[1] = { ...messages[1], content: JSON.stringify(payload) };
             } catch {
               // payload가 JSON이 아니면 contract 주입을 건너뛴다 (extract는 계속 진행)
+            }
+            // action_resolution 지시는 attempt/blocked 턴에만 시스템에 추가한다 (상시 추가로
+            // CSA-active 시스템 프롬프트 cap을 넘기지 않기 위해)
+            if (storedContract.route === 'ordinary_direct_attempt' || storedContract.route === 'ordinary_direct_blocked') {
+              messages[0] = {
+                ...messages[0],
+                content: messages[0].content + '\nIf the contract route is attempt/blocked, also output action_resolution:{target_id,route,npc_response,voluntary,completed_action_types}. npc_response: accepted|partially_accepted|refused|interrupted|ambiguous. accepted requires explicit allowance, mutual response, or conditioned consent in the story — arousal/body reactions(흥분, 붉음, 젖음, 떨림, 얼어붙음, 저항 없음) alone are NOT accepted grounds. blocked면 completed_action_types는 빈 배열.'
+              };
             }
           }
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })

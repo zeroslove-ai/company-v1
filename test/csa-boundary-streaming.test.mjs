@@ -59,13 +59,18 @@ const splitStorySse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[
   `data: ${JSON.stringify({ choices: [{ delta: { content: '\\n[2. 플레이어 속마음]\\n좋아.\\n[3. 플레이어 상황판]\\n회의실.\\n[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D' } }] })}\n\n` +
   'data: [DONE]\n\n';
 
-function createMockFetch({ playerAction = '이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.', storySseOverride = null, csaRules = true } = {}) {
+function createMockFetch({ playerAction = '이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.', storySseOverride = null, csaRules = true, contextualSave = false } = {}) {
   const calls = [];
   const actions = new Map();
   const saves = []; // commit된 save 이력 (follow-up 검증용)
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   save.csa_active = csaRules ? ['csa_2', 'csa_5'] : [];
   save.csa_rules = csaRules ? CSA_RULES : {};
+  // 조건부 허용 시나리오: 높은 흥분도 + 적당한 호감도 + 둘만 있는 공간
+  if (contextualSave) {
+    save.npc_stats = { ...(save.npc_stats ?? {}), heroine5: { affinity: 50, sexual_arousal: 75, resistance: 30, csa_acceptance: 18 } };
+    save.scene_state = { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 };
+  }
   save.focal_character_id = 'heroine5';
   save.npc_relationship_state = {
     ...(save.npc_relationship_state ?? {}),
@@ -277,7 +282,8 @@ test('15-5: record_story_result의 parsed_blocks에 action_execution_contract �
   assert.equal(contract.route, 'ordinary_direct_blocked');
   assert.deepEqual(contract.action_types, ['genital_touch']);
   assert.equal(contract.schedule_boundary_followup, true);
-  assert.equal(contract.reason_code, 'OUTSIDE_CSA_WITHOUT_RELATIONSHIP_PERMISSION');
+  assert.equal(contract.reason_code, 'HARD_BLOCKER');
+  assert.ok(contract.contextual_permission.blockers.includes('coercive_physical_control'), '강압 blocker');
 });
 
 test('16: pending boundary follow-up 생성 → 다음 턴 주입 → 소비 후 삭제 → 반복 금지', async () => {
@@ -434,4 +440,56 @@ test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-
   // csa_2 정확 행동은 정상 확정
   assert.ok(prompt.includes('CSA DIRECT COVERAGE — ESTABLISHED FACT'), '정상 coverage section');
   assert.ok(prompt.includes('csa_2'), 'csa_2 명시');
+});
+
+// ---------- 조건부 허용: Extract 정본화 / LLM 회귀 (19-13, 19-14, 19-19) ----------
+
+test('19-13: contextual attempt + Extract accepted+voluntary → 성공 정본화 허용', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const attemptContract = { version: 1, route: 'ordinary_direct_attempt', action_types: ['sexual_touch'], target_id: 'heroine5' };
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'accepted', voluntary: true, completed_action_types: ['sexual_touch'] },
+    state_delta: { npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8 } } } }
+  };
+  const out = applyContractStateFirewall(extract, attemptContract);
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, 8, 'accepted+voluntary는 milestone 허용');
+});
+
+test('19-14: contextual attempt + ambiguous → milestone·완료 event 차단, 감정 변화 보존', async () => {
+  const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');
+  const attemptContract = { version: 1, route: 'ordinary_direct_attempt', action_types: ['sexual_touch'], target_id: 'heroine5' };
+  const extract = {
+    action_resolution: { target_id: 'heroine5', route: 'ordinary_direct_attempt', npc_response: 'ambiguous', voluntary: false, completed_action_types: [] },
+    state_delta: {
+      npc_relationship_state: { heroine5: { milestones: { first_kiss_turn: 8, sexual_relationship_started_turn: 8 } } },
+      event_ledger: [
+        { event_id: 'm', event_type: 'sexual_event', turn: 8, summary: '키스가 이루어졌다.', participants: ['heroine5'] },
+        { event_id: 'n', event_type: 'work_event', turn: 8, summary: '대화가 이어졌다.', participants: ['heroine5'] }
+      ],
+      npc_emotion: { heroine5: { mood: 'confused' } }
+    }
+  };
+  const out = applyContractStateFirewall(extract, attemptContract);
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.first_kiss_turn, undefined, 'ambiguous milestone 차단');
+  assert.equal(out.state_delta.npc_relationship_state.heroine5.milestones.sexual_relationship_started_turn, undefined);
+  const ids = out.state_delta.event_ledger.map(e => e.event_id);
+  assert.ok(!ids.includes('m'), '완료 event 차단');
+  assert.ok(ids.includes('n'), '일반 event 유지');
+  assert.equal(out.state_delta.npc_emotion.heroine5.mood, 'confused', '감정 변화 보존');
+});
+
+test('19-19: contextual attempt 턴도 추가 LLM 0 (Story 1 + Extract 1) + route=attempt', async () => {
+  const mock = createMockFetch({ contextualSave: true, playerAction: '이메이의 가슴을 만진다.' });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이의 가슴을 만진다.' }), env);
+  assert.equal(story.status, 200);
+  const body = await story.text();
+  assert.ok(body.includes('"action_route":"ordinary_direct_attempt"'), 'attempt route');
+  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
+  assert.equal(extract.status, 200);
+  await extract.json();
+  const llmCalls = mock.calls.filter(c => String(c.url).startsWith('https://llm.test'));
+  assert.equal(llmCalls.filter(c => JSON.parse(c.body).stream).length, 1, 'Story 1회');
+  assert.equal(llmCalls.filter(c => !JSON.parse(c.body).stream && JSON.parse(c.body).max_tokens === 5000).length, 1, 'Extract 1회');
+  assert.equal(llmCalls.length, 2, 'classifier/verifier/repair 0');
 });
