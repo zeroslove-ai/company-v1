@@ -276,7 +276,8 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
   let inScene = false;                  // story 영역 안에서 SCENE 이후 여부
   let seenScene = false;                // SCENE-first (수정 G)
   let openHeaderRaw = null;             // 검증 대기 중인 [DIALOGUE ...] 헤더
-  let openBody = '';                    // 열려 있는 대사 본문
+  let openBody = '';                    // 열려 있는 대사 본문 (첫 비어 있지 않은 한 줄)
+  let awaitingMarkerAfterDialogue = false; // 대사 한 줄 뒤 마커([SCENE]/[DIALOGUE]/섹션) 대기
   let discardMalformedDialogueBody = false; // 수정 5
   let order = 0;
   const disallowedNames = disallowedProseNpcNames(contract, speakerNames);
@@ -320,10 +321,10 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
       return;
     }
     const block = { ...result.block, order: segments.length };
+    // 대사 본문을 감싼 바깥 큰따옴표("...", "“…”")는 제거한다.
+    // 헤더 속성값(speaker_id/acting_direction)의 따옴표는 문법이므로 유지한다.
+    block.text = String(block.text).replace(/^["“”']+|["“”']+$/gu, '');
     segments.push(block);
-    // 대화 블록이 닫히면 이후 텍스트는 다시 scene 서술로 처리한다.
-    // (빈 줄로 닫힌 경우 다음 줄부터 표정·행동·분위기 서술이 scene에 병합된다)
-    inScene = true;
     // 정본 텍스트는 레거시 파서도 읽을 수 있는 형태로 유지한다 (속성값의 따옴표는 제거).
     const safeName = String(block.speaker_name).replace(/"/gu, '');
     const safeDirection = String(block.acting_direction).replace(/"/gu, '');
@@ -355,6 +356,22 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
       } else {
         return; // 본문 후보 폐기
       }
+    }
+
+    // 대사 한 줄 뒤 마커 검사 — [SCENE]/[DIALOGUE]/섹션 마커가 아니면
+    // malformed_structured_story_block으로 폐기하고 다음 유효 마커에서 재개한다.
+    if (awaitingMarkerAfterDialogue) {
+      if (trimmed === '') return; // 빈 줄은 무시하고 마커 대기를 유지한다
+      awaitingMarkerAfterDialogue = false;
+      const isResumeMarker = trimmed === SCENE_MARKER
+        || (trimmed.startsWith(DIALOGUE_OPEN) && parseDialogueHeader(trimmed).ok)
+        || isSectionMarker(trimmed);
+      if (!isResumeMarker) {
+        recordWarning(DIALOGUE_WARNINGS.MALFORMED);
+        discardMalformedDialogueBody = true;
+        return; // 이 줄 폐기 — 다음 유효 마커까지 discard 상태
+      }
+      // 유효 마커면 정상 처리로 진행한다
     }
 
     if (trimmed === '') {
@@ -431,31 +448,25 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
   const drain = (out, final) => {
     for (;;) {
       if (inDialogueBody()) {
-        // 대화 본문 — 첫 번째 빈 줄(문단 구분) 또는 다음 줄머리 마커('[')에서 블록을 닫는다.
-        // [DIALOGUE] 뒤의 첫 문단(실제 발화)만 대화로 취급하고, 빈 줄 뒤의 일반 텍스트는
-        // 다시 scene 서술로 처리한다(표정·행동·분위기 흡수 방지).
-        const blankBreak = lineBuffer.search(/\n\s*\n/u);
-        const nextMarker = lineBuffer.search(/\n\s*\[/u);
-        let end = -1;
-        if (nextMarker !== -1 && (blankBreak === -1 || nextMarker <= blankBreak)) end = nextMarker;
-        else if (blankBreak !== -1) end = blankBreak;
-        if (end === -1) {
-          if (final) {
-            openBody += lineBuffer;
+        // [DIALOGUE] 본문: 첫 번째 비어 있지 않은 한 줄만 실제 발화로 인정한다.
+        // 대사 한 줄 뒤에는 반드시 [SCENE]/[DIALOGUE]/섹션 마커가 이어져야 하며,
+        // 마커 없이 일반 텍스트가 오면 malformed_structured_story_block으로 폐기한다.
+        const breakIndex = lineBuffer.indexOf('\n');
+        if (breakIndex === -1) {
+          if (final && lineBuffer.trim()) {
+            openBody = lineBuffer.trim();
             lineBuffer = '';
             closeDialogue(out);
-            return;
-          }
-          const lastBreak = lineBuffer.lastIndexOf('\n');
-          if (lastBreak > 0) {
-            openBody += lineBuffer.slice(0, lastBreak);
-            lineBuffer = lineBuffer.slice(lastBreak);
+            awaitingMarkerAfterDialogue = true;
           }
           return;
         }
-        openBody += lineBuffer.slice(0, end);
-        lineBuffer = lineBuffer.slice(end).replace(/^[\r\n]{1,2}/u, '');
+        const dialogueLine = lineBuffer.slice(0, breakIndex).trim();
+        lineBuffer = lineBuffer.slice(breakIndex + 1);
+        if (!dialogueLine) continue; // 빈 줄은 건너뛴다 (첫 비어 있지 않은 줄 탐색)
+        openBody = dialogueLine;
         closeDialogue(out);
+        awaitingMarkerAfterDialogue = true;
         continue;
       }
 

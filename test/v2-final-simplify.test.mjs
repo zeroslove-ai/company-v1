@@ -358,27 +358,41 @@ test('26~30. V2 게이트·캐스트는 추가 LLM/네트워크 호출이 없는
 });
 
 // ---------------------------------------------------------------------------
-// 서사 표시 정상화: [DIALOGUE] 첫 문단만 대화, 빈 줄 뒤 서술은 scene으로 분리
+// 서사 표시 정상화: [DIALOGUE]는 발화 한 줄만 인정, 따옴표 제거, 마커 없는 후속 텍스트 폐기
 // ---------------------------------------------------------------------------
 
-test('서사 표시 정상화: 대사 뒤 빈 줄 다음 표정·행동 서술은 대화에 흡수되지 않고 scene으로 분리된다', () => {
+test('서사 표시 정상화: [DIALOGUE]는 발화 한 줄만 인정하고 바깥 따옴표를 제거하며, 마커 없는 후속 문장은 폐기한다', () => {
+  // 1) 정상 흐름 — 대사 한 줄 뒤 [SCENE]으로 전환: 행동 서술은 scene 블록
   const gate = gateFor(baseContract());
   gate.push('[1. 서사 및 행동]\n[SCENE]\n회의실이 조용하다.\n');
-  gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n"그걸 왜 물어보시는 거예요."\n\n그녀의 손끝이 멈췄다.\n목덜미가 붉어졌다.\n');
+  gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n"그걸 왜 물어보시는 거예요."\n[SCENE]\n그녀의 손끝이 멈췄다.\n목덜미가 붉어졌다.\n');
   const end = gate.end();
   const dialogue = end.blocks.find(b => b.type === 'dialogue');
-  assert.equal(dialogue.text, '"그걸 왜 물어보시는 거예요."', '대화 블록은 실제 발화 한 문단만');
-  assert.ok(!dialogue.text.includes('손끝'), '대사 본문에 서술이 흡수되지 않는다');
-  assert.ok(!dialogue.text.includes('목덜미'), '대사 본문에 서술이 흡수되지 않는다');
+  assert.equal(dialogue.text, '그걸 왜 물어보시는 거예요.', '대사 바깥 큰따옴표 제거');
   const sceneBlocks = end.segments.filter(s => s.type === 'scene');
   const lastScene = sceneBlocks.at(-1);
-  assert.ok(lastScene.text.includes('손끝이 멈췄다'), '표정·행동 서술은 scene으로 분리');
-  assert.ok(lastScene.text.includes('목덜미가 붉어졌다'), '분위기 서술은 scene으로 분리');
-  // 그 다음 [DIALOGUE]는 새 대화 블록
+  assert.ok(lastScene.text.includes('손끝이 멈췄다'), '[SCENE] 뒤 행동 서술은 scene 블록');
+  assert.ok(lastScene.text.includes('목덜미가 붉어졌다'), '분위기 서술도 scene 블록');
+
+  // 2) 등록된 현장 NPC의 [DIALOGUE]만 대화 블록 — cast 밖 화자는 차단 유지
+  const gateCast = gateFor(baseContract());
+  gateCast.push('[1. 서사 및 행동]\n[SCENE]\n회의실이 조용하다.\n[DIALOGUE speaker_id="heroine1" acting_direction="고개를 들며"]\n"네."\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 끄덕이며"]\n"알겠습니다."\n');
+  const endCast = gateCast.end();
+  const castBlocks = endCast.blocks.filter(b => b.type === 'dialogue');
+  assert.equal(castBlocks.length, 1, 'cast 밖 heroine1은 차단');
+  assert.equal(castBlocks[0].speaker_id, 'heroine5');
+  assert.ok(endCast.warnings.includes(DIALOGUE_WARNINGS.NOT_IN_CAST), 'not_in_cast 경고');
+
+  // 3) 마커 없는 후속 문장은 대화나 scene으로 오인되지 않고 폐기 — 다음 유효 마커에서 재개
   const gate2 = gateFor(baseContract());
-  gate2.push('[1. 서사 및 행동]\n[SCENE]\n회의실이 조용하다.\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n"그걸 왜 물어보시는 거예요."\n\n그녀의 손끝이 멈췄다.\n[DIALOGUE speaker_id="heroine5" acting_direction="눈을 내리깔며"]\n"규정에 있는 거잖아요."\n');
+  gate2.push('[1. 서사 및 행동]\n[SCENE]\n회의실이 조용하다.\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n"그걸 왜 물어보시는 거예요."\n그녀의 손끝이 멈췄다.\n[SCENE]\n목덜미가 붉어졌다.\n');
   const end2 = gate2.end();
+  assert.ok(end2.warnings.includes(DIALOGUE_WARNINGS.MALFORMED), '마커 없는 후속 문장은 malformed_structured_story_block 경고');
   const d2 = end2.blocks.filter(b => b.type === 'dialogue');
-  assert.equal(d2.length, 2, '두 번째 [DIALOGUE]는 새 대화 블록');
-  assert.equal(d2[1].text, '"규정에 있는 거잖아요."');
+  assert.equal(d2.length, 1, '폐기된 대화는 블록으로 저장되지 않는다');
+  assert.equal(d2[0].text, '그걸 왜 물어보시는 거예요.');
+  assert.ok(!end2.story_text.includes('손끝이 멈췄다'), '폐기된 후속 문장은 정본에서 제외');
+  const scene2 = end2.segments.filter(s => s.type === 'scene').at(-1);
+  assert.ok(scene2.text.includes('목덜미가 붉어졌다'), '다음 [SCENE]부터 정상 재개');
 });
+
