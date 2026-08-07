@@ -44,16 +44,9 @@ export function buildPosturePatch({ previous = null, proposal = null, turnNumber
     } : null;
   }
 
-  const postureChanges = Boolean(previousPosture && proposedPosture && previousPosture !== proposedPosture);
-  const hasRealEndReason = END_REASON_VALUES.has(next?.end_reason) || next?.evidence_valid === true;
-  if (postureChanges && !hasRealEndReason) {
-    return {
-      posture: previousPosture,
-      position_label: previousPosition,
-      updated_turn: prev?.updated_turn ?? null,
-      rejected: 'unevidenced_posture_change'
-    };
-  }
+  // 증거 불충분 시에도 Extract 제안을 반영한다 — unevidenced 경고는
+  // physical-state.js가 이미 기록하므로 여기서 값 자체를 되돌리지 않는다
+  // (33~37턴 자세 저장 누락 방지).
 
   return {
     posture: proposedPosture ?? previousPosture,

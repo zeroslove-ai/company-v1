@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   buildSceneCastContract,
   speakerNameById,
@@ -440,4 +441,38 @@ test('동일한 뒷두 글자가 2명 등록 → target 미확정', () => {
   };
   assert.equal(resolveUserMentionedNpcIds(master2, '민아 보러 간다').length, 0);
   assert.ok(resolveUserMentionedNpcIds(master2, '윤민아를 보러 간다').includes('heroine2'));
+});
+
+// ---------------------------------------------------------------------------
+// 저장 파이프라인 안정화 핫픽스 — NPC 자세 저장 복원 + 같은 턴 동시 예약 방지
+// ---------------------------------------------------------------------------
+
+test('핫픽스 1. NPC 자세 state delta 저장 — evidence 없이도 Extract 제안 posture가 Commit save에 반영된다', () => {
+  const save = initialSave();
+  save.npc_scene_state.heroine1 = { present: true, location_id: 'meeting_room_5f', posture: 'unknown', position_label: null, updated_turn: 32 };
+  const { nextSave, warnings } = applyGuardedStateDelta(save, {
+    ...emptySuccessEnvelope(),
+    npcs_present: ['heroine1'],
+    state_delta: {
+      npc_scene_state: {
+        heroine1: { posture: 'sitting_on_lap', position_label: '무릎 위에 앉음', updated_turn: 37 }
+      }
+    }
+  }, { expectedTurn: 37, actionId: 'a37', turnId: 't37', playerAction: 'x', parsedStory: {}, master, npcIds: new Set(['heroine1']) });
+  assert.equal(nextSave.npc_scene_state.heroine1.posture, 'sitting_on_lap', 'posture가 Commit save에 반영');
+  assert.equal(nextSave.npc_scene_state.heroine1.position_label, '무릎 위에 앉음', 'position_label 반영');
+  assert.equal(nextSave.npc_scene_state.heroine1.updated_turn, 37, 'updated_turn 반영');
+  assert.ok(warnings.some(w => w.includes('unevidenced')), '증거 불충분은 경고로만 기록');
+});
+
+test('핫픽스 2. 같은 턴 동시 예약 방지 — reserve_turn_action/commit_company_turn 계약', () => {
+  const sql = fs.readFileSync(new URL('../supabase/migrations/20260807000100_company_v1_turn_guard.sql', import.meta.url), 'utf8');
+  // 1) reserve_turn_action: 같은 턴 처리 중 액션 존재 시 재사용 또는 turn_in_progress 거절
+  assert.match(sql, /expected_turn = p_expected_turn/, '같은 expected_turn in-flight 조회');
+  assert.match(sql, /processing_status in \('story_streaming', 'extracting', 'committing', 'ready'\)/, '처리 중 상태 목록');
+  assert.match(sql, /player_action is not distinct from p_player_action/, '같은 입력이면 기존 액션 재사용');
+  assert.match(sql, /turn already in progress/, '다른 입력이면 turn_in_progress 거절');
+  // 2) commit_company_turn: expected turn conflict를 commit_failed로 종료
+  assert.match(sql, /processing_status = 'commit_failed', error_code = 'expected_turn_conflict'/, 'conflict 시 commit_failed 종료');
+  assert.match(sql, /'terminated', true/, '종료 응답 플래그');
 });

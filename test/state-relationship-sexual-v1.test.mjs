@@ -85,10 +85,10 @@ test('posture: a persisted posture carries forward across a turn with no ending 
   assert.equal(patch.position_label, '책상 앞');
 });
 
-test('posture: a proposed posture change without a real end_reason is rejected and the previous posture persists', () => {
+test('posture: a proposed posture change without a real end_reason is applied with a warning left to the caller', () => {
   const patch = buildPosturePatch({ previous: { posture: 'kneeling', updated_turn: 3 }, proposal: { posture: 'standing', end_reason: null }, turnNumber: 4 });
-  assert.equal(patch.posture, 'kneeling');
-  assert.equal(patch.rejected, 'unevidenced_posture_change');
+  assert.equal(patch.posture, 'standing');
+  assert.equal(patch.updated_turn, 4);
 });
 
 test('posture: a proposed change WITH a real end_reason (movement/task_ended/explicit_change/physical_interruption/player_request) is accepted', () => {

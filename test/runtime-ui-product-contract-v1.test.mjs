@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createApiWorker } from '../src/api/index.js';
@@ -204,8 +204,9 @@ test('physical state rejects invented posture and position changes without exact
     characterName: '김제나',
     turnNumber: 3
   });
-  assert.equal(result.state.posture, 'sitting');
-  assert.equal(result.state.position_label, previous.position_label);
+  // 증거 불충분에도 Extract 제안 posture/position은 반영된다 (경고만 기록)
+  assert.equal(result.state.posture, 'kneeling');
+  assert.equal(result.state.position_label, '플레이어 앞에 무릎을 꿇고 있다');
   assert.equal(result.warnings.includes('unevidenced_posture_change'), true);
   assert.equal(result.warnings.includes('unevidenced_position_label'), true);
   assert.equal(result.warnings.includes('unevidenced_posture_end_reason'), true);

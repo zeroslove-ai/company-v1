@@ -83,6 +83,11 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     pending.step = 'commit'; persistPending(pending);
     onCommitStart?.();
     const committed = await api.commit(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn }, pending));
+    // Commit이 턴 충돌 등으로 종료된 경우 — 정상 종료로 간주해 pending을 비우고
+    // context를 다시 불러온다 (committing 고착·복구 재시도 루프 방지).
+    if (committed.commit?.terminated === true) {
+      dropPending(pending.game_id); await refreshContext(); return committed;
+    }
     if (committed.commit?.success !== true) throw new ApiError({ endpoint: '/api/commit', status: 502, code: 'invalid_commit', message: 'Commit 결과가 올바르지 않습니다.' });
     dropPending(pending.game_id); await refreshContext(); onCommitted?.(committed, pending); return committed;
   }

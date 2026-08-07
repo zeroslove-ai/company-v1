@@ -33,7 +33,8 @@ test('bad auxiliary physical fields degrade independently and carry prior state'
     proposal: { posture: '소파에 누워 있다', location_label: '옥상' },
     evidenceMap: {}, narrativeText: '윤민아는 보고서를 넘겼다.', characterName: '윤민아', turnNumber: 18
   });
-  assert.equal(result.state.posture, '책상 앞에 서 있다');
+  // posture는 Extract 제안을 반영(경고만 기록), location은 증거 필요 시 이전 유지
+  assert.equal(result.state.posture, '소파에 누워 있다');
   assert.equal(result.state.location_label, '대회의실');
   assert.ok(result.warnings.includes('unevidenced_posture_change'));
   assert.ok(result.warnings.includes('unevidenced_location_change'));

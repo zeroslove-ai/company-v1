@@ -1232,6 +1232,12 @@ export function createTurnRoutes({ fetchImpl, edition }) {
               p_mind_monitor: merged.mind_monitor, p_choices: extract.choices
             });
         timing.commit_rpc_ms = Date.now() - commitRpcStart;
+        // expected_turn_conflict — RPC가 액션을 commit_failed로 종료했다. committing에
+        // 남기지 않고 프론트가 정상 종료로 인식해 pending을 비우고 context를 새로
+        // 불러오게 한다 (고아 액션 고착 방지).
+        if (commit?.success === false && commit?.error === 'expected_turn_conflict') {
+          return ok({ commit, next_save: null, warnings, turn_changes: [], terminated: true });
+        }
         return ok({
           commit, next_save: nextSave, warnings, turn_changes: turnChanges,
           time_before: merged.time_before, elapsed_minutes: merged.elapsed_minutes, time_after: merged.time_after
