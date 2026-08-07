@@ -478,3 +478,37 @@ test('핫픽스 2. 같은 턴 동시 예약 방지 — reserve_turn_action(5-arg
   assert.match(sql, /processing_status = 'commit_failed', error_code = 'expected_turn_conflict'/, 'conflict 시 commit_failed 종료');
   assert.match(sql, /'terminated', true/, '종료 응답 플래그');
 });
+
+// ---------------------------------------------------------------------------
+// 턴 진행 하드락 전면 제거 — 서버 예약(stale 만료·ready 제외·재사용) + fail-open
+// ---------------------------------------------------------------------------
+
+test('하드락 제거 B. 서버 예약 — 3분 stale 만료·ready 제외·같은 입력 재사용 계약', () => {
+  const sql = fs.readFileSync(new URL('../supabase/migrations/20260807000200_company_v1_fail_open.sql', import.meta.url), 'utf8');
+  // 1) stale action 만료: 처리 중 상태가 3분 이상 갱신 안 됐으면 failed(stale_action_timeout)로 종료
+  assert.match(sql, /interval '3 minutes'/, '3분 기준 stale 만료');
+  assert.match(sql, /stale_action_timeout/, 'error_code=stale_action_timeout');
+  // 2) ready는 in-flight 목록에서 제외 — 새 턴을 막지 않는다
+  assert.match(sql, /processing_status in \('story_streaming', 'extracting', 'committing'\)/, 'ready 제외 in-flight 목록');
+  assert.doesNotMatch(sql, /processing_status in \('story_streaming', 'extracting', 'committing', 'ready'\)/, 'ready가 포함되지 않는다');
+  // 3) 같은 입력 중복 → 기존 액션 재사용 (player_action + structured_action 동일 시)
+  assert.match(sql, /player_action is not distinct from p_player_action/, '같은 입력 재사용');
+  // 4) API는 재사용된 서버 action_id로 액션을 조회한다
+  const routes = fs.readFileSync(new URL('../src/api/turn-routes.js', import.meta.url), 'utf8');
+  assert.match(routes, /resolvedActionId/, 'reserve 반환 action_id로 조회');
+});
+
+test('하드락 제거 C. fail-open — invalid next save Commit·stale feedback·오프닝 기본 선택지 계약', () => {
+  const sql = fs.readFileSync(new URL('../supabase/migrations/20260807000200_company_v1_fail_open.sql', import.meta.url), 'utf8');
+  // 1) commit_company_turn: next save validator 실패 시 기존 유효 save 기반으로 턴만 전진
+  assert.match(sql, /save_fail_open/, 'fail-open 마커');
+  assert.match(sql, /jsonb_set\(v_save.data, '\{turn_state,committed_turn\}'/, '기존 save 기반 턴 전진');
+  assert.match(sql, /invalid current save/, 'save 자체가 무효일 때만 하드 실패');
+  // 2) commit_feedback_revision: stale target → terminated
+  assert.match(sql, /feedback_target_stale/, 'error_code=feedback_target_stale');
+  assert.match(sql, /'terminated', true, 'error', 'feedback_target_stale'/, 'terminated 종료 응답');
+  // 3) commit_company_opening: choices 부족 → deterministic 기본 선택지 보충
+  assert.match(sql, /분위기를 살피며 첫인사를 건넨다/, '기본 선택지 보충');
+});
+
+

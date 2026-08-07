@@ -20,6 +20,14 @@ const ALLOWED = new Set([
 ]);
 const NULLABLE = new Set(['last_image_id']);
 const NPC_MAPS = new Set(['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes']);
+
+// 일반 턴 선택지 fail-open 기본값 — Extract가 4개 미만 선택지를 제안하면 이 값으로 보충한다.
+export const DEFAULT_TURN_CHOICES = [
+  '대화를 계속 이어간다',
+  '상대의 반응을 살핀다',
+  '현재 행동을 멈추고 상황을 정리한다',
+  '다른 장소로 이동한다'
+];
 // The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present/
 // choice_structured_meta) is the sole writer for these paths; a state_delta proposal for the
 // same path is redundant and only ever warns.
@@ -480,7 +488,12 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
 
   nextSave.last_choices = clone(envelope.choices);
   nextSave.last_choice_meta = clone(envelope.choice_structured_meta);
-  if (envelope.choices.length !== 4) warnings.push('choices_not_exactly_four');
+  // 일반 턴 선택지 fail-open — choices가 정확히 4개가 아니면 빈 배열을 save에 저장하지 않고
+  // deterministic 기본 선택지 4개로 보충한다 (이전 턴 선택지 재사용 금지, warning만 남긴다).
+  if (envelope.choices.length !== 4) {
+    nextSave.last_choices = [...DEFAULT_TURN_CHOICES];
+    warnings.push('choices_not_exactly_four');
+  }
   if (envelope.npcs_present.length > 0) nextSave.last_npcs_present = clone(envelope.npcs_present);
   if (envelope.focal_character_id !== null) nextSave.focal_character_id = envelope.focal_character_id;
   if (envelope.last_speaker_id !== null) nextSave.last_speaker_id = envelope.last_speaker_id;

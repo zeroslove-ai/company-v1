@@ -17,6 +17,7 @@ import { createStructuredStoryGate, STRUCTURED_STORY_VERSION } from '../engine/s
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
+  DEFAULT_TURN_CHOICES,
   sanitizeMovementCommit,
   buildDegradedExtractEnvelope,
   buildExtractPrompt,
@@ -604,7 +605,24 @@ function buildBoundaryFollowupSection(save, expectedTurn, master) {
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
-  const master = masterFromEdition(edition);
+  // 오프닝 fail-open — LLM 선택지가 부족하면 deterministic 기본 선택지로 채운다 (RPC 기본값과 동일).
+const DEFAULT_OPENING_CHOICES = [
+  '분위기를 살피며 첫인사를 건넨다.',
+  '자연스럽게 자리에 앉아 업무를 시작한다.',
+  '새 동료에게 먼저 말을 걸어 본다.',
+  '조용히 정리하며 상황을 파악한다.'
+];
+
+// 오프닝 fail-open — Story upstream이 최종 실패했을 때 저장된 opening plan 기반의
+// 짧은 기본 오프닝. 플레이어 설정이 reserved 상태로 영구 고착되지 않게 한다.
+function buildFallbackOpeningStory(openingPlan, player) {
+  const name = typeof player?.name === 'string' && player.name.trim() ? player.name.trim() : '플레이어';
+  const location = openingPlan?.location_name ?? '사무실';
+  const hook = openingPlan?.work_hook_label ? `, ${openingPlan.work_hook_label}을(를) 시작하며` : '';
+  return `[1. 서사 및 행동]\n회사의 첫 날, ${name}은(는) ${location}에 도착했다${hook}. 새로운 업무 환경에서 첫 장면이 시작되었다.\n[4. 선택지]\n1. 분위기를 살피며 첫인사를 건넨다.\n2. 자연스럽게 자리에 앉아 업무를 시작한다.\n3. 새 동료에게 먼저 말을 걸어 본다.\n4. 조용히 정리하며 상황을 파악한다.`;
+}
+
+const master = masterFromEdition(edition);
   const npcIds = npcIdsFromEdition(edition);
   const catalogs = catalogsFromEdition(edition);
   const heroineIds = Object.keys(edition?.characters?.characters ?? {});
@@ -690,14 +708,17 @@ export function createTurnRoutes({ fetchImpl, edition }) {
       const reservation = existingAction?.action_kind === 'feedback_revision'
         ? { action_id: existingAction.action_id, turn_id: existingAction.turn_id, expected_turn: existingAction.expected_turn, replayed: false }
         : await db.reserveTurnAction(gameId, actionId, expectedTurn, playerAction, requestedStructuredAction);
-      const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, actionId));
+      // 같은 입력 중복 예약이면 서버가 기존 액션(action_id가 다름)을 재사용한다 —
+      // 이후 조회·claim·SSE meta 모두 서버 정본 액션 ID를 따른다.
+      const resolvedActionId = reservation?.action_id ?? actionId;
+      const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, resolvedActionId));
       const structuredAction = structuredActionFor(action, requestedStructuredAction);
       let retryingStory = false;
       // story_failed뿐 아니라 story_streaming(스토리 미완료 좌초)도 재시도를 허용한다.
       // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,
       // 이 claim 없이는 (replayed && !retryingStory) 조건이 항상 409로 거부된다.
       if (!action.story_text && (action.processing_status === 'story_failed' || action.processing_status === 'story_streaming')) {
-        const claimed = await db.claimActionStatus(gameId, actionId, action.processing_status, 'story_streaming', null);
+        const claimed = await db.claimActionStatus(gameId, resolvedActionId, action.processing_status, 'story_streaming', null);
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
         retryingStory = true;
@@ -1219,6 +1240,18 @@ export function createTurnRoutes({ fetchImpl, edition }) {
         }
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
+        // 최신 서사 요약 writer — 정상 player turn Commit에서 서버가 직접 갱신한다.
+        // 빈 turn_summary이면 현재 Story의 앞부분을 제한 길이로 사용해,
+        // 기존 오프닝 summary가 계속 남지 않게 한다 (overall은 이 작업 범위 밖, 새 LLM 호출 없음).
+        if (action.action_kind !== 'feedback_revision') {
+          const summaryText = typeof extract.turn_summary === 'string' && extract.turn_summary.trim()
+            ? extract.turn_summary.trim()
+            : String(parsedStory?.normalized_raw ?? action.story_text ?? '').trim().slice(0, 500);
+          if (summaryText) nextSave.story_summary_recent = summaryText;
+        }
+        // 일반 턴 선택지 fail-open — game_turns.choices도 4개 미만이면 기본 선택지로 보충한다.
+        const finalChoices = Array.isArray(extract.choices) && extract.choices.length === 4 ? extract.choices : DEFAULT_TURN_CHOICES;
+
         const commitRpcStart = Date.now();
         // A feedback-revision action never advances committed_turn — it replaces the content of
         // the turn it targets, preserved as a new revision row (record_status flips the prior
@@ -1229,7 +1262,7 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           : await db.callRpc('commit_company_turn', {
               p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn,
               p_next_save: nextSave, p_turn_summary: extract.turn_summary,
-              p_mind_monitor: merged.mind_monitor, p_choices: extract.choices
+              p_mind_monitor: merged.mind_monitor, p_choices: finalChoices
             });
         timing.commit_rpc_ms = Date.now() - commitRpcStart;
         // expected_turn_conflict — RPC가 액션을 commit_failed로 종료했다. committing에
@@ -1431,23 +1464,46 @@ export function createTurnRoutes({ fetchImpl, edition }) {
           const player = preSave.player ?? {};
           const canonical = resolvePlayerCanonicalNames(player, catalogs);
           const messages = buildOpeningPrompt({ edition, player, canonical, openingPlan });
-          const stream = await streamStory({ env, fetchImpl, messages, timing });
           let raw = '';
-          for await (const text of stream.chunks) {
-            raw += text;
-            emit('delta', { text });
+          try {
+            const stream = await streamStory({ env, fetchImpl, messages, timing });
+            for await (const text of stream.chunks) {
+              raw += text;
+              emit('delta', { text });
+            }
+          } catch (error) {
+            // fail-open: Story upstream 최종 실패 시 저장된 opening plan으로 짧은
+            // 기본 오프닝을 Commit한다 — 플레이어 설정이 reserved로 고착되지 않게 한다.
+            const fallbackText = buildFallbackOpeningStory(openingPlan, player);
+            const fallbackCommit = await db.callRpc('commit_company_opening', {
+              p_game_id: gameId,
+              p_setup_id: setupId,
+              p_background: '회사에서의 첫 장면이 시작되었다.',
+              p_story_text: fallbackText,
+              p_choices: DEFAULT_OPENING_CHOICES
+            });
+            emit('delta', { text: fallbackText });
+            emit('complete', {
+              setup_id: setupId, choices: DEFAULT_OPENING_CHOICES,
+              background: '회사에서의 첫 장면이 시작되었다.',
+              warnings: ['opening_fallback'], replayed: false, commit: fallbackCommit
+            });
+            return;
           }
           const { background, body: sections, warnings: splitWarnings } = splitOpeningSections(raw);
           const parsedOpening = parseNarrative(sections, { master });
+          // fail-open: 선택지가 부족하면 deterministic 기본 선택지로 채운다 (설정 완료 차단 금지).
+          const rawChoices = (Array.isArray(parsedOpening.choices) ? parsedOpening.choices : []).filter(choice => typeof choice === 'string' && choice.trim());
+          const finalChoices = rawChoices.length === 4 ? rawChoices : DEFAULT_OPENING_CHOICES;
           const commit = await db.callRpc('commit_company_opening', {
             p_game_id: gameId,
             p_setup_id: setupId,
             p_background: background,
             p_story_text: parsedOpening.raw,
-            p_choices: parsedOpening.choices
+            p_choices: finalChoices
           });
           emit('complete', {
-            setup_id: setupId, choices: parsedOpening.choices, background,
+            setup_id: setupId, choices: finalChoices, background,
             warnings: [...splitWarnings, ...parsedOpening.warnings], replayed: false, commit
           });
         } finally {

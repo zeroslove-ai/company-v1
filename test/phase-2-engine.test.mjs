@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   applyGuardedStateDelta,
+  DEFAULT_TURN_CHOICES,
   buildExtractPrompt,
   deriveRecoverableStep,
   normalizeExtractEnvelope,
@@ -72,13 +73,19 @@ test('guarded merge deduplicates ledger, replaces snapshots, permits graded outc
   assert.deepEqual(result.nextSave.turn_state, { committed_turn: 7, processing_status: 'ready', turn_id: 'turn-8', action_id: 'action-8', expected_turn: 9 });
 });
 
-test('guarded merge persists top-level Extract choices as the authoritative snapshot', () => {
+test('guarded merge persists top-level Extract choices as the authoritative snapshot — 4개 미만은 기본 선택지 보충', () => {
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
   const result = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['one', 'two'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
-  assert.deepEqual(result.nextSave.last_choices, ['one', 'two']);
+  // 4개 미만이면 deterministic 기본 선택지 4개로 보충 (빈 배열 저장 금지, 이전 턴 재사용 금지)
+  assert.equal(result.nextSave.last_choices.length, 4);
+  assert.deepEqual(result.nextSave.last_choices, DEFAULT_TURN_CHOICES);
   assert.ok(result.warnings.includes('choices_not_exactly_four'));
   const empty = applyGuardedStateDelta(save, { state_delta: { last_choices: ['stale'] }, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
-  assert.deepEqual(empty.nextSave.last_choices, []);
+  assert.equal(empty.nextSave.last_choices.length, 4, '빈 배열 대신 기본 선택지');
+  assert.deepEqual(empty.nextSave.last_choices, DEFAULT_TURN_CHOICES);
+  // 정확히 4개면 Extract 제안 그대로
+  const four = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
+  assert.deepEqual(four.nextSave.last_choices, ['a', 'b', 'c', 'd']);
 });
 
 test('guarded merge drops an unauthorized player_sexual_state completion field instead of failing the whole turn', () => {
@@ -139,17 +146,19 @@ test('guarded merge drops an unauthorized relationship sexual milestone delta in
 });
 
 test('recovery states require the persisted result needed by the next step', () => {
+  // 하드락 전면 제거 — 이어받기는 실제 in-flight만, failed/ready는 complete
   assert.equal(deriveRecoverableStep({ processing_status: 'story_streaming', has_story: false }), 'wait_story');
+  assert.equal(deriveRecoverableStep({ processing_status: 'story_streaming', has_story: true }), 'resume_extract');
   assert.equal(deriveRecoverableStep({ processing_status: 'extracting', has_story: true }), 'resume_extract');
-  assert.equal(deriveRecoverableStep({ processing_status: 'extracting', has_story: false }), 'retry_story');
+  assert.equal(deriveRecoverableStep({ processing_status: 'extracting', has_story: false }), 'wait_story');
   assert.equal(deriveRecoverableStep({ processing_status: 'committing', has_extract: true }), 'resume_commit');
   assert.equal(deriveRecoverableStep({ processing_status: 'committing', has_extract: false }), 'retry_extract');
-  assert.equal(deriveRecoverableStep({ processing_status: 'story_failed' }), 'retry_story');
-  assert.equal(deriveRecoverableStep({ processing_status: 'extract_failed' }), 'retry_extract');
-  assert.equal(deriveRecoverableStep({ processing_status: 'commit_failed' }), 'retry_commit');
+  assert.equal(deriveRecoverableStep({ processing_status: 'story_failed' }), 'complete');
+  assert.equal(deriveRecoverableStep({ processing_status: 'extract_failed' }), 'complete');
+  assert.equal(deriveRecoverableStep({ processing_status: 'commit_failed' }), 'complete', 'expected_turn_conflict도 complete');
+  assert.equal(deriveRecoverableStep({ processing_status: 'ready' }), 'complete');
   assert.equal(deriveRecoverableStep({ processing_status: 'committed' }), 'complete');
 });
-
 test('Extract prompt requires the complete normalized envelope', () => {
   const prompt = buildExtractPrompt({ context: {}, storyText: '[SCENE]\nTest', parsedStory: {}, playerAction: 'test', expectedTurn: 1 });
   assert.match(prompt[0].content, /state_delta \(object\).*outcome.*evidence \(object\).*turn_summary.*mind_monitor.*choices.*dialogue_lines/i);

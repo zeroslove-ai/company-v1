@@ -378,7 +378,7 @@ test('record_extract_result failure marks the action extract_failed and stays re
   assert.equal(failed.status, 502);
   assert.equal(mock.actions.get(ACTION_ID).processing_status, 'extract_failed');
   const status = await worker.fetch(new Request('https://worker.test/api/action-status', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
-  assert.equal((await status.json()).data.recoverable_step, 'retry_extract');
+  assert.equal((await status.json()).data.recoverable_step, 'complete', 'extract_failed는 재시도 대상이 아니다');
   const recovered = await worker.fetch(new Request('https://worker.test/api/extract', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: GAME_ID, action_id: ACTION_ID }) }), ENV);
   assert.equal(recovered.status, 200);
 });

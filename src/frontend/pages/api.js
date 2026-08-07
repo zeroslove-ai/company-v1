@@ -17,8 +17,13 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
   async function postJson(endpoint, body) {
     let response;
     try {
-      response = await fetchImpl(endpointUrl(endpoint), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-    } catch {
+      // 요청 시간 제한 — 일반 JSON 요청 100초. timeout 시 busy 해제·입력 복원은
+      // 호출부(에러 경로)가 처리하며 페이지를 잠그지 않는다.
+      response = await fetchImpl(endpointUrl(endpoint), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(100_000) });
+    } catch (error) {
+      if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+        throw new ApiError({ endpoint, status: 0, code: 'request_timeout', message: '요청 시간이 초과되었습니다.', retryable: true });
+      }
       throw new ApiError({ endpoint, status: 0, code: 'network_error', message: 'API 연결에 실패했습니다.', retryable: true });
     }
     let payload;
@@ -31,8 +36,15 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
   }
   async function streamingPost(endpoint, body, { code, message } = {}) {
     let response;
-    try { response = await fetchImpl(endpointUrl(endpoint), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); }
-    catch { throw new ApiError({ endpoint, status: 0, code: 'network_error', message: '연결에 실패했습니다.', retryable: true }); }
+    try {
+      // 스트리밍 요청 180초 — Story/opening은 생성에 시간이 걸린다.
+      response = await fetchImpl(endpointUrl(endpoint), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(180_000) });
+    } catch (error) {
+      if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+        throw new ApiError({ endpoint, status: 0, code: 'request_timeout', message: '요청 시간이 초과되었습니다.', retryable: true });
+      }
+      throw new ApiError({ endpoint, status: 0, code: 'network_error', message: '연결에 실패했습니다.', retryable: true });
+    }
     if (!response.ok) {
       let payload; try { payload = await response.json(); } catch { payload = null; }
       throw new ApiError({ endpoint, status: response.status, code: payload?.error?.code ?? code, message: payload?.error?.message ?? message, retryable: Boolean(payload?.error?.retryable) });

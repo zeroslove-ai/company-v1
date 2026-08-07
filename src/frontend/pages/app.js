@@ -28,7 +28,9 @@ function resolveNumberedChoiceInput(rawInput, save) {
   }
   if (index === null) return null;
   const choices = Array.isArray(save?.last_choices) ? save.last_choices : [];
-  if (choices.length !== 4 || typeof choices[index] !== 'string' || !choices[index].trim()) return { ok: false, code: 'CHOICE_INDEX_OUT_OF_RANGE' };
+  // 현재 화면에 유효한 네 선택지가 있을 때만 1~4를 번호 선택으로 해석한다.
+  // 부족/범위 밖이면 일반 자유 입력으로 처리한다 (CHOICE_INDEX_OUT_OF_RANGE로 턴 차단 금지).
+  if (choices.length !== 4 || typeof choices[index] !== 'string' || !choices[index].trim()) return null;
   return { ok: true, choice_index: index, text: choices[index] };
 }
 
@@ -105,7 +107,16 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     let rawStory = '', sawMeta = false;
     const response = await api.story(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn, player_action: pending.player_action }, pending));
     await consumeStory(response, item => {
-      if (item.event === 'meta') sawMeta = true;
+      if (item.event === 'meta') {
+        sawMeta = true;
+        // 서버가 같은 입력의 기존 액션을 재사용한 경우(reserve 반환 action_id가 다르면)
+        // pending.action_id를 서버 값으로 교체해 이후 extract/commit이 정본 액션을 따른다.
+        const serverActionId = item.data?.action_id;
+        if (serverActionId && pending.action_id !== serverActionId) {
+          pending.action_id = serverActionId;
+          persistPending(pending);
+        }
+      }
       if (item.event === 'delta') {
         rawStory += item.data?.text ?? '';
         const directory = getContext?.()?.display?.npc_directory ?? {};
@@ -342,8 +353,28 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       render();
     },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
-    onCommitted: () => {
-      clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.');
+    onCommitted: (committed, pending) => {
+      // Commit 화면 인계 — refreshContext가 방금 커밋한 턴을 정본(recent_turns + action_id 일치)으로
+      // 반영했을 때만 current-story를 비운다. 확인이 안 되면 실시간 Story를 그대로 유지하고
+      // 오류로 턴을 막지 않는다 (terminated/failed/refresh 실패에서는 절대 지우지 않는다).
+      const turnNumber = committed?.commit?.turn_number ?? null;
+      const canonicalTurn = Number.isInteger(turnNumber)
+        ? (context?.recent_turns ?? []).find(turn => turn.turn_number === turnNumber && turn.action_id === pending.action_id)
+        : null;
+      if (canonicalTurn) {
+        clearCurrentTurn();
+        showStatus('턴이 완료되었습니다.');
+        // 최신 저장 카드로 스크롤 — 화면이 갑자기 빈 영역으로 남지 않게 앵커를 유지한다.
+        const nextFrame = globalThis.requestAnimationFrame ?? (callback => setTimeout(callback, 0));
+        nextFrame(() => {
+          const cards = elements.history?.children ?? [];
+          const lastCard = cards[cards.length - 1];
+          lastCard?.scrollIntoView?.({ block: 'start', inline: 'nearest' });
+        });
+      } else {
+        showStatus('저장된 기록을 다시 확인하는 중…');
+      }
+      clearRecoveryUi();
       utilityUi?.loadMedia().catch(showError);
     },
     onPendingChange: () => renderToolbar(),
@@ -366,12 +397,13 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     }
     const status = data?.processing_status ?? null;
     const step = recoveryFor(data);
-    const inFlight = status === 'story_streaming' || status === 'extracting' || status === 'committing' || status === 'ready';
+    // 이어받기 대상은 실제 서버 in-flight(story_streaming/extracting/committing)뿐이다.
+    // committed/failed/ready는 deriveRecoverableStep이 complete를 주므로 전부 stale —
+    // pending을 비우고 같은 클릭에서 새 행동을 진행한다.
+    const inFlight = status === 'story_streaming' || status === 'extracting' || status === 'committing';
     const stale = status == null
       || !inFlight
       || pending.expected_turn <= committedTurn(context)
-      || status === 'committed'
-      || (status === 'commit_failed' && data?.error_code === 'expected_turn_conflict')
       || step === 'complete';
     if (stale) {
       clearPending(storage, gameId); clearRecoveryUi(); return 'cleaned';
@@ -415,7 +447,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     clearError();
     return busyGuard.run(async () => {
       try { await operation(); return true; }
-      catch (error) { showError(error); await checkRecovery(); return false; }
+      catch (error) { showError(error); return false; } // 중첩 복구 없음 — 실패는 호출부가 pending 정리·입력 복원
       finally { clearProgressTimer(); text(elements.stream, ''); }
     });
   }
@@ -431,9 +463,20 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       // 'cleaned' — stale pending 제거됨. 아래에서 새 행동을 계속 진행한다.
     }
     const numbered = resolveNumberedChoiceInput(action, saveFromContext(context));
-    if (numbered && !numbered.ok) { showError(new ApiError({ endpoint: 'choice-input', status: 422, code: numbered.code.toLowerCase(), message: '지금은 그 번호의 선택지가 없습니다.' })); return false; }
     if (numbered?.ok) action = numbered.text;
-    return withBusy(async () => { showCurrentAction(action); if (elements.input) elements.input.value = ''; text(elements.stream, 'Story를 생성하는 중…'); await coordinator.startNewAction(action, structuredAction); });
+    return withBusy(async () => {
+      showCurrentAction(action);
+      text(elements.stream, 'Story를 생성하는 중…');
+      try {
+        await coordinator.startNewAction(action, structuredAction);
+      } catch (error) {
+        // Story 생성 실패 등 — pending을 비우고 원래 행동을 입력창에 복원한다.
+        // failed 상태가 새 턴 입력을 막지 않게 한다 (하드락 전면 제거).
+        clearPending(storage, gameId);
+        if (elements.input) elements.input.value = action;
+        throw error;
+      }
+    });
   }
   async function startFeedbackRevision(reservation) {
     if (busy || loadPending(storage, gameId)) return false;
@@ -544,7 +587,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     elements.submit?.addEventListener('click', () => startNewAction());
     elements.reset?.addEventListener('click', () => handleReset());
     setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
-    await refreshContext(); await checkRecovery();
+    await refreshContext();
+    // checkRecovery는 페이지 시작을 막지 않는다 — pending은 reconnect hint일 뿐이며,
+    // 새 턴 입력을 가로막지 않도록 백그라운드로 이어받기를 진행한다.
+    checkRecovery().catch(() => undefined);
     // 저장된 설정이 있으면 오프닝을 자동으로 재시도 — 사용자가 버튼을 눌러야만
     // 시작할 수 있는 막힌 화면(모바일에서 화면을 가리는)을 제거한다.
     const reservedSetupId = reservedPlayerSetupId(context);

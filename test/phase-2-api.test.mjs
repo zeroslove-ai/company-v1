@@ -181,7 +181,7 @@ test('Phase 2 retries one failed Story explicitly and then replays the persisted
   const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '재시도한다.' };
   assert.match(await (await worker.fetch(request('/api/story', body), env)).text(), /story_incomplete/);
   const failedStatus = await worker.fetch(request('/api/action-status', { game_id: gameId, action_id: actionId }), env);
-  assert.equal((await failedStatus.json()).data.recoverable_step, 'retry_story');
+  assert.equal((await failedStatus.json()).data.recoverable_step, 'complete');
   assert.match(await (await worker.fetch(request('/api/story', body), env)).text(), /event: complete/);
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
   assert.equal(mock.actions.get(actionId).processing_status, 'extracting');
@@ -219,7 +219,7 @@ test('Phase 2 retries one genuinely failed Extract after an infrastructure error
   const failedExtract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(failedExtract.status, 502);
   const failedStatus = await worker.fetch(request('/api/action-status', { game_id: gameId, action_id: actionId }), env);
-  assert.equal((await failedStatus.json()).data.recoverable_step, 'retry_extract');
+  assert.equal((await failedStatus.json()).data.recoverable_step, 'complete');
   const recovered = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(recovered.status, 200);
   assert.equal((await recovered.json()).data.degraded, false);

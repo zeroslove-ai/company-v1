@@ -3,17 +3,19 @@ export function deriveRecoverableStep(status) {
     case 'story_streaming':
       return status.has_story ? 'resume_extract' : 'wait_story';
     case 'extracting':
-      return status.has_story ? 'resume_extract' : 'retry_story';
+      // extracting은 Story 저장 후에만 도달하므로 has_story가 사실상 항상 true —
+      // 없으면 스토리부터 다시 시작한다.
+      return status.has_story ? 'resume_extract' : 'wait_story';
     case 'committing':
       return status.has_extract ? 'resume_commit' : 'retry_extract';
     case 'committed':
-      return 'complete';
     case 'story_failed':
-      return 'retry_story';
     case 'extract_failed':
-      return 'retry_extract';
     case 'commit_failed':
-      return 'retry_commit';
+    case 'ready':
+      // failed/ready는 더 이상 재시도 대상이 아니다 — pending을 비우고 새 턴을 받는다.
+      // expected_turn_conflict(commit_failed+error_code)도 complete로 처리된다.
+      return 'complete';
     default:
       return 'none';
   }

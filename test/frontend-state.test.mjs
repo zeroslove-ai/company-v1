@@ -245,16 +245,22 @@ test('a failed new player-setup submission shows the error in the shared setup a
   });
 });
 
-test('pending action keeps recovery UI ahead of resume and preserves recovery endpoint behavior', async () => {
+test('pending action은 reconnect hint — 이어받기 중에도 입력은 활성이고 제출만 잠시 비활성화된다', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     const local = storage(); const pending = { game_id: gameId, action_id: 'saved-action', expected_turn: 4, player_action: 'Saved action', created_at: 'now', step: 'story' }; savePending(local, pending);
     const api = { context: async () => ({ context: validContext() }), actionStatus: async () => ({ recoverable_step: 'retry_story' }), story: async () => new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 재개된 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }), extract: async () => ({ extract: { choices: [], mind_monitor: {} } }), commit: async () => ({ commit: { success: true } }) };
     const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
-    // 사용자 요구: 복구 버튼 노출 없이 자동으로 이어서 실행 (완료 후 정상 상태)
+    // init은 checkRecovery를 기다리지 않는다 — 페이지 시작이 막히지 않는다
     assert.equal(nodes['recovery-action'].hidden, true);
     assert.equal(nodes['recovery-action'].onclick, null);
-    assert.equal(nodes['resume-play'].disabled, false);
-    assert.equal(nodes['player-action'].disabled, false);
+    // 이어받기(백그라운드 재개) 중에도 다음 행동 초안은 입력 가능, 제출만 비활성화
+    assert.equal(nodes['player-action'].disabled, false, '재개 중에도 입력 활성');
+    assert.equal(nodes['submit-action'].disabled, true, '제출만 잠시 비활성화');
+    // 재개 완료 대기 → pending 정리·제출 활성
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.equal(loadPending(local, gameId), null, '재개 완료 후 pending 삭제');
+    assert.equal(nodes['submit-action'].disabled, false, '재개 완료 후 제출 활성');
+    assert.equal(nodes['player-action'].disabled, false, '재개 완료 후 입력 활성');
   });
 });
 
@@ -361,7 +367,8 @@ test('wait_story recovery starts a fresh story exactly once (no recursion deadlo
       commit: async () => ({ commit: { success: true } })
     };
     const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
-    // 좌초(story_streaming) 액션은 새 스토리 1회로 재개된다 — checkRecovery↔resumePending 무한 왕복 금지
+    // 좌초(story_streaming) 액션은 새 스토리 1회로 백그라운드 재개된다 — 무한 왕복 없이 1회
+    await new Promise(resolve => setTimeout(resolve, 30));
     assert.equal(storyCalls, 1);
     assert.equal(loadPending(local, gameId), null);
     assert.equal(nodes['player-action'].disabled, false);
@@ -374,6 +381,8 @@ test('complete recovery clears pending UI and re-enables controls', async () => 
     const local = storage(); savePending(local, { game_id: gameId, action_id: 'done', expected_turn: 3, player_action: 'Done', created_at: 'now', step: 'commit' });
     const api = { context: async () => ({ context: validContext() }), actionStatus: async () => ({ recoverable_step: 'complete' }) };
     const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
+    // init 비차단 — 백그라운드 정리 완료 대기
+    await new Promise(resolve => setTimeout(resolve, 30));
     assert.equal(loadPending(local, gameId), null);
     assert.equal(nodes['recovery-action'].hidden, true);
     assert.equal(nodes['player-action'].disabled, false);
@@ -457,15 +466,74 @@ test('numbered choice input ("2", "b", "②") resolves to the exact stored choic
   });
 });
 
-test('numbered choice input with no matching current choice set is rejected with an explicit error, never silently submitted as literal text', async () => {
+test('numbered input은 유효한 네 선택지가 없으면 일반 자유 입력으로 처리한다 (턴 차단 금지)', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     const context = validContext({ choices: [] });
-    let storyCalls = 0;
-    const api = { context: async () => ({ context }), actionStatus: async () => ({}), story: async () => { storyCalls += 1; return new Response(); } };
+    let storyCalls = 0; let lastAction = null;
+    const api = {
+      context: async () => ({ context }),
+      actionStatus: async () => ({}),
+      story: async body => { storyCalls += 1; lastAction = body.player_action; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 자유 입력 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
     const app = createFrontendApp({ documentRef, storage: storage(), api });
     await app.init();
-    const result = await app.startNewAction('2');
-    assert.equal(result, false);
-    assert.equal(storyCalls, 0, 'a numbered form with no current choice set must never reach /api/story at all, not even as literal "2"');
+    await app.startNewAction('2');
+    assert.equal(storyCalls, 1, '선택지가 없어도 "2"는 자유 입력으로 /api/story에 제출');
+    assert.equal(lastAction, '2', '리터럴 "2"가 자유 입력으로 전달');
+  });
+});
+
+test('ready 상태 pending도 stale — 같은 클릭으로 새 턴이 시작되고 입력이 막히지 않는다', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const local = storage();
+    savePending(local, { game_id: gameId, action_id: 'ready-action', expected_turn: 38, player_action: '이전 행동', created_at: 'now', step: 'story' });
+    const context = validContext();
+    context.save.committed_turn = 37;
+    let storyCalls = 0;
+    const api = {
+      context: async () => ({ context }),
+      actionStatus: async () => ({ processing_status: 'ready', recoverable_step: 'complete' }),
+      story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 새 행동 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: local, api });
+    await app.refreshContext();
+    assert.equal(await app.startNewAction('새 행동'), true, 'ready pending도 같은 클릭에서 새 행동');
+    assert.equal(loadPending(local, gameId), null, 'ready pending 삭제');
+    assert.equal(storyCalls, 1);
+    assert.equal(nodes['error-banner'].textContent, '', '오류 표시 없음');
+  });
+});
+
+test('Commit 화면 인계: 정본 반영 시 current-story가 저장 카드로 교체되고 다음 입력이 즉시 가능하다', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const context = validContext();
+    context.save.committed_turn = 37;
+    let turns = [];
+    const api = {
+      context: async () => ({ context: { ...context, recent_turns: turns } }),
+      actionStatus: async () => ({}),
+      // story SSE meta가 서버 정본 action_id를 준다 → pending.action_id가 교체되어
+      // 이후 commit 인계 확인(최근 턴 action_id 일치)이 성립한다
+      story: async () => new Response('event: meta\ndata: {"action_id":"action-38"}\n\nevent: delta\ndata: {"text":"[SCENE] 본문만 있는 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }),
+      extract: async () => ({ extract: { choices: [], mind_monitor: {}, turn_summary: '38턴 요약' }, parsed_blocks: { blocks: [] } }),
+      commit: async () => {
+        // 커밋 후 context refresh가 38턴 정본(recent_turns + action_id 일치)을 반환
+        turns = [{ turn_number: 38, action_id: 'action-38', player_action: '새 행동', story_text: '[SCENE] 본문', parsed_blocks: { blocks: [] }, turn_summary: '38턴 요약' }];
+        return { commit: { success: true, turn_number: 38 } };
+      }
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.refreshContext();
+    assert.equal(await app.startNewAction('새 행동'), true);
+    // 정본 반영 확인 후에만 current-story를 비운다 — 실시간 Story가 저장 카드로 교체되며 사라지지 않는다
+    assert.equal(nodes['current-story'].children.length, 0, '정본 반영 시 current-story 교체');
+    const cards = nodes['story-history'].children.filter(child => child.className === 'turn-card');
+    assert.ok(cards.length >= 1, '38턴 저장 카드 렌더');
+    assert.equal(nodes['submit-action'].disabled, false, '다음 입력 즉시 가능');
+    assert.equal(nodes['player-action'].disabled, false, '입력 활성');
   });
 });
