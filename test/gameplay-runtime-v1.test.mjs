@@ -117,7 +117,7 @@ test('guarded merge computes authoritative game time, rolls over days, and defau
   assert.deepEqual(defaulted.time_before, { day: 1, minute_of_day: 540 });
 });
 
-test('guarded merge validates CSA runtime axes independently and ignores only the invalid axis', () => {
+test('guarded merge ignores state_delta.csa_runtime_state — CSA runtime은 csa_runtime_updates/trigger_evaluations 채널만 쓴다', () => {
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
   const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
   const result = applyGuardedStateDelta(save, {
@@ -127,8 +127,9 @@ test('guarded merge validates CSA runtime axes independently and ignores only th
       }
     }, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: []
   }, options);
-  assert.deepEqual(result.nextSave.csa_runtime_state['csa-dress-code'], { lifecycle: 'temporarily_interrupted', execution_state: 'interrupted' });
-  assert.ok(result.warnings.some(warning => warning.includes('invalid_csa_applicability')));
+  // state_delta 채널은 save writer가 아니다 — 무시되고 warning만 남는다.
+  assert.equal(result.nextSave.csa_runtime_state['csa-dress-code'], undefined, 'state_delta 경로는 저장되지 않는다');
+  assert.ok(result.warnings.includes('duplicate_csa_runtime_channel_ignored'), result.warnings.join(' '));
 });
 
 test('guarded merge applies the player sexual-state reducer through state_delta and requires evidence for completion', () => {
@@ -463,12 +464,18 @@ test('normalizeGameplayExtractEnvelope skips NPC id validation entirely when no 
 test('guarded merge allows a state delta for a newly-present NPC validated this turn', () => {
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
   const npcIds = new Set(['npc-newcomer']);
-  const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x', npcIds };
+  const options = {
+    expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x', npcIds,
+    master: { general_npcs: [{ npc_id: 'npc-newcomer', name: '새내기' }] },
+    storyText: '새내기가 밝게 인사하며 자리에 앉았다.'
+  };
   // npc_stats deltas are clamped through the relationship reducer (affinity/csa_acceptance/
   // sexual_arousal/work_trust), not free-form assignment — a bare +1 affinity delta with no
-  // reason string is well within the +-5/turn cap and applies cleanly.
+  // reason string is well within the +-5/turn cap and applies cleanly. Evidence is required:
+  // the quote must exist in Story and name the NPC.
   const result = applyGuardedStateDelta(save, {
-    state_delta: { npc_stats: { 'npc-newcomer': { affinity: 1 } } }, outcome: 'success', evidence: {},
+    state_delta: { npc_stats: { 'npc-newcomer': { affinity: 1 } } }, outcome: 'success',
+    evidence: { affinity_change: { quote: '새내기가 밝게 인사하며 자리에 앉았다.', changed: ['npc_stats.npc-newcomer.affinity'] } },
     choices: [], mind_monitor: {}, dialogue_lines: [], npcs_present: ['npc-newcomer']
   }, options);
   assert.equal(result.nextSave.npc_stats['npc-newcomer'].affinity, 1);

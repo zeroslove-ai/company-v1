@@ -23,6 +23,26 @@ function isPlainObject(value) {
 
 const DONOR_STATUS_TO_EXECUTION_STATE = { inactive: 'not_started', active: 'executed', paused: 'interrupted', ended: 'not_started' };
 
+/**
+ * runtime update의 executed/active 승격은 Story evidence를 요구한다.
+ * required action을 실제 수행한 quote가 storyText에 정확히 존재해야 한다.
+ * (설명·질문·규정 언급만으로는 executed가 될 수 없다 — 56턴 회귀)
+ */
+function hasCsaExecutionEvidence(evidence, csaId, narrativeText) {
+  if (typeof narrativeText !== 'string' || !narrativeText.trim()) return false;
+  const entries = (evidence && typeof evidence === 'object') ? evidence : {};
+  const candidates = [];
+  // evidence.csa_runtime[csa_id] = { quote, changed } | "quote"
+  const nested = entries.csa_runtime?.[csaId];
+  if (typeof nested === 'string' && nested.trim()) candidates.push(nested.trim());
+  if (nested && typeof nested === 'object' && typeof nested.quote === 'string' && nested.quote.trim()) candidates.push(nested.quote.trim());
+  // evidence[csa_id] = { quote, changed } | "quote"
+  const flat = entries[csaId];
+  if (typeof flat === 'string' && flat.trim()) candidates.push(flat.trim());
+  if (flat && typeof flat === 'object' && typeof flat.quote === 'string' && flat.quote.trim()) candidates.push(flat.quote.trim());
+  return candidates.some(quote => narrativeText.includes(quote));
+}
+
 function normalizeRuntimeEntry(entry = {}) {
   return {
     lifecycle: ['active', 'deactivated'].includes(entry?.lifecycle) ? entry.lifecycle : 'active',
@@ -35,8 +55,6 @@ function normalizeRuntimeEntry(entry = {}) {
   };
 }
 
-const TRIGGER_STATUS_TO_EXECUTION_STATE = { not_satisfied: 'not_started', ended: 'not_started', temporarily_interrupted: 'interrupted' };
-
 /**
  * Builds the next csa_runtime_state patch from Extract-reported updates.
  * Never trusts an update naming a csa_id that isn't currently active-preset,
@@ -44,14 +62,13 @@ const TRIGGER_STATUS_TO_EXECUTION_STATE = { not_satisfied: 'not_started', ended:
  * being an active preset (deactivated, edited to custom) is auto-marked
  * lifecycle:'deactivated' by the reducer itself, with no Extract involvement.
  *
- * csaTriggerEvaluations is a lighter companion signal (no character_id) —
- * for a csa_id it names that csaRuntimeUpdates didn't already touch this
- * turn, a not_satisfied/ended/temporarily_interrupted evaluation still
- * moves execution_state, so a rule whose condition clearly lapsed doesn't
- * stay stuck at its last reported status just because Extract didn't also
- * send a full runtime update for it.
+ * Channel single-writer: csa_runtime_updates is the ONLY input that moves
+ * execution_state. executed/active promotion additionally requires a
+ * verbatim Story evidence quote of the required action being performed.
+ * csa_trigger_evaluations is a trigger/applicability-only signal and never
+ * demotes execution_state (57턴 not_satisfied → not_started 역행 금지).
  */
-export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber } = {}) {
+export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber, evidence = {}, narrativeText = '' } = {}) {
   const previous = isPlainObject(previousSave?.csa_runtime_state) ? previousSave.csa_runtime_state : {};
   const presentIds = new Set(Array.isArray(npcsPresent) ? npcsPresent.filter(id => typeof id === 'string' && id) : []);
   const activeById = new Map(activeCsa.map(item => [item.id, item]));
@@ -82,6 +99,16 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     touchedByRuntimeUpdate.add(csaId);
     const existing = previous[csaId] ? normalizeRuntimeEntry(previous[csaId]) : null;
     const executionState = DONOR_STATUS_TO_EXECUTION_STATE[donorStatus];
+    // executed/active 승격은 required action을 실제 수행한 Story evidence가 필요하다.
+    // 설명·질문·규정 언급만으로는 executed가 될 수 없다 (56턴 회귀).
+    if (executionState === 'executed' && !hasCsaExecutionEvidence(evidence, csaId, narrativeText)) {
+      if (existing) {
+        // evidence 없으면 기존 상태를 유지하고 덮어쓰지 않는다.
+        next[csaId] = { ...existing, last_confirmed_turn: turnNumber };
+        changed = true;
+      }
+      continue;
+    }
     next[csaId] = {
       lifecycle: 'active',
       applicability: 'applicable',
@@ -94,17 +121,15 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     changed = true;
   }
 
+  // csa_trigger_evaluations는 trigger/applicability 신호로만 취급한다.
+  // execution_state를 not_started로 강등하는 경로는 제거했다 (57턴 역행 방지).
+  // not_satisfied/ended가 실행 상태를 직접 바꾸지 않는다.
   for (const evaluation of (Array.isArray(csaTriggerEvaluations) ? csaTriggerEvaluations : [])) {
     if (!isPlainObject(evaluation)) continue;
     const csaId = typeof evaluation.csa_id === 'string' ? evaluation.csa_id : '';
     const csa = activeById.get(csaId);
     if (!csa || csa.source_type !== 'preset' || touchedByRuntimeUpdate.has(csaId)) continue;
-    const executionState = TRIGGER_STATUS_TO_EXECUTION_STATE[evaluation.status];
-    if (!executionState) continue;
-    const existing = next[csaId] ? next[csaId] : (previous[csaId] ? normalizeRuntimeEntry(previous[csaId]) : normalizeRuntimeEntry());
-    if (existing.execution_state === executionState) continue;
-    next[csaId] = { ...existing, execution_state: executionState, last_confirmed_turn: turnNumber };
-    changed = true;
+    // trigger evaluation은 execution_state를 변경하지 않는다 — 무시한다.
   }
 
   return changed ? next : null;

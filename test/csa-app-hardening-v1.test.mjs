@@ -102,7 +102,7 @@ function activeCsaFixture(id = 'csa_0') {
   return [{ id, active: true, source_type: 'preset', content: '테스트', strength: 'weak' }];
 }
 
-test('runtime tracking: a csa_runtime_updates status="active" report persists execution_state="executed" for the acting NPC', () => {
+test('runtime tracking: a csa_runtime_updates status="active" report persists execution_state="executed" for the acting NPC — with Story evidence', () => {
   const activeCsa = activeCsaFixture();
   const patch = buildCsaSceneRuntimeStatePatch({
     previousSave: {},
@@ -110,7 +110,10 @@ test('runtime tracking: a csa_runtime_updates status="active" report persists ex
     csaTriggerEvaluations: [],
     activeCsa,
     npcsPresent: ['heroine1'],
-    turnNumber: 5
+    turnNumber: 5,
+    // executed 승격에는 required action을 실제 수행한 Story evidence quote가 필요하다.
+    evidence: { csa_runtime: { csa_0: { quote: '그는 규정대로 위로를 시작했다.' } } },
+    narrativeText: '그는 규정대로 위로를 시작했다. 그녀가 조금 진정되었다.'
   });
   assert.ok(patch, 'a runtime update should produce a patch');
   assert.equal(patch.csa_0.lifecycle, 'active');
@@ -131,7 +134,22 @@ test('runtime tracking: a csa_runtime_updates status="active" report persists ex
   assert.equal(nextTurnPatch, null, 'nothing changed, so the reducer reports no patch (previous state remains authoritative as-is)');
 });
 
-test('runtime tracking: a csa_trigger_evaluations status="temporarily_interrupted" report moves execution_state to "interrupted" and persists', () => {
+test('runtime tracking: evidence 없는 active 보고는 executed를 승격하지 않는다 (설명·질문 턴)', () => {
+  const activeCsa = activeCsaFixture();
+  const patch = buildCsaSceneRuntimeStatePatch({
+    previousSave: {},
+    csaRuntimeUpdates: [{ csa_id: 'csa_0', character_id: 'heroine1', status: 'active' }],
+    csaTriggerEvaluations: [],
+    activeCsa,
+    npcsPresent: ['heroine1'],
+    turnNumber: 5,
+    evidence: {},
+    narrativeText: '그녀는 규정의 적용 범위를 확인하려고 했다.'
+  });
+  assert.equal(patch, null, 'evidence 없는 설명 턴에는 executed 승격 patch가 없어야 한다');
+});
+
+test('runtime tracking: trigger evaluation은 execution_state를 강등하지 않는다 (not_satisfied/temporarily_interrupted)', () => {
   const activeCsa = activeCsaFixture();
   const previousSave = {
     csa_runtime_state: { csa_0: { lifecycle: 'active', applicability: 'applicable', execution_state: 'executed', character_id: 'heroine1', started_turn: 3, last_confirmed_turn: 3, end_reason: null } }
@@ -144,20 +162,18 @@ test('runtime tracking: a csa_trigger_evaluations status="temporarily_interrupte
     npcsPresent: ['heroine1'],
     turnNumber: 4
   });
-  assert.ok(patch);
-  assert.equal(patch.csa_0.execution_state, 'interrupted');
-  assert.equal(patch.csa_0.last_confirmed_turn, 4);
+  // trigger evaluation은 execution_state를 변경하지 않는다 (57턴 역행 방지)
+  assert.equal(patch, null, 'trigger evaluation은 execution_state를 바꾸지 않는다');
 
-  // Persists forward into the next turn's context when nothing else touches it.
-  const nextTurnPatch = buildCsaSceneRuntimeStatePatch({
-    previousSave: { csa_runtime_state: patch },
+  const notSatisfiedPatch = buildCsaSceneRuntimeStatePatch({
+    previousSave,
     csaRuntimeUpdates: [],
-    csaTriggerEvaluations: [],
+    csaTriggerEvaluations: [{ csa_id: 'csa_0', status: 'not_satisfied' }],
     activeCsa,
     npcsPresent: ['heroine1'],
-    turnNumber: 5
+    turnNumber: 4
   });
-  assert.equal(nextTurnPatch, null);
+  assert.equal(notSatisfiedPatch, null, 'not_satisfied도 execution_state를 강등하지 않는다');
 });
 
 test('runtime tracking: a csa_runtime_updates status="ended" report transitions execution_state back to "not_started" with an end_reason', () => {

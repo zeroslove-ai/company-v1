@@ -4,8 +4,7 @@ import {
   advanceGameTime,
   hydrateGameplayState,
   normalizeGameplayExtractEnvelope,
-  reducePlayerSexualState,
-  validateCsaRuntimeStatePatch
+  reducePlayerSexualState
 } from './gameplay-state.js';
 import { buildSceneStatePatch } from './state/physical-state.js';
 import { applyNpcStatChanges } from './relationship/reducer.js';
@@ -121,6 +120,86 @@ function sanitizeRelationshipMilestonePatch(currentSave, npcId, patch, evidence)
   };
 }
 
+/**
+ * evidence 항목에서 특정 save path(`npc_stats.heroine3.affinity`)의 quote를 찾는다.
+ * 지원 형태:
+ *   A. { verbal_refusal: { quote, changed: ["npc_stats.heroine3.affinity"] } }
+ *   B. { npc_stats: { heroine3: { affinity: { quote } } } }  (nested 객체)
+ *   C. { npc_stats: { heroine3: { affinity: "문장" } } }     (nested 문자열)
+ *   D. { affinity: "문장" }                                  (flat 문자열)
+ * 없으면 null.
+ */
+function findEvidenceQuote(evidence, path, npcId, field) {
+  if (!plainObject(evidence)) return null;
+  // A — changed 배열에 정확한 save path가 있는 항목
+  for (const item of Object.values(evidence)) {
+    if (plainObject(item) && Array.isArray(item.changed) && item.changed.includes(path)) {
+      if (typeof item.quote === 'string' && item.quote.trim()) return item.quote.trim();
+    }
+  }
+  // B/C — nested [section][npcId][field]
+  const section = path.split('.')[0];
+  const nested = evidence?.[section]?.[npcId]?.[field];
+  if (typeof nested === 'string' && nested.trim()) return nested.trim();
+  if (plainObject(nested) && typeof nested.quote === 'string' && nested.quote.trim()) return nested.quote.trim();
+  // D — flat field key
+  const flat = evidence?.[field];
+  if (typeof flat === 'string' && flat.trim()) return flat.trim();
+  if (plainObject(flat) && typeof flat.quote === 'string' && flat.quote.trim()) return flat.quote.trim();
+  return null;
+}
+
+/**
+ * NPC patch의 변경 필드가 Story evidence로 뒷받침되는지 검증한다.
+ * - quote가 최종 storyText에 정확히 존재해야 한다
+ * - quote가 해당 NPC의 dialogue line이거나, quote 안에 NPC 이름이 존재해야 한다
+ * - 조건 실패 시 해당 필드만 폐기하고 정상 형제 필드는 보존한다
+ * warning: evidence_missing / evidence_quote_not_in_story / evidence_actor_mismatch
+ */
+function validateEvidencedNpcField({ quote, narrativeText, characterName, npcDialogueLines }) {
+  if (typeof quote !== 'string' || !quote.trim()) return 'evidence_missing';
+  const text = typeof narrativeText === 'string' ? narrativeText : '';
+  if (!text.includes(quote.trim())) return 'evidence_quote_not_in_story';
+  if (typeof characterName === 'string' && characterName.trim() && quote.trim().includes(characterName.trim())) return null;
+  if (Array.isArray(npcDialogueLines) && npcDialogueLines.some(line =>
+    typeof line === 'string' && line.trim() && (line.includes(quote.trim()) || quote.trim().includes(line.trim())))) {
+    return null;
+  }
+  return 'evidence_actor_mismatch';
+}
+
+/**
+ * gateFields에 해당하는 변경 필드마다 evidence를 요구한다.
+ * npc_stats는 0이 아닌 delta만 변경으로 본다. 그 외 필드는 이전 값과 다르면 변경.
+ * 반환: { patch, warnings } — 실패한 필드는 patch에서 제거된다.
+ */
+function gateEvidencedNpcFields({ npcId, path, patch, previous = {}, evidence, narrativeText, characterName, npcDialogueLines, gateFields }) {
+  const warnings = [];
+  const gated = { ...patch };
+  for (const field of gateFields) {
+    if (!(field in gated)) continue;
+    const changed = path === 'npc_stats'
+      ? Number.isFinite(gated[field]) && gated[field] !== 0
+      : gated[field] !== previous?.[field];
+    if (!changed) continue;
+    const quote = findEvidenceQuote(evidence, `${path}.${npcId}.${field}`, npcId, field);
+    const verdict = validateEvidencedNpcField({ quote, narrativeText, characterName, npcDialogueLines });
+    if (verdict) {
+      warnings.push(`${verdict}:${path}.${npcId}.${field}`);
+      delete gated[field];
+    }
+  }
+  return { patch: gated, warnings };
+}
+
+/** 해당 NPC의 대사 텍스트 목록 — evidence가 대사 라인인지 확인용. */
+function npcDialogueLinesOf(parsedStory, npcId) {
+  if (!Array.isArray(parsedStory?.dialogue_lines)) return [];
+  return parsedStory.dialogue_lines
+    .filter(line => line?.speaker_id === npcId && typeof line.text === 'string' && line.text.trim())
+    .map(line => line.text.trim());
+}
+
 function mergeEventLedger(current, patch) {
   const byId = new Map((Array.isArray(current) ? current : []).map(item => [item?.event_id, item]));
   for (const event of patch) {
@@ -130,8 +209,16 @@ function mergeEventLedger(current, patch) {
 }
 
 function characterNameFromMaster(master, characterId) {
-  const characters = Array.isArray(master?.characters) ? master.characters : [];
-  return characters.find(character => character?.character_id === characterId)?.name ?? characterId ?? '';
+  const roster = [
+    ...(Array.isArray(master?.characters) ? master.characters : []),
+    ...(Array.isArray(master?.general_npcs) ? master.general_npcs : [])
+  ];
+  const found = roster.find(character => (
+    character?.character_id === characterId
+    || character?.npc_id === characterId
+    || character?.id === characterId
+  ));
+  return found?.name ?? characterId ?? '';
 }
 
 /**
@@ -436,17 +523,10 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
       continue;
     }
     if (path === 'csa_runtime_state') {
-      if (!plainObject(patch)) {
-        warnings.push('invalid_csa_runtime_state');
-        continue;
-      }
-      nextSave.csa_runtime_state = plainObject(nextSave.csa_runtime_state) ? nextSave.csa_runtime_state : {};
-      for (const [csaId, csaPatch] of Object.entries(patch)) {
-        const validated = validateCsaRuntimeStatePatch(csaId, csaPatch);
-        warnings.push(...validated.warnings);
-        if (!validated.patch || Object.keys(validated.patch).length === 0) continue;
-        nextSave.csa_runtime_state[csaId] = deepMerge(nextSave.csa_runtime_state[csaId] ?? {}, validated.patch);
-      }
+      // CSA runtime 입력 채널 단일화 — state_delta.csa_runtime_state는 save writer가 아니다.
+      // 유일 입력은 envelope의 csa_runtime_updates/csa_trigger_evaluations이고,
+      // 유일 writer는 buildCsaSceneRuntimeStatePatch (Commit 경로)다.
+      warnings.push('duplicate_csa_runtime_channel_ignored');
       continue;
     }
     if (NPC_MAPS.has(path)) {
@@ -473,7 +553,17 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
           continue;
         }
         if (path === 'npc_stats' && plainObject(npcPatch)) {
-          const { reason, ...deltas } = npcPatch;
+          // affinity/csa_acceptance/sexual_arousal 변경은 Story evidence를 요구한다.
+          // 음수 호감도도 근거 없는 저장을 막는다 (blocked 턴에서도 근거 있으면 허용).
+          const gated = gateEvidencedNpcFields({
+            npcId, path, patch: npcPatch, previous: nextSave.npc_stats[npcId] ?? {},
+            evidence: envelope.evidence, narrativeText: options?.storyText ?? '',
+            characterName: characterNameFromMaster(options?.master, npcId),
+            npcDialogueLines: npcDialogueLinesOf(options?.parsedStory, npcId),
+            gateFields: ['affinity', 'csa_acceptance', 'sexual_arousal']
+          });
+          warnings.push(...gated.warnings);
+          const { reason, ...deltas } = gated.patch;
           const { state, warnings: statWarnings } = applyNpcStatChanges(nextSave.npc_stats[npcId] ?? {}, deltas, { reason: typeof reason === 'string' ? reason : '' });
           nextSave.npc_stats[npcId] = state;
           warnings.push(...statWarnings.map(code => `npc_stats:${npcId}:${code}`));
@@ -484,6 +574,28 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
           const sanitized = sanitizeRelationshipMilestonePatch(preSave, npcId, npcPatch, envelope.evidence);
           sanitizedPatch = sanitized.patch;
           if (sanitized.warning) warnings.push(sanitized.warning);
+          // current_boundary 변경은 Story evidence를 요구한다 (근거 없는 경계 상태 전이 차단).
+          const gated = gateEvidencedNpcFields({
+            npcId, path, patch: sanitizedPatch, previous: preSave.npc_relationship_state?.[npcId] ?? {},
+            evidence: envelope.evidence, narrativeText: options?.storyText ?? '',
+            characterName: characterNameFromMaster(options?.master, npcId),
+            npcDialogueLines: npcDialogueLinesOf(options?.parsedStory, npcId),
+            gateFields: ['current_boundary']
+          });
+          warnings.push(...gated.warnings);
+          sanitizedPatch = gated.patch;
+        }
+        if (path === 'npc_emotion' && plainObject(npcPatch)) {
+          // mood 변경도 Story evidence를 요구한다 (가짜 감정 변화 차단).
+          const gated = gateEvidencedNpcFields({
+            npcId, path, patch: npcPatch, previous: nextSave.npc_emotion[npcId] ?? {},
+            evidence: envelope.evidence, narrativeText: options?.storyText ?? '',
+            characterName: characterNameFromMaster(options?.master, npcId),
+            npcDialogueLines: npcDialogueLinesOf(options?.parsedStory, npcId),
+            gateFields: ['mood']
+          });
+          warnings.push(...gated.warnings);
+          sanitizedPatch = gated.patch;
         }
         if (isStale(nextSave[path][npcId], sanitizedPatch)) {
           warnings.push(`stale_updated_turn:${path}:${npcId}`);

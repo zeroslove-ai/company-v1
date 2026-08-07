@@ -328,6 +328,17 @@ function resolveStructuredSexualCoverage(
 
 const CONTENT_MEANING_TERMS = ['컨디션', '상태', '성적 긴장', '완화', '도움', '속옷', '차림', '근무'];
 
+// 의미 연결 — 활성 CSA content의 표현과 입력의 동의어를 연결한다.
+// "성적 긴장" ↔ "발기" / "완화" ↔ "완화|해결|도움|도와" 같은 간접 실행 요청.
+// 이 연결이 있을 때만 LINKED_REQUEST_RE의 부탁/도움/해결 표현을 실행 요청으로 본다
+// ("부탁해" 단독으로는 csa_direct가 아니다).
+const SEMANTIC_LINKS = [
+  { contentTerm: '성적 긴장', inputTerms: ['발기', '성적 긴장', '긴장'] },
+  { contentTerm: '완화', inputTerms: ['완화', '해결', '도움', '도와'] }
+];
+const LINKED_REQUEST_RE =
+  /(부탁해|부탁합니다|부탁드려요|부탁드립니다|도와\s*줘|도와\s*주세요|도와\s*주십시오|해결해\s*줘|해결해\s*주세요|해결해\s*드릴게|완화해\s*줘|완화해\s*주세요)/;
+
 // 질문·확인·설명 요청 — 단어가 겹쳐도 csa_direct가 아니다.
 // "자네 지금 속옷 차림이 맞는 건가?" 같은 확인 질문이 '속옷/차림' 단어 때문에
 // 직접 실행으로 오판되는 것을 막는다.
@@ -379,6 +390,17 @@ function directMeaningMatch(csa, text, applicableCount) {
   );
   // 2) 단어 일치만으로 csa_direct가 되지 않는다 — 실행 요청 동사가 있어야 한다.
   if (matchedContentTerm && EXECUTE_RE.test(text)) return matchedContentTerm;
+
+  // 3) 의미 연결 + 요청 표현 — "발기했어 + 부탁해" 같은 간접 실행 요청.
+  // 연결 표현(성적 긴장↔발기, 완화↔해결/도움)이 있고 실제 요청 표현이 있어야 한다.
+  // "제나씨 부탁해"처럼 연결 없이 부탁해만으로는 csa_direct가 되지 않는다.
+  for (const link of SEMANTIC_LINKS) {
+    if (content.includes(link.contentTerm)
+      && link.inputTerms.some(term => text.includes(term))
+      && LINKED_REQUEST_RE.test(text)) {
+      return `linked CSA request: "${link.contentTerm}"`;
+    }
+  }
 
   const genericRuleRequest = /(규정|규칙|지침|공지).*(반영|적용|수행|지켜|따라)/.test(text);
   if (genericRuleRequest && applicableCount === 1) return 'single applicable CSA rule request';

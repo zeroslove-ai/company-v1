@@ -15,9 +15,9 @@ import { classifyMaterialActions } from '../engine/action-execution-contract.js'
 wireMaterialClassifier(classifyMaterialActions);
 import { createStructuredStoryGate, STRUCTURED_STORY_VERSION } from '../engine/structured-story-v2.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
+import { buildDeterministicTurnSummary } from '../engine/turn-summary.js';
 import {
   applyGuardedStateDelta,
-  buildFallbackTurnChoices,
   sanitizeMovementCommit,
   buildDegradedExtractEnvelope,
   buildExtractPrompt,
@@ -1257,7 +1257,9 @@ const master = masterFromEdition(edition);
         const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
         const runtimeStatePatch = buildCsaSceneRuntimeStatePatch({
           previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
-          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn
+          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn,
+          evidence: extract.evidence,
+          narrativeText: (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text
         });
         if (runtimeStatePatch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeStatePatch };
         if (csaPlan) {
@@ -1290,17 +1292,17 @@ const master = masterFromEdition(edition);
         }
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
+        // turn_summary 단일 writer — Extract 자유 문장이 아니라 parsed Story의
+        // 실제 scene/dialogue 텍스트에서 결정론적으로 생성한다 (LLM 호출 없음).
+        // 같은 finalTurnSummary를 story_summary_recent와 Commit RPC에 동시에 쓴다.
+        const finalTurnSummary = buildDeterministicTurnSummary(parsedStory, action.story_text ?? '');
         // 최신 서사 요약 writer — 정상 player turn Commit에서 서버가 직접 갱신한다.
-        // 빈 turn_summary이면 현재 Story의 앞부분을 제한 길이로 사용해,
-        // 기존 오프닝 summary가 계속 남지 않게 한다 (overall은 이 작업 범위 밖, 새 LLM 호출 없음).
         if (action.action_kind !== 'feedback_revision') {
-          const summaryText = typeof extract.turn_summary === 'string' && extract.turn_summary.trim()
-            ? extract.turn_summary.trim()
-            : String(parsedStory?.normalized_raw ?? action.story_text ?? '').trim().slice(0, 500);
-          if (summaryText) nextSave.story_summary_recent = summaryText;
+          if (finalTurnSummary) nextSave.story_summary_recent = finalTurnSummary;
         }
-        // 일반 턴 선택지 fail-open — game_turns.choices도 4개 미만이면 기본 선택지로 보충한다.
-        const finalChoices = Array.isArray(extract.choices) && extract.choices.length === 4 ? extract.choices : buildFallbackTurnChoices(currentSave);
+        // 선택지 단일 writer — applyGuardedStateDelta가 확정한 last_choices를
+        // 그대로 쓴다 (Story 1~3개 보존 + 부족분 보충 결과 = save와 history 일치).
+        const finalChoices = Array.isArray(nextSave.last_choices) ? nextSave.last_choices : [];
 
         const commitRpcStart = Date.now();
         // A feedback-revision action never advances committed_turn — it replaces the content of
@@ -1308,10 +1310,10 @@ const master = masterFromEdition(edition);
         // one to 'superseded'), so it goes through commit_feedback_revision instead of the
         // normal expected_turn-advancing commit_company_turn.
         const commit = action.action_kind === 'feedback_revision'
-          ? await db.commitFeedbackRevision(gameId, actionId, action.revision_request_id, nextSave, extract.turn_summary, merged.mind_monitor, extract.choices)
+          ? await db.commitFeedbackRevision(gameId, actionId, action.revision_request_id, nextSave, finalTurnSummary, merged.mind_monitor, finalChoices)
           : await db.callRpc('commit_company_turn', {
               p_game_id: gameId, p_action_id: actionId, p_expected_turn: expectedTurn,
-              p_next_save: nextSave, p_turn_summary: extract.turn_summary,
+              p_next_save: nextSave, p_turn_summary: finalTurnSummary,
               p_mind_monitor: merged.mind_monitor, p_choices: finalChoices
             });
         timing.commit_rpc_ms = Date.now() - commitRpcStart;
