@@ -42,6 +42,7 @@ import {
   buildCsaAcceptanceScopeSection,
   buildCsaApplicationCheckSection,
   buildCsaDeactivationStorySection,
+  buildCsaCurrentRulesSection,
   buildCsaDirectExecutionPrioritySection,
   buildCsaPersistentSceneSection,
   buildCsaPhysicalTransitionSection,
@@ -255,7 +256,7 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
  * pass. This only trims prompt tokens — every gated section's underlying feature contract is
  * unchanged when its condition holds.
  */
-function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog, actionContract, master }) {
+function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog, actionContract, master, expectedTurn }) {
   const applicableCsa = getApplicableCsaEntries(save);
   const hasApplicableCsa = applicableCsa.length > 0;
   const isAppTransactionTurn = Boolean(plan);
@@ -270,7 +271,8 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog,
   }
   const hasPublicCsa = applicableCsa.some(csa => csa.preset?.public_normalization === true || csa.semantic_contract?.public_normalization === true);
   const hasSynergyCandidate = applicableCsa.length >= 2;
-  let extra = buildCsaRuntimeSection() + buildCsaAcceptanceScopeSection() + buildCsaDirectExecutionPrioritySection()
+  const currentRulesSection = buildCsaCurrentRulesSection(applicableCsa, expectedTurn);
+  let extra = currentRulesSection + buildCsaRuntimeSection() + buildCsaAcceptanceScopeSection() + buildCsaDirectExecutionPrioritySection()
     + buildCsaPersistentSceneSection()
     + (hasPublicCsa ? buildCsaPublicSceneSection() : '')
     + (hasSynergyCandidate ? buildCsaWeakSynergySection() : '')
@@ -835,7 +837,7 @@ const master = masterFromEdition(edition);
           timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
           const promptStart = Date.now();
           let messages = buildStoryPrompt({ edition, context: storyContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
-          messages = applyCsaStorySections(messages, { save: storySave, plan: csaPlan, playerAction, csaCatalog, actionContract, master });
+          messages = applyCsaStorySections(messages, { save: storySave, plan: csaPlan, playerAction, csaCatalog, actionContract, master, expectedTurn });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
           }
@@ -892,33 +894,16 @@ const master = masterFromEdition(edition);
           }
           const gated = gate.end();
           flush(gated.emissions);
-          // 정본 story_text는 게이트를 통과한 내용만으로 구성된다.
-          raw = gated.story_text;
+          // 문서 5절 — 정본 story_text는 upstreamRaw(플레이어 가시 원문)다.
+          // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
+          raw = upstreamRaw;
           const parsed = parseNarrative(raw, { master });
-          // 수정 D — V2 blocks는 gate의 ordered segments가 유일한 정본이다.
-          // 레거시 파서의 scene/dialogue 블록을 섞지 않고, scene→dialogue→scene 원래
-          // 순서를 그대로 보존한다. player_inner_thought/player_status/choices는
-          // parseNarrative가 섹션 마커에서 추출한 값을 유지한다.
-          const v2Blocks = (gated.segments ?? []).map(seg =>
-            seg.type === 'dialogue' ? seg : { type: 'scene', text: seg.text }
-          );
-          const v2DialogueLines = (gated.blocks ?? []).map(b => ({
-            speaker_id: b.speaker_id,
-            speaker_name: b.speaker_name,
-            acting_direction: b.acting_direction,
-            direction: b.direction,
-            text: b.text,
-            order: b.order
-          }));
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
           const mergedWarnings = [...(parsed.warnings ?? []), ...gated.warnings, ...(storyFallback ? ['app_story_fallback'] : [])];
           const contractPersisted = {
             ...parsed,
-            blocks: v2Blocks,
-            dialogue_lines: v2DialogueLines,
             structured_story_version: STRUCTURED_STORY_VERSION,
             scene_cast_contract: sceneCastContract,
-            dialogue_blocks: gated.blocks,
             // 수정 H — live/replay 동일 순서 재생용
             stream_segments: gated.stream_segments,
             warnings: mergedWarnings,
@@ -930,7 +915,7 @@ const master = masterFromEdition(edition);
           timing.gated_dialogue_blocks = gated.blocks.length;
           timing.gated_dialogue_warnings = gated.warnings.length;
           timing.upstream_story_chars = upstreamRaw.length;
-          await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: actionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
+          await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: resolvedActionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
           storyPersisted = true;
           emit('complete', {
             action_id: meta.action_id, turn_id: meta.turn_id, warnings: mergedWarnings, replayed: false,

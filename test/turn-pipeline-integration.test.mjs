@@ -200,7 +200,7 @@ test('14-4: full turn pipeline — story(V2 gate) → extract(1 call, no tagger)
   for (const d of dialogues) {
     assert.equal(d.speaker_id, 'heroine5');
     assert.equal(d.speaker_name, '이메이', 'canon 기반 이름');
-    assert.ok(d.acting_direction && d.acting_direction.length > 0, '구체 연기 지시 보존');
+    assert.ok(d.direction && d.direction.length > 0, '구체 연기 지시 보존');
   }
   assert.equal(savedAfter.parsed_blocks.tagged, undefined, 'V2는 tagged 플래그 없음');
   assert.equal(savedAfter.parsed_blocks.structured_story_version, 2, 'V2 버전 저장');

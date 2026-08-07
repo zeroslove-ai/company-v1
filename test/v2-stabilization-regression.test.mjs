@@ -78,16 +78,16 @@ function playerBlock(text, playerAction = '서류를 정리한다.') {
 // 1~8. 플레이어 대사 의미 범위 (수정 A)
 // ---------------------------------------------------------------------------
 
-test('1. "커피를 마신다" + "당장 옷 벗어" → 차단', () => {
+test('1. "커피를 마신다" + "당장 옷 벗어" → 문장 보존 + 정책 경고', () => {
   const r = playerBlock('당장 옷 벗어.');
-  assert.equal(r.ok, false);
-  assert.equal(r.warning, DIALOGUE_WARNINGS.PLAYER_POLICY);
+  assert.equal(r.ok, true, '문장 원문은 보존');
+  assert.ok((r.warnings ?? []).includes(DIALOGUE_WARNINGS.PLAYER_POLICY), '정책 경고');
 });
 
-test('2. "커피를 마신다" + "오늘 밤 나랑 자자" → 차단', () => {
+test('2. "커피를 마신다" + "오늘 밤 나랑 자자" → 문장 보존 + 정책 경고', () => {
   const r = playerBlock('오늘 밤 나랑 자자.');
-  assert.equal(r.ok, false);
-  assert.equal(r.warning, DIALOGUE_WARNINGS.PLAYER_POLICY);
+  assert.equal(r.ok, true, '문장 원문은 보존');
+  assert.ok((r.warnings ?? []).includes(DIALOGUE_WARNINGS.PLAYER_POLICY), '정책 경고');
 });
 
 test('3. "커피를 마신다" + "이건 좀 이상한데" → 허용', () => {
@@ -133,37 +133,37 @@ test('8. 입력에 없는 material sexual action 추가 → 차단', () => {
 // 9~15. 비구조화 대사 (수정 B)
 // ---------------------------------------------------------------------------
 
-test('9. quote-only line → 화면·정본·Extract에서 제거', () => {
+test('9. quote-only line → 문장 보존 + 비구조화 경고', () => {
   const gate = gateFor(baseContract());
   gate.push('[SCENE]\n침묵이 흘렀다.\n"네, 알겠습니다."\n');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED));
-  assert.ok(!end.story_text.includes('네, 알겠습니다'), '정본 제거');
+  assert.ok(end.story_text.includes('네, 알겠습니다'), '문장 원문 보존');
   assert.equal(end.blocks.filter(b => b.type === 'dialogue').length, 0);
 });
 
-test('10. "이메이: 네" → 제거', () => {
+test('10. "이메이: 네" → 문장 보존 + 비구조화 경고', () => {
   const gate = gateFor(baseContract());
   gate.push('[SCENE]\n침묵.\n이메이: 네.\n');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED));
-  assert.ok(!end.story_text.includes('이메이: 네'), '라벨 대사 제거');
+  assert.ok(end.story_text.includes('이메이: 네'), '문장 원문 보존');
 });
 
-test('11. 구형 "이메이 (고개를 들며): “네”" → 제거', () => {
+test('11. 구형 "이메이 (고개를 들며): “네”" → 문장 보존 + 비구조화 경고', () => {
   const gate = gateFor(baseContract());
   gate.push('[SCENE]\n침묵.\n이메이 (고개를 들며): “네.”\n');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED));
-  assert.ok(!end.story_text.includes('고개를 들며'), '구형 형식 제거');
+  assert.ok(end.story_text.includes('고개를 들며'), '문장 원문 보존');
 });
 
-test('12. "이메이가 말했다. \"네\"" → 제거', () => {
+test('12. "이메이가 말했다. \"네\"" → 문장 보존 + 비구조화 경고', () => {
   const gate = gateFor(baseContract());
   gate.push('[SCENE]\n침묵.\n이메이가 말했다. "네, 할게요."\n');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED));
-  assert.ok(!end.story_text.includes('할게요'), '서술문 내 발화 제거');
+  assert.ok(end.story_text.includes('할게요'), '문장 원문 보존');
 });
 
 test('13. 문서 제목 인용 → 보존', () => {
@@ -195,12 +195,12 @@ test('15. 차단된 비구조화 대사 다음 정상 [DIALOGUE] → 정상 출�
 // 16~21. malformed 구조화 블록 (수정 C)
 // ---------------------------------------------------------------------------
 
-test('16. 닫히지 않은 DIALOGUE header EOF → 제거', () => {
+test('16. 닫히지 않은 DIALOGUE header EOF → 원문 보존 + malformed 경고', () => {
   const gate = gateFor(baseContract());
   gate.push('[SCENE]\n침묵.\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"\n네, 알겠습니다.');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.MALFORMED), 'malformed 경고');
-  assert.ok(!end.story_text.includes('네, 알겠습니다'), '닫히지 않은 헤더+본문 제거');
+  assert.ok(end.story_text.includes('네, 알겠습니다'), '헤더·본문 원문 보존');
 });
 
 test('17. speaker_id 따옴표 누락 → 제거', () => {
@@ -223,13 +223,13 @@ test('19. 중복 speaker_id → malformed', () => {
   assert.equal(parsed.ok, false, '중복 속성은 malformed');
 });
 
-test('20. "[FOO]" marker → marker 제거·이후 정상 text 보존', () => {
+test('20. "[FOO]" marker → 원문 보존 + 미지 마커 경고', () => {
   const gate = gateFor(baseContract());
   gate.push('[SCENE]\n침묵.\n[FOO]\n정상 서술 문장이다.\n');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNKNOWN_MARKER), '미지 마커 경고');
   assert.ok(end.story_text.includes('정상 서술 문장이다.'), '이후 텍스트 보존');
-  assert.ok(!end.story_text.includes('[FOO]'), '마커 라인 제거');
+  assert.ok(end.story_text.includes('[FOO]'), '마커 라인 원문 보존');
 });
 
 test('21. malformed 이후 정상 block 계속 스트리밍', () => {
@@ -473,22 +473,22 @@ test('40. 실제 async upstream에서 첫 SCENE delta가 completion 전 도착',
   assert.equal(end.blocks.length, 1);
 });
 
-test('41. DIALOGUE-first leak 없음 (story 섹션에서)', () => {
+test('41. DIALOGUE-first는 경고만 남기고 문장은 보존한다', () => {
   const gate = gateFor(baseContract());
   const out = gate.push('[1. 서사 및 행동]\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n네.\n');
-  assert.ok(!out.some(e => e.kind === 'block'), 'SCENE 전 DIALOGUE 화면 누출 없음');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.BEFORE_SCENE));
-  assert.equal(end.blocks.length, 0);
+  assert.equal(end.blocks.length, 1, '문장 원문은 대사 블록으로 보존');
 });
 
-test('42. 잘못된 block 하나로 전체 Story 실패하지 않음', () => {
+test('42. cast 밖 block도 문장은 보존하고 정상 block은 계속 출력', () => {
   const gate = gateFor(baseContract());
   gate.push('[SCENE]\n침묵.\n[DIALOGUE speaker_id="heroine2" acting_direction="고개를 들며"]\n네.\n');
   const good = gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="고개를 끄덕이며"]\n알겠습니다.\n');
   const end = gate.end();
-  assert.equal(end.blocks.length, 1, 'cast 밖 차단, 정상 블록 유지');
-  assert.equal(end.blocks[0].speaker_id, 'heroine5');
+  assert.equal(end.blocks.length, 2, 'cast 밖 문장도 보존, 정상 블록 유지');
+  assert.equal(end.blocks[0].speaker_id, null, 'cast 밖 화자는 미확정');
+  assert.equal(end.blocks[1].speaker_id, 'heroine5');
 });
 
 test('43~45. live/replay 이벤트 계약 — stream_segments가 동일 재생 정보를 담는다', () => {
@@ -583,11 +583,12 @@ test('일반 장면 fixture — focal/last_speaker만으로 현장 배치 금지
   assert.ok(contract.context_npc_ids.includes('heroine5'));
 });
 
-test('플레이어 대사 fixture — "서류를 정리한다" + 짧은 감탄 허용, 지시 차단', () => {
+test('플레이어 대사 fixture — "서류를 정리한다" + 짧은 감탄 허용, 지시는 경고', () => {
   const ok = playerBlock('생각보다 복잡하네.', '서류를 정리한다.');
   assert.equal(ok.ok, true, '짧은 반응 허용');
   const blocked = playerBlock('당장 다시 작성해.', '서류를 정리한다.');
-  assert.equal(blocked.ok, false, '지시 차단');
+  assert.equal(blocked.ok, true, '문장은 보존');
+  assert.ok((blocked.warnings ?? []).includes(DIALOGUE_WARNINGS.PLAYER_POLICY), '정책 경고');
 });
 
 test('intent taxonomy 단위 검증 — 고위험 감지', () => {

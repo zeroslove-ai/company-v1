@@ -152,7 +152,7 @@ test('7. "이메이: 네"를 1글자씩 push해도 전부 차단', () => {
   for (const ch of story) a.push(ch); // 1글자씩
   const endA = a.end();
   assert.ok(endA.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED), 'unstructured 경고');
-  assert.ok(!endA.story_text.includes('이메이: 네'), '비구조화 대사 제거');
+  assert.ok(endA.story_text.includes('이메이: 네'), '문장 원문 보존');
   assert.ok(endA.story_text.includes('정상 서술이다.'), '정상 서술 출력');
 });
 
@@ -162,7 +162,7 @@ test('8. quote-only 대사를 1글자씩 push해도 차단', () => {
   for (const ch of story) a.push(ch);
   const endA = a.end();
   assert.ok(endA.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED));
-  assert.ok(!endA.story_text.includes('네.'), 'quote-only 제거');
+  assert.ok(endA.story_text.includes('네.'), '문장 원문 보존');
 });
 
 test('9. 정상 scene line은 개행 도착 즉시 emit', () => {
@@ -206,7 +206,7 @@ test('13. Story scene 내부 "이메이: 네"만 차단', () => {
   gate.push('[1. 서사 및 행동]\n[SCENE]\n이메이: 네.\n정상 장면 서술.\n[2. 플레이어 속마음]\n생각: 좀 이상하네.\n');
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED), 'story 영역 비구조화 차단');
-  assert.ok(!end.story_text.includes('이메이: 네'));
+  assert.ok(end.story_text.includes('이메이: 네'), '문장 원문 보존');
   assert.ok(end.story_text.includes('생각: 좀 이상하네.'), '속마음 colon 보존');
 });
 
@@ -220,7 +220,7 @@ test('14. malformed 닫힌 header 본문까지 폐기', () => {
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.MALFORMED), 'malformed 경고');
   assert.ok(end.story_text.includes('정상 장면.'), '첫 정상 장면 보존');
-  assert.ok(!end.story_text.includes('잘못된 본문'), 'malformed 본문 제거');
+  assert.ok(end.story_text.includes('잘못된 본문'), 'malformed 본문도 원문 보존');
   assert.ok(end.story_text.includes('다음 정상 장면.'), '다음 정상 장면 보존');
 });
 
@@ -230,7 +230,7 @@ test('15. malformed 뒤 정상 SCENE 복구', () => {
   const end = gate.end();
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.MALFORMED));
   assert.ok(end.story_text.includes('복구된 장면.'), 'malformed 뒤 정상 SCENE 복구');
-  assert.ok(!end.story_text.includes('폐기될 본문'), '본문 폐기');
+  assert.ok(end.story_text.includes('폐기될 본문'), '본문도 원문 보존');
 });
 
 // ---------------------------------------------------------------------------
@@ -379,19 +379,20 @@ test('서사 표시 정상화: [DIALOGUE]는 발화 한 줄만 인정하고 바�
   gateCast.push('[1. 서사 및 행동]\n[SCENE]\n회의실이 조용하다.\n[DIALOGUE speaker_id="heroine1" acting_direction="고개를 들며"]\n"네."\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 끄덕이며"]\n"알겠습니다."\n');
   const endCast = gateCast.end();
   const castBlocks = endCast.blocks.filter(b => b.type === 'dialogue');
-  assert.equal(castBlocks.length, 1, 'cast 밖 heroine1은 차단');
-  assert.equal(castBlocks[0].speaker_id, 'heroine5');
-  assert.ok(endCast.warnings.includes(DIALOGUE_WARNINGS.NOT_IN_CAST), 'not_in_cast 경고');
+  assert.equal(castBlocks.length, 2, 'cast 밖 heroine1도 문장은 보존');
+  assert.equal(castBlocks[0].speaker_id, null, 'cast 밖 화자는 미확정');
+  assert.equal(castBlocks[1].speaker_id, 'heroine5');
+  assert.ok(endCast.warnings.some(w => w === DIALOGUE_WARNINGS.NOT_IN_CAST || w === DIALOGUE_WARNINGS.ANONYMOUS), 'cast 경고');
 
   // 3) 마커 없는 후속 문장은 대화나 scene으로 오인되지 않고 폐기 — 다음 유효 마커에서 재개
   const gate2 = gateFor(baseContract());
   gate2.push('[1. 서사 및 행동]\n[SCENE]\n회의실이 조용하다.\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n"그걸 왜 물어보시는 거예요."\n그녀의 손끝이 멈췄다.\n[SCENE]\n목덜미가 붉어졌다.\n');
   const end2 = gate2.end();
-  assert.ok(end2.warnings.includes(DIALOGUE_WARNINGS.MALFORMED), '마커 없는 후속 문장은 malformed_structured_story_block 경고');
+  // 문서 5절 4 — 마커 없는 후속 문장은 직전 대사를 확정한 뒤 scene/plain text로 재처리된다.
   const d2 = end2.blocks.filter(b => b.type === 'dialogue');
   assert.equal(d2.length, 1, '폐기된 대화는 블록으로 저장되지 않는다');
   assert.equal(d2[0].text, '그걸 왜 물어보시는 거예요.');
-  assert.ok(!end2.story_text.includes('손끝이 멈췄다'), '폐기된 후속 문장은 정본에서 제외');
+  assert.ok(end2.story_text.includes('손끝이 멈췄다'), '마커 없는 후속 문장도 원문 보존');
   const scene2 = end2.segments.filter(s => s.type === 'scene').at(-1);
   assert.ok(scene2.text.includes('목덜미가 붉어졌다'), '다음 [SCENE]부터 정상 재개');
 });

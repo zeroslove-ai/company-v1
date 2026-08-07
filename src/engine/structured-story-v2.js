@@ -62,7 +62,8 @@ export function isConcreteActingDirection(direction) {
   let remainder = text;
   for (const term of BANNED_DIRECTION_TERMS) remainder = remainder.split(term).join(' ');
   const meaningful = remainder.replace(/[\s,.·…‥"'“”’‘\-—~!?()[\]0-9]/gu, '');
-  return meaningful.length >= 2;
+  return meaningful.length >= 1;
+  // 문서 5절 6 — 짧지만 비어 있지 않은 연기 지시는 허용한다 (금지어만으로 이뤄진 경우만 차단).
 }
 
 // ---------------------------------------------------------------------------
@@ -95,7 +96,14 @@ function isSectionMarker(line) {
  * 반환: { ok: true, attrs: { speaker_id, acting_direction } }
  *      | { ok: false } — 닫는 ] 누락·따옴표 누락·중복 속성·알 수 없는 속성
  */
-export function parseDialogueHeader(headerSource) {
+/**
+ * [DIALOGUE ...] 헤더 속성을 파싱한다 (문서 5절 5 — alias 정규화).
+ * speaker_id/acting_direction(정식)과 speaker/direction(alias)을 모두 받는다.
+ * speaker="이름"은 speakerNames 역매핑으로 stable ID를 찾고, 못 찾으면
+ * speaker_id를 null(미확정)로 두고 speaker_name 원문은 보존한다.
+ * 반환: { ok: true, attrs: { speaker_id, speaker_name?, acting_direction } } | { ok: false }
+ */
+export function parseDialogueHeader(headerSource, speakerNames = null) {
   const source = typeof headerSource === 'string' ? headerSource : '';
   if (!/\]\s*$/.test(source)) return { ok: false };
   const attrs = {};
@@ -109,13 +117,26 @@ export function parseDialogueHeader(headerSource) {
     seen.add(name);
     attrs[name] = value;
   }
-  if (!('speaker_id' in attrs) || attrs.speaker_id === '') return { ok: false };
-  if (!('acting_direction' in attrs) || attrs.acting_direction === '') return { ok: false };
-  const allowedAttrs = new Set(['speaker_id', 'acting_direction']);
+  const allowedAttrs = new Set(['speaker_id', 'acting_direction', 'speaker', 'direction']);
   for (const name of seen) {
     if (!allowedAttrs.has(name)) return { ok: false };
   }
-  return { ok: true, attrs };
+  // 정식 속성 우선, alias는 정식으로 정규화한다.
+  let speakerId = attrs.speaker_id && attrs.speaker_id !== '' ? attrs.speaker_id : null;
+  const speakerNameAlias = attrs.speaker && attrs.speaker !== '' ? attrs.speaker : null;
+  const direction = attrs.acting_direction && attrs.acting_direction !== ''
+    ? attrs.acting_direction
+    : (attrs.direction && attrs.direction !== '' ? attrs.direction : null);
+  if (speakerId === null && speakerNameAlias && speakerNames instanceof Map) {
+    for (const [id, name] of speakerNames) {
+      if (name === speakerNameAlias) { speakerId = id; break; }
+    }
+  }
+  if (speakerId === null && !speakerNameAlias) return { ok: false };
+  if (direction === null || direction === '') return { ok: false };
+  const out = { speaker_id: speakerId, acting_direction: direction };
+  if (speakerNameAlias) out.speaker_name = speakerNameAlias;
+  return { ok: true, attrs: out };
 }
 
 // ---------------------------------------------------------------------------
@@ -172,54 +193,73 @@ function attribute(source, name) {
  * 대사 블록 하나를 계약에 대조해 검증한다 (수정 A: 플레이어 의미 범위 포함).
  * 반환: { ok: true, block } 또는 { ok: false, warning }
  */
+/**
+ * 대사 블록 하나를 계약에 대조해 검증한다 (문서 5절 7·8 — 문장 원문 보존).
+ * metadata(speaker_id 등)를 확정하지 못해도 문장 자체는 삭제하지 않는다:
+ * 확정 가능한 필드만 채우고 나머지는 미확정(null)으로 두며 warning을 남긴다.
+ * 반환: { ok: true, block, warnings[] } — ok:false는 빈 본문 등 복구 불가 케이스뿐.
+ */
 export function validateDialogueBlock({ headerAttributes, body, contract, speakerNames }) {
+  // headerAttributes: parseDialogueHeader의 attrs 객체 또는 원본 헤더 문자열(하위 호환).
+  // 문자열은 attribute()로 직접 추출한다 — 닫는 ] 없이 온 legacy 호출도 동작해야 한다.
+  const attrs = (typeof headerAttributes === 'string'
+    ? {
+        speaker_id: attribute(headerAttributes, 'speaker_id'),
+        speaker_name: attribute(headerAttributes, 'speaker') ?? attribute(headerAttributes, 'speaker_name'),
+        acting_direction: attribute(headerAttributes, 'acting_direction') ?? attribute(headerAttributes, 'direction')
+      }
+    : (headerAttributes ?? {}));
   const text = typeof body === 'string' ? body.trim() : '';
-  const speakerId = attribute(headerAttributes, 'speaker_id');
-  const actingDirection = attribute(headerAttributes, 'acting_direction');
+  const speakerIdRaw = attrs.speaker_id ?? null;
+  const speakerNameRaw = attrs.speaker_name ?? null;
+  const actingDirection = attrs.acting_direction ?? '';
 
   if (!text) return { ok: false, warning: DIALOGUE_WARNINGS.MALFORMED };
-  if (!speakerId) return { ok: false, warning: DIALOGUE_WARNINGS.MISSING_SPEAKER };
-
-  const known = speakerNames instanceof Map ? speakerNames.has(speakerId) : false;
-  if (!known) {
-    return { ok: false, warning: speakerId === 'player' ? DIALOGUE_WARNINGS.UNKNOWN_SPEAKER : DIALOGUE_WARNINGS.ANONYMOUS };
-  }
-  if (!canSpeak(contract, speakerId)) {
-    return { ok: false, warning: DIALOGUE_WARNINGS.NOT_IN_CAST };
-  }
   if (!actingDirection) return { ok: false, warning: DIALOGUE_WARNINGS.MISSING_DIRECTION };
-  if (!isConcreteActingDirection(actingDirection)) return { ok: false, warning: DIALOGUE_WARNINGS.INVALID_DIRECTION };
 
-  if (speakerId === 'player') {
+  // 이름→ID 정규화: speaker_id가 미확정이면 speaker_name으로 한 번 더 시도한다.
+  let speakerId = speakerIdRaw;
+  if (!speakerId && speakerNameRaw && speakerNames instanceof Map) {
+    for (const [id, name] of speakerNames) {
+      if (name === speakerNameRaw) { speakerId = id; break; }
+    }
+  }
+  const known = speakerId !== null && speakerId !== undefined && speakerNames instanceof Map && speakerNames.has(speakerId);
+  const inCast = known && canSpeak(contract, speakerId);
+  const resolvedName = known ? speakerNames.get(speakerId) : (speakerNameRaw ?? speakerIdRaw ?? '');
+  const warnings = [];
+  if (!known) warnings.push(speakerIdRaw === 'player' ? DIALOGUE_WARNINGS.UNKNOWN_SPEAKER : DIALOGUE_WARNINGS.ANONYMOUS);
+  if (known && !inCast) warnings.push(DIALOGUE_WARNINGS.NOT_IN_CAST);
+  if (!isConcreteActingDirection(actingDirection)) warnings.push(DIALOGUE_WARNINGS.INVALID_DIRECTION);
+
+  if (speakerId === 'player' || (speakerIdRaw === 'player' && known)) {
     const policy = contract?.player_dialogue ?? {};
     const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     const maxLines = Number.isInteger(policy.max_lines) ? policy.max_lines : 1;
-    if (lines.length > maxLines) return { ok: false, warning: DIALOGUE_WARNINGS.PLAYER_POLICY };
+    if (lines.length > maxLines) warnings.push(DIALOGUE_WARNINGS.PLAYER_POLICY);
     if (Number.isInteger(policy.max_characters)) {
       const characters = Array.from(lines.join(' ')).length;
-      if (characters > policy.max_characters) return { ok: false, warning: DIALOGUE_WARNINGS.PLAYER_POLICY };
+      if (characters > policy.max_characters) warnings.push(DIALOGUE_WARNINGS.PLAYER_POLICY);
     }
-    // 수정 A — 길이가 아니라 의미 범위 검증 (짧은 명령·약속·성적 제안 차단)
     const meaningCheck = validatePlayerDialogueAgainstPolicy(text, policy);
-    if (!meaningCheck.ok) return { ok: false, warning: DIALOGUE_WARNINGS.PLAYER_POLICY };
+    if (!meaningCheck.ok) warnings.push(DIALOGUE_WARNINGS.PLAYER_POLICY);
   }
 
   return {
     ok: true,
     block: {
       type: 'dialogue',
-      speaker_id: speakerId,
-      speaker: speakerNames.get(speakerId),
-      speaker_name: speakerNames.get(speakerId),
+      // 확정되지 않은 화자는 metadata를 미확정(null)으로 두고 문장 원문은 보존한다.
+      speaker_id: known && inCast ? speakerId : null,
+      speaker: resolvedName,
+      speaker_name: resolvedName,
       acting_direction: actingDirection,
-      // 기존 렌더러/저장 형식과의 호환을 위해 direction도 같은 값으로 유지한다.
       direction: actingDirection,
       text
-    }
+    },
+    warnings
   };
 }
-
-// ---------------------------------------------------------------------------
 // scene block 병합 (수정 9.1)
 // ---------------------------------------------------------------------------
 
@@ -238,38 +278,6 @@ function appendSceneText(segments, text) {
 // 스트리밍 게이트 (수정 3/4/5/9)
 // ---------------------------------------------------------------------------
 
-/**
- * 이번 턴 물리적으로 현장에 있을 수 있는 NPC 이름 목록에서 빠진, 즉 산문에
- * 등장하면 안 되는 등록 NPC 이름 목록을 만든다. present/entering만 물리적
- * 근거가 있다 — destination/remote/context는 아직 현장에 없다(수정 F 8.4/13).
- * 이름 매칭은 [DIALOGUE]/따옴표 대사 검증과 동일하게 등록된 전체 이름만 쓴다.
- */
-function disallowedProseNpcNames(contract, speakerNames) {
-  const allowed = new Set([
-    ...(Array.isArray(contract?.present_npc_ids) ? contract.present_npc_ids : []),
-    ...(Array.isArray(contract?.entering_npc_ids) ? contract.entering_npc_ids : [])
-  ]);
-  const entries = [];
-  if (speakerNames instanceof Map) {
-    for (const [id, name] of speakerNames) {
-      if (id === 'player' || allowed.has(id) || !name) continue;
-      entries.push({ id, name });
-    }
-  }
-  // 짧은 이름이 긴 이름의 부분 문자열이면 긴 이름부터 검사해 과대 매칭을 줄인다.
-  entries.sort((a, b) => b.name.length - a.name.length);
-  return entries;
-}
-
-/** 산문 한 줄에 비허용 NPC의 등록된 전체 이름이 있으면 그 항목을 반환한다. */
-function findDisallowedNpcInLine(line, disallowedNames) {
-  const text = typeof line === 'string' ? line : '';
-  for (const entry of disallowedNames) {
-    if (text.includes(entry.name)) return entry;
-  }
-  return null;
-}
-
 export function createStructuredStoryGate({ contract, speakerNames }) {
   let lineBuffer = '';                  // 현재 작성 중인 한 줄 (수정 3)
   let currentSection = 'none';          // none | story | thought | status | choices (수정 4)
@@ -278,9 +286,7 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
   let openHeaderRaw = null;             // 검증 대기 중인 [DIALOGUE ...] 헤더
   let openBody = '';                    // 열려 있는 대사 본문 (첫 비어 있지 않은 한 줄)
   let awaitingMarkerAfterDialogue = false; // 대사 한 줄 뒤 마커([SCENE]/[DIALOGUE]/섹션) 대기
-  let discardMalformedDialogueBody = false; // 수정 5
   let order = 0;
-  const disallowedNames = disallowedProseNpcNames(contract, speakerNames);
 
   const segments = [];                  // semantic blocks (scene/dialogue 순서)
   const warnings = [];
@@ -304,72 +310,51 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
 
   const closeDialogue = out => {
     if (openHeaderRaw === null) return;
-    // 수정 G — 첫 유효 블록이 DIALOGUE면 차단
-    if (!seenScene) {
-      recordWarning(DIALOGUE_WARNINGS.BEFORE_SCENE);
-      openHeaderRaw = null;
-      openBody = '';
-      return;
-    }
     const result = validateDialogueBlock({
       headerAttributes: openHeaderRaw, body: openBody, contract, speakerNames
     });
     openHeaderRaw = null;
     openBody = '';
     if (!result.ok) {
+      // 복구 불가 케이스(빈 본문)만 여기 — 보존할 문장이 없을 뿐이다.
       recordWarning(result.warning);
       return;
     }
+    // 문서 5절 — 첫 블록이 DIALOGUE여도 문장은 보존한다 (metadata만 경고).
+    if (!seenScene) recordWarning(DIALOGUE_WARNINGS.BEFORE_SCENE);
+    for (const warning of result.warnings ?? []) recordWarning(warning);
     const block = { ...result.block, order: segments.length };
-    // 대사 본문을 감싼 바깥 큰따옴표("...", "“…”")는 제거한다.
+    // 대사 본문을 감싼 바깥 큰따옴표(\"...\", \"“…”\")는 제거한다.
     // 헤더 속성값(speaker_id/acting_direction)의 따옴표는 문법이므로 유지한다.
-    block.text = String(block.text).replace(/^["“”']+|["“”']+$/gu, '');
+    block.text = String(block.text).replace(/^[""']+|[""']+$/gu, '');
     segments.push(block);
     // 정본 텍스트는 레거시 파서도 읽을 수 있는 형태로 유지한다 (속성값의 따옴표는 제거).
-    const safeName = String(block.speaker_name).replace(/"/gu, '');
-    const safeDirection = String(block.acting_direction).replace(/"/gu, '');
+    const safeName = String(block.speaker_name ?? '').replace(/"/gu, '');
+    const safeDirection = String(block.acting_direction ?? '').replace(/"/gu, '');
     const canonical = `\n[DIALOGUE speaker="${safeName}" direction="${safeDirection}"]\n${block.text}\n`;
     canonicalParts.push(canonical);
     out.push({ kind: 'block', block, text: canonical });
     streamSegments.push({ order: order++, kind: 'block', block, text: canonical });
   };
 
-  /** 유효 marker인가 (discard 해제 조건). */
-  const isValidResumeMarker = line => {
-    if (line === SCENE_MARKER) return true;
-    if (line.startsWith(DIALOGUE_OPEN)) {
-      return parseDialogueHeader(line).ok;
-    }
-    return isSectionMarker(line);
-  };
 
   /** 완성된 라인 하나를 처리한다. */
   const settleLine = (out, line) => {
     const raw = typeof line === 'string' ? line : '';
     const trimmed = raw.trim();
 
-    // 수정 5 — malformed DIALOGUE 본문 discard 상태
-    if (discardMalformedDialogueBody) {
-      if (trimmed.startsWith('[') && isValidResumeMarker(trimmed)) {
-        discardMalformedDialogueBody = false;
-        // 유효 marker부터 정상 처리
-      } else {
-        return; // 본문 후보 폐기
-      }
-    }
-
-    // 대사 한 줄 뒤 마커 검사 — [SCENE]/[DIALOGUE]/섹션 마커가 아니면
-    // malformed_structured_story_block으로 폐기하고 다음 유효 마커에서 재개한다.
+    // 대사 한 줄 뒤 마커 검사 — 직전 대사는 이미 closeDialogue에서 확정됐다.
+    // 마커가 아닌 일반 줄이 오면 그 줄을 일반 처리로 재진입한다 (문서 5절 4).
     if (awaitingMarkerAfterDialogue) {
-      if (trimmed === '') return; // 빈 줄은 무시하고 마커 대기를 유지한다
+      if (trimmed === '') { emitText(out, raw); return; }
       awaitingMarkerAfterDialogue = false;
       const isResumeMarker = trimmed === SCENE_MARKER
-        || (trimmed.startsWith(DIALOGUE_OPEN) && parseDialogueHeader(trimmed).ok)
+        || (trimmed.startsWith(DIALOGUE_OPEN) && parseDialogueHeader(trimmed, speakerNames).ok)
         || isSectionMarker(trimmed);
       if (!isResumeMarker) {
-        recordWarning(DIALOGUE_WARNINGS.MALFORMED);
-        discardMalformedDialogueBody = true;
-        return; // 이 줄 폐기 — 다음 유효 마커까지 discard 상태
+        // 직전 대사를 먼저 확정한 뒤, 이 일반 줄은 scene/plain text로 다시 처리한다.
+        settleLine(out, line);
+        return;
       }
       // 유효 마커면 정상 처리로 진행한다
     }
@@ -398,42 +383,38 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
       }
       if (currentSection === 'story' && trimmed.startsWith(DIALOGUE_OPEN)) {
         inScene = false;
-        const parsed = parseDialogueHeader(trimmed);
+        const parsed = parseDialogueHeader(trimmed, speakerNames);
         if (!parsed.ok) {
-          // 수정 5 — malformed 헤더는 본문까지 폐기
+          // 형식 오류 라인 — 버리지 않고 plain text로 보존한다 (문서 5절 2).
           recordWarning(DIALOGUE_WARNINGS.MALFORMED);
-          discardMalformedDialogueBody = true;
+          emitText(out, raw + '\n');
           return;
         }
-        openHeaderRaw = trimmed;
+        openHeaderRaw = parsed.attrs;
         return;
       }
       if (currentSection === 'story') {
-        // 알 수 없는 마커 → 마커 라인 제거 (이후 텍스트는 일반 규칙으로 계속)
+        // 알 수 없는 마커 — 마커 라인도 plain text로 보존한다 (문서 5절 2).
         if (trimmed.startsWith('[') && /\]\s*$/.test(trimmed)) {
           recordWarning(DIALOGUE_WARNINGS.UNKNOWN_MARKER);
+          emitText(out, raw + '\n');
           return;
         }
-        // story && inScene — 비구조화 대사 검사 (수정 B)
+        // story && inScene — 비구조화 대사 분류 (수정 B)
         if (inScene) {
           const cls = classifyV2SceneLine(trimmed);
           if (cls === 'unstructured_dialogue') {
+            // 검증은 기록하되 문장 원문은 삭제하지 않는다 (문서 5절 2).
             recordWarning(DIALOGUE_WARNINGS.UNSTRUCTURED);
-            return; // 라인 전체 제거
+            emitText(out, raw + '\n');
+            return;
           }
           if (cls === 'malformed_marker') {
             recordWarning(DIALOGUE_WARNINGS.UNKNOWN_MARKER);
+            emitText(out, raw + '\n');
             return;
           }
-          // 비허용 NPC가 [DIALOGUE] 태그 없이 일반 산문으로 행동·발화하는 우회 차단.
-          // present_npc_ids/entering_npc_ids에 없는 등록 NPC의 전체 이름이 scene
-          // 서술문에 등장하면 그 줄 전체를 fail-closed로 제거한다 — CSA가 활성
-          // 상태여도 이 판정 근거는 cast contract뿐이며 CSA는 등장 근거가 아니다.
-          const blockedNpc = findDisallowedNpcInLine(trimmed, disallowedNames);
-          if (blockedNpc) {
-            recordWarning(`${DIALOGUE_WARNINGS.BLOCKED_PROSE_NPC}:${blockedNpc.id}`);
-            return;
-          }
+          // 문서 5절 8 — 산문에 비허용 NPC 이름이 등장해도 줄 전체를 삭제하지 않는다.
         }
       }
     }
@@ -489,14 +470,11 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
           if (!/\]\s*$/.test(line)) {
             // 헤더가 아직 닫히지 않았으면 다음 청크에서 완성 대기
             if (final) {
-              // 수정 C/5 — EOF까지 닫히지 않은 header: header와 body 후보까지 폐기 후
-              // 다음 유효 marker부터 재개한다.
+              // EOF까지 닫히지 않은 header — 헤더도 본문 후보도 버리지 않고
+              // plain text로 보존한다 (문서 5절 2·3 — discard 동작 제거).
               recordWarning(DIALOGUE_WARNINGS.MALFORMED);
-              discardMalformedDialogueBody = true;
-              const nextMarker = lineBuffer.search(/\r?\n\s*\[/u);
-              if (nextMarker === -1) { lineBuffer = ''; return; }
-              lineBuffer = lineBuffer.slice(nextMarker).replace(/^\r?\n/u, '');
-              continue;
+              emitText(out, line + '\n');
+              continue; // lineBuffer의 나머지 본문 후보는 일반 라인으로 계속 처리
             }
             lineBuffer = line + '\n' + lineBuffer;
             return;

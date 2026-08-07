@@ -247,6 +247,13 @@ export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
       output.push(rawLine);
       continue;
     }
+    // V2 구조화 마커([SCENE]/[DIALOGUE ...])는 따옴표 변환 대상이 아니다 — 원본 유지.
+    // [DIALOGUE speaker_id="heroine5" acting_direction="..."]의 속성 따옴표가 깨지면
+    // parseNarrative의 마커 매칭이 실패한다 (문서 5절 — 원문 비파괴).
+    if (trimmed.startsWith('[') && /\]\s*$/.test(trimmed)) {
+      output.push(rawLine);
+      continue;
+    }
     if (role !== 'scene') {
       output.push(rawLine);
       continue;
@@ -336,9 +343,13 @@ export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
   return output.join('\n');
 }
 
-function normalizedDialogue({ speakerName, direction, dialogueText }, master, order) {
+function normalizedDialogue({ speakerName, direction, dialogueText, speakerId }, master, order) {
   const suppliedName = typeof speakerName === 'string' ? speakerName.trim() : '';
-  const resolved = resolveRegisteredSpeaker(suppliedName, master);
+  let resolved = null;
+  if (typeof speakerId === 'string' && speakerId) {
+    resolved = (registeredSpeakers(master) ?? []).find(s => s.id === speakerId) ?? null;
+  }
+  if (!resolved) resolved = resolveRegisteredSpeaker(suppliedName, master);
   const name = resolved?.name ?? suppliedName;
   // normalizeQuoteOnlyDialogue가 '플레이어' 라벨로 삽입한 대사 → 플레이어 id 확정
   const isPlayerLabel = suppliedName === PLAYER_LABEL;
@@ -514,15 +525,21 @@ export function parseNarrative(rawText, { master } = {}) {
   const sceneParts = [];
 
   if (matches.length === 0) {
+    // 문서 6절 — 마커가 없어도 raw 전체를 기존 scene/dialogue line parser에
+    // 전달해 원문에서 대사·서술을 복구한다. 문장 삭제는 금지다.
+    if (raw.trim()) {
+      sceneParts.push(raw);
+      appendSceneBlocks(blocks, dialogueLines, raw, master, orderRef);
+    }
     return {
       raw: originalRaw,
       normalized_raw: normalizedRaw,
-      scene_text: '',
-      blocks: raw.trim() ? [{ type: 'unparsed', text: raw.trim() }] : [],
+      scene_text: sceneParts.join('\n'),
+      blocks,
       player_status: '',
       player_inner_thought: '',
       choices: [],
-      dialogue_lines: [],
+      dialogue_lines: dialogueLines,
       warnings: ['no_recognized_markers', 'choices_not_exactly_four']
     };
   }
@@ -580,14 +597,16 @@ export function parseNarrative(rawText, { master } = {}) {
       continue;
     }
 
-    const speaker = /speaker="([^"]+)"/.exec(label)?.[1];
-    const direction = /direction="([^"]+)"/.exec(label)?.[1];
+    const speakerIdAttr = /speaker_id="([^"]+)"/.exec(label)?.[1];
+    const directionAttr = /acting_direction="([^"]+)"/.exec(label)?.[1];
+    const speaker = speakerIdAttr ?? /speaker="([^"]+)"/.exec(label)?.[1];
+    const direction = directionAttr ?? /direction="([^"]+)"/.exec(label)?.[1];
     if (!speaker || !direction) {
       blocks.push({ type: 'unparsed', text: `${current[0]}${text}`.trim() });
       warnings.push('malformed_dialogue_marker');
       continue;
     }
-    const dialogue = normalizedDialogue({ speakerName: speaker, direction, dialogueText: text }, master, orderRef.value++);
+    const dialogue = normalizedDialogue({ speakerName: speaker, direction, dialogueText: text, speakerId: speakerIdAttr ?? null }, master, orderRef.value++);
     if (!dialogue) continue;
     blocks.push({ type: 'dialogue', speaker_id: dialogue.speaker_id, speaker: dialogue.speaker_name, speaker_name: dialogue.speaker_name, direction, text: dialogue.text });
     dialogueLines.push(dialogue);

@@ -103,8 +103,8 @@ test('14.1-5: 익명 직원은 서술에는 등장할 수 있지만 발화할 �
     contract,
     speakerNames
   });
-  assert.equal(result.ok, false);
-  assert.equal(result.warning, DIALOGUE_WARNINGS.ANONYMOUS);
+  assert.equal(result.ok, true, '문장 원문은 보존');
+  assert.ok((result.warnings ?? []).includes(DIALOGUE_WARNINGS.ANONYMOUS), '익명 화자 경고');
 });
 
 test('14.1-6: remote NPC는 원격 채널이 확정된 경우에만 발화한다', () => {
@@ -163,8 +163,8 @@ test('14.2-4: minor_reaction은 최대 한 줄, 30자 이하 — 초과 대사 �
     contract,
     speakerNames: names
   });
-  assert.equal(blocked.ok, false);
-  assert.equal(blocked.warning, DIALOGUE_WARNINGS.PLAYER_POLICY);
+  assert.equal(blocked.ok, true, '문장 원문은 보존');
+  assert.ok((blocked.warnings ?? []).includes(DIALOGUE_WARNINGS.PLAYER_POLICY), '정책 경고');
 });
 
 test('14.2-5: 사용자 입력에 없는 명령·약속·성적 제안은 차단된다', () => {
@@ -176,8 +176,8 @@ test('14.2-5: 사용자 입력에 없는 명령·약속·성적 제안은 차단
     contract,
     speakerNames
   });
-  assert.equal(result.ok, false);
-  assert.equal(result.warning, DIALOGUE_WARNINGS.PLAYER_POLICY);
+  assert.equal(result.ok, true, '문장 원문은 보존');
+  assert.ok((result.warnings ?? []).includes(DIALOGUE_WARNINGS.PLAYER_POLICY), '정책 경고');
 });
 
 test('14.2-6: speaker_id=player의 표시 이름은 실제 플레이어 이름', () => {
@@ -192,16 +192,16 @@ test('14.2-6: speaker_id=player의 표시 이름은 실제 플레이어 이름',
 
 const contract = buildSceneCastContract({ save: baseSave(), master, playerAction: 'x' });
 
-test('14.3-1: speaker_id 누락 대사 차단', () => {
+test('14.3-1: speaker_id 누락 대사는 문장 보존 + 화자 경고', () => {
   const result = validateDialogueBlock({ headerAttributes: ' acting_direction="고개를 들며"', body: '네.', contract, speakerNames });
-  assert.equal(result.ok, false);
-  assert.equal(result.warning, DIALOGUE_WARNINGS.MISSING_SPEAKER);
+  assert.equal(result.ok, true, '문장 원문은 보존');
+  assert.ok((result.warnings ?? []).includes(DIALOGUE_WARNINGS.ANONYMOUS), '화자 미확정 경고');
 });
 
-test('14.3-2: allowlist 밖 ID 차단', () => {
+test('14.3-2: allowlist 밖 ID도 문장은 보존 + cast 경고', () => {
   const result = validateDialogueBlock({ headerAttributes: ' speaker_id="heroine2" acting_direction="고개를 들며"', body: '네.', contract, speakerNames });
-  assert.equal(result.ok, false);
-  assert.equal(result.warning, DIALOGUE_WARNINGS.NOT_IN_CAST);
+  assert.equal(result.ok, true, '문장 원문은 보존');
+  assert.ok((result.warnings ?? []).some(w => w === DIALOGUE_WARNINGS.NOT_IN_CAST || w === DIALOGUE_WARNINGS.ANONYMOUS), 'cast 경고');
 });
 
 test('14.3-3: cast 밖 NPC 차단 (allowlist에 있지만 present/entering/remote 밖)', () => {
@@ -217,10 +217,10 @@ test('14.3-4: 빈 acting_direction 차단', () => {
   assert.equal(result.warning, DIALOGUE_WARNINGS.MISSING_DIRECTION);
 });
 
-test('14.3-5: 자연스럽게만 있는 지시 차단', () => {
+test('14.3-5: 자연스럽게만 있는 지시는 문장 보존 + 방향 경고', () => {
   const result = validateDialogueBlock({ headerAttributes: ' speaker_id="heroine5" acting_direction="자연스럽게"', body: '네.', contract, speakerNames });
-  assert.equal(result.ok, false);
-  assert.equal(result.warning, DIALOGUE_WARNINGS.INVALID_DIRECTION);
+  assert.equal(result.ok, true, '문장 원문은 보존');
+  assert.ok((result.warnings ?? []).includes(DIALOGUE_WARNINGS.INVALID_DIRECTION), '방향 경고');
 });
 
 test('14.3-6: 관찰 가능한 행동이 함께 있으면 허용', () => {
@@ -232,12 +232,12 @@ test('14.3-7: 유효한 NPC 대사는 SCENE 다음에 정상 스트리밍', () =
   const gate = gateFor(contract, speakerNames);
   // 수정 G + 수정 4 — story 섹션에서 SCENE 없이 DIALOGUE가 오면 dialogue_before_scene 차단
   const first = gate.push('[1. 서사 및 행동]\n[DIALOGUE speaker_id="heroine5" acting_direction="떨리는 목소리로 손끝을 만지작거리며"]\n저... 괜찮으세요?\n');
-  assert.ok(!first.some(e => e.kind === 'block'), 'SCENE 이전 DIALOGUE는 차단');
+  assert.ok(first.some(e => e.kind === 'block'), 'SCENE 이전 DIALOGUE도 문장은 보존');
   // SCENE 후 정상 대사는 통과
   gate.push('[SCENE]\n회의실 안이 조용해졌다.\n');
   const out = gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="떨리는 목소리로 손끝을 만지작거리며"]\n저... 괜찮으세요?\n');
   const end = gate.end();
-  assert.equal(end.blocks.length, 1, 'SCENE 다음 대사는 저장');
+  assert.equal(end.blocks.length, 2, 'SCENE 전후 대사 모두 저장');
   assert.equal(end.blocks[0].speaker_id, 'heroine5');
   assert.equal(end.blocks[0].speaker_name, '이메이');
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.BEFORE_SCENE), 'dialogue_before_scene 경고');
@@ -247,9 +247,10 @@ test('14.3-8: 차단된 대사는 저장 및 Extract에서 제외', () => {
   const gate = gateFor(contract, speakerNames);
   gate.push('[SCENE]\n침묵이 흘렀다.\n\n[DIALOGUE speaker_id="heroine2" acting_direction="고개를 들며"]\n네.\n\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 숙이며 조심스럽게"]\n네, 찾았어요.');
   const end = gate.end();
-  assert.equal(end.blocks.length, 1, 'cast 밖 대사는 저장 블록에서 제외');
-  assert.equal(end.blocks[0].speaker_id, 'heroine5');
-  assert.ok(!end.story_text.includes('네.'), '차단된 대사 본문이 정본에 없음');
+  assert.equal(end.blocks.length, 2, 'cast 밖 대사도 문장은 보존');
+  assert.equal(end.blocks[0].speaker_id, null, 'cast 밖 화자는 미확정');
+  assert.equal(end.blocks[1].speaker_id, 'heroine5');
+  assert.ok(end.story_text.includes('네.'), '문장 원문 보존');
 });
 
 test('14.3-9: 잘못된 블록 이후 정상 블록은 계속 출력', () => {
@@ -258,9 +259,10 @@ test('14.3-9: 잘못된 블록 이후 정상 블록은 계속 출력', () => {
   gate.push('[DIALOGUE speaker_id="heroine2" acting_direction="고개를 들며"]\n네.\n\n');
   gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="고개를 끄덕이며"]\n알겠습니다.');
   const end = gate.end();
-  assert.equal(end.blocks.length, 1, 'cast 밖 대사는 차단, 이후 정상 블록은 저장');
-  assert.equal(end.blocks[0].speaker_id, 'heroine5');
-  assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.NOT_IN_CAST), 'cast 경고 기록');
+  assert.equal(end.blocks.length, 2, 'cast 밖 대사도 보존, 이후 정상 블록 저장');
+  assert.equal(end.blocks[0].speaker_id, null);
+  assert.equal(end.blocks[1].speaker_id, 'heroine5');
+  assert.ok(end.warnings.some(w => w === DIALOGUE_WARNINGS.NOT_IN_CAST || w === DIALOGUE_WARNINGS.ANONYMOUS), 'cast 경고 기록');
 });
 
 // ---------------------------------------------------------------------------
@@ -272,7 +274,7 @@ test('14.4-1: 따옴표만 있는 라인은 대사로 인정하지 않고 차단
   gate.push('[SCENE]\n이메이가 고개를 끄덕였다.\n"네, 찾았어요."\n');
   const end = gate.end();
   assert.equal(end.blocks.filter(b => b.type === 'dialogue').length, 0, '따옴표만 있는 라인은 대사 아님');
-  assert.ok(!end.story_text.includes('"네, 찾았어요."'), '비구조화 발화는 정본에서 제거');
+  assert.ok(end.story_text.includes('"네, 찾았어요."'), '문장 원문 보존');
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED), 'unstructured_dialogue_blocked 경고');
 });
 
@@ -281,7 +283,7 @@ test('14.4-2: 서술문 안 인용문은 대사 카드로 분리하지 않고 �
   gate.push('[SCENE]\n이메이가 "오늘 안에 끝내자"고 말했다.\n');
   const end = gate.end();
   assert.equal(end.blocks.length, 0);
-  assert.ok(!end.story_text.includes('오늘 안에 끝내자'), '화행 동사+인용은 발화로 차단');
+  assert.ok(end.story_text.includes('오늘 안에 끝내자'), '문장 원문 보존');
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.UNSTRUCTURED));
 });
 
@@ -289,9 +291,8 @@ test('14.4-2b: 비허용 NPC의 태그 없는 산문 행동은 차단 (Story Gat
   const gate = gateFor(contract, speakerNames);
   gate.push('[SCENE]\n윤민아가 문을 열고 들어와 플레이어를 바라봤다.\n이메이가 서류를 정리했다.\n');
   const end = gate.end();
-  assert.ok(!end.story_text.includes('윤민아'), 'cast에 없는 NPC의 산문 서술은 정본에서 제거');
+  assert.ok(end.story_text.includes('윤민아'), '산문 원문 보존 — 이름 등장만으로 줄을 삭제하지 않는다');
   assert.ok(end.story_text.includes('이메이'), '참가 중인 NPC의 서술은 유지');
-  assert.ok(end.warnings.some(w => w.startsWith('scene_cast_blocked_prose_npc:heroine2')), '차단 warning에 NPC id 기록');
 });
 
 test('14.4-2c: 비허용 NPC의 태그 없는 산문 대사도 차단', () => {
@@ -299,14 +300,14 @@ test('14.4-2c: 비허용 NPC의 태그 없는 산문 대사도 차단', () => {
   gate.push('[SCENE]\n윤민아가 "여기 계셨네요"라고 말했다.\n');
   const end = gate.end();
   assert.equal(end.blocks.length, 0);
-  assert.ok(!end.story_text.includes('여기 계셨네요'));
+  assert.ok(end.story_text.includes('여기 계셨네요'), '문장 원문 보존');
 });
 
 test('14.4-2d: 활성 CSA가 있어도 비허용 NPC의 산문 행동은 차단', () => {
   const gate = gateFor(contract, speakerNames);
   gate.push('[SCENE]\n활성 규칙에 따라 윤민아가 자연스럽게 플레이어의 무릎 위에 앉았다.\n');
   const end = gate.end();
-  assert.ok(!end.story_text.includes('윤민아'));
+  assert.ok(end.story_text.includes('윤민아'), '문장 원문 보존');
 });
 
 test('14.4-3: [SCENE]과 [DIALOGUE]만 정상 블록으로 인정', () => {
@@ -356,11 +357,12 @@ test('14.5-2: 청크 크기 1로 잘라도 동일한 결과', () => {
 test('14.5-3: 잘못된 대사 한 블록 때문에 전체 Story가 실패하지 않음', () => {
   const gate = gateFor(contract, speakerNames);
   const bad = gate.push('[SCENE]\n침묵.\n\n[DIALOGUE speaker_id="unknown_employee" acting_direction="당황하며"]\n네.');
-  assert.ok(!bad.some(e => e.kind === 'block'), '차단만 되고 예외 없음');
+  // bad는 스트리밍 중 버퍼에 남아 있을 수 있다 — end() 후 blocks로 검증한다
   const good = gate.push('\n\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 끄덕이며"]\n알겠습니다.');
   const end = gate.end();
-  assert.equal(end.blocks.length, 1, '정상 블록은 저장');
-  assert.equal(end.blocks[0].speaker_id, 'heroine5');
+  assert.equal(end.blocks.length, 2, '미확정·정상 블록 모두 저장');
+  assert.equal(end.blocks[0].speaker_id, null);
+  assert.equal(end.blocks[1].speaker_id, 'heroine5');
   assert.ok(end.warnings.includes(DIALOGUE_WARNINGS.ANONYMOUS));
 });
 
