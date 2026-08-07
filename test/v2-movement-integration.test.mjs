@@ -465,13 +465,15 @@ test('핫픽스 1. NPC 자세 state delta 저장 — evidence 없이도 Extract 
   assert.ok(warnings.some(w => w.includes('unevidenced')), '증거 불충분은 경고로만 기록');
 });
 
-test('핫픽스 2. 같은 턴 동시 예약 방지 — reserve_turn_action/commit_company_turn 계약', () => {
+test('핫픽스 2. 같은 턴 동시 예약 방지 — reserve_turn_action(5-arg)/commit_company_turn 계약', () => {
   const sql = fs.readFileSync(new URL('../supabase/migrations/20260807000100_company_v1_turn_guard.sql', import.meta.url), 'utf8');
-  // 1) reserve_turn_action: 같은 턴 처리 중 액션 존재 시 재사용 또는 turn_in_progress 거절
+  // 1) reserve_turn_action: 5-arg(structured_action) 버전에 같은 턴 처리 중 액션 검사
+  assert.match(sql, /p_structured_action jsonb default null/, 'structured_action 포함 5-arg 버전');
   assert.match(sql, /expected_turn = p_expected_turn/, '같은 expected_turn in-flight 조회');
   assert.match(sql, /processing_status in \('story_streaming', 'extracting', 'committing', 'ready'\)/, '처리 중 상태 목록');
   assert.match(sql, /player_action is not distinct from p_player_action/, '같은 입력이면 기존 액션 재사용');
   assert.match(sql, /turn already in progress/, '다른 입력이면 turn_in_progress 거절');
+  assert.match(sql, /drop function if exists public.reserve_turn_action\(uuid, uuid, integer, text\)/, '4-arg 구버전 제거');
   // 2) commit_company_turn: expected turn conflict를 commit_failed로 종료
   assert.match(sql, /processing_status = 'commit_failed', error_code = 'expected_turn_conflict'/, 'conflict 시 commit_failed 종료');
   assert.match(sql, /'terminated', true/, '종료 응답 플래그');

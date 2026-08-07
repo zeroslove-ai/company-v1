@@ -1,16 +1,21 @@
 -- Company v1 저장 파이프라인 안정화 핫픽스 (2026-08-07)
--- 1) reserve_turn_action: 같은 턴 동시 예약 차단
+-- 1) reserve_turn_action(5-arg, structured_action 포함): 같은 턴 동시 예약 차단
 --    - 동일 game_id + expected_turn의 처리 중 액션(story_streaming/extracting/committing/ready) 존재 시
 --      같은 입력이면 기존 액션 재사용, 다른 입력이면 turn_in_progress 거절
+--    - 20260804 마이그레이션이 4-arg 버전을 drop하고 5-arg로 교체했으므로
+--      여기서도 4-arg 버전을 drop한 뒤 5-arg 버전을 다시 정의한다.
 -- 2) commit_company_turn: expected turn conflict를 종료 상태로 전환
 --    - processing_status = commit_failed, error_code = expected_turn_conflict 저장 후
 --      종료 응답 반환 (committing 고착 방지)
+
+drop function if exists public.reserve_turn_action(uuid, uuid, integer, text);
 
 create or replace function public.reserve_turn_action(
   p_game_id uuid,
   p_action_id uuid,
   p_expected_turn integer,
-  p_player_action text
+  p_player_action text,
+  p_structured_action jsonb default null
 )
 returns jsonb
 language plpgsql
@@ -22,6 +27,10 @@ declare
   v_action public.game_actions%rowtype;
   v_inflight public.game_actions%rowtype;
 begin
+  if p_structured_action is not null and jsonb_typeof(p_structured_action) <> 'object' then
+    raise exception 'structured_action must be an object or null' using errcode = '22023';
+  end if;
+
   select * into v_save from public.game_save where game_id = p_game_id for update;
   if not found then
     raise exception 'company game save not found' using errcode = 'P0002';
@@ -35,10 +44,16 @@ begin
     if v_action.game_id <> p_game_id then
       raise exception 'action belongs to a different game' using errcode = '22023';
     end if;
+    if v_action.structured_action is distinct from p_structured_action then
+      raise exception 'action structured payload mismatch' using errcode = '22023';
+    end if;
     return jsonb_build_object(
-      'action_id', v_action.action_id, 'turn_id', v_action.turn_id,
+      'action_id', v_action.action_id,
+      'turn_id', v_action.turn_id,
       'expected_turn', v_action.expected_turn,
-      'processing_status', v_action.processing_status, 'replayed', true
+      'processing_status', v_action.processing_status,
+      'structured_action', v_action.structured_action,
+      'replayed', true
     );
   end if;
 
@@ -50,12 +65,16 @@ begin
     and processing_status in ('story_streaming', 'extracting', 'committing', 'ready')
   for update;
   if found then
-    if v_inflight.player_action is not distinct from p_player_action then
+    if v_inflight.player_action is not distinct from p_player_action
+       and v_inflight.structured_action is not distinct from p_structured_action then
       -- 같은 입력의 중복 예약 → 기존 액션을 재사용한다.
       return jsonb_build_object(
-        'action_id', v_inflight.action_id, 'turn_id', v_inflight.turn_id,
+        'action_id', v_inflight.action_id,
+        'turn_id', v_inflight.turn_id,
         'expected_turn', v_inflight.expected_turn,
-        'processing_status', v_inflight.processing_status, 'replayed', true
+        'processing_status', v_inflight.processing_status,
+        'structured_action', v_inflight.structured_action,
+        'replayed', true
       );
     end if;
     raise exception 'turn already in progress' using errcode = '40001';
@@ -66,15 +85,18 @@ begin
   end if;
 
   insert into public.game_actions (
-    action_id, game_id, expected_turn, player_action, processing_status
+    action_id, game_id, expected_turn, player_action, structured_action, processing_status
   ) values (
-    p_action_id, p_game_id, p_expected_turn, p_player_action, 'story_streaming'
+    p_action_id, p_game_id, p_expected_turn, p_player_action, p_structured_action, 'story_streaming'
   ) returning * into v_action;
 
   return jsonb_build_object(
-    'action_id', v_action.action_id, 'turn_id', v_action.turn_id,
+    'action_id', v_action.action_id,
+    'turn_id', v_action.turn_id,
     'expected_turn', v_action.expected_turn,
-    'processing_status', v_action.processing_status, 'replayed', false
+    'processing_status', v_action.processing_status,
+    'structured_action', v_action.structured_action,
+    'replayed', false
   );
 end;
 $$;
