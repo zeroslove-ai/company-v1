@@ -29,10 +29,9 @@ test('direct coverage: an exact core-tag match on an active preset is covered, w
     preset: { template_id: presetItem.id, actor_group: presetItem.default_actor, target_group: presetItem.default_target, trigger: presetItem.default_trigger, duration: presetItem.default_duration, required_action: presetItem.required_action, direct_meaning_tags: presetItem.direct_meaning_tags }
   }]);
   const coreTag = presetItem.direct_meaning_tags[0];
-  save.scene_state.participants = ['player-1', 'heroine1', 'visitor1'];
+  save.scene_state.participants = ['player-1', 'heroine1'];
   const characters = {
-    heroine1: { character_id: 'heroine1', name: '서원희', position: '차장', department: '브랜드전략팀' },
-    visitor1: { character_id: 'visitor1', name: '박방문', role: 'business_visitor', role_title: '외부 업무 방문자' }
+    heroine1: { character_id: 'heroine1', name: '서원희', position: '차장', department: '브랜드전략팀' }
   };
   const coverage = resolveCsaDirectCoverage(save, `${coreTag} 자세를 취한다`, { characters });
   assert.equal(coverage.covered, true);

@@ -13,12 +13,19 @@ import edition from '../src/api/edition.js';
 
 const rawCatalog = JSON.parse(fs.readFileSync(new URL('../content/csa_presets.json', import.meta.url), 'utf8'));
 
-test('legacy hospital group ids are read aliases for Company-native ids', () => {
+test('직원 계열 legacy ids만 read alias로 Company-native ids로 변환된다', () => {
   assert.equal(canonicalizeCsaGroup('nurse'), 'coworker');
   assert.equal(canonicalizeCsaGroup('doctor'), 'manager');
+  assert.equal(canonicalizeCsaGroup('medical_staff'), 'employee');
   assert.equal(canonicalizeCsaGroup('hospital_staff'), 'company_employee');
+  assert.equal(canonicalizeCsaGroup('female_staff'), 'female_employee');
+  assert.equal(canonicalizeCsaGroup('male_staff'), 'male_employee');
   assert.equal(canonicalizeCsaGroup('everyone_in_hospital'), 'everyone_in_company');
-  assert.equal(canonicalizeCsaGroup('assigned_patient', { target: true }), 'assigned_visitor');
+  // 제거된 병원 외부 alias는 더 이상 다른 그룹으로 변환되지 않는다
+  assert.notEqual(canonicalizeCsaGroup('patient', { target: true }), 'business_visitor');
+  assert.notEqual(canonicalizeCsaGroup('assigned_patient', { target: true }), 'assigned_visitor');
+  assert.notEqual(canonicalizeCsaGroup('guardian', { target: true }), 'partner_contact');
+  assert.notEqual(canonicalizeCsaGroup('visitor', { target: true }), 'guest');
 });
 
 test('custom nonsexual group text survives without becoming an allow-list failure', () => {

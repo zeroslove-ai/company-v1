@@ -17,10 +17,6 @@ function isEmployee(npc) {
   return npc?.type === 'employee' || npc?.affiliation_type === 'employee';
 }
 
-function isPartner(npc) {
-  return npc?.type === 'partner' || npc?.affiliation_type === 'partner';
-}
-
 const MANAGER_ROLE_RE = /(팀장|과장|차장|부장|실장|본부장|임원|상무|전무|대표|이사)/u;
 
 const GROUP_MATCHERS = {
@@ -30,10 +26,6 @@ const GROUP_MATCHERS = {
   female_employee: npc => isEmployee(npc) && npc.sex === 'female',
   male_employee: npc => isEmployee(npc) && npc.sex === 'male',
   manager: npc => isEmployee(npc) && MANAGER_ROLE_RE.test(text(npc.role ?? npc.position ?? npc.position_name)),
-  business_visitor: isPartner,
-  assigned_visitor: isPartner,
-  partner_contact: isPartner,
-  guest: isPartner,
   everyone_in_company: () => true,
   conversation_partner: () => true,
   another_present_person: () => true,

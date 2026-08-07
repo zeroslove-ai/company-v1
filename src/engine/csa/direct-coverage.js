@@ -46,8 +46,6 @@ function characterInfo(id, roster) {
   if (Array.isArray(roster)) return roster.find(entry => entry && (entry.character_id === id || entry.npc_id === id)) ?? {};
   return roster[id] ?? {};
 }
-const isEmployee = char => char && (typeof char.role_title === 'string' || typeof char.department === 'string'
-  || typeof char.position === 'string' || typeof char.character_id === 'string' || typeof char.name === 'string');
 const MANAGER_RE = /팀장|부장|차장|과장|이사|실장|본부장|대표|매니저/;
 const isManager = char => char && MANAGER_RE.test(`${char.role_title ?? ''} ${char.position ?? ''}`);
 function genderOf(char) {
@@ -56,9 +54,6 @@ function genderOf(char) {
   if (id.startsWith('heroine')) return 'female';
   return null;
 }
-const roleTextOf = char => `${char?.role_title ?? ''} ${char?.position ?? ''} ${char?.role ?? ''} ${char?.character_type ?? ''}`;
-const VISITOR_RE = /visitor|guest|external|방문/;
-const PARTNER_RE = /partner|collaborator|협력/;
 
 /**
  * Resolves an actor_group/target_group id to a concrete participant given the live scene.
@@ -87,41 +82,27 @@ export function resolveParticipant(groupId, { save, presentCharacterId, master, 
   for (const id of npcIds) {
     const char = characterInfo(id, roster);
     const g = genderOf(char);
-    const text = roleTextOf(char);
     switch (groupId) {
       case 'female_employee':
-        if (g === 'female' && isEmployee(char)) return { type: 'npc', characterId: id };
+        if (g === 'female') return { type: 'npc', characterId: id };
         break;
       case 'male_employee':
-        if (g === 'male' && isEmployee(char)) return { type: 'npc', characterId: id };
-        break;
-      case 'company_employee':
-      case 'coworker':
-        if (isEmployee(char)) return { type: 'npc', characterId: id };
+        if (g === 'male') return { type: 'npc', characterId: id };
         break;
       case 'manager':
         if (isManager(char)) return { type: 'npc', characterId: id };
         break;
+      case 'coworker':
       case 'employee':
-        if (isEmployee(char) && !isManager(char)) return { type: 'npc', characterId: id };
-        break;
-      case 'business_visitor':
-        if (VISITOR_RE.test(text) && !/guest/.test(char?.role ?? '')) return { type: 'npc', characterId: id };
-        break;
-      case 'assigned_visitor':
-        if (/assigned|담당/.test(text) && VISITOR_RE.test(text)) return { type: 'npc', characterId: id };
-        break;
-      case 'partner_contact':
-        if (PARTNER_RE.test(text)) return { type: 'npc', characterId: id };
-        break;
-      case 'guest':
-        if (char?.role === 'guest' || /방문객/.test(text)) return { type: 'npc', characterId: id };
-        break;
+      case 'company_employee':
+      case 'everyone_in_company':
       case 'another_present_person':
       case 'nearby_person':
-      default:
-        // 현재 장면에 실제 존재하는 적합한 사람 (excludeCharacterId 제외)
+        // 현재 장면의 등록 NPC는 기본적으로 회사 인물로 취급한다 (excludeCharacterId 제외)
         return { type: 'npc', characterId: id };
+      default:
+        // unknown 또는 미지원 그룹 — null
+        return null;
     }
   }
   return null;

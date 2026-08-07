@@ -28,7 +28,7 @@ export function buildFallbackTurnChoices(save) {
   const hasActiveRule = Array.isArray(save?.csa_active) && save.csa_active.length > 0;
   return [
     '이야기를 계속 이어간다',
-    hasActiveRule ? '새 규정의 구체적인 내용을 질문한다' : '상대의 의견을 확인한다',
+    hasActiveRule ? '규정의 구체적인 내용을 질문한다' : '상대의 의견을 확인한다',
     '다른 NPC의 반응을 확인한다',
     '자유롭게 다른 행동을 선택한다'
   ];

@@ -133,14 +133,15 @@ test('resolver: sex mismatch — male_staff never resolves to a present female N
   assert.equal(result, null);
 });
 
-test('resolver: role/type mismatch — visitor (partner-type) never resolves to a present employee', () => {
-  const result = resolveGeneralNpcForGroup('visitor', present('general_park_jungwoo'));
-  assert.equal(result, null);
+test('resolver: removed external groups never resolve even when a partner-type NPC is present', () => {
+  for (const group of ['business_visitor', 'assigned_visitor', 'partner_contact', 'guest']) {
+    assert.equal(resolveGeneralNpcForGroup(group, present('general_park_jungwoo', 'general_yoon_taekyung')), null, `${group} null`);
+  }
 });
 
-test('resolver: visitor correctly resolves to the one present partner-type NPC', () => {
-  const result = resolveGeneralNpcForGroup('visitor', present('general_park_jungwoo', 'general_yoon_taekyung'));
-  assert.deepEqual(result, { id: 'general_yoon_taekyung' });
+test('resolver: unknown/unsupported group never resolves', () => {
+  assert.equal(resolveGeneralNpcForGroup('unknown', present('general_park_jungwoo')), null);
+  assert.equal(resolveGeneralNpcForGroup('not_a_group', present('general_park_jungwoo')), null);
 });
 
 test('resolver: department mismatch — a department filter excludes a same-sex/type NPC from the wrong department', () => {
@@ -159,8 +160,8 @@ test('resolver: Company-native groups and legacy aliases resolve identically', (
   const scene = present('general_choi_yujin', 'general_yoon_taekyung');
   assert.deepEqual(resolveGeneralNpcForGroup('female_employee', scene), { id: 'general_choi_yujin' });
   assert.deepEqual(resolveGeneralNpcForGroup('female_staff', scene), { id: 'general_choi_yujin' });
-  assert.deepEqual(resolveGeneralNpcForGroup('business_visitor', scene), { id: 'general_yoon_taekyung' });
-  assert.deepEqual(resolveGeneralNpcForGroup('visitor', scene), { id: 'general_yoon_taekyung' });
+  assert.equal(resolveGeneralNpcForGroup('business_visitor', scene), null, '제거된 외부 그룹 null');
+  assert.equal(resolveGeneralNpcForGroup('visitor', scene), null, '제거된 alias null');
 });
 
 test('resolver: manager and stable selectors resolve one exact present NPC only', () => {
