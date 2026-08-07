@@ -11,8 +11,7 @@ import {
   getApplicableCsaEntries,
   hydrateGameplayState,
   normalizeStructuredAction,
-  planCsaTransaction,
-  projectGlobalCsa
+  planCsaTransaction
 } from '../engine/index.js';
 import {
   applyCsaPlanToContext,
@@ -99,27 +98,6 @@ function extractAuthorityContract() {
   return `\n\n[CSA AUTHORITY AND NPC STAT EXTRACTION]\n- 약함은 인사팀 공식 공지·사내 운영지침, 중간은 취업규칙·전사 준수 규정, 강함은 국가 법령·관계 당국 의무 지침이다.\n- 권위가 높을수록 규정 준수 압력과 업무상 자기합리화가 강해질 수 있지만 호감·사적 복종·성적 동의를 뜻하지 않는다.\n- npc_stats는 affinity, csa_acceptance, sexual_arousal 세 축만 사용한다. resistance는 NPC 고정값으로 절대 변경하지 않는다. 각 변화는 Story의 별도 근거가 있어야 한다.\n- 규정 공지나 직접 수행만으로 affinity를 올리지 않는다. csa_acceptance는 활성 규정의 직접 의미를 실제 판단·행동에 반영한 경우에만 변경한다.`;
 }
 
-function replaceGlobalCsaContext(messages, save) {
-  // 단일 정본 — buildSceneContextCore와 동일한 projectGlobalCsa만 사용한다.
-  // (비활성 과거 규정은 어떤 LLM payload에도 포함되지 않는다)
-  const projected = projectGlobalCsa(save);
-  return messages.map(message => {
-    if (message?.role !== 'user' || typeof message.content !== 'string') return message;
-    let payload;
-    try { payload = JSON.parse(message.content); }
-    catch { return message; }
-    if (!object(payload?.context)) return message;
-    payload.context = {
-      ...payload.context,
-      global_csa: {
-        ...(object(payload.context.global_csa) ?? {}),
-        ...projected
-      }
-    };
-    return { ...message, content: JSON.stringify(payload) };
-  });
-}
-
 function appendSystem(messages, content) {
   if (!content) return messages;
   const index = messages.findIndex(message => message?.role === 'system' && typeof message.content === 'string');
@@ -176,7 +154,7 @@ export function patchCompletionBody(init, state) {
 
   const isStory = body.stream === true;
   const active = getApplicableCsaEntries(state.postSave);
-  let messages = replaceGlobalCsaContext(body.messages, state.postSave);
+  let messages = body.messages;
   let authoritative = activeRulesSection(state.postSave)
     + buildCsaTransactionDetailsSection(state.plan, state.previousSave)
     + appTransactionInputFirewall();

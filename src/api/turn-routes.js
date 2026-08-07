@@ -1087,7 +1087,20 @@ const master = masterFromEdition(edition);
           }
 
           const promptStart = Date.now();
-          let messages = buildExtractPrompt({ context: hydratedContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds, sceneCastContract: parsedStory.scene_cast_contract ?? action.scene_cast_contract });
+          // CSA transaction 턴에는 post-transaction save로 Extract context를 만든다
+          // (Story 경로와 동일한 단일 정본 — runtime wrapper가 다시 덮어쓸 필요가 없다).
+          const extractSave = csaPlan
+            ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
+            : hydratedSave;
+          const extractContext = csaPlan
+            ? {
+                ...hydratedContext,
+                save: hydratedContext.save?.data
+                  ? { ...hydratedContext.save, data: extractSave }
+                  : extractSave
+              }
+            : hydratedContext;
+          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds, sceneCastContract: parsedStory.scene_cast_contract ?? action.scene_cast_contract });
           // 저장된 ActionExecutionContract를 Extract에 전달 — CSA direct와 ordinary 행동 구분,
           // CSA 범위 밖 행동을 csa_id로 기록하지 않도록 한다 (추가 Extract 호출 없음)
           const storedContract = action.parsed_blocks?.action_execution_contract;

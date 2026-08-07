@@ -7,8 +7,7 @@ import {
 } from './workplace-context.js'
 import {
   requiredClothingFromActiveCsa,
-  compareRequiredClothing,
-  resolveObservedClothing
+  compareRequiredClothing
 } from './state/clothing.js'
 
 const MOVEMENT_TARGET_ACTION = /(찾으러|찾아가|찾아보|보러\s*가|만나러|이동하|가본다|가겠다|방문하)/u;
@@ -104,75 +103,43 @@ export function buildLastTurnContinuity(turn) {
 
 /**
  * NPC별 착의 정본 권위 — 실제 착의(actual), 규정상 요구(required), 이행 상태,
- * 규정 ID와 활성 시각을 Story에 전달한다.
+ * 규정 ID를 Story에 전달한다.
  *
- * - actual_clothing: 저장된 물리 상태의 정본 (비어 있으면 unknown 취급)
- * - suggested_initial_clothing: 아직 Commit되지 않은 첫 관찰 seed 후보
- *   (저장 전에는 actual로 승격하지 않는다 — P0-3)
- * - required_clothing: 활성 CSA preset에서 deterministic 계산 (slot_sources 기반)
- * - compliance: compliant | noncompliant | unknown | conflict | not_applicable
- * - rule_id / activated_game_time: slot_sources에서 실제 착의 요구를 만든 규정에서
- *   읽는다 (activeRulesById[0] 사용 금지 — P1-1)
- *
- * 관찰 대상(NPC가 present/entering/destination/action target)이 아닌 NPC는
- * 순회하지 않는다 (off-scene NPC 전체 seed 금지 — P0-2).
+ * - actual_clothing: save.npc_scene_state[npcId].clothing만 사용 (비어 있으면 {})
+ *   규정/관찰/장면 참여만으로 actual을 생성하지 않는다.
+ * - required_clothing: 해당 NPC에 적용되는 활성 착의 규정이 정확히 1개면 그 요구,
+ *   0개면 {}, 2개 이상 충돌이면 {} + conflicted=true (우선순위 추론 없음)
+ * - compliance: compliant | noncompliant | unknown | not_applicable
+ * - female_employee 규정은 gender==='female' NPC에게만 적용
+ *   → 남성 NPC의 required_clothing은 반드시 빈 객체
  */
-function buildClothingAuthority(save, { observationTargetIds = new Set(), master = {} } = {}) {
+function buildClothingAuthority(save, { master = {} } = {}) {
   const csaActive = Array.isArray(save?.csa_active) ? save.csa_active : [];
   const csaRules = object(save?.csa_rules) ? save.csa_rules : {};
   const activeRulesById = Object.entries(csaRules)
     .filter(([id, rule]) => csaActive.includes(id) && rule?.active !== false)
     .map(([id, rule]) => ({ ...rule, csa_id: id }));
 
-  const resolved = requiredClothingFromActiveCsa(activeRulesById);
-  const required = resolved.required_clothing;
-  // provenance — slot_sources에서 실제 요구를 만든 규정 (첫 슬롯 기준)
-  const firstSource = Object.values(resolved.slot_sources)[0] ?? null;
-  const ruleId = firstSource?.csa_id ?? null;
-  const activatedTurn = typeof firstSource?.created_turn === 'number' ? firstSource.created_turn : null;
-  const activatedGameTime = object(firstSource?.activated_game_time) ? firstSource.activated_game_time : null;
-
   const npcSceneState = object(save?.npc_scene_state) ? save.npc_scene_state : {};
   const result = {};
 
   for (const [npcId, npcState] of Object.entries(npcSceneState)) {
     if (typeof npcId !== 'string' || npcId.startsWith('player')) continue;
-    // off-scene NPC는 순회하지 않는다 — 관찰 대상만.
-    if (!observationTargetIds.has(npcId)) continue;
-    const prevClothing = object(npcState?.clothing) ? npcState.clothing : {};
+    const actual = object(npcState?.clothing) ? npcState.clothing : {};
 
-    // 첫 관찰 후보 — observation eligibility 검증 후 suggested로만 표시.
-    // (Commit이 저장하기 전에는 actual로 승격하지 않는다)
+    // NPC별 required — actor_group을 프로필로 필터한 뒤 최소 정책으로 계산한다.
     const npcProfile = findNpcProfile(master, npcId);
-    const observed = resolveObservedClothing({
-      npcId,
-      npcProfile,
-      activeRules: activeRulesById,
-      previousClothing: prevClothing,
-      isObservationTarget: observationTargetIds.has(npcId),
-      ruleActivatedTurn: activatedTurn,
-      expectedTurn: currentExpectedTurn(save)
-    });
+    const resolved = requiredClothingFromActiveCsa(activeRulesById, npcProfile);
 
-    const actual = prevClothing;
-    const compliance = compareRequiredClothing(actual, required);
-    const entry = {
+    result[npcId] = {
       actual_clothing: actual,
-      required_clothing: required,
-      compliance,
-      rule_id: ruleId,
-      activated_turn: activatedTurn,
-      activated_game_time: activatedGameTime
+      required_clothing: resolved.required_clothing,
+      compliance: resolved.conflicted
+        ? 'not_applicable'
+        : compareRequiredClothing(actual, resolved.required_clothing),
+      rule_id: resolved.source_csa_id,
+      conflicted: resolved.conflicted
     };
-    // 저장 전 첫 관찰 후보는 suggested로만 노출
-    if (observed.status === 'observed') {
-      entry.suggested_initial_clothing = observed.clothing;
-      entry.observation_status = 'pending_commit';
-    } else if (observed.status === 'conflict') {
-      entry.observation_status = 'conflict';
-      entry.conflicts = observed.conflicts ?? [];
-    }
-    result[npcId] = entry;
   }
 
   return result;
@@ -186,31 +153,6 @@ function findNpcProfile(master, npcId) {
     if ((entry?.npc_id ?? entry?.id) === npcId) return entry;
   }
   return {};
-}
-
-/**
- * 이번 턴 실제 관찰 대상 NPC — scene_cast_contract의 present/entering/remote/
- * destination + save의 scene_state.participants + last_npcs_present.
- * 이 목록에 없는 NPC는 첫 관찰 seed 후보가 될 수 없다 (off-scene 순회 금지).
- */
-function observationTargetIds(sceneCastContract, save) {
-  const ids = new Set();
-  const push = id => { if (typeof id === 'string' && id && !id.startsWith('player')) ids.add(id); };
-  const cast = object(sceneCastContract) ? sceneCastContract : {};
-  for (const list of ['present_npc_ids', 'entering_npc_ids', 'remote_npc_ids', 'destination_npc_ids']) {
-    for (const id of Array.isArray(cast[list]) ? cast[list] : []) push(id);
-  }
-  const sceneState = object(save?.scene_state) ? save.scene_state : {};
-  for (const id of Array.isArray(sceneState.participants) ? sceneState.participants : []) push(id);
-  for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) push(id);
-  return ids;
-}
-
-function currentExpectedTurn(save) {
-  const t = object(save?.turn_state) ? save.turn_state : {};
-  if (typeof t.expected_turn === 'number') return t.expected_turn;
-  if (typeof t.committed_turn === 'number') return t.committed_turn + 1;
-  return null;
 }
 
 /** Compact Story context: active state plus summaries, workplace context, and one detailed previous-turn block. */
@@ -235,7 +177,6 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
       recent: typeof save.story_summary_recent === 'string' ? save.story_summary_recent : ''
     },
     clothing_authority: buildClothingAuthority(save, {
-      observationTargetIds: observationTargetIds(sceneCastContract, save),
       master: edition?.characters?.characters ? { characters: toEntryArray(edition?.characters?.characters, 'character_id'), general_npcs: toEntryArray(edition?.generalNpcs?.profiles, 'npc_id') } : {}
     }),
     recent_turns: recentTurns.map((turn, index, array) => {

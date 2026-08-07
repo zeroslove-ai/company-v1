@@ -8,7 +8,6 @@ import {
   validateCsaRuntimeStatePatch
 } from './gameplay-state.js';
 import { buildSceneStatePatch } from './state/physical-state.js';
-import { resolveObservedClothing } from './state/clothing.js';
 import { applyNpcStatChanges } from './relationship/reducer.js';
 import { appendSexualEvents, reduceEjaculationCounts } from './sexual-state/ledger.js';
 
@@ -133,44 +132,6 @@ function mergeEventLedger(current, patch) {
 function characterNameFromMaster(master, characterId) {
   const characters = Array.isArray(master?.characters) ? master.characters : [];
   return characters.find(character => character?.character_id === characterId)?.name ?? characterId ?? '';
-}
-
-/** master에서 NPC 프로필 조회 (gender 등 eligibility 판단용). */
-function npcProfileFromMaster(master, npcId) {
-  for (const entry of Array.isArray(master?.characters) ? master.characters : []) {
-    if ((entry?.character_id ?? entry?.id) === npcId) return entry;
-  }
-  for (const entry of Array.isArray(master?.general_npcs) ? master.general_npcs : []) {
-    if ((entry?.npc_id ?? entry?.id) === npcId) return entry;
-  }
-  return {};
-}
-
-/**
- * 이번 턴 관찰 대상 NPC인지 — scene_cast_contract의 present/entering/remote/
- * destination 또는 envelope의 npcs_present/action_target_id/focal에 포함돼야 한다.
- * (off-scene NPC seed 금지 — P0-2)
- */
-function isObservationTarget(options, npcId) {
-  const cast = plainObject(options?.sceneCastContract) ? options.sceneCastContract : {};
-  for (const list of ['present_npc_ids', 'entering_npc_ids', 'remote_npc_ids', 'destination_npc_ids']) {
-    if (Array.isArray(cast[list]) && cast[list].includes(npcId)) return true;
-  }
-  if (Array.isArray(options?.envelopeNpcsPresent) && options.envelopeNpcsPresent.includes(npcId)) return true;
-  if (options?.envelopeActionTargetId === npcId) return true;
-  if (options?.envelopeFocalCharacterId === npcId) return true;
-  return false;
-}
-
-/** 활성 규정 중 가장 이른 created_turn (첫 관찰 eligibility의 활성 시각 기준). */
-function earliestRuleActivatedTurn(activeRules) {
-  let earliest = null;
-  for (const rule of activeRules) {
-    if (typeof rule?.created_turn === 'number' && (earliest === null || rule.created_turn < earliest)) {
-      earliest = rule.created_turn;
-    }
-  }
-  return earliest;
 }
 
 /**
@@ -500,33 +461,8 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
           continue;
         }
         if (path === 'npc_scene_state' && plainObject(npcPatch)) {
-          // 첫 관찰 seed — observation eligibility를 검증한 후에만 정본으로 저장한다.
-          // (clothing.js의 resolveObservedClothing — Story projection과 동일 함수,
-          //  Commit이 정본 승격의 유일한 지점이다: P0-3)
-          const prevNpcState = nextSave.npc_scene_state[npcId] ?? {};
-          const prevClothing = plainObject(prevNpcState.clothing) ? prevNpcState.clothing : {};
-          const csaActive = Array.isArray(preSave.csa_active) ? preSave.csa_active : [];
-          const activeRules = Object.entries(plainObject(preSave.csa_rules) ? preSave.csa_rules : {})
-            .filter(([id, rule]) => csaActive.includes(id) && rule?.active !== false)
-            .map(([id, rule]) => ({ ...rule, csa_id: id }));
-          const observed = resolveObservedClothing({
-            npcId,
-            npcProfile: npcProfileFromMaster(options?.master, npcId),
-            activeRules,
-            previousClothing: prevClothing,
-            isObservationTarget: isObservationTarget(options, npcId),
-            ruleActivatedTurn: earliestRuleActivatedTurn(activeRules),
-            expectedTurn: options.expectedTurn
-          });
-          if (observed.status === 'observed') {
-            nextSave.npc_scene_state[npcId] = {
-              ...prevNpcState,
-              clothing: observed.clothing
-            };
-            warnings.push(`first_observed_clothing_seed:${npcId}`);
-          } else if (observed.status === 'conflict') {
-            warnings.push(`clothing_rule_conflict:${npcId}`);
-          }
+          // 착의를 포함한 물리 상태 변경은 evidence 기반 physical-state merge가 유일한 경로다.
+          // 규정 활성·첫 등장·장면 참여만으로 clothing을 생성하지 않는다.
           const { state, warnings: sceneWarnings } = buildSceneStatePatch({
             previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: npcPatch, evidenceMap: npcPatch.evidence,
             narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',

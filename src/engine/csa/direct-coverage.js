@@ -328,7 +328,34 @@ function resolveStructuredSexualCoverage(
 
 const CONTENT_MEANING_TERMS = ['컨디션', '상태', '성적 긴장', '완화', '도움', '속옷', '차림', '근무'];
 
+// 질문·확인·설명 요청 — 단어가 겹쳐도 csa_direct가 아니다.
+// "자네 지금 속옷 차림이 맞는 건가?" 같은 확인 질문이 '속옷/차림' 단어 때문에
+// 직접 실행으로 오판되는 것을 막는다.
+const QUESTION_RE =
+  /(맞나|맞는가|맞아요|맞니|인가|인지|인가요|일까|이지|이죠|이잖아|이네요|이더라|이었나|였나|였니|니\s*\?|까\s*\?|나\s*\?|요\s*\?|지\s*\?|가\s*\?|는\s*\?|을까|ㄹ까)|(왜\s|언제\s|어떻게\s|무엇|뭐가|뭐지|뭔지|누가|누구|어디서|몇\s)/;
+const ASK_RE =
+  /(알려줘|알려주|설명해|설명해줘|설명해주|확인한다|확인해|확인하자|물어본다|물어봐|물어볼|궁금|알고싶|말해줘|말해주|가르쳐|질문|여쭤|여부를|여부가|살펴본다|살펴볼)/;
+
+// 실행 요청·명령 — csa_direct 후보가 되려면 실제 실행 요청이 있어야 한다.
+// "해 주세요"처럼 조사 사이 공백이 있어도 매칭되도록 \s* 를 사용한다.
+// "무릎 위에 앉게 한다" 같은 명시적 행동 실행문도 포함한다.
+const EXECUTE_RE =
+  /(해\s*줘|해\s*주세요|해\s*줄래|해라|해\s*주십시오|시행해|시행한다|수행해|수행한다|지켜|지켜라|따라|따르라|적용해|적용한다|같이\s*하자|하도록|하시죠|하십시오|하세요|해\s*달라|요구한다|명령|벗어\s*줘|벗어\s*주세요|입어\s*줘|입어\s*주세요|갈아입어\s*줘|갈아입어\s*주세요|(게|도록)\s*(한다|하라|해라|할게)|벗게\s*한다|입게\s*한다|자세를\s*취한다|취하도록)/;
+
+/** 입력이 질문·확인·설명 요청이면 true — csa_direct가 될 수 없다. */
+function isQuestionOrRequest(text) {
+  if (typeof text !== 'string' || !text.trim()) return true;
+  if (text.trim().endsWith('?')) return true;
+  if (QUESTION_RE.test(text)) return true;
+  if (ASK_RE.test(text)) return true;
+  return false;
+}
+
 function directMeaningMatch(csa, text, applicableCount) {
+  // 0) 질문·확인·설명 요청은 실행 요청이 아니므로 csa_direct가 아니다.
+  if (isQuestionOrRequest(text)) return null;
+
+  // 1) 의미 tag — 실행 요청 문구에 tag가 포함된 경우에만.
   const tags = csa.source_type === 'preset'
     && isPlainObject(csa.preset)
     && Array.isArray(csa.preset.direct_meaning_tags)
@@ -337,13 +364,14 @@ function directMeaningMatch(csa, text, applicableCount) {
       )
     : [];
   const matchedTag = tags.find(tag => text.includes(tag));
-  if (matchedTag) return matchedTag;
+  if (matchedTag && EXECUTE_RE.test(text)) return matchedTag;
 
   const content = csaContent(csa);
   const matchedContentTerm = CONTENT_MEANING_TERMS.find(
     term => content.includes(term) && text.includes(term)
   );
-  if (matchedContentTerm) return matchedContentTerm;
+  // 2) 단어 일치만으로 csa_direct가 되지 않는다 — 실행 요청 동사가 있어야 한다.
+  if (matchedContentTerm && EXECUTE_RE.test(text)) return matchedContentTerm;
 
   const genericRuleRequest = /(규정|규칙|지침|공지).*(반영|적용|수행|지켜|따라)/.test(text);
   if (genericRuleRequest && applicableCount === 1) return 'single applicable CSA rule request';

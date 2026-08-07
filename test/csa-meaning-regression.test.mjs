@@ -46,10 +46,10 @@ const characters = [
 ];
 
 test('two-person company scene resolves exact CSA duty requests from NPC actor to player target', () => {
+  // 실행 요청은 csa_direct — 질문/확인은 아니다 (검토 판정: 질문 분리)
   for (const input of [
     '규정에 따라 완화해주세요',
-    '제 컨디션을 확인하고 성적 긴장을 완화해 주세요',
-    '어떻게 완화해 주실 거예요?'
+    '제 컨디션을 확인하고 성적 긴장을 완화해 주세요'
   ]) {
     const result = resolveCsaDirectCoverage(baseSave(), input, { characters });
     assert.equal(result.covered, true, input);
@@ -58,6 +58,12 @@ test('two-person company scene resolves exact CSA duty requests from NPC actor t
     assert.equal(result.target_group, 'coworker', input);
     assert.equal(result.direction, 'npc_to_player', input);
   }
+});
+
+test('two-person company scene: 확인 질문은 csa_direct가 아니다', () => {
+  // "어떻게…거예요?" — 어떻게 + ? 로 끝나는 확인 질문은 실행 요청이 아니다.
+  const result = resolveCsaDirectCoverage(baseSave(), '어떻게 완화해 주실 거예요?', { characters });
+  assert.equal(result.covered, false, '질문은 csa_direct가 아님');
 });
 
 test('CSA text matching does not authorize a stronger material action absent from the semantic contract', () => {

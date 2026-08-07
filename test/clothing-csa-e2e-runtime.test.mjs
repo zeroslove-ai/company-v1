@@ -261,33 +261,23 @@ test('P0-1: projectGlobalCsa가 활성 규정만 반환한다', () => {
 });
 
 // ---------------------------------------------------------------------------
-// P0-2 — off-scene NPC/남성 NPC seed 금지
+// 검토 판정: 남성 NPC·gender 미상 NPC에게 female_employee 규정 미적용
 // ---------------------------------------------------------------------------
 
-test('P0-2: 관찰 대상이 아닌 NPC·남성 NPC는 seed되지 않는다', async () => {
-  const { resolveObservedClothing } = await import('../src/engine/state/clothing.js');
+test('검토: 남성 NPC·gender 미상 NPC는 female_employee 착의 규정이 적용되지 않는다', async () => {
+  const { requiredClothingFromActiveCsa } = await import('../src/engine/state/clothing.js');
   const rules = [
     { csa_id: 'csa_42_1', active: true, preset: { template_id: 'work_in_underwear_only', actor_group: 'female_employee' }, created_turn: 42 }
   ];
-  // off-scene NPC — isObservationTarget=false → ineligible
-  const offScene = resolveObservedClothing({
-    npcId: 'heroine3', npcProfile: { gender: 'female' }, activeRules: rules,
-    previousClothing: {}, isObservationTarget: false, expectedTurn: 55
-  });
-  assert.equal(offScene.status, 'ineligible');
-  assert.ok(offScene.reasons.includes('not_observation_target'));
   // 남성 NPC — female_employee 규정 적용 금지
-  const male = resolveObservedClothing({
-    npcId: 'male_npc', npcProfile: { gender: 'male' }, activeRules: rules,
-    previousClothing: {}, isObservationTarget: true, expectedTurn: 55
-  });
-  assert.equal(male.status, 'ineligible');
-  assert.ok(male.reasons.includes('no_matching_actor_group'));
-  // 여성 + 관찰 대상 → observed
-  const female = resolveObservedClothing({
-    npcId: 'heroine3', npcProfile: { gender: 'female' }, activeRules: rules,
-    previousClothing: {}, isObservationTarget: true, expectedTurn: 55
-  });
-  assert.equal(female.status, 'observed');
-  assert.equal(female.clothing.uniform_top, 'removed');
+  const male = requiredClothingFromActiveCsa(rules, { gender: 'male' });
+  assert.deepEqual(male.required_clothing, {});
+  assert.equal(male.source_csa_id, null);
+  // gender 미상 — 적용 금지 (성별 미상 허용 제거)
+  const unknown = requiredClothingFromActiveCsa(rules, {});
+  assert.deepEqual(unknown.required_clothing, {});
+  // 여성 NPC — 적용
+  const female = requiredClothingFromActiveCsa(rules, { gender: 'female' });
+  assert.equal(female.required_clothing.uniform_top, 'removed');
+  assert.equal(female.source_csa_id, 'csa_42_1');
 });

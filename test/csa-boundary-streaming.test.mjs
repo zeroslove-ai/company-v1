@@ -434,10 +434,10 @@ test('검토3: 활성 CSA 없이 직접 성적 행동 → Story prompt에 AUTHOR
 });
 
 test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-SCOPE LIMIT + undefined 없음', async () => {
-  // csa_5(속옷 미착용 근무, actor=coworker·target 없음) — 남성 참가자 없이도 csa_direct로 판정되는 시나리오
-  const mock = createMockFetch({ playerAction: '이메이의 속옷 착용 여부를 살펴본다.', sceneParticipants: ['player-1', 'heroine5'] });
+  // csa_5(속옷 미착용 근무, actor=coworker·target 없음) — 남성 참가자 없이도 csa_direct로 판정되는 실행 요청 시나리오
+  const mock = createMockFetch({ playerAction: '이메이가 속옷 미착용 규정대로 일하도록 지시한다.', sceneParticipants: ['player-1', 'heroine5'] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이의 속옷 착용 여부를 살펴본다.' }), env);
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이가 속옷 미착용 규정대로 일하도록 지시한다.' }), env);
   assert.equal(story.status, 200);
   await story.text();
   const llmStory = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream).pop();
@@ -450,6 +450,19 @@ test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-
   // csa_2 정확 행동은 정상 확정
   assert.ok(prompt.includes('CSA DIRECT COVERAGE — ESTABLISHED FACT'), '정상 coverage section');
   assert.ok(prompt.includes('csa_5'), 'csa_5 명시');
+});
+
+test('검토1c: "여부를 살펴본다" 확인 입력은 csa_direct가 아니다', async () => {
+  // 질문·확인 입력은 단어가 겹쳐도 csa_direct가 아니다 (검토 판정).
+  const mock = createMockFetch({ playerAction: '이메이의 속옷 착용 여부를 살펴본다.', sceneParticipants: ['player-1', 'heroine5'] });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이의 속옷 착용 여부를 살펴본다.' }), env);
+  assert.equal(story.status, 200);
+  await story.text();
+  const llmStory = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream).pop();
+  const prompt = JSON.parse(llmStory.body).messages[0].content;
+  const coverageCount = (prompt.match(/\[CSA DIRECT COVERAGE/g) ?? []).length;
+  assert.equal(coverageCount, 0, '확인 입력은 coverage 0회');
 });
 
 // ---------- 조건부 허용: Extract 정본화 / LLM 회귀 (19-13, 19-14, 19-19) ----------

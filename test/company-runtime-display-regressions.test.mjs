@@ -12,6 +12,7 @@ import {
   buildNpcAppPayload
 } from '../src/api/runtime-display.js';
 import { patchCompletionBody } from '../src/api/turn-routes-runtime.js';
+import { projectGlobalCsa } from '../src/engine/gameplay-state.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
@@ -72,13 +73,13 @@ function baseSave() {
   };
 }
 
-function completionInit({ stream = true } = {}) {
+function completionInit({ stream = true, globalCsa = { active_ids: [], rules: {} } } = {}) {
   return {
     body: JSON.stringify({
       stream,
       messages: [
         { role: 'system', content: 'BASE SYSTEM' },
-        { role: 'user', content: JSON.stringify({ context: { global_csa: { active_ids: [], rules: {} } } }) }
+        { role: 'user', content: JSON.stringify({ context: { global_csa: globalCsa } }) }
       ]
     })
   };
@@ -112,7 +113,10 @@ test('activate CSA is visible to the same Story turn with exact content and stre
   assert.deepEqual(projected.save.csa_active, ['csa_5']);
   assert.deepEqual(previousSave.csa_active, []);
 
-  const messages = patchedMessages(completionInit({ stream: true }), {
+  // 새 계약: 기본 turn-routes가 post-transaction save로 만든 context를
+  // wrapper가 그대로 통과시킨다 (global_csa 재작성 없음 — 단일 정본).
+  const projectedGlobalCsa = projectGlobalCsa(projected.save);
+  const messages = patchedMessages(completionInit({ stream: true, globalCsa: projectedGlobalCsa }), {
     plan, previousSave, postSave: projected.save, csaCatalog: { sexual_action_contract: {} }
   });
   const context = userContext(messages);
@@ -143,7 +147,8 @@ test('updated CSA replaces the old rule in the same Story and Extract context', 
   };
   const postSave = applyCsaPlanToContext({ save: previousSave }, plan).save;
   for (const stream of [true, false]) {
-    const messages = patchedMessages(completionInit({ stream }), {
+    // 새 계약 — 기본 경로가 만든 post-transaction context를 wrapper가 그대로 통과
+    const messages = patchedMessages(completionInit({ stream, globalCsa: projectGlobalCsa(postSave) }), {
       plan, previousSave, postSave, csaCatalog: { sexual_action_contract: {} }
     });
     assert.equal(userContext(messages).global_csa.rules.csa_2.content, '수정된 규정');
@@ -165,7 +170,7 @@ test('deactivated CSA is excluded from same-turn active checks while its exact h
     canonical_action: { operations: [{ domain: 'csa', operation: 'deactivate', id: 'csa_3' }] }
   };
   const postSave = applyCsaPlanToContext({ save: previousSave }, plan).save;
-  const messages = patchedMessages(completionInit({ stream: false }), {
+  const messages = patchedMessages(completionInit({ stream: false, globalCsa: projectGlobalCsa(postSave) }), {
     plan, previousSave, postSave, csaCatalog: { sexual_action_contract: {} }
   });
   const system = systemText(messages);

@@ -7,7 +7,6 @@ import {
   retainEvidencedClothing,
   requiredClothingFromActiveCsa,
   compareRequiredClothing,
-  seedFirstObservedClothing,
   canonicalClothingSlot,
   canonicalClothingValue
 } from '../src/engine/state/clothing.js';
@@ -25,21 +24,12 @@ const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8
 
 const ACTIVE_RULES = [
   { csa_id: 'csa_42', active: true, content: '성적 긴장 원인 확인 및 완화', preset: { template_id: 'identify_and_relieve_sexual_tension' }, created_turn: 42 },
-  { csa_id: 'csa_42_1', active: true, content: '여성 직원 속옷 차림 근무', preset: { template_id: 'work_in_underwear_only' }, created_turn: 42 }
-];
-
-// 비활성 옛 규정 (오염 경로 검증용)
-const STALE_RULES = [
-  { csa_id: 'csa_2', active: false, content: '대화할 때 무릎 위에 앉기', preset: { template_id: 'sit_on_target_lap_while_talking' }, created_turn: 2 },
-  { csa_id: 'csa_5', active: false, content: '속옷 미착용 근무', preset: { template_id: 'work_without_underwear' }, created_turn: 5 }
+  { csa_id: 'csa_42_1', active: true, content: '여성 직원 속옷 차림 근무', preset: { template_id: 'work_in_underwear_only', actor_group: 'female_employee' }, created_turn: 42 }
 ];
 
 // 1) 52~54턴 실제 clothing output alias 정규화
 test('회귀1: 실제 52~54턴 자유형 clothing 출력이 canonical 4슬롯으로 정규화된다', () => {
-  // 52턴: { bra: "미착용", top: "흰 셔츠", bottom: "검은 팬츠" }
-  // 53턴: { 셔츠: "worn", 속옷: "worn" }
-  // 54턴: { bra: "removed", top: "worn", panties: "removed", undergarments: "worn" }
-  const story52 = '김제나는 흰 셔츠를 벗어 의자에 걸었다. 김제나는 브라를 벗었다. 김제나는 검은 팬츠를 벗어 의자에 걸었다.';
+  const story = '김제나는 흰 셔츠를 벗어 의자에 걸었다. 김제나는 브라를 벗었다. 김제나는 검은 팬츠를 벗어 의자에 걸었다.';
   const r52 = retainEvidencedClothing({
     previousClothing: {},
     proposedClothing: { bra: '미착용', top: '흰 셔츠', bottom: '검은 팬츠' },
@@ -48,9 +38,8 @@ test('회귀1: 실제 52~54턴 자유형 clothing 출력이 canonical 4슬롯으
       uniform_top: '김제나는 흰 셔츠를 벗어 의자에 걸었다.',
       uniform_bottom: '김제나는 검은 팬츠를 벗어 의자에 걸었다.'
     },
-    narrativeText: story52, characterName: '김제나'
+    narrativeText: story, characterName: '김제나'
   });
-  // top/bra/bottom alias → canonical 슬롯. 값은 enum으로 정규화.
   assert.equal(canonicalClothingSlot('bra'), 'underwear_top');
   assert.equal(canonicalClothingSlot('top'), 'uniform_top');
   assert.equal(canonicalClothingSlot('bottom'), 'uniform_bottom');
@@ -58,8 +47,7 @@ test('회귀1: 실제 52~54턴 자유형 clothing 출력이 canonical 4슬롯으
   assert.equal(canonicalClothingSlot('속옷'), null, '위·아래 불명확 키는 null');
   assert.equal(canonicalClothingValue('underwear_top', '미착용'), 'removed');
   assert.equal(canonicalClothingValue('uniform_top', 'worn'), 'worn');
-  // 흰 셔츠 같은 복장 이름 값은 enum 추측 금지
-  assert.equal(canonicalClothingValue('uniform_top', '흰 셔츠'), null);
+  assert.equal(canonicalClothingValue('uniform_top', '흰 셔츠'), null, '복장 이름 값은 enum 추측 금지');
   assert.ok(r52.rejections.some(r => r.startsWith('invalid_clothing_value:uniform_top')), '복장 이름 값은 거부');
 });
 
@@ -98,28 +86,45 @@ test('회귀3: 비활성 옛 규정(csa_2, csa_5)이 Story·Extract payload에 �
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   save.csa_active = ['csa_42', 'csa_42_1'];
   save.csa_rules = {};
-  for (const rule of [...ACTIVE_RULES, ...STALE_RULES]) save.csa_rules[rule.csa_id] = rule;
+  for (const rule of [...ACTIVE_RULES, { csa_id: 'csa_2', active: false, content: '대화할 때 무릎 위에 앉기' }, { csa_id: 'csa_5', active: false, content: '속옷 미착용 근무' }]) save.csa_rules[rule.csa_id] = rule;
   const projection = buildSceneContextCore(save, new Set(['heroine3']));
   const ruleIds = Object.keys(projection.global_csa.rules);
-  assert.ok(ruleIds.includes('csa_42'), '활성 규정 포함');
-  assert.ok(ruleIds.includes('csa_42_1'), '활성 규정 포함');
-  assert.ok(!ruleIds.includes('csa_2'), '비활성 옛 규정 미노출');
-  assert.ok(!ruleIds.includes('csa_5'), '비활성 옛 규정 미노출 (오염 경로 차단)');
+  assert.ok(ruleIds.includes('csa_42'));
+  assert.ok(ruleIds.includes('csa_42_1'));
+  assert.ok(!ruleIds.includes('csa_2'));
+  assert.ok(!ruleIds.includes('csa_5'));
   const runtimeIds = Object.keys(projection.global_csa.runtime_state);
-  assert.ok(!runtimeIds.includes('csa_2') && !runtimeIds.includes('csa_5'), 'runtime_state도 활성만');
+  assert.ok(!runtimeIds.includes('csa_2') && !runtimeIds.includes('csa_5'));
 });
 
-// 4) work_in_underwear_only와 work_without_underwear가 반대 상태로 결정됨
-test('회귀4: 상반 규정이 정확히 반대 착의를 요구한다', () => {
-  const underwearOnly = requiredClothingFromActiveCsa(ACTIVE_RULES.filter(r => r.preset.template_id === 'work_in_underwear_only'));
+// 4) 상반 규정 최소 정책 — 0개/1개/2개+ conflicted
+test('회귀4: 상반 규정이 정확히 반대 착의를 요구한다 (0개/1개/2개+ conflicted)', () => {
+  // female_employee 규정이므로 여성 NPC 프로필을 넘긴다
+  const femaleProfile = { gender: 'female' };
+  const underwearOnly = requiredClothingFromActiveCsa(ACTIVE_RULES.filter(r => r.preset.template_id === 'work_in_underwear_only'), femaleProfile);
   assert.deepEqual(underwearOnly.required_clothing, {
     uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'worn', underwear_bottom: 'worn'
   });
-  const withoutUnderwear = requiredClothingFromActiveCsa(STALE_RULES.filter(r => r.preset.template_id === 'work_without_underwear'));
+  assert.equal(underwearOnly.source_csa_id, 'csa_42_1');
+  assert.equal(underwearOnly.conflicted, false);
+
+  const withoutUnderwear = requiredClothingFromActiveCsa([{ csa_id: 'csa_5', active: true, preset: { template_id: 'work_without_underwear' } }], femaleProfile);
   assert.deepEqual(withoutUnderwear.required_clothing, { underwear_top: 'removed', underwear_bottom: 'removed' });
-  // provenance — slot_sources가 요구를 만든 규정을 기록
-  assert.equal(underwearOnly.slot_sources.uniform_top.csa_id, 'csa_42_1');
-  assert.deepEqual(underwearOnly.contributing_rule_ids, ['csa_42_1']);
+
+  // 규정 0개 → 빈 required
+  const none = requiredClothingFromActiveCsa([], femaleProfile);
+  assert.deepEqual(none.required_clothing, {});
+  assert.equal(none.source_csa_id, null);
+
+  // 상반 규정 2개 이상 → 미확정 (우선순위 추론 없음)
+  const both = requiredClothingFromActiveCsa([
+    { csa_id: 'x1', active: true, preset: { template_id: 'work_in_underwear_only' } },
+    { csa_id: 'x2', active: true, preset: { template_id: 'work_without_underwear' } }
+  ], femaleProfile);
+  assert.deepEqual(both.required_clothing, {});
+  assert.equal(both.source_csa_id, null);
+  assert.equal(both.conflicted, true);
+
   // 준수/미준수/unknown 판정
   const req = underwearOnly.required_clothing;
   assert.equal(compareRequiredClothing(req, req), 'compliant');
@@ -127,23 +132,16 @@ test('회귀4: 상반 규정이 정확히 반대 착의를 요구한다', () => 
   assert.equal(compareRequiredClothing({ uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn' }, req), 'noncompliant');
 });
 
-test('회귀4b: 상반 규정 동시 활성 시 우선순위로 결정되고 동률은 conflict', () => {
-  // work_in_underwear_only(medium) + work_without_underwear(weak) 동시 활성
-  const underwearOnly = { ...ACTIVE_RULES[1], strength: 'medium' };
-  const withoutUnderwear = { csa_id: 'csa_5', active: true, content: '속옷 미착용 근무', preset: { template_id: 'work_without_underwear' }, created_turn: 5, strength: 'weak' };
-  // 입력 순서를 바꿔도 결과 동일 (strength 우선)
-  const a = requiredClothingFromActiveCsa([underwearOnly, withoutUnderwear]);
-  const b = requiredClothingFromActiveCsa([withoutUnderwear, underwearOnly]);
-  assert.deepEqual(a.required_clothing, b.required_clothing, '입력 순서 무관');
-  assert.equal(a.required_clothing.underwear_top, 'worn', '더 높은 strength(medium)가 우선');
-  assert.equal(a.slot_sources.underwear_top.csa_id, 'csa_42_1');
-  // 동일 strength + 동일 updated/created → conflict
-  const twin1 = { csa_id: 'x1', active: true, preset: { template_id: 'work_in_underwear_only' }, created_turn: 10, strength: 'medium' };
-  const twin2 = { csa_id: 'x2', active: true, preset: { template_id: 'work_without_underwear' }, created_turn: 10, strength: 'medium' };
-  const conflict = requiredClothingFromActiveCsa([twin1, twin2]);
-  assert.equal(conflict.required_clothing.underwear_top, 'unknown', '완전 동률은 conflict');
-  assert.ok(conflict.conflicts.includes('underwear_top'));
-  assert.equal(compareRequiredClothing({}, conflict.required_clothing), 'conflict');
+// 4b) female_employee 규정은 gender==='female' NPC에게만 적용
+test('회귀4b: female_employee 규정이 남성/성별 미상 NPC에게 적용되지 않는다', () => {
+  const rule = { csa_id: 'csa_42_1', active: true, preset: { template_id: 'work_in_underwear_only', actor_group: 'female_employee' } };
+  const female = requiredClothingFromActiveCsa([rule], { gender: 'female' });
+  assert.ok(Object.keys(female.required_clothing).length > 0, '여성 NPC는 적용');
+  const male = requiredClothingFromActiveCsa([rule], { gender: 'male' });
+  assert.deepEqual(male.required_clothing, {}, '남성 NPC required_clothing은 빈 객체');
+  assert.equal(male.source_csa_id, null);
+  const unknown = requiredClothingFromActiveCsa([rule], {});
+  assert.deepEqual(unknown.required_clothing, {}, 'gender 미상 NPC도 미적용');
 });
 
 // 5) 선택지 0·1·2·3·4개 보존·보충 matrix
@@ -152,27 +150,22 @@ test('회귀5: 선택지 0/1/2/3/4개가 보존·보충 매트릭스대로 처�
   const base = { state_delta: {}, outcome: 'success', evidence: {}, mind_monitor: {}, dialogue_lines: [] };
   const opts = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
 
-  // 4개 → 그대로
   const four = applyGuardedStateDelta(save, { ...base, choices: ['a', 'b', 'c', 'd'] }, opts);
   assert.deepEqual(four.nextSave.last_choices, ['a', 'b', 'c', 'd']);
 
-  // 3개 → 3개 보존 + 1개 보충
   const three = applyGuardedStateDelta(save, { ...base, choices: ['a', 'b', 'c'] }, opts);
   assert.equal(three.nextSave.last_choices.length, 4);
   assert.deepEqual(three.nextSave.last_choices.slice(0, 3), ['a', 'b', 'c']);
   assert.ok(three.warnings.some(w => w.startsWith('choices_padded:3->4')));
 
-  // 2개 → 2개 보존 + 2개 보충
   const two = applyGuardedStateDelta(save, { ...base, choices: ['a', 'b'] }, opts);
   assert.equal(two.nextSave.last_choices.length, 4);
   assert.deepEqual(two.nextSave.last_choices.slice(0, 2), ['a', 'b']);
 
-  // 1개 → 1개 보존 + 3개 보충
   const one = applyGuardedStateDelta(save, { ...base, choices: ['a'] }, opts);
   assert.equal(one.nextSave.last_choices.length, 4);
   assert.deepEqual(one.nextSave.last_choices.slice(0, 1), ['a']);
 
-  // 0개 → 전체 fallback
   const zero = applyGuardedStateDelta(save, { ...base, choices: [] }, opts);
   assert.equal(zero.nextSave.last_choices.length, 4);
   assert.deepEqual(zero.nextSave.last_choices, buildFallbackTurnChoices(zero.nextSave));
@@ -192,68 +185,64 @@ test('회귀5b: normalizeGameplayExtractEnvelope가 Story 선택지를 보존한
   assert.deepEqual(partial.choices, ['s1', 's2', 'x1', 'x2'], 'Story 2개 보존 + Extract 보충');
 });
 
-// 6) 첫 관찰 NPC seed — 42턴 규정 활성 → 52턴 첫 관찰 김제나
-test('회귀6: 규정 활성 후 첫 관찰 NPC는 규정상 요구 착의로 deterministic seed된다', () => {
-  const { seeded, clothing } = seedFirstObservedClothing({
-    npcId: 'heroine3',
-    activeRules: ACTIVE_RULES,
-    previousClothing: {}
-  });
-  assert.equal(seeded, true);
-  assert.deepEqual(clothing, {
-    uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'worn', underwear_bottom: 'worn'
-  });
-  // 기존 착의가 있으면 seed 안 함
-  const already = seedFirstObservedClothing({
-    npcId: 'heroine3', activeRules: ACTIVE_RULES,
-    previousClothing: { uniform_top: 'worn' }
-  });
-  assert.equal(already.seeded, false);
-  // 규정 없이(비활성만 있는 save는 호출부가 활성만 필터해 전달) 빈 배열이면 seed 안 함
-  const noRules = seedFirstObservedClothing({ npcId: 'heroine3', activeRules: [], previousClothing: {} });
-  assert.equal(noRules.seeded, false);
-});
-
-// 6b) Story context의 clothing_authority가 observation 후보를 suggested로만 표시
-test('회귀6b: buildStoryPrompt의 clothing_authority에 첫 관찰 후보가 suggested로 반영된다', () => {
+// 6) actual_clothing은 저장값만 — 규정/빈 clothing으로 생성하지 않는다
+test('회귀6: save clothing={} → Story actual_clothing={} (규정만으로 생성 안 함)', () => {
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   save.csa_active = ['csa_42_1'];
   save.csa_rules = { csa_42_1: ACTIVE_RULES[1] };
   save.npc_scene_state = { heroine3: { present: true, location_id: 'meeting_room_5f', clothing: {} } };
-  save.turn_state = { committed_turn: 51, expected_turn: 52 };
   const prompt = buildStoryPrompt({
     edition,
     context: { game: { id: 'g1' }, save: { data: save }, recent_turns: [] },
     playerAction: '김제나를 만나러 간다.',
     expectedTurn: 52,
-    npcIds: new Set(['heroine3']),
-    sceneCastContract: { present_npc_ids: ['heroine3'], entering_npc_ids: [], remote_npc_ids: [], allowed_speaker_ids: ['player', 'heroine3'] }
+    npcIds: new Set(['heroine3'])
   });
   const payload = JSON.parse(prompt[prompt.length - 1].content);
   const authority = payload.context?.clothing_authority ?? {};
   assert.ok(authority.heroine3, 'clothing_authority에 heroine3 존재');
-  // P0-3 — Commit 전 seed는 actual이 아니라 suggested로만 표시
-  assert.deepEqual(authority.heroine3.actual_clothing, {}, '저장 전에는 actual_clothing이 빈 상태');
-  assert.deepEqual(authority.heroine3.suggested_initial_clothing, {
-    uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'worn', underwear_bottom: 'worn'
-  }, '후보는 suggested로만 노출');
-  assert.equal(authority.heroine3.observation_status, 'pending_commit');
-  // P1-1 — provenance가 csa_42가 아니라 csa_42_1에서 나온다
-  assert.equal(authority.heroine3.rule_id, 'csa_42_1');
-  // FINAL OUTPUT SHAPE가 시스템 메시지에 포함
-  assert.ok(prompt[0].content.includes('[FINAL OUTPUT SHAPE]'), '최종 출력 계약 포함');
+  // 검토 판정: 저장값이 비어 있으면 actual_clothing={} — 규정만으로 생성·승격 금지
+  assert.deepEqual(authority.heroine3.actual_clothing, {}, '저장값 그대로 (빈 객체)');
+  // suggested_initial_clothing / observation_status 필드가 없어야 한다
+  assert.ok(!('suggested_initial_clothing' in authority.heroine3), 'suggested 필드 없음');
+  assert.ok(!('observation_status' in authority.heroine3), 'observation status 없음');
+  // 여성 NPC에게는 required가 표시된다 (규정 1개)
+  assert.ok(Object.keys(authority.heroine3.required_clothing).length > 0, '여성 NPC required 표시');
 });
 
-// 7) focal NPC 착의 UI 렌더 — clothingDisplay가 canonical 슬롯을 한글로 표시
+// 6b) 남성 NPC의 clothing_authority.required_clothing은 빈 객체
+test('회귀6b: 남성 NPC는 female_employee 규정의 required_clothing이 빈 객체다', () => {
+  const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
+  save.csa_active = ['csa_42_1'];
+  save.csa_rules = { csa_42_1: ACTIVE_RULES[1] };
+  // 남성 일반 NPC — female_employee 규정 적용 금지
+  save.npc_scene_state = { male_npc: { present: true, location_id: 'office', clothing: {} } };
+  const maleEdition = {
+    ...edition,
+    generalNpcs: { profiles: { male_npc: { id: 'male_npc', name: '남성 직원', gender: 'male' } } }
+  };
+  const prompt = buildStoryPrompt({
+    edition: maleEdition,
+    context: { game: { id: 'g1' }, save: { data: save }, recent_turns: [] },
+    playerAction: '남성 직원을 본다.',
+    expectedTurn: 52,
+    npcIds: new Set(['male_npc'])
+  });
+  const payload = JSON.parse(prompt[prompt.length - 1].content);
+  const authority = payload.context?.clothing_authority ?? {};
+  assert.ok(authority.male_npc, 'clothing_authority에 male_npc 존재');
+  assert.deepEqual(authority.male_npc.required_clothing, {}, '남성 NPC required_clothing은 빈 객체');
+  assert.equal(authority.male_npc.rule_id, null);
+});
+
+// 7) focal NPC 착의 UI — canonical 슬롯 라벨
 test('회귀7: focal NPC 착의 UI가 canonical 슬롯을 한글 라벨로 렌더한다', () => {
-  // 프론트 렌더 로직은 render.js의 clothingDisplay — 실제 DOM 없이 문자열 변환 검증.
-  // (백엔드가 내려주는 clothing이 canonical 4슬롯이면 UI가 라벨 매핑 가능)
   const canonical = { uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'worn', underwear_bottom: 'worn' };
-  // 라벨 매핑이 존재하는지 소스 확인
   const renderSrc = fs.readFileSync(path.join(root, 'src/frontend/pages/render.js'), 'utf8');
   assert.ok(renderSrc.includes('uniform_top: \'상의\''), 'uniform_top 라벨 존재');
   assert.ok(renderSrc.includes('underwear_top: \'상의 속옷\''), 'underwear_top 라벨 존재');
   assert.ok(renderSrc.includes('removed: \'벗음\''), 'removed 라벨 존재');
   assert.ok(renderSrc.includes('현재 착의'), 'renderFocalCharacter에 현재 착의 섹션 존재');
+  assert.ok(renderSrc.includes('확인되지 않음'), '빈 상태는 확인되지 않음 표시');
   assert.ok(Object.keys(canonical).length === 4, 'canonical 4슬롯');
 });
