@@ -356,3 +356,29 @@ test('26~30. V2 게이트·캐스트는 추가 LLM/네트워크 호출이 없는
   const end = gate.end();
   assert.equal(end.blocks.length, 0, 'speaker_id 없는 대사 차단 → 태깅 대상 0');
 });
+
+// ---------------------------------------------------------------------------
+// 서사 표시 정상화: [DIALOGUE] 첫 문단만 대화, 빈 줄 뒤 서술은 scene으로 분리
+// ---------------------------------------------------------------------------
+
+test('서사 표시 정상화: 대사 뒤 빈 줄 다음 표정·행동 서술은 대화에 흡수되지 않고 scene으로 분리된다', () => {
+  const gate = gateFor(baseContract());
+  gate.push('[1. 서사 및 행동]\n[SCENE]\n회의실이 조용하다.\n');
+  gate.push('[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n"그걸 왜 물어보시는 거예요."\n\n그녀의 손끝이 멈췄다.\n목덜미가 붉어졌다.\n');
+  const end = gate.end();
+  const dialogue = end.blocks.find(b => b.type === 'dialogue');
+  assert.equal(dialogue.text, '"그걸 왜 물어보시는 거예요."', '대화 블록은 실제 발화 한 문단만');
+  assert.ok(!dialogue.text.includes('손끝'), '대사 본문에 서술이 흡수되지 않는다');
+  assert.ok(!dialogue.text.includes('목덜미'), '대사 본문에 서술이 흡수되지 않는다');
+  const sceneBlocks = end.segments.filter(s => s.type === 'scene');
+  const lastScene = sceneBlocks.at(-1);
+  assert.ok(lastScene.text.includes('손끝이 멈췄다'), '표정·행동 서술은 scene으로 분리');
+  assert.ok(lastScene.text.includes('목덜미가 붉어졌다'), '분위기 서술은 scene으로 분리');
+  // 그 다음 [DIALOGUE]는 새 대화 블록
+  const gate2 = gateFor(baseContract());
+  gate2.push('[1. 서사 및 행동]\n[SCENE]\n회의실이 조용하다.\n[DIALOGUE speaker_id="heroine5" acting_direction="고개를 들며"]\n"그걸 왜 물어보시는 거예요."\n\n그녀의 손끝이 멈췄다.\n[DIALOGUE speaker_id="heroine5" acting_direction="눈을 내리깔며"]\n"규정에 있는 거잖아요."\n');
+  const end2 = gate2.end();
+  const d2 = end2.blocks.filter(b => b.type === 'dialogue');
+  assert.equal(d2.length, 2, '두 번째 [DIALOGUE]는 새 대화 블록');
+  assert.equal(d2[1].text, '"규정에 있는 거잖아요."');
+});

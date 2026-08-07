@@ -321,6 +321,9 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
     }
     const block = { ...result.block, order: segments.length };
     segments.push(block);
+    // 대화 블록이 닫히면 이후 텍스트는 다시 scene 서술로 처리한다.
+    // (빈 줄로 닫힌 경우 다음 줄부터 표정·행동·분위기 서술이 scene에 병합된다)
+    inScene = true;
     // 정본 텍스트는 레거시 파서도 읽을 수 있는 형태로 유지한다 (속성값의 따옴표는 제거).
     const safeName = String(block.speaker_name).replace(/"/gu, '');
     const safeDirection = String(block.acting_direction).replace(/"/gu, '');
@@ -428,9 +431,15 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
   const drain = (out, final) => {
     for (;;) {
       if (inDialogueBody()) {
-        // 대사 본문 — 다음 줄머리 마커('\n[')에서 블록을 닫는다.
-        const nextMarker = lineBuffer.search(/\r?\n\s*\[/u);
-        if (nextMarker === -1) {
+        // 대화 본문 — 첫 번째 빈 줄(문단 구분) 또는 다음 줄머리 마커('[')에서 블록을 닫는다.
+        // [DIALOGUE] 뒤의 첫 문단(실제 발화)만 대화로 취급하고, 빈 줄 뒤의 일반 텍스트는
+        // 다시 scene 서술로 처리한다(표정·행동·분위기 흡수 방지).
+        const blankBreak = lineBuffer.search(/\n\s*\n/u);
+        const nextMarker = lineBuffer.search(/\n\s*\[/u);
+        let end = -1;
+        if (nextMarker !== -1 && (blankBreak === -1 || nextMarker <= blankBreak)) end = nextMarker;
+        else if (blankBreak !== -1) end = blankBreak;
+        if (end === -1) {
           if (final) {
             openBody += lineBuffer;
             lineBuffer = '';
@@ -444,8 +453,8 @@ export function createStructuredStoryGate({ contract, speakerNames }) {
           }
           return;
         }
-        openBody += lineBuffer.slice(0, nextMarker);
-        lineBuffer = lineBuffer.slice(nextMarker).replace(/^\r?\n/u, '');
+        openBody += lineBuffer.slice(0, end);
+        lineBuffer = lineBuffer.slice(end).replace(/^[\r\n]{1,2}/u, '');
         closeDialogue(out);
         continue;
       }

@@ -162,7 +162,9 @@ export function renderNarrative(container, parsed) {
   if (container.id === 'current-story') currentChoiceSet = choiceSet(choices, labels);
   let embeddedChoices = false;
   let lastDialogueCard = null;
+  let sawThoughtBlock = false;
   for (const block of parsed?.blocks ?? []) {
+    if (block.type === 'player_inner_thought') sawThoughtBlock = true;
     if (block.type === 'choices') {
       renderNarrativeChoices(container, block.choices ?? choices, block.choice_labels ?? labels);
       embeddedChoices = true;
@@ -196,6 +198,18 @@ export function renderNarrative(container, parsed) {
       ? blockText.replace(/([.。!?！？~])\s*/g, '$1\n')
       : blockText;
     container.append(paragraph);
+  }
+  // 플레이어 속마음 복구 — blocks에 thought 블록이 없어도 parsed.player_inner_thought가
+  // 있으면 서사·대화 뒤, 선택지 앞에 한 번만 표시한다. 블록이 이미 있으면 중복 표시하지 않는다.
+  if (!sawThoughtBlock) {
+    const thought = displayValue(parsed?.player_inner_thought);
+    if (thought) {
+      const paragraph = document.createElement('p');
+      paragraph.className = 'narrative-player_inner_thought';
+      // 바깥쪽 불필요한 따옴표는 제거하고, 구어체 줄바꿈(마침표·물음표·느낌표 뒤)은 유지한다.
+      paragraph.textContent = String(thought).replace(/^["“”']+|["“”']+$/gu, '').replace(/([.。!?！？~])\s*/g, '$1\n');
+      container.append(paragraph);
+    }
   }
   if (!embeddedChoices) renderNarrativeChoices(container, choices, labels);
 }
@@ -424,7 +438,9 @@ export function physicalRelationDisplay(focal, player) {
     else if (relative) parts.push(sentence(`${topicName(name)} ${relative} 플레이어와 함께 있다`));
   }
 
-  return parts.filter(Boolean).join(' ') || '현재 자세 정보가 없습니다.';
+  // 정보가 없으면 문구로 채우지 않고 빈 문자열을 반환한다 —
+  // 렌더러가 해당 줄 자체를 표시하지 않도록 한다(사용자 요구).
+  return parts.filter(Boolean).join(' ');
 }
 
 function recordValue(value) {
@@ -454,8 +470,23 @@ function renderRelationshipSummary(container, character) {
   container.append(section);
 }
 
+// 관계·사정 기록이 실제 값(이벤트 1+ 또는 기록 턴 존재)을 가질 때만 표시한다.
+// 전부 0이고 기록 턴도 없으면 섹션 자체를 만들지 않는다(사용자 요구).
+function hasRelationshipRecord(record) {
+  const counts = [
+    record.player_ejaculation_count, record.npc_orgasm_count,
+    record.vaginal_sex_count, record.anal_sex_count, record.oral_sex_count,
+    record.vaginal_ejaculation_count, record.anal_ejaculation_count, record.oral_ejaculation_count,
+    record.facial_ejaculation_count, record.body_ejaculation_count, record.total_events
+  ];
+  return counts.some(value => recordValue(value) >= 1)
+    || Number.isInteger(record.first_event_turn)
+    || Number.isInteger(record.last_event_turn);
+}
+
 function renderRelationshipRecord(container, character) {
   const record = object(character?.relationship_record) ?? {};
+  if (!hasRelationshipRecord(record)) return;
   container.append(detailsSection('관계·사정 기록', [
     ['플레이어 사정', `${recordValue(record.player_ejaculation_count)}회`],
     ['NPC 절정', `${recordValue(record.npc_orgasm_count)}회`],
@@ -476,10 +507,8 @@ function renderRelationshipRecord(container, character) {
 
 function renderPrivateInfo(container, character) {
   const privateInfo = object(character?.private_info) ?? { unlocked: false };
-  if (privateInfo.unlocked !== true) {
-    container.append(detailsSection('은밀정보', [['잠금', '해당 NPC와의 사정·절정 또는 성적 관계 기록이 생기면 공개됩니다.']], 'private-info-locked'));
-    return;
-  }
+  // 잠금 상태의 빈 안내 섹션은 만들지 않는다 — 실제로 해금됐을 때만 표시(사용자 요구).
+  if (privateInfo.unlocked !== true) return;
   container.append(detailsSection('은밀정보', [
     ['유두', displayValue(privateInfo.nipple)],
     ['유륜 크기', displayValue(privateInfo.areola_size)],
@@ -492,15 +521,20 @@ function renderPrivateInfo(container, character) {
   ], 'private-info-unlocked'));
 }
 
-function renderFocalCharacter(container, focal, player) {
+export function renderFocalCharacter(container, focal, player) {
   if (!container) return;
   const character = object(focal?.character) ?? {};
   const hasState = Boolean(focal?.name || focal?.id || focal?.scene_state?.posture || focal?.scene_state?.position_label || player?.posture || player?.position_label || Object.keys(character).length);
   if (!hasState) { container.hidden = true; container.replaceChildren(); return; }
   container.hidden = false; container.replaceChildren();
   const heading = document.createElement('h2'); heading.textContent = focal?.name ? `${focal.name} 현재 상태` : '현재 캐릭터 상태';
-  const relation = document.createElement('p'); relation.className = 'physical-relation'; relation.textContent = physicalRelationDisplay(focal, player);
-  container.append(heading, relation);
+  container.append(heading);
+  // 자세 정보가 실제로 있을 때만 자세 문단을 추가한다 (빈 문구 노출 방지).
+  const relationText = physicalRelationDisplay(focal, player);
+  if (relationText) {
+    const relation = document.createElement('p'); relation.className = 'physical-relation'; relation.textContent = relationText;
+    container.append(relation);
+  }
   if (Object.keys(character).length) {
     renderStatStrip(container, { stats: character.stats, stat_changes: character.stat_changes });
     const profile = object(character.profile) ?? {};

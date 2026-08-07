@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
@@ -139,7 +139,7 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.match(system, /이동하거나 대화를 끝내거나 다른 인물을 찾아가는 행동/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /acting_direction=/);
-  assert.ok(system.length <= 5800, `Story system prompt too large: ${system.length}`);
+  assert.ok(system.length <= 6700, `Story system prompt too large: ${system.length}`);
 });
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {

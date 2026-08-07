@@ -10,6 +10,7 @@ import {
   physicalRelationDisplay,
   renderChoices,
   renderHistory,
+  renderFocalCharacter,
   renderNarrative,
   stateDisplayValues
 } from '../src/frontend/pages/render.js';
@@ -178,4 +179,73 @@ test('mobile CSS fixes four choices to one row and puts the compact input beside
   assert.match(css, /\.narrative-choices\s*\{/);
   assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\) 82px/);
   assert.match(css, /#player-action[\s\S]*height:\s*42px/);
+});
+
+// ── 서사 표시 정상화: 플레이어 생각 중앙 복구 / 빈 상태 UI ────────────────
+
+function sectionTitles(container) {
+  return container.children
+    .filter(child => child.className === 'character-detail-section')
+    .map(child => child.children[0]?.textContent ?? '');
+}
+
+test('중앙 Story: parsed.player_inner_thought만 있으면 선택지 앞에 한 번만 표시한다', () => {
+  withFakeDocument(() => {
+    const container = new FakeNode('div', 'current-story');
+    const parsed = {
+      choices: ['A', 'B', 'C', 'D'],
+      player_inner_thought: '와, 저거 완전 당황했네. 한 번만 더 놀려볼까.',
+      blocks: [{ type: 'scene', text: '회의실 안이 조용해졌다.' }]
+    };
+    renderNarrative(container, parsed);
+    const thoughts = container.children.filter(child => child.className === 'narrative-player_inner_thought');
+    assert.equal(thoughts.length, 1, '생각은 정확히 한 번만');
+    const thoughtText = thoughts[0].textContent;
+    assert.ok(!thoughtText.includes('"'), '바깥 따옴표 제거');
+    assert.ok(thoughtText.includes('.\n'), '구어체 줄바꿈(마침표 뒤) 유지');
+    const thoughtIndex = container.children.indexOf(thoughts[0]);
+    const choicesIndex = container.children.findIndex(child => child.className === 'narrative-choices');
+    assert.ok(thoughtIndex < choicesIndex, '플레이어 생각이 선택지보다 앞');
+    const container2 = new FakeNode('div', 'current-story');
+    const parsed2 = {
+      choices: ['A', 'B', 'C', 'D'],
+      player_inner_thought: '중복 생각',
+      blocks: [{ type: 'scene', text: '서사' }, { type: 'player_inner_thought', text: '블록 생각' }]
+    };
+    renderNarrative(container2, parsed2);
+    const thoughts2 = container2.children.filter(child => child.className === 'narrative-player_inner_thought');
+    assert.equal(thoughts2.length, 1, 'thought 블록이 있으면 삽입하지 않는다');
+    assert.ok(thoughts2[0].textContent.includes('블록 생각'), '블록 본문 유지');
+  });
+});
+
+test('빈 상태 UI: 자세·관계 기록이 없으면 안내 문구와 0 기록 섹션을 만들지 않는다', () => {
+  withFakeDocument(() => {
+    const container = new FakeNode('div', 'focal-character');
+    const focal = {
+      name: '윤민아',
+      id: 'heroine2',
+      character: {
+        stats: { affection: 10, acceptance: 8, arousal: 3, resistance: 2 },
+        profile: { age: 27, department: '브랜드전략팀', position: '대리' },
+        body: { height_cm: 164, weight_kg: 49 }
+      }
+    };
+    renderFocalCharacter(container, focal, {});
+    assert.ok(!container.children.some(child => child.className === 'physical-relation'), '빈 자세 안내 문구 미출력');
+    const titles = sectionTitles(container);
+    assert.ok(!titles.includes('관계·사정 기록'), '0뿐인 관계·사정 기록 섹션 미출력');
+    assert.ok(!titles.includes('은밀정보'), '잠금 상태 은밀정보 섹션 미출력');
+    assert.ok(titles.includes('인물정보'), '인물정보 유지');
+    assert.ok(container.children.some(child => child.className === 'mind-stat-strip'), '스탯 스트립 유지');
+    const container2 = new FakeNode('div', 'focal-character');
+    const focal2 = {
+      name: '윤민아',
+      id: 'heroine2',
+      scene_state: { posture: '앉아 있음', position_label: '플레이어 무릎 위에' },
+      character: { stats: {} }
+    };
+    renderFocalCharacter(container2, focal2, {});
+    assert.ok(container2.children.some(child => child.className === 'physical-relation'), '자세 정보가 있으면 표시');
+  });
 });
