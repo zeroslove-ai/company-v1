@@ -389,6 +389,7 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
   assert.match(system, /PLAYER KNOWLEDGE OF APP TRANSACTION/);
   assert.match(system, /직접 조작한 주체/);
   assert.match(system, /이미 정확히 알고 있다/);
+  assert.match(system, /세계에 반영되는 모습일 뿐/);
   assert.match(system, /NPC CSA EPISTEMIC FIREWALL/);
   assert.match(storyText, /app_story_fallback/, 'fallback warning');
   // fallback은 [SCENE]만 — 현재 장면 NPC를 임의로 발화시키지 않는다
