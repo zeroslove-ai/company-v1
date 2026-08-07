@@ -98,6 +98,7 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
     if (rpc === 'commit_company_turn') {
       currentSave = args.p_next_save;
       saveRevision += 1;
+      if (calls.__action) Object.assign(calls.__action, { processing_status: 'committed' });
       return json({ success: true, replayed: false, turn_number: args.p_expected_turn, turn_id: 'turn-1', save_revision: saveRevision });
     }
     throw new Error(`Unhandled mock RPC: ${rpc}`);
@@ -356,4 +357,45 @@ test('Story prompt: public-scene and weak-synergy CSA sections are included when
   const system = storySystemPromptFrom(mock);
   assert.match(system, /PUBLIC COMMON-SENSE SCENE/, 'both active presets are public, so the section applies');
   assert.match(system, /CSA WEAK SYNERGY/, 'two CSAs are active simultaneously, so synergy guidance applies');
+});
+test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallback Story로 Extract/Commit까지 진행하고 csa_active에서 제거한다', async () => {
+  const save = freshSave({
+    csa_active: ['csa_0'],
+    csa_rules: { csa_0: { active: true, content: '퇴근 후 야근 보고를 강제한다', strength: 'weak', source_type: 'custom', preset: null } }
+  });
+  const mock = createMockFetch({
+    initialSave: save,
+    // 첫 콘텐츠(헤더만) 후 [DONE] 없이 종료 → story_incomplete → deterministic fallback 트리거
+    storySseText: 'data: {"choices":[{"delta":{"content":"[SCENE]"}}]}\n\n',
+    llmJsonResponses: [{ state_delta: {}, outcome: 'success', evidence: {}, choices: ['대화를 계속 이어간다', '상대의 반응을 살핀다', '현재 행동을 멈추고 상황을 정리한다', '다른 장소로 이동한다'], mind_monitor: {}, dialogue_lines: [] }]
+  });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const structuredAction = {
+    type: 'app_transaction', base_turn_count: 0,
+    operations: [{ client_id: 'op-1', domain: 'csa', operation: 'deactivate', id: 'csa_0' }]
+  };
+  const validated = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: structuredAction }), env);
+  const { canonical_action: canonicalAction, display_input: displayInput } = (await validated.json()).data;
+
+  const actionId = '66666666-6666-4666-8666-666666666666';
+  const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 1, player_action: displayInput, structured_action: canonicalAction }), env);
+  assert.equal(storyRes.status, 200);
+  const storyText = await storyRes.text();
+  assert.match(storyText, /event: complete/);
+  assert.match(storyText, /app_story_fallback/, 'fallback warning');
+  // fallback은 [SCENE]만 — 현재 장면 NPC를 임의로 발화시키지 않는다
+  assert.match(storyText, /해제되어 더 이상 현재 회사 규정이 아닙니다/);
+  assert.equal(mock.calls.__action.story_text.includes('[DIALOGUE]'), false, '대사 블록 없음');
+  assert.ok(mock.calls.__action.story_text.includes('야근 보고를 강제한다'), '운영 내용 라벨 포함');
+
+  const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
+  assert.equal(extractRes.status, 200);
+
+  const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
+  assert.equal(commitRes.status, 200);
+
+  const afterSave = mock.getSave();
+  assert.ok(!afterSave.csa_active.includes('csa_0'), 'csa_active에서 대상 제거');
+  assert.equal(afterSave.csa_rules.csa_0.active, false, '규칙 비활성');
+  assert.equal(mock.calls.__action.processing_status, 'committed', '액션 committed');
 });

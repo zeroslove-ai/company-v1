@@ -613,6 +613,32 @@ const DEFAULT_OPENING_CHOICES = [
   '조용히 정리하며 상황을 파악한다.'
 ];
 
+// app_transaction fail-open — Story upstream이 첫 콘텐츠를 주지 않거나(story_timeout/
+// llm_upstream_failure/story_incomplete) 실패하면 deterministic fallback Story로 계속
+// 진행한다. 현재 장면 NPC를 임의로 발화시키지 않고 [SCENE]만 사용한다.
+const APP_TRANSACTION_STORY_FALLBACK_ERRORS = new Set(['story_timeout', 'llm_upstream_failure', 'story_incomplete']);
+
+function buildAppTransactionFallbackStory(csaPlan, save) {
+  const operations = Array.isArray(csaPlan?.canonical_action?.operations) ? csaPlan.canonical_action.operations : [];
+  const rules = (save && typeof save.csa_rules === 'object' && save.csa_rules) ? save.csa_rules : {};
+  const sceneLines = [];
+  for (const op of operations) {
+    const label = op?.preset?.label
+      ?? (op?.operation === 'deactivate' && op?.id ? rules[op.id]?.content : null)
+      ?? (typeof op?.content === 'string' && op.content.trim() ? String(op.content).slice(0, 40) : null)
+      ?? '해당 규칙';
+    if (op?.operation === 'deactivate') {
+      sceneLines.push(`「${label}」 규칙이 해제되어 더 이상 현재 회사 규정이 아닙니다.`);
+    } else if (op?.operation === 'activate') {
+      sceneLines.push(`「${label}」 규칙이 새로 적용되어 현재 업무 환경에 반영되었습니다.`);
+    } else if (op?.operation === 'update') {
+      sceneLines.push(`「${label}」 규칙이 변경되어 현재 업무 환경에 반영되었습니다.`);
+    }
+  }
+  if (sceneLines.length === 0) sceneLines.push('회사 규정이 변경되어 현재 업무 환경에 반영되었습니다.');
+  return `[SCENE]\n${sceneLines.join('\n')}`;
+}
+
 // 오프닝 fail-open — Story upstream이 최종 실패했을 때 저장된 opening plan 기반의
 // 짧은 기본 오프닝. 플레이어 설정이 reserved 상태로 영구 고착되지 않게 한다.
 function buildFallbackOpeningStory(openingPlan, player) {
@@ -818,7 +844,6 @@ const master = masterFromEdition(edition);
           timing.story_request_chars = messages[0].content.length + messages[1].content.length;
           timing.active_character_count = Object.keys(storyUserPayload.active_character_canon ?? {}).length;
           timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
-          const stream = await streamStory({ env, fetchImpl, messages, timing });
           // Streaming Speaker Gateway — 전체 Story를 버퍼링하지 않는다. 완성된 줄만
           // 처리하고 대사 블록이 닫히는 즉시 흘려보낸다. 차단된 블록은 화면·정본·
           // Extract 어디에도 남지 않고 경고 코드만 기록된다.
@@ -833,10 +858,26 @@ const master = masterFromEdition(edition);
               }
             }
           };
+          let stream = null;
           let upstreamRaw = '';
-          for await (const text of stream.chunks) {
-            upstreamRaw += text;
-            flush(gate.push(text));
+          let storyFallback = false;
+          try {
+            stream = await streamStory({ env, fetchImpl, messages, timing });
+            for await (const text of stream.chunks) {
+              upstreamRaw += text;
+              flush(gate.push(text));
+            }
+          } catch (error) {
+            // app_transaction fail-open — Story upstream이 첫 콘텐츠를 주지 않으면
+            // (30초 timeout/upstream 실패/불완전 스트림) deterministic fallback Story로
+            // 계속 진행한다. 일반 플레이어 턴은 그대로 실패(입력 복원·종료)한다.
+            const code = error?.code;
+            if (!csaPlan || !APP_TRANSACTION_STORY_FALLBACK_ERRORS.has(code)) throw error;
+            storyFallback = true;
+            const fallbackText = buildAppTransactionFallbackStory(csaPlan, hydratedSave);
+            upstreamRaw = fallbackText;
+            flush(gate.push(fallbackText));
+            timing.story_fallback = 1;
           }
           const gated = gate.end();
           flush(gated.emissions);
@@ -859,7 +900,7 @@ const master = masterFromEdition(edition);
             order: b.order
           }));
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
-          const mergedWarnings = [...(parsed.warnings ?? []), ...gated.warnings];
+          const mergedWarnings = [...(parsed.warnings ?? []), ...gated.warnings, ...(storyFallback ? ['app_story_fallback'] : [])];
           const contractPersisted = {
             ...parsed,
             blocks: v2Blocks,

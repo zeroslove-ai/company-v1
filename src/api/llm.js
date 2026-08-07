@@ -35,38 +35,49 @@ async function postCompletion(env, fetchImpl, body, { signal } = {}) {
   return response;
 }
 
-async function* parseOpenAiSse(body, timing, startedAt) {
+async function* parseOpenAiSse(body, timing, startedAt, { signal, onFirstContent, onClose } = {}) {
   if (!body) throw new HttpError(502, 'story_incomplete', 'Story stream has no body', true);
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
   let done = false;
   let characterCount = 0;
-  while (true) {
-    const { value, done: readerDone } = await reader.read();
-    if (readerDone) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split(/\r?\n/);
-    buffer = lines.pop();
-    for (const line of lines) {
-      if (!line.startsWith('data:')) continue;
-      const data = line.slice(5).trim();
-      if (data === '[DONE]') {
-        done = true;
-        continue;
-      }
-      try {
-        const payload = JSON.parse(data);
-        const text = payload.choices?.[0]?.delta?.content;
-        if (typeof text === 'string' && text) {
-          if (timing && timing.story_first_content_ms === undefined) timing.story_first_content_ms = Date.now() - startedAt;
-          characterCount += text.length;
-          yield text;
+  try {
+    while (true) {
+      const { value, done: readerDone } = await reader.read();
+      if (readerDone) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (data === '[DONE]') {
+          done = true;
+          continue;
         }
-      } catch {
-        throw new HttpError(502, 'story_invalid_sse', 'Story SSE payload is invalid', true);
+        try {
+          const payload = JSON.parse(data);
+          const text = payload.choices?.[0]?.delta?.content;
+          if (typeof text === 'string' && text) {
+            if (timing && timing.story_first_content_ms === undefined) timing.story_first_content_ms = Date.now() - startedAt;
+            onFirstContent?.();
+            characterCount += text.length;
+            yield text;
+          }
+        } catch {
+          throw new HttpError(502, 'story_invalid_sse', 'Story SSE payload is invalid', true);
+        }
       }
     }
+  } catch (error) {
+    // 서버 타임아웃(첫 콘텐츠 30초/전체 120초) — AbortSignal이 reader.read를 중단시킨다.
+    if (error?.name === 'AbortError' || signal?.aborted) {
+      throw new HttpError(408, 'story_timeout', 'Story upstream timed out waiting for content', true);
+    }
+    throw new HttpError(502, 'story_invalid_sse', 'Story SSE payload is invalid', true);
+  } finally {
+    onClose?.();
   }
   if (timing) {
     timing.story_network_total_ms = Date.now() - startedAt;
@@ -75,19 +86,44 @@ async function* parseOpenAiSse(body, timing, startedAt) {
   if (!done) throw new HttpError(502, 'story_incomplete', 'Story stream ended before [DONE]', true);
 }
 
+// Story 서버 타임아웃 — 첫 콘텐츠(첫 delta)까지 30초, 전체 스트림 120초.
+// AbortSignal을 upstream fetch와 body reader에 연결해, 어느 쪽이든 제한을 넘으면
+// reader.read()가 중단되고 story_timeout(408)으로 변환된다.
+const STORY_FIRST_CONTENT_TIMEOUT_MS = 30_000;
+const STORY_TOTAL_TIMEOUT_MS = 120_000;
+
 /** Streams the Story completion. thinking stays disabled and the model name is never hardcoded. */
 export async function streamStory({ env, fetchImpl, messages, timing = {} }) {
   const startedAt = Date.now();
   const finalMessages = appendLateAuthoritativeCharacterCanon(messages);
-  const response = await postCompletion(env, fetchImpl, {
-    model: requireEnv(env, 'STORY_MODEL'),
-    messages: finalMessages,
-    stream: true,
-    thinking: { type: 'disabled' },
-    max_tokens: 5000
-  });
+  const controller = new AbortController();
+  const firstContentTimer = setTimeout(() => controller.abort(new Error('story-first-content-timeout')), STORY_FIRST_CONTENT_TIMEOUT_MS);
+  const totalTimer = setTimeout(() => controller.abort(new Error('story-total-timeout')), STORY_TOTAL_TIMEOUT_MS);
+  const clearTimers = () => { clearTimeout(firstContentTimer); clearTimeout(totalTimer); };
+  let response;
+  try {
+    response = await postCompletion(env, fetchImpl, {
+      model: requireEnv(env, 'STORY_MODEL'),
+      messages: finalMessages,
+      stream: true,
+      thinking: { type: 'disabled' },
+      max_tokens: 5000
+    }, { signal: controller.signal });
+  } catch (error) {
+    clearTimers();
+    // llm_upstream_failure(HttpError)는 그대로 전파 — fallback 트리거 대상 유지.
+    if (error instanceof HttpError) throw error;
+    throw new HttpError(408, 'story_timeout', 'Story upstream did not produce content in time', true);
+  }
   timing.story_headers_ms = Date.now() - startedAt;
-  return { chunks: parseOpenAiSse(response.body, timing, startedAt), timing };
+  return {
+    chunks: parseOpenAiSse(response.body, timing, startedAt, {
+      signal: controller.signal,
+      onFirstContent: () => clearTimeout(firstContentTimer),
+      onClose: clearTimers
+    }),
+    timing
+  };
 }
 
 function parseExtractContent(content) {
