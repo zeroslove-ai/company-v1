@@ -59,7 +59,7 @@ const splitStorySse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[
   `data: ${JSON.stringify({ choices: [{ delta: { content: '\\n[2. 플레이어 속마음]\\n좋아.\\n[3. 플레이어 상황판]\\n회의실.\\n[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D' } }] })}\n\n` +
   'data: [DONE]\n\n';
 
-function createMockFetch({ playerAction = '이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.', storySseOverride = null, csaRules = true, contextualSave = false } = {}) {
+function createMockFetch({ playerAction = '이메이의 손목을 잡아 지퍼 안쪽으로 넣어 직접 잡게 한다.', storySseOverride = null, csaRules = true, contextualSave = false, sceneParticipants = null } = {}) {
   const calls = [];
   const actions = new Map();
   const saves = []; // commit된 save 이력 (follow-up 검증용)
@@ -71,6 +71,7 @@ function createMockFetch({ playerAction = '이메이의 손목을 잡아 지퍼 
     save.npc_stats = { ...(save.npc_stats ?? {}), heroine5: { affinity: 50, sexual_arousal: 75, resistance: 30, csa_acceptance: 18 } };
     save.scene_state = { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 };
   }
+  if (sceneParticipants) save.scene_state = { ...(save.scene_state ?? {}), participants: sceneParticipants };
   save.focal_character_id = 'heroine5';
   save.npc_relationship_state = {
     ...(save.npc_relationship_state ?? {}),
@@ -305,7 +306,7 @@ test('16: pending boundary follow-up 생성 → 다음 턴 주입 → 소비 후
 
   // Turn 9: 다음 턴 story prompt에 BOUNDARY CONTINUITY FOLLOW-UP 주입 (턴별 새 actionId)
   const actionId9 = '33333333-3333-4333-8333-333333333333';
-  const story9 = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId9, expected_turn: 9, player_action: '자리에 앉아 업무를 계속한다.' }), env);
+  const story9 = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId9, expected_turn: 9, player_action: '서원희에게 회의 자료 정리를 도와달라고 요청한다.' }), env);
   assert.equal(story9.status, 200);
   await story9.text();
   const story9Calls = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream);
@@ -322,6 +323,7 @@ test('16: pending boundary follow-up 생성 → 다음 턴 주입 → 소비 후
   assert.equal(commit9.status, 200);
   await commit9.json();
   const saveAfter9 = mock.saves[mock.saves.length - 1];
+  const dbgContract = mock.actions.get(actionId9)?.parsed_blocks?.action_execution_contract ?? null;
   assert.equal(saveAfter9.pending_boundary_followup, undefined, '소비 후 삭제');
 
   // Turn 10: section 없음 (반복 금지)
@@ -432,9 +434,10 @@ test('검토3: 활성 CSA 없이 직접 성적 행동 → Story prompt에 AUTHOR
 });
 
 test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-SCOPE LIMIT + undefined 없음', async () => {
-  const mock = createMockFetch({ playerAction: '이메이와 업무 대화를 계속하며 무릎 위에 앉게 한다.' });
+  // csa_5(속옷 미착용 근무, actor=coworker·target 없음) — 남성 참가자 없이도 csa_direct로 판정되는 시나리오
+  const mock = createMockFetch({ playerAction: '이메이의 속옷 착용 여부를 살펴본다.', sceneParticipants: ['player-1', 'heroine5'] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이와 업무 대화를 계속하며 무릎 위에 앉게 한다.' }), env);
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이의 속옷 착용 여부를 살펴본다.' }), env);
   assert.equal(story.status, 200);
   await story.text();
   const llmStory = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream).pop();
@@ -446,7 +449,7 @@ test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-
   assert.ok(!/exact action\(\)/.test(prompt), '빈 행동명 없음');
   // csa_2 정확 행동은 정상 확정
   assert.ok(prompt.includes('CSA DIRECT COVERAGE — ESTABLISHED FACT'), '정상 coverage section');
-  assert.ok(prompt.includes('csa_2'), 'csa_2 명시');
+  assert.ok(prompt.includes('csa_5'), 'csa_5 명시');
 });
 
 // ---------- 조건부 허용: Extract 정본화 / LLM 회귀 (19-13, 19-14, 19-19) ----------

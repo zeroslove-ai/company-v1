@@ -514,7 +514,8 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     : inferTargetId(save, text, characters, npcIds);
   const coverage = resolveCsaDirectCoverage(save, text, {
     sexualActionContract: csaCatalog?.sexual_action_contract,
-    actionTypes
+    actionTypes,
+    characters
   });
   const relationship = relationshipFor(save, targetId);
   const companyAuthorityMisuse = detectCompanyAuthorityMisuse(text);

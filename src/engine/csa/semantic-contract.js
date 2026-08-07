@@ -17,7 +17,7 @@ const LEGACY_GROUP_ALIASES = new Map([
 
 export const CSA_CONTRACT_ACTOR_GROUPS = new Set([
   'coworker', 'manager', 'employee', 'company_employee', 'female_employee', 'male_employee',
-  'business_visitor', 'partner_contact', 'guest', 'everyone_in_company',
+  'business_visitor', 'assigned_visitor', 'partner_contact', 'guest', 'everyone_in_company',
   'player', 'conversation_partner', 'another_present_person', 'nearby_person', 'unknown'
 ]);
 export const CSA_CONTRACT_TARGET_GROUPS = new Set([

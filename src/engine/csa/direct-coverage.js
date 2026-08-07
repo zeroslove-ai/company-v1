@@ -38,15 +38,92 @@ function isPlainObject(value) {
 }
 
 const PLAYER_GROUPS = new Set(['player']);
-// Every non-player Company group or explicit stable selector currently resolves to the
-// concrete NPC present in this scene. The group id is still preserved as audit evidence; a
-// future role-tag resolver can narrow it without changing the semantic-contract shape.
+// Company 그룹은 현재 장면(scene_state.participants)의 실제 인물과 master의
+// 성별·직급·역할 정보를 교차해 판정한다. 그룹 id는 감사 증거로 유지된다.
 
-/** Resolves an actor_group/target_group id to a concrete participant given the current scene. */
-function resolveParticipant(groupId, { save, presentCharacterId } = {}) {
+function characterInfo(id, roster) {
+  if (!roster || typeof roster !== 'object') return {};
+  if (Array.isArray(roster)) return roster.find(entry => entry && (entry.character_id === id || entry.npc_id === id)) ?? {};
+  return roster[id] ?? {};
+}
+const isEmployee = char => char && (typeof char.role_title === 'string' || typeof char.department === 'string'
+  || typeof char.position === 'string' || typeof char.character_id === 'string' || typeof char.name === 'string');
+const MANAGER_RE = /팀장|부장|차장|과장|이사|실장|본부장|대표|매니저/;
+const isManager = char => char && MANAGER_RE.test(`${char.role_title ?? ''} ${char.position ?? ''}`);
+function genderOf(char) {
+  if (typeof char?.gender === 'string' && char.gender) return char.gender;
+  const id = String(char?.character_id ?? char?.id ?? '');
+  if (id.startsWith('heroine')) return 'female';
+  return null;
+}
+const roleTextOf = char => `${char?.role_title ?? ''} ${char?.position ?? ''} ${char?.role ?? ''} ${char?.character_type ?? ''}`;
+const VISITOR_RE = /visitor|guest|external|방문/;
+const PARTNER_RE = /partner|collaborator|협력/;
+
+/**
+ * Resolves an actor_group/target_group id to a concrete participant given the live scene.
+ * 집단 판정: scene_state.participants가 정본이며, female_employee/male_employee/manager/
+ * company_employee 등은 master의 성별·직급·역할 정보로 걸러낸다. actor와 target이 같은
+ * 사람이 될 수 없도록 excludeCharacterId(actor)를 제외하고, 장면 밖 인물은 선택하지 않는다.
+ */
+export function resolveParticipant(groupId, { save, presentCharacterId, master, characters, excludeCharacterId } = {}) {
   if (typeof groupId !== 'string' || !groupId) return null;
   if (PLAYER_GROUPS.has(groupId)) return { type: 'player', characterId: null };
-  if (presentCharacterId) return { type: 'npc', characterId: presentCharacterId };
+  if (groupId === 'unknown' || groupId === 'none') return null;
+
+  const roster = characters ?? master?.characters ?? {};
+  const participants = Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : [];
+  let npcIds = participants.filter(id => typeof id === 'string' && id !== 'player-1' && id !== 'player' && id !== excludeCharacterId);
+  if (!npcIds.length && presentCharacterId && presentCharacterId !== excludeCharacterId) npcIds = [presentCharacterId];
+
+  // 현재 대화 상대 — focus_thread(relationship:xxx)를 정본으로 사용
+  if (groupId === 'conversation_partner') {
+    const focus = typeof save?.scene_state?.focus_thread === 'string' ? save.scene_state.focus_thread : '';
+    const targetId = focus.startsWith('relationship:') ? focus.slice('relationship:'.length) : null;
+    if (targetId && npcIds.includes(targetId)) return { type: 'npc', characterId: targetId };
+    return npcIds.length ? { type: 'npc', characterId: npcIds[0] } : null;
+  }
+
+  for (const id of npcIds) {
+    const char = characterInfo(id, roster);
+    const g = genderOf(char);
+    const text = roleTextOf(char);
+    switch (groupId) {
+      case 'female_employee':
+        if (g === 'female' && isEmployee(char)) return { type: 'npc', characterId: id };
+        break;
+      case 'male_employee':
+        if (g === 'male' && isEmployee(char)) return { type: 'npc', characterId: id };
+        break;
+      case 'company_employee':
+      case 'coworker':
+        if (isEmployee(char)) return { type: 'npc', characterId: id };
+        break;
+      case 'manager':
+        if (isManager(char)) return { type: 'npc', characterId: id };
+        break;
+      case 'employee':
+        if (isEmployee(char) && !isManager(char)) return { type: 'npc', characterId: id };
+        break;
+      case 'business_visitor':
+        if (VISITOR_RE.test(text) && !/guest/.test(char?.role ?? '')) return { type: 'npc', characterId: id };
+        break;
+      case 'assigned_visitor':
+        if (/assigned|담당/.test(text) && VISITOR_RE.test(text)) return { type: 'npc', characterId: id };
+        break;
+      case 'partner_contact':
+        if (PARTNER_RE.test(text)) return { type: 'npc', characterId: id };
+        break;
+      case 'guest':
+        if (char?.role === 'guest' || /방문객/.test(text)) return { type: 'npc', characterId: id };
+        break;
+      case 'another_present_person':
+      case 'nearby_person':
+      default:
+        // 현재 장면에 실제 존재하는 적합한 사람 (excludeCharacterId 제외)
+        return { type: 'npc', characterId: id };
+    }
+  }
   return null;
 }
 
@@ -84,15 +161,17 @@ function csaContent(csa) {
   return typeof csa?.content === 'string' ? csa.content : '';
 }
 
-function resolveSexualCoverage(applicableCsa, text, actionTypes, { save, presentCharacterId, sexualActionContract }) {
+function resolveSexualCoverage(applicableCsa, text, actionTypes, { save, presentCharacterId, sexualActionContract, master, characters }) {
   for (const csa of applicableCsa) {
     const contract = buildCsaSemanticContract(csa, sexualActionContract);
     if (contract.sexual_authorization !== true || contract.direct_execution !== true) continue;
     // A choice bundling an uncovered material action is never wholly csa_direct.
     if (actionTypes.some(action => !contract.actions.includes(action))) continue;
     if (!actionTypes.length) continue;
-    const actor = resolveParticipant(contract.actor_group, { save, presentCharacterId });
-    const target = resolveParticipant(contract.target_group, { save, presentCharacterId });
+    const actor = resolveParticipant(contract.actor_group, { save, presentCharacterId, master, characters });
+    const target = contract.target_group
+      ? resolveParticipant(contract.target_group, { save, presentCharacterId, master, characters, excludeCharacterId: actor?.characterId ?? null })
+      : null;
     if (!actor || !target) continue;
     const direction = resolveDirection(actor, target);
     if (!contract.directions.includes(direction)) continue;
@@ -152,7 +231,7 @@ function structuredParticipantMatches(participant, id) {
  * and satisfy the contract's direction, and finally that the structured actor_id/target_id
  * actually match those same resolved participants. Never trusts actor_id/target_id alone.
  */
-function resolveStructuredSexualCoverage(applicableCsa, meta, { save, presentCharacterId, sexualActionContract }) {
+function resolveStructuredSexualCoverage(applicableCsa, meta, { save, presentCharacterId, sexualActionContract, master, characters }) {
   const actionTypes = Array.isArray(meta?.action_types) ? meta.action_types.filter(action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none') : [];
   if (!actionTypes.length) return { covered: false };
   const actorId = typeof meta?.actor_id === 'string' && meta.actor_id ? meta.actor_id : null;
@@ -163,8 +242,10 @@ function resolveStructuredSexualCoverage(applicableCsa, meta, { save, presentCha
     const contract = buildCsaSemanticContract(csa, sexualActionContract);
     if (contract.sexual_authorization !== true || contract.direct_execution !== true) continue;
     if (actionTypes.some(action => !contract.actions.includes(action))) continue;
-    const actor = resolveParticipant(contract.actor_group, { save, presentCharacterId });
-    const target = resolveParticipant(contract.target_group, { save, presentCharacterId });
+    const actor = resolveParticipant(contract.actor_group, { save, presentCharacterId, master, characters });
+    const target = contract.target_group
+      ? resolveParticipant(contract.target_group, { save, presentCharacterId, master, characters, excludeCharacterId: actor?.characterId ?? null })
+      : null;
     if (!actor || !target) continue;
     const direction = resolveDirection(actor, target);
     if (!contract.directions.includes(direction)) continue;
@@ -178,7 +259,7 @@ function resolveStructuredSexualCoverage(applicableCsa, meta, { save, presentCha
   return { covered: false };
 }
 
-function resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterId, sexualActionContract }) {
+function resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterId, sexualActionContract, master, characters }) {
   for (const csa of applicableCsa) {
     const tags = csa.source_type === 'preset' && isPlainObject(csa.preset) && Array.isArray(csa.preset.direct_meaning_tags)
       ? csa.preset.direct_meaning_tags.filter(tag => typeof tag === 'string' && tag.trim())
@@ -188,8 +269,10 @@ function resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterI
     const matchedCore = coreTags.some(tag => text.includes(tag));
     if (!matchedCore) continue;
     const contract = buildCsaSemanticContract(csa, sexualActionContract);
-    const actor = resolveParticipant(contract.actor_group, { save, presentCharacterId });
-    const target = contract.target_group ? resolveParticipant(contract.target_group, { save, presentCharacterId }) : { type: 'none' };
+    const actor = resolveParticipant(contract.actor_group, { save, presentCharacterId, master, characters });
+    const target = contract.target_group
+      ? resolveParticipant(contract.target_group, { save, presentCharacterId, master, characters, excludeCharacterId: actor?.characterId ?? null })
+      : { type: 'none' };
     if (!actor) continue;
     const direction = contract.target_group ? resolveDirection(actor, target) : 'none';
     if (contract.target_group && contract.directions.length && !contract.directions.includes(direction)) continue;
@@ -221,7 +304,7 @@ function resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterI
  * structured entry exists at all (custom-typed action, or a save predating
  * this field) does resolution fall back to the free-text tag/keyword matcher.
  */
-export function resolveCsaDirectCoverage(save, playerActionText, { sexualActionContract, actionTypes } = {}) {
+export function resolveCsaDirectCoverage(save, playerActionText, { sexualActionContract, actionTypes, master, characters } = {}) {
   const text = typeof playerActionText === 'string' ? playerActionText : '';
   if (!text.trim()) return { covered: false };
   const applicableCsa = getApplicableCsaEntries(save);
@@ -242,28 +325,28 @@ export function resolveCsaDirectCoverage(save, playerActionText, { sexualActionC
       ? structuredMeta.action_types.filter(action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none')
       : [];
     if (structuredActionTypes.length) {
-      const structuredResult = resolveStructuredSexualCoverage(applicableCsa, structuredMeta, { save, presentCharacterId, sexualActionContract });
+      const structuredResult = resolveStructuredSexualCoverage(applicableCsa, structuredMeta, { save, presentCharacterId, sexualActionContract, master, characters });
       // Extract already classified this choice as materially sexual — never fall
       // back to keyword guessing just because no CSA's structured check matched.
       return structuredResult.covered ? structuredResult : { covered: false };
     }
     // Extract classified this choice as non-sexual; the nonsexual path is
     // tag-based in donor too (no structured actor_id/target_id requirement there).
-    return resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterId, sexualActionContract });
+    return resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterId, sexualActionContract, master, characters });
   }
 
   // No structured signal for this exact text (custom input, or a choice that
   // predates this field) — fall back to the original tag/keyword matcher.
   const actionTypeList = providedActionTypes.length ? providedActionTypes : classifyMaterialActions(text);
   if (actionTypeList.length) {
-    const sexualResult = resolveSexualCoverage(applicableCsa, text, actionTypeList, { save, presentCharacterId, sexualActionContract });
+    const sexualResult = resolveSexualCoverage(applicableCsa, text, actionTypeList, { save, presentCharacterId, sexualActionContract, master, characters });
     if (sexualResult.covered) return sexualResult;
     // A materially sexual choice never falls through to the nonsexual tag-match path
     // (README-derived rule: a sexual act's coverage must always go through the full
     // semantic contract, never a bare tag/keyword hit).
     return { covered: false };
   }
-  return resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterId, sexualActionContract });
+  return resolveNonsexualCoverage(applicableCsa, text, { save, presentCharacterId, sexualActionContract, master, characters });
 }
 
 /** Established-fact Story section for an exactly-covered action — never a probability or a choice-style prompt. */

@@ -29,7 +29,12 @@ test('direct coverage: an exact core-tag match on an active preset is covered, w
     preset: { template_id: presetItem.id, actor_group: presetItem.default_actor, target_group: presetItem.default_target, trigger: presetItem.default_trigger, duration: presetItem.default_duration, required_action: presetItem.required_action, direct_meaning_tags: presetItem.direct_meaning_tags }
   }]);
   const coreTag = presetItem.direct_meaning_tags[0];
-  const coverage = resolveCsaDirectCoverage(save, `${coreTag} 자세를 취한다`, {});
+  save.scene_state.participants = ['player-1', 'heroine1', 'visitor1'];
+  const characters = {
+    heroine1: { character_id: 'heroine1', name: '서원희', position: '차장', department: '브랜드전략팀' },
+    visitor1: { character_id: 'visitor1', name: '박방문', role: 'business_visitor', role_title: '외부 업무 방문자' }
+  };
+  const coverage = resolveCsaDirectCoverage(save, `${coreTag} 자세를 취한다`, { characters });
   assert.equal(coverage.covered, true);
   assert.equal(coverage.route, 'csa_direct');
   assert.equal(coverage.actor_group, canonicalizeCsaGroup(presetItem.default_actor));
@@ -65,7 +70,7 @@ test('direct coverage: an exact sexual action + direction match on a sexual-auth
     source_type: 'preset', content: '테스트', strength: 'medium',
     preset: { template_id: 'test_template', actor_group: 'nurse', target_group: 'player', trigger: 'on_request', duration: 'continuous', required_action: requiredAction, public_normalization: true }
   }]);
-  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract });
+  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract, characters: { heroine1: { character_id: 'heroine1', name: '서원희', position: '차장', department: '브랜드전략팀' } } });
   assert.equal(coverage.covered, true);
   assert.equal(coverage.route, 'csa_direct');
   assert.equal(coverage.direction, 'npc_to_player');

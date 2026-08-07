@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "gamebuilder-company-v1" generated at 2026-08-07T05:18:19.448Z.

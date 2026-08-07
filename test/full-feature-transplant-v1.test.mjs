@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -137,11 +137,14 @@ function sexualCsaSave({ actorGroup = 'nurse', targetGroup = 'player', requiredA
   };
 }
 
+const SEXUAL_CHARACTERS = {
+  heroine1: { character_id: 'heroine1', name: '서원희', position: '차장', department: '브랜드전략팀' }
+};
 const sexualActionContract = { __test_required_action__: { directions: ['npc_to_player'], actions: ['genital_touch'] } };
 
 test('direct coverage (structured): an exact actor_id/target_id/action_type/direction match on a rendered choice is covered', () => {
   const save = sexualCsaSave();
-  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract });
+  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
   assert.equal(coverage.covered, true);
   assert.equal(coverage.route, 'csa_direct');
   assert.equal(coverage.direction, 'npc_to_player');
@@ -152,14 +155,14 @@ test('direct coverage (structured): a structured actor_id that does not match th
   const save = sexualCsaSave();
   // Extract mis-reports actor_id as an id that isn't the actually-resolved present NPC.
   save.last_choice_meta[0] = { ...save.last_choice_meta[0], actor_id: 'someone_not_present' };
-  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract });
+  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
   assert.equal(coverage.covered, false, 'actor_id must be cross-validated against the live save, never trusted on its own');
 });
 
 test('direct coverage (structured): ambiguous free-typed input with no matching rendered choice falls through to the tag-based fallback, never guessed as covered from actor_id alone', () => {
   const save = sexualCsaSave();
   // Custom text that doesn't match any of last_choices, and contains no material action keyword.
-  const coverage = resolveCsaDirectCoverage(save, '오늘 날씨 이야기를 한다', { sexualActionContract });
+  const coverage = resolveCsaDirectCoverage(save, '오늘 날씨 이야기를 한다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
   assert.equal(coverage.covered, false);
 });
 
@@ -167,13 +170,13 @@ test('direct coverage (structured): a bundled action not covered by the contract
   const save = sexualCsaSave();
   save.last_choices[0] = '키스하면서 성기를 만진다';
   save.last_choice_meta[0] = { choice_index: 0, action_types: ['kiss', 'genital_touch'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'csa_direct', direct_csa_ids: ['csa_0'] };
-  const coverage = resolveCsaDirectCoverage(save, '키스하면서 성기를 만진다', { sexualActionContract });
+  const coverage = resolveCsaDirectCoverage(save, '키스하면서 성기를 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
   assert.equal(coverage.covered, false, 'the contract only authorizes genital_touch; bundling an uncovered kiss must reject the whole choice');
 });
 
 test('direct coverage (structured): a covered choice carries no probability, bold, or risk-tier metadata anywhere in its section text', () => {
   const save = sexualCsaSave();
-  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract });
+  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
   assert.equal(coverage.covered, true);
   const section = buildCsaDirectCoverageSection(coverage);
   assert.doesNotMatch(section, /\d+\s*%|위험도\s*[:：]|bold_choice|risk_tier|success_rate/i);
@@ -184,7 +187,7 @@ test('direct coverage (structured): a direction mismatch (structured actor/targe
   const save = sexualCsaSave();
   save.last_choices[0] = '내가 먼저 만진다';
   save.last_choice_meta[0] = { choice_index: 0, action_types: ['genital_touch'], actor_id: 'player', target_id: 'heroine1', suggested_route: 'csa_direct', direct_csa_ids: ['csa_0'] };
-  const coverage = resolveCsaDirectCoverage(save, '내가 먼저 만진다', { sexualActionContract });
+  const coverage = resolveCsaDirectCoverage(save, '내가 먼저 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
   assert.equal(coverage.covered, false, 'the contract only authorizes npc_to_player, not the reverse direction');
 });
 

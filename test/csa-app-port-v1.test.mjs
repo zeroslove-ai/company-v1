@@ -13,7 +13,10 @@ import {
   signAppValidationProof, verifyAppValidationProof, verifyStructuredActionValidation,
   normalizeStructuredAction, buildAppManualPayload, buildAppStatePayload,
   getActiveCsaEntries, getApplicableCsaEntries,
-  buildNpcCsaEpistemicFirewallSection
+  buildNpcCsaEpistemicFirewallSection,
+  resolveParticipant,
+  canonicalizeCsaGroup,
+  normalizeCompanyCsaCatalog
 } from '../src/engine/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -473,4 +476,65 @@ test('NPC CSA 인식 구분: 신규 규정은 공지로 인식·비교·논의 �
   assert.doesNotMatch(section, /이전 현실과 지금을 비교하는 인식/);
   assert.doesNotMatch(section, /시점 변화를 절대 인식하지 않는다/);
   assert.doesNotMatch(section, /원래부터 당연하다고 받아들이되/);
+});
+test('프리셋 카탈로그: 사용자 노출에 병원 legacy ID·의료 문구가 없고 회사 정본 ID가 노출된다', () => {
+  const normalized = normalizeCompanyCsaCatalog(catalog);
+  const flat = JSON.stringify(normalized);
+  for (const legacy of ['nurse', 'doctor', 'medical_staff', 'hospital_staff', 'patient', 'guardian', 'everyone_in_hospital']) {
+    assert.ok(!flat.includes(`"${legacy}"`), `${legacy} 노출 금지`);
+  }
+  for (const id of ['coworker', 'manager', 'employee', 'company_employee', 'female_employee', 'male_employee',
+    'business_visitor', 'partner_contact', 'guest', 'everyone_in_company']) {
+    assert.ok(normalized.actor_options.some(o => o.id === id), `actor 옵션 ${id}`);
+    assert.ok(normalized.target_options.some(o => o.id === id), `target 옵션 ${id}`);
+  }
+  const label = id => normalized.actor_options.find(o => o.id === id)?.label;
+  assert.equal(label('company_employee'), '회사 직원 전체');
+  assert.equal(label('female_employee'), '여성 직원 전체');
+  assert.equal(label('male_employee'), '남성 직원 전체');
+  assert.equal(label('everyone_in_company'), '회사 안의 모든 사람');
+  const userFacing = JSON.stringify({
+    labels: normalized.items.map(i => i.label),
+    templates: normalized.items.map(i => i.content_template),
+    optionLabels: [...normalized.actor_options, ...normalized.target_options, ...normalized.trigger_options, ...normalized.duration_options].map(o => o.label)
+  });
+  for (const word of ['병원', '간호사', '의사', '환자', '보호자', '진료', '체온', '검사 위치', '상담 자세', '상담이 끝날']) {
+    assert.ok(!userFacing.includes(word), `사용자 노출 문구 금지: ${word}`);
+  }
+});
+
+test('집단 participant 판정: 성별·직급·역할로 female/male/manager/visitor를 구분하고 actor·target 중복과 장면 밖 인물을 배제한다', () => {
+  const roster = {
+    heroine1: { character_id: 'heroine1', name: '서원희', position: '차장', role_title: '브랜드전략팀 팀장', department: '브랜드전략팀' },
+    heroine2: { character_id: 'heroine2', name: '윤민아', position: '대리', department: '브랜드전략팀' },
+    male_emp: { character_id: 'male_emp', name: '김대리', gender: 'male', position: '대리', department: '마케팅팀' },
+    visitor1: { character_id: 'visitor1', name: '박방문', role: 'business_visitor', role_title: '외부 업무 방문자' }
+  };
+  const save = {
+    scene_state: { participants: ['player-1', 'heroine2', 'male_emp', 'heroine1', 'visitor1'], focus_thread: 'relationship:heroine2' }
+  };
+  const ctx = { save, characters: roster };
+  assert.equal(resolveParticipant('female_employee', ctx).characterId, 'heroine2', '여성 직원만');
+  assert.equal(resolveParticipant('male_employee', ctx).characterId, 'male_emp', '남성 직원만');
+  assert.equal(resolveParticipant('manager', ctx).characterId, 'heroine1', '관리자만');
+  assert.equal(resolveParticipant('employee', ctx).characterId, 'heroine2', '일반 직원(관리자 제외)');
+  assert.equal(resolveParticipant('business_visitor', ctx).characterId, 'visitor1', '외부 방문자만');
+  assert.equal(resolveParticipant('conversation_partner', ctx).characterId, 'heroine2', 'focus_thread 대상');
+  const actor = resolveParticipant('company_employee', ctx);
+  const target = resolveParticipant('company_employee', { ...ctx, excludeCharacterId: actor.characterId });
+  assert.notEqual(target.characterId, actor.characterId, 'actor와 target은 같은 사람이 될 수 없다');
+  assert.equal(resolveParticipant('guest', ctx), null, '장면에 없는 역할은 선택되지 않는다');
+});
+
+test('legacy 읽기 호환: nurse/patient/everyone_in_hospital이 정본 ID로 canonicalize된다', () => {
+  assert.equal(canonicalizeCsaGroup('nurse'), 'coworker');
+  assert.equal(canonicalizeCsaGroup('patient', { target: true }), 'business_visitor');
+  assert.equal(canonicalizeCsaGroup('everyone_in_hospital'), 'everyone_in_company');
+  assert.equal(canonicalizeCsaGroup('doctor'), 'manager');
+  assert.equal(canonicalizeCsaGroup('guardian'), 'partner_contact');
+  // legacy ID를 가진 기존 save·pending payload도 정상 재정규화된다
+  const normalized = normalizeCompanyCsaCatalog(catalog);
+  const withLegacy = { ...normalized, items: normalized.items.map(it => ({ ...it, default_actor: it.default_actor === 'coworker' ? 'nurse' : it.default_actor })) };
+  const again = normalizeCompanyCsaCatalog(withLegacy);
+  assert.ok(again.items.every(it => !['nurse', 'patient', 'everyone_in_hospital'].includes(it.default_actor)), 'legacy 저장도 재정규화');
 });
