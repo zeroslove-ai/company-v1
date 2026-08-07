@@ -273,3 +273,21 @@ test('Extract uses Story choices, disables thinking, uses the 5000-token envelop
   assert.equal(failedPayload.data.degraded, true);
   assert.ok(failedPayload.data.warnings.includes('extract_error:extract_truncated'));
 });
+test('구조 일부 누락(대화 없음·선택지 빈 배열)에도 스토리 본문이 유지되고 턴은 정상 Commit된다', async () => {
+  const mock = createMockFetch({
+    storySseSequence: ['data: {"choices":[{"delta":{"content":"[SCENE]\\n본문 서사만 있고 대사가 없는 장면"}}]}\n\ndata: [DONE]\n'],
+    extractEnvelope: { state_delta: {}, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }
+  });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '확인한다.' };
+  const story = await worker.fetch(request('/api/story', body), env);
+  assert.equal(story.status, 200);
+  const storyText = await story.text();
+  assert.match(storyText, /event: complete/);
+  assert.ok(mock.actions.get(actionId).story_text.includes('본문 서사만'), '스토리 본문 유지');
+  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.equal(extract.status, 200);
+  const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
+  assert.equal(commit.status, 200, '선택지 누락이 commit을 막지 않는다');
+  assert.equal(mock.actions.get(actionId).processing_status, 'committed');
+});

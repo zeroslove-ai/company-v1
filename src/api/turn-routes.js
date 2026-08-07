@@ -17,7 +17,7 @@ import { createStructuredStoryGate, STRUCTURED_STORY_VERSION } from '../engine/s
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
-  DEFAULT_TURN_CHOICES,
+  buildFallbackTurnChoices,
   sanitizeMovementCommit,
   buildDegradedExtractEnvelope,
   buildExtractPrompt,
@@ -1302,7 +1302,7 @@ const master = masterFromEdition(edition);
           if (summaryText) nextSave.story_summary_recent = summaryText;
         }
         // 일반 턴 선택지 fail-open — game_turns.choices도 4개 미만이면 기본 선택지로 보충한다.
-        const finalChoices = Array.isArray(extract.choices) && extract.choices.length === 4 ? extract.choices : DEFAULT_TURN_CHOICES;
+        const finalChoices = Array.isArray(extract.choices) && extract.choices.length === 4 ? extract.choices : buildFallbackTurnChoices(currentSave);
 
         const commitRpcStart = Date.now();
         // A feedback-revision action never advances committed_turn — it replaces the content of

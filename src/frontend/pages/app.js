@@ -1,4 +1,4 @@
-﻿import { createApiClient, ApiError } from './api.js';
+import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
@@ -462,6 +462,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       text(elements.stream, 'Story를 생성하는 중…');
       try {
         await coordinator.startNewAction(action, structuredAction);
+        // 정상 commit 확인 — 입력창과 선택 상태를 초기화한다.
+        // 실패·미확정·재시도 상태에서는 사용자 입력을 지우지 않는다 (실패 시 catch가 복원).
+        if (elements.input) elements.input.value = '';
+        streamedStoryChoices = [];
+        render();
       } catch (error) {
         // Story 생성 실패 등 — pending을 비우고 원래 행동을 입력창에 복원한다.
         // failed 상태가 새 턴 입력을 막지 않게 한다 (하드락 전면 제거).

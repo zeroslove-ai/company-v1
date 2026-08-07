@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   applyGuardedStateDelta,
-  DEFAULT_TURN_CHOICES,
+  buildFallbackTurnChoices,
   buildExtractPrompt,
   deriveRecoverableStep,
   normalizeExtractEnvelope,
@@ -78,11 +78,11 @@ test('guarded merge persists top-level Extract choices as the authoritative snap
   const result = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['one', 'two'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
   // 4개 미만이면 deterministic 기본 선택지 4개로 보충 (빈 배열 저장 금지, 이전 턴 재사용 금지)
   assert.equal(result.nextSave.last_choices.length, 4);
-  assert.deepEqual(result.nextSave.last_choices, DEFAULT_TURN_CHOICES);
+  assert.deepEqual(result.nextSave.last_choices, buildFallbackTurnChoices(result.nextSave));
   assert.ok(result.warnings.includes('choices_not_exactly_four'));
   const empty = applyGuardedStateDelta(save, { state_delta: { last_choices: ['stale'] }, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
   assert.equal(empty.nextSave.last_choices.length, 4, '빈 배열 대신 기본 선택지');
-  assert.deepEqual(empty.nextSave.last_choices, DEFAULT_TURN_CHOICES);
+  assert.deepEqual(empty.nextSave.last_choices, buildFallbackTurnChoices(empty.nextSave));
   // 정확히 4개면 Extract 제안 그대로
   const four = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
   assert.deepEqual(four.nextSave.last_choices, ['a', 'b', 'c', 'd']);

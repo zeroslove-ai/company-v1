@@ -542,3 +542,36 @@ test('Commit 화면 인계: 정본 반영 시 current-story가 저장 카드로 
     assert.equal(nodes['player-action'].disabled, false, '입력 활성');
   });
 });
+test('commit 성공 시 입력창이 초기화되고 실패 시 원래 입력이 유지된다', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    // 성공 경로 — 정상 commit 후 입력창 초기화
+    let commitOk = true;
+    let storyCalls = 0;
+    const api = {
+      context: async () => ({ context: validContext() }),
+      actionStatus: async () => ({}),
+      story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 본문"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: ['a', 'b', 'c', 'd'], mind_monitor: {} } }),
+      commit: async () => commitOk ? { commit: { success: true, turn_number: 38 } } : (() => { throw new Error('commit 실패'); })()
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.refreshContext();
+    nodes['player-action'].value = '민아씨, 확인해 봐요';
+    assert.equal(await app.startNewAction('민아씨, 확인해 봐요'), true);
+    assert.equal(nodes['player-action'].value, '', '정상 commit 후 입력창 초기화');
+
+    // 실패 경로 — story 실패 시 원래 입력 복원 (지우지 않음)
+    const failingApi = {
+      context: async () => ({ context: validContext() }),
+      actionStatus: async () => ({}),
+      story: async () => { throw new Error('upstream fail'); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true, turn_number: 39 } })
+    };
+    const app2 = createFrontendApp({ documentRef, storage: storage(), api: failingApi });
+    await app2.refreshContext();
+    nodes['player-action'].value = '실패해도 남아야 하는 문장';
+    await app2.startNewAction('실패해도 남아야 하는 문장');
+    assert.equal(nodes['player-action'].value, '실패해도 남아야 하는 문장', '실패 시 원래 입력 유지');
+  });
+});
