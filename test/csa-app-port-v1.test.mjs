@@ -315,7 +315,10 @@ test('a structured app_transaction with a tampered validation_proof is rejected 
 
 function storySystemPromptFrom(mock) {
   const llmCall = mock.calls.find(call => call.url.startsWith('https://llm.test'));
-  return JSON.parse(llmCall.body).messages[0].content;
+  return JSON.parse(llmCall.body).messages
+    .filter(message => message.role === 'system')
+    .map(message => message.content)
+    .join('\n');
 }
 
 test('Story prompt: public-scene and weak-synergy CSA sections are omitted when no active CSA is public and only one is active', async () => {
@@ -382,6 +385,11 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
   assert.equal(storyRes.status, 200);
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
+  const system = storySystemPromptFrom(mock);
+  assert.match(system, /PLAYER KNOWLEDGE OF APP TRANSACTION/);
+  assert.match(system, /직접 조작한 주체/);
+  assert.match(system, /이미 정확히 알고 있다/);
+  assert.match(system, /NPC CSA EPISTEMIC FIREWALL/);
   assert.match(storyText, /app_story_fallback/, 'fallback warning');
   // fallback은 [SCENE]만 — 현재 장면 NPC를 임의로 발화시키지 않는다
   assert.match(storyText, /해제되어 더 이상 현재 회사 규정이 아닙니다/);

@@ -293,7 +293,7 @@ test('commit_failed + expected_turn_conflict pending은 startNewAction에서 정
     const local = storage();
     savePending(local, { game_id: gameId, action_id: 'orphan', expected_turn: 37, player_action: '고아 행동', created_at: 'now', step: 'commit' });
     const context = validContext();
-    context.save.committed_turn = 37;
+    context.save.committed_turn = 40;
     let storyCalls = 0;
     const api = {
       context: async () => ({ context }),
@@ -518,12 +518,16 @@ test('Commit 화면 인계: 정본 반영 시 current-story가 저장 카드로 
       actionStatus: async () => ({}),
       // story SSE meta가 서버 정본 action_id를 준다 → pending.action_id가 교체되어
       // 이후 commit 인계 확인(최근 턴 action_id 일치)이 성립한다
-      story: async () => new Response('event: meta\ndata: {"action_id":"action-38"}\n\nevent: delta\ndata: {"text":"[SCENE] 본문만 있는 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }),
+      story: async () => new Response('event: meta\ndata: {"action_id":"action-41"}\n\nevent: delta\ndata: {"text":"[SCENE] 본문만 있는 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }),
       extract: async () => ({ extract: { choices: [], mind_monitor: {}, turn_summary: '38턴 요약' }, parsed_blocks: { blocks: [] } }),
       commit: async () => {
-        // 커밋 후 context refresh가 38턴 정본(recent_turns + action_id 일치)을 반환
-        turns = [{ turn_number: 38, action_id: 'action-38', player_action: '새 행동', story_text: '[SCENE] 본문', parsed_blocks: { blocks: [] }, turn_summary: '38턴 요약' }];
-        return { commit: { success: true, turn_number: 38 } };
+        // 커밋 후 context refresh가 41턴 정본(recent_turns + action_id 일치)을 반환한다.
+        // 세션 기록은 최신 우선이므로 마지막 카드는 40턴이다.
+        turns = [
+          { turn_number: 41, action_id: 'action-41', player_action: '새 행동', story_text: '[SCENE] 본문', parsed_blocks: { blocks: [] }, turn_summary: '41턴 요약' },
+          { turn_number: 40, action_id: 'action-40', player_action: '이전 행동', story_text: '[SCENE] 이전 본문', parsed_blocks: { blocks: [] }, turn_summary: '40턴 요약' }
+        ];
+        return { commit: { success: true, turn_number: 41 } };
       }
     };
     const app = createFrontendApp({ documentRef, storage: storage(), api });
@@ -532,7 +536,8 @@ test('Commit 화면 인계: 정본 반영 시 current-story가 저장 카드로 
     // 정본 반영 확인 후에만 current-story를 비운다 — 실시간 Story가 저장 카드로 교체되며 사라지지 않는다
     assert.equal(nodes['current-story'].children.length, 0, '정본 반영 시 current-story 교체');
     const cards = nodes['story-history'].children.filter(child => child.className === 'turn-card');
-    assert.ok(cards.length >= 1, '38턴 저장 카드 렌더');
+    assert.equal(cards.length, 2, '41턴과 40턴 카드가 최신 우선으로 렌더');
+    assert.equal(cards.at(-1).scrolls, 0, '과거 40턴 카드로 강제 스크롤하지 않음');
     assert.equal(nodes['submit-action'].disabled, false, '다음 입력 즉시 가능');
     assert.equal(nodes['player-action'].disabled, false, '입력 활성');
   });

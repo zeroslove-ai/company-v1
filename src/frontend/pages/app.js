@@ -364,13 +364,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       if (canonicalTurn) {
         clearCurrentTurn();
         showStatus('턴이 완료되었습니다.');
-        // 최신 저장 카드로 스크롤 — 화면이 갑자기 빈 영역으로 남지 않게 앵커를 유지한다.
-        const nextFrame = globalThis.requestAnimationFrame ?? (callback => setTimeout(callback, 0));
-        nextFrame(() => {
-          const cards = elements.history?.children ?? [];
-          const lastCard = cards[cards.length - 1];
-          lastCard?.scrollIntoView?.({ block: 'start', inline: 'nearest' });
-        });
       } else {
         showStatus('저장된 기록을 다시 확인하는 중…');
       }
