@@ -73,15 +73,15 @@ test('guarded merge deduplicates ledger, replaces snapshots, permits graded outc
   assert.deepEqual(result.nextSave.turn_state, { committed_turn: 7, processing_status: 'ready', turn_id: 'turn-8', action_id: 'action-8', expected_turn: 9 });
 });
 
-test('guarded merge persists top-level Extract choices as the authoritative snapshot — 4개 미만은 기본 선택지 보충', () => {
+test('guarded merge pads missing choices without dropping existing ones — 4개 미만은 부족분만 보충', () => {
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
   const result = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['one', 'two'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
-  // 4개 미만이면 deterministic 기본 선택지 4개로 보충 (빈 배열 저장 금지, 이전 턴 재사용 금지)
+  // G — 기존 선택지는 보존하고 부족분만 deterministic 후보로 보충한다.
   assert.equal(result.nextSave.last_choices.length, 4);
-  assert.deepEqual(result.nextSave.last_choices, buildFallbackTurnChoices(result.nextSave));
-  assert.ok(result.warnings.includes('choices_not_exactly_four'));
+  assert.deepEqual(result.nextSave.last_choices.slice(0, 2), ['one', 'two'], '기존 선택지 보존');
+  assert.ok(result.warnings.some(w => w.startsWith('choices_padded:2->4')));
   const empty = applyGuardedStateDelta(save, { state_delta: { last_choices: ['stale'] }, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
-  assert.equal(empty.nextSave.last_choices.length, 4, '빈 배열 대신 기본 선택지');
+  assert.equal(empty.nextSave.last_choices.length, 4, '빈 배열이면 기본 선택지 4개');
   assert.deepEqual(empty.nextSave.last_choices, buildFallbackTurnChoices(empty.nextSave));
   // 정확히 4개면 Extract 제안 그대로
   const four = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });

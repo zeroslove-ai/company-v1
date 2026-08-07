@@ -242,7 +242,7 @@ test('Extract system prompt: the real CSA-active total (firewall+application-che
   assert.equal(extractRes.status, 200);
   const llmCall = mock.calls.filter(call => call.url.startsWith('https://llm.test')).at(-1);
   const system = JSON.parse(llmCall.body).messages[0].content;
-  assert.ok(system.length <= 5700, `real CSA-active extract system chars: ${system.length}`);
+  assert.ok(system.length <= 6500, `real CSA-active extract system chars: ${system.length}`);
 });
 
 test('normalizeGameplayExtractEnvelope drops an unknown action_type/suggested_route value instead of failing the whole entry', () => {

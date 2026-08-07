@@ -1,10 +1,15 @@
-import { buildActiveCharacterCanon, buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js';
-import { buildPlayerPromptProjection, resolvePlayerCanonicalNames } from './player-setup.js';
+import { buildActiveCharacterCanon, buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js'
+import { buildPlayerPromptProjection, resolvePlayerCanonicalNames } from './player-setup.js'
 import {
   buildGeneralNpcCanon,
   buildWorkplaceContext,
   selectActiveGeneralNpcIds
-} from './workplace-context.js';
+} from './workplace-context.js'
+import {
+  requiredClothingFromActiveCsa,
+  compareRequiredClothing,
+  seedFirstObservedClothing
+} from './state/clothing.js'
 
 const MOVEMENT_TARGET_ACTION = /(찾으러|찾아가|찾아보|보러\s*가|만나러|이동하|가본다|가겠다|방문하)/u;
 
@@ -91,6 +96,59 @@ export function buildLastTurnContinuity(turn) {
     : null;
 }
 
+/**
+ * NPC별 착의 정본 권위 — 실제 착의(actual), 규정상 요구(required), 이행 상태,
+ * 규정 ID와 활성 시각을 Story에 전달한다.
+ *
+ * - actual_clothing: 현재 물리 상태의 정본 (비어 있으면 빈 객체 — unknown 취급)
+ * - required_clothing: 활성 CSA preset에서 deterministic 계산
+ * - compliance: compliant | noncompliant | unknown | not_applicable
+ *   (actual이 비었거나 unknown이면 'unknown' — 준수 주장 금지)
+ * - 첫 관찰 NPC(기존 clothing 완전히 비어 있음)는 규정상 요구 착의로
+ *   deterministic seed — 모델이 새 복장을 발명할 여지 제거
+ */
+function buildClothingAuthority(save) {
+  const csaActive = Array.isArray(save?.csa_active) ? save.csa_active : [];
+  const csaRules = object(save?.csa_rules) ? save.csa_rules : {};
+  const activeRulesById = Object.entries(csaRules)
+    .filter(([id, rule]) => csaActive.includes(id) && rule?.active !== false)
+    .map(([id, rule]) => ({ ...rule, csa_id: id }));
+
+  const required = requiredClothingFromActiveCsa(activeRulesById);
+
+  const npcSceneState = object(save?.npc_scene_state) ? save.npc_scene_state : {};
+  const result = {};
+
+  for (const [npcId, npcState] of Object.entries(npcSceneState)) {
+    if (typeof npcId !== 'string' || npcId.startsWith('player')) continue;
+    const prevClothing = object(npcState?.clothing) ? npcState.clothing : {};
+
+    // 첫 관찰 seed — 기존 clothing이 완전히 비어 있고 활성 규정이 요구 사항을
+    // 만들 수 있을 때만 적용 (E).
+    const { seeded, clothing: seededClothing } = seedFirstObservedClothing({
+      npcId,
+      activeRules: activeRulesById,
+      previousClothing: prevClothing
+    });
+
+    const actual = seeded ? seededClothing : prevClothing;
+    const compliance = compareRequiredClothing(actual, required);
+
+    const rule = activeRulesById[0] ?? null;
+
+    result[npcId] = {
+      actual_clothing: actual,
+      required_clothing: required,
+      compliance,
+      rule_id: rule?.csa_id ?? null,
+      activated_turn: typeof rule?.created_turn === 'number' ? rule.created_turn : null,
+      activated_game_time: object(rule?.activated_game_time) ? rule.activated_game_time : null
+    };
+  }
+
+  return result;
+}
+
 /** Compact Story context: active state plus summaries, workplace context, and one detailed previous-turn block. */
 export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition } = {}) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
@@ -112,6 +170,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
       recent: typeof save.story_summary_recent === 'string' ? save.story_summary_recent : ''
     },
+    clothing_authority: buildClothingAuthority(save),
     recent_turns: recentTurns.map((turn, index, array) => {
       const entry = {
         turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
@@ -125,8 +184,20 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   };
 }
 
+// 최종 출력 계약 — 앞선 모든 섹션 지시와 충돌하면 이 메시지가 우선한다.
+// CSA 활성 시각(activated_game_time) 이전 사건의 원인으로 규정을 말하지 않는다.
+const FINAL_OUTPUT_SHAPE = [
+  '[FINAL OUTPUT SHAPE]',
+  '반드시 [1. 서사 및 행동] → [2. 플레이어 속마음] → [3. 플레이어 상황판] → [4. 선택지] 순서로 끝낸다.',
+  '[4. 선택지]에는 현재 장면에서 즉시 가능한 서로 다른 행동을 정확히 4개 쓴다.',
+  '출력은 [4. 선택지]의 네 번째 항목 뒤에서 종료한다.',
+  '복장·자세·위치는 context.clothing_authority와 active_npc_state가 유일한 정본이다.',
+  '규정(CSA)이 활성화된 시각(activated_game_time) 이전의 사건 원인으로 그 규정을 말하지 않는다. "아침부터", "어제부터", "출근하자마자" 같은 표현은 activated_game_time이 실제로 그 시점보다 빠른 경우에만 허용한다.',
+  '이전 규정이 해제됐다고 해서 해제 시점 이전의 복장 상태가 자동 복구되거나 소급 변경되지 않는다.'
+].join('\n');
+
 const SYSTEM_INSTRUCTIONS = [
-  'NPC 물리 상태(복장·자세·위치): context.active_npc_state.npc_scene_state에 있는 복장·자세·위치는 현재 물리 상태(확정 사실)다. 실제로 옷을 벗고 입고 열고 잠그는 행동이 이번 서사에서 완료된 경우에만 바뀐다. 상식개변(CSA) 적용·해제만으로 복장이 자동으로 바뀌지 않으며, 아무 이유 없이 갑자기 입었다 벗었다 하지 않는다. 알 수 없으면 저장된 마지막 상태를 유지한다.',
+  'NPC 물리 상태(복장·자세·위치): context.active_npc_state.npc_scene_state에 있는 복장·자세·위치는 현재 물리 상태(확정 사실)다. 실제로 옷을 벗고 입고 열고 잠그는 행동이 이번 서사에서 완료된 경우에만 바뀐다. 상식개변(CSA) 적용·해제만으로 복장이 자동으로 바뀌지 않으며, 아무 이유 없이 갑자기 입었다 벗었다 하지 않는다. 알 수 없으면 저장된 마지막 상태를 유지한다. context.clothing_authority[npc_id]가 이번 턴 복장의 최종 권위다: actual_clothing이 현재 정본, required_clothing이 규정상 요구, compliance가 이행 상태다. actual_clothing이 비어 있거나 unknown이면 그 NPC의 현재 복장은 알 수 없음이며, 이미 갈아입었다거나 규정을 지키고 있다고 단정하지 않는다. required_clothing이 있고 actual_clothing이 그와 다르면 복장 변경은 반드시 이번 턴 Story에서 실제로 완료된 갈아입기·벗기 행동을 거쳐야 한다. 규정 내용만으로는 복장이 바뀌지 않는다.',
   '상식개변 즉시 반영(갓 적용된 CSA만): 갓 적용된 활성 CSA 규칙은 이번 턴 서사 초반부에 바로 장면에 반영하고, 관련 NPC가 그 규칙을 당연하게 받아들이거나(수용) 어색해하거나(불편) 반문하는 등 반응하는 장면을 쓴다. CSA가 서사 후반에만 슬쩍 등장하거나 턴 전체에 반영되지 않으면 안 된다. 갓 적용된 CSA의 적용 시점은 지금(이번 턴)이다 — 오늘 아침·어제 등 과거부터 그 규정이 적용돼 있었다고 쓰지 않고, NPC가 이미 시행된 것처럼 서술하지 않는다. 공지·지침이 방금 내려와서 NPC들이 처음 보고 당황·확인·논의하는 장면이 포인트다. 반대로 이미 적용된 지 오래된 CSA는 서사에서 매 턴 반복 설명하지 않는다 — NPC가 그 규정 아래 생활하는 게 자연스러울 뿐, 규칙 자체를 다시 읊지 않는다. NPC는 공지가 세계 내부에서 내려온 규정으로 보지, 앱·시스템·플레이어가 만든 것으로는 절대 보지 않는다.',
   '너는 한국어 회사 배경 게임의 한 턴 분량 Story를 작성한다. 출력은 정확히 다음 네 섹션을 이 순서로만 쓴다: [1. 서사 및 행동] [2. 플레이어 속마음] [3. 플레이어 상황판] [4. 선택지]. 다른 사용자용 섹션(예: 별도 [DIALOGUE])이나 섹션 밖 설명·JSON·메타 코멘트는 쓰지 않는다.',
 
@@ -205,7 +276,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
   const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: playerAction });
   const activeIds = [...heroineActiveIds, ...generalActiveIds.filter(id => !heroineActiveIds.includes(id))];
   return [
-    { role: 'system', content: SYSTEM_INSTRUCTIONS },
+    { role: 'system', content: `${SYSTEM_INSTRUCTIONS}\n\n${FINAL_OUTPUT_SHAPE}` },
     {
       role: 'user',
       content: JSON.stringify({

@@ -126,8 +126,26 @@ export function buildSceneContextCore(save, activeIds = []) {
     },
     global_csa: {
       active_ids: Array.isArray(s.csa_active) ? s.csa_active : [],
-      rules: object(s.csa_rules) ? s.csa_rules : {},
-      runtime_state: object(s.csa_runtime_state) ? s.csa_runtime_state : {}
+      // Story/Extract에는 활성 규정만 노출한다. 비활성 과거 규정(csa_rules 전체
+      // 이력)은 DB에 보존되지만 LLM 입력에는 넣지 않는다 — 옛 규정 오염 방지.
+      rules: (() => {
+        const activeIds = new Set(Array.isArray(s.csa_active) ? s.csa_active : []);
+        const all = object(s.csa_rules) ? s.csa_rules : {};
+        const activeRules = {};
+        for (const [id, rule] of Object.entries(all)) {
+          if (activeIds.has(id) && rule?.active !== false) activeRules[id] = rule;
+        }
+        return activeRules;
+      })(),
+      runtime_state: (() => {
+        const activeIds = new Set(Array.isArray(s.csa_active) ? s.csa_active : []);
+        const all = object(s.csa_runtime_state) ? s.csa_runtime_state : {};
+        const activeRuntime = {};
+        for (const [id, state] of Object.entries(all)) {
+          if (activeIds.has(id)) activeRuntime[id] = state;
+        }
+        return activeRuntime;
+      })()
     },
     active_npc_state: activeNpcState
   };
@@ -327,8 +345,8 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
   }
   const idWarnings = [];
   const normalizedMonitor = normalizeMindMonitor(value.mind_monitor);
-  const storyChoices = choices(parsedStory?.choices);
-  const parserHasChoices = storyChoices.length === 4;
+  const storyChoices = choices(parsedStory?.choices).slice(0, 4);
+  const extractChoices = choices(value.choices).slice(0, 4);
   const npcsPresent = validatedNpcList(value.npcs_present, npcIds, idWarnings, 'npcs_present');
   const actionTargetId = validatedNpcId(value.action_target_id, npcIds, idWarnings, 'action_target_id');
   const focalCharacterId = validatedNpcId(value.focal_character_id, npcIds, idWarnings, 'focal_character_id');
@@ -337,14 +355,20 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
   const mindMonitor = validatedMindMonitor(normalizedMonitor.mind_monitor, npcIds, idWarnings);
   const csaTriggerEvaluations = normalizeCsaTriggerEvaluations(value.csa_trigger_evaluations, idWarnings);
   const csaRuntimeUpdates = normalizeCsaRuntimeUpdates(value.csa_runtime_updates, idWarnings);
-  const finalChoices = parserHasChoices ? storyChoices : choices(value.choices);
+  // 선택지 보존·보충 — Story가 만든 선택지(1~4개)를 우선 보존하고,
+  // 부족한 개수만 Extract 제안에서 채운다. Story 4개면 Story가 정본.
+  const finalChoices = [];
+  for (const choice of [...storyChoices, ...extractChoices]) {
+    if (!finalChoices.includes(choice)) finalChoices.push(choice);
+    if (finalChoices.length === 4) break;
+  }
   const choiceStructuredMeta = normalizeChoiceStructuredMeta(value.choice_structured_meta, finalChoices.length, idWarnings);
   const warnings = [...new Set([
     ...(Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string' && item.trim()) : []),
     ...normalizedMonitor.warnings,
     ...idWarnings,
-    ...(parserHasChoices ? ['story_choices_authoritative'] : []),
-    ...(parserHasChoices || choices(value.choices).length === 4 ? [] : ['choices_not_exactly_four'])
+    ...(storyChoices.length === 4 ? ['story_choices_authoritative'] : []),
+    ...(storyChoices.length === 4 || finalChoices.length === 4 ? [] : ['choices_not_exactly_four'])
   ])];
   return {
     state_delta: clone(value.state_delta),

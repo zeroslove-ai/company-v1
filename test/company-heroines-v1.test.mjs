@@ -381,19 +381,19 @@ test('content files, the heroines doc, and built prompt payloads contain none of
 
 // --- Size budgets ------------------------------------------------------------
 
-test('Story request size budgets: system <=7000, 3-character active canon <=1800, 5-participant scene still caps at 3 full cards', () => {
+test('Story request size budgets: system <=8000, 3-character active canon <=1800, 5-participant scene still caps at 3 full cards', () => {
   const prompt = buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
   const systemChars = prompt[0].content.length;
   const payload = JSON.parse(prompt[1].content);
   const canonChars = JSON.stringify(payload.active_character_canon).length;
-  assert.ok(systemChars <= 7000, `story system chars: ${systemChars}`);
+  assert.ok(systemChars <= 8000, `story system chars: ${systemChars}`);
   assert.ok(canonChars <= 1800, `active_character_canon chars: ${canonChars}`);
   assert.equal(Object.values(payload.active_character_canon).filter(e => 'prompt_card' in e).length, 3);
 });
 
-test('Extract request size budget: system <=5000', () => {
+test('Extract request size budget: system <=6000', () => {
   // Raised from 3300 to 5000: UI 개선(표면의식·잠재의식 대화체 혼잣말 지시문 추가) 반영.
   // 실측 floor ~3.4K — 5000은 충분한 여유.
   const prompt = buildExtractPrompt({ context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
-  assert.ok(prompt[0].content.length <= 5000, `extract system chars: ${prompt[0].content.length}`);
+  assert.ok(prompt[0].content.length <= 6000, `extract system chars: ${prompt[0].content.length}`);
 });

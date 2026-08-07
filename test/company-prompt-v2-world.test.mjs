@@ -139,7 +139,7 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.match(system, /현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /acting_direction=/);
-  assert.ok(system.length <= 7000, `Story system prompt too large: ${system.length}`);
+  assert.ok(system.length <= 8000, `Story system prompt too large: ${system.length}`);
 });
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {
@@ -176,5 +176,5 @@ test('Story and Extract activate a named general NPC with compact canon and scop
   assert.deepEqual(Object.keys(extractPayload.context.active_npc_state.npc_emotion), ['general_manager']);
   assert.match(extractSystem, /nearby\/default\/eligible NPC is not present/);
   assert.match(extractSystem, /Story explicitly shows their entrance, presence, action, or dialogue/);
-  assert.ok(extractSystem.length <= 5000, `Extract system prompt too large: ${extractSystem.length}`);
+  assert.ok(extractSystem.length <= 6000, `Extract system prompt too large: ${extractSystem.length}`);
 });

@@ -221,7 +221,7 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
   const labels = labelsForChoices(normalized);
   for (const [index, choice] of normalized.entries()) {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'choice-button';
-    button.textContent = `${index + 1} ${choiceLabel(choice, 5, labels[index])}`;
+    button.textContent = `${index + 1} ${labels[index] || choice}`;
     button.title = choice;
     button.ariaLabel = `${index + 1}번 선택지: ${choice}`;
     button.disabled = busy;
@@ -535,6 +535,16 @@ export function renderFocalCharacter(container, focal, player) {
     const relation = document.createElement('p'); relation.className = 'physical-relation'; relation.textContent = relationText;
     container.append(relation);
   }
+  // 현재 착의·자세·위치 — 데이터가 비어 있어도 "확인되지 않음"으로 표시한다.
+  const attire = clothingDisplay(focal?.scene_state?.clothing) || '확인되지 않음';
+  container.append(detailsSection('현재 상태', [
+    ['현재 착의', attire],
+    ['현재 자세', postureSentence(
+      focal?.scene_state?.posture,
+      focal?.scene_state?.posture_detail
+    ) || '확인되지 않음'],
+    ['현재 위치', displayValue(focal?.scene_state?.position_label) || '확인되지 않음']
+  ]));
   if (Object.keys(character).length) {
     renderStatStrip(container, { stats: character.stats, stat_changes: character.stat_changes });
     const profile = object(character.profile) ?? {};

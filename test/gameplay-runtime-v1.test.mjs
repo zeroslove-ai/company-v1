@@ -40,7 +40,7 @@ test('Story prompt carries the four-section, freedom, choices, and status-board 
   assert.match(system, /플레이어의 자유 입력 자체는 막지 않는다/);
   assert.match(system, /이번 플레이어 행동의 결과 또는 NPC의 즉각적인 반응으로 시작한다/);
   assert.match(system, /직전 턴과 장소·시간·조명·날씨가 같으면 이를 다시 소개하지 않는다/);
-  assert.ok(system.length <= 7000, `story system chars: ${system.length}`);
+  assert.ok(system.length <= 8000, `story system chars: ${system.length}`);
   const userPayload = JSON.parse(prompt[1].content);
   assert.equal(userPayload.expected_turn, 3);
   assert.ok('context' in userPayload);
@@ -52,13 +52,13 @@ test('Extract prompt requires independent identity axes, Story-authoritative pre
   const prompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1 });
   const system = prompt[0].content;
   assert.match(system, /never copy one into another/);
-  assert.match(system, /Story choices are always authoritative/);
+  assert.match(system, /Story choices are authoritative and preserved/);
   assert.match(system, /Extract can never override them/);
   assert.match(system, /elapsed_minutes is your only time proposal/);
   assert.match(system, /csa_runtime_state\[csa_id\]/);
   assert.match(system, /arousal_delta, ejaculation_progress_delta, and ejaculation_completed/);
   assert.match(system, /evidence\.sexual_resolution === true/);
-  assert.ok(system.length <= 5000, `extract system chars: ${system.length}`); // 예산 5000 확장 (UI 개선 지시문 반영)
+  assert.ok(system.length <= 6000, `extract system chars: ${system.length}`); // 예산 6000 확장 (착의 canonical 형식 + 선택지 보존 지시 반영)
 });
 
 test('Parser recognizes the Korean four-section output, extracts inline dialogue with a resolved speaker_id, and preserves legacy internal markers', () => {

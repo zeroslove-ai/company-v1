@@ -92,7 +92,8 @@ test('committed labels are reused only when the exact four full choices match', 
 
     const different = new FakeNode('div', 'choice-list');
     renderChoices(different, ['다른 선택지 하나', '다른 선택지 둘', '다른 선택지 셋', '다른 선택지 넷']);
-    assert.equal(different.children[0].textContent, '1 다른선택지');
+    // J — 선택지 버튼은 더 이상 5글자로 자르지 않고 전체 문구를 표시한다 (CSS 말줄임).
+    assert.equal(different.children[0].textContent, '1 다른 선택지 하나');
   });
 });
 

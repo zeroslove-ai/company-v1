@@ -117,6 +117,14 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
     return { ok: false, status: 422, error_code: 'TOO_MANY_OPERATIONS', issues: [appIssue(null, 'TOO_MANY_OPERATIONS', '한 번에 최대 12개 작업만 적용할 수 있습니다.')] };
   }
 
+  // CSA 활성 시각 — 규정이 실제로 만들어진 게임 시각. "아침부터/어제부터" 같은
+  // 소급 표현을 막는 시간 경계로 사용된다 (csa_rules JSONB 내부 필드, migration 불필요).
+  const gameTime = previousSave?.world_state?.game_time ?? {};
+  const activatedGameTime = {
+    day: typeof gameTime.day === 'number' ? gameTime.day : 1,
+    minute_of_day: typeof gameTime.minute_of_day === 'number' ? gameTime.minute_of_day : 540
+  };
+
   const availableStrengthId = capability?.available_strength_id ?? 'weak';
   const availableRank = APP_STRENGTH_RANK[availableStrengthId] ?? 1;
   const csaLimits = getCsaLimits(capability?.current_level ?? 1);
@@ -169,7 +177,7 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
         if (!validated.ok) { issues.push(appIssue(raw, validated.code, validated.message, index)); continue; }
         if (activeContents().includes(validated.content)) { issues.push(appIssue(raw, 'DUPLICATE_TARGET', '같은 범위에 동일한 활성 상식개변이 있습니다.', index)); continue; }
         const newId = nextCsaId(Object.keys(rules), turnNumber);
-        rules[newId] = { active: true, content: validated.content, strength: validated.strength, ...normalizeCsaScope(), created_turn: turnNumber, source_type: 'preset', preset: validated.preset };
+        rules[newId] = { active: true, content: validated.content, strength: validated.strength, ...normalizeCsaScope(), created_turn: turnNumber, activated_game_time: activatedGameTime, source_type: 'preset', preset: validated.preset };
         activeIds.push(newId);
         canonicalOperations.push({ version: 1, client_id: raw.client_id, domain: 'csa', operation: 'activate', strength: validated.strength, scope_type: 'world', content: validated.content, source_type: 'preset', preset: validated.preset });
         continue;
@@ -179,7 +187,7 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
       if (activeContents().includes(content)) { issues.push(appIssue(raw, 'DUPLICATE_TARGET', '같은 범위에 동일한 활성 상식개변이 있습니다.', index)); continue; }
       const semanticContract = raw.semantic_contract ? normalizeCsaSemanticContract(raw.semantic_contract) : null;
       const newId = nextCsaId(Object.keys(rules), turnNumber);
-      rules[newId] = { active: true, content, strength, ...normalizeCsaScope(), created_turn: turnNumber, source_type: 'custom', preset: null, semantic_contract: semanticContract };
+      rules[newId] = { active: true, content, strength, ...normalizeCsaScope(), created_turn: turnNumber, activated_game_time: activatedGameTime, source_type: 'custom', preset: null, semantic_contract: semanticContract };
       activeIds.push(newId);
       canonicalOperations.push({ version: 1, client_id: raw.client_id, domain: 'csa', operation: 'activate', strength, scope_type: 'world', content, source_type: 'custom', semantic_contract: semanticContract });
       continue;

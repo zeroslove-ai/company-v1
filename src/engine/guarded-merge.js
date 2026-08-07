@@ -8,6 +8,7 @@ import {
   validateCsaRuntimeStatePatch
 } from './gameplay-state.js';
 import { buildSceneStatePatch } from './state/physical-state.js';
+import { seedFirstObservedClothing } from './state/clothing.js';
 import { applyNpcStatChanges } from './relationship/reducer.js';
 import { appendSexualEvents, reduceEjaculationCounts } from './sexual-state/ledger.js';
 
@@ -21,17 +22,24 @@ const ALLOWED = new Set([
 const NULLABLE = new Set(['last_image_id']);
 const NPC_MAPS = new Set(['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes']);
 
-// 일반 턴 선택지 fail-open — Extract가 4개 미만 선택지를 제안하면 이 값으로 보충한다.
-// 이전 턴 선택지를 복사하지 않고, 상황에 따라 결정적으로 변형해 매 턴 완전히 동일한
-// 상황 무관 문구만 반복하지 않는다 (추가 LLM 호출 없음, 자유 입력은 항상 가능).
-export function buildFallbackTurnChoices(save) {
+// 일반 턴 선택지 fail-open — Extract/parser가 4개 미만이면 부족분만 보충한다.
+// 기존 선택지(Story 원문)는 보존하고, 현재 focal NPC·활성 규정을 반영한
+// deterministic 후보로 채운다 (추가 LLM 호출 없음, 자유 입력은 항상 가능).
+export function buildFallbackTurnChoices(save, options = {}) {
   const hasActiveRule = Array.isArray(save?.csa_active) && save.csa_active.length > 0;
-  return [
-    '이야기를 계속 이어간다',
-    hasActiveRule ? '규정의 구체적인 내용을 질문한다' : '상대의 의견을 확인한다',
-    '다른 NPC의 반응을 확인한다',
-    '자유롭게 다른 행동을 선택한다'
-  ];
+  const focalName = options?.focalName ?? '';
+  const candidates = [];
+  const push = text => { if (!candidates.includes(text)) candidates.push(text); };
+
+  push('이야기를 계속 이어간다');
+  push(hasActiveRule ? '규정의 구체적인 내용을 질문한다' : '상대의 의견을 확인한다');
+  if (focalName) {
+    push(`${focalName}에게 직접 확인한다`);
+    push(`${focalName}의 반응을 살핀다`);
+  }
+  push('다른 NPC의 반응을 확인한다');
+  push('자유롭게 다른 행동을 선택한다');
+  return candidates;
 }
 // The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present/
 // choice_structured_meta) is the sole writer for these paths; a state_delta proposal for the
@@ -454,6 +462,27 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
           continue;
         }
         if (path === 'npc_scene_state' && plainObject(npcPatch)) {
+          // 첫 관찰 seed — 기존 clothing이 비어 있고 활성 규정이 요구 착의를
+          // 만들 수 있는 NPC는 Story projection과 동일한 함수로 정본을 확정한다.
+          // (clothing.js의 seedFirstObservedClothing — Story/Commit 공용)
+          const prevNpcState = nextSave.npc_scene_state[npcId] ?? {};
+          const prevClothing = plainObject(prevNpcState.clothing) ? prevNpcState.clothing : {};
+          const csaActive = Array.isArray(preSave.csa_active) ? preSave.csa_active : [];
+          const activeRules = Object.entries(plainObject(preSave.csa_rules) ? preSave.csa_rules : {})
+            .filter(([id, rule]) => csaActive.includes(id) && rule?.active !== false)
+            .map(([id, rule]) => ({ ...rule, csa_id: id }));
+          const { seeded, clothing: seededClothing } = seedFirstObservedClothing({
+            npcId,
+            activeRules,
+            previousClothing: prevClothing
+          });
+          if (seeded) {
+            nextSave.npc_scene_state[npcId] = {
+              ...prevNpcState,
+              clothing: seededClothing
+            };
+            warnings.push(`first_observed_clothing_seed:${npcId}`);
+          }
           const { state, warnings: sceneWarnings } = buildSceneStatePatch({
             previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: npcPatch, evidenceMap: npcPatch.evidence,
             narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
@@ -493,11 +522,22 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
 
   nextSave.last_choices = clone(envelope.choices);
   nextSave.last_choice_meta = clone(envelope.choice_structured_meta);
-  // 일반 턴 선택지 fail-open — choices가 정확히 4개가 아니면 빈 배열을 save에 저장하지 않고
-  // deterministic 기본 선택지 4개로 보충한다 (이전 턴 선택지 재사용 금지, warning만 남긴다).
-  if (envelope.choices.length !== 4) {
-    nextSave.last_choices = buildFallbackTurnChoices(nextSave);
-    warnings.push('choices_not_exactly_four');
+  // 선택지 fail-open — 4개 미만이면 기존 선택지를 버리지 않고 부족분만 보충한다.
+  // focal NPC 이름을 반영한 deterministic 후보로 채우고 warning에 전후 개수를 남긴다.
+  if (envelope.choices.length < 4) {
+    const focalName = characterNameFromMaster(options?.master, envelope.focal_character_id);
+    const existing = [...nextSave.last_choices];
+    const fills = buildFallbackTurnChoices(nextSave, {
+      master: options?.master,
+      existingChoices: existing,
+      focalName
+    });
+    for (const fill of fills) {
+      if (!existing.includes(fill)) existing.push(fill);
+      if (existing.length === 4) break;
+    }
+    warnings.push(`choices_padded:${envelope.choices.length}->${existing.length}`);
+    nextSave.last_choices = existing.slice(0, 4);
   }
   if (envelope.npcs_present.length > 0) nextSave.last_npcs_present = clone(envelope.npcs_present);
   if (envelope.focal_character_id !== null) nextSave.focal_character_id = envelope.focal_character_id;
