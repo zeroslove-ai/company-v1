@@ -24,6 +24,7 @@ export {
   selectActiveCharacterIds,
   buildActiveCharacterCanon,
   buildSceneContextCore,
+  projectGlobalCsa,
   CSA_LIFECYCLE,
   CSA_APPLICABILITY,
   CSA_EXECUTION_STATE

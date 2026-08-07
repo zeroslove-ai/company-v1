@@ -11,7 +11,8 @@ import {
   getApplicableCsaEntries,
   hydrateGameplayState,
   normalizeStructuredAction,
-  planCsaTransaction
+  planCsaTransaction,
+  projectGlobalCsa
 } from '../engine/index.js';
 import {
   applyCsaPlanToContext,
@@ -99,6 +100,9 @@ function extractAuthorityContract() {
 }
 
 function replaceGlobalCsaContext(messages, save) {
+  // 단일 정본 — buildSceneContextCore와 동일한 projectGlobalCsa만 사용한다.
+  // (비활성 과거 규정은 어떤 LLM payload에도 포함되지 않는다)
+  const projected = projectGlobalCsa(save);
   return messages.map(message => {
     if (message?.role !== 'user' || typeof message.content !== 'string') return message;
     let payload;
@@ -109,9 +113,7 @@ function replaceGlobalCsaContext(messages, save) {
       ...payload.context,
       global_csa: {
         ...(object(payload.context.global_csa) ?? {}),
-        active_ids: Array.isArray(save?.csa_active) ? [...save.csa_active] : [],
-        rules: object(save?.csa_rules) ? { ...save.csa_rules } : {},
-        runtime_state: object(save?.csa_runtime_state) ? { ...save.csa_runtime_state } : {}
+        ...projected
       }
     };
     return { ...message, content: JSON.stringify(payload) };

@@ -8,13 +8,19 @@ import {
 import {
   requiredClothingFromActiveCsa,
   compareRequiredClothing,
-  seedFirstObservedClothing
+  resolveObservedClothing
 } from './state/clothing.js'
 
 const MOVEMENT_TARGET_ACTION = /(찾으러|찾아가|찾아보|보러\s*가|만나러|이동하|가본다|가겠다|방문하)/u;
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
+}
+
+/** edition 객체를 master 형태(배열)로 변환 — buildClothingAuthority용. */
+function toEntryArray(source, keyName) {
+  if (!object(source)) return [];
+  return Object.entries(source).map(([key, value]) => ({ ...value, [keyName]: key }));
 }
 
 function clip(value, maxLength) {
@@ -100,57 +106,115 @@ export function buildLastTurnContinuity(turn) {
  * NPC별 착의 정본 권위 — 실제 착의(actual), 규정상 요구(required), 이행 상태,
  * 규정 ID와 활성 시각을 Story에 전달한다.
  *
- * - actual_clothing: 현재 물리 상태의 정본 (비어 있으면 빈 객체 — unknown 취급)
- * - required_clothing: 활성 CSA preset에서 deterministic 계산
- * - compliance: compliant | noncompliant | unknown | not_applicable
- *   (actual이 비었거나 unknown이면 'unknown' — 준수 주장 금지)
- * - 첫 관찰 NPC(기존 clothing 완전히 비어 있음)는 규정상 요구 착의로
- *   deterministic seed — 모델이 새 복장을 발명할 여지 제거
+ * - actual_clothing: 저장된 물리 상태의 정본 (비어 있으면 unknown 취급)
+ * - suggested_initial_clothing: 아직 Commit되지 않은 첫 관찰 seed 후보
+ *   (저장 전에는 actual로 승격하지 않는다 — P0-3)
+ * - required_clothing: 활성 CSA preset에서 deterministic 계산 (slot_sources 기반)
+ * - compliance: compliant | noncompliant | unknown | conflict | not_applicable
+ * - rule_id / activated_game_time: slot_sources에서 실제 착의 요구를 만든 규정에서
+ *   읽는다 (activeRulesById[0] 사용 금지 — P1-1)
+ *
+ * 관찰 대상(NPC가 present/entering/destination/action target)이 아닌 NPC는
+ * 순회하지 않는다 (off-scene NPC 전체 seed 금지 — P0-2).
  */
-function buildClothingAuthority(save) {
+function buildClothingAuthority(save, { observationTargetIds = new Set(), master = {} } = {}) {
   const csaActive = Array.isArray(save?.csa_active) ? save.csa_active : [];
   const csaRules = object(save?.csa_rules) ? save.csa_rules : {};
   const activeRulesById = Object.entries(csaRules)
     .filter(([id, rule]) => csaActive.includes(id) && rule?.active !== false)
     .map(([id, rule]) => ({ ...rule, csa_id: id }));
 
-  const required = requiredClothingFromActiveCsa(activeRulesById);
+  const resolved = requiredClothingFromActiveCsa(activeRulesById);
+  const required = resolved.required_clothing;
+  // provenance — slot_sources에서 실제 요구를 만든 규정 (첫 슬롯 기준)
+  const firstSource = Object.values(resolved.slot_sources)[0] ?? null;
+  const ruleId = firstSource?.csa_id ?? null;
+  const activatedTurn = typeof firstSource?.created_turn === 'number' ? firstSource.created_turn : null;
+  const activatedGameTime = object(firstSource?.activated_game_time) ? firstSource.activated_game_time : null;
 
   const npcSceneState = object(save?.npc_scene_state) ? save.npc_scene_state : {};
   const result = {};
 
   for (const [npcId, npcState] of Object.entries(npcSceneState)) {
     if (typeof npcId !== 'string' || npcId.startsWith('player')) continue;
+    // off-scene NPC는 순회하지 않는다 — 관찰 대상만.
+    if (!observationTargetIds.has(npcId)) continue;
     const prevClothing = object(npcState?.clothing) ? npcState.clothing : {};
 
-    // 첫 관찰 seed — 기존 clothing이 완전히 비어 있고 활성 규정이 요구 사항을
-    // 만들 수 있을 때만 적용 (E).
-    const { seeded, clothing: seededClothing } = seedFirstObservedClothing({
+    // 첫 관찰 후보 — observation eligibility 검증 후 suggested로만 표시.
+    // (Commit이 저장하기 전에는 actual로 승격하지 않는다)
+    const npcProfile = findNpcProfile(master, npcId);
+    const observed = resolveObservedClothing({
       npcId,
+      npcProfile,
       activeRules: activeRulesById,
-      previousClothing: prevClothing
+      previousClothing: prevClothing,
+      isObservationTarget: observationTargetIds.has(npcId),
+      ruleActivatedTurn: activatedTurn,
+      expectedTurn: currentExpectedTurn(save)
     });
 
-    const actual = seeded ? seededClothing : prevClothing;
+    const actual = prevClothing;
     const compliance = compareRequiredClothing(actual, required);
-
-    const rule = activeRulesById[0] ?? null;
-
-    result[npcId] = {
+    const entry = {
       actual_clothing: actual,
       required_clothing: required,
       compliance,
-      rule_id: rule?.csa_id ?? null,
-      activated_turn: typeof rule?.created_turn === 'number' ? rule.created_turn : null,
-      activated_game_time: object(rule?.activated_game_time) ? rule.activated_game_time : null
+      rule_id: ruleId,
+      activated_turn: activatedTurn,
+      activated_game_time: activatedGameTime
     };
+    // 저장 전 첫 관찰 후보는 suggested로만 노출
+    if (observed.status === 'observed') {
+      entry.suggested_initial_clothing = observed.clothing;
+      entry.observation_status = 'pending_commit';
+    } else if (observed.status === 'conflict') {
+      entry.observation_status = 'conflict';
+      entry.conflicts = observed.conflicts ?? [];
+    }
+    result[npcId] = entry;
   }
 
   return result;
 }
 
+function findNpcProfile(master, npcId) {
+  for (const entry of Array.isArray(master?.characters) ? master.characters : []) {
+    if ((entry?.character_id ?? entry?.id) === npcId) return entry;
+  }
+  for (const entry of Array.isArray(master?.general_npcs) ? master.general_npcs : []) {
+    if ((entry?.npc_id ?? entry?.id) === npcId) return entry;
+  }
+  return {};
+}
+
+/**
+ * 이번 턴 실제 관찰 대상 NPC — scene_cast_contract의 present/entering/remote/
+ * destination + save의 scene_state.participants + last_npcs_present.
+ * 이 목록에 없는 NPC는 첫 관찰 seed 후보가 될 수 없다 (off-scene 순회 금지).
+ */
+function observationTargetIds(sceneCastContract, save) {
+  const ids = new Set();
+  const push = id => { if (typeof id === 'string' && id && !id.startsWith('player')) ids.add(id); };
+  const cast = object(sceneCastContract) ? sceneCastContract : {};
+  for (const list of ['present_npc_ids', 'entering_npc_ids', 'remote_npc_ids', 'destination_npc_ids']) {
+    for (const id of Array.isArray(cast[list]) ? cast[list] : []) push(id);
+  }
+  const sceneState = object(save?.scene_state) ? save.scene_state : {};
+  for (const id of Array.isArray(sceneState.participants) ? sceneState.participants : []) push(id);
+  for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) push(id);
+  return ids;
+}
+
+function currentExpectedTurn(save) {
+  const t = object(save?.turn_state) ? save.turn_state : {};
+  if (typeof t.expected_turn === 'number') return t.expected_turn;
+  if (typeof t.committed_turn === 'number') return t.committed_turn + 1;
+  return null;
+}
+
 /** Compact Story context: active state plus summaries, workplace context, and one detailed previous-turn block. */
-export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition } = {}) {
+export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, sceneCastContract } = {}) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const game = object(context?.game) ?? {};
   const player = object(save.player) ?? {};
@@ -170,7 +234,10 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
       recent: typeof save.story_summary_recent === 'string' ? save.story_summary_recent : ''
     },
-    clothing_authority: buildClothingAuthority(save),
+    clothing_authority: buildClothingAuthority(save, {
+      observationTargetIds: observationTargetIds(sceneCastContract, save),
+      master: edition?.characters?.characters ? { characters: toEntryArray(edition?.characters?.characters, 'character_id'), general_npcs: toEntryArray(edition?.generalNpcs?.profiles, 'npc_id') } : {}
+    }),
     recent_turns: recentTurns.map((turn, index, array) => {
       const entry = {
         turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
@@ -284,7 +351,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
         ...(sceneCastContract ? { scene_cast_contract: sceneCastContract } : {}),
         active_character_canon: buildActiveCharacterCanon(charactersMap, heroineActiveIds),
         active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
-        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition }),
+        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, sceneCastContract }),
         player_action: playerAction,
         expected_turn: expectedTurn
       })

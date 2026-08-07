@@ -112,15 +112,38 @@ test('회귀3: 비활성 옛 규정(csa_2, csa_5)이 Story·Extract payload에 �
 // 4) work_in_underwear_only와 work_without_underwear가 반대 상태로 결정됨
 test('회귀4: 상반 규정이 정확히 반대 착의를 요구한다', () => {
   const underwearOnly = requiredClothingFromActiveCsa(ACTIVE_RULES.filter(r => r.preset.template_id === 'work_in_underwear_only'));
-  assert.deepEqual(underwearOnly, {
+  assert.deepEqual(underwearOnly.required_clothing, {
     uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'worn', underwear_bottom: 'worn'
   });
   const withoutUnderwear = requiredClothingFromActiveCsa(STALE_RULES.filter(r => r.preset.template_id === 'work_without_underwear'));
-  assert.deepEqual(withoutUnderwear, { underwear_top: 'removed', underwear_bottom: 'removed' });
+  assert.deepEqual(withoutUnderwear.required_clothing, { underwear_top: 'removed', underwear_bottom: 'removed' });
+  // provenance — slot_sources가 요구를 만든 규정을 기록
+  assert.equal(underwearOnly.slot_sources.uniform_top.csa_id, 'csa_42_1');
+  assert.deepEqual(underwearOnly.contributing_rule_ids, ['csa_42_1']);
   // 준수/미준수/unknown 판정
-  assert.equal(compareRequiredClothing(underwearOnly, underwearOnly), 'compliant');
-  assert.equal(compareRequiredClothing({}, underwearOnly), 'unknown', '빈 상태는 준수 주장 금지');
-  assert.equal(compareRequiredClothing({ uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn' }, underwearOnly), 'noncompliant');
+  const req = underwearOnly.required_clothing;
+  assert.equal(compareRequiredClothing(req, req), 'compliant');
+  assert.equal(compareRequiredClothing({}, req), 'unknown', '빈 상태는 준수 주장 금지');
+  assert.equal(compareRequiredClothing({ uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn' }, req), 'noncompliant');
+});
+
+test('회귀4b: 상반 규정 동시 활성 시 우선순위로 결정되고 동률은 conflict', () => {
+  // work_in_underwear_only(medium) + work_without_underwear(weak) 동시 활성
+  const underwearOnly = { ...ACTIVE_RULES[1], strength: 'medium' };
+  const withoutUnderwear = { csa_id: 'csa_5', active: true, content: '속옷 미착용 근무', preset: { template_id: 'work_without_underwear' }, created_turn: 5, strength: 'weak' };
+  // 입력 순서를 바꿔도 결과 동일 (strength 우선)
+  const a = requiredClothingFromActiveCsa([underwearOnly, withoutUnderwear]);
+  const b = requiredClothingFromActiveCsa([withoutUnderwear, underwearOnly]);
+  assert.deepEqual(a.required_clothing, b.required_clothing, '입력 순서 무관');
+  assert.equal(a.required_clothing.underwear_top, 'worn', '더 높은 strength(medium)가 우선');
+  assert.equal(a.slot_sources.underwear_top.csa_id, 'csa_42_1');
+  // 동일 strength + 동일 updated/created → conflict
+  const twin1 = { csa_id: 'x1', active: true, preset: { template_id: 'work_in_underwear_only' }, created_turn: 10, strength: 'medium' };
+  const twin2 = { csa_id: 'x2', active: true, preset: { template_id: 'work_without_underwear' }, created_turn: 10, strength: 'medium' };
+  const conflict = requiredClothingFromActiveCsa([twin1, twin2]);
+  assert.equal(conflict.required_clothing.underwear_top, 'unknown', '완전 동률은 conflict');
+  assert.ok(conflict.conflicts.includes('underwear_top'));
+  assert.equal(compareRequiredClothing({}, conflict.required_clothing), 'conflict');
 });
 
 // 5) 선택지 0·1·2·3·4개 보존·보충 matrix
@@ -191,28 +214,34 @@ test('회귀6: 규정 활성 후 첫 관찰 NPC는 규정상 요구 착의로 de
   assert.equal(noRules.seeded, false);
 });
 
-// 6b) Story context의 clothing_authority가 seed 결과를 반영
-test('회귀6b: buildStoryPrompt의 clothing_authority에 첫 관찰 seed가 반영된다', () => {
+// 6b) Story context의 clothing_authority가 observation 후보를 suggested로만 표시
+test('회귀6b: buildStoryPrompt의 clothing_authority에 첫 관찰 후보가 suggested로 반영된다', () => {
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   save.csa_active = ['csa_42_1'];
   save.csa_rules = { csa_42_1: ACTIVE_RULES[1] };
   save.npc_scene_state = { heroine3: { present: true, location_id: 'meeting_room_5f', clothing: {} } };
+  save.turn_state = { committed_turn: 51, expected_turn: 52 };
   const prompt = buildStoryPrompt({
     edition,
     context: { game: { id: 'g1' }, save: { data: save }, recent_turns: [] },
     playerAction: '김제나를 만나러 간다.',
     expectedTurn: 52,
-    npcIds: new Set(['heroine3'])
+    npcIds: new Set(['heroine3']),
+    sceneCastContract: { present_npc_ids: ['heroine3'], entering_npc_ids: [], remote_npc_ids: [], allowed_speaker_ids: ['player', 'heroine3'] }
   });
   const payload = JSON.parse(prompt[prompt.length - 1].content);
   const authority = payload.context?.clothing_authority ?? {};
   assert.ok(authority.heroine3, 'clothing_authority에 heroine3 존재');
-  assert.equal(authority.heroine3.actual_clothing.uniform_top, 'removed', 'seed된 정본이 Story에 전달');
-  assert.equal(authority.heroine3.compliance, 'compliant');
+  // P0-3 — Commit 전 seed는 actual이 아니라 suggested로만 표시
+  assert.deepEqual(authority.heroine3.actual_clothing, {}, '저장 전에는 actual_clothing이 빈 상태');
+  assert.deepEqual(authority.heroine3.suggested_initial_clothing, {
+    uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'worn', underwear_bottom: 'worn'
+  }, '후보는 suggested로만 노출');
+  assert.equal(authority.heroine3.observation_status, 'pending_commit');
+  // P1-1 — provenance가 csa_42가 아니라 csa_42_1에서 나온다
+  assert.equal(authority.heroine3.rule_id, 'csa_42_1');
   // FINAL OUTPUT SHAPE가 시스템 메시지에 포함
   assert.ok(prompt[0].content.includes('[FINAL OUTPUT SHAPE]'), '최종 출력 계약 포함');
-  // activated_game_time이 없으면 시간 경계 없음 (null)
-  assert.equal(authority.heroine3.activated_game_time, null);
 });
 
 // 7) focal NPC 착의 UI 렌더 — clothingDisplay가 canonical 슬롯을 한글로 표시

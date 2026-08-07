@@ -124,30 +124,36 @@ export function buildSceneContextCore(save, activeIds = []) {
       scene_goal: identity(scene.scene_goal),
       beat: integer(scene.beat)
     },
-    global_csa: {
-      active_ids: Array.isArray(s.csa_active) ? s.csa_active : [],
-      // Story/Extract에는 활성 규정만 노출한다. 비활성 과거 규정(csa_rules 전체
-      // 이력)은 DB에 보존되지만 LLM 입력에는 넣지 않는다 — 옛 규정 오염 방지.
-      rules: (() => {
-        const activeIds = new Set(Array.isArray(s.csa_active) ? s.csa_active : []);
-        const all = object(s.csa_rules) ? s.csa_rules : {};
-        const activeRules = {};
-        for (const [id, rule] of Object.entries(all)) {
-          if (activeIds.has(id) && rule?.active !== false) activeRules[id] = rule;
-        }
-        return activeRules;
-      })(),
-      runtime_state: (() => {
-        const activeIds = new Set(Array.isArray(s.csa_active) ? s.csa_active : []);
-        const all = object(s.csa_runtime_state) ? s.csa_runtime_state : {};
-        const activeRuntime = {};
-        for (const [id, state] of Object.entries(all)) {
-          if (activeIds.has(id)) activeRuntime[id] = state;
-        }
-        return activeRuntime;
-      })()
-    },
+    global_csa: projectGlobalCsa(s),
     active_npc_state: activeNpcState
+  };
+}
+
+/**
+ * CSA 글로벌 projection — Story/Extract LLM payload에 노출하는 유일한 정본.
+ *
+ * 활성 ID 목록(csa_active)에 있고 active !== false인 규정만 rules에 넣는다.
+ * 비활성 과거 규정(csa_rules 전체 이력)은 DB에 보존되지만 어떤 LLM payload에도
+ * 포함되지 않는다. buildSceneContextCore와 turn-routes-runtime의
+ * replaceGlobalCsaContext가 반드시 이 함수만 사용해야 한다 (중복 경로 금지).
+ */
+export function projectGlobalCsa(save) {
+  const activeIds = Array.isArray(save?.csa_active) ? [...save.csa_active] : [];
+  const activeIdSet = new Set(activeIds);
+  const allRules = object(save?.csa_rules) ? save.csa_rules : {};
+  const allRuntime = object(save?.csa_runtime_state) ? save.csa_runtime_state : {};
+  const rules = {};
+  for (const [id, rule] of Object.entries(allRules)) {
+    if (activeIdSet.has(id) && rule?.active !== false) rules[id] = rule;
+  }
+  const runtime_state = {};
+  for (const [id, state] of Object.entries(allRuntime)) {
+    if (activeIdSet.has(id)) runtime_state[id] = state;
+  }
+  return {
+    active_ids: activeIds,
+    rules,
+    runtime_state
   };
 }
 
