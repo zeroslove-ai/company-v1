@@ -260,6 +260,7 @@ test('session timeline: 같은 페이지에서 2턴 진행하면 카드가 누�
     await app.refreshContext(); // refresh가 최신 1턴(34)만 돌려줘도 세션 기록 유지
     assert.equal(cards().length, 3, 'context refresh 후에도 3턴 유지');
     const merged = mergeSessionTurns(recentTurns, [sessionTurn(34)]);
+    assert.deepEqual(merged.map(turn => turn.turn_number), [32, 33, 34], 'session timeline은 오래된 턴부터 정렬한다');
     assert.equal(merged.length, 3, '동일 턴 재수신에도 중복이 생기지 않는다');
     assert.equal(new Set(merged.map(t => t.turn_number)).size, 3, 'turn_number 중복 없음');
   });

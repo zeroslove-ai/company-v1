@@ -795,6 +795,17 @@ const master = masterFromEdition(edition);
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          const storySave = csaPlan
+            ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
+            : hydratedSave;
+          const storyContext = csaPlan
+            ? {
+                ...hydratedContext,
+                save: hydratedContext.save?.data
+                  ? { ...hydratedContext.save, data: storySave }
+                  : storySave
+              }
+            : hydratedContext;
           // ActionExecutionContract — 순수 결정 함수 (await/fetch/LLM 없음, 수 ms).
           // retry 시 저장된 계약을 재사용해 같은 action을 다시 분류해 다른 route를 만들지 않는다.
           const contractStart = Date.now();
@@ -823,8 +834,8 @@ const master = masterFromEdition(edition);
           timing.cast_entering_count = sceneCastContract.entering_npc_ids.length;
           timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
           const promptStart = Date.now();
-          let messages = buildStoryPrompt({ edition, context: hydratedContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
-          messages = applyCsaStorySections(messages, { save: hydratedSave, plan: csaPlan, playerAction, csaCatalog, actionContract });
+          let messages = buildStoryPrompt({ edition, context: storyContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
+          messages = applyCsaStorySections(messages, { save: storySave, plan: csaPlan, playerAction, csaCatalog, actionContract });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
           }

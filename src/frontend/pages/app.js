@@ -45,7 +45,7 @@ function hasFourChoices(value) { return Array.isArray(value) && value.length ===
  * 세션 단위 Story 타임라인 병합 — 새 브라우저 세션에서 진행한 턴을 누적한다.
  * - turn_number가 유효한 턴만 취급한다.
  * - 같은 turn_number는 교체한다(피드백 revision이 같은 턴 카드를 갱신).
- * - 결과는 최신 턴이 앞에 오도록 내림차순 정렬한다.
+ * - 결과는 오래된 턴부터 오름차순 정렬한다.
  * refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않게 하는 유일한 게이트다.
  */
 export function mergeSessionTurns(current, incoming) {
@@ -54,7 +54,7 @@ export function mergeSessionTurns(current, incoming) {
     if (!Number.isInteger(item?.turn_number)) continue;
     map.set(item.turn_number, item);
   }
-  return [...map.values()].sort((a, b) => b.turn_number - a.turn_number);
+  return [...map.values()].sort((a, b) => a.turn_number - b.turn_number);
 }
 
 export function choicesForRenderer(viewModel, streamedStoryChoices = []) {

@@ -321,6 +321,50 @@ function storySystemPromptFrom(mock) {
     .join('\n');
 }
 
+function storyUserPayloadFrom(mock) {
+  const llmCall = mock.calls.find(call => call.url.startsWith('https://llm.test'));
+  const userMessage = JSON.parse(llmCall.body).messages.find(message => message.role === 'user');
+  return JSON.parse(userMessage.content);
+}
+
+test('app_transaction Story: plan이 적용한 active CSA와 새 규칙 content를 projected context로 전달한다', async () => {
+  const presetA = catalog.items.find(item => item.strength === 'weak' && item.category === 'posture');
+  const presetB = catalog.items.find(item => item.strength === 'weak' && item.category === 'contact');
+  const preset = item => ({
+    template_id: item.id,
+    actor_group: item.default_actor,
+    target_group: item.default_target ?? null,
+    trigger: item.default_trigger,
+    duration: item.default_duration,
+    modifier: ''
+  });
+  const mock = createMockFetch();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const structuredAction = {
+    type: 'app_transaction', base_turn_count: 0,
+    operations: [
+      { client_id: 'op-1', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: preset(presetA) },
+      { client_id: 'op-2', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: preset(presetB) }
+    ]
+  };
+  const validated = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: structuredAction }), env);
+  const { canonical_action: canonicalAction, display_input: displayInput } = (await validated.json()).data;
+
+  const storyRes = await worker.fetch(request('/api/story', {
+    game_id: gameId, action_id: '77777777-7777-4777-8777-777777777777', expected_turn: 1,
+    player_action: displayInput, structured_action: canonicalAction
+  }), env);
+  assert.equal(storyRes.status, 200);
+  await storyRes.text();
+
+  const payload = storyUserPayloadFrom(mock);
+  const globalCsa = payload.context.global_csa;
+  assert.equal(globalCsa.active_ids.length, 2);
+  assert.deepEqual(globalCsa.active_ids, ['csa_1', 'csa_1_1']);
+  for (const csaId of globalCsa.active_ids) assert.equal(globalCsa.rules[csaId].active, true);
+  assert.ok(canonicalAction.operations.every(operation => Object.values(globalCsa.rules).some(rule => rule.content === operation.content)), '새 CSA content가 Story context에 포함된다');
+});
+
 test('Story prompt: public-scene and weak-synergy CSA sections are omitted when no active CSA is public and only one is active', async () => {
   const save = freshSave({
     csa_active: ['csa_0'],
