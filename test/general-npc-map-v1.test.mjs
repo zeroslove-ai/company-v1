@@ -19,7 +19,7 @@ const EXPECTED = [
   { id: 'general_choi_yujin', name: '최유진', sex: 'female', age: 27, department_id: 'finance', type: 'employee' },
   { id: 'general_seo_hyejin', name: '서혜진', sex: 'female', age: 34, department_id: 'hr', type: 'employee' },
   { id: 'general_oh_sehoon', name: '오세훈', sex: 'male', age: 46, department_id: 'operations', type: 'employee' },
-  { id: 'general_yoon_taekyung', name: '윤태경', sex: 'male', age: 31, department_id: null, type: 'partner' },
+  { id: 'general_yoon_taekyung', name: '윤태경', sex: 'male', age: 31, department_id: 'new_business_tf', type: 'employee' },
   { id: 'general_jung_daeun', name: '정다은', sex: 'female', age: 25, department_id: 'marketing', type: 'employee' },
   { id: 'general_han_jiseok', name: '한지석', sex: 'male', age: 40, department_id: 'management_support', type: 'employee' }
 ];
@@ -44,17 +44,15 @@ test('general NPC catalog: none of the 8 ids collide with an existing heroine id
   for (const npc of listGeneralNpcs(generalNpcs)) assert.equal(heroineIds.has(npc.id), false, `${npc.id} collides with a heroine id`);
 });
 
-test('general NPC catalog: every non-null department_id referenced by a general NPC is defined (either in the player-setup departments list or general_npc_departments); external partners use department_id:null + affiliation_type:"partner" instead of a fake internal department', () => {
+test('general NPC catalog: every department_id is defined and every general NPC is an internal employee', () => {
   const validDepartments = new Set([
     ...organization.departments.map(d => d.department_id),
     ...organization.general_npc_departments.map(d => d.department_id)
   ]);
   for (const npc of listGeneralNpcs(generalNpcs)) {
-    if (npc.department_id === null) {
-      assert.equal(npc.affiliation_type, 'partner', `${npc.id} has department_id:null but is not tagged affiliation_type:'partner'`);
-      continue;
-    }
+    assert.equal(typeof npc.department_id, 'string', `${npc.id} must have an internal department_id`);
     assert.ok(validDepartments.has(npc.department_id), `undefined department_id: ${npc.department_id}`);
+    assert.equal(npc.type, 'employee');
     assert.equal(npc.affiliation_type, 'employee');
   }
 });
@@ -133,7 +131,7 @@ test('resolver: sex mismatch — male_staff never resolves to a present female N
   assert.equal(result, null);
 });
 
-test('resolver: removed external groups never resolve even when a partner-type NPC is present', () => {
+test('resolver: removed external groups never resolve even when an internal employee is present', () => {
   for (const group of ['business_visitor', 'assigned_visitor', 'partner_contact', 'guest']) {
     assert.equal(resolveGeneralNpcForGroup(group, present('general_park_jungwoo', 'general_yoon_taekyung')), null, `${group} null`);
   }
