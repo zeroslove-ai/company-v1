@@ -368,7 +368,11 @@ function resolveNonsexualCoverage(
           save, presentCharacterId, master, characters, actor, playerAction: text
         })
       : { type: 'none', characterId: null };
-    if (!actor || !target) continue;
+    // Preserve the existing nonsexual fallback: old saves without a complete
+    // participant list may still match by exact rule meaning when the semantic
+    // contract does not require a concrete direction. When the current scene
+    // does identify the player target, keep the resolved npc_to_player direction.
+    if (!actor) continue;
 
     const direction = contract.target_group ? resolveDirection(actor, target) : 'none';
     if (contract.target_group
