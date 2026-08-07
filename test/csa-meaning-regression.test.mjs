@@ -66,6 +66,42 @@ test('two-person company scene: 확인 질문은 csa_direct가 아니다', () =>
   assert.equal(result.covered, false, '질문은 csa_direct가 아님');
 });
 
+test('의무형 질문은 csa_direct가 아니다 — 지켜야 하나', () => {
+  // EXECUTE_RE의 "지켜"와 겹치지만 의무형 질문 종결("해야 하나")이므로 csa_direct가 아니다.
+  const result = resolveCsaDirectCoverage(baseSave(), '규정을 지켜야 하나', { characters });
+  assert.equal(result.covered, false, '의무형 질문은 csa_direct가 아님');
+});
+
+test('의무형 질문은 csa_direct가 아니다 — 따라야 하는가', () => {
+  // EXECUTE_RE의 "따라"와 겹치지만 의무형 질문 종결("해야 하는가")이므로 csa_direct가 아니다.
+  const result = resolveCsaDirectCoverage(baseSave(), '이 규정을 따라야 하는가', { characters });
+  assert.equal(result.covered, false, '의무형 질문은 csa_direct가 아님');
+});
+
+test('의무형 질문과 실행 요청 구분 — 명시적 실행은 csa_direct 유지', () => {
+  // "갈아입어 주세요"는 명시적 실행 요청 — 속옷 차림 규정이 applicable·actor 조건 충족이면 csa_direct여야 한다.
+  const save = baseSave();
+  save.csa_active = ['csa_42', 'csa_5'];
+  save.csa_rules.csa_5 = {
+    active: true,
+    content: '회사 직원은 근무 중 속옷 차림으로 근무해야 한다.',
+    source_type: 'preset',
+    created_turn: 5,
+    preset: {
+      version: 1,
+      actor_group: 'company_employee',
+      target_group: 'coworker',
+      trigger: 'always_on_duty',
+      duration: 'while_on_duty',
+      required_action: 'work_in_underwear_only',
+      direct_meaning_tags: ['속옷 차림', '갈아입어']
+    }
+  };
+  const result = resolveCsaDirectCoverage(save, '규정대로 지금 속옷 차림으로 갈아입어 주세요', { characters });
+  assert.equal(result.covered, true, '실행 요청은 csa_direct 유지');
+  assert.equal(result.route, 'csa_direct');
+});
+
 test('CSA text matching does not authorize a stronger material action absent from the semantic contract', () => {
   const result = resolveCsaDirectCoverage(
     baseSave(),

@@ -342,12 +342,19 @@ const ASK_RE =
 const EXECUTE_RE =
   /(해\s*줘|해\s*주세요|해\s*줄래|해라|해\s*주십시오|시행해|시행한다|수행해|수행한다|지켜|지켜라|따라|따르라|적용해|적용한다|같이\s*하자|하도록|하시죠|하십시오|하세요|해\s*달라|요구한다|명령|벗어\s*줘|벗어\s*주세요|입어\s*줘|입어\s*주세요|갈아입어\s*줘|갈아입어\s*주세요|(게|도록)\s*(한다|하라|해라|할게)|벗게\s*한다|입게\s*한다|자세를\s*취한다|취하도록)/;
 
+// 의무형 질문 종결 — 물음표 없이 "지켜야 하나/따라야 하는가" 형태로 끝나는 입력.
+// EXECUTE_RE의 지켜/따라/적용해 등과 겹쳐 csa_direct로 오판되는 것을 막는다.
+const OBLIGATION_QUESTION_RE =
+  /(?:해야|지켜야|따라야|적용해야|수행해야|시행해야)[^.!?！？]*(?:하나|하나요|하는가|되는가|되나|할까|하는지|해야지|될지)\s*[?？]?\s*$/u;
+
 /** 입력이 질문·확인·설명 요청이면 true — csa_direct가 될 수 없다. */
 function isQuestionOrRequest(text) {
   if (typeof text !== 'string' || !text.trim()) return true;
-  if (text.trim().endsWith('?')) return true;
-  if (QUESTION_RE.test(text)) return true;
-  if (ASK_RE.test(text)) return true;
+  const source = text.trim();
+  if (source.endsWith('?') || source.endsWith('？')) return true;
+  if (OBLIGATION_QUESTION_RE.test(source)) return true;
+  if (QUESTION_RE.test(source)) return true;
+  if (ASK_RE.test(source)) return true;
   return false;
 }
 
