@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -258,25 +258,95 @@ test('pending action keeps recovery UI ahead of resume and preserves recovery en
   });
 });
 
-test('action_not_found blocks a new action and exposes retry_story recovery', async () => {
+test('stale pending(committed·expected_turn 지남)은 startNewAction에서 자동 정리되고 같은 클릭으로 새 행동이 시작된다', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
-    const local = storage(); savePending(local, { game_id: gameId, action_id: 'saved', expected_turn: 3, player_action: 'Saved action', created_at: 'now', step: 'story' });
+    const local = storage();
+    savePending(local, { game_id: gameId, action_id: 'done-37', expected_turn: 37, player_action: '이전 행동', created_at: 'now', step: 'commit' });
+    const context = validContext();
+    context.save.committed_turn = 37; // pending.expected_turn(37) <= committed(37) → stale
     let storyCalls = 0;
     const api = {
-      context: async () => ({ context: validContext() }),
+      context: async () => ({ context }),
+      actionStatus: async () => ({ processing_status: 'committed', recoverable_step: 'complete' }),
+      story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 새 행동 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: local, api });
+    await app.refreshContext(); // init 없이 context만 설정 (checkRecovery 우회)
+    assert.equal(loadPending(local, gameId)?.action_id, 'done-37', '검증 전 stale pending 존재');
+    assert.equal(await app.startNewAction('새 행동'), true, '같은 클릭에서 새 행동 시작 (두 번 누르지 않음)');
+    assert.equal(loadPending(local, gameId), null, 'stale pending 자동 삭제');
+    assert.equal(storyCalls, 1, '새 행동 스토리가 같은 클릭에서 실행');
+    assert.equal(nodes['error-banner'].textContent, '', '오류 표시 없음');
+  });
+});
+
+test('commit_failed + expected_turn_conflict pending은 startNewAction에서 정리되고 action_not_found도 동일 처리', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    const local = storage();
+    savePending(local, { game_id: gameId, action_id: 'orphan', expected_turn: 37, player_action: '고아 행동', created_at: 'now', step: 'commit' });
+    const context = validContext();
+    context.save.committed_turn = 37;
+    let storyCalls = 0;
+    const api = {
+      context: async () => ({ context }),
+      actionStatus: async () => ({ processing_status: 'commit_failed', error_code: 'expected_turn_conflict', recoverable_step: 'retry_commit' }),
+      story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 새 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: local, api });
+    await app.refreshContext();
+    assert.equal(await app.startNewAction('새 행동'), true);
+    assert.equal(loadPending(local, gameId), null, 'commit_failed+expected_turn_conflict pending 삭제');
+    assert.equal(storyCalls, 1);
+    // action_not_found → 같은 정리 경로
+    const local2 = storage();
+    savePending(local2, { game_id: gameId, action_id: 'gone', expected_turn: 38, player_action: '사라진 행동', created_at: 'now', step: 'story' });
+    const api2 = {
+      context: async () => ({ context }),
       actionStatus: async () => { throw new ApiError({ endpoint: '/api/action-status', status: 404, code: 'action_not_found', message: 'missing' }); },
       story: async () => { storyCalls += 1; return new Response('event: meta\ndata: {}\n\nevent: delta\ndata: {"text":"[SCENE] 재시도 서사"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } }); },
       extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
       commit: async () => ({ commit: { success: true } })
     };
-    const app = createFrontendApp({ documentRef, storage: local, api }); await app.init();
-    assert.equal(nodes['recovery-action'].hidden, true);
-    // 자동 재개로 Story를 다시 시도해 완료된다 (버튼 대신)
-    assert.equal(storyCalls, 1);
-    assert.equal(loadPending(local, gameId), null);
-    // 재개가 끝났으므로 새 액션을 시작할 수 있다
-    assert.equal(await app.startNewAction('New action'), true);
+    const app2 = createFrontendApp({ documentRef, storage: local2, api: api2 });
+    await app2.refreshContext();
+    assert.equal(await app2.startNewAction('새 행동'), true, 'action_not_found도 같은 클릭 진행');
+    assert.equal(loadPending(local2, gameId), null, 'action_not_found pending 삭제');
+    assert.equal(nodes['error-banner'].textContent, '', '오류 표시 없음');
   });
+});
+
+test('terminated commit 응답은 pending을 삭제하고 refresh하며 invalid_commit을 발생시키지 않는다', async () => {
+  const local = storage(); let refreshes = 0;
+  const api = {
+    story: async () => new Response(),
+    extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+    commit: async () => ({ commit: { success: false, terminated: true, error: 'expected_turn_conflict' } })
+  };
+  const coordinator = createTurnCoordinator({
+    api, storage: local, gameId, getContext: () => validContext(), refreshContext: async () => { refreshes += 1; }, createActionId: () => 'term-action'
+  });
+  savePending(local, { game_id: gameId, action_id: 'term-action', expected_turn: 3, player_action: 'T', created_at: 'now', step: 'commit' });
+  await coordinator.runRecovery({ game_id: gameId, action_id: 'term-action', expected_turn: 3, player_action: 'T', step: 'commit' }, 'resume_commit');
+  assert.equal(loadPending(local, gameId), null, 'terminated → pending 삭제');
+  assert.equal(refreshes, 1, 'terminated → context refresh');
+  // 최상위 terminated 형태도 동일
+  const local2 = storage(); let refreshes2 = 0;
+  const api2 = {
+    story: async () => new Response(),
+    extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+    commit: async () => ({ terminated: true, commit: { success: false, error: 'expected_turn_conflict' } })
+  };
+  const coordinator2 = createTurnCoordinator({
+    api: api2, storage: local2, gameId, getContext: () => validContext(), refreshContext: async () => { refreshes2 += 1; }, createActionId: () => 'term-action'
+  });
+  savePending(local2, { game_id: gameId, action_id: 'term-action', expected_turn: 3, player_action: 'T', created_at: 'now', step: 'commit' });
+  await coordinator2.runRecovery({ game_id: gameId, action_id: 'term-action', expected_turn: 3, player_action: 'T', step: 'commit' }, 'resume_commit');
+  assert.equal(loadPending(local2, gameId), null, '최상위 terminated → pending 삭제');
+  assert.equal(refreshes2, 1, '최상위 terminated → context refresh');
 });
 
 test('wait_story recovery starts a fresh story exactly once (no recursion deadlock)', async () => {

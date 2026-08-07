@@ -75,7 +75,7 @@ function withStructuredAction(body, pending) {
   return pending.structured_action ? { ...body, structured_action: pending.structured_action } : body;
 }
 
-export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitStart, onCommitted, onPendingChange, createActionId = newActionId, consumeStory = consumeStorySse }) {
+export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitStart, onCommitted, onPendingChange, createActionId = newActionId, consumeStory = consumeStorySse, onTerminated = null }) {
   function persistPending(pending) { savePending(storage, pending); onPendingChange?.(pending); }
   function dropPending(pendingGameId) { clearPending(storage, pendingGameId); onPendingChange?.(null); }
 
@@ -84,9 +84,10 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     onCommitStart?.();
     const committed = await api.commit(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn }, pending));
     // Commit이 턴 충돌 등으로 종료된 경우 — 정상 종료로 간주해 pending을 비우고
-    // context를 다시 불러온다 (committing 고착·복구 재시도 루프 방지).
-    if (committed.commit?.terminated === true) {
-      dropPending(pending.game_id); await refreshContext(); return committed;
+    // 오류 배너를 지우고 context를 다시 불러온다 (committing 고착·복구 재시도 루프 방지).
+    // terminated는 응답 최상위와 commit 안쪽 어느 형태든 모두 종료로 처리한다.
+    if (committed.terminated === true || committed.commit?.terminated === true) {
+      dropPending(pending.game_id); onTerminated?.(); await refreshContext(); return committed;
     }
     if (committed.commit?.success !== true) throw new ApiError({ endpoint: '/api/commit', status: 502, code: 'invalid_commit', message: 'Commit 결과가 올바르지 않습니다.' });
     dropPending(pending.game_id); await refreshContext(); onCommitted?.(committed, pending); return committed;
@@ -345,8 +346,46 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       clearCurrentTurn(); clearRecoveryUi(); showStatus('턴이 완료되었습니다.');
       utilityUi?.loadMedia().catch(showError);
     },
-    onPendingChange: () => renderToolbar()
+    onPendingChange: () => renderToolbar(),
+    onTerminated: clearError
   });
+  // 저장 파이프라인 핫픽스 — 새 행동 시작 전에 pending을 정리한다.
+  // 실제 in-flight(story_streaming/extracting/committing/ready)만 자동 재개하고,
+  // 이미 종료된 stale pending(committed / commit_failed+expected_turn_conflict /
+  // recoverable_step complete / action_not_found / expected_turn이 지난 경우)은
+  // 즉시 삭제해 같은 클릭에서 새 행동을 진행한다.
+  async function settlePendingBeforeNewAction(pending) {
+    let data = null;
+    try {
+      data = await api.actionStatus({ game_id: gameId, action_id: pending.action_id });
+    } catch (error) {
+      if (error instanceof ApiError && error.code === 'action_not_found') {
+        clearPending(storage, gameId); clearRecoveryUi(); return 'cleaned';
+      }
+      showError(error); return 'error';
+    }
+    const status = data?.processing_status ?? null;
+    const step = recoveryFor(data);
+    const inFlight = status === 'story_streaming' || status === 'extracting' || status === 'committing' || status === 'ready';
+    const stale = status == null
+      || !inFlight
+      || pending.expected_turn <= committedTurn(context)
+      || status === 'committed'
+      || (status === 'commit_failed' && data?.error_code === 'expected_turn_conflict')
+      || step === 'complete';
+    if (stale) {
+      clearPending(storage, gameId); clearRecoveryUi(); return 'cleaned';
+    }
+    recoveryPending = true;
+    try {
+      await resumePending(pending, step);
+      return 'resumed';
+    } catch (error) {
+      showError(error); return 'error';
+    } finally {
+      recoveryPending = false;
+    }
+  }
   async function checkRecovery() {
     const pending = loadPending(storage, gameId);
     if (!pending) { clearRecoveryUi(); return; }
@@ -382,7 +421,15 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   async function startNewAction(playerAction, structuredAction = null) {
     let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
-    if (loadPending(storage, gameId)) { showStatus('이전 행동을 먼저 복구해야 합니다.'); await checkRecovery(); return false; }
+    // 저장 파이프라인 핫픽스 — 이미 종료된 과거 액션(stale pending)은 자동 정리하고
+    // 실제 in-flight 상태만 자동 재개한다. 정리된 경우 같은 클릭에서 새 행동을 계속 진행한다.
+    const pending = loadPending(storage, gameId);
+    if (pending) {
+      const outcome = await settlePendingBeforeNewAction(pending);
+      if (outcome === 'resumed') return true;   // in-flight 재개 중 — 새 행동은 재개 완료 후
+      if (outcome === 'error') return false;    // actionStatus 실패 — 오류 배너가 표시됨
+      // 'cleaned' — stale pending 제거됨. 아래에서 새 행동을 계속 진행한다.
+    }
     const numbered = resolveNumberedChoiceInput(action, saveFromContext(context));
     if (numbered && !numbered.ok) { showError(new ApiError({ endpoint: 'choice-input', status: 422, code: numbered.code.toLowerCase(), message: '지금은 그 번호의 선택지가 없습니다.' })); return false; }
     if (numbered?.ok) action = numbered.text;
