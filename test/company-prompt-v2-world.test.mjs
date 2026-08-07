@@ -136,7 +136,7 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.match(system, /scene_cast_contract가 이미 확정/);
   assert.match(system, /너에게는 결정 권한이 없다/);
   assert.match(system, /scene_goal 또는 focus_thread/);
-  assert.match(system, /이동하거나 대화를 끝내거나 다른 인물을 찾아가는 행동/);
+  assert.match(system, /현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /acting_direction=/);
   assert.ok(system.length <= 7000, `Story system prompt too large: ${system.length}`);

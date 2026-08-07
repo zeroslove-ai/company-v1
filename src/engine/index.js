@@ -70,6 +70,7 @@ export { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch, buildCsaAf
 export { resolveCsaDirectCoverage, resolveParticipant, buildCsaDirectCoverageSection } from './csa/direct-coverage.js';
 export {
   buildCsaRuntimeSection, buildCsaAcceptanceScopeSection, buildCsaDirectExecutionPrioritySection,
+  buildCsaCurrentRulesSection,
   buildCsaPhysicalTransitionSection, buildNpcCsaEpistemicFirewallSection, buildCsaPersistentSceneSection,
   buildCsaPublicSceneSection, buildCsaWeakSynergySection, isAppUsageInfoRequest, buildAppUsageStorySection,
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection, buildChoiceStructuredMetaExtractContractSection,

@@ -36,7 +36,7 @@ test('Story prompt carries the four-section, freedom, choices, and status-board 
   assert.match(system, /1000~1500자/);
   assert.match(system, /1200~2000자/);
   assert.match(system, /대신 완료하지 않는다/);
-  assert.match(system, /정확히 4개\. 각 줄은/);
+  assert.match(system, /현재 장면에서 바로 실행할 수 있는 서로 다른 행동 4개/);
   assert.match(system, /플레이어의 자유 입력 자체는 막지 않는다/);
   assert.match(system, /이번 플레이어 행동의 결과 또는 NPC의 즉각적인 반응으로 시작한다/);
   assert.match(system, /직전 턴과 장소·시간·조명·날씨가 같으면 이를 다시 소개하지 않는다/);

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Story/Extract prompt contract sections ported from the donor's CSA-runtime
  * prompt builders (buildCsaRuntimeSection, buildCsaAcceptanceScopeSection,
  * buildCsaDirectExecutionPrioritySection, buildCsaPhysicalTransitionSection,
@@ -21,7 +21,7 @@ export function buildCsaRuntimeSection() {
 - 이 버전의 유일한 정신 효과는 공간 기반 상식개변이다. 개인 암시·최면 시스템은 존재하지 않는다.
 - 저장된 상식개변의 생성·수정·해제는 Worker가 검증한 structured_action만 처리한다.
 - 일반 대화·설득·반복 발언으로 상식개변을 만들거나 바꾸지 않는다.
-- 활성 상식개변은 현재 적용 범위 안에서 원래부터 존재한 사회적 상식으로 취급한다.
+- 현재 적용 규정의 신규·기존 여부는 [CURRENT CSA RULES]의 phase만 따른다.
 - [3. 선택지]에는 상식개변 관리 조작을 제안하지 않는다. 해당 기능은 상식개변 앱 UI에서만 수행한다.
 `;
 }
@@ -54,7 +54,7 @@ export function buildCsaPhysicalTransitionSection(hasApplicableCsa, isAppTransac
   return `
 
 [CSA INSTANT NORM, NON-MAGICAL MATTER — HIGHEST PRIORITY]
-상식과 판단은 즉시 바뀌지만 물질과 현재 물리 상태는 자동으로 바뀌지 않는다. 현재 상태가 새 규범과 충돌하면 NPC는 새 규범을 원래부터 당연한 상식으로 받아들이지만, 복장과 자세는 실제 동작으로만 규범에 맞춘다.
+상식과 판단은 즉시 바뀌지만 물질과 현재 물리 상태는 자동으로 바뀌지 않는다. 현재 상태가 새 규범과 충돌하면 NPC는 새 규범을 현재 유효한 회사 규정으로 이해하지만, 복장과 자세는 실제 동작으로만 규범에 맞춘다.
 
 금지(어떤 상식개변 activate/update/deactivate 직후에도 절대 쓰지 않는다):
 - 속옷·복장이 갑자기 사라짐
@@ -131,7 +131,7 @@ export function buildCsaPublicSceneSection() {
 [PUBLIC COMMON-SENSE SCENE — HIGHEST PRIORITY]
 - 활성 상식개변은 회사 전체의 공동 상식이다.
 - 복도, 사무실, 회의실, 휴게실 등 공개 여부와 관계없이 동일하게 실행한다.
-- 주변 동료·상사·방문자·협력사 담당자는 해당 행동을 정상적인 회사 관행으로 받아들인다.
+- 주변 동료·상사·다른 부서 직원은 해당 행동을 정상적인 회사 관행으로 받아들인다.
 - 주변 NPC는 바라보거나 대화에 참여하거나 업무적으로 평가할 수 있지만 제지·신고·비난하지 않는다.
 - 메인 NPC는 주변 시선을 인식하고 성격에 따라 부끄러워하거나 긴장할 수 있다.
 - 그 부끄러움은 상식개변 자체가 잘못됐다는 의심이 아니라 자신의 신체 반응과 공개적으로 주목받는 상황에서 발생한다.
@@ -229,4 +229,51 @@ export function buildStructuredActionStorySection(canonicalOperations, activeCsa
 export function buildCsaDeactivationStorySection(hasDeactivation) {
   if (!hasDeactivation) return '';
   return `\n\n[CSA DEACTIVATION MEMORY RULE — ESTABLISHED FACT]\n- 상식개변 해제는 기억 삭제, 기억 흐림, 시간 공백이 아니다.\n- NPC는 개변 적용 중 자신이 보고 듣고 말하고 행동한 모든 사건과, 당시 그 상식을 자연스럽고 당연하다고 인식했던 사실을 정상적으로 기억한다.\n- 해제 후에는 그 상식에 대한 당연함만 사라진다. 과거 행동을 현재의 원래 가치관으로 재평가하며 당황, 수치심, 후회, 혼란을 느낄 수 있다.\n- 실제로 스스로 한 행동을 강요받은 일·기억이 없는 일·원래 복장을 하고 있던 일로 바꾸지 않는다. 과거 사건을 소급 삭제하거나 다시 쓰지 않는다.\n- 현재 물리 상태(복장, 자세, 위치, 신체 상태)를 그대로 유지한다. 자동으로 복구하지 않는다.\n- 별도의 실제 기억상실 사건이 없는 한 "기억이 안 난다", "기억이 흐릿하다"고 묘사하지 않는다.\n- 권장 반응: 행동은 기억하지만 당시 판단이 이해되지 않는다는 자연스러운 재평가.`;
+}
+
+/**
+ * 문서(CSA_STORY_STABILIZATION_HANDOFF) 2절 — Story에 넣는 단일 권위 CSA 목록.
+ * active CSA만 나열하며 phase(신규/수정/기존)를 붙여 신규 공지 인식과
+ * 기존 규정 반복 방지를 동시에 전달한다. 새 파일을 만들지 않는다.
+ */
+export function buildCsaCurrentRulesSection(applicableCsa, expectedTurn) {
+  if (!Array.isArray(applicableCsa) || applicableCsa.length === 0) return '';
+
+  const lines = applicableCsa.map(csa => {
+    const preset = csa?.preset && typeof csa.preset === 'object' ? csa.preset : {};
+    const phase = csa.created_turn === expectedTurn
+      ? 'newly_activated'
+      : csa.updated_turn === expectedTurn
+        ? 'updated'
+        : 'ongoing';
+
+    return [
+      `- csa_id=${csa.id}`,
+      `  phase=${phase}`,
+      `  content=${csa.content ?? ''}`,
+      `  actor_group=${preset.actor_group ?? csa.semantic_contract?.actor_group ?? 'unknown'}`,
+      `  target_group=${preset.target_group ?? csa.semantic_contract?.target_group ?? 'none'}`,
+      `  trigger=${preset.trigger ?? csa.semantic_contract?.trigger ?? 'none'}`,
+      `  duration=${preset.duration ?? csa.semantic_contract?.duration ?? 'continuous'}`,
+      `  required_action=${preset.required_action ?? 'content에 적힌 의무'}`,
+      `  direct_meaning_tags=${Array.isArray(preset.direct_meaning_tags) ? preset.direct_meaning_tags.join('|') : ''}`
+    ].join('\n');
+  });
+
+  return `
+\n[CURRENT CSA RULES — SINGLE AUTHORITATIVE LIST]
+아래 목록만 현재 적용 규정이다. save.csa_rules에 남아 있더라도 이 목록에 없는 active:false 과거 규정은 현재 행동에 적용하지 않는다.
+
+phase 해석:
+- newly_activated: 이번 턴에 내려온 회사 내부의 새 공지·사규·업무 지침이다. NPC는 이번 턴 처음 확인하고 이전 상태와 비교할 수 있다.
+- updated: 이번 턴부터 새 본문만 유효하다. 이전 본문은 현재 규정이 아니다.
+- ongoing: 이전 턴부터 시행 중인 규정이다. 매 턴 새 공지처럼 재발견하거나 같은 놀람을 반복하지 않는다.
+
+trigger 해석:
+- trigger가 현재 입력·장면에서 발생하지 않았으면 직접 의무를 새로 시작하지 않는다.
+- trigger가 발생했으면 content와 required_action에 적힌 범위를 축소하지 않고 실행한다.
+- duration이 계속되는 동안 이미 시작된 행동·자세·복장 상태는 이전 턴에서 이어간다.
+- 모든 active CSA를 자동으로 triggered 또는 continuing 처리하지 않는다.
+
+${lines.join('\n')}`;
 }

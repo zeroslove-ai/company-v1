@@ -191,15 +191,14 @@ const storySystemPrompt = playerAction => buildStoryPrompt({
   catalogs: {}
 })[0].content;
 
-test('맵11: Story 계약이 업무 선택지를 전면 금지한다', () => {
+test('맵11: Story 계약이 업무·대화 선택지를 자연스럽게 허용한다', () => {
   const system = storySystemPrompt('민아씨 안녕?');
-  assert.match(system, /업무 선택지는 하나도 만들지 않는다/);
-  assert.match(system, /자료 확인·예산 검토·보고서·감사 포인트·계약 검토·지표 분석·회의 계속·메일 확인/);
+  assert.match(system, /현재 장면에서 바로 실행할 수 있는 서로 다른 행동 4개/);
+  assert.match(system, /현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다/);
 });
 
-test('맵12: 업무를 직접 입력해도 다음 선택지는 업무로 이어지지 않는다는 계약이 있다', () => {
+test('맵12: 업무 편향 제거 계약은 유지되고 선택지 제한은 완화된다', () => {
   const system = storySystemPrompt('작년 예산 자료를 확인한다');
-  assert.match(system, /업무를 직접 입력했어도 다음 선택지는 업무로 이어지지 않는다/);
   assert.match(system, /업무 편향 제거/);
   assert.match(system, /업무를 이유로 다른 NPC를 등장시키지 않는다/);
 });
