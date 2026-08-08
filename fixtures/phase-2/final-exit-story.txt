@@ -1,0 +1,17 @@
+[SCENE]
+Heroine4 finished her sentence and walked to the door.
+
+[DIALOGUE speaker_id="heroine4" acting_direction="speaks before leaving"]
+I will wait in the corridor.
+
+[SCENE]
+She opened the door and went into the corridor. Her footsteps faded, and only the player remained in the meeting room.
+
+[PLAYER_INNER_THOUGHT]
+The room felt different after she left, and I replayed the last exchange while deciding whether to follow or stay. I knew exactly what she had said, but not what she would want next.
+
+[CHOICES]
+1. Follow her to the corridor.
+2. Stay in the room.
+3. Send a message.
+4. Return to work.

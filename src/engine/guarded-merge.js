@@ -716,6 +716,39 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
   if (envelope.focal_character_id !== null) nextSave.focal_character_id = envelope.focal_character_id;
   if (envelope.last_speaker_id !== null) nextSave.last_speaker_id = envelope.last_speaker_id;
 
+  // Extract may replace scene presence only when it explicitly confirms the final
+  // Story moment. This keeps degraded/legacy extracts non-destructive while allowing
+  // an explicit exit to remove an NPC from the current scene without deleting history.
+  if (envelope.outcome !== 'degraded' && envelope.evidence?.scene_presence_final === true) {
+    const playerId = typeof nextSave.player?.player_id === 'string'
+      ? nextSave.player.player_id
+      : (typeof nextSave.player?.id === 'string' ? nextSave.player.id : 'player-1');
+    const presentNpcIds = [...new Set(envelope.npcs_present.filter(id => id !== playerId))];
+    nextSave.scene_state = {
+      ...(plainObject(nextSave.scene_state) ? nextSave.scene_state : {}),
+      participants: [playerId, ...presentNpcIds],
+      updated_turn: options.expectedTurn
+    };
+    nextSave.last_npcs_present = clone(presentNpcIds);
+    nextSave.focal_character_id = envelope.focal_character_id ?? null;
+
+    const previousNpcIds = new Set([
+      ...(Array.isArray(preSave.scene_state?.participants) ? preSave.scene_state.participants : []),
+      ...(Array.isArray(preSave.last_npcs_present) ? preSave.last_npcs_present : [])
+    ]);
+    for (const id of previousNpcIds) {
+      if (id === playerId || presentNpcIds.includes(id)) continue;
+      if (plainObject(nextSave.npc_scene_state?.[id])) {
+        nextSave.npc_scene_state[id] = {
+          ...nextSave.npc_scene_state[id],
+          present: false,
+          updated_turn: options.expectedTurn
+        };
+      }
+    }
+    warnings.push('scene_presence_committed_from_final_story');
+  }
+
   const timeBefore = preSave.world_state.game_time;
   const timeAfter = advanceGameTime(timeBefore, envelope.elapsed_minutes, envelope.evidence);
   nextSave.world_state = plainObject(nextSave.world_state) ? { ...nextSave.world_state, game_time: timeAfter } : { game_time: timeAfter };
