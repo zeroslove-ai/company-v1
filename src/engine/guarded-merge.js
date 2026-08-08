@@ -53,12 +53,17 @@ function plainObject(value) {
  * 정식 형태는 evidence.clothing[actor_id][slot]이며, 기존 모델이 내던 flat slot
  * 형태도 entry.character_id/character가 actor와 일치할 때만 읽는다.
  * buildSceneStatePatch가 요구하는 slot -> quote 문자열로 축약한다.
+ *
+ * 반환:
+ *   quotes: { slot: quote }  — buildSceneStatePatch용 축약
+ *   actorScoped: true면 evidence가 actor별 nested 경로(evidence.clothing[actor_id])였다.
+ *                flat evidence(evidence.clothing[slot])면 false — 단일 NPC 예외를 적용하지 않는다.
  */
 function clothingEvidenceForActor(evidence, actorId) {
   const root = plainObject(evidence?.clothing) ? evidence.clothing : {};
   const nested = plainObject(root[actorId]) ? root[actorId] : null;
   const source = nested ?? root;
-  const result = {};
+  const result = { quotes: {}, actorScoped: Boolean(nested) };
 
   for (const [slot, entry] of Object.entries(source)) {
     if (plainObject(entry)) {
@@ -68,20 +73,22 @@ function clothingEvidenceForActor(evidence, actorId) {
       if (!nested && claimedActor && claimedActor !== actorId) continue;
       // flat evidence에서 플레이어 소유권을 추측하지 않는다.
       if (!nested && actorId === 'player' && claimedActor !== 'player') continue;
-      if (typeof entry.quote === 'string' && entry.quote.trim()) result[slot] = entry.quote.trim();
+      if (typeof entry.quote === 'string' && entry.quote.trim()) result.quotes[slot] = entry.quote.trim();
       continue;
     }
     // 문자열 entry는 actor별 nested map에서만 허용한다.
-    if (nested && typeof entry === 'string' && entry.trim()) result[slot] = entry.trim();
+    if (nested && typeof entry === 'string' && entry.trim()) result.quotes[slot] = entry.trim();
   }
   return result;
 }
 
 function sceneEvidenceMap(patch, envelopeEvidence, actorId) {
   const local = plainObject(patch?.evidence) ? patch.evidence : {};
+  const clothing = clothingEvidenceForActor(envelopeEvidence, actorId);
   return {
     ...local,
-    clothing: clothingEvidenceForActor(envelopeEvidence, actorId)
+    clothing: clothing.quotes,
+    clothing_actor_scoped: clothing.actorScoped
   };
 }
 
@@ -460,6 +467,25 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     if (envelope.action_target_id) allowedNpcs.add(envelope.action_target_id);
   }
 
+  // 이번 턴 장면 참여자 정본 — Extract가 검증해 확정한 npcs_present가 우선,
+  // 비어 있으면 Commit이 유지한 scene_state.participants를 사용한다.
+  // player/player_id는 비플레이어 NPC 수에서 제외한다 (과거 last_npcs_present나
+  // focal_character_id만으로 단일 NPC를 추측하지 않는다).
+  const playerId = resolveCanonicalPlayerId(preSave);
+  const sceneNpcIds = (Array.isArray(envelope.npcs_present) && envelope.npcs_present.length
+    ? envelope.npcs_present
+    : Array.isArray(nextSave.scene_state?.participants) ? nextSave.scene_state.participants : []
+  ).filter(id => typeof id === 'string' && id && !isPlayerRefId(id));
+
+  // 등록 NPC 이름 목록 — 단일 NPC 예외에서 다른 NPC 이름과의 명시적 충돌을 차단한다.
+  const masterRoster = plainObject(options?.master) ? options.master : {};
+  const registeredNpcNames = [
+    ...(Array.isArray(masterRoster.characters) ? masterRoster.characters : []),
+    ...(Array.isArray(masterRoster.general_npcs) ? masterRoster.general_npcs : [])
+  ]
+    .map(entry => typeof entry?.name === 'string' && entry.name.trim() ? entry.name.trim() : null)
+    .filter(Boolean);
+
   for (const [path, patch] of Object.entries(envelope.state_delta)) {
     if (ENVELOPE_AUTHORITATIVE.has(path)) {
       warnings.push(`duplicate_state_path:${path}`);
@@ -504,7 +530,8 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
         previous: nextSave.player_scene_state ?? {}, proposal: patch,
         evidenceMap: sceneEvidenceMap(patch, envelope.evidence, 'player'),
         narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
-        characterName: '', turnNumber: options.expectedTurn
+        characterName: '', turnNumber: options.expectedTurn,
+        actorId: 'player', npcsPresent: sceneNpcIds, registeredNpcNames
       });
       nextSave.player_scene_state = state;
       warnings.push(...sceneWarnings.map(code => `player_scene_state:${code}`));
@@ -568,7 +595,8 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
             previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: npcPatch,
             evidenceMap: sceneEvidenceMap(npcPatch, envelope.evidence, npcId),
             narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
-            characterName: characterNameFromMaster(options?.master, npcId), turnNumber: options.expectedTurn
+            characterName: characterNameFromMaster(options?.master, npcId), turnNumber: options.expectedTurn,
+            actorId: npcId, npcsPresent: sceneNpcIds, registeredNpcNames
           });
           nextSave.npc_scene_state[npcId] = { ...state, present: nextSave.npc_scene_state[npcId]?.present ?? npcPatch.present ?? false };
           warnings.push(...sceneWarnings.map(code => `npc_scene_state:${npcId}:${code}`));

@@ -9,7 +9,7 @@ import { physicalRelationDisplay, stateDisplayValues } from '../src/frontend/pag
 
 const canonicalSave = JSON.parse(fs.readFileSync(new URL('../fixtures/phase-0.5/canonical-save-v1.json', import.meta.url), 'utf8'));
 
-function clothingEnvelope({ stateDelta, evidence, story }) {
+function clothingEnvelope({ stateDelta, evidence, story, npcsPresent = ['npc-hayeon'], focal = 'npc-hayeon' }) {
   return {
     state_delta: stateDelta,
     outcome: 'success',
@@ -18,11 +18,11 @@ function clothingEnvelope({ stateDelta, evidence, story }) {
     mind_monitor: {},
     choices: ['계속한다', '질문한다', '반응을 본다', '기다린다'],
     dialogue_lines: [],
-    npcs_present: ['npc-hayeon'],
-    action_target_id: 'npc-hayeon',
-    focal_character_id: 'npc-hayeon',
+    npcs_present: npcsPresent,
+    action_target_id: focal,
+    focal_character_id: focal,
     last_speaker_id: null,
-    image_character_id: 'npc-hayeon',
+    image_character_id: focal,
     player_inner_thought: '',
     player_status: '',
     elapsed_minutes: 1,
@@ -31,12 +31,12 @@ function clothingEnvelope({ stateDelta, evidence, story }) {
   };
 }
 
-function applyClothing(save, envelope, story) {
+function applyClothing(save, envelope, story, { npcIds = new Set(['npc-hayeon']), master = { characters: [{ character_id: 'npc-hayeon', name: '김하연' }] } } = {}) {
   return applyGuardedStateDelta(save, envelope, {
     storyText: story,
     parsedStory: { choices: envelope.choices, dialogue_lines: [] },
-    npcIds: new Set(['npc-hayeon']),
-    master: { characters: [{ character_id: 'npc-hayeon', name: '김하연' }] },
+    npcIds,
+    master,
     expectedTurn: 8,
     actionId: 'action-8',
     turnId: 'turn-8'
@@ -174,4 +174,272 @@ test('frontend source renders interacting NPC clothing and always exposes player
   assert.match(render, /LEGACY_CLOTHING_LABELS/);
   const css = fs.readFileSync(new URL('../src/frontend/pages/hospital-panels.css', import.meta.url), 'utf8');
   assert.match(css, /-webkit-line-clamp: unset/);
+});
+
+// ── 단일 NPC 장면 actor-scoped 착의 evidence 예외 (운영 64·65턴 실패 수정) ──
+
+const HAYEON_MASTER = {
+  characters: [{ character_id: 'npc-hayeon', name: '김하연' }]
+};
+const TWO_NPC_MASTER = {
+  characters: [
+    { character_id: 'npc-hayeon', name: '김하연' },
+    { character_id: 'heroine3', name: '김제나' },
+    { character_id: 'heroine2', name: '윤민아' }
+  ]
+};
+
+function sceneSave() {
+  const save = structuredClone(canonicalSave);
+  save.npc_scene_state['npc-hayeon'] = { ...save.npc_scene_state['npc-hayeon'], clothing: {} };
+  return save;
+}
+
+test('회귀1: 단일 NPC + nested actor evidence + 이름 없는 exact quote → 저장 성공 (실제 65턴 형태)', () => {
+  const save = sceneSave();
+  const story = '그녀가 셔츠를 아예 벗어 의자에 걸었다. 속옷 차림으로 사무실에 서 있는 게 규정이라지만.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: '그녀가 셔츠를 아예 벗어 의자에 걸었다.', character_id: 'npc-hayeon' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].clothing.uniform_top, 'removed',
+    '단일 NPC 장면 + nested actor evidence는 이름 없이 저장');
+});
+
+test('회귀2: 단일 NPC + nested actor evidence + 대상 전체 이름 포함 → 기존대로 저장 성공', () => {
+  const save = sceneSave();
+  const story = '김하연이 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: '김하연이 셔츠를 벗어 의자에 걸었다.', character_id: 'npc-hayeon' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].clothing.uniform_top, 'removed');
+});
+
+test('회귀3: NPC 2명 + 이름 없는 quote → 저장 거부, 이전 clothing 유지', () => {
+  const save = sceneSave();
+  const story = '그녀가 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    npcsPresent: ['npc-hayeon', 'heroine3'],
+    focal: 'npc-hayeon',
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: '그녀가 셔츠를 벗어 의자에 걸었다.', character_id: 'npc-hayeon' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, {
+    master: TWO_NPC_MASTER, npcIds: new Set(['npc-hayeon', 'heroine3'])
+  });
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {},
+    '다중 NPC 장면은 이름 없는 quote 거부');
+  assert.ok(result.warnings.some(w => w.includes('unevidenced_clothing_change')), result.warnings.join(' '));
+});
+
+test('회귀4: NPC 2명 + 대상 이름 포함 + actor_id 일치 → 해당 NPC만 저장', () => {
+  const save = sceneSave();
+  save.npc_scene_state['heroine3'] = { ...save.npc_scene_state['heroine3'], clothing: {} };
+  const story = '김제나가 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    npcsPresent: ['npc-hayeon', 'heroine3'],
+    focal: 'heroine3',
+    stateDelta: { npc_scene_state: { 'heroine3': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'heroine3': {
+          uniform_top: { quote: '김제나가 셔츠를 벗어 의자에 걸었다.', character_id: 'heroine3' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, {
+    master: TWO_NPC_MASTER, npcIds: new Set(['npc-hayeon', 'heroine3'])
+  });
+  assert.equal(result.nextSave.npc_scene_state['heroine3'].clothing.uniform_top, 'removed');
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {}, 'heroine3에만 저장');
+});
+
+test('회귀5: 단일 NPC 장면이라도 quote에 다른 등록 NPC 이름이 명시되면 거부', () => {
+  const save = sceneSave();
+  const story = '윤민아가 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: '윤민아가 셔츠를 벗어 의자에 걸었다.', character_id: 'npc-hayeon' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: TWO_NPC_MASTER });
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {},
+    '다른 NPC 이름이 명시되면 잘못된 귀속 — 거부');
+  assert.ok(result.warnings.some(w => w.includes('unevidenced_clothing_change')), result.warnings.join(' '));
+});
+
+test('회귀6: 현재 장면에 없는 actor_id → 저장 거부', () => {
+  const save = sceneSave();
+  const story = '그녀가 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    npcsPresent: ['npc-hayeon'],
+    focal: 'npc-hayeon',
+    stateDelta: { npc_scene_state: { 'heroine3': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'heroine3': {
+          uniform_top: { quote: '그녀가 셔츠를 벗어 의자에 걸었다.', character_id: 'heroine3' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, {
+    master: TWO_NPC_MASTER, npcIds: new Set(['npc-hayeon', 'heroine3'])
+  });
+  // heroine3는 장면(npc-hayeon만)에 없으므로 patch 자체가 거부된다.
+  assert.deepEqual(result.nextSave.npc_scene_state['heroine3']?.clothing ?? {}, {},
+    '장면 밖 actor는 착의 patch 없음');
+});
+
+test('회귀7: flat evidence + 이름 없는 quote → 기존 strict 정책대로 거부', () => {
+  const save = sceneSave();
+  const story = '그녀가 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        uniform_top: { quote: '그녀가 셔츠를 벗어 의자에 걸었다.', character_id: 'npc-hayeon' }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {},
+    'flat evidence는 단일 NPC 예외 없음 — 이름 필요');
+});
+
+test('회귀8: player actor 경로는 기존대로 저장 성공', () => {
+  const save = sceneSave();
+  save.player_scene_state = { ...save.player_scene_state, clothing: {} };
+  const story = '플레이어는 정장 바지를 벗어 의자 위에 올려두었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { player_scene_state: { clothing: { uniform_bottom: 'removed' } } },
+    evidence: {
+      clothing: {
+        player: {
+          uniform_bottom: { quote: story, character_id: 'player' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.equal(result.nextSave.player_scene_state.clothing.uniform_bottom, 'removed');
+});
+
+test('회귀9: player-1 actor key는 player로 자동 변환하지 않고 거부', () => {
+  const save = sceneSave();
+  save.player_scene_state = { ...save.player_scene_state, clothing: {} };
+  const story = '플레이어는 정장 바지를 벗어 의자 위에 올려두었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { player_scene_state: { clothing: { uniform_bottom: 'removed' } } },
+    evidence: {
+      clothing: {
+        'player-1': {
+          uniform_bottom: { quote: story, character_id: 'player-1' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.deepEqual(result.nextSave.player_scene_state.clothing, {},
+    'player-1 키는 추측 변환 없이 거부');
+});
+
+test('회귀10: 규정 문구만 존재하면 actual clothing 생성 없음', () => {
+  const save = sceneSave();
+  const story = '여성 직원은 속옷 차림으로 근무해야 한다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: '여성 직원은 속옷 차림으로 근무해야 한다.', character_id: 'npc-hayeon' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {},
+    '규정 문구는 실제 착의 근거가 아님');
+});
+
+test('회귀11: planned-only 행동은 착의 변화 없음', () => {
+  const save = sceneSave();
+  const story = '김하연은 셔츠를 벗으려고 손을 뻗었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: '김하연은 셔츠를 벗으려고 손을 뻗었다.', character_id: 'npc-hayeon' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {},
+    '완료되지 않은 행동은 removed 저장 금지');
+});
+
+test('회귀12: posture·position은 기존 동작 유지 (evidence gate 회귀 없음)', () => {
+  // posture는 evidence 없이도 텍스트 반영, location은 evidence 필요 (기존 계약 유지)
+  const result = buildSceneStatePatch({
+    previous: { posture: '서 있다', location_label: '사무실', clothing: {} },
+    proposal: { posture: '앉아 있다', location_label: '회의실' },
+    evidenceMap: {}, narrativeText: '김하연은 자리에 앉았다.', characterName: '김하연', turnNumber: 18
+  });
+  assert.equal(result.state.posture, '앉아 있다');
+  assert.equal(result.state.location_label, '사무실');
+  assert.ok(result.warnings.includes('unevidenced_location_change'));
+  // 단일 NPC 파라미터가 posture/position 경로에 영향을 주지 않는다.
+  const withScene = buildSceneStatePatch({
+    previous: { posture: '서 있다', location_label: '사무실', clothing: {} },
+    proposal: { posture: '걷고 있다' },
+    evidenceMap: {}, narrativeText: '김하연이 복도를 걸었다.', characterName: '김하연',
+    actorId: 'npc-hayeon', npcsPresent: ['npc-hayeon'], registeredNpcNames: ['김하연'], turnNumber: 19
+  });
+  assert.equal(withScene.state.posture, '걷고 있다');
+});
+
+test('회귀14: extract-prompt는 이번 작업에서 변경되지 않았다', () => {
+  const extractPrompt = fs.readFileSync(new URL('../src/engine/extract-prompt.js', import.meta.url), 'utf8');
+  assert.match(extractPrompt, /actor_id is player for the player/);
+  assert.match(extractPrompt, /NPC quotes name that NPC/);
 });
