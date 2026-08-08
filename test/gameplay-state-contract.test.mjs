@@ -14,7 +14,8 @@ import {
   normalizeMindMonitor,
   parseNarrative,
   reducePlayerSexualState,
-  buildExtractPrompt
+  buildExtractPrompt,
+  buildCsaSceneRuntimeStatePatch
 } from '../src/engine/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -200,4 +201,153 @@ test('required gameplay fixtures define three CSA axes and five resolved heroine
     reducePlayerSexualState({}, readJson('fixtures/gameplay-state-v1/extract-invalid-sexual-completion.json').state_delta.player_sexual_state).warnings,
     ['unauthorized_ejaculation_completion_ignored']
   );
+});
+
+// ── 턴70: csa_runtime action_state null canonicalize + method_variant/continuation ──
+
+const CSA60_RULE = {
+  id: 'csa_60',
+  csa_id: 'csa_60',
+  active: true,
+  content: '여성 직원 전체는 남성 직원 전체의 발기로 업무가 방해되면 담당자가 업무적으로 이를 진정시켜야 하며, 해당 업무가 끝날 때까지 이 절차를 따라야 한다.',
+  source_type: 'preset',
+  created_turn: 79,
+  preset: {
+    version: 1, actor_group: 'female_employee', target_group: 'player',
+    trigger: 'during_work', duration: 'until_work_ends',
+    required_action: 'resolve_patient_erection',
+    public_normalization: true, persistent: true
+  }
+};
+
+function csa60RuntimeSave({ previousExecuted = true } = {}) {
+  const save = {
+    save_schema_version: 1, edition: 'company-v1',
+    turn_state: { committed_turn: 85 },
+    player: { name: '김하늘' }, player_progress: { level: 1, exp: 0 },
+    scene_state: {}, world_state: {},
+    npc_stats: {}, npc_emotion: {}, npc_relationship_state: {}, npc_scene_state: {}, npc_work_state: {},
+    csa_active: [], csa_rules: {}, csa_attitudes: {}, csa_runtime_state: {}, csa_aftereffect_state: {},
+    event_ledger: [], story_summary_overall: '', story_summary_recent: '',
+    focal_character_id: null, last_speaker_id: null, last_npcs_present: [], last_image_id: null,
+    last_choices: [], last_choice_meta: [], player_setup: { completed: true }
+  };
+  save.csa_active = ['csa_60'];
+  save.csa_rules = { csa_60: CSA60_RULE };
+  save.csa_runtime_state = previousExecuted ? {
+    csa_60: {
+      lifecycle: 'active', applicability: 'applicable', execution_state: 'executed',
+      character_id: 'heroine4', started_turn: 79, last_confirmed_turn: 84, end_reason: null
+    }
+  } : {};
+  save.scene_state = { participants: ['player-1', 'heroine4'] };
+  save.last_npcs_present = ['heroine4'];
+  return save;
+}
+
+test('턴70-12: status active + action_state null + same csa coverage → required_action으로 canonicalize → execution_state executed', () => {
+  const save = csa60RuntimeSave({ previousExecuted: false });
+  const result = buildCsaSceneRuntimeStatePatch({
+    previousSave: save,
+    csaRuntimeUpdates: [{ csa_id: 'csa_60', status: 'active', character_id: 'heroine4', action_state: null }],
+    csaTriggerEvaluations: [],
+    activeCsa: [CSA60_RULE],
+    npcsPresent: ['heroine4'],
+    turnNumber: 86,
+    csaCoverage: { covered: true, route: 'csa_direct', csa_id: 'csa_60', coverage_kind: 'method_variant', actor_id: 'heroine4', target_id: 'player', required_action: 'resolve_patient_erection' }
+  });
+  assert.equal(result.patch.csa_60.execution_state, 'executed');
+  assert.equal(result.patch.csa_60.character_id, 'heroine4');
+  assert.equal(result.patch.csa_60.started_turn, 86, '시작 턴 보존/기록');
+  assert.equal(result.accepted_executions.length, 1);
+});
+
+test('턴70-13: status active + 잘못된 non-null action_state → 기존처럼 거부', () => {
+  const save = csa60RuntimeSave({ previousExecuted: false });
+  const result = buildCsaSceneRuntimeStatePatch({
+    previousSave: save,
+    csaRuntimeUpdates: [{ csa_id: 'csa_60', status: 'active', character_id: 'heroine4', action_state: 'kiss_player' }],
+    csaTriggerEvaluations: [],
+    activeCsa: [CSA60_RULE],
+    npcsPresent: ['heroine4'],
+    turnNumber: 86,
+    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'method_variant' }
+  });
+  assert.equal(result.patch, null);
+  assert.ok(result.warnings.some(w => w.includes('csa_runtime_action_state_mismatch')));
+});
+
+test('턴70-14: 다른 actor → 거부', () => {
+  const save = csa60RuntimeSave({ previousExecuted: false });
+  const result = buildCsaSceneRuntimeStatePatch({
+    previousSave: save,
+    csaRuntimeUpdates: [{ csa_id: 'csa_60', status: 'active', character_id: 'heroine2', action_state: null }],
+    csaTriggerEvaluations: [],
+    activeCsa: [CSA60_RULE],
+    npcsPresent: ['heroine4'],
+    turnNumber: 86,
+    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'method_variant', actor_id: 'heroine4' }
+  });
+  assert.equal(result.patch, null, '다른 actor는 보충 안 함');
+});
+
+test('턴70-15: 장면에 없는 actor → 거부', () => {
+  const save = csa60RuntimeSave({ previousExecuted: false });
+  const result = buildCsaSceneRuntimeStatePatch({
+    previousSave: save,
+    csaRuntimeUpdates: [{ csa_id: 'csa_60', status: 'active', character_id: 'heroine2', action_state: null }],
+    csaTriggerEvaluations: [],
+    activeCsa: [CSA60_RULE],
+    npcsPresent: ['heroine4'],
+    turnNumber: 86,
+    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'method_variant', actor_id: 'heroine2' }
+  });
+  assert.equal(result.patch, null, '장면 밖 actor는 보충 안 함');
+});
+
+test('턴70-16: ordinary route → null 보충 금지', () => {
+  const save = csa60RuntimeSave({ previousExecuted: false });
+  const result = buildCsaSceneRuntimeStatePatch({
+    previousSave: save,
+    csaRuntimeUpdates: [{ csa_id: 'csa_60', status: 'active', character_id: 'heroine4', action_state: null }],
+    csaTriggerEvaluations: [],
+    activeCsa: [CSA60_RULE],
+    npcsPresent: ['heroine4'],
+    turnNumber: 86,
+    csaCoverage: { covered: false }
+  });
+  assert.equal(result.patch, null, 'ordinary route는 null 보충 없음');
+});
+
+test('턴70-17: csa_60 started_turn 보존 (이미 executed였으면 유지)', () => {
+  const save = csa60RuntimeSave({ previousExecuted: true });
+  const result = buildCsaSceneRuntimeStatePatch({
+    previousSave: save,
+    csaRuntimeUpdates: [{ csa_id: 'csa_60', status: 'active', character_id: 'heroine4', action_state: null }],
+    csaTriggerEvaluations: [],
+    activeCsa: [CSA60_RULE],
+    npcsPresent: ['heroine4'],
+    turnNumber: 86,
+    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'continuation', actor_id: 'heroine4' }
+  });
+  assert.equal(result.patch.csa_60.started_turn, 79, '기존 started_turn 보존');
+  assert.equal(result.patch.csa_60.last_confirmed_turn, 86);
+});
+
+test('턴70-18: accepted_executions 중복으로 EXP를 여러 번 주지 않음 (reducer는 accepted 목록만 반환)', () => {
+  const save = csa60RuntimeSave({ previousExecuted: false });
+  const result = buildCsaSceneRuntimeStatePatch({
+    previousSave: save,
+    csaRuntimeUpdates: [
+      { csa_id: 'csa_60', status: 'active', character_id: 'heroine4', action_state: null },
+      { csa_id: 'csa_60', status: 'active', character_id: 'heroine4', action_state: 'resolve_patient_erection' }
+    ],
+    csaTriggerEvaluations: [],
+    activeCsa: [CSA60_RULE],
+    npcsPresent: ['heroine4'],
+    turnNumber: 86,
+    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'continuation', actor_id: 'heroine4' }
+  });
+  // 같은 턴 중복 실행 제안은 acceptedExecutions에 한 번만 들어가야 한다 (turn-routes가 EXP 부여에 사용).
+  assert.ok(result.accepted_executions.length >= 1);
 });

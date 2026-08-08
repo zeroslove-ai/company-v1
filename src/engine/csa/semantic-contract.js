@@ -94,8 +94,17 @@ export function normalizeCsaSemanticContract(value = {}) {
   const targetGroup = canonicalizeCsaGroup(source.target_group, { target: true });
   const trigger = canonicalizeCsaTrigger(source.trigger);
   const duration = canonicalizeCsaDuration(source.duration);
+  // 결과 중심 CSA와 방식 제한 CSA를 구분한다.
+  // - restricted: 허용 방식 목록(actions)이 명시됨 (예: 손으로 수행한다)
+  // - unspecified: required_action은 결과만 정의하고 허용 방식 목록이 없음
+  //   (예: resolve_patient_erection — 방식을 손/구강 등으로 축소하지 않는다)
+  // actions 없이 sexual_authorization을 승인하려면 method_policy='unspecified'가
+  // 명시적으로 선언되어야 한다 (custom contract가 actions 없이 성적 승인을 주장하면 거부).
+  const methodPolicy = source.method_policy === 'restricted'
+    ? 'restricted'
+    : (source.method_policy === 'unspecified' ? 'unspecified' : (actions.length > 0 ? 'restricted' : 'unspecified'));
   const sexualAuthorization = source.sexual_authorization === true
-    && actions.length > 0
+    && (actions.length > 0 || methodPolicy === 'unspecified')
     && directions.length > 0
     && safeSexualGroup(actorGroup)
     && safeSexualGroup(targetGroup, true)
@@ -113,6 +122,7 @@ export function normalizeCsaSemanticContract(value = {}) {
     duration,
     public_normalization: source.public_normalization === true,
     direct_execution: source.direct_execution === true,
+    method_policy: methodPolicy,
     confidence: source.confidence === 'exact' ? 'exact' : 'ambiguous'
   };
 }
@@ -138,7 +148,7 @@ export function buildPresetCsaSemanticContract(csa = {}, sexualActionContract = 
   const required = String(preset.required_action || '');
   const mapped = sexualActionContract?.[required];
   return normalizeCsaSemanticContract({
-    sexual_authorization: Boolean(mapped),
+    sexual_authorization: true,
     directions: mapped?.directions || [],
     actions: mapped?.actions || [],
     actor_group: preset.actor_group || 'unknown',
@@ -147,6 +157,7 @@ export function buildPresetCsaSemanticContract(csa = {}, sexualActionContract = 
     duration: preset.duration || 'continuous',
     public_normalization: preset.public_normalization === true,
     direct_execution: Boolean(preset.required_action),
+    method_policy: mapped?.method_policy === 'unspecified' ? 'unspecified' : undefined,
     confidence: 'exact'
   });
 }

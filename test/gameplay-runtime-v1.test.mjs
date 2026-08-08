@@ -59,7 +59,7 @@ test('Extract prompt requires independent identity axes, Story-authoritative pre
   assert.match(system, /csa_runtime_state\[csa_id\]/);
   assert.match(system, /arousal_delta, ejaculation_progress_delta, and ejaculation_completed/);
   assert.match(system, /evidence\.sexual_resolution === true/);
-  assert.ok(system.length <= 6000, `extract system chars: ${system.length}`); // 예산 6000 확장 (착의 canonical 형식 + 선택지 보존 지시 반영)
+  assert.ok(system.length <= 7000, `extract system chars: ${system.length}`); // 예산 7000 (image_selection 지시 반영)
 });
 
 test('Parser recognizes the Korean three-section output, extracts inline dialogue with a resolved speaker_id, and preserves legacy [4. 선택지] alias', () => {

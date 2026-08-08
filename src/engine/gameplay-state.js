@@ -28,6 +28,24 @@ function stringOrEmpty(value) {
   return typeof value === 'string' ? value : '';
 }
 
+// 이미지 선택 태그 allowlist — 알 수 없는 태그는 버린다 (턴70 지시 10).
+const IMAGE_SELECTION_TAGS = new Set([
+  'handjob', 'fellatio', 'deepthroat', 'fingering', 'cunnilingus', 'breast_sucking',
+  'missionary', 'doggystyle', 'cowgirl', 'anal', 'standing_rear', 'penetration',
+  'facial_cumshot', 'body_cumshot', 'oral_cumshot', 'creampie', 'cumshot',
+  'office_desk', 'office', 'desk', 'meeting_room', 'private_room', 'lounge', 'restroom',
+  'adult', 'sex', 'general', 'default', 'portrait', 'solo', 'sexual_generic'
+]);
+
+/** image_selection: { pool: 'general'|'sex', tags: string[] } — allowlist normalize. */
+function normalizeImageSelection(value) {
+  if (!object(value)) return null;
+  const pool = value.pool === 'sex' ? 'sex' : 'general';
+  const tags = [...new Set((Array.isArray(value.tags) ? value.tags : [])
+    .filter(tag => typeof tag === 'string' && IMAGE_SELECTION_TAGS.has(tag)))];
+  return { pool, tags };
+}
+
 function identity(value) {
   return typeof value === 'string' && value.trim() ? value : null;
 }
@@ -348,6 +366,7 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
     focal_character_id: focalCharacterId,
     last_speaker_id: lastSpeakerId,
     image_character_id: imageCharacterId,
+    image_selection: normalizeImageSelection(value.image_selection),
     player_inner_thought: stringOrEmpty(parsedStory?.player_inner_thought),
     turn_changes: Array.isArray(value.turn_changes) ? clone(value.turn_changes) : [],
     elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),

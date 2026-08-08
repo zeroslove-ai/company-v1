@@ -233,6 +233,11 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const turn = latestTurn(context);
   const parsedStory = parsed(turn);
   const currentExtract = object(runtime)?.currentExtract;
+  // 이미지 선택 정본 — ephemeral currentExtract가 아니라 최신 committed turn의
+  // extract_delta다 (Commit 후 refreshContext가 currentExtract를 비워도 동일 이미지 유지).
+  const latestExtract = currentExtract
+    ?? object(turn?.extract_delta)
+    ?? {};
   const display = object(context?.display) ?? {};
   const directory = object(display.npc_directory) ?? {};
   const details = object(display.character_details) ?? {};
@@ -248,7 +253,10 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const playerSceneState = object(save.player_scene_state) ?? {};
   const focalSceneState = npcSceneView(save, focalId);
   const interactingCharacters = interactingCharacterViews(save, focalId, directory, details);
-  const imageCharacterId = text(currentExtract?.image_character_id ?? currentExtract?.character_id) || focalId || lastSpeakerId;
+  const imageCharacterId = text(latestExtract.image_character_id ?? latestExtract.character_id) || focalId || lastSpeakerId;
+  const imageSelection = object(latestExtract.image_selection) ?? {};
+  const imagePool = imageSelection.pool === 'sex' ? 'sex' : 'general';
+  const imageTags = Array.isArray(imageSelection.tags) ? imageSelection.tags : [];
   const monitor = mindMonitor(currentExtract, turn);
   const monitorEntries = mindMonitorEntries(save, monitor, [imageCharacterId, focalId, lastSpeakerId], directory, details);
 
@@ -293,9 +301,9 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
-      image_id: imageId(currentExtract?.image_id ?? save.last_image_id), image_character_id: imageCharacterId,
-      image_selection: object(currentExtract?.image_selection), image_pool: currentExtract?.is_sexual === true ? 'sex' : 'general',
-      image_situation: text(currentExtract?.image_reasoning) || text(turn.turn_summary), dialogue_lines: dialogueLines(currentExtract, parsedStory),
+      image_id: imageId(latestExtract.image_id ?? save.last_image_id), image_character_id: imageCharacterId,
+      image_selection: imageSelection, image_pool: imagePool, image_tags: imageTags,
+      image_situation: text(latestExtract.image_situation) || text(turn.turn_summary), dialogue_lines: dialogueLines(currentExtract, parsedStory),
       mind_monitor: monitor, mind_monitor_entries: monitorEntries, default_mind_character_id: monitorEntries[0]?.id ?? ''
     }
   };

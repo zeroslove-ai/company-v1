@@ -48,7 +48,7 @@ function normalizeRuntimeEntry(entry = {}) {
  * csa_trigger_evaluations is a trigger/applicability-only signal and never
  * demotes execution_state (57턴 not_satisfied → not_started 역행 금지).
  */
-export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber } = {}) {
+export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber, csaCoverage = null } = {}) {
   const warnings = [];
   // reducer가 승인한 status=active 실행만 — 진행도(exp/csa_experienced_ids)의 유일한 정본.
   // turn-routes는 원본 csa_runtime_updates를 다시 읽지 않고 이 목록만 사용한다.
@@ -71,7 +71,7 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     }
   }
 
-  for (const update of (Array.isArray(csaRuntimeUpdates) ? csaRuntimeUpdates : [])) {
+  for (let update of (Array.isArray(csaRuntimeUpdates) ? csaRuntimeUpdates : [])) {
     if (!isPlainObject(update)) continue;
     const csaId = typeof update.csa_id === 'string' ? update.csa_id : '';
     const csa = activeById.get(csaId);
@@ -86,9 +86,33 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     if (donorStatus === 'active') {
       const requiredAction = typeof csa.preset?.required_action === 'string' ? csa.preset.required_action : '';
       const reportedAction = typeof update.action_state === 'string' ? update.action_state : '';
-      if (!requiredAction || reportedAction !== requiredAction) {
-        warnings.push(`csa_runtime_action_state_mismatch:${csaId}:${reportedAction || 'none'}`);
+      if (!requiredAction) {
+        warnings.push(`csa_runtime_action_state_mismatch:${csaId}:none`);
         continue;
+      }
+      if (reportedAction && reportedAction !== requiredAction) {
+        // non-null인데 틀린 action_state는 기존처럼 거부한다.
+        warnings.push(`csa_runtime_action_state_mismatch:${csaId}:${reportedAction}`);
+        continue;
+      }
+      if (!reportedAction) {
+        // action_state가 null/빈 문자열 — 제한적으로 canonicalize한다.
+        // 같은 턴의 canonical CSA coverage(exact/method_variant/continuation, 같은 csa_id)가
+        // 있으면 required_action으로 보충한다. (csa_60처럼 Extract가 action_state:null을
+        // 자주 내는 경우 실제 실행이 저장되도록)
+        const coverageMatch = csaCoverage?.covered === true
+          && csaCoverage.csa_id === csaId
+          && ['exact', 'method_variant', 'continuation'].includes(csaCoverage.coverage_kind);
+        const triggerContinuing = (Array.isArray(csaTriggerEvaluations) ? csaTriggerEvaluations : [])
+          .some(evaluation => evaluation?.csa_id === csaId
+            && (evaluation.status === 'continuing' || evaluation.status === 'satisfied'))
+          && previous[csaId]?.execution_state === 'executed';
+        if (!coverageMatch && !triggerContinuing) {
+          warnings.push(`csa_runtime_action_state_mismatch:${csaId}:none`);
+          continue;
+        }
+        // 보충 승인 — 아래에서 requiredAction을 action_state로 사용한다.
+        update = { ...update, action_state: requiredAction };
       }
     }
     touchedByRuntimeUpdate.add(csaId);

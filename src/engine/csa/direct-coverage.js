@@ -182,7 +182,8 @@ const ACTION_KEYWORDS = {
   sexual_touch: ['가슴', '유두', '애무', '스킨십'],
   genital_exposure: ['벗', '노출'],
   genital_touch: ['성기', '자위'],
-  oral: ['펠라티오', '커닐링구스', '구강'],
+  // action-execution-contract의 ORAL_SIGNALS와 일치 — 결과 중심 CSA의 method_variant 판정 정본
+  oral: ['펠라티오', '커닐링구스', '구강', '입으로', '빨아', '핥'],
   penetration: ['삽입', '성관계', '섹스']
 };
 
@@ -211,7 +212,6 @@ function resolveSexualCoverage(
   for (const csa of applicableCsa) {
     const contract = buildCsaSemanticContract(csa, sexualActionContract);
     if (contract.sexual_authorization !== true || contract.direct_execution !== true) continue;
-    if (actionTypes.some(action => !contract.actions.includes(action))) continue;
     if (!actionTypes.length) continue;
 
     const actor = resolveParticipant(contract.actor_group, {
@@ -226,16 +226,99 @@ function resolveSexualCoverage(
 
     const direction = resolveDirection(actor, target);
     if (!contract.directions.includes(direction)) continue;
+
+    const requiredAction = typeof csa.preset?.required_action === 'string'
+      ? csa.preset.required_action
+      : null;
+
+    if (contract.method_policy === 'restricted') {
+      // 방식이 명시된 규정 — 요청 행동이 허용 목록에 있을 때만 exact.
+      if (actionTypes.some(action => !contract.actions.includes(action))) continue;
+      return {
+        covered: true,
+        route: 'csa_direct',
+        csa_id: csa.id,
+        actor_id: actor.characterId,
+        target_id: target.type === 'player' ? 'player' : target.characterId,
+        required_action: requiredAction,
+        coverage_kind: 'exact',
+        action: actionTypes[0],
+        all_actions: actionTypes,
+        actor_group: contract.actor_group,
+        target_group: contract.target_group,
+        direction,
+        reason: `sexual semantic contract match: actions=[${actionTypes.join(',')}] direction=${direction}`
+      };
+    }
+
+    // method_policy='unspecified' — 결과 중심 규정(예: resolve_patient_erection).
+    // 규정이 방식을 제한하지 않으므로 같은 required outcome을 위한 방식 제안은 method_variant.
+    // (규정 목적과 무관한 성적 행동이 아닌 것 — 방향/대상은 이미 위에서 검증됨)
     return {
       covered: true,
       route: 'csa_direct',
       csa_id: csa.id,
+      actor_id: actor.characterId,
+      target_id: target.type === 'player' ? 'player' : target.characterId,
+      required_action: requiredAction,
+      coverage_kind: 'method_variant',
       action: actionTypes[0],
       all_actions: actionTypes,
       actor_group: contract.actor_group,
       target_group: contract.target_group,
       direction,
-      reason: `sexual semantic contract match: actions=[${actionTypes.join(',')}] direction=${direction}`
+      reason: `result-based CSA method_variant: actions=[${actionTypes.join(',')}] direction=${direction}`
+    };
+  }
+  return { covered: false };
+}
+
+/**
+ * 이미 실행 중인 CSA(execution_state=executed)를 계속하는 입력을 csa_direct로 인정한다.
+ * "계속해", "더 집중해줘", "조금 빠르게 해줘", "그대로 이어가" 같은 입력은
+ * 새 material action을 명시하지 않으므로 기존에는 ordinary로 빠졌다.
+ * 조건: 같은 CSA가 runtime에서 executed, 동일 actor/target이 현재 장면에 있음,
+ *       규정이 여전히 활성(applicableCsa에 포함).
+ */
+function resolveContinuationCoverage(
+  applicableCsa,
+  text,
+  { save, presentCharacterId, sexualActionContract, master, characters }
+) {
+  if (!/(계속|이어가|더\s*(집중|빠르게|세게|강하게|조금)|좀\s*더|조금\s*(빠르게|세게|강하게)|그대로)/.test(text)) return { covered: false };
+  const runtime = isPlainObject(save?.csa_runtime_state) ? save.csa_runtime_state : {};
+  for (const csa of applicableCsa) {
+    const contract = buildCsaSemanticContract(csa, sexualActionContract);
+    if (contract.sexual_authorization !== true || contract.direct_execution !== true) continue;
+    const entry = runtime[csa.id];
+    if (!entry || entry.execution_state !== 'executed') continue;
+
+    const actor = resolveParticipant(contract.actor_group, {
+      save, presentCharacterId, master, characters
+    });
+    const target = contract.target_group
+      ? resolveTargetParticipant(contract.target_group, {
+          save, presentCharacterId, master, characters, actor, playerAction: text
+        })
+      : null;
+    if (!actor || !target) continue;
+    const direction = resolveDirection(actor, target);
+    if (!contract.directions.includes(direction)) continue;
+
+    return {
+      covered: true,
+      route: 'csa_direct',
+      csa_id: csa.id,
+      actor_id: actor.characterId,
+      target_id: target.type === 'player' ? 'player' : target.characterId,
+      required_action: typeof csa.preset?.required_action === 'string' ? csa.preset.required_action : null,
+      coverage_kind: 'continuation',
+      action: null,
+      all_actions: [],
+      actor_group: contract.actor_group,
+      target_group: contract.target_group,
+      direction,
+      reason: `continuing CSA execution: csa=${csa.id} direction=${direction}`
     };
   }
   return { covered: false };
@@ -361,6 +444,12 @@ export function resolveCsaDirectCoverage(
     ? save.focal_character_id
     : participants.find(id => !isPlayerId(id)) ?? null;
 
+  // continuation — 이미 실행 중인 CSA를 계속하는 입력은 새 material action 없이도 csa_direct.
+  const continuation = resolveContinuationCoverage(applicableCsa, text, {
+    save, presentCharacterId, sexualActionContract, master, characters
+  });
+  if (continuation?.covered) return continuation;
+
   const providedActionTypes = Array.isArray(actionTypes)
     ? actionTypes.filter(
         action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none'
@@ -384,5 +473,11 @@ export function resolveCsaDirectCoverage(
 
 export function buildCsaDirectCoverageSection(coverage) {
   if (!coverage?.covered) return '';
-  return `\n\n[CSA DIRECT COVERAGE — ESTABLISHED FACT]\n플레이어의 이번 입력은 활성 상식개변(${coverage.csa_id})의 직접 범위와 정확히 일치한다(행동주체=${coverage.actor_group}, 대상=${coverage.target_group ?? '없음'}, 방향=${coverage.direction}${coverage.action ? `, 행동=${coverage.action}` : ''}). 이 행동은 반드시 실행되는 확정 사실이며, 성공 확률이나 위험도로 표현하지 않는다. 이 규칙 범위를 벗어나는 추가 행동은 일반 행동 판정을 따른다.`;
+  const kind = coverage.coverage_kind === 'method_variant'
+    ? ' (방식 제안 — 규정이 결과만 정의해 방식을 제한하지 않는다)'
+    : (coverage.coverage_kind === 'continuation' ? ' (이미 진행 중인 절차의 계속)' : '');
+  const methodLine = coverage.coverage_kind === 'method_variant'
+    ? '\n규정은 특정 수행 방식을 허용 목록으로 제한하지 않는다. NPC가 개인적·실무적 이유로 다른 방식을 제안하거나 부끄러워하거나 망설일 수는 있지만, 존재하지 않는 규정 제한("규정상 손으로만 가능합니다", "절차에는 구강 방식이 없습니다")으로 포장하지 않는다. 규정의 required outcome은 계속 이행해야 한다.'
+    : '';
+  return `\n\n[CSA DIRECT COVERAGE — ESTABLISHED FACT]${kind}\n플레이어의 이번 입력은 활성 상식개변(${coverage.csa_id})의 직접 범위와 정확히 일치한다(행동주체=${coverage.actor_group}, 대상=${coverage.target_group ?? '없음'}, 방향=${coverage.direction}${coverage.action ? `, 행동=${coverage.action}` : ''}). 이 행동은 반드시 실행되는 확정 사실이며, 성공 확률이나 위험도로 표현하지 않는다. 이 규칙 범위를 벗어나는 추가 행동은 일반 행동 판정을 따른다.${methodLine}`;
 }
