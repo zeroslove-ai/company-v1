@@ -266,7 +266,7 @@ test('14-5d: full canonical stats preserved untouched', () => {
 });
 
 test('14-5e: reducer keeps resistance and ignores resistance deltas with warning', () => {
-  const { state, warnings } = applyNpcStatChanges({ affinity: 5, resistance: 45, csa_acceptance: 20, sexual_arousal: 1 }, { affinity: 2, resistance: 99 }, { reason: 'test' });
+  const { state, warnings } = applyNpcStatChanges({ affinity: 5, resistance: 45, csa_acceptance: 20, sexual_arousal: 1 }, { affinity_delta: 2, resistance_delta: 99 }, { reason: 'test' });
   assert.equal(state.resistance, 45);
   assert.equal(state.affinity, 7);
   assert.ok(warnings.includes('stat_resistance_change_ignored'));

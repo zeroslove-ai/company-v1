@@ -294,6 +294,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       excitement: numberOrNull(sexualDisplay.arousal) ?? numberOrNull(playerSexualState.arousal),
       ejaculation_progress: numberOrNull(sexualDisplay.ejaculation_progress) ?? numberOrNull(playerSexualState.ejaculation_progress ?? playerSexualState.ejaculation_meter),
       ejaculation_count: numberOrNull(sexualDisplay.ejaculation_count) ?? numberOrNull(playerSexualState.ejaculation_count),
+      erection_state: ['unknown', 'flaccid', 'partial', 'erect'].includes(playerSexualState.erection_state) ? playerSexualState.erection_state : 'unknown',
       total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events), last_sexual_event: object(sexualDisplay.last_sexual_event),
       inner_thought: text(parsedStory.player_inner_thought),
       location_label: text(playerSceneState.location_label) || text(scene.location_label),

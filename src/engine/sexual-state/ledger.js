@@ -39,15 +39,19 @@ export function sexualEventId(turnNumber, actorId, actionType, evidence) {
   return `turn:${turnNumber}:${actorId ?? 'unknown'}:${actionType}:${stableContentHash(normalizeEvidenceText(evidence))}`;
 }
 
-function normalizeCandidate(raw, { turnNumber, actionId } = {}) {
+function normalizeCandidate(raw, { turnNumber, actionId, storyText = '' } = {}) {
   if (!isPlainObject(raw)) return null;
   const actionType = LEDGER_ACTION_TYPES.has(raw.action_type) ? raw.action_type : null;
   if (!actionType) return null;
   const actorId = typeof raw.actor_id === 'string' && raw.actor_id.trim() ? raw.actor_id.trim() : null;
   const targetId = typeof raw.target_id === 'string' && raw.target_id.trim() ? raw.target_id.trim() : null;
+  // actor/target은 둘 다 필수 — 없으면 이벤트로 기록하지 않는다 (지시 23-2).
+  if (!actorId || !targetId) return null;
   const direction = DIRECTIONS.has(raw.direction) ? raw.direction : 'none';
   const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : '';
+  // evidence는 최종 Story의 정확한 부분 문자열이어야 한다 (지시 23-8).
   if (!evidence) return null;
+  if (typeof storyText === 'string' && storyText && !storyText.includes(evidence)) return null;
   const completed = raw.completed === true;
   const interrupted = raw.interrupted === true && !completed;
   return {
@@ -70,13 +74,13 @@ function normalizeCandidate(raw, { turnNumber, actionId } = {}) {
  * ledger to the most recent MAX_LEDGER_LENGTH entries (oldest dropped first — the counters
  * derived from it are monotonic running totals, never recomputed from the capped tail alone).
  */
-export function appendSexualEvents(previousLedger, rawCandidates, { turnNumber, actionId } = {}) {
+export function appendSexualEvents(previousLedger, rawCandidates, { turnNumber, actionId, storyText = '' } = {}) {
   const previous = Array.isArray(previousLedger) ? previousLedger : [];
   const seenIds = new Set(previous.map(event => event?.event_id).filter(Boolean));
   const accepted = [];
   const warnings = [];
   for (const raw of (Array.isArray(rawCandidates) ? rawCandidates : [])) {
-    const candidate = normalizeCandidate(raw, { turnNumber, actionId });
+    const candidate = normalizeCandidate(raw, { turnNumber, actionId, storyText });
     if (!candidate) { warnings.push('invalid_sexual_event_candidate'); continue; }
     if (seenIds.has(candidate.event_id)) continue; // silent dedupe, not a warning — a legitimate replay/retry case
     seenIds.add(candidate.event_id);

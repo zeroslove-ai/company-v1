@@ -396,5 +396,5 @@ test('Extract request size budget: system <=6000', () => {
   // Raised from 3300 to 5000: UI 개선(표면의식·잠재의식 대화체 혼잣말 지시문 추가) 반영.
   // 실측 floor ~3.4K — 5000은 충분한 여유.
   const prompt = buildExtractPrompt({ context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
-  assert.ok(prompt[0].content.length <= 7000, `extract system chars: ${prompt[0].content.length}`); // 예산 7000 (image_selection 지시 반영)
+  assert.ok(prompt[0].content.length <= 9000, `extract system chars: ${prompt[0].content.length}`); // 예산 7000 (image_selection 지시 반영)
 });

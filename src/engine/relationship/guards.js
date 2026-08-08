@@ -1,10 +1,9 @@
 /**
- * Relationship guard patterns — ported from donor's clampPlayerInputEchoedStatChanges
- * (hasAffinityOnlyEvidence / hasIndependentAffinityEvent regex pair) and the general
- * consent/compliance separation the Story prompt itself states. These decide whether a
- * proposed affinity increase is backed by real independent evidence or is merely CSA
- * compliance / a bodily reaction / a player-declared outcome dressed up as a relationship
- * change — none of which count on their own.
+ * Relationship guard patterns — ported from donor's clampPlayerInputEchoedStatChanges.
+ * NOTE: the server-side semantic gate (evaluateAffinityDelta) has been removed per the
+ * turn-70 delta contract — meaning rules (CSA compliance / bodily reactions never buy a
+ * relationship gain) live in the Extract prompt and tests. The regex helpers below remain
+ * exported for test-level verification of those meaning rules only; no server code calls them.
  */
 
 /** CSA-performance or bodily-reaction-only justification — never sufficient alone for an affinity gain. */
@@ -27,18 +26,4 @@ export function hasPlayerDeclaredResultPattern(reason) {
 }
 export function hasWorkCooperationEvidence(reason) {
   return typeof reason === 'string' && WORK_COOPERATION_RE.test(reason);
-}
-
-/**
- * Decides whether a proposed positive affinity delta survives the separation guards. Returns
- * { allowed, reason } — when not allowed, the caller zeroes the delta (never fails the turn)
- * and records the given reason as a warning.
- */
-export function evaluateAffinityDelta(delta, reason) {
-  if (delta <= 0) return { allowed: true };
-  if (hasPlayerDeclaredResultPattern(reason)) return { allowed: false, code: 'player_declared_result_not_a_basis' };
-  if (hasAffinityOnlyEvidence(reason) && !hasIndependentAffinityEvent(reason)) {
-    return { allowed: false, code: 'csa_compliance_or_bodily_reaction_alone_not_affinity' };
-  }
-  return { allowed: true };
 }

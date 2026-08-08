@@ -31,8 +31,10 @@ export function buildCsaAcceptanceScopeSection() {
 
 [CSA ACCEPTANCE SCOPE — HIGHEST PRIORITY]
 - 상식수용도는 활성 CSA 직접 행동의 실행 여부를 결정하지 않는다. 발동 조건이 충족되면 0~100 모든 구간에서 직접 행동은 반드시 실행한다.
-- 수용도(csa_acceptance)는 NPC가 활성 규정을 얼마나 자연스럽게 받아들이는지이고, 저항도(resistance)는 그 NPC의 성격에 고정된 기준값이다. 저항이 높은 NPC는 수용도가 같아도 더 딱딱하고 최소한으로, 저항이 낮은 NPC는 더 자연스럽고 적극적으로 수행한다. 저항도는 절대 변하지 않는다.
-- 수용도는 직접 의미 안에서 표정·말투·준비 정도·선제성·동작의 자연스러움만 조절한다. 0~19도 행동을 거부·생략하지 않고 최소한의 동작으로 정확히 수행한다. 20~39는 확대하지 않고 수행하며, 40~59는 관행처럼, 60~79는 먼저 준비·협조하며, 80~100은 직접 범위 안에서 선제적으로 수행한다.
+- 수용도(csa_acceptance)는 NPC가 활성 규정을 얼마나 익숙하고 자연스럽게 느끼는지 조절한다. 저항도(resistance)는 그 NPC의 성격에 고정된 기준값으로, 불편함·수치·긴장·짜증·망설임의 강도를 조절한다. 두 수치는 행동 실행 여부를 바꾸지 않는다.
+- 두 수치는 NPC를 무표정한 절차 수행자로 만들지 않는다. 규정·절차·업무 단어 반복은 수치와 무관하게 금지한다. 같은 NPC도 장면과 감각에 따라 감정이 변할 수 있다.
+- 반응 팔레트 (캐릭터에 맞게 선택): 시선을 피함, 말수가 줄어듦, 호흡이 흐트러짐, 손끝이 떨림, 민망한 웃음, 짧은 짜증, 속도·압력·자세를 의식함, 플레이어 표정을 확인함, 감각에 당황함, 집중하려고 입술을 깨묾, 예상보다 익숙해지는 자신을 의식함, 개인적으로 부담되는 방식은 개인적 이유로 말함.
+- 금지 반복 표현: 규정상, 절차상, 업무적으로, 기준은 명확해요, 범위를 벗어나요, 업무 방해를 진정시키는 것까지만, 감정을 섞지 않고 정확히 수행한다 — 규칙을 처음 설명할 필요가 있을 때 최대 한 번만 허용하고, 이미 수행 중인 다음 턴에서는 반복하지 않는다.
 - 활성 CSA와 무관한 행동은 호감도, 성격, 현재 관계, 상황으로 별도 결정한다. 상식개변 수행을 플레이어에 대한 복종·애정·신뢰로 묘사하지 않는다.
 - 모든 구간에서 문장에 없는 권한·행동·연애·질투·불법 업무 조작을 새로 만들지 않는다.`;
 }
@@ -236,10 +238,19 @@ export function buildCsaCurrentRulesSection(applicableCsa, expectedTurn) {
       : csa.updated_turn === expectedTurn
         ? 'updated'
         : 'ongoing';
+    const actTime = csa.activated_game_time && typeof csa.activated_game_time === 'object'
+      ? csa.activated_game_time
+      : null;
+    const actTimeLabel = actTime
+      ? `Day ${actTime.day} ${String(Math.floor(actTime.minute_of_day / 60)).padStart(2, '0')}:${String(actTime.minute_of_day % 60).padStart(2, '0')}`
+      : '알 수 없음';
 
     return [
       `- csa_id=${csa.id}`,
       `  phase=${phase}`,
+      `  activated_turn=${typeof csa.created_turn === 'number' ? csa.created_turn : 'unknown'}`,
+      `  activated_game_time=${actTimeLabel}`,
+      `  history_before_activation=none_from_this_rule`,
       `  content=${csa.content ?? ''}`,
       `  actor_group=${preset.actor_group ?? csa.semantic_contract?.actor_group ?? 'unknown'}`,
       `  target_group=${preset.target_group ?? csa.semantic_contract?.target_group ?? 'none'}`,
@@ -265,5 +276,43 @@ trigger 해석:
 - duration이 계속되는 동안 이미 시작된 행동·자세·복장 상태는 이전 턴에서 이어간다.
 - 모든 active CSA를 자동으로 triggered 또는 continuing 처리하지 않는다.
 
+활성 이전 이력 규칙 (최종 우선):
+- activated_turn·activated_game_time은 이 규정이 처음 적용된 정확한 시점이다. 그 이전의 사건을 이 규정의 결과로 서술하지 않는다.
+- "오늘 아침에 세 명을 점검했다", "아침마다 반복했다", "평균 몇 명" 같은 수행 횟수·이전 대상자·반복 경험은 save나 committed turn에 실제 근거가 있을 때만 쓴다.
+- 근거가 없으면 "처음", "여러 번", "평균", "아침에 몇 명" 같은 이력을 창작하지 않는다.
+- 최근 턴 원문에 잘못된 과거 이력이 있어도 activated_turn과 충돌하면 사실로 이어받지 않는다.
+- 이 규정이 생기기 전의 비슷한 경험도 별도 factual evidence 없이는 만들지 않는다.
+
 ${lines.join('\n')}`;
+}
+
+/**
+ * 진행 중 성적 장면에서 업무 화제를 차단하는 최종 우선 섹션 (지시 25).
+ * 주입 조건은 호출부에서 판단한다:
+ * 1. canonical coverage가 csa_direct (exact/method_variant/continuation)
+ * 2. 같은 CSA runtime execution_state=executed이고 현재 장면에서 성적 행동 계속 중
+ * 3. 직전 확정 Story와 현재 물리 상태에서 명시적 성적 행동 계속 중
+ */
+export function buildActiveIntimateFocusSection({
+  canonicalCoverage = null,
+  csaRuntimeState = null,
+  materialAction = null,
+  previousTurn = null
+} = {}) {
+  const covered = canonicalCoverage?.covered === true
+    || csaRuntimeState?.execution_state === 'executed'
+    || Boolean(materialAction)
+    || Boolean(previousTurn?.extract_delta?.image_selection && previousTurn.extract_delta.image_selection.pool === 'sex');
+  if (!covered) return '';
+  return `
+
+[ACTIVE INTIMATE ACTION FOCUS — FINAL PRIORITY]
+- 현재 진행 중인 성적 행동과 직접 관계없는 회의, 프로젝트, 자료, 보고서, 일정, 브랜드 보이스, 감사 업무 화제를 새로 꺼내지 않는다.
+- 플레이어가 업무 화제를 직접 요구하지 않으면 업무 대사는 0문장을 기본으로 한다.
+- CSA의 회사 규정 배경은 이미 성립한 사실이다. 매 대사마다 규정·절차·업무라는 말을 반복하지 않는다.
+- 현재 대사는 감각, 호흡, 시선, 손의 움직임, 자세, 속도, 긴장, 부끄러움, 불편함, 호기심, 짜증, 상대 반응에 집중한다.
+- 최근 3턴에 업무 이야기가 있었더라도 현재 성적 행동의 장면 초점이 우선한다.
+- save.scene_state.scene_goal이 업무 주제여도 진행 중 성적 행동을 무시하고 그 업무 주제로 돌아가지 않는다.
+- 긴급한 외부 사건이나 플레이어의 명시적 요구가 없으면 성적 행동 도중 새 업무 안건을 만들지 않는다.
+- 행동이 끝난 뒤에만 원래 scene_goal로 복귀할 수 있다.`;
 }

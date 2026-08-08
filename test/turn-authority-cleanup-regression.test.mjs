@@ -130,7 +130,7 @@ test('회귀: npc_stats delta는 Story evidence 없이도 Extract 의미 분석�
   const storyText = TURN57_STORY;
   // Story에 없는 가짜 근거 문구가 있어도 npc_stats는 Commit 범위 검증만 통과하면 저장된다.
   const extract = envelope({
-    state_delta: { npc_stats: { heroine3: { affinity: -2, csa_acceptance: -10 } } },
+    state_delta: { npc_stats: { heroine3: { affinity_delta: -2, csa_acceptance_delta: -10 } } },
     evidence: { affinity_change: { quote: '김제나는 자리에서 일어나며 차갑게 말했다.', changed: ['npc_stats.heroine3.affinity'] } }
   });
   const merged = merge(baseSave(), extract, storyText);
@@ -154,7 +154,7 @@ test('회귀: degraded Extract에서는 npc_stats 변경이 무시된다', () =>
 
 test('회귀: resistance는 npc_stats 변경 대상이 아니다 (reducer가 보존)', () => {
   const extract = envelope({
-    state_delta: { npc_stats: { heroine3: { resistance: 10, affinity: 2 } } }
+    state_delta: { npc_stats: { heroine3: { resistance_delta: 10, affinity_delta: 2 } } }
   });
   const merged = merge(baseSave(), extract, TURN57_STORY);
   assert.equal(merged.nextSave.npc_stats.heroine3.resistance, 35, 'resistance 보존');

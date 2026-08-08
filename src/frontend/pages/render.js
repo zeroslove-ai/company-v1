@@ -43,8 +43,8 @@ const STAT_LABELS = {
   affinity: '호감', csa_acceptance: '수용', sexual_arousal: '흥분', resistance: '저항'
 };
 const SEXUAL_ACTION_LABELS = {
-  none: '기타', touch: '접촉', exposure: '노출', masturbation: '자위', oral: '구강',
-  penetration: '삽입', orgasm: '절정', ejaculation: '사정', kissing: '키스'
+  none: '기타', kiss: '키스', sexual_touch: '성적 접촉', genital_exposure: '성기 노출',
+  genital_touch: '성기 자극', oral: '구강 행위', penetration: '삽입', orgasm: '절정'
 };
 
 let currentChoiceSet = null;
@@ -487,17 +487,6 @@ function detailsSection(title, rows, className = '') {
 }
 
 // 관계 서사 요약은 2열 grid에 넣으면 긴 문장이 레이아웃을 깨므로 별도 전체 폭 섹션으로
-function renderRelationshipSummary(container, character) {
-  const summary = displayValue(character?.relationship_summary);
-  if (!summary) return;
-  const section = document.createElement('section');
-  section.className = 'character-detail-section relationship-summary-section';
-  const heading = document.createElement('h3'); heading.textContent = '관계';
-  const body = document.createElement('p'); body.className = 'physical-relation'; body.textContent = summary;
-  section.append(heading, body);
-  container.append(section);
-}
-
 // 관계·사정 기록이 실제 값(이벤트 1+ 또는 기록 턴 존재)을 가질 때만 표시한다.
 // 전부 0이고 기록 턴도 없으면 섹션 자체를 만들지 않는다(사용자 요구).
 function hasRelationshipRecord(record) {
@@ -601,7 +590,6 @@ export function renderFocalCharacter(container, focal, player, interactingCharac
       ['체형', displayValue(body.body_type)],
       ['가슴', displayValue(body.cup)]
     ]));
-    renderRelationshipSummary(container, character);
     renderRelationshipRecord(container, character);
     renderPrivateInfo(container, character);
   }
@@ -643,6 +631,12 @@ function sexualEventDisplay(event) {
   return [turn, type, status].filter(Boolean).join(' · ');
 }
 
+// 플레이어 발기 상태 표시 (지시 22) — unknown → 확인되지 않음.
+const ERECTION_LABELS = { unknown: '확인되지 않음', flaccid: '이완', partial: '부분 발기', erect: '발기' };
+function erectionDisplay(state) {
+  return ERECTION_LABELS[state] ?? '확인되지 않음';
+}
+
 function renderPlayer(container, player, scene) {
   // 상식개변 칸은 매 렌더링마다 새로 그리므로, 이전에 붙인 중복 섹션을 먼저 제거한다
   (container.parentElement ?? container)?.querySelector?.('.player-active-rules')?.remove();
@@ -659,6 +653,7 @@ function renderPlayer(container, player, scene) {
     ['EXP', playerProgressDisplay(player)],
     ['활성 규정', activeMax === null ? String(activeCount) : `${activeCount} / ${activeMax}`],
     ['흥분도', typeof player?.excitement === 'number' ? String(player.excitement) : ''],
+    ['발기 상태', erectionDisplay(player?.erection_state)],
     ['누적 사정', typeof player?.ejaculation_count === 'number' ? `${player.ejaculation_count}회` : '0회'],
     ['성적 이벤트', typeof player?.total_sexual_events === 'number' ? `${player.total_sexual_events}건` : '0건'],
     ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event) || '없음']

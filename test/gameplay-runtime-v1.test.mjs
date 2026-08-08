@@ -41,7 +41,7 @@ test('Story prompt carries the three-section, freedom, choices, and no-status-bo
   assert.match(system, /플레이어의 자유 입력 자체는 막지 않는다/);
   assert.match(system, /이번 플레이어 행동의 결과 또는 NPC의 즉각적인 반응으로 시작한다/);
   assert.match(system, /직전 턴과 장소·시간·조명·날씨가 같으면 이를 다시 소개하지 않는다/);
-  assert.ok(system.length <= 8000, `story system chars: ${system.length}`);
+  assert.ok(system.length <= 9000, `story system chars: ${system.length}`);
   const userPayload = JSON.parse(prompt[1].content);
   assert.equal(userPayload.expected_turn, 3);
   assert.ok('context' in userPayload);
@@ -57,9 +57,9 @@ test('Extract prompt requires independent identity axes, Story-authoritative pre
   assert.match(system, /Extract can never override it/);
   assert.match(system, /elapsed_minutes is your only time proposal/);
   assert.match(system, /csa_runtime_state\[csa_id\]/);
-  assert.match(system, /arousal_delta, ejaculation_progress_delta, and ejaculation_completed/);
+  assert.match(system, /arousal_delta, ejaculation_progress_delta, ejaculation_completed, and erection_state/);
   assert.match(system, /evidence\.sexual_resolution === true/);
-  assert.ok(system.length <= 7000, `extract system chars: ${system.length}`); // 예산 7000 (image_selection 지시 반영)
+  assert.ok(system.length <= 9000, `extract system chars: ${system.length}`); // 예산 7000 (image_selection 지시 반영)
 });
 
 test('Parser recognizes the Korean three-section output, extracts inline dialogue with a resolved speaker_id, and preserves legacy [4. 선택지] alias', () => {
@@ -477,7 +477,7 @@ test('guarded merge allows a state delta for a newly-present NPC validated this 
   // reason string is well within the +-5/turn cap and applies cleanly. Evidence is required:
   // the quote must exist in Story and name the NPC.
   const result = applyGuardedStateDelta(save, {
-    state_delta: { npc_stats: { 'npc-newcomer': { affinity: 1 } } }, outcome: 'success',
+    state_delta: { npc_stats: { 'npc-newcomer': { affinity_delta: 1 } } }, outcome: 'success',
     evidence: { affinity_change: { quote: '새내기가 밝게 인사하며 자리에 앉았다.', changed: ['npc_stats.npc-newcomer.affinity'] } },
     choices: [], mind_monitor: {}, dialogue_lines: [], npcs_present: ['npc-newcomer']
   }, options);

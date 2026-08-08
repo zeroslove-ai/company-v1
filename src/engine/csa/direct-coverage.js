@@ -227,6 +227,20 @@ function resolveSexualCoverage(
     const direction = resolveDirection(actor, target);
     if (!contract.directions.includes(direction)) continue;
 
+    // 입력이 CSA actor가 아닌 다른 등록 NPC를 직접 지목하면 CSA 범위 밖이다 (지시 4).
+    // 자연어 regex 대신 기존 characterInfo 이름 목록 기반으로만 판단한다.
+    // (장면 참여자뿐 아니라 등록 NPC 전체 — 장면 밖 NPC 지목도 CSA 대상이 아님)
+    const roster = characters ?? master?.characters ?? {};
+    const rosterIds = Array.isArray(roster)
+      ? roster.map(entry => entry?.character_id ?? entry?.npc_id ?? entry?.id).filter(Boolean)
+      : Object.keys(roster);
+    const otherNpcMentioned = rosterIds.some(id => {
+      if (id === actor.characterId) return false;
+      const name = typeof characterInfo(id, roster)?.name === 'string' ? characterInfo(id, roster).name : id;
+      return name.length >= 2 && text.includes(name);
+    });
+    if (otherNpcMentioned) continue;
+
     const requiredAction = typeof csa.preset?.required_action === 'string'
       ? csa.preset.required_action
       : null;
@@ -267,6 +281,9 @@ function resolveSexualCoverage(
       actor_group: contract.actor_group,
       target_group: contract.target_group,
       direction,
+      method_policy: 'unspecified',
+      method_restriction: null,
+      method_variant_requested: actionTypes[0],
       reason: `result-based CSA method_variant: actions=[${actionTypes.join(',')}] direction=${direction}`
     };
   }
@@ -476,8 +493,13 @@ export function buildCsaDirectCoverageSection(coverage) {
   const kind = coverage.coverage_kind === 'method_variant'
     ? ' (방식 제안 — 규정이 결과만 정의해 방식을 제한하지 않는다)'
     : (coverage.coverage_kind === 'continuation' ? ' (이미 진행 중인 절차의 계속)' : '');
+  // A: method_policy=unspecified는 "금지"가 아니라 "비제한"이다.
+  // 규정은 required outcome만 정의하고 수행 방식을 요구하거나 금지하지 않는다.
+  // NPC는 개인적·감정적·현실적 이유로 특정 방식을 거절할 수 있지만,
+  // "규정에 없다/절차에 없다/손으로만 가능" 같은 허구 제한으로 포장하지 않는다.
+  // 방식 거절은 required outcome 중단이 아니다.
   const methodLine = coverage.coverage_kind === 'method_variant'
-    ? '\n규정은 특정 수행 방식을 허용 목록으로 제한하지 않는다. NPC가 개인적·실무적 이유로 다른 방식을 제안하거나 부끄러워하거나 망설일 수는 있지만, 존재하지 않는 규정 제한("규정상 손으로만 가능합니다", "절차에는 구강 방식이 없습니다")으로 포장하지 않는다. 규정의 required outcome은 계속 이행해야 한다.'
+    ? `\n규정은 특정 수행 방식을 허용 목록으로 제한하지 않는다. (method_policy=unspecified, method_restriction=null${coverage.action ? `, method_variant_requested=${coverage.action}` : ''})\n플레이어가 제안한 방식은 CSA 범위 안의 방식 제안(method_variant)이다. NPC는 그 방식을 개인적·감정적·현실적 이유(부끄러움, 경험 부족, 개인적 부담, 위생·자세, 장소 불편, 감정적 거부 등)로 거절할 수 있다. 거절을 표현할 때 규정이나 절차를 이유로 삼지 않는다 — "규정상 손으로만 가능합니다", "절차에는 구강 방식이 없습니다", "규정에 없어서 못 합니다", "새 규정이 생기면 하겠습니다" 같은 존재하지 않는 제한으로 포장하지 않는다. 방식 거절은 required outcome(발기/성적 긴장 해소)의 중단이 아니다 — 다른 가능한 방식으로 계속 이행해야 한다.`
     : '';
   return `\n\n[CSA DIRECT COVERAGE — ESTABLISHED FACT]${kind}\n플레이어의 이번 입력은 활성 상식개변(${coverage.csa_id})의 직접 범위와 정확히 일치한다(행동주체=${coverage.actor_group}, 대상=${coverage.target_group ?? '없음'}, 방향=${coverage.direction}${coverage.action ? `, 행동=${coverage.action}` : ''}). 이 행동은 반드시 실행되는 확정 사실이며, 성공 확률이나 위험도로 표현하지 않는다. 이 규칙 범위를 벗어나는 추가 행동은 일반 행동 판정을 따른다.${methodLine}`;
 }

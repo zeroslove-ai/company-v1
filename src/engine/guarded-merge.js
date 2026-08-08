@@ -110,7 +110,7 @@ function allowedNpcIds(save) {
   return ids;
 }
 
-const ALLOWED_SEXUAL_DELTA_KEYS = new Set(['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed']);
+const ALLOWED_SEXUAL_DELTA_KEYS = new Set(['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed', 'erection_state']);
 const SEXUAL_COMPLETION_CLAIM_PATTERN = /sexual.*(complete|relationship)|(?:complete|relationship).*sexual/i;
 
 /**
@@ -529,7 +529,8 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
       const sanitized = sanitizePlayerSexualStateDelta(patch);
       warnings.push(...sanitized.warnings);
       const reduced = reducePlayerSexualState(nextSave.player_sexual_state, sanitized.patch, {
-        storyEvidence: envelope.evidence, updatedTurn: options.expectedTurn
+        storyEvidence: envelope.evidence, updatedTurn: options.expectedTurn,
+        storyText: typeof options.storyText === 'string' ? options.storyText : ''
       });
       nextSave.player_sexual_state = reduced.state;
       warnings.push(...reduced.warnings);
@@ -569,7 +570,8 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
         continue;
       }
       const { ledger, accepted, warnings: ledgerWarnings } = appendSexualEvents(nextSave.sexual_event_ledger, patch, {
-        turnNumber: options.expectedTurn, actionId: options.actionId
+        turnNumber: options.expectedTurn, actionId: options.actionId,
+        storyText: typeof options.storyText === 'string' ? options.storyText : ''
       });
       nextSave.sexual_event_ledger = ledger;
       warnings.push(...ledgerWarnings);
@@ -626,8 +628,11 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
             warnings.push(`npc_stats_degraded_ignored:${npcId}`);
             continue;
           }
-          const { reason, ...deltas } = npcPatch;
-          const { state, warnings: statWarnings } = applyNpcStatChanges(nextSave.npc_stats[npcId] ?? {}, deltas, { reason: typeof reason === 'string' ? reason : '' });
+          const { reason, reasons, ...deltas } = npcPatch;
+          const { state, warnings: statWarnings } = applyNpcStatChanges(nextSave.npc_stats[npcId] ?? {}, deltas, {
+            reason: typeof reason === 'string' ? reason : '',
+            reasons: plainObject(reasons) ? reasons : {}
+          });
           nextSave.npc_stats[npcId] = state;
           warnings.push(...statWarnings.map(code => `npc_stats:${npcId}:${code}`));
           continue;
