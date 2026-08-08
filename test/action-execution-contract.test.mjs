@@ -225,8 +225,13 @@ test('검토1: csa_direct section은 EXACT-SCOPE LIMIT만 — coverage 중복·u
   assert.equal(c.csa_coverage.csa_id, 'csa_2');
 });
 
-test('section: ordinary는 빈 문자열', () => {
-  assert.equal(buildActionExecutionContractSection(resolve('서류를 정리한다')), '');
+test('section: ordinary는 빈 문자열 (contextual CSA request가 없을 때)', () => {
+  const noCsa = csaSave({ csa_active: [], csa_rules: {} });
+  assert.equal(buildActionExecutionContractSection(resolve('서류를 정리한다', noCsa)), '');
+  // active CSA가 있고 모호한 요청이면 contextual CSA request section이 생긴다.
+  const withCsa = resolve('그렇지. 나 발기했어. 부탁해.');
+  const section = buildActionExecutionContractSection(withCsa);
+  assert.ok(section.includes('CONTEXTUAL CSA REQUEST'), section);
 });
 
 test('contract: material_action/actor_id/relationship_basis shape', () => {
@@ -241,23 +246,7 @@ test('contract: material_action/actor_id/relationship_basis shape', () => {
 
 // ---------- 검토 보완: structured metadata / bundle milestone / 오탐·누락 ----------
 
-test('검토2: 완곡한 선택지 텍스트 + structured action_types → ordinary_direct_blocked', () => {
-  // Story가 만든 선택지: 텍스트에는 성적 단어가 없지만 structured metadata가 genital_touch를 기록
-  const save = csaSave({
-    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
-    last_choices: ['그녀에게 좀 더 과감한 도움을 부탁한다.'],
-    last_choice_meta: [
-      { choice_index: 0, action_types: ['genital_touch'], actor_id: 'player', target_id: 'heroine5', suggested_route: 'blocked', direct_csa_ids: [] }
-    ]
-  });
-  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 좀 더 과감한 도움을 부탁한다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
-  assert.deepEqual(c.action_types, ['genital_touch'], 'structured action_types 최우선');
-  assert.equal(c.material_action, true);
-  assert.equal(c.target_id, 'heroine5', 'structured target_id');
-  assert.equal(c.route, 'ordinary_direct_blocked');
-  // 정황 근거 부족 blocked — follow-up 예약 없음 (강압/권한/경계 위반만)
-  assert.equal(c.schedule_boundary_followup, false);
-});
+
 
 test('검토2b: structured target_id=heroine2가 focal(heroine5)보다 우선 — 관계 basis와 follow-up 대상', () => {
   const save = csaSave({
@@ -545,22 +534,7 @@ test('검토R2: action_resolution 검증 — target 불일치/route 불일치/�
   assert.equal(outPartial.state_delta.npc_relationship_state.heroine5.milestones.sexual_relationship_started_turn, undefined, '부분 수락은 성적 milestone 통째 허용 금지');
 });
 
-test('검토R3: structured target이 stable ID가 아니면 검증 실패 → free-text 재탐색 또는 null', () => {
-  // unknown target_id (장면에 없는 heroine1을 지목) — last_choice_meta가 heroine1이어도
-  // 장면/선택지 등장 검증과 free-text 재탐색에서 안전하게 처리
-  const save = csaSave({
-    npc_stats: { heroine5: { affinity: 60, sexual_arousal: 70 } },
-    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
-    last_choices: ['그녀에게 조금 더 다가간다.'],
-    last_choice_meta: [ { choice_index: 0, action_types: ['sexual_touch'], actor_id: 'player', target_id: 'heroine9', suggested_route: 'blocked', direct_csa_ids: [] } ]
-  });
-  // heroine9는 stable ID가 아님 → 검증 실패 → free-text에도 명시적 이름 없음 →
-  // focal fallback 금지 → target_id=null (unclear_target)
-  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 조금 더 다가간다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
-  assert.equal(c.target_id, null, 'focal fallback 금지 — 대명사만으로는 target 확정 불가');
-  assert.ok(c.contextual_permission.blockers.includes('unclear_target'), 'unclear_target blocker');
-  assert.equal(c.route, 'ordinary_direct_blocked');
-});
+
 
 test('검토R4: follow-up은 강압/회사 권한/경계 위반만 — 일반 insufficient는 예약 안 함', () => {
   // 강압 → true
@@ -734,49 +708,13 @@ test('무결성9: scene_state.participants 누락 + last_npcs_present 존재 →
   assert.equal(c.route, 'ordinary_direct_blocked');
 });
 
-test('무결성10: invalid structured target + 대명사 + focal 존재 → target null', () => {
-  const save = csaSave({
-    npc_stats: { heroine5: { affinity: 90, sexual_arousal: 90 } },
-    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
-    last_choices: ['그녀에게 조금 더 다가간다.'],
-    last_choice_meta: [ { choice_index: 0, action_types: ['sexual_touch'], actor_id: 'player', target_id: 'heroine9', suggested_route: 'blocked', direct_csa_ids: [] } ]
-  });
-  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 조금 더 다가간다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
-  assert.equal(c.target_id, null, 'focal fallback 금지');
-  assert.ok(c.contextual_permission.blockers.includes('unclear_target'));
-  assert.equal(c.route, 'ordinary_direct_blocked');
-});
 
-test('무결성11: invalid structured target이지만 입력에 전체 이름 → 정확한 target 복구', () => {
-  const save = csaSave({
-    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
-    last_choices: ['이메이의 가슴을 만진다.'],
-    last_choice_meta: [ { choice_index: 0, action_types: ['sexual_touch'], actor_id: 'player', target_id: 'heroine9', suggested_route: 'blocked', direct_csa_ids: [] } ]
-  });
-  const c = resolveActionExecutionContract({ save, playerAction: '이메이의 가슴을 만진다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
-  assert.equal(c.target_id, 'heroine5', '전체 이름으로 복구');
-});
 
-test('무결성12: stable ID지만 현재 scene 부재 structured target → invalid → null', () => {
-  const save = csaSave({
-    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
-    last_choices: ['그녀에게 조금 더 다가간다.'],
-    last_choice_meta: [ { choice_index: 0, action_types: ['sexual_touch'], actor_id: 'player', target_id: 'heroine1', suggested_route: 'blocked', direct_csa_ids: [] } ]
-  });
-  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 조금 더 다가간다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
-  assert.equal(c.target_id, null, 'scene 부재 stable ID도 무효');
-});
 
-test('무결성13: metadata 자기증명 불가 — 같은 meta 배열에 target 존재는 증거 아님', () => {
-  // scene에 heroine2가 없고 입력에 이름도 없으면, meta 배열에 heroine2가 있어도 무효
-  const save = csaSave({
-    scene_state: { scene_id: 'private_room', location_id: 'private_room', participants: ['player-1', 'heroine5'], updated_turn: 8 },
-    last_choices: ['그녀에게 조금 더 다가간다.'],
-    last_choice_meta: [ { choice_index: 0, action_types: ['kiss'], actor_id: 'player', target_id: 'heroine2', suggested_route: 'blocked', direct_csa_ids: [] } ]
-  });
-  const c = resolveActionExecutionContract({ save, playerAction: '그녀에게 조금 더 다가간다.', csaCatalog: {}, characters: CHARACTERS, npcIds: NPCS });
-  assert.equal(c.target_id, null, '자기증명 불가');
-});
+
+
+
+
 
 test('무결성14: bundle kiss+genital_touch, completed kiss만 → kiss 범위만 허용', async () => {
   const { applyContractStateFirewall } = await import('../src/api/turn-routes.js');

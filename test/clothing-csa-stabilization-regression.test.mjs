@@ -145,34 +145,46 @@ test('회귀4b: female_employee 규정이 남성/성별 미상 NPC에게 적용�
 });
 
 // 5) 선택지 0·1·2·3·4개 보존·보충 matrix
-test('회귀5: 선택지 0/1/2/3/4개가 보존·보충 매트릭스대로 처리된다', () => {
+test('회귀5: 선택지 0/1/2/3/4개가 Story 정본 기준 보존·보충된다', () => {
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   const base = { state_delta: {}, outcome: 'success', evidence: {}, mind_monitor: {}, dialogue_lines: [] };
   const opts = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
 
-  const four = applyGuardedStateDelta(save, { ...base, choices: ['a', 'b', 'c', 'd'] }, opts);
-  assert.deepEqual(four.nextSave.last_choices, ['a', 'b', 'c', 'd']);
+  // Extract choices는 저장 정본이 아니다 — parsed Story 선택지만 사용한다.
+  const four = applyGuardedStateDelta(save, { ...base, choices: ['x1', 'x2', 'x3', 'x4'] }, {
+    ...opts, parsedStory: { choices: ['a', 'b', 'c', 'd'] }
+  });
+  assert.deepEqual(four.nextSave.last_choices, ['a', 'b', 'c', 'd'], 'Story 4개가 정본');
 
-  const three = applyGuardedStateDelta(save, { ...base, choices: ['a', 'b', 'c'] }, opts);
-  assert.equal(three.nextSave.last_choices.length, 4);
+  const three = applyGuardedStateDelta(save, { ...base, choices: ['x1', 'x2', 'x3', 'x4'] }, {
+    ...opts, parsedStory: { choices: ['a', 'b', 'c'] }
+  });
+  assert.equal(three.nextSave.last_choices.length, 4, '3개 보존 + 1개 보충');
   assert.deepEqual(three.nextSave.last_choices.slice(0, 3), ['a', 'b', 'c']);
   assert.ok(three.warnings.some(w => w.startsWith('choices_padded:3->4')));
 
-  const two = applyGuardedStateDelta(save, { ...base, choices: ['a', 'b'] }, opts);
+  const two = applyGuardedStateDelta(save, { ...base, choices: [] }, {
+    ...opts, parsedStory: { choices: ['a', 'b'] }
+  });
   assert.equal(two.nextSave.last_choices.length, 4);
   assert.deepEqual(two.nextSave.last_choices.slice(0, 2), ['a', 'b']);
 
-  const one = applyGuardedStateDelta(save, { ...base, choices: ['a'] }, opts);
+  const one = applyGuardedStateDelta(save, { ...base, choices: [] }, {
+    ...opts, parsedStory: { choices: ['a'] }
+  });
   assert.equal(one.nextSave.last_choices.length, 4);
   assert.deepEqual(one.nextSave.last_choices.slice(0, 1), ['a']);
 
-  const zero = applyGuardedStateDelta(save, { ...base, choices: [] }, opts);
-  assert.equal(zero.nextSave.last_choices.length, 4);
+  const zero = applyGuardedStateDelta(save, { ...base, choices: [] }, {
+    ...opts, parsedStory: { choices: [] }
+  });
+  assert.equal(zero.nextSave.last_choices.length, 4, '0개면 UI 안전 기본 4개');
   assert.deepEqual(zero.nextSave.last_choices, buildFallbackTurnChoices(zero.nextSave));
 });
 
+
 // 5b) normalize도 같은 보존 규칙 (Story 4개 우선, 1~3개 보존 + Extract 보충)
-test('회귀5b: normalizeGameplayExtractEnvelope가 Story 선택지를 보존한다', () => {
+test('회귀5b: normalizeGameplayExtractEnvelope가 Story 선택지(parsed)만 정본으로 쓴다', () => {
   const four = normalizeGameplayExtractEnvelope(
     { state_delta: {}, outcome: 'success', evidence: {}, choices: ['x1', 'x2', 'x3', 'x4'], mind_monitor: {}, dialogue_lines: [] },
     { parsedStory: { choices: ['s1', 's2', 's3', 's4'] } }
@@ -182,8 +194,14 @@ test('회귀5b: normalizeGameplayExtractEnvelope가 Story 선택지를 보존한
     { state_delta: {}, outcome: 'success', evidence: {}, choices: ['x1', 'x2', 'x3', 'x4'], mind_monitor: {}, dialogue_lines: [] },
     { parsedStory: { choices: ['s1', 's2'] } }
   );
-  assert.deepEqual(partial.choices, ['s1', 's2', 'x1', 'x2'], 'Story 2개 보존 + Extract 보충');
+  assert.deepEqual(partial.choices, ['s1', 's2'], 'Extract choices는 저장 정본으로 사용하지 않는다');
+  const none = normalizeGameplayExtractEnvelope(
+    { state_delta: {}, outcome: 'success', evidence: {}, choices: ['x1', 'x2', 'x3', 'x4'], mind_monitor: {}, dialogue_lines: [] },
+    { parsedStory: { choices: [] } }
+  );
+  assert.deepEqual(none.choices, [], '0개면 빈 배열 (guarded-merge가 보충)');
 });
+
 
 // 6) actual_clothing은 저장값만 — 규정/빈 clothing으로 생성하지 않는다
 test('회귀6: save clothing={} → Story actual_clothing={} (규정만으로 생성 안 함)', () => {

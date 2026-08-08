@@ -15,7 +15,6 @@ import { classifyMaterialActions } from '../engine/action-execution-contract.js'
 wireMaterialClassifier(classifyMaterialActions);
 import { createStructuredStoryGate, STRUCTURED_STORY_VERSION } from '../engine/structured-story-v2.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
-import { buildDeterministicTurnSummary } from '../engine/turn-summary.js';
 import {
   applyGuardedStateDelta,
   sanitizeMovementCommit,
@@ -48,8 +47,6 @@ import {
   buildCsaPhysicalTransitionSection,
   buildCsaPublicSceneSection,
   buildCsaRuntimeExtractContractSection,
-  buildChoiceStructuredMetaExtractContractSection,
-  buildCsaSemanticContract,
   buildCsaRuntimeSection,
   buildCsaWeakSynergySection,
   buildMindEffectExtractFirewallSection,
@@ -992,7 +989,6 @@ const master = masterFromEdition(edition);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
-          const hasSexualCsa = applicableCsa.some(csa => buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract).sexual_authorization === true);
           // 스피커 태깅: parser가 dialogue block으로 분류했으나 화자 미확정(speaker_id=null)인
           // 대사가 있을 때만 전용 LLM을 1회 호출한다. 정상 턴(모두 확정)에서는 호출하지 않는다.
           // 멱등성: 태거 호출 전에 speaker_tagging_attempted=true를 조건부 PATCH로 먼저 영속하고,
@@ -1123,8 +1119,7 @@ const master = masterFromEdition(edition);
           }
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
-            + buildCsaRuntimeExtractContractSection(applicableCsa)
-            + buildChoiceStructuredMetaExtractContractSection(hasSexualCsa);
+            + buildCsaRuntimeExtractContractSection(applicableCsa);
           if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
           timing.extract_prompt_ms = Date.now() - promptStart;
           const extractUserPayload = JSON.parse(messages[1].content);
@@ -1257,9 +1252,7 @@ const master = masterFromEdition(edition);
         const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
         const runtimeStatePatch = buildCsaSceneRuntimeStatePatch({
           previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
-          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn,
-          evidence: extract.evidence,
-          narrativeText: (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text
+          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn
         });
         if (runtimeStatePatch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeStatePatch };
         if (csaPlan) {
@@ -1292,14 +1285,10 @@ const master = masterFromEdition(edition);
         }
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
-        // turn_summary 단일 writer — Extract 자유 문장이 아니라 parsed Story의
-        // 실제 scene/dialogue 텍스트에서 결정론적으로 생성한다 (LLM 호출 없음).
-        // 같은 finalTurnSummary를 story_summary_recent와 Commit RPC에 동시에 쓴다.
-        const finalTurnSummary = buildDeterministicTurnSummary(parsedStory, action.story_text ?? '');
-        // 최신 서사 요약 writer — 정상 player turn Commit에서 서버가 직접 갱신한다.
-        if (action.action_kind !== 'feedback_revision') {
-          if (finalTurnSummary) nextSave.story_summary_recent = finalTurnSummary;
-        }
+        // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.
+        // 최신 3턴은 Story 원문 전체로 context에 유지되고, story_summary_recent는
+        // 이번 턴마다 갱신하지 않는다 (기존 필드는 호환용으로만 유지).
+        const finalTurnSummary = '';
         // 선택지 단일 writer — applyGuardedStateDelta가 확정한 last_choices를
         // 그대로 쓴다 (Story 1~3개 보존 + 부족분 보충 결과 = save와 history 일치).
         const finalChoices = Array.isArray(nextSave.last_choices) ? nextSave.last_choices : [];

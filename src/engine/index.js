@@ -19,7 +19,6 @@ export {
   hydrateGameplayState,
   validateCsaRuntimeStatePatch,
   buildDegradedExtractEnvelope,
-  buildDegradedTurnSummary,
   buildStableNpcIdSet,
   selectActiveCharacterIds,
   buildActiveCharacterCanon,
@@ -74,7 +73,7 @@ export {
   buildCsaCurrentRulesSection,
   buildCsaPhysicalTransitionSection, buildNpcCsaEpistemicFirewallSection, buildCsaPersistentSceneSection,
   buildCsaPublicSceneSection, buildCsaWeakSynergySection, isAppUsageInfoRequest, buildAppUsageStorySection,
-  buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection, buildChoiceStructuredMetaExtractContractSection,
+  buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,
   buildMindEffectExtractFirewallSection,
   buildStructuredActionStorySection, buildCsaDeactivationStorySection
 } from './csa/prompt-sections.js';

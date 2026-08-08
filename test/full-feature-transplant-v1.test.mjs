@@ -142,22 +142,9 @@ const SEXUAL_CHARACTERS = {
 };
 const sexualActionContract = { __test_required_action__: { directions: ['npc_to_player'], actions: ['genital_touch'] } };
 
-test('direct coverage (structured): an exact actor_id/target_id/action_type/direction match on a rendered choice is covered', () => {
-  const save = sexualCsaSave();
-  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
-  assert.equal(coverage.covered, true);
-  assert.equal(coverage.route, 'csa_direct');
-  assert.equal(coverage.direction, 'npc_to_player');
-  assert.match(coverage.reason, /structured signal match/);
-});
 
-test('direct coverage (structured): a structured actor_id that does not match the CSA-resolved participant is never covered, even though the action/direction would otherwise qualify', () => {
-  const save = sexualCsaSave();
-  // Extract mis-reports actor_id as an id that isn't the actually-resolved present NPC.
-  save.last_choice_meta[0] = { ...save.last_choice_meta[0], actor_id: 'someone_not_present' };
-  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
-  assert.equal(coverage.covered, false, 'actor_id must be cross-validated against the live save, never trusted on its own');
-});
+
+
 
 test('direct coverage (structured): ambiguous free-typed input with no matching rendered choice falls through to the tag-based fallback, never guessed as covered from actor_id alone', () => {
   const save = sexualCsaSave();
@@ -193,24 +180,7 @@ test('direct coverage (structured): a direction mismatch (structured actor/targe
 
 // ---------- choice_structured_meta shape validation (Extract contract) ----------
 
-test('normalizeGameplayExtractEnvelope keeps a valid choice_structured_meta entry and drops an out-of-range or duplicate one with a warning', () => {
-  const npcIds = new Set(['heroine1']);
-  const envelope = normalizeGameplayExtractEnvelope({
-    state_delta: {}, outcome: 'success', evidence: {}, turn_summary: '', mind_monitor: {},
-    choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], npcs_present: ['heroine1'],
-    action_target_id: null, focal_character_id: null, last_speaker_id: null, image_character_id: null,
-    player_inner_thought: '', player_status: '', elapsed_minutes: 5,
-    choice_structured_meta: [
-      { choice_index: 0, action_types: ['genital_touch'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'csa_direct', direct_csa_ids: ['csa_0'] },
-      { choice_index: 9, action_types: ['kiss'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'csa_direct', direct_csa_ids: [] }, // out of range (only 4 choices) -> dropped
-      { choice_index: 0, action_types: ['kiss'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'csa_direct', direct_csa_ids: [] } // duplicate index -> dropped
-    ]
-  }, { parsedStory: { choices: ['a', 'b', 'c', 'd'] }, npcIds });
-  assert.equal(envelope.choice_structured_meta.length, 1);
-  assert.equal(envelope.choice_structured_meta[0].choice_index, 0);
-  assert.equal(envelope.choice_structured_meta[0].action_types[0], 'genital_touch');
-  assert.ok(envelope.warnings.includes('invalid_choice_structured_meta'));
-});
+
 
 // ---------- Real end-to-end Extract system prompt size (closes a pre-existing test gap) ----------
 //
@@ -245,21 +215,7 @@ test('Extract system prompt: the real CSA-active total (firewall+application-che
   assert.ok(system.length <= 6500, `real CSA-active extract system chars: ${system.length}`);
 });
 
-test('normalizeGameplayExtractEnvelope drops an unknown action_type/suggested_route value instead of failing the whole entry', () => {
-  const npcIds = new Set(['heroine1']);
-  const envelope = normalizeGameplayExtractEnvelope({
-    state_delta: {}, outcome: 'success', evidence: {}, turn_summary: '', mind_monitor: {},
-    choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], npcs_present: ['heroine1'],
-    action_target_id: null, focal_character_id: null, last_speaker_id: null, image_character_id: null,
-    player_inner_thought: '', player_status: '', elapsed_minutes: 5,
-    choice_structured_meta: [
-      { choice_index: 0, action_types: ['genital_touch', 'not_a_real_action'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'made_up_route', direct_csa_ids: [] }
-    ]
-  }, { parsedStory: { choices: ['a', 'b', 'c', 'd'] }, npcIds });
-  assert.equal(envelope.choice_structured_meta.length, 1);
-  assert.deepEqual(envelope.choice_structured_meta[0].action_types, ['genital_touch']);
-  assert.equal(envelope.choice_structured_meta[0].suggested_route, 'none');
-});
+
 
 // ---------- Commit 3: Extract JSON repair ----------
 import { extractBalancedJsonObject, stripTrailingCommas, repairAndParseExtractJson } from '../src/engine/extract/json-repair.js';
@@ -373,13 +329,7 @@ test('choice input: digits, letters (upper/lower), and circled numerals all reso
   }
 });
 
-test('choice input: resolving restores the stored structured_meta for that index', () => {
-  const meta = [{ choice_index: 2, action_types: ['kiss'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'csa_direct', direct_csa_ids: ['csa_0'] }];
-  const save = saveWithChoices(['첫째', '둘째', '셋째', '넷째'], meta);
-  const result = resolveNumberedChoiceInput('3', save);
-  assert.equal(result.ok, true);
-  assert.deepEqual(result.structured_meta, meta[0]);
-});
+
 
 test('choice input: plain free-typed text (not a numbered form) resolves to null, falling through to ordinary text handling', () => {
   const save = saveWithChoices(['첫째', '둘째', '셋째', '넷째']);

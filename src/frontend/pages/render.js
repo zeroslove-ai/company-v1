@@ -35,6 +35,16 @@ const SEXUAL_ACTION_LABELS = {
 let currentChoiceSet = null;
 let committedChoiceSet = null;
 
+// Commit 직후 확정 수치 옆에 잠시(+N/-N) 표시하기 위한 일시 delta 상태.
+// 데이터 출처는 서버 Commit 응답의 turn_changes뿐 (프론트 계산기 없음).
+// replayed Commit은 세팅하지 않으며, 2~3초 뒤 render()가 빈 상태로 덮어쓴다.
+let committedStatDeltas = {};
+
+/** Commit 응답 turn_changes → {npcId: {statKey: delta}} (일시 표시용, app.js에서 호출). */
+export function setCommittedStatDeltas(deltas) {
+  committedStatDeltas = deltas;
+}
+
 function localizedValue(value) {
   const raw = displayValue(value).trim();
   if (!raw) return '';
@@ -302,7 +312,12 @@ function statDisplay(entry, key) {
   const value = Number(entry?.stats?.[key]);
   const change = object(entry?.stat_changes?.[key]);
   const delta = Number(change?.delta);
-  return { value: Number.isFinite(value) ? value : null, delta: Number.isFinite(delta) && delta !== 0 ? delta : null };
+  // Commit 응답 turn_changes 기반 일시 delta를 우선한다 (2~3초 후 제거됨).
+  const committedDelta = Number(committedStatDeltas?.[entry?.id]?.[key]);
+  const finalDelta = Number.isFinite(committedDelta) && committedDelta !== 0
+    ? committedDelta
+    : (Number.isFinite(delta) && delta !== 0 ? delta : null);
+  return { value: Number.isFinite(value) ? value : null, delta: finalDelta };
 }
 
 function renderStatStrip(container, entry) {
@@ -316,7 +331,7 @@ function renderStatStrip(container, entry) {
     if (display.delta !== null) {
       const delta = document.createElement('small');
       delta.className = display.delta > 0 ? 'delta-up' : 'delta-down';
-      delta.textContent = `${display.delta > 0 ? '▲' : '▼'}${Math.abs(display.delta)}`;
+      delta.textContent = `${display.delta > 0 ? '+' : ''}${display.delta}`;
       item.append(delta);
     }
     stats.append(item);
@@ -546,7 +561,7 @@ export function renderFocalCharacter(container, focal, player) {
     ['현재 위치', displayValue(focal?.scene_state?.position_label) || '확인되지 않음']
   ]));
   if (Object.keys(character).length) {
-    renderStatStrip(container, { stats: character.stats, stat_changes: character.stat_changes });
+    renderStatStrip(container, { id: focal?.id ?? character?.id, stats: character.stats, stat_changes: character.stat_changes });
     const profile = object(character.profile) ?? {};
     const body = object(character.body) ?? {};
     container.append(detailsSection('인물정보', [

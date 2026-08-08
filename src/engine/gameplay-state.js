@@ -305,43 +305,6 @@ function normalizeCsaRuntimeUpdates(value, warnings) {
   return result;
 }
 
-const CHOICE_SUGGESTED_ROUTES = new Set(['none', 'csa_direct', 'voluntary', 'blocked']);
-
-/**
- * Shape-only per-choice structured signal (donor's choice_structured_meta), one entry per
- * currently-rendered choice at the same index as last_choices. This is what lets a later
- * turn's direct-coverage resolution cross-validate actor_id/target_id against a real,
- * Extract-classified signal instead of guessing them from the player's free-typed text.
- * An entry naming an out-of-range choice_index, or with an invalid status, is dropped with
- * a warning; entries are never trusted alone — the caller still re-validates actor_id/
- * target_id against the live save at match time.
- */
-function normalizeChoiceStructuredMeta(value, choiceCount, warnings) {
-  if (!Array.isArray(value)) return [];
-  const seenIndexes = new Set();
-  const result = [];
-  for (const item of value) {
-    const choiceIndex = integer(item?.choice_index);
-    if (choiceIndex === null || choiceIndex < 0 || choiceIndex >= choiceCount || seenIndexes.has(choiceIndex)) {
-      warnings.push('invalid_choice_structured_meta');
-      continue;
-    }
-    seenIndexes.add(choiceIndex);
-    const actionTypes = [...new Set((Array.isArray(item?.action_types) ? item.action_types : [])
-      .filter(action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none'))];
-    result.push({
-      choice_index: choiceIndex,
-      action_types: actionTypes,
-      actor_id: identity(item?.actor_id),
-      target_id: identity(item?.target_id),
-      suggested_route: CHOICE_SUGGESTED_ROUTES.has(item?.suggested_route) ? item.suggested_route : 'none',
-      direct_csa_ids: [...new Set((Array.isArray(item?.direct_csa_ids) ? item.direct_csa_ids : [])
-        .filter(id => typeof id === 'string' && id.trim()))].slice(0, 4)
-    });
-  }
-  return result;
-}
-
 export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcIds } = {}) {
   if (!object(value) || !object(value.state_delta)) {
     throw new GameCoreError('INVALID_EXTRACT', 'Extract must contain an object state_delta');
@@ -351,8 +314,10 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
   }
   const idWarnings = [];
   const normalizedMonitor = normalizeMindMonitor(value.mind_monitor);
-  const storyChoices = choices(parsedStory?.choices).slice(0, 4);
-  const extractChoices = choices(value.choices).slice(0, 4);
+  // 선택지 정본은 Story뿐이다 — Extract는 선택지를 만들거나 수정하지 않는다.
+  // Story 4개면 그대로, 1~3개면 보존(부족분은 guarded-merge가 보충), 5개 이상이면 앞 4개,
+  // 0개면 빈 배열(guarded-merge가 UI 안전 기본 4개로 보충).
+  const finalChoices = choices(parsedStory?.choices).slice(0, 4);
   const npcsPresent = validatedNpcList(value.npcs_present, npcIds, idWarnings, 'npcs_present');
   const actionTargetId = validatedNpcId(value.action_target_id, npcIds, idWarnings, 'action_target_id');
   const focalCharacterId = validatedNpcId(value.focal_character_id, npcIds, idWarnings, 'focal_character_id');
@@ -361,20 +326,12 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
   const mindMonitor = validatedMindMonitor(normalizedMonitor.mind_monitor, npcIds, idWarnings);
   const csaTriggerEvaluations = normalizeCsaTriggerEvaluations(value.csa_trigger_evaluations, idWarnings);
   const csaRuntimeUpdates = normalizeCsaRuntimeUpdates(value.csa_runtime_updates, idWarnings);
-  // 선택지 보존·보충 — Story가 만든 선택지(1~4개)를 우선 보존하고,
-  // 부족한 개수만 Extract 제안에서 채운다. Story 4개면 Story가 정본.
-  const finalChoices = [];
-  for (const choice of [...storyChoices, ...extractChoices]) {
-    if (!finalChoices.includes(choice)) finalChoices.push(choice);
-    if (finalChoices.length === 4) break;
-  }
-  const choiceStructuredMeta = normalizeChoiceStructuredMeta(value.choice_structured_meta, finalChoices.length, idWarnings);
   const warnings = [...new Set([
     ...(Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string' && item.trim()) : []),
     ...normalizedMonitor.warnings,
     ...idWarnings,
-    ...(storyChoices.length === 4 ? ['story_choices_authoritative'] : []),
-    ...(storyChoices.length === 4 || finalChoices.length === 4 ? [] : ['choices_not_exactly_four'])
+    ...(finalChoices.length === 4 ? ['story_choices_authoritative'] : []),
+    ...(finalChoices.length === 4 ? [] : ['choices_not_exactly_four'])
   ])];
   return {
     state_delta: clone(value.state_delta),
@@ -385,7 +342,6 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
     mind_monitor: mindMonitor,
     legacy_mind_monitor_text: normalizedMonitor.legacy_text,
     choices: finalChoices,
-    choice_structured_meta: choiceStructuredMeta,
     dialogue_lines: mergeDialogueLines(parsedStory?.dialogue_lines, value.dialogue_lines),
     npcs_present: npcsPresent,
     action_target_id: actionTargetId,
@@ -444,13 +400,6 @@ function collectDialogueLines(parsedStory) {
 }
 
 /** A short, deterministic Korean turn summary built without any additional LLM call. */
-export function buildDegradedTurnSummary(playerAction, sceneText) {
-  const action = stringOrEmpty(playerAction).trim();
-  const firstSentence = stringOrEmpty(sceneText).trim().split(/(?<=[.!?。])\s+|\n/)[0]?.trim() ?? '';
-  const truncate = (text, max) => (text.length > max ? `${text.slice(0, max)}…` : text);
-  const parts = [truncate(action, 60), truncate(firstSentence, 100)].filter(Boolean);
-  return parts.length > 0 ? truncate(parts.join(' — '), 160) : '턴이 진행되었습니다.';
-}
 
 /**
  * Builds the deterministic degraded Extract envelope used when the real Extract call
@@ -467,11 +416,10 @@ export function buildDegradedExtractEnvelope({ parsedStory = {}, playerAction = 
     state_delta: {},
     outcome: 'degraded',
     evidence: {},
-    turn_summary: buildDegradedTurnSummary(playerAction, sceneText),
+    turn_summary: '',  // turn_summary는 빈 문자열 허용 — 최신 Story context 근거로 사용하지 않는다.
     mind_monitor: {},
     legacy_mind_monitor_text: '',
     choices: storyChoices,
-    choice_structured_meta: [],
     dialogue_lines: collectDialogueLines(story),
     npcs_present: [],
     action_target_id: null,

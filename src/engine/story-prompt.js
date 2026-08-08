@@ -174,20 +174,21 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
     story_summary: {
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
-      recent: typeof save.story_summary_recent === 'string' ? save.story_summary_recent : ''
+      // recent는 호환용 필드일 뿐 — 최신 3턴 정본은 recent_turns(story_text 전체)다.
+      recent: ''
     },
     clothing_authority: buildClothingAuthority(save, {
       master: edition?.characters?.characters ? { characters: toEntryArray(edition?.characters?.characters, 'character_id'), general_npcs: toEntryArray(edition?.generalNpcs?.profiles, 'npc_id') } : {}
     }),
-    recent_turns: recentTurns.map((turn, index, array) => {
-      const entry = {
-        turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
-        player_action: typeof turn?.player_action === 'string' ? turn.player_action : '',
-        turn_summary: typeof turn?.turn_summary === 'string' ? turn.turn_summary : ''
-      };
-      if (index === array.length - 1 && Array.isArray(turn?.choices)) entry.choices = turn.choices;
-      return entry;
-    }),
+    // 최신 확정 3턴 원문 전체 — 500자 절단 없음, turn_summary로 대체하지 않음.
+    // 하나의 canonical history section으로만 제공한다 (raw/summary/narrative 중복 없음).
+    recent_turns: recentTurns.map(turn => ({
+      turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
+      player_action: typeof turn?.player_action === 'string' ? turn.player_action : '',
+      story_text: typeof turn?.story_text === 'string' ? turn.story_text : '',
+      parsed_blocks: turn?.parsed_blocks ?? null,
+      choices: Array.isArray(turn?.choices) ? turn.choices : []
+    })),
     last_turn_continuity: buildLastTurnContinuity(recentTurns.at(-1))
   };
 }

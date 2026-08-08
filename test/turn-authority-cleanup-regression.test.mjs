@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { applyGuardedStateDelta } from '../src/engine/guarded-merge.js';
-import { buildDeterministicTurnSummary } from '../src/engine/turn-summary.js';
 import { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch } from '../src/engine/csa/reducer.js';
 import { resolveCsaDirectCoverage } from '../src/engine/csa/direct-coverage.js';
+import { resolveActionExecutionContract } from '../src/engine/action-execution-contract.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { normalizeGameplayExtractEnvelope } from '../src/engine/gameplay-state.js';
+import { buildStoryContextProjection } from '../src/engine/story-prompt.js';
 
 // ── 공통 fixture ─────────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ function baseSave(overrides = {}) {
     last_npcs_present: ['heroine3'],
     last_image_id: null,
     last_choices: ['선택지 A', '선택지 B', '선택지 C', '선택지 D'],
-    last_choice_meta: {},
+    last_choice_meta: [],
     ...overrides
   };
 }
@@ -75,28 +76,41 @@ const master = {
 };
 const npcIds = new Set(['heroine3']);
 
-/** 57턴 실측과 동일한 Story — 월권/인사팀 항의/이탈/그만하시죠 문구 없음. */
+function envelope(overrides = {}) {
+  return {
+    outcome: 'success', state_delta: {}, evidence: {}, turn_summary: '', mind_monitor: {},
+    choices: [], dialogue_lines: [], npcs_present: ['heroine3'], action_target_id: 'heroine3',
+    focal_character_id: 'heroine3', last_speaker_id: 'heroine3', image_character_id: null,
+    player_inner_thought: '', player_status: '', elapsed_minutes: 5,
+    csa_trigger_evaluations: [], csa_runtime_updates: [],
+    ...overrides
+  };
+}
+
+function merge(save, extract, storyText, turn = 57) {
+  const parsed = parseNarrative(storyText, { master });
+  const normalized = normalizeGameplayExtractEnvelope(extract, { parsedStory: parsed, npcIds });
+  return applyGuardedStateDelta(save, normalized, {
+    expectedTurn: turn, actionId: `a${turn}`, turnId: `t${turn}`, playerAction: '행동',
+    parsedStory: parsed, master, npcIds, storyText
+  });
+}
+
 const TURN57_STORY = `[1. 서사 및 행동]
 [SCENE]
-내 직고백에 김제나의 얼굴이 순식간에 하얘졌다. 그녀의 손이 무릎 위에서 덜덜 떨리더니, 이내 책상 가장자리를 꽉 움켜쥐었다. 적갈색 머리카락 사이로 보이는 그녀의 귀가 새빨갛게 물들었다.
+김제나가 숨을 깊게 들이쉬고 나를 올려다봤다.
 
-[DIALOGUE speaker_id="heroine3" acting_direction="두 손으로 얼굴을 가리며 고개를 숙인다. 목소리가 간신히 새어 나오듯 작게 떨린다."]
-감사관님... 그렇게 말씀하시면...
-
-[SCENE]
-김제나는 숨을 깊게 들이쉬고 나를 올려다봤다. 그녀의 회갈색 눈에는 당황보다는 엄중한 빛이 섞여 있었다. 주변 직원들은 여전히 업무 중이었지만, 그녀는 목소리를 낮춘 채 분명하게 말을 이어갔다.
-
-[DIALOGUE speaker_id="heroine3" acting_direction="고개를 들고 눈을 마주치며, 목소리를 절제된 낮은 톤으로 유지한다. 손가락이 책상 위에서 가지런히 모인다."]
-저는... 그 규정이 '동료의 컨디션을 확인하는 상황'에서 적용되는 걸로 이해했어요. 지금 감사관님은 저랑 업무 대화를 하고 계신 거잖아요. 그런데 갑자기 그런 걸 부탁하시는 건... 규정 범위를 넘어서는 거라고 생각해요.
+[DIALOGUE speaker_id="heroine3" acting_direction="목소리를 절제된 낮은 톤으로 유지한다."]
+저는... 그 규정이 '동료의 컨디션을 확인하는 상황'에서 적용되는 걸로 이해했어요. 그런데 갑자기 그런 걸 부탁하시는 건... 규정 범위를 넘어서는 거라고 생각해요.
 
 [SCENE]
-그녀의 말은 또렷했지만, 목소리 끝은 살짝 떨렸다. 자신의 말이 옳다는 확신과, 상사에게 거절하는 것에 대한 부담이 섞여 있는 목소리였다. 그녀는 잠시 나를 살피더니 이내 자신의 자세를 바로 잡았다.
+그녀의 말은 또렷했지만, 목소리 끝은 살짝 떨렸다.
 
-[DIALOGUE speaker_id="heroine3" acting_direction="두 팔로 가슴을 가린 채 약간 몸을 틀어 옆을 보며, 나지막하고 조심스러운 목소리로 덧붙인다."]
-그리고... 그런 표현은 저한테 조금... 부담스러워요. 감사관님이신데... 저희 업무적으로만 봐주시면 안 될까요?
+[DIALOGUE speaker_id="heroine3" acting_direction="나지막하고 조심스러운 목소리로 덧붙인다."]
+그리고... 그런 표현은 저한테 조금... 부담스러워요. 저희 업무적으로만 봐주시면 안 될까요?
 
 [2. 플레이어 속마음]
-"하... 씨 이거 완전 거절당했네. 일단 물러서는 게 낫겠다."
+"완전 거절당했네. 일단 물러서는 게 낫겠다."
 
 [3. 플레이어 상황판]
 - 이름: 금태양 / 감사실 임원
@@ -104,138 +118,106 @@ const TURN57_STORY = `[1. 서사 및 행동]
 - Day 1, 17:23 (현재 턴 57)
 
 [4. 선택지]
-1. "미안해요, 선을 넘었네요. 규정 확인 차원이었어요"라며 사과하고 물러선다
-2. "그래도 규정이 규정이니까, 컨디션 확인은 해야겠어요"라며 규정을 근거로 한 번 더 설득한다
-3. "알겠어요. 그럼 속옷 차림 규정은 준수하고 있는지 정도만 확인할게요"라며 업무적 톤으로 범위를 좁힌다
-4. "부담스러웠다면 사과할게요. 근데 왜 그렇게까지 거절하는지 이유가 궁금하네요"라며 그녀의 생각을 묻는다`;
+1. "미안해요, 선을 넘었네요"라며 사과하고 물러선다
+2. "그래도 규정이 규정이니까, 컨디션 확인은 해야겠어요"라며 규정을 근거로 설득한다
+3. "알겠어요. 그럼 속옷 차림 규정은 준수하고 있는지 정도만 확인할게요"라며 범위를 좁힌다
+4. "부담스러웠다면 사과할게요. 근데 이유가 궁금하네요"라며 묻는다`;
 
-// ── fixture 1: 57턴 가짜 evidence와 가짜 summary 폐기 ──────────────────────
+// ── 회귀: npc_stats는 Extract 의미 분석에 맡긴다 (Story quote gate 없음) ─────
 
-test('golden 1: 57턴 — Story에 없는 evidence는 affinity/current_boundary 폐기, 실제 감정 evidence는 통과', () => {
-  const extract = {
-    outcome: 'blocked',
-    turn_summary: '감사관이 발기 사실을 고백하며 부적절한 요구를 하자 김제나는 충격과 분노를 드러내며 정식으로 항의하겠다고 말하고, 자리에서 일어나 자리를 이탈한다.',
-    state_delta: {
-      npc_stats: { heroine3: { affinity: -2, csa_acceptance: 55 } },
-      npc_relationship_state: { heroine3: { current_boundary: 'explicitly_refusing_improper_request' } },
-      npc_emotion: { heroine3: { mood: '불안' } }
-    },
-    evidence: {
-      verbal_refusal: {
-        quote: '감사관님, 지금 그 말씀은 정말로 월권이에요. 그런... 그런 걸 원하시는 거라면, 저는 인사팀에 정식으로 항의하겠어요.',
-        changed: ['npc_relationship_state.heroine3.current_boundary']
-      },
-      affinity_change: {
-        quote: '김제나는 자리에서 일어나며 차갑게 말했다. "이제 그만하시죠."',
-        changed: ['npc_stats.heroine3.affinity']
-      },
-      emotional_reaction: {
-        quote: '김제나의 얼굴이 순식간에 하얘졌다. 그녀의 손이 무릎 위에서 덜덜 떨리더니, 이내 책상 가장자리를 꽉 움켜쥐었다.',
-        changed: ['npc_emotion.heroine3.mood']
-      },
-      csa_acceptance_change: {
-        quote: '규정이 아니라 개인적인 요구잖아요! 그런 걸로 저를...',
-        changed: ['npc_stats.heroine3.csa_acceptance']
-      }
-    },
-    choices: [],
-    npcs_present: ['heroine3'],
-    action_target_id: 'heroine3',
-    focal_character_id: 'heroine3',
-    last_speaker_id: 'heroine3',
-    elapsed_minutes: 5
-  };
-
-  const parsed = parseNarrative(TURN57_STORY, { master });
-  const envelope = normalizeGameplayExtractEnvelope(extract, { parsedStory: parsed, npcIds });
-  const merged = applyGuardedStateDelta(baseSave(), envelope, {
-    expectedTurn: 57, actionId: 'a57', turnId: 't57', playerAction: '나 발기했어 제나씨. 부탁해.',
-    parsedStory: parsed, master, npcIds, storyText: TURN57_STORY
+test('회귀: npc_stats delta는 Story evidence 없이도 Extract 의미 분석으로 저장된다 (음수 포함)', () => {
+  const storyText = TURN57_STORY;
+  // Story에 없는 가짜 근거 문구가 있어도 npc_stats는 Commit 범위 검증만 통과하면 저장된다.
+  const extract = envelope({
+    state_delta: { npc_stats: { heroine3: { affinity: -2, csa_acceptance: -10 } } },
+    evidence: { affinity_change: { quote: '김제나는 자리에서 일어나며 차갑게 말했다.', changed: ['npc_stats.heroine3.affinity'] } }
   });
-
-  // 가짜 근거에 의존한 변화는 폐기
-  assert.equal(merged.nextSave.npc_stats.heroine3.affinity, 12, '근거 없는 affinity -2는 폐기');
-  assert.equal(merged.nextSave.npc_stats.heroine3.csa_acceptance, 65, '근거 없는 csa_acceptance 변경은 폐기');
-  assert.equal(merged.nextSave.npc_relationship_state.heroine3.current_boundary, 'cautious_professional', '근거 없는 current_boundary 변경은 폐기');
-  // 실제 Story에 존재하는 감정 evidence는 독립적으로 통과
-  assert.equal(merged.nextSave.npc_emotion.heroine3.mood, '불안', 'Story 실존 감정 evidence는 허용');
-  // warning 확인
-  const warnings = merged.warnings.join(' ');
-  assert.ok(warnings.includes('evidence_quote_not_in_story:npc_stats.heroine3.affinity'), warnings);
-  assert.ok(warnings.includes('evidence_quote_not_in_story:npc_stats.heroine3.csa_acceptance'), warnings);
-  assert.ok(warnings.includes('evidence_quote_not_in_story:npc_relationship_state.heroine3.current_boundary'), warnings);
-
-  // turn summary — Extract 문장이 아니라 Story 텍스트에서 결정론적으로 생성
-  const summary = buildDeterministicTurnSummary(parsed, TURN57_STORY);
-  assert.ok(!summary.includes('정식으로 항의'), 'summary에 가짜 문구 없음');
-  assert.ok(!summary.includes('인사팀'), 'summary에 가짜 문구 없음');
-  assert.ok(!summary.includes('자리에서 일어나'), 'summary에 가짜 문구 없음');
-  assert.ok(!summary.includes('월권'), 'summary에 가짜 문구 없음');
-  assert.ok(summary.includes('하얘졌다'), 'summary는 실제 Story 텍스트 기반 (앞부분 서사)');
-  assert.ok(summary.length <= 500, 'summary는 최대 길이 제한');
+  const merged = merge(baseSave(), extract, storyText);
+  assert.equal(merged.nextSave.npc_stats.heroine3.affinity, 10, 'affinity -2 저장 (12-2)');
+  assert.equal(merged.nextSave.npc_stats.heroine3.csa_acceptance, 55, 'csa_acceptance -10 저장 (65-10)');
 });
 
-// ── fixture 2: Story에 근거가 있는 blocked 부정 변화는 허용 ──────────────────
+// ── 회귀: degraded Extract에서는 npc_stats 변화 없음 ────────────────────────
 
-test('golden 2: blocked 턴이어도 Story 근거가 있으면 부정 변화는 저장된다', () => {
-  const story = `[1. 서사 및 행동]
-[SCENE]
-김제나가 책상에서 벌떡 일어났다. 눈에 분노가 가득했다. 그녀는 주먹을 꽉 쥐며 말했다.
+test('회귀: degraded Extract에서는 npc_stats 변경이 무시된다', () => {
+  const extract = envelope({
+    outcome: 'degraded',
+    state_delta: { npc_stats: { heroine3: { affinity: -2 } } }
+  });
+  const merged = merge(baseSave(), extract, TURN57_STORY);
+  assert.equal(merged.nextSave.npc_stats.heroine3.affinity, 12, 'degraded에서는 affinity 유지');
+  assert.ok(merged.warnings.some(w => w.startsWith('npc_stats_degraded_ignored')), merged.warnings.join(' '));
+});
 
-[DIALOGUE speaker_id="heroine3" acting_direction="주먹을 쥐고 목소리를 높인다."]
-지금 그 말은 정말로 실례예요. 저는 이만 나가서 일하겠습니다.
+// ── 회귀: resistance 변경은 항상 무시 ───────────────────────────────────────
 
-[2. 플레이어 속마음]
-"아... 완전히 화났네."
+test('회귀: resistance는 npc_stats 변경 대상이 아니다 (reducer가 보존)', () => {
+  const extract = envelope({
+    state_delta: { npc_stats: { heroine3: { resistance: 10, affinity: 2 } } }
+  });
+  const merged = merge(baseSave(), extract, TURN57_STORY);
+  assert.equal(merged.nextSave.npc_stats.heroine3.resistance, 35, 'resistance 보존');
+  assert.equal(merged.nextSave.npc_stats.heroine3.affinity, 14, 'affinity는 적용');
+});
 
-[3. 플레이어 상황판]
-- 이름: 금태양 / 감사실 임원
+// ── 회귀: relationship_summary는 폐기되고 기존 값 유지 ───────────────────────
 
-[4. 선택지]
-1. 사과하고 물러선다
-2. 뒤쫓아가 사과한다
-3. 가만히 서서 상황을 지켜본다
-4. 다른 NPC에게 상황을 묻는다`;
-
-  const extract = {
-    outcome: 'blocked',
-    turn_summary: '김제나가 화를 내며 자리를 떴다.',
+test('회귀: Extract relationship_summary는 무시되고 기존 save 값이 유지된다', () => {
+  const extract = envelope({
     state_delta: {
-      npc_stats: { heroine3: { affinity: -3 } },
-      npc_relationship_state: { heroine3: { current_boundary: 'explicitly_refusing_improper_request' } }
+      npc_relationship_state: {
+        heroine3: {
+          relationship_summary: '김제나가 정식으로 항의하고 규정의 남용을 지적한다.',
+          current_boundary: 'explicitly_refusing_improper_request'
+        }
+      }
     },
     evidence: {
-      affinity_change: {
-        quote: '김제나가 책상에서 벌떡 일어났다. 눈에 분노가 가득했다.',
-        changed: ['npc_stats.heroine3.affinity']
-      },
       boundary_change: {
-        quote: '지금 그 말은 정말로 실례예요. 저는 이만 나가서 일하겠습니다.',
+        quote: '저는... 그 규정이 \'동료의 컨디션을 확인하는 상황\'에서 적용되는 걸로 이해했어요.',
         changed: ['npc_relationship_state.heroine3.current_boundary']
       }
-    },
-    choices: [],
-    npcs_present: ['heroine3'],
-    action_target_id: 'heroine3',
-    focal_character_id: 'heroine3',
-    elapsed_minutes: 5
-  };
-
-  const parsed = parseNarrative(story, { master });
-  const envelope = normalizeGameplayExtractEnvelope(extract, { parsedStory: parsed, npcIds });
-  const merged = applyGuardedStateDelta(baseSave(), envelope, {
-    expectedTurn: 57, actionId: 'a57b', turnId: 't57b', playerAction: '부탁한다',
-    parsedStory: parsed, master, npcIds, storyText: story
+    }
   });
-
-  assert.equal(merged.nextSave.npc_stats.heroine3.affinity, 9, 'Story 근거 있는 affinity 하락은 허용 (12-3)');
-  assert.equal(merged.nextSave.npc_relationship_state.heroine3.current_boundary, 'explicitly_refusing_improper_request', 'Story 근거 있는 boundary 전이는 허용');
+  const merged = merge(baseSave(), extract, TURN57_STORY);
+  assert.equal(merged.nextSave.npc_relationship_state.heroine3.relationship_summary, '기존 관계 요약', '기존 summary 유지');
+  assert.ok(merged.warnings.includes('extract_relationship_summary_ignored:heroine3'), merged.warnings.join(' '));
 });
 
-// ── fixture 3: 선택지 보존·보충 후 save/history 일치 ────────────────────────
+// ── 회귀: current_boundary는 evidence.changed path가 있어야 저장 ─────────────
 
-test('golden 3: 선택지 1~3개 보존·보충 — last_choices가 유일 writer', () => {
-  const story = `[1. 서사 및 행동]
+test('회귀: current_boundary 변경은 changed 배열에 정확한 path가 있는 evidence만 허용', () => {
+  // evidence가 아예 없으면 폐기
+  const noEvidence = merge(baseSave(), envelope({
+    state_delta: { npc_relationship_state: { heroine3: { current_boundary: 'explicitly_refusing_improper_request' } } }
+  }), TURN57_STORY);
+  assert.equal(noEvidence.nextSave.npc_relationship_state.heroine3.current_boundary, 'cautious_professional', 'evidence 없으면 폐기');
+  assert.ok(noEvidence.warnings.some(w => w.startsWith('evidence_missing:npc_relationship_state')), noEvidence.warnings.join(' '));
+
+  // Story에 있는 quote + 정확한 changed path → 저장
+  const withEvidence = merge(baseSave(), envelope({
+    state_delta: { npc_relationship_state: { heroine3: { current_boundary: 'explicitly_refusing_improper_request' } } },
+    evidence: {
+      boundary_change: {
+        quote: '저는... 그 규정이 \'동료의 컨디션을 확인하는 상황\'에서 적용되는 걸로 이해했어요.',
+        changed: ['npc_relationship_state.heroine3.current_boundary']
+      }
+    }
+  }), TURN57_STORY);
+  assert.equal(withEvidence.nextSave.npc_relationship_state.heroine3.current_boundary, 'explicitly_refusing_improper_request', '근거 있는 boundary 전이는 허용');
+});
+
+// ── 회귀: 선택지 4개 / 2개 보존+보충 / 0개 fallback ─────────────────────────
+
+test('회귀: Story 선택지 4개는 그대로 저장·표시된다', () => {
+  const parsed = parseNarrative(TURN57_STORY, { master });
+  const normalized = normalizeGameplayExtractEnvelope(envelope({ choices: ['Extract가 만든 것'] }), { parsedStory: parsed, npcIds });
+  assert.equal(normalized.choices.length, 4, 'Story 4개 그대로');
+  assert.equal(normalized.choices[0], '"미안해요, 선을 넘었네요"라며 사과하고 물러선다', 'Story 선택지 유지');
+});
+
+test('회귀: Story 선택지 2개면 2개 보존 + 2개 보충 (guarded-merge)', () => {
+  const story2 = `[1. 서사 및 행동]
 [SCENE]
 김제나가 말을 이어갔다.
 
@@ -251,61 +233,49 @@ test('golden 3: 선택지 1~3개 보존·보충 — last_choices가 유일 write
 [4. 선택지]
 1. "사과할게요"라며 물러선다
 2. "규정을 확인할게요"라며 범위를 좁힌다`;
-
-  const extract = {
-    outcome: 'success',
-    turn_summary: '',
-    state_delta: {},
-    choices: ['"사과할게요"라며 물러선다', '"규정을 확인할게요"라며 범위를 좁힌다', 'Extract가 만든 선택지 3', 'Extract가 만든 선택지 4'],
-    npcs_present: ['heroine3'],
-    focal_character_id: 'heroine3',
-    elapsed_minutes: 5
-  };
-
-  const parsed = parseNarrative(story, { master });
-  const envelope = normalizeGameplayExtractEnvelope(extract, { parsedStory: parsed, npcIds });
-  // Story 2개 우선 보존 + Extract 2개 보충 → 4개
-  assert.equal(envelope.choices.length, 4);
-  assert.equal(envelope.choices[0], '"사과할게요"라며 물러선다', 'Story 선택지가 앞에 보존');
-  assert.equal(envelope.choices[1], '"규정을 확인할게요"라며 범위를 좁힌다', 'Story 선택지가 앞에 보존');
-
-  const merged = applyGuardedStateDelta(baseSave(), envelope, {
-    expectedTurn: 57, actionId: 'a57c', turnId: 't57c', playerAction: '선택지 선택',
-    parsedStory: parsed, master, npcIds, storyText: story
-  });
-  // commit의 finalChoices = nextSave.last_choices (단일 writer)
-  const finalChoices = Array.isArray(merged.nextSave.last_choices) ? merged.nextSave.last_choices : [];
-  assert.deepEqual(finalChoices, envelope.choices, 'save.last_choices와 Commit p_choices 후보가 정확히 일치');
-  assert.equal(finalChoices.length, 4);
+  const extract = envelope({ choices: ['Extract가 만든 선택지'] });
+  const merged = merge(baseSave(), extract, story2);
+  assert.equal(merged.nextSave.last_choices.length, 4, '4개로 보충');
+  assert.equal(merged.nextSave.last_choices[0], '"사과할게요"라며 물러선다', 'Story 선택지 보존');
+  assert.equal(merged.nextSave.last_choices[1], '"규정을 확인할게요"라며 범위를 좁힌다', 'Story 선택지 보존');
 });
 
-// ── fixture 4: 설명 턴의 CSA executed 차단 ───────────────────────────────────
+test('회귀: Story 선택지 0개여도 UI 안전 기본 4개가 채워진다', () => {
+  const story0 = `[1. 서사 및 행동]
+[SCENE]
+김제나가 고개를 끄덕였다.
 
-test('golden 4: 설명·질문만 한 턴 — evidence 없이 executed 승격 금지', () => {
-  const save = baseSave({
-    csa_runtime_state: {}
-  });
-  const patch = buildCsaSceneRuntimeStatePatch({
-    previousSave: save,
-    csaRuntimeUpdates: [{ csa_id: 'csa_42', character_id: 'heroine3', status: 'active' }],
-    csaTriggerEvaluations: [],
-    activeCsa: [
-      { id: 'csa_42', source_type: 'preset' },
-      { id: 'csa_42_1', source_type: 'preset' }
-    ],
-    npcsPresent: ['heroine3'],
-    turnNumber: 57,
-    evidence: {},  // 규정 설명·질문만 — 실행 evidence 없음
-    narrativeText: '김제나가 규정의 적용 범위를 확인하려고 했다.'
-  });
-  // evidence 없으면 executed 승격이 일어나지 않는다
-  assert.equal(patch, null, '설명 턴에는 executed 승격 patch가 없어야 한다');
+[2. 플레이어 속마음]
+"좋아."
+
+[3. 플레이어 상황판]
+- 이름: 금태양 / 감사실 임원`;
+  const merged = merge(baseSave(), envelope(), story0);
+  assert.equal(merged.nextSave.last_choices.length, 4, '기본 4개 보충');
 });
 
-// ── fixture 5: trigger not_satisfied가 execution_state를 강등하지 않음 ──────
+// ── 회귀: 모호한 자연어 CSA 요청은 단어 규칙으로 blocked 확정하지 않는다 ─────
 
-test('golden 5: trigger evaluation not_satisfied는 execution_state를 직접 강등하지 않는다', () => {
-  const save = baseSave(); // csa_42 executed 상태
+test('회귀: "나 발기했어. 부탁해."는 csa_direct가 아니고 contextual CSA request로 전달된다', () => {
+  const save = baseSave();
+  // direct coverage — 단어 규칙으로 csa_direct 확정하지 않는다
+  const direct = resolveCsaDirectCoverage(save, '그렇지. 나 발기했어 제나씨. 부탁해.', { master, characters: master.characters });
+  assert.equal(direct.covered, false, '발기+부탁해는 단어 규칙으로 direct가 아니다');
+
+  // execution contract — ordinary 계열 유지 + contextual_csa_request 제공
+  const contract = resolveActionExecutionContract({
+    save, playerAction: '그렇지. 나 발기했어 제나씨. 부탁해.',
+    csaCatalog: { sexual_action_contract: {} }, characters: master.characters, npcIds: ['heroine3']
+  });
+  assert.notEqual(contract.route, 'csa_direct', 'csa_direct 아님');
+  assert.ok(contract.contextual_csa_request, 'contextual CSA request 전달');
+  assert.deepEqual(contract.contextual_csa_request.csa_ids, ['csa_42', 'csa_42_1']);
+});
+
+// ── 회귀: CSA runtime — trigger evaluation은 execution_state를 강등하지 않음 ─
+
+test('회귀: trigger evaluation not_satisfied는 execution_state를 강등하지 않는다', () => {
+  const save = baseSave();
   const patch = buildCsaSceneRuntimeStatePatch({
     previousSave: save,
     csaRuntimeUpdates: [],
@@ -315,35 +285,63 @@ test('golden 5: trigger evaluation not_satisfied는 execution_state를 직접 �
       { id: 'csa_42_1', source_type: 'preset' }
     ],
     npcsPresent: ['heroine3'],
-    turnNumber: 57,
-    evidence: {},
-    narrativeText: '규정이 만족되지 않았다.'
+    turnNumber: 57
   });
-  assert.equal(patch, null, 'trigger evaluation은 execution_state를 바꾸지 않는다 (patch 없음)');
+  assert.equal(patch, null, 'trigger evaluation은 execution_state를 바꾸지 않는다');
 });
 
-// ── fixture 6: 발기 + 부탁해 direct CSA 요청 판별 ───────────────────────────
+// ── 회귀: state_delta.csa_runtime_state 중복 채널 차단 ───────────────────────
 
-test('golden 6: "발기했어 + 부탁해"는 csa_direct, "부탁해" 단독은 아니다', () => {
+test('회귀: state_delta.csa_runtime_state는 무시되고 warning만 남는다', () => {
+  const extract = envelope({
+    state_delta: { csa_runtime_state: { csa_42: { execution_state: 'not_started' } } }
+  });
+  const merged = merge(baseSave(), extract, TURN57_STORY);
+  assert.equal(merged.nextSave.csa_runtime_state.csa_42.execution_state, 'executed', '기존 상태 유지');
+  assert.ok(merged.warnings.includes('duplicate_csa_runtime_channel_ignored'), merged.warnings.join(' '));
+});
+
+// ── 회귀: 최신 3턴 원문 전체가 Story context에 포함 (500자 절단 없음) ────────
+
+test('회귀: 최신 3턴 story_text 전체가 Story context recent_turns에 포함된다', () => {
+  const longStory = '[1. 서사 및 행동]\n[SCENE]\n' + '김제나가 길게 설명했다. '.repeat(60) + '\n[2. 플레이어 속마음]\n"좋아."\n[3. 플레이어 상황판]\n- 이름: 금태양\n[4. 선택지]\n1. 선택지1\n2. 선택지2\n3. 선택지3\n4. 선택지4';
+  const context = {
+    game: { id: 'g1', title: 't' },
+    save: { data: baseSave() },
+    recent_turns: [
+      { turn_number: 54, player_action: '54턴', story_text: longStory, parsed_blocks: {}, choices: ['a', 'b', 'c', 'd'] },
+      { turn_number: 55, player_action: '55턴', story_text: longStory, parsed_blocks: {}, choices: ['a', 'b', 'c', 'd'] },
+      { turn_number: 56, player_action: '56턴', story_text: longStory, parsed_blocks: {}, choices: ['a', 'b', 'c', 'd'] }
+    ]
+  };
+  const projection = buildStoryContextProjection(context, ['heroine3'], { catalogs: { departments: [], positions: [] }, playerAction: '행동' });
+  assert.equal(projection.recent_turns.length, 3, '최신 3턴');
+  for (const turn of projection.recent_turns) {
+    assert.equal(turn.story_text, longStory, 'story_text 원문 전체 (절단 없음)');
+    assert.ok(turn.story_text.length > 500, '500자 초과 유지');
+    assert.equal('turn_summary' in turn, false, 'turn_summary 필드 없음');
+  }
+});
+
+// ── 회귀: CSA 범위 초과 행동 차단 (semantic contract allowed scope) ─────────
+
+test('회귀: CSA 범위 밖 material action은 CSA 권한으로 실행되지 않는다', () => {
+  // csa_42의 allowed scope는 sexual_action_contract 매핑 기반 — 매핑이 없으면
+  // required_action의 가장 좁은 의미만 허용한다.
   const save = baseSave();
-  // 발기 고백 + 부탁 → 의미 연결(성적 긴장↔발기) + 요청 표현(부탁해)
-  const direct = resolveCsaDirectCoverage(save, '그렇지. 나 발기했어 제나씨. 부탁해. 제나씨 속옷차림이 너무 이뻐서...', { master, characters: master.characters });
-  assert.equal(direct.covered, true, '발기+부탁해는 csa_direct');
-  assert.equal(direct.route, 'csa_direct');
+  const contract = resolveActionExecutionContract({
+    save, playerAction: '김제나를 강제로 눕히고 삽입한다',
+    csaCatalog: { sexual_action_contract: {} }, characters: master.characters, npcIds: ['heroine3']
+  });
+  // coverage가 없으면(sexual contract 매핑 없음) csa_direct가 아니다 — CSA 권한 실행 안 함.
+  assert.notEqual(contract.route, 'csa_direct', '범위 밖 행동은 CSA 권한으로 실행 금지');
+});
 
-  // 연결 표현 없이 부탁해만 → csa_direct 아님
-  const bare = resolveCsaDirectCoverage(save, '제나씨 부탁해', { master, characters: master.characters });
-  assert.equal(bare.covered, false, '부탁해 단독은 csa_direct 아님');
+// ── 회귀: 선택지 metadata는 사용하지 않는다 ──────────────────────────────────
 
-  // 질문 → csa_direct 아님
-  const question = resolveCsaDirectCoverage(save, '발기라는 게 규정상 무슨 뜻인가?', { master, characters: master.characters });
-  assert.equal(question.covered, false, '발기 질문은 csa_direct 아님');
-
-  // 의무형 질문 → csa_direct 아님
-  const obligation = resolveCsaDirectCoverage(save, '규정을 지켜야 하나', { master, characters: master.characters });
-  assert.equal(obligation.covered, false, '의무형 질문은 csa_direct 아님');
-
-  // 명시적 규정 실행 요청은 direct 유지
-  const explicit = resolveCsaDirectCoverage(save, '규정대로 성적 긴장을 완화해 주세요', { master, characters: master.characters });
-  assert.equal(explicit.covered, true, '명시적 실행 요청은 csa_direct 유지');
+test('회귀: choice_structured_meta는 envelope에 존재하지 않는다', () => {
+  const normalized = normalizeGameplayExtractEnvelope(envelope({
+    choice_structured_meta: [{ choice_index: 0, action_types: ['kiss'], suggested_route: 'csa_direct' }]
+  }), { parsedStory: { choices: ['a', 'b', 'c', 'd'] }, npcIds });
+  assert.equal('choice_structured_meta' in normalized, false, 'choice_structured_meta 제거');
 });

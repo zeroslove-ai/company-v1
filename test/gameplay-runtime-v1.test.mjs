@@ -192,8 +192,7 @@ test('buildDegradedExtractEnvelope preserves Story text, choices, inner thought,
   assert.equal(degraded.player_inner_thought, parsedStory.player_inner_thought);
   assert.deepEqual(degraded.choices, parsedStory.choices);
   assert.ok(degraded.warnings.includes('extract_degraded'));
-  assert.equal(typeof degraded.turn_summary, 'string');
-  assert.ok(degraded.turn_summary.length > 0);
+  assert.equal(degraded.turn_summary, '', 'turn_summary는 빈 문자열 허용 — 최신 Story context 근거로 사용하지 않는다');
 });
 
 test('Story request streams, disables thinking, uses a 5000 max_tokens envelope, and never hardcodes a model name', async () => {
@@ -527,9 +526,9 @@ test('the top-level envelope is the sole writer for identity/snapshot fields; a 
   const options = { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' };
   const result = applyGuardedStateDelta(save, {
     state_delta: { focal_character_id: 'npc-areum', last_speaker_id: 'npc-hayeon', last_choices: ['stale-a', 'stale-b'] },
-    outcome: 'success', evidence: {}, choices: ['real-1', 'real-2', 'real-3', 'real-4'], mind_monitor: {}, dialogue_lines: [],
+    outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [],
     focal_character_id: 'npc-hayeon', last_speaker_id: 'npc-areum'
-  }, options);
+  }, { ...options, parsedStory: { choices: ['real-1', 'real-2', 'real-3', 'real-4'] } });
   assert.equal(result.nextSave.focal_character_id, 'npc-hayeon');
   assert.equal(result.nextSave.last_speaker_id, 'npc-areum');
   assert.deepEqual(result.nextSave.last_choices, ['real-1', 'real-2', 'real-3', 'real-4']);

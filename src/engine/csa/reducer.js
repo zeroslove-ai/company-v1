@@ -23,26 +23,6 @@ function isPlainObject(value) {
 
 const DONOR_STATUS_TO_EXECUTION_STATE = { inactive: 'not_started', active: 'executed', paused: 'interrupted', ended: 'not_started' };
 
-/**
- * runtime update의 executed/active 승격은 Story evidence를 요구한다.
- * required action을 실제 수행한 quote가 storyText에 정확히 존재해야 한다.
- * (설명·질문·규정 언급만으로는 executed가 될 수 없다 — 56턴 회귀)
- */
-function hasCsaExecutionEvidence(evidence, csaId, narrativeText) {
-  if (typeof narrativeText !== 'string' || !narrativeText.trim()) return false;
-  const entries = (evidence && typeof evidence === 'object') ? evidence : {};
-  const candidates = [];
-  // evidence.csa_runtime[csa_id] = { quote, changed } | "quote"
-  const nested = entries.csa_runtime?.[csaId];
-  if (typeof nested === 'string' && nested.trim()) candidates.push(nested.trim());
-  if (nested && typeof nested === 'object' && typeof nested.quote === 'string' && nested.quote.trim()) candidates.push(nested.quote.trim());
-  // evidence[csa_id] = { quote, changed } | "quote"
-  const flat = entries[csaId];
-  if (typeof flat === 'string' && flat.trim()) candidates.push(flat.trim());
-  if (flat && typeof flat === 'object' && typeof flat.quote === 'string' && flat.quote.trim()) candidates.push(flat.quote.trim());
-  return candidates.some(quote => narrativeText.includes(quote));
-}
-
 function normalizeRuntimeEntry(entry = {}) {
   return {
     lifecycle: ['active', 'deactivated'].includes(entry?.lifecycle) ? entry.lifecycle : 'active',
@@ -63,12 +43,12 @@ function normalizeRuntimeEntry(entry = {}) {
  * lifecycle:'deactivated' by the reducer itself, with no Extract involvement.
  *
  * Channel single-writer: csa_runtime_updates is the ONLY input that moves
- * execution_state. executed/active promotion additionally requires a
- * verbatim Story evidence quote of the required action being performed.
+ * execution_state — Commit은 CSA의 구조·범위만 검사한다 (Story quote substring,
+ * NPC 이름 포함, evidence.changed, 한국어 단어 조합은 사용하지 않는다).
  * csa_trigger_evaluations is a trigger/applicability-only signal and never
  * demotes execution_state (57턴 not_satisfied → not_started 역행 금지).
  */
-export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber, evidence = {}, narrativeText = '' } = {}) {
+export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber } = {}) {
   const previous = isPlainObject(previousSave?.csa_runtime_state) ? previousSave.csa_runtime_state : {};
   const presentIds = new Set(Array.isArray(npcsPresent) ? npcsPresent.filter(id => typeof id === 'string' && id) : []);
   const activeById = new Map(activeCsa.map(item => [item.id, item]));
@@ -99,16 +79,6 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     touchedByRuntimeUpdate.add(csaId);
     const existing = previous[csaId] ? normalizeRuntimeEntry(previous[csaId]) : null;
     const executionState = DONOR_STATUS_TO_EXECUTION_STATE[donorStatus];
-    // executed/active 승격은 required action을 실제 수행한 Story evidence가 필요하다.
-    // 설명·질문·규정 언급만으로는 executed가 될 수 없다 (56턴 회귀).
-    if (executionState === 'executed' && !hasCsaExecutionEvidence(evidence, csaId, narrativeText)) {
-      if (existing) {
-        // evidence 없으면 기존 상태를 유지하고 덮어쓰지 않는다.
-        next[csaId] = { ...existing, last_confirmed_turn: turnNumber };
-        changed = true;
-      }
-      continue;
-    }
     next[csaId] = {
       lifecycle: 'active',
       applicability: 'applicable',

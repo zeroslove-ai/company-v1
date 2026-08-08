@@ -66,8 +66,8 @@ test('guarded merge deduplicates ledger, replaces snapshots, permits graded outc
     state_delta: {
       event_ledger: [save.event_ledger[0], { event_id: 'event-2', event_type: 'work_event' }],
       last_choices: ['a', 'b', 'c', 'd']
-    }, outcome: 'refused', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: []
-  }, { expectedTurn: 8, actionId: 'action-8', turnId: 'turn-8', playerAction: '거절을 듣는다.' });
+    }, outcome: 'refused', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: []
+  }, { expectedTurn: 8, actionId: 'action-8', turnId: 'turn-8', playerAction: '거절을 듣는다.', parsedStory: { choices: ['a', 'b', 'c', 'd'] } });
   assert.equal(result.nextSave.event_ledger.length, 2);
   assert.deepEqual(result.nextSave.last_choices, ['a', 'b', 'c', 'd']);
   assert.deepEqual(result.nextSave.turn_state, { committed_turn: 7, processing_status: 'ready', turn_id: 'turn-8', action_id: 'action-8', expected_turn: 9 });
@@ -75,7 +75,7 @@ test('guarded merge deduplicates ledger, replaces snapshots, permits graded outc
 
 test('guarded merge pads missing choices without dropping existing ones — 4개 미만은 부족분만 보충', () => {
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
-  const result = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['one', 'two'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
+  const result = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x', parsedStory: { choices: ['one', 'two'] } });
   // G — 기존 선택지는 보존하고 부족분만 deterministic 후보로 보충한다.
   assert.equal(result.nextSave.last_choices.length, 4);
   assert.deepEqual(result.nextSave.last_choices.slice(0, 2), ['one', 'two'], '기존 선택지 보존');
@@ -83,8 +83,8 @@ test('guarded merge pads missing choices without dropping existing ones — 4개
   const empty = applyGuardedStateDelta(save, { state_delta: { last_choices: ['stale'] }, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
   assert.equal(empty.nextSave.last_choices.length, 4, '빈 배열이면 기본 선택지 4개');
   assert.deepEqual(empty.nextSave.last_choices, buildFallbackTurnChoices(empty.nextSave));
-  // 정확히 4개면 Extract 제안 그대로
-  const four = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x' });
+  // Story 선택지가 정확히 4개면 그대로 저장된다
+  const four = applyGuardedStateDelta(save, { state_delta: {}, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }, { expectedTurn: 8, actionId: 'a', turnId: 't', playerAction: 'x', parsedStory: { choices: ['a', 'b', 'c', 'd'] } });
   assert.deepEqual(four.nextSave.last_choices, ['a', 'b', 'c', 'd']);
 });
 

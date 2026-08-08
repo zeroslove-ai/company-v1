@@ -1,10 +1,8 @@
 import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes.js';
 import {
-  buildChoiceStructuredMetaExtractContractSection,
   buildCsaApplicationCheckSection,
   buildCsaPublicSceneSection,
   buildCsaRuntimeExtractContractSection,
-  buildCsaSemanticContract,
   buildCsaWeakSynergySection,
   buildMindEffectExtractFirewallSection,
   calculateCsaCapability,
@@ -165,13 +163,11 @@ export function patchCompletionBody(init, state) {
     if (hasPublic) authoritative += buildCsaPublicSceneSection();
     if (active.length >= 2) authoritative += buildCsaWeakSynergySection();
   } else {
-    const hasSexualCsa = active.some(item => buildCsaSemanticContract(item, state.csaCatalog?.sexual_action_contract).sexual_authorization === true);
     authoritative += '\n\n[POST-TRANSACTION EXTRACT CHECK — FINAL AUTHORITY]\nCSA 누락·runtime 평가는 위 최종 활성 목록만 대상으로 수행한다. 해제되어 목록에서 빠진 규정은 이번 턴 active 평가 대상이 아니다.';
     authoritative += extractAuthorityContract();
     authoritative += buildMindEffectExtractFirewallSection({ hasApplicableCsa: active.length > 0, hasCsaTransaction: true });
     authoritative += buildCsaApplicationCheckSection(active);
     authoritative += buildCsaRuntimeExtractContractSection(active);
-    authoritative += buildChoiceStructuredMetaExtractContractSection(hasSexualCsa);
   }
   messages = appendSystem(messages, authoritative);
   return { ...init, body: JSON.stringify({ ...body, messages }) };

@@ -241,103 +241,7 @@ function resolveSexualCoverage(
   return { covered: false };
 }
 
-function normalizedChoiceText(value) {
-  return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
-}
-
-export function resolveChoiceStructuredSignal(save, playerActionText) {
-  return findChoiceStructuredMeta(save, playerActionText);
-}
-
-function findChoiceStructuredMeta(save, playerActionText) {
-  const choices = Array.isArray(save?.last_choices) ? save.last_choices : [];
-  const meta = Array.isArray(save?.last_choice_meta) ? save.last_choice_meta : [];
-  if (!choices.length || !meta.length) return null;
-  const target = normalizedChoiceText(playerActionText);
-  if (!target) return null;
-  const index = choices.findIndex(choice => normalizedChoiceText(choice) === target);
-  if (index === -1) return null;
-  return meta.find(entry => entry?.choice_index === index) ?? null;
-}
-
-function structuredParticipantMatches(participant, id) {
-  if (!participant || !id) return false;
-  if (id === 'player') return participant.type === 'player';
-  return participant.type === 'npc' && participant.characterId === id;
-}
-
-function resolveStructuredSexualCoverage(
-  applicableCsa,
-  meta,
-  { save, presentCharacterId, sexualActionContract, master, characters }
-) {
-  const actionTypes = Array.isArray(meta?.action_types)
-    ? meta.action_types.filter(
-        action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none'
-      )
-    : [];
-  if (!actionTypes.length) return { covered: false };
-
-  const actorId = typeof meta?.actor_id === 'string' && meta.actor_id
-    ? meta.actor_id
-    : null;
-  const targetId = typeof meta?.target_id === 'string' && meta.target_id
-    ? meta.target_id
-    : null;
-  if (!actorId || !targetId || actorId === targetId) return { covered: false };
-
-  for (const csa of applicableCsa) {
-    const contract = buildCsaSemanticContract(csa, sexualActionContract);
-    if (contract.sexual_authorization !== true || contract.direct_execution !== true) continue;
-    if (actionTypes.some(action => !contract.actions.includes(action))) continue;
-
-    const actor = resolveParticipant(contract.actor_group, {
-      save, presentCharacterId, master, characters
-    });
-    const target = contract.target_group
-      ? resolveTargetParticipant(contract.target_group, {
-          save,
-          presentCharacterId,
-          master,
-          characters,
-          actor,
-          preferredTargetId: targetId
-        })
-      : null;
-    if (!actor || !target) continue;
-
-    const direction = resolveDirection(actor, target);
-    if (!contract.directions.includes(direction)) continue;
-    if (!structuredParticipantMatches(actor, actorId)
-      || !structuredParticipantMatches(target, targetId)) continue;
-
-    return {
-      covered: true,
-      route: 'csa_direct',
-      csa_id: csa.id,
-      action: actionTypes[0],
-      all_actions: actionTypes,
-      actor_group: contract.actor_group,
-      target_group: contract.target_group,
-      direction,
-      reason: `structured signal match: actor_id=${actorId} target_id=${targetId} actions=[${actionTypes.join(',')}] direction=${direction}`
-    };
-  }
-  return { covered: false };
-}
-
 const CONTENT_MEANING_TERMS = ['컨디션', '상태', '성적 긴장', '완화', '도움', '속옷', '차림', '근무'];
-
-// 의미 연결 — 활성 CSA content의 표현과 입력의 동의어를 연결한다.
-// "성적 긴장" ↔ "발기" / "완화" ↔ "완화|해결|도움|도와" 같은 간접 실행 요청.
-// 이 연결이 있을 때만 LINKED_REQUEST_RE의 부탁/도움/해결 표현을 실행 요청으로 본다
-// ("부탁해" 단독으로는 csa_direct가 아니다).
-const SEMANTIC_LINKS = [
-  { contentTerm: '성적 긴장', inputTerms: ['발기', '성적 긴장', '긴장'] },
-  { contentTerm: '완화', inputTerms: ['완화', '해결', '도움', '도와'] }
-];
-const LINKED_REQUEST_RE =
-  /(부탁해|부탁합니다|부탁드려요|부탁드립니다|도와\s*줘|도와\s*주세요|도와\s*주십시오|해결해\s*줘|해결해\s*주세요|해결해\s*드릴게|완화해\s*줘|완화해\s*주세요)/;
 
 // 질문·확인·설명 요청 — 단어가 겹쳐도 csa_direct가 아니다.
 // "자네 지금 속옷 차림이 맞는 건가?" 같은 확인 질문이 '속옷/차림' 단어 때문에
@@ -390,17 +294,6 @@ function directMeaningMatch(csa, text, applicableCount) {
   );
   // 2) 단어 일치만으로 csa_direct가 되지 않는다 — 실행 요청 동사가 있어야 한다.
   if (matchedContentTerm && EXECUTE_RE.test(text)) return matchedContentTerm;
-
-  // 3) 의미 연결 + 요청 표현 — "발기했어 + 부탁해" 같은 간접 실행 요청.
-  // 연결 표현(성적 긴장↔발기, 완화↔해결/도움)이 있고 실제 요청 표현이 있어야 한다.
-  // "제나씨 부탁해"처럼 연결 없이 부탁해만으로는 csa_direct가 되지 않는다.
-  for (const link of SEMANTIC_LINKS) {
-    if (content.includes(link.contentTerm)
-      && link.inputTerms.some(term => text.includes(term))
-      && LINKED_REQUEST_RE.test(text)) {
-      return `linked CSA request: "${link.contentTerm}"`;
-    }
-  }
 
   const genericRuleRequest = /(규정|규칙|지침|공지).*(반영|적용|수행|지켜|따라)/.test(text);
   if (genericRuleRequest && applicableCount === 1) return 'single applicable CSA rule request';
@@ -473,24 +366,6 @@ export function resolveCsaDirectCoverage(
         action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none'
       )
     : [];
-
-  const structuredMeta = findChoiceStructuredMeta(save, text);
-  if (structuredMeta) {
-    const structuredActionTypes = Array.isArray(structuredMeta.action_types)
-      ? structuredMeta.action_types.filter(
-          action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none'
-        )
-      : [];
-    if (structuredActionTypes.length) {
-      const result = resolveStructuredSexualCoverage(applicableCsa, structuredMeta, {
-        save, presentCharacterId, sexualActionContract, master, characters
-      });
-      return result.covered ? result : { covered: false };
-    }
-    return resolveNonsexualCoverage(applicableCsa, text, {
-      save, presentCharacterId, sexualActionContract, master, characters
-    });
-  }
 
   const actionTypeList = providedActionTypes.length
     ? providedActionTypes

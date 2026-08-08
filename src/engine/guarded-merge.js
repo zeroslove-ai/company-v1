@@ -39,10 +39,10 @@ export function buildFallbackTurnChoices(save, options = {}) {
   push('자유롭게 다른 행동을 선택한다');
   return candidates;
 }
-// The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present/
-// choice_structured_meta) is the sole writer for these paths; a state_delta proposal for the
-// same path is redundant and only ever warns.
-const ENVELOPE_AUTHORITATIVE = new Set(['focal_character_id', 'last_speaker_id', 'last_choices', 'last_npcs_present', 'last_choice_meta']);
+// The top-level Extract envelope (focal_character_id/last_speaker_id/choices/npcs_present) is
+// the sole writer for these paths; a state_delta proposal for the same path is redundant and
+// only ever warns.
+const ENVELOPE_AUTHORITATIVE = new Set(['focal_character_id', 'last_speaker_id', 'last_choices', 'last_npcs_present']);
 
 function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -122,30 +122,16 @@ function sanitizeRelationshipMilestonePatch(currentSave, npcId, patch, evidence)
 
 /**
  * evidence 항목에서 특정 save path(`npc_stats.heroine3.affinity`)의 quote를 찾는다.
- * 지원 형태:
- *   A. { verbal_refusal: { quote, changed: ["npc_stats.heroine3.affinity"] } }
- *   B. { npc_stats: { heroine3: { affinity: { quote } } } }  (nested 객체)
- *   C. { npc_stats: { heroine3: { affinity: "문장" } } }     (nested 문자열)
- *   D. { affinity: "문장" }                                  (flat 문자열)
+ * changed 배열에 정확한 path가 있는 evidence만 허용한다 (flat/nested field fallback 없음).
  * 없으면 null.
  */
-function findEvidenceQuote(evidence, path, npcId, field) {
+function findEvidenceQuote(evidence, path) {
   if (!plainObject(evidence)) return null;
-  // A — changed 배열에 정확한 save path가 있는 항목
   for (const item of Object.values(evidence)) {
     if (plainObject(item) && Array.isArray(item.changed) && item.changed.includes(path)) {
       if (typeof item.quote === 'string' && item.quote.trim()) return item.quote.trim();
     }
   }
-  // B/C — nested [section][npcId][field]
-  const section = path.split('.')[0];
-  const nested = evidence?.[section]?.[npcId]?.[field];
-  if (typeof nested === 'string' && nested.trim()) return nested.trim();
-  if (plainObject(nested) && typeof nested.quote === 'string' && nested.quote.trim()) return nested.quote.trim();
-  // D — flat field key
-  const flat = evidence?.[field];
-  if (typeof flat === 'string' && flat.trim()) return flat.trim();
-  if (plainObject(flat) && typeof flat.quote === 'string' && flat.quote.trim()) return flat.quote.trim();
   return null;
 }
 
@@ -170,7 +156,7 @@ function validateEvidencedNpcField({ quote, narrativeText, characterName, npcDia
 
 /**
  * gateFields에 해당하는 변경 필드마다 evidence를 요구한다.
- * npc_stats는 0이 아닌 delta만 변경으로 본다. 그 외 필드는 이전 값과 다르면 변경.
+ * 그 외 필드(relationship_summary 등 자유 문장 필드)는 이 gate의 대상이 아니다.
  * 반환: { patch, warnings } — 실패한 필드는 patch에서 제거된다.
  */
 function gateEvidencedNpcFields({ npcId, path, patch, previous = {}, evidence, narrativeText, characterName, npcDialogueLines, gateFields }) {
@@ -178,11 +164,9 @@ function gateEvidencedNpcFields({ npcId, path, patch, previous = {}, evidence, n
   const gated = { ...patch };
   for (const field of gateFields) {
     if (!(field in gated)) continue;
-    const changed = path === 'npc_stats'
-      ? Number.isFinite(gated[field]) && gated[field] !== 0
-      : gated[field] !== previous?.[field];
+    const changed = gated[field] !== previous?.[field];
     if (!changed) continue;
-    const quote = findEvidenceQuote(evidence, `${path}.${npcId}.${field}`, npcId, field);
+    const quote = findEvidenceQuote(evidence, `${path}.${npcId}.${field}`);
     const verdict = validateEvidencedNpcField({ quote, narrativeText, characterName, npcDialogueLines });
     if (verdict) {
       warnings.push(`${verdict}:${path}.${npcId}.${field}`);
@@ -553,17 +537,14 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
           continue;
         }
         if (path === 'npc_stats' && plainObject(npcPatch)) {
-          // affinity/csa_acceptance/sexual_arousal 변경은 Story evidence를 요구한다.
-          // 음수 호감도도 근거 없는 저장을 막는다 (blocked 턴에서도 근거 있으면 허용).
-          const gated = gateEvidencedNpcFields({
-            npcId, path, patch: npcPatch, previous: nextSave.npc_stats[npcId] ?? {},
-            evidence: envelope.evidence, narrativeText: options?.storyText ?? '',
-            characterName: characterNameFromMaster(options?.master, npcId),
-            npcDialogueLines: npcDialogueLinesOf(options?.parsedStory, npcId),
-            gateFields: ['affinity', 'csa_acceptance', 'sexual_arousal']
-          });
-          warnings.push(...gated.warnings);
-          const { reason, ...deltas } = gated.patch;
+          // 호감도·수용도·흥분도는 Extract의 의미 분석에 맡긴다 — Story exact quote 검사 없음.
+          // Commit은 등록 NPC·관련 NPC·허용 필드·범위만 검증한다 (applyNpcStatChanges).
+          // degradation된 Extract에서는 envelope.outcome === 'degraded'일 때 변경을 금지한다.
+          if (envelope.outcome === 'degraded') {
+            warnings.push(`npc_stats_degraded_ignored:${npcId}`);
+            continue;
+          }
+          const { reason, ...deltas } = npcPatch;
           const { state, warnings: statWarnings } = applyNpcStatChanges(nextSave.npc_stats[npcId] ?? {}, deltas, { reason: typeof reason === 'string' ? reason : '' });
           nextSave.npc_stats[npcId] = state;
           warnings.push(...statWarnings.map(code => `npc_stats:${npcId}:${code}`));
@@ -574,6 +555,11 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
           const sanitized = sanitizeRelationshipMilestonePatch(preSave, npcId, npcPatch, envelope.evidence);
           sanitizedPatch = sanitized.patch;
           if (sanitized.warning) warnings.push(sanitized.warning);
+          // relationship_summary는 Extract 자유 문장을 저장하지 않는다 — 기존 값 유지.
+          if ('relationship_summary' in sanitizedPatch) {
+            delete sanitizedPatch.relationship_summary;
+            warnings.push(`extract_relationship_summary_ignored:${npcId}`);
+          }
           // current_boundary 변경은 Story evidence를 요구한다 (근거 없는 경계 상태 전이 차단).
           const gated = gateEvidencedNpcFields({
             npcId, path, patch: sanitizedPatch, previous: preSave.npc_relationship_state?.[npcId] ?? {},
@@ -613,7 +599,6 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
   }
 
   nextSave.last_choices = clone(envelope.choices);
-  nextSave.last_choice_meta = clone(envelope.choice_structured_meta);
   // 선택지 fail-open — 4개 미만이면 기존 선택지를 버리지 않고 부족분만 보충한다.
   // focal NPC 이름을 반영한 deterministic 후보로 채우고 warning에 전후 개수를 남긴다.
   if (envelope.choices.length < 4) {

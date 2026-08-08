@@ -134,7 +134,7 @@ test('runtime tracking: a csa_runtime_updates status="active" report persists ex
   assert.equal(nextTurnPatch, null, 'nothing changed, so the reducer reports no patch (previous state remains authoritative as-is)');
 });
 
-test('runtime tracking: evidence 없는 active 보고는 executed를 승격하지 않는다 (설명·질문 턴)', () => {
+test('runtime tracking: active 보고는 구조·범위 검증만으로 executed를 승격한다 (Story quote 검사 없음)', () => {
   const activeCsa = activeCsaFixture();
   const patch = buildCsaSceneRuntimeStatePatch({
     previousSave: {},
@@ -142,11 +142,12 @@ test('runtime tracking: evidence 없는 active 보고는 executed를 승격하�
     csaTriggerEvaluations: [],
     activeCsa,
     npcsPresent: ['heroine1'],
-    turnNumber: 5,
-    evidence: {},
-    narrativeText: '그녀는 규정의 적용 범위를 확인하려고 했다.'
+    turnNumber: 5
   });
-  assert.equal(patch, null, 'evidence 없는 설명 턴에는 executed 승격 patch가 없어야 한다');
+  // Commit은 CSA의 구조·범위만 검사한다 — Story quote/evidence 검사는 사용하지 않는다.
+  assert.ok(patch, 'active 보고는 patch를 만든다');
+  assert.equal(patch.csa_0.execution_state, 'executed');
+  assert.equal(patch.csa_0.character_id, 'heroine1');
 });
 
 test('runtime tracking: trigger evaluation은 execution_state를 강등하지 않는다 (not_satisfied/temporarily_interrupted)', () => {
