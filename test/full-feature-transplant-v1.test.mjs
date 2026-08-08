@@ -783,5 +783,3 @@ test('턴70-37 (지시C): /api/image sex pool에 tags 전달 — same-character 
   assert.ok(body.data.image, '동일 캐릭터 sex asset이 있으면 null 금지');
   assert.equal(body.data.image.image_id, 'fg1');
 });
-
-});
