@@ -43,7 +43,6 @@ import {
   buildCsaDeactivationStorySection,
   buildCsaCurrentRulesSection,
   buildCsaDirectExecutionPrioritySection,
-  buildActiveIntimateFocusSection,
   buildCsaPersistentSceneSection,
   buildCsaPhysicalTransitionSection,
   buildCsaPublicSceneSection,
@@ -306,17 +305,7 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog,
     // coverage는 Story 시작 전에 정확히 한 번 계산해 전달받는다 (이중 계산 제거).
     extra += buildCsaDirectCoverageSection(csaCoverage);
   }
-  // 진행 중 성적 장면 — 업무 화제 차단 최종 우선 섹션 (지시 25).
-  // coverage(csa_direct) 또는 실행 중 CSA runtime 또는 직전 성적 장면이면 주입한다.
-  const runtimeEntries = plainObject(save?.csa_runtime_state) ? Object.values(save.csa_runtime_state) : [];
-  const executedRuntime = runtimeEntries.find(entry => plainObject(entry) && entry.execution_state === 'executed') ?? null;
-  const activeIntimate = buildActiveIntimateFocusSection({
-    canonicalCoverage: csaCoverage,
-    csaRuntimeState: executedRuntime,
-    materialAction: actionContract?.material_action ?? null
-  });
-  if (activeIntimate) extra += activeIntimate;
-  // ActionExecutionContract section — 음수 ordinary gate는 활성 CSA 유무와 관계없이 작동한다.
+  // ActionExecutionContract section — 음수 ordinary gate는
   // csa_direct면 exact-scope 제한만, 범위 밖 material action이면 짧고 강한 음수 계약
   // (회사 규정·감사 업무·인사팀 지시로 정당화 금지)
   if (playerAction && actionContract) {

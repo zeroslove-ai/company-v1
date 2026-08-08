@@ -125,20 +125,27 @@ test('relationship: ambiguous absolute affinity field is discarded with a warnin
   assert.ok(warnings.includes('ambiguous_npc_stat_absolute_ignored:affinity'));
 });
 
-test('relationship: physical arousal/blushing/moaning alone never raises affinity', () => {
+test('relationship: physical arousal/blushing/moaning alone never raises affinity — exact quote 없으면 폐기 (지시 6·9-9)', () => {
   assert.equal(hasAffinityOnlyEvidence('그녀는 얼굴이 붉어지며 신음했다'), true);
   assert.equal(hasIndependentAffinityEvent('그녀는 얼굴이 붉어지며 신음했다'), false);
-  // 의미 규칙(CSA 수행·홍조만으로 affinity 금지)은 Extract prompt 지시문과 regex 헬퍼가 담당.
-  // 서버는 명시적 _delta 필드를 그대로 적용한다 (semantic gate 제거).
-  const { state, warnings } = applyNpcStatChanges({ affinity: 30 }, { affinity_delta: 3 }, { reason: '그녀는 얼굴이 붉어지며 신음했다' });
-  assert.equal(state.affinity, 33, 'explicit delta applies');
-  assert.equal(warnings.length, 0);
+  // 홍조·신음만 있는 Story — positive affinity_delta여도 exact quote가 없으면 폐기
+  const story = '그녀는 얼굴이 붉어지며 신음했다.';
+  const { state, warnings } = applyNpcStatChanges({ affinity: 30 }, { affinity_delta: 3 }, {
+    reason: '그녀는 얼굴이 붉어지며 신음했다', storyText: story, affinityQuote: ''
+  });
+  assert.equal(state.affinity, 30, 'exact evidence 없으면 affinity_delta 폐기');
+  assert.ok(warnings.includes('affinity_positive_delta_no_evidence_ignored'));
 });
 
-test('relationship: a genuinely independent emotional event (e.g. respecting the player\'s wishes) is allowed to raise affinity', () => {
-  const { state, warnings } = applyNpcStatChanges({ affinity: 30 }, { affinity_delta: 4 }, { reason: '그는 플레이어의 의사를 존중해 대화를 멈췄다' });
-  assert.equal(state.affinity, 34);
-  assert.equal(warnings.length, 0);
+test('relationship: a genuinely independent emotional event + exact quote → affinity_delta 적용 (지시 6·9-10)', () => {
+  const story = '금태양은 한리브가 불편해하자 대화를 멈추고 물을 건넸다.';
+  const { state, warnings } = applyNpcStatChanges({ affinity: 30 }, { affinity_delta: 4 }, {
+    reason: '그는 플레이어의 의사를 존중해 대화를 멈췄다',
+    storyText: story,
+    affinityQuote: '한리브가 불편해하자 대화를 멈추고 물을 건넸다'
+  });
+  assert.equal(state.affinity, 34, 'exact quote 존재하면 적용');
+  assert.ok(!warnings.includes('affinity_positive_delta_no_evidence_ignored'));
 });
 
 test('relationship: an out-of-range per-turn delta is zeroed entirely, never truncated to the cap', () => {
@@ -435,4 +442,60 @@ test('턴70-36: action label이 실제 enum과 일치 (render label 매핑)', ()
   assert.equal(labels.genital_touch, '성기 자극');
   assert.equal(labels.oral, '구강 행위');
   assert.equal(labels.penetration, '삽입');
+});
+
+// ── 지시 4·5·9: continuation 정책 + actor/target 검증 + Story 불변 ──
+
+test('지시4-회귀6: same-turn exact sexual event replay → dedupe (1건만 유지)', () => {
+  const event = { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '손가락 끝으로 발기 끝부분을 감싸듯 살짝 문지르며' };
+  const first = appendSexualEvents([], [event], { turnNumber: 91, storyText: '손가락 끝으로 발기 끝부분을 감싸듯 살짝 문지르며 움직였다.' });
+  const second = appendSexualEvents(first.ledger, [event], { turnNumber: 91, storyText: '손가락 끝으로 발기 끝부분을 감싸듯 살짝 문지르며 움직였다.' });
+  assert.equal(first.accepted.length, 1);
+  assert.equal(second.accepted.length, 0, '동일 턴 동일 evidence replay는 dedupe');
+  assert.equal(second.ledger.length, 1);
+});
+
+test('지시4-회귀7: 다음 턴 동일 action + 명확한 속도·강도 변화 → 새 이벤트 허용', () => {
+  const prev = { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '손가락 끝으로 발기 끝부분을 감싸듯 살짝 문지르며' };
+  const first = appendSexualEvents([], [prev], { turnNumber: 91, storyText: '손가락 끝으로 발기 끝부분을 감싸듯 살짝 문지르며 움직였다.' });
+  const next = { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '한리브가 손의 속도를 확연히 높이며 더 깊은 압력으로 움직였다' };
+  const second = appendSexualEvents(first.ledger, [next], { turnNumber: 92, storyText: '한리브가 손의 속도를 확연히 높이며 더 깊은 압력으로 움직였다.' });
+  assert.equal(second.accepted.length, 1, '같은 action_type이어도 새 진전(속도·강도 변화)이면 새 이벤트 허용');
+});
+
+test('지시4-회귀8: 다음 턴 동일 action + 새로운 NPC 반응 → 새 이벤트 허용', () => {
+  const prev = { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '손가락 끝으로 발기 끝부분을 감싸듯 살짝 문지르며' };
+  const first = appendSexualEvents([], [prev], { turnNumber: 91, storyText: '손가락 끝으로 발기 끝부분을 감싸듯 살짝 문지르며 움직였다.' });
+  const next = { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '한리브가 짧게 숨을 멈추고 손가락을 조심스럽게 감쌌다' };
+  const second = appendSexualEvents(first.ledger, [next], { turnNumber: 92, storyText: '한리브가 짧게 숨을 멈추고 손가락을 조심스럽게 감쌌다.' });
+  assert.equal(second.accepted.length, 1, '새로운 NPC 반응이면 새 이벤트 허용');
+});
+
+test('지시5-회귀9: unknown sexual event actor/target → 이벤트만 폐기', () => {
+  const unknownActor = { actor_id: 'ghost_npc', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '누군가 손을 뻗었다' };
+  const r1 = appendSexualEvents([], [unknownActor], { turnNumber: 93, storyText: '누군가 손을 뻗었다.', npcIds: ['heroine4', 'heroine2'] });
+  assert.equal(r1.accepted.length, 0, '미등록 actor 폐기');
+  assert.equal(r1.ledger.length, 0);
+
+  const unknownTarget = { actor_id: 'heroine4', target_id: 'ghost_npc', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '한리브가 손을 뻗었다' };
+  const r2 = appendSexualEvents([], [unknownTarget], { turnNumber: 93, storyText: '한리브가 손을 뻗었다.', npcIds: ['heroine4', 'heroine2'] });
+  assert.equal(r2.accepted.length, 0, '미등록 target 폐기');
+
+  const selfTarget = { actor_id: 'heroine4', target_id: 'heroine4', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '한리브가 스스로를 감쌌다' };
+  const r3 = appendSexualEvents([], [selfTarget], { turnNumber: 93, storyText: '한리브가 스스로를 감쌌다.', npcIds: ['heroine4', 'heroine2'] });
+  assert.equal(r3.accepted.length, 0, 'actor===target 폐기');
+
+  const ok = { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '한리브가 손을 뻗었다' };
+  const r4 = appendSexualEvents([], [ok], { turnNumber: 93, storyText: '한리브가 손을 뻗었다.', npcIds: ['heroine4', 'heroine2'] });
+  assert.equal(r4.accepted.length, 1, '정상 heroine4→player 허용');
+});
+
+test('지시9-회귀11: 이벤트 하나가 실패해도 다른 유효 상태 변화는 Commit 유지', () => {
+  // appendSexualEvents 폐기는 ledger만 영향 — state 변화와 분리되어 있음을 shape으로 확인
+  const bad = { actor_id: 'ghost_npc', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '누군가 손을 뻗었다' };
+  const good = { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '한리브가 손을 뻗었다' };
+  const r = appendSexualEvents([], [bad, good], { turnNumber: 93, storyText: '누군가 손을 뻗었다. 한리브가 손을 뻗었다.', npcIds: ['heroine4', 'heroine2'] });
+  assert.equal(r.accepted.length, 1, '유효한 이벤트만 통과');
+  assert.equal(r.ledger.length, 1);
+  assert.equal(r.accepted[0].actor_id, 'heroine4');
 });

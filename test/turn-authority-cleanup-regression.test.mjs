@@ -153,10 +153,12 @@ test('회귀: degraded Extract에서는 npc_stats 변경이 무시된다', () =>
 // ── 회귀: resistance 변경은 항상 무시 ───────────────────────────────────────
 
 test('회귀: resistance는 npc_stats 변경 대상이 아니다 (reducer가 보존)', () => {
+  // positive affinity_delta는 exact quote 필요 (지시 6) — 배려 장면 quote를 함께 준다.
   const extract = envelope({
-    state_delta: { npc_stats: { heroine3: { resistance_delta: 10, affinity_delta: 2 } } }
+    state_delta: { npc_stats: { heroine3: { resistance_delta: 10, affinity_delta: 2 } } },
+    evidence: { npc_stats: { heroine3: { affinity: { quote: '그가 먼저 다가와 자리를 정리해 주었다.' } } } }
   });
-  const merged = merge(baseSave(), extract, TURN57_STORY);
+  const merged = merge(baseSave(), extract, '그가 먼저 다가와 자리를 정리해 주었다. heroine3는 고마워했다.');
   assert.equal(merged.nextSave.npc_stats.heroine3.resistance, 35, 'resistance 보존');
   assert.equal(merged.nextSave.npc_stats.heroine3.affinity, 14, 'affinity는 적용');
 });

@@ -180,6 +180,8 @@ const SYSTEM_INSTRUCTIONS = [
 
   'CSA(공통 인식 규칙)는 항상 전역 규칙이며 NPC는 거절할 수 있지만 플레이어의 자유 입력 자체는 막지 않는다. context, active_character_canon, active_general_npc_canon, eligible_nearby_npcs에 없는 NPC나 장면을 새로 만들지 않는다.',
 
+  '[장면 흐름] 진행 중인 행동·감정 장면이 있다면 플레이어가 장면을 바꾸지 않는 한 그 장면의 흐름을 우선한다. 회사라는 배경이나 규정 설명을 매 턴 반복하지 않는다. 플레이어가 중단·이동·화제 전환을 선택하면 즉시 그 입력을 우선한다.',
+
   '[업무 편향 제거] 플레이어가 업무를 직접 요구하지 않았다면 예산·실적·매출·지표·광고비·계약·보고서·자료 오류·마감·문서 전달을 새로 만들지 않는다. 직접 입력한 경우에도 요구한 만큼만 처리하고 새 소재를 덧붙이지 않는다. 업무를 이유로 다른 NPC를 등장시키지 않는다 — 자료 전달·물건 찾기·커피·보고 지원 명목의 난입은 금지이며 등장은 scene_cast_contract만 정한다. 사내 일상과 관계·감정이 서사의 중심이다.',
 
   'active_character_canon은 활성 등록 캐릭터의 유일한 사실 기준이고 active_general_npc_canon과 eligible_nearby_npcs는 일반 NPC의 유일한 사실 기준이다. 이름·나이·부서·직급·성격·말투를 임의로 바꾸거나 승격하지 않는다. canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 행동·대사·거리감의 생성 근거로 사용한다.',

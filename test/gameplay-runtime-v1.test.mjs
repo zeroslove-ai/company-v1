@@ -478,7 +478,7 @@ test('guarded merge allows a state delta for a newly-present NPC validated this 
   // the quote must exist in Story and name the NPC.
   const result = applyGuardedStateDelta(save, {
     state_delta: { npc_stats: { 'npc-newcomer': { affinity_delta: 1 } } }, outcome: 'success',
-    evidence: { affinity_change: { quote: '새내기가 밝게 인사하며 자리에 앉았다.', changed: ['npc_stats.npc-newcomer.affinity'] } },
+    evidence: { npc_stats: { 'npc-newcomer': { affinity: { quote: '새내기가 밝게 인사하며 자리에 앉았다.' } } } },
     choices: [], mind_monitor: {}, dialogue_lines: [], npcs_present: ['npc-newcomer']
   }, options);
   assert.equal(result.nextSave.npc_stats['npc-newcomer'].affinity, 1);
