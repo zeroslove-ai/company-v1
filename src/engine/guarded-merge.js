@@ -477,16 +477,33 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
   // 추가 인물만 보수적으로 포함한다 (Extract는 추가할 수는 있어도 제거할 수 없다).
   // player/player_id는 비플레이어 NPC 수에서 제외하고 중복은 Set으로 제거한다.
   // focal_character_id·last_npcs_present·기본 위치 인물은 단일 NPC 판정에 쓰지 않는다.
-  const castNpcIds = Array.isArray(options?.parsedStory?.scene_cast_contract?.present_npc_ids)
-    ? options.parsedStory.scene_cast_contract.present_npc_ids
-    : null;
-  const savedNpcIds = Array.isArray(preSave.scene_state?.participants)
-    ? preSave.scene_state.participants
-    : [];
-  const sceneNpcIds = [...new Set([
-    ...(castNpcIds ?? savedNpcIds),
-    ...(Array.isArray(envelope.npcs_present) ? envelope.npcs_present : [])
-  ])].filter(id => typeof id === 'string' && id && !isPlayerRefId(id));
+  // 단일 NPC 판정용 물리적 인물 정본 (PR #30 보정):
+  // SceneCastContract가 있으면 present_npc_ids + entering_npc_ids union만 사용한다.
+  // - remote_npc_ids: 물리적 현장 인물이 아니므로 제외
+  // - context_npc_ids: 참고 인물이므로 제외
+  // - destination_npc_ids: present_npc_ids에 승격된 경우에만 포함 (별도 추가 금지)
+  // - envelope.npcs_present: normalizeGameplayExtractEnvelope는 등록 NPC ID 여부만
+  //   검증하며 SceneCastContract와의 일치를 검증하지 않으므로 union하지 않는다.
+  //   Extract는 단일 NPC 예외의 actor 수를 줄이거나 0→1명으로 만들 수 없다.
+  // scene_cast_contract가 없는 legacy/test 경로에서만 preSave.scene_state.participants
+  // 를 사용한다 (envelope.npcs_present 추가 없음 — 저장된 participant가 없으면
+  // 단일 NPC 예외는 활성화하지 않는다).
+  const cast = options?.parsedStory?.scene_cast_contract;
+  const hasCastContract = cast && typeof cast === 'object';
+
+  const authoritativeNpcIds = hasCastContract
+    ? [
+        ...(Array.isArray(cast.present_npc_ids) ? cast.present_npc_ids : []),
+        ...(Array.isArray(cast.entering_npc_ids) ? cast.entering_npc_ids : [])
+      ]
+    : (
+        Array.isArray(preSave.scene_state?.participants)
+          ? preSave.scene_state.participants
+          : []
+      );
+
+  const sceneNpcIds = [...new Set(authoritativeNpcIds)]
+    .filter(id => typeof id === 'string' && id && !isPlayerRefId(id));
 
   // 등록 NPC 이름 목록 — 단일 NPC 예외에서 다른 NPC 이름과의 명시적 충돌을 차단한다.
   const masterRoster = plainObject(options?.master) ? options.master : {};
