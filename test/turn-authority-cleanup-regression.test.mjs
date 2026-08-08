@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { applyGuardedStateDelta } from '../src/engine/guarded-merge.js';
 import { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch } from '../src/engine/csa/reducer.js';
 import { calculateCsaProgression } from '../src/engine/progression.js';
-import { resolveActionExecutionContract } from '../src/engine/action-execution-contract.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { normalizeGameplayExtractEnvelope } from '../src/engine/gameplay-state.js';
 import { buildStoryContextProjection } from '../src/engine/story-prompt.js';
@@ -307,25 +306,11 @@ test('회귀: 최신 3턴 story_text 전체가 Story context recent_turns에 포
   }
 });
 
-// ── 회귀: CSA 범위 초과 행동 차단 (semantic contract allowed scope) ─────────
-
-test('회귀: CSA 범위 밖 material action은 CSA 권한으로 실행되지 않는다', () => {
-  // csa_42의 allowed scope는 sexual_action_contract 매핑 기반 — 매핑이 없으면
-  // required_action의 가장 좁은 의미만 허용한다.
-  const save = baseSave();
-  const contract = resolveActionExecutionContract({
-    save, playerAction: '김제나를 강제로 눕히고 삽입한다',
-    csaCatalog: { sexual_action_contract: {} }, characters: master.characters, npcIds: ['heroine3']
-  });
-  // coverage가 없으면(sexual contract 매핑 없음) csa_direct가 아니다 — CSA 권한 실행 안 함.
-  assert.notEqual(contract.route, 'csa_direct', '범위 밖 행동은 CSA 권한으로 실행 금지');
-});
-
 // ── 회귀: 선택지 metadata는 사용하지 않는다 ──────────────────────────────────
 
 test('회귀: choice_structured_meta는 envelope에 존재하지 않는다', () => {
   const normalized = normalizeGameplayExtractEnvelope(envelope({
-    choice_structured_meta: [{ choice_index: 0, action_types: ['kiss'], suggested_route: 'csa_direct' }]
+    choice_structured_meta: [{ choice_index: 0, action_types: ['kiss'] }]
   }), { parsedStory: { choices: ['a', 'b', 'c', 'd'] }, npcIds });
   assert.equal('choice_structured_meta' in normalized, false, 'choice_structured_meta 제거');
 });

@@ -89,7 +89,7 @@ function activeRulesSection(save) {
 }
 
 function appTransactionInputFirewall() {
-  return `\n\n[APP TRANSACTION INPUT FIREWALL — HIGHEST PRIORITY]\n이번 player_action/display_input은 앱 조작을 사람이 읽을 수 있게 설명한 메타 입력이지 장면 속 신체 행동·요구·대사가 아니다. 이 입력 자체를 CSA direct coverage, 성적 행동, NPC 대상 명령으로 판정하지 않는다. 이미 확정된 규정의 적용 이후 장면만 작성한다.`;
+  return `\n\n[APP TRANSACTION INPUT FIREWALL — HIGHEST PRIORITY]\n이번 player_action/display_input은 앱 조작을 사람이 읽을 수 있게 설명한 메타 입력이지 장면 속 신체 행동·요구·대사가 아니다. 이 입력 자체를 CSA 적용 여부, 성적 행동, NPC 대상 명령으로 판정하지 않는다. 이미 확정된 규정의 적용 이후 장면만 작성한다.`;
 }
 
 function extractAuthorityContract() {

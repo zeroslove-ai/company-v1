@@ -70,10 +70,9 @@ const SPEECH_ACT = /(말한다|말했다|묻는다|물었다|질문한다|질문
 /**
  * 결정적 intent taxonomy (안정화 수정 A 3.3).
  * 생성된 플레이어 대사 본문에만 적용한다 — 사용자 원문이나 서술에는 적용하지 않는다.
- * material action은 canonical classifyMaterialActions를 재사용한다.
  */
 export const HIGH_IMPACT_INTENTS = [
-  'instruction', 'promise', 'agreement', 'confession', 'sexual_proposal',
+  'instruction', 'promise', 'agreement', 'confession',
   'threat', 'movement_decision', 'investigation_decision', 'relationship_change',
   'authority_assertion'
 ];
@@ -82,7 +81,6 @@ const INTENT_PATTERNS = {
   // 명령형 어미 + 직접 명령어 (단독 '와'/'가'는 오탐 위험이 커 제외, 문맥 명령형 어미로만)
   instruction: /(해라|하세요|해야 해|당장|따라\b|벗어|제출해|다시 작성해|내려와|앉아\b|해줘|해 주세요|시키지 마|하지 마|그만둬|꺼져|가져와|보여줘|따라와|움직여|불러와|보내드려|작성하세요)/u,
   promise: /(약속할게|약속해|내가 책임질게|책임질게요|반드시 해줄게|앞으로 계속|다시는 안|꼭 해줄게|지켜줄게)/u,
-  sexual_proposal: null, // classifyMaterialActions로 판정 (canonical 재사용)
   threat: /(가만두지 않겠다|불이익|해고|인사 조치|후회하게|말 안 들으면|죽을 줄 알아|책임져)/u,
   movement_decision: /(찾아가자|이동하자|바로 가자|따라가자|지금 가자|향하자|찾으러 가자)/u,
   investigation_decision: /(조사하겠다|뒤를 캐자|직접 확인하겠다|캐보자|파보자|알아보자|추적하자)/u,
@@ -104,31 +102,9 @@ export function classifyDialogueIntents(text) {
   for (const [name, pattern] of Object.entries(INTENT_PATTERNS)) {
     if (pattern && pattern.test(source)) intents.add(name);
   }
-  // sexual_proposal — canonical material action classifier 재사용
-  if (hasMaterialSexualIntent(source)) intents.add('sexual_proposal');
   // question/answer 없고 다른 intent도 없으면 reaction
   if (intents.size === 0) intents.add('reaction');
   return [...intents];
-}
-
-/** canonical material action classifier를 재사용해 성적 제안 여부를 판정한다. */
-function hasMaterialSexualIntent(text) {
-  try {
-    // 동적 import 대신 정적 참조를 위해 lazy require 사용 (모듈 경로는 engine/index)
-    const { classifyMaterialActions } = globalThis.__companyV2MaterialClassifier ?? {};
-    if (typeof classifyMaterialActions === 'function') {
-      return classifyMaterialActions(text).length > 0;
-    }
-  } catch {
-    // fallback 아래
-  }
-  // fallback — 명시적 성적 제안 표현 (taxonomy 중복 최소화, classifier가 로드 안 될 때만)
-  return /(자자|호텔로|벗어|키스하자|만져도 돼|몸을 보여줘|같이 씻자|성관계|섹스)/u.test(text);
-}
-
-// lazy-wired classifier — engine/index.js가 초기화 시 주입한다
-export function wireMaterialClassifier(classifier) {
-  globalThis.__companyV2MaterialClassifier = { classifyMaterialActions: classifier };
 }
 
 /** 등록된 전체 이름 목록 (별명·직급·대명사 제외 — 전체 이름만). */
@@ -155,12 +131,12 @@ export function registeredTargetNames(master) {
  * - explicit: 사용자가 실제 대사를 직접 인용해 입력함
  * - paraphrase: 말하는 행동은 입력했지만 정확한 문장은 쓰지 않음
  * - minor_reaction: 대사 없이 행동만 입력함 (짧은 반응 한 줄만 허용)
- * 허용 범위(allowed_intents/allowed_target_ids/allowed_material_actions)를 결정적으로 채운다.
+ * 허용 범위(allowed_intents/allowed_target_ids)를 결정적으로 채운다.
  * 수정 6 — allowed_target_names/registered_target_names를 포함해 NPC 대상 범위를 실제 검증한다.
  */
 export function resolvePlayerDialoguePolicy(playerAction, master = null) {
   const source = typeof playerAction === 'string' ? playerAction.trim() : '';
-  const base = { max_lines: 1, max_characters: 30, allowed_material_actions: [] };
+  const base = { max_lines: 1, max_characters: 30 };
   const targetIds = resolveUserMentionedNpcIds(master, source);
   const allRegistered = registeredTargetNames(master);
   const targetNames = allRegistered.filter(e => targetIds.includes(e.id)).map(e => e.name);
@@ -179,7 +155,6 @@ export function resolvePlayerDialoguePolicy(playerAction, master = null) {
       allowed_target_ids: targetIds,
       allowed_target_names: targetNames,
       registered_target_names: allRegistered,
-      allowed_material_actions: materialActionsOf(quotedText),
       high_impact_intents_allowed: quotedIntents.filter(i => HIGH_IMPACT_INTENTS.includes(i))
     };
   }
@@ -201,7 +176,6 @@ export function resolvePlayerDialoguePolicy(playerAction, master = null) {
       allowed_target_ids: targetIds,
       allowed_target_names: targetNames,
       registered_target_names: allRegistered,
-      allowed_material_actions: materialActionsOf(intentText),
       high_impact_intents_allowed: []
     };
   }
@@ -215,17 +189,6 @@ export function resolvePlayerDialoguePolicy(playerAction, master = null) {
     explicit_source_text: null,
     high_impact_intents_allowed: []
   };
-}
-
-/** 텍스트의 canonical material action 분류 (있으면 재사용, 없으면 빈 배열). */
-function materialActionsOf(text) {
-  try {
-    const { classifyMaterialActions } = globalThis.__companyV2MaterialClassifier ?? {};
-    if (typeof classifyMaterialActions === 'function') return classifyMaterialActions(text);
-  } catch {
-    // fallthrough
-  }
-  return [];
 }
 
 /**
@@ -253,11 +216,7 @@ export function validatePlayerDialogueAgainstPolicy(text, policy) {
     // 2) 입력에 없는 새 NPC 이름 추가 → 차단 (수정 6: 실제 전체 이름 매칭)
     const unknownTarget = findUnknownNpcName(body, policy);
     if (unknownTarget) return { ok: false, reason: `new_npc_target:${unknownTarget}` };
-    // 3) 입력에 없는 material action 추가 → 차단
-    const allowedMaterial = new Set(policy.allowed_material_actions ?? []);
-    const newMaterial = materialActionsOf(body).filter(a => !allowedMaterial.has(a));
-    if (newMaterial.length) return { ok: false, reason: `new_material:${newMaterial.join(',')}` };
-    // 4) 과도한 길이 확장 → 차단 (원문의 3배 초과)
+    // 3) 과도한 길이 확장 → 차단 (원문의 3배 초과)
     if (source && body.length > source.length * 3 + 40) return { ok: false, reason: 'over_expansion' };
     return { ok: true };
   }
@@ -269,9 +228,6 @@ export function validatePlayerDialogueAgainstPolicy(text, policy) {
     // 수정 6 — 입력에 없는 NPC 이름 차단
     const unknownTarget = findUnknownNpcName(body, policy);
     if (unknownTarget) return { ok: false, reason: `new_npc_target:${unknownTarget}` };
-    const allowedMaterial = new Set(policy.allowed_material_actions ?? []);
-    const newMaterial = materialActionsOf(body).filter(a => !allowedMaterial.has(a));
-    if (newMaterial.length) return { ok: false, reason: `new_material:${newMaterial.join(',')}` };
     return { ok: true };
   }
 
@@ -524,7 +480,6 @@ const REMOTE_ACTION = /(전화|통화|메신저|메시지|문자|사내망|카�
  *   - 저장된 pending_scene_entrances 대상
  * 이동(찾으러 감)·전화는 각각 destination/remote로 분리된다.
  * structuredAction(app_transaction)의 target은 장면 진입 의미가 없으므로 entering으로 쓰지 않는다.
- * pending_boundary_followup은 관계·경계 후속 서사 근거일 뿐 물리적 등장 근거가 아니다 (context 전용).
  */
 function resolveEnteringNpcIds({ save, master, playerAction, registeredIds, presentIds, structuredAction }) {
   const entering = [];
@@ -545,8 +500,7 @@ function resolveEnteringNpcIds({ save, master, playerAction, registeredIds, pres
     push(identity(isPlainObject(item) ? (item.character_id ?? item.npc_id) : item));
   }
 
-  // (제거됨) pending_boundary_followup — context 전용 (수정 F 8.2)
-  // (제거됨) structuredAction target 자동 entering — app_transaction에는 장면 진입 의미 없음 (수정 F 8.3)
+  // structuredAction target 자동 entering — app_transaction에는 장면 진입 의미 없음
 
   return entering;
 }
@@ -611,7 +565,6 @@ export function buildSceneCastContract({
   master = {},
   playerAction = '',
   structuredAction = null,
-  actionContract = null,
   mapLocations = []
 } = {}) {
   const registeredIds = registeredNpcIdSet(master);
@@ -696,9 +649,6 @@ export function buildSceneCastContract({
   for (const id of enteringNpcIds) pushContext(id);
   for (const id of destinationNpcIds) pushContext(id);
   for (const id of remoteNpcIds) pushContext(id);
-  // 수정 F 8.2 — pending_boundary_followup 대상은 context 참고용으로만
-  const boundaryPending = isPlainObject(save?.pending_boundary_followup) ? save.pending_boundary_followup : null;
-  if (boundaryPending) pushContext(identity(boundaryPending.target_character_id));
   pushContext(identity(save?.focal_character_id));
   pushContext(identity(save?.last_speaker_id));
   for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) pushContext(id);

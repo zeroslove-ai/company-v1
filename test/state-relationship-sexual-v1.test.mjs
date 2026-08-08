@@ -213,9 +213,9 @@ test('sexual ledger: sexualEventId is stable for the same normalized evidence te
 
 // ---------- Sexual event -> relationship-stage boundary ----------
 
-test('intimacy stage: a csa_direct-routed completed event never advances relationship stage on its own', () => {
+test('intimacy stage: a non-voluntary completed event never advances relationship stage on its own', () => {
   const event = { completed: true, action_type: 'kiss' };
-  const next = resolveIntimacyStageAdvancement({ event, route: 'csa_direct', currentStage: 'romantic_interest' });
+  const next = resolveIntimacyStageAdvancement({ event, route: null, currentStage: 'romantic_interest' });
   assert.equal(next, null);
 });
 
