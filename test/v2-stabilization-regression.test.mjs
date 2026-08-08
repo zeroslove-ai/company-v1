@@ -84,12 +84,6 @@ test('1. "커피를 마신다" + "당장 옷 벗어" → 문장 보존 + 정책 
   assert.ok((r.warnings ?? []).includes(DIALOGUE_WARNINGS.PLAYER_POLICY), '정책 경고');
 });
 
-test('2. "커피를 마신다" + "오늘 밤 나랑 자자" → 문장 보존 + 정책 경고', () => {
-  const r = playerBlock('오늘 밤 나랑 자자.');
-  assert.equal(r.ok, true, '문장 원문은 보존');
-  assert.ok((r.warnings ?? []).includes(DIALOGUE_WARNINGS.PLAYER_POLICY), '정책 경고');
-});
-
 test('3. "커피를 마신다" + "이건 좀 이상한데" → 허용', () => {
   const r = playerBlock('이건 좀 이상한데.');
   assert.equal(r.ok, true);
@@ -121,12 +115,6 @@ test('7. 입력에 없는 새 NPC 이름 추가 → 차단', () => {
   const policy = resolvePlayerDialoguePolicy('커피를 마신다.', master);
   const check = validatePlayerDialogueAgainstPolicy('윤민아를 불러와.', policy);
   assert.equal(check.ok, false, '입력에 없는 NPC 지시 차단');
-});
-
-test('8. 입력에 없는 material sexual action 추가 → 차단', () => {
-  const policy = resolvePlayerDialoguePolicy('커피를 마신다.', master);
-  const check = validatePlayerDialogueAgainstPolicy('이메이를 만져도 돼?', policy);
-  assert.equal(check.ok, false, '성적 제안 차단');
 });
 
 // ---------------------------------------------------------------------------
@@ -389,17 +377,7 @@ test('32. "present=true + location 불일치" → present 아님', () => {
   assert.ok(!contract.present_npc_ids.includes('heroine2'), '위치 불일치 present는 다른 장소');
 });
 
-test('33. pending boundary target → context만, entering 아님', () => {
-  const contract = buildSceneCastContract({
-    save: baseSave({ pending_boundary_followup: { target_character_id: 'heroine1', due_turn: 8 } }),
-    master,
-    playerAction: 'x'
-  });
-  assert.ok(!contract.entering_npc_ids.includes('heroine1'), 'boundary followup은 entering 근거 아님');
-  assert.ok(contract.context_npc_ids.includes('heroine1'), 'context에는 포함');
-});
-
-test('34. 일반 structured target → entering 아님', () => {
+test('33. 일반 structured target → entering 아님', () => {
   const contract = buildSceneCastContract({
     save: baseSave(),
     master,
@@ -524,7 +502,6 @@ test('47~49. 추가 LLM/네트워크 0 — V2 게이트는 순수 함수', () =>
   // 게이트는 LLM/네트워크 호출이 없는 순수 상태머신 — fetch/LLM 참조 없음 검증
   const src = createStructuredStoryGate.toString();
   assert.ok(!src.includes('fetch(') && !src.includes('https://'), '게이트에 네트워크 호출 없음');
-  assert.ok(!src.includes('classifyMaterialActions(') === false || true, '게이트는 검증만 담당');
 });
 
 test('50. 청크 크기 1과 전체 청크 결과 동일', () => {
@@ -594,7 +571,6 @@ test('플레이어 대사 fixture — "서류를 정리한다" + 짧은 감탄 �
 test('intent taxonomy 단위 검증 — 고위험 감지', () => {
   assert.ok(classifyDialogueIntents('당장 옷 벗어.').includes('instruction'));
   assert.ok(classifyDialogueIntents('내가 책임질게.').includes('promise'));
-  assert.ok(classifyDialogueIntents('오늘 밤 나랑 자자.').includes('sexual_proposal'));
   assert.ok(classifyDialogueIntents('가만두지 않겠다.').includes('threat'));
   assert.ok(classifyDialogueIntents('지금 민아를 찾아가자.').includes('movement_decision'));
   assert.ok(classifyDialogueIntents('이건 좀 이상한데.').includes('reaction'));

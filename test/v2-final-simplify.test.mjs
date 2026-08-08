@@ -279,12 +279,11 @@ test('20. present:false + participants 포함 NPC 제외', () => {
   assert.equal(present, false);
 });
 
-test('21. action contract target 단독 present 금지', () => {
+test('21. action target 단독 present 금지', () => {
   const contract = buildSceneCastContract({
     save: baseSave({ scene_state: { ...baseSave().scene_state, participants: ['player-1'] }, last_npcs_present: [], npc_scene_state: {} }),
     master,
-    playerAction: 'x',
-    actionContract: { target_id: 'heroine2' }
+    playerAction: 'x'
   });
   assert.ok(!contract.present_npc_ids.includes('heroine2'), 'action target 단독 present 금지');
   assert.equal(canSpeak(contract, 'heroine2'), false);
@@ -317,28 +316,6 @@ test('23. whole chunk와 1-char chunk의 stream_segments deepEqual', () => {
   const endChars = chars.end();
   assert.deepEqual(endChars.stream_segments, endWhole.stream_segments, 'stream_segments 동일');
   assert.deepEqual(endChars.segments, endWhole.segments, 'semantic segments 동일');
-});
-
-// ---------------------------------------------------------------------------
-// 24~25. live/replay parity (수정 10)
-// ---------------------------------------------------------------------------
-
-test('24~25. live/replay action_route/csa_covered parity', () => {
-  // 저장된 parsed_blocks가 route/csa_covered를 담고, replay complete가 그대로 제공
-  const savedBlocks = {
-    structured_story_version: STRUCTURED_STORY_VERSION,
-    action_route: 'ordinary_direct_blocked',
-    csa_covered: false,
-    warnings: [],
-    blocks: [],
-    stream_segments: []
-  };
-  assert.equal(savedBlocks.action_route, 'ordinary_direct_blocked');
-  assert.equal(savedBlocks.csa_covered, false);
-  // replay는 저장값을 그대로 전달 (turn-routes가 replayBlocks.action_route 사용)
-  const replayComplete = { action_route: savedBlocks.action_route, csa_covered: savedBlocks.csa_covered };
-  assert.equal(replayComplete.action_route, 'ordinary_direct_blocked');
-  assert.equal(replayComplete.csa_covered, false);
 });
 
 // ---------------------------------------------------------------------------
