@@ -136,10 +136,9 @@ test('Story prompt treats context.current_time day/minute_of_day as hard facts',
   const system = messages[0].content;
   const payload = JSON.parse(messages[1].content);
   assert.deepEqual(payload.context.current_time, { day: 2, minute_of_day: 1320 });
-  assert.match(system, /context\.current_time\(게임 시각, minute_of_day\).*day와 minute_of_day는 확정된 hard fact/);
-  assert.match(system, /모순되면 시간 분위기를 생략한다/);
-  assert.match(system, /22:00 이후에는 점심시간·오후 햇살·한낮·퇴근 전을 쓰지 않는다/);
-  assert.match(system, /elapsed 근거 없이 한 시간 넘게·몇 시간째·아침부터·하루 종일을 만들지 않는다/);
+  assert.match(system, /context\.current_time\.day와 context\.current_time\.minute_of_day는 확정 사실이다/);
+  assert.match(system, /시간·채광·식사 묘사가 이 값과 모순되면 생략하고/);
+  assert.match(system, /실제 elapsed 근거 없는 장시간 경과를 만들지 않는다/);
   assert.match(system, /during_work\/while_on_duty/);
   assert.match(system, /unspecified method/);
 });
