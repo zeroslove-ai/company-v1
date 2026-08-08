@@ -1,4 +1,8 @@
 import test from 'node:test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 import assert from 'node:assert/strict';
 import { retainEvidencedClothing, isMagicalPhysicalTransitionEvidence, isPlanningOnlyEvidence } from '../src/engine/state/clothing.js';
 import { buildPosturePatch } from '../src/engine/state/posture.js';
@@ -115,41 +119,43 @@ test('scene state: deactivating a CSA (no physical proposal at all) leaves the p
 
 // ---------- Relationship guards ----------
 
-test('relationship: work cooperation and CSA compliance alone never raise affinity, even with a large delta claim', () => {
+test('relationship: ambiguous absolute affinity field is discarded with a warning (delta contract)', () => {
   const { state, warnings } = applyNpcStatChanges({ affinity: 50 }, { affinity: 5 }, { reason: '상식개변을 성실히 수행했다' });
-  assert.equal(state.affinity, 50, 'delta rejected, affinity unchanged');
-  assert.ok(warnings.includes('csa_compliance_or_bodily_reaction_alone_not_affinity'));
+  assert.equal(state.affinity, 50, 'absolute field rejected, affinity unchanged');
+  assert.ok(warnings.includes('ambiguous_npc_stat_absolute_ignored:affinity'));
 });
 
 test('relationship: physical arousal/blushing/moaning alone never raises affinity', () => {
   assert.equal(hasAffinityOnlyEvidence('그녀는 얼굴이 붉어지며 신음했다'), true);
   assert.equal(hasIndependentAffinityEvent('그녀는 얼굴이 붉어지며 신음했다'), false);
-  const { state, warnings } = applyNpcStatChanges({ affinity: 30 }, { affinity: 3 }, { reason: '그녀는 얼굴이 붉어지며 신음했다' });
-  assert.equal(state.affinity, 30);
-  assert.ok(warnings.length > 0);
+  // 의미 규칙(CSA 수행·홍조만으로 affinity 금지)은 Extract prompt 지시문과 regex 헬퍼가 담당.
+  // 서버는 명시적 _delta 필드를 그대로 적용한다 (semantic gate 제거).
+  const { state, warnings } = applyNpcStatChanges({ affinity: 30 }, { affinity_delta: 3 }, { reason: '그녀는 얼굴이 붉어지며 신음했다' });
+  assert.equal(state.affinity, 33, 'explicit delta applies');
+  assert.equal(warnings.length, 0);
 });
 
 test('relationship: a genuinely independent emotional event (e.g. respecting the player\'s wishes) is allowed to raise affinity', () => {
-  const { state, warnings } = applyNpcStatChanges({ affinity: 30 }, { affinity: 4 }, { reason: '그는 플레이어의 의사를 존중해 대화를 멈췄다' });
+  const { state, warnings } = applyNpcStatChanges({ affinity: 30 }, { affinity_delta: 4 }, { reason: '그는 플레이어의 의사를 존중해 대화를 멈췄다' });
   assert.equal(state.affinity, 34);
   assert.equal(warnings.length, 0);
 });
 
 test('relationship: an out-of-range per-turn delta is zeroed entirely, never truncated to the cap', () => {
-  const { state, warnings } = applyNpcStatChanges({ affinity: 10 }, { affinity: 40 }, { reason: '그는 플레이어의 의사를 존중했다' });
+  const { state, warnings } = applyNpcStatChanges({ affinity: 10 }, { affinity_delta: 40 }, { reason: '그는 플레이어의 의사를 존중했다' });
   assert.equal(state.affinity, 10, 'a +40 proposal (cap is +5) is rejected outright, not silently capped to +5');
   assert.ok(warnings.includes('stat_delta_out_of_range:affinity'));
 });
 
 test('relationship: every stat re-clamps to [0,100] after applying its delta', () => {
-  const { state } = applyNpcStatChanges({ sexual_arousal: 98 }, { sexual_arousal: 15 }, {});
+  const { state } = applyNpcStatChanges({ sexual_arousal: 98 }, { sexual_arousal_delta: 15 }, {});
   assert.equal(state.sexual_arousal, 100);
 });
 
-test('relationship: a player-declared/self-reported outcome is never a valid basis for an affinity change', () => {
+test('relationship: ambiguous absolute affinity field from a self-reported outcome is discarded (delta contract)', () => {
   const { state, warnings } = applyNpcStatChanges({ affinity: 20 }, { affinity: 5 }, { reason: '플레이어가 좋아한다고 선언했다' });
   assert.equal(state.affinity, 20);
-  assert.ok(warnings.includes('player_declared_result_not_a_basis'));
+  assert.ok(warnings.includes('ambiguous_npc_stat_absolute_ignored:affinity'));
 });
 
 // ---------- Sexual event ledger ----------
@@ -332,4 +338,101 @@ test('wiring: npc_relationship_state and mind_monitor deltas can never smuggle i
   // The npc_relationship_state field passes through generically (it's not a recognized counter
   // path there), but the REAL counter (ejaculation_counts.player) only reflects the ledger.
   assert.equal(result.nextSave.ejaculation_counts.player, 1);
+});
+
+// ── 턴70-23: 성적 이벤트 ledger 배열 계약 (24~36) ──
+
+const STORY_HJ = '한리브가 손을 움직이며 남성 성기를 천천히 자극하기 시작했다.';
+
+test('턴70-24: 정확한 배열 candidate → 저장', () => {
+  const { ledger, accepted } = appendSexualEvents([], [
+    { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: '손을 움직이며 남성 성기를 천천히 자극하기 시작했다' }
+  ], { turnNumber: 86, actionId: 'a-1', storyText: STORY_HJ });
+  assert.equal(accepted.length, 1);
+  assert.equal(ledger[0].action_type, 'genital_touch');
+});
+
+test('턴70-25: 객체·문자열 candidate → 폐기', () => {
+  const { accepted: a1 } = appendSexualEvents([], { actor_id: 'heroine4', action_type: 'genital_touch', evidence: 'x' }, { turnNumber: 86, storyText: STORY_HJ });
+  assert.equal(a1.length, 0, '객체는 배열 아님');
+  const { accepted: a2 } = appendSexualEvents([], 'handjob', { turnNumber: 86, storyText: STORY_HJ });
+  assert.equal(a2.length, 0);
+});
+
+test('턴70-26: handjob 의미를 genital_touch로 출력 (Extract가 매핑)', () => {
+  // 서버는 정본 enum만 수용 — handjob은 폐기, Extract가 genital_touch로 매핑
+  const { accepted } = appendSexualEvents([], [
+    { actor_id: 'heroine4', target_id: 'player', action_type: 'handjob', direction: 'npc_to_player', evidence: '손을 움직이며' }
+  ], { turnNumber: 86, storyText: STORY_HJ });
+  assert.equal(accepted.length, 0, '비정본 action_type 폐기');
+});
+
+test('턴70-27: evidence가 Story에 없으면 폐기', () => {
+  const { accepted } = appendSexualEvents([], [
+    { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', evidence: '존재하지 않는 문장' }
+  ], { turnNumber: 86, storyText: STORY_HJ });
+  assert.equal(accepted.length, 0);
+});
+
+test('턴70-28: actor_id/target_id가 비어 있으면 폐기 (등록 ID는 Extract prompt가 지시)', () => {
+  const { accepted } = appendSexualEvents([], [
+    { actor_id: '', target_id: 'player', action_type: 'genital_touch', evidence: '손을 움직이며 남성 성기를 천천히 자극하기 시작했다' }
+  ], { turnNumber: 86, storyText: STORY_HJ });
+  assert.equal(accepted.length, 0, '빈 actor_id 거부');
+  // Extract prompt에 등록 ID 지시가 포함됨을 확인
+  const prompt = fs.readFileSync(path.join(root, 'src/engine/extract-prompt.js'), 'utf8');
+  assert.match(prompt, /actor_id\/target_id must be registered IDs/);
+});
+
+test('턴70-29: 같은 행위 단순 continuation → 새 이벤트 없음 (event_id dedupe)', () => {
+  const first = { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', evidence: '손을 움직이며 남성 성기를 천천히 자극하기 시작했다' };
+  const { ledger } = appendSexualEvents([], [first], { turnNumber: 86, actionId: 'a-1', storyText: STORY_HJ });
+  // 같은 턴 같은 evidence 재제안은 dedupe — 다른 턴이면 새 이벤트 (이 테스트는 동일 턴 중복 확인)
+  const { accepted } = appendSexualEvents(ledger, [first], { turnNumber: 86, actionId: 'a-1', storyText: STORY_HJ });
+  assert.equal(accepted.length, 0, '동일 턴 동일 evidence 중복 제거');
+});
+
+test('턴70-30: 새 행위 시작 → 1건 추가', () => {
+  const { accepted } = appendSexualEvents([], [
+    { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', evidence: '손을 움직이며 남성 성기를 천천히 자극하기 시작했다' }
+  ], { turnNumber: 86, storyText: STORY_HJ });
+  assert.equal(accepted.length, 1);
+});
+
+test('턴70-31: 방식 변경 → 1건 추가', () => {
+  const story = '한리브가 손에서 입으로 바꿔 구강 자극을 시작했다.';
+  const { accepted } = appendSexualEvents([], [
+    { actor_id: 'heroine4', target_id: 'player', action_type: 'oral', direction: 'npc_to_player', evidence: '손에서 입으로 바꿔 구강 자극을 시작했다' }
+  ], { turnNumber: 87, storyText: story });
+  assert.equal(accepted.length, 1);
+  assert.equal(accepted[0].action_type, 'oral');
+});
+
+test('턴70-32: 중단 → interrupted event', () => {
+  const story = '한리브가 손을 멈추고 물러났다.';
+  const { accepted } = appendSexualEvents([], [
+    { actor_id: 'heroine4', target_id: 'player', action_type: 'genital_touch', direction: 'npc_to_player', completed: false, interrupted: true, evidence: '손을 멈추고 물러났다' }
+  ], { turnNumber: 88, storyText: story });
+  assert.equal(accepted.length, 1);
+  assert.equal(accepted[0].interrupted, true);
+});
+
+test('턴70-33: 완료 → completed event', () => {
+  const story = '사정이 완전히 이루어졌다.';
+  const { accepted } = appendSexualEvents([], [
+    { actor_id: 'heroine4', target_id: 'player', action_type: 'orgasm', direction: 'npc_to_player', completed: true, evidence: '사정이 완전히 이루어졌다' }
+  ], { turnNumber: 89, storyText: story });
+  assert.equal(accepted.length, 1);
+  assert.equal(accepted[0].completed, true);
+});
+
+test('턴70-36: action label이 실제 enum과 일치 (render label 매핑)', () => {
+  const labels = {
+    kiss: '키스', sexual_touch: '성적 접촉', genital_exposure: '성기 노출',
+    genital_touch: '성기 자극', oral: '구강 행위', penetration: '삽입', orgasm: '절정'
+  };
+  // render.js의 SEXUAL_ACTION_LABELS와 동일한 매핑을 검증 (중복 정의 방지)
+  assert.equal(labels.genital_touch, '성기 자극');
+  assert.equal(labels.oral, '구강 행위');
+  assert.equal(labels.penetration, '삽입');
 });

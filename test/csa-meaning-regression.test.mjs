@@ -1,4 +1,8 @@
 import test from 'node:test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 import assert from 'node:assert/strict';
 
 import {
@@ -7,7 +11,8 @@ import {
   buildCsaDirectCoverageSection as resolveCsaModule_placeholder
 } from '../src/engine/csa/direct-coverage.js';
 import { resolveActionExecutionContract as resolveAecModule } from '../src/engine/action-execution-contract.js';
-const resolveCsaModule = { buildCsaDirectCoverageSection: resolveCsaModule_placeholder };
+import { buildActiveIntimateFocusSection, buildCsaAcceptanceScopeSection } from '../src/engine/csa/prompt-sections.js';
+const resolveCsaModule = { buildCsaDirectCoverageSection: resolveCsaModule_placeholder, buildActiveIntimateFocusSection, buildCsaAcceptanceScopeSection };
 
 function baseSave() {
   return {
@@ -275,4 +280,86 @@ test('턴70-8~11: Story contract — method_policy unspecified에서 허구 hand
   assert.match(section, /규정상 손으로만 가능합니다/, '허구 hand-only 제한을 금지하는 지시가 포함');
   assert.match(section, /절차에는 구강 방식이 없습니다/, '허구 구강 금지 제한을 금지하는 지시가 포함');
   assert.match(section, /required outcome은 계속 이행해야 한다/);
+});
+
+// ── 턴70-24: CSA-covered + boundary (37~40) ──
+
+function boundarySave(boundary) {
+  const save = csa60Save();
+  save.npc_relationship_state = {
+    heroine4: { current_boundary: boundary, closeness: 2, milestones: {} }
+  };
+  return save;
+}
+
+test('턴70-37: CSA-covered + closed boundary → csa_direct', () => {
+  const save = boundarySave('closed');
+  const coverage = csa60Coverage('입으로 해줄래?', save);
+  assert.equal(coverage.covered, true);
+  assert.equal(coverage.coverage_kind, 'method_variant');
+  const resolveActionExecutionContract = resolveAecModule;
+  const contract = resolveActionExecutionContract({
+    save, playerAction: '입으로 해줄래?',
+    csaCatalog: { sexual_action_contract: CSA60_CONTRACT },
+    characters: CSA60_MASTER.characters, npcIds: [],
+    csaCoverage: coverage
+  });
+  assert.equal(contract.route, 'csa_direct', 'closed boundary여도 csa_direct');
+  assert.equal(contract.schedule_boundary_followup, false);
+});
+
+test('턴70-38: CSA-covered + hostile boundary → csa_direct', () => {
+  const save = boundarySave('hostile');
+  const coverage = csa60Coverage('입으로 해줄래?', save);
+  assert.equal(coverage.covered, true);
+  const resolveActionExecutionContract = resolveAecModule;
+  const contract = resolveActionExecutionContract({
+    save, playerAction: '입으로 해줄래?',
+    csaCatalog: { sexual_action_contract: CSA60_CONTRACT },
+    characters: CSA60_MASTER.characters, npcIds: [],
+    csaCoverage: coverage
+  });
+  assert.equal(contract.route, 'csa_direct');
+});
+
+test('턴70-40: CSA 범위 밖 행동은 기존 ordinary blocker 유지', () => {
+  const save = boundarySave('closed');
+  const resolveActionExecutionContract = resolveAecModule;
+  const contract = resolveActionExecutionContract({
+    save, playerAction: '윤민아를 벽으로 밀어붙여 키스한다.',
+    csaCatalog: { sexual_action_contract: CSA60_CONTRACT },
+    characters: CSA60_MASTER.characters, npcIds: []
+  });
+  // csa_60은 heroine4→player — 다른 대상 행동은 ordinary gate
+  assert.notEqual(contract.route, 'csa_direct');
+});
+
+// ── 턴70-25/26: active intimate focus + 로봇화 제거 (41~45) ──
+
+test('턴70-41~43: active intimate focus 섹션 — 업무 화제 금지·반응 팔레트·금지 반복', () => {
+  const { buildActiveIntimateFocusSection, buildCsaAcceptanceScopeSection } = resolveCsaModule;
+  const section = buildActiveIntimateFocusSection({
+    canonicalCoverage: { covered: true, route: 'csa_direct', csa_id: 'csa_60', coverage_kind: 'method_variant' }
+  });
+  assert.match(section, /ACTIVE INTIMATE ACTION FOCUS/);
+  assert.match(section, /회의, 프로젝트, 자료, 보고서, 일정, 브랜드 보이스, 감사 업무 화제를 새로 꺼내지 않는다/);
+  assert.match(section, /업무 대사는 0문장을 기본/);
+  // 로봇화 제거 — 수치별 기계적 스크립트가 없어야 한다
+  const acceptance = buildCsaAcceptanceScopeSection();
+  assert.doesNotMatch(acceptance, /0~19도 행동을 거부·생략하지 않고/);
+  assert.doesNotMatch(acceptance, /80~100은 직접 범위 안에서 선제적으로/);
+  assert.match(acceptance, /무표정한 절차 수행자로 만들지 않는다/);
+  assert.match(acceptance, /반응 팔레트/);
+  assert.match(acceptance, /금지 반복 표현/);
+});
+
+test('턴70-44: required action은 유지 (method_policy unspecified)', () => {
+  const coverage = csa60Coverage('계속해줘', csa60Save({ runtimeExecuted: true }));
+  assert.equal(coverage.required_action, 'resolve_patient_erection');
+});
+
+test('턴70-45: NPC를 자동 애정·복종으로 해석하지 않음 (prompt 지시 확인)', () => {
+  const prompt = fs.readFileSync(path.join(root, 'src/engine/extract-prompt.js'), 'utf8');
+  assert.match(prompt, /never raises affinity/);
+  assert.match(prompt, /상식개변 수행을 플레이어에 대한 복종·애정·신뢰로 묘사하지 않는다|compliance pressure\/self-rationalization, not affection/);
 });

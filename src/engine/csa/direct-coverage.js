@@ -227,6 +227,20 @@ function resolveSexualCoverage(
     const direction = resolveDirection(actor, target);
     if (!contract.directions.includes(direction)) continue;
 
+    // 입력이 CSA actor가 아닌 다른 등록 NPC를 직접 지목하면 CSA 범위 밖이다 (지시 4).
+    // 자연어 regex 대신 기존 characterInfo 이름 목록 기반으로만 판단한다.
+    // (장면 참여자뿐 아니라 등록 NPC 전체 — 장면 밖 NPC 지목도 CSA 대상이 아님)
+    const roster = characters ?? master?.characters ?? {};
+    const rosterIds = Array.isArray(roster)
+      ? roster.map(entry => entry?.character_id ?? entry?.npc_id ?? entry?.id).filter(Boolean)
+      : Object.keys(roster);
+    const otherNpcMentioned = rosterIds.some(id => {
+      if (id === actor.characterId) return false;
+      const name = typeof characterInfo(id, roster)?.name === 'string' ? characterInfo(id, roster).name : id;
+      return name.length >= 2 && text.includes(name);
+    });
+    if (otherNpcMentioned) continue;
+
     const requiredAction = typeof csa.preset?.required_action === 'string'
       ? csa.preset.required_action
       : null;

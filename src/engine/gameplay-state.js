@@ -9,6 +9,9 @@ const TURN_CHANGE_ROOTS = new Set([
 ]);
 
 export const CSA_LIFECYCLE = new Set(['active', 'temporarily_interrupted', 'suspended', 'completed', 'deactivated']);
+
+// 플레이어 발기 상태 enum — delta가 아닌 현재 물리 상태 (지시 22).
+const ERECTION_STATES = new Set(['unknown', 'flaccid', 'partial', 'erect']);
 export const CSA_APPLICABILITY = new Set(['applicable', 'not_applicable', 'unknown']);
 export const CSA_EXECUTION_STATE = new Set(['not_started', 'proposed', 'executed', 'refused', 'interrupted']);
 
@@ -477,7 +480,7 @@ export function formatGameTime(gameTime) {
   return `Day ${resolved.day} ${String(hour).padStart(2, '0')}:${minute}`;
 }
 
-export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {}, updatedTurn = null } = {}) {
+export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {}, updatedTurn = null, storyText = '' } = {}) {
   const base = object(current) ? current : {};
   const patch = object(delta) ? delta : {};
   const state = {
@@ -496,6 +499,24 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
     state.ejaculation_progress = clamp(state.ejaculation_progress + Math.min(progressDelta, 6), 0, 100);
   }
   const warnings = [];
+  // 발기 상태는 delta가 아닌 현재 물리 상태다 — evidence.player_erection의 quote가
+  // 최종 Story에 정확히 존재하고 enum이 유효할 때만 갱신한다.
+  // 추론 금지: arousal 수치·CSA 활성·요청·복장·이미지 태그만으로는 변경하지 않는다.
+  // 자극이 잠시 멈춰도 자동 flaccid 처리하지 않는다. 사정 완료만으로 flaccid 처리하지 않는다.
+  const erectionProposal = patch.erection_state;
+  if (erectionProposal !== undefined) {
+    const erectionEvidence = object(storyEvidence) ? storyEvidence.player_erection : null;
+    const quoteValid = erectionEvidence?.state === erectionProposal
+      && typeof erectionEvidence?.quote === 'string'
+      && erectionEvidence.quote.length > 0
+      && typeof storyText === 'string'
+      && storyText.includes(erectionEvidence.quote);
+    if (ERECTION_STATES.has(erectionProposal) && quoteValid) {
+      state.erection_state = erectionProposal;
+    } else {
+      warnings.push('unauthorized_erection_state_ignored');
+    }
+  }
   if (patch.ejaculation_completed === true) {
     if (!object(storyEvidence) || storyEvidence.sexual_resolution !== true) {
       warnings.push('unauthorized_ejaculation_completion_ignored');

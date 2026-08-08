@@ -351,3 +351,82 @@ test('턴70-18: accepted_executions 중복으로 EXP를 여러 번 주지 않음
   // 같은 턴 중복 실행 제안은 acceptedExecutions에 한 번만 들어가야 한다 (turn-routes가 EXP 부여에 사용).
   assert.ok(result.accepted_executions.length >= 1);
 });
+
+// ── 턴70-22: 플레이어 발기 상태 정본 (16~23) ──
+
+test('턴70-16: 명시적 발기 Story + exact evidence → erect', () => {
+  const result = reducePlayerSexualState(
+    { arousal: 10, ejaculation_progress: 5, ejaculation_count: 0, updated_turn: 85, erection_state: 'unknown' },
+    { erection_state: 'erect' },
+    { storyEvidence: { player_erection: { state: 'erect', quote: '발기가 완전히 일어섰다' } },
+      updatedTurn: 86, storyText: '한리브가 시선을 피하며, 발기가 완전히 일어섰다.' }
+  );
+  assert.equal(result.state.erection_state, 'erect');
+});
+
+test('턴70-17: 부분 발기 → partial', () => {
+  const result = reducePlayerSexualState(
+    { arousal: 10, updated_turn: 85, erection_state: 'unknown' },
+    { erection_state: 'partial' },
+    { storyEvidence: { player_erection: { state: 'partial', quote: '반쯤 일어선 상태' } },
+      updatedTurn: 86, storyText: '반쯤 일어선 상태로 움찔했다.' }
+  );
+  assert.equal(result.state.erection_state, 'partial');
+});
+
+test('턴70-18: 명시적 이완 → flaccid', () => {
+  const result = reducePlayerSexualState(
+    { arousal: 40, updated_turn: 85, erection_state: 'erect' },
+    { erection_state: 'flaccid' },
+    { storyEvidence: { player_erection: { state: 'flaccid', quote: '발기가 완전히 가라앉았다' } },
+      updatedTurn: 86, storyText: '발기가 완전히 가라앉았다.' }
+  );
+  assert.equal(result.state.erection_state, 'flaccid');
+});
+
+test('턴70-19: 단순 흥분도 증가만 존재 → 기존 erection_state 유지', () => {
+  const result = reducePlayerSexualState(
+    { arousal: 10, updated_turn: 85, erection_state: 'erect' },
+    { arousal_delta: 5 },
+    { storyEvidence: {}, updatedTurn: 86, storyText: '흥분이 올라왔다.' }
+  );
+  assert.equal(result.state.erection_state, 'erect', 'evidence 없이 상태 변경 금지');
+});
+
+test('턴70-20: CSA 활성만 존재 → unknown 유지', () => {
+  const result = reducePlayerSexualState(
+    { arousal: 10, updated_turn: 85, erection_state: 'unknown' },
+    { arousal_delta: 3 },
+    { storyEvidence: { csa_active: true }, updatedTurn: 86, storyText: '규정이 적용됐다.' }
+  );
+  assert.equal(result.state.erection_state, 'unknown');
+});
+
+test('턴70-21: 자극 중단만 존재 → 자동 flaccid 금지', () => {
+  const result = reducePlayerSexualState(
+    { arousal: 60, updated_turn: 85, erection_state: 'erect' },
+    { arousal_delta: -20 },
+    { storyEvidence: {}, updatedTurn: 86, storyText: '손이 멈췄다.' }
+  );
+  assert.equal(result.state.erection_state, 'erect', '자극 중단으로 flaccid 처리 금지');
+});
+
+test('턴70-22: 사정 완료만 존재 → 자동 flaccid 금지', () => {
+  const result = reducePlayerSexualState(
+    { arousal: 80, ejaculation_progress: 60, ejaculation_count: 0, updated_turn: 85, erection_state: 'erect' },
+    { ejaculation_completed: true },
+    { storyEvidence: { sexual_resolution: true }, updatedTurn: 86, storyText: '사정했다.' }
+  );
+  assert.equal(result.state.erection_state, 'erect', '사정 완료로 자동 flaccid 금지');
+});
+
+test('턴70-23: quote가 Story에 없으면 erection_state 무시', () => {
+  const result = reducePlayerSexualState(
+    { arousal: 10, updated_turn: 85, erection_state: 'unknown' },
+    { erection_state: 'erect' },
+    { storyEvidence: { player_erection: { state: 'erect', quote: '없는 문장' } },
+      updatedTurn: 86, storyText: '다른 내용' }
+  );
+  assert.equal(result.state.erection_state, 'unknown');
+  assert.ok(result.warnings.includes('unauthorized_erection_state_ignored'));
+});

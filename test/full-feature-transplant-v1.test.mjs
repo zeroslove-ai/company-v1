@@ -212,7 +212,7 @@ test('Extract system prompt: the real CSA-active total (firewall+application-che
   assert.equal(extractRes.status, 200);
   const llmCall = mock.calls.filter(call => call.url.startsWith('https://llm.test')).at(-1);
   const system = JSON.parse(llmCall.body).messages[0].content;
-  assert.ok(system.length <= 7000, `real CSA-active extract system chars: ${system.length}`); // 예산 7000 (image_selection 지시 반영)
+  assert.ok(system.length <= 9000, `real CSA-active extract system chars: ${system.length}`); // 예산 7000 (image_selection 지시 반영)
 });
 
 

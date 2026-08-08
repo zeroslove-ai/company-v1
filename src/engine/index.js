@@ -74,7 +74,7 @@ export {
   buildCsaPhysicalTransitionSection, buildNpcCsaEpistemicFirewallSection, buildCsaPersistentSceneSection,
   buildCsaPublicSceneSection, buildCsaWeakSynergySection, isAppUsageInfoRequest, buildAppUsageStorySection,
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,
-  buildMindEffectExtractFirewallSection,
+  buildMindEffectExtractFirewallSection, buildActiveIntimateFocusSection,
   buildStructuredActionStorySection, buildCsaDeactivationStorySection
 } from './csa/prompt-sections.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
