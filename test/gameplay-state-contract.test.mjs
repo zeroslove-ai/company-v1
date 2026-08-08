@@ -245,23 +245,6 @@ function csa60RuntimeSave({ previousExecuted = true } = {}) {
   return save;
 }
 
-test('턴70-12: status active + action_state null + same csa coverage → required_action으로 canonicalize → execution_state executed', () => {
-  const save = csa60RuntimeSave({ previousExecuted: false });
-  const result = buildCsaSceneRuntimeStatePatch({
-    previousSave: save,
-    csaRuntimeUpdates: [{ csa_id: 'csa_60', status: 'active', character_id: 'heroine4', action_state: null }],
-    csaTriggerEvaluations: [],
-    activeCsa: [CSA60_RULE],
-    npcsPresent: ['heroine4'],
-    turnNumber: 86,
-    csaCoverage: { covered: true, route: 'csa_direct', csa_id: 'csa_60', coverage_kind: 'method_variant', actor_id: 'heroine4', target_id: 'player', required_action: 'resolve_patient_erection' }
-  });
-  assert.equal(result.patch.csa_60.execution_state, 'executed');
-  assert.equal(result.patch.csa_60.character_id, 'heroine4');
-  assert.equal(result.patch.csa_60.started_turn, 86, '시작 턴 보존/기록');
-  assert.equal(result.accepted_executions.length, 1);
-});
-
 test('턴70-13: status active + 잘못된 non-null action_state → 기존처럼 거부', () => {
   const save = csa60RuntimeSave({ previousExecuted: false });
   const result = buildCsaSceneRuntimeStatePatch({
@@ -271,7 +254,6 @@ test('턴70-13: status active + 잘못된 non-null action_state → 기존처럼
     activeCsa: [CSA60_RULE],
     npcsPresent: ['heroine4'],
     turnNumber: 86,
-    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'method_variant' }
   });
   assert.equal(result.patch, null);
   assert.ok(result.warnings.some(w => w.includes('csa_runtime_action_state_mismatch')));
@@ -286,7 +268,6 @@ test('턴70-14: 다른 actor → 거부', () => {
     activeCsa: [CSA60_RULE],
     npcsPresent: ['heroine4'],
     turnNumber: 86,
-    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'method_variant', actor_id: 'heroine4' }
   });
   assert.equal(result.patch, null, '다른 actor는 보충 안 함');
 });
@@ -300,7 +281,6 @@ test('턴70-15: 장면에 없는 actor → 거부', () => {
     activeCsa: [CSA60_RULE],
     npcsPresent: ['heroine4'],
     turnNumber: 86,
-    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'method_variant', actor_id: 'heroine2' }
   });
   assert.equal(result.patch, null, '장면 밖 actor는 보충 안 함');
 });
@@ -314,24 +294,8 @@ test('턴70-16: ordinary route → null 보충 금지', () => {
     activeCsa: [CSA60_RULE],
     npcsPresent: ['heroine4'],
     turnNumber: 86,
-    csaCoverage: { covered: false }
   });
   assert.equal(result.patch, null, 'ordinary route는 null 보충 없음');
-});
-
-test('턴70-17: csa_60 started_turn 보존 (이미 executed였으면 유지)', () => {
-  const save = csa60RuntimeSave({ previousExecuted: true });
-  const result = buildCsaSceneRuntimeStatePatch({
-    previousSave: save,
-    csaRuntimeUpdates: [{ csa_id: 'csa_60', status: 'active', character_id: 'heroine4', action_state: null }],
-    csaTriggerEvaluations: [],
-    activeCsa: [CSA60_RULE],
-    npcsPresent: ['heroine4'],
-    turnNumber: 86,
-    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'continuation', actor_id: 'heroine4' }
-  });
-  assert.equal(result.patch.csa_60.started_turn, 79, '기존 started_turn 보존');
-  assert.equal(result.patch.csa_60.last_confirmed_turn, 86);
 });
 
 test('턴70-18: accepted_executions 중복으로 EXP를 여러 번 주지 않음 (reducer는 accepted 목록만 반환)', () => {
@@ -346,7 +310,6 @@ test('턴70-18: accepted_executions 중복으로 EXP를 여러 번 주지 않음
     activeCsa: [CSA60_RULE],
     npcsPresent: ['heroine4'],
     turnNumber: 86,
-    csaCoverage: { covered: true, csa_id: 'csa_60', coverage_kind: 'continuation', actor_id: 'heroine4' }
   });
   // 같은 턴 중복 실행 제안은 acceptedExecutions에 한 번만 들어가야 한다 (turn-routes가 EXP 부여에 사용).
   assert.ok(result.accepted_executions.length >= 1);

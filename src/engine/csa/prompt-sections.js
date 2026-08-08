@@ -1,8 +1,6 @@
 /**
  * Story/Extract prompt contract sections ported from the donor's CSA-runtime
- * prompt builders (buildCsaRuntimeSection, buildCsaAcceptanceScopeSection,
- * buildCsaDirectExecutionPrioritySection, buildCsaPhysicalTransitionSection,
- * buildNpcCsaEpistemicFirewallSection, buildCsaPersistentSceneSection,
+ * prompt builders (buildCsaRuntimeSection, buildNpcCsaEpistemicFirewallSection,
  * buildCsaPublicSceneSection, buildCsaWeakSynergySection,
  * buildStructuredActionStorySection, buildCsaDeactivationStorySection,
  * buildCsaOnlyAppUsageStorySection, buildCsaApplicationCheckSection,
@@ -16,67 +14,7 @@
 
 export function buildCsaRuntimeSection() {
   return `\n[COMMON-SENSE CHANGE RUNTIME CONTRACT — WORLD RULES]\n활성 CSA는 저장된 세계 규칙이며 Story 전에 특정 actor·target을 예약하지 않는다. 현재 장면의 모든 적용 대상이 동시에 규칙 아래 있고, 실제 이행·위반은 Story 후 Extract가 기록한다.`;
-  return `
-
-[COMMON-SENSE CHANGE RUNTIME CONTRACT — HIGH PRIORITY]
-- 이 버전의 유일한 정신 효과는 공간 기반 상식개변이다. 개인 암시·최면 시스템은 존재하지 않는다.
-- 저장된 상식개변의 생성·수정·해제는 Worker가 검증한 structured_action만 처리한다.
-- 일반 대화·설득·반복 발언으로 상식개변을 만들거나 바꾸지 않는다.
-- 현재 적용 규정의 신규·기존 여부는 [CURRENT CSA RULES]의 phase만 따른다.
-- [3. 선택지]에는 상식개변 관리 조작을 제안하지 않는다. 해당 기능은 상식개변 앱 UI에서만 수행한다.
-`;
 }
-
-export function buildCsaAcceptanceScopeSection() {
-  return `
-
-[CSA ACCEPTANCE SCOPE — HIGHEST PRIORITY]
-- 상식수용도는 활성 CSA 직접 행동의 실행 여부를 결정하지 않는다. 발동 조건이 충족되면 0~100 모든 구간에서 직접 행동은 반드시 실행한다.
-- 수용도(csa_acceptance)는 NPC가 활성 규정을 얼마나 익숙하고 자연스럽게 느끼는지 조절한다. 저항도(resistance)는 그 NPC의 성격에 고정된 기준값으로, 불편함·수치·긴장·짜증·망설임의 강도를 조절한다. 두 수치는 행동 실행 여부를 바꾸지 않는다.
-- 두 수치는 NPC를 무표정한 절차 수행자로 만들지 않는다. 규정·절차·업무 단어 반복은 수치와 무관하게 금지한다. 같은 NPC도 장면과 감각에 따라 감정이 변할 수 있다.
-- 반응 팔레트 (캐릭터에 맞게 선택): 시선을 피함, 말수가 줄어듦, 호흡이 흐트러짐, 손끝이 떨림, 민망한 웃음, 짧은 짜증, 속도·압력·자세를 의식함, 플레이어 표정을 확인함, 감각에 당황함, 집중하려고 입술을 깨묾, 예상보다 익숙해지는 자신을 의식함, 개인적으로 부담되는 방식은 개인적 이유로 말함.
-- 금지 반복 표현: 규정상, 절차상, 업무적으로, 기준은 명확해요, 범위를 벗어나요, 업무 방해를 진정시키는 것까지만, 감정을 섞지 않고 정확히 수행한다 — 규칙을 처음 설명할 필요가 있을 때 최대 한 번만 허용하고, 이미 수행 중인 다음 턴에서는 반복하지 않는다.
-- 활성 CSA와 무관한 행동은 호감도, 성격, 현재 관계, 상황으로 별도 결정한다. 상식개변 수행을 플레이어에 대한 복종·애정·신뢰로 묘사하지 않는다.
-- 모든 구간에서 문장에 없는 권한·행동·연애·질투·불법 업무 조작을 새로 만들지 않는다.`;
-}
-
-export function buildCsaDirectExecutionPrioritySection() {
-  return `
-
-[CSA DIRECT EXECUTION PRECEDENCE — HIGHEST PRIORITY]
-- 현재 적용되는 active CSA의 actor·target·trigger·duration이 성립하면 직접 행동은 반드시 실행한다.
-- CSA 직접 행동은 성적 관문, 호감도, 상식수용도, 성적흥분도, 관계 단계, 최근 거절의 허가를 필요로 하지 않는다.
-- 위 수치와 상태는 CSA 직접 행동을 실패·거절·보류·축소시키지 않는다. 감정적 부끄러움·긴장·자기합리화·신체 반응 혼란은 가능하지만 직접 행동은 계속 수행한다.
-- CSA 자체의 정당성이나 존재를 의심하지 않는다.
-- CSA 수행을 사랑·자발적 성적 동의·관계 단계 상승으로 해석하지 않는다.`;
-}
-
-/** Injected whenever an applicable CSA exists or this turn is a structured app transaction. */
-export function buildCsaPhysicalTransitionSection(hasApplicableCsa, isAppTransactionTurn) {
-  if (!hasApplicableCsa && !isAppTransactionTurn) return '';
-  return `
-
-[CSA INSTANT NORM, NON-MAGICAL MATTER — HIGHEST PRIORITY]
-상식과 판단은 즉시 바뀌지만 물질과 현재 물리 상태는 자동으로 바뀌지 않는다. 현재 상태가 새 규범과 충돌하면 NPC는 새 규범을 현재 유효한 회사 규정으로 이해하지만, 복장과 자세는 실제 동작으로만 규범에 맞춘다.
-
-금지(어떤 상식개변 activate/update/deactivate 직후에도 절대 쓰지 않는다):
-- 속옷·복장이 갑자기 사라짐
-- 복장이 저절로 줄어들거나, 조여지거나, 헐거워지거나, 열리거나, 닫히거나, 디자인이 바뀜
-- 단추·지퍼·벨트가 스스로 움직이거나 채워지거나 풀림
-- 규칙·시스템·앱·법칙이 보이지 않는 손처럼 NPC의 몸을 붙잡거나 고정하거나 옮기거나 끌어당김
-- 이미 확정된 조작을 서서히 적용하거나, 다시 선택하게 하거나, "지금 적용할까요?"처럼 재확인을 구함
-- 지금 저장된 물리 상태와 모순되게 "사실 예전부터 규범을 따르고 있었다"고 소급 서술
-
-허용:
-- 규범을 아직 못 지키고 있다는 자각에서 오는 부끄러움·다급함·자기합리화
-- 지금 당장 옷을 갈아입거나 자세를 바꾸기 어려운 현실적 사정(프라이버시, 시간, 하던 일)에서 오는 어색함
-- 노출·접촉·시선에 대한 신체 반응
-- CSA 직접 실행 대상 행동은 이 규칙과 무관하게 100% 실행되지만, 순간이동이 아니라 실제 동작(다가가다, 앉다, 벗다, 조절하다)으로 실행된다
-
-현재 장면에 있는 NPC는 규범이 바뀐 순간의 저장된 물리 상태를 그대로 유지하다가, 서사에서 실제 전환 동작(벗다·입다·갈아입다·조절하다·이동해 자세를 바꾸다)을 보여준 뒤에만 새 물리 상태로 서술한다. 지금 이 장면 안에서 즉시 불가능하면 이전 상태를 유지한 채 가능한 가장 이른 시점에 맞추려는 의도만 보여준다. 화면 밖에 있던 NPC는 다음 등장까지 충분한 시간·여건이 있었다고 볼 수 있을 때만 이미 규범을 따른 상태로 나올 수 있으며, 지금 장면에 있는 NPC를 화면 밖에서 순간적으로 바꿔치기하지 않는다.`;
-}
-
-/** Injected as a final system message, closest to generation — see storySections' assembly note. */
 export function buildNpcCsaEpistemicFirewallSection({ worldRule = false } = {}) {
   if (worldRule) return '[NPC CSA EPISTEMIC FIREWALL — FINAL]\n활성 CSA는 세계 안의 실제 규칙이다. NPC는 앱 조작 사실은 모르지만 규칙의 존재와 적용은 사실로 안다. 정당성·법적 근거·승인 절차를 재심사하지 않으며, 감정은 자유롭게 표현하되 기본적으로 이행한다. 이행하지 않으면 불이익을 감수하는 명시적 위반으로 말한다. 구체 방법이 unspecified이면 결과만 규정하고 장면에 맞는 방법을 정한다. Story 이후 Extract만 실제 행동자의 ID를 기록한다.';
   return `[NPC CSA EPISTEMIC FIREWALL — FINAL, HIGHEST PRIORITY]
@@ -106,58 +44,12 @@ NPC는 상식개변의 존재, 작동 원리, 앱·시스템·플레이어의 �
 이 규칙은 [1. 서사 및 행동]의 NPC 대사·독백·서술, [2. 플레이어 상황판]의 NPC 관련 서술, 그리고 이후 Extract가 생성할 마인드 모니터에도 동일하게 적용된다. 플레이어의 대사·속마음과 상식개변 앱 UI 텍스트에는 이 규칙을 적용하지 않는다.`;
 }
 
-export function buildCsaPersistentSceneSection() {
-  return `
-
-[PERSISTENT COMMON-SENSE SITUATION — HIGHEST PRIORITY]
-- 상식개변은 한 번 실행하고 사라지는 이벤트가 아니라 지속되는 사회 규범이다.
-- 규칙으로 형성된 자세·접촉·복장·업무 상태는 물리적·서사적 종료 이유가 생길 때까지 다음 턴에도 유지한다.
-- 직전 턴에 이미 실행 중이던 자세라면 다시 처음부터 자세를 잡는 과정을 반복하지 않는다.
-- 현재 자세에서 대화, 작은 움직임, 우연한 접촉, 신체 반응, 주변 인물의 반응을 발전시킨다.
-- 플레이어가 다른 대사를 입력해도 현재 자세를 유지할 수 있으면 그 상태를 기반으로 행동한다.
-- 대화 종료, 업무 이동, 명시적 자세 변경, 물리적 방해 등 실제 종료 이유가 있을 때만 상태를 종료한다.
-- 매 턴 규범의 설명을 반복하지 말고 현재 실행 상태의 다음 결과를 쓴다.
-- 규범을 한 문장으로 소비하고 바로 원래 상태로 복귀하지 않는다.
-
-[PLAYER AGENCY WITHIN AN ACTIVE NORM — HIGHEST PRIORITY]
-- 활성 상식은 NPC의 기본 행동과 사회적 기준을 정할 뿐, 플레이어 입력을 무효화하는 물리적 구속이나 절대 해제 불가능 상태가 아니다.
-- 플레이어가 내려오라고 요청하거나 다른 자세·장소·행동을 요청하면 Story는 그 요청을 실제 행동 후보로 반영한다. 플레이어 입력을 무시하고 매 턴 무조건 같은 자세를 유지시키지 않는다.
-- NPC는 그 요청에 자연스럽게 따르거나("알겠어요, 잠깐 비켜드릴게요"), 규정을 이유로 잠시 머뭇거리되 설득이나 추가 행동에는 응할 수 있다("업무 중에는 계속 이 상태여야 하는데.. 꼭 그래야 해요?").
-- 짧은 이유로 잠시 벗어났다가, 그 용무가 끝나고 대화·상황이 이어지면 자연스럽게 원래 상태로 복귀할 수 있다. 규범 자체를 비활성화하지 않는다.
-- 대화나 상황이 사실상 끝났다면 자세를 종료하고 다음 장면으로 넘어간다.
-- 금지: "규칙이므로 어떤 상황에서도 절대로 벗어날 수 없다"는 식의 서술, 플레이어의 명확한 이동 요청을 무시하는 것, 잠깐 벗어난 것만으로 다시 같은 문장 안에서 기계적으로 원위치시키는 것, 매 턴 처음부터 다시 상태를 잡는 장면 반복.
-- 규범이 이번 턴 일시적으로 중단됐다면(플레이어 요청 등 실제 근거가 있을 때만) Extract의 csa_trigger_evaluations에 해당 CSA를 status="temporarily_interrupted"로, csa_runtime_updates에 status="paused"로 반영할 수 있도록 그 중단 근거를 서사에 명확히 남긴다. 근거 없이 단순히 규범을 잊거나 생략하지 않는다.`;
-}
-
 export function buildCsaPublicSceneSection() {
   return `\n[PUBLIC COMMON-SENSE SCENE]\n공개 범위의 활성 규칙은 현재 장면에 있는 적용 대상 모두에게 동시에 보이는 세계 사실이다.`;
-  return `
-
-[PUBLIC COMMON-SENSE SCENE — HIGHEST PRIORITY]
-- 활성 상식개변은 회사 전체의 공동 상식이다.
-- 복도, 사무실, 회의실, 휴게실 등 공개 여부와 관계없이 동일하게 실행한다.
-- 주변 동료·상사·다른 부서 직원은 해당 행동을 정상적인 회사 관행으로 받아들인다.
-- 주변 NPC는 바라보거나 대화에 참여하거나 업무적으로 평가할 수 있지만 제지·신고·비난하지 않는다.
-- 메인 NPC는 주변 시선을 인식하고 성격에 따라 부끄러워하거나 긴장할 수 있다.
-- 그 부끄러움은 상식개변 자체가 잘못됐다는 의심이 아니라 자신의 신체 반응과 공개적으로 주목받는 상황에서 발생한다.
-- 공개 장소라는 이유만으로 규범 행동을 축소하거나 중단하지 않는다.
-- NPC는 "정상적인 업무이므로 계속해야 한다"는 식으로 자연스럽게 자기합리화할 수 있다.
-- 앱, 시스템, 개변, 원래 상식과의 차이를 직접 인식하거나 언급하지 않는다.`;
 }
-
 export function buildCsaWeakSynergySection() {
   return `\n[CSA WEAK SYNERGY]\n서로 다른 활성 규칙을 새 규칙으로 합성하지 않는다. 각 규칙의 선언적 범위와 실제 Story 결과를 독립적으로 기록한다.`;
-  return `
-
-[CSA WEAK SYNERGY — HIGHEST PRIORITY]
-- 각 활성 규범의 직접 의미를 동시에 적용한다.
-- 한 규범에 없는 행동을 다른 규범의 분위기만으로 새로 만들지 않는다.
-- 서로 다른 규범이 자세·접촉·복장·지속을 각각 허용하면 한 장면에서 함께 나타낼 수 있다.
-- 어느 규범도 직접 성행위를 허용하지 않으면 NPC가 자동으로 성행위를 시작하지 않는다.
-- 플레이어가 CSA 직접 범위 밖의 성적 행동을 시도하면 별도의 일반 판정으로 처리한다. 호감도·성적흥분도만으로 완료하지 않는다.
-- 약함 시너지는 자동 강도 승격이 아니라 직접 허용된 요소의 동시 실행이다.`;
 }
-
 export function isAppUsageInfoRequest(playerInput) {
   const input = typeof playerInput === 'string' ? playerInput.trim() : '';
   if (!input) return false;

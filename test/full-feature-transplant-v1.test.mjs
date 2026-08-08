@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  resolveCsaDirectCoverage, buildCsaDirectCoverageSection,
   normalizeGameplayExtractEnvelope
 } from '../src/engine/index.js';
 import { createApiWorker } from '../src/api/index.js';
@@ -143,55 +142,6 @@ const SEXUAL_CHARACTERS = {
 const sexualActionContract = { __test_required_action__: { directions: ['npc_to_player'], actions: ['genital_touch'] } };
 
 
-
-
-
-test('direct coverage (structured): ambiguous free-typed input with no matching rendered choice falls through to the tag-based fallback, never guessed as covered from actor_id alone', () => {
-  const save = sexualCsaSave();
-  // Custom text that doesn't match any of last_choices, and contains no material action keyword.
-  const coverage = resolveCsaDirectCoverage(save, '오늘 날씨 이야기를 한다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
-  assert.equal(coverage.covered, false);
-});
-
-test('direct coverage (structured): a bundled action not covered by the contract rejects the whole choice, never partially covered', () => {
-  const save = sexualCsaSave();
-  save.last_choices[0] = '키스하면서 성기를 만진다';
-  save.last_choice_meta[0] = { choice_index: 0, action_types: ['kiss', 'genital_touch'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'csa_direct', direct_csa_ids: ['csa_0'] };
-  const coverage = resolveCsaDirectCoverage(save, '키스하면서 성기를 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
-  assert.equal(coverage.covered, false, 'the contract only authorizes genital_touch; bundling an uncovered kiss must reject the whole choice');
-});
-
-test('direct coverage (structured): a covered choice carries no probability, bold, or risk-tier metadata anywhere in its section text', () => {
-  const save = sexualCsaSave();
-  const coverage = resolveCsaDirectCoverage(save, '성기를 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
-  assert.equal(coverage.covered, true);
-  const section = buildCsaDirectCoverageSection(coverage);
-  assert.doesNotMatch(section, /\d+\s*%|위험도\s*[:：]|bold_choice|risk_tier|success_rate/i);
-});
-
-test('direct coverage (structured): a direction mismatch (structured actor/target resolve backwards from the contract) is never covered', () => {
-  // Contract authorizes npc_to_player only; player-typed input claims player_to_npc via actor_id="player".
-  const save = sexualCsaSave();
-  save.last_choices[0] = '내가 먼저 만진다';
-  save.last_choice_meta[0] = { choice_index: 0, action_types: ['genital_touch'], actor_id: 'player', target_id: 'heroine1', suggested_route: 'csa_direct', direct_csa_ids: ['csa_0'] };
-  const coverage = resolveCsaDirectCoverage(save, '내가 먼저 만진다', { sexualActionContract, characters: SEXUAL_CHARACTERS });
-  assert.equal(coverage.covered, false, 'the contract only authorizes npc_to_player, not the reverse direction');
-});
-
-// ---------- choice_structured_meta shape validation (Extract contract) ----------
-
-
-
-// ---------- Real end-to-end Extract system prompt size (closes a pre-existing test gap) ----------
-//
-// The pre-existing "Extract request size budget: system <=3000" test (company-heroines-v1.test.mjs)
-// only ever calls buildExtractPrompt() directly — it never exercises the conditional CSA sections
-// (buildMindEffectExtractFirewallSection/buildCsaApplicationCheckSection/
-// buildCsaRuntimeExtractContractSection) that turn-routes.js's real extract() handler appends when a
-// CSA is applicable. Measuring the actual /api/extract system prompt here shows the true CSA-active
-// total was already ~3488 chars before this branch's own choice_structured_meta addition — i.e. the
-// <=3000 claim was never true for the with-CSA path, just never end-to-end tested. This test
-// documents the REAL current total with a real, honest cap instead of a number nobody ever verified.
 test('Extract system prompt: the real CSA-active total (firewall+application-check+runtime-tracking+choice-structured-meta) stays under a real, verified cap', async () => {
   const presetItem = catalog.items.find(item => item.category === 'contact' && item.strength === 'medium');
   const save = freshSave({

@@ -103,15 +103,6 @@ test('14-3: 직접 손목 조작 — genital_touch + direct_act + blocked', () =
   assert.ok(c.contextual_permission.blockers.includes('coercive_physical_control'), '강압 blocker');
 });
 
-test('14-4: 정확한 무릎 착석 — csa_direct (nonsexual direct_meaning_tags match)', () => {
-  const c = resolve('이메이와 업무 대화를 계속하며 무릎 위에 앉게 한다.');
-  assert.equal(c.csa_coverage.covered, true);
-  assert.equal(c.csa_coverage.csa_id, 'csa_2');
-  assert.equal(c.route, 'csa_direct');
-  assert.equal(c.completion_policy, 'complete_exact_scope');
-  assert.equal(c.csa_attribution_allowed, true);
-});
-
 test('14-5: bundle 확대 — 무릎 착석 + genital_touch → 전체 csa_direct 아님', () => {
   const c = resolve('무릎 위에 앉은 이메이의 손을 성기로 가져간다.');
   assert.ok(c.action_types.includes('genital_touch'));
@@ -213,24 +204,12 @@ test('section: blocked 계약은 AUTHORITATIVE 음수 계약 생성', () => {
   assert.ok(section.includes('완료 사실로 바로 확정하지 말고'));
 });
 
-test('검토1: csa_direct section은 EXACT-SCOPE LIMIT만 — coverage 중복·undefined 없음', () => {
-  const c = resolve('이메이와 업무 대화를 계속하며 무릎 위에 앉게 한다.');
-  const section = buildActionExecutionContractSection(c);
-  assert.ok(section.includes('[CSA EXACT-SCOPE LIMIT]'), 'limit section');
-  assert.ok(!section.includes('undefined'), 'undefined 없음');
-  assert.ok(!section.includes('exact action('), '빈 행동명 없음');
-  assert.ok(!section.includes('[CSA DIRECT COVERAGE]'), 'coverage 중복 없음 (applyCsaStorySections가 담당)');
-  // csa_2 정확 행동은 여전히 csa_direct로 확정
-  assert.equal(c.route, 'csa_direct');
-  assert.equal(c.csa_coverage.csa_id, 'csa_2');
-});
-
-test('section: ordinary는 빈 문자열 (contextual route 없음)', () => {
+test('section: ordinary는 빈 문자열', () => {
   const noCsa = csaSave({ csa_active: [], csa_rules: {} });
-  assert.equal(buildActionExecutionContractSection(resolve('서류를 정리한다', noCsa)), '');
-  // 활성 CSA가 있어도 모호한 요청은 ordinary이며 section이 비어 있다 —
-  // CSA contract는 별도 prompt 주입(projectGlobalCsa)으로만 제공된다.
-  assert.equal(buildActionExecutionContractSection(resolve('그렇지. 나 발기했어. 부탁해.')), '');
+  const contract = resolve('서류를 정리한다', noCsa);
+
+  assert.equal(contract.route, 'ordinary');
+  assert.equal(buildActionExecutionContractSection(contract), '');
 });
 
 test('contract: material_action/actor_id/relationship_basis shape', () => {

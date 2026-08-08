@@ -3,12 +3,10 @@ import {
   getApplicableCsaEntries,
   resolvePlayerCanonicalNames
 } from '../engine/index.js';
-import { HttpError } from './http.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }
-
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -199,30 +197,5 @@ export function resolveNpcLocation(save, edition, characterId) {
     suggested_location_id: suggestedLocationId,
     suggested_location_label: suggestedLocationLabel,
     suggestion_source: suggestion?.source ?? ''
-  };
-}
-
-export function buildNpcFinderPayload(save, edition, characterId) {
-  const profile = profileFor(edition, characterId);
-  if (!profile) throw new HttpError(422, 'npc_not_found', '등록된 인물이 아닙니다.', false);
-  const location = resolveNpcLocation(save, edition, characterId);
-  if (location.status === 'present') {
-    throw new HttpError(422, 'npc_already_present', `${text(profile.name) || characterId}은(는) 현재 같은 장면에 있습니다.`, false);
-  }
-  if (location.status === 'unknown') {
-    const suggestion = location.suggested_location_label ? ` 참고 근무지는 ${location.suggested_location_label}이지만 현재 위치 기록은 없습니다.` : '';
-    throw new HttpError(422, 'npc_location_unknown', `${text(profile.name) || characterId}의 현재 위치가 아직 기록되지 않았습니다.${suggestion}`, false);
-  }
-  const departments = departmentDirectory(edition);
-  const departmentId = profileDepartmentId(edition, profile);
-  return {
-    character_id: characterId,
-    name: text(profile.name) || characterId,
-    known_character: true,
-    type: profile.type,
-    department: text(profile.department) || departments.get(departmentId) || departmentId,
-    position: text(profile.position),
-    role: text(profile.role_title ?? profile.role),
-    ...location
   };
 }

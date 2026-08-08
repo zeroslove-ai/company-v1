@@ -48,7 +48,7 @@ function normalizeRuntimeEntry(entry = {}) {
  * csa_trigger_evaluations is a trigger/applicability-only signal and never
  * demotes execution_state (57턴 not_satisfied → not_started 역행 금지).
  */
-export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber, csaCoverage = null } = {}) {
+export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber } = {}) {
   const warnings = [];
   // reducer가 승인한 status=active 실행만 — 진행도(exp/csa_experienced_ids)의 유일한 정본.
   // turn-routes는 원본 csa_runtime_updates를 다시 읽지 않고 이 목록만 사용한다.
@@ -103,10 +103,7 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
           .some(evaluation => evaluation?.csa_id === csaId
             && (evaluation.status === 'continuing' || evaluation.status === 'satisfied'))
           && previous[csaId]?.execution_state === 'executed';
-        const legacyCoverageMatch = csaCoverage?.covered === true
-          && csaCoverage.csa_id === csaId
-          && ['exact', 'method_variant', 'continuation'].includes(csaCoverage.coverage_kind);
-        if (!triggerContinuing && !legacyCoverageMatch) {
+        if (!triggerContinuing) {
           warnings.push(`csa_runtime_action_state_mismatch:${csaId}:none`);
           continue;
         }

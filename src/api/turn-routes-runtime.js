@@ -19,7 +19,7 @@ import {
   buildNpcAppPayload
 } from './runtime-display.js';
 import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from './character-display.js';
-import { buildFullPlayerInfo, buildFinderNpcList, buildNpcFinderPayload } from './product-recovery.js';
+import { buildFullPlayerInfo, buildFinderNpcList } from './product-recovery.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -272,22 +272,6 @@ export function createTurnRoutes({ fetchImpl = fetch, edition } = {}) {
         finder_npcs: buildFinderNpcList(state.previousSave, edition)
       };
       return responseWithJson(response, payload);
-    },
-
-    async findNpc(request, env, ctx) {
-      const body = await requestBody(request);
-      const gameId = typeof body.game_id === 'string' ? body.game_id : '';
-      const characterId = typeof body.character_id === 'string' ? body.character_id : '';
-      const contextRequest = new Request(request.url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ game_id: gameId, recent_turns: 1 })
-      });
-      const contextResponse = await base.context(contextRequest, env, ctx);
-      const contextPayload = await responseJson(contextResponse);
-      const context = object(contextPayload?.data?.context) ?? object(contextPayload?.context);
-      const save = hydratedSave(context, master);
-      return okResponse(buildNpcFinderPayload(save, edition, characterId));
     },
 
     async story(request, env, ctx) {
