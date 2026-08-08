@@ -3,14 +3,14 @@ const SECTION_LABELS = {
   '1': 'scene',
   PLAYER_INNER_THOUGHT: 'thought',
   '2': 'thought',
-  PLAYER_STATUS: 'status',
-  '3': 'status',
+  PLAYER_STATUS: 'status',   // 구버전 저장 턴 읽기용 — 저장은 하지 않는다
   CHOICES: 'choices',
-  '4': 'choices'
+  '3': 'choices',   // 신규 [3. 선택지] — 정식 형식
+  '4': 'choices'    // 기존 저장 턴 History 호환 alias ([4. 선택지])
 };
 
-const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
-const SECTION_LINE = /^\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지)\]$/;
+const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*선택지|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
+const SECTION_LINE = /^\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*선택지|4\.\s*선택지)\]$/;
 const QUOTED_INLINE_DIALOGUE = /([\p{L}][^\n():"“”]{0,40}?)\s*\(([^()\n]{0,160})\)\s*[:：]\s*["“]([^"”]*)["”]/gsu;
 const DIALOGUE_LINE = /^([\p{L}][^\n():："“”]{0,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const REGISTERED_SPEAKER_LINE = /^([^\n:："“”]{1,40}?)\s*[:：]\s*(?:["“]([^"”]*)["”]|(.+))$/u;
@@ -518,7 +518,6 @@ export function parseNarrative(rawText, { master } = {}) {
   const warnings = [];
   const dialogueLines = [];
   const orderRef = { value: 0 };
-  let playerStatus = '';
   let playerInnerThought = '';
   let choices = [];
   let choiceLabels = [];
@@ -536,7 +535,6 @@ export function parseNarrative(rawText, { master } = {}) {
       normalized_raw: normalizedRaw,
       scene_text: sceneParts.join('\n'),
       blocks,
-      player_status: '',
       player_inner_thought: '',
       choices: [],
       dialogue_lines: dialogueLines,
@@ -578,7 +576,7 @@ export function parseNarrative(rawText, { master } = {}) {
       continue;
     }
     if (role === 'status') {
-      playerStatus = text;
+      // 구버전 [PLAYER_STATUS] 마커는 읽지만 저장하지 않는다 (player_status 제거).
       continue;
     }
     if (role === 'thought') {
@@ -621,7 +619,6 @@ export function parseNarrative(rawText, { master } = {}) {
     normalized_raw: normalizedRaw,
     scene_text: sceneParts.join('\n'),
     blocks,
-    player_status: playerStatus,
     player_inner_thought: playerInnerThought,
     choices,
     dialogue_lines: dialogueLines,

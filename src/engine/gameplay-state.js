@@ -349,7 +349,6 @@ export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcI
     last_speaker_id: lastSpeakerId,
     image_character_id: imageCharacterId,
     player_inner_thought: stringOrEmpty(parsedStory?.player_inner_thought),
-    player_status: stringOrEmpty(parsedStory?.player_status),
     turn_changes: Array.isArray(value.turn_changes) ? clone(value.turn_changes) : [],
     elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
     csa_trigger_evaluations: csaTriggerEvaluations,
@@ -427,7 +426,6 @@ export function buildDegradedExtractEnvelope({ parsedStory = {}, playerAction = 
     last_speaker_id: null,
     image_character_id: null,
     player_inner_thought: stringOrEmpty(story.player_inner_thought),
-    player_status: stringOrEmpty(story.player_status),
     turn_changes: [],
     elapsed_minutes: 3,
     csa_trigger_evaluations: [],
@@ -471,7 +469,13 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
     updated_turn: integer(base.updated_turn) ?? 0
   };
   state.arousal = clamp(state.arousal + (integer(patch.arousal_delta) ?? 0), 0, 100);
-  state.ejaculation_progress = clamp(state.ejaculation_progress + (integer(patch.ejaculation_progress_delta) ?? 0), 0, 100);
+  // 사정 진행도는 느리게 누적 — 턴당 최대 +6, 음수(자동 감소·초기화)는 폐기.
+  // 단순 노출·발기·성적 대화·요청만으로는 증가하지 않도록 Extract가 작은 delta만
+  // 제안하고, 여기서 서버가 상한을 보장한다. 기존 전체 진행도 clamp 0~100 유지.
+  const progressDelta = integer(patch.ejaculation_progress_delta) ?? 0;
+  if (progressDelta > 0) {
+    state.ejaculation_progress = clamp(state.ejaculation_progress + Math.min(progressDelta, 6), 0, 100);
+  }
   const warnings = [];
   if (patch.ejaculation_completed === true) {
     if (!object(storyEvidence) || storyEvidence.sexual_resolution !== true) {

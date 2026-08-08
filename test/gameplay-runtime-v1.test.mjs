@@ -22,7 +22,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const readJson = file => JSON.parse(read(file));
 const clone = value => structuredClone(value);
 
-test('Story prompt carries the four-section, freedom, choices, and status-board contract without a separate DIALOGUE section, and stays under the size budget', () => {
+test('Story prompt carries the three-section, freedom, choices, and no-status-board contract without a separate DIALOGUE section, and stays under the size budget', () => {
   const prompt = buildStoryPrompt({
     edition: { editionId: 'company-v1', characters: { characters: {} } },
     context: { game: {}, save: { player: { name: 'X' } }, recent_turns: [] },
@@ -30,7 +30,8 @@ test('Story prompt carries the four-section, freedom, choices, and status-board 
     expectedTurn: 3
   });
   const system = prompt[0].content;
-  assert.match(system, /\[1\. 서사 및 행동\].*\[2\. 플레이어 속마음\].*\[3\. 플레이어 상황판\].*\[4\. 선택지\]/);
+  assert.match(system, /\[1\. 서사 및 행동\].*\[2\. 플레이어 속마음\].*\[3\. 선택지\]/);
+  assert.doesNotMatch(system, /\[3\. 플레이어 상황판\]/);
   assert.match(system, /사용자용 섹션\(예: 별도 \[DIALOGUE\]\).*쓰지 않는다/);
   assert.match(system, /800~1000자/);
   assert.match(system, /1000~1500자/);
@@ -53,7 +54,7 @@ test('Extract prompt requires independent identity axes, Story-authoritative pre
   const system = prompt[0].content;
   assert.match(system, /never copy one into another/);
   assert.match(system, /Story choices are authoritative and preserved/);
-  assert.match(system, /Extract can never override them/);
+  assert.match(system, /Extract can never override it/);
   assert.match(system, /elapsed_minutes is your only time proposal/);
   assert.match(system, /csa_runtime_state\[csa_id\]/);
   assert.match(system, /arousal_delta, ejaculation_progress_delta, and ejaculation_completed/);
@@ -61,7 +62,7 @@ test('Extract prompt requires independent identity axes, Story-authoritative pre
   assert.ok(system.length <= 6000, `extract system chars: ${system.length}`); // 예산 6000 확장 (착의 canonical 형식 + 선택지 보존 지시 반영)
 });
 
-test('Parser recognizes the Korean four-section output, extracts inline dialogue with a resolved speaker_id, and preserves legacy internal markers', () => {
+test('Parser recognizes the Korean three-section output, extracts inline dialogue with a resolved speaker_id, and preserves legacy [4. 선택지] alias', () => {
   const master = { characters: [{ character_id: 'npc-seowonhee', name: '서원희' }] };
   const korean = [
     '[1. 서사 및 행동]',
@@ -71,10 +72,7 @@ test('Parser recognizes the Korean four-section output, extracts inline dialogue
     '[2. 플레이어 속마음]',
     '오늘 회의는 생각보다 순조롭게 흘러가고 있다.',
     '',
-    '[3. 플레이어 상황판]',
-    'Day 1 09:20',
-    '',
-    '[4. 선택지]',
+    '[3. 선택지]',
     '1. 자료를 검토한다.',
     '2. 질문을 던진다.',
     '3. 잠시 생각한다.',
@@ -83,13 +81,19 @@ test('Parser recognizes the Korean four-section output, extracts inline dialogue
   const parsed = parseNarrative(korean, { master });
   assert.equal(parsed.choices.length, 4);
   assert.equal(parsed.player_inner_thought, '오늘 회의는 생각보다 순조롭게 흘러가고 있다.');
-  assert.equal(parsed.player_status, 'Day 1 09:20');
+  assert.equal(parsed.player_status, undefined, 'player_status는 더 이상 파싱하지 않는다');
   assert.equal(parsed.dialogue_lines.length, 1);
   assert.equal(parsed.dialogue_lines[0].speaker_id, 'npc-seowonhee');
   assert.equal(parsed.dialogue_lines[0].speaker_name, '서원희');
   assert.equal(parsed.dialogue_lines[0].text, '이 부분부터 같이 볼까요?');
   assert.ok(parsed.raw.includes(parsed.dialogue_lines[0].text));
   assert.deepEqual(parsed.warnings, []);
+
+  // 기존 저장 턴 History 호환 — [4. 선택지] alias도 같은 choices로 읽는다.
+  const legacyStory = korean.replace('[3. 선택지]', '[4. 선택지]');
+  const parsedLegacy = parseNarrative(legacyStory, { master });
+  assert.equal(parsedLegacy.choices.length, 4, '[4. 선택지] alias 호환 유지');
+  assert.equal(parsedLegacy.choices[0], '자료를 검토한다.');
 
   const ambiguousMaster = { characters: [{ character_id: 'npc-a', name: '민준' }, { character_id: 'npc-b', name: '민준' }] };
   const ambiguous = parseNarrative(korean, { master: ambiguousMaster });

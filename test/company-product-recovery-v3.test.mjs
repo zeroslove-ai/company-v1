@@ -172,7 +172,7 @@ test('history pagination state, dedupe, and MD/TXT exports preserve committed co
   assert.match(md, /## Turn 1[\s\S]*## Turn 2/);
   assert.match(md, /### 플레이어 행동[\s\S]*보고한다/);
   assert.match(md, /### 플레이어 속마음[\s\S]*판단한다/);
-  assert.match(md, /### 플레이어 상황[\s\S]*회의 중/);
+  assert.doesNotMatch(md, /### 플레이어 상황/, '플레이어 상황 섹션은 History에서 제거');
   assert.match(md, /### 선택지[\s\S]*1\. A/);
   assert.match(md, /### 턴 요약[\s\S]*요약/);
 

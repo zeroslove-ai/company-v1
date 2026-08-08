@@ -260,7 +260,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
     },
     story: {
       story_text: text(turn.story_text), blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
-      choices: choices(save, turn), player_status: text(parsedStory.player_status), player_inner_thought: text(parsedStory.player_inner_thought),
+      choices: choices(save, turn), player_inner_thought: text(parsedStory.player_inner_thought),
       dialogue_lines: dialogueLines(currentExtract, parsedStory), warnings: strings(parsedStory.warnings)
     },
     scene: {
@@ -287,7 +287,7 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       ejaculation_progress: numberOrNull(sexualDisplay.ejaculation_progress) ?? numberOrNull(playerSexualState.ejaculation_progress ?? playerSexualState.ejaculation_meter),
       ejaculation_count: numberOrNull(sexualDisplay.ejaculation_count) ?? numberOrNull(playerSexualState.ejaculation_count),
       total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events), last_sexual_event: object(sexualDisplay.last_sexual_event),
-      status: text(parsedStory.player_status), inner_thought: text(parsedStory.player_inner_thought),
+      inner_thought: text(parsedStory.player_inner_thought),
       location_label: text(playerSceneState.location_label) || text(scene.location_label),
       posture: text(playerSceneState.posture), posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
       position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}

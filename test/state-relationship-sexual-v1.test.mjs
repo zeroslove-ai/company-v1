@@ -25,7 +25,7 @@ test('clothing: a real change is accepted only when its own narrative-quote evid
   const { clothing, rejections } = retainEvidencedClothing({
     previousClothing: { uniform_top: 'worn' },
     proposedClothing: { uniform_top: 'removed' },
-    evidenceMap: { uniform_top: '한소영은 천천히 유니폼 상의를 벗었다.' },
+    evidenceMap: '한소영은 천천히 유니폼 상의를 벗었다.',
     narrativeText, characterName: '한소영'
   });
   assert.deepEqual(clothing, { uniform_top: 'removed' });
@@ -36,11 +36,11 @@ test('clothing: a change with no evidence, or evidence not actually present in t
   const { clothing, rejections } = retainEvidencedClothing({
     previousClothing: { uniform_top: 'worn' },
     proposedClothing: { uniform_top: 'removed' },
-    evidenceMap: { uniform_top: '이 문장은 실제 Story 본문에 없다' },
+    evidenceMap: '이 문장은 실제 Story 본문에 없다',
     narrativeText: '한소영은 평범하게 대화했다.', characterName: '한소영'
   });
   assert.deepEqual(clothing, {});
-  assert.deepEqual(rejections, ['unevidenced_clothing_change:uniform_top']);
+  assert.deepEqual(rejections, ['unevidenced_clothing_change']);
 });
 
 test('clothing: a change attributed to the rule/system/app itself (a magical transition) is always rejected, even with matching text', () => {
@@ -48,11 +48,11 @@ test('clothing: a change attributed to the rule/system/app itself (a magical tra
   const { clothing, rejections } = retainEvidencedClothing({
     previousClothing: { underwear_top: 'worn' },
     proposedClothing: { underwear_top: 'removed' },
-    evidenceMap: { underwear_top: '규칙이 적용되자 속옷이 저절로 사라졌다.' },
+    evidenceMap: '규칙이 적용되자 속옷이 저절로 사라졌다.',
     narrativeText, characterName: '한소영'
   });
   assert.deepEqual(clothing, {});
-  assert.deepEqual(rejections, ['unevidenced_clothing_change:underwear_top']);
+  assert.deepEqual(rejections, ['unevidenced_clothing_change']);
   assert.equal(isMagicalPhysicalTransitionEvidence('규칙이 적용되자 속옷이 저절로 사라졌다.'), true);
 });
 
@@ -61,7 +61,7 @@ test('clothing: evidence describing only an intent/plan to act (not yet complete
   const { clothing } = retainEvidencedClothing({
     previousClothing: { uniform_top: 'worn' },
     proposedClothing: { uniform_top: 'removed' },
-    evidenceMap: { uniform_top: '그녀는 옷을 벗으려고 한다.' },
+    evidenceMap: '그녀는 옷을 벗으려고 한다.',
     narrativeText: '그녀는 옷을 벗으려고 한다.', characterName: '한소영'
   });
   assert.deepEqual(clothing, {});
@@ -74,7 +74,7 @@ test('clothing: CSA activate/update/deactivate alone (no narrative evidence at a
     evidenceMap: {}, narrativeText: '상식개변이 활성화되었다.', characterName: '한소영'
   });
   assert.deepEqual(clothing, {});
-  assert.deepEqual(rejections, ['unevidenced_clothing_change:uniform_bottom']);
+  assert.deepEqual(rejections, ['unevidenced_clothing_change']);
 });
 
 // ---------- Posture continuity ----------
@@ -254,7 +254,7 @@ test('wiring: player_scene_state clothing changes only apply through the evidenc
     state_delta: {
       player_scene_state: {
         clothing: { uniform_top: 'removed' },
-        evidence: { clothing: { uniform_top: '플레이어는 상의를 벗었다.' } }
+        evidence: { clothing: '플레이어는 상의를 벗었다.' }
       }
     },
     outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']
@@ -277,7 +277,7 @@ test('wiring: npc_scene_state clothing changes are evidence-gated per NPC, keyed
   const result = applyGuardedStateDelta(save, {
     state_delta: {
       npc_scene_state: {
-        heroine1: { clothing: { uniform_top: 'removed' }, evidence: { clothing: { uniform_top: '한소영은 상의를 벗었다.' } } }
+        heroine1: { clothing: { uniform_top: 'removed' }, evidence: { clothing: '한소영은 상의를 벗었다.' } }
       }
     },
     outcome: 'success', evidence: {}, choices: ['a', 'b', 'c', 'd'], mind_monitor: {}, dialogue_lines: [], npcs_present: ['heroine1']

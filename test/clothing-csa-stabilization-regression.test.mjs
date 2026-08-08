@@ -52,7 +52,7 @@ test('회귀1: 실제 52~54턴 자유형 clothing 출력이 canonical 4슬롯으
 });
 
 // 2) nested clothing evidence → post-save 저장
-test('회귀2: nested evidence.clothing[slot]이 post-save clothing에 반영된다', () => {
+test('회귀2: actor-level evidence.clothing[actor_id]이 post-save clothing에 반영된다', () => {
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   save.scene_state = { ...(save.scene_state ?? {}), participants: ['player-1', 'heroine3'] };
   save.last_npcs_present = ['heroine3'];
@@ -63,12 +63,14 @@ test('회귀2: nested evidence.clothing[slot]이 post-save clothing에 반영된
       npc_scene_state: {
         heroine3: {
           clothing: { uniform_top: 'removed' },
-          evidence: { clothing: { uniform_top: '김제나는 흰 셔츠를 벗어 의자에 걸었다.' } }
+          evidence: { clothing: '김제나는 흰 셔츠를 벗어 의자에 걸었다.' }
         }
       }
     },
     outcome: 'success',
-    evidence: { clothing: { uniform_top: '김제나는 흰 셔츠를 벗어 의자에 걸었다.' } },
+    evidence: {
+      clothing: { heroine3: { quote: '김제나는 흰 셔츠를 벗어 의자에 걸었다.', character_id: 'heroine3' } }
+    },
     choices: ['a', 'b', 'c', 'd'],
     mind_monitor: {},
     dialogue_lines: []
@@ -78,7 +80,7 @@ test('회귀2: nested evidence.clothing[slot]이 post-save clothing에 반영된
     parsedStory: { scene_text: storyText },
     master: { characters: [{ character_id: 'heroine3', name: '김제나' }] }
   });
-  assert.equal(result.nextSave.npc_scene_state.heroine3.clothing.uniform_top, 'removed', 'nested evidence 경로로 착의 저장');
+  assert.equal(result.nextSave.npc_scene_state.heroine3.clothing.uniform_top, 'removed', 'actor-level evidence 경로로 착의 저장');
 });
 
 // 3) inactive csa_5가 Story·Extract payload에 0건

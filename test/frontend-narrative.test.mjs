@@ -6,7 +6,7 @@ test('frontend narrative parser preserves scene and dialogue order', () => {
   const parsed = parseNarrative('[SCENE]\nOffice lights are low.\n[DIALOGUE speaker="Hayeon" direction="quietly"]\nAre you ready?\n[PLAYER_STATUS]\nFocused\n[CHOICES]\n1. Ask\n2. Wait\n3. Leave\n4. Work');
   assert.deepEqual(parsed.blocks.map(block => block.type), ['scene', 'dialogue']);
   assert.equal(parsed.blocks[1].speaker, 'Hayeon');
-  assert.equal(parsed.player_status, 'Focused');
+  assert.equal(parsed.player_status, undefined, 'player_status는 저장하지 않는다 ([PLAYER_STATUS]는 읽기만)');
   assert.equal(parsed.choices.length, 4);
   assert.equal(parsed.warnings.includes('choices_not_exactly_four'), false);
 });

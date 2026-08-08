@@ -60,29 +60,18 @@ function plainObject(value) {
  *                flat evidence(evidence.clothing[slot])면 false — 단일 NPC 예외를 적용하지 않는다.
  */
 function clothingEvidenceForActor(evidence, actorId) {
+  // 새 정식 구조: evidence.clothing[actor_id] = { quote, character_id } — actor당 하나.
+  // slot별 evidenceMap·flat evidence 호환 경로·slot별 quote 중복 처리는 삭제했다.
   const root = plainObject(evidence?.clothing) ? evidence.clothing : {};
-  const nested = plainObject(root[actorId]) ? root[actorId] : null;
-  const source = nested ?? root;
-  const result = { quotes: {}, actorScoped: Boolean(nested) };
-
-  for (const [slot, entry] of Object.entries(source)) {
-    if (plainObject(entry)) {
-      const claimedActor = typeof entry.character_id === 'string'
-        ? entry.character_id
-        : (typeof entry.character === 'string' ? entry.character : null);
-      // nested/flat 무관 — 내부 character_id가 명시적으로 존재하면 actorId와
-      // 정확히 일치해야 한다. nested actor key가 정본이더라도 내부 충돌은 거부.
-      if (claimedActor && claimedActor !== actorId) continue;
-      // flat evidence는 character_id(또는 character) 필수 — 없거나 다르면 거부
-      // (플레이어 flat evidence도 동일 원칙, player-1 추측 변환 없음).
-      if (!nested && claimedActor !== actorId) continue;
-      if (typeof entry.quote === 'string' && entry.quote.trim()) result.quotes[slot] = entry.quote.trim();
-      continue;
-    }
-    // 문자열 entry는 actor별 nested map에서만 허용한다.
-    if (nested && typeof entry === 'string' && entry.trim()) result.quotes[slot] = entry.trim();
-  }
-  return result;
+  const entry = plainObject(root[actorId]) ? root[actorId] : null;
+  if (!entry) return null;
+  // character_id는 actor_id와 정확히 일치해야 한다 (충돌 거부).
+  const claimedActor = typeof entry.character_id === 'string'
+    ? entry.character_id
+    : (typeof entry.character === 'string' ? entry.character : null);
+  if (claimedActor && claimedActor !== actorId) return null;
+  const quote = typeof entry.quote === 'string' && entry.quote.trim() ? entry.quote.trim() : null;
+  return quote;
 }
 
 function sceneEvidenceMap(patch, envelopeEvidence, actorId) {
@@ -90,8 +79,7 @@ function sceneEvidenceMap(patch, envelopeEvidence, actorId) {
   const clothing = clothingEvidenceForActor(envelopeEvidence, actorId);
   return {
     ...local,
-    clothing: clothing.quotes,
-    clothing_actor_scoped: clothing.actorScoped
+    clothing
   };
 }
 

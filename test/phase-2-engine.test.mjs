@@ -23,7 +23,7 @@ test('Phase 2 parser preserves normal Story order and four choices', () => {
   assert.equal(parsed.blocks.length, 4);
   assert.deepEqual(parsed.blocks.map(block => block.type), ['scene', 'dialogue', 'scene', 'dialogue']);
   assert.equal(parsed.blocks[1].speaker, '김하연');
-  assert.equal(parsed.player_status.includes('회의실'), true);
+  assert.equal(parsed.player_status, undefined, 'player_status는 저장하지 않는다 ([PLAYER_STATUS] 구버전 마커는 읽기만)');
   assert.equal(parsed.choices.length, 4);
 });
 

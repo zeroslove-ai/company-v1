@@ -5,6 +5,21 @@ export function text(element, value) { if (element) element.textContent = value 
 function displayValue(value) { return typeof value === 'string' || typeof value === 'number' ? String(value) : ''; }
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null; }
 
+/**
+ * 플레이어 속마음 표시 전용 최소 정규화 — 문장부호 자동 개행 없음, 모델 줄바꿈 유지.
+ * - 각 줄 앞뒤 공백 제거
+ * - 줄 전체가 "." / ".." / "..." / "·" / "-" 뿐이면 삭제
+ * - 연속 빈 줄은 최대 한 줄로 축소
+ * - 바깥쪽 불필요한 따옴표 제거
+ */
+function normalizeInnerThought(value) {
+  const trimmed = String(value ?? '').replace(/^["“”']+|["“”']+$/gu, '');
+  const lines = trimmed.split('\n').map(line => line.trim());
+  const cleaned = lines.filter(line => !/^[.．·\-–—]{1,4}$/u.test(line));
+  return cleaned.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+export { normalizeInnerThought };
+
 function dataAttributeName(key) {
   return `data-${String(key).replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`;
 }
@@ -202,10 +217,9 @@ export function renderNarrative(container, parsed) {
     }
     lastDialogueCard = null;
     const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`;
-    // 플레이어 속마음: 마침표·물음표·느낌표 뒤 줄바꿈으로 가독성 향상 (대화체 혼잣말)
     const blockText = block.text ?? '';
     paragraph.textContent = block.type === 'player_inner_thought'
-      ? blockText.replace(/([.。!?！？~])\s*/g, '$1\n')
+      ? normalizeInnerThought(blockText)
       : blockText;
     container.append(paragraph);
   }
@@ -216,8 +230,8 @@ export function renderNarrative(container, parsed) {
     if (thought) {
       const paragraph = document.createElement('p');
       paragraph.className = 'narrative-player_inner_thought';
-      // 바깥쪽 불필요한 따옴표는 제거하고, 구어체 줄바꿈(마침표·물음표·느낌표 뒤)은 유지한다.
-      paragraph.textContent = String(thought).replace(/^["“”']+|["“”']+$/gu, '').replace(/([.。!?！？~])\s*/g, '$1\n');
+      // 바깥쪽 불필요한 따옴표만 제거하고, 모델이 만든 줄바꿈은 유지한다 (문장부호 자동 개행 없음).
+      paragraph.textContent = normalizeInnerThought(String(thought));
       container.append(paragraph);
     }
   }
@@ -257,10 +271,9 @@ export function renderHistory(container, turns, { showSummary = true, collapsibl
       if (container.id === 'story-history') narrative.append(summary);
       else card.append(summary);
     }
-    // 병원편 스타일 상세보기: 모달에서 턴 요약은 펼쳐 두고 세부(속마음/상황/선택지/원문)는 접기
+    // 병원편 스타일 상세보기: 모달에서 턴 요약은 펼쳐 두고 세부(속마음/선택지/원문)는 접기
     if (collapsible) {
       appendCollapsibleSection(card, '💭 플레이어 속마음', displayValue(turn.player_inner_thought) || parsed?.player_inner_thought);
-      appendCollapsibleSection(card, '📋 플레이어 상황', displayValue(turn.player_status) || parsed?.player_status);
       const choiceItems = (parsed?.choices ?? []).map((c, i) => `${i + 1}. ${c}`).join('\n');
       appendCollapsibleSection(card, '🔀 선택지', choiceItems);
       appendCollapsibleSection(card, '📄 원문', displayValue(turn.story_text));
@@ -720,7 +733,6 @@ export function playerSupplementalDisplay(viewModel) {
     : null;
   return {
     innerThought: displayValue(model.player?.inner_thought),
-    playerStatus: displayValue(model.player?.status),
     gameTime: [day ? `Day ${day}` : '', clock].filter(Boolean).join(' · '),
     ejaculationProgress: progress,
     ejaculationCount: count,
@@ -755,9 +767,6 @@ function renderSupplementalPanels(elements, model) {
     duplicateInnerThought.hidden = true;
     duplicateInnerThought.className = 'future-slot';
   }
-  renderTextSlot(supplementalElement(elements, 'playerStatus', 'player-status-slot'), {
-    heading: '현재 상황', value: display.playerStatus, className: 'player-status-card'
-  });
   renderTextSlot(supplementalElement(elements, 'gameTime', 'game-time-slot'), {
     heading: '현재 시간', value: display.gameTime, className: 'game-time-card'
   });
