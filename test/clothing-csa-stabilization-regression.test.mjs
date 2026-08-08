@@ -99,6 +99,22 @@ test('회귀3: 비활성 옛 규정(csa_2, csa_5)이 Story·Extract payload에 �
   assert.ok(!runtimeIds.includes('csa_2') && !runtimeIds.includes('csa_5'));
 });
 
+test('회귀3b: scene participants가 stale NPC present/location을 projection에서 덮는다', () => {
+  const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
+  save.scene_state = { ...save.scene_state, location_id: 'meeting_room', participants: ['player', 'heroine3'] };
+  save.npc_scene_state = {
+    ...(save.npc_scene_state ?? {}),
+    heroine3: { present: false, location_id: 'old_room', posture: '서 있다' },
+    heroine4: { present: true, location_id: 'meeting_room' }
+  };
+  const before = structuredClone(save);
+  const projection = buildSceneContextCore(save, ['heroine3', 'heroine4']);
+  assert.equal(projection.active_npc_state.npc_scene_state.heroine3.present, true);
+  assert.equal(projection.active_npc_state.npc_scene_state.heroine3.location_id, 'meeting_room');
+  assert.equal(projection.active_npc_state.npc_scene_state.heroine4.present, false);
+  assert.deepEqual(save, before, 'projection does not mutate save');
+});
+
 // 4) 상반 규정 최소 정책 — 0개/1개/2개+ conflicted
 test('회귀4: 상반 규정이 정확히 반대 착의를 요구한다 (0개/1개/2개+ conflicted)', () => {
   // female_employee 규정이므로 여성 NPC 프로필을 넘긴다

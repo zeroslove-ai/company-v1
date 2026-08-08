@@ -388,7 +388,7 @@ test('회귀8: player actor 경로는 기존대로 저장 성공', () => {
   assert.equal(result.nextSave.player_scene_state.clothing.uniform_bottom, 'removed');
 });
 
-test('회귀9: player-1 actor key는 player로 자동 변환하지 않고 거부', () => {
+test('회귀9: player alias actor key는 canonical player로 보존', () => {
   const save = sceneSave();
   save.player_scene_state = { ...save.player_scene_state, clothing: {} };
   const story = '플레이어는 정장 바지를 벗어 의자 위에 올려두었다.';
@@ -405,8 +405,8 @@ test('회귀9: player-1 actor key는 player로 자동 변환하지 않고 거부
     }
   });
   const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
-  assert.deepEqual(result.nextSave.player_scene_state.clothing, {},
-    'player-1 키는 추측 변환 없이 거부');
+  assert.equal(result.nextSave.player_scene_state.clothing.uniform_bottom, 'removed',
+    'player-1 키는 canonical player로 정규화');
 });
 
 test('회귀10: 규정 문구만 존재하면 actual clothing 생성 없음', () => {
@@ -478,7 +478,7 @@ test('회귀14: extract-prompt는 착의 actor-level evidence 계약을 담는�
 
 // ── 후속 보정: scene cast 정본 + character_id 충돌/필수 (authority 누수 3건) ──
 
-test('회귀A: scene cast는 NPC 2명인데 Extract가 1명만 반환 → 단일 NPC 예외 비활성, 거부', () => {
+test('회귀A: post-Story npcs_present가 최종 착의 presence 권위다', () => {
   const save = sceneSave();
   save.npc_scene_state['heroine3'] = { ...save.npc_scene_state['heroine3'], clothing: {} };
   const story = '그녀가 셔츠를 벗었다.';
@@ -501,8 +501,8 @@ test('회귀A: scene cast는 NPC 2명인데 Extract가 1명만 반환 → 단일
     npcIds: new Set(['npc-hayeon', 'heroine3']),
     castNpcIds: ['heroine2', 'heroine3']  // scene cast 정본은 2명
   });
-  assert.deepEqual(result.nextSave.npc_scene_state['heroine3'].clothing, {},
-    'cast 2명이면 Extract 1명 반환으로 단일 예외가 켜지지 않는다 — 거부');
+  assert.equal(result.nextSave.npc_scene_state['heroine3'].clothing.uniform_top, 'removed',
+    '최종 Story presence에 포함된 heroine3 착의는 저장');
 });
 
 test('회귀B: nested actor key와 내부 character_id 충돌 → 저장 거부', () => {
@@ -607,7 +607,7 @@ test('회귀F: 다중 NPC scene cast + 대상 이름 포함 → 해당 NPC만 �
 
 // ── PR #30 보정: 단일 NPC 판정 = present + entering union (envelope.npcs_present 제거) ──
 
-test('PR30-A: present 1명 + entering 1명 + Extract 1명 누락 → 물리적 2명, 단일 NPC 예외 비활성, 거부', () => {
+test('PR30-A: post-Story presence가 누락된 cast를 축소해도 최종 actor evidence를 저장', () => {
   const save = sceneSave();
   save.npc_scene_state['heroine3'] = { ...save.npc_scene_state['heroine3'], clothing: {} };
   const story = '그녀가 셔츠를 벗었다.';
@@ -631,9 +631,7 @@ test('PR30-A: present 1명 + entering 1명 + Extract 1명 누락 → 물리적 2
     castNpcIds: ['heroine3'],     // present 1명
     enteringNpcIds: ['heroine2']  // entering 1명 → 물리적 union 2명
   });
-  assert.deepEqual(result.nextSave.npc_scene_state['heroine3'].clothing, {},
-    'present+entering union 2명이면 Extract 1명 반환으로도 단일 예외 비활성 — 거부');
-  assert.ok(result.warnings.some(w => w.includes('unevidenced_clothing_change')), result.warnings.join(' '));
+  assert.equal(result.nextSave.npc_scene_state['heroine3'].clothing.uniform_top, 'removed');
 });
 
 test('PR30-B: present 0명 + entering 1명 → 물리적 단일 NPC, nested actor-scoped 이름 없는 quote 저장 성공', () => {
@@ -664,7 +662,7 @@ test('PR30-B: present 0명 + entering 1명 → 물리적 단일 NPC, nested acto
     'entering 1명은 물리적 현장 인물 — 단일 NPC 예외 성립');
 });
 
-test('PR30-C: cast 빈 장면 + Extract만 1명 주장 → Extract가 단일 NPC 예외를 만들 수 없음, 거부', () => {
+test('PR30-C: cast보다 post-Story npcs_present가 최종 장면을 결정', () => {
   const save = sceneSave();
   save.npc_scene_state['heroine3'] = { ...save.npc_scene_state['heroine3'], clothing: {} };
   const story = '그녀가 셔츠를 벗었다.';
@@ -688,9 +686,7 @@ test('PR30-C: cast 빈 장면 + Extract만 1명 주장 → Extract가 단일 NPC
     castNpcIds: [],  // present 0명
     enteringNpcIds: [] // entering 0명 → 물리적 0명
   });
-  assert.deepEqual(result.nextSave.npc_scene_state['heroine3'].clothing, {},
-    'cast 빈 장면에서 Extract npcs_present만으로 단일 예외 생성 불가 — 거부');
-  assert.ok(result.warnings.some(w => w.includes('unevidenced_clothing_change')), result.warnings.join(' '));
+  assert.equal(result.nextSave.npc_scene_state['heroine3'].clothing.uniform_top, 'removed');
 });
 
 test('PR30-D: scene_cast_contract 없음 → legacy participants fallback 단일 NPC, nested actor-scoped 이름 없는 quote 저장 성공', () => {
@@ -700,6 +696,7 @@ test('PR30-D: scene_cast_contract 없음 → legacy participants fallback 단일
   const story = '그녀가 셔츠를 벗었다.';
   const envelope = clothingEnvelope({
     story,
+    npcsPresent: ['heroine3'],
     stateDelta: { npc_scene_state: { 'heroine3': { clothing: { uniform_top: 'removed' } } } },
     evidence: {
       clothing: {

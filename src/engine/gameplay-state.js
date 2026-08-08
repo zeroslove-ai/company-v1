@@ -130,13 +130,23 @@ export function buildSceneContextCore(save, activeIds = []) {
   const world = object(s.world_state) ? s.world_state : {};
   const gameTime = object(world.game_time) ? world.game_time : {};
   const activeSet = new Set(Array.isArray(activeIds) ? activeIds : []);
+  const participants = new Set(Array.isArray(scene.participants) ? scene.participants : []);
   const activeNpcState = {};
   for (const mapName of ACTIVE_NPC_MAPS) {
     const map = object(s[mapName]) ? s[mapName] : {};
     for (const id of activeSet) {
       if (object(map[id])) {
         activeNpcState[mapName] = activeNpcState[mapName] ?? {};
-        activeNpcState[mapName][id] = map[id];
+        const projected = { ...map[id] };
+        if (mapName === 'npc_scene_state') {
+          // Current scene participants are canonical.  Do not expose a stale
+          // present=false or legacy location that contradicts the scene.
+          projected.present = participants.has(id);
+          if (participants.has(id) && identity(scene.location_id)) {
+            projected.location_id = identity(scene.location_id);
+          }
+        }
+        activeNpcState[mapName][id] = projected;
       }
     }
   }

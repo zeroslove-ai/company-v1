@@ -72,10 +72,10 @@ function movementCast(save, playerAction = '민아 보러 간다') {
 }
 
 function emptySuccessEnvelope() {
-  // 의도적으로 이동 관련 state를 비운다 — sanitizer만으로 이동이 확정돼야 함
+  // movement cast가 가리키는 최종 Story 장면을 명시한다.
   return {
     state_delta: {},
-    npcs_present: [],
+    npcs_present: ['heroine2'],
     outcome: 'success',
     evidence: {},
     turn_summary: '디자인팀으로 이동했다.',
@@ -258,26 +258,27 @@ test('21. 실패 시 beforeSave의 focal/last speaker 복원', () => {
 // 모호성 및 예외
 // ---------------------------------------------------------------------------
 
-test('22. destination 0명 → 이동 미적용', () => {
+test('22. destination 0명이어도 최종 NPC가 없으면 플레이어 단독 이동 적용', () => {
   const save = initialSave();
-  const contract = { ...movementCast(save), destination_npc_ids: [], destination_location_id: null, destination_scene_id: null };
-  const merged = applyGuardedStateDelta(save, emptySuccessEnvelope(), { expectedTurn: 8, actionId: 'a8', turnId: 't8', playerAction: 'x', parsedStory: { scene_cast_contract: contract }, master, npcIds: new Set(['heroine1', 'heroine2', 'heroine5']) });
-  const result = sanitizeMovementCommit({ beforeSave: save, nextSave: merged.nextSave, sceneCastContract: contract, extractEnvelope: emptySuccessEnvelope(), actionKind: 'ordinary', expectedTurn: 8 });
-  assert.equal(result.applied, false);
-  assert.equal(result.reason, 'missing_destination');
-  assert.deepEqual(result.warnings, ['movement_commit_skipped:missing_destination']);
-  assert.equal(merged.nextSave.scene_state.location_id, 'meeting_room_5f', '위치 유지');
+  const contract = { ...movementCast(save), destination_npc_ids: [], destination_location_id: 'design_team', destination_scene_id: 'design_team' };
+  const envelope = { ...emptySuccessEnvelope(), npcs_present: [] };
+  const merged = applyGuardedStateDelta(save, envelope, { expectedTurn: 8, actionId: 'a8', turnId: 't8', playerAction: 'x', parsedStory: { scene_cast_contract: contract }, master, npcIds: new Set(['heroine1', 'heroine2', 'heroine5']) });
+  const result = sanitizeMovementCommit({ beforeSave: save, nextSave: merged.nextSave, sceneCastContract: contract, extractEnvelope: envelope, actionKind: 'ordinary', expectedTurn: 8 });
+  assert.equal(result.applied, true);
+  assert.equal(result.reason, 'movement_committed');
+  assert.deepEqual(merged.nextSave.scene_state.participants, ['player-1']);
+  assert.deepEqual(merged.nextSave.last_npcs_present, []);
+  assert.equal(merged.nextSave.focal_character_id, null);
 });
 
-test('23. destination 2명 → 이동 미적용', () => {
+test('23. destination 2명이어도 최종 Extract NPC를 모두 반영', () => {
   const save = initialSave();
   const contract = { ...movementCast(save), destination_npc_ids: ['heroine2', 'heroine5'], destination_location_id: 'design_team' };
-  const merged = applyGuardedStateDelta(save, emptySuccessEnvelope(), { expectedTurn: 8, actionId: 'a8', turnId: 't8', playerAction: 'x', parsedStory: { scene_cast_contract: contract }, master, npcIds: new Set(['heroine1', 'heroine2', 'heroine5']) });
-  const result = sanitizeMovementCommit({ beforeSave: save, nextSave: merged.nextSave, sceneCastContract: contract, extractEnvelope: emptySuccessEnvelope(), actionKind: 'ordinary', expectedTurn: 8 });
-  assert.equal(result.applied, false);
-  assert.equal(result.reason, 'ambiguous_destination');
-  assert.deepEqual(result.warnings, ['movement_commit_skipped:ambiguous_destination']);
-  assert.equal(merged.nextSave.scene_state.location_id, 'meeting_room_5f', '위치 유지');
+  const envelope = { ...emptySuccessEnvelope(), npcs_present: ['heroine2', 'heroine5'] };
+  const merged = applyGuardedStateDelta(save, envelope, { expectedTurn: 8, actionId: 'a8', turnId: 't8', playerAction: 'x', parsedStory: { scene_cast_contract: contract }, master, npcIds: new Set(['heroine1', 'heroine2', 'heroine5']) });
+  const result = sanitizeMovementCommit({ beforeSave: save, nextSave: merged.nextSave, sceneCastContract: contract, extractEnvelope: envelope, actionKind: 'ordinary', expectedTurn: 8 });
+  assert.equal(result.applied, true);
+  assert.deepEqual(merged.nextSave.scene_state.participants, ['player-1', 'heroine2', 'heroine5']);
 });
 
 test('24. destination location 없음 → 이동 미적용', () => {
