@@ -707,3 +707,20 @@ test('턴70-26~27: 성적 hand stimulation → sex/handjob, 일반 대화 → ge
   assert.equal(model.media.image_pool, 'general');
   assert.deepEqual(model.media.image_tags, []);
 });
+
+test('턴70-37: /api/image sex pool에 tags 전달 — zero-match는 null (general 재요청 없음)', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({
+    fetchImpl: async (url, init = {}) => {
+      const textUrl = String(url);
+      if (textUrl.includes('/rest/v1/image_library')) {
+        return json([turn70ImageRow('fg1', ['adult', 'sex', 'fingering'])]);
+      }
+      return mock.fetchImpl(url, init);
+    }
+  });
+  const res = await worker.fetch(request('/api/image', { game_id: gameId, character_id: 'heroine4', pool: 'sex', tags: ['handjob'] }), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.data.image, null, 'handjob 요청 + fingering 후보만 → null');
+});
