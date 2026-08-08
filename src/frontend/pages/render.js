@@ -536,30 +536,43 @@ function renderPrivateInfo(container, character) {
   ], 'private-info-unlocked'));
 }
 
-export function renderFocalCharacter(container, focal, player) {
+function renderInteractingAttire(container, characters) {
+  const entries = Array.isArray(characters) ? characters.filter(character => object(character) && character.id) : [];
+  if (!entries.length) return false;
+  container.append(detailsSection('상호작용 인물 착의', entries.map(character => [
+    displayValue(character.name) || displayValue(character.id),
+    clothingDisplay(character.scene_state?.clothing) || '확인되지 않음'
+  ]), 'interacting-attire-section'));
+  return true;
+}
+
+export function renderFocalCharacter(container, focal, player, interactingCharacters = []) {
   if (!container) return;
   const character = object(focal?.character) ?? {};
-  const hasState = Boolean(focal?.name || focal?.id || focal?.scene_state?.posture || focal?.scene_state?.position_label || player?.posture || player?.position_label || Object.keys(character).length);
+  const hasInteracting = Array.isArray(interactingCharacters) && interactingCharacters.length > 0;
+  const hasState = Boolean(hasInteracting || focal?.name || focal?.id || focal?.scene_state?.posture || focal?.scene_state?.position_label || player?.posture || player?.position_label || Object.keys(character).length);
   if (!hasState) { container.hidden = true; container.replaceChildren(); return; }
   container.hidden = false; container.replaceChildren();
   const heading = document.createElement('h2'); heading.textContent = focal?.name ? `${focal.name} 현재 상태` : '현재 캐릭터 상태';
   container.append(heading);
+  const attireRosterShown = renderInteractingAttire(container, interactingCharacters);
   // 자세 정보가 실제로 있을 때만 자세 문단을 추가한다 (빈 문구 노출 방지).
   const relationText = physicalRelationDisplay(focal, player);
   if (relationText) {
     const relation = document.createElement('p'); relation.className = 'physical-relation'; relation.textContent = relationText;
     container.append(relation);
   }
-  // 현재 착의·자세·위치 — 데이터가 비어 있어도 "확인되지 않음"으로 표시한다.
-  const attire = clothingDisplay(focal?.scene_state?.clothing) || '확인되지 않음';
-  container.append(detailsSection('현재 상태', [
-    ['현재 착의', attire],
+  // 상호작용 인물 roster가 없을 때만 포컬 착의를 여기서 표시한다. 중복 표시 금지.
+  const currentRows = [];
+  if (!attireRosterShown) currentRows.push(['현재 착의', clothingDisplay(focal?.scene_state?.clothing) || '확인되지 않음']);
+  currentRows.push(
     ['현재 자세', postureSentence(
       focal?.scene_state?.posture,
       focal?.scene_state?.posture_detail
     ) || '확인되지 않음'],
     ['현재 위치', displayValue(focal?.scene_state?.position_label) || '확인되지 않음']
-  ]));
+  );
+  container.append(detailsSection('현재 상태', currentRows));
   if (Object.keys(character).length) {
     renderStatStrip(container, { id: focal?.id ?? character?.id, stats: character.stats, stat_changes: character.stat_changes });
     const profile = object(character.profile) ?? {};
@@ -628,7 +641,7 @@ function renderPlayer(container, player, scene) {
     ['소속', [displayValue(player?.department), displayValue(player?.position)].filter(Boolean).join(' · ')],
     ['현재 장소', localizedValue(player?.location_label || scene?.scene_state?.location_label || scene?.scene_state?.location_id)],
     ['현재 자세', playerPositionDisplay(player)],
-    ['복장', clothingDisplay(player?.clothing)],
+    ['복장', clothingDisplay(player?.clothing) || '확인되지 않음'],
     ['레벨', typeof player?.level === 'number' ? `Lv.${player.level}` : ''],
     ['EXP', playerProgressDisplay(player)],
     ['활성 규정', activeMax === null ? String(activeCount) : `${activeCount} / ${activeMax}`],
@@ -775,7 +788,7 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   // scene-state: 활성 규정은 플레이어 상태창으로 통합되어 여기선 비움 (중복 방지)
   const characterPanel = elements.focal?.closest?.('details');
   if (characterPanel) characterPanel.open = true;
-  renderFocalCharacter(elements.focal, model.focal_character, model.player);
+  renderFocalCharacter(elements.focal, model.focal_character, model.player, model.interacting_characters);
   renderMindMonitor(elements.mind, model.media?.mind_monitor_entries ?? model.media?.mind_monitor, {
     preferredId: model.media?.default_mind_character_id
   });
