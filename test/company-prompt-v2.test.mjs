@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { buildExtractCharacterCanon, buildExtractPrompt } from '../src/engine/extract-prompt.js';
 import { buildOpeningPrompt } from '../src/engine/opening-prompt.js';
-import { buildLastTurnContinuity, buildStoryContextProjection, buildStoryPrompt } from '../src/engine/story-prompt.js';
+import { buildStoryContextProjection, buildStoryPrompt } from '../src/engine/story-prompt.js';
 
 const characters = {
   heroine3: {
@@ -87,29 +87,20 @@ function contextWithTurns() {
   };
 }
 
-test('last-turn continuity keeps bounded narrative, six latest dialogue lines, and full choices', () => {
-  const turn = contextWithTurns().recent_turns.at(-1);
-  const continuity = buildLastTurnContinuity(turn);
 
-  assert.equal(Array.from(continuity.narrative_tail).length, 1800);
-  assert.equal(continuity.narrative_tail.endsWith('마지막 질문과 책상 위 보고서'), true);
-  assert.deepEqual(continuity.dialogue_tail.map(line => line.text), [
-    '3번째 실제 대사', '4번째 실제 대사', '5번째 실제 대사',
-    '6번째 실제 대사', '7번째 실제 대사', '8번째 실제 대사'
-  ]);
-  assert.deepEqual(continuity.choices, turn.choices);
-});
 
-test('Story context keeps three summaries but only one detailed continuity block', () => {
+test('Story context keeps the latest 3 turns as full raw story (canonical, no duplicate projection)', () => {
   const context = contextWithTurns();
   const projection = buildStoryContextProjection(context, ['heroine3', 'heroine5'], {
     playerAction: '김제나의 답을 기다린다.'
   });
 
   assert.equal(projection.recent_turns.length, 3);
-  assert.equal(projection.recent_turns[0].narrative_tail, undefined);
-  assert.equal(projection.last_turn_continuity.turn, 3);
-  assert.equal(projection.last_turn_continuity.dialogue_tail.length, 6);
+  assert.equal('last_turn_continuity' in projection, false, '중복 projection 없음 — recent_turns가 유일 정본');
+  for (const turn of projection.recent_turns) {
+    assert.equal(typeof turn.story_text, 'string');
+    assert.equal('turn_summary' in turn, false, '요약 필드 없음');
+  }
 });
 
 test('Story Prompt v2 explicitly requires continuity, NPC agency, functional dialogue, and choice diversity', () => {
@@ -123,12 +114,13 @@ test('Story Prompt v2 explicitly requires continuity, NPC agency, functional dia
   const system = messages[0].content;
   const payload = JSON.parse(messages[1].content);
 
-  assert.match(system, /last_turn_continuity/);
+  assert.match(system, /recent_turns/);
   assert.match(system, /NPC 자율성/);
   assert.match(system, /대화 기능/);
   assert.match(system, /현재 장면에서 바로 실행할 수 있는 서로 다른 행동 4개/);
   assert.match(system, /업무 협조는 호감이 아니고/);
-  assert.equal(payload.context.last_turn_continuity.turn, 3);
+  assert.equal(payload.context.recent_turns.length, 3);
+  assert.equal('last_turn_continuity' in payload.context, false, '중복 projection 없음');
   assert.ok(system.length < 9000, `Story system prompt too large: ${system.length}`);
 });
 

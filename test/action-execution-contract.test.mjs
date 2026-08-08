@@ -225,13 +225,12 @@ test('검토1: csa_direct section은 EXACT-SCOPE LIMIT만 — coverage 중복·u
   assert.equal(c.csa_coverage.csa_id, 'csa_2');
 });
 
-test('section: ordinary는 빈 문자열 (contextual CSA request가 없을 때)', () => {
+test('section: ordinary는 빈 문자열 (contextual route 없음)', () => {
   const noCsa = csaSave({ csa_active: [], csa_rules: {} });
   assert.equal(buildActionExecutionContractSection(resolve('서류를 정리한다', noCsa)), '');
-  // active CSA가 있고 모호한 요청이면 contextual CSA request section이 생긴다.
-  const withCsa = resolve('그렇지. 나 발기했어. 부탁해.');
-  const section = buildActionExecutionContractSection(withCsa);
-  assert.ok(section.includes('CONTEXTUAL CSA REQUEST'), section);
+  // 활성 CSA가 있어도 모호한 요청은 ordinary이며 section이 비어 있다 —
+  // CSA contract는 별도 prompt 주입(projectGlobalCsa)으로만 제공된다.
+  assert.equal(buildActionExecutionContractSection(resolve('그렇지. 나 발기했어. 부탁해.')), '');
 });
 
 test('contract: material_action/actor_id/relationship_basis shape', () => {

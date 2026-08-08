@@ -22,42 +22,18 @@ function toEntryArray(source, keyName) {
   return Object.entries(source).map(([key, value]) => ({ ...value, [keyName]: key }));
 }
 
-function clip(value, maxLength) {
-  const text = typeof value === 'string' ? value.trim() : '';
-  if (!text) return '';
-  const characters = Array.from(text);
-  return characters.length <= maxLength ? text : characters.slice(-maxLength).join('');
-}
-
-function normalizedChoices(value) {
-  return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()).map(item => item.trim()).slice(0, 4) : [];
-}
-
-function parsedBlocks(turn) {
-  if (Array.isArray(turn?.parsed_blocks?.blocks)) return turn.parsed_blocks.blocks;
-  if (Array.isArray(turn?.parsed_blocks)) return turn.parsed_blocks;
-  return [];
-}
-
-function narrativeTail(turn) {
-  const blocks = parsedBlocks(turn)
-    .filter(block => block?.type === 'scene' || block?.type === 'dialogue')
-    .map(block => typeof block?.text === 'string' ? block.text.trim() : '')
-    .filter(Boolean);
-  const source = blocks.length ? blocks.join('\n') : (typeof turn?.story_text === 'string' ? turn.story_text : '');
-  return clip(source, 1800);
-}
-
-function dialogueTail(turn) {
-  const lines = Array.isArray(turn?.parsed_blocks?.dialogue_lines) ? turn.parsed_blocks.dialogue_lines : [];
-  return lines.filter(line => object(line) && typeof line.text === 'string' && line.text.trim()).slice(-6).map(line => ({
-    speaker_id: typeof line.speaker_id === 'string' ? line.speaker_id : null,
-    speaker_name: typeof line.speaker_name === 'string' ? line.speaker_name : '',
-    direction: typeof line.direction === 'string' ? line.direction : '',
-    text: clip(line.text, 260)
-  }));
-}
-
+/**
+ * NPC별 착의 정본 권위 — 실제 착의(actual), 규정상 요구(required), 이행 상태,
+ * 규정 ID를 Story에 전달한다.
+ *
+ * - actual_clothing: save.npc_scene_state[npcId].clothing만 사용 (비어 있으면 {})
+ *   규정/관찰/장면 참여만으로 actual을 생성하지 않는다.
+ * - required_clothing: 해당 NPC에 적용되는 활성 착의 규정이 정확히 1개면 그 요구,
+ *   0개면 {}, 2개 이상 충돌이면 {} + conflicted=true (우선순위 추론 없음)
+ * - compliance: compliant | noncompliant | unknown | not_applicable
+ * - female_employee 규정은 gender==='female' NPC에게만 적용
+ *   → 남성 NPC의 required_clothing은 반드시 빈 객체
+ */
 function koreanGivenName(name) {
   const characters = Array.from(typeof name === 'string' ? name.trim() : '');
   if (characters.length !== 3 || !characters.every(character => /[가-힣]/u.test(character))) return '';
@@ -87,32 +63,7 @@ export function resolveMovementCharacterTarget(charactersMap, playerAction) {
 }
 
 /** Detailed continuity is intentionally limited to the immediately previous turn. */
-export function buildLastTurnContinuity(turn) {
-  if (!object(turn)) return null;
-  const continuity = {
-    turn: typeof turn.turn_number === 'number' ? turn.turn_number : null,
-    player_action: typeof turn.player_action === 'string' ? clip(turn.player_action, 500) : '',
-    narrative_tail: narrativeTail(turn),
-    dialogue_tail: dialogueTail(turn),
-    choices: normalizedChoices(turn.choices ?? turn.parsed_blocks?.choices)
-  };
-  return continuity.player_action || continuity.narrative_tail || continuity.dialogue_tail.length || continuity.choices.length
-    ? continuity
-    : null;
-}
 
-/**
- * NPC별 착의 정본 권위 — 실제 착의(actual), 규정상 요구(required), 이행 상태,
- * 규정 ID를 Story에 전달한다.
- *
- * - actual_clothing: save.npc_scene_state[npcId].clothing만 사용 (비어 있으면 {})
- *   규정/관찰/장면 참여만으로 actual을 생성하지 않는다.
- * - required_clothing: 해당 NPC에 적용되는 활성 착의 규정이 정확히 1개면 그 요구,
- *   0개면 {}, 2개 이상 충돌이면 {} + conflicted=true (우선순위 추론 없음)
- * - compliance: compliant | noncompliant | unknown | not_applicable
- * - female_employee 규정은 gender==='female' NPC에게만 적용
- *   → 남성 NPC의 required_clothing은 반드시 빈 객체
- */
 function buildClothingAuthority(save, { master = {} } = {}) {
   const csaActive = Array.isArray(save?.csa_active) ? save.csa_active : [];
   const csaRules = object(save?.csa_rules) ? save.csa_rules : {};
@@ -182,14 +133,15 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     }),
     // 최신 확정 3턴 원문 전체 — 500자 절단 없음, turn_summary로 대체하지 않음.
     // 하나의 canonical history section으로만 제공한다 (raw/summary/narrative 중복 없음).
+    // 최신 턴은 recent_turns[-1]이 유일한 정본이며 last_turn_continuity 같은
+    // 별도 projection을 만들지 않는다 (중복 방지).
     recent_turns: recentTurns.map(turn => ({
       turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
       player_action: typeof turn?.player_action === 'string' ? turn.player_action : '',
       story_text: typeof turn?.story_text === 'string' ? turn.story_text : '',
       parsed_blocks: turn?.parsed_blocks ?? null,
       choices: Array.isArray(turn?.choices) ? turn.choices : []
-    })),
-    last_turn_continuity: buildLastTurnContinuity(recentTurns.at(-1))
+    }))
   };
 }
 
@@ -212,7 +164,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   '[1. 서사 및 행동]: 플레이어가 새로 합류한 신입이면 인사·소개·눈치 보기 같은 인간관계 행동이 자연스럽게 나오도록 하고, 업무 진행만으로 턴을 채우지 않는다. 사내 일상(커피, 점심, 잡담, 회의 참석, 부서 이동)과 관계 형성이 서사의 중심이 될 수 있다. context.current_time(게임 시각, minute_of_day)을 참고해 시간대에 맞는 사내 상황을 반영한다(예: 09:00~10:00 출근·조회, 12:00~13:00 점심시간, 18:00 이후 야근, 22:00 이후 심야 근무). 시각이 모호하면 그대로 두고 강조하지 않는다. 서술은 [SCENE] 줄 뒤에 쓰고, 발화는 반드시 [최종 출연·대사 출력 계약]의 [DIALOGUE speaker_id="..." acting_direction="..."] 형식으로만 쓴다. 화자명 없는 대사·이름: 대사·직급만 표시한 대사는 금지다. 분량 목표(Context/선택지/속마음/상황판 제외)는 가벼운 반응 800~1000자, 대화·갈등·구체 행동 1000~1500자, 이동·다수 NPC·중요 CSA 1200~2000자다. NPC 등장 턴은 의미 있는 발언 3회 이상을 목표로 하되 같은 말을 줄만 나눠 채우지 않는다. 이 목표들은 생성 목표일 뿐 검증 게이트가 아니며 미달로 재생성하지 않는다.',
 
-  '장면 연속성: context.last_turn_continuity가 있으면 turn_summary보다 실제 narrative_tail과 dialogue_tail을 우선한다. 직전 질문·약속·결정·말투·물건·자세를 무시하고 장면을 재시작하지 않으며, 질문에는 답변·회피·보류 중 하나로 반응하고 같은 설명을 반복하지 않는다.',
+  '장면 연속성: context.recent_turns에 최신 확정 3턴의 story_text 원문이 그대로 있다. 그 원문(특히 최신 턴)을 실제 근거로 삼아 직전 질문·약속·결정·말투·물건·자세를 무시하고 장면을 재시작하지 않으며, 질문에는 답변·회피·보류 중 하나로 반응하고 같은 설명을 반복하지 않는다.',
 
   'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. NPC 등장 여부는 scene_cast_contract가 이미 확정했고 너에게는 결정 권한이 없다. eligible_nearby_npcs는 서버 내부 참고 목록일 뿐이므로 그것을 근거로 누구도 등장시키지 마라.',
 

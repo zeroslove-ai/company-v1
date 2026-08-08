@@ -310,14 +310,14 @@ function normalizedMindEntries(value) {
 
 function statDisplay(entry, key) {
   const value = Number(entry?.stats?.[key]);
-  const change = object(entry?.stat_changes?.[key]);
-  const delta = Number(change?.delta);
-  // Commit 응답 turn_changes 기반 일시 delta를 우선한다 (2~3초 후 제거됨).
+  // 증감 표시는 Commit 직후 일시 delta(committedStatDeltas)만 사용한다.
+  // context.character_details.stat_changes는 최신 턴마다 재생성되므로 fallback으로
+  // 쓰면 +N/-N이 계속 남는다 — 실시간 패널에는 사용하지 않는다.
   const committedDelta = Number(committedStatDeltas?.[entry?.id]?.[key]);
-  const finalDelta = Number.isFinite(committedDelta) && committedDelta !== 0
-    ? committedDelta
-    : (Number.isFinite(delta) && delta !== 0 ? delta : null);
-  return { value: Number.isFinite(value) ? value : null, delta: finalDelta };
+  return {
+    value: Number.isFinite(value) ? value : null,
+    delta: Number.isFinite(committedDelta) && committedDelta !== 0 ? committedDelta : null
+  };
 }
 
 function renderStatStrip(container, entry) {

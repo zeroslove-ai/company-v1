@@ -1250,11 +1250,12 @@ const master = masterFromEdition(edition);
         // NPCs actually present this turn — an item naming anything else is silently
         // dropped inside buildCsaRuntimeStatePatch itself.
         const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
-        const runtimeStatePatch = buildCsaSceneRuntimeStatePatch({
+        const runtimeResult = buildCsaSceneRuntimeStatePatch({
           previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
           activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn
         });
-        if (runtimeStatePatch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeStatePatch };
+        if (runtimeResult.patch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeResult.patch };
+        if (runtimeResult.warnings.length) warnings.push(...runtimeResult.warnings);
         if (csaPlan) {
           const deactivatedIds = csaPlan.canonical_action.operations.filter(operation => operation.operation === 'deactivate').map(operation => operation.id);
           if (deactivatedIds.length) {

@@ -11,8 +11,7 @@
  */
 
 import { resolveCsaDirectCoverage, buildCsaDirectCoverageSection } from './csa/direct-coverage.js';
-import { STRUCTURED_SEXUAL_ACTIONS, buildCsaSemanticContract } from './csa/semantic-contract.js';
-import { getApplicableCsaEntries } from './csa/applicability.js';
+import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
 
 // ---------------------------------------------------------------------------
 // 5-3. deterministic free-text matcher — 행동 동사 + 신체/대상 신호 조합
@@ -488,45 +487,13 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     actionTypes,
     characters
   });
-  // CSA 범위 검증 — requested material action ⊆ semantic contract의 allowed action scope.
-  // 전부 범위 안: csa_direct 유지. 일부만: 범위 안 행동만 전달. 전부 밖: CSA 권한으로 실행 금지.
-  // 비물리적 규정(허용 action scope 없음)은 required_action의 가장 좁은 의미를 사용한다.
-  const applicableCsa = getApplicableCsaEntries(save);
-  let csaScope = null;
-  if (coverage?.covered === true && actionTypes.length) {
-    const csa = applicableCsa.find(item => item.id === coverage.csa_id);
-    if (csa) {
-      const semantic = buildCsaSemanticContract(csa, csaCatalog?.sexual_action_contract);
-      const allowed = Array.isArray(semantic.actions) && semantic.actions.length
-        ? semantic.actions
-        : (typeof csa.preset?.required_action === 'string' && csa.preset.required_action ? [csa.preset.required_action] : []);
-      const requested = [...new Set(actionTypes)];
-      const inScope = requested.filter(action => allowed.includes(action));
-      const outOfScope = requested.filter(action => !allowed.includes(action));
-      csaScope = {
-        csa_id: coverage.csa_id,
-        requested_action_types: requested,
-        allowed_action_types: allowed,
-        out_of_scope_action_types: outOfScope,
-        verdict: outOfScope.length === 0 ? 'in_scope' : (inScope.length ? 'partial' : 'out_of_scope')
-      };
-    }
-  }
-  // 모호한 자연어 CSA 요청 — 단어 규칙으로 blocked/direct를 사전 확정하지 않는다.
-  // material action이 없고 coverage도 없어도, applicable CSA가 있고 참가자 후보가 있으면
-  // Story에 contextual CSA request로 전달한다 (route는 ordinary 계열 유지).
-  const participants = Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : [];
-  const presentCharacterId = typeof save?.focal_character_id === 'string' && save.focal_character_id
-    ? save.focal_character_id
-    : participants.find(id => typeof id === 'string' && id && id !== 'player' && id !== 'player-1' && !/^player[-_]/.test(id)) ?? null;
-  const contextualCsaRequest = (!coverage?.covered && !actionTypes.length && applicableCsa.length > 0)
-    ? {
-        csa_ids: applicableCsa.map(item => item.id),
-        npc_participant_present: Boolean(presentCharacterId),
-        // 모호한 요청은 required_action의 최소 범위로 해석하도록 Story에 전달한다.
-        interpretation: 'contextual'
-      }
-    : null;
+  // CSA 범위 정책: resolveSexualCoverage가 요청 material action 전체가 한 CSA
+  // contract의 actions에 포함될 때만 covered=true를 준다. 하나라도 범위 밖이면
+  // coverage=false → CSA 권한으로는 direct가 아니며 Story에서 일반 요청으로 처리된다
+  // (별도 partial/out_of_scope 상태는 없다).
+  // 모호한 자연어는 별도 route 확정을 하지 않는다 — 활성 CSA는 어차피 매 Story
+  // prompt에 주입되므로, "발기했어. 부탁해." 같은 입력은 ordinary로 두고
+  // Story LLM이 전체 대화와 활성 규정을 보고 자연스럽게 해석한다.
   const relationship = relationshipFor(save, targetId);
   const companyAuthorityMisuse = detectCompanyAuthorityMisuse(text);
   // 다중 근거 기반 조건부 허용 — 순수 함수 (추가 LLM/네트워크 없음)
@@ -534,20 +501,9 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     save, targetId, actionTypes, executionMode, playerAction: text
   });
 
-  // csa_scope 판정 반영 — 범위 밖 행동은 CSA 권한으로 실행하지 않는다.
-  // (Story 자체는 취소하지 않는다 — NPC의 자연스러운 반응을 계속 생성)
-  let effectiveCoverage = coverage;
-  if (csaScope && csaScope.verdict === 'out_of_scope') {
-    effectiveCoverage = { covered: false };
-  } else if (csaScope && csaScope.verdict === 'partial') {
-    effectiveCoverage = {
-      ...coverage,
-      all_actions: actionTypes.filter(action => csaScope.allowed_action_types.includes(action))
-    };
-  }
-
+  // CSA 범위 정책 — coverage가 이미 전부 범위 안일 때만 csa_direct다.
   const routeInfo = resolveRouteAndPolicy({
-    actionTypes, executionMode, coverage: effectiveCoverage, relationship, companyAuthorityMisuse, permission
+    actionTypes, executionMode, coverage, relationship, companyAuthorityMisuse, permission
   });
 
   const coerciveMaterial = (COERCIVE_RE.test(text) || COMPELLED_RE.test(text)) && actionTypes.length === 0;
@@ -559,12 +515,10 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     actor_id: actorId,
     target_id: targetId,
     csa_coverage: {
-      covered: effectiveCoverage?.covered === true,
-      csa_id: effectiveCoverage?.csa_id ?? null,
-      route: effectiveCoverage?.route ?? null
+      covered: coverage?.covered === true,
+      csa_id: coverage?.csa_id ?? null,
+      route: coverage?.route ?? null
     },
-    csa_scope: csaScope,
-    contextual_csa_request: contextualCsaRequest,
     route: routeInfo.route,
     completion_policy: routeInfo.completion_policy,
     csa_attribution_allowed: routeInfo.csa_attribution_allowed,
@@ -610,19 +564,9 @@ export function buildActionExecutionContractSection(contract, { applicableCsa = 
     // applyCsaStorySections가 이미 정상 coverage section(buildCsaDirectCoverageSection)을 넣으므로,
     // 여기서는 중복 section 대신 exact-scope 제한 문장만 반환한다 (actor_group 등이 빠진
     // contract.csa_coverage로 두 번째 coverage를 만들면 undefined가 깨져 들어간다).
-    const partialScope = contract.csa_scope && contract.csa_scope.verdict === 'partial'
-      ? `\n[CSA SCOPE PARTIAL] 활성 규정 범위 밖 행동: ${contract.csa_scope.out_of_scope_action_types.join(', ')} — CSA 권한으로 실행하지 않는다. 허용 범위(${contract.csa_scope.allowed_action_types.join(', ')})만 규정에 따라 전달한다.`
-      : '';
-    return `\n[CSA EXACT-SCOPE LIMIT]\n위 CSA DIRECT COVERAGE에서 명시한 행동만 확정한다. 유사하거나 더 강한 행동으로 확장하지 않는다.${partialScope}`;
+    return '\n[CSA EXACT-SCOPE LIMIT]\n위 CSA DIRECT COVERAGE에서 명시한 행동만 확정한다. 유사하거나 더 강한 행동으로 확장하지 않는다.';
   }
-  if (contract.route === 'ordinary') {
-    // 모호한 자연어 CSA 요청 — 단어 규칙으로 blocked/direct 확정하지 않고,
-    // active CSA가 있으면 contextual request로 Story에 전달한다.
-    if (contract.contextual_csa_request) {
-      return `\n\n[CONTEXTUAL CSA REQUEST]\n이번 입력은 명시적 행동 요청이 아니라 활성 상식개변(들)과 관련된 모호한 요청으로 보인다. 적용 규정: ${contract.contextual_csa_request.csa_ids.join(', ')}. trigger가 성립한 직접 범위는 누락하지 않고, 모호한 요청은 required_action의 최소 범위로 해석한다. 규정 범위 밖 행동을 추가하지 않는다. 방법이 불명확하면 NPC가 구체적인 방법을 확인할 수 있다. 활성 규정 자체를 부정하거나 잊지 않는다.`;
-    }
-    return '';
-  }
+  if (contract.route === 'ordinary') return '';
   if (contract.route === 'ordinary_request') {
     const ctx = permissionContextLine(contract);
     return `\n\n[ACTION EXECUTION CONTRACT — REQUEST]\n이번 플레이어 입력(${contract.action_types.join(', ')})은 활성 상식개변의 직접 범위를 벗어난 요청이다. 요청 자체는 전달되지만, NPC가 관계·성격·현재 경계를 실제로 반영해 수락·거절·조건을 제시한다.${ctx ? `\n현재 NPC 상태: ${ctx}` : ''}\nNPC는 무조건 거절하지 않는다. 흥분도가 높고 호감도와 사생활 조건이 갖춰졌다면 수락 가능성을 충분히 열어둔다. 허용되는 반응: 즉시 수락, 머뭇거리며 수락, 주변 확인 후 수락, 조금만 허용, 장소 변경 제안, 다음 단계는 거절, 거절. 요청했다는 이유만으로 자동 완료하지 않는다. CSA acceptance나 신체적 흥분 자체가 동의는 아니다. 회사 규정·감사 업무·인사팀 지시로 정당화하지 않는다.`;
@@ -636,10 +580,7 @@ export function buildActionExecutionContractSection(contract, { applicableCsa = 
   const blockerNote = Array.isArray(contract.contextual_permission?.blockers) && contract.contextual_permission.blockers.length
     ? `\n차단 사유: ${contract.contextual_permission.blockers.join(', ')}`
     : '';
-  const csaScopeOutNote = contract.csa_scope && contract.csa_scope.verdict === 'out_of_scope'
-    ? `\n[CSA SCOPE OUT] 요청 행동(${contract.csa_scope.requested_action_types.join(', ')})은 활성 규정(${contract.csa_scope.csa_id})의 허용 범위(${contract.csa_scope.allowed_action_types.join(', ')})를 벗어난다. CSA 권한으로 실행하지 않는다. NPC가 일반 관계·상황에서 자발적으로 받아들일 수 있는지는 별도 판단이며, CSA 때문에 강제 실행하지 않는다.`
-    : '';
-  return `\n\n[ACTION EXECUTION CONTRACT — AUTHORITATIVE]\n이번 플레이어 입력에는 활성 상식개변의 직접 범위를 벗어난 행동이 포함되어 있다(${contract.action_types.join(', ')}, 직접 신체 조작).${blockerNote}${csaScopeOutNote}${csaScopeLine(applicableCsa)}${ctx ? `\n현재 NPC 상태: ${ctx}` : ''}\nNPC는 이를 회사 규정, 감사 업무, 인사팀 공지, 상식개변 의무로 해석해서는 안 된다. CSA acceptance나 신체적 흥분은 동의가 아니다. 플레이어가 직접 행동을 시도한 경우 완료 사실로 바로 확정하지 말고, NPC가 손을 막거나, 몸을 빼거나, 행동을 멈추거나, 이유를 묻거나, 조건을 제시하는 등 상황에 맞는 다양한 반응을 서사에 포함한다. 매번 같은 거절 문장을 반복하지 않는다.`;
+  return `\n\n[ACTION EXECUTION CONTRACT — AUTHORITATIVE]\n이번 플레이어 입력에는 활성 상식개변의 직접 범위를 벗어난 행동이 포함되어 있다(${contract.action_types.join(', ')}, 직접 신체 조작).${blockerNote}${csaScopeLine(applicableCsa)}${ctx ? `\n현재 NPC 상태: ${ctx}` : ''}\nNPC는 이를 회사 규정, 감사 업무, 인사팀 공지, 상식개변 의무로 해석해서는 안 된다. CSA acceptance나 신체적 흥분은 동의가 아니다. 플레이어가 직접 행동을 시도한 경우 완료 사실로 바로 확정하지 말고, NPC가 손을 막거나, 몸을 빼거나, 행동을 멈추거나, 이유를 묻거나, 조건을 제시하는 등 상황에 맞는 다양한 반응을 서사에 포함한다. 매번 같은 거절 문장을 반복하지 않는다.`;
 }
 
 /** 계약의 조건부 허용 정보를 band 단위(민감 원문 제외)로 요약한다. */

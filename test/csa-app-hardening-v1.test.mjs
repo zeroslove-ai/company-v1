@@ -99,55 +99,55 @@ test('direct coverage: a sexual choice bundling an action not covered by the con
 // ---------- Extract runtime tracking: csa_trigger_evaluations / csa_runtime_updates ----------
 
 function activeCsaFixture(id = 'csa_0') {
-  return [{ id, active: true, source_type: 'preset', content: '테스트', strength: 'weak' }];
+  return [{ id, active: true, source_type: 'preset', content: '테스트', strength: 'weak', preset: { required_action: 'relieve_tension' } }];
 }
 
-test('runtime tracking: a csa_runtime_updates status="active" report persists execution_state="executed" for the acting NPC — with Story evidence', () => {
+test('runtime tracking: active 보고는 action_state가 required_action과 일치할 때 executed로 승격한다', () => {
   const activeCsa = activeCsaFixture();
-  const patch = buildCsaSceneRuntimeStatePatch({
+  const result = buildCsaSceneRuntimeStatePatch({
     previousSave: {},
-    csaRuntimeUpdates: [{ csa_id: 'csa_0', character_id: 'heroine1', status: 'active' }],
+    csaRuntimeUpdates: [{ csa_id: 'csa_0', character_id: 'heroine1', status: 'active', action_state: 'relieve_tension' }],
     csaTriggerEvaluations: [],
     activeCsa,
     npcsPresent: ['heroine1'],
-    turnNumber: 5,
-    // executed 승격에는 required action을 실제 수행한 Story evidence quote가 필요하다.
-    evidence: { csa_runtime: { csa_0: { quote: '그는 규정대로 위로를 시작했다.' } } },
-    narrativeText: '그는 규정대로 위로를 시작했다. 그녀가 조금 진정되었다.'
+    turnNumber: 5
   });
-  assert.ok(patch, 'a runtime update should produce a patch');
-  assert.equal(patch.csa_0.lifecycle, 'active');
-  assert.equal(patch.csa_0.execution_state, 'executed');
-  assert.equal(patch.csa_0.character_id, 'heroine1');
-  assert.equal(patch.csa_0.last_confirmed_turn, 5);
+  assert.ok(result.patch, 'a runtime update should produce a patch');
+  assert.equal(result.patch.csa_0.lifecycle, 'active');
+  assert.equal(result.patch.csa_0.execution_state, 'executed');
+  assert.equal(result.patch.csa_0.character_id, 'heroine1');
+  assert.equal(result.patch.csa_0.last_confirmed_turn, 5);
 
   // The next turn's reducer call must see this exact state carried forward unchanged
   // when no new update arrives — this is the "persists into next turn's Context" contract.
   const nextTurnPatch = buildCsaSceneRuntimeStatePatch({
-    previousSave: { csa_runtime_state: patch },
+    previousSave: { csa_runtime_state: result.patch },
     csaRuntimeUpdates: [],
     csaTriggerEvaluations: [],
     activeCsa,
     npcsPresent: ['heroine1'],
     turnNumber: 6
   });
-  assert.equal(nextTurnPatch, null, 'nothing changed, so the reducer reports no patch (previous state remains authoritative as-is)');
+  assert.equal(nextTurnPatch.patch, null, 'nothing changed, so the reducer reports no patch (previous state remains authoritative as-is)');
 });
 
-test('runtime tracking: active 보고는 구조·범위 검증만으로 executed를 승격한다 (Story quote 검사 없음)', () => {
+test('runtime tracking: action_state가 required_action과 불일치하면 해당 update는 폐기되고 기존 상태 유지 + warning', () => {
   const activeCsa = activeCsaFixture();
-  const patch = buildCsaSceneRuntimeStatePatch({
-    previousSave: {},
-    csaRuntimeUpdates: [{ csa_id: 'csa_0', character_id: 'heroine1', status: 'active' }],
+  const previousSave = {
+    csa_runtime_state: { csa_0: { lifecycle: 'active', applicability: 'applicable', execution_state: 'not_started', character_id: 'heroine1', started_turn: null, last_confirmed_turn: 4, end_reason: null } }
+  };
+  const result = buildCsaSceneRuntimeStatePatch({
+    previousSave,
+    csaRuntimeUpdates: [{ csa_id: 'csa_0', character_id: 'heroine1', status: 'active', action_state: 'unrelated_action' }],
     csaTriggerEvaluations: [],
     activeCsa,
     npcsPresent: ['heroine1'],
     turnNumber: 5
   });
-  // Commit은 CSA의 구조·범위만 검사한다 — Story quote/evidence 검사는 사용하지 않는다.
-  assert.ok(patch, 'active 보고는 patch를 만든다');
-  assert.equal(patch.csa_0.execution_state, 'executed');
-  assert.equal(patch.csa_0.character_id, 'heroine1');
+  // 구조·범위 검증 — Story quote/evidence 검사는 사용하지 않지만,
+  // active 승격은 action_state === required_action이어야 한다.
+  assert.equal(result.patch, null, '불일치 update는 폐기 — 기존 상태 유지');
+  assert.ok(result.warnings.includes('csa_runtime_action_state_mismatch:csa_0:unrelated_action'), result.warnings.join(' '));
 });
 
 test('runtime tracking: trigger evaluation은 execution_state를 강등하지 않는다 (not_satisfied/temporarily_interrupted)', () => {
@@ -155,7 +155,7 @@ test('runtime tracking: trigger evaluation은 execution_state를 강등하지 �
   const previousSave = {
     csa_runtime_state: { csa_0: { lifecycle: 'active', applicability: 'applicable', execution_state: 'executed', character_id: 'heroine1', started_turn: 3, last_confirmed_turn: 3, end_reason: null } }
   };
-  const patch = buildCsaSceneRuntimeStatePatch({
+  const result = buildCsaSceneRuntimeStatePatch({
     previousSave,
     csaRuntimeUpdates: [],
     csaTriggerEvaluations: [{ csa_id: 'csa_0', status: 'temporarily_interrupted' }],
@@ -164,9 +164,9 @@ test('runtime tracking: trigger evaluation은 execution_state를 강등하지 �
     turnNumber: 4
   });
   // trigger evaluation은 execution_state를 변경하지 않는다 (57턴 역행 방지)
-  assert.equal(patch, null, 'trigger evaluation은 execution_state를 바꾸지 않는다');
+  assert.equal(result.patch, null, 'trigger evaluation은 execution_state를 바꾸지 않는다');
 
-  const notSatisfiedPatch = buildCsaSceneRuntimeStatePatch({
+  const notSatisfiedResult = buildCsaSceneRuntimeStatePatch({
     previousSave,
     csaRuntimeUpdates: [],
     csaTriggerEvaluations: [{ csa_id: 'csa_0', status: 'not_satisfied' }],
@@ -174,7 +174,7 @@ test('runtime tracking: trigger evaluation은 execution_state를 강등하지 �
     npcsPresent: ['heroine1'],
     turnNumber: 4
   });
-  assert.equal(notSatisfiedPatch, null, 'not_satisfied도 execution_state를 강등하지 않는다');
+  assert.equal(notSatisfiedResult.patch, null, 'not_satisfied도 execution_state를 강등하지 않는다');
 });
 
 test('runtime tracking: a csa_runtime_updates status="ended" report transitions execution_state back to "not_started" with an end_reason', () => {
@@ -182,7 +182,7 @@ test('runtime tracking: a csa_runtime_updates status="ended" report transitions 
   const previousSave = {
     csa_runtime_state: { csa_0: { lifecycle: 'active', applicability: 'applicable', execution_state: 'executed', character_id: 'heroine1', started_turn: 2, last_confirmed_turn: 2, end_reason: null } }
   };
-  const patch = buildCsaSceneRuntimeStatePatch({
+  const result = buildCsaSceneRuntimeStatePatch({
     previousSave,
     csaRuntimeUpdates: [{ csa_id: 'csa_0', character_id: 'heroine1', status: 'ended', reason: '업무 종료' }],
     csaTriggerEvaluations: [],
@@ -190,9 +190,9 @@ test('runtime tracking: a csa_runtime_updates status="ended" report transitions 
     npcsPresent: ['heroine1'],
     turnNumber: 6
   });
-  assert.ok(patch);
-  assert.equal(patch.csa_0.execution_state, 'not_started');
-  assert.equal(patch.csa_0.end_reason, '업무 종료');
+  assert.ok(result.patch);
+  assert.equal(result.patch.csa_0.execution_state, 'not_started');
+  assert.equal(result.patch.csa_0.end_reason, '업무 종료');
 });
 
 test('runtime tracking: an invalid csa_runtime_updates item (missing character_id) is dropped with a warning, valid items in the same array survive', () => {

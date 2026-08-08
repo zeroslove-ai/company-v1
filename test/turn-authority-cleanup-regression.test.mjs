@@ -256,27 +256,26 @@ test('회귀: Story 선택지 0개여도 UI 안전 기본 4개가 채워진다',
 
 // ── 회귀: 모호한 자연어 CSA 요청은 단어 규칙으로 blocked 확정하지 않는다 ─────
 
-test('회귀: "나 발기했어. 부탁해."는 csa_direct가 아니고 contextual CSA request로 전달된다', () => {
+test('회귀: "나 발기했어. 부탁해."는 단어 규칙으로 direct/blocked 확정하지 않는다', () => {
   const save = baseSave();
   // direct coverage — 단어 규칙으로 csa_direct 확정하지 않는다
   const direct = resolveCsaDirectCoverage(save, '그렇지. 나 발기했어 제나씨. 부탁해.', { master, characters: master.characters });
   assert.equal(direct.covered, false, '발기+부탁해는 단어 규칙으로 direct가 아니다');
 
-  // execution contract — ordinary 계열 유지 + contextual_csa_request 제공
+  // execution contract — ordinary 계열로 둔다 (CSA contract는 매 Story prompt에 주입됨)
   const contract = resolveActionExecutionContract({
     save, playerAction: '그렇지. 나 발기했어 제나씨. 부탁해.',
     csaCatalog: { sexual_action_contract: {} }, characters: master.characters, npcIds: ['heroine3']
   });
-  assert.notEqual(contract.route, 'csa_direct', 'csa_direct 아님');
-  assert.ok(contract.contextual_csa_request, 'contextual CSA request 전달');
-  assert.deepEqual(contract.contextual_csa_request.csa_ids, ['csa_42', 'csa_42_1']);
+  assert.equal(contract.route, 'ordinary', '모호한 입력은 ordinary');
+  assert.equal(contract.material_action, false, 'material action 없음 — blocked로 사전 확정하지 않는다');
 });
 
 // ── 회귀: CSA runtime — trigger evaluation은 execution_state를 강등하지 않음 ─
 
 test('회귀: trigger evaluation not_satisfied는 execution_state를 강등하지 않는다', () => {
   const save = baseSave();
-  const patch = buildCsaSceneRuntimeStatePatch({
+  const result = buildCsaSceneRuntimeStatePatch({
     previousSave: save,
     csaRuntimeUpdates: [],
     csaTriggerEvaluations: [{ csa_id: 'csa_42', status: 'not_satisfied' }],
@@ -287,7 +286,7 @@ test('회귀: trigger evaluation not_satisfied는 execution_state를 강등하�
     npcsPresent: ['heroine3'],
     turnNumber: 57
   });
-  assert.equal(patch, null, 'trigger evaluation은 execution_state를 바꾸지 않는다');
+  assert.equal(result.patch, null, 'trigger evaluation은 execution_state를 바꾸지 않는다');
 });
 
 // ── 회귀: state_delta.csa_runtime_state 중복 채널 차단 ───────────────────────

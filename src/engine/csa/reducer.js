@@ -49,6 +49,7 @@ function normalizeRuntimeEntry(entry = {}) {
  * demotes execution_state (57턴 not_satisfied → not_started 역행 금지).
  */
 export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber } = {}) {
+  const warnings = [];
   const previous = isPlainObject(previousSave?.csa_runtime_state) ? previousSave.csa_runtime_state : {};
   const presentIds = new Set(Array.isArray(npcsPresent) ? npcsPresent.filter(id => typeof id === 'string' && id) : []);
   const activeById = new Map(activeCsa.map(item => [item.id, item]));
@@ -76,6 +77,17 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     if (!characterId || !presentIds.has(characterId)) continue;
     const donorStatus = ['inactive', 'active', 'paused', 'ended'].includes(update.status) ? update.status : null;
     if (!donorStatus) continue;
+    // 실행 승격(active → executed)은 수행된 구체적 행동이 규정의 required_action과
+    // 정확히 일치할 때만 허용한다 — 구조·범위 검증 (Story quote 검사 없음).
+    // 불일치하면 해당 runtime update를 폐기하고 기존 상태를 유지한다.
+    if (donorStatus === 'active') {
+      const requiredAction = typeof csa.preset?.required_action === 'string' ? csa.preset.required_action : '';
+      const reportedAction = typeof update.action_state === 'string' ? update.action_state : '';
+      if (!requiredAction || reportedAction !== requiredAction) {
+        warnings.push(`csa_runtime_action_state_mismatch:${csaId}:${reportedAction || 'none'}`);
+        continue;
+      }
+    }
     touchedByRuntimeUpdate.add(csaId);
     const existing = previous[csaId] ? normalizeRuntimeEntry(previous[csaId]) : null;
     const executionState = DONOR_STATUS_TO_EXECUTION_STATE[donorStatus];
@@ -102,7 +114,7 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     // trigger evaluation은 execution_state를 변경하지 않는다 — 무시한다.
   }
 
-  return changed ? next : null;
+  return { patch: changed ? next : null, warnings };
 }
 
 /**
