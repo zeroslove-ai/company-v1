@@ -40,12 +40,18 @@ const IMAGE_SELECTION_TAGS = new Set([
   'adult', 'sex', 'general', 'default', 'portrait', 'solo', 'sexual_generic'
 ]);
 
-/** image_selection: { pool: 'general'|'sex', tags: string[] } — allowlist normalize. */
+/** image_selection: { pool: 'general'|'sex', tags: string[] } — allowlist normalize.
+ *  지시 C: 성적 행동(action tag)이 하나라도 있으면 pool은 반드시 sex로 강제한다.
+ *  Extract가 pool=general + 성적 action tag라는 모순을 내도 서버에서 교정한다.
+ */
 function normalizeImageSelection(value) {
   if (!object(value)) return null;
-  const pool = value.pool === 'sex' ? 'sex' : 'general';
-  const tags = [...new Set((Array.isArray(value.tags) ? value.tags : [])
-    .filter(tag => typeof tag === 'string' && IMAGE_SELECTION_TAGS.has(tag)))];
+  const rawTags = Array.isArray(value.tags) ? value.tags : [];
+  const tags = [...new Set(rawTags.filter(tag => typeof tag === 'string' && IMAGE_SELECTION_TAGS.has(tag)))];
+  // non-generic action 태그 존재 여부 — generic(adult/sex/office/general/default/portrait/solo/sexual_generic/office_desk)은 제외
+  const GENERIC_SEL = new Set(['adult', 'sex', 'office', 'general', 'default', 'portrait', 'solo', 'sexual_generic', 'office_desk']);
+  const hasActionTag = tags.some(tag => !GENERIC_SEL.has(tag));
+  const pool = (value.pool === 'sex' || hasActionTag) ? 'sex' : 'general';
   return { pool, tags };
 }
 

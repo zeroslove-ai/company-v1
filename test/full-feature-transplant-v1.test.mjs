@@ -783,3 +783,37 @@ test('턴70-37 (지시C): /api/image sex pool에 tags 전달 — same-character 
   assert.ok(body.data.image, '동일 캐릭터 sex asset이 있으면 null 금지');
   assert.equal(body.data.image.image_id, 'fg1');
 });
+
+// ── 지시 C 보강: 성적 action tag가 있으면 pool=sex 서버 강제 ──
+
+test('지시C-10: image_selection pool=general + handjob tag → 서버가 pool=sex로 강제', () => {
+  const normalized = normalizeGameplayExtractEnvelope({
+    outcome: 'success',
+    state_delta: {},
+    image_selection: { pool: 'general', tags: ['handjob'] }
+  });
+  const sel = normalized.image_selection;
+  assert.ok(sel, 'image_selection 존재');
+  assert.equal(sel.pool, 'sex', '성적 action tag가 있으면 pool 강제 sex');
+  assert.ok(sel.tags.includes('handjob'));
+});
+
+test('지시C-11: pool=general + 일반 태그만 → general 유지', () => {
+  const normalized = normalizeGameplayExtractEnvelope({
+    outcome: 'success',
+    state_delta: {},
+    image_selection: { pool: 'general', tags: ['office_desk'] }
+  });
+  const sel = normalized.image_selection;
+  assert.equal(sel.pool, 'general');
+});
+
+test('지시C-12: pool=sex + tags=[] → sex 유지 (성적 장면이면 sex 이미지 필수)', () => {
+  const normalized = normalizeGameplayExtractEnvelope({
+    outcome: 'success',
+    state_delta: {},
+    image_selection: { pool: 'sex', tags: [] }
+  });
+  const sel = normalized.image_selection;
+  assert.equal(sel.pool, 'sex');
+});
