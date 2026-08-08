@@ -204,6 +204,14 @@ test('section: blocked 계약은 AUTHORITATIVE 음수 계약 생성', () => {
   assert.ok(section.includes('완료 사실로 바로 확정하지 말고'));
 });
 
+test('section: ordinary는 빈 문자열', () => {
+  const noCsa = csaSave({ csa_active: [], csa_rules: {} });
+  const contract = resolve('서류를 정리한다', noCsa);
+
+  assert.equal(contract.route, 'ordinary');
+  assert.equal(buildActionExecutionContractSection(contract), '');
+});
+
 test('contract: material_action/actor_id/relationship_basis shape', () => {
   const c = resolve('이메이에게 키스한다');
   assert.equal(c.version, 1);

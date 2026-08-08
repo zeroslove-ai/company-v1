@@ -542,6 +542,7 @@ function csaScopeLine(applicableCsa) {
  */
 export function buildActionExecutionContractSection(contract, { applicableCsa = [] } = {}) {
   if (!contract) return '';
+  if (contract.route === 'ordinary') return '';
   if (contract.route === 'ordinary_request') {
     const ctx = permissionContextLine(contract);
     return `\n\n[ACTION EXECUTION CONTRACT — REQUEST]\n이번 플레이어 입력(${contract.action_types.join(', ')})은 활성 상식개변의 직접 범위를 벗어난 요청이다. 요청 자체는 전달되지만, NPC가 관계·성격·현재 경계를 실제로 반영해 수락·거절·조건을 제시한다.${ctx ? `\n현재 NPC 상태: ${ctx}` : ''}\nNPC는 무조건 거절하지 않는다. 흥분도가 높고 호감도와 사생활 조건이 갖춰졌다면 수락 가능성을 충분히 열어둔다. 허용되는 반응: 즉시 수락, 머뭇거리며 수락, 주변 확인 후 수락, 조금만 허용, 장소 변경 제안, 다음 단계는 거절, 거절. 요청했다는 이유만으로 자동 완료하지 않는다. CSA acceptance나 신체적 흥분 자체가 동의는 아니다. 회사 규정·감사 업무·인사팀 지시로 정당화하지 않는다.`;
