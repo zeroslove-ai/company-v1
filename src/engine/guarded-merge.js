@@ -48,6 +48,43 @@ function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/**
+ * 착의 evidence의 유일한 권위는 Extract envelope의 evidence.clothing이다.
+ * 정식 형태는 evidence.clothing[actor_id][slot]이며, 기존 모델이 내던 flat slot
+ * 형태도 entry.character_id/character가 actor와 일치할 때만 읽는다.
+ * buildSceneStatePatch가 요구하는 slot -> quote 문자열로 축약한다.
+ */
+function clothingEvidenceForActor(evidence, actorId) {
+  const root = plainObject(evidence?.clothing) ? evidence.clothing : {};
+  const nested = plainObject(root[actorId]) ? root[actorId] : null;
+  const source = nested ?? root;
+  const result = {};
+
+  for (const [slot, entry] of Object.entries(source)) {
+    if (plainObject(entry)) {
+      const claimedActor = typeof entry.character_id === 'string'
+        ? entry.character_id
+        : (typeof entry.character === 'string' ? entry.character : null);
+      if (!nested && claimedActor && claimedActor !== actorId) continue;
+      // flat evidence에서 플레이어 소유권을 추측하지 않는다.
+      if (!nested && actorId === 'player' && claimedActor !== 'player') continue;
+      if (typeof entry.quote === 'string' && entry.quote.trim()) result[slot] = entry.quote.trim();
+      continue;
+    }
+    // 문자열 entry는 actor별 nested map에서만 허용한다.
+    if (nested && typeof entry === 'string' && entry.trim()) result[slot] = entry.trim();
+  }
+  return result;
+}
+
+function sceneEvidenceMap(patch, envelopeEvidence, actorId) {
+  const local = plainObject(patch?.evidence) ? patch.evidence : {};
+  return {
+    ...local,
+    clothing: clothingEvidenceForActor(envelopeEvidence, actorId)
+  };
+}
+
 function clone(value) {
   return structuredClone(value);
 }
@@ -461,11 +498,11 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
         warnings.push('invalid_player_scene_state');
         continue;
       }
-      // No characterName check for the player — there is exactly one player, and Story text
-      // typically refers to them generically ("플레이어", "당신") rather than by literal name,
-      // unlike NPC evidence which must name the specific character it's about.
+      // 플레이어 착의도 NPC와 같은 top-level evidence.clothing 권위를 사용한다.
+      // 이름 문자열은 요구하지 않되 actor_id=player로 소유권을 분리한다.
       const { state, warnings: sceneWarnings } = buildSceneStatePatch({
-        previous: nextSave.player_scene_state ?? {}, proposal: patch, evidenceMap: patch.evidence,
+        previous: nextSave.player_scene_state ?? {}, proposal: patch,
+        evidenceMap: sceneEvidenceMap(patch, envelope.evidence, 'player'),
         narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
         characterName: '', turnNumber: options.expectedTurn
       });
@@ -526,9 +563,10 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
         }
         if (path === 'npc_scene_state' && plainObject(npcPatch)) {
           // 착의를 포함한 물리 상태 변경은 evidence 기반 physical-state merge가 유일한 경로다.
-          // 규정 활성·첫 등장·장면 참여만으로 clothing을 생성하지 않는다.
+          // 착의 evidence는 envelope.evidence.clothing[npcId]에서만 읽는다.
           const { state, warnings: sceneWarnings } = buildSceneStatePatch({
-            previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: npcPatch, evidenceMap: npcPatch.evidence,
+            previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: npcPatch,
+            evidenceMap: sceneEvidenceMap(npcPatch, envelope.evidence, npcId),
             narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
             characterName: characterNameFromMaster(options?.master, npcId), turnNumber: options.expectedTurn
           });
