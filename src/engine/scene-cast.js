@@ -325,20 +325,14 @@ function namedNpcIds(master, text) {
 
 /**
  * 현장에 실제로 존재하는 NPC (spec 13 + 안정화 수정 F 8.1).
- * present의 양수 근거는 다음뿐이다:
- *   1. scene_state.participants 직접 포함
- *   2. npc_scene_state[id].present === true
- *   3. 저장된 NPC location_id가 현재 scene_state.location_id와 일치
- * last_npcs_present는 단독 present 근거가 아니다 (context 참고용).
- * npc_scene_state[id]가 없으면 last_npcs_present만으로 승계하지 않는다.
+ * 현재 장면의 presence 정본은 scene_state.participants다.
+ * npc_scene_state.present/location_id와 last_npcs_present는 보조·과거 상태이며
+ * participants를 부재나 다른 위치로 되돌리는 근거가 아니다.
  */
 /**
  * NPC별 present 판정 helper (최종 단순화 수정 7).
- * present 승인 근거는 다음뿐이다:
- *   - participants 직접 포함
- *   - NPC location_id가 현재 location_id와 명시적 일치
- *   - present === true (위치 충돌 없을 때)
- * 명시적 부재(present===false)가 항상 최우선이고, 위치 충돌도 제외다.
+ * present 승인 근거는 participants 직접 포함뿐이다.
+ * stale present=false/location_id는 canonical participants를 덮지 못한다.
  * last_npcs_present / focal / last_speaker / action target / pending boundary는
  * present 근거가 아니다 (context 전용).
  */
@@ -348,22 +342,10 @@ export function isNpcPresentAtCurrentScene({
   sceneLocationId = null,
   npcSceneState = {}
 }) {
-  const state = npcSceneState[id];
-
-  // 명시적 부재가 항상 최우선
-  if (state?.present === false) return false;
-
-  // 안정화 수정 G — scene_state.participants만 현재 장면의 실제 참가자 정본이다.
-  // "같은 장소에 있음"과 "현재 대화 장면에 참가 중"은 서로 다른 개념이며,
-  // 같은 장소라는 이유만으로 자동 등장·발화할 수 없다. 오래 남아 있던
-  // present=true도 자동 출연 근거가 아니다 (turn 32에서 서원희가 커피를 들고
-  // 난입한 원인). 사용자가 직접 부르거나 찾아가면 그때 participants에 추가된다.
+  // scene_state.participants가 현재 장면의 유일한 canonical presence source다.
+  // npc_scene_state.present/location_id는 과거 턴의 잔여 상태일 수 있으므로
+  // participants에 포함된 NPC를 부재 또는 다른 위치로 되돌리지 않는다.
   if (!Array.isArray(participants) || !participants.includes(id)) return false;
-
-  // participants에 있어도 위치가 명시적으로 충돌하면 제외한다.
-  const npcLocationId = typeof state?.location_id === 'string' ? state.location_id : null;
-  if (sceneLocationId && npcLocationId && sceneLocationId !== npcLocationId) return false;
-
   return true;
 }
 

@@ -259,24 +259,24 @@ test('18. 허용된 서원희 이름은 통과', () => {
 // 19~21. present 판정 (수정 7)
 // ---------------------------------------------------------------------------
 
-test('19. present:false + location 일치 NPC 제외', () => {
+test('19. participants가 canonical이면 stale present:false에도 포함', () => {
   const present = isNpcPresentAtCurrentScene({
     id: 'heroine2',
     participants: ['player', 'heroine2'],
     sceneLocationId: 'meeting_room',
     npcSceneState: { heroine2: { present: false, location_id: 'meeting_room' } }
   });
-  assert.equal(present, false, '명시적 부재가 최우선');
+  assert.equal(present, true, 'participants가 canonical presence');
 });
 
-test('20. present:false + participants 포함 NPC 제외', () => {
+test('20. participants가 canonical이면 stale location에도 포함', () => {
   const present = isNpcPresentAtCurrentScene({
     id: 'heroine2',
     participants: ['player', 'heroine2'],
     sceneLocationId: 'meeting_room',
-    npcSceneState: { heroine2: { present: false } }
+    npcSceneState: { heroine2: { present: false, location_id: 'other_room' } }
   });
-  assert.equal(present, false);
+  assert.equal(present, true);
 });
 
 test('21. action target 단독 present 금지', () => {

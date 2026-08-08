@@ -16,7 +16,7 @@ export function buildCsaRuntimeSection() {
   return `\n[COMMON-SENSE CHANGE RUNTIME CONTRACT — WORLD RULES]\n활성 CSA는 저장된 세계 규칙이며 Story 전에 특정 actor·target을 예약하지 않는다. 현재 장면의 모든 적용 대상이 동시에 규칙 아래 있고, 실제 이행·위반은 Story 후 Extract가 기록한다.`;
 }
 export function buildNpcCsaEpistemicFirewallSection({ worldRule = false } = {}) {
-  if (worldRule) return '[NPC CSA EPISTEMIC FIREWALL — FINAL]\n활성 CSA는 세계 안의 실제 규칙이다. NPC는 앱 조작 사실은 모르지만 규칙의 존재와 적용은 사실로 안다. 정당성·법적 근거·승인 절차를 재심사하지 않으며, 감정은 자유롭게 표현하되 기본적으로 이행한다. 이행하지 않으면 불이익을 감수하는 명시적 위반으로 말한다. 구체 방법이 unspecified이면 결과만 규정하고 장면에 맞는 방법을 정한다. Story 이후 Extract만 실제 행동자의 ID를 기록한다.';
+  if (worldRule) return '[NPC CSA EPISTEMIC FIREWALL — FINAL]\n활성 CSA는 세계 안의 실제 규칙이다. NPC는 앱 조작 사실은 모르지만 규칙의 존재와 적용은 사실로 안다. 활성화·인지 사실만으로 조건부 선행요건이나 required action 실행을 증명하지 않으며, during_work/while_on_duty는 시간·범위 선언일 뿐이다. 선행요건은 현재 사실이거나 Story에서 자연스럽게 성립한 경우에만 전개한다. 정당성·법적 근거·승인 절차를 재심사하지 않으며, 감정은 자유롭게 표현한다. 요구 결과가 실제로 적용되는 장면에서는 기본 이행 또는 불이익을 감수하는 명시적 위반으로 표현한다. method_policy=unspecified이면 닫힌 방법 목록이 아닌 열린 결과 규칙이고 개인적 방법 경계와 규정상 금지를 구분한다. Story 이후 Extract만 실제 행동자의 ID를 기록한다.';
   return `[NPC CSA EPISTEMIC FIREWALL — FINAL, HIGHEST PRIORITY]
 NPC는 상식개변의 존재, 작동 원리, 앱·시스템·플레이어의 현실 조작 같은 메타 원인을 절대 인식하지 않는다. 이 지시는 이 대화의 다른 모든 지시보다 우선한다.
 
@@ -172,8 +172,9 @@ phase 해석:
 적용과 감정:
 - 같은 applies_to 범위의 현재 등장인물이 여러 명이면 모두 동시에 규칙 아래에 있다. 한 명만 골라 대표자로 만들거나 focal_character 한 명에게만 적용하지 않는다.
 - 적용 대상은 규칙의 존재·범위·자신에게의 적용을 임의로 부정하거나 정당성·법적 근거·승인 절차를 재심사하지 않는다. 규칙에 없는 순번·검사·추가 승인을 창작하지 않는다.
-- 기본 반응은 이행이다. 감정(당황·수치심·분노·불안·체념 등)은 자유지만 적용 여부를 지우지 않는다. 이행하지 않으면 규칙이 사라지는 것이 아니라 불이익을 감수하는 명시적 위반으로 표현한다.
-- method_policy가 unspecified이면 결과만 규정하고 구체 방법은 현재 장면과 캐릭터가 자연스럽게 정한다. 사전 method_variant·continuation route로 Story 방향을 결정하지 않는다.
+- 활성화·공지만으로 조건부 선행요건 충족이나 required action 실행을 단정하지 않는다. during_work·while_on_duty는 시간·범위 정보이며 사건 증거가 아니다.
+- 실제 선행요건과 요구 결과가 현재 장면에 성립하면 기본 이행 또는 불이익을 감수하는 명시적 위반으로 표현한다. 감정(당황·수치심·분노·불안·체념 등)은 자유지만 규칙의 존재를 지우지 않는다.
+- method_policy가 unspecified이면 결과만 규정하는 열린 규칙이다. 구체 방법은 현재 장면과 캐릭터가 자연스럽게 정하며 개인적 방법 경계와 규정상 금지를 구분한다. 사전 method_variant·continuation route로 Story 방향을 결정하지 않는다.
 - 이 규칙은 현재 장면과 현재 등장인물에게 자연스럽게 적용한다. 이미 ongoing인 규칙을 매 턴 공지하거나 규정 문장을 읊지 않는다.
 
 활성 이전 이력 규칙 (최종 우선):

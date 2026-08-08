@@ -48,6 +48,13 @@ function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function canonicalPlayerAlias(id) {
+  if (id === 'player' || (typeof id === 'string' && (id.startsWith('player-') || id.startsWith('player_')))) {
+    return 'player';
+  }
+  return id;
+}
+
 /**
  * 착의 evidence의 유일한 권위는 Extract envelope의 evidence.clothing이다.
  * 정식 형태는 evidence.clothing[actor_id][slot]이며, 기존 모델이 내던 flat slot
@@ -63,13 +70,15 @@ function clothingEvidenceForActor(evidence, actorId) {
   // 새 정식 구조: evidence.clothing[actor_id] = { quote, character_id } — actor당 하나.
   // slot별 evidenceMap·flat evidence 호환 경로·slot별 quote 중복 처리는 삭제했다.
   const root = plainObject(evidence?.clothing) ? evidence.clothing : {};
-  const entry = plainObject(root[actorId]) ? root[actorId] : null;
+  const canonicalActor = canonicalPlayerAlias(actorId);
+  const entryKey = Object.keys(root).find(key => canonicalPlayerAlias(key) === canonicalActor);
+  const entry = entryKey && plainObject(root[entryKey]) ? root[entryKey] : null;
   if (!entry) return null;
   // character_id는 actor_id와 정확히 일치해야 한다 (충돌 거부).
   const claimedActor = typeof entry.character_id === 'string'
     ? entry.character_id
     : (typeof entry.character === 'string' ? entry.character : null);
-  if (claimedActor && claimedActor !== actorId) return null;
+  if (claimedActor && canonicalPlayerAlias(claimedActor) !== canonicalActor) return null;
   const quote = typeof entry.quote === 'string' && entry.quote.trim() ? entry.quote.trim() : null;
   return quote;
 }
@@ -273,14 +282,12 @@ function resolveCanonicalPlayerId(save) {
     save?.player?.id,
     ...(Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : [])
   ];
-  return candidates.find(id =>
-    typeof id === 'string' && (id === 'player' || id.startsWith('player'))
-  ) ?? 'player';
+  return candidates.find(id => canonicalPlayerAlias(id) === 'player') ?? 'player';
 }
 
 /** player 참조 ID 판정 — 'player' 또는 'player-*'. */
 function isPlayerRefId(id) {
-  return typeof id === 'string' && (id === 'player' || id.startsWith('player'));
+  return canonicalPlayerAlias(id) === 'player';
 }
 
 /**
@@ -289,7 +296,6 @@ function isPlayerRefId(id) {
  *
  * 이동을 적용하는 조건은 정확히 하나:
  *   transition_mode=movement
- *   + destination NPC 정확히 1명
  *   + destination location 확인됨
  *   + outcome === 'success'
  *   + feedback revision 아님
@@ -300,8 +306,8 @@ function isPlayerRefId(id) {
  * 성공 시:
  *   scene_state = { ...기존, scene_id: destinationSceneId, location_id: destinationLocationId,
  *                   participants: [playerId, destinationId], updated_turn: expectedTurn }
- *   last_npcs_present = [destinationId]
- *   focal_character_id = destinationId
+ *   last_npcs_present = Extract envelope의 최종 npcs_present
+ *   focal_character_id = 최종 NPC가 있을 때만 첫 NPC
  *   last_speaker_id는 유지 (목적지 NPC가 이번 턴에 말하지 않았으므로 설정하지 않는다)
  *   기존 장소 NPC(participants ∪ last_npcs_present)만 present:false — 전체 NPC 순회 금지
  *   목적지 NPC state는 병합(present/scene_id/location_id/updated_turn) — posture/clothing 보존
@@ -343,25 +349,6 @@ export function sanitizeMovementCommit({
     };
   }
 
-  const destinationIds = Array.isArray(cast.destination_npc_ids)
-    ? [...new Set(
-        cast.destination_npc_ids
-          .filter(id => typeof id === 'string' && id.trim() && !isPlayerRefId(id))
-      )]
-    : [];
-
-  if (destinationIds.length !== 1) {
-    restoreMovementState(beforeSave, nextSave);
-    const reason = destinationIds.length === 0 ? 'missing_destination' : 'ambiguous_destination';
-    return {
-      applied: false,
-      reason,
-      warnings: [`movement_commit_skipped:${reason}`]
-    };
-  }
-
-  const destinationId = destinationIds[0];
-
   const destinationLocationId =
     typeof cast.destination_location_id === 'string' && cast.destination_location_id.trim()
       ? cast.destination_location_id.trim()
@@ -396,6 +383,13 @@ export function sanitizeMovementCommit({
 
   const playerId = resolveCanonicalPlayerId(beforeSave);
 
+  // 이동 후 장면의 NPC는 Extract가 Story 마지막 시점에서 정규화한
+  // npcs_present만을 기준으로 한다. 빈 배열도 유효한 플레이어 단독 장면이다.
+  const finalNpcIds = Array.isArray(extractEnvelope?.npcs_present)
+    ? [...new Set(extractEnvelope.npcs_present
+      .filter(id => typeof id === 'string' && id.trim() && !isPlayerRefId(id)))]
+    : [];
+
   // 기존 장소 NPC 후보 — participants ∪ last_npcs_present (전체 NPC 순회 금지)
   const oldSceneNpcIds = new Set([
     ...(Array.isArray(beforeSave.scene_state?.participants) ? beforeSave.scene_state.participants : []),
@@ -405,7 +399,7 @@ export function sanitizeMovementCommit({
   const npcState = structuredClone(nextSave.npc_scene_state ?? {});
   for (const npcId of oldSceneNpcIds) {
     if (isPlayerRefId(npcId)) continue;
-    if (npcId === destinationId) continue;
+    if (finalNpcIds.includes(npcId)) continue;
     npcState[npcId] = {
       ...(npcState[npcId] ?? {}),
       present: false,
@@ -413,25 +407,27 @@ export function sanitizeMovementCommit({
     };
   }
 
-  // 목적지 NPC는 덮어쓰지 않고 병합 — posture/clothing/position 등 보존
-  npcState[destinationId] = {
-    ...(npcState[destinationId] ?? {}),
-    present: true,
-    scene_id: destinationSceneId,
-    location_id: destinationLocationId,
-    updated_turn: expectedTurn
-  };
+  for (const npcId of finalNpcIds) {
+    // 최종 NPC는 덮어쓰지 않고 병합 — posture/clothing/position 등 보존
+    npcState[npcId] = {
+      ...(npcState[npcId] ?? {}),
+      present: true,
+      scene_id: destinationSceneId,
+      location_id: destinationLocationId,
+      updated_turn: expectedTurn
+    };
+  }
 
   nextSave.scene_state = {
     ...(nextSave.scene_state ?? {}),
     scene_id: destinationSceneId,
     location_id: destinationLocationId,
-    participants: [playerId, destinationId],
+    participants: [playerId, ...finalNpcIds],
     updated_turn: expectedTurn
   };
 
-  nextSave.last_npcs_present = [destinationId];
-  nextSave.focal_character_id = destinationId;
+  nextSave.last_npcs_present = [...finalNpcIds];
+  nextSave.focal_character_id = finalNpcIds[0] ?? null;
   nextSave.npc_scene_state = npcState;
   // last_speaker_id는 유지 — 목적지 NPC가 이번 턴에 말하지 않았으므로 설정하지 않는다
 
@@ -458,39 +454,9 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     if (envelope.action_target_id) allowedNpcs.add(envelope.action_target_id);
   }
 
-  // 이번 턴 장면 참여자 정본 — 1) scene_cast_contract.present_npc_ids (서버가 확정한
-  // 등장 인물) 2) 없으면 Commit이 유지한 scene_state.participants.
-  // envelope.npcs_present는 참여자를 줄이는 정본으로 사용하지 않는다 — Extract가
-  // 한 명만 반환했다고 scene cast의 두 명을 한 명으로 축소하지 않으며, union으로
-  // 추가 인물만 보수적으로 포함한다 (Extract는 추가할 수는 있어도 제거할 수 없다).
-  // player/player_id는 비플레이어 NPC 수에서 제외하고 중복은 Set으로 제거한다.
-  // focal_character_id·last_npcs_present·기본 위치 인물은 단일 NPC 판정에 쓰지 않는다.
-  // 단일 NPC 판정용 물리적 인물 정본 (PR #30 보정):
-  // SceneCastContract가 있으면 present_npc_ids + entering_npc_ids union만 사용한다.
-  // - remote_npc_ids: 물리적 현장 인물이 아니므로 제외
-  // - context_npc_ids: 참고 인물이므로 제외
-  // - destination_npc_ids: present_npc_ids에 승격된 경우에만 포함 (별도 추가 금지)
-  // - envelope.npcs_present: normalizeGameplayExtractEnvelope는 등록 NPC ID 여부만
-  //   검증하며 SceneCastContract와의 일치를 검증하지 않으므로 union하지 않는다.
-  //   Extract는 단일 NPC 예외의 actor 수를 줄이거나 0→1명으로 만들 수 없다.
-  // scene_cast_contract가 없는 legacy/test 경로에서만 preSave.scene_state.participants
-  // 를 사용한다 (envelope.npcs_present 추가 없음 — 저장된 participant가 없으면
-  // 단일 NPC 예외는 활성화하지 않는다).
-  const cast = options?.parsedStory?.scene_cast_contract;
-  const hasCastContract = cast && typeof cast === 'object';
-
-  const authoritativeNpcIds = hasCastContract
-    ? [
-        ...(Array.isArray(cast.present_npc_ids) ? cast.present_npc_ids : []),
-        ...(Array.isArray(cast.entering_npc_ids) ? cast.entering_npc_ids : [])
-      ]
-    : (
-        Array.isArray(preSave.scene_state?.participants)
-          ? preSave.scene_state.participants
-          : []
-      );
-
-  const sceneNpcIds = [...new Set(authoritativeNpcIds)]
+  // Extract envelope의 npcs_present가 Story 마지막 시점의 장면 presence 정본이다.
+  // scene cast는 프롬프트 문맥일 뿐, 후행 착의 evidence 범위를 되살리지 않는다.
+  const sceneNpcIds = [...new Set(envelope.npcs_present)]
     .filter(id => typeof id === 'string' && id && !isPlayerRefId(id));
 
   // 등록 NPC 이름 목록 — 단일 NPC 예외에서 다른 NPC 이름과의 명시적 충돌을 차단한다.
