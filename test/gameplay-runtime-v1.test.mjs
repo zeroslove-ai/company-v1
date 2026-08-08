@@ -277,6 +277,70 @@ function json(value, status = 200) {
   return new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
 }
 
+test('final-scene Extract rules preserve ongoing image action and explicitly commit exits without mutating Story', () => {
+  const handjobStory = read('fixtures/phase-2/final-handjob-story.txt');
+  const parsedHandjob = parseNarrative(handjobStory);
+  const handjob = normalizeGameplayExtractEnvelope({
+    state_delta: {}, outcome: 'success', evidence: {},
+    choices: [], dialogue_lines: [], npcs_present: ['heroine4'],
+    focal_character_id: 'heroine4', last_speaker_id: 'heroine4', image_character_id: 'heroine4',
+    image_selection: { pool: 'sex', tags: ['handjob'] }
+  }, { parsedStory: parsedHandjob, npcIds: new Set(['heroine4']) });
+  assert.equal(handjob.image_selection.pool, 'sex');
+  assert.deepEqual(handjob.image_selection.tags, ['handjob']);
+
+  const noContact = normalizeGameplayExtractEnvelope({
+    state_delta: {}, outcome: 'success', evidence: {}, choices: [], dialogue_lines: [],
+    npcs_present: [], focal_character_id: null, last_speaker_id: null, image_character_id: null,
+    image_selection: { pool: 'general', tags: [] }
+  }, { parsedStory: { choices: [] }, npcIds: new Set() });
+  assert.equal(noContact.image_selection.pool, 'general');
+  assert.deepEqual(noContact.image_selection.tags, []);
+
+  const exitStory = read('fixtures/phase-2/final-exit-story.txt');
+  const parsedExit = parseNarrative(exitStory);
+  const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
+  const result = applyGuardedStateDelta(save, {
+    state_delta: {}, outcome: 'success', evidence: { scene_presence_final: true },
+    choices: [], dialogue_lines: [], npcs_present: ['npc-areum'], focal_character_id: 'npc-areum',
+    last_speaker_id: 'npc-hayeon', image_character_id: null
+  }, {
+    expectedTurn: 8, actionId: 'exit-8', turnId: 'turn-8', playerAction: 'leave',
+    parsedStory: parsedExit, npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']), storyText: exitStory
+  });
+  assert.deepEqual(result.nextSave.scene_state.participants, ['player-1', 'npc-areum']);
+  assert.deepEqual(result.nextSave.last_npcs_present, ['npc-areum']);
+  assert.equal(result.nextSave.focal_character_id, 'npc-areum');
+  assert.equal(result.nextSave.last_speaker_id, 'npc-hayeon');
+  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].present, false);
+  assert.equal(result.nextSave.npc_scene_state['npc-minsu'].present, false);
+  assert.equal(result.nextSave.npc_scene_state['npc-areum'].present, true);
+
+  const legacy = applyGuardedStateDelta(save, {
+    state_delta: {}, outcome: 'success', evidence: {}, choices: [], dialogue_lines: [],
+    npcs_present: [], focal_character_id: null, last_speaker_id: null, image_character_id: null
+  }, {
+    expectedTurn: 8, actionId: 'legacy-8', turnId: 'turn-8', playerAction: 'x',
+    parsedStory: parsedExit, npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']), storyText: exitStory
+  });
+  assert.deepEqual(legacy.nextSave.scene_state.participants, save.scene_state.participants);
+});
+
+test('Story and Extract prompts include final scene and Korean workplace language guidance', () => {
+  const storySystem = buildStoryPrompt({
+    edition: { editionId: 'company-v1', characters: { characters: {} } },
+    context: { game: {}, save: { player: { name: 'X' } }, recent_turns: [] },
+    playerAction: 'continue', expectedTurn: 1
+  })[0].content;
+  const extractSystem = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1 })[0].content;
+  assert.match(storySystem, /\[KOREAN WORKPLACE LANGUAGE\]/);
+  assert.match(storySystem, /발기한 성기/);
+  assert.match(storySystem, /해당 행동을 수행한다/);
+  assert.match(extractSystem, /Before returning image_selection, reread the final physical scene only/);
+  assert.match(extractSystem, /an exited\/disappeared NPC is absent/);
+  assert.match(extractSystem, /evidence\.scene_presence_final=true/);
+});
+
 /**
  * A fuller lifecycle mock than the read-only fixtures above: it does not auto-advance
  * processing_status on record_extract_result, so status-transition-failure recovery can
