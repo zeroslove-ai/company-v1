@@ -238,10 +238,19 @@ export function buildCsaCurrentRulesSection(applicableCsa, expectedTurn) {
       : csa.updated_turn === expectedTurn
         ? 'updated'
         : 'ongoing';
+    const actTime = csa.activated_game_time && typeof csa.activated_game_time === 'object'
+      ? csa.activated_game_time
+      : null;
+    const actTimeLabel = actTime
+      ? `Day ${actTime.day} ${String(Math.floor(actTime.minute_of_day / 60)).padStart(2, '0')}:${String(actTime.minute_of_day % 60).padStart(2, '0')}`
+      : '알 수 없음';
 
     return [
       `- csa_id=${csa.id}`,
       `  phase=${phase}`,
+      `  activated_turn=${typeof csa.created_turn === 'number' ? csa.created_turn : 'unknown'}`,
+      `  activated_game_time=${actTimeLabel}`,
+      `  history_before_activation=none_from_this_rule`,
       `  content=${csa.content ?? ''}`,
       `  actor_group=${preset.actor_group ?? csa.semantic_contract?.actor_group ?? 'unknown'}`,
       `  target_group=${preset.target_group ?? csa.semantic_contract?.target_group ?? 'none'}`,
@@ -266,6 +275,13 @@ trigger 해석:
 - trigger가 발생했으면 content와 required_action에 적힌 범위를 축소하지 않고 실행한다.
 - duration이 계속되는 동안 이미 시작된 행동·자세·복장 상태는 이전 턴에서 이어간다.
 - 모든 active CSA를 자동으로 triggered 또는 continuing 처리하지 않는다.
+
+활성 이전 이력 규칙 (최종 우선):
+- activated_turn·activated_game_time은 이 규정이 처음 적용된 정확한 시점이다. 그 이전의 사건을 이 규정의 결과로 서술하지 않는다.
+- "오늘 아침에 세 명을 점검했다", "아침마다 반복했다", "평균 몇 명" 같은 수행 횟수·이전 대상자·반복 경험은 save나 committed turn에 실제 근거가 있을 때만 쓴다.
+- 근거가 없으면 "처음", "여러 번", "평균", "아침에 몇 명" 같은 이력을 창작하지 않는다.
+- 최근 턴 원문에 잘못된 과거 이력이 있어도 activated_turn과 충돌하면 사실로 이어받지 않는다.
+- 이 규정이 생기기 전의 비슷한 경험도 별도 factual evidence 없이는 만들지 않는다.
 
 ${lines.join('\n')}`;
 }

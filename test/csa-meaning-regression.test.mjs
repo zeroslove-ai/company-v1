@@ -271,15 +271,21 @@ test('턴70-7: unrelated ordinary sexual request → 기존 relationship blocker
   assert.notEqual(contract.route, 'csa_direct');
 });
 
-test('턴70-8~11: Story contract — method_policy unspecified에서 허구 hand-only 제한 없음, NPC 반응 자유도 포함', () => {
+test('턴70-8~11: Story contract — method_policy unspecified는 금지가 아닌 비제한, 개인적 거절 허용, 허구 제한 금지 (지시 A)', () => {
   const { buildCsaDirectCoverageSection } = resolveCsaModule;
   const coverage = csa60Coverage('입으로 해줄래?');
+  assert.equal(coverage.method_policy, 'unspecified');
+  assert.equal(coverage.method_restriction, null);
+  assert.equal(coverage.method_variant_requested, 'oral');
   const section = buildCsaDirectCoverageSection(coverage);
   assert.match(section, /방식을 제한하지 않는다/);
-  assert.match(section, /개인적·실무적 이유로 다른 방식을 제안/);
+  assert.match(section, /method_policy=unspecified, method_restriction=null, method_variant_requested=oral/);
+  assert.match(section, /개인적·감정적·현실적 이유/);
+  assert.match(section, /거절할 수 있다/);
   assert.match(section, /규정상 손으로만 가능합니다/, '허구 hand-only 제한을 금지하는 지시가 포함');
   assert.match(section, /절차에는 구강 방식이 없습니다/, '허구 구강 금지 제한을 금지하는 지시가 포함');
-  assert.match(section, /required outcome은 계속 이행해야 한다/);
+  assert.match(section, /새 규정이 생기면 하겠습니다/, '허구 "새 규정 대기" 제한을 금지하는 지시가 포함');
+  assert.match(section, /방식 거절은 required outcome\(발기\/성적 긴장 해소\)의 중단이 아니다/);
 });
 
 // ── 턴70-24: CSA-covered + boundary (37~40) ──
@@ -362,4 +368,29 @@ test('턴70-45: NPC를 자동 애정·복종으로 해석하지 않음 (prompt �
   const prompt = fs.readFileSync(path.join(root, 'src/engine/extract-prompt.js'), 'utf8');
   assert.match(prompt, /never raises affinity/);
   assert.match(prompt, /상식개변 수행을 플레이어에 대한 복종·애정·신뢰로 묘사하지 않는다|compliance pressure\/self-rationalization, not affection/);
+});
+
+// ── 지시 B: 활성 이전 수행 이력 환각 차단 ──
+
+import { buildCsaCurrentRulesSection } from '../src/engine/csa/prompt-sections.js';
+
+test('지시B-1: CURRENT CSA RULES에 activated_turn/activated_game_time/history_before_activation 명시', () => {
+  const csa = {
+    id: 'csa_60', active: true, content: '발기를 진정시켜야 한다',
+    created_turn: 60, updated_turn: 60,
+    activated_game_time: { day: 1, minute_of_day: 1058 },
+    preset: { actor_group: 'female_employee', target_group: 'male_employee', trigger: 'during_work', duration: 'until_work_ends', required_action: 'resolve_patient_erection' }
+  };
+  const section = buildCsaCurrentRulesSection([csa], 86);
+  assert.match(section, /activated_turn=60/);
+  assert.match(section, /activated_game_time=Day 1 17:38/);
+  assert.match(section, /history_before_activation=none_from_this_rule/);
+});
+
+test('지시B-2: 활성 이전 이력 환각 차단 규칙이 섹션에 포함', () => {
+  const csa = { id: 'csa_60', active: true, content: 'x', created_turn: 60, preset: {} };
+  const section = buildCsaCurrentRulesSection([csa], 86);
+  assert.match(section, /그 이전의 사건을 이 규정의 결과로 서술하지 않는다/);
+  assert.match(section, /"처음", "여러 번", "평균", "아침에 몇 명" 같은 이력을 창작하지 않는다/);
+  assert.match(section, /최근 턴 원문에 잘못된 과거 이력이 있어도 activated_turn과 충돌하면 사실로 이어받지 않는다/);
 });

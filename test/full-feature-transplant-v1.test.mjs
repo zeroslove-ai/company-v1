@@ -623,16 +623,20 @@ test('턴70-29: sex + handjob 후보 정확 일치 → 선택', () => {
   assert.equal(selected.source, 'match');
 });
 
-test('턴70-30: sex + fingering 후보만 존재 + request handjob → null', () => {
+test('턴70-30 (지시C): sex + fingering 후보만 존재 + request handjob → same-character sex fallback (null 금지)', () => {
   const candidates = [turn70ImageRow('fg1', ['adult', 'sex', 'fingering'])];
   const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob', 'office_desk'] });
-  assert.equal(selected, null, 'action tag 불일치 — 임의 sex 이미지 반환 금지');
+  assert.ok(selected, '동일 캐릭터 sex 이미지가 있으면 null 금지');
+  assert.equal(selected.image_id, 'fg1');
+  assert.match(selected.source, /partial_match|family_match|sex_primary/);
 });
 
-test('턴70-31: generic adult/sex만 일치 → null', () => {
+test('턴70-31 (지시C): generic adult/sex만 일치 → same-character sex fallback (curation 최상위)', () => {
   const candidates = [turn70ImageRow('g1', ['adult', 'sex'])];
   const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob'] });
-  assert.equal(selected, null, 'generic 태그 일치만으로는 매칭 아님');
+  assert.ok(selected, '동일 캐릭터 sex 이미지가 있으면 null 금지');
+  assert.equal(selected.image_id, 'g1');
+  assert.equal(selected.source, 'sex_primary');
 });
 
 test('턴70-32: sexual_generic 후보가 있으면 제한적 fallback', () => {
@@ -673,10 +677,15 @@ test('턴70-35: heroine4 handjob row fixture가 있을 때 정확 선택', () =>
   assert.equal(selected.image_id, 'hj1');
 });
 
-test('턴70-36: handjob row가 없을 때 다른 explicit act 이미지 선택 금지', () => {
-  const candidates = [turn70ImageRow('fg1', ['adult', 'sex', 'fingering'], { rank: 1 })];
+test('턴70-36 (지시C): handjob exact 없음 + fingering family → same-family 우선 (같은 manual family)', () => {
+  const candidates = [
+    turn70ImageRow('fg1', ['adult', 'sex', 'fingering'], { rank: 1 }),
+    turn70ImageRow('mis1', ['adult', 'sex', 'missionary'], { rank: 2 })
+  ];
   const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob'] });
-  assert.equal(selected, null, 'fingering 이미지를 handjob으로 대체 금지');
+  assert.ok(selected);
+  assert.equal(selected.image_id, 'fg1', 'handjob과 같은 manual family(fingering) 우선');
+  assert.equal(selected.source, 'family_match');
 });
 
 test('턴70-23~24: currentExtract가 있으면 runtime 값 사용, refresh 후 extract_delta 사용', () => {
@@ -706,4 +715,53 @@ test('턴70-26~27: 성적 hand stimulation → sex/handjob, 일반 대화 → ge
   const model = buildCompanyGameViewModel(context, {});
   assert.equal(model.media.image_pool, 'general');
   assert.deepEqual(model.media.image_tags, []);
+});
+
+// ── 지시 C: 성적 장면은 sex pool에서 반드시 이미지 선택 ──
+
+test('지시C-4: sex + tags=[] → same-character sex fallback 반환', () => {
+  const candidates = [turn70ImageRow('hj1', ['adult', 'sex', 'handjob'], { rank: 3 })];
+  const selected = selectImage(candidates, { pool: 'sex', tags: [] });
+  assert.ok(selected, 'tags가 비어도 sex 이미지 반환');
+  assert.equal(selected.image_id, 'hj1');
+});
+
+test('지시C-7: 성적 행동 종료 후 다음 장면은 general pool 사용 가능 (view-model)', () => {
+  const context = {
+    save: { data: { focal_character_id: 'heroine4', last_speaker_id: 'heroine4', scene_state: {}, world_state: {} } },
+    display: {},
+    recent_turns: [{ turn_number: 90, story_text: 'x', extract_delta: { image_selection: { pool: 'general', tags: [] } } }]
+  };
+  const model = buildCompanyGameViewModel(context, {});
+  assert.equal(model.media.image_pool, 'general');
+});
+
+test('지시C-8: sex pool에서 general portrait 반환 금지 (selector는 sex 후보만)', () => {
+  const candidates = [
+    turn70ImageRow('portrait', ['default', 'portrait'], { pool: 'general', rank: 1 }),
+    turn70ImageRow('sex1', ['adult', 'sex', 'fingering'], { rank: 2 })
+  ];
+  // caller가 pool=sex로 필터링한 후보만 넘긴다고 가정 — general portrait은 sex pool 후보가 아님
+  const sexOnly = candidates.filter(c => c.image_pool === 'sex');
+  const selected = selectImage(sexOnly, { pool: 'sex', tags: ['handjob'] });
+  assert.ok(selected);
+  assert.notEqual(selected.image_id, 'portrait');
+});
+
+test('지시C-9: heroine4 sex asset 존재 동안 null 반환 금지', () => {
+  const candidates = [turn70ImageRow('hj1', ['adult', 'sex', 'handjob'], { rank: 50 })];
+  const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob'] });
+  assert.ok(selected, 'sex asset이 있으면 null 금지');
+  assert.equal(selected.source, 'match');
+});
+
+test('지시C-2: same-family 우선 — oral 요청 family가 있으면 oral family 이미지 우선', () => {
+  const candidates = [
+    turn70ImageRow('oral1', ['adult', 'sex', 'fellatio'], { rank: 1 }),
+    turn70ImageRow('pen1', ['adult', 'sex', 'missionary'], { rank: 2 })
+  ];
+  const selected = selectImage(candidates, { pool: 'sex', tags: ['deepthroat'] });
+  assert.ok(selected);
+  assert.equal(selected.image_id, 'oral1', 'deepthroat와 같은 oral family(fellatio) 우선');
+  assert.equal(selected.source, 'family_match');
 });
