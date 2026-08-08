@@ -50,6 +50,9 @@ function normalizeRuntimeEntry(entry = {}) {
  */
 export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = [], csaTriggerEvaluations = [], activeCsa = [], npcsPresent = [], turnNumber } = {}) {
   const warnings = [];
+  // reducer가 승인한 status=active 실행만 — 진행도(exp/csa_experienced_ids)의 유일한 정본.
+  // turn-routes는 원본 csa_runtime_updates를 다시 읽지 않고 이 목록만 사용한다.
+  const acceptedExecutions = [];
   const previous = isPlainObject(previousSave?.csa_runtime_state) ? previousSave.csa_runtime_state : {};
   const presentIds = new Set(Array.isArray(npcsPresent) ? npcsPresent.filter(id => typeof id === 'string' && id) : []);
   const activeById = new Map(activeCsa.map(item => [item.id, item]));
@@ -100,6 +103,9 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
       last_confirmed_turn: turnNumber,
       end_reason: donorStatus === 'ended' ? (typeof update.reason === 'string' && update.reason.trim() ? update.reason.trim().slice(0, 100) : (existing?.end_reason ?? null)) : null
     };
+    if (donorStatus === 'active') {
+      acceptedExecutions.push({ csa_id: csaId, character_id: characterId });
+    }
     changed = true;
   }
 
@@ -114,7 +120,7 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     // trigger evaluation은 execution_state를 변경하지 않는다 — 무시한다.
   }
 
-  return { patch: changed ? next : null, warnings };
+  return { patch: changed ? next : null, warnings, accepted_executions: acceptedExecutions };
 }
 
 /**

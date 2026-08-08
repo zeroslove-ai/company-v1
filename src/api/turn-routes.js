@@ -1268,9 +1268,9 @@ const master = masterFromEdition(edition);
         // writer of its own before this. Never grants exp on a degraded-Extract turn or for a
         // feedback revision (replacing a turn's content is not a new turn earning fresh exp).
         if (action.action_kind !== 'feedback_revision') {
-          const experiencedThisTurn = (Array.isArray(extract.csa_runtime_updates) ? extract.csa_runtime_updates : [])
-            .filter(update => update.status === 'active')
-            .map(update => ({ character_id: update.character_id, csa_id: update.csa_id }));
+          // 진행도는 reducer가 승인한 실행(accepted_executions)만 반영한다 —
+          // 잘못된(범위 밖/장면 외/action_state 불일치) update는 경험치도 주지 않는다.
+          const experiencedThisTurn = runtimeResult.accepted_executions;
           const previouslyExperienced = new Set(Array.isArray(currentSave.csa_experienced_ids) ? currentSave.csa_experienced_ids : []);
           const progressionAmount = calculateCsaProgression({
             csaOperations: csaPlan?.canonical_action?.operations ?? [], experiencedThisTurn, previouslyExperienced,

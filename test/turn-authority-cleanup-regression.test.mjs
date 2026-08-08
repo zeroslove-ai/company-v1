@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { applyGuardedStateDelta } from '../src/engine/guarded-merge.js';
 import { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch } from '../src/engine/csa/reducer.js';
+import { calculateCsaProgression } from '../src/engine/progression.js';
 import { resolveCsaDirectCoverage } from '../src/engine/csa/direct-coverage.js';
 import { resolveActionExecutionContract } from '../src/engine/action-execution-contract.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
@@ -343,4 +344,75 @@ test('회귀: choice_structured_meta는 envelope에 존재하지 않는다', () 
     choice_structured_meta: [{ choice_index: 0, action_types: ['kiss'], suggested_route: 'csa_direct' }]
   }), { parsedStory: { choices: ['a', 'b', 'c', 'd'] }, npcIds });
   assert.equal('choice_structured_meta' in normalized, false, 'choice_structured_meta 제거');
+});
+
+// ── 회귀: 진행도(authority 누수) — reducer가 승인한 실행만 exp 반영 ──────────
+
+function runtimeWith(previousSave, updates, activeCsa, npcsPresent, turnNumber) {
+  return buildCsaSceneRuntimeStatePatch({
+    previousSave, csaRuntimeUpdates: updates, csaTriggerEvaluations: [],
+    activeCsa, npcsPresent, turnNumber
+  });
+}
+
+const ACTIVE_FIXTURE = [
+  { id: 'csa_42', active: true, source_type: 'preset', content: '동료의 성적 긴장을 완화한다', preset: { required_action: 'relieve_sexual_tension' } },
+  { id: 'csa_42_1', active: true, source_type: 'preset', content: '근무 중 속옷 차림을 유지한다', preset: { required_action: 'work_in_underwear_only' } }
+];
+
+test('회귀 A: action_state 불일치 active update는 경험·EXP에 반영되지 않는다', () => {
+  const save = baseSave();
+  const result = runtimeWith(save, [
+    { csa_id: 'csa_42', character_id: 'heroine3', status: 'active', action_state: 'unrelated_action' }
+  ], ACTIVE_FIXTURE, ['heroine3'], 57);
+  // runtime 변화 없음
+  assert.equal(result.patch, null, '불일치 update는 patch 없음');
+  assert.ok(result.warnings.includes('csa_runtime_action_state_mismatch:csa_42:unrelated_action'), result.warnings.join(' '));
+  assert.equal(result.accepted_executions.length, 0, 'accepted_executions 없음');
+  // 진행도 — 승인된 실행만 전달되므로 경험·EXP 없음
+  const progression = calculateCsaProgression({
+    csaOperations: [], experiencedThisTurn: result.accepted_executions, previouslyExperienced: new Set()
+  });
+  assert.equal(progression.newly_experienced_keys.length, 0, 'csa_experienced_ids 추가 없음');
+  assert.equal(progression.amount, 0, 'EXP 증가 없음');
+});
+
+test('회귀 B: 장면에 없는 character_id의 active update는 경험·EXP에 반영되지 않는다', () => {
+  const save = baseSave();
+  const result = runtimeWith(save, [
+    { csa_id: 'csa_42', character_id: 'heroine999', status: 'active', action_state: 'relieve_sexual_tension' }
+  ], ACTIVE_FIXTURE, ['heroine3'], 57);
+  assert.equal(result.patch, null, '장면 밖 character는 runtime 변화 없음');
+  assert.equal(result.accepted_executions.length, 0, 'accepted_executions 없음');
+  const progression = calculateCsaProgression({
+    csaOperations: [], experiencedThisTurn: result.accepted_executions, previouslyExperienced: new Set()
+  });
+  assert.equal(progression.newly_experienced_keys.length, 0, '경험 ID 추가 없음');
+  assert.equal(progression.amount, 0, 'EXP 증가 없음');
+});
+
+test('회귀 C: 유효한 active update는 executed + accepted_executions + 진행도 반영', () => {
+  const save = baseSave();
+  const result = runtimeWith(save, [
+    { csa_id: 'csa_42', character_id: 'heroine3', status: 'active', action_state: 'relieve_sexual_tension' }
+  ], ACTIVE_FIXTURE, ['heroine3'], 57);
+  assert.equal(result.patch.csa_42.execution_state, 'executed', '실행 승격');
+  assert.deepEqual(result.accepted_executions, [{ csa_id: 'csa_42', character_id: 'heroine3' }], '승인 목록 포함');
+  const progression = calculateCsaProgression({
+    csaOperations: [], experiencedThisTurn: result.accepted_executions, previouslyExperienced: new Set()
+  });
+  assert.deepEqual(progression.newly_experienced_keys, ['heroine3:csa_42'], '새 경험 ID 기록');
+  assert.equal(progression.amount, 2, '새 경험 EXP 반영');
+});
+
+test('회귀 D: 이미 경험한 실행을 다시 수행하면 기존 진행도 정책 유지 (+1만)', () => {
+  const result = runtimeWith(baseSave(), [
+    { csa_id: 'csa_42', character_id: 'heroine3', status: 'active', action_state: 'relieve_sexual_tension' }
+  ], ACTIVE_FIXTURE, ['heroine3'], 57);
+  const progression = calculateCsaProgression({
+    csaOperations: [], experiencedThisTurn: result.accepted_executions,
+    previouslyExperienced: new Set(['heroine3:csa_42'])
+  });
+  assert.equal(progression.newly_experienced_keys.length, 0, '재경험은 새 ID 없음');
+  assert.equal(progression.amount, 1, '재경험은 +1만');
 });
