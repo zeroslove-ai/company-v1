@@ -330,7 +330,8 @@ test('Extract payload carries Story text exactly once and strips raw/scene_text/
   assert.equal('raw' in payload.parsed_story, false);
   assert.equal('scene_text' in payload.parsed_story, false);
   assert.equal('blocks' in payload.parsed_story, false);
-  assert.deepEqual(Object.keys(payload.parsed_story).sort(), ['choices', 'dialogue_lines', 'player_inner_thought', 'player_status', 'warnings'].sort());
+  assert.equal('player_status' in payload.parsed_story, false, 'player_status는 Extract projection에서 제거');
+  assert.deepEqual(Object.keys(payload.parsed_story).sort(), ['choices', 'dialogue_lines', 'player_inner_thought', 'warnings'].sort());
   const occurrences = prompt[1].content.split('전체 원문 그대로').length - 1;
   assert.equal(occurrences, 1, 'Story text must not be duplicated inside the Extract payload');
 });

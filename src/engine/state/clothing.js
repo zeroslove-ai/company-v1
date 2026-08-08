@@ -157,7 +157,7 @@ export function evidenceIdentifiesCharacter(evidence, narrativeText, characterNa
  * flat evidence(evidence.clothing[slot])와 다중 NPC 장면은 기존 strict 정책을
  * 유지한다 — NPC quote에는 등록 이름이 필요하다.
  */
-export function evaluateClothingFieldEvidence(evidence, narrativeText, characterName, { actorId = null, npcsPresent = [], actorScoped = false, registeredNpcNames = [] } = {}) {
+export function evaluateClothingFieldEvidence(evidence, narrativeText, characterName, { actorId = null, npcsPresent = [], registeredNpcNames = [] } = {}) {
   if (typeof evidence !== 'string' || !evidence.trim()) return false;
   const quote = evidence.trim();
   const text = typeof narrativeText === 'string' ? narrativeText : '';
@@ -166,10 +166,8 @@ export function evaluateClothingFieldEvidence(evidence, narrativeText, character
   if (isPlanningOnlyEvidence(evidence)) return false;
   if (isRegulationDirectiveEvidence(evidence)) return false;
 
-  // 단일 NPC + actor-scoped 예외 — 이름 없어도 허용, 다른 NPC 이름 충돌은 거부.
-  const singleNpcScene = actorScoped
-    && Array.isArray(npcsPresent) && npcsPresent.length === 1
-    && npcsPresent[0] === actorId;
+  // 단일 물리적 NPC 장면 — 이름 없어도 허용, 다른 NPC 이름 충돌은 거부.
+  const singleNpcScene = Array.isArray(npcsPresent) && npcsPresent.length === 1 && npcsPresent[0] === actorId;
   if (singleNpcScene) {
     const targetName = typeof characterName === 'string' ? characterName.trim() : '';
     const conflictingName = (Array.isArray(registeredNpcNames) ? registeredNpcNames : [])
@@ -183,19 +181,21 @@ export function evaluateClothingFieldEvidence(evidence, narrativeText, character
 }
 
 /**
- * Extract가 제안한 복장 변경을 canonical 슬롯으로 정규화하고, 각 변경 필드마다
- * Story 증거를 요구한다. 유지되는 필드는 출력하지 않는다 (변경만 반영).
- * 반환: { clothing, rejections }
- *
+ * Extract가 제안한 복장 변경을 canonical 슬롯으로 정규화하고, actor 단위 증거 하나로
+ * 검증한다. evidence.clothing[actor_id] = {quote, character_id} — actor당 quote 하나.
+ * quote가 유효하면 제안된 canonical clothing patch 전체를 적용한다 (slot별 의미 검증 없음).
  * 이것이 actual clothing을 쓰는 유일한 경로다 — 규정/관찰/장면 참여만으로는
  * clothing을 생성하지 않는다.
  */
-export function retainEvidencedClothing({ previousClothing = {}, proposedClothing = {}, evidenceMap = {}, narrativeText = '', characterName = '', actorId = null, npcsPresent = [], actorScoped = false, registeredNpcNames = [] } = {}) {
+export function retainEvidencedClothing({ previousClothing = {}, proposedClothing = {}, evidenceMap = null, narrativeText = '', characterName = '', actorId = null, npcsPresent = [], registeredNpcNames = [] } = {}) {
   const previous = isPlainObject(previousClothing) ? previousClothing : {};
   const proposed = isPlainObject(proposedClothing) ? proposedClothing : {};
-  const evidence = isPlainObject(evidenceMap) ? evidenceMap : {};
   const clothing = {};
   const rejections = [];
+
+  // canonical 정규화 — 제안된 슬롯을 canonical 4슬롯으로 변환 (잘못된 키/값은 거부).
+  // 이미 같은 값(no-op)은 검증 없이 통과 — 재증거 불필요.
+  const normalizedProposal = {};
   for (const [rawSlot, rawValue] of Object.entries(proposed)) {
     const slot = canonicalClothingSlot(rawSlot);
     if (!slot) {
@@ -208,14 +208,20 @@ export function retainEvidencedClothing({ previousClothing = {}, proposedClothin
       continue;
     }
     if (nextValue === previous[slot]) continue;
-    // evidence는 slot 기준 — Extract는 canonical 키로 evidence를 내야 한다.
-    const evidenceText = evidence[slot] ?? evidence[rawSlot] ?? null;
-    if (!evaluateClothingFieldEvidence(evidenceText, narrativeText, characterName, {
-      actorId, npcsPresent, actorScoped, registeredNpcNames
-    })) {
-      rejections.push(`unevidenced_clothing_change:${slot}`);
-      continue;
-    }
+    normalizedProposal[slot] = nextValue;
+  }
+  if (Object.keys(normalizedProposal).length === 0) return { clothing, rejections };
+
+  // actor당 quote 하나 — 유효하면 제안 전체 적용 (slot별 의미 정규식 검증 없음)
+  const quote = typeof evidenceMap === 'string' && evidenceMap.trim() ? evidenceMap.trim() : null;
+  if (!evaluateClothingFieldEvidence(quote, narrativeText, characterName, {
+    actorId, npcsPresent, registeredNpcNames
+  })) {
+    rejections.push('unevidenced_clothing_change');
+    return { clothing, rejections };
+  }
+  for (const [slot, nextValue] of Object.entries(normalizedProposal)) {
+    if (nextValue === previous[slot]) continue;
     clothing[slot] = nextValue;
   }
   return { clothing, rejections };

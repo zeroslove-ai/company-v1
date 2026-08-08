@@ -391,26 +391,51 @@
   }
 }
 
-/* 인물정보(focal-character)도 2열로 — 칸 낭비 제거 */
+/* 인물정보(focal-character)는 전체 2열로 통일 — 긴 문장이 글자 단위로 깨지지 않는다.
+   (PR #30 이후: 좁은 패널에서 "현재 위치" 같은 긴 값이 한 글자씩 세로로 깨지던 문제) */
 .focal-character .state-list,
 .focal-character dl {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 4px 10px;
 }
-@media (max-width: 480px) {
-
+.focal-character .state-list dt,
+.focal-character dl dt {
+  white-space: nowrap;
+}
+.focal-character .state-list dd,
+.focal-character dl dd {
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.45;
+}
+/* 상호작용 인물 착의 — 이름/복장 한 쌍씩 한 행 (가로 스크롤 금지) */
+.focal-character .interacting-character-attire {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 10px;
+  overflow: hidden;
+}
+.focal-character .interacting-character-attire dt {
+  white-space: nowrap;
+}
+.focal-character .interacting-character-attire dd {
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.45;
 }
 
-/* 현재 상황 패널 — [3. 플레이어 상황판] 별도 표시 (여러 줄 보존) */
-.player-status-card {
-  border-color: #2f4051;
+/* 플레이어 상태창도 긴 값이 패널 전체 남은 폭을 쓰도록 2열 유지 */
+.player-panel > .state-list {
+  grid-template-columns: max-content minmax(0, 1fr);
 }
-.player-status-card .future-slot-value {
-  white-space: pre-line;
-  font-size: .72rem;
-  line-height: 1.5;
-  color: #c9d8e4;
+.player-panel > .state-list dd {
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.45;
 }
 
 /* 상식개변(활성 규정) 별도 칸 — 전체 폭, 내용 잘림 방지 */

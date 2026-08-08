@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   choiceLabel,
   compactSummary,
+  normalizeInnerThought,
   parsedTurnNarrative,
   physicalRelationDisplay,
   renderChoices,
@@ -203,7 +204,7 @@ test('중앙 Story: parsed.player_inner_thought만 있으면 선택지 앞에 �
     assert.equal(thoughts.length, 1, '생각은 정확히 한 번만');
     const thoughtText = thoughts[0].textContent;
     assert.ok(!thoughtText.includes('"'), '바깥 따옴표 제거');
-    assert.ok(thoughtText.includes('.\n'), '구어체 줄바꿈(마침표 뒤) 유지');
+    assert.ok(!thoughtText.includes('.\n'), '문장부호 뒤 자동 개행 없음 (모델 줄바꿈만 유지)');
     const thoughtIndex = container.children.indexOf(thoughts[0]);
     const choicesIndex = container.children.findIndex(child => child.className === 'narrative-choices');
     assert.ok(thoughtIndex < choicesIndex, '플레이어 생각이 선택지보다 앞');
@@ -249,4 +250,41 @@ test('빈 상태 UI: 자세·관계 기록이 없으면 안내 문구와 0 기�
     renderFocalCharacter(container2, focal2, {});
     assert.ok(container2.children.some(child => child.className === 'physical-relation'), '자세 정보가 있으면 표시');
   });
+});
+
+// ── 턴70: 속마음 표시 최소 정규화 (문장부호 자동 개행 제거) ──
+
+test('턴70-B: 속마음 정규화 — 문장부호 자동 개행 없음, "."/".." 줄 제거, 연속 빈 줄 축소, 문단 유지', () => {
+  // 9. 문장부호마다 강제 개행하지 않음
+  const single = normalizeInnerThought('와, 저거 완전 당황했네. 한 번만 더 놀려볼까?');
+  assert.equal(single, '와, 저거 완전 당황했네. 한 번만 더 놀려볼까?', '마침표·물음표 뒤 자동 개행 없음');
+  // 10-11. "." / ".." / "..."만 있는 줄 제거
+  const dots = normalizeInnerThought('첫 문장.\n.\n..\n...\n·\n-');
+  assert.equal(dots, '첫 문장.', '점·기호만 있는 줄 제거');
+  // 12. 연속 빈 줄 최대 한 줄
+  const blanks = normalizeInnerThought('첫 줄\n\n\n\n\n둘째 줄');
+  assert.equal(blanks, '첫 줄\n\n둘째 줄', '연속 빈 줄은 최대 한 줄');
+  // 13. 정상 문단 줄바꿈 유지
+  const paragraph = normalizeInnerThought('첫 문단입니다.\n둘째 문단입니다.');
+  assert.equal(paragraph, '첫 문단입니다.\n둘째 문단입니다.', '모델 줄바꿈 유지');
+  // 바깥 따옴표 제거
+  assert.equal(normalizeInnerThought('"따옴표 안 생각"'), '따옴표 안 생각');
+});
+
+test('턴70-B2: Story/UI 계약 — player-status-slot 제거, 현재 상황 자연어 카드 렌더 없음, focal 2열 CSS', () => {
+  const renderSrc = fs.readFileSync(path.join(root, 'src/frontend/pages/render.js'), 'utf8');
+  assert.doesNotMatch(renderSrc, /player-status-slot/, 'render.js에서 player-status-slot 렌더 제거');
+  assert.doesNotMatch(renderSrc, /플레이어 상황/, '현재 상황 자연어 카드 렌더 제거');
+  assert.doesNotMatch(renderSrc, /playerStatus/, 'playerStatus display 제거');
+  const htmlSrc = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
+  assert.doesNotMatch(htmlSrc, /player-status-slot/, 'index.html에서 player-status-slot 제거');
+  const cssSrc = fs.readFileSync(path.join(root, 'src/frontend/pages/hospital-panels.css'), 'utf8');
+  // 14. focal-character grid 2열
+  assert.match(cssSrc, /\.focal-character \.state-list,[\s\S]*?grid-template-columns: max-content minmax\(0, 1fr\);/);
+  // 15. 긴 위치 문장이 글자 단위로 깨지지 않음
+  assert.match(cssSrc, /word-break: keep-all/);
+  assert.match(cssSrc, /overflow-wrap: break-word/);
+  assert.match(cssSrc, /white-space: nowrap/);
+  // 16. 상호작용 인물 착의 이름/내용 한 행
+  assert.match(cssSrc, /interacting-character-attire[\s\S]*?grid-template-columns: max-content minmax\(0, 1fr\);/);
 });

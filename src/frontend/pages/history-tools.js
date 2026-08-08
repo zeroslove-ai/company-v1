@@ -22,10 +22,6 @@ function innerThought(record) {
   return safe(record?.player_inner_thought) || safe(record?.parsed_blocks?.player_inner_thought);
 }
 
-function playerStatus(record) {
-  return safe(record?.parsed_blocks?.player_status);
-}
-
 export function mergeHistoryRecords(current, incoming) {
   const map = new Map();
   for (const item of [...(current ?? []), ...(incoming ?? [])]) {
@@ -53,8 +49,6 @@ export function formatHistoryMarkdown(records, title = '상식개변: 회사편 
     if (story) lines.push('### 서사', '', story, '');
     const thought = innerThought(record);
     if (thought) lines.push('### 플레이어 속마음', '', thought, '');
-    const status = playerStatus(record);
-    if (status) lines.push('### 플레이어 상황', '', status, '');
     const list = choices(record);
     if (list.length) {
       lines.push('### 선택지', '');
@@ -78,8 +72,6 @@ export function formatHistoryText(records, title = '상식개변: 회사편 플�
     if (story) lines.push('', story);
     const thought = innerThought(record);
     if (thought) lines.push('', `플레이어 속마음: ${thought}`);
-    const status = playerStatus(record);
-    if (status) lines.push(`플레이어 상황: ${status}`);
     const list = choices(record);
     if (list.length) {
       lines.push('', '선택지:');

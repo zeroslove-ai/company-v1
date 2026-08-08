@@ -1,10 +1,12 @@
 ﻿const SECTION_LABELS = {
   SCENE: 'scene', '1': 'scene',
   PLAYER_INNER_THOUGHT: 'thought', '2': 'thought',
-  PLAYER_STATUS: 'status', '3': 'status',
-  CHOICES: 'choices', '4': 'choices'
+  PLAYER_STATUS: 'status',   // 구버전 저장 턴 읽기용 — 저장은 하지 않는다
+  CHOICES: 'choices',
+  '3': 'choices',   // 신규 [3. 선택지] — 정식 형식
+  '4': 'choices'    // 기존 저장 턴 History 호환 alias ([4. 선택지])
 };
-const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
+const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*선택지|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
 const DIALOGUE_LINE = /^([\p{L}][^\n():："“”]{0,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const REGISTERED_SPEAKER_LINE = /^([^\n:："“”]{1,40}?)\s*[:：]\s*(?:["“]([^"”]*)["”]|(.+))$/u;
 const QUOTE_ONLY_LINE = /^["“]([^"”]+)["”]$/u;
@@ -285,7 +287,6 @@ export function parseNarrative(rawText, { speakerDirectory = {}, playerName = '�
   const blocks = [];
   const dialogue_lines = [];
   const warnings = [];
-  let player_status = '';
   let player_inner_thought = '';
   let choices = [];
   let choice_labels = [];
@@ -294,7 +295,6 @@ export function parseNarrative(rawText, { speakerDirectory = {}, playerName = '�
     return {
       raw,
       blocks: raw.trim() ? [{ type: 'unparsed', text: raw.trim() }] : [],
-      player_status,
       player_inner_thought,
       choices,
       dialogue_lines,
@@ -318,7 +318,10 @@ export function parseNarrative(rawText, { speakerDirectory = {}, playerName = '�
       if (value) blocks.push({ type: 'player_inner_thought', text: value });
       continue;
     }
-    if (role === 'status') { player_status = value; continue; }
+    if (role === 'status') {
+      // 구버전 [PLAYER_STATUS] 마커는 읽지만 저장하지 않는다 (player_status 제거).
+      continue;
+    }
     if (role === 'choices') {
       const parsed = parseChoices(value);
       choices = parsed.choices;
@@ -342,7 +345,7 @@ export function parseNarrative(rawText, { speakerDirectory = {}, playerName = '�
   const suppliedLabels = choice_labels.filter(Boolean);
   if (suppliedLabels.length > 0 && suppliedLabels.length !== choices.length) warnings.push('choice_labels_missing');
   if (/\[DIALOGUE\b(?![^\]]*\])/.test(raw)) warnings.push('incomplete_dialogue_marker');
-  const result = { raw, blocks, player_status, player_inner_thought, choices, dialogue_lines, warnings };
+  const result = { raw, blocks, player_inner_thought, choices, dialogue_lines, warnings };
   if (choice_labels.some(Boolean)) result.choice_labels = choice_labels;
   return result;
 }

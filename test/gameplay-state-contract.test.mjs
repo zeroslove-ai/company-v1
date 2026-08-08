@@ -13,7 +13,8 @@ import {
   normalizeGameplayExtractEnvelope,
   normalizeMindMonitor,
   parseNarrative,
-  reducePlayerSexualState
+  reducePlayerSexualState,
+  buildExtractPrompt
 } from '../src/engine/index.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -29,7 +30,7 @@ test('gameplay state documents fix v1 compatibility and global CSA ownership', (
   assert.match(state, /active_suggestions.*forbidden/i);
   assert.match(narrative, /exactly four parsed Story choices are authoritative/i);
   assert.match(narrative, /never selects the player's next action/i);
-  assert.match(narrative, /\[1\. 서사 및 행동\].*\[2\. 플레이어 속마음\].*\[3\. 플레이어 상황판\].*\[4\. 선택지\]/s);
+  assert.match(narrative, /\[1\. 서사 및 행동\].*\[2\. 플레이어 속마음\].*\[3\. 선택지\]/s);
   assert.match(narrative, /no separate user-visible `\[DIALOGUE\]` section/i);
 });
 
@@ -106,6 +107,47 @@ test('sexual reducer clamps deltas and ignores unsupported completion without bl
     reducePlayerSexualState(base, { arousal_delta: 10, ejaculation_progress_delta: 10, ejaculation_completed: true }, { storyEvidence: { sexual_resolution: true }, updatedTurn: 5 }),
     { state: { arousal: 0, ejaculation_progress: 0, ejaculation_count: 3, updated_turn: 5 }, warnings: [] }
   );
+});
+
+test('턴70-C: 사정 진행도는 턴당 최대 +6, 음수는 감소시키지 않는다', () => {
+  const base = { arousal: 0, ejaculation_progress: 0, ejaculation_count: 0, updated_turn: 0 };
+  // 17. 짧은 자극 +2 정상 누적
+  assert.equal(reducePlayerSexualState(base, { ejaculation_progress_delta: 2 }).state.ejaculation_progress, 2);
+  // 18. 지속 자극 +4 정상 누적
+  assert.equal(reducePlayerSexualState(base, { ejaculation_progress_delta: 4 }).state.ejaculation_progress, 4);
+  // 19. 모델이 +30을 제안해도 +6만 반영
+  assert.equal(reducePlayerSexualState(base, { ejaculation_progress_delta: 30 }).state.ejaculation_progress, 6);
+  assert.equal(reducePlayerSexualState(base, { ejaculation_progress_delta: 50 }).state.ejaculation_progress, 6);
+  // 20. 음수 delta는 진행도를 감소시키지 않음 (자동 감소·초기화 금지)
+  assert.equal(reducePlayerSexualState({ ...base, ejaculation_progress: 20 }, { ejaculation_progress_delta: -5 }).state.ejaculation_progress, 20);
+  assert.equal(reducePlayerSexualState({ ...base, ejaculation_progress: 20 }, { ejaculation_progress_delta: -50 }).state.ejaculation_progress, 20);
+  // 21. 여러 턴 누적 정상 (+6씩)
+  const t1 = reducePlayerSexualState(base, { ejaculation_progress_delta: 6 }).state;
+  const t2 = reducePlayerSexualState(t1, { ejaculation_progress_delta: 6 }).state;
+  const t3 = reducePlayerSexualState(t2, { ejaculation_progress_delta: 6 }).state;
+  assert.equal(t3.ejaculation_progress, 18);
+  // 22. 100 초과 clamp (6씩 17턴 → 100에서 멈춤)
+  let acc = { ...base };
+  for (let i = 0; i < 30; i += 1) acc = reducePlayerSexualState(acc, { ejaculation_progress_delta: 6 }).state;
+  assert.equal(acc.ejaculation_progress, 100);
+  // 23. 명시적 완료 없으면 count 증가 없음
+  assert.equal(reducePlayerSexualState({ ...base, ejaculation_progress: 80 }, { ejaculation_progress_delta: 6 }).state.ejaculation_count, 0);
+  // 24. 완료 evidence가 있으면 count+1, progress=0, arousal=0
+  const done = reducePlayerSexualState(
+    { ...base, arousal: 70, ejaculation_progress: 80, ejaculation_count: 1 },
+    { ejaculation_completed: true, ejaculation_progress_delta: 6 },
+    { storyEvidence: { sexual_resolution: true }, updatedTurn: 9 }
+  ).state;
+  assert.deepEqual(done, { arousal: 0, ejaculation_progress: 0, ejaculation_count: 2, updated_turn: 9 });
+});
+
+test('턴70-C2: 단순 발기·노출 사례에서는 Extract 예시상 progress delta가 없어야 한다 (프롬프트 계약)', () => {
+  const prompt = buildExtractPrompt({ context: {}, storyText: '플레이어는 서류를 정리했다.', parsedStory: {}, playerAction: 'x', expectedTurn: 1 });
+  const system = prompt[0].content;
+  assert.match(system, /Exposure, erection, conversation, or requests alone never raise it/);
+  assert.match(system, /Never decrease\/reset when stimulation stops/);
+  assert.match(system, /direct stimulation only/);
+  assert.match(system, /\+4~6/);
 });
 
 test('pure v1 migration preserves unknown fields and hydration never overwrites existing NPC data', () => {

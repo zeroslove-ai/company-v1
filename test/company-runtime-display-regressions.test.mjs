@@ -182,7 +182,7 @@ test('deactivated CSA is excluded from same-turn active checks while its exact h
   assert.doesNotMatch(system, /다음은 이번 턴에 실제로 집행되어야 했던 강제 상식개변 규칙/);
 });
 
-test('context display and view model expose progression, active rule content, and Story player status', () => {
+test('context display and view model expose progression and active rule content without Story player status', () => {
   const save = baseSave();
   save.csa_active = ['csa_1'];
   save.csa_rules = {
@@ -205,7 +205,7 @@ test('context display and view model expose progression, active rule content, an
   assert.equal(model.player.active_csa[0].content, '회의 중에는 이름으로 부른다.');
   assert.equal(model.player.active_csa[0].strength_label, '중간');
   assert.equal(model.player.active_csa[0].authority_label, '취업규칙·전사 준수 규정');
-  assert.equal(model.player.status, '보고를 마치고 다음 지시를 기다리는 중이다.');
+  assert.equal(model.player.status, undefined, 'player.status는 View Model에서 제거');
   assert.equal(model.player.location_label, '사무실');
 });
 

@@ -37,10 +37,9 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
   const evidence = evidenceObject(evidenceMap);
   const localEvidence = evidenceObject(raw.evidence);
   const warnings = [];
-  const clothingEvidence = isPlainObject(evidence.clothing) && Object.keys(evidence.clothing).length
-    ? evidence.clothing
-    : (isPlainObject(localEvidence.clothing) ? localEvidence.clothing : {});
-  const clothingActorScoped = evidence.clothing_actor_scoped === true;
+  const clothingEvidence = typeof evidence.clothing === 'string' && evidence.clothing.trim()
+    ? evidence.clothing.trim()
+    : (typeof localEvidence.clothing === 'string' && localEvidence.clothing.trim() ? localEvidence.clothing.trim() : null);
 
   const { clothing: acceptedClothing, rejections } = retainEvidencedClothing({
     previousClothing: prev.clothing ?? {},
@@ -50,7 +49,6 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
     characterName,
     actorId,
     npcsPresent,
-    actorScoped: clothingActorScoped,
     registeredNpcNames
   });
   warnings.push(...rejections);
