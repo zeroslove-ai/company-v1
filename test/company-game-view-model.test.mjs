@@ -59,8 +59,41 @@ test('Company game view model keeps identity axes separate and does not invent N
   assert.deepEqual(input, snapshot);
 });
 
+test('Company game view model projects every interacting NPC and player clothing without inference', () => {
+  const input = context();
+  input.save.data.player = { ...(input.save.data.player ?? {}), player_id: 'player', name: '플레이어' };
+  input.save.data.player_scene_state = {
+    clothing: { uniform_top: 'worn', uniform_bottom: 'removed' }
+  };
+  input.save.data.focal_character_id = 'heroine3';
+  input.save.data.last_npcs_present = ['heroine1', 'heroine3'];
+  input.save.data.scene_state = {
+    ...(input.save.data.scene_state ?? {}),
+    participants: ['player', 'heroine1', 'heroine3']
+  };
+  input.save.data.npc_scene_state = {
+    heroine1: { present: true, clothing: { uniform_top: 'worn' } },
+    heroine3: { present: true, clothing: { uniform_top: 'removed', underwear_top: 'worn' } },
+    heroine4: { present: false, clothing: { uniform_top: 'worn' } }
+  };
+  input.display = {
+    npc_directory: {
+      heroine1: { name: '윤민아' },
+      heroine3: { name: '김제나' },
+      heroine4: { name: '퇴장 인물' }
+    }
+  };
+
+  const model = buildCompanyGameViewModel(input);
+  assert.deepEqual(model.interacting_characters.map(character => character.id), ['heroine3', 'heroine1']);
+  assert.deepEqual(model.interacting_characters[0].scene_state.clothing, { uniform_top: 'removed', underwear_top: 'worn' });
+  assert.deepEqual(model.interacting_characters[1].scene_state.clothing, { uniform_top: 'worn' });
+  assert.deepEqual(model.player.clothing, { uniform_top: 'worn', uniform_bottom: 'removed' });
+  assert.equal(model.interacting_characters.some(character => character.id === 'heroine4'), false);
+});
+
 test('Company game view model is a pure module without network or DOM dependencies', () => {
   const source = fs.readFileSync(path.join(root, 'src/frontend/pages/view-model.js'), 'utf8');
   assert.doesNotMatch(source, /\bfetch\s*\(|\bdocument\s*\.|\bwindow\s*\.|\blocalStorage\b|\bsessionStorage\b/);
-  assert.deepEqual(Object.keys(buildCompanyGameViewModel({})), ['turn', 'story', 'scene', 'focal_character', 'player', 'media']);
+  assert.deepEqual(Object.keys(buildCompanyGameViewModel({})), ['turn', 'story', 'scene', 'interacting_characters', 'focal_character', 'player', 'media']);
 });
