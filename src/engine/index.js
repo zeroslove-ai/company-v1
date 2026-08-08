@@ -67,11 +67,10 @@ export {
   classifyAppOperationStrengths, semanticStrengthIssues, verifyStructuredActionValidation
 } from './csa/transaction-validator.js';
 export { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch } from './csa/reducer.js';
-export { resolveCsaDirectCoverage, resolveParticipant, buildCsaDirectCoverageSection } from './csa/direct-coverage.js';
 export {
-  buildCsaRuntimeSection, buildCsaAcceptanceScopeSection, buildCsaDirectExecutionPrioritySection,
+  buildCsaRuntimeSection,
   buildCsaCurrentRulesSection,
-  buildCsaPhysicalTransitionSection, buildNpcCsaEpistemicFirewallSection, buildCsaPersistentSceneSection,
+  buildNpcCsaEpistemicFirewallSection,
   buildCsaPublicSceneSection, buildCsaWeakSynergySection, isAppUsageInfoRequest, buildAppUsageStorySection,
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,
   buildMindEffectExtractFirewallSection,

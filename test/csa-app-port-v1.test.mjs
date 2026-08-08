@@ -14,7 +14,6 @@ import {
   normalizeStructuredAction, buildAppManualPayload, buildAppStatePayload,
   getActiveCsaEntries, getApplicableCsaEntries,
   buildNpcCsaEpistemicFirewallSection,
-  resolveParticipant,
   canonicalizeCsaGroup, CSA_CONTRACT_TARGET_GROUPS,
   normalizeCompanyCsaCatalog
 } from '../src/engine/index.js';
@@ -506,33 +505,6 @@ test('프리셋 카탈로그: 제거된 외부 그룹과 병원 legacy ID가 없
   }
 });
 
-test('집단 participant 판정: 성별·직급으로 female/male/manager를 구분하고 actor·target 중복과 장면 밖 인물·미지원 그룹을 배제한다', () => {
-  const roster = {
-    heroine1: { character_id: 'heroine1', name: '서원희', position: '차장', role_title: '브랜드전략팀 팀장', department: '브랜드전략팀' },
-    heroine2: { character_id: 'heroine2', name: '윤민아', position: '대리', department: '브랜드전략팀' },
-    male_emp: { character_id: 'male_emp', name: '김대리', gender: 'male', position: '대리', department: '마케팅팀' }
-  };
-  const save = { scene_state: { participants: ['player-1', 'heroine2', 'male_emp', 'heroine1'], focus_thread: 'relationship:heroine2' } };
-  const ctx = { save, characters: roster };
-  assert.equal(resolveParticipant('female_employee', ctx).characterId, 'heroine2', '여성 직원만');
-  assert.equal(resolveParticipant('male_employee', ctx).characterId, 'male_emp', '남성 직원만');
-  assert.equal(resolveParticipant('manager', ctx).characterId, 'heroine1', '관리자만');
-  assert.equal(resolveParticipant('coworker', ctx).characterId, 'heroine2', '참가자 NPC');
-  assert.equal(resolveParticipant('employee', ctx).characterId, 'heroine2', '참가자 NPC');
-  assert.equal(resolveParticipant('company_employee', ctx).characterId, 'heroine2', '참가자 NPC');
-  assert.equal(resolveParticipant('everyone_in_company', ctx).characterId, 'heroine2', '참가자 NPC');
-  assert.equal(resolveParticipant('conversation_partner', ctx).characterId, 'heroine2', 'focus_thread 대상');
-  assert.equal(resolveParticipant('another_present_person', ctx).characterId, 'heroine2', '참가자 NPC');
-  assert.equal(resolveParticipant('nearby_person', ctx).characterId, 'heroine2', '참가자 NPC');
-  const actor = resolveParticipant('company_employee', ctx);
-  const target = resolveParticipant('company_employee', { ...ctx, excludeCharacterId: actor.characterId });
-  assert.notEqual(target.characterId, actor.characterId, 'actor와 target은 같은 사람이 될 수 없다');
-  // 제거된 외부 그룹·미지원 그룹 → null
-  assert.equal(resolveParticipant('business_visitor', ctx), null, '제거 그룹 null');
-  assert.equal(resolveParticipant('guest', ctx), null, '제거 그룹 null');
-  assert.equal(resolveParticipant('unknown', ctx), null, 'unknown null');
-  assert.equal(resolveParticipant('not_a_group', ctx), null, '미지원 그룹 null');
-});
 
 test('legacy 읽기 호환: 직원 계열 legacy ID만 정본 ID로 canonicalize되고 외부 alias는 변환되지 않는다', () => {
   assert.equal(canonicalizeCsaGroup('nurse'), 'coworker');

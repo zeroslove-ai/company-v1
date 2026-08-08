@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import {
   buildFinderNpcList,
   buildFullPlayerInfo,
-  buildNpcFinderPayload,
   resolveNpcLocation
 } from '../src/api/product-recovery.js';
 import {

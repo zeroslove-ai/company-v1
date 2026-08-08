@@ -6,11 +6,8 @@
  *   하는지를 정하는 계약이다.
  * - 추가 LLM 호출 / 추가 네트워크 왕복 / 추가 DB 조회가 없다 (이미 로드한 save와
  *   edition catalog, 기존 semantic contract만 사용).
- * - CSA의 정확한 범위만 "csa_direct"로 인정하고, 범위 밖 행동이 회사 규정·감사 업무·
- *   인사팀 지시로 정당화되지 않도록 하는 음수 계약을 생성한다.
  */
 
-import { resolveCsaDirectCoverage, buildCsaDirectCoverageSection } from './csa/direct-coverage.js';
 import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
 
 // ---------------------------------------------------------------------------
@@ -192,16 +189,6 @@ function detectCompanyAuthorityMisuse(text) {
 const FOLLOWUP_BLOCKERS = new Set(['coercive_physical_control', 'company_authority_misuse', 'explicit_recent_refusal', 'closed_boundary']);
 
 function resolveRouteAndPolicy({ actionTypes, executionMode, coverage, relationship, companyAuthorityMisuse, permission }) {
-  if (coverage?.covered) {
-    return {
-      route: 'csa_direct',
-      completion_policy: 'complete_exact_scope',
-      csa_attribution_allowed: true,
-      company_authority_attribution_allowed: true,
-      schedule_boundary_followup: false,
-      reason_code: 'CSA_DIRECT_EXACT_MATCH'
-    };
-  }
   const blockers = Array.isArray(permission?.blockers) ? permission.blockers : [];
   if (!actionTypes.length && !blockers.length) {
     return {
@@ -466,12 +453,12 @@ export function resolveContextualPermission({ save, targetId, actionTypes, execu
  * })
  *
  * - structured path: save.last_choices/last_choice_meta가 입력과 정확히 일치하면 그
- *   metadata를 최우선 신호로 사용하고, resolveCsaDirectCoverage가 현재 save·참가자·
+ *   structured action metadata is used only for ordinary contract diagnostics.
  *   semantic contract로 재검증한다 (Extract의 suggested_route를 그대로 신뢰하지 않음)
  * - free-text path: 코드 기반 조합 matcher (행동 동사 + 신체/대상 신호)
  * - 추가 await/fetch/LLM 없음 — 순수 결정 함수
  */
-export function resolveActionExecutionContract({ save, playerAction, csaCatalog, characters = [], npcIds = [], csaCoverage = null, preStoryCsaRouting = true } = {}) {
+export function resolveActionExecutionContract({ save, playerAction, csaCatalog, characters = [], npcIds = [] } = {}) {
   const text = typeof playerAction === 'string' ? playerAction : '';
   // 선택지 metadata 기반 신호는 사용하지 않는다 — 선택지는 표시 정본이며 행동 분류에 쓰지 않는다.
   const actionTypes = classifyMaterialActions(text);
@@ -484,20 +471,8 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     : inferTargetId(save, text, characters, npcIds);
   // Story 생성 경로에서는 CSA를 사전 매칭하지 않는다. 이 옵션은 기존 일반
   // action-contract 단위 테스트와 비-Story 호환 호출을 위한 명시적 legacy 경계다.
-  const coverage = preStoryCsaRouting
-    ? (csaCoverage ?? resolveCsaDirectCoverage(save, text, {
-      sexualActionContract: csaCatalog?.sexual_action_contract,
-      actionTypes,
-      characters
-    }))
-    : { covered: false, csa_id: null, route: null };
-  // CSA 범위 정책: resolveSexualCoverage가 요청 material action 전체가 한 CSA
-  // contract의 actions에 포함될 때만 covered=true를 준다. 하나라도 범위 밖이면
-  // coverage=false → CSA 권한으로는 direct가 아니며 Story에서 일반 요청으로 처리된다
-  // (별도 partial/out_of_scope 상태는 없다).
-  // 모호한 자연어는 별도 route 확정을 하지 않는다 — 활성 CSA는 어차피 매 Story
-  // prompt에 주입되므로, "발기했어. 부탁해." 같은 입력은 ordinary로 두고
-  // Story LLM이 전체 대화와 활성 규정을 보고 자연스럽게 해석한다.
+  const coverage = { covered: false, csa_id: null, route: null };
+  // CSA pre-story coverage is intentionally fixed false; active world rules are projected separately.
   const relationship = relationshipFor(save, targetId);
   const companyAuthorityMisuse = detectCompanyAuthorityMisuse(text);
   // 다중 근거 기반 조건부 허용 — 순수 함수 (추가 LLM/네트워크 없음)
@@ -505,13 +480,10 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
     save, targetId, actionTypes, executionMode, playerAction: text
   });
 
-  // CSA 범위 정책 — coverage가 이미 전부 범위 안일 때만 csa_direct다.
   const routeInfo = resolveRouteAndPolicy({
     actionTypes,
     executionMode,
-    // Story-first mode still reports the generic safety metadata for recovery,
-    // but coverage is deliberately empty and cannot select a CSA route.
-    coverage: preStoryCsaRouting ? coverage : { covered: false, csa_id: null, route: null },
+    coverage,
     relationship,
     companyAuthorityMisuse,
     permission
@@ -566,18 +538,10 @@ function csaScopeLine(applicableCsa) {
 
 /**
  * Story 프롬프트에 붙이는 계약 section.
- * - csa_direct: 기존 positive contract + exact-scope 강화 문장
  * - ordinary_direct_blocked / ordinary_request / ordinary_direct_attempt: 짧고 강한 음수 계약
  */
 export function buildActionExecutionContractSection(contract, { applicableCsa = [] } = {}) {
   if (!contract) return '';
-  if (contract.route === 'csa_direct') {
-    // applyCsaStorySections가 이미 정상 coverage section(buildCsaDirectCoverageSection)을 넣으므로,
-    // 여기서는 중복 section 대신 exact-scope 제한 문장만 반환한다 (actor_group 등이 빠진
-    // contract.csa_coverage로 두 번째 coverage를 만들면 undefined가 깨져 들어간다).
-    return '\n[CSA EXACT-SCOPE LIMIT]\n위 CSA DIRECT COVERAGE에서 명시한 행동만 확정한다. 유사하거나 더 강한 행동으로 확장하지 않는다.';
-  }
-  if (contract.route === 'ordinary') return '';
   if (contract.route === 'ordinary_request') {
     const ctx = permissionContextLine(contract);
     return `\n\n[ACTION EXECUTION CONTRACT — REQUEST]\n이번 플레이어 입력(${contract.action_types.join(', ')})은 활성 상식개변의 직접 범위를 벗어난 요청이다. 요청 자체는 전달되지만, NPC가 관계·성격·현재 경계를 실제로 반영해 수락·거절·조건을 제시한다.${ctx ? `\n현재 NPC 상태: ${ctx}` : ''}\nNPC는 무조건 거절하지 않는다. 흥분도가 높고 호감도와 사생활 조건이 갖춰졌다면 수락 가능성을 충분히 열어둔다. 허용되는 반응: 즉시 수락, 머뭇거리며 수락, 주변 확인 후 수락, 조금만 허용, 장소 변경 제안, 다음 단계는 거절, 거절. 요청했다는 이유만으로 자동 완료하지 않는다. CSA acceptance나 신체적 흥분 자체가 동의는 아니다. 회사 규정·감사 업무·인사팀 지시로 정당화하지 않는다.`;

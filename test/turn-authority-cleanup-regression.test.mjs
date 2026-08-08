@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { applyGuardedStateDelta } from '../src/engine/guarded-merge.js';
 import { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch } from '../src/engine/csa/reducer.js';
 import { calculateCsaProgression } from '../src/engine/progression.js';
-import { resolveCsaDirectCoverage } from '../src/engine/csa/direct-coverage.js';
 import { resolveActionExecutionContract } from '../src/engine/action-execution-contract.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { normalizeGameplayExtractEnvelope } from '../src/engine/gameplay-state.js';
@@ -258,23 +257,6 @@ test('회귀: Story 선택지 0개여도 UI 안전 기본 4개가 채워진다',
 });
 
 // ── 회귀: 모호한 자연어 CSA 요청은 단어 규칙으로 blocked 확정하지 않는다 ─────
-
-test('회귀: "나 발기했어. 부탁해."는 단어 규칙으로 direct/blocked 확정하지 않는다', () => {
-  const save = baseSave();
-  // direct coverage — 단어 규칙으로 csa_direct 확정하지 않는다
-  const direct = resolveCsaDirectCoverage(save, '그렇지. 나 발기했어 제나씨. 부탁해.', { master, characters: master.characters });
-  assert.equal(direct.covered, false, '발기+부탁해는 단어 규칙으로 direct가 아니다');
-
-  // execution contract — ordinary 계열로 둔다 (CSA contract는 매 Story prompt에 주입됨)
-  const contract = resolveActionExecutionContract({
-    save, playerAction: '그렇지. 나 발기했어 제나씨. 부탁해.',
-    csaCatalog: { sexual_action_contract: {} }, characters: master.characters, npcIds: ['heroine3']
-  });
-  assert.equal(contract.route, 'ordinary', '모호한 입력은 ordinary');
-  assert.equal(contract.material_action, false, 'material action 없음 — blocked로 사전 확정하지 않는다');
-});
-
-// ── 회귀: CSA runtime — trigger evaluation은 execution_state를 강등하지 않음 ─
 
 test('회귀: trigger evaluation not_satisfied는 execution_state를 강등하지 않는다', () => {
   const save = baseSave();

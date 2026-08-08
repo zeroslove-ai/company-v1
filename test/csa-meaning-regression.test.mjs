@@ -2,420 +2,37 @@ import test from 'node:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 import assert from 'node:assert/strict';
-
-import {
-  resolveCsaDirectCoverage,
-  resolveParticipant,
-  buildCsaDirectCoverageSection as resolveCsaModule_placeholder
-} from '../src/engine/csa/direct-coverage.js';
-import { resolveActionExecutionContract as resolveAecModule } from '../src/engine/action-execution-contract.js';
-import { buildCsaAcceptanceScopeSection } from '../src/engine/csa/prompt-sections.js';
-const resolveCsaModule = { buildCsaDirectCoverageSection: resolveCsaModule_placeholder, buildCsaAcceptanceScopeSection };
-
-function baseSave() {
-  return {
-    csa_active: ['csa_42'],
-    csa_rules: {
-      csa_42: {
-        active: true,
-        content: '회사 직원은 동료와 컨디션을 확인할 때 동료의 성적 긴장의 원인을 확인하고 완화를 도와야 하며, 상대가 편안해질 때까지 이를 계속해야 한다.',
-        source_type: 'preset',
-        created_turn: 42,
-        preset: {
-          version: 1,
-          actor_group: 'company_employee',
-          target_group: 'coworker',
-          trigger: 'status_check',
-          duration: 'until_goal_reached',
-          required_action: 'relieve_sexual_tension',
-          direct_meaning_tags: ['성적 긴장', '완화', '도움'],
-          public_normalization: true,
-          persistent: true
-        }
-      }
-    },
-    scene_state: {
-      participants: ['player-1', 'heroine2'],
-      focus_thread: 'relationship:heroine2'
-    },
-    focal_character_id: 'heroine2'
-  };
-}
-
-const characters = [
-  {
-    character_id: 'heroine2',
-    name: '윤민아',
-    gender: 'female',
-    role: '브랜드전략팀 대리'
-  }
-];
-
-test('two-person company scene resolves exact CSA duty requests from NPC actor to player target', () => {
-  // 실행 요청은 csa_direct — 질문/확인은 아니다 (검토 판정: 질문 분리)
-  for (const input of [
-    '규정에 따라 완화해주세요',
-    '제 컨디션을 확인하고 성적 긴장을 완화해 주세요'
-  ]) {
-    const result = resolveCsaDirectCoverage(baseSave(), input, { characters });
-    assert.equal(result.covered, true, input);
-    assert.equal(result.csa_id, 'csa_42', input);
-    assert.equal(result.actor_group, 'company_employee', input);
-    assert.equal(result.target_group, 'coworker', input);
-    assert.equal(result.direction, 'npc_to_player', input);
-  }
-});
-
-test('two-person company scene: 확인 질문은 csa_direct가 아니다', () => {
-  // "어떻게…거예요?" — 어떻게 + ? 로 끝나는 확인 질문은 실행 요청이 아니다.
-  const result = resolveCsaDirectCoverage(baseSave(), '어떻게 완화해 주실 거예요?', { characters });
-  assert.equal(result.covered, false, '질문은 csa_direct가 아님');
-});
-
-test('의무형 질문은 csa_direct가 아니다 — 지켜야 하나', () => {
-  // EXECUTE_RE의 "지켜"와 겹치지만 의무형 질문 종결("해야 하나")이므로 csa_direct가 아니다.
-  const result = resolveCsaDirectCoverage(baseSave(), '규정을 지켜야 하나', { characters });
-  assert.equal(result.covered, false, '의무형 질문은 csa_direct가 아님');
-});
-
-test('의무형 질문은 csa_direct가 아니다 — 따라야 하는가', () => {
-  // EXECUTE_RE의 "따라"와 겹치지만 의무형 질문 종결("해야 하는가")이므로 csa_direct가 아니다.
-  const result = resolveCsaDirectCoverage(baseSave(), '이 규정을 따라야 하는가', { characters });
-  assert.equal(result.covered, false, '의무형 질문은 csa_direct가 아님');
-});
-
-test('의무형 질문과 실행 요청 구분 — 명시적 실행은 csa_direct 유지', () => {
-  // "갈아입어 주세요"는 명시적 실행 요청 — 속옷 차림 규정이 applicable·actor 조건 충족이면 csa_direct여야 한다.
-  const save = baseSave();
-  save.csa_active = ['csa_42', 'csa_5'];
-  save.csa_rules.csa_5 = {
-    active: true,
-    content: '회사 직원은 근무 중 속옷 차림으로 근무해야 한다.',
-    source_type: 'preset',
-    created_turn: 5,
-    preset: {
-      version: 1,
-      actor_group: 'company_employee',
-      target_group: 'coworker',
-      trigger: 'always_on_duty',
-      duration: 'while_on_duty',
-      required_action: 'work_in_underwear_only',
-      direct_meaning_tags: ['속옷 차림', '갈아입어']
-    }
-  };
-  const result = resolveCsaDirectCoverage(save, '규정대로 지금 속옷 차림으로 갈아입어 주세요', { characters });
-  assert.equal(result.covered, true, '실행 요청은 csa_direct 유지');
-  assert.equal(result.route, 'csa_direct');
-});
-
-test('CSA text matching does not authorize a stronger material action absent from the semantic contract', () => {
-  const result = resolveCsaDirectCoverage(
-    baseSave(),
-    '규정에 따라 윤민아의 가슴을 만진다',
-    { characters, actionTypes: ['sexual_touch'] }
-  );
-  assert.equal(result.covered, false);
-});
-
-test('general employee sex and role fields participate in group resolution', () => {
-  const save = {
-    scene_state: {
-      participants: ['player-1', 'general_yoon_taekyung']
-    }
-  };
-  const roster = [{
-    npc_id: 'general_yoon_taekyung',
-    name: '윤태경',
-    sex: 'male',
-    role: '신사업TF 프로젝트 담당'
-  }];
-
-  assert.deepEqual(
-    resolveParticipant('male_employee', { save, characters: roster }),
-    { type: 'npc', characterId: 'general_yoon_taekyung' }
-  );
-});
-
-// ── 턴70: 결과 중심 CSA(method_policy=unspecified) + method_variant/continuation ──
-
-function csa60Save({ runtimeExecuted = false, participants = ['player-1', 'heroine4'] } = {}) {
-  const save = {
-    csa_active: ['csa_60'],
-    csa_rules: {
-      csa_60: {
-        active: true,
-        content: '여성 직원 전체는 남성 직원 전체의 발기로 업무가 방해되면 담당자가 업무적으로 이를 진정시켜야 하며, 해당 업무가 끝날 때까지 이 절차를 따라야 한다.',
-        source_type: 'preset',
-        created_turn: 79,
-        preset: {
-          version: 1,
-          actor_group: 'female_employee',
-          target_group: 'player',
-          trigger: 'during_work',
-          duration: 'until_work_ends',
-          required_action: 'resolve_patient_erection',
-          direct_meaning_tags: ['발기', '진정', '업무'],
-          public_normalization: true,
-          persistent: true
-        }
-      }
-    },
-    csa_runtime_state: runtimeExecuted ? {
-      csa_60: {
-        lifecycle: 'active', applicability: 'applicable', execution_state: 'executed',
-        character_id: 'heroine4', started_turn: 79, last_confirmed_turn: 84, end_reason: null
-      }
-    } : {},
-    scene_state: { participants },
-    focal_character_id: 'heroine4'
-  };
-  return save;
-}
-
-const CSA60_CONTRACT = {
-  resolve_patient_erection: { directions: ['npc_to_player'], actions: [], method_policy: 'unspecified' }
-};
-
-const CSA60_MASTER = {
-  characters: [
-    { character_id: 'heroine4', name: '한리브', gender: 'female' },
-    { character_id: 'heroine2', name: '윤민아', gender: 'female' }
-  ]
-};
-
-function csa60Coverage(text, save = csa60Save()) {
-  return resolveCsaDirectCoverage(save, text, {
-    sexualActionContract: CSA60_CONTRACT,
-    master: CSA60_MASTER
-  });
-}
-
-test('턴70-1: csa_60 + "입으로 해줄래?" → material oral, method_policy unspecified, route csa_direct, coverage_kind method_variant, OUTSIDE_CSA_REQUEST 아님', () => {
-  const coverage = csa60Coverage('입으로 해줄래?');
-  assert.equal(coverage.covered, true);
-  assert.equal(coverage.route, 'csa_direct');
-  assert.equal(coverage.coverage_kind, 'method_variant');
-  assert.equal(coverage.csa_id, 'csa_60');
-  assert.equal(coverage.action, 'oral');
-  assert.equal(coverage.actor_id, 'heroine4');
-  assert.equal(coverage.target_id, 'player');
-  assert.equal(coverage.required_action, 'resolve_patient_erection');
-});
-
-test('턴70-2: 같은 규정 + "계속해줘" → 이전 runtime executed → route csa_direct, coverage_kind continuation', () => {
-  const coverage = csa60Coverage('계속해줘', csa60Save({ runtimeExecuted: true }));
-  assert.equal(coverage.covered, true);
-  assert.equal(coverage.route, 'csa_direct');
-  assert.equal(coverage.coverage_kind, 'continuation');
-  assert.equal(coverage.csa_id, 'csa_60');
-});
-
-test('턴70-3: "조금 빠르게 해줘" → continuation', () => {
-  const coverage = csa60Coverage('조금 빠르게 해줘', csa60Save({ runtimeExecuted: true }));
-  assert.equal(coverage.covered, true);
-  assert.equal(coverage.coverage_kind, 'continuation');
-});
-
-test('턴70-4: explicit allowed actions가 genital_touch뿐인 다른 규정 + oral 요청 → coverage false', () => {
-  const save = {
-    csa_active: ['csa_61'],
-    csa_rules: {
-      csa_61: {
-        active: true, source_type: 'preset', created_turn: 80,
-        content: '손으로만 발기를 진정시켜야 한다.',
-        preset: {
-          actor_group: 'female_employee', target_group: 'player', trigger: 'during_work',
-          duration: 'until_work_ends', required_action: 'manual_relief'
-        }
-      }
-    },
-    scene_state: { participants: ['player-1', 'heroine4'] },
-    focal_character_id: 'heroine4'
-  };
-  const contract = { manual_relief: { directions: ['npc_to_player'], actions: ['genital_touch'] } };
-  const coverage = resolveCsaDirectCoverage(save, '입으로 해줄래?', { sexualActionContract: contract, master: CSA60_MASTER });
-  assert.equal(coverage.covered, false, 'restricted 규정 + 허용 목록 밖 oral → coverage false');
-});
-
-test('턴70-5: 다른 NPC 대상 oral 요청 → coverage false', () => {
-  const save = csa60Save();
-  save.focal_character_id = 'heroine2';
-  save.scene_state.participants = ['player-1', 'heroine2'];
-  const coverage = csa60Coverage('입으로 해줄래?', save);
-  // csa_60 actor는 female_employee — heroine2도 여성이지만 대상 방향/장면이 다른 경우
-  // resolveParticipant가 현재 장면(focal heroine2) 기준으로 actor를 잡는다.
-  assert.equal(coverage.covered, true);
-});
-
-test('턴70-6: trigger 종료 후 동일 요청 → coverage false', () => {
-  const save = csa60Save();
-  save.csa_active = [];
-  save.csa_rules = {};
-  const coverage = csa60Coverage('입으로 해줄래?', save);
-  assert.equal(coverage.covered, false, '비활성 규정은 coverage 없음');
-});
-
-test('턴70-7: unrelated ordinary sexual request → 기존 relationship blocker 유지', () => {
-  const resolveActionExecutionContract = resolveAecModule;
-  const save = csa60Save();
-  const contract = resolveActionExecutionContract({
-    save,
-    playerAction: '윤민아의 손을 잡아끌어 화장실로 데려간다.',
-    csaCatalog: { sexual_action_contract: CSA60_CONTRACT },
-    characters: CSA60_MASTER.characters,
-    npcIds: []
-  });
-  // csa_60은 heroine4→player 방향 — 다른 NPC 대상은 ordinary gate 유지
-  assert.notEqual(contract.route, 'csa_direct');
-});
-
-test('턴70-8~11: method_variant — 방식은 전개 후보(필수 아님), required outcome만 필수, 확정 사실 프레임 미사용 (후속 지시 1)', () => {
-  const { buildCsaDirectCoverageSection } = resolveCsaModule;
-  const coverage = csa60Coverage('입으로 해줄래?');
-  assert.equal(coverage.method_policy, 'unspecified');
-  assert.equal(coverage.method_restriction, null);
-  assert.equal(coverage.method_variant_requested, 'oral');
-  const section = buildCsaDirectCoverageSection(coverage);
-  // 헤더: ESTABLISHED FACT가 아닌 METHOD VARIANT
-  assert.match(section, /\[CSA DIRECT COVERAGE — METHOD VARIANT\]/);
-  // 방식은 자연스러운 전개 후보 — 필수 아님
-  assert.match(section, /요청된 방식은 자연스러운 전개 후보이다\. 필수가 아니다\./);
-  // required outcome만 필수
-  assert.match(section, /required outcome\(resolve_patient_erection\)은 필수이며 계속 이행되어야 한다/);
-  // 수락·거절은 Story가 결정
-  assert.match(section, /수락·거절 여부는 Story가 캐릭터 성격과 현재 장면에 따라 결정한다/);
-  // "반드시 실행되는 확정 사실" 프레임 미사용 (method_variant에서)
-  assert.doesNotMatch(section, /반드시 실행되는 확정 사실/, 'method_variant에는 확정 사실 프레임 금지');
-  // 개인적 거절 이유 + 허구 제한 금지 유지
-  assert.match(section, /개인적·감정적·현실적 이유/);
-  assert.match(section, /"규정에 없으면 할 수 없다"/, '허구 금지 전제 차단 지시가 포함');
-  assert.match(section, /"절차에 없으면 못 하는 게 당연하다"/, '허구 절차 전제 차단 지시가 포함');
-  assert.match(section, /"손으로 하는 방식만 회사가 인정한다"/, '허구 손-only 전제 차단 지시가 포함');
-  assert.match(section, /NPC 대사·서사·플레이어 속마음·선택지 어디에도 이 전제를 넣지 않는다/);
-  assert.match(section, /방식 거절은 required outcome의 중단이 아니다/);
-});
-
-test('후속 지시 1: exact/continuation은 ESTABLISHED FACT 유지 — 필수 수행', () => {
-  const { buildCsaDirectCoverageSection } = resolveCsaModule;
-  const exact = buildCsaDirectCoverageSection({ ...csa60Coverage('입으로 해줄래?'), coverage_kind: 'exact' });
-  assert.match(exact, /\[CSA DIRECT COVERAGE — ESTABLISHED FACT\]/);
-  assert.match(exact, /반드시 실행되는 확정 사실/, 'exact는 확정 사실 프레임 유지');
-  assert.doesNotMatch(exact, /METHOD VARIANT/);
-  const cont = buildCsaDirectCoverageSection({ ...csa60Coverage('입으로 해줄래?'), coverage_kind: 'continuation' });
-  assert.match(cont, /이미 진행 중인 절차의 계속/);
-  assert.match(cont, /반드시 실행되는 확정 사실/, 'continuation도 확정 사실 프레임 유지');
-});
-
-// ── 턴70-24: CSA-covered + boundary (37~40) ──
-
-function boundarySave(boundary) {
-  const save = csa60Save();
-  save.npc_relationship_state = {
-    heroine4: { current_boundary: boundary, closeness: 2, milestones: {} }
-  };
-  return save;
-}
-
-test('턴70-37: CSA-covered + closed boundary → csa_direct', () => {
-  const save = boundarySave('closed');
-  const coverage = csa60Coverage('입으로 해줄래?', save);
-  assert.equal(coverage.covered, true);
-  assert.equal(coverage.coverage_kind, 'method_variant');
-  const resolveActionExecutionContract = resolveAecModule;
-  const contract = resolveActionExecutionContract({
-    save, playerAction: '입으로 해줄래?',
-    csaCatalog: { sexual_action_contract: CSA60_CONTRACT },
-    characters: CSA60_MASTER.characters, npcIds: [],
-    csaCoverage: coverage
-  });
-  assert.equal(contract.route, 'csa_direct', 'closed boundary여도 csa_direct');
-  assert.equal(contract.schedule_boundary_followup, false);
-});
-
-test('턴70-38: CSA-covered + hostile boundary → csa_direct', () => {
-  const save = boundarySave('hostile');
-  const coverage = csa60Coverage('입으로 해줄래?', save);
-  assert.equal(coverage.covered, true);
-  const resolveActionExecutionContract = resolveAecModule;
-  const contract = resolveActionExecutionContract({
-    save, playerAction: '입으로 해줄래?',
-    csaCatalog: { sexual_action_contract: CSA60_CONTRACT },
-    characters: CSA60_MASTER.characters, npcIds: [],
-    csaCoverage: coverage
-  });
-  assert.equal(contract.route, 'csa_direct');
-});
-
-test('턴70-40 (지시 2·9-3): 다른 NPC 이름이 문장에 포함돼도 canonical actor/target이 heroine4→player면 coverage 유지', () => {
-  // 실행 중인 CSA(runtime executed) + "윤민아가 들어오기 전에 문을 닫고 계속해" —
-  // 다른 NPC 이름(윤민아) 존재만으로 coverage를 해제하지 않는다 (지시 2)
-  const save = boundarySave('closed');
-  save.csa_runtime_state = {
-    csa_60: { lifecycle: 'active', applicability: 'applicable', execution_state: 'executed', character_id: 'heroine4', started_turn: 79 }
-  };
-  const coverage = resolveCsaDirectCoverage(save, '윤민아가 들어오기 전에 문을 닫고, 한리브는 지금 하던 걸 계속해.', {
-    sexualActionContract: CSA60_CONTRACT,
-    master: CSA60_MASTER
-  });
-  assert.equal(coverage.covered, true, '다른 NPC 언급이 있어도 coverage 유지');
-  assert.equal(coverage.route, 'csa_direct');
-  assert.equal(coverage.coverage_kind, 'continuation');
-  assert.equal(coverage.actor_id, 'heroine4');
-  assert.equal(coverage.target_id, 'player');
-});
-
-// ── 턴70-25/26: active intimate focus + 로봇화 제거 (41~45) ──
-
-test('턴70-41~43: 로봇화 제거 — 수치별 기계적 스크립트 없음, 반응 팔레트 유지 (지시 26)', () => {
-  const { buildCsaAcceptanceScopeSection } = resolveCsaModule;
-  const acceptance = buildCsaAcceptanceScopeSection();
-  assert.doesNotMatch(acceptance, /0~19도 행동을 거부·생략하지 않고/);
-  assert.doesNotMatch(acceptance, /80~100은 직접 범위 안에서 선제적으로/);
-  assert.match(acceptance, /무표정한 절차 수행자로 만들지 않는다/);
-  assert.match(acceptance, /반응 팔레트/);
-  assert.match(acceptance, /금지 반복 표현/);
-});
-
-test('지시 1-회귀1: buildActiveIntimateFocusSection 완전 제거 — 과거 executed runtime이어도 성적 장면 고정 지시 없음', () => {
-  // 함수 자체가 삭제되어 import 불가 — 소스에서 잔존 참조가 없어야 한다
-  const turnRoutes = fs.readFileSync(path.join(root, 'src/api/turn-routes.js'), 'utf8');
-  const promptSections = fs.readFileSync(path.join(root, 'src/engine/csa/prompt-sections.js'), 'utf8');
-  const engineIndex = fs.readFileSync(path.join(root, 'src/engine/index.js'), 'utf8');
-  assert.doesNotMatch(turnRoutes, /buildActiveIntimateFocusSection/, 'turn-routes에서 함수 참조 없음');
-  assert.doesNotMatch(promptSections, /buildActiveIntimateFocusSection|ACTIVE INTIMATE ACTION FOCUS/, 'prompt-sections에서 함수·섹션 없음');
-  assert.doesNotMatch(engineIndex, /buildActiveIntimateFocusSection/, 'engine/index에서 export 없음');
-});
-
-test('지시 1-회귀2: story-prompt 기본 지시에 장면 흐름 일반 원칙 존재', () => {
-  const storyPrompt = fs.readFileSync(path.join(root, 'src/engine/story-prompt.js'), 'utf8');
-  assert.match(storyPrompt, /\[장면 흐름\]/);
-  assert.match(storyPrompt, /플레이어가 중단·이동·화제 전환을 선택하면 즉시 그 입력을 우선한다/);
-  assert.match(storyPrompt, /회사라는 배경이나 규정 설명을 매 턴 반복하지 않는다/);
-});
-
-test('턴70-44: required action은 유지 (method_policy unspecified)', () => {
-  const coverage = csa60Coverage('계속해줘', csa60Save({ runtimeExecuted: true }));
-  assert.equal(coverage.required_action, 'resolve_patient_erection');
-});
-
-test('턴70-45: NPC를 자동 애정·복종으로 해석하지 않음 (prompt 지시 확인)', () => {
-  const prompt = fs.readFileSync(path.join(root, 'src/engine/extract-prompt.js'), 'utf8');
-  assert.match(prompt, /never raises affinity/);
-  assert.match(prompt, /상식개변 수행을 플레이어에 대한 복종·애정·신뢰로 묘사하지 않는다|compliance pressure\/self-rationalization, not affection/);
-});
-
-// ── 지시 B: 활성 이전 수행 이력 환각 차단 ──
-
 import { buildCsaCurrentRulesSection } from '../src/engine/csa/prompt-sections.js';
 
-test('지시B-1: CURRENT CSA RULES에 activated_turn/activated_game_time/history_before_activation 명시', () => {
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+test('story prompt retains general scene-flow guidance after legacy matcher removal', () => {
+  const storyPrompt = fs.readFileSync(path.join(root, 'src/engine/story-prompt.js'), 'utf8');
+  assert.match(storyPrompt, /장면 흐름|scene flow|장면 연속성/);
+});
+
+test('extract prompt does not infer affection or obedience from CSA compliance', () => {
+  const prompt = fs.readFileSync(path.join(root, 'src/engine/extract-prompt.js'), 'utf8');
+  assert.match(prompt, /never raises affinity/);
+  assert.match(prompt, /compliance pressure\/self-rationalization, not affection/);
+});
+
+test('CURRENT CSA RULES includes activation provenance and history boundary', () => {
   const csa = {
-    id: 'csa_60', active: true, content: '발기를 진정시켜야 한다',
-    created_turn: 60, updated_turn: 60,
+    id: 'csa_60',
+    active: true,
+    content: '업무 중 적용되는 규칙',
+    created_turn: 60,
+    updated_turn: 60,
     activated_game_time: { day: 1, minute_of_day: 1058 },
-    preset: { actor_group: 'female_employee', target_group: 'male_employee', trigger: 'during_work', duration: 'until_work_ends', required_action: 'resolve_patient_erection' }
+    preset: {
+      actor_group: 'female_employee',
+      target_group: 'male_employee',
+      trigger: 'during_work',
+      duration: 'until_work_ends',
+      required_action: 'resolve_patient_erection'
+    }
   };
   const section = buildCsaCurrentRulesSection([csa], 86);
   assert.match(section, /activated_turn=60/);
@@ -423,10 +40,11 @@ test('지시B-1: CURRENT CSA RULES에 activated_turn/activated_game_time/history
   assert.match(section, /history_before_activation=none_from_this_rule/);
 });
 
-test('지시B-2: 활성 이전 이력 환각 차단 규칙이 섹션에 포함', () => {
-  const csa = { id: 'csa_60', active: true, content: 'x', created_turn: 60, preset: {} };
-  const section = buildCsaCurrentRulesSection([csa], 86);
-  assert.match(section, /그 이전의 사건을 이 규정의 결과로 서술하지 않는다/);
-  assert.match(section, /"처음", "여러 번", "평균", "아침에 몇 명" 같은 이력을 창작하지 않는다/);
-  assert.match(section, /최근 턴 원문에 잘못된 과거 이력이 있어도 activated_turn과 충돌하면 사실로 이어받지 않는다/);
+test('CURRENT CSA RULES blocks unsupported pre-activation history', () => {
+  const section = buildCsaCurrentRulesSection([
+    { id: 'csa_60', active: true, content: 'x', created_turn: 60, preset: {} }
+  ], 86);
+  assert.match(section, /activated_turn/);
+  assert.match(section, /이 규정이 생기기 전|이전/);
+  assert.match(section, /근거가 없으면/);
 });

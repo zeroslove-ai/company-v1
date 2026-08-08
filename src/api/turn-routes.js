@@ -38,13 +38,9 @@ import {
   buildAppUsageStorySection,
   buildCsaAftereffectPatch,
   buildCsaSceneRuntimeStatePatch,
-  buildCsaAcceptanceScopeSection,
   buildCsaApplicationCheckSection,
   buildCsaDeactivationStorySection,
   buildCsaCurrentRulesSection,
-  buildCsaDirectExecutionPrioritySection,
-  buildCsaPersistentSceneSection,
-  buildCsaPhysicalTransitionSection,
   buildCsaPublicSceneSection,
   buildCsaRuntimeExtractContractSection,
   buildCsaRuntimeSection,
@@ -822,7 +818,6 @@ const master = masterFromEdition(edition);
             csaCatalog,
             characters: master.characters,
             npcIds: master.general_npcs,
-            preStoryCsaRouting: false
           });
           timing.action_contract_ms = Date.now() - contractStart;
           timing.action_route = actionContract.route;
