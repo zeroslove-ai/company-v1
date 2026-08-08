@@ -70,9 +70,12 @@ function clothingEvidenceForActor(evidence, actorId) {
       const claimedActor = typeof entry.character_id === 'string'
         ? entry.character_id
         : (typeof entry.character === 'string' ? entry.character : null);
-      if (!nested && claimedActor && claimedActor !== actorId) continue;
-      // flat evidence에서 플레이어 소유권을 추측하지 않는다.
-      if (!nested && actorId === 'player' && claimedActor !== 'player') continue;
+      // nested/flat 무관 — 내부 character_id가 명시적으로 존재하면 actorId와
+      // 정확히 일치해야 한다. nested actor key가 정본이더라도 내부 충돌은 거부.
+      if (claimedActor && claimedActor !== actorId) continue;
+      // flat evidence는 character_id(또는 character) 필수 — 없거나 다르면 거부
+      // (플레이어 flat evidence도 동일 원칙, player-1 추측 변환 없음).
+      if (!nested && claimedActor !== actorId) continue;
       if (typeof entry.quote === 'string' && entry.quote.trim()) result.quotes[slot] = entry.quote.trim();
       continue;
     }
@@ -467,15 +470,23 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     if (envelope.action_target_id) allowedNpcs.add(envelope.action_target_id);
   }
 
-  // 이번 턴 장면 참여자 정본 — Extract가 검증해 확정한 npcs_present가 우선,
-  // 비어 있으면 Commit이 유지한 scene_state.participants를 사용한다.
-  // player/player_id는 비플레이어 NPC 수에서 제외한다 (과거 last_npcs_present나
-  // focal_character_id만으로 단일 NPC를 추측하지 않는다).
-  const playerId = resolveCanonicalPlayerId(preSave);
-  const sceneNpcIds = (Array.isArray(envelope.npcs_present) && envelope.npcs_present.length
-    ? envelope.npcs_present
-    : Array.isArray(nextSave.scene_state?.participants) ? nextSave.scene_state.participants : []
-  ).filter(id => typeof id === 'string' && id && !isPlayerRefId(id));
+  // 이번 턴 장면 참여자 정본 — 1) scene_cast_contract.present_npc_ids (서버가 확정한
+  // 등장 인물) 2) 없으면 Commit이 유지한 scene_state.participants.
+  // envelope.npcs_present는 참여자를 줄이는 정본으로 사용하지 않는다 — Extract가
+  // 한 명만 반환했다고 scene cast의 두 명을 한 명으로 축소하지 않으며, union으로
+  // 추가 인물만 보수적으로 포함한다 (Extract는 추가할 수는 있어도 제거할 수 없다).
+  // player/player_id는 비플레이어 NPC 수에서 제외하고 중복은 Set으로 제거한다.
+  // focal_character_id·last_npcs_present·기본 위치 인물은 단일 NPC 판정에 쓰지 않는다.
+  const castNpcIds = Array.isArray(options?.parsedStory?.scene_cast_contract?.present_npc_ids)
+    ? options.parsedStory.scene_cast_contract.present_npc_ids
+    : null;
+  const savedNpcIds = Array.isArray(preSave.scene_state?.participants)
+    ? preSave.scene_state.participants
+    : [];
+  const sceneNpcIds = [...new Set([
+    ...(castNpcIds ?? savedNpcIds),
+    ...(Array.isArray(envelope.npcs_present) ? envelope.npcs_present : [])
+  ])].filter(id => typeof id === 'string' && id && !isPlayerRefId(id));
 
   // 등록 NPC 이름 목록 — 단일 NPC 예외에서 다른 NPC 이름과의 명시적 충돌을 차단한다.
   const masterRoster = plainObject(options?.master) ? options.master : {};

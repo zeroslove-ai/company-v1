@@ -31,10 +31,14 @@ function clothingEnvelope({ stateDelta, evidence, story, npcsPresent = ['npc-hay
   };
 }
 
-function applyClothing(save, envelope, story, { npcIds = new Set(['npc-hayeon']), master = { characters: [{ character_id: 'npc-hayeon', name: '김하연' }] } } = {}) {
+function applyClothing(save, envelope, story, { npcIds = new Set(['npc-hayeon']), master = { characters: [{ character_id: 'npc-hayeon', name: '김하연' }] }, castNpcIds = ['npc-hayeon'] } = {}) {
   return applyGuardedStateDelta(save, envelope, {
     storyText: story,
-    parsedStory: { choices: envelope.choices, dialogue_lines: [] },
+    parsedStory: {
+      choices: envelope.choices,
+      dialogue_lines: [],
+      ...(Array.isArray(castNpcIds) ? { scene_cast_contract: { present_npc_ids: castNpcIds } } : {})
+    },
     npcIds,
     master,
     expectedTurn: 8,
@@ -442,4 +446,129 @@ test('회귀14: extract-prompt는 이번 작업에서 변경되지 않았다', (
   const extractPrompt = fs.readFileSync(new URL('../src/engine/extract-prompt.js', import.meta.url), 'utf8');
   assert.match(extractPrompt, /actor_id is player for the player/);
   assert.match(extractPrompt, /NPC quotes name that NPC/);
+});
+
+// ── 후속 보정: scene cast 정본 + character_id 충돌/필수 (authority 누수 3건) ──
+
+test('회귀A: scene cast는 NPC 2명인데 Extract가 1명만 반환 → 단일 NPC 예외 비활성, 거부', () => {
+  const save = sceneSave();
+  save.npc_scene_state['heroine3'] = { ...save.npc_scene_state['heroine3'], clothing: {} };
+  const story = '그녀가 셔츠를 벗었다.';
+  const envelope = clothingEnvelope({
+    story,
+    npcsPresent: ['heroine3'],   // Extract가 한 명만 반환 (누락)
+    focal: 'heroine3',
+    stateDelta: { npc_scene_state: { 'heroine3': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'heroine3': {
+          uniform_top: { quote: '그녀가 셔츠를 벗었다.', character_id: 'heroine3' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, {
+    master: TWO_NPC_MASTER,
+    npcIds: new Set(['npc-hayeon', 'heroine3']),
+    castNpcIds: ['heroine2', 'heroine3']  // scene cast 정본은 2명
+  });
+  assert.deepEqual(result.nextSave.npc_scene_state['heroine3'].clothing, {},
+    'cast 2명이면 Extract 1명 반환으로 단일 예외가 켜지지 않는다 — 거부');
+});
+
+test('회귀B: nested actor key와 내부 character_id 충돌 → 저장 거부', () => {
+  const save = sceneSave();
+  const story = '그녀가 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: '그녀가 셔츠를 벗어 의자에 걸었다.', character_id: 'heroine2' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: TWO_NPC_MASTER });
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {},
+    'nested여도 내부 character_id가 충돌하면 무시하지 않는다 — 거부');
+});
+
+test('회귀C: flat evidence에 character_id 없음 → 이름이 있어도 저장 거부', () => {
+  const save = sceneSave();
+  const story = '김하연이 셔츠를 벗었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        uniform_top: { quote: '김하연이 셔츠를 벗었다.' }  // character_id 없음
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {},
+    'flat evidence는 character_id 필수 — 이름이 있어도 거부');
+});
+
+test('회귀D: flat evidence character_id 정확 일치 + 이름 포함 → 기존대로 저장 성공', () => {
+  const save = sceneSave();
+  const story = '김하연이 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        uniform_top: { quote: '김하연이 셔츠를 벗어 의자에 걸었다.', character_id: 'npc-hayeon' }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER });
+  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].clothing.uniform_top, 'removed');
+});
+
+test('회귀E: 단일 NPC scene cast + nested actor + 이름 없는 quote → 65턴 성공 유지', () => {
+  const save = sceneSave();
+  const story = '그녀가 셔츠를 아예 벗어 의자에 걸었다. 속옷 차림으로 사무실에 서 있는 게 규정이라지만.';
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: { npc_scene_state: { 'npc-hayeon': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: '그녀가 셔츠를 아예 벗어 의자에 걸었다.', character_id: 'npc-hayeon' }
+        }
+      }
+    }
+  });
+  // scene cast가 단일 NPC로 확정된 장면 — cast 기반 정본으로도 예외 동작 유지.
+  const result = applyClothing(save, envelope, story, { master: HAYEON_MASTER, castNpcIds: ['npc-hayeon'] });
+  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].clothing.uniform_top, 'removed');
+});
+
+test('회귀F: 다중 NPC scene cast + 대상 이름 포함 → 해당 NPC만 저장 (기존 성공 유지)', () => {
+  const save = sceneSave();
+  save.npc_scene_state['heroine3'] = { ...save.npc_scene_state['heroine3'], clothing: {} };
+  const story = '김제나가 셔츠를 벗어 의자에 걸었다.';
+  const envelope = clothingEnvelope({
+    story,
+    npcsPresent: ['heroine3'],
+    focal: 'heroine3',
+    stateDelta: { npc_scene_state: { 'heroine3': { clothing: { uniform_top: 'removed' } } } },
+    evidence: {
+      clothing: {
+        'heroine3': {
+          uniform_top: { quote: '김제나가 셔츠를 벗어 의자에 걸었다.', character_id: 'heroine3' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story, {
+    master: TWO_NPC_MASTER,
+    npcIds: new Set(['npc-hayeon', 'heroine3']),
+    castNpcIds: ['npc-hayeon', 'heroine3']
+  });
+  assert.equal(result.nextSave.npc_scene_state['heroine3'].clothing.uniform_top, 'removed');
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {}, 'heroine3에만 저장');
 });
