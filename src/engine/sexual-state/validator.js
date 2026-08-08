@@ -2,7 +2,7 @@
  * Guards the boundary between "a sexual event happened" (sexual_event_ledger, arousal, CSA
  * direct execution) and "the relationship advanced" (npc_relationship_state.intimacy_stage).
  * Ported from donor's mergeStructuredIntimacyState gate: a completed sexual event via the
- * csa_direct route never advances intimacy stage on its own — only a genuinely voluntary
+ * a non-voluntary route never advances intimacy stage on its own — only a genuinely voluntary
  * event, with its own independent evidence, can. This is the concrete enforcement of
  * "physical reactions ≠ consent" and "a sexual event ≠ automatic relationship-stage
  * advancement" from the CSA relationship guard contract.
@@ -16,14 +16,14 @@ function isPlainObject(value) {
 
 /**
  * event: a single accepted sexual_event_ledger entry (see ledger.js).
- * route: 'csa_direct' | 'voluntary' | 'blocked' | 'none' — how this action was authorized.
+ * route: the upstream authorization label, if any. Only 'voluntary' can advance the stage.
  * currentStage: the NPC's current npc_relationship_state.intimacy_stage.
  * Returns the next stage (only ever one rank forward, never skipping) or null if the event
  * doesn't justify any stage change at all.
  */
 export function resolveIntimacyStageAdvancement({ event, route, currentStage = 'none' } = {}) {
   if (!isPlainObject(event) || !event.completed) return null;
-  if (route !== 'voluntary') return null; // csa_direct (and everything else) never advances stage on its own
+  if (route !== 'voluntary') return null;
   const targetStage = STAGE_FOR_ACTION[event.action_type];
   if (!targetStage) return null;
   const currentRank = STAGE_RANK[currentStage] ?? 0;

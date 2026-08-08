@@ -39,7 +39,7 @@ function isPlainObject(value) {
 
 /**
  * csaOperations: this turn's canonical CSA operations (from a committed app_transaction), if any.
- * experiencedThisTurn: [{character_id, csa_id}] — every CSA-direct-execution or CSA-relevant
+ * experiencedThisTurn: [{character_id, csa_id}] — every CSA-relevant
  * event that actually happened in this turn's committed Story/Extract.
  * previouslyExperienced: Set of "characterId:csaId" keys already logged in prior turns.
  * degraded: true when this turn's Extract was a degraded fallback (donor: no exp on a degraded turn).

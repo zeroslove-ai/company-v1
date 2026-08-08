@@ -116,32 +116,6 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
   return { fetchImpl, calls, getSave: () => currentSave };
 }
 
-// ---------- Commit 1: structured-signal direct coverage ----------
-
-function sexualCsaSave({ actorGroup = 'nurse', targetGroup = 'player', requiredAction = '__test_required_action__' } = {}) {
-  return {
-    csa_active: ['csa_0'],
-    csa_rules: {
-      csa_0: {
-        active: true, source_type: 'preset', content: '테스트', strength: 'medium',
-        preset: { template_id: 'test_template', actor_group: actorGroup, target_group: targetGroup, trigger: 'on_request', duration: 'continuous', required_action: requiredAction, public_normalization: true }
-      }
-    },
-    focal_character_id: 'heroine1',
-    scene_state: { participants: ['heroine1'] },
-    last_choices: ['성기를 만진다', '다른 대화를 계속한다', '자리를 뜬다', '다시 확인한다'],
-    last_choice_meta: [
-      { choice_index: 0, action_types: ['genital_touch'], actor_id: 'heroine1', target_id: 'player', suggested_route: 'csa_direct', direct_csa_ids: ['csa_0'] }
-    ]
-  };
-}
-
-const SEXUAL_CHARACTERS = {
-  heroine1: { character_id: 'heroine1', name: '서원희', position: '차장', department: '브랜드전략팀' }
-};
-const sexualActionContract = { __test_required_action__: { directions: ['npc_to_player'], actions: ['genital_touch'] } };
-
-
 test('Extract system prompt: the real CSA-active total (firewall+application-check+runtime-tracking+choice-structured-meta) stays under a real, verified cap', async () => {
   const presetItem = catalog.items.find(item => item.category === 'contact' && item.strength === 'medium');
   const save = freshSave({
