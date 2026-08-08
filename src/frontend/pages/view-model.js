@@ -28,6 +28,10 @@ function strings(value) {
   return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) : [];
 }
 
+function isPlayerAlias(id, playerId) {
+  return id === 'player' || id === playerId || id.startsWith('player-') || id.startsWith('player_');
+}
+
 function saveFromContext(context) {
   return object(context?.save?.data) ?? object(context?.save) ?? {};
 }
@@ -208,10 +212,11 @@ function npcSceneView(save, id) {
 function interactingCharacterViews(save, focalId, directory = {}, details = {}) {
   const playerId = text(object(save.player)?.player_id) || 'player';
   const participantIds = strings(object(save.scene_state)?.participants);
-  const orderedIds = [...new Set([focalId, ...strings(save.last_npcs_present), ...participantIds])];
+  const orderedIds = focalId && participantIds.includes(focalId)
+    ? [focalId, ...participantIds.filter(id => id !== focalId)]
+    : participantIds;
   return orderedIds
-    .filter(id => id && id !== 'player' && id !== playerId && !id.startsWith('player'))
-    .filter(id => object(object(save.npc_scene_state)?.[id])?.present !== false)
+    .filter(id => id && !isPlayerAlias(id, playerId))
     .map(id => ({
       id,
       name: characterName(save, id, directory, details) || id,

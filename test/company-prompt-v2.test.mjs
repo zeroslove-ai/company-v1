@@ -124,6 +124,26 @@ test('Story Prompt v2 explicitly requires continuity, NPC agency, functional dia
   assert.ok(system.length < 9000, `Story system prompt too large: ${system.length}`);
 });
 
+test('Story prompt treats context.current_time day/minute_of_day as hard facts', () => {
+  const context = contextWithTurns();
+  context.save.data.world_state.game_time = { day: 2, minute_of_day: 1320 };
+  const messages = buildStoryPrompt({
+    edition,
+    context,
+    playerAction: '보고서를 정리한다.',
+    expectedTurn: 4
+  });
+  const system = messages[0].content;
+  const payload = JSON.parse(messages[1].content);
+  assert.deepEqual(payload.context.current_time, { day: 2, minute_of_day: 1320 });
+  assert.match(system, /context\.current_time\(게임 시각, minute_of_day\).*day와 minute_of_day는 확정된 hard fact/);
+  assert.match(system, /모순되면 시간 분위기를 생략한다/);
+  assert.match(system, /22:00 이후에는 점심시간·오후 햇살·한낮·퇴근 전을 쓰지 않는다/);
+  assert.match(system, /elapsed 근거 없이 한 시간 넘게·몇 시간째·아침부터·하루 종일을 만들지 않는다/);
+  assert.match(system, /during_work\/while_on_duty/);
+  assert.match(system, /unspecified method/);
+});
+
 test('Extract compact canon uses actual prompt-card fields and drops unrelated or forbidden fields', () => {
   const canon = buildExtractCharacterCanon(characters, ['heroine3', 'heroine5']);
   assert.deepEqual(canon.heroine3.distinctive_traits, ['표정에 감정이 드러남', '준비 부족을 자책', '타이밍형 유머']);

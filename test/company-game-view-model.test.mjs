@@ -92,6 +92,44 @@ test('Company game view model projects every interacting NPC and player clothing
   assert.equal(model.interacting_characters.some(character => character.id === 'heroine4'), false);
 });
 
+test('Company game view model uses participants as the only current-scene NPC membership source', () => {
+  const staleAbsent = context();
+  staleAbsent.save.data.player = { player_id: 'player-1' };
+  staleAbsent.save.data.scene_state = { participants: ['player-1', 'heroine1'] };
+  staleAbsent.save.data.npc_scene_state = {
+    heroine1: { present: false, clothing: { uniform_top: 'removed' } }
+  };
+  let model = buildCompanyGameViewModel(staleAbsent);
+  assert.deepEqual(model.interacting_characters.map(character => character.id), ['heroine1']);
+  assert.deepEqual(model.interacting_characters[0].scene_state.clothing, { uniform_top: 'removed' });
+
+  const outside = context();
+  outside.save.data.player = { player_id: 'player-1' };
+  outside.save.data.scene_state = { participants: ['player-1', 'heroine1'] };
+  outside.save.data.last_npcs_present = ['heroine3'];
+  outside.save.data.npc_scene_state = {
+    heroine1: { present: true },
+    heroine3: { present: true }
+  };
+  model = buildCompanyGameViewModel(outside);
+  assert.deepEqual(model.interacting_characters.map(character => character.id), ['heroine1']);
+
+  const focal = context();
+  focal.save.data.player = { player_id: 'player-1' };
+  focal.save.data.scene_state = { participants: ['player-1', 'heroine1', 'heroine3'] };
+  focal.save.data.focal_character_id = 'heroine3';
+  model = buildCompanyGameViewModel(focal);
+  assert.deepEqual(model.interacting_characters.map(character => character.id), ['heroine3', 'heroine1']);
+
+  const staleFocal = context();
+  staleFocal.save.data.player = { player_id: 'player-1' };
+  staleFocal.save.data.scene_state = { participants: ['player-1'] };
+  staleFocal.save.data.focal_character_id = 'heroine1';
+  staleFocal.save.data.last_npcs_present = ['heroine1'];
+  model = buildCompanyGameViewModel(staleFocal);
+  assert.deepEqual(model.interacting_characters, []);
+});
+
 test('Company game view model is a pure module without network or DOM dependencies', () => {
   const source = fs.readFileSync(path.join(root, 'src/frontend/pages/view-model.js'), 'utf8');
   assert.doesNotMatch(source, /\bfetch\s*\(|\bdocument\s*\.|\bwindow\s*\.|\blocalStorage\b|\bsessionStorage\b/);
