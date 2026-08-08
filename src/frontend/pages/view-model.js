@@ -192,6 +192,33 @@ function npcView(save, id, details = {}) {
   };
 }
 
+function npcSceneView(save, id) {
+  const state = object(object(save.npc_scene_state)?.[id]) ?? {};
+  return {
+    location_label: text(state.location_label),
+    posture: text(state.posture),
+    posture_detail: text(state.posture_detail ?? state.posture_description),
+    position_label: text(state.position_label),
+    relative_position: text(state.relative_position ?? state.position_relative_to_player ?? state.relative_to_player ?? state.physical_relation),
+    clothing: object(state.clothing) ?? {}
+  };
+}
+
+/** 현재 장면 참여 정본만 사용한다. focal을 먼저 두고, 퇴장(present:false)은 제외한다. */
+function interactingCharacterViews(save, focalId, directory = {}, details = {}) {
+  const playerId = text(object(save.player)?.player_id) || 'player';
+  const participantIds = strings(object(save.scene_state)?.participants);
+  const orderedIds = [...new Set([focalId, ...strings(save.last_npcs_present), ...participantIds])];
+  return orderedIds
+    .filter(id => id && id !== 'player' && id !== playerId && !id.startsWith('player'))
+    .filter(id => object(object(save.npc_scene_state)?.[id])?.present !== false)
+    .map(id => ({
+      id,
+      name: characterName(save, id, directory, details) || id,
+      scene_state: npcSceneView(save, id)
+    }));
+}
+
 function fallbackActiveRules(save) {
   const rules = object(save.csa_rules) ?? {};
   return strings(save.csa_active).flatMap(id => {
@@ -219,7 +246,8 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
   const playerProgress = object(save.player_progress) ?? {};
   const playerSexualState = object(save.player_sexual_state) ?? {};
   const playerSceneState = object(save.player_scene_state) ?? {};
-  const focalSceneState = object(object(save.npc_scene_state)?.[focalId]) ?? {};
+  const focalSceneState = npcSceneView(save, focalId);
+  const interactingCharacters = interactingCharacterViews(save, focalId, directory, details);
   const imageCharacterId = text(currentExtract?.image_character_id ?? currentExtract?.character_id) || focalId || lastSpeakerId;
   const monitor = mindMonitor(currentExtract, turn);
   const monitorEntries = mindMonitorEntries(save, monitor, [imageCharacterId, focalId, lastSpeakerId], directory, details);
@@ -240,15 +268,11 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       csa_active: Array.isArray(save.csa_active) ? save.csa_active : [], csa_rules: activeRules,
       npcs_present: strings(save.last_npcs_present), action_target_id: text(currentExtract?.action_target_id), clothing_state: object(currentExtract?.clothing_state)
     },
+    interacting_characters: interactingCharacters,
     focal_character: {
       id: focalId, name: characterName(save, focalId, directory, details), last_speaker_id: lastSpeakerId,
       character: npcView(save, focalId, details),
-      scene_state: {
-        location_label: text(focalSceneState.location_label), posture: text(focalSceneState.posture),
-        posture_detail: text(focalSceneState.posture_detail ?? focalSceneState.posture_description), position_label: text(focalSceneState.position_label),
-        relative_position: text(focalSceneState.relative_position ?? focalSceneState.position_relative_to_player ?? focalSceneState.relative_to_player ?? focalSceneState.physical_relation),
-        clothing: object(focalSceneState.clothing) ?? {}
-      }
+      scene_state: focalSceneState
     },
     player: {
       state: player, stats: object(save.npc_stats)?.player ?? {}, name: text(player.name ?? save.player_name),
