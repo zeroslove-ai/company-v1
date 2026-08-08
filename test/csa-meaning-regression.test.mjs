@@ -271,21 +271,40 @@ test('턴70-7: unrelated ordinary sexual request → 기존 relationship blocker
   assert.notEqual(contract.route, 'csa_direct');
 });
 
-test('턴70-8~11: Story contract — method_policy unspecified는 금지가 아닌 비제한, 개인적 거절 허용, 허구 제한 금지 (지시 A)', () => {
+test('턴70-8~11: method_variant — 방식은 전개 후보(필수 아님), required outcome만 필수, 확정 사실 프레임 미사용 (후속 지시 1)', () => {
   const { buildCsaDirectCoverageSection } = resolveCsaModule;
   const coverage = csa60Coverage('입으로 해줄래?');
   assert.equal(coverage.method_policy, 'unspecified');
   assert.equal(coverage.method_restriction, null);
   assert.equal(coverage.method_variant_requested, 'oral');
   const section = buildCsaDirectCoverageSection(coverage);
-  assert.match(section, /방식을 제한하지 않는다/);
-  assert.match(section, /method_policy=unspecified, method_restriction=null, method_variant_requested=oral/);
+  // 헤더: ESTABLISHED FACT가 아닌 METHOD VARIANT
+  assert.match(section, /\[CSA DIRECT COVERAGE — METHOD VARIANT\]/);
+  // 방식은 자연스러운 전개 후보 — 필수 아님
+  assert.match(section, /요청된 방식은 자연스러운 전개 후보이다\. 필수가 아니다\./);
+  // required outcome만 필수
+  assert.match(section, /required outcome\(resolve_patient_erection\)은 필수이며 계속 이행되어야 한다/);
+  // 수락·거절은 Story가 결정
+  assert.match(section, /수락·거절 여부는 Story가 캐릭터 성격과 현재 장면에 따라 결정한다/);
+  // "반드시 실행되는 확정 사실" 프레임 미사용 (method_variant에서)
+  assert.doesNotMatch(section, /반드시 실행되는 확정 사실/, 'method_variant에는 확정 사실 프레임 금지');
+  // 개인적 거절 이유 + 허구 제한 금지 유지
   assert.match(section, /개인적·감정적·현실적 이유/);
-  assert.match(section, /거절할 수 있다/);
   assert.match(section, /규정상 손으로만 가능합니다/, '허구 hand-only 제한을 금지하는 지시가 포함');
   assert.match(section, /절차에는 구강 방식이 없습니다/, '허구 구강 금지 제한을 금지하는 지시가 포함');
   assert.match(section, /새 규정이 생기면 하겠습니다/, '허구 "새 규정 대기" 제한을 금지하는 지시가 포함');
-  assert.match(section, /방식 거절은 required outcome\(발기\/성적 긴장 해소\)의 중단이 아니다/);
+  assert.match(section, /방식 거절은 required outcome의 중단이 아니다/);
+});
+
+test('후속 지시 1: exact/continuation은 ESTABLISHED FACT 유지 — 필수 수행', () => {
+  const { buildCsaDirectCoverageSection } = resolveCsaModule;
+  const exact = buildCsaDirectCoverageSection({ ...csa60Coverage('입으로 해줄래?'), coverage_kind: 'exact' });
+  assert.match(exact, /\[CSA DIRECT COVERAGE — ESTABLISHED FACT\]/);
+  assert.match(exact, /반드시 실행되는 확정 사실/, 'exact는 확정 사실 프레임 유지');
+  assert.doesNotMatch(exact, /METHOD VARIANT/);
+  const cont = buildCsaDirectCoverageSection({ ...csa60Coverage('입으로 해줄래?'), coverage_kind: 'continuation' });
+  assert.match(cont, /이미 진행 중인 절차의 계속/);
+  assert.match(cont, /반드시 실행되는 확정 사실/, 'continuation도 확정 사실 프레임 유지');
 });
 
 // ── 턴70-24: CSA-covered + boundary (37~40) ──

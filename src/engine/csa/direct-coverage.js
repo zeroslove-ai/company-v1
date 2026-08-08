@@ -490,16 +490,15 @@ export function resolveCsaDirectCoverage(
 
 export function buildCsaDirectCoverageSection(coverage) {
   if (!coverage?.covered) return '';
-  const kind = coverage.coverage_kind === 'method_variant'
-    ? ' (방식 제안 — 규정이 결과만 정의해 방식을 제한하지 않는다)'
-    : (coverage.coverage_kind === 'continuation' ? ' (이미 진행 중인 절차의 계속)' : '');
-  // A: method_policy=unspecified는 "금지"가 아니라 "비제한"이다.
-  // 규정은 required outcome만 정의하고 수행 방식을 요구하거나 금지하지 않는다.
-  // NPC는 개인적·감정적·현실적 이유로 특정 방식을 거절할 수 있지만,
-  // "규정에 없다/절차에 없다/손으로만 가능" 같은 허구 제한으로 포장하지 않는다.
-  // 방식 거절은 required outcome 중단이 아니다.
-  const methodLine = coverage.coverage_kind === 'method_variant'
-    ? `\n규정은 특정 수행 방식을 허용 목록으로 제한하지 않는다. (method_policy=unspecified, method_restriction=null${coverage.action ? `, method_variant_requested=${coverage.action}` : ''})\n플레이어가 제안한 방식은 CSA 범위 안의 방식 제안(method_variant)이다. NPC는 그 방식을 개인적·감정적·현실적 이유(부끄러움, 경험 부족, 개인적 부담, 위생·자세, 장소 불편, 감정적 거부 등)로 거절할 수 있다. 거절을 표현할 때 규정이나 절차를 이유로 삼지 않는다 — "규정상 손으로만 가능합니다", "절차에는 구강 방식이 없습니다", "규정에 없어서 못 합니다", "새 규정이 생기면 하겠습니다" 같은 존재하지 않는 제한으로 포장하지 않는다. 방식 거절은 required outcome(발기/성적 긴장 해소)의 중단이 아니다 — 다른 가능한 방식으로 계속 이행해야 한다.\n이전 턴 대화에 "입으로 하는 건 절차에 없어요", "규정 다시 찾아봤는데 없더라고요", "규정이 없으니 어쩔 수 없지만요" 같은 표현이 있었다면 그것은 이 규정의 오해였다 — 그 표현을 이어받거나 반복하지 않는다. 이 규정은 방식을 제한하지 않으며, NPC의 거절은 언제나 개인적·감정적·현실적 이유로만 표현한다.`
-    : '';
-  return `\n\n[CSA DIRECT COVERAGE — ESTABLISHED FACT]${kind}\n플레이어의 이번 입력은 활성 상식개변(${coverage.csa_id})의 직접 범위와 정확히 일치한다(행동주체=${coverage.actor_group}, 대상=${coverage.target_group ?? '없음'}, 방향=${coverage.direction}${coverage.action ? `, 행동=${coverage.action}` : ''}). 이 행동은 반드시 실행되는 확정 사실이며, 성공 확률이나 위험도로 표현하지 않는다. 이 규칙 범위를 벗어나는 추가 행동은 일반 행동 판정을 따른다.${methodLine}`;
+
+  if (coverage.coverage_kind === 'method_variant') {
+    // method_variant: requested method는 자연스러운 전개 후보일 뿐 —
+    // required outcome만 필수이고, 방식 수락·거절은 Story가 캐릭터와 장면에 따라 결정한다.
+    // "반드시 실행되는 확정 사실" 프레임을 여기서 쓰지 않는다.
+    return `\n\n[CSA DIRECT COVERAGE — METHOD VARIANT]${coverage.action ? ` (요청 방식: ${coverage.action})` : ''}\n플레이어의 이번 입력은 활성 상식개변(${coverage.csa_id})의 직접 범위 안의 방식 제안(method_variant)이다(행동주체=${coverage.actor_group}, 대상=${coverage.target_group ?? '없음'}, 방향=${coverage.direction}).\n- 규정은 결과만 정의한다(method_policy=unspecified, method_restriction=null). 수행 방식을 허용 목록으로 요구하거나 금지하지 않는다.\n- 요청된 방식은 자연스러운 전개 후보이다. 필수가 아니다.\n- required outcome(${coverage.required_action ?? '규정의 의무'})은 필수이며 계속 이행되어야 한다.\n- 요청 방식의 수락·거절 여부는 Story가 캐릭터 성격과 현재 장면에 따라 결정한다. NPC는 개인적·감정적·현실적 이유(부끄러움, 경험 부족, 개인적 부담, 위생·자세, 장소 불편, 감정적 거부 등)로 거절할 수 있다.\n- 거절을 표현할 때 규정이나 절차를 이유로 삼지 않는다 — "규정상 손으로만 가능합니다", "절차에는 구강 방식이 없습니다", "규정에 없어서 못 합니다", "새 규정이 생기면 하겠습니다" 같은 존재하지 않는 제한으로 포장하지 않는다.\n- 방식 거절은 required outcome의 중단이 아니다 — 다른 가능한 방식으로 계속 이행한다.\n- 이전 턴 대화에 "입으로 하는 건 절차에 없어요", "규정 다시 찾아봤는데 없더라고요", "규정이 없으니 어쩔 수 없지만요" 같은 표현이 있었다면 그것은 이 규정의 오해였다 — 그 표현을 이어받거나 반복하지 않는다.\n- 이 규칙 범위를 벗어나는 추가 행동은 일반 행동 판정을 따른다.`;
+  }
+
+  // exact / continuation: 해당 행동 또는 기존 수행 계속은 필수다.
+  const kind = coverage.coverage_kind === 'continuation' ? ' (이미 진행 중인 절차의 계속)' : '';
+  return `\n\n[CSA DIRECT COVERAGE — ESTABLISHED FACT]${kind}\n플레이어의 이번 입력은 활성 상식개변(${coverage.csa_id})의 직접 범위와 정확히 일치한다(행동주체=${coverage.actor_group}, 대상=${coverage.target_group ?? '없음'}, 방향=${coverage.direction}${coverage.action ? `, 행동=${coverage.action}` : ''}). 이 행동은 반드시 실행되는 확정 사실이며, 성공 확률이나 위험도로 표현하지 않는다. 이 규칙 범위를 벗어나는 추가 행동은 일반 행동 판정을 따른다.`;
 }
