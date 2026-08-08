@@ -3813,7 +3813,7 @@
         "만족도",
         "부서"
       ],
-      "content_template": "{actor_topic}에 대한 만족도가 {target_conj} {trigger_text} {modifier_clause}부서 성과급의 일부를 결정하며, {duration_text} 그 기준이 적용된다.",
+      "content_template": "근무 시간 중 플레이어가 각 회사 직원에게 느끼는 만족도는 해당 직원이 속한 부서의 성과급 일부에 반영된다.",
       "synergy_ids": [
         "satisfaction_reflected_in_evaluation",
         "player_satisfaction_is_core_staff_evaluation"

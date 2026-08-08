@@ -549,3 +549,12 @@ test('legacy 읽기 호환: 직원 계열 legacy ID만 정본 ID로 canonicalize
   // everyone_in_company는 target contract에서 유효
   assert.ok(CSA_CONTRACT_TARGET_GROUPS.has('everyone_in_company'), 'target 그룹에 everyone_in_company');
 });
+
+test('csa_97 canonical template has explicit player satisfaction and department scope', () => {
+  const item = catalog.items.find(entry => entry.id === 'department_bonus_tied_to_supervisor_satisfaction');
+  const rendered = renderPresetContent(catalog, item, { actorId: item.default_actor, targetId: item.default_target, triggerId: item.default_trigger, durationId: item.default_duration });
+  assert.doesNotMatch(rendered, /플레이어는에/);
+  assert.match(rendered, /플레이어가 각 회사 직원에게 느끼는 만족도/);
+  assert.match(rendered, /해당 직원이 속한 부서의 성과급 일부에 반영/);
+  assert.doesNotMatch(rendered, /\d+%|정확한 퍼센트|즉시 삭감/);
+});

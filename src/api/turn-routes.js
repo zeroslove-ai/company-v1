@@ -62,8 +62,6 @@ import {
   normalizeStructuredAction,
   normalizeCompanyCsaCatalog,
   planCsaTransaction,
-  resolveCsaDirectCoverage,
-  buildCsaDirectCoverageSection,
   resolveActionExecutionContract,
   buildActionExecutionContractSection,
   semanticStrengthIssues,
@@ -273,27 +271,26 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
  * pass. This only trims prompt tokens — every gated section's underlying feature contract is
  * unchanged when its condition holds.
  */
-function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog, actionContract, master, expectedTurn, csaCoverage = null }) {
+function applyCsaStorySections(messages, { save, plan, playerAction, actionContract, expectedTurn }) {
   const applicableCsa = getApplicableCsaEntries(save);
   const hasApplicableCsa = applicableCsa.length > 0;
   const isAppTransactionTurn = Boolean(plan);
   if (!hasApplicableCsa && !isAppTransactionTurn) {
-    // 음수 ordinary gate(actionContract section)는 활성 CSA 유무와 관계없이 작동한다.
-    // CSA가 없으면 다른 CSA sections 없이 계약 section만 붙인다.
-    if (playerAction && actionContract) {
+    // 일반 행동에 대한 기존 안전 계약은 CSA가 활성화되지 않은 턴에서만 주입한다.
+    if (playerAction && actionContract && actionContract.csa_coverage?.covered !== true) {
       const section = buildActionExecutionContractSection(actionContract, { applicableCsa: [] });
       if (section) return [{ ...messages[0], content: messages[0].content + section }, ...messages.slice(1)];
     }
     return messages;
   }
+  const currentRulesSection = buildCsaCurrentRulesSection(applicableCsa, expectedTurn);
+  // CSA Story 경로는 declarative world-rule projection만 사용한다. 사전 actor/target
+  // 선택, 질문·명령 regex, 사전 coverage route는 Story 방향을 결정하지 않는다.
   const hasPublicCsa = applicableCsa.some(csa => csa.preset?.public_normalization === true || csa.semantic_contract?.public_normalization === true);
   const hasSynergyCandidate = applicableCsa.length >= 2;
-  const currentRulesSection = buildCsaCurrentRulesSection(applicableCsa, expectedTurn);
-  let extra = currentRulesSection + buildCsaRuntimeSection() + buildCsaAcceptanceScopeSection() + buildCsaDirectExecutionPrioritySection()
-    + buildCsaPersistentSceneSection()
+  let extra = currentRulesSection + buildCsaRuntimeSection()
     + (hasPublicCsa ? buildCsaPublicSceneSection() : '')
-    + (hasSynergyCandidate ? buildCsaWeakSynergySection() : '')
-    + buildCsaPhysicalTransitionSection(hasApplicableCsa, isAppTransactionTurn);
+    + (hasSynergyCandidate ? buildCsaWeakSynergySection() : '');
   if (plan) {
     const csaOperations = plan.canonical_action.operations;
     const activeCsaCount = plan.next_csa_active.length;
@@ -301,18 +298,8 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog,
     extra += buildStructuredActionStorySection(csaOperations, activeCsaCount, getCsaLimits(level).max_active);
     extra += buildCsaDeactivationStorySection(csaOperations.some(operation => operation.operation === 'deactivate'));
   }
-  if (hasApplicableCsa && playerAction) {
-    // coverage는 Story 시작 전에 정확히 한 번 계산해 전달받는다 (이중 계산 제거).
-    extra += buildCsaDirectCoverageSection(csaCoverage);
-  }
-  // ActionExecutionContract section — 음수 ordinary gate는
-  // csa_direct면 exact-scope 제한만, 범위 밖 material action이면 짧고 강한 음수 계약
-  // (회사 규정·감사 업무·인사팀 지시로 정당화 금지)
-  if (playerAction && actionContract) {
-    extra += buildActionExecutionContractSection(actionContract, { applicableCsa });
-  }
   const next = [{ ...messages[0], content: messages[0].content + extra }, ...messages.slice(1)];
-  next.push({ role: 'system', content: buildNpcCsaEpistemicFirewallSection() });
+  next.push({ role: 'system', content: buildNpcCsaEpistemicFirewallSection({ worldRule: true }) });
   return next;
 }
 
@@ -825,17 +812,9 @@ const master = masterFromEdition(edition);
                   : storySave
               }
             : hydratedContext;
-          // CSA coverage — Story 시작 전에 정확히 한 번 계산한다.
-          // resolveActionExecutionContract와 applyCsaStorySections가 동일한 결과를 사용해
-          // 이중 권위·이중 계산을 제거한다. (csa_60 oral method_variant/continuation 포함)
-          const csaCoverageStart = Date.now();
-          const csaCoverage = resolveCsaDirectCoverage(hydratedSave, playerAction, {
-            sexualActionContract: csaCatalog?.sexual_action_contract,
-            master
-          });
-          timing.csa_coverage_ms = Date.now() - csaCoverageStart;
           // ActionExecutionContract — 순수 결정 함수 (await/fetch/LLM 없음, 수 ms).
           // retry 시 저장된 계약을 재사용해 같은 action을 다시 분류해 다른 route를 만들지 않는다.
+          // CSA가 활성화된 Story에는 이 계약을 전달하지 않으며, 세계 규칙 projection만 사용한다.
           const contractStart = Date.now();
           const actionContract = action.parsed_blocks?.action_execution_contract ?? resolveActionExecutionContract({
             save: hydratedSave,
@@ -843,19 +822,22 @@ const master = masterFromEdition(edition);
             csaCatalog,
             characters: master.characters,
             npcIds: master.general_npcs,
-            csaCoverage
+            preStoryCsaRouting: false
           });
           timing.action_contract_ms = Date.now() - contractStart;
           timing.action_route = actionContract.route;
           timing.action_material = actionContract.material_action ? 1 : 0;
-          timing.action_csa_covered = actionContract.csa_coverage.covered ? 1 : 0;
+          timing.action_csa_covered = actionContract.csa_coverage?.covered ? 1 : 0;
           timing.action_permission_level = actionContract.contextual_permission?.level ?? 'none';
           timing.action_privacy = actionContract.contextual_permission?.privacy ?? 'unknown';
           timing.action_attempt_basis = actionContract.attempt_basis ?? 'insufficient';
           // Scene Cast Gateway — Story 호출 전에 이번 턴 출연·발화 권한을 확정한다.
           // 순수 함수이며 LLM/네트워크/DB 호출이 없다.
+          const storyActionContract = getApplicableCsaEntries(storySave).length
+            ? { ...actionContract, actor_id: null, target_id: null, csa_coverage: { covered: false, csa_id: null, route: null } }
+            : actionContract;
           const sceneCastContract = buildSceneCastContract({
-            save: hydratedSave, master, playerAction, structuredAction, actionContract,
+            save: hydratedSave, master, playerAction, structuredAction, actionContract: storyActionContract,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           const speakerNames = speakerNameById(master, hydratedSave?.player?.name);
@@ -864,7 +846,7 @@ const master = masterFromEdition(edition);
           timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
           const promptStart = Date.now();
           let messages = buildStoryPrompt({ edition, context: storyContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
-          messages = applyCsaStorySections(messages, { save: storySave, plan: csaPlan, playerAction, csaCatalog, actionContract, master, expectedTurn, csaCoverage });
+          messages = applyCsaStorySections(messages, { save: storySave, plan: csaPlan, playerAction, actionContract, expectedTurn });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
           }
@@ -1127,10 +1109,11 @@ const master = masterFromEdition(edition);
               }
             : hydratedContext;
           let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds, sceneCastContract: parsedStory.scene_cast_contract ?? action.scene_cast_contract });
-          // 저장된 ActionExecutionContract를 Extract에 전달 — CSA direct와 ordinary 행동 구분,
-          // CSA 범위 밖 행동을 csa_id로 기록하지 않도록 한다 (추가 Extract 호출 없음)
+          // 일반 CSA가 없는 턴에서만 legacy action contract를 Extract에 전달한다.
+          // 활성 CSA 턴은 Story 이후 실제 결과만 보고하며, Story 전에 만들어진 actor/target
+          // route·coverage를 재사용하지 않는다.
           const storedContract = action.parsed_blocks?.action_execution_contract;
-          if (storedContract) {
+          if (storedContract && applicableCsa.length === 0) {
             try {
               const payload = JSON.parse(messages[1].content);
               payload.action_execution_contract = storedContract;
@@ -1280,16 +1263,9 @@ const master = masterFromEdition(edition);
         // NPCs actually present this turn — an item naming anything else is silently
         // dropped inside buildCsaRuntimeStatePatch itself.
         const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
-        // 같은 턴의 canonical CSA coverage — Story 시작 전 계산과 동일한 1회 원칙.
-        // (action.player_action으로 재계산 — action.parsed_blocks에 저장된 계약과 병행)
-        const csaCoverage = resolveCsaDirectCoverage(currentSave, action.player_action, {
-          sexualActionContract: csaCatalog?.sexual_action_contract,
-          master
-        });
         const runtimeResult = buildCsaSceneRuntimeStatePatch({
           previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
-          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn,
-          csaCoverage
+          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn
         });
         if (runtimeResult.patch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeResult.patch };
         if (runtimeResult.warnings.length) warnings.push(...runtimeResult.warnings);

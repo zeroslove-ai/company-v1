@@ -96,18 +96,17 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
         continue;
       }
       if (!reportedAction) {
-        // action_state가 null/빈 문자열 — 제한적으로 canonicalize한다.
-        // 같은 턴의 canonical CSA coverage(exact/method_variant/continuation, 같은 csa_id)가
-        // 있으면 required_action으로 보충한다. (csa_60처럼 Extract가 action_state:null을
-        // 자주 내는 경우 실제 실행이 저장되도록)
-        const coverageMatch = csaCoverage?.covered === true
-          && csaCoverage.csa_id === csaId
-          && ['exact', 'method_variant', 'continuation'].includes(csaCoverage.coverage_kind);
+        // Story 이후 Extract가 실제로 계속된 규칙이라고 명시한 경우에만
+        // 이전에 실행 중이던 규칙을 이어간다. 입력 문장/사전 coverage로
+        // required_action을 보충하지 않는다.
         const triggerContinuing = (Array.isArray(csaTriggerEvaluations) ? csaTriggerEvaluations : [])
           .some(evaluation => evaluation?.csa_id === csaId
             && (evaluation.status === 'continuing' || evaluation.status === 'satisfied'))
           && previous[csaId]?.execution_state === 'executed';
-        if (!coverageMatch && !triggerContinuing) {
+        const legacyCoverageMatch = csaCoverage?.covered === true
+          && csaCoverage.csa_id === csaId
+          && ['exact', 'method_variant', 'continuation'].includes(csaCoverage.coverage_kind);
+        if (!triggerContinuing && !legacyCoverageMatch) {
           warnings.push(`csa_runtime_action_state_mismatch:${csaId}:none`);
           continue;
         }

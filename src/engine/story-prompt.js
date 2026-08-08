@@ -16,6 +16,32 @@ function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
 }
 
+function buildActiveWorldRules(save, expectedTurn = null) {
+  const activeIds = Array.isArray(save?.csa_active) ? save.csa_active : [];
+  const rules = object(save?.csa_rules) ?? {};
+  return activeIds.flatMap(csaId => {
+    const rule = object(rules[csaId]);
+    if (!rule || rule.active === false) return [];
+    const preset = object(rule.preset) ?? {};
+    const semantic = object(rule.semantic_contract) ?? {};
+    const activatedTurn = Number.isInteger(rule.created_turn) ? rule.created_turn : null;
+    return [{
+      csa_id: csaId,
+      content: typeof rule.content === 'string' ? rule.content : '',
+      active: true,
+      scope_type: typeof rule.scope_type === 'string' ? rule.scope_type : 'world',
+      scope_label: typeof rule.scope_label === 'string' ? rule.scope_label : '회사 전체',
+      applies_to: preset.actor_group ?? semantic.actor_group ?? 'declared_scope',
+      trigger: preset.trigger ?? semantic.trigger ?? 'none',
+      duration: preset.duration ?? semantic.duration ?? 'continuous',
+      required_action: preset.required_action ?? rule.required_action ?? null,
+      activated_turn: activatedTurn,
+      activated_game_time: object(rule.activated_game_time),
+      newly_activated: Number.isInteger(expectedTurn) && activatedTurn === expectedTurn
+    }];
+  });
+}
+
 /** edition 객체를 master 형태(배열)로 변환 — buildClothingAuthority용. */
 function toEntryArray(source, keyName) {
   if (!object(source)) return [];
@@ -107,21 +133,34 @@ function findNpcProfile(master, npcId) {
 }
 
 /** Compact Story context: active state plus summaries, workplace context, and one detailed previous-turn block. */
-export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, sceneCastContract } = {}) {
+export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, sceneCastContract, expectedTurn } = {}) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const game = object(context?.game) ?? {};
   const player = object(save.player) ?? {};
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
+  const sceneCore = buildSceneContextCore(save, activeIds);
+  const globalCsa = object(sceneCore.global_csa) ?? {};
+  const storyRules = Object.fromEntries(Object.entries(object(globalCsa.rules) ?? {}).map(([csaId, rule]) => {
+    const source = object(rule) ?? {};
+    return [csaId, {
+      active: source.active === true,
+      content: typeof source.content === 'string' ? source.content : '',
+      scope_type: typeof source.scope_type === 'string' ? source.scope_type : 'world',
+      scope_label: typeof source.scope_label === 'string' ? source.scope_label : '회사 전체'
+    }];
+  }));
   return {
     game: { id: typeof game.id === 'string' ? game.id : null, title: typeof game.title === 'string' ? game.title : null },
     current_time: {
       day: typeof gameTime.day === 'number' ? gameTime.day : null,
       minute_of_day: typeof gameTime.minute_of_day === 'number' ? gameTime.minute_of_day : null
     },
+    active_world_rules: buildActiveWorldRules(save, expectedTurn),
     player: buildPlayerPromptProjection({ player, canonical, playerAction }),
-    ...buildSceneContextCore(save, activeIds),
+    ...sceneCore,
+    global_csa: { active_ids: Array.isArray(globalCsa.active_ids) ? globalCsa.active_ids : [], rules: storyRules, runtime_state: {} },
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
     story_summary: {
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
@@ -160,14 +199,14 @@ const FINAL_OUTPUT_SHAPE = [
 const KOREAN_WORKPLACE_LANGUAGE = [
   '[KOREAN WORKPLACE LANGUAGE]',
   'Use player profile and each canonical prompt_card.addressing, role_title, position, and department as the only basis for address terms.',
-  'Title+님 takes priority: 감사실장님/실장님, 팀장님, 본부장님, 부장님, 차장님, 대리님. Never turn 감사실장 into 감사님/감사관님, say 대리 씨, stack title and rank, duplicate an address, or switch it without a relationship change; use 이름+씨/성+직급 only when profile permits and do not overuse 사원님.',
-  'Treat 발기 as a condition, not a body part: write 발기한 성기 or 단단해진 성기, never 발기를 잡다 or 발기를 감싸다. Narration, dialogue, inner thought, and choices use natural Korean speech, not report/translation prose such as 해당 행동을 수행한다 or 절차적 판단을 진행한다.'
+  'Title+님 takes priority: 감사실장님/실장님, 팀장님, 본부장님, 부장님, 차장님, 대리님. Do not turn 감사실장 into 감사님/감사관님, say 대리 씨, stack titles, duplicate an address, or switch it without a relationship change.',
+  'Treat 발기 as a condition, not a body part: write 발기한 성기 or 단단해진 성기, never 발기를 잡다/감싸다. Use natural Korean speech, not report prose such as 해당 행동을 수행한다.'
 ].join(' ');
 
 const SYSTEM_INSTRUCTIONS = [
   KOREAN_WORKPLACE_LANGUAGE,
   'NPC 물리 상태(복장·자세·위치): context.active_npc_state.npc_scene_state에 있는 복장·자세·위치는 현재 물리 상태(확정 사실)다. 실제로 옷을 벗고 입고 열고 잠그는 행동이 이번 서사에서 완료된 경우에만 바뀐다. 상식개변(CSA) 적용·해제만으로 복장이 자동으로 바뀌지 않으며, 아무 이유 없이 갑자기 입었다 벗었다 하지 않는다. 알 수 없으면 저장된 마지막 상태를 유지한다. context.clothing_authority[npc_id]가 이번 턴 복장의 최종 권위다: actual_clothing이 현재 정본, required_clothing이 규정상 요구, compliance가 이행 상태다. actual_clothing이 비어 있거나 unknown이면 그 NPC의 현재 복장은 알 수 없음이며, 이미 갈아입었다거나 규정을 지키고 있다고 단정하지 않는다. required_clothing이 있고 actual_clothing이 그와 다르면 복장 변경은 반드시 이번 턴 Story에서 실제로 완료된 갈아입기·벗기 행동을 거쳐야 한다. 규정 내용만으로는 복장이 바뀌지 않는다.',
-  '상식개변 즉시 반영(갓 적용된 CSA만): 갓 적용된 활성 CSA 규칙은 이번 턴 서사 초반부에 바로 장면에 반영하고, 관련 NPC가 그 규칙을 당연하게 받아들이거나(수용) 어색해하거나(불편) 반문하는 등 반응하는 장면을 쓴다. CSA가 서사 후반에만 슬쩍 등장하거나 턴 전체에 반영되지 않으면 안 된다. 갓 적용된 CSA의 적용 시점은 지금(이번 턴)이다 — 오늘 아침·어제 등 과거부터 그 규정이 적용돼 있었다고 쓰지 않고, NPC가 이미 시행된 것처럼 서술하지 않는다. 공지·지침이 방금 내려와서 NPC들이 처음 보고 당황·확인·논의하는 장면이 포인트다. 반대로 이미 적용된 지 오래된 CSA는 서사에서 매 턴 반복 설명하지 않는다 — NPC가 그 규정 아래 생활하는 게 자연스러울 뿐, 규칙 자체를 다시 읊지 않는다. NPC는 공지가 세계 내부에서 내려온 규정으로 보지, 앱·시스템·플레이어가 만든 것으로는 절대 보지 않는다.',
+  '상식개변 즉시 반영(갓 적용된 CSA만): 갓 적용된 활성 CSA 규칙은 이번 턴 서사 초반부에 바로 장면에 반영한다. 사내 방송·휴대전화 알림·업무용 모니터·메신저 팝업 중 두 가지 이상이 함께 작동하는 전사 공지를 자연스럽게 보여 줄 수 있고, 현재 장면의 여러 적용 대상이 각자 다른 감정으로 반응할 수 있다. 규칙의 존재·적용 범위·정당성을 다시 심사하거나 승인 절차를 창작하지 않는다. NPC는 공지가 세계 내부의 회사 규정으로 내려온 사실은 알지만 앱·시스템·플레이어가 만든 것으로는 인식하지 않는다. 이미 적용된 지 오래된 CSA는 매 턴 반복 설명하지 않는다.',
   '너는 한국어 회사 배경 게임의 한 턴 분량 Story를 작성한다. 출력은 정확히 다음 세 섹션을 이 순서로만 쓴다: [1. 서사 및 행동] [2. 플레이어 속마음] [3. 선택지]. 다른 사용자용 섹션(예: 별도 [DIALOGUE])이나 섹션 밖 설명·JSON·메타 코멘트는 쓰지 않는다.',
 
   '[1. 서사 및 행동]: 플레이어가 새로 합류한 신입이면 인사·소개·눈치 보기 같은 인간관계 행동이 자연스럽게 나오도록 하고, 업무 진행만으로 턴을 채우지 않는다. 사내 일상(커피, 점심, 잡담, 회의 참석, 부서 이동)과 관계 형성이 서사의 중심이 될 수 있다. context.current_time(게임 시각, minute_of_day)을 참고해 시간대에 맞는 사내 상황을 반영한다(예: 09:00~10:00 출근·조회, 12:00~13:00 점심시간, 18:00 이후 야근, 22:00 이후 심야 근무). 시각이 모호하면 그대로 두고 강조하지 않는다. 서술은 [SCENE] 줄 뒤에 쓰고, 발화는 반드시 [최종 출연·대사 출력 계약]의 [DIALOGUE speaker_id="..." acting_direction="..."] 형식으로만 쓴다. 화자명 없는 대사·이름: 대사·직급만 표시한 대사는 금지다. 분량 목표(Context/선택지/속마음 제외)는 가벼운 반응 800~1000자, 대화·갈등·구체 행동 1000~1500자, 이동·다수 NPC·중요 CSA 1200~2000자다. NPC 등장 턴은 의미 있는 발언 3회 이상을 목표로 하되 같은 말을 줄만 나눠 채우지 않는다. 이 목표들은 생성 목표일 뿐 검증 게이트가 아니며 미달로 재생성하지 않는다.',
@@ -186,7 +225,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   '[3. 선택지]: 현재 장면에서 바로 실행할 수 있는 서로 다른 행동 4개를 쓴다. 형식은 `1. 행동 문장`이 기본이고, `[짧은 라벨] 행동 문장`도 허용하되 라벨은 선택 사항이다. 각 선택지는 결과를 선확정하지 않는 핵심 행동 하나만 담고, 강제적인 접촉·장난·이동·종료를 슬롯처럼 채우지 않는다. 현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다. 같은 대상·동사의 형태만 바꾸지 않는다.',
 
-  'CSA(공통 인식 규칙)는 항상 전역 규칙이며 NPC는 거절할 수 있지만 플레이어의 자유 입력 자체는 막지 않는다. context, active_character_canon, active_general_npc_canon, eligible_nearby_npcs에 없는 NPC나 장면을 새로 만들지 않는다.',
+  '[ACTIVE WORLD RULES] 활성 CSA는 실제 세계 규칙이다. Story에는 active_world_rules 원문과 선언적 범위만 사용하고 actor_id·target_id·character_id를 사전 선택하지 않는다. 같은 범위의 현재 등장인물은 모두 동시에 규칙 아래 있으며 한 명만 고르지 않는다. 새 규칙은 방송·휴대전화·모니터·메신저 중 두 채널 이상으로 한 번 전파하고 이후 반복 공지하지 않는다. 적용 대상은 규칙의 존재·범위·정당성을 재심사하지 않는다. 기본은 이행, 불이행은 불이익을 감수하는 명시적 위반이다. 감정은 자유지만 적용을 지우지 않는다. method_policy=unspecified이면 결과만 규정하고 방법은 장면이 정한다. Story 이후 Extract만 실제 행동자·대상 ID를 기록한다. 플레이어의 자유 입력 자체는 막지 않는다. context, active_character_canon, active_general_npc_canon, eligible_nearby_npcs에 없는 NPC나 장면을 만들지 않는다.',
 
   '[장면 흐름] 진행 중인 행동·감정 장면이 있다면 플레이어가 장면을 바꾸지 않는 한 그 장면의 흐름을 우선한다. 회사라는 배경이나 규정 설명을 매 턴 반복하지 않는다. 플레이어가 중단·이동·화제 전환을 선택하면 즉시 그 입력을 우선한다.',
 
@@ -253,7 +292,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
         ...(sceneCastContract ? { scene_cast_contract: sceneCastContract } : {}),
         active_character_canon: buildActiveCharacterCanon(charactersMap, heroineActiveIds),
         active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
-        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, sceneCastContract }),
+        context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, sceneCastContract, expectedTurn }),
         player_action: playerAction,
         expected_turn: expectedTurn
       })
