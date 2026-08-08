@@ -471,7 +471,7 @@ export function resolveContextualPermission({ save, targetId, actionTypes, execu
  * - free-text path: 코드 기반 조합 matcher (행동 동사 + 신체/대상 신호)
  * - 추가 await/fetch/LLM 없음 — 순수 결정 함수
  */
-export function resolveActionExecutionContract({ save, playerAction, csaCatalog, characters = [], npcIds = [], csaCoverage = null } = {}) {
+export function resolveActionExecutionContract({ save, playerAction, csaCatalog, characters = [], npcIds = [], csaCoverage = null, preStoryCsaRouting = true } = {}) {
   const text = typeof playerAction === 'string' ? playerAction : '';
   // 선택지 metadata 기반 신호는 사용하지 않는다 — 선택지는 표시 정본이며 행동 분류에 쓰지 않는다.
   const actionTypes = classifyMaterialActions(text);
@@ -482,14 +482,15 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
   const targetId = materialTarget
     ? resolveStrictMaterialTarget({ save, characters, npcIds, text })
     : inferTargetId(save, text, characters, npcIds);
-  // CSA coverage는 Story 시작 전에 정확히 한 번 계산한 결과를 사용한다.
-  // (turn-routes가 resolveCsaDirectCoverage를 1회 호출해 여기와 applyCsaStorySections에 전달 —
-  //   이중 권위·이중 계산 제거)
-  const coverage = csaCoverage ?? resolveCsaDirectCoverage(save, text, {
-    sexualActionContract: csaCatalog?.sexual_action_contract,
-    actionTypes,
-    characters
-  });
+  // Story 생성 경로에서는 CSA를 사전 매칭하지 않는다. 이 옵션은 기존 일반
+  // action-contract 단위 테스트와 비-Story 호환 호출을 위한 명시적 legacy 경계다.
+  const coverage = preStoryCsaRouting
+    ? (csaCoverage ?? resolveCsaDirectCoverage(save, text, {
+      sexualActionContract: csaCatalog?.sexual_action_contract,
+      actionTypes,
+      characters
+    }))
+    : { covered: false, csa_id: null, route: null };
   // CSA 범위 정책: resolveSexualCoverage가 요청 material action 전체가 한 CSA
   // contract의 actions에 포함될 때만 covered=true를 준다. 하나라도 범위 밖이면
   // coverage=false → CSA 권한으로는 direct가 아니며 Story에서 일반 요청으로 처리된다
@@ -506,7 +507,14 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
 
   // CSA 범위 정책 — coverage가 이미 전부 범위 안일 때만 csa_direct다.
   const routeInfo = resolveRouteAndPolicy({
-    actionTypes, executionMode, coverage, relationship, companyAuthorityMisuse, permission
+    actionTypes,
+    executionMode,
+    // Story-first mode still reports the generic safety metadata for recovery,
+    // but coverage is deliberately empty and cannot select a CSA route.
+    coverage: preStoryCsaRouting ? coverage : { covered: false, csa_id: null, route: null },
+    relationship,
+    companyAuthorityMisuse,
+    permission
   });
 
   const coerciveMaterial = (COERCIVE_RE.test(text) || COMPELLED_RE.test(text)) && actionTypes.length === 0;

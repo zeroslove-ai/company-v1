@@ -433,8 +433,7 @@ test('검토3: 활성 CSA 없이 직접 성적 행동 → Story prompt에 AUTHOR
   assert.ok(prompt.includes('완료 사실로 바로 확정하지 말고'), 'attempt_only 지시');
 });
 
-test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-SCOPE LIMIT + undefined 없음', async () => {
-  // csa_5(속옷 미착용 근무, actor=coworker·target 없음) — 남성 참가자 없이도 csa_direct로 판정되는 실행 요청 시나리오
+test('검토1b: 활성 CSA 턴은 사전 coverage 없이 선언적 world rule만 Story에 전달한다', async () => {
   const mock = createMockFetch({ playerAction: '이메이가 속옷 미착용 규정대로 일하도록 지시한다.', sceneParticipants: ['player-1', 'heroine5'] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '이메이가 속옷 미착용 규정대로 일하도록 지시한다.' }), env);
@@ -442,13 +441,11 @@ test('검토1b: csa_direct 턴 — [CSA DIRECT COVERAGE] 정확히 1회 + EXACT-
   await story.text();
   const llmStory = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream).pop();
   const prompt = JSON.parse(llmStory.body).messages[0].content;
-  const coverageCount = (prompt.match(/\[CSA DIRECT COVERAGE/g) ?? []).length;
-  assert.equal(coverageCount, 1, '[CSA DIRECT COVERAGE] 정확히 1회');
-  assert.ok(prompt.includes('[CSA EXACT-SCOPE LIMIT]'), 'exact-scope 제한');
+  assert.equal((prompt.match(/CSA DIRECT COVERAGE/g) ?? []).length, 0, '사전 coverage 없음');
+  assert.ok(prompt.includes('[ACTIVE WORLD RULES'), 'world rule section');
+  assert.ok(prompt.includes('같은 applies_to 범위의 현재 등장인물이 여러 명이면 모두 동시에'), '다수 NPC 동시 적용');
+  assert.ok(!prompt.includes('actor_id='), '선택된 actor id 없음');
   assert.ok(!prompt.includes('undefined'), 'undefined 없음');
-  assert.ok(!/exact action\(\)/.test(prompt), '빈 행동명 없음');
-  // csa_2 정확 행동은 정상 확정
-  assert.ok(prompt.includes('CSA DIRECT COVERAGE — ESTABLISHED FACT'), '정상 coverage section');
   assert.ok(prompt.includes('csa_5'), 'csa_5 명시');
 });
 

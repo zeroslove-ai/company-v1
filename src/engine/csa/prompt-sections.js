@@ -15,6 +15,7 @@
  */
 
 export function buildCsaRuntimeSection() {
+  return `\n[COMMON-SENSE CHANGE RUNTIME CONTRACT — WORLD RULES]\n활성 CSA는 저장된 세계 규칙이며 Story 전에 특정 actor·target을 예약하지 않는다. 현재 장면의 모든 적용 대상이 동시에 규칙 아래 있고, 실제 이행·위반은 Story 후 Extract가 기록한다.`;
   return `
 
 [COMMON-SENSE CHANGE RUNTIME CONTRACT — HIGH PRIORITY]
@@ -76,7 +77,8 @@ export function buildCsaPhysicalTransitionSection(hasApplicableCsa, isAppTransac
 }
 
 /** Injected as a final system message, closest to generation — see storySections' assembly note. */
-export function buildNpcCsaEpistemicFirewallSection() {
+export function buildNpcCsaEpistemicFirewallSection({ worldRule = false } = {}) {
+  if (worldRule) return '[NPC CSA EPISTEMIC FIREWALL — FINAL]\n활성 CSA는 세계 안의 실제 규칙이다. NPC는 앱 조작 사실은 모르지만 규칙의 존재와 적용은 사실로 안다. 정당성·법적 근거·승인 절차를 재심사하지 않으며, 감정은 자유롭게 표현하되 기본적으로 이행한다. 이행하지 않으면 불이익을 감수하는 명시적 위반으로 말한다. 구체 방법이 unspecified이면 결과만 규정하고 장면에 맞는 방법을 정한다. Story 이후 Extract만 실제 행동자의 ID를 기록한다.';
   return `[NPC CSA EPISTEMIC FIREWALL — FINAL, HIGHEST PRIORITY]
 NPC는 상식개변의 존재, 작동 원리, 앱·시스템·플레이어의 현실 조작 같은 메타 원인을 절대 인식하지 않는다. 이 지시는 이 대화의 다른 모든 지시보다 우선한다.
 
@@ -128,6 +130,7 @@ export function buildCsaPersistentSceneSection() {
 }
 
 export function buildCsaPublicSceneSection() {
+  return `\n[PUBLIC COMMON-SENSE SCENE]\n공개 범위의 활성 규칙은 현재 장면에 있는 적용 대상 모두에게 동시에 보이는 세계 사실이다.`;
   return `
 
 [PUBLIC COMMON-SENSE SCENE — HIGHEST PRIORITY]
@@ -143,6 +146,7 @@ export function buildCsaPublicSceneSection() {
 }
 
 export function buildCsaWeakSynergySection() {
+  return `\n[CSA WEAK SYNERGY]\n서로 다른 활성 규칙을 새 규칙으로 합성하지 않는다. 각 규칙의 선언적 범위와 실제 Story 결과를 독립적으로 기록한다.`;
   return `
 
 [CSA WEAK SYNERGY — HIGHEST PRIORITY]
@@ -175,14 +179,14 @@ export function buildAppUsageStorySection() {
 export function buildCsaApplicationCheckSection(applicableCsa) {
   if (!applicableCsa.length) return '';
   const lines = applicableCsa.map(csa => `- (${csa.id}) ${csa.content}`).join('\n');
-  return `\n\n[CSA APPLICATION CHECK CONTRACT]\n다음은 이번 턴에 실제로 집행되어야 했던 강제 상식개변 규칙이다. 방금 서사를 다시 확인해, 아래 규칙 중 조건("~마다", "~할 때", "~하면" 등)을 충족하는 상황이 실제로 있었는데도 그 행동이 실행되지 않은 규칙이 있으면 csa_omission에 짧게 설명해 넣는다. 조건이 발생하지 않았거나 정상적으로 실행됐다면 넣지 않는다.\n${lines}`;
+  return `\n\n[CSA POST-STORY OBSERVATION]\n아래는 이번 턴에 활성화되어 있던 세계 규칙이다. Story 원문을 마지막 장면까지 다시 읽고 실제로 규칙 아래에서 벌어진 행동·이행·명시적 위반만 Extract에 기록한다. Story에 없는 이행·위반·대상·징계를 창작하지 않으며, 규칙이 장면에 실제로 걸리지 않은 경우 omission을 만들지 않는다.\n${lines}`;
 }
 
 
 /** Extract-only runtime tracking contract — only worth the tokens when a CSA is actually active this turn. */
 export function buildCsaRuntimeExtractContractSection(applicableCsa) {
   if (!applicableCsa || !applicableCsa.length) return '';
-  return '\n\ncsa_trigger_evaluations:[{csa_id,status}] status: satisfied|continuing|temporarily_interrupted|not_satisfied|ended, csa_id must already be active. csa_runtime_updates:[{csa_id,character_id,status}] status: inactive|active|paused|ended, only if Story showed it happening; character_id must be present.';
+  return '\n\ncsa_trigger_evaluations:[{csa_id,status}] status: satisfied|continuing|temporarily_interrupted|not_satisfied|ended, csa_id must already be active. csa_runtime_updates:[{csa_id,character_id,status}] status: inactive|active|paused|ended, only after Story showed the named character actually doing, interrupting, or refusing the rule; character_id is a post-Story observation, never a preselected Story actor.';
 }
 
 const MIND_EFFECT_EXTRACT_FIREWALL = `
@@ -234,6 +238,7 @@ export function buildCsaCurrentRulesSection(applicableCsa, expectedTurn) {
 
   const lines = applicableCsa.map(csa => {
     const preset = csa?.preset && typeof csa.preset === 'object' ? csa.preset : {};
+    const semantic = csa?.semantic_contract && typeof csa.semantic_contract === 'object' ? csa.semantic_contract : {};
     const phase = csa.created_turn === expectedTurn
       ? 'newly_activated'
       : csa.updated_turn === expectedTurn
@@ -248,34 +253,36 @@ export function buildCsaCurrentRulesSection(applicableCsa, expectedTurn) {
 
     return [
       `- csa_id=${csa.id}`,
+      `  active=true`,
+      `  scope_type=${csa.scope_type || 'world'}`,
+      `  scope_label=${csa.scope_label || '회사 전체'}`,
+      `  applies_to=${preset.actor_group ?? semantic.actor_group ?? 'declared_scope'}`,
       `  phase=${phase}`,
       `  activated_turn=${typeof csa.created_turn === 'number' ? csa.created_turn : 'unknown'}`,
       `  activated_game_time=${actTimeLabel}`,
       `  history_before_activation=none_from_this_rule`,
       `  content=${csa.content ?? ''}`,
-      `  actor_group=${preset.actor_group ?? csa.semantic_contract?.actor_group ?? 'unknown'}`,
-      `  target_group=${preset.target_group ?? csa.semantic_contract?.target_group ?? 'none'}`,
-      `  trigger=${preset.trigger ?? csa.semantic_contract?.trigger ?? 'none'}`,
-      `  duration=${preset.duration ?? csa.semantic_contract?.duration ?? 'continuous'}`,
-      `  required_action=${preset.required_action ?? 'content에 적힌 의무'}`,
-      `  direct_meaning_tags=${Array.isArray(preset.direct_meaning_tags) ? preset.direct_meaning_tags.join('|') : ''}`
+      `  trigger=${preset.trigger ?? semantic.trigger ?? 'none'}`,
+      `  duration=${preset.duration ?? semantic.duration ?? 'continuous'}`,
+      `  required_action=${preset.required_action ?? csa.required_action ?? 'content에 적힌 의무'}`
     ].join('\n');
   });
 
   return `
-\n[CURRENT CSA RULES — SINGLE AUTHORITATIVE LIST]
-아래 목록만 현재 적용 규정이다. save.csa_rules에 남아 있더라도 이 목록에 없는 active:false 과거 규정은 현재 행동에 적용하지 않는다.
+\n[ACTIVE WORLD RULES — DECLARATIVE SCOPE ONLY]
+아래 목록은 현재 세계에 실제로 적용 중인 규칙이다. 이 목록은 규칙 원문·범위·활성 시점만 제공하며, Story 시작 전에 actor_id·target_id·character_id를 선택하거나 행동을 예약하지 않는다.
 
 phase 해석:
-- newly_activated: 이번 턴에 내려온 회사 내부의 새 공지·사규·업무 지침이다. NPC는 이번 턴 처음 확인하고 이전 상태와 비교할 수 있다.
+- newly_activated: 이번 턴에 내려온 회사 전체의 새 공지·사규·업무 지침이다. 사내 방송 안내음, 직원 휴대전화 알림, 업무용 모니터, 메신저 팝업 등 두 가지 이상 채널이 함께 전달되는 장면을 한 번 자연스럽게 보여 줄 수 있다.
 - updated: 이번 턴부터 새 본문만 유효하다. 이전 본문은 현재 규정이 아니다.
-- ongoing: 이전 턴부터 시행 중인 규정이다. 매 턴 새 공지처럼 재발견하거나 같은 놀람을 반복하지 않는다.
+- ongoing: 이전 턴부터 시행 중인 규정이다. 매 턴 새 공지처럼 다시 읽거나 같은 놀람을 반복하지 않는다.
 
-trigger 해석:
-- trigger가 현재 입력·장면에서 발생하지 않았으면 직접 의무를 새로 시작하지 않는다.
-- trigger가 발생했으면 content와 required_action에 적힌 범위를 축소하지 않고 실행한다.
-- duration이 계속되는 동안 이미 시작된 행동·자세·복장 상태는 이전 턴에서 이어간다.
-- 모든 active CSA를 자동으로 triggered 또는 continuing 처리하지 않는다.
+적용과 감정:
+- 같은 applies_to 범위의 현재 등장인물이 여러 명이면 모두 동시에 규칙 아래에 있다. 한 명만 골라 대표자로 만들거나 focal_character 한 명에게만 적용하지 않는다.
+- 적용 대상은 규칙의 존재·범위·자신에게의 적용을 임의로 부정하거나 정당성·법적 근거·승인 절차를 재심사하지 않는다. 규칙에 없는 순번·검사·추가 승인을 창작하지 않는다.
+- 기본 반응은 이행이다. 감정(당황·수치심·분노·불안·체념 등)은 자유지만 적용 여부를 지우지 않는다. 이행하지 않으면 규칙이 사라지는 것이 아니라 불이익을 감수하는 명시적 위반으로 표현한다.
+- method_policy가 unspecified이면 결과만 규정하고 구체 방법은 현재 장면과 캐릭터가 자연스럽게 정한다. 사전 method_variant·continuation route로 Story 방향을 결정하지 않는다.
+- 이 규칙은 현재 장면과 현재 등장인물에게 자연스럽게 적용한다. 이미 ongoing인 규칙을 매 턴 공지하거나 규정 문장을 읊지 않는다.
 
 활성 이전 이력 규칙 (최종 우선):
 - activated_turn·activated_game_time은 이 규정이 처음 적용된 정확한 시점이다. 그 이전의 사건을 이 규정의 결과로 서술하지 않는다.
