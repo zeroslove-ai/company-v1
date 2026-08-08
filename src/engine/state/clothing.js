@@ -124,7 +124,13 @@ export function isMagicalPhysicalTransitionEvidence(evidence) {
   return typeof evidence === 'string' && MAGICAL_TRANSITION_RE.test(evidence);
 }
 
-const PLANNING_ONLY_RE = /(으?려고\s*(한다|했다)|할\s*예정|하기로\s*했다|막\s*하려던\s*참|아직\s*(벗지|입지)\s*않)/;
+// 규정·지시 문구 — "~해야 한다" 형태의 규정 텍스트는 실제 착의 행동 근거가 아니다.
+const REGULATION_DIRECTIVE_RE = /해야\s*한다|하여야\s*한다|준수해야|유지해야\s*한다|따라야\s*한다|지켜야\s*한다/;
+export function isRegulationDirectiveEvidence(evidence) {
+  return typeof evidence === 'string' && REGULATION_DIRECTIVE_RE.test(evidence);
+}
+
+const PLANNING_ONLY_RE = /(으?려고\s*(한다|했다)|벗으려고|입으려고|갈아입으려고|풀으려고|걸치려고|하려고\s*(한다|했다)|할\s*예정|하려는\s*참|하기로\s*했다|막\s*하려던\s*참|아직\s*(벗지|입지)\s*않)/;
 export function isPlanningOnlyEvidence(evidence) {
   return typeof evidence === 'string' && PLANNING_ONLY_RE.test(evidence);
 }
@@ -138,11 +144,42 @@ export function evidenceIdentifiesCharacter(evidence, narrativeText, characterNa
   return true;
 }
 
-export function evaluateClothingFieldEvidence(evidence, narrativeText, characterName) {
+/**
+ * 착의 evidence 승인 — exact quote + magic/planning 차단 + 귀속 검증.
+ *
+ * NPC 이름 요구의 유일한 예외:
+ *   actor-scoped nested evidence(evidence.clothing[actor_id][slot]) + 현재 장면
+ *   비플레이어 NPC가 정확히 1명 + actor가 그 유일한 NPC일 때는 quote에 대상
+ *   이름이 없어도 actor_id 귀속으로 허용한다. "그녀가" 같은 대명사는 해석하지
+ *   않는다 — 귀속은 nested 구조가 확정한다. 단, quote에 다른 등록 NPC 이름이
+ *   명시돼 있으면 잘못된 귀속으로 거부한다.
+ *
+ * flat evidence(evidence.clothing[slot])와 다중 NPC 장면은 기존 strict 정책을
+ * 유지한다 — NPC quote에는 등록 이름이 필요하다.
+ */
+export function evaluateClothingFieldEvidence(evidence, narrativeText, characterName, { actorId = null, npcsPresent = [], actorScoped = false, registeredNpcNames = [] } = {}) {
   if (typeof evidence !== 'string' || !evidence.trim()) return false;
+  const quote = evidence.trim();
+  const text = typeof narrativeText === 'string' ? narrativeText : '';
+  if (!text.includes(quote)) return false;
   if (isMagicalPhysicalTransitionEvidence(evidence)) return false;
   if (isPlanningOnlyEvidence(evidence)) return false;
-  return evidenceIdentifiesCharacter(evidence, narrativeText, characterName);
+  if (isRegulationDirectiveEvidence(evidence)) return false;
+
+  // 단일 NPC + actor-scoped 예외 — 이름 없어도 허용, 다른 NPC 이름 충돌은 거부.
+  const singleNpcScene = actorScoped
+    && Array.isArray(npcsPresent) && npcsPresent.length === 1
+    && npcsPresent[0] === actorId;
+  if (singleNpcScene) {
+    const targetName = typeof characterName === 'string' ? characterName.trim() : '';
+    const conflictingName = (Array.isArray(registeredNpcNames) ? registeredNpcNames : [])
+      .find(name => typeof name === 'string' && name && name !== targetName && quote.includes(name));
+    return !conflictingName;
+  }
+
+  // 기본 정책 — NPC는 quote에 등록 이름 명시 필요 (player는 이름 불요).
+  if (typeof characterName === 'string' && characterName.trim() && !quote.includes(characterName.trim())) return false;
+  return true;
 }
 
 /**
@@ -153,7 +190,7 @@ export function evaluateClothingFieldEvidence(evidence, narrativeText, character
  * 이것이 actual clothing을 쓰는 유일한 경로다 — 규정/관찰/장면 참여만으로는
  * clothing을 생성하지 않는다.
  */
-export function retainEvidencedClothing({ previousClothing = {}, proposedClothing = {}, evidenceMap = {}, narrativeText = '', characterName = '' } = {}) {
+export function retainEvidencedClothing({ previousClothing = {}, proposedClothing = {}, evidenceMap = {}, narrativeText = '', characterName = '', actorId = null, npcsPresent = [], actorScoped = false, registeredNpcNames = [] } = {}) {
   const previous = isPlainObject(previousClothing) ? previousClothing : {};
   const proposed = isPlainObject(proposedClothing) ? proposedClothing : {};
   const evidence = isPlainObject(evidenceMap) ? evidenceMap : {};
@@ -173,7 +210,9 @@ export function retainEvidencedClothing({ previousClothing = {}, proposedClothin
     if (nextValue === previous[slot]) continue;
     // evidence는 slot 기준 — Extract는 canonical 키로 evidence를 내야 한다.
     const evidenceText = evidence[slot] ?? evidence[rawSlot] ?? null;
-    if (!evaluateClothingFieldEvidence(evidenceText, narrativeText, characterName)) {
+    if (!evaluateClothingFieldEvidence(evidenceText, narrativeText, characterName, {
+      actorId, npcsPresent, actorScoped, registeredNpcNames
+    })) {
       rejections.push(`unevidenced_clothing_change:${slot}`);
       continue;
     }

@@ -31,7 +31,7 @@ function exactStoryEvidence(evidence, narrativeText, characterName = '') {
   return true;
 }
 
-export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceMap = {}, narrativeText = '', characterName = '', turnNumber = null } = {}) {
+export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceMap = {}, narrativeText = '', characterName = '', turnNumber = null, actorId = null, npcsPresent = [], registeredNpcNames = [] } = {}) {
   const prev = isPlainObject(previous) ? previous : {};
   const raw = isPlainObject(proposal) ? proposal : {};
   const evidence = evidenceObject(evidenceMap);
@@ -40,13 +40,18 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
   const clothingEvidence = isPlainObject(evidence.clothing) && Object.keys(evidence.clothing).length
     ? evidence.clothing
     : (isPlainObject(localEvidence.clothing) ? localEvidence.clothing : {});
+  const clothingActorScoped = evidence.clothing_actor_scoped === true;
 
   const { clothing: acceptedClothing, rejections } = retainEvidencedClothing({
     previousClothing: prev.clothing ?? {},
     proposedClothing: raw.clothing ?? {},
     evidenceMap: clothingEvidence,
     narrativeText,
-    characterName
+    characterName,
+    actorId,
+    npcsPresent,
+    actorScoped: clothingActorScoped,
+    registeredNpcNames
   });
   warnings.push(...rejections);
 

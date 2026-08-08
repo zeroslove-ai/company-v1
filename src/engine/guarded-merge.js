@@ -53,35 +53,45 @@ function plainObject(value) {
  * 정식 형태는 evidence.clothing[actor_id][slot]이며, 기존 모델이 내던 flat slot
  * 형태도 entry.character_id/character가 actor와 일치할 때만 읽는다.
  * buildSceneStatePatch가 요구하는 slot -> quote 문자열로 축약한다.
+ *
+ * 반환:
+ *   quotes: { slot: quote }  — buildSceneStatePatch용 축약
+ *   actorScoped: true면 evidence가 actor별 nested 경로(evidence.clothing[actor_id])였다.
+ *                flat evidence(evidence.clothing[slot])면 false — 단일 NPC 예외를 적용하지 않는다.
  */
 function clothingEvidenceForActor(evidence, actorId) {
   const root = plainObject(evidence?.clothing) ? evidence.clothing : {};
   const nested = plainObject(root[actorId]) ? root[actorId] : null;
   const source = nested ?? root;
-  const result = {};
+  const result = { quotes: {}, actorScoped: Boolean(nested) };
 
   for (const [slot, entry] of Object.entries(source)) {
     if (plainObject(entry)) {
       const claimedActor = typeof entry.character_id === 'string'
         ? entry.character_id
         : (typeof entry.character === 'string' ? entry.character : null);
-      if (!nested && claimedActor && claimedActor !== actorId) continue;
-      // flat evidence에서 플레이어 소유권을 추측하지 않는다.
-      if (!nested && actorId === 'player' && claimedActor !== 'player') continue;
-      if (typeof entry.quote === 'string' && entry.quote.trim()) result[slot] = entry.quote.trim();
+      // nested/flat 무관 — 내부 character_id가 명시적으로 존재하면 actorId와
+      // 정확히 일치해야 한다. nested actor key가 정본이더라도 내부 충돌은 거부.
+      if (claimedActor && claimedActor !== actorId) continue;
+      // flat evidence는 character_id(또는 character) 필수 — 없거나 다르면 거부
+      // (플레이어 flat evidence도 동일 원칙, player-1 추측 변환 없음).
+      if (!nested && claimedActor !== actorId) continue;
+      if (typeof entry.quote === 'string' && entry.quote.trim()) result.quotes[slot] = entry.quote.trim();
       continue;
     }
     // 문자열 entry는 actor별 nested map에서만 허용한다.
-    if (nested && typeof entry === 'string' && entry.trim()) result[slot] = entry.trim();
+    if (nested && typeof entry === 'string' && entry.trim()) result.quotes[slot] = entry.trim();
   }
   return result;
 }
 
 function sceneEvidenceMap(patch, envelopeEvidence, actorId) {
   const local = plainObject(patch?.evidence) ? patch.evidence : {};
+  const clothing = clothingEvidenceForActor(envelopeEvidence, actorId);
   return {
     ...local,
-    clothing: clothingEvidenceForActor(envelopeEvidence, actorId)
+    clothing: clothing.quotes,
+    clothing_actor_scoped: clothing.actorScoped
   };
 }
 
@@ -460,6 +470,50 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     if (envelope.action_target_id) allowedNpcs.add(envelope.action_target_id);
   }
 
+  // 이번 턴 장면 참여자 정본 — 1) scene_cast_contract.present_npc_ids (서버가 확정한
+  // 등장 인물) 2) 없으면 Commit이 유지한 scene_state.participants.
+  // envelope.npcs_present는 참여자를 줄이는 정본으로 사용하지 않는다 — Extract가
+  // 한 명만 반환했다고 scene cast의 두 명을 한 명으로 축소하지 않으며, union으로
+  // 추가 인물만 보수적으로 포함한다 (Extract는 추가할 수는 있어도 제거할 수 없다).
+  // player/player_id는 비플레이어 NPC 수에서 제외하고 중복은 Set으로 제거한다.
+  // focal_character_id·last_npcs_present·기본 위치 인물은 단일 NPC 판정에 쓰지 않는다.
+  // 단일 NPC 판정용 물리적 인물 정본 (PR #30 보정):
+  // SceneCastContract가 있으면 present_npc_ids + entering_npc_ids union만 사용한다.
+  // - remote_npc_ids: 물리적 현장 인물이 아니므로 제외
+  // - context_npc_ids: 참고 인물이므로 제외
+  // - destination_npc_ids: present_npc_ids에 승격된 경우에만 포함 (별도 추가 금지)
+  // - envelope.npcs_present: normalizeGameplayExtractEnvelope는 등록 NPC ID 여부만
+  //   검증하며 SceneCastContract와의 일치를 검증하지 않으므로 union하지 않는다.
+  //   Extract는 단일 NPC 예외의 actor 수를 줄이거나 0→1명으로 만들 수 없다.
+  // scene_cast_contract가 없는 legacy/test 경로에서만 preSave.scene_state.participants
+  // 를 사용한다 (envelope.npcs_present 추가 없음 — 저장된 participant가 없으면
+  // 단일 NPC 예외는 활성화하지 않는다).
+  const cast = options?.parsedStory?.scene_cast_contract;
+  const hasCastContract = cast && typeof cast === 'object';
+
+  const authoritativeNpcIds = hasCastContract
+    ? [
+        ...(Array.isArray(cast.present_npc_ids) ? cast.present_npc_ids : []),
+        ...(Array.isArray(cast.entering_npc_ids) ? cast.entering_npc_ids : [])
+      ]
+    : (
+        Array.isArray(preSave.scene_state?.participants)
+          ? preSave.scene_state.participants
+          : []
+      );
+
+  const sceneNpcIds = [...new Set(authoritativeNpcIds)]
+    .filter(id => typeof id === 'string' && id && !isPlayerRefId(id));
+
+  // 등록 NPC 이름 목록 — 단일 NPC 예외에서 다른 NPC 이름과의 명시적 충돌을 차단한다.
+  const masterRoster = plainObject(options?.master) ? options.master : {};
+  const registeredNpcNames = [
+    ...(Array.isArray(masterRoster.characters) ? masterRoster.characters : []),
+    ...(Array.isArray(masterRoster.general_npcs) ? masterRoster.general_npcs : [])
+  ]
+    .map(entry => typeof entry?.name === 'string' && entry.name.trim() ? entry.name.trim() : null)
+    .filter(Boolean);
+
   for (const [path, patch] of Object.entries(envelope.state_delta)) {
     if (ENVELOPE_AUTHORITATIVE.has(path)) {
       warnings.push(`duplicate_state_path:${path}`);
@@ -504,7 +558,8 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
         previous: nextSave.player_scene_state ?? {}, proposal: patch,
         evidenceMap: sceneEvidenceMap(patch, envelope.evidence, 'player'),
         narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
-        characterName: '', turnNumber: options.expectedTurn
+        characterName: '', turnNumber: options.expectedTurn,
+        actorId: 'player', npcsPresent: sceneNpcIds, registeredNpcNames
       });
       nextSave.player_scene_state = state;
       warnings.push(...sceneWarnings.map(code => `player_scene_state:${code}`));
@@ -568,7 +623,8 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
             previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: npcPatch,
             evidenceMap: sceneEvidenceMap(npcPatch, envelope.evidence, npcId),
             narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
-            characterName: characterNameFromMaster(options?.master, npcId), turnNumber: options.expectedTurn
+            characterName: characterNameFromMaster(options?.master, npcId), turnNumber: options.expectedTurn,
+            actorId: npcId, npcsPresent: sceneNpcIds, registeredNpcNames
           });
           nextSave.npc_scene_state[npcId] = { ...state, present: nextSave.npc_scene_state[npcId]?.present ?? npcPatch.present ?? false };
           warnings.push(...sceneWarnings.map(code => `npc_scene_state:${npcId}:${code}`));
