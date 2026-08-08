@@ -35,12 +35,16 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
   const prev = isPlainObject(previous) ? previous : {};
   const raw = isPlainObject(proposal) ? proposal : {};
   const evidence = evidenceObject(evidenceMap);
+  const localEvidence = evidenceObject(raw.evidence);
   const warnings = [];
+  const clothingEvidence = isPlainObject(evidence.clothing) && Object.keys(evidence.clothing).length
+    ? evidence.clothing
+    : (isPlainObject(localEvidence.clothing) ? localEvidence.clothing : {});
 
   const { clothing: acceptedClothing, rejections } = retainEvidencedClothing({
     previousClothing: prev.clothing ?? {},
     proposedClothing: raw.clothing ?? {},
-    evidenceMap: isPlainObject(evidence.clothing) ? evidence.clothing : {},
+    evidenceMap: clothingEvidence,
     narrativeText,
     characterName
   });
