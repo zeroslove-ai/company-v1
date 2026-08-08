@@ -178,6 +178,7 @@ export function buildCsaApplicationCheckSection(applicableCsa) {
   return `\n\n[CSA APPLICATION CHECK CONTRACT]\n다음은 이번 턴에 실제로 집행되어야 했던 강제 상식개변 규칙이다. 방금 서사를 다시 확인해, 아래 규칙 중 조건("~마다", "~할 때", "~하면" 등)을 충족하는 상황이 실제로 있었는데도 그 행동이 실행되지 않은 규칙이 있으면 csa_omission에 짧게 설명해 넣는다. 조건이 발생하지 않았거나 정상적으로 실행됐다면 넣지 않는다.\n${lines}`;
 }
 
+
 /** Extract-only runtime tracking contract — only worth the tokens when a CSA is actually active this turn. */
 export function buildCsaRuntimeExtractContractSection(applicableCsa) {
   if (!applicableCsa || !applicableCsa.length) return '';
@@ -284,35 +285,4 @@ trigger 해석:
 - 이 규정이 생기기 전의 비슷한 경험도 별도 factual evidence 없이는 만들지 않는다.
 
 ${lines.join('\n')}`;
-}
-
-/**
- * 진행 중 성적 장면에서 업무 화제를 차단하는 최종 우선 섹션 (지시 25).
- * 주입 조건은 호출부에서 판단한다:
- * 1. canonical coverage가 csa_direct (exact/method_variant/continuation)
- * 2. 같은 CSA runtime execution_state=executed이고 현재 장면에서 성적 행동 계속 중
- * 3. 직전 확정 Story와 현재 물리 상태에서 명시적 성적 행동 계속 중
- */
-export function buildActiveIntimateFocusSection({
-  canonicalCoverage = null,
-  csaRuntimeState = null,
-  materialAction = null,
-  previousTurn = null
-} = {}) {
-  const covered = canonicalCoverage?.covered === true
-    || csaRuntimeState?.execution_state === 'executed'
-    || Boolean(materialAction)
-    || Boolean(previousTurn?.extract_delta?.image_selection && previousTurn.extract_delta.image_selection.pool === 'sex');
-  if (!covered) return '';
-  return `
-
-[ACTIVE INTIMATE ACTION FOCUS — FINAL PRIORITY]
-- 현재 진행 중인 성적 행동과 직접 관계없는 회의, 프로젝트, 자료, 보고서, 일정, 브랜드 보이스, 감사 업무 화제를 새로 꺼내지 않는다.
-- 플레이어가 업무 화제를 직접 요구하지 않으면 업무 대사는 0문장을 기본으로 한다.
-- CSA의 회사 규정 배경은 이미 성립한 사실이다. 매 대사마다 규정·절차·업무라는 말을 반복하지 않는다.
-- 현재 대사는 감각, 호흡, 시선, 손의 움직임, 자세, 속도, 긴장, 부끄러움, 불편함, 호기심, 짜증, 상대 반응에 집중한다.
-- 최근 3턴에 업무 이야기가 있었더라도 현재 성적 행동의 장면 초점이 우선한다.
-- save.scene_state.scene_goal이 업무 주제여도 진행 중 성적 행동을 무시하고 그 업무 주제로 돌아가지 않는다.
-- 긴급한 외부 사건이나 플레이어의 명시적 요구가 없으면 성적 행동 도중 새 업무 안건을 만들지 않는다.
-- 행동이 끝난 뒤에만 원래 scene_goal로 복귀할 수 있다.`;
 }

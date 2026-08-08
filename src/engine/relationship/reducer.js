@@ -27,7 +27,7 @@ function isPlainObject(value) {
  * reason: the Extract-reported justification string for this NPC's changes this turn.
  * Returns { state, warnings }.
  */
-export function applyNpcStatChanges(previous = {}, deltas = {}, { reason = '', reasons = {} } = {}) {
+export function applyNpcStatChanges(previous = {}, deltas = {}, { reason = '', reasons = {}, storyText = '', affinityQuote = '' } = {}) {
   const base = isPlainObject(previous) ? previous : {};
   const proposed = isPlainObject(deltas) ? deltas : {};
   const warnings = [];
@@ -44,6 +44,18 @@ export function applyNpcStatChanges(previous = {}, deltas = {}, { reason = '', r
     if (delta > MAX_DELTA[key] || delta < MIN_DELTA[key]) {
       warnings.push(`stat_delta_out_of_range:${key}`);
       delta = 0;
+    }
+    // positive affinity_delta는 정확한 Story 근거가 필요하다 (지시 6) —
+    // exact quote가 최종 Story에 없으면 affinity_delta만 폐기한다.
+    // (홍조·신음·CSA 수행 자체는 호감 상승 근거가 아니다 — 의미 판단은 Extract 몫,
+    //  Commit은 quote 존재 여부만 확인한다.)
+    if (key === 'affinity' && delta > 0) {
+      const quoteValid = typeof affinityQuote === 'string' && affinityQuote.trim().length > 0
+        && typeof storyText === 'string' && storyText.includes(affinityQuote);
+      if (!quoteValid) {
+        warnings.push(`affinity_positive_delta_no_evidence_ignored`);
+        delta = 0;
+      }
     }
     state[key] = clamp(current + delta, 0, 100);
   }

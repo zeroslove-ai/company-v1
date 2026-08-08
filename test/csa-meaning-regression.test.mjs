@@ -11,8 +11,8 @@ import {
   buildCsaDirectCoverageSection as resolveCsaModule_placeholder
 } from '../src/engine/csa/direct-coverage.js';
 import { resolveActionExecutionContract as resolveAecModule } from '../src/engine/action-execution-contract.js';
-import { buildActiveIntimateFocusSection, buildCsaAcceptanceScopeSection } from '../src/engine/csa/prompt-sections.js';
-const resolveCsaModule = { buildCsaDirectCoverageSection: resolveCsaModule_placeholder, buildActiveIntimateFocusSection, buildCsaAcceptanceScopeSection };
+import { buildCsaAcceptanceScopeSection } from '../src/engine/csa/prompt-sections.js';
+const resolveCsaModule = { buildCsaDirectCoverageSection: resolveCsaModule_placeholder, buildCsaAcceptanceScopeSection };
 
 function baseSave() {
   return {
@@ -290,9 +290,10 @@ test('턴70-8~11: method_variant — 방식은 전개 후보(필수 아님), req
   assert.doesNotMatch(section, /반드시 실행되는 확정 사실/, 'method_variant에는 확정 사실 프레임 금지');
   // 개인적 거절 이유 + 허구 제한 금지 유지
   assert.match(section, /개인적·감정적·현실적 이유/);
-  assert.match(section, /규정상 손으로만 가능합니다/, '허구 hand-only 제한을 금지하는 지시가 포함');
-  assert.match(section, /절차에는 구강 방식이 없습니다/, '허구 구강 금지 제한을 금지하는 지시가 포함');
-  assert.match(section, /새 규정이 생기면 하겠습니다/, '허구 "새 규정 대기" 제한을 금지하는 지시가 포함');
+  assert.match(section, /"규정에 없으면 할 수 없다"/, '허구 금지 전제 차단 지시가 포함');
+  assert.match(section, /"절차에 없으면 못 하는 게 당연하다"/, '허구 절차 전제 차단 지시가 포함');
+  assert.match(section, /"손으로 하는 방식만 회사가 인정한다"/, '허구 손-only 전제 차단 지시가 포함');
+  assert.match(section, /NPC 대사·서사·플레이어 속마음·선택지 어디에도 이 전제를 넣지 않는다/);
   assert.match(section, /방식 거절은 required outcome의 중단이 아니다/);
 });
 
@@ -347,35 +348,51 @@ test('턴70-38: CSA-covered + hostile boundary → csa_direct', () => {
   assert.equal(contract.route, 'csa_direct');
 });
 
-test('턴70-40: CSA 범위 밖 행동은 기존 ordinary blocker 유지', () => {
+test('턴70-40 (지시 2·9-3): 다른 NPC 이름이 문장에 포함돼도 canonical actor/target이 heroine4→player면 coverage 유지', () => {
+  // 실행 중인 CSA(runtime executed) + "윤민아가 들어오기 전에 문을 닫고 계속해" —
+  // 다른 NPC 이름(윤민아) 존재만으로 coverage를 해제하지 않는다 (지시 2)
   const save = boundarySave('closed');
-  const resolveActionExecutionContract = resolveAecModule;
-  const contract = resolveActionExecutionContract({
-    save, playerAction: '윤민아를 벽으로 밀어붙여 키스한다.',
-    csaCatalog: { sexual_action_contract: CSA60_CONTRACT },
-    characters: CSA60_MASTER.characters, npcIds: []
+  save.csa_runtime_state = {
+    csa_60: { lifecycle: 'active', applicability: 'applicable', execution_state: 'executed', character_id: 'heroine4', started_turn: 79 }
+  };
+  const coverage = resolveCsaDirectCoverage(save, '윤민아가 들어오기 전에 문을 닫고, 한리브는 지금 하던 걸 계속해.', {
+    sexualActionContract: CSA60_CONTRACT,
+    master: CSA60_MASTER
   });
-  // csa_60은 heroine4→player — 다른 대상 행동은 ordinary gate
-  assert.notEqual(contract.route, 'csa_direct');
+  assert.equal(coverage.covered, true, '다른 NPC 언급이 있어도 coverage 유지');
+  assert.equal(coverage.route, 'csa_direct');
+  assert.equal(coverage.coverage_kind, 'continuation');
+  assert.equal(coverage.actor_id, 'heroine4');
+  assert.equal(coverage.target_id, 'player');
 });
 
 // ── 턴70-25/26: active intimate focus + 로봇화 제거 (41~45) ──
 
-test('턴70-41~43: active intimate focus 섹션 — 업무 화제 금지·반응 팔레트·금지 반복', () => {
-  const { buildActiveIntimateFocusSection, buildCsaAcceptanceScopeSection } = resolveCsaModule;
-  const section = buildActiveIntimateFocusSection({
-    canonicalCoverage: { covered: true, route: 'csa_direct', csa_id: 'csa_60', coverage_kind: 'method_variant' }
-  });
-  assert.match(section, /ACTIVE INTIMATE ACTION FOCUS/);
-  assert.match(section, /회의, 프로젝트, 자료, 보고서, 일정, 브랜드 보이스, 감사 업무 화제를 새로 꺼내지 않는다/);
-  assert.match(section, /업무 대사는 0문장을 기본/);
-  // 로봇화 제거 — 수치별 기계적 스크립트가 없어야 한다
+test('턴70-41~43: 로봇화 제거 — 수치별 기계적 스크립트 없음, 반응 팔레트 유지 (지시 26)', () => {
+  const { buildCsaAcceptanceScopeSection } = resolveCsaModule;
   const acceptance = buildCsaAcceptanceScopeSection();
   assert.doesNotMatch(acceptance, /0~19도 행동을 거부·생략하지 않고/);
   assert.doesNotMatch(acceptance, /80~100은 직접 범위 안에서 선제적으로/);
   assert.match(acceptance, /무표정한 절차 수행자로 만들지 않는다/);
   assert.match(acceptance, /반응 팔레트/);
   assert.match(acceptance, /금지 반복 표현/);
+});
+
+test('지시 1-회귀1: buildActiveIntimateFocusSection 완전 제거 — 과거 executed runtime이어도 성적 장면 고정 지시 없음', () => {
+  // 함수 자체가 삭제되어 import 불가 — 소스에서 잔존 참조가 없어야 한다
+  const turnRoutes = fs.readFileSync(path.join(root, 'src/api/turn-routes.js'), 'utf8');
+  const promptSections = fs.readFileSync(path.join(root, 'src/engine/csa/prompt-sections.js'), 'utf8');
+  const engineIndex = fs.readFileSync(path.join(root, 'src/engine/index.js'), 'utf8');
+  assert.doesNotMatch(turnRoutes, /buildActiveIntimateFocusSection/, 'turn-routes에서 함수 참조 없음');
+  assert.doesNotMatch(promptSections, /buildActiveIntimateFocusSection|ACTIVE INTIMATE ACTION FOCUS/, 'prompt-sections에서 함수·섹션 없음');
+  assert.doesNotMatch(engineIndex, /buildActiveIntimateFocusSection/, 'engine/index에서 export 없음');
+});
+
+test('지시 1-회귀2: story-prompt 기본 지시에 장면 흐름 일반 원칙 존재', () => {
+  const storyPrompt = fs.readFileSync(path.join(root, 'src/engine/story-prompt.js'), 'utf8');
+  assert.match(storyPrompt, /\[장면 흐름\]/);
+  assert.match(storyPrompt, /플레이어가 중단·이동·화제 전환을 선택하면 즉시 그 입력을 우선한다/);
+  assert.match(storyPrompt, /회사라는 배경이나 규정 설명을 매 턴 반복하지 않는다/);
 });
 
 test('턴70-44: required action은 유지 (method_policy unspecified)', () => {

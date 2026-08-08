@@ -266,7 +266,11 @@ test('14-5d: full canonical stats preserved untouched', () => {
 });
 
 test('14-5e: reducer keeps resistance and ignores resistance deltas with warning', () => {
-  const { state, warnings } = applyNpcStatChanges({ affinity: 5, resistance: 45, csa_acceptance: 20, sexual_arousal: 1 }, { affinity_delta: 2, resistance_delta: 99 }, { reason: 'test' });
+  const { state, warnings } = applyNpcStatChanges({ affinity: 5, resistance: 45, csa_acceptance: 20, sexual_arousal: 1 }, { affinity_delta: 2, resistance_delta: 99 }, {
+    reason: 'test',
+    storyText: '그는 한리브의 불편함을 알아채고 잠시 멈췄다.',
+    affinityQuote: '그는 한리브의 불편함을 알아채고 잠시 멈췄다.'
+  });
   assert.equal(state.resistance, 45);
   assert.equal(state.affinity, 7);
   assert.ok(warnings.includes('stat_resistance_change_ignored'));

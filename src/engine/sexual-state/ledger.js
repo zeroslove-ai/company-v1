@@ -39,7 +39,7 @@ export function sexualEventId(turnNumber, actorId, actionType, evidence) {
   return `turn:${turnNumber}:${actorId ?? 'unknown'}:${actionType}:${stableContentHash(normalizeEvidenceText(evidence))}`;
 }
 
-function normalizeCandidate(raw, { turnNumber, actionId, storyText = '' } = {}) {
+function normalizeCandidate(raw, { turnNumber, actionId, storyText = '', npcIds = null } = {}) {
   if (!isPlainObject(raw)) return null;
   const actionType = LEDGER_ACTION_TYPES.has(raw.action_type) ? raw.action_type : null;
   if (!actionType) return null;
@@ -47,6 +47,16 @@ function normalizeCandidate(raw, { turnNumber, actionId, storyText = '' } = {}) 
   const targetId = typeof raw.target_id === 'string' && raw.target_id.trim() ? raw.target_id.trim() : null;
   // actor/target은 둘 다 필수 — 없으면 이벤트로 기록하지 않는다 (지시 23-2).
   if (!actorId || !targetId) return null;
+  // actor !== target — 자기 자신을 대상으로 한 이벤트는 폐기 (지시 5).
+  if (actorId === targetId) return null;
+  // 등록 검증 (지시 5): actor_id/target_id는 등록된 캐릭터 ID 또는 player.
+  // npcIds를 받은 경우(Commit 경로)에만 수행한다 — Story 전 판단 금지.
+  if (Array.isArray(npcIds)) {
+    const known = new Set(npcIds.map(id => (typeof id === 'string' ? id : '').trim()).filter(Boolean));
+    const isPlayer = id => id === 'player' || id === 'player-1';
+    if (!isPlayer(actorId) && !known.has(actorId)) return null;
+    if (!isPlayer(targetId) && !known.has(targetId)) return null;
+  }
   const direction = DIRECTIONS.has(raw.direction) ? raw.direction : 'none';
   const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : '';
   // evidence는 최종 Story의 정확한 부분 문자열이어야 한다 (지시 23-8).
@@ -74,13 +84,13 @@ function normalizeCandidate(raw, { turnNumber, actionId, storyText = '' } = {}) 
  * ledger to the most recent MAX_LEDGER_LENGTH entries (oldest dropped first — the counters
  * derived from it are monotonic running totals, never recomputed from the capped tail alone).
  */
-export function appendSexualEvents(previousLedger, rawCandidates, { turnNumber, actionId, storyText = '' } = {}) {
+export function appendSexualEvents(previousLedger, rawCandidates, { turnNumber, actionId, storyText = '', npcIds = null } = {}) {
   const previous = Array.isArray(previousLedger) ? previousLedger : [];
   const seenIds = new Set(previous.map(event => event?.event_id).filter(Boolean));
   const accepted = [];
   const warnings = [];
   for (const raw of (Array.isArray(rawCandidates) ? rawCandidates : [])) {
-    const candidate = normalizeCandidate(raw, { turnNumber, actionId, storyText });
+    const candidate = normalizeCandidate(raw, { turnNumber, actionId, storyText, npcIds });
     if (!candidate) { warnings.push('invalid_sexual_event_candidate'); continue; }
     if (seenIds.has(candidate.event_id)) continue; // silent dedupe, not a warning — a legitimate replay/retry case
     seenIds.add(candidate.event_id);

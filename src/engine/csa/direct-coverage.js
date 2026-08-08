@@ -227,20 +227,6 @@ function resolveSexualCoverage(
     const direction = resolveDirection(actor, target);
     if (!contract.directions.includes(direction)) continue;
 
-    // 입력이 CSA actor가 아닌 다른 등록 NPC를 직접 지목하면 CSA 범위 밖이다 (지시 4).
-    // 자연어 regex 대신 기존 characterInfo 이름 목록 기반으로만 판단한다.
-    // (장면 참여자뿐 아니라 등록 NPC 전체 — 장면 밖 NPC 지목도 CSA 대상이 아님)
-    const roster = characters ?? master?.characters ?? {};
-    const rosterIds = Array.isArray(roster)
-      ? roster.map(entry => entry?.character_id ?? entry?.npc_id ?? entry?.id).filter(Boolean)
-      : Object.keys(roster);
-    const otherNpcMentioned = rosterIds.some(id => {
-      if (id === actor.characterId) return false;
-      const name = typeof characterInfo(id, roster)?.name === 'string' ? characterInfo(id, roster).name : id;
-      return name.length >= 2 && text.includes(name);
-    });
-    if (otherNpcMentioned) continue;
-
     const requiredAction = typeof csa.preset?.required_action === 'string'
       ? csa.preset.required_action
       : null;
@@ -495,7 +481,7 @@ export function buildCsaDirectCoverageSection(coverage) {
     // method_variant: requested method는 자연스러운 전개 후보일 뿐 —
     // required outcome만 필수이고, 방식 수락·거절은 Story가 캐릭터와 장면에 따라 결정한다.
     // "반드시 실행되는 확정 사실" 프레임을 여기서 쓰지 않는다.
-    return `\n\n[CSA DIRECT COVERAGE — METHOD VARIANT]${coverage.action ? ` (요청 방식: ${coverage.action})` : ''}\n플레이어의 이번 입력은 활성 상식개변(${coverage.csa_id})의 직접 범위 안의 방식 제안(method_variant)이다(행동주체=${coverage.actor_group}, 대상=${coverage.target_group ?? '없음'}, 방향=${coverage.direction}).\n- 규정은 결과만 정의한다(method_policy=unspecified, method_restriction=null). 수행 방식을 허용 목록으로 요구하거나 금지하지 않는다.\n- 요청된 방식은 자연스러운 전개 후보이다. 필수가 아니다.\n- required outcome(${coverage.required_action ?? '규정의 의무'})은 필수이며 계속 이행되어야 한다.\n- 요청 방식의 수락·거절 여부는 Story가 캐릭터 성격과 현재 장면에 따라 결정한다. NPC는 개인적·감정적·현실적 이유(부끄러움, 경험 부족, 개인적 부담, 위생·자세, 장소 불편, 감정적 거부 등)로 거절할 수 있다.\n- 거절을 표현할 때 규정이나 절차를 이유로 삼지 않는다 — "규정상 손으로만 가능합니다", "절차에는 구강 방식이 없습니다", "규정에 없어서 못 합니다", "새 규정이 생기면 하겠습니다" 같은 존재하지 않는 제한으로 포장하지 않는다.\n- 방식 거절은 required outcome의 중단이 아니다 — 다른 가능한 방식으로 계속 이행한다.\n- 이전 턴 대화에 "입으로 하는 건 절차에 없어요", "규정 다시 찾아봤는데 없더라고요", "규정이 없으니 어쩔 수 없지만요" 같은 표현이 있었다면 그것은 이 규정의 오해였다 — 그 표현을 이어받거나 반복하지 않는다.\n- 이 규칙 범위를 벗어나는 추가 행동은 일반 행동 판정을 따른다.`;
+    return `\n\n[CSA DIRECT COVERAGE — METHOD VARIANT]${coverage.action ? ` (요청 방식: ${coverage.action})` : ''}\n플레이어의 이번 입력은 활성 상식개변(${coverage.csa_id})의 직접 범위 안의 방식 제안(method_variant)이다(행동주체=${coverage.actor_group}, 대상=${coverage.target_group ?? '없음'}, 방향=${coverage.direction}).\n- 방식 규정 해석(method_policy=unspecified, method_restriction=null): 규정은 required outcome만 정한다. 구체적인 수행 방식에 대해서는 아무 말도 하지 않는다. 특정 방식이 규정에 적혀 있지 않다는 사실은 금지 근거가 아니다.\n- 요청된 방식은 자연스러운 전개 후보이다. 필수가 아니다.\n- required outcome(${coverage.required_action ?? '규정의 의무'})은 필수이며 계속 이행되어야 한다.\n- 요청 방식의 수락·거절 여부는 Story가 캐릭터 성격과 현재 장면에 따라 결정한다. NPC는 개인적·감정적·현실적 이유(부끄러움, 경험 부족, 개인적 부담, 위생·자세, 장소 불편, 감정적 거부 등)로 거절할 수 있다.\n- 거절·수락·망설임을 표현할 때 "규정에 없으면 할 수 없다", "절차에 없으면 못 하는 게 당연하다", "손으로 하는 방식만 회사가 인정한다" 같은 전제를 사용하지 않는다. NPC 대사·서사·플레이어 속마음·선택지 어디에도 이 전제를 넣지 않는다.\n- 방식 거절은 required outcome의 중단이 아니다 — 다른 가능한 방식으로 계속 이행한다.\n- 이전 턴 대화에 "입으로 하는 건 절차에 없어요", "규정 다시 찾아봤는데 없더라고요", "규정이 없으니 어쩔 수 없지만요" 같은 표현이 있었다면 그것은 이 규정의 오해였다 — 그 표현을 이어받거나 반복하지 않는다.\n- 이 규칙 범위를 벗어나는 추가 행동은 일반 행동 판정을 따른다.`;
   }
 
   // exact / continuation: 해당 행동 또는 기존 수행 계속은 필수다.

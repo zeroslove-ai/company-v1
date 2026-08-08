@@ -571,7 +571,10 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
       }
       const { ledger, accepted, warnings: ledgerWarnings } = appendSexualEvents(nextSave.sexual_event_ledger, patch, {
         turnNumber: options.expectedTurn, actionId: options.actionId,
-        storyText: typeof options.storyText === 'string' ? options.storyText : ''
+        storyText: typeof options.storyText === 'string' ? options.storyText : '',
+        npcIds: Array.isArray(options.npcIds)
+          ? options.npcIds
+          : (options.npcIds instanceof Set ? [...options.npcIds] : null)
       });
       nextSave.sexual_event_ledger = ledger;
       warnings.push(...ledgerWarnings);
@@ -629,9 +632,15 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
             continue;
           }
           const { reason, reasons, ...deltas } = npcPatch;
+          // positive affinity_delta는 정확한 Story 근거 quote가 필요하다 (지시 6).
+          const affinityEvidence = plainObject(envelope?.evidence?.npc_stats?.[npcId]?.affinity)
+            ? envelope.evidence.npc_stats[npcId].affinity
+            : null;
           const { state, warnings: statWarnings } = applyNpcStatChanges(nextSave.npc_stats[npcId] ?? {}, deltas, {
             reason: typeof reason === 'string' ? reason : '',
-            reasons: plainObject(reasons) ? reasons : {}
+            reasons: plainObject(reasons) ? reasons : {},
+            storyText: typeof options.storyText === 'string' ? options.storyText : '',
+            affinityQuote: typeof affinityEvidence?.quote === 'string' ? affinityEvidence.quote : ''
           });
           nextSave.npc_stats[npcId] = state;
           warnings.push(...statWarnings.map(code => `npc_stats:${npcId}:${code}`));
