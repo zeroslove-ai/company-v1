@@ -764,4 +764,23 @@ test('지시C-2: same-family 우선 — oral 요청 family가 있으면 oral fam
   assert.ok(selected);
   assert.equal(selected.image_id, 'oral1', 'deepthroat와 같은 oral family(fellatio) 우선');
   assert.equal(selected.source, 'family_match');
+
+test('턴70-37 (지시C): /api/image sex pool에 tags 전달 — same-character fallback 반환 (null 아님)', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({
+    fetchImpl: async (url, init = {}) => {
+      const textUrl = String(url);
+      if (textUrl.includes('/rest/v1/image_library')) {
+        return json([turn70ImageRow('fg1', ['adult', 'sex', 'fingering'])]);
+      }
+      return mock.fetchImpl(url, init);
+    }
+  });
+  const res = await worker.fetch(request('/api/image', { game_id: gameId, character_id: 'heroine4', pool: 'sex', tags: ['handjob'] }), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.ok(body.data.image, '동일 캐릭터 sex asset이 있으면 null 금지');
+  assert.equal(body.data.image.image_id, 'fg1');
+});
+
 });

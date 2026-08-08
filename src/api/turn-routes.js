@@ -1396,6 +1396,7 @@ const master = masterFromEdition(edition);
         const selected = selectImage(candidates, {
           situation: typeof body.situation === 'string' ? body.situation : null,
           tags,
+          pool,
           locationId: typeof body.location_id === 'string' ? body.location_id : null
         });
         return ok({ character_id: characterId, image: selected });
