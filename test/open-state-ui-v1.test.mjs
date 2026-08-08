@@ -4,7 +4,44 @@ import fs from 'node:fs';
 import { buildPosturePatch } from '../src/engine/state/posture.js';
 import { retainEvidencedClothing } from '../src/engine/state/clothing.js';
 import { buildSceneStatePatch } from '../src/engine/state/physical-state.js';
+import { applyGuardedStateDelta } from '../src/engine/guarded-merge.js';
 import { physicalRelationDisplay, stateDisplayValues } from '../src/frontend/pages/render.js';
+
+const canonicalSave = JSON.parse(fs.readFileSync(new URL('../fixtures/phase-0.5/canonical-save-v1.json', import.meta.url), 'utf8'));
+
+function clothingEnvelope({ stateDelta, evidence, story }) {
+  return {
+    state_delta: stateDelta,
+    outcome: 'success',
+    evidence,
+    turn_summary: '',
+    mind_monitor: {},
+    choices: ['계속한다', '질문한다', '반응을 본다', '기다린다'],
+    dialogue_lines: [],
+    npcs_present: ['npc-hayeon'],
+    action_target_id: 'npc-hayeon',
+    focal_character_id: 'npc-hayeon',
+    last_speaker_id: null,
+    image_character_id: 'npc-hayeon',
+    player_inner_thought: '',
+    player_status: '',
+    elapsed_minutes: 1,
+    warnings: [],
+    story
+  };
+}
+
+function applyClothing(save, envelope, story) {
+  return applyGuardedStateDelta(save, envelope, {
+    storyText: story,
+    parsedStory: { choices: envelope.choices, dialogue_lines: [] },
+    npcIds: new Set(['npc-hayeon']),
+    master: { characters: [{ character_id: 'npc-hayeon', name: '김하연' }] },
+    expectedTurn: 8,
+    actionId: 'action-8',
+    turnId: 'turn-8'
+  });
+}
 
 test('posture accepts Story-grounded Korean text without an enum entry', () => {
   const first = buildPosturePatch({ proposal: { posture: '의자 끝에 비스듬히 걸터앉아 있다' }, turnNumber: 17 });
@@ -58,6 +95,61 @@ test('clothing rejects free-form keys, ambiguous keys, and garment-name-only val
   assert.ok(garmentName.rejections.some(r => r.startsWith('invalid_clothing_value')));
 });
 
+test('Commit reads actor-scoped top-level clothing evidence for NPC and player', () => {
+  const save = structuredClone(canonicalSave);
+  save.player_scene_state = { ...save.player_scene_state, clothing: {} };
+  save.npc_scene_state['npc-hayeon'] = { ...save.npc_scene_state['npc-hayeon'], clothing: {} };
+  const npcQuote = '김하연은 재킷을 벗어 의자에 걸고 흰색 브래지어 차림을 드러냈다.';
+  const playerQuote = '플레이어는 정장 바지를 벗어 의자 위에 올려두었다.';
+  const story = `${npcQuote} ${playerQuote}`;
+  const envelope = clothingEnvelope({
+    story,
+    stateDelta: {
+      npc_scene_state: {
+        'npc-hayeon': { clothing: { uniform_top: 'removed', underwear_top: 'worn' } }
+      },
+      player_scene_state: { clothing: { uniform_bottom: 'removed' } }
+    },
+    evidence: {
+      clothing: {
+        'npc-hayeon': {
+          uniform_top: { quote: npcQuote, character_id: 'npc-hayeon' },
+          underwear_top: { quote: npcQuote, character_id: 'npc-hayeon' }
+        },
+        player: {
+          uniform_bottom: { quote: playerQuote, character_id: 'player' }
+        }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, story);
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-hayeon'].clothing, {
+    uniform_top: 'removed', underwear_top: 'worn'
+  });
+  assert.deepEqual(result.nextSave.player_scene_state.clothing, { uniform_bottom: 'removed' });
+});
+
+test('Commit accepts the recent flat Extract clothing evidence only when actor ownership matches', () => {
+  const save = structuredClone(canonicalSave);
+  save.npc_scene_state['npc-hayeon'] = { ...save.npc_scene_state['npc-hayeon'], clothing: {} };
+  const quote = '김하연은 재킷을 벗어 옆자리 의자 등받이에 걸쳤다.';
+  const envelope = clothingEnvelope({
+    story: quote,
+    stateDelta: {
+      npc_scene_state: {
+        'npc-hayeon': { clothing: { uniform_top: 'removed' } }
+      }
+    },
+    evidence: {
+      clothing: {
+        uniform_top: { quote, character_id: 'npc-hayeon' }
+      }
+    }
+  });
+  const result = applyClothing(save, envelope, quote);
+  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].clothing.uniform_top, 'removed');
+});
+
 test('bad auxiliary physical fields degrade independently and carry prior state', () => {
   const result = buildSceneStatePatch({
     previous: { posture: '책상 앞에 서 있다', location_label: '대회의실', clothing: {} },
@@ -80,8 +172,11 @@ test('frontend passes Korean physical text through and hides unknown internal co
   assert.equal(stateDisplayValues({ scene: { scene_state: { location_id: 'large_meeting_room' } } }).장소, '');
 });
 
-test('frontend source keeps legacy labels only as compatibility and shows full summaries', () => {
+test('frontend source renders interacting NPC clothing and always exposes player clothing state', () => {
   const render = fs.readFileSync(new URL('../src/frontend/pages/render.js', import.meta.url), 'utf8');
+  assert.match(render, /상호작용 인물 착의/);
+  assert.match(render, /model\.interacting_characters/);
+  assert.match(render, /clothingDisplay\(player\?\.clothing\) \|\| '확인되지 않음'/);
   assert.match(render, /LEGACY_CLOTHING_LABELS/);
   assert.doesNotMatch(render, /raw\.replaceAll\('_', ' '\)/);
   const css = fs.readFileSync(new URL('../src/frontend/pages/hospital-panels.css', import.meta.url), 'utf8');
