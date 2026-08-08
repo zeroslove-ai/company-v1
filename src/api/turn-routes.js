@@ -105,6 +105,26 @@ function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+// 이미지 태그 allowlist — 알 수 없는 태그는 버린다 (턴70 지시 10).
+const IMAGE_TAG_ALLOWLIST = new Set([
+  // 성적 행동
+  'handjob', 'fellatio', 'deepthroat', 'fingering', 'cunnilingus', 'breast_sucking',
+  'missionary', 'doggystyle', 'cowgirl', 'anal', 'standing_rear', 'penetration',
+  // 사정
+  'facial_cumshot', 'body_cumshot', 'oral_cumshot', 'creampie', 'cumshot',
+  // 장소·컨텍스트
+  'office_desk', 'office', 'desk', 'meeting_room', 'private_room', 'lounge', 'restroom',
+  // generic (성적 행동 매칭으로 보지 않음)
+  'adult', 'sex', 'general', 'default', 'portrait', 'solo', 'sexual_generic'
+]);
+
+function normalizeImageTags(tags) {
+  return [...new Set((Array.isArray(tags) ? tags : [])
+    .filter(tag => typeof tag === 'string' && tag.trim())
+    .map(tag => tag.trim())
+    .filter(tag => IMAGE_TAG_ALLOWLIST.has(tag)))];
+}
+
 /**
  * Once an action has been reserved, its stored structured_action is authoritative.
  * Repeated stages may resend the same value, but cannot substitute a different one.
@@ -253,7 +273,7 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
  * pass. This only trims prompt tokens — every gated section's underlying feature contract is
  * unchanged when its condition holds.
  */
-function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog, actionContract, master, expectedTurn }) {
+function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog, actionContract, master, expectedTurn, csaCoverage = null }) {
   const applicableCsa = getApplicableCsaEntries(save);
   const hasApplicableCsa = applicableCsa.length > 0;
   const isAppTransactionTurn = Boolean(plan);
@@ -282,8 +302,8 @@ function applyCsaStorySections(messages, { save, plan, playerAction, csaCatalog,
     extra += buildCsaDeactivationStorySection(csaOperations.some(operation => operation.operation === 'deactivate'));
   }
   if (hasApplicableCsa && playerAction) {
-    const coverage = resolveCsaDirectCoverage(save, playerAction, { sexualActionContract: csaCatalog?.sexual_action_contract, master });
-    extra += buildCsaDirectCoverageSection(coverage);
+    // coverage는 Story 시작 전에 정확히 한 번 계산해 전달받는다 (이중 계산 제거).
+    extra += buildCsaDirectCoverageSection(csaCoverage);
   }
   // ActionExecutionContract section — 음수 ordinary gate는 활성 CSA 유무와 관계없이 작동한다.
   // csa_direct면 exact-scope 제한만, 범위 밖 material action이면 짧고 강한 음수 계약
@@ -805,6 +825,15 @@ const master = masterFromEdition(edition);
                   : storySave
               }
             : hydratedContext;
+          // CSA coverage — Story 시작 전에 정확히 한 번 계산한다.
+          // resolveActionExecutionContract와 applyCsaStorySections가 동일한 결과를 사용해
+          // 이중 권위·이중 계산을 제거한다. (csa_60 oral method_variant/continuation 포함)
+          const csaCoverageStart = Date.now();
+          const csaCoverage = resolveCsaDirectCoverage(hydratedSave, playerAction, {
+            sexualActionContract: csaCatalog?.sexual_action_contract,
+            master
+          });
+          timing.csa_coverage_ms = Date.now() - csaCoverageStart;
           // ActionExecutionContract — 순수 결정 함수 (await/fetch/LLM 없음, 수 ms).
           // retry 시 저장된 계약을 재사용해 같은 action을 다시 분류해 다른 route를 만들지 않는다.
           const contractStart = Date.now();
@@ -813,7 +842,8 @@ const master = masterFromEdition(edition);
             playerAction,
             csaCatalog,
             characters: master.characters,
-            npcIds: master.general_npcs
+            npcIds: master.general_npcs,
+            csaCoverage
           });
           timing.action_contract_ms = Date.now() - contractStart;
           timing.action_route = actionContract.route;
@@ -834,7 +864,7 @@ const master = masterFromEdition(edition);
           timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
           const promptStart = Date.now();
           let messages = buildStoryPrompt({ edition, context: storyContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
-          messages = applyCsaStorySections(messages, { save: storySave, plan: csaPlan, playerAction, csaCatalog, actionContract, master, expectedTurn });
+          messages = applyCsaStorySections(messages, { save: storySave, plan: csaPlan, playerAction, csaCatalog, actionContract, master, expectedTurn, csaCoverage });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
           }
@@ -1250,9 +1280,16 @@ const master = masterFromEdition(edition);
         // NPCs actually present this turn — an item naming anything else is silently
         // dropped inside buildCsaRuntimeStatePatch itself.
         const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
+        // 같은 턴의 canonical CSA coverage — Story 시작 전 계산과 동일한 1회 원칙.
+        // (action.player_action으로 재계산 — action.parsed_blocks에 저장된 계약과 병행)
+        const csaCoverage = resolveCsaDirectCoverage(currentSave, action.player_action, {
+          sexualActionContract: csaCatalog?.sexual_action_contract,
+          master
+        });
         const runtimeResult = buildCsaSceneRuntimeStatePatch({
           previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
-          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn
+          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn,
+          csaCoverage
         });
         if (runtimeResult.patch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeResult.patch };
         if (runtimeResult.warnings.length) warnings.push(...runtimeResult.warnings);
@@ -1343,9 +1380,11 @@ const master = masterFromEdition(edition);
       const db = createSupabaseClient(env, fetchImpl);
       try {
         const candidates = await db.listImageCandidates(characterId, pool);
+        // 태그 allowlist normalize — 알 수 없는 태그는 버린다 (지시 10).
+        const tags = normalizeImageTags(Array.isArray(body.tags) ? body.tags : []);
         const selected = selectImage(candidates, {
           situation: typeof body.situation === 'string' ? body.situation : null,
-          tags: Array.isArray(body.tags) ? body.tags : [],
+          tags,
           locationId: typeof body.location_id === 'string' ? body.location_id : null
         });
         return ok({ character_id: characterId, image: selected });

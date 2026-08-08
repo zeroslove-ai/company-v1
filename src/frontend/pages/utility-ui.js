@@ -320,6 +320,7 @@ export function createUtilityUi({
         character_id: characterId,
         pool: viewModel?.media?.image_pool ?? 'general',
         situation: viewModel?.media?.image_situation ?? '',
+        tags: Array.isArray(viewModel?.media?.image_tags) ? viewModel.media.image_tags : [],
         location_id: viewModel?.scene?.scene_state?.location_id ?? null
       });
       image = result.image ?? null;

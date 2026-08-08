@@ -3822,14 +3822,13 @@
     }
   ],
   "sexual_action_contract": {
-    "resolve_patient_erection": {
-      "directions": [
-        "npc_to_player"
-      ],
-      "actions": [
-        "genital_touch"
-      ]
-    },
+   "resolve_patient_erection": {
+    "directions": [
+     "npc_to_player"
+    ],
+    "actions": [],
+    "method_policy": "unspecified"
+   },
     "manual_genital_health_check": {
       "directions": [
         "npc_to_player"

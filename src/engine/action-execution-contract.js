@@ -471,7 +471,7 @@ export function resolveContextualPermission({ save, targetId, actionTypes, execu
  * - free-text path: 코드 기반 조합 matcher (행동 동사 + 신체/대상 신호)
  * - 추가 await/fetch/LLM 없음 — 순수 결정 함수
  */
-export function resolveActionExecutionContract({ save, playerAction, csaCatalog, characters = [], npcIds = [] } = {}) {
+export function resolveActionExecutionContract({ save, playerAction, csaCatalog, characters = [], npcIds = [], csaCoverage = null } = {}) {
   const text = typeof playerAction === 'string' ? playerAction : '';
   // 선택지 metadata 기반 신호는 사용하지 않는다 — 선택지는 표시 정본이며 행동 분류에 쓰지 않는다.
   const actionTypes = classifyMaterialActions(text);
@@ -482,7 +482,10 @@ export function resolveActionExecutionContract({ save, playerAction, csaCatalog,
   const targetId = materialTarget
     ? resolveStrictMaterialTarget({ save, characters, npcIds, text })
     : inferTargetId(save, text, characters, npcIds);
-  const coverage = resolveCsaDirectCoverage(save, text, {
+  // CSA coverage는 Story 시작 전에 정확히 한 번 계산한 결과를 사용한다.
+  // (turn-routes가 resolveCsaDirectCoverage를 1회 호출해 여기와 applyCsaStorySections에 전달 —
+  //   이중 권위·이중 계산 제거)
+  const coverage = csaCoverage ?? resolveCsaDirectCoverage(save, text, {
     sexualActionContract: csaCatalog?.sexual_action_contract,
     actionTypes,
     characters

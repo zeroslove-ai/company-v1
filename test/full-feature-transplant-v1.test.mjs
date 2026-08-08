@@ -212,7 +212,7 @@ test('Extract system prompt: the real CSA-active total (firewall+application-che
   assert.equal(extractRes.status, 200);
   const llmCall = mock.calls.filter(call => call.url.startsWith('https://llm.test')).at(-1);
   const system = JSON.parse(llmCall.body).messages[0].content;
-  assert.ok(system.length <= 6500, `real CSA-active extract system chars: ${system.length}`);
+  assert.ok(system.length <= 7000, `real CSA-active extract system chars: ${system.length}`); // 예산 7000 (image_selection 지시 반영)
 });
 
 
@@ -405,8 +405,8 @@ function imageRow(id, overrides = {}) {
 }
 
 test('image selector: an exact situation match outranks a tag-only match', () => {
-  const candidates = [imageRow('a', { tags: ['office'] }), imageRow('b', { situation: 'meeting' })];
-  const result = selectImage(candidates, { situation: 'meeting', tags: [] });
+  const candidates = [imageRow('a', { tags: ['office'], pool: 'general' }), imageRow('b', { situation: 'meeting', pool: 'general' })];
+  const result = selectImage(candidates, { situation: 'meeting', tags: [], pool: 'general' });
   assert.equal(result.image_id, 'b');
   assert.equal(result.source, 'match');
 });
@@ -426,9 +426,9 @@ test('image selector: a tie on score is broken by lower curation_rank, then by i
   assert.equal(result.image_id, 'm');
 });
 
-test('image selector: falls back to the lowest-curation_rank candidate when nothing matches, never no image if a candidate exists', () => {
-  const candidates = [imageRow('primary1', { curation_rank: 1 }), imageRow('other', { curation_rank: 9 })];
-  const result = selectImage(candidates, { situation: 'nonexistent', tags: ['nope'] });
+test('image selector: general pool falls back to the lowest-curation_rank candidate when nothing matches (sex pool는 null)', () => {
+  const candidates = [imageRow('primary1', { curation_rank: 1, pool: 'general' }), imageRow('other', { curation_rank: 9, pool: 'general' })];
+  const result = selectImage(candidates, { situation: 'nonexistent', tags: ['nope'], pool: 'general' });
   assert.equal(result.image_id, 'primary1');
   assert.equal(result.source, 'primary');
 });
@@ -444,7 +444,7 @@ test('/api/image: zero LLM calls, character-scoped query only, deterministic res
     fetchImpl: async (url, init = {}) => {
       const textUrl = String(url);
       if (textUrl.includes('/rest/v1/image_library')) {
-        return json([imageRow('img-1', { situation: 'lobby_greeting', curation_rank: 2 }), imageRow('img-2', { curation_rank: 1 })]);
+        return json([imageRow('img-1', { situation: 'lobby_greeting', curation_rank: 2, pool: 'general' }), imageRow('img-2', { curation_rank: 1, pool: 'general' })]);
       }
       return mock.fetchImpl(url, init);
     }
@@ -525,7 +525,6 @@ test('/api/tts: OFF-by-default is a frontend concern (this route never gets call
 });
 
 // ---------- Commit 5: view-model surfaces player physical/sexual state and focal NPC stats ----------
-import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 test('view-model: surfaces player_inner_thought, location/posture/clothing, and sexual-state fields from the real save shape', () => {
   const context = {
@@ -607,4 +606,104 @@ test('progression: CSA activate=+3, update=+1, newly-experienced=+2, already-exp
 test('progression: a degraded turn earns zero exp, matching donor\'s "no exp on degraded extract" rule', () => {
   const result = calculateCsaProgression({ csaOperations: [{ operation: 'activate' }], degraded: true });
   assert.equal(result.amount, 0);
+});
+
+// ── 턴70: 이미지 선택 정본 + sex zero-match 처리 ──
+
+import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
+
+function turn70ImageRow(id, tags, { pool = 'sex', rank = 50, situation = '' } = {}) {
+  return { image_id: id, image_url: `https://img.test/${id}.png`, tags, image_pool: pool, is_sexual: pool === 'sex', curation_rank: rank, situation, active: true };
+}
+
+test('턴70-29: sex + handjob 후보 정확 일치 → 선택', () => {
+  const candidates = [turn70ImageRow('hj1', ['adult', 'sex', 'handjob', 'office_desk'], { rank: 10 })];
+  const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob', 'office_desk'] });
+  assert.equal(selected.image_id, 'hj1');
+  assert.equal(selected.source, 'match');
+});
+
+test('턴70-30: sex + fingering 후보만 존재 + request handjob → null', () => {
+  const candidates = [turn70ImageRow('fg1', ['adult', 'sex', 'fingering'])];
+  const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob', 'office_desk'] });
+  assert.equal(selected, null, 'action tag 불일치 — 임의 sex 이미지 반환 금지');
+});
+
+test('턴70-31: generic adult/sex만 일치 → null', () => {
+  const candidates = [turn70ImageRow('g1', ['adult', 'sex'])];
+  const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob'] });
+  assert.equal(selected, null, 'generic 태그 일치만으로는 매칭 아님');
+});
+
+test('턴70-32: sexual_generic 후보가 있으면 제한적 fallback', () => {
+  const candidates = [turn70ImageRow('sg1', ['adult', 'sex', 'sexual_generic'], { rank: 5 })];
+  const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob'] });
+  assert.equal(selected.image_id, 'sg1');
+  assert.equal(selected.source, 'sexual_generic');
+});
+
+test('턴70-33: general pool은 기존 primary fallback 유지', () => {
+  const candidates = [turn70ImageRow('p1', ['portrait'], { pool: 'general', rank: 1 })];
+  const selected = selectImage(candidates, { pool: 'general', tags: [] });
+  assert.equal(selected.image_id, 'p1');
+  assert.equal(selected.source, 'primary');
+});
+
+test('턴70-34: explicit sexual scene에서 general 기본 이미지로 재요청하지 않음 (view-model은 sex pool 유지)', () => {
+  const context = {
+    save: { data: { focal_character_id: 'heroine4', last_speaker_id: 'heroine4', scene_state: {}, world_state: {} } },
+    display: {},
+    recent_turns: [{
+      turn_number: 86, story_text: 'x',
+      extract_delta: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['handjob'] } }
+    }]
+  };
+  const model = buildCompanyGameViewModel(context, {});
+  assert.equal(model.media.image_pool, 'sex', 'refresh 후에도 sex pool 유지');
+  assert.deepEqual(model.media.image_tags, ['handjob']);
+  assert.equal(model.media.image_character_id, 'heroine4');
+});
+
+test('턴70-35: heroine4 handjob row fixture가 있을 때 정확 선택', () => {
+  const candidates = [
+    turn70ImageRow('hj1', ['adult', 'sex', 'handjob', 'office_desk'], { rank: 10 }),
+    turn70ImageRow('fg1', ['adult', 'sex', 'fingering'], { rank: 5 })
+  ];
+  const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob', 'office_desk'] });
+  assert.equal(selected.image_id, 'hj1');
+});
+
+test('턴70-36: handjob row가 없을 때 다른 explicit act 이미지 선택 금지', () => {
+  const candidates = [turn70ImageRow('fg1', ['adult', 'sex', 'fingering'], { rank: 1 })];
+  const selected = selectImage(candidates, { pool: 'sex', tags: ['handjob'] });
+  assert.equal(selected, null, 'fingering 이미지를 handjob으로 대체 금지');
+});
+
+test('턴70-23~24: currentExtract가 있으면 runtime 값 사용, refresh 후 extract_delta 사용', () => {
+  const context = {
+    save: { data: { focal_character_id: 'heroine4', last_speaker_id: 'heroine4', scene_state: {}, world_state: {} } },
+    display: {},
+    recent_turns: [{
+      turn_number: 86, story_text: 'x',
+      extract_delta: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['fellatio'] } }
+    }]
+  };
+  // runtime.currentExtract 우선
+  const live = buildCompanyGameViewModel(context, { currentExtract: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['handjob'] } } });
+  assert.deepEqual(live.media.image_tags, ['handjob']);
+  // refresh 후 currentExtract=null → extract_delta 사용
+  const refreshed = buildCompanyGameViewModel(context, {});
+  assert.deepEqual(refreshed.media.image_tags, ['fellatio'], 'committed extract_delta에서 복구');
+  assert.equal(refreshed.media.image_pool, 'sex');
+});
+
+test('턴70-26~27: 성적 hand stimulation → sex/handjob, 일반 대화 → general', () => {
+  const context = {
+    save: { data: { focal_character_id: 'heroine4', last_speaker_id: 'heroine4', scene_state: {}, world_state: {} } },
+    display: {},
+    recent_turns: [{ turn_number: 86, story_text: 'x', extract_delta: { image_selection: { pool: 'general', tags: [] } } }]
+  };
+  const model = buildCompanyGameViewModel(context, {});
+  assert.equal(model.media.image_pool, 'general');
+  assert.deepEqual(model.media.image_tags, []);
 });
