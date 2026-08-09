@@ -10,6 +10,18 @@ function imageDocument() {
   return { querySelector(selector) { return nodes.get(selector.slice(1)) ?? null; }, nodes };
 }
 
+function eventAudio() {
+  const listeners = new Map();
+  return {
+    src: '', playCalls: [], pauseCalls: 0,
+    play: async function () { this.playCalls.push(this.src); },
+    pause() { this.pauseCalls += 1; },
+    addEventListener(type, listener) { listeners.set(type, listener); },
+    removeEventListener(type) { listeners.delete(type); },
+    end() { listeners.get('ended')?.(); }
+  };
+}
+
 class MiniNode {
   constructor(tag) { this.tagName = tag; this.children = []; this.dataset = {}; this.classList = { add: (...names) => { this.classes = [...(this.classes ?? []), ...names]; } }; this.textContent = ''; }
   append(...nodes) { this.children.push(...nodes); }
@@ -76,6 +88,63 @@ test('TTS replay uses the cached URL without another API request', async () => {
   assert.equal(audio.src, 'https://audio.test/replay.mp3');
 });
 
+test('cross-turn TTS queue preserves older queued batches before the new turn', async () => {
+  const audio = eventAudio();
+  const calls = [];
+  let viewModel = { turn: { committed_turn: 10, turn_id: 'turn-10', action_id: 'action-10' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [
+    { speaker_id: 'heroine1', text: '턴10 첫 문장', direction: '차분하게', order: 0 },
+    { speaker_id: 'heroine1', text: '턴10 두 번째 문장', direction: '속삭이듯', order: 1 }
+  ] } };
+  const controller = createCompanyTts({ api: { tts: async body => { calls.push(body.text); return { url: `https://audio.test/${calls.length}.mp3` }; } }, documentRef: { getElementById: id => id === 'audio-player' ? audio : null }, getViewModel: () => viewModel, getCommittedTurnIdentity: () => `${viewModel.turn.turn_id}:${viewModel.turn.action_id}` });
+  controller.onCommittedTurn();
+  await Promise.resolve();
+  viewModel = { turn: { committed_turn: 11, turn_id: 'turn-11', action_id: 'action-11' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [{ speaker_id: 'heroine1', text: '턴11 문장', direction: '담담하게', order: 0 }] } };
+  controller.onCommittedTurn();
+  assert.deepEqual(controller.queue.map(job => job.batch.text), ['턴10 두 번째 문장', '턴11 문장']);
+  assert.deepEqual(audio.playCalls, ['https://audio.test/1.mp3']);
+  await new Promise(resolve => setImmediate(resolve));
+  audio.end();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls[1], '턴10 두 번째 문장');
+  assert.equal(audio.playCalls[1], 'https://audio.test/2.mp3');
+  await new Promise(resolve => setImmediate(resolve));
+  audio.end();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls[2], '턴11 문장');
+  assert.equal(audio.playCalls[2], 'https://audio.test/3.mp3');
+  audio.end();
+  await controller.drain();
+});
+
+test('same-turn feedback revision replaces only queued old revision batches', async () => {
+  const audio = eventAudio();
+  const calls = [];
+  let viewModel = { turn: { committed_turn: 20, turn_id: 'turn-20-a', action_id: 'action-20-a' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [
+    { speaker_id: 'heroine1', text: 'A 첫 문장', direction: '차분하게', order: 0 },
+    { speaker_id: 'heroine1', text: 'A 버려질 문장', direction: '속삭이듯', order: 1 }
+  ] } };
+  const controller = createCompanyTts({ api: { tts: async body => { calls.push(body.text); return { url: `https://audio.test/revision-${calls.length}.mp3` }; } }, documentRef: { getElementById: id => id === 'audio-player' ? audio : null }, getViewModel: () => viewModel, getCommittedTurnIdentity: () => `${viewModel.turn.turn_id}:${viewModel.turn.action_id}` });
+  controller.onCommittedTurn();
+  await Promise.resolve();
+  viewModel = { turn: { committed_turn: 20, turn_id: 'turn-20-b', action_id: 'action-20-b' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [
+    { speaker_id: 'heroine1', text: 'B 새 문장', direction: '차분하게', order: 0 },
+    { speaker_id: 'heroine1', text: 'B 두 번째 문장', direction: '속삭이듯', order: 1 }
+  ] } };
+  controller.onCommittedTurn();
+  assert.deepEqual(controller.queue.map(job => job.batch.text), ['B 새 문장', 'B 두 번째 문장']);
+  await new Promise(resolve => setImmediate(resolve));
+  audio.end();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls.includes('A 버려질 문장'), false);
+  assert.equal(calls[1], 'B 새 문장');
+  await new Promise(resolve => setImmediate(resolve));
+  audio.end();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls[2], 'B 두 번째 문장');
+  audio.end();
+  await controller.drain();
+});
+
 test('TTS stop invalidates a late API response and clears playback state', async () => {
   const audio = { src: '', playCalls: 0, play: async () => { audio.playCalls += 1; }, pauseCalls: 0, pause() { audio.pauseCalls += 1; }, currentTime: 8, removeAttribute() {}, load() {} };
   let resolveApi;
@@ -100,6 +169,42 @@ test('image tags stay a single normalized key and failed requests can retry', as
   assert.equal(calls, 2);
   await ui.loadMedia();
   assert.equal(calls, 2);
+});
+
+test('stale image success and failure cannot overwrite the latest request', async () => {
+  const documentRef = imageDocument();
+  const requests = [];
+  const errors = [];
+  const loading = [];
+  let viewModel = { turn: { committed_turn: 1, turn_id: 'a', action_id: 'a' }, scene: { location_id: 'room-a' }, media: { image_character_id: 'heroine1', image_pool: 'general', image_tags: [] } };
+  const ui = createUtilityUi({ documentRef, gameId: 'game', getViewModel: () => viewModel, onError: error => errors.push(error.message), onMediaLoading: value => loading.push(value), api: { image: async request => new Promise((resolve, reject) => requests.push({ request, resolve, reject })) } });
+  const first = ui.loadMedia();
+  viewModel = { turn: { committed_turn: 2, turn_id: 'b', action_id: 'b' }, scene: { location_id: 'room-b' }, media: { image_character_id: 'heroine2', image_pool: 'sex', image_tags: ['oral'] } };
+  const second = ui.loadMedia();
+  requests[1].resolve({ image: { image_url: 'https://img.test/latest.png', situation: '최신' } });
+  await second;
+  requests[0].resolve({ image: { image_url: 'https://img.test/stale.png', situation: '오래된 응답' } });
+  await first;
+  assert.equal(documentRef.nodes.get('character-image').src, 'https://img.test/latest.png');
+  assert.deepEqual(errors, []);
+  assert.deepEqual(loading, [true, true, false]);
+});
+
+test('stale image failure cannot clear the latest image or emit an error', async () => {
+  const documentRef = imageDocument();
+  const requests = [];
+  const errors = [];
+  let viewModel = { turn: { committed_turn: 3, turn_id: 'c', action_id: 'c' }, scene: { location_id: 'room-c' }, media: { image_character_id: 'heroine1', image_pool: 'general', image_tags: [] } };
+  const ui = createUtilityUi({ documentRef, gameId: 'game', getViewModel: () => viewModel, onError: error => errors.push(error.message), api: { image: async request => new Promise((resolve, reject) => requests.push({ request, resolve, reject })) } });
+  const first = ui.loadMedia();
+  viewModel = { turn: { committed_turn: 4, turn_id: 'd', action_id: 'd' }, scene: { location_id: 'room-d' }, media: { image_character_id: 'heroine2', image_pool: 'general', image_tags: [] } };
+  const second = ui.loadMedia();
+  requests[1].resolve({ image: { image_url: 'https://img.test/latest-2.png', situation: '최신' } });
+  await second;
+  requests[0].reject(new Error('stale failure'));
+  await first;
+  assert.equal(documentRef.nodes.get('character-image').src, 'https://img.test/latest-2.png');
+  assert.deepEqual(errors, []);
 });
 
 test('relationship record projection keeps the product icon surface active', () => {

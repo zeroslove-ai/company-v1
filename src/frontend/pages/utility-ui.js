@@ -27,6 +27,7 @@ export function createUtilityUi({
   };
   let historyRecords = [];
   let nextBeforeTurn = null;
+  let latestImageRequestKey = '';
   let imageInFlightKey = '';
   let imageCompletedKey = '';
   function setOverlay(element, open) { if (element) element.hidden = !open; }
@@ -70,16 +71,32 @@ export function createUtilityUi({
   async function loadMedia() {
     if (!available.media) return null;
     const viewModel = getViewModel?.(); const characterId = viewModel?.media?.image_character_id;
-    if (!characterId) { renderImage(null); return null; }
+    if (!characterId) {
+      latestImageRequestKey = '';
+      imageInFlightKey = '';
+      onMediaLoading?.(false);
+      renderImage(null);
+      return null;
+    }
     const key = imageKey(viewModel);
     if (key === imageCompletedKey || key === imageInFlightKey) return null;
+    latestImageRequestKey = key;
     imageInFlightKey = key;
     onMediaLoading?.(true); text(elements.imageStatus, '장면 이미지를 찾는 중…'); if (elements.imageStatus) elements.imageStatus.hidden = false;
     try {
       const result = await api.image({ game_id: gameId, character_id: characterId, pool: viewModel?.media?.image_pool ?? 'general', situation: viewModel?.media?.image_situation ?? '', tags: Array.isArray(viewModel?.media?.image_tags) ? viewModel.media.image_tags : [], location_id: viewModel?.scene?.location_id ?? null });
+      if (key !== latestImageRequestKey) return null;
       const image = result.image ?? null; renderImage(image); imageCompletedKey = key; return image;
-    } catch (error) { renderImage(null); onError?.(error); return null; }
-    finally { if (imageInFlightKey === key) imageInFlightKey = ''; onMediaLoading?.(false); }
+    } catch (error) {
+      if (key !== latestImageRequestKey) return null;
+      renderImage(null); onError?.(error); return null;
+    }
+    finally {
+      if (imageInFlightKey === key && key === latestImageRequestKey) {
+        imageInFlightKey = '';
+        onMediaLoading?.(false);
+      }
+    }
   }
   elements.historyClose?.addEventListener('click', closeHistory);
   elements.historyMore?.addEventListener('click', () => loadHistory().catch(onError));

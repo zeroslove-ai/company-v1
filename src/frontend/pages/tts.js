@@ -67,7 +67,6 @@ export function createCompanyTts({
   let generation = 0;
   let playing = false;
   let enabled = storageValue(storage, 'autoTts', 'true') !== 'false';
-  let activeIdentity = '';
 
   function show(message, error = false) {
     if (status) { status.textContent = message; status.classList?.toggle?.('error', error); }
@@ -113,9 +112,12 @@ export function createCompanyTts({
     if (!enabled) stop(); else { updateToggle(); show('TTS가 켜졌습니다.'); }
     updateToggle();
   }
-  function removeStaleQueued(identity) {
+  function removeSupersededRevisionJobs(turnNumber, currentIdentity) {
     for (let index = queue.length - 1; index >= 0; index -= 1) {
-      if (queue[index].identity !== identity) { queuedKeys.delete(queue[index].key); queue.splice(index, 1); }
+      const job = queue[index];
+      if (job.turnNumber === turnNumber && job.identity !== currentIdentity) {
+        queuedKeys.delete(job.key); queue.splice(index, 1);
+      }
     }
   }
   async function playJob(job) {
@@ -133,7 +135,7 @@ export function createCompanyTts({
       try {
         while (queue.length) {
           const job = queue.shift(); queuedKeys.delete(job.key);
-          if (job.identity !== activeIdentity || !enabled) continue;
+          if (!enabled) continue;
           inFlightKey = job.key;
           try { await playJob(job); } catch (error) { show('TTS 재생에 실패했습니다.', true); }
           if (inFlightKey === job.key) inFlightKey = null;
@@ -142,23 +144,27 @@ export function createCompanyTts({
     })().finally(() => { drainPromise = null; });
     return drainPromise;
   }
-  function enqueue(batch, identity, url = null, { replay = false } = {}) {
+  function enqueue(batch, identity, turnNumber, url = null, { replay = false } = {}) {
     const key = keyFor(batch, identity);
     if (queuedKeys.has(key) || inFlightKey === key || (completedKeys.has(key) && !replay)) return false;
-    queuedKeys.add(key); queue.push({ key, batch, identity, url, generation }); void drain(); return true;
+    queuedKeys.add(key); queue.push({ key, batch, identity, turnNumber, url, generation }); void drain(); return true;
   }
   function onCommittedTurn() {
     if (!enabled) { updateReplay(); return false; }
-    const identity = getCommittedTurnIdentity(); activeIdentity = identity; removeStaleQueued(identity);
-    for (const batch of batches()) enqueue(batch, identity, cachedAudioUrls.get(keyFor(batch, identity)) ?? null);
+    const identity = getCommittedTurnIdentity();
+    const viewModel = getViewModel?.();
+    const turnNumber = viewModel?.turn?.committed_turn ?? viewModel?.turn?.turn_number ?? null;
+    removeSupersededRevisionJobs(turnNumber, identity);
+    for (const batch of batches()) enqueue(batch, identity, turnNumber, cachedAudioUrls.get(keyFor(batch, identity)) ?? null);
     updateReplay(); return true;
   }
   function replayLatest() {
     if (!enabled) { show('TTS가 꺼져 있어 재생할 수 없습니다.'); updateReplay(); return false; }
     void primeAudio();
     const batch = batches().at(-1); if (!batch) { updateReplay(); return false; }
-    const identity = getCommittedTurnIdentity(); activeIdentity = identity;
-    const cached = cachedAudioUrls.get(keyFor(batch, identity)); enqueue(batch, identity, cached ?? null, { replay: Boolean(cached) }); updateReplay(); return true;
+    const identity = getCommittedTurnIdentity();
+    const turnNumber = getViewModel?.()?.turn?.committed_turn ?? getViewModel?.()?.turn?.turn_number ?? null;
+    const cached = cachedAudioUrls.get(keyFor(batch, identity)); enqueue(batch, identity, turnNumber, cached ?? null, { replay: Boolean(cached) }); updateReplay(); return true;
   }
   toggle?.addEventListener?.('click', () => { const next = !enabled; setEnabled(next); if (next) void primeAudio(); });
   replayButton?.addEventListener?.('click', () => { void replayLatest(); });
