@@ -99,7 +99,8 @@ export function canonicalSceneView(save) {
 
 function mindMonitor(turn) {
   const extract = object(turn?.extract_delta);
-  return extract?.extract_version === 2 ? (object(extract.mind_monitor) ?? {}) : {};
+  if (extract) return extract.extract_version === 2 ? (object(extract.mind_monitor) ?? {}) : {};
+  return object(turn?.mind_monitor) ?? {};
 }
 
 function catalogName(list, idField, id) {
