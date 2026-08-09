@@ -5,14 +5,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  applyCsaPlanToContext,
   buildContextDisplayPayload,
-  buildCsaOfficialNoticeSection,
   buildCsaTransactionDetailsSection,
   buildNpcAppPayload
 } from '../src/api/runtime-display.js';
-import { patchCompletionBody } from '../src/api/turn-routes-runtime.js';
-import { projectGlobalCsa } from '../src/engine/gameplay-state.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
@@ -73,115 +69,6 @@ function baseSave() {
   };
 }
 
-function completionInit({ stream = true, globalCsa = { active_ids: [], rules: {} } } = {}) {
-  return {
-    body: JSON.stringify({
-      stream,
-      messages: [
-        { role: 'system', content: 'BASE SYSTEM' },
-        { role: 'user', content: JSON.stringify({ context: { global_csa: globalCsa } }) }
-      ]
-    })
-  };
-}
-
-function patchedMessages(init, state) {
-  return JSON.parse(patchCompletionBody(init, state).body).messages;
-}
-
-function systemText(messages) {
-  return messages.find(message => message.role === 'system')?.content ?? '';
-}
-
-function userContext(messages) {
-  const user = messages.find(message => message.role === 'user');
-  return JSON.parse(user.content).context;
-}
-
-test('activate CSA is visible to the same Story turn with exact content and strength', () => {
-  const previousSave = baseSave();
-  const plan = {
-    next_csa_active: ['csa_5'],
-    next_csa_rules: {
-      csa_5: { active: true, strength: 'medium', content: '모든 직원은 보고 전에 안경을 벗는다.', scope_label: '회사 전체' }
-    },
-    canonical_action: {
-      operations: [{ domain: 'csa', operation: 'activate', strength: 'medium', content: '모든 직원은 보고 전에 안경을 벗는다.' }]
-    }
-  };
-  const projected = applyCsaPlanToContext({ save: { data: previousSave } }, plan);
-  assert.deepEqual(projected.save.csa_active, ['csa_5']);
-  assert.deepEqual(previousSave.csa_active, []);
-
-  // 새 계약: 기본 turn-routes가 post-transaction save로 만든 context를
-  // wrapper가 그대로 통과시킨다 (global_csa 재작성 없음 — 단일 정본).
-  const projectedGlobalCsa = projectGlobalCsa(projected.save);
-  const messages = patchedMessages(completionInit({ stream: true, globalCsa: projectedGlobalCsa }), {
-    plan, previousSave, postSave: projected.save, csaCatalog: { sexual_action_contract: {} }
-  });
-  const context = userContext(messages);
-  const system = systemText(messages);
-  assert.deepEqual(context.global_csa.active_ids, ['csa_5']);
-  assert.equal(context.global_csa.rules.csa_5.content, '모든 직원은 보고 전에 안경을 벗는다.');
-  assert.match(system, /모든 직원은 보고 전에 안경을 벗는다\./);
-  assert.match(system, /강도 중간/);
-  assert.match(system, /취업규칙·전사 준수 규정/);
-  assert.match(system, /상식개변 전사 공식 공지/);
-  assert.match(system, /APP TRANSACTION INPUT FIREWALL/);
-});
-
-test('updated CSA replaces the old rule in the same Story and Extract context', () => {
-  const previousSave = baseSave();
-  previousSave.csa_active = ['csa_2'];
-  previousSave.csa_rules = {
-    csa_2: { active: true, strength: 'weak', content: '기존 규정', scope_label: '회사 전체' }
-  };
-  const plan = {
-    next_csa_active: ['csa_2'],
-    next_csa_rules: {
-      csa_2: { active: true, strength: 'medium', content: '수정된 규정', scope_label: '회사 전체' }
-    },
-    canonical_action: {
-      operations: [{ domain: 'csa', operation: 'update', id: 'csa_2', strength: 'medium', content: '수정된 규정' }]
-    }
-  };
-  const postSave = applyCsaPlanToContext({ save: previousSave }, plan).save;
-  for (const stream of [true, false]) {
-    // 새 계약 — 기본 경로가 만든 post-transaction context를 wrapper가 그대로 통과
-    const messages = patchedMessages(completionInit({ stream, globalCsa: projectGlobalCsa(postSave) }), {
-      plan, previousSave, postSave, csaCatalog: { sexual_action_contract: {} }
-    });
-    assert.equal(userContext(messages).global_csa.rules.csa_2.content, '수정된 규정');
-    assert.match(systemText(messages), /수정된 규정/);
-  }
-});
-
-test('deactivated CSA is excluded from same-turn active checks while its exact history remains', () => {
-  const previousSave = baseSave();
-  previousSave.csa_active = ['csa_3'];
-  previousSave.csa_rules = {
-    csa_3: { active: true, strength: 'weak', content: '해제할 규정', scope_label: '회사 전체' }
-  };
-  const plan = {
-    next_csa_active: [],
-    next_csa_rules: {
-      csa_3: { active: false, strength: 'weak', content: '해제할 규정', scope_label: '회사 전체' }
-    },
-    canonical_action: { operations: [{ domain: 'csa', operation: 'deactivate', id: 'csa_3' }] }
-  };
-  const postSave = applyCsaPlanToContext({ save: previousSave }, plan).save;
-  const messages = patchedMessages(completionInit({ stream: false, globalCsa: projectGlobalCsa(postSave) }), {
-    plan, previousSave, postSave, csaCatalog: { sexual_action_contract: {} }
-  });
-  const system = systemText(messages);
-  assert.deepEqual(userContext(messages).global_csa.active_ids, []);
-  assert.match(system, /POST-TRANSACTION ACTIVE CSA SET/);
-  assert.match(system, /- 없음/);
-  assert.match(system, /해제 csa_3/);
-  assert.match(system, /해제할 규정/);
-  assert.doesNotMatch(system, /다음은 이번 턴에 실제로 집행되어야 했던 강제 상식개변 규칙/);
-});
-
 test('context display and view model expose progression and active rule content without Story player status', () => {
   const save = baseSave();
   save.csa_active = ['csa_1'];
@@ -231,7 +118,7 @@ test('NPC app payload includes five heroines and evidence-backed general NPCs wi
   assert.deepEqual(unseen.stats, { affection: 0, acceptance: 0, arousal: 0, resistance: 0 });
 });
 
-test('transaction details and official notices use HR, employment rules, and national law authority tiers', () => {
+test('transaction details preserve authority tiers for Extract/runtime observation', () => {
   const previousSave = baseSave();
   previousSave.csa_rules = { old: { strength: 'weak', content: '예전 규정' } };
   const plan = {
@@ -251,12 +138,6 @@ test('transaction details and official notices use HR, employment rules, and nat
   assert.match(details, /법령 규정/);
   assert.match(details, /해제 old · 강도 약함 · 권위 인사팀 공식 공지·사내 운영지침 · 내용: 예전 규정/);
 
-  const notice = buildCsaOfficialNoticeSection(plan, previousSave, {});
-  assert.match(notice, /인사팀 공식 공지·사내 운영지침/);
-  assert.match(notice, /취업규칙·전사 준수 규정/);
-  assert.match(notice, /국가 법령·관계 당국 의무 지침/);
-  assert.match(notice, /자기합리화/);
-  assert.match(notice, /애정·복종·성적 동의가 아니다/);
 });
 
 test('dialogue parser preserves TTS lines even when quotes or the colon are omitted', () => {

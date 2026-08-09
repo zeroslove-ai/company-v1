@@ -1,9 +1,7 @@
 import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes.js';
 import {
   buildCsaApplicationCheckSection,
-  buildCsaPublicSceneSection,
   buildCsaRuntimeExtractContractSection,
-  buildCsaWeakSynergySection,
   buildMindEffectExtractFirewallSection,
   calculateCsaCapability,
   getApplicableCsaEntries,
@@ -14,7 +12,6 @@ import {
 import {
   applyCsaPlanToContext,
   buildContextDisplayPayload,
-  buildCsaOfficialNoticeSection,
   buildCsaTransactionDetailsSection,
   buildNpcAppPayload
 } from './runtime-display.js';
@@ -153,22 +150,19 @@ export function patchCompletionBody(init, state) {
   const isStory = body.stream === true;
   const active = getApplicableCsaEntries(state.postSave);
   let messages = body.messages;
-  let authoritative = activeRulesSection(state.postSave)
-    + buildCsaTransactionDetailsSection(state.plan, state.previousSave)
-    + appTransactionInputFirewall();
+  let authoritative = '';
 
-  if (isStory) {
-    authoritative += buildCsaOfficialNoticeSection(state.plan, state.previousSave, state.postSave);
-    const hasPublic = active.some(item => item.preset?.public_normalization === true || item.semantic_contract?.public_normalization === true);
-    if (hasPublic) authoritative += buildCsaPublicSceneSection();
-    if (active.length >= 2) authoritative += buildCsaWeakSynergySection();
-  } else {
+  if (!isStory) {
+    authoritative = activeRulesSection(state.postSave)
+      + buildCsaTransactionDetailsSection(state.plan, state.previousSave)
+      + appTransactionInputFirewall();
     authoritative += '\n\n[POST-TRANSACTION EXTRACT CHECK — FINAL AUTHORITY]\nCSA 누락·runtime 평가는 위 최종 활성 목록만 대상으로 수행한다. 해제되어 목록에서 빠진 규정은 이번 턴 active 평가 대상이 아니다.';
     authoritative += extractAuthorityContract();
     authoritative += buildMindEffectExtractFirewallSection({ hasApplicableCsa: active.length > 0, hasCsaTransaction: true });
     authoritative += buildCsaApplicationCheckSection(active);
     authoritative += buildCsaRuntimeExtractContractSection(active);
   }
+  if (!authoritative) return init;
   messages = appendSystem(messages, authoritative);
   return { ...init, body: JSON.stringify({ ...body, messages }) };
 }

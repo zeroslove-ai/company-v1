@@ -13,7 +13,6 @@ import {
   signAppValidationProof, verifyAppValidationProof, verifyStructuredActionValidation,
   normalizeStructuredAction, buildAppManualPayload, buildAppStatePayload,
   getActiveCsaEntries, getApplicableCsaEntries,
-  buildNpcCsaEpistemicFirewallSection,
   canonicalizeCsaGroup, CSA_CONTRACT_TARGET_GROUPS,
   normalizeCompanyCsaCatalog
 } from '../src/engine/index.js';
@@ -286,9 +285,17 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   assert.equal(storyRes.status, 200);
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
+  const storyPayload = storyUserPayloadFrom(mock);
+  const activatedContent = canonicalAction.operations[0].content;
+  assert.equal(storyPayload.context.active_world_rules.filter(rule => rule.content === activatedContent).length, 1);
+  assert.ok(!('global_csa' in storyPayload.context));
 
   const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
   assert.equal(extractRes.status, 200);
+  const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
+  const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
+  assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA 관찰 projection 유지');
+  assert.deepEqual(new Set(extractPayload.context.global_csa.active_ids), new Set(storyPayload.context.active_world_rules.map(rule => rule.csa_id)));
 
   const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
   assert.equal(commitRes.status, 200);
@@ -316,16 +323,57 @@ test('a structured app_transaction with a tampered validation_proof is rejected 
   assert.match(storyText, /structured_action_invalid/);
 });
 
-function storySystemPromptFrom(mock) {
-  const llmCall = mock.calls.find(call => call.url.startsWith('https://llm.test'));
-  return JSON.parse(llmCall.body).messages
-    .filter(message => message.role === 'system')
-    .map(message => message.content)
-    .join('\n');
-}
+test('route-level CSA update replaces the old Story rule once and commits the new rule', async () => {
+  const oldContent = '기존 규정은 더 이상 Story에 전달되지 않는다.';
+  const newContent = '수정된 규정은 현재 장면의 세계 사실이다.';
+  const mock = createMockFetch({
+    initialSave: freshSave({
+      csa_active: ['csa_old'],
+      csa_rules: { csa_old: { active: true, content: oldContent, strength: 'weak', source_type: 'custom' } }
+    }),
+    llmJsonResponses: [{ results: [{
+      client_id: 'op-update', required_strength: 'weak', reason: 'valid',
+      semantic_contract: {
+        version: 1, sexual_authorization: false, directions: [], actions: [],
+        actor_group: 'unknown', target_group: 'unknown', trigger: 'custom_condition',
+        duration: 'continuous', public_normalization: false, direct_execution: false, confidence: 'ambiguous'
+      }
+    }] }]
+  });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const structuredAction = {
+    type: 'app_transaction', base_turn_count: 0,
+    operations: [{ client_id: 'op-update', domain: 'csa', operation: 'update', id: 'csa_old', source_type: 'custom', strength: 'weak', content: newContent }]
+  };
+  const validated = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: structuredAction }), env);
+  assert.equal(validated.status, 200);
+  const { canonical_action: canonicalAction, display_input: displayInput } = (await validated.json()).data;
+  const actionId = '88888888-8888-4888-8888-888888888888';
+  const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 1, player_action: displayInput, structured_action: canonicalAction }), env);
+  assert.equal(storyRes.status, 200);
+  await storyRes.text();
+  const payload = storyUserPayloadFrom(mock);
+  assert.equal(payload.context.active_world_rules.filter(rule => rule.content === oldContent).length, 0);
+  assert.equal(payload.context.active_world_rules.filter(rule => rule.content === newContent).length, 1);
+  assert.ok(!('global_csa' in payload.context));
+  const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
+  assert.equal(extractRes.status, 200);
+  const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
+  const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
+  assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA 관찰 projection 유지');
+  assert.ok(extractPayload.context.global_csa.active_ids.includes('csa_old'));
+  assert.equal(extractPayload.context.global_csa.rules.csa_old.content, newContent);
+  const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
+  assert.equal(commitRes.status, 200);
+  const save = mock.getSave();
+  assert.equal(save.csa_active.includes('csa_old'), true);
+  assert.equal(save.csa_rules.csa_old.content, newContent);
+  assert.equal(save.csa_rules.csa_old.active, true);
+  assert.equal(mock.calls.__action.processing_status, 'committed');
+});
 
 function storyUserPayloadFrom(mock) {
-  const llmCall = mock.calls.find(call => call.url.startsWith('https://llm.test'));
+  const llmCall = mock.calls.find(call => call.url.startsWith('https://llm.test') && JSON.parse(call.body).stream === true);
   const userMessage = JSON.parse(llmCall.body).messages.find(message => message.role === 'user');
   return JSON.parse(userMessage.content);
 }
@@ -361,14 +409,23 @@ test('app_transaction Story: plan이 적용한 active CSA와 새 규칙 content�
   await storyRes.text();
 
   const payload = storyUserPayloadFrom(mock);
-  const globalCsa = payload.context.global_csa;
-  assert.equal(globalCsa.active_ids.length, 2);
-  assert.deepEqual(globalCsa.active_ids, ['csa_1', 'csa_1_1']);
-  for (const csaId of globalCsa.active_ids) assert.equal(globalCsa.rules[csaId].active, true);
-  assert.ok(canonicalAction.operations.every(operation => Object.values(globalCsa.rules).some(rule => rule.content === operation.content)), '새 CSA content가 Story context에 포함된다');
+  const activeWorldRules = payload.context.active_world_rules;
+  assert.equal(activeWorldRules.length, 2);
+  assert.deepEqual(activeWorldRules.map(rule => rule.csa_id), ['csa_1', 'csa_1_1']);
+  for (const rule of activeWorldRules) assert.equal(rule.active, true);
+  assert.ok(canonicalAction.operations.every(operation => activeWorldRules.some(rule => rule.content === operation.content)));
+  assert.equal(new Set(activeWorldRules.map(rule => rule.csa_id)).size, activeWorldRules.length);
+  assert.ok(!('global_csa' in payload.context));
+  const storyMessages = JSON.parse(mock.calls.find(call => call.url.startsWith('https://llm.test') && JSON.parse(call.body).stream === true).body).messages;
+  const storyTextForAssertions = storyMessages.map(message => message.content).join('\n');
+  for (const operation of canonicalAction.operations) {
+    assert.equal(storyTextForAssertions.split(operation.content).length - 1, 1);
+  }
+  assert.doesNotMatch(storyTextForAssertions, /actor_id=|target_id=|undefined/);
+  assert.doesNotMatch(storyTextForAssertions, /PUBLIC COMMON-SENSE SCENE|CSA WEAK SYNERGY|NPC CSA EPISTEMIC FIREWALL|CONFIRMED COMMON-SENSE APP TRANSACTION/);
 });
 
-test('Story prompt: public-scene and weak-synergy CSA sections are omitted when no active CSA is public and only one is active', async () => {
+test('Story route: one active CSA uses only active_world_rules without global_csa or legacy sections', async () => {
   const save = freshSave({
     csa_active: ['csa_0'],
     csa_rules: {
@@ -384,13 +441,12 @@ test('Story prompt: public-scene and weak-synergy CSA sections are omitted when 
   assert.equal(storyRes.status, 200);
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
-  const system = storySystemPromptFrom(mock);
-  assert.match(system, /COMMON-SENSE CHANGE RUNTIME CONTRACT/, 'the always-needed common section is still present');
-  assert.doesNotMatch(system, /PUBLIC COMMON-SENSE SCENE/, 'the only active CSA is explicitly non-public, so the public-scene section is skipped');
-  assert.doesNotMatch(system, /CSA WEAK SYNERGY/, 'only one CSA is active, so there is nothing to synergize');
+  const payload = storyUserPayloadFrom(mock);
+  assert.equal(payload.context.active_world_rules.length, 1);
+  assert.ok(!('global_csa' in payload.context));
 });
 
-test('Story prompt: public-scene and weak-synergy CSA sections are included when two public presets are active', async () => {
+test('Story route: multiple active CSAs remain in one declarative projection', async () => {
   const presetA = catalog.items.find(item => item.strength === 'weak' && item.category === 'posture');
   const presetB = catalog.items.find(item => item.strength === 'weak' && item.category === 'contact');
   const presetEntry = item => ({
@@ -404,9 +460,9 @@ test('Story prompt: public-scene and weak-synergy CSA sections are included when
   assert.equal(storyRes.status, 200);
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
-  const system = storySystemPromptFrom(mock);
-  assert.match(system, /PUBLIC COMMON-SENSE SCENE/, 'both active presets are public, so the section applies');
-  assert.match(system, /CSA WEAK SYNERGY/, 'two CSAs are active simultaneously, so synergy guidance applies');
+  const payload = storyUserPayloadFrom(mock);
+  assert.equal(payload.context.active_world_rules.length, 2);
+  assert.ok(!('global_csa' in payload.context));
 });
 test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallback Story로 Extract/Commit까지 진행하고 csa_active에서 제거한다', async () => {
   const save = freshSave({
@@ -432,12 +488,12 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
   assert.equal(storyRes.status, 200);
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
-  const system = storySystemPromptFrom(mock);
-  assert.match(system, /PLAYER KNOWLEDGE OF APP TRANSACTION/);
-  assert.match(system, /직접 조작한 주체/);
-  assert.match(system, /이미 정확히 알고 있다/);
-  assert.match(system, /세계에 반영되는 모습일 뿐/);
-  assert.match(system, /NPC CSA EPISTEMIC FIREWALL/);
+  const storyPayload = storyUserPayloadFrom(mock);
+  assert.deepEqual(storyPayload.context.active_world_rules, []);
+  assert.ok(!('global_csa' in storyPayload.context));
+  const storyPrompt = JSON.parse(mock.calls.find(call => call.url.startsWith('https://llm.test')).body).messages.map(message => message.content).join('\n');
+  assert.doesNotMatch(storyPrompt, /PUBLIC COMMON-SENSE SCENE|CSA WEAK SYNERGY|NPC CSA EPISTEMIC FIREWALL|CONFIRMED COMMON-SENSE APP TRANSACTION/);
+  assert.doesNotMatch(storyPrompt, /actor_id=|target_id=|undefined/);
   assert.match(storyText, /app_story_fallback/, 'fallback warning');
   // fallback은 [SCENE]만 — 현재 장면 NPC를 임의로 발화시키지 않는다
   assert.match(storyText, /해제되어 더 이상 현재 회사 규정이 아닙니다/);
@@ -446,6 +502,10 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
 
   const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
   assert.equal(extractRes.status, 200);
+  const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
+  const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
+  assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA projection 유지');
+  assert.ok(!extractPayload.context.global_csa.active_ids.includes('csa_0'));
 
   const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
   assert.equal(commitRes.status, 200);
@@ -455,28 +515,7 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
   assert.equal(afterSave.csa_rules.csa_0.active, false, '규칙 비활성');
   assert.equal(mock.calls.__action.processing_status, 'committed', '액션 committed');
 });
-test('NPC CSA 인식 구분: 신규 규정은 공지로 인식·비교·논의 가능, 기존 규정은 반복 금지, 메타 인식만 금지', () => {
-  const section = buildNpcCsaEpistemicFirewallSection();
-  // 신규 CSA — 이번 턴에 내려온 세계 내부 공지로 인식 가능
-  assert.match(section, /새로 활성화된 규정은 세계 내부의 새로운 공지·사규·업무 지침으로 NPC가 인식할 수 있다/);
-  assert.match(section, /"오늘 새로 내려온 지침"/);
-  assert.match(section, /당황, 내용 재확인, 주변 NPC와의 논의/);
-  assert.match(section, /이전 상태와 비교/);
-  assert.match(section, /업무상 따라야 한다고 판단하거나 개인적으로 불편·혼란스러워하는 반응/);
-  // 기존 CSA — 매 턴 새 공지처럼 반복해서 발견하지 않는다
-  assert.match(section, /이미 이전 턴부터 활성화된 규정은 매 턴 새 공지처럼 반복해서 발견하지 않는다/);
-  assert.match(section, /이미 시행 중인 규정으로 기억하고, 이전에 확인·논의한 내용을 이어간다/);
-  // 공통 — 메타 인식 금지 유지
-  assert.match(section, /메타 원인을 절대 인식하지 않는다/);
-  assert.match(section, /플레이어가 규칙을\(상식을\) 바꿨다/);
-  assert.match(section, /초자연적으로 다시 작성됐거나 기억이 수정됐다는 인식/);
-  assert.match(section, /CSA, 상태값, 내부 ID 같은 시스템 용어/);
-  // 구버전 금지 문구 제거 확인 — 신규 공지 인식·이전 비교 금지가 사라졌다
-  assert.doesNotMatch(section, /이전 현실과 지금을 비교하는 인식/);
-  assert.doesNotMatch(section, /시점 변화를 절대 인식하지 않는다/);
-  assert.doesNotMatch(section, /원래부터 당연하다고 받아들이되/);
-});
-test('프리셋 카탈로그: 제거된 외부 그룹과 병원 legacy ID가 없고 회사 정본 ID가 노출된다', () => {
+test('preset catalog retains company-only groups after Story CSA section removal', () => {
   const normalized = normalizeCompanyCsaCatalog(catalog);
   const flat = JSON.stringify(normalized);
   for (const legacy of ['nurse', 'doctor', 'medical_staff', 'hospital_staff', 'female_staff', 'male_staff',
