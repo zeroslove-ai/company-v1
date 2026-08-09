@@ -93,7 +93,7 @@ export function buildAppManualPayload(save, catalog) {
  * prepared by the API from registered Company canon plus persisted evidence;
  * this module never invents identity, location, Mind, or relationship fields.
  */
-export function buildAppStatePayload(save, catalog, sexualActionContract, player, npcs = []) {
+export function buildAppStatePayload(save, catalog, _unusedSemanticMap, player, npcs = []) {
   const manual = buildAppManualPayload(save, catalog);
   const activeCsa = getActiveCsaEntries(save);
   const strengthOptions = [['weak', '약함', 1], ['medium', '중간', 3], ['strong', '강함', 7]]
@@ -104,7 +104,7 @@ export function buildAppStatePayload(save, catalog, sexualActionContract, player
     ...normalizeCsaScope(), created_turn: item.created_turn ?? null,
     source_type: item.source_type === 'preset' ? 'preset' : 'custom',
     preset: item.source_type === 'preset' && item.preset ? item.preset : null,
-    semantic_contract: buildCsaSemanticContract(item, sexualActionContract)
+    semantic_contract: buildCsaSemanticContract(item)
   }));
   return {
     version: 2,
