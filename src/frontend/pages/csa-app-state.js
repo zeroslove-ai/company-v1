@@ -44,37 +44,14 @@ export function presetStrength(item) {
 export function presetPreviewContent(appState, item) {
   const catalogItem = presetCatalogItem(appState, item.template_id);
   if (!catalogItem || !catalogItem.content_template || presetStrength(catalogItem) !== normalizeStrengthId(appState, item.strength)) return '';
-  const roles = item.roles || {};
-  const label = key => presetOptionLabel(appState, key, roles[key]);
-  const params = {
-    requester_subject: subject(label('requester_group') || ''),
-    performer_subject: subject(label('performer_group') || ''),
-    performer_conj: conjunction(label('performer_group') || ''),
-    recipient_subject: subject(label('recipient_group') || ''),
-    recipient_object: `${label('recipient_group') || ''}${hasBatchim(label('recipient_group') || '') ? '을' : '를'}`,
-    recipient_possessive: possessive(label('recipient_group') || ''),
-    subject_subject: subject(label('subject_group') || ''),
-    group_a_subject: subject(label('group_a') || ''),
-    group_a_conj: conjunction(label('group_a') || ''),
-    group_b_subject: subject(label('group_b') || '')
-  };
-  for (const role of catalogItem.role_slots || []) {
-    const base = role.key.replace('_group', '');
-    const value = label(role.key) || '';
-    params[`${base}_topic`] = `${value}${hasBatchim(value) ? '은' : '는'}`;
-    params[`${base}_object`] = `${value}${hasBatchim(value) ? '을' : '를'}`;
-    params[`${base}_possessive`] = possessive(value);
-    params[`${base}_conj`] = conjunction(value);
-  }
-  const template = catalogItem.content_template;
-  return template.replace(/\{(\w+)\}/g, (match, key) => Object.prototype.hasOwnProperty.call(params, key) ? params[key] : '');
+  return catalogItem.content_template;
 }
 
 export function applyPresetDefaults(item, catalogItem) {
   if (!catalogItem) return;
   item.category = catalogItem.category;
   item.template_id = catalogItem.id;
-  item.roles = Object.fromEntries((catalogItem.role_slots || []).map(role => [role.key, role.default || role.options[0] || null]));
+  item.roles = {};
   item.strength = presetStrength(catalogItem);
 }
 
@@ -93,7 +70,7 @@ export function hydrateDraftItem(item, appState = null) {
     const catalogItem = presetCatalogItem(appState, item.preset.template_id);
     item.template_id = item.preset.template_id;
     item.category = catalogItem?.category ?? item.category ?? null;
-    item.roles = { ...(item.preset.roles || {}) };
+    item.roles = {};
     item.strength = normalizeStrengthId(appState, item.strength) || presetStrength(catalogItem) || null;
   } else {
     item.source_type = 'custom';
@@ -102,21 +79,15 @@ export function hydrateDraftItem(item, appState = null) {
 }
 
 export function isPresetPayloadComplete(appState, preset, selectedStrength) {
-  if (!preset || !preset.template_id || !preset.roles) return false;
+  if (!preset || !preset.template_id) return false;
   const catalogItem = presetCatalogItem(appState, preset.template_id);
-  if (!catalogItem) return false;
-  if (!normalizeStrengthId(appState, selectedStrength) || presetStrength(catalogItem) !== normalizeStrengthId(appState, selectedStrength)) return false;
-  for (const role of catalogItem.role_slots || []) {
-    if (!role.options.includes(preset.roles[role.key])) return false;
-  }
-  return true;
+  return Boolean(catalogItem
+    && normalizeStrengthId(appState, selectedStrength)
+    && presetStrength(catalogItem) === normalizeStrengthId(appState, selectedStrength));
 }
 
 function currentPresetPayload(item) {
-  return {
-    template_id: item.template_id || null,
-    roles: { ...(item.roles || {}) }
-  };
+  return { template_id: item.template_id || null };
 }
 
 function payloadFields(appState, item) {

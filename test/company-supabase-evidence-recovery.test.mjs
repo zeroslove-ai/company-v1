@@ -76,8 +76,8 @@ test('persisted preset payload reopens with category and remains clean until edi
       content: '저장된 규정',
       preset: {
         template_id: 'office_notice_1',
-        mode: 'continuous',
-        roles: { subject_group: 'company_employee' }
+        authority_tier: 'medium',
+        affected_group: 'company_employee'
       }
     }],
     csa_presets: {
@@ -88,15 +88,15 @@ test('persisted preset payload reopens with category and remains clean until edi
         category: 'workplace',
         strength: 'medium',
         mode: 'continuous',
-        role_slots: [{ key: 'subject_group', label: '상태가 적용되는 사람', options: ['company_employee'], default: 'company_employee' }],
-        content_template: '{subject_subject} 자연스럽게 지낸다.'
+        affected_group: 'company_employee',
+        content_template: '회사 직원은 해당 상식을 따른다.'
       }]
     }
   };
   const draft = createDraft(appState, 'csa');
   assert.equal(draft.csa[0].category, 'workplace');
   assert.equal(draft.csa[0].template_id, 'office_notice_1');
-  assert.equal(draft.csa[0].roles.subject_group, 'company_employee');
+  assert.deepEqual(draft.csa[0].roles, {});
   assert.deepEqual(operations(appState, draft), []);
 });
 

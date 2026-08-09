@@ -3,18 +3,6 @@
   "version": 2,
   "selector_options": [
     {
-      "id": "player",
-      "label": "플레이어"
-    },
-    {
-      "id": "current_partner",
-      "label": "현재 대화 상대"
-    },
-    {
-      "id": "current_scene_npcs",
-      "label": "현재 장면의 NPC"
-    },
-    {
       "id": "female_employee",
       "label": "회사 여성 직원 전체"
     },
@@ -25,26 +13,6 @@
     {
       "id": "company_employee",
       "label": "회사 직원 전체"
-    },
-    {
-      "id": "character:heroine1",
-      "label": "서원희"
-    },
-    {
-      "id": "character:heroine2",
-      "label": "윤민아"
-    },
-    {
-      "id": "character:heroine3",
-      "label": "김제나"
-    },
-    {
-      "id": "character:heroine4",
-      "label": "한리브"
-    },
-    {
-      "id": "character:heroine5",
-      "label": "이메이"
     }
   ],
   "strengths": [
@@ -91,1937 +59,455 @@
       "id": "sit_on_recipient_lap",
       "category": "posture",
       "strength": "weak",
-      "label": "수행자가 대상의 무릎 위에 올라앉아 몸을 밀착한다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 무릎 위에 올라앉아 몸을 밀착해야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "sit_on_recipient_lap",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{performer_subject} {recipient_possessive} 무릎 위에 올라앉아 몸을 밀착한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 무릎 위에 올라앉아 몸을 밀착해야 한다."
     },
     {
       "id": "stand_between_recipient_knees",
       "category": "posture",
       "strength": "weak",
-      "label": "수행자가 대상의 벌어진 무릎 사이에 가까이 선다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 벌어진 무릎 사이에 가까이 서야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "stand_between_recipient_knees",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{performer_subject} {recipient_possessive} 벌어진 무릎 사이에 가까이 선다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 벌어진 무릎 사이에 가까이 서야 한다."
     },
     {
       "id": "press_body_against_recipient",
       "category": "contact",
       "strength": "weak",
-      "label": "수행자가 가슴과 몸을 대상에게 밀착한다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어에게 가슴과 몸을 밀착해야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "press_body_against_recipient",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 몸에 가슴과 몸을 밀착한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어에게 가슴과 몸을 밀착해야 한다."
     },
     {
       "id": "embrace_recipient_from_behind",
       "category": "contact",
       "strength": "weak",
-      "label": "수행자가 대상을 뒤에서 끌어안는다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어를 뒤에서 끌어안아야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "embrace_recipient_from_behind",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{performer_subject} {recipient_object} 뒤에서 끌어안는다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어를 뒤에서 끌어안아야 한다."
     },
     {
       "id": "keep_hand_on_recipient_inner_thigh",
       "category": "contact",
       "strength": "weak",
-      "label": "수행자가 대상의 안쪽 허벅지에 손을 올리고 유지한다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 안쪽 허벅지에 손을 올리고 유지해야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "keep_hand_on_recipient_inner_thigh",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 안쪽 허벅지에 손을 올리고 유지한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 안쪽 허벅지에 손을 올리고 유지해야 한다."
     },
     {
       "id": "wrap_leg_around_recipient",
       "category": "posture",
       "strength": "weak",
-      "label": "수행자가 앉은 상태에서 한쪽 다리를 대상에게 감는다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 앉은 상태에서 플레이어에게 한쪽 다리를 감아야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "wrap_leg_around_recipient",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 다리에 한쪽 다리를 감는다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 앉은 상태에서 플레이어에게 한쪽 다리를 감아야 한다."
     },
     {
       "id": "maintain_thigh_contact",
       "category": "contact",
       "strength": "weak",
-      "label": "가까이 앉아 무릎과 허벅지가 계속 맞닿는다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 가까이 앉아 무릎과 허벅지가 계속 맞닿게 해야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "maintain_thigh_contact",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 무릎과 허벅지가 맞닿은 채 가까이 앉아 있다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 가까이 앉아 무릎과 허벅지가 계속 맞닿게 해야 한다."
     },
     {
       "id": "whisper_against_recipient_ear",
       "category": "contact",
       "strength": "weak",
-      "label": "입술과 숨결이 귀에 닿을 거리에서 말한다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 입술과 숨결이 플레이어의 귀에 닿을 거리에서 낮게 속삭여야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "whisper_against_recipient_ear",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{performer_subject} {recipient_possessive} 귀에 입술을 가까이 대고 낮게 속삭인다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 입술과 숨결이 플레이어의 귀에 닿을 거리에서 낮게 속삭여야 한다."
     },
     {
       "id": "interlace_fingers_with_recipient",
       "category": "contact",
       "strength": "weak",
-      "label": "손가락을 깍지 끼고 손을 놓지 않는다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어와 손가락을 깍지 끼고 손을 놓지 않아야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "interlace_fingers_with_recipient",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 손가락을 깍지 끼고 놓지 않는다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어와 손가락을 깍지 끼고 손을 놓지 않아야 한다."
     },
     {
       "id": "no_bra_under_work_clothes",
       "category": "clothing",
       "strength": "weak",
-      "label": "대상은 브래지어 없이 근무복을 입는다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 근무 중 브래지어 없이 근무복을 입어야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "subject_group",
-          "label": "상태가 적용되는 사람",
-          "options": [
-            "female_employee",
-            "male_employee",
-            "company_employee",
-            "current_scene_npcs",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "female_employee"
-        }
-      ],
-      "required_action": "no_bra_under_work_clothes",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{subject_subject} 브래지어 없이 근무복을 입고 가슴선이 드러난 채 지낸다."
+      "content_template": "회사 여성 직원은 근무 중 브래지어 없이 근무복을 입어야 한다."
     },
     {
       "id": "no_panties_under_work_clothes",
       "category": "clothing",
       "strength": "weak",
-      "label": "대상은 팬티 없이 근무복을 입는다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 근무 중 팬티 없이 평소 근무복을 입어야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "subject_group",
-          "label": "상태가 적용되는 사람",
-          "options": [
-            "female_employee",
-            "male_employee",
-            "company_employee",
-            "current_scene_npcs",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "female_employee"
-        }
-      ],
-      "required_action": "no_panties_under_work_clothes",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{subject_subject} 팬티 없이 평소 근무복을 입고 지낸다."
+      "content_template": "회사 여성 직원은 근무 중 팬티 없이 평소 근무복을 입어야 한다."
     },
     {
       "id": "open_top_to_show_cleavage",
       "category": "clothing",
       "strength": "weak",
-      "label": "대상은 셔츠 상단을 풀어 가슴골을 드러낸다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 근무 중 셔츠나 블라우스 상단을 깊게 풀어 가슴골을 드러내야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "subject_group",
-          "label": "상태가 적용되는 사람",
-          "options": [
-            "female_employee",
-            "male_employee",
-            "company_employee",
-            "current_scene_npcs",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "female_employee"
-        }
-      ],
-      "required_action": "open_top_to_show_cleavage",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{subject_subject} 셔츠 상단을 깊게 풀어 가슴골을 드러낸 채 지낸다."
+      "content_template": "회사 여성 직원은 근무 중 셔츠나 블라우스 상단을 깊게 풀어 가슴골을 드러내야 한다."
     },
     {
       "id": "wear_body_hugging_work_clothes",
       "category": "clothing",
       "strength": "weak",
-      "label": "대상은 몸의 윤곽이 드러나는 밀착 복장을 입는다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 근무 중 몸의 윤곽이 선명한 밀착 근무복을 입어야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "subject_group",
-          "label": "상태가 적용되는 사람",
-          "options": [
-            "female_employee",
-            "male_employee",
-            "company_employee",
-            "current_scene_npcs",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "female_employee"
-        }
-      ],
-      "required_action": "wear_body_hugging_work_clothes",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{subject_subject} 몸의 윤곽이 선명한 밀착 근무복을 입고 지낸다."
+      "content_template": "회사 여성 직원은 근무 중 몸의 윤곽이 선명한 밀착 근무복을 입어야 한다."
     },
     {
       "id": "target_places_requester_hand_on_waist_or_thigh",
       "category": "contact",
       "strength": "weak",
-      "label": "대상이 플레이어의 손을 자기 허리나 허벅지에 올려놓는다.",
+      "authority_tier": "weak",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "place_requester_hand_on_waist_or_thigh",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {requester_possessive} 손을 자기 허리나 허벅지 위에 올려놓는다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다."
     },
     {
       "id": "work_in_underwear_only",
       "category": "clothing",
       "strength": "medium",
-      "label": "대상은 겉옷을 벗고 속옷 차림으로 지낸다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 근무 중 겉옷을 벗고 속옷 차림으로 지내야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "subject_group",
-          "label": "상태가 적용되는 사람",
-          "options": [
-            "female_employee",
-            "male_employee",
-            "company_employee",
-            "current_scene_npcs",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "female_employee"
-        }
-      ],
-      "required_action": "work_in_underwear_only",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{subject_subject} 겉옷을 벗고 속옷 차림으로 지낸다."
+      "content_template": "회사 여성 직원은 근무 중 겉옷을 벗고 속옷 차림으로 지내야 한다."
     },
     {
       "id": "work_topless",
       "category": "clothing",
       "strength": "medium",
-      "label": "대상은 상의를 모두 벗고 지낸다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 근무 중 상의를 모두 벗어 가슴이 드러난 상태로 지내야 한다.",
+      "affected_group": "female_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "subject_group",
-          "label": "상태가 적용되는 사람",
-          "options": [
-            "female_employee",
-            "male_employee",
-            "company_employee",
-            "current_scene_npcs",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "female_employee"
-        }
-      ],
-      "required_action": "work_topless",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{subject_subject} 상의를 모두 벗어 가슴이 드러난 상태로 지낸다."
+      "content_template": "회사 여성 직원은 근무 중 상의를 모두 벗어 가슴이 드러난 상태로 지내야 한다."
     },
     {
       "id": "expose_breasts_on_request",
       "category": "clothing",
       "strength": "medium",
-      "label": "플레이어가 요청하면 대상은 가슴을 드러낸다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 가슴을 완전히 드러내야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        }
-      ],
-      "required_action": "expose_breasts",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 요청하면 {performer_subject} 가슴을 완전히 드러낸다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 가슴을 완전히 드러내야 한다."
     },
     {
       "id": "expose_genitals_on_request",
       "category": "clothing",
       "strength": "medium",
-      "label": "플레이어가 요청하면 대상은 성기를 드러낸다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        }
-      ],
-      "required_action": "expose_genitals",
-      "sexual_actions": [
-        "genital_exposure"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 요청하면 {performer_subject} 옷과 속옷을 벗거나 젖혀 성기가 보이게 한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다."
     },
     {
       "id": "remove_requested_clothing",
       "category": "clothing",
       "strength": "medium",
-      "label": "플레이어가 지정한 옷을 대상이 벗는다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 지정한 옷을 실제로 벗어야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        }
-      ],
-      "required_action": "remove_requested_clothing",
-      "sexual_actions": [],
-      "method_policy": "unspecified",
-      "content_template": "{requester_subject} 지정하면 {performer_subject} 그 옷을 실제로 벗는다."
+      "content_template": "회사 여성 직원은 플레이어가 지정한 옷을 실제로 벗어야 한다."
     },
     {
       "id": "allow_breast_touch_on_request",
       "category": "contact",
       "strength": "medium",
-      "label": "플레이어가 요청하면 대상은 가슴과 유두를 내어준다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        }
-      ],
-      "required_action": "allow_breast_touch",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 요청하면 {performer_subject} 자신의 가슴과 유두를 만지도록 몸을 내어준다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다."
     },
     {
       "id": "allow_genital_touch_on_request",
       "category": "contact",
       "strength": "medium",
-      "label": "플레이어가 요청하면 대상은 성기를 만지도록 자세를 잡는다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 성기를 직접 만지도록 자세를 잡아야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        }
-      ],
-      "required_action": "allow_genital_touch",
-      "sexual_actions": [
-        "genital_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 요청하면 {performer_subject} 자신의 성기를 직접 만지도록 자세를 잡는다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 성기를 직접 만지도록 자세를 잡아야 한다."
     },
     {
       "id": "stimulate_recipient_breasts_and_nipples",
       "category": "sexual_action",
       "strength": "medium",
-      "label": "수행자가 대상의 가슴과 유두를 자극한다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 가슴을 주무르고 유두를 손가락으로 자극해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "stimulate_breasts_nipples",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 가슴을 주무르고 유두를 손가락으로 자극한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 가슴을 주무르고 유두를 손가락으로 자극해야 한다."
     },
     {
       "id": "hand_stimulate_recipient_genitals",
       "category": "sexual_action",
       "strength": "medium",
-      "label": "수행자가 대상의 성기를 손으로 잡고 자극한다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 성기를 손으로 잡고 반복해서 자극해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "hand_stimulate_genitals",
-      "sexual_actions": [
-        "genital_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 성기를 손으로 잡고 반복해서 자극한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 성기를 손으로 잡고 반복해서 자극해야 한다."
     },
     {
       "id": "masturbate_for_recipient",
       "category": "sexual_action",
       "strength": "medium",
-      "label": "수행자가 대상 앞에서 자신의 성기를 만지며 자위한다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어 앞에서 자신의 성기를 만지며 자위해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "masturbate_for_recipient",
-      "sexual_actions": [
-        "genital_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_subject} 앞에서 자신의 성기를 만지며 자위한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어 앞에서 자신의 성기를 만지며 자위해야 한다."
     },
     {
       "id": "grind_on_recipient_lap",
       "category": "sexual_action",
       "strength": "medium",
-      "label": "수행자가 대상의 무릎 위에서 골반을 움직인다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "grind_on_lap",
-      "sexual_actions": [
-        "genital_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 무릎 위에서 골반을 움직여 성기를 마찰한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다."
     },
     {
       "id": "deep_kiss_on_request",
       "category": "sexual_action",
       "strength": "medium",
-      "label": "플레이어가 요청하면 대상이 깊게 키스한다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        }
-      ],
-      "required_action": "deep_kiss",
-      "sexual_actions": [
-        "kiss"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 요청하면 {performer_subject} 입술을 맞대고 혀를 섞어 깊게 키스한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다."
     },
     {
       "id": "guide_recipient_hand_to_body",
       "category": "sexual_action",
       "strength": "medium",
-      "label": "수행자가 대상의 손을 지정한 부위로 이끈다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "guide_hand_to_body",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_subject} 손을 잡아 자신의 가슴·허벅지·성기로 이끈다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다."
     },
     {
       "id": "mutual_genital_touch",
       "category": "sexual_action",
       "strength": "medium",
-      "label": "두 사람이 서로의 성기를 손으로 만진다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어와 서로의 성기를 손으로 만지고 자극해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "group_a",
-          "label": "성행위에 참여하는 집단 A",
-          "options": [
-            "player",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "group_b",
-          "label": "성행위에 참여하는 집단 B",
-          "options": [
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_scene_npcs"
-        }
-      ],
-      "required_action": "mutual_genital_touch",
-      "sexual_actions": [
-        "genital_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{group_a_conj} {group_b_subject} 서로의 성기를 손으로 만지고 자극한다.",
-      "mutual": true
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어와 서로의 성기를 손으로 만지고 자극해야 한다."
     },
     {
       "id": "lick_and_suck_recipient_nipples",
       "category": "sexual_action",
       "strength": "medium",
-      "label": "수행자가 대상의 가슴과 유두를 입으로 자극한다.",
+      "authority_tier": "medium",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "lick_nipples",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 가슴을 입으로 핥고 유두를 빨아 자극한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다."
     },
     {
       "id": "perform_oral_sex_on_recipient",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "수행자가 대상의 성기를 입과 혀로 자극한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 성기를 입과 혀로 자극해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "perform_oral",
-      "sexual_actions": [
-        "oral"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_possessive} 성기를 입과 혀로 자극한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 성기를 입과 혀로 자극해야 한다."
     },
     {
       "id": "receive_oral_sex_from_recipient",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "대상이 수행자의 성기를 입으로 자극한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 성기를 입으로 자극하도록 해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "receive_oral",
-      "sexual_actions": [
-        "oral"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{recipient_subject} {performer_possessive} 성기를 입으로 자극한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 성기를 입으로 자극하도록 해야 한다."
     },
     {
       "id": "vaginal_sex_with_recipient",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "수행자와 대상이 질 삽입 성관계를 시작한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어와 질 삽입 성관계를 시작해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "vaginal_sex",
-      "sexual_actions": [
-        "penetration"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_conj} {recipient_subject} 질 삽입 성관계를 시작한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어와 질 삽입 성관계를 시작해야 한다."
     },
     {
       "id": "anal_sex_with_recipient",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "수행자와 대상이 항문 삽입 성관계를 시작한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어와 항문 삽입 성관계를 시작해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "anal_sex",
-      "sexual_actions": [
-        "penetration"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_conj} {recipient_subject} 항문 삽입 성관계를 시작한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어와 항문 삽입 성관계를 시작해야 한다."
     },
     {
       "id": "perform_requester_selected_sex_position",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "플레이어가 지정한 체위로 대상이 성행위를 시작한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 지정한 체위로 자세를 바꾸고 플레이어와 성행위를 시작해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "selected_sex_position",
-      "sexual_actions": [
-        "penetration"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 지정하면 {performer_subject} {recipient_possessive} 지정한 체위로 성행위를 시작한다."
+      "content_template": "회사 여성 직원은 플레이어가 지정한 체위로 자세를 바꾸고 플레이어와 성행위를 시작해야 한다."
     },
     {
       "id": "continue_until_recipient_orgasm",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "수행자는 대상이 절정에 이를 때까지 계속한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어가 절정에 이를 때까지 현재 성적 행동을 계속해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "continue_until_orgasm",
-      "sexual_actions": [
-        "orgasm"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {recipient_subject} 절정에 이를 때까지 현재 성적 행동을 계속한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어가 절정에 이를 때까지 현재 성적 행동을 계속해야 한다."
     },
     {
       "id": "continue_until_player_says_stop",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "플레이어가 중단할 때까지 현재 행동을 계속한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 중단하거나 방식을 바꿀 때까지 플레이어와 현재 성적 행동을 계속해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "continue_until_stop",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{performer_subject} {requester_subject} 중단할 때까지 {recipient_possessive} 현재 성적 행동을 계속한다."
+      "content_template": "회사 여성 직원은 플레이어가 중단하거나 방식을 바꿀 때까지 플레이어와 현재 성적 행동을 계속해야 한다."
     },
     {
       "id": "requester_controls_ejaculation_location",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "플레이어가 사정 위치나 방식을 지정한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "control_ejaculation",
-      "sexual_actions": [
-        "orgasm"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 사정할 위치나 방식을 지정하면 {performer_subject} 그에 맞춰 행동한다."
+      "content_template": "회사 여성 직원은 플레이어가 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다."
     },
     {
       "id": "swallow_semen_on_request",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "플레이어가 요청하면 대상은 정액을 삼킨다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 요청하면 입 안에 받은 정액을 삼켜야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        }
-      ],
-      "required_action": "swallow_semen",
-      "sexual_actions": [
-        "orgasm"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 요청하면 {performer_subject} 입 안에 받은 정액을 삼킨다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 입 안에 받은 정액을 삼켜야 한다."
     },
     {
       "id": "multi_performer_sexual_service",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "여러 수행자가 함께 플레이어를 자극한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 플레이어를 자극해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "multi_performer_service",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 요청하면 여러 수행자가 함께 플레이어를 자극한다."
+      "content_template": "회사 여성 직원은 플레이어가 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 플레이어를 자극해야 한다."
     },
     {
       "id": "group_sex_with_player",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "플레이어와 여러 대상이 성행위를 함께 진행한다.",
+      "authority_tier": "strong",
+      "label": "회사 직원은 플레이어와 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다.",
+      "affected_group": "company_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "group_a",
-          "label": "성행위에 참여하는 집단 A",
-          "options": [
-            "player",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "group_b",
-          "label": "성행위에 참여하는 집단 B",
-          "options": [
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_scene_npcs"
-        }
-      ],
-      "required_action": "group_sex",
-      "sexual_actions": [
-        "penetration"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{group_a_conj} {group_b_subject} 같은 장면에서 성행위를 함께 진행한다.",
-      "mutual": true
+      "content_template": "회사 직원은 플레이어와 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다."
     },
     {
       "id": "public_sex_is_unremarkable",
       "category": "world_behavior",
       "strength": "strong",
-      "label": "공개된 성행위를 일상적인 장면으로 받아들인다.",
+      "authority_tier": "strong",
+      "label": "회사 직원은 공개된 성행위를 방해하지 않고 일상적인 장면으로 받아들여야 한다.",
+      "affected_group": "company_employee",
       "mode": "continuous",
-      "role_slots": [
-        {
-          "key": "subject_group",
-          "label": "상태가 적용되는 사람",
-          "options": [
-            "female_employee",
-            "male_employee",
-            "company_employee",
-            "current_scene_npcs",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "female_employee"
-        }
-      ],
-      "required_action": "public_sex_normalized",
-      "sexual_actions": [
-        "penetration"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{subject_subject} 공개된 성행위를 일상적인 장면으로 받아들인다."
+      "content_template": "회사 직원은 공개된 성행위를 방해하지 않고 일상적인 장면으로 받아들여야 한다."
     },
     {
       "id": "player_request_executes_immediately",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "플레이어가 구체적으로 요구한 행동을 대상이 즉시 시작한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "execute_selected_action",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 구체적인 성적 행동을 요구하면 {performer_subject} {recipient_possessive} 그 행동을 즉시 시작한다."
+      "content_template": "회사 여성 직원은 플레이어가 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다."
     },
     {
       "id": "player_controls_target_clothing_posture_and_sexual_action",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "플레이어가 지정한 복장·자세·행동으로 대상이 전환한다.",
+      "authority_tier": "strong",
+      "label": "회사 여성 직원은 플레이어가 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다.",
+      "affected_group": "female_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "requester_group",
-          "label": "요구하는 사람",
-          "options": [
-            "player"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "performer_group",
-          "label": "수행하는 사람",
-          "options": [
-            "current_partner",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_partner"
-        },
-        {
-          "key": "recipient_group",
-          "label": "행동을 받는 사람",
-          "options": [
-            "player",
-            "current_partner",
-            "current_scene_npcs",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        }
-      ],
-      "required_action": "control_clothing_posture_action",
-      "sexual_actions": [
-        "sexual_touch"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{requester_subject} 복장·자세·성적 행동을 지정하면 {performer_subject} 그대로 전환한다."
+      "content_template": "회사 여성 직원은 플레이어가 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다."
     },
     {
       "id": "selected_groups_mutual_sexual_service",
       "category": "sexual_action",
       "strength": "strong",
-      "label": "선택한 두 집단이 서로의 성적 요구를 충족한다.",
+      "authority_tier": "strong",
+      "label": "회사 직원은 선택된 두 집단은 서로의 성적 요구를 손·입·성행위로 충족해야 한다.",
+      "affected_group": "company_employee",
       "mode": "on_player_request",
-      "role_slots": [
-        {
-          "key": "group_a",
-          "label": "성행위에 참여하는 집단 A",
-          "options": [
-            "player",
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "player"
-        },
-        {
-          "key": "group_b",
-          "label": "성행위에 참여하는 집단 B",
-          "options": [
-            "current_scene_npcs",
-            "female_employee",
-            "company_employee",
-            "character:heroine1",
-            "character:heroine2",
-            "character:heroine3",
-            "character:heroine4",
-            "character:heroine5"
-          ],
-          "default": "current_scene_npcs"
-        }
-      ],
-      "required_action": "mutual_group_service",
-      "sexual_actions": [
-        "sexual_touch",
-        "oral",
-        "penetration"
-      ],
-      "method_policy": "restricted",
-      "content_template": "{group_a_conj} {group_b_subject} 서로의 성적 요구를 손·입·성행위로 충족한다.",
-      "mutual": true
+      "content_template": "선택된 두 회사 직원 집단은 서로의 성적 요구를 손·입·성행위로 충족해야 한다."
+    }
+  ],
+  "authority_tiers": [
+    {
+      "id": "weak",
+      "label": "사내 지침·운영 규정"
+    },
+    {
+      "id": "medium",
+      "label": "취업규칙·전사 준수 규정"
+    },
+    {
+      "id": "strong",
+      "label": "국가 법령·관계 당국 의무 지침"
     }
   ]
 }

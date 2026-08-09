@@ -39,7 +39,7 @@ export function buildAppManualPayload(save, catalog) {
     version: 2,
     mode: GAMEPLAY_MODE,
     title: '상식개변 앱 사용자 매뉴얼',
-    subtitle: '이 버전은 개인 암시와 최면 기능 없이 공간의 사회적 상식만 변경합니다.',
+    subtitle: '이 버전은 개인 암시와 최면 기능 없이 회사의 사내 지침·취업규칙·국가 법령을 변경합니다.',
     status: {
       level, exp: capability.exp, next_level_exp: capability.next_level_exp, exp_percent: progress,
       available_strength: capability.available_strength, csa_active: capability.csa_active_count, csa_max: capability.csa_max_active,
@@ -47,15 +47,15 @@ export function buildAppManualPayload(save, catalog) {
     },
     diagnostics,
     quick_start: [
-      '모든 상식개변은 회사 전체의 공동 사회 규범으로 적용됩니다.',
+      '모든 상식개변은 강도에 맞는 회사 지침·취업규칙·국가 법령으로 회사 전체에 적용됩니다.',
       '변경은 반드시 상식개변 앱 UI에서 생성·수정·해제합니다.',
       '강도는 직접 의미 범위 안의 확신과 사회적 압력만 바꾸며 의미 범위를 넓히지 않습니다.',
-      '해제하면 현재 규범 적용만 멈추고 이미 벌어진 사건의 기억과 물리 상태는 유지됩니다.',
+      '해제하면 현재 규정의 적용만 멈추고 이미 벌어진 사건의 기억과 물리 상태는 유지됩니다.',
       '매뉴얼 열람과 탭 이동은 턴을 소비하지 않습니다.'
     ],
     common_sense: {
       title: '상식개변',
-      description: '특정 개인이 아니라 회사 전체의 사회적 규범을 변경합니다. 인물은 각자의 성격을 유지한 채 그 규범을 당연한 전제로 받아들입니다.',
+      description: '특정 개인이 아니라 회사 집단에 적용되는 지침·취업규칙·법령을 변경합니다. 인물은 각자의 성격을 유지한 채 적용된 제도를 전제로 행동합니다.',
       rules: [
         'activate는 새 항목과 활성 슬롯을 만듭니다.',
         'update는 같은 슬롯에서 내용과 강도를 변경합니다.',
@@ -104,7 +104,7 @@ export function buildAppStatePayload(save, catalog, _unusedSemanticMap, player, 
     ...normalizeCsaScope(), created_turn: item.created_turn ?? null,
     source_type: item.source_type === 'preset' ? 'preset' : 'custom',
     preset: item.source_type === 'preset' && item.preset ? item.preset : null,
-    semantic_contract: buildCsaSemanticContract(item)
+    ...(item.source_type === 'preset' ? {} : { semantic_contract: buildCsaSemanticContract(item) })
   }));
   return {
     version: 2,

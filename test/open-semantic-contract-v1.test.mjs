@@ -60,26 +60,26 @@ test('ambiguous free-text groups cannot silently gain sexual direct authorizatio
   assert.equal(exact.sexual_authorization, true);
 });
 
-test('runtime preset catalog exposes no donor hospital group, trigger, or duration ids', () => {
+test('runtime preset catalog uses only institutional group scopes and two modes', () => {
   const catalog = normalizeCompanyCsaCatalog(rawCatalog);
   assert.equal(catalog.schema_version, 2);
-  assert.equal('trigger_options' in catalog, false);
-  assert.equal('duration_options' in catalog, false);
-  assert.equal(catalog.items.every(item => item.role_slots?.length && !('synergy_ids' in item)), true);
+  assert.deepEqual(catalog.selector_options.map(item => item.id), ['female_employee', 'male_employee', 'company_employee']);
+  assert.ok(catalog.items.every(item => ['weak', 'medium', 'strong'].includes(item.authority_tier)));
+  assert.ok(catalog.items.every(item => ['continuous', 'on_player_request'].includes(item.mode)));
+  assert.ok(catalog.items.every(item => !item.role_slots && !item.required_action && !item.sexual_actions && !item.method_policy));
 });
 
-test('V2 preset payload validates against the normalized Company catalog', () => {
+test('V2 preset payload validates against the normalized Company catalog without semantic direction', () => {
   const catalog = normalizeCompanyCsaCatalog(rawCatalog);
   const normalizedItem = catalog.items.find(item => item.id === 'hand_stimulate_recipient_genitals');
   const result = validatePresetOperation(catalog, {
     strength: normalizedItem.strength,
-    preset: {
-      template_id: normalizedItem.id,
-      roles: { performer_group: 'character:heroine1', recipient_group: 'player' }
-    }
+    preset: { template_id: normalizedItem.id }
   }, { availableStrength: 'strong' });
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.preset.roles.performer_group, 'character:heroine1');
+  assert.equal(result.preset.affected_group, 'female_employee');
+  assert.equal(result.preset.authority_tier, normalizedItem.strength);
+  assert.equal('roles' in result.preset, false);
 });
 
 test('opening content comes from edition map and accepts a location outside the former engine list', () => {

@@ -42,16 +42,6 @@ function nextCsaId(existingIds, turnNumber) {
   return candidate;
 }
 
-function legacyRoleSelector(value) {
-  const aliases = {
-    coworker: 'current_partner', conversation_partner: 'current_partner',
-    another_present_person: 'current_scene_npcs', nearby_person: 'current_scene_npcs',
-    employee: 'company_employee', everyone_in_company: 'company_employee',
-    everyone_in_hospital: 'company_employee'
-  };
-  return aliases[value] || value;
-}
-
 /** Server-side single source of truth for a preset operation: re-derives canonical content from the catalog template. */
 export function validatePresetOperation(catalog, raw, { availableStrength } = {}) {
   const normalizedCatalog = normalizeCompanyCsaCatalog(catalog);
@@ -73,35 +63,21 @@ export function validatePresetOperation(catalog, raw, { availableStrength } = {}
     return { ok: false, code: 'CSA_PRESET_STRENGTH_MISMATCH', message: '선택한 강도와 프리셋 등급이 일치하지 않습니다.' };
   }
 
-  const roles = isPlainObject(preset.roles)
-    ? { ...preset.roles }
-    : {
-        ...(preset.actor_group ? { performer_group: legacyRoleSelector(preset.actor_group) } : {}),
-        ...(preset.target_group ? { recipient_group: legacyRoleSelector(preset.target_group) } : {})
-      };
-  for (const role of item.role_slots || []) {
-    const value = roles[role.key] || role.default;
-    if (!role.options.includes(value)) return { ok: false, code: 'PRESET_ROLE_INVALID', message: `${role.label}을(를) 선택해 주세요.` };
-    roles[role.key] = value;
+  const allowedGroups = new Set(['female_employee', 'male_employee', 'company_employee']);
+  if (!allowedGroups.has(item.affected_group)) {
+    return { ok: false, code: 'PRESET_SCOPE_INVALID', message: 'Preset scope must be a company group.' };
   }
-  const roleValues = Object.values(roles).filter(value => typeof value === 'string');
-  const uniqueRoleValues = new Set(roleValues);
-  if (item.allow_same_role_values !== true && uniqueRoleValues.size < roleValues.length) {
-    return { ok: false, code: 'PRESET_ROLE_CONFLICT', message: '서로 다른 역할을 선택해 주세요.' };
-  }
-  const content = renderPresetContent(normalizedCatalog, item, { roles });
+  const content = renderPresetContent(normalizedCatalog, item);
   return {
     ok: true, content, strength: catalogStrength,
     preset: {
       version: 2,
       template_id: item.id,
-      mode: item.mode,
-      roles,
-      required_action: item.required_action,
-      sexual_actions: item.sexual_actions,
-      method_policy: item.method_policy
+      authority_tier: item.authority_tier || item.strength,
+      affected_group: item.affected_group,
+      mode: item.mode
     }
-  };
+  }
 }
 
 /**

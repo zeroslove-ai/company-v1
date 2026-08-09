@@ -9,7 +9,7 @@ import {
   calculateCsaCapability, getCsaLimits, appStrengthId,
   getPresetCatalogItem, buildPresetCatalogPayload, renderPresetContent,
   planCsaTransaction, validatePresetOperation,
-  normalizeCsaSemanticContract, buildPresetCsaSemanticContract,
+  normalizeCsaSemanticContract,
   signAppValidationProof, verifyAppValidationProof, verifyStructuredActionValidation,
   normalizeStructuredAction, buildAppManualPayload, buildAppStatePayload,
   getActiveCsaEntries, getApplicableCsaEntries,
@@ -22,7 +22,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const readJson = file => JSON.parse(read(file));
 const gameId = '11111111-1111-4111-8111-111111111111';
 const catalog = readJson('content/csa_presets.json');
-const presetFor = item => ({ template_id: item.id, roles: Object.fromEntries(item.role_slots.map(role => [role.key, role.default])) });
+const presetFor = item => ({ template_id: item.id });
 
 const env = {
   SUPABASE_URL: 'https://supabase.test',
@@ -180,48 +180,6 @@ test('preset operations are checked against the player\'s actual level, never ag
   assert.equal(bypassAttempt.issues[0].code, 'STRENGTH_LOCKED');
 });
 
-test('semantic contract: preset-derived contract is exact-confidence; custom contract without full fields is rejected when it claims sexual_authorization', () => {
-  const preset = catalog.items.find(item => item.id === 'hand_stimulate_recipient_genitals');
-  const contract = buildPresetCsaSemanticContract({ source_type: 'preset', preset: { required_action: preset.required_action, mode: preset.mode, method_policy: preset.method_policy, roles: { performer_group: 'character:heroine1', recipient_group: 'player' }, sexual_actions: preset.sexual_actions } });
-  assert.equal(contract.confidence, 'exact');
-  assert.equal(contract.sexual_authorization, true);
-  assert.deepEqual(contract.actions, preset.sexual_actions);
-  assert.deepEqual(contract.directions, ['npc_to_player']);
-  const playerToNpc = buildPresetCsaSemanticContract({ source_type: 'preset', preset: { required_action: preset.required_action, mode: preset.mode, method_policy: preset.method_policy, roles: { performer_group: 'player', recipient_group: 'character:heroine1' }, sexual_actions: preset.sexual_actions } });
-  assert.deepEqual(playerToNpc.directions, ['player_to_npc']);
-  const subjectOnly = buildPresetCsaSemanticContract({ source_type: 'preset', preset: { required_action: 'no_bra_under_work_clothes', mode: 'continuous', method_policy: 'unspecified', roles: { subject_group: 'female_employee' }, sexual_actions: [] } });
-  assert.deepEqual(subjectOnly.actions, []);
-  assert.deepEqual(subjectOnly.directions, []);
-  const ambiguous = normalizeCsaSemanticContract({ sexual_authorization: true, actions: [], directions: [], confidence: 'ambiguous' });
-  assert.equal(ambiguous.sexual_authorization, false, 'no actions/directions means normalize forces sexual_authorization false');
-});
-
-test('non-mutual preset roles must be distinct while mutual groups remain explicit', () => {
-  const oral = catalog.items.find(item => item.id === 'perform_oral_sex_on_recipient');
-  const duplicateNpc = validatePresetOperation(catalog, {
-    strength: oral.strength,
-    preset: { template_id: oral.id, roles: { performer_group: 'character:heroine1', recipient_group: 'character:heroine1' } }
-  }, { availableStrength: 'strong' });
-  assert.equal(duplicateNpc.ok, false);
-  assert.equal(duplicateNpc.code, 'PRESET_ROLE_CONFLICT');
-  const duplicatePlayer = validatePresetOperation(catalog, {
-    strength: oral.strength,
-    preset: { template_id: oral.id, roles: { performer_group: 'player', recipient_group: 'player' } }
-  }, { availableStrength: 'strong' });
-  assert.equal(duplicatePlayer.ok, false);
-  const group = catalog.items.find(item => item.id === 'group_sex_with_player');
-  const duplicateGroup = validatePresetOperation(catalog, {
-    strength: group.strength,
-    preset: { template_id: group.id, roles: { group_a: 'current_scene_npcs', group_b: 'current_scene_npcs' } }
-  }, { availableStrength: 'strong' });
-  assert.equal(duplicateGroup.ok, false);
-  const valid = validatePresetOperation(catalog, {
-    strength: oral.strength,
-    preset: { template_id: oral.id, roles: { performer_group: 'character:heroine1', recipient_group: 'player' } }
-  }, { availableStrength: 'strong' });
-  assert.equal(valid.ok, true);
-});
-
 test('validation proof: signs and verifies a roundtrip, and rejects a tampered digest', async () => {
   const payload = { game_id: gameId, base_turn_count: 3, action_digest: 'abc', semantic_results: [] };
   const proof = await signAppValidationProof('secret-key', payload);
@@ -305,7 +263,7 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const structuredAction = {
     type: 'app_transaction', base_turn_count: 0,
-    operations: [{ client_id: 'op-1', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: { ...presetFor(presetItem), roles: { performer_group: 'character:heroine1', recipient_group: 'player' } } }]
+    operations: [{ client_id: 'op-1', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: presetFor(presetItem) }]
   };
   const validated = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: structuredAction }), env);
   const { canonical_action: canonicalAction, display_input: displayInput } = (await validated.json()).data;
@@ -319,11 +277,10 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   const activatedContent = canonicalAction.operations[0].content;
   assert.equal(storyPayload.context.active_world_rules.filter(rule => rule.content === activatedContent).length, 1);
   const projectedRule = storyPayload.context.active_world_rules[0];
-  assert.deepEqual(projectedRule.roles, { performer_group: 'character:heroine1', recipient_group: 'player' });
-  assert.deepEqual(projectedRule.sexual_actions, presetItem.sexual_actions);
-  const semantic = buildPresetCsaSemanticContract({ source_type: 'preset', preset: canonicalAction.operations[0].preset });
-  assert.deepEqual(semantic.actions, presetItem.sexual_actions);
-  assert.deepEqual(semantic.directions, ['npc_to_player']);
+  assert.equal(projectedRule.affected_group, 'female_employee');
+  assert.equal(projectedRule.authority_tier, 'weak');
+  assert.equal('roles' in projectedRule, false);
+  assert.equal('sexual_actions' in projectedRule, false);
   assert.ok(!('global_csa' in storyPayload.context));
 
   const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
@@ -487,7 +444,7 @@ test('Story route: multiple active CSAs remain in one declarative projection', a
   const presetB = catalog.items.find(item => item.strength === 'weak' && item.category === 'contact');
   const presetEntry = item => ({
     active: true, content: item.label, strength: 'weak', source_type: 'preset',
-    preset: { ...presetFor(item), mode: item.mode, required_action: item.required_action, sexual_actions: item.sexual_actions, method_policy: item.method_policy }
+    preset: presetFor(item)
   });
   const save = freshSave({ csa_active: ['csa_0', 'csa_1'], csa_rules: { csa_0: presetEntry(presetA), csa_1: presetEntry(presetB) } });
   const mock = createMockFetch({ initialSave: save });
@@ -561,7 +518,7 @@ test('preset catalog exposes only Company v2 stable selectors', () => {
   for (const g of ['business_visitor', 'assigned_visitor', 'partner_contact', 'guest']) {
     assert.ok(!flat.includes(`"${g}"`), `${g} 노출 금지`);
   }
-  for (const id of ['player', 'current_partner', 'current_scene_npcs', 'company_employee', 'female_employee', 'male_employee']) {
+  for (const id of ['company_employee', 'female_employee', 'male_employee']) {
     assert.ok(normalized.selector_options.some(o => o.id === id), `selector ${id}`);
   }
   const label = id => normalized.selector_options.find(o => o.id === id)?.label;

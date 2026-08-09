@@ -33,13 +33,13 @@ test('csa-app-state: activating a preset produces a valid operation, and dirty()
   const item = { _new: true, client_id: 'draft_1', source_type: 'preset', strength: null, content: '', modifier: '' };
   draft.csa.push(item);
   applyPresetDefaults(item, presetItem);
-  item.roles = Object.fromEntries(presetItem.role_slots.map(role => [role.key, role.default]));
+  item.roles = {};
   assert.equal(dirty(appState, draft), true);
   const ops = operations(appState, draft);
   assert.equal(ops.length, 1);
   assert.equal(ops[0].operation, 'activate');
   assert.equal(ops[0].domain, 'csa');
-  assert.match(presetPreviewContent(appState, item), /꿇|앉|사이|밀착|기대|안/);
+  assert.equal(presetPreviewContent(appState, item), presetItem.content_template);
   assert.equal(activeItems(draft).length, 1);
 });
 

@@ -283,14 +283,6 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
 
     const catalogItem = presetCatalogItem(appState, item.template_id);
     if (catalogItem && presetStrength(catalogItem) === selectedStrength) {
-      for (const role of catalogItem.role_slots || []) {
-        const roleValue = item.roles?.[role.key] || role.default || role.options[0] || '';
-        wrap.appendChild(selectField(role.label, roleValue, role.options.map(id => ({ id, label: presetOptionLabel(appState, role.key, id) })), value => {
-          item.roles = { ...(item.roles || {}), [role.key]: value };
-          syncDraftBar();
-          renderTab('csa');
-        }));
-      }
       const previewPlaceholder = '항목을 모두 선택하면 문장이 완성됩니다.';
       const previewText = el('p', '', presetPreviewContent(appState, item) || previewPlaceholder);
       const previewBox = el('div', 'csa-app-preview');
@@ -336,7 +328,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     if (!selectedStrength) wrap.appendChild(el('p', 'csa-app-scope-label', '먼저 강도를 선택하세요.'));
     const content = el('textarea', 'csa-app-textarea');
     content.value = item.content || '';
-    content.placeholder = '회사 전체에 적용할 사회적 상식을 입력하세요.';
+    content.placeholder = '회사 전체에 적용할 회사 지침·취업규칙·법령을 입력하세요.';
     content.disabled = applying || !selectedStrength;
     content.oninput = () => { item.content = content.value; syncDraftBar(); };
     wrap.append(content);

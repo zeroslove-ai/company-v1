@@ -53,7 +53,7 @@ export {
 } from './csa/applicability.js';
 export {
   normalizeCsaSemanticContract, validateCustomCsaSemanticContract,
-  buildPresetCsaSemanticContract, buildCsaSemanticContract,
+  buildCsaSemanticContract,
   STRUCTURED_SEXUAL_ACTIONS, STRUCTURED_SEXUAL_DIRECTIONS,
   CSA_CONTRACT_ACTOR_GROUPS, CSA_CONTRACT_TARGET_GROUPS,
   canonicalizeCsaGroup, canonicalizeCsaTrigger, canonicalizeCsaDuration
