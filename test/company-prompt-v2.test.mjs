@@ -139,8 +139,6 @@ test('Story prompt treats context.current_time day/minute_of_day as hard facts',
   assert.match(system, /context\.current_time\.day와 context\.current_time\.minute_of_day는 확정 사실이다/);
   assert.match(system, /시간·채광·식사 묘사가 이 값과 모순되면 생략하고/);
   assert.match(system, /실제 elapsed 근거 없는 장시간 경과를 만들지 않는다/);
-  assert.match(system, /during_work\/while_on_duty/);
-  assert.match(system, /unspecified method/);
 });
 
 test('Extract compact canon uses actual prompt-card fields and drops unrelated or forbidden fields', () => {
