@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   resolveStoredStructuredAction,
+  assertStoredActionPersistenceParity,
   applyAuthorizedRuleDefinitions,
   assertRuleDefinitionAuthority,
   StoredActionAuthorityError
@@ -51,6 +52,45 @@ test('non-null request cannot proceed when the reservation did not persist it', 
     error => error.code === 'structured_action_not_persisted' && error.status === 409 && error.retryable === false
   );
   assert.equal(resolveStoredStructuredAction({ action: storedAction(null), stage: 'story' }), null);
+});
+
+test('reservation and persisted action rows must have exact structured action parity', () => {
+  const value = { version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };
+  assert.equal(assertStoredActionPersistenceParity({
+    reservation: storedAction(null), action: storedAction(null), stage: 'story'
+  }), null);
+  assert.deepEqual(assertStoredActionPersistenceParity({
+    reservation: storedAction(value), action: storedAction(structuredClone(value)), stage: 'story'
+  }), value);
+
+  for (const [reservation, action] of [
+    [value, null],
+    [null, value],
+    [value, { version: 1, operations: [{ operation: 'deactivate', id: 'csa_1' }] }]
+  ]) {
+    assert.throws(
+      () => assertStoredActionPersistenceParity({
+        reservation: storedAction(reservation), action: storedAction(action), stage: 'story'
+      }),
+      error => error.code === 'structured_action_persistence_mismatch' && error.status === 409
+    );
+  }
+});
+
+test('requested structured action keeps not-persisted and mismatch error distinctions', () => {
+  const requested = { version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };
+  assert.throws(
+    () => assertStoredActionPersistenceParity({
+      reservation: storedAction(null), action: storedAction(null), requestedStructuredAction: requested, stage: 'story'
+    }),
+    error => error.code === 'structured_action_not_persisted'
+  );
+  assert.throws(
+    () => assertStoredActionPersistenceParity({
+      reservation: storedAction(requested), action: storedAction(null), requestedStructuredAction: requested, stage: 'story'
+    }),
+    error => error.code === 'structured_action_mismatch'
+  );
 });
 
 test('ordinary turns preserve csa definitions and reject malicious Extract mutations', () => {

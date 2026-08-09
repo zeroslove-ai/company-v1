@@ -415,6 +415,77 @@ test('turn coordinator retains Story, Extract, Commit and recovery action IDs', 
   assert.deepEqual(calls.map(([name]) => name), ['commit']);
 });
 
+test('turn coordinator preserves canonical structured action through pending, Story, Extract, Commit, and recovery', async () => {
+  const canonicalAction = {
+    type: 'app_transaction',
+    version: 1,
+    operations: [{ operation: 'activate', id: 'csa_1' }]
+  };
+  const calls = [];
+  const pendingSnapshots = [];
+  const api = {
+    story: async body => { calls.push(['story', body]); return new Response('story'); },
+    extract: async body => { calls.push(['extract', body]); return { extract: {} }; },
+    commit: async body => { calls.push(['commit', body]); return { commit: { success: true } }; }
+  };
+  const coordinator = createTurnCoordinator({
+    api,
+    storage: storage(),
+    gameId,
+    getContext: () => validContext(),
+    refreshContext: async () => {},
+    createActionId: () => 'canonical-action',
+    onPendingChange: pending => pendingSnapshots.push(pending && structuredClone(pending)),
+    consumeStory: async (_response, onEvent) => {
+      onEvent({ event: 'meta', data: { action_id: 'canonical-action' } });
+      onEvent({ event: 'delta', data: { text: 'Story' } });
+      onEvent({ event: 'complete', data: {} });
+    }
+  });
+  await coordinator.startNewAction('Do it', canonicalAction);
+  assert.deepEqual(pendingSnapshots.find(Boolean)?.structured_action, canonicalAction);
+  for (const [, body] of calls) assert.deepEqual(body.structured_action, canonicalAction);
+  assert.equal(pendingSnapshots.at(-1), null, 'successful Commit clears pending');
+
+  const recoveredCalls = [];
+  const recoveryApi = {
+    story: async body => { recoveredCalls.push(['story', body]); return new Response('story'); },
+    extract: async body => { recoveredCalls.push(['extract', body]); return { extract: {} }; },
+    commit: async body => { recoveredCalls.push(['commit', body]); return { commit: { success: true } }; }
+  };
+  const recoveryPending = { game_id: gameId, action_id: 'recovery-action', expected_turn: 3, player_action: 'Recover', structured_action: canonicalAction, step: 'story' };
+  const recovery = createTurnCoordinator({
+    api: recoveryApi, storage: storage(), gameId, getContext: () => validContext(), refreshContext: async () => {},
+    consumeStory: async (_response, onEvent) => {
+      onEvent({ event: 'meta', data: { action_id: 'recovery-action' } });
+      onEvent({ event: 'delta', data: { text: 'Story' } });
+      onEvent({ event: 'complete', data: {} });
+    }
+  });
+  await recovery.runRecovery({ ...recoveryPending }, 'resume_story');
+  await recovery.runRecovery({ ...recoveryPending, step: 'extract' }, 'resume_extract');
+  await recovery.runRecovery({ ...recoveryPending, step: 'commit' }, 'resume_commit');
+  assert.equal(recoveredCalls.length, 6);
+  for (const [, body] of recoveredCalls) assert.deepEqual(body.structured_action, canonicalAction);
+});
+
+test('ordinary free-text coordinator requests omit structured_action at every stage', async () => {
+  const calls = [];
+  const coordinator = createTurnCoordinator({
+    api: {
+      story: async body => { calls.push(['story', body]); return new Response('story'); },
+      extract: async body => { calls.push(['extract', body]); return { extract: {} }; },
+      commit: async body => { calls.push(['commit', body]); return { commit: { success: true } }; }
+    },
+    storage: storage(), gameId, getContext: () => validContext(), refreshContext: async () => {}, createActionId: () => 'ordinary-action',
+    consumeStory: async (_response, onEvent) => {
+      onEvent({ event: 'meta', data: {} }); onEvent({ event: 'delta', data: { text: 'Story' } }); onEvent({ event: 'complete', data: {} });
+    }
+  });
+  await coordinator.startNewAction('서류를 정리한다');
+  for (const [, body] of calls) assert.equal(Object.hasOwn(body, 'structured_action'), false);
+});
+
 test('busy guard admits one operation and toolbar capabilities do not invent endpoints', async () => {
   const states = []; const guard = createBusyGuard({ onChange: value => states.push(value) });
   let nested; await guard.run(async () => { nested = await guard.run(async () => true); });

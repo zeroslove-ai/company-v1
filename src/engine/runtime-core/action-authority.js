@@ -71,6 +71,49 @@ export function resolveStoredStructuredAction({ action, requestedStructuredActio
 }
 
 /**
+ * Reservation and the persisted action row are independent authorities at the
+ * reservation boundary. They must carry the exact same structured action
+ * before any Story work starts, including when the request omitted one.
+ */
+export function assertStoredActionPersistenceParity({
+  reservation,
+  action,
+  requestedStructuredAction = null,
+  stage = 'turn'
+} = {}) {
+  const reservationStored = storedValue(reservation);
+  const actionStored = storedValue(action);
+  const requested = requestedStructuredAction ?? null;
+
+  if (requested !== null) {
+    if (reservationStored === null && actionStored === null) {
+      throw authorityError(
+        'structured_action_not_persisted',
+        `structured_action was not persisted for the reserved action (${stage})`,
+        stage
+      );
+    }
+    if (!sameJson(reservationStored, requested) || !sameJson(actionStored, requested)) {
+      throw authorityError(
+        'structured_action_mismatch',
+        `structured_action does not match the reserved action (${stage})`,
+        stage
+      );
+    }
+  }
+
+  if (!sameJson(reservationStored, actionStored)) {
+    throw authorityError(
+      'structured_action_persistence_mismatch',
+      `reservation and persisted action structured_action differ (${stage})`,
+      stage
+    );
+  }
+
+  return actionStored;
+}
+
+/**
  * Verify that csa_active/csa_rules can only change through the validated
  * structured action plan. Ordinary turns must preserve both values exactly;
  * transaction turns are overwritten from the freshly re-derived plan.

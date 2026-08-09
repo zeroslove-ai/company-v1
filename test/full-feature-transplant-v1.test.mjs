@@ -33,7 +33,7 @@ function freshSave(overrides = {}) {
   };
 }
 
-function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonResponses = [], turnsFixture = [] } = {}) {
+function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonResponses = [], turnsFixture = [], feedbackStructuredAction = null } = {}) {
   const calls = [];
   let currentSave = structuredClone(initialSave);
   let saveRevision = 1;
@@ -98,12 +98,14 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       calls.__action = {
         action_id: 'feedback-action-1', turn_id: 'turn-1', expected_turn: currentSave.turn_state.committed_turn,
         player_action: calls.__lastPlayerAction ?? '원래 행동', feedback_text: args.p_feedback_text,
-        revision_request_id: args.p_revision_request_id, processing_status: 'story_streaming', action_kind: 'feedback_revision'
+        revision_request_id: args.p_revision_request_id, processing_status: 'story_streaming', action_kind: 'feedback_revision',
+        structured_action: feedbackStructuredAction
       };
       return json({
         revision_request_id: args.p_revision_request_id, action_id: calls.__action.action_id, replacement_turn_id: 'turn-1',
         target_turn_number: currentSave.turn_state.committed_turn, original_turn_id: 'turn-0',
-        original_player_action: calls.__action.player_action, pre_save: currentSave, processing_status: 'story_streaming', replayed: false
+        original_player_action: calls.__action.player_action, pre_save: currentSave, processing_status: 'story_streaming', replayed: false,
+        structured_action: feedbackStructuredAction
       });
     }
     if (rpc === 'commit_feedback_revision') {
@@ -302,6 +304,66 @@ test('/api/feedback -> normal Story/Extract/Commit pipeline regenerates the last
   assert.equal(mock.getSave().turn_state.committed_turn, 3, 'a feedback revision replaces the targeted turn, it never advances committed_turn');
   assert.equal(mock.calls.some(c => c.url.includes('commit_feedback_revision')), true);
   assert.equal(mock.calls.some(c => c.url.includes('commit_company_turn')), false, 'must never call the normal turn-advancing commit RPC for a feedback revision');
+});
+
+test('/api/feedback preserves the original structured action through omitted Story/Extract/Commit bodies', async () => {
+  const structuredAction = { type: 'app_transaction', version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };
+  const save = freshSave({
+    turn_state: { committed_turn: 3 },
+    csa_active: ['csa_1'],
+    csa_rules: { csa_1: { active: true, content: 'already active' } }
+  });
+  const mock = createMockFetch({ initialSave: save, feedbackStructuredAction: structuredAction });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const feedback = await (await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-action', feedback_text: 'rewrite' }), env)).json();
+  assert.deepEqual(feedback.data.structured_action, structuredAction);
+
+  const story = await worker.fetch(request('/api/story', {
+    game_id: gameId, action_id: feedback.data.action_id, expected_turn: feedback.data.expected_turn,
+    player_action: feedback.data.original_player_action
+  }), env);
+  assert.equal(story.status, 200);
+  await story.text();
+  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: feedback.data.action_id }), env);
+  assert.equal(extract.status, 200);
+  const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: feedback.data.action_id, expected_turn: feedback.data.expected_turn }), env);
+  assert.equal(commit.status, 200);
+  assert.deepEqual(mock.calls.__action.structured_action, structuredAction);
+  assert.deepEqual(mock.getSave().csa_active, save.csa_active);
+  assert.deepEqual(mock.getSave().csa_rules, save.csa_rules);
+  assert.equal(mock.getSave().turn_state.committed_turn, 3);
+  assert.equal(mock.calls.filter(call => call.url.includes('commit_company_turn')).length, 0);
+});
+
+test('/api/feedback rejects a different structured action before Story LLM work', async () => {
+  const stored = { type: 'app_transaction', version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };
+  const requested = { type: 'app_transaction', version: 1, operations: [{ operation: 'deactivate', id: 'csa_1' }] };
+  const mock = createMockFetch({ initialSave: freshSave({ turn_state: { committed_turn: 3 } }), feedbackStructuredAction: stored });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const feedback = await (await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-mismatch', feedback_text: 'rewrite' }), env)).json();
+  const before = mock.calls.filter(call => call.url.startsWith('https://llm.test')).length;
+  const story = await worker.fetch(request('/api/story', {
+    game_id: gameId, action_id: feedback.data.action_id, expected_turn: feedback.data.expected_turn,
+    player_action: feedback.data.original_player_action, structured_action: requested
+  }), env);
+  assert.equal(story.status, 409);
+  assert.equal((await story.json()).error.code, 'structured_action_mismatch');
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, before);
+
+  const stageMock = createMockFetch({ initialSave: freshSave({ turn_state: { committed_turn: 3 } }), feedbackStructuredAction: stored });
+  const stageWorker = createApiWorker({ fetchImpl: stageMock.fetchImpl });
+  const stageFeedback = await (await stageWorker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-stage-mismatch', feedback_text: 'rewrite' }), env)).json();
+  const stageStory = await stageWorker.fetch(request('/api/story', {
+    game_id: gameId, action_id: stageFeedback.data.action_id, expected_turn: stageFeedback.data.expected_turn,
+    player_action: stageFeedback.data.original_player_action
+  }), env);
+  await stageStory.text();
+  const stageExtract = await stageWorker.fetch(request('/api/extract', { game_id: gameId, action_id: stageFeedback.data.action_id, structured_action: requested }), env);
+  assert.equal(stageExtract.status, 409);
+  assert.equal((await stageExtract.json()).error.code, 'structured_action_mismatch');
+  const stageCommit = await stageWorker.fetch(request('/api/commit', { game_id: gameId, action_id: stageFeedback.data.action_id, expected_turn: stageFeedback.data.expected_turn, structured_action: requested }), env);
+  assert.equal(stageCommit.status, 409);
+  assert.equal((await stageCommit.json()).error.code, 'structured_action_mismatch');
 });
 
 test('/api/feedback: the same revision_request_id replayed is idempotent (returns the same pending action, never reserves twice)', async () => {

@@ -66,7 +66,10 @@ function createMockFetch({
   extractEnvelope,
   storySseOverride,
   failRecordExtract = false,    // record_extract_result RPC 실패
-  saveOverride = null
+  saveOverride = null,
+  reservationStructuredAction,
+  persistedStructuredAction,
+  actionKind = null
 } = {}) {
   const calls = [];
   const actions = new Map();
@@ -109,11 +112,18 @@ function createMockFetch({
     if (rpc === 'reserve_turn_action') {
       let action = actions.get(args.p_action_id);
       if (!action) {
-        action = { action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: args.p_structured_action ?? null, processing_status: 'story_streaming' };
+        action = {
+          action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn,
+          player_action: args.p_player_action,
+          structured_action: persistedStructuredAction !== undefined ? persistedStructuredAction : (args.p_structured_action ?? null),
+          processing_status: 'story_streaming',
+          ...(actionKind ? { action_kind: actionKind } : {})
+        };
         actions.set(args.p_action_id, action);
-        return json({ ...action, replayed: false });
+        return json({ ...action, structured_action: reservationStructuredAction !== undefined ? reservationStructuredAction : action.structured_action, replayed: false });
       }
-      return json({ ...action, replayed: true });
+      if (args.p_player_action !== action.player_action) return json({ code: 'action_conflict', message: 'action_id is already bound to another player action' }, 409);
+      return json({ ...action, structured_action: reservationStructuredAction !== undefined ? reservationStructuredAction : action.structured_action, replayed: true });
     }
     if (rpc === 'record_story_result') {
       const action = actions.get(args.p_action_id);
@@ -134,7 +144,7 @@ function createMockFetch({
       action.processing_status = 'committed';
       lastCommitSave = structuredClone(args.p_next_save);
       context.save.data = structuredClone(args.p_next_save);
-      gameTurns.set(args.p_expected_turn, { turn_number: args.p_expected_turn, turn_id: action.turn_id, parsed_blocks: action.parsed_blocks });
+      gameTurns.set(args.p_expected_turn, { turn_number: args.p_expected_turn, turn_id: action.turn_id, story_text: action.story_text, structured_action: action.structured_action, parsed_blocks: action.parsed_blocks });
       return json({ success: true, replayed: false, turn_number: args.p_expected_turn, turn_id: action.turn_id, save_revision: 1 });
     }
     if (rpc === 'get_action_status') {
@@ -190,11 +200,15 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(commit.status, 200);
   const commitBody = await commit.json();
   assert.equal(commitBody.data.commit.success, true);
+  assert.equal(mock.gameTurns.get(8).story_text, mock.actions.get(actionId).story_text);
+  assert.deepEqual(mock.gameTurns.get(8).structured_action, mock.actions.get(actionId).structured_action);
 
   const replayStory = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '주말에 만나자고 한다.' }), env);
   const replayStoryBody = await replayStory.text();
   assert.equal(replayStoryBody.includes('event: block'), false, 'replay has no block event');
   assert.equal(replayStoryBody.includes(JSON.stringify({ text: STORY })), true, 'replay delta uses stored raw Story');
+  const differentReplay = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '다른 행동' }), env);
+  assert.equal(differentReplay.status, 409, 'same action_id cannot replay a different player action');
 
   // 5) Replay — extract_delta가 있으면 추가 LLM 호출 없음
   const beforeReplay = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && !llmBody(c).stream).length;
@@ -204,6 +218,37 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(replayBody.data.replayed, true);
   const afterReplay = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && !llmBody(c).stream).length;
   assert.equal(afterReplay, beforeReplay, 'replay 시 추가 LLM 호출 없음');
+});
+
+test('stored action route parity rejects reservation/row divergence before Story LLM and preserves exact rows when omitted', async () => {
+  const actionA = { type: 'app_transaction', version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };
+  const actionB = { type: 'app_transaction', version: 1, operations: [{ operation: 'deactivate', id: 'csa_1' }] };
+  const mismatchCases = [
+    { reservationStructuredAction: actionA, persistedStructuredAction: null },
+    { reservationStructuredAction: null, persistedStructuredAction: actionA },
+    { reservationStructuredAction: actionA, persistedStructuredAction: actionB }
+  ];
+  for (const options of mismatchCases) {
+    const mock = createMockFetch(options);
+    const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+    const before = mock.calls.filter(call => String(call.url).startsWith('https://llm.test')).length;
+    const response = await worker.fetch(request('/api/story', {
+      game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '일반 행동'
+    }), env);
+    assert.equal(response.status, 409);
+    assert.equal((await response.json()).error.code, 'structured_action_persistence_mismatch');
+    assert.equal(mock.calls.filter(call => String(call.url).startsWith('https://llm.test')).length, before);
+  }
+
+  const mock = createMockFetch({ reservationStructuredAction: actionA, persistedStructuredAction: actionA, actionKind: 'feedback_revision' });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const story = await worker.fetch(request('/api/story', {
+    game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '앱 변경을 이어간다.'
+  }), env);
+  assert.equal(story.status, 200);
+  await story.text();
+  const stored = mock.actions.get(actionId);
+  assert.deepEqual(stored.structured_action, actionA);
 });
 
 test('movement Commit recomputes the scene cast instead of reading removed parsed_blocks metadata', async () => {

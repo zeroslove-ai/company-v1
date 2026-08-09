@@ -50,17 +50,19 @@ import {
   calculateProgress,
   calculateCsaProgression,
   resolveStoredStructuredAction,
+  assertStoredActionPersistenceParity,
   applyAuthorizedRuleDefinitions,
   assertRuleDefinitionAuthority
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
+import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
 import { logTurnTiming, newRequestId } from './timing.js';
 
 const EXTRACT_DEGRADE_CODES = new Set(['llm_upstream_failure', 'extract_timeout', 'extract_invalid_json', 'extract_truncated']);
 
 function asHttpError(error) {
   if (error instanceof HttpError) return error;
-  if (error?.status === 409 && typeof error?.code === 'string' && error?.retryable === false) {
+  if (error instanceof StoredActionAuthorityError) {
     return new HttpError(409, error.code, error.message, false);
   }
   if (error instanceof GameCoreError) return new HttpError(422, error.code.toLowerCase(), error.message);
@@ -359,10 +361,12 @@ const master = masterFromEdition(edition);
       // 이후 조회·claim·SSE meta 모두 서버 정본 액션 ID를 따른다.
       const resolvedActionId = reservation?.action_id ?? actionId;
       const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, resolvedActionId));
-      if (requestedStructuredAction !== null) {
-        resolveStoredStructuredAction({ action: reservation, requestedStructuredAction, stage: 'reservation' });
-      }
-      const structuredAction = resolveStoredStructuredAction({ action, requestedStructuredAction, stage: 'story' });
+      const structuredAction = assertStoredActionPersistenceParity({
+        reservation,
+        action,
+        requestedStructuredAction,
+        stage: 'story'
+      });
       let retryingStory = false;
       // story_failed뿐 아니라 story_streaming(스토리 미완료 좌초)도 재시도를 허용한다.
       // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,

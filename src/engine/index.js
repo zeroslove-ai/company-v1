@@ -82,6 +82,7 @@ export { resolveTtsEligibility, ttsCacheKey } from './media/tts-contract.js';
 export { calculateProgress, calculateCsaProgression, expForNextLevel } from './progression.js';
 export {
   resolveStoredStructuredAction,
+  assertStoredActionPersistenceParity,
   applyAuthorizedRuleDefinitions,
   assertRuleDefinitionAuthority,
   StoredActionAuthorityError

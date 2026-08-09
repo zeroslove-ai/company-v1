@@ -34,7 +34,7 @@ export function clearPending(storage, gameId) {
   storage?.removeItem(pendingKey(gameId));
   notifyPendingStage(null);
 }
-export function recoveryFor(status) { const step = status?.recoverable_step ?? 'unknown'; return ['retry_story', 'resume_extract', 'retry_extract', 'resume_commit', 'retry_commit', 'complete', 'wait_story'].includes(step) ? step : 'unknown'; }
+export function recoveryFor(status) { const step = status?.recoverable_step ?? 'unknown'; return ['resume_story', 'retry_story', 'resume_extract', 'retry_extract', 'resume_commit', 'retry_commit', 'complete', 'wait_story'].includes(step) ? step : 'unknown'; }
 
 function legacyProgressedSave(context) {
   const save = saveFromContext(context);

@@ -7,6 +7,7 @@
 - Phase 0 fact inventory and target-state plan remain in the existing runtime-reset documents; this file records only the implementation delta.
 - `game_actions.structured_action` is resolved once and reused as the authority for Story, Extract, Commit, replay, recovery, and feedback revision.
 - A non-null request must match the stored action exactly; a non-null request without persistence fails with a non-retryable 409.
+- Reservation and persisted action rows must carry exact structured-action parity before Story work begins, including when the request omitted the field.
 - `csa_active` and `csa_rules` can change only from a stored, revalidated transaction plan. Ordinary Extract deltas cannot mutate rule definitions.
 - The API reservation mock and integration fixtures preserve the same structured action shape as the production RPC.
 
@@ -23,5 +24,16 @@
 
 ## Verification
 
-Latest local verification: `npm.cmd test` — 600/600 passed.
-Implementation commit: `c11d5e6ea1dcd828d0243bf898d1b9aa99ba5bdd`.
+Current implementation branch:
+`company/runtime-core-reset-v1-action-authority`
+
+Current review:
+PR #48 Draft
+
+Verified base:
+`7f0dbf71ebc093395fbeffdcd46cd05b4bc8f58a`
+
+Latest exact implementation SHA:
+See PR #48 HEAD and the completion report.
+
+Latest local verification: `npm.cmd test` — 607/607 passed.
