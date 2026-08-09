@@ -43,8 +43,7 @@ export {
   resolvePlayerCanonicalNames,
   buildOpeningPlan,
   buildPlayerPromptProjection,
-  buildOpeningPlayerProjection,
-  buildOpeningNextSave
+  buildOpeningPlayerProjection
 } from './player-setup.js';
 export { buildOpeningPrompt, splitOpeningSections } from './opening-prompt.js';
 

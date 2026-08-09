@@ -43,6 +43,16 @@
 
 Remaining phases: setup/opening bootstrap audit and operational migration/deployment work.
 
+## Phase 6 — turn-0 bootstrap authority and integration readiness
+
+- Branch: `company/runtime-core-reset-v1-bootstrap-authority`, stacked Draft PR on `company/runtime-core-reset-v1-projection-boundaries`.
+- Phase 5 baseline: **543/543 passed, 0 skipped, 0 failed**. Phase 6 targeted additions bring the current baseline to **547/547 passed, 0 skipped, 0 failed**.
+- Turn 0 remains an authorized bootstrap path: reserve setup/opening plan, then commit opening Story/background/choices. It does not call Extract or `reduceGameplayCommit`, and `committed_turn` remains 0.
+- The Supabase RPC wrappers project the saved opening plan into canonical `scene` and derive the legacy scene fields from that projection. Opening Story text cannot change location, presence, focal, or last speaker.
+- `buildOpeningNextSave` and its public export/test oracle are removed; production save writing remains in the setup/opening RPCs.
+- Migration and verification packages are prepared but not applied. No Supabase, production save, Worker, or live LLM operation was performed.
+- `docs/RUNTIME_RESET_INTEGRATION_PLAN.md` records the stacked chain, integration branch, old-PR inventory policy, and future operational order.
+
 ## Forbidden regressions
 
 - No new matcher, verifier, semantic gate, fallback authority, database/migration change, Supabase write, live LLM call, Worker deployment, or operating-save repair.
