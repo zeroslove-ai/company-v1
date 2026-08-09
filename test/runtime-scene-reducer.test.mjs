@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GameCoreError } from '../src/engine/errors.js';
-import { buildLegacySceneObservation, hydrateCanonicalScene, reduceCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
+import { hydrateCanonicalScene, reduceCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
 import { projectCanonicalSceneToLegacy } from '../src/engine/runtime-core/projections.js';
 import { assertCanonicalSceneInvariants } from '../src/engine/runtime-core/invariants.js';
 
@@ -75,15 +75,8 @@ test('projection is idempotent', () => { const scene = reduce({ observation: obs
 test('turn 12 local speaker without final evidence is unresolved', () => assert.throws(() => reduce({ observation: observation({ final: null, speakers: ['heroine1', 'heroine2'] }) }), error => error.code === 'SCENE_PRESENCE_UNRESOLVED'));
 test('turn 16 registered NPC is not added without final evidence', () => assert.deepEqual(reduce({ observation: observation({ final: null, speakers: [] }) }).present_npc_ids, ['heroine1']));
 test('turn 17 stale present flag cannot override participants', () => { const current = save({ scene_state: { participants: ['player-1', 'heroine1'] }, npc_scene_state: { heroine1: { present: false } } }); assert.deepEqual(hydrateCanonicalScene(current, { npcIds: NPCS }).present_npc_ids, ['heroine1']); });
-test('old direct movement sanitizer is no longer a scene writer', async () => { const module = await import('../src/engine/guarded-merge.js'); const next = save(); const before = clone(next); module.sanitizeMovementCommit({ beforeSave: before, nextSave: next, sceneCastContract: { transition_mode: 'movement', destination_location_id: 'destination' }, extractEnvelope: { outcome: 'success', npcs_present: ['heroine2'] } }); assert.deepEqual(next, before); });
 
 // Route/commit boundary contracts 43-50
-test('observation reads scene_id from Extract scene_state', () => assert.equal(buildLegacySceneObservation({ extract: { state_delta: { scene_state: { scene_id: 's' } }, evidence: {} }, npcIds: NPCS }).scene_id, 's'));
-test('observation reads location_id from Extract scene_state', () => assert.equal(buildLegacySceneObservation({ extract: { state_delta: { scene_state: { location_id: 'destination' } }, evidence: {} }, npcIds: NPCS }).location_id, 'destination'));
-test('observation marks final snapshot only with explicit evidence', () => assert.equal(buildLegacySceneObservation({ extract: { state_delta: {}, evidence: {}, npcs_present: ['heroine1'] }, npcIds: NPCS }).presence_is_final, false));
-test('observation keeps explicit empty snapshot distinct from null', () => { const observationValue = buildLegacySceneObservation({ extract: { state_delta: {}, evidence: { scene_presence_final: true }, npcs_present: [] }, npcIds: NPCS }); assert.deepEqual(observationValue.final_present_npc_ids, []); });
-test('observation derives last valid Story speaker', () => assert.equal(buildLegacySceneObservation({ extract: { state_delta: {}, evidence: {} }, parsedStory: { dialogue_lines: [{ speaker_id: 'heroine1' }, { speaker_id: 'heroine2' }] }, npcIds: NPCS }).last_explicit_speaker_id, 'heroine2'));
-test('observation ignores speaker without stable id', () => assert.deepEqual(buildLegacySceneObservation({ extract: { state_delta: {}, evidence: {} }, parsedStory: { dialogue_lines: [{ speaker_id: null }] }, npcIds: NPCS }).explicit_speaker_ids, []));
 test('canonical reducer returns a new scene object', () => { const current = hydrateCanonicalScene(save(), { npcIds: NPCS }); const next = reduce({ currentScene: current, observation: observation({ final: ['heroine2'] }) }); assert.notEqual(next, current); assert.deepEqual(current.present_npc_ids, ['heroine1']); });
 test('canonical invariants reject player in present NPC ids', () => assert.throws(() => assertCanonicalSceneInvariants({ save: save(), scene: { ...hydrateCanonicalScene(save(), { npcIds: NPCS }), present_npc_ids: ['player-1'] }, npcIds: NPCS }), error => error.code === 'CANONICAL_SCENE_INVARIANT'));
 

@@ -3,7 +3,7 @@
  * in a single csa_active[] array (activate pushes, deactivate flips
  * item.active=false but never removes it). Company's save schema instead
  * keeps csa_active as a plain list of currently-active ids (already the
- * contract gameplay-state.js/guarded-merge.js depend on) with the full rule
+ * contract used by the current gameplay reducers) with the full rule
  * body in csa_rules[id] — deactivate removes the id from csa_active but
  * keeps csa_rules[id] (with active:false stamped) forever, which is what
  * satisfies "해제 후 규칙 기록 보존" without changing the existing

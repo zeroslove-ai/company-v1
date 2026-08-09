@@ -53,7 +53,3 @@ export function projectCanonicalSceneToLegacy(save, scene, options = {}) {
 }
 
 /** Build a normalized legacy-shaped observation for diagnostics and compatibility callers. */
-export function buildLegacySceneProjection(save, options = {}) {
-  const scene = hydrateCanonicalScene(save, options);
-  return projectCanonicalSceneToLegacy(save, scene, options);
-}

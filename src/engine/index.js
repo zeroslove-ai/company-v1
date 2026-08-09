@@ -3,10 +3,8 @@ export { createEditionAdapter, validateEditionAdapter } from './edition.js';
 export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
 export { buildExtractPrompt } from './extract-prompt.js';
 export { parseNarrative } from './narrative-parser.js';
-export { normalizeExtractEnvelope } from './extract-envelope.js';
-export { applyGuardedStateDelta, reduceLegacyGameplayState, buildFallbackTurnChoices, sanitizeMovementCommit } from './guarded-merge.js';
-export { hydrateCanonicalScene, buildLegacySceneObservation, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
-export { projectCanonicalSceneToLegacy, buildLegacySceneProjection } from './runtime-core/projections.js';
+export { hydrateCanonicalScene, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
+export { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';
 export { assertCanonicalSceneInvariants } from './runtime-core/invariants.js';
 export { normalizeExtractObservationV2, buildDegradedExtractObservation, assertExtractObservationContract, assertScenePresenceCoverage } from './runtime-core/extract-observation.js';
 export { adaptLegacyExtractDelta } from './runtime-core/legacy-extract-adapter.js';
@@ -22,8 +20,6 @@ export {
 } from './runtime-core/observation-reducers.js';
 export { deriveRecoverableStep } from './turn-state.js';
 export {
-  normalizeMindMonitor,
-  normalizeGameplayExtractEnvelope,
   normalizeElapsedMinutes,
   advanceGameTime,
   formatGameTime,
@@ -32,7 +28,6 @@ export {
   migrateCompanySave,
   hydrateGameplayState,
   validateCsaRuntimeStatePatch,
-  buildDegradedExtractEnvelope,
   buildStableNpcIdSet,
   selectActiveCharacterIds,
   buildActiveCharacterCanon,

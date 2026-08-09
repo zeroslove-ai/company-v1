@@ -1,5 +1,4 @@
 import { advanceGameTime, hydrateGameplayState, reducePlayerSexualState } from '../gameplay-state.js';
-import { buildFallbackTurnChoices } from '../guarded-merge.js';
 import { buildSceneStatePatch } from '../state/physical-state.js';
 import { applyNpcStatChanges } from '../relationship/reducer.js';
 import { appendSexualEvents, reduceEjaculationCounts } from '../sexual-state/ledger.js';
@@ -57,6 +56,22 @@ function registered(id, npcIds) { return typeof id === 'string' && (!npcIds?.siz
 function currentNpcIds(save, npcIds) {
   const scene = hydrateCanonicalScene(save, { npcIds });
   return new Set(scene.present_npc_ids ?? []);
+}
+
+function buildFallbackTurnChoices(save, options = {}) {
+  const hasActiveRule = Array.isArray(save?.csa_active) && save.csa_active.length > 0;
+  const focalName = options?.focalName ?? '';
+  const candidates = [];
+  const push = text => { if (!candidates.includes(text)) candidates.push(text); };
+  push('이야기를 계속 이어간다');
+  push(hasActiveRule ? '규정의 구체적인 내용을 질문한다' : '상대의 의견을 확인한다');
+  if (focalName) {
+    push(`${focalName}에게 직접 확인한다`);
+    push(`${focalName}의 반응을 살핀다`);
+  }
+  push('다른 NPC의 반응을 확인한다');
+  push('자유롭게 다른 행동을 선택한다');
+  return candidates;
 }
 
 function observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds } = {}) {

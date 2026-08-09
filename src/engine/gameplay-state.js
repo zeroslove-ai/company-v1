@@ -1,8 +1,6 @@
 import { GameCoreError } from './errors.js';
 import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
 
-const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked', 'degraded']);
-const FORBIDDEN_MIND_KEYS = new Set(['body', 'physical', 'body_reaction', 'physical_action', '신체반응', '신체·행동 반응']);
 const TURN_CHANGE_ROOTS = new Set([
   'player_sexual_state', 'npc_stats', 'npc_relationship_state', 'npc_emotion',
   'scene_state', 'world_state', 'csa_runtime_state', 'csa_aftereffect_state'
@@ -57,10 +55,6 @@ export function normalizeImageSelection(value) {
 
 function identity(value) {
   return typeof value === 'string' && value.trim() ? value : null;
-}
-
-function choices(value) {
-  return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) : [];
 }
 
 function clamp(value, min, max) {
@@ -203,33 +197,11 @@ function canonicalGameTime(value) {
   };
 }
 
-function normalDialogueLines(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter(object).map((line, order) => ({
-    speaker_id: identity(line.speaker_id),
-    speaker_name: stringOrEmpty(line.speaker_name),
-    direction: stringOrEmpty(line.direction),
-    text: stringOrEmpty(line.text),
-    order: integer(line.order) ?? order
-  })).filter(line => line.text);
-}
-
 /**
  * The Story parser is always authoritative for dialogue text, direction, and order.
  * Extract may only enrich a speaker_id the parser could not resolve, and only for a
  * line it can identify by an exact order+text match — it can never rewrite dialogue.
  */
-function mergeDialogueLines(parserDialogueLines, extractDialogueLines) {
-  const parserLines = normalDialogueLines(parserDialogueLines);
-  const extractLines = normalDialogueLines(extractDialogueLines);
-  const bySignature = new Map(extractLines.map(line => [`${line.order} ${line.text}`, line]));
-  return parserLines.map(line => {
-    if (line.speaker_id) return line;
-    const enrichment = bySignature.get(`${line.order} ${line.text}`);
-    return enrichment && enrichment.speaker_id ? { ...line, speaker_id: enrichment.speaker_id } : line;
-  });
-}
-
 /** Builds the stable NPC id universe from normalized character/general-NPC lists. */
 export function buildStableNpcIdSet({ characters = [], generalNpcs = [] } = {}) {
   const ids = new Set();
@@ -240,158 +212,6 @@ export function buildStableNpcIdSet({ characters = [], generalNpcs = [] } = {}) 
     }
   }
   return ids;
-}
-
-function validatedNpcId(value, npcIds, warnings, code) {
-  const id = identity(value);
-  if (id === null) return null;
-  if (!(npcIds instanceof Set)) return id;
-  if (npcIds.has(id)) return id;
-  warnings.push(`unknown_npc_id:${code}:${id}`);
-  return null;
-}
-
-function validatedNpcList(value, npcIds, warnings, code) {
-  const list = choices(value);
-  if (!(npcIds instanceof Set)) return list;
-  const kept = [];
-  for (const id of list) {
-    if (npcIds.has(id)) kept.push(id);
-    else warnings.push(`unknown_npc_id:${code}:${id}`);
-  }
-  return kept;
-}
-
-function validatedMindMonitor(mindMonitor, npcIds, warnings) {
-  if (!(npcIds instanceof Set)) return mindMonitor;
-  const kept = {};
-  for (const [npcId, entry] of Object.entries(mindMonitor)) {
-    if (npcIds.has(npcId)) kept[npcId] = entry;
-    else warnings.push(`unknown_npc_id:mind_monitor:${npcId}`);
-  }
-  return kept;
-}
-
-/**
- * Produces canonical display-safe mind monitor data without mutating the input.
- * Legacy string monitors are retained separately so no text is discarded.
- */
-export function normalizeMindMonitor(input) {
-  const warnings = [];
-  if (typeof input === 'string') {
-    return { mind_monitor: {}, legacy_text: input, warnings: ['legacy_mind_monitor_preserved'] };
-  }
-  if (!object(input)) return { mind_monitor: {}, legacy_text: '', warnings };
-
-  const mind_monitor = {};
-  for (const [npcId, value] of Object.entries(input)) {
-    if (!object(value)) {
-      if (typeof value === 'string') warnings.push(`legacy_mind_monitor_entry:${npcId}`);
-      continue;
-    }
-    const entry = {};
-    for (const key of ['surface', 'subconscious']) {
-      if (typeof value[key] === 'string') entry[key] = value[key];
-    }
-    for (const key of Object.keys(value)) {
-      if (FORBIDDEN_MIND_KEYS.has(key)) warnings.push(`forbidden_mind_monitor_key:${npcId}:${key}`);
-    }
-    if (Object.keys(entry).length > 0) mind_monitor[npcId] = entry;
-  }
-  return { mind_monitor, legacy_text: '', warnings };
-}
-
-/** Normalizes the extended gameplay Extract contract while retaining parser authority. */
-const CSA_TRIGGER_STATUSES = new Set(['satisfied', 'continuing', 'temporarily_interrupted', 'not_satisfied', 'ended']);
-const CSA_RUNTIME_UPDATE_STATUSES = new Set(['inactive', 'active', 'paused', 'ended']);
-
-/**
- * Shape-only normalization for Extract's csa_trigger_evaluations — cross-
- * referencing against the currently-active preset CSA id set happens later,
- * at commit time (buildCsaRuntimeStatePatch), since this function has no
- * access to CSA state. An item with an unknown csa_id or invalid status is
- * dropped with a warning; the rest of the array survives.
- */
-function normalizeCsaTriggerEvaluations(value, warnings) {
-  if (!Array.isArray(value)) return [];
-  const result = [];
-  for (const item of value) {
-    const csaId = identity(item?.csa_id);
-    if (!csaId || !CSA_TRIGGER_STATUSES.has(item?.status)) { warnings.push('invalid_csa_trigger_evaluation'); continue; }
-    result.push({ csa_id: csaId, status: item.status });
-  }
-  return result;
-}
-
-/** Shape-only normalization for Extract's csa_runtime_updates — see normalizeCsaTriggerEvaluations. */
-function normalizeCsaRuntimeUpdates(value, warnings) {
-  if (!Array.isArray(value)) return [];
-  const result = [];
-  for (const item of value) {
-    const csaId = identity(item?.csa_id);
-    const characterId = identity(item?.character_id);
-    if (!csaId || !characterId || !CSA_RUNTIME_UPDATE_STATUSES.has(item?.status)) { warnings.push('invalid_csa_runtime_update'); continue; }
-    result.push({
-      csa_id: csaId, character_id: characterId, status: item.status,
-      target_type: typeof item?.target_type === 'string' ? item.target_type.slice(0, 40) : null,
-      action_state: typeof item?.action_state === 'string' ? item.action_state.slice(0, 60) : null,
-      position_label: typeof item?.position_label === 'string' ? item.position_label.trim().slice(0, 100) : null,
-      reason: typeof item?.reason === 'string' ? item.reason.trim().slice(0, 100) : null
-    });
-  }
-  return result;
-}
-
-export function normalizeGameplayExtractEnvelope(value, { parsedStory = {}, npcIds } = {}) {
-  if (!object(value) || !object(value.state_delta)) {
-    throw new GameCoreError('INVALID_EXTRACT', 'Extract must contain an object state_delta');
-  }
-  if (!OUTCOMES.has(value.outcome)) {
-    throw new GameCoreError('INVALID_EXTRACT', 'Extract outcome is invalid');
-  }
-  const idWarnings = [];
-  const normalizedMonitor = normalizeMindMonitor(value.mind_monitor);
-  // 선택지 정본은 Story뿐이다 — Extract는 선택지를 만들거나 수정하지 않는다.
-  // Story 4개면 그대로, 1~3개면 보존(부족분은 guarded-merge가 보충), 5개 이상이면 앞 4개,
-  // 0개면 빈 배열(guarded-merge가 UI 안전 기본 4개로 보충).
-  const finalChoices = choices(parsedStory?.choices).slice(0, 4);
-  const npcsPresent = validatedNpcList(value.npcs_present, npcIds, idWarnings, 'npcs_present');
-  const actionTargetId = validatedNpcId(value.action_target_id, npcIds, idWarnings, 'action_target_id');
-  const focalCharacterId = validatedNpcId(value.focal_character_id, npcIds, idWarnings, 'focal_character_id');
-  const lastSpeakerId = validatedNpcId(value.last_speaker_id, npcIds, idWarnings, 'last_speaker_id');
-  const imageCharacterId = validatedNpcId(value.image_character_id, npcIds, idWarnings, 'image_character_id');
-  const mindMonitor = validatedMindMonitor(normalizedMonitor.mind_monitor, npcIds, idWarnings);
-  const csaTriggerEvaluations = normalizeCsaTriggerEvaluations(value.csa_trigger_evaluations, idWarnings);
-  const csaRuntimeUpdates = normalizeCsaRuntimeUpdates(value.csa_runtime_updates, idWarnings);
-  const warnings = [...new Set([
-    ...(Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string' && item.trim()) : []),
-    ...normalizedMonitor.warnings,
-    ...idWarnings,
-    ...(finalChoices.length === 4 ? ['story_choices_authoritative'] : []),
-    ...(finalChoices.length === 4 ? [] : ['choices_not_exactly_four'])
-  ])];
-  return {
-    state_delta: clone(value.state_delta),
-    outcome: value.outcome,
-    evidence: object(value.evidence) ? clone(value.evidence) : {},
-    turn_summary: stringOrEmpty(value.turn_summary),
-    mind_monitor: mindMonitor,
-    legacy_mind_monitor_text: normalizedMonitor.legacy_text,
-    choices: finalChoices,
-    dialogue_lines: mergeDialogueLines(parsedStory?.dialogue_lines, value.dialogue_lines),
-    npcs_present: npcsPresent,
-    action_target_id: actionTargetId,
-    focal_character_id: focalCharacterId,
-    last_speaker_id: lastSpeakerId,
-    image_character_id: imageCharacterId,
-    image_selection: normalizeImageSelection(value.image_selection),
-    player_inner_thought: stringOrEmpty(parsedStory?.player_inner_thought),
-    turn_changes: Array.isArray(value.turn_changes) ? clone(value.turn_changes) : [],
-    elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
-    csa_trigger_evaluations: csaTriggerEvaluations,
-    csa_runtime_updates: csaRuntimeUpdates,
-    warnings
-  };
 }
 
 /**
@@ -419,60 +239,6 @@ export function validateCsaRuntimeStatePatch(csaId, patch) {
     if (!['lifecycle', 'applicability', 'execution_state'].includes(key)) clean[key] = clone(patch[key]);
   }
   return { patch: clean, warnings };
-}
-
-function collectDialogueLines(parsedStory) {
-  if (Array.isArray(parsedStory?.dialogue_lines) && parsedStory.dialogue_lines.length > 0) {
-    return normalDialogueLines(parsedStory.dialogue_lines);
-  }
-  const dialogueBlocks = Array.isArray(parsedStory?.blocks) ? parsedStory.blocks.filter(block => block?.type === 'dialogue') : [];
-  return normalDialogueLines(dialogueBlocks.map((block, order) => ({
-    speaker_id: identity(block.speaker_id),
-    speaker_name: stringOrEmpty(block.speaker ?? block.speaker_name),
-    direction: stringOrEmpty(block.direction),
-    text: stringOrEmpty(block.text),
-    order
-  })));
-}
-
-/** A short, deterministic Korean turn summary built without any additional LLM call. */
-
-/**
- * Builds the deterministic degraded Extract envelope used when the real Extract call
- * fails or cannot be normalized. No LLM call is made; every field the Story parser
- * already produced is preserved verbatim so the turn can still commit.
- */
-export function buildDegradedExtractEnvelope({ parsedStory = {}, playerAction = '', extraWarnings = [] } = {}) {
-  const story = object(parsedStory) ? parsedStory : {};
-  const sceneText = stringOrEmpty(story.scene_text) || (Array.isArray(story.blocks)
-    ? story.blocks.filter(block => block?.type === 'scene').map(block => block.text).join(' ')
-    : '');
-  const storyChoices = choices(story.choices);
-  return {
-    state_delta: {},
-    outcome: 'degraded',
-    evidence: {},
-    turn_summary: '',  // turn_summary는 빈 문자열 허용 — 최신 Story context 근거로 사용하지 않는다.
-    mind_monitor: {},
-    legacy_mind_monitor_text: '',
-    choices: storyChoices,
-    dialogue_lines: collectDialogueLines(story),
-    npcs_present: [],
-    action_target_id: null,
-    focal_character_id: null,
-    last_speaker_id: null,
-    image_character_id: null,
-    player_inner_thought: stringOrEmpty(story.player_inner_thought),
-    turn_changes: [],
-    elapsed_minutes: 3,
-    csa_trigger_evaluations: [],
-    csa_runtime_updates: [],
-    warnings: [...new Set([
-      'extract_degraded',
-      ...(storyChoices.length !== 4 ? ['choices_not_exactly_four'] : []),
-      ...extraWarnings
-    ])]
-  };
 }
 
 /** Extract may propose 1-30 minutes, or 1-480 with explicit time_advance evidence. */

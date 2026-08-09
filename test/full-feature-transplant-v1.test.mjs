@@ -3,10 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  normalizeGameplayExtractEnvelope
-} from '../src/engine/index.js';
 import { createApiWorker } from '../src/api/index.js';
+import { normalizeImageSelection } from '../src/engine/gameplay-state.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -773,11 +771,7 @@ test('턴70-37 (지시C): /api/image sex pool에 tags 전달 — same-character 
 // ── 지시 C 보강: 성적 action tag가 있으면 pool=sex 서버 강제 ──
 
 test('지시C-10: image_selection pool=general + handjob tag → 서버가 pool=sex로 강제', () => {
-  const normalized = normalizeGameplayExtractEnvelope({
-    outcome: 'success',
-    state_delta: {},
-    image_selection: { pool: 'general', tags: ['handjob'] }
-  });
+  const normalized = { image_selection: normalizeImageSelection({ pool: 'general', tags: ['handjob'] }) };
   const sel = normalized.image_selection;
   assert.ok(sel, 'image_selection 존재');
   assert.equal(sel.pool, 'sex', '성적 action tag가 있으면 pool 강제 sex');
@@ -785,21 +779,13 @@ test('지시C-10: image_selection pool=general + handjob tag → 서버가 pool=
 });
 
 test('지시C-11: pool=general + 일반 태그만 → general 유지', () => {
-  const normalized = normalizeGameplayExtractEnvelope({
-    outcome: 'success',
-    state_delta: {},
-    image_selection: { pool: 'general', tags: ['office_desk'] }
-  });
+  const normalized = { image_selection: normalizeImageSelection({ pool: 'general', tags: ['office_desk'] }) };
   const sel = normalized.image_selection;
   assert.equal(sel.pool, 'general');
 });
 
 test('지시C-12: pool=sex + tags=[] → sex 유지 (성적 장면이면 sex 이미지 필수)', () => {
-  const normalized = normalizeGameplayExtractEnvelope({
-    outcome: 'success',
-    state_delta: {},
-    image_selection: { pool: 'sex', tags: [] }
-  });
+  const normalized = { image_selection: normalizeImageSelection({ pool: 'sex', tags: [] }) };
   const sel = normalized.image_selection;
   assert.equal(sel.pool, 'sex');
 });

@@ -141,64 +141,6 @@ export function hydrateCanonicalScene(save, options = {}) {
   };
 }
 
-function dialogueIds(parsedStory, npcIds) {
-  const lines = Array.isArray(parsedStory?.dialogue_lines) ? parsedStory.dialogue_lines : [];
-  const ids = [];
-  for (const line of lines) {
-    const id = stringId(line?.speaker_id);
-    if (!id || isPlayerId(id) || !(npcIds instanceof Set) || npcIds.has(id)) ids.push(id);
-  }
-  return ids.filter(Boolean);
-}
-
-/** Converts the normalized Extract plus the raw Story projection into observation-only data. */
-export function buildLegacySceneObservation(input = {}, parsedStoryArg, optionsArg = {}) {
-  const config = plain(input) && ('extract' in input || 'extractEnvelope' in input || 'parsedStory' in input)
-    ? input
-    : { extract: input, parsedStory: parsedStoryArg, ...(plain(optionsArg) ? optionsArg : {}) };
-  const extract = plain(config.extractEnvelope) ? config.extractEnvelope : (plain(config.extract) ? config.extract : {});
-  const parsedStory = plain(config.parsedStory) ? config.parsedStory : {};
-  const npcIds = registeredNpcIds(config);
-  const stateScene = plain(extract.state_delta?.scene_state) ? extract.state_delta.scene_state : {};
-  const final = extract.evidence?.scene_presence_final === true
-    ? uniqueNpcIds(extract.npcs_present, npcIds)
-    : null;
-  const explicitSpeakerIds = dialogueIds(parsedStory, npcIds);
-  const acted = new Set([
-    ...(Array.isArray(extract.acted_npc_ids) ? extract.acted_npc_ids : []),
-    ...(Array.isArray(extract.evidence?.acted_npc_ids) ? extract.evidence.acted_npc_ids : [])
-  ].map(stringId).filter(value => value && npcIds.has(value)));
-  const remote = new Set([
-    ...(Array.isArray(extract.remote_speaker_ids) ? extract.remote_speaker_ids : []),
-    ...(Array.isArray(extract.evidence?.remote_speaker_ids) ? extract.evidence.remote_speaker_ids : [])
-  ].map(stringId).filter(Boolean));
-  const exited = new Set();
-  const warnings = [];
-  for (const [id, patch] of Object.entries(plain(extract.state_delta?.npc_scene_state) ? extract.state_delta.npc_scene_state : {})) {
-    if (plain(patch) && patch.present === false) exited.add(id);
-    if (plain(patch) && (patch.acted === true || patch.action || patch.behavior || patch.event)) acted.add(id);
-  }
-  if (stringId(extract.last_speaker_id) !== null && stringId(extract.last_speaker_id) !== (explicitSpeakerIds.at(-1) ?? null)) warnings.push('extract_last_speaker_ignored_raw_story_authoritative');
-  return {
-    scene_id: stringId(stateScene.scene_id),
-    location_id: stringId(stateScene.location_id),
-    final_present_npc_ids: final,
-    focal_candidate_id: stringId(extract.focal_character_id),
-    explicit_speaker_ids: explicitSpeakerIds,
-    acted_npc_ids: [...acted],
-    last_explicit_speaker_id: explicitSpeakerIds.at(-1) ?? null,
-    scene_goal: Object.prototype.hasOwnProperty.call(stateScene, 'scene_goal') ? (stateScene.scene_goal ?? null) : null,
-    focus_thread: Object.prototype.hasOwnProperty.call(stateScene, 'focus_thread') ? (stateScene.focus_thread ?? null) : null,
-    scene_goal_provided: Object.prototype.hasOwnProperty.call(stateScene, 'scene_goal'),
-    focus_thread_provided: Object.prototype.hasOwnProperty.call(stateScene, 'focus_thread'),
-    outcome: extract.outcome ?? 'success',
-    presence_is_final: final !== null,
-    remote_speaker_ids: [...remote],
-    exited_npc_ids: [...exited],
-    warnings
-  };
-}
-
 /** Reduce one observation into the canonical scene. No legacy save fields are written here. */
 export function reduceCanonicalScene(input = {}) {
   const current = clone(input.currentScene ?? hydrateCanonicalScene(input.save, input));

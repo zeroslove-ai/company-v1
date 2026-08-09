@@ -2,46 +2,42 @@
 
 ## Phase 1 — stored action authority
 
-- `game_actions.structured_action` is resolved once and reused as the authority for Story, Extract, Commit, replay, recovery, and feedback revision.
-- A non-null request must match the stored action exactly; a non-null request without persistence fails before Story work.
-- `csa_active` and `csa_rules` can change only from a stored, revalidated transaction plan.
+- Approved/frozen. `game_actions.structured_action` is resolved once and reused for Story, Extract, Commit, replay, recovery, and feedback revision.
+- A non-null request must match the stored action exactly; CSA definitions change only from a stored, revalidated transaction plan.
 
 ## Phase 2 — canonical scene and presence
 
-- Working branch: `company/runtime-core-reset-v1-canonical-scene`.
-- The canonical gameplay scene is a version-1 object with separate `scene_id`, `location_id`, `beat`, `goal`, `focus_thread`, `present_npc_ids`, `focal_character_id`, `last_speaker_id`, and `updated_turn`.
-- `hydrateCanonicalScene()` performs a deterministic, non-mutating one-time bootstrap. Existing version-1 scenes are authoritative; legacy participants, last presence, and present flags are never unioned.
-- `buildLegacySceneObservation()` is a temporary Extract observation adapter. Null final presence means unobserved; an empty array means an observed player-only scene.
-- `reduceCanonicalScene()` is the single gameplay scene writer. Only a successful movement with an explicit final presence snapshot changes location/presence and resets `beat`; stationary, partial, interrupted, blocked, refused, and degraded turns preserve scene fields while advancing ordinary gameplay `beat`/`updated_turn`. Feedback revisions preserve the entire canonical scene.
-- `projectCanonicalSceneToLegacy()` is the single legacy compatibility writer for scene participants, last presence, focal, last speaker, and NPC presence/location fields. Physical clothing/posture data remains separate and is preserved.
-- `assertCanonicalSceneInvariants()` compares the actual saved canonical and legacy fields (not a newly generated projection) and stops Commit on invalid presence, focal, speaker, location, or projection state.
-- Commit no longer calls `sanitizeMovementCommit()` or uses `buildSceneCastContract()` as a presence writer. Scene cast remains Story/Extract context only.
-- `applyGuardedStateDelta()` no longer writes scene presence, focal, last speaker, or NPC presence/location fields; it remains the non-scene physical/stat/relationship merge path.
-- Opening initialization creates the canonical scene and then projects it through the same legacy projection.
+- Approved/frozen. The canonical gameplay scene keeps separate `scene_id`, `location_id`, `beat`, `goal`, `focus_thread`, `present_npc_ids`, `focal_character_id`, `last_speaker_id`, and `updated_turn`.
+- `hydrateCanonicalScene()` bootstraps deterministically without unioning legacy participants, last presence, or present flags.
+- `reduceCanonicalScene()` is the single scene writer; `projectCanonicalSceneToLegacy()` remains the save-schema compatibility writer.
+- SceneCast is Story-only context, not Extract context.
+- `buildLegacySceneObservation()` is deleted in Phase 4; no production caller remains.
 
 ## Phase 3 — Extract Observation V2
 
-- Working branch: `company/runtime-core-reset-v1-extract-observation` (stacked on the Phase 2 canonical-scene branch).
-- Fresh Extract output is normalized as `extract_version: 2` observation data. Save-path patches are rejected from the V2 contract.
-- `reduceGameplayCommit()` is the production Commit orchestration writer. It dispatches V2 observations to explicit physical/sexual/stat/emotion/relationship/work/CSA-attitude/event/time/choice reducers, applies the Phase 2 canonical scene reducer, projects legacy scene fields, and validates invariants.
-- `adaptLegacyExtractDelta()` is read-only compatibility for persisted V1 action rows; fresh V2 extraction does not use it.
-- Parser choices, dialogue order, player inner thought, and raw Story remain parser authorities; Extract does not write replacement projections.
-- `applyGuardedStateDelta()` remains only as a deprecated V1 test/comparison entry point and has no API production caller.
-- V2 observation data is never converted into a legacy envelope or `state_delta`; persisted V1 rows alone use the read-only adapter before the same explicit reducers.
-- Extract authority violations (`state_delta`, identity/parser projections, save roots, or unsupported versions) are hard failures; only transport/timeout/truncated-JSON failures degrade.
-- Scene evidence is typed and exact-quote based. Final presence snapshots require evidence; null snapshots can apply validated entered/exited patches. Mind Monitor entries are limited to resulting current presence.
+- Approved/frozen. Phase 3 final baseline: **688 tests**.
+- Fresh Extract output is normalized as `extract_version: 2` observation data and reduced by `reduceGameplayCommit()` through explicit domain reducers and the canonical scene reducer.
+- `adaptLegacyExtractDelta()` remains the read-only adapter for persisted V1 action rows; fresh V2 extraction never uses it.
+- Parser choices, dialogue order, player inner thought, and raw Story remain parser authorities. Extract authority violations are hard failures; transport failures use degraded V2 observation.
+- Scene evidence is exact-quote based, final presence is covered at Commit, and Mind Monitor stores only resulting current presence.
+
+## Phase 4 — legacy runtime prune
+
+- Branch: `company/runtime-core-reset-v1-legacy-prune`.
+- Stacked Draft PR base: `company/runtime-core-reset-v1-extract-observation`.
+- `guarded-merge.js` is deleted. Its choice fallback helper now lives as a non-exported helper inside `observation-reducers.js`.
+- Deprecated guarded merge, movement sanitizer, legacy Extract envelope normalizers, and legacy scene observation/projection adapters are removed from production exports and callers.
+- `legacy-extract-adapter.js` remains for persisted V1 rows only.
+- Source line reduction and deleted symbols are recorded in the Phase 4 completion report.
 
 ## Remaining phases
 
-- Phase 4: remove the deprecated V1 guarded-merge entry point after persisted-row compatibility is no longer needed.
 - Later phases: UI, TTS/image projections, setup/opening cleanup, and operational migration work.
 
 ## Forbidden regressions
 
-- No new matcher, verifier, semantic gate, or fallback authority.
-- No database or migration changes, Supabase writes, live LLM calls, Worker deployment, or operating-save repair in this phase.
+- No new matcher, verifier, semantic gate, fallback authority, database/migration change, Supabase write, live LLM call, Worker deployment, or operating-save repair.
 
 ## Verification
 
-- Phase 2 regression suite covers bootstrap precedence, null/empty presence, movement, focal/last-speaker rules, projection idempotence, operational turns 12/16/17, and route boundaries.
-- The Phase 2 baseline passed 661 tests. Phase 3 adds observation/reducer and route-boundary coverage; the current full suite passes 676 tests.
+- Product regression coverage remains on the V2 Story→Extract→Commit path, persisted V2 replay, persisted V1 adaptation, feedback revision, movement outcomes, presence, relationship evidence, off-scene domain eligibility, deterministic events, choice fallback, degraded transport, and Turns 12/16/17.

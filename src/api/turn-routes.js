@@ -645,20 +645,20 @@ const master = masterFromEdition(edition);
         const extract = action.extract_delta?.extract_version === 2
           ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId })
           : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
-        const mergeStart = Date.now();
+        const reducerStart = Date.now();
         const merged = reduceGameplayCommit({
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,
           action, expectedTurn, master, npcIds,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
-        timing.guarded_merge_ms = Date.now() - mergeStart;
+        timing.commit_reducer_ms = Date.now() - reducerStart;
         let nextSave = merged.nextSave;
         const warnings = merged.warnings;
         const canonicalScene = merged.canonical_scene;
         // Canonical scene reduction is the only gameplay presence writer. Feedback revisions
         // and degraded observations preserve the existing canonical scene.
-        // The app transaction never gets its own save API — its csa_active/csa_rules result rides
-        // through this same guarded-merge commit, applied on top of the normal Extract delta.
+        // The app transaction never gets its own save API; its csa_active/csa_rules result rides
+        // through the normal V2 Commit reducer on top of the Extract observation.
         const csaPlan = action.action_kind === 'feedback_revision'
           ? null
           : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
@@ -753,7 +753,7 @@ const master = masterFromEdition(edition);
       } finally {
         logTurnTiming({
           event_stage: 'commit', request_id: requestId, action_id: actionId, game_id: gameId, expected_turn: expectedTurn,
-          context_rpc_ms: timing.context_rpc_ms, guarded_merge_ms: timing.guarded_merge_ms, commit_rpc_ms: timing.commit_rpc_ms,
+          context_rpc_ms: timing.context_rpc_ms, commit_reducer_ms: timing.commit_reducer_ms, commit_rpc_ms: timing.commit_rpc_ms,
           turn_total_ms: Date.now() - startedAt
         });
       }

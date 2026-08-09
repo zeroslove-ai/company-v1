@@ -4,8 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch,
-  normalizeGameplayExtractEnvelope
+  buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch
 } from '../src/engine/index.js';
 import { toolbarCapabilities } from '../src/frontend/pages/app.js';
 
@@ -113,24 +112,6 @@ test('runtime tracking: a csa_runtime_updates status="ended" report transitions 
   assert.ok(result.patch);
   assert.equal(result.patch.csa_0.execution_state, 'not_started');
   assert.equal(result.patch.csa_0.end_reason, '업무 종료');
-});
-
-test('runtime tracking: an invalid csa_runtime_updates item (missing character_id) is dropped with a warning, valid items in the same array survive', () => {
-  const npcIds = new Set(['heroine1']);
-  const envelope = normalizeGameplayExtractEnvelope({
-    state_delta: {}, outcome: 'success', evidence: {}, turn_summary: '', mind_monitor: {},
-    choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], npcs_present: ['heroine1'],
-    action_target_id: null, focal_character_id: null, last_speaker_id: null, image_character_id: null,
-    player_inner_thought: '', player_status: '', elapsed_minutes: 5,
-    csa_runtime_updates: [
-      { csa_id: 'csa_0', status: 'active' }, // missing character_id -> dropped
-      { csa_id: 'csa_1', character_id: 'heroine1', status: 'active' } // valid -> survives
-    ],
-    csa_trigger_evaluations: []
-  }, { parsedStory: {}, npcIds });
-  assert.equal(envelope.csa_runtime_updates.length, 1);
-  assert.equal(envelope.csa_runtime_updates[0].csa_id, 'csa_1');
-  assert.ok(envelope.warnings.includes('invalid_csa_runtime_update'));
 });
 
 // ---------- App button toolbar gating ----------
