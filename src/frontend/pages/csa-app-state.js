@@ -1,6 +1,6 @@
 /**
  * Pure draft-state logic for the 상식개변 앱, ported from donor's pages/csa-app.js
- * (presetCatalogItem/presetOptionLabel/presetPreviewContent/operations/dirty/
+ * (presetCatalogItem/presetPreviewContent/operations/dirty/
  * hydrateDraftItem/applyPresetDefaults/resetPresetSelection/
  * isPresetPayloadComplete/payloadFields/presetStructureEqual). No DOM access —
  * only object/array transforms, so it's unit-testable without a document.
@@ -10,14 +10,6 @@ const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
 
 function clone(value) { return JSON.parse(JSON.stringify(value || [])); }
 function normalize(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
-function hasBatchim(value) {
-  const code = String(value || '').trim().slice(-1).codePointAt(0) || 0;
-  return code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
-}
-function subject(label) { return `${label}${hasBatchim(label) ? '이' : '가'}`; }
-function possessive(label) { return `${label}의`; }
-function conjunction(label) { return `${label}${hasBatchim(label) ? '과' : '와'}`; }
-
 export function activeItems(draft) {
   return (draft?.csa || []).filter(item => !item._deleted);
 }
@@ -30,10 +22,6 @@ export function normalizeStrengthId(appState, value) {
 
 export function presetCatalogItem(appState, templateId) {
   return (appState?.csa_presets?.items || []).find(entry => entry.id === templateId) || null;
-}
-
-export function presetOptionLabel(appState, kind, id) {
-  return (appState?.csa_presets?.selector_options || []).find(entry => entry.id === id)?.label || id || '';
 }
 
 export function presetStrength(item) {
@@ -51,12 +39,12 @@ export function applyPresetDefaults(item, catalogItem) {
   if (!catalogItem) return;
   item.category = catalogItem.category;
   item.template_id = catalogItem.id;
-  item.roles = {};
+  delete item.roles;
   item.strength = presetStrength(catalogItem);
 }
 
 export function resetPresetSelection(item, { preserveStrength = true } = {}) {
-  item.category = null; item.template_id = null; item.roles = {}; item.content = '';
+  item.category = null; item.template_id = null; delete item.roles; item.content = '';
   if (!preserveStrength) item.strength = null;
 }
 
@@ -70,7 +58,7 @@ export function hydrateDraftItem(item, appState = null) {
     const catalogItem = presetCatalogItem(appState, item.preset.template_id);
     item.template_id = item.preset.template_id;
     item.category = catalogItem?.category ?? item.category ?? null;
-    item.roles = {};
+    delete item.roles;
     item.strength = normalizeStrengthId(appState, item.strength) || presetStrength(catalogItem) || null;
   } else {
     item.source_type = 'custom';
@@ -111,7 +99,6 @@ function payloadFields(appState, item) {
 function presetStructureEqual(appState, item, beforePreset) {
   if (!beforePreset) return false;
   return item.template_id === beforePreset.template_id
-    && JSON.stringify(item.roles || {}) === JSON.stringify(beforePreset.roles || {})
     && normalizeStrengthId(appState, item.strength) === presetStrength(presetCatalogItem(appState, beforePreset.template_id));
 }
 

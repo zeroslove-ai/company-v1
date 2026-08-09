@@ -10,13 +10,13 @@ import { ApiError } from './api.js';
 import {
   activeItems, applyPresetDefaults, createDraft,
   isPresetPayloadComplete, normalizeStrengthId, operations, presetCatalogItem,
-  presetOptionLabel, presetPreviewContent, presetStrength, resetPresetSelection
+  presetPreviewContent, presetStrength, resetPresetSelection
 } from './csa-app-state.js';
 
 const STRENGTH_DESCRIPTIONS = {
-  weak: '밀착, 은근한 접촉, 야한 자세와 복장이 자연스러운 상식으로 바뀝니다.',
-  medium: '직접적인 신체 노출과 성적 접촉이 자연스러운 행동으로 이어집니다.',
-  strong: '플레이어가 지정한 구체적인 성행위와 체위가 실제 행동으로 이어집니다.'
+  weak: '사내 지침·운영 규정 — 밀착, 은근한 접촉, 야한 자세와 복장에 관한 제도입니다.',
+  medium: '취업규칙·전사 준수 규정 — 직접적인 신체 노출과 성적 접촉에 관한 제도입니다.',
+  strong: '국가 법령·관계 당국 의무 지침 — 플레이어가 지정한 구체적인 성행위와 체위에 관한 제도입니다.'
 };
 
 function messageFor(error) {
@@ -267,7 +267,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     ], value => {
       item.category = value || null;
       item.template_id = null;
-      item.roles = {};
+      delete item.roles;
       item.content = '';
       renderTab('csa');
     }, !selectedStrength));

@@ -96,7 +96,7 @@ test('persisted preset payload reopens with category and remains clean until edi
   const draft = createDraft(appState, 'csa');
   assert.equal(draft.csa[0].category, 'workplace');
   assert.equal(draft.csa[0].template_id, 'office_notice_1');
-  assert.deepEqual(draft.csa[0].roles, {});
+  assert.equal('roles' in draft.csa[0], false);
   assert.deepEqual(operations(appState, draft), []);
 });
 

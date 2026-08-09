@@ -44,8 +44,7 @@ export {
 } from './csa/capability.js';
 export {
   getPresetCatalogItem, buildPresetCatalogPayload, renderPresetContent, normalizeCompanyCsaCatalog,
-  presetModifierClause, presetModifierExceedsTemplate,
-  withSubjectParticle, withTopicParticle, withObjectParticle, withConjParticle, withPossessive
+  presetModifierClause, presetModifierExceedsTemplate
 } from './csa/catalog.js';
 export {
   normalizeCsaScope, getCsaRules, getActiveCsaEntries, getApplicableCsaEntries,

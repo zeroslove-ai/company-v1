@@ -241,9 +241,7 @@ const REQUIRED_BY_TEMPLATE = {
   },
   no_bra_under_work_clothes: { underwear_top: 'removed' },
   no_panties_under_work_clothes: { underwear_bottom: 'removed' },
-  work_topless: { uniform_top: 'removed' },
-  expose_breasts_on_request: { uniform_top: 'removed' },
-  expose_genitals_on_request: { uniform_bottom: 'removed', underwear_bottom: 'removed' }
+  work_topless: { uniform_top: 'removed' }
 };
 
 /**
@@ -256,22 +254,23 @@ const REQUIRED_BY_TEMPLATE = {
  * - 정확히 1개 → 해당 규정의 요구 착의 + source_csa_id
  * - 서로 다른 착의를 요구하는 규정 2개 이상 → required_clothing={}, conflicted=true
  *
- * actor_group 필터:
+ * affected_group 필터:
  * - female_employee 규정은 gender==='female'인 NPC에게만 적용 (gender 미상은 미적용)
- * - 그 외 규정은 actor_group이 비어 있거나 NPC 성별/직군과 충돌하지 않으면 적용
+ * - male_employee 규정은 gender==='male'인 NPC에게만 적용
+ * - on_player_request 규정은 실제 요청 전 required clothing을 만들지 않음
  *
  * 규정 우선순위(strength/updated_turn/created_turn)는 추론하지 않는다.
  */
 export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {}) {
   const applicable = [];
   const gender = typeof npcProfile?.gender === 'string' ? npcProfile.gender.toLowerCase() : null;
-  const department = typeof npcProfile?.department === 'string' ? npcProfile.department : null;
-
   for (const rule of activeRules) {
     const templateId = rule?.preset?.template_id;
     if (!templateId || !REQUIRED_BY_TEMPLATE[templateId]) continue;
-    const roles = rule?.preset?.roles ?? {};
-    const actorGroup = roles.subject_group ?? rule?.preset?.actor_group ?? rule?.actor_group;
+    const preset = rule?.preset ?? {};
+    const actorGroup = preset.affected_group;
+    const mode = preset.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
+    if (mode === 'on_player_request') continue;
     if (actorGroup === 'female_employee' && gender !== 'female') continue;
     // male_employee 규정이 남성 전용일 경우 — 프로필 성별과 충돌하면 적용하지 않는다.
     if (actorGroup === 'male_employee' && gender !== null && gender !== 'male') continue;

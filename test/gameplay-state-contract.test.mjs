@@ -215,8 +215,7 @@ const CSA60_RULE = {
   preset: {
     version: 1, actor_group: 'female_employee', target_group: 'player',
     trigger: 'during_work', duration: 'until_work_ends',
-    required_action: 'resolve_patient_erection',
-    public_normalization: true, persistent: true
+    affected_group: 'female_employee', mode: 'continuous'
   }
 };
 
@@ -245,7 +244,7 @@ function csa60RuntimeSave({ previousExecuted = true } = {}) {
   return save;
 }
 
-test('턴70-13: status active + 잘못된 non-null action_state → 기존처럼 거부', () => {
+test('턴70-13: status active는 action_state와 catalog metadata를 비교하지 않는다', () => {
   const save = csa60RuntimeSave({ previousExecuted: false });
   const result = buildCsaSceneRuntimeStatePatch({
     previousSave: save,
@@ -255,8 +254,8 @@ test('턴70-13: status active + 잘못된 non-null action_state → 기존처럼
     npcsPresent: ['heroine4'],
     turnNumber: 86,
   });
-  assert.equal(result.patch, null);
-  assert.ok(result.warnings.some(w => w.includes('csa_runtime_action_state_mismatch')));
+  assert.equal(result.patch.csa_60.execution_state, 'executed');
+  assert.equal(result.warnings.some(w => w.includes('csa_runtime_action_state_mismatch')), false);
 });
 
 test('턴70-14: 다른 actor → 거부', () => {
@@ -285,7 +284,7 @@ test('턴70-15: 장면에 없는 actor → 거부', () => {
   assert.equal(result.patch, null, '장면 밖 actor는 보충 안 함');
 });
 
-test('턴70-16: ordinary route → null 보충 금지', () => {
+test('턴70-16: action_state가 없어도 Story active 관찰을 기록한다', () => {
   const save = csa60RuntimeSave({ previousExecuted: false });
   const result = buildCsaSceneRuntimeStatePatch({
     previousSave: save,
@@ -295,7 +294,7 @@ test('턴70-16: ordinary route → null 보충 금지', () => {
     npcsPresent: ['heroine4'],
     turnNumber: 86,
   });
-  assert.equal(result.patch, null, 'ordinary route는 null 보충 없음');
+  assert.equal(result.patch.csa_60.execution_state, 'executed');
 });
 
 test('턴70-18: accepted_executions 중복으로 EXP를 여러 번 주지 않음 (reducer는 accepted 목록만 반환)', () => {

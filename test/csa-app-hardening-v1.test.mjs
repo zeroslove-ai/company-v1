@@ -20,10 +20,10 @@ function saveWithActiveCsa(entries) {
 }
 
 function activeCsaFixture(id = 'csa_0') {
-  return [{ id, active: true, source_type: 'preset', content: '테스트', strength: 'weak', preset: { required_action: 'relieve_tension' } }];
+  return [{ id, active: true, source_type: 'preset', content: '테스트', strength: 'weak', preset: { affected_group: 'company_employee', mode: 'on_player_request' } }];
 }
 
-test('runtime tracking: active 보고는 action_state가 required_action과 일치할 때 executed로 승격한다', () => {
+test('runtime tracking: Story 후행 active 관찰은 action_state metadata 없이 executed로 기록한다', () => {
   const activeCsa = activeCsaFixture();
   const result = buildCsaSceneRuntimeStatePatch({
     previousSave: {},
@@ -52,7 +52,7 @@ test('runtime tracking: active 보고는 action_state가 required_action과 일�
   assert.equal(nextTurnPatch.patch, null, 'nothing changed, so the reducer reports no patch (previous state remains authoritative as-is)');
 });
 
-test('runtime tracking: action_state가 required_action과 불일치하면 해당 update는 폐기되고 기존 상태 유지 + warning', () => {
+test('runtime tracking: action_state는 preset metadata와 비교하지 않고 Story 관찰을 기록한다', () => {
   const activeCsa = activeCsaFixture();
   const previousSave = {
     csa_runtime_state: { csa_0: { lifecycle: 'active', applicability: 'applicable', execution_state: 'not_started', character_id: 'heroine1', started_turn: null, last_confirmed_turn: 4, end_reason: null } }
@@ -66,9 +66,8 @@ test('runtime tracking: action_state가 required_action과 불일치하면 해�
     turnNumber: 5
   });
   // 구조·범위 검증 — Story quote/evidence 검사는 사용하지 않지만,
-  // active 승격은 action_state === required_action이어야 한다.
-  assert.equal(result.patch, null, '불일치 update는 폐기 — 기존 상태 유지');
-  assert.ok(result.warnings.includes('csa_runtime_action_state_mismatch:csa_0:unrelated_action'), result.warnings.join(' '));
+  assert.equal(result.patch.csa_0.execution_state, 'executed');
+  assert.equal(result.warnings.some(w => w.includes('action_state_mismatch')), false);
 });
 
 test('runtime tracking: trigger evaluation은 execution_state를 강등하지 않는다 (not_satisfied/temporarily_interrupted)', () => {

@@ -325,25 +325,23 @@ function runtimeWith(previousSave, updates, activeCsa, npcsPresent, turnNumber) 
 }
 
 const ACTIVE_FIXTURE = [
-  { id: 'csa_42', active: true, source_type: 'preset', content: '동료의 성적 긴장을 완화한다', preset: { required_action: 'relieve_sexual_tension' } },
-  { id: 'csa_42_1', active: true, source_type: 'preset', content: '근무 중 속옷 차림을 유지한다', preset: { required_action: 'work_in_underwear_only' } }
+  { id: 'csa_42', active: true, source_type: 'preset', content: '동료의 성적 긴장을 완화한다', preset: { affected_group: 'company_employee', mode: 'on_player_request' } },
+  { id: 'csa_42_1', active: true, source_type: 'preset', content: '근무 중 속옷 차림을 유지한다', preset: { affected_group: 'female_employee', mode: 'continuous' } }
 ];
 
-test('회귀 A: action_state 불일치 active update는 경험·EXP에 반영되지 않는다', () => {
+test('회귀 A: Story 후행 active update는 action_state 비교 없이 경험·EXP에 반영된다', () => {
   const save = baseSave();
   const result = runtimeWith(save, [
     { csa_id: 'csa_42', character_id: 'heroine3', status: 'active', action_state: 'unrelated_action' }
   ], ACTIVE_FIXTURE, ['heroine3'], 57);
-  // runtime 변화 없음
-  assert.equal(result.patch, null, '불일치 update는 patch 없음');
-  assert.ok(result.warnings.includes('csa_runtime_action_state_mismatch:csa_42:unrelated_action'), result.warnings.join(' '));
-  assert.equal(result.accepted_executions.length, 0, 'accepted_executions 없음');
-  // 진행도 — 승인된 실행만 전달되므로 경험·EXP 없음
+  assert.equal(result.patch.csa_42.execution_state, 'executed');
+  assert.equal(result.warnings.some(w => w.includes('action_state_mismatch')), false);
+  assert.equal(result.accepted_executions.length, 1, 'accepted_executions 포함');
   const progression = calculateCsaProgression({
     csaOperations: [], experiencedThisTurn: result.accepted_executions, previouslyExperienced: new Set()
   });
-  assert.equal(progression.newly_experienced_keys.length, 0, 'csa_experienced_ids 추가 없음');
-  assert.equal(progression.amount, 0, 'EXP 증가 없음');
+  assert.deepEqual(progression.newly_experienced_keys, ['heroine3:csa_42']);
+  assert.equal(progression.amount, 2);
 });
 
 test('회귀 B: 장면에 없는 character_id의 active update는 경험·EXP에 반영되지 않는다', () => {

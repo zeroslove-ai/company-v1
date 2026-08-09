@@ -78,17 +78,4 @@ export function buildPresetCatalogPayload(catalog, availableStrength) {
   };
 }
 
-// Legacy particle helpers remain exported for older custom-content callers;
-// catalog preset sentences no longer contain placeholders or invoke them.
-function hasBatchim(value) {
-  const text = String(value || '').trim();
-  const code = text.slice(-1).codePointAt(0) || 0;
-  return code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
-}
-export function withSubjectParticle(label) { return `${label}${hasBatchim(label) ? '이' : '가'}`; }
-export function withTopicParticle(label) { return `${label}${hasBatchim(label) ? '은' : '는'}`; }
-export function withObjectParticle(label) { return `${label}${hasBatchim(label) ? '을' : '를'}`; }
-export function withConjParticle(label) { return `${label}${hasBatchim(label) ? '과' : '와'}`; }
-export function withPossessive(label) { return `${label}의`; }
-
 export { MODIFIER_MAX_LENGTH, STRENGTH_RANK };
