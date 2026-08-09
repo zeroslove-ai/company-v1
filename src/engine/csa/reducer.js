@@ -5,8 +5,8 @@
  * EXECUTION_STATE, already guarded by validateCsaRuntimeStatePatch).
  *
  * Donor tracks a fourth, narrower per-csa_id status (inactive/active/paused/
- * ended) purely for "is the rule's required_action being physically
- * performed in the current scene right now" — that is Company's
+ * ended) purely for whether a rule was physically observed in the current
+ * scene right now — that is Company's
  * execution_state axis. Donor's rule-level active:true/false (a completely
  * separate concept — is the rule itself still registered) is Company's
  * lifecycle axis. There is no donor equivalent of 'suspended'/'completed';
@@ -80,37 +80,6 @@ export function buildCsaRuntimeStatePatch({ previousSave, csaRuntimeUpdates = []
     if (!characterId || !presentIds.has(characterId)) continue;
     const donorStatus = ['inactive', 'active', 'paused', 'ended'].includes(update.status) ? update.status : null;
     if (!donorStatus) continue;
-    // 실행 승격(active → executed)은 수행된 구체적 행동이 규정의 required_action과
-    // 정확히 일치할 때만 허용한다 — 구조·범위 검증 (Story quote 검사 없음).
-    // 불일치하면 해당 runtime update를 폐기하고 기존 상태를 유지한다.
-    if (donorStatus === 'active') {
-      const requiredAction = typeof csa.preset?.required_action === 'string' ? csa.preset.required_action : '';
-      const reportedAction = typeof update.action_state === 'string' ? update.action_state : '';
-      if (!requiredAction) {
-        warnings.push(`csa_runtime_action_state_mismatch:${csaId}:none`);
-        continue;
-      }
-      if (reportedAction && reportedAction !== requiredAction) {
-        // non-null인데 틀린 action_state는 기존처럼 거부한다.
-        warnings.push(`csa_runtime_action_state_mismatch:${csaId}:${reportedAction}`);
-        continue;
-      }
-      if (!reportedAction) {
-        // Story 이후 Extract가 실제로 계속된 규칙이라고 명시한 경우에만
-        // 이전에 실행 중이던 규칙을 이어간다. 입력 문장/사전 coverage로
-        // required_action을 보충하지 않는다.
-        const triggerContinuing = (Array.isArray(csaTriggerEvaluations) ? csaTriggerEvaluations : [])
-          .some(evaluation => evaluation?.csa_id === csaId
-            && (evaluation.status === 'continuing' || evaluation.status === 'satisfied'))
-          && previous[csaId]?.execution_state === 'executed';
-        if (!triggerContinuing) {
-          warnings.push(`csa_runtime_action_state_mismatch:${csaId}:none`);
-          continue;
-        }
-        // 보충 승인 — 아래에서 requiredAction을 action_state로 사용한다.
-        update = { ...update, action_state: requiredAction };
-      }
-    }
     touchedByRuntimeUpdate.add(csaId);
     const existing = previous[csaId] ? normalizeRuntimeEntry(previous[csaId]) : null;
     const executionState = DONOR_STATUS_TO_EXECUTION_STATE[donorStatus];

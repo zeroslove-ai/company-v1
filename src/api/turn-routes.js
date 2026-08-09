@@ -195,7 +195,7 @@ function storySse({ meta, run }) {
 }
 
 function csaCatalogFromEdition(edition) {
-  const source = plainObject(edition?.csaPresets) ? edition.csaPresets : { actor_options: [], target_options: [], trigger_options: [], duration_options: [], categories: [], items: [], sexual_action_contract: {} };
+  const source = plainObject(edition?.csaPresets) ? edition.csaPresets : { selector_options: [], strengths: [], categories: [], items: [] };
   return normalizeCompanyCsaCatalog(source);
 }
 
@@ -254,25 +254,8 @@ const DEFAULT_OPENING_CHOICES = [
 // 진행한다. 현재 장면 NPC를 임의로 발화시키지 않고 [SCENE]만 사용한다.
 const APP_TRANSACTION_STORY_FALLBACK_ERRORS = new Set(['story_timeout', 'llm_upstream_failure', 'story_incomplete']);
 
-function buildAppTransactionFallbackStory(csaPlan, save) {
-  const operations = Array.isArray(csaPlan?.canonical_action?.operations) ? csaPlan.canonical_action.operations : [];
-  const rules = (save && typeof save.csa_rules === 'object' && save.csa_rules) ? save.csa_rules : {};
-  const sceneLines = [];
-  for (const op of operations) {
-    const label = op?.preset?.label
-      ?? (op?.operation === 'deactivate' && op?.id ? rules[op.id]?.content : null)
-      ?? (typeof op?.content === 'string' && op.content.trim() ? String(op.content).slice(0, 40) : null)
-      ?? '해당 규칙';
-    if (op?.operation === 'deactivate') {
-      sceneLines.push(`「${label}」 규칙이 해제되어 더 이상 현재 회사 규정이 아닙니다.`);
-    } else if (op?.operation === 'activate') {
-      sceneLines.push(`「${label}」 규칙이 새로 적용되어 현재 업무 환경에 반영되었습니다.`);
-    } else if (op?.operation === 'update') {
-      sceneLines.push(`「${label}」 규칙이 변경되어 현재 업무 환경에 반영되었습니다.`);
-    }
-  }
-  if (sceneLines.length === 0) sceneLines.push('회사 규정이 변경되어 현재 업무 환경에 반영되었습니다.');
-  return `[SCENE]\n${sceneLines.join('\n')}`;
+function buildAppTransactionFallbackStory() {
+  return '[SCENE]\n현재 장면은 직전 행동의 결과를 이어간다.';
 }
 
 // 오프닝 fail-open — Story upstream이 최종 실패했을 때 저장된 opening plan 기반의
@@ -1153,7 +1136,7 @@ const master = masterFromEdition(edition);
         const save = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
         const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
         const player = buildFullPlayerInfo(save, edition);
-        return ok({ app: buildAppStatePayload(save, csaCatalog, csaCatalog.sexual_action_contract, player) });
+        return ok({ app: buildAppStatePayload(save, csaCatalog, null, player) });
       } finally {
         logTurnTiming({ event_stage: 'app_state', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }

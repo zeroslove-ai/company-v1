@@ -24,7 +24,7 @@ const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8
 
 const ACTIVE_RULES = [
   { csa_id: 'csa_42', active: true, content: '성적 긴장 원인 확인 및 완화', preset: { template_id: 'identify_and_relieve_sexual_tension' }, created_turn: 42 },
-  { csa_id: 'csa_42_1', active: true, content: '여성 직원 속옷 차림 근무', preset: { template_id: 'work_in_underwear_only', actor_group: 'female_employee' }, created_turn: 42 }
+  { csa_id: 'csa_42_1', active: true, content: '여성 직원 속옷 차림 근무', preset: { template_id: 'work_in_underwear_only', affected_group: 'female_employee', mode: 'continuous' }, created_turn: 42 }
 ];
 
 // 1) 52~54턴 실제 clothing output alias 정규화
@@ -126,7 +126,7 @@ test('회귀4: 상반 규정이 정확히 반대 착의를 요구한다 (0개/1�
   assert.equal(underwearOnly.source_csa_id, 'csa_42_1');
   assert.equal(underwearOnly.conflicted, false);
 
-  const withoutUnderwear = requiredClothingFromActiveCsa([{ csa_id: 'csa_5', active: true, preset: { template_id: 'work_without_underwear' } }], femaleProfile);
+  const withoutUnderwear = requiredClothingFromActiveCsa([{ csa_id: 'csa_5', active: true, preset: { template_id: 'work_without_underwear', affected_group: 'female_employee', mode: 'continuous' } }], femaleProfile);
   assert.deepEqual(withoutUnderwear.required_clothing, { underwear_top: 'removed', underwear_bottom: 'removed' });
 
   // 규정 0개 → 빈 required
@@ -136,8 +136,8 @@ test('회귀4: 상반 규정이 정확히 반대 착의를 요구한다 (0개/1�
 
   // 상반 규정 2개 이상 → 미확정 (우선순위 추론 없음)
   const both = requiredClothingFromActiveCsa([
-    { csa_id: 'x1', active: true, preset: { template_id: 'work_in_underwear_only' } },
-    { csa_id: 'x2', active: true, preset: { template_id: 'work_without_underwear' } }
+    { csa_id: 'x1', active: true, preset: { template_id: 'work_in_underwear_only', affected_group: 'female_employee', mode: 'continuous' } },
+    { csa_id: 'x2', active: true, preset: { template_id: 'work_without_underwear', affected_group: 'female_employee', mode: 'continuous' } }
   ], femaleProfile);
   assert.deepEqual(both.required_clothing, {});
   assert.equal(both.source_csa_id, null);
@@ -152,7 +152,7 @@ test('회귀4: 상반 규정이 정확히 반대 착의를 요구한다 (0개/1�
 
 // 4b) female_employee 규정은 gender==='female' NPC에게만 적용
 test('회귀4b: female_employee 규정이 남성/성별 미상 NPC에게 적용되지 않는다', () => {
-  const rule = { csa_id: 'csa_42_1', active: true, preset: { template_id: 'work_in_underwear_only', actor_group: 'female_employee' } };
+  const rule = { csa_id: 'csa_42_1', active: true, preset: { template_id: 'work_in_underwear_only', affected_group: 'female_employee', mode: 'continuous' } };
   const female = requiredClothingFromActiveCsa([rule], { gender: 'female' });
   assert.ok(Object.keys(female.required_clothing).length > 0, '여성 NPC는 적용');
   const male = requiredClothingFromActiveCsa([rule], { gender: 'male' });
@@ -281,4 +281,12 @@ test('회귀7: focal NPC 착의 UI가 canonical 슬롯을 한글 라벨로 렌�
   assert.ok(renderSrc.includes('현재 착의'), 'renderFocalCharacter에 현재 착의 섹션 존재');
   assert.ok(renderSrc.includes('확인되지 않음'), '빈 상태는 확인되지 않음 표시');
   assert.ok(Object.keys(canonical).length === 4, 'canonical 4슬롯');
+});
+
+test('V2 복장 정본: on_player_request 노출 프리셋은 요청 전 required_clothing을 만들지 않는다', () => {
+  const rules = [
+    { csa_id: 'expose-breasts', active: true, preset: { template_id: 'expose_breasts_on_request', affected_group: 'female_employee', mode: 'on_player_request' } },
+    { csa_id: 'expose-genitals', active: true, preset: { template_id: 'expose_genitals_on_request', affected_group: 'female_employee', mode: 'on_player_request' } }
+  ];
+  assert.deepEqual(requiredClothingFromActiveCsa(rules, { gender: 'female' }).required_clothing, {});
 });

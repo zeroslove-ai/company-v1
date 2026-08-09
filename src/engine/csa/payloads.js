@@ -26,8 +26,8 @@ export function buildAppManualPayload(save, catalog) {
     id, label, unlock_level: unlockLevel, available: level >= unlockLevel,
     description: {
       weak: '대화·분위기·가벼운 접촉과 부끄러움 완화처럼 제한적인 사회적 관습을 바꿉니다.',
-      medium: '특정 공간의 점검·면담 행동과 제한적 노출·접촉을 정상 절차로 재해석합니다.',
-      strong: '공간 전체의 사회 규범과 업무·절차·예절, 핵심 금기를 재작성합니다.'
+      medium: '직접적인 신체 노출과 가슴·성기 접촉이 자연스러운 행동으로 이어집니다.',
+      strong: '플레이어가 지정한 구체적인 성행위와 체위가 실제 행동으로 이어집니다.'
     }[id]
   }));
   const remainingSlots = Math.max(0, capability.csa_max_active - capability.csa_active_count);
@@ -39,7 +39,7 @@ export function buildAppManualPayload(save, catalog) {
     version: 2,
     mode: GAMEPLAY_MODE,
     title: '상식개변 앱 사용자 매뉴얼',
-    subtitle: '이 버전은 개인 암시와 최면 기능 없이 공간의 사회적 상식만 변경합니다.',
+    subtitle: '이 버전은 개인 암시와 최면 기능 없이 회사의 사내 지침·취업규칙·국가 법령을 변경합니다.',
     status: {
       level, exp: capability.exp, next_level_exp: capability.next_level_exp, exp_percent: progress,
       available_strength: capability.available_strength, csa_active: capability.csa_active_count, csa_max: capability.csa_max_active,
@@ -47,15 +47,15 @@ export function buildAppManualPayload(save, catalog) {
     },
     diagnostics,
     quick_start: [
-      '모든 상식개변은 회사 전체의 공동 사회 규범으로 적용됩니다.',
+      '모든 상식개변은 강도에 맞는 회사 지침·취업규칙·국가 법령으로 회사 전체에 적용됩니다.',
       '변경은 반드시 상식개변 앱 UI에서 생성·수정·해제합니다.',
       '강도는 직접 의미 범위 안의 확신과 사회적 압력만 바꾸며 의미 범위를 넓히지 않습니다.',
-      '해제하면 현재 규범 적용만 멈추고 이미 벌어진 사건의 기억과 물리 상태는 유지됩니다.',
+      '해제하면 현재 규정의 적용만 멈추고 이미 벌어진 사건의 기억과 물리 상태는 유지됩니다.',
       '매뉴얼 열람과 탭 이동은 턴을 소비하지 않습니다.'
     ],
     common_sense: {
       title: '상식개변',
-      description: '특정 개인이 아니라 회사 전체의 사회적 규범을 변경합니다. 인물은 각자의 성격을 유지한 채 그 규범을 당연한 전제로 받아들입니다.',
+      description: '특정 개인이 아니라 회사 집단에 적용되는 지침·취업규칙·법령을 변경합니다. 인물은 각자의 성격을 유지한 채 적용된 제도를 전제로 행동합니다.',
       rules: [
         'activate는 새 항목과 활성 슬롯을 만듭니다.',
         'update는 같은 슬롯에서 내용과 강도를 변경합니다.',
@@ -93,7 +93,7 @@ export function buildAppManualPayload(save, catalog) {
  * prepared by the API from registered Company canon plus persisted evidence;
  * this module never invents identity, location, Mind, or relationship fields.
  */
-export function buildAppStatePayload(save, catalog, sexualActionContract, player, npcs = []) {
+export function buildAppStatePayload(save, catalog, _unusedSemanticMap, player, npcs = []) {
   const manual = buildAppManualPayload(save, catalog);
   const activeCsa = getActiveCsaEntries(save);
   const strengthOptions = [['weak', '약함', 1], ['medium', '중간', 3], ['strong', '강함', 7]]
@@ -104,7 +104,7 @@ export function buildAppStatePayload(save, catalog, sexualActionContract, player
     ...normalizeCsaScope(), created_turn: item.created_turn ?? null,
     source_type: item.source_type === 'preset' ? 'preset' : 'custom',
     preset: item.source_type === 'preset' && item.preset ? item.preset : null,
-    semantic_contract: buildCsaSemanticContract(item, sexualActionContract)
+    ...(item.source_type === 'preset' ? {} : { semantic_contract: buildCsaSemanticContract(item) })
   }));
   return {
     version: 2,

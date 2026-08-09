@@ -36,7 +36,7 @@ function operatingSave() {
     csa_active: ['csa_42', 'csa_42_1'],
     csa_rules: {
       csa_42: { active: true, content: '성적 긴장 원인 확인 및 완화', strength: 'medium', preset: { template_id: 'identify_and_relieve_sexual_tension' }, created_turn: 42, activated_game_time: { day: 1, minute_of_day: 954 } },
-      csa_42_1: { active: true, content: '여성 직원 속옷 차림 근무', strength: 'medium', preset: { template_id: 'work_in_underwear_only', actor_group: 'female_employee' }, created_turn: 42, activated_game_time: { day: 1, minute_of_day: 954 } },
+      csa_42_1: { active: true, content: '여성 직원 속옷 차림 근무', strength: 'medium', preset: { template_id: 'work_in_underwear_only', affected_group: 'female_employee', mode: 'continuous' }, created_turn: 42, activated_game_time: { day: 1, minute_of_day: 954 } },
       csa_2: { active: false, content: '대화할 때 무릎 위에 앉기', strength: 'weak', preset: { template_id: 'sit_on_target_lap_while_talking' }, created_turn: 2 },
       csa_5: { active: false, content: '속옷 미착용 근무', strength: 'weak', preset: { template_id: 'work_without_underwear' }, created_turn: 5 }
     },
@@ -267,7 +267,7 @@ test('P0-1: projectGlobalCsa가 활성 규정만 반환한다', () => {
 test('검토: 남성 NPC·gender 미상 NPC는 female_employee 착의 규정이 적용되지 않는다', async () => {
   const { requiredClothingFromActiveCsa } = await import('../src/engine/state/clothing.js');
   const rules = [
-    { csa_id: 'csa_42_1', active: true, preset: { template_id: 'work_in_underwear_only', actor_group: 'female_employee' }, created_turn: 42 }
+    { csa_id: 'csa_42_1', active: true, preset: { template_id: 'work_in_underwear_only', affected_group: 'female_employee', mode: 'continuous' }, created_turn: 42 }
   ];
   // 남성 NPC — female_employee 규정 적용 금지
   const male = requiredClothingFromActiveCsa(rules, { gender: 'male' });

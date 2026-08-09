@@ -8,7 +8,7 @@ declare
     "edition": "company-v1",
     "turn_state": {"committed_turn": 0, "processing_status": "idle", "turn_id": null, "action_id": null, "expected_turn": 1},
     "player": {"player_id": "player-1", "name": "Development Player", "department": "marketing"},
-    "player_scene_state": {"location_id": "marketing_floor", "updated_turn": 0},
+    "player_scene_state": {"location_id": "marketing_floor", "updated_turn": 0, "clothing": {"uniform_top":"worn","uniform_bottom":"worn","underwear_top":"worn","underwear_bottom":"worn"}},
     "player_sexual_state": {"arousal": 0, "updated_turn": 0},
     "world_state": {"time_block": "morning", "work_hook": {"id": "campaign-review", "status": "open"}},
     "scene_state": {"scene_id": "opening", "location_id": "marketing_floor", "participants": ["player-1", "npc-hayeon", "npc-areum", "npc-minsu"], "focus_thread": "campaign-review", "scene_goal": "begin the campaign review", "beat": 0, "exit_conditions": [], "updated_turn": 0},
@@ -18,7 +18,7 @@ declare
       "npc-hayeon": {"closeness": "familiar", "romance_status": "interest", "current_boundary": "cautious", "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null}, "relationship_summary": "Campaign partner."},
       "npc-areum": {"closeness": "acquaintance", "romance_status": "none", "current_boundary": "open", "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null}, "relationship_summary": "Works in the same team."}
     },
-    "npc_scene_state": {"npc-hayeon": {"present": true}, "npc-areum": {"present": true}, "npc-minsu": {"present": true}},
+    "npc_scene_state": {"npc-hayeon": {"present": true, "clothing": {"uniform_top":"worn","uniform_bottom":"worn","underwear_top":"worn","underwear_bottom":"worn"}}, "npc-areum": {"present": true, "clothing": {"uniform_top":"worn","uniform_bottom":"worn","underwear_top":"worn","underwear_bottom":"worn"}}, "npc-minsu": {"present": true, "clothing": {"uniform_top":"worn","uniform_bottom":"worn","underwear_top":"worn","underwear_bottom":"worn"}}},
     "npc_work_state": {"npc-hayeon": {"task": "campaign-review"}, "npc-areum": {"task": "campaign-review"}, "npc-minsu": {"task": "support"}},
     "csa_active": ["csa-dress-code", "csa-status-report"],
     "csa_rules": {

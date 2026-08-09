@@ -60,44 +60,26 @@ test('ambiguous free-text groups cannot silently gain sexual direct authorizatio
   assert.equal(exact.sexual_authorization, true);
 });
 
-test('runtime preset catalog exposes no donor hospital group, trigger, or duration ids', () => {
+test('runtime preset catalog uses only institutional group scopes and two modes', () => {
   const catalog = normalizeCompanyCsaCatalog(rawCatalog);
-  const forbidden = new Set([
-    'nurse', 'doctor', 'medical_staff', 'hospital_staff', 'female_staff', 'male_staff',
-    'patient', 'assigned_patient', 'guardian', 'visitor', 'everyone_in_hospital',
-    'consultation_start', 'explanation_start', 'comforting', 'check_condition',
-    'until_consultation_ends', 'until_explanation_ends', 'until_target_relaxed'
-  ]);
-  const exposed = [
-    ...catalog.actor_options.map(item => item.id),
-    ...catalog.target_options.map(item => item.id),
-    ...catalog.trigger_options.map(item => item.id),
-    ...catalog.duration_options.map(item => item.id),
-    ...catalog.items.flatMap(item => [
-      ...item.actor_options, ...item.target_options, ...item.allowed_triggers, ...item.allowed_durations,
-      item.default_actor, item.default_target, item.default_trigger, item.default_duration
-    ])
-  ].filter(Boolean);
-  assert.deepEqual(exposed.filter(id => forbidden.has(id)), []);
+  assert.equal(catalog.schema_version, 2);
+  assert.deepEqual(catalog.selector_options.map(item => item.id), ['female_employee', 'male_employee', 'company_employee']);
+  assert.ok(catalog.items.every(item => ['weak', 'medium', 'strong'].includes(item.authority_tier)));
+  assert.ok(catalog.items.every(item => ['continuous', 'on_player_request'].includes(item.mode)));
+  assert.ok(catalog.items.every(item => !item.role_slots && !item.required_action && !item.sexual_actions && !item.method_policy));
 });
 
-test('legacy pending preset payload validates against the normalized Company catalog', () => {
+test('V2 preset payload validates against the normalized Company catalog without semantic direction', () => {
   const catalog = normalizeCompanyCsaCatalog(rawCatalog);
-  const rawItem = rawCatalog.items.find(item => item.default_actor && item.default_trigger && item.default_duration);
-  const normalizedItem = catalog.items.find(item => item.id === rawItem.id);
+  const normalizedItem = catalog.items.find(item => item.id === 'hand_stimulate_recipient_genitals');
   const result = validatePresetOperation(catalog, {
     strength: normalizedItem.strength,
-    preset: {
-      template_id: rawItem.id,
-      actor_group: rawItem.default_actor,
-      target_group: rawItem.default_target,
-      trigger: rawItem.default_trigger,
-      duration: rawItem.default_duration,
-      modifier: ''
-    }
+    preset: { template_id: normalizedItem.id }
   }, { availableStrength: 'strong' });
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.preset.actor_group, normalizedItem.default_actor);
+  assert.equal(result.preset.affected_group, 'female_employee');
+  assert.equal(result.preset.authority_tier, normalizedItem.strength);
+  assert.equal('roles' in result.preset, false);
 });
 
 test('opening content comes from edition map and accepts a location outside the former engine list', () => {

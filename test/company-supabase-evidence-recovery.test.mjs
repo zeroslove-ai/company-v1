@@ -76,41 +76,27 @@ test('persisted preset payload reopens with category and remains clean until edi
       content: '저장된 규정',
       preset: {
         template_id: 'office_notice_1',
-        actor_group: 'all_employees',
-        target_group: null,
-        trigger: 'during_work',
-        duration: 'always',
-        modifier: ''
+        authority_tier: 'medium',
+        affected_group: 'company_employee'
       }
     }],
     csa_presets: {
-      actor_options: [{ id: 'all_employees', label: '모든 직원' }],
-      target_options: [],
-      trigger_options: [{ id: 'during_work', label: '근무 중' }],
-      duration_options: [{ id: 'always', label: '항상' }],
+      selector_options: [{ id: 'company_employee', label: '회사 직원 전체' }],
       items: [{
         id: 'office_notice_1',
         label: '전사 공지 규정',
         category: 'workplace',
         strength: 'medium',
-        actor_options: ['all_employees'],
-        target_options: [],
-        allowed_triggers: ['during_work'],
-        allowed_durations: ['always'],
-        default_actor: 'all_employees',
-        default_target: null,
-        default_trigger: 'during_work',
-        default_duration: 'always',
-        content_template: '{actor_topic} {trigger_text} 규정을 따른다.'
+        mode: 'continuous',
+        affected_group: 'company_employee',
+        content_template: '회사 직원은 해당 상식을 따른다.'
       }]
     }
   };
   const draft = createDraft(appState, 'csa');
   assert.equal(draft.csa[0].category, 'workplace');
   assert.equal(draft.csa[0].template_id, 'office_notice_1');
-  assert.equal(draft.csa[0].actor_group, 'all_employees');
-  assert.equal(draft.csa[0].trigger, 'during_work');
-  assert.equal(draft.csa[0].duration, 'always');
+  assert.equal('roles' in draft.csa[0], false);
   assert.deepEqual(operations(appState, draft), []);
 });
 

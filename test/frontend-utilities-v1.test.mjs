@@ -240,7 +240,7 @@ test('frontend shell exposes hospital-style TTS, relationship, and CSA app surfa
   assert.match(csaApp, /function renderNpcs\(body\)/);
   assert.match(csaApp, /\['home', 'player', 'npc', 'csa', 'manual'\]/);
   assert.match(csaApp, /저항도/);
-  assert.match(csaApp, /인사팀 공식 공지·사내 운영지침/);
+  assert.match(csaApp, /사내 지침·운영 규정/);
   assert.match(csaApp, /취업규칙·전사 준수 규정/);
   assert.match(csaApp, /국가 법령·관계 당국 의무 지침/);
   assert.match(csaApp, /Story -> Extract -> Commit/);

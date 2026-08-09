@@ -126,10 +126,16 @@ begin
   end if;
 
   v_participants := jsonb_build_array('player-1', v_primary) || v_supporting;
-  v_npc_scene := jsonb_build_object(v_primary, jsonb_build_object('present', true));
+  v_npc_scene := jsonb_build_object(v_primary, jsonb_build_object(
+    'present', true,
+    'clothing', jsonb_build_object('uniform_top','worn','uniform_bottom','worn','underwear_top','worn','underwear_bottom','worn')
+  ));
   for v_item in select jsonb_array_elements_text(v_supporting)
   loop
-    v_npc_scene := v_npc_scene || jsonb_build_object(v_item, jsonb_build_object('present', true));
+    v_npc_scene := v_npc_scene || jsonb_build_object(v_item, jsonb_build_object(
+      'present', true,
+      'clothing', jsonb_build_object('uniform_top','worn','uniform_bottom','worn','underwear_top','worn','underwear_bottom','worn')
+    ));
   end loop;
 
   v_data := v_save.data;
@@ -161,7 +167,8 @@ begin
     'beat', 0, 'exit_conditions', '[]'::jsonb, 'updated_turn', 0
   ), true);
   v_data := jsonb_set(v_data, '{player_scene_state}', jsonb_build_object(
-    'location_id', p_opening_plan ->> 'location_id', 'updated_turn', 0
+    'location_id', p_opening_plan ->> 'location_id', 'updated_turn', 0,
+    'clothing', jsonb_build_object('uniform_top','worn','uniform_bottom','worn','underwear_top','worn','underwear_bottom','worn')
   ), true);
   v_data := jsonb_set(v_data, '{npc_scene_state}', v_npc_scene, true);
   v_data := jsonb_set(v_data, '{focal_character_id}', to_jsonb(v_primary), true);

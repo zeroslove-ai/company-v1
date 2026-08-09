@@ -9,7 +9,7 @@ import {
   calculateCsaCapability, getCsaLimits, appStrengthId,
   getPresetCatalogItem, buildPresetCatalogPayload, renderPresetContent,
   planCsaTransaction, validatePresetOperation,
-  normalizeCsaSemanticContract, buildPresetCsaSemanticContract,
+  normalizeCsaSemanticContract,
   signAppValidationProof, verifyAppValidationProof, verifyStructuredActionValidation,
   normalizeStructuredAction, buildAppManualPayload, buildAppStatePayload,
   getActiveCsaEntries, getApplicableCsaEntries,
@@ -22,6 +22,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const readJson = file => JSON.parse(read(file));
 const gameId = '11111111-1111-4111-8111-111111111111';
 const catalog = readJson('content/csa_presets.json');
+const presetFor = item => ({ template_id: item.id });
 
 const env = {
   SUPABASE_URL: 'https://supabase.test',
@@ -110,12 +111,11 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
 
 // ---------- Engine layer ----------
 
-test('preset catalog is ported intact: 73 items, six populated categories, company terms', () => {
-  assert.equal(catalog.items.length, 73);
+test('preset catalog uses the role-slot Company v2 catalog', () => {
+  assert.equal(catalog.items.length, 44);
   const populatedCategories = new Set(catalog.items.map(item => item.category));
-  assert.deepEqual([...populatedCategories].sort(), ['authority', 'clothing', 'contact', 'duty', 'physiology', 'posture']);
-  assert.equal(catalog.categories.some(c => c.id === 'duty'), true);
-  assert.equal(catalog.categories.some(c => c.id === 'other'), true);
+  assert.deepEqual([...populatedCategories].sort(), ['clothing', 'contact', 'posture', 'sexual_action', 'world_behavior']);
+  assert.equal(catalog.schema_version, 2);
   const flat = JSON.stringify(catalog);
   assert.doesNotMatch(flat, /병원|간호사|의사(?!소통)|환자|보호자|병동|병실/);
 });
@@ -134,9 +134,9 @@ test('capability numbers are canonical: weak/medium/strong unlock at Lv.1/3/7, s
 });
 
 test('activate/update/deactivate planner enforces slots, presets, duplicate content, and content-only strength caps', () => {
-  const presetItem = catalog.items.find(item => item.category === 'posture' && item.strength === 'weak');
+  const presetItem = catalog.items.find(item => item.id === 'sit_on_recipient_lap');
   const validated = validatePresetOperation(catalog, {
-    preset: { template_id: presetItem.id, actor_group: presetItem.default_actor, target_group: presetItem.default_target, trigger: presetItem.default_trigger, duration: presetItem.default_duration, modifier: '' },
+    preset: presetFor(presetItem),
     strength: 'weak'
   }, { availableStrength: 'weak' });
   assert.equal(validated.ok, true);
@@ -144,7 +144,7 @@ test('activate/update/deactivate planner enforces slots, presets, duplicate cont
 
   const lv1Capability = calculateCsaCapability(freshSave(), 0);
   const activatePlan = planCsaTransaction(freshSave(), catalog, [
-    { client_id: 'a', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: { template_id: presetItem.id, actor_group: presetItem.default_actor, target_group: presetItem.default_target, trigger: presetItem.default_trigger, duration: presetItem.default_duration, modifier: '' } }
+    { client_id: 'a', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: presetFor(presetItem) }
   ], { turnNumber: 1, capability: lv1Capability });
   assert.equal(activatePlan.ok, true);
   assert.equal(activatePlan.next_csa_active.length, 1);
@@ -174,22 +174,10 @@ test('preset operations are checked against the player\'s actual level, never ag
   const strongPreset = catalog.items.find(item => item.strength === 'strong');
   const lv1Capability = calculateCsaCapability(freshSave(), 0);
   const bypassAttempt = planCsaTransaction(freshSave(), catalog, [
-    { client_id: 'x', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'strong', preset: { template_id: strongPreset.id, actor_group: strongPreset.default_actor, target_group: strongPreset.default_target ?? null, trigger: strongPreset.default_trigger, duration: strongPreset.default_duration, modifier: '' } }
+    { client_id: 'x', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'strong', preset: presetFor(strongPreset) }
   ], { turnNumber: 1, capability: lv1Capability });
   assert.equal(bypassAttempt.ok, false, 'a Lv.1 player must never activate a strong-tier preset by simply claiming strength:"strong" in the payload');
   assert.equal(bypassAttempt.issues[0].code, 'STRENGTH_LOCKED');
-});
-
-test('semantic contract: preset-derived contract is exact-confidence; custom contract without full fields is rejected when it claims sexual_authorization', () => {
-  const sexualPresetId = Object.keys(catalog.sexual_action_contract)[0];
-  const preset = catalog.items.find(item => item.required_action === sexualPresetId);
-  if (preset) {
-    const contract = buildPresetCsaSemanticContract({ source_type: 'preset', preset: { required_action: preset.required_action, actor_group: preset.default_actor, target_group: preset.default_target, trigger: preset.default_trigger, duration: preset.default_duration, public_normalization: true } }, catalog.sexual_action_contract);
-    assert.equal(contract.confidence, 'exact');
-    assert.equal(contract.sexual_authorization, true);
-  }
-  const ambiguous = normalizeCsaSemanticContract({ sexual_authorization: true, actions: [], directions: [], confidence: 'ambiguous' });
-  assert.equal(ambiguous.sexual_authorization, false, 'no actions/directions means normalize forces sexual_authorization false');
 });
 
 test('validation proof: signs and verifies a roundtrip, and rejects a tampered digest', async () => {
@@ -212,10 +200,10 @@ test('buildAppManualPayload and buildAppStatePayload expose company-wide scope a
   const manual = buildAppManualPayload(freshSave(), catalog);
   assert.equal(manual.status.csa_scope_label, '회사 전체');
   assert.doesNotMatch(JSON.stringify(manual), /병원/);
-  const state = buildAppStatePayload(freshSave(), catalog, catalog.sexual_action_contract, { name: '김하늘' });
+  const state = buildAppStatePayload(freshSave(), catalog, null, { name: '김하늘' });
   assert.equal(state.scope_options[0].label, '회사 전체');
   assert.equal(Array.isArray(state.csa_presets.items), true);
-  assert.equal(state.csa_presets.items.length, 73);
+  assert.equal(state.csa_presets.items.length, 44);
 });
 
 // ---------- API layer ----------
@@ -231,7 +219,7 @@ test('/api/app-manual and /api/app-state are read-only: single context fetch, ze
   const stateRes = await worker.fetch(request('/api/app-state', { game_id: gameId }), env);
   assert.equal(stateRes.status, 200);
   const stateData = (await stateRes.json()).data;
-  assert.equal(stateData.app.csa_presets.items.length, 73);
+  assert.equal(stateData.app.csa_presets.items.length, 44);
   assert.equal(stateData.app.player_info.name, '김하늘');
 
   assert.equal(mock.calls.filter(call => call.url.includes('get_company_context')).length, 2);
@@ -242,10 +230,10 @@ test('/api/app-manual and /api/app-state are read-only: single context fetch, ze
 test('/api/app-validate deterministically validates a preset activate with zero LLM calls, and rejects a stale base_turn_count', async () => {
   const mock = createMockFetch();
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  const presetItem = catalog.items.find(item => item.strength === 'weak' && item.category === 'posture');
+  const presetItem = catalog.items.find(item => item.id === 'sit_on_recipient_lap');
   const structuredAction = {
     type: 'app_transaction', base_turn_count: 0,
-    operations: [{ client_id: 'op-1', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: { template_id: presetItem.id, actor_group: presetItem.default_actor, target_group: presetItem.default_target, trigger: presetItem.default_trigger, duration: presetItem.default_duration, modifier: '' } }]
+    operations: [{ client_id: 'op-1', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: presetFor(presetItem) }]
   };
   const validated = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: structuredAction }), env);
   assert.equal(validated.status, 200);
@@ -270,12 +258,12 @@ test('/api/app-validate makes exactly one LLM call for a custom operation and re
 });
 
 test('a structured app_transaction rides the normal Story -> Extract -> Commit pipeline and lands in csa_active/csa_rules', async () => {
-  const presetItem = catalog.items.find(item => item.strength === 'weak' && item.category === 'clothing');
+  const presetItem = catalog.items.find(item => item.id === 'press_body_against_recipient');
   const mock = createMockFetch();
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const structuredAction = {
     type: 'app_transaction', base_turn_count: 0,
-    operations: [{ client_id: 'op-1', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: { template_id: presetItem.id, actor_group: presetItem.default_actor, target_group: presetItem.default_target ?? null, trigger: presetItem.default_trigger, duration: presetItem.default_duration, modifier: '' } }]
+    operations: [{ client_id: 'op-1', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: presetFor(presetItem) }]
   };
   const validated = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: structuredAction }), env);
   const { canonical_action: canonicalAction, display_input: displayInput } = (await validated.json()).data;
@@ -288,6 +276,11 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   const storyPayload = storyUserPayloadFrom(mock);
   const activatedContent = canonicalAction.operations[0].content;
   assert.equal(storyPayload.context.active_world_rules.filter(rule => rule.content === activatedContent).length, 1);
+  const projectedRule = storyPayload.context.active_world_rules[0];
+  assert.equal(projectedRule.affected_group, 'female_employee');
+  assert.equal(projectedRule.authority_tier, 'weak');
+  assert.equal('roles' in projectedRule, false);
+  assert.equal('sexual_actions' in projectedRule, false);
   assert.ok(!('global_csa' in storyPayload.context));
 
   const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
@@ -450,8 +443,8 @@ test('Story route: multiple active CSAs remain in one declarative projection', a
   const presetA = catalog.items.find(item => item.strength === 'weak' && item.category === 'posture');
   const presetB = catalog.items.find(item => item.strength === 'weak' && item.category === 'contact');
   const presetEntry = item => ({
-    active: true, content: 'x', strength: 'weak', source_type: 'preset',
-    preset: { template_id: item.id, actor_group: item.default_actor, target_group: item.default_target ?? null, trigger: item.default_trigger, duration: item.default_duration, required_action: item.required_action, public_normalization: item.public_normalization === true, persistent: item.persistent === true, direct_meaning_tags: item.direct_meaning_tags }
+    active: true, content: item.label, strength: 'weak', source_type: 'preset',
+    preset: presetFor(item)
   });
   const save = freshSave({ csa_active: ['csa_0', 'csa_1'], csa_rules: { csa_0: presetEntry(presetA), csa_1: presetEntry(presetB) } });
   const mock = createMockFetch({ initialSave: save });
@@ -496,9 +489,9 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
   assert.doesNotMatch(storyPrompt, /actor_id=|target_id=|undefined/);
   assert.match(storyText, /app_story_fallback/, 'fallback warning');
   // fallback은 [SCENE]만 — 현재 장면 NPC를 임의로 발화시키지 않는다
-  assert.match(storyText, /해제되어 더 이상 현재 회사 규정이 아닙니다/);
+  assert.match(storyText, /현재 장면은 직전 행동의 결과를 이어간다/);
+  assert.doesNotMatch(storyText, /규칙|회사 규정|새로 적용|규칙 해제|규칙 변경|업무 환경에 반영/);
   assert.equal(mock.calls.__action.story_text.includes('[DIALOGUE]'), false, '대사 블록 없음');
-  assert.ok(mock.calls.__action.story_text.includes('야근 보고를 강제한다'), '운영 내용 라벨 포함');
 
   const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
   assert.equal(extractRes.status, 200);
@@ -515,7 +508,7 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
   assert.equal(afterSave.csa_rules.csa_0.active, false, '규칙 비활성');
   assert.equal(mock.calls.__action.processing_status, 'committed', '액션 committed');
 });
-test('preset catalog retains company-only groups after Story CSA section removal', () => {
+test('preset catalog exposes only Company v2 stable selectors', () => {
   const normalized = normalizeCompanyCsaCatalog(catalog);
   const flat = JSON.stringify(normalized);
   for (const legacy of ['nurse', 'doctor', 'medical_staff', 'hospital_staff', 'female_staff', 'male_staff',
@@ -525,19 +518,18 @@ test('preset catalog retains company-only groups after Story CSA section removal
   for (const g of ['business_visitor', 'assigned_visitor', 'partner_contact', 'guest']) {
     assert.ok(!flat.includes(`"${g}"`), `${g} 노출 금지`);
   }
-  for (const id of ['coworker', 'manager', 'employee', 'company_employee', 'female_employee', 'male_employee', 'everyone_in_company']) {
-    assert.ok(normalized.actor_options.some(o => o.id === id), `actor 옵션 ${id}`);
-    assert.ok(normalized.target_options.some(o => o.id === id), `target 옵션 ${id}`);
+  for (const id of ['company_employee', 'female_employee', 'male_employee']) {
+    assert.ok(normalized.selector_options.some(o => o.id === id), `selector ${id}`);
   }
-  const label = id => normalized.actor_options.find(o => o.id === id)?.label;
+  const label = id => normalized.selector_options.find(o => o.id === id)?.label;
   assert.equal(label('company_employee'), '회사 직원 전체');
-  assert.equal(label('female_employee'), '여성 직원 전체');
-  assert.equal(label('male_employee'), '남성 직원 전체');
-  assert.equal(label('everyone_in_company'), '회사 안의 모든 사람');
+  assert.equal(label('female_employee'), '회사 여성 직원 전체');
+  assert.equal(label('male_employee'), '회사 남성 직원 전체');
+  assert.equal(label('company_employee'), '회사 직원 전체');
   const userFacing = JSON.stringify({
     labels: normalized.items.map(i => i.label),
     templates: normalized.items.map(i => i.content_template),
-    optionLabels: [...normalized.actor_options, ...normalized.target_options, ...normalized.trigger_options, ...normalized.duration_options].map(o => o.label)
+    optionLabels: normalized.selector_options.map(o => o.label)
   });
   for (const word of ['병원', '간호사', '의사', '환자', '보호자', '진료', '체온', '검사 위치', '상담 자세', '상담이 끝날', '외부 방문자', '협력사', '방문객']) {
     assert.ok(!userFacing.includes(word), `사용자 노출 문구 금지: ${word}`);
@@ -558,14 +550,10 @@ test('legacy 읽기 호환: 직원 계열 legacy ID만 정본 ID로 canonicalize
   assert.notEqual(canonicalizeCsaGroup('guardian'), 'partner_contact', 'guardian 변환 금지');
   assert.notEqual(canonicalizeCsaGroup('visitor'), 'guest', 'visitor 변환 금지');
   // everyone_in_company는 target contract에서 유효
-  assert.ok(CSA_CONTRACT_TARGET_GROUPS.has('everyone_in_company'), 'target 그룹에 everyone_in_company');
+  assert.ok(CSA_CONTRACT_TARGET_GROUPS.has('company_employee'), 'target 그룹에 company_employee');
 });
 
-test('csa_97 canonical template has explicit player satisfaction and department scope', () => {
-  const item = catalog.items.find(entry => entry.id === 'department_bonus_tied_to_supervisor_satisfaction');
-  const rendered = renderPresetContent(catalog, item, { actorId: item.default_actor, targetId: item.default_target, triggerId: item.default_trigger, durationId: item.default_duration });
-  assert.doesNotMatch(rendered, /플레이어는에/);
-  assert.match(rendered, /플레이어가 각 회사 직원에게 느끼는 만족도/);
-  assert.match(rendered, /해당 직원이 속한 부서의 성과급 일부에 반영/);
-  assert.doesNotMatch(rendered, /\d+%|정확한 퍼센트|즉시 삭감/);
+test('catalog content has no malformed authority template', () => {
+  assert.equal(catalog.items.some(entry => entry.id === 'department_bonus_tied_to_supervisor_satisfaction'), false);
+  assert.doesNotMatch(JSON.stringify(catalog), /플레이어는에/);
 });

@@ -217,6 +217,13 @@ function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+const INITIAL_CLOTHING = Object.freeze({
+  uniform_top: 'worn',
+  uniform_bottom: 'worn',
+  underwear_top: 'worn',
+  underwear_bottom: 'worn'
+});
+
 /**
  * Assembles the opening's next save purely from the already-persisted opening plan and the
  * parsed opening Story — no Extract call is needed since the scene/time facts were already
@@ -229,6 +236,13 @@ export function buildOpeningNextSave({ preSave, player, openingPlan, background,
   const participants = [openingPlan?.primary_character_id, ...(openingPlan?.supporting_character_ids ?? [])].filter(Boolean);
 
   next.player = { ...(plainObject(next.player) ? next.player : {}), ...player, background };
+  next.player_scene_state = {
+    ...(plainObject(next.player_scene_state) ? next.player_scene_state : {}),
+    clothing: {
+      ...INITIAL_CLOTHING,
+      ...(plainObject(next.player_scene_state?.clothing) ? next.player_scene_state.clothing : {})
+    }
+  };
   next.world_state = {
     ...(plainObject(next.world_state) ? next.world_state : {}),
     game_time: { day: 1, minute_of_day: openingPlan?.minute_of_day ?? 540 },
@@ -247,6 +261,18 @@ export function buildOpeningNextSave({ preSave, player, openingPlan, background,
   next.last_choices = Array.isArray(parsedOpening?.choices) ? parsedOpening.choices : [];
   next.last_npcs_present = participants;
   next.focal_character_id = openingPlan?.primary_character_id ?? null;
+  const existingNpcSceneState = plainObject(next.npc_scene_state) ? next.npc_scene_state : {};
+  const nextNpcSceneState = { ...existingNpcSceneState };
+  for (const id of participants) {
+    nextNpcSceneState[id] = {
+      ...(plainObject(existingNpcSceneState[id]) ? existingNpcSceneState[id] : {}),
+      clothing: {
+        ...INITIAL_CLOTHING,
+        ...(plainObject(existingNpcSceneState[id]?.clothing) ? existingNpcSceneState[id].clothing : {})
+      }
+    };
+  }
+  next.npc_scene_state = nextNpcSceneState;
   next.opening_state = {
     setup_id: typeof next.player_setup?.setup_id === 'string' ? next.player_setup.setup_id : null,
     plan: structuredClone(plainObject(openingPlan) ? openingPlan : {}),

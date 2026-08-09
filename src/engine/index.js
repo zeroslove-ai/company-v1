@@ -44,7 +44,7 @@ export {
 } from './csa/capability.js';
 export {
   getPresetCatalogItem, buildPresetCatalogPayload, renderPresetContent, normalizeCompanyCsaCatalog,
-  presetModifierClause, presetModifierExceedsTemplate, withTopicParticle, withConjParticle
+  presetModifierClause, presetModifierExceedsTemplate
 } from './csa/catalog.js';
 export {
   normalizeCsaScope, getCsaRules, getActiveCsaEntries, getApplicableCsaEntries,
@@ -52,7 +52,7 @@ export {
 } from './csa/applicability.js';
 export {
   normalizeCsaSemanticContract, validateCustomCsaSemanticContract,
-  buildPresetCsaSemanticContract, buildCsaSemanticContract,
+  buildCsaSemanticContract,
   STRUCTURED_SEXUAL_ACTIONS, STRUCTURED_SEXUAL_DIRECTIONS,
   CSA_CONTRACT_ACTOR_GROUPS, CSA_CONTRACT_TARGET_GROUPS,
   canonicalizeCsaGroup, canonicalizeCsaTrigger, canonicalizeCsaDuration

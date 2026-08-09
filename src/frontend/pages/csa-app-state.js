@@ -1,6 +1,6 @@
 /**
  * Pure draft-state logic for the 상식개변 앱, ported from donor's pages/csa-app.js
- * (presetCatalogItem/presetOptionLabel/presetPreviewContent/operations/dirty/
+ * (presetCatalogItem/presetPreviewContent/operations/dirty/
  * hydrateDraftItem/applyPresetDefaults/resetPresetSelection/
  * isPresetPayloadComplete/payloadFields/presetStructureEqual). No DOM access —
  * only object/array transforms, so it's unit-testable without a document.
@@ -10,7 +10,6 @@ const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
 
 function clone(value) { return JSON.parse(JSON.stringify(value || [])); }
 function normalize(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
-
 export function activeItems(draft) {
   return (draft?.csa || []).filter(item => !item._deleted);
 }
@@ -25,57 +24,27 @@ export function presetCatalogItem(appState, templateId) {
   return (appState?.csa_presets?.items || []).find(entry => entry.id === templateId) || null;
 }
 
-export function presetOptionLabel(appState, kind, id) {
-  return (appState?.csa_presets?.[`${kind}_options`] || []).find(entry => entry.id === id)?.label || '';
-}
-
 export function presetStrength(item) {
-  return item ? (Object.prototype.hasOwnProperty.call(STRENGTH_LABELS, item.strength) ? item.strength : (Object.prototype.hasOwnProperty.call(STRENGTH_LABELS, item.minimum_strength) ? item.minimum_strength : null)) : null;
+  return item && Object.prototype.hasOwnProperty.call(STRENGTH_LABELS, item.strength) ? item.strength : null;
 }
-
-function hasKoreanBatchim(text) {
-  const trimmed = String(text || '').trim();
-  const code = trimmed.slice(-1).codePointAt(0) || 0;
-  if (code < 0xac00 || code > 0xd7a3) return false;
-  return (code - 0xac00) % 28 !== 0;
-}
-const withTopicParticle = word => `${word}${hasKoreanBatchim(word) ? '은' : '는'}`;
-const withConjParticle = word => `${word}${hasKoreanBatchim(word) ? '과' : '와'}`;
 
 /** Cosmetic-only client preview — the server always re-derives canonical content from the same template at apply time. */
 export function presetPreviewContent(appState, item) {
   const catalogItem = presetCatalogItem(appState, item.template_id);
   if (!catalogItem || !catalogItem.content_template || presetStrength(catalogItem) !== normalizeStrengthId(appState, item.strength)) return '';
-  const actorLabel = presetOptionLabel(appState, 'actor', item.actor_group);
-  const targetLabel = item.target_group ? presetOptionLabel(appState, 'target', item.target_group) : '';
-  const triggerLabel = presetOptionLabel(appState, 'trigger', item.trigger);
-  const durationLabel = presetOptionLabel(appState, 'duration', item.duration);
-  const modifier = normalize(item.modifier || '');
-  const params = {
-    actor_topic: actorLabel ? withTopicParticle(actorLabel) : '',
-    target_conj: targetLabel ? withConjParticle(targetLabel) : '',
-    target_possessive: targetLabel ? `${targetLabel}의` : '',
-    trigger_text: triggerLabel, duration_text: durationLabel,
-    modifier_clause: modifier ? `${modifier} ` : ''
-  };
-  return catalogItem.content_template.replace(/\{(\w+)\}/g, (match, key) => Object.prototype.hasOwnProperty.call(params, key) ? params[key] : '');
+  return catalogItem.content_template;
 }
 
 export function applyPresetDefaults(item, catalogItem) {
   if (!catalogItem) return;
   item.category = catalogItem.category;
   item.template_id = catalogItem.id;
-  item.actor_group = catalogItem.default_actor;
-  item.target_group = catalogItem.default_target || null;
-  item.trigger = catalogItem.default_trigger;
-  item.duration = catalogItem.default_duration;
-  item.modifier = item.modifier || '';
+  delete item.roles;
   item.strength = presetStrength(catalogItem);
 }
 
 export function resetPresetSelection(item, { preserveStrength = true } = {}) {
-  item.category = null; item.template_id = null; item.actor_group = null; item.target_group = null;
-  item.trigger = null; item.duration = null; item.modifier = ''; item.content = '';
+  item.category = null; item.template_id = null; delete item.roles; item.content = '';
   if (!preserveStrength) item.strength = null;
 }
 
@@ -89,11 +58,7 @@ export function hydrateDraftItem(item, appState = null) {
     const catalogItem = presetCatalogItem(appState, item.preset.template_id);
     item.template_id = item.preset.template_id;
     item.category = catalogItem?.category ?? item.category ?? null;
-    item.actor_group = item.preset.actor_group || catalogItem?.default_actor || null;
-    item.target_group = item.preset.target_group ?? catalogItem?.default_target ?? null;
-    item.trigger = item.preset.trigger || catalogItem?.default_trigger || null;
-    item.duration = item.preset.duration || catalogItem?.default_duration || null;
-    item.modifier = item.preset.modifier || '';
+    delete item.roles;
     item.strength = normalizeStrengthId(appState, item.strength) || presetStrength(catalogItem) || null;
   } else {
     item.source_type = 'custom';
@@ -102,26 +67,15 @@ export function hydrateDraftItem(item, appState = null) {
 }
 
 export function isPresetPayloadComplete(appState, preset, selectedStrength) {
-  if (!preset || !preset.template_id || !preset.actor_group || !preset.trigger || !preset.duration) return false;
+  if (!preset || !preset.template_id) return false;
   const catalogItem = presetCatalogItem(appState, preset.template_id);
-  if (!catalogItem) return false;
-  if (!normalizeStrengthId(appState, selectedStrength) || presetStrength(catalogItem) !== normalizeStrengthId(appState, selectedStrength)) return false;
-  if (!catalogItem.actor_options.includes(preset.actor_group)) return false;
-  if (catalogItem.target_options.length) {
-    if (!preset.target_group || !catalogItem.target_options.includes(preset.target_group)) return false;
-  } else if (preset.target_group) return false;
-  return true;
+  return Boolean(catalogItem
+    && normalizeStrengthId(appState, selectedStrength)
+    && presetStrength(catalogItem) === normalizeStrengthId(appState, selectedStrength));
 }
 
 function currentPresetPayload(item) {
-  return {
-    template_id: item.template_id || null,
-    actor_group: item.actor_group || null,
-    target_group: item.target_group || null,
-    trigger: item.trigger || null,
-    duration: item.duration || null,
-    modifier: normalize(item.modifier || '')
-  };
+  return { template_id: item.template_id || null };
 }
 
 function payloadFields(appState, item) {
@@ -145,10 +99,6 @@ function payloadFields(appState, item) {
 function presetStructureEqual(appState, item, beforePreset) {
   if (!beforePreset) return false;
   return item.template_id === beforePreset.template_id
-    && (item.actor_group || null) === (beforePreset.actor_group || null)
-    && (item.target_group || null) === (beforePreset.target_group || null)
-    && item.trigger === beforePreset.trigger && item.duration === beforePreset.duration
-    && normalize(item.modifier || '') === normalize(beforePreset.modifier || '')
     && normalizeStrengthId(appState, item.strength) === presetStrength(presetCatalogItem(appState, beforePreset.template_id));
 }
 
