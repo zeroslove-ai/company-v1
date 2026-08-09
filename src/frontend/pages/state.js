@@ -1,4 +1,5 @@
 import { FRONTEND_CONFIG } from './config.js';
+import { parseNarrative } from './narrative.js';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const pendingKey = gameId => `company-v1:pending-action:${gameId}`;
@@ -65,10 +66,16 @@ export function reservedPlayerSetupId(context) {
   const setupId = setup?.setup_id;
   return setup?.completed !== true && typeof setupId === 'string' && setupId.trim() ? setupId : null;
 }
-export function openingHistoryTurn(context) {
+function legacyOpeningHistoryTurn(context) {
   const opening = saveFromContext(context)?.opening_state;
   if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
   return { player_action: '(오프닝)', story_text: opening.story_text, turn_summary: '', choices: Array.isArray(opening.choices) ? opening.choices : [] };
+}
+export function openingHistoryTurn(context) {
+  const opening = saveFromContext(context)?.opening_state;
+  if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
+  const parsed_blocks = parseNarrative(opening.story_text);
+  return { player_action: '(opening)', story_text: opening.story_text, parsed_blocks, turn_summary: '', choices: Array.isArray(parsed_blocks?.choices) ? parsed_blocks.choices : (Array.isArray(opening.choices) ? opening.choices : []), turn_number: 0, turn_id: 'opening', action_id: 'opening' };
 }
 export function openingCompleted(context) {
   const save = saveFromContext(context);

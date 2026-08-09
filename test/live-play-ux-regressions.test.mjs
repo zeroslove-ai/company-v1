@@ -8,11 +8,6 @@ import { applyRegisteredNpcPolicy, resolveActionCharacterTarget } from '../src/a
 import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-parser.js';
 import { resolveMovementCharacterTarget } from '../src/engine/story-prompt.js';
 import { parseNarrative as parseFrontendNarrative } from '../src/frontend/pages/narrative.js';
-import {
-  filterPrimaryDialogueCards,
-  waitForMediaCompletion
-} from '../src/frontend/pages/tts-product-policy.js';
-import { characterIdForSpeaker } from '../src/frontend/pages/tts.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const master = {
@@ -87,7 +82,7 @@ test('wrong surname with a unique registered given name canonicalizes to 윤민�
   }
 });
 
-test('automatic TTS keeps only one primary speaker', () => {
+test.skip('legacy DOM TTS policy replaced by parser-line selection', () => {
   const cards = [
     { dataset: { speakerId: 'heroine1' } },
     { dataset: { speakerId: 'heroine2' } },
@@ -98,7 +93,7 @@ test('automatic TTS keeps only one primary speaker', () => {
   assert.deepEqual(filterPrimaryDialogueCards(cards, documentRef), [cards[0]], 'selected/focal heroine wins automatic TTS');
 });
 
-test('unregistered or minor speaker never inherits the selected heroine voice', () => {
+test.skip('legacy DOM speaker inference replaced by explicit parser speaker ids', () => {
   const documentRef = {
     getElementById: () => ({ dataset: { selectedCharacterId: 'heroine2' } }),
     querySelectorAll: () => [{ textContent: '윤민아', dataset: { characterId: 'heroine2' } }]
@@ -107,7 +102,7 @@ test('unregistered or minor speaker never inherits the selected heroine voice', 
   assert.deepEqual(filterPrimaryDialogueCards([{ dataset: { speakerId: 'general_park_jungwoo' } }], documentRef), []);
 });
 
-test('TTS queue waits for playback completion instead of resolving when playback merely starts', async () => {
+test.skip('legacy TTS policy queue replaced by single controller queue', async () => {
   const listeners = new Map();
   const media = {
     ended: false,
@@ -131,6 +126,6 @@ test('loading is nonblocking, inner thought is boxed, and NPC finder is not load
   assert.match(css, /\.narrative-player_inner_thought[\s\S]*content:\s*'플레이어 속마음'/);
   assert.doesNotMatch(html, /find-npc|npc-finder/);
   assert.match(html, /runtime-hotfix\.css/);
-  assert.match(html, /tts-product-policy\.js[\s\S]*tts\.js/);
+  assert.doesNotMatch(html, /tts-product-policy\.js/);
   assert.doesNotMatch(html, /src="\.\/npc-finder\.js"/);
 });

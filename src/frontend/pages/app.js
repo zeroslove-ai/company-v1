@@ -7,6 +7,7 @@ import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
 import { createUtilityUi } from './utility-ui.js';
+import { createCompanyTts } from './tts.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
@@ -207,7 +208,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     title: get('game-title'), dayTime: get('day-time'), turn: get('turn-number'), api: get('api-status'), status: get('status-banner'), error: get('error-banner'),
     history: get('story-history'), current: get('current-story'), currentAction: get('current-action'), choices: get('choice-list'), input: get('player-action'), submit: get('submit-action'),
     recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), focal: get('focal-character'), mind: get('mind-monitor'), player: get('player-situation'),
-    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps'), reset: get('reset-game')
+    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps'), reset: get('reset-game'), ttsToggle: get('tts-toggle')
   };
   const setupElements = {
     overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
@@ -215,7 +216,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
-  let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null;
+  let context = null, viewModel = null, viewModelContext = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null, ttsController = null;
   // 세션 단위 Story 타임라인 — 페이지 로드 시 최신 1턴으로 시작하고, 같은 세션에서
   // 완료된 턴을 메모리에 누적한다. 새로고침하면 다시 최신 1턴만 표시한다.
   let sessionHistory = [];
@@ -237,8 +238,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
   function refreshViewModel() {
-    viewModel = buildCompanyGameViewModel(context, currentExtract ? { currentExtract } : undefined);
-    viewModelContext = context; viewModelExtract = currentExtract;
+    viewModel = buildCompanyGameViewModel(context);
+    viewModelContext = context;
   }
   function resumePlay() {
     const target = elements.current?.children?.length ? elements.current : elements.history;
@@ -314,7 +315,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
 
   function render() {
-    if (!viewModel || viewModelContext !== context || viewModelExtract !== currentExtract) refreshViewModel();
+    if (!viewModel || viewModelContext !== context) refreshViewModel();
     renderState(elements, viewModel, { title: context?.game?.title });
     const openingTurn = openingHistoryTurn(context);
     // 본문 timeline: 세션 단위 누적 기록(sessionHistory)을 표시한다.
@@ -323,7 +324,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     const recent = sessionHistory.length ? sessionHistory : (context?.recent_turns ?? []);
     renderHistory(elements.history, recent.length ? recent : (openingTurn ? [openingTurn] : []));
     renderCompanyMapPanel();
-    utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
     // 오버레이는 순수 설정 폼 전용. 저장된 설정(reserved)은 init에서 자동 진행되고
     // 재시도 팝업은 완전히 제거되었다(사용자 요구).
@@ -353,7 +353,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     showStatus('현재 상태를 불러오는 중…'); setConnection(false);
     const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
-    context = data.context; currentExtract = null;
+    context = data.context;
     if (!preserveStreamedChoices) streamedStoryChoices = [];
     // 세션 타임라인 누적 — refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않는다.
     // 같은 turn_number는 교체(피드백 revision이 해당 카드를 갱신), 새 턴만 추가, 중복 금지.
@@ -373,12 +373,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         if (hasFourChoices(choices)) { streamedStoryChoices = choices; render(); }
       }
     },
-    onExtract: extracted => {
-      currentExtract = extracted.extract ?? null;
+    onExtract: () => {
       // Extract 응답의 canonical parsed_blocks(서버가 최종 사용한 태거/파서 결과)로
       // 현재 턴 대사 카드를 교체한다 — Story SSE(parser_canonical)보다 정확한 화자 표시.
       showProgress('상태를 정리하는 중…');
-      render();
     },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
     onCommitted: (committed, pending) => {
@@ -411,6 +409,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       }
       clearRecoveryUi();
       utilityUi?.loadMedia().catch(showError);
+      ttsController?.onCommittedTurn?.();
     },
     onPendingChange: () => renderToolbar(),
     onTerminated: clearError
@@ -638,6 +637,18 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     onStatus: showStatus,
     onMediaLoading: setMediaLoading
   });
+  ttsController = createCompanyTts({
+    api, documentRef, gameId,
+    getViewModel: () => viewModel,
+    getSelectedMindCharacterId: () => elements.mind?.dataset?.selectedCharacterId ?? '',
+    getCommittedTurnIdentity: () => `${viewModel?.turn?.turn_id ?? ''}:${viewModel?.turn?.action_id ?? ''}`,
+    getTtsEnabled: () => elements.ttsToggle?.getAttribute?.('aria-pressed') !== 'false'
+  });
+  elements.ttsToggle?.addEventListener('click', () => {
+    const enabled = elements.ttsToggle.getAttribute?.('aria-pressed') !== 'false';
+    elements.ttsToggle.setAttribute?.('aria-pressed', String(!enabled));
+    ttsController?.setEnabled?.(!enabled);
+  });
   async function init() {
     populateSetupOptions();
     elements.submit?.addEventListener('click', () => startNewAction());
@@ -651,7 +662,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     // 시작할 수 있는 막힌 화면(모바일에서 화면을 가리는)을 제거한다.
     const reservedSetupId = reservedPlayerSetupId(context);
     if (reservedSetupId) await retryOpening(reservedSetupId);
-    if (committedTurn(context) >= 1) utilityUi.loadMedia().catch(showError);
   }
   return { gameId, init, refreshContext, startNewAction, startFeedbackRevision, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, utilityUi, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending, utilityAvailable: utilityUi?.available ?? null }); }, get busy() { return busy; } };
 }

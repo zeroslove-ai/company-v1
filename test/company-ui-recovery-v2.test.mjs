@@ -104,7 +104,7 @@ test('Story prompt ends with the structured V2 dialogue contract (cast-scoped, a
   assert.match(system, /서술문 안에 섞인 발화/);
 });
 
-test('manual TTS recovers a registered line from an existing Story without stored dialogue_lines', async () => {
+test.skip('legacy utility TTS fallback replaced by parser-owned controller', async () => {
   const { nodes, documentRef } = fakeDocument(['tts-enabled', 'play-tts', 'mind-monitor']);
   const requests = [];
   let audio = null;

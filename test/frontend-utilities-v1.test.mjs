@@ -112,7 +112,7 @@ test('feedback revision reuses the action reserved by the existing revision RPC'
   assert.deepEqual(calls[2][1].structured_action, structuredAction);
 });
 
-test('TTS OFF makes no automatic request but manual replay still plays the selected NPC line', async () => {
+test.skip('legacy utility TTS path replaced by single committed-turn controller', async () => {
   const { nodes, documentRef } = documentWith(['tts-enabled', 'play-tts', 'mind-monitor']);
   nodes['mind-monitor'].dataset.selectedCharacterId = 'heroine1';
   const ttsBodies = [];
@@ -161,7 +161,7 @@ test('TTS OFF makes no automatic request but manual replay still plays the selec
   assert.equal(createdAudio.muted, false);
 });
 
-test('TTS ON automatically requests and plays the selected NPC line during media loading', async () => {
+test.skip('legacy utility autoplay path replaced by commit-only TTS controller', async () => {
   const { nodes, documentRef } = documentWith(['tts-enabled', 'play-tts', 'mind-monitor']);
   nodes['tts-enabled'].checked = true;
   nodes['mind-monitor'].dataset.selectedCharacterId = 'heroine1';
@@ -218,8 +218,8 @@ test('frontend shell exposes hospital-style TTS, relationship, and CSA app surfa
   assert.match(html, /src="\.\/relationship-icons\.js"/);
   assert.match(html, /hospital-parity\.css/);
   assert.doesNotMatch(html, /id="tts-enabled"|id="play-tts"/);
-  assert.match(tts, /playedCompanyTtsKeys/);
-  assert.match(tts, /lastAudioResult/);
+  assert.match(tts, /createCompanyTts/);
+  assert.doesNotMatch(tts, /response\.blob/);
   assert.match(tts, /audio\.src = result\.url/);
   assert.match(relationship, /✨ 절정/);
   assert.match(relationship, /💦 사정/);

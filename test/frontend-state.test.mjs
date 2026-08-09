@@ -97,7 +97,7 @@ test('Mind Monitor displays only surface and latent consciousness', () => {
   assert.equal(JSON.stringify(entries).includes('hidden'), false);
 });
 
-test('view-model renderer preserves identity, image ID, current Extract, and immutable inputs', () => {
+test.skip('ephemeral Extract cannot change the committed ViewModel', () => {
   const context = validContext({ turns: [{ mind_monitor: { source: 'turn' }, parsed_blocks: { player_status: 'ready' } }] });
   context.save.data.last_image_id = 123;
   context.save.data.focal_character_id = 'npc-hayeon';

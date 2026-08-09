@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import { parseNarrative as parseServerNarrative } from '../src/engine/narrative-parser.js';
 import { parseNarrative as parseFrontendNarrative } from '../src/frontend/pages/narrative.js';
 import { createDraft, operations } from '../src/frontend/pages/csa-app-state.js';
-import { fallbackDialogueLines } from '../src/frontend/pages/utility-ui.js';
 import { buildCharacterDisplayDetails } from '../src/api/character-display.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -55,16 +54,10 @@ test('frontend streaming parser renders the same quote-only line as dialogue car
   assert.ok(parsed.blocks.some(block => block.type === 'dialogue' && block.speaker_id === 'heroine1'));
 });
 
-test('manual TTS fallback recovers existing committed quote-only Story', () => {
-  const context = {
-    master: { data: { characters: { characters: { heroine1: { name: '서원희' } } } } },
-    display: { npc_directory: { heroine1: { name: '서원희' } } },
-    save: { data: { focal_character_id: 'heroine1', last_speaker_id: 'heroine1', last_npcs_present: ['heroine1'] } }
-  };
-  const lines = fallbackDialogueLines(context, { story: { story_text: productionStyleStory } });
-  assert.equal(lines.length, 1);
-  assert.equal(lines[0].speaker_id, 'heroine1');
-  assert.equal(lines[0].text, '인사팀에서 공지가 왔네요. 우선 범위를 확인하죠.');
+test('committed quote-only Story remains parser-owned for media consumers', () => {
+  const parsed = parseFrontendNarrative(productionStyleStory, { speakerDirectory });
+  assert.equal(parsed.dialogue_lines.length, 1);
+  assert.equal(parsed.dialogue_lines[0].speaker_id, 'heroine1');
 });
 
 test('persisted preset payload reopens with category and remains clean until edited', () => {
