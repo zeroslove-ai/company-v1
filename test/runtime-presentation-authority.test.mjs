@@ -21,6 +21,12 @@ test('canonical empty presence ignores stale legacy members and monitor keys', (
   assert.deepEqual(model.media.mind_monitor_entries, []);
 });
 
+test('Mind Monitor does not create a tab from stats alone', () => {
+  const save = { player: { player_id: 'player-1' }, scene: { version: 1, scene_id: 'scene-a', location_id: 'room-a', beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: null, last_speaker_id: null }, npc_stats: { heroine1: { affinity: 12 } } };
+  const model = buildCompanyGameViewModel(context(save, { extract_delta: { extract_version: 2, mind_monitor: {} } }));
+  assert.deepEqual(model.media.mind_monitor_entries, []);
+});
+
 test('API display scene and present_now use exact canonical presence', () => {
   const save = { scene: { version: 1, scene_id: 's', location_id: 'l', beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: null, last_speaker_id: 'heroine2', updated_turn: 3 }, scene_state: { participants: ['heroine2'] }, last_npcs_present: ['heroine2'] };
   assert.deepEqual(buildCanonicalDisplayScene(save).present_npc_ids, ['heroine1']);

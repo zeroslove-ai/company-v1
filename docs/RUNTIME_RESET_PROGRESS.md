@@ -35,11 +35,11 @@
 ## Phase 5 — presentation authority and media projections
 
 - Branch: `company/runtime-core-reset-v1-projection-boundaries` (stacked Draft PR on `company/runtime-core-reset-v1-legacy-prune`).
-- Phase 4 final baseline: **538 tests**.
+- Phase 5 final baseline: **539/539 passed, 0 skipped, 0 failed**.
 - Frontend Story text, dialogue, choices, and inner thought remain parser projections; ephemeral Extract responses are not ViewModel authority.
 - Canonical scene is the only current presence/focal/speaker/location reader when `scene.version === 1`; legacy fields are compatibility-only for pre-scene saves.
-- Committed V2 Extract is the only image/Mind Monitor media source. A single `createCompanyTts()` controller consumes parser dialogue lines after Commit refresh.
-- Deleted duplicate utility TTS and prototype policy paths. Opening remains an authorized turn-0 bootstrap; setup/opening writers are unchanged.
+- Committed V2 Extract is the only image/Mind Monitor media source. A single `createCompanyTts()` controller consumes parser dialogue lines after Commit refresh, with queued/in-flight/completed dedupe, stop/replay, and sequential playback.
+- Deleted duplicate utility TTS and prototype policy paths; HTML loads the controller through `app.js` only. Opening remains an authorized turn-0 bootstrap; setup/opening writers are unchanged.
 
 Remaining phases: setup/opening bootstrap audit and operational migration/deployment work.
 

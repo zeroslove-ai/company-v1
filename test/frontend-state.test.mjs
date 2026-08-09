@@ -97,23 +97,6 @@ test('Mind Monitor displays only surface and latent consciousness', () => {
   assert.equal(JSON.stringify(entries).includes('hidden'), false);
 });
 
-test.skip('ephemeral Extract cannot change the committed ViewModel', () => {
-  const context = validContext({ turns: [{ mind_monitor: { source: 'turn' }, parsed_blocks: { player_status: 'ready' } }] });
-  context.save.data.last_image_id = 123;
-  context.save.data.focal_character_id = 'npc-hayeon';
-  context.save.data.last_speaker_id = 'npc-areum';
-  const runtime = { currentExtract: { mind_monitor: { source: 'extract' } } };
-  const contextSnapshot = structuredClone(context), runtimeSnapshot = structuredClone(runtime);
-  const model = buildCompanyGameViewModel(context, runtime);
-  assert.equal(model.turn.committed_turn, 2);
-  assert.equal(model.media.image_id, 123);
-  assert.equal(model.focal_character.id, 'npc-hayeon');
-  assert.equal(model.focal_character.last_speaker_id, 'npc-areum');
-  assert.deepEqual(model.media.mind_monitor, { source: 'extract' });
-  assert.deepEqual(context, contextSnapshot);
-  assert.deepEqual(runtime, runtimeSnapshot);
-});
-
 test('renderer uses view-model choices, short labels, and full choice payloads', () => {
   const model = buildCompanyGameViewModel(validContext());
   const longChoice = '12345678901234567890123456789012345';

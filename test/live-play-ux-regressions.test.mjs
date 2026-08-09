@@ -82,42 +82,6 @@ test('wrong surname with a unique registered given name canonicalizes to 윤민�
   }
 });
 
-test.skip('legacy DOM TTS policy replaced by parser-line selection', () => {
-  const cards = [
-    { dataset: { speakerId: 'heroine1' } },
-    { dataset: { speakerId: 'heroine2' } },
-    { dataset: { speakerId: 'heroine2' } },
-    { dataset: { speakerId: 'heroine2' } }
-  ];
-  const documentRef = { getElementById: () => ({ dataset: { selectedCharacterId: 'heroine1' } }) };
-  assert.deepEqual(filterPrimaryDialogueCards(cards, documentRef), [cards[0]], 'selected/focal heroine wins automatic TTS');
-});
-
-test.skip('legacy DOM speaker inference replaced by explicit parser speaker ids', () => {
-  const documentRef = {
-    getElementById: () => ({ dataset: { selectedCharacterId: 'heroine2' } }),
-    querySelectorAll: () => [{ textContent: '윤민아', dataset: { characterId: 'heroine2' } }]
-  };
-  assert.equal(characterIdForSpeaker('박정우', documentRef), '');
-  assert.deepEqual(filterPrimaryDialogueCards([{ dataset: { speakerId: 'general_park_jungwoo' } }], documentRef), []);
-});
-
-test.skip('legacy TTS policy queue replaced by single controller queue', async () => {
-  const listeners = new Map();
-  const media = {
-    ended: false,
-    addEventListener(type, listener) { listeners.set(type, listener); },
-    removeEventListener(type) { listeners.delete(type); }
-  };
-  let resolved = false;
-  const pending = waitForMediaCompletion(media, Promise.resolve()).then(() => { resolved = true; });
-  await Promise.resolve();
-  assert.equal(resolved, false);
-  listeners.get('ended')();
-  await pending;
-  assert.equal(resolved, true);
-});
-
 test('loading is nonblocking, inner thought is boxed, and NPC finder is not loaded', () => {
   const css = fs.readFileSync(path.join(root, 'src/frontend/pages/runtime-hotfix.css'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');

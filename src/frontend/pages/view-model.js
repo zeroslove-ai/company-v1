@@ -189,8 +189,8 @@ function detailFor(details, id) {
 function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory = {}, details = {}) {
   const source = object(monitor) ?? {};
   const present = new Set(strings(scene?.present_npc_ids));
-  const ids = new Set([...Object.keys(source), ...preferredIds.filter(Boolean)].filter(id => present.has(id)));
-  const rank = new Map(preferredIds.filter(Boolean).map((id, index) => [id, index]));
+  const ids = new Set(Object.keys(source).filter(id => present.has(id)));
+  const rank = new Map(strings(scene?.present_npc_ids).map((id, index) => [id, index]));
   return [...ids].map(id => {
     const value = object(source[id]) ?? {};
     const detail = detailFor(details, id);
@@ -212,7 +212,7 @@ function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory =
       entry.private_info = detail.private_info;
     }
     return entry;
-  }).filter(entry => entry.id && (entry.surface || entry.subconscious || object(details)?.[entry.id] || object(save.npc_stats)?.[entry.id]))
+  }).filter(entry => entry.id && (entry.surface || entry.subconscious))
     .sort((left, right) => (rank.get(left.id) ?? 99) - (rank.get(right.id) ?? 99));
 }
 

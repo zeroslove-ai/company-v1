@@ -637,21 +637,6 @@ test('턴70-33: general pool은 기존 primary fallback 유지', () => {
   assert.equal(selected.source, 'primary');
 });
 
-test.skip('committed V2 image subject must be present in canonical scene', () => {
-  const context = {
-    save: { data: { focal_character_id: 'heroine4', last_speaker_id: 'heroine4', scene_state: {}, world_state: {} } },
-    display: {},
-    recent_turns: [{
-      turn_number: 86, story_text: 'x',
-      extract_delta: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['handjob'] } }
-    }]
-  };
-  const model = buildCompanyGameViewModel(context, {});
-  assert.equal(model.media.image_pool, 'sex', 'refresh 후에도 sex pool 유지');
-  assert.deepEqual(model.media.image_tags, ['handjob']);
-  assert.equal(model.media.image_character_id, 'heroine4');
-});
-
 test('턴70-35: heroine4 handjob row fixture가 있을 때 정확 선택', () => {
   const candidates = [
     turn70ImageRow('hj1', ['adult', 'sex', 'handjob', 'office_desk'], { rank: 10 }),
@@ -670,24 +655,6 @@ test('턴70-36 (지시C): handjob exact 없음 + fingering family → same-famil
   assert.ok(selected);
   assert.equal(selected.image_id, 'fg1', 'handjob과 같은 manual family(fingering) 우선');
   assert.equal(selected.source, 'family_match');
-});
-
-test.skip('ephemeral currentExtract is no longer a media authority', () => {
-  const context = {
-    save: { data: { focal_character_id: 'heroine4', last_speaker_id: 'heroine4', scene_state: {}, world_state: {} } },
-    display: {},
-    recent_turns: [{
-      turn_number: 86, story_text: 'x',
-      extract_delta: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['fellatio'] } }
-    }]
-  };
-  // runtime.currentExtract 우선
-  const live = buildCompanyGameViewModel(context, { currentExtract: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['handjob'] } } });
-  assert.deepEqual(live.media.image_tags, ['handjob']);
-  // refresh 후 currentExtract=null → extract_delta 사용
-  const refreshed = buildCompanyGameViewModel(context, {});
-  assert.deepEqual(refreshed.media.image_tags, ['fellatio'], 'committed extract_delta에서 복구');
-  assert.equal(refreshed.media.image_pool, 'sex');
 });
 
 test('턴70-26~27: 성적 hand stimulation → sex/handjob, 일반 대화 → general', () => {

@@ -66,11 +66,6 @@ export function reservedPlayerSetupId(context) {
   const setupId = setup?.setup_id;
   return setup?.completed !== true && typeof setupId === 'string' && setupId.trim() ? setupId : null;
 }
-function legacyOpeningHistoryTurn(context) {
-  const opening = saveFromContext(context)?.opening_state;
-  if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
-  return { player_action: '(오프닝)', story_text: opening.story_text, turn_summary: '', choices: Array.isArray(opening.choices) ? opening.choices : [] };
-}
 export function openingHistoryTurn(context) {
   const opening = saveFromContext(context)?.opening_state;
   if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;

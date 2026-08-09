@@ -374,8 +374,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       }
     },
     onExtract: () => {
-      // Extract 응답의 canonical parsed_blocks(서버가 최종 사용한 태거/파서 결과)로
-      // 현재 턴 대사 카드를 교체한다 — Story SSE(parser_canonical)보다 정확한 화자 표시.
+      // Extract는 진행 상태만 갱신한다. Story와 대사 카드는 raw SSE/parser 결과를 유지한다.
       showProgress('상태를 정리하는 중…');
     },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
@@ -607,6 +606,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (busy) return false;
     if (!confirmImpl('정말로 초기화하시겠습니까? 진행 상황이 모두 사라집니다.')) return false;
     return withBusy(async () => {
+      ttsController?.stop?.();
       await api.reset({ game_id: gameId });
       clearPending(storage, gameId);
       clearCurrentTurn();
@@ -638,16 +638,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     onMediaLoading: setMediaLoading
   });
   ttsController = createCompanyTts({
-    api, documentRef, gameId,
+    api, documentRef, storage, gameId,
     getViewModel: () => viewModel,
     getSelectedMindCharacterId: () => elements.mind?.dataset?.selectedCharacterId ?? '',
     getCommittedTurnIdentity: () => `${viewModel?.turn?.turn_id ?? ''}:${viewModel?.turn?.action_id ?? ''}`,
-    getTtsEnabled: () => elements.ttsToggle?.getAttribute?.('aria-pressed') !== 'false'
-  });
-  elements.ttsToggle?.addEventListener('click', () => {
-    const enabled = elements.ttsToggle.getAttribute?.('aria-pressed') !== 'false';
-    elements.ttsToggle.setAttribute?.('aria-pressed', String(!enabled));
-    ttsController?.setEnabled?.(!enabled);
+    onStatus: showStatus
   });
   async function init() {
     populateSetupOptions();
@@ -662,6 +657,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     // 시작할 수 있는 막힌 화면(모바일에서 화면을 가리는)을 제거한다.
     const reservedSetupId = reservedPlayerSetupId(context);
     if (reservedSetupId) await retryOpening(reservedSetupId);
+    if (committedTurn(context) >= 1) utilityUi?.loadMedia?.().catch(showError);
   }
   return { gameId, init, refreshContext, startNewAction, startFeedbackRevision, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, utilityUi, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending, utilityAvailable: utilityUi?.available ?? null }); }, get busy() { return busy; } };
 }

@@ -27,7 +27,8 @@ export function createUtilityUi({
   };
   let historyRecords = [];
   let nextBeforeTurn = null;
-  let lastImageKey = '';
+  let imageInFlightKey = '';
+  let imageCompletedKey = '';
   function setOverlay(element, open) { if (element) element.hidden = !open; }
   function closeHistory() { setOverlay(elements.historyOverlay, false); }
   function closeFeedback() { setOverlay(elements.feedbackOverlay, false); text(elements.feedbackStatus, ''); }
@@ -63,19 +64,22 @@ export function createUtilityUi({
   }
   function imageKey(viewModel) {
     const media = object(viewModel?.media); const scene = object(viewModel?.scene);
-    return [viewModel?.turn?.turn_id, viewModel?.turn?.action_id, media.image_character_id, media.image_pool, ...(Array.isArray(media.image_tags) ? media.image_tags : []).map(String).sort().join(','), scene.location_id].join('|');
+    const tags = (Array.isArray(media.image_tags) ? media.image_tags : []).map(String).sort().join(',');
+    return [viewModel?.turn?.committed_turn ?? viewModel?.turn?.turn_number, viewModel?.turn?.turn_id, viewModel?.turn?.action_id, media.image_character_id, media.image_pool, tags, scene.location_id].join('|');
   }
   async function loadMedia() {
     if (!available.media) return null;
     const viewModel = getViewModel?.(); const characterId = viewModel?.media?.image_character_id;
     if (!characterId) { renderImage(null); return null; }
-    const key = imageKey(viewModel); if (key === lastImageKey) return null; lastImageKey = key;
+    const key = imageKey(viewModel);
+    if (key === imageCompletedKey || key === imageInFlightKey) return null;
+    imageInFlightKey = key;
     onMediaLoading?.(true); text(elements.imageStatus, '장면 이미지를 찾는 중…'); if (elements.imageStatus) elements.imageStatus.hidden = false;
     try {
       const result = await api.image({ game_id: gameId, character_id: characterId, pool: viewModel?.media?.image_pool ?? 'general', situation: viewModel?.media?.image_situation ?? '', tags: Array.isArray(viewModel?.media?.image_tags) ? viewModel.media.image_tags : [], location_id: viewModel?.scene?.location_id ?? null });
-      const image = result.image ?? null; renderImage(image); return image;
+      const image = result.image ?? null; renderImage(image); imageCompletedKey = key; return image;
     } catch (error) { renderImage(null); onError?.(error); return null; }
-    finally { onMediaLoading?.(false); }
+    finally { if (imageInFlightKey === key) imageInFlightKey = ''; onMediaLoading?.(false); }
   }
   elements.historyClose?.addEventListener('click', closeHistory);
   elements.historyMore?.addEventListener('click', () => loadHistory().catch(onError));
