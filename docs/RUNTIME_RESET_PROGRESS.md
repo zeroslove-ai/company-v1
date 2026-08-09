@@ -19,9 +19,18 @@
 - `applyGuardedStateDelta()` no longer writes scene presence, focal, last speaker, or NPC presence/location fields; it remains the non-scene physical/stat/relationship merge path.
 - Opening initialization creates the canonical scene and then projects it through the same legacy projection.
 
+## Phase 3 — Extract Observation V2
+
+- Working branch: `company/runtime-core-reset-v1-extract-observation` (stacked on the Phase 2 canonical-scene branch).
+- Fresh Extract output is normalized as `extract_version: 2` observation data. Save-path patches are rejected from the V2 contract.
+- `reduceGameplayCommit()` is the production Commit orchestration writer. It delegates existing physical/stat/relationship/sexual reducers, applies the Phase 2 canonical scene reducer, projects legacy scene fields, advances time, and validates invariants.
+- `adaptLegacyExtractDelta()` is read-only compatibility for persisted V1 action rows; fresh V2 extraction does not use it.
+- Parser choices, dialogue order, player inner thought, and raw Story remain parser authorities; Extract does not write replacement projections.
+- `applyGuardedStateDelta()` remains only as a deprecated V1 test/comparison entry point and has no API production caller.
+
 ## Remaining phases
 
-- Phase 3: observation-only Extract semantics and the remaining single Commit reducer work.
+- Phase 4: remove the deprecated V1 guarded-merge entry point after persisted-row compatibility is no longer needed.
 - Later phases: UI, TTS/image projections, setup/opening cleanup, and operational migration work.
 
 ## Forbidden regressions
@@ -32,4 +41,4 @@
 ## Verification
 
 - Phase 2 regression suite covers bootstrap precedence, null/empty presence, movement, focal/last-speaker rules, projection idempotence, operational turns 12/16/17, and route boundaries.
-- The current local suite passes 661 tests. The exact commit and CI result are recorded in the stacked Draft PR rather than duplicated here.
+- The Phase 2 baseline passed 661 tests. Phase 3 adds observation/reducer and route-boundary coverage; the current full suite passes 676 tests.

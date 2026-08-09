@@ -4,8 +4,6 @@ import { runExtract, streamStory } from './llm.js';
 import { buildSceneCastContract } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
-  applyGuardedStateDelta,
-  buildDegradedExtractEnvelope,
   buildExtractPrompt,
   buildOpeningPlan,
   buildOpeningPrompt,
@@ -14,7 +12,10 @@ import {
   deriveRecoverableStep,
   deriveTurnChanges,
   hydrateGameplayState,
-  normalizeGameplayExtractEnvelope,
+  normalizeExtractObservationV2,
+  buildDegradedExtractObservation,
+  adaptLegacyExtractDelta,
+  reduceGameplayCommit,
   parseNarrative,
   resolvePlayerCanonicalNames,
   splitOpeningSections,
@@ -52,11 +53,6 @@ import {
   assertStoredActionPersistenceParity,
   applyAuthorizedRuleDefinitions,
   assertRuleDefinitionAuthority,
-  buildLegacySceneObservation,
-  hydrateCanonicalScene,
-  reduceCanonicalScene,
-  projectCanonicalSceneToLegacy,
-  assertCanonicalSceneInvariants
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
@@ -518,7 +514,9 @@ const master = masterFromEdition(edition);
       });
       if (action.extract_delta) {
         const replayParsedStory = parseStoryProjection(action.story_text, master);
-        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: replayParsedStory, npcIds });
+        const extract = action.extract_delta?.extract_version === 2
+          ? normalizeExtractObservationV2(action.extract_delta, { npcIds })
+          : adaptLegacyExtractDelta(action.extract_delta, { npcIds });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
@@ -566,7 +564,7 @@ const master = masterFromEdition(edition);
                   : extractSave
               }
             : hydratedContext;
-          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds, sceneCastContract: parsedStory.scene_cast_contract ?? action.scene_cast_contract });
+          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa);
@@ -575,24 +573,26 @@ const master = masterFromEdition(edition);
           const extractUserPayload = JSON.parse(messages[1].content);
           timing.extract_system_chars = messages[0].content.length;
           timing.extract_context_chars = JSON.stringify(extractUserPayload.context).length;
-          timing.parsed_story_chars = JSON.stringify(extractUserPayload.parsed_story).length;
+          timing.parsed_story_chars = 0;
           timing.extract_request_chars = messages[0].content.length + messages[1].content.length;
           timing.active_character_count = activeCountFromNpcState(extractUserPayload.context?.active_npc_state);
           const llmStart = Date.now();
           const raw = await runExtract({ env, fetchImpl, messages });
           timing.extract_llm_ms = Date.now() - llmStart;
           const parseStart = Date.now();
-          extract = normalizeGameplayExtractEnvelope(raw, { parsedStory, npcIds });
+          // Fresh Extract calls are V2-only. The legacy adapter is reserved for
+          // persisted V1 rows during replay/recovery, never for a new LLM result.
+          extract = normalizeExtractObservationV2(raw, { npcIds });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
           const degradable = (error instanceof HttpError && EXTRACT_DEGRADE_CODES.has(error.code))
-            || (error instanceof GameCoreError && error.code === 'INVALID_EXTRACT');
+            || (error instanceof GameCoreError && (error.code === 'INVALID_EXTRACT' || error.code === 'INVALID_EXTRACT_OBSERVATION'));
           if (!degradable) {
             await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
             throw error;
           }
           degraded = true;
-          extract = buildDegradedExtractEnvelope({ parsedStory, playerAction: action.player_action, extraWarnings: [`extract_error:${error.code ?? error.name ?? 'unknown'}`] });
+          extract = buildDegradedExtractObservation({ extraWarnings: [`extract_error:${error.code ?? error.name ?? 'unknown'}`] });
         }
         try {
           await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
@@ -643,32 +643,19 @@ const master = masterFromEdition(edition);
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const currentSave = context.save?.data ?? context.save;
         let parsedStory = parseStoryProjection(action.story_text, master);
-        const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory, npcIds });
+        const extract = action.extract_delta?.extract_version === 2
+          ? normalizeExtractObservationV2(action.extract_delta, { npcIds })
+          : adaptLegacyExtractDelta(action.extract_delta, { npcIds });
         const mergeStart = Date.now();
-        const merged = applyGuardedStateDelta(currentSave, extract, {
-          expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds,
-          storyText: action.story_text
+        const merged = reduceGameplayCommit({
+          currentSave, observation: extract, parsedStory, rawStory: action.story_text,
+          action, expectedTurn, master, npcIds,
+          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         let nextSave = merged.nextSave;
         const warnings = merged.warnings;
-        const sceneObservation = buildLegacySceneObservation({ extract, parsedStory, npcIds });
-        warnings.push(...(sceneObservation.warnings ?? []));
-        const canonicalScene = reduceCanonicalScene({
-          currentScene: hydrateCanonicalScene(currentSave, { master, npcIds }),
-          observation: sceneObservation,
-          save: currentSave,
-          master,
-          npcIds,
-          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
-          expectedTurn,
-          actionKind: action.action_kind
-        });
-        nextSave = projectCanonicalSceneToLegacy(nextSave, canonicalScene, {
-          playerId: currentSave.player?.player_id ?? currentSave.player?.id,
-          npcIds
-        });
-        assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action.action_kind, observation: sceneObservation });
+        const canonicalScene = merged.canonical_scene;
         // Canonical scene reduction is the only gameplay presence writer. Feedback revisions
         // and degraded observations preserve the existing canonical scene.
         // The app transaction never gets its own save API — its csa_active/csa_rules result rides
@@ -731,14 +718,13 @@ const master = masterFromEdition(edition);
           structuredAction: definitionAction,
           stage: 'commit-final'
         });
-        assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action.action_kind, observation: sceneObservation });
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.
         // 최신 3턴은 Story 원문 전체로 context에 유지되고, story_summary_recent는
         // 이번 턴마다 갱신하지 않는다 (기존 필드는 호환용으로만 유지).
         const finalTurnSummary = '';
-        // 선택지 단일 writer — applyGuardedStateDelta가 확정한 last_choices를
+        // 선택지 단일 writer — gameplay commit reducer가 확정한 last_choices를
         // 그대로 쓴다 (Story 1~3개 보존 + 부족분 보충 결과 = save와 history 일치).
         const finalChoices = Array.isArray(nextSave.last_choices) ? nextSave.last_choices : [];
 

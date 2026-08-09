@@ -412,7 +412,7 @@ export function sanitizeMovementCommit({
   };
 }
 
-export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
+export function reduceLegacyGameplayState(currentSave, extractEnvelope, options) {
   if (!plainObject(currentSave)) throw new GameCoreError('INVALID_SAVE', 'Current save must be an object');
   if (currentSave.save_schema_version !== 1 || currentSave.edition !== 'company-v1') {
     throw new GameCoreError('INVALID_SAVE', 'Current save edition or schema is invalid');
@@ -678,4 +678,9 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     mind_monitor: envelope.mind_monitor,
     dialogue_lines: envelope.dialogue_lines
   };
+}
+
+/** @deprecated Legacy V1 test/comparison entry point. Production Commit uses reduceGameplayCommit. */
+export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
+  return reduceLegacyGameplayState(currentSave, extractEnvelope, options);
 }

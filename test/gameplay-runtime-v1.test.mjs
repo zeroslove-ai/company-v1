@@ -55,10 +55,10 @@ test('Extract prompt requires independent identity axes, Story-authoritative pre
   const prompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1 });
   const system = prompt[0].content;
   assert.match(system, /never copy one into another/);
-  assert.match(system, /Story choices are authoritative and preserved/);
-  assert.match(system, /Extract can never override it/);
-  assert.match(system, /elapsed_minutes is your only time proposal/);
-  assert.match(system, /csa_runtime_state\[csa_id\]/);
+  assert.match(system, /Parser projections are authoritative/);
+  assert.match(system, /Do not generate replacements/);
+  assert.match(system, /elapsed_minutes is the only time proposal/);
+  assert.match(system, /csa_trigger_evaluations and csa_runtime_updates/);
   assert.match(system, /arousal_delta, ejaculation_progress_delta, ejaculation_completed, and erection_state/);
   assert.match(system, /evidence\.sexual_resolution === true/);
   assert.ok(system.length <= 9000, `extract system chars: ${system.length}`); // 예산 7000 (image_selection 지시 반영)
@@ -344,7 +344,7 @@ test('Story and Extract prompts include final scene and Korean workplace languag
   assert.match(storySystem, /해당 행동을 수행한다/);
   assert.match(extractSystem, /Before returning image_selection, reread the final physical scene only/);
   assert.match(extractSystem, /an exited\/disappeared NPC is absent/);
-  assert.match(extractSystem, /evidence\.scene_presence_final=true/);
+  assert.match(extractSystem, /presence_is_final=true/);
 });
 
 /**

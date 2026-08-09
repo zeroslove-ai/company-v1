@@ -44,7 +44,7 @@ const IMAGE_SELECTION_TAGS = new Set([
  *  지시 C: 성적 행동(action tag)이 하나라도 있으면 pool은 반드시 sex로 강제한다.
  *  Extract가 pool=general + 성적 action tag라는 모순을 내도 서버에서 교정한다.
  */
-function normalizeImageSelection(value) {
+export function normalizeImageSelection(value) {
   if (!object(value)) return null;
   const rawTags = Array.isArray(value.tags) ? value.tags : [];
   const tags = [...new Set(rawTags.filter(tag => typeof tag === 'string' && IMAGE_SELECTION_TAGS.has(tag)))];

@@ -253,12 +253,17 @@ test('stored action route parity rejects reservation/row divergence before Story
 
 test('movement Commit recomputes the scene cast instead of reading removed parsed_blocks metadata', async () => {
   const extractEnvelope = {
-    state_delta: { scene_state: { scene_id: 'brand-strategy-scene', location_id: 'brand_strategy_office' } },
+    extract_version: 2,
     outcome: 'success',
-    evidence: { scene_presence_final: true, remote_speaker_ids: ['heroine5'] },
-    choices: ['A', 'B', 'C', 'D'],
-    dialogue_lines: [],
-    npcs_present: ['heroine2'],
+    scene_observation: {
+      scene_id: 'brand-strategy-scene', location_id: 'brand_strategy_office',
+      final_present_npc_ids: ['heroine2'], entered_npc_ids: [], exited_npc_ids: [],
+      focal_candidate_id: null, presence_is_final: true,
+      remote_speaker_ids: ['heroine5'], evidence: []
+    },
+    player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] },
+    evidence: {}, elapsed_minutes: 3, action_target_id: null, image_character_id: null,
+    image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '',
     mind_monitor: {},
     warnings: []
   };

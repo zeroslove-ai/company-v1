@@ -159,7 +159,11 @@ test('recovery states require the persisted result needed by the next step', () 
   assert.equal(deriveRecoverableStep({ processing_status: 'ready' }), 'complete');
   assert.equal(deriveRecoverableStep({ processing_status: 'committed' }), 'complete');
 });
-test('Extract prompt requires the complete normalized envelope', () => {
-  const prompt = buildExtractPrompt({ context: {}, storyText: '[SCENE]\nTest', parsedStory: {}, playerAction: 'test', expectedTurn: 1 });
-  assert.match(prompt[0].content, /state_delta \(object\).*outcome.*evidence \(object\).*turn_summary.*mind_monitor.*choices.*dialogue_lines/i);
+test('Extract prompt requires the complete V2 observation contract', () => {
+  const prompt = buildExtractPrompt({ context: {}, storyText: '[SCENE]\nTest', playerAction: 'test', expectedTurn: 1 });
+  assert.match(prompt[0].content, /Extract Observation V2/);
+  assert.match(prompt[0].content, /elapsed_minutes is the only time proposal/);
+  const payload = JSON.parse(prompt[1].content);
+  assert.equal(payload.extract_version, 2);
+  assert.equal('parsed_story' in payload, false);
 });

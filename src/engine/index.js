@@ -4,10 +4,13 @@ export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prom
 export { buildExtractPrompt } from './extract-prompt.js';
 export { parseNarrative } from './narrative-parser.js';
 export { normalizeExtractEnvelope } from './extract-envelope.js';
-export { applyGuardedStateDelta, buildFallbackTurnChoices, sanitizeMovementCommit } from './guarded-merge.js';
+export { applyGuardedStateDelta, reduceLegacyGameplayState, buildFallbackTurnChoices, sanitizeMovementCommit } from './guarded-merge.js';
 export { hydrateCanonicalScene, buildLegacySceneObservation, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
 export { projectCanonicalSceneToLegacy, buildLegacySceneProjection } from './runtime-core/projections.js';
 export { assertCanonicalSceneInvariants } from './runtime-core/invariants.js';
+export { normalizeExtractObservationV2, buildDegradedExtractObservation, assertExtractObservationContract } from './runtime-core/extract-observation.js';
+export { adaptLegacyExtractDelta } from './runtime-core/legacy-extract-adapter.js';
+export { reduceGameplayCommit } from './runtime-core/commit-reducer.js';
 export { deriveRecoverableStep } from './turn-state.js';
 export {
   normalizeMindMonitor,
