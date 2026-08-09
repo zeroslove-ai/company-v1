@@ -8,7 +8,7 @@ export { applyGuardedStateDelta, reduceLegacyGameplayState, buildFallbackTurnCho
 export { hydrateCanonicalScene, buildLegacySceneObservation, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
 export { projectCanonicalSceneToLegacy, buildLegacySceneProjection } from './runtime-core/projections.js';
 export { assertCanonicalSceneInvariants } from './runtime-core/invariants.js';
-export { normalizeExtractObservationV2, buildDegradedExtractObservation, assertExtractObservationContract } from './runtime-core/extract-observation.js';
+export { normalizeExtractObservationV2, buildDegradedExtractObservation, assertExtractObservationContract, assertScenePresenceCoverage } from './runtime-core/extract-observation.js';
 export { adaptLegacyExtractDelta } from './runtime-core/legacy-extract-adapter.js';
 export { reduceGameplayCommit } from './runtime-core/commit-reducer.js';
 export {
