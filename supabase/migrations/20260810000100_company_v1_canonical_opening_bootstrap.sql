@@ -172,7 +172,9 @@ $$;
 -- Turn-0-only package backfill. No turn/action/story rows are changed.
 update public.game_master
 set initial_save = public.company_apply_opening_scene_v1(public.company_apply_initial_clothing_v2(initial_save))
-where edition_id = 'company-v1'
+from public.games g
+where g.id = public.game_master.game_id
+  and g.edition_id = 'company-v1'
   and jsonb_typeof(initial_save -> 'opening_state' -> 'plan') = 'object'
   and jsonb_typeof(initial_save -> 'scene') is distinct from 'object';
 
