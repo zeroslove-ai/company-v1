@@ -34,6 +34,22 @@ test('representative institutional regulation sentences preserve direct action m
   assert.match(sentence('public_sex_is_unremarkable'), /회사 직원은 공개된 성행위/);
 });
 
+test('final catalog cleanup keeps request modes, institutional framing, and no role placeholder UI', () => {
+  const requestIds = [
+    'sit_on_recipient_lap', 'stand_between_recipient_knees', 'press_body_against_recipient',
+    'embrace_recipient_from_behind', 'keep_hand_on_recipient_inner_thigh', 'wrap_leg_around_recipient',
+    'maintain_thigh_contact', 'whisper_against_recipient_ear', 'interlace_fingers_with_recipient'
+  ];
+  for (const id of requestIds) assert.equal(catalog.items.find(item => item.id === id)?.mode, 'on_player_request');
+  const mutual = catalog.items.find(item => item.id === 'selected_groups_mutual_sexual_service');
+  assert.ok(mutual);
+  assert.doesNotMatch(mutual.label, /선택된 두/);
+  assert.doesNotMatch(mutual.content_template, /선택된 두/);
+  assert.doesNotMatch(JSON.stringify(raw), new RegExp(['자연스러운', ' 상식으로 바뀝니다'].join('')));
+  const frontend = fs.readFileSync(new URL('../src/frontend/pages/csa-app.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(frontend, /\[\['역할'/);
+});
+
 test('preset payload exposes only group scope, authority, mode, and complete sentence', () => {
   const payload = buildPresetCatalogPayload(raw, 'strong');
   for (const item of payload.items) {

@@ -289,10 +289,6 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
       previewBox.append(el('small', '', '완성 문장 미리보기'), previewText);
       wrap.appendChild(previewBox);
     } else {
-      const waiting = selectedStrength ? '프리셋을 먼저 선택하세요' : '강도를 먼저 선택하세요';
-      [['역할', '']].forEach(([label]) => {
-        wrap.appendChild(selectField(label, '', [{ id: '', label: waiting, disabled: true }], () => {}, true));
-      });
       const previewBox = el('div', 'csa-app-preview');
       previewBox.append(el('small', '', '완성 문장 미리보기'), el('p', '', '항목을 모두 선택하면 문장이 완성됩니다.'));
       wrap.appendChild(previewBox);
