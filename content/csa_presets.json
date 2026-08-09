@@ -130,7 +130,7 @@
       "required_action": "sit_on_recipient_lap",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{performer_subject}가 {recipient_possessive} 무릎 위에 올라앉아 몸을 밀착한다."
+      "content_template": "{performer_subject} {recipient_possessive} 무릎 위에 올라앉아 몸을 밀착한다."
     },
     {
       "id": "stand_between_recipient_knees",
@@ -175,7 +175,7 @@
       "required_action": "stand_between_recipient_knees",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{performer_subject}가 {recipient_possessive} 벌어진 무릎 사이에 가까이 선다."
+      "content_template": "{performer_subject} {recipient_possessive} 벌어진 무릎 사이에 가까이 선다."
     },
     {
       "id": "press_body_against_recipient",
@@ -222,7 +222,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 몸에 가슴과 몸을 밀착한다."
+      "content_template": "{performer_subject} {recipient_possessive} 몸에 가슴과 몸을 밀착한다."
     },
     {
       "id": "embrace_recipient_from_behind",
@@ -267,7 +267,7 @@
       "required_action": "embrace_recipient_from_behind",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{performer_subject}가 {recipient_object} 뒤에서 끌어안는다."
+      "content_template": "{performer_subject} {recipient_object} 뒤에서 끌어안는다."
     },
     {
       "id": "keep_hand_on_recipient_inner_thigh",
@@ -314,7 +314,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 안쪽 허벅지에 손을 올리고 유지한다."
+      "content_template": "{performer_subject} {recipient_possessive} 안쪽 허벅지에 손을 올리고 유지한다."
     },
     {
       "id": "wrap_leg_around_recipient",
@@ -361,7 +361,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 다리에 한쪽 다리를 감는다."
+      "content_template": "{performer_subject} {recipient_possessive} 다리에 한쪽 다리를 감는다."
     },
     {
       "id": "maintain_thigh_contact",
@@ -408,7 +408,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 무릎과 허벅지가 맞닿은 채 가까이 앉아 있다."
+      "content_template": "{performer_subject} {recipient_possessive} 무릎과 허벅지가 맞닿은 채 가까이 앉아 있다."
     },
     {
       "id": "whisper_against_recipient_ear",
@@ -453,7 +453,7 @@
       "required_action": "whisper_against_recipient_ear",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{performer_subject}가 {recipient_possessive} 귀에 입술을 가까이 대고 낮게 속삭인다."
+      "content_template": "{performer_subject} {recipient_possessive} 귀에 입술을 가까이 대고 낮게 속삭인다."
     },
     {
       "id": "interlace_fingers_with_recipient",
@@ -500,7 +500,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 손가락을 깍지 끼고 놓지 않는다."
+      "content_template": "{performer_subject} {recipient_possessive} 손가락을 깍지 끼고 놓지 않는다."
     },
     {
       "id": "no_bra_under_work_clothes",
@@ -529,7 +529,7 @@
       "required_action": "no_bra_under_work_clothes",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{subject_subject}가 브래지어 없이 근무복을 입고 가슴선이 드러난 채 지낸다."
+      "content_template": "{subject_subject} 브래지어 없이 근무복을 입고 가슴선이 드러난 채 지낸다."
     },
     {
       "id": "no_panties_under_work_clothes",
@@ -558,7 +558,7 @@
       "required_action": "no_panties_under_work_clothes",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{subject_subject}가 팬티 없이 평소 근무복을 입고 지낸다."
+      "content_template": "{subject_subject} 팬티 없이 평소 근무복을 입고 지낸다."
     },
     {
       "id": "open_top_to_show_cleavage",
@@ -587,7 +587,7 @@
       "required_action": "open_top_to_show_cleavage",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{subject_subject}가 셔츠 상단을 깊게 풀어 가슴골을 드러낸 채 지낸다."
+      "content_template": "{subject_subject} 셔츠 상단을 깊게 풀어 가슴골을 드러낸 채 지낸다."
     },
     {
       "id": "wear_body_hugging_work_clothes",
@@ -616,7 +616,7 @@
       "required_action": "wear_body_hugging_work_clothes",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{subject_subject}가 몸의 윤곽이 선명한 밀착 근무복을 입고 지낸다."
+      "content_template": "{subject_subject} 몸의 윤곽이 선명한 밀착 근무복을 입고 지낸다."
     },
     {
       "id": "target_places_requester_hand_on_waist_or_thigh",
@@ -671,7 +671,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {requester_possessive} 손을 자기 허리나 허벅지 위에 올려놓는다."
+      "content_template": "{performer_subject} {requester_possessive} 손을 자기 허리나 허벅지 위에 올려놓는다."
     },
     {
       "id": "work_in_underwear_only",
@@ -700,7 +700,7 @@
       "required_action": "work_in_underwear_only",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{subject_subject}가 겉옷을 벗고 속옷 차림으로 지낸다."
+      "content_template": "{subject_subject} 겉옷을 벗고 속옷 차림으로 지낸다."
     },
     {
       "id": "work_topless",
@@ -729,7 +729,7 @@
       "required_action": "work_topless",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{subject_subject}가 상의를 모두 벗어 가슴이 드러난 상태로 지낸다."
+      "content_template": "{subject_subject} 상의를 모두 벗어 가슴이 드러난 상태로 지낸다."
     },
     {
       "id": "expose_breasts_on_request",
@@ -768,7 +768,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 요청하면 {performer_subject}가 가슴을 완전히 드러낸다."
+      "content_template": "{requester_subject} 요청하면 {performer_subject} 가슴을 완전히 드러낸다."
     },
     {
       "id": "expose_genitals_on_request",
@@ -807,7 +807,7 @@
         "genital_exposure"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 요청하면 {performer_subject}가 옷과 속옷을 벗거나 젖혀 성기가 보이게 한다."
+      "content_template": "{requester_subject} 요청하면 {performer_subject} 옷과 속옷을 벗거나 젖혀 성기가 보이게 한다."
     },
     {
       "id": "remove_requested_clothing",
@@ -844,7 +844,7 @@
       "required_action": "remove_requested_clothing",
       "sexual_actions": [],
       "method_policy": "unspecified",
-      "content_template": "{requester_subject}가 지정하면 {performer_subject}가 그 옷을 실제로 벗는다."
+      "content_template": "{requester_subject} 지정하면 {performer_subject} 그 옷을 실제로 벗는다."
     },
     {
       "id": "allow_breast_touch_on_request",
@@ -883,7 +883,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 요청하면 {performer_subject}가 자신의 가슴과 유두를 만지도록 몸을 내어준다."
+      "content_template": "{requester_subject} 요청하면 {performer_subject} 자신의 가슴과 유두를 만지도록 몸을 내어준다."
     },
     {
       "id": "allow_genital_touch_on_request",
@@ -922,7 +922,7 @@
         "genital_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 요청하면 {performer_subject}가 자신의 성기를 직접 만지도록 자세를 잡는다."
+      "content_template": "{requester_subject} 요청하면 {performer_subject} 자신의 성기를 직접 만지도록 자세를 잡는다."
     },
     {
       "id": "stimulate_recipient_breasts_and_nipples",
@@ -969,7 +969,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 가슴을 주무르고 유두를 손가락으로 자극한다."
+      "content_template": "{performer_subject} {recipient_possessive} 가슴을 주무르고 유두를 손가락으로 자극한다."
     },
     {
       "id": "hand_stimulate_recipient_genitals",
@@ -1016,7 +1016,7 @@
         "genital_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 성기를 손으로 잡고 반복해서 자극한다."
+      "content_template": "{performer_subject} {recipient_possessive} 성기를 손으로 잡고 반복해서 자극한다."
     },
     {
       "id": "masturbate_for_recipient",
@@ -1063,7 +1063,7 @@
         "genital_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_subject} 앞에서 자신의 성기를 만지며 자위한다."
+      "content_template": "{performer_subject} {recipient_subject} 앞에서 자신의 성기를 만지며 자위한다."
     },
     {
       "id": "grind_on_recipient_lap",
@@ -1110,7 +1110,7 @@
         "genital_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 무릎 위에서 골반을 움직여 성기를 마찰한다."
+      "content_template": "{performer_subject} {recipient_possessive} 무릎 위에서 골반을 움직여 성기를 마찰한다."
     },
     {
       "id": "deep_kiss_on_request",
@@ -1149,7 +1149,7 @@
         "kiss"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 요청하면 {performer_subject}가 입술을 맞대고 혀를 섞어 깊게 키스한다."
+      "content_template": "{requester_subject} 요청하면 {performer_subject} 입술을 맞대고 혀를 섞어 깊게 키스한다."
     },
     {
       "id": "guide_recipient_hand_to_body",
@@ -1196,7 +1196,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_subject} 손을 잡아 자신의 가슴·허벅지·성기로 이끈다."
+      "content_template": "{performer_subject} {recipient_subject} 손을 잡아 자신의 가슴·허벅지·성기로 이끈다."
     },
     {
       "id": "mutual_genital_touch",
@@ -1242,7 +1242,7 @@
         "genital_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{group_a_subject}와 {group_b_subject}가 서로의 성기를 손으로 만지고 자극한다.",
+      "content_template": "{group_a_conj} {group_b_subject} 서로의 성기를 손으로 만지고 자극한다.",
       "mutual": true
     },
     {
@@ -1290,7 +1290,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 가슴을 입으로 핥고 유두를 빨아 자극한다."
+      "content_template": "{performer_subject} {recipient_possessive} 가슴을 입으로 핥고 유두를 빨아 자극한다."
     },
     {
       "id": "perform_oral_sex_on_recipient",
@@ -1337,7 +1337,7 @@
         "oral"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_possessive} 성기를 입과 혀로 자극한다."
+      "content_template": "{performer_subject} {recipient_possessive} 성기를 입과 혀로 자극한다."
     },
     {
       "id": "receive_oral_sex_from_recipient",
@@ -1384,7 +1384,7 @@
         "oral"
       ],
       "method_policy": "restricted",
-      "content_template": "{recipient_subject}가 {performer_possessive} 성기를 입으로 자극한다."
+      "content_template": "{recipient_subject} {performer_possessive} 성기를 입으로 자극한다."
     },
     {
       "id": "vaginal_sex_with_recipient",
@@ -1431,7 +1431,7 @@
         "penetration"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}와 {recipient_subject}가 질 삽입 성관계를 시작한다."
+      "content_template": "{performer_conj} {recipient_subject} 질 삽입 성관계를 시작한다."
     },
     {
       "id": "anal_sex_with_recipient",
@@ -1478,7 +1478,7 @@
         "penetration"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}와 {recipient_subject}가 항문 삽입 성관계를 시작한다."
+      "content_template": "{performer_conj} {recipient_subject} 항문 삽입 성관계를 시작한다."
     },
     {
       "id": "perform_requester_selected_sex_position",
@@ -1533,7 +1533,7 @@
         "penetration"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 지정하면 {performer_subject}가 {recipient_possessive} 지정한 체위로 성행위를 시작한다."
+      "content_template": "{requester_subject} 지정하면 {performer_subject} {recipient_possessive} 지정한 체위로 성행위를 시작한다."
     },
     {
       "id": "continue_until_recipient_orgasm",
@@ -1580,7 +1580,7 @@
         "orgasm"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 {recipient_subject}가 절정에 이를 때까지 현재 성적 행동을 계속한다."
+      "content_template": "{performer_subject} {recipient_subject} 절정에 이를 때까지 현재 성적 행동을 계속한다."
     },
     {
       "id": "continue_until_player_says_stop",
@@ -1635,7 +1635,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{performer_subject}가 플레이어가 중단할 때까지 {recipient_possessive} 현재 성적 행동을 계속한다."
+      "content_template": "{performer_subject} {requester_subject} 중단할 때까지 {recipient_possessive} 현재 성적 행동을 계속한다."
     },
     {
       "id": "requester_controls_ejaculation_location",
@@ -1690,7 +1690,7 @@
         "orgasm"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 사정할 위치나 방식을 지정하면 {performer_subject}가 그에 맞춰 행동한다."
+      "content_template": "{requester_subject} 사정할 위치나 방식을 지정하면 {performer_subject} 그에 맞춰 행동한다."
     },
     {
       "id": "swallow_semen_on_request",
@@ -1729,7 +1729,7 @@
         "orgasm"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 요청하면 {performer_subject}가 입 안에 받은 정액을 삼킨다."
+      "content_template": "{requester_subject} 요청하면 {performer_subject} 입 안에 받은 정액을 삼킨다."
     },
     {
       "id": "multi_performer_sexual_service",
@@ -1784,7 +1784,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 요청하면 여러 수행자가 함께 플레이어를 자극한다."
+      "content_template": "{requester_subject} 요청하면 여러 수행자가 함께 플레이어를 자극한다."
     },
     {
       "id": "group_sex_with_player",
@@ -1830,7 +1830,7 @@
         "penetration"
       ],
       "method_policy": "restricted",
-      "content_template": "{group_a_subject}와 {group_b_subject}가 같은 장면에서 성행위를 함께 진행한다.",
+      "content_template": "{group_a_conj} {group_b_subject} 같은 장면에서 성행위를 함께 진행한다.",
       "mutual": true
     },
     {
@@ -1862,7 +1862,7 @@
         "penetration"
       ],
       "method_policy": "restricted",
-      "content_template": "{subject_subject}가 공개된 성행위를 일상적인 장면으로 받아들인다."
+      "content_template": "{subject_subject} 공개된 성행위를 일상적인 장면으로 받아들인다."
     },
     {
       "id": "player_request_executes_immediately",
@@ -1917,7 +1917,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 구체적인 성적 행동을 요구하면 {performer_subject}가 {recipient_possessive} 그 행동을 즉시 시작한다."
+      "content_template": "{requester_subject} 구체적인 성적 행동을 요구하면 {performer_subject} {recipient_possessive} 그 행동을 즉시 시작한다."
     },
     {
       "id": "player_controls_target_clothing_posture_and_sexual_action",
@@ -1972,7 +1972,7 @@
         "sexual_touch"
       ],
       "method_policy": "restricted",
-      "content_template": "{requester_subject}가 복장·자세·성적 행동을 지정하면 {performer_subject}가 그대로 전환한다."
+      "content_template": "{requester_subject} 복장·자세·성적 행동을 지정하면 {performer_subject} 그대로 전환한다."
     },
     {
       "id": "selected_groups_mutual_sexual_service",
@@ -2020,7 +2020,7 @@
         "penetration"
       ],
       "method_policy": "restricted",
-      "content_template": "{group_a_subject}와 {group_b_subject}가 서로의 성적 요구를 손·입·성행위로 충족한다.",
+      "content_template": "{group_a_conj} {group_b_subject} 서로의 성적 요구를 손·입·성행위로 충족한다.",
       "mutual": true
     }
   ]

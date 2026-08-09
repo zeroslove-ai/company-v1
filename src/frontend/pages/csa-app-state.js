@@ -10,6 +10,13 @@ const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
 
 function clone(value) { return JSON.parse(JSON.stringify(value || [])); }
 function normalize(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
+function hasBatchim(value) {
+  const code = String(value || '').trim().slice(-1).codePointAt(0) || 0;
+  return code >= 0xac00 && code <= 0xd7a3 && (code - 0xac00) % 28 !== 0;
+}
+function subject(label) { return `${label}${hasBatchim(label) ? '이' : '가'}`; }
+function possessive(label) { return `${label}의`; }
+function conjunction(label) { return `${label}${hasBatchim(label) ? '과' : '와'}`; }
 
 export function activeItems(draft) {
   return (draft?.csa || []).filter(item => !item._deleted);
@@ -40,19 +47,25 @@ export function presetPreviewContent(appState, item) {
   const roles = item.roles || {};
   const label = key => presetOptionLabel(appState, key, roles[key]);
   const params = {
-    requester_subject: label('requester_group') || '',
-    performer_subject: label('performer_group') || '',
-    recipient_possessive: label('recipient_group') ? `${label('recipient_group')}의` : '',
-    subject_subject: label('subject_group') || '',
-    group_a_subject: label('group_a') || '',
-    group_b_subject: label('group_b') || ''
+    requester_subject: subject(label('requester_group') || ''),
+    performer_subject: subject(label('performer_group') || ''),
+    performer_conj: conjunction(label('performer_group') || ''),
+    recipient_subject: subject(label('recipient_group') || ''),
+    recipient_object: `${label('recipient_group') || ''}${hasBatchim(label('recipient_group') || '') ? '을' : '를'}`,
+    recipient_possessive: possessive(label('recipient_group') || ''),
+    subject_subject: subject(label('subject_group') || ''),
+    group_a_subject: subject(label('group_a') || ''),
+    group_a_conj: conjunction(label('group_a') || ''),
+    group_b_subject: subject(label('group_b') || '')
   };
-  const direct = {
-    sit_on_recipient_lap: '{performer_subject} {recipient_possessive} 무릎 위에 올라앉아 몸을 밀착한다.',
-    stand_between_recipient_knees: '{performer_subject} {recipient_possessive} 벌어진 무릎 사이에 가까이 선다.',
-    press_body_against_recipient: '{performer_subject} {recipient_possessive} 몸에 가슴과 몸을 밀착한다.',
-    hand_stimulate_genitals: '{performer_subject} {recipient_possessive} 성기를 손으로 잡고 반복해서 자극한다.'
-  };
+  for (const role of catalogItem.role_slots || []) {
+    const base = role.key.replace('_group', '');
+    const value = label(role.key) || '';
+    params[`${base}_topic`] = `${value}${hasBatchim(value) ? '은' : '는'}`;
+    params[`${base}_object`] = `${value}${hasBatchim(value) ? '을' : '를'}`;
+    params[`${base}_possessive`] = possessive(value);
+    params[`${base}_conj`] = conjunction(value);
+  }
   const template = catalogItem.content_template;
   return template.replace(/\{(\w+)\}/g, (match, key) => Object.prototype.hasOwnProperty.call(params, key) ? params[key] : '');
 }

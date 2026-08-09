@@ -227,7 +227,7 @@ export function createTurnRoutes({ fetchImpl = fetch, edition } = {}) {
   const master = masterFromEdition(edition);
   const csaCatalog = object(edition?.csaPresets) ?? {
     actor_options: [], target_options: [], trigger_options: [], duration_options: [],
-    categories: [], items: [], sexual_action_contract: {}
+    selector_options: [], strengths: [], categories: [], items: []
   };
 
   return {

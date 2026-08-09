@@ -1,4 +1,4 @@
-export const STRUCTURED_SEXUAL_ACTIONS = new Set(['none', 'kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration']);
+export const STRUCTURED_SEXUAL_ACTIONS = new Set(['none', 'kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration', 'orgasm']);
 export const STRUCTURED_SEXUAL_DIRECTIONS = new Set(['none', 'npc_to_player', 'player_to_npc']);
 
 const LEGACY_GROUP_ALIASES = new Map([
@@ -133,28 +133,47 @@ export function validateCustomCsaSemanticContract({ rawContract = {}, normalized
   return ok ? { ok: true } : { ok: false, code: 'CUSTOM_CSA_SEXUAL_SCOPE_AMBIGUOUS', message: '행동 주체·대상·행동 종류·발동 상황을 더 명확히 적어 주세요.' };
 }
 
-/** Presets still use a finite action/direction audit taxonomy, while group labels are canonicalized. */
-export function buildPresetCsaSemanticContract(csa = {}, sexualActionContract = {}) {
+function presetDirection(performer, recipient) {
+  if (performer === 'player' && recipient && recipient !== 'player') return ['player_to_npc'];
+  if (recipient === 'player' && performer && performer !== 'player') return ['npc_to_player'];
+  return [];
+}
+
+function presetGroupDirections(roles) {
+  const first = roles.group_a;
+  const second = roles.group_b;
+  if (!first || !second || first === second) return [];
+  if (first === 'player' || second === 'player') return ['player_to_npc', 'npc_to_player'];
+  return [];
+}
+
+/** Uses the activated V2 preset itself as the semantic contract source. */
+export function buildPresetCsaSemanticContract(csa = {}) {
   const preset = isPlainObject(csa?.preset) ? csa.preset : {};
-  const required = String(preset.required_action || '');
-  const mapped = sexualActionContract?.[required];
   const roles = isPlainObject(preset.roles) ? preset.roles : {};
+  const actions = [...new Set((Array.isArray(preset.sexual_actions) ? preset.sexual_actions : [])
+    .filter(action => STRUCTURED_SEXUAL_ACTIONS.has(action) && action !== 'none'))];
+  const directions = roles.group_a && roles.group_b
+    ? presetGroupDirections(roles)
+    : presetDirection(roles.performer_group, roles.recipient_group);
+  const actorGroup = roles.performer_group || roles.subject_group || roles.group_a || 'unknown';
+  const targetGroup = roles.recipient_group || roles.group_b || 'unknown';
   return normalizeCsaSemanticContract({
-    sexual_authorization: true,
-    directions: mapped?.directions || [],
-    actions: mapped?.actions || [],
-    actor_group: roles.performer_group || roles.subject_group || roles.group_a || 'unknown',
-    target_group: roles.recipient_group || roles.group_b || 'unknown',
+    sexual_authorization: actions.length > 0 && directions.length > 0,
+    directions,
+    actions,
+    actor_group: actorGroup,
+    target_group: targetGroup,
     trigger: preset.mode || 'continuous',
     duration: 'continuous',
     direct_execution: Boolean(preset.required_action),
-    method_policy: mapped?.method_policy === 'unspecified' ? 'unspecified' : undefined,
+    method_policy: preset.method_policy,
     confidence: 'exact'
   });
 }
 
-export function buildCsaSemanticContract(csa = {}, sexualActionContract = {}) {
+export function buildCsaSemanticContract(csa = {}) {
   return csa?.source_type === 'preset'
-    ? buildPresetCsaSemanticContract(csa, sexualActionContract)
+    ? buildPresetCsaSemanticContract(csa)
     : normalizeCsaSemanticContract(csa?.semantic_contract);
 }

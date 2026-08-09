@@ -20,15 +20,29 @@ test('Company CSA catalog V2 has role slots, two modes, and no donor fields', ()
   assert.ok(buildPresetCatalogPayload(raw, 'strong').items.every(item => !String(item.content_template || '').includes('실제 행동을 수행한다')));
 });
 
-test('every V2 role combination renders a complete directed sentence', () => {
+test('every V2 role option participates in a complete rendered sentence', () => {
   const payload = buildPresetCatalogPayload(raw, 'strong');
   for (const item of payload.items) {
-    const roles = Object.fromEntries(item.role_slots.map(role => [role.key, role.default || role.options[0]]));
-    const rendered = renderPresetContent(catalog, item, { roles });
-    assert.ok(rendered.trim(), item.id);
-    assert.doesNotMatch(rendered, /undefined|null|미설정|의가|는에 대한|은에 대한/);
-    assert.doesNotMatch(rendered, /가가|는는|은은|와와|과과/);
-    assert.ok(!rendered.includes('실제 행동을 수행한다'), item.id);
+    for (const role of item.role_slots) {
+      for (const option of role.options) {
+        const roles = Object.fromEntries(item.role_slots.map(slot => [slot.key, slot.default || slot.options[0]]));
+        roles[role.key] = option;
+        const rendered = renderPresetContent(catalog, item, { roles });
+        assert.ok(rendered.trim(), `${item.id}:${role.key}:${option}`);
+        assert.doesNotMatch(rendered, /undefined|null|미설정|의가|는에 대한|은에 대한/);
+        assert.doesNotMatch(rendered, /가가|이이|와와|과과/);
+        assert.ok(!rendered.includes('실제 행동을 수행한다'), item.id);
+      }
+    }
+  }
+});
+
+test('particle placeholders carry 조사 without malformed labels', () => {
+  const item = catalog.items.find(entry => entry.id === 'vaginal_sex_with_recipient');
+  for (const [performer, recipient] of [['서원희', '김제나'], ['김하늘', '박수진'], ['본부장', '회사 직원 전체'], ['현재 장면의 NPC', '플레이어']]) {
+    const rendered = renderPresetContent(catalog, item, { roles: { performer_group: performer, recipient_group: recipient } });
+    assert.doesNotMatch(rendered, /김하늘가|박수진가|본부장가|가가|이이|와와|과과|의가/);
+    assert.doesNotMatch(rendered, /undefined|null/);
   }
 });
 
@@ -51,4 +65,11 @@ test('canonical initial save and opening seed carry four worn clothing slots', (
   assert.ok(Object.values(fixture.player_scene_state.clothing).every(value => value === 'worn'));
   const sql = fs.readFileSync(new URL('../supabase/seed/20260803000100_company_v1_dev_seed.sql', import.meta.url), 'utf8');
   for (const slot of slots) assert.match(sql, new RegExp(slot));
+  const migration = fs.readFileSync(new URL('../supabase/migrations/20260809000100_company_v1_initial_clothing_v2.sql', import.meta.url), 'utf8');
+  assert.match(migration, /create or replace function public\.company_initial_clothing_v2/);
+  assert.match(migration, /company_apply_initial_clothing_v2/);
+  assert.match(migration, /reserve_company_player_setup/);
+  assert.match(migration, /commit_company_opening/);
+  assert.match(migration, /reset_company_game/);
+  for (const slot of slots) assert.match(migration, new RegExp(`'${slot}'`));
 });

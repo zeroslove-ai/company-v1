@@ -86,7 +86,7 @@ export function validatePresetOperation(catalog, raw, { availableStrength } = {}
   }
   const roleValues = Object.values(roles).filter(value => typeof value === 'string');
   const uniqueRoleValues = new Set(roleValues);
-  if (item.mutual === false && uniqueRoleValues.size < roleValues.length) {
+  if (item.allow_same_role_values !== true && uniqueRoleValues.size < roleValues.length) {
     return { ok: false, code: 'PRESET_ROLE_CONFLICT', message: '서로 다른 역할을 선택해 주세요.' };
   }
   const content = renderPresetContent(normalizedCatalog, item, { roles });
