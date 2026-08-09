@@ -5,7 +5,6 @@ import { buildSceneCastContract } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
-  sanitizeMovementCommit,
   buildDegradedExtractEnvelope,
   buildExtractPrompt,
   buildOpeningPlan,
@@ -52,7 +51,12 @@ import {
   resolveStoredStructuredAction,
   assertStoredActionPersistenceParity,
   applyAuthorizedRuleDefinitions,
-  assertRuleDefinitionAuthority
+  assertRuleDefinitionAuthority,
+  buildLegacySceneObservation,
+  hydrateCanonicalScene,
+  reduceCanonicalScene,
+  projectCanonicalSceneToLegacy,
+  assertCanonicalSceneInvariants
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
@@ -646,29 +650,27 @@ const master = masterFromEdition(edition);
           storyText: action.story_text
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
-        const { nextSave, warnings } = merged;
-        // 안전화 패치 — 이동 결과 deterministic 보정.
-        // feedback_revision에서는 sanitizer 자체를 호출하지 않는다
-        // (과거 턴 피드백 재생성으로 현재 save 위치가 바뀌면 안 된다).
-        let movementResult = { applied: false, reason: 'not_checked', warnings: [] };
-        if (action.action_kind !== 'feedback_revision') {
-          const sceneCastContract = buildSceneCastContract({
-            save: currentSave,
-            master,
-            playerAction: action.player_action,
-            structuredAction,
-            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
-          });
-          movementResult = sanitizeMovementCommit({
-            beforeSave: currentSave,
-            nextSave,
-            sceneCastContract,
-            extractEnvelope: extract,
-            actionKind: action.action_kind,
-            expectedTurn
-          });
-          warnings.push(...movementResult.warnings);
-        }
+        let nextSave = merged.nextSave;
+        const warnings = merged.warnings;
+        const sceneObservation = buildLegacySceneObservation({ extract, parsedStory, npcIds });
+        warnings.push(...(sceneObservation.warnings ?? []));
+        const canonicalScene = reduceCanonicalScene({
+          currentScene: hydrateCanonicalScene(currentSave, { master, npcIds }),
+          observation: sceneObservation,
+          save: currentSave,
+          master,
+          npcIds,
+          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
+          expectedTurn,
+          actionKind: action.action_kind
+        });
+        nextSave = projectCanonicalSceneToLegacy(nextSave, canonicalScene, {
+          playerId: currentSave.player?.player_id ?? currentSave.player?.id,
+          npcIds
+        });
+        assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory });
+        // Canonical scene reduction is the only gameplay presence writer. Feedback revisions
+        // and degraded observations preserve the existing canonical scene.
         // The app transaction never gets its own save API — its csa_active/csa_rules result rides
         // through this same guarded-merge commit, applied on top of the normal Extract delta.
         const csaPlan = action.action_kind === 'feedback_revision'
@@ -690,14 +692,14 @@ const master = masterFromEdition(edition);
         const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
         const runtimeResult = buildCsaSceneRuntimeStatePatch({
           previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
-          activeCsa: activeCsaAfterPlan, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn
+          activeCsa: activeCsaAfterPlan, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn
         });
         if (runtimeResult.patch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeResult.patch };
         if (runtimeResult.warnings.length) warnings.push(...runtimeResult.warnings);
         if (csaPlan) {
           const deactivatedIds = csaPlan.canonical_action.operations.filter(operation => operation.operation === 'deactivate').map(operation => operation.id);
           if (deactivatedIds.length) {
-            const aftereffectPatch = buildCsaAftereffectPatch({ previousSave: nextSave, deactivatedIds, npcsPresent: nextSave.last_npcs_present, turnNumber: expectedTurn });
+            const aftereffectPatch = buildCsaAftereffectPatch({ previousSave: nextSave, deactivatedIds, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn });
             if (aftereffectPatch) nextSave.csa_aftereffect_state = aftereffectPatch;
           }
         }
@@ -729,6 +731,7 @@ const master = masterFromEdition(edition);
           structuredAction: definitionAction,
           stage: 'commit-final'
         });
+        assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory });
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.

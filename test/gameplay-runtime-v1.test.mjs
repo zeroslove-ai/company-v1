@@ -7,6 +7,8 @@ import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { applyGuardedStateDelta } from '../src/engine/guarded-merge.js';
+import { buildLegacySceneObservation, hydrateCanonicalScene, reduceCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
+import { projectCanonicalSceneToLegacy } from '../src/engine/runtime-core/projections.js';
 import {
   buildDegradedExtractEnvelope,
   hydrateGameplayState,
@@ -164,8 +166,8 @@ test('guarded merge keeps identity fields, npcs_present, mind_monitor, and dialo
     dialogue_lines: [], npcs_present: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null,
     action_target_id: 'npc-hayeon', image_character_id: null
   }, options);
-  assert.equal(result.nextSave.last_npcs_present.length, 1);
-  assert.equal(result.nextSave.focal_character_id, 'npc-hayeon');
+  assert.deepEqual(result.nextSave.last_npcs_present, save.last_npcs_present);
+  assert.equal(result.nextSave.focal_character_id, save.focal_character_id);
   assert.equal(result.nextSave.last_speaker_id, 'npc-areum');
   assert.equal(result.action_target_id, 'npc-hayeon');
   assert.equal(result.image_character_id, null);
@@ -300,21 +302,25 @@ test('final-scene Extract rules preserve ongoing image action and explicitly com
   const exitStory = read('fixtures/phase-2/final-exit-story.txt');
   const parsedExit = parseNarrative(exitStory);
   const save = clone(readJson('fixtures/phase-0.5/canonical-save-v1.json'));
-  const result = applyGuardedStateDelta(save, {
+  const extract = {
     state_delta: {}, outcome: 'success', evidence: { scene_presence_final: true },
     choices: [], dialogue_lines: [], npcs_present: ['npc-areum'], focal_character_id: 'npc-areum',
     last_speaker_id: 'npc-hayeon', image_character_id: null
-  }, {
+  };
+  const result = applyGuardedStateDelta(save, extract, {
     expectedTurn: 8, actionId: 'exit-8', turnId: 'turn-8', playerAction: 'leave',
     parsedStory: parsedExit, npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']), storyText: exitStory
   });
-  assert.deepEqual(result.nextSave.scene_state.participants, ['player-1', 'npc-areum']);
-  assert.deepEqual(result.nextSave.last_npcs_present, ['npc-areum']);
-  assert.equal(result.nextSave.focal_character_id, 'npc-areum');
-  assert.equal(result.nextSave.last_speaker_id, 'npc-hayeon');
-  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].present, false);
-  assert.equal(result.nextSave.npc_scene_state['npc-minsu'].present, false);
-  assert.equal(result.nextSave.npc_scene_state['npc-areum'].present, true);
+  const observation = buildLegacySceneObservation({ extract, parsedStory: parsedExit, npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']) });
+  const scene = reduceCanonicalScene({ currentScene: hydrateCanonicalScene(save, { npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']) }), observation, npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']), expectedTurn: 8 });
+  const canonicalSave = projectCanonicalSceneToLegacy(result.nextSave, scene, { playerId: 'player-1', npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']) });
+  assert.deepEqual(canonicalSave.scene_state.participants, ['player-1', 'npc-areum']);
+  assert.deepEqual(canonicalSave.last_npcs_present, ['npc-areum']);
+  assert.equal(canonicalSave.focal_character_id, 'npc-areum');
+  assert.equal(canonicalSave.last_speaker_id, null);
+  assert.equal(canonicalSave.npc_scene_state['npc-hayeon'].present, false);
+  assert.equal(canonicalSave.npc_scene_state['npc-minsu'].present, false);
+  assert.equal(canonicalSave.npc_scene_state['npc-areum'].present, true);
 
   const legacy = applyGuardedStateDelta(save, {
     state_delta: {}, outcome: 'success', evidence: {}, choices: [], dialogue_lines: [],

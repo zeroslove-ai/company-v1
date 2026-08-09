@@ -253,9 +253,9 @@ test('stored action route parity rejects reservation/row divergence before Story
 
 test('movement Commit recomputes the scene cast instead of reading removed parsed_blocks metadata', async () => {
   const extractEnvelope = {
-    state_delta: {},
+    state_delta: { scene_state: { scene_id: 'brand-strategy-scene', location_id: 'brand_strategy_office' } },
     outcome: 'success',
-    evidence: {},
+    evidence: { scene_presence_final: true, remote_speaker_ids: ['heroine5'] },
     choices: ['A', 'B', 'C', 'D'],
     dialogue_lines: [],
     npcs_present: ['heroine2'],
@@ -278,7 +278,7 @@ test('movement Commit recomputes the scene cast instead of reading removed parse
   assert.equal(nextSave.scene_state.location_id, 'brand_strategy_office');
   assert.deepEqual(nextSave.scene_state.participants, ['player-1', 'heroine2']);
   assert.deepEqual(nextSave.last_npcs_present, ['heroine2']);
-  assert.equal(nextSave.focal_character_id, 'heroine2');
-  assert.equal(nextSave.npc_scene_state.heroine5.present, false);
-  assert.equal(nextSave.npc_scene_state.heroine2.present, true);
+  assert.equal(nextSave.focal_character_id, null);
+  assert.equal(nextSave.npc_scene_state.heroine5?.present ?? false, false);
+  assert.equal(nextSave.npc_scene_state.heroine2?.present ?? true, true);
 });

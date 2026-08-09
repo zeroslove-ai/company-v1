@@ -11,11 +11,10 @@ import { applyNpcStatChanges } from './relationship/reducer.js';
 import { appendSexualEvents, reduceEjaculationCounts } from './sexual-state/ledger.js';
 
 const ALLOWED = new Set([
-  'player', 'player_scene_state', 'player_sexual_state', 'world_state', 'scene_state',
+  'player', 'player_scene_state', 'player_sexual_state', 'world_state',
   'npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state',
   'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'event_ledger', 'sexual_event_ledger',
-  'story_summary_overall', 'story_summary_recent', 'focal_character_id', 'last_speaker_id',
-  'last_npcs_present', 'last_image_id', 'last_choices', 'last_choice_meta'
+  'story_summary_overall', 'story_summary_recent', 'last_image_id', 'last_choices', 'last_choice_meta'
 ]);
 const NULLABLE = new Set(['last_image_id']);
 const NPC_MAPS = new Set(['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes']);
@@ -254,22 +253,8 @@ function characterNameFromMaster(master, characterId) {
  * Extract가 잘못된 이동 state를 먼저 적용했을 수 있으므로 이동 관련 root를 clone한다.
  * beforeSave는 절대 mutation하지 않는다.
  */
-function restoreMovementState(beforeSave, nextSave) {
-  nextSave.scene_state = structuredClone(beforeSave.scene_state ?? {});
-  nextSave.last_npcs_present = Array.isArray(beforeSave.last_npcs_present)
-    ? structuredClone(beforeSave.last_npcs_present)
-    : [];
-  if ('focal_character_id' in beforeSave) {
-    nextSave.focal_character_id = beforeSave.focal_character_id ?? null;
-  } else {
-    delete nextSave.focal_character_id;
-  }
-  if ('last_speaker_id' in beforeSave) {
-    nextSave.last_speaker_id = beforeSave.last_speaker_id ?? null;
-  } else {
-    delete nextSave.last_speaker_id;
-  }
-  nextSave.npc_scene_state = structuredClone(beforeSave.npc_scene_state ?? {});
+function restoreMovementState() {
+  return { applied: false, reason: 'canonical_scene_writer', warnings: ['canonical_scene_writer_required'] };
 }
 
 /**
@@ -418,23 +403,12 @@ export function sanitizeMovementCommit({
     };
   }
 
-  nextSave.scene_state = {
-    ...(nextSave.scene_state ?? {}),
-    scene_id: destinationSceneId,
-    location_id: destinationLocationId,
-    participants: [playerId, ...finalNpcIds],
-    updated_turn: expectedTurn
-  };
-
-  nextSave.last_npcs_present = [...finalNpcIds];
-  nextSave.focal_character_id = finalNpcIds[0] ?? null;
-  nextSave.npc_scene_state = npcState;
   // last_speaker_id는 유지 — 목적지 NPC가 이번 턴에 말하지 않았으므로 설정하지 않는다
 
   return {
-    applied: true,
-    reason: 'movement_committed',
-    warnings
+    applied: false,
+    reason: 'canonical_scene_writer',
+    warnings: [...warnings, 'canonical_scene_writer_required']
   };
 }
 
@@ -578,14 +552,19 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
         if (path === 'npc_scene_state' && plainObject(npcPatch)) {
           // 착의를 포함한 물리 상태 변경은 evidence 기반 physical-state merge가 유일한 경로다.
           // 착의 evidence는 envelope.evidence.clothing[npcId]에서만 읽는다.
+          const physicalProposal = { ...npcPatch };
+          for (const key of ['present', 'scene_id', 'location_id']) {
+            if (key in physicalProposal) warnings.push(`npc_scene_state:${npcId}:scene_field_ignored:${key}`);
+            delete physicalProposal[key];
+          }
           const { state, warnings: sceneWarnings } = buildSceneStatePatch({
-            previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: npcPatch,
-            evidenceMap: sceneEvidenceMap(npcPatch, envelope.evidence, npcId),
+            previous: nextSave.npc_scene_state[npcId] ?? {}, proposal: physicalProposal,
+            evidenceMap: sceneEvidenceMap(physicalProposal, envelope.evidence, npcId),
             narrativeText: options?.storyText ?? options?.parsedStory?.scene_text ?? '',
             characterName: characterNameFromMaster(options?.master, npcId), turnNumber: options.expectedTurn,
             actorId: npcId, npcsPresent: sceneNpcIds, registeredNpcNames
           });
-          nextSave.npc_scene_state[npcId] = { ...state, present: nextSave.npc_scene_state[npcId]?.present ?? npcPatch.present ?? false };
+          nextSave.npc_scene_state[npcId] = { ...state, present: nextSave.npc_scene_state[npcId]?.present ?? false };
           warnings.push(...sceneWarnings.map(code => `npc_scene_state:${npcId}:${code}`));
           continue;
         }
@@ -678,43 +657,6 @@ export function applyGuardedStateDelta(currentSave, extractEnvelope, options) {
     warnings.push(`choices_padded:${envelope.choices.length}->${existing.length}`);
     nextSave.last_choices = existing.slice(0, 4);
   }
-  if (envelope.npcs_present.length > 0) nextSave.last_npcs_present = clone(envelope.npcs_present);
-  if (envelope.focal_character_id !== null) nextSave.focal_character_id = envelope.focal_character_id;
-  if (envelope.last_speaker_id !== null) nextSave.last_speaker_id = envelope.last_speaker_id;
-
-  // Extract may replace scene presence only when it explicitly confirms the final
-  // Story moment. This keeps degraded/legacy extracts non-destructive while allowing
-  // an explicit exit to remove an NPC from the current scene without deleting history.
-  if (envelope.outcome !== 'degraded' && envelope.evidence?.scene_presence_final === true) {
-    const playerId = typeof nextSave.player?.player_id === 'string'
-      ? nextSave.player.player_id
-      : (typeof nextSave.player?.id === 'string' ? nextSave.player.id : 'player-1');
-    const presentNpcIds = [...new Set(envelope.npcs_present.filter(id => id !== playerId))];
-    nextSave.scene_state = {
-      ...(plainObject(nextSave.scene_state) ? nextSave.scene_state : {}),
-      participants: [playerId, ...presentNpcIds],
-      updated_turn: options.expectedTurn
-    };
-    nextSave.last_npcs_present = clone(presentNpcIds);
-    nextSave.focal_character_id = envelope.focal_character_id ?? null;
-
-    const previousNpcIds = new Set([
-      ...(Array.isArray(preSave.scene_state?.participants) ? preSave.scene_state.participants : []),
-      ...(Array.isArray(preSave.last_npcs_present) ? preSave.last_npcs_present : [])
-    ]);
-    for (const id of previousNpcIds) {
-      if (id === playerId || presentNpcIds.includes(id)) continue;
-      if (plainObject(nextSave.npc_scene_state?.[id])) {
-        nextSave.npc_scene_state[id] = {
-          ...nextSave.npc_scene_state[id],
-          present: false,
-          updated_turn: options.expectedTurn
-        };
-      }
-    }
-    warnings.push('scene_presence_committed_from_final_story');
-  }
-
   const timeBefore = preSave.world_state.game_time;
   const timeAfter = advanceGameTime(timeBefore, envelope.elapsed_minutes, envelope.evidence);
   nextSave.world_state = plainObject(nextSave.world_state) ? { ...nextSave.world_state, game_time: timeAfter } : { game_time: timeAfter };

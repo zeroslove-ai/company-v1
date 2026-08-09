@@ -1,3 +1,5 @@
+import { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';
+
 const NAME_MAX = 20;
 const AGE_RANGE = [18, 70];
 const HEIGHT_RANGE = [140, 220];
@@ -236,6 +238,7 @@ export function buildOpeningNextSave({ preSave, player, openingPlan, background,
   const participants = [openingPlan?.primary_character_id, ...(openingPlan?.supporting_character_ids ?? [])].filter(Boolean);
 
   next.player = { ...(plainObject(next.player) ? next.player : {}), ...player, background };
+  if (typeof next.player.player_id !== 'string' || !next.player.player_id.trim()) next.player.player_id = 'player-1';
   next.player_scene_state = {
     ...(plainObject(next.player_scene_state) ? next.player_scene_state : {}),
     clothing: {
@@ -250,17 +253,7 @@ export function buildOpeningNextSave({ preSave, player, openingPlan, background,
     date: openingPlan?.date_label ?? null,
     work_hook: { id: openingPlan?.work_hook_id ?? null, status: 'active' }
   };
-  next.scene_state = {
-    ...(plainObject(next.scene_state) ? next.scene_state : {}),
-    scene_id: `opening-${openingPlan?.location_id ?? 'unknown'}`,
-    location_id: openingPlan?.location_id ?? null,
-    participants,
-    scene_goal: openingPlan?.scene_goal ?? null,
-    beat: 0
-  };
   next.last_choices = Array.isArray(parsedOpening?.choices) ? parsedOpening.choices : [];
-  next.last_npcs_present = participants;
-  next.focal_character_id = openingPlan?.primary_character_id ?? null;
   const existingNpcSceneState = plainObject(next.npc_scene_state) ? next.npc_scene_state : {};
   const nextNpcSceneState = { ...existingNpcSceneState };
   for (const id of participants) {
@@ -273,6 +266,24 @@ export function buildOpeningNextSave({ preSave, player, openingPlan, background,
     };
   }
   next.npc_scene_state = nextNpcSceneState;
+  const openingScene = {
+    version: 1,
+    scene_id: `opening-${openingPlan?.location_id ?? 'unknown'}`,
+    location_id: openingPlan?.location_id ?? null,
+    beat: 0,
+    goal: openingPlan?.scene_goal ?? null,
+    focus_thread: null,
+    present_npc_ids: participants,
+    focal_character_id: openingPlan?.primary_character_id ?? null,
+    last_speaker_id: null,
+    updated_turn: 0
+  };
+  const projected = projectCanonicalSceneToLegacy(next, openingScene, {
+    playerId: next.player?.player_id ?? next.player?.id,
+    npcIds: new Set(participants)
+  });
+  for (const key of Object.keys(next)) delete next[key];
+  Object.assign(next, projected);
   next.opening_state = {
     setup_id: typeof next.player_setup?.setup_id === 'string' ? next.player_setup.setup_id : null,
     plan: structuredClone(plainObject(openingPlan) ? openingPlan : {}),

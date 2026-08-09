@@ -314,13 +314,14 @@ test('buildOpeningNextSave marks setup complete, leaves committed_turn at 0, and
   assert.deepEqual(nextSave.player_scene_state.clothing, {
     uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn'
   });
-  for (const id of nextSave.scene_state.participants) {
+  for (const id of nextSave.scene_state.participants.filter(id => id !== nextSave.player.player_id)) {
     assert.deepEqual(nextSave.npc_scene_state[id].clothing, {
       uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn'
     });
   }
   assert.equal(nextSave.player.background, '배경 요약.');
-  assert.deepEqual(nextSave.scene_state.participants, [openingPlan.primary_character_id, ...openingPlan.supporting_character_ids].filter(Boolean));
+  assert.deepEqual(nextSave.scene_state.participants, [nextSave.player.player_id, openingPlan.primary_character_id, ...openingPlan.supporting_character_ids].filter(Boolean));
+  assert.equal(nextSave.scene.version, 1);
 });
 
 test('resolvePlayerCanonicalNames resolves every catalog axis independently', () => {

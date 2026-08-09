@@ -5,6 +5,8 @@ export { buildExtractPrompt } from './extract-prompt.js';
 export { parseNarrative } from './narrative-parser.js';
 export { normalizeExtractEnvelope } from './extract-envelope.js';
 export { applyGuardedStateDelta, buildFallbackTurnChoices, sanitizeMovementCommit } from './guarded-merge.js';
+export { hydrateCanonicalScene, buildLegacySceneObservation, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
+export { projectCanonicalSceneToLegacy, buildLegacySceneProjection, assertCanonicalSceneInvariants } from './runtime-core/projections.js';
 export { deriveRecoverableStep } from './turn-state.js';
 export {
   normalizeMindMonitor,
