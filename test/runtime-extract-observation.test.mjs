@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GameCoreError } from '../src/engine/errors.js';
+import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
 import { assertScenePresenceCoverage, buildDegradedExtractObservation, normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
+import { reduceCsaAttitudeObservation, reduceNpcRelationshipObservation } from '../src/engine/runtime-core/observation-reducers.js';
 
 const NPCS = new Set(['heroine1', 'heroine2']);
 const STORY = 'scene-exit-evidence work-happened';
@@ -149,4 +151,47 @@ test('general and sexual events have separate schemas, exact evidence, and deter
   assert.throws(() => normalizeExtractObservationV2(valid({ events: { general: [], sexual: [{ target_id: 'player-1', action_type: 'oral', completed: true, interrupted: false, evidence: 'work-happened' }] } }), { npcIds: NPCS, storyText: STORY }), GameCoreError);
   assert.throws(() => normalizeExtractObservationV2(valid({ events: { general: [{ event_type: 'penetration', evidence: 'work-happened' }], sexual: [] } }), { npcIds: NPCS, storyText: STORY }), GameCoreError);
   assert.throws(() => normalizeExtractObservationV2(valid({ events: { general: [{ event_type: 'work_event', evidence: 'missing' }], sexual: [] } }), { npcIds: NPCS, storyText: STORY }), error => error.code === 'EVENT_EVIDENCE_QUOTE_NOT_IN_STORY');
+});
+
+test('relationship fields use independent evidence gates and CSA familiarity writes turn metadata', () => {
+  const save = { npc_relationship_state: { heroine1: { closeness: 'acquaintance', romance_status: 'none', current_boundary: 'professional' } }, csa_attitudes: { heroine1: { familiarity: 1, last_changed_turn: 2 } } };
+  const master = { characters: [{ character_id: 'heroine1', name: '서원희' }] };
+  const noEvidence = reduceNpcRelationshipObservation({ save, npcId: 'heroine1', relationship: { romance_status: 'interest' }, evidence: {}, storyText: '서원희가 잠시 멈췄다.', master, parsedStory: {} });
+  assert.equal(noEvidence.state.romance_status, 'none');
+  const closenessOnly = reduceNpcRelationshipObservation({ save, npcId: 'heroine1', relationship: { closeness: 'familiar', romance_status: 'interest', current_boundary: 'open' }, evidence: { closeness: { changed: ['npc_relationship_state.heroine1.closeness'], quote: '서원희가 가까워졌다.' } }, storyText: '서원희가 가까워졌다.', master, parsedStory: {} });
+  assert.equal(closenessOnly.state.closeness, 'familiar');
+  assert.equal(closenessOnly.state.romance_status, 'none');
+  assert.equal(closenessOnly.state.current_boundary, 'professional');
+  const all = reduceNpcRelationshipObservation({ save, npcId: 'heroine1', relationship: { closeness: 'familiar', romance_status: 'interest', current_boundary: 'open' }, evidence: {
+    closeness: { changed: ['npc_relationship_state.heroine1.closeness'], quote: '서원희가 가까워졌다.' },
+    romance: { changed: ['npc_relationship_state.heroine1.romance_status'], quote: '서원희의 마음이 흔들렸다.' },
+    boundary: { changed: ['npc_relationship_state.heroine1.current_boundary'], quote: '서원희가 경계를 풀었다.' }
+  }, storyText: '서원희가 가까워졌다. 서원희의 마음이 흔들렸다. 서원희가 경계를 풀었다.', master, parsedStory: {} });
+  assert.deepEqual(all.state, { closeness: 'familiar', romance_status: 'interest', current_boundary: 'open' });
+  const familiarity = reduceCsaAttitudeObservation({ save, npcId: 'heroine1', attitude: { familiarity: 2 }, expectedTurn: 9, evidence: { csa: { changed: ['csa_attitudes.heroine1.familiarity'], quote: '서원희는 그 변화를 알아챘다.' } }, storyText: '서원희는 그 변화를 알아챘다.' });
+  assert.deepEqual(familiarity.state, { familiarity: 2, last_changed_turn: 9 });
+  const same = reduceCsaAttitudeObservation({ save: { csa_attitudes: { heroine1: { familiarity: 2, last_changed_turn: 4 } } }, npcId: 'heroine1', attitude: { familiarity: 2 }, expectedTurn: 9, evidence: {}, storyText: '서원희는 그대로 있었다.' });
+  assert.deepEqual(same.state, { familiarity: 2, last_changed_turn: 4 });
+});
+
+test('event identity includes participants and sexual actor/target fields', () => {
+  const sexual = normalizeExtractObservationV2(valid({ events: { general: [], sexual: [
+    { actor_id: 'heroine1', target_id: 'player-1', action_type: 'kiss', direction: 'npc_to_player', completed: true, interrupted: false, evidence: 'same quote' },
+    { actor_id: 'heroine2', target_id: 'player-1', action_type: 'kiss', direction: 'npc_to_player', completed: true, interrupted: false, evidence: 'same quote' }
+  ] } }), { npcIds: NPCS, storyText: 'same quote', expectedTurn: 7, actionId: 'a' });
+  assert.notEqual(sexual.events.sexual[0].event_id, sexual.events.sexual[1].event_id);
+  const general = normalizeExtractObservationV2(valid({ events: { general: [
+    { event_type: 'work_event', participants: ['heroine1'], evidence: 'same quote' },
+    { event_type: 'work_event', participants: ['heroine2'], evidence: 'same quote' }
+  ], sexual: [] } }), { npcIds: NPCS, storyText: 'same quote', expectedTurn: 7, actionId: 'a' });
+  assert.notEqual(general.events.general[0].event_id, general.events.general[1].event_id);
+});
+
+test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibitions', () => {
+  const system = buildExtractPrompt({ context: {}, storyText: 'story', playerAction: 'action', expectedTurn: 1 })[0].content;
+  for (const key of ['extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence', 'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection', 'csa_trigger_evaluations', 'csa_runtime_updates', 'turn_summary', 'warnings']) {
+    assert.match(system, new RegExp(`"${key}"`));
+  }
+  assert.match(system, /Never return these save-patch or parser fields/);
+  for (const forbidden of ['state_delta', 'choices', 'dialogue_lines', 'player_inner_thought', 'last_speaker_id', 'npcs_present', 'focal_character_id', 'csa_active', 'csa_rules', 'world_state', 'save']) assert.match(system, new RegExp(forbidden));
 });

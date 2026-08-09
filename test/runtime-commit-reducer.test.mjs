@@ -63,3 +63,58 @@ test('mind monitor entries for off-scene NPCs are dropped with an explicit warni
   assert.equal(result.mind_monitor['npc-areum'], undefined);
   assert.ok(result.warnings.includes('mind_monitor_off_scene_dropped:npc-areum'));
 });
+
+test('all persistent NPC domains share observed eligibility and remote speakers stay excluded', () => {
+  const currentSave = {
+    ...structuredClone(save),
+    scene: { version: 1, scene_id: 'room', location_id: 'meeting_room_5f', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 7 },
+    scene_state: { ...save.scene_state, participants: ['player-1', 'npc-hayeon'] },
+    npc_emotion: { ...(save.npc_emotion ?? {}), 'npc-areum': { mood: 'calm' } },
+    npc_relationship_state: { ...(save.npc_relationship_state ?? {}), 'npc-areum': { closeness: 'acquaintance', romance_status: 'none', current_boundary: 'professional' } },
+    npc_stats: { ...(save.npc_stats ?? {}), 'npc-areum': { affinity: 10 } },
+    npc_work_state: { ...(save.npc_work_state ?? {}), 'npc-areum': { task: '정리' } },
+    csa_attitudes: { ...(save.csa_attitudes ?? {}), 'npc-areum': { familiarity: 1 } }
+  };
+  const rawStory = 'npc-areum said this from a remote office';
+  const observation = normalizeExtractObservationV2({
+    ...baseObservation,
+    scene_observation: { ...baseObservation.scene_observation, remote_speaker_ids: ['npc-areum'] },
+    npc_observations: {
+      'npc-areum': {
+        physical: { clothing: { uniform_top: 'removed' } },
+        emotion: { mood: 'angry' },
+        relationship: { closeness: 'familiar' },
+        stats: { affinity_delta: 2 },
+        work: { task: '회의' },
+        csa_attitude: { familiarity: 2 }
+      }
+    }
+  }, { npcIds: NPCS, storyText: rawStory });
+  const result = reduceGameplayCommit({
+    currentSave, observation,
+    parsedStory: { choices: [], dialogue_lines: [{ speaker_id: 'npc-areum', text: rawStory }] },
+    rawStory, action, expectedTurn: 8, npcIds: NPCS, mapLocations: []
+  });
+  assert.deepEqual(result.nextSave.npc_scene_state['npc-areum']?.clothing, currentSave.npc_scene_state['npc-areum']?.clothing);
+  assert.deepEqual(result.nextSave.npc_emotion['npc-areum'], { mood: 'calm' });
+  assert.deepEqual(result.nextSave.npc_relationship_state['npc-areum'], { closeness: 'acquaintance', romance_status: 'none', current_boundary: 'professional' });
+  assert.deepEqual(result.nextSave.npc_stats['npc-areum'], { affinity: 10 });
+  assert.deepEqual(result.nextSave.npc_work_state['npc-areum'], { task: '정리' });
+  assert.deepEqual(result.nextSave.csa_attitudes['npc-areum'], { familiarity: 1 });
+  assert.ok(result.warnings.includes('off_scene_npc_observation_dropped:npc-areum'));
+});
+
+test('same-quote sexual events from two NPCs remain distinct in the ledger', () => {
+  const rawStory = '두 사람이 동시에 손을 움직였다.';
+  const observation = normalizeExtractObservationV2({
+    ...baseObservation,
+    events: { general: [], sexual: [
+      { actor_id: 'npc-hayeon', target_id: 'player-1', action_type: 'sexual_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: rawStory },
+      { actor_id: 'npc-areum', target_id: 'player-1', action_type: 'sexual_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: rawStory }
+    ] }
+  }, { npcIds: NPCS, storyText: rawStory, expectedTurn: 8, actionId: 'multi' });
+  const result = reduceGameplayCommit({ currentSave: save, observation, parsedStory: { choices: [], dialogue_lines: [] }, rawStory, action: { ...action, action_id: 'multi' }, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
+  const matching = result.nextSave.sexual_event_ledger.filter(event => event.evidence === rawStory);
+  assert.equal(matching.length, 2);
+  assert.notEqual(matching[0].event_id, matching[1].event_id);
+});

@@ -99,6 +99,11 @@ function normalizeNpcObservation(value) {
   }
   if ('relationship' in value) {
     assertKeys(value.relationship, RELATIONSHIP, 'INVALID_EXTRACT_OBSERVATION');
+    for (const field of RELATIONSHIP) {
+      if (field in value.relationship && value.relationship[field] !== null && typeof value.relationship[field] !== 'string') {
+        throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} must be string or null`);
+      }
+    }
     result.relationship = clone(value.relationship);
   }
   if ('work' in value) {
@@ -129,6 +134,12 @@ function stableEventHash(text) {
     hash = Math.imul(hash, 0x01000193);
   }
   return (hash >>> 0).toString(16);
+}
+
+function stableSerialize(value) {
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+  if (object(value)) return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`;
+  return JSON.stringify(value ?? null);
 }
 
 function normalizeEventEvidence(value, storyText, field) {
@@ -166,7 +177,28 @@ function normalizeEvents(value, npcIds, storyText, expectedTurn = 0, actionId = 
         event.turn = expectedTurn;
       }
       event.evidence = normalizeEventEvidence(item.evidence, storyText, `${field}[${index}]`);
-      event.event_id = `turn:${expectedTurn}:action:${actionId ?? 'unknown'}:${type ?? event.action_type}:${stableEventHash(event.evidence)}`;
+      const identity = field === 'events.sexual'
+        ? {
+            turn: expectedTurn,
+            action_id: actionId ?? null,
+            domain: 'sexual',
+            actor_id: canonicalPlayerOrNpcId(event.actor_id),
+            target_id: canonicalPlayerOrNpcId(event.target_id),
+            action_type: event.action_type,
+            direction: event.direction ?? null,
+            completed: event.completed,
+            interrupted: event.interrupted,
+            evidence: event.evidence
+          }
+        : {
+            turn: expectedTurn,
+            action_id: actionId ?? null,
+            domain: 'general',
+            event_type: event.event_type,
+            participants: [...(event.participants ?? [])].map(canonicalPlayerOrNpcId).sort(),
+            evidence: event.evidence
+          };
+      event.event_id = `turn:${expectedTurn}:action:${actionId ?? 'unknown'}:${identity.domain}:${stableEventHash(stableSerialize(identity))}`;
       return event;
     });
   };
