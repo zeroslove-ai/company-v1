@@ -1,44 +1,37 @@
 # Runtime Deletion Plan
 
-Phase 0에서는 어떤 항목도 삭제하지 않는다. 아래 분류는 실제 caller 조사에 따른 후속 작업 순서다.
+Phase 0에서는 아래 구현을 삭제하지 않는다. 각 항목은 실제 production caller와 test caller를 확인한 뒤, replacement와 deletion gate를 고정한다.
 
-| 분류 | 현재 파일·함수/export | 현재 caller | 대체 또는 선행 조건 | 영향 테스트 | 단계 |
+| 현재 항목 | 실제 파일·export/function | production caller | test caller | replacement | deletion gate / phase |
 |---|---|---|---|---|---|
-| KEEP | `src/api/turn-routes.js` raw SSE loop, `record_story_result` | `/api/story`, replay/extract/commit | raw Story authority 유지 | turn pipeline, raw streaming | 지금 유지 |
-| KEEP | `src/api/turn-routes.js` `structuredActionFor`, `resolveCsaTransactionPlan` | story/extract/commit/app-validate | action-authority로 이동하되 proof 의미 유지 | csa app/structured-action persistence | Phase 1 |
-| KEEP | `src/engine/gameplay-state.js` `normalizeGameplayExtractEnvelope` | extract/commit 및 guarded merge | observation-only envelope로 계약 명시 | gameplay runtime, phase-2 engine | Phase 3까지 유지 |
-| KEEP | `src/engine/guarded-merge.js` evidence gates | `applyGuardedStateDelta` | reducer 도입 전까지 보존 | clothing/relationship/stats regressions | Phase 1–3 |
-| KEEP | `src/engine/scene-cast.js` 현재 participants 기준 계약 | story/commit route | canonical scene projection으로 이전 전까지 유지 | scene-cast/map tests | Phase 2 |
-| KEEP | `buildCompanyGameViewModel` 및 renderers | frontend `app.js`, render | canonical projection을 읽도록 유지 | frontend state/UI tests | Phase 6 |
-| REPLACE | `src/engine/action-execution-contract.js` action execution firewall | `turn-routes.js` Story/route imports 및 action tests 확인 필요 | `runtime-core/action-authority.js`에서 예약 action만 검증 | authority cleanup tests | Phase 1 |
-| REPLACE | `src/engine/scene-cast.js` `buildSceneCastContract` | `turn-routes.js:409,634` | `runtime-core` canonical scene + read projection | movement/scene cast regressions | Phase 2/4 |
-| REPLACE | `src/engine/guarded-merge.js` `sanitizeMovementCommit` | `turn-routes.js:641` | reducer의 movement observation/invariants | `movement-commit-regression` | Phase 4 |
-| REPLACE | `src/engine/guarded-merge.js` `applyGuardedStateDelta` | API route 및 여러 tests | `runtime-core/commit-reducer.js` | gameplay-runtime, phase-2 engine | Phase 3/4 |
-| REPLACE | `src/engine/scene-cast.js` allowed speaker/participant candidate 계산 | `buildSceneCastContract` 내부 | 명시 speaker + canonical participants | scene cast tests | Phase 2/4 |
-| REPLACE | player dialogue policy / pre-Story movement boundary | `turn-routes.js` scene cast/action preparation | Story 후행 observation과 action authority 분리 | turn pipeline | Phase 1/4 |
-| REPLACE | CSA lifecycle duplicate paths (`csa_runtime_state`, `csa_runtime_updates`, trigger evaluations) | `gameplay-state.js`, `turn-routes.js` commit runtime patch | `rules.runtime` 단일 reducer 축 | CSA runtime regressions | Phase 5 |
-| REPLACE | `normalized_raw`/parsed projection 기반 recovery | replay/extract paths | 저장 `story_text` 재사용 | raw/replay tests | Phase 1/3 |
-| REPLACE | choice fallback in `applyGuardedStateDelta` | guarded merge and view model | raw Story choices → reducer projection | choices tests | Phase 2/3 |
-| DELETE | pre-Story actor/target/speaker inference | `scene-cast.js` candidate helpers and legacy callers, once audited | Extract observation only | authority cleanup tests | Phase 4 |
-| DELETE | duplicate scene presence writers | `last_npcs_present`, `npc_scene_state.*.present` assignments in guarded merge/setup/opening | canonical scene projection | movement/presence regressions | Phase 2/4 |
-| DELETE | speaker inference LLM/status path | PR #46 removed production tagger path; verify any remaining test-only caller | explicit speaker/null | raw Story tests | Phase 3 |
-| DELETE | legacy CSA v1 compatibility route | CSA prompt/planner readers after catalog/runtime audit | rules.active/runtime | CSA route tests | Phase 5/6 |
-| DELETE | `stream_segments` new writer/replay priority | PR #46 raw Story path has no new writer; old DB read may remain | `story_text` only | replay tests | Phase 1 |
-| TEMPORARY ADAPTER | `last_npcs_present` projection | `runtime-display.js`, `product-recovery.js`, frontend view-model, npc/location | derive from canonical scene; no write-back | UI/recovery tests | Phase 6 |
-| TEMPORARY ADAPTER | `npc_scene_state.*.present` projection | scene cast/view-model/render | derive membership from canonical participants | frontend/scene tests | Phase 6 |
-| TEMPORARY ADAPTER | legacy `scene_state` wrapper | API Context and existing RPC validators | read-only projection from `scene` | response/context tests | Phase 6 |
-| TEMPORARY ADAPTER | legacy `csa_active/csa_rules/csa_runtime_state` shape | Story/Extract/UI readers | projection from `rules` | CSA app/runtime tests | Phase 5/6 |
+| raw Story writer | `src/api/turn-routes.js` `/api/story`, `record_story_result` | `/api/story`, replay/extract/commit | raw streaming/turn-pipeline tests | canonical `story_text` writer 유지 | raw/equal replay tests pass; KEEP |
+| ActionExecutionContract | `src/engine/action-execution-contract.js` 파일 없음; `git grep` production/test caller 0 | 없음 | 없음 | `runtime-core/action-authority.js`는 reserved structured action만 검증 | no delete needed; Phase 1 문서 정리 |
+| `structuredActionFor` | `src/api/turn-routes.js:104` | `/api/story`, `/api/extract`, `/api/commit` | csa app/structured-action persistence | `action-authority.js` | stored proof parity tests; Phase 1 REPLACE |
+| `buildSceneCastContract` | `src/engine/scene-cast.js:545` | `turn-routes.js:409,634` | `company-map-cast-stabilization`, turn pipeline | canonical scene reducer + read projection | replacement computes same contract; Phase 2/4 REPLACE |
+| allowed speaker/cast candidate calculation | `scene-cast.js` helpers used inside `buildSceneCastContract` | story and commit route imports above | scene cast tests | explicit Story speaker/null + canonical presence | no pre-Story inference test remains; Phase 4 DELETE |
+| 플레이어 발화 처리(전용 함수 없음) | dedicated export/function 없음; raw `player_action` is passed by `turn-routes.js` to `buildStoryPrompt` and `buildExtractPrompt` | `turn-routes.js` story/extract payload construction | prompt/turn pipeline tests | preserve input surface; Extract observes only material actually spoken | no separate policy helper is created; Phase 3/4 |
+| pre-Story movement boundary | `story-prompt.js:76` `resolveMovementCharacterTarget`; `scene-cast.js:545` `buildSceneCastContract` and `turn-routes.js:409` | `/api/story` prompt preparation | `live-play-ux-regressions`, map-cast tests | canonical scene observation after Story; action authority only for reserved action | movement tests pass without new actor resolver; Phase 4 REPLACE |
+| `sanitizeMovementCommit` | `src/engine/guarded-merge.js:315` export | `turn-routes.js:641` | `movement-commit-regression`, integration movement test | reducer movement observation + invariants | destination/presence/location tests pass; Phase 4 REPLACE |
+| `applyGuardedStateDelta` | `src/engine/guarded-merge.js:441`, re-export `engine/index.js` | `turn-routes.js:623` | gameplay-runtime, clothing, relationship, phase-2, authority tests | `runtime-core/commit-reducer.js` | all evidence gates represented; Phase 3/4 REPLACE |
+| choice fallback | `guarded-merge.js:26` `buildFallbackTurnChoices`; called at line 669 | `applyGuardedStateDelta` | `phase-2-engine`, clothing stabilization | explicit `format_failure` plus a projection-only safe fallback | fallback never marks raw format success; Phase 3/6 REPLACE |
+| `normalized_raw` | `src/engine/narrative-parser.js:535,619` output only; no production reader found | no production reader | `company-supabase-evidence-recovery.test.mjs:41-42` | raw `story_text`; parser result remains derived | remove only after test migrates to raw assertion; Phase 3 DELETE output field |
+| CSA runtime lifecycle | `src/engine/csa/reducer.js` `buildCsaRuntimeStatePatch`, `buildCsaAftereffectPatch` | `turn-routes.js:664,673`; runtime display/extract sections | CSA hardening, gameplay-state, authority cleanup tests | `runtime-core/commit-reducer.js` rules.runtime | lifecycle/applicability/execution tests reproduced; Phase 5 REPLACE |
+| Extract state delta semantics | `src/engine/gameplay-state.js` `normalizeGameplayExtractEnvelope`; `guarded-merge.js` consumes `state_delta` | `/api/extract` → `/api/commit` | gameplay/relationship/clothing tests | `runtime-core/extract-observation.js` | observation fields and warnings cover all current gates; Phase 3 REPLACE |
+| setup/opening presence initializer | `src/engine/player-setup.js:234` `buildOpeningNextSave`; migration `20260803000500...:164-176` `commit_company_player_setup` | `/api/player-setup`, `/api/opening` | `company-player-setup-opening-v1` | canonical scene initializer writes `scene_id`, `location_id`, `beat`, goal/focus, present IDs; legacy fields become projection | keep until canonical initializer + reset/opening compatibility tests pass; Phase 2/6 REPLACE, not DELETE |
+| legacy scene fields | `scene_state`, `last_npcs_present`, `npc_scene_state.*.present`, focal/speaker assignments above | API context/display/frontend readers | response/view-model/map tests | read-only `projections.js` | projection parity and no write-back; Phase 6 TEMPORARY KEEP → REPLACE |
+| legacy CSA shape | `csa_active`, `csa_rules`, `csa_runtime_state` in gameplay state/schema and reducer | Story/Extract/runtime display/CSA app | CSA route and runtime tests | `rules.active`/`rules.runtime` projections | compatibility read proven; Phase 5/6 TEMPORARY KEEP → REPLACE |
+
+## Explicit disposition rules
+
+- **KEEP** means current product behavior and outer API/DB shape remain during the transition.
+- **REPLACE** means the current writer is retained only until the named canonical writer passes equivalent tests.
+- **TEMPORARY KEEP UNTIL PHASE N** is a compatibility writer/read boundary with a stated final disposition; it is not permanent authority.
+- **DELETE** is reserved for an actually uncalled symbol/output. `ActionExecutionContract` has no file or caller at this baseline, so no deletion is performed.
 
 ## Deletion gates
 
-각 DELETE는 다음 조건을 모두 만족할 때만 수행한다.
-
-1. `rg`로 production/test caller가 0임을 확인한다.
-2. replacement writer가 동일 invariant를 먼저 통과한다.
-3. 기존 fixture와 17-turn regressions가 replacement로 통과한다.
-4. migration/운영 save를 건드리지 않고 compatibility read가 남는다.
-5. 삭제된 구현만 보호하는 테스트는 삭제하되 제품 회귀 테스트는 유지한다.
-
-## 현재 판단
-
-PR #46의 raw Story gate, segment writer, speaker-tagging LLM은 이미 제거된 상태이므로 이번 문서에서 재구현하지 않는다. `action-execution-contract`, scene cast, guarded merge, CSA runtime, legacy fields는 실제 caller가 아직 존재하므로 즉시 삭제 대상이 아니다. 새 모듈은 후속 Phase에서 하나씩 도입하고, 이 문서 Phase 0에서는 파일을 만들지 않는다.
+1. `git grep` shows no production or product-test caller, with the exact search recorded.
+2. Replacement writer passes existing regression fixtures and the 15 recorded 17-turn cases.
+3. Legacy reads remain read-only until all API/UI consumers use `projections.js`.
+4. No migration, operational save repair, or new semantic matcher is needed.
+5. Tests that protect deleted implementation may be removed only after product behavior is covered elsewhere; no test is removed in Phase 0.
