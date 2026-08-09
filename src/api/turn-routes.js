@@ -515,8 +515,8 @@ const master = masterFromEdition(edition);
       if (action.extract_delta) {
         const replayParsedStory = parseStoryProjection(action.story_text, master);
         const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, { npcIds })
-          : adaptLegacyExtractDelta(action.extract_delta, { npcIds });
+          ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId })
+          : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
@@ -582,7 +582,7 @@ const master = masterFromEdition(edition);
           const parseStart = Date.now();
           // Fresh Extract calls are V2-only. The legacy adapter is reserved for
           // persisted V1 rows during replay/recovery, never for a new LLM result.
-          extract = normalizeExtractObservationV2(raw, { npcIds });
+          extract = normalizeExtractObservationV2(raw, { npcIds, storyText: storyForExtract, expectedTurn: action.expected_turn, actionId });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
           const degradable = error instanceof HttpError && EXTRACT_DEGRADE_CODES.has(error.code);
@@ -643,8 +643,8 @@ const master = masterFromEdition(edition);
         const currentSave = context.save?.data ?? context.save;
         let parsedStory = parseStoryProjection(action.story_text, master);
         const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, { npcIds })
-          : adaptLegacyExtractDelta(action.extract_delta, { npcIds });
+          ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId })
+          : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
         const mergeStart = Date.now();
         const merged = reduceGameplayCommit({
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,

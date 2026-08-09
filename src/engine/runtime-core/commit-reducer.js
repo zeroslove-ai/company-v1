@@ -3,6 +3,7 @@ import { hydrateCanonicalScene, reduceCanonicalScene } from './scene-reducer.js'
 import { projectCanonicalSceneToLegacy } from './projections.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
+import { assertScenePresenceCoverage } from './extract-observation.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
@@ -13,8 +14,12 @@ function parserSpeakers(parsedStory) {
 }
 function presentMindMonitor(mindMonitor, presentIds) {
   const result = {};
-  for (const id of presentIds) if (mindMonitor?.[id]) result[id] = clone(mindMonitor[id]);
-  return result;
+  const warnings = [];
+  for (const [id, value] of Object.entries(mindMonitor ?? {})) {
+    if (presentIds.includes(id)) result[id] = clone(value);
+    else warnings.push(`mind_monitor_off_scene_dropped:${id}`);
+  }
+  return { state: result, warnings };
 }
 
 function canonicalObservation(observation, parsedStory) {
@@ -44,10 +49,11 @@ function canonicalObservation(observation, parsedStory) {
 
 export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations } = {}) {
   const current = clone(currentSave);
-  const domains = reduceObservationDomains({ currentSave: current, observation, parsedStory, rawStory, expectedTurn, actionId: action?.action_id, master, npcIds });
+  const sceneBefore = hydrateCanonicalScene(current, { master, npcIds });
   const sceneObservation = canonicalObservation(observation, parsedStory);
+  assertScenePresenceCoverage(observation, { currentScene: sceneBefore });
   const canonicalScene = reduceCanonicalScene({
-    currentScene: hydrateCanonicalScene(current, { master, npcIds }),
+    currentScene: sceneBefore,
     observation: sceneObservation,
     save: current,
     master,
@@ -55,6 +61,19 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     mapLocations,
     expectedTurn,
     actionKind: action?.action_kind
+  });
+  const observedNpcIds = new Set([
+    ...(sceneBefore.present_npc_ids ?? []),
+    ...(canonicalScene.present_npc_ids ?? []),
+    ...(sceneObservation.entered_npc_ids ?? []),
+    ...(sceneObservation.exited_npc_ids ?? []),
+    ...(sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
+  ]);
+  const domains = reduceObservationDomains({
+    currentSave: current, observation, parsedStory, rawStory, expectedTurn, actionId: action?.action_id, master, npcIds,
+    sceneBefore, sceneAfter: canonicalScene, observedNpcIds,
+    enteredNpcIds: sceneObservation.entered_npc_ids, exitedNpcIds: sceneObservation.exited_npc_ids,
+    explicitSpeakerIds: (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
   });
   let nextSave = projectCanonicalSceneToLegacy(domains.nextSave, canonicalScene, {
     playerId: current.player?.player_id ?? current.player?.id,
@@ -67,15 +86,16 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     turnId: action?.turn_id
   });
   assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action?.action_kind, observation: sceneObservation });
+  const monitor = presentMindMonitor(observation.mind_monitor ?? {}, canonicalScene.present_npc_ids ?? []);
   return {
     nextSave,
-    warnings: [...domains.warnings, ...(sceneObservation.warnings ?? [])],
+    warnings: [...domains.warnings, ...(sceneObservation.warnings ?? []), ...monitor.warnings],
     time_before: domains.time_before,
     elapsed_minutes: domains.elapsed_minutes,
     time_after: domains.time_after,
     action_target_id: observation.action_target_id ?? null,
     image_character_id: observation.image_character_id ?? null,
-    mind_monitor: presentMindMonitor(observation.mind_monitor ?? {}, canonicalScene.present_npc_ids ?? []),
+    mind_monitor: monitor.state,
     canonical_scene: canonicalScene
   };
 }

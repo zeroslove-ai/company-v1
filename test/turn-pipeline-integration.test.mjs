@@ -268,6 +268,7 @@ test('movement Commit recomputes the scene cast instead of reading removed parse
       focal_candidate_id: null, presence_is_final: true,
       remote_speaker_ids: ['heroine5'], evidence: [
         { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES[1] },
+        { kind: 'exit', character_id: 'heroine5', quote: STORY_LINES[1] },
         { kind: 'movement', location_id: 'brand_strategy_office', quote: STORY_LINES[1] }
       ]
     },

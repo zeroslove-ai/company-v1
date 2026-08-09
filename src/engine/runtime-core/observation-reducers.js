@@ -59,15 +59,23 @@ function currentNpcIds(save, npcIds) {
   return new Set(scene.present_npc_ids ?? []);
 }
 
+function observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds } = {}) {
+  const result = new Set(observedNpcIds ?? []);
+  for (const id of sceneBefore?.present_npc_ids ?? []) result.add(id);
+  for (const id of sceneAfter?.present_npc_ids ?? []) result.add(id);
+  if (!result.size) for (const id of currentNpcIds(save, npcIds)) result.add(id);
+  return result;
+}
+
 export function reducePlayerPhysicalObservation({ save, physical, evidence, storyText, expectedTurn, npcIds, master } = {}) {
   if (!object(physical) || !Object.keys(physical).length) return { state: save.player_scene_state ?? {}, warnings: [] };
   const result = buildSceneStatePatch({ previous: save.player_scene_state ?? {}, proposal: physical, evidenceMap: evidenceMap(physical, evidence, 'player'), narrativeText: storyText, characterName: '', turnNumber: expectedTurn, actorId: 'player', npcsPresent: [...currentNpcIds(save, npcIds)], registeredNpcNames: [] });
   return { state: result.state, warnings: result.warnings.map(code => `player_scene_state:${code}`) };
 }
 
-export function reduceNpcPhysicalObservation({ save, npcId, physical, evidence, storyText, expectedTurn, npcIds, master, parsedStory } = {}) {
+export function reduceNpcPhysicalObservation({ save, npcId, physical, evidence, storyText, expectedTurn, npcIds, master, parsedStory, sceneBefore, sceneAfter, observedNpcIds } = {}) {
   if (!registered(npcId, npcIds)) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [`unknown_npc:${npcId}`] };
-  if (!currentNpcIds(save, npcIds).has(npcId)) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [`off_scene_npc:${npcId}`] };
+  if (!observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds }).has(npcId)) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [`off_scene_npc:${npcId}`] };
   if (!object(physical) || !Object.keys(physical).length) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [] };
   const result = buildSceneStatePatch({ previous: save.npc_scene_state?.[npcId] ?? {}, proposal: physical, evidenceMap: evidenceMap(physical, evidence, npcId), narrativeText: storyText, characterName: masterName(master, npcId), turnNumber: expectedTurn, actorId: npcId, npcsPresent: [...currentNpcIds(save, npcIds)], registeredNpcNames: [], npcDialogueLines: dialogueLines(parsedStory, npcId) });
   return { state: { ...result.state, present: save.npc_scene_state?.[npcId]?.present ?? true }, warnings: result.warnings.map(code => `npc_scene_state:${npcId}:${code}`) };
@@ -79,13 +87,21 @@ export function reducePlayerSexualObservation({ save, sexual, evidence, storyTex
   return result;
 }
 
-export function reduceNpcStatObservation({ save, npcId, stats, evidence, storyText } = {}) {
-  if (!registered(npcId, new Set(Object.keys(save.npc_stats ?? {})))) return { state: save.npc_stats?.[npcId] ?? {}, warnings: [`unknown_npc:${npcId}`] };
+export function reduceNpcStatObservation({ save, npcId, stats, evidence, storyText, npcIds } = {}) {
+  if (!registered(npcId, npcIds ?? new Set(Object.keys(save.npc_stats ?? {})))) return { state: save.npc_stats?.[npcId] ?? {}, warnings: [`unknown_npc:${npcId}`] };
   if (!object(stats) || !Object.keys(stats).length) return { state: save.npc_stats?.[npcId] ?? {}, warnings: [] };
   const { reason, reasons, ...deltas } = stats;
-  const affinity = object(evidence?.npc_stats?.[npcId]?.affinity) ? evidence.npc_stats[npcId].affinity.quote : '';
-  const result = applyNpcStatChanges(save.npc_stats?.[npcId] ?? {}, deltas, { reason: typeof reason === 'string' ? reason : '', reasons: object(reasons) ? reasons : {}, storyText, affinityQuote: typeof affinity === 'string' ? affinity : '' });
-  return result;
+  const accepted = {};
+  const warnings = [];
+  for (const [key, value] of Object.entries(deltas)) {
+    const legacyKey = key.endsWith('_delta') ? key.slice(0, -6) : key;
+    const quote = exactDomainQuote(evidence, [['npc_stats', npcId, key], ['npc_stats', npcId, legacyKey]], storyText);
+    if (quote) accepted[key] = value;
+    else warnings.push(`stat_evidence_missing:${npcId}:${key}`);
+  }
+  if (!Object.keys(accepted).length) return { state: save.npc_stats?.[npcId] ?? {}, warnings };
+  const result = applyNpcStatChanges(save.npc_stats?.[npcId] ?? {}, accepted, { reason: typeof reason === 'string' ? reason : '', reasons: object(reasons) ? reasons : {}, storyText, affinityQuote: exactDomainQuote(evidence, [['npc_stats', npcId, 'affinity_delta'], ['npc_stats', npcId, 'affinity']], storyText) ?? '' });
+  return { state: result.state, warnings: [...warnings, ...(result.warnings ?? [])] };
 }
 
 export function reduceNpcEmotionObservation({ save, npcId, emotion, evidence, storyText, master, parsedStory } = {}) {
@@ -100,25 +116,46 @@ export function reduceNpcRelationshipObservation({ save, npcId, relationship, ev
   const previous = save.npc_relationship_state?.[npcId] ?? {};
   const next = { ...relationship };
   delete next.relationship_summary;
-  delete next.milestones;
-  const gated = gateField({ patch: next, previous, path: 'npc_relationship_state', evidence, storyText, characterName: masterName(master, npcId), dialogue: dialogueLines(parsedStory, npcId), npcId, field: 'current_boundary' });
-  const warnings = gated.warning ? [gated.warning] : [];
-  if (relationship.milestones) warnings.push(`derived_milestones_ignored:${npcId}`);
-  return { state: merge(previous, gated.patch), warnings };
+  const warnings = [];
+  let state = previous;
+  for (const field of ['closeness', 'romance_status', 'current_boundary']) {
+    const gated = gateField({ patch: next, previous: state, path: 'npc_relationship_state', evidence, storyText, characterName: masterName(master, npcId), dialogue: dialogueLines(parsedStory, npcId), npcId, field });
+    state = merge(state, gated.patch);
+    if (gated.warning) warnings.push(gated.warning);
+  }
+  return { state, warnings };
 }
 
-export function reduceNpcWorkObservation({ save, npcId, work } = {}) {
+function exactDomainQuote(evidence, candidates, storyText) {
+  const roots = object(evidence) ? evidence : {};
+  for (const path of candidates) {
+    let value = roots;
+    for (const key of path) value = object(value) ? value[key] : undefined;
+    const quote = object(value) ? value.quote : value;
+    if (typeof quote === 'string' && quote.trim() && String(storyText ?? '').includes(quote.trim())) return quote.trim();
+  }
+  for (const item of Object.values(roots)) {
+    if (object(item) && Array.isArray(item.changed) && item.changed.some(path => candidates.some(candidate => candidate.join('.') === path)) && typeof item.quote === 'string' && String(storyText ?? '').includes(item.quote.trim())) return item.quote.trim();
+  }
+  return null;
+}
+
+export function reduceNpcWorkObservation({ save, npcId, work, evidence, storyText } = {}) {
   if (!object(work) || !Object.keys(work).length) return { state: save.npc_work_state?.[npcId] ?? {}, warnings: [] };
-  return { state: merge(save.npc_work_state?.[npcId] ?? {}, { task: typeof work.task === 'string' ? work.task : null }), warnings: [] };
+  const previous = save.npc_work_state?.[npcId] ?? {};
+  if (work.task === previous.task) return { state: previous, warnings: [] };
+  const quote = exactDomainQuote(evidence, [['npc_work_state', npcId, 'task'], ['npc_work', npcId, 'task'], ['work', npcId, 'task']], storyText);
+  if (!quote) return { state: previous, warnings: [`work_evidence_missing:${npcId}`] };
+  return { state: merge(previous, { task: work.task }), warnings: [] };
 }
 
-export function reduceCsaAttitudeObservation({ save, npcId, attitude, expectedTurn } = {}) {
+export function reduceCsaAttitudeObservation({ save, npcId, attitude, expectedTurn, evidence, storyText } = {}) {
   if (!object(attitude) || !Object.keys(attitude).length) return { state: save.csa_attitudes?.[npcId] ?? {}, warnings: [] };
-  const next = {};
-  if (typeof attitude.familiarity === 'number') next.familiarity = attitude.familiarity;
-  if (typeof attitude.resistance === 'number') return { state: save.csa_attitudes?.[npcId] ?? {}, warnings: [`csa_attitude_resistance_ignored:${npcId}`] };
-  next.last_changed_turn = expectedTurn;
-  return { state: merge(save.csa_attitudes?.[npcId] ?? {}, next), warnings: [] };
+  const previous = save.csa_attitudes?.[npcId] ?? {};
+  if (attitude.familiarity === previous.familiarity) return { state: previous, warnings: [] };
+  const quote = exactDomainQuote(evidence, [['csa_attitudes', npcId, 'familiarity'], ['csa_attitude', npcId, 'familiarity']], storyText);
+  if (typeof attitude.familiarity !== 'number' || !quote) return { state: previous, warnings: [`csa_attitude_evidence_missing:${npcId}`] };
+  return { state: merge(previous, { familiarity: attitude.familiarity }), warnings: [] };
 }
 
 export function reduceGeneralEventObservations({ save, events } = {}) {
@@ -157,7 +194,7 @@ export function reduceStoryChoiceProjection({ save, parsedStory, master, focalNa
   return { state: state.slice(0, 4), warnings: [`choices_padded:${choices.length}->${state.length}`] };
 }
 
-export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds } = {}) {
+export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, enteredNpcIds, exitedNpcIds, explicitSpeakerIds } = {}) {
   const nextSave = hydrateGameplayState(currentSave, master ?? {});
   const warnings = [...(observation.warnings ?? [])];
   const evidence = observation.evidence ?? {};
@@ -166,17 +203,17 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
   const playerSexual = reducePlayerSexualObservation({ save: nextSave, sexual: observation.player_observation?.sexual, evidence, storyText: rawStory, expectedTurn });
   nextSave.player_sexual_state = playerSexual.state; warnings.push(...playerSexual.warnings);
   for (const [npcId, domains] of Object.entries(observation.npc_observations ?? {})) {
-    const physical = reduceNpcPhysicalObservation({ save: nextSave, npcId, physical: domains.physical, evidence, storyText: rawStory, expectedTurn, npcIds, master, parsedStory });
+    const physical = reduceNpcPhysicalObservation({ save: nextSave, npcId, physical: domains.physical, evidence, storyText: rawStory, expectedTurn, npcIds, master, parsedStory, sceneBefore, sceneAfter, observedNpcIds: observedNpcIds ?? new Set([...(enteredNpcIds ?? []), ...(exitedNpcIds ?? []), ...(explicitSpeakerIds ?? [])]) });
     if (domains.physical) nextSave.npc_scene_state[npcId] = physical.state; warnings.push(...physical.warnings);
     const emotion = reduceNpcEmotionObservation({ save: nextSave, npcId, emotion: domains.emotion, evidence, storyText: rawStory, master, parsedStory });
     if (domains.emotion) nextSave.npc_emotion[npcId] = emotion.state; warnings.push(...emotion.warnings);
     const relationship = reduceNpcRelationshipObservation({ save: nextSave, npcId, relationship: domains.relationship, evidence, storyText: rawStory, master, parsedStory, expectedTurn });
     if (domains.relationship) nextSave.npc_relationship_state[npcId] = relationship.state; warnings.push(...relationship.warnings);
-    const stats = reduceNpcStatObservation({ save: nextSave, npcId, stats: domains.stats, evidence, storyText: rawStory });
+    const stats = reduceNpcStatObservation({ save: nextSave, npcId, stats: domains.stats, evidence, storyText: rawStory, npcIds });
     if (domains.stats && observation.outcome !== 'degraded') nextSave.npc_stats[npcId] = stats.state; warnings.push(...stats.warnings);
-    const work = reduceNpcWorkObservation({ save: nextSave, npcId, work: domains.work });
+    const work = reduceNpcWorkObservation({ save: nextSave, npcId, work: domains.work, evidence, storyText: rawStory });
     if (domains.work) nextSave.npc_work_state[npcId] = work.state; warnings.push(...work.warnings);
-    const attitude = reduceCsaAttitudeObservation({ save: nextSave, npcId, attitude: domains.csa_attitude, expectedTurn });
+    const attitude = reduceCsaAttitudeObservation({ save: nextSave, npcId, attitude: domains.csa_attitude, expectedTurn, evidence, storyText: rawStory });
     if (domains.csa_attitude) nextSave.csa_attitudes[npcId] = attitude.state; warnings.push(...attitude.warnings);
   }
   const general = reduceGeneralEventObservations({ save: nextSave, events: observation.events?.general });

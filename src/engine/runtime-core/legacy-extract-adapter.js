@@ -21,9 +21,10 @@ function known(value, npcIds) {
   if (!(npcIds instanceof Set) || !npcIds.size || npcIds.has(value) || /^player(?:[-_].*)?$/i.test(value)) return value;
   return null;
 }
+const LEGACY_GENERAL_EVENT_TYPES = new Set(['promise', 'refusal', 'conflict', 'intimacy', 'csa_event', 'work_event', 'secret']);
 
 /** Converts persisted V1 Extract rows only; fresh Extract output must be V2. */
-export function adaptLegacyExtractDelta(value, { npcIds = new Set() } = {}) {
+export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText = '', expectedTurn = 0, actionId = null } = {}) {
   if (!object(value) || !object(value.state_delta)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Legacy Extract requires state_delta');
   const delta = value.state_delta;
   const evidence = object(value.evidence) ? clone(value.evidence) : {};
@@ -50,15 +51,12 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set() } = {}) {
       npcObservations[id] ??= {};
       const key = domain === 'npc_relationship_state' ? 'relationship' : domain === 'npc_work_state' ? 'work' : domain === 'csa_attitudes' ? 'csa_attitude' : domain.replace(/^npc_/, '');
       const allowed = key === 'emotion' ? ['mood']
-        : key === 'relationship' ? ['closeness', 'romance_status', 'current_boundary', 'milestones']
+        : key === 'relationship' ? ['closeness', 'romance_status', 'current_boundary']
           : key === 'stats' ? ['affinity_delta', 'csa_acceptance_delta', 'sexual_arousal_delta', 'reasons', 'reason']
             : key === 'work' ? ['task']
               : ['familiarity'];
       const filtered = pick(patch, allowed);
-      if (filtered) {
-        if (key === 'relationship' && object(filtered.milestones)) filtered.milestones = pick(filtered.milestones, ['first_kiss_turn', 'sexual_relationship_started_turn']);
-        npcObservations[id][key] = filtered;
-      }
+      if (filtered) npcObservations[id][key] = filtered;
     }
   }
   return normalizeExtractObservationV2({
@@ -80,10 +78,10 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set() } = {}) {
     npc_observations: npcObservations,
     events: {
       general: (Array.isArray(delta.event_ledger) ? delta.event_ledger : []).map(item => ({
-        event_id: item?.event_id ?? null, type: item?.event_type ?? item?.type ?? 'general', actor_id: item?.actor_id ?? null,
-        target_id: item?.target_id ?? null, completed: item?.completed, interrupted: item?.interrupted,
-        evidence: item?.evidence ?? item?.summary ?? ''
-      })),
+        event_id: item?.event_id ?? null, event_type: item?.event_type ?? item?.type,
+        turn: item?.turn, summary: item?.summary, participants: item?.participants,
+        importance: item?.importance, active: item?.active, evidence: item?.evidence ?? item?.summary ?? ''
+      })).filter(item => LEGACY_GENERAL_EVENT_TYPES.has(item.event_type)).map(item => Object.fromEntries(Object.entries(item).filter(([, value]) => value !== undefined))),
       sexual: Array.isArray(delta.sexual_event_ledger) ? delta.sexual_event_ledger : []
     },
     evidence,
@@ -96,5 +94,5 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set() } = {}) {
     csa_runtime_updates: value.csa_runtime_updates ?? [],
     turn_summary: value.turn_summary ?? '',
     warnings: ['legacy_extract_adapter_used', ...(Array.isArray(value.warnings) ? value.warnings : [])]
-  }, { npcIds });
+  }, { npcIds, storyText, expectedTurn, actionId });
 }

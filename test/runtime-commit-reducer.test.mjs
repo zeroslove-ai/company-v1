@@ -23,3 +23,43 @@ test('V2 reducer keeps scene authority separate from NPC physical observation', 
   assert.equal(result.nextSave.scene_state.location_id, save.scene_state.location_id);
   assert.equal(result.nextSave.scene_state.participants.join(','), save.scene_state.participants.join(','));
 });
+
+test('scene is reduced before domains so an entered NPC physical observation is retained', () => {
+  const currentSave = {
+    ...structuredClone(save),
+    scene: { version: 1, scene_id: 'room', location_id: 'meeting_room_5f', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 7 },
+    scene_state: { ...save.scene_state, participants: ['player-1', 'npc-hayeon'] },
+    npc_scene_state: { ...save.npc_scene_state, 'npc-areum': { clothing: { uniform_top: 'worn' } } }
+  };
+  const rawStory = 'npc-areum entered and removed her shirt';
+  const observation = normalizeExtractObservationV2({
+    ...baseObservation,
+    scene_observation: {
+      scene_id: 'room', location_id: 'meeting_room_5f', final_present_npc_ids: ['npc-hayeon', 'npc-areum'],
+      entered_npc_ids: ['npc-areum'], exited_npc_ids: [], focal_candidate_id: 'npc-areum', presence_is_final: true,
+      remote_speaker_ids: [], evidence: [
+        { kind: 'presence', character_id: 'npc-hayeon', quote: 'npc-areum entered' },
+        { kind: 'entrance', character_id: 'npc-areum', quote: 'npc-areum entered' },
+        { kind: 'presence', character_id: 'npc-areum', quote: 'npc-areum entered' }
+      ]
+    },
+    npc_observations: { 'npc-areum': { physical: { clothing: { uniform_top: 'removed' } } } },
+    evidence: { clothing: { 'npc-areum': { quote: rawStory, character_id: 'npc-areum' } } }
+  }, { npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']), storyText: rawStory });
+  const result = reduceGameplayCommit({
+    currentSave, observation, parsedStory: { choices: [], dialogue_lines: [] }, rawStory,
+    action: { action_id: 'entered-physical', turn_id: 'turn-8', action_kind: 'player_turn' }, expectedTurn: 8,
+    npcIds: new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']), mapLocations: []
+  });
+  assert.deepEqual(result.canonical_scene.present_npc_ids, ['npc-hayeon', 'npc-areum']);
+  assert.equal(result.nextSave.npc_scene_state['npc-areum'].clothing.uniform_top, 'removed');
+});
+
+test('mind monitor entries for off-scene NPCs are dropped with an explicit warning', () => {
+  const observation = normalizeExtractObservationV2({ ...baseObservation, mind_monitor: { 'npc-hayeon': { surface: 'on scene', subconscious: '' }, 'npc-areum': { surface: 'off scene', subconscious: '' } } }, { npcIds: NPCS });
+  const currentSave = { ...structuredClone(save), scene: { version: 1, scene_id: 'room', location_id: 'meeting_room_5f', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 7 }, scene_state: { ...save.scene_state, participants: ['player-1', 'npc-hayeon'] } };
+  const result = reduceGameplayCommit({ currentSave, observation, parsedStory: { choices: [], dialogue_lines: [] }, rawStory: 'plain story', action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
+  assert.ok(result.mind_monitor['npc-hayeon']);
+  assert.equal(result.mind_monitor['npc-areum'], undefined);
+  assert.ok(result.warnings.includes('mind_monitor_off_scene_dropped:npc-areum'));
+});
