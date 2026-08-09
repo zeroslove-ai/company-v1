@@ -2,7 +2,7 @@ import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
-import { renderChoices, renderHistory, renderState, setCommittedStatDeltas, text } from './render.js';
+import { renderChoices, renderHistory, renderNarrative, renderState, setCommittedStatDeltas, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
@@ -233,7 +233,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       && elements.current.scrollHeight - elements.current.scrollTop - elements.current.clientHeight <= 120;
     elements.current.classList?.add?.('raw-story-stream');
     elements.current.textContent = `${elements.current.textContent ?? ''}${value}`;
-    if (nearBottom) elements.current.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
+    if (nearBottom) elements.current.scrollTop = elements.current.scrollHeight;
   };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
   function refreshViewModel() {
@@ -338,12 +338,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     renderToolbar();
     // 초기 로드 시 최근 턴(current)이 보이도록 1회 스크롤 — 오프닝부터 쭉 내려야 하는 낭비 제거.
     // 이후 렌더링(턴 갱신)에서는 사용자 스크롤 위치를 침범하지 않는다.
-    if (!initialScrollDone && elements.current && elements.current.children?.length) {
-      initialScrollDone = true;
-      elements.current.scrollIntoView?.({ block: 'start', inline: 'nearest' });
-    }
   }
-  let initialScrollDone = false;
   // Commit delta 일시 표시 타이머 (2~3초 후 클리어).
   let committedStatDeltaTimer = null;
   const setBusy = value => { busy = value; render(); };
@@ -354,11 +349,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     render();
   }
   const busyGuard = createBusyGuard({ onChange: setBusy });
-  async function refreshContext() {
+  async function refreshContext({ preserveStreamedChoices = false } = {}) {
     showStatus('현재 상태를 불러오는 중…'); setConnection(false);
     const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
-    context = data.context; currentExtract = null; streamedStoryChoices = [];
+    context = data.context; currentExtract = null;
+    if (!preserveStreamedChoices) streamedStoryChoices = [];
     // 세션 타임라인 누적 — refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않는다.
     // 같은 turn_number는 교체(피드백 revision이 해당 카드를 갱신), 새 턴만 추가, 중복 금지.
     sessionHistory = mergeSessionTurns(sessionHistory, context?.recent_turns ?? []);
@@ -371,7 +367,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     onStory: ({ item, text: deltaText, parsed }) => {
       if (item?.event === 'start') { resetRawStory(); return; }
       if (item?.event === 'delta') { appendRawStory(deltaText); return; }
-      if (item?.event === 'complete' && hasFourChoices(parsed?.choices)) { streamedStoryChoices = parsed.choices; render(); }
+      if (item?.event === 'complete') {
+        const choices = hasFourChoices(item.data?.choices) ? item.data.choices : parsed?.choices;
+        if (parsed?.blocks) renderNarrative(elements.current, choices ? { ...parsed, choices } : parsed);
+        if (hasFourChoices(choices)) { streamedStoryChoices = choices; render(); }
+      }
     },
     onExtract: extracted => {
       currentExtract = extracted.extract ?? null;
@@ -571,13 +571,23 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         raw += text;
         appendRawStory(text);
       }
-      if (item.event === 'complete' && hasFourChoices(item.data?.parsed_blocks?.choices)) {
-        streamedStoryChoices = item.data.parsed_blocks.choices;
-        render();
+      if (item.event === 'complete') {
+        const choices = hasFourChoices(item.data?.choices)
+          ? item.data.choices
+          : item.data?.parsed_blocks?.choices;
+        if (item.data?.parsed_blocks?.blocks) {
+          renderNarrative(elements.current, choices
+            ? { ...item.data.parsed_blocks, choices }
+            : item.data.parsed_blocks);
+        }
+        if (hasFourChoices(choices)) {
+          streamedStoryChoices = choices;
+          render();
+        }
       }
     });
     text(statusElement, '');
-    await refreshContext();
+    await refreshContext({ preserveStreamedChoices: true });
   }
   async function retryOpening(setupId) {
     if (busy || !setupId) return false;

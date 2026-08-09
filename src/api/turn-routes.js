@@ -631,10 +631,17 @@ const master = masterFromEdition(edition);
         // (과거 턴 피드백 재생성으로 현재 save 위치가 바뀌면 안 된다).
         let movementResult = { applied: false, reason: 'not_checked', warnings: [] };
         if (action.action_kind !== 'feedback_revision') {
+          const sceneCastContract = buildSceneCastContract({
+            save: currentSave,
+            master,
+            playerAction: action.player_action,
+            structuredAction,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
           movementResult = sanitizeMovementCommit({
             beforeSave: currentSave,
             nextSave,
-            sceneCastContract: action.parsed_blocks?.scene_cast_contract ?? null,
+            sceneCastContract,
             extractEnvelope: extract,
             actionKind: action.action_kind,
             expectedTurn

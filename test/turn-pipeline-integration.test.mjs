@@ -79,6 +79,7 @@ function createMockFetch({
   let storyCall = 0;
   let extractCall = 0;
   let recordExtractFailedOnce = false;
+  let lastCommitSave = null;
 
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
@@ -131,6 +132,8 @@ function createMockFetch({
     if (rpc === 'commit_company_turn') {
       const action = actions.get(args.p_action_id);
       action.processing_status = 'committed';
+      lastCommitSave = structuredClone(args.p_next_save);
+      context.save.data = structuredClone(args.p_next_save);
       gameTurns.set(args.p_expected_turn, { turn_number: args.p_expected_turn, turn_id: action.turn_id, parsed_blocks: action.parsed_blocks });
       return json({ success: true, replayed: false, turn_number: args.p_expected_turn, turn_id: action.turn_id, save_revision: 1 });
     }
@@ -140,7 +143,7 @@ function createMockFetch({
     }
     return json({ ok: true });
   }
-  return { fetchImpl, calls, actions, gameTurns };
+  return { fetchImpl, calls, actions, gameTurns, getLastCommitSave: () => lastCommitSave };
 }
 
 test('14-4: full turn pipeline — raw Story streaming → Extract → Commit and replay', async () => {
@@ -201,4 +204,36 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(replayBody.data.replayed, true);
   const afterReplay = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && !llmBody(c).stream).length;
   assert.equal(afterReplay, beforeReplay, 'replay 시 추가 LLM 호출 없음');
+});
+
+test('movement Commit recomputes the scene cast instead of reading removed parsed_blocks metadata', async () => {
+  const extractEnvelope = {
+    state_delta: {},
+    outcome: 'success',
+    evidence: {},
+    choices: ['A', 'B', 'C', 'D'],
+    dialogue_lines: [],
+    npcs_present: ['heroine2'],
+    mind_monitor: {},
+    warnings: []
+  };
+  const mock = createMockFetch({ saveOverride: v2Save(), extractEnvelope });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const playerAction = '민아 보러 간다';
+
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: playerAction }), env);
+  assert.equal(story.status, 200);
+  await story.text();
+  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
+  assert.equal(extract.status, 200);
+  const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
+  assert.equal(commit.status, 200);
+
+  const nextSave = mock.getLastCommitSave();
+  assert.equal(nextSave.scene_state.location_id, 'brand_strategy_office');
+  assert.deepEqual(nextSave.scene_state.participants, ['player-1', 'heroine2']);
+  assert.deepEqual(nextSave.last_npcs_present, ['heroine2']);
+  assert.equal(nextSave.focal_character_id, 'heroine2');
+  assert.equal(nextSave.npc_scene_state.heroine5.present, false);
+  assert.equal(nextSave.npc_scene_state.heroine2.present, true);
 });

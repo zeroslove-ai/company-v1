@@ -14,7 +14,7 @@ const gameId = '11111111-1111-4111-8111-111111111111';
 const storage = () => { const values = new Map(); return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) }; };
 
 class FakeNode {
-  constructor(tag) { this.tag = tag; this.children = []; this.className = ''; this.textContent = ''; this.hidden = false; this.disabled = false; this.onclick = null; this.listeners = new Map(); this.value = ''; this.title = ''; this.scrolls = 0; }
+  constructor(tag) { this.tag = tag; this.children = []; this.className = ''; this.textContent = ''; this.hidden = false; this.disabled = false; this.onclick = null; this.listeners = new Map(); this.value = ''; this.title = ''; this.scrolls = 0; this.scrollHeight = 0; this.scrollTop = 0; this.clientHeight = 0; }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; }
   addEventListener(name, listener) { this.listeners.set(name, listener); }
@@ -167,7 +167,7 @@ test('a reloaded reserved setup retries the same opening without a second player
         openingCalls += 1;
         assert.equal(setup_id, 'reserved-setup');
         useCompleted = true;
-        return new Response('event: delta\ndata: {"text":"Opening story"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } });
+        return new Response('event: delta\ndata: {"text":"Opening story"}\n\nevent: complete\ndata: {"choices":["Top A","Top B","Top C","Top D"]}\n\n', { headers: { 'content-type': 'text/event-stream' } });
       }
     };
     const app = createFrontendApp({ documentRef, storage: storage(), api });
@@ -178,6 +178,7 @@ test('a reloaded reserved setup retries the same opening without a second player
     assert.equal(nodes['player-setup-overlay'].hidden, true);
     assert.equal(nodes['player-action'].disabled, false);
     assert.equal(nodes['choice-list'].children.length, 4);
+    assert.equal(nodes['choice-list'].children[0].title, 'Top A', 'opening complete top-level choices are preferred');
   });
 });
 
@@ -577,5 +578,59 @@ test('commit 성공 시 입력창이 초기화되고 실패 시 원래 입력이
     nodes['player-action'].value = '실패해도 남아야 하는 문장';
     await app2.startNewAction('실패해도 남아야 하는 문장');
     assert.equal(nodes['player-action'].value, '실패해도 남아야 하는 문장', '실패 시 원래 입력 유지');
+  });
+});
+
+test('Story complete uses top-level choices fallback and projects once without page scrolling', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    nodes['current-story'].scrollHeight = 200;
+    nodes['current-story'].clientHeight = 100;
+    const context = validContext();
+    const api = {
+      context: async () => ({ context }),
+      story: async () => new Response(
+        'event: meta\ndata: {}\n\n'
+        + 'event: delta\ndata: {"text":"[SCENE] Raw streaming text"}\n\n'
+        + 'event: complete\ndata: {"choices":["A","B","C","D"],"parsed_blocks":{"blocks":[{"type":"scene","text":"Final projection"}]}}\n\n',
+        { headers: { 'content-type': 'text/event-stream' } }
+      ),
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    const initialScrolls = nodes['current-story'].scrolls;
+    await app.startNewAction('진행한다');
+    assert.equal(nodes['current-story'].children[0].className, 'narrative-scene');
+    assert.equal(nodes['current-story'].children[0].textContent, 'Final projection');
+    assert.equal(nodes['choice-list'].children.length, 4, 'top-level complete choices are rendered');
+    assert.equal(nodes['current-story'].scrolls, initialScrolls, 'streaming never calls page scrollIntoView');
+    assert.equal(nodes['current-story'].scrollTop, nodes['current-story'].scrollHeight, 'near-bottom stream scrolls only its container');
+  });
+});
+
+test('streaming preserves a reader scroll position and never calls scrollIntoView', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    nodes['current-story'].scrollHeight = 1000;
+    nodes['current-story'].scrollTop = 100;
+    nodes['current-story'].clientHeight = 100;
+    const context = validContext();
+    const api = {
+      context: async () => ({ context }),
+      story: async () => new Response(
+        'event: meta\ndata: {}\n\n'
+        + 'event: delta\ndata: {"text":"[SCENE] New text"}\n\n'
+        + 'event: complete\ndata: {"parsed_blocks":{"blocks":[{"type":"scene","text":"New text"}]}}\n\n',
+        { headers: { 'content-type': 'text/event-stream' } }
+      ),
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    const initialScrolls = nodes['current-story'].scrolls;
+    await app.startNewAction('진행한다');
+    assert.equal(nodes['current-story'].scrolls, initialScrolls);
+    assert.equal(nodes['current-story'].scrollTop, 100);
   });
 });
