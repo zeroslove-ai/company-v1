@@ -295,6 +295,7 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
   const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
   assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA 관찰 projection 유지');
+  assert.deepEqual(new Set(extractPayload.context.global_csa.active_ids), new Set(storyPayload.context.active_world_rules.map(rule => rule.csa_id)));
 
   const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
   assert.equal(commitRes.status, 200);
@@ -360,6 +361,8 @@ test('route-level CSA update replaces the old Story rule once and commits the ne
   const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
   const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
   assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA 관찰 projection 유지');
+  assert.ok(extractPayload.context.global_csa.active_ids.includes('csa_old'));
+  assert.equal(extractPayload.context.global_csa.rules.csa_old.content, newContent);
   const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
   assert.equal(commitRes.status, 200);
   const save = mock.getSave();
@@ -502,6 +505,7 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
   const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
   const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
   assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA projection 유지');
+  assert.ok(!extractPayload.context.global_csa.active_ids.includes('csa_0'));
 
   const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
   assert.equal(commitRes.status, 200);
