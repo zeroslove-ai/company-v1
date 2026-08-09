@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GameCoreError } from '../src/engine/errors.js';
 import { buildLegacySceneObservation, hydrateCanonicalScene, reduceCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
-import { assertCanonicalSceneInvariants, projectCanonicalSceneToLegacy } from '../src/engine/runtime-core/projections.js';
+import { projectCanonicalSceneToLegacy } from '../src/engine/runtime-core/projections.js';
+import { assertCanonicalSceneInvariants } from '../src/engine/runtime-core/invariants.js';
 
 const NPCS = new Set(['heroine1', 'heroine2', 'heroine3', 'general_park_jungwoo']);
 const LOCATIONS = [{ location_id: 'origin' }, { location_id: 'destination' }, { location_id: 'meeting_room' }];
@@ -71,7 +72,7 @@ test('projection marks existing absent NPC state false', () => { const next = pr
 test('projection is idempotent', () => { const scene = reduce({ observation: observation({ final: ['heroine2'] }) }); const once = projectCanonicalSceneToLegacy(save(), scene, { npcIds: NPCS }); assert.deepEqual(projectCanonicalSceneToLegacy(once, scene, { npcIds: NPCS }), once); });
 
 // Operational regressions 39-42
-test('turn 12 presence does not collapse to empty without final evidence', () => assert.deepEqual(reduce({ observation: observation({ final: null, speakers: ['heroine1', 'heroine2'] }) }).present_npc_ids, ['heroine1']));
+test('turn 12 local speaker without final evidence is unresolved', () => assert.throws(() => reduce({ observation: observation({ final: null, speakers: ['heroine1', 'heroine2'] }) }), error => error.code === 'SCENE_PRESENCE_UNRESOLVED'));
 test('turn 16 registered NPC is not added without final evidence', () => assert.deepEqual(reduce({ observation: observation({ final: null, speakers: [] }) }).present_npc_ids, ['heroine1']));
 test('turn 17 stale present flag cannot override participants', () => { const current = save({ scene_state: { participants: ['player-1', 'heroine1'] }, npc_scene_state: { heroine1: { present: false } } }); assert.deepEqual(hydrateCanonicalScene(current, { npcIds: NPCS }).present_npc_ids, ['heroine1']); });
 test('old direct movement sanitizer is no longer a scene writer', async () => { const module = await import('../src/engine/guarded-merge.js'); const next = save(); const before = clone(next); module.sanitizeMovementCommit({ beforeSave: before, nextSave: next, sceneCastContract: { transition_mode: 'movement', destination_location_id: 'destination' }, extractEnvelope: { outcome: 'success', npcs_present: ['heroine2'] } }); assert.deepEqual(next, before); });
@@ -85,3 +86,44 @@ test('observation derives last valid Story speaker', () => assert.equal(buildLeg
 test('observation ignores speaker without stable id', () => assert.deepEqual(buildLegacySceneObservation({ extract: { state_delta: {}, evidence: {} }, parsedStory: { dialogue_lines: [{ speaker_id: null }] }, npcIds: NPCS }).explicit_speaker_ids, []));
 test('canonical reducer returns a new scene object', () => { const current = hydrateCanonicalScene(save(), { npcIds: NPCS }); const next = reduce({ currentScene: current, observation: observation({ final: ['heroine2'] }) }); assert.notEqual(next, current); assert.deepEqual(current.present_npc_ids, ['heroine1']); });
 test('canonical invariants reject player in present NPC ids', () => assert.throws(() => assertCanonicalSceneInvariants({ save: save(), scene: { ...hydrateCanonicalScene(save(), { npcIds: NPCS }), present_npc_ids: ['player-1'] }, npcIds: NPCS }), error => error.code === 'CANONICAL_SCENE_INVARIANT'));
+
+test('canonical null fields do not fall back to stale legacy values', () => {
+  const source = save({ scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 4 }, last_npcs_present: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1' });
+  assert.deepEqual(hydrateCanonicalScene(source, { npcIds: NPCS }), { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 4 });
+});
+test('malformed canonical scene fails without legacy recovery', () => assert.throws(() => hydrateCanonicalScene(save({ scene: { version: 1, present_npc_ids: ['heroine1', 'heroine1'] }, last_npcs_present: ['heroine2'] }), { npcIds: NPCS }), error => error.code === 'CANONICAL_SCENE_INVALID'));
+test('failed movement increments beat and preserves destination fields', () => {
+  const next = reduce({ observation: observation({ location_id: 'destination', final: ['heroine2'], outcome: 'partial' }) });
+  assert.equal(next.location_id, 'origin');
+  assert.equal(next.beat, 3);
+  assert.deepEqual(next.present_npc_ids, ['heroine1']);
+});
+test('stationary partial increments beat while applying no presence snapshot', () => {
+  const next = reduce({ observation: observation({ final: ['heroine2'], outcome: 'partial' }) });
+  assert.equal(next.beat, 3);
+  assert.deepEqual(next.present_npc_ids, ['heroine1']);
+});
+test('degraded turn increments beat and updated turn', () => {
+  const next = reduce({ observation: observation({ final: [], outcome: 'degraded' }) });
+  assert.equal(next.beat, 3);
+  assert.equal(next.updated_turn, 8);
+  assert.deepEqual(next.present_npc_ids, ['heroine1']);
+});
+test('feedback revision preserves beat and updated turn and ignores speaker projection', () => {
+  const current = hydrateCanonicalScene(save({ scene: { version: 1, scene_id: 's', location_id: 'origin', beat: 7, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1', updated_turn: 6 } }), { npcIds: NPCS });
+  const next = reduce({ currentScene: current, actionKind: 'feedback_revision', observation: observation({ location_id: 'destination', final: [], speakers: ['heroine2'] }) });
+  assert.deepEqual(next, current);
+});
+test('final null local speaker is unresolved and not auto-added', () => {
+  const current = hydrateCanonicalScene(save(), { npcIds: NPCS });
+  assert.throws(() => reduce({ currentScene: current, observation: observation({ final: null, speakers: ['heroine2'] }) }), error => error.code === 'SCENE_PRESENCE_UNRESOLVED');
+});
+test('remote speaker with final null does not alter presence', () => {
+  const next = reduce({ observation: observation({ final: null, speakers: ['heroine2'], remote: ['heroine2'] }) });
+  assert.deepEqual(next.present_npc_ids, ['heroine1']);
+  assert.equal(next.last_speaker_id, 'heroine2');
+});
+test('projection writes updated_turn to legacy scene_state', () => {
+  const scene = reduce({ observation: observation({ final: [] }) });
+  assert.equal(projectCanonicalSceneToLegacy(save(), scene, { npcIds: NPCS }).scene_state.updated_turn, scene.updated_turn);
+});

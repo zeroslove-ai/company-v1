@@ -1,4 +1,3 @@
-import { GameCoreError } from '../errors.js';
 import { hydrateCanonicalScene, isPlayerId } from './scene-reducer.js';
 
 function plain(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
@@ -33,6 +32,7 @@ export function projectCanonicalSceneToLegacy(save, scene, options = {}) {
     beat: Number.isInteger(canonical.beat) ? canonical.beat : 0,
     scene_goal: canonical.goal ?? null,
     focus_thread: canonical.focus_thread ?? null,
+    updated_turn: Number.isInteger(canonical.updated_turn) ? canonical.updated_turn : 0,
     participants
   };
   next.last_npcs_present = [...present];
@@ -56,29 +56,4 @@ export function projectCanonicalSceneToLegacy(save, scene, options = {}) {
 export function buildLegacySceneProjection(save, options = {}) {
   const scene = hydrateCanonicalScene(save, options);
   return projectCanonicalSceneToLegacy(save, scene, options);
-}
-
-export function assertCanonicalSceneInvariants({ save, scene, npcIds, parsedStory, playerId } = {}) {
-  const current = plain(scene) ? scene : {};
-  const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
-  const player = id(playerId) ?? id(save?.player?.player_id) ?? id(save?.player?.id) ?? 'player-1';
-  if (!Array.isArray(current.present_npc_ids)) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'present_npc_ids must be an array');
-  if (new Set(current.present_npc_ids).size !== current.present_npc_ids.length) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'present_npc_ids must be unique');
-  for (const npcId of current.present_npc_ids) {
-    if (!id(npcId) || isPlayerId(npcId, player) || (registered.size && !registered.has(npcId))) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', `invalid present NPC: ${npcId}`);
-  }
-  if (current.focal_character_id !== null && !current.present_npc_ids.includes(current.focal_character_id)) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'focal_character_id must be present');
-  const parsedIds = Array.isArray(parsedStory?.dialogue_lines) ? parsedStory.dialogue_lines.map(line => id(line?.speaker_id)).filter(Boolean) : null;
-  if (parsedIds && parsedIds.length > 0 && current.last_speaker_id !== null && !parsedIds.includes(current.last_speaker_id)) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'last_speaker_id is not from current Story');
-  const projected = projectCanonicalSceneToLegacy(save ?? {}, current, { playerId: player });
-  if (JSON.stringify(projected.scene_state.participants) !== JSON.stringify([player, ...current.present_npc_ids])) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'legacy participants diverge');
-  if (JSON.stringify(projected.last_npcs_present) !== JSON.stringify(current.present_npc_ids)) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'legacy presence diverges');
-  for (const [npcId, state] of Object.entries(plain(save?.npc_scene_state) ? save.npc_scene_state : {})) {
-    const expectedPresent = current.present_npc_ids.includes(npcId);
-    if (Boolean(state?.present) !== expectedPresent) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', `legacy NPC presence diverges: ${npcId}`);
-    if (expectedPresent && (state?.location_id !== (current.location_id ?? null) || state?.scene_id !== (current.scene_id ?? null))) {
-      throw new GameCoreError('CANONICAL_SCENE_INVARIANT', `legacy NPC location diverges: ${npcId}`);
-    }
-  }
-  return true;
 }

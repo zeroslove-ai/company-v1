@@ -12,9 +12,9 @@
 - The canonical gameplay scene is a version-1 object with separate `scene_id`, `location_id`, `beat`, `goal`, `focus_thread`, `present_npc_ids`, `focal_character_id`, `last_speaker_id`, and `updated_turn`.
 - `hydrateCanonicalScene()` performs a deterministic, non-mutating one-time bootstrap. Existing version-1 scenes are authoritative; legacy participants, last presence, and present flags are never unioned.
 - `buildLegacySceneObservation()` is a temporary Extract observation adapter. Null final presence means unobserved; an empty array means an observed player-only scene.
-- `reduceCanonicalScene()` is the single gameplay scene writer. Movement requires a registered destination and an explicit final presence snapshot; blocked/degraded/revision outcomes preserve the current scene.
+- `reduceCanonicalScene()` is the single gameplay scene writer. Only a successful movement with an explicit final presence snapshot changes location/presence and resets `beat`; stationary, partial, interrupted, blocked, refused, and degraded turns preserve scene fields while advancing ordinary gameplay `beat`/`updated_turn`. Feedback revisions preserve the entire canonical scene.
 - `projectCanonicalSceneToLegacy()` is the single legacy compatibility writer for scene participants, last presence, focal, last speaker, and NPC presence/location fields. Physical clothing/posture data remains separate and is preserved.
-- `assertCanonicalSceneInvariants()` stops Commit on invalid presence, focal, speaker, location, or projection state.
+- `assertCanonicalSceneInvariants()` compares the actual saved canonical and legacy fields (not a newly generated projection) and stops Commit on invalid presence, focal, speaker, location, or projection state.
 - Commit no longer calls `sanitizeMovementCommit()` or uses `buildSceneCastContract()` as a presence writer. Scene cast remains Story/Extract context only.
 - `applyGuardedStateDelta()` no longer writes scene presence, focal, last speaker, or NPC presence/location fields; it remains the non-scene physical/stat/relationship merge path.
 - Opening initialization creates the canonical scene and then projects it through the same legacy projection.
@@ -32,4 +32,4 @@
 ## Verification
 
 - Phase 2 regression suite covers bootstrap precedence, null/empty presence, movement, focal/last-speaker rules, projection idempotence, operational turns 12/16/17, and route boundaries.
-- The current local suite passes 652 tests. The exact commit and CI result are recorded in the stacked Draft PR rather than duplicated here.
+- The current local suite passes 661 tests. The exact commit and CI result are recorded in the stacked Draft PR rather than duplicated here.

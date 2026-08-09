@@ -668,7 +668,7 @@ const master = masterFromEdition(edition);
           playerId: currentSave.player?.player_id ?? currentSave.player?.id,
           npcIds
         });
-        assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory });
+        assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action.action_kind, observation: sceneObservation });
         // Canonical scene reduction is the only gameplay presence writer. Feedback revisions
         // and degraded observations preserve the existing canonical scene.
         // The app transaction never gets its own save API — its csa_active/csa_rules result rides
@@ -731,7 +731,7 @@ const master = masterFromEdition(edition);
           structuredAction: definitionAction,
           stage: 'commit-final'
         });
-        assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory });
+        assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action.action_kind, observation: sceneObservation });
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.
