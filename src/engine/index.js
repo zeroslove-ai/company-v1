@@ -67,13 +67,9 @@ export {
 } from './csa/transaction-validator.js';
 export { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch } from './csa/reducer.js';
 export {
-  buildCsaRuntimeSection,
-  buildCsaCurrentRulesSection,
-  buildNpcCsaEpistemicFirewallSection,
-  buildCsaPublicSceneSection, buildCsaWeakSynergySection, isAppUsageInfoRequest, buildAppUsageStorySection,
+  isAppUsageInfoRequest, buildAppUsageStorySection,
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,
-  buildMindEffectExtractFirewallSection,
-  buildStructuredActionStorySection, buildCsaDeactivationStorySection
+  buildMindEffectExtractFirewallSection
 } from './csa/prompt-sections.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
 

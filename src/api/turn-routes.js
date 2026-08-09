@@ -35,15 +35,8 @@ import {
   buildCsaAftereffectPatch,
   buildCsaSceneRuntimeStatePatch,
   buildCsaApplicationCheckSection,
-  buildCsaDeactivationStorySection,
-  buildCsaCurrentRulesSection,
-  buildCsaPublicSceneSection,
   buildCsaRuntimeExtractContractSection,
-  buildCsaRuntimeSection,
-  buildCsaWeakSynergySection,
   buildMindEffectExtractFirewallSection,
-  buildNpcCsaEpistemicFirewallSection,
-  buildStructuredActionStorySection,
   calculateCsaCapability,
   classifyAppOperationStrengths,
   collectSemanticStrengthCandidates,
@@ -245,47 +238,6 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
   const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, capability });
   if (!plan.ok) throw new HttpError(422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '상식개변 앱 변경사항을 적용할 수 없습니다.', false);
   return plan;
-}
-
-/**
- * Appends the CSA-specific Story prompt sections onto an already-built messages array, only when
- * relevant. Runtime/acceptance/persistent-scene and the physical-
- * transition guard are foundational contract language that applies to any active or just-changed
- * CSA regardless of its specific content, so they stay unconditional whenever this function
- * contributes anything at all (same as before). Public-scene and weak-synergy, by contrast, are
- * gated on properties the plan/catalog already validated — no active CSA is public, or fewer than
- * two are active — because false-including them costs tokens without changing any behavior, and
- * false-excluding them is never possible without a real signal (public_normalization is a
- * classified/validated field, not a guess; synergy is definitionally about >=2 rules). Deactivation
- * (hasDeactivation) was already conditional before this pass. This only trims prompt tokens —
- * every gated section's underlying feature contract is
- * unchanged when its condition holds.
- */
-function applyCsaStorySections(messages, { save, plan, expectedTurn }) {
-  const applicableCsa = getApplicableCsaEntries(save);
-  const hasApplicableCsa = applicableCsa.length > 0;
-  const isAppTransactionTurn = Boolean(plan);
-  if (!hasApplicableCsa && !isAppTransactionTurn) {
-    return messages;
-  }
-  const currentRulesSection = buildCsaCurrentRulesSection(applicableCsa, expectedTurn);
-  // CSA Story 경로는 declarative world-rule projection만 사용한다. 사전 actor/target
-  // 선택, 질문·명령 regex, 사전 coverage route는 Story 방향을 결정하지 않는다.
-  const hasPublicCsa = applicableCsa.some(csa => csa.preset?.public_normalization === true || csa.semantic_contract?.public_normalization === true);
-  const hasSynergyCandidate = applicableCsa.length >= 2;
-  let extra = currentRulesSection + buildCsaRuntimeSection()
-    + (hasPublicCsa ? buildCsaPublicSceneSection() : '')
-    + (hasSynergyCandidate ? buildCsaWeakSynergySection() : '');
-  if (plan) {
-    const csaOperations = plan.canonical_action.operations;
-    const activeCsaCount = plan.next_csa_active.length;
-    const level = calculateCsaCapability(save, activeCsaCount).current_level;
-    extra += buildStructuredActionStorySection(csaOperations, activeCsaCount, getCsaLimits(level).max_active);
-    extra += buildCsaDeactivationStorySection(csaOperations.some(operation => operation.operation === 'deactivate'));
-  }
-  const next = [{ ...messages[0], content: messages[0].content + extra }, ...messages.slice(1)];
-  next.push({ role: 'system', content: buildNpcCsaEpistemicFirewallSection({ worldRule: true }) });
-  return next;
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
@@ -499,7 +451,6 @@ const master = masterFromEdition(edition);
           timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
           const promptStart = Date.now();
           let messages = buildStoryPrompt({ edition, context: storyContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
-          messages = applyCsaStorySections(messages, { save: storySave, plan: csaPlan, expectedTurn });
           if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
             messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
           }

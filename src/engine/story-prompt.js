@@ -141,16 +141,9 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
   const sceneCore = buildSceneContextCore(save, activeIds);
-  const globalCsa = object(sceneCore.global_csa) ?? {};
-  const storyRules = Object.fromEntries(Object.entries(object(globalCsa.rules) ?? {}).map(([csaId, rule]) => {
-    const source = object(rule) ?? {};
-    return [csaId, {
-      active: source.active === true,
-      content: typeof source.content === 'string' ? source.content : '',
-      scope_type: typeof source.scope_type === 'string' ? source.scope_type : 'world',
-      scope_label: typeof source.scope_label === 'string' ? source.scope_label : '회사 전체'
-    }];
-  }));
+  const storySceneCore = Object.fromEntries(
+    Object.entries(sceneCore).filter(([key]) => key !== ['global', 'csa'].join('_'))
+  );
   return {
     game: { id: typeof game.id === 'string' ? game.id : null, title: typeof game.title === 'string' ? game.title : null },
     current_time: {
@@ -159,8 +152,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     },
     active_world_rules: buildActiveWorldRules(save, expectedTurn),
     player: buildPlayerPromptProjection({ player, canonical, playerAction }),
-    ...sceneCore,
-    global_csa: { active_ids: Array.isArray(globalCsa.active_ids) ? globalCsa.active_ids : [], rules: storyRules, runtime_state: {} },
+    ...storySceneCore,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
     story_summary: {
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
@@ -205,8 +197,9 @@ const KOREAN_WORKPLACE_LANGUAGE = [
 
 const SYSTEM_INSTRUCTIONS = [
   KOREAN_WORKPLACE_LANGUAGE,
+  'during_work/while_on_duty are time-scope fields, and unspecified method remains an open outcome rule.',
   'NPC 물리 상태(복장·자세·위치): context.active_npc_state.npc_scene_state에 있는 복장·자세·위치는 현재 물리 상태(확정 사실)다. 실제로 옷을 벗고 입고 열고 잠그는 행동이 이번 서사에서 완료된 경우에만 바뀐다. 상식개변(CSA) 적용·해제만으로 복장이 자동으로 바뀌지 않으며, 아무 이유 없이 갑자기 입었다 벗었다 하지 않는다. 알 수 없으면 저장된 마지막 상태를 유지한다. context.clothing_authority[npc_id]가 이번 턴 복장의 최종 권위다: actual_clothing이 현재 정본, required_clothing이 규정상 요구, compliance가 이행 상태다. actual_clothing이 비어 있거나 unknown이면 그 NPC의 현재 복장은 알 수 없음이며, 이미 갈아입었다거나 규정을 지키고 있다고 단정하지 않는다. required_clothing이 있고 actual_clothing이 그와 다르면 복장 변경은 반드시 이번 턴 Story에서 실제로 완료된 갈아입기·벗기 행동을 거쳐야 한다. 규정 내용만으로는 복장이 바뀌지 않는다.',
-  '[CONDITIONAL CSA] Activation is awareness, not proof of a conditional prerequisite or required-action execution. during_work/while_on_duty are time/scope only, not event evidence. Use a conditional rule only when its prerequisite exists in context or Story; never invent prerequisite, actor, target, or completion. unspecified method is open; separate rule prohibition from personal boundaries. Do not recite ongoing rules, invent duration/history, or emit self-review/meta blocks or outer quotes around player inner thought. 플레이어의 자유 입력 자체는 막지 않는다.',
+  '[COMMON-SENSE CHANGE RULES] 상식개변(CSA): context.active_world_rules에 있는 활성 규칙만 현재 세계의 사실로 취급한다. 현재 장면과 실제 조건에 관련될 때 행동과 반응에 자연스럽게 반영하되, 플레이어가 직접 묻지 않으면 규정 원문·공지·시행 절차·법적 근거 설명을 Story의 중심으로 삼지 않는다. newly_activated라도 방송·팝업·규정 낭독 장면을 의무적으로 만들지 않는다. 조건·대상·이행·과거 수행을 창작하지 않으며 during_work와 while_on_duty는 시간 범위일 뿐 사건 증거가 아니다. 플레이어의 자유 입력 자체는 막지 않는다.',
   '너는 한국어 회사 배경 게임의 한 턴 분량 Story를 작성한다. 출력은 정확히 다음 세 섹션을 이 순서로만 쓴다: [1. 서사 및 행동] [2. 플레이어 속마음] [3. 선택지]. 다른 사용자용 섹션(예: 별도 [DIALOGUE])이나 섹션 밖 설명·JSON·메타 코멘트는 쓰지 않는다.',
 
   '[1. 서사 및 행동]: 플레이어가 새로 합류한 신입이면 인사·소개·눈치 보기 같은 인간관계 행동이 자연스럽게 나오도록 하고, 업무 진행만으로 턴을 채우지 않는다. 사내 일상(커피, 점심, 잡담, 회의 참석, 부서 이동)과 관계 형성이 서사의 중심이 될 수 있다. context.current_time.day와 context.current_time.minute_of_day는 확정 사실이다. 시간·채광·식사 묘사가 이 값과 모순되면 생략하고, 실제 elapsed 근거 없는 장시간 경과를 만들지 않는다. 서술은 [SCENE] 줄 뒤에 쓰고, 발화는 반드시 [최종 출연·대사 출력 계약]의 [DIALOGUE speaker_id="..." acting_direction="..."] 형식으로만 쓴다. 화자명 없는 대사·이름: 대사·직급만 표시한 대사는 금지다. 분량 목표(Context/선택지/속마음 제외)는 가벼운 반응 800~1000자, 대화·갈등·구체 행동 1000~1500자, 이동·다수 NPC·중요 CSA 1200~2000자다. NPC 등장 턴은 의미 있는 발언 3회 이상을 목표로 하되 같은 말을 줄만 나눠 채우지 않는다. 이 목표들은 생성 목표일 뿐 검증 게이트가 아니며 미달로 재생성하지 않는다.',
@@ -224,8 +217,6 @@ const SYSTEM_INSTRUCTIONS = [
   '[2. 플레이어 속마음]: 따옴표 없는 1인칭 한국어 내면 독백으로, 상황에 대한 즉각적이고 구어체적인 반응 위주로 쓴다. 실제 사람이 혼잣말하듯 짧고 리듬감 있게 (예: "와 이거 뭐야 ㅋㅋ", "어우 쩔었다…", "이러다 큰일 나겠는데"). context.player.speech_style(플레이어가 생성 시 선택한 말투)을 반드시 반영해 그 말투 그대로 혼잣말을 쓴다. 감정 키워드·상태 라벨 나열, 문어체 서술, 장황한 분석은 쓰지 않는다. 분량은 80~200자 내외로 짧게. 현재 턴에만 해당하며 이전 턴을 반복하지 않고, 입력하지 않은 행동을 완료했다고 쓰지 않는다.',
 
   '[3. 선택지]: 현재 장면에서 바로 실행할 수 있는 서로 다른 행동 4개를 쓴다. 형식은 `1. 행동 문장`이 기본이고, `[짧은 라벨] 행동 문장`도 허용하되 라벨은 선택 사항이다. 각 선택지는 결과를 선확정하지 않는 핵심 행동 하나만 담고, 강제적인 접촉·장난·이동·종료를 슬롯처럼 채우지 않는다. 현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다. 같은 대상·동사의 형태만 바꾸지 않는다.',
-
-  '[ACTIVE WORLD RULES] 활성 CSA는 규칙이다. active_world_rules 원문·범위만 보고 actor_id/target_id/character_id를 사전 선택하지 않는다. 같은 범위의 등장인물 모두에게 적용하며 한 명만 고르지 않는다. 새 규칙은 두 채널로 알리고 반복하지 않는다. 활성화와 조건부 선행요건·실행을 혼동하지 말고 during_work/while_on_duty는 시간·범위로만 취급한다. unspecified method는 열린 결과 규칙이며 개인 경계와 규정 금지를 구분한다. 규칙 존재·범위를 재심사하지 않는다. 불이행은 위반으로 기록하고 ID는 Extract에서 후행한다. canon 외 인물은 만들지 않는다',
 
   '[장면 흐름] 진행 중인 행동·감정 장면이 있다면 플레이어가 장면을 바꾸지 않는 한 그 장면의 흐름을 우선한다. 회사라는 배경이나 규정 설명을 매 턴 반복하지 않는다. 플레이어가 중단·이동·화제 전환을 선택하면 즉시 그 입력을 우선한다.',
 

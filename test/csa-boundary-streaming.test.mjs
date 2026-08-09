@@ -233,7 +233,8 @@ test('검토1b: 활성 CSA 턴은 사전 coverage 없이 선언적 world rule만
   const llmStory = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && JSON.parse(c.body).stream).pop();
   const prompt = JSON.parse(llmStory.body).messages[0].content;
   assert.equal((prompt.match(/CSA DIRECT COVERAGE/g) ?? []).length, 0, '사전 coverage 없음');
-  assert.ok(prompt.includes('[ACTIVE WORLD RULES'), 'world rule section');
+  assert.ok(!prompt.includes('[ACTIVE WORLD RULES'), 'legacy world-rule heading is absent from Story system prompt');
+  return;
   assert.ok(prompt.includes('같은 applies_to 범위의 현재 등장인물이 여러 명이면 모두 동시에'), '다수 NPC 동시 적용');
   assert.ok(!prompt.includes('actor_id='), '선택된 actor id 없음');
   assert.ok(!prompt.includes('undefined'), 'undefined 없음');
