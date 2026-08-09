@@ -1,15 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
-import { runExtract, streamStory, runSpeakerTagging } from './llm.js';
-import {
-  collectUnresolvedDialogue,
-  buildTaggingMessages,
-  buildSceneCandidateIds,
-  applySpeakerTags,
-  allowedSpeakerIds
-} from '../engine/speaker-tagger.js';
-import { buildSceneCastContract, speakerNameById } from '../engine/scene-cast.js';
-import { createStructuredStoryGate, STRUCTURED_STORY_VERSION } from '../engine/structured-story-v2.js';
+import { runExtract, streamStory } from './llm.js';
+import { buildSceneCastContract } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   applyGuardedStateDelta,
@@ -20,7 +12,6 @@ import {
   buildOpeningPrompt,
   buildStableNpcIdSet,
   buildStoryPrompt,
-  buildStructuredStoryV2ExtractText,
   deriveRecoverableStep,
   deriveTurnChanges,
   hydrateGameplayState,
@@ -258,6 +249,15 @@ function buildAppTransactionFallbackStory() {
   return '[SCENE]\n현재 장면은 직전 행동의 결과를 이어간다.';
 }
 
+function parseStoryProjection(raw, master) {
+  try {
+    const parsed = parseNarrative(raw ?? '', { master });
+    return plainObject(parsed) ? parsed : { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
+  } catch {
+    return { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
+  }
+}
+
 // 오프닝 fail-open — Story upstream이 최종 실패했을 때 저장된 opening plan 기반의
 // 짧은 기본 오프닝. 플레이어 설정이 reserved 상태로 영구 고착되지 않게 한다.
 function buildFallbackOpeningStory(openingPlan, player) {
@@ -373,28 +373,10 @@ const master = masterFromEdition(edition);
       if (action.story_text) {
         logTurnTiming({ event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn, replayed: true, turn_total_ms: Date.now() - startedAt });
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
-          // 수정 H — V2 턴은 저장된 stream_segments 순서대로 block/delta를 재생해
           // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
-          const replayBlocks = action.parsed_blocks;
-          if (replayBlocks?.structured_story_version === STRUCTURED_STORY_VERSION && Array.isArray(replayBlocks.stream_segments)) {
-            for (const segment of replayBlocks.stream_segments) {
-              if (segment?.kind === 'block' && segment.block) {
-                emit('block', { block: segment.block });
-                emit('delta', { text: segment.text });
-              } else if (segment?.text) {
-                emit('delta', { text: segment.text });
-              }
-            }
-            emit('complete', {
-              action_id: meta.action_id, turn_id: meta.turn_id,
-              warnings: replayBlocks.warnings ?? [], parsed_blocks: replayBlocks,
-              replayed: true
-            });
-          } else {
-            emit('delta', { text: action.story_text });
-            const parsed = action.parsed_blocks ?? parseNarrative(action.story_text);
-            emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: action.parsed_blocks ?? parsed, replayed: true });
-          }
+          const parsed = parseStoryProjection(action.story_text, master);
+          emit('delta', { text: action.story_text });
+          emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
         } });
       }
       if ((reservation.replayed && !retryingStory) || action.processing_status !== 'story_streaming') {
@@ -428,7 +410,6 @@ const master = masterFromEdition(edition);
             save: hydratedSave, master, playerAction, structuredAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          const speakerNames = speakerNameById(master, hydratedSave?.player?.name);
           timing.cast_present_count = sceneCastContract.present_npc_ids.length;
           timing.cast_entering_count = sceneCastContract.entering_npc_ids.length;
           timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
@@ -448,20 +429,6 @@ const master = masterFromEdition(edition);
           timing.story_request_chars = messages[0].content.length + messages[1].content.length;
           timing.active_character_count = Object.keys(storyUserPayload.active_character_canon ?? {}).length;
           timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
-          // Streaming Speaker Gateway — 전체 Story를 버퍼링하지 않는다. 완성된 줄만
-          // 처리하고 대사 블록이 닫히는 즉시 흘려보낸다. 차단된 블록은 화면·정본·
-          // Extract 어디에도 남지 않고 경고 코드만 기록된다.
-          const gate = createStructuredStoryGate({ contract: sceneCastContract, speakerNames });
-          const flush = emissions => {
-            for (const emission of emissions) {
-              if (emission.kind === 'block') {
-                emit('block', { block: emission.block });
-                emit('delta', { text: emission.text });
-              } else if (emission.text) {
-                emit('delta', { text: emission.text });
-              }
-            }
-          };
           let stream = null;
           let upstreamRaw = '';
           let storyFallback = false;
@@ -469,7 +436,7 @@ const master = masterFromEdition(edition);
             stream = await streamStory({ env, fetchImpl, messages, timing });
             for await (const text of stream.chunks) {
               upstreamRaw += text;
-              flush(gate.push(text));
+              emit('delta', { text });
             }
           } catch (error) {
             // app_transaction fail-open — Story upstream이 첫 콘텐츠를 주지 않으면
@@ -480,27 +447,20 @@ const master = masterFromEdition(edition);
             storyFallback = true;
             const fallbackText = buildAppTransactionFallbackStory(csaPlan, hydratedSave);
             upstreamRaw = fallbackText;
-            flush(gate.push(fallbackText));
+            emit('delta', { text: fallbackText });
             timing.story_fallback = 1;
           }
-          const gated = gate.end();
-          flush(gated.emissions);
           // 문서 5절 — 정본 story_text는 upstreamRaw(플레이어 가시 원문)다.
           // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
           raw = upstreamRaw;
-          const parsed = parseNarrative(raw, { master });
+          const parsed = parseStoryProjection(raw, master);
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
-          const mergedWarnings = [...(parsed.warnings ?? []), ...gated.warnings, ...(storyFallback ? ['app_story_fallback'] : [])];
+          const mergedWarnings = [...(parsed.warnings ?? []), ...(storyFallback ? ['app_story_fallback'] : [])];
           const contractPersisted = {
             ...parsed,
-            structured_story_version: STRUCTURED_STORY_VERSION,
-            scene_cast_contract: sceneCastContract,
             // 수정 H — live/replay 동일 순서 재생용
-            stream_segments: gated.stream_segments,
             warnings: mergedWarnings
           };
-          timing.gated_dialogue_blocks = gated.blocks.length;
-          timing.gated_dialogue_warnings = gated.warnings.length;
           timing.upstream_story_chars = upstreamRaw.length;
           await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: resolvedActionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
           storyPersisted = true;
@@ -538,7 +498,7 @@ const master = masterFromEdition(edition);
       if (!action.story_text) throw new HttpError(409, 'story_required', 'A completed Story is required before Extract', true);
       const structuredAction = structuredActionFor(action, body.structured_action ?? null);
       if (action.extract_delta) {
-        const replayParsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        const replayParsedStory = parseStoryProjection(action.story_text, master);
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: replayParsedStory, npcIds });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
@@ -557,14 +517,9 @@ const master = masterFromEdition(edition);
       const timing = {};
       let degraded = false;
       try {
-        let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
-        // 수정 E — V2 턴은 검증된 구조화 블록만 Extract 입력으로 쓴다.
-        // 레거시 parser의 normalized_raw(따옴표 추론·화자 추론·플레이어 라벨 삽입)를
-        // V2 경로에서 절대 사용하지 않는다.
-        const structuredV2 = parsedStory?.structured_story_version === STRUCTURED_STORY_VERSION;
-        let storyForExtract = structuredV2
-          ? buildStructuredStoryV2ExtractText(parsedStory)
-          : ((parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text);
+        let parsedStory = parseStoryProjection(action.story_text, master);
+        // Extract observes the same raw Story text that was streamed to the player.
+        const storyForExtract = action.story_text;
         let extract;
         try {
           const contextRpcStart = Date.now();
@@ -574,98 +529,7 @@ const master = masterFromEdition(edition);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
           const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
-          // 스피커 태깅: parser가 dialogue block으로 분류했으나 화자 미확정(speaker_id=null)인
-          // 대사가 있을 때만 전용 LLM을 1회 호출한다. 정상 턴(모두 확정)에서는 호출하지 않는다.
-          // 멱등성: 태거 호출 전에 speaker_tagging_attempted=true를 조건부 PATCH로 먼저 영속하고,
-          // 1행 갱신이 확인된 경우에만 호출한다. 저장 실패/타임아웃/무효 응답은 파이프라인을
-          // 막지 않되, 로컬 태거 결과는 DB 저장이 확인된 경우에만 canonical로 승격한다.
-          try {
-            const playerName = hydratedSave?.player?.name ?? '플레이어';
-            // 플레이어 정보는 master.player를 읽지 않고 실제 save + catalogs에서 동적으로 만든다
-            const playerCanonical = resolvePlayerCanonicalNames(hydratedSave?.player ?? {}, catalogs);
-            const playerInfo = {
-              departmentName: playerCanonical?.departmentName ?? hydratedSave?.player?.department ?? '',
-              positionName: playerCanonical?.positionName ?? '',
-              roleTitle: typeof hydratedSave?.player?.role_title === 'string' ? hydratedSave.player.role_title : '',
-              addresses: [],
-              addressingDescription: hydratedSave?.player?.prompt_card?.addressing ?? ''
-            };
-            const sceneParticipantIds = buildSceneCandidateIds(parsedStory, {
-              sceneParticipants: Array.isArray(hydratedSave?.last_npcs_present) ? hydratedSave.last_npcs_present : [],
-              focalCharacterId: hydratedSave?.focal_character_id ?? null,
-              lastSpeakerId: hydratedSave?.last_speaker_id ?? null,
-              master
-            });
-            const unresolvedItems = collectUnresolvedDialogue(parsedStory);
-            const attempted = action.parsed_blocks?.speaker_tagging_attempted === true;
-            // structured_story_version 2에서는 화자 없는 대사가 애초에 게이트에서
-            // 차단되므로 사후 추론이 필요 없다. 레거시 태거를 호출하지 않는다.
-            const structuredV2 = parsedStory?.structured_story_version === STRUCTURED_STORY_VERSION;
-            if (unresolvedItems.length && !attempted && !structuredV2) {
-              // 1) 호출 전 시도 상태 영속 — 1행 갱신이 확인돼야 태거를 호출한다
-              const claimed = await db.markSpeakerTaggingAttempted(gameId, actionId, parsedStory);
-              if (claimed) {
-                const tagMessages = buildTaggingMessages(parsedStory, master, {
-                  playerName, playerInfo,
-                  sceneParticipants: sceneParticipantIds,
-                  focalCharacterId: hydratedSave?.focal_character_id ?? null,
-                  lastSpeakerId: hydratedSave?.last_speaker_id ?? null
-                });
-                const tagStart = Date.now();
-                const tagResult = await runSpeakerTagging({
-                  env, fetchImpl,
-                  messages: tagMessages,
-                  allowlist: allowedSpeakerIds(master),
-                  timeoutMs: 10000
-                });
-                timing.tagging_ms = Date.now() - tagStart;
-                timing.speaker_tagging_attempted = 1;
-                timing.speaker_tagging_unresolved_count = unresolvedItems.length;
-                if (tagResult.warning) timing.speaker_tagging_warning = tagResult.warning;
-
-                // 상태 결정: applied | unresolved | timeout | invalid_response | upstream_failure
-                let status = 'unresolved';
-                if (tagResult.warning === 'speaker_tagging_timeout') status = 'timeout';
-                else if (tagResult.warning === 'speaker_tagging_upstream_failure') status = 'upstream_failure';
-                else if (tagResult.warning === 'speaker_tagging_invalid_json' || tagResult.warning === 'speaker_tagging_truncated') status = 'invalid_response';
-                else if (tagResult.speakers?.some(s => s.speaker_id)) status = 'applied';
-
-                if (status === 'applied') {
-                  const applied = applySpeakerTags(parsedStory, tagResult.speakers, master, {
-                    playerName, unresolvedItems, rawStory: action.story_text
-                  });
-                  timing.speaker_tagging_resolved_count = applied.appliedCount;
-                  timing.speaker_tagging_rejected_count = applied.rejectedCount;
-                  if (applied.changed) {
-                    // 2) 최종 결과 PATCH — return=representation으로 실제 저장 성공 확인
-                    const saved = await db.updateActionParsedBlocks(gameId, actionId, applied.parsedStory);
-                    if (saved) {
-                      // 저장이 확인된 taggedParsedStory만 canonical로 승격 (화면·extract·commit·reload 일치)
-                      parsedStory = applied.parsedStory;
-                      // extract는 분리+화자명 삽입 버전(normalized_raw_extract)을 사용 —
-                      // extract-prompt가 "모든 발화 라인에 화자명 존재"를 기대하므로 원문 보존 버전은 extract에 쓰지 않는다
-                      storyForExtract = applied.parsedStory.normalized_raw_extract.trim()
-                        ? applied.parsedStory.normalized_raw_extract
-                        : (applied.parsedStory.normalized_raw.trim() ? applied.parsedStory.normalized_raw : storyForExtract);
-                    } else {
-                      // 저장 실패 → 로컬 태거 결과 사용 금지, parser 결과로 계속
-                      timing.speaker_tagging_error = 'parsed_blocks_save_failed';
-                      await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, 'unresolved').catch(() => undefined);
-                    }
-                  } else {
-                    await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, 'unresolved').catch(() => undefined);
-                  }
-                } else {
-                  // 적용할 항목 없음 — 시도 상태만 남기고 parser 결과로 계속
-                  await db.updateSpeakerTaggingStatus(gameId, actionId, { ...parsedStory, speaker_tagging_attempted: true }, status).catch(() => undefined);
-                }
-              } else {
-                timing.speaker_tagging_error = 'attempt_marker_save_failed';
-              }
-            }
-          } catch (tagError) {
-            timing.speaker_tagging_error = String(tagError?.message ?? tagError).slice(0, 200);
-          }
+           // Speaker identity remains a post-hoc projection; raw Story is passed to Extract unchanged.
 
           const promptStart = Date.now();
           // CSA transaction 턴에는 post-transaction save로 Extract context를 만든다
@@ -731,12 +595,6 @@ const master = masterFromEdition(edition);
           extract_system_chars: timing.extract_system_chars, extract_context_chars: timing.extract_context_chars,
           parsed_story_chars: timing.parsed_story_chars, extract_request_chars: timing.extract_request_chars,
           active_character_count: timing.active_character_count,
-          tagging_ms: timing.tagging_ms, speaker_tagging_attempted: timing.speaker_tagging_attempted,
-          speaker_tagging_unresolved_count: timing.speaker_tagging_unresolved_count,
-          speaker_tagging_resolved_count: timing.speaker_tagging_resolved_count,
-          speaker_tagging_rejected_count: timing.speaker_tagging_rejected_count,
-          speaker_tagging_warning: timing.speaker_tagging_warning,
-          speaker_tagging_error: timing.speaker_tagging_error,
           turn_total_ms: Date.now() - startedAt
         });
       }
@@ -759,12 +617,12 @@ const master = masterFromEdition(edition);
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const currentSave = context.save?.data ?? context.save;
-        let parsedStory = action.parsed_blocks ?? parseNarrative(action.story_text, { master });
+        let parsedStory = parseStoryProjection(action.story_text, master);
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory, npcIds });
         const mergeStart = Date.now();
         const merged = applyGuardedStateDelta(currentSave, extract, {
           expectedTurn, actionId, turnId: action.turn_id, playerAction: action.player_action, parsedStory, master, npcIds,
-          storyText: (parsedStory?.normalized_raw ?? '').trim() ? parsedStory.normalized_raw : action.story_text
+          storyText: action.story_text
         });
         timing.guarded_merge_ms = Date.now() - mergeStart;
         const { nextSave, warnings } = merged;

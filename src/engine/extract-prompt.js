@@ -59,43 +59,10 @@ export function buildParsedStoryProjection(parsedStory) {
 
 /**
  * 수정 E + 최종 단순화 수정 1 — V2 Extract 전용 직렬화.
- * parsedStory.blocks만 사용한다 (stream_segments는 transport/replay 전용이며 참조하지 않는다).
  * 검증된 구조화 블록(장면·대사)을 원래 순서대로 직렬화한다.
  * 화자 추론·이름 추정·대명사 추정·따옴표 추론·직전 화자 추정·교대 규칙을 절대 사용하지 않는다.
  * speaker_name은 서버 canon에서 이미 확정된 값을 그대로 쓴다.
  */
-export function buildStructuredStoryV2ExtractText(parsedStory) {
-  const blocks = Array.isArray(parsedStory?.blocks) ? parsedStory.blocks : [];
-  const parts = [];
-
-  for (const block of blocks) {
-    if (!block || typeof block !== 'object') continue;
-    if (block.type === 'scene' && typeof block.text === 'string') {
-      const text = block.text.trim();
-      if (text) parts.push(text);
-      continue;
-    }
-    if (block.type === 'dialogue') {
-      const name = typeof block.speaker_name === 'string' ? block.speaker_name.trim() : '';
-      const direction = typeof block.acting_direction === 'string'
-        ? block.acting_direction.trim()
-        : (typeof block.direction === 'string' ? block.direction.trim() : '');
-      const text = typeof block.text === 'string' ? block.text.trim() : '';
-      if (!name || !text) continue;
-      parts.push(direction ? `${name} (${direction}): “${text}”` : `${name}: “${text}”`);
-      continue;
-    }
-  }
-
-  // 기존 속마음·선택지 직렬화 유지 — blocks의 장면·대사 뒤에 기존 순서대로 추가
-  const inner = typeof parsedStory?.player_inner_thought === 'string' && parsedStory.player_inner_thought ? parsedStory.player_inner_thought.trim() : '';
-  if (inner) parts.push(`[2. 플레이어 속마음]\n${inner}`);
-  if (Array.isArray(parsedStory?.choices) && parsedStory.choices.length) {
-    parts.push('[3. 선택지]\n' + parsedStory.choices.map((c, i) => `${i + 1}. ${c}`).join('\n'));
-  }
-  return parts.join('\n\n');
-}
-
 function buildExtractContextProjection(context, activeIds) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   return buildSceneContextCore(save, activeIds);
@@ -108,7 +75,7 @@ const SYSTEM_INSTRUCTIONS = [
   'Include exactly: state_delta (object),outcome,evidence (object),turn_summary,mind_monitor,choices,dialogue_lines,npcs_present,action_target_id,focal_character_id,last_speaker_id,image_character_id,image_selection (object),player_inner_thought,elapsed_minutes,warnings; with active CSA also csa_trigger_evaluations,csa_runtime_updates.',
   'state_delta contains changed values only. outcome=success|partial|refused|interrupted|blocked. Ground every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence; never invent changes.',
   'Identity fields are independent; never copy one into another. registered_characters lists the only stable character ids; registered_general_npcs lists the only stable general-NPC ids. never invent, guess, or reuse an id. narrator/unknown=null. A nearby/default/eligible NPC is not present unless Story explicitly shows their entrance/presence/action/dialogue. List every present NPC.',
-  'Story choices are authoritative and preserved: never create, rewrite, or drop a parsed choice; always return choices:[] (Story is the only stored choices source; the UI shows exactly the 4 Story choices). Parsed player_inner_thought is authoritative; Extract can never override it. dialogue_lines may only add missing speaker_id to the same order/text. Spoken lines use `등록 이름 (짧고 구체적인 연기톤): 대사`; preserve text/direction. The Story is already normalized: EVERY spoken line carries an explicit speaker name. dialogue_lines must include every spoken line and copy the stated speaker name exactly — do not infer, reassign, or drop any line. An unlabeled line is UNASSIGNED — skip it.',
+  'Story choices are authoritative and preserved: never create, rewrite, or drop a parsed choice; always return choices:[] (Story is the only stored choices source; the UI shows exactly the 4 Story choices). Parsed player_inner_thought is authoritative; Extract can never override it. story_text is the complete raw Story the player saw: observe it verbatim and never reconstruct, normalize, strip markers, or drop lines. dialogue_lines may only add speaker_id where a speaker is explicit in the same raw order/text; unresolved speaker_id may be null. Preserve every spoken line, direction, and narrative sentence without inference or reassignment.',
   'Mind Monitor interpretation: mind_monitor only {"npc-id":{"surface":"...","subconscious":"..."}} for present NPCs. Use Story, canon, and saved state; may not invent a new event, memory, agreement, contact, or fact, nor narration, labels, system terms, physical_reaction/body fields, or player thoughts. surface=conscious judgment, subconscious=distinct unadmitted conflict. Write each as the NPC\'s casual Korean inner monologue of at least 100 characters, not a summary or repeated regulation metadata.',
   'CSA observation: weak=밀착·접촉·부분 노출, medium=직접 노출·가슴·성기 접촉·손을 이용한 성적 행동, strong=구강·삽입·체위·사정·다인 성행위. Record only results actually shown in Story. Institutional compliance is separate from affinity, private obedience, and sexual consent. Preserve Story-grounded discomfort, shame, self-justification, and resentment. csa_acceptance records acceptance or resistance to that rule only; it never cancels or rewrites an evidenced action.',
   'npc_stats[npc_id] uses only affinity_delta(-5..5), csa_acceptance_delta(-20..30), sexual_arousal_delta(-20..15) for present NPCs; deltas are this turn only and each needs exact Story evidence in reasons. resistance is fixed and never included. Omit unchanged axes. Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual_arousal; embarrassment without explicit sexual evidence is not arousal. Announcement alone never changes csa_acceptance. Positive affinity needs an exact evidence.npc_stats[npc_id].affinity quote; initial affinity comes from characters.json.',

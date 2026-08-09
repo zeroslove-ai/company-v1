@@ -390,7 +390,7 @@ test('complete recovery clears pending UI and re-enables controls', async () => 
 });
 
 test('turn coordinator retains Story, Extract, Commit and recovery action IDs', async () => {
-  const calls = []; const local = storage(); let refreshes = 0;
+  const calls = []; const storyEvents = []; const local = storage(); let refreshes = 0;
   const api = {
     story: async body => { calls.push(['story', body]); return new Response(); },
     extract: async body => { calls.push(['extract', body]); return { extract: { choices: [], mind_monitor: {} } }; },
@@ -398,6 +398,7 @@ test('turn coordinator retains Story, Extract, Commit and recovery action IDs', 
   };
   const coordinator = createTurnCoordinator({
     api, storage: local, gameId, getContext: () => validContext(), refreshContext: async () => { refreshes += 1; }, createActionId: () => 'fixed-action',
+    onStory: event => storyEvents.push(event),
     consumeStory: async (_response, onEvent) => { onEvent({ event: 'meta', data: {} }); onEvent({ event: 'delta', data: { text: '[SCENE] Story' } }); }
   });
   await coordinator.startNewAction('Keep action');
@@ -405,6 +406,9 @@ test('turn coordinator retains Story, Extract, Commit and recovery action IDs', 
   assert.deepEqual(calls[0][1], { game_id: gameId, action_id: 'fixed-action', expected_turn: 3, player_action: 'Keep action' });
   assert.deepEqual(calls[2][1], { game_id: gameId, action_id: 'fixed-action', expected_turn: 3 });
   assert.equal(refreshes, 1);
+  const deltaEvent = storyEvents.find(event => event.item?.event === 'delta');
+  assert.equal(deltaEvent.text, '[SCENE] Story');
+  assert.equal(deltaEvent.parsed, undefined, 'delta does not run the parser');
   calls.length = 0;
   await coordinator.runRecovery({ game_id: gameId, action_id: 'recover', expected_turn: 7, player_action: 'Recover', step: 'commit' }, 'resume_commit');
   assert.deepEqual(calls.map(([name]) => name), ['commit']);

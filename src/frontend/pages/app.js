@@ -2,8 +2,7 @@ import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
-import { parseNarrative } from './narrative.js';
-import { renderChoices, renderHistory, renderNarrative, renderState, setCommittedStatDeltas, text } from './render.js';
+import { renderChoices, renderHistory, renderState, setCommittedStatDeltas, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
@@ -124,6 +123,7 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
   async function runStoryForPending(pending) {
     pending.step = 'story'; persistPending(pending);
     let rawStory = '', sawMeta = false;
+    onStory?.({ item: { event: 'start' }, pending, streaming: true });
     const response = await api.story(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn, player_action: pending.player_action }, pending));
     await consumeStory(response, item => {
       if (item.event === 'meta') {
@@ -137,16 +137,13 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
         }
       }
       if (item.event === 'delta') {
-        rawStory += item.data?.text ?? '';
-        const directory = getContext?.()?.display?.npc_directory ?? {};
-        onStory?.({ rawStory, parsed: parseNarrative(rawStory, { speakerDirectory: directory, playerName: getContext?.()?.save?.data?.player?.name ?? '플레이어' }), item, pending });
+        const text = item.data?.text ?? '';
+        rawStory += text;
+        onStory?.({ rawStory, text, item, pending, streaming: true });
       }
       if (item.event === 'complete') {
-        // 서버가 보낸 canonical parsed_blocks로 최종 렌더 교체 — 프론트 화자 추론 이중화 제거
         const canonical = item.data?.parsed_blocks;
-        if (canonical?.blocks) {
-          onStory?.({ rawStory, parsed: canonical, item, pending, canonical: true });
-        }
+        onStory?.({ rawStory, parsed: canonical, item, pending, complete: true });
       }
     });
     if (!sawMeta || !rawStory.trim()) throw new ApiError({ endpoint: '/api/story', status: 502, code: 'incomplete_story_stream', message: '서사 스트림이 불완전합니다.', retryable: true });
@@ -228,7 +225,16 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const showProgress = value => { clearProgressTimer(); let elapsed = 0; text(elements.stream, value); progressTimer = setInterval(() => { elapsed += 1; text(elements.stream, `${value} ${elapsed}초`); }, 1000); };
   const showError = error => { text(elements.error, messageFor(error)); if (elements.error) elements.error.hidden = false; };
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
-  const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; renderNarrative(elements.current, null); };
+  const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; elements.current?.replaceChildren?.(); if (elements.current) elements.current.textContent = ''; };
+  const resetRawStory = () => { elements.current?.replaceChildren?.(); if (elements.current) { elements.current.textContent = ''; elements.current.classList?.add?.('raw-story-stream'); } };
+  const appendRawStory = value => {
+    if (!elements.current || !value) return;
+    const nearBottom = typeof elements.current.scrollHeight === 'number'
+      && elements.current.scrollHeight - elements.current.scrollTop - elements.current.clientHeight <= 120;
+    elements.current.classList?.add?.('raw-story-stream');
+    elements.current.textContent = `${elements.current.textContent ?? ''}${value}`;
+    if (nearBottom) elements.current.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
+  };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
   function refreshViewModel() {
     viewModel = buildCompanyGameViewModel(context, currentExtract ? { currentExtract } : undefined);
@@ -362,14 +368,15 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   const coordinator = createTurnCoordinator({
     api, storage, gameId, getContext: () => context, refreshContext,
-    onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (hasFourChoices(parsed.choices)) { streamedStoryChoices = parsed.choices; render(); } },
+    onStory: ({ item, text: deltaText, parsed }) => {
+      if (item?.event === 'start') { resetRawStory(); return; }
+      if (item?.event === 'delta') { appendRawStory(deltaText); return; }
+      if (item?.event === 'complete' && hasFourChoices(parsed?.choices)) { streamedStoryChoices = parsed.choices; render(); }
+    },
     onExtract: extracted => {
       currentExtract = extracted.extract ?? null;
       // Extract 응답의 canonical parsed_blocks(서버가 최종 사용한 태거/파서 결과)로
       // 현재 턴 대사 카드를 교체한다 — Story SSE(parser_canonical)보다 정확한 화자 표시.
-      if (extracted.parsed_blocks?.blocks?.length) {
-        renderNarrative(elements.current, extracted.parsed_blocks);
-      }
       showProgress('상태를 정리하는 중…');
       render();
     },
@@ -398,7 +405,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         ? (context?.recent_turns ?? []).find(turn => turn.turn_number === turnNumber && turn.action_id === pending.action_id)
         : null;
       if (canonicalTurn) {
-        clearCurrentTurn();
         showStatus('턴이 완료되었습니다.');
       } else {
         showStatus('저장된 기록을 다시 확인하는 중…');
@@ -558,10 +564,16 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     text(statusElement, '오프닝을 준비하는 중…');
     const response = await api.opening({ game_id: gameId, setup_id: setupId });
     let raw = '';
+    resetRawStory();
     await consumeStorySse(response, item => {
       if (item.event === 'delta') {
-        raw += item.data?.text ?? '';
-        renderNarrative(elements.current, parseNarrative(raw, { speakerDirectory: context?.display?.npc_directory ?? {}, playerName: context?.save?.data?.player?.name ?? viewModel?.player?.name ?? '플레이어' }));
+        const text = item.data?.text ?? '';
+        raw += text;
+        appendRawStory(text);
+      }
+      if (item.event === 'complete' && hasFourChoices(item.data?.parsed_blocks?.choices)) {
+        streamedStoryChoices = item.data.parsed_blocks.choices;
+        render();
       }
     });
     text(statusElement, '');
