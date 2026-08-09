@@ -50,7 +50,7 @@ function freshSave(overrides = {}) {
   };
 }
 
-function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonResponses = [] } = {}) {
+function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonResponses = [], dropStructuredAction = false } = {}) {
   const calls = [];
   let currentSave = structuredClone(initialSave);
   let saveRevision = 1;
@@ -87,7 +87,7 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       return json({ game: { id: gameId, edition_id: 'company-v1', title: 'T' }, save: { data: currentSave, committed_turn: currentSave.turn_state.committed_turn }, recent_turns: [] });
     }
     if (rpc === 'reserve_turn_action') {
-      calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, processing_status: 'story_streaming' };
+      calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: dropStructuredAction ? null : (args.p_structured_action ?? null), processing_status: 'story_streaming' };
       return json({ ...calls.__action, replayed: false });
     }
     if (rpc === 'record_story_result') {
@@ -283,7 +283,8 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   assert.equal('sexual_actions' in projectedRule, false);
   assert.ok(!('global_csa' in storyPayload.context));
 
-  const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
+  assert.deepEqual(mock.calls.__action.structured_action, canonicalAction);
+  const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(extractRes.status, 200);
   const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
   const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
@@ -298,6 +299,27 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   const newId = save.csa_active[0];
   assert.equal(save.csa_rules[newId].active, true);
   assert.equal(save.csa_rules[newId].source_type, 'preset');
+});
+
+test('a non-null structured action that the reservation fails to persist stops Story before the LLM', async () => {
+  const presetItem = catalog.items.find(item => item.id === 'press_body_against_recipient');
+  const mock = createMockFetch({ dropStructuredAction: true });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const raw = {
+    type: 'app_transaction', base_turn_count: 0,
+    operations: [{ client_id: 'op-1', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: presetFor(presetItem) }]
+  };
+  const validated = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: raw }), env);
+  const canonicalAction = (await validated.json()).data.canonical_action;
+  const beforeLlm = mock.calls.filter(call => call.url.startsWith('https://llm.test')).length;
+  const response = await worker.fetch(request('/api/story', {
+    game_id: gameId, action_id: '99999999-9999-4999-8999-999999999999', expected_turn: 1,
+    player_action: '앱 변경을 적용한다.', structured_action: canonicalAction
+  }), env);
+  assert.equal(response.status, 409);
+  const payload = await response.json();
+  assert.equal(payload.error.code, 'structured_action_not_persisted');
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, beforeLlm);
 });
 
 test('a structured app_transaction with a tampered validation_proof is rejected before it reaches Story generation', async () => {
@@ -356,7 +378,7 @@ test('route-level CSA update replaces the old Story rule once and commits the ne
   assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA 관찰 projection 유지');
   assert.ok(extractPayload.context.global_csa.active_ids.includes('csa_old'));
   assert.equal(extractPayload.context.global_csa.rules.csa_old.content, newContent);
-  const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
+  const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1 }), env);
   assert.equal(commitRes.status, 200);
   const save = mock.getSave();
   assert.equal(save.csa_active.includes('csa_old'), true);

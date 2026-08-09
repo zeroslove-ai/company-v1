@@ -48,7 +48,10 @@ import {
   selectImage,
   resolveTtsEligibility,
   calculateProgress,
-  calculateCsaProgression
+  calculateCsaProgression,
+  resolveStoredStructuredAction,
+  applyAuthorizedRuleDefinitions,
+  assertRuleDefinitionAuthority
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { logTurnTiming, newRequestId } from './timing.js';
@@ -57,6 +60,9 @@ const EXTRACT_DEGRADE_CODES = new Set(['llm_upstream_failure', 'extract_timeout'
 
 function asHttpError(error) {
   if (error instanceof HttpError) return error;
+  if (error?.status === 409 && typeof error?.code === 'string' && error?.retryable === false) {
+    return new HttpError(409, error.code, error.message, false);
+  }
   if (error instanceof GameCoreError) return new HttpError(422, error.code.toLowerCase(), error.message);
   return new HttpError(500, 'internal_error', 'Unexpected server error');
 }
@@ -95,19 +101,6 @@ function normalizeImageTags(tags) {
     .filter(tag => typeof tag === 'string' && tag.trim())
     .map(tag => tag.trim())
     .filter(tag => IMAGE_TAG_ALLOWLIST.has(tag)))];
-}
-
-/**
- * Once an action has been reserved, its stored structured_action is authoritative.
- * Repeated stages may resend the same value, but cannot substitute a different one.
- */
-function structuredActionFor(action, requestedStructuredAction = null) {
-  const stored = action?.structured_action ?? null;
-  const requested = requestedStructuredAction ?? null;
-  if (stored !== null && requested !== null && stableStringify(stored) !== stableStringify(requested)) {
-    throw new HttpError(409, 'structured_action_mismatch', 'structured_action does not match the reserved action', false);
-  }
-  return stored ?? requested;
 }
 
 /** Normalizes either an already-array character/NPC list or an id-keyed content map into an array. */
@@ -350,14 +343,26 @@ const master = masterFromEdition(edition);
       // though no Story has been generated for it yet, wrongly tripping the in-progress guard
       // below. Skip the normal-turn reservation entirely when the action already exists as one.
       const existingAction = await db.getAction(gameId, actionId).catch(() => null);
+      if (existingAction && requestedStructuredAction !== null) {
+        resolveStoredStructuredAction({ action: existingAction, requestedStructuredAction, stage: 'story-existing' });
+      }
       const reservation = existingAction?.action_kind === 'feedback_revision'
-        ? { action_id: existingAction.action_id, turn_id: existingAction.turn_id, expected_turn: existingAction.expected_turn, replayed: false }
-        : await db.reserveTurnAction(gameId, actionId, expectedTurn, playerAction, requestedStructuredAction);
+        ? { ...existingAction, replayed: false }
+        : await db.reserveTurnAction(
+            gameId,
+            actionId,
+            expectedTurn,
+            playerAction,
+            requestedStructuredAction ?? existingAction?.structured_action ?? null
+          );
       // 같은 입력 중복 예약이면 서버가 기존 액션(action_id가 다름)을 재사용한다 —
       // 이후 조회·claim·SSE meta 모두 서버 정본 액션 ID를 따른다.
       const resolvedActionId = reservation?.action_id ?? actionId;
       const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, resolvedActionId));
-      const structuredAction = structuredActionFor(action, requestedStructuredAction);
+      if (requestedStructuredAction !== null) {
+        resolveStoredStructuredAction({ action: reservation, requestedStructuredAction, stage: 'reservation' });
+      }
+      const structuredAction = resolveStoredStructuredAction({ action, requestedStructuredAction, stage: 'story' });
       let retryingStory = false;
       // story_failed뿐 아니라 story_streaming(스토리 미완료 좌초)도 재시도를 허용한다.
       // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,
@@ -393,7 +398,9 @@ const master = masterFromEdition(edition);
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
-          const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          const csaPlan = action.action_kind === 'feedback_revision'
+            ? null
+            : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
           const storySave = csaPlan
             ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
             : hydratedSave;
@@ -496,7 +503,11 @@ const master = masterFromEdition(edition);
       const db = createSupabaseClient(env, fetchImpl);
       const action = actionOrNotFound(await db.getAction(gameId, actionId));
       if (!action.story_text) throw new HttpError(409, 'story_required', 'A completed Story is required before Extract', true);
-      const structuredAction = structuredActionFor(action, body.structured_action ?? null);
+      const structuredAction = resolveStoredStructuredAction({
+        action,
+        requestedStructuredAction: body.structured_action ?? null,
+        stage: 'extract'
+      });
       if (action.extract_delta) {
         const replayParsedStory = parseStoryProjection(action.story_text, master);
         const extract = normalizeGameplayExtractEnvelope(action.extract_delta, { parsedStory: replayParsedStory, npcIds });
@@ -527,7 +538,9 @@ const master = masterFromEdition(edition);
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
-          const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
+          const csaPlan = action.action_kind === 'feedback_revision'
+            ? null
+            : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
           const applicableCsa = getApplicableCsaEntries(hydratedSave);
            // Speaker identity remains a post-hoc projection; raw Story is passed to Extract unchanged.
 
@@ -611,7 +624,11 @@ const master = masterFromEdition(edition);
       const timing = {};
       try {
         const action = actionOrNotFound(await db.getAction(gameId, actionId));
-        const structuredAction = structuredActionFor(action, body.structured_action ?? null);
+        const structuredAction = resolveStoredStructuredAction({
+          action,
+          requestedStructuredAction: body.structured_action ?? null,
+          stage: 'commit'
+        });
         if (!action.story_text || !action.extract_delta) throw new HttpError(409, 'action_incomplete', 'Story and Extract are required before Commit', true);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
@@ -650,11 +667,17 @@ const master = masterFromEdition(edition);
         }
         // The app transaction never gets its own save API — its csa_active/csa_rules result rides
         // through this same guarded-merge commit, applied on top of the normal Extract delta.
-        const csaPlan = await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
-        if (csaPlan) {
-          nextSave.csa_active = csaPlan.next_csa_active;
-          nextSave.csa_rules = csaPlan.next_csa_rules;
-        }
+        const csaPlan = action.action_kind === 'feedback_revision'
+          ? null
+          : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
+        const definitionAction = action.action_kind === 'feedback_revision' ? null : structuredAction;
+        applyAuthorizedRuleDefinitions({
+          currentSave,
+          nextSave,
+          csaPlan,
+          structuredAction: definitionAction,
+          stage: 'commit'
+        });
         // Extract's csa_trigger_evaluations/csa_runtime_updates persist scene-execution
         // status (active/temporarily_interrupted/paused/ended) into next turn's Context.
         // Validated per-item against the *post-transaction* active-preset-CSA set and the
@@ -695,6 +718,13 @@ const master = masterFromEdition(edition);
             nextSave.player_progress = { level: progress.level, exp: progress.exp };
           }
         }
+        assertRuleDefinitionAuthority({
+          currentSave,
+          nextSave,
+          csaPlan,
+          structuredAction: definitionAction,
+          stage: 'commit-final'
+        });
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.

@@ -109,7 +109,7 @@ function createMockFetch({
     if (rpc === 'reserve_turn_action') {
       let action = actions.get(args.p_action_id);
       if (!action) {
-        action = { action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn, player_action: args.p_player_action, processing_status: 'story_streaming' };
+        action = { action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: args.p_structured_action ?? null, processing_status: 'story_streaming' };
         actions.set(args.p_action_id, action);
         return json({ ...action, replayed: false });
       }

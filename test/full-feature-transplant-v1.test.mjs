@@ -78,7 +78,7 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
     }
     if (rpc === 'reserve_turn_action') {
       if (calls.__action && calls.__action.action_id === args.p_action_id) return json({ ...calls.__action, replayed: true });
-      calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, processing_status: 'story_streaming', action_kind: 'player_turn' };
+      calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: args.p_structured_action ?? null, processing_status: 'story_streaming', action_kind: 'player_turn' };
       return json({ ...calls.__action, replayed: false });
     }
     if (rpc === 'record_story_result') {
