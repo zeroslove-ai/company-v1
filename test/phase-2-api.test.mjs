@@ -257,17 +257,17 @@ test('a stuck story_streaming action retries the story once, but Extract in prog
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
 });
 
-test('Phase 2 degrades Extract envelopes that fail contract normalization', async () => {
+test('authority-violating Extract envelopes fail without recording or Commit', async () => {
   const mock = createMockFetch({ extractContentSequence: [JSON.stringify({ state_delta: {}, outcome: 'not_allowed' })] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'validate extract' };
   await (await worker.fetch(request('/api/story', body), env)).text();
   const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 422);
   const payload = await response.json();
-  assert.equal(payload.data.degraded, true);
-  assert.equal(payload.data.extract.outcome, 'degraded');
-  assert.ok(payload.data.warnings.includes('extract_error:INVALID_EXTRACT_OBSERVATION'));
+  assert.equal(payload.error.code, 'extract_save_patch_forbidden');
+  assert.equal(mock.actions.get(actionId).extract_delta ?? null, null);
+  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), false);
 });
 
 test('Extract uses Story choices, disables thinking, uses the 5000-token envelope, and degrades on truncated JSON', async () => {

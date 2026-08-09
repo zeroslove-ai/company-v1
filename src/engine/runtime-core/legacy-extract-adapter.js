@@ -28,7 +28,8 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set() } = {}) {
   const delta = value.state_delta;
   const evidence = object(value.evidence) ? clone(value.evidence) : {};
   const sceneState = object(delta.scene_state) ? delta.scene_state : {};
-  const final = value.evidence?.scene_presence_final === true
+  const typedSceneEvidence = Array.isArray(evidence.scene_observation) ? evidence.scene_observation : [];
+  const final = value.evidence?.scene_presence_final === true && typedSceneEvidence.length
     ? (Array.isArray(value.npcs_present) ? value.npcs_present.map(id => known(id, npcIds)).filter(Boolean) : [])
     : null;
   const remote = Array.isArray(value.evidence?.remote_speaker_ids)
@@ -52,7 +53,7 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set() } = {}) {
         : key === 'relationship' ? ['closeness', 'romance_status', 'current_boundary', 'milestones']
           : key === 'stats' ? ['affinity_delta', 'csa_acceptance_delta', 'sexual_arousal_delta', 'reasons', 'reason']
             : key === 'work' ? ['task']
-              : ['familiarity', 'resistance', 'last_changed_turn'];
+              : ['familiarity'];
       const filtered = pick(patch, allowed);
       if (filtered) {
         if (key === 'relationship' && object(filtered.milestones)) filtered.milestones = pick(filtered.milestones, ['first_kiss_turn', 'sexual_relationship_started_turn']);
@@ -64,13 +65,13 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set() } = {}) {
     extract_version: 2,
     outcome: value.outcome === 'degraded' ? 'degraded' : value.outcome,
     scene_observation: {
-      scene_id: sceneState.scene_id ?? null,
-      location_id: sceneState.location_id ?? null,
+      scene_id: typedSceneEvidence.length ? (sceneState.scene_id ?? null) : null,
+      location_id: typedSceneEvidence.length ? (sceneState.location_id ?? null) : null,
       final_present_npc_ids: final,
       entered_npc_ids: [], exited_npc_ids: [],
       focal_candidate_id: known(value.focal_character_id, npcIds),
       presence_is_final: final !== null,
-      remote_speaker_ids: remote, evidence: []
+      remote_speaker_ids: remote, evidence: typedSceneEvidence
     },
     player_observation: {
       physical: physicalOnly(delta.player_scene_state),

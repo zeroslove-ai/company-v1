@@ -231,6 +231,10 @@ export function reduceCanonicalScene(input = {}) {
     if (observation.scene_id !== null && observation.scene_id !== undefined) next.scene_id = observation.scene_id;
     if (observation.scene_goal_provided) next.goal = observation.scene_goal;
     if (observation.focus_thread_provided) next.focus_thread = observation.focus_thread;
+  } else if (!degraded && observation.outcome === 'success' && observation.final_present_npc_ids === null) {
+    const entered = uniqueNpcIds(observation.entered_npc_ids, npcIds);
+    const exited = new Set(uniqueNpcIds(observation.exited_npc_ids, npcIds));
+    next.present_npc_ids = [...new Set(next.present_npc_ids.filter(id => !exited.has(id)).concat(entered))];
   }
   const currentIds = new Set(next.present_npc_ids);
   const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);

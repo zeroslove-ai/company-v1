@@ -77,7 +77,14 @@ function createMockFetch({
   const baseSave = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   const save = saveOverride ?? baseSave;
   const context = { game: { id: gameId, edition_id: 'company-v1' }, save: { data: save }, recent_turns: [] };
-  const extract = extractEnvelope ?? readJson('fixtures/phase-2/extract-valid.json');
+  const extract = extractEnvelope ?? {
+    extract_version: 2,
+    outcome: 'partial',
+    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+    player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
+    mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
+    csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
+  };
   const extractContents = [JSON.stringify(extract)];
   let storyCall = 0;
   let extractCall = 0;
@@ -259,7 +266,10 @@ test('movement Commit recomputes the scene cast instead of reading removed parse
       scene_id: 'brand-strategy-scene', location_id: 'brand_strategy_office',
       final_present_npc_ids: ['heroine2'], entered_npc_ids: [], exited_npc_ids: [],
       focal_candidate_id: null, presence_is_final: true,
-      remote_speaker_ids: ['heroine5'], evidence: []
+      remote_speaker_ids: ['heroine5'], evidence: [
+        { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES[1] },
+        { kind: 'movement', location_id: 'brand_strategy_office', quote: STORY_LINES[1] }
+      ]
     },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] },
     evidence: {}, elapsed_minutes: 3, action_target_id: null, image_character_id: null,

@@ -369,7 +369,7 @@ function createLifecycleMock({ saveOverride, storySse, extractContent, extractFi
         return new Response(storySse ?? 'data: {"choices":[{"delta":{"content":"[SCENE]\\nhi"}}]}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
       }
       lastExtractRequestBody = body;
-      const content = extractContent ?? JSON.stringify({ state_delta: {}, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] });
+      const content = extractContent ?? JSON.stringify({ extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] });
       return json({ choices: [{ finish_reason: extractFinishReason, message: { content } }] });
     }
     const parsed = new URL(textUrl);

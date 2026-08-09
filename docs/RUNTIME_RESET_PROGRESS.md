@@ -23,10 +23,13 @@
 
 - Working branch: `company/runtime-core-reset-v1-extract-observation` (stacked on the Phase 2 canonical-scene branch).
 - Fresh Extract output is normalized as `extract_version: 2` observation data. Save-path patches are rejected from the V2 contract.
-- `reduceGameplayCommit()` is the production Commit orchestration writer. It delegates existing physical/stat/relationship/sexual reducers, applies the Phase 2 canonical scene reducer, projects legacy scene fields, advances time, and validates invariants.
+- `reduceGameplayCommit()` is the production Commit orchestration writer. It dispatches V2 observations to explicit physical/sexual/stat/emotion/relationship/work/CSA-attitude/event/time/choice reducers, applies the Phase 2 canonical scene reducer, projects legacy scene fields, and validates invariants.
 - `adaptLegacyExtractDelta()` is read-only compatibility for persisted V1 action rows; fresh V2 extraction does not use it.
 - Parser choices, dialogue order, player inner thought, and raw Story remain parser authorities; Extract does not write replacement projections.
 - `applyGuardedStateDelta()` remains only as a deprecated V1 test/comparison entry point and has no API production caller.
+- V2 observation data is never converted into a legacy envelope or `state_delta`; persisted V1 rows alone use the read-only adapter before the same explicit reducers.
+- Extract authority violations (`state_delta`, identity/parser projections, save roots, or unsupported versions) are hard failures; only transport/timeout/truncated-JSON failures degrade.
+- Scene evidence is typed and exact-quote based. Final presence snapshots require evidence; null snapshots can apply validated entered/exited patches. Mind Monitor entries are limited to resulting current presence.
 
 ## Remaining phases
 

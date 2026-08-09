@@ -585,8 +585,7 @@ const master = masterFromEdition(edition);
           extract = normalizeExtractObservationV2(raw, { npcIds });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
-          const degradable = (error instanceof HttpError && EXTRACT_DEGRADE_CODES.has(error.code))
-            || (error instanceof GameCoreError && (error.code === 'INVALID_EXTRACT' || error.code === 'INVALID_EXTRACT_OBSERVATION'));
+          const degradable = error instanceof HttpError && EXTRACT_DEGRADE_CODES.has(error.code);
           if (!degradable) {
             await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
             throw error;
