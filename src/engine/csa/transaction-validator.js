@@ -62,7 +62,7 @@ export function buildAppStrengthValidationPrompt(candidates) {
 
 각 입력마다 weak, medium, strong, unsupported 중 하나를 반환한다.
 - weak: 분위기·대화·가벼운 접촉·부끄러움 완화 수준
-- medium: 특정 공간의 제한적 행동·노출·접촉을 정상 절차로 재해석
+- medium: 직접적인 신체 노출과 가슴·성기 접촉이 자연스러운 행동으로 이어짐
 - strong: 공간 전체의 업무·절차·예절·핵심 금기를 직접 재작성
 - unsupported: 물리적으로 불가능하거나 세계 규칙을 무시하거나 즉각적인 자기파괴를 요구
 

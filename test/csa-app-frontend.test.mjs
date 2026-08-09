@@ -33,7 +33,7 @@ test('csa-app-state: activating a preset produces a valid operation, and dirty()
   const item = { _new: true, client_id: 'draft_1', source_type: 'preset', strength: null, content: '', modifier: '' };
   draft.csa.push(item);
   applyPresetDefaults(item, presetItem);
-  item.actor_group = presetItem.default_actor; item.target_group = presetItem.default_target;
+  item.roles = Object.fromEntries(presetItem.role_slots.map(role => [role.key, role.default]));
   assert.equal(dirty(appState, draft), true);
   const ops = operations(appState, draft);
   assert.equal(ops.length, 1);

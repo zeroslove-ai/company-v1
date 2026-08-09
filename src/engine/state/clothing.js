@@ -238,7 +238,12 @@ const REQUIRED_BY_TEMPLATE = {
   work_without_underwear: {
     underwear_top: 'removed',
     underwear_bottom: 'removed'
-  }
+  },
+  no_bra_under_work_clothes: { underwear_top: 'removed' },
+  no_panties_under_work_clothes: { underwear_bottom: 'removed' },
+  work_topless: { uniform_top: 'removed' },
+  expose_breasts_on_request: { uniform_top: 'removed' },
+  expose_genitals_on_request: { uniform_bottom: 'removed', underwear_bottom: 'removed' }
 };
 
 /**
@@ -265,7 +270,8 @@ export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {})
   for (const rule of activeRules) {
     const templateId = rule?.preset?.template_id;
     if (!templateId || !REQUIRED_BY_TEMPLATE[templateId]) continue;
-    const actorGroup = rule?.preset?.actor_group ?? rule?.actor_group;
+    const roles = rule?.preset?.roles ?? {};
+    const actorGroup = roles.subject_group ?? rule?.preset?.actor_group ?? rule?.actor_group;
     if (actorGroup === 'female_employee' && gender !== 'female') continue;
     // male_employee 규정이 남성 전용일 경우 — 프로필 성별과 충돌하면 적용하지 않는다.
     if (actorGroup === 'male_employee' && gender !== null && gender !== 'male') continue;

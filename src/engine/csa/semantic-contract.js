@@ -12,14 +12,10 @@ const LEGACY_GROUP_ALIASES = new Map([
 ]);
 
 export const CSA_CONTRACT_ACTOR_GROUPS = new Set([
-  'coworker', 'manager', 'employee', 'company_employee', 'female_employee', 'male_employee',
-  'everyone_in_company',
-  'player', 'conversation_partner', 'another_present_person', 'nearby_person', 'unknown'
+  'player', 'current_partner', 'current_scene_npcs', 'company_employee', 'female_employee', 'male_employee', 'unknown'
 ]);
 export const CSA_CONTRACT_TARGET_GROUPS = new Set([
-  'coworker', 'manager', 'employee', 'company_employee', 'female_employee', 'male_employee',
-  'everyone_in_company',
-  'player', 'conversation_partner', 'another_present_person', 'nearby_person', 'unknown'
+  'player', 'current_partner', 'current_scene_npcs', 'company_employee', 'female_employee', 'male_employee', 'unknown'
 ]);
 
 const TRIGGER_ALIASES = new Map([
@@ -33,14 +29,8 @@ const DURATION_ALIASES = new Map([
   ['until_explanation_ends', 'until_briefing_ends'],
   ['until_target_relaxed', 'until_goal_reached']
 ]);
-const TRIGGERS = new Set([
-  'on_request', 'conversation_start', 'meeting_start', 'briefing_start', 'support_action',
-  'status_check', 'during_work', 'always_on_duty', 'custom_condition', 'none'
-]);
-const DURATIONS = new Set([
-  'instant', 'until_conversation_ends', 'until_meeting_ends', 'until_briefing_ends',
-  'until_goal_reached', 'until_explicit_position_change', 'until_work_ends', 'while_on_duty', 'continuous'
-]);
+const TRIGGERS = new Set(['on_player_request', 'continuous', 'none']);
+const DURATIONS = new Set(['continuous']);
 const STABLE_SELECTOR_RE = /^(character|department|position|team|role):[^\s]{1,80}$/;
 
 function isPlainObject(value) {
@@ -64,6 +54,7 @@ export function canonicalizeCsaGroup(value, { target = false } = {}) {
 export function canonicalizeCsaTrigger(value) {
   const raw = conciseText(value);
   if (!raw) return 'none';
+  if (raw === 'on_request') return 'on_player_request';
   return TRIGGER_ALIASES.get(raw) ?? raw;
 }
 
@@ -147,15 +138,15 @@ export function buildPresetCsaSemanticContract(csa = {}, sexualActionContract = 
   const preset = isPlainObject(csa?.preset) ? csa.preset : {};
   const required = String(preset.required_action || '');
   const mapped = sexualActionContract?.[required];
+  const roles = isPlainObject(preset.roles) ? preset.roles : {};
   return normalizeCsaSemanticContract({
     sexual_authorization: true,
     directions: mapped?.directions || [],
     actions: mapped?.actions || [],
-    actor_group: preset.actor_group || 'unknown',
-    target_group: preset.target_group || 'unknown',
-    trigger: preset.trigger || 'none',
-    duration: preset.duration || 'continuous',
-    public_normalization: preset.public_normalization === true,
+    actor_group: roles.performer_group || roles.subject_group || roles.group_a || 'unknown',
+    target_group: roles.recipient_group || roles.group_b || 'unknown',
+    trigger: preset.mode || 'continuous',
+    duration: 'continuous',
     direct_execution: Boolean(preset.required_action),
     method_policy: mapped?.method_policy === 'unspecified' ? 'unspecified' : undefined,
     confidence: 'exact'

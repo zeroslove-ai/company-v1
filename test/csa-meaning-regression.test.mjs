@@ -14,5 +14,5 @@ test('story prompt retains general scene-flow guidance after CSA projection simp
 test('extract prompt does not infer affection or obedience from CSA compliance', () => {
   const prompt = fs.readFileSync(path.join(root, 'src/engine/extract-prompt.js'), 'utf8');
   assert.match(prompt, /never raises affinity/);
-  assert.match(prompt, /compliance pressure\/self-rationalization, not affection/);
+  assert.match(prompt, /csa_acceptance reflects how naturally the changed common sense feels/);
 });
