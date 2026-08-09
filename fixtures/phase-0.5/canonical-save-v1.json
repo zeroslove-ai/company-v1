@@ -9,7 +9,7 @@
     "expected_turn": 8
   },
   "player": { "player_id": "player-1", "name": "Player", "department": "marketing" },
-  "player_scene_state": { "location_id": "meeting_room_5f", "updated_turn": 7 },
+  "player_scene_state": { "location_id": "meeting_room_5f", "updated_turn": 7, "clothing": { "uniform_top": "worn", "uniform_bottom": "worn", "underwear_top": "worn", "underwear_bottom": "worn" } },
   "player_sexual_state": { "arousal": 0, "updated_turn": 7 },
   "world_state": { "time_block": "afternoon", "work_hook": { "id": "campaign-review", "status": "active" } },
   "scene_state": {
@@ -40,7 +40,7 @@
       "relationship_summary": "Knows the player from meetings."
     }
   },
-  "npc_scene_state": { "npc-hayeon": { "present": true }, "npc-areum": { "present": true }, "npc-minsu": { "present": true } },
+  "npc_scene_state": { "npc-hayeon": { "present": true, "clothing": { "uniform_top": "worn", "uniform_bottom": "worn", "underwear_top": "worn", "underwear_bottom": "worn" } }, "npc-areum": { "present": true, "clothing": { "uniform_top": "worn", "uniform_bottom": "worn", "underwear_top": "worn", "underwear_bottom": "worn" } }, "npc-minsu": { "present": true, "clothing": { "uniform_top": "worn", "uniform_bottom": "worn", "underwear_top": "worn", "underwear_bottom": "worn" } } },
   "npc_work_state": { "npc-hayeon": { "task": "campaign-review" }, "npc-areum": { "task": "campaign-review" } },
   "csa_active": ["csa-dress-code", "csa-reporting"],
   "csa_rules": {

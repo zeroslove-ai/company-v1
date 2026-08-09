@@ -104,8 +104,11 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
         player_setup: { version: 1, completed: false, status: 'reserved', setup_id: args.p_setup_id },
         opening_state: { setup_id: args.p_setup_id, plan, status: 'planned' },
         scene_state: { scene_id: 'opening', location_id: plan.location_id, participants, scene_goal: plan.scene_goal, beat: 0 },
-        player_scene_state: { location_id: plan.location_id, updated_turn: 0 },
-        npc_scene_state: Object.fromEntries([plan.primary_character_id, ...plan.supporting_character_ids].map(id => [id, { present: true }]))
+        player_scene_state: { location_id: plan.location_id, updated_turn: 0, clothing: { uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn' } },
+        npc_scene_state: Object.fromEntries([plan.primary_character_id, ...plan.supporting_character_ids].map(id => [id, {
+          present: true,
+          clothing: { uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn' }
+        }]))
       };
       return json({ success: true, idempotent: false, setup_id: args.p_setup_id, opening_plan: plan });
     }
@@ -308,6 +311,14 @@ test('buildOpeningNextSave marks setup complete, leaves committed_turn at 0, and
   assert.deepEqual(nextSave.opening_state.plan, openingPlan);
   assert.equal(nextSave.opening_state.story_text, parsedOpening.raw);
   assert.equal('opening_plan' in nextSave, false);
+  assert.deepEqual(nextSave.player_scene_state.clothing, {
+    uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn'
+  });
+  for (const id of nextSave.scene_state.participants) {
+    assert.deepEqual(nextSave.npc_scene_state[id].clothing, {
+      uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn'
+    });
+  }
   assert.equal(nextSave.player.background, '배경 요약.');
   assert.deepEqual(nextSave.scene_state.participants, [openingPlan.primary_character_id, ...openingPlan.supporting_character_ids].filter(Boolean));
 });

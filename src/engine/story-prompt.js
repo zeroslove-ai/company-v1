@@ -31,10 +31,12 @@ function buildActiveWorldRules(save, expectedTurn = null) {
       active: true,
       scope_type: typeof rule.scope_type === 'string' ? rule.scope_type : 'world',
       scope_label: typeof rule.scope_label === 'string' ? rule.scope_label : '회사 전체',
-      applies_to: preset.actor_group ?? semantic.actor_group ?? 'declared_scope',
-      trigger: preset.trigger ?? semantic.trigger ?? 'none',
-      duration: preset.duration ?? semantic.duration ?? 'continuous',
+      mode: preset.mode ?? semantic.trigger ?? 'continuous',
+      roles: object(preset.roles) ?? {},
+      applies_to: preset.roles?.subject_group ?? preset.roles?.performer_group ?? semantic.actor_group ?? 'declared_scope',
       required_action: preset.required_action ?? rule.required_action ?? null,
+      sexual_actions: Array.isArray(preset.sexual_actions) ? preset.sexual_actions : [],
+      method_policy: preset.method_policy === 'restricted' ? 'restricted' : 'unspecified',
       activated_turn: activatedTurn,
       activated_game_time: object(rule.activated_game_time),
       newly_activated: Number.isInteger(expectedTurn) && activatedTurn === expectedTurn
@@ -198,7 +200,7 @@ const KOREAN_WORKPLACE_LANGUAGE = [
 const SYSTEM_INSTRUCTIONS = [
   KOREAN_WORKPLACE_LANGUAGE,
   'NPC 물리 상태(복장·자세·위치): context.active_npc_state.npc_scene_state에 있는 복장·자세·위치는 현재 물리 상태(확정 사실)다. 실제로 옷을 벗고 입고 열고 잠그는 행동이 이번 서사에서 완료된 경우에만 바뀐다. 상식개변(CSA) 적용·해제만으로 복장이 자동으로 바뀌지 않으며, 아무 이유 없이 갑자기 입었다 벗었다 하지 않는다. 알 수 없으면 저장된 마지막 상태를 유지한다. context.clothing_authority[npc_id]가 이번 턴 복장의 최종 권위다: actual_clothing이 현재 정본, required_clothing이 규정상 요구, compliance가 이행 상태다. actual_clothing이 비어 있거나 unknown이면 그 NPC의 현재 복장은 알 수 없음이며, 이미 갈아입었다거나 규정을 지키고 있다고 단정하지 않는다. required_clothing이 있고 actual_clothing이 그와 다르면 복장 변경은 반드시 이번 턴 Story에서 실제로 완료된 갈아입기·벗기 행동을 거쳐야 한다. 규정 내용만으로는 복장이 바뀌지 않는다.',
-  '[COMMON-SENSE CHANGE RULES] 상식개변(CSA): context.active_world_rules가 Story의 유일한 규칙 권위다. applies_to 범위에 속한 현재 장면 인물 모두에게 적용되며, 조건·이행·과거 사건을 창작하지 않는다. during_work와 while_on_duty는 시간 범위이고 unspecified method는 열린 결과 규칙이다. NPC는 앱·CSA·내부 ID를 언급하지 않는다. 플레이어가 직접 규정을 묻지 않으면 규정 설명보다 현재 장면 진행을 우선한다. 플레이어의 자유 입력 자체는 막지 않는다.',
+  '[COMMON-SENSE CHANGE RULES] active_world_rules만 현재 상식의 단일 권위다. 각 rule의 roles·mode·required_action과 정확히 맞는 요청은 역할 범위의 현재 인물 모두에게 같은 행동 결과를 적용하고, 성격과 감정은 표정·말투·속도에만 반영한다. 조건·이행·과거 사건을 창작하지 않으며 unspecified method는 열린 결과 규칙이다. NPC는 앱·CSA·내부 ID를 말하지 않고, 직접 질문이 없으면 규정 설명보다 장면 진행을 우선한다. 일반 요청은 장면과 관계에 따라 자연스럽게 처리한다. 플레이어의 자유 입력 자체는 막지 않는다.',
   '너는 한국어 회사 배경 게임의 한 턴 분량 Story를 작성한다. 출력은 정확히 다음 세 섹션을 이 순서로만 쓴다: [1. 서사 및 행동] [2. 플레이어 속마음] [3. 선택지]. 다른 사용자용 섹션(예: 별도 [DIALOGUE])이나 섹션 밖 설명·JSON·메타 코멘트는 쓰지 않는다.',
 
   '[1. 서사 및 행동]: 플레이어가 새로 합류한 신입이면 인사·소개·눈치 보기 같은 인간관계 행동이 자연스럽게 나오도록 하고, 업무 진행만으로 턴을 채우지 않는다. 사내 일상(커피, 점심, 잡담, 회의 참석, 부서 이동)과 관계 형성이 서사의 중심이 될 수 있다. context.current_time.day와 context.current_time.minute_of_day는 확정 사실이다. 시간·채광·식사 묘사가 이 값과 모순되면 생략하고, 실제 elapsed 근거 없는 장시간 경과를 만들지 않는다. 서술은 [SCENE] 줄 뒤에 쓰고, 발화는 반드시 [최종 출연·대사 출력 계약]의 [DIALOGUE speaker_id="..." acting_direction="..."] 형식으로만 쓴다. 화자명 없는 대사·이름: 대사·직급만 표시한 대사는 금지다. 분량 목표(Context/선택지/속마음 제외)는 가벼운 반응 800~1000자, 대화·갈등·구체 행동 1000~1500자, 이동·다수 NPC·중요 CSA 1200~2000자다. NPC 등장 턴은 의미 있는 발언 3회 이상을 목표로 하되 같은 말을 줄만 나눠 채우지 않는다. 이 목표들은 생성 목표일 뿐 검증 게이트가 아니며 미달로 재생성하지 않는다.',

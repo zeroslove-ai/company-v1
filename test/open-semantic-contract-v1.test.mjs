@@ -62,42 +62,24 @@ test('ambiguous free-text groups cannot silently gain sexual direct authorizatio
 
 test('runtime preset catalog exposes no donor hospital group, trigger, or duration ids', () => {
   const catalog = normalizeCompanyCsaCatalog(rawCatalog);
-  const forbidden = new Set([
-    'nurse', 'doctor', 'medical_staff', 'hospital_staff', 'female_staff', 'male_staff',
-    'patient', 'assigned_patient', 'guardian', 'visitor', 'everyone_in_hospital',
-    'consultation_start', 'explanation_start', 'comforting', 'check_condition',
-    'until_consultation_ends', 'until_explanation_ends', 'until_target_relaxed'
-  ]);
-  const exposed = [
-    ...catalog.actor_options.map(item => item.id),
-    ...catalog.target_options.map(item => item.id),
-    ...catalog.trigger_options.map(item => item.id),
-    ...catalog.duration_options.map(item => item.id),
-    ...catalog.items.flatMap(item => [
-      ...item.actor_options, ...item.target_options, ...item.allowed_triggers, ...item.allowed_durations,
-      item.default_actor, item.default_target, item.default_trigger, item.default_duration
-    ])
-  ].filter(Boolean);
-  assert.deepEqual(exposed.filter(id => forbidden.has(id)), []);
+  assert.equal(catalog.schema_version, 2);
+  assert.equal('trigger_options' in catalog, false);
+  assert.equal('duration_options' in catalog, false);
+  assert.equal(catalog.items.every(item => item.role_slots?.length && !('synergy_ids' in item)), true);
 });
 
-test('legacy pending preset payload validates against the normalized Company catalog', () => {
+test('V2 preset payload validates against the normalized Company catalog', () => {
   const catalog = normalizeCompanyCsaCatalog(rawCatalog);
-  const rawItem = rawCatalog.items.find(item => item.default_actor && item.default_trigger && item.default_duration);
-  const normalizedItem = catalog.items.find(item => item.id === rawItem.id);
+  const normalizedItem = catalog.items.find(item => item.id === 'hand_stimulate_recipient_genitals');
   const result = validatePresetOperation(catalog, {
     strength: normalizedItem.strength,
     preset: {
-      template_id: rawItem.id,
-      actor_group: rawItem.default_actor,
-      target_group: rawItem.default_target,
-      trigger: rawItem.default_trigger,
-      duration: rawItem.default_duration,
-      modifier: ''
+      template_id: normalizedItem.id,
+      roles: { performer_group: 'character:heroine1', recipient_group: 'player' }
     }
   }, { availableStrength: 'strong' });
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.preset.actor_group, normalizedItem.default_actor);
+  assert.equal(result.preset.roles.performer_group, 'character:heroine1');
 });
 
 test('opening content comes from edition map and accepts a location outside the former engine list', () => {

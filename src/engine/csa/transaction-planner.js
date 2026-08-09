@@ -1,7 +1,7 @@
 import { APP_STRENGTH_RANK, APP_STRENGTH_LABELS, APP_STRENGTHS, getCsaLimits } from './capability.js';
-import { getPresetCatalogItem, normalizeCompanyCsaCatalog, renderPresetContent, presetModifierExceedsTemplate, MODIFIER_MAX_LENGTH } from './catalog.js';
+import { getPresetCatalogItem, normalizeCompanyCsaCatalog, renderPresetContent } from './catalog.js';
 import { normalizeCsaScope, getCsaRules, getActiveCsaEntries } from './applicability.js';
-import { canonicalizeCsaDuration, canonicalizeCsaGroup, canonicalizeCsaTrigger, normalizeCsaSemanticContract } from './semantic-contract.js';
+import { normalizeCsaSemanticContract } from './semantic-contract.js';
 
 const OPERATION_ORDER = { deactivate: 0, update: 1, activate: 2 };
 const MAX_OPERATIONS = 12;
@@ -42,6 +42,16 @@ function nextCsaId(existingIds, turnNumber) {
   return candidate;
 }
 
+function legacyRoleSelector(value) {
+  const aliases = {
+    coworker: 'current_partner', conversation_partner: 'current_partner',
+    another_present_person: 'current_scene_npcs', nearby_person: 'current_scene_npcs',
+    employee: 'company_employee', everyone_in_company: 'company_employee',
+    everyone_in_hospital: 'company_employee'
+  };
+  return aliases[value] || value;
+}
+
 /** Server-side single source of truth for a preset operation: re-derives canonical content from the catalog template. */
 export function validatePresetOperation(catalog, raw, { availableStrength } = {}) {
   const normalizedCatalog = normalizeCompanyCsaCatalog(catalog);
@@ -51,7 +61,7 @@ export function validatePresetOperation(catalog, raw, { availableStrength } = {}
   if (!item) return { ok: false, code: 'PRESET_NOT_FOUND', message: '알 수 없는 프리셋입니다.' };
 
   const requestedStrength = typeof raw?.strength === 'string' ? raw.strength.trim() : '';
-  const catalogStrength = item.strength || item.minimum_strength;
+  const catalogStrength = item.strength;
   if (!Object.prototype.hasOwnProperty.call(APP_STRENGTH_RANK, requestedStrength)) {
     return { ok: false, code: 'CSA_PRESET_STRENGTH_INVALID', message: '프리셋 강도를 선택해 주세요.' };
   }
@@ -63,35 +73,33 @@ export function validatePresetOperation(catalog, raw, { availableStrength } = {}
     return { ok: false, code: 'CSA_PRESET_STRENGTH_MISMATCH', message: '선택한 강도와 프리셋 등급이 일치하지 않습니다.' };
   }
 
-  const actorId = canonicalizeCsaGroup(preset.actor_group);
-  if (!item.actor_options.includes(actorId)) return { ok: false, code: 'PRESET_ACTOR_INVALID', message: '이 프리셋에서 선택할 수 없는 행동 주체입니다.' };
-
-  const targetId = preset.target_group ? canonicalizeCsaGroup(preset.target_group, { target: true }) : '';
-  if (item.target_options.length) {
-    if (!item.target_options.includes(targetId)) return { ok: false, code: 'PRESET_TARGET_INVALID', message: '이 프리셋에서 선택할 수 없는 상대입니다.' };
-    if (targetId === actorId) return { ok: false, code: 'PRESET_ACTOR_TARGET_CONFLICT', message: '행동 주체와 상대가 같을 수 없습니다.' };
-  } else if (targetId) {
-    return { ok: false, code: 'PRESET_TARGET_INVALID', message: '이 프리셋은 상대를 지정할 수 없습니다.' };
+  const roles = isPlainObject(preset.roles)
+    ? { ...preset.roles }
+    : {
+        ...(preset.actor_group ? { performer_group: legacyRoleSelector(preset.actor_group) } : {}),
+        ...(preset.target_group ? { recipient_group: legacyRoleSelector(preset.target_group) } : {})
+      };
+  for (const role of item.role_slots || []) {
+    const value = roles[role.key] || role.default;
+    if (!role.options.includes(value)) return { ok: false, code: 'PRESET_ROLE_INVALID', message: `${role.label}을(를) 선택해 주세요.` };
+    roles[role.key] = value;
   }
-
-  const triggerId = canonicalizeCsaTrigger(preset.trigger);
-  if (!item.allowed_triggers.includes(triggerId)) return { ok: false, code: 'PRESET_TRIGGER_INVALID', message: '이 프리셋에서 선택할 수 없는 발동 상황입니다.' };
-
-  const durationId = canonicalizeCsaDuration(preset.duration);
-  if (!item.allowed_durations.includes(durationId)) return { ok: false, code: 'PRESET_DURATION_INVALID', message: '이 프리셋에서 선택할 수 없는 지속 조건입니다.' };
-
-  const modifier = typeof preset.modifier === 'string' ? preset.modifier.trim().replace(/\s+/g, ' ') : '';
-  if (modifier.length > MODIFIER_MAX_LENGTH) return { ok: false, code: 'PRESET_MODIFIER_TOO_LONG', message: `세부 수식어는 ${MODIFIER_MAX_LENGTH}자 이하여야 합니다.` };
-  if (presetModifierExceedsTemplate(modifier, catalogStrength)) return { ok: false, code: 'PRESET_MODIFIER_EXCEEDS_STRENGTH', message: '세부 수식어가 이 프리셋의 강도를 넘어섭니다.' };
-
-  const content = renderPresetContent(normalizedCatalog, item, { actorId, targetId: targetId || null, triggerId, durationId, modifier });
+  const roleValues = Object.values(roles).filter(value => typeof value === 'string');
+  const uniqueRoleValues = new Set(roleValues);
+  if (item.mutual === false && uniqueRoleValues.size < roleValues.length) {
+    return { ok: false, code: 'PRESET_ROLE_CONFLICT', message: '서로 다른 역할을 선택해 주세요.' };
+  }
+  const content = renderPresetContent(normalizedCatalog, item, { roles });
   return {
     ok: true, content, strength: catalogStrength,
     preset: {
-      version: 1, template_id: item.id, actor_group: actorId, target_group: targetId || null,
-      trigger: triggerId, duration: durationId, modifier, required_action: item.required_action,
-      public_normalization: item.public_normalization === true, persistent: item.persistent === true,
-      direct_meaning_tags: item.direct_meaning_tags
+      version: 2,
+      template_id: item.id,
+      mode: item.mode,
+      roles,
+      required_action: item.required_action,
+      sexual_actions: item.sexual_actions,
+      method_policy: item.method_policy
     }
   };
 }

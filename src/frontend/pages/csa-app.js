@@ -14,9 +14,9 @@ import {
 } from './csa-app-state.js';
 
 const STRENGTH_DESCRIPTIONS = {
-  weak: '인사팀 공식 공지·사내 운영지침으로 전사에 시행됩니다. 직원은 지침의 실무적 타당성을 묻거나 불평·거리 두기·최소한의 수행을 보일 수 있습니다.',
-  medium: '정식 취업규칙·전사 준수 규정으로 시행됩니다. 직원은 인사·노무상 의무와 불이익을 의식해 준수하면서도 불편함을 업무상 필요로 자기합리화하거나 적용 범위를 확인할 수 있습니다.',
-  strong: '국가 법령·관계 당국 의무 지침으로 시행됩니다. 법적 의무로 받아들이지만 충격·수치·불안·실행 방식에 대한 항의와 개인적 저항은 남을 수 있습니다. 법적 준수는 호감이나 성적 동의가 아닙니다.'
+  weak: '밀착, 은근한 접촉, 야한 자세와 복장이 자연스러운 상식으로 바뀝니다.',
+  medium: '직접적인 신체 노출과 성적 접촉이 자연스러운 행동으로 이어집니다.',
+  strong: '플레이어가 지정한 구체적인 성행위와 체위가 실제 행동으로 이어집니다.'
 };
 
 function messageFor(error) {
@@ -267,11 +267,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     ], value => {
       item.category = value || null;
       item.template_id = null;
-      item.actor_group = null;
-      item.target_group = null;
-      item.trigger = null;
-      item.duration = null;
-      item.modifier = '';
+      item.roles = {};
       item.content = '';
       renderTab('csa');
     }, !selectedStrength));
@@ -287,53 +283,22 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
 
     const catalogItem = presetCatalogItem(appState, item.template_id);
     if (catalogItem && presetStrength(catalogItem) === selectedStrength) {
-      wrap.appendChild(selectField('행동 주체', item.actor_group, catalogItem.actor_options.map(id => ({ id, label: presetOptionLabel(appState, 'actor', id) })), value => {
-        item.actor_group = value;
-        syncDraftBar();
-        renderTab('csa');
-      }));
-      if (catalogItem.target_options.length) {
-        wrap.appendChild(selectField('상대', item.target_group, catalogItem.target_options.map(id => ({ id, label: presetOptionLabel(appState, 'target', id) })), value => {
-          item.target_group = value;
+      for (const role of catalogItem.role_slots || []) {
+        const roleValue = item.roles?.[role.key] || role.default || role.options[0] || '';
+        wrap.appendChild(selectField(role.label, roleValue, role.options.map(id => ({ id, label: presetOptionLabel(appState, role.key, id) })), value => {
+          item.roles = { ...(item.roles || {}), [role.key]: value };
           syncDraftBar();
           renderTab('csa');
         }));
-      } else {
-        wrap.append(el('p', 'csa-app-scope-label', '이 프리셋은 상대를 지정하지 않습니다.'));
       }
-      wrap.appendChild(selectField('발동 상황', item.trigger, catalogItem.allowed_triggers.map(id => ({ id, label: presetOptionLabel(appState, 'trigger', id) })), value => {
-        item.trigger = value;
-        syncDraftBar();
-        renderTab('csa');
-      }));
-      wrap.appendChild(selectField('지속 조건', item.duration, catalogItem.allowed_durations.map(id => ({ id, label: presetOptionLabel(appState, 'duration', id) })), value => {
-        item.duration = value;
-        syncDraftBar();
-        renderTab('csa');
-      }));
-
-      const modifierLabel = el('label', 'csa-app-field');
-      modifierLabel.append(el('span', 'csa-app-field-label', '세부 수식어 (선택, 최대 60자)'));
-      const modifierInput = el('input', 'csa-app-select');
-      modifierInput.type = 'text';
-      modifierInput.maxLength = 60;
-      modifierInput.value = item.modifier || '';
-      modifierInput.disabled = applying;
       const previewPlaceholder = '항목을 모두 선택하면 문장이 완성됩니다.';
       const previewText = el('p', '', presetPreviewContent(appState, item) || previewPlaceholder);
-      modifierInput.oninput = () => {
-        item.modifier = modifierInput.value;
-        previewText.textContent = presetPreviewContent(appState, item) || previewPlaceholder;
-        syncDraftBar();
-      };
-      modifierLabel.appendChild(modifierInput);
-      wrap.appendChild(modifierLabel);
       const previewBox = el('div', 'csa-app-preview');
       previewBox.append(el('small', '', '완성 문장 미리보기'), previewText);
       wrap.appendChild(previewBox);
     } else {
       const waiting = selectedStrength ? '프리셋을 먼저 선택하세요' : '강도를 먼저 선택하세요';
-      [['행동 주체', ''], ['상대', ''], ['발동 상황', ''], ['지속 조건', '']].forEach(([label]) => {
+      [['역할', '']].forEach(([label]) => {
         wrap.appendChild(selectField(label, '', [{ id: '', label: waiting, disabled: true }], () => {}, true));
       });
       const previewBox = el('div', 'csa-app-preview');
@@ -433,7 +398,6 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
         strength: null,
         scope_label: '회사 전체',
         content: '',
-        modifier: ''
       });
       renderTab('csa');
     };

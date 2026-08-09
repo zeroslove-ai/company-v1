@@ -26,8 +26,8 @@ export function buildAppManualPayload(save, catalog) {
     id, label, unlock_level: unlockLevel, available: level >= unlockLevel,
     description: {
       weak: '대화·분위기·가벼운 접촉과 부끄러움 완화처럼 제한적인 사회적 관습을 바꿉니다.',
-      medium: '특정 공간의 점검·면담 행동과 제한적 노출·접촉을 정상 절차로 재해석합니다.',
-      strong: '공간 전체의 사회 규범과 업무·절차·예절, 핵심 금기를 재작성합니다.'
+      medium: '직접적인 신체 노출과 가슴·성기 접촉이 자연스러운 행동으로 이어집니다.',
+      strong: '플레이어가 지정한 구체적인 성행위와 체위가 실제 행동으로 이어집니다.'
     }[id]
   }));
   const remainingSlots = Math.max(0, capability.csa_max_active - capability.csa_active_count);
