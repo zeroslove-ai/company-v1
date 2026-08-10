@@ -235,15 +235,6 @@ const DEFAULT_OPENING_CHOICES = [
   '조용히 정리하며 상황을 파악한다.'
 ];
 
-// app_transaction fail-open — Story upstream이 첫 콘텐츠를 주지 않거나(story_timeout/
-// llm_upstream_failure/story_incomplete) 실패하면 deterministic fallback Story로 계속
-// 진행한다. 현재 장면 NPC를 임의로 발화시키지 않고 [SCENE]만 사용한다.
-const APP_TRANSACTION_STORY_FALLBACK_ERRORS = new Set(['story_timeout', 'llm_upstream_failure', 'story_incomplete']);
-
-function buildAppTransactionFallbackStory() {
-  return '[SCENE]\n현재 장면은 직전 행동의 결과를 이어간다.';
-}
-
 function parseStoryProjection(raw, master) {
   try {
     const parsed = parseNarrative(raw ?? '', { master });
@@ -442,7 +433,6 @@ const master = masterFromEdition(edition);
           timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
           let stream = null;
           let upstreamRaw = '';
-          let storyFallback = false;
           try {
             stream = await streamStory({ env, fetchImpl, messages, timing });
             for await (const text of stream.chunks) {
@@ -450,23 +440,14 @@ const master = masterFromEdition(edition);
               emit('delta', { text });
             }
           } catch (error) {
-            // app_transaction fail-open — Story upstream이 첫 콘텐츠를 주지 않으면
-            // (30초 timeout/upstream 실패/불완전 스트림) deterministic fallback Story로
-            // 계속 진행한다. 일반 플레이어 턴은 그대로 실패(입력 복원·종료)한다.
-            const code = error?.code;
-            if (!csaPlan || !APP_TRANSACTION_STORY_FALLBACK_ERRORS.has(code)) throw error;
-            storyFallback = true;
-            const fallbackText = buildAppTransactionFallbackStory(csaPlan, hydratedSave);
-            upstreamRaw = fallbackText;
-            emit('delta', { text: fallbackText });
-            timing.story_fallback = 1;
+            throw error;
           }
           // 문서 5절 — 정본 story_text는 upstreamRaw(플레이어 가시 원문)다.
           // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
           raw = upstreamRaw;
           const parsed = parseStoryProjection(raw, master);
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
-          const mergedWarnings = [...(parsed.warnings ?? []), ...(storyFallback ? ['app_story_fallback'] : [])];
+          const mergedWarnings = [...(parsed.warnings ?? [])];
           const contractPersisted = {
             ...parsed,
             // 수정 H — live/replay 동일 순서 재생용

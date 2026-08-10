@@ -9,7 +9,7 @@ const SECTION_LABELS = {
   '4': 'choices'    // 기존 저장 턴 History 호환 alias ([4. 선택지])
 };
 
-const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*선택지|4\.\s*선택지|DIALOGUE\s+[^\[\]]*)\]/g;
+const MARKER = /\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*선택지|4\.\s*선택지|\/DIALOGUE|DIALOGUE\s+[^\[\]]*)\]/g;
 const SECTION_LINE = /^\[(SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*선택지|4\.\s*선택지)\]$/;
 const QUOTED_INLINE_DIALOGUE = /([\p{L}][^\n():"“”]{0,40}?)\s*\(([^()\n]{0,160})\)\s*[:：]\s*["“]([^"”]*)["”]/gsu;
 const DIALOGUE_LINE = /^([\p{L}][^\n():："“”]{0,40}?)\s*\(([^()\n]{1,160})\)\s*[:：]?\s*(?:["“]([^"”]*)["”]|(.+))$/u;
@@ -126,9 +126,16 @@ function isSpeechAttribution(line, mentioned) {
 
 function labelRole(label) {
   if (SECTION_LABELS[label]) return SECTION_LABELS[label];
+  if (label === '/DIALOGUE') return 'scene';
   const numberMatch = /^(\d)\./.exec(label);
   if (numberMatch && SECTION_LABELS[numberMatch[1]]) return SECTION_LABELS[numberMatch[1]];
   return null;
+}
+
+function splitFirstDialogueParagraph(value) {
+  const paragraphs = String(value ?? '').split(/\r?\n\s*\r?\n/);
+  const dialogueText = (paragraphs.shift() ?? '').trim();
+  return { dialogueText, sceneText: paragraphs.join('\n\n').trim() };
 }
 
 function parseChoices(text) {
@@ -238,7 +245,10 @@ export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
   let lastLine = '';
   for (const rawLine of source.split(/\r?\n/)) {
     const trimmed = rawLine.trim();
-    if (!trimmed) continue;
+    if (!trimmed) {
+      output.push(rawLine);
+      continue;
+    }
     const section = SECTION_LINE.exec(trimmed);
     if (section) {
       role = labelRole(section[1]);
@@ -599,15 +609,20 @@ export function parseNarrative(rawText, { master } = {}) {
     const directionAttr = /acting_direction="([^"]+)"/.exec(label)?.[1];
     const speaker = speakerIdAttr ?? /speaker="([^"]+)"/.exec(label)?.[1];
     const direction = directionAttr ?? /direction="([^"]+)"/.exec(label)?.[1];
+    const { dialogueText, sceneText } = splitFirstDialogueParagraph(text);
     if (!speaker || !direction) {
       blocks.push({ type: 'unparsed', text: `${current[0]}${text}`.trim() });
       warnings.push('malformed_dialogue_marker');
       continue;
     }
-    const dialogue = normalizedDialogue({ speakerName: speaker, direction, dialogueText: text, speakerId: speakerIdAttr ?? null }, master, orderRef.value++);
+    const dialogue = normalizedDialogue({ speakerName: speaker, direction, dialogueText, speakerId: speakerIdAttr ?? null }, master, orderRef.value++);
     if (!dialogue) continue;
     blocks.push({ type: 'dialogue', speaker_id: dialogue.speaker_id, speaker: dialogue.speaker_name, speaker_name: dialogue.speaker_name, direction, text: dialogue.text });
     dialogueLines.push(dialogue);
+    if (sceneText) {
+      sceneParts.push(sceneText);
+      appendSceneBlocks(blocks, dialogueLines, sceneText, master, orderRef);
+    }
   }
 
   if (choices.length !== 4 && !warnings.includes('choices_not_exactly_four')) {

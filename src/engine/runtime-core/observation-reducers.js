@@ -58,22 +58,6 @@ function currentNpcIds(save, npcIds) {
   return new Set(scene.present_npc_ids ?? []);
 }
 
-function buildFallbackTurnChoices(save, options = {}) {
-  const hasActiveRule = Array.isArray(save?.csa_active) && save.csa_active.length > 0;
-  const focalName = options?.focalName ?? '';
-  const candidates = [];
-  const push = text => { if (!candidates.includes(text)) candidates.push(text); };
-  push('이야기를 계속 이어간다');
-  push(hasActiveRule ? '규정의 구체적인 내용을 질문한다' : '상대의 의견을 확인한다');
-  if (focalName) {
-    push(`${focalName}에게 직접 확인한다`);
-    push(`${focalName}의 반응을 살핀다`);
-  }
-  push('다른 NPC의 반응을 확인한다');
-  push('자유롭게 다른 행동을 선택한다');
-  return candidates;
-}
-
 function observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds } = {}) {
   const result = new Set(observedNpcIds ?? []);
   for (const id of sceneBefore?.present_npc_ids ?? []) result.add(id);
@@ -198,15 +182,9 @@ export function reduceElapsedTimeObservation({ save, elapsedMinutes, evidence } 
   return { before, after, warnings: [] };
 }
 
-export function reduceStoryChoiceProjection({ save, parsedStory, master, focalName = '' } = {}) {
+export function reduceStoryChoiceProjection({ parsedStory } = {}) {
   const choices = Array.isArray(parsedStory?.choices) ? clone(parsedStory.choices) : [];
-  if (choices.length >= 4) return { state: choices.slice(0, 4), warnings: [] };
-  const state = [...choices];
-  for (const fill of buildFallbackTurnChoices(save, { focalName })) {
-    if (!state.includes(fill)) state.push(fill);
-    if (state.length === 4) break;
-  }
-  return { state: state.slice(0, 4), warnings: [`choices_padded:${choices.length}->${state.length}`] };
+  return { state: choices.slice(0, 4), warnings: [] };
 }
 
 export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, enteredNpcIds, exitedNpcIds, explicitSpeakerIds } = {}) {

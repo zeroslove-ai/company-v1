@@ -12,6 +12,7 @@ const migrationPath = path.join(root, 'supabase/migrations/20260810000100_compan
 const clothingMigrationPath = path.join(root, 'supabase/migrations/20260809000100_company_v1_initial_clothing_v2.sql');
 const verificationPath = path.join(root, 'supabase/verification/20260810000100_company_v1_canonical_opening_bootstrap.verify.sql');
 const migration = fs.readFileSync(migrationPath, 'utf8');
+const commitMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260810090831_company_v1_commit_strict_validation.sql'), 'utf8');
 const clothingMigration = fs.readFileSync(clothingMigrationPath, 'utf8');
 const verification = fs.readFileSync(verificationPath, 'utf8');
 
@@ -115,4 +116,15 @@ test('historical clothing migration stays immutable and the new migration owns t
   assert.match(verification, /underwear_top.*removed/s);
   assert.match(verification, /uniform_top.*open/s);
   assert.match(verification, /custom.*preserve/s);
+});
+
+test('Company commit migration rejects invalid next saves and persists structured action', () => {
+  assert.match(commitMigration, /create or replace function public\.commit_company_turn/);
+  assert.match(commitMigration, /v_validation\s*:=\s*public\.validate_company_save_v1\(v_next_save\)/);
+  assert.match(commitMigration, /raise exception 'invalid next save/);
+  assert.match(commitMigration, /turn_id, game_id, turn_number, action_id, player_action, structured_action/);
+  assert.match(commitMigration, /v_action\.structured_action/);
+  assert.doesNotMatch(commitMigration, /save_fail_open|v_fail_open/);
+  assert.match(commitMigration, /revoke all on function public\.commit_company_turn/);
+  assert.match(commitMigration, /grant execute on function public\.commit_company_turn[\s\S]*to service_role/);
 });

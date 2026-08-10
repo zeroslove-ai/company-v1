@@ -13,6 +13,7 @@ import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const acceptanceFixture = JSON.parse(fs.readFileSync(path.join(root, 'test/fixtures/runtime-acceptance-turns-2-4.json'), 'utf8'));
 
 const edition = {
   organization: {
@@ -170,4 +171,21 @@ test('frontend contracts keep inner thought in Story only and preserve safe data
   assert.match(csaApp, /surface/);
   assert.match(csaApp, /subconscious/);
   assert.doesNotMatch(csaApp, /physical_reaction|body_reaction|신체적·행동적 반응/);
+});
+
+test('captured live turns keep following narrative outside one explicit dialogue paragraph', () => {
+  const master = {
+    characters: [
+      { character_id: 'heroine2', name: '윤민아' },
+      { character_id: 'heroine4', name: '한리브' }
+    ]
+  };
+  for (const turnNumber of [3, 4]) {
+    const turn = acceptanceFixture.turns.find((entry) => entry.turn_number === turnNumber);
+    const parsed = parseNarrative(turn.story_text, { master });
+    const dialogue = parsed.blocks.filter((block) => block.type === 'dialogue');
+    assert.ok(dialogue.length >= 2, `turn ${turnNumber} should retain both dialogue blocks`);
+    assert.ok(parsed.blocks.some((block) => block.type === 'scene' && block.text.includes('대리가 그 말에 고개를 끄덕이며 덧붙였다.')) || turnNumber === 3);
+    assert.ok(dialogue.every((block) => !block.text.includes('대리가 그 말에 고개를 끄덕이며 덧붙였다.')));
+  }
 });

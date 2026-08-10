@@ -432,6 +432,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         ? (context?.recent_turns ?? []).find(turn => turn.turn_number === turnNumber && turn.action_id === pending.action_id)
         : null;
       if (canonicalTurn) {
+        clearCurrentTurn();
         showStatus('턴이 완료되었습니다.');
       } else {
         showStatus('저장된 기록을 다시 확인하는 중…');

@@ -74,12 +74,13 @@ test('Story prompt projects only saved rule content and injects no legal clause 
   assert.equal(messages.map(message => message.content).join('\n').includes('제6조'), false);
 });
 
-test('missing Story choices remain an explicit format failure', () => {
+test('missing Story choices remain empty through Commit projection', () => {
   const parsed = parseNarrative('[SCENE]\nA scene without a choices section.', { master: { characters: [] } });
   assert.ok(parsed.warnings.includes('choices_not_exactly_four'));
   const projected = reduceStoryChoiceProjection({ save: { last_choices: [] }, parsedStory: parsed, focalName: '' });
-  assert.equal(projected.state.length, 4);
-  assert.ok(projected.warnings.some(warning => warning.startsWith('choices_padded:')));
+  assert.equal(projected.state.length, 0);
+  assert.deepEqual(projected.warnings, []);
+  assert.deepEqual(projected.state, []);
 });
 
 test('player utterance is never assigned to NPC', () => {

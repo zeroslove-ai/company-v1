@@ -484,7 +484,7 @@ test('Story route: multiple active CSAs remain in one declarative projection', a
   assert.equal(payload.context.active_world_rules.length, 2);
   assert.ok(!('global_csa' in payload.context));
 });
-test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallback Story로 Extract/Commit까지 진행하고 csa_active에서 제거한다', async () => {
+test('app transaction Story upstream failure remains a visible retryable failure', async () => {
   const save = freshSave({
     csa_active: ['csa_0'],
     csa_rules: { csa_0: { active: true, content: '퇴근 후 야근 보고를 강제한다', strength: 'weak', source_type: 'custom', preset: null } }
@@ -507,33 +507,11 @@ test('app deactivate: Story upstream이 첫 콘텐츠를 주지 않으면 fallba
   const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 1, player_action: displayInput, structured_action: canonicalAction }), env);
   assert.equal(storyRes.status, 200);
   const storyText = await storyRes.text();
-  assert.match(storyText, /event: complete/);
-  const storyPayload = storyUserPayloadFrom(mock);
-  assert.deepEqual(storyPayload.context.active_world_rules, []);
-  assert.ok(!('global_csa' in storyPayload.context));
-  const storyPrompt = JSON.parse(mock.calls.find(call => call.url.startsWith('https://llm.test')).body).messages.map(message => message.content).join('\n');
-  assert.doesNotMatch(storyPrompt, /PUBLIC COMMON-SENSE SCENE|CSA WEAK SYNERGY|NPC CSA EPISTEMIC FIREWALL|CONFIRMED COMMON-SENSE APP TRANSACTION/);
-  assert.doesNotMatch(storyPrompt, /actor_id=|target_id=|undefined/);
-  assert.match(storyText, /app_story_fallback/, 'fallback warning');
-  // fallback은 [SCENE]만 — 현재 장면 NPC를 임의로 발화시키지 않는다
-  assert.match(storyText, /현재 장면은 직전 행동의 결과를 이어간다/);
-  assert.doesNotMatch(storyText, /규칙|회사 규정|새로 적용|규칙 해제|규칙 변경|업무 환경에 반영/);
-  assert.equal(mock.calls.__action.story_text.includes('[DIALOGUE]'), false, '대사 블록 없음');
-
-  const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
-  assert.equal(extractRes.status, 200);
-  const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
-  const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
-  assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA projection 유지');
-  assert.ok(!extractPayload.context.global_csa.active_ids.includes('csa_0'));
-
-  const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
-  assert.equal(commitRes.status, 200);
-
-  const afterSave = mock.getSave();
-  assert.ok(!afterSave.csa_active.includes('csa_0'), 'csa_active에서 대상 제거');
-  assert.equal(afterSave.csa_rules.csa_0.active, false, '규칙 비활성');
-  assert.equal(mock.calls.__action.processing_status, 'committed', '액션 committed');
+  assert.match(storyText, /event: error/);
+  assert.doesNotMatch(storyText, /event: complete/);
+  assert.doesNotMatch(storyText, /app_story_fallback/);
+  assert.equal(mock.calls.filter(call => call.url.includes('/api/extract')).length, 0);
+  assert.equal(mock.calls.filter(call => call.url.includes('/api/commit')).length, 0);
 });
 test('preset catalog exposes only Company v2 stable selectors', () => {
   const normalized = normalizeCompanyCsaCatalog(catalog);
