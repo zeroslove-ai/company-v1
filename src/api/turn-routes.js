@@ -904,7 +904,7 @@ const master = masterFromEdition(edition);
           throw new HttpError(409, 'opening_retry_required', 'A player setup is already reserved; retry the opening or reset the game first', false);
         }
         const setupId = randomUuid();
-        const openingPlan = buildOpeningPlan({ positionId: validation.player.position_id, seedBytes: randomSeedBytes(), heroineIds, locations: edition?.map?.locations });
+        const openingPlan = buildOpeningPlan({ positionId: validation.player.position_id, departmentId: validation.player.department_id, seedBytes: randomSeedBytes(), heroineIds, locations: edition?.map?.locations });
         const result = await db.callRpc('reserve_company_player_setup', {
           p_game_id: gameId, p_setup_id: setupId, p_player: validation.player, p_opening_plan: openingPlan
         });

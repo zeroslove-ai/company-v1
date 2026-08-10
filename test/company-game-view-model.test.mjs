@@ -118,6 +118,19 @@ test('Company game view model uses participants as the only current-scene NPC me
   assert.deepEqual(model.interacting_characters, []);
 });
 
+test('Company game view model resolves player aliases to the saved player name without changing parser order', () => {
+  const input = context({ turns: [{ parsed_blocks: { dialogue_lines: [
+    { speaker_id: 'player', speaker_name: '플레이어', text: '제가 먼저 말할게요.', order: 0 },
+    { speaker_id: 'player-1', speaker_name: '플레이어', text: '이어서 설명할게요.', order: 1 },
+    { speaker_id: 'heroine1', speaker_name: '', text: '알겠습니다.', order: 2 }
+  ] } }] });
+  input.save.data.player = { ...(input.save.data.player ?? {}), player_id: 'player-1', name: '김하늘' };
+  input.display = { npc_directory: { heroine1: { name: '서원희' } } };
+  const lines = buildCompanyGameViewModel(input).story.dialogue_lines;
+  assert.deepEqual(lines.map(line => line.speaker_name), ['김하늘', '김하늘', '서원희']);
+  assert.deepEqual(lines.map(line => line.order), [0, 1, 2]);
+});
+
 test('Company game view model is a pure module without network or DOM dependencies', () => {
   const source = fs.readFileSync(path.join(root, 'src/frontend/pages/view-model.js'), 'utf8');
   assert.doesNotMatch(source, /\bfetch\s*\(|\bdocument\s*\.|\bwindow\s*\.|\blocalStorage\b|\bsessionStorage\b/);

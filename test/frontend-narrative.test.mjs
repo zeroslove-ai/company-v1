@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseNarrative } from '../src/frontend/pages/narrative.js';
+import { parseNarrative, projectStreamingText } from '../src/frontend/pages/narrative.js';
 
 test('frontend narrative parser preserves scene and dialogue order', () => {
   const parsed = parseNarrative('[SCENE]\nOffice lights are low.\n[DIALOGUE speaker="Hayeon" direction="quietly"]\nAre you ready?\n[PLAYER_STATUS]\nFocused\n[CHOICES]\n1. Ask\n2. Wait\n3. Leave\n4. Work');
@@ -19,4 +19,14 @@ test('frontend narrative parser preserves malformed and markerless Story text', 
   const fallback = parseNarrative('Plain Story text');
   assert.deepEqual(fallback.blocks, [{ type: 'unparsed', text: 'Plain Story text' }]);
   assert.ok(fallback.warnings.includes('no_recognized_markers'));
+});
+
+test('streaming projection hides protocol markers while preserving raw prose and partial markers', () => {
+  const raw = '[SCENE]\n사무실에 들어선다.\n[DIALOGUE speaker="heroine1" direction="차분하게"]\n안녕하세요.\n[2. 플레이어 속마음]\n긴장된다.';
+  const visible = projectStreamingText(raw);
+  assert.doesNotMatch(visible, /\[(?:SCENE|DIALOGUE|2\.)/);
+  assert.match(visible, /사무실에 들어선다/);
+  assert.match(visible, /안녕하세요/);
+  assert.match(visible, /긴장된다/);
+  assert.equal(projectStreamingText('첫 문장\n[DIAL'), '첫 문장\n');
 });

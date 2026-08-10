@@ -15,7 +15,7 @@ function locations(edition) {
 }
 
 function currentLocation(edition, save) {
-  const locationId = identity(save?.scene_state?.location_id);
+  const locationId = identity(save?.scene?.version === 1 ? save.scene.location_id : save?.scene_state?.location_id);
   if (!locationId) return null;
   return locations(edition).find(location => location?.location_id === locationId) ?? null;
 }
@@ -71,10 +71,10 @@ export function selectActiveGeneralNpcIds({ edition, save, text = '' } = {}) {
   for (const [id, profile] of Object.entries(profiles)) {
     if (typeof profile?.name === 'string' && profile.name && source.includes(profile.name)) push(id);
   }
-  push(save?.focal_character_id);
-  push(save?.last_speaker_id);
-  for (const id of Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : []) push(id);
-  for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) push(id);
+  const scene = save?.scene?.version === 1 ? save.scene : save?.scene_state;
+  push(scene?.focal_character_id ?? save?.focal_character_id);
+  push(scene?.last_speaker_id ?? save?.last_speaker_id);
+  for (const id of Array.isArray(scene?.present_npc_ids) ? scene.present_npc_ids : (Array.isArray(scene?.participants) ? scene.participants : [])) push(id);
   return ordered;
 }
 

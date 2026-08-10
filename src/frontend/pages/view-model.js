@@ -136,11 +136,9 @@ function normalizeDialogueLines(value) {
     .sort((left, right) => left.order - right.order);
 }
 
-function dialogueLines(parsedStory) {
+function dialogueLines(parsedStory, { playerName = '', save = {}, directory = {}, details = {} } = {}) {
   const parsedLines = normalizeDialogueLines(parsedStory?.dialogue_lines);
-  if (parsedLines.length) return parsedLines;
-  if (!Array.isArray(parsedStory?.blocks)) return [];
-  return normalizeDialogueLines(parsedStory.blocks
+  const lines = parsedLines.length ? parsedLines : (!Array.isArray(parsedStory?.blocks) ? [] : normalizeDialogueLines(parsedStory.blocks
     .filter(block => block?.type === 'dialogue' && typeof block.text === 'string' && block.text.trim())
     .map((block, order) => ({
       speaker_id: block.speaker_id ?? block.character_id,
@@ -148,7 +146,14 @@ function dialogueLines(parsedStory) {
       text: block.text,
       direction: block.direction,
       order
-    })));
+    }))));
+  return lines.map(line => {
+    const id = line.speaker_id;
+    const resolved = isPlayerAlias(id, text(object(save.player)?.player_id) || 'player')
+      ? playerName
+      : characterName(save, id, directory, details);
+    return resolved ? { ...line, speaker_name: resolved } : line;
+  });
 }
 
 function normalizedStats(value) {
@@ -296,6 +301,8 @@ export function buildCompanyGameViewModel(context) {
   const playerSexualState = object(save.player_sexual_state) ?? {};
   const playerSceneState = object(save.player_scene_state) ?? {};
   const focalSceneState = npcSceneView(save, focalId);
+  const playerName = text(player.name ?? save.player_name);
+  const projectedDialogueLines = dialogueLines(parsedStory, { playerName, save, directory, details });
   const interactingCharacters = interactingCharacterViews(save, scene, directory, details);
   const presentNpcIds = new Set(strings(scene.present_npc_ids));
   const imageCandidate = text(committedV2.image_character_id);
@@ -315,7 +322,7 @@ export function buildCompanyGameViewModel(context) {
     story: {
       story_text: text(turn.story_text), blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
       choices: choices(save, turn), player_inner_thought: text(parsedStory.player_inner_thought),
-      dialogue_lines: dialogueLines(parsedStory), warnings: strings(parsedStory.warnings)
+      dialogue_lines: projectedDialogueLines, warnings: strings(parsedStory.warnings)
     },
     scene: {
       ...scene,
@@ -330,7 +337,7 @@ export function buildCompanyGameViewModel(context) {
       scene_state: focalSceneState
     },
     player: {
-      state: player, stats: object(save.npc_stats)?.player ?? {}, name: text(player.name ?? save.player_name),
+      state: player, stats: object(save.npc_stats)?.player ?? {}, name: playerName,
       department: text(player.department) || catalogName(CATALOGS.departments, 'department_id', player.department_id) || text(save.player_department),
       position: text(player.position) || catalogName(CATALOGS.positions, 'position_id', player.position_id),
       level: integer(capability.level) ?? integer(playerProgress.level) ?? 1,
@@ -351,7 +358,7 @@ export function buildCompanyGameViewModel(context) {
     media: {
       image_id: imageId(committedV2.image_id ?? save.last_image_id), image_character_id: imageCharacterId,
       image_selection: imageSelection, image_pool: imagePool, image_tags: imageTags,
-      image_situation: text(committedV2.image_situation) || text(turn.turn_summary), dialogue_lines: dialogueLines(parsedStory),
+      image_situation: text(committedV2.image_situation) || text(turn.turn_summary), dialogue_lines: projectedDialogueLines,
       mind_monitor: monitor, mind_monitor_entries: monitorEntries, default_mind_character_id: monitorEntries[0]?.id ?? ''
     }
   };

@@ -11,6 +11,7 @@ import { createCompanyTts } from './tts.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
+import { projectStreamingText } from './narrative.js';
 
 // Duplicated (deliberately, not imported) from src/engine/choice-input.js: the frontend Worker
 // serves only src/frontend/pages as static assets (wrangler.frontend.jsonc), so a relative
@@ -227,13 +228,15 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const showError = error => { text(elements.error, messageFor(error)); if (elements.error) elements.error.hidden = false; };
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
   const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; elements.current?.replaceChildren?.(); if (elements.current) elements.current.textContent = ''; };
-  const resetRawStory = () => { elements.current?.replaceChildren?.(); if (elements.current) { elements.current.textContent = ''; elements.current.classList?.add?.('raw-story-stream'); } };
+  let rawStoryStream = '';
+  const resetRawStory = () => { rawStoryStream = ''; elements.current?.replaceChildren?.(); if (elements.current) { elements.current.textContent = ''; elements.current.classList?.add?.('raw-story-stream'); } };
   const appendRawStory = value => {
     if (!elements.current || !value) return;
     const nearBottom = typeof elements.current.scrollHeight === 'number'
       && elements.current.scrollHeight - elements.current.scrollTop - elements.current.clientHeight <= 120;
     elements.current.classList?.add?.('raw-story-stream');
-    elements.current.textContent = `${elements.current.textContent ?? ''}${value}`;
+    rawStoryStream += String(value);
+    elements.current.textContent = projectStreamingText(rawStoryStream);
     if (nearBottom) elements.current.scrollTop = elements.current.scrollHeight;
   };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
@@ -486,6 +489,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   async function startNewAction(playerAction, structuredAction = null) {
     let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
+    if (elements.input) elements.input.value = '';
+    streamedStoryChoices = [];
     // 저장 파이프라인 핫픽스 — 이미 종료된 과거 액션(stale pending)은 자동 정리하고
     // 실제 in-flight 상태만 자동 재개한다. 정리된 경우 같은 클릭에서 새 행동을 계속 진행한다.
     const pending = loadPending(storage, gameId);
@@ -504,14 +509,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         await coordinator.startNewAction(action, structuredAction);
         // 정상 commit 확인 — 입력창과 선택 상태를 초기화한다.
         // 실패·미확정·재시도 상태에서는 사용자 입력을 지우지 않는다 (실패 시 catch가 복원).
-        if (elements.input) elements.input.value = '';
-        streamedStoryChoices = [];
         render();
       } catch (error) {
         // Story 생성 실패 등 — pending을 비우고 원래 행동을 입력창에 복원한다.
         // failed 상태가 새 턴 입력을 막지 않게 한다 (하드락 전면 제거).
         clearPending(storage, gameId);
-        if (elements.input) elements.input.value = action;
         throw error;
       }
     });
@@ -647,6 +649,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   async function init() {
     populateSetupOptions();
     elements.submit?.addEventListener('click', () => startNewAction());
+    elements.input?.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (!busy) startNewAction();
+      }
+    });
     elements.reset?.addEventListener('click', () => handleReset());
     setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
     await refreshContext();

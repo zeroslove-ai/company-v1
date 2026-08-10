@@ -221,6 +221,17 @@ test('buildOpeningPlan is deterministic, map-driven, and keeps one primary plus 
   assert.equal(custom.scene_goal, '새 프로젝트의 비공식 브리핑을 듣는다');
 });
 
+test('buildOpeningPlan prioritizes the player department over a public elevator fallback', () => {
+  const locations = [
+    { location_id: 'elevator_hall', name: '엘리베이터 홀', opening_enabled: true, opening_hooks: [{ id: 'elevator', label: '출근' }], opening_goals: ['이동'] },
+    { location_id: 'brand_strategy_office', name: '브랜드전략팀 사무실', opening_enabled: true, department_id: 'brand_strategy', opening_hooks: [{ id: 'hook-1', label: '첫 업무' }], opening_goals: ['첫 업무를 시작한다'] }
+  ];
+  const plan = buildOpeningPlan({ positionId: 'intern', departmentId: 'brand_strategy', seedBytes: [0, 0, 0], heroineIds: ['heroine1'], locations });
+  assert.equal(plan.location_id, 'brand_strategy_office');
+  assert.equal(plan.work_hook_id, 'hook-1');
+  assert.equal(plan.scene_goal, '첫 업무를 시작한다');
+});
+
 test('buildPlayerPromptProjection always sends canonical identity and speech style, and gates body/sexual/background fields on relevance', () => {
   const player = { name: '김하늘', height_cm: 170, weight_kg: 65, penis_length_cm: 13, background: '전 직장에서 마케팅을 했다.' };
   const canonical = { departmentName: '브랜드전략팀', positionName: '인턴', bodyTypeName: '균형 잡힌 체형', speechStyleName: '정중한 존댓말' };

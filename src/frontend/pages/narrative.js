@@ -349,3 +349,20 @@ export function parseNarrative(rawText, { speakerDirectory = {}, playerName = '�
   if (choice_labels.some(Boolean)) result.choice_labels = choice_labels;
   return result;
 }
+
+// Streaming presentation only: hide protocol markers without changing the raw Story buffer.
+// Complete-turn parsing remains the sole source of dialogue/choice projections.
+export function projectStreamingText(rawText) {
+  const raw = String(rawText ?? '');
+  const lines = raw.split(/\r?\n/);
+  const marker = /^\s*\[(?:SCENE|DIALOGUE\b[^\]]*|\/DIALOGUE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|3\.\s*선택지|4\.\s*선택지)\]\s*$/u;
+  const incomplete = /^\s*\[(?:S|D|P|C|1\.|2\.|3\.|4\.)[^\]]*$/u;
+  return lines.map((line, index) => {
+    if (marker.test(line)) return '';
+    if (index === lines.length - 1 && incomplete.test(line)) return '';
+    return line
+      .replace(/\[(?:\/)?DIALOGUE\b[^\]]*\]/g, '')
+      .replace(/\[(?:SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*(?:플레이어\s*상황판|선택지)|4\.\s*선택지)\]/g, '')
+      .trimEnd();
+  }).join('\n');
+}

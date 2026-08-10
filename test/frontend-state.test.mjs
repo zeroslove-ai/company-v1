@@ -601,7 +601,7 @@ test('Commit 화면 인계: 정본 반영 시 current-story가 저장 카드로 
     assert.equal(nodes['player-action'].disabled, false, '입력 활성');
   });
 });
-test('commit 성공 시 입력창이 초기화되고 실패 시 원래 입력이 유지된다', async () => {
+test('commit 성공·실패 모두 입력창을 비우고 실패한 입력을 자동 복원하지 않는다', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     // 성공 경로 — 정상 commit 후 입력창 초기화
     let commitOk = true;
@@ -631,7 +631,7 @@ test('commit 성공 시 입력창이 초기화되고 실패 시 원래 입력이
     await app2.refreshContext();
     nodes['player-action'].value = '실패해도 남아야 하는 문장';
     await app2.startNewAction('실패해도 남아야 하는 문장');
-    assert.equal(nodes['player-action'].value, '실패해도 남아야 하는 문장', '실패 시 원래 입력 유지');
+    assert.equal(nodes['player-action'].value, '', '실패한 입력은 자동 복원하지 않음');
   });
 });
 

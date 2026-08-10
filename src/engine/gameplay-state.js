@@ -84,9 +84,12 @@ export function selectActiveCharacterIds({ charactersMap, npcIds, save, playerAc
     if (typeof name === 'string' && name && text.includes(name)) push(id);
   }
   const currentSave = object(save) ? save : {};
-  push(currentSave.focal_character_id);
-  push(currentSave.last_speaker_id);
-  const participants = Array.isArray(currentSave.scene_state?.participants) ? currentSave.scene_state.participants : [];
+  const canonicalScene = object(currentSave.scene) && currentSave.scene.version === 1 ? currentSave.scene : null;
+  push(canonicalScene?.focal_character_id ?? currentSave.focal_character_id);
+  push(canonicalScene?.last_speaker_id ?? currentSave.last_speaker_id);
+  const participants = Array.isArray(canonicalScene?.present_npc_ids)
+    ? canonicalScene.present_npc_ids
+    : (Array.isArray(currentSave.scene_state?.participants) ? currentSave.scene_state.participants : []);
   for (const id of participants) push(id);
   return ordered;
 }
@@ -120,11 +123,14 @@ const ACTIVE_NPC_MAPS = ['npc_stats', 'npc_emotion', 'npc_relationship_state', '
  */
 export function buildSceneContextCore(save, activeIds = []) {
   const s = object(save) ? save : {};
-  const scene = object(s.scene_state) ? s.scene_state : {};
+  const legacyScene = object(s.scene_state) ? s.scene_state : {};
+  const canonicalScene = object(s.scene) && s.scene.version === 1 ? s.scene : null;
+  const scene = canonicalScene ?? legacyScene;
   const world = object(s.world_state) ? s.world_state : {};
   const gameTime = object(world.game_time) ? world.game_time : {};
   const activeSet = new Set(Array.isArray(activeIds) ? activeIds : []);
-  const participants = new Set(Array.isArray(scene.participants) ? scene.participants : []);
+  const participantIds = Array.isArray(scene.present_npc_ids) ? scene.present_npc_ids : scene.participants;
+  const participants = new Set(Array.isArray(participantIds) ? participantIds : []);
   const activeNpcState = {};
   for (const mapName of ACTIVE_NPC_MAPS) {
     const map = object(s[mapName]) ? s[mapName] : {};
@@ -150,9 +156,10 @@ export function buildSceneContextCore(save, activeIds = []) {
     scene: {
       scene_id: identity(scene.scene_id),
       location_id: identity(scene.location_id),
-      participants: Array.isArray(scene.participants) ? scene.participants : [],
-      focus_thread: identity(scene.focus_thread),
-      scene_goal: identity(scene.scene_goal),
+      participants: Array.isArray(participantIds) ? participantIds : [],
+      present_npc_ids: Array.isArray(scene.present_npc_ids) ? scene.present_npc_ids : [],
+      focus_thread: identity(scene.focus_thread ?? scene.focus_thread_id),
+      scene_goal: identity(scene.scene_goal ?? scene.goal),
       beat: integer(scene.beat)
     },
     global_csa: projectGlobalCsa(s),

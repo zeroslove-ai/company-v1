@@ -134,6 +134,31 @@ function findNpcProfile(master, npcId) {
   return {};
 }
 
+function buildMovementGrounding(edition, save, playerAction = '') {
+  const mapLocations = Array.isArray(edition?.map?.locations) ? edition.map.locations : [];
+  const action = typeof playerAction === 'string' ? playerAction : '';
+  const currentId = save?.scene?.version === 1 ? save.scene.location_id : save?.scene_state?.location_id;
+  const current = mapLocations.find(location => location?.location_id === currentId);
+  const targets = mapLocations.filter(location => {
+    if (typeof location?.name === 'string' && action.includes(location.name)) return true;
+    return Array.isArray(location?.aliases) && location.aliases.some(alias => typeof alias === 'string' && action.includes(alias));
+  });
+  const target = targets.length === 1 ? targets[0] : null;
+  const characters = object(edition?.characters?.characters) ?? {};
+  const namedNpc = Object.entries(characters).find(([, character]) => typeof character?.name === 'string' && action.includes(character.name));
+  const namedTarget = namedNpc
+    ? mapLocations.find(location => Array.isArray(location?.default_npc_ids) && location.default_npc_ids.includes(namedNpc[0]))
+    : null;
+  if (!target && !namedTarget && !MOVEMENT_TARGET_ACTION.test(action)) return null;
+  return {
+    current_location: current ? { location_id: current.location_id, name: current.name, floor: current.floor, department_id: current.department_id } : null,
+    requested_location: (target ?? namedTarget) ? { location_id: (target ?? namedTarget).location_id, name: (target ?? namedTarget).name, floor: (target ?? namedTarget).floor, department_id: (target ?? namedTarget).department_id } : null,
+    requested_character: namedNpc ? { character_id: namedNpc[0], name: namedNpc[1].name } : null,
+    known_paths: current && Array.isArray(current.adjacent_location_ids) ? current.adjacent_location_ids : [],
+    movement_is_observed_by_story: true
+  };
+}
+
 /** Compact Story context: active state plus summaries, workplace context, and one detailed previous-turn block. */
 export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, sceneCastContract, expectedTurn } = {}) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
@@ -156,6 +181,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     player: buildPlayerPromptProjection({ player, canonical, playerAction }),
     ...storySceneCore,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
+    movement_grounding: buildMovementGrounding(edition, save, playerAction),
     story_summary: {
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
       // recent는 호환용 필드일 뿐 — 최신 3턴 정본은 recent_turns(story_text 전체)다.

@@ -76,7 +76,7 @@ function compactText(value, maxLength = 120) {
   return Array.from(value.trim().replace(/\s+/g, ' ')).slice(0, maxLength).join('');
 }
 
-function openingLocationCandidates(locations, positionId) {
+function openingLocationCandidates(locations, positionId, departmentId) {
   const source = Array.isArray(locations) ? locations : [];
   const normalized = source.flatMap(location => {
     const locationId = compactText(location?.location_id, 100);
@@ -88,14 +88,22 @@ function openingLocationCandidates(locations, positionId) {
     if (explicitPositions.length && !explicitPositions.includes(positionId)) return [];
     if (location?.location_type === 'storage' && location?.opening_enabled !== true) return [];
     if (location?.visibility === 'private' && positionId !== 'executive' && !explicitPositions.length) return [];
+    const departmentMatch = departmentId && (
+      location?.department_id === departmentId
+      || (Array.isArray(location?.department_ids) && location.department_ids.includes(departmentId))
+    );
+    const positionMatch = explicitPositions.includes(positionId);
     return [{
       location_id: locationId,
       name,
+      selection_score: departmentMatch ? 3 : (positionMatch ? 2 : 0),
       opening_hooks: Array.isArray(location?.opening_hooks) ? location.opening_hooks : [],
       opening_goals: Array.isArray(location?.opening_goals) ? location.opening_goals : []
     }];
   });
-  return normalized.length ? normalized : [{ location_id: 'office', name: '사무실', opening_hooks: [], opening_goals: [] }];
+  if (!normalized.length) return [{ location_id: 'office', name: '사무실', selection_score: 0, opening_hooks: [], opening_goals: [] }];
+  const bestScore = Math.max(...normalized.map(item => item.selection_score ?? 0));
+  return normalized.filter(item => (item.selection_score ?? 0) === bestScore);
 }
 
 function normalizedHook(value, location) {
@@ -127,8 +135,8 @@ function openingGoals(location) {
  * hardcoded in the engine: content/map.json (or another edition adapter) supplies them. Exactly
  * one primary heroine and at most one supporting heroine are still selected for scene clarity.
  */
-export function buildOpeningPlan({ positionId, seedBytes, heroineIds, locations = [] }) {
-  const candidates = openingLocationCandidates(locations, positionId);
+export function buildOpeningPlan({ positionId, departmentId, seedBytes, heroineIds, locations = [] }) {
+  const candidates = openingLocationCandidates(locations, positionId, departmentId);
   const bytes = seedBytes && seedBytes.length > 0 ? seedBytes : [0];
   let cursor = 0;
   const next = max => {
