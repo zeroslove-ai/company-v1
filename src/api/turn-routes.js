@@ -577,7 +577,7 @@ const master = masterFromEdition(edition);
             if (destination) {
               messages = [{
                 ...messages[0],
-                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION CONTRACT] This is an explicit movement turn. The requested canonical destination is ${destination.name} (location_id=${destination.location_id}). If the raw Story visibly arrives there, set scene_observation.location_id to exactly ${destination.location_id} and include an exact contiguous movement evidence quote from the Story. Do not substitute the origin location, and do not infer arrival from player_action alone. If the Story does not visibly arrive there, keep location_id null and provide no movement evidence.`
+                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION CONTRACT] This is an explicit movement turn. The requested canonical destination is ${destination.name} (location_id=${destination.location_id}). If the raw Story visibly arrives there, set scene_observation.location_id to exactly ${destination.location_id}, set presence_is_final=true, return final_present_npc_ids as the exact NPC snapshot visibly remaining at the destination (use [] for an explicitly empty NPC scene), and include an exact contiguous movement evidence quote from the Story. Do not substitute the origin location, and do not infer arrival from player_action alone. If the Story does not visibly arrive there, keep location_id null, presence_is_final=false, final_present_npc_ids=null, and provide no movement evidence.`
               }, ...messages.slice(1)];
             }
           }
