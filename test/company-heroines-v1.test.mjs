@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import edition from '../src/api/edition.js';
 import { masterFromEdition, npcIdsFromEdition } from '../src/api/turn-routes.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
-import { buildExtractPrompt, buildRegisteredCharacters } from '../src/engine/extract-prompt.js';
+import { buildExtractPrompt, buildRegisteredCharacters, buildRegisteredLocations } from '../src/engine/extract-prompt.js';
 import { parseNarrative } from '../src/engine/narrative-parser.js';
 import { buildActiveCharacterCanon, hydrateGameplayState, migrateCompanySave, selectActiveCharacterIds } from '../src/engine/gameplay-state.js';
 
@@ -301,6 +301,21 @@ test('buildRegisteredCharacters returns only heroine id/name pairs with no Stora
     assert.ok(HEROINE_IDS.includes(entry.character_id));
   }
   assert.deepEqual(registered.find(e => e.character_id === 'heroine1'), { character_id: 'heroine1', name: '서원희' });
+});
+
+test('Extract receives a compact registered location ID dictionary for grounded movement', () => {
+  const locations = buildRegisteredLocations(edition);
+  const office = locations.find(location => location.location_id === 'brand_strategy_office');
+  assert.deepEqual(office, {
+    location_id: 'brand_strategy_office',
+    name: '브랜드전략팀 사무실',
+    aliases: ['브랜드전략팀', '브랜드팀', '브랜드 사무실'],
+    floor: 3,
+    department_id: 'brand_strategy'
+  });
+  assert.equal(Object.hasOwn(office, 'description'), false);
+  const payload = JSON.parse(buildExtractPrompt({ edition, context: {}, storyText: 'x', playerAction: '브랜드전략팀 사무실로 이동한다', expectedTurn: 2 })[1].content);
+  assert.deepEqual(payload.registered_locations.find(location => location.location_id === office.location_id), office);
 });
 
 test('Extract prompt user payload carries registered_characters and the system prompt restricts Extract to those stable ids', () => {
