@@ -283,7 +283,18 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
   if (!object(value.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
   const scene = movement
-    ? { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, remote_speaker_ids: value.scene_observation?.remote_speaker_ids ?? [], evidence: [] }
+    ? {
+        // Navigation owns location. A valid final presence array remains a
+        // usable observation; null means the destination starts empty.
+        scene_id: null,
+        location_id: null,
+        final_present_npc_ids: value.scene_observation?.final_present_npc_ids ?? null,
+        entered_npc_ids: [],
+        exited_npc_ids: [],
+        focal_candidate_id: null,
+        remote_speaker_ids: value.scene_observation?.remote_speaker_ids ?? [],
+        evidence: []
+      }
     : value.scene_observation;
   assertKeys(scene, new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'remote_speaker_ids', 'evidence', 'presence_is_final']), 'INVALID_EXTRACT_OBSERVATION');
   const final = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });

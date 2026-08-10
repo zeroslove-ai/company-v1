@@ -39,13 +39,27 @@ test('final presence replaces rather than unions legacy ids', () => assert.deepE
 test('duplicate and player ids are removed from final presence', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2', 'heroine2', 'player-1'] }) }).present_npc_ids, ['heroine2']));
 test('unknown final presence ids are ignored', () => assert.deepEqual(reduce({ observation: observation({ final: ['ghost', 'heroine2'] }) }).present_npc_ids, ['heroine2']));
 test('explicit speaker outside final presence fails without remote evidence', () => assert.throws(() => reduce({ observation: observation({ final: [], speakers: ['heroine1'] }) }), error => error instanceof GameCoreError && error.code === 'SCENE_PRESENCE_CONTRADICTS_STORY'));
-test('successful movement rejects an origin-only speaker without remote or exit evidence', () => {
-  assert.throws(() => reduce({ observation: observation({ location_id: 'destination', final: [], speakers: ['heroine1'] }) }), error => error instanceof GameCoreError && error.code === 'SCENE_PRESENCE_CONTRADICTS_STORY');
+test('successful movement tolerates an origin speaker without a movement presence gate', () => {
+  const next = reduce({ movementDestinationId: 'destination', observation: observation({ location_id: 'destination', final: [], speakers: ['heroine1'] }) });
+  assert.equal(next.location_id, 'destination');
+  assert.deepEqual(next.present_npc_ids, []);
 });
-test('successful movement still rejects an NPC absent from origin and destination', () => assert.throws(
-  () => reduce({ observation: observation({ location_id: 'destination', final: [], speakers: ['heroine3'] }) }),
-  error => error instanceof GameCoreError && error.code === 'SCENE_PRESENCE_CONTRADICTS_STORY'
-));
+test('successful movement tolerates a registered arrival speaker absent from the snapshot', () => {
+  const next = reduce({ movementDestinationId: 'destination', observation: observation({ location_id: 'destination', final: [], speakers: ['heroine3'] }) });
+  assert.equal(next.location_id, 'destination');
+  assert.deepEqual(next.present_npc_ids, []);
+});
+
+test('movement final presence array is the only destination presence input', () => {
+  const next = reduce({ movementDestinationId: 'destination', observation: observation({ location_id: 'destination', final: ['heroine2'], speakers: ['heroine2'] }) });
+  assert.deepEqual(next.present_npc_ids, ['heroine2']);
+});
+
+test('movement null final presence starts destination with no origin NPC union', () => {
+  const next = reduce({ movementDestinationId: 'destination', observation: observation({ location_id: null, final: null, speakers: ['heroine2'] }) });
+  assert.equal(next.location_id, 'destination');
+  assert.deepEqual(next.present_npc_ids, []);
+});
 
 // Movement 14-22
 test('location change updates canonical location', () => assert.equal(reduce({ observation: observation({ location_id: 'destination', final: ['heroine2'] }) }).location_id, 'destination'));

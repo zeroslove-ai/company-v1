@@ -131,7 +131,7 @@ test('맵8: "브랜드전략팀 사무실로 이동한다" (NPC 미언급) → m
   assert.equal(contract.transition_mode, 'movement');
   assert.equal(contract.destination_location_id, 'brand_strategy_office');
   assert.deepEqual(contract.destination_npc_ids, [], 'NPC 이름이 없으므로 목적지 NPC는 비어 있어야 한다');
-  assert.deepEqual(contract.present_npc_ids, [], '말 걸기 의도가 없는 순수 이동은 아무도 발화하지 않는다');
+  assert.deepEqual(contract.present_npc_ids, ['heroine2'], '이동 contract는 출발 cast를 speaker 권위로 재작성하지 않는다');
 });
 
 test('맵9: "직원 라운지로 이동한다" (기본 NPC 없는 장소) → movement, 아무도 자동 등장하지 않는다', () => {
@@ -143,7 +143,7 @@ test('맵9: "직원 라운지로 이동한다" (기본 NPC 없는 장소) → mo
   assert.equal(contract.destination_location_id, 'employee_lounge');
   assert.deepEqual(contract.destination_npc_ids, []);
   assert.deepEqual(contract.present_npc_ids, []);
-  assert.deepEqual(contract.allowed_speaker_ids, ['player']);
+  assert.equal(contract.allowed_speaker_ids, null, '이동에는 사전 계산 speaker allow-list가 없다');
 });
 
 test('맵9b: "서원희를 찾아간다" (스펙 시나리오 3 리터럴 입력) → movement, heroine1 목적지 확정', () => {
@@ -181,9 +181,8 @@ test('맵9c: 출발 장면에 이미 있던 윤민아를 "이동해서 인사한
   assert.equal(contract.transition_mode, 'movement');
   assert.equal(contract.destination_location_id, 'brand_strategy_office', '문장에 명시된 목적지 장소가 우선이다');
   assert.deepEqual(contract.destination_npc_ids, ['heroine2']);
-  assert.deepEqual(contract.present_npc_ids, ['heroine2'], '말 걸기 의도가 있으므로 같은 턴에 발화 가능해야 한다');
-  assert.ok(contract.allowed_speaker_ids.includes('heroine2'));
-  assert.ok(!contract.allowed_speaker_ids.includes('heroine1'), '다른 NPC는 등장하지 않는다');
+  assert.deepEqual(contract.present_npc_ids, ['heroine2']);
+  assert.equal(contract.allowed_speaker_ids, null, '목적지 NPC 발화 여부를 movement contract가 사전 판정하지 않는다');
 });
 
 // ── O-11 / O-12: 업무 선택지 0개 ──────────────────────────────────────────
@@ -232,19 +231,19 @@ test('맵15: cast 계산은 순수 함수 — fetch/LLM 호출이 전혀 없다'
 
 // ── O-4: 같은 턴 이동 + 만남 + 대화 ───────────────────────────────────────
 
-test('맵4: "민아에게 인사한다" → 같은 턴에 도착하고 윤민아가 대답할 수 있다', () => {
+test('맵4: "민아에게 인사한다" → 같은 턴 navigation은 speaker gate 없이 허용된다', () => {
   const contract = cast('브랜드전략팀으로 가서 민아에게 인사한다', {
     npcSceneState: { heroine2: { present: true } }
   });
   assert.equal(contract.transition_mode, 'movement');
   assert.equal(contract.destination_location_id, 'brand_strategy_office');
-  assert.ok(contract.allowed_speaker_ids.includes('heroine2'), '말 걸기 의도가 있으면 같은 턴 응답 허용');
+  assert.equal(contract.allowed_speaker_ids, null, 'movement가 대화 가능 여부를 사전 판정하지 않는다');
 });
 
-test('맵4b: 말 걸기 의도가 없는 순수 이동은 도착까지만 — 목적지 NPC가 먼저 말하지 않는다', () => {
+test('맵4b: 순수 이동도 speaker allow-list 없이 navigation만 확정한다', () => {
   const contract = cast('이제 민아보러 가야지~', { npcSceneState: { heroine2: { present: true } } });
   assert.equal(contract.transition_mode, 'movement');
-  assert.deepEqual(contract.allowed_speaker_ids, ['player'], '도착 서술만, 발화는 다음 턴');
+  assert.equal(contract.allowed_speaker_ids, null);
 });
 
 // ── O-8/9/10/13: 맵 패널 상호작용 ─────────────────────────────────────────
@@ -258,8 +257,8 @@ test('movement cast does not add a current origin NPC as a destination speaker',
     npcSceneState: { heroine2: { present: true, location_id: 'brand_strategy_office' } }
   });
   assert.equal(contract.transition_mode, 'movement');
-  assert.deepEqual(contract.present_npc_ids, []);
-  assert.ok(!contract.allowed_speaker_ids.includes('heroine2'));
+  assert.deepEqual(contract.present_npc_ids, ['heroine2']);
+  assert.equal(contract.allowed_speaker_ids, null);
   assert.deepEqual(contract.remote_npc_ids, []);
 });
 

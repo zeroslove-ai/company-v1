@@ -143,7 +143,7 @@ test('movement commit uses deterministic destination without Story arrival evide
   assert.equal(result.canonical_scene.location_id, 'brand_strategy_meeting_room');
 });
 
-test('movement commit does not copy origin NPCs into destination presence', () => {
+test('movement commit does not copy origin NPCs into destination presence or use navigation targets as presence', () => {
   const currentSave = {
     ...structuredClone(save),
     scene: { version: 1, scene_id: 'office', location_id: 'brand_strategy_office', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 1 }
@@ -162,7 +162,7 @@ test('movement commit does not copy origin NPCs into destination presence', () =
     currentSave, observation, parsedStory: { choices: [], dialogue_lines: [] }, rawStory,
     action: { ...action, action_id: 'move-origin-speaker', player_action: 'move to the meeting room' }, expectedTurn: 2,
     npcIds: NPCS, mapLocations: [{ location_id: 'brand_strategy_office' }, { location_id: 'brand_strategy_meeting_room' }],
-    movementContract: { transition_mode: 'movement', location_id: 'brand_strategy_office', destination_location_id: 'brand_strategy_meeting_room' }
+    movementContract: { transition_mode: 'movement', location_id: 'brand_strategy_office', destination_location_id: 'brand_strategy_meeting_room', destination_npc_ids: ['npc-hayeon'] }
   });
   assert.equal(result.canonical_scene.location_id, 'brand_strategy_meeting_room');
   assert.deepEqual(result.canonical_scene.present_npc_ids, []);

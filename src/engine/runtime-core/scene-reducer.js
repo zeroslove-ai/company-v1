@@ -169,7 +169,9 @@ export function reduceCanonicalScene(input = {}) {
     next.goal = movementDestinationId ? null : (observation.scene_goal_provided ? observation.scene_goal : null);
     next.focus_thread = movementDestinationId ? null : (observation.focus_thread_provided ? observation.focus_thread : null);
     next.present_npc_ids = movementDestinationId
-      ? uniqueNpcIds(input.movementPresenceNpcIds ?? [], npcIds)
+      ? (Array.isArray(observation.final_present_npc_ids)
+        ? uniqueNpcIds(observation.final_present_npc_ids, npcIds)
+        : [])
       : uniqueNpcIds(observation.final_present_npc_ids, npcIds);
   } else if (stationary && !degraded && observation.outcome === 'success' && Array.isArray(observation.final_present_npc_ids)) {
     next.present_npc_ids = uniqueNpcIds(observation.final_present_npc_ids, npcIds);
@@ -184,6 +186,7 @@ export function reduceCanonicalScene(input = {}) {
   const currentIds = new Set(next.present_npc_ids);
   const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
   for (const speaker of speakers) {
+    if (movementDestinationId) continue;
     if (isPlayerId(speaker) || currentIds.has(speaker) || observation.remote_speaker_ids?.includes(speaker) || observation.exited_npc_ids?.includes(speaker)) continue;
     throw new GameCoreError(
       Array.isArray(observation.final_present_npc_ids) ? 'SCENE_PRESENCE_CONTRADICTS_STORY' : 'SCENE_PRESENCE_UNRESOLVED',

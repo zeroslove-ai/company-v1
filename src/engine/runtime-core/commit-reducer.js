@@ -66,7 +66,6 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     expectedTurn,
     actionKind: action?.action_kind,
     movementDestinationId: resolvedMovement,
-    movementPresenceNpcIds: resolvedMovement ? movementContract?.destination_npc_ids : null
   });
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),

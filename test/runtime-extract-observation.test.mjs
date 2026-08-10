@@ -194,14 +194,14 @@ test('retained canonical presence does not require repeated presence evidence', 
   assert.equal(assertScenePresenceCoverage(observation, { currentScene: { present_npc_ids: ['heroine1'] } }), true);
 });
 
-test('movement observation ignores navigation evidence and leaves destination to the action resolver', () => {
+test('movement observation preserves valid final presence while leaving location to the action resolver', () => {
   const movement = normalizeExtractObservationV2(valid({ scene_observation: {
     scene_id: 'hallucinated', location_id: 'wrong-room', final_present_npc_ids: ['heroine1'],
     entered_npc_ids: ['heroine1'], exited_npc_ids: [], focal_candidate_id: 'heroine1', presence_is_final: true,
     remote_speaker_ids: [], evidence: [{ kind: 'movement', location_id: 'wrong-room', quote: 'not in Story' }]
   } }), { npcIds: NPCS, storyText: STORY, movement: true });
   assert.deepEqual(movement.scene_observation, {
-    scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [],
+    scene_id: null, location_id: null, final_present_npc_ids: ['heroine1'], entered_npc_ids: [], exited_npc_ids: [],
     focal_candidate_id: null, remote_speaker_ids: [], evidence: []
   });
 });
