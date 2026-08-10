@@ -316,12 +316,13 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
   const movementDirective = movementDestination
     ? `\n\n[MANDATORY MOVEMENT RESULT] scene_cast_contract.transition_mode=movement. This turn must leave the current location and visibly arrive at ${movementDestination.name} (canonical location_id=${movementDestination.location_id}) in the first [SCENE]. Do not write a waiting, conversation, or unchanged-current-location turn. If the Story does not show arrival at that named destination, the movement cannot be observed or committed.`
     : '';
-  return [
+  const messages = [
     { role: 'system', content: `${SYSTEM_INSTRUCTIONS}\n\n${FINAL_OUTPUT_SHAPE}${movementDirective}` },
     {
       role: 'user',
       content: JSON.stringify({
         edition: edition.editionId,
+        story_mode: movementDestination ? 'movement_story' : 'stationary_story',
         ...(sceneCastContract ? { scene_cast_contract: sceneCastContract } : {}),
         ...(movementDestination ? {
           movement_result_required: {
@@ -338,4 +339,29 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
       })
     }
   ];
+  if (movementDestination) {
+    messages.push({
+      role: 'user',
+      content: JSON.stringify({
+        current_turn_contract: 'movement',
+        player_action: playerAction,
+        from_location: sceneCastContract.location_id,
+        destination: {
+          location_id: movementDestination.location_id,
+          name: movementDestination.name,
+          floor: movementDestination.floor ?? null,
+          department_id: movementDestination.department_id ?? null
+        },
+        required_result: 'arrive_at_destination_in_this_story',
+        priority: 'highest',
+        prohibitions: [
+          'do_not_continue_current_location_conversation',
+          'do_not_create_a_new_obstacle',
+          'do_not_ask_whether_player_still_wants_to_move',
+          'do_not_leave_player_in_current_location'
+        ]
+      })
+    });
+  }
+  return messages;
 }

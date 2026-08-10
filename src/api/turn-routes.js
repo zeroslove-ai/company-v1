@@ -641,6 +641,13 @@ const master = masterFromEdition(edition);
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const currentSave = context.save?.data ?? context.save;
+        const movementContract = buildSceneCastContract({
+          save: currentSave,
+          master,
+          playerAction: action.player_action,
+          structuredAction,
+          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+        });
         let parsedStory = parseStoryProjection(action.story_text, master);
         const extract = action.extract_delta?.extract_version === 2
           ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId })
@@ -649,7 +656,8 @@ const master = masterFromEdition(edition);
         const merged = reduceGameplayCommit({
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,
           action, expectedTurn, master, npcIds,
-          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
+          movementContract
         });
         timing.commit_reducer_ms = Date.now() - reducerStart;
         let nextSave = merged.nextSave;

@@ -85,6 +85,7 @@ test('Story prompt keeps stable canon before context and turn-specific input', (
 
   assert.deepEqual(Object.keys(payload), [
     'edition',
+    'story_mode',
     'active_character_canon',
     'active_general_npc_canon',
     'context',

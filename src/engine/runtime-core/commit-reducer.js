@@ -4,6 +4,7 @@ import { projectCanonicalSceneToLegacy } from './projections.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
 import { assertScenePresenceCoverage } from './extract-observation.js';
+import { GameCoreError } from '../errors.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
@@ -47,10 +48,17 @@ function canonicalObservation(observation, parsedStory) {
   };
 }
 
-export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations } = {}) {
+export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, movementContract = null } = {}) {
   const current = clone(currentSave);
   const sceneBefore = hydrateCanonicalScene(current, { master, npcIds });
   const sceneObservation = canonicalObservation(observation, parsedStory);
+  if (movementContract?.transition_mode === 'movement' && movementContract.destination_location_id) {
+    const destination = movementContract.destination_location_id;
+    const movementEvidence = sceneObservation.evidence.some(item => item.kind === 'movement' && item.location_id === destination);
+    if (observation.outcome !== 'success' || sceneObservation.location_id !== destination || !movementEvidence) {
+      throw new GameCoreError('MOVEMENT_NOT_OBSERVED', `Movement arrival was not observed at ${destination}`);
+    }
+  }
   assertScenePresenceCoverage(observation, { currentScene: sceneBefore });
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,

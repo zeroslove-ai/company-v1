@@ -161,6 +161,11 @@ test('movement Story prompt names the canonical destination as a mandatory arriv
     name: '사무실',
     completed_arrival_required: true
   });
+  assert.equal(payload.story_mode, 'movement_story');
+  const currentTurn = JSON.parse(messages[2].content);
+  assert.equal(currentTurn.current_turn_contract, 'movement');
+  assert.equal(currentTurn.required_result, 'arrive_at_destination_in_this_story');
+  assert.equal(currentTurn.destination.location_id, 'office');
 });
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {
