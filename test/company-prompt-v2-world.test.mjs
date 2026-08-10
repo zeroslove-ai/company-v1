@@ -136,6 +136,8 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.match(system, /scene_cast_contract가 이미 확정/);
   assert.match(system, /너에게는 결정 권한이 없다/);
   assert.match(system, /scene_goal 또는 focus_thread/);
+  assert.match(system, /scene_cast_contract\.transition_mode가 movement이고 destination_location_id가 있으면/);
+  assert.match(system, /requested_location\.name.*도착한 관찰 가능한 결과/);
   assert.match(system, /현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /acting_direction=/);

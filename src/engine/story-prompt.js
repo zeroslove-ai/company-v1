@@ -240,7 +240,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   '장면 연속성: context.recent_turns에 최신 확정 3턴의 story_text 원문이 그대로 있다. 그 원문(특히 최신 턴)을 실제 근거로 삼아 직전 질문·약속·결정·말투·물건·자세를 무시하고 장면을 재시작하지 않으며, 질문에는 답변·회피·보류 중 하나로 반응하고 같은 설명을 반복하지 않는다.',
 
-  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. NPC 등장 여부는 scene_cast_contract가 이미 확정했고 너에게는 결정 권한이 없다. eligible_nearby_npcs는 서버 내부 참고 목록일 뿐이므로 그것을 근거로 누구도 등장시키지 마라. movement_grounding.movement_requested가 true이고 requested_location 또는 requested_character가 있으면, Story에 이미 적힌 실제 방해 사유가 없는 한 그 턴 안에 목적지 도착까지 서술한다. 모델이 엘리베이터 고장·호출·출입 제한·갑작스러운 업무 같은 지연 사유를 새로 만들지 않는다.',
+  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. NPC 등장 여부는 scene_cast_contract가 이미 확정했고 너에게는 결정 권한이 없다. eligible_nearby_npcs는 서버 내부 참고 목록일 뿐이므로 그것을 근거로 누구도 등장시키지 마라. movement_grounding.movement_requested가 true이고 requested_location 또는 requested_character가 있으면, Story에 이미 적힌 실제 방해 사유가 없는 한 그 턴 안에 목적지 도착까지 서술한다. scene_cast_contract.transition_mode가 movement이고 destination_location_id가 있으면 현재 장소의 대화나 대기 장면을 반복하지 말고, 첫 [SCENE] 안에 movement_grounding.requested_location.name(또는 그 명확한 한국어 표기)에 도착한 관찰 가능한 결과를 반드시 쓴다. 목적지 도착을 쓰지 않은 채 턴을 끝내지 않는다. 모델이 엘리베이터 고장·호출·출입 제한·갑작스러운 업무 같은 지연 사유를 새로 만들지 않는다.',
 
   '대화 기능: 첫 발언은 반응·질문·확인, 중간은 새 정보·조건·반론·감정 변화, 마지막은 결정·행동 시작·다음 쟁점 중 서로 다른 기능을 맡는다. 다인 장면은 가능하면 NPC끼리 한 번 이상 직접 반응하고, 모두 같은 의견을 반복하지 않는다.',
 
