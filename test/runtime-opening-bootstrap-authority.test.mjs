@@ -98,10 +98,16 @@ test('first gameplay starts at expected turn one without reopening the opening s
   assert.equal(1, saved.turn_state.committed_turn + 1);
 });
 
-test('initial clothing is a preserving merge and Phase 6 exercises the combined path', () => {
-  assert.match(clothingMigration, /company_initial_clothing_v2\(\)\s*\|\|\s*v_existing_clothing/);
-  assert.match(clothingMigration, /v_player_scene/);
-  assert.doesNotMatch(clothingMigration, /jsonb_set\(\s*v_data,\s*'\{player_scene_state,clothing\}',\s*public\.company_initial_clothing_v2\(\)/s);
+test('historical clothing migration stays immutable and the new migration owns the preserving helper', () => {
+  assert.doesNotMatch(clothingMigration, /v_existing_clothing/);
+  assert.match(clothingMigration, /jsonb_set\(\s*v_data,\s*'\{player_scene_state,clothing\}',\s*public\.company_initial_clothing_v2\(\)/s);
+  const definitionIndex = migration.indexOf('create or replace function public.company_apply_initial_clothing_v2');
+  const firstUseIndex = migration.indexOf('public.company_apply_initial_clothing_v2(data)');
+  assert.ok(definitionIndex >= 0);
+  assert.ok(firstUseIndex > definitionIndex);
+  assert.match(migration, /company_initial_clothing_v2\(\)\s*\|\|\s*v_existing_clothing/);
+  assert.match(migration, /revoke all on function public\.company_initial_clothing_v2\(\)\s+from public, anon, authenticated, service_role/);
+  assert.match(migration, /revoke all on function public\.company_apply_initial_clothing_v2\(jsonb\)\s+from public, anon, authenticated, service_role/);
   assert.match(migration, /company_apply_opening_scene_v1\(public\.company_apply_initial_clothing_v2\(data\)\)/);
   assert.match(migration, /reserve_company_player_setup_legacy_v2[\s\S]*?update public\.game_save[\s\S]*?company_apply_initial_clothing_v2\(data\)/);
   assert.doesNotMatch(migration, /update public\.game_save\s+set data = public\.company_apply_initial_clothing_v2\(data\),\s*save_revision\s*=\s*save_revision\s*\+/s);

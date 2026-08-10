@@ -1,6 +1,59 @@
 -- Company v1 Phase 6: canonical turn-0 bootstrap projection.
 -- Package only. Apply to Supabase in a separately approved operations step.
 
+-- Refresh the additive clothing helper before any wrapper or turn-0 backfill
+-- uses it. Existing clothing keys (including custom keys) are authoritative.
+create or replace function public.company_apply_initial_clothing_v2(p_data jsonb)
+returns jsonb
+language plpgsql
+immutable
+as $$
+declare
+  v_data jsonb := coalesce(p_data, '{}'::jsonb);
+  v_npc_scene jsonb := coalesce(v_data -> 'npc_scene_state', '{}'::jsonb);
+  v_player_scene jsonb := coalesce(v_data -> 'player_scene_state', '{}'::jsonb);
+  v_existing_clothing jsonb;
+  v_id text;
+  v_state jsonb;
+begin
+  if jsonb_typeof(v_player_scene) <> 'object' then
+    v_player_scene := '{}'::jsonb;
+  end if;
+  v_existing_clothing := v_player_scene -> 'clothing';
+  if jsonb_typeof(v_existing_clothing) <> 'object' then
+    v_existing_clothing := '{}'::jsonb;
+  end if;
+  v_player_scene := jsonb_set(
+    v_player_scene,
+    '{clothing}',
+    public.company_initial_clothing_v2() || v_existing_clothing,
+    true
+  );
+  v_data := jsonb_set(v_data, '{player_scene_state}', v_player_scene, true);
+
+  if jsonb_typeof(v_npc_scene) <> 'object' then
+    v_npc_scene := '{}'::jsonb;
+  end if;
+  for v_id, v_state in select key, value from jsonb_each(v_npc_scene)
+  loop
+    if jsonb_typeof(v_state) <> 'object' then
+      v_state := '{}'::jsonb;
+    end if;
+    v_existing_clothing := v_state -> 'clothing';
+    if jsonb_typeof(v_existing_clothing) <> 'object' then
+      v_existing_clothing := '{}'::jsonb;
+    end if;
+    v_npc_scene := jsonb_set(
+      v_npc_scene,
+      array[v_id, 'clothing'],
+      public.company_initial_clothing_v2() || v_existing_clothing,
+      true
+    );
+  end loop;
+  return jsonb_set(v_data, '{npc_scene_state}', v_npc_scene, true);
+end;
+$$;
+
 create or replace function public.company_apply_opening_scene_v1(p_data jsonb)
 returns jsonb
 language plpgsql
@@ -185,3 +238,5 @@ revoke all on function public.reserve_company_player_setup_legacy_v2(uuid, uuid,
 revoke all on function public.commit_company_opening_legacy_v2(uuid, uuid, text, text, jsonb) from public, anon, authenticated, service_role;
 grant execute on function public.reserve_company_player_setup(uuid, uuid, jsonb, jsonb) to service_role;
 grant execute on function public.commit_company_opening(uuid, uuid, text, text, jsonb) to service_role;
+revoke all on function public.company_initial_clothing_v2() from public, anon, authenticated, service_role;
+revoke all on function public.company_apply_initial_clothing_v2(jsonb) from public, anon, authenticated, service_role;
