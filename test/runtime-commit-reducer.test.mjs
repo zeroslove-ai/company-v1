@@ -24,7 +24,7 @@ test('V2 reducer keeps scene authority separate from NPC physical observation', 
   assert.equal(result.nextSave.scene_state.participants.join(','), save.scene_state.participants.join(','));
 });
 
-test('scene is reduced before domains so an entered NPC physical observation is retained', () => {
+test('final presence is reduced before domains so an observed NPC physical state is retained', () => {
   const currentSave = {
     ...structuredClone(save),
     scene: { version: 1, scene_id: 'room', location_id: 'meeting_room_5f', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 7 },
@@ -36,10 +36,9 @@ test('scene is reduced before domains so an entered NPC physical observation is 
     ...baseObservation,
     scene_observation: {
       scene_id: 'room', location_id: 'meeting_room_5f', final_present_npc_ids: ['npc-hayeon', 'npc-areum'],
-      entered_npc_ids: ['npc-areum'], exited_npc_ids: [], focal_candidate_id: 'npc-areum', presence_is_final: true,
+      focal_candidate_id: 'npc-areum',
       remote_speaker_ids: [], evidence: [
         { kind: 'presence', character_id: 'npc-hayeon', quote: 'npc-areum entered' },
-        { kind: 'entrance', character_id: 'npc-areum', quote: 'npc-areum entered' },
         { kind: 'presence', character_id: 'npc-areum', quote: 'npc-areum entered' }
       ]
     },

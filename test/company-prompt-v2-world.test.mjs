@@ -202,6 +202,6 @@ test('Story and Extract activate a named general NPC with compact canon and scop
   assert.equal(extractPayload.active_general_npc_canon.general_manager.name, '박정우');
   assert.deepEqual(Object.keys(extractPayload.context.active_npc_state.npc_emotion), ['general_manager']);
   assert.match(extractSystem, /nearby\/default\/eligible NPC is not present/);
-  assert.match(extractSystem, /Story explicitly shows their entrance\/presence\/action\/dialogue|entrance, presence, action, or dialogue/);
+  assert.match(extractSystem, /Story explicitly shows their presence\/action\/dialogue|presence, action, or dialogue/);
   assert.ok(extractSystem.length <= 9000, `Extract system prompt too large: ${extractSystem.length}`); // 예산 7000 (image_selection 지시 반영)
 });

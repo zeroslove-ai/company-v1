@@ -18,8 +18,8 @@ function save(overrides = {}) {
   };
   return { ...base, ...overrides };
 }
-function observation({ location_id = null, final = null, focal = null, speakers = [], outcome = 'success', scene_id = null, remote = [], exited = [] } = {}) {
-  return { scene_id, location_id, final_present_npc_ids: final, focal_candidate_id: focal, explicit_speaker_ids: speakers, last_explicit_speaker_id: speakers.at(-1) ?? null, scene_goal: null, focus_thread: null, scene_goal_provided: false, focus_thread_provided: false, outcome, presence_is_final: final !== null, remote_speaker_ids: remote, exited_npc_ids: exited };
+function observation({ location_id = null, final = null, focal = null, speakers = [], outcome = 'success', scene_id = null, remote = [] } = {}) {
+  return { scene_id, location_id, final_present_npc_ids: final, focal_candidate_id: focal, explicit_speaker_ids: speakers, last_explicit_speaker_id: speakers.at(-1) ?? null, scene_goal: null, focus_thread: null, scene_goal_provided: false, focus_thread_provided: false, outcome, presence_is_final: final !== null, remote_speaker_ids: remote };
 }
 function reduce(input) { return reduceCanonicalScene({ currentScene: hydrateCanonicalScene(input.save ?? save(), { npcIds: NPCS }), npcIds: NPCS, mapLocations: LOCATIONS, expectedTurn: 8, ...input }); }
 
@@ -83,7 +83,7 @@ test('multiple acting NPCs produce null focal', () => assert.equal(reduce({ obse
 test('no acting NPC produces null focal', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'] }) }).focal_character_id, null));
 test('current Story last speaker replaces prior speaker', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'], speakers: ['heroine1'] }) }).last_speaker_id, 'heroine1'));
 test('player is a valid last speaker', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'], speakers: ['player-1'] }) }).last_speaker_id, 'player-1'));
-test('speaker absent from final presence remains a strict presence contradiction', () => assert.throws(() => reduce({ observation: observation({ final: [], speakers: ['heroine1'], exited: ['heroine1'] }) }), error => error.code === 'SCENE_PRESENCE_CONTRADICTS_STORY'));
+test('speaker absent from final presence remains a strict presence contradiction', () => assert.throws(() => reduce({ observation: observation({ final: [], speakers: ['heroine1'] }) }), error => error.code === 'SCENE_PRESENCE_CONTRADICTS_STORY'));
 test('remote speaker does not get auto-added to presence', () => { const scene = reduce({ observation: observation({ final: [], speakers: ['heroine1'], remote: ['heroine1'] }) }); assert.deepEqual(scene.present_npc_ids, []); });
 
 // Projection 32-38

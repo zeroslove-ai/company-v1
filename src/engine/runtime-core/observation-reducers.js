@@ -187,15 +187,13 @@ export function reduceStoryChoiceProjection({ parsedStory } = {}) {
   return { state: choices.slice(0, 4), warnings: [] };
 }
 
-export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, enteredNpcIds, exitedNpcIds, explicitSpeakerIds } = {}) {
+export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, explicitSpeakerIds } = {}) {
   const nextSave = hydrateGameplayState(currentSave, master ?? {});
   const warnings = [...(observation.warnings ?? [])];
   const evidence = observation.evidence ?? {};
   const eligibleNpcIds = new Set(observedNpcIds ?? [
     ...(sceneBefore?.present_npc_ids ?? []),
     ...(sceneAfter?.present_npc_ids ?? []),
-    ...(enteredNpcIds ?? []),
-    ...(exitedNpcIds ?? []),
     ...(explicitSpeakerIds ?? [])
   ]);
   const playerPhysical = reducePlayerPhysicalObservation({ save: nextSave, physical: observation.player_observation?.physical, evidence, storyText: rawStory, expectedTurn, npcIds, master });
@@ -207,7 +205,7 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
       warnings.push(`off_scene_npc_observation_dropped:${npcId}`);
       continue;
     }
-    const physical = reduceNpcPhysicalObservation({ save: nextSave, npcId, physical: domains.physical, evidence, storyText: rawStory, expectedTurn, npcIds, master, parsedStory, sceneBefore, sceneAfter, observedNpcIds: observedNpcIds ?? new Set([...(enteredNpcIds ?? []), ...(exitedNpcIds ?? []), ...(explicitSpeakerIds ?? [])]) });
+    const physical = reduceNpcPhysicalObservation({ save: nextSave, npcId, physical: domains.physical, evidence, storyText: rawStory, expectedTurn, npcIds, master, parsedStory, sceneBefore, sceneAfter, observedNpcIds: observedNpcIds ?? new Set([...(sceneBefore?.present_npc_ids ?? []), ...(sceneAfter?.present_npc_ids ?? []), ...(explicitSpeakerIds ?? [])]) });
     if (domains.physical) nextSave.npc_scene_state[npcId] = physical.state; warnings.push(...physical.warnings);
     const emotion = reduceNpcEmotionObservation({ save: nextSave, npcId, emotion: domains.emotion, evidence, storyText: rawStory, master, parsedStory });
     if (domains.emotion) nextSave.npc_emotion[npcId] = emotion.state; warnings.push(...emotion.warnings);

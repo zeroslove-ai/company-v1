@@ -138,8 +138,6 @@ test('degraded observation is deterministic and does not create a patch', () => 
 test('scene evidence quotes must be exact substrings of the raw Story for every kind', () => {
   const cases = [
     { kind: 'presence', character_id: 'heroine1', quote: 'presence quote' },
-    { kind: 'entrance', character_id: 'heroine1', quote: 'entrance quote' },
-    { kind: 'exit', character_id: 'heroine1', quote: 'exit quote' },
     { kind: 'movement', location_id: 'room-a', quote: 'movement quote' },
     { kind: 'scene', quote: 'scene quote' }
   ];
@@ -254,7 +252,7 @@ test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibiti
     assert.match(system, new RegExp(`"${key}"`));
   }
   assert.match(system, /Never return these save-patch or parser fields/);
-  assert.match(system, /kind must be exactly one of "presence", "entrance", "exit", "movement", or "scene"/);
+  assert.match(system, /kind must be exactly one of "presence", "movement", or "scene"/);
   assert.match(system, /never invent names such as "npc_presence"/);
   assert.match(system, /never compose a quote from the player action, canonical destination, or inferred movement/);
   assert.match(system, /evidence is a top-level sibling of player_observation and npc_observations/);

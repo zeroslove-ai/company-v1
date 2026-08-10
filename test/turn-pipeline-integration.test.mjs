@@ -264,11 +264,10 @@ test('movement Commit recomputes the scene cast instead of reading removed parse
     outcome: 'success',
     scene_observation: {
       scene_id: 'brand-strategy-scene', location_id: 'brand_strategy_office',
-      final_present_npc_ids: ['heroine2'], entered_npc_ids: [], exited_npc_ids: [],
+      final_present_npc_ids: ['heroine2'],
       focal_candidate_id: null, presence_is_final: true,
       remote_speaker_ids: ['heroine5'], evidence: [
         { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES[1] },
-        { kind: 'exit', character_id: 'heroine5', quote: STORY_LINES[1] },
         { kind: 'movement', location_id: 'brand_strategy_office', quote: STORY_LINES[1] }
       ]
     },
