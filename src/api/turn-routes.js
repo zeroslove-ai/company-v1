@@ -564,7 +564,23 @@ const master = masterFromEdition(edition);
                   : extractSave
               }
             : hydratedContext;
+          const movementContract = buildSceneCastContract({
+            save: hydratedSave,
+            master,
+            playerAction: action.player_action,
+            structuredAction,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
           let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          if (movementContract.transition_mode === 'movement' && movementContract.destination_location_id) {
+            const destination = edition?.map?.locations?.find(location => location?.location_id === movementContract.destination_location_id);
+            if (destination) {
+              messages = [{
+                ...messages[0],
+                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION CONTRACT] This is an explicit movement turn. The requested canonical destination is ${destination.name} (location_id=${destination.location_id}). If the raw Story visibly arrives there, set scene_observation.location_id to exactly ${destination.location_id} and include an exact contiguous movement evidence quote from the Story. Do not substitute the origin location, and do not infer arrival from player_action alone. If the Story does not visibly arrive there, keep location_id null and provide no movement evidence.`
+              }, ...messages.slice(1)];
+            }
+          }
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa);

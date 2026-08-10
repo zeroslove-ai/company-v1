@@ -68,6 +68,12 @@ test('맵3: "민아 보러 간다" → 위치 기록이 없어도 목적지가 �
   assert.equal(contract.destination_location_id, 'brand_strategy_office', '저장 위치가 없어도 default로 확정');
 });
 
+test('맵3b: canonical meeting-room movement phrase produces a movement contract', () => {
+  const contract = cast('브랜드전략팀 회의실로 이동한다', { locationId: 'brand_strategy_office' });
+  assert.equal(contract.transition_mode, 'movement');
+  assert.equal(contract.destination_location_id, 'brand_strategy_meeting_room');
+});
+
 // ── O-5 / O-6: participants 단일 출연 정본 ────────────────────────────────
 
 test('맵5: 같은 위치의 서원희도 participants가 아니면 발화할 수 없다', () => {
