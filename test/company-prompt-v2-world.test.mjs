@@ -144,6 +144,19 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.ok(system.length <= 9000, `Story system prompt too large: ${system.length}`);
 });
 
+test('movement Story prompt names the canonical destination as a mandatory arrival result', () => {
+  const messages = buildStoryPrompt({
+    edition,
+    context: { game: {}, save: baseSave(), recent_turns: [] },
+    playerAction: '사무실로 이동한다',
+    expectedTurn: 2,
+    sceneCastContract: { transition_mode: 'movement', destination_location_id: 'office' }
+  });
+  assert.match(messages[0].content, /\[MANDATORY MOVEMENT RESULT\]/);
+  assert.match(messages[0].content, /사무실/);
+  assert.match(messages[0].content, /location_id=office/);
+});
+
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {
   const save = baseSave();
   save.npc_stats = { general_manager: { affinity: 0 } };

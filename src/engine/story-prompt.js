@@ -308,8 +308,16 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
     : selectedHeroineIds;
   const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: playerAction });
   const activeIds = [...heroineActiveIds, ...generalActiveIds.filter(id => !heroineActiveIds.includes(id))];
+  const movementDestination = sceneCastContract?.transition_mode === 'movement'
+    ? (Array.isArray(edition?.map?.locations)
+      ? edition.map.locations.find(location => location?.location_id === sceneCastContract.destination_location_id)
+      : null)
+    : null;
+  const movementDirective = movementDestination
+    ? `\n\n[MANDATORY MOVEMENT RESULT] scene_cast_contract.transition_mode=movement. This turn must leave the current location and visibly arrive at ${movementDestination.name} (canonical location_id=${movementDestination.location_id}) in the first [SCENE]. Do not write a waiting, conversation, or unchanged-current-location turn. If the Story does not show arrival at that named destination, the movement cannot be observed or committed.`
+    : '';
   return [
-    { role: 'system', content: `${SYSTEM_INSTRUCTIONS}\n\n${FINAL_OUTPUT_SHAPE}` },
+    { role: 'system', content: `${SYSTEM_INSTRUCTIONS}\n\n${FINAL_OUTPUT_SHAPE}${movementDirective}` },
     {
       role: 'user',
       content: JSON.stringify({
