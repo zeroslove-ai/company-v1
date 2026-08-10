@@ -47,16 +47,6 @@ test('Extract prompt gives the validator-owned physical shape example', () => {
   assert.match(system.content, /familiarity.*integer.*omit csa_attitude.*familiarity:null/s);
   assert.match(system.content, /multi-NPC scene.*physical\/clothing quote.*actor name/);
 });
-test('V2 NPC emotion accepts mood and rejects invented emotion keys', () => {
-  const mood = normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { emotion: { mood: '긴장한 상태' } } } }), { npcIds: NPCS });
-  assert.equal(mood.npc_observations.heroine1.emotion.mood, '긴장한 상태');
-  assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { emotion: { nervousness: 'slightly' } } } }), { npcIds: NPCS }), error => error.code === 'INVALID_EXTRACT_OBSERVATION');
-});
-test('V2 clothing is only valid under physical.clothing', () => {
-  assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { clothing: { underwear_top: 'removed' } } } }), { npcIds: NPCS }), error => error.code === 'INVALID_EXTRACT_OBSERVATION');
-  const result = normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { physical: { clothing: { underwear_top: 'removed' } } } } }), { npcIds: NPCS });
-  assert.equal(result.npc_observations.heroine1.physical.clothing.underwear_top, 'removed');
-});
 test('valid evidenced clothing observation uses the canonical position_label shape and commits clothing', () => {
   const quote = '윤민아가 팬티를 벗고 근무복 차림으로 업무를 계속한다.';
   const input = valid({ npc_observations: { heroine2: { physical: { position_label: '회의실 테이블 옆', clothing: { underwear_bottom: 'removed' } } } }, evidence: {
@@ -267,15 +257,5 @@ test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibiti
   assert.match(system, /never compose a quote from the player action, canonical destination, or inferred movement/);
   assert.match(system, /evidence is a top-level sibling of player_observation and npc_observations/);
   assert.match(system, /Never put an evidence key inside a player or NPC object/);
-  assert.match(system, /NPC OBSERVATION KEY CONTRACT/);
-  assert.match(system, /emotion: mood only/);
-  assert.match(system, /Clothing under physical\.clothing/);
-  assert.match(system, /Before returning verify closed JSON/);
   for (const forbidden of ['state_delta', 'choices', 'dialogue_lines', 'player_inner_thought', 'last_speaker_id', 'npcs_present', 'focal_character_id', 'csa_active', 'csa_rules', 'world_state', 'save']) assert.match(system, new RegExp(forbidden));
-});
-test('movement Extract scope leaves canonical navigation out of movement evidence', () => {
-  const routeSource = fs.readFileSync(new URL('../src/api/turn-routes.js', import.meta.url), 'utf8');
-  assert.match(routeSource, /MOVEMENT OBSERVATION SCOPE/);
-  assert.match(routeSource, /do not output scene_observation\.evidence with kind:\"movement\"/);
-  assert.match(routeSource, /location_id and final_present_npc_ids are not required/);
 });

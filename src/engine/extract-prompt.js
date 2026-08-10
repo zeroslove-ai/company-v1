@@ -84,7 +84,6 @@ const SYSTEM_INSTRUCTIONS = [
     turn_summary: '',
     warnings: []
   })}`,
-  '[NPC OBSERVATION KEY CONTRACT] npc_observations.<npc_id>: physical|emotion|relationship|stats|work|csa_attitude only. physical: posture|position_label|clothing; clothing: uniform_top|uniform_bottom|underwear_top|underwear_bottom. emotion: mood only (e.g. {"mood":"긴장한 상태"}; no nervousness/embarrassment/anxiety). Clothing under physical.clothing; evidence top-level. Uniform states worn|removed|open|unknown; underwear worn|removed|unknown. No none/not_worn/off/unfastened/prose states.',
   'Never return these save-patch or parser fields: state_delta, choices, dialogue_lines, player_inner_thought, last_speaker_id, npcs_present, focal_character_id, csa_active, csa_rules, world_state, save.',
   'Observe only facts shown in the complete raw Story. Do not reconstruct, normalize, rewrite, or omit any Story text.',
   'The scene observation uses final_present_npc_ids as its only presence authority: null means the final snapshot was not observed, [] means an explicitly empty NPC scene, and an array is the complete final NPC snapshot. registered_characters lists the only stable character ids; never invent, guess, or reuse an id; a nearby/default/eligible NPC is not present unless Story explicitly shows their presence/action/dialogue.',
@@ -100,8 +99,7 @@ const SYSTEM_INSTRUCTIONS = [
   'mind_monitor is a turn-level projection for present NPCs with only surface and subconscious. For each present NPC who speaks or performs a meaningful action, provide {surface, subconscious} when possible; missing monitor data is allowed and never a failure. image_selection and image_character_id are observation projections, not save patches. Identity axes are independent; never copy one into another.',
   'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
   'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, pool must be sex and tags must describe that ongoing act.',
-  'Final presence: historical last speaker is allowed; explicitly shown final NPC remains present.',
-  'Before returning verify closed JSON, version 2, contract keys/enums; return JSON.'
+  'Final scene presence: last speaker may remain historical, and an NPC explicitly shown in the final scene remains present.'
 ].join(' ');
 
 export function buildExtractPrompt({ context, storyText, playerAction, expectedTurn, edition, npcIds }) {
