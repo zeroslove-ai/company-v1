@@ -77,6 +77,7 @@ test('null and empty final presence remain distinct', () => {
   assert.deepEqual(empty.scene_observation.final_present_npc_ids, []);
 });
 test('presence meaning has one authority in final_present_npc_ids', () => {
+  assert.throws(() => normalizeExtractObservationV2(valid({ scene_observation: { ...scene(), presence_is_final: 'true' } }), { npcIds: NPCS }), error => error.code === 'INVALID_EXTRACT_OBSERVATION');
   const unobserved = normalizeExtractObservationV2(valid({ scene_observation: { ...scene(), presence_is_final: true } }), { npcIds: NPCS });
   assert.equal(unobserved.scene_observation.final_present_npc_ids, null);
   assert.equal('presence_is_final' in unobserved.scene_observation, false);
