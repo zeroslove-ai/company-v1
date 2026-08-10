@@ -142,7 +142,7 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.match(system, /현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /acting_direction=/);
-  assert.ok(system.length <= 9000, `Story system prompt too large: ${system.length}`);
+  assert.ok(system.length <= 11000, `Story system prompt too large: ${system.length}`);
 });
 
 test('movement Story prompt carries a resolved prospective destination context', () => {
@@ -188,6 +188,29 @@ test('CSA Story prompt keeps the app meta boundary and grounds newly activated a
   assert.match(system, /medium=취업규칙/);
   assert.match(system, /strong=국가 법령/);
   assert.match(system, /스마트워치 알림/);
+});
+
+test('FINAL_OUTPUT_SHAPE carries active CSA awareness, continuous compliance, and player agency contracts', () => {
+  const system = buildStoryPrompt({
+    edition,
+    context: { game: {}, save: baseSave(), recent_turns: [] },
+    playerAction: 'ordinary action',
+    expectedTurn: 1,
+    npcIds: new Set(['heroine1'])
+  })[0].content;
+
+  assert.match(system, /\[FINAL CSA AWARENESS CONTRACT\]/);
+  assert.match(system, /already a known and effective institutional reality/);
+  assert.match(system, /Do not write that the NPC does not know it/);
+  assert.match(system, /\[FINAL CONTINUOUS COMPLIANCE CONTRACT\]/);
+  assert.match(system, /mode=continuous/);
+  assert.match(system, /compliance is the default behavior/);
+  assert.match(system, /\[FINAL PHYSICAL COMPLIANCE CONTRACT\]/);
+  assert.match(system, /context\.clothing_authority\[npc_id\]\.rule_id/);
+  assert.match(system, /required underwear_top=removed requires the NPC to remove the bra/);
+  assert.match(system, /uniform_top=open is not a substitute/);
+  assert.match(system, /Player-subject agency is unchanged/);
+  assert.match(system, /\[FINAL OUTPUT SELF-CHECK\]/);
 });
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {

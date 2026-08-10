@@ -121,7 +121,7 @@ test('Story Prompt v2 explicitly requires continuity, NPC agency, functional dia
   assert.match(system, /업무 협조는 호감이 아니고/);
   assert.equal(payload.context.recent_turns.length, 3);
   assert.equal('last_turn_continuity' in payload.context, false, '중복 projection 없음');
-  assert.ok(system.length < 9000, `Story system prompt too large: ${system.length}`);
+  assert.ok(system.length < 11000, `Story system prompt too large: ${system.length}`);
 });
 
 test('Story prompt treats context.current_time day/minute_of_day as hard facts', () => {
