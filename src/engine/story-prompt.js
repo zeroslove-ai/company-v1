@@ -323,6 +323,13 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
       content: JSON.stringify({
         edition: edition.editionId,
         ...(sceneCastContract ? { scene_cast_contract: sceneCastContract } : {}),
+        ...(movementDestination ? {
+          movement_result_required: {
+            location_id: movementDestination.location_id,
+            name: movementDestination.name,
+            completed_arrival_required: true
+          }
+        } : {}),
         active_character_canon: buildActiveCharacterCanon(charactersMap, heroineActiveIds),
         active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
         context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, sceneCastContract, expectedTurn }),

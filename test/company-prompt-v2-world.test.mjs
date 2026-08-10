@@ -155,6 +155,12 @@ test('movement Story prompt names the canonical destination as a mandatory arriv
   assert.match(messages[0].content, /\[MANDATORY MOVEMENT RESULT\]/);
   assert.match(messages[0].content, /사무실/);
   assert.match(messages[0].content, /location_id=office/);
+  const payload = JSON.parse(messages[1].content);
+  assert.deepEqual(payload.movement_result_required, {
+    location_id: 'office',
+    name: '사무실',
+    completed_arrival_required: true
+  });
 });
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {
