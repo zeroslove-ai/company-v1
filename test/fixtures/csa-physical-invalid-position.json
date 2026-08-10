@@ -1,0 +1,57 @@
+{
+  "extract_version": 2,
+  "outcome": "success",
+  "scene_observation": {
+    "scene_id": "opening",
+    "location_id": "brand_strategy_meeting_room",
+    "final_present_npc_ids": null,
+    "entered_npc_ids": ["heroine2"],
+    "exited_npc_ids": [],
+    "focal_candidate_id": "heroine2",
+    "presence_is_final": false,
+    "remote_speaker_ids": [],
+    "evidence": [
+      {
+        "kind": "entrance",
+        "character_id": "heroine2",
+        "quote": "당신이 스마트폰을 내려놓는 순간, 회의실 문이 열리며 윤민아 대리가 들어온다."
+      }
+    ]
+  },
+  "player_observation": {},
+  "npc_observations": {
+    "heroine2": {
+      "position": {
+        "label": "sitting",
+        "evidence": {
+          "quote": "윤민아가 테이블에 서류를 내려놓으며 옆자리에 앉으려다, 당신의 시선을 잠시 마주친다. 그녀는 짧게 고개를 숙여 인사한 뒤 의자에 앉는다.",
+          "character_id": "heroine2"
+        }
+      },
+      "emotion": {
+        "tense": {
+          "evidence": {
+            "quote": "하지만 앉는 순간, 미묘하게 표정이 굳어진다.",
+            "character_id": "heroine2"
+          }
+        }
+      }
+    }
+  },
+  "events": { "general": [], "sexual": [] },
+  "evidence": {},
+  "elapsed_minutes": 3,
+  "mind_monitor": {
+    "heroine2": {
+      "surface": "회의를 원활하게 진행해야 한다는 긴장감과 약간의 불편함을 느낀다.",
+      "subconscious": "아랫도리의 위화감을 의식하지만 일에 집중하려 한다."
+    }
+  },
+  "action_target_id": "heroine2",
+  "image_character_id": "heroine2",
+  "image_selection": { "pool": "neutral", "tags": ["meeting", "sitting", "conversation"] },
+  "csa_trigger_evaluations": [{ "csa_id": "csa_2", "status": "continuing" }],
+  "csa_runtime_updates": [],
+  "turn_summary": "",
+  "warnings": []
+}

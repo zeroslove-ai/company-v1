@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { GameCoreError } from '../src/engine/errors.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
 import { assertScenePresenceCoverage, buildDegradedExtractObservation, normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
-import { reduceCsaAttitudeObservation, reduceNpcRelationshipObservation } from '../src/engine/runtime-core/observation-reducers.js';
+import { reduceCsaAttitudeObservation, reduceNpcPhysicalObservation, reduceNpcRelationshipObservation } from '../src/engine/runtime-core/observation-reducers.js';
 
 const NPCS = new Set(['heroine1', 'heroine2']);
 const STORY = 'scene-exit-evidence work-happened';
+const capturedInvalidPhysical = JSON.parse(fs.readFileSync(new URL('./fixtures/csa-physical-invalid-position.json', import.meta.url)));
+const capturedInvalidSceneEvidence = JSON.parse(fs.readFileSync(new URL('./fixtures/csa-physical-invalid-scene-id.json', import.meta.url)));
 const scene = (final = null) => ({ scene_id: null, location_id: null, final_present_npc_ids: final, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: final !== null, remote_speaker_ids: [], evidence: final?.length === 0 ? [{ kind: 'exit', character_id: 'heroine1', quote: 'scene-exit-evidence' }] : [] });
 const valid = (overrides = {}) => ({
   extract_version: 2, outcome: 'success', scene_observation: scene(), player_observation: {}, npc_observations: {},
@@ -21,6 +24,44 @@ test('V2 observation normalizes the complete contract without mutating input', (
   assert.equal(result.extract_version, 2);
   assert.deepEqual(result.scene_observation.final_present_npc_ids, []);
   assert.deepEqual(input, before);
+});
+test('captured live physical Extract fails closed on the exact unknown position field', () => {
+  const quote = capturedInvalidPhysical.scene_observation.evidence[0].quote;
+  assert.throws(
+    () => normalizeExtractObservationV2(capturedInvalidPhysical, { npcIds: NPCS, storyText: quote }),
+    error => error.code === 'INVALID_EXTRACT_OBSERVATION' && error.message === 'Unknown observation field: position'
+  );
+});
+test('captured live clothing Extract fails closed when scene evidence has no scene id', () => {
+  const storyText = capturedInvalidSceneEvidence.scene_observation.evidence[0].quote;
+  assert.throws(
+    () => normalizeExtractObservationV2(capturedInvalidSceneEvidence, { npcIds: NPCS, storyText }),
+    error => error.code === 'INVALID_EXTRACT_OBSERVATION' && error.message === 'scene evidence requires scene_id'
+  );
+});
+test('Extract prompt gives the validator-owned physical shape example', () => {
+  const [system] = buildExtractPrompt({ context: { save: {} }, storyText: STORY, playerAction: 'observe', expectedTurn: 4, edition: { characters: { characters: {} }, map: { locations: [] } }, npcIds: NPCS });
+  assert.match(system.content, /Use position_label, never position\/label/);
+  assert.match(system.content, /underwear_bottom/);
+  assert.match(system.content, /evidence.*physical_change/s);
+  assert.match(system.content, /familiarity.*integer.*omit csa_attitude.*familiarity:null/s);
+  assert.match(system.content, /multi-NPC scene.*physical\/clothing quote.*actor name/);
+});
+test('valid evidenced clothing observation uses the canonical position_label shape and commits clothing', () => {
+  const quote = '윤민아가 팬티를 벗고 근무복 차림으로 업무를 계속한다.';
+  const input = valid({ npc_observations: { heroine2: { physical: { position_label: '회의실 테이블 옆', clothing: { underwear_bottom: 'removed' } } } }, evidence: {
+    clothing: { heroine2: { character_id: 'heroine2', quote } },
+    physical_change: { changed: ['npc_scene_state.heroine2.clothing.underwear_bottom'], quote }
+  } });
+  const observation = normalizeExtractObservationV2(input, { npcIds: NPCS, storyText: quote });
+  const reduced = reduceNpcPhysicalObservation({
+    save: { npc_scene_state: { heroine2: { present: true, clothing: { underwear_bottom: 'worn' } } } },
+    npcId: 'heroine2', physical: observation.npc_observations.heroine2.physical, evidence: observation.evidence,
+    storyText: quote, expectedTurn: 4, npcIds: NPCS, master: { characters: [{ character_id: 'heroine2', name: '윤민아' }] },
+    parsedStory: {}, sceneBefore: { present_npc_ids: ['heroine2'] }, sceneAfter: { present_npc_ids: ['heroine2'] }, observedNpcIds: ['heroine2']
+  });
+  assert.equal(reduced.state.clothing.underwear_bottom, 'removed');
+  assert.equal(reduced.state.position_label, '회의실 테이블 옆');
 });
 test('missing or wrong extract version fails', () => {
   assert.throws(() => normalizeExtractObservationV2({ ...valid(), extract_version: undefined }, { npcIds: NPCS }), error => error.code === 'EXTRACT_VERSION_UNSUPPORTED');
@@ -156,6 +197,10 @@ test('V2 observation rejects type coercion and forbidden relationship/CSA fields
   assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { relationship: { milestones: {} } } } }), { npcIds: NPCS }), GameCoreError);
   assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { csa_attitude: { resistance: 'high' } } } }), { npcIds: NPCS }), GameCoreError);
   assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { csa_attitude: { last_changed_turn: 4 } } } }), { npcIds: NPCS }), GameCoreError);
+});
+test('physical clothing slots and states remain strict', () => {
+  assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { physical: { clothing: { panties: 'removed' } } } } }), { npcIds: NPCS }), error => error.code === 'INVALID_EXTRACT_OBSERVATION');
+  assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { physical: { clothing: { underwear_bottom: 'discarded' } } } } }), { npcIds: NPCS }), error => error.code === 'INVALID_EXTRACT_OBSERVATION');
 });
 
 test('player sexual deltas use the reducer-compatible integer contract', () => {
