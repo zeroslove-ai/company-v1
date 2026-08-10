@@ -251,7 +251,7 @@ test('맵4b: 말 걸기 의도가 없는 순수 이동은 도착까지만 — �
 
 const mapModule = await import('../src/frontend/pages/company-map.js');
 
-test('movement cast permits a current origin NPC farewell without adding it to destination presence', () => {
+test('movement cast does not add a current origin NPC as a destination speaker', () => {
   const contract = cast('직원 라운지로 이동한다', {
     locationId: 'brand_strategy_office',
     participants: ['player-1', 'heroine2'],
@@ -259,7 +259,7 @@ test('movement cast permits a current origin NPC farewell without adding it to d
   });
   assert.equal(contract.transition_mode, 'movement');
   assert.deepEqual(contract.present_npc_ids, []);
-  assert.ok(contract.allowed_speaker_ids.includes('heroine2'));
+  assert.ok(!contract.allowed_speaker_ids.includes('heroine2'));
   assert.deepEqual(contract.remote_npc_ids, []);
 });
 

@@ -4,7 +4,6 @@ import { projectCanonicalSceneToLegacy } from './projections.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
 import { assertScenePresenceCoverage } from './extract-observation.js';
-import { GameCoreError } from '../errors.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
@@ -52,19 +51,12 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   const current = clone(currentSave);
   const sceneBefore = hydrateCanonicalScene(current, { master, npcIds });
   const sceneObservation = canonicalObservation(observation, parsedStory);
-  if (movementContract?.transition_mode === 'movement' && movementContract.destination_location_id) {
-    const destination = movementContract.destination_location_id;
-    const movementEvidence = sceneObservation.evidence.some(item => item.kind === 'movement' && item.location_id === destination);
-    if (observation.outcome !== 'success' || sceneObservation.location_id !== destination || !movementEvidence) {
-      throw new GameCoreError('MOVEMENT_NOT_OBSERVED', `Movement arrival was not observed at ${destination}`);
-    }
-  }
-  const movementTransition = observation.outcome === 'success'
-    && Array.isArray(sceneObservation.final_present_npc_ids)
-    && sceneObservation.location_id !== null
-    && sceneObservation.location_id !== sceneBefore.location_id
-    && sceneObservation.evidence.some(item => item.kind === 'movement' && item.location_id === sceneObservation.location_id);
-  assertScenePresenceCoverage(observation, { currentScene: sceneBefore, movementTransition });
+  const resolvedMovement = movementContract?.transition_mode === 'movement'
+    && typeof movementContract.destination_location_id === 'string'
+    && movementContract.destination_location_id.trim()
+    ? movementContract.destination_location_id.trim()
+    : null;
+  if (!resolvedMovement) assertScenePresenceCoverage(observation, { currentScene: sceneBefore });
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,
     observation: sceneObservation,
@@ -73,7 +65,9 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     npcIds,
     mapLocations,
     expectedTurn,
-    actionKind: action?.action_kind
+    actionKind: action?.action_kind,
+    movementDestinationId: resolvedMovement,
+    movementPresenceNpcIds: resolvedMovement ? movementContract?.destination_npc_ids : null
   });
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),

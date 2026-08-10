@@ -119,7 +119,7 @@ test('same-quote sexual events from two NPCs remain distinct in the ledger', () 
   assert.notEqual(matching[0].event_id, matching[1].event_id);
 });
 
-test('movement commit requires exact destination arrival evidence', () => {
+test('movement commit uses deterministic destination without Story arrival evidence', () => {
   const currentSave = {
     ...structuredClone(save),
     scene: { version: 1, scene_id: 'office', location_id: 'brand_strategy_office', beat: 1, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 1 }
@@ -143,7 +143,7 @@ test('movement commit requires exact destination arrival evidence', () => {
   assert.equal(result.canonical_scene.location_id, 'brand_strategy_meeting_room');
 });
 
-test('movement commit allows an origin speaker left behind without exit evidence', () => {
+test('movement commit does not copy origin NPCs into destination presence', () => {
   const currentSave = {
     ...structuredClone(save),
     scene: { version: 1, scene_id: 'office', location_id: 'brand_strategy_office', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 1 }
@@ -159,16 +159,16 @@ test('movement commit allows an origin speaker left behind without exit evidence
     }
   }, { npcIds: NPCS, storyText: rawStory });
   const result = reduceGameplayCommit({
-    currentSave, observation, parsedStory: { choices: [], dialogue_lines: [{ speaker_id: 'npc-hayeon', text: 'npc-hayeon says farewell' }] }, rawStory,
+    currentSave, observation, parsedStory: { choices: [], dialogue_lines: [] }, rawStory,
     action: { ...action, action_id: 'move-origin-speaker', player_action: 'move to the meeting room' }, expectedTurn: 2,
     npcIds: NPCS, mapLocations: [{ location_id: 'brand_strategy_office' }, { location_id: 'brand_strategy_meeting_room' }],
     movementContract: { transition_mode: 'movement', location_id: 'brand_strategy_office', destination_location_id: 'brand_strategy_meeting_room' }
   });
   assert.equal(result.canonical_scene.location_id, 'brand_strategy_meeting_room');
-  assert.equal(result.canonical_scene.last_speaker_id, 'npc-hayeon');
+  assert.deepEqual(result.canonical_scene.present_npc_ids, []);
 });
 
-test('movement with null or wrong destination is rejected fail-closed', () => {
+test('movement ignores null or hallucinated Extract destination', () => {
   const currentSave = {
     ...structuredClone(save),
     scene: { version: 1, scene_id: 'office', location_id: 'brand_strategy_office', beat: 1, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 1 }
@@ -185,6 +185,6 @@ test('movement with null or wrong destination is rejected fail-closed', () => {
   const input = { currentSave, parsedStory: { choices: [], dialogue_lines: [] }, rawStory: 'movement evidence', action, expectedTurn: 2,
     npcIds: NPCS, mapLocations: [{ location_id: 'brand_strategy_office' }, { location_id: 'brand_strategy_meeting_room' }],
     movementContract: { transition_mode: 'movement', location_id: 'brand_strategy_office', destination_location_id: 'brand_strategy_meeting_room' } };
-  assert.throws(() => reduceGameplayCommit({ ...input, observation: makeObservation(null) }), error => error.code === 'MOVEMENT_NOT_OBSERVED');
-  assert.throws(() => reduceGameplayCommit({ ...input, observation: makeObservation('other_room', 'other_room') }), error => error.code === 'MOVEMENT_NOT_OBSERVED');
+  assert.equal(reduceGameplayCommit({ ...input, observation: makeObservation(null) }).canonical_scene.location_id, 'brand_strategy_meeting_room');
+  assert.equal(reduceGameplayCommit({ ...input, observation: makeObservation('other_room', 'other_room') }).canonical_scene.location_id, 'brand_strategy_meeting_room');
 });

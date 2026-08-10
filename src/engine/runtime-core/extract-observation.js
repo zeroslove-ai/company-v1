@@ -247,7 +247,7 @@ export function assertExtractObservationContract(observation) {
   return true;
 }
 
-export function assertScenePresenceCoverage(observation, { currentScene = null, movementTransition = false } = {}) {
+export function assertScenePresenceCoverage(observation, { currentScene = null } = {}) {
   const scene = observation?.scene_observation ?? {};
   const before = new Set(Array.isArray(currentScene?.present_npc_ids) ? currentScene.present_npc_ids : []);
   const final = Array.isArray(scene.final_present_npc_ids) ? new Set(scene.final_present_npc_ids) : null;
@@ -273,20 +273,20 @@ export function assertScenePresenceCoverage(observation, { currentScene = null, 
   for (const id of added) {
     if (!has('entrance', id) && !has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Added NPC lacks entrance/presence evidence: ${id}`);
   }
-  for (const id of removed) {
-    if (!movementTransition && !has('exit', id)) {
-      throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Removed NPC lacks exit evidence: ${id}`);
-    }
+  for (const id of removed) if (!has('exit', id)) {
+    throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Removed NPC lacks exit evidence: ${id}`);
   }
   for (const id of retained) if (!has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Retained NPC lacks presence evidence: ${id}`);
   return true;
 }
 
-export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null } = {}) {
+export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, movement = false } = {}) {
   assertExtractObservationContract(value);
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
   if (!object(value.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
-  const scene = value.scene_observation;
+  const scene = movement
+    ? { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: value.scene_observation?.remote_speaker_ids ?? [], evidence: [] }
+    : value.scene_observation;
   assertKeys(scene, new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'presence_is_final', 'remote_speaker_ids', 'evidence']), 'INVALID_EXTRACT_OBSERVATION');
   const final = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
   const finalFlag = scene.presence_is_final === true;

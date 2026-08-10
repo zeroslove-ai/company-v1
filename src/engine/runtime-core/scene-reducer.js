@@ -150,24 +150,27 @@ export function reduceCanonicalScene(input = {}) {
   const next = { ...current, present_npc_ids: [...current.present_npc_ids] };
   const feedbackRevision = input.actionKind === 'feedback_revision';
   if (feedbackRevision) return next;
-  const observedLocation = observation.location_id ?? null;
+  const movementDestinationId = stringId(input.movementDestinationId);
+  const observedLocation = movementDestinationId ?? observation.location_id ?? null;
   if (observedLocation !== null && locations.size && !locations.has(observedLocation)) {
     throw new GameCoreError('SCENE_LOCATION_UNKNOWN', `Unknown scene location: ${observedLocation}`);
   }
   const moved = observedLocation !== null && observedLocation !== current.location_id;
   const degraded = observation.outcome === 'degraded';
-  const successMovement = moved && observation.outcome === 'success';
+  const successMovement = Boolean(movementDestinationId) || (moved && observation.outcome === 'success');
   const stationary = !moved;
   if (successMovement) {
-    if (!Array.isArray(observation.final_present_npc_ids)) {
+    if (!movementDestinationId && !Array.isArray(observation.final_present_npc_ids)) {
       throw new GameCoreError('SCENE_PRESENCE_REQUIRED_FOR_MOVEMENT', 'A location change requires a final presence snapshot');
     }
     next.location_id = observedLocation;
-    next.scene_id = observation.scene_id ?? null;
+    next.scene_id = movementDestinationId ? observedLocation : (observation.scene_id ?? null);
     next.beat = 0;
-    next.goal = observation.scene_goal_provided ? observation.scene_goal : null;
-    next.focus_thread = observation.focus_thread_provided ? observation.focus_thread : null;
-    next.present_npc_ids = uniqueNpcIds(observation.final_present_npc_ids, npcIds);
+    next.goal = movementDestinationId ? null : (observation.scene_goal_provided ? observation.scene_goal : null);
+    next.focus_thread = movementDestinationId ? null : (observation.focus_thread_provided ? observation.focus_thread : null);
+    next.present_npc_ids = movementDestinationId
+      ? uniqueNpcIds(input.movementPresenceNpcIds ?? [], npcIds)
+      : uniqueNpcIds(observation.final_present_npc_ids, npcIds);
   } else if (stationary && !degraded && observation.outcome === 'success' && Array.isArray(observation.final_present_npc_ids)) {
     next.present_npc_ids = uniqueNpcIds(observation.final_present_npc_ids, npcIds);
     if (observation.scene_id !== null && observation.scene_id !== undefined) next.scene_id = observation.scene_id;
@@ -179,11 +182,9 @@ export function reduceCanonicalScene(input = {}) {
     next.present_npc_ids = [...new Set(next.present_npc_ids.filter(id => !exited.has(id)).concat(entered))];
   }
   const currentIds = new Set(next.present_npc_ids);
-  const originIds = new Set(current.present_npc_ids ?? []);
   const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
   for (const speaker of speakers) {
-    const originSpeaker = successMovement && originIds.has(speaker);
-    if (isPlayerId(speaker) || currentIds.has(speaker) || originSpeaker || observation.remote_speaker_ids?.includes(speaker) || observation.exited_npc_ids?.includes(speaker)) continue;
+    if (isPlayerId(speaker) || currentIds.has(speaker) || observation.remote_speaker_ids?.includes(speaker) || observation.exited_npc_ids?.includes(speaker)) continue;
     throw new GameCoreError(
       Array.isArray(observation.final_present_npc_ids) ? 'SCENE_PRESENCE_CONTRADICTS_STORY' : 'SCENE_PRESENCE_UNRESOLVED',
       `Story speaker ${speaker} is absent from the canonical scene`

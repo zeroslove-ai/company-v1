@@ -577,7 +577,7 @@ const master = masterFromEdition(edition);
             if (destination) {
               messages = [{
                 ...messages[0],
-                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION CONTRACT] This is an explicit movement turn. The requested canonical destination is ${destination.name} (location_id=${destination.location_id}). If the raw Story visibly arrives there, this movement contract requires a final presence snapshot: set scene_observation.location_id to exactly ${destination.location_id}, set presence_is_final=true, and return final_present_npc_ids as the exact registered NPC snapshot visibly remaining at the destination (use [] when no registered NPC is explicitly identified, even if unnamed employees are mentioned). Include an exact contiguous movement evidence quote from the Story. For registered NPCs visibly remaining at the destination, include one exact presence evidence entry per character. Only populate exited_npc_ids and exit evidence when the Story explicitly shows that an NPC physically leaves or exits; do not treat the player's movement as an NPC exit. A registered NPC who speaks before the player leaves remains an origin-local speaker; do not put that NPC in remote_speaker_ids. Use remote_speaker_ids only for genuinely remote communication. Do not encode generic or unregistered people as presence evidence: a presence entry always requires a concrete registered character_id. For an empty destination use final_present_npc_ids=[] and no presence evidence entry. Do not substitute the origin location, and do not infer arrival from player_action alone. If the Story does not visibly arrive there, keep location_id null, presence_is_final=false, final_present_npc_ids=null, and provide no movement evidence.`
+                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION SCOPE] This is an explicit movement turn. Navigation has already resolved the canonical destination from the stored player action. Do not decide, confirm, or reject movement from Story wording. scene_observation.location_id, final_present_npc_ids, entered_npc_ids, exited_npc_ids, and movement/presence evidence are not required for this movement turn; leave them null, empty, or omit them when not directly observed. Observe only non-navigation changes actually described in the raw Story. Do not invent a different destination or use movement evidence to override the resolved navigation.`
               }, ...messages.slice(1)];
             }
           }
@@ -598,7 +598,13 @@ const master = masterFromEdition(edition);
           const parseStart = Date.now();
           // Fresh Extract calls are V2-only. The legacy adapter is reserved for
           // persisted V1 rows during replay/recovery, never for a new LLM result.
-          extract = normalizeExtractObservationV2(raw, { npcIds, storyText: storyForExtract, expectedTurn: action.expected_turn, actionId });
+          extract = normalizeExtractObservationV2(raw, {
+            npcIds,
+            storyText: storyForExtract,
+            expectedTurn: action.expected_turn,
+            actionId,
+            movement: movementContract.transition_mode === 'movement'
+          });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
           const degradable = error instanceof HttpError && EXTRACT_DEGRADE_CODES.has(error.code);
@@ -666,7 +672,13 @@ const master = masterFromEdition(edition);
         });
         let parsedStory = parseStoryProjection(action.story_text, master);
         const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId })
+          ? normalizeExtractObservationV2(action.extract_delta, {
+              npcIds,
+              storyText: action.story_text,
+              expectedTurn,
+              actionId,
+              movement: movementContract.transition_mode === 'movement'
+            })
           : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({

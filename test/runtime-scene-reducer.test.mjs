@@ -39,10 +39,8 @@ test('final presence replaces rather than unions legacy ids', () => assert.deepE
 test('duplicate and player ids are removed from final presence', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2', 'heroine2', 'player-1'] }) }).present_npc_ids, ['heroine2']));
 test('unknown final presence ids are ignored', () => assert.deepEqual(reduce({ observation: observation({ final: ['ghost', 'heroine2'] }) }).present_npc_ids, ['heroine2']));
 test('explicit speaker outside final presence fails without remote evidence', () => assert.throws(() => reduce({ observation: observation({ final: [], speakers: ['heroine1'] }) }), error => error instanceof GameCoreError && error.code === 'SCENE_PRESENCE_CONTRADICTS_STORY'));
-test('successful movement allows an origin-present NPC farewell speaker without remote or exit escape hatches', () => {
-  const next = reduce({ observation: observation({ location_id: 'destination', final: [], speakers: ['heroine1'] }) });
-  assert.equal(next.location_id, 'destination');
-  assert.equal(next.last_speaker_id, 'heroine1');
+test('successful movement rejects an origin-only speaker without remote or exit evidence', () => {
+  assert.throws(() => reduce({ observation: observation({ location_id: 'destination', final: [], speakers: ['heroine1'] }) }), error => error instanceof GameCoreError && error.code === 'SCENE_PRESENCE_CONTRADICTS_STORY');
 });
 test('successful movement still rejects an NPC absent from origin and destination', () => assert.throws(
   () => reduce({ observation: observation({ location_id: 'destination', final: [], speakers: ['heroine3'] }) }),
@@ -54,7 +52,10 @@ test('location change updates canonical location', () => assert.equal(reduce({ o
 test('location change clears scene id without explicit destination scene', () => assert.equal(reduce({ observation: observation({ location_id: 'destination', final: ['heroine2'] }) }).scene_id, null));
 test('location change keeps explicit scene id', () => assert.equal(reduce({ observation: observation({ location_id: 'destination', scene_id: 'dest-scene', final: ['heroine2'] }) }).scene_id, 'dest-scene'));
 test('location change resets beat', () => assert.equal(reduce({ observation: observation({ location_id: 'destination', final: [] }) }).beat, 0));
-test('location change requires final presence snapshot', () => assert.throws(() => reduce({ observation: observation({ location_id: 'destination', final: null }) }), error => error.code === 'SCENE_PRESENCE_REQUIRED_FOR_MOVEMENT'));
+test('deterministic movement input does not require a final presence snapshot', () => assert.equal(
+  reduce({ movementDestinationId: 'destination', movementPresenceNpcIds: [], observation: observation({ location_id: null, final: null }) }).location_id,
+  'destination'
+));
 test('unknown location is rejected', () => assert.throws(() => reduce({ observation: observation({ location_id: 'unknown', final: [] }) }), error => error.code === 'SCENE_LOCATION_UNKNOWN'));
 test('blocked movement preserves scene', () => assert.equal(reduce({ observation: observation({ location_id: 'destination', final: ['heroine2'], outcome: 'blocked' }) }).location_id, 'origin'));
 test('degraded extract cannot change presence', () => assert.deepEqual(reduce({ observation: observation({ final: [], outcome: 'degraded' }) }).present_npc_ids, ['heroine1']));

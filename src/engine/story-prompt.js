@@ -174,6 +174,25 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
+  const prospectiveMovement = sceneCastContract?.transition_mode === 'movement'
+    && typeof sceneCastContract.destination_location_id === 'string'
+    ? (() => {
+        const destination = Array.isArray(edition?.map?.locations)
+          ? edition.map.locations.find(location => location?.location_id === sceneCastContract.destination_location_id)
+          : null;
+        return destination ? {
+          player_navigation: {
+            destination_location_id: destination.location_id,
+            destination_name: destination.name ?? null,
+            destination_npc_ids: Array.isArray(sceneCastContract.destination_npc_ids) ? sceneCastContract.destination_npc_ids : []
+          },
+          scene_for_this_story: {
+            location_id: destination.location_id,
+            scene_id: sceneCastContract.destination_scene_id ?? destination.location_id
+          }
+        } : null;
+      })()
+    : null;
   const {
     global_csa: _extractOnlyGlobalCsa,
     ...storySceneCore
@@ -189,6 +208,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     ...storySceneCore,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
     movement_grounding: buildMovementGrounding(edition, save, playerAction),
+    ...(prospectiveMovement ?? {}),
     story_summary: {
       overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '',
       // recent는 호환용 필드일 뿐 — 최신 3턴 정본은 recent_turns(story_text 전체)다.
@@ -314,7 +334,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
       : null)
     : null;
   const movementDirective = movementDestination
-    ? `\n\n[MANDATORY MOVEMENT RESULT] scene_cast_contract.transition_mode=movement. This turn must leave the current location and visibly arrive at ${movementDestination.name} (canonical location_id=${movementDestination.location_id}) in the first [SCENE]. Do not write a waiting, conversation, or unchanged-current-location turn. If the Story does not show arrival at that named destination, the movement cannot be observed or committed.`
+    ? `\n\n[RESOLVED MOVEMENT CONTEXT] Navigation has already resolved this player's movement to ${movementDestination.name} (canonical location_id=${movementDestination.location_id}). Begin this Story at the prospective destination context and continue the scene there. Story wording does not decide whether movement succeeds; do not add an obstacle or ask whether the player still wants to move.`
     : '';
   const messages = [
     { role: 'system', content: `${SYSTEM_INSTRUCTIONS}\n\n${FINAL_OUTPUT_SHAPE}${movementDirective}` },

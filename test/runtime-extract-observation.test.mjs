@@ -120,14 +120,25 @@ test('scene presence coverage is enforced at Commit authority, including final r
   assert.throws(() => assertScenePresenceCoverage(conflict, { currentScene: { present_npc_ids: [] } }), error => error.code === 'SCENE_PRESENCE_EVIDENCE_CONFLICT');
 });
 
-test('movement transition allows NPCs left behind without physical exit evidence', () => {
+test('scene presence coverage requires exit evidence for final removals', () => {
   const storyText = `${STORY} movement-arrival`;
   const movement = normalizeExtractObservationV2(valid({ scene_observation: {
     ...scene([]), location_id: 'destination', evidence: [{ kind: 'movement', location_id: 'destination', quote: 'movement-arrival' }]
   } }), { npcIds: NPCS, storyText });
   const currentScene = { location_id: 'origin', present_npc_ids: ['heroine1'] };
   assert.throws(() => assertScenePresenceCoverage(movement, { currentScene }), error => error.code === 'SCENE_PRESENCE_EVIDENCE_MISSING');
-  assert.equal(assertScenePresenceCoverage(movement, { currentScene, movementTransition: true }), true);
+});
+
+test('movement observation ignores navigation evidence and leaves destination to the action resolver', () => {
+  const movement = normalizeExtractObservationV2(valid({ scene_observation: {
+    scene_id: 'hallucinated', location_id: 'wrong-room', final_present_npc_ids: ['heroine1'],
+    entered_npc_ids: ['heroine1'], exited_npc_ids: [], focal_candidate_id: 'heroine1', presence_is_final: true,
+    remote_speaker_ids: [], evidence: [{ kind: 'movement', location_id: 'wrong-room', quote: 'not in Story' }]
+  } }), { npcIds: NPCS, storyText: STORY, movement: true });
+  assert.deepEqual(movement.scene_observation, {
+    scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [],
+    focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: []
+  });
 });
 
 test('V2 observation rejects type coercion and forbidden relationship/CSA fields', () => {

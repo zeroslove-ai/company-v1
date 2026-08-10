@@ -144,7 +144,7 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.ok(system.length <= 9000, `Story system prompt too large: ${system.length}`);
 });
 
-test('movement Story prompt names the canonical destination as a mandatory arrival result', () => {
+test('movement Story prompt carries a resolved prospective destination context', () => {
   const messages = buildStoryPrompt({
     edition,
     context: { game: {}, save: baseSave(), recent_turns: [] },
@@ -152,7 +152,7 @@ test('movement Story prompt names the canonical destination as a mandatory arriv
     expectedTurn: 2,
     sceneCastContract: { transition_mode: 'movement', destination_location_id: 'office' }
   });
-  assert.match(messages[0].content, /\[MANDATORY MOVEMENT RESULT\]/);
+  assert.match(messages[0].content, /\[RESOLVED MOVEMENT CONTEXT\]/);
   assert.match(messages[0].content, /사무실/);
   assert.match(messages[0].content, /location_id=office/);
   const payload = JSON.parse(messages[1].content);
