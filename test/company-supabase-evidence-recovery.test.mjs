@@ -115,6 +115,8 @@ test('NPC stat changes are derived from the real pre_save/post_save shape', () =
 
 test('UI source always shows stored summaries, records, and staged loading labels', () => {
   const render = fs.readFileSync(path.join(root, 'src/frontend/pages/render.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
+  const utility = fs.readFileSync(path.join(root, 'src/frontend/pages/utility-ui.js'), 'utf8');
   const loading = fs.readFileSync(path.join(root, 'src/frontend/pages/loading-overlay.js'), 'utf8');
   const state = fs.readFileSync(path.join(root, 'src/frontend/pages/state.js'), 'utf8');
   assert.match(render, /showSummary = true/);
@@ -122,7 +124,14 @@ test('UI source always shows stored summaries, records, and staged loading label
   assert.match(render, /heading: '요약 기록'/);
   assert.match(render, /관계·사정 기록/);
   assert.match(render, /은밀정보/);
-  assert.match(render, /characterPanel\.open = true/);
+  assert.doesNotMatch(render, /characterPanel\.open = true/);
+  assert.match(html, /id="media-panel"[^>]*hidden/);
+  assert.match(html, /<details id="character-state" class="state-panel">/);
+  assert.match(html, /<details id="player-panel"/);
+  assert.match(html, /id="player-compact-summary"/);
+  assert.match(html, /<details id="company-map-panel"/);
+  assert.match(utility, /mediaPanel: get\('media-panel'\)/);
+  assert.match(utility, /elements\.mediaPanel\.hidden = !url/);
   assert.match(loading, /서사 진행 중/);
   assert.match(loading, /상태 추출 중/);
   assert.match(loading, /상태 저장 중/);

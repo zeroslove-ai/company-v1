@@ -111,7 +111,7 @@ test('view model projects the NPC-keyed two-field Mind Monitor with canonical na
 });
 
 */
-test('Mind Monitor renders a separate stat strip plus surface/subconscious cards', () => {
+test('Mind Monitor renders a compact body plus preserved surface/subconscious lines', () => {
   const model = buildCompanyGameViewModel(contextWithMindMonitor());
   withFakeDocument(() => {
     const container = new FakeNode('div', 'mind-monitor');
@@ -123,6 +123,9 @@ test('Mind Monitor renders a separate stat strip plus surface/subconscious cards
     assert.deepEqual(tabs.children.map(button => button.textContent), ['김제나', '이메이']);
     assert.equal(tabs.children[0].ariaSelected, 'true');
     assert.deepEqual(content.children[0].children.map(item => item.children[0].textContent), ['호감', '수용', '흥분', '저항']);
+    assert.equal(content.children[1].className, 'mind-monitor-body');
+    assert.equal(content.children[1].children[0].className, 'mind-line');
+    assert.equal(content.children[1].children[1].className, 'mind-line');
     assert.equal(content.children[1].children[0].children[0].textContent, '표면의식');
     assert.equal(content.children[1].children[1].children[0].textContent, '잠재의식');
     // 캐릭터 이름이 Mind Monitor에 표시된다 (신규)
@@ -132,7 +135,7 @@ test('Mind Monitor renders a separate stat strip plus surface/subconscious cards
     tabs.children[1].listeners.get('click')();
     assert.equal(container.dataset.selectedCharacterId, 'heroine5');
     assert.equal(tabs.children[1].ariaSelected, 'true');
-    assert.equal(content.children[1].children[0].children[1].textContent, '분위기를 편하게 만들어야겠다.');
+    assert.match(content.children[1].children[0].children[1].textContent, /분위기를 편하게 만들어야겠다\./);
   });
 });
 

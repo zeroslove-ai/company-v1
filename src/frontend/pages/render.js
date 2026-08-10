@@ -356,10 +356,10 @@ function renderMindEntry(container, entry) {
   renderStatStrip(container, entry);
   const body = document.createElement('div'); body.className = 'mind-monitor-body';
   for (const [label, value] of [['표면의식', entry.surface], ['잠재의식', entry.subconscious]]) {
-    const card = document.createElement('section'); card.className = 'mind-card';
-    const heading = document.createElement('h3'); heading.textContent = label;
-    const detail = document.createElement('p'); detail.textContent = value || '이번 턴에는 확인할 수 없습니다.';
-    card.append(heading, detail); body.append(card);
+    const line = document.createElement('p'); line.className = 'mind-line';
+    const heading = document.createElement('strong'); heading.textContent = label;
+    const detail = document.createElement('span'); detail.textContent = ` ${value || '이번 턴에는 확인할 수 없습니다.'}`;
+    line.append(heading, detail); body.append(line);
   }
   container.append(body);
   // 캐릭터 이름: 컨테이너 마지막에 추가 (CSS order로 최상단 표시, 카드 구조 유지)
@@ -643,6 +643,8 @@ function renderPlayer(container, player, scene) {
   const activeRules = Array.isArray(player?.active_csa) ? player.active_csa : [];
   const activeCount = typeof player?.active_csa_count === 'number' ? player.active_csa_count : activeRules.length;
   const activeMax = typeof player?.max_active_csa === 'number' ? player.max_active_csa : null;
+  const compact = container.parentElement?.querySelector?.('#player-compact-summary');
+  if (compact) compact.textContent = [typeof player?.level === 'number' ? `Lv.${player.level}` : '', `규정 ${activeMax === null ? activeCount : `${activeCount}/${activeMax}`}`].filter(Boolean).join(' · ');
   const entries = [
     ['이름', displayValue(player?.name)],
     ['소속', [displayValue(player?.department), displayValue(player?.position)].filter(Boolean).join(' · ')],
@@ -790,8 +792,6 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
   text(elements.dayTime, [day ? `Day ${day}` : '', clock].filter(Boolean).join(' · '));
   // scene-state: 활성 규정은 플레이어 상태창으로 통합되어 여기선 비움 (중복 방지)
-  const characterPanel = elements.focal?.closest?.('details');
-  if (characterPanel) characterPanel.open = true;
   renderFocalCharacter(elements.focal, model.focal_character, model.player, model.interacting_characters);
   renderMindMonitor(elements.mind, model.media?.mind_monitor_entries ?? model.media?.mind_monitor, {
     preferredId: model.media?.default_mind_character_id
