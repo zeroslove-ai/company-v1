@@ -63,6 +63,15 @@ test('valid evidenced clothing observation uses the canonical position_label sha
   assert.equal(reduced.state.clothing.underwear_bottom, 'removed');
   assert.equal(reduced.state.position_label, '회의실 테이블 옆');
 });
+
+test('nested NPC evidence is rejected; evidence remains a top-level V2 sibling', () => {
+  assert.throws(
+    () => normalizeExtractObservationV2(valid({
+      npc_observations: { heroine2: { physical: { posture: 'standing' }, evidence: { changed: [], quote: '' } } }
+    }), { npcIds: NPCS, storyText: STORY }),
+    error => error.code === 'INVALID_EXTRACT_OBSERVATION' && /Unknown observation field: evidence/.test(error.message)
+  );
+});
 test('missing or wrong extract version fails', () => {
   assert.throws(() => normalizeExtractObservationV2({ ...valid(), extract_version: undefined }, { npcIds: NPCS }), error => error.code === 'EXTRACT_VERSION_UNSUPPORTED');
   assert.throws(() => normalizeExtractObservationV2({ ...valid(), extract_version: 1 }, { npcIds: NPCS }), error => error.code === 'EXTRACT_VERSION_UNSUPPORTED');
@@ -274,5 +283,10 @@ test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibiti
     assert.match(system, new RegExp(`"${key}"`));
   }
   assert.match(system, /Never return these save-patch or parser fields/);
+  assert.match(system, /kind must be exactly one of "presence", "entrance", "exit", "movement", or "scene"/);
+  assert.match(system, /never invent names such as "npc_presence"/);
+  assert.match(system, /never compose a quote from the player action, canonical destination, or inferred movement/);
+  assert.match(system, /evidence is a top-level sibling of player_observation and npc_observations/);
+  assert.match(system, /Never put an evidence key inside a player or NPC object/);
   for (const forbidden of ['state_delta', 'choices', 'dialogue_lines', 'player_inner_thought', 'last_speaker_id', 'npcs_present', 'focal_character_id', 'csa_active', 'csa_rules', 'world_state', 'save']) assert.match(system, new RegExp(forbidden));
 });
