@@ -272,7 +272,7 @@ test('Extract uses Story choices and the 5000-token envelope, while truncated JS
   assert.equal('choices' in mock.actions.get(actionId).extract_delta, false);
   assert.deepEqual(mock.actions.get(actionId).parsed_blocks.choices, ['A', 'B', 'C', 'D']);
   const extractCall = mock.calls.map(call => ({ ...call, parsed: call.body && JSON.parse(call.body) })).find(call => call.url.startsWith('https://llm.test') && !call.parsed.stream);
-  assert.deepEqual(extractCall.parsed.thinking, { type: 'disabled' }); assert.deepEqual(extractCall.parsed.response_format, { type: 'json_object' }); assert.equal(extractCall.parsed.max_tokens, 5000);
+  assert.deepEqual(extractCall.parsed.thinking, { type: 'disabled' }); assert.deepEqual(extractCall.parsed.response_format, { type: 'json_object' }); assert.equal(extractCall.parsed.temperature, 0); assert.equal(extractCall.parsed.max_tokens, 5000);
   const truncated = createMockFetch({ extractFinishReason: 'length' }); const truncatedWorker = createApiWorker({ fetchImpl: truncated.fetchImpl });
   await (await truncatedWorker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'test' }), env)).text();
   const failed = await truncatedWorker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);

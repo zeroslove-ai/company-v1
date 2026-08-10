@@ -143,6 +143,7 @@ export async function runExtract({ env, fetchImpl, messages }) {
     stream: false,
     thinking: { type: 'disabled' },
     response_format: { type: 'json_object' },
+    temperature: 0,
     max_tokens: 5000
   }, { signal });
   let payload;
