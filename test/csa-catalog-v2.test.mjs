@@ -30,9 +30,9 @@ test('preset JSON is the sole sentence authority and contains no individual sele
 
 test('representative institutional regulation sentences preserve direct action meaning', () => {
   const sentence = id => renderPresetContent(catalog, catalog.items.find(item => item.id === id));
-  assert.match(sentence('remove_requested_clothing'), /회사 여성 직원은 플레이어가 지정한 옷을 실제로 벗어야 한다/);
-  assert.match(sentence('hand_stimulate_recipient_genitals'), /플레이어의 성기를 손으로.*자극해야 한다/);
-  assert.match(sentence('perform_oral_sex_on_recipient'), /플레이어의 성기를 입과 혀로.*자극해야 한다/);
+  assert.match(sentence('remove_requested_clothing'), /회사 여성 직원은 상대방이 지정한 옷을 실제로 벗어야 한다/);
+  assert.match(sentence('hand_stimulate_recipient_genitals'), /상대방의 성기를 손으로.*자극해야 한다/);
+  assert.match(sentence('perform_oral_sex_on_recipient'), /상대방의 성기를 입과 혀로.*자극해야 한다/);
   assert.match(sentence('public_sex_is_unremarkable'), /회사 직원은 공개된 성행위/);
 });
 
@@ -55,6 +55,32 @@ test('contextual proximity presets use world-neutral triggers and no player-only
   assert.doesNotMatch(JSON.stringify(raw), new RegExp(['자연스러운', ' 상식으로 바뀝니다'].join('')));
   const frontend = fs.readFileSync(new URL('../src/frontend/pages/csa-app.js', import.meta.url), 'utf8');
   assert.doesNotMatch(frontend, /\[\['역할'/);
+});
+
+test('relational scope UI has no null option and request rules use canonical world-neutral triggers', () => {
+  const frontend = fs.readFileSync(new URL('../src/frontend/pages/csa-app.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(frontend, /상대 대상 없음/);
+  const relational = catalog.items.filter(item => item.allowed_counterparty_scopes.length > 0);
+  assert.ok(relational.length > 0);
+  for (const item of relational) {
+    assert.ok(item.allowed_counterparty_scopes.includes('company_employee'));
+    assert.equal(item.default_counterparty_scope, 'company_employee');
+    if (item.mode === 'on_player_request') assert.equal(item.trigger, 'on_counterparty_request');
+  }
+  const omitted = validatePresetOperation(catalog, {
+    strength: 'weak',
+    preset: { template_id: 'press_body_against_recipient', subject_scope: 'female_employee' }
+  }, { availableStrength: 'weak' });
+  assert.equal(omitted.ok, true);
+  assert.equal(omitted.preset.counterparty_scope, 'company_employee');
+  const state = catalog.items.find(item => item.id === 'work_nude');
+  assert.deepEqual(state.allowed_counterparty_scopes, []);
+});
+
+test('preset JSON request wording is world-neutral while compatibility IDs remain stable', () => {
+  assert.doesNotMatch(JSON.stringify(raw), /플레이어가 요청하면|플레이어가 지정하면|플레이어가 중단|플레이어의|플레이어와|플레이어를/);
+  assert.ok(raw.items.some(item => item.id === 'work_nude'));
+  assert.equal(raw.items.some(item => item.id === 'work_topless'), false);
 });
 
 test('subject and counterparty scopes stay independent and never default the counterparty to player', () => {

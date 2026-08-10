@@ -220,10 +220,10 @@
       "category": "contact",
       "strength": "weak",
       "authority_tier": "weak",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다."
     },
     {
       "id": "work_in_underwear_only",
@@ -256,240 +256,240 @@
       "category": "clothing",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 가슴을 완전히 드러내야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 가슴을 완전히 드러내야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 가슴을 완전히 드러내야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 가슴을 완전히 드러내야 한다."
     },
     {
       "id": "expose_genitals_on_request",
       "category": "clothing",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다."
     },
     {
       "id": "remove_requested_clothing",
       "category": "clothing",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 지정한 옷을 실제로 벗어야 한다.",
+      "label": "회사 여성 직원은 상대방이 지정한 옷을 실제로 벗어야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 지정한 옷을 실제로 벗어야 한다."
+      "content_template": "회사 여성 직원은 상대방이 지정한 옷을 실제로 벗어야 한다."
     },
     {
       "id": "allow_breast_touch_on_request",
       "category": "contact",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다."
     },
     {
       "id": "allow_genital_touch_on_request",
       "category": "contact",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 성기를 직접 만지도록 자세를 잡아야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 직접 만지도록 자세를 잡아야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 성기를 직접 만지도록 자세를 잡아야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 직접 만지도록 자세를 잡아야 한다."
     },
     {
       "id": "stimulate_recipient_breasts_and_nipples",
       "category": "sexual_action",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 가슴을 주무르고 유두를 손가락으로 자극해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 주무르고 유두를 손가락으로 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 가슴을 주무르고 유두를 손가락으로 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 주무르고 유두를 손가락으로 자극해야 한다."
     },
     {
       "id": "hand_stimulate_recipient_genitals",
       "category": "sexual_action",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 성기를 손으로 잡고 반복해서 자극해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 손으로 잡고 반복해서 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 성기를 손으로 잡고 반복해서 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 손으로 잡고 반복해서 자극해야 한다."
     },
     {
       "id": "masturbate_for_recipient",
       "category": "sexual_action",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어 앞에서 자신의 성기를 만지며 자위해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방 앞에서 자신의 성기를 만지며 자위해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어 앞에서 자신의 성기를 만지며 자위해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방 앞에서 자신의 성기를 만지며 자위해야 한다."
     },
     {
       "id": "grind_on_recipient_lap",
       "category": "sexual_action",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다."
     },
     {
       "id": "deep_kiss_on_request",
       "category": "sexual_action",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다."
     },
     {
       "id": "guide_recipient_hand_to_body",
       "category": "sexual_action",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다."
     },
     {
       "id": "mutual_genital_touch",
       "category": "sexual_action",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어와 서로의 성기를 손으로 만지고 자극해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방과 서로의 성기를 손으로 만지고 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어와 서로의 성기를 손으로 만지고 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 서로의 성기를 손으로 만지고 자극해야 한다."
     },
     {
       "id": "lick_and_suck_recipient_nipples",
       "category": "sexual_action",
       "strength": "medium",
       "authority_tier": "medium",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다."
     },
     {
       "id": "perform_oral_sex_on_recipient",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어의 성기를 입과 혀로 자극해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 입과 혀로 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어의 성기를 입과 혀로 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 입과 혀로 자극해야 한다."
     },
     {
       "id": "receive_oral_sex_from_recipient",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 성기를 입으로 자극하도록 해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 입으로 자극하도록 해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어가 자신의 성기를 입으로 자극하도록 해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 입으로 자극하도록 해야 한다."
     },
     {
       "id": "vaginal_sex_with_recipient",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어와 질 삽입 성관계를 시작해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방과 질 삽입 성관계를 시작해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어와 질 삽입 성관계를 시작해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 질 삽입 성관계를 시작해야 한다."
     },
     {
       "id": "anal_sex_with_recipient",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어와 항문 삽입 성관계를 시작해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방과 항문 삽입 성관계를 시작해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어와 항문 삽입 성관계를 시작해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 항문 삽입 성관계를 시작해야 한다."
     },
     {
       "id": "perform_requester_selected_sex_position",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 지정한 체위로 자세를 바꾸고 플레이어와 성행위를 시작해야 한다.",
+      "label": "회사 여성 직원은 상대방이 지정한 체위로 자세를 바꾸고 상대방과 성행위를 시작해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 지정한 체위로 자세를 바꾸고 플레이어와 성행위를 시작해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 지정한 체위로 자세를 바꾸고 상대방과 성행위를 시작해야 한다."
     },
     {
       "id": "continue_until_recipient_orgasm",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 요청하면 플레이어가 절정에 이를 때까지 현재 성적 행동을 계속해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 상대방이 절정에 이를 때까지 현재 성적 행동을 계속해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 플레이어가 절정에 이를 때까지 현재 성적 행동을 계속해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 절정에 이를 때까지 현재 성적 행동을 계속해야 한다."
     },
     {
       "id": "continue_until_player_says_stop",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 중단하거나 방식을 바꿀 때까지 플레이어와 현재 성적 행동을 계속해야 한다.",
+      "label": "회사 여성 직원은 상대방이 중단하거나 방식을 바꿀 때까지 상대방과 현재 성적 행동을 계속해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 중단하거나 방식을 바꿀 때까지 플레이어와 현재 성적 행동을 계속해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 중단하거나 방식을 바꿀 때까지 상대방과 현재 성적 행동을 계속해야 한다."
     },
     {
       "id": "requester_controls_ejaculation_location",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다.",
+      "label": "회사 여성 직원은 상대방이 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다."
     },
     {
       "id": "swallow_semen_on_request",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 요청하면 입 안에 받은 정액을 삼켜야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 입 안에 받은 정액을 삼켜야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 입 안에 받은 정액을 삼켜야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 입 안에 받은 정액을 삼켜야 한다."
     },
     {
       "id": "multi_performer_sexual_service",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 플레이어를 자극해야 한다.",
+      "label": "회사 여성 직원은 상대방이 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 상대방을 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 플레이어를 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 상대방을 자극해야 한다."
     },
     {
       "id": "group_sex_with_player",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 직원은 플레이어와 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다.",
+      "label": "회사 직원은 상대방과 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다.",
       "affected_group": "company_employee",
       "mode": "on_player_request",
-      "content_template": "회사 직원은 플레이어와 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다."
+      "content_template": "회사 직원은 상대방과 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다."
     },
     {
       "id": "public_sex_is_unremarkable",
@@ -506,30 +506,30 @@
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다.",
+      "label": "회사 여성 직원은 상대방이 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다."
     },
     {
       "id": "player_controls_target_clothing_posture_and_sexual_action",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 여성 직원은 플레이어가 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다.",
+      "label": "회사 여성 직원은 상대방이 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 플레이어가 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다."
     },
     {
       "id": "selected_groups_mutual_sexual_service",
       "category": "sexual_action",
       "strength": "strong",
       "authority_tier": "strong",
-      "label": "회사 직원은 플레이어가 요청하면 다른 회사 직원과 서로의 성적 요구를 손·입·성행위로 충족해야 한다.",
+      "label": "회사 직원은 상대방이 요청하면 다른 회사 직원과 서로의 성적 요구를 손·입·성행위로 충족해야 한다.",
       "affected_group": "company_employee",
       "mode": "on_player_request",
-      "content_template": "회사 직원은 플레이어가 요청하면 다른 회사 직원과 서로의 성적 요구를 손·입·성행위로 충족해야 한다."
+      "content_template": "회사 직원은 상대방이 요청하면 다른 회사 직원과 서로의 성적 요구를 손·입·성행위로 충족해야 한다."
     }
   ],
   "authority_tiers": [

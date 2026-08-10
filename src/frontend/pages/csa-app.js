@@ -293,10 +293,12 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
       }));
       const counterpartyOptions = (catalogItem.allowed_counterparty_scopes || []).map(id => ({ id, label: scopeLabels[id] || id }));
       if (counterpartyOptions.length) {
-        wrap.appendChild(selectField('상대 대상', item.counterparty_scope || '', [
-          { id: '', label: '상대 대상 없음' },
-          ...counterpartyOptions
-        ], value => {
+        const defaultCounterparty = item.counterparty_scope
+          || catalogItem.default_counterparty_scope
+          || counterpartyOptions.find(option => option.id === 'company_employee')?.id
+          || counterpartyOptions[0]?.id
+          || '';
+        wrap.appendChild(selectField('상대 대상', defaultCounterparty, counterpartyOptions, value => {
           item.counterparty_scope = value || null;
           renderTab('csa');
         }));
