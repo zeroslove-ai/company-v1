@@ -180,6 +180,7 @@ async function main() {
         preset: { template_id: 'press_body_against_recipient', subject_scope: 'female_employee', counterparty_scope: 'company_employee' }
       }]
     } });
+    requireOk(validation, '/api/app-validate relational');
     const canonicalAction = validation.body?.data?.canonical_action ?? null;
     actionId = crypto.randomUUID();
     const relational = await story({ game_id: gameId, action_id: actionId, expected_turn: 3, player_action: '회사 직원에게 가까이 다가가 함께 업무를 시작한다.', structured_action: canonicalAction }, 'relational');
@@ -194,6 +195,52 @@ async function main() {
       raw_extract: relationalExtract.diagnostic,
       extract_response: relationalExtract.record,
       raw_extract_llm_calls: llmCalls.slice(relationalExtract.llm_start_index)
+    };
+
+    const relationalCommit = await call('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 3 });
+    requireOk(relationalCommit, '/api/commit relational');
+    report.relational.commit_response = relationalCommit;
+
+    const physicalValidation = await call('/api/app-validate', { game_id: gameId, structured_action: {
+      version: 1, type: 'app_transaction', base_turn_count: 3, operations: [{
+        client_id: 'diagnostic-physical-csa', domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak',
+        preset: { template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', counterparty_scope: null }
+      }]
+    } });
+    requireOk(physicalValidation, '/api/app-validate physical');
+    const physicalAction = physicalValidation.body?.data?.canonical_action ?? null;
+    actionId = crypto.randomUUID();
+    const physical = await story({ game_id: gameId, action_id: actionId, expected_turn: 4, player_action: '회사 여성 직원이 브래지어 없이 근무하는 상태로 지낸다.', structured_action: physicalAction }, 'physical');
+    actionId = physical.action_id;
+    const physicalExtract = await extract({ game_id: gameId, action_id: actionId, structured_action: physicalAction }, 'physical');
+    const physicalCommit = await call('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 4 });
+    requireOk(physicalCommit, '/api/commit physical');
+    report.physical = {
+      action_id: actionId,
+      expected_turn: 4,
+      raw_story: physical.events.filter(event => event.name === 'delta').map(event => event.data?.text ?? '').join(''),
+      parsed_story: physical.events.find(event => event.name === 'complete')?.data?.parsed_blocks ?? null,
+      parser_warnings: physical.events.find(event => event.name === 'complete')?.data?.warnings ?? [],
+      raw_extract: physicalExtract.diagnostic,
+      extract_response: physicalExtract.record,
+      commit_response: physicalCommit
+    };
+
+    actionId = crypto.randomUUID();
+    const requestless = await story({ game_id: gameId, action_id: actionId, expected_turn: 5, player_action: '회의실에서 업무를 이어간다.' }, 'requestless');
+    actionId = requestless.action_id;
+    const requestlessExtract = await extract({ game_id: gameId, action_id: actionId }, 'requestless');
+    const requestlessCommit = await call('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 5 });
+    requireOk(requestlessCommit, '/api/commit requestless');
+    report.requestless = {
+      action_id: actionId,
+      expected_turn: 5,
+      raw_story: requestless.events.filter(event => event.name === 'delta').map(event => event.data?.text ?? '').join(''),
+      parsed_story: requestless.events.find(event => event.name === 'complete')?.data?.parsed_blocks ?? null,
+      parser_warnings: requestless.events.find(event => event.name === 'complete')?.data?.warnings ?? [],
+      raw_extract: requestlessExtract.diagnostic,
+      extract_response: requestlessExtract.record,
+      commit_response: requestlessCommit
     };
   } catch (error) {
     report.harness_error = { name: error?.name, message: error?.message, action_id: actionId };
