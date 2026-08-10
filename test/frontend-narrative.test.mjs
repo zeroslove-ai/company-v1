@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseNarrative, projectStreamingText } from '../src/frontend/pages/narrative.js';
+import { parseNarrative, projectStreamingSections, projectStreamingText } from '../src/frontend/pages/narrative.js';
 
 test('frontend narrative parser preserves scene and dialogue order', () => {
   const parsed = parseNarrative('[SCENE]\nOffice lights are low.\n[DIALOGUE speaker="Hayeon" direction="quietly"]\nAre you ready?\n[PLAYER_STATUS]\nFocused\n[CHOICES]\n1. Ask\n2. Wait\n3. Leave\n4. Work');
@@ -29,4 +29,11 @@ test('streaming projection hides protocol markers while preserving raw prose and
   assert.match(visible, /안녕하세요/);
   assert.match(visible, /긴장된다/);
   assert.equal(projectStreamingText('첫 문장\n[DIAL'), '첫 문장\n');
+});
+
+test('syntax-only streaming projection separates scene, dialogue, thought, and choices without speaker inference', () => {
+  const projection = projectStreamingSections('[SCENE]\n장면 본문\n[DIALOGUE speaker="heroine1" direction="차분하게"]\n어서 와.\n[2. 플레이어 속마음]\n긴장된다.\n[CHOICES]\n1. 앉는다');
+  assert.deepEqual(projection.segments.map(segment => segment.type), ['scene', 'dialogue', 'thought', 'choices']);
+  assert.equal(projection.segments[1].text, '어서 와.');
+  assert.equal(projectStreamingSections('장면\n[DIALOGUE speaker="heroine1"').segments.at(-1).text, '장면');
 });

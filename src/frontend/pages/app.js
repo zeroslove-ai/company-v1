@@ -11,7 +11,7 @@ import { createCompanyTts } from './tts.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
-import { projectStreamingText } from './narrative.js';
+import { projectStreamingSections, projectStreamingText } from './narrative.js';
 
 // Duplicated (deliberately, not imported) from src/engine/choice-input.js: the frontend Worker
 // serves only src/frontend/pages as static assets (wrangler.frontend.jsonc), so a relative
@@ -229,14 +229,34 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
   const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; elements.current?.replaceChildren?.(); if (elements.current) elements.current.textContent = ''; };
   let rawStoryStream = '';
-  const resetRawStory = () => { rawStoryStream = ''; elements.current?.replaceChildren?.(); if (elements.current) { elements.current.textContent = ''; elements.current.classList?.add?.('raw-story-stream'); } };
+  let pendingRawProjection = false;
+  const resetRawStory = () => { rawStoryStream = ''; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
+  const renderStreamingProjection = projection => {
+    if (!elements.current) return;
+    const fragment = documentRef.createDocumentFragment?.();
+    if (!fragment) return;
+    for (const segment of projection.segments) {
+      const block = documentRef.createElement?.('section');
+      if (!block) continue;
+      block.className = `streaming-${segment.type}`;
+      block.dataset.streamingProjection = segment.type;
+      block.textContent = segment.text;
+      fragment.appendChild(block);
+    }
+    elements.current.replaceChildren?.(fragment);
+  };
   const appendRawStory = value => {
     if (!elements.current || !value) return;
     const nearBottom = typeof elements.current.scrollHeight === 'number'
       && elements.current.scrollHeight - elements.current.scrollTop - elements.current.clientHeight <= 120;
     elements.current.classList?.add?.('raw-story-stream');
     rawStoryStream += String(value);
-    elements.current.textContent = projectStreamingText(rawStoryStream);
+    if (pendingRawProjection) {
+      elements.current.replaceChildren?.();
+      pendingRawProjection = false;
+    }
+    renderStreamingProjection(projectStreamingSections(rawStoryStream));
+    if (!documentRef.createDocumentFragment && elements.current) elements.current.textContent = projectStreamingText(rawStoryStream);
     if (nearBottom) elements.current.scrollTop = elements.current.scrollHeight;
   };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
@@ -373,7 +393,8 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       if (item?.event === 'complete') {
         const choices = hasFourChoices(item.data?.choices) ? item.data.choices : parsed?.choices;
         if (parsed?.blocks) renderNarrative(elements.current, choices ? { ...parsed, choices } : parsed);
-        if (hasFourChoices(choices)) { streamedStoryChoices = choices; render(); }
+        // Keep committed choices/inner thought until Commit succeeds; the
+        // parsed Story body is only a pending presentation at this point.
       }
     },
     onExtract: () => {
@@ -490,7 +511,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   async function startNewAction(playerAction, structuredAction = null) {
     let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
     if (elements.input) elements.input.value = '';
-    streamedStoryChoices = [];
+    // Keep the last committed choices visible while the new turn is pending.
     // 저장 파이프라인 핫픽스 — 이미 종료된 과거 액션(stale pending)은 자동 정리하고
     // 실제 in-flight 상태만 자동 재개한다. 정리된 경우 같은 클릭에서 새 행동을 계속 진행한다.
     const pending = loadPending(storage, gameId);

@@ -295,8 +295,12 @@ export function buildCsaTransactionDetailsSection(plan, previousSave = {}) {
       : operation;
     const strength = strengthLabel(rule?.strength);
     const content = text(rule?.content) || '(내용 미확인)';
+    const preset = object(rule?.preset) ?? {};
+    const subject = text(preset.subject_scope || preset.affected_group) || 'company_employee';
+    const counterparty = text(preset.counterparty_scope) || 'none';
+    const trigger = text(preset.trigger || preset.mode) || 'continuous';
     const id = text(operation.id);
-    return `- ${verb}${id ? ` ${id}` : ''} · 강도 ${strength} · 권위 ${authorityLabel(rule?.strength)} · 내용: ${content}`;
+    return `- ${verb}${id ? ` ${id}` : ''} · 강도 ${strength} · 권위 ${authorityLabel(rule?.strength)} · subject=${subject} · counterparty=${counterparty} · trigger=${trigger} · 내용: ${content}`;
   }).join('\n');
   return `\n\n[CSA TRANSACTION EXACT RULES — HIGHEST PRIORITY]\n아래 문장이 이번 턴부터 실제로 적용되거나 해제된 규정의 정확한 내용이다. 범위 이름이나 조작 종류만 보고 내용을 추측하지 말고 이 문장을 그대로 기준으로 삼는다.\n${lines}`;
 }

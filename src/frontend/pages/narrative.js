@@ -366,3 +366,55 @@ export function projectStreamingText(rawText) {
       .trimEnd();
   }).join('\n');
 }
+
+/**
+ * Syntax-only incremental projection used while SSE text is arriving.  It
+ * never assigns speakers or parses choices; it only tracks the protocol's
+ * section markers so scene prose, dialogue, thought, and choice text do not
+ * visually collapse into one block.  The caller keeps the original raw text
+ * separately for Extract/Commit.
+ */
+export function projectStreamingSections(rawText) {
+  const raw = String(rawText ?? '');
+  const lines = raw.split(/\r?\n/);
+  const segments = [];
+  let role = 'scene';
+  const marker = /^\s*\[(SCENE|DIALOGUE\b[^\]]*|\/DIALOGUE|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*(?:플레이어\s*상황판|선택지)|4\.\s*선택지)\]\s*$/u;
+  const incomplete = /^\s*\[(?:S|SC|D|DI|DIA|DIAL|DIALOGUE|P|PL|PLAYER|C|CH|CHO|CHOI|1\.|2\.|3\.|4\.)[^\]]*$/u;
+  const roleFor = label => {
+    if (label === 'SCENE' || label.startsWith('1.')) return 'scene';
+    if (label.startsWith('DIALOGUE') || label === '/DIALOGUE') return label === '/DIALOGUE' ? role : 'dialogue';
+    if (label === 'PLAYER_INNER_THOUGHT' || label.startsWith('2.')) return 'thought';
+    if (label === 'CHOICES' || label.startsWith('3.') || label.startsWith('4.')) return 'choices';
+    return role;
+  };
+  const append = (type, line) => {
+    const text = String(line ?? '').trim();
+    if (!text) return;
+    const previous = segments.at(-1);
+    if (previous?.type === type) previous.text += `\n${text}`;
+    else segments.push({ type, text });
+  };
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (index === lines.length - 1 && incomplete.test(line)) continue;
+    const match = marker.exec(line);
+    if (match) {
+      role = roleFor(match[1]);
+      continue;
+    }
+    const cleaned = line
+      .replace(/^\s*\[DIALOGUE\b[^\]]*\]\s*/u, '')
+      .replace(/\s*\[\/DIALOGUE\]\s*$/u, '')
+      .replace(/^\s*\[(?:SCENE|PLAYER_INNER_THOUGHT|CHOICES)\]\s*/u, '');
+    append(role, cleaned);
+  }
+  return {
+    raw,
+    segments,
+    scene: segments.filter(segment => segment.type === 'scene').map(segment => segment.text).join('\n'),
+    dialogue: segments.filter(segment => segment.type === 'dialogue').map(segment => segment.text).join('\n'),
+    player_inner_thought: segments.filter(segment => segment.type === 'thought').map(segment => segment.text).join('\n'),
+    choices: segments.filter(segment => segment.type === 'choices').map(segment => segment.text).join('\n')
+  };
+}

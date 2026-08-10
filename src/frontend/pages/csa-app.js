@@ -283,6 +283,25 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
 
     const catalogItem = presetCatalogItem(appState, item.template_id);
     if (catalogItem && presetStrength(catalogItem) === selectedStrength) {
+      const scopeLabels = Object.fromEntries((presets.subject_scope_options || presets.selector_options || []).map(option => [option.id, option.label]));
+      const subjectOptions = (catalogItem.allowed_subject_scopes || [catalogItem.affected_group]).map(id => ({
+        id, label: scopeLabels[id] || id
+      }));
+      wrap.appendChild(selectField('규정 적용 대상', item.subject_scope || catalogItem.default_subject_scope || catalogItem.affected_group, subjectOptions, value => {
+        item.subject_scope = value;
+        renderTab('csa');
+      }));
+      const counterpartyOptions = (catalogItem.allowed_counterparty_scopes || []).map(id => ({ id, label: scopeLabels[id] || id }));
+      if (counterpartyOptions.length) {
+        wrap.appendChild(selectField('상대 대상', item.counterparty_scope || '', [
+          { id: '', label: '상대 대상 없음' },
+          ...counterpartyOptions
+        ], value => {
+          item.counterparty_scope = value || null;
+          renderTab('csa');
+        }));
+      }
+      if (catalogItem.trigger) wrap.appendChild(el('p', 'csa-app-scope-label', `적용 조건: ${catalogItem.trigger === 'continuous' ? '근무·장면 조건이 성립할 때' : '상대방의 요청 또는 지정이 있을 때'}`));
       const previewPlaceholder = '항목을 모두 선택하면 문장이 완성됩니다.';
       const previewText = el('p', '', presetPreviewContent(appState, item) || previewPlaceholder);
       const previewBox = el('div', 'csa-app-preview');

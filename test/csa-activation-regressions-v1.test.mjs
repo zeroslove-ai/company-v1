@@ -47,6 +47,7 @@ test('preset activation synchronizes flat draft fields into item.preset before a
   };
   draft.csa.push(item);
   applyPresetDefaults(item, preset);
+  if (preset.allowed_counterparty_scopes?.length) item.counterparty_scope = preset.allowed_counterparty_scopes[0];
 
   const result = operations(state, draft);
   assert.equal(result.length, 1);

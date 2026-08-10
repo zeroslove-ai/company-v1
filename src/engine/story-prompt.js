@@ -37,6 +37,11 @@ function buildActiveWorldRules(save, expectedTurn = null) {
       authority_tier: authorityTier,
       affected_group: typeof preset.affected_group === 'string' ? preset.affected_group : 'company_employee',
       mode: preset.mode === 'on_player_request' ? 'on_player_request' : 'continuous',
+      subject_scope: typeof preset.subject_scope === 'string' ? preset.subject_scope : (typeof preset.affected_group === 'string' ? preset.affected_group : 'company_employee'),
+      counterparty_scope: typeof preset.counterparty_scope === 'string' ? preset.counterparty_scope : null,
+      trigger: typeof preset.trigger === 'string' ? preset.trigger : (preset.mode === 'on_player_request' ? 'on_counterparty_request' : 'continuous'),
+      allowed_subject_scopes: Array.isArray(preset.allowed_subject_scopes) ? preset.allowed_subject_scopes : [],
+      allowed_counterparty_scopes: Array.isArray(preset.allowed_counterparty_scopes) ? preset.allowed_counterparty_scopes : [],
       activated_turn: activatedTurn,
       activated_game_time: object(rule.activated_game_time),
       newly_activated: Number.isInteger(expectedTurn) && activatedTurn === expectedTurn
@@ -145,7 +150,9 @@ function buildMovementGrounding(edition, save, playerAction = '') {
   });
   const target = targets.length === 1 ? targets[0] : null;
   const characters = object(edition?.characters?.characters) ?? {};
-  const namedNpc = Object.entries(characters).find(([, character]) => typeof character?.name === 'string' && action.includes(character.name));
+  const generalNpcs = object(edition?.generalNpcs?.profiles) ?? {};
+  const namedNpc = [...Object.entries(characters), ...Object.entries(generalNpcs)]
+    .find(([, character]) => typeof character?.name === 'string' && action.includes(character.name));
   const namedTarget = namedNpc
     ? mapLocations.find(location => Array.isArray(location?.default_npc_ids) && location.default_npc_ids.includes(namedNpc[0]))
     : null;
@@ -155,7 +162,7 @@ function buildMovementGrounding(edition, save, playerAction = '') {
     requested_location: (target ?? namedTarget) ? { location_id: (target ?? namedTarget).location_id, name: (target ?? namedTarget).name, floor: (target ?? namedTarget).floor, department_id: (target ?? namedTarget).department_id } : null,
     requested_character: namedNpc ? { character_id: namedNpc[0], name: namedNpc[1].name } : null,
     known_paths: current && Array.isArray(current.adjacent_location_ids) ? current.adjacent_location_ids : [],
-    movement_is_observed_by_story: true
+    movement_requested: true
   };
 }
 
@@ -226,14 +233,14 @@ const KOREAN_WORKPLACE_LANGUAGE = [
 const SYSTEM_INSTRUCTIONS = [
   KOREAN_WORKPLACE_LANGUAGE,
   'NPC 물리 상태(복장·자세·위치): context.active_npc_state.npc_scene_state에 있는 복장·자세·위치는 현재 물리 상태(확정 사실)다. 실제로 옷을 벗고 입고 열고 잠그는 행동이 이번 서사에서 완료된 경우에만 바뀐다. 상식개변(CSA) 적용·해제만으로 복장이 자동으로 바뀌지 않으며, 아무 이유 없이 갑자기 입었다 벗었다 하지 않는다. 알 수 없으면 저장된 마지막 상태를 유지한다. context.clothing_authority[npc_id]가 이번 턴 복장의 최종 권위다: actual_clothing이 현재 정본, required_clothing이 규정상 요구, compliance가 이행 상태다. actual_clothing이 비어 있거나 unknown이면 그 NPC의 현재 복장은 알 수 없음이며, 이미 갈아입었다거나 규정을 지키고 있다고 단정하지 않는다. required_clothing이 있고 actual_clothing이 그와 다르면 복장 변경은 반드시 이번 턴 Story에서 실제로 완료된 갈아입기·벗기 행동을 거쳐야 한다. 규정 내용만으로는 복장이 바뀌지 않는다.',
-  '[COMMON-SENSE CHANGE RULES] active_world_rules는 회사의 사내 지침·취업규칙·국가 법령이 바뀐 제도적 사실을 유일하게 전달한다. 완성된 규정 문장·강도·authority_tier·affected_group을 현재 장면과 참여자에 자연스럽게 반영하되 Story 전에 행동 주체·대상·성공 여부를 판정하지 않는다. 새 규정 첫 장면에서도 최소한의 인지만 허용하고 규정 원문·공지·법적 근거를 매 턴 반복하지 않는다. 캐릭터별 감정과 행동 과정은 자유롭게 서술하되 규정 해설보다 장면 진행을 우선한다. 플레이어의 자유 입력 자체는 막지 않는다.',
+  '[COMMON-SENSE CHANGE RULES] active_world_rules는 회사의 사내 지침·취업규칙·국가 법령이 바뀐 제도적 사실을 유일하게 전달한다. 완성된 규정 문장·강도·authority_tier·subject_scope·counterparty_scope·trigger를 현재 장면과 참여자에 자연스럽게 반영하되 Story 전에 실제 actor·target·성공 여부를 판정하지 않는다. company_employee 범위는 플레이어를 포함한 회사 전체 직원이며, 범위가 겹쳐도 실제 상대는 자기 자신이 될 수 없다. 플레이어가 규정의 subject여도 입력하지 않은 행동·대사를 대신 완료하지 않는다. 새 규정 첫 장면에서도 최소한의 인지만 허용하고 규정 원문·공지·법적 근거를 매 턴 반복하지 않는다. 캐릭터별 감정과 행동 과정은 자유롭게 서술하되 규정 해설보다 장면 진행을 우선한다. 플레이어의 자유 입력 자체는 막지 않는다.',
   '너는 한국어 회사 배경 게임의 한 턴 분량 Story를 작성한다. 출력은 정확히 다음 세 섹션을 이 순서로만 쓴다: [1. 서사 및 행동] [2. 플레이어 속마음] [3. 선택지]. 다른 사용자용 섹션(예: 별도 [DIALOGUE])이나 섹션 밖 설명·JSON·메타 코멘트는 쓰지 않는다.',
 
   '[1. 서사 및 행동]: 플레이어가 새로 합류한 신입이면 인사·소개·눈치 보기 같은 인간관계 행동이 자연스럽게 나오도록 하고, 업무 진행만으로 턴을 채우지 않는다. 사내 일상(커피, 점심, 잡담, 회의 참석, 부서 이동)과 관계 형성이 서사의 중심이 될 수 있다. context.current_time.day와 context.current_time.minute_of_day는 확정 사실이다. 시간·채광·식사 묘사가 이 값과 모순되면 생략하고, 실제 elapsed 근거 없는 장시간 경과를 만들지 않는다. 서술은 [SCENE] 줄 뒤에 쓰고, 발화는 반드시 [최종 출연·대사 출력 계약]의 [DIALOGUE speaker_id="..." acting_direction="..."] 형식으로만 쓴다. 화자명 없는 대사·이름: 대사·직급만 표시한 대사는 금지다. 분량 목표(Context/선택지/속마음 제외)는 가벼운 반응 800~1000자, 대화·갈등·구체 행동 1000~1500자, 이동·다수 NPC·중요 CSA 1200~2000자다. NPC 등장 턴은 의미 있는 발언 3회 이상을 목표로 하되 같은 말을 줄만 나눠 채우지 않는다. 이 목표들은 생성 목표일 뿐 검증 게이트가 아니며 미달로 재생성하지 않는다.',
 
   '장면 연속성: context.recent_turns에 최신 확정 3턴의 story_text 원문이 그대로 있다. 그 원문(특히 최신 턴)을 실제 근거로 삼아 직전 질문·약속·결정·말투·물건·자세를 무시하고 장면을 재시작하지 않으며, 질문에는 답변·회피·보류 중 하나로 반응하고 같은 설명을 반복하지 않는다.',
 
-  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. NPC 등장 여부는 scene_cast_contract가 이미 확정했고 너에게는 결정 권한이 없다. eligible_nearby_npcs는 서버 내부 참고 목록일 뿐이므로 그것을 근거로 누구도 등장시키지 마라.',
+  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. NPC 등장 여부는 scene_cast_contract가 이미 확정했고 너에게는 결정 권한이 없다. eligible_nearby_npcs는 서버 내부 참고 목록일 뿐이므로 그것을 근거로 누구도 등장시키지 마라. movement_grounding.movement_requested가 true이고 requested_location 또는 requested_character가 있으면, Story에 이미 적힌 실제 방해 사유가 없는 한 그 턴 안에 목적지 도착까지 서술한다. 모델이 엘리베이터 고장·호출·출입 제한·갑작스러운 업무 같은 지연 사유를 새로 만들지 않는다.',
 
   '대화 기능: 첫 발언은 반응·질문·확인, 중간은 새 정보·조건·반론·감정 변화, 마지막은 결정·행동 시작·다음 쟁점 중 서로 다른 기능을 맡는다. 다인 장면은 가능하면 NPC끼리 한 번 이상 직접 반응하고, 모두 같은 의견을 반복하지 않는다.',
 

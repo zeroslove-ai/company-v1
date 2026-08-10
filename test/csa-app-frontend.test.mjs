@@ -38,7 +38,9 @@ test('csa-app-state: activating a preset produces a valid operation, and dirty()
   assert.equal(ops.length, 1);
   assert.equal(ops[0].operation, 'activate');
   assert.equal(ops[0].domain, 'csa');
-  assert.equal(presetPreviewContent(appState, item), presetItem.content_template);
+  assert.equal(presetPreviewContent(appState, item), presetItem.scope_template
+    ? presetItem.scope_template.replace('{subject}는', '회사 여성 직원은').replaceAll('{subject}', '회사 여성 직원').replace('{counterparty}와', '회사 직원 전체와').replaceAll('{counterparty}', '회사 직원 전체')
+    : presetItem.content_template);
   assert.equal(activeItems(draft).length, 1);
 });
 

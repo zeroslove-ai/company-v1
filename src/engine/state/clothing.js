@@ -229,6 +229,12 @@ export function retainEvidencedClothing({ previousClothing = {}, proposedClothin
 
 /** 규정이 요구하는 착의 template — canonical slot → enum. */
 const REQUIRED_BY_TEMPLATE = {
+  work_nude: {
+    uniform_top: 'removed',
+    uniform_bottom: 'removed',
+    underwear_top: 'removed',
+    underwear_bottom: 'removed'
+  },
   work_in_underwear_only: {
     uniform_top: 'removed',
     uniform_bottom: 'removed',
@@ -268,9 +274,12 @@ export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {})
     const templateId = rule?.preset?.template_id;
     if (!templateId || !REQUIRED_BY_TEMPLATE[templateId]) continue;
     const preset = rule?.preset ?? {};
-    const actorGroup = preset.affected_group;
+    const actorGroup = preset.subject_scope || preset.affected_group;
     const mode = preset.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
     if (mode === 'on_player_request') continue;
+    const isPlayer = npcProfile?.id === 'player' || npcProfile?.character_id === 'player' || npcProfile?.player === true;
+    if (actorGroup === 'player' && !isPlayer) continue;
+    // company_employee explicitly includes both the player and registered NPCs.
     if (actorGroup === 'female_employee' && gender !== 'female') continue;
     // male_employee 규정이 남성 전용일 경우 — 프로필 성별과 충돌하면 적용하지 않는다.
     if (actorGroup === 'male_employee' && gender !== null && gender !== 'male') continue;

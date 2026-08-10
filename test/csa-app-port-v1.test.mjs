@@ -278,6 +278,9 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   assert.equal(storyPayload.context.active_world_rules.filter(rule => rule.content === activatedContent).length, 1);
   const projectedRule = storyPayload.context.active_world_rules[0];
   assert.equal(projectedRule.affected_group, 'female_employee');
+  assert.equal(projectedRule.subject_scope, 'female_employee');
+  assert.equal(projectedRule.counterparty_scope, 'company_employee');
+  assert.equal(projectedRule.trigger, 'contextual');
   assert.equal(projectedRule.authority_tier, 'weak');
   assert.equal('roles' in projectedRule, false);
   assert.equal('sexual_actions' in projectedRule, false);
@@ -299,6 +302,8 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   const newId = save.csa_active[0];
   assert.equal(save.csa_rules[newId].active, true);
   assert.equal(save.csa_rules[newId].source_type, 'preset');
+  assert.equal(save.csa_rules[newId].preset.subject_scope, 'female_employee');
+  assert.equal(save.csa_rules[newId].preset.counterparty_scope, 'company_employee');
 });
 
 test('a non-null structured action that the reservation fails to persist stops Story before the LLM', async () => {

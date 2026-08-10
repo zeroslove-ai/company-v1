@@ -133,10 +133,10 @@ test('transaction details preserve authority tiers for Extract/runtime observati
     }
   };
   const details = buildCsaTransactionDetailsSection(plan, previousSave);
-  assert.match(details, /신설 · 강도 약함 · 권위 인사팀 공식 공지·사내 운영지침 · 내용: 새 규정/);
-  assert.match(details, /수정 updated · 강도 중간 · 권위 취업규칙·전사 준수 규정 · 내용: 수정 규정/);
+  assert.match(details, /신설 · 강도 약함 · 권위 인사팀 공식 공지·사내 운영지침 · .*내용: 새 규정/);
+  assert.match(details, /수정 updated · 강도 중간 · 권위 취업규칙·전사 준수 규정 · .*내용: 수정 규정/);
   assert.match(details, /법령 규정/);
-  assert.match(details, /해제 old · 강도 약함 · 권위 인사팀 공식 공지·사내 운영지침 · 내용: 예전 규정/);
+  assert.match(details, /해제 old · 강도 약함 · 권위 인사팀 공식 공지·사내 운영지침 · .*내용: 예전 규정/);
 
 });
 

@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { buildPresetCatalogPayload, normalizeCompanyCsaCatalog, renderPresetContent } from '../src/engine/csa/catalog.js';
+import { validatePresetOperation } from '../src/engine/csa/transaction-planner.js';
+import { requiredClothingFromActiveCsa } from '../src/engine/state/clothing.js';
 
 const raw = JSON.parse(fs.readFileSync(new URL('../content/csa_presets.json', import.meta.url), 'utf8'));
 const catalog = normalizeCompanyCsaCatalog(raw);
@@ -34,13 +36,18 @@ test('representative institutional regulation sentences preserve direct action m
   assert.match(sentence('public_sex_is_unremarkable'), /회사 직원은 공개된 성행위/);
 });
 
-test('final catalog cleanup keeps request modes, institutional framing, and no role placeholder UI', () => {
-  const requestIds = [
+test('contextual proximity presets use world-neutral triggers and no player-only request condition', () => {
+  const contextualIds = [
     'sit_on_recipient_lap', 'stand_between_recipient_knees', 'press_body_against_recipient',
     'embrace_recipient_from_behind', 'keep_hand_on_recipient_inner_thigh', 'wrap_leg_around_recipient',
     'maintain_thigh_contact', 'whisper_against_recipient_ear', 'interlace_fingers_with_recipient'
   ];
-  for (const id of requestIds) assert.equal(catalog.items.find(item => item.id === id)?.mode, 'on_player_request');
+  for (const id of contextualIds) {
+    const item = catalog.items.find(item => item.id === id);
+    assert.equal(item?.mode, 'continuous');
+    assert.notEqual(item?.trigger, 'on_player_request');
+    assert.doesNotMatch(item?.content_template || '', /플레이어가 요청하면/);
+  }
   const mutual = catalog.items.find(item => item.id === 'selected_groups_mutual_sexual_service');
   assert.ok(mutual);
   assert.doesNotMatch(mutual.label, /선택된 두/);
@@ -48,6 +55,69 @@ test('final catalog cleanup keeps request modes, institutional framing, and no r
   assert.doesNotMatch(JSON.stringify(raw), new RegExp(['자연스러운', ' 상식으로 바뀝니다'].join('')));
   const frontend = fs.readFileSync(new URL('../src/frontend/pages/csa-app.js', import.meta.url), 'utf8');
   assert.doesNotMatch(frontend, /\[\['역할'/);
+});
+
+test('subject and counterparty scopes stay independent and never default the counterparty to player', () => {
+  const proximity = catalog.items.find(item => item.id === 'press_body_against_recipient');
+  assert.deepEqual(proximity.allowed_subject_scopes, ['player', 'female_employee', 'male_employee', 'company_employee']);
+  assert.ok(proximity.allowed_counterparty_scopes.includes('company_employee'));
+  assert.equal(proximity.default_counterparty_scope, 'company_employee');
+  assert.ok(catalog.subject_scope_options.some(option => option.id === 'player'));
+  assert.ok(catalog.counterparty_scope_options.some(option => option.id === 'company_employee'));
+});
+
+test('relational presets require an explicit counterparty while state presets do not', () => {
+  const relational = validatePresetOperation(catalog, {
+    strength: 'weak',
+    preset: { template_id: 'press_body_against_recipient', subject_scope: 'female_employee', counterparty_scope: null }
+  }, { availableStrength: 'weak' });
+  assert.equal(relational.ok, false);
+  assert.equal(relational.code, 'CSA_COUNTERPARTY_REQUIRED');
+  const state = validatePresetOperation(catalog, {
+    strength: 'medium',
+    preset: { template_id: 'work_nude', subject_scope: 'company_employee' }
+  }, { availableStrength: 'medium' });
+  assert.equal(state.ok, true);
+  assert.equal(state.preset.counterparty_scope, null);
+});
+
+test('preset validation stores independent subject/counterparty scopes and renders the selected relationship', () => {
+  const result = validatePresetOperation(catalog, {
+    strength: 'weak',
+    preset: {
+      template_id: 'press_body_against_recipient',
+      subject_scope: 'female_employee',
+      counterparty_scope: 'company_employee',
+      trigger: 'contextual'
+    }
+  }, { availableStrength: 'weak' });
+  assert.equal(result.ok, true);
+  assert.equal(result.preset.subject_scope, 'female_employee');
+  assert.equal(result.preset.counterparty_scope, 'company_employee');
+  assert.match(result.content, /회사 여성 직원은 회사 직원 전체와/);
+  assert.doesNotMatch(result.content, /플레이어가 요청하면/);
+});
+
+test('work_nude alias permits player or company_employee subjects without creating a counterparty', () => {
+  const result = validatePresetOperation(catalog, {
+    strength: 'medium',
+    preset: { template_id: 'work_nude', subject_scope: 'player' }
+  }, { availableStrength: 'medium' });
+  assert.equal(result.ok, true);
+  assert.equal(result.preset.subject_scope, 'player');
+  assert.equal(result.preset.counterparty_scope, null);
+  assert.match(result.content, /^플레이어는/);
+});
+
+test('company_employee clothing scope includes the player while player-only scope excludes NPCs', () => {
+  const companyRule = { preset: { template_id: 'work_nude', subject_scope: 'company_employee', mode: 'continuous' } };
+  const playerRule = { preset: { template_id: 'work_nude', subject_scope: 'player', mode: 'continuous' } };
+  const required = {
+    uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'removed', underwear_bottom: 'removed'
+  };
+  assert.deepEqual(requiredClothingFromActiveCsa([companyRule], { id: 'player' }).required_clothing, required);
+  assert.deepEqual(requiredClothingFromActiveCsa([companyRule], { id: 'heroine1', gender: 'female' }).required_clothing, required);
+  assert.deepEqual(requiredClothingFromActiveCsa([playerRule], { id: 'heroine1', gender: 'female' }).required_clothing, {});
 });
 
 test('preset payload exposes only group scope, authority, mode, and complete sentence', () => {
