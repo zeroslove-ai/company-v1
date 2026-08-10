@@ -10,8 +10,6 @@ import {
   hydrateGameplayState,
   migrateCompanySave,
   normalizeElapsedMinutes,
-  normalizeGameplayExtractEnvelope,
-  normalizeMindMonitor,
   parseNarrative,
   reducePlayerSexualState,
   buildExtractPrompt,
@@ -46,47 +44,6 @@ test('Story parser keeps authored inner thought and malformed story nonblocking'
   assert.equal(structured.choices.length, 4);
   assert.equal(malformed.raw, malformedRaw);
   assert.ok(malformed.warnings.includes('choices_not_exactly_four'));
-});
-
-test('gameplay Extract preserves parser authority and independent identity IDs', () => {
-  const extract = readJson('fixtures/gameplay-state-v1/extract-gameplay-valid.json');
-  const story = parseNarrative(read('fixtures/gameplay-state-v1/story-structured.txt'));
-  const input = structuredClone(extract);
-  const parsedInput = structuredClone(story);
-  const normalized = normalizeGameplayExtractEnvelope(input, { parsedStory: parsedInput });
-  assert.deepEqual(normalized.choices, story.choices);
-  assert.equal(normalized.player_inner_thought, story.player_inner_thought);
-  assert.equal(normalized.action_target_id, 'npc-existing');
-  assert.equal(normalized.focal_character_id, 'npc-focal');
-  assert.equal(normalized.last_speaker_id, 'npc-last');
-  assert.equal(normalized.image_character_id, 'npc-image');
-  assert.equal(normalized.mind_monitor['npc-existing'].surface, extract.mind_monitor['npc-existing'].surface);
-  assert.equal(normalized.mind_monitor['npc-existing'].subconscious, extract.mind_monitor['npc-existing'].subconscious);
-  assert.equal(normalized.mind_monitor['npc-existing'].body, undefined);
-  assert.ok(normalized.mind_monitor['npc-existing'].surface.length >= 150);
-  assert.ok(normalized.mind_monitor['npc-existing'].surface.length <= 300);
-  assert.ok(normalized.mind_monitor['npc-existing'].subconscious.length >= 180);
-  assert.ok(normalized.mind_monitor['npc-existing'].subconscious.length <= 350);
-  assert.equal(normalized.mind_monitor['npc-existing'].surface.includes('calm'), false);
-  assert.equal(normalized.mind_monitor['npc-existing'].subconscious.includes('uncertain'), false);
-  assert.deepEqual(input, extract);
-  assert.deepEqual(parsedInput, story);
-});
-
-test('Mind Monitor emits only surface and subconscious without manufacturing NPCs', () => {
-  const input = {
-    'npc-a': { surface: 'aware', subconscious: 'worried', body: 'hidden', physical_action: 'hidden' },
-    'npc-b': 'legacy per-npc text'
-  };
-  const copy = structuredClone(input);
-  const normalized = normalizeMindMonitor(input);
-  assert.deepEqual(normalized.mind_monitor, { 'npc-a': { surface: 'aware', subconscious: 'worried' } });
-  assert.ok(normalized.warnings.some(warning => warning.includes('body')));
-  assert.ok(normalized.warnings.some(warning => warning.includes('npc-b')));
-  assert.deepEqual(input, copy);
-  const legacy = normalizeMindMonitor('unstructured legacy monitor');
-  assert.equal(legacy.legacy_text, 'unstructured legacy monitor');
-  assert.deepEqual(legacy.mind_monitor, {});
 });
 
 test('time proposals default safely and advance rolls across days', () => {
@@ -196,7 +153,6 @@ test('required gameplay fixtures define three CSA axes and five resolved heroine
   assert.deepEqual(csa.csa_runtime_state['csa-global'], {
     lifecycle: 'temporarily_interrupted', applicability: 'applicable', execution_state: 'interrupted'
   });
-  assert.equal(normalizeGameplayExtractEnvelope(readJson('fixtures/gameplay-state-v1/extract-invalid-time.json')).elapsed_minutes, 3);
   assert.deepEqual(
     reducePlayerSexualState({}, readJson('fixtures/gameplay-state-v1/extract-invalid-sexual-completion.json').state_delta.player_sexual_state).warnings,
     ['unauthorized_ejaculation_completion_ignored']

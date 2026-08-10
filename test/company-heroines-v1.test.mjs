@@ -327,11 +327,9 @@ test('Extract payload carries Story text exactly once and strips raw/scene_text/
   const prompt = buildExtractPrompt({ context: {}, storyText: '[1. 서사 및 행동]\n전체 원문 그대로.', parsedStory, playerAction: 'x', expectedTurn: 1, edition });
   const payload = JSON.parse(prompt[1].content);
   assert.equal(payload.story_text, '[1. 서사 및 행동]\n전체 원문 그대로.');
-  assert.equal('raw' in payload.parsed_story, false);
-  assert.equal('scene_text' in payload.parsed_story, false);
-  assert.equal('blocks' in payload.parsed_story, false);
-  assert.equal('player_status' in payload.parsed_story, false, 'player_status는 Extract projection에서 제거');
-  assert.deepEqual(Object.keys(payload.parsed_story).sort(), ['choices', 'dialogue_lines', 'player_inner_thought', 'warnings'].sort());
+  assert.equal(payload.extract_version, 2);
+  assert.equal('parsed_story' in payload, false);
+  assert.equal('parser_projection' in payload, false);
   const occurrences = prompt[1].content.split('전체 원문 그대로').length - 1;
   assert.equal(occurrences, 1, 'Story text must not be duplicated inside the Extract payload');
 });

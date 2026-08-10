@@ -112,96 +112,6 @@ test('feedback revision reuses the action reserved by the existing revision RPC'
   assert.deepEqual(calls[2][1].structured_action, structuredAction);
 });
 
-test('TTS OFF makes no automatic request but manual replay still plays the selected NPC line', async () => {
-  const { nodes, documentRef } = documentWith(['tts-enabled', 'play-tts', 'mind-monitor']);
-  nodes['mind-monitor'].dataset.selectedCharacterId = 'heroine1';
-  const ttsBodies = [];
-  let createdAudio = null;
-  class CapturedAudio extends FakeAudio {
-    constructor() { super(); createdAudio = this; }
-  }
-  const ui = createUtilityUi({
-    documentRef,
-    api: {
-      tts: async body => {
-        ttsBodies.push(body);
-        return new Response(new Blob(['audio']), { headers: { 'content-type': 'audio/mpeg' } });
-      }
-    },
-    gameId,
-    getViewModel: () => ({
-      media: {
-        image_character_id: 'heroine1',
-        dialogue_lines: [
-          { speaker_id: 'heroine2', speaker_name: '윤민아', text: '다른 대사', direction: '담담하게', order: 0 },
-          { speaker_id: 'heroine1', speaker_name: '서원희', text: '재생할 대사', direction: '조심스럽게', order: 1 }
-        ]
-      },
-      focal_character: { id: 'heroine2', last_speaker_id: 'heroine1' }
-    }),
-    AudioImpl: CapturedAudio,
-    urlApi: { createObjectURL: () => 'blob:tts-audio', revokeObjectURL() {} }
-  });
-
-  assert.equal(nodes['tts-enabled'].checked, false);
-  await ui.loadMedia();
-  assert.equal(ttsBodies.length, 0, 'OFF 상태에서 자동 TTS 요청은 없어야 한다');
-  assert.equal(nodes['play-tts'].disabled, false, '수동 재생은 TTS 토글과 독립이어야 한다');
-
-  const played = await ui.playTts();
-  assert.equal(played, true);
-  assert.deepEqual(ttsBodies, [{
-    game_id: gameId,
-    character_id: 'heroine1',
-    text: '재생할 대사',
-    direction: '조심스럽게'
-  }]);
-  assert.equal(createdAudio.playCalls, 2, '모바일 priming과 실제 음원 재생을 각각 수행한다');
-  assert.equal(createdAudio.src, 'blob:tts-audio');
-  assert.equal(createdAudio.muted, false);
-});
-
-test('TTS ON automatically requests and plays the selected NPC line during media loading', async () => {
-  const { nodes, documentRef } = documentWith(['tts-enabled', 'play-tts', 'mind-monitor']);
-  nodes['tts-enabled'].checked = true;
-  nodes['mind-monitor'].dataset.selectedCharacterId = 'heroine1';
-  const ttsBodies = [];
-  let createdAudio = null;
-  class CapturedAudio extends FakeAudio {
-    constructor() { super(); createdAudio = this; }
-  }
-  const ui = createUtilityUi({
-    documentRef,
-    api: {
-      tts: async body => {
-        ttsBodies.push(body);
-        return new Response(new Blob(['audio']), { headers: { 'content-type': 'audio/mpeg' } });
-      }
-    },
-    gameId,
-    getViewModel: () => ({
-      media: {
-        image_character_id: 'heroine1',
-        dialogue_lines: [{ speaker_id: 'heroine1', speaker_name: '서원희', text: '자동 재생할 대사', direction: '차분하게', order: 0 }]
-      },
-      focal_character: { id: 'heroine1', last_speaker_id: 'heroine1' }
-    }),
-    AudioImpl: CapturedAudio,
-    urlApi: { createObjectURL: () => 'blob:tts-auto', revokeObjectURL() {} }
-  });
-
-  await ui.loadMedia();
-  assert.deepEqual(ttsBodies, [{
-    game_id: gameId,
-    character_id: 'heroine1',
-    text: '자동 재생할 대사',
-    direction: '차분하게'
-  }]);
-  assert.equal(createdAudio.playCalls, 2);
-  assert.equal(createdAudio.src, 'blob:tts-auto');
-  assert.equal(createdAudio.muted, false);
-});
-
 test('frontend shell exposes hospital-style TTS, relationship, and CSA app surfaces', () => {
   const html = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
   const utilityCss = fs.readFileSync(path.join(root, 'src/frontend/pages/utility.css'), 'utf8');
@@ -214,12 +124,12 @@ test('frontend shell exposes hospital-style TTS, relationship, and CSA app surfa
   for (const id of ['character-image', 'tts-toggle', 'tts-replay', 'tts-status', 'audio-player', 'open-history', 'send-feedback', 'open-apps', 'resume-play', 'history-overlay', 'feedback-overlay']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
-  assert.match(html, /src="\.\/tts\.js"/);
+  assert.doesNotMatch(html, /src="\.\/tts\.js"/);
   assert.match(html, /src="\.\/relationship-icons\.js"/);
   assert.match(html, /hospital-parity\.css/);
   assert.doesNotMatch(html, /id="tts-enabled"|id="play-tts"/);
-  assert.match(tts, /playedCompanyTtsKeys/);
-  assert.match(tts, /lastAudioResult/);
+  assert.match(tts, /createCompanyTts/);
+  assert.doesNotMatch(tts, /response\.blob/);
   assert.match(tts, /audio\.src = result\.url/);
   assert.match(relationship, /✨ 절정/);
   assert.match(relationship, /💦 사정/);

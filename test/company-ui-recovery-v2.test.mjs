@@ -104,42 +104,6 @@ test('Story prompt ends with the structured V2 dialogue contract (cast-scoped, a
   assert.match(system, /서술문 안에 섞인 발화/);
 });
 
-test('manual TTS recovers a registered line from an existing Story without stored dialogue_lines', async () => {
-  const { nodes, documentRef } = fakeDocument(['tts-enabled', 'play-tts', 'mind-monitor']);
-  const requests = [];
-  let audio = null;
-  class CapturedAudio extends FakeAudio { constructor() { super(); audio = this; } }
-  const context = { display: { npc_directory: { heroine1: { name: '서원희' } } }, save: { data: {} } };
-  const ui = createUtilityUi({
-    documentRef,
-    api: {
-      tts: async body => {
-        requests.push(body);
-        return new Response(new Blob(['audio']), { headers: { 'content-type': 'audio/mpeg' } });
-      }
-    },
-    gameId,
-    getContext: () => context,
-    getViewModel: () => ({
-      story: { story_text: '[1. 서사 및 행동]\n서원희: “기존 기록도 읽을 수 있어요.”\n[2. 플레이어 속마음]\n확인했다.' },
-      media: { dialogue_lines: [], image_character_id: 'heroine1' },
-      focal_character: { id: 'heroine1', last_speaker_id: 'heroine1' }
-    }),
-    AudioImpl: CapturedAudio,
-    urlApi: { createObjectURL: () => 'blob:recovered-tts', revokeObjectURL() {} }
-  });
-  ui.syncTtsControl();
-  assert.equal(nodes['play-tts'].disabled, false);
-  await ui.playTts();
-  assert.deepEqual(requests, [{
-    game_id: gameId,
-    character_id: 'heroine1',
-    text: '기존 기록도 읽을 수 있어요.',
-    direction: '자연스럽게'
-  }]);
-  assert.equal(audio.src, 'blob:recovered-tts');
-});
-
 test('character display derives stat deltas from pre/post saves and unlocks private records from committed ledger', () => {
   const save = {
     npc_stats: { heroine1: { affinity: 4, resistance: 40, csa_acceptance: 12, sexual_arousal: 3 } },

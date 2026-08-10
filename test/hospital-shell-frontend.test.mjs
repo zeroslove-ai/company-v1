@@ -58,6 +58,6 @@ test('preserves the Company engine and Hospital TTS DOM contracts while replacin
   ]) {
     assert.match(indexHtml, new RegExp(`id=["']${id}["']`));
   }
-  assert.match(indexHtml, /src=["']\.\/tts\.js["']/);
+  assert.doesNotMatch(indexHtml, /src=["']\.\/tts\.js["']/);
   assert.match(indexHtml, /src=["']\.\/relationship-icons\.js["']/);
 });

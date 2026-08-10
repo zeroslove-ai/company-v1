@@ -3,10 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  normalizeGameplayExtractEnvelope
-} from '../src/engine/index.js';
 import { createApiWorker } from '../src/api/index.js';
+import { normalizeImageSelection } from '../src/engine/gameplay-state.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -33,7 +31,7 @@ function freshSave(overrides = {}) {
   };
 }
 
-function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonResponses = [], turnsFixture = [] } = {}) {
+function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonResponses = [], turnsFixture = [], feedbackStructuredAction = null } = {}) {
   const calls = [];
   let currentSave = structuredClone(initialSave);
   let saveRevision = 1;
@@ -78,7 +76,7 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
     }
     if (rpc === 'reserve_turn_action') {
       if (calls.__action && calls.__action.action_id === args.p_action_id) return json({ ...calls.__action, replayed: true });
-      calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, processing_status: 'story_streaming', action_kind: 'player_turn' };
+      calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: args.p_structured_action ?? null, processing_status: 'story_streaming', action_kind: 'player_turn' };
       return json({ ...calls.__action, replayed: false });
     }
     if (rpc === 'record_story_result') {
@@ -98,12 +96,14 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       calls.__action = {
         action_id: 'feedback-action-1', turn_id: 'turn-1', expected_turn: currentSave.turn_state.committed_turn,
         player_action: calls.__lastPlayerAction ?? '원래 행동', feedback_text: args.p_feedback_text,
-        revision_request_id: args.p_revision_request_id, processing_status: 'story_streaming', action_kind: 'feedback_revision'
+        revision_request_id: args.p_revision_request_id, processing_status: 'story_streaming', action_kind: 'feedback_revision',
+        structured_action: feedbackStructuredAction
       };
       return json({
         revision_request_id: args.p_revision_request_id, action_id: calls.__action.action_id, replacement_turn_id: 'turn-1',
         target_turn_number: currentSave.turn_state.committed_turn, original_turn_id: 'turn-0',
-        original_player_action: calls.__action.player_action, pre_save: currentSave, processing_status: 'story_streaming', replayed: false
+        original_player_action: calls.__action.player_action, pre_save: currentSave, processing_status: 'story_streaming', replayed: false,
+        structured_action: feedbackStructuredAction
       });
     }
     if (rpc === 'commit_feedback_revision') {
@@ -302,6 +302,66 @@ test('/api/feedback -> normal Story/Extract/Commit pipeline regenerates the last
   assert.equal(mock.getSave().turn_state.committed_turn, 3, 'a feedback revision replaces the targeted turn, it never advances committed_turn');
   assert.equal(mock.calls.some(c => c.url.includes('commit_feedback_revision')), true);
   assert.equal(mock.calls.some(c => c.url.includes('commit_company_turn')), false, 'must never call the normal turn-advancing commit RPC for a feedback revision');
+});
+
+test('/api/feedback preserves the original structured action through omitted Story/Extract/Commit bodies', async () => {
+  const structuredAction = { type: 'app_transaction', version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };
+  const save = freshSave({
+    turn_state: { committed_turn: 3 },
+    csa_active: ['csa_1'],
+    csa_rules: { csa_1: { active: true, content: 'already active' } }
+  });
+  const mock = createMockFetch({ initialSave: save, feedbackStructuredAction: structuredAction });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const feedback = await (await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-action', feedback_text: 'rewrite' }), env)).json();
+  assert.deepEqual(feedback.data.structured_action, structuredAction);
+
+  const story = await worker.fetch(request('/api/story', {
+    game_id: gameId, action_id: feedback.data.action_id, expected_turn: feedback.data.expected_turn,
+    player_action: feedback.data.original_player_action
+  }), env);
+  assert.equal(story.status, 200);
+  await story.text();
+  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: feedback.data.action_id }), env);
+  assert.equal(extract.status, 200);
+  const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: feedback.data.action_id, expected_turn: feedback.data.expected_turn }), env);
+  assert.equal(commit.status, 200);
+  assert.deepEqual(mock.calls.__action.structured_action, structuredAction);
+  assert.deepEqual(mock.getSave().csa_active, save.csa_active);
+  assert.deepEqual(mock.getSave().csa_rules, save.csa_rules);
+  assert.equal(mock.getSave().turn_state.committed_turn, 3);
+  assert.equal(mock.calls.filter(call => call.url.includes('commit_company_turn')).length, 0);
+});
+
+test('/api/feedback rejects a different structured action before Story LLM work', async () => {
+  const stored = { type: 'app_transaction', version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };
+  const requested = { type: 'app_transaction', version: 1, operations: [{ operation: 'deactivate', id: 'csa_1' }] };
+  const mock = createMockFetch({ initialSave: freshSave({ turn_state: { committed_turn: 3 } }), feedbackStructuredAction: stored });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const feedback = await (await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-mismatch', feedback_text: 'rewrite' }), env)).json();
+  const before = mock.calls.filter(call => call.url.startsWith('https://llm.test')).length;
+  const story = await worker.fetch(request('/api/story', {
+    game_id: gameId, action_id: feedback.data.action_id, expected_turn: feedback.data.expected_turn,
+    player_action: feedback.data.original_player_action, structured_action: requested
+  }), env);
+  assert.equal(story.status, 409);
+  assert.equal((await story.json()).error.code, 'structured_action_mismatch');
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, before);
+
+  const stageMock = createMockFetch({ initialSave: freshSave({ turn_state: { committed_turn: 3 } }), feedbackStructuredAction: stored });
+  const stageWorker = createApiWorker({ fetchImpl: stageMock.fetchImpl });
+  const stageFeedback = await (await stageWorker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-stage-mismatch', feedback_text: 'rewrite' }), env)).json();
+  const stageStory = await stageWorker.fetch(request('/api/story', {
+    game_id: gameId, action_id: stageFeedback.data.action_id, expected_turn: stageFeedback.data.expected_turn,
+    player_action: stageFeedback.data.original_player_action
+  }), env);
+  await stageStory.text();
+  const stageExtract = await stageWorker.fetch(request('/api/extract', { game_id: gameId, action_id: stageFeedback.data.action_id, structured_action: requested }), env);
+  assert.equal(stageExtract.status, 409);
+  assert.equal((await stageExtract.json()).error.code, 'structured_action_mismatch');
+  const stageCommit = await stageWorker.fetch(request('/api/commit', { game_id: gameId, action_id: stageFeedback.data.action_id, expected_turn: stageFeedback.data.expected_turn, structured_action: requested }), env);
+  assert.equal(stageCommit.status, 409);
+  assert.equal((await stageCommit.json()).error.code, 'structured_action_mismatch');
 });
 
 test('/api/feedback: the same revision_request_id replayed is idempotent (returns the same pending action, never reserves twice)', async () => {
@@ -577,21 +637,6 @@ test('턴70-33: general pool은 기존 primary fallback 유지', () => {
   assert.equal(selected.source, 'primary');
 });
 
-test('턴70-34: explicit sexual scene에서 general 기본 이미지로 재요청하지 않음 (view-model은 sex pool 유지)', () => {
-  const context = {
-    save: { data: { focal_character_id: 'heroine4', last_speaker_id: 'heroine4', scene_state: {}, world_state: {} } },
-    display: {},
-    recent_turns: [{
-      turn_number: 86, story_text: 'x',
-      extract_delta: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['handjob'] } }
-    }]
-  };
-  const model = buildCompanyGameViewModel(context, {});
-  assert.equal(model.media.image_pool, 'sex', 'refresh 후에도 sex pool 유지');
-  assert.deepEqual(model.media.image_tags, ['handjob']);
-  assert.equal(model.media.image_character_id, 'heroine4');
-});
-
 test('턴70-35: heroine4 handjob row fixture가 있을 때 정확 선택', () => {
   const candidates = [
     turn70ImageRow('hj1', ['adult', 'sex', 'handjob', 'office_desk'], { rank: 10 }),
@@ -610,24 +655,6 @@ test('턴70-36 (지시C): handjob exact 없음 + fingering family → same-famil
   assert.ok(selected);
   assert.equal(selected.image_id, 'fg1', 'handjob과 같은 manual family(fingering) 우선');
   assert.equal(selected.source, 'family_match');
-});
-
-test('턴70-23~24: currentExtract가 있으면 runtime 값 사용, refresh 후 extract_delta 사용', () => {
-  const context = {
-    save: { data: { focal_character_id: 'heroine4', last_speaker_id: 'heroine4', scene_state: {}, world_state: {} } },
-    display: {},
-    recent_turns: [{
-      turn_number: 86, story_text: 'x',
-      extract_delta: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['fellatio'] } }
-    }]
-  };
-  // runtime.currentExtract 우선
-  const live = buildCompanyGameViewModel(context, { currentExtract: { image_character_id: 'heroine4', image_selection: { pool: 'sex', tags: ['handjob'] } } });
-  assert.deepEqual(live.media.image_tags, ['handjob']);
-  // refresh 후 currentExtract=null → extract_delta 사용
-  const refreshed = buildCompanyGameViewModel(context, {});
-  assert.deepEqual(refreshed.media.image_tags, ['fellatio'], 'committed extract_delta에서 복구');
-  assert.equal(refreshed.media.image_pool, 'sex');
 });
 
 test('턴70-26~27: 성적 hand stimulation → sex/handjob, 일반 대화 → general', () => {
@@ -711,11 +738,7 @@ test('턴70-37 (지시C): /api/image sex pool에 tags 전달 — same-character 
 // ── 지시 C 보강: 성적 action tag가 있으면 pool=sex 서버 강제 ──
 
 test('지시C-10: image_selection pool=general + handjob tag → 서버가 pool=sex로 강제', () => {
-  const normalized = normalizeGameplayExtractEnvelope({
-    outcome: 'success',
-    state_delta: {},
-    image_selection: { pool: 'general', tags: ['handjob'] }
-  });
+  const normalized = { image_selection: normalizeImageSelection({ pool: 'general', tags: ['handjob'] }) };
   const sel = normalized.image_selection;
   assert.ok(sel, 'image_selection 존재');
   assert.equal(sel.pool, 'sex', '성적 action tag가 있으면 pool 강제 sex');
@@ -723,21 +746,13 @@ test('지시C-10: image_selection pool=general + handjob tag → 서버가 pool=
 });
 
 test('지시C-11: pool=general + 일반 태그만 → general 유지', () => {
-  const normalized = normalizeGameplayExtractEnvelope({
-    outcome: 'success',
-    state_delta: {},
-    image_selection: { pool: 'general', tags: ['office_desk'] }
-  });
+  const normalized = { image_selection: normalizeImageSelection({ pool: 'general', tags: ['office_desk'] }) };
   const sel = normalized.image_selection;
   assert.equal(sel.pool, 'general');
 });
 
 test('지시C-12: pool=sex + tags=[] → sex 유지 (성적 장면이면 sex 이미지 필수)', () => {
-  const normalized = normalizeGameplayExtractEnvelope({
-    outcome: 'success',
-    state_delta: {},
-    image_selection: { pool: 'sex', tags: [] }
-  });
+  const normalized = { image_selection: normalizeImageSelection({ pool: 'sex', tags: [] }) };
   const sel = normalized.image_selection;
   assert.equal(sel.pool, 'sex');
 });

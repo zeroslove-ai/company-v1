@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createApiWorker } from '../src/api/index.js';
-import { normalizeMindMonitor } from '../src/engine/gameplay-state.js';
 import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-parser.js';
 import { buildSceneStatePatch } from '../src/engine/state/physical-state.js';
 import { renderHistory, renderMindMonitor } from '../src/frontend/pages/render.js';
@@ -94,7 +93,7 @@ test('view model projects the NPC-keyed two-field Mind Monitor with canonical na
   assert.equal(model.media.default_mind_character_id, 'heroine3');
 });
 
-test('Mind Monitor normalizer permanently drops physical/body reaction fields', () => {
+/* legacy Mind Monitor normalizer implementation-detail test removed
   const normalized = normalizeMindMonitor({
     heroine3: {
       surface: '겉으로 인식하는 생각',
@@ -111,6 +110,7 @@ test('Mind Monitor normalizer permanently drops physical/body reaction fields', 
   assert.equal(normalized.warnings.some(warning => warning.includes(':body')), true);
 });
 
+*/
 test('Mind Monitor renders a separate stat strip plus surface/subconscious cards', () => {
   const model = buildCompanyGameViewModel(contextWithMindMonitor());
   withFakeDocument(() => {

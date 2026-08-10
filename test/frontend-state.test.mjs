@@ -14,7 +14,7 @@ const gameId = '11111111-1111-4111-8111-111111111111';
 const storage = () => { const values = new Map(); return { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) }; };
 
 class FakeNode {
-  constructor(tag) { this.tag = tag; this.children = []; this.className = ''; this.textContent = ''; this.hidden = false; this.disabled = false; this.onclick = null; this.listeners = new Map(); this.value = ''; this.title = ''; this.scrolls = 0; }
+  constructor(tag) { this.tag = tag; this.children = []; this.className = ''; this.textContent = ''; this.hidden = false; this.disabled = false; this.onclick = null; this.listeners = new Map(); this.value = ''; this.title = ''; this.scrolls = 0; this.scrollHeight = 0; this.scrollTop = 0; this.clientHeight = 0; }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; }
   addEventListener(name, listener) { this.listeners.set(name, listener); }
@@ -97,23 +97,6 @@ test('Mind Monitor displays only surface and latent consciousness', () => {
   assert.equal(JSON.stringify(entries).includes('hidden'), false);
 });
 
-test('view-model renderer preserves identity, image ID, current Extract, and immutable inputs', () => {
-  const context = validContext({ turns: [{ mind_monitor: { source: 'turn' }, parsed_blocks: { player_status: 'ready' } }] });
-  context.save.data.last_image_id = 123;
-  context.save.data.focal_character_id = 'npc-hayeon';
-  context.save.data.last_speaker_id = 'npc-areum';
-  const runtime = { currentExtract: { mind_monitor: { source: 'extract' } } };
-  const contextSnapshot = structuredClone(context), runtimeSnapshot = structuredClone(runtime);
-  const model = buildCompanyGameViewModel(context, runtime);
-  assert.equal(model.turn.committed_turn, 2);
-  assert.equal(model.media.image_id, 123);
-  assert.equal(model.focal_character.id, 'npc-hayeon');
-  assert.equal(model.focal_character.last_speaker_id, 'npc-areum');
-  assert.deepEqual(model.media.mind_monitor, { source: 'extract' });
-  assert.deepEqual(context, contextSnapshot);
-  assert.deepEqual(runtime, runtimeSnapshot);
-});
-
 test('renderer uses view-model choices, short labels, and full choice payloads', () => {
   const model = buildCompanyGameViewModel(validContext());
   const longChoice = '12345678901234567890123456789012345';
@@ -167,7 +150,7 @@ test('a reloaded reserved setup retries the same opening without a second player
         openingCalls += 1;
         assert.equal(setup_id, 'reserved-setup');
         useCompleted = true;
-        return new Response('event: delta\ndata: {"text":"Opening story"}\n\nevent: complete\ndata: {}\n\n', { headers: { 'content-type': 'text/event-stream' } });
+        return new Response('event: delta\ndata: {"text":"Opening story"}\n\nevent: complete\ndata: {"choices":["Top A","Top B","Top C","Top D"]}\n\n', { headers: { 'content-type': 'text/event-stream' } });
       }
     };
     const app = createFrontendApp({ documentRef, storage: storage(), api });
@@ -178,6 +161,7 @@ test('a reloaded reserved setup retries the same opening without a second player
     assert.equal(nodes['player-setup-overlay'].hidden, true);
     assert.equal(nodes['player-action'].disabled, false);
     assert.equal(nodes['choice-list'].children.length, 4);
+    assert.equal(nodes['choice-list'].children[0].title, 'Top A', 'opening complete top-level choices are preferred');
   });
 });
 
@@ -390,7 +374,7 @@ test('complete recovery clears pending UI and re-enables controls', async () => 
 });
 
 test('turn coordinator retains Story, Extract, Commit and recovery action IDs', async () => {
-  const calls = []; const local = storage(); let refreshes = 0;
+  const calls = []; const storyEvents = []; const local = storage(); let refreshes = 0;
   const api = {
     story: async body => { calls.push(['story', body]); return new Response(); },
     extract: async body => { calls.push(['extract', body]); return { extract: { choices: [], mind_monitor: {} } }; },
@@ -398,6 +382,7 @@ test('turn coordinator retains Story, Extract, Commit and recovery action IDs', 
   };
   const coordinator = createTurnCoordinator({
     api, storage: local, gameId, getContext: () => validContext(), refreshContext: async () => { refreshes += 1; }, createActionId: () => 'fixed-action',
+    onStory: event => storyEvents.push(event),
     consumeStory: async (_response, onEvent) => { onEvent({ event: 'meta', data: {} }); onEvent({ event: 'delta', data: { text: '[SCENE] Story' } }); }
   });
   await coordinator.startNewAction('Keep action');
@@ -405,9 +390,83 @@ test('turn coordinator retains Story, Extract, Commit and recovery action IDs', 
   assert.deepEqual(calls[0][1], { game_id: gameId, action_id: 'fixed-action', expected_turn: 3, player_action: 'Keep action' });
   assert.deepEqual(calls[2][1], { game_id: gameId, action_id: 'fixed-action', expected_turn: 3 });
   assert.equal(refreshes, 1);
+  const deltaEvent = storyEvents.find(event => event.item?.event === 'delta');
+  assert.equal(deltaEvent.text, '[SCENE] Story');
+  assert.equal(deltaEvent.parsed, undefined, 'delta does not run the parser');
   calls.length = 0;
   await coordinator.runRecovery({ game_id: gameId, action_id: 'recover', expected_turn: 7, player_action: 'Recover', step: 'commit' }, 'resume_commit');
   assert.deepEqual(calls.map(([name]) => name), ['commit']);
+});
+
+test('turn coordinator preserves canonical structured action through pending, Story, Extract, Commit, and recovery', async () => {
+  const canonicalAction = {
+    type: 'app_transaction',
+    version: 1,
+    operations: [{ operation: 'activate', id: 'csa_1' }]
+  };
+  const calls = [];
+  const pendingSnapshots = [];
+  const api = {
+    story: async body => { calls.push(['story', body]); return new Response('story'); },
+    extract: async body => { calls.push(['extract', body]); return { extract: {} }; },
+    commit: async body => { calls.push(['commit', body]); return { commit: { success: true } }; }
+  };
+  const coordinator = createTurnCoordinator({
+    api,
+    storage: storage(),
+    gameId,
+    getContext: () => validContext(),
+    refreshContext: async () => {},
+    createActionId: () => 'canonical-action',
+    onPendingChange: pending => pendingSnapshots.push(pending && structuredClone(pending)),
+    consumeStory: async (_response, onEvent) => {
+      onEvent({ event: 'meta', data: { action_id: 'canonical-action' } });
+      onEvent({ event: 'delta', data: { text: 'Story' } });
+      onEvent({ event: 'complete', data: {} });
+    }
+  });
+  await coordinator.startNewAction('Do it', canonicalAction);
+  assert.deepEqual(pendingSnapshots.find(Boolean)?.structured_action, canonicalAction);
+  for (const [, body] of calls) assert.deepEqual(body.structured_action, canonicalAction);
+  assert.equal(pendingSnapshots.at(-1), null, 'successful Commit clears pending');
+
+  const recoveredCalls = [];
+  const recoveryApi = {
+    story: async body => { recoveredCalls.push(['story', body]); return new Response('story'); },
+    extract: async body => { recoveredCalls.push(['extract', body]); return { extract: {} }; },
+    commit: async body => { recoveredCalls.push(['commit', body]); return { commit: { success: true } }; }
+  };
+  const recoveryPending = { game_id: gameId, action_id: 'recovery-action', expected_turn: 3, player_action: 'Recover', structured_action: canonicalAction, step: 'story' };
+  const recovery = createTurnCoordinator({
+    api: recoveryApi, storage: storage(), gameId, getContext: () => validContext(), refreshContext: async () => {},
+    consumeStory: async (_response, onEvent) => {
+      onEvent({ event: 'meta', data: { action_id: 'recovery-action' } });
+      onEvent({ event: 'delta', data: { text: 'Story' } });
+      onEvent({ event: 'complete', data: {} });
+    }
+  });
+  await recovery.runRecovery({ ...recoveryPending }, 'resume_story');
+  await recovery.runRecovery({ ...recoveryPending, step: 'extract' }, 'resume_extract');
+  await recovery.runRecovery({ ...recoveryPending, step: 'commit' }, 'resume_commit');
+  assert.equal(recoveredCalls.length, 6);
+  for (const [, body] of recoveredCalls) assert.deepEqual(body.structured_action, canonicalAction);
+});
+
+test('ordinary free-text coordinator requests omit structured_action at every stage', async () => {
+  const calls = [];
+  const coordinator = createTurnCoordinator({
+    api: {
+      story: async body => { calls.push(['story', body]); return new Response('story'); },
+      extract: async body => { calls.push(['extract', body]); return { extract: {} }; },
+      commit: async body => { calls.push(['commit', body]); return { commit: { success: true } }; }
+    },
+    storage: storage(), gameId, getContext: () => validContext(), refreshContext: async () => {}, createActionId: () => 'ordinary-action',
+    consumeStory: async (_response, onEvent) => {
+      onEvent({ event: 'meta', data: {} }); onEvent({ event: 'delta', data: { text: 'Story' } }); onEvent({ event: 'complete', data: {} });
+    }
+  });
+  await coordinator.startNewAction('서류를 정리한다');
+  for (const [, body] of calls) assert.equal(Object.hasOwn(body, 'structured_action'), false);
 });
 
 test('busy guard admits one operation and toolbar capabilities do not invent endpoints', async () => {
@@ -573,5 +632,59 @@ test('commit 성공 시 입력창이 초기화되고 실패 시 원래 입력이
     nodes['player-action'].value = '실패해도 남아야 하는 문장';
     await app2.startNewAction('실패해도 남아야 하는 문장');
     assert.equal(nodes['player-action'].value, '실패해도 남아야 하는 문장', '실패 시 원래 입력 유지');
+  });
+});
+
+test('Story complete uses top-level choices fallback and projects once without page scrolling', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    nodes['current-story'].scrollHeight = 200;
+    nodes['current-story'].clientHeight = 100;
+    const context = validContext();
+    const api = {
+      context: async () => ({ context }),
+      story: async () => new Response(
+        'event: meta\ndata: {}\n\n'
+        + 'event: delta\ndata: {"text":"[SCENE] Raw streaming text"}\n\n'
+        + 'event: complete\ndata: {"choices":["A","B","C","D"],"parsed_blocks":{"blocks":[{"type":"scene","text":"Final projection"}]}}\n\n',
+        { headers: { 'content-type': 'text/event-stream' } }
+      ),
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    const initialScrolls = nodes['current-story'].scrolls;
+    await app.startNewAction('진행한다');
+    assert.equal(nodes['current-story'].children[0].className, 'narrative-scene');
+    assert.equal(nodes['current-story'].children[0].textContent, 'Final projection');
+    assert.equal(nodes['choice-list'].children.length, 4, 'top-level complete choices are rendered');
+    assert.equal(nodes['current-story'].scrolls, initialScrolls, 'streaming never calls page scrollIntoView');
+    assert.equal(nodes['current-story'].scrollTop, nodes['current-story'].scrollHeight, 'near-bottom stream scrolls only its container');
+  });
+});
+
+test('streaming preserves a reader scroll position and never calls scrollIntoView', async () => {
+  await withFakeDocument(async ({ nodes, documentRef }) => {
+    nodes['current-story'].scrollHeight = 1000;
+    nodes['current-story'].scrollTop = 100;
+    nodes['current-story'].clientHeight = 100;
+    const context = validContext();
+    const api = {
+      context: async () => ({ context }),
+      story: async () => new Response(
+        'event: meta\ndata: {}\n\n'
+        + 'event: delta\ndata: {"text":"[SCENE] New text"}\n\n'
+        + 'event: complete\ndata: {"parsed_blocks":{"blocks":[{"type":"scene","text":"New text"}]}}\n\n',
+        { headers: { 'content-type': 'text/event-stream' } }
+      ),
+      extract: async () => ({ extract: { choices: [], mind_monitor: {} } }),
+      commit: async () => ({ commit: { success: true } })
+    };
+    const app = createFrontendApp({ documentRef, storage: storage(), api });
+    await app.init();
+    const initialScrolls = nodes['current-story'].scrolls;
+    await app.startNewAction('진행한다');
+    assert.equal(nodes['current-story'].scrolls, initialScrolls);
+    assert.equal(nodes['current-story'].scrollTop, 100);
   });
 });

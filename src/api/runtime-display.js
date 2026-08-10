@@ -29,6 +29,16 @@ function saveFromContext(context) {
   return object(context?.save?.data) ?? object(context?.save) ?? {};
 }
 
+export function buildCanonicalDisplayScene(save = {}) {
+  const canonical = object(save?.scene);
+  const normalize = value => Array.isArray(value) ? value.filter(id => typeof id === 'string' && id.trim() && !/^player(?:-|_|$)/.test(id)) : [];
+  if (canonical && canonical.version === 1) {
+    return { version: 1, scene_id: text(canonical.scene_id), location_id: text(canonical.location_id), beat: Number.isInteger(canonical.beat) ? canonical.beat : 0, goal: canonical.goal ?? null, focus_thread: canonical.focus_thread ?? null, present_npc_ids: normalize(canonical.present_npc_ids), focal_character_id: text(canonical.focal_character_id), last_speaker_id: text(canonical.last_speaker_id), updated_turn: Number.isInteger(canonical.updated_turn) ? canonical.updated_turn : null, compatibility_mode: 'canonical' };
+  }
+  const legacy = object(save?.scene_state) ?? {};
+  return { version: 0, scene_id: text(legacy.scene_id), location_id: text(legacy.location_id), beat: Number.isInteger(legacy.beat) ? legacy.beat : 0, goal: legacy.goal ?? null, focus_thread: legacy.focus_thread ?? null, present_npc_ids: normalize(legacy.participants ?? save?.last_npcs_present), focal_character_id: text(save?.focal_character_id), last_speaker_id: text(save?.last_speaker_id), updated_turn: Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : null, compatibility_mode: 'legacy_pre_scene_v1' };
+}
+
 function withSave(context, save) {
   const wrapped = object(context?.save) && Object.prototype.hasOwnProperty.call(context.save, 'data');
   return {
@@ -145,6 +155,7 @@ export function buildContextDisplayPayload(save, edition, latestMindMonitor = {}
   const activeCsa = activeCsaProjection(save);
   const capability = calculateCsaCapability(save, activeCsa.length);
   return {
+    scene: buildCanonicalDisplayScene(save),
     player_capability: {
       level: capability.current_level,
       exp: capability.exp,
@@ -200,7 +211,7 @@ function npcMind(latestMindMonitor, save, id) {
 function npcLocation(save, id, presentNow) {
   const sceneState = object(save?.npc_scene_state?.[id]) ?? {};
   const workState = object(save?.npc_work_state?.[id]) ?? {};
-  const currentScene = object(save?.scene_state) ?? {};
+  const currentScene = buildCanonicalDisplayScene(save);
   const label = text(sceneState.location_label)
     || text(workState.location_label)
     || (presentNow ? text(currentScene.location_label) : '')
@@ -254,12 +265,7 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
  */
 export function buildNpcAppPayload(save, edition, latestMindMonitor = {}) {
   const directory = npcDirectory(save, edition, latestMindMonitor);
-  const presentIds = new Set([
-    ...(Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []),
-    ...(Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : []),
-    save?.focal_character_id,
-    save?.last_speaker_id
-  ].filter(id => typeof id === 'string' && id));
+  const presentIds = new Set(buildCanonicalDisplayScene(save).present_npc_ids);
   const heroineProfiles = profilesFromEdition(edition);
   const generalProfiles = generalProfilesFromEdition(edition);
   const evidence = evidenceIds(save, latestMindMonitor);

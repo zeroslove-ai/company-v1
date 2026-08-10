@@ -22,6 +22,21 @@ const env = {
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
 const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
+const v2ExtractFixture = ({ outcome = 'partial', npcMood = null, elapsed_minutes = 3 } = {}) => ({
+  extract_version: 2,
+  outcome,
+  scene_observation: {
+    scene_id: null, location_id: null, final_present_npc_ids: null,
+    entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null,
+    presence_is_final: false, remote_speaker_ids: [], evidence: []
+  },
+  player_observation: {},
+  npc_observations: npcMood ? { 'npc-hayeon': { emotion: { mood: npcMood } } } : {},
+  events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes,
+  mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
+  csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '캠페인 검토가 진전됐다.', warnings: []
+});
+
 function createMockFetch({ incompleteStory = false, conflict = false, missingContext = false, failContextOnCall = null, storySseSequence, extractContentSequence, extractEnvelope, extractFinishReason } = {}) {
   const calls = [];
   const actions = new Map();
@@ -29,7 +44,7 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
   const context = { game: { id: gameId, edition_id: 'company-v1' }, save: { data: save }, recent_turns: [] };
   const incompleteSse = 'data: {"choices":[{"delta":{"content":"[SCENE] broken"}}]}\n\n';
   const storySses = storySseSequence ?? [incompleteStory ? incompleteSse : read('fixtures/phase-2/openai-story-sse.txt')];
-  const extract = extractEnvelope ?? readJson('fixtures/phase-2/extract-valid.json');
+  const extract = extractEnvelope ?? v2ExtractFixture();
   const extractContents = extractContentSequence ?? [JSON.stringify(extract)];
   let storyCall = 0;
   let extractCall = 0;
@@ -68,7 +83,7 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
     if (rpc === 'reserve_turn_action') {
       let action = actions.get(args.p_action_id);
       if (!action) {
-        action = { action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn, player_action: args.p_player_action, processing_status: 'story_streaming' };
+        action = { action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: args.p_structured_action ?? null, processing_status: 'story_streaming' };
         actions.set(args.p_action_id, action);
         return json({ ...action, replayed: false });
       }
@@ -242,27 +257,28 @@ test('a stuck story_streaming action retries the story once, but Extract in prog
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
 });
 
-test('Phase 2 degrades Extract envelopes that fail contract normalization', async () => {
+test('authority-violating Extract envelopes fail without recording or Commit', async () => {
   const mock = createMockFetch({ extractContentSequence: [JSON.stringify({ state_delta: {}, outcome: 'not_allowed' })] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'validate extract' };
   await (await worker.fetch(request('/api/story', body), env)).text();
   const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 422);
   const payload = await response.json();
-  assert.equal(payload.data.degraded, true);
-  assert.equal(payload.data.extract.outcome, 'degraded');
-  assert.ok(payload.data.warnings.includes('extract_error:INVALID_EXTRACT'));
+  assert.equal(payload.error.code, 'extract_save_patch_forbidden');
+  assert.equal(mock.actions.get(actionId).extract_delta ?? null, null);
+  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), false);
 });
 
 test('Extract uses Story choices, disables thinking, uses the 5000-token envelope, and degrades on truncated JSON', async () => {
   const storySse = 'data: {"choices":[{"delta":{"content":"[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\ndata: [DONE]\n\n';
-  const mock = createMockFetch({ storySseSequence: [storySse], extractEnvelope: { ...readJson('fixtures/phase-2/extract-valid.json'), choices: ['wrong'] } });
+  const mock = createMockFetch({ storySseSequence: [storySse], extractEnvelope: v2ExtractFixture() });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   await (await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'test' }), env)).text();
   const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(response.status, 200);
-  assert.deepEqual(mock.actions.get(actionId).extract_delta.choices, mock.actions.get(actionId).parsed_blocks.choices);
+  assert.equal('choices' in mock.actions.get(actionId).extract_delta, false);
+  assert.deepEqual(mock.actions.get(actionId).parsed_blocks.choices, ['A', 'B', 'C', 'D']);
   const extractCall = mock.calls.map(call => ({ ...call, parsed: call.body && JSON.parse(call.body) })).find(call => call.url.startsWith('https://llm.test') && !call.parsed.stream);
   assert.deepEqual(extractCall.parsed.thinking, { type: 'disabled' }); assert.deepEqual(extractCall.parsed.response_format, { type: 'json_object' }); assert.equal(extractCall.parsed.max_tokens, 5000);
   const truncated = createMockFetch({ extractFinishReason: 'length' }); const truncatedWorker = createApiWorker({ fetchImpl: truncated.fetchImpl });
@@ -276,7 +292,7 @@ test('Extract uses Story choices, disables thinking, uses the 5000-token envelop
 test('구조 일부 누락(대화 없음·선택지 빈 배열)에도 스토리 본문이 유지되고 턴은 정상 Commit된다', async () => {
   const mock = createMockFetch({
     storySseSequence: ['data: {"choices":[{"delta":{"content":"[SCENE]\\n본문 서사만 있고 대사가 없는 장면"}}]}\n\ndata: [DONE]\n'],
-    extractEnvelope: { state_delta: {}, outcome: 'success', evidence: {}, choices: [], mind_monitor: {}, dialogue_lines: [] }
+    extractEnvelope: v2ExtractFixture({ outcome: 'success', npcMood: null })
   });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '확인한다.' };

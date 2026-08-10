@@ -5,7 +5,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
 import {
-  buildOpeningNextSave,
   buildOpeningPlan,
   buildOpeningPrompt,
   buildPlayerPromptProjection,
@@ -296,31 +295,6 @@ test('buildOpeningPrompt only surfaces the plan\'s active heroines and adds the 
   const tfPayload = JSON.parse(tfPrompt[1].content);
   assert.match(tfPayload.cross_team_note, /서원희/);
   assert.match(tfPayload.cross_team_note, /대체하지 않는다/);
-});
-
-test('buildOpeningNextSave marks setup complete, leaves committed_turn at 0, and never mutates the pre-save', () => {
-  const preSave = freshSave();
-  const snapshot = structuredClone(preSave);
-  const openingPlan = buildOpeningPlan({ positionId: 'intern', seedBytes: [2, 4, 6], heroineIds });
-  const parsedOpening = { raw: '오프닝 본문', choices: ['A', 'B', 'C', 'D'] };
-  const nextSave = buildOpeningNextSave({ preSave, player: { name: '김하늘' }, openingPlan, background: '배경 요약.', parsedOpening });
-  assert.deepEqual(preSave, snapshot);
-  assert.equal(nextSave.turn_state.committed_turn, 0);
-  assert.equal(nextSave.player_setup.completed, true);
-  assert.equal(nextSave.opening_state.status, 'complete');
-  assert.deepEqual(nextSave.opening_state.plan, openingPlan);
-  assert.equal(nextSave.opening_state.story_text, parsedOpening.raw);
-  assert.equal('opening_plan' in nextSave, false);
-  assert.deepEqual(nextSave.player_scene_state.clothing, {
-    uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn'
-  });
-  for (const id of nextSave.scene_state.participants) {
-    assert.deepEqual(nextSave.npc_scene_state[id].clothing, {
-      uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn'
-    });
-  }
-  assert.equal(nextSave.player.background, '배경 요약.');
-  assert.deepEqual(nextSave.scene_state.participants, [openingPlan.primary_character_id, ...openingPlan.supporting_character_ids].filter(Boolean));
 });
 
 test('resolvePlayerCanonicalNames resolves every catalog axis independently', () => {

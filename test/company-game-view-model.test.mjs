@@ -30,18 +30,6 @@ test('Company game view model preserves an external committed turn and numeric i
   assert.equal(model.media.image_id, 123);
 });
 
-test('Company game view model prefers current Extract Mind Monitor without mutating inputs', () => {
-  const input = context({ turns: [{ mind_monitor: { source: 'committed turn' } }] });
-  const runtime = { currentExtract: { mind_monitor: { source: 'current Extract' } } };
-  const inputSnapshot = structuredClone(input);
-  const runtimeSnapshot = structuredClone(runtime);
-  const model = buildCompanyGameViewModel(input, runtime);
-  assert.deepEqual(model.media.mind_monitor, { source: 'current Extract' });
-  assert.deepEqual(buildCompanyGameViewModel(input).media.mind_monitor, { source: 'committed turn' });
-  assert.deepEqual(input, inputSnapshot);
-  assert.deepEqual(runtime, runtimeSnapshot);
-});
-
 test('Company game view model keeps identity axes separate and does not invent NPC state', () => {
   const input = context({ turns: [{ parsed_blocks: { player_status: 'ready' } }] });
   input.save.data.focal_character_id = 'npc-hayeon';
@@ -55,7 +43,7 @@ test('Company game view model keeps identity axes separate and does not invent N
   assert.equal(model.focal_character.last_speaker_id, 'npc-areum');
   assert.equal(model.focal_character.character, null);
   assert.equal(model.story.player_inner_thought, '');
-  assert.equal(model.scene.clothing_state, null);
+  assert.deepEqual(model.scene.clothing_state, {});
   assert.deepEqual(input, snapshot);
 });
 

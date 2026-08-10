@@ -8,11 +8,6 @@ import { applyRegisteredNpcPolicy, resolveActionCharacterTarget } from '../src/a
 import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-parser.js';
 import { resolveMovementCharacterTarget } from '../src/engine/story-prompt.js';
 import { parseNarrative as parseFrontendNarrative } from '../src/frontend/pages/narrative.js';
-import {
-  filterPrimaryDialogueCards,
-  waitForMediaCompletion
-} from '../src/frontend/pages/tts-product-policy.js';
-import { characterIdForSpeaker } from '../src/frontend/pages/tts.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const master = {
@@ -87,42 +82,6 @@ test('wrong surname with a unique registered given name canonicalizes to 윤민�
   }
 });
 
-test('automatic TTS keeps only one primary speaker', () => {
-  const cards = [
-    { dataset: { speakerId: 'heroine1' } },
-    { dataset: { speakerId: 'heroine2' } },
-    { dataset: { speakerId: 'heroine2' } },
-    { dataset: { speakerId: 'heroine2' } }
-  ];
-  const documentRef = { getElementById: () => ({ dataset: { selectedCharacterId: 'heroine1' } }) };
-  assert.deepEqual(filterPrimaryDialogueCards(cards, documentRef), [cards[0]], 'selected/focal heroine wins automatic TTS');
-});
-
-test('unregistered or minor speaker never inherits the selected heroine voice', () => {
-  const documentRef = {
-    getElementById: () => ({ dataset: { selectedCharacterId: 'heroine2' } }),
-    querySelectorAll: () => [{ textContent: '윤민아', dataset: { characterId: 'heroine2' } }]
-  };
-  assert.equal(characterIdForSpeaker('박정우', documentRef), '');
-  assert.deepEqual(filterPrimaryDialogueCards([{ dataset: { speakerId: 'general_park_jungwoo' } }], documentRef), []);
-});
-
-test('TTS queue waits for playback completion instead of resolving when playback merely starts', async () => {
-  const listeners = new Map();
-  const media = {
-    ended: false,
-    addEventListener(type, listener) { listeners.set(type, listener); },
-    removeEventListener(type) { listeners.delete(type); }
-  };
-  let resolved = false;
-  const pending = waitForMediaCompletion(media, Promise.resolve()).then(() => { resolved = true; });
-  await Promise.resolve();
-  assert.equal(resolved, false);
-  listeners.get('ended')();
-  await pending;
-  assert.equal(resolved, true);
-});
-
 test('loading is nonblocking, inner thought is boxed, and NPC finder is not loaded', () => {
   const css = fs.readFileSync(path.join(root, 'src/frontend/pages/runtime-hotfix.css'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
@@ -131,6 +90,6 @@ test('loading is nonblocking, inner thought is boxed, and NPC finder is not load
   assert.match(css, /\.narrative-player_inner_thought[\s\S]*content:\s*'플레이어 속마음'/);
   assert.doesNotMatch(html, /find-npc|npc-finder/);
   assert.match(html, /runtime-hotfix\.css/);
-  assert.match(html, /tts-product-policy\.js[\s\S]*tts\.js/);
+  assert.doesNotMatch(html, /tts-product-policy\.js/);
   assert.doesNotMatch(html, /src="\.\/npc-finder\.js"/);
 });

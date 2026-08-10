@@ -2,12 +2,12 @@ import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
-import { parseNarrative } from './narrative.js';
 import { renderChoices, renderHistory, renderNarrative, renderState, setCommittedStatDeltas, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
 import { createUtilityUi } from './utility-ui.js';
+import { createCompanyTts } from './tts.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
@@ -124,6 +124,7 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
   async function runStoryForPending(pending) {
     pending.step = 'story'; persistPending(pending);
     let rawStory = '', sawMeta = false;
+    onStory?.({ item: { event: 'start' }, pending, streaming: true });
     const response = await api.story(withStructuredAction({ game_id: pending.game_id, action_id: pending.action_id, expected_turn: pending.expected_turn, player_action: pending.player_action }, pending));
     await consumeStory(response, item => {
       if (item.event === 'meta') {
@@ -137,16 +138,13 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
         }
       }
       if (item.event === 'delta') {
-        rawStory += item.data?.text ?? '';
-        const directory = getContext?.()?.display?.npc_directory ?? {};
-        onStory?.({ rawStory, parsed: parseNarrative(rawStory, { speakerDirectory: directory, playerName: getContext?.()?.save?.data?.player?.name ?? '플레이어' }), item, pending });
+        const text = item.data?.text ?? '';
+        rawStory += text;
+        onStory?.({ rawStory, text, item, pending, streaming: true });
       }
       if (item.event === 'complete') {
-        // 서버가 보낸 canonical parsed_blocks로 최종 렌더 교체 — 프론트 화자 추론 이중화 제거
         const canonical = item.data?.parsed_blocks;
-        if (canonical?.blocks) {
-          onStory?.({ rawStory, parsed: canonical, item, pending, canonical: true });
-        }
+        onStory?.({ rawStory, parsed: canonical, item, pending, complete: true });
       }
     });
     if (!sawMeta || !rawStory.trim()) throw new ApiError({ endpoint: '/api/story', status: 502, code: 'incomplete_story_stream', message: '서사 스트림이 불완전합니다.', retryable: true });
@@ -181,7 +179,7 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
   async function runRecovery(pending, step) {
     // wait_story: 스토리가 아직 시작되지 않은 좌초 액션 → 스토리 생성을 새로 시작한다
     if (step === 'wait_story') return runStoryForPending(pending);
-    if (step === 'retry_story') return runStoryForPending(pending);
+    if (step === 'resume_story' || step === 'retry_story') return runStoryForPending(pending);
     if (step === 'resume_extract' || step === 'retry_extract') return runExtractForPending(pending);
     if (step === 'resume_commit' || step === 'retry_commit') return runCommitForPending(pending);
     if (step === 'complete') { clearPending(storage, pending.game_id); return refreshContext(); }
@@ -210,7 +208,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     title: get('game-title'), dayTime: get('day-time'), turn: get('turn-number'), api: get('api-status'), status: get('status-banner'), error: get('error-banner'),
     history: get('story-history'), current: get('current-story'), currentAction: get('current-action'), choices: get('choice-list'), input: get('player-action'), submit: get('submit-action'),
     recovery: get('recovery-action'), stream: get('stream-status'), scene: get('scene-state'), focal: get('focal-character'), mind: get('mind-monitor'), player: get('player-situation'),
-    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps'), reset: get('reset-game')
+    resume: get('resume-play'), historyButton: get('open-history'), feedback: get('send-feedback'), apps: get('open-apps'), reset: get('reset-game'), ttsToggle: get('tts-toggle')
   };
   const setupElements = {
     overlay: get('player-setup-overlay'), form: get('player-setup-form'), error: get('setup-error'), status: get('setup-status'), submit: get('setup-submit'),
@@ -218,7 +216,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
-  let context = null, currentExtract = null, viewModel = null, viewModelContext = null, viewModelExtract = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null;
+  let context = null, viewModel = null, viewModelContext = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null, ttsController = null;
   // 세션 단위 Story 타임라인 — 페이지 로드 시 최신 1턴으로 시작하고, 같은 세션에서
   // 완료된 턴을 메모리에 누적한다. 새로고침하면 다시 최신 1턴만 표시한다.
   let sessionHistory = [];
@@ -228,11 +226,20 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const showProgress = value => { clearProgressTimer(); let elapsed = 0; text(elements.stream, value); progressTimer = setInterval(() => { elapsed += 1; text(elements.stream, `${value} ${elapsed}초`); }, 1000); };
   const showError = error => { text(elements.error, messageFor(error)); if (elements.error) elements.error.hidden = false; };
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
-  const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; renderNarrative(elements.current, null); };
+  const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; elements.current?.replaceChildren?.(); if (elements.current) elements.current.textContent = ''; };
+  const resetRawStory = () => { elements.current?.replaceChildren?.(); if (elements.current) { elements.current.textContent = ''; elements.current.classList?.add?.('raw-story-stream'); } };
+  const appendRawStory = value => {
+    if (!elements.current || !value) return;
+    const nearBottom = typeof elements.current.scrollHeight === 'number'
+      && elements.current.scrollHeight - elements.current.scrollTop - elements.current.clientHeight <= 120;
+    elements.current.classList?.add?.('raw-story-stream');
+    elements.current.textContent = `${elements.current.textContent ?? ''}${value}`;
+    if (nearBottom) elements.current.scrollTop = elements.current.scrollHeight;
+  };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
   function refreshViewModel() {
-    viewModel = buildCompanyGameViewModel(context, currentExtract ? { currentExtract } : undefined);
-    viewModelContext = context; viewModelExtract = currentExtract;
+    viewModel = buildCompanyGameViewModel(context);
+    viewModelContext = context;
   }
   function resumePlay() {
     const target = elements.current?.children?.length ? elements.current : elements.history;
@@ -308,7 +315,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
 
   function render() {
-    if (!viewModel || viewModelContext !== context || viewModelExtract !== currentExtract) refreshViewModel();
+    if (!viewModel || viewModelContext !== context) refreshViewModel();
     renderState(elements, viewModel, { title: context?.game?.title });
     const openingTurn = openingHistoryTurn(context);
     // 본문 timeline: 세션 단위 누적 기록(sessionHistory)을 표시한다.
@@ -317,7 +324,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     const recent = sessionHistory.length ? sessionHistory : (context?.recent_turns ?? []);
     renderHistory(elements.history, recent.length ? recent : (openingTurn ? [openingTurn] : []));
     renderCompanyMapPanel();
-    utilityUi?.syncTtsControl?.();
     const setupOpen = setupPending();
     // 오버레이는 순수 설정 폼 전용. 저장된 설정(reserved)은 init에서 자동 진행되고
     // 재시도 팝업은 완전히 제거되었다(사용자 요구).
@@ -332,12 +338,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     renderToolbar();
     // 초기 로드 시 최근 턴(current)이 보이도록 1회 스크롤 — 오프닝부터 쭉 내려야 하는 낭비 제거.
     // 이후 렌더링(턴 갱신)에서는 사용자 스크롤 위치를 침범하지 않는다.
-    if (!initialScrollDone && elements.current && elements.current.children?.length) {
-      initialScrollDone = true;
-      elements.current.scrollIntoView?.({ block: 'start', inline: 'nearest' });
-    }
   }
-  let initialScrollDone = false;
   // Commit delta 일시 표시 타이머 (2~3초 후 클리어).
   let committedStatDeltaTimer = null;
   const setBusy = value => { busy = value; render(); };
@@ -348,11 +349,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     render();
   }
   const busyGuard = createBusyGuard({ onChange: setBusy });
-  async function refreshContext() {
+  async function refreshContext({ preserveStreamedChoices = false } = {}) {
     showStatus('현재 상태를 불러오는 중…'); setConnection(false);
     const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
-    context = data.context; currentExtract = null; streamedStoryChoices = [];
+    context = data.context;
+    if (!preserveStreamedChoices) streamedStoryChoices = [];
     // 세션 타임라인 누적 — refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않는다.
     // 같은 turn_number는 교체(피드백 revision이 해당 카드를 갱신), 새 턴만 추가, 중복 금지.
     sessionHistory = mergeSessionTurns(sessionHistory, context?.recent_turns ?? []);
@@ -362,16 +364,18 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   const coordinator = createTurnCoordinator({
     api, storage, gameId, getContext: () => context, refreshContext,
-    onStory: ({ parsed }) => { renderNarrative(elements.current, parsed); if (hasFourChoices(parsed.choices)) { streamedStoryChoices = parsed.choices; render(); } },
-    onExtract: extracted => {
-      currentExtract = extracted.extract ?? null;
-      // Extract 응답의 canonical parsed_blocks(서버가 최종 사용한 태거/파서 결과)로
-      // 현재 턴 대사 카드를 교체한다 — Story SSE(parser_canonical)보다 정확한 화자 표시.
-      if (extracted.parsed_blocks?.blocks?.length) {
-        renderNarrative(elements.current, extracted.parsed_blocks);
+    onStory: ({ item, text: deltaText, parsed }) => {
+      if (item?.event === 'start') { resetRawStory(); return; }
+      if (item?.event === 'delta') { appendRawStory(deltaText); return; }
+      if (item?.event === 'complete') {
+        const choices = hasFourChoices(item.data?.choices) ? item.data.choices : parsed?.choices;
+        if (parsed?.blocks) renderNarrative(elements.current, choices ? { ...parsed, choices } : parsed);
+        if (hasFourChoices(choices)) { streamedStoryChoices = choices; render(); }
       }
+    },
+    onExtract: () => {
+      // Extract는 진행 상태만 갱신한다. Story와 대사 카드는 raw SSE/parser 결과를 유지한다.
       showProgress('상태를 정리하는 중…');
-      render();
     },
     onCommitStart: () => { showProgress('결과를 반영하는 중…'); },
     onCommitted: (committed, pending) => {
@@ -398,13 +402,13 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         ? (context?.recent_turns ?? []).find(turn => turn.turn_number === turnNumber && turn.action_id === pending.action_id)
         : null;
       if (canonicalTurn) {
-        clearCurrentTurn();
         showStatus('턴이 완료되었습니다.');
       } else {
         showStatus('저장된 기록을 다시 확인하는 중…');
       }
       clearRecoveryUi();
       utilityUi?.loadMedia().catch(showError);
+      ttsController?.onCommittedTurn?.();
     },
     onPendingChange: () => renderToolbar(),
     onTerminated: clearError
@@ -558,14 +562,30 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     text(statusElement, '오프닝을 준비하는 중…');
     const response = await api.opening({ game_id: gameId, setup_id: setupId });
     let raw = '';
+    resetRawStory();
     await consumeStorySse(response, item => {
       if (item.event === 'delta') {
-        raw += item.data?.text ?? '';
-        renderNarrative(elements.current, parseNarrative(raw, { speakerDirectory: context?.display?.npc_directory ?? {}, playerName: context?.save?.data?.player?.name ?? viewModel?.player?.name ?? '플레이어' }));
+        const text = item.data?.text ?? '';
+        raw += text;
+        appendRawStory(text);
+      }
+      if (item.event === 'complete') {
+        const choices = hasFourChoices(item.data?.choices)
+          ? item.data.choices
+          : item.data?.parsed_blocks?.choices;
+        if (item.data?.parsed_blocks?.blocks) {
+          renderNarrative(elements.current, choices
+            ? { ...item.data.parsed_blocks, choices }
+            : item.data.parsed_blocks);
+        }
+        if (hasFourChoices(choices)) {
+          streamedStoryChoices = choices;
+          render();
+        }
       }
     });
     text(statusElement, '');
-    await refreshContext();
+    await refreshContext({ preserveStreamedChoices: true });
   }
   async function retryOpening(setupId) {
     if (busy || !setupId) return false;
@@ -586,6 +606,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (busy) return false;
     if (!confirmImpl('정말로 초기화하시겠습니까? 진행 상황이 모두 사라집니다.')) return false;
     return withBusy(async () => {
+      ttsController?.stop?.();
       await api.reset({ game_id: gameId });
       clearPending(storage, gameId);
       clearCurrentTurn();
@@ -616,6 +637,13 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     onStatus: showStatus,
     onMediaLoading: setMediaLoading
   });
+  ttsController = createCompanyTts({
+    api, documentRef, storage, gameId,
+    getViewModel: () => viewModel,
+    getSelectedMindCharacterId: () => elements.mind?.dataset?.selectedCharacterId ?? '',
+    getCommittedTurnIdentity: () => `${viewModel?.turn?.turn_id ?? ''}:${viewModel?.turn?.action_id ?? ''}`,
+    onStatus: showStatus
+  });
   async function init() {
     populateSetupOptions();
     elements.submit?.addEventListener('click', () => startNewAction());
@@ -629,7 +657,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     // 시작할 수 있는 막힌 화면(모바일에서 화면을 가리는)을 제거한다.
     const reservedSetupId = reservedPlayerSetupId(context);
     if (reservedSetupId) await retryOpening(reservedSetupId);
-    if (committedTurn(context) >= 1) utilityUi.loadMedia().catch(showError);
+    if (committedTurn(context) >= 1) utilityUi?.loadMedia?.().catch(showError);
   }
   return { gameId, init, refreshContext, startNewAction, startFeedbackRevision, checkRecovery, resumePending, resumePlay, retryOpening, csaApp, utilityUi, get context() { return context; }, get viewModel() { return viewModel; }, get capabilities() { return toolbarCapabilities(viewModel, loadPending(storage, gameId), { context, busy, recoveryPending, utilityAvailable: utilityUi?.available ?? null }); }, get busy() { return busy; } };
 }

@@ -57,8 +57,50 @@ function committedTurn(context, save) {
   return integer(context?.save?.committed_turn) ?? integer(save.turn_state?.committed_turn) ?? 0;
 }
 
-function mindMonitor(currentExtract, turn) {
-  return object(object(currentExtract)?.mind_monitor) ?? object(turn.mind_monitor) ?? {};
+export function canonicalSceneView(save) {
+  const source = object(save?.scene);
+  const playerId = text(object(save?.player)?.player_id) || 'player';
+  const normalizeIds = value => strings(value).filter(id => !isPlayerAlias(id, playerId));
+  if (source && source.version === 1) {
+    return {
+      version: 1,
+      scene_id: text(source.scene_id),
+      location_id: text(source.location_id),
+      beat: integer(source.beat) ?? 0,
+      goal: source.goal ?? null,
+      focus_thread: source.focus_thread ?? null,
+      present_npc_ids: normalizeIds(source.present_npc_ids),
+      focal_character_id: text(source.focal_character_id),
+      last_speaker_id: text(source.last_speaker_id),
+      updated_turn: integer(source.updated_turn),
+      compatibility_mode: 'canonical'
+    };
+  }
+  const legacy = object(save?.scene_state) ?? {};
+  const legacyPresence = strings(legacy.participants ?? save?.last_npcs_present);
+  if (!legacyPresence.length) {
+    if (typeof save?.focal_character_id === 'string' && save.focal_character_id) legacyPresence.push(save.focal_character_id);
+    if (typeof save?.last_speaker_id === 'string' && save.last_speaker_id) legacyPresence.push(save.last_speaker_id);
+  }
+  return {
+    version: 0,
+    scene_id: text(legacy.scene_id),
+    location_id: text(legacy.location_id),
+    beat: integer(legacy.beat) ?? 0,
+    goal: legacy.goal ?? null,
+    focus_thread: legacy.focus_thread ?? null,
+    present_npc_ids: normalizeIds(legacyPresence),
+    focal_character_id: text(save?.focal_character_id),
+    last_speaker_id: text(save?.last_speaker_id),
+    updated_turn: integer(save?.turn_state?.committed_turn),
+    compatibility_mode: 'legacy_pre_scene_v1'
+  };
+}
+
+function mindMonitor(turn) {
+  const extract = object(turn?.extract_delta);
+  if (extract) return extract.extract_version === 2 ? (object(extract.mind_monitor) ?? {}) : {};
+  return object(turn?.mind_monitor) ?? {};
 }
 
 function catalogName(list, idField, id) {
@@ -94,9 +136,7 @@ function normalizeDialogueLines(value) {
     .sort((left, right) => left.order - right.order);
 }
 
-function dialogueLines(currentExtract, parsedStory) {
-  const extractLines = normalizeDialogueLines(currentExtract?.dialogue_lines);
-  if (extractLines.length) return extractLines;
+function dialogueLines(parsedStory) {
   const parsedLines = normalizeDialogueLines(parsedStory?.dialogue_lines);
   if (parsedLines.length) return parsedLines;
   if (!Array.isArray(parsedStory?.blocks)) return [];
@@ -146,10 +186,11 @@ function detailFor(details, id) {
   };
 }
 
-function mindMonitorEntries(save, monitor, preferredIds = [], directory = {}, details = {}) {
+function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory = {}, details = {}) {
   const source = object(monitor) ?? {};
-  const ids = new Set([...Object.keys(source), ...preferredIds.filter(Boolean), ...strings(save.last_npcs_present)]);
-  const rank = new Map(preferredIds.filter(Boolean).map((id, index) => [id, index]));
+  const present = new Set(strings(scene?.present_npc_ids));
+  const ids = new Set(Object.keys(source).filter(id => present.has(id)));
+  const rank = new Map(strings(scene?.present_npc_ids).map((id, index) => [id, index]));
   return [...ids].map(id => {
     const value = object(source[id]) ?? {};
     const detail = detailFor(details, id);
@@ -171,7 +212,7 @@ function mindMonitorEntries(save, monitor, preferredIds = [], directory = {}, de
       entry.private_info = detail.private_info;
     }
     return entry;
-  }).filter(entry => entry.id && (entry.surface || entry.subconscious || object(details)?.[entry.id] || object(save.npc_stats)?.[entry.id]))
+  }).filter(entry => entry.id && (entry.surface || entry.subconscious))
     .sort((left, right) => (rank.get(left.id) ?? 99) - (rank.get(right.id) ?? 99));
 }
 
@@ -209,9 +250,10 @@ function npcSceneView(save, id) {
 }
 
 /** 현재 장면 참여 정본만 사용한다. focal을 먼저 두고, 퇴장(present:false)은 제외한다. */
-function interactingCharacterViews(save, focalId, directory = {}, details = {}) {
+function interactingCharacterViews(save, scene, directory = {}, details = {}) {
   const playerId = text(object(save.player)?.player_id) || 'player';
-  const participantIds = strings(object(save.scene_state)?.participants);
+  const participantIds = strings(scene?.present_npc_ids);
+  const focalId = text(scene?.focal_character_id);
   const orderedIds = focalId && participantIds.includes(focalId)
     ? [focalId, ...participantIds.filter(id => id !== focalId)]
     : participantIds;
@@ -233,37 +275,36 @@ function fallbackActiveRules(save) {
   });
 }
 
-export function buildCompanyGameViewModel(context, runtime = {}) {
+export function buildCompanyGameViewModel(context) {
   const save = saveFromContext(context);
   const turn = latestTurn(context);
   const parsedStory = parsed(turn);
-  const currentExtract = object(runtime)?.currentExtract;
-  // 이미지 선택 정본 — ephemeral currentExtract가 아니라 최신 committed turn의
-  // extract_delta다 (Commit 후 refreshContext가 currentExtract를 비워도 동일 이미지 유지).
-  const latestExtract = currentExtract
-    ?? object(turn?.extract_delta)
-    ?? {};
+  // Image authority is the latest committed turn's V2 extract_delta.
+  const latestExtract = object(turn?.extract_delta) ?? {};
+  const committedV2 = latestExtract.extract_version === 2 ? latestExtract : {};
   const display = object(context?.display) ?? {};
   const directory = object(display.npc_directory) ?? {};
   const details = object(display.character_details) ?? {};
   const capability = object(display.player_capability) ?? {};
   const sexualDisplay = object(display.player_sexual) ?? {};
   const activeRules = Array.isArray(display.active_csa) ? display.active_csa.filter(object) : fallbackActiveRules(save);
-  const focalId = text(save.focal_character_id);
-  const lastSpeakerId = text(save.last_speaker_id);
-  const scene = object(save.scene_state) ?? {};
+  const scene = canonicalSceneView(save);
+  const focalId = text(scene.focal_character_id);
+  const lastSpeakerId = text(scene.last_speaker_id);
   const player = object(save.player) ?? {};
   const playerProgress = object(save.player_progress) ?? {};
   const playerSexualState = object(save.player_sexual_state) ?? {};
   const playerSceneState = object(save.player_scene_state) ?? {};
   const focalSceneState = npcSceneView(save, focalId);
-  const interactingCharacters = interactingCharacterViews(save, focalId, directory, details);
-  const imageCharacterId = text(latestExtract.image_character_id ?? latestExtract.character_id) || focalId || lastSpeakerId;
-  const imageSelection = object(latestExtract.image_selection) ?? {};
+  const interactingCharacters = interactingCharacterViews(save, scene, directory, details);
+  const presentNpcIds = new Set(strings(scene.present_npc_ids));
+  const imageCandidate = text(committedV2.image_character_id);
+  const imageCharacterId = imageCandidate && presentNpcIds.has(imageCandidate) && directory[imageCandidate] ? imageCandidate : '';
+  const imageSelection = object(committedV2.image_selection) ?? {};
   const imagePool = imageSelection.pool === 'sex' ? 'sex' : 'general';
   const imageTags = Array.isArray(imageSelection.tags) ? imageSelection.tags : [];
-  const monitor = mindMonitor(currentExtract, turn);
-  const monitorEntries = mindMonitorEntries(save, monitor, [imageCharacterId, focalId, lastSpeakerId], directory, details);
+  const monitor = mindMonitor(turn);
+  const monitorEntries = mindMonitorEntries(save, monitor, scene, [imageCharacterId, focalId], directory, details);
 
   return {
     turn: {
@@ -274,12 +315,13 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
     story: {
       story_text: text(turn.story_text), blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
       choices: choices(save, turn), player_inner_thought: text(parsedStory.player_inner_thought),
-      dialogue_lines: dialogueLines(currentExtract, parsedStory), warnings: strings(parsedStory.warnings)
+      dialogue_lines: dialogueLines(parsedStory), warnings: strings(parsedStory.warnings)
     },
     scene: {
-      scene_state: scene, world_state: object(save.world_state) ?? {}, story_summary_recent: text(save.story_summary_recent),
+      ...scene,
+      scene_state: { ...scene, location_label: text(save.scene_state?.location_label) }, world_state: object(save.world_state) ?? {}, story_summary_recent: text(save.story_summary_recent),
       csa_active: Array.isArray(save.csa_active) ? save.csa_active : [], csa_rules: activeRules,
-      npcs_present: strings(save.last_npcs_present), action_target_id: text(currentExtract?.action_target_id), clothing_state: object(currentExtract?.clothing_state)
+      npcs_present: strings(scene.present_npc_ids), action_target_id: '', clothing_state: {}
     },
     interacting_characters: interactingCharacters,
     focal_character: {
@@ -307,9 +349,9 @@ export function buildCompanyGameViewModel(context, runtime = {}) {
       position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
-      image_id: imageId(latestExtract.image_id ?? save.last_image_id), image_character_id: imageCharacterId,
+      image_id: imageId(committedV2.image_id ?? save.last_image_id), image_character_id: imageCharacterId,
       image_selection: imageSelection, image_pool: imagePool, image_tags: imageTags,
-      image_situation: text(latestExtract.image_situation) || text(turn.turn_summary), dialogue_lines: dialogueLines(currentExtract, parsedStory),
+      image_situation: text(committedV2.image_situation) || text(turn.turn_summary), dialogue_lines: dialogueLines(parsedStory),
       mind_monitor: monitor, mind_monitor_entries: monitorEntries, default_mind_character_id: monitorEntries[0]?.id ?? ''
     }
   };
