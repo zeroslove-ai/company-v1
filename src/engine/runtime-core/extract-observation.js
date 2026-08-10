@@ -247,37 +247,6 @@ export function assertExtractObservationContract(observation) {
   return true;
 }
 
-export function assertScenePresenceCoverage(observation, { currentScene = null } = {}) {
-  const scene = observation?.scene_observation ?? {};
-  const before = new Set(Array.isArray(currentScene?.present_npc_ids) ? currentScene.present_npc_ids : []);
-  const final = Array.isArray(scene.final_present_npc_ids) ? new Set(scene.final_present_npc_ids) : null;
-  const evidence = Array.isArray(scene.evidence) ? scene.evidence : [];
-  const has = (kind, id) => evidence.some(item => item.kind === kind && item.character_id === id);
-  if (final === null) {
-    const entered = new Set(scene.entered_npc_ids ?? []);
-    const exited = new Set(scene.exited_npc_ids ?? []);
-    for (const id of entered) if (exited.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `NPC cannot be both entered and exited: ${id}`);
-    for (const id of entered) if (!has('entrance', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Entered NPC lacks entrance evidence: ${id}`);
-    for (const id of exited) if (!has('exit', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Exited NPC lacks exit evidence: ${id}`);
-    return true;
-  }
-  const entered = new Set(scene.entered_npc_ids ?? []);
-  const exited = new Set(scene.exited_npc_ids ?? []);
-  for (const id of entered) if (exited.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `NPC cannot be both entered and exited: ${id}`);
-  for (const id of entered) if (before.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `NPC already present cannot be entered again: ${id}`);
-  for (const id of entered) if (!final.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `Entered NPC is absent from final presence: ${id}`);
-  for (const id of exited) if (final.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `Exited NPC remains in final presence: ${id}`);
-  const added = [...final].filter(id => !before.has(id));
-  const removed = [...before].filter(id => !final.has(id));
-  for (const id of added) {
-    if (!has('entrance', id) && !has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Added NPC lacks entrance/presence evidence: ${id}`);
-  }
-  for (const id of removed) if (!has('exit', id)) {
-    throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Removed NPC lacks exit evidence: ${id}`);
-  }
-  return true;
-}
-
 export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, movement = false } = {}) {
   assertExtractObservationContract(value);
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
@@ -289,8 +258,6 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
         scene_id: null,
         location_id: null,
         final_present_npc_ids: value.scene_observation?.final_present_npc_ids ?? null,
-        entered_npc_ids: [],
-        exited_npc_ids: [],
         focal_candidate_id: null,
         remote_speaker_ids: value.scene_observation?.remote_speaker_ids ?? [],
         evidence: []
@@ -310,8 +277,6 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
       scene_id: sceneId,
       location_id: scene.location_id === null || scene.location_id === undefined ? null : scene.location_id.trim(),
       final_present_npc_ids: final,
-      entered_npc_ids: ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false }),
-      exited_npc_ids: ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false }),
       focal_candidate_id: nullableId(scene.focal_candidate_id, registered, 'focal_candidate_id'),
       remote_speaker_ids: ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false }),
       evidence: sceneEvidence
@@ -374,7 +339,7 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
 export function buildDegradedExtractObservation({ extraWarnings = [] } = {}) {
   return normalizeExtractObservationV2({
     extract_version: 2, outcome: 'degraded',
-    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] },
+    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, remote_speaker_ids: [], evidence: [] },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
     mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
     csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: ['extract_degraded', ...extraWarnings]

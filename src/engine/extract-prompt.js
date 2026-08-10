@@ -66,8 +66,6 @@ const SYSTEM_INSTRUCTIONS = [
       scene_id: null,
       location_id: null,
       final_present_npc_ids: null,
-      entered_npc_ids: [],
-      exited_npc_ids: [],
       focal_candidate_id: null,
       remote_speaker_ids: [],
       evidence: []

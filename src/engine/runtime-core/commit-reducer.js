@@ -3,7 +3,6 @@ import { hydrateCanonicalScene, reduceCanonicalScene } from './scene-reducer.js'
 import { projectCanonicalSceneToLegacy } from './projections.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
-import { assertScenePresenceCoverage } from './extract-observation.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
@@ -39,8 +38,6 @@ function canonicalObservation(observation, parsedStory) {
     focus_thread_provided: false,
     outcome: observation.outcome,
     remote_speaker_ids: scene.remote_speaker_ids ?? [],
-    entered_npc_ids: scene.entered_npc_ids ?? [],
-    exited_npc_ids: scene.exited_npc_ids ?? [],
     evidence: scene.evidence ?? [],
     warnings: []
   };
@@ -55,7 +52,6 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     && movementContract.destination_location_id.trim()
     ? movementContract.destination_location_id.trim()
     : null;
-  if (!resolvedMovement) assertScenePresenceCoverage(observation, { currentScene: sceneBefore });
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,
     observation: sceneObservation,
@@ -70,14 +66,11 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),
     ...(canonicalScene.present_npc_ids ?? []),
-    ...(sceneObservation.entered_npc_ids ?? []),
-    ...(sceneObservation.exited_npc_ids ?? []),
     ...(sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
   ]);
   const domains = reduceObservationDomains({
     currentSave: current, observation, parsedStory, rawStory, expectedTurn, actionId: action?.action_id, master, npcIds,
     sceneBefore, sceneAfter: canonicalScene, observedNpcIds,
-    enteredNpcIds: sceneObservation.entered_npc_ids, exitedNpcIds: sceneObservation.exited_npc_ids,
     explicitSpeakerIds: (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
   });
   let nextSave = projectCanonicalSceneToLegacy(domains.nextSave, canonicalScene, {

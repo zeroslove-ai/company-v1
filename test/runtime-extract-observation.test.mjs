@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { GameCoreError } from '../src/engine/errors.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
-import { assertScenePresenceCoverage, buildDegradedExtractObservation, normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
+import { buildDegradedExtractObservation, normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { reduceCsaAttitudeObservation, reduceNpcPhysicalObservation, reduceNpcRelationshipObservation } from '../src/engine/runtime-core/observation-reducers.js';
 
 const NPCS = new Set(['heroine1', 'heroine2']);
@@ -152,46 +152,18 @@ test('scene evidence quotes must be exact substrings of the raw Story for every 
   }
 });
 
-test('scene presence coverage is enforced at Commit authority, including final removals and patches', () => {
-  const currentScene = { present_npc_ids: ['heroine1', 'heroine2'] };
+test('presence authority uses only final_present_npc_ids and emits no entered/exited patch fields', () => {
   const observation = normalizeExtractObservationV2(valid({ scene_observation: {
-    ...scene([]),
-    evidence: [
-      { kind: 'exit', character_id: 'heroine1', quote: 'scene-exit-evidence' },
-      { kind: 'exit', character_id: 'heroine2', quote: 'scene-exit-evidence' }
-    ]
+    ...scene(['heroine1']),
+    entered_npc_ids: ['heroine2'],
+    exited_npc_ids: ['heroine3'],
+    presence_is_final: false,
+    evidence: []
   } }), { npcIds: NPCS, storyText: STORY });
-  assert.equal(assertScenePresenceCoverage(observation, { currentScene }), true);
-  const missing = structuredClone(observation);
-  missing.scene_observation.evidence.pop();
-  assert.throws(() => assertScenePresenceCoverage(missing, { currentScene }), error => error.code === 'SCENE_PRESENCE_EVIDENCE_MISSING');
-  const empty = normalizeExtractObservationV2(valid({ scene_observation: scene([]) }), { npcIds: NPCS, storyText: STORY });
-  assert.equal(assertScenePresenceCoverage(empty, { currentScene: { present_npc_ids: [] } }), true);
-  const patch = normalizeExtractObservationV2(valid({ scene_observation: { ...scene(), entered_npc_ids: ['heroine2'], exited_npc_ids: ['heroine1'], evidence: [
-    { kind: 'entrance', character_id: 'heroine2', quote: 'scene-exit-evidence' },
-    { kind: 'exit', character_id: 'heroine1', quote: 'work-happened' }
-  ] } }), { npcIds: NPCS, storyText: STORY });
-  assert.equal(assertScenePresenceCoverage(patch, { currentScene: { present_npc_ids: ['heroine1'] } }), true);
-  const conflict = structuredClone(patch);
-  conflict.scene_observation.entered_npc_ids = ['heroine1'];
-  conflict.scene_observation.exited_npc_ids = ['heroine1'];
-  assert.throws(() => assertScenePresenceCoverage(conflict, { currentScene: { present_npc_ids: [] } }), error => error.code === 'SCENE_PRESENCE_EVIDENCE_CONFLICT');
-});
-
-test('scene presence coverage requires exit evidence for final removals', () => {
-  const storyText = `${STORY} movement-arrival`;
-  const movement = normalizeExtractObservationV2(valid({ scene_observation: {
-    ...scene([]), location_id: 'destination', evidence: [{ kind: 'movement', location_id: 'destination', quote: 'movement-arrival' }]
-  } }), { npcIds: NPCS, storyText });
-  const currentScene = { location_id: 'origin', present_npc_ids: ['heroine1'] };
-  assert.throws(() => assertScenePresenceCoverage(movement, { currentScene }), error => error.code === 'SCENE_PRESENCE_EVIDENCE_MISSING');
-});
-
-test('retained canonical presence does not require repeated presence evidence', () => {
-  const observation = normalizeExtractObservationV2(valid({ scene_observation: {
-    ...scene(['heroine1']), presence_is_final: true, evidence: []
-  } }), { npcIds: NPCS, storyText: STORY });
-  assert.equal(assertScenePresenceCoverage(observation, { currentScene: { present_npc_ids: ['heroine1'] } }), true);
+  assert.deepEqual(observation.scene_observation.final_present_npc_ids, ['heroine1']);
+  assert.equal('entered_npc_ids' in observation.scene_observation, false);
+  assert.equal('exited_npc_ids' in observation.scene_observation, false);
+  assert.equal('presence_is_final' in observation.scene_observation, false);
 });
 
 test('movement observation preserves valid final presence while leaving location to the action resolver', () => {
@@ -201,8 +173,7 @@ test('movement observation preserves valid final presence while leaving location
     remote_speaker_ids: [], evidence: [{ kind: 'movement', location_id: 'wrong-room', quote: 'not in Story' }]
   } }), { npcIds: NPCS, storyText: STORY, movement: true });
   assert.deepEqual(movement.scene_observation, {
-    scene_id: null, location_id: null, final_present_npc_ids: ['heroine1'], entered_npc_ids: [], exited_npc_ids: [],
-    focal_candidate_id: null, remote_speaker_ids: [], evidence: []
+    scene_id: null, location_id: null, final_present_npc_ids: ['heroine1'], focal_candidate_id: null, remote_speaker_ids: [], evidence: []
   });
 });
 

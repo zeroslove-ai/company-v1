@@ -538,7 +538,7 @@ const master = masterFromEdition(edition);
             if (destination) {
               messages = [{
                 ...messages[0],
-                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION SCOPE] This is an explicit movement turn. Navigation has already resolved the canonical destination from the stored player action. Do not decide, confirm, or reject movement from Story wording. scene_observation.location_id, final_present_npc_ids, entered_npc_ids, exited_npc_ids, and movement/presence evidence are not required for this movement turn; leave them null, empty, or omit them when not directly observed. Observe only non-navigation changes actually described in the raw Story. Do not invent a different destination or use movement evidence to override the resolved navigation.`
+                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION SCOPE] This is an explicit movement turn. Navigation has already resolved the canonical destination from the stored player action. Do not decide, confirm, or reject movement from Story wording. scene_observation.location_id and final_present_npc_ids are not required for this movement turn; leave them null or omit them when not directly observed. Observe only non-navigation changes actually described in the raw Story. Do not invent a different destination or use movement evidence to override the resolved navigation.`
               }, ...messages.slice(1)];
             }
           }
