@@ -47,18 +47,35 @@ function parseSse(text) {
   return events;
 }
 
-function latestExtractDiagnostic(llmCalls) {
-  const call = [...llmCalls].reverse().find(item => item.request?.stream === false);
-  if (!call) return null;
+function extractDiagnosticForCalls(llmCalls, startIndex) {
+  const extractCalls = llmCalls.slice(startIndex).filter(item => item.request?.stream === false);
+  if (!extractCalls.length) return { raw_extract: null, extract_llm_call_count: 0 };
+  const call = extractCalls.at(-1);
   let content = null;
   try { content = JSON.parse(call.raw_response)?.choices?.[0]?.message?.content ?? null; } catch { content = null; }
-  if (typeof content !== 'string') return { raw_llm_response: call.raw_response, raw_content: content };
+  if (typeof content !== 'string') return { extract_llm_call_count: extractCalls.length, raw_llm_response: call.raw_response, raw_content: content };
   let parsedBeforeRepair = null;
   try { parsedBeforeRepair = JSON.parse(content); } catch { /* repair result is recorded below */ }
   let parsedAfterRepair = null;
   let repairError = null;
   try { parsedAfterRepair = repairAndParseExtractJson(content); } catch (error) { repairError = { code: error?.code ?? null, message: error?.message ?? String(error) }; }
-  return { raw_llm_response: call.raw_response, raw_content: content, parsed_before_repair: parsedBeforeRepair, parsed_after_repair: parsedAfterRepair, repair_error: repairError };
+  return { extract_llm_call_count: extractCalls.length, raw_llm_response: call.raw_response, raw_content: content, parsed_before_repair: parsedBeforeRepair, parsed_after_repair: parsedAfterRepair, repair_error: repairError };
+}
+
+function storyValidation(record) {
+  const errorEvents = record.events.filter(event => event.name === 'error');
+  const meta = record.events.find(event => event.name === 'meta')?.data ?? null;
+  const complete = record.events.find(event => event.name === 'complete') ?? null;
+  const rawStory = record.events.filter(event => event.name === 'delta').map(event => event.data?.text ?? '').join('');
+  return {
+    http_ok: record.ok,
+    meta_present: Boolean(meta),
+    meta_action_id_present: typeof meta?.action_id === 'string' && meta.action_id.length > 0,
+    error_events: errorEvents,
+    complete_present: Boolean(complete),
+    raw_story_length: rawStory.length,
+    valid: record.ok && typeof meta?.action_id === 'string' && meta.action_id.length > 0 && errorEvents.length === 0 && Boolean(complete) && rawStory.length > 0
+  };
 }
 
 async function main() {
@@ -77,7 +94,7 @@ async function main() {
     return response;
   };
   const worker = createApiWorker({ fetchImpl });
-  const report = { game_id: gameId, started_at: new Date().toISOString(), stages: [], llm_calls: llmCalls };
+  const report = { game_id: gameId, started_at: new Date().toISOString(), stages: [], llm_calls: llmCalls, llm_stage_diagnostics: [] };
   const call = async (endpoint, body) => {
     const response = await worker.fetch(new Request(`https://local.company-v1${endpoint}`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
@@ -93,16 +110,39 @@ async function main() {
     error.response = record;
     throw error;
   };
-  const story = async body => {
+  const story = async (body, stageName) => {
+    const llmStartIndex = llmCalls.length;
     const response = await worker.fetch(new Request('https://local.company-v1/api/story', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
     }), env);
     const text = await response.text();
     const events = parseSse(text);
     const metaActionId = events.find(event => event.name === 'meta')?.data?.action_id ?? null;
-    const record = { status: response.status, ok: response.ok, action_id: metaActionId, events, raw_sse: text };
+    const record = { status: response.status, ok: response.ok, request_action_id: body.action_id ?? null, action_id: metaActionId, events, raw_sse: text };
+    record.validation = storyValidation(record);
+    record.llm_call_start = llmStartIndex;
+    record.llm_call_end = llmCalls.length;
     report.stages.push({ endpoint: '/api/story', request: body, response: record });
+    if (!record.validation.valid) {
+      const error = new Error(`${stageName} Story did not complete successfully`);
+      error.endpoint = `/api/story ${stageName}`;
+      error.response = record;
+      throw error;
+    }
     return record;
+  };
+  const extract = async (body, stageName) => {
+    const llmStartIndex = llmCalls.length;
+    const record = await call('/api/extract', body);
+    const diagnostic = extractDiagnosticForCalls(llmCalls, llmStartIndex);
+    report.llm_stage_diagnostics.push({ stage: stageName, start_index: llmStartIndex, end_index: llmCalls.length, ...diagnostic });
+    if (!record.ok) {
+      const error = new Error(`/api/extract ${stageName} failed: ${record.body?.error?.code ?? record.status}`);
+      error.endpoint = `/api/extract ${stageName}`;
+      error.response = record;
+      throw error;
+    }
+    return { record, diagnostic, llm_start_index: llmStartIndex };
   };
   let actionId = null;
   try {
@@ -115,24 +155,24 @@ async function main() {
     await call('/api/opening', { game_id: gameId, setup_id: setupId });
 
     actionId = crypto.randomUUID();
-    const ordinary = await story({ game_id: gameId, action_id: actionId, expected_turn: 1, player_action: '주변을 둘러보고 현재 업무를 확인한다.' });
-    actionId = ordinary.action_id || actionId;
+    const ordinary = await story({ game_id: gameId, action_id: actionId, expected_turn: 1, player_action: '주변을 둘러보고 현재 업무를 확인한다.' }, 'ordinary');
+    actionId = ordinary.action_id;
     const storyText = ordinary.events.filter(event => event.name === 'delta').map(event => event.data?.text ?? '').join('');
     const parsed = ordinary.events.find(event => event.name === 'complete')?.data?.parsed_blocks ?? null;
-    const extract = await call('/api/extract', { game_id: gameId, action_id: actionId });
-    await call('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1 });
-    report.ordinary = { action_id: actionId, expected_turn: 1, player_action: '주변을 둘러보고 현재 업무를 확인한다.', raw_story: storyText, parsed_story: parsed, parser_warnings: ordinary.events.find(event => event.name === 'complete')?.data?.warnings ?? [], raw_extract: latestExtractDiagnostic(llmCalls), extract_error: extract.ok ? null : extract.body?.error ?? null };
-    requireOk(extract, '/api/extract ordinary');
+    const ordinaryExtract = await extract({ game_id: gameId, action_id: actionId }, 'ordinary');
+    const ordinaryCommit = await call('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1 });
+    requireOk(ordinaryCommit, '/api/commit ordinary');
+    report.ordinary = { action_id: actionId, expected_turn: 1, player_action: '주변을 둘러보고 현재 업무를 확인한다.', raw_story: storyText, parsed_story: parsed, parser_warnings: ordinary.events.find(event => event.name === 'complete')?.data?.warnings ?? [], raw_extract: ordinaryExtract.diagnostic, extract_response: ordinaryExtract.record, commit_response: ordinaryCommit };
 
     actionId = crypto.randomUUID();
-    const movement = await story({ game_id: gameId, action_id: actionId, expected_turn: 2, player_action: '브랜드전략팀 회의실로 이동한다.' });
-    actionId = movement.action_id || actionId;
+    const movement = await story({ game_id: gameId, action_id: actionId, expected_turn: 2, player_action: '브랜드전략팀 회의실로 이동한다.' }, 'movement');
+    actionId = movement.action_id;
     const movementText = movement.events.filter(event => event.name === 'delta').map(event => event.data?.text ?? '').join('');
     const movementParsed = movement.events.find(event => event.name === 'complete')?.data?.parsed_blocks ?? null;
-    const movementExtract = await call('/api/extract', { game_id: gameId, action_id: actionId });
-    await call('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 2 });
-    report.movement = { action_id: actionId, expected_turn: 2, player_action: '브랜드전략팀 회의실로 이동한다.', raw_story: movementText, parsed_story: movementParsed, parser_warnings: movement.events.find(event => event.name === 'complete')?.data?.warnings ?? [], raw_extract: latestExtractDiagnostic(llmCalls), extract_error: movementExtract.ok ? null : movementExtract.body?.error ?? null };
-    requireOk(movementExtract, '/api/extract movement');
+    const movementExtract = await extract({ game_id: gameId, action_id: actionId }, 'movement');
+    const movementCommit = await call('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 2 });
+    requireOk(movementCommit, '/api/commit movement');
+    report.movement = { action_id: actionId, expected_turn: 2, player_action: '브랜드전략팀 회의실로 이동한다.', raw_story: movementText, parsed_story: movementParsed, parser_warnings: movement.events.find(event => event.name === 'complete')?.data?.warnings ?? [], raw_extract: movementExtract.diagnostic, extract_response: movementExtract.record, commit_response: movementCommit };
 
     const validation = await call('/api/app-validate', { game_id: gameId, structured_action: {
       version: 1, type: 'app_transaction', base_turn_count: 2, operations: [{
@@ -142,20 +182,19 @@ async function main() {
     } });
     const canonicalAction = validation.body?.data?.canonical_action ?? null;
     actionId = crypto.randomUUID();
-    const relational = await story({ game_id: gameId, action_id: actionId, expected_turn: 3, player_action: '회사 직원에게 가까이 다가가 함께 업무를 시작한다.', structured_action: canonicalAction });
-    actionId = relational.action_id || actionId;
+    const relational = await story({ game_id: gameId, action_id: actionId, expected_turn: 3, player_action: '회사 직원에게 가까이 다가가 함께 업무를 시작한다.', structured_action: canonicalAction }, 'relational');
+    actionId = relational.action_id;
     const relationalStory = relational.events.filter(event => event.name === 'delta').map(event => event.data?.text ?? '').join('');
     const relationalParsed = relational.events.find(event => event.name === 'complete')?.data?.parsed_blocks ?? null;
-    const relationalExtract = await call('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction });
+    const relationalExtract = await extract({ game_id: gameId, action_id: actionId, structured_action: canonicalAction }, 'relational');
     report.relational = {
       action_id: actionId, expected_turn: 3, player_action: '회사 직원에게 가까이 다가가 함께 업무를 시작한다.',
       raw_story: relationalStory, parsed_story: relationalParsed,
       parser_warnings: relational.events.find(event => event.name === 'complete')?.data?.warnings ?? [],
-      raw_extract: latestExtractDiagnostic(llmCalls),
-      extract_response: relationalExtract,
-      raw_extract_llm_calls: llmCalls.slice(-2)
+      raw_extract: relationalExtract.diagnostic,
+      extract_response: relationalExtract.record,
+      raw_extract_llm_calls: llmCalls.slice(relationalExtract.llm_start_index)
     };
-    requireOk(relationalExtract, '/api/extract relational');
   } catch (error) {
     report.harness_error = { name: error?.name, message: error?.message, action_id: actionId };
   } finally {
