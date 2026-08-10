@@ -169,6 +169,27 @@ test('movement Story prompt carries a resolved prospective destination context',
   assert.equal(currentTurn.destination.location_id, 'office');
 });
 
+test('CSA Story prompt keeps the app meta boundary and grounds newly activated authority tiers', () => {
+  const save = baseSave();
+  save.csa_active = ['csa-new'];
+  save.csa_rules = {
+    'csa-new': {
+      active: true,
+      content: '여성 직원은 공식 규정에 따라 근무한다.',
+      strength: 'weak',
+      created_turn: 3,
+      preset: { authority_tier: 'weak', affected_group: 'female_employee', mode: 'continuous' }
+    }
+  };
+  const system = buildStoryPrompt({ edition, context: { game: {}, save, recent_turns: [] }, playerAction: '회사 규정 변경사항 1건이 공식 반영된다.', expectedTurn: 3, npcIds: new Set(['heroine1']) })[0].content;
+  assert.match(system, /상식개변 앱은 플레이어 전용 메타 UI/);
+  assert.match(system, /newly_activated===true/);
+  assert.match(system, /weak=사내 지침/);
+  assert.match(system, /medium=취업규칙/);
+  assert.match(system, /strong=국가 법령/);
+  assert.match(system, /스마트워치 알림/);
+});
+
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {
   const save = baseSave();
   save.npc_stats = { general_manager: { affinity: 0 } };

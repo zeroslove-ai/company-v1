@@ -255,7 +255,7 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
   return {
     ok: true,
     canonical_action: { version: 1, type: 'app_transaction', base_turn_count: turnNumber - 1, operations: canonicalOperations },
-    display_input: `상식개변 앱에서 상식개변 ${canonicalOperations.length}건의 변경사항을 적용한다.`,
+    display_input: `회사 규정 변경사항 ${canonicalOperations.length}건이 공식 반영된다.`,
     summary,
     next_csa_active: activeIds,
     next_csa_rules: rules

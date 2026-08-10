@@ -273,6 +273,8 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   };
   const validated = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: structuredAction }), env);
   const { canonical_action: canonicalAction, display_input: displayInput } = (await validated.json()).data;
+  assert.equal(displayInput, '회사 규정 변경사항 1건이 공식 반영된다.');
+  assert.doesNotMatch(displayInput, /상식개변 앱/);
 
   const actionId = '22222222-2222-4222-8222-222222222222';
   const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 1, player_action: displayInput, structured_action: canonicalAction }), env);
