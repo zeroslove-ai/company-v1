@@ -22,7 +22,7 @@ test('null structured action cannot mutate active rules', () => {
   );
 });
 
-test('active rule semantics remain stable across turns', () => {
+test('active rule projection remains stable across expected turns', () => {
   const save = {
     csa_active: ['csa-1'],
     csa_rules: {
@@ -52,7 +52,7 @@ test('active rule semantics remain stable across turns', () => {
   );
 });
 
-test('Story cannot invent legal clause numbering', () => {
+test('Story prompt projects only saved rule content and injects no legal clause numbering', () => {
   const content = 'Company employees follow the saved rule.';
   const messages = buildStoryPrompt({
     edition,
@@ -93,7 +93,7 @@ test('player utterance is never assigned to NPC', () => {
   assert.notEqual(parsed.dialogue_lines[0].speaker_id, 'heroine1');
 });
 
-test('fear and compelled compliance do not imply arousal or acceptance', () => {
+test('fear evidence cannot be reused as arousal or acceptance stat evidence', () => {
   const save = { npc_stats: { heroine1: { sexual_arousal: 0, csa_acceptance: 0 } } };
   const result = reduceNpcStatObservation({
     save,
