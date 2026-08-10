@@ -169,27 +169,19 @@ begin
 end;
 $$;
 
--- Turn-0-only package backfill. No turn/action/story rows are changed.
-update public.game_master
-set initial_save = public.company_apply_opening_scene_v1(public.company_apply_initial_clothing_v2(initial_save))
-from public.games g
-where g.id = public.game_master.game_id
-  and g.edition_id = 'company-v1'
-  and jsonb_typeof(initial_save -> 'opening_state' -> 'plan') = 'object'
-  and jsonb_typeof(initial_save -> 'scene') is distinct from 'object';
-
+-- Turn-0-only package backfill. No game_master, turn/action/story rows are changed.
 update public.game_save s
 set data = public.company_apply_opening_scene_v1(public.company_apply_initial_clothing_v2(s.data)), updated_at = now()
 from public.games g
 where g.id = s.game_id
   and g.edition_id = 'company-v1'
   and coalesce(s.committed_turn, 0) = 0
-  and jsonb_typeof(s.data -> 'opening_state' -> 'plan') = 'object'
-  and jsonb_typeof(s.data -> 'scene') is distinct from 'object';
+  and jsonb_typeof(s.data -> 'opening_state' -> 'plan') = 'object';
 
-revoke all on function public.company_apply_opening_scene_v1(jsonb) from public, anon, authenticated;
+revoke all on function public.company_apply_opening_scene_v1(jsonb) from public, anon, authenticated, service_role;
 revoke all on function public.reserve_company_player_setup(uuid, uuid, jsonb, jsonb) from public, anon, authenticated;
 revoke all on function public.commit_company_opening(uuid, uuid, text, text, jsonb) from public, anon, authenticated;
-grant execute on function public.company_apply_opening_scene_v1(jsonb) to service_role;
+revoke all on function public.reserve_company_player_setup_legacy_v2(uuid, uuid, jsonb, jsonb) from public, anon, authenticated, service_role;
+revoke all on function public.commit_company_opening_legacy_v2(uuid, uuid, text, text, jsonb) from public, anon, authenticated, service_role;
 grant execute on function public.reserve_company_player_setup(uuid, uuid, jsonb, jsonb) to service_role;
 grant execute on function public.commit_company_opening(uuid, uuid, text, text, jsonb) to service_role;

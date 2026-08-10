@@ -55,7 +55,7 @@ Remaining phases: setup/opening bootstrap audit and operational migration/deploy
 
 ## Forbidden regressions
 
-- No new matcher, verifier, semantic gate, fallback authority, database/migration change, Supabase write, live LLM call, Worker deployment, or operating-save repair.
+- No new matcher, verifier, semantic gate, or fallback authority. Phase 6 may write migration package artifacts; migration application, Supabase write, live LLM call, Worker deployment, or operating-save repair remain forbidden.
 
 ## Verification
 

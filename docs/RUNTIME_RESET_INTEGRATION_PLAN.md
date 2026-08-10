@@ -53,9 +53,13 @@ complete test suite and Worker dry-runs, and inspect the aggregate diff against
 PRs #22–#26 and other pre-reset PRs are not cherry-picked into the integration
 branch. For each old PR, record:
 
-| Old PR | Unique product behavior | Present in Phase 6 tree | Disposition |
+| Old PR | Unique commits / behavior | Current Phase 6 correspondence | Disposition / evidence |
 | --- | --- | --- | --- |
-| #22–#26 | To be checked with `git log --cherry`, `git diff --stat`, and `git range-diff` | Pending inventory | Do not merge until proven unique |
+| #22 | Dialogue parser/TTS, Mind Monitor two-field surface, NPC records, player app handoff. | `src/engine/narrative-parser.js`, `src/frontend/pages/tts.js`, `src/frontend/pages/view-model.js`, `test/runtime-presentation-authority.test.mjs`, `test/runtime-media-projection.test.mjs`. | **Included/superseded where authority changed**. The product surfaces remain; speaker-tagging and Extract-driven rendering were retired by Phases 3–5. `git diff` against the Phase 6 base shows no unique PR-22 delta. |
+| #23 | Evidence-backed posture/position/clothing projection and safe human-readable location display. | `src/frontend/pages/view-model.js`, `src/frontend/pages/utility-ui.js`, runtime physical reducers, and existing physical/view-model tests. | **Included**. Current view-model and V2 physical reducers provide the same product behavior with canonical scene/evidence authority; PR head is an ancestor of the reset base. |
+| #24 | Company catalogs, map-driven opening plan, NPC finder removal, Company CSA aliases and bounded selection. | `content/`, `src/engine/player-setup.js`, `src/api/turn-routes.js`, catalog and opening tests. | **Included/superseded by later catalog/runtime phases**. Catalog and opening behavior remain; the old semantic/action gate and NPC Finder implementation are intentionally absent. PR head is an ancestor of the reset base. |
+| #25 | Speaker-tagging pipeline, roster construction, quote-card/TTS polish, and recovery fixes. | Parser-owned `dialogue_lines`, `src/frontend/pages/tts.js`, recovery coordinator, and corresponding presentation/recovery tests. | **Partially included, authority intentionally replaced**. Raw Story/parser projection and single TTS remain; the extra speaker-tagging LLM and normalized-raw authority were removed in PR #46/Phase 5. No cherry-pick. |
+| #26 | ActionExecutionContract routes, pre-Story CSA matcher/firewall, boundary follow-up, and related sexual completion filtering. | No retained production caller; the former contract symbols are absent from `src/**`. | **Discarded as legacy authority**. Removed by PR #42 and subsequent runtime reset phases; reintroducing it would violate the frozen Story-first pipeline. |
 
 Legacy authority, guarded merge, and SceneCast writer code are excluded by
 default. A genuinely unique product behavior must be documented and proposed
