@@ -68,7 +68,6 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
       final_present_npc_ids: final,
       entered_npc_ids: [], exited_npc_ids: [],
       focal_candidate_id: known(value.focal_character_id, npcIds),
-      presence_is_final: final !== null,
       remote_speaker_ids: remote, evidence: typedSceneEvidence
     },
     player_observation: {

@@ -28,7 +28,7 @@ function canonicalObservation(observation, parsedStory) {
   return {
     scene_id: scene.scene_id ?? null,
     location_id: scene.location_id ?? null,
-    final_present_npc_ids: scene.presence_is_final ? scene.final_present_npc_ids : null,
+    final_present_npc_ids: Array.isArray(scene.final_present_npc_ids) ? scene.final_present_npc_ids : null,
     focal_candidate_id: scene.focal_candidate_id ?? null,
     explicit_speaker_ids: speakers,
     acted_npc_ids: [],
@@ -38,7 +38,6 @@ function canonicalObservation(observation, parsedStory) {
     scene_goal_provided: false,
     focus_thread_provided: false,
     outcome: observation.outcome,
-    presence_is_final: scene.presence_is_final,
     remote_speaker_ids: scene.remote_speaker_ids ?? [],
     entered_npc_ids: scene.entered_npc_ids ?? [],
     exited_npc_ids: scene.exited_npc_ids ?? [],

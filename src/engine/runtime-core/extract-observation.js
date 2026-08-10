@@ -283,12 +283,11 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
   if (!object(value.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
   const scene = movement
-    ? { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: value.scene_observation?.remote_speaker_ids ?? [], evidence: [] }
+    ? { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, remote_speaker_ids: value.scene_observation?.remote_speaker_ids ?? [], evidence: [] }
     : value.scene_observation;
-  assertKeys(scene, new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'presence_is_final', 'remote_speaker_ids', 'evidence']), 'INVALID_EXTRACT_OBSERVATION');
+  assertKeys(scene, new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'remote_speaker_ids', 'evidence', 'presence_is_final']), 'INVALID_EXTRACT_OBSERVATION');
   const final = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
-  const finalFlag = scene.presence_is_final === true;
-  if (finalFlag !== (final !== null)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'presence_is_final and final_present_npc_ids disagree');
+  if (Object.hasOwn(scene, 'presence_is_final') && typeof scene.presence_is_final !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'presence_is_final must be a boolean when provided for legacy compatibility');
   const sceneId = scene.scene_id === null || scene.scene_id === undefined ? null : (typeof scene.scene_id === 'string' && scene.scene_id.trim() ? scene.scene_id.trim() : null);
   if (scene.scene_id !== null && scene.scene_id !== undefined && !sceneId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_id must be a string or null');
   const sceneEvidence = normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId);
@@ -303,7 +302,6 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
       entered_npc_ids: ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false }),
       exited_npc_ids: ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false }),
       focal_candidate_id: nullableId(scene.focal_candidate_id, registered, 'focal_candidate_id'),
-      presence_is_final: finalFlag,
       remote_speaker_ids: ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false }),
       evidence: sceneEvidence
     },
@@ -365,7 +363,7 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
 export function buildDegradedExtractObservation({ extraWarnings = [] } = {}) {
   return normalizeExtractObservationV2({
     extract_version: 2, outcome: 'degraded',
-    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
     mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
     csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: ['extract_degraded', ...extraWarnings]

@@ -75,10 +75,17 @@ test('null and empty final presence remain distinct', () => {
   assert.equal(normalizeExtractObservationV2(valid(), { npcIds: NPCS }).scene_observation.final_present_npc_ids, null);
   const empty = normalizeExtractObservationV2(valid({ scene_observation: scene([]) }), { npcIds: NPCS, storyText: STORY });
   assert.deepEqual(empty.scene_observation.final_present_npc_ids, []);
-  assert.equal(empty.scene_observation.presence_is_final, true);
 });
-test('presence flag cannot contradict final snapshot', () => {
-  assert.throws(() => normalizeExtractObservationV2(valid({ scene_observation: { ...scene(), presence_is_final: true } }), { npcIds: NPCS }), GameCoreError);
+test('presence meaning has one authority in final_present_npc_ids', () => {
+  const unobserved = normalizeExtractObservationV2(valid({ scene_observation: { ...scene(), presence_is_final: true } }), { npcIds: NPCS });
+  assert.equal(unobserved.scene_observation.final_present_npc_ids, null);
+  assert.equal('presence_is_final' in unobserved.scene_observation, false);
+  const empty = normalizeExtractObservationV2(valid({ scene_observation: { ...scene([]), presence_is_final: false } }), { npcIds: NPCS, storyText: STORY });
+  assert.deepEqual(empty.scene_observation.final_present_npc_ids, []);
+  assert.equal('presence_is_final' in empty.scene_observation, false);
+  const explicit = normalizeExtractObservationV2(valid({ scene_observation: { ...scene(['heroine1']), presence_is_final: false } }), { npcIds: NPCS });
+  assert.deepEqual(explicit.scene_observation.final_present_npc_ids, ['heroine1']);
+  assert.equal('presence_is_final' in explicit.scene_observation, false);
 });
 test('unknown NPC observation and IDs fail', () => {
   assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine9: {} } }), { npcIds: NPCS }), GameCoreError);
@@ -185,7 +192,7 @@ test('movement observation ignores navigation evidence and leaves destination to
   } }), { npcIds: NPCS, storyText: STORY, movement: true });
   assert.deepEqual(movement.scene_observation, {
     scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [],
-    focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: []
+    focal_candidate_id: null, remote_speaker_ids: [], evidence: []
   });
 });
 
