@@ -103,6 +103,8 @@ test('initial clothing is a preserving merge and Phase 6 exercises the combined 
   assert.match(clothingMigration, /v_player_scene/);
   assert.doesNotMatch(clothingMigration, /jsonb_set\(\s*v_data,\s*'\{player_scene_state,clothing\}',\s*public\.company_initial_clothing_v2\(\)/s);
   assert.match(migration, /company_apply_opening_scene_v1\(public\.company_apply_initial_clothing_v2\(data\)\)/);
+  assert.match(migration, /reserve_company_player_setup_legacy_v2[\s\S]*?update public\.game_save[\s\S]*?company_apply_initial_clothing_v2\(data\)/);
+  assert.doesNotMatch(migration, /update public\.game_save\s+set data = public\.company_apply_initial_clothing_v2\(data\),\s*save_revision\s*=\s*save_revision\s*\+/s);
   assert.match(verification, /v_combined := public\.company_apply_opening_scene_v1\(\s*public\.company_apply_initial_clothing_v2\(v_input\)\s*\)/s);
   assert.match(verification, /underwear_top.*removed/s);
   assert.match(verification, /uniform_top.*open/s);
