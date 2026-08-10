@@ -12,7 +12,7 @@
     "remote_speaker_ids": [],
     "evidence": [
       {
-        "kind": "entrance",
+        "kind": "presence",
         "character_id": "heroine2",
         "quote": "당신이 스마트폰을 내려놓는 순간, 회의실 문이 열리며 윤민아 대리가 들어온다."
       }

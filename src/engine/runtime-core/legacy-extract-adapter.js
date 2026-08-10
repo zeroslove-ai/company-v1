@@ -93,5 +93,5 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
     csa_runtime_updates: value.csa_runtime_updates ?? [],
     turn_summary: value.turn_summary ?? '',
     warnings: ['legacy_extract_adapter_used', ...(Array.isArray(value.warnings) ? value.warnings : [])]
-  }, { npcIds, storyText, expectedTurn, actionId });
+  }, { npcIds, storyText, expectedTurn, actionId, legacyEvidenceKinds: true });
 }

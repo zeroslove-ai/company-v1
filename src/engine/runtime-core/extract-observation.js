@@ -27,7 +27,8 @@ const CSA_TRIGGER_FIELDS = new Set(['csa_id', 'status']);
 const RUNTIME = new Set(['inactive', 'active', 'paused', 'ended']);
 const CSA_RUNTIME_FIELDS = new Set(['csa_id', 'character_id', 'status', 'target_type', 'action_state', 'position_label', 'reason']);
 const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'quote']);
-const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'movement', 'scene']);
+const SCENE_EVIDENCE_KINDS = new Set(['presence', 'movement', 'scene']);
+const LEGACY_SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'movement', 'scene']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -211,13 +212,14 @@ function normalizeElapsedMinutes(value, evidence) {
   return value <= max ? value : 3;
 }
 
-function normalizeSceneEvidence(value, npcIds, storyText, sceneId) {
+function normalizeSceneEvidence(value, npcIds, storyText, sceneId, { legacyEvidenceKinds = false } = {}) {
   if (!Array.isArray(value)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation.evidence must be an array');
   const seen = new Set();
   const result = [];
   for (const item of value) {
     assertKeys(item, SCENE_EVIDENCE_FIELDS, 'EXTRACT_AUTHORITY_VIOLATION');
-    if (!SCENE_EVIDENCE_KINDS.has(item.kind)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Unknown scene evidence kind');
+    const allowedKinds = legacyEvidenceKinds ? LEGACY_SCENE_EVIDENCE_KINDS : SCENE_EVIDENCE_KINDS;
+    if (!allowedKinds.has(item.kind)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Unknown scene evidence kind');
     const quote = typeof item.quote === 'string' && item.quote.trim() ? item.quote.trim() : null;
     if (!quote) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Scene evidence requires an exact quote');
     if (typeof storyText !== 'string' || !storyText.includes(quote)) throw new GameCoreError('SCENE_EVIDENCE_QUOTE_NOT_IN_STORY', 'Scene evidence quote is not present in Story');
@@ -247,7 +249,7 @@ export function assertExtractObservationContract(observation) {
   return true;
 }
 
-export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, movement = false } = {}) {
+export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, movement = false, legacyEvidenceKinds = false } = {}) {
   assertExtractObservationContract(value);
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
   if (!object(value.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
@@ -268,7 +270,7 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
   if (Object.hasOwn(scene, 'presence_is_final') && typeof scene.presence_is_final !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'presence_is_final must be a boolean when provided for legacy compatibility');
   const sceneId = scene.scene_id === null || scene.scene_id === undefined ? null : (typeof scene.scene_id === 'string' && scene.scene_id.trim() ? scene.scene_id.trim() : null);
   if (scene.scene_id !== null && scene.scene_id !== undefined && !sceneId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_id must be a string or null');
-  const sceneEvidence = normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId);
+  const sceneEvidence = normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId, { legacyEvidenceKinds });
   if (scene.location_id !== null && scene.location_id !== undefined && (typeof scene.location_id !== 'string' || !scene.location_id.trim())) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'location_id must be a string or null');
   const normalized = {
     extract_version: 2,

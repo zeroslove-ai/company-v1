@@ -10,7 +10,7 @@ const NPCS = new Set(['heroine1', 'heroine2']);
 const STORY = 'scene-exit-evidence work-happened';
 const capturedInvalidPhysical = JSON.parse(fs.readFileSync(new URL('./fixtures/csa-physical-invalid-position.json', import.meta.url)));
 const capturedInvalidSceneEvidence = JSON.parse(fs.readFileSync(new URL('./fixtures/csa-physical-invalid-scene-id.json', import.meta.url)));
-const scene = (final = null) => ({ scene_id: null, location_id: null, final_present_npc_ids: final, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: final !== null, remote_speaker_ids: [], evidence: final?.length === 0 ? [{ kind: 'exit', character_id: 'heroine1', quote: 'scene-exit-evidence' }] : [] });
+const scene = (final = null) => ({ scene_id: null, location_id: null, final_present_npc_ids: final, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: final !== null, remote_speaker_ids: [], evidence: final?.length === 0 ? [{ kind: 'presence', character_id: 'heroine1', quote: 'scene-exit-evidence' }] : [] });
 const valid = (overrides = {}) => ({
   extract_version: 2, outcome: 'success', scene_observation: scene(), player_observation: {}, npc_observations: {},
   events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null,
