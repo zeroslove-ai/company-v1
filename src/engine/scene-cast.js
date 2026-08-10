@@ -636,7 +636,10 @@ export function buildSceneCastContract({
   for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) pushContext(id);
 
   // 수정 2 — 이동 턴은 destination NPC를 allowed_speaker에 넣지 않는다
-  const allowedSpeakerIds = ['player', ...effectivePresent, ...effectiveEntering, ...remoteNpcIds];
+  // A local NPC may say farewell before the player leaves. This does not make
+  // the NPC part of the destination presence snapshot or a remote speaker.
+  const originFarewellIds = isMovementTurn ? presentNpcIds : [];
+  const allowedSpeakerIds = [...new Set(['player', ...effectivePresent, ...effectiveEntering, ...originFarewellIds, ...remoteNpcIds])];
 
   return {
     version: 1,

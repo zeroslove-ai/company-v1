@@ -251,6 +251,18 @@ test('맵4b: 말 걸기 의도가 없는 순수 이동은 도착까지만 — �
 
 const mapModule = await import('../src/frontend/pages/company-map.js');
 
+test('movement cast permits a current origin NPC farewell without adding it to destination presence', () => {
+  const contract = cast('직원 라운지로 이동한다', {
+    locationId: 'brand_strategy_office',
+    participants: ['player-1', 'heroine2'],
+    npcSceneState: { heroine2: { present: true, location_id: 'brand_strategy_office' } }
+  });
+  assert.equal(contract.transition_mode, 'movement');
+  assert.deepEqual(contract.present_npc_ids, []);
+  assert.ok(contract.allowed_speaker_ids.includes('heroine2'));
+  assert.deepEqual(contract.remote_npc_ids, []);
+});
+
 test('맵8/9: 장소·NPC 클릭 문장은 입력창 채우기용일 뿐 턴을 실행하지 않는다', () => {
   assert.equal(mapModule.locationPromptText('브랜드전략팀 사무실'), '브랜드전략팀 사무실로 이동한다');
   assert.equal(mapModule.npcPromptText('윤민아'), '윤민아를 찾아간다');
