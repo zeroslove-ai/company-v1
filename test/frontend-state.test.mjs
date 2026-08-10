@@ -160,6 +160,7 @@ test('a reloaded reserved setup retries the same opening without a second player
     assert.equal(playerSetupCalls, 0);
     assert.equal(nodes['player-setup-overlay'].hidden, true);
     assert.equal(nodes['player-action'].disabled, false);
+    assert.equal(nodes['current-story'].children.length, 0, 'canonical opening history replaces transient current-story');
     assert.equal(nodes['choice-list'].children.length, 4);
     assert.equal(nodes['choice-list'].children[0].title, 'Top A', 'opening complete top-level choices are preferred');
   });

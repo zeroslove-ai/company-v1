@@ -231,6 +231,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   let rawStoryStream = '';
   let pendingRawProjection = false;
   const resetRawStory = () => { rawStoryStream = ''; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
+  const clearTransientStoryProjection = () => {
+    rawStoryStream = '';
+    pendingRawProjection = false;
+    elements.current?.replaceChildren?.();
+    elements.current?.classList?.remove?.('raw-story-stream');
+  };
   const renderStreamingProjection = projection => {
     if (!elements.current) return;
     const fragment = documentRef.createDocumentFragment?.();
@@ -608,7 +614,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       }
     });
     text(statusElement, '');
-    await refreshContext({ preserveStreamedChoices: true });
+    const refreshed = await refreshContext({ preserveStreamedChoices: true });
+    // Opening is now present in canonical history after the refresh. Remove
+    // only the transient opening projection; raw Story storage is untouched.
+    if (openingHistoryTurn(refreshed)) clearTransientStoryProjection();
   }
   async function retryOpening(setupId) {
     if (busy || !setupId) return false;

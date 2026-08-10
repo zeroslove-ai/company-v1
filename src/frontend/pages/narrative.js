@@ -355,14 +355,15 @@ export function parseNarrative(rawText, { speakerDirectory = {}, playerName = '�
 export function projectStreamingText(rawText) {
   const raw = String(rawText ?? '');
   const lines = raw.split(/\r?\n/);
-  const marker = /^\s*\[(?:SCENE|DIALOGUE\b[^\]]*|\/DIALOGUE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|3\.\s*선택지|4\.\s*선택지)\]\s*$/u;
-  const incomplete = /^\s*\[(?:S|D|P|C|1\.|2\.|3\.|4\.)[^\]]*$/u;
+  const marker = /^\s*\[(?:배경|SCENE|DIALOGUE\b[^\]]*|\/DIALOGUE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|3\.\s*선택지|4\.\s*선택지)\]\s*$/u;
+  const incomplete = /^\s*\[\/?(?:S|SC|D|DI|DIA|DIAL|DIALOGUE|P|PL|PLAYER|C|CH|CHO|CHOI|1\.|2\.|3\.|4\.)[^\]]*$/u;
   return lines.map((line, index) => {
     if (marker.test(line)) return '';
     if (index === lines.length - 1 && incomplete.test(line)) return '';
     return line
-      .replace(/\[(?:\/)?DIALOGUE\b[^\]]*\]/g, '')
-      .replace(/\[(?:SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*(?:플레이어\s*상황판|선택지)|4\.\s*선택지)\]/g, '')
+      .replace(/^\s*\[(?:배경|SCENE|DIALOGUE\b[^\]]*|\/DIALOGUE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*플레이어\s*상황판|3\.\s*선택지|4\.\s*선택지)\]\s*/u, '')
+      .replace(/\[(?:배경|\/)?DIALOGUE\b[^\]]*\]/g, '')
+      .replace(/\[(?:배경|SCENE|PLAYER_STATUS|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*(?:플레이어\s*상황판|선택지)|4\.\s*선택지)\]/g, '')
       .trimEnd();
   }).join('\n');
 }
@@ -379,11 +380,13 @@ export function projectStreamingSections(rawText) {
   const lines = raw.split(/\r?\n/);
   const segments = [];
   let role = 'scene';
-  const marker = /^\s*\[(SCENE|DIALOGUE\b[^\]]*|\/DIALOGUE|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*(?:플레이어\s*상황판|선택지)|4\.\s*선택지)\]\s*$/u;
-  const incomplete = /^\s*\[(?:S|SC|D|DI|DIA|DIAL|DIALOGUE|P|PL|PLAYER|C|CH|CHO|CHOI|1\.|2\.|3\.|4\.)[^\]]*$/u;
+  const marker = /^\s*\[(배경|SCENE|DIALOGUE\b[^\]]*|\/DIALOGUE|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*(?:플레이어\s*상황판|선택지)|4\.\s*선택지)\]\s*$/u;
+  const inlineMarker = /\[(배경|SCENE|DIALOGUE\b[^\]]*|\/DIALOGUE|PLAYER_INNER_THOUGHT|CHOICES|1\.\s*서사\s*및\s*행동|2\.\s*플레이어\s*속마음|3\.\s*(?:플레이어\s*상황판|선택지)|4\.\s*선택지)\]/gu;
+  const incomplete = /^\s*\[\/?(?:S|SC|D|DI|DIA|DIAL|DIALOGUE|P|PL|PLAYER|C|CH|CHO|CHOI|1\.|2\.|3\.|4\.)[^\]]*$/u;
   const roleFor = label => {
-    if (label === 'SCENE' || label.startsWith('1.')) return 'scene';
-    if (label.startsWith('DIALOGUE') || label === '/DIALOGUE') return label === '/DIALOGUE' ? role : 'dialogue';
+    if (label === '배경' || label === 'SCENE' || label.startsWith('1.')) return 'scene';
+    if (label.startsWith('DIALOGUE')) return 'dialogue';
+    if (label === '/DIALOGUE') return 'scene';
     if (label === 'PLAYER_INNER_THOUGHT' || label.startsWith('2.')) return 'thought';
     if (label === 'CHOICES' || label.startsWith('3.') || label.startsWith('4.')) return 'choices';
     return role;
@@ -398,16 +401,21 @@ export function projectStreamingSections(rawText) {
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     if (index === lines.length - 1 && incomplete.test(line)) continue;
-    const match = marker.exec(line);
-    if (match) {
-      role = roleFor(match[1]);
+    if (marker.test(line)) {
+      const match = /^\s*\[(.*)\]\s*$/u.exec(line);
+      role = roleFor(match?.[1] ?? role);
       continue;
     }
-    const cleaned = line
-      .replace(/^\s*\[DIALOGUE\b[^\]]*\]\s*/u, '')
-      .replace(/\s*\[\/DIALOGUE\]\s*$/u, '')
-      .replace(/^\s*\[(?:SCENE|PLAYER_INNER_THOUGHT|CHOICES)\]\s*/u, '');
-    append(role, cleaned);
+    let cursor = 0;
+    let match;
+    inlineMarker.lastIndex = 0;
+    while ((match = inlineMarker.exec(line)) !== null) {
+      const before = line.slice(cursor, match.index);
+      append(role, before);
+      role = roleFor(match[1]);
+      cursor = match.index + match[0].length;
+    }
+    append(role, line.slice(cursor));
   }
   return {
     raw,
