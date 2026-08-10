@@ -3,6 +3,7 @@ do $$
 declare
   v_input jsonb := jsonb_build_object(
     'player', jsonb_build_object('player_id', 'player-1'),
+    'player_scene_state', jsonb_build_object('clothing', jsonb_build_object('underwear_top', 'removed', 'uniform_top', 'open', 'custom', 'player')),
     'unrelated_root', jsonb_build_object('keep', true),
     'opening_state', jsonb_build_object('plan', jsonb_build_object(
       'location_id', 'brand_strategy_office',
@@ -24,6 +25,7 @@ declare
   );
   v_scene jsonb;
   v_again jsonb;
+  v_combined jsonb;
 begin
   if to_regprocedure('public.company_apply_opening_scene_v1(jsonb)') is null then raise exception 'canonical opening helper missing'; end if;
   if to_regprocedure('public.reserve_company_player_setup(uuid,uuid,jsonb,jsonb)') is null then raise exception 'reserve wrapper missing'; end if;
@@ -57,6 +59,28 @@ begin
   if v_again -> 'npc_scene_state' -> 'heroine5' -> 'clothing' ->> 'underwear_top' <> 'removed' or v_again -> 'npc_scene_state' -> 'heroine5' ->> 'custom' <> 'preserve' then raise exception 'off-scene state was not preserved'; end if;
   if (v_again -> 'npc_scene_state' -> 'heroine5' ->> 'present') <> 'false' then raise exception 'off-scene NPC projection mismatch'; end if;
   if v_again -> 'unrelated_root' ->> 'keep' <> 'true' then raise exception 'unrelated root was changed'; end if;
+
+  v_combined := public.company_apply_opening_scene_v1(
+    public.company_apply_initial_clothing_v2(v_input)
+  );
+  if v_combined -> 'player_scene_state' -> 'clothing' ->> 'underwear_top' <> 'removed'
+     or v_combined -> 'player_scene_state' -> 'clothing' ->> 'uniform_top' <> 'open'
+     or v_combined -> 'player_scene_state' -> 'clothing' ->> 'custom' <> 'player'
+     or v_combined -> 'player_scene_state' -> 'clothing' ->> 'uniform_bottom' <> 'worn'
+     or v_combined -> 'player_scene_state' -> 'clothing' ->> 'underwear_bottom' <> 'worn' then
+    raise exception 'combined player clothing projection mismatch';
+  end if;
+  if v_combined -> 'npc_scene_state' -> 'heroine5' -> 'clothing' ->> 'underwear_top' <> 'removed'
+     or v_combined -> 'npc_scene_state' -> 'heroine5' ->> 'custom' <> 'preserve'
+     or v_combined -> 'npc_scene_state' -> 'heroine5' -> 'clothing' ->> 'uniform_top' <> 'worn' then
+    raise exception 'combined off-scene clothing projection mismatch';
+  end if;
+  if v_combined -> 'npc_scene_state' -> 'heroine3' -> 'clothing' ->> 'uniform_bottom' <> 'worn'
+     or v_combined -> 'npc_scene_state' -> 'heroine3' -> 'clothing' ->> 'uniform_top' <> 'worn'
+     or v_combined -> 'npc_scene_state' -> 'heroine3' -> 'clothing' ->> 'underwear_top' <> 'worn'
+     or v_combined -> 'npc_scene_state' -> 'heroine3' -> 'clothing' ->> 'underwear_bottom' <> 'worn' then
+    raise exception 'combined missing clothing defaults mismatch';
+  end if;
 end;
 $$;
 

@@ -9,8 +9,10 @@ import { buildOpeningPlan } from '../src/engine/player-setup.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const migrationPath = path.join(root, 'supabase/migrations/20260810000100_company_v1_canonical_opening_bootstrap.sql');
+const clothingMigrationPath = path.join(root, 'supabase/migrations/20260809000100_company_v1_initial_clothing_v2.sql');
 const verificationPath = path.join(root, 'supabase/verification/20260810000100_company_v1_canonical_opening_bootstrap.verify.sql');
 const migration = fs.readFileSync(migrationPath, 'utf8');
+const clothingMigration = fs.readFileSync(clothingMigrationPath, 'utf8');
 const verification = fs.readFileSync(verificationPath, 'utf8');
 
 test('turn-0 has no JavaScript full-save writer or public export', () => {
@@ -94,4 +96,15 @@ test('first gameplay starts at expected turn one without reopening the opening s
   assert.deepEqual(hydrated.present_npc_ids, ['heroine1']);
   assert.equal(hydrated.present_npc_ids.includes('heroine5'), false);
   assert.equal(1, saved.turn_state.committed_turn + 1);
+});
+
+test('initial clothing is a preserving merge and Phase 6 exercises the combined path', () => {
+  assert.match(clothingMigration, /company_initial_clothing_v2\(\)\s*\|\|\s*v_existing_clothing/);
+  assert.match(clothingMigration, /v_player_scene/);
+  assert.doesNotMatch(clothingMigration, /jsonb_set\(\s*v_data,\s*'\{player_scene_state,clothing\}',\s*public\.company_initial_clothing_v2\(\)/s);
+  assert.match(migration, /company_apply_opening_scene_v1\(public\.company_apply_initial_clothing_v2\(data\)\)/);
+  assert.match(verification, /v_combined := public\.company_apply_opening_scene_v1\(\s*public\.company_apply_initial_clothing_v2\(v_input\)\s*\)/s);
+  assert.match(verification, /underwear_top.*removed/s);
+  assert.match(verification, /uniform_top.*open/s);
+  assert.match(verification, /custom.*preserve/s);
 });

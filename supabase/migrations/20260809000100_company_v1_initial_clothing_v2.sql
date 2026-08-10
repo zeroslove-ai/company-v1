@@ -22,21 +22,31 @@ as $$
 declare
   v_data jsonb := coalesce(p_data, '{}'::jsonb);
   v_npc_scene jsonb := coalesce(v_data -> 'npc_scene_state', '{}'::jsonb);
+  v_player_scene jsonb := coalesce(v_data -> 'player_scene_state', '{}'::jsonb);
+  v_existing_clothing jsonb;
   v_id text;
   v_state jsonb;
 begin
-  v_data := jsonb_set(
-    v_data,
-    '{player_scene_state,clothing}',
-    public.company_initial_clothing_v2(),
+  if jsonb_typeof(v_player_scene) <> 'object' then v_player_scene := '{}'::jsonb; end if;
+  v_existing_clothing := v_player_scene -> 'clothing';
+  if jsonb_typeof(v_existing_clothing) <> 'object' then v_existing_clothing := '{}'::jsonb; end if;
+  v_player_scene := jsonb_set(
+    v_player_scene,
+    '{clothing}',
+    public.company_initial_clothing_v2() || v_existing_clothing,
     true
   );
+  v_data := jsonb_set(v_data, '{player_scene_state}', v_player_scene, true);
+  if jsonb_typeof(v_npc_scene) <> 'object' then v_npc_scene := '{}'::jsonb; end if;
   for v_id, v_state in select key, value from jsonb_each(v_npc_scene)
   loop
+    if jsonb_typeof(v_state) <> 'object' then v_state := '{}'::jsonb; end if;
+    v_existing_clothing := v_state -> 'clothing';
+    if jsonb_typeof(v_existing_clothing) <> 'object' then v_existing_clothing := '{}'::jsonb; end if;
     v_npc_scene := jsonb_set(
       v_npc_scene,
       array[v_id, 'clothing'],
-      public.company_initial_clothing_v2(),
+      public.company_initial_clothing_v2() || v_existing_clothing,
       true
     );
   end loop;

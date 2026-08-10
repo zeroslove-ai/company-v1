@@ -46,7 +46,7 @@ Remaining phases: setup/opening bootstrap audit and operational migration/deploy
 ## Phase 6 — turn-0 bootstrap authority and integration readiness
 
 - Branch: `company/runtime-core-reset-v1-bootstrap-authority`, stacked Draft PR on `company/runtime-core-reset-v1-projection-boundaries`.
-- Phase 5 baseline: **543/543 passed, 0 skipped, 0 failed**. Phase 6 targeted additions bring the current baseline to **548/548 passed, 0 skipped, 0 failed**.
+- Phase 5 baseline: **543/543 passed, 0 skipped, 0 failed**. Phase 6 targeted additions bring the current baseline to **549/549 passed, 0 skipped, 0 failed**.
 - Turn 0 remains an authorized bootstrap path: reserve setup/opening plan, then commit opening Story/background/choices. It does not call Extract or `reduceGameplayCommit`, and `committed_turn` remains 0.
 - The Supabase RPC wrappers project the saved opening plan into canonical `scene` and derive the legacy scene fields from that projection. Opening Story text cannot change location, presence, focal, or last speaker.
 - `buildOpeningNextSave` and its public export/test oracle are removed; production save writing remains in the setup/opening RPCs.
