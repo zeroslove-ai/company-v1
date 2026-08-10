@@ -269,14 +269,12 @@ export function assertScenePresenceCoverage(observation, { currentScene = null }
   for (const id of exited) if (final.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `Exited NPC remains in final presence: ${id}`);
   const added = [...final].filter(id => !before.has(id));
   const removed = [...before].filter(id => !final.has(id));
-  const retained = [...final].filter(id => before.has(id));
   for (const id of added) {
     if (!has('entrance', id) && !has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Added NPC lacks entrance/presence evidence: ${id}`);
   }
   for (const id of removed) if (!has('exit', id)) {
     throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Removed NPC lacks exit evidence: ${id}`);
   }
-  for (const id of retained) if (!has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Retained NPC lacks presence evidence: ${id}`);
   return true;
 }
 

@@ -129,6 +129,13 @@ test('scene presence coverage requires exit evidence for final removals', () => 
   assert.throws(() => assertScenePresenceCoverage(movement, { currentScene }), error => error.code === 'SCENE_PRESENCE_EVIDENCE_MISSING');
 });
 
+test('retained canonical presence does not require repeated presence evidence', () => {
+  const observation = normalizeExtractObservationV2(valid({ scene_observation: {
+    ...scene(['heroine1']), presence_is_final: true, evidence: []
+  } }), { npcIds: NPCS, storyText: STORY });
+  assert.equal(assertScenePresenceCoverage(observation, { currentScene: { present_npc_ids: ['heroine1'] } }), true);
+});
+
 test('movement observation ignores navigation evidence and leaves destination to the action resolver', () => {
   const movement = normalizeExtractObservationV2(valid({ scene_observation: {
     scene_id: 'hallucinated', location_id: 'wrong-room', final_present_npc_ids: ['heroine1'],
