@@ -13,7 +13,6 @@ import {
   deriveTurnChanges,
   hydrateGameplayState,
   normalizeExtractObservationV2,
-  buildDegradedExtractObservation,
   adaptLegacyExtractDelta,
   reduceGameplayCommit,
   parseNarrative,
@@ -57,8 +56,6 @@ import {
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
 import { logTurnTiming, newRequestId } from './timing.js';
-
-const EXTRACT_DEGRADE_CODES = new Set(['llm_upstream_failure', 'extract_timeout', 'extract_invalid_json', 'extract_truncated']);
 
 function asHttpError(error) {
   if (error instanceof HttpError) return error;
@@ -227,14 +224,6 @@ async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, 
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
-  // 오프닝 fail-open — LLM 선택지가 부족하면 deterministic 기본 선택지로 채운다 (RPC 기본값과 동일).
-const DEFAULT_OPENING_CHOICES = [
-  '분위기를 살피며 첫인사를 건넨다.',
-  '자연스럽게 자리에 앉아 업무를 시작한다.',
-  '새 동료에게 먼저 말을 걸어 본다.',
-  '조용히 정리하며 상황을 파악한다.'
-];
-
 function parseStoryProjection(raw, master) {
   try {
     const parsed = parseNarrative(raw ?? '', { master });
@@ -242,15 +231,6 @@ function parseStoryProjection(raw, master) {
   } catch {
     return { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
   }
-}
-
-// 오프닝 fail-open — Story upstream이 최종 실패했을 때 저장된 opening plan 기반의
-// 짧은 기본 오프닝. 플레이어 설정이 reserved 상태로 영구 고착되지 않게 한다.
-function buildFallbackOpeningStory(openingPlan, player) {
-  const name = typeof player?.name === 'string' && player.name.trim() ? player.name.trim() : '플레이어';
-  const location = openingPlan?.location_name ?? '사무실';
-  const hook = openingPlan?.work_hook_label ? `, ${openingPlan.work_hook_label}을(를) 시작하며` : '';
-  return `[1. 서사 및 행동]\n회사의 첫 날, ${name}은(는) ${location}에 도착했다${hook}. 새로운 업무 환경에서 첫 장면이 시작되었다.\n[4. 선택지]\n1. 분위기를 살피며 첫인사를 건넨다.\n2. 자연스럽게 자리에 앉아 업무를 시작한다.\n3. 새 동료에게 먼저 말을 걸어 본다.\n4. 조용히 정리하며 상황을 파악한다.`;
 }
 
 const master = masterFromEdition(edition);
@@ -588,13 +568,8 @@ const master = masterFromEdition(edition);
           });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
-          const degradable = error instanceof HttpError && EXTRACT_DEGRADE_CODES.has(error.code);
-          if (!degradable) {
-            await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
-            throw error;
-          }
-          degraded = true;
-          extract = buildDegradedExtractObservation({ extraWarnings: [`extract_error:${error.code ?? error.name ?? 'unknown'}`] });
+          await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
+          throw error;
         }
         try {
           await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
@@ -967,29 +942,12 @@ const master = masterFromEdition(edition);
               emit('delta', { text });
             }
           } catch (error) {
-            // fail-open: Story upstream 최종 실패 시 저장된 opening plan으로 짧은
-            // 기본 오프닝을 Commit한다 — 플레이어 설정이 reserved로 고착되지 않게 한다.
-            const fallbackText = buildFallbackOpeningStory(openingPlan, player);
-            const fallbackCommit = await db.callRpc('commit_company_opening', {
-              p_game_id: gameId,
-              p_setup_id: setupId,
-              p_background: '회사에서의 첫 장면이 시작되었다.',
-              p_story_text: fallbackText,
-              p_choices: DEFAULT_OPENING_CHOICES
-            });
-            emit('delta', { text: fallbackText });
-            emit('complete', {
-              setup_id: setupId, choices: DEFAULT_OPENING_CHOICES,
-              background: '회사에서의 첫 장면이 시작되었다.',
-              warnings: ['opening_fallback'], replayed: false, commit: fallbackCommit
-            });
-            return;
+            throw error;
           }
           const { background, body: sections, warnings: splitWarnings } = splitOpeningSections(raw);
           const parsedOpening = parseNarrative(sections, { master });
-          // fail-open: 선택지가 부족하면 deterministic 기본 선택지로 채운다 (설정 완료 차단 금지).
           const rawChoices = (Array.isArray(parsedOpening.choices) ? parsedOpening.choices : []).filter(choice => typeof choice === 'string' && choice.trim());
-          const finalChoices = rawChoices.length === 4 ? rawChoices : DEFAULT_OPENING_CHOICES;
+          const finalChoices = rawChoices;
           const commit = await db.callRpc('commit_company_opening', {
             p_game_id: gameId,
             p_setup_id: setupId,

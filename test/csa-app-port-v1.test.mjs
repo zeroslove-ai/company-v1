@@ -35,6 +35,12 @@ const env = {
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
 const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+const DEFAULT_EXTRACT = {
+  extract_version: 2, outcome: 'success',
+  scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+  player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
+  mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
+};
 
 function freshSave(overrides = {}) {
   return {
@@ -65,7 +71,7 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
     if (textUrl.startsWith('https://llm.test')) {
       const body = JSON.parse(init.body);
       if (body.stream) return new Response(sse, { headers: { 'content-type': 'text/event-stream' } });
-      const payload = llmJsonResponses[Math.min(jsonCallIndex, llmJsonResponses.length - 1)];
+      const payload = llmJsonResponses.length ? llmJsonResponses[Math.min(jsonCallIndex, llmJsonResponses.length - 1)] : DEFAULT_EXTRACT;
       jsonCallIndex += 1;
       return json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(payload) } }] });
     }

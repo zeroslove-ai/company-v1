@@ -11,10 +11,26 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const migrationPath = path.join(root, 'supabase/migrations/20260810000100_company_v1_canonical_opening_bootstrap.sql');
 const clothingMigrationPath = path.join(root, 'supabase/migrations/20260809000100_company_v1_initial_clothing_v2.sql');
 const verificationPath = path.join(root, 'supabase/verification/20260810000100_company_v1_canonical_opening_bootstrap.verify.sql');
+const authorityMigrationPath = path.join(root, 'supabase/migrations/20260810103000_company_v1_runtime_authority_consolidation.sql');
 const migration = fs.readFileSync(migrationPath, 'utf8');
 const commitMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260810090831_company_v1_commit_strict_validation.sql'), 'utf8');
 const clothingMigration = fs.readFileSync(clothingMigrationPath, 'utf8');
 const verification = fs.readFileSync(verificationPath, 'utf8');
+const authorityMigration = fs.readFileSync(authorityMigrationPath, 'utf8');
+
+test('canonical setup/opening/reset own writes without legacy aliases', () => {
+  assert.match(authorityMigration, /create or replace function public\.reserve_company_player_setup/);
+  assert.match(authorityMigration, /create or replace function public\.commit_company_opening/);
+  assert.match(authorityMigration, /create or replace function public\.reset_company_game/);
+  assert.doesNotMatch(authorityMigration, /(?:v_result\s*:=|return)\s+public\.reserve_company_player_setup_legacy_v2/);
+  assert.doesNotMatch(authorityMigration, /(?:v_result\s*:=|return)\s+public\.commit_company_opening_legacy_v2/);
+  assert.doesNotMatch(authorityMigration, /(?:v_result\s*:=|return)\s+public\.reset_company_game_legacy_v2/);
+  assert.match(authorityMigration, /drop function if exists public\.reserve_company_player_setup_legacy_v2/);
+  assert.match(authorityMigration, /drop function if exists public\.commit_company_opening_legacy_v2/);
+  assert.match(authorityMigration, /drop function if exists public\.reset_company_game_legacy_v2/);
+  assert.match(authorityMigration, /revoke all on function public\.reset_company_game\(uuid, text\) from public, anon, authenticated/);
+  assert.match(authorityMigration, /grant execute on function public\.reset_company_game\(uuid, text\) to service_role/);
+});
 
 test('turn-0 has no JavaScript full-save writer or public export', () => {
   assert.equal('buildOpeningNextSave' in engine, false);

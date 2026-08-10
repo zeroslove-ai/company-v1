@@ -204,26 +204,18 @@ test('Phase 2 retries one failed Story explicitly and then replays the persisted
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
 });
 
-test('Phase 2 degrades Extract on malformed JSON without an automatic retry, and still commits', async () => {
+test('Extract marks malformed JSON failed without writing a degraded observation or committing', async () => {
   const mock = createMockFetch({ extractContentSequence: ['not JSON'] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const storyBody = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '재시도한다.' };
   await (await worker.fetch(request('/api/story', storyBody), env)).text();
   const extractResponse = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(extractResponse.status, 200);
+  assert.equal(extractResponse.status, 502);
   const extractPayload = await extractResponse.json();
-  assert.equal(extractPayload.data.degraded, true);
-  assert.equal(extractPayload.data.extract.outcome, 'degraded');
-  assert.ok(extractPayload.data.warnings.includes('extract_degraded'));
-  assert.ok(extractPayload.data.warnings.includes('extract_error:extract_invalid_json'));
-  assert.equal(mock.actions.get(actionId).processing_status, 'committing');
-  const statusAfterDegrade = await worker.fetch(request('/api/action-status', { game_id: gameId, action_id: actionId }), env);
-  assert.equal((await statusAfterDegrade.json()).data.recoverable_step, 'resume_commit');
-  const replay = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.deepEqual((await replay.json()).data.warnings, extractPayload.data.warnings);
-  const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
-  assert.equal(commit.status, 200);
-  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
+  assert.equal(typeof extractPayload.error.code, 'string');
+  assert.equal(mock.actions.get(actionId).processing_status, 'extract_failed');
+  assert.equal(mock.actions.get(actionId).extract_delta ?? null, null);
+  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), false);
 });
 
 test('Phase 2 retries one genuinely failed Extract after an infrastructure error', async () => {
@@ -270,7 +262,7 @@ test('authority-violating Extract envelopes fail without recording or Commit', a
   assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), false);
 });
 
-test('Extract uses Story choices, disables thinking, uses the 5000-token envelope, and degrades on truncated JSON', async () => {
+test('Extract uses Story choices and the 5000-token envelope, while truncated JSON is retryable failure', async () => {
   const storySse = 'data: {"choices":[{"delta":{"content":"[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\ndata: [DONE]\n\n';
   const mock = createMockFetch({ storySseSequence: [storySse], extractEnvelope: v2ExtractFixture() });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
@@ -284,10 +276,10 @@ test('Extract uses Story choices, disables thinking, uses the 5000-token envelop
   const truncated = createMockFetch({ extractFinishReason: 'length' }); const truncatedWorker = createApiWorker({ fetchImpl: truncated.fetchImpl });
   await (await truncatedWorker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'test' }), env)).text();
   const failed = await truncatedWorker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(failed.status, 200);
+  assert.equal(failed.status, 502);
   const failedPayload = await failed.json();
-  assert.equal(failedPayload.data.degraded, true);
-  assert.ok(failedPayload.data.warnings.includes('extract_error:extract_truncated'));
+  assert.equal(typeof failedPayload.error.code, 'string');
+  assert.equal(truncated.actions.get(actionId).extract_delta ?? null, null);
 });
 test('구조 일부 누락(대화 없음·선택지 빈 배열)에도 스토리 본문이 유지되고 턴은 정상 Commit된다', async () => {
   const mock = createMockFetch({

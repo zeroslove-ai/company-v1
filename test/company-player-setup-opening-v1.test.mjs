@@ -453,7 +453,7 @@ test('/api/opening replays a completed setup without calling the LLM again, and 
   assert.match(mismatchedText, /setup_id_mismatch/);
 });
 
-test('/api/opening: Story 최종 실패 시 기본 오프닝으로 fail-open commit된다 (reserved 고착 방지)', async () => {
+test('/api/opening upstream failure stays reserved and returns a visible retryable error', async () => {
   const failingMock = createSetupMockFetch({ storyThrows: true });
   const worker = createApiWorker({ fetchImpl: failingMock.fetchImpl });
   const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
@@ -461,34 +461,13 @@ test('/api/opening: Story 최종 실패 시 기본 오프닝으로 fail-open com
 
   const failed = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
   const failedText = await readSseText(failed);
-  // fail-open: LLM 실패 → 저장된 opening plan 기반 짧은 기본 오프닝을 Commit한다
-  assert.match(failedText, /event: complete/);
-  assert.match(failedText, /opening_fallback/);
-  assert.equal(failingMock.getSave().player_setup.completed, true, '설정이 reserved로 고착되지 않는다');
-  assert.equal(failingMock.getSave().opening_state.choices.length, 4, '기본 선택지 4개');
+  assert.match(failedText, /error/);
+  assert.doesNotMatch(failedText, /opening_fallback/);
+  assert.equal(failingMock.getSave().player_setup.completed, false);
+  assert.equal(failingMock.getSave().opening_state.status, 'planned');
   assert.equal(failingMock.storyCallCount(), 1);
 });
 
-test('/api/opening: 첫 시도에서 fail-open 완료되고 재시도는 replayed로 처리된다', async () => {
-  const mock = createSetupMockFetch({ storyThrows: 1 });
-  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
-  const { setup_id: setupId, opening_plan: initialPlan } = (await setupResponse.json()).data;
-
-  const failed = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
-  const failedText = await readSseText(failed);
-  assert.match(failedText, /event: complete/);
-  assert.equal(mock.getSave().player_setup.completed, true, '첫 시도에서 fail-open 완료');
-  const retry = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
-  const retryText = await readSseText(retry);
-  assert.match(retryText, /event: complete/);
-  assert.match(retryText, /replayed/);
-  assert.equal(mock.calls.filter(call => call.url.includes('/reserve_company_player_setup')).length, 1);
-  assert.deepEqual(mock.getSave().opening_state.plan, initialPlan);
-  assert.equal(mock.getSave().opening_state.setup_id, setupId);
-  assert.equal(mock.getSave().player_setup.completed, true);
-  assert.equal(mock.storyCallCount(), 1, 'fallback 후 재시도는 LLM 재호출 없이 replayed');
-});
 test('/api/player-setup permits a new setup only after reset clears a reserved setup', async () => {
   const reserved = freshSave();
   reserved.player_setup = { version: 1, setup_id: 'reserved-setup', status: 'reserved', completed: false };
