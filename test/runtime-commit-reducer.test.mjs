@@ -143,6 +143,31 @@ test('movement commit requires exact destination arrival evidence', () => {
   assert.equal(result.canonical_scene.location_id, 'brand_strategy_meeting_room');
 });
 
+test('movement commit allows an origin speaker left behind without exit evidence', () => {
+  const currentSave = {
+    ...structuredClone(save),
+    scene: { version: 1, scene_id: 'office', location_id: 'brand_strategy_office', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 1 }
+  };
+  const rawStory = 'npc-hayeon says farewell before the player arrives in the meeting room';
+  const observation = normalizeExtractObservationV2({
+    ...baseObservation,
+    scene_observation: {
+      scene_id: 'brand_strategy_meeting_room', location_id: 'brand_strategy_meeting_room',
+      final_present_npc_ids: [], entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null,
+      presence_is_final: true, remote_speaker_ids: [],
+      evidence: [{ kind: 'movement', location_id: 'brand_strategy_meeting_room', quote: rawStory }]
+    }
+  }, { npcIds: NPCS, storyText: rawStory });
+  const result = reduceGameplayCommit({
+    currentSave, observation, parsedStory: { choices: [], dialogue_lines: [{ speaker_id: 'npc-hayeon', text: 'npc-hayeon says farewell' }] }, rawStory,
+    action: { ...action, action_id: 'move-origin-speaker', player_action: 'move to the meeting room' }, expectedTurn: 2,
+    npcIds: NPCS, mapLocations: [{ location_id: 'brand_strategy_office' }, { location_id: 'brand_strategy_meeting_room' }],
+    movementContract: { transition_mode: 'movement', location_id: 'brand_strategy_office', destination_location_id: 'brand_strategy_meeting_room' }
+  });
+  assert.equal(result.canonical_scene.location_id, 'brand_strategy_meeting_room');
+  assert.equal(result.canonical_scene.last_speaker_id, 'npc-hayeon');
+});
+
 test('movement with null or wrong destination is rejected fail-closed', () => {
   const currentSave = {
     ...structuredClone(save),

@@ -247,7 +247,7 @@ export function assertExtractObservationContract(observation) {
   return true;
 }
 
-export function assertScenePresenceCoverage(observation, { currentScene = null } = {}) {
+export function assertScenePresenceCoverage(observation, { currentScene = null, movementTransition = false } = {}) {
   const scene = observation?.scene_observation ?? {};
   const before = new Set(Array.isArray(currentScene?.present_npc_ids) ? currentScene.present_npc_ids : []);
   const final = Array.isArray(scene.final_present_npc_ids) ? new Set(scene.final_present_npc_ids) : null;
@@ -273,7 +273,11 @@ export function assertScenePresenceCoverage(observation, { currentScene = null }
   for (const id of added) {
     if (!has('entrance', id) && !has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Added NPC lacks entrance/presence evidence: ${id}`);
   }
-  for (const id of removed) if (!has('exit', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Removed NPC lacks exit evidence: ${id}`);
+  for (const id of removed) {
+    if (!movementTransition && !has('exit', id)) {
+      throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Removed NPC lacks exit evidence: ${id}`);
+    }
+  }
   for (const id of retained) if (!has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Retained NPC lacks presence evidence: ${id}`);
   return true;
 }

@@ -179,9 +179,11 @@ export function reduceCanonicalScene(input = {}) {
     next.present_npc_ids = [...new Set(next.present_npc_ids.filter(id => !exited.has(id)).concat(entered))];
   }
   const currentIds = new Set(next.present_npc_ids);
+  const originIds = new Set(current.present_npc_ids ?? []);
   const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
   for (const speaker of speakers) {
-    if (isPlayerId(speaker) || currentIds.has(speaker) || observation.remote_speaker_ids?.includes(speaker) || observation.exited_npc_ids?.includes(speaker)) continue;
+    const originSpeaker = successMovement && originIds.has(speaker);
+    if (isPlayerId(speaker) || currentIds.has(speaker) || originSpeaker || observation.remote_speaker_ids?.includes(speaker) || observation.exited_npc_ids?.includes(speaker)) continue;
     throw new GameCoreError(
       Array.isArray(observation.final_present_npc_ids) ? 'SCENE_PRESENCE_CONTRADICTS_STORY' : 'SCENE_PRESENCE_UNRESOLVED',
       `Story speaker ${speaker} is absent from the canonical scene`

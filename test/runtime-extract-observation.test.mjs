@@ -120,6 +120,16 @@ test('scene presence coverage is enforced at Commit authority, including final r
   assert.throws(() => assertScenePresenceCoverage(conflict, { currentScene: { present_npc_ids: [] } }), error => error.code === 'SCENE_PRESENCE_EVIDENCE_CONFLICT');
 });
 
+test('movement transition allows NPCs left behind without physical exit evidence', () => {
+  const storyText = `${STORY} movement-arrival`;
+  const movement = normalizeExtractObservationV2(valid({ scene_observation: {
+    ...scene([]), location_id: 'destination', evidence: [{ kind: 'movement', location_id: 'destination', quote: 'movement-arrival' }]
+  } }), { npcIds: NPCS, storyText });
+  const currentScene = { location_id: 'origin', present_npc_ids: ['heroine1'] };
+  assert.throws(() => assertScenePresenceCoverage(movement, { currentScene }), error => error.code === 'SCENE_PRESENCE_EVIDENCE_MISSING');
+  assert.equal(assertScenePresenceCoverage(movement, { currentScene, movementTransition: true }), true);
+});
+
 test('V2 observation rejects type coercion and forbidden relationship/CSA fields', () => {
   assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { physical: { posture: 1 } } } }), { npcIds: NPCS }), GameCoreError);
   assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { physical: { position_label: {} } } } }), { npcIds: NPCS }), GameCoreError);

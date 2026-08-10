@@ -59,7 +59,12 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
       throw new GameCoreError('MOVEMENT_NOT_OBSERVED', `Movement arrival was not observed at ${destination}`);
     }
   }
-  assertScenePresenceCoverage(observation, { currentScene: sceneBefore });
+  const movementTransition = observation.outcome === 'success'
+    && Array.isArray(sceneObservation.final_present_npc_ids)
+    && sceneObservation.location_id !== null
+    && sceneObservation.location_id !== sceneBefore.location_id
+    && sceneObservation.evidence.some(item => item.kind === 'movement' && item.location_id === sceneObservation.location_id);
+  assertScenePresenceCoverage(observation, { currentScene: sceneBefore, movementTransition });
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,
     observation: sceneObservation,
