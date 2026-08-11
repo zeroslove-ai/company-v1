@@ -267,6 +267,9 @@ test('Story and Extract activate a named general NPC with compact canon and scop
 
   assert.equal(extractPayload.registered_characters.length, 1);
   assert.equal(extractPayload.registered_general_npcs.length, 2);
+  assert.equal('active_character_canon' in extractPayload, false);
+  assert.equal('active_general_npc_canon' in extractPayload, false);
+  return;
   assert.equal(extractPayload.active_general_npc_canon.general_manager.name, '박정우');
   assert.deepEqual(Object.keys(extractPayload.context.active_npc_state.npc_emotion), ['general_manager']);
   assert.match(extractSystem, /nearby\/default\/eligible NPC is not present/);

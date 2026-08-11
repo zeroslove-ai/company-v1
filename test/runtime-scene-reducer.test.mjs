@@ -40,7 +40,7 @@ test('empty final presence is an explicit player-only scene', () => assert.deepE
 test('final presence replaces rather than unions legacy ids', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'] }) }).present_npc_ids, ['heroine2']));
 test('duplicate and player ids are removed from final presence', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2', 'heroine2', 'player-1'] }) }).present_npc_ids, ['heroine2']));
 test('unknown final presence ids are ignored', () => assert.deepEqual(reduce({ observation: observation({ final: ['ghost', 'heroine2'] }) }).present_npc_ids, ['heroine2']));
-test('registered local speaker outside final presence becomes direct presence evidence', () => assert.deepEqual(reduce({ observation: observation({ final: [], speakers: ['heroine1'] }) }).present_npc_ids, ['heroine1']));
+test('registered local speaker supplements only an unknown final snapshot', () => assert.deepEqual(reduce({ observation: observation({ final: null, speakers: ['heroine1'] }) }).present_npc_ids, ['heroine1']));
 test('authoritative location resets scene and final presence remains generic', () => {
   const next = reduce({ authoritativeLocationId: 'destination', observation: observation({ location_id: null, final: ['heroine2'], speakers: ['heroine2'] }) });
   assert.equal(next.location_id, 'destination');
@@ -53,8 +53,8 @@ test('authoritative location with null presence starts empty and still validates
   assert.deepEqual(next.present_npc_ids, []);
 });
 
-test('authoritative location accepts a registered local speaker as observed presence', () => {
-  assert.deepEqual(reduce({ authoritativeLocationId: 'destination', observation: observation({ final: [], speakers: ['heroine1'] }) }).present_npc_ids, ['heroine1']);
+test('authoritative location accepts a registered local speaker when final snapshot is unknown', () => {
+  assert.deepEqual(reduce({ authoritativeLocationId: 'destination', observation: observation({ final: null, speakers: ['heroine1'] }) }).present_npc_ids, ['heroine1']);
 });
 
 // Movement 14-22
@@ -79,7 +79,7 @@ test('multiple acting NPCs produce null focal', () => assert.equal(reduce({ obse
 test('no acting NPC produces null focal', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'] }) }).focal_character_id, null));
 test('current Story last speaker replaces prior speaker', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'], speakers: ['heroine1'] }) }).last_speaker_id, 'heroine1'));
 test('player is a valid last speaker', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'], speakers: ['player-1'] }) }).last_speaker_id, 'player-1'));
-test('speaker absent from final presence is retained when registered and local', () => assert.deepEqual(reduce({ observation: observation({ final: [], speakers: ['heroine1'] }) }).present_npc_ids, ['heroine1']));
+test('speaker absent from complete final presence is not re-added', () => assert.deepEqual(reduce({ observation: observation({ final: [], speakers: ['heroine1'] }) }).present_npc_ids, []));
 test('remote speaker does not get auto-added to presence', () => { const scene = reduce({ observation: observation({ final: [], speakers: ['heroine1'], remote: ['heroine1'] }) }); assert.deepEqual(scene.present_npc_ids, []); });
 
 // Projection 32-38

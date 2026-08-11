@@ -169,6 +169,13 @@ test('fresh V2 rejects movement as a scene evidence kind', () => {
   } }), { npcIds: NPCS, storyText: STORY }), error => error.code === 'INVALID_EXTRACT_OBSERVATION');
 });
 
+test('flattened emotion observation remains an unknown NPC and fails closed', () => {
+  assert.throws(
+    () => normalizeExtractObservationV2(valid({ npc_observations: { emotion: { mood: '당황' } } }), { npcIds: NPCS }),
+    /Unknown NPC observation: emotion/
+  );
+});
+
 test('V2 observation rejects type coercion and forbidden relationship/CSA fields', () => {
   assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { physical: { posture: 1 } } } }), { npcIds: NPCS }), GameCoreError);
   assert.throws(() => normalizeExtractObservationV2(valid({ npc_observations: { heroine1: { physical: { position_label: {} } } } }), { npcIds: NPCS }), GameCoreError);

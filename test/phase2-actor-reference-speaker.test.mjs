@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStoryCharacterProjection, buildStoryPrompt } from '../src/engine/story-prompt.js';
+import { buildExtractRelevantNpcIds, buildExtractPrompt } from '../src/engine/extract-prompt.js';
 import { reduceCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
 
 const edition = {
@@ -39,10 +40,16 @@ test('Story payload exposes the separated projections', () => {
   assert.equal('active_general_npc_canon' in payload, false);
 });
 
-test('registered local Story speaker is direct presence evidence', () => {
+test('registered local Story speaker supplements an unknown final snapshot', () => {
+  const scene = { scene_id: 'room', location_id: 'room', present_npc_ids: [], focal_character_id: null, last_speaker_id: null, beat: 0, updated_turn: 1 };
+  const next = reduceCanonicalScene({ currentScene: scene, npcIds: new Set(['heroine2']), mapLocations: [{ location_id: 'room' }], observation: { outcome: 'success', final_present_npc_ids: null, explicit_speaker_ids: ['heroine2'], remote_speaker_ids: [] }, expectedTurn: 2 });
+  assert.deepEqual(next.present_npc_ids, ['heroine2']);
+});
+
+test('complete final presence snapshot wins over a speaker who later leaves', () => {
   const scene = { scene_id: 'room', location_id: 'room', present_npc_ids: [], focal_character_id: null, last_speaker_id: null, beat: 0, updated_turn: 1 };
   const next = reduceCanonicalScene({ currentScene: scene, npcIds: new Set(['heroine2']), mapLocations: [{ location_id: 'room' }], observation: { outcome: 'success', final_present_npc_ids: [], explicit_speaker_ids: ['heroine2'], remote_speaker_ids: [] }, expectedTurn: 2 });
-  assert.deepEqual(next.present_npc_ids, ['heroine2']);
+  assert.deepEqual(next.present_npc_ids, []);
 });
 
 test('autonomous registered local entrance can be committed from final presence evidence', () => {
@@ -56,4 +63,26 @@ test('remote speaker does not become local presence and unknown speaker fails cl
   const remote = reduceCanonicalScene({ currentScene: scene, npcIds: new Set(['heroine2']), mapLocations: [{ location_id: 'room' }], observation: { outcome: 'success', final_present_npc_ids: [], explicit_speaker_ids: ['heroine2'], remote_speaker_ids: ['heroine2'] }, expectedTurn: 2 });
   assert.deepEqual(remote.present_npc_ids, []);
   assert.throws(() => reduceCanonicalScene({ currentScene: scene, npcIds: new Set(['heroine2']), mapLocations: [{ location_id: 'room' }], observation: { outcome: 'success', final_present_npc_ids: [], explicit_speaker_ids: ['unknown'], remote_speaker_ids: [] }, expectedTurn: 2 }), /not a registered/);
+});
+
+test('Extract observer context includes post-Story speakers and exact full-name entrances only', () => {
+  const observerEdition = { characters: { characters: { heroine1: { name: 'Alpha' }, heroine2: { name: 'Beta' } } }, generalNpcs: { profiles: {} } };
+  const context = { save: { data: { scene: { version: 1, scene_id: 'room', location_id: 'room', present_npc_ids: ['heroine1'], focal_character_id: null, last_speaker_id: null, beat: 0, goal: null, focus_thread: null, updated_turn: 1 } } } };
+  const parsedStory = { dialogue_lines: [{ speaker_id: 'heroine2', text: 'hello' }] };
+  assert.deepEqual(buildExtractRelevantNpcIds({ context, parsedStory, storyText: 'Beta가 서류를 들고 들어왔다.', edition: observerEdition, npcIds: new Set(['heroine1', 'heroine2']) }), ['heroine1', 'heroine2']);
+  assert.deepEqual(buildExtractRelevantNpcIds({ context, parsedStory: { dialogue_lines: [] }, storyText: 'Beta를 생각했다.', edition: observerEdition, npcIds: new Set(['heroine1', 'heroine2']) }), ['heroine1', 'heroine2']);
+  assert.deepEqual(buildExtractRelevantNpcIds({ context, parsedStory: { dialogue_lines: [] }, storyText: '그녀는 조용했다.', edition: observerEdition, npcIds: new Set(['heroine1', 'heroine2']) }), ['heroine1']);
+});
+
+test('Extract payload uses observer identities/state and no Story active canon', () => {
+  const observerEdition = { characters: { characters: { heroine1: { name: 'Alpha' }, heroine2: { name: 'Beta' } } }, generalNpcs: { profiles: {} } };
+  const messages = buildExtractPrompt({
+    context: { save: { data: { scene: { version: 1, scene_id: 'room', location_id: 'room', present_npc_ids: ['heroine1'], focal_character_id: null, last_speaker_id: null, beat: 0, goal: null, focus_thread: null, updated_turn: 1 }, npc_emotion: { heroine2: { mood: 'neutral' } } } } },
+    storyText: 'Beta가 들어왔다.', parsedStory: { dialogue_lines: [{ speaker_id: 'heroine2' }] }, playerAction: 'x', expectedTurn: 2, edition: observerEdition, npcIds: new Set(['heroine1', 'heroine2'])
+  });
+  const payload = JSON.parse(messages[1].content);
+  assert.deepEqual(payload.registered_identities, [{ id: 'heroine1', name: 'Alpha' }, { id: 'heroine2', name: 'Beta' }]);
+  assert.equal('active_character_canon' in payload, false);
+  assert.equal('active_general_npc_canon' in payload, false);
+  assert.deepEqual(Object.keys(payload.context.active_npc_state.npc_emotion), ['heroine2']);
 });

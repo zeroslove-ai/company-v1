@@ -345,7 +345,7 @@ test('Extract prompt user payload carries registered_characters and the system p
   const payload = JSON.parse(prompt[1].content);
   assert.equal(payload.registered_characters.length, 5);
   const system = prompt[0].content;
-  assert.match(system, /registered_characters lists the only stable character ids/);
+  assert.match(system, /registered identities list the only stable NPC ids/);
   assert.match(system, /never invent, guess, or reuse an id/);
   assert.match(system, /never copy one into another/);
 });

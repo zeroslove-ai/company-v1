@@ -193,8 +193,13 @@ export function reduceCanonicalScene(input = {}) {
         `Story speaker ${speaker} is not a registered local NPC`
       );
     }
-    next.present_npc_ids = [...next.present_npc_ids, speaker];
-    currentIds.add(speaker);
+    // A complete final snapshot is authoritative even when a speaker leaves
+    // before the Story ends.  Only a null snapshot may be supplemented by
+    // best-known local speaker evidence.
+    if (!Array.isArray(observation.final_present_npc_ids)) {
+      next.present_npc_ids = [...next.present_npc_ids, speaker];
+      currentIds.add(speaker);
+    }
   }
   const explicitFocal = stringId(observation.focal_candidate_id);
   if (explicitFocal && currentIds.has(explicitFocal)) {

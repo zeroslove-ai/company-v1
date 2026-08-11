@@ -565,7 +565,7 @@ const master = masterFromEdition(edition);
               ? { ...hydratedContext.save, data: extractSave }
               : extractSave
           };
-          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa);
@@ -574,7 +574,7 @@ const master = masterFromEdition(edition);
           const extractUserPayload = JSON.parse(messages[1].content);
           timing.extract_system_chars = messages[0].content.length;
           timing.extract_context_chars = JSON.stringify(extractUserPayload.context).length;
-          timing.parsed_story_chars = 0;
+          timing.parsed_story_chars = JSON.stringify(parsedStory).length;
           timing.extract_request_chars = messages[0].content.length + messages[1].content.length;
           timing.active_character_count = activeCountFromNpcState(extractUserPayload.context?.active_npc_state);
           const llmStart = Date.now();

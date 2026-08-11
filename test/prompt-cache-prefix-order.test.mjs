@@ -120,11 +120,10 @@ test('Extract prompt keeps registered NPCs and canon before generated turn data'
 
   assert.deepEqual(Object.keys(payload), [
     'extract_version',
+    'registered_identities',
     'registered_characters',
     'registered_general_npcs',
     'registered_locations',
-    'active_character_canon',
-    'active_general_npc_canon',
     'story_text',
     'context',
     'player_action',

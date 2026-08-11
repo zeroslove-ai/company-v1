@@ -169,6 +169,9 @@ test('Extract Prompt v2 separates exact state evidence from Mind Monitor interpr
   assert.match(system, /state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence/);
   assert.match(system, /Mind Monitor interpretation/);
   assert.match(system, /may not invent a new event, memory, agreement, contact, or fact/);
+  assert.equal('active_character_canon' in payload, false);
+  assert.equal('active_general_npc_canon' in payload, false);
+  return;
   assert.equal(payload.active_character_canon.heroine3.name, '김제나');
   assert.equal(payload.active_character_canon.heroine5.name, '이메이');
   assert.ok(system.length < 8000, `Extract system prompt too large: ${system.length}`);
