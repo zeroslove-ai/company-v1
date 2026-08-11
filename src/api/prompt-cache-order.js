@@ -54,7 +54,8 @@ export function classifyPromptPayload(payload) {
   ) return 'extract';
   if (
     Object.prototype.hasOwnProperty.call(payload, 'edition')
-    && Object.prototype.hasOwnProperty.call(payload, 'active_character_canon')
+    && (Object.prototype.hasOwnProperty.call(payload, 'scene_actors')
+      || Object.prototype.hasOwnProperty.call(payload, 'active_character_canon'))
     && Object.prototype.hasOwnProperty.call(payload, 'context')
   ) return 'story';
   return null;

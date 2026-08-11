@@ -320,11 +320,6 @@ export function resolveUserMentionedNpcIds(master, text, options = {}) {
   return found;
 }
 
-/** @deprecated resolveUserMentionedNpcIds로 통일 */
-function namedNpcIds(master, text) {
-  return resolveUserMentionedNpcIds(master, text, { allowUniqueKoreanGivenName: false });
-}
-
 /**
  * 현장에 실제로 존재하는 NPC (spec 13 + 안정화 수정 F 8.1).
  * 현재 장면의 presence 정본은 scene_state.participants다.
@@ -525,7 +520,6 @@ export function buildSceneCastContract({
   // destinationNpcIds는 NPC 이름이 문장에 있어야만 채워지므로 이 경로가 없으면
   // 목적지가 NPC 언급 없는 순수 이동을 전혀 인식하지 못한다.
   // 수정 2 — 이동 턴: 현재 장소 NPC·목적지 NPC 모두 발화 금지.
-  // allowed_speaker_ids = ['player', ...remoteNpcIds]
   // 안정화 수정 H — 이동을 여러 턴으로 나누지 않는다. 도착과 만남이 같은 턴에
   // 일어나고, 사용자의 입력에 말 걸기 의도가 있으면 목적지 NPC가 같은 턴에
   // 대답한다. 말 걸기 의도가 없는 순수 이동이면 도착 서술까지만 하고 발화는
@@ -547,43 +541,14 @@ export function buildSceneCastContract({
   // 검증된 location_id로 대체한다. 새 장소 이름을 추측하거나 생성하지 않는다.
 
   // 문맥 참고용 — focal/last_speaker는 여기에는 들어가지만 present에는 별도 근거가 필요하다.
-  const contextNpcIds = [];
-  const pushContext = id => {
-    if (!id || isPlayerRefId(id) || !registeredIds.has(id) || contextNpcIds.includes(id)) return;
-    contextNpcIds.push(id);
-  };
-  for (const id of presentNpcIds) pushContext(id);
-  for (const id of enteringNpcIds) pushContext(id);
-  for (const id of remoteNpcIds) pushContext(id);
-  pushContext(identity(save?.focal_character_id));
-  pushContext(identity(save?.last_speaker_id));
-  for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) pushContext(id);
-
-  const allowedSpeakerIds = [...new Set(['player', ...presentNpcIds, ...enteringNpcIds, ...remoteNpcIds])];
-
   return {
     version: 1,
     location_id: locationId,
-    context_npc_ids: contextNpcIds,
     present_npc_ids: presentNpcIds,
     entering_npc_ids: enteringNpcIds,
     remote_npc_ids: remoteNpcIds,
-    allowed_speaker_ids: allowedSpeakerIds,
-    player_dialogue: resolvePlayerDialoguePolicy(playerAction, master),
-    anonymous_speech_allowed: false,
-    unregistered_character_allowed: false,
-    model_selected_entrance_allowed: false
+    player_dialogue: resolvePlayerDialoguePolicy(playerAction, master)
   };
 }
 
 /** 발화 가능한 NPC인지 — present/entering/remote 중 하나에도 있어야 한다. */
-export function canSpeak(contract, speakerId) {
-  if (!isPlainObject(contract) || !identity(speakerId)) return false;
-  if (!Array.isArray(contract.allowed_speaker_ids) || !contract.allowed_speaker_ids.includes(speakerId)) return false;
-  if (speakerId === 'player') return true;
-  return [
-    ...(Array.isArray(contract.present_npc_ids) ? contract.present_npc_ids : []),
-    ...(Array.isArray(contract.entering_npc_ids) ? contract.entering_npc_ids : []),
-    ...(Array.isArray(contract.remote_npc_ids) ? contract.remote_npc_ids : [])
-  ].includes(speakerId);
-}

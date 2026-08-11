@@ -1,5 +1,5 @@
-import { buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js';
-import { buildGeneralNpcCanon, buildRegisteredGeneralNpcs, selectActiveGeneralNpcIds } from './workplace-context.js';
+import { buildSceneContextCore } from './gameplay-state.js';
+import { buildGeneralNpcCanon, buildRegisteredGeneralNpcs } from './workplace-context.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -86,7 +86,7 @@ const SYSTEM_INSTRUCTIONS = [
   })}`,
   'Never return these save-patch or parser fields: state_delta, choices, dialogue_lines, player_inner_thought, last_speaker_id, npcs_present, focal_character_id, csa_active, csa_rules, world_state, save.',
   'Observe only facts shown in the complete raw Story. Do not reconstruct, normalize, rewrite, or omit any Story text.',
-  'The scene observation uses final_present_npc_ids as its only presence authority: null means the final snapshot was not observed, [] means an explicitly empty NPC scene, and an array is the complete final NPC snapshot. registered_characters lists the only stable character ids; never invent, guess, or reuse an id; a nearby/default/eligible NPC is not present unless Story explicitly shows their presence/action/dialogue.',
+  'The scene observation uses final_present_npc_ids as its only presence authority: null means the final snapshot was not observed, [] means an explicitly empty NPC scene, and an array is the complete final NPC snapshot. registered_characters lists the only stable character ids; never invent, guess, or reuse an id. Current scene actors remain present unless Story clearly shows they left; a registered NPC explicitly appearing or speaking locally may be included as a newly observed actor. eligible_nearby_npcs and possible entrants are only candidates, not presence, unless Story shows the entrance. Remote contacts/speakers are not local presence.',
   'Return final_present_npc_ids:null unless the Story explicitly establishes a complete final presence snapshot. If the Story explicitly states who remains or who has left, return the matching array, including [] only for an explicitly empty NPC scene.',
   'Parser projections are authoritative for the displayed Story selections, spoken-line order, and player inner monologue. Do not generate replacements for those projections in this observation. Mind Monitor interpretation evidence is separate from exact state evidence; it may not invent a new event, memory, agreement, contact, or fact.',
   'Return player_observation only for evidenced physical or sexual changes. Physical fields are posture, position_label, and the four clothing slots; never propose scene, location, presence, or ID fields. Sexual state uses arousal_delta, ejaculation_progress_delta, ejaculation_completed, and erection_state under the existing evidence and enum/range rules. actor_id is player for the player, and evidence.clothing[actor_id]={quote,character_id}; quote is an exact Story substring.',
@@ -99,14 +99,15 @@ const SYSTEM_INSTRUCTIONS = [
   'mind_monitor is a turn-level projection for present NPCs with only surface and subconscious. For each present NPC who speaks or performs a meaningful action, provide {surface, subconscious} when possible; missing monitor data is allowed and never a failure. image_selection and image_character_id are observation projections, not save patches. Identity axes are independent; never copy one into another.',
   'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
   'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, pool must be sex and tags must describe that ongoing act.',
-  'Final scene presence: last speaker may remain historical, and an NPC explicitly shown in the final scene remains present.'
+  'Final scene presence: last speaker may remain historical, but every registered local dialogue speaker or clearly acting local NPC must not be omitted from an observed final snapshot. If the final snapshot cannot be established, preserve null rather than guessing.'
 ].join(' ');
 
 export function buildExtractPrompt({ context, storyText, playerAction, expectedTurn, edition, npcIds }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
-  const heroineActiveIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
-  const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: storyText });
+  const sceneIds = buildSceneContextCore(save, []).scene.present_npc_ids;
+  const heroineActiveIds = sceneIds.filter(id => Object.prototype.hasOwnProperty.call(charactersMap, id));
+  const generalActiveIds = sceneIds.filter(id => !heroineActiveIds.includes(id));
   const activeIds = [...heroineActiveIds, ...generalActiveIds.filter(id => !heroineActiveIds.includes(id))];
   return [
     { role: 'system', content: SYSTEM_INSTRUCTIONS },

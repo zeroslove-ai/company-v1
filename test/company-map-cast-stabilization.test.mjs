@@ -46,7 +46,7 @@ test('canonical scene presence wins over conflicting legacy participants', () =>
     playerAction: '업무를 진행한다.'
   });
   assert.deepEqual(contract.present_npc_ids, ['heroine1']);
-  assert.ok(!contract.allowed_speaker_ids.includes('heroine2'));
+  assert.equal('allowed_speaker_ids' in contract, false);
 });
 
 test('legacy-only save still hydrates presence through the compatibility adapter', () => {
@@ -57,7 +57,7 @@ test('legacy-only save still hydrates presence through the compatibility adapter
     playerAction: '업무를 진행한다.'
   });
   assert.deepEqual(contract.present_npc_ids, ['heroine1']);
-  assert.ok(contract.allowed_speaker_ids.includes('heroine1'));
+  assert.deepEqual(contract.present_npc_ids, ['heroine1']);
 });
 
 test('pending entrance and remote contact remain explicit projections, not canonical presence', () => {
@@ -65,12 +65,12 @@ test('pending entrance and remote contact remain explicit projections, not canon
   const entering = buildSceneCastContract({ save: { ...base, pending_scene_entrances: ['heroine2'] }, master: MASTER, mapLocations: LOCATIONS, playerAction: '업무를 진행한다.' });
   assert.deepEqual(entering.present_npc_ids, []);
   assert.deepEqual(entering.entering_npc_ids, ['heroine2']);
-  assert.ok(entering.allowed_speaker_ids.includes('heroine2'));
+  assert.equal('allowed_speaker_ids' in entering, false);
 
   const remote = buildSceneCastContract({ save: { ...base, pending_remote_contacts: ['heroine2'] }, master: MASTER, mapLocations: LOCATIONS, playerAction: '업무를 진행한다.' });
   assert.deepEqual(remote.present_npc_ids, []);
   assert.deepEqual(remote.remote_npc_ids, ['heroine2']);
-  assert.ok(remote.allowed_speaker_ids.includes('heroine2'));
+  assert.equal('allowed_speaker_ids' in remote, false);
 });
 
 test('registered NPC defaults and stored locations resolve independently of scene presence', () => {
@@ -97,7 +97,7 @@ test('unsupported movement evidence resolves to null and same-location navigatio
 test('SceneCast exposes generic speaker projections and no movement contract fields', () => {
   const contract = buildSceneCastContract({ save: save({ participants: ['player-1', 'heroine1'] }), master: MASTER, mapLocations: LOCATIONS, playerAction: '브랜드전략팀 사무실로 이동한다' });
   for (const key of ['transition_mode', 'destination_npc_ids', 'destination_scene_id', 'destination_location_id']) assert.equal(key in contract, false, key);
-  assert.deepEqual(contract.allowed_speaker_ids, ['player', 'heroine1']);
+  assert.deepEqual(contract.present_npc_ids, ['heroine1']);
 });
 
 test('all registered NPCs have valid default locations', () => {

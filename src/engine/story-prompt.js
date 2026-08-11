@@ -1,9 +1,8 @@
-import { buildActiveCharacterCanon, buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js'
+import { buildActiveCharacterCanon, buildSceneContextCore } from './gameplay-state.js'
 import { buildPlayerPromptProjection, resolvePlayerCanonicalNames } from './player-setup.js'
 import {
   buildGeneralNpcCanon,
   buildWorkplaceContext,
-  selectActiveGeneralNpcIds
 } from './workplace-context.js'
 import {
   requiredClothingFromActiveCsa,
@@ -12,6 +11,104 @@ import {
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
+}
+
+function identity(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function registeredIdentityEntries(edition) {
+  const entries = [];
+  const characters = object(edition?.characters?.characters) ?? {};
+  for (const [id, character] of Object.entries(characters)) {
+    const name = identity(character?.name);
+    if (name) entries.push({ id, name, kind: 'character' });
+  }
+  const profiles = object(edition?.generalNpcs?.profiles) ?? {};
+  for (const [id, profile] of Object.entries(profiles)) {
+    const name = identity(profile?.name);
+    if (name) entries.push({ id, name, kind: 'general_npc' });
+  }
+  return entries;
+}
+
+function compactReference(entry, source = null) {
+  if (!entry) return null;
+  return {
+    id: entry.id,
+    name: entry.name,
+    ...(identity(entry.position) ? { position: entry.position } : {}),
+    ...(identity(entry.role_title ?? entry.role) ? { role: entry.role_title ?? entry.role } : {}),
+    ...(source ? { source } : {})
+  };
+}
+
+/**
+ * Split Story character context by meaning.  This is an ephemeral prompt
+ * projection; it never writes or becomes a gameplay authority.
+ */
+export function buildStoryCharacterProjection({ edition, save, playerAction = '', sceneCastContract = null, workplace = null } = {}) {
+  const charactersMap = object(edition?.characters?.characters) ?? {};
+  const registered = registeredIdentityEntries(edition);
+  const byId = new Map(registered.map(entry => [entry.id, entry]));
+  const sceneIds = [...new Set(Array.isArray(sceneCastContract?.present_npc_ids)
+    ? sceneCastContract.present_npc_ids
+    : [])].filter(id => byId.has(id));
+  const entrantIds = [...new Set(Array.isArray(sceneCastContract?.entering_npc_ids)
+    ? sceneCastContract.entering_npc_ids
+    : [])].filter(id => byId.has(id) && !sceneIds.includes(id));
+  const remoteIds = [...new Set(Array.isArray(sceneCastContract?.remote_npc_ids)
+    ? sceneCastContract.remote_npc_ids
+    : [])].filter(id => byId.has(id) && !sceneIds.includes(id) && !entrantIds.includes(id));
+  const nearbyIds = (Array.isArray(workplace?.eligible_nearby_npcs) ? workplace.eligible_nearby_npcs : [])
+    .map(entry => identity(entry?.npc_id))
+    .filter(id => id && byId.has(id) && !sceneIds.includes(id) && !entrantIds.includes(id) && !remoteIds.includes(id));
+  const possibleIds = [...new Set([...entrantIds, ...nearbyIds])];
+  const mentionedIds = registered
+    .filter(entry => typeof playerAction === 'string' && playerAction.includes(entry.name))
+    .map(entry => entry.id);
+  const referenceIds = mentionedIds.filter(id => !sceneIds.includes(id) && !possibleIds.includes(id) && !remoteIds.includes(id));
+  const sceneHeroineIds = sceneIds.filter(id => Object.prototype.hasOwnProperty.call(charactersMap, id));
+  const sceneGeneralIds = sceneIds.filter(id => !sceneHeroineIds.includes(id));
+  const entrantHeroineIds = entrantIds.filter(id => Object.prototype.hasOwnProperty.call(charactersMap, id));
+  const entrantGeneralIds = entrantIds.filter(id => !entrantHeroineIds.includes(id));
+  const remoteHeroineIds = remoteIds.filter(id => Object.prototype.hasOwnProperty.call(charactersMap, id));
+  const remoteGeneralIds = remoteIds.filter(id => !remoteHeroineIds.includes(id));
+  const sceneActors = {
+    ...buildActiveCharacterCanon(charactersMap, sceneHeroineIds),
+    ...buildGeneralNpcCanon(edition, sceneGeneralIds)
+  };
+  const possibleEntrants = possibleIds.map(id => {
+    const entry = byId.get(id);
+    const character = charactersMap[id];
+    const profile = object(edition?.generalNpcs?.profiles?.[id]);
+    return compactReference({
+      ...entry,
+      position: character?.position,
+      role_title: character?.role_title ?? profile?.role
+    }, entrantIds.includes(id) ? 'explicit_or_pending' : 'nearby_candidate');
+  }).filter(Boolean);
+  const remoteContacts = remoteIds.map(id => {
+    const entry = byId.get(id);
+    const character = charactersMap[id];
+    const profile = object(edition?.generalNpcs?.profiles?.[id]);
+    return compactReference({ ...entry, position: character?.position, role_title: character?.role_title ?? profile?.role }, 'remote');
+  }).filter(Boolean);
+  const referenceCharacters = referenceIds.map(id => {
+    const entry = byId.get(id);
+    const character = charactersMap[id];
+    const profile = object(edition?.generalNpcs?.profiles?.[id]);
+    return compactReference({ ...entry, position: character?.position, role_title: character?.role_title ?? profile?.role }, 'player_reference');
+  }).filter(Boolean);
+  return {
+    scene_actors: sceneActors,
+    possible_entrants: possibleEntrants,
+    remote_contacts: remoteContacts,
+    reference_characters: referenceCharacters,
+    registered_identities: registered.map(({ id, name }) => ({ id, name })),
+    scene_actor_ids: sceneIds,
+    projection_ids: [...new Set([...sceneIds, ...entrantIds, ...remoteIds])]
+  };
 }
 
 function buildActiveWorldRules(save, expectedTurn = null) {
@@ -186,7 +283,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   '장면 연속성: context.recent_turns에 최신 확정 3턴의 story_text 원문이 그대로 있다. 그 원문(특히 최신 턴)을 실제 근거로 삼아 직전 질문·약속·결정·말투·물건·자세를 무시하고 장면을 재시작하지 않으며, 질문에는 답변·회피·보류 중 하나로 반응하고 같은 설명을 반복하지 않는다.',
 
-  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. NPC 등장 여부는 scene_cast_contract가 이미 확정했고 너에게는 결정 권한이 없다. eligible_nearby_npcs는 서버 내부 참고 목록일 뿐이므로 그것을 근거로 누구도 등장시키지 마라.',
+  'NPC 자율성·장면 진행: 관련 NPC는 입력만 기다리지 않고 목적·성격·상황에 따른 작은 행동을 한다. 문서·모니터·메신저·전화·일정·이동 같은 업무 행동뿐 아니라 커피·점심·잡담·휴식·복도 이동 같은 사적이고 일상적인 행동도 자연스럽게 섞어 쓰되 플레이어 행동을 대신하지 않는다. 각 턴은 scene_goal 또는 focus_thread를 답변·진행·복잡화·정리 중 하나로 한 단계 움직인다. scene_actors는 현재 현장 인물이고 reference_characters는 참고 정보일 뿐이다. possible_entrants는 등록된 후보이며 필요할 때만 간헐적으로 자연스럽게 등장시킬 수 있다. 대부분의 턴에는 새 NPC를 추가하지 않는다. 등록되지 않은 named NPC는 만들지 마라.',
 
   '대화 기능: 첫 발언은 반응·질문·확인, 중간은 새 정보·조건·반론·감정 변화, 마지막은 결정·행동 시작·다음 쟁점 중 서로 다른 기능을 맡는다. 다인 장면은 가능하면 NPC끼리 한 번 이상 직접 반응하고, 모두 같은 의견을 반복하지 않는다.',
 
@@ -200,13 +297,13 @@ const SYSTEM_INSTRUCTIONS = [
 
   '[장면 흐름] 진행 중인 행동·감정 장면이 있다면 플레이어가 장면을 바꾸지 않는 한 그 장면의 흐름을 우선한다. 회사라는 배경이나 규정 설명을 매 턴 반복하지 않는다. 플레이어가 중단·이동·화제 전환을 선택하면 즉시 그 입력을 우선한다.',
 
-  '[업무 편향 제거] 플레이어가 업무를 직접 요구하지 않았다면 예산·실적·매출·지표·광고비·계약·보고서·자료 오류·마감·문서 전달을 새로 만들지 않는다. 직접 입력한 경우에도 요구한 만큼만 처리하고 새 소재를 덧붙이지 않는다. 업무를 이유로 다른 NPC를 등장시키지 않는다 — 자료 전달·물건 찾기·커피·보고 지원 명목의 난입은 금지이며 등장은 scene_cast_contract만 정한다. 사내 일상과 관계·감정이 서사의 중심이다.',
+  '[업무 편향 제거] 플레이어가 업무를 직접 요구하지 않았다면 예산·실적·매출·지표·광고비·계약·보고서·자료 오류·마감·문서 전달을 새로 만들지 않는다. 직접 입력한 경우에도 요구한 만큼만 처리하고 새 소재를 덧붙이지 않는다. 사내 일상과 관계·감정이 서사의 중심이다.',
 
-  'active_character_canon은 활성 등록 캐릭터의 유일한 사실 기준이고 active_general_npc_canon과 eligible_nearby_npcs는 일반 NPC의 유일한 사실 기준이다. 이름·나이·부서·직급·성격·말투를 임의로 바꾸거나 승격하지 않는다. canon에 없는 캐릭터를 장면에 억지로 출연시키지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style을 행동·대사·거리감의 생성 근거로 사용한다.',
+  'scene_actors는 현재 장면 actor의 full canon이고 possible_entrants·remote_contacts는 각각 선택적 현장 등장 후보와 원격 접촉이다. reference_characters는 id·name·role 같은 최소 참고 정보만 제공하며 full prompt_card나 행동·발화·presence 권한을 주지 않는다. 이름을 언급한 것만으로 scene actor가 되지 않는다. prompt_card의 personality, speech, distinctive_traits, csa_style은 해당 actor의 행동·대사·거리감 근거로만 사용한다.',
 
-  '[최종 출연·대사 출력 계약 — 앞선 모든 문체 지시보다 우선] stationary 턴에서 실제로 존재하거나 발화할 수 있는 인물은 scene_cast_contract가 유일한 기준이다. present_npc_ids, entering_npc_ids, remote_npc_ids에 없는 NPC를 현장에 등장시키거나 행동시키거나 말하게 하지 마라. entering_npc_ids가 비어 있으면 stationary 턴에는 누구도 새로 등장시키지 않는다. context_npc_ids는 관계·직전 대화를 참고하기 위한 목록일 뿐이다. 익명 직원·행인·군중은 배경 서술에만 스칠 수 있고 절대 발화하지 않는다. [1. 서사 및 행동]의 첫 유효 블록은 반드시 [SCENE]이다 — 첫 [SCENE]에는 최소 한 문장의 관찰 가능한 현재 장면 서술을 쓰고 [DIALOGUE]로 시작하지 않는다. 모든 발화는 [DIALOGUE] 블록으로만 쓴다. 따옴표만 있는 대사, 이름: 대사, 서술문 안에 섞인 발화, 이름·직급·별명만 표시한 대사는 모두 금지한다. '
+  '[최종 출연·대사 출력 계약 — 앞선 모든 문체 지시보다 우선] scene_actors는 이미 현장에 있는 인물이다. possible_entrants는 자연스러운 경우에만 실제 등장할 수 있고 remote_contacts는 원격 대화에만 사용한다. reference_characters는 장면 밖 참고일 뿐이다. 등록된 NPC가 Story에서 실제로 대사하거나 행동해 새로 나타나는 것은 정상이며, Extract가 그 관찰을 최종 presence로 기록한다. 등록되지 않은 speaker_id는 금지한다. 익명 직원·행인·군중은 배경 서술에만 스칠 수 있고 절대 발화하지 않는다. [1. 서사 및 행동]의 첫 유효 블록은 반드시 [SCENE]이다 — 첫 [SCENE]에는 최소 한 문장의 관찰 가능한 현재 장면 서술을 쓰고 [DIALOGUE]로 시작하지 않는다. 모든 발화는 [DIALOGUE] 블록으로만 쓴다. 따옴표만 있는 대사, 이름: 대사, 서술문 안에 섞인 발화, 이름·직급·별명만 표시한 대사는 모두 금지한다. '
     + '[DIALOGUE 최소 포함] 현장에 발화 가능한 NPC가 등장하고 대화가 자연스러운 장면이면 서술만으로 끝내지 말고 [DIALOGUE] 블록을 최소 1개 포함한다. NPC가 서로 확인·논의하는 장면이면 실제 대사가 반드시 들어간다. 대사 없이 행동 묘사만 나열하지 않는다.'
-    + '발화 형식은 첫 줄 `[DIALOGUE speaker_id="허용 ID" acting_direction="구체적 연기 지시"]`, 다음 줄부터 본문이다. speaker_id에는 이름이 아니라 allowed_speaker_ids의 ID를 쓴다. '
+    + '발화 형식은 첫 줄 `[DIALOGUE speaker_id="등록 ID" acting_direction="구체적 연기 지시"]`, 다음 줄부터 본문이다. speaker_id에는 이름이 아니라 registered_identities의 ID를 쓴다. '
     + 'acting_direction에는 표정·시선·손동작·자세·목소리·호흡·상대를 향한 행동·물건 상호작용 중 하나 이상의 구체적 정보가 있어야 한다. `자연스럽게`, `평범하게`, `적당히`, `보통 말투로`, `대답하며`, `말하며`, `진지하게`, `차분하게`처럼 추상적인 단어만 쓰지 마라. 단 `차분한 목소리로 서류를 앞으로 밀며`처럼 관찰 가능한 행동이 함께 있으면 허용한다. '
     + '플레이어 발화는 scene_cast_contract.player_dialogue 정책 범위 안에서만 생성한다. mode가 explicit이면 source_text의 의미를 유지해 다듬고, paraphrase면 intent 범위 안에서만 말하며, minor_reaction이면 max_lines·max_characters를 넘기지 않는 짧은 반응 한 줄만 쓴다. 사용자 입력에 근거가 없는 새 명령·요청·수락·거절·약속·고백·성적 제안·협박·이동 결정을 플레이어가 말하게 하지 않는다. ' + '[DIALOGUE 본문 규칙] [DIALOGUE] 본문에는 실제 발화만 한 줄로 쓴다. 발화 본문을 큰따옴표로 감싸지 않는다. 행동·표정·분위기·상대 반응은 반드시 새 [SCENE] 뒤에 쓴다. 등록되어 있고 이번 장면에서 발화가 허용된 speaker_id만 사용한다.'
   + '[서사 비트] 매 턴 첫 문장은 반드시 이번 플레이어 행동의 결과 또는 NPC의 즉각적인 반응으로 시작한다. 직전 턴과 장소·시간·조명·날씨가 같으면 이를 다시 소개하지 않는다. 환경은 장소 이동·의미 있는 시간 변화·사건 영향 날씨·조명·새 소리·인물·사건 때만 쓴다. `회의실에 햇살이 비쳤다`, `창밖 빛이 테이블 위로 들어왔다`, `서류나 컵에 빛이 반짝였다` 장식 도입부 반복 금지. 거리·자세는 배경으로 재소개하지 말고 행동·대화·반응 안에서만 필요한 만큼 보이며 장면 연속성은 유지한다. 서사는 ①결과·반응 ②NPC 말·즉각 반응 ③관계 또는 성적 긴장 변화 ④플레이어 생각 ⑤선택지다. 업무 설명이 장면을 장악하지 않게. 성적 긴장감은 현재 CSA·신체 거리·사용자 행동과 관련될 때 감각을 구체적으로 묘사하되 `얼굴이 붉어졌다`, `당황했다`, `규정이니까 따랐다`만 반복하지 않는다.'
@@ -225,14 +322,18 @@ export function appendLateAuthoritativeCharacterCanon(messages) {
   if (!userMessage) return messages;
   let payload;
   try { payload = JSON.parse(userMessage.content); } catch { return messages; }
-  const canon = object(payload?.active_character_canon) ?? {};
-  const generalCanon = object(payload?.active_general_npc_canon) ?? {};
+  const canon = object(payload?.scene_actors)
+    ?? object(payload?.active_character_canon)
+    ?? {};
+  const generalCanon = object(payload?.scene_actors)
+    ? {}
+    : (object(payload?.active_general_npc_canon) ?? {});
   const context = object(payload?.context) ?? {};
   if (!Object.keys(canon).length && !Object.keys(generalCanon).length) return messages;
   const addressingState = object(context?.npc_relationship_state) ?? {};
   const section = [
     '[최종 권위 캐릭터 캐논 — 이 메시지가 앞선 모든 캐릭터 묘사보다 우선한다]',
-    JSON.stringify({ registered_characters: canon, active_general_npcs: generalCanon }),
+    JSON.stringify({ scene_actors: canon, active_general_npcs: generalCanon }),
     '[호칭 계약]',
     '1) 각 캐릭터의 prompt_card.addressing과 현재 회사 직급·관계를 기본값으로 사용한다.',
     '2) 일반 NPC는 active_general_npc_canon의 role과 department_id를 기준으로 업무 호칭을 사용한다.',
@@ -247,18 +348,50 @@ export function appendLateAuthoritativeCharacterCanon(messages) {
 export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null }) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
-  const selectedHeroineIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
-  const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: playerAction });
-  const activeIds = [...selectedHeroineIds, ...generalActiveIds.filter(id => !selectedHeroineIds.includes(id))];
+  const canonicalSceneCast = sceneCastContract ?? {
+    present_npc_ids: buildSceneContextCore(save, []).scene.present_npc_ids,
+    entering_npc_ids: [],
+    remote_npc_ids: []
+  };
+  const workplace = buildWorkplaceContext(edition, save);
+  const characterProjection = buildStoryCharacterProjection({
+    edition,
+    save,
+    playerAction,
+    sceneCastContract: canonicalSceneCast,
+    workplace
+  });
+  const sceneActorIds = characterProjection.scene_actor_ids;
+  const sceneHeroineIds = sceneActorIds.filter(id => Object.prototype.hasOwnProperty.call(charactersMap, id));
+  const sceneGeneralIds = sceneActorIds.filter(id => !sceneHeroineIds.includes(id));
+  const activeIds = characterProjection.projection_ids;
+  const sceneCastProjection = {
+    version: canonicalSceneCast.version ?? 1,
+    location_id: canonicalSceneCast.location_id ?? null,
+    present_npc_ids: Array.isArray(canonicalSceneCast.present_npc_ids) ? canonicalSceneCast.present_npc_ids : [],
+    entering_npc_ids: Array.isArray(canonicalSceneCast.entering_npc_ids) ? canonicalSceneCast.entering_npc_ids : [],
+    remote_npc_ids: Array.isArray(canonicalSceneCast.remote_npc_ids) ? canonicalSceneCast.remote_npc_ids : [],
+    player_dialogue: canonicalSceneCast.player_dialogue ?? null
+  };
   const messages = [
     { role: 'system', content: `${SYSTEM_INSTRUCTIONS}\n\n${FINAL_OUTPUT_SHAPE}` },
     {
       role: 'user',
       content: JSON.stringify({
         edition: edition.editionId,
-        ...(sceneCastContract ? { scene_cast_contract: sceneCastContract } : {}),
-        active_character_canon: buildActiveCharacterCanon(charactersMap, selectedHeroineIds),
-        active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
+        registered_identities: characterProjection.registered_identities,
+        scene_actors: characterProjection.scene_actors,
+        possible_entrants: characterProjection.possible_entrants,
+        remote_contacts: characterProjection.remote_contacts,
+        reference_characters: characterProjection.reference_characters,
+        scene_cast_contract: sceneCastProjection,
+        // Older direct unit callers without a SceneCast projection retain a
+        // read-only compatibility shape. Fresh runtime Story calls always
+        // provide SceneCast and use only the separated projections above.
+        ...(!sceneCastContract ? {
+          active_character_canon: buildActiveCharacterCanon(charactersMap, sceneHeroineIds),
+          active_general_npc_canon: buildGeneralNpcCanon(edition, sceneGeneralIds)
+        } : {}),
         context: buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, expectedTurn }),
         player_action: playerAction,
         expected_turn: expectedTurn

@@ -9,6 +9,11 @@ const POLICY = `
 
 const MOVEMENT_ACTION = /(찾으러|찾아가|찾아보|보러\s*가|만나러|이동하|가본다|가겠다|방문하)/u;
 
+const ACTOR_POLICY = `[REGISTERED ACTOR POLICY]
+- scene_actors are current local actors; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only.
+- Use only registered identities. A reference or nearby candidate is not presence, action, or dialogue authority until Story actually shows it.
+- Registered local NPCs may appear naturally when the scene makes it meaningful, but most turns should not add a new NPC. Never invent an unregistered named character.`;
+
 const STORY_PAYLOAD_ORDER = [
   'edition',
   'active_character_canon',
@@ -114,7 +119,12 @@ function userPayload(messages) {
 function relevant(messages) {
   const payload = userPayload(messages);
   return Boolean(payload && (
-    object(payload.active_character_canon)
+    object(payload.scene_actors)
+    || Array.isArray(payload.possible_entrants)
+    || Array.isArray(payload.remote_contacts)
+    || Array.isArray(payload.reference_characters)
+    || Array.isArray(payload.registered_identities)
+    || object(payload.active_character_canon)
     || object(payload.active_general_npc_canon)
     || Array.isArray(payload.registered_characters)
     || Array.isArray(payload.registered_general_npcs)
@@ -142,6 +152,11 @@ function addCollection(target, seen, collection) {
 export function registeredIdentityEntries(payload) {
   const entries = [];
   const seen = new Set();
+  addCollection(entries, seen, payload?.registered_identities);
+  addCollection(entries, seen, payload?.scene_actors);
+  addCollection(entries, seen, payload?.possible_entrants);
+  addCollection(entries, seen, payload?.remote_contacts);
+  addCollection(entries, seen, payload?.reference_characters);
   addCollection(entries, seen, payload?.active_character_canon);
   addCollection(entries, seen, payload?.active_general_npc_canon);
   addCollection(entries, seen, payload?.registered_characters);
@@ -203,9 +218,9 @@ export function applyRegisteredNpcPolicy(init = {}) {
   const payload = userPayload(body.messages);
   const index = body.messages.findIndex(message => message?.role === 'system' && typeof message.content === 'string');
   let messages = index === -1
-    ? [{ role: 'system', content: POLICY }, ...body.messages]
+    ? [{ role: 'system', content: ACTOR_POLICY }, ...body.messages]
     : body.messages.map((message, messageIndex) => messageIndex === index
-      ? { ...message, content: `${message.content}${POLICY}` }
+      ? { ...message, content: `${message.content}${ACTOR_POLICY}` }
       : message);
   const targetPolicy = buildActionTargetPolicy(payload);
   if (targetPolicy) messages = [...messages, { role: 'system', content: targetPolicy }];
@@ -219,7 +234,7 @@ export function createRegisteredNpcPolicyFetch(fetchImpl = fetch) {
   };
 }
 
-export const REGISTERED_NPC_POLICY = POLICY;
+export const REGISTERED_NPC_POLICY = ACTOR_POLICY;
 export const PROMPT_CACHE_ORDERS = Object.freeze({
   story: Object.freeze([...STORY_PAYLOAD_ORDER]),
   extract: Object.freeze([...EXTRACT_PAYLOAD_ORDER])

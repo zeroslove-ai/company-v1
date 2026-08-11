@@ -176,11 +176,25 @@ export function reduceCanonicalScene(input = {}) {
   const currentIds = new Set(next.present_npc_ids);
   const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
   for (const speaker of speakers) {
-    if (isPlayerId(speaker) || currentIds.has(speaker) || observation.remote_speaker_ids?.includes(speaker)) continue;
-    throw new GameCoreError(
-      Array.isArray(observation.final_present_npc_ids) ? 'SCENE_PRESENCE_CONTRADICTS_STORY' : 'SCENE_PRESENCE_UNRESOLVED',
-      `Story speaker ${speaker} is absent from the canonical scene`
-    );
+    if (isPlayerId(speaker) || currentIds.has(speaker)) continue;
+    if (observation.remote_speaker_ids?.includes(speaker)) {
+      if (!npcIds.has(speaker)) {
+        throw new GameCoreError('SCENE_PRESENCE_UNRESOLVED', `Story speaker ${speaker} is not a registered remote NPC`);
+      }
+      continue;
+    }
+    // A registered local dialogue speaker is direct post-Story presence
+    // evidence.  Pre-Story cast is a context projection, not a whitelist that
+    // can invalidate a naturally appearing registered NPC.  Unknown IDs still
+    // fail closed, and remote speakers remain non-local.
+    if (!npcIds.has(speaker)) {
+      throw new GameCoreError(
+        Array.isArray(observation.final_present_npc_ids) ? 'SCENE_PRESENCE_CONTRADICTS_STORY' : 'SCENE_PRESENCE_UNRESOLVED',
+        `Story speaker ${speaker} is not a registered local NPC`
+      );
+    }
+    next.present_npc_ids = [...next.present_npc_ids, speaker];
+    currentIds.add(speaker);
   }
   const explicitFocal = stringId(observation.focal_candidate_id);
   if (explicitFocal && currentIds.has(explicitFocal)) {
