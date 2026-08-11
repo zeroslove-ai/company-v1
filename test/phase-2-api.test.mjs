@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
+import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -21,9 +22,6 @@ const env = {
 
 const canonicalStoryText = '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE]\nContinue carefully.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait a moment.\n[CHOICE]\nChange the subject.';
 const canonicalSse = `data: ${JSON.stringify({ choices: [{ delta: { content: canonicalStoryText } }] })}\n\ndata: [DONE]\n\n`;
-
-const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
 const v2ExtractFixture = ({ outcome = 'partial', npcMood = null, elapsed_minutes = 3 } = {}) => ({
   extract_version: 2,

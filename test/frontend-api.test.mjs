@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ApiError, createApiClient } from '../src/frontend/pages/api.js';
-
-function json(value, status = 200) { return new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } }); }
+import { makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 test('frontend API client sends only the Phase 2 request contracts', async () => {
   const calls = [];

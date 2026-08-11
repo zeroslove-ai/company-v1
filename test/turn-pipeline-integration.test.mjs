@@ -8,6 +8,7 @@ import { masterFromEdition } from '../src/api/turn-routes.js';
 import edition from '../src/api/edition.js';
 import { HttpError } from '../src/api/http.js';
 import { parsedTurnNarrative } from '../src/frontend/pages/render.js';
+import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -22,9 +23,6 @@ const env = {
   STORY_MODEL: 'story-test',
   EXTRACT_MODEL: 'extract-test'
 };
-const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-
 // Fresh semantic Story fixture: raw blocks are preserved byte-for-byte.
 const STORY_LINES = [
   '[SCENE]',

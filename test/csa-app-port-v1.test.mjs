@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
+import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 import edition from '../src/api/edition.js';
 import {
   calculateCsaCapability, getCsaLimits, appStrengthId,
@@ -33,8 +34,6 @@ const env = {
   EXTRACT_MODEL: 'extract-test'
 };
 
-const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const DEFAULT_EXTRACT = {
   extract_version: 2, outcome: 'success',
     scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },

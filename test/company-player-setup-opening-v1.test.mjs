@@ -15,6 +15,7 @@ import {
 } from '../src/engine/index.js';
 import edition from '../src/api/edition.js';
 import { DEPARTMENTS, POSITIONS, BODY_TYPES, SPEECH_STYLES } from '../src/frontend/pages/catalogs.js';
+import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -37,9 +38,6 @@ const catalogs = {
   speechStyles: SPEECH_STYLES
 };
 const heroineIds = Object.keys(edition.characters.characters);
-
-const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
 function freshSave() {
   return {
