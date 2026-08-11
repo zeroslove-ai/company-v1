@@ -233,7 +233,7 @@ function isInternalQuotedThought(value) {
  * prose names one uniquely registered character, including a unique Korean
  * given-name reference such as “민아” -> “윤민아”.
  */
-export function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
+function normalizeQuoteOnlyDialogue(rawText, { master } = {}) {
   const source = String(rawText ?? '');
   const speakers = registeredSpeakers(master);
   if (!source || !speakers.length) return source;

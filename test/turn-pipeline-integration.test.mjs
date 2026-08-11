@@ -26,7 +26,7 @@ const request = (pathName, body) => new Request(`https://worker.test${pathName}`
 
 // Story fixture: raw scene/dialogue markers are preserved byte-for-byte.
 // 대사 2개 모두 허용된 cast(heroine5) 안에서 명시 화자 + 구체 연기 지시
-const STORY_LINES = [
+const LEGACY_STORY_LINES = [
   '[SCENE]',
   '이메이의 눈동자가 흔들렸다.',
   '',
@@ -40,7 +40,17 @@ const STORY_LINES = [
   '잠시 침묵이 흘렀다.'
 ].join('\n');
 // SSE data 라인은 JSON.stringify가 개행을 자동 이스케이프한다
-const STORY = STORY_LINES;
+const STORY = [
+  '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]',
+  LEGACY_STORY_LINES,
+  '[2. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C]',
+  '\uC0C1\uD669\uC744 \uC815\uB9AC\uD574\uC57C \uD55C\uB2E4.',
+  '[3. \uC120\uD0DD\uC9C0]',
+  '1. [\uAD00\uCC30] \uC8FC\uBCC0\uC744 \uC0B4\uD3B4\uBCF8\uB2E4.',
+  '2. [\uB300\uD654] \uB300\uD654\uB97C \uC2DC\uC791\uD55C\uB2E4.',
+  '3. [\uB300\uAE30] \uC7A0\uC2DC \uAE30\uB2E4\uB9B0\uB2E4.',
+  '4. [\uC774\uB3D9] \uB2E4\uB978 \uC7A5\uC18C\uB85C \uAC04\uB2E4.'
+].join('\n');
 const storySse = `data: ${JSON.stringify({ choices: [{ delta: { content: STORY } }] })}\n\ndata: [DONE]\n\n`;
 
 // Test save with a registered Company NPC(heroine5=이메이) in the scene.
@@ -267,7 +277,7 @@ test('navigation Commit uses the current deterministic location and generic scen
       final_present_npc_ids: ['heroine2'],
       focal_candidate_id: null,
       remote_speaker_ids: ['heroine5'], evidence: [
-        { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES[1] }
+        { kind: 'presence', character_id: 'heroine2', quote: LEGACY_STORY_LINES[1] }
       ]
     },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] },

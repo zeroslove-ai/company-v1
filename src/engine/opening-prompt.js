@@ -3,13 +3,14 @@ import { buildOpeningPlayerProjection } from './player-setup.js';
 
 const BACKGROUND_MAX = 120;
 
-/** Splits the opening LLM output into the one-sentence background and the standard four-section body. */
+const OPENING_BODY_HEADER = '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]';
+
 export function splitOpeningSections(rawText) {
   const raw = String(rawText ?? '');
-  const bodyIndex = raw.indexOf('[1. 서사 및 행동]');
+  const bodyIndex = raw.indexOf(OPENING_BODY_HEADER);
   const head = bodyIndex === -1 ? raw : raw.slice(0, bodyIndex);
   const body = bodyIndex === -1 ? '' : raw.slice(bodyIndex);
-  const backgroundMatch = /\[배경\]\s*([\s\S]*)/.exec(head);
+  const backgroundMatch = /\[\uBC30\uACBD\]\s*([\s\S]*)/.exec(head);
   const rawBackground = (backgroundMatch ? backgroundMatch[1] : head).trim();
   const truncated = Array.from(rawBackground).length > BACKGROUND_MAX;
   const background = truncated ? `${Array.from(rawBackground).slice(0, BACKGROUND_MAX - 1).join('')}…` : rawBackground;
@@ -25,7 +26,7 @@ const SYSTEM_INSTRUCTIONS = [
 
   '오프닝은 빈 배경에서 자기소개만 나열하지 않는다. 첫 2~3문단 안에 장소를 알아볼 수 있는 감각적 디테일 하나 이상, 현재 진행 중인 일(업무·준비·잡담·개인 일정 등 무엇이든)이나 작은 문제 하나, 핵심 NPC가 그 상황에서 드러내는 성격과 말투를 함께 보여준다. 사무실은 정지된 세트가 아니라 사람들이 일하는 공간처럼 느껴져야 하지만, 근거 없는 대형 사건을 만들지 않는다.',
 
-  '[1. 서사 및 행동]: 대사는 서술과 자연스럽게 교차하며 형식은 "화자명 (짧고 구체적인 연기지시): "대사"" 이다. 목표 분량은 1000~1500자이며 이는 생성 목표일 뿐 검증 게이트가 아니다.',
+  '[1. 서사 및 행동]: narration은 [SCENE] marker 아래에 쓰고, 대사는 [DIALOGUE speaker_id="registered_id_or_player" acting_direction="짧고 구체적인 연기지시"] marker 다음에 직접 쓴다. 화자명:대사나 quote-only 대사는 사용하지 않는다. 목표 분량은 1000~1500자이며 이는 생성 목표일 뿐 검증 게이트가 아니다.',
   'NPC 초기 호감·저항: 각 NPC의 affinity 초기값(1~20)과 resistance(고정값)을 참고해 플레이어 정보(부서·직급·나이·말투)에 대한 첫인상을 서사에 자연스럽게 반영한다. 저항이 높은 NPC(60 이상)는 규정을 당연히 여겨도 플레이어에게는 거리를 두고, 낮은 NPC(35 이하)는 친근하게 다가온다. 호감도 수치 자체를 서사에 노출하지 않는다.',
   '핵심 NPC는 플레이어를 기다리기만 하지 않고 자신의 업무·성격에 따른 작은 행동을 먼저 한다. 다만 플레이어가 아직 입력하지 않은 다음 행동이나 대사를 대신 완료하지 않는다 — 오프닝은 상황과 선택 가능한 긴장을 설정할 뿐, 이후 행동은 선택지를 통해 플레이어가 정한다.',
 
@@ -38,6 +39,16 @@ const SYSTEM_INSTRUCTIONS = [
   'player의 height_cm/weight_kg/body_type은 배경 설명이나 외모 묘사가 실제로 필요할 때만 자연스럽게 반영하고, 매 문장 나열하지 않는다. speech_style은 플레이어의 대사와 속마음 문체에만 영향을 준다 — 말투만으로 플레이어가 입력하지 않은 폭언·행동·범죄를 자동 수행하지 않는다.'
 ].join(' ');
 
+const FRESH_OPENING_OUTPUT_PROTOCOL = [
+  'Fresh opening output protocol:',
+  '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]',
+  '[SCENE]',
+  '[DIALOGUE speaker_id="registered_id_or_player" acting_direction="non-empty direction"]',
+  '[2. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C]',
+  '[3. \uC120\uD0DD\uC9C0]',
+  'Then provide exactly four distinct choices as 1. [label] text through 4. [label] text. Do not use legacy markers, quote-only dialogue, or unregistered speaker IDs.'
+].join('\n');
+
 export function buildOpeningPrompt({ edition, player, canonical, openingPlan, expectedTitle }) {
   const charactersMap = edition?.characters?.characters ?? {};
   const activeIds = [openingPlan?.primary_character_id, ...(openingPlan?.supporting_character_ids ?? [])].filter(Boolean);
@@ -45,7 +56,7 @@ export function buildOpeningPrompt({ edition, player, canonical, openingPlan, ex
     ? '이 TF팀장은 서원희의 브랜드전략팀장 직책을 대체하지 않는다. 별도 프로젝트 TF 또는 부서 간 협업 조직의 팀장이다.'
     : null;
   return [
-    { role: 'system', content: SYSTEM_INSTRUCTIONS },
+    { role: 'system', content: `${SYSTEM_INSTRUCTIONS}\n\n${FRESH_OPENING_OUTPUT_PROTOCOL}` },
     {
       role: 'user',
       content: JSON.stringify({

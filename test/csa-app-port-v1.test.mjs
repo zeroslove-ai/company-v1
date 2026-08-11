@@ -65,12 +65,15 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
     + 'data: {"choices":[{"delta":{"content":"\\n[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\n'
     + 'data: [DONE]\n';
 
+  const strictStory = '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]\n[SCENE]\nA canonical scene.\n[2. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C]\nI consider the situation.\n[3. \uC120\uD0DD\uC9C0]\n1. [A1] Continue carefully.\n2. [B2] Ask a question.\n3. [C3] Wait a moment.\n4. [D4] Change the subject.';
+  const strictSse = `data: ${JSON.stringify({ choices: [{ delta: { content: strictStory } }] })}\n\ndata: [DONE]\n\n`;
+
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
     calls.push({ url: textUrl, method: init.method ?? 'GET', body: init.body });
     if (textUrl.startsWith('https://llm.test')) {
       const body = JSON.parse(init.body);
-      if (body.stream) return new Response(sse, { headers: { 'content-type': 'text/event-stream' } });
+      if (body.stream) return new Response(storySseText ?? strictSse, { headers: { 'content-type': 'text/event-stream' } });
       const payload = llmJsonResponses.length ? llmJsonResponses[Math.min(jsonCallIndex, llmJsonResponses.length - 1)] : DEFAULT_EXTRACT;
       jsonCallIndex += 1;
       return json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(payload) } }] });

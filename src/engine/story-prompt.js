@@ -122,7 +122,7 @@ export const DURABLE_STORY_RULES = [
   '[STORY QUALITY]',
   'Write natural Korean workplace fiction with appropriate title-plus-name address, relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
   '[OUTPUT PROTOCOL]',
-  'Return exactly three sections in order: [1. ?쒖궗 諛??됰룞], [2. ?뚮젅?댁뼱 ?띾쭏??, [3. ?좏깮吏]. Use [SCENE] for narration and [DIALOGUE speaker_id="..." acting_direction="..."] for spoken lines only; speaker_id must be a registered identity. Inner thought is first-person without quotation marks. Provide exactly four immediately usable choices and stop after the fourth choice.'
+  'Return exactly three sections in order: [1. 서사 및 행동], [2. 플레이어 속마음], [3. 선택지]. Use [SCENE] for narration and [DIALOGUE speaker_id="..." acting_direction="..."] for spoken lines only; speaker_id must be a registered identity ID or "player". Dialogue must use the marker, never a name:line or quote-only form. acting_direction is required and non-empty. Inner thought is first-person without outer quotation marks. Provide exactly four distinct choices in the form 1. [짧은라벨] 전문 through 4. [짧은라벨] 전문; labels are 2–6 characters. Stop after the fourth choice.'
 ].join('\n');
 
 export function buildRegenerationFeedbackSection(feedbackText) {

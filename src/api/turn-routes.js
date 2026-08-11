@@ -15,7 +15,8 @@ import {
   normalizeFreshExtractObservationV2,
   normalizePersistedExtractObservation,
   reduceGameplayCommit,
-  parseNarrative,
+  parseFreshNarrativeV2,
+  parsePersistedNarrative,
   resolvePlayerCanonicalNames,
   splitOpeningSections,
   validatePlayerSetupInput,
@@ -260,15 +261,6 @@ async function resolveSignedCsaTransactionResolution({ env, gameId, structuredAc
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
-function parseStoryProjection(raw, master) {
-  try {
-    const parsed = parseNarrative(raw ?? '', { master });
-    return plainObject(parsed) ? parsed : { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
-  } catch {
-    return { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
-  }
-}
-
 const master = masterFromEdition(edition);
   const npcIds = npcIdsFromEdition(edition);
   const catalogs = catalogsFromEdition(edition);
@@ -316,7 +308,7 @@ const master = masterFromEdition(edition);
         const records = page.map(row => {
           const parsedBlocks = plainObject(row.parsed_blocks) && Object.keys(row.parsed_blocks).length
             ? row.parsed_blocks
-            : parseNarrative(row.story_text ?? '', { master });
+            : parsePersistedNarrative(row.story_text ?? '', { master });
           return {
             turn_number: row.turn_number,
             player_input: row.player_action,
@@ -390,7 +382,7 @@ const master = masterFromEdition(edition);
         logTurnTiming({ event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn, replayed: true, turn_total_ms: Date.now() - startedAt });
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
           // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
-          const parsed = parseStoryProjection(action.story_text, master);
+          const parsed = parsePersistedNarrative(action.story_text, { master });
           emit('delta', { text: action.story_text });
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
         } });
@@ -479,7 +471,7 @@ const master = masterFromEdition(edition);
           // 문서 5절 — 정본 story_text는 upstreamRaw(플레이어 가시 원문)다.
           // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
           raw = upstreamRaw;
-          const parsed = parseStoryProjection(raw, master);
+          const parsed = parseFreshNarrativeV2(raw, { master });
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
           const mergedWarnings = [...(parsed.warnings ?? [])];
           const contractPersisted = {
@@ -528,7 +520,7 @@ const master = masterFromEdition(edition);
         stage: 'extract'
       });
       if (action.extract_delta) {
-        const replayParsedStory = parseStoryProjection(action.story_text, master);
+        const replayParsedStory = parsePersistedNarrative(action.story_text, { master });
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
@@ -546,7 +538,7 @@ const master = masterFromEdition(edition);
 
       const timing = {};
       try {
-        let parsedStory = parseStoryProjection(action.story_text, master);
+        let parsedStory = parsePersistedNarrative(action.story_text, { master });
         // Extract observes the same raw Story text that was streamed to the player.
         const storyForExtract = action.story_text;
         let extract;
@@ -672,7 +664,7 @@ const master = masterFromEdition(edition);
           playerAction: csaResolution ? '' : action.player_action,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
-        let parsedStory = parseStoryProjection(action.story_text, master);
+        let parsedStory = parsePersistedNarrative(action.story_text, { master });
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({
@@ -926,7 +918,7 @@ const master = masterFromEdition(edition);
             throw error;
           }
           const { background, body: sections, warnings: splitWarnings } = splitOpeningSections(raw);
-          const parsedOpening = parseNarrative(sections, { master });
+          const parsedOpening = parseFreshNarrativeV2(sections, { master });
           const rawChoices = (Array.isArray(parsedOpening.choices) ? parsedOpening.choices : []).filter(choice => typeof choice === 'string' && choice.trim());
           const finalChoices = rawChoices;
           const commit = await db.callRpc('commit_company_opening', {

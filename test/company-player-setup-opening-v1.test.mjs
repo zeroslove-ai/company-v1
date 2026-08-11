@@ -61,7 +61,14 @@ const openingSse = 'data: {"choices":[{"delta":{"content":"[배경] 신입사원
   + 'data: {"choices":[{"delta":{"content":"\\n[4. 선택지]\\n1. 인사한다\\n2. 둘러본다\\n3. 자리를 찾는다\\n4. 대기한다"}}]}\n\n'
   + 'data: [DONE]\n';
 
-function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), gameTitle = '상식개변: 회사편', storySseText = openingSse, storyThrows = false } = {}) {
+const canonicalOpeningSse = [
+  '[\uBC30\uACBD] First day.',
+  '\n[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]\n[SCENE]\nThe lobby is busy.',
+  '\n[2. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C]\nI feel nervous.',
+  '\n[3. \uC120\uD0DD\uC9C0]\n1. [\uAD00\uCC30] Look around\n2. [\uC778\uC0AC] Say hello\n3. [\uB300\uAE30] Wait here\n4. [\uC774\uB3D9] Find a desk'
+].map(content => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`).join('') + 'data: [DONE]\n';
+
+function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), gameTitle = '상식개변: 회사편', storySseText = canonicalOpeningSse, storyThrows = false } = {}) {
   const calls = [];
   let currentSave = structuredClone(initialSave);
   masterInitialSave = structuredClone(masterInitialSave);

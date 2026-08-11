@@ -10,11 +10,11 @@ import {
   hydrateGameplayState,
   migrateCompanySave,
   normalizeElapsedMinutes,
-  parseNarrative,
   reducePlayerSexualState,
   buildExtractPrompt,
   buildCsaSceneRuntimeStatePatch
 } from '../src/engine/index.js';
+import { parseNarrative } from '../src/engine/narrative-parser.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');

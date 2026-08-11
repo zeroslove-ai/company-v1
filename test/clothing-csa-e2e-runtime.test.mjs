@@ -124,12 +124,27 @@ function makeRuntimeHarness() {
   const actions = new Map();
   const completionBodies = [];
 
-  const storySse = [
+  const legacyStorySse = [
     'data: {"choices":[{"delta":{"content":"[SCENE]\\n상식개변 규정이 발효됐다. 윤민아가 교칙 안내를 시작한다."}}]}\n\n',
     'data: {"choices":[{"delta":{"content":"[DIALOGUE speaker_id=\\"heroine2\\" acting_direction=\\"정중하게\\"]\\n안내드립니다."}}]}\n\n',
     'data: {"choices":[{"delta":{"content":"[CHOICES]\\n1. 질문한다\\n2. 그대로 둔다\\n3. 확인한다\\n4. 다른 일을 한다"}}]}\n\n',
     'data: [DONE]\n\n'
   ].join('');
+  const storyText = [
+    '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]',
+    '[SCENE]',
+    '\uADDC\uC815 \uC548\uB0B4\uAC00 \uC2DC\uC791\uB410\uB2E4.',
+    '[DIALOGUE speaker_id="heroine2" acting_direction="\uC815\uC911\uD558\uAC8C"]',
+    '\uC548\uB0B4\uB9AC\uB294 \uAC83\uC744 \uC124\uBA85\uD55C\uB2E4.',
+    '[2. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C]',
+    '\uB2E4\uC74C \uC21C\uC11C\uB97C \uC0DD\uAC01\uD55C\uB2E4.',
+    '[3. \uC120\uD0DD\uC9C0]',
+    '1. [\uC9C8\uBB38] \uC9C8\uBB38\uD55C\uB2E4.',
+    '2. [\uB300\uAE30] \uADF8\uB300\uB85C \uB450\uBA74\uC11C \uAE30\uB2E4\uB9B0\uB2E4.',
+    '3. [\uD655\uC778] \uB0B4\uC6A9\uC744 \uD655\uC778\uD55C\uB2E4.',
+    '4. [\uC774\uB3D9] \uB2E4\uB978 \uC7A5\uC18C\uB85C \uC774\uB3D9\uD55C\uB2E4.'
+  ].join('\n');
+  const storySse = `data: ${JSON.stringify({ choices: [{ delta: { content: storyText } }] })}\n\ndata: [DONE]\n\n`;
 
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
