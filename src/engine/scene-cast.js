@@ -392,27 +392,6 @@ export function resolveNpcLocationId({ save, npcId, charactersMap = {}, generalN
   return null;
 }
 
-function resolvePresentNpcIds({ save, registeredIds }) {
-  const present = [];
-  const push = id => {
-    if (!id || isPlayerRefId(id) || !registeredIds.has(id) || present.includes(id)) return;
-    present.push(id);
-  };
-  const sceneState = isPlainObject(save?.scene_state) ? save.scene_state : {};
-  const locationId = identity(sceneState.location_id);
-  const npcSceneState = isPlainObject(save?.npc_scene_state) ? save.npc_scene_state : {};
-  const participants = Array.isArray(sceneState.participants) ? sceneState.participants : [];
-
-  // 모든 등록 NPC를 helper로 판정 (action target 승격 경로 없음 — 수정 7)
-  for (const id of registeredIds) {
-    if (isNpcPresentAtCurrentScene({ id, participants, sceneLocationId: locationId, npcSceneState })) {
-      push(id);
-    }
-  }
-
-  return present;
-}
-
 /** 사용자가 해당 NPC를 부르거나 호출하는 행동 (entering 근거). */
 const CALL_ACTION = /(부른다|불렀다|호출한다|호출했다|오라고|오라 한다|불러온다|불러서|소환한다|이쪽으로)/u;
 
