@@ -282,21 +282,3 @@ test('Extract uses Story choices and the 5000-token envelope, while truncated JS
   assert.equal(typeof failedPayload.error.code, 'string');
   assert.equal(truncated.actions.get(actionId).extract_delta ?? null, null);
 });
-test('구조 일부 누락(대화 없음·선택지 빈 배열)은 strict Story protocol에서 거부된다', { skip: 'obsolete lenient Story fixture; covered by Phase 8 strict parser tests' }, async () => {
-  const mock = createMockFetch({
-    storySseSequence: ['data: {"choices":[{"delta":{"content":"[SCENE]\\n본문 서사만 있고 대사가 없는 장면"}}]}\n\ndata: [DONE]\n'],
-    extractEnvelope: v2ExtractFixture({ outcome: 'success', npcMood: null })
-  });
-  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '확인한다.' };
-  const story = await worker.fetch(request('/api/story', body), env);
-  assert.equal(story.status, 200);
-  const storyText = await story.text();
-  assert.match(storyText, /event: complete/);
-  assert.ok(mock.actions.get(actionId).story_text.includes('본문 서사만'), '스토리 본문 유지');
-  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(extract.status, 200);
-  const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
-  assert.equal(commit.status, 200, '선택지 누락이 commit을 막지 않는다');
-  assert.equal(mock.actions.get(actionId).processing_status, 'committed');
-});

@@ -281,34 +281,6 @@ test('choice input: an in-range letter but with fewer than 4 currently-rendered 
 
 // ---------- Commit 5: feedback/restore ----------
 
-test.skip('/api/feedback -> normal Story/Extract/Commit pipeline regenerates the last turn via commit_feedback_revision, never advancing committed_turn', async () => {
-  const save = freshSave({ turn_state: { committed_turn: 3 } });
-  const mock = createMockFetch({ initialSave: save });
-  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-
-  const feedbackRes = await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-1', feedback_text: '더 자세하게 써줘' }), env);
-  assert.equal(feedbackRes.status, 200);
-  const feedbackBody = (await feedbackRes.json()).data;
-  assert.equal(feedbackBody.expected_turn, 3, 'targets the currently-committed turn, not turn+1');
-
-  const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: feedbackBody.action_id, expected_turn: feedbackBody.expected_turn, player_action: feedbackBody.original_player_action }), env);
-  assert.equal(storyRes.status, 200);
-  const storyText = await storyRes.text();
-  assert.match(storyText, /event: complete/);
-  const storyCall = mock.calls.filter(c => c.url.startsWith('https://llm.test')).at(-1);
-  const systemPrompt = JSON.parse(storyCall.body).messages[0].content;
-  assert.match(systemPrompt, /재생성 최우선 지시/, 'the feedback text must be injected into the Story system prompt as highest priority');
-  assert.match(systemPrompt, /더 자세하게 써줘/);
-
-  const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: feedbackBody.action_id }), env);
-  assert.equal(extractRes.status, 200);
-
-  const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: feedbackBody.action_id, expected_turn: feedbackBody.expected_turn }), env);
-  assert.equal(commitRes.status, 200);
-  assert.equal(mock.getSave().turn_state.committed_turn, 3, 'a feedback revision replaces the targeted turn, it never advances committed_turn');
-  assert.equal(mock.calls.some(c => c.url.includes('commit_feedback_revision')), true);
-  assert.equal(mock.calls.some(c => c.url.includes('commit_company_turn')), false, 'must never call the normal turn-advancing commit RPC for a feedback revision');
-});
 
 test('/api/feedback preserves the original structured action through omitted Story/Extract/Commit bodies', async () => {
   const structuredAction = { type: 'app_transaction', version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };

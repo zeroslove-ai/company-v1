@@ -103,43 +103,7 @@ test('Story context keeps the latest 3 turns as full raw story (canonical, no du
   }
 });
 
-test.skip('Story Prompt v2 explicitly requires continuity, NPC agency, functional dialogue, and choice diversity', () => {
-  const messages = buildStoryPrompt({
-    edition,
-    context: contextWithTurns(),
-    playerAction: '김제나의 답을 기다린다.',
-    expectedTurn: 3,
-    npcIds: new Set(Object.keys(characters))
-  });
-  const system = messages[0].content;
-  const payload = JSON.parse(messages[1].content);
 
-  assert.match(system, /recent_turns/);
-  assert.match(system, /NPC 자율성/);
-  assert.match(system, /대화 기능/);
-  assert.match(system, /현재 장면에서 바로 실행할 수 있는 서로 다른 행동 4개/);
-  assert.match(system, /업무 협조는 호감이 아니고/);
-  assert.equal(payload.context.recent_turns.length, 3);
-  assert.equal('last_turn_continuity' in payload.context, false, '중복 projection 없음');
-  assert.ok(system.length < 11000, `Story system prompt too large: ${system.length}`);
-});
-
-test.skip('Story prompt treats context.current_time day/minute_of_day as hard facts', () => {
-  const context = contextWithTurns();
-  context.save.data.world_state.game_time = { day: 2, minute_of_day: 1320 };
-  const messages = buildStoryPrompt({
-    edition,
-    context,
-    playerAction: '보고서를 정리한다.',
-    expectedTurn: 4
-  });
-  const system = messages[0].content;
-  const payload = JSON.parse(messages[1].content);
-  assert.deepEqual(payload.context.current_time, { day: 2, minute_of_day: 1320 });
-  assert.match(system, /context\.current_time\.day와 context\.current_time\.minute_of_day는 확정 사실이다/);
-  assert.match(system, /시간·채광·식사 묘사가 이 값과 모순되면 생략하고/);
-  assert.match(system, /실제 elapsed 근거 없는 장시간 경과를 만들지 않는다/);
-});
 
 test('Extract compact canon uses actual prompt-card fields and drops unrelated or forbidden fields', () => {
   const canon = buildExtractCharacterCanon(characters, ['heroine3', 'heroine5']);

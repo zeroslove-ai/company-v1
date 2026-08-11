@@ -147,41 +147,6 @@ test('product recovery uses canonical presence and location over conflicting leg
 });
 
 
-test.skip('registered NPC policy is static, cache-friendly, and Story-only', () => {
-  const init = {
-    body: JSON.stringify({
-      stream: true,
-      messages: [
-        { role: 'system', content: 'STATIC STORY PREFIX' },
-        { role: 'user', content: JSON.stringify({ active_character_canon: { heroine1: { name: '히로인1' } }, context: { turn: 4 } }) }
-      ]
-    })
-  };
-  const patched = JSON.parse(applyRegisteredNpcPolicy(init).body);
-  assert.match(patched.messages[0].content, /^STATIC STORY PREFIX/);
-  assert.match(patched.messages[0].content, /REGISTERED ACTOR POLICY/);
-  assert.match(patched.messages[0].content, /scene_actors/);
-  return;
-  assert.match(patched.messages[0].content, /등록 NPC 전용 등장 정책/);
-  assert.match(patched.messages[0].content, /이름 없는 직원·비서·동료·경비·방문객/);
-  assert.match(patched.messages[0].content, /일회성 배경 오류/);
-  assert.match(patched.messages[0].content, /다음 턴의 서사 연속성에 유지하지 않는다/);
-  assert.match(REGISTERED_NPC_POLICY, /등록되지 않은 단역/);
-
-  const extract = {
-    body: JSON.stringify({
-      stream: false,
-      messages: [
-        { role: 'system', content: 'VERIFIED EXTRACT PREFIX' },
-        { role: 'user', content: JSON.stringify({ registered_characters: [{ character_id: 'heroine1' }] }) }
-      ]
-    })
-  };
-  assert.equal(applyRegisteredNpcPolicy(extract), extract, 'Extract의 기존 ID guard와 프롬프트 예산을 유지한다');
-
-  const classifier = { body: JSON.stringify({ messages: [{ role: 'system', content: 'CLASSIFIER' }] }) };
-  assert.equal(applyRegisteredNpcPolicy(classifier), classifier);
-});
 
 test('history pagination state, dedupe, and MD/TXT exports preserve committed content', () => {
   assert.deepEqual(historyPageState({ has_more: true, next_before_turn: 21 }), { next_before_turn: 21, has_more: true, hide_more: false });

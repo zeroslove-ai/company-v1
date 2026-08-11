@@ -142,31 +142,6 @@ test('general NPC canon and registry contain only supported compact catalog fiel
   ]);
 });
 
-test.skip('Story Prompt v2 phase 2 supplies deterministic workplace candidates without marking them active', () => {
-  const save = baseSave();
-  const messages = buildStoryPrompt({
-    edition,
-    context: { game: { id: 'g1', title: '상식개변: 회사편' }, save, recent_turns: [] },
-    playerAction: '서원희와 최종안을 검토한다.',
-    expectedTurn: 3,
-    npcIds: new Set(['heroine1', 'general_manager', 'general_designer'])
-  });
-  const system = messages[0].content;
-  const payload = JSON.parse(messages[1].content);
-
-  assert.deepEqual(Object.keys(payload.scene_actors), []);
-  assert.deepEqual(payload.context.workplace.eligible_nearby_npcs.map(npc => npc.npc_id), ['general_designer', 'general_manager']);
-  assert.match(system, /scene_actors/);
-  assert.match(system, /possible_entrants/);
-  return;
-  assert.match(system, /scene_cast_contract가 이미 확정/);
-  assert.match(system, /너에게는 결정 권한이 없다/);
-  assert.match(system, /scene_goal 또는 focus_thread/);
-  assert.match(system, /현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다/);
-  assert.match(system, /\[DIALOGUE speaker_id=/);
-  assert.match(system, /acting_direction=/);
-  assert.ok(system.length <= 11000, `Story system prompt too large: ${system.length}`);
-});
 
 test('Story scene context uses canonical location and presence', () => {
   const save = baseSave();
@@ -192,49 +167,7 @@ test('Story scene context uses canonical location and presence', () => {
   assert.equal(core.active_npc_state.npc_scene_state?.general_manager?.present, false);
 });
 
-test.skip('CSA Story prompt keeps the app meta boundary and grounds newly activated authority tiers', () => {
-  const save = baseSave();
-  save.csa_active = ['csa-new'];
-  save.csa_rules = {
-    'csa-new': {
-      active: true,
-      content: '여성 직원은 공식 규정에 따라 근무한다.',
-      strength: 'weak',
-      created_turn: 3,
-      preset: { authority_tier: 'weak', affected_group: 'female_employee', mode: 'continuous' }
-    }
-  };
-  const system = buildStoryPrompt({ edition, context: { game: {}, save, recent_turns: [] }, playerAction: '회사 규정 변경사항 1건이 공식 반영된다.', expectedTurn: 3, npcIds: new Set(['heroine1']) })[0].content;
-  assert.match(system, /상식개변 앱은 플레이어 전용 메타 UI/);
-  assert.match(system, /newly_activated/);
-  assert.match(system, /weak=사내 지침/);
-  assert.match(system, /medium=취업규칙/);
-  assert.match(system, /strong=국가 법령/);
-  assert.match(system, /스마트워치 알림/);
-});
 
-test.skip('FINAL_OUTPUT_SHAPE carries active CSA awareness, continuous compliance, and player agency contracts', () => {
-  const system = buildStoryPrompt({
-    edition,
-    context: { game: {}, save: baseSave(), recent_turns: [] },
-    playerAction: 'ordinary action',
-    expectedTurn: 1,
-    npcIds: new Set(['heroine1'])
-  })[0].content;
-
-  assert.match(system, /\[FINAL CSA AWARENESS CONTRACT\]/);
-  assert.match(system, /already a known and effective institutional reality/);
-  assert.match(system, /Do not write that the NPC does not know it/);
-  assert.match(system, /\[FINAL CONTINUOUS COMPLIANCE CONTRACT\]/);
-  assert.match(system, /mode=continuous/);
-  assert.match(system, /compliance is the default behavior/);
-  assert.match(system, /\[FINAL PHYSICAL COMPLIANCE CONTRACT\]/);
-  assert.match(system, /context\.clothing_authority\[npc_id\]\.rule_id/);
-  assert.match(system, /required underwear_top=removed requires the NPC to remove the bra/);
-  assert.match(system, /uniform_top=open is not a substitute/);
-  assert.match(system, /Player-subject agency is unchanged/);
-  assert.match(system, /\[FINAL OUTPUT SELF-CHECK\]/);
-});
 
 test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {
   const save = baseSave();
