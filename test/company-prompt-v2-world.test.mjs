@@ -265,8 +265,10 @@ test('Story and Extract activate a named general NPC with compact canon and scop
   const extractSystem = extractMessages[0].content;
   const extractPayload = JSON.parse(extractMessages[1].content);
 
-  assert.equal(extractPayload.registered_characters.length, 1);
-  assert.equal(extractPayload.registered_general_npcs.length, 2);
+  assert.equal(extractPayload.registered_identities.length, 3);
+  assert.equal('registered_characters' in extractPayload, false);
+  assert.equal('registered_general_npcs' in extractPayload, false);
+  assert.equal('player_action' in extractPayload, false);
   assert.equal('active_character_canon' in extractPayload, false);
   assert.equal('active_general_npc_canon' in extractPayload, false);
   return;

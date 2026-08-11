@@ -255,7 +255,7 @@ test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibiti
   assert.match(system, /Never return these save-patch or parser fields/);
   assert.match(system, /kind must be exactly one of "presence" or "scene"/);
   assert.match(system, /never invent names such as "npc_presence"/);
-  assert.match(system, /never compose a quote from the player action or inferred facts/);
+  assert.match(system, /never compose a quote from inferred facts or any input outside story_text/);
   assert.match(system, /evidence is a top-level sibling of player_observation and npc_observations/);
   assert.match(system, /Never put an evidence key inside a player or NPC object/);
   for (const forbidden of ['state_delta', 'choices', 'dialogue_lines', 'player_inner_thought', 'last_speaker_id', 'npcs_present', 'focal_character_id', 'csa_active', 'csa_rules', 'world_state', 'save']) assert.match(system, new RegExp(forbidden));

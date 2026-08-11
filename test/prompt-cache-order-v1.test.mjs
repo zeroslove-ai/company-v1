@@ -25,12 +25,9 @@ const story = {
 
 const extract = {
   expected_turn: 3,
-  player_action: 'ordinary',
   context: {},
   story_text: 'story',
   registered_locations: [],
-  registered_general_npcs: [],
-  registered_characters: [],
   registered_identities: [],
   extract_version: 2
 };

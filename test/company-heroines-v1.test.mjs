@@ -340,10 +340,13 @@ test('Extract receives a compact registered location ID dictionary for grounded 
   assert.deepEqual(payload.registered_locations.find(location => location.location_id === office.location_id), office);
 });
 
-test('Extract prompt user payload carries registered_characters and the system prompt restricts Extract to those stable ids', () => {
-  const prompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
+test('Extract prompt user payload carries one registered identity registry and stable-id rules', () => {
+  const prompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, expectedTurn: 1, edition });
   const payload = JSON.parse(prompt[1].content);
-  assert.equal(payload.registered_characters.length, 5);
+  assert.equal(payload.registered_identities.length, 13);
+  assert.equal('registered_characters' in payload, false);
+  assert.equal('registered_general_npcs' in payload, false);
+  assert.equal('player_action' in payload, false);
   const system = prompt[0].content;
   assert.match(system, /registered identities list the only stable NPC ids/);
   assert.match(system, /never invent, guess, or reuse an id/);

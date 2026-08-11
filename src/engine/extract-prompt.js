@@ -120,7 +120,7 @@ const SYSTEM_INSTRUCTIONS = [
   'Return npc_observations only for registered NPCs and only observed physical, emotion, relationship, stats, work, or csa_attitude fields. Relationship keys are closeness, romance_status, and current_boundary; csa_attitude.familiarity is an integer when present. Without a numeric familiarity change, omit csa_attitude (never familiarity:null). Never return affection, present, scene_id, location_id, updated_turn, arbitrary nested save patches, absolute stats, resistance, last_changed_turn, milestones, or relationship_summary.',
   'The top-level keys of npc_observations must be registered NPC IDs, never a domain key; for example: {"npc_observations":{"heroine2":{"emotion":{"mood":"..."}}}}.',
   'If a domain has no exact observed change, omit that domain; do not invent descriptive keys such as affection, team_daily_schedule, relationship_summary, or other human-readable labels. The safe minimal observation for an ordinary dialogue is empty player_observation, empty npc_observations, empty events, scene_observation with final_present_npc_ids:null, and the remaining skeleton defaults.',
-  'Exact evidence contract: evidence is a top-level sibling of player_observation and npc_observations. Never put an evidence key inside a player or NPC object; npc_observations.<npc_id> contains only the listed domain objects. Omit evidence.changed when there is no changed field instead of returning an empty changed array or empty quote. Clothing uses evidence.clothing.<actor_id>={quote,character_id}; other fields use evidence.changed {changed:[path],quote}; scene evidence uses {kind,character_id or location_id,quote}, and kind must be exactly one of "presence" or "scene" (never invent names such as "npc_presence"). Events use the same exact Story quote. kind:"scene" requires non-null scene_observation.scene_id; otherwise omit it. Copy quotes verbatim from story_text; never compose a quote from the player action or inferred facts. If the exact sentence is not present in story_text, omit the scene evidence. In a multi-NPC scene, an NPC physical/clothing quote must include the actor name; for pronouns, include the contiguous preceding named clause. Scene evidence is only for directly shown facts. Locations must be registered.',
+  'Exact evidence contract: evidence is a top-level sibling of player_observation and npc_observations. Never put an evidence key inside a player or NPC object; npc_observations.<npc_id> contains only the listed domain objects. Omit evidence.changed when there is no changed field instead of returning an empty changed array or empty quote. Clothing uses evidence.clothing.<actor_id>={quote,character_id}; other fields use evidence.changed {changed:[path],quote}; scene evidence uses {kind,character_id or location_id,quote}, and kind must be exactly one of "presence" or "scene" (never invent names such as "npc_presence"). Events use the same exact Story quote. kind:"scene" requires non-null scene_observation.scene_id; otherwise omit it. Copy quotes verbatim from story_text; never compose a quote from inferred facts or any input outside story_text. If the exact sentence is not present in story_text, omit the scene evidence. In a multi-NPC scene, an NPC physical/clothing quote must include the actor name; for pronouns, include the contiguous preceding named clause. Scene evidence is only for directly shown facts. Locations must be registered.',
   'Illustrative physical shape (not mandatory output): {"npc_observations":{"heroine2":{"physical":{"position_label":"회의실 테이블 옆","clothing":{"underwear_bottom":"removed"}}}},"evidence":{"clothing":{"heroine2":{"character_id":"heroine2","quote":"named exact Story substring"}},"physical_change":{"changed":["npc_scene_state.heroine2.clothing.underwear_bottom"],"quote":"same exact substring"}}}. Use position_label, never position/label; clothing slots are uniform_top, uniform_bottom, underwear_top, underwear_bottom with states worn, removed, open, unknown. Copy the real Story substring and omit unobserved fields.',
   'Every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence is required. Every proposal requires exact Story evidence. When only a regulation/plan exists and the attire is not shown in Story, make no clothing patch. actor_id/target_id must be registered IDs and must identify distinct observed participants. Events contain only observed general or sexual events with registered actor/target IDs, canonical action types, and exact Story evidence. Counters and milestones are derived by reducers, never proposed directly.',
   'elapsed_minutes is the only time proposal: 1-30 normally, up to 480 only with evidence.time_advance=true. Never propose world clock fields.',
@@ -130,7 +130,7 @@ const SYSTEM_INSTRUCTIONS = [
   'Final scene presence: a local dialogue speaker is evidence of presence during the Story, but final_present_npc_ids is the last-moment snapshot. If that speaker clearly leaves before the end, omit it; if the final snapshot cannot be established, preserve null rather than guessing.'
 ].join(' ');
 
-export function buildExtractPrompt({ context, storyText, parsedStory, playerAction, expectedTurn, edition, npcIds }) {
+export function buildExtractPrompt({ context, storyText, parsedStory, expectedTurn, edition, npcIds }) {
   const relevantIds = buildExtractRelevantNpcIds({ context, parsedStory, storyText, edition, npcIds });
   return [
     { role: 'system', content: SYSTEM_INSTRUCTIONS },
@@ -139,12 +139,9 @@ export function buildExtractPrompt({ context, storyText, parsedStory, playerActi
       content: JSON.stringify({
         extract_version: 2,
         registered_identities: registeredIdentityEntries(edition),
-        registered_characters: buildRegisteredCharacters(edition),
-        registered_general_npcs: buildRegisteredGeneralNpcs(edition),
         registered_locations: buildRegisteredLocations(edition),
         story_text: storyText,
         context: buildExtractContextProjection(context, relevantIds),
-        player_action: playerAction,
         expected_turn: expectedTurn
       })
     }

@@ -27,8 +27,8 @@ const v2ExtractFixture = ({ outcome = 'partial', npcMood = null, elapsed_minutes
   outcome,
   scene_observation: {
     scene_id: null, location_id: null, final_present_npc_ids: null,
-    entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null,
-    presence_is_final: false, remote_speaker_ids: [], evidence: []
+    focal_candidate_id: null,
+    remote_speaker_ids: [], evidence: []
   },
   player_observation: {},
   npc_observations: npcMood ? { 'npc-hayeon': { emotion: { mood: npcMood } } } : {},
@@ -229,7 +229,7 @@ test('Phase 2 retries one genuinely failed Extract after an infrastructure error
   assert.equal((await failedStatus.json()).data.recoverable_step, 'complete');
   const recovered = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(recovered.status, 200);
-  assert.equal((await recovered.json()).data.degraded, false);
+  assert.equal('degraded' in (await recovered.json()).data, false);
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
 });
 

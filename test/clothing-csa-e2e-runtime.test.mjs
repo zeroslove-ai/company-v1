@@ -139,7 +139,7 @@ function makeRuntimeHarness() {
       if (body.stream) return new Response(storySse, { headers: { 'content-type': 'text/event-stream' } });
       return new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({
         extract_version: 2, outcome: 'success',
-        scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+        scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
         player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
         elapsed_minutes: 15, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '규정 안내를 받았다.', warnings: []
       }) } }] }), { status: 200, headers: { 'content-type': 'application/json' } });

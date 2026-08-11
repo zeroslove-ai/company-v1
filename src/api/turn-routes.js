@@ -12,8 +12,8 @@ import {
   deriveRecoverableStep,
   deriveTurnChanges,
   hydrateGameplayState,
-  normalizeExtractObservationV2,
-  adaptLegacyExtractDelta,
+  normalizeFreshExtractObservationV2,
+  normalizePersistedExtractObservation,
   reduceGameplayCommit,
   parseNarrative,
   resolvePlayerCanonicalNames,
@@ -529,9 +529,7 @@ const master = masterFromEdition(edition);
       });
       if (action.extract_delta) {
         const replayParsedStory = parseStoryProjection(action.story_text, master);
-        const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId })
-          : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId });
+        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
@@ -547,7 +545,6 @@ const master = masterFromEdition(edition);
       Object.assign(action, claimedExtract);
 
       const timing = {};
-      let degraded = false;
       try {
         let parsedStory = parseStoryProjection(action.story_text, master);
         // Extract observes the same raw Story text that was streamed to the player.
@@ -570,7 +567,9 @@ const master = masterFromEdition(edition);
           const resolvedLocationId = resolveNavigationLocation({
             save: hydratedSave,
             master,
-            playerAction: csaResolution ? '' : action.player_action,
+            // Extract observes the completed Story; player input is not an
+            // observation authority and must not influence its prompt context.
+            playerAction: '',
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           const extractBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
@@ -587,7 +586,7 @@ const master = masterFromEdition(edition);
               ? { ...hydratedContext.save, data: extractSave }
               : extractSave
           };
-          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
+          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, expectedTurn: action.expected_turn, edition, npcIds });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaResolution) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa);
@@ -605,7 +604,7 @@ const master = masterFromEdition(edition);
           const parseStart = Date.now();
           // Fresh Extract calls are V2-only. The legacy adapter is reserved for
           // persisted V1 rows during replay/recovery, never for a new LLM result.
-          extract = normalizeExtractObservationV2(raw, {
+          extract = normalizeFreshExtractObservationV2(raw, {
             npcIds,
             storyText: storyForExtract,
             expectedTurn: action.expected_turn,
@@ -629,12 +628,12 @@ const master = masterFromEdition(edition);
           // not turn a successful Extract into a stuck action, so resync with the source of truth.
           await db.getAction(gameId, actionId).catch(() => null);
         }
-        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, degraded, parsed_blocks: parsedStory });
+        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, parsed_blocks: parsedStory });
       } finally {
         logTurnTiming({
           event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId,
           context_rpc_ms: timing.context_rpc_ms, extract_prompt_ms: timing.extract_prompt_ms, extract_llm_ms: timing.extract_llm_ms,
-          extract_parse_ms: timing.extract_parse_ms, extract_degraded: degraded,
+          extract_parse_ms: timing.extract_parse_ms,
           extract_system_chars: timing.extract_system_chars, extract_context_chars: timing.extract_context_chars,
           parsed_story_chars: timing.parsed_story_chars, extract_request_chars: timing.extract_request_chars,
           active_character_count: timing.active_character_count,
@@ -674,14 +673,7 @@ const master = masterFromEdition(edition);
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
         let parsedStory = parseStoryProjection(action.story_text, master);
-        const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, {
-              npcIds,
-              storyText: action.story_text,
-              expectedTurn,
-              actionId,
-            })
-          : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
+        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,

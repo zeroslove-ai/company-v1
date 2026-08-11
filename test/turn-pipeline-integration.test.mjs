@@ -80,7 +80,7 @@ function createMockFetch({
   const extract = extractEnvelope ?? {
     extract_version: 2,
     outcome: 'partial',
-    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
     mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
     csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
@@ -265,7 +265,7 @@ test('navigation Commit uses the current deterministic location and generic scen
     scene_observation: {
       scene_id: 'brand-strategy-scene', location_id: 'brand_strategy_office',
       final_present_npc_ids: ['heroine2'],
-      focal_candidate_id: null, presence_is_final: true,
+      focal_candidate_id: null,
       remote_speaker_ids: ['heroine5'], evidence: [
         { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES[1] }
       ]
