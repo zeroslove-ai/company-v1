@@ -5,7 +5,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listGeneralNpcs, getGeneralNpc, isGeneralNpcId } from '../src/engine/npc/catalog.js';
 import { resolveGeneralNpcForGroup } from '../src/engine/npc/resolver.js';
-import { findNpc } from '../src/engine/npc/location.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -168,36 +167,4 @@ test('resolver: manager and stable selectors resolve one exact present NPC only'
   assert.deepEqual(resolveGeneralNpcForGroup('character:general_choi_yujin', scene), { id: 'general_choi_yujin' });
   assert.deepEqual(resolveGeneralNpcForGroup('department:finance', scene), { id: 'general_choi_yujin' });
   assert.equal(resolveGeneralNpcForGroup('company_employee', scene), null, 'two employees remain ambiguous');
-});
-
-// ---------- find_npc ----------
-
-function isKnown(id) { return isGeneralNpcId(generalNpcs, id) || id === 'heroine1'; }
-const validLocationIds = new Set(map.locations.map(l => l.location_id));
-
-test('find_npc: zero-LLM lookup succeeds when the NPC has a known location and is not already present', () => {
-  const save = { last_npcs_present: [], focal_character_id: null, npc_scene_state: { general_park_jungwoo: { location_label: '대회의실', location_id: 'large_meeting_room' } } };
-  const result = findNpc({ save, characterId: 'general_park_jungwoo', isKnownCharacterId: isKnown, validLocationIds });
-  assert.equal(result.ok, true);
-  assert.equal(result.location_id, 'large_meeting_room');
-});
-
-test('find_npc: NPC_NOT_FOUND for an id that is neither a heroine nor a general NPC', () => {
-  const result = findNpc({ save: {}, characterId: 'nobody', isKnownCharacterId: isKnown, validLocationIds });
-  assert.equal(result.ok, false);
-  assert.equal(result.code, 'NPC_NOT_FOUND');
-});
-
-test('find_npc: NPC_ALREADY_PRESENT when the NPC is already in the current scene', () => {
-  const save = { last_npcs_present: ['general_park_jungwoo'], focal_character_id: null, npc_scene_state: {} };
-  const result = findNpc({ save, characterId: 'general_park_jungwoo', isKnownCharacterId: isKnown, validLocationIds });
-  assert.equal(result.ok, false);
-  assert.equal(result.code, 'NPC_ALREADY_PRESENT');
-});
-
-test('find_npc: NPC_LOCATION_UNKNOWN when no location has ever been recorded for that NPC', () => {
-  const save = { last_npcs_present: [], focal_character_id: null, npc_scene_state: {} };
-  const result = findNpc({ save, characterId: 'general_oh_sehoon', isKnownCharacterId: isKnown, validLocationIds });
-  assert.equal(result.ok, false);
-  assert.equal(result.code, 'NPC_LOCATION_UNKNOWN');
 });

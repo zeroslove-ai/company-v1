@@ -84,7 +84,6 @@ export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
 
 export { listGeneralNpcs, getGeneralNpc, isGeneralNpcId } from './npc/catalog.js';
 export { resolveGeneralNpcForGroup } from './npc/resolver.js';
-export { findNpc } from './npc/location.js';
 export { resolveNumberedChoiceInput } from './choice-input.js';
 export { selectImage } from './media/image-selector.js';
 export { resolveTtsEligibility, ttsCacheKey } from './media/tts-contract.js';
