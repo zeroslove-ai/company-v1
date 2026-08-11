@@ -40,6 +40,63 @@ test('Story payload exposes the separated projections', () => {
   assert.equal('active_general_npc_canon' in payload, false);
 });
 
+test('Story context quarantines unregistered scene ids without mutating the save', () => {
+  const staleSave = {
+    scene: {
+      version: 1,
+      scene_id: 'room',
+      location_id: 'room',
+      present_npc_ids: ['heroine1', 'npc-hayeon', 'npc-areum', 'npc-minsu'],
+      focal_character_id: 'npc-hayeon',
+      last_speaker_id: 'npc-areum',
+      beat: 0,
+      updated_turn: 0
+    },
+    npc_scene_state: {
+      heroine1: { present: true },
+      'npc-hayeon': { present: true },
+      'npc-areum': { present: true },
+      'npc-minsu': { present: true }
+    },
+    npc_emotion: { 'npc-hayeon': { mood: 'tense' } },
+    npc_relationship_state: { 'npc-areum': { closeness: 'familiar' } },
+    npc_stats: { 'npc-minsu': { affinity: 20 } }
+  };
+  const before = structuredClone(staleSave);
+  const payload = JSON.parse(buildStoryPrompt({
+    edition,
+    context: { game: {}, save: { data: staleSave }, recent_turns: [] },
+    playerAction: '주변 상황을 살핀다.',
+    expectedTurn: 2,
+    sceneCastContract: { present_npc_ids: ['heroine1'], entering_npc_ids: [], remote_npc_ids: [] }
+  })[1].content);
+  assert.deepEqual(payload.registered_identities.map(entry => entry.id), ['heroine1', 'heroine2', 'heroine3']);
+  assert.deepEqual(payload.scene_actors && Object.keys(payload.scene_actors), ['heroine1']);
+  assert.equal('participants' in payload.context.scene, false);
+  assert.deepEqual(payload.context.scene.present_npc_ids, ['heroine1']);
+  assert.deepEqual(Object.keys(payload.context.active_npc_state.npc_scene_state ?? {}), ['heroine1']);
+  assert.equal(JSON.stringify(payload).includes('npc-hayeon'), false);
+  assert.equal(JSON.stringify(payload).includes('npc-areum'), false);
+  assert.equal(JSON.stringify(payload).includes('npc-minsu'), false);
+  assert.deepEqual(staleSave, before);
+});
+
+test('Story projection preserves stale ids inside historical raw turns', () => {
+  const rawStory = '[SCENE] npc-hayeon appeared in an old committed turn.';
+  const payload = JSON.parse(buildStoryPrompt({
+    edition,
+    context: {
+      game: {},
+      save: { data: { scene: { version: 1, scene_id: 'room', location_id: 'room', present_npc_ids: ['heroine1'], focal_character_id: null, last_speaker_id: null, beat: 0, updated_turn: 1 } } },
+      recent_turns: [{ turn_number: 1, story_text: rawStory, parsed_blocks: null, choices: [] }]
+    },
+    playerAction: '계속 진행한다.',
+    expectedTurn: 2,
+    sceneCastContract: { present_npc_ids: ['heroine1'], entering_npc_ids: [], remote_npc_ids: [] }
+  })[1].content);
+  assert.equal(payload.context.recent_turns[0].story_text, rawStory);
+});
+
 test('registered local Story speaker supplements an unknown final snapshot', () => {
   const scene = { scene_id: 'room', location_id: 'room', present_npc_ids: [], focal_character_id: null, last_speaker_id: null, beat: 0, updated_turn: 1 };
   const next = reduceCanonicalScene({ currentScene: scene, npcIds: new Set(['heroine2']), mapLocations: [{ location_id: 'room' }], observation: { outcome: 'success', final_present_npc_ids: null, explicit_speaker_ids: ['heroine2'], remote_speaker_ids: [] }, expectedTurn: 2 });

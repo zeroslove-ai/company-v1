@@ -61,11 +61,9 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
   let currentSave = structuredClone(initialSave);
   let saveRevision = 1;
   let jsonCallIndex = 0;
-  const sse = storySseText ?? 'data: {"choices":[{"delta":{"content":"[1. 서사 및 행동]\\n본문"}}]}\n\n'
-    + 'data: {"choices":[{"delta":{"content":"\\n[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\n'
-    + 'data: [DONE]\n';
+  const sse = storySseText ?? 'data: ' + JSON.stringify({ choices: [{ delta: { content: '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE label="A"]\nContinue carefully.\n[CHOICE label="B"]\nAsk a question.\n[CHOICE label="C"]\nWait a moment.\n[CHOICE label="D"]\nChange the subject.' } }] }) + '\n\ndata: [DONE]\n';
 
-  const strictStory = '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]\n[SCENE]\nA canonical scene.\n[2. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C]\nI consider the situation.\n[3. \uC120\uD0DD\uC9C0]\n1. [A1] Continue carefully.\n2. [B2] Ask a question.\n3. [C3] Wait a moment.\n4. [D4] Change the subject.';
+  const strictStory = '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE label="A"]\nContinue carefully.\n[CHOICE label="B"]\nAsk a question.\n[CHOICE label="C"]\nWait a moment.\n[CHOICE label="D"]\nChange the subject.';
   const strictSse = `data: ${JSON.stringify({ choices: [{ delta: { content: strictStory } }] })}\n\ndata: [DONE]\n\n`;
 
   async function fetchImpl(url, init = {}) {

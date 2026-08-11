@@ -20,6 +20,6 @@ Story never selects the player's next action. The player chooses four Story choi
 
 ## Choices and display status
 
-Exactly four parsed Story choices are authoritative. Extract choices are a fallback only when Story did not yield exactly four. Invalid count is `choices_not_exactly_four`; Story raw text and available blocks still render.
+Exactly four non-empty, non-duplicate parsed Story choices are authoritative. Any other count or duplicate/empty choice produces a footer warning only; Story raw text and observed blocks still render, free input remains available, and no prior choices or Extract-generated choices are used as a fallback.
 
 Player status may display only supplied data: player name, department, position, current location, Day/game time, committed turn, guarded turn changes, active global CSA count or names, and arousal only when actually present. Personal suggestions are forbidden. Missing time, ejaculation progress, turn changes, or other future fields remain unavailable rather than being invented.

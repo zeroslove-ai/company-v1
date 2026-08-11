@@ -46,6 +46,7 @@ import {
   resolveTtsEligibility,
   resolveStoredStructuredAction,
   assertStoredActionPersistenceParity,
+  createStoryStreamDecoder,
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
@@ -260,6 +261,31 @@ async function resolveSignedCsaTransactionResolution({ env, gameId, structuredAc
   return verification.resolution;
 }
 
+function emitStoryWireEvents(emit, events, timing, visibleStartedAt) {
+  for (const event of events ?? []) {
+    if (event.type === 'section_start') emit('section_start', event);
+    else if (event.type === 'block_start') emit('block_start', event);
+    else if (event.type === 'block_end') emit('block_end', event);
+    else if (event.type === 'acting') emit('acting', event);
+    else if (event.type === 'text_delta' && event.text) {
+      if (timing && timing.story_visible_first_content_ms === undefined) {
+        timing.story_visible_first_content_ms = Date.now() - visibleStartedAt;
+        if (timing.story_first_content_ms !== undefined) {
+          timing.story_decode_overhead_ms = Math.max(0, timing.story_visible_first_content_ms - timing.story_first_content_ms);
+        }
+      }
+      emit('delta', { text: event.text });
+    }
+  }
+}
+
+function emitVisibleStory(emit, raw, { master, timing } = {}) {
+  const decoder = createStoryStreamDecoder({ master });
+  const visibleStartedAt = Date.now();
+  emitStoryWireEvents(emit, decoder.push(raw), timing, visibleStartedAt);
+  emitStoryWireEvents(emit, decoder.finish(), timing, visibleStartedAt);
+}
+
 export function createTurnRoutes({ fetchImpl, edition }) {
 const master = masterFromEdition(edition);
   const npcIds = npcIdsFromEdition(edition);
@@ -383,7 +409,8 @@ const master = masterFromEdition(edition);
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
           // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
           const parsed = parsePersistedNarrative(action.story_text, { master });
-          emit('delta', { text: action.story_text });
+          if (parsed.warnings?.includes('legacy_narrative_adapter_used')) emit('delta', { text: action.story_text });
+          else emitVisibleStory(emit, action.story_text, { master });
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
         } });
       }
@@ -459,12 +486,16 @@ const master = masterFromEdition(edition);
           timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
           let stream = null;
           let upstreamRaw = '';
+          const wireDecoder = createStoryStreamDecoder({ master });
+          const visibleStartedAt = Date.now();
           try {
             stream = await streamStory({ env, fetchImpl, messages, timing });
             for await (const text of stream.chunks) {
               upstreamRaw += text;
-              emit('delta', { text });
+              emitStoryWireEvents(emit, wireDecoder.push(text), timing, visibleStartedAt);
             }
+            emitStoryWireEvents(emit, wireDecoder.finish(), timing, visibleStartedAt);
+            timing.story_visible_network_total_ms = Date.now() - visibleStartedAt;
           } catch (error) {
             throw error;
           }
@@ -496,6 +527,9 @@ const master = masterFromEdition(edition);
             event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn,
             context_rpc_ms: timing.context_rpc_ms, story_prompt_ms: timing.story_prompt_ms, story_headers_ms: timing.story_headers_ms,
             story_first_content_ms: timing.story_first_content_ms, story_network_total_ms: timing.story_network_total_ms,
+            story_visible_first_content_ms: timing.story_visible_first_content_ms,
+            story_decode_overhead_ms: timing.story_decode_overhead_ms,
+            story_visible_network_total_ms: timing.story_visible_network_total_ms,
             story_character_count: timing.story_character_count,
             story_system_chars: timing.story_system_chars, story_context_chars: timing.story_context_chars,
             scene_actor_chars: timing.scene_actor_chars, story_request_chars: timing.story_request_chars,
@@ -894,7 +928,7 @@ const master = masterFromEdition(edition);
 
       if (preSave?.player_setup?.completed === true && preSave?.opening_state?.status === 'complete') {
         return storySse({ meta: { setup_id: setupId, replayed: true }, run: async emit => {
-          emit('delta', { text: preSave.opening_state.story_text });
+          emitVisibleStory(emit, preSave.opening_state.story_text, { master });
           emit('complete', { setup_id: setupId, choices: preSave.opening_state.choices, replayed: true });
         } });
       }
@@ -908,19 +942,23 @@ const master = masterFromEdition(edition);
           const canonical = resolvePlayerCanonicalNames(player, catalogs);
           const messages = buildOpeningPrompt({ edition, player, canonical, openingPlan });
           let raw = '';
+          const wireDecoder = createStoryStreamDecoder({ master });
+          const visibleStartedAt = Date.now();
           try {
             const stream = await streamStory({ env, fetchImpl, messages, timing });
             for await (const text of stream.chunks) {
               raw += text;
-              emit('delta', { text });
+              emitStoryWireEvents(emit, wireDecoder.push(text), timing, visibleStartedAt);
             }
+            emitStoryWireEvents(emit, wireDecoder.finish(), timing, visibleStartedAt);
+            timing.story_visible_network_total_ms = Date.now() - visibleStartedAt;
           } catch (error) {
             throw error;
           }
-          const { background, body: sections, warnings: splitWarnings } = splitOpeningSections(raw);
-          const parsedOpening = parseFreshNarrativeV2(sections, { master });
-          const rawChoices = (Array.isArray(parsedOpening.choices) ? parsedOpening.choices : []).filter(choice => typeof choice === 'string' && choice.trim());
-          const finalChoices = rawChoices;
+          const background = '';
+          const splitWarnings = [];
+          const parsedOpening = parseFreshNarrativeV2(raw, { master });
+          const finalChoices = Array.isArray(parsedOpening.canonical_choices) ? parsedOpening.canonical_choices : [];
           const commit = await db.callRpc('commit_company_opening', {
             p_game_id: gameId,
             p_setup_id: setupId,
@@ -936,7 +974,9 @@ const master = masterFromEdition(edition);
           logTurnTiming({
             event_stage: 'opening', request_id: requestId, game_id: gameId,
             story_headers_ms: timing.story_headers_ms, story_first_content_ms: timing.story_first_content_ms,
-            story_network_total_ms: timing.story_network_total_ms, story_character_count: timing.story_character_count,
+            story_network_total_ms: timing.story_network_total_ms, story_visible_first_content_ms: timing.story_visible_first_content_ms,
+            story_decode_overhead_ms: timing.story_decode_overhead_ms, story_visible_network_total_ms: timing.story_visible_network_total_ms,
+            story_character_count: timing.story_character_count,
             turn_total_ms: Date.now() - startedAt
           });
         }

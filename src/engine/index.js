@@ -4,6 +4,7 @@ export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prom
 export { buildStoryWorldProjection } from './csa/story-projection.js';
 export { buildExtractPrompt } from './extract-prompt.js';
 export { parseFreshNarrativeV2 } from './fresh-narrative-parser.js';
+export { createStoryStreamDecoder, parseStoryControlMarker, buildStoryIdentityDirectory } from './story-wire-protocol.js';
 export { parsePersistedNarrative } from './persisted-narrative-parser.js';
 export { hydrateCanonicalScene, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
 export { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';

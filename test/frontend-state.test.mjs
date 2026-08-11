@@ -103,6 +103,7 @@ test('renderer uses view-model choices, short labels, and full choice payloads',
   assert.deepEqual(choicesForRenderer(model), model.story.choices);
   assert.deepEqual(choicesForRenderer(model, ['one', 'two', 'three', 'four']), ['one', 'two', 'three', 'four']);
   assert.deepEqual(choicesForRenderer(model, ['incomplete']), model.story.choices);
+  assert.deepEqual(choicesForRenderer(model, null), []);
   assert.equal(choiceLabel(longChoice).length <= 31, true);
   const previousDocument = globalThis.document; globalThis.document = { createElement: tag => new FakeNode(tag) };
   try {
@@ -645,7 +646,8 @@ test('Story complete uses top-level choices fallback and projects once without p
       context: async () => ({ context }),
       story: async () => new Response(
         'event: meta\ndata: {}\n\n'
-        + 'event: delta\ndata: {"text":"[SCENE] Raw streaming text"}\n\n'
+        + 'event: block_start\ndata: {"block_type":"scene"}\n\n'
+        + 'event: delta\ndata: {"text":"Raw streaming text"}\n\n'
         + 'event: complete\ndata: {"choices":["A","B","C","D"],"parsed_blocks":{"blocks":[{"type":"scene","text":"Final projection"}]}}\n\n',
         { headers: { 'content-type': 'text/event-stream' } }
       ),

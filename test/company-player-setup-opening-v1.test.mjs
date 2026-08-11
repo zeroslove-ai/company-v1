@@ -68,7 +68,9 @@ const canonicalOpeningSse = [
   '\n[3. \uC120\uD0DD\uC9C0]\n1. [\uAD00\uCC30] Look around\n2. [\uC778\uC0AC] Say hello\n3. [\uB300\uAE30] Wait here\n4. [\uC774\uB3D9] Find a desk'
 ].map(content => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`).join('') + 'data: [DONE]\n';
 
-function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), gameTitle = '상식개변: 회사편', storySseText = canonicalOpeningSse, storyThrows = false } = {}) {
+const semanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\\nThe lobby is busy.\\n[THOUGHT]\\nI feel nervous.\\n[CHOICE label="관찰"]\\nLook around\\n[CHOICE label="인사"]\\nSay hello\\n[CHOICE label="대기"]\\nWait here\\n[CHOICE label="이동"]\\nFind a desk' } }] })}\n\ndata: [DONE]\n\n`;
+
+function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), gameTitle = '상식개변: 회사편', storySseText = semanticOpeningSse, storyThrows = false } = {}) {
   const calls = [];
   let currentSave = structuredClone(initialSave);
   masterInitialSave = structuredClone(masterInitialSave);
@@ -311,8 +313,8 @@ test('buildOpeningPrompt only surfaces the plan\'s active heroines and adds the 
 
   const tfPrompt = buildOpeningPrompt({ edition, player: { name: '김하늘', position_id: 'tf_lead', department_id: 'brand_strategy' }, canonical, openingPlan });
   const tfPayload = JSON.parse(tfPrompt[1].content);
-  assert.match(tfPayload.cross_team_note, /서원희/);
-  assert.match(tfPayload.cross_team_note, /대체하지 않는다/);
+  assert.match(tfPayload.cross_team_note, /cross-team collaboration/);
+  assert.doesNotMatch(tfPayload.cross_team_note, /active_character_canon|speaker_id/);
 });
 
 test('resolvePlayerCanonicalNames resolves every catalog axis independently', () => {

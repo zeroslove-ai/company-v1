@@ -190,9 +190,9 @@ test('Opening Prompt v2 establishes workplace activity and leaves player agency 
   });
   const system = messages[0].content;
 
-  assert.match(system, /감각적 디테일/);
-  assert.match(system, /자신의 업무·성격에 따른 작은 행동을 먼저/);
-  assert.match(system, /업무 행동, 말투, 거리감/);
-  assert.match(system, /최소 3가지 서로 다른 접근 방향/);
+  assert.match(system, /semantic wire blocks/);
+  assert.match(system, /exact speaker_id marker/);
+  assert.match(system, /exactly four/);
+  assert.doesNotMatch(system, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
   assert.ok(system.length < 6000, `Opening system prompt too large: ${system.length}`);
 });

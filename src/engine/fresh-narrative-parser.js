@@ -1,159 +1,144 @@
 import { GameCoreError } from './errors.js';
+import { buildStoryIdentityDirectory, parseStoryControlMarker } from './story-wire-protocol.js';
 
-const SECTION_1 = '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]';
-const SECTION_2 = '[2. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C]';
-const SECTION_3 = '[3. \uC120\uD0DD\uC9C0]';
-const SECTION_HEADERS = [SECTION_1, SECTION_2, SECTION_3];
+function fail(message) { throw new GameCoreError('STORY_PROTOCOL_INVALID', message); }
+function lines(raw) { return String(raw ?? '').split(/\r?\n/); }
 
-function fail(message) {
-  throw new GameCoreError('STORY_PROTOCOL_INVALID', message);
-}
-
-function entries(value, idField) {
-  if (Array.isArray(value)) return value;
-  if (!value || typeof value !== 'object') return [];
-  return Object.entries(value).map(([id, item]) => ({ [idField]: id, ...(item && typeof item === 'object' ? item : {}) }));
-}
-
-function speakerDirectory(master = {}) {
-  const directory = new Map([['player', '\uD50C\uB808\uC774\uC5B4']]);
-  for (const item of entries(master.characters, 'character_id')) {
-    const id = item?.character_id ?? item?.id;
-    if (typeof id === 'string' && id.trim()) directory.set(id, String(item.name ?? id));
+function tokenize(raw, directory) {
+  const tokens = [];
+  let text = '';
+  const flushText = () => { if (text) { tokens.push({ type: 'text', value: text }); text = ''; } };
+  const value = String(raw ?? '');
+  for (let index = 0; index < value.length;) {
+    if (value[index] !== '[') { text += value[index++]; continue; }
+    const marker = parseStoryControlMarker(value.slice(index), { directory });
+    if (!marker || marker.invalid) fail(`Unknown or malformed Story marker: ${marker?.raw ?? value.slice(index, index + 32)}`);
+    if (marker.incomplete) fail('Incomplete Story control marker');
+    flushText();
+    tokens.push({ type: 'marker', marker });
+    index += marker.end;
   }
-  for (const item of entries(master.general_npcs, 'npc_id')) {
-    const id = item?.npc_id ?? item?.id;
-    if (typeof id === 'string' && id.trim()) directory.set(id, String(item.name ?? id));
-  }
-  return directory;
-}
-
-function splitSections(raw) {
-  const lines = raw.split(/\r?\n/);
-  const found = [];
-  for (let index = 0; index < lines.length; index += 1) {
-    const trimmed = lines[index].trim();
-    if (SECTION_HEADERS.includes(trimmed)) found.push({ header: trimmed, index });
-  }
-  if (found.length !== 3 || found.some((item, index) => item.header !== SECTION_HEADERS[index])) {
-    fail('Story must contain the three canonical sections in order');
-  }
-  if (found.some((item, index) => found.findIndex(other => other.header === item.header) !== index)) {
-    fail('Story contains duplicate protocol sections');
-  }
-  const first = found[0].index;
-  if (lines.slice(0, first).some(line => line.trim())) fail('Unexpected text before the Story protocol');
-  const sections = {};
-  for (let index = 0; index < found.length; index += 1) {
-    const start = found[index].index + 1;
-    const end = index + 1 < found.length ? found[index + 1].index : lines.length;
-    sections[found[index].header] = lines.slice(start, end).join('\n');
-  }
-  return sections;
-}
-
-function parseStorySection(text, directory) {
-  const lines = text.split(/\r?\n/);
-  const marker = /^(?:\[SCENE\]|\[DIALOGUE speaker_id="([^"]+)" acting_direction="([^"]+)"\])$/;
-  const blocks = [];
-  const dialogueLines = [];
-  const sceneParts = [];
-  let current = null;
-  let sawMarker = false;
-  const flush = () => {
-    if (!current) return;
-    const body = current.lines.join('\n').trim();
-    if (!body) fail('Scene or dialogue block must contain text');
-    if (current.type === 'scene') {
-      sceneParts.push(body);
-      blocks.push({ type: 'scene', text: body });
-    } else {
-      const line = {
-        speaker_id: current.speakerId,
-        speaker: directory.get(current.speakerId),
-        speaker_name: directory.get(current.speakerId),
-        direction: current.direction,
-        acting_direction: current.direction,
-        text: body,
-        order: dialogueLines.length
-      };
-      dialogueLines.push(line);
-      blocks.push({ type: 'dialogue', speaker_id: line.speaker_id, speaker: line.speaker_name, speaker_name: line.speaker_name, direction: line.direction, acting_direction: line.acting_direction, text: line.text });
-    }
-    current = null;
-  };
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const match = marker.exec(trimmed);
-    if (match) {
-      flush();
-      sawMarker = true;
-      if (trimmed === '[SCENE]') {
-        current = { type: 'scene', lines: [] };
-      } else {
-        const speakerId = match[1];
-        const direction = match[2].trim();
-        if (!directory.has(speakerId)) fail(`Unknown Story speaker_id: ${speakerId}`);
-        if (!direction) fail('DIALOGUE acting_direction must be non-empty');
-        current = { type: 'dialogue', speakerId, direction, lines: [] };
-      }
-      continue;
-    }
-    if (/^\[[^\]]*\]/.test(trimmed)) fail(`Unknown or malformed Story marker: ${trimmed}`);
-    if (!sawMarker && trimmed) fail('Story text must begin with [SCENE] or [DIALOGUE]');
-    if (current) current.lines.push(line);
-    else if (trimmed) fail('Unexpected Story text outside a block');
-  }
-  flush();
-  if (!blocks.length || !blocks.some(block => block.type === 'scene')) fail('Story section requires a [SCENE] block');
-  return { blocks, dialogueLines, sceneText: sceneParts.join('\n') };
-}
-
-function parseThought(text) {
-  const value = text.trim();
-  if (!value) fail('Player inner thought must be non-empty');
-  if (/^(?:["“”'‘’]).*(?:["“”'‘’])$/.test(value)) fail('Player inner thought must not be quote-wrapped');
-  return value;
-}
-
-function parseChoices(text) {
-  const lines = text.split(/\r?\n/).filter(line => line.trim());
-  if (lines.length !== 4) fail('Story must contain exactly four choices');
-  const choices = [];
-  const labels = [];
-  for (let index = 0; index < lines.length; index += 1) {
-    const match = /^(\d+)\.\s+\[([^\[\]\r\n]{2,6})\]\s+(.+?)\s*$/.exec(lines[index].trim());
-    if (!match || Number(match[1]) !== index + 1 || !match[2].trim() || !match[3].trim()) fail('Malformed Story choice');
-    const label = match[2].trim();
-    if (label.length < 2 || label.length > 6) fail('Story choice labels must be 2 to 6 characters');
-    if (labels.includes(label)) fail('Story choice labels must be distinct');
-    labels.push(label);
-    choices.push(match[3].trim());
-  }
-  return { choices, labels };
+  flushText();
+  return tokens;
 }
 
 export function parseFreshNarrativeV2(rawText, { master } = {}) {
   const raw = String(rawText ?? '');
-  const sections = splitSections(raw);
-  const directory = speakerDirectory(master);
-  const story = parseStorySection(sections[SECTION_1], directory);
-  const playerInnerThought = parseThought(sections[SECTION_2]);
-  const choiceResult = parseChoices(sections[SECTION_3]);
-  const blocks = [
-    ...story.blocks,
-    { type: 'player_inner_thought', text: playerInnerThought }
-  ];
+  const directory = buildStoryIdentityDirectory(master);
+  const blocks = [];
+  const dialogueLines = [];
+  let current = null;
+  let sawThought = false;
+  let thoughtCount = 0;
+  const choices = [];
+  const labels = [];
+  let lastDialogue = null;
+  let canAttachActing = false;
+  const flush = () => {
+    if (!current) return;
+    const text = current.lines.join('\n').trim();
+    const actionText = current.type === 'choice' && !text ? String(current.label ?? '').trim() : text;
+    if (!actionText && current.type !== 'choice') fail(`${current.type} block must contain text`);
+    if (current.type === 'dialogue') {
+      const item = {
+        speaker_id: current.speaker_id,
+        speaker: directory.get(current.speaker_id),
+        speaker_name: directory.get(current.speaker_id),
+        direction: current.acting_direction,
+        acting_direction: current.acting_direction,
+        text: actionText,
+        order: dialogueLines.length
+      };
+      dialogueLines.push(item);
+      blocks.push({ type: 'dialogue', ...item });
+      lastDialogue = item;
+      canAttachActing = true;
+    } else if (current.type === 'scene') {
+      blocks.push({ type: 'scene', text: actionText });
+      canAttachActing = false;
+    } else if (current.type === 'thought') {
+      thoughtCount += 1;
+      sawThought = true;
+      blocks.push({ type: 'player_inner_thought', text: actionText });
+      canAttachActing = false;
+    } else if (current.type === 'choice') {
+      const label = String(current.label ?? '').trim();
+      choices.push(actionText); labels.push(label || null);
+      blocks.push({ type: 'choice', label: label || null, text: actionText });
+      canAttachActing = false;
+    }
+    current = null;
+  };
+  const tokens = tokenize(raw, directory);
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token.type === 'text') {
+      if (!current) { if (token.value.trim()) fail('Story text must begin with a semantic block marker'); continue; }
+      current.lines.push(token.value);
+      continue;
+    }
+    const marker = token.marker;
+    if (marker.type === 'acting') {
+      const target = current?.type === 'dialogue' ? current : (canAttachActing ? lastDialogue : null);
+      if (!target) fail('ACTING must follow DIALOGUE');
+      if (target.acting_direction !== null) fail('DIALOGUE has duplicate ACTING metadata');
+      const next = tokens[index + 1]?.type === 'text' ? tokens[index + 1].value : '';
+      const directionSource = next.replace(/^[ \t]*(?:\r?\n)?/, '');
+      const direction = directionSource.split(/\r?\n/, 1)[0].replace(/^[ \t]+/, '').trim();
+      if (direction && !direction.startsWith('[')) {
+        target.acting_direction = direction;
+        target.direction = direction;
+        if (!current) {
+          const projected = blocks.find(block => block.type === 'dialogue' && block.order === target.order);
+          if (projected) { projected.acting_direction = direction; projected.direction = direction; }
+        }
+      }
+      if (direction && !direction.startsWith('[') && tokens[index + 1]?.type === 'text') {
+        const remainder = directionSource.replace(/^[^\r\n]*(?:\r?\n|$)/, '');
+        if (remainder) tokens[index + 1].value = remainder;
+        else tokens.splice(index + 1, 1);
+      }
+      continue;
+    }
+    if (marker.type === 'acting_end') continue;
+    if (marker.type === 'block_end') {
+      if (current) flush();
+      continue;
+    }
+    if (marker.type !== 'block_start') fail('Unexpected Story control marker');
+    flush();
+    current = {
+      type: marker.block_type,
+      speaker_id: marker.speaker_id,
+      acting_direction: null,
+      label: marker.label,
+      lines: []
+    };
+    canAttachActing = marker.block_type === 'dialogue';
+  }
+  flush();
+  if (!blocks.some(block => block.type === 'scene')) fail('Story requires a SCENE block');
+  const warnings = [];
+  if (!sawThought) warnings.push('player_inner_thought_missing');
+  if (thoughtCount > 1) warnings.push('player_inner_thought_duplicate');
+  if (choices.length !== 4) warnings.push('choices_not_exactly_four');
+  if (choices.some(choice => !String(choice ?? '').trim())) warnings.push('choices_empty');
+  const nonEmptyChoices = choices.map(choice => String(choice ?? '').trim()).filter(Boolean);
+  if (new Set(nonEmptyChoices).size !== nonEmptyChoices.length) warnings.push('choices_exact_duplicate');
+  const canonicalChoices = choices.length === 4
+    && choices.every(choice => typeof choice === 'string' && choice.trim())
+    && new Set(choices.map(choice => choice.trim())).size === 4
+    ? choices.slice()
+    : [];
   return {
     raw,
-    scene_text: story.sceneText,
+    scene_text: blocks.filter(block => block.type === 'scene').map(block => block.text).join('\n'),
     blocks,
-    player_inner_thought: playerInnerThought,
-    choices: choiceResult.choices,
-    choice_labels: choiceResult.labels,
-    dialogue_lines: story.dialogueLines,
-    warnings: []
+    player_inner_thought: blocks.find(block => block.type === 'player_inner_thought')?.text ?? '',
+    choices,
+    canonical_choices: canonicalChoices,
+    choice_labels: labels,
+    dialogue_lines: dialogueLines,
+    warnings
   };
 }
-
-export { SECTION_1, SECTION_2, SECTION_3 };

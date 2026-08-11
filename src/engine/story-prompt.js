@@ -77,7 +77,7 @@ export function buildStoryCharacterProjection({ edition, playerAction = '', scen
   };
 }
 
-export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition } = {}) {
+export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, registeredIds = null } = {}) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const game = object(context?.game) ?? {};
   const player = object(save.player) ?? {};
@@ -85,10 +85,30 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
   const sceneCore = buildSceneContextCore(save, activeIds);
-  const rawScene = sceneCore.scene;
+  const registeredSet = registeredIds instanceof Set ? registeredIds : null;
+  const filterRegistered = values => {
+    const ids = Array.isArray(values) ? values : [];
+    return registeredSet ? ids.filter(id => registeredSet.has(id)) : ids;
+  };
+  const sceneIds = filterRegistered(sceneCore.scene?.present_npc_ids);
+  const rawScene = {
+    ...sceneCore.scene,
+    participants: filterRegistered(sceneCore.scene?.participants),
+    present_npc_ids: sceneIds
+  };
   const sceneRest = { ...sceneCore };
+  delete sceneRest.scene;
   delete sceneRest['global_' + 'csa'];
   delete sceneRest.time;
+  if (registeredSet && object(sceneRest.active_npc_state)) {
+    const filteredActiveNpcState = {};
+    for (const [mapName, stateMap] of Object.entries(sceneRest.active_npc_state)) {
+      if (!object(stateMap)) continue;
+      const filtered = Object.fromEntries(Object.entries(stateMap).filter(([id]) => registeredSet.has(id)));
+      if (Object.keys(filtered).length) filteredActiveNpcState[mapName] = filtered;
+    }
+    sceneRest.active_npc_state = filteredActiveNpcState;
+  }
   const { participants: _participants, ...scene } = rawScene;
   return {
     game: { id: typeof game.id === 'string' ? game.id : null, title: typeof game.title === 'string' ? game.title : null },
@@ -122,7 +142,7 @@ export const DURABLE_STORY_RULES = [
   '[STORY QUALITY]',
   'Write natural Korean workplace fiction with appropriate title-plus-name address, relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
   '[OUTPUT PROTOCOL]',
-  'Return exactly three sections in order: [1. 서사 및 행동], [2. 플레이어 속마음], [3. 선택지]. Use [SCENE] for narration and [DIALOGUE speaker_id="..." acting_direction="..."] for spoken lines only; speaker_id must be a registered identity ID or "player". Dialogue must use the marker, never a name:line or quote-only form. acting_direction is required and non-empty. Inner thought is first-person without outer quotation marks. Provide exactly four distinct choices in the form 1. [짧은라벨] 전문 through 4. [짧은라벨] 전문; labels are 2–6 characters. Stop after the fourth choice.'
+  'Use only semantic blocks, in source order: [SCENE] narrative text [/SCENE] (closing marker optional), [DIALOGUE speaker_id="registered_id_or_player"] followed optionally by [ACTING] short direction and then dialogue text, [THOUGHT] one unquoted, immediate first-person Korean inner monologue written like natural self-talk (matching the player speech style), and exactly four repeated [CHOICE] blocks. Each CHOICE contains one concrete, literal player action text, usually around 30 Korean characters as quality guidance only; do not output labels or numbers, and do not treat length as a validity gate. The thought must sound like a person talking silently to themselves, never an emotion/status-label list, report, long analysis, or explanatory phrasing such as "~해야 한다" or "~을 파악해야 한다". Every DIALOGUE speaker_id must be non-empty and exactly registered; never infer a speaker from a name, quote, or previous line. ACTING is optional metadata and attaches only to the immediately preceding DIALOGUE. The UI supplies section headings and choice ordering; do not output human section titles or numbered choices.'
 ].join('\n');
 
 export function buildRegenerationFeedbackSection(feedbackText) {
@@ -137,6 +157,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
   const workplace = buildWorkplaceContext(edition, save);
   const storyPlayerAction = typeof playerAction === 'string' && playerAction.trim() ? playerAction : '';
   const projection = buildStoryCharacterProjection({ edition, playerAction: storyPlayerAction, sceneCastContract: canonicalCast, workplace });
+  const registeredIdSet = new Set(projection.registered_identities.map(({ id }) => id));
   const storyWorld = buildStoryWorldProjection({ save, master: { characters: Object.values(object(edition?.characters?.characters) ?? {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) ?? {}) }, sceneActorIds: projection.scene_actor_ids, expectedTurn });
   const payload = {
     edition: edition.editionId,
@@ -149,7 +170,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
     player_dialogue_policy: canonicalCast.player_dialogue ?? null,
     world_rules: storyWorld.world_rules,
     scene_obligations: storyWorld.scene_obligations,
-    context: buildStoryContextProjection(context, projection.projection_ids, { catalogs, playerAction: storyPlayerAction, edition }),
+    context: buildStoryContextProjection(context, projection.projection_ids, { catalogs, playerAction: storyPlayerAction, edition, registeredIds: registeredIdSet }),
     ...(storyPlayerAction ? { player_action: storyPlayerAction } : {}),
     ...(feedbackText ? { feedback_text: feedbackText } : {}),
     expected_turn: expectedTurn

@@ -11,7 +11,6 @@ import { createCompanyTts } from './tts.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
-import { projectStreamingSections, projectStreamingText } from './narrative.js';
 
 // Duplicated (deliberately, not imported) from src/engine/choice-input.js: the frontend Worker
 // serves only src/frontend/pages as static assets (wrangler.frontend.jsonc), so a relative
@@ -59,6 +58,7 @@ export function mergeSessionTurns(current, incoming) {
 }
 
 export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
+  if (streamedStoryChoices === null) return [];
   return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
 }
 
@@ -137,6 +137,9 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
           pending.action_id = serverActionId;
           persistPending(pending);
         }
+      }
+      if (item.event === 'section_start' || item.event === 'block_start' || item.event === 'block_end' || item.event === 'acting') {
+        onStory?.({ item, pending, streaming: true, protocol: item.data });
       }
       if (item.event === 'delta') {
         const text = item.data?.text ?? '';
@@ -229,8 +232,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
   const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; elements.current?.replaceChildren?.(); if (elements.current) elements.current.textContent = ''; };
   let rawStoryStream = '';
+  let semanticStreamBlocks = [];
+  let semanticStreamCurrent = null;
   let pendingRawProjection = false;
-  const resetRawStory = () => { rawStoryStream = ''; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
+  const resetRawStory = () => { rawStoryStream = ''; semanticStreamBlocks = []; semanticStreamCurrent = null; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
   const clearTransientStoryProjection = () => {
     rawStoryStream = '';
     pendingRawProjection = false;
@@ -239,31 +244,66 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   };
   const renderStreamingProjection = projection => {
     if (!elements.current) return;
+    const nearBottom = typeof elements.current.scrollHeight === 'number'
+      && typeof elements.current.scrollTop === 'number'
+      && typeof elements.current.clientHeight === 'number'
+      && elements.current.scrollHeight - (elements.current.scrollTop + elements.current.clientHeight) <= elements.current.clientHeight;
     const fragment = documentRef.createDocumentFragment?.();
-    if (!fragment) return;
-    for (const segment of projection.segments) {
+    if (!fragment) {
+      elements.current.textContent = projection.map(segment => segment.text ?? '').join('\n');
+      if (nearBottom && typeof elements.current.scrollHeight === 'number') elements.current.scrollTop = elements.current.scrollHeight;
+      return;
+    }
+    for (const segment of projection) {
       const block = documentRef.createElement?.('section');
       if (!block) continue;
       block.className = `streaming-${segment.type}`;
       block.dataset.streamingProjection = segment.type;
-      block.textContent = segment.text;
+      if (segment.type === 'dialogue') {
+        const meta = documentRef.createElement?.('header');
+        const speaker = documentRef.createElement?.('strong');
+        const direction = documentRef.createElement?.('span');
+        const body = documentRef.createElement?.('p');
+        if (speaker) speaker.textContent = segment.speaker_name ?? segment.speaker_id ?? '';
+        if (direction) { direction.textContent = segment.acting_direction ?? ''; direction.className = 'dialogue-direction'; }
+        if (meta) meta.append(speaker, direction);
+        if (body) body.textContent = segment.text ?? '';
+        block.append(meta, body);
+      } else if (segment.type === 'choice') {
+        block.textContent = segment.text ?? '';
+        block.dataset.choiceLabel = segment.label ?? '';
+      } else block.textContent = segment.text ?? '';
       fragment.appendChild(block);
     }
     elements.current.replaceChildren?.(fragment);
+    if (nearBottom && typeof elements.current.scrollHeight === 'number') elements.current.scrollTop = elements.current.scrollHeight;
   };
-  const appendRawStory = value => {
-    if (!elements.current || !value) return;
-    const nearBottom = typeof elements.current.scrollHeight === 'number'
-      && elements.current.scrollHeight - elements.current.scrollTop - elements.current.clientHeight <= 120;
-    elements.current.classList?.add?.('raw-story-stream');
-    rawStoryStream += String(value);
-    if (pendingRawProjection) {
-      elements.current.replaceChildren?.();
-      pendingRawProjection = false;
+  const appendStoryWireEvent = item => {
+    if (!item) return;
+    if (item.event === 'block_start') {
+      semanticStreamCurrent = {
+        type: item.data?.block_type ?? 'scene',
+        speaker_id: item.data?.speaker_id ?? null,
+        speaker_name: item.data?.speaker_name ?? item.data?.speaker_id ?? '',
+        acting_direction: null,
+        label: item.data?.label ?? null,
+        text: ''
+      };
+      semanticStreamBlocks.push(semanticStreamCurrent);
+      renderStreamingProjection(semanticStreamBlocks);
+    } else if (item.event === 'block_end') {
+      semanticStreamCurrent = null;
+    } else if (item.event === 'acting') {
+      if (semanticStreamCurrent?.type === 'dialogue') {
+        semanticStreamCurrent.acting_direction = item.data?.acting_direction ?? null;
+        renderStreamingProjection(semanticStreamBlocks);
+      }
+    } else if (item.event === 'delta') {
+      const value = item.data?.text ?? '';
+      rawStoryStream += value;
+      if (semanticStreamCurrent) semanticStreamCurrent.text += value;
+      renderStreamingProjection(semanticStreamBlocks);
     }
-    renderStreamingProjection(projectStreamingSections(rawStoryStream));
-    if (!documentRef.createDocumentFragment && elements.current) elements.current.textContent = projectStreamingText(rawStoryStream);
-    if (nearBottom) elements.current.scrollTop = elements.current.scrollHeight;
   };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
   function refreshViewModel() {
@@ -395,9 +435,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     api, storage, gameId, getContext: () => context, refreshContext,
     onStory: ({ item, text: deltaText, parsed }) => {
       if (item?.event === 'start') { resetRawStory(); return; }
-      if (item?.event === 'delta') { appendRawStory(deltaText); return; }
+      if (item?.event === 'block_start' || item?.event === 'block_end' || item?.event === 'acting') { appendStoryWireEvent(item); return; }
+      if (item?.event === 'delta') { appendStoryWireEvent(item); return; }
       if (item?.event === 'complete') {
         const choices = hasFourChoices(item.data?.choices) ? item.data.choices : parsed?.choices;
+        if (parsed && Array.isArray(parsed.choices) && !hasFourChoices(parsed.choices)) streamedStoryChoices = null;
+        else if (hasFourChoices(choices)) streamedStoryChoices = choices;
         if (parsed?.blocks) renderNarrative(elements.current, choices ? { ...parsed, choices } : parsed);
         // Keep committed choices/inner thought until Commit succeeds; the
         // parsed Story body is only a pending presentation at this point.
@@ -594,22 +637,26 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     let raw = '';
     resetRawStory();
     await consumeStorySse(response, item => {
+      if (item.event === 'block_start' || item.event === 'block_end' || item.event === 'acting') {
+        appendStoryWireEvent(item);
+      }
       if (item.event === 'delta') {
         const text = item.data?.text ?? '';
         raw += text;
-        appendRawStory(text);
+        appendStoryWireEvent(item);
       }
       if (item.event === 'complete') {
         const choices = hasFourChoices(item.data?.choices)
           ? item.data.choices
           : item.data?.parsed_blocks?.choices;
+        if (item.data?.parsed_blocks && Array.isArray(item.data.parsed_blocks.choices) && !hasFourChoices(item.data.parsed_blocks.choices)) streamedStoryChoices = null;
+        else if (hasFourChoices(choices)) streamedStoryChoices = choices;
         if (item.data?.parsed_blocks?.blocks) {
           renderNarrative(elements.current, choices
             ? { ...item.data.parsed_blocks, choices }
             : item.data.parsed_blocks);
         }
         if (hasFourChoices(choices)) {
-          streamedStoryChoices = choices;
           render();
         }
       }
