@@ -1,19 +1,24 @@
 const STORY_KEY_ORDER = [
   'edition',
-  'active_character_canon',
-  'active_general_npc_canon',
+  'registered_identities',
+  'scene_actors',
+  'possible_entrants',
+  'remote_contacts',
+  'reference_characters',
   'context',
+  'player_dialogue_policy',
+  'action_kind',
   'player_action',
   'expected_turn'
 ];
 
 const EXTRACT_KEY_ORDER = [
+  'extract_version',
+  'registered_identities',
   'registered_characters',
   'registered_general_npcs',
-  'active_character_canon',
-  'active_general_npc_canon',
+  'registered_locations',
   'story_text',
-  'parsed_story',
   'context',
   'player_action',
   'expected_turn'
@@ -54,8 +59,7 @@ export function classifyPromptPayload(payload) {
   ) return 'extract';
   if (
     Object.prototype.hasOwnProperty.call(payload, 'edition')
-    && (Object.prototype.hasOwnProperty.call(payload, 'scene_actors')
-      || Object.prototype.hasOwnProperty.call(payload, 'active_character_canon'))
+    && Object.prototype.hasOwnProperty.call(payload, 'scene_actors')
     && Object.prototype.hasOwnProperty.call(payload, 'context')
   ) return 'story';
   return null;

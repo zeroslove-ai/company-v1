@@ -21,7 +21,6 @@ import {
   validatePlayerSetupInput,
   buildAppManualPayload,
   buildAppStatePayload,
-  buildAppUsageStorySection,
   buildCsaAftereffectPatch,
   buildCsaSceneRuntimeStatePatch,
   buildCsaApplicationCheckSection,
@@ -33,7 +32,6 @@ import {
   getApplicableCsaEntries,
   getCsaLimits,
   getCsaRules,
-  isAppUsageInfoRequest,
   normalizeStructuredAction,
   normalizeCompanyCsaCatalog,
   planCsaTransaction,
@@ -42,7 +40,6 @@ import {
   signAppValidationProof,
   stableStringify,
   verifyStructuredActionValidation,
-  buildRegenerationFeedbackSection,
   resolveNumberedChoiceInput,
   selectImage,
   resolveTtsEligibility,
@@ -428,20 +425,27 @@ const master = masterFromEdition(edition);
           timing.cast_entering_count = sceneCastContract.entering_npc_ids.length;
           timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
           const promptStart = Date.now();
-          let messages = buildStoryPrompt({ edition, context: storyContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
-          if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
-            messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
-          }
-          if (action.action_kind === 'feedback_revision' && action.feedback_text) {
-            messages = [{ ...messages[0], content: messages[0].content + buildRegenerationFeedbackSection(action.feedback_text) }, ...messages.slice(1)];
-          }
+          const actionKind = action.action_kind === 'feedback_revision'
+            ? 'feedback_revision'
+            : (csaPlan || structuredAction?.type === 'app_transaction' ? 'app_transaction' : 'ordinary');
+          const messages = buildStoryPrompt({
+            edition,
+            context: storyContext,
+            playerAction,
+            expectedTurn,
+            npcIds,
+            catalogs,
+            sceneCastContract,
+            actionKind,
+            feedbackText: action.action_kind === 'feedback_revision' ? action.feedback_text : ''
+          });
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
           timing.story_system_chars = messages[0].content.length;
           timing.story_context_chars = JSON.stringify(storyUserPayload.context).length;
-          timing.active_character_canon_chars = JSON.stringify(storyUserPayload.scene_actors ?? storyUserPayload.active_character_canon ?? {}).length;
+          timing.scene_actor_chars = JSON.stringify(storyUserPayload.scene_actors ?? {}).length;
           timing.story_request_chars = messages[0].content.length + messages[1].content.length;
-          timing.active_character_count = Object.keys(storyUserPayload.scene_actors ?? storyUserPayload.active_character_canon ?? {}).length;
+          timing.scene_actor_count = Object.keys(storyUserPayload.scene_actors ?? {}).length;
           timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
           let stream = null;
           let upstreamRaw = '';
@@ -484,8 +488,8 @@ const master = masterFromEdition(edition);
             story_first_content_ms: timing.story_first_content_ms, story_network_total_ms: timing.story_network_total_ms,
             story_character_count: timing.story_character_count,
             story_system_chars: timing.story_system_chars, story_context_chars: timing.story_context_chars,
-            active_character_canon_chars: timing.active_character_canon_chars, story_request_chars: timing.story_request_chars,
-            active_character_count: timing.active_character_count, recent_turn_count: timing.recent_turn_count,
+            scene_actor_chars: timing.scene_actor_chars, story_request_chars: timing.story_request_chars,
+            scene_actor_count: timing.scene_actor_count, recent_turn_count: timing.recent_turn_count,
             turn_total_ms: Date.now() - startedAt
           });
         }

@@ -85,10 +85,6 @@ function activeRulesSection(save) {
   return `\n\n[POST-TRANSACTION ACTIVE CSA SET — FINAL AUTHORITY]\n아래 목록이 이번 Story/Extract 턴에 실제로 활성인 전체 상식개변이다. 앞선 Context나 application-check에 이 목록에 없는 ID가 남아 있다면 무시하고, 아래 목록의 ID·강도·권위·내용만 적용한다.\n${lines}`;
 }
 
-function appTransactionInputFirewall() {
-  return `\n\n[APP TRANSACTION INPUT FIREWALL — HIGHEST PRIORITY]\n이번 player_action/display_input은 앱 조작을 사람이 읽을 수 있게 설명한 메타 입력이지 장면 속 신체 행동·요구·대사가 아니다. 이 입력 자체를 CSA 적용 여부, 성적 행동, NPC 대상 명령으로 판정하지 않는다. 이미 확정된 규정의 적용 이후 장면만 작성한다.`;
-}
-
 function extractAuthorityContract() {
   return `\n\n[CSA AUTHORITY AND NPC STAT EXTRACTION]\n- 약함은 인사팀 공식 공지·사내 운영지침, 중간은 취업규칙·전사 준수 규정, 강함은 국가 법령·관계 당국 의무 지침이다.\n- 권위가 높을수록 규정 준수 압력과 업무상 자기합리화가 강해질 수 있지만 호감·사적 복종·성적 동의를 뜻하지 않는다.\n- npc_stats는 affinity, csa_acceptance, sexual_arousal 세 축만 사용한다. resistance는 NPC 고정값으로 절대 변경하지 않는다. 각 변화는 Story의 별도 근거가 있어야 한다.\n- 규정 공지나 직접 수행만으로 affinity를 올리지 않는다. csa_acceptance는 활성 규정의 직접 의미를 실제 판단·행동에 반영한 경우에만 변경한다.`;
 }
@@ -148,9 +144,10 @@ export function patchCompletionBody(init, state) {
   if (!Array.isArray(body.messages)) return init;
 
   const isStory = body.stream === true;
+  if (isStory) return init;
   const active = getApplicableCsaEntries(state.postSave);
   let messages = body.messages;
-  let authoritative = appTransactionInputFirewall();
+  let authoritative = '';
 
   if (!isStory) {
     authoritative = activeRulesSection(state.postSave)

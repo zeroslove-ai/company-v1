@@ -2,7 +2,6 @@ import { HttpError, ok, readJson, requireString } from './http.js';
 import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes-runtime.js';
 import { createTurnRoutes as createRawTurnRoutes } from './turn-routes.js';
 import { resolveTtsEligibility } from '../engine/index.js';
-import { createRegisteredNpcPolicyFetch } from './npc-policy-fetch.js';
 import { createPromptCacheOrderFetch } from './prompt-cache-order.js';
 import { enrichAppEnvelope, enrichContextEnvelope } from './product-response.js';
 
@@ -100,8 +99,7 @@ function responseWithJson(response, payload) {
  * downloads and re-wraps production service-binding audio as a Blob.
  */
 export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) {
-  const policyFetch = createRegisteredNpcPolicyFetch(fetchImpl);
-  const llmFetch = createPromptCacheOrderFetch(policyFetch);
+  const llmFetch = createPromptCacheOrderFetch(fetchImpl);
   const routes = createBaseTurnRoutes({ fetchImpl: llmFetch, edition });
   const master = masterFromEdition(edition);
 

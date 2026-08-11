@@ -76,7 +76,6 @@ export {
 } from './csa/transaction-validator.js';
 export { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch } from './csa/reducer.js';
 export {
-  isAppUsageInfoRequest, buildAppUsageStorySection,
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,
   buildMindEffectExtractFirewallSection
 } from './csa/prompt-sections.js';

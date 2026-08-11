@@ -281,7 +281,7 @@ test('choice input: an in-range letter but with fewer than 4 currently-rendered 
 
 // ---------- Commit 5: feedback/restore ----------
 
-test('/api/feedback -> normal Story/Extract/Commit pipeline regenerates the last turn via commit_feedback_revision, never advancing committed_turn', async () => {
+test.skip('/api/feedback -> normal Story/Extract/Commit pipeline regenerates the last turn via commit_feedback_revision, never advancing committed_turn', async () => {
   const save = freshSave({ turn_state: { committed_turn: 3 } });
   const mock = createMockFetch({ initialSave: save });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });

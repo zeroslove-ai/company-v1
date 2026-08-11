@@ -35,7 +35,7 @@ test('Story payload exposes the separated projections', () => {
   assert.ok(payload.scene_actors.heroine1);
   assert.equal(payload.reference_characters[0].id, 'heroine2');
   assert.equal('prompt_card' in payload.reference_characters[0], false);
-  assert.equal('allowed_speaker_ids' in payload.scene_cast_contract, false);
+  assert.equal('scene_cast_contract' in payload, false);
   assert.equal('active_character_canon' in payload, false);
   assert.equal('active_general_npc_canon' in payload, false);
 });

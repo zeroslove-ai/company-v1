@@ -219,7 +219,8 @@ test('P0-1 E2E: runtime wrapper 통과 Story completion body에 inactive csa_2/c
   assertNoInactiveCsa(completionBodies[0].messages, 'Story');
   const allText = allMessagesText(completionBodies[0].messages);
   assert.ok(allText.includes('성적 긴장 원인 확인'), 'csa_42 content 노출');
-  assert.match(allText, /APP TRANSACTION INPUT FIREWALL/);
+  assert.equal(completionBodies[0].messages.length, 2, 'Story transport is exactly SYSTEM + USER');
+  assert.doesNotMatch(allText, /APP TRANSACTION INPUT FIREWALL/);
   // deactivate transaction이므로 csa_42_1은 활성 목록에서 빠진다 (그래도 비활성 csa_2/csa_5는 미노출)
   assert.ok(!allText.includes('무릎 위에 앉기') && !allText.includes('속옷 미착용 근무'), '비활성 이력 미노출');
 });
