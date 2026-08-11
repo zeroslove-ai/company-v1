@@ -119,66 +119,23 @@ Company DB에는 NPC별 `surface/subconscious`가 정상 저장돼 있다. 현�
 
 ---
 
-## 4. 선택지와 5글자 버튼 계약
+## 4. Fresh semantic Story choices
 
-### 4.1 권위값
+Fresh Story emits repeated `[CHOICE]` blocks containing literal player action text.
+There is no `[4. 선택지]`, numbered-choice grammar, short label, `choice_labels`,
+or label database authority in the Fresh contract.
 
-- Story의 `[4. 선택지]` 전문 4개가 권위값이다.
-- Extract는 Story가 정확히 4개를 생성한 경우 선택지를 덮어쓰지 않는다.
-- 클릭·저장·Commit에는 항상 원문 전문을 사용한다.
+`canonical_choices` is authoritative only when the observed blocks contain exactly
+four non-empty, non-duplicate literal actions. The bottom choice UI consumes only
+that canonical array. Otherwise the button list is unavailable and free input
+remains available; no previous turn and no Extract-generated choice is used as a
+fallback.
 
-### 4.2 현재 방식의 문제
-
-현재 프론트는 정규식으로 원문을 추측해 `자료보기`, `업무집중`, `곁에앉기` 같은 라벨을 만든다. 이는 실제 선택지의 핵심 행동을 잘못 요약할 수 있으므로 정본 방식으로 사용하지 않는다.
-
-### 4.3 새 Story 출력 계약
-
-별도 LLM을 추가하지 않고 Story가 전문과 짧은 라벨을 동시에 생성한다.
-
-Raw Story 형식:
-
-```text
-[4. 선택지]
-1. [자료검토] 김제나가 가리키는 브랜드 포지셔닝 문구를 함께 살펴보고 의견을 말한다.
-2. [의자가져오기] 무릎을 꿇고 있는 김제나 곁에 빈 의자를 가져다 놓는다.
-3. [사례질문] 이메이에게 타깃 정렬을 해결했던 사례를 묻는다.
-4. [자세배려] 김제나가 더 편한 자세를 취해도 된다고 말한다.
-```
-
-Parser 결과:
-
-```json
-{
-  "choices": ["전문 1", "전문 2", "전문 3", "전문 4"],
-  "choice_labels": ["자료검토", "의자가져오기", "사례질문", "자세배려"]
-}
-```
-
-라벨 규칙:
-
-- 2–5글자 권장, 최대 6글자
-- 행동과 대상을 구별할 수 있어야 함
-- 네 라벨은 서로 중복되면 안 됨
-- 번호·확률·위험도·성공률을 포함하지 않음
-- 전문을 대체하지 않음
-
-### 4.4 저장과 복구
-
-- `game_turns.choices`: 전문 4개
-- `game_turns.parsed_blocks.choice_labels`: 라벨 4개
-- `save.last_choices`: 전문 4개
-- `save.last_choice_labels`: 라벨 4개, optional JSONB 필드
-- opening도 `opening_state.choice_labels`를 보존한다.
-
-기존 턴처럼 라벨이 없을 때만 원문 앞부분을 안전하게 자르는 표시 fallback을 사용한다. 의미를 추측하는 정규식 fallback은 제거한다.
-
-### 4.5 UI 계약
-
-- 서사 영역에는 전문 4개를 그대로 표시한다.
-- 하단에는 한 줄 4버튼을 표시한다.
-- 버튼에는 번호 + Story 라벨만 표시한다.
-- `title`, `aria-label`, 클릭 payload는 전문 전체다.
-- 390px·412px에서 줄바꿈과 가로 overflow가 없어야 한다.
+Raw Story and observed CHOICE blocks remain preserved in source order. Button
+numbering, display length, ellipsis, and other presentation belong to the UI. The
+click payload is always the full literal action text. Historical `choice_labels`
+fields may be read only at an explicitly marked historical compatibility boundary;
+they are not Fresh authority.
 
 ---
 
@@ -402,13 +359,11 @@ API/DB/LLM 변경 없이 테스트 가능하다.
 
 API Worker 배포가 필요하다.
 
-### Phase C — Story 선택지 라벨 계약
+### Phase C — superseded historical choice-label work
 
-- Story·Opening 프롬프트에 `[짧은라벨] 전문` 형식 추가
-- parser가 `choices`와 `choice_labels` 분리
-- save/opening/turn 복구 경로 추가
-- 프론트 정규식 의미 추측 제거
-- 과거 턴 fallback 유지
+The former Story/Opening short-label experiment is historical only. It is not a
+Fresh writer, parser, UI, or database authority; historical rows may be read at
+their explicit compatibility boundary.
 
 추가 LLM 호출과 DB column migration은 없다.
 

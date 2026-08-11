@@ -1,25 +1,56 @@
 # Company narrative contract v1
 
-## User-visible three-section output
+## Fresh semantic wire
 
-The user-visible Story body has exactly these three sections, in this order:
+Fresh Story is a semantic wire protocol. The provider may emit repeated blocks in
+source order:
 
 ```text
-[1. 서사 및 행동]
-[2. 플레이어 속마음]
-[3. 선택지]
+[SCENE]
+narrative text
+[DIALOGUE speaker_id="registered_id"]
+optional dialogue text
+[ACTING] optional direction
+[THOUGHT]
+unquoted first-person player self-talk
+[CHOICE]
+literal player action text
 ```
 
-Dialogue belongs naturally inside `[1. 서사 및 행동]`; there is no separate user-visible `[DIALOGUE]` section and no requirement to emit one. Internal parser markers may preserve dialogue metadata, but they never add a fifth user section. Story is preserved verbatim even when parsing is incomplete. Named parser blocks are `[SCENE]`, `[DIALOGUE speaker="…" direction="…"]`, `[PLAYER_INNER_THOUGHT]`, and `[CHOICES]` (with `[4. 선택지]` accepted as a legacy alias for saved-turn history only). Parsed scene/dialogue blocks retain order; unparsed text remains an `unparsed` fallback block. Malformed blocks produce warnings rather than a retry, repair call, or parser throw. There is no player status-board section — the UI renders structured save state directly.
+`SCENE`, `DIALOGUE`, `THOUGHT`, and `CHOICE` each open an independent block and
+implicitly close the prior content block. Closing markers are harmless control
+syntax. `ACTING` is optional metadata attached only to the immediately adjacent
+dialogue; it never carries across another semantic block. Raw Story is persisted
+exactly, and parsed blocks preserve the exact source order.
 
-`[2. 플레이어 속마음]` and `[PLAYER_INNER_THOUGHT]` contain a current-turn-only, first-person conversational monologue of 180–500 Korean characters. It has no quotation marks, status summary, or keyword list. It is Story-authored verbatim text, not Mind Monitor data. Extract must not invent, rewrite, or extend it; Extract receives the parser value unchanged or an empty value. Its absence is empty, never a fallback to a prior turn. A future UI may render it in a separate slot.
+Speaker authority is only `speaker_id`. It must be non-empty and either a
+registered identity or `player`. Names, aliases, quotes, and previous-speaker
+alternation never infer a speaker.
 
-The prose target is 800–1000 Korean characters for A (light confirmation, immediate reaction, simple state check), 1000–1500 for B (ordinary dialogue request, conflict, concrete action, or work progress), and 1200–2000 for C (location movement, multiple NPC growth, important CSA execution, or large state change), excluding Context, action, and choices. These are writing targets, not hard validation gates. A turn ordinarily covers immediate reaction, first development, further information/action, and a concrete scene outcome. During general-NPC interaction or an NPC-present scene, aim for at least three NPC utterances; that is likewise not a retry/repair gate. Dialogue is rendered as speaker name, brief concrete direction, then line text.
+## Hard and soft boundaries
 
-Story never selects the player's next action. The player chooses four Story choices or provides free input. A CSA never blocks free player input.
+Hard Story failure is limited to integrity and authority violations: missing raw
+Story/SCENE body, missing or unknown speaker ID, malformed control syntax,
+unrecoverable dialogue text, or block/source-order corruption. These conditions
+may produce `STORY_PROTOCOL_INVALID`.
 
-## Choices and display status
+Footer completeness is soft. A missing or duplicate THOUGHT, or a CHOICE count,
+empty-text, or exact-duplicate problem, produces warnings while preserving raw
+Story and observed blocks. No prior turn and no Extract result supplies missing
+content. `player_inner_thought` is empty when absent.
 
-Exactly four non-empty, non-duplicate parsed Story choices are authoritative. Any other count or duplicate/empty choice produces a footer warning only; Story raw text and observed blocks still render, free input remains available, and no prior choices or Extract-generated choices are used as a fallback.
+Observed `choices` are the literal CHOICE blocks that occurred. `canonical_choices`
+is available only when there are exactly four non-empty, non-duplicate choices;
+only then may the player-action buttons consume them. Otherwise canonical choices
+are unavailable and free input remains available.
 
-Player status may display only supplied data: player name, department, position, current location, Day/game time, committed turn, guarded turn changes, active global CSA count or names, and arousal only when actually present. Personal suggestions are forbidden. Missing time, ejaculation progress, turn changes, or other future fields remain unavailable rather than being invented.
+## UI and historical compatibility
+
+The UI owns headings, numbering, button sizing, and other presentation. Fresh
+wire content contains no human section titles, numbered-choice contract, or
+LLM-generated choice labels. Choice buttons always submit the full literal action
+text. Extract never generates or falls back to choices.
+
+Historical persisted Story rows may use the legacy parser at the persisted/read
+compatibility boundary only. That adapter does not participate in Fresh writing,
+Fresh validation, or Fresh speaker authority.

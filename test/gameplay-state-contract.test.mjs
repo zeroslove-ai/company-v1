@@ -27,10 +27,12 @@ test('gameplay state documents fix v1 compatibility and global CSA ownership', (
   assert.match(state, /csa_active.*csa_rules.*csa_runtime_state.*csa_aftereffect_state/s);
   assert.match(state, /temporarily_interrupted/);
   assert.match(state, /active_suggestions.*forbidden/i);
-  assert.match(narrative, /Exactly four non-empty, non-duplicate parsed Story choices are authoritative/i);
-  assert.match(narrative, /never selects the player's next action/i);
-  assert.match(narrative, /\[1\. 서사 및 행동\].*\[2\. 플레이어 속마음\].*\[3\. 선택지\]/s);
-  assert.match(narrative, /no separate user-visible `\[DIALOGUE\]` section/i);
+  assert.match(narrative, /canonical_choices[\s\S]*exactly four non-empty, non-duplicate choices/i);
+  assert.match(narrative, /free input remains available/i);
+  assert.match(narrative, /Fresh semantic wire/i);
+  assert.match(narrative, /speaker_id/);
+  assert.match(narrative, /canonical_choices/);
+  assert.doesNotMatch(narrative, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
 });
 
 test('Story parser keeps authored inner thought and malformed story nonblocking', () => {

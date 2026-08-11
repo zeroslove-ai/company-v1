@@ -183,6 +183,7 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
         }
         if (character === '\n') {
           const direction = actingBuffer.trim();
+          if (!direction) { index += 1; lineStart = true; continue; }
           if (direction && !direction.startsWith('[')) events.push({ type: 'acting', acting_direction: direction });
           actingBuffer = ''; awaitingActing = false; afterMarker = false; lineStart = true; index += 1; continue;
         }

@@ -21,8 +21,8 @@ const FRESH_OPENING_OUTPUT_PROTOCOL = [
   'Fresh opening semantic wire protocol:',
   '[SCENE] opening narrative [/SCENE] (closing marker optional).',
   '[DIALOGUE speaker_id="registered_id_or_player"] followed optionally by [ACTING] direction and dialogue text.',
-  '[THOUGHT] first-person player thought.',
-  'Then provide exactly four [CHOICE label="short label"] blocks. Every speaker_id is an exact registered ID; never infer a speaker. The UI supplies headings and numbering; do not output human section titles or numbered choices.'
+  '[THOUGHT] one unquoted first-person Korean inner monologue written as natural self-talk, never analysis or report prose.',
+  'Then provide exactly four repeated [CHOICE] blocks, each containing one concrete literal player action (usually around 30 Korean characters as quality guidance only; not a validity gate). Every speaker_id is an exact registered ID; never infer a speaker. The UI owns headings and numbering; do not output labels, human section titles, or numbered choices.'
 ].join('\n');
 
 const OPENING_DURABLE_RULES = [

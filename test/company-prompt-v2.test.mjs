@@ -193,6 +193,9 @@ test('Opening Prompt v2 establishes workplace activity and leaves player agency 
   assert.match(system, /semantic wire blocks/);
   assert.match(system, /exact speaker_id marker/);
   assert.match(system, /exactly four/);
+  assert.match(system, /unquoted first-person Korean inner monologue.*natural self-talk/);
+  assert.match(system, /repeated \[CHOICE\] blocks.*concrete literal player action/);
+  assert.doesNotMatch(system, /\[CHOICE label=/);
   assert.doesNotMatch(system, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
   assert.ok(system.length < 6000, `Opening system prompt too large: ${system.length}`);
 });

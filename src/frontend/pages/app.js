@@ -39,7 +39,11 @@ function messageFor(error) {
   if (error instanceof ApiError) return error.code === 'turn_conflict' ? '턴 충돌이 발생했습니다. 현재 상태를 다시 불러오세요.' : error.message;
   return '예상하지 못한 오류가 발생했습니다.';
 }
-function hasFourChoices(value) { return Array.isArray(value) && value.length === 4 && value.every(choice => typeof choice === 'string' && choice.trim()); }
+function hasFourChoices(value) {
+  return Array.isArray(value) && value.length === 4
+    && value.every(choice => typeof choice === 'string' && choice.trim())
+    && new Set(value.map(choice => choice.trim())).size === 4;
+}
 
 /**
  * 세션 단위 Story 타임라인 병합 — 새 브라우저 세션에서 진행한 턴을 누적한다.
@@ -57,9 +61,39 @@ export function mergeSessionTurns(current, incoming) {
   return [...map.values()].sort((a, b) => a.turn_number - b.turn_number);
 }
 
-export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
+export function choicesForRenderer(viewModel, streamedStoryChoices) {
   if (streamedStoryChoices === null) return [];
-  return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
+  if (Array.isArray(streamedStoryChoices)) return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : [];
+  return viewModel?.story?.choices ?? [];
+}
+
+export function reduceStoryWireProjection(state = {}, item = {}) {
+  const blocks = Array.isArray(state.blocks) ? state.blocks : [];
+  let current = state.current ?? null;
+  let lastDialogue = state.lastDialogue ?? null;
+  if (item.event === 'block_start') {
+    current = {
+      type: item.data?.block_type ?? 'scene',
+      speaker_id: item.data?.speaker_id ?? null,
+      speaker_name: item.data?.speaker_name ?? item.data?.speaker_id ?? '',
+      acting_direction: null,
+      label: item.data?.label ?? null,
+      text: ''
+    };
+    blocks.push(current);
+    lastDialogue = null;
+  } else if (item.event === 'block_end') {
+    if (current?.type === 'dialogue') lastDialogue = current;
+    else lastDialogue = null;
+    current = null;
+  } else if (item.event === 'acting') {
+    const target = current?.type === 'dialogue' ? current : lastDialogue;
+    if (target) target.acting_direction = item.data?.acting_direction ?? null;
+  } else if (item.event === 'delta') {
+    if (current) current.text += item.data?.text ?? '';
+    else lastDialogue = null;
+  }
+  return { blocks, current, lastDialogue };
 }
 
 export function toolbarCapabilities(viewModel, pendingAction, { context, busy = false, recoveryPending = false, utilityAvailable = null } = {}) {
@@ -220,7 +254,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
-  let context = null, viewModel = null, viewModelContext = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null, ttsController = null;
+  let context = null, viewModel = null, viewModelContext = null, streamedStoryChoices, busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null, ttsController = null;
   // 세션 단위 Story 타임라인 — 페이지 로드 시 최신 1턴으로 시작하고, 같은 세션에서
   // 완료된 턴을 메모리에 누적한다. 새로고침하면 다시 최신 1턴만 표시한다.
   let sessionHistory = [];
@@ -234,8 +268,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   let rawStoryStream = '';
   let semanticStreamBlocks = [];
   let semanticStreamCurrent = null;
+  let semanticStreamLastDialogue = null;
   let pendingRawProjection = false;
-  const resetRawStory = () => { rawStoryStream = ''; semanticStreamBlocks = []; semanticStreamCurrent = null; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
+  const resetRawStory = () => { rawStoryStream = ''; semanticStreamBlocks = []; semanticStreamCurrent = null; semanticStreamLastDialogue = null; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
   const clearTransientStoryProjection = () => {
     rawStoryStream = '';
     pendingRawProjection = false;
@@ -280,30 +315,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   };
   const appendStoryWireEvent = item => {
     if (!item) return;
-    if (item.event === 'block_start') {
-      semanticStreamCurrent = {
-        type: item.data?.block_type ?? 'scene',
-        speaker_id: item.data?.speaker_id ?? null,
-        speaker_name: item.data?.speaker_name ?? item.data?.speaker_id ?? '',
-        acting_direction: null,
-        label: item.data?.label ?? null,
-        text: ''
-      };
-      semanticStreamBlocks.push(semanticStreamCurrent);
-      renderStreamingProjection(semanticStreamBlocks);
-    } else if (item.event === 'block_end') {
-      semanticStreamCurrent = null;
-    } else if (item.event === 'acting') {
-      if (semanticStreamCurrent?.type === 'dialogue') {
-        semanticStreamCurrent.acting_direction = item.data?.acting_direction ?? null;
-        renderStreamingProjection(semanticStreamBlocks);
-      }
-    } else if (item.event === 'delta') {
-      const value = item.data?.text ?? '';
-      rawStoryStream += value;
-      if (semanticStreamCurrent) semanticStreamCurrent.text += value;
-      renderStreamingProjection(semanticStreamBlocks);
-    }
+    if (item.event === 'delta') rawStoryStream += item.data?.text ?? '';
+    const next = reduceStoryWireProjection({ blocks: semanticStreamBlocks, current: semanticStreamCurrent, lastDialogue: semanticStreamLastDialogue }, item);
+    semanticStreamBlocks = next.blocks;
+    semanticStreamCurrent = next.current;
+    semanticStreamLastDialogue = next.lastDialogue;
+    if (item.event === 'block_start' || item.event === 'acting' || item.event === 'delta') renderStreamingProjection(semanticStreamBlocks);
   };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
   function refreshViewModel() {
@@ -423,7 +440,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
     context = data.context;
-    if (!preserveStreamedChoices) streamedStoryChoices = [];
+    if (!preserveStreamedChoices) streamedStoryChoices = undefined;
     // 세션 타임라인 누적 — refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않는다.
     // 같은 turn_number는 교체(피드백 revision이 해당 카드를 갱신), 새 턴만 추가, 중복 금지.
     sessionHistory = mergeSessionTurns(sessionHistory, context?.recent_turns ?? []);
@@ -438,9 +455,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       if (item?.event === 'block_start' || item?.event === 'block_end' || item?.event === 'acting') { appendStoryWireEvent(item); return; }
       if (item?.event === 'delta') { appendStoryWireEvent(item); return; }
       if (item?.event === 'complete') {
-        const choices = hasFourChoices(item.data?.choices) ? item.data.choices : parsed?.choices;
-        if (parsed && Array.isArray(parsed.choices) && !hasFourChoices(parsed.choices)) streamedStoryChoices = null;
-        else if (hasFourChoices(choices)) streamedStoryChoices = choices;
+        const observedChoices = Array.isArray(parsed?.choices) ? parsed.choices : [];
+        const canonicalChoices = Array.isArray(parsed?.canonical_choices)
+          ? parsed.canonical_choices
+          : (hasFourChoices(item.data?.choices) ? item.data.choices : []);
+        const choices = observedChoices;
+        streamedStoryChoices = hasFourChoices(canonicalChoices) ? canonicalChoices : null;
         if (parsed?.blocks) renderNarrative(elements.current, choices ? { ...parsed, choices } : parsed);
         // Keep committed choices/inner thought until Commit succeeds; the
         // parsed Story body is only a pending presentation at this point.
@@ -656,9 +676,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
             ? { ...item.data.parsed_blocks, choices }
             : item.data.parsed_blocks);
         }
-        if (hasFourChoices(choices)) {
-          render();
-        }
+        // Footer completeness is soft: keep the observed opening visible and
+        // leave free input available even when canonical four choices are absent.
+        render();
       }
     });
     text(statusElement, '');

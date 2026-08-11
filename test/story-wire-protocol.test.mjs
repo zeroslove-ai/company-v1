@@ -118,6 +118,42 @@ test('ACTING accepts same-line, next-line, and adjacent post-dialogue forms', ()
   assert.equal(adjacent.dialogue_lines[0].acting_direction, 'calm');
 });
 
+test('stream ACTING next-line survives splits after marker and inside direction', () => {
+  const decoder = createStoryStreamDecoder({ master });
+  const events = [
+    ...decoder.push('[DIALOGUE speaker_id="heroine2"]hello\n[ACTING]'),
+    ...decoder.push('\n당황'),
+    ...decoder.push('하며\n다음 대사'),
+    ...decoder.finish()
+  ];
+  assert.deepEqual(events.filter(event => event.type === 'acting').map(event => event.acting_direction), ['당황하며']);
+  assert.equal(events.filter(event => event.type === 'text_delta').map(event => event.text).join(''), 'hello\n다음 대사');
+});
+
+test('stream ACTING direction is metadata, never dialogue text', () => {
+  const decoder = createStoryStreamDecoder({ master });
+  const events = [
+    ...decoder.push('[DIALOGUE speaker_id="heroine2"]hello\n[ACTING]'),
+    ...decoder.push('\n차분하게\n네, 알겠습니다.'),
+    ...decoder.finish()
+  ];
+  assert.equal(events.filter(event => event.type === 'acting')[0].acting_direction, '차분하게');
+  assert.equal(events.filter(event => event.type === 'text_delta').map(event => event.text).join(''), 'hello\n네, 알겠습니다.');
+  assert.equal(events.some(event => event.type === 'text_delta' && event.text.includes('차분하게')), false);
+});
+
+test('stream post-dialogue ACTING attaches only to the adjacent dialogue', () => {
+  const decoder = createStoryStreamDecoder({ master });
+  const events = [
+    ...decoder.push('[DIALOGUE speaker_id="heroine2"]네.\n[/DIALOGUE][ACTING]\n당황하며\n[/ACTING]'),
+    ...decoder.finish()
+  ];
+  assert.deepEqual(events.filter(event => event.type === 'acting').map(event => event.acting_direction), ['당황하며']);
+  assert.deepEqual(events.filter(event => event.type === 'block_start').map(event => event.block_type), ['dialogue']);
+  const crossed = createStoryStreamDecoder({ master });
+  assert.throws(() => crossed.push('[DIALOGUE speaker_id="heroine2"]네.[/DIALOGUE][SCENE]다음 장면[ACTING]잘못된 귀속'), error => error.code === 'STORY_PROTOCOL_INVALID');
+});
+
 test('choice label length is presentation-only while empty choice is a soft warning', () => {
   const long = '[SCENE]s\n[THOUGHT]t\n[CHOICE label="very long presentation label"]a\n[CHOICE label="B"]b\n[CHOICE label="C"]c\n[CHOICE label="D"]d';
   assert.equal(parseFreshNarrativeV2(long, { master }).choices.length, 4);

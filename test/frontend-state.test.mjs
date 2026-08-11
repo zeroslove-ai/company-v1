@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { choicesForRenderer, createBusyGuard, createFrontendApp, createTurnCoordinator, toolbarCapabilities } from '../src/frontend/pages/app.js';
+import { choicesForRenderer, createBusyGuard, createFrontendApp, createTurnCoordinator, reduceStoryWireProjection, toolbarCapabilities } from '../src/frontend/pages/app.js';
 import { ApiError } from '../src/frontend/pages/api.js';
 import { choiceLabel, mindMonitorDisplay, parsedTurnNarrative, renderChoices, renderHistory, renderNarrative, renderState, stateDisplayValues } from '../src/frontend/pages/render.js';
 import { clearPending, committedTurn, contextChoices, loadPending, pendingKey, recoveryFor, reservedPlayerSetupId, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
@@ -102,7 +102,7 @@ test('renderer uses view-model choices, short labels, and full choice payloads',
   const longChoice = '12345678901234567890123456789012345';
   assert.deepEqual(choicesForRenderer(model), model.story.choices);
   assert.deepEqual(choicesForRenderer(model, ['one', 'two', 'three', 'four']), ['one', 'two', 'three', 'four']);
-  assert.deepEqual(choicesForRenderer(model, ['incomplete']), model.story.choices);
+  assert.deepEqual(choicesForRenderer(model, ['incomplete']), []);
   assert.deepEqual(choicesForRenderer(model, null), []);
   assert.equal(choiceLabel(longChoice).length <= 31, true);
   const previousDocument = globalThis.document; globalThis.document = { createElement: tag => new FakeNode(tag) };
@@ -398,6 +398,26 @@ test('turn coordinator retains Story, Extract, Commit and recovery action IDs', 
   calls.length = 0;
   await coordinator.runRecovery({ game_id: gameId, action_id: 'recover', expected_turn: 7, player_action: 'Recover', step: 'commit' }, 'resume_commit');
   assert.deepEqual(calls.map(([name]) => name), ['commit']);
+});
+
+test('frontend keeps adjacent ACTING on the prior dialogue and clears it at a new block', () => {
+  let state = reduceStoryWireProjection({}, { event: 'block_start', data: { block_type: 'dialogue', speaker_id: 'heroine2', speaker_name: '윤민아' } });
+  state = reduceStoryWireProjection(state, { event: 'delta', data: { text: '네.' } });
+  state = reduceStoryWireProjection(state, { event: 'block_end', data: { block_type: 'dialogue' } });
+  state = reduceStoryWireProjection(state, { event: 'acting', data: { acting_direction: '당황하며' } });
+  assert.equal(state.blocks[0].acting_direction, '당황하며');
+  state = reduceStoryWireProjection(state, { event: 'block_start', data: { block_type: 'scene' } });
+  state = reduceStoryWireProjection(state, { event: 'acting', data: { acting_direction: '잘못된 귀속' } });
+  assert.equal(state.blocks[0].acting_direction, '당황하며');
+  assert.equal(state.blocks[1].acting_direction, null);
+});
+
+test('frontend bottom choices require canonical four distinct literals', () => {
+  const model = buildCompanyGameViewModel(validContext());
+  assert.deepEqual(choicesForRenderer(model, ['same', 'same', 'same', 'same']), []);
+  assert.deepEqual(choicesForRenderer(model, ['one', 'two', 'three']), []);
+  assert.deepEqual(choicesForRenderer(model, ['one', 'two', 'three', 'four']), ['one', 'two', 'three', 'four']);
+  assert.deepEqual(choicesForRenderer(model, null), []);
 });
 
 test('turn coordinator preserves canonical structured action through pending, Story, Extract, Commit, and recovery', async () => {
