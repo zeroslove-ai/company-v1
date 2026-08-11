@@ -35,7 +35,6 @@ const extract = {
 test('Story cache order contains only the canonical two-message user payload keys', () => {
   const ordered = reorderPromptPayload(story);
   assert.deepEqual(Object.keys(ordered), PROMPT_CACHE_KEY_ORDER.story);
-  assert.deepEqual(Object.keys(ordered), PROMPT_CACHE_KEY_ORDER.story);
 });
 
 test('Extract cache order preserves observer contract keys', () => {

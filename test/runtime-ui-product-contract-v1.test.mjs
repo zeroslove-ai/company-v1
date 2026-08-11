@@ -6,6 +6,7 @@ import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-
 import { buildSceneStatePatch } from '../src/engine/state/physical-state.js';
 import { renderHistory, renderMindMonitor } from '../src/frontend/pages/render.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
+import { createTurnLoadingOverlay } from '../src/frontend/pages/loading-overlay.js';
 
 const gameId = '11111111-1111-4111-8111-111111111111';
 
@@ -22,8 +23,16 @@ class FakeNode {
   }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; }
+  remove() { this.removed = true; }
   addEventListener(type, listener) { this.listeners.set(type, listener); }
   setAttribute(name, value) { this[name] = value; }
+}
+
+class FakeEventTarget {
+  constructor() { this.listeners = new Map(); }
+  addEventListener(type, listener) { this.listeners.set(type, listener); }
+  removeEventListener(type) { this.listeners.delete(type); }
+  dispatch(type, detail) { this.listeners.get(type)?.({ detail }); }
 }
 
 function withFakeDocument(run) {
@@ -146,6 +155,22 @@ test('Mind Monitor keeps an explicit empty state instead of disappearing', () =>
     assert.equal(container.children.length, 1);
     assert.equal(container.children[0].textContent, '이번 턴 Mind Monitor 정보가 없습니다.');
   });
+});
+
+test('loading status is a dismissible DOM state and does not own Story content', () => {
+  const body = new FakeNode('body');
+  const documentRef = { body, createElement: tag => new FakeNode(tag), getElementById: () => null };
+  const eventTarget = new FakeEventTarget();
+  const controller = createTurnLoadingOverlay({ documentRef, eventTarget, MutationObserverImpl: null });
+
+  assert.equal(body.children.length, 1);
+  assert.equal(controller.overlay.hidden, true);
+  eventTarget.dispatch('company:pending-step', { step: 'story' });
+  assert.equal(controller.overlay.hidden, false);
+  controller.hide();
+  assert.equal(controller.overlay.hidden, true);
+  controller.destroy();
+  assert.equal(controller.overlay.removed, true);
 });
 
 test('engine parser strips compact labels from authoritative full choices', () => {
