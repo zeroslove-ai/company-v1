@@ -410,7 +410,7 @@ const CALL_ACTION = /(부른다|불렀다|호출한다|호출했다|오라고|�
  * 축약 때문이다(인사하다→인사한다와 같은 패턴). 활용형을 넣지 않으면 "서원희를 찾아간다"처럼
  * 스펙에 명시된 리터럴 입력조차 이동으로 인식하지 못한다.
  */
-const MOVE_ACTION = /(찾으러|찾아가|찾아간|찾아보|찾아본|보러|만나러|이동하|이동한|가본다|가겠다|방문하|방문한|들어간다|향한다|자리로|사무실로|팀으로)/u;
+const MOVE_ACTION = /(찾으러|찾아가|찾아간|찾아보|찾아본|보러|만나러|이동하|이동한|이동한다|가본다|가겠다|방문하|방문한|들어간다|향한다|자리로|사무실로|팀으로)/u;
 /** 장소 이름/별칭이 문장에 그대로 등장하면(NPC 언급 없이도) 이동 목적지 장소로 인정한다. 가장 긴 이름을 우선한다. */
 export function resolveNavigationLocation({ save = {}, master = {}, playerAction = '', mapLocations = [] } = {}) {
   const source = typeof playerAction === 'string' ? playerAction : '';

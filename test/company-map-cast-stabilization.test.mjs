@@ -80,8 +80,8 @@ test('registered NPC defaults and stored locations resolve independently of scen
 });
 
 test('explicit location movement resolves only a location id', () => {
-  const resolved = resolveNavigationLocation({ save: save({ locationId: 'brand_strategy_office' }), master: MASTER, playerAction: '브랜드전략팀 회의실로 이동한다', mapLocations: LOCATIONS });
-  assert.equal(resolved, 'brand_strategy_meeting_room');
+  const resolved = resolveNavigationLocation({ save: save({ locationId: 'brand_strategy_office' }), master: MASTER, playerAction: '직원 라운지로 이동한다', mapLocations: LOCATIONS });
+  assert.equal(resolved, 'employee_lounge');
 });
 
 test('NPC-name movement resolves the NPC location without creating a destination actor', () => {
