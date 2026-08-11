@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 
 import { applyRegisteredNpcPolicy, resolveActionCharacterTarget } from '../src/api/npc-policy-fetch.js';
 import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-parser.js';
-import { resolveMovementCharacterTarget } from '../src/engine/story-prompt.js';
 import { parseNarrative as parseFrontendNarrative } from '../src/frontend/pages/narrative.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -22,18 +21,6 @@ const speakerDirectory = { heroine1: { name: '서원희' }, heroine2: { name: '�
 function fourSections(scene) {
   return `[1. 서사 및 행동]\n${scene}\n[2. 플레이어 속마음]\n민아를 제대로 찾았다.\n[3. 플레이어 상황판]\n장소: 복도\n[4. 선택지]\n1. [인사] 인사한다\n2. [업무] 업무를 묻는다\n3. [관찰] 반응을 본다\n4. [이동] 함께 이동한다`;
 }
-
-test('민아를 찾으러 가는 이동 행동 uniquely activates canonical 윤민아', () => {
-  const charactersMap = {
-    heroine1: { name: '서원희' },
-    heroine2: { name: '윤민아' }
-  };
-  assert.equal(
-    resolveMovementCharacterTarget(charactersMap, '이제 다른 팀원 중 하나인 민아를 찾으러 가본다'),
-    'heroine2'
-  );
-  assert.equal(resolveMovementCharacterTarget(charactersMap, '민아의 보고서를 읽는다'), null, '일반 부분 이름 언급은 활성화하지 않는다');
-});
 
 test('final Story transport binds 민아 to 윤민아 and forbids substitution or room spawning', () => {
   const payload = {

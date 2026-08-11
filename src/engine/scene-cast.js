@@ -402,8 +402,7 @@ const CALL_ACTION = /(부른다|불렀다|호출한다|호출했다|오라고|�
  */
 // 한국어 활용 주의: '인사하다 → 인사한다'처럼 어간 '하'가 '한'으로 바뀌므로
 // 어간이 아니라 명사형(인사/대화/얘기/질문)으로 매칭한다.
-// Movement no longer precomputes a talk-intent gate. Story may describe a
-// natural encounter after navigation and Extract/Commit observe the result.
+// Speaker permissions are derived from the current cast only.
 /**
  * 사용자가 NPC가 있는 곳으로 이동·방문·찾으러 가는 행동 (destination 근거 — entering 아님).
  * 동사 어간형("이동하", "찾아가", "찾아보", "방문하")은 그 자체의 현재형 활용("이동한다",
@@ -413,9 +412,10 @@ const CALL_ACTION = /(부른다|불렀다|호출한다|호출했다|오라고|�
  */
 const MOVE_ACTION = /(찾으러|찾아가|찾아간|찾아보|찾아본|보러|만나러|이동하|이동한|가본다|가겠다|방문하|방문한|들어간다|향한다|자리로|사무실로|팀으로)/u;
 /** 장소 이름/별칭이 문장에 그대로 등장하면(NPC 언급 없이도) 이동 목적지 장소로 인정한다. 가장 긴 이름을 우선한다. */
-function resolveDestinationLocationId({ playerAction, mapLocations, currentLocationId }) {
+export function resolveNavigationLocation({ save = {}, master = {}, playerAction = '', mapLocations = [] } = {}) {
   const source = typeof playerAction === 'string' ? playerAction : '';
   if (!source || !MOVE_ACTION.test(source)) return null;
+  const currentLocationId = identity(hydrateCanonicalScene(save, { master, mapLocations }).location_id);
   let best = null;
   for (const location of Array.isArray(mapLocations) ? mapLocations : []) {
     const id = identity(location?.location_id);
@@ -427,8 +427,15 @@ function resolveDestinationLocationId({ playerAction, mapLocations, currentLocat
       if (!best || trimmed.length > best.name.length) best = { id, name: trimmed };
     }
   }
-  if (!best || best.id === identity(currentLocationId)) return null;
-  return best.id;
+  if (best) return best.id === currentLocationId ? null : best.id;
+  const characters = charactersMapOf(master);
+  const generalNpcs = generalNpcProfilesOf(master);
+  const mentioned = resolveUserMentionedNpcIds(master, source, { allowUniqueKoreanGivenName: false });
+  for (const npcId of mentioned) {
+    const locationId = resolveNpcLocationId({ save, npcId, charactersMap: characters, generalNpcProfiles: generalNpcs, mapLocations });
+    if (locationId && locationId !== currentLocationId) return locationId;
+  }
+  return null;
 }
 const REMOTE_ACTION = /(전화|통화|메신저|메시지|문자|사내망|카톡|연락한다|연락했다|콜한다)/u;
 
@@ -450,7 +457,7 @@ function resolveEnteringNpcIds({ save, master, playerAction, registeredIds, pres
   const source = typeof playerAction === 'string' ? playerAction : '';
 
   // 1. 사용자 호출 대상 — "민아를 이쪽으로 부른다" (수정 F 8.5)
-  if (CALL_ACTION.test(source) && !MOVE_ACTION.test(source)) {
+  if (CALL_ACTION.test(source)) {
     for (const id of resolveUserMentionedNpcIds(master, source)) push(id);
   }
 
@@ -462,32 +469,6 @@ function resolveEnteringNpcIds({ save, master, playerAction, registeredIds, pres
   // structuredAction target 자동 entering — app_transaction에는 장면 진입 의미 없음
 
   return entering;
-}
-
-/**
- * 이동 목적지 대상 (안정화 수정 F 8.4).
- * "윤민아를 보러 간다"에서 윤민아는 기존 장면으로 들어오는 NPC가 아니라
- * 플레이어가 찾아가는 목적지 대상이다. destination_npc_ids로 분리하고,
- * entering_npc_ids에 넣지 않는다.
- *
- * presentIds로 걸러내지 않는다 — 이 함수는 MOVE_ACTION(이동 어휘)이 있을 때만 호출되므로
- * 이미 "이동 의도"가 확정된 상태다. 출발 장면에 이미 참가 중인 NPC를 같은 문장에서 다시
- * 지목하면("…사무실로 가서 윤민아에게 인사한다") 그녀는 함께 이동하거나 도착 후 다시
- * 대화하는 대상이지, 목적지 후보에서 빠질 이유가 없다. 예전에는 여기서 걸러져
- * destination_npc_ids가 비고 도착 발화가 통째로 사라지는 버그였다.
- */
-function resolveDestinationNpcIds({ save, master, playerAction, registeredIds }) {
-  const destination = [];
-  const push = id => {
-    if (!id || isPlayerRefId(id) || !registeredIds.has(id)) return;
-    if (destination.includes(id)) return;
-    destination.push(id);
-  };
-  const source = typeof playerAction === 'string' ? playerAction : '';
-  if (MOVE_ACTION.test(source) && !CALL_ACTION.test(source)) {
-    for (const id of resolveUserMentionedNpcIds(master, source)) push(id);
-  }
-  return destination;
 }
 
 /** 원격 채널(전화·메신저·방송)로만 발화할 수 있도록 사전 확정된 NPC (spec 13). */
@@ -536,9 +517,6 @@ export function buildSceneCastContract({
   const enteringNpcIds = resolveEnteringNpcIds({
     save, master, playerAction, registeredIds, presentIds: presentNpcIds, structuredAction
   });
-  const destinationNpcIds = resolveDestinationNpcIds({
-    save, master, playerAction, registeredIds
-  });
   const remoteNpcIds = resolveRemoteNpcIds({
     save, master, playerAction, registeredIds, presentIds: presentNpcIds, enteringIds: enteringNpcIds
   });
@@ -546,26 +524,15 @@ export function buildSceneCastContract({
   // NPC 언급 없이 장소 이름만으로 이동하는 순수 이동 입력("…사무실로 이동한다") —
   // destinationNpcIds는 NPC 이름이 문장에 있어야만 채워지므로 이 경로가 없으면
   // 목적지가 NPC 언급 없는 순수 이동을 전혀 인식하지 못한다.
-  const explicitDestinationLocationId = resolveDestinationLocationId({
-    playerAction, mapLocations, currentLocationId: locationId
-  });
   // 수정 2 — 이동 턴: 현재 장소 NPC·목적지 NPC 모두 발화 금지.
   // allowed_speaker_ids = ['player', ...remoteNpcIds]
-  const transitionMode = destinationNpcIds.length || explicitDestinationLocationId ? 'movement' : 'stationary';
-  const isMovementTurn = transitionMode === 'movement';
   // 안정화 수정 H — 이동을 여러 턴으로 나누지 않는다. 도착과 만남이 같은 턴에
   // 일어나고, 사용자의 입력에 말 걸기 의도가 있으면 목적지 NPC가 같은 턴에
   // 대답한다. 말 걸기 의도가 없는 순수 이동이면 도착 서술까지만 하고 발화는
   // 다음 턴으로 미룬다(도착하자마자 NPC가 먼저 말을 걸어버리는 것 방지).
-  // Movement resolves navigation only. It does not replace the current cast
-  // with a destination-NPC speaker list.
 
   // 검토 수정 2 + 안전화 패치 — 이동 목적지 장소: 대상 NPC의 저장 위치를 사용한다.
   // 저장 위치가 없으면 임의 장소를 만들지 않고 null로 둔다.
-  const npcSceneState = isPlainObject(save?.npc_scene_state) ? save.npc_scene_state : {};
-  const destinationNpcState = isMovementTurn && destinationNpcIds.length === 1
-    ? npcSceneState[destinationNpcIds[0]]
-    : null;
   // 안정화 수정 H — 저장 위치가 없으면 캐릭터 canon의 default_location_id(그다음
   // map.locations의 default_npc_ids)로 보완한다. 예전에는 여기서 null이 나와
   // 이동 Commit 자체가 적용되지 않았고("민아 보러 가야지" → 이동 저장 안 됨),
@@ -576,26 +543,8 @@ export function buildSceneCastContract({
   // 지목하면 그녀의 npc_scene_state.location_id는 아직 "출발" 장소(회의실)를 가리키므로,
   // 그걸 먼저 쓰면 목적지가 출발지로 되돌아가 버린다. 문장에 장소명이 없을 때만("민아
   // 보러 간다") NPC의 저장/기본 위치로 목적지를 추론한다.
-  const destinationLocationId = !isMovementTurn
-    ? null
-    : (explicitDestinationLocationId
-      ?? (destinationNpcIds.length === 1
-        ? (identity(destinationNpcState?.location_id)
-          ?? resolveNpcLocationId({
-            save,
-            npcId: destinationNpcIds[0],
-            charactersMap: charactersMapOf(master),
-            generalNpcProfiles: generalNpcProfilesOf(master),
-            mapLocations
-          }))
-        : null));
   // scene_id는 명시적 장소명이 없을 때만 NPC 저장 상태의 scene_id를 쓰고, 그 외에는
   // 검증된 location_id로 대체한다. 새 장소 이름을 추측하거나 생성하지 않는다.
-  const destinationSceneId = !isMovementTurn
-    ? null
-    : (!explicitDestinationLocationId && destinationNpcIds.length === 1
-      ? (identity(destinationNpcState?.scene_id) ?? destinationLocationId)
-      : destinationLocationId);
 
   // 문맥 참고용 — focal/last_speaker는 여기에는 들어가지만 present에는 별도 근거가 필요하다.
   const contextNpcIds = [];
@@ -605,27 +554,19 @@ export function buildSceneCastContract({
   };
   for (const id of presentNpcIds) pushContext(id);
   for (const id of enteringNpcIds) pushContext(id);
-  for (const id of destinationNpcIds) pushContext(id);
   for (const id of remoteNpcIds) pushContext(id);
   pushContext(identity(save?.focal_character_id));
   pushContext(identity(save?.last_speaker_id));
   for (const id of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) pushContext(id);
 
-  // Movement turns expose only destination-eligible and explicitly remote speakers.
-  const allowedSpeakerIds = isMovementTurn
-    ? null
-    : [...new Set(['player', ...presentNpcIds, ...enteringNpcIds, ...remoteNpcIds])];
+  const allowedSpeakerIds = [...new Set(['player', ...presentNpcIds, ...enteringNpcIds, ...remoteNpcIds])];
 
   return {
     version: 1,
-    transition_mode: transitionMode,
     location_id: locationId,
     context_npc_ids: contextNpcIds,
     present_npc_ids: presentNpcIds,
     entering_npc_ids: enteringNpcIds,
-    destination_npc_ids: destinationNpcIds,
-    destination_location_id: destinationLocationId,
-    destination_scene_id: destinationSceneId,
     remote_npc_ids: remoteNpcIds,
     allowed_speaker_ids: allowedSpeakerIds,
     player_dialogue: resolvePlayerDialoguePolicy(playerAction, master),

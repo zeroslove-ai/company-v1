@@ -1,7 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
-import { buildSceneCastContract } from '../engine/scene-cast.js';
+import { buildSceneCastContract, resolveNavigationLocation } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
@@ -55,6 +55,7 @@ import {
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
+import { hydrateCanonicalScene } from '../engine/runtime-core/scene-reducer.js';
 import { logTurnTiming, newRequestId } from './timing.js';
 
 function asHttpError(error) {
@@ -75,6 +76,27 @@ function actionIds(body) {
   return {
     gameId: requireString(body.game_id, 'game_id'),
     actionId: requireString(body.action_id, 'action_id')
+  };
+}
+
+function projectStorySaveAtLocation(save, locationId, { master, mapLocations } = {}) {
+  if (typeof locationId !== 'string' || !locationId.trim()) return save;
+  const scene = hydrateCanonicalScene(save, { master, mapLocations });
+  if (scene.location_id === locationId) return save;
+  return {
+    ...save,
+    scene: {
+      ...scene,
+      version: 1,
+      scene_id: locationId,
+      location_id: locationId,
+      beat: 0,
+      goal: null,
+      focus_thread: null,
+      present_npc_ids: [],
+      focal_character_id: null,
+      last_speaker_id: null
+    }
   };
 }
 
@@ -376,9 +398,19 @@ const master = masterFromEdition(edition);
           const csaPlan = action.action_kind === 'feedback_revision'
             ? null
             : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          const resolvedLocationId = resolveNavigationLocation({
+            save: hydratedSave,
+            master,
+            playerAction,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
+          const storyBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
+            master,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
           const storySave = csaPlan
-            ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
-            : hydratedSave;
+            ? { ...storyBaseSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
+            : storyBaseSave;
           const storyContext = csaPlan
             ? {
                 ...hydratedContext,
@@ -389,7 +421,7 @@ const master = masterFromEdition(edition);
             : hydratedContext;
           // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
           const sceneCastContract = buildSceneCastContract({
-            save: hydratedSave, master, playerAction, structuredAction,
+            save: storySave, master, playerAction, structuredAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           timing.cast_present_count = sceneCastContract.present_npc_ids.length;
@@ -514,34 +546,26 @@ const master = masterFromEdition(edition);
           const promptStart = Date.now();
           // CSA transaction 턴에는 post-transaction save로 Extract context를 만든다
           // (Story 경로와 동일한 단일 정본 — runtime wrapper가 다시 덮어쓸 필요가 없다).
-          const extractSave = csaPlan
-            ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
-            : hydratedSave;
-          const extractContext = csaPlan
-            ? {
-                ...hydratedContext,
-                save: hydratedContext.save?.data
-                  ? { ...hydratedContext.save, data: extractSave }
-                  : extractSave
-              }
-            : hydratedContext;
-          const movementContract = buildSceneCastContract({
+          const resolvedLocationId = resolveNavigationLocation({
             save: hydratedSave,
             master,
             playerAction: action.player_action,
-            structuredAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
+          const extractBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
+            master,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
+          const extractSave = csaPlan
+            ? { ...extractBaseSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
+            : extractBaseSave;
+          const extractContext = {
+            ...hydratedContext,
+            save: hydratedContext.save?.data
+              ? { ...hydratedContext.save, data: extractSave }
+              : extractSave
+          };
           let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
-          if (movementContract.transition_mode === 'movement' && movementContract.destination_location_id) {
-            const destination = edition?.map?.locations?.find(location => location?.location_id === movementContract.destination_location_id);
-            if (destination) {
-              messages = [{
-                ...messages[0],
-                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION SCOPE] This is an explicit movement turn. Navigation has already resolved the canonical destination from the stored player action. Do not decide, confirm, or reject movement from Story wording. scene_observation.location_id and final_present_npc_ids are not required for this movement turn; leave them null or omit them when not directly observed. Observe only non-navigation changes actually described in the raw Story. Do not invent a different destination or use movement evidence to override the resolved navigation.`
-              }, ...messages.slice(1)];
-            }
-          }
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa);
@@ -564,7 +588,6 @@ const master = masterFromEdition(edition);
             storyText: storyForExtract,
             expectedTurn: action.expected_turn,
             actionId,
-            movement: movementContract.transition_mode === 'movement'
           });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
@@ -619,11 +642,10 @@ const master = masterFromEdition(edition);
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const currentSave = context.save?.data ?? context.save;
-        const movementContract = buildSceneCastContract({
+        const resolvedLocationId = resolveNavigationLocation({
           save: currentSave,
           master,
           playerAction: action.player_action,
-          structuredAction,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
         let parsedStory = parseStoryProjection(action.story_text, master);
@@ -633,7 +655,6 @@ const master = masterFromEdition(edition);
               storyText: action.story_text,
               expectedTurn,
               actionId,
-              movement: movementContract.transition_mode === 'movement'
             })
           : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
         const reducerStart = Date.now();
@@ -641,7 +662,7 @@ const master = masterFromEdition(edition);
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,
           action, expectedTurn, master, npcIds,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
-          movementContract
+          authoritativeLocationId: resolvedLocationId
         });
         timing.commit_reducer_ms = Date.now() - reducerStart;
         let nextSave = merged.nextSave;

@@ -43,15 +43,10 @@ function canonicalObservation(observation, parsedStory) {
   };
 }
 
-export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, movementContract = null } = {}) {
+export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, authoritativeLocationId = null } = {}) {
   const current = clone(currentSave);
   const sceneBefore = hydrateCanonicalScene(current, { master, npcIds });
   const sceneObservation = canonicalObservation(observation, parsedStory);
-  const resolvedMovement = movementContract?.transition_mode === 'movement'
-    && typeof movementContract.destination_location_id === 'string'
-    && movementContract.destination_location_id.trim()
-    ? movementContract.destination_location_id.trim()
-    : null;
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,
     observation: sceneObservation,
@@ -61,7 +56,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     mapLocations,
     expectedTurn,
     actionKind: action?.action_kind,
-    movementDestinationId: resolvedMovement,
+    authoritativeLocationId,
   });
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),

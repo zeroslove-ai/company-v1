@@ -159,40 +159,13 @@ test('Story Prompt v2 phase 2 supplies deterministic workplace candidates withou
   assert.match(system, /scene_cast_contract가 이미 확정/);
   assert.match(system, /너에게는 결정 권한이 없다/);
   assert.match(system, /scene_goal 또는 focus_thread/);
-  assert.match(system, /MOVEMENT NAVIGATION CONTRACT/);
-  assert.match(system, /movement 전용 allowed_speaker_ids/);
-  assert.match(system, /requested_location\.name.*도착한 관찰 가능한 결과/);
   assert.match(system, /현재 업무 장면에서 자연스러운 업무·대화 선택지는 허용한다/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /acting_direction=/);
   assert.ok(system.length <= 11000, `Story system prompt too large: ${system.length}`);
 });
 
-test('movement Story prompt carries a resolved prospective destination context', () => {
-  const messages = buildStoryPrompt({
-    edition,
-    context: { game: {}, save: baseSave(), recent_turns: [] },
-    playerAction: '사무실로 이동한다',
-    expectedTurn: 2,
-    sceneCastContract: { transition_mode: 'movement', destination_location_id: 'office' }
-  });
-  assert.match(messages[0].content, /\[RESOLVED MOVEMENT CONTEXT\]/);
-  assert.match(messages[0].content, /사무실/);
-  assert.match(messages[0].content, /location_id=office/);
-  const payload = JSON.parse(messages[1].content);
-  assert.deepEqual(payload.movement_result_required, {
-    location_id: 'office',
-    name: '사무실',
-    completed_arrival_required: true
-  });
-  assert.equal(payload.story_mode, 'movement_story');
-  const currentTurn = JSON.parse(messages[2].content);
-  assert.equal(currentTurn.current_turn_contract, 'movement');
-  assert.equal(currentTurn.required_result, 'arrive_at_destination_in_this_story');
-  assert.equal(currentTurn.destination.location_id, 'office');
-});
-
-test('Story scene context and movement grounding use canonical location and presence', () => {
+test('Story scene context uses canonical location and presence', () => {
   const save = baseSave();
   save.scene = {
     version: 1,
@@ -214,32 +187,6 @@ test('Story scene context and movement grounding use canonical location and pres
   assert.deepEqual(core.scene.participants, ['general_designer']);
   assert.deepEqual(core.scene.present_npc_ids, ['general_designer']);
   assert.equal(core.active_npc_state.npc_scene_state?.general_manager?.present, false);
-});
-
-test('movement grounding uses canonical current location over stale scene_state location', () => {
-  const save = baseSave();
-  save.scene = {
-    version: 1,
-    scene_id: 'canonical',
-    location_id: 'project_room',
-    beat: 0,
-    goal: null,
-    focus_thread: null,
-    present_npc_ids: [],
-    focal_character_id: null,
-    last_speaker_id: null,
-    updated_turn: 2
-  };
-  save.scene_state.location_id = 'office';
-  const messages = buildStoryPrompt({
-    edition,
-    context: { game: {}, save, recent_turns: [] },
-    playerAction: '사무실로 이동한다',
-    expectedTurn: 2,
-    sceneCastContract: { transition_mode: 'movement', destination_location_id: 'office' }
-  });
-  const payload = JSON.parse(messages[1].content);
-  assert.equal(payload.context.movement_grounding.current_location.location_id, 'project_room');
 });
 
 test('CSA Story prompt keeps the app meta boundary and grounds newly activated authority tiers', () => {

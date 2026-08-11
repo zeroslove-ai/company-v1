@@ -258,7 +258,7 @@ test('stored action route parity rejects reservation/row divergence before Story
   assert.deepEqual(stored.structured_action, actionA);
 });
 
-test('movement Commit recomputes the scene cast instead of reading removed parsed_blocks metadata', async () => {
+test('navigation Commit uses the current deterministic location and generic scene observation', async () => {
   const extractEnvelope = {
     extract_version: 2,
     outcome: 'success',
@@ -267,8 +267,7 @@ test('movement Commit recomputes the scene cast instead of reading removed parse
       final_present_npc_ids: ['heroine2'],
       focal_candidate_id: null, presence_is_final: true,
       remote_speaker_ids: ['heroine5'], evidence: [
-        { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES[1] },
-        { kind: 'movement', location_id: 'brand_strategy_office', quote: STORY_LINES[1] }
+        { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES[1] }
       ]
     },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] },
@@ -279,7 +278,7 @@ test('movement Commit recomputes the scene cast instead of reading removed parse
   };
   const mock = createMockFetch({ saveOverride: v2Save(), extractEnvelope });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  const playerAction = '민아 보러 간다';
+  const playerAction = '윤민아 보러 간다';
 
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: playerAction }), env);
   assert.equal(story.status, 200);

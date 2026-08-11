@@ -27,7 +27,7 @@ const CSA_TRIGGER_FIELDS = new Set(['csa_id', 'status']);
 const RUNTIME = new Set(['inactive', 'active', 'paused', 'ended']);
 const CSA_RUNTIME_FIELDS = new Set(['csa_id', 'character_id', 'status', 'target_type', 'action_state', 'position_label', 'reason']);
 const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'quote']);
-const SCENE_EVIDENCE_KINDS = new Set(['presence', 'movement', 'scene']);
+const SCENE_EVIDENCE_KINDS = new Set(['presence', 'scene']);
 const LEGACY_SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'movement', 'scene']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
@@ -227,7 +227,6 @@ function normalizeSceneEvidence(value, npcIds, storyText, sceneId, { legacyEvide
     const locationId = item.location_id === undefined || item.location_id === null ? null : nonEmptyId(item.location_id);
     if (item.location_id !== undefined && item.location_id !== null && !locationId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Scene evidence location_id must be a string');
     if (['presence', 'entrance', 'exit'].includes(item.kind) && !characterId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${item.kind} evidence requires character_id`);
-    if (item.kind === 'movement' && !locationId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'movement evidence requires location_id');
     if (item.kind === 'scene' && (sceneId === null || sceneId === undefined)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene evidence requires scene_id');
     const key = JSON.stringify([item.kind, characterId, locationId, quote]);
     if (!seen.has(key)) {
@@ -249,22 +248,11 @@ export function assertExtractObservationContract(observation) {
   return true;
 }
 
-export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, movement = false, legacyEvidenceKinds = false } = {}) {
+export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, legacyEvidenceKinds = false } = {}) {
   assertExtractObservationContract(value);
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
   if (!object(value.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
-  const scene = movement
-    ? {
-        // Navigation owns location. A valid final presence array remains a
-        // usable observation; null means the destination starts empty.
-        scene_id: null,
-        location_id: null,
-        final_present_npc_ids: value.scene_observation?.final_present_npc_ids ?? null,
-        focal_candidate_id: null,
-        remote_speaker_ids: value.scene_observation?.remote_speaker_ids ?? [],
-        evidence: []
-      }
-    : value.scene_observation;
+  const scene = value.scene_observation;
   assertKeys(scene, new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'remote_speaker_ids', 'evidence', 'presence_is_final']), 'INVALID_EXTRACT_OBSERVATION');
   const final = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
   if (Object.hasOwn(scene, 'presence_is_final') && typeof scene.presence_is_final !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'presence_is_final must be a boolean when provided for legacy compatibility');

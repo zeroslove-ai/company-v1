@@ -138,7 +138,6 @@ test('degraded observation is deterministic and does not create a patch', () => 
 test('scene evidence quotes must be exact substrings of the raw Story for every kind', () => {
   const cases = [
     { kind: 'presence', character_id: 'heroine1', quote: 'presence quote' },
-    { kind: 'movement', location_id: 'room-a', quote: 'movement quote' },
     { kind: 'scene', quote: 'scene quote' }
   ];
   const story = cases.map(item => item.quote).join(' | ');
@@ -164,15 +163,10 @@ test('presence authority uses only final_present_npc_ids and emits no entered/ex
   assert.equal('presence_is_final' in observation.scene_observation, false);
 });
 
-test('movement observation preserves valid final presence while leaving location to the action resolver', () => {
-  const movement = normalizeExtractObservationV2(valid({ scene_observation: {
-    scene_id: 'hallucinated', location_id: 'wrong-room', final_present_npc_ids: ['heroine1'],
-    entered_npc_ids: ['heroine1'], exited_npc_ids: [], focal_candidate_id: 'heroine1', presence_is_final: true,
-    remote_speaker_ids: [], evidence: [{ kind: 'movement', location_id: 'wrong-room', quote: 'not in Story' }]
-  } }), { npcIds: NPCS, storyText: STORY, movement: true });
-  assert.deepEqual(movement.scene_observation, {
-    scene_id: null, location_id: null, final_present_npc_ids: ['heroine1'], focal_candidate_id: null, remote_speaker_ids: [], evidence: []
-  });
+test('fresh V2 rejects movement as a scene evidence kind', () => {
+  assert.throws(() => normalizeExtractObservationV2(valid({ scene_observation: {
+    ...scene(), evidence: [{ kind: 'movement', location_id: 'room-a', quote: STORY }]
+  } }), { npcIds: NPCS, storyText: STORY }), error => error.code === 'INVALID_EXTRACT_OBSERVATION');
 });
 
 test('V2 observation rejects type coercion and forbidden relationship/CSA fields', () => {
@@ -252,9 +246,9 @@ test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibiti
     assert.match(system, new RegExp(`"${key}"`));
   }
   assert.match(system, /Never return these save-patch or parser fields/);
-  assert.match(system, /kind must be exactly one of "presence", "movement", or "scene"/);
+  assert.match(system, /kind must be exactly one of "presence" or "scene"/);
   assert.match(system, /never invent names such as "npc_presence"/);
-  assert.match(system, /never compose a quote from the player action, canonical destination, or inferred movement/);
+  assert.match(system, /never compose a quote from the player action or inferred facts/);
   assert.match(system, /evidence is a top-level sibling of player_observation and npc_observations/);
   assert.match(system, /Never put an evidence key inside a player or NPC object/);
   for (const forbidden of ['state_delta', 'choices', 'dialogue_lines', 'player_inner_thought', 'last_speaker_id', 'npcs_present', 'focal_character_id', 'csa_active', 'csa_rules', 'world_state', 'save']) assert.match(system, new RegExp(forbidden));
