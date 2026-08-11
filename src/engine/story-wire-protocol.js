@@ -78,8 +78,8 @@ export function parseStoryControlMarker(input, { directory = null } = {}) {
   }
   if (source.startsWith('[CHOICE')) {
     if (!/^\[CHOICE(?:\s|\])/.test(token)) throw protocolError('Malformed CHOICE marker');
-    const attributes = parseQuotedAttributes(token.slice('[CHOICE'.length, -1), new Set(['label']));
-    return { type: 'block_start', block_type: 'choice', raw: token, remainder, label: attributes.label ?? null, leadingWhitespace: leading, end: leading.length + close + 1 };
+    parseQuotedAttributes(token.slice('[CHOICE'.length, -1), new Set());
+    return { type: 'block_start', block_type: 'choice', raw: token, remainder, leadingWhitespace: leading, end: leading.length + close + 1 };
   }
   return { invalid: true, raw: token, remainder, leadingWhitespace: leading, end: leading.length + close + 1 };
 }
@@ -123,7 +123,7 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
         data.speaker_id = marker.speaker_id;
         data.speaker_name = directory.get(marker.speaker_id);
         data.acting_direction = null;
-      } else if (marker.block_type === 'choice') data.label = marker.label;
+      }
       events.push(data);
     } else if (marker.type === 'block_end') {
       if (!activeBlockType) return;

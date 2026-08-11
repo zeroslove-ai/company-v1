@@ -86,7 +86,8 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
       if (body.stream) {
         storyCallCount += 1;
         if (remainingStoryFailures > 0) { remainingStoryFailures -= 1; throw new Error('llm upstream unavailable'); }
-        return new Response(storySseText, { headers: { 'content-type': 'text/event-stream' } });
+        const freshOpeningSse = storySseText.replace(/\[CHOICE(?:\s+[^\]]*)?\]/g, '[CHOICE]');
+        return new Response(freshOpeningSse, { headers: { 'content-type': 'text/event-stream' } });
       }
       throw new Error('unexpected non-streaming LLM call in setup/opening flow');
     }

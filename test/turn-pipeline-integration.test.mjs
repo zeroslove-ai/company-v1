@@ -46,10 +46,10 @@ const STORY = [
   STORY_LINES,
   '[THOUGHT]',
   '\uC0C1\uD669\uC744 \uC815\uB9AC\uD574\uC57C \uD55C\uB2E4.',
-  '[CHOICE label="\uAD00\uCC30"]', '\uC8FC\uBCC0\uC744 \uC0B4\uD3B4\uBCF8\uB2E4.',
-  '[CHOICE label="\uB300\uD654"]', '\uB300\uD654\uB97C \uC2DC\uC791\uD55C\uB2E4.',
-  '[CHOICE label="\uB300\uAE30"]', '\uC7A0\uC2DC \uAE30\uB2E4\uB9B0\uB2E4.',
-  '[CHOICE label="\uC774\uB3D9"]', '\uB2E4\uB978 \uC7A5\uC18C\uB85C \uAC04\uB2E4.'
+  '[CHOICE]', '\uC8FC\uBCC0\uC744 \uC0B4\uD3B4\uBCF8\uB2E4.',
+  '[CHOICE]', '\uB300\uD654\uB97C \uC2DC\uC791\uD55C\uB2E4.',
+  '[CHOICE]', '\uC7A0\uC2DC \uAE30\uB2E4\uB9B0\uB2E4.',
+  '[CHOICE]', '\uB2E4\uB978 \uC7A5\uC18C\uB85C \uAC04\uB2E4.'
 ].join('\n');
 const storySse = `data: ${JSON.stringify({ choices: [{ delta: { content: STORY } }] })}\n\ndata: [DONE]\n\n`;
 

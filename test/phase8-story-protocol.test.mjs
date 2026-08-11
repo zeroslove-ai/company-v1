@@ -18,13 +18,13 @@ const canonical = [
   '\uC900\uBE44\uD55C \uC790\uB8CC\uB97C \uD655\uC778\uD558\uACA0\uC2B5\uB2C8\uB2E4.',
   '[THOUGHT]',
   '\uC0C1\uD669\uC744 \uCC28\uBD84\uD788 \uC815\uB9AC\uD574\uC57C\uACA0\uB2E4.',
-  '[CHOICE label="\uAD00\uCC30"]',
+  '[CHOICE]',
   '\uC8FC\uBCC0\uC744 \uC0B4\uD3B4\uBCF8\uB2E4.',
-  '[CHOICE label="\uB300\uD654"]',
+  '[CHOICE]',
   '\uC790\uB8CC\uB97C \uBB3B\uB294\uB2E4.',
-  '[CHOICE label="\uB300\uAE30"]',
+  '[CHOICE]',
   '\uC7A0\uC2DC \uAE30\uB2E4\uB9B0\uB2E4.',
-  '[CHOICE label="\uC774\uB3D9"]',
+  '[CHOICE]',
   '\uB2E4\uB978 \uC7A5\uC18C\uB85C \uAC04\uB2E4.'
 ].join('\n');
 
@@ -35,6 +35,8 @@ test('fresh parser accepts canonical Story and preserves raw bytes', () => {
   assert.equal(parsed.warnings.length, 0);
   assert.equal(parsed.dialogue_lines[0].speaker_id, 'heroine1');
   assert.equal(parsed.choices.length, 4);
+  assert.equal('choice_labels' in parsed, false);
+  assert.equal('label' in parsed.blocks.find(block => block.type === 'choice'), false);
 });
 
 test('fresh parser accepts player speaker only by canonical ID', () => {
@@ -63,10 +65,10 @@ test('quoted text inside SCENE is never inferred as dialogue', () => {
 });
 
 for (const replacement of [
-  canonical.replace('[CHOICE label="이동"]\n다른 장소로 간다.', ''),
-  canonical + '\n[CHOICE label="추가"]\n추가',
-  canonical.replace('[CHOICE label="대화"]', '[CHOICE label="관찰"]'),
-  canonical.replace('[CHOICE label="관찰"]', '[CHOICE]')
+  canonical.replace('[CHOICE]\n다른 장소로 간다.', ''),
+  canonical + '\n[CHOICE]\n추가',
+  canonical.replace('다른 장소로 간다.', '다른 장소로 간다.'),
+  canonical.replace('[CHOICE]\n주변을 살펴본다.', '[CHOICE]\n주변을 살펴본다.')
 ]) {
   test('fresh parser preserves incomplete choice shape as a soft warning', () => {
     const parsed = parseFreshNarrativeV2(replacement, { master });
@@ -76,11 +78,9 @@ for (const replacement of [
   });
 }
 
-test('choice body-only and label-only forms preserve literal action text', () => {
-  const bodyOnly = canonical.replace(/\[CHOICE label="[^\]]+\]/, '[CHOICE]');
-  const labelOnly = canonical.replace(/(\[CHOICE label="[^\]]+\])\n[^\n]+$/, '[CHOICE label="A"]');
-  assert.equal(parseFreshNarrativeV2(bodyOnly, { master }).choices.length, 4);
-  assert.equal(parseFreshNarrativeV2(labelOnly, { master }).choices.at(-1), 'A');
+test('choice body is preserved literally and label attributes are rejected', () => {
+  assert.equal(parseFreshNarrativeV2(canonical, { master }).choices[0], '주변을 살펴본다.');
+  assert.throws(() => parseFreshNarrativeV2(canonical.replace('[CHOICE]', '[CHOICE label="A"]'), { master }), error => error.code === 'STORY_PROTOCOL_INVALID');
 });
 
 test('persisted boundary keeps fresh rows clean and adapts legacy rows only on read', () => {

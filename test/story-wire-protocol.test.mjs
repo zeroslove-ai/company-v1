@@ -4,7 +4,7 @@ import { createStoryStreamDecoder, parseStoryControlMarker } from '../src/engine
 import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 
 const master = { characters: [{ character_id: 'heroine2', name: '윤민아' }] };
-const valid = `[SCENE]\n회의실에 햇빛이 들었다.\n[/SCENE]\n[DIALOGUE speaker_id="heroine2"]\n[ACTING] 당황하며\n네, 잠깐만요.\n[THOUGHT]\n나는 상황부터 살펴본다.\n[CHOICE label="확인"]\n자료를 확인한다.\n[CHOICE label="질문"]\n상황을 묻는다.\n[CHOICE label="대기"]\n잠시 기다린다.\n[CHOICE label="이동"]\n다른 곳으로 간다.`;
+const valid = `[SCENE]\n회의실에 햇빛이 들었다.\n[/SCENE]\n[DIALOGUE speaker_id="heroine2"]\n[ACTING] 당황하며\n네, 잠깐만요.\n[THOUGHT]\n나는 상황부터 살펴본다.\n[CHOICE]\n자료를 확인한다.\n[CHOICE]\n상황을 묻는다.\n[CHOICE]\n잠시 기다린다.\n[CHOICE]\n다른 곳으로 간다.`;
 
 test('semantic markers expose exact identity and optional acting metadata', () => {
   const marker = parseStoryControlMarker('[DIALOGUE speaker_id="heroine2"]', { directory: new Map([['heroine2', '윤민아']]) });
@@ -24,7 +24,7 @@ test('parser preserves unlimited block order and keeps acting on its dialogue on
 test('parser preserves multiple scene and dialogue blocks in exact source order', () => {
   const raw = '[SCENE]first[/SCENE]\n[DIALOGUE speaker_id="heroine2"]one[/DIALOGUE]\n' +
     '[SCENE]second[/SCENE]\n[DIALOGUE speaker_id="heroine2"]two\n' +
-    '[THOUGHT]think\n[CHOICE label="A"]a[CHOICE label="B"]b[CHOICE label="C"]c[CHOICE label="D"]d';
+    '[THOUGHT]think\n[CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d';
   const parsed = parseFreshNarrativeV2(raw, { master });
   assert.deepEqual(parsed.blocks.map(block => block.type), ['scene', 'dialogue', 'scene', 'dialogue', 'player_inner_thought', 'choice', 'choice', 'choice', 'choice']);
   assert.deepEqual(parsed.dialogue_lines.map(line => line.text), ['one', 'two']);
@@ -41,10 +41,10 @@ test('repeated scene and dialogue blocks preserve the exact source order', () =>
     '[SCENE]third',
     '[DIALOGUE speaker_id="heroine2"]four',
     '[THOUGHT]thought',
-    '[CHOICE label="A"]a',
-    '[CHOICE label="B"]b',
-    '[CHOICE label="C"]c',
-    '[CHOICE label="D"]d'
+    '[CHOICE]a',
+    '[CHOICE]b',
+    '[CHOICE]c',
+    '[CHOICE]d'
   ].join('\n');
   const parsed = parseFreshNarrativeV2(raw, { master });
   assert.deepEqual(parsed.blocks.map(block => block.type), [
@@ -76,7 +76,7 @@ test('stream decoder emits semantic events without markers in text', () => {
 
 test('each block marker closes the prior block and preserves source order', () => {
   const decoder = createStoryStreamDecoder({ master });
-  const raw = '[DIALOGUE speaker_id="heroine2"]\n[ACTING] shy\nhello\n[SCENE]room\n[THOUGHT]think\n[CHOICE label="A"]pick';
+  const raw = '[DIALOGUE speaker_id="heroine2"]\n[ACTING] shy\nhello\n[SCENE]room\n[THOUGHT]think\n[CHOICE]pick';
   const events = [...decoder.push(raw), ...decoder.finish()];
   assert.deepEqual(
     events.filter(event => event.type === 'block_start' || event.type === 'block_end')
@@ -104,17 +104,17 @@ test('stream ACTING cannot carry across a new block marker', () => {
 
 test('known closing markers are deterministic no-op syntax', () => {
   const decoder = createStoryStreamDecoder({ master });
-  const events = decoder.push('[SCENE]scene[/SCENE]\n[DIALOGUE speaker_id="heroine2"]hello[/DIALOGUE]\n[ACTING] calm[/ACTING]\n[THOUGHT]thought[/THOUGHT]\n[CHOICE label="A"]a[/CHOICE]');
+  const events = decoder.push('[SCENE]scene[/SCENE]\n[DIALOGUE speaker_id="heroine2"]hello[/DIALOGUE]\n[ACTING] calm[/ACTING]\n[THOUGHT]thought[/THOUGHT]\n[CHOICE]a[/CHOICE]');
   assert.equal(events.some(event => event.type === 'text_delta' && event.text.includes('hello')), true);
   assert.equal(events.some(event => event.type === 'text_delta' && event.text.includes('scene')), true);
 });
 
 test('ACTING accepts same-line, next-line, and adjacent post-dialogue forms', () => {
-  const sameLine = parseFreshNarrativeV2('[SCENE]s\n[DIALOGUE speaker_id="heroine2"]\n[ACTING] calm\nhello\n[THOUGHT]t\n[CHOICE label="A"]a\n[CHOICE label="B"]b\n[CHOICE label="C"]c\n[CHOICE label="D"]d', { master });
+  const sameLine = parseFreshNarrativeV2('[SCENE]s\n[DIALOGUE speaker_id="heroine2"]\n[ACTING] calm\nhello\n[THOUGHT]t\n[CHOICE]a\n[CHOICE]b\n[CHOICE]c\n[CHOICE]d', { master });
   assert.equal(sameLine.dialogue_lines[0].acting_direction, 'calm');
-  const nextLine = parseFreshNarrativeV2('[SCENE]s\n[DIALOGUE speaker_id="heroine2"]\n[ACTING]\ncalm\nhello\n[/ACTING]\n[THOUGHT]t\n[CHOICE label="A"]a\n[CHOICE label="B"]b\n[CHOICE label="C"]c\n[CHOICE label="D"]d', { master });
+  const nextLine = parseFreshNarrativeV2('[SCENE]s\n[DIALOGUE speaker_id="heroine2"]\n[ACTING]\ncalm\nhello\n[/ACTING]\n[THOUGHT]t\n[CHOICE]a\n[CHOICE]b\n[CHOICE]c\n[CHOICE]d', { master });
   assert.equal(nextLine.dialogue_lines[0].acting_direction, 'calm');
-  const adjacent = parseFreshNarrativeV2('[SCENE]s\n[DIALOGUE speaker_id="heroine2"]hello[/DIALOGUE]\n[ACTING]\ncalm\n[/ACTING]\n[THOUGHT]t\n[CHOICE label="A"]a\n[CHOICE label="B"]b\n[CHOICE label="C"]c\n[CHOICE label="D"]d', { master });
+  const adjacent = parseFreshNarrativeV2('[SCENE]s\n[DIALOGUE speaker_id="heroine2"]hello[/DIALOGUE]\n[ACTING]\ncalm\n[/ACTING]\n[THOUGHT]t\n[CHOICE]a\n[CHOICE]b\n[CHOICE]c\n[CHOICE]d', { master });
   assert.equal(adjacent.dialogue_lines[0].acting_direction, 'calm');
 });
 
@@ -154,12 +154,16 @@ test('stream post-dialogue ACTING attaches only to the adjacent dialogue', () =>
   assert.throws(() => crossed.push('[DIALOGUE speaker_id="heroine2"]네.[/DIALOGUE][SCENE]다음 장면[ACTING]잘못된 귀속'), error => error.code === 'STORY_PROTOCOL_INVALID');
 });
 
-test('choice label length is presentation-only while empty choice is a soft warning', () => {
-  const long = '[SCENE]s\n[THOUGHT]t\n[CHOICE label="very long presentation label"]a\n[CHOICE label="B"]b\n[CHOICE label="C"]c\n[CHOICE label="D"]d';
-  assert.equal(parseFreshNarrativeV2(long, { master }).choices.length, 4);
+test('choice body is literal and empty choice is a soft warning', () => {
+  const body = '[SCENE]s\n[THOUGHT]t\n[CHOICE]a\n[CHOICE]b\n[CHOICE]c\n[CHOICE]d';
+  assert.equal(parseFreshNarrativeV2(body, { master }).choices.length, 4);
   const empty = parseFreshNarrativeV2('[SCENE]s\n[THOUGHT]t\n[CHOICE]\n[CHOICE]b\n[CHOICE]c\n[CHOICE]d', { master });
   assert.ok(empty.warnings.includes('choices_empty'));
   assert.deepEqual(empty.canonical_choices, []);
+});
+
+test('Fresh CHOICE rejects label attributes', () => {
+  assert.throws(() => parseFreshNarrativeV2('[SCENE]s\n[THOUGHT]t\n[CHOICE label="A"]a', { master }), error => error.code === 'STORY_PROTOCOL_INVALID');
 });
 
 test('duplicate literal choices remain observed but are not canonical', () => {
@@ -181,7 +185,7 @@ test('footer omissions remain parseable while canonical choices stay unavailable
 
 test('adjacent semantic markers close the prior block and preserve source order', () => {
   const decoder = createStoryStreamDecoder({ master });
-  const raw = '[SCENE]one[DIALOGUE speaker_id="heroine2"]two[THOUGHT]three[CHOICE label="A"]four[CHOICE label="B"]five[CHOICE label="C"]six[CHOICE label="D"]seven';
+  const raw = '[SCENE]one[DIALOGUE speaker_id="heroine2"]two[THOUGHT]three[CHOICE]four[CHOICE]five[CHOICE]six[CHOICE]seven';
   const events = [...decoder.push(raw), ...decoder.finish()];
   assert.deepEqual(events.filter(event => event.type === 'block_start').map(event => event.block_type), ['scene', 'dialogue', 'thought', 'choice', 'choice', 'choice', 'choice']);
   assert.equal(events.filter(event => event.type === 'text_delta').map(event => event.text).join(''), 'onetwothreefourfivesixseven');

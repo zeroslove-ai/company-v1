@@ -19,7 +19,7 @@ const env = {
   EXTRACT_MODEL: 'extract-test'
 };
 
-const canonicalStoryText = '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE label="A"]\nContinue carefully.\n[CHOICE label="B"]\nAsk a question.\n[CHOICE label="C"]\nWait a moment.\n[CHOICE label="D"]\nChange the subject.';
+const canonicalStoryText = '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE]\nContinue carefully.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait a moment.\n[CHOICE]\nChange the subject.';
 const canonicalSse = `data: ${JSON.stringify({ choices: [{ delta: { content: canonicalStoryText } }] })}\n\ndata: [DONE]\n\n`;
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });

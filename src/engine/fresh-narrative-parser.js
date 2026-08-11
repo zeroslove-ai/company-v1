@@ -31,13 +31,12 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
   let sawThought = false;
   let thoughtCount = 0;
   const choices = [];
-  const labels = [];
   let lastDialogue = null;
   let canAttachActing = false;
   const flush = () => {
     if (!current) return;
     const text = current.lines.join('\n').trim();
-    const actionText = current.type === 'choice' && !text ? String(current.label ?? '').trim() : text;
+    const actionText = text;
     if (!actionText && current.type !== 'choice') fail(`${current.type} block must contain text`);
     if (current.type === 'dialogue') {
       const item = {
@@ -62,9 +61,8 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       blocks.push({ type: 'player_inner_thought', text: actionText });
       canAttachActing = false;
     } else if (current.type === 'choice') {
-      const label = String(current.label ?? '').trim();
-      choices.push(actionText); labels.push(label || null);
-      blocks.push({ type: 'choice', label: label || null, text: actionText });
+      choices.push(actionText);
+      blocks.push({ type: 'choice', text: actionText });
       canAttachActing = false;
     }
     current = null;
@@ -111,7 +109,6 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       type: marker.block_type,
       speaker_id: marker.speaker_id,
       acting_direction: null,
-      label: marker.label,
       lines: []
     };
     canAttachActing = marker.block_type === 'dialogue';
@@ -137,7 +134,6 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
     player_inner_thought: blocks.find(block => block.type === 'player_inner_thought')?.text ?? '',
     choices,
     canonical_choices: canonicalChoices,
-    choice_labels: labels,
     dialogue_lines: dialogueLines,
     warnings
   };
