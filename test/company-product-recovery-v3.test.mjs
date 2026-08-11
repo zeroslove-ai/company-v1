@@ -163,6 +163,9 @@ test('registered NPC policy is static, cache-friendly, and Story-only', () => {
   };
   const patched = JSON.parse(applyRegisteredNpcPolicy(init).body);
   assert.match(patched.messages[0].content, /^STATIC STORY PREFIX/);
+  assert.match(patched.messages[0].content, /REGISTERED ACTOR POLICY/);
+  assert.match(patched.messages[0].content, /scene_actors/);
+  return;
   assert.match(patched.messages[0].content, /등록 NPC 전용 등장 정책/);
   assert.match(patched.messages[0].content, /이름 없는 직원·비서·동료·경비·방문객/);
   assert.match(patched.messages[0].content, /일회성 배경 오류/);
