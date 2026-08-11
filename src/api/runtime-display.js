@@ -4,6 +4,7 @@ import {
   getApplicableCsaEntries,
   getCsaRules
 } from '../engine/index.js';
+import { hydrateCanonicalScene } from '../engine/runtime-core/scene-reducer.js';
 
 const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
 const AUTHORITY_LABELS = {
@@ -31,12 +32,23 @@ function saveFromContext(context) {
 
 export function buildCanonicalDisplayScene(save = {}) {
   const canonical = object(save?.scene);
-  const normalize = value => Array.isArray(value) ? value.filter(id => typeof id === 'string' && id.trim() && !/^player(?:-|_|$)/.test(id)) : [];
-  if (canonical && canonical.version === 1) {
-    return { version: 1, scene_id: text(canonical.scene_id), location_id: text(canonical.location_id), beat: Number.isInteger(canonical.beat) ? canonical.beat : 0, goal: canonical.goal ?? null, focus_thread: canonical.focus_thread ?? null, present_npc_ids: normalize(canonical.present_npc_ids), focal_character_id: text(canonical.focal_character_id), last_speaker_id: text(canonical.last_speaker_id), updated_turn: Number.isInteger(canonical.updated_turn) ? canonical.updated_turn : null, compatibility_mode: 'canonical' };
-  }
-  const legacy = object(save?.scene_state) ?? {};
-  return { version: 0, scene_id: text(legacy.scene_id), location_id: text(legacy.location_id), beat: Number.isInteger(legacy.beat) ? legacy.beat : 0, goal: legacy.goal ?? null, focus_thread: legacy.focus_thread ?? null, present_npc_ids: normalize(legacy.participants ?? save?.last_npcs_present), focal_character_id: text(save?.focal_character_id), last_speaker_id: text(save?.last_speaker_id), updated_turn: Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : null, compatibility_mode: 'legacy_pre_scene_v1' };
+  const scene = hydrateCanonicalScene(save);
+  const isCanonical = canonical?.version === 1;
+  return {
+    version: scene.version,
+    scene_id: text(scene.scene_id),
+    location_id: text(scene.location_id),
+    beat: Number.isInteger(scene.beat) ? scene.beat : 0,
+    goal: scene.goal ?? null,
+    focus_thread: scene.focus_thread ?? null,
+    present_npc_ids: [...scene.present_npc_ids],
+    focal_character_id: text(scene.focal_character_id),
+    last_speaker_id: text(scene.last_speaker_id),
+    updated_turn: isCanonical
+      ? (Number.isInteger(scene.updated_turn) ? scene.updated_turn : null)
+      : (Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : scene.updated_turn),
+    compatibility_mode: isCanonical ? 'canonical' : 'legacy_pre_scene_v1'
+  };
 }
 
 function withSave(context, save) {
@@ -109,10 +121,10 @@ function departmentNamesFromEdition(edition) {
 function evidenceIds(save, latestMindMonitor = {}) {
   const ids = new Set();
   const add = value => { if (typeof value === 'string' && value) ids.add(value); };
-  add(save?.focal_character_id);
-  add(save?.last_speaker_id);
-  for (const value of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) add(value);
-  for (const value of Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : []) add(value);
+  const scene = buildCanonicalDisplayScene(save);
+  add(scene.focal_character_id);
+  add(scene.last_speaker_id);
+  for (const value of scene.present_npc_ids) add(value);
   for (const mapName of [
     'npc_stats', 'npc_relationship_state', 'npc_emotion', 'npc_scene_state',
     'npc_work_state', 'csa_attitudes', 'npc_sexual_state', 'npc_identity_state'
@@ -212,12 +224,9 @@ function npcLocation(save, id, presentNow) {
   const sceneState = object(save?.npc_scene_state?.[id]) ?? {};
   const workState = object(save?.npc_work_state?.[id]) ?? {};
   const currentScene = buildCanonicalDisplayScene(save);
-  const label = text(sceneState.location_label)
-    || text(workState.location_label)
-    || (presentNow ? text(currentScene.location_label) : '')
-    || text(sceneState.location_id)
-    || text(workState.location_id)
-    || (presentNow ? text(currentScene.location_id) : '');
+  const label = presentNow
+    ? text(currentScene.location_label) || text(currentScene.location_id) || text(sceneState.location_label) || text(workState.location_label)
+    : text(sceneState.location_label) || text(workState.location_label) || text(sceneState.location_id) || text(workState.location_id);
   return { known: Boolean(label), location_label: label };
 }
 

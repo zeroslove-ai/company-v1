@@ -35,6 +35,18 @@ test('API display scene and present_now use exact canonical presence', () => {
   assert.equal(entries.find(item => item.id === 'heroine2').present_now, false);
 });
 
+test('API display scene hydrates legacy-only saves through the shared adapter', () => {
+  const legacy = {
+    scene_state: { scene_id: 'legacy', location_id: 'room', participants: ['heroine1'] },
+    last_npcs_present: ['heroine2'],
+    focal_character_id: 'heroine1',
+    last_speaker_id: 'heroine1'
+  };
+  const display = buildCanonicalDisplayScene(legacy);
+  assert.equal(display.compatibility_mode, 'legacy_pre_scene_v1');
+  assert.deepEqual(display.present_npc_ids, ['heroine1']);
+});
+
 test('canonicalSceneView only uses legacy compatibility when canonical scene is absent', () => {
   const legacy = canonicalSceneView({ scene_state: { participants: ['player', 'heroine1'] }, focal_character_id: 'heroine1' });
   assert.equal(legacy.compatibility_mode, 'legacy_pre_scene_v1');

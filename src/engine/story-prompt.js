@@ -9,6 +9,7 @@ import {
   requiredClothingFromActiveCsa,
   compareRequiredClothing
 } from './state/clothing.js'
+import { hydrateCanonicalScene } from './runtime-core/scene-reducer.js'
 
 const MOVEMENT_TARGET_ACTION = /(찾으러|찾아가|찾아보|보러\s*가|만나러|이동하|가본다|가겠다|방문하)/u;
 
@@ -142,7 +143,7 @@ function findNpcProfile(master, npcId) {
 function buildMovementGrounding(edition, save, playerAction = '') {
   const mapLocations = Array.isArray(edition?.map?.locations) ? edition.map.locations : [];
   const action = typeof playerAction === 'string' ? playerAction : '';
-  const currentId = save?.scene?.version === 1 ? save.scene.location_id : save?.scene_state?.location_id;
+  const currentId = hydrateCanonicalScene(save).location_id;
   const current = mapLocations.find(location => location?.location_id === currentId);
   const targets = mapLocations.filter(location => {
     if (typeof location?.name === 'string' && action.includes(location.name)) return true;

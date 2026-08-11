@@ -218,6 +218,25 @@ test('selectActiveCharacterIds excludes characters not in the scene, includes ex
   assert.deepEqual(partialMention, []);
 });
 
+test('selectActiveCharacterIds does not revive a legacy-only participant when canonical scene exists', () => {
+  const map = charactersMap();
+  const npcIds = npcIdsFromEdition(edition);
+  const save = saveWithParticipants(['heroine2']);
+  save.scene = {
+    version: 1,
+    scene_id: 'canonical',
+    location_id: 'office',
+    beat: 0,
+    goal: null,
+    focus_thread: null,
+    present_npc_ids: ['heroine1'],
+    focal_character_id: null,
+    last_speaker_id: null,
+    updated_turn: 1
+  };
+  assert.deepEqual(selectActiveCharacterIds({ charactersMap: map, npcIds, save, playerAction: '' }), ['heroine1']);
+});
+
 test('active_character_canon includes at most 3 full prompt_card entries; the 4th and beyond are identity-only', () => {
   const map = charactersMap();
   const oneActive = buildActiveCharacterCanon(map, ['heroine1']);

@@ -30,6 +30,8 @@ test('scene bootstrap uses last_npcs_present only when participants are absent',
 test('scene bootstrap uses present flags only when no snapshots exist', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: {}, last_npcs_present: undefined, npc_scene_state: { heroine2: { present: true } } }), { npcIds: NPCS }).present_npc_ids, ['heroine2']));
 test('version one canonical scene ignores legacy presence', () => assert.deepEqual(hydrateCanonicalScene(save({ scene: { version: 1, present_npc_ids: ['heroine2'], scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, focal_character_id: null, last_speaker_id: null, updated_turn: 0 }, last_npcs_present: ['heroine1'] }), { npcIds: NPCS }).present_npc_ids, ['heroine2']));
 test('bootstrap excludes player aliases and unknown ids', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: { participants: ['player', 'player-1', 'heroine1', 'ghost'] } }), { npcIds: NPCS }).present_npc_ids, ['heroine1']));
+test('legacy-only hydration preserves participants without an explicit registry', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: { participants: ['heroine1'] }, last_npcs_present: ['heroine2'] })).present_npc_ids, ['heroine1']));
+test('legacy-only hydration filters unknown ids when an explicit registry is provided', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: { participants: ['heroine1', 'unknown'] } }), { npcIds: new Set(['heroine1']) }).present_npc_ids, ['heroine1']));
 test('bootstrap does not mutate input save', () => { const input = save(); const snapshot = clone(input); hydrateCanonicalScene(input, { npcIds: NPCS }); assert.deepEqual(input, snapshot); });
 
 // Presence 8-13

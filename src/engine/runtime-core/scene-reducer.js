@@ -25,7 +25,7 @@ function uniqueNpcIds(value, npcIds) {
   for (const candidate of Array.isArray(value) ? value : []) {
     const id = stringId(candidate);
     if (!id || isPlayerId(id) || seen.has(id)) continue;
-    if (npcIds instanceof Set && !npcIds.has(id)) continue;
+    if (npcIds instanceof Set && npcIds.size > 0 && !npcIds.has(id)) continue;
     seen.add(id);
     result.push(id);
   }

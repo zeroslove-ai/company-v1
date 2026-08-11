@@ -121,6 +121,35 @@ test('full player app projection preserves setup, physical, sexual, and CSA fiel
   assert.equal(info.active_csa[0].content, '회의 중에는 이름으로 부른다.');
 });
 
+test('product recovery uses canonical presence and location over conflicting legacy fields', () => {
+  const source = save();
+  source.scene = {
+    version: 1,
+    scene_id: 'canonical-scene',
+    location_id: 'office',
+    beat: 1,
+    goal: null,
+    focus_thread: null,
+    present_npc_ids: ['heroine1'],
+    focal_character_id: null,
+    last_speaker_id: null,
+    updated_turn: 1
+  };
+  source.scene_state.participants = ['heroine2'];
+  source.scene_state.location_id = 'project_room';
+  source.last_npcs_present = ['heroine2'];
+  source.focal_character_id = 'heroine2';
+  source.last_speaker_id = 'heroine2';
+  source.npc_scene_state.heroine1.location_id = 'project_room';
+  source.npc_scene_state.heroine2 = { location_id: 'project_room', location_label: '?꾨줈?앺듃猷?' };
+
+  const heroine1 = resolveNpcLocation(source, edition, 'heroine1');
+  const heroine2 = resolveNpcLocation(source, edition, 'heroine2');
+  assert.equal(heroine1.present_now, true);
+  assert.equal(heroine1.location_id, 'office');
+  assert.equal(heroine2.present_now, false);
+});
+
 
 test('registered NPC policy is static, cache-friendly, and Story-only', () => {
   const init = {

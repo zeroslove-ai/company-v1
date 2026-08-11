@@ -3,6 +3,7 @@ import {
   getApplicableCsaEntries,
   resolvePlayerCanonicalNames
 } from '../engine/index.js';
+import { hydrateCanonicalScene } from '../engine/runtime-core/scene-reducer.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -103,7 +104,7 @@ export function buildFullPlayerInfo(save, edition) {
   };
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const scene = object(save?.player_scene_state);
-  const worldScene = object(save?.scene_state);
+  const worldScene = hydrateCanonicalScene(save);
   const sexual = object(save?.player_sexual_state);
   const active = getApplicableCsaEntries(save);
   const capability = calculateCsaCapability(save, active.length);
@@ -123,7 +124,7 @@ export function buildFullPlayerInfo(save, edition) {
     speech_style_id: text(player.speech_style_id),
     speech_style: canonical.speechStyleName || catalogName(catalogs.speechStyles, 'speech_style_id', player.speech_style_id),
     background: text(player.background),
-    current_location: text(scene.location_label) || locationLabel(edition, scene.location_id) || text(worldScene.location_label) || locationLabel(edition, worldScene.location_id),
+    current_location: text(scene.location_label) || locationLabel(edition, scene.location_id) || locationLabel(edition, worldScene.location_id),
     posture: text(scene.posture),
     posture_detail: text(scene.posture_detail ?? scene.posture_description),
     clothing: clothingSummary(scene.clothing),
@@ -166,22 +167,18 @@ export function buildFinderNpcList(save, edition) {
 export function resolveNpcLocation(save, edition, characterId) {
   const profile = profileFor(edition, characterId);
   if (!profile) return { known: false, status: 'not_found', present_now: false, can_move: false, location_id: '', location_label: '', suggested_location_id: '', suggested_location_label: '' };
-  const presentIds = new Set([
-    ...(Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []),
-    ...(Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : []),
-    save?.focal_character_id,
-    save?.last_speaker_id
-  ].filter(Boolean));
+  const canonicalScene = hydrateCanonicalScene(save);
+  const presentIds = new Set(canonicalScene.present_npc_ids);
   const presentNow = presentIds.has(characterId);
   const scene = object(save?.npc_scene_state?.[characterId]);
   const work = object(save?.npc_work_state?.[characterId]);
-  const worldScene = object(save?.scene_state);
-  let locationId = text(scene.location_id) || text(work.location_id);
-  let label = text(scene.location_label) || text(work.location_label);
-  if (presentNow) {
-    locationId ||= text(worldScene.location_id);
-    label ||= text(worldScene.location_label) || locationLabel(edition, locationId);
-  }
+  const worldScene = canonicalScene;
+  let locationId = presentNow
+    ? text(worldScene.location_id) || text(scene.location_id) || text(work.location_id)
+    : text(scene.location_id) || text(work.location_id);
+  let label = presentNow
+    ? locationLabel(edition, locationId) || text(scene.location_label) || text(work.location_label)
+    : text(scene.location_label) || text(work.location_label);
   label ||= locationLabel(edition, locationId);
   const known = Boolean(locationId || label);
   const suggestion = known ? null : suggestedLocationForProfile(edition, profile);

@@ -7,6 +7,7 @@ import {
   buildWorkplaceContext,
   selectActiveGeneralNpcIds
 } from '../src/engine/workplace-context.js';
+import { buildSceneContextCore } from '../src/engine/gameplay-state.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
 
@@ -108,6 +109,28 @@ test('general NPC selection requires exact catalog identity from text or persist
   assert.deepEqual(selectActiveGeneralNpcIds({ edition, save, text: '박 팀장에게 묻는다.' }), []);
 });
 
+test('workplace and active general NPC selection prefer canonical scene over stale scene_state', () => {
+  const save = baseSave();
+  save.scene = {
+    version: 1,
+    scene_id: 'canonical',
+    location_id: 'project_room',
+    beat: 0,
+    goal: null,
+    focus_thread: null,
+    present_npc_ids: ['general_designer'],
+    focal_character_id: null,
+    last_speaker_id: null,
+    updated_turn: 2
+  };
+  save.scene_state.location_id = 'office';
+  save.scene_state.participants = ['general_manager'];
+  save.focal_character_id = 'general_manager';
+  save.last_speaker_id = 'general_manager';
+  assert.equal(buildWorkplaceContext(edition, save).location.location_id, 'project_room');
+  assert.deepEqual(selectActiveGeneralNpcIds({ edition, save, text: '보고서를 본다.' }), ['general_designer']);
+});
+
 test('general NPC canon and registry contain only supported compact catalog fields', () => {
   const canon = buildGeneralNpcCanon(edition, ['general_manager']);
   assert.equal(canon.general_manager.name, '박정우');
@@ -167,6 +190,56 @@ test('movement Story prompt carries a resolved prospective destination context',
   assert.equal(currentTurn.current_turn_contract, 'movement');
   assert.equal(currentTurn.required_result, 'arrive_at_destination_in_this_story');
   assert.equal(currentTurn.destination.location_id, 'office');
+});
+
+test('Story scene context and movement grounding use canonical location and presence', () => {
+  const save = baseSave();
+  save.scene = {
+    version: 1,
+    scene_id: 'canonical',
+    location_id: 'project_room',
+    beat: 4,
+    goal: 'canonical goal',
+    focus_thread: 'canonical thread',
+    present_npc_ids: ['general_designer'],
+    focal_character_id: null,
+    last_speaker_id: null,
+    updated_turn: 4
+  };
+  save.scene_state.location_id = 'office';
+  save.scene_state.participants = ['general_manager'];
+  save.npc_scene_state.general_manager = { location_id: 'office' };
+  const core = buildSceneContextCore(save, ['general_designer', 'general_manager']);
+  assert.equal(core.scene.location_id, 'project_room');
+  assert.deepEqual(core.scene.participants, ['general_designer']);
+  assert.deepEqual(core.scene.present_npc_ids, ['general_designer']);
+  assert.equal(core.active_npc_state.npc_scene_state?.general_manager?.present, false);
+});
+
+test('movement grounding uses canonical current location over stale scene_state location', () => {
+  const save = baseSave();
+  save.scene = {
+    version: 1,
+    scene_id: 'canonical',
+    location_id: 'project_room',
+    beat: 0,
+    goal: null,
+    focus_thread: null,
+    present_npc_ids: [],
+    focal_character_id: null,
+    last_speaker_id: null,
+    updated_turn: 2
+  };
+  save.scene_state.location_id = 'office';
+  const messages = buildStoryPrompt({
+    edition,
+    context: { game: {}, save, recent_turns: [] },
+    playerAction: '사무실로 이동한다',
+    expectedTurn: 2,
+    sceneCastContract: { transition_mode: 'movement', destination_location_id: 'office' }
+  });
+  const payload = JSON.parse(messages[1].content);
+  assert.equal(payload.context.movement_grounding.current_location.location_id, 'project_room');
 });
 
 test('CSA Story prompt keeps the app meta boundary and grounds newly activated authority tiers', () => {
