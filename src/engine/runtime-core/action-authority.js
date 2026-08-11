@@ -122,9 +122,12 @@ export function assertRuleDefinitionAuthority({
   currentSave,
   nextSave,
   csaPlan = null,
+  transactionResolution = null,
+  csaResolution = null,
   structuredAction = null,
   stage = 'commit'
 } = {}) {
+  const resolution = transactionResolution ?? csaResolution ?? csaPlan;
   const current = ruleDefinitions(currentSave);
   const next = ruleDefinitions(nextSave);
 
@@ -139,8 +142,8 @@ export function assertRuleDefinitionAuthority({
     return true;
   }
 
-  if (!csaPlan || !Object.prototype.hasOwnProperty.call(csaPlan, 'next_csa_active')
-    || !Object.prototype.hasOwnProperty.call(csaPlan, 'next_csa_rules')) {
+  if (!resolution || !Object.prototype.hasOwnProperty.call(resolution, 'next_csa_active')
+    || !Object.prototype.hasOwnProperty.call(resolution, 'next_csa_rules')) {
     throw authorityError(
       'unauthorized_rule_definition_mutation',
       `validated csa transaction plan is missing (${stage})`,
@@ -149,8 +152,8 @@ export function assertRuleDefinitionAuthority({
   }
 
   const authorized = {
-    csa_active: csaPlan.next_csa_active,
-    csa_rules: csaPlan.next_csa_rules
+    csa_active: resolution.next_csa_active,
+    csa_rules: resolution.next_csa_rules
   };
   if (!sameJson(next, authorized)) {
     throw authorityError(
@@ -170,15 +173,18 @@ export function applyAuthorizedRuleDefinitions({
   currentSave,
   nextSave,
   csaPlan = null,
+  transactionResolution = null,
+  csaResolution = null,
   structuredAction = null,
   stage = 'commit'
 } = {}) {
+  const resolution = transactionResolution ?? csaResolution ?? csaPlan;
   if (structuredAction === null) {
     assertRuleDefinitionAuthority({ currentSave, nextSave, csaPlan, structuredAction, stage });
     return nextSave;
   }
 
-  if (!csaPlan) {
+  if (!resolution) {
     throw authorityError(
       'unauthorized_rule_definition_mutation',
       `validated csa transaction plan is required (${stage})`,
@@ -186,8 +192,8 @@ export function applyAuthorizedRuleDefinitions({
     );
   }
 
-  nextSave.csa_active = clone(csaPlan.next_csa_active);
-  nextSave.csa_rules = clone(csaPlan.next_csa_rules);
-  assertRuleDefinitionAuthority({ currentSave, nextSave, csaPlan, structuredAction, stage });
+  nextSave.csa_active = clone(resolution.next_csa_active);
+  nextSave.csa_rules = clone(resolution.next_csa_rules);
+  assertRuleDefinitionAuthority({ currentSave, nextSave, transactionResolution: resolution, structuredAction, stage });
   return nextSave;
 }

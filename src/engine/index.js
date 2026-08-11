@@ -75,6 +75,12 @@ export {
   normalizeStructuredAction, collectSemanticStrengthCandidates, buildAppStrengthValidationPrompt,
   classifyAppOperationStrengths, semanticStrengthIssues, verifyStructuredActionValidation
 } from './csa/transaction-validator.js';
+export {
+  buildCsaPlannerInputSnapshot, buildCsaPlannerInputDigest,
+  buildTransactionResolution, buildTransactionResolutionDigest,
+  signTransactionValidationProof, verifyTransactionValidationProof,
+  verifySignedTransactionResolution
+} from './csa/transaction-authority.js';
 export { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch } from './csa/reducer.js';
 export {
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,

@@ -37,9 +37,11 @@ import {
   planCsaTransaction,
   semanticStrengthIssues,
   sha256Base64url,
-  signAppValidationProof,
-  stableStringify,
+  signTransactionValidationProof,
+  buildTransactionResolution,
+  verifySignedTransactionResolution,
   verifyStructuredActionValidation,
+  stableStringify,
   resolveNumberedChoiceInput,
   selectImage,
   resolveTtsEligibility,
@@ -97,11 +99,11 @@ function projectStorySaveAtLocation(save, locationId, { master, mapLocations } =
   };
 }
 
-function buildStoryTurnTrigger({ actionKind, csaPlan, preSave }) {
+function buildStoryTurnTrigger({ actionKind, csaResolution, preSave }) {
   if (actionKind === 'feedback_revision') return { kind: 'feedback_revision' };
-  if (!csaPlan) return { kind: 'player_action' };
+  if (!csaResolution) return { kind: 'player_action' };
   const before = new Set(Array.isArray(preSave?.csa_active) ? preSave.csa_active : []);
-  const after = new Set(Array.isArray(csaPlan.next_csa_active) ? csaPlan.next_csa_active : []);
+  const after = new Set(Array.isArray(csaResolution.next_csa_active) ? csaResolution.next_csa_active : []);
   return {
     kind: 'institutional_rule_change',
     activated_rule_ids: [...after].filter(id => !before.has(id)),
@@ -241,17 +243,27 @@ function playerInfoPayload(save, catalogs, capability) {
  * independently at Story, Extract, and Commit (matching the donor's own
  * re-derive-at-each-stage pattern) instead of persisting the plan once.
  */
-async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, csaCatalog, expectedTurn }) {
+async function resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save, csaCatalog, expectedTurn }) {
   if (structuredAction == null) return null;
   const normalized = normalizeStructuredAction(structuredAction);
   if (!normalized) throw new HttpError(400, 'invalid_structured_action', 'structured_action has an invalid shape');
-  const verification = await verifyStructuredActionValidation(appValidationSecret(env), gameId, structuredAction);
-  if (!verification.ok) throw new HttpError(409, 'structured_action_invalid', 'structured_action failed validation-proof verification', false);
+  if (!structuredAction.transaction_resolution) {
+    const legacyVerification = await verifyStructuredActionValidation(appValidationSecret(env), gameId, structuredAction);
+    if (!legacyVerification.ok) throw new HttpError(409, 'structured_action_invalid', 'legacy structured_action proof verification failed', false);
+    if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', 'legacy structured_action base state is stale', false);
+    const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
+    const legacyPlan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, capability });
+    if (!legacyPlan.ok) throw new HttpError(422, (legacyPlan.error_code ?? 'app_action_invalid').toLowerCase(), 'legacy structured_action is no longer valid', false);
+    return legacyPlan;
+  }
+  const verification = await verifySignedTransactionResolution({ secret: appValidationSecret(env), gameId, structuredAction, save, expectedTurn });
+  if (!verification.ok) {
+    const code = verification.code ?? (verification.reason === 'missing transaction resolution' ? 'app_validation_expired' : 'structured_action_invalid');
+    throw new HttpError(409, code, 'signed transaction resolution verification failed', false);
+  }
   if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', '상식개변 앱을 연 뒤 게임 상태가 변경되었습니다.', false);
-  const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
-  const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, capability });
+  return verification.resolution;
   if (!plan.ok) throw new HttpError(422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '상식개변 앱 변경사항을 적용할 수 없습니다.', false);
-  return plan;
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
@@ -404,10 +416,10 @@ const master = masterFromEdition(edition);
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
-          const csaPlan = action.action_kind === 'feedback_revision'
+          const csaResolution = action.action_kind === 'feedback_revision'
             ? null
-            : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
-          const storyPlayerAction = csaPlan ? '' : playerAction;
+            : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          const storyPlayerAction = csaResolution ? '' : playerAction;
           const resolvedLocationId = resolveNavigationLocation({
             save: hydratedSave,
             master,
@@ -418,10 +430,10 @@ const master = masterFromEdition(edition);
             master,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          const storySave = csaPlan
-            ? { ...storyBaseSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
+          const storySave = csaResolution
+            ? { ...storyBaseSave, csa_active: csaResolution.next_csa_active, csa_rules: csaResolution.next_csa_rules }
             : storyBaseSave;
-          const storyContext = csaPlan
+          const storyContext = csaResolution
             ? {
                 ...hydratedContext,
                 save: hydratedContext.save?.data
@@ -431,7 +443,7 @@ const master = masterFromEdition(edition);
             : hydratedContext;
           // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
           const sceneCastContract = buildSceneCastContract({
-            save: storySave, master, playerAction: storyPlayerAction, structuredAction: csaPlan ? null : structuredAction,
+            save: storySave, master, playerAction: storyPlayerAction, structuredAction: csaResolution ? null : structuredAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           timing.cast_present_count = sceneCastContract.present_npc_ids.length;
@@ -440,7 +452,7 @@ const master = masterFromEdition(edition);
           const promptStart = Date.now();
           const actionKind = action.action_kind === 'feedback_revision'
             ? 'feedback_revision'
-            : (csaPlan ? 'institutional_rule_change' : 'ordinary');
+            : (csaResolution ? 'institutional_rule_change' : 'ordinary');
           const messages = buildStoryPrompt({
             edition,
             context: storyContext,
@@ -449,7 +461,7 @@ const master = masterFromEdition(edition);
             npcIds,
             catalogs,
             sceneCastContract,
-            turnTrigger: buildStoryTurnTrigger({ actionKind, csaPlan, preSave: hydratedSave }),
+            turnTrigger: buildStoryTurnTrigger({ actionKind, csaResolution, preSave: hydratedSave }),
             feedbackText: action.action_kind === 'feedback_revision' ? action.feedback_text : ''
           });
           timing.story_prompt_ms = Date.now() - promptStart;
@@ -554,10 +566,9 @@ const master = masterFromEdition(edition);
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
-          const csaPlan = action.action_kind === 'feedback_revision'
+          const csaResolution = action.action_kind === 'feedback_revision'
             ? null
-            : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
-          const applicableCsa = getApplicableCsaEntries(hydratedSave);
+            : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
            // Speaker identity remains a post-hoc projection; raw Story is passed to Extract unchanged.
 
           const promptStart = Date.now();
@@ -566,16 +577,17 @@ const master = masterFromEdition(edition);
           const resolvedLocationId = resolveNavigationLocation({
             save: hydratedSave,
             master,
-            playerAction: csaPlan ? '' : action.player_action,
+            playerAction: csaResolution ? '' : action.player_action,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           const extractBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
             master,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          const extractSave = csaPlan
-            ? { ...extractBaseSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
+          const extractSave = csaResolution
+            ? { ...extractBaseSave, csa_active: csaResolution.next_csa_active, csa_rules: csaResolution.next_csa_rules }
             : extractBaseSave;
+          const applicableCsa = getApplicableCsaEntries(extractSave);
           const extractContext = {
             ...hydratedContext,
             save: hydratedContext.save?.data
@@ -583,7 +595,7 @@ const master = masterFromEdition(edition);
               : extractSave
           };
           let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
-          const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
+          const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaResolution) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa);
           if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
@@ -658,14 +670,14 @@ const master = masterFromEdition(edition);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
-        const currentSave = context.save?.data ?? context.save;
-        const csaPlan = action.action_kind === 'feedback_revision'
+        const currentSave = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        const csaResolution = action.action_kind === 'feedback_revision'
           ? null
-          : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
+          : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
         const resolvedLocationId = resolveNavigationLocation({
           save: currentSave,
           master,
-          playerAction: csaPlan ? '' : action.player_action,
+          playerAction: csaResolution ? '' : action.player_action,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
         let parsedStory = parseStoryProjection(action.story_text, master);
@@ -696,7 +708,7 @@ const master = masterFromEdition(edition);
         applyAuthorizedRuleDefinitions({
           currentSave,
           nextSave,
-          csaPlan,
+          transactionResolution: csaResolution,
           structuredAction: definitionAction,
           stage: 'commit'
         });
@@ -712,8 +724,8 @@ const master = masterFromEdition(edition);
         });
         if (runtimeResult.patch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeResult.patch };
         if (runtimeResult.warnings.length) warnings.push(...runtimeResult.warnings);
-        if (csaPlan) {
-          const deactivatedIds = csaPlan.canonical_action.operations.filter(operation => operation.operation === 'deactivate').map(operation => operation.id);
+        if (csaResolution) {
+          const deactivatedIds = structuredAction.operations.filter(operation => operation.operation === 'deactivate').map(operation => operation.id);
           if (deactivatedIds.length) {
             const aftereffectPatch = buildCsaAftereffectPatch({ previousSave: nextSave, deactivatedIds, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn });
             if (aftereffectPatch) nextSave.csa_aftereffect_state = aftereffectPatch;
@@ -729,7 +741,7 @@ const master = masterFromEdition(edition);
           const experiencedThisTurn = runtimeResult.accepted_executions;
           const previouslyExperienced = new Set(Array.isArray(currentSave.csa_experienced_ids) ? currentSave.csa_experienced_ids : []);
           const progressionAmount = calculateCsaProgression({
-            csaOperations: csaPlan?.canonical_action?.operations ?? [], experiencedThisTurn, previouslyExperienced,
+            csaOperations: structuredAction?.operations ?? [], experiencedThisTurn, previouslyExperienced,
             degraded: extract.outcome === 'degraded'
           });
           if (progressionAmount.newly_experienced_keys.length) {
@@ -743,7 +755,7 @@ const master = masterFromEdition(edition);
         assertRuleDefinitionAuthority({
           currentSave,
           nextSave,
-          csaPlan,
+          transactionResolution: csaResolution,
           structuredAction: definitionAction,
           stage: 'commit-final'
         });
@@ -1096,11 +1108,33 @@ const master = masterFromEdition(edition);
             ))
           };
         }
+        const finalPlan = semanticResults.length
+          ? planCsaTransaction(save, csaCatalog, canonicalAction.operations, { turnNumber: committedTurn + 1, capability })
+          : plan;
+        if (!finalPlan.ok) {
+          throw new HttpError(finalPlan.status ?? 422, (finalPlan.error_code ?? 'app_action_invalid').toLowerCase(), 'final transaction resolution is invalid', false, finalPlan.issues);
+        }
+        canonicalAction = finalPlan.canonical_action;
+        const transactionResolution = await buildTransactionResolution({ plan: finalPlan, save, baseTurnCount: canonicalAction.base_turn_count });
         const actionDigest = await sha256Base64url(stableStringify({ version: canonicalAction.version, type: canonicalAction.type, base_turn_count: canonicalAction.base_turn_count, operations: canonicalAction.operations }));
         const resolvedResults = semanticResults.map(item => ({ client_id: item.client_id, required_strength: item.required_strength, semantic_contract: item.semantic_contract }));
-        const semantic_validation = { version: 1, game_id: gameId, base_turn_count: canonicalAction.base_turn_count, action_digest: actionDigest, results: resolvedResults };
-        const validation_proof = await signAppValidationProof(appValidationSecret(env), { game_id: gameId, base_turn_count: canonicalAction.base_turn_count, action_digest: actionDigest, semantic_results: resolvedResults });
-        canonicalAction = { ...canonicalAction, semantic_validation, validation_proof };
+        const semantic_validation = {
+          version: 2,
+          game_id: gameId,
+          base_turn_count: canonicalAction.base_turn_count,
+          action_digest: actionDigest,
+          planner_input_digest: transactionResolution.planner_input_digest,
+          resolution_digest: transactionResolution.resolution_digest,
+          results: resolvedResults
+        };
+        const validation_proof = await signTransactionValidationProof(appValidationSecret(env), {
+          game_id: gameId,
+          base_turn_count: canonicalAction.base_turn_count,
+          action_digest: actionDigest,
+          resolution_digest: transactionResolution.resolution_digest,
+          semantic_results: resolvedResults
+        });
+        canonicalAction = { ...canonicalAction, transaction_resolution: transactionResolution, semantic_validation, validation_proof };
 
         return ok({ canonical_action: canonicalAction, display_input: plan.display_input, summary: plan.summary });
       } finally {

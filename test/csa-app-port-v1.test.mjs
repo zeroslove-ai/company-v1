@@ -246,6 +246,10 @@ test('/api/app-validate deterministically validates a preset activate with zero 
   const data = (await validated.json()).data;
   assert.equal(data.canonical_action.type, 'app_transaction');
   assert.match(typeof data.canonical_action.validation_proof, /string/);
+  assert.equal(data.canonical_action.semantic_validation.version, 2);
+  assert.equal(data.canonical_action.transaction_resolution.version, 1);
+  assert.match(typeof data.canonical_action.transaction_resolution.planner_input_digest, /string/);
+  assert.match(typeof data.canonical_action.transaction_resolution.resolution_digest, /string/);
   assert.equal(mock.calls.some(call => call.url.startsWith('https://llm.test')), false);
 
   const stale = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: { ...structuredAction, base_turn_count: 99 } }), env);

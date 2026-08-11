@@ -24,15 +24,15 @@ export async function sha256Base64url(text) {
 }
 
 /** HMAC-SHA256 over a versioned namespace + the payload's stable JSON — the proof the client must carry unmodified back through Story/Extract/Commit. */
-export async function signAppValidationProof(secret, payload) {
+export async function signAppValidationProof(secret, payload, version = 1) {
   if (!secret) throw new Error('app validation signing secret unavailable');
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  return bytesToBase64url(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`company-app-validation-v1\n${stableStringify(payload)}`))));
+  return bytesToBase64url(new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`company-app-validation-v${version}\n${stableStringify(payload)}`))));
 }
 
-export async function verifyAppValidationProof(secret, payload, signature) {
+export async function verifyAppValidationProof(secret, payload, signature, version = 1) {
   if (typeof signature !== 'string' || !signature) return false;
-  return (await signAppValidationProof(secret, payload)) === signature;
+  return (await signAppValidationProof(secret, payload, version)) === signature;
 }
 
 /** Structural shape check for a raw structured_action before it's planned. */
