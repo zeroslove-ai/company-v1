@@ -21,8 +21,6 @@ import {
   validatePlayerSetupInput,
   buildAppManualPayload,
   buildAppStatePayload,
-  buildCsaAftereffectPatch,
-  buildCsaSceneRuntimeStatePatch,
   buildCsaApplicationCheckSection,
   buildCsaRuntimeExtractContractSection,
   buildMindEffectExtractFirewallSection,
@@ -45,12 +43,8 @@ import {
   resolveNumberedChoiceInput,
   selectImage,
   resolveTtsEligibility,
-  calculateProgress,
-  calculateCsaProgression,
   resolveStoredStructuredAction,
   assertStoredActionPersistenceParity,
-  applyAuthorizedRuleDefinitions,
-  assertRuleDefinitionAuthority,
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
@@ -263,7 +257,6 @@ async function resolveSignedCsaTransactionResolution({ env, gameId, structuredAc
   }
   if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', '상식개변 앱을 연 뒤 게임 상태가 변경되었습니다.', false);
   return verification.resolution;
-  if (!plan.ok) throw new HttpError(422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '상식개변 앱 변경사항을 적용할 수 없습니다.', false);
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
@@ -694,71 +687,17 @@ const master = masterFromEdition(edition);
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,
           action, expectedTurn, master, npcIds,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
-          authoritativeLocationId: resolvedLocationId
+          authoritativeLocationId: resolvedLocationId,
+          structuredAction: action.action_kind === 'feedback_revision' ? null : structuredAction,
+          transactionResolution: csaResolution
         });
         timing.commit_reducer_ms = Date.now() - reducerStart;
         let nextSave = merged.nextSave;
         const warnings = merged.warnings;
-        const canonicalScene = merged.canonical_scene;
-        // Canonical scene reduction is the only gameplay presence writer. Feedback revisions
-        // and degraded observations preserve the existing canonical scene.
-        // The app transaction never gets its own save API; its csa_active/csa_rules result rides
-        // through the normal V2 Commit reducer on top of the Extract observation.
-        const definitionAction = action.action_kind === 'feedback_revision' ? null : structuredAction;
-        applyAuthorizedRuleDefinitions({
-          currentSave,
-          nextSave,
-          transactionResolution: csaResolution,
-          structuredAction: definitionAction,
-          stage: 'commit'
-        });
-        // Extract's csa_trigger_evaluations/csa_runtime_updates persist scene-execution
-        // status (active/temporarily_interrupted/paused/ended) into next turn's Context.
-        // Validated per-item against the *post-transaction* active-preset-CSA set and the
+        // Commit gameplay state is reduced by reduceGameplayCommit.
         // NPCs actually present this turn — an item naming anything else is silently
-        // dropped inside buildCsaRuntimeStatePatch itself.
-        const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
-        const runtimeResult = buildCsaSceneRuntimeStatePatch({
-          previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
-          activeCsa: activeCsaAfterPlan, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn
-        });
-        if (runtimeResult.patch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeResult.patch };
-        if (runtimeResult.warnings.length) warnings.push(...runtimeResult.warnings);
-        if (csaResolution) {
-          const deactivatedIds = structuredAction.operations.filter(operation => operation.operation === 'deactivate').map(operation => operation.id);
-          if (deactivatedIds.length) {
-            const aftereffectPatch = buildCsaAftereffectPatch({ previousSave: nextSave, deactivatedIds, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn });
-            if (aftereffectPatch) nextSave.csa_aftereffect_state = aftereffectPatch;
-          }
-        }
-        // Player level/exp — ported verbatim from donor's live calculateProgress/
-        // calculateCsaProgression (see src/engine/progression.js); Company had no progression
-        // writer of its own before this. Never grants exp on a degraded-Extract turn or for a
-        // feedback revision (replacing a turn's content is not a new turn earning fresh exp).
-        if (action.action_kind !== 'feedback_revision') {
           // 진행도는 reducer가 승인한 실행(accepted_executions)만 반영한다 —
           // 잘못된(범위 밖/장면 외/action_state 불일치) update는 경험치도 주지 않는다.
-          const experiencedThisTurn = runtimeResult.accepted_executions;
-          const previouslyExperienced = new Set(Array.isArray(currentSave.csa_experienced_ids) ? currentSave.csa_experienced_ids : []);
-          const progressionAmount = calculateCsaProgression({
-            csaOperations: structuredAction?.operations ?? [], experiencedThisTurn, previouslyExperienced,
-            degraded: extract.outcome === 'degraded'
-          });
-          if (progressionAmount.newly_experienced_keys.length) {
-            nextSave.csa_experienced_ids = [...previouslyExperienced, ...progressionAmount.newly_experienced_keys];
-          }
-          if (progressionAmount.amount > 0) {
-            const progress = calculateProgress(currentSave.player_progress, progressionAmount.amount);
-            nextSave.player_progress = { level: progress.level, exp: progress.exp };
-          }
-        }
-        assertRuleDefinitionAuthority({
-          currentSave,
-          nextSave,
-          transactionResolution: csaResolution,
-          structuredAction: definitionAction,
-          stage: 'commit-final'
-        });
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.

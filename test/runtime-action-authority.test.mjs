@@ -107,7 +107,7 @@ test('ordinary turns preserve csa definitions and reject malicious Extract mutat
 test('validated stored transaction is the only writer of csa_active and csa_rules', () => {
   const currentSave = { csa_active: [], csa_rules: {} };
   const nextSave = { ...currentSave, unrelated: true, csa_active: ['forged'], csa_rules: { forged: {} } };
-  applyAuthorizedRuleDefinitions({ currentSave, nextSave, csaPlan: plan, structuredAction: { version: 1 }, stage: 'commit' });
+  applyAuthorizedRuleDefinitions({ currentSave, nextSave, transactionResolution: plan, structuredAction: { version: 1 }, stage: 'commit' });
   assert.deepEqual(nextSave.csa_active, plan.next_csa_active);
   assert.deepEqual(nextSave.csa_rules, plan.next_csa_rules);
   assert.equal(nextSave.unrelated, true);
@@ -121,7 +121,7 @@ test('transaction writer rejects missing or drifting plans', () => {
   );
   const nextSave = { ...currentSave, csa_active: ['wrong'], csa_rules: {} };
   assert.throws(
-    () => assertRuleDefinitionAuthority({ currentSave, nextSave, csaPlan: plan, structuredAction: { version: 1 }, stage: 'commit-final' }),
+    () => assertRuleDefinitionAuthority({ currentSave, nextSave, transactionResolution: plan, structuredAction: { version: 1 }, stage: 'commit-final' }),
     error => error.code === 'unauthorized_rule_definition_mutation'
   );
 });

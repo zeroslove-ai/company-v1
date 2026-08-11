@@ -10,6 +10,7 @@ export { assertCanonicalSceneInvariants } from './runtime-core/invariants.js';
 export { normalizeExtractObservationV2, buildDegradedExtractObservation, assertExtractObservationContract } from './runtime-core/extract-observation.js';
 export { adaptLegacyExtractDelta } from './runtime-core/legacy-extract-adapter.js';
 export { reduceGameplayCommit } from './runtime-core/commit-reducer.js';
+export { reduceCsaCommitState } from './runtime-core/csa-commit-reducer.js';
 export {
   reducePlayerPhysicalObservation, reduceNpcPhysicalObservation,
   reducePlayerSexualObservation, reduceNpcStatObservation,
