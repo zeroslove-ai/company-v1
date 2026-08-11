@@ -1,6 +1,7 @@
 export { GameCoreError } from './errors.js';
 export { createEditionAdapter, validateEditionAdapter } from './edition.js';
 export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
+export { buildStoryWorldProjection } from './csa/story-projection.js';
 export { buildExtractPrompt } from './extract-prompt.js';
 export { parseNarrative } from './narrative-parser.js';
 export { hydrateCanonicalScene, reduceCanonicalScene } from './runtime-core/scene-reducer.js';

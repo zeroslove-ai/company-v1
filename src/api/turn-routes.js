@@ -97,6 +97,18 @@ function projectStorySaveAtLocation(save, locationId, { master, mapLocations } =
   };
 }
 
+function buildStoryTurnTrigger({ actionKind, csaPlan, preSave }) {
+  if (actionKind === 'feedback_revision') return { kind: 'feedback_revision' };
+  if (!csaPlan) return { kind: 'player_action' };
+  const before = new Set(Array.isArray(preSave?.csa_active) ? preSave.csa_active : []);
+  const after = new Set(Array.isArray(csaPlan.next_csa_active) ? csaPlan.next_csa_active : []);
+  return {
+    kind: 'institutional_rule_change',
+    activated_rule_ids: [...after].filter(id => !before.has(id)),
+    deactivated_rule_ids: [...before].filter(id => !after.has(id))
+  };
+}
+
 function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -395,10 +407,11 @@ const master = masterFromEdition(edition);
           const csaPlan = action.action_kind === 'feedback_revision'
             ? null
             : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          const storyPlayerAction = csaPlan ? '' : playerAction;
           const resolvedLocationId = resolveNavigationLocation({
             save: hydratedSave,
             master,
-            playerAction,
+            playerAction: storyPlayerAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           const storyBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
@@ -418,7 +431,7 @@ const master = masterFromEdition(edition);
             : hydratedContext;
           // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
           const sceneCastContract = buildSceneCastContract({
-            save: storySave, master, playerAction, structuredAction,
+            save: storySave, master, playerAction: storyPlayerAction, structuredAction: csaPlan ? null : structuredAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           timing.cast_present_count = sceneCastContract.present_npc_ids.length;
@@ -427,16 +440,16 @@ const master = masterFromEdition(edition);
           const promptStart = Date.now();
           const actionKind = action.action_kind === 'feedback_revision'
             ? 'feedback_revision'
-            : (csaPlan || structuredAction?.type === 'app_transaction' ? 'app_transaction' : 'ordinary');
+            : (csaPlan ? 'institutional_rule_change' : 'ordinary');
           const messages = buildStoryPrompt({
             edition,
             context: storyContext,
-            playerAction,
+            playerAction: storyPlayerAction,
             expectedTurn,
             npcIds,
             catalogs,
             sceneCastContract,
-            actionKind,
+            turnTrigger: buildStoryTurnTrigger({ actionKind, csaPlan, preSave: hydratedSave }),
             feedbackText: action.action_kind === 'feedback_revision' ? action.feedback_text : ''
           });
           timing.story_prompt_ms = Date.now() - promptStart;
@@ -553,7 +566,7 @@ const master = masterFromEdition(edition);
           const resolvedLocationId = resolveNavigationLocation({
             save: hydratedSave,
             master,
-            playerAction: action.player_action,
+            playerAction: csaPlan ? '' : action.player_action,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           const extractBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
@@ -646,10 +659,13 @@ const master = masterFromEdition(edition);
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const currentSave = context.save?.data ?? context.save;
+        const csaPlan = action.action_kind === 'feedback_revision'
+          ? null
+          : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
         const resolvedLocationId = resolveNavigationLocation({
           save: currentSave,
           master,
-          playerAction: action.player_action,
+          playerAction: csaPlan ? '' : action.player_action,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
         let parsedStory = parseStoryProjection(action.story_text, master);
@@ -676,9 +692,6 @@ const master = masterFromEdition(edition);
         // and degraded observations preserve the existing canonical scene.
         // The app transaction never gets its own save API; its csa_active/csa_rules result rides
         // through the normal V2 Commit reducer on top of the Extract observation.
-        const csaPlan = action.action_kind === 'feedback_revision'
-          ? null
-          : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
         const definitionAction = action.action_kind === 'feedback_revision' ? null : structuredAction;
         applyAuthorizedRuleDefinitions({
           currentSave,

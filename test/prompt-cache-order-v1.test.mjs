@@ -10,10 +10,12 @@ import {
 const story = {
   expected_turn: 3,
   player_action: 'ordinary',
-  action_kind: 'ordinary',
+  turn_trigger: { kind: 'player_action' },
   context: {},
   player_dialogue_policy: null,
   reference_characters: [],
+  world_rules: [],
+  scene_obligations: [],
   remote_contacts: [],
   possible_entrants: [],
   scene_actors: {},
@@ -36,11 +38,7 @@ const extract = {
 test('Story cache order contains only the canonical two-message user payload keys', () => {
   const ordered = reorderPromptPayload(story);
   assert.deepEqual(Object.keys(ordered), PROMPT_CACHE_KEY_ORDER.story);
-  assert.deepEqual(Object.keys(ordered), [
-    'edition', 'registered_identities', 'scene_actors', 'possible_entrants',
-    'remote_contacts', 'reference_characters', 'context', 'player_dialogue_policy',
-    'action_kind', 'player_action', 'expected_turn'
-  ]);
+  assert.deepEqual(Object.keys(ordered), PROMPT_CACHE_KEY_ORDER.story);
 });
 
 test('Extract cache order preserves observer contract keys', () => {

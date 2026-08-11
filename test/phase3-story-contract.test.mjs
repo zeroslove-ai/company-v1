@@ -25,7 +25,8 @@ for (const actionKind of ['ordinary', 'app_transaction', 'feedback_revision']) {
     const messages = buildStoryPrompt({ edition, context: context(), playerAction: '계속한다', expectedTurn: 2, actionKind, feedbackText: actionKind === 'feedback_revision' ? '다시 써' : '' });
     assert.deepEqual(messages.map(message => message.role), ['system', 'user']);
     const payload = JSON.parse(messages[1].content);
-    assert.equal(payload.action_kind, actionKind);
+    assert.equal('action_kind' in payload, false);
+    assert.equal(payload.turn_trigger.kind, actionKind === 'feedback_revision' ? 'feedback_revision' : 'player_action');
     assert.equal('scene_cast_contract' in payload, false);
     assert.equal('active_character_canon' in payload, false);
     assert.equal('active_general_npc_canon' in payload, false);

@@ -1,7 +1,7 @@
-import { buildActiveCharacterCanon, buildSceneContextCore } from './gameplay-state.js'
-import { buildPlayerPromptProjection, resolvePlayerCanonicalNames } from './player-setup.js'
-import { buildGeneralNpcCanon, buildWorkplaceContext } from './workplace-context.js'
-import { requiredClothingFromActiveCsa, compareRequiredClothing } from './state/clothing.js'
+import { buildActiveCharacterCanon, buildSceneContextCore } from './gameplay-state.js';
+import { buildPlayerPromptProjection, resolvePlayerCanonicalNames } from './player-setup.js';
+import { buildGeneralNpcCanon, buildWorkplaceContext } from './workplace-context.js';
+import { buildStoryWorldProjection } from './csa/story-projection.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -36,7 +36,7 @@ function compactReference(entry, source = null) {
 }
 
 /** Ephemeral Story character projection. It is never persisted or used as a state authority. */
-export function buildStoryCharacterProjection({ edition, save, playerAction = '', sceneCastContract = null, workplace = null } = {}) {
+export function buildStoryCharacterProjection({ edition, playerAction = '', sceneCastContract = null, workplace = null } = {}) {
   const charactersMap = object(edition?.characters?.characters) ?? {};
   const registered = registeredIdentityEntries(edition);
   const byId = new Map(registered.map(entry => [entry.id, entry]));
@@ -77,93 +77,27 @@ export function buildStoryCharacterProjection({ edition, save, playerAction = ''
   };
 }
 
-function buildActiveWorldRules(save, expectedTurn = null) {
-  const activeIds = Array.isArray(save?.csa_active) ? save.csa_active : [];
-  const rules = object(save?.csa_rules) ?? {};
-  return activeIds.flatMap(csaId => {
-    const rule = object(rules[csaId]);
-    if (!rule || rule.active === false) return [];
-    const preset = object(rule.preset) ?? {};
-    const activatedTurn = Number.isInteger(rule.created_turn) ? rule.created_turn : null;
-    const authorityTier = typeof preset.authority_tier === 'string'
-      ? preset.authority_tier
-      : (typeof rule.authority_tier === 'string' ? rule.authority_tier : (typeof rule.strength === 'string' ? rule.strength : 'weak'));
-    return [{
-      csa_id: csaId,
-      content: typeof rule.content === 'string' ? rule.content : '',
-      active: true,
-      scope_type: typeof rule.scope_type === 'string' ? rule.scope_type : 'world',
-      scope_label: typeof rule.scope_label === 'string' ? rule.scope_label : '회사 전체',
-      strength: typeof rule.strength === 'string' ? rule.strength : authorityTier,
-      authority_tier: authorityTier,
-      affected_group: typeof preset.affected_group === 'string' ? preset.affected_group : 'company_employee',
-      mode: preset.mode === 'on_player_request' ? 'on_player_request' : 'continuous',
-      subject_scope: typeof preset.subject_scope === 'string' ? preset.subject_scope : (typeof preset.affected_group === 'string' ? preset.affected_group : 'company_employee'),
-      counterparty_scope: typeof preset.counterparty_scope === 'string' ? preset.counterparty_scope : null,
-      trigger: typeof preset.trigger === 'string' ? preset.trigger : (preset.mode === 'on_player_request' ? 'on_counterparty_request' : 'continuous'),
-      allowed_subject_scopes: Array.isArray(preset.allowed_subject_scopes) ? preset.allowed_subject_scopes : [],
-      allowed_counterparty_scopes: Array.isArray(preset.allowed_counterparty_scopes) ? preset.allowed_counterparty_scopes : [],
-      activated_turn: activatedTurn,
-      activated_game_time: object(rule.activated_game_time),
-      newly_activated: Number.isInteger(expectedTurn) && activatedTurn === expectedTurn
-    }];
-  });
-}
-
-function toEntryArray(source, keyName) {
-  if (!object(source)) return [];
-  return Object.entries(source).map(([key, value]) => ({ ...value, [keyName]: key }));
-}
-
-function findNpcProfile(master, npcId) {
-  for (const entry of Array.isArray(master?.characters) ? master.characters : []) {
-    if ((entry?.character_id ?? entry?.id) === npcId) return entry;
-  }
-  for (const entry of Array.isArray(master?.general_npcs) ? master.general_npcs : []) {
-    if ((entry?.npc_id ?? entry?.id) === npcId) return entry;
-  }
-  return {};
-}
-
-function buildClothingAuthority(save, { master = {} } = {}) {
-  const activeIds = Array.isArray(save?.csa_active) ? save.csa_active : [];
-  const rules = object(save?.csa_rules) ?? {};
-  const activeRules = Object.entries(rules)
-    .filter(([id, rule]) => activeIds.includes(id) && rule?.active !== false)
-    .map(([id, rule]) => ({ ...rule, csa_id: id }));
-  const result = {};
-  for (const [npcId, npcState] of Object.entries(object(save?.npc_scene_state) ?? {})) {
-    if (npcId.startsWith('player')) continue;
-    const actual = object(npcState?.clothing) ? npcState.clothing : {};
-    const resolved = requiredClothingFromActiveCsa(activeRules, findNpcProfile(master, npcId));
-    result[npcId] = {
-      actual_clothing: actual,
-      required_clothing: resolved.required_clothing,
-      compliance: resolved.conflicted ? 'not_applicable' : compareRequiredClothing(actual, resolved.required_clothing),
-      rule_id: resolved.source_csa_id,
-      conflicted: resolved.conflicted
-    };
-  }
-  return result;
-}
-
-export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition, expectedTurn } = {}) {
+export function buildStoryContextProjection(context, activeIds, { catalogs, playerAction, edition } = {}) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const game = object(context?.game) ?? {};
   const player = object(save.player) ?? {};
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
-  const { global_csa: _unused, ...sceneCore } = buildSceneContextCore(save, activeIds);
+  const sceneCore = buildSceneContextCore(save, activeIds);
+  const rawScene = sceneCore.scene;
+  const sceneRest = { ...sceneCore };
+  delete sceneRest['global_' + 'csa'];
+  delete sceneRest.time;
+  const { participants: _participants, ...scene } = rawScene;
   return {
     game: { id: typeof game.id === 'string' ? game.id : null, title: typeof game.title === 'string' ? game.title : null },
     current_time: { day: typeof gameTime.day === 'number' ? gameTime.day : null, minute_of_day: typeof gameTime.minute_of_day === 'number' ? gameTime.minute_of_day : null },
-    active_world_rules: buildActiveWorldRules(save, expectedTurn),
     player: buildPlayerPromptProjection({ player, canonical, playerAction }),
-    ...sceneCore,
+    scene,
+    ...sceneRest,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
-    story_summary: { overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '', recent: '' },
-    clothing_authority: buildClothingAuthority(save, { master: edition?.characters?.characters ? { characters: toEntryArray(edition.characters.characters, 'character_id'), general_npcs: toEntryArray(edition?.generalNpcs?.profiles, 'npc_id') } : {} }),
+    story_summary: { overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '' },
     recent_turns: recentTurns.map(turn => ({
       turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
       player_action: typeof turn?.player_action === 'string' ? turn.player_action : '',
@@ -176,19 +110,19 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
 
 export const DURABLE_STORY_RULES = [
   '[WORLD FACTS]',
-  'Treat the canonical JSON payload as fact. scene_actors are present now; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only and never create presence, action, or dialogue authority. Never invent an unregistered named NPC.',
+  'Treat the canonical JSON payload as fact. scene_actors are present now; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only and never create presence, action, or dialogue authority. world_rules are institutional facts and scene_obligations are read-only current-turn requirements. Never invent an unregistered named NPC.',
   '[PLAYER AGENCY]',
   'Player input is an attempt or intent. Do not decide an unrequested player movement, dialogue, contact, physical action, consent, refusal, promise, or outcome. NPC responses and consequences are authored naturally in the Story.',
   '[NPC AUTONOMY]',
   'NPCs act from their established motives, relationships, and situation. A registered possible entrant may appear occasionally when the scene makes it meaningful; most turns should add no new NPC. Do not create probability, cooldown, or scheduler state.',
   '[CSA AND WORLD RULES]',
-  'active_world_rules are real institutional facts of the Company world. An applicable NPC already knows an effective rule; do not make an NPC learn it from the app, a smartwatch, or the player. On newly_activated, ground the institutional enactment briefly when useful, then treat it as established reality. Continuous rules default to compliance. Emotion is free and can coexist with compliance. Explicit knowing refusal or violation is exceptional and needs a strong conflict or serious situational reason; do not silently ignore a rule. Rule acceptance is not affection, sexual consent, or private obedience. If action_kind is app_transaction, player_action is metadata describing a completed rule change, not an in-world app, device alert, command, or physical action.',
+  'world_rules are real institutional facts enacted in the Company world. An applicable NPC already knows an effective rule; do not make an NPC learn it from a device or the player. A newly activated rule may be grounded briefly as an institutional enactment, then is established reality. Continuous rules default to compliance. Emotion is free and can coexist with compliance. Explicit knowing refusal or violation is exceptional and needs a strong conflict or serious situational reason; do not silently ignore a rule. Rule acceptance is not affection, sexual consent, or private obedience.',
   '[PHYSICAL CONTINUITY]',
-  'Saved actual physical and clothing state is current fact. A rule never changes actual state by itself. A compliant physical transition must be observable in this Story; use the required slot itself and never substitute another clothing slot. A strong-reason knowing violation may leave the state unchanged. Do not invent unknown actual state.',
+  'Saved actual physical and clothing state is current fact. A rule never changes actual state by itself. If scene_obligations contains a clothing_transition, a compliant Story must make the listed slot transitions observable; another slot is not a substitute. A strong-reason knowing violation may leave the state unchanged. Unknown actual state is never guessed.',
   '[STORY QUALITY]',
   'Write natural Korean workplace fiction with appropriate title-plus-name address, relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
   '[OUTPUT PROTOCOL]',
-  'Return exactly three sections in order: [1. 서사 및 행동], [2. 플레이어 속마음], [3. 선택지]. Use [SCENE] for narration and [DIALOGUE speaker_id="..." acting_direction="..."] for spoken lines only; speaker_id must be a registered identity. Inner thought is first-person without quotation marks. Provide exactly four immediately usable choices and stop after the fourth choice.'
+  'Return exactly three sections in order: [1. ?쒖궗 諛??됰룞], [2. ?뚮젅?댁뼱 ?띾쭏??, [3. ?좏깮吏]. Use [SCENE] for narration and [DIALOGUE speaker_id="..." acting_direction="..."] for spoken lines only; speaker_id must be a registered identity. Inner thought is first-person without quotation marks. Provide exactly four immediately usable choices and stop after the fourth choice.'
 ].join('\n');
 
 export function buildRegenerationFeedbackSection(feedbackText) {
@@ -196,27 +130,29 @@ export function buildRegenerationFeedbackSection(feedbackText) {
   return text ? text : '';
 }
 
-export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null, actionKind = 'ordinary', feedbackText = '' }) {
-  const charactersMap = object(edition?.characters?.characters) ?? {};
+export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null, turnTrigger = null, actionKind = 'ordinary', feedbackText = '' }) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const canonicalScene = buildSceneContextCore(save, []).scene;
   const canonicalCast = sceneCastContract ?? { present_npc_ids: canonicalScene.present_npc_ids, entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null };
   const workplace = buildWorkplaceContext(edition, save);
-  const projection = buildStoryCharacterProjection({ edition, save, playerAction, sceneCastContract: canonicalCast, workplace });
-  const playerDialoguePolicy = canonicalCast.player_dialogue ?? null;
+  const storyPlayerAction = typeof playerAction === 'string' && playerAction.trim() ? playerAction : '';
+  const projection = buildStoryCharacterProjection({ edition, playerAction: storyPlayerAction, sceneCastContract: canonicalCast, workplace });
+  const storyWorld = buildStoryWorldProjection({ save, master: { characters: Object.values(object(edition?.characters?.characters) ?? {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) ?? {}) }, sceneActorIds: projection.scene_actor_ids, expectedTurn });
   const payload = {
     edition: edition.editionId,
-    action_kind: actionKind,
+    turn_trigger: turnTrigger ?? { kind: actionKind === 'feedback_revision' ? 'feedback_revision' : 'player_action' },
     registered_identities: projection.registered_identities,
     scene_actors: projection.scene_actors,
     possible_entrants: projection.possible_entrants,
     remote_contacts: projection.remote_contacts,
     reference_characters: projection.reference_characters,
-    player_dialogue_policy: playerDialoguePolicy,
-    context: buildStoryContextProjection(context, projection.projection_ids, { catalogs, playerAction, edition, expectedTurn }),
-    player_action: playerAction,
-    expected_turn: expectedTurn,
-    ...(feedbackText ? { feedback_text: feedbackText } : {})
+    player_dialogue_policy: canonicalCast.player_dialogue ?? null,
+    world_rules: storyWorld.world_rules,
+    scene_obligations: storyWorld.scene_obligations,
+    context: buildStoryContextProjection(context, projection.projection_ids, { catalogs, playerAction: storyPlayerAction, edition }),
+    ...(storyPlayerAction ? { player_action: storyPlayerAction } : {}),
+    ...(feedbackText ? { feedback_text: feedbackText } : {}),
+    expected_turn: expectedTurn
   };
   return [
     { role: 'system', content: DURABLE_STORY_RULES },

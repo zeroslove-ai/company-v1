@@ -1,13 +1,15 @@
 const STORY_KEY_ORDER = [
   'edition',
+  'turn_trigger',
   'registered_identities',
   'scene_actors',
   'possible_entrants',
   'remote_contacts',
   'reference_characters',
-  'context',
   'player_dialogue_policy',
-  'action_kind',
+  'world_rules',
+  'scene_obligations',
+  'context',
   'player_action',
   'expected_turn'
 ];

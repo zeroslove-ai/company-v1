@@ -283,13 +283,12 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   assert.match(storyText, /event: complete/);
   const storyPayload = storyUserPayloadFrom(mock);
   const activatedContent = canonicalAction.operations[0].content;
-  assert.equal(storyPayload.context.active_world_rules.filter(rule => rule.content === activatedContent).length, 1);
-  const projectedRule = storyPayload.context.active_world_rules[0];
-  assert.equal(projectedRule.affected_group, 'female_employee');
+  assert.equal(storyPayload.world_rules.filter(rule => rule.content === activatedContent).length, 1);
+  const projectedRule = storyPayload.world_rules[0];
   assert.equal(projectedRule.subject_scope, 'female_employee');
   assert.equal(projectedRule.counterparty_scope, 'company_employee');
   assert.equal(projectedRule.trigger, 'contextual');
-  assert.equal(projectedRule.authority_tier, 'weak');
+  assert.equal(projectedRule.authority, 'weak');
   assert.equal('roles' in projectedRule, false);
   assert.equal('sexual_actions' in projectedRule, false);
   assert.ok(!('global_csa' in storyPayload.context));
@@ -300,7 +299,7 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
   const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
   assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA 관찰 projection 유지');
-  assert.deepEqual(new Set(extractPayload.context.global_csa.active_ids), new Set(storyPayload.context.active_world_rules.map(rule => rule.csa_id)));
+  assert.deepEqual(new Set(extractPayload.context.global_csa.active_ids), new Set(storyPayload.world_rules.map(rule => rule.id)));
 
   const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
   assert.equal(commitRes.status, 200);
@@ -381,8 +380,8 @@ test('route-level CSA update replaces the old Story rule once and commits the ne
   assert.equal(storyRes.status, 200);
   await storyRes.text();
   const payload = storyUserPayloadFrom(mock);
-  assert.equal(payload.context.active_world_rules.filter(rule => rule.content === oldContent).length, 0);
-  assert.equal(payload.context.active_world_rules.filter(rule => rule.content === newContent).length, 1);
+  assert.equal(payload.world_rules.filter(rule => rule.content === oldContent).length, 0);
+  assert.equal(payload.world_rules.filter(rule => rule.content === newContent).length, 1);
   assert.ok(!('global_csa' in payload.context));
   const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
   assert.equal(extractRes.status, 200);
@@ -437,12 +436,11 @@ test('app_transaction Story: plan이 적용한 active CSA와 새 규칙 content�
   await storyRes.text();
 
   const payload = storyUserPayloadFrom(mock);
-  const activeWorldRules = payload.context.active_world_rules;
+  const activeWorldRules = payload.world_rules;
   assert.equal(activeWorldRules.length, 2);
-  assert.deepEqual(activeWorldRules.map(rule => rule.csa_id), ['csa_1', 'csa_1_1']);
-  for (const rule of activeWorldRules) assert.equal(rule.active, true);
+  assert.deepEqual(activeWorldRules.map(rule => rule.id), ['csa_1', 'csa_1_1']);
   assert.ok(canonicalAction.operations.every(operation => activeWorldRules.some(rule => rule.content === operation.content)));
-  assert.equal(new Set(activeWorldRules.map(rule => rule.csa_id)).size, activeWorldRules.length);
+  assert.equal(new Set(activeWorldRules.map(rule => rule.id)).size, activeWorldRules.length);
   assert.ok(!('global_csa' in payload.context));
   const storyMessages = JSON.parse(mock.calls.find(call => call.url.startsWith('https://llm.test') && JSON.parse(call.body).stream === true).body).messages;
   const storyTextForAssertions = storyMessages.map(message => message.content).join('\n');
@@ -470,7 +468,7 @@ test('Story route: one active CSA uses only active_world_rules without global_cs
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
   const payload = storyUserPayloadFrom(mock);
-  assert.equal(payload.context.active_world_rules.length, 1);
+  assert.equal(payload.world_rules.length, 1);
   assert.ok(!('global_csa' in payload.context));
 });
 
@@ -489,7 +487,7 @@ test('Story route: multiple active CSAs remain in one declarative projection', a
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
   const payload = storyUserPayloadFrom(mock);
-  assert.equal(payload.context.active_world_rules.length, 2);
+  assert.equal(payload.world_rules.length, 2);
   assert.ok(!('global_csa' in payload.context));
 });
 test('app transaction Story upstream failure remains a visible retryable failure', async () => {
