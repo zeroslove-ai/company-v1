@@ -1,3 +1,5 @@
+import { hydrateCanonicalScene } from './runtime-core/scene-reducer.js';
+
 /**
  * SceneCastContract — 이번 턴에 "존재하는 인물"과 "말할 수 있는 인물"을 Story 호출
  * 전에 서버가 결정론적으로 확정하는 계약.
@@ -546,11 +548,12 @@ export function buildSceneCastContract({
   mapLocations = []
 } = {}) {
   const registeredIds = registeredNpcIdSet(master);
-  const sceneState = isPlainObject(save?.scene_state) ? save.scene_state : {};
-  const locationId = identity(sceneState.location_id);
+  const canonicalScene = hydrateCanonicalScene(save, { master, mapLocations });
+  const locationId = identity(canonicalScene.location_id);
 
   // 수정 7 — action target은 present 승격 근거가 아니다
-  const presentNpcIds = resolvePresentNpcIds({ save, registeredIds });
+  const presentNpcIds = canonicalScene.present_npc_ids
+    .filter(id => registeredIds.has(id) && !isPlayerRefId(id));
   const enteringNpcIds = resolveEnteringNpcIds({
     save, master, playerAction, registeredIds, presentIds: presentNpcIds, structuredAction
   });

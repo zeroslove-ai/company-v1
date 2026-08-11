@@ -26,6 +26,52 @@ const cast = (playerAction, options) => buildSceneCastContract({
   save: save(options), master: MASTER, playerAction, mapLocations: LOCATIONS
 });
 
+test('canonical scene presence wins over conflicting legacy participants', () => {
+  const contract = buildSceneCastContract({
+    save: {
+      scene: { version: 1, location_id: 'brand_strategy_meeting_room', present_npc_ids: ['heroine1'], focal_character_id: null, last_speaker_id: null, beat: 0, updated_turn: 1 },
+      scene_state: { location_id: 'brand_strategy_meeting_room', participants: ['player-1', 'heroine1', 'heroine2'] },
+      npc_scene_state: {},
+      last_npcs_present: ['heroine1', 'heroine2']
+    },
+    master: MASTER,
+    mapLocations: LOCATIONS,
+    playerAction: '회사 업무를 진행한다.'
+  });
+  assert.deepEqual(contract.present_npc_ids, ['heroine1']);
+  assert.ok(!contract.allowed_speaker_ids.includes('heroine2'));
+});
+
+test('legacy-only save still hydrates presence through the canonical compatibility adapter', () => {
+  const contract = cast('회사 업무를 진행한다.', { participants: ['player-1', 'heroine1'] });
+  assert.deepEqual(contract.present_npc_ids, ['heroine1']);
+  assert.ok(contract.allowed_speaker_ids.includes('heroine1'));
+});
+
+test('legitimate pending entrance remains allowed without changing canonical presence', () => {
+  const contract = buildSceneCastContract({
+    save: { scene: { version: 1, location_id: 'brand_strategy_meeting_room', present_npc_ids: [], focal_character_id: null, last_speaker_id: null, beat: 0, updated_turn: 1 }, pending_scene_entrances: ['heroine2'] },
+    master: MASTER,
+    mapLocations: LOCATIONS,
+    playerAction: '업무를 진행한다.'
+  });
+  assert.deepEqual(contract.present_npc_ids, []);
+  assert.deepEqual(contract.entering_npc_ids, ['heroine2']);
+  assert.ok(contract.allowed_speaker_ids.includes('heroine2'));
+});
+
+test('legitimate pending remote contact remains remote without changing canonical presence', () => {
+  const contract = buildSceneCastContract({
+    save: { scene: { version: 1, location_id: 'brand_strategy_meeting_room', present_npc_ids: [], focal_character_id: null, last_speaker_id: null, beat: 0, updated_turn: 1 }, pending_remote_contacts: ['heroine2'] },
+    master: MASTER,
+    mapLocations: LOCATIONS,
+    playerAction: '업무를 진행한다.'
+  });
+  assert.deepEqual(contract.present_npc_ids, []);
+  assert.deepEqual(contract.remote_npc_ids, ['heroine2']);
+  assert.ok(contract.allowed_speaker_ids.includes('heroine2'));
+});
+
 // ── O-1 / O-2: 기본 위치 정본 ──────────────────────────────────────────────
 
 test('맵1: 모든 주요 NPC가 canonical default location을 가진다', () => {
