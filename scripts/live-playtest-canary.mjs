@@ -94,20 +94,22 @@ function profileName(master, id) {
   const profile = all.find(item => (item?.character_id ?? item?.npc_id ?? item?.id) === id);
   return profile?.name ?? profile?.display_name ?? id;
 }
-function parseSseEvents(text, startedAt) {
-  const events = [];
-  for (const entry of String(text ?? '').split(/\r?\n\r?\n/)) {
-    const lines = entry.split(/\r?\n/);
-    const eventLine = lines.find(line => line.startsWith('event:'));
-    const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('\n');
-    if (!eventLine || !data) continue;
-    try {
-      events.push({ name: eventLine.slice(6).trim(), data: JSON.parse(data), at_ms: elapsed(startedAt) });
-    } catch {
-      events.push({ name: 'invalid_sse_data', data: { raw: data }, at_ms: elapsed(startedAt) });
-    }
+function parseSseEntry(entry, atMs) {
+  const lines = entry.split(/\r?\n/);
+  const eventLine = lines.find(line => line.startsWith('event:'));
+  const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('\n');
+  if (!eventLine || !data) return null;
+  try {
+    return { name: eventLine.slice(6).trim(), data: JSON.parse(data), at_ms: atMs };
+  } catch {
+    return { name: 'invalid_sse_data', data: { raw: data }, at_ms: atMs };
   }
-  return events;
+}
+
+function parseSseEvents(text, startedAt) {
+  return String(text ?? '').split(/\r?\n\r?\n/)
+    .map(entry => parseSseEntry(entry, elapsed(startedAt)))
+    .filter(Boolean);
 }
 
 async function requestJson(base, endpoint, body) {
@@ -159,9 +161,29 @@ async function captureStory(base, gameId, body, { poll = true, endpoint = '/api/
       return evidence;
     }
     evidence.http_status = response.status;
-    const text = await response.text();
     evidence.request_duration_ms = elapsed(startedAt);
-    evidence.events = parseSseEvents(text, startedAt);
+    const reader = response.body?.getReader?.();
+    if (reader) {
+      const decoder = new TextDecoder();
+      let buffer = '';
+      const consume = (final = false) => {
+        const entries = buffer.split(/\r?\n\r?\n/);
+        buffer = final ? '' : (entries.pop() ?? '');
+        for (const entry of entries) {
+          const event = parseSseEntry(entry, elapsed(startedAt));
+          if (event) evidence.events.push(event);
+        }
+      };
+      while (true) {
+        const chunk = await reader.read();
+        buffer += decoder.decode(chunk.value ?? new Uint8Array(), { stream: !chunk.done });
+        consume(chunk.done);
+        if (chunk.done) break;
+      }
+    } else {
+      evidence.events = parseSseEvents(await response.text(), startedAt);
+    }
+    evidence.request_duration_ms = elapsed(startedAt);
     const meta = evidence.events.find(event => event.name === 'meta')?.data;
     const complete = evidence.events.find(event => event.name === 'complete')?.data;
     const error = evidence.events.find(event => event.name === 'error')?.data;
