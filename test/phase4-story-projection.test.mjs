@@ -19,7 +19,7 @@ const save = (sceneIds = ['heroine1'], clothing = 'worn', extra = {}) => ({
 test('world rule projection exposes one canonical rule shape', () => {
   const projection = buildStoryWorldProjection({ save: save(), master, sceneActorIds: ['heroine1'], expectedTurn: 3 });
   assert.deepEqual(projection.world_rules[0], {
-    id: 'csa_4', content: 'no bra under work clothes', authority: 'weak', phase: 'newly_activated', institutional_form: 'internal_company_guidance_or_operating_rule', enactment: 'announce_new', mode: 'continuous', subject_scope: 'female_employee', counterparty_scope: null, trigger: 'continuous', known_scene_actor_ids: ['heroine1'], applicable_scene_actor_ids: ['heroine1'], execution_policy: 'default_comply'
+    id: 'csa_4', content: 'no bra under work clothes', authority: 'weak', phase: 'newly_activated', institutional_form: 'internal_company_guidance_or_operating_rule', enactment: 'announce_new', mode: 'continuous', subject_scope: 'female_employee', counterparty_scope: null, trigger: 'continuous', resolved_facts: [{ rule_id: 'csa_4', already_effective: false, actor_id: 'heroine1', execution_kind: null, trigger_state: 'conditional', current_state: 'not_started', required_state: null, transition_required_now: false, implementation_delay_allowed: false, execution_policy: 'default_comply' }], known_scene_actor_ids: ['heroine1'], applicable_scene_actor_ids: ['heroine1'], execution_policy: 'default_comply'
   });
 });
 

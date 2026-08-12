@@ -2,6 +2,8 @@ import { getApplicableCsaEntries } from '../csa/applicability.js';
 import { buildCsaRuntimeStatePatch, buildCsaAftereffectPatch } from '../csa/reducer.js';
 import { applyAuthorizedRuleDefinitions, assertRuleDefinitionAuthority } from './action-authority.js';
 import { calculateCsaProgression, calculateProgress } from '../progression.js';
+import { compareRequiredClothing } from '../state/clothing.js';
+import { executionMetadataForRule } from '../csa/execution-policy.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 
@@ -11,6 +13,20 @@ function isFeedback(action) {
 
 function activeIds(save) {
   return new Set(Array.isArray(save?.csa_active) ? save.csa_active : []);
+}
+
+function canonicalRuntimeUpdates({ updates, activeCsa, nextSave, warnings }) {
+  const entries = new Map((activeCsa ?? []).map(entry => [entry.id, entry]));
+  return (Array.isArray(updates) ? updates : []).filter(update => {
+    const entry = entries.get(update?.csa_id);
+    const execution = executionMetadataForRule(entry ?? {});
+    if (execution?.kind !== 'clothing_state' || update?.status !== 'active') return true;
+    const actual = nextSave?.npc_scene_state?.[update.character_id]?.clothing ?? {};
+    const verdict = compareRequiredClothing(actual, execution.required_state ?? {});
+    if (verdict === 'compliant') return true;
+    warnings.push(`csa_clothing_not_satisfied:${update.csa_id}:${update.character_id}`);
+    return false;
+  });
 }
 
 /**
@@ -56,9 +72,10 @@ export function reduceCsaCommitState({
   }
 
   const activeCsa = getApplicableCsaEntries(nextSave);
+  const runtimeUpdates = canonicalRuntimeUpdates({ updates: observation?.csa_runtime_updates, activeCsa, nextSave, warnings });
   const runtimeResult = buildCsaRuntimeStatePatch({
     previousSave: current,
-    csaRuntimeUpdates: observation?.csa_runtime_updates,
+    csaRuntimeUpdates: runtimeUpdates,
     csaTriggerEvaluations: observation?.csa_trigger_evaluations,
     activeCsa,
     npcsPresent: canonicalScene?.present_npc_ids ?? [],

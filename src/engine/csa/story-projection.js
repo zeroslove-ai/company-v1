@@ -71,7 +71,46 @@ function eligibleTargetIds({ actorId, counterpartyScope, sceneProfiles }) {
     .map(({ id }) => id);
 }
 
-function projectWorldRule(entry, expectedTurn, sceneProfiles) {
+function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds }) {
+  const runtime = object(save?.csa_runtime_state);
+  const targetProfiles = [...sceneProfiles, { id: 'player', profile: { ...object(save?.player), id: 'player', player: true } }];
+  const facts = [];
+  for (const actorId of applicableSceneActorIds) {
+    const actorState = object(save?.npc_scene_state?.[actorId]);
+    const currentState = execution?.kind === 'clothing_state'
+      ? object(actorState.clothing)
+      : (runtime?.[entry.id]?.execution_state ?? 'not_started');
+    const requiredState = execution?.required_state ? { ...execution.required_state } : null;
+    const clothingVerdict = execution?.kind === 'clothing_state'
+      ? compareRequiredClothing(currentState, requiredState ?? {})
+      : null;
+    const targets = execution?.target_required
+      ? eligibleTargetIds({ actorId, counterpartyScope: text(entry.preset?.counterparty_scope) ?? text(entry.counterparty_scope), sceneProfiles: targetProfiles })
+      : [];
+    const triggerState = execution?.kind === 'clothing_state'
+      ? triggerStateFor(execution.trigger_kind, { actorPresent: true })
+      : triggerStateFor(execution?.trigger_kind, { actorPresent: true, targetCount: targets.length, postureReady: postureReadyForTargets(save, actorId, targets) });
+    facts.push({
+      rule_id: entry.id,
+      already_effective: execution?.kind === 'clothing_state'
+        ? clothingVerdict === 'compliant'
+        : runtime?.[entry.id]?.execution_state === 'executed',
+      actor_id: actorId,
+      execution_kind: execution?.kind ?? null,
+      trigger_state: triggerState,
+      current_state: currentState,
+      required_state: requiredState,
+      transition_required_now: execution?.kind === 'clothing_state'
+        ? clothingVerdict === 'noncompliant' && triggerState === 'required_now'
+        : triggerState === 'required_now' && runtime?.[entry.id]?.execution_state !== 'executed',
+      implementation_delay_allowed: object(entry.preset).implementation_delay_allowed === true,
+      execution_policy: 'default_comply'
+    });
+  }
+  return facts;
+}
+
+function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
   const rule = object(entry);
   const preset = object(rule.preset);
   const authority = authorityFor(rule, preset);
@@ -83,6 +122,7 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles) {
   const applicableSceneActorIds = sceneProfiles
     .filter(({ id, profile }) => matchesCsaSubjectScope({ ...profile, id }, subjectScope))
     .map(({ id }) => id);
+  const resolvedFacts = resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds });
   return {
     id: entry.id,
     content: text(rule.content) ?? '',
@@ -95,6 +135,7 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles) {
     counterparty_scope: text(preset.counterparty_scope) ?? text(rule.counterparty_scope),
     trigger: text(preset.trigger) ?? (modeFor(rule, preset) === 'on_player_request' ? 'on_counterparty_request' : 'continuous'),
     ...(execution ? { execution_contract: execution } : {}),
+    resolved_facts: resolvedFacts,
     known_scene_actor_ids: knownSceneActorIds,
     applicable_scene_actor_ids: applicableSceneActorIds,
     execution_policy: 'default_comply'
@@ -171,7 +212,7 @@ export function buildStoryWorldProjection({ save = {}, master = {}, sceneActorId
     .filter(id => text(id) && id !== 'player')
     .map(id => ({ id, profile: profileFor(master, id) }));
   return {
-    world_rules: activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles)),
+    world_rules: activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles, save)),
     scene_obligations: projectObligations(save, master, sceneActorIds, activeEntries)
   };
 }

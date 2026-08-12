@@ -78,8 +78,8 @@ test('missing Story choices remain empty through Commit projection', () => {
   const parsed = parseNarrative('[SCENE]\nA scene without a choices section.', { master: { characters: [] } });
   assert.ok(parsed.warnings.includes('choices_not_exactly_four'));
   const projected = reduceStoryChoiceProjection({ save: { last_choices: [] }, parsedStory: parsed, focalName: '' });
-  assert.equal(projected.state.length, 4);
-  assert.deepEqual(projected.warnings, ['choices_fallback_applied']);
+  assert.equal(projected.state.length, 0);
+  assert.deepEqual(projected.warnings, ['choices_not_exactly_four']);
 });
 
 test('player utterance is never assigned to NPC', () => {

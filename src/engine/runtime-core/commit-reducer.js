@@ -22,6 +22,28 @@ function presentMindMonitor(mindMonitor, presentIds) {
   return { state: result, warnings };
 }
 
+function playerOwnedMonitor(mindMonitor, playerThought) {
+  const thought = typeof playerThought === 'string' ? playerThought.trim() : '';
+  if (!thought) return { state: mindMonitor ?? {}, warnings: [] };
+  const fragments = new Set([thought, ...thought.split(/[.!?。！？]\s*/).map(value => value.trim()).filter(value => value.length >= 12)]);
+  const isOwned = value => {
+    const text = typeof value === 'string' ? value.trim() : '';
+    return text && fragments.has(text);
+  };
+  const state = {};
+  const warnings = [];
+  for (const [id, value] of Object.entries(mindMonitor ?? {})) {
+    const surface = typeof value?.surface === 'string' ? value.surface.trim() : '';
+    const subconscious = typeof value?.subconscious === 'string' ? value.subconscious.trim() : '';
+    if (isOwned(surface) || isOwned(subconscious)) {
+      warnings.push(`mind_monitor_player_thought_dropped:${id}`);
+      continue;
+    }
+    state[id] = value;
+  }
+  return { state, warnings };
+}
+
 function canonicalObservation(observation, parsedStory) {
   const scene = observation.scene_observation ?? {};
   const speakers = parserSpeakers(parsedStory);
@@ -92,15 +114,16 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   nextSave = csaCommit.nextSave;
   assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action?.action_kind, observation: sceneObservation });
   const monitor = presentMindMonitor(observation.mind_monitor ?? {}, canonicalScene.present_npc_ids ?? []);
+  const ownedMonitor = playerOwnedMonitor(monitor.state, parsedStory?.player_inner_thought ?? '');
   return {
     nextSave,
-    warnings: [...domains.warnings, ...csaCommit.warnings, ...(sceneObservation.warnings ?? []), ...monitor.warnings],
+    warnings: [...domains.warnings, ...csaCommit.warnings, ...(sceneObservation.warnings ?? []), ...monitor.warnings, ...ownedMonitor.warnings],
     time_before: domains.time_before,
     elapsed_minutes: domains.elapsed_minutes,
     time_after: domains.time_after,
     action_target_id: observation.action_target_id ?? null,
     image_character_id: observation.image_character_id ?? null,
-    mind_monitor: monitor.state,
+    mind_monitor: ownedMonitor.state,
     canonical_scene: canonicalScene,
     csa_commit: {
       accepted_executions: csaCommit.acceptedExecutions,

@@ -1,7 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
-import { buildSceneCastContract, resolveNavigationLocation } from '../engine/scene-cast.js';
+import { buildSceneCastContract, resolveNavigationLocation, validatePlayerDialogueAgainstPolicy } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
@@ -535,8 +535,13 @@ const master = masterFromEdition(edition);
           // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
           raw = upstreamRaw;
           const parsed = parseFreshNarrativeV2(raw, { master });
+          const playerPolicy = sceneCastContract.player_dialogue;
+          const unauthorizedPlayerDialogue = (parsed.dialogue_lines ?? [])
+            .filter(line => /^player(?:[-_]|$)/i.test(String(line?.speaker_id ?? '')))
+            .filter(line => !validatePlayerDialogueAgainstPolicy(line?.text ?? '', playerPolicy));
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
           const mergedWarnings = [...(parsed.warnings ?? [])];
+          if (unauthorizedPlayerDialogue.length) mergedWarnings.push('player_dialogue_policy_violation');
           const contractPersisted = {
             ...parsed,
             // 수정 H — live/replay 동일 순서 재생용
@@ -961,7 +966,7 @@ const master = masterFromEdition(edition);
           const background = '';
           const splitWarnings = [];
           const parsedOpening = parseFreshNarrativeV2(raw, { master });
-          const choiceProjection = reduceStoryChoiceProjection({ parsedStory: parsedOpening });
+          const choiceProjection = reduceStoryChoiceProjection({ parsedStory: parsedOpening, allowDeterministicFallback: true });
           const finalChoices = choiceProjection.state;
           const commit = await db.callRpc('commit_company_opening', {
             p_game_id: gameId,

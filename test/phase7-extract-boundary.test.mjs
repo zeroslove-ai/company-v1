@@ -42,13 +42,15 @@ test('fresh V2 accepts canonical observer shape', () => {
   assert.deepEqual(result.npc_observations.heroine1.emotion, { mood: '당황' });
 });
 
-test('fresh V1, degraded, legacy scene fields, and movement evidence fail closed', () => {
+test('fresh V1/degraded remain hard failures while optional scene evidence is soft-dropped', () => {
   assert.throws(() => normalizeFreshExtractObservationV2({ state_delta: {} }), /extract_version|observation|Forbidden Extract field/i);
   assert.throws(() => normalizeFreshExtractObservationV2({ ...base, outcome: 'degraded' }), /outcome/i);
   for (const field of ['entered_npc_ids', 'exited_npc_ids', 'presence_is_final']) {
     assert.throws(() => normalizeFreshExtractObservationV2({ ...base, scene_observation: { ...base.scene_observation, [field]: field === 'presence_is_final' ? false : [] } }), /Unknown observation field/);
   }
-  assert.throws(() => normalizeFreshExtractObservationV2({ ...base, scene_observation: { ...base.scene_observation, evidence: [{ kind: 'movement', location_id: 'meeting_room', quote: storyText }] } }, { npcIds, storyText }), /evidence kind/i);
+  const movement = normalizeFreshExtractObservationV2({ ...base, scene_observation: { ...base.scene_observation, evidence: [{ kind: 'movement', location_id: 'meeting_room', quote: storyText }] } }, { npcIds, storyText });
+  assert.deepEqual(movement.scene_observation.evidence, []);
+  assert.ok(movement.warnings.some(warning => warning.startsWith('extract_optional_dropped:scene_observation.evidence')));
 });
 
 test('persisted boundary reads V2 degraded and legacy V1 without exposing legacy shape', () => {
@@ -81,15 +83,17 @@ test('fresh Extract payload is Story-only and has one identity registry', () => 
   assert.equal('registered_general_npcs' in payload, false);
 });
 
-test('fresh Mind Monitor requires every deterministic target, while persisted reads remain permissive', () => {
+test('fresh Mind Monitor is optional and missing targets warn while persisted reads remain permissive', () => {
   const complete = { ...base, mind_monitor: {
     heroine1: { surface: '오늘 일부터 끝내자.', subconscious: '괜히 마음이 쓰이네.' },
     heroine2: { surface: '자료를 먼저 확인하자.', subconscious: '조금 긴장되지만 괜찮아.' }
   } };
   const normalized = normalizeFreshExtractObservationV2(complete, { npcIds, storyText, requiredMindMonitorIds: ['heroine1', 'heroine2'] });
   assert.deepEqual(Object.keys(normalized.mind_monitor).sort(), ['heroine1', 'heroine2']);
-  assert.throws(() => normalizeFreshExtractObservationV2({ ...base, mind_monitor: { heroine2: complete.mind_monitor.heroine2 } }, { npcIds, storyText, requiredMindMonitorIds: ['heroine1', 'heroine2'] }), /mind monitor target/i);
-  assert.throws(() => normalizeFreshExtractObservationV2({ ...base, mind_monitor: { heroine1: { surface: '', subconscious: '있다.' }, heroine2: complete.mind_monitor.heroine2 } }, { npcIds, storyText, requiredMindMonitorIds: ['heroine1', 'heroine2'] }), /mind monitor target/i);
+  const missing = normalizeFreshExtractObservationV2({ ...base, mind_monitor: { heroine2: complete.mind_monitor.heroine2 } }, { npcIds, storyText, requiredMindMonitorIds: ['heroine1', 'heroine2'] });
+  assert.ok(missing.warnings.includes('mind_monitor_missing:heroine1'));
+  const empty = normalizeFreshExtractObservationV2({ ...base, mind_monitor: { heroine1: { surface: '', subconscious: '있다.' }, heroine2: complete.mind_monitor.heroine2 } }, { npcIds, storyText, requiredMindMonitorIds: ['heroine1', 'heroine2'] });
+  assert.ok(empty.warnings.includes('mind_monitor_missing:heroine1'));
   const persisted = normalizePersistedExtractObservation(base, { npcIds, storyText });
   assert.deepEqual(persisted.mind_monitor, {});
 });

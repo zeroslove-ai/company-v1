@@ -182,26 +182,36 @@ export function reduceElapsedTimeObservation({ save, elapsedMinutes, evidence } 
   return { before, after, warnings: [] };
 }
 
-export function reduceStoryChoiceProjection({ parsedStory } = {}) {
+const DETERMINISTIC_CHOICE_FALLBACKS = [
+  '현재 대화를 조금 더 이어간다.',
+  '상대에게 지금 상황을 차분히 물어본다.',
+  '주변 반응을 잠시 살펴본다.',
+  '대화를 정리하고 다음 행동을 생각한다.'
+];
+
+export function reduceStoryChoiceProjection({ parsedStory, allowDeterministicFallback = false } = {}) {
   const observed = Array.isArray(parsedStory?.choices)
-    ? parsedStory.choices.filter(choice => typeof choice === 'string' && choice.trim()).map(choice => choice.trim())
+    ? parsedStory.choices.map(choice => typeof choice === 'string' ? choice.trim() : '')
     : [];
-  const uniqueObserved = [];
-  for (const choice of observed) if (!uniqueObserved.includes(choice)) uniqueObserved.push(choice);
-  if (uniqueObserved.length > 4) return { state: [], warnings: ['choices_not_exactly_four'] };
-  if (uniqueObserved.length === 4) return { state: clone(uniqueObserved), warnings: [] };
-  const fallbacks = [
-    '현재 대화를 조금 더 이어간다.',
-    '상대에게 지금 상황을 차분히 물어본다.',
-    '주변 반응을 잠시 살펴본다.',
-    '대화를 정리하고 다음 행동을 생각한다.'
-  ];
-  const state = [...uniqueObserved];
-  for (const fallback of fallbacks) {
-    if (state.length >= 4) break;
-    if (!state.includes(fallback)) state.push(fallback);
+  const nonEmpty = observed.filter(Boolean);
+  const unique = new Set(nonEmpty);
+  const warnings = [];
+  if (observed.length !== 4) warnings.push('choices_not_exactly_four');
+  if (observed.some(choice => !choice)) warnings.push('choices_empty');
+  if (unique.size !== nonEmpty.length) warnings.push('choices_exact_duplicate');
+  const canonical = observed.length === 4 && observed.every(Boolean) && unique.size === 4;
+  if (allowDeterministicFallback && !canonical && nonEmpty.length <= 4) {
+    const state = [...new Set(nonEmpty)];
+    for (const fallback of DETERMINISTIC_CHOICE_FALLBACKS) {
+      if (state.length >= 4) break;
+      if (!state.includes(fallback)) state.push(fallback);
+    }
+    if (state.length === 4) {
+      warnings.push('choices_fallback_applied');
+      return { state: clone(state), warnings };
+    }
   }
-  return { state: clone(state), warnings: ['choices_fallback_applied'] };
+  return { state: canonical ? clone(observed) : [], warnings };
 }
 
 export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, explicitSpeakerIds } = {}) {
