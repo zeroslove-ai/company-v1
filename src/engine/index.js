@@ -92,7 +92,7 @@ export {
 export {
   CSA_AUTHORITY_POLICY, CSA_ENACTMENT_BY_PHASE, authorityPolicyFor,
   authorityPolicyPayload, enactmentForPhase, matchesCsaSubjectScope,
-  phaseFor, phaseForRule, subjectScopeForRule
+  phaseFor, phaseForRule, profileSex, subjectScopeForRule
 } from './csa/authority-policy.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
 

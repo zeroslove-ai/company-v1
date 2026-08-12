@@ -53,6 +53,11 @@ export function phaseFor(rule = {}, expectedTurn = null) {
 
 export const phaseForRule = phaseFor;
 
+export function profileSex(profile = {}) {
+  const value = profile?.gender ?? profile?.sex ?? null;
+  return typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : null;
+}
+
 export function subjectScopeForRule(rule = {}) {
   const preset = rule?.preset && typeof rule.preset === 'object' ? rule.preset : {};
   return (typeof preset.subject_scope === 'string' && preset.subject_scope.trim())
@@ -65,9 +70,10 @@ export function subjectScopeForRule(rule = {}) {
 /** Deterministic matcher for the currently supported catalog subject scopes. */
 export function matchesCsaSubjectScope(profile = {}, subjectScope = 'company_employee') {
   const id = profile?.character_id ?? profile?.id;
+  const sex = profileSex(profile);
   if (subjectScope === 'player') return id === 'player' || profile?.player === true;
-  if (subjectScope === 'female_employee') return profile?.gender === 'female';
-  if (subjectScope === 'male_employee') return profile?.gender === 'male';
+  if (subjectScope === 'female_employee') return sex === 'female';
+  if (subjectScope === 'male_employee') return sex === 'male';
   if (subjectScope === 'company_employee') return true;
   return false;
 }

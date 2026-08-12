@@ -4,7 +4,8 @@ import {
   CSA_AUTHORITY_POLICY,
   enactmentForPhase,
   matchesCsaSubjectScope,
-  phaseForRule
+  phaseForRule,
+  profileSex
 } from '../src/engine/csa/authority-policy.js';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
@@ -34,6 +35,19 @@ test('subject scope matcher covers the supported deterministic scopes', () => {
   assert.equal(matchesCsaSubjectScope(male, 'company_employee'), true);
   assert.equal(matchesCsaSubjectScope(player, 'player'), true);
   assert.equal(matchesCsaSubjectScope(player, 'company_employee'), true);
+});
+
+test('subject scope matcher normalizes heroine gender and general-NPC sex fields', () => {
+  const heroine = { id: 'heroine1', gender: 'female' };
+  const femaleGeneral = { id: 'general_choi_yujin', sex: 'female', type: 'employee', affiliation_type: 'employee' };
+  const maleGeneral = { id: 'general_park_jungwoo', sex: 'male', type: 'employee', affiliation_type: 'employee' };
+  assert.equal(profileSex(heroine), 'female');
+  assert.equal(profileSex(femaleGeneral), 'female');
+  assert.equal(profileSex(maleGeneral), 'male');
+  assert.equal(matchesCsaSubjectScope(femaleGeneral, 'female_employee'), true);
+  assert.equal(matchesCsaSubjectScope(femaleGeneral, 'male_employee'), false);
+  assert.equal(matchesCsaSubjectScope(maleGeneral, 'male_employee'), true);
+  assert.equal(matchesCsaSubjectScope(maleGeneral, 'female_employee'), false);
 });
 
 test('Story payload carries resolved institutional facts without legacy boolean', () => {

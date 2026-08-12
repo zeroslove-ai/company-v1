@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
+import { requiredClothingFromActiveCsa } from '../src/engine/state/clothing.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 
 const master = {
@@ -56,12 +57,29 @@ test('continuous clothing obligations cover every present applicable female NPC'
 test('institutional projection resolves scene knowledge and applicability once', () => {
   const localMaster = {
     characters: [...master.characters],
-    general_npcs: [{ npc_id: 'general1', name: 'General', gender: 'male' }]
+    general_npcs: [
+      { npc_id: 'general_choi_yujin', name: 'Female general', sex: 'female', type: 'employee', affiliation_type: 'employee' },
+      { npc_id: 'general_park_jungwoo', name: 'Male general', sex: 'male', type: 'employee', affiliation_type: 'employee' }
+    ]
   };
-  const projection = buildStoryWorldProjection({ save: save(['heroine1', 'heroine2', 'general1']), master: localMaster, sceneActorIds: ['heroine1', 'heroine2', 'general1'], expectedTurn: 4 });
-  assert.deepEqual(projection.world_rules[0].known_scene_actor_ids, ['heroine1', 'heroine2', 'general1']);
-  assert.deepEqual(projection.world_rules[0].applicable_scene_actor_ids, ['heroine1', 'heroine2']);
+  const localSave = save(['heroine1', 'general_choi_yujin', 'general_park_jungwoo'], 'worn', {
+    npc_scene_state: {
+      heroine1: { clothing: { underwear_top: 'worn' } },
+      general_choi_yujin: { clothing: { underwear_top: 'worn' } },
+      general_park_jungwoo: { clothing: { underwear_top: 'worn' } }
+    }
+  });
+  const projection = buildStoryWorldProjection({ save: localSave, master: localMaster, sceneActorIds: ['heroine1', 'general_choi_yujin', 'general_park_jungwoo'], expectedTurn: 4 });
+  assert.deepEqual(projection.world_rules[0].known_scene_actor_ids, ['heroine1', 'general_choi_yujin', 'general_park_jungwoo']);
+  assert.deepEqual(projection.world_rules[0].applicable_scene_actor_ids, ['heroine1', 'general_choi_yujin']);
+  assert.deepEqual(projection.scene_obligations.map(item => item.actor_id), ['heroine1', 'general_choi_yujin']);
   assert.equal(projection.world_rules[0].execution_policy, 'default_comply');
+});
+
+test('clothing applicability shares the normalized sex matcher for general employees', () => {
+  const activeRules = [rule()];
+  assert.deepEqual(requiredClothingFromActiveCsa(activeRules, { id: 'general_choi_yujin', sex: 'female' }).required_clothing, { underwear_top: 'removed' });
+  assert.deepEqual(requiredClothingFromActiveCsa(activeRules, { id: 'general_park_jungwoo', sex: 'male' }).required_clothing, {});
 });
 
 test('compliant, wrong-gender, absent, unknown, and conflicted actors get no obligation', () => {
