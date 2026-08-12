@@ -209,7 +209,6 @@ begin
   if exists (select 1 from jsonb_array_elements(p_choices) item where jsonb_typeof(item) <> 'string' or nullif(btrim(item #>> '{}'),'') is null) then
     raise exception 'opening choices must be non-empty strings' using errcode = '22023';
   end if;
-  end if;
 
   select * into v_game from public.games where id = p_game_id;
   if not found or v_game.edition_id <> 'company-v1' then
