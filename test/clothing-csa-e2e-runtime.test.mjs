@@ -175,6 +175,7 @@ function makeRuntimeHarness() {
       if (a) Object.assign(a, { extract_result: args.p_extract_result, processing_status: 'committing' });
       return new Response(JSON.stringify({ replayed: false }), { status: 200 });
     }
+    if (rpc === 'apply_reserved_csa_transaction') return new Response(JSON.stringify({ success: true, applied: true, replayed: false }), { status: 200 });
     if (rpc === 'commit_company_turn') {
       return new Response(JSON.stringify({ replayed: false, committed_turn: 55 }), { status: 200 });
     }

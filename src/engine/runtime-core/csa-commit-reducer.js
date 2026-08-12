@@ -39,13 +39,21 @@ export function reduceCsaCommitState({
     return { nextSave, warnings, acceptedExecutions: [], progression: { amount: 0, newly_experienced_keys: [] }, deactivatedIds: [] };
   }
 
-  applyAuthorizedRuleDefinitions({
-    currentSave: current,
-    nextSave,
-    transactionResolution,
-    structuredAction,
-    stage: 'commit-csa-definition'
-  });
+  // Fresh app transactions are applied before Story by the transactional
+  // authority boundary. Commit may only verify parity; it is not a second
+  // definition writer.
+  if (structuredAction && transactionResolution) {
+    const alreadyApplied = JSON.stringify({ csa_active: current.csa_active, csa_rules: current.csa_rules })
+      === JSON.stringify({ csa_active: transactionResolution.next_csa_active, csa_rules: transactionResolution.next_csa_rules });
+    if (alreadyApplied) {
+      assertRuleDefinitionAuthority({ currentSave: current, nextSave: current, transactionResolution, structuredAction, stage: 'commit-csa-preapplied' });
+    } else {
+      // LEGACY structured-action compatibility: callers that have not crossed
+      // the pre-apply boundary yet still receive the deterministic reducer
+      // result; the fresh API route always takes the branch above.
+      applyAuthorizedRuleDefinitions({ currentSave: current, nextSave, transactionResolution, structuredAction, stage: 'commit-csa-legacy' });
+    }
+  }
 
   const activeCsa = getApplicableCsaEntries(nextSave);
   const runtimeResult = buildCsaRuntimeStatePatch({
@@ -59,7 +67,9 @@ export function reduceCsaCommitState({
   if (runtimeResult.patch) nextSave.csa_runtime_state = clone(runtimeResult.patch);
   warnings.push(...(runtimeResult.warnings ?? []));
 
-  const beforeActive = activeIds(current);
+  const beforeActive = transactionResolution && Array.isArray(transactionResolution.previous_csa_active)
+    ? new Set(transactionResolution.previous_csa_active)
+    : activeIds(current);
   const afterActive = activeIds(nextSave);
   const deactivatedIds = [...beforeActive].filter(id => !afterActive.has(id));
   const aftereffectPatch = buildCsaAftereffectPatch({

@@ -154,6 +154,7 @@ function createMockFetch({
       Object.assign(action, { extract_delta: args.p_extract_delta, processing_status: 'committing' });
       return json({ replayed: false });
     }
+    if (rpc === 'apply_reserved_csa_transaction') return json({ success: true, applied: true, replayed: false });
     if (rpc === 'commit_company_turn') {
       const action = actions.get(args.p_action_id);
       action.processing_status = 'committed';

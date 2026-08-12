@@ -257,11 +257,12 @@ function playerInfoPayload(save, catalogs, capability) {
 }
 
 /**
- * Re-verifies a structured_action's validation proof and re-derives its plan
+ * Re-verifies a structured_action's signed proof and reserved resolution
  * fresh from the currently-persisted save — never trusts the client's own
  * plan content, only that the signed operations digest matches. Called
  * independently at Story, Extract, and Commit (matching the donor's own
- * re-derive-at-each-stage pattern) instead of persisting the plan once.
+ * immutable proof and canonical definition parity. Legacy structured actions
+ * retain their explicit compatibility verification.
  */
 async function resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save, csaCatalog, expectedTurn }) {
   if (structuredAction == null) return null;
@@ -447,7 +448,19 @@ const master = masterFromEdition(edition);
         let raw = '';
         let storyPersisted = false;
         const timing = {};
+        let transactionPreSave = null;
         try {
+          // Fresh signed app transactions cross the definition authority
+          // boundary before any Story work. The RPC is idempotent, so a
+          // Story retry observes the same applied definitions without a
+          // second write.
+          if (structuredAction?.transaction_resolution && action.action_kind !== 'feedback_revision') {
+            const preContext = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+            const preSave = hydratedSaveContext(preContext, master).save?.data ?? preContext.save?.data ?? preContext.save;
+            transactionPreSave = preSave;
+            await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: preSave, csaCatalog, expectedTurn });
+            await db.applyReservedCsaTransaction(gameId, resolvedActionId, expectedTurn);
+          }
           const contextRpcStart = Date.now();
           const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
@@ -467,17 +480,10 @@ const master = masterFromEdition(edition);
             master,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          const storySave = csaResolution
-            ? { ...storyBaseSave, csa_active: csaResolution.next_csa_active, csa_rules: csaResolution.next_csa_rules }
-            : storyBaseSave;
-          const storyContext = csaResolution
-            ? {
-                ...hydratedContext,
-                save: hydratedContext.save?.data
-                  ? { ...hydratedContext.save, data: storySave }
-                  : storySave
-              }
-            : hydratedContext;
+          // The Story projection reads the canonical save after the pre-apply
+          // RPC. No temporary resolution overlay is injected into the prompt.
+          const storySave = storyBaseSave;
+          const storyContext = hydratedContext;
           // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
           const sceneCastContract = buildSceneCastContract({
             save: storySave, master, playerAction: storyPlayerAction, structuredAction: csaResolution ? null : structuredAction,
@@ -498,7 +504,7 @@ const master = masterFromEdition(edition);
             npcIds,
             catalogs,
             sceneCastContract,
-            turnTrigger: buildStoryTurnTrigger({ actionKind, csaResolution, preSave: hydratedSave }),
+            turnTrigger: buildStoryTurnTrigger({ actionKind, csaResolution, preSave: transactionPreSave ?? hydratedSave }),
             feedbackText: action.action_kind === 'feedback_revision' ? action.feedback_text : ''
           });
           timing.story_prompt_ms = Date.now() - promptStart;
@@ -627,9 +633,9 @@ const master = masterFromEdition(edition);
             master,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          const extractSave = csaResolution
-            ? { ...extractBaseSave, csa_active: csaResolution.next_csa_active, csa_rules: csaResolution.next_csa_rules }
-            : extractBaseSave;
+          // Extract observes the same canonical save that Story observed; the
+          // signed resolution is not a second, ephemeral state projection.
+          const extractSave = extractBaseSave;
           const applicableCsa = getApplicableCsaEntries(extractSave);
           const extractContext = {
             ...hydratedContext,

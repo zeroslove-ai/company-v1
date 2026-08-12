@@ -93,6 +93,11 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       Object.assign(calls.__action, { extract_delta: args.p_extract_delta, processing_status: 'committing' });
       return json({ replayed: false });
     }
+    if (rpc === 'apply_reserved_csa_transaction') {
+      const resolution = calls.__action?.structured_action?.transaction_resolution;
+      if (resolution) currentSave = { ...currentSave, csa_active: resolution.next_csa_active, csa_rules: resolution.next_csa_rules };
+      return json({ success: true, applied: true, replayed: false });
+    }
     if (rpc === 'commit_company_turn') {
       currentSave = args.p_next_save;
       saveRevision += 1;
