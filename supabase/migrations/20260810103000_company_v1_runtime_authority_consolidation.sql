@@ -203,14 +203,12 @@ begin
   if nullif(btrim(coalesce(p_story_text,'')), '') is null then
     raise exception 'opening story is required' using errcode = '22023';
   end if;
-  if p_choices is null or jsonb_typeof(p_choices) <> 'array' or jsonb_array_length(p_choices) <> 4
-     or exists (select 1 from jsonb_array_elements(p_choices) item where jsonb_typeof(item) <> 'string' or nullif(btrim(item #>> '{}'),'') is null) then
-    p_choices := jsonb_build_array(
-      '현재 대화를 조금 더 이어간다.',
-      '상대에게 지금 상황을 차분히 물어본다.',
-      '주변 반응을 잠시 살펴본다.',
-      '대화를 정리하고 다음 행동을 생각한다.'
-    );
+  if p_choices is null or jsonb_typeof(p_choices) <> 'array' or jsonb_array_length(p_choices) <> 4 then
+    raise exception 'opening choices must contain exactly four items' using errcode = '22023';
+  end if;
+  if exists (select 1 from jsonb_array_elements(p_choices) item where jsonb_typeof(item) <> 'string' or nullif(btrim(item #>> '{}'),'') is null) then
+    raise exception 'opening choices must be non-empty strings' using errcode = '22023';
+  end if;
   end if;
 
   select * into v_game from public.games where id = p_game_id;
