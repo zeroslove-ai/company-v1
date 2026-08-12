@@ -61,9 +61,7 @@ function mergeNpcPayload(save, edition, latestMindMonitor, details) {
       location: {
         known: finder.known,
         location_label: finder.location_label,
-        location_id: finder.location_id,
-        suggested_location_label: finder.suggested_location_label,
-        suggested_location_id: finder.suggested_location_id
+        location_id: finder.location_id
       },
       stats: { affection: 0, acceptance: 0, arousal: 0, resistance: 0 },
       mind: { surface: '', subconscious: '' },
@@ -81,9 +79,7 @@ function mergeNpcPayload(save, edition, latestMindMonitor, details) {
       location: {
         known: finder.known,
         location_label: finder.location_label,
-        location_id: finder.location_id,
-        suggested_location_label: finder.suggested_location_label,
-        suggested_location_id: finder.suggested_location_id
+        location_id: finder.location_id
       },
       profile: detail.profile ?? {},
       body: detail.body ?? {},
@@ -111,8 +107,6 @@ export function enrichContextEnvelope(payload, edition) {
       // description/zone/type/default_npcs가 빠지면 프론트가 빈 구조도로 축약된다.
       map_locations: canonicalMapLocations(edition),
       npc_default_locations: canonicalNpcDefaultLocations(edition),
-      player_info: buildFullPlayerInfo(save, edition),
-      npc_finder: buildFinderNpcList(save, edition),
       character_details: buildCharacterDisplayDetails(save, edition, currentTurn),
       player_sexual: buildPlayerSexualDisplay(save)
     }
@@ -130,8 +124,7 @@ export function enrichAppEnvelope(payload, context, edition) {
   data.app = {
     ...app,
     player_info: buildFullPlayerInfo(save, edition),
-    npcs: mergeNpcPayload(save, edition, latestMind(resolvedContext), details),
-    finder_npcs: buildFinderNpcList(save, edition)
+    npcs: mergeNpcPayload(save, edition, latestMind(resolvedContext), details)
   };
   return payload;
 }

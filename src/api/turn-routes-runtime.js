@@ -95,8 +95,6 @@ export function createTurnRoutes({ fetchImpl = fetch, edition } = {}) {
         ...payload.context,
         display: {
           ...buildContextDisplayPayload(save, edition, latestMind(payload.context)),
-          player_info: buildFullPlayerInfo(save, edition),
-          npc_finder: buildFinderNpcList(save, edition),
           character_details: buildCharacterDisplayDetails(save, edition, currentTurn),
           player_sexual: buildPlayerSexualDisplay(save)
         }
@@ -113,8 +111,7 @@ export function createTurnRoutes({ fetchImpl = fetch, edition } = {}) {
       payload.app = {
         ...payload.app,
         player_info: buildFullPlayerInfo(state.previousSave, edition),
-        npcs: mergeNpcPayload(state.previousSave, edition, latestMind(state.context), details),
-        finder_npcs: buildFinderNpcList(state.previousSave, edition)
+        npcs: mergeNpcPayload(state.previousSave, edition, latestMind(state.context), details)
       };
       return responseWithJson(response, payload);
     },
