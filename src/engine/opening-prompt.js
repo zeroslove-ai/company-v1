@@ -25,9 +25,16 @@ const FRESH_OPENING_OUTPUT_PROTOCOL = [
   'Then provide exactly four repeated [CHOICE] blocks, each containing one concrete literal player action (usually around 30 Korean characters as quality guidance only; not a validity gate). Every speaker_id is an exact registered ID; never infer a speaker. The UI owns headings and numbering; do not output labels, human section titles, or numbered choices.'
 ].join('\n');
 
+const PLAYER_PRIVATE_OPENING_PREMISE = [
+  'Player-private premise only: the player privately remembers that the company has a subtle reality-bending premise and that ordinary workplace rules may be quietly changing, but the player has not actually used or tested that premise yet.',
+  'NPCs must not know this premise, must not react to it, and must not be told that the player is manipulating them. Do not activate or invent any CSA, rule change, institutional effect, forced relationship, forced conflict, sexual event, or predetermined outcome during the opening.',
+  'Let the first day unfold naturally from the supplied workplace facts, location, work hook, scene goal, and active NPCs; leave the player free to decide what to do next.'
+].join(' ');
+
 const OPENING_DURABLE_RULES = [
   'Write natural Korean workplace fiction from the canonical opening payload. Use the supplied weekday, time, location, work hook, and scene goal as facts.',
   'Do not invent unregistered named characters or decide unrequested player actions. Show active NPC motives through natural work and dialogue.',
+  PLAYER_PRIVATE_OPENING_PREMISE,
   'Use only the semantic wire blocks described below. Speaker identity is the exact speaker_id marker, never a name or quote.',
   FRESH_OPENING_OUTPUT_PROTOCOL
 ].join('\n\n');
