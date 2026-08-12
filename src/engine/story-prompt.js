@@ -140,7 +140,7 @@ export const DURABLE_STORY_RULES = [
   '[THOUGHT OWNERSHIP]',
   '[THOUGHT] belongs exclusively to the player. Never place an NPC thought, sensation, memory, embarrassment, or private reaction in [THOUGHT]; NPC inner states belong in Mind Monitor, not Story THOUGHT.',
   '[PHYSICAL CONTINUITY]',
-  'Saved actual physical and clothing state is current fact. A rule never changes actual state by itself. If scene_obligations contains a clothing_transition, a compliant Story must make the listed slot transitions observable; another slot is not a substitute. A strong-reason knowing violation may leave the state unchanged. Unknown actual state is never guessed.',
+  'Saved actual physical and clothing state is current fact. A rule never changes actual state by itself. If scene_obligations contains a clothing_transition, a compliant Story must directly and unambiguously show each listed slot changing from current to required through a concrete, non-magical physical action or plainly observed result; vague discomfort, touching, implication, or another slot is not evidence. A strong-reason knowing violation may leave the state unchanged. Unknown actual state is never guessed.',
   '[STORY QUALITY]',
   'Write natural Korean workplace fiction with appropriate title-plus-name address, relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
   '[OUTPUT PROTOCOL]',

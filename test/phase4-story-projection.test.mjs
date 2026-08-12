@@ -76,6 +76,7 @@ test('Story rules distinguish institutional knowledge, compliance, and player-on
   assert.match(system, /institutional enactment/i);
   assert.match(system, /knowledge of a rule is not the same as applicability/i);
   assert.match(system, /magical physical transition/i);
+  assert.match(system, /directly and unambiguously show each listed slot changing/i);
   assert.match(system, /belongs exclusively to the player/i);
   assert.match(system, /Mind Monitor/i);
 });
