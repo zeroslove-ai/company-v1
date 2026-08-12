@@ -152,7 +152,7 @@ export function buildRegenerationFeedbackSection(feedbackText) {
   return text ? text : '';
 }
 
-export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null, turnTrigger = null, actionKind = 'ordinary', feedbackText = '' }) {
+export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null, turnTrigger = null, actionKind = 'ordinary', feedbackText = '', storyWorld: precomputedStoryWorld = null }) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const canonicalScene = buildSceneContextCore(save, []).scene;
   const canonicalCast = sceneCastContract ?? { present_npc_ids: canonicalScene.present_npc_ids, entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null };
@@ -160,7 +160,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
   const storyPlayerAction = typeof playerAction === 'string' && playerAction.trim() ? playerAction : '';
   const projection = buildStoryCharacterProjection({ edition, playerAction: storyPlayerAction, sceneCastContract: canonicalCast, workplace });
   const registeredIdSet = new Set(projection.registered_identities.map(({ id }) => id));
-  const storyWorld = buildStoryWorldProjection({ save, master: { characters: Object.values(object(edition?.characters?.characters) ?? {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) ?? {}) }, sceneActorIds: projection.scene_actor_ids, expectedTurn });
+  const storyWorld = precomputedStoryWorld ?? buildStoryWorldProjection({ save, master: { characters: Object.values(object(edition?.characters?.characters) ?? {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) ?? {}) }, sceneActorIds: projection.scene_actor_ids, expectedTurn });
   const payload = {
     edition: edition.editionId,
     turn_trigger: turnTrigger ?? { kind: actionKind === 'feedback_revision' ? 'feedback_revision' : 'player_action' },

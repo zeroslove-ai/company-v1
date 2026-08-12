@@ -2,6 +2,12 @@ export { GameCoreError } from './errors.js';
 export { createEditionAdapter, validateEditionAdapter } from './edition.js';
 export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
 export { buildStoryWorldProjection } from './csa/story-projection.js';
+export {
+  buildMandatoryEnactments,
+  composeCanonicalStory,
+  attachEngineEnactments,
+  validateMandatoryEnactment
+} from './csa/mandatory-enactment.js';
 export { buildExtractPrompt, buildExtractRelevantNpcIds, buildMindMonitorTargetIds } from './extract-prompt.js';
 export { parseFreshNarrativeV2 } from './fresh-narrative-parser.js';
 export { createStoryStreamDecoder, parseStoryControlMarker, buildStoryIdentityDirectory } from './story-wire-protocol.js';
