@@ -341,9 +341,9 @@ async function run() {
   // Do not advance to Turn 1 or invoke any CSA transaction in the same run.
   report.status = 'OPENING_PASS_ONLY';
   const successArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12h-opening-success.json';
-  await writeVerifiedArtifact(successArtifactPath, report);
   report.artifact_path = successArtifactPath;
   report.artifact_verified = true;
+  await writeVerifiedArtifact(successArtifactPath, report);
   return report;
 
   async function refreshContext() {
