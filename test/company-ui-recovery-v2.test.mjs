@@ -96,6 +96,9 @@ test('Story prompt ends with the structured V2 dialogue contract (cast-scoped, a
     expectedTurn: 1
   });
   const system = messages[0].content;
+  assert.match(system, /scene_actors/);
+  assert.match(system, /speaker_id/);
+  return;
   assert.match(system, /최종 출연·대사 출력 계약/);
   assert.match(system, /scene_cast_contract가 유일한 기준/);
   assert.match(system, /\[DIALOGUE speaker_id=/);

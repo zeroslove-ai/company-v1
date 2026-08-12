@@ -62,7 +62,7 @@ Canonical time is `world_state.game_time`:
 
 The extended Extract envelope contains `state_delta`, `outcome`, `evidence`, `turn_summary`, `mind_monitor`, `choices`, `dialogue_lines`, `npcs_present`, independent `action_target_id`, `focal_character_id`, `last_speaker_id`, `image_character_id`, `elapsed_minutes`, `turn_changes`, and `warnings`. Identity fields are strings or `null`; no focal/last-speaker/narrator inference is allowed. Dialogue entries preserve source order and use `speaker_id`, `speaker_name`, `direction`, `text`, and `order`.
 
-The Story parser is authoritative for verbatim `player_inner_thought`, `player_status`, and a valid exact-four Story choice set. Extract cannot overwrite those parser values. If Story has valid four choices they win; otherwise Extract choices are only a fallback. Fewer or more choices are a warning, never a parser crash or repair call.
+Fresh Story parsing is authoritative for verbatim `player_inner_thought`, dialogue identity/order, and observed literal CHOICE blocks. Extract V2 never generates or falls back to choices. `canonical_choices` is available only when observed Story choices are exactly four, non-empty, and distinct; otherwise the UI keeps free input available. Footer incompleteness is a warning, not a Story hard failure.
 
 `deriveTurnChanges(beforeSave, afterSave)` runs only after a guarded merge and derives display summaries from actual persisted before/after values. LLM text is never a direct source of turn-change display data. Before Commit changes are provisional; after Commit they are authoritative.
 

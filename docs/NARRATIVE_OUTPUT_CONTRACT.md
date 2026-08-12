@@ -4,6 +4,12 @@
 기준일: 2026-08-03
 적용 시점: Story/Frontend 구현 단계. Phase 0에는 구현하지 않는다.
 
+> **Superseded notice:** This 2026-08-03 design snapshot is historical reference only.
+> It is not the current Fresh writer, parser, or UI authority. The current Fresh
+> semantic wire is defined by `docs/COMPANY_NARRATIVE_CONTRACT_V1.md`; older
+> speaker-name, direction-attribute, `PLAYER_STATUS`, `[CHOICES]`, and numbered-choice
+> examples below remain historical reference only.
+
 ## 1. 목적
 
 서사 문장과 캐릭터 대사가 한 덩어리의 긴 텍스트로 출력되면 다음 문제가 생긴다.

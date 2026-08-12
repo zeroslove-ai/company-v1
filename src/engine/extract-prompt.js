@@ -1,5 +1,5 @@
-import { buildSceneContextCore, selectActiveCharacterIds } from './gameplay-state.js';
-import { buildGeneralNpcCanon, buildRegisteredGeneralNpcs, selectActiveGeneralNpcIds } from './workplace-context.js';
+import { buildSceneContextCore } from './gameplay-state.js';
+import { buildRegisteredGeneralNpcs } from './workplace-context.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -31,6 +31,33 @@ export function buildRegisteredLocations(edition) {
       floor: Number.isInteger(location.floor) ? location.floor : null,
       department_id: typeof location.department_id === 'string' ? location.department_id : null
     }));
+}
+
+function registeredIdentityEntries(edition) {
+  return [
+    ...buildRegisteredCharacters(edition).map(({ character_id, name }) => ({ id: character_id, name })),
+    ...buildRegisteredGeneralNpcs(edition).map(({ npc_id, name }) => ({ id: npc_id, name }))
+  ];
+}
+
+/**
+ * Extract is a post-Story observer.  This set selects committed state to
+ * show the observer; it is not an actor, speaker, or presence authority.
+ */
+export function buildExtractRelevantNpcIds({ context, parsedStory, storyText = '', edition, npcIds } = {}) {
+  const save = object(context?.save?.data) ?? object(context?.save) ?? {};
+  const registered = registeredIdentityEntries(edition);
+  const registeredIds = npcIds instanceof Set && npcIds.size > 0
+    ? npcIds
+    : new Set(registered.map(entry => entry.id));
+  const ids = new Set(buildSceneContextCore(save, []).scene.present_npc_ids);
+  for (const line of Array.isArray(parsedStory?.dialogue_lines) ? parsedStory.dialogue_lines : []) {
+    if (registeredIds.has(line?.speaker_id)) ids.add(line.speaker_id);
+  }
+  for (const entry of registered) {
+    if (registeredIds.has(entry.id) && entry.name && storyText.includes(entry.name)) ids.add(entry.id);
+  }
+  return [...ids].filter(id => id && id !== 'player' && id !== 'player-1' && registeredIds.has(id));
 }
 
 export function buildExtractCharacterCanon(charactersMap, activeIds) {
@@ -86,42 +113,35 @@ const SYSTEM_INSTRUCTIONS = [
   })}`,
   'Never return these save-patch or parser fields: state_delta, choices, dialogue_lines, player_inner_thought, last_speaker_id, npcs_present, focal_character_id, csa_active, csa_rules, world_state, save.',
   'Observe only facts shown in the complete raw Story. Do not reconstruct, normalize, rewrite, or omit any Story text.',
-  'The scene observation uses final_present_npc_ids as its only presence authority: null means the final snapshot was not observed, [] means an explicitly empty NPC scene, and an array is the complete final NPC snapshot. registered_characters lists the only stable character ids; never invent, guess, or reuse an id; a nearby/default/eligible NPC is not present unless Story explicitly shows their presence/action/dialogue.',
+  'The scene observation uses final_present_npc_ids as its only presence authority: null means the final snapshot was not observed, [] means an explicitly empty NPC scene, and an array is the complete final NPC snapshot. registered identities list the only stable NPC ids; never invent, guess, or reuse an id. Current scene actors remain present unless Story clearly shows they left; a registered NPC explicitly appearing or speaking locally may be included as a newly observed actor. eligible_nearby_npcs and possible entrants are only candidates, not presence, unless Story shows the entrance. Remote contacts/speakers are not local presence.',
   'Return final_present_npc_ids:null unless the Story explicitly establishes a complete final presence snapshot. If the Story explicitly states who remains or who has left, return the matching array, including [] only for an explicitly empty NPC scene.',
   'Parser projections are authoritative for the displayed Story selections, spoken-line order, and player inner monologue. Do not generate replacements for those projections in this observation. Mind Monitor interpretation evidence is separate from exact state evidence; it may not invent a new event, memory, agreement, contact, or fact.',
   'Return player_observation only for evidenced physical or sexual changes. Physical fields are posture, position_label, and the four clothing slots; never propose scene, location, presence, or ID fields. Sexual state uses arousal_delta, ejaculation_progress_delta, ejaculation_completed, and erection_state under the existing evidence and enum/range rules. actor_id is player for the player, and evidence.clothing[actor_id]={quote,character_id}; quote is an exact Story substring.',
   'Return npc_observations only for registered NPCs and only observed physical, emotion, relationship, stats, work, or csa_attitude fields. Relationship keys are closeness, romance_status, and current_boundary; csa_attitude.familiarity is an integer when present. Without a numeric familiarity change, omit csa_attitude (never familiarity:null). Never return affection, present, scene_id, location_id, updated_turn, arbitrary nested save patches, absolute stats, resistance, last_changed_turn, milestones, or relationship_summary.',
+  'The top-level keys of npc_observations must be registered NPC IDs, never a domain key; for example: {"npc_observations":{"heroine2":{"emotion":{"mood":"..."}}}}.',
   'If a domain has no exact observed change, omit that domain; do not invent descriptive keys such as affection, team_daily_schedule, relationship_summary, or other human-readable labels. The safe minimal observation for an ordinary dialogue is empty player_observation, empty npc_observations, empty events, scene_observation with final_present_npc_ids:null, and the remaining skeleton defaults.',
-  'Exact evidence contract: evidence is a top-level sibling of player_observation and npc_observations. Never put an evidence key inside a player or NPC object; npc_observations.<npc_id> contains only the listed domain objects. Omit evidence.changed when there is no changed field instead of returning an empty changed array or empty quote. Clothing uses evidence.clothing.<actor_id>={quote,character_id}; other fields use evidence.changed {changed:[path],quote}; scene evidence uses {kind,character_id or location_id,quote}, and kind must be exactly one of "presence", "movement", or "scene" (never invent names such as "npc_presence"). Events use the same exact Story quote. kind:"scene" requires non-null scene_observation.scene_id; otherwise omit it. Copy quotes verbatim from story_text; never compose a quote from the player action, canonical destination, or inferred movement. If the exact sentence is not present in story_text, omit the scene evidence. In a multi-NPC scene, an NPC physical/clothing quote must include the actor name; for pronouns, include the contiguous preceding named clause. Stationary scene evidence is only for directly shown facts. Movement is resolved by stored action/canonical navigation, not Extract evidence. Locations must be registered.',
+  'Exact evidence contract: evidence is a top-level sibling of player_observation and npc_observations. Never put an evidence key inside a player or NPC object; npc_observations.<npc_id> contains only the listed domain objects. Omit evidence.changed when there is no changed field instead of returning an empty changed array or empty quote. Clothing uses evidence.clothing.<actor_id>={quote,character_id}; other fields use evidence.changed {changed:[path],quote}; scene evidence uses {kind,character_id or location_id,quote}, and kind must be exactly one of "presence" or "scene" (never invent names such as "npc_presence"). Events use the same exact Story quote. kind:"scene" requires non-null scene_observation.scene_id; otherwise omit it. Copy quotes verbatim from story_text; never compose a quote from inferred facts or any input outside story_text. If the exact sentence is not present in story_text, omit the scene evidence. In a multi-NPC scene, an NPC physical/clothing quote must include the actor name; for pronouns, include the contiguous preceding named clause. Scene evidence is only for directly shown facts. Locations must be registered.',
   'Illustrative physical shape (not mandatory output): {"npc_observations":{"heroine2":{"physical":{"position_label":"회의실 테이블 옆","clothing":{"underwear_bottom":"removed"}}}},"evidence":{"clothing":{"heroine2":{"character_id":"heroine2","quote":"named exact Story substring"}},"physical_change":{"changed":["npc_scene_state.heroine2.clothing.underwear_bottom"],"quote":"same exact substring"}}}. Use position_label, never position/label; clothing slots are uniform_top, uniform_bottom, underwear_top, underwear_bottom with states worn, removed, open, unknown. Copy the real Story substring and omit unobserved fields.',
   'Every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence is required. Every proposal requires exact Story evidence. When only a regulation/plan exists and the attire is not shown in Story, make no clothing patch. actor_id/target_id must be registered IDs and must identify distinct observed participants. Events contain only observed general or sexual events with registered actor/target IDs, canonical action types, and exact Story evidence. Counters and milestones are derived by reducers, never proposed directly.',
   'elapsed_minutes is the only time proposal: 1-30 normally, up to 480 only with evidence.time_advance=true. Never propose world clock fields.',
-  'mind_monitor is a turn-level projection for present NPCs with only surface and subconscious. For each present NPC who speaks or performs a meaningful action, provide {surface, subconscious} when possible; missing monitor data is allowed and never a failure. image_selection and image_character_id are observation projections, not save patches. Identity axes are independent; never copy one into another.',
+  'mind_monitor is a turn-level projection for present NPCs with only surface and subconscious. For each present NPC who speaks or performs a meaningful action, provide {surface, subconscious} when possible. Both fields must be natural, unquoted first-person Korean inner speech, like the NPC quietly talking to themselves; do not use emotion/status labels, analysis or report prose, or state-description-only phrasing such as "~을 느끼고 있다" or "~하려고 한다". Missing monitor data is allowed and never a failure. image_selection and image_character_id are observation projections, not save patches. Identity axes are independent; never copy one into another.',
   'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
   'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, pool must be sex and tags must describe that ongoing act.',
-  'Final scene presence: last speaker may remain historical, and an NPC explicitly shown in the final scene remains present.'
+  'Final scene presence: a local dialogue speaker is evidence of presence during the Story, but final_present_npc_ids is the last-moment snapshot. If that speaker clearly leaves before the end, omit it; if the final snapshot cannot be established, preserve null rather than guessing.'
 ].join(' ');
 
-export function buildExtractPrompt({ context, storyText, playerAction, expectedTurn, edition, npcIds }) {
-  const charactersMap = object(edition?.characters?.characters) ?? {};
-  const save = object(context?.save?.data) ?? object(context?.save) ?? {};
-  const heroineActiveIds = selectActiveCharacterIds({ charactersMap, npcIds, save, playerAction });
-  const generalActiveIds = selectActiveGeneralNpcIds({ edition, save, text: storyText });
-  const activeIds = [...heroineActiveIds, ...generalActiveIds.filter(id => !heroineActiveIds.includes(id))];
+export function buildExtractPrompt({ context, storyText, parsedStory, expectedTurn, edition, npcIds }) {
+  const relevantIds = buildExtractRelevantNpcIds({ context, parsedStory, storyText, edition, npcIds });
   return [
     { role: 'system', content: SYSTEM_INSTRUCTIONS },
     {
       role: 'user',
       content: JSON.stringify({
         extract_version: 2,
-        registered_characters: buildRegisteredCharacters(edition),
-        registered_general_npcs: buildRegisteredGeneralNpcs(edition),
+        registered_identities: registeredIdentityEntries(edition),
         registered_locations: buildRegisteredLocations(edition),
-        active_character_canon: buildExtractCharacterCanon(charactersMap, heroineActiveIds),
-        active_general_npc_canon: buildGeneralNpcCanon(edition, generalActiveIds),
         story_text: storyText,
-        context: buildExtractContextProjection(context, activeIds),
-        player_action: playerAction,
+        context: buildExtractContextProjection(context, relevantIds),
         expected_turn: expectedTurn
       })
     }

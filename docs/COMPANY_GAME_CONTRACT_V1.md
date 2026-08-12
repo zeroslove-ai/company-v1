@@ -33,7 +33,7 @@ Master → Context → Story named SSE → parsed Story → Extract delta
 - `complete`: `{ action_id, turn_id, warnings, replayed }`
 - `error`: `{ code, message, retryable }`
 
-The worker persists the complete raw Story and parsed result before final `complete`. A replay emits the stored raw Story and makes no model call. `parseNarrative(raw)` preserves `raw` and returns `{ raw, blocks, player_status, choices, warnings }`. `blocks` contains recognized `scene` and `dialogue` objects, plus `unparsed` fallback blocks. Four choices are expected; a different count is `choices_not_exactly_four`, not a parser crash or repair trigger.
+The worker persists the complete raw Story and Fresh semantic projection before final `complete`. A replay emits the stored raw Story and makes no model call. Fresh parsing uses `parseFreshNarrativeV2(raw)` and preserves exact raw bytes/source order. Historical rows use `parsePersistedNarrative` only at the persisted/read boundary. Footer incompleteness is a warning; it never triggers choice generation or repair.
 
 ## Extract, merge, and Commit
 
@@ -47,7 +47,7 @@ Extract normalizes to:
 }
 ```
 
-Only allowed state-delta paths merge. Unknown paths, stale `updated_turn` patches, invalid snapshots, and absent NPC patches become warnings. Sexual-completion changes without evidence are blocking errors. The merge clones the current save, applies allowed deltas, and sets `nextSave.last_choices` from parsed Story choices when they contain exactly four valid choices; otherwise it uses top-level Extract choices. Extract must not overwrite valid Story choices. A non-four Story count warns but still commits; an empty Extract array intentionally clears stale choices only when Story has no valid four-choice result.
+Only allowed state-delta paths merge. Unknown paths, stale `updated_turn` patches, invalid snapshots, and absent NPC patches become warnings. Sexual-completion changes without evidence are blocking errors. The merge clones the current save and applies allowed deltas. Canonical choices are available only when observed Fresh Story choices are exactly four, non-empty, and distinct; Extract does not generate or replace choices, and previous-turn choices never fill an incomplete current turn. Raw Story and observed blocks remain preserved when footer completeness is incomplete.
 
 Commit receives `action_id` and `expected_turn`, writes the authoritative next save, and records the turn's Story, parsed blocks, Extract delta, summary, Mind monitor, and choices. The UI must not submit a full save.
 
@@ -70,10 +70,10 @@ UI renderers must not read raw save ad hoc because persistence layout, turn hist
 | Field | Authoritative source | Missing meaning |
 | --- | --- | --- |
 | `story_text` | stored action, then `game_turns.story_text` | no completed Story |
-| `choices` | parsed Story when it has exactly four valid choices; otherwise Extract; committed save snapshot for reload | no available next choices |
-| `player_status` | parsed Story `PLAYER_STATUS` | no display status |
-| `player_inner_thought` | not yet in Company contract | empty display only, no inferred thought |
-| `dialogue_lines` | Extract envelope | no structured dialogue metadata |
+| `choices` | observed Fresh Story CHOICE blocks; canonical only at exact four | no available next choices |
+| `player_status` | no Fresh semantic block | no display status |
+| `player_inner_thought` | parsed Fresh Story `THOUGHT` | empty display only, no inferred thought |
+| `dialogue_lines` | Fresh Story semantic projection, with Extract observation kept separate | no structured dialogue metadata |
 | `npcs_present` | `save.last_npcs_present` / scene state | no inferred NPC list |
 | `action_target_id` | not yet in Company contract | empty display only |
 | `focal_character_id` | save | no focal character |

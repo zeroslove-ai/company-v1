@@ -4,6 +4,7 @@ import {
   getApplicableCsaEntries,
   getCsaRules
 } from '../engine/index.js';
+import { hydrateCanonicalScene } from '../engine/runtime-core/scene-reducer.js';
 
 const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
 const AUTHORITY_LABELS = {
@@ -31,12 +32,23 @@ function saveFromContext(context) {
 
 export function buildCanonicalDisplayScene(save = {}) {
   const canonical = object(save?.scene);
-  const normalize = value => Array.isArray(value) ? value.filter(id => typeof id === 'string' && id.trim() && !/^player(?:-|_|$)/.test(id)) : [];
-  if (canonical && canonical.version === 1) {
-    return { version: 1, scene_id: text(canonical.scene_id), location_id: text(canonical.location_id), beat: Number.isInteger(canonical.beat) ? canonical.beat : 0, goal: canonical.goal ?? null, focus_thread: canonical.focus_thread ?? null, present_npc_ids: normalize(canonical.present_npc_ids), focal_character_id: text(canonical.focal_character_id), last_speaker_id: text(canonical.last_speaker_id), updated_turn: Number.isInteger(canonical.updated_turn) ? canonical.updated_turn : null, compatibility_mode: 'canonical' };
-  }
-  const legacy = object(save?.scene_state) ?? {};
-  return { version: 0, scene_id: text(legacy.scene_id), location_id: text(legacy.location_id), beat: Number.isInteger(legacy.beat) ? legacy.beat : 0, goal: legacy.goal ?? null, focus_thread: legacy.focus_thread ?? null, present_npc_ids: normalize(legacy.participants ?? save?.last_npcs_present), focal_character_id: text(save?.focal_character_id), last_speaker_id: text(save?.last_speaker_id), updated_turn: Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : null, compatibility_mode: 'legacy_pre_scene_v1' };
+  const scene = hydrateCanonicalScene(save);
+  const isCanonical = canonical?.version === 1;
+  return {
+    version: scene.version,
+    scene_id: text(scene.scene_id),
+    location_id: text(scene.location_id),
+    beat: Number.isInteger(scene.beat) ? scene.beat : 0,
+    goal: scene.goal ?? null,
+    focus_thread: scene.focus_thread ?? null,
+    present_npc_ids: [...scene.present_npc_ids],
+    focal_character_id: text(scene.focal_character_id),
+    last_speaker_id: text(scene.last_speaker_id),
+    updated_turn: isCanonical
+      ? (Number.isInteger(scene.updated_turn) ? scene.updated_turn : null)
+      : (Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : scene.updated_turn),
+    compatibility_mode: isCanonical ? 'canonical' : 'legacy_pre_scene_v1'
+  };
 }
 
 function withSave(context, save) {
@@ -95,6 +107,12 @@ function generalProfilesFromEdition(edition) {
   return object(edition?.generalNpcs?.profiles) ?? {};
 }
 
+function locationLabel(edition, id) {
+  const locations = Array.isArray(edition?.map?.locations) ? edition.map.locations : [];
+  const location = locations.find(item => item?.location_id === id || item?.id === id);
+  return text(location?.name);
+}
+
 function departmentNamesFromEdition(edition) {
   const source = edition?.organization?.departments;
   if (Array.isArray(source)) {
@@ -109,10 +127,10 @@ function departmentNamesFromEdition(edition) {
 function evidenceIds(save, latestMindMonitor = {}) {
   const ids = new Set();
   const add = value => { if (typeof value === 'string' && value) ids.add(value); };
-  add(save?.focal_character_id);
-  add(save?.last_speaker_id);
-  for (const value of Array.isArray(save?.last_npcs_present) ? save.last_npcs_present : []) add(value);
-  for (const value of Array.isArray(save?.scene_state?.participants) ? save.scene_state.participants : []) add(value);
+  const scene = buildCanonicalDisplayScene(save);
+  add(scene.focal_character_id);
+  add(scene.last_speaker_id);
+  for (const value of scene.present_npc_ids) add(value);
   for (const mapName of [
     'npc_stats', 'npc_relationship_state', 'npc_emotion', 'npc_scene_state',
     'npc_work_state', 'csa_attitudes', 'npc_sexual_state', 'npc_identity_state'
@@ -165,22 +183,7 @@ export function buildContextDisplayPayload(save, edition, latestMindMonitor = {}
       max_active_csa: capability.csa_max_active
     },
     active_csa: activeCsa,
-    npc_directory: npcDirectory(save, edition, latestMindMonitor),
-    // 회사 맵 패널용 장소 정본. 운영 game_master.map은 null이라 프론트가 직접
-    // 읽을 수 없으므로, 번들된 edition의 map을 표시용으로만 함께 내려준다.
-    // 별도 맵 API를 만들지 않기 위한 것이며 출연 판정과는 무관하다.
-    map_locations: (Array.isArray(edition?.map?.locations) ? edition.map.locations : []).map(location => ({
-      location_id: location?.location_id ?? null,
-      name: location?.name ?? null,
-      floor: Number.isInteger(location?.floor) ? location.floor : null,
-      default_npc_ids: Array.isArray(location?.default_npc_ids) ? location.default_npc_ids : []
-    })).filter(location => location.location_id),
-    // 저장 위치가 없는 NPC를 맵에 배치하기 위한 기본 위치 (표시 전용).
-    npc_default_locations: Object.fromEntries(
-      Object.entries(edition?.characters?.characters ?? {})
-        .map(([id, character]) => [id, character?.default_location_id ?? null])
-        .filter(([, locationId]) => typeof locationId === 'string' && locationId)
-    )
+    npc_directory: npcDirectory(save, edition, latestMindMonitor)
   };
 }
 
@@ -208,20 +211,21 @@ function npcMind(latestMindMonitor, save, id) {
   };
 }
 
-function npcLocation(save, id, presentNow) {
+function npcLocation(save, id, presentNow, edition) {
   const sceneState = object(save?.npc_scene_state?.[id]) ?? {};
   const workState = object(save?.npc_work_state?.[id]) ?? {};
   const currentScene = buildCanonicalDisplayScene(save);
-  const label = text(sceneState.location_label)
-    || text(workState.location_label)
-    || (presentNow ? text(currentScene.location_label) : '')
-    || text(sceneState.location_id)
-    || text(workState.location_id)
-    || (presentNow ? text(currentScene.location_id) : '');
-  return { known: Boolean(label), location_label: label };
+  const locationId = presentNow
+    ? text(currentScene.location_id) || text(sceneState.location_id) || text(workState.location_id)
+    : text(sceneState.location_id) || text(workState.location_id);
+  let label = presentNow
+    ? locationLabel(edition, locationId) || text(sceneState.location_label) || text(workState.location_label)
+    : text(sceneState.location_label) || text(workState.location_label);
+  label ||= locationLabel(edition, locationId);
+  return { known: Boolean(locationId || label), location_label: label, location_id: locationId };
 }
 
-function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds }) {
+function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }) {
   const stats = object(save?.npc_stats?.[id]) ?? {};
   const attitude = object(save?.csa_attitudes?.[id]) ?? {};
   const sexualState = object(save?.npc_sexual_state?.[id]) ?? {};
@@ -236,7 +240,7 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
     position: identity.position,
     role: identity.role,
     present_now: presentNow,
-    location: npcLocation(save, id, presentNow),
+    location: npcLocation(save, id, presentNow, edition),
     stats: {
       affection: statValue(stats, '호감도', 'affection', 'affinity') ?? 0,
       resistance: statValue(stats, '저항도', 'resistance') ?? 0,
@@ -271,11 +275,11 @@ export function buildNpcAppPayload(save, edition, latestMindMonitor = {}) {
   const evidence = evidenceIds(save, latestMindMonitor);
   const entries = [];
   for (const [id, profile] of Object.entries(heroineProfiles)) {
-    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds }));
+    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }));
   }
   for (const [id, profile] of Object.entries(generalProfiles)) {
     if (!evidence.has(id)) continue;
-    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds }));
+    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }));
   }
   return entries;
 }

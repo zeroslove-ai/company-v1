@@ -43,12 +43,12 @@ test('active rule projection remains stable across expected turns', () => {
     playerAction: 'continue the current scene',
     expectedTurn,
     npcIds: new Set()
-  })[1].content).context.active_world_rules[0];
+  })[1].content).world_rules[0];
   const first = project(2);
   const later = project(3);
   assert.deepEqual(
-    { csa_id: later.csa_id, content: later.content, strength: later.strength, authority_tier: later.authority_tier, affected_group: later.affected_group, mode: later.mode },
-    { csa_id: first.csa_id, content: first.content, strength: first.strength, authority_tier: first.authority_tier, affected_group: first.affected_group, mode: first.mode }
+    { id: later.id, content: later.content, authority: later.authority, subject_scope: later.subject_scope, mode: later.mode },
+    { id: first.id, content: first.content, authority: first.authority, subject_scope: first.subject_scope, mode: first.mode }
   );
 });
 
@@ -70,7 +70,7 @@ test('Story prompt projects only saved rule content and injects no legal clause 
     npcIds: new Set()
   });
   const payload = JSON.parse(messages[1].content);
-  assert.equal(payload.context.active_world_rules[0].content, content);
+  assert.equal(payload.world_rules[0].content, content);
   assert.equal(messages.map(message => message.content).join('\n').includes('제6조'), false);
 });
 

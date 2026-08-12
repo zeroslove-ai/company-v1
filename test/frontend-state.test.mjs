@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { choicesForRenderer, createBusyGuard, createFrontendApp, createTurnCoordinator, toolbarCapabilities } from '../src/frontend/pages/app.js';
+import { choicesForRenderer, createBusyGuard, createFrontendApp, createTurnCoordinator, reduceStoryWireProjection, toolbarCapabilities } from '../src/frontend/pages/app.js';
 import { ApiError } from '../src/frontend/pages/api.js';
 import { choiceLabel, mindMonitorDisplay, parsedTurnNarrative, renderChoices, renderHistory, renderNarrative, renderState, stateDisplayValues } from '../src/frontend/pages/render.js';
-import { clearPending, committedTurn, contextChoices, loadPending, pendingKey, recoveryFor, reservedPlayerSetupId, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
+import { clearPending, committedTurn, contextChoices, loadPending, openingHistoryTurn, pendingKey, recoveryFor, reservedPlayerSetupId, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -34,6 +34,22 @@ function validContext({ turns = [], choices = ['A', 'B', 'C', 'D'] } = {}) {
     recent_turns: turns
   };
 }
+
+test('openingHistoryTurn consumes the server projection and never parses Fresh raw Story in the browser', () => {
+  const parsed = {
+    raw: '[SCENE]\nLobby.', blocks: [{ type: 'scene', text: 'Lobby.' }],
+    player_inner_thought: '', choices: [], canonical_choices: [], dialogue_lines: [], warnings: []
+  };
+  const opening = openingHistoryTurn({
+    opening_turn: {
+      player_action: '(opening)', story_text: parsed.raw, parsed_blocks: parsed, choices: [],
+      turn_summary: '', turn_number: 0, turn_id: 'opening', action_id: 'opening'
+    },
+    save: { data: { opening_state: { status: 'complete', story_text: '[DIALOGUE speaker_id="unknown"]' } } }
+  });
+  assert.deepEqual(opening.parsed_blocks, parsed);
+  assert.equal(opening.story_text, parsed.raw);
+});
 
 async function withFakeDocument(run) {
   const previousDocument = globalThis.document; const fixture = pageFixture(); globalThis.document = fixture.documentRef;
@@ -102,7 +118,8 @@ test('renderer uses view-model choices, short labels, and full choice payloads',
   const longChoice = '12345678901234567890123456789012345';
   assert.deepEqual(choicesForRenderer(model), model.story.choices);
   assert.deepEqual(choicesForRenderer(model, ['one', 'two', 'three', 'four']), ['one', 'two', 'three', 'four']);
-  assert.deepEqual(choicesForRenderer(model, ['incomplete']), model.story.choices);
+  assert.deepEqual(choicesForRenderer(model, ['incomplete']), []);
+  assert.deepEqual(choicesForRenderer(model, null), []);
   assert.equal(choiceLabel(longChoice).length <= 31, true);
   const previousDocument = globalThis.document; globalThis.document = { createElement: tag => new FakeNode(tag) };
   try {
@@ -399,6 +416,26 @@ test('turn coordinator retains Story, Extract, Commit and recovery action IDs', 
   assert.deepEqual(calls.map(([name]) => name), ['commit']);
 });
 
+test('frontend keeps adjacent ACTING on the prior dialogue and clears it at a new block', () => {
+  let state = reduceStoryWireProjection({}, { event: 'block_start', data: { block_type: 'dialogue', speaker_id: 'heroine2', speaker_name: '윤민아' } });
+  state = reduceStoryWireProjection(state, { event: 'delta', data: { text: '네.' } });
+  state = reduceStoryWireProjection(state, { event: 'block_end', data: { block_type: 'dialogue' } });
+  state = reduceStoryWireProjection(state, { event: 'acting', data: { acting_direction: '당황하며' } });
+  assert.equal(state.blocks[0].acting_direction, '당황하며');
+  state = reduceStoryWireProjection(state, { event: 'block_start', data: { block_type: 'scene' } });
+  state = reduceStoryWireProjection(state, { event: 'acting', data: { acting_direction: '잘못된 귀속' } });
+  assert.equal(state.blocks[0].acting_direction, '당황하며');
+  assert.equal(state.blocks[1].acting_direction, null);
+});
+
+test('frontend bottom choices require canonical four distinct literals', () => {
+  const model = buildCompanyGameViewModel(validContext());
+  assert.deepEqual(choicesForRenderer(model, ['same', 'same', 'same', 'same']), []);
+  assert.deepEqual(choicesForRenderer(model, ['one', 'two', 'three']), []);
+  assert.deepEqual(choicesForRenderer(model, ['one', 'two', 'three', 'four']), ['one', 'two', 'three', 'four']);
+  assert.deepEqual(choicesForRenderer(model, null), []);
+});
+
 test('turn coordinator preserves canonical structured action through pending, Story, Extract, Commit, and recovery', async () => {
   const canonicalAction = {
     type: 'app_transaction',
@@ -645,7 +682,8 @@ test('Story complete uses top-level choices fallback and projects once without p
       context: async () => ({ context }),
       story: async () => new Response(
         'event: meta\ndata: {}\n\n'
-        + 'event: delta\ndata: {"text":"[SCENE] Raw streaming text"}\n\n'
+        + 'event: block_start\ndata: {"block_type":"scene"}\n\n'
+        + 'event: delta\ndata: {"text":"Raw streaming text"}\n\n'
         + 'event: complete\ndata: {"choices":["A","B","C","D"],"parsed_blocks":{"blocks":[{"type":"scene","text":"Final projection"}]}}\n\n',
         { headers: { 'content-type': 'text/event-stream' } }
       ),

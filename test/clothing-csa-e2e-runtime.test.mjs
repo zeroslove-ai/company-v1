@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createTurnRoutes } from '../src/api/turn-routes-runtime.js';
-import { patchCompletionBody } from '../src/api/turn-routes-runtime.js';
+import { createTurnRoutes } from '../src/api/turn-routes.js';
 import { projectGlobalCsa } from '../src/engine/gameplay-state.js';
 import { stableStringify, sha256Base64url, signAppValidationProof } from '../src/engine/csa/transaction-validator.js';
 import edition from '../src/api/edition.js';
@@ -125,12 +124,9 @@ function makeRuntimeHarness() {
   const actions = new Map();
   const completionBodies = [];
 
-  const storySse = [
-    'data: {"choices":[{"delta":{"content":"[SCENE]\\n상식개변 규정이 발효됐다. 윤민아가 교칙 안내를 시작한다."}}]}\n\n',
-    'data: {"choices":[{"delta":{"content":"[DIALOGUE speaker_id=\\"heroine2\\" acting_direction=\\"정중하게\\"]\\n안내드립니다."}}]}\n\n',
-    'data: {"choices":[{"delta":{"content":"[CHOICES]\\n1. 질문한다\\n2. 그대로 둔다\\n3. 확인한다\\n4. 다른 일을 한다"}}]}\n\n',
-    'data: [DONE]\n\n'
-  ].join('');
+  const storyText = '[SCENE]\n규정 안내가 시작됐다.\n[DIALOGUE speaker_id="heroine2"]\n[ACTING] 정중하게\n안내리는 것을 설명한다.\n[THOUGHT]\n다음 순서를 생각한다.\n[CHOICE label="질문"]\n질문한다.\n[CHOICE label="대기"]\n그대로 둔다.\n[CHOICE label="확인"]\n내용을 확인한다.\n[CHOICE label="이동"]\n다른 장소로 이동한다.';
+  const freshStoryText = storyText.replace(/\[CHOICE label="[^"]+"\]/g, '[CHOICE]');
+  const storySse = `data: ${JSON.stringify({ choices: [{ delta: { content: freshStoryText } }] })}\n\ndata: [DONE]\n\n`;
 
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
@@ -140,7 +136,7 @@ function makeRuntimeHarness() {
       if (body.stream) return new Response(storySse, { headers: { 'content-type': 'text/event-stream' } });
       return new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({
         extract_version: 2, outcome: 'success',
-        scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+        scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
         player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
         elapsed_minutes: 15, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '규정 안내를 받았다.', warnings: []
       }) } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -219,7 +215,8 @@ test('P0-1 E2E: runtime wrapper 통과 Story completion body에 inactive csa_2/c
   assertNoInactiveCsa(completionBodies[0].messages, 'Story');
   const allText = allMessagesText(completionBodies[0].messages);
   assert.ok(allText.includes('성적 긴장 원인 확인'), 'csa_42 content 노출');
-  assert.match(allText, /APP TRANSACTION INPUT FIREWALL/);
+  assert.equal(completionBodies[0].messages.length, 2, 'Story transport is exactly SYSTEM + USER');
+  assert.doesNotMatch(allText, /APP TRANSACTION INPUT FIREWALL/);
   // deactivate transaction이므로 csa_42_1은 활성 목록에서 빠진다 (그래도 비활성 csa_2/csa_5는 미노출)
   assert.ok(!allText.includes('무릎 위에 앉기') && !allText.includes('속옷 미착용 근무'), '비활성 이력 미노출');
 });

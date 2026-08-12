@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-
 import {
   applyPromptCacheOrder,
   createPromptCacheOrderFetch,
@@ -8,133 +7,60 @@ import {
   reorderPromptPayload
 } from '../src/api/prompt-cache-order.js';
 
-const completionUrl = 'https://api.deepseek.com/v1/chat/completions';
+const story = {
+  expected_turn: 3,
+  player_action: 'ordinary',
+  turn_trigger: { kind: 'player_action' },
+  context: {},
+  player_dialogue_policy: null,
+  reference_characters: [],
+  world_rules: [],
+  scene_obligations: [],
+  remote_contacts: [],
+  possible_entrants: [],
+  scene_actors: {},
+  registered_identities: [],
+  edition: 'company-v1'
+};
 
-function bodyFor(payload, extras = {}) {
-  return JSON.stringify({
-    model: 'deepseek-v4-flash',
-    messages: [
-      { role: 'system', content: 'STATIC PREFIX' },
-      { role: 'user', content: JSON.stringify(payload) }
-    ],
-    ...extras
-  });
-}
+const extract = {
+  expected_turn: 3,
+  context: {},
+  story_text: 'story',
+  registered_locations: [],
+  registered_identities: [],
+  extract_version: 2
+};
 
-function reorderedPayload(init) {
-  const body = JSON.parse(init.body);
-  return JSON.parse(body.messages.find(message => message.role === 'user').content);
-}
-
-test('Story places stable edition and canon before context and turn-specific fields', () => {
-  const source = {
-    edition: 'company-v1',
-    expected_turn: 17,
-    player_action: '회의 자료를 확인한다.',
-    active_character_canon: { heroine1: { name: '서원희' } },
-    active_general_npc_canon: { general_lee: { name: '이민석' } },
-    context: { committed_turn: 16, location: '대회의실' }
-  };
-  const ordered = reorderPromptPayload(source);
+test('Story cache order contains only the canonical two-message user payload keys', () => {
+  const ordered = reorderPromptPayload(story);
   assert.deepEqual(Object.keys(ordered), PROMPT_CACHE_KEY_ORDER.story);
-  assert.deepEqual(ordered, {
-    edition: source.edition,
-    active_character_canon: source.active_character_canon,
-    active_general_npc_canon: source.active_general_npc_canon,
-    context: source.context,
-    player_action: source.player_action,
-    expected_turn: source.expected_turn
-  });
-  assert.deepEqual(source, {
-    edition: 'company-v1',
-    expected_turn: 17,
-    player_action: '회의 자료를 확인한다.',
-    active_character_canon: { heroine1: { name: '서원희' } },
-    active_general_npc_canon: { general_lee: { name: '이민석' } },
-    context: { committed_turn: 16, location: '대회의실' }
-  }, '원본 payload는 변경하지 않는다');
 });
 
-test('Extract places registered IDs and canon before narrative and turn-specific fields', () => {
-  const source = {
-    expected_turn: 17,
-    player_action: '회의 자료를 확인한다.',
-    story_text: '서원희가 자료를 넘겼다.',
-    parsed_story: { choices: ['계속한다'] },
-    context: { committed_turn: 16 },
-    registered_characters: [{ character_id: 'heroine1', name: '서원희' }],
-    registered_general_npcs: [{ npc_id: 'general_lee', name: '이민석' }],
-    active_character_canon: { heroine1: { name: '서원희' } },
-    active_general_npc_canon: { general_lee: { name: '이민석' } }
-  };
-  const ordered = reorderPromptPayload(source);
+test('Extract cache order preserves observer contract keys', () => {
+  const ordered = reorderPromptPayload(extract);
   assert.deepEqual(Object.keys(ordered), PROMPT_CACHE_KEY_ORDER.extract);
-  for (const key of Object.keys(source)) assert.deepEqual(ordered[key], source[key]);
+  assert.deepEqual(Object.fromEntries(Object.entries(ordered).sort()), Object.fromEntries(Object.entries(extract).sort()));
 });
 
-test('unknown extra keys remain deterministic after the known cache prefix', () => {
-  const ordered = reorderPromptPayload({
-    expected_turn: 3,
-    edition: 'company-v1',
-    context: {},
-    active_character_canon: {},
-    player_action: '확인',
-    active_general_npc_canon: {},
-    z_debug: 1,
-    a_contract: 2
-  });
-  assert.deepEqual(Object.keys(ordered), [
-    ...PROMPT_CACHE_KEY_ORDER.story,
-    'a_contract',
-    'z_debug'
-  ]);
-});
-
-test('outbound completion body changes key order only and preserves model settings', () => {
-  const payload = {
-    expected_turn: 8,
-    player_action: '질문한다.',
-    story_text: '대답이 이어졌다.',
-    parsed_story: { choices: [] },
-    context: { turn: 7 },
-    registered_characters: [],
-    registered_general_npcs: [],
-    active_character_canon: {},
-    active_general_npc_canon: {}
-  };
-  const init = {
-    method: 'POST',
-    headers: { authorization: 'Bearer test' },
-    body: bodyFor(payload, { stream: false, max_tokens: 10000 })
-  };
+test('cache ordering changes JSON key order only and skips unrelated calls', () => {
+  const init = { body: JSON.stringify({ stream: true, messages: [
+    { role: 'system', content: 'SYSTEM' },
+    { role: 'user', content: JSON.stringify({ ...story, z_debug: true }) }
+  ] }) };
   const patched = applyPromptCacheOrder(init);
-  const parsedBody = JSON.parse(patched.body);
-  assert.equal(parsedBody.model, 'deepseek-v4-flash');
-  assert.equal(parsedBody.stream, false);
-  assert.equal(parsedBody.max_tokens, 10000);
-  assert.deepEqual(Object.keys(reorderedPayload(patched)), PROMPT_CACHE_KEY_ORDER.extract);
-  assert.deepEqual(Object.fromEntries(Object.entries(reorderedPayload(patched)).sort()), Object.fromEntries(Object.entries(payload).sort()));
-  assert.equal(init.headers.authorization, 'Bearer test');
+  const body = JSON.parse(patched.body);
+  assert.deepEqual(Object.keys(JSON.parse(body.messages[1].content)), [...PROMPT_CACHE_KEY_ORDER.story, 'z_debug']);
+  const unrelated = { body: JSON.stringify({ stream: false, messages: [{ role: 'user', content: '{"query":"health"}' }] }) };
+  assert.equal(applyPromptCacheOrder(unrelated), unrelated);
 });
 
-test('fetch wrapper applies ordering only to chat completions', async () => {
+test('fetch wrapper orders only chat-completion payloads', async () => {
   const calls = [];
-  const fetchImpl = async (input, init) => {
-    calls.push({ input, init });
-    return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
-  };
+  const fetchImpl = async (input, init) => { calls.push({ input, init }); return new Response('{}', { status: 200 }); };
   const wrapped = createPromptCacheOrderFetch(fetchImpl);
-  const storyPayload = {
-    edition: 'company-v1',
-    expected_turn: 2,
-    player_action: '보고한다.',
-    active_character_canon: {},
-    active_general_npc_canon: {},
-    context: { turn: 1 }
-  };
-  await wrapped(completionUrl, { method: 'POST', body: bodyFor(storyPayload) });
-  await wrapped('https://example.test/rest/v1/rpc/get_company_context', { method: 'POST', body: bodyFor(storyPayload) });
-
-  assert.deepEqual(Object.keys(reorderedPayload(calls[0].init)), PROMPT_CACHE_KEY_ORDER.story);
-  assert.equal(calls[1].init.body, bodyFor(storyPayload), '비-LLM 요청은 손대지 않는다');
+  await wrapped('https://api.test/chat/completions', { method: 'POST', body: JSON.stringify({ stream: true, messages: [{ role: 'user', content: JSON.stringify(story) }] }) });
+  await wrapped('https://api.test/rest/v1/context', { method: 'POST', body: 'raw' });
+  assert.deepEqual(Object.keys(JSON.parse(JSON.parse(calls[0].init.body).messages[0].content)), PROMPT_CACHE_KEY_ORDER.story);
+  assert.equal(calls[1].init.body, 'raw');
 });

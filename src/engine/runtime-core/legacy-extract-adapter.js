@@ -30,7 +30,14 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
   const evidence = object(value.evidence) ? clone(value.evidence) : {};
   const sceneState = object(delta.scene_state) ? delta.scene_state : {};
   const typedSceneEvidence = Array.isArray(evidence.scene_observation) ? evidence.scene_observation : [];
-  const final = value.evidence?.scene_presence_final === true && typedSceneEvidence.length
+  const canonicalSceneEvidence = typedSceneEvidence.map(item => {
+    if (!object(item)) return null;
+    if (item.kind === 'presence' || item.kind === 'scene') return item;
+    if (item.kind === 'entrance' || item.kind === 'exit') return { ...item, kind: 'presence' };
+    if (item.kind === 'movement' && (sceneState.scene_id ?? null) !== null) return { ...item, kind: 'scene' };
+    return null;
+  }).filter(Boolean);
+  const final = value.evidence?.scene_presence_final === true && canonicalSceneEvidence.length
     ? (Array.isArray(value.npcs_present) ? value.npcs_present.map(id => known(id, npcIds)).filter(Boolean) : [])
     : null;
   const remote = Array.isArray(value.evidence?.remote_speaker_ids)
@@ -63,12 +70,12 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
     extract_version: 2,
     outcome: value.outcome === 'degraded' ? 'degraded' : value.outcome,
     scene_observation: {
-      scene_id: typedSceneEvidence.length ? (sceneState.scene_id ?? null) : null,
-      location_id: typedSceneEvidence.length ? (sceneState.location_id ?? null) : null,
+      scene_id: canonicalSceneEvidence.length ? (sceneState.scene_id ?? null) : null,
+      location_id: canonicalSceneEvidence.length ? (sceneState.location_id ?? null) : null,
       final_present_npc_ids: final,
       entered_npc_ids: [], exited_npc_ids: [],
       focal_candidate_id: known(value.focal_character_id, npcIds),
-      remote_speaker_ids: remote, evidence: typedSceneEvidence
+      remote_speaker_ids: remote, evidence: canonicalSceneEvidence
     },
     player_observation: {
       physical: physicalOnly(delta.player_scene_state),
@@ -93,5 +100,5 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
     csa_runtime_updates: value.csa_runtime_updates ?? [],
     turn_summary: value.turn_summary ?? '',
     warnings: ['legacy_extract_adapter_used', ...(Array.isArray(value.warnings) ? value.warnings : [])]
-  }, { npcIds, storyText, expectedTurn, actionId, legacyEvidenceKinds: true });
+  }, { npcIds, storyText, expectedTurn, actionId });
 }

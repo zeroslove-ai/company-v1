@@ -3,6 +3,7 @@ import { hydrateCanonicalScene, reduceCanonicalScene } from './scene-reducer.js'
 import { projectCanonicalSceneToLegacy } from './projections.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
+import { reduceCsaCommitState } from './csa-commit-reducer.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
@@ -43,15 +44,10 @@ function canonicalObservation(observation, parsedStory) {
   };
 }
 
-export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, movementContract = null } = {}) {
+export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, authoritativeLocationId = null, structuredAction = null, transactionResolution = null } = {}) {
   const current = clone(currentSave);
   const sceneBefore = hydrateCanonicalScene(current, { master, npcIds });
   const sceneObservation = canonicalObservation(observation, parsedStory);
-  const resolvedMovement = movementContract?.transition_mode === 'movement'
-    && typeof movementContract.destination_location_id === 'string'
-    && movementContract.destination_location_id.trim()
-    ? movementContract.destination_location_id.trim()
-    : null;
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,
     observation: sceneObservation,
@@ -61,7 +57,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     mapLocations,
     expectedTurn,
     actionKind: action?.action_kind,
-    movementDestinationId: resolvedMovement,
+    authoritativeLocationId,
   });
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),
@@ -83,17 +79,33 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     actionId: action?.action_id,
     turnId: action?.turn_id
   });
+  const csaCommit = reduceCsaCommitState({
+    currentSave: current,
+    nextSave,
+    observation,
+    canonicalScene,
+    action,
+    expectedTurn,
+    structuredAction,
+    transactionResolution
+  });
+  nextSave = csaCommit.nextSave;
   assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action?.action_kind, observation: sceneObservation });
   const monitor = presentMindMonitor(observation.mind_monitor ?? {}, canonicalScene.present_npc_ids ?? []);
   return {
     nextSave,
-    warnings: [...domains.warnings, ...(sceneObservation.warnings ?? []), ...monitor.warnings],
+    warnings: [...domains.warnings, ...csaCommit.warnings, ...(sceneObservation.warnings ?? []), ...monitor.warnings],
     time_before: domains.time_before,
     elapsed_minutes: domains.elapsed_minutes,
     time_after: domains.time_after,
     action_target_id: observation.action_target_id ?? null,
     image_character_id: observation.image_character_id ?? null,
     mind_monitor: monitor.state,
-    canonical_scene: canonicalScene
+    canonical_scene: canonicalScene,
+    csa_commit: {
+      accepted_executions: csaCommit.acceptedExecutions,
+      deactivated_ids: csaCommit.deactivatedIds,
+      progression: csaCommit.progression
+    }
   };
 }

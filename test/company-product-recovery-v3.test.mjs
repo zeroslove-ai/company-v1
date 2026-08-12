@@ -5,14 +5,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  buildFinderNpcList,
-  buildFullPlayerInfo,
-  resolveNpcLocation
+  buildFullPlayerInfo
 } from '../src/api/product-recovery.js';
-import {
-  applyRegisteredNpcPolicy,
-  REGISTERED_NPC_POLICY
-} from '../src/api/npc-policy-fetch.js';
+import { buildNpcAppPayload } from '../src/api/runtime-display.js';
 import {
   formatHistoryMarkdown,
   formatHistoryText,
@@ -121,39 +116,36 @@ test('full player app projection preserves setup, physical, sexual, and CSA fiel
   assert.equal(info.active_csa[0].content, '회의 중에는 이름으로 부른다.');
 });
 
-
-test('registered NPC policy is static, cache-friendly, and Story-only', () => {
-  const init = {
-    body: JSON.stringify({
-      stream: true,
-      messages: [
-        { role: 'system', content: 'STATIC STORY PREFIX' },
-        { role: 'user', content: JSON.stringify({ active_character_canon: { heroine1: { name: '히로인1' } }, context: { turn: 4 } }) }
-      ]
-    })
+test('product recovery uses canonical presence and location over conflicting legacy fields', () => {
+  const source = save();
+  source.scene = {
+    version: 1,
+    scene_id: 'canonical-scene',
+    location_id: 'office',
+    beat: 1,
+    goal: null,
+    focus_thread: null,
+    present_npc_ids: ['heroine1'],
+    focal_character_id: null,
+    last_speaker_id: null,
+    updated_turn: 1
   };
-  const patched = JSON.parse(applyRegisteredNpcPolicy(init).body);
-  assert.match(patched.messages[0].content, /^STATIC STORY PREFIX/);
-  assert.match(patched.messages[0].content, /등록 NPC 전용 등장 정책/);
-  assert.match(patched.messages[0].content, /이름 없는 직원·비서·동료·경비·방문객/);
-  assert.match(patched.messages[0].content, /일회성 배경 오류/);
-  assert.match(patched.messages[0].content, /다음 턴의 서사 연속성에 유지하지 않는다/);
-  assert.match(REGISTERED_NPC_POLICY, /등록되지 않은 단역/);
+  source.scene_state.participants = ['heroine2'];
+  source.scene_state.location_id = 'project_room';
+  source.last_npcs_present = ['heroine2'];
+  source.focal_character_id = 'heroine2';
+  source.last_speaker_id = 'heroine2';
+  source.npc_scene_state.heroine1.location_id = 'project_room';
+  source.npc_scene_state.heroine2 = { location_id: 'project_room', location_label: '?꾨줈?앺듃猷?' };
 
-  const extract = {
-    body: JSON.stringify({
-      stream: false,
-      messages: [
-        { role: 'system', content: 'VERIFIED EXTRACT PREFIX' },
-        { role: 'user', content: JSON.stringify({ registered_characters: [{ character_id: 'heroine1' }] }) }
-      ]
-    })
-  };
-  assert.equal(applyRegisteredNpcPolicy(extract), extract, 'Extract의 기존 ID guard와 프롬프트 예산을 유지한다');
-
-  const classifier = { body: JSON.stringify({ messages: [{ role: 'system', content: 'CLASSIFIER' }] }) };
-  assert.equal(applyRegisteredNpcPolicy(classifier), classifier);
+  const heroine1 = buildNpcAppPayload(source, edition).find(item => item.id === 'heroine1');
+  const heroine2 = buildNpcAppPayload(source, edition).find(item => item.id === 'heroine2');
+  assert.equal(heroine1.present_now, true);
+  assert.equal(heroine1.location.location_id, 'office');
+  assert.equal(heroine2.present_now, false);
 });
+
+
 
 test('history pagination state, dedupe, and MD/TXT exports preserve committed content', () => {
   assert.deepEqual(historyPageState({ has_more: true, next_before_turn: 21 }), { next_before_turn: 21, has_more: true, hide_more: false });

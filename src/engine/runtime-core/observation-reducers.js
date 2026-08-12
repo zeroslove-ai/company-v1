@@ -183,8 +183,10 @@ export function reduceElapsedTimeObservation({ save, elapsedMinutes, evidence } 
 }
 
 export function reduceStoryChoiceProjection({ parsedStory } = {}) {
-  const choices = Array.isArray(parsedStory?.choices) ? clone(parsedStory.choices) : [];
-  return { state: choices.slice(0, 4), warnings: [] };
+  const choices = Array.isArray(parsedStory?.canonical_choices)
+    ? parsedStory.canonical_choices
+    : (Array.isArray(parsedStory?.choices) && parsedStory.choices.length === 4 ? parsedStory.choices : []);
+  return { state: clone(choices), warnings: [] };
 }
 
 export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, explicitSpeakerIds } = {}) {

@@ -20,3 +20,16 @@ test('SSE parser rejects malformed JSON and error events', async () => {
   assert.throws(() => parseSseFrames('event: delta\ndata: {bad}\n\n'), ApiError);
   await assert.rejects(() => consumeStorySse(new Response(stream(['event: error\ndata: {"code":"story_failed","message":"no"}\n\n'])), () => {}), error => error.code === 'story_failed');
 });
+
+test('SSE consumer accepts structured Story protocol events without exposing wire markers as deltas', async () => {
+  const seen = [];
+  await consumeStorySse(new Response(stream([
+    'event: meta\ndata: {}\n\n',
+    'event: section_start\ndata: {"section":1}\n\n',
+    'event: block_start\ndata: {"block_type":"dialogue","speaker_id":"heroine2","speaker_name":"윤민아","acting_direction":"당황하며"}\n\n',
+    'event: delta\ndata: {"text":"네."}\n\n',
+    'event: complete\ndata: {}\n\n'
+  ])), item => seen.push(item));
+  assert.equal(seen.some(item => item.event === 'block_start' && item.data.speaker_id === 'heroine2'), true);
+  assert.equal(seen.some(item => item.event === 'delta' && /DIALOGUE|speaker_id/.test(item.data.text)), false);
+});

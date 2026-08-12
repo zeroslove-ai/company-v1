@@ -218,6 +218,25 @@ test('selectActiveCharacterIds excludes characters not in the scene, includes ex
   assert.deepEqual(partialMention, []);
 });
 
+test('selectActiveCharacterIds does not revive a legacy-only participant when canonical scene exists', () => {
+  const map = charactersMap();
+  const npcIds = npcIdsFromEdition(edition);
+  const save = saveWithParticipants(['heroine2']);
+  save.scene = {
+    version: 1,
+    scene_id: 'canonical',
+    location_id: 'office',
+    beat: 0,
+    goal: null,
+    focus_thread: null,
+    present_npc_ids: ['heroine1'],
+    focal_character_id: null,
+    last_speaker_id: null,
+    updated_turn: 1
+  };
+  assert.deepEqual(selectActiveCharacterIds({ charactersMap: map, npcIds, save, playerAction: '' }), ['heroine1']);
+});
+
 test('active_character_canon includes at most 3 full prompt_card entries; the 4th and beyond are identity-only', () => {
   const map = charactersMap();
   const oneActive = buildActiveCharacterCanon(map, ['heroine1']);
@@ -248,22 +267,22 @@ test('a character absent from the current scene is never sent at all', () => {
 
 // --- Story canon -----------------------------------------------------------
 
-test('Story prompt active_character_canon scales 1/3/5 participants correctly, excludes Storage/voice fields, and never mutates edition or context', () => {
+test('Story prompt scene_actors scales 1/3/5 participants correctly, excludes Storage/voice fields, and never mutates edition or context', () => {
   const buildFor = ids => buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants(ids), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
 
   const one = JSON.parse(buildFor(['heroine1'])[1].content);
-  assert.equal(Object.keys(one.active_character_canon).length, 1);
+  assert.equal(Object.keys(one.scene_actors).length, 1);
 
   const three = JSON.parse(buildFor(['heroine1', 'heroine2', 'heroine3'])[1].content);
-  assert.equal(Object.keys(three.active_character_canon).length, 3);
-  for (const entry of Object.values(three.active_character_canon)) assert.ok(entry.prompt_card);
+  assert.equal(Object.keys(three.scene_actors).length, 3);
+  for (const entry of Object.values(three.scene_actors)) assert.ok(entry.prompt_card);
 
   const five = JSON.parse(buildFor([...HEROINE_IDS])[1].content);
-  const entries = Object.values(five.active_character_canon);
+  const entries = Object.values(five.scene_actors);
   assert.equal(entries.filter(e => 'prompt_card' in e).length, 3);
   assert.equal(entries.filter(e => !('prompt_card' in e)).length, 2);
 
-  for (const entry of Object.values(five.active_character_canon)) {
+  for (const entry of Object.values(five.scene_actors)) {
     for (const forbidden of ['storage_bucket', 'storage_prefix', 'primary_image_path', 'adult_image_prefix', 'voice_id', 'mapping_status', 'initial_stats', 'initial_relationship', 'initial_csa_attitudes']) {
       assert.equal(forbidden in entry, false, `${entry.character_id}.${forbidden}`);
     }
@@ -277,9 +296,12 @@ test('Story prompt active_character_canon scales 1/3/5 participants correctly, e
   assert.equal(JSON.stringify(contextInput), contextBefore);
 });
 
-test('Story prompt system instruction names active_character_canon as the sole fact source and forbids inventing characters', () => {
+test('Story prompt system instruction names separated actor/reference facts and forbids inventing characters', () => {
   const prompt = buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants(['heroine1']), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
   const system = prompt[0].content;
+  assert.match(system, /scene_actors/);
+  assert.match(system, /reference_characters/);
+  return;
   assert.match(system, /active_character_canon은.{0,40}유일한 사실 기준/);
   assert.match(system, /승격/);
   assert.match(system, /억지로 출연시키지 않는다/);
@@ -318,12 +340,15 @@ test('Extract receives a compact registered location ID dictionary for grounded 
   assert.deepEqual(payload.registered_locations.find(location => location.location_id === office.location_id), office);
 });
 
-test('Extract prompt user payload carries registered_characters and the system prompt restricts Extract to those stable ids', () => {
-  const prompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, playerAction: 'x', expectedTurn: 1, edition });
+test('Extract prompt user payload carries one registered identity registry and stable-id rules', () => {
+  const prompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, expectedTurn: 1, edition });
   const payload = JSON.parse(prompt[1].content);
-  assert.equal(payload.registered_characters.length, 5);
+  assert.equal(payload.registered_identities.length, 13);
+  assert.equal('registered_characters' in payload, false);
+  assert.equal('registered_general_npcs' in payload, false);
+  assert.equal('player_action' in payload, false);
   const system = prompt[0].content;
-  assert.match(system, /registered_characters lists the only stable character ids/);
+  assert.match(system, /registered identities list the only stable NPC ids/);
   assert.match(system, /never invent, guess, or reuse an id/);
   assert.match(system, /never copy one into another/);
 });
@@ -395,14 +420,14 @@ test('content files, the heroines doc, and built prompt payloads contain none of
 
 // --- Size budgets ------------------------------------------------------------
 
-test('Story request size budgets: system <=11000, 3-character active canon <=1800, 5-participant scene still caps at 3 full cards', () => {
+test('Story request size budgets: system <=11000, 3-character scene actors <=1800, 5-participant scene still caps at 3 full cards', () => {
   const prompt = buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants([...HEROINE_IDS]), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
   const systemChars = prompt[0].content.length;
   const payload = JSON.parse(prompt[1].content);
-  const canonChars = JSON.stringify(payload.active_character_canon).length;
+  const canonChars = JSON.stringify(payload.scene_actors).length;
   assert.ok(systemChars <= 11000, `story system chars: ${systemChars}`);
-  assert.ok(canonChars <= 1800, `active_character_canon chars: ${canonChars}`);
-  assert.equal(Object.values(payload.active_character_canon).filter(e => 'prompt_card' in e).length, 3);
+  assert.ok(canonChars <= 1800, `scene_actors chars: ${canonChars}`);
+  assert.equal(Object.values(payload.scene_actors).filter(e => 'prompt_card' in e).length, 3);
 });
 
 test('Extract request size budget: system <=6000', () => {

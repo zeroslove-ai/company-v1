@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
+import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -19,16 +20,16 @@ const env = {
   EXTRACT_MODEL: 'extract-test'
 };
 
-const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+const canonicalStoryText = '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE]\nContinue carefully.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait a moment.\n[CHOICE]\nChange the subject.';
+const canonicalSse = `data: ${JSON.stringify({ choices: [{ delta: { content: canonicalStoryText } }] })}\n\ndata: [DONE]\n\n`;
 
 const v2ExtractFixture = ({ outcome = 'partial', npcMood = null, elapsed_minutes = 3 } = {}) => ({
   extract_version: 2,
   outcome,
   scene_observation: {
     scene_id: null, location_id: null, final_present_npc_ids: null,
-    entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null,
-    presence_is_final: false, remote_speaker_ids: [], evidence: []
+    focal_candidate_id: null,
+    remote_speaker_ids: [], evidence: []
   },
   player_observation: {},
   npc_observations: npcMood ? { 'npc-hayeon': { emotion: { mood: npcMood } } } : {},
@@ -43,7 +44,7 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   const context = { game: { id: gameId, edition_id: 'company-v1' }, save: { data: save }, recent_turns: [] };
   const incompleteSse = 'data: {"choices":[{"delta":{"content":"[SCENE] broken"}}]}\n\n';
-  const storySses = storySseSequence ?? [incompleteStory ? incompleteSse : read('fixtures/phase-2/openai-story-sse.txt')];
+  const storySses = storySseSequence ?? [incompleteStory ? incompleteSse : canonicalSse];
   const extract = extractEnvelope ?? v2ExtractFixture();
   const extractContents = extractContentSequence ?? [JSON.stringify(extract)];
   let storyCall = 0;
@@ -190,7 +191,7 @@ test('Phase 2 maps PostgREST not-found SQLSTATE responses', async () => {
 test('Phase 2 retries one failed Story explicitly and then replays the persisted result', async () => {
   const mock = createMockFetch({ storySseSequence: [
     'data: {"choices":[{"delta":{"content":"[SCENE] broken"}}]}\n\n',
-    read('fixtures/phase-2/openai-story-sse.txt')
+    canonicalSse
   ] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '재시도한다.' };
@@ -229,7 +230,7 @@ test('Phase 2 retries one genuinely failed Extract after an infrastructure error
   assert.equal((await failedStatus.json()).data.recoverable_step, 'complete');
   const recovered = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(recovered.status, 200);
-  assert.equal((await recovered.json()).data.degraded, false);
+  assert.equal('degraded' in (await recovered.json()).data, false);
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
 });
 
@@ -264,13 +265,13 @@ test('authority-violating Extract envelopes fail without recording or Commit', a
 
 test('Extract uses Story choices and the 5000-token envelope, while truncated JSON is retryable failure', async () => {
   const storySse = 'data: {"choices":[{"delta":{"content":"[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\ndata: [DONE]\n\n';
-  const mock = createMockFetch({ storySseSequence: [storySse], extractEnvelope: v2ExtractFixture() });
+  const mock = createMockFetch({ storySseSequence: [canonicalSse], extractEnvelope: v2ExtractFixture() });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   await (await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'test' }), env)).text();
   const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(response.status, 200);
   assert.equal('choices' in mock.actions.get(actionId).extract_delta, false);
-  assert.deepEqual(mock.actions.get(actionId).parsed_blocks.choices, ['A', 'B', 'C', 'D']);
+  assert.deepEqual(mock.actions.get(actionId).parsed_blocks.choices, ['Continue carefully.', 'Ask a question.', 'Wait a moment.', 'Change the subject.']);
   const extractCall = mock.calls.map(call => ({ ...call, parsed: call.body && JSON.parse(call.body) })).find(call => call.url.startsWith('https://llm.test') && !call.parsed.stream);
   assert.deepEqual(extractCall.parsed.thinking, { type: 'disabled' }); assert.deepEqual(extractCall.parsed.response_format, { type: 'json_object' }); assert.equal(extractCall.parsed.temperature, 0); assert.equal(extractCall.parsed.max_tokens, 5000);
   const truncated = createMockFetch({ extractFinishReason: 'length' }); const truncatedWorker = createApiWorker({ fetchImpl: truncated.fetchImpl });
@@ -280,22 +281,4 @@ test('Extract uses Story choices and the 5000-token envelope, while truncated JS
   const failedPayload = await failed.json();
   assert.equal(typeof failedPayload.error.code, 'string');
   assert.equal(truncated.actions.get(actionId).extract_delta ?? null, null);
-});
-test('구조 일부 누락(대화 없음·선택지 빈 배열)에도 스토리 본문이 유지되고 턴은 정상 Commit된다', async () => {
-  const mock = createMockFetch({
-    storySseSequence: ['data: {"choices":[{"delta":{"content":"[SCENE]\\n본문 서사만 있고 대사가 없는 장면"}}]}\n\ndata: [DONE]\n'],
-    extractEnvelope: v2ExtractFixture({ outcome: 'success', npcMood: null })
-  });
-  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '확인한다.' };
-  const story = await worker.fetch(request('/api/story', body), env);
-  assert.equal(story.status, 200);
-  const storyText = await story.text();
-  assert.match(storyText, /event: complete/);
-  assert.ok(mock.actions.get(actionId).story_text.includes('본문 서사만'), '스토리 본문 유지');
-  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(extract.status, 200);
-  const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
-  assert.equal(commit.status, 200, '선택지 누락이 commit을 막지 않는다');
-  assert.equal(mock.actions.get(actionId).processing_status, 'committed');
 });

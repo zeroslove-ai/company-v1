@@ -7,13 +7,13 @@ This connects the merged `docs/COMPANY_GAMEPLAY_STATE_CONTRACT_V1.md` and `docs/
 | Concern | File |
 | --- | --- |
 | Story LLM request | `src/api/llm.js` (`streamStory`) |
-| Story prompt (four-section narrative contract) | `src/engine/story-prompt.js` |
-| Story parser (Korean sections + legacy internal markers) | `src/engine/narrative-parser.js` |
+| Story prompt (Fresh semantic wire contract) | `src/engine/story-prompt.js` |
+| Fresh Story parser | `src/engine/fresh-narrative-parser.js` |
 | Extract LLM request | `src/api/llm.js` (`runExtract`) |
 | Extract prompt (canonical envelope contract) | `src/engine/extract-prompt.js` |
-| Extract envelope normalize, Mind Monitor, time, sexual state, degraded envelope | `src/engine/gameplay-state.js` |
+| Extract V2 observation normalize, Mind Monitor, time, sexual state | `src/engine/gameplay-state.js` |
 | Guarded merge pipeline | `src/engine/guarded-merge.js` |
-| Route wiring, read-path hydration, degraded routing, timing logs | `src/api/turn-routes.js`, `src/api/timing.js` |
+| Route wiring, read-path hydration, timing logs | `src/api/turn-routes.js`, `src/api/timing.js` |
 
 ## Story LLM request
 
@@ -23,17 +23,17 @@ This connects the merged `docs/COMPANY_GAMEPLAY_STATE_CONTRACT_V1.md` and `docs/
 
 `{ model: EXTRACT_MODEL, messages, stream: false, thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 5000 }`, capped at a 75-second timeout via `AbortSignal.timeout`. Extract runs at most once per turn; there is no repair call or second model.
 
-## User-visible four sections
+## Current semantic Story wire
 
-`src/engine/story-prompt.js` instructs the model to emit exactly `[1. 서사 및 행동] [2. 플레이어 속마음] [3. 플레이어 상황판] [4. 선택지]` with dialogue inlined in section 1 (`화자명 (지시): "대사"`), the A/B/C length targets as generation goals (not hard gates), the player-freedom contract (Story never completes an action the player did not input), and the exactly-four-choices target.
+The current Story prompt emits semantic `[SCENE]`, `[DIALOGUE speaker_id="registered_id"]`, optional `[ACTING]`, `[THOUGHT]`, and repeated literal `[CHOICE]` blocks. Human section headings, labels, and numbering belong to the UI and are not Fresh output authority.
 
-`src/engine/narrative-parser.js` recognizes both the Korean section labels and the legacy internal markers (`[SCENE]`, `[PLAYER_STATUS]`, `[PLAYER_INNER_THOUGHT]`, `[CHOICES]`, `[DIALOGUE ...]`) used by existing fixtures. It extracts `dialogue_lines` (`speaker_id`, `speaker_name`, `direction`, `text`, `order`) from both marker-based dialogue and the inline `이름 (지시): "대사"` pattern, resolving `speaker_id` only when a master character list has exactly one name match. Malformed input never throws; unparsed text is preserved and warnings are added instead.
+Fresh parsing uses `parseFreshNarrativeV2` and treats non-empty exact `speaker_id` as the only speaker authority. Historical rows may use `parsePersistedNarrative` and its legacy adapter only at the persisted/read compatibility boundary.
 
 ## Story-authoritative fields
 
-`normalizeGameplayExtractEnvelope` (`src/engine/gameplay-state.js`) always prefers the parser's `player_inner_thought`, `player_status`, and dialogue order over anything Extract returns, and uses Extract's `choices` only when the parser did not produce exactly four. This runs both when Extract is first recorded and again inside `applyGuardedStateDelta` at Commit time, so replay and Commit see the same precedence.
+Fresh parser output is authoritative for observed Story blocks, `player_inner_thought`, dialogue identity/order, and literal CHOICE text. Extract V2 observes gameplay state and never generates, repairs, or falls back to choices. `canonical_choices` is available only for exactly four distinct non-empty observed choices; otherwise free input remains available.
 
-Parser `dialogue_lines` (text, direction, order) are likewise authoritative (`mergeDialogueLines`): Extract's own `dialogue_lines` may only supply a `speaker_id` for a parser line the parser could not resolve, and only when Extract's entry has the exact same `order` and `text` as the parser's line. Extract can never rewrite dialogue text/direction or add a line the parser did not produce.
+Fresh parser `dialogue_lines` (text, direction, order) are authoritative (`mergeDialogueLines`): an exact registered `speaker_id` in the Fresh DIALOGUE marker is the only speaker authority. Extract observation cannot infer, repair, or add a Fresh dialogue line; persisted historical rows retain their separate read-boundary normalization.
 
 ## Identity axes and NPC id validation
 
@@ -67,7 +67,7 @@ Extract proposes `elapsed_minutes` only (1–30 normally, 1–480 with `evidence
 
 ## Degraded Extract
 
-If the Extract LLM call fails, times out, returns malformed/truncated JSON, or the envelope fails contract normalization, `turn-routes.js` builds a deterministic envelope (`buildDegradedExtractEnvelope`, no additional LLM call) that preserves the Story's raw text, choices, inner thought, status, and dialogue, leaves `state_delta` empty, defaults `elapsed_minutes` to 3, and adds `extract_degraded` + `extract_error:<code>` warnings. The action still moves to `committing` and Commit still succeeds. Genuine infrastructure failures (Supabase/context RPC errors, database write failures) are not degraded — they still mark the action `extract_failed` and require the existing `retry_extract` recovery step, so manual retry and commit-only recovery are unchanged.
+Fresh Extract V2 malformed or upstream-invalid output is a visible failure; it is not converted into a degraded auto-commit envelope. Historical persisted degraded rows remain readable only through the persisted-data compatibility boundary.
 
 Extract-route persistence is now fully recoverable: a `record_extract_result` write failure marks the action `extract_failed` and rethrows (so `retry_extract` applies) instead of leaving the request to fail with the action still `extracting`. If the *separate* status-transition patch to `committing` fails after the Extract result was already durably saved, the handler re-fetches the action instead of leaving stale in-memory state, still returns the successful Extract result to the caller, and the action is never stuck — a `resume_extract` (or `resume_commit`) recoverable step always leads forward with zero extra LLM calls.
 

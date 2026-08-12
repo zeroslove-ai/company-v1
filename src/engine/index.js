@@ -1,14 +1,18 @@
 export { GameCoreError } from './errors.js';
 export { createEditionAdapter, validateEditionAdapter } from './edition.js';
 export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
+export { buildStoryWorldProjection } from './csa/story-projection.js';
 export { buildExtractPrompt } from './extract-prompt.js';
-export { parseNarrative } from './narrative-parser.js';
+export { parseFreshNarrativeV2 } from './fresh-narrative-parser.js';
+export { createStoryStreamDecoder, parseStoryControlMarker, buildStoryIdentityDirectory } from './story-wire-protocol.js';
+export { parsePersistedNarrative } from './persisted-narrative-parser.js';
 export { hydrateCanonicalScene, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
 export { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';
 export { assertCanonicalSceneInvariants } from './runtime-core/invariants.js';
-export { normalizeExtractObservationV2, buildDegradedExtractObservation, assertExtractObservationContract } from './runtime-core/extract-observation.js';
-export { adaptLegacyExtractDelta } from './runtime-core/legacy-extract-adapter.js';
+export { normalizeFreshExtractObservationV2, assertExtractObservationContract } from './runtime-core/extract-observation.js';
+export { normalizePersistedExtractObservation } from './runtime-core/persisted-extract-observation.js';
 export { reduceGameplayCommit } from './runtime-core/commit-reducer.js';
+export { reduceCsaCommitState } from './runtime-core/csa-commit-reducer.js';
 export {
   reducePlayerPhysicalObservation, reduceNpcPhysicalObservation,
   reducePlayerSexualObservation, reduceNpcStatObservation,
@@ -74,9 +78,14 @@ export {
   normalizeStructuredAction, collectSemanticStrengthCandidates, buildAppStrengthValidationPrompt,
   classifyAppOperationStrengths, semanticStrengthIssues, verifyStructuredActionValidation
 } from './csa/transaction-validator.js';
+export {
+  buildCsaPlannerInputSnapshot, buildCsaPlannerInputDigest,
+  buildTransactionResolution, buildTransactionResolutionDigest,
+  signTransactionValidationProof, verifyTransactionValidationProof,
+  verifySignedTransactionResolution
+} from './csa/transaction-authority.js';
 export { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch } from './csa/reducer.js';
 export {
-  isAppUsageInfoRequest, buildAppUsageStorySection,
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,
   buildMindEffectExtractFirewallSection
 } from './csa/prompt-sections.js';
@@ -84,7 +93,6 @@ export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
 
 export { listGeneralNpcs, getGeneralNpc, isGeneralNpcId } from './npc/catalog.js';
 export { resolveGeneralNpcForGroup } from './npc/resolver.js';
-export { findNpc } from './npc/location.js';
 export { resolveNumberedChoiceInput } from './choice-input.js';
 export { selectImage } from './media/image-selector.js';
 export { resolveTtsEligibility, ttsCacheKey } from './media/tts-contract.js';

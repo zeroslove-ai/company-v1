@@ -1,7 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
-import { buildSceneCastContract } from '../engine/scene-cast.js';
+import { buildSceneCastContract, resolveNavigationLocation } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
@@ -12,18 +12,16 @@ import {
   deriveRecoverableStep,
   deriveTurnChanges,
   hydrateGameplayState,
-  normalizeExtractObservationV2,
-  adaptLegacyExtractDelta,
+  normalizeFreshExtractObservationV2,
+  normalizePersistedExtractObservation,
   reduceGameplayCommit,
-  parseNarrative,
+  parseFreshNarrativeV2,
+  parsePersistedNarrative,
   resolvePlayerCanonicalNames,
   splitOpeningSections,
   validatePlayerSetupInput,
   buildAppManualPayload,
   buildAppStatePayload,
-  buildAppUsageStorySection,
-  buildCsaAftereffectPatch,
-  buildCsaSceneRuntimeStatePatch,
   buildCsaApplicationCheckSection,
   buildCsaRuntimeExtractContractSection,
   buildMindEffectExtractFirewallSection,
@@ -33,28 +31,25 @@ import {
   getApplicableCsaEntries,
   getCsaLimits,
   getCsaRules,
-  isAppUsageInfoRequest,
   normalizeStructuredAction,
   normalizeCompanyCsaCatalog,
   planCsaTransaction,
   semanticStrengthIssues,
   sha256Base64url,
-  signAppValidationProof,
-  stableStringify,
+  signTransactionValidationProof,
+  buildTransactionResolution,
+  verifySignedTransactionResolution,
   verifyStructuredActionValidation,
-  buildRegenerationFeedbackSection,
+  stableStringify,
   resolveNumberedChoiceInput,
   selectImage,
-  resolveTtsEligibility,
-  calculateProgress,
-  calculateCsaProgression,
   resolveStoredStructuredAction,
   assertStoredActionPersistenceParity,
-  applyAuthorizedRuleDefinitions,
-  assertRuleDefinitionAuthority,
+  createStoryStreamDecoder,
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
+import { hydrateCanonicalScene } from '../engine/runtime-core/scene-reducer.js';
 import { logTurnTiming, newRequestId } from './timing.js';
 
 function asHttpError(error) {
@@ -75,6 +70,39 @@ function actionIds(body) {
   return {
     gameId: requireString(body.game_id, 'game_id'),
     actionId: requireString(body.action_id, 'action_id')
+  };
+}
+
+function projectStorySaveAtLocation(save, locationId, { master, mapLocations } = {}) {
+  if (typeof locationId !== 'string' || !locationId.trim()) return save;
+  const scene = hydrateCanonicalScene(save, { master, mapLocations });
+  if (scene.location_id === locationId) return save;
+  return {
+    ...save,
+    scene: {
+      ...scene,
+      version: 1,
+      scene_id: locationId,
+      location_id: locationId,
+      beat: 0,
+      goal: null,
+      focus_thread: null,
+      present_npc_ids: [],
+      focal_character_id: null,
+      last_speaker_id: null
+    }
+  };
+}
+
+function buildStoryTurnTrigger({ actionKind, csaResolution, preSave }) {
+  if (actionKind === 'feedback_revision') return { kind: 'feedback_revision' };
+  if (!csaResolution) return { kind: 'player_action' };
+  const before = new Set(Array.isArray(preSave?.csa_active) ? preSave.csa_active : []);
+  const after = new Set(Array.isArray(csaResolution.next_csa_active) ? csaResolution.next_csa_active : []);
+  return {
+    kind: 'institutional_rule_change',
+    activated_rule_ids: [...after].filter(id => !before.has(id)),
+    deactivated_rule_ids: [...before].filter(id => !after.has(id))
   };
 }
 
@@ -159,6 +187,30 @@ function hydratedSaveContext(context, master) {
   return { ...context, save: wrapped ? { ...context.save, data: hydrated } : hydrated };
 }
 
+function openingTurnProjection(save, master) {
+  const opening = plainObject(save?.opening_state) ? save.opening_state : null;
+  if (opening?.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
+  const parsedBlocks = parsePersistedNarrative(opening.story_text, { master });
+  const choices = Array.isArray(parsedBlocks?.choices)
+    ? parsedBlocks.choices
+    : (Array.isArray(opening.choices) ? opening.choices : []);
+  return {
+    player_action: '(opening)',
+    story_text: opening.story_text,
+    parsed_blocks: parsedBlocks,
+    turn_summary: '',
+    choices,
+    turn_number: 0,
+    turn_id: 'opening',
+    action_id: 'opening'
+  };
+}
+
+function withOpeningTurnProjection(context, master) {
+  const save = context?.save?.data ?? context?.save;
+  return { ...context, opening_turn: openingTurnProjection(save, master) };
+}
+
 function storySse({ meta, run }) {
   const encoder = new TextEncoder();
   return sseResponse(new ReadableStream({
@@ -210,29 +262,54 @@ function playerInfoPayload(save, catalogs, capability) {
  * independently at Story, Extract, and Commit (matching the donor's own
  * re-derive-at-each-stage pattern) instead of persisting the plan once.
  */
-async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, csaCatalog, expectedTurn }) {
+async function resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save, csaCatalog, expectedTurn }) {
   if (structuredAction == null) return null;
   const normalized = normalizeStructuredAction(structuredAction);
   if (!normalized) throw new HttpError(400, 'invalid_structured_action', 'structured_action has an invalid shape');
-  const verification = await verifyStructuredActionValidation(appValidationSecret(env), gameId, structuredAction);
-  if (!verification.ok) throw new HttpError(409, 'structured_action_invalid', 'structured_action failed validation-proof verification', false);
+  if (!structuredAction.transaction_resolution) {
+    const legacyVerification = await verifyStructuredActionValidation(appValidationSecret(env), gameId, structuredAction);
+    if (!legacyVerification.ok) throw new HttpError(409, 'structured_action_invalid', 'legacy structured_action proof verification failed', false);
+    if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', 'legacy structured_action base state is stale', false);
+    const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
+    const legacyPlan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, capability });
+    if (!legacyPlan.ok) throw new HttpError(422, (legacyPlan.error_code ?? 'app_action_invalid').toLowerCase(), 'legacy structured_action is no longer valid', false);
+    return legacyPlan;
+  }
+  const verification = await verifySignedTransactionResolution({ secret: appValidationSecret(env), gameId, structuredAction, save, expectedTurn });
+  if (!verification.ok) {
+    const code = verification.code ?? (verification.reason === 'missing transaction resolution' ? 'app_validation_expired' : 'structured_action_invalid');
+    throw new HttpError(409, code, 'signed transaction resolution verification failed', false);
+  }
   if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', '상식개변 앱을 연 뒤 게임 상태가 변경되었습니다.', false);
-  const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
-  const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, capability });
-  if (!plan.ok) throw new HttpError(422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '상식개변 앱 변경사항을 적용할 수 없습니다.', false);
-  return plan;
+  return verification.resolution;
 }
 
-export function createTurnRoutes({ fetchImpl, edition }) {
-function parseStoryProjection(raw, master) {
-  try {
-    const parsed = parseNarrative(raw ?? '', { master });
-    return plainObject(parsed) ? parsed : { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
-  } catch {
-    return { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
+function emitStoryWireEvents(emit, events, timing, visibleStartedAt) {
+  for (const event of events ?? []) {
+    if (event.type === 'section_start') emit('section_start', event);
+    else if (event.type === 'block_start') emit('block_start', event);
+    else if (event.type === 'block_end') emit('block_end', event);
+    else if (event.type === 'acting') emit('acting', event);
+    else if (event.type === 'text_delta' && event.text) {
+      if (timing && timing.story_visible_first_content_ms === undefined) {
+        timing.story_visible_first_content_ms = Date.now() - visibleStartedAt;
+        if (timing.story_first_content_ms !== undefined) {
+          timing.story_decode_overhead_ms = Math.max(0, timing.story_visible_first_content_ms - timing.story_first_content_ms);
+        }
+      }
+      emit('delta', { text: event.text });
+    }
   }
 }
 
+function emitVisibleStory(emit, raw, { master, timing } = {}) {
+  const decoder = createStoryStreamDecoder({ master });
+  const visibleStartedAt = Date.now();
+  emitStoryWireEvents(emit, decoder.push(raw), timing, visibleStartedAt);
+  emitStoryWireEvents(emit, decoder.finish(), timing, visibleStartedAt);
+}
+
+export function createTurnRoutes({ fetchImpl, edition }) {
 const master = masterFromEdition(edition);
   const npcIds = npcIdsFromEdition(edition);
   const catalogs = catalogsFromEdition(edition);
@@ -252,7 +329,8 @@ const master = masterFromEdition(edition);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: recentTurns });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
-        return ok({ context: hydratedSaveContext(context, master) });
+        const hydrated = hydratedSaveContext(context, master);
+        return ok({ context: withOpeningTurnProjection(hydrated, master) });
       } finally {
         logTurnTiming({ event_stage: 'context', request_id: requestId, game_id: gameId, context_rpc_ms: timing.context_rpc_ms, turn_total_ms: Date.now() - startedAt });
       }
@@ -280,7 +358,7 @@ const master = masterFromEdition(edition);
         const records = page.map(row => {
           const parsedBlocks = plainObject(row.parsed_blocks) && Object.keys(row.parsed_blocks).length
             ? row.parsed_blocks
-            : parseNarrative(row.story_text ?? '', { master });
+            : parsePersistedNarrative(row.story_text ?? '', { master });
           return {
             turn_number: row.turn_number,
             player_input: row.player_action,
@@ -354,8 +432,9 @@ const master = masterFromEdition(edition);
         logTurnTiming({ event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn, replayed: true, turn_total_ms: Date.now() - startedAt });
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
           // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
-          const parsed = parseStoryProjection(action.story_text, master);
-          emit('delta', { text: action.story_text });
+          const parsed = parsePersistedNarrative(action.story_text, { master });
+          if (parsed.warnings?.includes('legacy_narrative_adapter_used')) emit('delta', { text: action.story_text });
+          else emitVisibleStory(emit, action.story_text, { master });
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
         } });
       }
@@ -373,13 +452,24 @@ const master = masterFromEdition(edition);
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
-          const csaPlan = action.action_kind === 'feedback_revision'
+          const csaResolution = action.action_kind === 'feedback_revision'
             ? null
-            : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
-          const storySave = csaPlan
-            ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
-            : hydratedSave;
-          const storyContext = csaPlan
+            : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          const storyPlayerAction = csaResolution ? '' : playerAction;
+          const resolvedLocationId = resolveNavigationLocation({
+            save: hydratedSave,
+            master,
+            playerAction: storyPlayerAction,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
+          const storyBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
+            master,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
+          const storySave = csaResolution
+            ? { ...storyBaseSave, csa_active: csaResolution.next_csa_active, csa_rules: csaResolution.next_csa_rules }
+            : storyBaseSave;
+          const storyContext = csaResolution
             ? {
                 ...hydratedContext,
                 save: hydratedContext.save?.data
@@ -389,43 +479,54 @@ const master = masterFromEdition(edition);
             : hydratedContext;
           // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
           const sceneCastContract = buildSceneCastContract({
-            save: hydratedSave, master, playerAction, structuredAction,
+            save: storySave, master, playerAction: storyPlayerAction, structuredAction: csaResolution ? null : structuredAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           timing.cast_present_count = sceneCastContract.present_npc_ids.length;
           timing.cast_entering_count = sceneCastContract.entering_npc_ids.length;
           timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
           const promptStart = Date.now();
-          let messages = buildStoryPrompt({ edition, context: storyContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
-          if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
-            messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
-          }
-          if (action.action_kind === 'feedback_revision' && action.feedback_text) {
-            messages = [{ ...messages[0], content: messages[0].content + buildRegenerationFeedbackSection(action.feedback_text) }, ...messages.slice(1)];
-          }
+          const actionKind = action.action_kind === 'feedback_revision'
+            ? 'feedback_revision'
+            : (csaResolution ? 'institutional_rule_change' : 'ordinary');
+          const messages = buildStoryPrompt({
+            edition,
+            context: storyContext,
+            playerAction: storyPlayerAction,
+            expectedTurn,
+            npcIds,
+            catalogs,
+            sceneCastContract,
+            turnTrigger: buildStoryTurnTrigger({ actionKind, csaResolution, preSave: hydratedSave }),
+            feedbackText: action.action_kind === 'feedback_revision' ? action.feedback_text : ''
+          });
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
           timing.story_system_chars = messages[0].content.length;
           timing.story_context_chars = JSON.stringify(storyUserPayload.context).length;
-          timing.active_character_canon_chars = JSON.stringify(storyUserPayload.active_character_canon).length;
+          timing.scene_actor_chars = JSON.stringify(storyUserPayload.scene_actors ?? {}).length;
           timing.story_request_chars = messages[0].content.length + messages[1].content.length;
-          timing.active_character_count = Object.keys(storyUserPayload.active_character_canon ?? {}).length;
+          timing.scene_actor_count = Object.keys(storyUserPayload.scene_actors ?? {}).length;
           timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
           let stream = null;
           let upstreamRaw = '';
+          const wireDecoder = createStoryStreamDecoder({ master });
+          const visibleStartedAt = Date.now();
           try {
             stream = await streamStory({ env, fetchImpl, messages, timing });
             for await (const text of stream.chunks) {
               upstreamRaw += text;
-              emit('delta', { text });
+              emitStoryWireEvents(emit, wireDecoder.push(text), timing, visibleStartedAt);
             }
+            emitStoryWireEvents(emit, wireDecoder.finish(), timing, visibleStartedAt);
+            timing.story_visible_network_total_ms = Date.now() - visibleStartedAt;
           } catch (error) {
             throw error;
           }
           // 문서 5절 — 정본 story_text는 upstreamRaw(플레이어 가시 원문)다.
           // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
           raw = upstreamRaw;
-          const parsed = parseStoryProjection(raw, master);
+          const parsed = parseFreshNarrativeV2(raw, { master });
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
           const mergedWarnings = [...(parsed.warnings ?? [])];
           const contractPersisted = {
@@ -450,10 +551,13 @@ const master = masterFromEdition(edition);
             event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn,
             context_rpc_ms: timing.context_rpc_ms, story_prompt_ms: timing.story_prompt_ms, story_headers_ms: timing.story_headers_ms,
             story_first_content_ms: timing.story_first_content_ms, story_network_total_ms: timing.story_network_total_ms,
+            story_visible_first_content_ms: timing.story_visible_first_content_ms,
+            story_decode_overhead_ms: timing.story_decode_overhead_ms,
+            story_visible_network_total_ms: timing.story_visible_network_total_ms,
             story_character_count: timing.story_character_count,
             story_system_chars: timing.story_system_chars, story_context_chars: timing.story_context_chars,
-            active_character_canon_chars: timing.active_character_canon_chars, story_request_chars: timing.story_request_chars,
-            active_character_count: timing.active_character_count, recent_turn_count: timing.recent_turn_count,
+            scene_actor_chars: timing.scene_actor_chars, story_request_chars: timing.story_request_chars,
+            scene_actor_count: timing.scene_actor_count, recent_turn_count: timing.recent_turn_count,
             turn_total_ms: Date.now() - startedAt
           });
         }
@@ -474,10 +578,8 @@ const master = masterFromEdition(edition);
         stage: 'extract'
       });
       if (action.extract_delta) {
-        const replayParsedStory = parseStoryProjection(action.story_text, master);
-        const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId })
-          : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId });
+        const replayParsedStory = parsePersistedNarrative(action.story_text, { master });
+        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
@@ -493,9 +595,8 @@ const master = masterFromEdition(edition);
       Object.assign(action, claimedExtract);
 
       const timing = {};
-      let degraded = false;
       try {
-        let parsedStory = parseStoryProjection(action.story_text, master);
+        let parsedStory = parsePersistedNarrative(action.story_text, { master });
         // Extract observes the same raw Story text that was streamed to the player.
         const storyForExtract = action.story_text;
         let extract;
@@ -505,44 +606,38 @@ const master = masterFromEdition(edition);
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
-          const csaPlan = action.action_kind === 'feedback_revision'
+          const csaResolution = action.action_kind === 'feedback_revision'
             ? null
-            : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
-          const applicableCsa = getApplicableCsaEntries(hydratedSave);
+            : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
            // Speaker identity remains a post-hoc projection; raw Story is passed to Extract unchanged.
 
           const promptStart = Date.now();
           // CSA transaction 턴에는 post-transaction save로 Extract context를 만든다
           // (Story 경로와 동일한 단일 정본 — runtime wrapper가 다시 덮어쓸 필요가 없다).
-          const extractSave = csaPlan
-            ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
-            : hydratedSave;
-          const extractContext = csaPlan
-            ? {
-                ...hydratedContext,
-                save: hydratedContext.save?.data
-                  ? { ...hydratedContext.save, data: extractSave }
-                  : extractSave
-              }
-            : hydratedContext;
-          const movementContract = buildSceneCastContract({
+          const resolvedLocationId = resolveNavigationLocation({
             save: hydratedSave,
             master,
-            playerAction: action.player_action,
-            structuredAction,
+            // Extract observes the completed Story; player input is not an
+            // observation authority and must not influence its prompt context.
+            playerAction: '',
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
-          if (movementContract.transition_mode === 'movement' && movementContract.destination_location_id) {
-            const destination = edition?.map?.locations?.find(location => location?.location_id === movementContract.destination_location_id);
-            if (destination) {
-              messages = [{
-                ...messages[0],
-                content: `${messages[0].content}\n\n[MOVEMENT OBSERVATION SCOPE] This is an explicit movement turn. Navigation has already resolved the canonical destination from the stored player action. Do not decide, confirm, or reject movement from Story wording. scene_observation.location_id and final_present_npc_ids are not required for this movement turn; leave them null or omit them when not directly observed. Observe only non-navigation changes actually described in the raw Story. Do not invent a different destination or use movement evidence to override the resolved navigation.`
-              }, ...messages.slice(1)];
-            }
-          }
-          const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
+          const extractBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
+            master,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
+          const extractSave = csaResolution
+            ? { ...extractBaseSave, csa_active: csaResolution.next_csa_active, csa_rules: csaResolution.next_csa_rules }
+            : extractBaseSave;
+          const applicableCsa = getApplicableCsaEntries(extractSave);
+          const extractContext = {
+            ...hydratedContext,
+            save: hydratedContext.save?.data
+              ? { ...hydratedContext.save, data: extractSave }
+              : extractSave
+          };
+          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, expectedTurn: action.expected_turn, edition, npcIds });
+          const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaResolution) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa);
           if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
@@ -550,7 +645,7 @@ const master = masterFromEdition(edition);
           const extractUserPayload = JSON.parse(messages[1].content);
           timing.extract_system_chars = messages[0].content.length;
           timing.extract_context_chars = JSON.stringify(extractUserPayload.context).length;
-          timing.parsed_story_chars = 0;
+          timing.parsed_story_chars = JSON.stringify(parsedStory).length;
           timing.extract_request_chars = messages[0].content.length + messages[1].content.length;
           timing.active_character_count = activeCountFromNpcState(extractUserPayload.context?.active_npc_state);
           const llmStart = Date.now();
@@ -559,12 +654,11 @@ const master = masterFromEdition(edition);
           const parseStart = Date.now();
           // Fresh Extract calls are V2-only. The legacy adapter is reserved for
           // persisted V1 rows during replay/recovery, never for a new LLM result.
-          extract = normalizeExtractObservationV2(raw, {
+          extract = normalizeFreshExtractObservationV2(raw, {
             npcIds,
             storyText: storyForExtract,
             expectedTurn: action.expected_turn,
             actionId,
-            movement: movementContract.transition_mode === 'movement'
           });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
@@ -584,12 +678,12 @@ const master = masterFromEdition(edition);
           // not turn a successful Extract into a stuck action, so resync with the source of truth.
           await db.getAction(gameId, actionId).catch(() => null);
         }
-        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, degraded, parsed_blocks: parsedStory });
+        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, parsed_blocks: parsedStory });
       } finally {
         logTurnTiming({
           event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId,
           context_rpc_ms: timing.context_rpc_ms, extract_prompt_ms: timing.extract_prompt_ms, extract_llm_ms: timing.extract_llm_ms,
-          extract_parse_ms: timing.extract_parse_ms, extract_degraded: degraded,
+          extract_parse_ms: timing.extract_parse_ms,
           extract_system_chars: timing.extract_system_chars, extract_context_chars: timing.extract_context_chars,
           parsed_story_chars: timing.parsed_story_chars, extract_request_chars: timing.extract_request_chars,
           active_character_count: timing.active_character_count,
@@ -618,97 +712,34 @@ const master = masterFromEdition(edition);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
-        const currentSave = context.save?.data ?? context.save;
-        const movementContract = buildSceneCastContract({
+        const currentSave = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        const csaResolution = action.action_kind === 'feedback_revision'
+          ? null
+          : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
+        const resolvedLocationId = resolveNavigationLocation({
           save: currentSave,
           master,
-          playerAction: action.player_action,
-          structuredAction,
+          playerAction: csaResolution ? '' : action.player_action,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
-        let parsedStory = parseStoryProjection(action.story_text, master);
-        const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, {
-              npcIds,
-              storyText: action.story_text,
-              expectedTurn,
-              actionId,
-              movement: movementContract.transition_mode === 'movement'
-            })
-          : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
+        let parsedStory = parsePersistedNarrative(action.story_text, { master });
+        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,
           action, expectedTurn, master, npcIds,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
-          movementContract
+          authoritativeLocationId: resolvedLocationId,
+          structuredAction: action.action_kind === 'feedback_revision' ? null : structuredAction,
+          transactionResolution: csaResolution
         });
         timing.commit_reducer_ms = Date.now() - reducerStart;
         let nextSave = merged.nextSave;
         const warnings = merged.warnings;
-        const canonicalScene = merged.canonical_scene;
-        // Canonical scene reduction is the only gameplay presence writer. Feedback revisions
-        // and degraded observations preserve the existing canonical scene.
-        // The app transaction never gets its own save API; its csa_active/csa_rules result rides
-        // through the normal V2 Commit reducer on top of the Extract observation.
-        const csaPlan = action.action_kind === 'feedback_revision'
-          ? null
-          : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
-        const definitionAction = action.action_kind === 'feedback_revision' ? null : structuredAction;
-        applyAuthorizedRuleDefinitions({
-          currentSave,
-          nextSave,
-          csaPlan,
-          structuredAction: definitionAction,
-          stage: 'commit'
-        });
-        // Extract's csa_trigger_evaluations/csa_runtime_updates persist scene-execution
-        // status (active/temporarily_interrupted/paused/ended) into next turn's Context.
-        // Validated per-item against the *post-transaction* active-preset-CSA set and the
+        // Commit gameplay state is reduced by reduceGameplayCommit.
         // NPCs actually present this turn — an item naming anything else is silently
-        // dropped inside buildCsaRuntimeStatePatch itself.
-        const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
-        const runtimeResult = buildCsaSceneRuntimeStatePatch({
-          previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
-          activeCsa: activeCsaAfterPlan, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn
-        });
-        if (runtimeResult.patch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeResult.patch };
-        if (runtimeResult.warnings.length) warnings.push(...runtimeResult.warnings);
-        if (csaPlan) {
-          const deactivatedIds = csaPlan.canonical_action.operations.filter(operation => operation.operation === 'deactivate').map(operation => operation.id);
-          if (deactivatedIds.length) {
-            const aftereffectPatch = buildCsaAftereffectPatch({ previousSave: nextSave, deactivatedIds, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn });
-            if (aftereffectPatch) nextSave.csa_aftereffect_state = aftereffectPatch;
-          }
-        }
-        // Player level/exp — ported verbatim from donor's live calculateProgress/
-        // calculateCsaProgression (see src/engine/progression.js); Company had no progression
-        // writer of its own before this. Never grants exp on a degraded-Extract turn or for a
-        // feedback revision (replacing a turn's content is not a new turn earning fresh exp).
-        if (action.action_kind !== 'feedback_revision') {
           // 진행도는 reducer가 승인한 실행(accepted_executions)만 반영한다 —
           // 잘못된(범위 밖/장면 외/action_state 불일치) update는 경험치도 주지 않는다.
-          const experiencedThisTurn = runtimeResult.accepted_executions;
-          const previouslyExperienced = new Set(Array.isArray(currentSave.csa_experienced_ids) ? currentSave.csa_experienced_ids : []);
-          const progressionAmount = calculateCsaProgression({
-            csaOperations: csaPlan?.canonical_action?.operations ?? [], experiencedThisTurn, previouslyExperienced,
-            degraded: extract.outcome === 'degraded'
-          });
-          if (progressionAmount.newly_experienced_keys.length) {
-            nextSave.csa_experienced_ids = [...previouslyExperienced, ...progressionAmount.newly_experienced_keys];
-          }
-          if (progressionAmount.amount > 0) {
-            const progress = calculateProgress(currentSave.player_progress, progressionAmount.amount);
-            nextSave.player_progress = { level: progress.level, exp: progress.exp };
-          }
-        }
-        assertRuleDefinitionAuthority({
-          currentSave,
-          nextSave,
-          csaPlan,
-          structuredAction: definitionAction,
-          stage: 'commit-final'
-        });
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
         // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.
@@ -779,46 +810,6 @@ const master = masterFromEdition(edition);
         return ok({ character_id: characterId, image: selected });
       } finally {
         logTurnTiming({ event_stage: 'image', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
-      }
-    },
-
-    /**
-     * TTS is opt-in and only ever called by the frontend for a confirmed, already-rendered
-     * dialogue line — this route's own job is the server-side backstop: narrator lines, unknown
-     * speakers, and characters with no voice_id are all rejected before any external call is
-     * made, regardless of what the client requests. A rejection or an upstream TTS failure
-     * returns a normal error response; it can never fail Story/Extract/Commit since nothing in
-     * that pipeline ever calls this route.
-     */
-    async tts(request, env) {
-      const requestId = newRequestId();
-      const startedAt = Date.now();
-      const body = await readJson(request);
-      const gameId = requireString(body.game_id, 'game_id');
-      const text = requireString(body.text, 'text');
-      const speakerId = typeof body.character_id === 'string' ? body.character_id : null;
-      try {
-        const eligibility = resolveTtsEligibility({ speakerId, text, master });
-        if (!eligibility.eligible) throw new HttpError(422, eligibility.code.toLowerCase(), 'TTS를 재생할 수 없습니다.', false);
-        const ttsUrl = env?.TTS_API_URL;
-        const ttsKey = env?.TTS_API_KEY;
-        if (typeof ttsUrl !== 'string' || !ttsUrl || typeof ttsKey !== 'string' || !ttsKey) {
-          throw new HttpError(500, 'configuration_error', 'TTS_API_URL/TTS_API_KEY is not configured', false);
-        }
-        let response;
-        try {
-          response = await fetchImpl(ttsUrl, {
-            method: 'POST',
-            headers: { authorization: `Bearer ${ttsKey}`, 'content-type': 'application/json' },
-            body: JSON.stringify({ voice_id: eligibility.voice_id, text })
-          });
-        } catch {
-          throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
-        }
-        if (!response.ok) throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
-        return new Response(response.body, { headers: { 'content-type': response.headers.get('content-type') ?? 'audio/mpeg', 'cache-control': 'public, max-age=86400' } });
-      } finally {
-        logTurnTiming({ event_stage: 'tts', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
     },
 
@@ -921,8 +912,17 @@ const master = masterFromEdition(edition);
 
       if (preSave?.player_setup?.completed === true && preSave?.opening_state?.status === 'complete') {
         return storySse({ meta: { setup_id: setupId, replayed: true }, run: async emit => {
-          emit('delta', { text: preSave.opening_state.story_text });
-          emit('complete', { setup_id: setupId, choices: preSave.opening_state.choices, replayed: true });
+          const projection = openingTurnProjection(preSave, master);
+          const parsedOpening = projection?.parsed_blocks ?? parsePersistedNarrative(preSave.opening_state.story_text, { master });
+          if (parsedOpening.warnings?.includes('legacy_narrative_adapter_used')) emit('delta', { text: preSave.opening_state.story_text });
+          else emitVisibleStory(emit, preSave.opening_state.story_text, { master });
+          emit('complete', {
+            setup_id: setupId,
+            choices: projection?.choices ?? [],
+            parsed_blocks: parsedOpening,
+            warnings: parsedOpening.warnings ?? [],
+            replayed: true
+          });
         } });
       }
 
@@ -935,19 +935,23 @@ const master = masterFromEdition(edition);
           const canonical = resolvePlayerCanonicalNames(player, catalogs);
           const messages = buildOpeningPrompt({ edition, player, canonical, openingPlan });
           let raw = '';
+          const wireDecoder = createStoryStreamDecoder({ master });
+          const visibleStartedAt = Date.now();
           try {
             const stream = await streamStory({ env, fetchImpl, messages, timing });
             for await (const text of stream.chunks) {
               raw += text;
-              emit('delta', { text });
+              emitStoryWireEvents(emit, wireDecoder.push(text), timing, visibleStartedAt);
             }
+            emitStoryWireEvents(emit, wireDecoder.finish(), timing, visibleStartedAt);
+            timing.story_visible_network_total_ms = Date.now() - visibleStartedAt;
           } catch (error) {
             throw error;
           }
-          const { background, body: sections, warnings: splitWarnings } = splitOpeningSections(raw);
-          const parsedOpening = parseNarrative(sections, { master });
-          const rawChoices = (Array.isArray(parsedOpening.choices) ? parsedOpening.choices : []).filter(choice => typeof choice === 'string' && choice.trim());
-          const finalChoices = rawChoices;
+          const background = '';
+          const splitWarnings = [];
+          const parsedOpening = parseFreshNarrativeV2(raw, { master });
+          const finalChoices = Array.isArray(parsedOpening.canonical_choices) ? parsedOpening.canonical_choices : [];
           const commit = await db.callRpc('commit_company_opening', {
             p_game_id: gameId,
             p_setup_id: setupId,
@@ -957,13 +961,17 @@ const master = masterFromEdition(edition);
           });
           emit('complete', {
             setup_id: setupId, choices: finalChoices, background,
-            warnings: [...splitWarnings, ...parsedOpening.warnings], replayed: false, commit
+            warnings: [...splitWarnings, ...parsedOpening.warnings],
+            parsed_blocks: parsedOpening,
+            replayed: false, commit
           });
         } finally {
           logTurnTiming({
             event_stage: 'opening', request_id: requestId, game_id: gameId,
             story_headers_ms: timing.story_headers_ms, story_first_content_ms: timing.story_first_content_ms,
-            story_network_total_ms: timing.story_network_total_ms, story_character_count: timing.story_character_count,
+            story_network_total_ms: timing.story_network_total_ms, story_visible_first_content_ms: timing.story_visible_first_content_ms,
+            story_decode_overhead_ms: timing.story_decode_overhead_ms, story_visible_network_total_ms: timing.story_visible_network_total_ms,
+            story_character_count: timing.story_character_count,
             turn_total_ms: Date.now() - startedAt
           });
         }
@@ -1058,11 +1066,33 @@ const master = masterFromEdition(edition);
             ))
           };
         }
+        const finalPlan = semanticResults.length
+          ? planCsaTransaction(save, csaCatalog, canonicalAction.operations, { turnNumber: committedTurn + 1, capability })
+          : plan;
+        if (!finalPlan.ok) {
+          throw new HttpError(finalPlan.status ?? 422, (finalPlan.error_code ?? 'app_action_invalid').toLowerCase(), 'final transaction resolution is invalid', false, finalPlan.issues);
+        }
+        canonicalAction = finalPlan.canonical_action;
+        const transactionResolution = await buildTransactionResolution({ plan: finalPlan, save, baseTurnCount: canonicalAction.base_turn_count });
         const actionDigest = await sha256Base64url(stableStringify({ version: canonicalAction.version, type: canonicalAction.type, base_turn_count: canonicalAction.base_turn_count, operations: canonicalAction.operations }));
         const resolvedResults = semanticResults.map(item => ({ client_id: item.client_id, required_strength: item.required_strength, semantic_contract: item.semantic_contract }));
-        const semantic_validation = { version: 1, game_id: gameId, base_turn_count: canonicalAction.base_turn_count, action_digest: actionDigest, results: resolvedResults };
-        const validation_proof = await signAppValidationProof(appValidationSecret(env), { game_id: gameId, base_turn_count: canonicalAction.base_turn_count, action_digest: actionDigest, semantic_results: resolvedResults });
-        canonicalAction = { ...canonicalAction, semantic_validation, validation_proof };
+        const semantic_validation = {
+          version: 2,
+          game_id: gameId,
+          base_turn_count: canonicalAction.base_turn_count,
+          action_digest: actionDigest,
+          planner_input_digest: transactionResolution.planner_input_digest,
+          resolution_digest: transactionResolution.resolution_digest,
+          results: resolvedResults
+        };
+        const validation_proof = await signTransactionValidationProof(appValidationSecret(env), {
+          game_id: gameId,
+          base_turn_count: canonicalAction.base_turn_count,
+          action_digest: actionDigest,
+          resolution_digest: transactionResolution.resolution_digest,
+          semantic_results: resolvedResults
+        });
+        canonicalAction = { ...canonicalAction, transaction_resolution: transactionResolution, semantic_validation, validation_proof };
 
         return ok({ canonical_action: canonicalAction, display_input: plan.display_input, summary: plan.summary });
       } finally {

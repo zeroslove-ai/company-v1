@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { enrichAppEnvelope, enrichContextEnvelope, envelopeContext } from '../src/api/product-response.js';
+import { enrichAppEnvelope, enrichContextEnvelope } from '../src/api/product-response.js';
 
 const edition = {
   organization: {
@@ -65,29 +65,37 @@ function context() {
   };
 }
 
-test('context enrichment writes into payload.data.context rather than an unused top-level field', () => {
+test('context enrichment keeps active display fields and omits dead projections', () => {
   const payload = { ok: true, data: { context: context() } };
   const enriched = enrichContextEnvelope(payload, edition);
   assert.equal(enriched.ok, true);
   assert.equal(enriched.context, undefined);
-  assert.equal(enriched.data.context.display.player_info.name, '금태양');
-  assert.equal(enriched.data.context.display.player_info.height_cm, 183);
-  assert.equal(enriched.data.context.display.player_info.current_location, '대회의실');
-  assert.equal(enriched.data.context.display.npc_finder.length, 2);
-  assert.equal(envelopeContext(enriched), enriched.data.context);
+  assert.equal(enriched.data.context.display.player_info, undefined);
+  assert.equal(enriched.data.context.display.npc_finder, undefined);
+  assert.ok(Array.isArray(enriched.data.context.display.map_locations));
+  assert.ok(enriched.data.context.display.npc_default_locations);
+  assert.ok(enriched.data.context.display.character_details);
+  assert.ok(enriched.data.context.display.player_sexual);
 });
 
-test('app enrichment writes complete player and registered NPC data into payload.data.app', () => {
-  const payload = { ok: true, data: { app: { player_info: { name: '부분값' }, npcs: [] } } };
+test('app enrichment keeps canonical app data without finder projections', () => {
+  const payload = { ok: true, data: { app: { player_info: { name: 'old' }, npcs: [] } } };
   const enriched = enrichAppEnvelope(payload, context(), edition);
   assert.equal(enriched.ok, true);
   assert.equal(enriched.app, undefined);
   assert.equal(enriched.data.app.player_info.name, '금태양');
   assert.equal(enriched.data.app.player_info.position, 'TF팀장');
   assert.equal(enriched.data.app.player_info.penis_length_cm, 19);
-  assert.equal(enriched.data.app.npcs.length, 2);
+  assert.equal(enriched.data.app.npcs.length, 1);
   assert.equal(enriched.data.app.npcs[0].name, '서원희');
   assert.equal(enriched.data.app.npcs[0].stats.resistance, 40);
   assert.equal(enriched.data.app.npcs[0].mind.surface, '업무를 확인한다.');
-  assert.equal(enriched.data.app.finder_npcs.length, 2);
+  assert.equal(enriched.data.app.finder_npcs, undefined);
+  assert.deepEqual(enriched.data.app.npcs[0].location, {
+    known: true,
+    location_label: '대회의실',
+    location_id: 'large_meeting_room'
+  });
+  assert.equal(enriched.data.app.npcs[0].location.suggested_location_id, undefined);
+  assert.equal(enriched.data.app.npcs[0].location.suggested_location_label, undefined);
 });

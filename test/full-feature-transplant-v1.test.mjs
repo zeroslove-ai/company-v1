@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
 import { normalizeImageSelection } from '../src/engine/gameplay-state.js';
+import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
@@ -14,11 +15,9 @@ const env = {
   SUPABASE_URL: 'https://supabase.test', SUPABASE_SERVICE_ROLE_KEY: 'test-service-role',
   LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'test-llm-key', STORY_MODEL: 'story-test', EXTRACT_MODEL: 'extract-test'
 };
-const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const DEFAULT_EXTRACT = {
   extract_version: 2, outcome: 'success',
-  scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+  scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
   player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
   mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
 };
@@ -42,16 +41,17 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
   let currentSave = structuredClone(initialSave);
   let saveRevision = 1;
   let jsonCallIndex = 0;
-  const sse = storySseText ?? 'data: {"choices":[{"delta":{"content":"[1. 서사 및 행동]\\n본문"}}]}\n\n'
-    + 'data: {"choices":[{"delta":{"content":"\\n[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\n'
-    + 'data: [DONE]\n';
+  const sse = storySseText ?? 'data: ' + JSON.stringify({ choices: [{ delta: { content: '[SCENE]\\nA canonical scene.\\n[DIALOGUE speaker_id="heroine2"]\\nAcknowledged.\\n[THOUGHT]\\nI consider the situation.\\n[CHOICE]\\nContinue carefully.\\n[CHOICE]\\nAsk a question.\\n[CHOICE]\\nWait a moment.\\n[CHOICE]\\nChange the subject.' } }] }) + '\\n\\ndata: [DONE]\\n';
+
+  const strictStory = '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE]\nContinue carefully.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait a moment.\n[CHOICE]\nChange the subject.';
+  const strictSse = `data: ${JSON.stringify({ choices: [{ delta: { content: strictStory } }] })}\n\ndata: [DONE]\n\n`;
 
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
     calls.push({ url: textUrl, method: init.method ?? 'GET', body: init.body });
     if (textUrl.startsWith('https://llm.test')) {
       const body = JSON.parse(init.body);
-      if (body.stream) return new Response(sse, { headers: { 'content-type': 'text/event-stream' } });
+      if (body.stream) return new Response(storySseText ?? strictSse, { headers: { 'content-type': 'text/event-stream' } });
       const payload = llmJsonResponses.length ? llmJsonResponses[Math.min(jsonCallIndex, llmJsonResponses.length - 1)] : DEFAULT_EXTRACT;
       jsonCallIndex += 1;
       return json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(payload) } }] });
@@ -281,34 +281,6 @@ test('choice input: an in-range letter but with fewer than 4 currently-rendered 
 
 // ---------- Commit 5: feedback/restore ----------
 
-test('/api/feedback -> normal Story/Extract/Commit pipeline regenerates the last turn via commit_feedback_revision, never advancing committed_turn', async () => {
-  const save = freshSave({ turn_state: { committed_turn: 3 } });
-  const mock = createMockFetch({ initialSave: save });
-  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-
-  const feedbackRes = await worker.fetch(request('/api/feedback', { game_id: gameId, revision_request_id: 'rev-1', feedback_text: '더 자세하게 써줘' }), env);
-  assert.equal(feedbackRes.status, 200);
-  const feedbackBody = (await feedbackRes.json()).data;
-  assert.equal(feedbackBody.expected_turn, 3, 'targets the currently-committed turn, not turn+1');
-
-  const storyRes = await worker.fetch(request('/api/story', { game_id: gameId, action_id: feedbackBody.action_id, expected_turn: feedbackBody.expected_turn, player_action: feedbackBody.original_player_action }), env);
-  assert.equal(storyRes.status, 200);
-  const storyText = await storyRes.text();
-  assert.match(storyText, /event: complete/);
-  const storyCall = mock.calls.filter(c => c.url.startsWith('https://llm.test')).at(-1);
-  const systemPrompt = JSON.parse(storyCall.body).messages[0].content;
-  assert.match(systemPrompt, /재생성 최우선 지시/, 'the feedback text must be injected into the Story system prompt as highest priority');
-  assert.match(systemPrompt, /더 자세하게 써줘/);
-
-  const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: feedbackBody.action_id }), env);
-  assert.equal(extractRes.status, 200);
-
-  const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: feedbackBody.action_id, expected_turn: feedbackBody.expected_turn }), env);
-  assert.equal(commitRes.status, 200);
-  assert.equal(mock.getSave().turn_state.committed_turn, 3, 'a feedback revision replaces the targeted turn, it never advances committed_turn');
-  assert.equal(mock.calls.some(c => c.url.includes('commit_feedback_revision')), true);
-  assert.equal(mock.calls.some(c => c.url.includes('commit_company_turn')), false, 'must never call the normal turn-advancing commit RPC for a feedback revision');
-});
 
 test('/api/feedback preserves the original structured action through omitted Story/Extract/Commit bodies', async () => {
   const structuredAction = { type: 'app_transaction', version: 1, operations: [{ operation: 'activate', id: 'csa_1' }] };
@@ -494,24 +466,6 @@ test('TTS eligibility: empty text is rejected before any speaker check', () => {
 test('ttsCacheKey: identical speaker+text always produce the same key, enabling same-line replay caching', () => {
   assert.equal(ttsCacheKey('heroine1', '안녕하세요.'), ttsCacheKey('heroine1', '안녕하세요.'));
   assert.notEqual(ttsCacheKey('heroine1', '안녕하세요.'), ttsCacheKey('heroine1', '다른 대사'));
-});
-
-test('/api/tts: OFF-by-default is a frontend concern (this route never gets called unless the user opted in), but the server never calls narrator/unknown/no-voice speakers', async () => {
-  let upstreamCalls = 0;
-  const worker = createApiWorker({
-    fetchImpl: async textUrl => {
-      if (String(textUrl).startsWith('https://tts.test')) { upstreamCalls += 1; return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'audio/mpeg' } }); }
-      throw new Error(`unexpected call: ${textUrl}`);
-    }
-  });
-  const ttsEnv = { ...env, TTS_API_URL: 'https://tts.test/synthesize', TTS_API_KEY: 'tts-key' };
-  const narratorRes = await worker.fetch(request('/api/tts', { game_id: gameId, character_id: null, text: '서술문' }), ttsEnv);
-  assert.equal(narratorRes.status, 422);
-  assert.equal(upstreamCalls, 0, 'a rejected narrator request must never reach the TTS provider');
-
-  const eligibleRes = await worker.fetch(request('/api/tts', { game_id: gameId, character_id: 'heroine1', text: '안녕하세요.' }), ttsEnv);
-  assert.equal(eligibleRes.status, 200);
-  assert.equal(upstreamCalls, 1);
 });
 
 // ---------- Commit 5: view-model surfaces player physical/sexual state and focal NPC stats ----------

@@ -25,7 +25,7 @@ function uniqueNpcIds(value, npcIds) {
   for (const candidate of Array.isArray(value) ? value : []) {
     const id = stringId(candidate);
     if (!id || isPlayerId(id) || seen.has(id)) continue;
-    if (npcIds instanceof Set && !npcIds.has(id)) continue;
+    if (npcIds instanceof Set && npcIds.size > 0 && !npcIds.has(id)) continue;
     seen.add(id);
     result.push(id);
   }
@@ -150,44 +150,56 @@ export function reduceCanonicalScene(input = {}) {
   const next = { ...current, present_npc_ids: [...current.present_npc_ids] };
   const feedbackRevision = input.actionKind === 'feedback_revision';
   if (feedbackRevision) return next;
-  const movementDestinationId = stringId(input.movementDestinationId);
-  const observedLocation = movementDestinationId ?? observation.location_id ?? null;
+  const authoritativeLocationId = stringId(input.authoritativeLocationId);
+  const observedLocation = authoritativeLocationId ?? observation.location_id ?? null;
   if (observedLocation !== null && locations.size && !locations.has(observedLocation)) {
     throw new GameCoreError('SCENE_LOCATION_UNKNOWN', `Unknown scene location: ${observedLocation}`);
   }
   const moved = observedLocation !== null && observedLocation !== current.location_id;
   const degraded = observation.outcome === 'degraded';
-  const successMovement = Boolean(movementDestinationId) || (moved && observation.outcome === 'success');
-  const stationary = !moved;
-  if (successMovement) {
-    if (!movementDestinationId && !Array.isArray(observation.final_present_npc_ids)) {
-      throw new GameCoreError('SCENE_PRESENCE_REQUIRED_FOR_MOVEMENT', 'A location change requires a final presence snapshot');
-    }
+  const authoritativeLocationChange = Boolean(authoritativeLocationId && moved);
+  if (authoritativeLocationChange) {
     next.location_id = observedLocation;
-    next.scene_id = movementDestinationId ? observedLocation : (observation.scene_id ?? null);
+    next.scene_id = observedLocation;
     next.beat = 0;
-    next.goal = movementDestinationId ? null : (observation.scene_goal_provided ? observation.scene_goal : null);
-    next.focus_thread = movementDestinationId ? null : (observation.focus_thread_provided ? observation.focus_thread : null);
-    next.present_npc_ids = movementDestinationId
-      ? (Array.isArray(observation.final_present_npc_ids)
-        ? uniqueNpcIds(observation.final_present_npc_ids, npcIds)
-        : [])
-      : uniqueNpcIds(observation.final_present_npc_ids, npcIds);
-  } else if (stationary && !degraded && observation.outcome === 'success' && Array.isArray(observation.final_present_npc_ids)) {
+    next.goal = null;
+    next.focus_thread = null;
+    next.present_npc_ids = [];
+  }
+  if (!degraded && observation.outcome === 'success' && Array.isArray(observation.final_present_npc_ids)) {
     next.present_npc_ids = uniqueNpcIds(observation.final_present_npc_ids, npcIds);
     if (observation.scene_id !== null && observation.scene_id !== undefined) next.scene_id = observation.scene_id;
+    if (moved && observedLocation !== null) next.location_id = observedLocation;
     if (observation.scene_goal_provided) next.goal = observation.scene_goal;
     if (observation.focus_thread_provided) next.focus_thread = observation.focus_thread;
   }
   const currentIds = new Set(next.present_npc_ids);
   const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
   for (const speaker of speakers) {
-    if (movementDestinationId) continue;
-    if (isPlayerId(speaker) || currentIds.has(speaker) || observation.remote_speaker_ids?.includes(speaker)) continue;
-    throw new GameCoreError(
-      Array.isArray(observation.final_present_npc_ids) ? 'SCENE_PRESENCE_CONTRADICTS_STORY' : 'SCENE_PRESENCE_UNRESOLVED',
-      `Story speaker ${speaker} is absent from the canonical scene`
-    );
+    if (isPlayerId(speaker) || currentIds.has(speaker)) continue;
+    if (observation.remote_speaker_ids?.includes(speaker)) {
+      if (!npcIds.has(speaker)) {
+        throw new GameCoreError('SCENE_PRESENCE_UNRESOLVED', `Story speaker ${speaker} is not a registered remote NPC`);
+      }
+      continue;
+    }
+    // A registered local dialogue speaker is direct post-Story presence
+    // evidence.  Pre-Story cast is a context projection, not a whitelist that
+    // can invalidate a naturally appearing registered NPC.  Unknown IDs still
+    // fail closed, and remote speakers remain non-local.
+    if (!npcIds.has(speaker)) {
+      throw new GameCoreError(
+        Array.isArray(observation.final_present_npc_ids) ? 'SCENE_PRESENCE_CONTRADICTS_STORY' : 'SCENE_PRESENCE_UNRESOLVED',
+        `Story speaker ${speaker} is not a registered local NPC`
+      );
+    }
+    // A complete final snapshot is authoritative even when a speaker leaves
+    // before the Story ends.  Only a null snapshot may be supplemented by
+    // best-known local speaker evidence.
+    if (!Array.isArray(observation.final_present_npc_ids)) {
+      next.present_npc_ids = [...next.present_npc_ids, speaker];
+      currentIds.add(speaker);
+    }
   }
   const explicitFocal = stringId(observation.focal_candidate_id);
   if (explicitFocal && currentIds.has(explicitFocal)) {
@@ -198,10 +210,8 @@ export function reduceCanonicalScene(input = {}) {
   }
   const lastSpeaker = stringId(observation.last_explicit_speaker_id);
   next.last_speaker_id = lastSpeaker;
-  if (successMovement) next.updated_turn = Number.isInteger(input.expectedTurn) ? input.expectedTurn : current.updated_turn;
-  else next.updated_turn = Number.isInteger(input.expectedTurn) ? input.expectedTurn : validInteger(current.updated_turn, 0) + 1;
-  if (successMovement) next.beat = 0;
-  else next.beat = validInteger(current.beat, 0) + 1;
+  next.updated_turn = Number.isInteger(input.expectedTurn) ? input.expectedTurn : validInteger(current.updated_turn, 0) + 1;
+  if (!authoritativeLocationChange) next.beat = validInteger(current.beat, 0) + 1;
   return next;
 }
 

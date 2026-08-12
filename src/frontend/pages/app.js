@@ -11,7 +11,6 @@ import { createCompanyTts } from './tts.js';
 import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
-import { projectStreamingSections, projectStreamingText } from './narrative.js';
 
 // Duplicated (deliberately, not imported) from src/engine/choice-input.js: the frontend Worker
 // serves only src/frontend/pages as static assets (wrangler.frontend.jsonc), so a relative
@@ -40,7 +39,11 @@ function messageFor(error) {
   if (error instanceof ApiError) return error.code === 'turn_conflict' ? '턴 충돌이 발생했습니다. 현재 상태를 다시 불러오세요.' : error.message;
   return '예상하지 못한 오류가 발생했습니다.';
 }
-function hasFourChoices(value) { return Array.isArray(value) && value.length === 4 && value.every(choice => typeof choice === 'string' && choice.trim()); }
+function hasFourChoices(value) {
+  return Array.isArray(value) && value.length === 4
+    && value.every(choice => typeof choice === 'string' && choice.trim())
+    && new Set(value.map(choice => choice.trim())).size === 4;
+}
 
 /**
  * 세션 단위 Story 타임라인 병합 — 새 브라우저 세션에서 진행한 턴을 누적한다.
@@ -58,8 +61,39 @@ export function mergeSessionTurns(current, incoming) {
   return [...map.values()].sort((a, b) => a.turn_number - b.turn_number);
 }
 
-export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
-  return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
+export function choicesForRenderer(viewModel, streamedStoryChoices) {
+  if (streamedStoryChoices === null) return [];
+  if (Array.isArray(streamedStoryChoices)) return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : [];
+  return viewModel?.story?.choices ?? [];
+}
+
+export function reduceStoryWireProjection(state = {}, item = {}) {
+  const blocks = Array.isArray(state.blocks) ? state.blocks : [];
+  let current = state.current ?? null;
+  let lastDialogue = state.lastDialogue ?? null;
+  if (item.event === 'block_start') {
+    current = {
+      type: item.data?.block_type ?? 'scene',
+      speaker_id: item.data?.speaker_id ?? null,
+      speaker_name: item.data?.speaker_name ?? item.data?.speaker_id ?? '',
+      acting_direction: null,
+      label: item.data?.label ?? null,
+      text: ''
+    };
+    blocks.push(current);
+    lastDialogue = null;
+  } else if (item.event === 'block_end') {
+    if (current?.type === 'dialogue') lastDialogue = current;
+    else lastDialogue = null;
+    current = null;
+  } else if (item.event === 'acting') {
+    const target = current?.type === 'dialogue' ? current : lastDialogue;
+    if (target) target.acting_direction = item.data?.acting_direction ?? null;
+  } else if (item.event === 'delta') {
+    if (current) current.text += item.data?.text ?? '';
+    else lastDialogue = null;
+  }
+  return { blocks, current, lastDialogue };
 }
 
 export function toolbarCapabilities(viewModel, pendingAction, { context, busy = false, recoveryPending = false, utilityAvailable = null } = {}) {
@@ -137,6 +171,9 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
           pending.action_id = serverActionId;
           persistPending(pending);
         }
+      }
+      if (item.event === 'section_start' || item.event === 'block_start' || item.event === 'block_end' || item.event === 'acting') {
+        onStory?.({ item, pending, streaming: true, protocol: item.data });
       }
       if (item.event === 'delta') {
         const text = item.data?.text ?? '';
@@ -217,7 +254,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
-  let context = null, viewModel = null, viewModelContext = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null, ttsController = null;
+  let context = null, viewModel = null, viewModelContext = null, streamedStoryChoices, busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null, ttsController = null;
   // 세션 단위 Story 타임라인 — 페이지 로드 시 최신 1턴으로 시작하고, 같은 세션에서
   // 완료된 턴을 메모리에 누적한다. 새로고침하면 다시 최신 1턴만 표시한다.
   let sessionHistory = [];
@@ -229,8 +266,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
   const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; elements.current?.replaceChildren?.(); if (elements.current) elements.current.textContent = ''; };
   let rawStoryStream = '';
+  let semanticStreamBlocks = [];
+  let semanticStreamCurrent = null;
+  let semanticStreamLastDialogue = null;
   let pendingRawProjection = false;
-  const resetRawStory = () => { rawStoryStream = ''; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
+  const resetRawStory = () => { rawStoryStream = ''; semanticStreamBlocks = []; semanticStreamCurrent = null; semanticStreamLastDialogue = null; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
   const clearTransientStoryProjection = () => {
     rawStoryStream = '';
     pendingRawProjection = false;
@@ -239,31 +279,48 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   };
   const renderStreamingProjection = projection => {
     if (!elements.current) return;
+    const nearBottom = typeof elements.current.scrollHeight === 'number'
+      && typeof elements.current.scrollTop === 'number'
+      && typeof elements.current.clientHeight === 'number'
+      && elements.current.scrollHeight - (elements.current.scrollTop + elements.current.clientHeight) <= elements.current.clientHeight;
     const fragment = documentRef.createDocumentFragment?.();
-    if (!fragment) return;
-    for (const segment of projection.segments) {
+    if (!fragment) {
+      elements.current.textContent = projection.map(segment => segment.text ?? '').join('\n');
+      if (nearBottom && typeof elements.current.scrollHeight === 'number') elements.current.scrollTop = elements.current.scrollHeight;
+      return;
+    }
+    for (const segment of projection) {
       const block = documentRef.createElement?.('section');
       if (!block) continue;
       block.className = `streaming-${segment.type}`;
       block.dataset.streamingProjection = segment.type;
-      block.textContent = segment.text;
+      if (segment.type === 'dialogue') {
+        const meta = documentRef.createElement?.('header');
+        const speaker = documentRef.createElement?.('strong');
+        const direction = documentRef.createElement?.('span');
+        const body = documentRef.createElement?.('p');
+        if (speaker) speaker.textContent = segment.speaker_name ?? segment.speaker_id ?? '';
+        if (direction) { direction.textContent = segment.acting_direction ?? ''; direction.className = 'dialogue-direction'; }
+        if (meta) meta.append(speaker, direction);
+        if (body) body.textContent = segment.text ?? '';
+        block.append(meta, body);
+      } else if (segment.type === 'choice') {
+        block.textContent = segment.text ?? '';
+        block.dataset.choiceLabel = segment.label ?? '';
+      } else block.textContent = segment.text ?? '';
       fragment.appendChild(block);
     }
     elements.current.replaceChildren?.(fragment);
+    if (nearBottom && typeof elements.current.scrollHeight === 'number') elements.current.scrollTop = elements.current.scrollHeight;
   };
-  const appendRawStory = value => {
-    if (!elements.current || !value) return;
-    const nearBottom = typeof elements.current.scrollHeight === 'number'
-      && elements.current.scrollHeight - elements.current.scrollTop - elements.current.clientHeight <= 120;
-    elements.current.classList?.add?.('raw-story-stream');
-    rawStoryStream += String(value);
-    if (pendingRawProjection) {
-      elements.current.replaceChildren?.();
-      pendingRawProjection = false;
-    }
-    renderStreamingProjection(projectStreamingSections(rawStoryStream));
-    if (!documentRef.createDocumentFragment && elements.current) elements.current.textContent = projectStreamingText(rawStoryStream);
-    if (nearBottom) elements.current.scrollTop = elements.current.scrollHeight;
+  const appendStoryWireEvent = item => {
+    if (!item) return;
+    if (item.event === 'delta') rawStoryStream += item.data?.text ?? '';
+    const next = reduceStoryWireProjection({ blocks: semanticStreamBlocks, current: semanticStreamCurrent, lastDialogue: semanticStreamLastDialogue }, item);
+    semanticStreamBlocks = next.blocks;
+    semanticStreamCurrent = next.current;
+    semanticStreamLastDialogue = next.lastDialogue;
+    if (item.event === 'block_start' || item.event === 'acting' || item.event === 'delta') renderStreamingProjection(semanticStreamBlocks);
   };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
   function refreshViewModel() {
@@ -383,7 +440,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
     context = data.context;
-    if (!preserveStreamedChoices) streamedStoryChoices = [];
+    if (!preserveStreamedChoices) streamedStoryChoices = undefined;
     // 세션 타임라인 누적 — refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않는다.
     // 같은 turn_number는 교체(피드백 revision이 해당 카드를 갱신), 새 턴만 추가, 중복 금지.
     sessionHistory = mergeSessionTurns(sessionHistory, context?.recent_turns ?? []);
@@ -395,9 +452,15 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     api, storage, gameId, getContext: () => context, refreshContext,
     onStory: ({ item, text: deltaText, parsed }) => {
       if (item?.event === 'start') { resetRawStory(); return; }
-      if (item?.event === 'delta') { appendRawStory(deltaText); return; }
+      if (item?.event === 'block_start' || item?.event === 'block_end' || item?.event === 'acting') { appendStoryWireEvent(item); return; }
+      if (item?.event === 'delta') { appendStoryWireEvent(item); return; }
       if (item?.event === 'complete') {
-        const choices = hasFourChoices(item.data?.choices) ? item.data.choices : parsed?.choices;
+        const observedChoices = Array.isArray(parsed?.choices) ? parsed.choices : [];
+        const canonicalChoices = Array.isArray(parsed?.canonical_choices)
+          ? parsed.canonical_choices
+          : (hasFourChoices(item.data?.choices) ? item.data.choices : []);
+        const choices = observedChoices;
+        streamedStoryChoices = hasFourChoices(canonicalChoices) ? canonicalChoices : null;
         if (parsed?.blocks) renderNarrative(elements.current, choices ? { ...parsed, choices } : parsed);
         // Keep committed choices/inner thought until Commit succeeds; the
         // parsed Story body is only a pending presentation at this point.
@@ -594,24 +657,28 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     let raw = '';
     resetRawStory();
     await consumeStorySse(response, item => {
+      if (item.event === 'block_start' || item.event === 'block_end' || item.event === 'acting') {
+        appendStoryWireEvent(item);
+      }
       if (item.event === 'delta') {
         const text = item.data?.text ?? '';
         raw += text;
-        appendRawStory(text);
+        appendStoryWireEvent(item);
       }
       if (item.event === 'complete') {
         const choices = hasFourChoices(item.data?.choices)
           ? item.data.choices
           : item.data?.parsed_blocks?.choices;
+        if (item.data?.parsed_blocks && Array.isArray(item.data.parsed_blocks.choices) && !hasFourChoices(item.data.parsed_blocks.choices)) streamedStoryChoices = null;
+        else if (hasFourChoices(choices)) streamedStoryChoices = choices;
         if (item.data?.parsed_blocks?.blocks) {
           renderNarrative(elements.current, choices
             ? { ...item.data.parsed_blocks, choices }
             : item.data.parsed_blocks);
         }
-        if (hasFourChoices(choices)) {
-          streamedStoryChoices = choices;
-          render();
-        }
+        // Footer completeness is soft: keep the observed opening visible and
+        // leave free input available even when canonical four choices are absent.
+        render();
       }
     });
     text(statusElement, '');

@@ -26,7 +26,7 @@ export async function consumeStorySse(response, onEvent) {
     const parsed = parseSseFrames(buffer, { flush: done });
     buffer = parsed.remainder;
     for (const item of parsed.events) {
-      if (!['meta', 'delta', 'complete', 'error'].includes(item.event)) continue;
+      if (!['meta', 'section_start', 'block_start', 'block_end', 'acting', 'delta', 'complete', 'error'].includes(item.event)) continue;
       if (item.event === 'error') throw new ApiError({ endpoint: '/api/story', status: 502, code: item.data?.code ?? 'story_failed', message: item.data?.message ?? '서사 생성에 실패했습니다.', retryable: Boolean(item.data?.retryable) });
       if (item.event === 'complete') sawComplete = true;
       onEvent(item);

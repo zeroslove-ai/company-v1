@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
+import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 import edition from '../src/api/edition.js';
 import {
   calculateCsaCapability, getCsaLimits, appStrengthId,
@@ -33,11 +34,9 @@ const env = {
   EXTRACT_MODEL: 'extract-test'
 };
 
-const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 const DEFAULT_EXTRACT = {
   extract_version: 2, outcome: 'success',
-  scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
   player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
   mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
 };
@@ -61,16 +60,17 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
   let currentSave = structuredClone(initialSave);
   let saveRevision = 1;
   let jsonCallIndex = 0;
-  const sse = storySseText ?? 'data: {"choices":[{"delta":{"content":"[1. 서사 및 행동]\\n본문"}}]}\n\n'
-    + 'data: {"choices":[{"delta":{"content":"\\n[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\n'
-    + 'data: [DONE]\n';
+  const sse = storySseText ?? 'data: ' + JSON.stringify({ choices: [{ delta: { content: '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE]\nContinue carefully.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait a moment.\n[CHOICE]\nChange the subject.' } }] }) + '\n\ndata: [DONE]\n';
+
+  const strictStory = '[SCENE]\nA canonical scene.\n[DIALOGUE speaker_id="heroine2"]\nAcknowledged.\n[THOUGHT]\nI consider the situation.\n[CHOICE]\nContinue carefully.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait a moment.\n[CHOICE]\nChange the subject.';
+  const strictSse = `data: ${JSON.stringify({ choices: [{ delta: { content: strictStory } }] })}\n\ndata: [DONE]\n\n`;
 
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
     calls.push({ url: textUrl, method: init.method ?? 'GET', body: init.body });
     if (textUrl.startsWith('https://llm.test')) {
       const body = JSON.parse(init.body);
-      if (body.stream) return new Response(sse, { headers: { 'content-type': 'text/event-stream' } });
+      if (body.stream) return new Response(storySseText ?? strictSse, { headers: { 'content-type': 'text/event-stream' } });
       const payload = llmJsonResponses.length ? llmJsonResponses[Math.min(jsonCallIndex, llmJsonResponses.length - 1)] : DEFAULT_EXTRACT;
       jsonCallIndex += 1;
       return json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(payload) } }] });
@@ -246,6 +246,10 @@ test('/api/app-validate deterministically validates a preset activate with zero 
   const data = (await validated.json()).data;
   assert.equal(data.canonical_action.type, 'app_transaction');
   assert.match(typeof data.canonical_action.validation_proof, /string/);
+  assert.equal(data.canonical_action.semantic_validation.version, 2);
+  assert.equal(data.canonical_action.transaction_resolution.version, 1);
+  assert.match(typeof data.canonical_action.transaction_resolution.planner_input_digest, /string/);
+  assert.match(typeof data.canonical_action.transaction_resolution.resolution_digest, /string/);
   assert.equal(mock.calls.some(call => call.url.startsWith('https://llm.test')), false);
 
   const stale = await worker.fetch(request('/api/app-validate', { game_id: gameId, structured_action: { ...structuredAction, base_turn_count: 99 } }), env);
@@ -283,13 +287,12 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   assert.match(storyText, /event: complete/);
   const storyPayload = storyUserPayloadFrom(mock);
   const activatedContent = canonicalAction.operations[0].content;
-  assert.equal(storyPayload.context.active_world_rules.filter(rule => rule.content === activatedContent).length, 1);
-  const projectedRule = storyPayload.context.active_world_rules[0];
-  assert.equal(projectedRule.affected_group, 'female_employee');
+  assert.equal(storyPayload.world_rules.filter(rule => rule.content === activatedContent).length, 1);
+  const projectedRule = storyPayload.world_rules[0];
   assert.equal(projectedRule.subject_scope, 'female_employee');
   assert.equal(projectedRule.counterparty_scope, 'company_employee');
   assert.equal(projectedRule.trigger, 'contextual');
-  assert.equal(projectedRule.authority_tier, 'weak');
+  assert.equal(projectedRule.authority, 'weak');
   assert.equal('roles' in projectedRule, false);
   assert.equal('sexual_actions' in projectedRule, false);
   assert.ok(!('global_csa' in storyPayload.context));
@@ -300,7 +303,7 @@ test('a structured app_transaction rides the normal Story -> Extract -> Commit p
   const extractCall = mock.calls.filter(call => call.url.startsWith('https://llm.test') && !JSON.parse(call.body).stream).at(-1);
   const extractPayload = JSON.parse(JSON.parse(extractCall.body).messages.find(message => message.role === 'user').content);
   assert.ok(extractPayload.context.global_csa, 'Extract 전용 CSA 관찰 projection 유지');
-  assert.deepEqual(new Set(extractPayload.context.global_csa.active_ids), new Set(storyPayload.context.active_world_rules.map(rule => rule.csa_id)));
+  assert.deepEqual(new Set(extractPayload.context.global_csa.active_ids), new Set(storyPayload.world_rules.map(rule => rule.id)));
 
   const commitRes = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 1, structured_action: canonicalAction }), env);
   assert.equal(commitRes.status, 200);
@@ -366,7 +369,7 @@ test('route-level CSA update replaces the old Story rule once and commits the ne
         actor_group: 'unknown', target_group: 'unknown', trigger: 'custom_condition',
         duration: 'continuous', public_normalization: false, direct_execution: false, confidence: 'ambiguous'
       }
-    }] }, { extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] }]
+    }] }, { extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] }]
   });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const structuredAction = {
@@ -381,8 +384,8 @@ test('route-level CSA update replaces the old Story rule once and commits the ne
   assert.equal(storyRes.status, 200);
   await storyRes.text();
   const payload = storyUserPayloadFrom(mock);
-  assert.equal(payload.context.active_world_rules.filter(rule => rule.content === oldContent).length, 0);
-  assert.equal(payload.context.active_world_rules.filter(rule => rule.content === newContent).length, 1);
+  assert.equal(payload.world_rules.filter(rule => rule.content === oldContent).length, 0);
+  assert.equal(payload.world_rules.filter(rule => rule.content === newContent).length, 1);
   assert.ok(!('global_csa' in payload.context));
   const extractRes = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, structured_action: canonicalAction }), env);
   assert.equal(extractRes.status, 200);
@@ -437,12 +440,11 @@ test('app_transaction Story: plan이 적용한 active CSA와 새 규칙 content�
   await storyRes.text();
 
   const payload = storyUserPayloadFrom(mock);
-  const activeWorldRules = payload.context.active_world_rules;
+  const activeWorldRules = payload.world_rules;
   assert.equal(activeWorldRules.length, 2);
-  assert.deepEqual(activeWorldRules.map(rule => rule.csa_id), ['csa_1', 'csa_1_1']);
-  for (const rule of activeWorldRules) assert.equal(rule.active, true);
+  assert.deepEqual(activeWorldRules.map(rule => rule.id), ['csa_1', 'csa_1_1']);
   assert.ok(canonicalAction.operations.every(operation => activeWorldRules.some(rule => rule.content === operation.content)));
-  assert.equal(new Set(activeWorldRules.map(rule => rule.csa_id)).size, activeWorldRules.length);
+  assert.equal(new Set(activeWorldRules.map(rule => rule.id)).size, activeWorldRules.length);
   assert.ok(!('global_csa' in payload.context));
   const storyMessages = JSON.parse(mock.calls.find(call => call.url.startsWith('https://llm.test') && JSON.parse(call.body).stream === true).body).messages;
   const storyTextForAssertions = storyMessages.map(message => message.content).join('\n');
@@ -470,7 +472,7 @@ test('Story route: one active CSA uses only active_world_rules without global_cs
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
   const payload = storyUserPayloadFrom(mock);
-  assert.equal(payload.context.active_world_rules.length, 1);
+  assert.equal(payload.world_rules.length, 1);
   assert.ok(!('global_csa' in payload.context));
 });
 
@@ -489,7 +491,7 @@ test('Story route: multiple active CSAs remain in one declarative projection', a
   const storyText = await storyRes.text();
   assert.match(storyText, /event: complete/);
   const payload = storyUserPayloadFrom(mock);
-  assert.equal(payload.context.active_world_rules.length, 2);
+  assert.equal(payload.world_rules.length, 2);
   assert.ok(!('global_csa' in payload.context));
 });
 test('app transaction Story upstream failure remains a visible retryable failure', async () => {
@@ -501,7 +503,7 @@ test('app transaction Story upstream failure remains a visible retryable failure
     initialSave: save,
     // 첫 콘텐츠(헤더만) 후 [DONE] 없이 종료 → story_incomplete → deterministic fallback 트리거
     storySseText: 'data: {"choices":[{"delta":{"content":"[SCENE]"}}]}\n\n',
-    llmJsonResponses: [{ extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] }]
+    llmJsonResponses: [{ extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] }]
   });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const structuredAction = {

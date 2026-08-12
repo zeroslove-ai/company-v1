@@ -1,5 +1,4 @@
 import { FRONTEND_CONFIG } from './config.js';
-import { parseNarrative } from './narrative.js';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const pendingKey = gameId => `company-v1:pending-action:${gameId}`;
@@ -67,10 +66,18 @@ export function reservedPlayerSetupId(context) {
   return setup?.completed !== true && typeof setupId === 'string' && setupId.trim() ? setupId : null;
 }
 export function openingHistoryTurn(context) {
-  const opening = saveFromContext(context)?.opening_state;
-  if (!opening || opening.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
-  const parsed_blocks = parseNarrative(opening.story_text);
-  return { player_action: '(opening)', story_text: opening.story_text, parsed_blocks, turn_summary: '', choices: Array.isArray(parsed_blocks?.choices) ? parsed_blocks.choices : (Array.isArray(opening.choices) ? opening.choices : []), turn_number: 0, turn_id: 'opening', action_id: 'opening' };
+  const projection = context?.opening_turn;
+  if (!projection || typeof projection.story_text !== 'string' || !projection.story_text.trim()) return null;
+  return {
+    player_action: projection.player_action ?? '(opening)',
+    story_text: projection.story_text,
+    parsed_blocks: projection.parsed_blocks ?? null,
+    turn_summary: projection.turn_summary ?? '',
+    choices: Array.isArray(projection.choices) ? projection.choices : [],
+    turn_number: 0,
+    turn_id: projection.turn_id ?? 'opening',
+    action_id: projection.action_id ?? 'opening'
+  };
 }
 export function openingCompleted(context) {
   const save = saveFromContext(context);

@@ -7,6 +7,8 @@ import { createApiWorker } from '../src/api/index.js';
 import { masterFromEdition } from '../src/api/turn-routes.js';
 import edition from '../src/api/edition.js';
 import { HttpError } from '../src/api/http.js';
+import { parsedTurnNarrative } from '../src/frontend/pages/render.js';
+import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -21,26 +23,32 @@ const env = {
   STORY_MODEL: 'story-test',
   EXTRACT_MODEL: 'extract-test'
 };
-const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-const request = (pathName, body) => new Request(`https://worker.test${pathName}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-
-// Story fixture: raw scene/dialogue markers are preserved byte-for-byte.
-// 대사 2개 모두 허용된 cast(heroine5) 안에서 명시 화자 + 구체 연기 지시
+// Fresh semantic Story fixture: raw blocks are preserved byte-for-byte.
 const STORY_LINES = [
   '[SCENE]',
   '이메이의 눈동자가 흔들렸다.',
   '',
-  '[DIALOGUE speaker_id="heroine5" acting_direction="떨리는 목소리로 손끝을 만지작거리며"]',
+  '[DIALOGUE speaker_id="heroine5"]',
+  '[ACTING] 떨리는 목소리로 손끝을 만지작거리며',
   '저... 이번 주말에 시간 괜찮으세요?',
   '',
-  '[DIALOGUE speaker_id="heroine5" acting_direction="고개를 숙이며 조심스럽게"]',
+  '[DIALOGUE speaker_id="heroine5"]',
+  '[ACTING] 고개를 숙이며 조심스럽게',
   '처음이니까 더 잘해주고 싶은 거예요.',
   '',
   '[SCENE]',
   '잠시 침묵이 흘렀다.'
 ].join('\n');
 // SSE data 라인은 JSON.stringify가 개행을 자동 이스케이프한다
-const STORY = STORY_LINES;
+const STORY = [
+  STORY_LINES,
+  '[THOUGHT]',
+  '\uC0C1\uD669\uC744 \uC815\uB9AC\uD574\uC57C \uD55C\uB2E4.',
+  '[CHOICE]', '\uC8FC\uBCC0\uC744 \uC0B4\uD3B4\uBCF8\uB2E4.',
+  '[CHOICE]', '\uB300\uD654\uB97C \uC2DC\uC791\uD55C\uB2E4.',
+  '[CHOICE]', '\uC7A0\uC2DC \uAE30\uB2E4\uB9B0\uB2E4.',
+  '[CHOICE]', '\uB2E4\uB978 \uC7A5\uC18C\uB85C \uAC04\uB2E4.'
+].join('\n');
 const storySse = `data: ${JSON.stringify({ choices: [{ delta: { content: STORY } }] })}\n\ndata: [DONE]\n\n`;
 
 // Test save with a registered Company NPC(heroine5=이메이) in the scene.
@@ -80,7 +88,7 @@ function createMockFetch({
   const extract = extractEnvelope ?? {
     extract_version: 2,
     outcome: 'partial',
-    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
+    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
     mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
     csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
@@ -173,13 +181,24 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   const storyBody = await story.text();
   assert.ok(storyBody.includes('event: complete'));
   assert.ok(storyBody.includes('parsed_blocks')); // canonical parsed_blocks가 SSE complete에 포함
-  assert.equal(storyBody.includes('event: block'), false, 'raw streaming has no block event');
-  assert.equal(storyBody.includes(JSON.stringify({ text: STORY })), true, 'first raw chunk is emitted unchanged');
+  assert.equal(storyBody.includes('event: block_start'), true, 'stream exposes structured block metadata');
+  assert.equal(storyBody.includes(JSON.stringify({ text: STORY })), false, 'visible stream does not emit the raw wire protocol');
 
   const saved = mock.actions.get(actionId);
   assert.equal(saved.story_text, STORY, 'stored action story is the upstream raw Story');
   const dialogueCount = saved.parsed_blocks.blocks.filter(b => b.type === 'dialogue').length;
   assert.equal(dialogueCount, 2);
+  const frontendProjection = parsedTurnNarrative({ story_text: saved.story_text, parsed_blocks: saved.parsed_blocks });
+  assert.deepEqual(
+    frontendProjection.blocks.map(block => block.type),
+    saved.parsed_blocks.blocks.map(block => block.type),
+    'frontend consumes persisted semantic blocks without the legacy section parser'
+  );
+  assert.deepEqual(
+    frontendProjection.blocks.filter(block => block.type === 'dialogue').map(block => block.speaker_id),
+    ['heroine5', 'heroine5']
+  );
+  assert.equal(frontendProjection.choices.length, 4);
   // 2) Extract — raw Story 1회
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(extract.status, 200);
@@ -212,8 +231,8 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
 
   const replayStory = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '주말에 만나자고 한다.' }), env);
   const replayStoryBody = await replayStory.text();
-  assert.equal(replayStoryBody.includes('event: block'), false, 'replay has no block event');
-  assert.equal(replayStoryBody.includes(JSON.stringify({ text: STORY })), true, 'replay delta uses stored raw Story');
+  assert.equal(replayStoryBody.includes('event: block_start'), true, 'replay exposes structured block metadata');
+  assert.equal(replayStoryBody.includes(JSON.stringify({ text: STORY })), false, 'replay projects raw wire protocol to visible text');
   const differentReplay = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '다른 행동' }), env);
   assert.equal(differentReplay.status, 409, 'same action_id cannot replay a different player action');
 
@@ -258,17 +277,16 @@ test('stored action route parity rejects reservation/row divergence before Story
   assert.deepEqual(stored.structured_action, actionA);
 });
 
-test('movement Commit recomputes the scene cast instead of reading removed parsed_blocks metadata', async () => {
+test('navigation Commit uses the current deterministic location and generic scene observation', async () => {
   const extractEnvelope = {
     extract_version: 2,
     outcome: 'success',
     scene_observation: {
       scene_id: 'brand-strategy-scene', location_id: 'brand_strategy_office',
       final_present_npc_ids: ['heroine2'],
-      focal_candidate_id: null, presence_is_final: true,
+      focal_candidate_id: null,
       remote_speaker_ids: ['heroine5'], evidence: [
-        { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES[1] },
-        { kind: 'movement', location_id: 'brand_strategy_office', quote: STORY_LINES[1] }
+        { kind: 'presence', character_id: 'heroine2', quote: STORY_LINES.split('\n')[1] }
       ]
     },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] },
@@ -279,7 +297,7 @@ test('movement Commit recomputes the scene cast instead of reading removed parse
   };
   const mock = createMockFetch({ saveOverride: v2Save(), extractEnvelope });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  const playerAction = '민아 보러 간다';
+  const playerAction = '윤민아 보러 간다';
 
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: playerAction }), env);
   assert.equal(story.status, 200);

@@ -6,6 +6,7 @@ import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-
 import { buildSceneStatePatch } from '../src/engine/state/physical-state.js';
 import { renderHistory, renderMindMonitor } from '../src/frontend/pages/render.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
+import { createTurnLoadingOverlay } from '../src/frontend/pages/loading-overlay.js';
 
 const gameId = '11111111-1111-4111-8111-111111111111';
 
@@ -22,8 +23,16 @@ class FakeNode {
   }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; }
+  remove() { this.removed = true; }
   addEventListener(type, listener) { this.listeners.set(type, listener); }
   setAttribute(name, value) { this[name] = value; }
+}
+
+class FakeEventTarget {
+  constructor() { this.listeners = new Map(); }
+  addEventListener(type, listener) { this.listeners.set(type, listener); }
+  removeEventListener(type) { this.listeners.delete(type); }
+  dispatch(type, detail) { this.listeners.get(type)?.({ detail }); }
 }
 
 function withFakeDocument(run) {
@@ -146,6 +155,22 @@ test('Mind Monitor keeps an explicit empty state instead of disappearing', () =>
     assert.equal(container.children.length, 1);
     assert.equal(container.children[0].textContent, '이번 턴 Mind Monitor 정보가 없습니다.');
   });
+});
+
+test('loading status is a dismissible DOM state and does not own Story content', () => {
+  const body = new FakeNode('body');
+  const documentRef = { body, createElement: tag => new FakeNode(tag), getElementById: () => null };
+  const eventTarget = new FakeEventTarget();
+  const controller = createTurnLoadingOverlay({ documentRef, eventTarget, MutationObserverImpl: null });
+
+  assert.equal(body.children.length, 1);
+  assert.equal(controller.overlay.hidden, true);
+  eventTarget.dispatch('company:pending-step', { step: 'story' });
+  assert.equal(controller.overlay.hidden, false);
+  controller.hide();
+  assert.equal(controller.overlay.hidden, true);
+  controller.destroy();
+  assert.equal(controller.overlay.removed, true);
 });
 
 test('engine parser strips compact labels from authoritative full choices', () => {
@@ -291,7 +316,10 @@ test('Company /api/tts rejects a missing service binding and unknown speakers be
     body: JSON.stringify({ game_id: gameId, character_id: characterId, text: '대사' })
   });
 
-  const missingBinding = await worker.fetch(makeRequest('heroine3'), {});
+  const missingBinding = await worker.fetch(makeRequest('heroine3'), {
+    TTS_API_URL: 'https://legacy-tts.test/synthesize',
+    TTS_API_KEY: 'legacy-key'
+  });
   assert.equal(missingBinding.status, 500);
   assert.equal((await missingBinding.json()).error.code, 'configuration_error');
 
@@ -302,4 +330,36 @@ test('Company /api/tts rejects a missing service binding and unknown speakers be
   assert.equal(unknown.status, 422);
   assert.equal((await unknown.json()).error.code, 'unknown_speaker');
   assert.equal(bindingCalls, 0);
+});
+
+test('Company /api/tts maps a service-binding upstream failure to the canonical 502 error', async () => {
+  const worker = createApiWorker();
+  const response = await worker.fetch(new Request('https://company-api.test/api/tts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ game_id: gameId, character_id: 'heroine3', text: '안녕하세요.' })
+  }), {
+    TTS_WORKER: { async fetch() { return new Response('upstream failed', { status: 502 }); } }
+  });
+  assert.equal(response.status, 502);
+  assert.equal((await response.json()).error.code, 'tts_upstream_failure');
+});
+
+test('Company /api/tts rejects invalid or incomplete service-binding JSON responses', async () => {
+  const makeRequest = () => new Request('https://company-api.test/api/tts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ game_id: gameId, character_id: 'heroine3', text: '안녕하세요.' })
+  });
+  for (const payload of ['not-json', JSON.stringify({}), JSON.stringify({ url: '' })]) {
+    const response = await createApiWorker().fetch(makeRequest(), {
+      TTS_WORKER: {
+        async fetch() {
+          return new Response(payload, { status: 200, headers: { 'content-type': 'application/json' } });
+        }
+      }
+    });
+    assert.equal(response.status, 502);
+    assert.equal((await response.json()).error.code, 'tts_invalid_response');
+  }
 });

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { createApiWorker } from '../src/api/index.js';
 import { createSupabaseClient } from '../src/api/supabase.js';
+import { makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const gameId = '11111111-1111-4111-8111-111111111111';
@@ -22,13 +23,6 @@ const env = {
   SUPABASE_URL: 'https://supabase.test',
   SUPABASE_SERVICE_ROLE_KEY: 'service-role-test'
 };
-
-function json(value, status = 200) {
-  return new Response(JSON.stringify(value), {
-    status,
-    headers: { 'content-type': 'application/json' }
-  });
-}
 
 function post(pathname, body) {
   return new Request(`https://worker.test${pathname}`, {

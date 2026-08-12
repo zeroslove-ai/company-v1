@@ -1,10 +1,5 @@
 ﻿/* Live-play UX hotfixes. Loaded after every existing stylesheet. */
 
-#find-npc,
-#npc-finder-overlay {
-  display: none !important;
-}
-
 .turn-loading-overlay {
   position: fixed !important;
   inset: auto auto calc(68px + env(safe-area-inset-bottom, 0px)) 50% !important;

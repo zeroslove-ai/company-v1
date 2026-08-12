@@ -49,10 +49,10 @@ function payload(messages) {
 
 test('Story context projects active CSA once and excludes global_csa', () => {
   const messages = buildMessages(makeSave());
-  const context = payload(messages).context;
-  assert.equal(context.active_world_rules.length, 1);
-  assert.equal(context.active_world_rules[0].content, 'UNIQUE_RULE_XYZ');
-  assert.ok(!('global_csa' in context));
+  const story = payload(messages);
+  assert.equal(story.world_rules.length, 1);
+  assert.equal(story.world_rules[0].content, 'UNIQUE_RULE_XYZ');
+  assert.ok(!('global_csa' in story.context));
   const allText = messages.map(message => String(message.content)).join('\n');
   assert.equal(allText.split('UNIQUE_RULE_XYZ').length - 1, 1);
 });
@@ -74,7 +74,7 @@ test('Story prompt has no legacy CSA notice or epistemic sections', () => {
 });
 
 test('inactive CSA produces an empty Story world-rule list', () => {
-  const context = payload(buildMessages(makeSave({ active: false }))).context;
-  assert.deepEqual(context.active_world_rules, []);
-  assert.ok(!('global_csa' in context));
+  const story = payload(buildMessages(makeSave({ active: false })));
+  assert.deepEqual(story.world_rules, []);
+  assert.ok(!('global_csa' in story.context));
 });
