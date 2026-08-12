@@ -131,7 +131,9 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
     raw,
     scene_text: blocks.filter(block => block.type === 'scene').map(block => block.text).join('\n'),
     blocks,
-    player_inner_thought: blocks.find(block => block.type === 'player_inner_thought')?.text ?? '',
+    // Multiple raw THOUGHT blocks are preserved for audit/replay, while the
+    // canonical footer value is the last valid literal thought.
+    player_inner_thought: blocks.filter(block => block.type === 'player_inner_thought').at(-1)?.text ?? '',
     choices,
     canonical_choices: canonicalChoices,
     dialogue_lines: dialogueLines,

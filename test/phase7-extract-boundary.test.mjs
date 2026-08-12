@@ -75,10 +75,23 @@ test('fresh Extract payload is Story-only and has one identity registry', () => 
     context: {}, storyText, parsedStory: { dialogue_lines: [] }, expectedTurn: 4, edition, npcIds,
     playerAction: '이 값은 observer payload에 들어가면 안 된다'
   })[1].content);
-  assert.deepEqual(Object.keys(payload), ['extract_version', 'registered_identities', 'registered_locations', 'story_text', 'context', 'expected_turn']);
+  assert.deepEqual(Object.keys(payload), ['extract_version', 'registered_identities', 'registered_locations', 'story_text', 'context', 'mind_monitor_targets', 'expected_turn']);
   assert.equal('player_action' in payload, false);
   assert.equal('registered_characters' in payload, false);
   assert.equal('registered_general_npcs' in payload, false);
+});
+
+test('fresh Mind Monitor requires every deterministic target, while persisted reads remain permissive', () => {
+  const complete = { ...base, mind_monitor: {
+    heroine1: { surface: '오늘 일부터 끝내자.', subconscious: '괜히 마음이 쓰이네.' },
+    heroine2: { surface: '자료를 먼저 확인하자.', subconscious: '조금 긴장되지만 괜찮아.' }
+  } };
+  const normalized = normalizeFreshExtractObservationV2(complete, { npcIds, storyText, requiredMindMonitorIds: ['heroine1', 'heroine2'] });
+  assert.deepEqual(Object.keys(normalized.mind_monitor).sort(), ['heroine1', 'heroine2']);
+  assert.throws(() => normalizeFreshExtractObservationV2({ ...base, mind_monitor: { heroine2: complete.mind_monitor.heroine2 } }, { npcIds, storyText, requiredMindMonitorIds: ['heroine1', 'heroine2'] }), /mind monitor target/i);
+  assert.throws(() => normalizeFreshExtractObservationV2({ ...base, mind_monitor: { heroine1: { surface: '', subconscious: '있다.' }, heroine2: complete.mind_monitor.heroine2 } }, { npcIds, storyText, requiredMindMonitorIds: ['heroine1', 'heroine2'] }), /mind monitor target/i);
+  const persisted = normalizePersistedExtractObservation(base, { npcIds, storyText });
+  assert.deepEqual(persisted.mind_monitor, {});
 });
 
 test('persisted V2 remains semantically equal to its compatibility normalizer', () => {

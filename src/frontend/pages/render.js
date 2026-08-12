@@ -185,17 +185,12 @@ export function renderNarrative(container, parsed) {
   const choices = normalizedStrings(parsed?.choices);
   const labels = parsedChoiceLabels({ choice_labels: parsed?.choice_labels }, {}, choices.length);
   if (container.id === 'current-story') currentChoiceSet = choiceSet(choices, labels);
-  let embeddedChoices = false;
   let lastDialogueCard = null;
-  let sawThoughtBlock = false;
   for (const block of parsed?.blocks ?? []) {
-    if (block.type === 'player_inner_thought') sawThoughtBlock = true;
-    if (block.type === 'choices') {
-      renderNarrativeChoices(container, block.choices ?? choices, block.choice_labels ?? labels);
-      embeddedChoices = true;
-      lastDialogueCard = null;
-      continue;
-    }
+    // THOUGHT and CHOICE are footer blocks.  Their raw blocks remain part of
+    // the parsed projection, but the narrative body renders each canonical
+    // value once below so mid-story/duplicate blocks cannot become paragraphs.
+    if (block.type === 'player_inner_thought' || block.type === 'choice' || block.type === 'choices') continue;
     if (block.type === 'dialogue') {
       // 같은 화자가 연속으로 말하면 한 대사칸에 이어 붙인다
       if (lastDialogueCard && lastDialogueCard.dataset?.speakerId === block.speaker_id) {
@@ -217,25 +212,20 @@ export function renderNarrative(container, parsed) {
     }
     lastDialogueCard = null;
     const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`;
-    const blockText = block.text ?? '';
-    paragraph.textContent = block.type === 'player_inner_thought'
-      ? normalizeInnerThought(blockText)
-      : blockText;
+    paragraph.textContent = block.text ?? '';
     container.append(paragraph);
   }
-  // 플레이어 속마음 복구 — blocks에 thought 블록이 없어도 parsed.player_inner_thought가
-  // 있으면 서사·대화 뒤, 선택지 앞에 한 번만 표시한다. 블록이 이미 있으면 중복 표시하지 않는다.
-  if (!sawThoughtBlock) {
-    const thought = displayValue(parsed?.player_inner_thought);
-    if (thought) {
-      const paragraph = document.createElement('p');
-      paragraph.className = 'narrative-player_inner_thought';
-      // 바깥쪽 불필요한 따옴표만 제거하고, 모델이 만든 줄바꿈은 유지한다 (문장부호 자동 개행 없음).
-      paragraph.textContent = normalizeInnerThought(String(thought));
-      container.append(paragraph);
-    }
+  // Canonical footer projection: one thought card, followed by one narrative
+  // choice box.  Missing thought/partial choices remain observable in the
+  // parsed result and are handled as soft completeness warnings.
+  const thought = normalizeInnerThought(displayValue(parsed?.player_inner_thought));
+  if (thought) {
+    const paragraph = document.createElement('p');
+    paragraph.className = 'narrative-player_inner_thought';
+    paragraph.textContent = thought;
+    container.append(paragraph);
   }
-  if (!embeddedChoices) renderNarrativeChoices(container, choices, labels);
+  renderNarrativeChoices(container, choices, labels);
 }
 
 export function renderChoices(container, choices, { busy = false, onChoose } = {}) {
@@ -245,7 +235,8 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
   const labels = labelsForChoices(normalized);
   for (const [index, choice] of normalized.entries()) {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'choice-button';
-    button.textContent = `${index + 1} ${labels[index] || choice}`;
+    const compact = choiceLabel(choice, 5, labels[index]);
+    button.textContent = labels[index] ? `${index + 1} ${compact}` : compact;
     button.title = choice;
     button.ariaLabel = `${index + 1}번 선택지: ${choice}`;
     button.disabled = busy;

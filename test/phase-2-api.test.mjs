@@ -34,7 +34,7 @@ const v2ExtractFixture = ({ outcome = 'partial', npcMood = null, elapsed_minutes
   player_observation: {},
   npc_observations: npcMood ? { 'npc-hayeon': { emotion: { mood: npcMood } } } : {},
   events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes,
-  mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
+  mind_monitor: { heroine2: { surface: '오늘 일부터 하자.', subconscious: '조금 신경 쓰이네.' } }, action_target_id: null, image_character_id: null, image_selection: null,
   csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '캠페인 검토가 진전됐다.', warnings: []
 });
 

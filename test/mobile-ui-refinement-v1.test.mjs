@@ -94,7 +94,7 @@ test('committed labels are reused only when the exact four full choices match', 
     const different = new FakeNode('div', 'choice-list');
     renderChoices(different, ['다른 선택지 하나', '다른 선택지 둘', '다른 선택지 셋', '다른 선택지 넷']);
     // J — 선택지 버튼은 더 이상 5글자로 자르지 않고 전체 문구를 표시한다 (CSS 말줄임).
-    assert.equal(different.children[0].textContent, '1 다른 선택지 하나');
+    assert.equal(different.children[0].textContent, choiceLabel('다른 선택지 하나', 5));
   });
 });
 
@@ -217,7 +217,7 @@ test('중앙 Story: parsed.player_inner_thought만 있으면 선택지 앞에 �
     renderNarrative(container2, parsed2);
     const thoughts2 = container2.children.filter(child => child.className === 'narrative-player_inner_thought');
     assert.equal(thoughts2.length, 1, 'thought 블록이 있으면 삽입하지 않는다');
-    assert.ok(thoughts2[0].textContent.includes('블록 생각'), '블록 본문 유지');
+    assert.ok(thoughts2[0].textContent.includes('중복 생각'), 'canonical last thought is rendered');
   });
 });
 

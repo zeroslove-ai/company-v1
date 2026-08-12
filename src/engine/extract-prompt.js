@@ -60,6 +60,19 @@ export function buildExtractRelevantNpcIds({ context, parsedStory, storyText = '
   return [...ids].filter(id => id && id !== 'player' && id !== 'player-1' && registeredIds.has(id));
 }
 
+/** Fresh Mind Monitor requires only actors observed in this turn. */
+export function buildMindMonitorTargetIds({ context, parsedStory, npcIds } = {}) {
+  const save = object(context?.save?.data) ?? object(context?.save) ?? {};
+  const registeredIds = npcIds instanceof Set
+    ? npcIds
+    : new Set(Array.isArray(npcIds) ? npcIds : []);
+  const ids = new Set(buildSceneContextCore(save, []).scene.present_npc_ids);
+  for (const line of Array.isArray(parsedStory?.dialogue_lines) ? parsedStory.dialogue_lines : []) {
+    if (registeredIds.has(line?.speaker_id)) ids.add(line.speaker_id);
+  }
+  return [...ids].filter(id => id && id !== 'player' && id !== 'player-1' && registeredIds.has(id));
+}
+
 export function buildExtractCharacterCanon(charactersMap, activeIds) {
   const map = object(charactersMap) ?? {};
   const result = {};
@@ -122,16 +135,19 @@ const SYSTEM_INSTRUCTIONS = [
   'If a domain has no exact observed change, omit that domain; do not invent descriptive keys such as affection, team_daily_schedule, relationship_summary, or other human-readable labels. The safe minimal observation for an ordinary dialogue is empty player_observation, empty npc_observations, empty events, scene_observation with final_present_npc_ids:null, and the remaining skeleton defaults.',
   'Exact evidence contract: evidence is a top-level sibling of player_observation and npc_observations. Never put an evidence key inside a player or NPC object; npc_observations.<npc_id> contains only the listed domain objects. Omit evidence.changed when there is no changed field instead of returning an empty changed array or empty quote. Clothing uses evidence.clothing.<actor_id>={quote,character_id}; other fields use evidence.changed {changed:[path],quote}; scene evidence uses {kind,character_id or location_id,quote}, and kind must be exactly one of "presence" or "scene" (never invent names such as "npc_presence"). Events use the same exact Story quote. kind:"scene" requires non-null scene_observation.scene_id; otherwise omit it. Copy quotes verbatim from story_text; never compose a quote from inferred facts or any input outside story_text. If the exact sentence is not present in story_text, omit the scene evidence. In a multi-NPC scene, an NPC physical/clothing quote must include the actor name; for pronouns, include the contiguous preceding named clause. Scene evidence is only for directly shown facts. Locations must be registered.',
   'Illustrative physical shape (not mandatory output): {"npc_observations":{"heroine2":{"physical":{"position_label":"회의실 테이블 옆","clothing":{"underwear_bottom":"removed"}}}},"evidence":{"clothing":{"heroine2":{"character_id":"heroine2","quote":"named exact Story substring"}},"physical_change":{"changed":["npc_scene_state.heroine2.clothing.underwear_bottom"],"quote":"same exact substring"}}}. Use position_label, never position/label; clothing slots are uniform_top, uniform_bottom, underwear_top, underwear_bottom with states worn, removed, open, unknown. Copy the real Story substring and omit unobserved fields.',
-  'Every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence is required. Every proposal requires exact Story evidence. When only a regulation/plan exists and the attire is not shown in Story, make no clothing patch. actor_id/target_id must be registered IDs and must identify distinct observed participants. Events contain only observed general or sexual events with registered actor/target IDs, canonical action types, and exact Story evidence. Counters and milestones are derived by reducers, never proposed directly.',
+  'Every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence is required. Exact evidence remains mandatory for clothing, sexual state, events, stats, relationship, emotion, work, and CSA changes. Posture and position_label may use conservative Story-grounded continuity when the Story establishes the NPC posture or position and never from player input alone; when ungrounded, omit them. When only a regulation/plan exists and the attire is not shown in Story, make no clothing patch. actor_id/target_id must be registered IDs and must identify distinct observed participants. Events contain only observed general or sexual events with registered actor/target IDs, canonical action types, and exact Story evidence. Counters and milestones are derived by reducers, never proposed directly.',
   'elapsed_minutes is the only time proposal: 1-30 normally, up to 480 only with evidence.time_advance=true. Never propose world clock fields.',
-  'mind_monitor is a turn-level projection for present NPCs with only surface and subconscious. For each present NPC who speaks or performs a meaningful action, provide {surface, subconscious} when possible. Both fields must be natural, unquoted first-person Korean inner speech, like the NPC quietly talking to themselves; do not use emotion/status labels, analysis or report prose, or state-description-only phrasing such as "~을 느끼고 있다" or "~하려고 한다". Missing monitor data is allowed and never a failure. image_selection and image_character_id are observation projections, not save patches. Identity axes are independent; never copy one into another.',
+  'mind_monitor_targets is the authoritative target list. Return non-empty surface and subconscious for every target as natural, unquoted first-person Korean inner speech; no labels, analysis, or report prose. image_selection and image_character_id are observation projections, not save patches. Identity axes are independent; never copy one into another.',
   'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
   'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, pool must be sex and tags must describe that ongoing act.',
   'Final scene presence: a local dialogue speaker is evidence of presence during the Story, but final_present_npc_ids is the last-moment snapshot. If that speaker clearly leaves before the end, omit it; if the final snapshot cannot be established, preserve null rather than guessing.'
 ].join(' ');
 
-export function buildExtractPrompt({ context, storyText, parsedStory, expectedTurn, edition, npcIds }) {
+export function buildExtractPrompt({ context, storyText, parsedStory, expectedTurn, edition, npcIds, mindMonitorTargets = null }) {
   const relevantIds = buildExtractRelevantNpcIds({ context, parsedStory, storyText, edition, npcIds });
+  const monitorIds = Array.isArray(mindMonitorTargets)
+    ? mindMonitorTargets
+    : buildMindMonitorTargetIds({ context, parsedStory, npcIds });
   return [
     { role: 'system', content: SYSTEM_INSTRUCTIONS },
     {
@@ -142,6 +158,7 @@ export function buildExtractPrompt({ context, storyText, parsedStory, expectedTu
         registered_locations: buildRegisteredLocations(edition),
         story_text: storyText,
         context: buildExtractContextProjection(context, relevantIds),
+        mind_monitor_targets: monitorIds,
         expected_turn: expectedTurn
       })
     }

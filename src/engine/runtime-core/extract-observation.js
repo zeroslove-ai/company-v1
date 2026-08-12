@@ -341,7 +341,17 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
     throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
   }
   assertKeys(value.scene_observation, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
-  return normalizeExtractObservationV2(value, options);
+  const normalized = normalizeExtractObservationV2(value, options);
+  const required = Array.isArray(options.requiredMindMonitorIds)
+    ? options.requiredMindMonitorIds.filter(id => typeof id === 'string' && id.trim())
+    : [];
+  for (const npcId of required) {
+    const monitor = normalized.mind_monitor[npcId];
+    if (!monitor || !monitor.surface.trim() || !monitor.subconscious.trim()) {
+      throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Missing mind monitor target: ${npcId}`);
+    }
+  }
+  return normalized;
 }
 
 export function buildDegradedExtractObservation({ extraWarnings = [] } = {}) {

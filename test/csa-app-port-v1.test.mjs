@@ -38,7 +38,7 @@ const DEFAULT_EXTRACT = {
   extract_version: 2, outcome: 'success',
     scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
   player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
-  mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
+  mind_monitor: { heroine1: { surface: '오늘 일부터 하자.', subconscious: '조금 신경 쓰이네.' }, heroine2: { surface: '자료를 확인하자.', subconscious: '괜찮아.' } }, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
 };
 
 function freshSave(overrides = {}) {
@@ -73,7 +73,10 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       if (body.stream) return new Response(storySseText ?? strictSse, { headers: { 'content-type': 'text/event-stream' } });
       const payload = llmJsonResponses.length ? llmJsonResponses[Math.min(jsonCallIndex, llmJsonResponses.length - 1)] : DEFAULT_EXTRACT;
       jsonCallIndex += 1;
-      return json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(payload) } }] });
+      const extractPayload = payload?.extract_version === 2
+        ? { ...payload, mind_monitor: Object.keys(payload.mind_monitor ?? {}).length ? payload.mind_monitor : DEFAULT_EXTRACT.mind_monitor }
+        : payload;
+      return json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(extractPayload) } }] });
     }
     const parsed = new URL(textUrl);
     if (parsed.pathname === '/rest/v1/game_actions' && (init.method ?? 'GET') === 'GET') {

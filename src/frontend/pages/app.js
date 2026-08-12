@@ -290,6 +290,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       return;
     }
     for (const segment of projection) {
+      // Footer blocks are rendered from the completed parser projection only;
+      // never expose a mid-stream thought or partial choice box.
+      if (segment.type === 'player_inner_thought' || segment.type === 'thought' || segment.type === 'choice' || segment.type === 'choices') continue;
       const block = documentRef.createElement?.('section');
       if (!block) continue;
       block.className = `streaming-${segment.type}`;

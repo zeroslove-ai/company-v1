@@ -2,7 +2,7 @@ export { GameCoreError } from './errors.js';
 export { createEditionAdapter, validateEditionAdapter } from './edition.js';
 export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
 export { buildStoryWorldProjection } from './csa/story-projection.js';
-export { buildExtractPrompt } from './extract-prompt.js';
+export { buildExtractPrompt, buildExtractRelevantNpcIds, buildMindMonitorTargetIds } from './extract-prompt.js';
 export { parseFreshNarrativeV2 } from './fresh-narrative-parser.js';
 export { createStoryStreamDecoder, parseStoryControlMarker, buildStoryIdentityDirectory } from './story-wire-protocol.js';
 export { parsePersistedNarrative } from './persisted-narrative-parser.js';

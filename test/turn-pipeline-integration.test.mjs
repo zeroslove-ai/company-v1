@@ -90,7 +90,7 @@ function createMockFetch({
     outcome: 'partial',
     scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
-    mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
+    mind_monitor: { heroine1: { surface: '오늘 일부터 하자.', subconscious: '조금 신경 쓰이네.' }, heroine2: { surface: '자료를 확인하자.', subconscious: '괜찮아.' }, heroine5: { surface: '자료를 확인하자.', subconscious: '괜찮아.' } }, action_target_id: null, image_character_id: null, image_selection: null,
     csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
   };
   const extractContents = [JSON.stringify(extract)];
@@ -292,7 +292,7 @@ test('navigation Commit uses the current deterministic location and generic scen
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] },
     evidence: {}, elapsed_minutes: 3, action_target_id: null, image_character_id: null,
     image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '',
-    mind_monitor: {},
+    mind_monitor: { heroine2: { surface: '오늘 일부터 하자.', subconscious: '조금 신경 쓰이네.' }, heroine5: { surface: '자료를 확인하자.', subconscious: '괜찮아.' } },
     warnings: []
   };
   const mock = createMockFetch({ saveOverride: v2Save(), extractEnvelope });

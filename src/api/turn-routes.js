@@ -5,6 +5,7 @@ import { buildSceneCastContract, resolveNavigationLocation } from '../engine/sce
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
+  buildMindMonitorTargetIds,
   buildOpeningPlan,
   buildOpeningPrompt,
   buildStableNpcIdSet,
@@ -636,7 +637,8 @@ const master = masterFromEdition(edition);
               ? { ...hydratedContext.save, data: extractSave }
               : extractSave
           };
-          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, expectedTurn: action.expected_turn, edition, npcIds });
+          const mindMonitorTargets = buildMindMonitorTargetIds({ context: extractContext, parsedStory, npcIds });
+          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, expectedTurn: action.expected_turn, edition, npcIds, mindMonitorTargets });
           const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaResolution) })
             + buildCsaApplicationCheckSection(applicableCsa)
             + buildCsaRuntimeExtractContractSection(applicableCsa);
@@ -659,6 +661,7 @@ const master = masterFromEdition(edition);
             storyText: storyForExtract,
             expectedTurn: action.expected_turn,
             actionId,
+            requiredMindMonitorIds: mindMonitorTargets,
           });
           timing.extract_parse_ms = Date.now() - parseStart;
         } catch (error) {
