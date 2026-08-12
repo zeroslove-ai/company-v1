@@ -15,6 +15,32 @@ function activeIds(save) {
   return new Set(Array.isArray(save?.csa_active) ? save.csa_active : []);
 }
 
+function engineRuntimeUpdates(engineEnactments) {
+  return (Array.isArray(engineEnactments) ? engineEnactments : [])
+    .filter(item => item?.authority === 'engine' && item?.source_rule_id && item?.actor_id)
+    .map(item => ({ csa_id: item.source_rule_id, character_id: item.actor_id, status: 'active' }));
+}
+
+function applyEngineClothingEnactments(nextSave, engineEnactments) {
+  for (const enactment of Array.isArray(engineEnactments) ? engineEnactments : []) {
+    if (enactment?.authority !== 'engine' || enactment.execution_kind !== 'clothing_state') continue;
+    const actorId = enactment.actor_id;
+    if (!actorId || actorId === 'player') continue;
+    const current = nextSave.npc_scene_state?.[actorId] ?? {};
+    const clothing = current.clothing && typeof current.clothing === 'object' && !Array.isArray(current.clothing) ? current.clothing : {};
+    const required = enactment.required_state && typeof enactment.required_state === 'object' && !Array.isArray(enactment.required_state) ? enactment.required_state : {};
+    if (!Object.keys(required).length) continue;
+    nextSave.npc_scene_state = { ...(nextSave.npc_scene_state ?? {}), [actorId]: { ...current, clothing: { ...clothing, ...required } } };
+  }
+}
+
+function mergeEngineRuntimeUpdates(engineEnactments, observedUpdates) {
+  const engineUpdates = engineRuntimeUpdates(engineEnactments);
+  const engineKeys = new Set(engineUpdates.map(item => `${item.csa_id}:${item.character_id}`));
+  const observed = (Array.isArray(observedUpdates) ? observedUpdates : []).filter(item => !engineKeys.has(`${item?.csa_id}:${item?.character_id}`));
+  return [...engineUpdates, ...observed];
+}
+
 function canonicalRuntimeUpdates({ updates, activeCsa, nextSave, warnings }) {
   const entries = new Map((activeCsa ?? []).map(entry => [entry.id, entry]));
   return (Array.isArray(updates) ? updates : []).filter(update => {
@@ -42,7 +68,8 @@ export function reduceCsaCommitState({
   action,
   expectedTurn,
   structuredAction = null,
-  transactionResolution = null
+  transactionResolution = null,
+  engineEnactments = []
 } = {}) {
   const warnings = [];
   const current = currentSave ?? {};
@@ -54,6 +81,11 @@ export function reduceCsaCommitState({
     assertRuleDefinitionAuthority({ currentSave: current, nextSave, structuredAction: null, stage: 'commit-feedback-final' });
     return { nextSave, warnings, acceptedExecutions: [], progression: { amount: 0, newly_experienced_keys: [] }, deactivatedIds: [] };
   }
+
+  // Server-generated engine evidence is the only source allowed to make a
+  // mandatory enactment authoritative. It is applied before Extract updates
+  // so clothing validation sees the deterministic required result.
+  applyEngineClothingEnactments(nextSave, engineEnactments);
 
   // Fresh app transactions are applied before Story by the transactional
   // authority boundary. Commit may only verify parity; it is not a second
@@ -72,13 +104,16 @@ export function reduceCsaCommitState({
   }
 
   const activeCsa = getApplicableCsaEntries(nextSave);
-  const runtimeUpdates = canonicalRuntimeUpdates({ updates: observation?.csa_runtime_updates, activeCsa, nextSave, warnings });
+  const runtimeUpdates = canonicalRuntimeUpdates({ updates: mergeEngineRuntimeUpdates(engineEnactments, observation?.csa_runtime_updates), activeCsa, nextSave, warnings });
   const runtimeResult = buildCsaRuntimeStatePatch({
     previousSave: current,
     csaRuntimeUpdates: runtimeUpdates,
     csaTriggerEvaluations: observation?.csa_trigger_evaluations,
     activeCsa,
-    npcsPresent: canonicalScene?.present_npc_ids ?? [],
+    npcsPresent: [...new Set([
+      ...(canonicalScene?.present_npc_ids ?? []),
+      ...(Array.isArray(engineEnactments) ? engineEnactments.map(item => item?.actor_id).filter(Boolean) : [])
+    ])],
     turnNumber: expectedTurn
   });
   if (runtimeResult.patch) nextSave.csa_runtime_state = clone(runtimeResult.patch);

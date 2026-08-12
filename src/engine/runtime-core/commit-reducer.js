@@ -66,7 +66,7 @@ function canonicalObservation(observation, parsedStory) {
   };
 }
 
-export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, authoritativeLocationId = null, structuredAction = null, transactionResolution = null } = {}) {
+export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, authoritativeLocationId = null, structuredAction = null, transactionResolution = null, engineEnactments = [] } = {}) {
   const current = clone(currentSave);
   const sceneBefore = hydrateCanonicalScene(current, { master, npcIds });
   const sceneObservation = canonicalObservation(observation, parsedStory);
@@ -109,7 +109,8 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     action,
     expectedTurn,
     structuredAction,
-    transactionResolution
+    transactionResolution,
+    engineEnactments
   });
   nextSave = csaCommit.nextSave;
   assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action?.action_kind, observation: sceneObservation });

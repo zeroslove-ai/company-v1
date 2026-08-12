@@ -70,6 +70,12 @@ export function createSupabaseClient(env, fetchImpl) {
       const payload = await request(`${baseUrl}/rest/v1/game_actions?${query}`, { method: 'GET' });
       return Array.isArray(payload) ? payload[0] ?? null : payload;
     },
+    async getTurnById(gameId, turnId) {
+      if (typeof turnId !== 'string' || !turnId) return null;
+      const query = new URLSearchParams({ game_id: `eq.${gameId}`, turn_id: `eq.${turnId}`, select: 'turn_id,turn_number,story_text,parsed_blocks' });
+      const payload = await request(`${baseUrl}/rest/v1/game_turns?${query}`, { method: 'GET' });
+      return Array.isArray(payload) ? payload[0] ?? null : payload;
+    },
     updateActionStatus(gameId, actionId, status, errorCode = null) {
       const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}` });
       return request(`${baseUrl}/rest/v1/game_actions?${query}`, {

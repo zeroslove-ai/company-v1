@@ -4,6 +4,7 @@ export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prom
 export { buildStoryWorldProjection } from './csa/story-projection.js';
 export {
   buildMandatoryEnactments,
+  buildInstitutionalSegments,
   composeCanonicalStory,
   attachEngineEnactments,
   validateMandatoryEnactment

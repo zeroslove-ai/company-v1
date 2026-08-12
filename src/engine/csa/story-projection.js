@@ -112,7 +112,7 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
       ...(execution?.target_required ? { eligible_target_ids: targets } : {}),
       transition_required_now: execution?.kind === 'clothing_state'
         ? clothingVerdict !== 'compliant' && triggerState === 'required_now'
-        : triggerState === 'required_now' && runtime?.[entry.id]?.execution_state !== 'executed',
+        : triggerState === 'required_now',
       implementation_delay_allowed: triggerState !== 'required_now' && object(entry.preset).implementation_delay_allowed === true,
       execution_policy: executionPolicyFor(triggerState)
     });

@@ -152,7 +152,7 @@ export function buildRegenerationFeedbackSection(feedbackText) {
   return text ? text : '';
 }
 
-export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null, turnTrigger = null, actionKind = 'ordinary', feedbackText = '', storyWorld: precomputedStoryWorld = null }) {
+export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null, turnTrigger = null, actionKind = 'ordinary', feedbackText = '', storyWorld: precomputedStoryWorld = null, engineCanonicalSegments = [] }) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const canonicalScene = buildSceneContextCore(save, []).scene;
   const canonicalCast = sceneCastContract ?? { present_npc_ids: canonicalScene.present_npc_ids, entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null };
@@ -172,6 +172,9 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
     player_dialogue_policy: canonicalCast.player_dialogue ?? null,
     world_rules: storyWorld.world_rules,
     scene_obligations: storyWorld.scene_obligations,
+    ...(Array.isArray(engineCanonicalSegments) && engineCanonicalSegments.length
+      ? { engine_canonical_segments: engineCanonicalSegments.map(segment => ({ segment_id: segment.segment_id, segment_kind: segment.segment_kind ?? segment.execution_kind ?? 'mandatory_enactment', canonical_text: segment.canonical_text })) }
+      : {}),
     context: buildStoryContextProjection(context, projection.projection_ids, { catalogs, playerAction: storyPlayerAction, edition, registeredIds: registeredIdSet }),
     ...(storyPlayerAction ? { player_action: storyPlayerAction } : {}),
     ...(feedbackText ? { feedback_text: feedbackText } : {}),

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   attachEngineEnactments,
+  buildInstitutionalSegments,
   buildMandatoryEnactments,
   composeCanonicalStory,
   validateMandatoryEnactment
@@ -132,6 +133,37 @@ test('unsupported behavior actions and missing display identities fail determini
     sceneObligations: [{ actor_id: 'heroine9', source_rule_id: 'csa_identity', type: 'clothing_transition', changes: [{ slot: 'underwear_bottom', current: 'unknown', required: 'removed' }] }],
     worldRules: [{ id: 'csa_identity', resolved_facts: [{ actor_id: 'heroine9', execution_kind: 'clothing_state', trigger_state: 'required_now', execution_policy: 'mandatory_execution' }] }]
   }), /Missing display identity/);
+});
+
+test('multi-counterparty behavior remains actor-authoritative without mass-targeting', () => {
+  const [enactment] = buildMandatoryEnactments({
+    expectedTurn: 11,
+    master: { characters: [{ character_id: 'heroine1', name: '서원희' }, { character_id: 'heroine2', name: '김제나' }, { character_id: 'heroine3', name: '한리브' }], general_npcs: [] },
+    sceneObligations: [{ actor_id: 'heroine1', source_rule_id: 'csa_multi_target', type: 'behavior_execution', action: 'press_body_against', trigger_state: 'required_now', execution_policy: 'mandatory_execution', eligible_target_ids: ['heroine2', 'heroine3'] }],
+    worldRules: [{ id: 'csa_multi_target', resolved_facts: [{ actor_id: 'heroine1', execution_kind: 'physical_contact', trigger_state: 'required_now', execution_policy: 'mandatory_execution' }] }]
+  });
+  assert.deepEqual(enactment.target_ids, []);
+  assert.deepEqual(enactment.counterparty_candidate_ids, ['heroine2', 'heroine3']);
+  assert.match(enactment.canonical_text, /상대 직원/);
+  assert.doesNotMatch(enactment.canonical_text, /heroine2|heroine3|press_body_against/);
+  assert.doesNotThrow(() => validateMandatoryEnactment(enactment, {
+    storyText: enactment.canonical_text,
+    sceneObligations: [{ actor_id: 'heroine1', source_rule_id: 'csa_multi_target', type: 'behavior_execution', action: 'press_body_against', trigger_state: 'required_now', execution_policy: 'mandatory_execution', eligible_target_ids: ['heroine2', 'heroine3'] }],
+    worldRules: [{ id: 'csa_multi_target', resolved_facts: [{ actor_id: 'heroine1', execution_kind: 'physical_contact', trigger_state: 'required_now', execution_policy: 'mandatory_execution' }] }],
+    registeredIds: new Set(['heroine1', 'heroine2', 'heroine3'])
+  }));
+});
+
+test('institutional segments appear only for newly activated or updated rules', () => {
+  const segments = buildInstitutionalSegments({ expectedTurn: 12, worldRules: [
+    { id: 'new-rule', phase: 'newly_activated', content: '새 규칙' },
+    { id: 'updated-rule', phase: 'updated', content: '갱신 규칙' },
+    { id: 'old-rule', phase: 'ongoing', content: '기존 규칙' }
+  ] });
+  assert.equal(segments.length, 2);
+  assert.match(segments[0].canonical_text, /새로운 회사 규칙/);
+  assert.match(segments[1].canonical_text, /회사 규칙이 갱신/);
+  assert.doesNotMatch(segments.map(item => item.canonical_text).join('\n'), /기존 규칙/);
 });
 
 test('canonical composite orders engine segments before provider narrative and preserves both texts', () => {
