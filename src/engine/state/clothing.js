@@ -1,3 +1,5 @@
+import { matchesCsaSubjectScope, subjectScopeForRule } from '../csa/authority-policy.js';
+
 /**
  * Story-grounded clothing continuity — canonical four-slot model.
  *
@@ -269,20 +271,18 @@ const REQUIRED_BY_TEMPLATE = {
  */
 export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {}) {
   const applicable = [];
-  const gender = typeof npcProfile?.gender === 'string' ? npcProfile.gender.toLowerCase() : null;
   for (const rule of activeRules) {
     const templateId = rule?.preset?.template_id;
     if (!templateId || !REQUIRED_BY_TEMPLATE[templateId]) continue;
     const preset = rule?.preset ?? {};
-    const actorGroup = preset.subject_scope || preset.affected_group;
+    const actorGroup = subjectScopeForRule({ preset });
     const mode = preset.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
     if (mode === 'on_player_request') continue;
     const isPlayer = npcProfile?.id === 'player' || npcProfile?.character_id === 'player' || npcProfile?.player === true;
     if (actorGroup === 'player' && !isPlayer) continue;
     // company_employee explicitly includes both the player and registered NPCs.
-    if (actorGroup === 'female_employee' && gender !== 'female') continue;
+    if (actorGroup !== 'player' && !matchesCsaSubjectScope({ ...npcProfile, id: npcProfile?.id ?? npcProfile?.character_id }, actorGroup)) continue;
     // male_employee 규정이 남성 전용일 경우 — 프로필 성별과 충돌하면 적용하지 않는다.
-    if (actorGroup === 'male_employee' && gender !== null && gender !== 'male') continue;
     applicable.push({ rule, templateId });
   }
 

@@ -1,11 +1,11 @@
 import { APP_STRENGTH_RANK, APP_STRENGTH_LABELS, appStrengthId } from './capability.js';
+import { policyPromptLines } from './authority-policy.js';
 import { normalizeCsaSemanticContract, validateCustomCsaSemanticContract } from './semantic-contract.js';
 import { normalizeAppContent } from './transaction-planner.js';
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
-
 /** Deterministic key-sorted JSON so the same logical payload always signs/verifies to the same digest. */
 export function stableStringify(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
@@ -58,25 +58,17 @@ export function collectSemanticStrengthCandidates(previousSave, canonicalAction,
 }
 
 export function buildAppStrengthValidationPrompt(candidates) {
-  return `너는 상식개변 앱에 입력된 사회 규범의 최소 필요 강도를 판정한다.
-
-각 입력마다 weak, medium, strong, unsupported 중 하나를 반환한다.
-- weak: 분위기·대화·가벼운 접촉·부끄러움 완화 수준
-- medium: 직접적인 신체 노출과 가슴·성기 접촉이 자연스러운 행동으로 이어짐
-- strong: 공간 전체의 업무·절차·예절·핵심 금기를 직접 재작성
-- unsupported: 물리적으로 불가능하거나 세계 규칙을 무시하거나 즉각적인 자기파괴를 요구
-
-강도는 확신과 사회적 압력만 바꾸며 문장의 의미 범위를 확대하지 않는다.
-selected_strength에 맞춰 required_strength를 낮추지 않는다.
-모든 후보에 정확히 하나의 결과를 반환하고 client_id를 그대로 복사한다.
-custom 상식개변에는 semantic_contract도 반환한다. 주어·대상·방향을 뒤집지 말고, 설명·상담·질문·평가·주변 정상화는 direct sexual authorization이 아니다. 성적 행동 종류, actor/target/direction/action/trigger 중 하나라도 불명확하면 confidence="ambiguous"와 actions=[]을 쓴다. ambiguous sexual contract는 허용되지 않는다.
-reason은 80자 이하 한국어 문장으로 작성하고 JSON 이외의 텍스트를 출력하지 않는다.
-
-[판정 대상]
+  return `Estimate the minimum supported Company institutional authority tier for each requested rule.
+Return exactly one of weak, medium, strong, or unsupported per input.
+The canonical tier meanings are:
+${policyPromptLines()}
+Do not broaden the requested meaning. The selected tier never lowers the required tier.
+Return one result for every candidate, copying client_id exactly.
+Custom CSA semantic contracts are returned in the required JSON shape; they are not direct sexual authorization.
+Candidates:
 ${JSON.stringify(candidates)}
-
-[요구 JSON]
-{"results":[{"client_id":"입력값 그대로","required_strength":"weak|medium|strong|unsupported","reason":"80자 이하 이유","semantic_contract":{"version":1,"sexual_authorization":false,"directions":[],"actions":[],"actor_group":"unknown","target_group":"unknown","trigger":"custom_condition","duration":"continuous","public_normalization":false,"direct_execution":false,"confidence":"exact|ambiguous"}}]}`;
+JSON:
+{"results":[{"client_id":"input client_id","required_strength":"weak|medium|strong|unsupported","reason":"brief reason","semantic_contract":{"version":1,"sexual_authorization":false,"directions":[],"actions":[],"actor_group":"unknown","target_group":"unknown","trigger":"custom_condition","duration":"continuous","public_normalization":false,"direct_execution":false,"confidence":"exact|ambiguous"}}]}`;
 }
 
 /** Calls the LLM once for the whole batch of custom candidates (never once per operation). */

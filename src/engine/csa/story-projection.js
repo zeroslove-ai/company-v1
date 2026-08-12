@@ -1,5 +1,12 @@
 import { getActiveCsaEntries } from './applicability.js';
 import { compareRequiredClothing, requiredClothingFromActiveCsa } from '../state/clothing.js';
+import {
+  authorityPolicyFor,
+  enactmentForPhase,
+  matchesCsaSubjectScope,
+  phaseForRule,
+  subjectScopeForRule
+} from './authority-policy.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -24,43 +31,35 @@ function authorityFor(rule, preset) {
     ?? 'weak';
 }
 
-function subjectScopeFor(rule, preset) {
-  return text(preset?.subject_scope) ?? text(preset?.affected_group) ?? text(rule?.subject_scope) ?? 'company_employee';
-}
-
 function modeFor(rule, preset) {
   return preset?.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
 }
 
-function phaseFor(rule, expectedTurn) {
-  const createdTurn = Number.isInteger(rule?.created_turn) ? rule.created_turn : null;
-  const updatedTurn = Number.isInteger(rule?.updated_turn) ? rule.updated_turn : null;
-  if (createdTurn !== null && createdTurn === expectedTurn) return 'newly_activated';
-  if (updatedTurn !== null && updatedTurn === expectedTurn) return 'updated';
-  return 'ongoing';
-}
-
-function institutionalFormFor(authority) {
-  if (authority === 'strong') return 'national_law_or_regulatory_directive_and_company_notice';
-  if (authority === 'medium') return 'company_work_rule_or_enterprise_compliance_policy';
-  return 'internal_company_guidance_or_operating_rule';
-}
-
-function projectWorldRule(entry, expectedTurn) {
+function projectWorldRule(entry, expectedTurn, sceneProfiles) {
   const rule = object(entry);
   const preset = object(rule.preset);
   const authority = authorityFor(rule, preset);
+  const phase = phaseForRule(rule, expectedTurn);
+  const subjectScope = subjectScopeForRule(rule);
+  const policy = authorityPolicyFor(authority);
+  const knownSceneActorIds = sceneProfiles.map(({ id }) => id);
+  const applicableSceneActorIds = sceneProfiles
+    .filter(({ id, profile }) => matchesCsaSubjectScope({ ...profile, id }, subjectScope))
+    .map(({ id }) => id);
   return {
     id: entry.id,
     content: text(rule.content) ?? '',
     authority,
-    phase: phaseFor(rule, expectedTurn),
-    institutional_form: institutionalFormFor(authority),
+    phase,
+    institutional_form: policy.institutional_form,
+    enactment: enactmentForPhase(phase),
     mode: modeFor(rule, preset),
-    subject_scope: subjectScopeFor(rule, preset),
+    subject_scope: subjectScope,
     counterparty_scope: text(preset.counterparty_scope) ?? text(rule.counterparty_scope),
     trigger: text(preset.trigger) ?? (modeFor(rule, preset) === 'on_player_request' ? 'on_counterparty_request' : 'continuous'),
-    newly_activated: phaseFor(rule, expectedTurn) === 'newly_activated'
+    known_scene_actor_ids: knownSceneActorIds,
+    applicable_scene_actor_ids: applicableSceneActorIds,
+    execution_policy: 'default_comply'
   };
 }
 
@@ -91,8 +90,11 @@ function projectObligations(save, master, sceneActorIds, activeEntries) {
 /** Read-only, per-turn Story projection of canonical institutional rules and obligations. */
 export function buildStoryWorldProjection({ save = {}, master = {}, sceneActorIds = [], expectedTurn = null } = {}) {
   const activeEntries = getActiveCsaEntries(save);
+  const sceneProfiles = (Array.isArray(sceneActorIds) ? sceneActorIds : [])
+    .filter(id => text(id) && id !== 'player')
+    .map(id => ({ id, profile: profileFor(master, id) }));
   return {
-    world_rules: activeEntries.map(entry => projectWorldRule(entry, expectedTurn)),
+    world_rules: activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles)),
     scene_obligations: projectObligations(save, master, sceneActorIds, activeEntries)
   };
 }

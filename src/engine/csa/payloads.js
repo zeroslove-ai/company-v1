@@ -2,14 +2,9 @@
 import { getActiveCsaEntries, normalizeCsaScope } from './applicability.js';
 import { buildCsaSemanticContract } from './semantic-contract.js';
 import { buildPresetCatalogPayload } from './catalog.js';
+import { authorityPolicyPayload } from './authority-policy.js';
 
 const GAMEPLAY_MODE = 'csa_only';
-
-const MANUAL_TIER_META = [
-  ['weak', '약함', 1, '감각·주의·기분·가벼운 충동을 변화시키지만 핵심 금기와 행동 선택은 유지합니다.'],
-  ['medium', '중간', 3, '특정 조건에서 부끄러움·거리감·행동 기준을 바꾸고 실제 행동을 자연스럽게 유도합니다.'],
-  ['strong', '강함', 7, '관계 인식·핵심 금기·반복 행동·자동 반응을 지속적으로 재작성합니다.']
-];
 
 /**
  * Manual payload for the 상식개변 앱's 매뉴얼 tab — status/quick-start/rules/
@@ -21,14 +16,11 @@ export function buildAppManualPayload(save, catalog) {
   const capability = calculateCsaCapability(save, activeCsa.length);
   const level = capability.current_level;
   const progress = level >= 10 ? 100 : Math.max(0, Math.min(100, Math.round((capability.exp / capability.next_level_exp) * 100)));
-  const tierRank = { weak: 0, medium: 1, strong: 2 };
-  const csaTiers = MANUAL_TIER_META.map(([id, label, unlockLevel]) => ({
-    id, label, unlock_level: unlockLevel, available: level >= unlockLevel,
-    description: {
-      weak: '대화·분위기·가벼운 접촉과 부끄러움 완화처럼 제한적인 사회적 관습을 바꿉니다.',
-      medium: '직접적인 신체 노출과 가슴·성기 접촉이 자연스러운 행동으로 이어집니다.',
-      strong: '플레이어가 지정한 구체적인 성행위와 체위가 실제 행동으로 이어집니다.'
-    }[id]
+  const unlockLevels = { weak: 1, medium: 3, strong: 7 };
+  const csaTiers = authorityPolicyPayload().map(policy => ({
+    ...policy,
+    unlock_level: unlockLevels[policy.id],
+    available: level >= unlockLevels[policy.id]
   }));
   const remainingSlots = Math.max(0, capability.csa_max_active - capability.csa_active_count);
   const diagnostics = [remainingSlots > 0
@@ -97,7 +89,11 @@ export function buildAppStatePayload(save, catalog, _unusedSemanticMap, player, 
   const manual = buildAppManualPayload(save, catalog);
   const activeCsa = getActiveCsaEntries(save);
   const strengthOptions = [['weak', '약함', 1], ['medium', '중간', 3], ['strong', '강함', 7]]
-    .map(([id, label, unlockLevel]) => ({ id, label, available: manual.status.level >= unlockLevel, unlock_level: unlockLevel }));
+    .map(([id, _label, unlockLevel]) => ({
+      ...authorityPolicyPayload().find(policy => policy.id === id),
+      available: manual.status.level >= unlockLevel,
+      unlock_level: unlockLevel
+    }));
   const scopeOptions = [{ id: 'world', label: '회사 전체', available: true, unlock_level: 1 }];
   const commonSense = activeCsa.filter(item => item.active).map(item => ({
     id: item.id, strength: appStrengthId(item.strength), strength_label: item.strength || 'weak', content: item.content || '',
@@ -115,7 +111,10 @@ export function buildAppStatePayload(save, catalog, _unusedSemanticMap, player, 
     strength_options: strengthOptions,
     scope_options: scopeOptions,
     common_sense: commonSense,
-    csa_presets: buildPresetCatalogPayload(catalog, appStrengthId(manual.status.available_strength)),
+    csa_presets: {
+      ...buildPresetCatalogPayload(catalog, appStrengthId(manual.status.available_strength)),
+      strengths: authorityPolicyPayload()
+    },
     manual,
     player_info: player,
     npcs: Array.isArray(npcs) ? npcs : []

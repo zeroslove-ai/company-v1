@@ -89,6 +89,11 @@ export {
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,
   buildMindEffectExtractFirewallSection
 } from './csa/prompt-sections.js';
+export {
+  CSA_AUTHORITY_POLICY, CSA_ENACTMENT_BY_PHASE, authorityPolicyFor,
+  authorityPolicyPayload, enactmentForPhase, matchesCsaSubjectScope,
+  phaseFor, phaseForRule, subjectScopeForRule
+} from './csa/authority-policy.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
 
 export { listGeneralNpcs, getGeneralNpc, isGeneralNpcId } from './npc/catalog.js';

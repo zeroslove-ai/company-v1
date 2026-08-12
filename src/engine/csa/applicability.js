@@ -14,6 +14,8 @@ function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+export { matchesCsaSubjectScope, subjectScopeForRule } from './authority-policy.js';
+
 const SCOPE_LABEL = '회사 전체';
 
 export function normalizeCsaScope() {
