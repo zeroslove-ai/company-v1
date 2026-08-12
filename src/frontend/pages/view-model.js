@@ -306,9 +306,17 @@ export function buildCompanyGameViewModel(context) {
   const interactingCharacters = interactingCharacterViews(save, scene, directory, details);
   const presentNpcIds = new Set(strings(scene.present_npc_ids));
   const imageCandidate = text(committedV2.image_character_id);
-  const imageCharacterId = imageCandidate && presentNpcIds.has(imageCandidate) && directory[imageCandidate] ? imageCandidate : '';
+  const lastLocalDialogueId = [...projectedDialogueLines].reverse().find(line => presentNpcIds.has(line.speaker_id))?.speaker_id ?? '';
+  const focalFallback = focalId && presentNpcIds.has(focalId) ? focalId : '';
+  const firstPresentFallback = [...presentNpcIds][0] ?? '';
+  const imageCharacterId = imageCandidate && presentNpcIds.has(imageCandidate) && directory[imageCandidate]
+    ? imageCandidate
+    : (lastLocalDialogueId || focalFallback || firstPresentFallback || '');
   const imageSelection = object(committedV2.image_selection) ?? {};
-  const imagePool = imageSelection.pool === 'sex' ? 'sex' : 'general';
+  const committedTurnNumber = committedTurn(context, save);
+  const committedSexualEvent = Array.isArray(save.sexual_event_ledger)
+    && save.sexual_event_ledger.some(event => Number(event?.turn) === committedTurnNumber);
+  const imagePool = imageSelection.pool === 'sex' || committedSexualEvent ? 'sex' : 'general';
   const imageTags = Array.isArray(imageSelection.tags) ? imageSelection.tags : [];
   const monitor = mindMonitor(turn);
   const monitorEntries = mindMonitorEntries(save, monitor, scene, [imageCharacterId, focalId], directory, details);

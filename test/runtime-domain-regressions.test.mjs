@@ -69,19 +69,21 @@ test('degraded observation leaves relationship and stats unchanged', () => {
   assert.deepEqual(stats.state, save.npc_stats['npc-hayeon']);
 });
 
-test('choice projection exposes only exact-four canonical choices', () => {
+test('choice projection keeps observed choices and fills only the UI canonical writer', () => {
   for (const count of [4, 3, 2, 1, 0]) {
     const input = Array.from({ length: count }, (_, index) => `choice-${index}`);
     const result = reduceStoryChoiceProjection({ parsedStory: { choices: input, canonical_choices: count === 4 ? input : [] } });
-    assert.deepEqual(result.state, count === 4 ? input : []);
-    assert.deepEqual(result.warnings, []);
+    assert.equal(result.state.length, 4);
+    assert.deepEqual(result.state.slice(0, count), input);
+    assert.deepEqual(result.warnings, count === 4 ? [] : ['choices_fallback_applied']);
   }
 });
 
-test('V2 commit stores only canonical exact-four choices as save last_choices', () => {
+test('V2 commit stores deterministic four-choice presentation fallback without changing raw parsed choices', () => {
   const observation = normalizeExtractObservationV2({ extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] }, { npcIds });
   const result = reduceGameplayCommit({ currentSave: structuredClone(seed), observation, parsedStory: { choices: ['one', 'two'], dialogue_lines: [] }, rawStory: 'A plain Story', action: { action_id: 'choices', turn_id: 'turn-8', action_kind: 'player_turn' }, expectedTurn: 8, npcIds, mapLocations: [] });
-  assert.deepEqual(result.nextSave.last_choices, []);
+  assert.equal(result.nextSave.last_choices.length, 4);
+  assert.deepEqual(result.nextSave.last_choices.slice(0, 2), ['one', 'two']);
 });
 
 test('persisted V1 adapter is the only compatibility bridge and emits an explicit warning', () => {

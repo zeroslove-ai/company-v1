@@ -183,10 +183,25 @@ export function reduceElapsedTimeObservation({ save, elapsedMinutes, evidence } 
 }
 
 export function reduceStoryChoiceProjection({ parsedStory } = {}) {
-  const choices = Array.isArray(parsedStory?.canonical_choices)
-    ? parsedStory.canonical_choices
-    : (Array.isArray(parsedStory?.choices) && parsedStory.choices.length === 4 ? parsedStory.choices : []);
-  return { state: clone(choices), warnings: [] };
+  const observed = Array.isArray(parsedStory?.choices)
+    ? parsedStory.choices.filter(choice => typeof choice === 'string' && choice.trim()).map(choice => choice.trim())
+    : [];
+  const uniqueObserved = [];
+  for (const choice of observed) if (!uniqueObserved.includes(choice)) uniqueObserved.push(choice);
+  if (uniqueObserved.length > 4) return { state: [], warnings: ['choices_not_exactly_four'] };
+  if (uniqueObserved.length === 4) return { state: clone(uniqueObserved), warnings: [] };
+  const fallbacks = [
+    '현재 대화를 조금 더 이어간다.',
+    '상대에게 지금 상황을 차분히 물어본다.',
+    '주변 반응을 잠시 살펴본다.',
+    '대화를 정리하고 다음 행동을 생각한다.'
+  ];
+  const state = [...uniqueObserved];
+  for (const fallback of fallbacks) {
+    if (state.length >= 4) break;
+    if (!state.includes(fallback)) state.push(fallback);
+  }
+  return { state: clone(state), warnings: ['choices_fallback_applied'] };
 }
 
 export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, explicitSpeakerIds } = {}) {

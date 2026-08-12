@@ -347,13 +347,12 @@ function renderMindEntry(container, entry) {
   renderStatStrip(container, entry);
   const body = document.createElement('div'); body.className = 'mind-monitor-body';
   for (const [label, value] of [['표면의식', entry.surface], ['잠재의식', entry.subconscious]]) {
-    const line = document.createElement('p'); line.className = 'mind-line';
-    const heading = document.createElement('strong'); heading.textContent = label;
-    const detail = document.createElement('span'); detail.textContent = ` ${value || '이번 턴에는 확인할 수 없습니다.'}`;
-    line.append(heading, detail); body.append(line);
+    const card = document.createElement('section'); card.className = 'mind-line';
+    const heading = document.createElement('h4'); heading.textContent = label;
+    const detail = document.createElement('p'); detail.textContent = value || '이번 턴에는 확인할 수 없습니다.';
+    card.append(heading, detail); body.append(card);
   }
   container.append(body);
-  // 캐릭터 이름: 컨테이너 마지막에 추가 (CSS order로 최상단 표시, 카드 구조 유지)
   const name = displayValue(entry.name) || displayValue(entry.id);
   if (name && !container.querySelector?.('.mind-monitor-name')) {
     const nameHeading = document.createElement('h3'); nameHeading.className = 'mind-monitor-name'; nameHeading.textContent = name;

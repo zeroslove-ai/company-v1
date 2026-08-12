@@ -32,19 +32,35 @@ function modeFor(rule, preset) {
   return preset?.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
 }
 
+function phaseFor(rule, expectedTurn) {
+  const createdTurn = Number.isInteger(rule?.created_turn) ? rule.created_turn : null;
+  const updatedTurn = Number.isInteger(rule?.updated_turn) ? rule.updated_turn : null;
+  if (createdTurn !== null && createdTurn === expectedTurn) return 'newly_activated';
+  if (updatedTurn !== null && updatedTurn === expectedTurn) return 'updated';
+  return 'ongoing';
+}
+
+function institutionalFormFor(authority) {
+  if (authority === 'strong') return 'national_law_or_regulatory_directive_and_company_notice';
+  if (authority === 'medium') return 'company_work_rule_or_enterprise_compliance_policy';
+  return 'internal_company_guidance_or_operating_rule';
+}
+
 function projectWorldRule(entry, expectedTurn) {
   const rule = object(entry);
   const preset = object(rule.preset);
-  const createdTurn = Number.isInteger(rule.created_turn) ? rule.created_turn : null;
+  const authority = authorityFor(rule, preset);
   return {
     id: entry.id,
     content: text(rule.content) ?? '',
-    authority: authorityFor(rule, preset),
+    authority,
+    phase: phaseFor(rule, expectedTurn),
+    institutional_form: institutionalFormFor(authority),
     mode: modeFor(rule, preset),
     subject_scope: subjectScopeFor(rule, preset),
     counterparty_scope: text(preset.counterparty_scope) ?? text(rule.counterparty_scope),
     trigger: text(preset.trigger) ?? (modeFor(rule, preset) === 'on_player_request' ? 'on_counterparty_request' : 'continuous'),
-    newly_activated: Number.isInteger(expectedTurn) && createdTurn === expectedTurn
+    newly_activated: phaseFor(rule, expectedTurn) === 'newly_activated'
   };
 }
 

@@ -721,10 +721,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const csaApp = createCsaApp({
     documentRef, api, gameId,
     onSubmit: (displayInput, canonicalAction) => {
+      const accepted = !busy && Boolean(context) && !setupPending();
+      if (!accepted) return false;
       const handoff = startNewAction(displayInput, canonicalAction);
-      Promise.resolve(handoff).then(result => {
-        if (result === false) showStatus('상식개변 적용 행동을 시작하지 못했습니다. 복구 상태를 확인해 주세요.');
-      }).catch(showError);
+      Promise.resolve(handoff).catch(showError);
       return true;
     },
     onError: showError

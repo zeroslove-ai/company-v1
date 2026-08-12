@@ -18,13 +18,37 @@ const save = (sceneIds = ['heroine1'], clothing = 'worn', extra = {}) => ({
 test('world rule projection exposes one canonical rule shape', () => {
   const projection = buildStoryWorldProjection({ save: save(), master, sceneActorIds: ['heroine1'], expectedTurn: 3 });
   assert.deepEqual(projection.world_rules[0], {
-    id: 'csa_4', content: 'no bra under work clothes', authority: 'weak', mode: 'continuous', subject_scope: 'female_employee', counterparty_scope: null, trigger: 'continuous', newly_activated: true
+    id: 'csa_4', content: 'no bra under work clothes', authority: 'weak', phase: 'newly_activated', institutional_form: 'internal_company_guidance_or_operating_rule', mode: 'continuous', subject_scope: 'female_employee', counterparty_scope: null, trigger: 'continuous', newly_activated: true
   });
 });
 
 test('scene obligation derives only the current actor transition', () => {
   const { scene_obligations } = buildStoryWorldProjection({ save: save(), master, sceneActorIds: ['heroine1'], expectedTurn: 4 });
   assert.deepEqual(scene_obligations, [{ actor_id: 'heroine1', source_rule_id: 'csa_4', type: 'clothing_transition', changes: [{ slot: 'underwear_top', current: 'worn', required: 'removed' }] }]);
+});
+
+test('world rule projection keeps phase and institutional form distinct by authority', () => {
+  const base = save();
+  base.csa_rules.csa_4 = rule('csa_4', { authority_tier: 'medium', template_id: 'no_bra_under_work_clothes' });
+  base.csa_rules.csa_4.strength = 'medium';
+  base.csa_rules.csa_4.updated_turn = 5;
+  base.csa_active = ['csa_4'];
+  const medium = buildStoryWorldProjection({ save: base, master, sceneActorIds: ['heroine1'], expectedTurn: 5 }).world_rules[0];
+  assert.equal(medium.phase, 'updated');
+  assert.equal(medium.institutional_form, 'company_work_rule_or_enterprise_compliance_policy');
+  base.csa_rules.csa_4.strength = 'strong';
+  base.csa_rules.csa_4.preset.authority_tier = 'strong';
+  const strong = buildStoryWorldProjection({ save: base, master, sceneActorIds: ['heroine1'], expectedTurn: 6 }).world_rules[0];
+  assert.equal(strong.phase, 'ongoing');
+  assert.equal(strong.institutional_form, 'national_law_or_regulatory_directive_and_company_notice');
+});
+
+test('continuous clothing obligations cover every present applicable female NPC', () => {
+  const { scene_obligations } = buildStoryWorldProjection({ save: save(['heroine1', 'heroine2']), master, sceneActorIds: ['heroine1', 'heroine2'], expectedTurn: 4 });
+  assert.deepEqual(scene_obligations, [
+    { actor_id: 'heroine1', source_rule_id: 'csa_4', type: 'clothing_transition', changes: [{ slot: 'underwear_top', current: 'worn', required: 'removed' }] },
+    { actor_id: 'heroine2', source_rule_id: 'csa_4', type: 'clothing_transition', changes: [{ slot: 'underwear_top', current: 'worn', required: 'removed' }] }
+  ]);
 });
 
 test('compliant, wrong-gender, absent, unknown, and conflicted actors get no obligation', () => {
@@ -44,4 +68,14 @@ test('institutional Story payload omits player-only action and old CSA fields', 
   assert.equal(payload.turn_trigger.kind, 'institutional_rule_change');
   assert.equal('player_action' in payload, false);
   for (const key of ['active_world_rules', 'clothing_authority', 'action_kind', 'structured_action', 'display_input', 'global_csa']) assert.equal(key in payload || key in payload.context, false, key);
+});
+
+test('Story rules distinguish institutional knowledge, compliance, and player-only thought ownership', () => {
+  const messages = buildStoryPrompt({ edition: { editionId: 'company-v1', characters: { characters: { heroine1: { name: 'Alpha', prompt_card: {} } } }, generalNpcs: { profiles: {} } }, context: { save: { data: { ...save(), scene: { ...save().scene, updated_turn: 0 } } }, recent_turns: [] }, playerAction: '', expectedTurn: 3, sceneCastContract: { present_npc_ids: ['heroine1'], entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null } });
+  const system = messages[0].content;
+  assert.match(system, /institutional enactment/i);
+  assert.match(system, /knowledge of a rule is not the same as applicability/i);
+  assert.match(system, /magical physical transition/i);
+  assert.match(system, /belongs exclusively to the player/i);
+  assert.match(system, /Mind Monitor/i);
 });
