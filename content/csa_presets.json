@@ -64,12 +64,26 @@
       "affected_group": "female_employee",
       "mode": "continuous",
       "trigger": "when_seated_together",
-      "allowed_subject_scopes": ["female_employee", "company_employee"],
+      "allowed_subject_scopes": [
+        "female_employee",
+        "company_employee"
+      ],
       "default_subject_scope": "female_employee",
-      "allowed_counterparty_scopes": ["player", "female_employee", "male_employee", "company_employee"],
+      "allowed_counterparty_scopes": [
+        "player",
+        "female_employee",
+        "male_employee",
+        "company_employee"
+      ],
       "default_counterparty_scope": null,
       "content_template": "회사 여성 직원은 상대 직원과 가까이 대화하거나 함께 앉아 업무할 때 상대의 무릎 위에 올라앉아 몸을 밀착한다.",
-      "scope_template": "{subject}는 {counterparty}와 가까이 대화하거나 함께 앉아 업무할 때 {counterparty}의 무릎 위에 올라앉아 몸을 밀착한다."
+      "scope_template": "{subject}는 {counterparty}와 가까이 대화하거나 함께 앉아 업무할 때 {counterparty}의 무릎 위에 올라앉아 몸을 밀착한다.",
+      "execution": {
+        "kind": "posture_relation",
+        "action": "sit_on_lap",
+        "trigger_kind": "both_seated",
+        "target_required": true
+      }
     },
     {
       "id": "stand_between_recipient_knees",
@@ -80,12 +94,26 @@
       "affected_group": "female_employee",
       "mode": "continuous",
       "trigger": "when_seated_together",
-      "allowed_subject_scopes": ["female_employee", "company_employee"],
+      "allowed_subject_scopes": [
+        "female_employee",
+        "company_employee"
+      ],
       "default_subject_scope": "female_employee",
-      "allowed_counterparty_scopes": ["player", "female_employee", "male_employee", "company_employee"],
+      "allowed_counterparty_scopes": [
+        "player",
+        "female_employee",
+        "male_employee",
+        "company_employee"
+      ],
       "default_counterparty_scope": null,
       "content_template": "회사 여성 직원은 상대 직원과 대화하거나 업무를 함께할 때 상대의 벌어진 무릎 사이에 가까이 선다.",
-      "scope_template": "{subject}는 {counterparty}와 대화하거나 업무를 함께할 때 {counterparty}의 벌어진 무릎 사이에 가까이 선다."
+      "scope_template": "{subject}는 {counterparty}와 대화하거나 업무를 함께할 때 {counterparty}의 벌어진 무릎 사이에 가까이 선다.",
+      "execution": {
+        "kind": "posture_relation",
+        "action": "stand_between_knees",
+        "trigger_kind": "both_seated",
+        "target_required": true
+      }
     },
     {
       "id": "press_body_against_recipient",
@@ -96,12 +124,28 @@
       "affected_group": "female_employee",
       "mode": "continuous",
       "trigger": "contextual",
-      "allowed_subject_scopes": ["player", "female_employee", "male_employee", "company_employee"],
+      "allowed_subject_scopes": [
+        "player",
+        "female_employee",
+        "male_employee",
+        "company_employee"
+      ],
       "default_subject_scope": "female_employee",
-      "allowed_counterparty_scopes": ["player", "female_employee", "male_employee", "company_employee"],
+      "allowed_counterparty_scopes": [
+        "player",
+        "female_employee",
+        "male_employee",
+        "company_employee"
+      ],
       "default_counterparty_scope": null,
       "content_template": "회사 여성 직원은 상대 직원과 가까이 대면하거나 함께 업무할 때 가슴과 몸이 밀착될 정도의 거리를 유지한다.",
-      "scope_template": "{subject}는 {counterparty}와 가까이 대면하거나 함께 업무할 때 가슴과 몸이 밀착될 정도의 거리를 유지해야 한다."
+      "scope_template": "{subject}는 {counterparty}와 가까이 대면하거나 함께 업무할 때 가슴과 몸이 밀착될 정도의 거리를 유지해야 한다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "press_body_against",
+        "trigger_kind": "scene_interaction",
+        "target_required": true
+      }
     },
     {
       "id": "embrace_recipient_from_behind",
@@ -113,7 +157,13 @@
       "mode": "continuous",
       "trigger": "when_in_close_conversation",
       "content_template": "회사 여성 직원은 상대 직원과 나란히 있거나 가까이 대화할 때 뒤에서 자연스럽게 끌어안는다.",
-      "scope_template": "{subject}는 {counterparty}와 나란히 있거나 가까이 대화할 때 뒤에서 자연스럽게 끌어안는다."
+      "scope_template": "{subject}는 {counterparty}와 나란히 있거나 가까이 대화할 때 뒤에서 자연스럽게 끌어안는다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "embrace_from_behind",
+        "trigger_kind": "close_conversation",
+        "target_required": true
+      }
     },
     {
       "id": "keep_hand_on_recipient_inner_thigh",
@@ -125,7 +175,13 @@
       "mode": "continuous",
       "trigger": "when_seated_together",
       "content_template": "회사 여성 직원은 상대 직원과 가까이 앉아 있을 때 상대의 안쪽 허벅지에 손을 올리고 유지한다.",
-      "scope_template": "{subject}는 {counterparty}와 가까이 앉아 있을 때 {counterparty}의 안쪽 허벅지에 손을 올리고 유지한다."
+      "scope_template": "{subject}는 {counterparty}와 가까이 앉아 있을 때 {counterparty}의 안쪽 허벅지에 손을 올리고 유지한다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "keep_hand_on_inner_thigh",
+        "trigger_kind": "scene_interaction",
+        "target_required": true
+      }
     },
     {
       "id": "wrap_leg_around_recipient",
@@ -137,7 +193,13 @@
       "mode": "continuous",
       "trigger": "when_seated_together",
       "content_template": "회사 여성 직원은 상대 직원과 가까이 앉아 있을 때 한쪽 다리를 상대에게 감는다.",
-      "scope_template": "{subject}는 {counterparty}와 가까이 앉아 있을 때 한쪽 다리를 {counterparty}에게 감는다."
+      "scope_template": "{subject}는 {counterparty}와 가까이 앉아 있을 때 한쪽 다리를 {counterparty}에게 감는다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "wrap_leg_around",
+        "trigger_kind": "scene_interaction",
+        "target_required": true
+      }
     },
     {
       "id": "maintain_thigh_contact",
@@ -149,7 +211,13 @@
       "mode": "continuous",
       "trigger": "when_seated_together",
       "content_template": "회사 여성 직원은 상대 직원과 가까이 앉아 업무할 때 무릎과 허벅지가 계속 맞닿는다.",
-      "scope_template": "{subject}는 {counterparty}와 가까이 앉아 업무할 때 무릎과 허벅지가 계속 맞닿는다."
+      "scope_template": "{subject}는 {counterparty}와 가까이 앉아 업무할 때 무릎과 허벅지가 계속 맞닿는다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "maintain_thigh_contact",
+        "trigger_kind": "scene_interaction",
+        "target_required": true
+      }
     },
     {
       "id": "whisper_against_recipient_ear",
@@ -161,7 +229,13 @@
       "mode": "continuous",
       "trigger": "when_in_close_conversation",
       "content_template": "회사 여성 직원은 상대 직원과 가까이 있을 때 입술과 숨결이 귀에 닿을 거리에서 낮게 속삭인다.",
-      "scope_template": "{subject}는 {counterparty}와 가까이 있을 때 입술과 숨결이 {counterparty}의 귀에 닿을 거리에서 낮게 속삭인다."
+      "scope_template": "{subject}는 {counterparty}와 가까이 있을 때 입술과 숨결이 {counterparty}의 귀에 닿을 거리에서 낮게 속삭인다.",
+      "execution": {
+        "kind": "speech_contact",
+        "action": "whisper_against_ear",
+        "trigger_kind": "close_conversation",
+        "target_required": true
+      }
     },
     {
       "id": "interlace_fingers_with_recipient",
@@ -173,7 +247,13 @@
       "mode": "continuous",
       "trigger": "when_in_close_conversation",
       "content_template": "회사 여성 직원은 상대 직원과 손을 잡거나 가까이 대화할 때 손가락을 깍지 끼고 손을 놓지 않는다.",
-      "scope_template": "{subject}는 {counterparty}와 손을 잡거나 가까이 대화할 때 손가락을 깍지 끼고 손을 놓지 않는다."
+      "scope_template": "{subject}는 {counterparty}와 손을 잡거나 가까이 대화할 때 손가락을 깍지 끼고 손을 놓지 않는다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "interlace_fingers",
+        "trigger_kind": "close_conversation",
+        "target_required": true
+      }
     },
     {
       "id": "no_bra_under_work_clothes",
@@ -183,7 +263,16 @@
       "label": "회사 여성 직원은 근무 중 브래지어 없이 근무복을 입어야 한다.",
       "affected_group": "female_employee",
       "mode": "continuous",
-      "content_template": "회사 여성 직원은 근무 중 브래지어 없이 근무복을 입어야 한다."
+      "content_template": "회사 여성 직원은 근무 중 브래지어 없이 근무복을 입어야 한다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {
+          "underwear_top": "removed"
+        }
+      }
     },
     {
       "id": "no_panties_under_work_clothes",
@@ -193,7 +282,16 @@
       "label": "회사 여성 직원은 근무 중 팬티 없이 평소 근무복을 입어야 한다.",
       "affected_group": "female_employee",
       "mode": "continuous",
-      "content_template": "회사 여성 직원은 근무 중 팬티 없이 평소 근무복을 입어야 한다."
+      "content_template": "회사 여성 직원은 근무 중 팬티 없이 평소 근무복을 입어야 한다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {
+          "underwear_bottom": "removed"
+        }
+      }
     },
     {
       "id": "open_top_to_show_cleavage",
@@ -203,7 +301,14 @@
       "label": "회사 여성 직원은 근무 중 셔츠나 블라우스 상단을 깊게 풀어 가슴골을 드러내야 한다.",
       "affected_group": "female_employee",
       "mode": "continuous",
-      "content_template": "회사 여성 직원은 근무 중 셔츠나 블라우스 상단을 깊게 풀어 가슴골을 드러내야 한다."
+      "content_template": "회사 여성 직원은 근무 중 셔츠나 블라우스 상단을 깊게 풀어 가슴골을 드러내야 한다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {}
+      }
     },
     {
       "id": "wear_body_hugging_work_clothes",
@@ -213,7 +318,14 @@
       "label": "회사 여성 직원은 근무 중 몸의 윤곽이 선명한 밀착 근무복을 입어야 한다.",
       "affected_group": "female_employee",
       "mode": "continuous",
-      "content_template": "회사 여성 직원은 근무 중 몸의 윤곽이 선명한 밀착 근무복을 입어야 한다."
+      "content_template": "회사 여성 직원은 근무 중 몸의 윤곽이 선명한 밀착 근무복을 입어야 한다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {}
+      }
     },
     {
       "id": "target_places_requester_hand_on_waist_or_thigh",
@@ -223,7 +335,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 자기 허리나 허벅지 위에 직접 올려놓아야 한다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "place_requester_hand_on_waist_or_thigh",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "work_in_underwear_only",
@@ -233,7 +351,19 @@
       "label": "회사 여성 직원은 근무 중 겉옷을 벗고 속옷 차림으로 지내야 한다.",
       "affected_group": "female_employee",
       "mode": "continuous",
-      "content_template": "회사 여성 직원은 근무 중 겉옷을 벗고 속옷 차림으로 지내야 한다."
+      "content_template": "회사 여성 직원은 근무 중 겉옷을 벗고 속옷 차림으로 지내야 한다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {
+          "uniform_top": "removed",
+          "uniform_bottom": "removed",
+          "underwear_top": "worn",
+          "underwear_bottom": "worn"
+        }
+      }
     },
     {
       "id": "work_nude",
@@ -244,12 +374,29 @@
       "affected_group": "female_employee",
       "mode": "continuous",
       "trigger": "continuous",
-      "allowed_subject_scopes": ["player", "female_employee", "male_employee", "company_employee"],
+      "allowed_subject_scopes": [
+        "player",
+        "female_employee",
+        "male_employee",
+        "company_employee"
+      ],
       "default_subject_scope": "female_employee",
       "allowed_counterparty_scopes": [],
       "default_counterparty_scope": null,
       "content_template": "회사 여성 직원은 근무 중 모든 옷을 벗어 나체 상태로 지내야 한다.",
-      "scope_template": "{subject}는 근무 중 모든 옷을 벗어 나체 상태로 지낸다."
+      "scope_template": "{subject}는 근무 중 모든 옷을 벗어 나체 상태로 지낸다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {
+          "uniform_top": "removed",
+          "uniform_bottom": "removed",
+          "underwear_top": "removed",
+          "underwear_bottom": "removed"
+        }
+      }
     },
     {
       "id": "expose_breasts_on_request",
@@ -259,7 +406,14 @@
       "label": "회사 여성 직원은 상대방이 요청하면 가슴을 완전히 드러내야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 가슴을 완전히 드러내야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 가슴을 완전히 드러내야 한다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {}
+      }
     },
     {
       "id": "expose_genitals_on_request",
@@ -269,7 +423,14 @@
       "label": "회사 여성 직원은 상대방이 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 옷과 속옷을 벗거나 젖혀 성기가 보이게 해야 한다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {}
+      }
     },
     {
       "id": "remove_requested_clothing",
@@ -279,7 +440,14 @@
       "label": "회사 여성 직원은 상대방이 지정한 옷을 실제로 벗어야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 지정한 옷을 실제로 벗어야 한다."
+      "content_template": "회사 여성 직원은 상대방이 지정한 옷을 실제로 벗어야 한다.",
+      "execution": {
+        "kind": "clothing_state",
+        "action": "set_clothing_state",
+        "trigger_kind": "always_during_work",
+        "target_required": false,
+        "required_state": {}
+      }
     },
     {
       "id": "allow_breast_touch_on_request",
@@ -289,7 +457,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 가슴과 유두를 만지도록 몸을 내어줘야 한다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "allow_breast_touch",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "allow_genital_touch_on_request",
@@ -299,7 +473,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 직접 만지도록 자세를 잡아야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 직접 만지도록 자세를 잡아야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 직접 만지도록 자세를 잡아야 한다.",
+      "execution": {
+        "kind": "physical_contact",
+        "action": "allow_genital_touch",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "stimulate_recipient_breasts_and_nipples",
@@ -309,7 +489,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 주무르고 유두를 손가락으로 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 주무르고 유두를 손가락으로 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 주무르고 유두를 손가락으로 자극해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "stimulate_breasts_and_nipples",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "hand_stimulate_recipient_genitals",
@@ -319,7 +505,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 손으로 잡고 반복해서 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 손으로 잡고 반복해서 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 손으로 잡고 반복해서 자극해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "hand_stimulate_genitals",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "masturbate_for_recipient",
@@ -329,7 +521,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방 앞에서 자신의 성기를 만지며 자위해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방 앞에서 자신의 성기를 만지며 자위해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방 앞에서 자신의 성기를 만지며 자위해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "masturbate",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "grind_on_recipient_lap",
@@ -339,7 +537,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 무릎 위에서 골반을 움직여 성기를 마찰해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "grind_on_lap",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "deep_kiss_on_request",
@@ -349,7 +553,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 입술을 맞대고 혀를 섞어 깊게 키스해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "deep_kiss",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "guide_recipient_hand_to_body",
@@ -359,7 +569,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 손을 잡아 자신의 가슴·허벅지·성기로 이끌어야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "guide_hand_to_body",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "mutual_genital_touch",
@@ -369,7 +585,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방과 서로의 성기를 손으로 만지고 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 서로의 성기를 손으로 만지고 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 서로의 성기를 손으로 만지고 자극해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "mutual_genital_touch",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "lick_and_suck_recipient_nipples",
@@ -379,7 +601,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 가슴을 입으로 핥고 유두를 빨아 자극해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "lick_and_suck_nipples",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "perform_oral_sex_on_recipient",
@@ -389,7 +617,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 입과 혀로 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 입과 혀로 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방의 성기를 입과 혀로 자극해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "perform_oral_sex_on",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "receive_oral_sex_from_recipient",
@@ -399,7 +633,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 입으로 자극하도록 해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 입으로 자극하도록 해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 자신의 성기를 입으로 자극하도록 해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "receive_oral_sex",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "vaginal_sex_with_recipient",
@@ -409,7 +649,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방과 질 삽입 성관계를 시작해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 질 삽입 성관계를 시작해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 질 삽입 성관계를 시작해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "vaginal_sex",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "anal_sex_with_recipient",
@@ -419,7 +665,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방과 항문 삽입 성관계를 시작해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 항문 삽입 성관계를 시작해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방과 항문 삽입 성관계를 시작해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "anal_sex",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "perform_requester_selected_sex_position",
@@ -429,7 +681,13 @@
       "label": "회사 여성 직원은 상대방이 지정한 체위로 자세를 바꾸고 상대방과 성행위를 시작해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 지정한 체위로 자세를 바꾸고 상대방과 성행위를 시작해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 지정한 체위로 자세를 바꾸고 상대방과 성행위를 시작해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "perform_selected_sex_position",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "continue_until_recipient_orgasm",
@@ -439,7 +697,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 상대방이 절정에 이를 때까지 현재 성적 행동을 계속해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 절정에 이를 때까지 현재 성적 행동을 계속해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 상대방이 절정에 이를 때까지 현재 성적 행동을 계속해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "continue_until_orgasm",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "continue_until_player_says_stop",
@@ -449,7 +713,13 @@
       "label": "회사 여성 직원은 상대방이 중단하거나 방식을 바꿀 때까지 상대방과 현재 성적 행동을 계속해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 중단하거나 방식을 바꿀 때까지 상대방과 현재 성적 행동을 계속해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 중단하거나 방식을 바꿀 때까지 상대방과 현재 성적 행동을 계속해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "continue_until_player_says_stop",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "requester_controls_ejaculation_location",
@@ -459,7 +729,13 @@
       "label": "회사 여성 직원은 상대방이 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 사정할 위치나 방식을 지정하면 그에 맞춰 자세와 행동을 조정해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "requester_controls_ejaculation_location",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "swallow_semen_on_request",
@@ -469,7 +745,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 입 안에 받은 정액을 삼켜야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 입 안에 받은 정액을 삼켜야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 입 안에 받은 정액을 삼켜야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "swallow_semen",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "multi_performer_sexual_service",
@@ -479,7 +761,13 @@
       "label": "회사 여성 직원은 상대방이 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 상대방을 자극해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 상대방을 자극해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 요청하면 여러 회사 여성 직원이 함께 손·입·가슴을 이용해 상대방을 자극해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "multi_performer_sexual_service",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "group_sex_with_player",
@@ -489,7 +777,13 @@
       "label": "회사 직원은 상대방과 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다.",
       "affected_group": "company_employee",
       "mode": "on_player_request",
-      "content_template": "회사 직원은 상대방과 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다."
+      "content_template": "회사 직원은 상대방과 여러 회사 직원이 같은 장면에서 성행위를 함께 진행해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "group_sex_with_player",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "public_sex_is_unremarkable",
@@ -499,7 +793,13 @@
       "label": "회사 직원은 공개된 성행위를 방해하지 않고 일상적인 장면으로 받아들여야 한다.",
       "affected_group": "company_employee",
       "mode": "continuous",
-      "content_template": "회사 직원은 공개된 성행위를 방해하지 않고 일상적인 장면으로 받아들여야 한다."
+      "content_template": "회사 직원은 공개된 성행위를 방해하지 않고 일상적인 장면으로 받아들여야 한다.",
+      "execution": {
+        "kind": "world_behavior",
+        "action": "public_sex_is_unremarkable",
+        "trigger_kind": "always_during_work",
+        "target_required": false
+      }
     },
     {
       "id": "player_request_executes_immediately",
@@ -509,7 +809,13 @@
       "label": "회사 여성 직원은 상대방이 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "player_request_executes_immediately",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "player_controls_target_clothing_posture_and_sexual_action",
@@ -519,7 +825,13 @@
       "label": "회사 여성 직원은 상대방이 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다.",
       "affected_group": "female_employee",
       "mode": "on_player_request",
-      "content_template": "회사 여성 직원은 상대방이 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다."
+      "content_template": "회사 여성 직원은 상대방이 지정한 복장·자세·현재 성적 행동으로 즉시 전환해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "player_controls_target_clothing_posture_and_sexual_action",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     },
     {
       "id": "selected_groups_mutual_sexual_service",
@@ -529,7 +841,13 @@
       "label": "회사 직원은 상대방이 요청하면 다른 회사 직원과 서로의 성적 요구를 손·입·성행위로 충족해야 한다.",
       "affected_group": "company_employee",
       "mode": "on_player_request",
-      "content_template": "회사 직원은 상대방이 요청하면 다른 회사 직원과 서로의 성적 요구를 손·입·성행위로 충족해야 한다."
+      "content_template": "회사 직원은 상대방이 요청하면 다른 회사 직원과 서로의 성적 요구를 손·입·성행위로 충족해야 한다.",
+      "execution": {
+        "kind": "sexual_behavior",
+        "action": "selected_groups_mutual_sexual_service",
+        "trigger_kind": "counterparty_request",
+        "target_required": true
+      }
     }
   ],
   "authority_tiers": [

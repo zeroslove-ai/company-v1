@@ -7,6 +7,7 @@ import {
   phaseForRule,
   subjectScopeForRule
 } from './authority-policy.js';
+import { executionMetadataForRule } from './execution-policy.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -35,6 +36,41 @@ function modeFor(rule, preset) {
   return preset?.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
 }
 
+function triggerStateFor(triggerKind, { actorPresent, targetCount, postureReady = false } = {}) {
+  if (!actorPresent) return 'not_applicable';
+  if (triggerKind === 'always_during_work') return 'required_now';
+  if (triggerKind === 'scene_interaction') return targetCount > 0 ? 'required_now' : 'conditional';
+  if (triggerKind === 'both_seated') return postureReady ? 'required_now' : 'conditional';
+  return 'conditional';
+}
+
+function sceneStateFor(save, id) {
+  if (id === 'player') {
+    return object(save?.player_scene_state ?? save?.player?.scene_state);
+  }
+  return object(save?.npc_scene_state?.[id]);
+}
+
+function isSeatedState(state) {
+  const posture = text(state?.posture)?.toLowerCase() ?? '';
+  const position = text(state?.position_label)?.toLowerCase() ?? '';
+  return /(?:^|[ _-])(sitting|seated)(?:$|[ _-])/.test(posture)
+    || /(?:^|[ _-])(?:sitting|seated)(?:$|[ _-])/.test(position)
+    || posture.includes('앉')
+    || position.includes('앉');
+}
+
+function postureReadyForTargets(save, actorId, targetIds) {
+  if (!Array.isArray(targetIds) || targetIds.length === 0) return false;
+  return [actorId, ...targetIds].every(id => isSeatedState(sceneStateFor(save, id)));
+}
+
+function eligibleTargetIds({ actorId, counterpartyScope, sceneProfiles }) {
+  return sceneProfiles
+    .filter(({ id, profile }) => id !== actorId && matchesCsaSubjectScope({ ...profile, id }, counterpartyScope || 'company_employee'))
+    .map(({ id }) => id);
+}
+
 function projectWorldRule(entry, expectedTurn, sceneProfiles) {
   const rule = object(entry);
   const preset = object(rule.preset);
@@ -42,6 +78,7 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles) {
   const phase = phaseForRule(rule, expectedTurn);
   const subjectScope = subjectScopeForRule(rule);
   const policy = authorityPolicyFor(authority);
+  const execution = executionMetadataForRule(rule);
   const knownSceneActorIds = sceneProfiles.map(({ id }) => id);
   const applicableSceneActorIds = sceneProfiles
     .filter(({ id, profile }) => matchesCsaSubjectScope({ ...profile, id }, subjectScope))
@@ -57,6 +94,7 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles) {
     subject_scope: subjectScope,
     counterparty_scope: text(preset.counterparty_scope) ?? text(rule.counterparty_scope),
     trigger: text(preset.trigger) ?? (modeFor(rule, preset) === 'on_player_request' ? 'on_counterparty_request' : 'continuous'),
+    ...(execution ? { execution_contract: execution } : {}),
     known_scene_actor_ids: knownSceneActorIds,
     applicable_scene_actor_ids: applicableSceneActorIds,
     execution_policy: 'default_comply'
@@ -66,23 +104,62 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles) {
 function projectObligations(save, master, sceneActorIds, activeEntries) {
   const state = object(save?.npc_scene_state);
   const obligations = [];
+  const playerProfile = { ...(object(save?.player)), id: 'player', player: true };
+  const sceneProfiles = [
+    ...(Array.isArray(sceneActorIds) ? sceneActorIds : []).filter(id => text(id) && id !== 'player').map(id => ({ id, profile: profileFor(master, id) })),
+    { id: 'player', profile: playerProfile }
+  ];
   for (const actorId of Array.isArray(sceneActorIds) ? sceneActorIds : []) {
     if (!text(actorId) || actorId === 'player') continue;
     const profile = profileFor(master, actorId);
     const actual = object(state[actorId]?.clothing);
     const resolved = requiredClothingFromActiveCsa(activeEntries, { ...profile, id: actorId });
-    if (resolved.conflicted || !Object.keys(resolved.required_clothing).length) continue;
-    const rule = activeEntries.find(entry => entry.id === resolved.source_csa_id);
-    const preset = object(rule?.preset);
-    if (modeFor(rule, preset) !== 'continuous') continue;
-    if (Object.keys(resolved.required_clothing).some(slot => actual[slot] === undefined || actual[slot] === 'unknown')) continue;
-    if (compareRequiredClothing(actual, resolved.required_clothing) !== 'noncompliant') continue;
-    obligations.push({
-      actor_id: actorId,
-      source_rule_id: resolved.source_csa_id,
-      type: 'clothing_transition',
-      changes: Object.entries(resolved.required_clothing).map(([slot, required]) => ({ slot, current: actual[slot], required }))
-    });
+    if (resolved.conflicted || !Object.keys(resolved.required_clothing).length) {
+      // Clothing is the existing evidence-gated obligation path. Non-clothing
+      // behavior obligations are projected below from catalog execution data.
+    } else {
+      const rule = activeEntries.find(entry => entry.id === resolved.source_csa_id);
+      const preset = object(rule?.preset);
+      if (modeFor(rule, preset) === 'continuous'
+        && !Object.keys(resolved.required_clothing).some(slot => state[actorId]?.clothing?.[slot] === undefined || state[actorId]?.clothing?.[slot] === 'unknown')
+        && compareRequiredClothing(actual, resolved.required_clothing) === 'noncompliant') {
+        obligations.push({
+          actor_id: actorId,
+          source_rule_id: resolved.source_csa_id,
+          type: 'clothing_transition',
+          changes: Object.entries(resolved.required_clothing).map(([slot, required]) => ({ slot, current: actual[slot], required }))
+        });
+      }
+    }
+  }
+
+  for (const entry of activeEntries) {
+    const rule = object(entry);
+    const preset = object(rule.preset);
+    const execution = executionMetadataForRule(rule);
+    if (!execution || !execution.kind || execution.kind === 'clothing_state' || !execution.action) continue;
+    const subjectScope = subjectScopeForRule(rule);
+    const actors = sceneProfiles.filter(({ id, profile }) => id !== 'player' && matchesCsaSubjectScope({ ...profile, id }, subjectScope));
+    for (const { id: actorId } of actors) {
+      const targets = execution.target_required
+        ? eligibleTargetIds({ actorId, counterpartyScope: text(preset.counterparty_scope) ?? text(rule.counterparty_scope), sceneProfiles })
+        : [];
+      const trigger_state = triggerStateFor(execution.trigger_kind, {
+        actorPresent: true,
+        targetCount: targets.length,
+        postureReady: postureReadyForTargets(save, actorId, targets)
+      });
+      if (trigger_state === 'not_applicable') continue;
+      obligations.push({
+        actor_id: actorId,
+        source_rule_id: entry.id,
+        type: 'behavior_execution',
+        action: execution.action,
+        trigger_state,
+        eligible_target_ids: targets,
+        execution_policy: 'default_comply'
+      });
+    }
   }
   return obligations;
 }

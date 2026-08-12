@@ -16,6 +16,7 @@ const SUBJECT_SCOPE_LABELS = {
 
 const RELATIONAL_CATEGORIES = new Set(['posture', 'contact', 'sexual_action']);
 const CLOTHING_OR_WORLD_CATEGORIES = new Set(['clothing', 'world_behavior']);
+import { normalizeExecutionMetadata } from './execution-policy.js';
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -73,7 +74,11 @@ export function normalizeCompanyCsaCatalog(catalog = {}) {
         ? item.default_counterparty_scope
         : (RELATIONAL_CATEGORIES.has(item?.category) ? 'company_employee' : null),
       content_template: typeof item?.content_template === 'string' ? item.content_template : '',
-      scope_template: typeof item?.scope_template === 'string' ? item.scope_template : null
+      scope_template: typeof item?.scope_template === 'string' ? item.scope_template : null,
+      // Execution metadata is the machine-readable authority. Missing
+      // metadata remains missing so a malformed catalog item cannot silently
+      // fall back to interpreting natural-language content.
+      execution: item?.execution ? normalizeExecutionMetadata({ ...item, execution: item.execution }) : null
     }))
   };
 }
@@ -138,7 +143,8 @@ export function buildPresetCatalogPayload(catalog, availableStrength) {
       default_counterparty_scope: item.default_counterparty_scope,
       available: STRENGTH_RANK[item.strength] <= availableRank,
       content_template: item.content_template,
-      scope_template: item.scope_template
+      scope_template: item.scope_template,
+      execution: { ...item.execution, ...(item.execution.required_state ? { required_state: { ...item.execution.required_state } } : {}) }
     }))
   };
 }

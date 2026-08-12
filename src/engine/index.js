@@ -94,6 +94,11 @@ export {
   authorityPolicyPayload, enactmentForPhase, matchesCsaSubjectScope,
   phaseFor, phaseForRule, profileSex, subjectScopeForRule
 } from './csa/authority-policy.js';
+export {
+  EXECUTION_KINDS, EXECUTION_ACTIONS, EXECUTION_TRIGGER_KINDS,
+  deriveExecutionMetadata, normalizeExecutionMetadata, validateExecutionMetadata,
+  executionMetadataForRule
+} from './csa/execution-policy.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
 
 export { listGeneralNpcs, getGeneralNpc, isGeneralNpcId } from './npc/catalog.js';

@@ -9,6 +9,24 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
+function sameJson(left, right) {
+  return stableStringify(left) === stableStringify(right);
+}
+
+function ruleDefinitions(save) {
+  return {
+    csa_active: save?.csa_active ?? null,
+    csa_rules: save?.csa_rules ?? null
+  };
+}
+
+function definitionsEqual(save, resolution) {
+  return sameJson(ruleDefinitions(save), {
+    csa_active: resolution?.next_csa_active ?? null,
+    csa_rules: resolution?.next_csa_rules ?? null
+  });
+}
+
 /** The one deterministic snapshot used to bind a CSA plan to the save it read. */
 export function buildCsaPlannerInputSnapshot(save = {}) {
   return {
@@ -38,6 +56,8 @@ export async function buildTransactionResolution({ plan, save, baseTurnCount }) 
     version: 1,
     base_turn_count: baseTurnCount,
     planner_input_digest: await buildCsaPlannerInputDigest(save),
+    previous_csa_active: clone(Array.isArray(save?.csa_active) ? save.csa_active : []),
+    previous_csa_rules: clone(save?.csa_rules && typeof save.csa_rules === 'object' ? save.csa_rules : {}),
     next_csa_active: clone(plan.next_csa_active),
     next_csa_rules: clone(plan.next_csa_rules),
     summary: clone(plan.summary ?? {})
@@ -60,10 +80,6 @@ export async function verifySignedTransactionResolution({ secret, gameId, struct
   if (resolution.base_turn_count !== structuredAction.base_turn_count || resolution.base_turn_count !== expectedTurn - 1) {
     return { ok: false, reason: 'base turn mismatch', code: 'app_stale_state' };
   }
-  const plannerInputDigest = await buildCsaPlannerInputDigest(save);
-  if (resolution.planner_input_digest !== plannerInputDigest || semantic.planner_input_digest !== plannerInputDigest) {
-    return { ok: false, reason: 'planner input digest mismatch', code: 'app_stale_state' };
-  }
   const resolutionDigest = await buildTransactionResolutionDigest(resolution);
   if (resolution.resolution_digest !== resolutionDigest || semantic.resolution_digest !== resolutionDigest) {
     return { ok: false, reason: 'resolution digest mismatch' };
@@ -82,5 +98,14 @@ export async function verifySignedTransactionResolution({ secret, gameId, struct
   if (!(await verifyTransactionValidationProof(secret, proofPayload, structuredAction.validation_proof))) {
     return { ok: false, reason: 'signature mismatch' };
   }
-  return { ok: true, resolution };
+  // The pre-Story apply changes only csa_active/csa_rules while leaving the
+  // committed turn unchanged.  A later Story/Extract/Commit retry therefore
+  // verifies immutable proof first and accepts the already-applied definition
+  // set without demanding the old planner-input digest again.
+  if (definitionsEqual(save, resolution)) return { ok: true, state: 'applied', resolution };
+  const plannerInputDigest = await buildCsaPlannerInputDigest(save);
+  if (resolution.planner_input_digest !== plannerInputDigest || semantic.planner_input_digest !== plannerInputDigest) {
+    return { ok: false, state: 'stale_or_invalid', reason: 'planner input digest mismatch', code: 'app_stale_state' };
+  }
+  return { ok: true, state: 'pending_apply', resolution };
 }

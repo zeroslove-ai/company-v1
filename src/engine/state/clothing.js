@@ -1,4 +1,5 @@
 import { matchesCsaSubjectScope, subjectScopeForRule } from '../csa/authority-policy.js';
+import { deriveExecutionMetadata } from '../csa/execution-policy.js';
 
 /**
  * Story-grounded clothing continuity — canonical four-slot model.
@@ -230,28 +231,6 @@ export function retainEvidencedClothing({ previousClothing = {}, proposedClothin
 }
 
 /** 규정이 요구하는 착의 template — canonical slot → enum. */
-const REQUIRED_BY_TEMPLATE = {
-  work_nude: {
-    uniform_top: 'removed',
-    uniform_bottom: 'removed',
-    underwear_top: 'removed',
-    underwear_bottom: 'removed'
-  },
-  work_in_underwear_only: {
-    uniform_top: 'removed',
-    uniform_bottom: 'removed',
-    underwear_top: 'worn',
-    underwear_bottom: 'worn'
-  },
-  work_without_underwear: {
-    underwear_top: 'removed',
-    underwear_bottom: 'removed'
-  },
-  no_bra_under_work_clothes: { underwear_top: 'removed' },
-  no_panties_under_work_clothes: { underwear_bottom: 'removed' },
-  work_topless: { uniform_top: 'removed' }
-};
-
 /**
  * NPC별 규정상 요구 착의 — 최소 정책 (추론·우선순위 없음).
  *
@@ -272,9 +251,9 @@ const REQUIRED_BY_TEMPLATE = {
 export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {}) {
   const applicable = [];
   for (const rule of activeRules) {
-    const templateId = rule?.preset?.template_id;
-    if (!templateId || !REQUIRED_BY_TEMPLATE[templateId]) continue;
     const preset = rule?.preset ?? {};
+    const execution = preset.execution ?? rule?.execution ?? deriveExecutionMetadata({ id: preset.template_id, category: 'clothing', mode: preset.mode });
+    if (execution?.kind !== 'clothing_state' || !execution.required_state || typeof execution.required_state !== 'object') continue;
     const actorGroup = subjectScopeForRule({ preset });
     const mode = preset.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
     if (mode === 'on_player_request') continue;
@@ -283,7 +262,7 @@ export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {})
     // company_employee explicitly includes both the player and registered NPCs.
     if (actorGroup !== 'player' && !matchesCsaSubjectScope({ ...npcProfile, id: npcProfile?.id ?? npcProfile?.character_id }, actorGroup)) continue;
     // male_employee 규정이 남성 전용일 경우 — 프로필 성별과 충돌하면 적용하지 않는다.
-    applicable.push({ rule, templateId });
+    applicable.push({ rule, requiredState: execution.required_state });
   }
 
   if (applicable.length === 0) {
@@ -293,9 +272,9 @@ export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {})
     // 서로 다른 착의 요구가 있으면 미확정 — 우선순위로 추론하지 않는다.
     return { required_clothing: {}, source_csa_id: null, conflicted: true };
   }
-  const { rule, templateId } = applicable[0];
+  const { rule, requiredState } = applicable[0];
   return {
-    required_clothing: REQUIRED_BY_TEMPLATE[templateId],
+    required_clothing: { ...requiredState },
     source_csa_id: rule?.csa_id ?? rule?.id ?? null,
     conflicted: false
   };

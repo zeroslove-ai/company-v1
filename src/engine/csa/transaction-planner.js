@@ -2,6 +2,7 @@ import { APP_STRENGTH_RANK, APP_STRENGTH_LABELS, APP_STRENGTHS, getCsaLimits } f
 import { getPresetCatalogItem, normalizeCompanyCsaCatalog, renderPresetContent } from './catalog.js';
 import { normalizeCsaScope, getCsaRules, getActiveCsaEntries } from './applicability.js';
 import { normalizeCsaSemanticContract } from './semantic-contract.js';
+import { validateExecutionMetadata } from './execution-policy.js';
 
 const OPERATION_ORDER = { deactivate: 0, update: 1, activate: 2 };
 const MAX_OPERATIONS = 12;
@@ -93,6 +94,8 @@ export function validatePresetOperation(catalog, raw, { availableStrength } = {}
     counterparty_scope: counterpartyScope,
     trigger
   });
+  const executionCheck = validateExecutionMetadata(item.execution, item);
+  if (!executionCheck.valid) return { ok: false, code: 'PRESET_EXECUTION_INVALID', message: 'Preset execution metadata is invalid.' };
   return {
     ok: true, content, strength: catalogStrength,
     preset: {
@@ -105,7 +108,8 @@ export function validatePresetOperation(catalog, raw, { availableStrength } = {}
       subject_scope: subjectScope,
       counterparty_scope: counterpartyScope,
       allowed_subject_scopes: [...item.allowed_subject_scopes],
-      allowed_counterparty_scopes: [...item.allowed_counterparty_scopes]
+      allowed_counterparty_scopes: [...item.allowed_counterparty_scopes],
+      execution: executionCheck.execution
     }
   }
 }
