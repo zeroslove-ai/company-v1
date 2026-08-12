@@ -86,6 +86,8 @@ test('context display and view model expose progression and active rule content 
     }]
   };
   const model = buildCompanyGameViewModel(context);
+  assert.equal(display.map_locations, undefined);
+  assert.equal(display.npc_default_locations, undefined);
   assert.equal(model.player.level, 3);
   assert.equal(model.player.exp, 40);
   assert.equal(model.player.max_active_csa, 3);
