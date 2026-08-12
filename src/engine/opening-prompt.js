@@ -26,8 +26,9 @@ const FRESH_OPENING_OUTPUT_PROTOCOL = [
 ].join('\n');
 
 const PLAYER_PRIVATE_OPENING_PREMISE = [
-  'Player-private premise only: the player privately remembers that the company has a subtle reality-bending premise and that ordinary workplace rules may be quietly changing, but the player has not actually used or tested that premise yet.',
-  'NPCs must not know this premise, must not react to it, and must not be told that the player is manipulating them. Do not activate or invent any CSA, rule change, institutional effect, forced relationship, forced conflict, sexual event, or predetermined outcome during the opening.',
+  'Player-private premise only: after accepting the job, the player noticed an unfamiliar app named 상식개변 on their phone despite having no memory of installing it. Its description claims it can change rules that people around the player accept as ordinary or natural.',
+  'The player has never actually used the app yet. On the first day of work, the player is curious and slightly excited to see whether it really works in the company. The origin and mechanism of the app remain unknown.',
+  'NPCs do not know the app exists. Nothing in reality has changed merely because the app exists. No CSA, institutional rule, relationship, event, or behavior change occurs until the player actually uses the app through the normal game mechanic.',
   'Let the first day unfold naturally from the supplied workplace facts, location, work hook, scene goal, and active NPCs; leave the player free to decide what to do next.'
 ].join(' ');
 

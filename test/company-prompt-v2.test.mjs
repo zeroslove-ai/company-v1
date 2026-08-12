@@ -159,9 +159,13 @@ test('Opening Prompt v2 establishes workplace activity and leaves player agency 
   assert.match(system, /exactly four/);
   assert.match(system, /unquoted first-person Korean inner monologue.*natural self-talk/);
   assert.match(system, /repeated \[CHOICE\] blocks.*concrete literal player action/);
-  assert.match(system, /Player-private premise only/);
-  assert.match(system, /NPCs must not know this premise/);
-  assert.match(system, /Do not activate or invent any CSA/);
+  assert.match(system, /상식개변/);
+  assert.match(system, /no memory of installing/);
+  assert.match(system, /never actually used the app yet/);
+  assert.match(system, /curious and slightly excited/);
+  assert.match(system, /NPCs do not know the app exists/);
+  assert.match(system, /Nothing in reality has changed/);
+  assert.match(system, /until the player actually uses the app/);
   assert.match(system, /leave the player free to decide what to do next/);
   assert.doesNotMatch(system, /\[CHOICE label=/);
   assert.doesNotMatch(system, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
