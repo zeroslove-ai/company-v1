@@ -76,8 +76,10 @@ test('signed transaction resolution rejects rule, digest, and base-state tamperi
   assert.equal(staleResult.code, 'app_stale_state');
 });
 
-test('runtime wrapper has no completion interception or planner state machine', () => {
-  const source = fs.readFileSync(path.join(root, 'src/api/turn-routes-runtime.js'), 'utf8');
+test('media routes use the canonical turn routes without a planner wrapper', () => {
+  const source = fs.readFileSync(path.join(root, 'src/api/media-routes.js'), 'utf8');
+  assert.match(source, /from ['"]\.\/turn-routes\.js['"]/);
+  assert.doesNotMatch(source, /turn-routes-runtime/);
   for (const forbidden of ['planState(', 'computePlan(', 'patchCompletionBody', 'POST-TRANSACTION ACTIVE CSA SET', 'planCsaTransaction(']) {
     assert.equal(source.includes(forbidden), false, forbidden);
   }

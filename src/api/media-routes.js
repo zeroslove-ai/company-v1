@@ -1,6 +1,5 @@
 import { HttpError, ok, readJson, requireString } from './http.js';
-import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes-runtime.js';
-import { createTurnRoutes as createRawTurnRoutes } from './turn-routes.js';
+import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes.js';
 import { resolveTtsEligibility } from '../engine/index.js';
 import { createPromptCacheOrderFetch } from './prompt-cache-order.js';
 import { enrichAppEnvelope, enrichContextEnvelope } from './product-response.js';
@@ -124,8 +123,8 @@ export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) 
         }
         return response;
       };
-      const rawRoutes = createRawTurnRoutes({ fetchImpl: captureFetch, edition });
-      const response = await rawRoutes.appState(request, env, ctx);
+      const routes = createBaseTurnRoutes({ fetchImpl: captureFetch, edition });
+      const response = await routes.appState(request, env, ctx);
       if (!response?.ok || !plainObject(capturedContext)) return response;
       const payload = await jsonPayload(response);
       if (!plainObject(payload)) return response;

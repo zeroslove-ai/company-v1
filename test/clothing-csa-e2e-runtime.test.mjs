@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createTurnRoutes } from '../src/api/turn-routes-runtime.js';
+import { createTurnRoutes } from '../src/api/turn-routes.js';
 import { projectGlobalCsa } from '../src/engine/gameplay-state.js';
 import { stableStringify, sha256Base64url, signAppValidationProof } from '../src/engine/csa/transaction-validator.js';
 import edition from '../src/api/edition.js';
