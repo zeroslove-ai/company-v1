@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { randomUUID } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
 import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
@@ -25,6 +25,31 @@ export function errorDetails(body, status = null) {
     retryable: error?.retryable ?? null,
     issues: Array.isArray(error?.issues) ? error.issues : null
   };
+}
+
+export function openingFailureClassification(opening, parser) {
+  if (opening?.terminal_event === 'error') {
+    const code = opening.sse_error_code ?? '';
+    if (/story_protocol_invalid/i.test(code)) return 'STORY_PROTOCOL_INVALID';
+    if (/supabase|rpc|database/i.test(code)) return 'SUPABASE_RPC_ERROR';
+    if (/provider|upstream|llm|model/i.test(code)) return 'PROVIDER_UPSTREAM_ERROR';
+    return 'UNKNOWN_OPENING_ERROR';
+  }
+  if (opening?.http_status !== 200 || opening?.http_status < 200 || opening?.http_status >= 300) return 'PROVIDER_UPSTREAM_ERROR';
+  if (parser?.status === 'failure') return 'STORY_PROTOCOL_INVALID';
+  if (!opening?.ok || opening?.terminal_event !== 'complete') return 'OPENING_PIPELINE_ERROR';
+  return null;
+}
+
+export function openingFollowUpAllowed(opening, parser) {
+  return openingFailureClassification(opening, parser) === null;
+}
+
+export async function writeVerifiedArtifact(path, artifact) {
+  await writeFile(path, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
+  const persisted = JSON.parse(await readFile(path, 'utf8'));
+  if (JSON.stringify(persisted) !== JSON.stringify(artifact)) throw new Error('CANARY_ARTIFACT_VERIFY_FAILED');
+  return path;
 }
 
 export function classifyParserResult(rawStory, master) {
@@ -140,7 +165,7 @@ async function captureStory(base, gameId, body, { poll = true, endpoint = '/api/
   const evidence = {
     request_started_at: now(), local_action_id: localActionId, expected_turn: body.expected_turn ?? null,
     request_duration_ms: null, http_status: null, sse_meta_action_id: null, first_delta_ms: null,
-    terminal_ms: null, terminal_event: null, sse_error_code: null, sse_error_message: null,
+    terminal_ms: null, terminal_event: null, sse_error_code: null, sse_error_message: null, sse_error_retryable: null,
     status_at_30s: null, status_at_120s: null, status_at_130s: null, transport_timeout: false,
     raw_story: '', visible_story: '', raw_story_available: false, events: [], response_error: null
   };
@@ -195,6 +220,7 @@ async function captureStory(base, gameId, body, { poll = true, endpoint = '/api/
     evidence.terminal_event = terminal?.name ?? null;
     evidence.sse_error_code = error?.code ?? null;
     evidence.sse_error_message = error?.message ?? null;
+    evidence.sse_error_retryable = error?.retryable ?? null;
     evidence.raw_story = complete?.parsed_blocks?.raw ?? '';
     evidence.visible_story = evidence.events.filter(event => event.name === 'delta').map(event => event.data?.text ?? '').join('');
     evidence.raw_story_available = Boolean(evidence.raw_story);
@@ -248,7 +274,7 @@ async function run() {
   const gameId = process.env.COMPANY_TEST_GAME_ID ?? TEST_GAME_ID;
   const base = (process.env.COMPANY_API_BASE_URL ?? DEFAULT_API_BASE).replace(/\/$/, '');
   assertTestGameId(gameId);
-  const report = { phase: '12F', game_id: gameId, api_base: base, started_at: now(), turns: [], production_access: false, provider_calls: 'worker-bound only' };
+  const report = { phase: '12H-A', game_id: gameId, api_base: base, started_at: now(), turns: [], production_access: false, provider_calls: 'worker-bound only' };
   lastReport = report;
   let contextResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
   if (!contextResult.ok) throw new Error(`context failed: ${JSON.stringify(errorDetails(contextResult.body, contextResult.status))}`);
@@ -275,7 +301,50 @@ async function run() {
   const opening = await captureStory(base, gameId, { game_id: gameId, setup_id: setupId }, { poll: false, endpoint: '/api/opening' });
   const openingParser = classifyParserResult(opening.raw_story, context.master);
   report.opening = { ...opening, parser: { ...openingParser, parsed: undefined }, choices: choiceContract(openingParser.parsed) };
-  if (!opening.ok || openingParser.status === 'failure') throw new Error('opening hard failure; see report');
+  const openingFailure = openingFollowUpAllowed(opening, openingParser) ? null : openingFailureClassification(opening, openingParser);
+  if (openingFailure) {
+    report.opening.failure_classification = openingFailure;
+    const actionId = opening.sse_meta_action_id ?? opening.local_action_id ?? null;
+    const artifact = {
+      phase: '12H-A', game_id: gameId, api_base: base, captured_at: now(),
+      opening: report.opening,
+      parser: { ...openingParser, parsed: undefined },
+      action_id: actionId,
+      action_status: null,
+      db_context: {
+        status: null, error: null, opening_state: null,
+        committed_turn: null, csa_active: null, processing_status: null
+      },
+      follow_up_calls: { turn1: 0, turn2: 0, retry: 0 }
+    };
+    const artifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12h-opening-failure.json';
+    await writeVerifiedArtifact(artifactPath, artifact);
+    const evidenceContext = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
+    const evidenceSave = saveData(evidenceContext.body?.data?.context);
+    artifact.action_status = actionId ? await actionStatus(base, gameId, actionId) : null;
+    artifact.db_context = {
+      status: evidenceContext.status,
+      error: evidenceContext.ok ? null : errorDetails(evidenceContext.body, evidenceContext.status),
+      opening_state: evidenceSave?.opening_state ?? null,
+      committed_turn: evidenceSave?.turn_state?.committed_turn ?? null,
+      csa_active: evidenceSave?.csa_active ?? null,
+      processing_status: evidenceSave?.turn_state?.processing_status ?? null
+    };
+    await writeVerifiedArtifact(artifactPath, artifact);
+    report.artifact_path = artifactPath;
+    report.artifact_verified = true;
+    const reset = await requestJson(base, '/api/reset', { game_id: gameId });
+    report.final_reset = { status: reset.status, ok: reset.ok, error: reset.ok ? null : errorDetails(reset.body, reset.status) };
+    throw new Error(`opening hard failure (${openingFailure}); artifact=${artifactPath}`);
+  }
+  // A successful Opening is itself the acceptance boundary for this diagnostic.
+  // Do not advance to Turn 1 or invoke any CSA transaction in the same run.
+  report.status = 'OPENING_PASS_ONLY';
+  const successArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12h-opening-success.json';
+  await writeVerifiedArtifact(successArtifactPath, report);
+  report.artifact_path = successArtifactPath;
+  report.artifact_verified = true;
+  return report;
 
   async function refreshContext() {
     const value = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });

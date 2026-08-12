@@ -5,6 +5,9 @@ import {
   choiceContract,
   classifyParserResult,
   errorDetails,
+  openingFailureClassification,
+  openingFollowUpAllowed,
+  writeVerifiedArtifact,
   projectionSnapshot,
   TEST_GAME_ID,
   PRODUCTION_GAME_ID
@@ -27,6 +30,28 @@ test('live canary captures exact structured error body fields', () => {
   assert.deepEqual(errorDetails({ error: { code: 'INVALID_EXTRACT_OBSERVATION', message: 'scene required', retryable: false, issues: [{ path: 'scene' }] } }, 422), {
     status: 422, code: 'INVALID_EXTRACT_OBSERVATION', message: 'scene required', retryable: false, issues: [{ path: 'scene' }]
   });
+});
+
+test('opening failure is a hard stop classification', () => {
+  assert.equal(openingFailureClassification({ http_status: 200, terminal_event: 'error', sse_error_code: 'story_protocol_invalid' }, { status: 'failure' }), 'STORY_PROTOCOL_INVALID');
+  assert.equal(openingFailureClassification({ http_status: 200, terminal_event: 'error', sse_error_code: 'provider_upstream_error' }, { status: 'unavailable' }), 'PROVIDER_UPSTREAM_ERROR');
+  assert.equal(openingFailureClassification({ http_status: 200, terminal_event: 'complete' }, { status: 'failure' }), 'STORY_PROTOCOL_INVALID');
+});
+
+test('opening hard stop schedules no gameplay follow-up calls', () => {
+  const calls = [];
+  const failedOpening = { http_status: 200, terminal_event: 'error', sse_error_code: 'provider_upstream_error' };
+  if (openingFollowUpAllowed(failedOpening, { status: 'unavailable' })) calls.push('turn1', 'turn2', 'csa', 'retry');
+  assert.deepEqual(calls, []);
+});
+
+test('opening artifact helper verifies persistence before any reset decision', async () => {
+  const file = `${process.cwd()}\\.phase12h-opening-artifact-test.json`;
+  const artifact = { terminal_event: 'error', follow_up_calls: { turn1: 0, turn2: 0, retry: 0 } };
+  await writeVerifiedArtifact(file, artifact);
+  const persisted = JSON.parse(await (await import('node:fs/promises')).readFile(file, 'utf8'));
+  assert.deepEqual(persisted, artifact);
+  await (await import('node:fs/promises')).unlink(file);
 });
 
 test('live canary classifies parser success and preserves block sequence/warnings', () => {
