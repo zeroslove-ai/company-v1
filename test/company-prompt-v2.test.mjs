@@ -171,3 +171,32 @@ test('Opening Prompt v2 establishes workplace activity and leaves player agency 
   assert.doesNotMatch(system, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
   assert.ok(system.length < 6000, `Opening system prompt too large: ${system.length}`);
 });
+
+test('the private app premise is opening-only and never enters the ordinary Story prompt', () => {
+  const opening = buildOpeningPrompt({
+    edition,
+    player: { name: '?뚮젅?댁뼱', department_id: 'brand_strategy', position_id: 'employee' },
+    canonical: {},
+    openingPlan: { weekday: 'monday', minute_of_day: 540, location_name: 'office', work_hook_label: 'report review', scene_goal: 'begin work', primary_character_id: 'heroine3', supporting_character_ids: [] }
+  });
+  const openingText = opening.map(message => message.content).join('\n');
+  assert.match(openingText, /상식개변/);
+  assert.match(openingText, /no memory of installing/);
+  assert.match(openingText, /never actually used the app/);
+
+  const story = buildStoryPrompt({
+    edition,
+    context: contextWithTurns(),
+    playerAction: '源?쒕굹???듭쓣 湲곕떎由곕떎.',
+    expectedTurn: 4,
+    npcIds: new Set(['heroine3', 'heroine5']),
+    catalogs: {}
+  });
+  const storyText = story.map(message => message.content).join('\n');
+  for (const forbidden of [
+    'no memory of installing', 'never actually used the app',
+    'curious and slightly excited', 'origin and mechanism of the app remain unknown',
+    'NPCs do not know the app exists', 'Nothing in reality has changed',
+    'until the player actually uses the app'
+  ]) assert.equal(storyText.includes(forbidden), false, `opening-only premise leaked: ${forbidden}`);
+});
