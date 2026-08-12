@@ -316,7 +316,10 @@ test('Company /api/tts rejects a missing service binding and unknown speakers be
     body: JSON.stringify({ game_id: gameId, character_id: characterId, text: '대사' })
   });
 
-  const missingBinding = await worker.fetch(makeRequest('heroine3'), {});
+  const missingBinding = await worker.fetch(makeRequest('heroine3'), {
+    TTS_API_URL: 'https://legacy-tts.test/synthesize',
+    TTS_API_KEY: 'legacy-key'
+  });
   assert.equal(missingBinding.status, 500);
   assert.equal((await missingBinding.json()).error.code, 'configuration_error');
 
@@ -327,4 +330,36 @@ test('Company /api/tts rejects a missing service binding and unknown speakers be
   assert.equal(unknown.status, 422);
   assert.equal((await unknown.json()).error.code, 'unknown_speaker');
   assert.equal(bindingCalls, 0);
+});
+
+test('Company /api/tts maps a service-binding upstream failure to the canonical 502 error', async () => {
+  const worker = createApiWorker();
+  const response = await worker.fetch(new Request('https://company-api.test/api/tts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ game_id: gameId, character_id: 'heroine3', text: '안녕하세요.' })
+  }), {
+    TTS_WORKER: { async fetch() { return new Response('upstream failed', { status: 502 }); } }
+  });
+  assert.equal(response.status, 502);
+  assert.equal((await response.json()).error.code, 'tts_upstream_failure');
+});
+
+test('Company /api/tts rejects invalid or incomplete service-binding JSON responses', async () => {
+  const makeRequest = () => new Request('https://company-api.test/api/tts', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ game_id: gameId, character_id: 'heroine3', text: '안녕하세요.' })
+  });
+  for (const payload of ['not-json', JSON.stringify({}), JSON.stringify({ url: '' })]) {
+    const response = await createApiWorker().fetch(makeRequest(), {
+      TTS_WORKER: {
+        async fetch() {
+          return new Response(payload, { status: 200, headers: { 'content-type': 'application/json' } });
+        }
+      }
+    });
+    assert.equal(response.status, 502);
+    assert.equal((await response.json()).error.code, 'tts_invalid_response');
+  }
 });

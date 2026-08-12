@@ -468,24 +468,6 @@ test('ttsCacheKey: identical speaker+text always produce the same key, enabling 
   assert.notEqual(ttsCacheKey('heroine1', '안녕하세요.'), ttsCacheKey('heroine1', '다른 대사'));
 });
 
-test('/api/tts: OFF-by-default is a frontend concern (this route never gets called unless the user opted in), but the server never calls narrator/unknown/no-voice speakers', async () => {
-  let upstreamCalls = 0;
-  const worker = createApiWorker({
-    fetchImpl: async textUrl => {
-      if (String(textUrl).startsWith('https://tts.test')) { upstreamCalls += 1; return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'audio/mpeg' } }); }
-      throw new Error(`unexpected call: ${textUrl}`);
-    }
-  });
-  const ttsEnv = { ...env, TTS_API_URL: 'https://tts.test/synthesize', TTS_API_KEY: 'tts-key' };
-  const narratorRes = await worker.fetch(request('/api/tts', { game_id: gameId, character_id: null, text: '서술문' }), ttsEnv);
-  assert.equal(narratorRes.status, 422);
-  assert.equal(upstreamCalls, 0, 'a rejected narrator request must never reach the TTS provider');
-
-  const eligibleRes = await worker.fetch(request('/api/tts', { game_id: gameId, character_id: 'heroine1', text: '안녕하세요.' }), ttsEnv);
-  assert.equal(eligibleRes.status, 200);
-  assert.equal(upstreamCalls, 1);
-});
-
 // ---------- Commit 5: view-model surfaces player physical/sexual state and focal NPC stats ----------
 
 test('view-model: surfaces player_inner_thought, location/posture/clothing, and sexual-state fields from the real save shape', () => {
