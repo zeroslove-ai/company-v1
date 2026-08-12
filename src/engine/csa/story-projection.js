@@ -44,6 +44,10 @@ function triggerStateFor(triggerKind, { actorPresent, targetCount, postureReady 
   return 'conditional';
 }
 
+function executionPolicyFor(triggerState) {
+  return triggerState === 'required_now' ? 'mandatory_execution' : 'conditional';
+}
+
 function sceneStateFor(save, id) {
   if (id === 'player') {
     return object(save?.player_scene_state ?? save?.player?.scene_state);
@@ -103,8 +107,8 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
       transition_required_now: execution?.kind === 'clothing_state'
         ? clothingVerdict === 'noncompliant' && triggerState === 'required_now'
         : triggerState === 'required_now' && runtime?.[entry.id]?.execution_state !== 'executed',
-      implementation_delay_allowed: object(entry.preset).implementation_delay_allowed === true,
-      execution_policy: 'default_comply'
+      implementation_delay_allowed: triggerState !== 'required_now' && object(entry.preset).implementation_delay_allowed === true,
+      execution_policy: executionPolicyFor(triggerState)
     });
   }
   return facts;
@@ -123,6 +127,9 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
     .filter(({ id, profile }) => matchesCsaSubjectScope({ ...profile, id }, subjectScope))
     .map(({ id }) => id);
   const resolvedFacts = resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds });
+  const executionPolicy = resolvedFacts.some(fact => fact.trigger_state === 'required_now')
+    ? 'mandatory_execution'
+    : 'conditional';
   return {
     id: entry.id,
     content: text(rule.content) ?? '',
@@ -138,7 +145,7 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
     resolved_facts: resolvedFacts,
     known_scene_actor_ids: knownSceneActorIds,
     applicable_scene_actor_ids: applicableSceneActorIds,
-    execution_policy: 'default_comply'
+    execution_policy: executionPolicy
   };
 }
 
@@ -198,7 +205,7 @@ function projectObligations(save, master, sceneActorIds, activeEntries) {
         action: execution.action,
         trigger_state,
         eligible_target_ids: targets,
-        execution_policy: 'default_comply'
+        execution_policy: executionPolicyFor(trigger_state)
       });
     }
   }

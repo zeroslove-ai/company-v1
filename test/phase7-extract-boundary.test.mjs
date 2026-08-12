@@ -77,7 +77,7 @@ test('fresh Extract payload is Story-only and has one identity registry', () => 
     context: {}, storyText, parsedStory: { dialogue_lines: [] }, expectedTurn: 4, edition, npcIds,
     playerAction: '이 값은 observer payload에 들어가면 안 된다'
   })[1].content);
-  assert.deepEqual(Object.keys(payload), ['extract_version', 'registered_identities', 'registered_locations', 'story_text', 'context', 'mind_monitor_targets', 'expected_turn']);
+  assert.deepEqual(Object.keys(payload), ['extract_version', 'registered_identities', 'registered_locations', 'story_text', 'context', 'mind_monitor_targets', 'mind_monitor_context', 'expected_turn']);
   assert.equal('player_action' in payload, false);
   assert.equal('registered_characters' in payload, false);
   assert.equal('registered_general_npcs' in payload, false);

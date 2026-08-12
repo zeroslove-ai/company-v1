@@ -65,7 +65,7 @@ test('Story payload carries resolved institutional facts without legacy boolean'
   assert.equal(rule.enactment, 'announce_new');
   assert.deepEqual(rule.known_scene_actor_ids, ['heroine1', 'heroine2']);
   assert.deepEqual(rule.applicable_scene_actor_ids, ['heroine1', 'heroine2']);
-  assert.equal(rule.execution_policy, 'default_comply');
+  assert.equal(rule.execution_policy, 'conditional');
   assert.equal('newly_activated' in rule, false);
   assert.doesNotMatch(messages[0].content, /newly_activated.*announce|updated.*announce|ongoing.*re-announce/i);
   assert.doesNotMatch(messages[0].content, /no_panties_under_work_clothes|work_nude|work_without_underwear|no_bra_under_work_clothes/);

@@ -1,5 +1,6 @@
 import { buildSceneContextCore } from './gameplay-state.js';
 import { buildRegisteredGeneralNpcs } from './workplace-context.js';
+import { buildStoryWorldProjection } from './csa/story-projection.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -91,6 +92,66 @@ export function buildExtractCharacterCanon(charactersMap, activeIds) {
   return result;
 }
 
+function profileForMindMonitor(edition, id) {
+  const character = object(edition?.characters?.characters?.[id])
+    ?? object(edition?.generalNpcs?.profiles?.[id])
+    ?? {};
+  const card = object(character.prompt_card) ?? {};
+  return {
+    id,
+    name: text(character.name, 60),
+    position: text(character.position, 60),
+    role_title: text(character.role_title ?? character.role, 100),
+    personality: text(card.personality ?? character.personality, 420),
+    speech: text(card.speech ?? character.speech, 420),
+    csa_style: text(card.csa_style ?? character.csa_style, 420)
+  };
+}
+
+function relationshipContext(save, id) {
+  const value = object(save?.npc_relationship_state?.[id]) ?? {};
+  return Object.fromEntries(['closeness', 'romance_status', 'current_boundary']
+    .filter(key => value[key] !== undefined)
+    .map(key => [key, value[key]]));
+}
+
+function sceneContext(save, id) {
+  const value = object(save?.npc_scene_state?.[id]) ?? {};
+  return Object.fromEntries(['present', 'location_id', 'position_label', 'posture', 'current_action']
+    .filter(key => value[key] !== undefined)
+    .map(key => [key, value[key]]));
+}
+
+/**
+ * Identity-specific, read-only context for Mind Monitor generation.  Player
+ * THOUGHT and raw Story text are deliberately not copied into this object.
+ */
+export function buildMindMonitorContext({ context, edition, targetIds = [], expectedTurn = null } = {}) {
+  const save = object(context?.save?.data) ?? object(context?.save) ?? {};
+  const ids = [...new Set((Array.isArray(targetIds) ? targetIds : []).filter(id => typeof id === 'string' && id.trim()))];
+  const master = {
+    characters: Object.entries(object(edition?.characters?.characters) ?? {}).map(([id, profile]) => ({ ...profile, character_id: profile?.character_id ?? id })),
+    general_npcs: Object.entries(object(edition?.generalNpcs?.profiles) ?? {}).map(([id, profile]) => ({ ...profile, npc_id: profile?.npc_id ?? id }))
+  };
+  const world = buildStoryWorldProjection({ save, master, sceneActorIds: ids, expectedTurn });
+  return ids.map(id => {
+    const rules = world.world_rules
+      .filter(rule => rule.applicable_scene_actor_ids?.includes(id))
+      .map(rule => ({
+        id: rule.id,
+        content: rule.content,
+        execution_policy: rule.execution_policy,
+        resolved_fact: rule.resolved_facts?.find(fact => fact.actor_id === id) ?? null
+      }));
+    return {
+      ...profileForMindMonitor(edition, id),
+      relationship: relationshipContext(save, id),
+      scene: sceneContext(save, id),
+      active_csa: rules
+    };
+  });
+}
+
 function buildExtractContextProjection(context, activeIds) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   return buildSceneContextCore(save, activeIds);
@@ -137,7 +198,7 @@ const SYSTEM_INSTRUCTIONS = [
   'Illustrative physical shape (not mandatory output): {"npc_observations":{"heroine2":{"physical":{"position_label":"회의실 테이블 옆","clothing":{"underwear_bottom":"removed"}}}},"evidence":{"clothing":{"heroine2":{"character_id":"heroine2","quote":"named exact Story substring"}},"physical_change":{"changed":["npc_scene_state.heroine2.clothing.underwear_bottom"],"quote":"same exact substring"}}}. Use position_label, never position/label; clothing slots are uniform_top, uniform_bottom, underwear_top, underwear_bottom with states worn, removed, open, unknown. Copy the real Story substring and omit unobserved fields.',
   'Every state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence is required. Exact evidence is mandatory for clothing, sexual state, events, stats, relationship, emotion, work, and CSA changes. Posture/position_label may use conservative Story continuity only when established; otherwise omit. If only a regulation/plan exists and attire is not shown, make no clothing patch. actor_id/target_id must be registered and distinct. Events contain only observed general/sexual events with canonical types and exact quotes. Counters/milestones are reducer-derived.',
   'elapsed_minutes is the only time proposal: 1-30 normally, up to 480 only with evidence.time_advance=true. Never propose world clock fields.',
-  'mind_monitor_targets is authoritative. For each target return non-empty surface/subconscious as natural, unquoted first-person Korean inner speech: no labels/reports. For applicable rules, surface is rule knowledge and subconscious a distinct reaction; separate compliance from discomfort; never copy one into another; personality/csa_style differentiate. NPCs know rules, not app/player action. Never explain clothing as magic/disappearance/body anomaly. image_selection/image_character_id are projections; identity axes stay independent.',
+  'mind_monitor_targets is authoritative. For each target return nonempty unquoted first-person Korean surface/subconscious talk: no labels/reports. Use only that NPC’s identity, role, personality, relationship, scene, and relevant CSA; surface is rule knowledge, subconscious a distinct reaction. Differentiate by personality/speech/csa_style, separate compliance from discomfort, and never copy one into another. [THOUGHT] is player-only and never a Mind Monitor source. NPCs know rules, not app/player action; never explain clothing as magic/disappearance/body anomaly.',
   'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
   'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, pool must be sex and tags must describe that ongoing act.',
   'Final scene presence: a local dialogue speaker is evidence of presence during the Story, but final_present_npc_ids is the last-moment snapshot. If that speaker clearly leaves before the end, omit it; if the final snapshot cannot be established, preserve null rather than guessing.'
@@ -159,6 +220,7 @@ export function buildExtractPrompt({ context, storyText, parsedStory, expectedTu
         story_text: storyText,
         context: buildExtractContextProjection(context, relevantIds),
         mind_monitor_targets: monitorIds,
+        mind_monitor_context: buildMindMonitorContext({ context, edition, targetIds: monitorIds, expectedTurn }),
         expected_turn: expectedTurn
       })
     }
