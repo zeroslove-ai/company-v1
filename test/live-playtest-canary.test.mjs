@@ -9,6 +9,9 @@ import {
   openingFollowUpAllowed,
   writeVerifiedArtifact,
   projectionSnapshot,
+  buildCompanyEditionMaster,
+  buildCanaryProjectionParity,
+  PLAYABILITY_MAX_TURNS,
   TEST_GAME_ID,
   PRODUCTION_GAME_ID
 } from '../scripts/live-playtest-canary.mjs';
@@ -24,6 +27,10 @@ const validStory = `[SCENE]\n사무실이 조용하다.\n[DIALOGUE speaker_id="h
 test('live canary production guard rejects production and accepts designated test game', () => {
   assert.throws(() => assertTestGameId(PRODUCTION_GAME_ID), /PRODUCTION_GAME_GUARD/);
   assert.equal(assertTestGameId(TEST_GAME_ID), true);
+});
+
+test('phase 12K playability canary is bounded to three gameplay turns', () => {
+  assert.equal(PLAYABILITY_MAX_TURNS, 3);
 });
 
 test('live canary captures exact structured error body fields', () => {
@@ -96,4 +103,21 @@ test('live canary captures CSA projection snapshot without mutating save', () =>
   assert.equal(snapshot.world_rules.length, 1);
   assert.equal(snapshot.scene_obligations.length, 1);
   assert.equal(save.npc_scene_state.heroine1.clothing.underwear_top, 'worn');
+});
+
+test('canary uses the Company edition master shape instead of context.master', () => {
+  const companyMaster = buildCompanyEditionMaster();
+  assert.ok(companyMaster.characters.some(item => item.character_id === 'heroine1'));
+  assert.ok(Array.isArray(companyMaster.general_npcs));
+  const save = {
+    csa_active: ['csa_1'],
+    csa_rules: { csa_1: { active: true, content: 'rule', strength: 'weak', preset: { template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', mode: 'continuous' } } },
+    npc_scene_state: { heroine1: { clothing: { underwear_top: 'worn' } } }
+  };
+  const parity = buildCanaryProjectionParity({ save, contextMaster: undefined, sceneActorIds: ['heroine1'], expectedTurn: 2 });
+  assert.equal(parity.context_master_present, false);
+  assert.equal(parity.status, 'INVALID_CONTEXT_MASTER_MISSING');
+  assert.deepEqual(parity.local_projection.world_rules[0].applicable_scene_actor_ids, ['heroine1']);
+  assert.equal(parity.local_projection.scene_obligations.length, 1);
+  assert.equal(parity.actor_profiles[0].gender, 'female');
 });

@@ -4,11 +4,72 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
 import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
+import edition from '../src/api/edition.js';
 
 export const TEST_GAME_ID = '2d00d76e-85b1-4cf0-8dab-a04e8a044b84';
 export const PRODUCTION_GAME_ID = '11111111-1111-4111-8111-111111111111';
 export const DEFAULT_API_BASE = 'https://game-proxy-company-v1.zeroslove.workers.dev';
+export const PLAYABILITY_MAX_TURNS = 3;
 let lastReport = null;
+
+/**
+ * The Worker receives an edition-backed master, while /api/context is a save
+ * read and is not a master authority.  Keep the canary on the same catalog
+ * shape as the Worker rather than treating context.master as authoritative.
+ */
+export function buildCompanyEditionMaster(source = edition) {
+  const toEntries = (value, idField) => {
+    if (Array.isArray(value)) return value.map(item => ({ ...item }));
+    if (!value || typeof value !== 'object') return [];
+    return Object.entries(value).map(([id, item]) => ({
+      [idField]: id,
+      ...(item && typeof item === 'object' ? item : {})
+    }));
+  };
+  return {
+    characters: toEntries(source?.characters?.characters, 'character_id'),
+    general_npcs: toEntries(source?.generalNpcs?.profiles, 'npc_id')
+  };
+}
+
+function profileForMaster(master, id) {
+  const entries = [...(master?.characters ?? []), ...(master?.general_npcs ?? [])];
+  const profile = entries.find(item => (item?.character_id ?? item?.npc_id ?? item?.id) === id) ?? null;
+  return profile ? {
+    id,
+    found: true,
+    gender: profile.gender ?? null,
+    sex: profile.sex ?? null,
+    name: profile.name ?? profile.display_name ?? null
+  } : { id, found: false, gender: null, sex: null, name: null };
+}
+
+/** Read-only parity evidence; this never mutates the save or server state. */
+export function buildCanaryProjectionParity({ save, sceneActorIds = [], contextMaster = null, expectedTurn = null } = {}) {
+  const localMaster = buildCompanyEditionMaster();
+  const contextProjection = buildStoryWorldProjection({
+    save, master: contextMaster ?? {}, sceneActorIds, expectedTurn
+  });
+  const localProjection = buildStoryWorldProjection({
+    save, master: localMaster, sceneActorIds, expectedTurn
+  });
+  const known = sceneActorIds.map(id => profileForMaster(localMaster, id));
+  const contextMasterPresent = Boolean(
+    contextMaster && (Array.isArray(contextMaster.characters) || Array.isArray(contextMaster.general_npcs))
+  );
+  return {
+    source: 'local_company_edition_catalog',
+    context_master_present: contextMasterPresent,
+    local_master_shape: {
+      characters: localMaster.characters.length,
+      general_npcs: localMaster.general_npcs.length
+    },
+    actor_profiles: known,
+    context_projection: projectionSnapshot(contextProjection),
+    local_projection: projectionSnapshot(localProjection),
+    status: contextMasterPresent ? 'CONTEXT_MASTER_PRESENT' : 'INVALID_CONTEXT_MASTER_MISSING'
+  };
+}
 
 export function assertTestGameId(gameId) {
   if (gameId === PRODUCTION_GAME_ID) throw new Error('PRODUCTION_GAME_GUARD: production game ID is forbidden');
@@ -271,11 +332,18 @@ function csaPhysicalVerdict(projection, rawStory, extract, nextSave, master) {
 
 async function run() {
   const args = new Set(process.argv.slice(2));
+  const playabilityMode = args.has('--phase12k-playability');
   const gameId = process.env.COMPANY_TEST_GAME_ID ?? TEST_GAME_ID;
   const base = (process.env.COMPANY_API_BASE_URL ?? DEFAULT_API_BASE).replace(/\/$/, '');
   assertTestGameId(gameId);
-  const report = { phase: '12H-A', game_id: gameId, api_base: base, started_at: now(), turns: [], production_access: false, provider_calls: 'worker-bound only' };
+  const report = { phase: playabilityMode ? '12K' : '12H-A', game_id: gameId, api_base: base, started_at: now(), turns: [], production_access: false, provider_calls: 'worker-bound only' };
   lastReport = report;
+  const canaryMaster = buildCompanyEditionMaster();
+  report.master_source = {
+    source: 'local_company_edition_catalog',
+    characters: canaryMaster.characters.length,
+    general_npcs: canaryMaster.general_npcs.length
+  };
   let contextResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
   if (!contextResult.ok) throw new Error(`context failed: ${JSON.stringify(errorDetails(contextResult.body, contextResult.status))}`);
   let context = contextResult.body.data.context;
@@ -299,7 +367,7 @@ async function run() {
   if (!setup.ok) throw new Error(`player setup failed: ${JSON.stringify(errorDetails(setup.body, setup.status))}`);
   const setupId = setup.body.data.setup_id;
   const opening = await captureStory(base, gameId, { game_id: gameId, setup_id: setupId }, { poll: false, endpoint: '/api/opening' });
-  const openingParser = classifyParserResult(opening.raw_story, context.master);
+  const openingParser = classifyParserResult(opening.raw_story, canaryMaster);
   report.opening = { ...opening, parser: { ...openingParser, parsed: undefined }, choices: choiceContract(openingParser.parsed) };
   const openingFailure = openingFollowUpAllowed(opening, openingParser) ? null : openingFailureClassification(opening, openingParser);
   if (openingFailure) {
@@ -337,14 +405,18 @@ async function run() {
     report.final_reset = { status: reset.status, ok: reset.ok, error: reset.ok ? null : errorDetails(reset.body, reset.status) };
     throw new Error(`opening hard failure (${openingFailure}); artifact=${artifactPath}`);
   }
-  // A successful Opening is itself the acceptance boundary for this diagnostic.
-  // Do not advance to Turn 1 or invoke any CSA transaction in the same run.
-  report.status = 'OPENING_PASS_ONLY';
-  const successArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12h-opening-success.json';
-  report.artifact_path = successArtifactPath;
-  report.artifact_verified = true;
-  await writeVerifiedArtifact(successArtifactPath, report);
-  return report;
+  if (!playabilityMode) {
+    // A successful Opening is itself the acceptance boundary for the original diagnostic.
+    // Do not advance to Turn 1 or invoke any CSA transaction in that mode.
+    report.status = 'OPENING_PASS_ONLY';
+    const successArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12h-opening-success.json';
+    report.artifact_path = successArtifactPath;
+    report.artifact_verified = true;
+    await writeVerifiedArtifact(successArtifactPath, report);
+    return report;
+  }
+
+  const playabilityArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12k-playability.json';
 
   async function refreshContext() {
     const value = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
@@ -354,12 +426,13 @@ async function run() {
   async function runTurn(turn, playerAction, structuredAction = null, projection = null) {
     const actionId = randomUUID();
     const story = await captureStory(base, gameId, { game_id: gameId, action_id: actionId, expected_turn: turn, player_action: playerAction, ...(structuredAction ? { structured_action: structuredAction } : {}) });
-    const parser = classifyParserResult(story.raw_story, context.master);
+    const parser = classifyParserResult(story.raw_story, canaryMaster);
     const turnReport = { turn, stage: 'story', action_id: actionId, story: { ...story, events: undefined }, parser: { ...parser, parsed: undefined }, parser_block_sequence: parser.block_sequence, parser_warnings: parser.warnings, choice: choiceContract(parser.parsed) };
     const parserHardFailure = parser.status === 'failure';
     if (!story.ok) { turnReport.hard_failure = 'STORY_TRANSPORT_OR_PROTOCOL'; report.turns.push(turnReport); throw new Error(`turn ${turn} Story failure`); }
+    if (parserHardFailure) { turnReport.hard_failure = 'FRESH_PARSER'; report.turns.push(turnReport); throw new Error(`turn ${turn} stopped after FRESH_PARSER`); }
     const extractResult = await requestJson(base, '/api/extract', { game_id: gameId, action_id: actionId, ...(structuredAction ? { structured_action: structuredAction } : {}) });
-    const extracted = summarizeExtract(extractResult, save, context.master);
+    const extracted = summarizeExtract(extractResult, save, canaryMaster);
     turnReport.extract = { ...extracted, extract: undefined };
     if (parserHardFailure || extracted.status !== 'success') {
       turnReport.hard_failure = parserHardFailure ? 'FRESH_PARSER' : 'EXTRACT';
@@ -377,26 +450,53 @@ async function run() {
     turnReport.image = { character_id: extracted.image_character_id, present_target: extracted.image_character_id ? turnReport.present_npc_ids.includes(extracted.image_character_id) : false };
     if (projection) {
       const raw = story.raw_story;
-      turnReport.csa = { projection: projectionSnapshot(projection), institutional_enactment: !raw.match(/상식개변|앱|버튼|스마트폰/), physical: csaPhysicalVerdict(projection, raw, extracted.extract, nextSave, context.master) };
+      const physical = csaPhysicalVerdict(projection, raw, extracted.extract, nextSave, canaryMaster);
+      turnReport.csa = { projection: projectionSnapshot(projection), parity: projection.__parity ?? null, institutional_enactment: !raw.match(/상식개변|앱|버튼|스마트폰/), physical };
+      // A deterministic mandatory projection makes a missing concrete Story /
+      // Extract transition a canary failure. Preserve the complete turn
+      // evidence, reset only after the artifact has been verified, and do not
+      // continue into a follow-up turn.
+      if (physical.status === 'FAIL' && projection.__parity) {
+        turnReport.hard_failure = 'CSA_STORY_COMPLIANCE';
+        report.turns.push(turnReport);
+        report.status = 'STOPPED';
+        report.stop_reason = 'mandatory CSA projection had no evidenced clothing transition';
+        report.artifact_path = playabilityArtifactPath;
+        await writeVerifiedArtifact(playabilityArtifactPath, report);
+        const finalReset = await requestJson(base, '/api/reset', { game_id: gameId });
+        report.final_reset = { status: finalReset.status, ok: finalReset.ok, error: finalReset.ok ? null : errorDetails(finalReset.body, finalReset.status) };
+        await writeVerifiedArtifact(playabilityArtifactPath, report);
+        throw new Error(`turn ${turn} stopped after CSA_STORY_COMPLIANCE; artifact=${playabilityArtifactPath}`);
+      }
     }
     report.turns.push(turnReport);
     return { actionId, story, parser, extracted, nextSave };
   }
 
   await runTurn(1, '김제나에게 인사하고 오늘 업무와 팀 분위기를 물어본다.');
-  const validation = await requestJson(base, '/api/app-validate', { game_id: gameId, structured_action: { type: 'app_transaction', base_turn_count: 1, operations: [{ client_id: `canary-${randomUUID()}`, domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: { template_id: 'no_bra_under_work_clothes' } }] } });
+  const validation = await requestJson(base, '/api/app-validate', { game_id: gameId, structured_action: { type: 'app_transaction', base_turn_count: 1, operations: [{ client_id: `canary-${randomUUID()}`, domain: 'csa', operation: 'activate', source_type: 'preset', strength: 'weak', preset: { template_id: 'no_panties_under_work_clothes' } }] } });
   if (!validation.ok) throw new Error(`app-validate failed: ${JSON.stringify(errorDetails(validation.body, validation.status))}`);
   const canonicalAction = validation.body.data.canonical_action;
   const csaSave = clone(save);
   csaSave.csa_active = clone(canonicalAction.transaction_resolution.next_csa_active);
   csaSave.csa_rules = clone(canonicalAction.transaction_resolution.next_csa_rules);
   const sceneActors = presentNpcIds(save);
-  const projection = buildStoryWorldProjection({ save: csaSave, master: context.master, sceneActorIds: sceneActors, expectedTurn: 2 });
+  const parity = buildCanaryProjectionParity({ save: csaSave, contextMaster: context.master, sceneActorIds: sceneActors, expectedTurn: 2 });
+  const projection = { ...parity.local_projection, __parity: parity };
+  report.turn2_projection_parity = parity;
   await runTurn(2, validation.body.data.display_input ?? '회사 규정 변경사항이 실제 업무에 어떻게 드러나는지 확인하며 업무를 이어간다.', canonicalAction, projection);
   await runTurn(3, '오늘 업무를 계속하며 회사 공지와 팀 분위기를 살펴본다.');
-  await runTurn(4, '현재 업무를 정리하고 동료와 협업을 이어간다.');
-  await runTurn(5, '남은 업무를 확인하고 다음 작업을 준비한다.');
+  if (!playabilityMode) {
+    await runTurn(4, '현재 업무를 정리하고 동료와 협업을 이어간다.');
+    await runTurn(5, '남은 업무를 확인하고 다음 작업을 준비한다.');
+  }
   report.status = 'PASS';
+  report.artifact_path = playabilityArtifactPath;
+  report.artifact_verified = true;
+  await writeVerifiedArtifact(playabilityArtifactPath, report);
+  const finalReset = await requestJson(base, '/api/reset', { game_id: gameId });
+  report.final_reset = { status: finalReset.status, ok: finalReset.ok, error: finalReset.ok ? null : errorDetails(finalReset.body, finalReset.status) };
+  await writeVerifiedArtifact(playabilityArtifactPath, report);
   return report;
 }
 
