@@ -61,6 +61,13 @@ test('live canary classifies parser success and preserves block sequence/warning
   assert.deepEqual(result.warnings, []);
 });
 
+test('live canary parser diagnostic unwraps a persisted master wrapper', () => {
+  const wrappedMaster = { data: { characters: [{ character_id: 'heroine1', name: 'A' }], general_npcs: [] } };
+  const result = classifyParserResult('[DIALOGUE speaker_id="heroine1"]\nHello.', wrappedMaster);
+  assert.equal(result.status, 'success');
+  assert.equal(result.dialogue_count, 1);
+});
+
 test('live canary accepts plain narrative without rewriting raw Story', () => {
   const raw = '서술 marker가 없는 본문';
   const result = classifyParserResult(raw, master);

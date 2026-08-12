@@ -62,7 +62,7 @@ export function classifyParserResult(rawStory, master) {
     };
   }
   try {
-    const parsed = parseFreshNarrativeV2(rawStory, { master });
+    const parsed = parseFreshNarrativeV2(rawStory, { master: master?.data ?? master });
     return {
       status: 'success',
       error: null,
