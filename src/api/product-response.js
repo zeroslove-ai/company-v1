@@ -101,7 +101,3 @@ export function enrichAppEnvelope(payload, context, edition) {
   };
   return payload;
 }
-
-export function envelopeContext(payload) {
-  return object(responseData(payload)?.context);
-}

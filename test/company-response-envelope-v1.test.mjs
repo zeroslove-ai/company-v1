@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { enrichAppEnvelope, enrichContextEnvelope, envelopeContext } from '../src/api/product-response.js';
+import { enrichAppEnvelope, enrichContextEnvelope } from '../src/api/product-response.js';
 
 const edition = {
   organization: {
@@ -76,7 +76,6 @@ test('context enrichment keeps active display fields and omits dead projections'
   assert.ok(enriched.data.context.display.npc_default_locations);
   assert.ok(enriched.data.context.display.character_details);
   assert.ok(enriched.data.context.display.player_sexual);
-  assert.equal(envelopeContext(enriched), enriched.data.context);
 });
 
 test('app enrichment keeps canonical app data without finder projections', () => {

@@ -1,5 +1,10 @@
 # Runtime Authority Map
 
+> **Historical audit snapshot:** This map records an earlier authority audit and
+> is not the current runtime source of truth. Its baseline SHA and legacy writer/
+> reader names are retained for historical reference. Use current source, tests,
+> and `docs/COMPANY_NARRATIVE_CONTRACT_V1.md` for present authority decisions.
+
 ## 조사 기준
 
 기준 커밋은 `9953a8a90b2dd9e5630fe169bd4d1bac2ae8e99f`이다. writer는 실제 save 대입 또는 RPC 인자 전달, reader는 실제 read/projection 호출로 구분했다. 한 함수의 여러 대입은 논리 writer 1개로 세었다. 아래 표에는 25개 canonical field group과 52개 writer site가 있다.

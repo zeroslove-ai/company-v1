@@ -168,8 +168,8 @@ export function buildSceneContextCore(save, activeIds = []) {
  *
  * 활성 ID 목록(csa_active)에 있고 active !== false인 규정만 rules에 넣는다.
  * 비활성 과거 규정(csa_rules 전체 이력)은 DB에 보존되지만 어떤 LLM payload에도
- * 포함되지 않는다. buildSceneContextCore와 turn-routes-runtime의
- * replaceGlobalCsaContext가 반드시 이 함수만 사용해야 한다 (중복 경로 금지).
+ * 포함되지 않는다. buildSceneContextCore와 Story/Extract prompt projections가
+ * 이 순수 helper를 사용하며, 별도 runtime wrapper는 존재하지 않는다.
  */
 export function projectGlobalCsa(save) {
   const activeIds = Array.isArray(save?.csa_active) ? [...save.csa_active] : [];
