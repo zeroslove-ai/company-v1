@@ -11,6 +11,23 @@ function identity(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+function projectEngineCanonicalSegment(segment) {
+  const source = object(segment) ?? {};
+  return {
+    segment_id: source.segment_id,
+    segment_kind: source.segment_kind ?? source.execution_kind ?? 'mandatory_enactment',
+    ...(identity(source.source_rule_id) ? { source_rule_id: source.source_rule_id } : {}),
+    ...(identity(source.actor_id) ? { actor_id: source.actor_id } : {}),
+    ...(identity(source.execution_kind) ? { execution_kind: source.execution_kind } : {}),
+    ...(identity(source.action) ? { action: source.action } : {}),
+    ...(identity(source.phase) ? { phase: source.phase } : {}),
+    ...(source.required_state && typeof source.required_state === 'object' && !Array.isArray(source.required_state)
+      ? { required_state: source.required_state }
+      : {}),
+    canonical_text: source.canonical_text
+  };
+}
+
 function registeredIdentityEntries(edition) {
   const entries = [];
   for (const [id, character] of Object.entries(object(edition?.characters?.characters) ?? {})) {
@@ -136,7 +153,7 @@ export const DURABLE_STORY_RULES = [
   '[NPC AUTONOMY]',
   'NPCs act from their established motives, relationships, and situation. A registered possible entrant may appear occasionally when the scene makes it meaningful; most turns should add no new NPC. Do not create probability, cooldown, or scheduler state.',
   '[CSA AND WORLD RULES]',
-  'world_rules and scene_obligations are Worker-resolved institutional facts for this turn. Treat each world_rules.resolved_facts entry as current-turn authority: already_effective/current_state/required_state describe canonical state, and transition_required_now means the concrete observable enactment or result is required now. When trigger_state is required_now or execution_policy is mandatory_execution, the applicable NPC must enact the rule now; do not defer it, deny its existence, await approval, or replace it with a plan. Conditional triggers remain conditional. Narrate institutional rules as workplace facts or enactment, never as app/player mechanics. Use known_scene_actor_ids and applicable_scene_actor_ids as identity scope, not as permission to invent action. NPC attitude, emotion, discomfort, and personal judgment remain free as reaction, but they do not cancel required execution. A scene obligation is fulfilled only through a concrete, observable, non-magical action or result.',
+  'world_rules and scene_obligations are Worker-resolved institutional facts for this turn. Treat each world_rules.resolved_facts entry as current-turn authority: already_effective/current_state/required_state describe canonical state, and transition_required_now means the concrete observable enactment or result is required now. When trigger_state is required_now or execution_policy is mandatory_execution, the applicable NPC must enact the rule now; do not defer it, deny its existence, await approval, or replace it with a plan. Conditional triggers remain conditional. Narrate institutional rules as workplace facts or enactment, never as app/player mechanics. Use known_scene_actor_ids and applicable_scene_actor_ids as identity scope, not as permission to invent action. NPC attitude, emotion, discomfort, and personal judgment remain free as reaction, but they do not cancel required execution. A scene obligation is fulfilled only through a concrete, observable, non-magical action or result. engine_canonical_segments are authoritative Worker-confirmed events/results that already occurred before your continuation and are shown to the player before provider text. Do not repeat, undo, defer, renegotiate, await approval for, or contradict them; continue naturally from their aftermath. Engine fixes the behavior/outcome; provider writes only the subsequent NPC reaction, emotion, dialogue, work flow, and other free narrative.',
   '[THOUGHT OWNERSHIP]',
   '[THOUGHT] belongs exclusively to the player and is reaction-only presentation: use immediate emotion, surprise, doubt, or impression from the current scene, never a new plan, promise, apology, concession, withdrawal, moral conclusion, or next-action decision. Never place an NPC thought, sensation, memory, embarrassment, or private reaction in [THOUGHT]; NPC inner states belong in Mind Monitor, not Story THOUGHT.',
   '[PHYSICAL CONTINUITY]',
@@ -173,7 +190,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
     world_rules: storyWorld.world_rules,
     scene_obligations: storyWorld.scene_obligations,
     ...(Array.isArray(engineCanonicalSegments) && engineCanonicalSegments.length
-      ? { engine_canonical_segments: engineCanonicalSegments.map(segment => ({ segment_id: segment.segment_id, segment_kind: segment.segment_kind ?? segment.execution_kind ?? 'mandatory_enactment', canonical_text: segment.canonical_text })) }
+      ? { engine_canonical_segments: engineCanonicalSegments.map(projectEngineCanonicalSegment) }
       : {}),
     context: buildStoryContextProjection(context, projection.projection_ids, { catalogs, playerAction: storyPlayerAction, edition, registeredIds: registeredIdSet }),
     ...(storyPlayerAction ? { player_action: storyPlayerAction } : {}),

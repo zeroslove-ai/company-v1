@@ -340,6 +340,16 @@ test('engine mandatory clothing composes before provider Story and wins at Commi
   const storyRequest = mock.calls.find(call => String(call.url).startsWith('https://llm.test') && call.body && JSON.parse(call.body).stream === true);
   const storyPayload = JSON.parse(JSON.parse(storyRequest.body).messages[1].content);
   assert.equal(storyPayload.engine_canonical_segments.length, 1);
+  assert.deepEqual(storyPayload.engine_canonical_segments[0], {
+    segment_id: storyPayload.engine_canonical_segments[0].segment_id,
+    segment_kind: 'clothing_state',
+    source_rule_id: 'csa_clothing',
+    actor_id: 'heroine5',
+    execution_kind: 'clothing_state',
+    action: 'set_clothing_state',
+    required_state: { underwear_bottom: 'removed' },
+    canonical_text: storyPayload.engine_canonical_segments[0].canonical_text
+  });
   assert.ok(stored.story_text.startsWith('이메이는 복장을 정리해 하의 속옷이 없는 상태가 되었다.'));
   assert.ok(storyBody.indexOf('이메이는 복장을 정리해 하의 속옷이 없는 상태가 되었다.') < storyBody.lastIndexOf('event: delta'));
   assert.equal(stored.parsed_blocks.engine_enactments.length, 1);
