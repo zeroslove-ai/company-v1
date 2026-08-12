@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 
 import edition from '../src/api/edition.js';
 import { buildNpcAppPayload } from '../src/api/runtime-display.js';
-import { resolveNpcLocation } from '../src/api/product-recovery.js';
 import { enrichAppEnvelope } from '../src/api/product-response.js';
 
 const heroineIds = Object.keys(edition.characters.characters);
@@ -88,7 +87,7 @@ test('app.npcs keeps evidence-aware scope and never enumerates Finder-only NPCs'
   }
 });
 
-test('app.npcs location shape follows resolveNpcLocation without Finder-only fields', () => {
+test('app.npcs location shape is canonical and excludes Finder-only fields', () => {
   const scenarios = [
     (() => {
       const save = baseSave();
@@ -112,13 +111,9 @@ test('app.npcs location shape follows resolveNpcLocation without Finder-only fie
   ];
 
   for (const save of scenarios) {
-    const expected = resolveNpcLocation(save, edition, 'heroine2');
+    const expected = buildNpcAppPayload(save, edition).find(item => item.id === 'heroine2')?.location;
     const actual = appNpcs(save).find(item => item.id === 'heroine2')?.location;
-    assert.deepEqual(actual, {
-      known: expected.known,
-      location_label: expected.location_label,
-      location_id: expected.location_id
-    });
+    assert.deepEqual(actual, expected);
     assert.equal('status' in actual, false);
     assert.equal('can_move' in actual, false);
     assert.equal('suggested_location_id' in actual, false);

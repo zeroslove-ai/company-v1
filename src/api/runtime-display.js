@@ -107,6 +107,12 @@ function generalProfilesFromEdition(edition) {
   return object(edition?.generalNpcs?.profiles) ?? {};
 }
 
+function locationLabel(edition, id) {
+  const locations = Array.isArray(edition?.map?.locations) ? edition.map.locations : [];
+  const location = locations.find(item => item?.location_id === id || item?.id === id);
+  return text(location?.name);
+}
+
 function departmentNamesFromEdition(edition) {
   const source = edition?.organization?.departments;
   if (Array.isArray(source)) {
@@ -205,17 +211,21 @@ function npcMind(latestMindMonitor, save, id) {
   };
 }
 
-function npcLocation(save, id, presentNow) {
+function npcLocation(save, id, presentNow, edition) {
   const sceneState = object(save?.npc_scene_state?.[id]) ?? {};
   const workState = object(save?.npc_work_state?.[id]) ?? {};
   const currentScene = buildCanonicalDisplayScene(save);
-  const label = presentNow
-    ? text(currentScene.location_label) || text(currentScene.location_id) || text(sceneState.location_label) || text(workState.location_label)
-    : text(sceneState.location_label) || text(workState.location_label) || text(sceneState.location_id) || text(workState.location_id);
-  return { known: Boolean(label), location_label: label };
+  const locationId = presentNow
+    ? text(currentScene.location_id) || text(sceneState.location_id) || text(workState.location_id)
+    : text(sceneState.location_id) || text(workState.location_id);
+  let label = presentNow
+    ? locationLabel(edition, locationId) || text(sceneState.location_label) || text(workState.location_label)
+    : text(sceneState.location_label) || text(workState.location_label);
+  label ||= locationLabel(edition, locationId);
+  return { known: Boolean(locationId || label), location_label: label, location_id: locationId };
 }
 
-function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds }) {
+function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }) {
   const stats = object(save?.npc_stats?.[id]) ?? {};
   const attitude = object(save?.csa_attitudes?.[id]) ?? {};
   const sexualState = object(save?.npc_sexual_state?.[id]) ?? {};
@@ -230,7 +240,7 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
     position: identity.position,
     role: identity.role,
     present_now: presentNow,
-    location: npcLocation(save, id, presentNow),
+    location: npcLocation(save, id, presentNow, edition),
     stats: {
       affection: statValue(stats, '호감도', 'affection', 'affinity') ?? 0,
       resistance: statValue(stats, '저항도', 'resistance') ?? 0,
@@ -265,11 +275,11 @@ export function buildNpcAppPayload(save, edition, latestMindMonitor = {}) {
   const evidence = evidenceIds(save, latestMindMonitor);
   const entries = [];
   for (const [id, profile] of Object.entries(heroineProfiles)) {
-    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds }));
+    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }));
   }
   for (const [id, profile] of Object.entries(generalProfiles)) {
     if (!evidence.has(id)) continue;
-    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds }));
+    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }));
   }
   return entries;
 }

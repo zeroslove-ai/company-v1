@@ -5,9 +5,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  buildFullPlayerInfo,
-  resolveNpcLocation
+  buildFullPlayerInfo
 } from '../src/api/product-recovery.js';
+import { buildNpcAppPayload } from '../src/api/runtime-display.js';
 import {
   formatHistoryMarkdown,
   formatHistoryText,
@@ -138,10 +138,10 @@ test('product recovery uses canonical presence and location over conflicting leg
   source.npc_scene_state.heroine1.location_id = 'project_room';
   source.npc_scene_state.heroine2 = { location_id: 'project_room', location_label: '?꾨줈?앺듃猷?' };
 
-  const heroine1 = resolveNpcLocation(source, edition, 'heroine1');
-  const heroine2 = resolveNpcLocation(source, edition, 'heroine2');
+  const heroine1 = buildNpcAppPayload(source, edition).find(item => item.id === 'heroine1');
+  const heroine2 = buildNpcAppPayload(source, edition).find(item => item.id === 'heroine2');
   assert.equal(heroine1.present_now, true);
-  assert.equal(heroine1.location_id, 'office');
+  assert.equal(heroine1.location.location_id, 'office');
   assert.equal(heroine2.present_now, false);
 });
 

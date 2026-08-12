@@ -1,6 +1,6 @@
 import { buildContextDisplayPayload, buildNpcAppPayload } from './runtime-display.js';
 import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from './character-display.js';
-import { buildFullPlayerInfo, resolveNpcLocation } from './product-recovery.js';
+import { buildFullPlayerInfo } from './product-recovery.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -50,16 +50,10 @@ function canonicalNpcDefaultLocations(edition) {
 
 function mergeNpcPayload(save, edition, latestMindMonitor, details) {
   return buildNpcAppPayload(save, edition, latestMindMonitor).map(base => {
-    const location = resolveNpcLocation(save, edition, base.id);
     const detail = details[base.id] ?? {};
     return {
       ...base,
       // App NPC identity/scope comes only from the evidence-aware app projection.
-      location: {
-        known: location.known,
-        location_label: location.location_label,
-        location_id: location.location_id
-      },
       profile: detail.profile ?? base.profile ?? {},
       body: detail.body ?? base.body ?? {},
       stat_changes: detail.stat_changes ?? base.stat_changes ?? {},
