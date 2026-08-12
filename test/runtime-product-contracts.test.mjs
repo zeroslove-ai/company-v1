@@ -21,7 +21,7 @@ function context() {
 
 const edition = { editionId: 'company-v1', characters: { characters: {} } };
 
-test('current Story request uses semantic blocks, free input, and hard-fact time payload', () => {
+test('current Story request uses narrative-default wire, free input, and hard-fact time payload', () => {
   const messages = buildStoryPrompt({
     edition,
     context: context(),
@@ -31,9 +31,9 @@ test('current Story request uses semantic blocks, free input, and hard-fact time
   });
   const payload = JSON.parse(messages[1].content);
   const system = messages[0].content;
-  assert.match(system, /semantic blocks/);
+  assert.match(system, /plain narrative by default/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
-  assert.match(system, /exactly four repeated \[CHOICE\] blocks/);
+  assert.match(system, /four literal \[CHOICE\] action blocks/);
   assert.doesNotMatch(system, /\[CHOICE label=/);
   assert.doesNotMatch(system, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
   assert.match(system, /context\.current_time\.day/);

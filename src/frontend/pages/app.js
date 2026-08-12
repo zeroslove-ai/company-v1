@@ -2,7 +2,7 @@ import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
-import { renderChoices, renderHistory, renderNarrative, renderState, setCommittedStatDeltas, text } from './render.js';
+import { normalizeNarrativeDisplay, renderChoices, renderHistory, renderNarrative, renderState, setCommittedStatDeltas, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
@@ -305,12 +305,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         if (speaker) speaker.textContent = segment.speaker_name ?? segment.speaker_id ?? '';
         if (direction) { direction.textContent = segment.acting_direction ?? ''; direction.className = 'dialogue-direction'; }
         if (meta) meta.append(speaker, direction);
-        if (body) body.textContent = segment.text ?? '';
+        if (body) body.textContent = normalizeNarrativeDisplay(segment.text ?? '');
         block.append(meta, body);
       } else if (segment.type === 'choice') {
         block.textContent = segment.text ?? '';
         block.dataset.choiceLabel = segment.label ?? '';
-      } else block.textContent = segment.text ?? '';
+      } else block.textContent = normalizeNarrativeDisplay(segment.text ?? '');
       fragment.appendChild(block);
     }
     elements.current.replaceChildren?.(fragment);

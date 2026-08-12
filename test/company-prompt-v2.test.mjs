@@ -154,9 +154,9 @@ test('Opening Prompt v2 establishes workplace activity and leaves player agency 
   });
   const system = messages[0].content;
 
-  assert.match(system, /semantic wire blocks/);
+  assert.match(system, /output protocol below/);
   assert.match(system, /exact speaker_id marker/);
-  assert.match(system, /exactly four/);
+  assert.match(system, /four repeated/);
   assert.match(system, /unquoted first-person Korean inner monologue.*natural self-talk/);
   assert.match(system, /repeated \[CHOICE\] blocks.*concrete literal player action/);
   assert.match(system, /상식개변/);

@@ -49,13 +49,19 @@ for (const [name, raw] of [
   ['unknown speaker', canonical.replace('heroine1', 'unknown')],
   ['speaker name as id', canonical.replace('heroine1', '\uC11C\uC6D0\uD76C')],
   ['legacy speaker attributes', canonical.replace('[DIALOGUE speaker_id="heroine1"]', '[DIALOGUE speaker="\uC11C\uC6D0\uD76C" direction="calm"]')],
-  ['legacy sections', canonical.replace('[THOUGHT]', '[2. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C]')],
-  ['markerless', canonical.replace('[SCENE]\n', '')]
+  ['malformed dialogue marker', canonical.replace('[DIALOGUE speaker_id="heroine1"]', '[DIALOGUE speaker="\uC11C\uC6D0\uD76C" direction="calm"]')]
 ]) {
   test(`fresh parser rejects ${name}`, () => {
     assert.throws(() => parseFreshNarrativeV2(raw, { master }), error => error.code === 'STORY_PROTOCOL_INVALID');
   });
 }
+
+test('plain narrative is the Fresh default and old section literals stay narrative', () => {
+  const raw = `첫 문단이다.\n\n[메모] 회의실에 들어선다.\n[DIALOGUE speaker_id="heroine1"]\n확인했습니다.\n\n다음 문단이다.`;
+  const parsed = parseFreshNarrativeV2(raw, { master });
+  assert.deepEqual(parsed.blocks.map(block => block.type), ['narrative', 'dialogue', 'narrative']);
+  assert.equal(parsed.raw, raw);
+});
 
 test('quoted text inside SCENE is never inferred as dialogue', () => {
   const raw = canonical.replace('회의실에 조용한 어색함이 흐른다.', '회의실에서 "그 자료를 보죠"라는 말이 들렸다.');
@@ -100,9 +106,9 @@ test('opening splitter preserves background and canonical body boundary', () => 
 });
 
 test('Story durable output contract uses semantic blocks and UI-owned presentation', () => {
-  assert.match(DURABLE_STORY_RULES, /semantic blocks/);
+  assert.match(DURABLE_STORY_RULES, /plain narrative by default/);
   assert.match(DURABLE_STORY_RULES, /\[DIALOGUE speaker_id=/);
-  assert.match(DURABLE_STORY_RULES, /exactly four repeated \[CHOICE\] blocks/);
+  assert.match(DURABLE_STORY_RULES, /four literal \[CHOICE\] action blocks/);
   assert.doesNotMatch(DURABLE_STORY_RULES, /\[CHOICE label=/);
   assert.doesNotMatch(DURABLE_STORY_RULES, /\[1\. \uC11C\uC0AC \uBC0F \uD589\uB3D9\]|\[2\. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C\]|\[3\. \uC120\uD0DD\uC9C0\]/);
   assert.equal(DURABLE_STORY_RULES.includes('?쒖궗'), false);

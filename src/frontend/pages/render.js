@@ -4,6 +4,10 @@ export function text(element, value) { if (element) element.textContent = value 
 
 function displayValue(value) { return typeof value === 'string' || typeof value === 'number' ? String(value) : ''; }
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null; }
+function normalizeNarrativeDisplay(value) {
+  return String(value ?? '').replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+export { normalizeNarrativeDisplay };
 
 /**
  * 플레이어 속마음 표시 전용 최소 정규화 — 문장부호 자동 개행 없음, 모델 줄바꿈 유지.
@@ -204,15 +208,15 @@ export function renderNarrative(container, parsed) {
       if (speakerTone) card.classList.add(speakerTone);
       const meta = document.createElement('header'); meta.className = 'dialogue-meta';
       const speaker = document.createElement('strong'); speaker.className = 'dialogue-speaker'; speaker.textContent = block.speaker ?? block.speaker_name ?? '';
-      const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = block.direction ?? '';
-      const line = document.createElement('p'); line.className = 'dialogue-text'; line.textContent = block.text ?? '';
+      const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = normalizeNarrativeDisplay(block.direction ?? '');
+      const line = document.createElement('p'); line.className = 'dialogue-text'; line.textContent = normalizeNarrativeDisplay(block.text ?? '');
       meta.append(speaker, direction); card.append(meta, line); container.append(card);
       lastDialogueCard = card;
       continue;
     }
     lastDialogueCard = null;
     const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`;
-    paragraph.textContent = block.text ?? '';
+    paragraph.textContent = normalizeNarrativeDisplay(block.text ?? '');
     container.append(paragraph);
   }
   // Canonical footer projection: one thought card, followed by one narrative

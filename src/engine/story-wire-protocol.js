@@ -1,6 +1,6 @@
 import { GameCoreError } from './errors.js';
 
-export const STORY_BLOCK_TYPES = Object.freeze(['scene', 'dialogue', 'thought', 'choice']);
+export const STORY_BLOCK_TYPES = Object.freeze(['scene', 'narrative', 'dialogue', 'thought', 'choice']);
 
 function protocolError(message) {
   return new GameCoreError('STORY_PROTOCOL_INVALID', message);
@@ -81,11 +81,17 @@ export function parseStoryControlMarker(input, { directory = null } = {}) {
     parseQuotedAttributes(token.slice('[CHOICE'.length, -1), new Set());
     return { type: 'block_start', block_type: 'choice', raw: token, remainder, leadingWhitespace: leading, end: leading.length + close + 1 };
   }
+  if (knownMarkerStart(source)) throw protocolError('Malformed Story control marker');
   return { invalid: true, raw: token, remainder, leadingWhitespace: leading, end: leading.length + close + 1 };
 }
 
 function knownPrefix(value) {
   return ['[SCENE]', '[/SCENE]', '[/DIALOGUE]', '[ACTING]', '[/ACTING]', '[THOUGHT]', '[/THOUGHT]', '[/CHOICE]', '[DIALOGUE', '[CHOICE'].some(prefix => prefix.startsWith(value) || value.startsWith(prefix));
+}
+
+function knownMarkerStart(value) {
+  return ['[SCENE', '[/SCENE', '[DIALOGUE', '[/DIALOGUE', '[ACTING', '[/ACTING', '[THOUGHT', '[/THOUGHT', '[CHOICE', '[/CHOICE']
+    .some(prefix => String(value ?? '').startsWith(prefix));
 }
 
 function visibleRemainder(value) { return String(value ?? '').replace(/^[ \t]+/, ''); }
@@ -105,9 +111,29 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
   let awaitingActing = false;
   let actingBuffer = '';
   let canAttachActing = false;
+  let actingTarget = null;
+  let actingDuplicate = false;
 
   const emitText = (events, text) => {
     if (!text) return;
+    if (activeBlockType === 'dialogue') {
+      const paragraph = /\r?\n[ \t]*\r?\n/.exec(text);
+      if (paragraph) {
+        const before = text.slice(0, paragraph.index);
+        const after = text.slice(paragraph.index + paragraph[0].length);
+        if (before) events.push({ type: 'text_delta', text: before });
+        events.push({ type: 'block_end', block_type: 'dialogue', implicit: true });
+        activeDialogue = false;
+        canAttachActing = true;
+        activeBlockType = null;
+        if (after) emitText(events, after);
+        return;
+      }
+    }
+    if (!activeBlockType) {
+      activeBlockType = 'narrative';
+      events.push({ type: 'block_start', block_type: 'narrative' });
+    }
     events.push({ type: 'text_delta', text });
     lineStart = text.endsWith('\n');
   };
@@ -123,7 +149,9 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
         data.speaker_id = marker.speaker_id;
         data.speaker_name = directory.get(marker.speaker_id);
         data.acting_direction = null;
-      }
+        actingTarget = data;
+        actingDuplicate = false;
+      } else { actingTarget = null; actingDuplicate = false; }
       events.push(data);
     } else if (marker.type === 'block_end') {
       if (!activeBlockType) return;
@@ -132,12 +160,27 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
       } else events.push({ type: 'block_end', block_type: marker.block_type });
       activeDialogue = false;
       canAttachActing = marker.block_type === 'dialogue';
+      // Keep the just-closed dialogue as the only adjacency target until the
+      // next semantic block begins; post-dialogue ACTING may attach to it.
       activeBlockType = null;
     } else if (marker.type === 'acting') {
-      if (!activeDialogue && !canAttachActing) throw protocolError('ACTING must follow DIALOGUE');
+      const target = activeDialogue ? actingTarget : (canAttachActing ? actingTarget : null);
+      if (!target) events.push({ type: 'warning', code: 'acting_without_dialogue' });
+      else if (target.acting_direction !== null || actingDuplicate) {
+        events.push({ type: 'warning', code: 'dialogue_acting_duplicate' });
+        actingDuplicate = true;
+      }
       const direction = visibleRemainder(marker.remainder).split(/\r?\n/, 1)[0];
-      if (direction && !direction.startsWith('[')) events.push({ type: 'acting', acting_direction: direction });
-      else awaitingActing = true;
+      if (direction && !direction.startsWith('[')) {
+        if (target && !actingDuplicate && target.acting_direction === null) {
+          target.acting_direction = direction;
+          events.push({ type: 'acting', acting_direction: direction });
+        }
+      } else {
+        awaitingActing = true;
+        actingTarget = target;
+        actingDuplicate = Boolean(target && (target.acting_direction !== null || actingDuplicate));
+      }
     } else if (marker.type === 'acting_end') {
       return;
     }
@@ -145,7 +188,14 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
   const consume = events => {
     const marker = parseStoryControlMarker(candidate, { directory });
     if (!marker || marker.incomplete) return false;
-    if (marker.invalid) throw protocolError(`Unknown or malformed Story marker: ${marker.raw}`);
+    if (marker.invalid) {
+      emitText(events, marker.raw);
+      candidate = '';
+      lineStart = false;
+      afterMarker = false;
+      if (marker.remainder) emitText(events, marker.remainder);
+      return true;
+    }
     controlEvents(marker, events);
     candidate = '';
     lineStart = false;
@@ -177,14 +227,28 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
       if (awaitingActing) {
         if (character === '[') {
           const direction = actingBuffer.trim();
-          if (direction) events.push({ type: 'acting', acting_direction: direction });
+          if (direction && actingTarget && !actingDuplicate && actingTarget.acting_direction === null) {
+            actingTarget.acting_direction = direction;
+            events.push({ type: 'acting', acting_direction: direction });
+          } else if (direction && actingTarget) {
+            actingDuplicate = true;
+            events.push({ type: 'warning', code: 'dialogue_acting_duplicate' });
+          }
           actingBuffer = ''; awaitingActing = false; afterMarker = false;
           continue;
         }
         if (character === '\n') {
           const direction = actingBuffer.trim();
           if (!direction) { index += 1; lineStart = true; continue; }
-          if (direction && !direction.startsWith('[')) events.push({ type: 'acting', acting_direction: direction });
+          if (direction && !direction.startsWith('[')) {
+            if (actingTarget && !actingDuplicate && actingTarget.acting_direction === null) {
+              actingTarget.acting_direction = direction;
+              events.push({ type: 'acting', acting_direction: direction });
+            } else if (actingTarget) {
+              actingDuplicate = true;
+              events.push({ type: 'warning', code: 'dialogue_acting_duplicate' });
+            }
+          }
           actingBuffer = ''; awaitingActing = false; afterMarker = false; lineStart = true; index += 1; continue;
         }
         actingBuffer += character; index += 1; continue;
@@ -193,9 +257,9 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
         candidate += character; index += 1;
         if (character === ']') {
           flush();
-          if (knownPrefix(candidate) || candidateLineStart) consume(events);
+          if (knownPrefix(candidate)) consume(events);
           else { visible += candidate; candidate = ''; afterMarker = false; lineStart = false; }
-        } else if (candidate.length > 512 || (!knownPrefix(candidate) && !candidate.startsWith('[D'))) {
+        } else if (candidate.length > 512 || (!knownPrefix(candidate) && !knownMarkerStart(candidate))) {
           visible += candidate; candidate = ''; afterMarker = false; lineStart = false;
         }
         continue;
@@ -216,7 +280,10 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
     const events = [];
     if (awaitingActing) {
       const direction = actingBuffer.trim();
-      if (direction && !direction.startsWith('[')) events.push({ type: 'acting', acting_direction: direction });
+      if (direction && !direction.startsWith('[') && actingTarget && !actingDuplicate && actingTarget.acting_direction === null) {
+        actingTarget.acting_direction = direction;
+        events.push({ type: 'acting', acting_direction: direction });
+      }
       actingBuffer = ''; awaitingActing = false;
     }
     if (candidate && knownPrefix(candidate)) throw protocolError('Incomplete Story control marker');

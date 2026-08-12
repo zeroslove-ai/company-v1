@@ -60,9 +60,23 @@ test('missing acting remains valid and does not infer a direction', () => {
   assert.equal(parsed.dialogue_lines[0].acting_direction, null);
 });
 
+test('duplicate ACTING keeps the first direction and emits a soft warning', () => {
+  const raw = '[SCENE]room\n[DIALOGUE speaker_id="heroine2"]\n[ACTING] calm\nhello\n[ACTING] rushed\n[THOUGHT]t';
+  const parsed = parseFreshNarrativeV2(raw, { master });
+  assert.equal(parsed.dialogue_lines[0].acting_direction, 'calm');
+  assert.ok(parsed.warnings.includes('dialogue_acting_duplicate'));
+});
+
+test('plain narrative beginning with an unknown bracket is literal', () => {
+  const parsed = parseFreshNarrativeV2('[메모] 회의실\n\n[THOUGHT]t', { master });
+  assert.equal(parsed.blocks[0].type, 'narrative');
+  assert.match(parsed.blocks[0].text, /\[메모\]/);
+});
+
 test('acting cannot carry across a new block', () => {
-  const raw = valid.replace('[DIALOGUE speaker_id="heroine2"]\n[ACTING] 당황하며\n네, 잠깐만요.', '[DIALOGUE speaker_id="heroine2"]\n네, 잠깐만요.\n[SCENE]\n[ACTING] 당황하며');
-  assert.throws(() => parseFreshNarrativeV2(raw, { master }), error => error.code === 'STORY_PROTOCOL_INVALID');
+  const raw = valid.replace('[DIALOGUE speaker_id="heroine2"]\n[ACTING] 당황하며\n네, 잠깐만요.', '[DIALOGUE speaker_id="heroine2"]\n네, 잠깐만요.\n[SCENE]room\n[ACTING] 당황하며');
+  const parsed = parseFreshNarrativeV2(raw, { master });
+  assert.ok(parsed.warnings.includes('acting_without_dialogue'));
 });
 
 test('stream decoder emits semantic events without markers in text', () => {
@@ -100,6 +114,27 @@ test('stream ACTING cannot carry across a new block marker', () => {
   const events = decoder.push('[DIALOGUE speaker_id="heroine2"]hello\n[ACTING]\n[SCENE]room');
   assert.equal(events.some(event => event.type === 'acting'), false);
   assert.deepEqual(events.filter(event => event.type === 'block_start').map(event => event.block_type), ['dialogue', 'scene']);
+});
+
+test('stream duplicate ACTING warns without aborting', () => {
+  const decoder = createStoryStreamDecoder({ master });
+  const events = [...decoder.push('[DIALOGUE speaker_id="heroine2"]hello[ACTING] calm[ACTING] rushed'), ...decoder.finish()];
+  assert.deepEqual(events.filter(event => event.type === 'acting').map(event => event.acting_direction), ['calm']);
+  assert.ok(events.some(event => event.type === 'warning' && event.code === 'dialogue_acting_duplicate'));
+});
+
+test('stream plain narrative is visible and marker-free', () => {
+  const decoder = createStoryStreamDecoder({ master });
+  const events = [...decoder.push('[메모] 회의실\n본문'), ...decoder.finish()];
+  assert.deepEqual(events.filter(event => event.type === 'block_start').map(event => event.block_type), ['narrative']);
+  assert.equal(events.filter(event => event.type === 'text_delta').map(event => event.text).join(''), '[메모] 회의실\n본문');
+});
+
+test('stream closes dialogue at a blank paragraph and resumes narrative', () => {
+  const decoder = createStoryStreamDecoder({ master });
+  const events = [...decoder.push('[DIALOGUE speaker_id="heroine2"]말한다.\n\n뒤의 서술'), ...decoder.finish()];
+  assert.deepEqual(events.filter(event => event.type === 'block_start').map(event => event.block_type), ['dialogue', 'narrative']);
+  assert.equal(events.filter(event => event.type === 'text_delta').map(event => event.text).join(''), '말한다.뒤의 서술');
 });
 
 test('known closing markers are deterministic no-op syntax', () => {
@@ -151,7 +186,8 @@ test('stream post-dialogue ACTING attaches only to the adjacent dialogue', () =>
   assert.deepEqual(events.filter(event => event.type === 'acting').map(event => event.acting_direction), ['당황하며']);
   assert.deepEqual(events.filter(event => event.type === 'block_start').map(event => event.block_type), ['dialogue']);
   const crossed = createStoryStreamDecoder({ master });
-  assert.throws(() => crossed.push('[DIALOGUE speaker_id="heroine2"]네.[/DIALOGUE][SCENE]다음 장면[ACTING]잘못된 귀속'), error => error.code === 'STORY_PROTOCOL_INVALID');
+  const crossedEvents = crossed.push('[DIALOGUE speaker_id="heroine2"]네.[/DIALOGUE][SCENE]다음 장면[ACTING]잘못된 귀속');
+  assert.ok(crossedEvents.some(event => event.type === 'warning' && event.code === 'acting_without_dialogue'));
 });
 
 test('choice body is literal and empty choice is a soft warning', () => {

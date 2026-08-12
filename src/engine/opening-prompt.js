@@ -18,11 +18,11 @@ export function splitOpeningSections(rawText) {
 }
 
 const FRESH_OPENING_OUTPUT_PROTOCOL = [
-  'Fresh opening semantic wire protocol:',
-  '[SCENE] opening narrative [/SCENE] (closing marker optional).',
+  'Fresh opening output protocol:',
+  'Plain narrative is the default and stays in source order; [SCENE] may be used but is not required.',
   '[DIALOGUE speaker_id="registered_id_or_player"] followed optionally by [ACTING] direction and dialogue text.',
   '[THOUGHT] one unquoted first-person Korean inner monologue written as natural self-talk, never analysis or report prose.',
-  'Then provide exactly four repeated [CHOICE] blocks, each containing one concrete literal player action (usually around 30 Korean characters as quality guidance only; not a validity gate). Every speaker_id is an exact registered ID; never infer a speaker. The UI owns headings and numbering; do not output labels, human section titles, or numbered choices.'
+  'When possible, provide one [THOUGHT] and four repeated [CHOICE] blocks, each containing one concrete literal player action (usually around 30 Korean characters as quality guidance only; not a validity gate). Every speaker_id is an exact registered ID; never infer a speaker. The UI owns headings and numbering; do not output labels, human section titles, or numbered choices.'
 ].join('\n');
 
 const PLAYER_PRIVATE_OPENING_PREMISE = [
@@ -36,7 +36,7 @@ const OPENING_DURABLE_RULES = [
   'Write natural Korean workplace fiction from the canonical opening payload. Use the supplied weekday, time, location, work hook, and scene goal as facts.',
   'Do not invent unregistered named characters or decide unrequested player actions. Show active NPC motives through natural work and dialogue.',
   PLAYER_PRIVATE_OPENING_PREMISE,
-  'Use only the semantic wire blocks described below. Speaker identity is the exact speaker_id marker, never a name or quote.',
+  'Use the output protocol below for dialogue identity and optional footer blocks. Speaker identity is the exact speaker_id marker, never a name or quote.',
   FRESH_OPENING_OUTPUT_PROTOCOL
 ].join('\n\n');
 

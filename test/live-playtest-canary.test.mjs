@@ -36,11 +36,11 @@ test('live canary classifies parser success and preserves block sequence/warning
   assert.deepEqual(result.warnings, []);
 });
 
-test('live canary classifies parser protocol failure without rewriting raw Story', () => {
+test('live canary accepts plain narrative without rewriting raw Story', () => {
   const raw = '서술 marker가 없는 본문';
   const result = classifyParserResult(raw, master);
-  assert.equal(result.status, 'failure');
-  assert.match(result.error.message, /Story text must begin/);
+  assert.equal(result.status, 'success');
+  assert.deepEqual(result.block_sequence, ['narrative']);
   assert.equal(raw, '서술 marker가 없는 본문');
 });
 
