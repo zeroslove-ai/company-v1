@@ -87,7 +87,7 @@ test('app enrichment keeps canonical app data without finder projections', () =>
   assert.equal(enriched.data.app.player_info.name, '금태양');
   assert.equal(enriched.data.app.player_info.position, 'TF팀장');
   assert.equal(enriched.data.app.player_info.penis_length_cm, 19);
-  assert.equal(enriched.data.app.npcs.length, 2);
+  assert.equal(enriched.data.app.npcs.length, 1);
   assert.equal(enriched.data.app.npcs[0].name, '서원희');
   assert.equal(enriched.data.app.npcs[0].stats.resistance, 40);
   assert.equal(enriched.data.app.npcs[0].mind.surface, '업무를 확인한다.');

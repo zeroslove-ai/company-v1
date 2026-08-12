@@ -44,18 +44,10 @@ function locationLabel(edition, id) {
   return text(locationDirectory(edition).get(id)?.name) || text(id);
 }
 
-function heroineProfiles(edition) {
-  return object(edition?.characters?.characters);
-}
-
-function generalProfiles(edition) {
-  return object(edition?.generalNpcs?.profiles);
-}
-
 function profileFor(edition, id) {
-  const heroine = object(heroineProfiles(edition)[id]);
+  const heroine = object(edition?.characters?.characters?.[id]);
   if (Object.keys(heroine).length) return { type: 'heroine', ...heroine, id, character_id: id };
-  const general = object(generalProfiles(edition)[id]);
+  const general = object(edition?.generalNpcs?.profiles?.[id]);
   if (Object.keys(general).length) return { type: 'general', ...general, id, npc_id: id };
   return null;
 }
@@ -143,25 +135,6 @@ export function buildFullPlayerInfo(save, edition) {
       scope_label: text(item.scope_label) || '회사 전체'
     }))
   };
-}
-
-export function buildFinderNpcList(save, edition) {
-  const departments = departmentDirectory(edition);
-  const ids = [...Object.keys(heroineProfiles(edition)), ...Object.keys(generalProfiles(edition))];
-  return ids.map(id => {
-    const profile = profileFor(edition, id);
-    const result = resolveNpcLocation(save, edition, id);
-    const departmentId = profileDepartmentId(edition, profile);
-    return {
-      id,
-      name: text(profile?.name) || id,
-      type: profile?.type ?? 'unknown',
-      department: text(profile?.department) || departments.get(departmentId) || departmentId,
-      position: text(profile?.position),
-      role: text(profile?.role_title ?? profile?.role),
-      ...result
-    };
-  });
 }
 
 export function resolveNpcLocation(save, edition, characterId) {

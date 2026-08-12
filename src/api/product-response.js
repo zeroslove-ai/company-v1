@@ -1,6 +1,6 @@
 import { buildContextDisplayPayload, buildNpcAppPayload } from './runtime-display.js';
 import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from './character-display.js';
-import { buildFullPlayerInfo, buildFinderNpcList } from './product-recovery.js';
+import { buildFullPlayerInfo, resolveNpcLocation } from './product-recovery.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -49,41 +49,20 @@ function canonicalNpcDefaultLocations(edition) {
 }
 
 function mergeNpcPayload(save, edition, latestMindMonitor, details) {
-  const existing = new Map(buildNpcAppPayload(save, edition, latestMindMonitor).map(item => [item.id, item]));
-  return buildFinderNpcList(save, edition).map(finder => {
-    const base = existing.get(finder.id) ?? {
-      id: finder.id,
-      name: finder.name,
-      department: finder.department,
-      position: finder.position,
-      role: finder.role,
-      present_now: finder.present_now,
-      location: {
-        known: finder.known,
-        location_label: finder.location_label,
-        location_id: finder.location_id
-      },
-      stats: { affection: 0, acceptance: 0, arousal: 0, resistance: 0 },
-      mind: { surface: '', subconscious: '' },
-      scene_state: {},
-      relationship_summary: ''
-    };
-    const detail = details[finder.id] ?? {};
+  return buildNpcAppPayload(save, edition, latestMindMonitor).map(base => {
+    const location = resolveNpcLocation(save, edition, base.id);
+    const detail = details[base.id] ?? {};
     return {
       ...base,
-      name: base.name || finder.name,
-      department: base.department || finder.department,
-      position: base.position || finder.position,
-      role: base.role || finder.role,
-      present_now: finder.present_now,
+      // App NPC identity/scope comes only from the evidence-aware app projection.
       location: {
-        known: finder.known,
-        location_label: finder.location_label,
-        location_id: finder.location_id
+        known: location.known,
+        location_label: location.location_label,
+        location_id: location.location_id
       },
-      profile: detail.profile ?? {},
-      body: detail.body ?? {},
-      stat_changes: detail.stat_changes ?? {},
+      profile: detail.profile ?? base.profile ?? {},
+      body: detail.body ?? base.body ?? {},
+      stat_changes: detail.stat_changes ?? base.stat_changes ?? {},
       relationship_summary: base.relationship_summary || detail.relationship_summary || '',
       relationship_record: detail.relationship_record ?? {},
       private_info: detail.private_info ?? { unlocked: false }
