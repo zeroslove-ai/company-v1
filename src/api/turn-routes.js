@@ -16,6 +16,7 @@ import {
   normalizeFreshExtractObservationV2,
   normalizePersistedExtractObservation,
   reduceGameplayCommit,
+  reduceStoryChoiceProjection,
   parseFreshNarrativeV2,
   parsePersistedNarrative,
   resolvePlayerCanonicalNames,
@@ -192,9 +193,9 @@ function openingTurnProjection(save, master) {
   const opening = plainObject(save?.opening_state) ? save.opening_state : null;
   if (opening?.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
   const parsedBlocks = parsePersistedNarrative(opening.story_text, { master });
-  const choices = Array.isArray(parsedBlocks?.choices)
-    ? parsedBlocks.choices
-    : (Array.isArray(opening.choices) ? opening.choices : []);
+  const choices = Array.isArray(opening.choices) && opening.choices.length
+    ? opening.choices
+    : (Array.isArray(parsedBlocks?.choices) ? parsedBlocks.choices : []);
   return {
     player_action: '(opening)',
     story_text: opening.story_text,
@@ -960,7 +961,8 @@ const master = masterFromEdition(edition);
           const background = '';
           const splitWarnings = [];
           const parsedOpening = parseFreshNarrativeV2(raw, { master });
-          const finalChoices = Array.isArray(parsedOpening.canonical_choices) ? parsedOpening.canonical_choices : [];
+          const choiceProjection = reduceStoryChoiceProjection({ parsedStory: parsedOpening });
+          const finalChoices = choiceProjection.state;
           const commit = await db.callRpc('commit_company_opening', {
             p_game_id: gameId,
             p_setup_id: setupId,
@@ -970,7 +972,7 @@ const master = masterFromEdition(edition);
           });
           emit('complete', {
             setup_id: setupId, choices: finalChoices, background,
-            warnings: [...splitWarnings, ...parsedOpening.warnings],
+            warnings: [...splitWarnings, ...parsedOpening.warnings, ...choiceProjection.warnings],
             parsed_blocks: parsedOpening,
             replayed: false, commit
           });

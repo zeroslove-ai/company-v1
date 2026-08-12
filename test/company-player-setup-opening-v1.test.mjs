@@ -69,6 +69,7 @@ const canonicalOpeningSse = [
 const semanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\\nThe lobby is busy.\\n[THOUGHT]\\nI feel nervous.\\n[CHOICE label="관찰"]\\nLook around\\n[CHOICE label="인사"]\\nSay hello\\n[CHOICE label="대기"]\\nWait here\\n[CHOICE label="이동"]\\nFind a desk' } }] })}\n\ndata: [DONE]\n\n`;
 const canonicalOpeningText = '[SCENE]\nThe lobby is busy.\n[DIALOGUE speaker_id="heroine1"]\n[ACTING] calmly\nWelcome to the office.\n[THOUGHT]\nI should look around first.\n[CHOICE]\nCheck the desk.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait quietly.\n[CHOICE]\nGo outside.';
 const canonicalSemanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: canonicalOpeningText } }] })}\n\ndata: [DONE]\n\n`;
+const openingWithoutChoicesSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\\nThe lobby is busy.\\n[THOUGHT]\\nI should look around first.' } }] })}\n\ndata: [DONE]\n\n`;
 
 function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), gameTitle = '상식개변: 회사편', storySseText = semanticOpeningSse, storyThrows = false } = {}) {
   const calls = [];
@@ -441,6 +442,31 @@ test('/api/opening streams background plus four choices, commits turn 0, and nev
   assert.equal(save.turn_state.committed_turn, 0);
   assert.equal(save.player_setup.completed, true);
   assert.equal(save.opening_state.status, 'complete');
+});
+
+test('/api/opening projects observed zero choices into four canonical fallback choices without rewriting raw Story', async () => {
+  const mock = createSetupMockFetch({ storySseText: openingWithoutChoicesSse });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
+  const { setup_id: setupId } = (await setupResponse.json()).data;
+
+  const openingResponse = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
+  assert.equal(openingResponse.status, 200);
+  const text = await readSseText(openingResponse);
+  const completeLine = text.split('\n\n').find(frame => frame.includes('event: complete'));
+  const completeData = JSON.parse(completeLine.split('data:')[1].trim());
+  assert.equal(completeData.choices.length, 4);
+  assert.ok(completeData.warnings.includes('choices_not_exactly_four'));
+  assert.ok(completeData.warnings.includes('choices_fallback_applied'));
+  assert.equal(completeData.parsed_blocks.choices.length, 0);
+  assert.equal(completeData.parsed_blocks.canonical_choices.length, 0);
+  assert.equal(mock.getSave().opening_state.story_text.includes('[CHOICE]'), false);
+  assert.deepEqual(mock.getSave().opening_state.choices, completeData.choices);
+
+  const contextResponse = await worker.fetch(request('/api/context', { game_id: gameId, recent_turns: 1 }), env);
+  const openingTurn = (await contextResponse.json()).data.context.opening_turn;
+  assert.equal(openingTurn.parsed_blocks.choices.length, 0);
+  assert.equal(openingTurn.choices.length, 4);
 });
 
 test('/api/opening first-run and replay expose the same canonical parsed projection as context refresh', async () => {
