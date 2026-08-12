@@ -1,5 +1,5 @@
 import { getActiveCsaEntries } from './applicability.js';
-import { compareRequiredClothing, requiredClothingFromActiveCsa } from '../state/clothing.js';
+import { compareRequiredClothing } from '../state/clothing.js';
 import {
   authorityPolicyFor,
   enactmentForPhase,
@@ -77,23 +77,28 @@ function eligibleTargetIds({ actorId, counterpartyScope, sceneProfiles }) {
 
 function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds }) {
   const runtime = object(save?.csa_runtime_state);
+  const preset = object(entry?.preset);
+  const requestOnly = modeFor(entry, preset) === 'on_player_request';
   const targetProfiles = [...sceneProfiles, { id: 'player', profile: { ...object(save?.player), id: 'player', player: true } }];
   const facts = [];
   for (const actorId of applicableSceneActorIds) {
     const actorState = object(save?.npc_scene_state?.[actorId]);
-    const currentState = execution?.kind === 'clothing_state'
-      ? object(actorState.clothing)
-      : (runtime?.[entry.id]?.execution_state ?? 'not_started');
     const requiredState = execution?.required_state ? { ...execution.required_state } : null;
+    const observedClothing = object(actorState.clothing);
+    const currentState = execution?.kind === 'clothing_state'
+      ? Object.fromEntries(Object.keys(requiredState ?? {}).map(slot => [slot, observedClothing[slot] ?? 'unknown']))
+      : (runtime?.[entry.id]?.execution_state ?? 'not_started');
     const clothingVerdict = execution?.kind === 'clothing_state'
       ? compareRequiredClothing(currentState, requiredState ?? {})
       : null;
     const targets = execution?.target_required
       ? eligibleTargetIds({ actorId, counterpartyScope: text(entry.preset?.counterparty_scope) ?? text(entry.counterparty_scope), sceneProfiles: targetProfiles })
       : [];
-    const triggerState = execution?.kind === 'clothing_state'
-      ? triggerStateFor(execution.trigger_kind, { actorPresent: true })
-      : triggerStateFor(execution?.trigger_kind, { actorPresent: true, targetCount: targets.length, postureReady: postureReadyForTargets(save, actorId, targets) });
+    const triggerState = requestOnly
+      ? 'conditional'
+      : execution?.kind === 'clothing_state'
+        ? triggerStateFor(execution.trigger_kind, { actorPresent: true })
+        : triggerStateFor(execution?.trigger_kind, { actorPresent: true, targetCount: targets.length, postureReady: postureReadyForTargets(save, actorId, targets) });
     facts.push({
       rule_id: entry.id,
       already_effective: execution?.kind === 'clothing_state'
@@ -104,8 +109,9 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
       trigger_state: triggerState,
       current_state: currentState,
       required_state: requiredState,
+      ...(execution?.target_required ? { eligible_target_ids: targets } : {}),
       transition_required_now: execution?.kind === 'clothing_state'
-        ? clothingVerdict === 'noncompliant' && triggerState === 'required_now'
+        ? clothingVerdict !== 'compliant' && triggerState === 'required_now'
         : triggerState === 'required_now' && runtime?.[entry.id]?.execution_state !== 'executed',
       implementation_delay_allowed: triggerState !== 'required_now' && object(entry.preset).implementation_delay_allowed === true,
       execution_policy: executionPolicyFor(triggerState)
@@ -149,64 +155,48 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
   };
 }
 
-function projectObligations(save, master, sceneActorIds, activeEntries) {
-  const state = object(save?.npc_scene_state);
+function projectObligations(worldRules) {
   const obligations = [];
-  const playerProfile = { ...(object(save?.player)), id: 'player', player: true };
-  const sceneProfiles = [
-    ...(Array.isArray(sceneActorIds) ? sceneActorIds : []).filter(id => text(id) && id !== 'player').map(id => ({ id, profile: profileFor(master, id) })),
-    { id: 'player', profile: playerProfile }
-  ];
-  for (const actorId of Array.isArray(sceneActorIds) ? sceneActorIds : []) {
-    if (!text(actorId) || actorId === 'player') continue;
-    const profile = profileFor(master, actorId);
-    const actual = object(state[actorId]?.clothing);
-    const resolved = requiredClothingFromActiveCsa(activeEntries, { ...profile, id: actorId });
-    if (resolved.conflicted || !Object.keys(resolved.required_clothing).length) {
-      // Clothing is the existing evidence-gated obligation path. Non-clothing
-      // behavior obligations are projected below from catalog execution data.
-    } else {
-      const rule = activeEntries.find(entry => entry.id === resolved.source_csa_id);
-      const preset = object(rule?.preset);
-      if (modeFor(rule, preset) === 'continuous'
-        && !Object.keys(resolved.required_clothing).some(slot => state[actorId]?.clothing?.[slot] === undefined || state[actorId]?.clothing?.[slot] === 'unknown')
-        && compareRequiredClothing(actual, resolved.required_clothing) === 'noncompliant') {
-        obligations.push({
-          actor_id: actorId,
-          source_rule_id: resolved.source_csa_id,
-          type: 'clothing_transition',
-          changes: Object.entries(resolved.required_clothing).map(([slot, required]) => ({ slot, current: actual[slot], required }))
-        });
+  const clothingRuleCounts = new Map();
+  for (const worldRule of Array.isArray(worldRules) ? worldRules : []) {
+    if (object(worldRule.execution_contract).kind !== 'clothing_state') continue;
+    for (const fact of Array.isArray(worldRule.resolved_facts) ? worldRule.resolved_facts : []) {
+      if (fact.already_effective !== true && fact.trigger_state === 'required_now' && fact.execution_policy === 'mandatory_execution') {
+        clothingRuleCounts.set(fact.actor_id, (clothingRuleCounts.get(fact.actor_id) ?? 0) + 1);
       }
     }
   }
-
-  for (const entry of activeEntries) {
-    const rule = object(entry);
-    const preset = object(rule.preset);
-    const execution = executionMetadataForRule(rule);
-    if (!execution || !execution.kind || execution.kind === 'clothing_state' || !execution.action) continue;
-    const subjectScope = subjectScopeForRule(rule);
-    const actors = sceneProfiles.filter(({ id, profile }) => id !== 'player' && matchesCsaSubjectScope({ ...profile, id }, subjectScope));
-    for (const { id: actorId } of actors) {
-      const targets = execution.target_required
-        ? eligibleTargetIds({ actorId, counterpartyScope: text(preset.counterparty_scope) ?? text(rule.counterparty_scope), sceneProfiles })
-        : [];
-      const trigger_state = triggerStateFor(execution.trigger_kind, {
-        actorPresent: true,
-        targetCount: targets.length,
-        postureReady: postureReadyForTargets(save, actorId, targets)
-      });
-      if (trigger_state === 'not_applicable') continue;
-      obligations.push({
-        actor_id: actorId,
-        source_rule_id: entry.id,
-        type: 'behavior_execution',
-        action: execution.action,
-        trigger_state,
-        eligible_target_ids: targets,
-        execution_policy: executionPolicyFor(trigger_state)
-      });
+  for (const worldRule of Array.isArray(worldRules) ? worldRules : []) {
+    const execution = object(worldRule.execution_contract);
+    for (const fact of Array.isArray(worldRule.resolved_facts) ? worldRule.resolved_facts : []) {
+      if (fact.already_effective === true || fact.trigger_state === 'not_applicable') continue;
+      if (execution.kind === 'clothing_state') {
+        if (fact.trigger_state !== 'required_now' || fact.execution_policy !== 'mandatory_execution') continue;
+        if ((clothingRuleCounts.get(fact.actor_id) ?? 0) > 1) continue;
+        const requiredState = object(fact.required_state);
+        obligations.push({
+          actor_id: fact.actor_id,
+          source_rule_id: worldRule.id,
+          type: 'clothing_transition',
+          changes: Object.entries(requiredState).map(([slot, required]) => ({
+            slot,
+            current: object(fact.current_state)[slot] ?? 'unknown',
+            required
+          }))
+        });
+        continue;
+      }
+      if (execution.action) {
+        obligations.push({
+          actor_id: fact.actor_id,
+          source_rule_id: worldRule.id,
+          type: 'behavior_execution',
+          action: execution.action,
+          trigger_state: fact.trigger_state,
+          eligible_target_ids: fact.eligible_target_ids ?? [],
+          execution_policy: fact.execution_policy
+        });
+      }
     }
   }
   return obligations;
@@ -218,8 +208,9 @@ export function buildStoryWorldProjection({ save = {}, master = {}, sceneActorId
   const sceneProfiles = (Array.isArray(sceneActorIds) ? sceneActorIds : [])
     .filter(id => text(id) && id !== 'player')
     .map(id => ({ id, profile: profileFor(master, id) }));
+  const worldRules = activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles, save));
   return {
-    world_rules: activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles, save)),
-    scene_obligations: projectObligations(save, master, sceneActorIds, activeEntries)
+    world_rules: worldRules,
+    scene_obligations: projectObligations(worldRules)
   };
 }

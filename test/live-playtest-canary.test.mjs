@@ -97,6 +97,7 @@ test('live canary captures CSA projection snapshot without mutating save', () =>
     csa_rules: { csa_1: { active: true, content: '회사 여성 직원은 브래지어 없이 근무한다.', strength: 'weak', preset: { template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', mode: 'continuous' } } },
     npc_scene_state: { heroine1: { clothing: { underwear_top: 'worn' } } }
   };
+  save.csa_rules.csa_1.preset.execution = { kind: 'clothing_state', action: 'set_clothing_state', trigger_kind: 'always_during_work', target_required: false, required_state: { underwear_top: 'removed' } };
   const masterWithRule = { characters: [{ character_id: 'heroine1', name: '윤민아', gender: 'female' }], general_npcs: [] };
   const projection = buildStoryWorldProjection({ save, master: masterWithRule, sceneActorIds: ['heroine1'], expectedTurn: 2 });
   const snapshot = projectionSnapshot(projection);
@@ -111,7 +112,7 @@ test('canary uses the Company edition master shape instead of context.master', (
   assert.ok(Array.isArray(companyMaster.general_npcs));
   const save = {
     csa_active: ['csa_1'],
-    csa_rules: { csa_1: { active: true, content: 'rule', strength: 'weak', preset: { template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', mode: 'continuous' } } },
+    csa_rules: { csa_1: { active: true, content: 'rule', strength: 'weak', preset: { template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', mode: 'continuous', execution: { kind: 'clothing_state', action: 'set_clothing_state', trigger_kind: 'always_during_work', target_required: false, required_state: { underwear_top: 'removed' } } } } },
     npc_scene_state: { heroine1: { clothing: { underwear_top: 'worn' } } }
   };
   const parity = buildCanaryProjectionParity({ save, contextMaster: undefined, sceneActorIds: ['heroine1'], expectedTurn: 2 });

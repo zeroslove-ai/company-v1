@@ -8,7 +8,7 @@ const master = {
   characters: [{ character_id: 'heroine1', name: 'Alpha', gender: 'female' }, { character_id: 'heroine2', name: 'Beta', gender: 'female' }, { character_id: 'male1', name: 'Max', gender: 'male' }],
   general_npcs: []
 };
-const rule = (id = 'csa_4', overrides = {}) => ({ id, active: true, content: 'no bra under work clothes', created_turn: 3, strength: 'weak', preset: { template_id: 'no_bra_under_work_clothes', authority_tier: 'weak', subject_scope: 'female_employee', affected_group: 'female_employee', mode: 'continuous', trigger: 'continuous', ...overrides } });
+const rule = (id = 'csa_4', overrides = {}) => ({ id, active: true, content: 'no bra under work clothes', created_turn: 3, strength: 'weak', preset: { template_id: 'no_bra_under_work_clothes', authority_tier: 'weak', subject_scope: 'female_employee', affected_group: 'female_employee', mode: 'continuous', trigger: 'continuous', execution: { kind: 'clothing_state', action: 'set_clothing_state', trigger_kind: 'always_during_work', target_required: false, required_state: { underwear_top: 'removed' } }, ...overrides } });
 const save = (sceneIds = ['heroine1'], clothing = 'worn', extra = {}) => ({
   csa_active: ['csa_4'], csa_rules: { csa_4: rule() },
   scene: { version: 1, scene_id: 'room', location_id: 'room', present_npc_ids: sceneIds, focal_character_id: null, last_speaker_id: null, beat: 0 },
@@ -19,7 +19,7 @@ const save = (sceneIds = ['heroine1'], clothing = 'worn', extra = {}) => ({
 test('world rule projection exposes one canonical rule shape', () => {
   const projection = buildStoryWorldProjection({ save: save(), master, sceneActorIds: ['heroine1'], expectedTurn: 3 });
   assert.deepEqual(projection.world_rules[0], {
-    id: 'csa_4', content: 'no bra under work clothes', authority: 'weak', phase: 'newly_activated', institutional_form: 'internal_company_guidance_or_operating_rule', enactment: 'announce_new', mode: 'continuous', subject_scope: 'female_employee', counterparty_scope: null, trigger: 'continuous', resolved_facts: [{ rule_id: 'csa_4', already_effective: false, actor_id: 'heroine1', execution_kind: null, trigger_state: 'conditional', current_state: 'not_started', required_state: null, transition_required_now: false, implementation_delay_allowed: false, execution_policy: 'conditional' }], known_scene_actor_ids: ['heroine1'], applicable_scene_actor_ids: ['heroine1'], execution_policy: 'conditional'
+    id: 'csa_4', content: 'no bra under work clothes', authority: 'weak', phase: 'newly_activated', institutional_form: 'internal_company_guidance_or_operating_rule', enactment: 'announce_new', mode: 'continuous', subject_scope: 'female_employee', counterparty_scope: null, trigger: 'continuous', execution_contract: { kind: 'clothing_state', action: 'set_clothing_state', trigger_kind: 'always_during_work', target_required: false, required_state: { underwear_top: 'removed' } }, resolved_facts: [{ rule_id: 'csa_4', already_effective: false, actor_id: 'heroine1', execution_kind: 'clothing_state', trigger_state: 'required_now', current_state: { underwear_top: 'worn' }, required_state: { underwear_top: 'removed' }, transition_required_now: true, implementation_delay_allowed: false, execution_policy: 'mandatory_execution' }], known_scene_actor_ids: ['heroine1'], applicable_scene_actor_ids: ['heroine1'], execution_policy: 'mandatory_execution'
   });
 });
 
@@ -73,7 +73,7 @@ test('institutional projection resolves scene knowledge and applicability once',
   assert.deepEqual(projection.world_rules[0].known_scene_actor_ids, ['heroine1', 'general_choi_yujin', 'general_park_jungwoo']);
   assert.deepEqual(projection.world_rules[0].applicable_scene_actor_ids, ['heroine1', 'general_choi_yujin']);
   assert.deepEqual(projection.scene_obligations.map(item => item.actor_id), ['heroine1', 'general_choi_yujin']);
-  assert.equal(projection.world_rules[0].execution_policy, 'conditional');
+  assert.equal(projection.world_rules[0].execution_policy, 'mandatory_execution');
 });
 
 test('clothing applicability shares the normalized sex matcher for general employees', () => {
@@ -86,10 +86,10 @@ test('compliant, wrong-gender, absent, unknown, and conflicted actors get no obl
   assert.deepEqual(buildStoryWorldProjection({ save: save(['heroine1'], 'removed'), master, sceneActorIds: ['heroine1'] }).scene_obligations, []);
   assert.deepEqual(buildStoryWorldProjection({ save: save(['male1']), master, sceneActorIds: ['male1'] }).scene_obligations, []);
   assert.deepEqual(buildStoryWorldProjection({ save: save(['heroine1']), master, sceneActorIds: [] }).scene_obligations, []);
-  assert.deepEqual(buildStoryWorldProjection({ save: save(['heroine1'], 'unknown'), master, sceneActorIds: ['heroine1'] }).scene_obligations, []);
+  assert.deepEqual(buildStoryWorldProjection({ save: save(['heroine1'], 'unknown'), master, sceneActorIds: ['heroine1'] }).scene_obligations, [{ actor_id: 'heroine1', source_rule_id: 'csa_4', type: 'clothing_transition', changes: [{ slot: 'underwear_top', current: 'unknown', required: 'removed' }] }]);
   const conflicted = save();
   conflicted.csa_active.push('csa_5');
-  conflicted.csa_rules.csa_5 = rule('csa_5', { template_id: 'no_panties_under_work_clothes' });
+  conflicted.csa_rules.csa_5 = rule('csa_5', { template_id: 'no_panties_under_work_clothes', execution: { kind: 'clothing_state', action: 'set_clothing_state', trigger_kind: 'always_during_work', target_required: false, required_state: { underwear_bottom: 'removed' } } });
   assert.deepEqual(buildStoryWorldProjection({ save: conflicted, master, sceneActorIds: ['heroine1'] }).scene_obligations, []);
 });
 

@@ -315,7 +315,14 @@ function summarizeExtract(result, saveBefore, master) {
 
 function csaPhysicalVerdict(projection, rawStory, extract, nextSave, master) {
   const obligations = projection?.scene_obligations ?? [];
-  if (!obligations.length) return { status: 'NOT_REQUIRED', obligations: [] };
+  const mandatoryFacts = (projection?.world_rules ?? []).flatMap(rule => (rule.resolved_facts ?? [])
+    .filter(fact => fact.already_effective !== true && fact.trigger_state === 'required_now' && fact.execution_policy === 'mandatory_execution')
+    .map(fact => ({ rule_id: fact.rule_id, actor_id: fact.actor_id })));
+  const projectionCoherence = mandatoryFacts.map(fact => ({
+    ...fact,
+    matching_scene_obligation: obligations.filter(obligation => obligation.source_rule_id === fact.rule_id && obligation.actor_id === fact.actor_id).length
+  }));
+  if (!obligations.length) return { status: 'NOT_REQUIRED', obligations: [], projection_coherence: projectionCoherence, projection_coherence_ok: projectionCoherence.every(item => item.matching_scene_obligation === 1) };
   const details = obligations.map(obligation => {
     const npc = extract?.npc_observations?.[obligation.actor_id] ?? {};
     const clothing = npc?.physical?.clothing ?? {};
@@ -324,10 +331,24 @@ function csaPhysicalVerdict(projection, rawStory, extract, nextSave, master) {
     const evidence = obligation.changes.map(change => ({
       slot: change.slot, required: change.required, extracted: clothing[change.slot] ?? null, saved: saved[change.slot] ?? null
     }));
-    return { actor_id: obligation.actor_id, actor_name: name, evidence, raw_name_present: rawStory.includes(name) };
+    const matchingFact = (projection?.world_rules ?? []).flatMap(rule => rule.resolved_facts ?? [])
+      .find(fact => fact.rule_id === obligation.source_rule_id && fact.actor_id === obligation.actor_id);
+    return {
+      actor_id: obligation.actor_id,
+      actor_name: name,
+      rule_id: obligation.source_rule_id,
+      trigger_state: matchingFact?.trigger_state ?? obligation.trigger_state ?? null,
+      execution_policy: matchingFact?.execution_policy ?? obligation.execution_policy ?? null,
+      already_effective: matchingFact?.already_effective ?? false,
+      current_state: matchingFact?.current_state ?? null,
+      required_state: matchingFact?.required_state ?? null,
+      matching_scene_obligation: true,
+      evidence,
+      raw_name_present: rawStory.includes(name)
+    };
   });
   const pass = details.every(detail => detail.raw_name_present && detail.evidence.every(item => item.extracted === item.required && item.saved === item.required));
-  return { status: pass ? 'PASS' : 'FAIL', obligations: details };
+  return { status: pass ? 'PASS' : 'FAIL', obligations: details, projection_coherence: projectionCoherence, projection_coherence_ok: projectionCoherence.every(item => item.matching_scene_obligation === 1) };
 }
 
 async function run() {
