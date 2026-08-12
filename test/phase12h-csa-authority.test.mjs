@@ -132,6 +132,41 @@ test('every mandatory unresolved fact has exactly one matching scene obligation'
   }
 });
 
+test('multiple continuous clothing rules remain fail-closed when one is compliant and another is unknown', () => {
+  const top = catalog.items.find(entry => entry.id === 'no_bra_under_work_clothes');
+  const bottom = catalog.items.find(entry => entry.id === 'no_panties_under_work_clothes');
+  const rules = {
+    csa_top: { id: 'csa_top', active: true, content: top.content_template, preset: { ...top, template_id: top.id, subject_scope: 'female_employee', execution: top.execution } },
+    csa_bottom: { id: 'csa_bottom', active: true, content: bottom.content_template, preset: { ...bottom, template_id: bottom.id, subject_scope: 'female_employee', execution: bottom.execution } }
+  };
+  const projection = buildStoryWorldProjection({
+    save: { csa_active: ['csa_top', 'csa_bottom'], csa_rules: rules, npc_scene_state: { heroine1: { clothing: { underwear_top: 'removed' } } } },
+    master: { characters: [{ character_id: 'heroine1', gender: 'female' }], general_npcs: [] }, sceneActorIds: ['heroine1'], expectedTurn: 2
+  });
+  assert.equal(projection.world_rules[0].resolved_facts[0].already_effective, true);
+  assert.equal(projection.world_rules[1].resolved_facts[0].current_state.underwear_bottom, 'unknown');
+  assert.deepEqual(projection.scene_obligations, []);
+});
+
+test('behavior obligation is not suppressed by stale rule-level executed runtime state', () => {
+  const item = catalog.items.find(entry => entry.id === 'press_body_against_recipient');
+  const rule = { id: 'csa_behavior', active: true, content: item.content_template, preset: { ...item, template_id: item.id, subject_scope: 'female_employee', counterparty_scope: 'male_employee', execution: item.execution } };
+  const projection = buildStoryWorldProjection({
+    save: {
+      csa_active: ['csa_behavior'], csa_rules: { csa_behavior: rule },
+      csa_runtime_state: { csa_behavior: { execution_state: 'executed' } },
+      npc_scene_state: { heroine1: { posture: 'standing' }, male1: { posture: 'standing' } }
+    },
+    master: { characters: [{ character_id: 'heroine1', gender: 'female' }], general_npcs: [{ npc_id: 'male1', sex: 'male' }] }, sceneActorIds: ['heroine1', 'male1'], expectedTurn: 2
+  });
+  const fact = projection.world_rules[0].resolved_facts[0];
+  assert.equal(fact.already_effective, true);
+  assert.equal(fact.trigger_state, 'required_now');
+  assert.equal(fact.execution_policy, 'mandatory_execution');
+  assert.equal(projection.scene_obligations[0].actor_id, 'heroine1');
+  assert.equal(projection.scene_obligations[0].type, 'behavior_execution');
+});
+
 test('applied transaction verification accepts immutable proof without the old planner digest', async () => {
   const secret = 'phase12h-test-secret';
   const gameId = '11111111-1111-4111-8111-111111111111';

@@ -159,9 +159,9 @@ function projectObligations(worldRules) {
   const obligations = [];
   const clothingRuleCounts = new Map();
   for (const worldRule of Array.isArray(worldRules) ? worldRules : []) {
-    if (object(worldRule.execution_contract).kind !== 'clothing_state') continue;
+    if (object(worldRule.execution_contract).kind !== 'clothing_state' || worldRule.mode !== 'continuous') continue;
     for (const fact of Array.isArray(worldRule.resolved_facts) ? worldRule.resolved_facts : []) {
-      if (fact.already_effective !== true && fact.trigger_state === 'required_now' && fact.execution_policy === 'mandatory_execution') {
+      if (fact.trigger_state === 'required_now' && fact.execution_policy === 'mandatory_execution') {
         clothingRuleCounts.set(fact.actor_id, (clothingRuleCounts.get(fact.actor_id) ?? 0) + 1);
       }
     }
@@ -169,8 +169,9 @@ function projectObligations(worldRules) {
   for (const worldRule of Array.isArray(worldRules) ? worldRules : []) {
     const execution = object(worldRule.execution_contract);
     for (const fact of Array.isArray(worldRule.resolved_facts) ? worldRule.resolved_facts : []) {
-      if (fact.already_effective === true || fact.trigger_state === 'not_applicable') continue;
+      if (fact.trigger_state === 'not_applicable') continue;
       if (execution.kind === 'clothing_state') {
+        if (fact.already_effective === true) continue;
         if (fact.trigger_state !== 'required_now' || fact.execution_policy !== 'mandatory_execution') continue;
         if ((clothingRuleCounts.get(fact.actor_id) ?? 0) > 1) continue;
         const requiredState = object(fact.required_state);

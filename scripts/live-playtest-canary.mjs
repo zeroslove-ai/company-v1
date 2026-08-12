@@ -316,7 +316,8 @@ function summarizeExtract(result, saveBefore, master) {
 function csaPhysicalVerdict(projection, rawStory, extract, nextSave, master) {
   const obligations = projection?.scene_obligations ?? [];
   const mandatoryFacts = (projection?.world_rules ?? []).flatMap(rule => (rule.resolved_facts ?? [])
-    .filter(fact => fact.already_effective !== true && fact.trigger_state === 'required_now' && fact.execution_policy === 'mandatory_execution')
+    .filter(fact => fact.trigger_state === 'required_now' && fact.execution_policy === 'mandatory_execution'
+      && (fact.execution_kind !== 'clothing_state' || fact.already_effective !== true))
     .map(fact => ({ rule_id: fact.rule_id, actor_id: fact.actor_id })));
   const projectionCoherence = mandatoryFacts.map(fact => ({
     ...fact,
