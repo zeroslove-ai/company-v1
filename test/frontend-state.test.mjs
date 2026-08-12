@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { choicesForRenderer, createBusyGuard, createFrontendApp, createTurnCoordinator, reduceStoryWireProjection, toolbarCapabilities } from '../src/frontend/pages/app.js';
 import { ApiError } from '../src/frontend/pages/api.js';
 import { choiceLabel, mindMonitorDisplay, parsedTurnNarrative, renderChoices, renderHistory, renderNarrative, renderState, stateDisplayValues } from '../src/frontend/pages/render.js';
-import { clearPending, committedTurn, contextChoices, loadPending, pendingKey, recoveryFor, reservedPlayerSetupId, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
+import { clearPending, committedTurn, contextChoices, loadPending, openingHistoryTurn, pendingKey, recoveryFor, reservedPlayerSetupId, resolveGameId, saveFromContext, savePending, validateContext } from '../src/frontend/pages/state.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -34,6 +34,22 @@ function validContext({ turns = [], choices = ['A', 'B', 'C', 'D'] } = {}) {
     recent_turns: turns
   };
 }
+
+test('openingHistoryTurn consumes the server projection and never parses Fresh raw Story in the browser', () => {
+  const parsed = {
+    raw: '[SCENE]\nLobby.', blocks: [{ type: 'scene', text: 'Lobby.' }],
+    player_inner_thought: '', choices: [], canonical_choices: [], dialogue_lines: [], warnings: []
+  };
+  const opening = openingHistoryTurn({
+    opening_turn: {
+      player_action: '(opening)', story_text: parsed.raw, parsed_blocks: parsed, choices: [],
+      turn_summary: '', turn_number: 0, turn_id: 'opening', action_id: 'opening'
+    },
+    save: { data: { opening_state: { status: 'complete', story_text: '[DIALOGUE speaker_id="unknown"]' } } }
+  });
+  assert.deepEqual(opening.parsed_blocks, parsed);
+  assert.equal(opening.story_text, parsed.raw);
+});
 
 async function withFakeDocument(run) {
   const previousDocument = globalThis.document; const fixture = pageFixture(); globalThis.document = fixture.documentRef;

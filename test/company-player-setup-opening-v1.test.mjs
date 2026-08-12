@@ -67,6 +67,8 @@ const canonicalOpeningSse = [
 ].map(content => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`).join('') + 'data: [DONE]\n';
 
 const semanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\\nThe lobby is busy.\\n[THOUGHT]\\nI feel nervous.\\n[CHOICE label="관찰"]\\nLook around\\n[CHOICE label="인사"]\\nSay hello\\n[CHOICE label="대기"]\\nWait here\\n[CHOICE label="이동"]\\nFind a desk' } }] })}\n\ndata: [DONE]\n\n`;
+const canonicalOpeningText = '[SCENE]\nThe lobby is busy.\n[DIALOGUE speaker_id="heroine1"]\n[ACTING] calmly\nWelcome to the office.\n[THOUGHT]\nI should look around first.\n[CHOICE]\nCheck the desk.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait quietly.\n[CHOICE]\nGo outside.';
+const canonicalSemanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: canonicalOpeningText } }] })}\n\ndata: [DONE]\n\n`;
 
 function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), gameTitle = '상식개변: 회사편', storySseText = semanticOpeningSse, storyThrows = false } = {}) {
   const calls = [];
@@ -439,6 +441,55 @@ test('/api/opening streams background plus four choices, commits turn 0, and nev
   assert.equal(save.turn_state.committed_turn, 0);
   assert.equal(save.player_setup.completed, true);
   assert.equal(save.opening_state.status, 'complete');
+});
+
+test('/api/opening first-run and replay expose the same canonical parsed projection as context refresh', async () => {
+  const mock = createSetupMockFetch({ storySseText: canonicalSemanticOpeningSse });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
+  const { setup_id: setupId } = (await setupResponse.json()).data;
+  const first = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
+  const firstText = await readSseText(first);
+  const firstComplete = JSON.parse(firstText.split('\n\n').find(frame => frame.includes('event: complete')).split('data:')[1].trim());
+  assert.equal(firstComplete.replayed, false);
+  assert.equal(firstComplete.parsed_blocks.blocks.filter(block => block.type === 'scene').length, 1);
+  assert.equal(firstComplete.parsed_blocks.dialogue_lines[0].speaker_id, 'heroine1');
+  assert.equal(firstComplete.parsed_blocks.dialogue_lines[0].acting_direction, 'calmly');
+  assert.equal(firstComplete.parsed_blocks.player_inner_thought, 'I should look around first.');
+  assert.equal(firstComplete.parsed_blocks.choices.length, 4);
+  assert.equal(firstComplete.parsed_blocks.canonical_choices.length, 4);
+  assert.equal(firstComplete.parsed_blocks.warnings.includes('legacy_narrative_adapter_used'), false);
+  assert.equal(firstComplete.parsed_blocks.raw, mock.getSave().opening_state.story_text);
+  assert.equal(mock.storyCallCount(), 1);
+
+  const contextResponse = await worker.fetch(request('/api/context', { game_id: gameId, recent_turns: 1 }), env);
+  const context = (await contextResponse.json()).data.context;
+  assert.equal(context.opening_turn.story_text, mock.getSave().opening_state.story_text);
+  assert.deepEqual(context.opening_turn.parsed_blocks, firstComplete.parsed_blocks);
+  assert.deepEqual(context.opening_turn.choices, firstComplete.parsed_blocks.choices);
+
+  const replay = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
+  const replayText = await readSseText(replay);
+  const replayComplete = JSON.parse(replayText.split('\n\n').find(frame => frame.includes('event: complete')).split('data:')[1].trim());
+  assert.equal(replayComplete.replayed, true);
+  assert.deepEqual(replayComplete.parsed_blocks, firstComplete.parsed_blocks);
+  assert.equal(mock.storyCallCount(), 1);
+});
+
+test('/api/context keeps historical opening parsing on the server persisted boundary', async () => {
+  const legacy = freshSave();
+  legacy.player_setup = { version: 1, completed: true, status: 'complete', setup_id: 'legacy-opening' };
+  legacy.opening_state = {
+    status: 'complete', setup_id: 'legacy-opening',
+    story_text: '[1. 서사 및 행동]\n옛 장면\n[2. 플레이어 속마음]\n긴장된다.\n[3. 선택지]\n1. 묻는다\n2. 기다린다\n3. 확인한다\n4. 나간다',
+    choices: ['묻는다', '기다린다', '확인한다', '나간다']
+  };
+  const mock = createSetupMockFetch({ initialSave: legacy });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const response = await worker.fetch(request('/api/context', { game_id: gameId, recent_turns: 1 }), env);
+  const openingTurn = (await response.json()).data.context.opening_turn;
+  assert.ok(openingTurn.parsed_blocks.warnings.includes('legacy_narrative_adapter_used'));
+  assert.equal(openingTurn.story_text, legacy.opening_state.story_text);
 });
 
 test('/api/opening replays a completed setup without calling the LLM again, and rejects a mismatched setup_id', async () => {

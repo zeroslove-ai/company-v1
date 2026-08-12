@@ -187,6 +187,30 @@ function hydratedSaveContext(context, master) {
   return { ...context, save: wrapped ? { ...context.save, data: hydrated } : hydrated };
 }
 
+function openingTurnProjection(save, master) {
+  const opening = plainObject(save?.opening_state) ? save.opening_state : null;
+  if (opening?.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
+  const parsedBlocks = parsePersistedNarrative(opening.story_text, { master });
+  const choices = Array.isArray(parsedBlocks?.choices)
+    ? parsedBlocks.choices
+    : (Array.isArray(opening.choices) ? opening.choices : []);
+  return {
+    player_action: '(opening)',
+    story_text: opening.story_text,
+    parsed_blocks: parsedBlocks,
+    turn_summary: '',
+    choices,
+    turn_number: 0,
+    turn_id: 'opening',
+    action_id: 'opening'
+  };
+}
+
+function withOpeningTurnProjection(context, master) {
+  const save = context?.save?.data ?? context?.save;
+  return { ...context, opening_turn: openingTurnProjection(save, master) };
+}
+
 function storySse({ meta, run }) {
   const encoder = new TextEncoder();
   return sseResponse(new ReadableStream({
@@ -305,7 +329,8 @@ const master = masterFromEdition(edition);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: recentTurns });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
-        return ok({ context: hydratedSaveContext(context, master) });
+        const hydrated = hydratedSaveContext(context, master);
+        return ok({ context: withOpeningTurnProjection(hydrated, master) });
       } finally {
         logTurnTiming({ event_stage: 'context', request_id: requestId, game_id: gameId, context_rpc_ms: timing.context_rpc_ms, turn_total_ms: Date.now() - startedAt });
       }
@@ -887,8 +912,17 @@ const master = masterFromEdition(edition);
 
       if (preSave?.player_setup?.completed === true && preSave?.opening_state?.status === 'complete') {
         return storySse({ meta: { setup_id: setupId, replayed: true }, run: async emit => {
-          emitVisibleStory(emit, preSave.opening_state.story_text, { master });
-          emit('complete', { setup_id: setupId, choices: preSave.opening_state.choices, replayed: true });
+          const projection = openingTurnProjection(preSave, master);
+          const parsedOpening = projection?.parsed_blocks ?? parsePersistedNarrative(preSave.opening_state.story_text, { master });
+          if (parsedOpening.warnings?.includes('legacy_narrative_adapter_used')) emit('delta', { text: preSave.opening_state.story_text });
+          else emitVisibleStory(emit, preSave.opening_state.story_text, { master });
+          emit('complete', {
+            setup_id: setupId,
+            choices: projection?.choices ?? [],
+            parsed_blocks: parsedOpening,
+            warnings: parsedOpening.warnings ?? [],
+            replayed: true
+          });
         } });
       }
 
@@ -927,7 +961,9 @@ const master = masterFromEdition(edition);
           });
           emit('complete', {
             setup_id: setupId, choices: finalChoices, background,
-            warnings: [...splitWarnings, ...parsedOpening.warnings], replayed: false, commit
+            warnings: [...splitWarnings, ...parsedOpening.warnings],
+            parsed_blocks: parsedOpening,
+            replayed: false, commit
           });
         } finally {
           logTurnTiming({
