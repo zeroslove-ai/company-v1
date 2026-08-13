@@ -145,14 +145,22 @@ function createMockFetch({
       const errorMatches = args.p_expected_error_mode === 'ANY'
         || (args.p_expected_error_mode === 'NULL' && action?.error_code == null)
         || (args.p_expected_error_mode === 'EXACT' && action?.error_code === args.p_expected_error_code);
-      if (!action || action.processing_status !== args.p_expected_status || !errorMatches) return json(null);
-      Object.assign(action, { processing_status: args.p_next_status, error_code: args.p_next_error_code });
+      const staleEnough = !args.p_require_stale
+        || Date.parse(action?.updated_at ?? '') <= Date.now() - (3 * 60 * 1000);
+      if (!action || action.processing_status !== args.p_expected_status || !errorMatches || !staleEnough) return json(null);
+      Object.assign(action, { processing_status: args.p_next_status, error_code: args.p_next_error_code, updated_at: new Date().toISOString() });
       return json(action);
     }
     if (rpc === 'record_story_result') {
       const action = actions.get(args.p_action_id);
       Object.assign(action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting' });
       return json({ replayed: false });
+    }
+    if (rpc === 'record_story_result_owned') {
+      const action = actions.get(args.p_action_id);
+      if (!action || action.processing_status !== 'story_streaming' || action.error_code !== args.p_owner_token) return json(null);
+      Object.assign(action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting', error_code: null, updated_at: new Date().toISOString() });
+      return json({ replayed: false, processing_status: 'extracting' });
     }
     if (rpc === 'record_extract_result') {
       if (failRecordExtract && !recordExtractFailedOnce) {

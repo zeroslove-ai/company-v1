@@ -498,6 +498,7 @@ const master = masterFromEdition(edition);
 
     async story(request, env) {
       const requestId = newRequestId();
+      const storyOwnerToken = `story_in_progress:${requestId}`;
       const startedAt = Date.now();
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
@@ -541,12 +542,17 @@ const master = masterFromEdition(edition);
       // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,
       // 이 claim 없이는 (replayed && !retryingStory) 조건이 항상 409로 거부된다.
       if (!action.story_text && action.processing_status === 'story_failed') {
-        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_failed', 'ANY', null, 'story_streaming', null);
+        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_failed', 'ANY', null, 'story_streaming', storyOwnerToken);
+        if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
+        Object.assign(action, claimed);
+        retryingStory = true;
+      } else if (!action.story_text && action.processing_status === 'story_streaming' && !reservation.replayed) {
+        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_streaming', 'NULL', null, 'story_streaming', storyOwnerToken);
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
         retryingStory = true;
       } else if (!action.story_text && action.processing_status === 'story_streaming' && reservation.replayed) {
-        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_streaming', 'ANY', null, 'story_streaming', null, true);
+        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_streaming', 'ANY', null, 'story_streaming', storyOwnerToken, true);
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
         retryingStory = true;
@@ -722,7 +728,8 @@ const master = masterFromEdition(edition);
           }
           timing.upstream_story_chars = upstreamRaw.length;
           timing.canonical_story_chars = canonicalStory.length;
-          await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: resolvedActionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
+          const ownedResult = await db.recordStoryResultOwned(gameId, resolvedActionId, raw, contractPersisted, storyOwnerToken);
+          if (!ownedResult) throw new HttpError(409, 'story_owner_lost', 'Story ownership was lost before persistence', true);
           storyPersisted = true;
           emit('complete', {
             action_id: meta.action_id, turn_id: meta.turn_id, warnings: mergedWarnings, replayed: false,
@@ -730,7 +737,7 @@ const master = masterFromEdition(edition);
           });
         } catch (error) {
           if (!storyPersisted) {
-            await db.failGameActionStage(gameId, actionId, 'story_streaming', 'ANY', null, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
+            await db.failGameActionStage(gameId, resolvedActionId, 'story_streaming', 'EXACT', storyOwnerToken, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
           }
           throw error;
         } finally {

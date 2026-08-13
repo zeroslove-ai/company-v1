@@ -107,6 +107,12 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
       Object.assign(action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting' });
       return json({ replayed: false });
     }
+    if (rpc === 'record_story_result_owned') {
+      const action = actions.get(args.p_action_id);
+      if (!action || action.processing_status !== 'story_streaming' || action.error_code !== args.p_owner_token) return json(null);
+      Object.assign(action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting', error_code: null, updated_at: new Date().toISOString() });
+      return json({ replayed: false, processing_status: 'extracting' });
+    }
     if (rpc === 'record_extract_result') {
       const action = actions.get(args.p_action_id);
       Object.assign(action, { extract_delta: args.p_extract_delta, processing_status: 'committing', error_code: null, updated_at: new Date().toISOString() });
@@ -213,18 +219,42 @@ test('Phase 2 retries one failed Story explicitly and then replays the persisted
   assert.equal((await failedStatus.json()).data.recoverable_step, 'complete');
   assert.match(await (await worker.fetch(request('/api/story', body), env)).text(), /event: complete/);
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
+  const retryClaims = mock.calls
+    .filter(call => call.url.includes('/rpc/claim_game_action_stage'))
+    .map(call => JSON.parse(call.body));
+  assert.equal(retryClaims.length, 2);
+  assert.match(retryClaims[0].p_next_error_code, /^story_in_progress:/);
+  assert.match(retryClaims[1].p_next_error_code, /^story_in_progress:/);
+  assert.notEqual(retryClaims[0].p_next_error_code, retryClaims[1].p_next_error_code);
   assert.equal(mock.actions.get(actionId).processing_status, 'extracting');
   await (await worker.fetch(request('/api/story', body), env)).text();
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
 });
 
-test('fresh Story reservation owns story_streaming without a redundant self-claim', async () => {
+test('fresh Story reservation acquires a unique fenced owner token', async () => {
   const mock = createMockFetch();
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const response = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'fresh reservation' }), env);
   assert.equal(response.status, 200);
   await response.text();
-  assert.equal(mock.calls.filter(call => call.url.includes('/rpc/claim_game_action_stage')).length, 0);
+  const claim = mock.calls.find(call => call.url.includes('/rpc/claim_game_action_stage'));
+  assert.ok(claim);
+  const claimBody = JSON.parse(claim.body);
+  assert.equal(claimBody.p_expected_error_mode, 'NULL');
+  assert.match(claimBody.p_next_error_code, /^story_in_progress:/);
+  assert.equal(mock.actions.get(actionId).error_code, null);
+});
+
+test('concurrent fresh Story claimers produce at most one provider execution', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'concurrent fresh request' };
+  const responses = await Promise.all([
+    worker.fetch(request('/api/story', body), env),
+    worker.fetch(request('/api/story', body), env)
+  ]);
+  await Promise.all(responses.map(response => response.text()));
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
 });
 
 test('Extract malformed JSON fails open to a degraded observation', async () => {
@@ -294,6 +324,43 @@ test('non-stale story_streaming replay cannot be reclaimed', async () => {
   assert.equal(story.status, 409);
   assert.match(await story.text(), /action_in_progress/);
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 0);
+});
+
+test('Story owner fencing rejects late A after stale takeover by B', async () => {
+  const mock = createMockFetch();
+  const rpc = name => `https://supabase.test/rest/v1/rpc/${name}`;
+  const body = value => ({ method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) });
+  mock.actions.set(actionId, {
+    action_id: actionId,
+    processing_status: 'story_streaming',
+    error_code: null,
+    updated_at: new Date(Date.now() - (4 * 60 * 1000)).toISOString()
+  });
+  const claimA = await mock.fetchImpl(rpc('claim_game_action_stage'), body({
+    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_error_mode: 'NULL',
+    p_expected_error_code: null, p_next_status: 'story_streaming', p_next_error_code: 'story_in_progress:A', p_require_stale: false
+  }));
+  assert.equal((await claimA.json()).error_code, 'story_in_progress:A');
+  mock.actions.get(actionId).updated_at = new Date(Date.now() - (4 * 60 * 1000)).toISOString();
+  const claimB = await mock.fetchImpl(rpc('claim_game_action_stage'), body({
+    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_error_mode: 'ANY',
+    p_expected_error_code: null, p_next_status: 'story_streaming', p_next_error_code: 'story_in_progress:B', p_require_stale: true
+  }));
+  assert.equal((await claimB.json()).error_code, 'story_in_progress:B');
+  const latePersist = await mock.fetchImpl(rpc('record_story_result_owned'), body({
+    p_action_id: actionId, p_story_text: 'late A', p_parsed_blocks: {}, p_owner_token: 'story_in_progress:A'
+  }));
+  assert.equal(await latePersist.json(), null);
+  const lateFail = await mock.fetchImpl(rpc('fail_game_action_stage'), body({
+    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_error_mode: 'EXACT',
+    p_expected_error_code: 'story_in_progress:A', p_next_status: 'story_failed', p_next_error_code: 'late_A'
+  }));
+  assert.equal(await lateFail.json(), null);
+  const persistB = await mock.fetchImpl(rpc('record_story_result_owned'), body({
+    p_action_id: actionId, p_story_text: 'B', p_parsed_blocks: {}, p_owner_token: 'story_in_progress:B'
+  }));
+  assert.equal((await persistB.json()).processing_status, 'extracting');
+  assert.equal(mock.actions.get(actionId).error_code, null);
 });
 
 test('authority-violating Extract envelopes fail open without becoming runtime authority', async () => {

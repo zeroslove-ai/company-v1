@@ -92,6 +92,15 @@ export function createSupabaseClient(env, fetchImpl) {
         p_next_error_code: nextErrorCode
       });
     },
+    recordStoryResultOwned(gameId, actionId, storyText, parsedBlocks, ownerToken) {
+      return this.callRpc('record_story_result_owned', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_story_text: storyText,
+        p_parsed_blocks: parsedBlocks,
+        p_owner_token: ownerToken
+      });
+    },
     /** Read-only, paginated, active-only (record_status=active dedupes revisions to the current one) turn history — no RPC needed, table already carries everything /api/history needs. */
     async listTurns(gameId, { beforeTurn = null, limit = 20 } = {}) {
       const query = new URLSearchParams({

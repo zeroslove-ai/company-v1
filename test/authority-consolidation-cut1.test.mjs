@@ -23,7 +23,7 @@ test('Cut 1 Stage A defines atomic status/error CAS and the actual lifecycle gra
   assert.match(stageA, /p_next_error_code text/);
   assert.match(stageA, /p_require_stale boolean/);
   assert.match(stageA, /interval '3 minutes'/);
-  assert.match(stageA, /story_streaming recovery requires stale claim/);
+  assert.match(stageA, /fresh story claim requires NULL expected error condition/);
   assert.match(stageA, /v_mode = 'ANY'/);
   assert.match(stageA, /v_mode = 'NULL' and error_code is null/);
   assert.match(stageA, /v_mode = 'EXACT' and error_code = p_expected_error_code/);
@@ -32,9 +32,14 @@ test('Cut 1 Stage A defines atomic status/error CAS and the actual lifecycle gra
   assert.match(routeSource, /extracting.*extract_in_progress/s);
   assert.match(stageA, /story_streaming.*story_failed/s);
   assert.match(stageA, /processing_status = 'committing'[\s\S]*error_code = null[\s\S]*updated_at = now\(\)/);
+  assert.match(stageA, /record_story_result_owned/);
+  assert.match(stageA, /processing_status <> 'story_streaming' or v_action\.error_code <> p_owner_token/);
   assert.match(routeSource, /processing_status === 'story_failed'/);
+  assert.match(routeSource, /storyOwnerToken/);
   assert.match(routeSource, /processing_status === 'story_streaming' && reservation\.replayed/);
-  assert.match(routeSource, /'story_streaming', null, true/);
+  assert.match(routeSource, /'story_streaming', storyOwnerToken/);
+  assert.match(routeSource, /recordStoryResultOwned/);
+  assert.match(routeSource, /'EXACT', storyOwnerToken, 'story_failed'/);
 });
 
 test('Cut 1 Stage B enforces read-only direct table access and removes the obsolete preapply writer', () => {
@@ -71,6 +76,17 @@ test('Supabase client sends explicit expected error mode and next error code to 
   });
   assert.equal(calls[1].body.p_expected_error_mode, 'ANY');
   assert.equal(calls[1].body.p_next_error_code, 'provider_error');
+});
+
+test('owned Story RPC exposes token-fenced persistence', async () => {
+  const calls = [];
+  const client = createSupabaseClient({ SUPABASE_URL: 'https://supabase.test', SUPABASE_SERVICE_ROLE_KEY: 'secret' }, async (url, init) => {
+    calls.push({ url, body: JSON.parse(init.body) });
+    return new Response(JSON.stringify({ processing_status: 'extracting', error_code: null }), { status: 200 });
+  });
+  await client.recordStoryResultOwned('g', 'a', 'Story', { blocks: [] }, 'story_in_progress:req');
+  assert.equal(calls[0].url, 'https://supabase.test/rest/v1/rpc/record_story_result_owned');
+  assert.equal(calls[0].body.p_owner_token, 'story_in_progress:req');
 });
 
 test('current source/scripts/workflows have no caller for the obsolete CSA preapply RPC', () => {

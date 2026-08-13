@@ -172,14 +172,22 @@ function makeRuntimeHarness() {
       const errorMatches = args.p_expected_error_mode === 'ANY'
         || (args.p_expected_error_mode === 'NULL' && a?.error_code == null)
         || (args.p_expected_error_mode === 'EXACT' && a?.error_code === args.p_expected_error_code);
-      if (!a || a.processing_status !== args.p_expected_status || !errorMatches) return new Response('null', { status: 200 });
-      Object.assign(a, { processing_status: args.p_next_status, error_code: args.p_next_error_code });
+      const staleEnough = !args.p_require_stale
+        || Date.parse(a?.updated_at ?? '') <= Date.now() - (3 * 60 * 1000);
+      if (!a || a.processing_status !== args.p_expected_status || !errorMatches || !staleEnough) return new Response('null', { status: 200 });
+      Object.assign(a, { processing_status: args.p_next_status, error_code: args.p_next_error_code, updated_at: new Date().toISOString() });
       return new Response(JSON.stringify(a), { status: 200 });
     }
     if (rpc === 'record_story_result') {
       const a = actions.get(args.p_action_id);
       if (a) Object.assign(a, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting' });
       return new Response(JSON.stringify({ replayed: false }), { status: 200 });
+    }
+    if (rpc === 'record_story_result_owned') {
+      const a = actions.get(args.p_action_id);
+      if (!a || a.processing_status !== 'story_streaming' || a.error_code !== args.p_owner_token) return new Response('null', { status: 200 });
+      Object.assign(a, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting', error_code: null, updated_at: new Date().toISOString() });
+      return new Response(JSON.stringify({ replayed: false, processing_status: 'extracting' }), { status: 200 });
     }
     if (rpc === 'record_extract_result') {
       const a = actions.get(args.p_action_id);

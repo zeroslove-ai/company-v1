@@ -156,9 +156,14 @@ target scene authority. This is a confirmed mismatch outside Cut 1.
 - `record_extract_result` remains the sole writer of the `committing`
   transition, clears `error_code`, and refreshes `updated_at`; the redundant
   follow-up status write was removed.
-- Fresh reservations do not self-claim `story_streaming`. Failed Story retries
-  use a status-changing CAS; replayed `story_streaming` recovery requires
+- Fresh reservations acquire a unique token through a non-no-op CAS. Failed
+  Story retries use a status-changing CAS; replayed `story_streaming` recovery requires
   `updated_at <= now() - interval '3 minutes'` and refreshes ownership time.
+- Cut 1.2 adds token-fenced Story ownership: fresh/retry/takeover claims write
+  `story_in_progress:<request_id>` into `game_actions.error_code`, and only
+  `record_story_result_owned` with an exact token match may persist Story and
+  clear the token. The legacy unowned Story RPC remains for staged compatibility
+  until Stage B review.
 - Stage A migration:
   `20260814000100_company_v1_action_lifecycle_rpc_stage_a.sql` — not applied.
 - Stage B migration:
