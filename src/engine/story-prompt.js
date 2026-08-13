@@ -167,7 +167,7 @@ export const DURABLE_STORY_RULES = [
   '[THOUGHT OWNERSHIP]',
   '[THOUGHT] belongs exclusively to the player and is reaction-only presentation: use immediate emotion, surprise, doubt, or impression from the current scene, never a new plan, promise, apology, concession, withdrawal, moral conclusion, or next-action decision. Never place an NPC thought, sensation, memory, embarrassment, or private reaction in [THOUGHT]; NPC inner states belong in Mind Monitor, not Story THOUGHT.',
   '[PHYSICAL CONTINUITY]',
-  'Saved actual physical and clothing state is current fact. A scene_obligation describes a required transition; show its concrete, observable, non-magical action or result. A rule sentence alone is not a physical transition, and unknown actual state is never guessed.',
+  'Saved actual physical and clothing state is current fact. A scene_obligation describes a required transition; show its concrete, observable, non-magical action or result. A rule sentence alone is not a physical transition, and unknown actual state is never guessed. Explicit player physical facts needed for continuity must remain identifiable in Story; do not euphemize away erection, direct contact, or the identity of an acted body part. Preserve kind and strength without erotic escalation.',
   '[STORY QUALITY]',
   'Write natural Korean workplace fiction with appropriate title-plus-name address. The canonical player position_id, position, and address_title in the payload are authoritative; do not downgrade the player to a different team title. Preserve relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation replace a required current-turn enactment or overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
  '[OUTPUT PROTOCOL]',
@@ -188,7 +188,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
   const storyPlayerAction = typeof playerAction === 'string' && playerAction.trim() ? playerAction : '';
   const projection = buildStoryCharacterProjection({ edition, playerAction: storyPlayerAction, sceneCastContract: canonicalCast, workplace });
   const registeredIdSet = new Set(projection.registered_identities.map(({ id }) => id));
- const storyWorld = precomputedStoryWorld ?? buildStoryWorldProjection({ save, master: { characters: Object.values(object(edition?.characters?.characters) ?? {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) ?? {}) }, sceneActorIds: projection.scene_actor_ids, expectedTurn });
+ const storyWorld = precomputedStoryWorld ?? buildStoryWorldProjection({ save, master: { characters: Object.values(object(edition?.characters?.characters) ?? {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) ?? {}) }, sceneActorIds: projection.scene_actor_ids, expectedTurn, playerAction: storyPlayerAction });
   const registeredLocations = (Array.isArray(edition?.map?.locations) ? edition.map.locations : [])
     .map(location => ({
       id: identity(location?.location_id),

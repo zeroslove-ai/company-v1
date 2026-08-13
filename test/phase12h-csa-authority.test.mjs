@@ -40,7 +40,7 @@ test('relational projection exposes action contract and all eligible targets wit
   const item = catalog.items.find(entry => entry.id === 'press_body_against_recipient');
   const rule = { id: 'csa_2', active: true, content: item.content_template, strength: 'weak', created_turn: 2, preset: { ...item, template_id: item.id, subject_scope: 'female_employee', counterparty_scope: 'male_employee', execution: item.execution } };
   const projection = buildStoryWorldProjection({
-    save: { csa_active: ['csa_2'], csa_rules: { csa_2: rule }, npc_scene_state: {} },
+    save: { csa_active: ['csa_2'], csa_rules: { csa_2: rule }, npc_scene_state: {}, scene: { focal_character_id: 'male1' } },
     master: { characters: [{ character_id: 'heroine1', gender: 'female' }], general_npcs: [{ npc_id: 'male1', sex: 'male' }] },
     sceneActorIds: ['heroine1', 'male1'], expectedTurn: 2
   });
@@ -52,7 +52,7 @@ test('relational projection exposes action contract and all eligible targets wit
 test('conditional execution stays conditional until canonical seated state is present', () => {
   const item = catalog.items.find(entry => entry.id === 'sit_on_recipient_lap');
   const rule = { id: 'csa_seated', active: true, content: item.content_template, strength: 'weak', created_turn: 2, preset: { ...item, template_id: item.id, subject_scope: 'female_employee', counterparty_scope: 'male_employee', execution: item.execution } };
-  const base = { csa_active: ['csa_seated'], csa_rules: { csa_seated: rule }, npc_scene_state: { heroine1: { posture: 'standing' }, male1: { posture: 'standing' } } };
+  const base = { csa_active: ['csa_seated'], csa_rules: { csa_seated: rule }, scene: { focal_character_id: 'male1' }, npc_scene_state: { heroine1: { posture: 'standing' }, male1: { posture: 'standing' } } };
   const conditional = buildStoryWorldProjection({ save: base, master: { characters: [{ character_id: 'heroine1', gender: 'female' }], general_npcs: [{ npc_id: 'male1', sex: 'male' }] }, sceneActorIds: ['heroine1', 'male1'], expectedTurn: 2 });
   assert.equal(conditional.scene_obligations[0].trigger_state, 'conditional');
   const ready = buildStoryWorldProjection({ save: { ...base, npc_scene_state: { heroine1: { posture: 'sitting' }, male1: { posture: 'seated' } } }, master: { characters: [{ character_id: 'heroine1', gender: 'female' }], general_npcs: [{ npc_id: 'male1', sex: 'male' }] }, sceneActorIds: ['heroine1', 'male1'], expectedTurn: 2 });
@@ -155,6 +155,7 @@ test('behavior obligation is not suppressed by stale rule-level executed runtime
     save: {
       csa_active: ['csa_behavior'], csa_rules: { csa_behavior: rule },
       csa_runtime_state: { csa_behavior: { execution_state: 'executed' } },
+      scene: { focal_character_id: 'male1' },
       npc_scene_state: { heroine1: { posture: 'standing' }, male1: { posture: 'standing' } }
     },
     master: { characters: [{ character_id: 'heroine1', gender: 'female' }], general_npcs: [{ npc_id: 'male1', sex: 'male' }] }, sceneActorIds: ['heroine1', 'male1'], expectedTurn: 2

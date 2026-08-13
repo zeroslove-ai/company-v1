@@ -3,7 +3,7 @@ import { buildCsaRuntimeStatePatch, buildCsaAftereffectPatch } from '../csa/redu
 import { applyAuthorizedRuleDefinitions, assertRuleDefinitionAuthority } from './action-authority.js';
 import { calculateCsaProgression, calculateProgress } from '../progression.js';
 import { compareRequiredClothing } from '../state/clothing.js';
-import { executionMetadataForRule } from '../csa/execution-policy.js';
+import { executionMetadataForRule, RELATION_KINDS } from '../csa/execution-policy.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 
@@ -32,6 +32,47 @@ function applyEngineClothingEnactments(nextSave, engineEnactments) {
     if (!Object.keys(required).length) continue;
     nextSave.npc_scene_state = { ...(nextSave.npc_scene_state ?? {}), [actorId]: { ...current, clothing: { ...clothing, ...required } } };
   }
+}
+
+function applyEngineRelationEnactments(nextSave, engineEnactments, expectedTurn, warnings) {
+  const relations = Array.isArray(nextSave.active_relations) ? nextSave.active_relations.map(item => ({ ...item })) : [];
+  const turn = Number.isInteger(expectedTurn) ? expectedTurn : 0;
+  for (const enactment of Array.isArray(engineEnactments) ? engineEnactments : []) {
+    if (enactment?.authority !== 'engine' || enactment.execution_kind !== 'behavior_execution' || !RELATION_KINDS.has(enactment.action)) continue;
+    const targets = [...new Set(Array.isArray(enactment.target_ids) ? enactment.target_ids.filter(id => typeof id === 'string' && id.trim()) : [])];
+    if (targets.length !== 1) {
+      warnings.push(`engine_relation_target_unresolved:${enactment.source_rule_id ?? 'unknown'}:${enactment.actor_id ?? 'unknown'}`);
+      continue;
+    }
+    const actorId = enactment.actor_id;
+    const targetId = targets[0];
+    if (!actorId || actorId === targetId) {
+      warnings.push(`engine_relation_target_invalid:${enactment.source_rule_id ?? 'unknown'}`);
+      continue;
+    }
+    const existing = relations.find(item => item.state === 'active' && item.actor_id === actorId && item.target_id === targetId && item.relation_kind === enactment.action);
+    for (let i = 0; i < relations.length; i += 1) {
+      if (relations[i].state === 'active' && relations[i].actor_id === actorId
+        && (relations[i].target_id !== targetId || relations[i].relation_kind !== enactment.action)) {
+        relations[i] = { ...relations[i], state: 'ended', updated_turn: turn, end_reason: 'superseded_by_engine_relation' };
+      }
+    }
+    const relation = {
+      actor_id: actorId,
+      target_id: targetId,
+      relation_kind: enactment.action,
+      source_rule_id: enactment.source_rule_id ?? null,
+      source: 'engine',
+      state: 'active',
+      started_turn: existing?.started_turn ?? turn,
+      updated_turn: turn,
+      ...(typeof enactment.canonical_text === 'string' && enactment.canonical_text.trim() ? { quote: enactment.canonical_text.trim() } : {})
+    };
+    const index = relations.findIndex(item => item.state === 'active' && item.actor_id === actorId && item.target_id === targetId && item.relation_kind === enactment.action);
+    if (index >= 0) relations[index] = relation;
+    else relations.push(relation);
+  }
+  nextSave.active_relations = relations.slice(-80);
 }
 
 function mergeEngineRuntimeUpdates(engineEnactments, observedUpdates) {
@@ -86,6 +127,7 @@ export function reduceCsaCommitState({
   // mandatory enactment authoritative. It is applied before Extract updates
   // so clothing validation sees the deterministic required result.
   applyEngineClothingEnactments(nextSave, engineEnactments);
+  applyEngineRelationEnactments(nextSave, engineEnactments, expectedTurn, warnings);
 
   // Fresh app transactions are applied before Story by the transactional
   // authority boundary. Commit may only verify parity; it is not a second

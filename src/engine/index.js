@@ -49,6 +49,8 @@ export {
   CSA_EXECUTION_STATE
 } from './gameplay-state.js';
 export {
+  COMPANY_PLAYER_CANONICAL_PROFILE,
+  canonicalCompanyPlayerProfile,
   validatePlayerSetupInput,
   canonicalCatalogName,
   resolvePlayerCanonicalNames,
@@ -102,7 +104,7 @@ export {
   phaseFor, phaseForRule, profileSex, subjectScopeForRule
 } from './csa/authority-policy.js';
 export {
-  EXECUTION_KINDS, EXECUTION_ACTIONS, EXECUTION_TRIGGER_KINDS,
+  EXECUTION_KINDS, EXECUTION_ACTIONS, EXECUTION_TRIGGER_KINDS, RELATION_KINDS,
   deriveExecutionMetadata, normalizeExecutionMetadata, validateExecutionMetadata,
   executionMetadataForRule
 } from './csa/execution-policy.js';

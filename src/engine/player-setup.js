@@ -4,6 +4,15 @@ const HEIGHT_RANGE = [140, 220];
 const WEIGHT_RANGE = [40, 180];
 const PENIS_LENGTH_RANGE = [5, 30];
 
+// Company edition currently defines the player as a male employee. Keep this
+// product contract in one place; runtime must never infer it from body fields.
+export const COMPANY_PLAYER_CANONICAL_PROFILE = Object.freeze({ sex: 'male', gender: 'male' });
+
+export function canonicalCompanyPlayerProfile(player = {}) {
+  const source = player !== null && typeof player === 'object' && !Array.isArray(player) ? player : {};
+  return { ...source, ...COMPANY_PLAYER_CANONICAL_PROFILE };
+}
+
 function inRange(value, [min, max]) {
   return Number.isInteger(value) && value >= min && value <= max;
 }
@@ -40,7 +49,7 @@ export function validatePlayerSetupInput(input, catalogs = {}) {
   return {
     valid: true,
     errors: [],
-    player: {
+    player: canonicalCompanyPlayerProfile({
       name,
       department_id: input.department_id,
       position_id: input.position_id,
@@ -50,7 +59,7 @@ export function validatePlayerSetupInput(input, catalogs = {}) {
       penis_length_cm: penisLengthCm,
       body_type_id: input.body_type_id,
       speech_style_id: input.speech_style_id
-    }
+    })
   };
 }
 

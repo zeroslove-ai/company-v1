@@ -8,6 +8,8 @@ import {
   subjectScopeForRule
 } from './authority-policy.js';
 import { executionMetadataForRule } from './execution-policy.js';
+import { canonicalCompanyPlayerProfile } from '../player-setup.js';
+import { resolveUserMentionedNpcIds } from '../scene-cast.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -39,9 +41,9 @@ function modeFor(rule, preset) {
 function triggerStateFor(triggerKind, { actorPresent, targetCount, postureReady = false, targetPostureReady = false } = {}) {
   if (!actorPresent) return 'not_applicable';
   if (triggerKind === 'always_during_work') return 'required_now';
-  if (triggerKind === 'scene_interaction') return targetCount > 0 ? 'required_now' : 'conditional';
+  if (triggerKind === 'scene_interaction' || triggerKind === 'close_interaction' || triggerKind === 'close_conversation') return targetCount > 0 ? 'required_now' : 'conditional';
   if (triggerKind === 'target_seated_interaction') return targetCount > 0 && targetPostureReady ? 'required_now' : 'conditional';
-  if (triggerKind === 'both_seated') return postureReady ? 'required_now' : 'conditional';
+  if (triggerKind === 'both_seated_interaction' || triggerKind === 'both_seated') return postureReady ? 'required_now' : 'conditional';
   return 'conditional';
 }
 
@@ -56,14 +58,9 @@ function sceneStateFor(save, id) {
   return object(save?.npc_scene_state?.[id]);
 }
 
-function isSeatedState(state) {
+export function isSeatedState(state) {
   const posture = text(state?.posture)?.toLowerCase() ?? '';
-  const position = text(state?.position_label)?.toLowerCase() ?? '';
-  if (/[\uC548\uC88C\uCC29]|\uBB34\uB98E\s*[\uC704\uC0AC\uC774]/u.test(posture) || /[\uC548\uC88C\uCC29]|\uBB34\uB98E\s*[\uC704\uC0AC\uC774]/u.test(position)) return true;
-  return /(?:^|[ _-])(sitting|seated)(?:$|[ _-])/.test(posture)
-    || /(?:^|[ _-])(?:sitting|seated)(?:$|[ _-])/.test(position)
-    || posture.includes('앉')
-    || position.includes('앉');
+  return posture === 'sitting' || posture === 'seated';
 }
 
 function postureReadyForTargets(save, actorId, targetIds) {
@@ -72,8 +69,8 @@ function postureReadyForTargets(save, actorId, targetIds) {
 }
 
 function targetPostureReady(save, targetIds) {
-  return Array.isArray(targetIds) && targetIds.length > 0
-    && targetIds.some(id => isSeatedState(sceneStateFor(save, id)));
+  return Array.isArray(targetIds) && targetIds.length === 1
+    && isSeatedState(sceneStateFor(save, targetIds[0]));
 }
 
 function eligibleTargetIds({ actorId, counterpartyScope, sceneProfiles }) {
@@ -82,11 +79,29 @@ function eligibleTargetIds({ actorId, counterpartyScope, sceneProfiles }) {
     .map(({ id }) => id);
 }
 
-function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds }) {
+function activeRelationTargetIds(save, actorId, candidates) {
+  return (Array.isArray(save?.active_relations) ? save.active_relations : [])
+    .filter(item => item?.state === 'active' && item.actor_id === actorId && candidates.includes(item.target_id))
+    .map(item => item.target_id);
+}
+
+function resolvedInteractionTargetIds({ save, actorId, candidates, sceneProfiles = [], playerAction = '', focalCharacterId = null, lastSpeakerId = null }) {
+  if (candidates.length === 0) return [];
+  const mentioned = resolveUserMentionedNpcIds({ characters: sceneProfiles.filter(item => candidates.includes(item.id)).map(item => ({ ...item.profile, character_id: item.id })), general_npcs: [] }, playerAction, { allowUniqueKoreanGivenName: false })
+    .filter(id => candidates.includes(id));
+  if (mentioned.length === 1) return mentioned;
+  const focal = [focalCharacterId, lastSpeakerId].find(id => candidates.includes(id));
+  if (focal) return [focal];
+  const related = activeRelationTargetIds(save, actorId, candidates);
+  if (related.length === 1) return related;
+  return candidates.length === 1 ? candidates : [];
+}
+
+function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds, playerAction = '' }) {
   const runtime = object(save?.csa_runtime_state);
   const preset = object(entry?.preset);
   const requestOnly = modeFor(entry, preset) === 'on_player_request';
-  const targetProfiles = [...sceneProfiles, { id: 'player', profile: { ...object(save?.player), id: 'player', player: true } }];
+  const targetProfiles = [...sceneProfiles, { id: 'player', profile: { ...canonicalCompanyPlayerProfile(save?.player), id: 'player', player: true } }];
   const facts = [];
   for (const actorId of applicableSceneActorIds) {
     const actorState = object(save?.npc_scene_state?.[actorId]);
@@ -98,18 +113,22 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
     const clothingVerdict = execution?.kind === 'clothing_state'
       ? compareRequiredClothing(currentState, requiredState ?? {})
       : null;
-    const targets = execution?.target_required
+    const eligibleTargets = execution?.target_required
       ? eligibleTargetIds({ actorId, counterpartyScope: text(entry.preset?.counterparty_scope) ?? text(entry.counterparty_scope), sceneProfiles: targetProfiles })
       : [];
+    const resolvedTargets = execution?.target_required
+      ? resolvedInteractionTargetIds({ save, actorId, candidates: eligibleTargets, sceneProfiles, playerAction, focalCharacterId: save?.scene?.focal_character_id, lastSpeakerId: save?.scene?.last_speaker_id })
+      : [];
+    const targets = resolvedTargets.length === 1 ? resolvedTargets : eligibleTargets;
     const triggerState = requestOnly
       ? 'conditional'
       : execution?.kind === 'clothing_state'
         ? triggerStateFor(execution.trigger_kind, { actorPresent: true })
         : triggerStateFor(execution?.trigger_kind, {
           actorPresent: true,
-          targetCount: targets.length,
-          postureReady: postureReadyForTargets(save, actorId, targets),
-          targetPostureReady: targetPostureReady(save, targets)
+          targetCount: resolvedTargets.length,
+          postureReady: postureReadyForTargets(save, actorId, resolvedTargets),
+          targetPostureReady: targetPostureReady(save, resolvedTargets)
         });
     facts.push({
       rule_id: entry.id,
@@ -132,7 +151,7 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
   return facts;
 }
 
-function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
+function projectWorldRule(entry, expectedTurn, sceneProfiles, save, playerAction = '') {
   const rule = object(entry);
   const preset = object(rule.preset);
   const authority = authorityFor(rule, preset);
@@ -144,7 +163,7 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
   const applicableSceneActorIds = sceneProfiles
     .filter(({ id, profile }) => matchesCsaSubjectScope({ ...profile, id }, subjectScope))
     .map(({ id }) => id);
-  const resolvedFacts = resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds });
+  const resolvedFacts = resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds, playerAction });
   const executionPolicy = resolvedFacts.some(fact => fact.trigger_state === 'required_now')
     ? 'mandatory_execution'
     : 'conditional';
@@ -220,12 +239,12 @@ function projectObligations(worldRules) {
 }
 
 /** Read-only, per-turn Story projection of canonical institutional rules and obligations. */
-export function buildStoryWorldProjection({ save = {}, master = {}, sceneActorIds = [], expectedTurn = null } = {}) {
+export function buildStoryWorldProjection({ save = {}, master = {}, sceneActorIds = [], expectedTurn = null, playerAction = '' } = {}) {
   const activeEntries = getActiveCsaEntries(save);
   const sceneProfiles = (Array.isArray(sceneActorIds) ? sceneActorIds : [])
     .filter(id => text(id) && id !== 'player')
     .map(id => ({ id, profile: profileFor(master, id) }));
-  const worldRules = activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles, save));
+  const worldRules = activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles, save, playerAction));
   return {
     world_rules: worldRules,
     scene_obligations: projectObligations(worldRules)

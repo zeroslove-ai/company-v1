@@ -1,4 +1,5 @@
 import { GameCoreError } from '../errors.js';
+import { RELATION_KINDS } from '../csa/execution-policy.js';
 import { normalizeImageSelection } from '../gameplay-state.js';
 
 const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked', 'degraded']);
@@ -255,11 +256,13 @@ function normalizeRelationUpdates(value, npcIds, storyText) {
     const targetId = nullableId(item.target_id, npcIds, `relation_updates[${index}].target_id`);
     if (!actorId || !targetId || actorId === targetId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation update requires distinct registered actor and target');
     if (typeof item.relation_kind !== 'string' || !item.relation_kind.trim()) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation_kind is required');
+    const relationKind = item.relation_kind.trim();
+    if (!RELATION_KINDS.has(relationKind)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation_kind is not canonical');
     if (!RELATION_STATES.has(item.state)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation update state is invalid');
     if (typeof item.quote !== 'string' || !item.quote.trim() || !String(storyText ?? '').includes(item.quote.trim())) {
       throw new GameCoreError('RELATION_EVIDENCE_QUOTE_NOT_IN_STORY', 'relation update quote must be an exact Story substring');
     }
-    const normalized = { actor_id: actorId, target_id: targetId, relation_kind: item.relation_kind.trim().slice(0, 80), state: item.state, quote: item.quote.trim() };
+    const normalized = { actor_id: actorId, target_id: targetId, relation_kind: relationKind, state: item.state, quote: item.quote.trim() };
     const key = JSON.stringify([normalized.actor_id, normalized.target_id, normalized.relation_kind, normalized.state, normalized.quote]);
     if (seen.has(key)) return null;
     seen.add(key);

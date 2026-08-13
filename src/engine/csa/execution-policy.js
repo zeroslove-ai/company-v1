@@ -31,10 +31,24 @@ export const EXECUTION_TRIGGER_KINDS = Object.freeze(new Set([
   'always_during_work',
   'scene_interaction',
   'target_seated_interaction',
+  'both_seated_interaction',
   'both_seated',
+  'close_interaction',
   'close_conversation',
   'counterparty_request',
   'contextual_condition'
+]));
+
+export const RELATION_KINDS = Object.freeze(new Set([
+  'sit_on_lap',
+  'stand_between_knees',
+  'press_body_against',
+  'embrace_from_behind',
+  'keep_hand_on_inner_thigh',
+  'wrap_leg_around',
+  'maintain_thigh_contact',
+  'whisper_against_ear',
+  'interlace_fingers'
 ]));
 
 const CLOTHING_STATES = Object.freeze({

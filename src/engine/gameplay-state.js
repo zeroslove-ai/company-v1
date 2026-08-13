@@ -1,6 +1,7 @@
 import { GameCoreError } from './errors.js';
 import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
 import { hydrateCanonicalScene } from './runtime-core/scene-reducer.js';
+import { canonicalCompanyPlayerProfile } from './player-setup.js';
 
 const TURN_CHANGE_ROOTS = new Set([
   'player_sexual_state', 'npc_stats', 'npc_relationship_state', 'npc_emotion',
@@ -370,6 +371,7 @@ const HYDRATION_SOURCES = [
  */
 export function hydrateGameplayState(save, master = {}) {
   const next = migrateCompanySave(save);
+  if (object(next.player)) next.player = canonicalCompanyPlayerProfile(next.player);
   const characters = Array.isArray(master?.characters) ? master.characters : [];
   for (const character of characters) {
     const id = identity(character?.character_id);

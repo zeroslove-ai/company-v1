@@ -170,7 +170,9 @@ async function readSseText(response) {
 test('validatePlayerSetupInput enforces every range and catalog allow-list and never trusts client-only checks', () => {
   const valid = validatePlayerSetupInput(validPlayerBody(), catalogs);
   assert.equal(valid.valid, true);
-  assert.deepEqual(Object.keys(valid.player).sort(), ['age', 'body_type_id', 'department_id', 'height_cm', 'name', 'penis_length_cm', 'position_id', 'speech_style_id', 'weight_kg'].sort());
+  assert.deepEqual(Object.keys(valid.player).sort(), ['age', 'body_type_id', 'department_id', 'gender', 'height_cm', 'name', 'penis_length_cm', 'position_id', 'sex', 'speech_style_id', 'weight_kg'].sort());
+  assert.equal(valid.player.sex, 'male');
+  assert.equal(valid.player.gender, 'male');
 
   const cases = [
     [{ age: 17 }, 'invalid_age'], [{ age: 71 }, 'invalid_age'],

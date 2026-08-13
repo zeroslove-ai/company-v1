@@ -568,7 +568,8 @@ const master = masterFromEdition(edition);
             save: storySave,
             master,
             sceneActorIds: sceneCastContract.present_npc_ids,
-            expectedTurn
+            expectedTurn,
+            playerAction: storyPlayerAction
           });
           let institutionalSegments = [];
           let engineEnactments = [];
@@ -869,7 +870,7 @@ const master = masterFromEdition(edition);
             for (const id of enactment?.counterparty_candidate_ids ?? []) if (id !== 'player') engineSceneIds.add(id);
             for (const id of enactment?.target_ids ?? []) if (id !== 'player') engineSceneIds.add(id);
           }
-          const commitWorld = buildStoryWorldProjection({ save: currentSave, master, sceneActorIds: [...engineSceneIds], expectedTurn });
+          const commitWorld = buildStoryWorldProjection({ save: currentSave, master, sceneActorIds: [...engineSceneIds], expectedTurn, playerAction: action.player_action ?? '' });
           validateEngineMetadata({
             enactments: engineEnactments,
             worldRules: commitWorld.world_rules,

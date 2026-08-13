@@ -161,7 +161,7 @@
       "execution": {
         "kind": "physical_contact",
         "action": "embrace_from_behind",
-        "trigger_kind": "close_conversation",
+        "trigger_kind": "close_interaction",
         "target_required": true
       }
     },
@@ -179,7 +179,7 @@
       "execution": {
         "kind": "physical_contact",
         "action": "keep_hand_on_inner_thigh",
-        "trigger_kind": "scene_interaction",
+        "trigger_kind": "both_seated_interaction",
         "target_required": true
       }
     },
@@ -197,7 +197,7 @@
       "execution": {
         "kind": "physical_contact",
         "action": "wrap_leg_around",
-        "trigger_kind": "scene_interaction",
+        "trigger_kind": "both_seated_interaction",
         "target_required": true
       }
     },
@@ -215,7 +215,7 @@
       "execution": {
         "kind": "physical_contact",
         "action": "maintain_thigh_contact",
-        "trigger_kind": "scene_interaction",
+        "trigger_kind": "both_seated_interaction",
         "target_required": true
       }
     },
@@ -233,7 +233,7 @@
       "execution": {
         "kind": "speech_contact",
         "action": "whisper_against_ear",
-        "trigger_kind": "close_conversation",
+        "trigger_kind": "close_interaction",
         "target_required": true
       }
     },
@@ -251,7 +251,7 @@
       "execution": {
         "kind": "physical_contact",
         "action": "interlace_fingers",
-        "trigger_kind": "close_conversation",
+        "trigger_kind": "close_interaction",
         "target_required": true
       }
     },

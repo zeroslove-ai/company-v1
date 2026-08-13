@@ -3,6 +3,7 @@ import { buildSceneStatePatch } from '../state/physical-state.js';
 import { applyNpcStatChanges } from '../relationship/reducer.js';
 import { appendSexualEvents, reduceEjaculationCounts } from '../sexual-state/ledger.js';
 import { hydrateCanonicalScene } from './scene-reducer.js';
+import { RELATION_KINDS } from '../csa/execution-policy.js';
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -74,6 +75,10 @@ function reduceRelationUpdates({ save, updates, expectedTurn, storyText } = {}) 
   const warnings = [];
   for (const update of Array.isArray(updates) ? updates : []) {
     if (!update?.actor_id || !update?.target_id || !update?.relation_kind || !update?.state) continue;
+    if (!RELATION_KINDS.has(update.relation_kind)) {
+      warnings.push(`relation_kind_unknown:${update.relation_kind}`);
+      continue;
+    }
     if (typeof update.quote !== 'string' || !update.quote.trim() || !String(storyText ?? '').includes(update.quote.trim())) {
       warnings.push(`relation_evidence_missing:${update.actor_id}`);
       continue;
@@ -81,6 +86,7 @@ function reduceRelationUpdates({ save, updates, expectedTurn, storyText } = {}) 
     const index = next.findIndex(item => item.actor_id === update.actor_id && item.target_id === update.target_id && item.relation_kind === update.relation_kind);
     if (update.state === 'ended') {
       if (index >= 0) next[index] = { ...next[index], state: 'ended', updated_turn: expectedTurn, end_quote: update.quote };
+      else warnings.push(`relation_end_without_active:${update.actor_id}:${update.target_id}:${update.relation_kind}`);
       continue;
     }
     const relation = {
@@ -90,6 +96,7 @@ function reduceRelationUpdates({ save, updates, expectedTurn, storyText } = {}) 
       state: 'active',
       started_turn: index >= 0 ? next[index].started_turn ?? expectedTurn : expectedTurn,
       updated_turn: expectedTurn,
+      source: 'extract',
       quote: update.quote
     };
     // One actor cannot keep two competing active relation targets.  A new
