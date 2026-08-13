@@ -11,10 +11,10 @@ architecture-reviewer read-only DB verification recorded in Issue #64.
 | Item | Current value |
 |---|---|
 | Repo | `zeroslove-ai/company-v1` |
-| Audit branch | `audit/company-v1-authority-baseline-2026-08-13` |
-| Starting amendment SHA | `edabf197167af1be56f298f789eac8a80b117667` |
+| Frozen current-truth SHA | `00f459277868fc5f2d48dae5c3a2dc655c8afd25` |
+| Canonical implementation branch | `company/runtime-authority-consolidation-v1` |
+| Canonical implementation PR | #65, OPEN / DRAFT / UNMERGED |
 | Runtime baseline SHA | `5ba68bb204767756b9c8a4b5a72ea4003f2075b6` |
-| Current audit PR | #62, OPEN / DRAFT / UNMERGED |
 | TEST game | `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` |
 | PRODUCTION game | `11111111-1111-4111-8111-111111111111` — not accessed |
 | Supabase project | `fmcrspgxstsmxxsmkeee` |
@@ -46,10 +46,12 @@ frontend setup/action/recovery
   → frontend view model/renderer
 ```
 
-The implementation has strong Story-first and reducer boundaries, but the live
-DB confirms two extra mutation surfaces: direct service-role table DML and the
-callable CSA preapply RPC. RPC-only mutation is therefore not a code convention
-alone; the target requires database privilege enforcement.
+The implementation has strong Story-first and reducer boundaries. Cut 1 now
+routes game-action lifecycle mutation through named CAS RPCs in the current
+source, while the live DB still retains direct service-role table DML and the
+callable CSA preapply RPC until the staged enforcement migration is reviewed and
+applied. RPC-only mutation is therefore not a code convention alone; the target
+requires database privilege enforcement.
 
 ## Current authority map
 
@@ -81,10 +83,11 @@ functions, no live `_legacy_v2` aliases, and exactly 14 applied Company
 migrations through `20260812071904 company_v1_preapply_csa_transaction`.
 
 The direct service-role DML privileges are current live capability, not the
-target architecture. Cut 1 is incomplete until caller/read inventory identifies
-the required raw reads and a new additive migration revokes service-role direct
-INSERT/UPDATE/DELETE/TRUNCATE on the gameplay core tables. Service-role SELECT
-and approved SECURITY DEFINER RPC EXECUTE remain permitted.
+target architecture. The additive Stage A migration is present in the canonical
+implementation branch but has not been applied. Stage B remains pending until
+the RPC-only API is deployed and verified. Service-role SELECT and approved
+SECURITY DEFINER RPC EXECUTE remain permitted; direct
+INSERT/UPDATE/DELETE/TRUNCATE must be revoked by Stage B.
 
 The live `apply_reserved_csa_transaction` function is `SECURITY DEFINER`,
 service-role executable, and directly mutates `game_save.csa_active` and
@@ -107,8 +110,9 @@ target scene authority. This is a confirmed mismatch outside Cut 1.
 
 ## Known broken / structurally conflicting
 
-1. Direct REST action PATCH writes coexist with RPC lifecycle mutation, and live
-   service-role table DML makes that path enforceable at the DB boundary.
+1. The live DB still permits direct service-role DML, but the current source no
+   longer uses generic action-status REST PATCH helpers; named lifecycle CAS RPCs
+   are the implementation path pending staged privilege enforcement.
 2. Live CSA preapply writes save state before `commit_company_turn`.
 3. Scene compatibility fields can be mistaken for canonical membership/location.
 4. `player_scene_state.location_id` can split from `save.scene.location_id`.
@@ -139,12 +143,26 @@ target scene authority. This is a confirmed mismatch outside Cut 1.
 ## Deprecated / cleanup candidates
 
 - Live `apply_reserved_csa_transaction` after caller audit: revoke/drop.
-- Direct action-status REST PATCH helpers: replace with named CAS RPC mutation;
-  remove the redundant post-`record_extract_result` committing PATCH writer.
+- Direct action-status REST PATCH helpers: removed from the current source in Cut
+  1; Stage B database privilege enforcement remains pending.
 - Legacy scene membership/location mirrors after reader migration.
 - Duplicate SQL world/catalog allowlists after structural validation is retained.
 - Legacy parser/Extract adapter after the compatibility window closes.
 - Live service-role direct DML on gameplay core tables after raw-read inventory.
+
+## Cut 1 implementation status
+
+- Current source uses `claim_game_action_stage` and
+  `fail_game_action_stage` for atomic action lifecycle CAS transitions.
+- `record_extract_result` remains the sole writer of the `committing`
+  transition; the redundant follow-up status write was removed.
+- Stage A migration:
+  `20260814000100_company_v1_action_lifecycle_rpc_stage_a.sql` — not applied.
+- Stage B migration:
+  `20260814000200_company_v1_authority_enforcement_stage_b.sql` — not applied;
+  it revokes direct gameplay-table DML and removes the obsolete CSA preapply
+  writer after rollout verification.
+- No database migration, write, reset, or deployment occurred in this cut.
 
 ## Sole-writer decision
 
@@ -154,13 +172,11 @@ runtime implementation resumes.
 
 ## One next development cut
 
-**Authority Consolidation Cut 1 — DB mutation boundary**: replace direct action
-status REST PATCH writes with named lifecycle RPC mutation(s), enforce the
-service-role privilege boundary by revoking direct gameplay-table
-INSERT/UPDATE/DELETE/TRUNCATE after caller/read inventory, verify/remove any CSA
-preapply caller, add additive migrations to revoke/drop the obsolete preapply
-writer, and preserve `commit_company_turn` as the sole normal-turn durable
-commit. Scene and relation rewrites are explicitly out of this cut.
+**Authority Consolidation Cut 1 rollout review**: apply Stage A only after
+review, deploy the RPC-only API, verify TEST behavior, then apply Stage B to
+revoke direct gameplay-table DML and remove the obsolete CSA preapply writer.
+`commit_company_turn` remains the sole normal-turn durable commit. Scene and
+relation rewrites are explicitly outside this cut.
 
 ## Next acceptance gate
 

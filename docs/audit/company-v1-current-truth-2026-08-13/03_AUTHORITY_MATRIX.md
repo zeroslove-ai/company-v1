@@ -32,14 +32,14 @@ migrations, and the reviewer-verified live DB facts in Issue #64.
 | Summary | committed `turn_summary` and save summary fields | Commit/revision boundary | frontend compact summary | context/history/renderer | Committed server context wins. |
 | Player setup | `save.player_setup` | reserve/commit setup RPCs | frontend form/session | opening/recovery/frontend | DB transaction owns persistence; catalog validation belongs to repository/runtime. |
 | Opening | `save.opening_state` | opening route + opening RPC | frontend recovery/session | context, renderer | Opening is lifecycle state, not a second world authority. |
-| Game action lifecycle | `game_actions.processing_status` and stage fields | named lifecycle RPCs | direct REST PATCH helpers confirmed live-capable | recovery/API | Direct REST mutation is cleanup target; GET may remain read-only. |
+| Game action lifecycle | `game_actions.processing_status` and stage fields | `claim_game_action_stage` / `fail_game_action_stage` for stage CAS; `record_story_result` / `record_extract_result` for provider results | live service-role direct DML remains until Stage B; GET may remain read-only | recovery/API | Current source has named RPC authority; Stage A is not applied and Stage B enforcement is pending. |
 | Turn number | save committed turn + `game_turns.turn_number` | `commit_company_turn` | frontend count | all next-turn paths | Commit transaction wins. |
 | Save revision | `game_save.save_revision` | setup/opening/turn/revision/reset transactions | hydration metadata | conflict guards/context | Transactional DB writer only. |
 
 ## Confirmed multi-writer conflicts
 
-1. `game_actions` has named RPC lifecycle functions plus direct REST PATCH
-   helpers, and live `service_role` table DML makes the direct path real.
+1. `game_actions` has named RPC lifecycle functions in the current source, while
+   live `service_role` table DML remains enforceable until Stage B.
 2. `csa_active`/`csa_rules` have the normal commit writer plus live
    `apply_reserved_csa_transaction` pre-commit writer.
 3. Scene membership/location has canonical `save.scene` plus compatibility

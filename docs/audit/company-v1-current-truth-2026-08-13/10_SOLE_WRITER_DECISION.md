@@ -2,10 +2,11 @@
 
 Status: final architecture-review amendment; target baseline for owner review
 
-This document freezes the target architecture for the next implementation cut.
-It does not change runtime code, SQL, migrations, tests, or deployed state.
-The current implementation may still violate a target until the named cleanup
-cut is approved and implemented.
+This document freezes the target architecture for the implementation cut.
+The canonical Cut 1 branch contains the implementation candidate and additive
+migrations, but none of the migrations has been applied and no deployed state
+has changed. The target remains incomplete in the live DB until rollout gates
+are reviewed and executed.
 
 ## Decision 1 — durable turn/save commit
 
@@ -47,7 +48,7 @@ omitted condition. For example, `extracting + error_code NULL` may claim as
 the error code through the same CAS contract. Allowed status transitions remain
 server-defined. Both return the updated action. Existing named Story/Extract
 record and commit RPCs remain responsible for their stage payloads. This is a
-design only; no RPC is added here.
+implementation candidate; Stage A is not applied to the live DB until reviewed.
 
 `record_extract_result` already transitions the action to `committing`.
 Therefore the current follow-up `updateActionStatus('committing')` PATCH is a
@@ -199,7 +200,7 @@ Scene, location, active-relations, parser, frontend cache, and content-catalog
 rewrites are explicitly outside this cut. They follow only after this DB
 mutation boundary is reviewed and accepted.
 
-## Current blockers before implementation
+## Rollout gates before migration/application
 
 - Confirm no external caller, scheduled job, or operator script invokes the live
   CSA preapply RPC.
@@ -210,7 +211,7 @@ mutation boundary is reviewed and accepted.
   any field.
 - Add `save.scene` structural validation and remove the `scene_state` dependency
   only in the separate future Scene Authority Consolidation cut.
-- Owner approval of this single-cut boundary.
+- Owner approval of the implementation candidate and staged rollout.
 
 No blocker permits silently retaining two writers in the target architecture;
 it only delays the cleanup until evidence is complete.
