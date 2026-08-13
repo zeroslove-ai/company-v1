@@ -118,6 +118,20 @@ function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function turnContextFor({ save = {}, locationId = null, mapLocations = [] } = {}) {
+  const time = plainObject(save?.world_state?.game_time) ? save.world_state.game_time : {};
+  const resolvedId = typeof locationId === 'string' && locationId.trim()
+    ? locationId.trim()
+    : (typeof save?.scene?.location_id === 'string' ? save.scene.location_id : null);
+  const location = (Array.isArray(mapLocations) ? mapLocations : []).find(item => item?.location_id === resolvedId);
+  return {
+    day: Number.isInteger(time.day) ? time.day : null,
+    minute_of_day: Number.isInteger(time.minute_of_day) ? time.minute_of_day : null,
+    location_id: resolvedId,
+    location_name: typeof location?.name === 'string' ? location.name : resolvedId
+  };
+}
+
 // 이미지 태그 allowlist — 알 수 없는 태그는 버린다 (턴70 지시 10).
 const IMAGE_TAG_ALLOWLIST = new Set([
   // 성적 행동
@@ -198,7 +212,15 @@ function hydratedSaveContext(context, master) {
 function openingTurnProjection(save, master) {
   const opening = plainObject(save?.opening_state) ? save.opening_state : null;
   if (opening?.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
-  const parsedBlocks = parsePersistedNarrative(opening.story_text, { master });
+  const parsedBlocks = {
+    ...parsePersistedNarrative(opening.story_text, { master }),
+    turn_context: {
+      day: 1,
+      minute_of_day: Number.isInteger(opening?.plan?.minute_of_day) ? opening.plan.minute_of_day : null,
+      location_id: opening?.plan?.location_id ?? null,
+      location_name: opening?.plan?.location_name ?? null
+    }
+  };
   const choices = Array.isArray(opening.choices) && opening.choices.length
     ? opening.choices
     : (Array.isArray(parsedBlocks?.choices) ? parsedBlocks.choices : []);
@@ -334,8 +356,11 @@ function persistedEngineMetadata(parsedBlocks = {}) {
 
 function mergePersistedEngineMetadata(parsedBlocks, persistedBlocks) {
   const metadata = persistedEngineMetadata(persistedBlocks);
-  if (!metadata.enactments.length && !metadata.institutional.length) return parsedBlocks;
-  return attachEngineEnactments(parsedBlocks, metadata.enactments, metadata.institutional);
+  const merged = (metadata.enactments.length || metadata.institutional.length)
+    ? attachEngineEnactments(parsedBlocks, metadata.enactments, metadata.institutional)
+    : { ...parsedBlocks };
+  if (plainObject(persistedBlocks?.turn_context)) merged.turn_context = { ...persistedBlocks.turn_context };
+  return merged;
 }
 
 function validateEngineMetadata({ enactments, worldRules, sceneObligations, master, playerName, storyText }) {
@@ -624,6 +649,11 @@ const master = masterFromEdition(edition);
           if (unauthorizedPlayerDialogue.length) mergedWarnings.push('player_dialogue_policy_violation');
           const contractPersisted = attachEngineEnactments({
             ...parsed,
+            turn_context: turnContextFor({
+              save: storySave,
+              locationId: resolvedLocationId ?? storySave?.scene?.location_id,
+              mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+            }),
             // 수정 H — live/replay 동일 순서 재생용
             warnings: mergedWarnings
           }, engineEnactments, institutionalSegments);
@@ -1077,7 +1107,14 @@ const master = masterFromEdition(edition);
           }
           const background = '';
           const splitWarnings = [];
-          const parsedOpening = parseFreshNarrativeV2(raw, { master });
+          const parsedOpening = {
+            ...parseFreshNarrativeV2(raw, { master }),
+            turn_context: turnContextFor({
+              save: { world_state: { game_time: { day: 1, minute_of_day: openingPlan.minute_of_day } } },
+              locationId: openingPlan.location_id,
+              mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+            })
+          };
           const choiceProjection = reduceStoryChoiceProjection({ parsedStory: parsedOpening, allowDeterministicFallback: true });
           const finalChoices = choiceProjection.state;
           const commit = await db.callRpc('commit_company_opening', {

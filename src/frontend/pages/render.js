@@ -186,6 +186,18 @@ function dialogueToneClass(speakerId) {
 export function renderNarrative(container, parsed) {
   if (!container) return;
   container.replaceChildren();
+  const context = object(parsed?.turn_context);
+  if (context && (Number.isInteger(context.day) || Number.isInteger(context.minute_of_day) || context.location_name)) {
+    const bar = document.createElement('div');
+    bar.className = 'turn-context-bar';
+    const day = Number.isInteger(context.day) ? `${context.day}일차` : '';
+    const minute = Number.isInteger(context.minute_of_day)
+      ? `${String(Math.floor(context.minute_of_day / 60)).padStart(2, '0')}:${String(context.minute_of_day % 60).padStart(2, '0')}`
+      : '';
+    const location = typeof context.location_name === 'string' ? context.location_name : '';
+    bar.textContent = [day, minute].filter(Boolean).join(' · ') + (location ? ` | ${location}` : '');
+    container.append(bar);
+  }
   const choices = normalizedStrings(parsed?.choices);
   const labels = parsedChoiceLabels({ choice_labels: parsed?.choice_labels }, {}, choices.length);
   if (container.id === 'current-story') currentChoiceSet = choiceSet(choices, labels);

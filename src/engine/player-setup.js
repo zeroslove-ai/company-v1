@@ -191,6 +191,7 @@ export function buildPlayerPromptProjection({ player, canonical, playerAction = 
     name: typeof player?.name === 'string' ? player.name : null,
     department: canonical?.departmentName ?? null,
     position: canonical?.positionName ?? null,
+    ...(typeof player?.position_id === 'string' && player.position_id ? { position_id: player.position_id, address_title: canonical?.positionName ?? null } : {}),
     speech_style: canonical?.speechStyleName ?? null
   };
   const text = String(playerAction ?? '');
@@ -214,6 +215,7 @@ export function buildOpeningPlayerProjection({ player, canonical } = {}) {
     name: typeof player?.name === 'string' ? player.name : null,
     department: canonical?.departmentName ?? null,
     position: canonical?.positionName ?? null,
+    ...(typeof player?.position_id === 'string' && player.position_id ? { position_id: player.position_id, address_title: canonical?.positionName ?? null } : {}),
     speech_style: canonical?.speechStyleName ?? null,
     height_cm: player?.height_cm ?? null,
     weight_kg: player?.weight_kg ?? null,

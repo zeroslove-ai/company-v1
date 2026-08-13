@@ -161,6 +161,26 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
   }
   flush();
 
+  // Fail-open structural recovery for legacy/plain quoted dialogue.  This is
+  // intentionally exact-name only: no fuzzy speaker inference or semantic
+  // repair is allowed at the parser boundary.
+  const exactNameEntries = [...directory.entries()]
+    .filter(([id, name]) => id !== 'player' && typeof name === 'string' && name.trim())
+    .sort((a, b) => b[1].length - a[1].length);
+  for (const block of [...blocks]) {
+    if (block.type !== 'narrative') continue;
+    const line = String(block.text ?? '').trim();
+    const match = exactNameEntries.find(([, name]) => line.startsWith(`${name}:`));
+    if (!match) continue;
+    const text = line.slice(match[1].length + 1).trim().replace(/^["“]|["”]$/gu, '').trim();
+    if (!text) continue;
+    const dialogue = { type: 'dialogue', speaker_id: match[0], speaker: match[1], speaker_name: match[1], direction: null, acting_direction: null, text, order: dialogueLines.length };
+    const index = blocks.indexOf(block);
+    blocks.splice(index, 1, dialogue);
+    dialogueLines.push(dialogue);
+    warnings.push('dialogue_marker_fallback_applied');
+  }
+
   const hasBody = blocks.some(block => ['scene', 'narrative', 'dialogue'].includes(block.type) && String(block.text ?? '').trim());
   if (!hasBody) fail('Story body is missing');
   if (!blocks.some(block => block.type === 'player_inner_thought' && String(block.text ?? '').trim())) warnings.push('player_inner_thought_missing');

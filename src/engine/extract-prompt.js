@@ -185,6 +185,7 @@ const SYSTEM_INSTRUCTIONS = [
     image_selection: null,
     csa_trigger_evaluations: [],
     csa_runtime_updates: [],
+    relation_updates: [],
     turn_summary: '',
     warnings: []
   })}`,
@@ -205,6 +206,8 @@ const SYSTEM_INSTRUCTIONS = [
   'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
   'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, pool must be sex and tags must describe that ongoing act.',
   'Mind Monitor style contract: surface and subconscious are each one natural Korean first-person inner monologue, spoken to self in conversational language. Do not write reports, status summaries, narrator prose, labels, "NPC는..." sentences, or the player THOUGHT; surface and subconscious must be distinct and personality-specific. Missing Mind Monitor remains fail-open. Final scene presence: a local dialogue speaker is evidence of presence during the Story, but removal requires an explicit exact quoted exit; if the final snapshot cannot be established, preserve null rather than guessing.'
+  , 'Relation lifecycle: when the Story explicitly starts or ends a registered actor-target relation, return top-level relation_updates with actor_id, target_id, relation_kind, state started/ended, and an exact contiguous quote; never infer lifecycle from omission or vague wording.',
+  'Explicit player physical continuity: preserve the observable kind and strength of player contact or sexual facts in Story evidence; do not euphemize them into an unidentifiable thing or pressure.',
 ].join(' ');
 
 export function buildExtractPrompt({ context, storyText, parsedStory, expectedTurn, edition, npcIds, mindMonitorTargets = null }) {

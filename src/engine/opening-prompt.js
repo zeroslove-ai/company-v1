@@ -35,6 +35,7 @@ const PLAYER_PRIVATE_OPENING_PREMISE = [
 const OPENING_DURABLE_RULES = [
   'Write natural Korean workplace fiction from the canonical opening payload. Use the supplied weekday, time, location, work hook, and scene goal as facts.',
   'Do not invent unregistered named characters or decide unrequested player actions. Show active NPC motives through natural work and dialogue.',
+  'Canonical opening time and location are hard facts. Do not invent a different clock time or place. Do not mention apps, CSA, Worker, prompts, game mechanics, or system metadata as world knowledge; the opening is an in-world workplace scene.',
   PLAYER_PRIVATE_OPENING_PREMISE,
   'Use the output protocol below for dialogue identity and optional footer blocks. Speaker identity is the exact speaker_id marker, never a name or quote.',
   FRESH_OPENING_OUTPUT_PROTOCOL
@@ -57,6 +58,12 @@ export function buildOpeningPrompt({ edition, player, canonical, openingPlan } =
           weekday: openingPlan?.weekday, minute_of_day: openingPlan?.minute_of_day,
           location_name: openingPlan?.location_name, work_hook_label: openingPlan?.work_hook_label,
           scene_goal: openingPlan?.scene_goal
+        },
+        turn_context: {
+          day: 1,
+          minute_of_day: Number.isInteger(openingPlan?.minute_of_day) ? openingPlan.minute_of_day : null,
+          location_id: openingPlan?.location_id ?? null,
+          location_name: openingPlan?.location_name ?? null
         },
         cross_team_note: crossTeamNote,
         active_character_canon: buildActiveCharacterCanon(charactersMap, activeIds)

@@ -230,7 +230,7 @@ function institutionalLabel(segment) {
     ? ' \uD68C\uC0AC \uC2DC\uAC01 ' + time.day + '\uC77C ' + String(Math.floor(time.minute_of_day / 60)).padStart(2, '0') + '\uC2DC ' + String(time.minute_of_day % 60).padStart(2, '0') + '\uBD84'
     : '';
   const body = content ? ' \uB0B4\uC6A9\uC740 \uB2E4\uC74C\uACFC \uAC19\uB2E4. ' + content : '';
-  return '\uC0AC\uB0B4 \uACF5\uC9C0 \uC2DC\uC2A4\uD15C\uC774 \uC804\uC0AC\uC801\uC73C\uB85C \uC0C8 \uADDC\uC815\uC744 \uAC8C\uC2DC\uD588\uB2E4. ' + phaseText + body + timeLabel + '\uBD80\uD130 \uC989\uC2DC \uD6A8\uB825\uC774 \uBC1C\uC0DD\uD588\uB2E4.';
+  return '\uC0AC\uB0B4 \uACF5\uC6A9 \uBAA8\uB2C8\uD130\uC640 \uACF5\uC6A9 \uB514\uC2A4\uD50C\uB808\uC774, \uC9C1\uC6D0 \uD734\uB300\uD3F0 \uC5C5\uBB34 \uC54C\uB9BC\uC5D0 \uC0C8 \uADDC\uC815\uC774 \uB3D9\uC2DC\uC5D0 \uD45C\uC2DC\uB418\uC5C8\uB2E4. ' + phaseText + body + timeLabel + '\uBD80\uD130 \uC989\uC2DC \uD6A8\uB825\uC774 \uBC1C\uC0DD\uD588\uB2E4.';
 }
 
 /** Build the one-time institutional fact segment for a newly activated/updated rule. */
