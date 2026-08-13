@@ -4,6 +4,7 @@ import { applyAuthorizedRuleDefinitions, assertRuleDefinitionAuthority } from '.
 import { calculateCsaProgression, calculateProgress } from '../progression.js';
 import { compareRequiredClothing } from '../state/clothing.js';
 import { executionMetadataForRule, RELATION_KINDS } from '../csa/execution-policy.js';
+import { clearRelationPresentationsForActors } from './relation-presentation.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 
@@ -37,6 +38,7 @@ function applyEngineClothingEnactments(nextSave, engineEnactments) {
 function applyEngineRelationEnactments(nextSave, engineEnactments, expectedTurn, warnings) {
   const relations = Array.isArray(nextSave.active_relations) ? nextSave.active_relations.map(item => ({ ...item })) : [];
   const turn = Number.isInteger(expectedTurn) ? expectedTurn : 0;
+  const authoritativeRelationActors = new Map();
   for (const enactment of Array.isArray(engineEnactments) ? engineEnactments : []) {
     if (enactment?.authority !== 'engine' || enactment.execution_kind !== 'behavior_execution' || !RELATION_KINDS.has(enactment.action)) continue;
     const targets = [...new Set(Array.isArray(enactment.target_ids) ? enactment.target_ids.filter(id => typeof id === 'string' && id.trim()) : [])];
@@ -50,6 +52,13 @@ function applyEngineRelationEnactments(nextSave, engineEnactments, expectedTurn,
       warnings.push(`engine_relation_target_invalid:${enactment.source_rule_id ?? 'unknown'}`);
       continue;
     }
+    const sourceRuleId = enactment.source_rule_id ?? null;
+    if (sourceRuleId) {
+      const key = `${sourceRuleId}\u0000${targetId}`;
+      const actors = authoritativeRelationActors.get(key) ?? new Set();
+      actors.add(actorId);
+      authoritativeRelationActors.set(key, actors);
+    }
     const existing = relations.find(item => item.state === 'active' && item.actor_id === actorId && item.target_id === targetId && item.relation_kind === enactment.action);
     for (let i = 0; i < relations.length; i += 1) {
       if (relations[i].state === 'active' && relations[i].actor_id === actorId
@@ -61,7 +70,7 @@ function applyEngineRelationEnactments(nextSave, engineEnactments, expectedTurn,
       actor_id: actorId,
       target_id: targetId,
       relation_kind: enactment.action,
-      source_rule_id: enactment.source_rule_id ?? null,
+      source_rule_id: sourceRuleId,
       source: 'engine',
       state: 'active',
       started_turn: existing?.started_turn ?? turn,
@@ -72,7 +81,23 @@ function applyEngineRelationEnactments(nextSave, engineEnactments, expectedTurn,
     if (index >= 0) relations[index] = relation;
     else relations.push(relation);
   }
+  const supersededActors = new Set();
+  for (const [key, actors] of authoritativeRelationActors) {
+    if (actors.size !== 1) continue;
+    const [sourceRuleId, targetId] = key.split('\u0000');
+    const authoritativeActorId = [...actors][0];
+    for (let i = 0; i < relations.length; i += 1) {
+      const relation = relations[i];
+      if (relation?.state !== 'active'
+        || relation.actor_id === authoritativeActorId
+        || relation.source_rule_id !== sourceRuleId
+        || relation.target_id !== targetId) continue;
+      relations[i] = { ...relation, state: 'ended', updated_turn: turn, end_reason: 'superseded_by_engine_interaction_switch' };
+      supersededActors.add(relation.actor_id);
+    }
+  }
   nextSave.active_relations = relations.slice(-80);
+  clearRelationPresentationsForActors(nextSave, [...supersededActors]);
 }
 
 function mergeEngineRuntimeUpdates(engineEnactments, observedUpdates) {

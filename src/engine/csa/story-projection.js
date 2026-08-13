@@ -87,17 +87,32 @@ function activeRelationTargetIds(save, actorId, candidates) {
     .map(item => item.target_id);
 }
 
-function resolvedInteractionTargetIds({ save, actorId, candidates, sceneProfiles = [], playerAction = '', focalCharacterId = null, lastSpeakerId = null }) {
+function explicitInteractionActorIds(sceneProfiles = [], playerAction = '') {
+  return resolveUserMentionedNpcIds({
+    characters: sceneProfiles.map(item => ({ ...item.profile, character_id: item.id })),
+    general_npcs: []
+  }, playerAction);
+}
+
+function resolvedInteractionTargetIds({ save, actorId, candidates, sceneProfiles = [], playerAction = '', focalCharacterId = null, lastSpeakerId = null, explicitInteractionActorIds = [] }) {
   if (candidates.length === 0) return [];
   const mentioned = resolveUserMentionedNpcIds({
     characters: sceneProfiles.map(item => ({ ...item.profile, character_id: item.id })),
     general_npcs: []
-  }, playerAction, { allowUniqueKoreanGivenName: false });
+  }, playerAction);
   const mentionedCandidates = mentioned.filter(id => candidates.includes(id));
 
-  // Pair authority is actor-specific.  Mentioning an actor in the Player
-  // action resolves that actor to Player only when Player is an eligible
-  // counterparty; it never resolves every applicable actor in the scene.
+  // A Player action mention is resolved once for the whole turn.  Once there
+  // is exactly one registered NPC mention, that NPC is the only interaction
+  // actor allowed to form a new Player pair.  Other applicable actors must
+  // not reuse a previous focal/active relation in the same turn.
+  if (explicitInteractionActorIds.length > 0) {
+    if (explicitInteractionActorIds.length !== 1 || explicitInteractionActorIds[0] !== actorId) return [];
+    return candidates.includes('player') ? ['player'] : [];
+  }
+
+  // With no explicit actor authority, retain the existing canonical fallback
+  // order for focal/current interaction and structured active relations.
   if (candidates.includes('player') && mentioned.includes(actorId)) return ['player'];
   if (candidates.includes('player') && focalCharacterId === actorId) return ['player'];
 
@@ -116,7 +131,7 @@ function resolvedInteractionTargetIds({ save, actorId, candidates, sceneProfiles
   return [];
 }
 
-function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds, playerAction = '' }) {
+function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds, playerAction = '', explicitInteractionActorIds = [] }) {
   const runtime = object(save?.csa_runtime_state);
   const preset = object(entry?.preset);
   const requestOnly = modeFor(entry, preset) === 'on_player_request';
@@ -136,7 +151,7 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
       ? eligibleTargetIds({ actorId, counterpartyScope: text(entry.preset?.counterparty_scope) ?? text(entry.counterparty_scope), sceneProfiles: targetProfiles })
       : [];
     const resolvedTargets = execution?.target_required
-      ? resolvedInteractionTargetIds({ save, actorId, candidates: eligibleTargets, sceneProfiles, playerAction, focalCharacterId: save?.scene?.focal_character_id, lastSpeakerId: save?.scene?.last_speaker_id })
+      ? resolvedInteractionTargetIds({ save, actorId, candidates: eligibleTargets, sceneProfiles, playerAction, focalCharacterId: save?.scene?.focal_character_id, lastSpeakerId: save?.scene?.last_speaker_id, explicitInteractionActorIds })
       : [];
     const targets = resolvedTargets.length === 1 ? resolvedTargets : eligibleTargets;
     const triggerState = requestOnly
@@ -171,7 +186,7 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
   return facts;
 }
 
-function projectWorldRule(entry, expectedTurn, sceneProfiles, save, playerAction = '') {
+function projectWorldRule(entry, expectedTurn, sceneProfiles, save, playerAction = '', explicitInteractionActorIds = []) {
   const rule = object(entry);
   const preset = object(rule.preset);
   const authority = authorityFor(rule, preset);
@@ -183,7 +198,7 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles, save, playerAction
   const applicableSceneActorIds = sceneProfiles
     .filter(({ id, profile }) => matchesCsaSubjectScope({ ...profile, id }, subjectScope))
     .map(({ id }) => id);
-  const resolvedFacts = resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds, playerAction });
+  const resolvedFacts = resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds, playerAction, explicitInteractionActorIds });
   const executionPolicy = resolvedFacts.some(fact => fact.trigger_state === 'required_now')
     ? 'mandatory_execution'
     : 'conditional';
@@ -264,7 +279,8 @@ export function buildStoryWorldProjection({ save = {}, master = {}, sceneActorId
   const sceneProfiles = (Array.isArray(sceneActorIds) ? sceneActorIds : [])
     .filter(id => text(id) && id !== 'player')
     .map(id => ({ id, profile: profileFor(master, id) }));
-  const worldRules = activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles, save, playerAction));
+  const explicitActors = explicitInteractionActorIds(sceneProfiles, playerAction);
+  const worldRules = activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles, save, playerAction, explicitActors));
   return {
     world_rules: worldRules,
     scene_obligations: projectObligations(worldRules)

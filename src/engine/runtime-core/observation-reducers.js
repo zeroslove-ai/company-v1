@@ -4,6 +4,7 @@ import { applyNpcStatChanges } from '../relationship/reducer.js';
 import { appendSexualEvents, reduceEjaculationCounts } from '../sexual-state/ledger.js';
 import { hydrateCanonicalScene } from './scene-reducer.js';
 import { RELATION_KINDS } from '../csa/execution-policy.js';
+import { clearRelationPresentationsForActors } from './relation-presentation.js';
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -290,11 +291,7 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
   nextSave.player_sexual_state = playerSexual.state; warnings.push(...playerSexual.warnings);
   const relations = reduceRelationUpdates({ save: nextSave, updates: observation.relation_updates, expectedTurn, storyText: rawStory });
   nextSave.active_relations = relations.state;
-  for (const actorId of relations.clearedPresentationActorIds ?? []) {
-    const current = nextSave.npc_scene_state?.[actorId];
-    if (!object(current) || !Object.hasOwn(current, 'position_label')) continue;
-    nextSave.npc_scene_state[actorId] = { ...current, position_label: null };
-  }
+  clearRelationPresentationsForActors(nextSave, relations.clearedPresentationActorIds ?? []);
   warnings.push(...relations.warnings);
   for (const [npcId, domains] of Object.entries(observation.npc_observations ?? {})) {
     if (!eligibleNpcIds.has(npcId)) {
