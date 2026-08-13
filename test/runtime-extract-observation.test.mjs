@@ -149,17 +149,20 @@ test('scene evidence quotes must be exact substrings of the raw Story for every 
   }
 });
 
-test('presence authority uses only final_present_npc_ids and emits no entered/exited patch fields', () => {
+test('presence authority preserves explicit entered/exited evidence fields', () => {
   const observation = normalizeExtractObservationV2(valid({ scene_observation: {
     ...scene(['heroine1']),
     entered_npc_ids: ['heroine2'],
-    exited_npc_ids: ['heroine3'],
+    exited_npc_ids: ['heroine1'],
     presence_is_final: false,
-    evidence: []
+    evidence: [
+      { kind: 'entrance', character_id: 'heroine2', quote: 'scene-exit-evidence' },
+      { kind: 'exit', character_id: 'heroine1', quote: 'scene-exit-evidence' }
+    ]
   } }), { npcIds: NPCS, storyText: STORY });
   assert.deepEqual(observation.scene_observation.final_present_npc_ids, ['heroine1']);
-  assert.equal('entered_npc_ids' in observation.scene_observation, false);
-  assert.equal('exited_npc_ids' in observation.scene_observation, false);
+  assert.deepEqual(observation.scene_observation.entered_npc_ids, ['heroine2']);
+  assert.deepEqual(observation.scene_observation.exited_npc_ids, ['heroine1']);
   assert.equal('presence_is_final' in observation.scene_observation, false);
 });
 
@@ -253,8 +256,8 @@ test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibiti
     assert.match(system, new RegExp(`"${key}"`));
   }
   assert.match(system, /Never return these save-patch or parser fields/);
-  assert.match(system, /kind must be exactly one of "presence" or "scene"/);
-  assert.match(system, /never invent names such as "npc_presence"/);
+  assert.match(system, /scene evidence uses.*presence, entrance, exit, or scene/);
+  assert.match(system, /if the final snapshot cannot be established, preserve null/);
   assert.match(system, /never compose a quote from inferred facts or any input outside story_text/);
   assert.match(system, /evidence is a top-level sibling of player_observation and npc_observations/);
   assert.match(system, /Never put an evidence key inside a player or NPC object/);

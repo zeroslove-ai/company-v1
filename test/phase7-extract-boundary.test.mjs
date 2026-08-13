@@ -45,9 +45,10 @@ test('fresh V2 accepts canonical observer shape', () => {
 test('fresh V1/degraded remain hard failures while optional scene evidence is soft-dropped', () => {
   assert.throws(() => normalizeFreshExtractObservationV2({ state_delta: {} }), /extract_version|observation|Forbidden Extract field/i);
   assert.throws(() => normalizeFreshExtractObservationV2({ ...base, outcome: 'degraded' }), /outcome/i);
-  for (const field of ['entered_npc_ids', 'exited_npc_ids', 'presence_is_final']) {
-    assert.throws(() => normalizeFreshExtractObservationV2({ ...base, scene_observation: { ...base.scene_observation, [field]: field === 'presence_is_final' ? false : [] } }), /Unknown observation field/);
-  }
+  const presenceEvidence = normalizeFreshExtractObservationV2({ ...base, scene_observation: { ...base.scene_observation, entered_npc_ids: [], exited_npc_ids: [], presence_is_final: false } }, { npcIds, storyText });
+  assert.deepEqual(presenceEvidence.scene_observation.entered_npc_ids, []);
+  assert.deepEqual(presenceEvidence.scene_observation.exited_npc_ids, []);
+  assert.equal(presenceEvidence.scene_observation.presence_is_final, undefined);
   const movement = normalizeFreshExtractObservationV2({ ...base, scene_observation: { ...base.scene_observation, evidence: [{ kind: 'movement', location_id: 'meeting_room', quote: storyText }] } }, { npcIds, storyText });
   assert.deepEqual(movement.scene_observation.evidence, []);
   assert.ok(movement.warnings.some(warning => warning.startsWith('extract_optional_dropped:scene_observation.evidence')));

@@ -24,6 +24,10 @@ function projectEngineCanonicalSegment(segment) {
     ...(source.required_state && typeof source.required_state === 'object' && !Array.isArray(source.required_state)
       ? { required_state: source.required_state }
       : {}),
+    ...(identity(source.state_effect) ? { state_effect: source.state_effect } : {}),
+   ...(Number.isInteger(source.effective_turn) ? { effective_turn: source.effective_turn } : {}),
+   ...(source.effective_game_time && typeof source.effective_game_time === 'object' ? { effective_game_time: source.effective_game_time } : {}),
+    ...(Array.isArray(source.delivery_channels) ? { delivery_channels: source.delivery_channels.slice() } : {}),
     canonical_text: source.canonical_text
   };
 }
@@ -148,11 +152,13 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
 export const DURABLE_STORY_RULES = [
   '[WORLD FACTS]',
   'Treat the canonical JSON payload as fact. scene_actors are present now; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only and never create presence, action, or dialogue authority. world_rules are institutional facts and scene_obligations are read-only current-turn requirements. Never invent an unregistered named NPC.',
-  '[PLAYER AGENCY]',
+ '[PLAYER AGENCY]',
+  'Preserve explicit player physical action without expanding its meaning. A choice is only a proposal, never a completed player action. CSA mandatory enactment is distinct from optional player agency; never add unrequested contact, movement, undressing, or sexual escalation.',
   'Player input is the authority for player intent. Do not invent an unrequested player movement, dialogue, apology, concession, withdrawal, promise, contact, physical action, consent, refusal, or outcome. Player dialogue may paraphrase supplied intent without changing its meaning; it must not create a new decision. NPC responses and consequences are authored naturally in the Story.',
   '[NPC AUTONOMY]',
   'NPCs act from their established motives, relationships, and situation. A registered possible entrant may appear occasionally when the scene makes it meaningful; most turns should add no new NPC. Do not create probability, cooldown, or scheduler state.',
-  '[CSA AND WORLD RULES]',
+ '[CSA AND WORLD RULES]',
+  'Engine canonical segments already contain the real observable enactment and its completion before provider continuation. Never repeat the action, turn it into a future plan, defer it, renegotiate it, await approval, undo it, or contradict the completed required result; write only natural aftermath and free NPC reaction.',
   'world_rules and scene_obligations are Worker-resolved institutional facts for this turn. Treat each world_rules.resolved_facts entry as current-turn authority: already_effective/current_state/required_state describe canonical state, and transition_required_now means the concrete observable enactment or result is required now. When trigger_state is required_now or execution_policy is mandatory_execution, the applicable NPC must enact the rule now; do not defer it, deny its existence, await approval, or replace it with a plan. Conditional triggers remain conditional. Narrate institutional rules as workplace facts or enactment, never as app/player mechanics. Use known_scene_actor_ids and applicable_scene_actor_ids as identity scope, not as permission to invent action. NPC attitude, emotion, discomfort, and personal judgment remain free as reaction, but they do not cancel required execution. A scene obligation is fulfilled only through a concrete, observable, non-magical action or result. engine_canonical_segments are authoritative Worker-confirmed events/results that already occurred before your continuation and are shown to the player before provider text. Do not repeat, undo, defer, renegotiate, await approval for, or contradict them; continue naturally from their aftermath. Engine fixes the behavior/outcome; provider writes only the subsequent NPC reaction, emotion, dialogue, work flow, and other free narrative.',
   '[THOUGHT OWNERSHIP]',
   '[THOUGHT] belongs exclusively to the player and is reaction-only presentation: use immediate emotion, surprise, doubt, or impression from the current scene, never a new plan, promise, apology, concession, withdrawal, moral conclusion, or next-action decision. Never place an NPC thought, sensation, memory, embarrassment, or private reaction in [THOUGHT]; NPC inner states belong in Mind Monitor, not Story THOUGHT.',
@@ -160,7 +166,8 @@ export const DURABLE_STORY_RULES = [
   'Saved actual physical and clothing state is current fact. A scene_obligation describes a required transition; show its concrete, observable, non-magical action or result. A rule sentence alone is not a physical transition, and unknown actual state is never guessed.',
   '[STORY QUALITY]',
   'Write natural Korean workplace fiction with appropriate title-plus-name address, relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation replace a required current-turn enactment or overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
-  '[OUTPUT PROTOCOL]',
+ '[OUTPUT PROTOCOL]',
+  'Output one short player-only [THOUGHT] paragraph closed by [/THOUGHT], and four literal [CHOICE] action blocks without labels or numbers. Choices are proposals, not completed actions.',
   'Write plain narrative by default, preserving source order. Mark each spoken line with [DIALOGUE speaker_id="registered_id_or_player"] using an exact registered ID; never infer a speaker from a name, quote, or previous line. [ACTING] is optional metadata for the adjacent dialogue only. Add [THOUGHT] and four literal [CHOICE] action blocks when possible; choices are concrete actions (usually around 30 Korean characters as quality guidance only), without labels or numbers. The UI owns headings and choice ordering. Do not turn app, marker, or presentation mechanics into world knowledge.'
 ].join('\n');
 
@@ -177,8 +184,15 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
   const storyPlayerAction = typeof playerAction === 'string' && playerAction.trim() ? playerAction : '';
   const projection = buildStoryCharacterProjection({ edition, playerAction: storyPlayerAction, sceneCastContract: canonicalCast, workplace });
   const registeredIdSet = new Set(projection.registered_identities.map(({ id }) => id));
-  const storyWorld = precomputedStoryWorld ?? buildStoryWorldProjection({ save, master: { characters: Object.values(object(edition?.characters?.characters) ?? {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) ?? {}) }, sceneActorIds: projection.scene_actor_ids, expectedTurn });
-  const payload = {
+ const storyWorld = precomputedStoryWorld ?? buildStoryWorldProjection({ save, master: { characters: Object.values(object(edition?.characters?.characters) ?? {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) ?? {}) }, sceneActorIds: projection.scene_actor_ids, expectedTurn });
+  const registeredLocations = (Array.isArray(edition?.map?.locations) ? edition.map.locations : [])
+    .map(location => ({
+      id: identity(location?.location_id),
+      name: identity(location?.name),
+      aliases: Array.isArray(location?.aliases) ? location.aliases.filter(identity).slice(0, 6) : []
+    }))
+    .filter(location => location.id && location.name);
+ const payload = {
     edition: edition.editionId,
     turn_trigger: turnTrigger ?? { kind: actionKind === 'feedback_revision' ? 'feedback_revision' : 'player_action' },
     registered_identities: projection.registered_identities,
@@ -188,7 +202,8 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
     reference_characters: projection.reference_characters,
     player_dialogue_policy: canonicalCast.player_dialogue ?? null,
     world_rules: storyWorld.world_rules,
-    scene_obligations: storyWorld.scene_obligations,
+   scene_obligations: storyWorld.scene_obligations,
+    registered_locations: registeredLocations,
     ...(Array.isArray(engineCanonicalSegments) && engineCanonicalSegments.length
       ? { engine_canonical_segments: engineCanonicalSegments.map(projectEngineCanonicalSegment) }
       : {}),

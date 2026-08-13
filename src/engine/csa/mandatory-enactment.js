@@ -55,8 +55,8 @@ function clothingResultText(name, changes, priorStateKnown) {
   const results = changes.map(change => clothingPhrase(change.slot, change.required)).filter(Boolean);
   const joined = results.join(', ');
   return priorStateKnown
-    ? `${name}\uB294 \uBCF5\uC7A5\uC744 \uC815\uB9AC\uD574 ${joined} \uC0C1\uD0DC\uAC00 \uB418\uC5C8\uB2E4.`
-    : `${name}\uB294 \uD604\uC7AC ${joined} \uC0C1\uD0DC\uC784\uC774 \uBD84\uBA85\uD574\uC84C\uB2E4.`;
+    ? name + '\uB294 \uACF5\uC9C0\uB97C \uD655\uC778\uD55C \uB4A4 \uD544\uC694\uD55C \uBCF5\uC7A5\uC744 \uC9C1\uC811 \uC870\uC815\uD588\uB2E4. \uC774\uC81C ' + joined + ' \uC0C1\uD0DC\uB2E4.'
+    : name + '\uB294 \uD604\uC7AC ' + joined + ' \uC0C1\uD0DC\uC784\uC774 \uBD84\uBA85\uD574\uC84C\uB2E4.';
 }
 
 function oneTarget(action, targetNames) {
@@ -223,9 +223,14 @@ export function buildMandatoryEnactments({ scene_obligations: sceneObligations, 
 }
 
 function institutionalLabel(segment) {
-  if (segment.phase === 'newly_activated') return '\uC0C8\uB85C\uC6B4 \uD68C\uC0AC \uADDC\uCE59\uC774 \uC2DC\uD589\uB418\uC5C8\uB2E4.';
-  if (segment.phase === 'updated') return '\uD68C\uC0AC \uADDC\uCE59\uC774 \uAC31\uC2E0\uB418\uC5C8\uB2E4.';
-  return '\uD68C\uC0AC \uADDC\uCE59\uC774 \uC2DC\uD589 \uC911\uC774\uB2E4.';
+  const phaseText = segment.phase === 'updated' ? '\uD68C\uC0AC \uADDC\uCE59\uC774 \uAC31\uC2E0\uB418\uC5B4' : '\uC0C8\uB85C\uC6B4 \uD68C\uC0AC \uADDC\uCE59\uC774 \uAC8C\uC2DC\uB418\uC5B4';
+  const content = text(segment.content);
+  const time = segment.effective_game_time;
+  const timeLabel = Number.isInteger(time?.day) && Number.isInteger(time?.minute_of_day)
+    ? ' \uD68C\uC0AC \uC2DC\uAC01 ' + time.day + '\uC77C ' + String(Math.floor(time.minute_of_day / 60)).padStart(2, '0') + '\uC2DC ' + String(time.minute_of_day % 60).padStart(2, '0') + '\uBD84'
+    : '';
+  const body = content ? ' \uB0B4\uC6A9\uC740 \uB2E4\uC74C\uACFC \uAC19\uB2E4. ' + content : '';
+  return '\uC0AC\uB0B4 \uACF5\uC9C0 \uC2DC\uC2A4\uD15C\uC774 \uC804\uC0AC\uC801\uC73C\uB85C \uC0C8 \uADDC\uC815\uC744 \uAC8C\uC2DC\uD588\uB2E4. ' + phaseText + body + timeLabel + '\uBD80\uD130 \uC989\uC2DC \uD6A8\uB825\uC774 \uBC1C\uC0DD\uD588\uB2E4.';
 }
 
 /** Build the one-time institutional fact segment for a newly activated/updated rule. */
@@ -237,13 +242,13 @@ export function buildInstitutionalSegments({ worldRules = [], expectedTurn = nul
       authority: 'engine',
       segment_kind: 'institutional_rule_change',
       source_rule_id: text(rule?.id),
-      phase: rule.phase,
-      institutional_form: text(rule?.institutional_form),
-      content: text(rule?.content),
-      // The rule body already lives in world_rules and is sent to the
-      // provider once. Keep the visible institutional beat concise instead
-      // of duplicating the full policy text in the same prompt.
-      canonical_text: institutionalLabel(rule)
+     phase: rule.phase,
+     institutional_form: text(rule?.institutional_form),
+     content: text(rule?.content),
+      effective_turn: Number.isInteger(rule?.updated_turn) && rule.phase === 'updated' ? rule.updated_turn : (Number.isInteger(rule?.created_turn) ? rule.created_turn : expectedTurn),
+      effective_game_time: rule?.updated_game_time ?? rule?.activated_game_time ?? rule?.effective_game_time ?? null,
+      delivery_channels: ['office_display', 'company_mobile_notice'],
+      canonical_text: institutionalLabel({ ...rule, effective_game_time: rule?.updated_game_time ?? rule?.activated_game_time ?? rule?.effective_game_time ?? null })
     }));
 }
 

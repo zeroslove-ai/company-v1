@@ -39,6 +39,23 @@ test('fresh parser accepts canonical Story and preserves raw bytes', () => {
   assert.equal('label' in parsed.blocks.find(block => block.type === 'choice'), false);
 });
 
+test('thought fallback stops at a blank paragraph when the closing marker is missing', () => {
+  const raw = '[THOUGHT]\n첫 문단의 플레이어 생각이다.\n\nNPC의 이어지는 서술이다.\n[SCENE]\n사무실이 조용하다.';
+  const parsed = parseFreshNarrativeV2(raw, { master });
+  assert.equal(parsed.raw, raw);
+  assert.equal(parsed.player_inner_thought, '첫 문단의 플레이어 생각이다.');
+  assert.ok(parsed.blocks.some(block => block.type === 'narrative' && block.text.includes('NPC의 이어지는 서술')));
+});
+
+test('duplicate thought blocks keep one canonical player thought and preserve a warning', () => {
+  const raw = '[THOUGHT]\n첫 생각\n[/THOUGHT]\n[THOUGHT]\n두 번째 생각\n[/THOUGHT]';
+  const parsed = parseFreshNarrativeV2(raw, { master });
+  assert.equal(parsed.player_inner_thought, '첫 생각');
+  assert.match(parsed.warnings.join(' '), /duplicate/i);
+  assert.equal(parsed.blocks.filter(block => block.type === 'player_inner_thought').length, 1);
+  assert.ok(parsed.raw.includes('두 번째 생각'));
+});
+
 test('fresh parser accepts player speaker only by canonical ID', () => {
   const raw = canonical.replace('speaker_id="heroine1"', 'speaker_id="player"');
   const parsed = parseFreshNarrativeV2(raw, { master });

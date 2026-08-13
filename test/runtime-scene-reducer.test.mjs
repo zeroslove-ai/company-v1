@@ -18,8 +18,8 @@ function save(overrides = {}) {
   };
   return { ...base, ...overrides };
 }
-function observation({ location_id = null, final = null, focal = null, speakers = [], outcome = 'success', scene_id = null, remote = [] } = {}) {
-  return { scene_id, location_id, final_present_npc_ids: final, focal_candidate_id: focal, explicit_speaker_ids: speakers, last_explicit_speaker_id: speakers.at(-1) ?? null, scene_goal: null, focus_thread: null, scene_goal_provided: false, focus_thread_provided: false, outcome, presence_is_final: final !== null, remote_speaker_ids: remote };
+function observation({ location_id = null, final = null, focal = null, speakers = [], outcome = 'success', scene_id = null, remote = [], entered = [], exited = [], presence_is_final = final !== null } = {}) {
+  return { scene_id, location_id, final_present_npc_ids: final, focal_candidate_id: focal, explicit_speaker_ids: speakers, last_explicit_speaker_id: speakers.at(-1) ?? null, scene_goal: null, focus_thread: null, scene_goal_provided: false, focus_thread_provided: false, outcome, presence_is_final, entered_npc_ids: entered, exited_npc_ids: exited, remote_speaker_ids: remote };
 }
 function reduce(input) { return reduceCanonicalScene({ currentScene: hydrateCanonicalScene(input.save ?? save(), { npcIds: NPCS }), npcIds: NPCS, mapLocations: LOCATIONS, expectedTurn: 8, ...input }); }
 
@@ -38,6 +38,8 @@ test('bootstrap does not mutate input save', () => { const input = save(); const
 test('null final presence preserves canonical presence', () => assert.deepEqual(reduce({ observation: observation({ final: null }) }).present_npc_ids, ['heroine1']));
 test('empty final presence is an explicit player-only scene', () => assert.deepEqual(reduce({ observation: observation({ final: [] }) }).present_npc_ids, []));
 test('final presence replaces rather than unions legacy ids', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'] }) }).present_npc_ids, ['heroine2']));
+test('final-list omission does not remove current presence without explicit exit evidence', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'], presence_is_final: false }) }).present_npc_ids, ['heroine1', 'heroine2']));
+test('explicit exit evidence removes only the named current actor', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'], presence_is_final: false, exited: ['heroine1'] }) }).present_npc_ids, ['heroine2']));
 test('duplicate and player ids are removed from final presence', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2', 'heroine2', 'player-1'] }) }).present_npc_ids, ['heroine2']));
 test('unknown final presence ids are ignored', () => assert.deepEqual(reduce({ observation: observation({ final: ['ghost', 'heroine2'] }) }).present_npc_ids, ['heroine2']));
 test('registered local speaker supplements only an unknown final snapshot', () => assert.deepEqual(reduce({ observation: observation({ final: null, speakers: ['heroine1'] }) }).present_npc_ids, ['heroine1']));

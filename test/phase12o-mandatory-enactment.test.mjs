@@ -31,6 +31,9 @@ test('known clothing enactment preserves transition semantics and exact slot sco
   assert.deepEqual(enactment.required_state, { underwear_bottom: 'removed' });
   assert.equal(enactment.state_effect, 'transitioned');
   assert.equal(enactment.canonical_text.includes('윤민아'), true);
+  assert.match(enactment.canonical_text, /직접/);
+  assert.match(enactment.canonical_text, /이제/);
+  assert.doesNotMatch(enactment.canonical_text, /순간|마법/);
   assert.equal(enactment.canonical_text.includes('underwear_top'), false);
 });
 
@@ -163,6 +166,9 @@ test('institutional segments appear only for newly activated or updated rules', 
   assert.equal(segments.length, 2);
   assert.match(segments[0].canonical_text, /새로운 회사 규칙/);
   assert.match(segments[1].canonical_text, /회사 규칙이 갱신/);
+  assert.equal(segments[0].effective_turn, 12);
+  assert.deepEqual(segments[0].delivery_channels, ['office_display', 'company_mobile_notice']);
+  assert.ok(segments[0].effective_game_time === null || typeof segments[0].effective_game_time === 'object');
   assert.doesNotMatch(segments.map(item => item.canonical_text).join('\n'), /기존 규칙/);
 });
 

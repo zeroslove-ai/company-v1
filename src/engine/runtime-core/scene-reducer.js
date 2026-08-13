@@ -167,14 +167,21 @@ export function reduceCanonicalScene(input = {}) {
     next.present_npc_ids = [];
   }
   if (!degraded && observation.outcome === 'success' && Array.isArray(observation.final_present_npc_ids)) {
-    next.present_npc_ids = uniqueNpcIds(observation.final_present_npc_ids, npcIds);
+    const explicitExited = new Set(uniqueNpcIds(observation.exited_npc_ids, npcIds));
+    const retained = next.present_npc_ids.filter(id => !explicitExited.has(id));
+    next.present_npc_ids = observation.presence_is_final === true && explicitExited.size === 0
+      ? uniqueNpcIds(observation.final_present_npc_ids, npcIds)
+      : uniqueNpcIds([...retained, ...observation.final_present_npc_ids], npcIds);
     if (observation.scene_id !== null && observation.scene_id !== undefined) next.scene_id = observation.scene_id;
     if (moved && observedLocation !== null) next.location_id = observedLocation;
     if (observation.scene_goal_provided) next.goal = observation.scene_goal;
     if (observation.focus_thread_provided) next.focus_thread = observation.focus_thread;
   }
-  const currentIds = new Set(next.present_npc_ids);
-  const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
+ const currentIds = new Set(next.present_npc_ids);
+  for (const entered of uniqueNpcIds(observation.entered_npc_ids, npcIds)) {
+    if (!currentIds.has(entered)) { next.present_npc_ids.push(entered); currentIds.add(entered); }
+  }
+ const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
   for (const speaker of speakers) {
     if (isPlayerId(speaker) || currentIds.has(speaker)) continue;
     if (observation.remote_speaker_ids?.includes(speaker)) {
@@ -193,9 +200,8 @@ export function reduceCanonicalScene(input = {}) {
         `Story speaker ${speaker} is not a registered local NPC`
       );
     }
-    // A complete final snapshot is authoritative even when a speaker leaves
-    // before the Story ends.  Only a null snapshot may be supplemented by
-    // best-known local speaker evidence.
+    // A final snapshot may add observed actors, but omission alone cannot
+    // remove a current actor. Removal requires explicit quoted exit evidence.
     if (!Array.isArray(observation.final_present_npc_ids)) {
       next.present_npc_ids = [...next.present_npc_ids, speaker];
       currentIds.add(speaker);

@@ -254,7 +254,7 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
     const playerEvent = [...sexual.accepted].reverse().find(event => event.actor_id === 'player' || event.target_id === 'player');
     if (playerEvent) nextSave.player_sexual_state = { ...nextSave.player_sexual_state, last_sexual_event: { turn: playerEvent.turn, type: playerEvent.action_type, evidence: playerEvent.evidence } };
   }
-  const choices = reduceStoryChoiceProjection({ save: nextSave, parsedStory, master });
+  const choices = reduceStoryChoiceProjection({ save: nextSave, parsedStory, master, allowDeterministicFallback: true });
   nextSave.last_choices = choices.state; warnings.push(...choices.warnings);
   const time = reduceElapsedTimeObservation({ save: nextSave, elapsedMinutes: observation.elapsed_minutes, evidence });
   nextSave.world_state = { ...(object(nextSave.world_state) ? nextSave.world_state : {}), game_time: time.after };

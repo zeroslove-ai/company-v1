@@ -106,3 +106,14 @@ test('all registered NPCs have valid default locations', () => {
     assert.ok(LOCATION_IDS.has(character.default_location_id), `${id} default location is not registered`);
   }
 });
+
+test('relative private-office navigation resolves only an unambiguous department office', () => {
+  const map = [{ location_id: 'brand_strategy_office', name: '\uBE0C\uB79C\uB4DC\uC804\uB7B5\uD300 \uC0AC\uBB34\uC2E4', location_type: 'office_floor', department_id: 'brand_strategy' }];
+  const resolved = resolveNavigationLocation({
+    save: { ...save(), player: { department_id: 'brand_strategy' } },
+    master: MASTER,
+    playerAction: '\uB0B4 \uAC1C\uC778\uC2E4\uB85C \uC774\uB3D9\uD55C\uB2E4',
+    mapLocations: map
+  });
+  assert.equal(resolved, 'brand_strategy_office');
+});

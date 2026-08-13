@@ -50,7 +50,10 @@ function canonicalObservation(observation, parsedStory) {
   return {
     scene_id: scene.scene_id ?? null,
     location_id: scene.location_id ?? null,
-    final_present_npc_ids: Array.isArray(scene.final_present_npc_ids) ? scene.final_present_npc_ids : null,
+   final_present_npc_ids: Array.isArray(scene.final_present_npc_ids) ? scene.final_present_npc_ids : null,
+    entered_npc_ids: Array.isArray(scene.entered_npc_ids) ? scene.entered_npc_ids : [],
+    exited_npc_ids: Array.isArray(scene.exited_npc_ids) ? scene.exited_npc_ids : [],
+    presence_is_final: scene.presence_is_final === true,
     focal_candidate_id: scene.focal_candidate_id ?? null,
     explicit_speaker_ids: speakers,
     acted_npc_ids: [],

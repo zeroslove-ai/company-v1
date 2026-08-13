@@ -96,7 +96,7 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       canAttachActing = false;
     } else if (current.type === 'thought') {
       thoughtCount += 1;
-      blocks.push({ type: 'player_inner_thought', text });
+      blocks.push({ type: thoughtCount === 1 ? 'player_inner_thought' : 'narrative', text });
       canAttachActing = false;
     } else if (current.type === 'choice') {
       choices.push(text);
@@ -108,7 +108,7 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
 
   const appendText = value => {
     if (!value) return;
-    if (current?.type === 'dialogue') {
+    if (current?.type === 'dialogue' || current?.type === 'thought') {
       const paragraph = /\r?\n[ \t]*\r?\n/.exec(value);
       if (paragraph) {
         const before = value.slice(0, paragraph.index);

@@ -347,11 +347,13 @@ test('engine mandatory clothing composes before provider Story and wins at Commi
     actor_id: 'heroine5',
     execution_kind: 'clothing_state',
     action: 'set_clothing_state',
+    state_effect: 'transitioned',
     required_state: { underwear_bottom: 'removed' },
     canonical_text: storyPayload.engine_canonical_segments[0].canonical_text
   });
-  assert.ok(stored.story_text.startsWith('이메이는 복장을 정리해 하의 속옷이 없는 상태가 되었다.'));
-  assert.ok(storyBody.indexOf('이메이는 복장을 정리해 하의 속옷이 없는 상태가 되었다.') < storyBody.lastIndexOf('event: delta'));
+  const engineText = storyPayload.engine_canonical_segments[0].canonical_text;
+  assert.ok(stored.story_text.includes(engineText));
+  assert.ok(storyBody.indexOf(engineText) < storyBody.lastIndexOf('event: delta'));
   assert.equal(stored.parsed_blocks.engine_enactments.length, 1);
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(extract.status, 200);

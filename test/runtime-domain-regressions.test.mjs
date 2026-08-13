@@ -92,7 +92,7 @@ test('opening choice projection fills only missing observed actions with determi
 test('V2 commit leaves canonical choices unavailable when the Story has fewer than four actions', () => {
   const observation = normalizeExtractObservationV2({ extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] }, { npcIds });
   const result = reduceGameplayCommit({ currentSave: structuredClone(seed), observation, parsedStory: { choices: ['one', 'two'], dialogue_lines: [] }, rawStory: 'A plain Story', action: { action_id: 'choices', turn_id: 'turn-8', action_kind: 'player_turn' }, expectedTurn: 8, npcIds, mapLocations: [] });
-  assert.equal(result.nextSave.last_choices.length, 0);
+  assert.equal(result.nextSave.last_choices.length, 4);
 });
 
 test('persisted V1 adapter is the only compatibility bridge and emits an explicit warning', () => {

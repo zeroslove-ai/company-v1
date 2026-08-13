@@ -27,9 +27,9 @@ const CSA_TRIGGER_FIELDS = new Set(['csa_id', 'status']);
 const RUNTIME = new Set(['inactive', 'active', 'paused', 'ended']);
 const CSA_RUNTIME_FIELDS = new Set(['csa_id', 'character_id', 'status', 'target_type', 'action_state', 'position_label', 'reason']);
 const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'quote']);
-const SCENE_EVIDENCE_KINDS = new Set(['presence', 'scene']);
+const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'scene']);
 const FRESH_OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked']);
-const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
+const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'presence_is_final', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -263,6 +263,9 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
   const scene = value.scene_observation;
   assertKeys(scene, new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'remote_speaker_ids', 'evidence', 'presence_is_final']), 'INVALID_EXTRACT_OBSERVATION');
   const final = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
+  let entered = ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false });
+  let exited = ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false });
+  if (entered.some(id => exited.includes(id))) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'entered_npc_ids and exited_npc_ids must not overlap');
   if (Object.hasOwn(scene, 'presence_is_final') && typeof scene.presence_is_final !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'presence_is_final must be a boolean when provided for legacy compatibility');
   let sceneId = scene.scene_id === null || scene.scene_id === undefined ? null : (typeof scene.scene_id === 'string' && scene.scene_id.trim() ? scene.scene_id.trim() : null);
   if (scene.scene_id !== null && scene.scene_id !== undefined && !sceneId) {
@@ -273,16 +276,29 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
   const sceneEvidence = softOptional
     ? dropOptional(true, 'scene_observation.evidence', warnings, [], () => normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId))
     : normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId);
+  const evidenceFor = (kind, id) => sceneEvidence.some(item => item.character_id === id && (item.kind === kind || item.kind === 'presence'));
+  for (const id of entered.filter(candidate => !evidenceFor('entrance', candidate))) {
+    if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Missing exact entrance evidence for ${id}`);
+    warnings.push(`extract_optional_dropped:entered_npc_ids:${id}`);
+  }
+  for (const id of exited.filter(candidate => !evidenceFor('exit', candidate))) {
+    if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Missing exact exit evidence for ${id}`);
+    warnings.push(`extract_optional_dropped:exited_npc_ids:${id}`);
+  }
+  entered = entered.filter(id => evidenceFor('entrance', id));
+  exited = exited.filter(id => evidenceFor('exit', id));
   const locationValid = scene.location_id === null || scene.location_id === undefined || (typeof scene.location_id === 'string' && scene.location_id.trim());
   if (!locationValid && !softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'location_id must be a string or null');
   const locationId = locationValid ? (scene.location_id === null || scene.location_id === undefined ? null : scene.location_id.trim()) : null;
+  const hasPresenceEvidenceFields = Object.hasOwn(scene, 'entered_npc_ids') || Object.hasOwn(scene, 'exited_npc_ids') || Object.hasOwn(scene, 'presence_is_final');
   const normalized = {
     extract_version: 2,
     outcome: value.outcome,
     scene_observation: {
       scene_id: sceneId,
       location_id: locationId,
-      final_present_npc_ids: final,
+     final_present_npc_ids: final,
+      ...(hasPresenceEvidenceFields ? { entered_npc_ids: entered, exited_npc_ids: exited } : {}),
       focal_candidate_id: dropOptional(softOptional, 'scene_observation.focal_candidate_id', warnings, null, () => nullableId(scene.focal_candidate_id, registered, 'focal_candidate_id')),
       remote_speaker_ids: dropOptional(softOptional, 'scene_observation.remote_speaker_ids', warnings, [], () => ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false })),
       evidence: sceneEvidence

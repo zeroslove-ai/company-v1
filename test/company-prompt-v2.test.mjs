@@ -132,6 +132,9 @@ test('Extract Prompt v2 separates exact state evidence from Mind Monitor interpr
 
   assert.match(system, /state, numeric, relationship, clothing, posture, position, and event proposal in exact Story evidence/);
   assert.match(system, /Mind Monitor interpretation/);
+  assert.match(system, /Mind Monitor style contract/);
+  assert.match(system, /natural Korean first-person inner monologue/);
+  assert.match(system, /report|status summary|narrator/);
   assert.match(system, /may not invent a new event, memory, agreement, contact, or fact/);
   assert.equal('active_character_canon' in payload, false);
   assert.equal('active_general_npc_canon' in payload, false);

@@ -410,8 +410,16 @@ const MOVE_ACTION = /(찾으러|찾아가|찾아간|찾아보|찾아본|보러|�
 export function resolveNavigationLocation({ save = {}, master = {}, playerAction = '', mapLocations = [] } = {}) {
   const source = typeof playerAction === 'string' ? playerAction : '';
   if (!source || !MOVE_ACTION.test(source)) return null;
-  const currentLocationId = identity(hydrateCanonicalScene(save, { master, mapLocations }).location_id);
-  let best = null;
+ const currentLocationId = identity(hydrateCanonicalScene(save, { master, mapLocations }).location_id);
+  if (/(?:\uB0B4\s*)?(?:\uAC1C\uC778\uC2E4|\uC0AC\uBB34\uC2E4|\uC0AC\uBB34\uACF5\uAC04)/u.test(source)) {
+    const departmentId = identity(save?.player?.department_id);
+    const candidates = (Array.isArray(mapLocations) ? mapLocations : []).filter(location => {
+      const type = identity(location?.location_type) ?? '';
+      return departmentId && identity(location?.department_id) === departmentId && /(?:office|\uC0AC\uBB34)/i.test(type + ' ' + identity(location?.name));
+    });
+    if (candidates.length === 1 && identity(candidates[0]?.location_id) !== currentLocationId) return identity(candidates[0].location_id);
+  }
+ let best = null;
   for (const location of Array.isArray(mapLocations) ? mapLocations : []) {
     const id = identity(location?.location_id);
     if (!id) continue;
