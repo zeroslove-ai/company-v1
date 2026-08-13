@@ -49,24 +49,13 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
   const directory = buildStoryIdentityDirectory(master);
   const blocks = [];
   const dialogueLines = [];
+  const actingEvents = [];
   const warnings = [];
   const choices = [];
   let current = null;
   let thoughtCount = 0;
   let lastDialogue = null;
-  let canAttachActing = false;
-
-  const projectActing = (target, direction) => {
-    if (!target || !direction) return;
-    target.acting_direction = direction;
-    target.direction = direction;
-    const projected = blocks.find(block => block.type === 'dialogue' && block.order === target.order);
-    if (projected) {
-      projected.acting_direction = direction;
-      projected.direction = direction;
-    }
-  };
-
+  let canAttachLegacyActing = false;
   const flush = () => {
     if (!current) return;
     const text = normalizeProjectionText(current.lines.join('\n'));
@@ -90,18 +79,31 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       dialogueLines.push(item);
       blocks.push({ type: 'dialogue', ...item });
       lastDialogue = item;
-      canAttachActing = true;
+      canAttachLegacyActing = true;
+    } else if (current.type === 'acting') {
+      if (!text) fail('ACTING block must contain text');
+      const item = {
+        type: 'acting',
+        text,
+        order: blocks.length,
+        ...(current.enactment_id ? { enactment_id: current.enactment_id } : {}),
+        ...(current.actor_id ? { actor_id: current.actor_id } : {}),
+        ...(current.posture_after ? { posture_after: current.posture_after } : {})
+      };
+      blocks.push(item);
+      actingEvents.push({ ...item });
+      canAttachLegacyActing = false;
     } else if (current.type === 'scene') {
       blocks.push({ type: 'scene', text });
-      canAttachActing = false;
+      canAttachLegacyActing = false;
     } else if (current.type === 'thought') {
       thoughtCount += 1;
       blocks.push({ type: thoughtCount === 1 ? 'player_inner_thought' : 'narrative', text });
-      canAttachActing = false;
+      canAttachLegacyActing = false;
     } else if (current.type === 'choice') {
       choices.push(text);
       blocks.push({ type: 'choice', text });
-      canAttachActing = false;
+      canAttachLegacyActing = false;
     }
     current = null;
   };
@@ -132,32 +134,49 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
     if (token.type === 'text') { appendText(token.value); continue; }
     const marker = token.marker;
     if (marker.type === 'acting') {
-      const target = current?.type === 'dialogue' ? current : (canAttachActing ? lastDialogue : null);
-      if (!target) warnings.push('acting_without_dialogue');
-      const next = tokens[index + 1]?.type === 'text' ? tokens[index + 1].value : '';
-      const directionSource = next.replace(/^[ \t]*(?:\r?\n)?/, '');
-      const direction = directionSource.split(/\r?\n/, 1)[0].replace(/^[ \t]+/, '').trim();
-      if (direction && !direction.startsWith('[')) {
-        if (target?.acting_direction !== null) warnings.push('dialogue_acting_duplicate');
-        else projectActing(target, direction);
-        if (tokens[index + 1]?.type === 'text') {
-          const remainder = directionSource.replace(/^[^\r\n]*(?:\r?\n|$)/, '');
-          if (remainder) tokens[index + 1].value = remainder;
-          else tokens.splice(index + 1, 1);
+      if (marker.legacy) {
+        const target = current?.type === 'dialogue' ? current : (canAttachLegacyActing ? lastDialogue : null);
+        const next = tokens[index + 1]?.type === 'text' ? tokens[index + 1] : null;
+        const source = String(next?.value ?? '').replace(/^[ \t]*/, '');
+        const lines = source.split(/\r?\n/);
+        let direction = lines[0].trim();
+        if (!direction && lines.length > 1) direction = lines[1].trim();
+        const consumedLines = !lines[0].trim() ? 2 : 1;
+        if (target && direction) {
+          if (target.acting_direction) warnings.push('dialogue_acting_duplicate');
+          else {
+            target.acting_direction = direction;
+            target.direction = direction;
+          }
+          if (next) next.value = lines.slice(consumedLines).join('\n');
+        } else if (!target) {
+          warnings.push('acting_without_dialogue');
         }
+        continue;
       }
+      flush();
+      current = {
+        type: 'acting',
+        enactment_id: marker.enactment_id ?? null,
+        actor_id: marker.actor_id ?? null,
+        posture_after: marker.posture_after ?? null,
+        lines: []
+      };
       continue;
     }
-    if (marker.type === 'acting_end') continue;
+    if (marker.type === 'acting_end') {
+      if (current?.type === 'acting') flush();
+      continue;
+    }
     if (marker.type === 'block_end') {
       if (current) flush();
-      canAttachActing = marker.block_type === 'dialogue';
+      if (marker.block_type !== 'dialogue') canAttachLegacyActing = false;
       continue;
     }
     if (marker.type !== 'block_start') fail('Unexpected Story control marker');
     flush();
     current = { type: marker.block_type, speaker_id: marker.speaker_id, acting_direction: null, lines: [] };
-    canAttachActing = marker.block_type === 'dialogue';
+    canAttachLegacyActing = marker.block_type === 'dialogue';
   }
   flush();
 
@@ -181,7 +200,7 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
     warnings.push('dialogue_marker_fallback_applied');
   }
 
-  const hasBody = blocks.some(block => ['scene', 'narrative', 'dialogue'].includes(block.type) && String(block.text ?? '').trim());
+  const hasBody = blocks.some(block => ['scene', 'narrative', 'dialogue', 'acting'].includes(block.type) && String(block.text ?? '').trim());
   if (!hasBody) fail('Story body is missing');
   if (!blocks.some(block => block.type === 'player_inner_thought' && String(block.text ?? '').trim())) warnings.push('player_inner_thought_missing');
   if (thoughtCount > 1) warnings.push('player_inner_thought_duplicate');
@@ -202,6 +221,7 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
     choices,
     canonical_choices: canonicalChoices,
     dialogue_lines: dialogueLines,
+    acting_events: actingEvents,
     warnings
   };
 }

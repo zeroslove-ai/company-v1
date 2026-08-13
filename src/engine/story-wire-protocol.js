@@ -1,6 +1,6 @@
 import { GameCoreError } from './errors.js';
 
-export const STORY_BLOCK_TYPES = Object.freeze(['scene', 'narrative', 'dialogue', 'thought', 'choice']);
+export const STORY_BLOCK_TYPES = Object.freeze(['scene', 'narrative', 'dialogue', 'thought', 'choice', 'acting']);
 
 function protocolError(message) {
   return new GameCoreError('STORY_PROTOCOL_INVALID', message);
@@ -61,7 +61,6 @@ export function parseStoryControlMarker(input, { directory = null } = {}) {
   const simple = new Map([
     ['[SCENE]', { type: 'block_start', block_type: 'scene' }],
     ['[/SCENE]', { type: 'block_end', block_type: 'scene' }],
-    ['[ACTING]', { type: 'acting' }],
     ['[/ACTING]', { type: 'acting_end' }],
     ['[THOUGHT]', { type: 'block_start', block_type: 'thought' }],
     ['[/THOUGHT]', { type: 'block_end', block_type: 'thought' }],
@@ -76,6 +75,13 @@ export function parseStoryControlMarker(input, { directory = null } = {}) {
     if (directory && !directory.has(attributes.speaker_id)) throw protocolError(`Unknown Story speaker_id: ${attributes.speaker_id}`);
     return { type: 'block_start', block_type: 'dialogue', raw: token, remainder, speaker_id: attributes.speaker_id, acting_direction: null, leadingWhitespace: leading, end: leading.length + close + 1 };
   }
+  if (source.startsWith('[ACTING')) {
+    if (!/^\[ACTING(?:\s|\])/.test(token)) throw protocolError('Malformed ACTING marker');
+    const attributes = parseQuotedAttributes(token.slice('[ACTING'.length, -1), new Set(['enactment_id', 'actor_id', 'posture_after']));
+    if (attributes.actor_id && directory && !directory.has(attributes.actor_id)) throw protocolError(`Unknown Story actor_id: ${attributes.actor_id}`);
+    if (attributes.posture_after && !new Set(['sitting', 'standing']).has(attributes.posture_after)) throw protocolError('posture_after must be sitting or standing');
+    return { type: 'acting', raw: token, remainder, legacy: Object.keys(attributes).length === 0, ...attributes, leadingWhitespace: leading, end: leading.length + close + 1 };
+  }
   if (source.startsWith('[CHOICE')) {
     if (!/^\[CHOICE(?:\s|\])/.test(token)) throw protocolError('Malformed CHOICE marker');
     parseQuotedAttributes(token.slice('[CHOICE'.length, -1), new Set());
@@ -86,7 +92,7 @@ export function parseStoryControlMarker(input, { directory = null } = {}) {
 }
 
 function knownPrefix(value) {
-  return ['[SCENE]', '[/SCENE]', '[/DIALOGUE]', '[ACTING]', '[/ACTING]', '[THOUGHT]', '[/THOUGHT]', '[/CHOICE]', '[DIALOGUE', '[CHOICE'].some(prefix => prefix.startsWith(value) || value.startsWith(prefix));
+  return ['[SCENE]', '[/SCENE]', '[/DIALOGUE]', '[/ACTING]', '[THOUGHT]', '[/THOUGHT]', '[/CHOICE]', '[DIALOGUE', '[ACTING', '[CHOICE'].some(prefix => prefix.startsWith(value) || value.startsWith(prefix));
 }
 
 function knownMarkerStart(value) {
@@ -108,11 +114,10 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
   let finished = false;
   let activeDialogue = false;
   let activeBlockType = null;
-  let awaitingActing = false;
-  let actingBuffer = '';
-  let canAttachActing = false;
-  let actingTarget = null;
-  let actingDuplicate = false;
+  let canAttachLegacyActing = false;
+  let legacyActingUsed = false;
+  let legacyActingPending = false;
+  let legacyActingBuffer = '';
 
   const emitText = (events, text) => {
     if (!text) return;
@@ -124,7 +129,6 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
         if (before) events.push({ type: 'text_delta', text: before });
         events.push({ type: 'block_end', block_type: 'dialogue', implicit: true });
         activeDialogue = false;
-        canAttachActing = true;
         activeBlockType = null;
         if (after) emitText(events, after);
         return;
@@ -142,16 +146,14 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
       if (activeBlockType) events.push({ type: 'block_end', block_type: activeBlockType, implicit: true });
       activeDialogue = marker.block_type === 'dialogue';
       activeBlockType = marker.block_type;
-      canAttachActing = marker.block_type === 'dialogue';
+      canAttachLegacyActing = marker.block_type === 'dialogue';
+      legacyActingUsed = false;
       const data = { type: 'block_start', block_type: marker.block_type };
       if (marker.block_type === 'dialogue') {
         activeDialogue = true;
         data.speaker_id = marker.speaker_id;
         data.speaker_name = directory.get(marker.speaker_id);
-        data.acting_direction = null;
-        actingTarget = data;
-        actingDuplicate = false;
-      } else { actingTarget = null; actingDuplicate = false; }
+      }
       events.push(data);
     } else if (marker.type === 'block_end') {
       if (!activeBlockType) return;
@@ -159,30 +161,34 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
         events.push({ type: 'block_end', block_type: activeBlockType, implicit: true });
       } else events.push({ type: 'block_end', block_type: marker.block_type });
       activeDialogue = false;
-      canAttachActing = marker.block_type === 'dialogue';
       // Keep the just-closed dialogue as the only adjacency target until the
       // next semantic block begins; post-dialogue ACTING may attach to it.
       activeBlockType = null;
+      if (marker.block_type !== 'dialogue') canAttachLegacyActing = false;
     } else if (marker.type === 'acting') {
-      const target = activeDialogue ? actingTarget : (canAttachActing ? actingTarget : null);
-      if (!target) events.push({ type: 'warning', code: 'acting_without_dialogue' });
-      else if (target.acting_direction !== null || actingDuplicate) {
-        events.push({ type: 'warning', code: 'dialogue_acting_duplicate' });
-        actingDuplicate = true;
-      }
-      const direction = visibleRemainder(marker.remainder).split(/\r?\n/, 1)[0];
-      if (direction && !direction.startsWith('[')) {
-        if (target && !actingDuplicate && target.acting_direction === null) {
-          target.acting_direction = direction;
-          events.push({ type: 'acting', acting_direction: direction });
+      if (marker.legacy && (activeDialogue || canAttachLegacyActing)) {
+        if (legacyActingUsed) {
+          events.push({ type: 'warning', code: 'dialogue_acting_duplicate' });
+          return;
         }
-      } else {
-        awaitingActing = true;
-        actingTarget = target;
-        actingDuplicate = Boolean(target && (target.acting_direction !== null || actingDuplicate));
+        legacyActingUsed = true;
+        legacyActingPending = true;
+        return;
       }
+      if (marker.legacy) {
+        events.push({ type: 'warning', code: 'acting_without_dialogue' });
+        return;
+      }
+      if (activeBlockType) events.push({ type: 'block_end', block_type: activeBlockType, implicit: true });
+      activeDialogue = false;
+      activeBlockType = 'acting';
+      const data = { type: 'block_start', block_type: 'acting' };
+      for (const key of ['enactment_id', 'actor_id', 'posture_after']) if (marker[key]) data[key] = marker[key];
+      events.push(data);
+      events.push({ ...data, type: 'acting' });
     } else if (marker.type === 'acting_end') {
-      return;
+      if (activeBlockType === 'acting') events.push({ type: 'block_end', block_type: 'acting' });
+      activeBlockType = null;
     }
   };
   const consume = events => {
@@ -200,9 +206,19 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
     candidate = '';
     lineStart = false;
     afterMarker = true;
-    const remainder = marker.type === 'acting'
-      ? visibleRemainder(marker.remainder).replace(/^[^\r\n]*(?:\r?\n|$)/, '')
-      : visibleRemainder(marker.remainder);
+    let remainder = visibleRemainder(marker.remainder);
+    if (marker.type === 'acting' && marker.legacy && (activeDialogue || canAttachLegacyActing) && remainder) {
+      remainder = remainder.replace(/^\r?\n/, '');
+      const newline = remainder.search(/\r?\n/);
+      const nextControl = remainder.search(/\[/);
+      const boundary = newline >= 0 ? newline : (nextControl >= 0 ? nextControl : remainder.length);
+      const direction = remainder.slice(0, boundary).trim();
+      if (direction) events.push({ type: 'acting', acting_direction: direction });
+      if (newline >= 0) remainder = remainder.slice(newline + (remainder[newline] === '\r' ? 2 : 1));
+      else if (nextControl >= 0) remainder = remainder.slice(nextControl);
+      else remainder = '';
+      legacyActingPending = false;
+    }
     if (remainder) {
       afterMarker = false;
       const nextControl = remainder.search(/\[(?:\/?SCENE|\/?DIALOGUE|\/?ACTING|\/?THOUGHT|\/?CHOICE)(?:\s|\]|\/)/);
@@ -224,34 +240,33 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
     let index = 0;
     while (index < input.length) {
       const character = input[index];
-      if (awaitingActing) {
+      if (legacyActingPending) {
         if (character === '[') {
-          const direction = actingBuffer.trim();
-          if (direction && actingTarget && !actingDuplicate && actingTarget.acting_direction === null) {
-            actingTarget.acting_direction = direction;
-            events.push({ type: 'acting', acting_direction: direction });
-          } else if (direction && actingTarget) {
-            actingDuplicate = true;
-            events.push({ type: 'warning', code: 'dialogue_acting_duplicate' });
-          }
-          actingBuffer = ''; awaitingActing = false; afterMarker = false;
+          const direction = legacyActingBuffer.trim();
+          if (direction) events.push({ type: 'acting', acting_direction: direction });
+          legacyActingBuffer = '';
+          legacyActingPending = false;
+          afterMarker = false;
           continue;
         }
         if (character === '\n') {
-          const direction = actingBuffer.trim();
-          if (!direction) { index += 1; lineStart = true; continue; }
-          if (direction && !direction.startsWith('[')) {
-            if (actingTarget && !actingDuplicate && actingTarget.acting_direction === null) {
-              actingTarget.acting_direction = direction;
-              events.push({ type: 'acting', acting_direction: direction });
-            } else if (actingTarget) {
-              actingDuplicate = true;
-              events.push({ type: 'warning', code: 'dialogue_acting_duplicate' });
-            }
+          const direction = legacyActingBuffer.trim();
+          if (!direction) {
+            lineStart = true;
+            index += 1;
+            continue;
           }
-          actingBuffer = ''; awaitingActing = false; afterMarker = false; lineStart = true; index += 1; continue;
+          if (direction) events.push({ type: 'acting', acting_direction: direction });
+          legacyActingBuffer = '';
+          legacyActingPending = false;
+          afterMarker = false;
+          lineStart = true;
+          index += 1;
+          continue;
         }
-        actingBuffer += character; index += 1; continue;
+        legacyActingBuffer += character;
+        index += 1;
+        continue;
       }
       if (candidate) {
         candidate += character; index += 1;
@@ -278,16 +293,11 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
     if (finished) return [];
     finished = true;
     const events = [];
-    if (awaitingActing) {
-      const direction = actingBuffer.trim();
-      if (direction && !direction.startsWith('[') && actingTarget && !actingDuplicate && actingTarget.acting_direction === null) {
-        actingTarget.acting_direction = direction;
-        events.push({ type: 'acting', acting_direction: direction });
-      }
-      actingBuffer = ''; awaitingActing = false;
-    }
     if (candidate && knownPrefix(candidate)) throw protocolError('Incomplete Story control marker');
     if (candidate) emitText(events, candidate);
+    if (legacyActingPending && legacyActingBuffer.trim()) events.push({ type: 'acting', acting_direction: legacyActingBuffer.trim() });
+    legacyActingPending = false;
+    legacyActingBuffer = '';
     return events;
   }
   return { push, finish };

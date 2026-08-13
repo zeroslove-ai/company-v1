@@ -168,7 +168,7 @@ test('behavior obligation is not suppressed by stale rule-level executed runtime
   assert.equal(projection.scene_obligations[0].type, 'behavior_execution');
 });
 
-test('applied transaction verification accepts immutable proof without the old planner digest', async () => {
+test('transaction verification rejects a proof against an already-applied save because Commit owns the write', async () => {
   const secret = 'phase12h-test-secret';
   const gameId = '11111111-1111-4111-8111-111111111111';
   const resolution = { version: 1, base_turn_count: 0, planner_input_digest: 'old-digest', next_csa_active: ['csa_1'], next_csa_rules: { csa_1: { active: true } }, summary: { total: 1 } };
@@ -179,8 +179,8 @@ test('applied transaction verification accepts immutable proof without the old p
   action.semantic_validation = semantic;
   action.validation_proof = await signTransactionValidationProof(secret, { game_id: gameId, base_turn_count: 0, action_digest: actionDigest, resolution_digest: resolution.resolution_digest, semantic_results: [] });
   const result = await verifySignedTransactionResolution({ secret, gameId, structuredAction: action, save: { turn_state: { committed_turn: 0 }, csa_active: ['csa_1'], csa_rules: { csa_1: { active: true } } }, expectedTurn: 1 });
-  assert.equal(result.ok, true);
-  assert.equal(result.state, 'applied');
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'app_stale_state');
 });
 
 test('pre-apply RPC is service-role-only and does not advance the turn', () => {

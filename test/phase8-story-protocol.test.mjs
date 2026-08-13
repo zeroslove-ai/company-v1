@@ -127,9 +127,9 @@ test('Story durable output contract uses semantic blocks and UI-owned presentati
   assert.match(DURABLE_STORY_RULES, /\[DIALOGUE speaker_id=/);
   assert.match(DURABLE_STORY_RULES, /four literal \[CHOICE\] action blocks/);
   assert.doesNotMatch(DURABLE_STORY_RULES, /\[CHOICE label=/);
-  assert.match(DURABLE_STORY_RULES, /engine_canonical_segments are authoritative .* already occurred before your continuation/);
-  assert.match(DURABLE_STORY_RULES, /Do not repeat, undo, defer, renegotiate, await approval for, or contradict them/);
-  assert.match(DURABLE_STORY_RULES, /Engine fixes the behavior\/outcome; provider writes only the subsequent NPC reaction/);
+  assert.match(DURABLE_STORY_RULES, /Engine metadata defines WHAT/);
+  assert.match(DURABLE_STORY_RULES, /standalone visible \[ACTING enactment_id/);
+  assert.match(DURABLE_STORY_RULES, /Provider supplies natural narrative HOW/);
   assert.doesNotMatch(DURABLE_STORY_RULES, /\[1\. \uC11C\uC0AC \uBC0F \uD589\uB3D9\]|\[2\. \uD50C\uB808\uC774\uC5B4 \uC18D\uB9C8\uC74C\]|\[3\. \uC120\uD0DD\uC9C0\]/);
   assert.equal(DURABLE_STORY_RULES.includes('?쒖궗'), false);
   assert.equal(DURABLE_STORY_RULES.includes('?뚮젅'), false);

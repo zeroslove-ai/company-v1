@@ -105,7 +105,7 @@ test('Story rules distinguish institutional knowledge, compliance, and player-on
   const messages = buildStoryPrompt({ edition: { editionId: 'company-v1', characters: { characters: { heroine1: { name: 'Alpha', prompt_card: {} } } }, generalNpcs: { profiles: {} } }, context: { save: { data: { ...save(), scene: { ...save().scene, updated_turn: 0 } } }, recent_turns: [] }, playerAction: '', expectedTurn: 3, sceneCastContract: { present_npc_ids: ['heroine1'], entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null } });
   const system = messages[0].content;
   assert.match(system, /Worker-resolved institutional facts/i);
-  assert.match(system, /known_scene_actor_ids.*applicable_scene_actor_ids/i);
+  assert.match(system, /scene_actors are present now.*possible_entrants/i);
   assert.match(system, /concrete, observable, non-magical action or result/i);
   assert.match(system, /scene_obligation describes a required transition/i);
   assert.match(system, /belongs exclusively to the player/i);

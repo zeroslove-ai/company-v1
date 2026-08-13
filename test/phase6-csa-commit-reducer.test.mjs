@@ -86,14 +86,14 @@ test('Phase 6 signed update and deactivate use the same reducer writer', () => {
   assert.equal(deactivated.nextSave.csa_rules.csa_1.active, false);
 });
 
-test('Phase 6 accepted runtime execution is the only progression source', () => {
+test('Fresh Extract runtime updates are ignored; Engine enactments are the progression source', () => {
   const current = save({ csa_active: ['csa_1'], csa_rules: { csa_1: rule() } });
   const result = ordinary(current, {
     csa_runtime_updates: [{ csa_id: 'csa_1', character_id: 'heroine1', status: 'active' }]
   });
-  assert.deepEqual(result.acceptedExecutions, [{ csa_id: 'csa_1', character_id: 'heroine1' }]);
-  assert.deepEqual(result.nextSave.csa_experienced_ids, ['heroine1:csa_1']);
-  assert.equal(result.nextSave.player_progress.exp, 2);
+  assert.deepEqual(result.acceptedExecutions, []);
+  assert.deepEqual(result.nextSave.csa_experienced_ids, []);
+  assert.equal(result.nextSave.player_progress.exp, 0);
 });
 
 test('Phase 6 out-of-scope runtime updates do not progress experience', () => {

@@ -6,6 +6,7 @@ import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
   buildMindMonitorTargetIds,
+  buildDegradedExtractObservation,
   buildOpeningPlan,
   buildOpeningPrompt,
   buildStableNpcIdSet,
@@ -30,9 +31,6 @@ import {
   validatePlayerSetupInput,
   buildAppManualPayload,
   buildAppStatePayload,
-  buildCsaApplicationCheckSection,
-  buildCsaRuntimeExtractContractSection,
-  buildMindEffectExtractFirewallSection,
   calculateCsaCapability,
   classifyAppOperationStrengths,
   collectSemanticStrengthCandidates,
@@ -54,6 +52,7 @@ import {
   resolveStoredStructuredAction,
   assertStoredActionPersistenceParity,
   createStoryStreamDecoder,
+  applyAuthorizedRuleDefinitions,
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
@@ -99,6 +98,44 @@ function projectStorySaveAtLocation(save, locationId, { master, mapLocations } =
       focal_character_id: null,
       last_speaker_id: null
     }
+  };
+}
+
+function projectCsaTransactionSave(save, structuredAction, transactionResolution, stage) {
+  if (!structuredAction || !transactionResolution) return save;
+  const projected = structuredClone(save ?? {});
+  applyAuthorizedRuleDefinitions({
+    currentSave: save,
+    nextSave: projected,
+    transactionResolution,
+    structuredAction,
+    stage
+  });
+  return projected;
+}
+
+function playerPrivateOriginFor(structuredAction, csaResolution) {
+  if (!structuredAction || !csaResolution) return null;
+  const operations = Array.isArray(structuredAction.operations) ? structuredAction.operations : [];
+  const affected = [...new Set(operations
+    .map(operation => operation?.id ?? operation?.rule_id ?? operation?.client_id)
+    .filter(id => typeof id === 'string' && id.trim()))];
+  const previousIds = new Set(Array.isArray(csaResolution.previous_csa_active) ? csaResolution.previous_csa_active : []);
+  const nextIds = Array.isArray(csaResolution.next_csa_active) ? csaResolution.next_csa_active : [];
+  for (const id of nextIds) if (!previousIds.has(id)) affected.push(id);
+  for (const id of Object.keys(csaResolution.next_csa_rules ?? {})) {
+    const before = csaResolution.previous_csa_rules?.[id];
+    const after = csaResolution.next_csa_rules?.[id];
+    if (JSON.stringify(before) !== JSON.stringify(after)) affected.push(id);
+  }
+  const operationSet = [...new Set(operations
+    .map(operation => operation?.operation)
+    .filter(operation => typeof operation === 'string' && operation.trim()))];
+  return {
+    kind: 'csa_transaction',
+    initiated_by_player: true,
+    operation: operationSet.length === 1 ? operationSet[0] : 'multiple',
+    affected_rule_ids: [...new Set(affected)]
   };
 }
 
@@ -363,16 +400,29 @@ function mergePersistedEngineMetadata(parsedBlocks, persistedBlocks) {
   return merged;
 }
 
-function validateEngineMetadata({ enactments, worldRules, sceneObligations, master, playerName, storyText }) {
+function validateEngineMetadata({ enactments, worldRules, sceneObligations, master, playerName }) {
   const registeredIds = registeredIdsForMaster(master);
   for (const enactment of enactments) {
     validateMandatoryEnactment(enactment, {
-      storyText,
       sceneObligations,
       worldRules,
       registeredIds,
       playerName
     });
+  }
+}
+
+function validateProviderEnactmentBinding(parsed, enactments) {
+  const expected = [...new Set((Array.isArray(enactments) ? enactments : [])
+    .map(item => item?.segment_id)
+    .filter(id => typeof id === 'string' && id.trim()))];
+  const actual = (Array.isArray(parsed?.acting_events) ? parsed.acting_events : [])
+    .map(item => item?.enactment_id)
+    .filter(id => typeof id === 'string' && id.trim());
+  if (actual.length !== new Set(actual).size
+    || actual.some(id => !expected.includes(id))
+    || expected.some(id => !actual.includes(id))) {
+    throw new GameCoreError('STORY_PROTOCOL_INVALID', 'mandatory enactment ACTING binding mismatch');
   }
 }
 
@@ -516,19 +566,7 @@ const master = masterFromEdition(edition);
         let raw = '';
         let storyPersisted = false;
         const timing = {};
-        let transactionPreSave = null;
         try {
-          // Fresh signed app transactions cross the definition authority
-          // boundary before any Story work. The RPC is idempotent, so a
-          // Story retry observes the same applied definitions without a
-          // second write.
-          if (structuredAction?.transaction_resolution && action.action_kind !== 'feedback_revision') {
-            const preContext = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
-            const preSave = hydratedSaveContext(preContext, master).save?.data ?? preContext.save?.data ?? preContext.save;
-            transactionPreSave = preSave;
-            await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: preSave, csaCatalog, expectedTurn });
-            await db.applyReservedCsaTransaction(gameId, resolvedActionId, expectedTurn);
-          }
           const contextRpcStart = Date.now();
           const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
@@ -538,20 +576,29 @@ const master = masterFromEdition(edition);
             ? null
             : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
           const storyPlayerAction = csaResolution ? '' : playerAction;
+          const projectedTransactionSave = projectCsaTransactionSave(
+            hydratedSave,
+            csaResolution ? structuredAction : null,
+            csaResolution,
+            'story-projection'
+          );
           const resolvedLocationId = resolveNavigationLocation({
-            save: hydratedSave,
+            save: projectedTransactionSave,
             master,
             playerAction: storyPlayerAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          const storyBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
+          const storyBaseSave = projectStorySaveAtLocation(projectedTransactionSave, resolvedLocationId, {
             master,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          // The Story projection reads the canonical save after the pre-apply
-          // RPC. No temporary resolution overlay is injected into the prompt.
           const storySave = storyBaseSave;
-          const storyContext = hydratedContext;
+          const storyContext = {
+            ...hydratedContext,
+            save: hydratedContext.save?.data
+              ? { ...hydratedContext.save, data: storySave }
+              : storySave
+          };
           // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
           const sceneCastContract = buildSceneCastContract({
             save: storySave, master, playerAction: storyPlayerAction, structuredAction: csaResolution ? null : structuredAction,
@@ -596,10 +643,11 @@ const master = masterFromEdition(edition);
             npcIds,
             catalogs,
             sceneCastContract,
-            turnTrigger: buildStoryTurnTrigger({ actionKind, csaResolution, preSave: transactionPreSave ?? hydratedSave }),
+            turnTrigger: buildStoryTurnTrigger({ actionKind, csaResolution, preSave: hydratedSave }),
             feedbackText: action.action_kind === 'feedback_revision' ? action.feedback_text : '',
             storyWorld,
-            engineCanonicalSegments
+            engineCanonicalSegments,
+            playerPrivateOrigin: playerPrivateOriginFor(structuredAction, csaResolution)
           });
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
@@ -613,7 +661,7 @@ const master = masterFromEdition(edition);
           let upstreamRaw = '';
           const wireDecoder = createStoryStreamDecoder({ master });
           const visibleStartedAt = Date.now();
-          const engineText = engineCanonicalSegments.map(segment => segment.canonical_text).filter(Boolean).join('\n\n');
+          const engineText = institutionalSegments.map(segment => segment.canonical_text).filter(Boolean).join('\n\n');
           if (actionKind !== 'feedback_revision') {
             validateEngineMetadata({
               enactments: engineEnactments,
@@ -621,7 +669,6 @@ const master = masterFromEdition(edition);
               sceneObligations: storyWorld.scene_obligations,
               master,
               playerName: storySave?.player?.name ?? '',
-              storyText: engineText
             });
           }
           if (engineText) emitVisibleStory(emit, engineText, { master, timing });
@@ -641,6 +688,7 @@ const master = masterFromEdition(edition);
           const canonicalStory = composeCanonicalStory({ institutionalSegments, engineEnactments, providerNarrative: upstreamRaw });
           raw = canonicalStory;
           const parsed = parseFreshNarrativeV2(canonicalStory, { master });
+          if (actionKind !== 'feedback_revision') validateProviderEnactmentBinding(parsed, engineEnactments);
           const playerPolicy = sceneCastContract.player_dialogue;
           const unauthorizedPlayerDialogue = (parsed.dialogue_lines ?? [])
             .filter(line => /^player(?:[-_]|$)/i.test(String(line?.speaker_id ?? '')))
@@ -665,7 +713,6 @@ const master = masterFromEdition(edition);
               sceneObligations: storyWorld.scene_obligations,
               master,
               playerName: storySave?.player?.name ?? '',
-              storyText: canonicalStory
             });
           }
           timing.upstream_story_chars = upstreamRaw.length;
@@ -735,8 +782,7 @@ const master = masterFromEdition(edition);
         // Extract observes the same raw Story text that was streamed to the player.
         const storyForExtract = action.story_text;
         let extract;
-        try {
-          const contextRpcStart = Date.now();
+        const contextRpcStart = Date.now();
           const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
@@ -749,22 +795,27 @@ const master = masterFromEdition(edition);
           const promptStart = Date.now();
           // CSA transaction 턴에는 post-transaction save로 Extract context를 만든다
           // (Story 경로와 동일한 단일 정본 — runtime wrapper가 다시 덮어쓸 필요가 없다).
+          const projectedTransactionSave = projectCsaTransactionSave(
+            hydratedSave,
+            csaResolution ? structuredAction : null,
+            csaResolution,
+            'extract-projection'
+          );
           const resolvedLocationId = resolveNavigationLocation({
-            save: hydratedSave,
+            save: projectedTransactionSave,
             master,
             // Extract observes the completed Story; player input is not an
             // observation authority and must not influence its prompt context.
             playerAction: '',
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          const extractBaseSave = projectStorySaveAtLocation(hydratedSave, resolvedLocationId, {
+          const extractBaseSave = projectStorySaveAtLocation(projectedTransactionSave, resolvedLocationId, {
             master,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
           // Extract observes the same canonical save that Story observed; the
           // signed resolution is not a second, ephemeral state projection.
           const extractSave = extractBaseSave;
-          const applicableCsa = getApplicableCsaEntries(extractSave);
           const extractContext = {
             ...hydratedContext,
             save: hydratedContext.save?.data
@@ -772,11 +823,7 @@ const master = masterFromEdition(edition);
               : extractSave
           };
           const mindMonitorTargets = buildMindMonitorTargetIds({ context: extractContext, parsedStory, npcIds });
-          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, expectedTurn: action.expected_turn, edition, npcIds, mindMonitorTargets });
-          const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaResolution) })
-            + buildCsaApplicationCheckSection(applicableCsa)
-            + buildCsaRuntimeExtractContractSection(applicableCsa);
-          if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
+          const messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, expectedTurn: action.expected_turn, edition, npcIds, mindMonitorTargets });
           timing.extract_prompt_ms = Date.now() - promptStart;
           const extractUserPayload = JSON.parse(messages[1].content);
           timing.extract_system_chars = messages[0].content.length;
@@ -784,24 +831,29 @@ const master = masterFromEdition(edition);
           timing.parsed_story_chars = JSON.stringify(parsedStory).length;
           timing.extract_request_chars = messages[0].content.length + messages[1].content.length;
           timing.active_character_count = activeCountFromNpcState(extractUserPayload.context?.active_npc_state);
-          const llmStart = Date.now();
-          const raw = await runExtract({ env, fetchImpl, messages });
-          timing.extract_llm_ms = Date.now() - llmStart;
-          const parseStart = Date.now();
-          // Fresh Extract calls are V2-only. The legacy adapter is reserved for
-          // persisted V1 rows during replay/recovery, never for a new LLM result.
-          extract = normalizeFreshExtractObservationV2(raw, {
-            npcIds,
-            storyText: storyForExtract,
-            expectedTurn: action.expected_turn,
-            actionId,
-            requiredMindMonitorIds: mindMonitorTargets,
-          });
-          timing.extract_parse_ms = Date.now() - parseStart;
-        } catch (error) {
-          await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
-          throw error;
-        }
+          try {
+            const llmStart = Date.now();
+            const raw = await runExtract({ env, fetchImpl, messages });
+            timing.extract_llm_ms = Date.now() - llmStart;
+            const parseStart = Date.now();
+            // Fresh Extract calls are V2-only. The legacy adapter is reserved for
+            // persisted V1 rows during replay/recovery, never for a new LLM result.
+            extract = normalizeFreshExtractObservationV2(raw, {
+              npcIds,
+              storyText: storyForExtract,
+              expectedTurn: action.expected_turn,
+              actionId,
+              requiredMindMonitorIds: mindMonitorTargets,
+            });
+            timing.extract_parse_ms = Date.now() - parseStart;
+          } catch (error) {
+            // Extract is an optional observation. Invalid, truncated, or
+            // contract-invalid output degrades deterministically and still
+            // reaches record_extract_result and the single Commit path.
+            extract = buildDegradedExtractObservation({
+              extraWarnings: [`extract_fail_open:${error?.code ?? 'invalid_observation'}`]
+            });
+          }
         try {
           await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
         } catch (error) {
@@ -816,6 +868,11 @@ const master = masterFromEdition(edition);
           await db.getAction(gameId, actionId).catch(() => null);
         }
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, parsed_blocks: parsedStory });
+      } catch (error) {
+        // Infrastructure/context/persistence failures remain retryable. Only
+        // the single Extract completion itself is fail-open degraded above.
+        await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
+        throw error;
       } finally {
         logTurnTiming({
           event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId,
@@ -876,8 +933,7 @@ const master = masterFromEdition(edition);
             worldRules: commitWorld.world_rules,
             sceneObligations: commitWorld.scene_obligations,
             master,
-            playerName: currentSave?.player?.name ?? '',
-            storyText: action.story_text
+            playerName: currentSave?.player?.name ?? ''
           });
         }
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });

@@ -206,21 +206,21 @@ test('Phase 2 retries one failed Story explicitly and then replays the persisted
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
 });
 
-test('Extract marks malformed JSON failed without writing a degraded observation or committing', async () => {
+test('Extract malformed JSON fails open to a degraded observation', async () => {
   const mock = createMockFetch({ extractContentSequence: ['not JSON'] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const storyBody = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '재시도한다.' };
   await (await worker.fetch(request('/api/story', storyBody), env)).text();
   const extractResponse = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(extractResponse.status, 502);
+  assert.equal(extractResponse.status, 200);
   const extractPayload = await extractResponse.json();
-  assert.equal(typeof extractPayload.error.code, 'string');
-  assert.equal(mock.actions.get(actionId).processing_status, 'extract_failed');
-  assert.equal(mock.actions.get(actionId).extract_delta ?? null, null);
-  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), false);
+  assert.equal(extractPayload.data.extract.outcome, 'degraded');
+  assert.equal(mock.actions.get(actionId).processing_status, 'committing');
+  assert.equal(mock.actions.get(actionId).extract_delta.outcome, 'degraded');
+  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), true);
 });
 
-test('Phase 2 retries one genuinely failed Extract after an infrastructure error', async () => {
+test('Phase 2 keeps infrastructure/context failures retryable', async () => {
   const mock = createMockFetch({ failContextOnCall: 2 });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const storyBody = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '재시도한다.' };
@@ -251,20 +251,20 @@ test('a stuck story_streaming action retries the story once, but Extract in prog
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
 });
 
-test('authority-violating Extract envelopes fail without recording or Commit', async () => {
+test('authority-violating Extract envelopes fail open without becoming runtime authority', async () => {
   const mock = createMockFetch({ extractContentSequence: [JSON.stringify({ state_delta: {}, outcome: 'not_allowed' })] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const body = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'validate extract' };
   await (await worker.fetch(request('/api/story', body), env)).text();
   const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(response.status, 422);
+  assert.equal(response.status, 200);
   const payload = await response.json();
-  assert.equal(payload.error.code, 'extract_save_patch_forbidden');
-  assert.equal(mock.actions.get(actionId).extract_delta ?? null, null);
-  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), false);
+  assert.equal(payload.data.extract.outcome, 'degraded');
+  assert.equal(mock.actions.get(actionId).extract_delta.outcome, 'degraded');
+  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), true);
 });
 
-test('Extract uses Story choices and the 5000-token envelope, while truncated JSON is retryable failure', async () => {
+test('Extract uses Story choices and the 5000-token envelope, while truncated JSON fails open', async () => {
   const storySse = 'data: {"choices":[{"delta":{"content":"[4. 선택지]\\n1. A\\n2. B\\n3. C\\n4. D"}}]}\n\ndata: [DONE]\n\n';
   const mock = createMockFetch({ storySseSequence: [canonicalSse], extractEnvelope: v2ExtractFixture() });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
@@ -278,8 +278,8 @@ test('Extract uses Story choices and the 5000-token envelope, while truncated JS
   const truncated = createMockFetch({ extractFinishReason: 'length' }); const truncatedWorker = createApiWorker({ fetchImpl: truncated.fetchImpl });
   await (await truncatedWorker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'test' }), env)).text();
   const failed = await truncatedWorker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
-  assert.equal(failed.status, 502);
+  assert.equal(failed.status, 200);
   const failedPayload = await failed.json();
-  assert.equal(typeof failedPayload.error.code, 'string');
-  assert.equal(truncated.actions.get(actionId).extract_delta ?? null, null);
+  assert.equal(failedPayload.data.extract.outcome, 'degraded');
+  assert.equal(truncated.actions.get(actionId).extract_delta.outcome, 'degraded');
 });

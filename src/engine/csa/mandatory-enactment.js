@@ -169,7 +169,6 @@ export function buildMandatoryEnactments({ scene_obligations: sceneObligations, 
       if (!actor || !sourceRule) throw new TypeError('Mandatory enactment requires actor_id and source_rule_id');
       const fact = resolvedFactFor(obligation, rules);
       assertMandatoryFactConsistency(obligation, fact);
-      const actorDisplayName = requireDisplayName(master, actor, playerName);
       const base = {
         segment_id: segmentId(expectedTurn, obligation, index),
         authority: 'engine',
@@ -182,7 +181,6 @@ export function buildMandatoryEnactments({ scene_obligations: sceneObligations, 
         prior_state_known: false,
         required_state: null,
         state_effect: null,
-        canonical_text: ''
       };
       if (obligation.type === 'clothing_transition') {
         const changes = normalizeChanges(obligation.changes);
@@ -200,8 +198,7 @@ export function buildMandatoryEnactments({ scene_obligations: sceneObligations, 
           prior_state: priorState,
           prior_state_known: priorStateKnown,
           required_state: requiredState,
-          state_effect: priorStateKnown ? 'transitioned' : 'established',
-          canonical_text: clothingResultText(actorDisplayName, changes, priorStateKnown)
+          state_effect: priorStateKnown ? 'transitioned' : 'established'
         };
       }
       const action = text(obligation.action);
@@ -209,15 +206,13 @@ export function buildMandatoryEnactments({ scene_obligations: sceneObligations, 
       const candidateIds = (Array.isArray(obligation.eligible_target_ids) ? obligation.eligible_target_ids : []).map(text).filter(Boolean);
       if (new Set(candidateIds).size !== candidateIds.length) throw new TypeError('Behavior mandatory enactment cannot contain duplicate targets');
       const targetIds = candidateIds.length === 1 ? candidateIds : [];
-      const targetNames = targetIds.map(id => requireDisplayName(master, id, playerName));
       return {
         ...base,
         execution_kind: 'behavior_execution',
         action,
         target_ids: targetIds,
         counterparty_candidate_ids: candidateIds,
-        state_effect: 'behavior_executed',
-        canonical_text: behaviorResultText(actorDisplayName, action, targetIds.length ? targetNames : candidateIds)
+        state_effect: 'behavior_executed'
       };
     });
 }
@@ -253,11 +248,10 @@ export function buildInstitutionalSegments({ worldRules = [], expectedTurn = nul
 }
 
 export function composeCanonicalStory({ institutionalSegments = [], engineEnactments = [], providerNarrative = '' } = {}) {
-  const engineSegments = [
-    ...(Array.isArray(institutionalSegments) ? institutionalSegments : []),
-    ...(Array.isArray(engineEnactments) ? engineEnactments : [])
-  ];
-  const engineText = engineSegments.map(segment => text(segment?.canonical_text)).filter(Boolean).join('\n\n');
+  // Institutional notices are visible Engine output. Mandatory enactments are
+  // metadata-only obligations; the Provider renders their HOW in ACTING.
+  const engineText = (Array.isArray(institutionalSegments) ? institutionalSegments : [])
+    .map(segment => text(segment?.canonical_text)).filter(Boolean).join('\n\n');
   const providerText = String(providerNarrative ?? '');
   if (!engineText) return providerText;
   if (!providerText) return engineText;
@@ -285,18 +279,10 @@ function equalStringSets(left, right) {
   return a.length === b.length && [...new Set(a)].every(value => new Set(b).has(value));
 }
 
-function assertNoInternalTokens(enactment) {
-  const visible = String(enactment.canonical_text ?? '');
-  for (const token of [enactment.actor_id, enactment.source_rule_id, enactment.action, ...(enactment.target_ids ?? [])]) {
-    if (token && visible.includes(token)) throw new TypeError('Canonical Story exposes an internal engine token');
-  }
-}
-
-export function validateMandatoryEnactment(enactment, { storyText = '', sceneObligations = [], worldRules = [], registeredIds = null, playerName = '' } = {}) {
+export function validateMandatoryEnactment(enactment, { sceneObligations = [], worldRules = [], registeredIds = null, playerName = '' } = {}) {
   if (!enactment || enactment.authority !== 'engine') throw new TypeError('Engine authority is required');
   if (!text(enactment.segment_id) || !text(enactment.source_rule_id) || !text(enactment.actor_id)) throw new TypeError('Mandatory enactment identity is incomplete');
   if (enactment.trigger_state !== 'required_now' || enactment.execution_policy !== 'mandatory_execution') throw new TypeError('Mandatory enactment policy is invalid');
-  if (!text(enactment.canonical_text) || !String(storyText).includes(enactment.canonical_text)) throw new TypeError('Canonical enactment text is absent from Story');
   if (registeredIds && (!registeredIds.has(enactment.actor_id) && enactment.actor_id !== 'player')) throw new TypeError('Mandatory enactment actor is not registered');
   if (enactment.actor_id === 'player' && !text(playerName)) throw new TypeError('Player display identity is required');
   const matches = (Array.isArray(sceneObligations) ? sceneObligations : []).filter(obligation => obligation?.actor_id === enactment.actor_id && obligation?.source_rule_id === enactment.source_rule_id);
@@ -336,7 +322,6 @@ export function validateMandatoryEnactment(enactment, { storyText = '', sceneObl
     if (candidateIds.length === 1 && !equalStringSets(resolvedIds, candidateIds)) throw new TypeError('Behavior target scope is incomplete');
     if (enactment.trigger_state !== matching.trigger_state || enactment.execution_policy !== matching.execution_policy) throw new TypeError('Behavior policy scope was changed');
   } else throw new TypeError('Unknown mandatory execution kind');
-  assertNoInternalTokens(enactment);
   return true;
 }
 

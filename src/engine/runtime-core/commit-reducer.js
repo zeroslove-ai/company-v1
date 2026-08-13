@@ -7,6 +7,7 @@ import { reduceCsaCommitState } from './csa-commit-reducer.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
+function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
 function parserSpeakers(parsedStory) {
   return Array.isArray(parsedStory?.dialogue_lines)
     ? parsedStory.dialogue_lines.map(line => nonEmpty(line?.speaker_id)).filter(Boolean)
@@ -69,10 +70,41 @@ function canonicalObservation(observation, parsedStory) {
   };
 }
 
+function observationWithPlayerActingPosture(observation, parsedStory) {
+  const event = (Array.isArray(parsedStory?.acting_events) ? parsedStory.acting_events : [])
+    .filter(item => item?.actor_id === 'player' && (item?.posture_after === 'sitting' || item?.posture_after === 'standing') && typeof item.text === 'string' && item.text.trim())
+    .at(-1);
+  if (!event) return observation;
+  const next = clone(observation) ?? {};
+  const physical = object(next.player_observation?.physical) ? next.player_observation.physical : {};
+  const evidence = object(next.evidence) ? next.evidence : {};
+  const existingPostureEvidence = Object.values(evidence).some(item => object(item)
+    && Array.isArray(item.changed)
+    && item.changed.some(path => String(path).endsWith('.posture'))
+    && typeof item.quote === 'string'
+    && item.quote.trim()
+    && String(parsedStory?.raw ?? '').includes(item.quote.trim()));
+  next.player_observation = {
+    ...(object(next.player_observation) ? next.player_observation : {}),
+    physical: { ...physical, posture: event.posture_after }
+  };
+  next.evidence = existingPostureEvidence
+    ? evidence
+    : {
+        ...evidence,
+        physical_change: {
+          changed: ['player_scene_state.player.posture'],
+          quote: event.text.trim()
+        }
+      };
+  return next;
+}
+
 export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, authoritativeLocationId = null, structuredAction = null, transactionResolution = null, engineEnactments = [] } = {}) {
   const current = clone(currentSave);
+  const canonicalObservationInput = observationWithPlayerActingPosture(observation, { ...parsedStory, raw: rawStory });
   const sceneBefore = hydrateCanonicalScene(current, { master, npcIds });
-  const sceneObservation = canonicalObservation(observation, parsedStory);
+  const sceneObservation = canonicalObservation(canonicalObservationInput, parsedStory);
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,
     observation: sceneObservation,
@@ -90,7 +122,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     ...(sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
   ]);
   const domains = reduceObservationDomains({
-    currentSave: current, observation, parsedStory, rawStory, expectedTurn, actionId: action?.action_id, master, npcIds,
+    currentSave: current, observation: canonicalObservationInput, parsedStory, rawStory, expectedTurn, actionId: action?.action_id, master, npcIds,
     sceneBefore, sceneAfter: canonicalScene, observedNpcIds,
     explicitSpeakerIds: (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
   });
@@ -107,7 +139,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   const csaCommit = reduceCsaCommitState({
     currentSave: current,
     nextSave,
-    observation,
+    observation: canonicalObservationInput,
     canonicalScene,
     action,
     expectedTurn,
@@ -117,7 +149,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   });
   nextSave = csaCommit.nextSave;
   assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action?.action_kind, observation: sceneObservation });
-  const monitor = presentMindMonitor(observation.mind_monitor ?? {}, canonicalScene.present_npc_ids ?? []);
+  const monitor = presentMindMonitor(canonicalObservationInput.mind_monitor ?? {}, canonicalScene.present_npc_ids ?? []);
   const ownedMonitor = playerOwnedMonitor(monitor.state, parsedStory?.player_inner_thought ?? '');
   return {
     nextSave,
@@ -125,8 +157,8 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     time_before: domains.time_before,
     elapsed_minutes: domains.elapsed_minutes,
     time_after: domains.time_after,
-    action_target_id: observation.action_target_id ?? null,
-    image_character_id: observation.image_character_id ?? null,
+    action_target_id: canonicalObservationInput.action_target_id ?? null,
+    image_character_id: canonicalObservationInput.image_character_id ?? null,
     mind_monitor: ownedMonitor.state,
     canonical_scene: canonicalScene,
     csa_commit: {

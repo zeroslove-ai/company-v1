@@ -58,13 +58,6 @@ export function createSupabaseClient(env, fetchImpl) {
         p_structured_action: structuredAction
       });
     },
-    applyReservedCsaTransaction(gameId, actionId, expectedTurn) {
-      return this.callRpc('apply_reserved_csa_transaction', {
-        p_game_id: gameId,
-        p_action_id: actionId,
-        p_expected_turn: expectedTurn
-      });
-    },
     async getAction(gameId, actionId) {
       const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}`, select: '*' });
       const payload = await request(`${baseUrl}/rest/v1/game_actions?${query}`, { method: 'GET' });

@@ -456,6 +456,11 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
     const monitor = normalized.mind_monitor[npcId];
     if (!monitor || !monitor.surface.trim() || !monitor.subconscious.trim()) normalized.warnings.push(`mind_monitor_missing:${npcId}`);
   }
+  if (normalized.csa_trigger_evaluations.length || normalized.csa_runtime_updates.length) {
+    normalized.warnings.push('fresh_csa_observation_ignored');
+  }
+  normalized.csa_trigger_evaluations = [];
+  normalized.csa_runtime_updates = [];
   return normalized;
 }
 

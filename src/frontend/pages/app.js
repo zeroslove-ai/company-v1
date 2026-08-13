@@ -77,6 +77,9 @@ export function reduceStoryWireProjection(state = {}, item = {}) {
       speaker_id: item.data?.speaker_id ?? null,
       speaker_name: item.data?.speaker_name ?? item.data?.speaker_id ?? '',
       acting_direction: null,
+      enactment_id: item.data?.enactment_id ?? null,
+      actor_id: item.data?.actor_id ?? null,
+      posture_after: item.data?.posture_after ?? null,
       label: item.data?.label ?? null,
       text: ''
     };
@@ -87,8 +90,14 @@ export function reduceStoryWireProjection(state = {}, item = {}) {
     else lastDialogue = null;
     current = null;
   } else if (item.event === 'acting') {
-    const target = current?.type === 'dialogue' ? current : lastDialogue;
-    if (target) target.acting_direction = item.data?.acting_direction ?? null;
+    if (current?.type === 'acting') {
+      current.enactment_id = item.data?.enactment_id ?? current.enactment_id ?? null;
+      current.actor_id = item.data?.actor_id ?? current.actor_id ?? null;
+      current.posture_after = item.data?.posture_after ?? current.posture_after ?? null;
+    } else {
+      const target = current?.type === 'dialogue' ? current : lastDialogue;
+      if (target && item.data?.acting_direction) target.acting_direction = item.data.acting_direction;
+    }
   } else if (item.event === 'delta') {
     if (current) current.text += item.data?.text ?? '';
     else lastDialogue = null;

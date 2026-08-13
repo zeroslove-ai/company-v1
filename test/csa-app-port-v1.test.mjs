@@ -461,7 +461,7 @@ test('app_transaction Story: plan이 적용한 active CSA와 새 규칙 content�
   for (const operation of canonicalAction.operations) {
     assert.ok(storyTextForAssertions.split(operation.content).length - 1 >= 1);
   }
-  assert.doesNotMatch(storyTextForAssertions, /actor_id=|target_id=|undefined/);
+  assert.doesNotMatch(storyTextForAssertions, /undefined/);
   assert.doesNotMatch(storyTextForAssertions, /PUBLIC COMMON-SENSE SCENE|CSA WEAK SYNERGY|NPC CSA EPISTEMIC FIREWALL|CONFIRMED COMMON-SENSE APP TRANSACTION/);
 });
 

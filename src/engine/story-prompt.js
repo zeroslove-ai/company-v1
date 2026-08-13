@@ -28,7 +28,7 @@ function projectEngineCanonicalSegment(segment) {
    ...(Number.isInteger(source.effective_turn) ? { effective_turn: source.effective_turn } : {}),
    ...(source.effective_game_time && typeof source.effective_game_time === 'object' ? { effective_game_time: source.effective_game_time } : {}),
     ...(Array.isArray(source.delivery_channels) ? { delivery_channels: source.delivery_channels.slice() } : {}),
-    canonical_text: source.canonical_text
+    ...(identity(source.posture_after) ? { posture_after: source.posture_after } : {})
   };
 }
 
@@ -162,8 +162,8 @@ export const DURABLE_STORY_RULES = [
   '[NPC AUTONOMY]',
   'NPCs act from their established motives, relationships, and situation. A registered possible entrant may appear occasionally when the scene makes it meaningful; most turns should add no new NPC. Do not create probability, cooldown, or scheduler state.',
  '[CSA AND WORLD RULES]',
-  'Engine canonical segments already contain the real observable enactment and its completion before provider continuation. Never repeat the action, turn it into a future plan, defer it, renegotiate it, await approval, undo it, or contradict the completed required result; write only natural aftermath and free NPC reaction.',
-  'world_rules and scene_obligations are Worker-resolved institutional facts for this turn. Treat each world_rules.resolved_facts entry as current-turn authority: already_effective/current_state/required_state describe canonical state, and transition_required_now means the concrete observable enactment or result is required now. When trigger_state is required_now or execution_policy is mandatory_execution, the applicable NPC must enact the rule now; do not defer it, deny its existence, await approval, or replace it with a plan. Conditional triggers remain conditional. Narrate institutional rules as workplace facts or enactment, never as app/player mechanics. Use known_scene_actor_ids and applicable_scene_actor_ids as identity scope, not as permission to invent action. NPC attitude, emotion, discomfort, and personal judgment remain free as reaction, but they do not cancel required execution. A scene obligation is fulfilled only through a concrete, observable, non-magical action or result. engine_canonical_segments are authoritative Worker-confirmed events/results that already occurred before your continuation and are shown to the player before provider text. Do not repeat, undo, defer, renegotiate, await approval for, or contradict them; continue naturally from their aftermath. Engine fixes the behavior/outcome; provider writes only the subsequent NPC reaction, emotion, dialogue, work flow, and other free narrative.',
+  'Engine metadata defines WHAT is mandatory, not visible prose. For every scene_obligation with trigger_state=required_now and execution_policy=mandatory_execution, render exactly one standalone visible [ACTING enactment_id="segment_id"] block containing the natural observable HOW and then close it with [/ACTING]. The exact enactment_id must match engine_canonical_segments.segment_id. Do not repeat, defer, renegotiate, await approval for, undo, or contradict a mandatory enactment. Institutional segments remain visible workplace notices; mandatory enactment segments are metadata-only and must not be copied as internal JSON or token text.',
+  'world_rules and scene_obligations are Worker-resolved institutional facts for this turn. Treat each world_rules.resolved_facts entry as current-turn authority: already_effective/current_state/required_state describe canonical state, and transition_required_now means the concrete observable enactment or result is required now. Conditional triggers remain conditional. Narrate institutional rules as workplace facts, never as app/player mechanics. NPC attitude, emotion, discomfort, and personal judgment remain free as reaction, but they do not cancel required execution. Provider supplies natural narrative HOW; Engine supplies the obligation and Commit later consumes the visible ACTING evidence.',
   '[THOUGHT OWNERSHIP]',
   '[THOUGHT] belongs exclusively to the player and is reaction-only presentation: use immediate emotion, surprise, doubt, or impression from the current scene, never a new plan, promise, apology, concession, withdrawal, moral conclusion, or next-action decision. Never place an NPC thought, sensation, memory, embarrassment, or private reaction in [THOUGHT]; NPC inner states belong in Mind Monitor, not Story THOUGHT.',
   '[PHYSICAL CONTINUITY]',
@@ -172,7 +172,7 @@ export const DURABLE_STORY_RULES = [
   'Write natural Korean workplace fiction with appropriate title-plus-name address. The canonical player position_id, position, and address_title in the payload are authoritative; do not downgrade the player to a different team title. Preserve relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation replace a required current-turn enactment or overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
  '[OUTPUT PROTOCOL]',
   'Output one short player-only [THOUGHT] paragraph closed by [/THOUGHT], and four literal [CHOICE] action blocks without labels or numbers. Choices are proposals, not completed actions.',
-  'Write plain narrative by default, preserving source order. Mark each spoken line with [DIALOGUE speaker_id="registered_id_or_player"] using an exact registered ID; never infer a speaker from a name, quote, or previous line. [ACTING] is optional metadata for the adjacent dialogue only. Before ending, verify exactly one [THOUGHT], every spoken line has a DIALOGUE marker, and exactly four non-empty distinct [CHOICE] blocks. Add [THOUGHT] and four literal [CHOICE] action blocks when possible; choices are concrete proposals (not completed actions), and preserve the kind, strength, and scope of explicit player actions without strengthening them. The UI owns headings and choice ordering. Do not turn app, marker, or presentation mechanics into world knowledge.'
+  'Write plain narrative by default, preserving source order. Mark each spoken line with [DIALOGUE speaker_id="registered_id_or_player"] using an exact registered ID; never infer a speaker from a name, quote, or previous line. Mandatory enactments require standalone visible [ACTING enactment_id="exact_segment_id"] blocks in the position where the action occurs. Player posture may be structurally annotated with [ACTING actor_id="player" posture_after="sitting|standing"] and must not be invented without visible action. Before ending, verify exactly one [THOUGHT], every spoken line has a DIALOGUE marker, every mandatory enactment id appears exactly once, and exactly four non-empty distinct [CHOICE] blocks. Add [THOUGHT] and four literal [CHOICE] action blocks when possible; choices are concrete proposals (not completed actions), and preserve the kind, strength, and scope of explicit player actions without strengthening them. The UI owns headings and choice ordering. Do not turn app, marker, or presentation mechanics into world knowledge.',
 ].join('\n');
 
 export function buildRegenerationFeedbackSection(feedbackText) {
@@ -180,7 +180,7 @@ export function buildRegenerationFeedbackSection(feedbackText) {
   return text ? text : '';
 }
 
-export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null, turnTrigger = null, actionKind = 'ordinary', feedbackText = '', storyWorld: precomputedStoryWorld = null, engineCanonicalSegments = [] }) {
+export function buildStoryPrompt({ edition, context, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract = null, turnTrigger = null, actionKind = 'ordinary', feedbackText = '', storyWorld: precomputedStoryWorld = null, engineCanonicalSegments = [], playerPrivateOrigin = null }) {
   const save = object(context?.save?.data) ?? object(context?.save) ?? {};
   const canonicalScene = buildSceneContextCore(save, []).scene;
   const canonicalCast = sceneCastContract ?? { present_npc_ids: canonicalScene.present_npc_ids, entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null };
@@ -221,6 +221,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
       : {}),
     context: buildStoryContextProjection(context, projection.projection_ids, { catalogs, playerAction: storyPlayerAction, edition, registeredIds: registeredIdSet }),
     ...(storyPlayerAction ? { player_action: storyPlayerAction } : {}),
+    ...(playerPrivateOrigin ? { player_private_origin: playerPrivateOrigin } : {}),
     ...(feedbackText ? { feedback_text: feedbackText } : {}),
     expected_turn: expectedTurn
   };

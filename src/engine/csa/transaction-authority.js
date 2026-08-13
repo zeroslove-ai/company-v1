@@ -9,24 +9,6 @@ function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-function sameJson(left, right) {
-  return stableStringify(left) === stableStringify(right);
-}
-
-function ruleDefinitions(save) {
-  return {
-    csa_active: save?.csa_active ?? null,
-    csa_rules: save?.csa_rules ?? null
-  };
-}
-
-function definitionsEqual(save, resolution) {
-  return sameJson(ruleDefinitions(save), {
-    csa_active: resolution?.next_csa_active ?? null,
-    csa_rules: resolution?.next_csa_rules ?? null
-  });
-}
-
 /** The one deterministic snapshot used to bind a CSA plan to the save it read. */
 export function buildCsaPlannerInputSnapshot(save = {}) {
   return {
@@ -98,14 +80,9 @@ export async function verifySignedTransactionResolution({ secret, gameId, struct
   if (!(await verifyTransactionValidationProof(secret, proofPayload, structuredAction.validation_proof))) {
     return { ok: false, reason: 'signature mismatch' };
   }
-  // The pre-Story apply changes only csa_active/csa_rules while leaving the
-  // committed turn unchanged.  A later Story/Extract/Commit retry therefore
-  // verifies immutable proof first and accepts the already-applied definition
-  // set without demanding the old planner-input digest again.
-  if (definitionsEqual(save, resolution)) return { ok: true, state: 'applied', resolution };
   const plannerInputDigest = await buildCsaPlannerInputDigest(save);
   if (resolution.planner_input_digest !== plannerInputDigest || semantic.planner_input_digest !== plannerInputDigest) {
     return { ok: false, state: 'stale_or_invalid', reason: 'planner input digest mismatch', code: 'app_stale_state' };
   }
-  return { ok: true, state: 'pending_apply', resolution };
+  return { ok: true, state: 'verified', resolution };
 }

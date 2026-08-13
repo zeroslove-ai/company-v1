@@ -53,8 +53,8 @@ test('Story prompt keeps required execution authoritative while reaction remains
   });
   const system = messages[0].content;
   assert.match(system, /mandatory_execution/);
-  assert.match(system, /must enact the rule now/);
-  assert.match(system, /do not defer it, deny its existence, await approval/);
+  assert.match(system, /standalone visible \[ACTING enactment_id/);
+  assert.match(system, /Do not repeat, defer, renegotiate, await approval for/);
   assert.match(system, /reaction-only presentation/);
   assert.match(system, /never a new plan, promise, apology, concession/);
   assert.match(system, /Do not invent an unrequested player movement, dialogue, apology/);

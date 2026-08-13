@@ -331,7 +331,9 @@ test('engine mandatory clothing composes before provider Story and wins at Commi
     }
   };
   save.npc_scene_state.heroine5 = { ...save.npc_scene_state.heroine5, clothing: { underwear_bottom: 'worn' } };
-  const mock = createMockFetch({ saveOverride: save });
+  const providerStory = STORY.replace('[THOUGHT]', '[ACTING enactment_id="turn:8:csa_clothing:heroine5:0"]\nThe required clothing state is established.\n[/ACTING]\n[THOUGHT]');
+  const storySseOverride = 'data: ' + JSON.stringify({ choices: [{ delta: { content: providerStory } }] }) + '\n\ndata: [DONE]\n\n';
+  const mock = createMockFetch({ saveOverride: save, storySseOverride });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '업무를 시작한다.' }), env);
   assert.equal(story.status, 200);
@@ -349,11 +351,10 @@ test('engine mandatory clothing composes before provider Story and wins at Commi
     action: 'set_clothing_state',
     state_effect: 'transitioned',
     required_state: { underwear_bottom: 'removed' },
-    canonical_text: storyPayload.engine_canonical_segments[0].canonical_text
   });
-  const engineText = storyPayload.engine_canonical_segments[0].canonical_text;
-  assert.ok(stored.story_text.includes(engineText));
-  assert.ok(storyBody.indexOf(engineText) < storyBody.lastIndexOf('event: delta'));
+  assert.equal('canonical_text' in storyPayload.engine_canonical_segments[0], false);
+  assert.doesNotMatch(stored.story_text, /canonical_text/);
+  assert.match(stored.story_text, /enactment_id="turn:8:csa_clothing:heroine5:0"/);
   assert.equal(stored.parsed_blocks.engine_enactments.length, 1);
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(extract.status, 200);

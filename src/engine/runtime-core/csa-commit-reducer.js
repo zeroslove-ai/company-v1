@@ -74,8 +74,7 @@ function applyEngineRelationEnactments(nextSave, engineEnactments, expectedTurn,
       source: 'engine',
       state: 'active',
       started_turn: existing?.started_turn ?? turn,
-      updated_turn: turn,
-      ...(typeof enactment.canonical_text === 'string' && enactment.canonical_text.trim() ? { quote: enactment.canonical_text.trim() } : {})
+      updated_turn: turn
     };
     const index = relations.findIndex(item => item.state === 'active' && item.actor_id === actorId && item.target_id === targetId && item.relation_kind === enactment.action);
     if (index >= 0) relations[index] = relation;
@@ -154,28 +153,21 @@ export function reduceCsaCommitState({
   applyEngineClothingEnactments(nextSave, engineEnactments);
   applyEngineRelationEnactments(nextSave, engineEnactments, expectedTurn, warnings);
 
-  // Fresh app transactions are applied before Story by the transactional
-  // authority boundary. Commit may only verify parity; it is not a second
-  // definition writer.
+  // Commit is the sole durable writer for signed CSA definitions. Story and
+  // Extract may receive an in-memory projection, but they never mutate save.
   if (structuredAction && transactionResolution) {
-    const alreadyApplied = JSON.stringify({ csa_active: current.csa_active, csa_rules: current.csa_rules })
-      === JSON.stringify({ csa_active: transactionResolution.next_csa_active, csa_rules: transactionResolution.next_csa_rules });
-    if (alreadyApplied) {
-      assertRuleDefinitionAuthority({ currentSave: current, nextSave: current, transactionResolution, structuredAction, stage: 'commit-csa-preapplied' });
-    } else {
-      // LEGACY structured-action compatibility: callers that have not crossed
-      // the pre-apply boundary yet still receive the deterministic reducer
-      // result; the fresh API route always takes the branch above.
-      applyAuthorizedRuleDefinitions({ currentSave: current, nextSave, transactionResolution, structuredAction, stage: 'commit-csa-legacy' });
-    }
+    applyAuthorizedRuleDefinitions({ currentSave: current, nextSave, transactionResolution, structuredAction, stage: 'commit-csa' });
   }
 
   const activeCsa = getApplicableCsaEntries(nextSave);
-  const runtimeUpdates = canonicalRuntimeUpdates({ updates: mergeEngineRuntimeUpdates(engineEnactments, observation?.csa_runtime_updates), activeCsa, nextSave, warnings });
+  // Fresh Extract is observational only. Runtime CSA state is sourced from
+  // signed definitions and Engine enactments; compatibility fields returned
+  // by an LLM are deliberately ignored.
+  const runtimeUpdates = canonicalRuntimeUpdates({ updates: mergeEngineRuntimeUpdates(engineEnactments, []), activeCsa, nextSave, warnings });
   const runtimeResult = buildCsaRuntimeStatePatch({
     previousSave: current,
     csaRuntimeUpdates: runtimeUpdates,
-    csaTriggerEvaluations: observation?.csa_trigger_evaluations,
+    csaTriggerEvaluations: [],
     activeCsa,
     npcsPresent: [...new Set([
       ...(canonicalScene?.present_npc_ids ?? []),

@@ -16,7 +16,7 @@ export { parsePersistedNarrative } from './persisted-narrative-parser.js';
 export { hydrateCanonicalScene, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
 export { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';
 export { assertCanonicalSceneInvariants } from './runtime-core/invariants.js';
-export { normalizeFreshExtractObservationV2, assertExtractObservationContract } from './runtime-core/extract-observation.js';
+export { normalizeFreshExtractObservationV2, buildDegradedExtractObservation, assertExtractObservationContract } from './runtime-core/extract-observation.js';
 export { normalizePersistedExtractObservation } from './runtime-core/persisted-extract-observation.js';
 export { reduceGameplayCommit } from './runtime-core/commit-reducer.js';
 export { reduceCsaCommitState } from './runtime-core/csa-commit-reducer.js';
