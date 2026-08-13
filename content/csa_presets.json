@@ -81,7 +81,7 @@
       "execution": {
         "kind": "posture_relation",
         "action": "sit_on_lap",
-        "trigger_kind": "both_seated",
+        "trigger_kind": "target_seated_interaction",
         "target_required": true
       }
     },
@@ -111,7 +111,7 @@
       "execution": {
         "kind": "posture_relation",
         "action": "stand_between_knees",
-        "trigger_kind": "both_seated",
+        "trigger_kind": "target_seated_interaction",
         "target_required": true
       }
     },

@@ -5,7 +5,7 @@ const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'block
 const TOP_LEVEL = new Set([
   'extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence',
   'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection',
-  'csa_trigger_evaluations', 'csa_runtime_updates', 'turn_summary', 'warnings'
+  'csa_trigger_evaluations', 'csa_runtime_updates', 'relation_updates', 'turn_summary', 'warnings'
 ]);
 const NPC_DOMAINS = new Set(['physical', 'emotion', 'relationship', 'stats', 'work', 'csa_attitude']);
 const PHYSICAL = new Set(['posture', 'position_label', 'clothing']);
@@ -30,6 +30,8 @@ const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'q
 const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'scene']);
 const FRESH_OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked']);
 const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'presence_is_final', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
+const RELATION_UPDATE_FIELDS = new Set(['actor_id', 'target_id', 'relation_kind', 'state', 'quote']);
+const RELATION_STATES = new Set(['started', 'ended']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -244,6 +246,27 @@ function normalizeSceneEvidence(value, npcIds, storyText, sceneId) {
   return result;
 }
 
+function normalizeRelationUpdates(value, npcIds, storyText) {
+  if (!Array.isArray(value)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation_updates must be an array');
+  const seen = new Set();
+  return value.map((item, index) => {
+    assertKeys(item, RELATION_UPDATE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+    const actorId = nullableId(item.actor_id, npcIds, `relation_updates[${index}].actor_id`);
+    const targetId = nullableId(item.target_id, npcIds, `relation_updates[${index}].target_id`);
+    if (!actorId || !targetId || actorId === targetId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation update requires distinct registered actor and target');
+    if (typeof item.relation_kind !== 'string' || !item.relation_kind.trim()) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation_kind is required');
+    if (!RELATION_STATES.has(item.state)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation update state is invalid');
+    if (typeof item.quote !== 'string' || !item.quote.trim() || !String(storyText ?? '').includes(item.quote.trim())) {
+      throw new GameCoreError('RELATION_EVIDENCE_QUOTE_NOT_IN_STORY', 'relation update quote must be an exact Story substring');
+    }
+    const normalized = { actor_id: actorId, target_id: targetId, relation_kind: item.relation_kind.trim().slice(0, 80), state: item.state, quote: item.quote.trim() };
+    const key = JSON.stringify([normalized.actor_id, normalized.target_id, normalized.relation_kind, normalized.state, normalized.quote]);
+    if (seen.has(key)) return null;
+    seen.add(key);
+    return normalized;
+  }).filter(Boolean);
+}
+
 export function assertExtractObservationContract(observation) {
   if (!object(observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Extract observation must be an object');
   const forbidden = ['state_delta', 'choices', 'dialogue_lines', 'player_inner_thought', 'last_speaker_id', 'npcs_present', 'focal_character_id', 'turn_changes', 'csa_active', 'csa_rules', 'world_state', 'save'];
@@ -314,7 +337,7 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
     action_target_id: dropOptional(softOptional, 'action_target_id', warnings, null, () => nullableId(value.action_target_id, registered, 'action_target_id')),
     image_character_id: dropOptional(softOptional, 'image_character_id', warnings, null, () => nullableId(value.image_character_id, registered, 'image_character_id')),
     image_selection: normalizeImageSelection(value.image_selection),
-    csa_trigger_evaluations: [], csa_runtime_updates: [],
+    csa_trigger_evaluations: [], csa_runtime_updates: [], relation_updates: [],
     turn_summary: typeof value.turn_summary === 'string' ? value.turn_summary : '',
     warnings
   };
@@ -398,6 +421,11 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
         };
       })();
     if (parsed) normalized.csa_runtime_updates.push(parsed);
+  }
+  if (Object.hasOwn(value, 'relation_updates')) {
+    normalized.relation_updates = softOptional
+      ? dropOptional(true, 'relation_updates', warnings, [], () => normalizeRelationUpdates(value.relation_updates, registered, storyText))
+      : normalizeRelationUpdates(value.relation_updates, registered, storyText);
   }
   return normalized;
 }

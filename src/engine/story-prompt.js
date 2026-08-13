@@ -106,6 +106,9 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
   const sceneCore = buildSceneContextCore(save, activeIds);
+  const activeRelations = (Array.isArray(save.active_relations) ? save.active_relations : [])
+    .filter(item => item?.state === 'active' && item.actor_id && item.target_id)
+    .map(item => ({ actor_id: item.actor_id, target_id: item.target_id, relation_kind: item.relation_kind, state: 'active', started_turn: item.started_turn, updated_turn: item.updated_turn }));
   const registeredSet = registeredIds instanceof Set ? registeredIds : null;
   const filterRegistered = values => {
     const ids = Array.isArray(values) ? values : [];
@@ -136,6 +139,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     current_time: { day: typeof gameTime.day === 'number' ? gameTime.day : null, minute_of_day: typeof gameTime.minute_of_day === 'number' ? gameTime.minute_of_day : null },
     player: buildPlayerPromptProjection({ player, canonical, playerAction }),
     scene,
+    active_relations: activeRelations,
     ...sceneRest,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
     story_summary: { overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '' },
@@ -154,7 +158,7 @@ export const DURABLE_STORY_RULES = [
   'Treat the canonical JSON payload as fact. scene_actors are present now; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only and never create presence, action, or dialogue authority. world_rules are institutional facts and scene_obligations are read-only current-turn requirements. Never invent an unregistered named NPC.',
  '[PLAYER AGENCY]',
   'Preserve explicit player physical action without expanding its meaning. A choice is only a proposal, never a completed player action. CSA mandatory enactment is distinct from optional player agency; never add unrequested contact, movement, undressing, or sexual escalation.',
-  'Player input is the authority for player intent. Do not invent an unrequested player movement, dialogue, apology, concession, withdrawal, promise, contact, physical action, consent, refusal, or outcome. Player dialogue may paraphrase supplied intent without changing its meaning; it must not create a new decision. NPC responses and consequences are authored naturally in the Story.',
+  'Player input is the authority for player intent and current explicit target. Do not let stale position labels select a different NPC. Target authority order is current explicit player target, current canonical focal interaction, active structured relation, then presentation-only physical labels (which are never a selector). Do not invent an unrequested player movement, dialogue, apology, concession, withdrawal, promise, contact, physical action, consent, refusal, or outcome. Player dialogue may paraphrase supplied intent without changing its meaning; it must not create a new decision. NPC responses and consequences are authored naturally in the Story.',
   '[NPC AUTONOMY]',
   'NPCs act from their established motives, relationships, and situation. A registered possible entrant may appear occasionally when the scene makes it meaningful; most turns should add no new NPC. Do not create probability, cooldown, or scheduler state.',
  '[CSA AND WORLD RULES]',
@@ -165,10 +169,10 @@ export const DURABLE_STORY_RULES = [
   '[PHYSICAL CONTINUITY]',
   'Saved actual physical and clothing state is current fact. A scene_obligation describes a required transition; show its concrete, observable, non-magical action or result. A rule sentence alone is not a physical transition, and unknown actual state is never guessed.',
   '[STORY QUALITY]',
-  'Write natural Korean workplace fiction with appropriate title-plus-name address, relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation replace a required current-turn enactment or overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
+  'Write natural Korean workplace fiction with appropriate title-plus-name address. The canonical player position_id, position, and address_title in the payload are authoritative; do not downgrade the player to a different team title. Preserve relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation replace a required current-turn enactment or overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
  '[OUTPUT PROTOCOL]',
   'Output one short player-only [THOUGHT] paragraph closed by [/THOUGHT], and four literal [CHOICE] action blocks without labels or numbers. Choices are proposals, not completed actions.',
-  'Write plain narrative by default, preserving source order. Mark each spoken line with [DIALOGUE speaker_id="registered_id_or_player"] using an exact registered ID; never infer a speaker from a name, quote, or previous line. [ACTING] is optional metadata for the adjacent dialogue only. Add [THOUGHT] and four literal [CHOICE] action blocks when possible; choices are concrete actions (usually around 30 Korean characters as quality guidance only), without labels or numbers. The UI owns headings and choice ordering. Do not turn app, marker, or presentation mechanics into world knowledge.'
+  'Write plain narrative by default, preserving source order. Mark each spoken line with [DIALOGUE speaker_id="registered_id_or_player"] using an exact registered ID; never infer a speaker from a name, quote, or previous line. [ACTING] is optional metadata for the adjacent dialogue only. Before ending, verify exactly one [THOUGHT], every spoken line has a DIALOGUE marker, and exactly four non-empty distinct [CHOICE] blocks. Add [THOUGHT] and four literal [CHOICE] action blocks when possible; choices are concrete proposals (not completed actions), and preserve the kind, strength, and scope of explicit player actions without strengthening them. The UI owns headings and choice ordering. Do not turn app, marker, or presentation mechanics into world knowledge.'
 ].join('\n');
 
 export function buildRegenerationFeedbackSection(feedbackText) {
@@ -201,6 +205,14 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
     remote_contacts: projection.remote_contacts,
     reference_characters: projection.reference_characters,
     player_dialogue_policy: canonicalCast.player_dialogue ?? null,
+    target_authority: {
+      explicit_player_target_ids: Array.isArray(canonicalCast.player_dialogue?.allowed_target_ids)
+        ? canonicalCast.player_dialogue.allowed_target_ids.slice()
+        : [],
+      active_relations: (Array.isArray(save.active_relations) ? save.active_relations : [])
+        .filter(item => item?.state === 'active')
+        .map(item => ({ actor_id: item.actor_id, target_id: item.target_id, relation_kind: item.relation_kind }))
+    },
     world_rules: storyWorld.world_rules,
    scene_obligations: storyWorld.scene_obligations,
     registered_locations: registeredLocations,

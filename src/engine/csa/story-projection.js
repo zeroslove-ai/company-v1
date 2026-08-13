@@ -36,10 +36,11 @@ function modeFor(rule, preset) {
   return preset?.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
 }
 
-function triggerStateFor(triggerKind, { actorPresent, targetCount, postureReady = false } = {}) {
+function triggerStateFor(triggerKind, { actorPresent, targetCount, postureReady = false, targetPostureReady = false } = {}) {
   if (!actorPresent) return 'not_applicable';
   if (triggerKind === 'always_during_work') return 'required_now';
   if (triggerKind === 'scene_interaction') return targetCount > 0 ? 'required_now' : 'conditional';
+  if (triggerKind === 'target_seated_interaction') return targetCount > 0 && targetPostureReady ? 'required_now' : 'conditional';
   if (triggerKind === 'both_seated') return postureReady ? 'required_now' : 'conditional';
   return 'conditional';
 }
@@ -58,6 +59,7 @@ function sceneStateFor(save, id) {
 function isSeatedState(state) {
   const posture = text(state?.posture)?.toLowerCase() ?? '';
   const position = text(state?.position_label)?.toLowerCase() ?? '';
+  if (/[\uC548\uC88C\uCC29]|\uBB34\uB98E\s*[\uC704\uC0AC\uC774]/u.test(posture) || /[\uC548\uC88C\uCC29]|\uBB34\uB98E\s*[\uC704\uC0AC\uC774]/u.test(position)) return true;
   return /(?:^|[ _-])(sitting|seated)(?:$|[ _-])/.test(posture)
     || /(?:^|[ _-])(?:sitting|seated)(?:$|[ _-])/.test(position)
     || posture.includes('앉')
@@ -67,6 +69,11 @@ function isSeatedState(state) {
 function postureReadyForTargets(save, actorId, targetIds) {
   if (!Array.isArray(targetIds) || targetIds.length === 0) return false;
   return [actorId, ...targetIds].every(id => isSeatedState(sceneStateFor(save, id)));
+}
+
+function targetPostureReady(save, targetIds) {
+  return Array.isArray(targetIds) && targetIds.length > 0
+    && targetIds.some(id => isSeatedState(sceneStateFor(save, id)));
 }
 
 function eligibleTargetIds({ actorId, counterpartyScope, sceneProfiles }) {
@@ -98,7 +105,12 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
       ? 'conditional'
       : execution?.kind === 'clothing_state'
         ? triggerStateFor(execution.trigger_kind, { actorPresent: true })
-        : triggerStateFor(execution?.trigger_kind, { actorPresent: true, targetCount: targets.length, postureReady: postureReadyForTargets(save, actorId, targets) });
+        : triggerStateFor(execution?.trigger_kind, {
+          actorPresent: true,
+          targetCount: targets.length,
+          postureReady: postureReadyForTargets(save, actorId, targets),
+          targetPostureReady: targetPostureReady(save, targets)
+        });
     facts.push({
       rule_id: entry.id,
       already_effective: execution?.kind === 'clothing_state'

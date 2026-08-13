@@ -30,7 +30,17 @@ function clothingQuote(evidence, actorId) {
   return typeof entry.quote === 'string' && entry.quote.trim() ? entry.quote.trim() : null;
 }
 function evidenceMap(proposal, evidence, actorId) {
-  return { ...(object(proposal?.evidence) ? proposal.evidence : {}), clothing: clothingQuote(evidence, actorId) };
+  const result = { ...(object(proposal?.evidence) ? proposal.evidence : {}), clothing: clothingQuote(evidence, actorId) };
+  for (const item of Object.values(object(evidence) ? evidence : {})) {
+    if (!object(item) || !Array.isArray(item.changed) || typeof item.quote !== 'string' || !item.quote.trim()) continue;
+    for (const path of item.changed) {
+      const value = String(path ?? '');
+      if (value.endsWith('.posture') && (value.includes(`${actorId}.posture`) || value.includes(`${actorId}`))) result.posture = item.quote.trim();
+      if (value.endsWith('.position_label') && (value.includes(`${actorId}.position_label`) || value.includes(`${actorId}`))) result.position = item.quote.trim();
+      if (value.endsWith('.posture_end_reason') && value.includes(`${actorId}`)) result.posture_end_reason = item.quote.trim();
+    }
+  }
+  return result;
 }
 function findQuote(evidence, path) {
   for (const item of Object.values(object(evidence) ? evidence : {})) {
@@ -56,6 +66,44 @@ function registered(id, npcIds) { return typeof id === 'string' && (!npcIds?.siz
 function currentNpcIds(save, npcIds) {
   const scene = hydrateCanonicalScene(save, { npcIds });
   return new Set(scene.present_npc_ids ?? []);
+}
+
+function reduceRelationUpdates({ save, updates, expectedTurn, storyText } = {}) {
+  const previous = Array.isArray(save?.active_relations) ? save.active_relations : [];
+  const next = previous.map(item => ({ ...item }));
+  const warnings = [];
+  for (const update of Array.isArray(updates) ? updates : []) {
+    if (!update?.actor_id || !update?.target_id || !update?.relation_kind || !update?.state) continue;
+    if (typeof update.quote !== 'string' || !update.quote.trim() || !String(storyText ?? '').includes(update.quote.trim())) {
+      warnings.push(`relation_evidence_missing:${update.actor_id}`);
+      continue;
+    }
+    const index = next.findIndex(item => item.actor_id === update.actor_id && item.target_id === update.target_id && item.relation_kind === update.relation_kind);
+    if (update.state === 'ended') {
+      if (index >= 0) next[index] = { ...next[index], state: 'ended', updated_turn: expectedTurn, end_quote: update.quote };
+      continue;
+    }
+    const relation = {
+      actor_id: update.actor_id,
+      target_id: update.target_id,
+      relation_kind: update.relation_kind,
+      state: 'active',
+      started_turn: index >= 0 ? next[index].started_turn ?? expectedTurn : expectedTurn,
+      updated_turn: expectedTurn,
+      quote: update.quote
+    };
+    // One actor cannot keep two competing active relation targets.  A new
+    // structured start closes only the actor's prior relation; it never uses
+    // free-form position labels as an implicit target selector.
+    for (let i = 0; i < next.length; i += 1) {
+      if (next[i].state === 'active' && next[i].actor_id === update.actor_id && next[i].target_id !== update.target_id) {
+        next[i] = { ...next[i], state: 'ended', updated_turn: expectedTurn, end_reason: 'superseded_by_structured_relation' };
+      }
+    }
+    if (index >= 0) next[index] = relation;
+    else next.push(relation);
+  }
+  return { state: next.slice(-80), warnings };
 }
 
 function observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds } = {}) {
@@ -227,6 +275,9 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
   nextSave.player_scene_state = playerPhysical.state; warnings.push(...playerPhysical.warnings);
   const playerSexual = reducePlayerSexualObservation({ save: nextSave, sexual: observation.player_observation?.sexual, evidence, storyText: rawStory, expectedTurn });
   nextSave.player_sexual_state = playerSexual.state; warnings.push(...playerSexual.warnings);
+  const relations = reduceRelationUpdates({ save: nextSave, updates: observation.relation_updates, expectedTurn, storyText: rawStory });
+  nextSave.active_relations = relations.state;
+  warnings.push(...relations.warnings);
   for (const [npcId, domains] of Object.entries(observation.npc_observations ?? {})) {
     if (!eligibleNpcIds.has(npcId)) {
       warnings.push(`off_scene_npc_observation_dropped:${npcId}`);

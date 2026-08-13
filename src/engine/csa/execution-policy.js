@@ -30,6 +30,7 @@ export const EXECUTION_ACTIONS = Object.freeze(new Set([
 export const EXECUTION_TRIGGER_KINDS = Object.freeze(new Set([
   'always_during_work',
   'scene_interaction',
+  'target_seated_interaction',
   'both_seated',
   'close_conversation',
   'counterparty_request',
@@ -64,7 +65,10 @@ export function deriveExecutionMetadata(item = {}) {
     return {
       kind: id === 'sit_on_recipient_lap' || id === 'stand_between_recipient_knees' ? 'posture_relation' : 'physical_contact',
       action: id === 'sit_on_recipient_lap' ? 'sit_on_lap' : id === 'stand_between_recipient_knees' ? 'stand_between_knees' : actionFromId(id),
-      trigger_kind: id === 'sit_on_recipient_lap' || id === 'stand_between_recipient_knees' ? 'both_seated' : 'scene_interaction',
+      // The subject performs the relation; only the counterparty's seated
+      // posture is a prerequisite.  Requiring the subject to be seated would
+      // make sit/stand enactments self-contradictory.
+      trigger_kind: id === 'sit_on_recipient_lap' || id === 'stand_between_recipient_knees' ? 'target_seated_interaction' : 'scene_interaction',
       target_required: true
     };
   }
