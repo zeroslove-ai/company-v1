@@ -1,6 +1,6 @@
 # Sole-Writer Architecture Decision
 
-Status: proposed binding baseline for owner review
+Status: final architecture-review amendment; target baseline for owner review
 
 This document freezes the target architecture for the next implementation cut.
 It does not change runtime code, SQL, migrations, tests, or deployed state.
@@ -24,18 +24,35 @@ All application writes to `game_actions.processing_status`, Story/Extract stage
 fields, and error fields must use named lifecycle RPCs. Direct REST GET/SELECT
 may remain read-only. Direct REST PATCH is not a permitted application writer.
 
+This rule is enforced at both layers: application routes use named RPCs, and
+the database revokes service-role direct INSERT/UPDATE/DELETE/TRUNCATE on the
+gameplay core tables after raw-read/caller inventory. Service-role SELECT and
+approved SECURITY DEFINER RPC EXECUTE remain allowed. Cut 1 must not be called
+complete while Worker service-role credentials retain raw gameplay-table DML.
+
 The current `updateActionStatus` and `claimActionStatus` helpers are therefore
 cleanup targets. The minimal replacement design is two compare-and-set RPCs:
 
-- `claim_game_action_stage(game_id, action_id, expected_status, next_status)`
-  for a guarded stage claim;
-- `fail_game_action_stage(game_id, action_id, expected_status, error_code)`
-  for a guarded failure transition.
+- `claim_game_action_stage(game_id, action_id, expected_status,
+  expected_error_code, next_status, next_error_code)` for a guarded stage claim;
+- `fail_game_action_stage(game_id, action_id, expected_status,
+  expected_error_code, next_status, next_error_code)` for a guarded failure or
+  recovery transition.
 
-Both must validate game/action identity, expected current status, and allowed
-status transitions, and return the updated action. Existing named Story/Extract
+Both must atomically compare game/action identity, expected current status, and
+expected error condition, then set both the next status and next error code.
+`NULL` is a meaningful expected condition and must be distinguishable from an
+omitted condition. For example, `extracting + error_code NULL` may claim as
+`extracting + extract_in_progress`; Story/Extract retry must be able to clear
+the error code through the same CAS contract. Allowed status transitions remain
+server-defined. Both return the updated action. Existing named Story/Extract
 record and commit RPCs remain responsible for their stage payloads. This is a
 design only; no RPC is added here.
+
+`record_extract_result` already transitions the action to `committing`.
+Therefore the current follow-up `updateActionStatus('committing')` PATCH is a
+redundant writer and is a deletion candidate, not a behavior to reproduce in a
+replacement RPC.
 
 ## Decision 3 — CSA definitions and active rules
 
@@ -56,6 +73,10 @@ events are staged inputs; only the Commit reducer writes durable CSA state.
 membership, location, focal character, and last speaker. `reduceCanonicalScene()`
 is the sole reducer writer.
 
+Current live structural validation does not yet enforce this target:
+`validate_company_save_v1` requires legacy `scene_state` but does not require
+`save.scene`. This is a confirmed target/validator mismatch, not a Cut 1 fix.
+
 `scene_state`, `last_npcs_present`, and `npc_scene_state.present/location/scene_id`
 are compatibility/projection fields only. `npc_scene_state` may remain the
 canonical home for NPC physical detail such as posture and clothing, but its
@@ -70,6 +91,10 @@ Transition rule:
    allowed only at explicit hydration/render boundaries.
 4. Once the reader inventory shows no runtime consumer, the compatibility fields
    may be removed by a later additive migration and projection cleanup.
+
+The future Scene Authority Consolidation must first add structural validation for
+`save.scene`, then migrate readers/projections, and only afterward remove the
+`scene_state` dependency. This sequence is a separate additive-migration cut.
 
 ## Decision 5 — player location
 
@@ -151,15 +176,23 @@ read-only live catalog confirmation.
 
 Exactly one implementation cut is authorized for planning:
 
-1. Replace direct action-status REST PATCH writes with named compare-and-set
-   lifecycle RPC mutation(s).
-2. Verify that no current JS caller uses `apply_reserved_csa_transaction`; keep
-   external-client caller audit as a gate before removal.
-3. Add a new additive migration to revoke/drop the obsolete CSA preapply writer
+1. Inventory raw table reads and all internal/external callers that require
+   service-role table access.
+2. Add the direct privilege boundary: retain service-role SELECT and approved
+   SECURITY DEFINER RPC EXECUTE, revoke direct service-role
+   INSERT/UPDATE/DELETE/TRUNCATE on the gameplay core tables.
+3. Replace direct action-status REST PATCH writes with named compare-and-set
+   lifecycle RPC mutation(s) carrying expected status, expected error condition,
+   next status, and next error code.
+4. Remove the redundant post-`record_extract_result` committing PATCH path.
+5. Verify that no current or external caller uses
+   `apply_reserved_csa_transaction`; keep the external-client caller audit as a
+   gate before removal.
+6. Add a new additive migration to revoke/drop the obsolete CSA preapply writer
    once the caller gate passes.
-4. Preserve `commit_company_turn` as the sole normal-turn durable save/turn
+7. Preserve `commit_company_turn` as the sole normal-turn durable save/turn
    commit.
-5. Reuse the existing live canary/E2E/reset helpers only for targeted contract
+8. Reuse the existing live canary/E2E/reset helpers only for targeted contract
    verification; do not add a new harness in this cut.
 
 Scene, location, active-relations, parser, frontend cache, and content-catalog
@@ -170,9 +203,13 @@ mutation boundary is reviewed and accepted.
 
 - Confirm no external caller, scheduled job, or operator script invokes the live
   CSA preapply RPC.
-- Confirm exact allowed action status transition graph for the proposed RPCs.
+- Confirm exact allowed action status transition graph and NULL/error-code CAS
+  semantics for the proposed RPCs.
+- Complete raw table read inventory before revoking service-role direct DML.
 - Inventory all readers of scene/location compatibility fields before deleting
   any field.
+- Add `save.scene` structural validation and remove the `scene_state` dependency
+  only in the separate future Scene Authority Consolidation cut.
 - Owner approval of this single-cut boundary.
 
 No blocker permits silently retaining two writers in the target architecture;
