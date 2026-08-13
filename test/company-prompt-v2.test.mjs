@@ -159,6 +159,9 @@ test('Opening Prompt v2 establishes workplace activity and leaves player agency 
 
   assert.match(system, /output protocol below/);
   assert.match(system, /exact speaker_id marker/);
+  assert.match(system, /\[DIALOGUE speaker_id="registered_id_or_player"\][\s\S]*Actual spoken dialogue text\.[\s\S]*\[\/DIALOGUE\]/);
+  assert.match(system, /\[ACTING\][\s\S]*standalone visible action narrative[\s\S]*\[\/ACTING\]/);
+  assert.doesNotMatch(system, /followed optionally by \[ACTING\] direction and dialogue text/);
   assert.match(system, /four repeated/);
   assert.match(system, /unquoted first-person Korean inner monologue.*natural self-talk/);
   assert.match(system, /repeated \[CHOICE\] blocks.*concrete literal player action/);

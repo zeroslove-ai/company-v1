@@ -57,7 +57,19 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
   const flush = () => {
     if (!current) return;
     const text = normalizeProjectionText(current.lines.join('\n'));
-    if (!text && (current.type === 'dialogue' || current.type === 'scene')) fail(`${current.type} block must contain text`);
+    if (!text) {
+      if (current.type === 'dialogue' || current.type === 'scene') {
+        warnings.push(`empty_${current.type}_dropped`);
+        current = null;
+        return;
+      }
+      if (current.type === 'acting') {
+        if (current.enactment_id) fail('ACTING block must contain text');
+        warnings.push('empty_acting_dropped');
+        current = null;
+        return;
+      }
+    }
     if (current.type === 'narrative') {
       if (text) {
         const prior = blocks.at(-1);

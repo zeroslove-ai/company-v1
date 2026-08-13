@@ -20,7 +20,12 @@ export function splitOpeningSections(rawText) {
 const FRESH_OPENING_OUTPUT_PROTOCOL = [
   'Fresh opening output protocol:',
   'Plain narrative is the default and stays in source order; [SCENE] may be used but is not required.',
-  '[DIALOGUE speaker_id="registered_id_or_player"] followed optionally by [ACTING] direction and dialogue text.',
+  '[DIALOGUE speaker_id="registered_id_or_player"]',
+  'Actual spoken dialogue text.',
+  '[/DIALOGUE]',
+  '[ACTING]',
+  'A standalone visible action narrative in source order; ACTING is not dialogue-direction metadata.',
+  '[/ACTING]',
   '[THOUGHT] one unquoted first-person Korean inner monologue written as natural self-talk, never analysis or report prose.',
   'When possible, provide one [THOUGHT] and four repeated [CHOICE] blocks, each containing one concrete literal player action (usually around 30 Korean characters as quality guidance only; not a validity gate). Every speaker_id is an exact registered ID; never infer a speaker. The UI owns headings and numbering; do not output labels, human section titles, or numbered choices.'
 ].join('\n');

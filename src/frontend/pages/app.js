@@ -350,7 +350,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (elements.feedback) { elements.feedback.disabled = !capabilities.canSendFeedback; elements.feedback.onclick = capabilities.canSendFeedback ? () => utilityUi?.openFeedback() : null; }
     if (elements.apps) { elements.apps.disabled = !capabilities.canOpenApps; elements.apps.onclick = capabilities.canOpenApps ? () => csaApp.open('home') : null; }
   }
-  function setupPending() { return !playerSetupCompleted(context); }
+  function setupPending() { return !playerSetupCompleted(context) && !reservedPlayerSetupId(context); }
+  function openingPending() { return Boolean(reservedPlayerSetupId(context)) && !openingCompleted(context); }
+  function interactionBlocked() { return setupPending() || openingPending(); }
   function populateSetupSelect(select, list, idField) {
     if (!select) return;
     select.replaceChildren();
@@ -423,16 +425,17 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     renderHistory(elements.history, recent.length ? recent : (openingTurn ? [openingTurn] : []));
     renderCompanyMapPanel();
     const setupOpen = setupPending();
+    const openingOpen = openingPending();
     // 오버레이는 순수 설정 폼 전용. 저장된 설정(reserved)은 init에서 자동 진행되고
     // 재시도 팝업은 완전히 제거되었다(사용자 요구).
     if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen;
-    if (setupElements.form) setupElements.form.hidden = false;
+    if (setupElements.form) setupElements.form.hidden = !setupOpen;
     const pendingStep = loadPending(storage, gameId)?.step ?? null;
     const phase = computeTurnPhase({ busy, recoveryPending, pendingStep, mediaLoading });
     const flags = turnPhaseUiFlags(phase);
-    if (elements.input) elements.input.disabled = !flags.inputEditable || setupOpen;
-    if (elements.submit) elements.submit.disabled = flags.inputSubmitDisabled || setupOpen;
-    renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: flags.choicesDisabled || setupOpen, onChoose: startNewAction });
+    if (elements.input) elements.input.disabled = !flags.inputEditable || setupOpen || openingOpen;
+    if (elements.submit) elements.submit.disabled = flags.inputSubmitDisabled || setupOpen || openingOpen;
+    renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: flags.choicesDisabled || setupOpen || openingOpen, onChoose: startNewAction });
     renderToolbar();
     // 초기 로드 시 최근 턴(current)이 보이도록 1회 스크롤 — 오프닝부터 쭉 내려야 하는 낭비 제거.
     // 이후 렌더링(턴 갱신)에서는 사용자 스크롤 위치를 침범하지 않는다.
@@ -591,7 +594,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     });
   }
   async function startNewAction(playerAction, structuredAction = null) {
-    let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
+    let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || interactionBlocked()) return false;
     if (elements.input) elements.input.value = '';
     // Keep the last committed choices visible while the new turn is pending.
     // 저장 파이프라인 핫픽스 — 이미 종료된 과거 액션(stale pending)은 자동 정리하고
@@ -642,6 +645,19 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (busy) return false;
     return busyGuard.run(async () => {
       clearSetupError();
+      const reservedSetupId = reservedPlayerSetupId(context);
+      if (reservedSetupId) {
+        if (setupElements.overlay) setupElements.overlay.hidden = true;
+        if (setupElements.form) setupElements.form.hidden = true;
+        try {
+          await streamOpening(reservedSetupId, elements.status);
+          return true;
+        } catch (error) {
+          showError(error);
+          render();
+          return false;
+        }
+      }
       const validation = validateSetupValues(readSetupFormValues(), CATALOGS);
       if (!validation.valid) { showSetupError('입력값을 확인해 주세요.'); return false; }
       if (setupElements.submit) setupElements.submit.disabled = true;
@@ -708,6 +724,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         return true;
       } catch (error) {
         showSetupError(error);
+        showError(error);
         render();
         return false;
       } finally {
@@ -730,7 +747,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const csaApp = createCsaApp({
     documentRef, api, gameId,
     onSubmit: (displayInput, canonicalAction) => {
-      const accepted = !busy && Boolean(context) && !setupPending();
+      const accepted = !busy && Boolean(context) && !interactionBlocked();
       if (!accepted) return false;
       const handoff = startNewAction(displayInput, canonicalAction);
       Promise.resolve(handoff).catch(showError);

@@ -42,6 +42,17 @@ test('fresh parser accepts canonical Story and preserves raw bytes', () => {
   assert.equal('label' in parsed.blocks.find(block => block.type === 'choice'), false);
 });
 
+test('presentation-only empty dialogue and scene blocks fail open without repairing text', () => {
+  const raw = '[SCENE]\n\n[DIALOGUE speaker_id="heroine1"]\n[ACTING]\n고개를 숙였다.\n[/ACTING]\n안녕하세요.\n[/DIALOGUE]';
+  const parsed = parseFreshNarrativeV2(raw, { master });
+  assert.ok(parsed.warnings.includes('empty_scene_dropped'));
+  assert.ok(parsed.warnings.includes('empty_dialogue_dropped'));
+  assert.ok(parsed.blocks.some(block => block.type === 'acting' && block.text === '고개를 숙였다.'));
+  assert.ok(parsed.blocks.some(block => block.type === 'narrative' && block.text === '안녕하세요.'));
+  assert.equal(parsed.dialogue_lines.length, 0);
+  assert.throws(() => parseFreshNarrativeV2('[SCENE]\n장면\n[ACTING enactment_id="turn:1:csa:heroine1:0"]\n[/ACTING]', { master }), error => error.code === 'STORY_PROTOCOL_INVALID');
+});
+
 test('thought fallback stops at a blank paragraph when the closing marker is missing', () => {
   const raw = '[THOUGHT]\n첫 문단의 플레이어 생각이다.\n\nNPC의 이어지는 서술이다.\n[SCENE]\n사무실이 조용하다.';
   const parsed = parseFreshNarrativeV2(raw, { master });

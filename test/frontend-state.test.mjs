@@ -183,7 +183,7 @@ test('a reloaded reserved setup retries the same opening without a second player
   });
 });
 
-test('a failed opening retry surfaces the error in the shared setup area, keeps the reserved section active, and never calls player-setup again', async () => {
+test('a failed opening retry surfaces a global recovery error, hides reserved setup form, and never calls player-setup again', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     const reserved = validContext({ choices: [] });
     reserved.save.data.player_setup = { version: 1, setup_id: 'reserved-setup', status: 'reserved', completed: false };
@@ -206,8 +206,10 @@ test('a failed opening retry surfaces the error in the shared setup area, keeps 
     assert.equal(playerSetupCalls, 0);
     assert.equal(nodes['setup-error'].hidden, false);
     assert.equal(nodes['setup-error'].textContent, '오프닝 생성에 실패했습니다.');
-    assert.equal(nodes['player-setup-overlay'].hidden, false);
-    assert.equal(nodes['player-setup-form'].hidden, false);
+    assert.equal(nodes['player-setup-overlay'].hidden, true);
+    assert.equal(nodes['player-setup-form'].hidden, true);
+    assert.equal(nodes['error-banner'].hidden, false);
+    assert.equal(nodes['player-action'].disabled, true);
     assert.equal(reservedPlayerSetupId(app.context), 'reserved-setup');
   });
 });
