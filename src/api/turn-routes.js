@@ -850,6 +850,10 @@ const master = masterFromEdition(edition);
             // Extract is an optional observation. Invalid, truncated, or
             // contract-invalid output degrades deterministically and still
             // reaches record_extract_result and the single Commit path.
+            const failOpen = error instanceof GameCoreError
+              || error?.code === 'extract_invalid_json'
+              || error?.code === 'extract_truncated';
+            if (!failOpen) throw error;
             extract = buildDegradedExtractObservation({
               extraWarnings: [`extract_fail_open:${error?.code ?? 'invalid_observation'}`]
             });
@@ -910,8 +914,14 @@ const master = masterFromEdition(edition);
         const csaResolution = action.action_kind === 'feedback_revision'
           ? null
           : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
+        const commitValidationSave = projectCsaTransactionSave(
+          currentSave,
+          csaResolution ? structuredAction : null,
+          csaResolution,
+          'commit-validation'
+        );
         const resolvedLocationId = resolveNavigationLocation({
-          save: currentSave,
+          save: commitValidationSave,
           master,
           playerAction: csaResolution ? '' : action.player_action,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
@@ -920,14 +930,20 @@ const master = masterFromEdition(edition);
         const persistedEngine = persistedEngineMetadata(action.parsed_blocks);
         const engineEnactments = action.action_kind === 'feedback_revision' ? [] : persistedEngine.enactments;
         if (engineEnactments.length) {
-          const currentScene = hydrateCanonicalScene(currentSave, { master, mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [] });
+          const currentScene = hydrateCanonicalScene(commitValidationSave, { master, mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [] });
           const engineSceneIds = new Set(currentScene.present_npc_ids ?? []);
           for (const enactment of engineEnactments) {
             if (enactment?.actor_id && enactment.actor_id !== 'player') engineSceneIds.add(enactment.actor_id);
             for (const id of enactment?.counterparty_candidate_ids ?? []) if (id !== 'player') engineSceneIds.add(id);
             for (const id of enactment?.target_ids ?? []) if (id !== 'player') engineSceneIds.add(id);
           }
-          const commitWorld = buildStoryWorldProjection({ save: currentSave, master, sceneActorIds: [...engineSceneIds], expectedTurn, playerAction: action.player_action ?? '' });
+          const commitWorld = buildStoryWorldProjection({
+            save: commitValidationSave,
+            master,
+            sceneActorIds: [...engineSceneIds],
+            expectedTurn,
+            playerAction: csaResolution ? '' : (action.player_action ?? '')
+          });
           validateEngineMetadata({
             enactments: engineEnactments,
             worldRules: commitWorld.world_rules,

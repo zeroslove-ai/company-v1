@@ -28,15 +28,15 @@ const STORY_LINES = [
   '[SCENE]',
   '이메이의 눈동자가 흔들렸다.',
   '',
-  '[DIALOGUE speaker_id="heroine5"]',
+  '[DIALOGUE speaker_id="heroine5"]first dialogue line[/DIALOGUE]',
   '[ACTING] 떨리는 목소리로 손끝을 만지작거리며',
   '저... 이번 주말에 시간 괜찮으세요?',
   '',
-  '[DIALOGUE speaker_id="heroine5"]',
+  '[/ACTING]\n[DIALOGUE speaker_id="heroine5"]second dialogue line[/DIALOGUE]',
   '[ACTING] 고개를 숙이며 조심스럽게',
   '처음이니까 더 잘해주고 싶은 거예요.',
   '',
-  '[SCENE]',
+  '[/ACTING]\n[SCENE]',
   '잠시 침묵이 흘렀다.'
 ].join('\n');
 // SSE data 라인은 JSON.stringify가 개행을 자동 이스케이프한다
@@ -219,8 +219,10 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   for (const d of dialogues) {
     assert.equal(d.speaker_id, 'heroine5');
     assert.equal(d.speaker_name, '이메이', 'canon 기반 이름');
-    assert.ok(d.direction && d.direction.length > 0, '구체 연기 지시 보존');
+    assert.equal(d.direction, null, 'Fresh ACTING is not dialogue direction metadata');
   }
+  assert.equal(savedAfter.parsed_blocks.acting_events.length, 2);
+  assert.ok(savedAfter.parsed_blocks.acting_events.every(event => event.text.length > 0));
 
   // 4) Commit
   const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);

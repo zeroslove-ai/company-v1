@@ -125,7 +125,9 @@ function makeRuntimeHarness() {
   const completionBodies = [];
 
   const storyText = '[SCENE]\n규정 안내가 시작됐다.\n[DIALOGUE speaker_id="heroine2"]\n[ACTING] 정중하게\n안내리는 것을 설명한다.\n[THOUGHT]\n다음 순서를 생각한다.\n[CHOICE label="질문"]\n질문한다.\n[CHOICE label="대기"]\n그대로 둔다.\n[CHOICE label="확인"]\n내용을 확인한다.\n[CHOICE label="이동"]\n다른 장소로 이동한다.';
-  const freshStoryText = storyText.replace(/\[CHOICE label="[^"]+"\]/g, '[CHOICE]');
+  const freshStoryText = storyText
+    .replace(/\[DIALOGUE speaker_id="([^"]+)"\]\n\[ACTING\] ([^\n]+)\n([^\n]+)\n/g, '[DIALOGUE speaker_id="$1"]$3[/DIALOGUE]\n[ACTING]$2[/ACTING]\n')
+    .replace(/\[CHOICE label="[^"]+"\]/g, '[CHOICE]');
   const storySse = `data: ${JSON.stringify({ choices: [{ delta: { content: freshStoryText } }] })}\n\ndata: [DONE]\n\n`;
 
   async function fetchImpl(url, init = {}) {

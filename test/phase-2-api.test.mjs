@@ -38,7 +38,7 @@ const v2ExtractFixture = ({ outcome = 'partial', npcMood = null, elapsed_minutes
   csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '캠페인 검토가 진전됐다.', warnings: []
 });
 
-function createMockFetch({ incompleteStory = false, conflict = false, missingContext = false, failContextOnCall = null, storySseSequence, extractContentSequence, extractEnvelope, extractFinishReason } = {}) {
+function createMockFetch({ incompleteStory = false, conflict = false, missingContext = false, failContextOnCall = null, extractUpstreamFailure = false, storySseSequence, extractContentSequence, extractEnvelope, extractFinishReason } = {}) {
   const calls = [];
   const actions = new Map();
   const save = readJson('fixtures/phase-0.5/canonical-save-v1.json');
@@ -57,6 +57,7 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
     if (textUrl.startsWith('https://llm.test')) {
       const body = JSON.parse(init.body);
       if (body.stream) return new Response(storySses[Math.min(storyCall++, storySses.length - 1)], { headers: { 'content-type': 'text/event-stream' } });
+      if (extractUpstreamFailure) return new Response('upstream failure', { status: 503 });
       return json({ choices: [{ finish_reason: extractFinishReason, message: { content: extractContents[Math.min(extractCall++, extractContents.length - 1)] } }] });
     }
     const parsed = new URL(textUrl);
@@ -218,6 +219,17 @@ test('Extract malformed JSON fails open to a degraded observation', async () => 
   assert.equal(mock.actions.get(actionId).processing_status, 'committing');
   assert.equal(mock.actions.get(actionId).extract_delta.outcome, 'degraded');
   assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), true);
+});
+
+test('Extract upstream failure remains retryable instead of degrading', async () => {
+  const mock = createMockFetch({ extractUpstreamFailure: true });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const storyBody = { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'retryable extract' };
+  await (await worker.fetch(request('/api/story', storyBody), env)).text();
+  const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.equal(response.status, 502);
+  assert.equal(mock.actions.get(actionId).processing_status, 'extract_failed');
+  assert.equal(mock.actions.get(actionId).extract_delta, undefined);
 });
 
 test('Phase 2 keeps infrastructure/context failures retryable', async () => {

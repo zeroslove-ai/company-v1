@@ -80,7 +80,7 @@ export function parseStoryControlMarker(input, { directory = null } = {}) {
     const attributes = parseQuotedAttributes(token.slice('[ACTING'.length, -1), new Set(['enactment_id', 'actor_id', 'posture_after']));
     if (attributes.actor_id && directory && !directory.has(attributes.actor_id)) throw protocolError(`Unknown Story actor_id: ${attributes.actor_id}`);
     if (attributes.posture_after && !new Set(['sitting', 'standing']).has(attributes.posture_after)) throw protocolError('posture_after must be sitting or standing');
-    return { type: 'acting', raw: token, remainder, legacy: Object.keys(attributes).length === 0, ...attributes, leadingWhitespace: leading, end: leading.length + close + 1 };
+    return { type: 'acting', raw: token, remainder, ...attributes, leadingWhitespace: leading, end: leading.length + close + 1 };
   }
   if (source.startsWith('[CHOICE')) {
     if (!/^\[CHOICE(?:\s|\])/.test(token)) throw protocolError('Malformed CHOICE marker');
@@ -114,10 +114,6 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
   let finished = false;
   let activeDialogue = false;
   let activeBlockType = null;
-  let canAttachLegacyActing = false;
-  let legacyActingUsed = false;
-  let legacyActingPending = false;
-  let legacyActingBuffer = '';
 
   const emitText = (events, text) => {
     if (!text) return;
@@ -146,8 +142,6 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
       if (activeBlockType) events.push({ type: 'block_end', block_type: activeBlockType, implicit: true });
       activeDialogue = marker.block_type === 'dialogue';
       activeBlockType = marker.block_type;
-      canAttachLegacyActing = marker.block_type === 'dialogue';
-      legacyActingUsed = false;
       const data = { type: 'block_start', block_type: marker.block_type };
       if (marker.block_type === 'dialogue') {
         activeDialogue = true;
@@ -161,24 +155,9 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
         events.push({ type: 'block_end', block_type: activeBlockType, implicit: true });
       } else events.push({ type: 'block_end', block_type: marker.block_type });
       activeDialogue = false;
-      // Keep the just-closed dialogue as the only adjacency target until the
-      // next semantic block begins; post-dialogue ACTING may attach to it.
+      // Keep the active block closed until the next semantic marker.
       activeBlockType = null;
-      if (marker.block_type !== 'dialogue') canAttachLegacyActing = false;
     } else if (marker.type === 'acting') {
-      if (marker.legacy && (activeDialogue || canAttachLegacyActing)) {
-        if (legacyActingUsed) {
-          events.push({ type: 'warning', code: 'dialogue_acting_duplicate' });
-          return;
-        }
-        legacyActingUsed = true;
-        legacyActingPending = true;
-        return;
-      }
-      if (marker.legacy) {
-        events.push({ type: 'warning', code: 'acting_without_dialogue' });
-        return;
-      }
       if (activeBlockType) events.push({ type: 'block_end', block_type: activeBlockType, implicit: true });
       activeDialogue = false;
       activeBlockType = 'acting';
@@ -207,18 +186,6 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
     lineStart = false;
     afterMarker = true;
     let remainder = visibleRemainder(marker.remainder);
-    if (marker.type === 'acting' && marker.legacy && (activeDialogue || canAttachLegacyActing) && remainder) {
-      remainder = remainder.replace(/^\r?\n/, '');
-      const newline = remainder.search(/\r?\n/);
-      const nextControl = remainder.search(/\[/);
-      const boundary = newline >= 0 ? newline : (nextControl >= 0 ? nextControl : remainder.length);
-      const direction = remainder.slice(0, boundary).trim();
-      if (direction) events.push({ type: 'acting', acting_direction: direction });
-      if (newline >= 0) remainder = remainder.slice(newline + (remainder[newline] === '\r' ? 2 : 1));
-      else if (nextControl >= 0) remainder = remainder.slice(nextControl);
-      else remainder = '';
-      legacyActingPending = false;
-    }
     if (remainder) {
       afterMarker = false;
       const nextControl = remainder.search(/\[(?:\/?SCENE|\/?DIALOGUE|\/?ACTING|\/?THOUGHT|\/?CHOICE)(?:\s|\]|\/)/);
@@ -240,34 +207,6 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
     let index = 0;
     while (index < input.length) {
       const character = input[index];
-      if (legacyActingPending) {
-        if (character === '[') {
-          const direction = legacyActingBuffer.trim();
-          if (direction) events.push({ type: 'acting', acting_direction: direction });
-          legacyActingBuffer = '';
-          legacyActingPending = false;
-          afterMarker = false;
-          continue;
-        }
-        if (character === '\n') {
-          const direction = legacyActingBuffer.trim();
-          if (!direction) {
-            lineStart = true;
-            index += 1;
-            continue;
-          }
-          if (direction) events.push({ type: 'acting', acting_direction: direction });
-          legacyActingBuffer = '';
-          legacyActingPending = false;
-          afterMarker = false;
-          lineStart = true;
-          index += 1;
-          continue;
-        }
-        legacyActingBuffer += character;
-        index += 1;
-        continue;
-      }
       if (candidate) {
         candidate += character; index += 1;
         if (character === ']') {
@@ -295,9 +234,6 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
     const events = [];
     if (candidate && knownPrefix(candidate)) throw protocolError('Incomplete Story control marker');
     if (candidate) emitText(events, candidate);
-    if (legacyActingPending && legacyActingBuffer.trim()) events.push({ type: 'acting', acting_direction: legacyActingBuffer.trim() });
-    legacyActingPending = false;
-    legacyActingBuffer = '';
     return events;
   }
   return { push, finish };

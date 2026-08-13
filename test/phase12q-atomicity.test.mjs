@@ -88,3 +88,36 @@ test('12Q player private CSA origin is present in Story payload but not ordinary
   assert.deepEqual(payload.player_private_origin.affected_rule_ids, ['csa_1']);
   assert.match(system.content, /ACTING enactment_id/);
 });
+
+test('12Q.1 signed activation and Engine ACTING reach one Commit result', () => {
+  const currentSave = structuredClone(save);
+  currentSave.csa_active = [];
+  currentSave.csa_rules = {};
+  const rule = {
+    id: 'csa_2', active: true, source_type: 'preset', created_turn: 8,
+    content: 'female employees work without a bra',
+    preset: {
+      template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee', mode: 'continuous',
+      execution: { kind: 'clothing_state', action: 'set_clothing_state', trigger_kind: 'always_during_work', target_required: false, required_state: { underwear_top: 'removed' } }
+    }
+  };
+  const rawStory = '[ACTING enactment_id="turn:8:csa_2:npc-hayeon:0"]\\nThe required state is visible.\\n[/ACTING]';
+  const result = reduceGameplayCommit({
+    currentSave,
+    observation,
+    parsedStory: { raw: rawStory, acting_events: [{ enactment_id: 'turn:8:csa_2:npc-hayeon:0', actor_id: 'npc-hayeon', text: 'The required state is visible.' }], dialogue_lines: [], choices: [] },
+    rawStory,
+    action: { action_id: 'action-8', turn_id: 'turn-8', action_kind: 'app_transaction' },
+    expectedTurn: 8,
+    master: { characters: [], general_npcs: [{ npc_id: 'npc-hayeon', name: 'Hayeon', sex: 'female', type: 'employee' }] },
+    npcIds,
+    structuredAction: { version: 1, type: 'app_transaction', operations: [{ domain: 'csa', operation: 'activate', id: 'csa_2' }] },
+    transactionResolution: { previous_csa_active: [], previous_csa_rules: {}, next_csa_active: ['csa_2'], next_csa_rules: { csa_2: rule } },
+    engineEnactments: [{ authority: 'engine', segment_id: 'turn:8:csa_2:npc-hayeon:0', source_rule_id: 'csa_2', actor_id: 'npc-hayeon', execution_kind: 'clothing_state', action: 'set_clothing_state', required_state: { underwear_top: 'removed' } }]
+  });
+  assert.deepEqual(result.nextSave.csa_active, ['csa_2']);
+  assert.equal(result.nextSave.csa_rules.csa_2.active, true);
+  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].clothing.underwear_top, 'removed');
+  assert.equal(result.nextSave.turn_state.committed_turn, 7);
+  assert.equal(result.nextSave.turn_state.expected_turn, 9);
+});

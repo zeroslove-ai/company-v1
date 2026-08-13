@@ -11,111 +11,8 @@ function text(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : '';
 }
 
-function actorIdOf(entry) {
-  return text(entry?.character_id ?? entry?.npc_id ?? entry?.id);
-}
-
-function actorNameOf(entry) {
-  return text(entry?.name ?? entry?.display_name ?? entry?.character_name);
-}
-
-function findActor(master, id) {
-  const characters = Array.isArray(master?.characters) ? master.characters : [];
-  const generalNpcs = Array.isArray(master?.general_npcs) ? master.general_npcs : [];
-  return characters.find(entry => actorIdOf(entry) === id)
-    ?? generalNpcs.find(entry => actorIdOf(entry) === id)
-    ?? null;
-}
-
-function actorName(master, id, playerName = '') {
-  if (id === 'player') return text(playerName);
-  return actorNameOf(findActor(master, id));
-}
-
-function requireDisplayName(master, id, playerName) {
-  const name = actorName(master, id, playerName);
-  if (!name) throw new TypeError(`Missing display identity for mandatory actor: ${id}`);
-  return name;
-}
-
 function valueOrUnknown(value) {
   return text(value) || 'unknown';
-}
-
-function clothingPhrase(slot, required) {
-  const state = text(required);
-  if (slot === 'underwear_bottom' && state === 'removed') return '\uD558\uC758 \uC18D\uC637\uC774 \uC5C6\uB294';
-  if (slot === 'underwear_top' && state === 'removed') return '\uC0C1\uC758 \uC18D\uC637\uC774 \uC5C6\uB294';
-  if (slot === 'underwear_bottom' && state === 'worn') return '\uD558\uC758 \uC18D\uC637\uC744 \uCC29\uC6A9\uD55C';
-  if (slot === 'underwear_top' && state === 'worn') return '\uC0C1\uC758 \uC18D\uC637\uC744 \uCC29\uC6A9\uD55C';
-  return `${slot}=${state}\uC778`;
-}
-
-function clothingResultText(name, changes, priorStateKnown) {
-  const results = changes.map(change => clothingPhrase(change.slot, change.required)).filter(Boolean);
-  const joined = results.join(', ');
-  return priorStateKnown
-    ? name + '\uB294 \uACF5\uC9C0\uB97C \uD655\uC778\uD55C \uB4A4 \uD544\uC694\uD55C \uBCF5\uC7A5\uC744 \uC9C1\uC811 \uC870\uC815\uD588\uB2E4. \uC774\uC81C ' + joined + ' \uC0C1\uD0DC\uB2E4.'
-    : name + '\uB294 \uD604\uC7AC ' + joined + ' \uC0C1\uD0DC\uC784\uC774 \uBD84\uBA85\uD574\uC84C\uB2E4.';
-}
-
-function oneTarget(action, targetNames) {
-  if (targetNames.length !== 1) throw new TypeError(`Canonical action ${action} requires exactly one target`);
-  return targetNames[0];
-}
-
-function targetList(action, targetNames) {
-  if (!targetNames.length) throw new TypeError(`Canonical action ${action} requires a target`);
-  return targetNames.join(', ');
-}
-
-// Sole user-visible renderer for the current Company behavior vocabulary.
-// Unknown future actions fail closed instead of exposing internal tokens.
-const CANONICAL_BEHAVIOR_ACTION_LABELS = Object.freeze({
-  sit_on_lap: '\uBB34\uB98E \uC704\uC5D0 \uC549',
-  stand_between_knees: '\uB2E4\uB9AC \uC0AC\uC774\uC5D0 \uC11C',
-  press_body_against: '\uBAB8\uC744 \uBC00\uCC29',
-  embrace_from_behind: '\uB4A4\uC5D0\uC11C \uC548\uC544',
-  keep_hand_on_inner_thigh: '\uB0B4\uCABD \uD5C8\uBC85\uC9C0\uC5D0 \uC190\uC744 \uB450',
-  wrap_leg_around: '\uB2E4\uB9AC\uB97C \uAC10\uC544',
-  maintain_thigh_contact: '\uD5C8\uBC85\uC9C0 \uC811\uCD09\uC744 \uC720\uC9C0',
-  whisper_against_ear: '\uADC0\uC5D0 \uC18D\uC0AD\uC774',
-  interlace_fingers: '\uC190\uAC00\uB77D\uC744 \uAE5C',
-  place_requester_hand_on_waist_or_thigh: '\uC190\uC744 \uD5C8\uB9AC\uB098 \uD5C8\uBC85\uC9C0\uC5D0 \uC62C\uB824',
-  allow_breast_touch: '\uAC00\uC2B4 \uC811\uCD09\uC744 \uD5C8\uC6A9',
-  allow_genital_touch: '\uC131\uAE30 \uC811\uCD09\uC744 \uD5C8\uC6A9',
-  stimulate_breasts_and_nipples: '\uAC00\uC2B4\uACFC \uC720\uB450\uB97C \uC790\uADF9',
-  hand_stimulate_genitals: '\uC190\uC73C\uB85C \uC131\uAE30\uB97C \uC790\uADF9',
-  masturbate: '\uC790\uC704',
-  grind_on_lap: '\uBB34\uB98E \uC704\uC5D0\uC11C \uBAB8\uC744 \uC6C0\uC9C1',
-  deep_kiss: '\uAE4A\uC740 \uD0A4\uC2A4',
-  guide_hand_to_body: '\uC190\uC744 \uBAB8\uC5D0 \uC774\uB04C',
-  mutual_genital_touch: '\uC11C\uB85C \uC131\uAE30\uB97C \uC811\uCD09',
-  lick_and_suck_nipples: '\uC720\uB450\uB97C \uC785\uC73C\uB85C \uC790\uADF9',
-  perform_oral_sex_on: '\uC0C1\uB300\uC5D0\uAC8C \uC624\uB784\uC139\uC2A4\uB97C \uD558',
-  receive_oral_sex: '\uC624\uB784\uC139\uC2A4\uB97C \uBC1B',
-  vaginal_sex: '\uC9C8\uB0B4 \uC131\uAD00\uACC4\uB97C \uD558',
-  anal_sex: '\uD56D\uBB38 \uC131\uAD00\uACC4\uB97C \uD558',
-  perform_selected_sex_position: '\uC120\uD0DD\uB41C \uC131\uAD00\uACC4 \uC790\uC138\uB97C \uCDE8',
-  continue_until_orgasm: '\uC624\uB974\uAC00\uC998\uAE4C\uC9C0 \uACC4\uC18D',
-  continue_until_player_says_stop: '\uC0C1\uB300\uAC00 \uBA48\uCD9C \uB54C\uAE4C\uC9C0 \uACC4\uC18D',
-  requester_controls_ejaculation_location: '\uC0AC\uC815 \uC704\uCE58\uB97C \uC870\uC808',
-  swallow_semen: '\uC815\uC561\uC744 \uC0BC\uD0A4',
-  multi_performer_sexual_service: '\uC5EC\uB7EC \uC0AC\uB78C\uACFC \uC131\uC801 \uD589\uC704\uB97C \uD568',
-  group_sex_with_player: '\uC9C0\uC815\uB41C \uC0C1\uB300\uC640 \uC9D1\uB2E8 \uC131\uAD00\uACC4\uB97C \uD568',
-  public_sex_is_unremarkable: '\uACF5\uC5F0\uD55C \uC7A5\uC18C\uC5D0\uC11C \uC131\uAD00\uACC4\uB97C \uD568',
-  player_request_executes_immediately: '\uC694\uCCAD\uB41C \uD589\uB3D9\uC744 \uC989\uC2DC \uC2E4\uD589',
-  player_controls_target_clothing_posture_and_sexual_action: '\uC0C1\uB300\uC758 \uBCF5\uC7A5\uACFC \uC790\uC138\uC640 \uC131\uC801 \uD589\uB3D9\uC744 \uC870\uC808',
-  selected_groups_mutual_sexual_service: '\uC120\uD0DD\uB41C \uC9D1\uB2E8\uAC04 \uC131\uC801 \uD589\uC704\uB97C \uD568'
-});
-
-function behaviorResultText(name, action, targetNames) {
-  const label = CANONICAL_BEHAVIOR_ACTION_LABELS[action];
-  if (!label) throw new TypeError(`Unsupported canonical behavior action: ${action}`);
-  const targetClause = targetNames.length === 1
-    ? ` ${targetList(action, targetNames)}\uC5D0\uAC8C`
-    : targetNames.length > 1 ? ' \uC0C1\uB300 \uC9C1\uC6D0\uC5D0\uAC8C' : '';
-  return `${name}${targetClause} ${label}\uC600\uB2E4.`;
 }
 
 function normalizeChanges(changes) {
@@ -324,5 +221,3 @@ export function validateMandatoryEnactment(enactment, { sceneObligations = [], w
   } else throw new TypeError('Unknown mandatory execution kind');
   return true;
 }
-
-export { CANONICAL_BEHAVIOR_ACTION_LABELS };

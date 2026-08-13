@@ -54,8 +54,6 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
   const choices = [];
   let current = null;
   let thoughtCount = 0;
-  let lastDialogue = null;
-  let canAttachLegacyActing = false;
   const flush = () => {
     if (!current) return;
     const text = normalizeProjectionText(current.lines.join('\n'));
@@ -78,8 +76,6 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       };
       dialogueLines.push(item);
       blocks.push({ type: 'dialogue', ...item });
-      lastDialogue = item;
-      canAttachLegacyActing = true;
     } else if (current.type === 'acting') {
       if (!text) fail('ACTING block must contain text');
       const item = {
@@ -92,18 +88,14 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       };
       blocks.push(item);
       actingEvents.push({ ...item });
-      canAttachLegacyActing = false;
     } else if (current.type === 'scene') {
       blocks.push({ type: 'scene', text });
-      canAttachLegacyActing = false;
     } else if (current.type === 'thought') {
       thoughtCount += 1;
       blocks.push({ type: thoughtCount === 1 ? 'player_inner_thought' : 'narrative', text });
-      canAttachLegacyActing = false;
     } else if (current.type === 'choice') {
       choices.push(text);
       blocks.push({ type: 'choice', text });
-      canAttachLegacyActing = false;
     }
     current = null;
   };
@@ -134,26 +126,6 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
     if (token.type === 'text') { appendText(token.value); continue; }
     const marker = token.marker;
     if (marker.type === 'acting') {
-      if (marker.legacy) {
-        const target = current?.type === 'dialogue' ? current : (canAttachLegacyActing ? lastDialogue : null);
-        const next = tokens[index + 1]?.type === 'text' ? tokens[index + 1] : null;
-        const source = String(next?.value ?? '').replace(/^[ \t]*/, '');
-        const lines = source.split(/\r?\n/);
-        let direction = lines[0].trim();
-        if (!direction && lines.length > 1) direction = lines[1].trim();
-        const consumedLines = !lines[0].trim() ? 2 : 1;
-        if (target && direction) {
-          if (target.acting_direction) warnings.push('dialogue_acting_duplicate');
-          else {
-            target.acting_direction = direction;
-            target.direction = direction;
-          }
-          if (next) next.value = lines.slice(consumedLines).join('\n');
-        } else if (!target) {
-          warnings.push('acting_without_dialogue');
-        }
-        continue;
-      }
       flush();
       current = {
         type: 'acting',
@@ -170,13 +142,11 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
     }
     if (marker.type === 'block_end') {
       if (current) flush();
-      if (marker.block_type !== 'dialogue') canAttachLegacyActing = false;
       continue;
     }
     if (marker.type !== 'block_start') fail('Unexpected Story control marker');
     flush();
     current = { type: marker.block_type, speaker_id: marker.speaker_id, acting_direction: null, lines: [] };
-    canAttachLegacyActing = marker.block_type === 'dialogue';
   }
   flush();
 
