@@ -1,110 +1,113 @@
-# Supabase Database Baseline
+# Supabase Database Baseline — Live Amended
 
-Project reference: `fmcrspgxstsmxxsmkeee`
+Project: `fmcrspgxstsmxxsmkeee`
 
-This is a repository-declared baseline plus an explicit access limitation. No
-SQL write, migration, RPC execution, reset, or Production request was made.
+The following facts were independently verified read-only by the architecture
+reviewer and supplied in Issue #64. They replace the prior UNKNOWN statements.
+No DB write, RPC execution, reset, migration, or Production query occurred in
+this follow-up.
 
-## What the repository declares
+## Live catalog facts
 
-The migration set contains six core tables:
+1. Exactly six core public tables exist:
+   `games`, `game_master`, `game_save`, `game_actions`, `game_turns`,
+   `image_library`.
+2. RLS is enabled on all six tables.
+3. Public `pg_policies` count is zero for these Company tables.
+4. `service_role` has direct table privileges including INSERT/UPDATE/DELETE
+   on the core tables. Direct REST mutation is therefore a real application
+   mutation surface, not a hypothetical one.
+5. `game_actions.structured_action` and `game_turns.structured_action` exist
+   live as nullable `jsonb` columns.
+6. Exactly 14 Company migrations are recorded as applied, through
+   `20260812071904 company_v1_preapply_csa_transaction`.
 
-- `games`
-- `game_master`
-- `game_save`
-- `game_actions`
-- `game_turns`
-- `image_library`
+## Live public functions
 
-The core schema creates RLS on gameplay tables and indexes action/turn lookup,
-expected turn, processing status, target turn, committed time, and revision
-request identifiers. `game_turns.action_id` is unique and references
-`game_actions`; active turn and revision request uniqueness are enforced by
-indexes in `20260803000100_company_v1_core_schema.sql`.
+Exactly these 18 public functions exist live:
 
-## Migration-declared mutation surfaces
+```text
+apply_reserved_csa_transaction
+commit_company_opening
+commit_company_turn
+commit_feedback_revision
+company_apply_initial_clothing_v2
+company_apply_opening_scene_v1
+company_initial_clothing_v2
+create_company_game
+get_action_status
+get_company_context
+record_extract_result
+record_story_result
+reserve_company_player_setup
+reserve_feedback_revision
+reserve_turn_action
+reset_company_game
+set_updated_at
+validate_company_save_v1
+```
 
-The migrations contain 18 unique function names (some are recreated across
-later migrations):
+The old `_legacy_v2` aliases are not present live. Historical migration
+comments such as `NOT APPLIED` do not override the recorded migration version
+and resulting live schema.
 
-| Function | Intended role | Current JS caller evidence | Audit result |
-|---|---|---|---|
-| `create_company_game` | create game/save/master | bootstrap/tests | migration-declared; live definition unverified |
-| `get_company_context` | hydrate save/master/history context | routes via Supabase client/context paths | active runtime boundary |
-| `reserve_turn_action` | reserve ordinary/structured action | turn route/client | active runtime boundary |
-| `record_story_result` | persist Story stage | route lifecycle | migration-declared; current route path needs owner confirmation |
-| `record_extract_result` | persist Extract stage | route lifecycle | migration-declared; current route path needs owner confirmation |
-| `get_action_status` | recovery/status | route/client | active recovery boundary |
-| `commit_company_turn` | durable turn/save commit | turn route | primary durable commit candidate |
-| `reserve_feedback_revision` | reserve feedback replacement | feedback route/client | active revision boundary |
-| `commit_feedback_revision` | supersede/rewrite turn | feedback route/client | active revision boundary |
-| `reset_company_game` | reset test game state | reset route/scripts | dangerous write surface; prohibited in audit |
-| `reserve_company_player_setup` | reserve setup/opening plan | setup route | active opening boundary |
-| `commit_company_opening` | complete opening/save bootstrap | opening route | active opening boundary |
-| `company_apply_initial_clothing_v2` | clothing bootstrap helper | migration wrapper | legacy/compatibility candidate |
-| `company_initial_clothing_v2` | clothing bootstrap helper | migration wrapper | legacy/compatibility candidate |
-| `company_apply_opening_scene_v1` | opening scene bootstrap | migration wrapper | legacy/compatibility candidate |
-| `validate_company_save_v1` | DB save shape validation | commit/opening SQL | DB-side validator; live authority unverified |
-| `apply_reserved_csa_transaction` | pre-apply CSA action mutation | no caller found in `src/**` | dormant DB writer candidate; cleanup requires live DB review |
-| `set_updated_at` | trigger helper | table trigger | infrastructure helper |
+## Mutation surfaces and confirmed conflicts
 
-The exact current signatures, grants, applied migration order, and surviving
-legacy functions cannot be asserted from repository SQL alone.
+### Normal turn commit
 
-## Repo-declared lifecycle
+Live `commit_company_turn` atomically validates the next save, inserts the
+`game_turns` row, updates `game_save`, and marks the action committed. It is the
+sole target boundary for normal-turn durable save/turn state.
 
-`game_actions` is intended to move through reservation and Story/Extract/commit
-stages. `game_turns` stores committed Story, parsed blocks, action metadata,
-summary, monitor, choices, and revision linkage. Feedback creates a replacement
-turn and marks the original superseded. The reset function deletes turns/actions
-and restores the save bootstrap state.
+### Direct action mutation
 
-Opening is separately reserved and committed in `game_save.player_setup` and
-`game_save.opening_state`; later migrations consolidate the canonical function
-names and revoke the legacy `_legacy_v2` function grants in the declared SQL.
+`src/api/supabase.js` contains direct REST PATCH helpers
+`updateActionStatus` and `claimActionStatus`. Because live `service_role`
+direct table DML is permitted, these are real mutation paths alongside named
+RPC lifecycle functions. The target architecture removes direct PATCH writes;
+read-only GET/SELECT may remain.
 
-## Hardcoded/duplicated world data in DB migrations
+### CSA preapply writer
 
-The opening and clothing migrations contain bootstrap logic and default state
-construction. The repository also has content catalogs:
+`apply_reserved_csa_transaction(uuid, uuid, integer)` exists live, is
+`SECURITY DEFINER`, and grants EXECUTE to `service_role`. Its live body directly
+updates `game_save.csa_active` / `csa_rules` and increments `save_revision`
+before `commit_company_turn`. Q.2 source has no caller under `src/**`, but the
+callable DB writer remains deployed. It is an obsolete pre-Commit writer and is
+scheduled for revoke/drop by a new additive cleanup migration after caller
+audit.
 
-- `content/characters.json`
-- `content/general_npcs.json`
-- `content/map.json`
-- `content/organization.json`
-- `content/positions.json`
-- `content/csa_presets.json`
+### Setup/opening content duplication
 
-This creates a potential duplicate-definition boundary: DB SQL knows enough
-about opening/clothing/save shape to write state, while content JSON is the
-runtime world catalog. Whether any live DB `game_master` rows contain
-hardcoded world definitions that override the current content files is
-**UNVERIFIED**.
+The live `reserve_company_player_setup` SQL hardcodes department IDs, position
+IDs, body types, speech styles, `heroine1`–`heroine5`, and constructs turn-0
+scene/player/NPC projection fields. This confirms duplication with repository
+content/catalog files. DB persistence should retain structural integrity, but
+semantic IDs and world membership must be owned by repository content/runtime
+validation.
 
-## Actual database verification status
+### Confirmed opening defect
 
-The audit environment has no callable Supabase management/SQL connector and
-the locally available secret key is rejected for direct catalog REST access.
-Consequently the following are unverified and intentionally not inferred:
+The live `commit_company_opening` body contains a mojibake empty-background
+fallback in `story_summary_overall`. This is recorded as a defect only; it was
+not fixed in this docs-only amendment.
 
-- live tables/columns/constraints/indexes;
-- applied migration history;
-- live `pg_proc` function bodies and overloads;
-- live grants/RLS policies;
-- actual surviving legacy RPCs;
-- current TEST save/action/turn row counts;
-- whether `apply_reserved_csa_transaction` is deployed;
-- live DB-side hardcoded master/world data.
+## Repository-to-live interpretation
 
-Repository SQL is evidence of intended schema and mutation surfaces, not a
-substitute for that missing read-only catalog query.
+Repository migrations remain useful for historical intent and SQL shape, but
+live catalog facts are now the current DB truth. The live function list matches
+the migration-declared unique function inventory, while live deployment proves
+that `apply_reserved_csa_transaction` remains callable despite no current JS
+caller.
 
-## DB disposition candidates
+## Remaining DB unknowns
 
-1. Compare live `pg_proc` and grants with the migration-declared list.
-2. Confirm whether `apply_reserved_csa_transaction` has a live caller and
-   whether it can mutate canonical state outside `commit_company_turn`.
-3. Compare `game_master` data with `content/**` and declare one world source.
-4. Inventory direct REST PATCH writers against action lifecycle RPCs.
-5. Only after owner decision, remove dormant functions/migrations; not during
-   this audit.
+- Exact live function bodies for functions other than the reviewer-inspected
+  surfaces.
+- Exact live indexes/constraints/RLS definitions beyond the supplied facts.
+- Current TEST row values and action/turn counts.
+- Whether any external client outside this repository calls the preapply RPC.
+- Exact hardcoded `game_master` data beyond the setup SQL body.
+
+These unknowns do not weaken the sole-writer target; they define the caller
+audit required before cleanup migration execution.

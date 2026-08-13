@@ -1,65 +1,61 @@
 # Company v1 Current-Truth Audit Ledger
 
-Audit date: 2026-08-13 (Asia/Seoul)
+Audit amendment date: 2026-08-14 (Asia/Seoul)
 
-This ledger is the resumable record of the audit. It records what was checked,
-with which source, and what remains unverified. No runtime, frontend, test, or
-database file was changed by this audit.
+This ledger records the original audit and the read-only live DB amendment from
+Issue #64. No runtime, frontend, test, migration, database, or deployment file
+was changed.
 
 ## Baseline
 
 | Item | Evidence | Result |
 |---|---|---|
-| Repository | `zeroslove-ai/company-v1` | confirmed at `C:\Users\JAEWAN\projects\company-v1` |
+| Repository | `zeroslove-ai/company-v1` | confirmed |
 | Audit branch | `audit/company-v1-authority-baseline-2026-08-13` | confirmed |
-| Runtime baseline | `5ba68bb204767756b9c8a4b5a72ea4003f2075b6` | confirmed as hotfix tip and PR #62 base |
-| Audit branch HEAD | `05692cd68a3d9f57f6aa1c083408f0d7779e948e` | directive-only commit before audit docs |
-| PR | #62 | OPEN / DRAFT / UNMERGED confirmed through `gh` |
-| Issue | #63 | OPEN; audit task confirmed through `gh` |
-| Preserved local evidence | 12 untracked JSON files | present; intentionally not staged or modified |
+| Starting audit SHA | `1b7102497952ecc0d7564196d833c00ed642caf7` | confirmed |
+| Runtime baseline | `5ba68bb204767756b9c8a4b5a72ea4003f2075b6` | unchanged |
+| PR | #62 | OPEN / DRAFT / UNMERGED |
+| Issue | #64 | OPEN; reviewer live DB evidence supplied in body |
+| Supabase project | `fmcrspgxstsmxxsmkeee` | reviewer-verified read-only facts |
+| Preserved local evidence | 12 untracked JSON files | untouched and uncommitted |
 
-## Surface checklist
+## Amendment checklist
 
-| Surface | Status | Source checked | Important finding / unverified reason |
+| Surface | Status | Source | Finding |
 |---|---|---|---|
-| Directive | DONE | `docs/audit/CODER_DIRECTIVE_COMPANY_V1_CURRENT_TRUTH_2026-08-13.md`, commit `05692cd` | Owner prompt filename set is used; owner prompt supersedes directive filename discrepancy. |
-| Branch/worktree | DONE | `git status`, `git log`, remote refs | Only preserved evidence artifacts are untracked. |
-| Open PR inventory | DONE | GitHub `gh pr list/view`, remote refs | 20 open PRs; ancestry classifications in `01_PR_INVENTORY.md`. |
-| Git lineage | DONE | `git log --first-parent`, `git merge-base --is-ancestor` | Reset stack and early Company stack are ancestors of current main; #59/#61 are not. |
-| Runtime request flow | DONE | `src/api/index.js`, `src/api/turn-routes.js`, `src/api/supabase.js` | API orchestrates reservation, Story, Extract, reduction, commit, and projections. |
-| Story/Extract protocol | DONE | `story-prompt.js`, `story-wire-protocol.js`, fresh/persisted parsers, `extract-prompt.js` | Raw Story and parsed blocks have separate contracts; compatibility parsers remain. |
-| CSA | DONE | `src/engine/csa/**`, `content/csa_presets.json`, related tests | Catalog/planner/projection/mandatory enactment/commit reducer are distinct surfaces. |
-| Scene/state | DONE | `scene-reducer.js`, `observation-reducers.js`, `projections.js`, state modules | Canonical scene reducer coexists with legacy mirrors and hydration adapters. |
-| Frontend | DONE | `src/frontend/pages/app.js`, `state.js`, `view-model.js`, `render.js` | View model is projection boundary, but session/recovery and streaming state are additional client state. |
-| Test harness | DONE | `package.json`, `test/**`, `scripts/**` | Mock unit/contract suite plus live Worker/Supabase-capable scripts; live scripts are guarded and stateful. |
-| Repository DB contract | DONE | `supabase/migrations/**`, `supabase/verification/**` | 6 base tables and 18 unique function names are defined in migrations. |
-| Actual DB catalog | UNVERIFIED | Supabase REST attempted read-only; no SQL/catalog connector or usable management key | Current applied migration set, live grants, indexes, and `pg_proc` cannot be independently proven here. |
-| Live evidence | DONE | preserved JSON artifacts and timestamps/embedded provenance | Phase-specific validity limits recorded in `07_LIVE_EVIDENCE_INDEX.md`. |
-| Historical design docs | DONE | `docs/**` authority/runtime/contract/handoff documents | Documents are useful design evidence, not automatically current authority. |
-| Production | NOT ACCESSED | user-provided prohibition | Production ID was not queried or mutated. |
+| Original audit docs | DONE | prior `00`–`09` audit commit | UNKNOWN DB claims identified for amendment |
+| Live core tables | VERIFIED | Issue #64 architecture reviewer catalog read | Exactly 6 Company public tables; RLS enabled; zero public policies |
+| Live table privileges | VERIFIED | Issue #64 architecture reviewer catalog read | `service_role` has direct INSERT/UPDATE/DELETE on core tables; REST mutation is real |
+| Live structured action columns | VERIFIED | Issue #64 architecture reviewer catalog read | Both action/turn `structured_action` columns are nullable `jsonb` |
+| Live public functions | VERIFIED | Issue #64 architecture reviewer catalog read | Exactly 18; list recorded in `05_DATABASE_BASELINE.md` |
+| Legacy aliases | VERIFIED | Issue #64 architecture reviewer catalog read | `_legacy_v2` aliases absent live |
+| Applied migrations | VERIFIED | Issue #64 architecture reviewer catalog read | Exactly 14 applied through `20260812071904 company_v1_preapply_csa_transaction` |
+| CSA preapply writer | VERIFIED | Issue #64 architecture reviewer catalog read | Live `SECURITY DEFINER`, service-role executable, mutates save before commit |
+| Commit boundary | VERIFIED | Issue #64 architecture reviewer catalog read | `commit_company_turn` validates, inserts turn, updates save, commits action atomically |
+| Direct action REST mutation | VERIFIED | `src/api/supabase.js` + live privileges | Direct PATCH helpers coexist with RPC lifecycle |
+| DB/content duplication | VERIFIED | live `reserve_company_player_setup` body | Hardcoded IDs/catalog entries and turn-0 projections exist in SQL |
+| Opening defect | VERIFIED | live `commit_company_opening` body | Mojibake empty-background fallback in `story_summary_overall`; docs-only record |
+| Current source/harness | DONE | `src/**`, `test/**`, `scripts/**` | Reuse findings remain in `06_TEST_HARNESS_BASELINE.md` |
+| Production | NOT ACCESSED | supplied prohibition | No Production query or mutation |
 
-## Read-only DB note
+## Corrected evidence policy
 
-The repository contains a service-role Supabase REST configuration, but the
-available key is rejected for direct browser-style REST catalog access. No
-write, reset, migration, RPC execution, or Production request was made. The
-database section therefore distinguishes **migration-declared** structure from
-**live database-confirmed** structure.
+The reviewer-verified catalog facts in Issue #64 replace the prior “live DB
+UNVERIFIED” statements for the listed surfaces. They do not prove facts outside
+the supplied read-only catalog scope, such as current TEST row values,
+Cloudflare source identity, or every deployed caller path.
 
-## Audit decisions recorded
+Historical migration comments such as `NOT APPLIED` are not deployment truth
+when the version is present in `supabase_migrations.schema_migrations` and its
+resulting schema exists live.
 
-1. Source and Git ancestry outrank handoff prose.
-2. A migration defines intended DB authority, not proof of current deployment.
-3. A persisted field is not canonical merely because several readers consume it.
-4. Raw Story is an observable narrative record; parsed blocks are a structured
-   projection and protocol boundary.
-5. Current-truth claims are marked UNKNOWN when live DB or deployment evidence
-   is unavailable.
-6. No corrective implementation is part of this audit.
+## Freeze confirmation
 
-## Completion gate
-
-- [x] Required nine audit documents created.
-- [x] Runtime/frontend/test/migration files unchanged.
-- [x] Existing live evidence remains untracked and untouched.
-- [ ] Owner architecture decision after review.
+- [x] Runtime code changed: 0
+- [x] Frontend code changed: 0
+- [x] Test code changed: 0
+- [x] Migration changed: 0
+- [x] Supabase write/RPC execution/reset: 0
+- [x] Deployment: 0
+- [x] Production access/write/reset: 0
+- [x] PR cleanup/close/merge/Ready: 0

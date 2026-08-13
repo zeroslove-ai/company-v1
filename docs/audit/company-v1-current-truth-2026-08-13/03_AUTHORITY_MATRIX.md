@@ -1,51 +1,52 @@
 # Authority Matrix
 
-Evidence basis: runtime baseline `5ba68bb`, current source tree, migrations,
-and tests. “Canonical” below means the current code path intended to be the
-durable writer; it does not claim that every legacy writer has been removed.
+Evidence basis: runtime baseline `5ba68bb`, current source, repository
+migrations, and the reviewer-verified live DB facts in Issue #64.
 
-| Domain | Canonical representation | Canonical writer | Other writers / mirrors | Readers | Current conflict / disposition |
+| Domain | Current canonical representation | Current durable writer | Other writers / mirrors | Readers | Sole-writer decision |
 |---|---|---|---|---|---|
-| Story raw text | `game_turns.story_text`; opening story in `opening_state.story_text` | Story route + commit RPC | feedback revision creates replacement turn | parser, Extract, history, frontend | Raw text and parsed projection must remain distinct. KEEP boundary. |
-| Parsed Story blocks | `game_turns.parsed_blocks` | fresh/persisted parser path before commit | frontend stream projection; legacy parser | view model, Extract prompt, replay | Multiple parser generations remain. SIMPLIFY compatibility. |
-| Choices | committed turn `choices`, plus parsed block choice projection | `reduceStoryChoiceProjection`, commit payload | frontend streamed choices/session state; opening choices | frontend, next-turn context | Duplicate presentation caches. KEEP server committed field; simplify clients. |
-| THOUGHT | parsed Story / committed `parsed_blocks` | Fresh parser and observation pipeline | frontend normalization | renderer, Extract | Protocol duplication/legacy normalization remains. SIMPLIFY. |
-| `scene_id` | canonical scene state in save | `scene-reducer.js` / commit reducer | legacy scene fields and hydration | Story projection, view model | Single-writer intent exists; legacy mirrors remain. REWRITE boundary only after owner decision. |
-| Location | canonical scene `location_id` plus world/time context | navigation/action resolution and scene reducer | `npc_scene_state.location_id`, frontend display | Story prompt, map, renderer | Presentation mirrors can drift. Mark location writer contract explicitly. |
-| Player scene state | `player_scene_state` | observation reducer from exact Story evidence | setup/bootstrap initializes values; legacy hydration | Story projection, view model, triggers | Input is intent; Story observation is state authority. KEEP. |
-| NPC scene state | canonical scene participants plus `npc_scene_state` detail | scene reducer + observation reducer | legacy direct fields and relation presentation | Story, Extract, frontend | Detail vs membership split is real but not obvious. SIMPLIFY. |
-| Presence | canonical scene participant set | `scene-reducer.js` | `last_npcs_present`, legacy NPC state | prompt, map, view model | Multi-reader legacy mirror. Keep canonical scene; retire mirror later. |
-| Player posture | `player_scene_state.posture` | observation reducer | setup default / legacy hydration | CSA trigger, Story projection, renderer | Free-form labels must not become authority. KEEP canonical vocabulary. |
-| NPC posture | NPC scene detail posture | observation reducer | relation presentation labels | CSA trigger, Story, frontend | `position_label` is presentation only; conflict recorded. |
-| Clothing | structured clothing state per actor | clothing observation/bootstrap reducers | legacy clothing labels and UI text | Story, view model, image selector | Main ancestry has null/initial clothing fixes; compatibility remains. |
-| Player sexual state | player sexual ledger/state | sexual observation reducer | CSA action payload is intent/input, not durable result | Story/Extract, frontend | State cannot be inferred from input alone. KEEP. |
-| NPC sexual state | NPC sexual ledger/state | observation reducer and sexual-event reducer | mind monitor is not writer | Story, renderer, image selector | Emotional monitor must not write sexual fact. KEEP boundary. |
-| Relationships | relationship records in save | relationship reducer from observations | CSA runtime/active relation may supplement physical relation | Story/Extract/frontend | Relationship and physical relation are different domains; merge risk. SIMPLIFY. |
-| `active_relations` | structured actor/target relation entries | Engine CSA commit reducer and exact Extract relation reducer | legacy presentation labels | Story target authority, triggers, renderer | Two deliberate writers need one closed update contract. REWRITE boundary candidate. |
-| CSA definitions | `csa_rules` / catalog item metadata | app transaction planner/commit | content JSON, DB save payload | app UI, Story projection, reducer | Content catalog and persisted active rule are separate authority layers. KEEP. |
-| CSA active state | `csa_active` and `csa_rules` | CSA reducer / commit payload | old DB preapply RPC is a dormant mutation surface | Story, app, frontend | DB writer existence is not JS caller proof; cleanup candidate. |
-| CSA trigger | normalized execution metadata and `triggerStateFor` | CSA story projection | preset JSON trigger fields; legacy aliases | mandatory enactment, Story prompt | Structural trigger and narrative wording can diverge. REWRITE contract candidate. |
-| CSA execution | execution metadata / enactment records | execution policy + mandatory-enactment builder | provider ACTING is observable rendering | Story, Extract, commit | Engine is intended authority; provider is presentation evidence. KEEP. |
-| CSA runtime | `csa_runtime`/runtime patches | CSA reducer | Extract observation of aftermath | context, Story, frontend | Runtime state and active definition can diverge. Need owner acceptance model. |
-| Mind Monitor | `mind_monitor` in committed turn/context | Extract normalization/commit | frontend display cache | Story context, renderer | It is observation/presentation, not relationship writer. KEEP boundary. |
-| Image selection | selected image id in committed/context media projection | image selector from state/evidence | frontend media cache, image library | renderer/TTS/media routes | Catalog is DB-backed; selected image is turn projection. KEEP. |
-| Time | `world_state.game_time` / persisted turn context | deterministic turn/context reducer | Story prose, frontend clock | Story header, history, navigation | Prose is not time authority. KEEP. |
-| Summary | `turn_summary` and save summary fields | Extract/commit summary path | frontend compact summary | context/history/renderer | Multiple summary fields and revision path need precedence. SIMPLIFY. |
-| Player setup | `save.player_setup` | canonical reserve/commit opening RPCs | frontend form/session state | opening route, recovery, frontend | Reservation and completion are separate; recovery contract exists. KEEP. |
-| Opening | `save.opening_state` plus opening turn projection | opening route + opening RPC | frontend recovery/session state | context, renderer, next turn | Opening has special parser/prompt rules and stale compatibility. REWRITE protocol boundary. |
-| Game action lifecycle | `game_actions.processing_status` | reserve/record/claim/commit route + RPC | direct REST status patches in `supabase.js` | recovery UI, API routes | RPC and direct table updates coexist. REWRITE mutation surface candidate. |
-| Turn number | `game_save.committed_turn`, `game_turns.turn_number` | commit RPC / turn reducer | frontend context/session | every next-turn route | DB commit is durable authority; client count is not. KEEP. |
-| Save revision | `game_save.save_revision` | commit/opening/reset RPCs | hydration metadata | conflict guards, context | Live DB value requires catalog/data access to prove. UNKNOWN deployment state. |
+| Story raw text | `game_turns.story_text`; opening story in `opening_state.story_text` | normal turn commit boundary | feedback creates replacement turn | parser, Extract, history, frontend | Keep raw Story as evidence; no pre-commit durability. |
+| Parsed Story blocks | `game_turns.parsed_blocks` | route parser result passed to commit | stream projection; persisted/legacy parser | replay, Extract, view model | Fresh protocol is producer; committed blocks are replay authority. |
+| Choices | committed turn `choices` and parsed choice projection | commit payload/reducer | frontend stream/session choices | context, frontend, next turn | Server committed turn wins; client cache is temporary. |
+| THOUGHT | committed parsed blocks / turn monitor projection | parser + commit payload | frontend normalization | renderer, Extract context | Server committed representation wins; no frontend authority. |
+| `scene` / `scene_id` | `save.scene` schema version 1 | `reduceCanonicalScene()` through commit | `scene_state` compatibility mirror | Story, map, view model | `save.scene` is sole canonical membership/location/focal/last-speaker writer. |
+| Location | `save.scene.location_id` | canonical scene reducer/navigation resolution | `player_scene_state.location_id`, `npc_scene_state.location_id` | prompts, map, renderer | Scene is authority; player/NPC location fields are projections only. |
+| Presence | `save.scene.participants` / canonical scene membership | canonical scene reducer | `last_npcs_present`, `npc_scene_state.present` | Story, map, view model | Legacy fields may be emitted after commit, never decide membership. |
+| Player scene state | structured player physical detail | evidence-gated observation reducer | setup/bootstrap defaults; location compatibility field | Story/CSA/frontend | Physical detail stays reducer-owned; location is projected from scene. |
+| NPC scene state | structured NPC physical detail | observation/relation presentation reducers | membership/location/scene_id mirrors | Story/Extract/frontend | Posture/clothing may remain detail authority; membership/location cannot. |
+| Player posture | canonical posture token in player detail | physical observation reducer | setup default | CSA trigger, Story, renderer | Evidence-gated canonical token only. |
+| NPC posture | canonical posture token in NPC detail | physical observation reducer | relation presentation labels | CSA trigger, Story, renderer | Labels never infer posture. |
+| Clothing | structured per-actor clothing state | clothing/bootstrap observation reducers | legacy labels/UI text | Story, view model, image selector | Structured state wins; presentation is derived. |
+| Player sexual state | structured sexual ledger/state | evidence-gated sexual observation reducer | action payload intent | Story/Extract/frontend | Input is attempt, not success. |
+| NPC sexual state | structured sexual ledger/state | evidence-gated observation/event reducer | Mind Monitor | Story, renderer, image selector | Mind Monitor cannot write sexual fact. |
+| Relationships | relationship records | relationship reducer | active physical relation data | Story, Extract, frontend | Relationship and physical relation remain separate domains. |
+| `active_relations` | one structured relation array | one canonical relation reducer | Engine and Extract become typed events; labels are mirrors | Story target/trigger, renderer | Engine mandatory event wins same actor/turn conflict; no second array writer. |
+| CSA definitions | catalog + persisted `csa_rules` | normal Commit reducer / `commit_company_turn` | live `apply_reserved_csa_transaction` is obsolete writer | app, Story, reducer | Preapply writer must be revoked/dropped by additive cleanup migration. |
+| CSA active state | `csa_active` and `csa_rules` | Commit reducer transaction | no pre-commit save mutation | Story, app, frontend | Durable only inside normal commit. |
+| CSA trigger | normalized execution metadata | CSA projection/execution policy | preset fields/legacy aliases | mandatory enactment, prompt | One structural trigger contract; narrative text is not trigger authority. |
+| CSA execution | Engine enactment/obligation metadata | CSA Engine | provider ACTING is visible evidence | Story, Extract, commit | Engine decides world action; provider renders/observes it. |
+| CSA runtime | runtime state in committed save | CSA reducer during Commit | obsolete DB preapply path | context, Story, frontend | Commit reducer only. |
+| Mind Monitor | committed turn `mind_monitor` | Extract normalization + Commit | frontend display cache | Story context, renderer | Observation/presentation only. |
+| Image selection | selected image projection/turn field | deterministic selector from evidence/state | frontend media cache; `image_library` catalog | renderer/media | Server committed selection wins. |
+| Time | canonical world/turn context | deterministic turn/context reducer | Story prose, frontend clock | prompt, history, navigation | Prose never writes time. |
+| Summary | committed `turn_summary` and save summary fields | Commit/revision boundary | frontend compact summary | context/history/renderer | Committed server context wins. |
+| Player setup | `save.player_setup` | reserve/commit setup RPCs | frontend form/session | opening/recovery/frontend | DB transaction owns persistence; catalog validation belongs to repository/runtime. |
+| Opening | `save.opening_state` | opening route + opening RPC | frontend recovery/session | context, renderer | Opening is lifecycle state, not a second world authority. |
+| Game action lifecycle | `game_actions.processing_status` and stage fields | named lifecycle RPCs | direct REST PATCH helpers confirmed live-capable | recovery/API | Direct REST mutation is cleanup target; GET may remain read-only. |
+| Turn number | save committed turn + `game_turns.turn_number` | `commit_company_turn` | frontend count | all next-turn paths | Commit transaction wins. |
+| Save revision | `game_save.save_revision` | setup/opening/turn/revision/reset transactions | hydration metadata | conflict guards/context | Transactional DB writer only. |
 
-## Multi-writer domains requiring owner decisions
+## Confirmed multi-writer conflicts
 
-1. Scene membership/detail: canonical scene reducer plus legacy NPC scene fields.
-2. Presence: participant set plus `last_npcs_present` compatibility mirror.
-3. Active relations: Engine writer plus Extract observer/reducer.
-4. Game action status: RPC lifecycle plus direct REST PATCH helpers.
-5. Opening/setup: canonical RPCs plus legacy-named SQL wrappers retained in migration history.
-6. Choices/THOUGHT: committed fields, parsed blocks, streaming state, and frontend session state.
-7. Summary: turn-level and save-level summaries with revision replacement semantics.
+1. `game_actions` has named RPC lifecycle functions plus direct REST PATCH
+   helpers, and live `service_role` table DML makes the direct path real.
+2. `csa_active`/`csa_rules` have the normal commit writer plus live
+   `apply_reserved_csa_transaction` pre-commit writer.
+3. Scene membership/location has canonical `save.scene` plus compatibility
+   fields that can be mistaken for authority.
+4. `active_relations` currently has Engine and Extract mutation paths and must
+   converge on one reducer.
+5. Setup/opening SQL duplicates content catalog IDs and world records.
 
-These are not automatically bugs; they are the places where a future change can
-write one representation while another reader still treats a mirror as truth.
+The target decisions and transition rules are frozen in
+`10_SOLE_WRITER_DECISION.md`.
