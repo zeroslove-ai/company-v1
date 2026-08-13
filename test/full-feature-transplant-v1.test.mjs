@@ -85,6 +85,15 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       calls.__action = { action_id: args.p_action_id, turn_id: 'turn-1', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: args.p_structured_action ?? null, processing_status: 'story_streaming', action_kind: 'player_turn' };
       return json({ ...calls.__action, replayed: false });
     }
+    if (rpc === 'claim_game_action_stage' || rpc === 'fail_game_action_stage') {
+      const action = calls.__action;
+      const errorMatches = args.p_expected_error_mode === 'ANY'
+        || (args.p_expected_error_mode === 'NULL' && action?.error_code == null)
+        || (args.p_expected_error_mode === 'EXACT' && action?.error_code === args.p_expected_error_code);
+      if (!action || action.processing_status !== args.p_expected_status || !errorMatches) return json(null);
+      Object.assign(action, { processing_status: args.p_next_status, error_code: args.p_next_error_code });
+      return json(action);
+    }
     if (rpc === 'record_story_result') {
       Object.assign(calls.__action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting' });
       return json({ replayed: false });

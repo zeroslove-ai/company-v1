@@ -1,0 +1,134 @@
+-- Company v1 Authority Consolidation Cut 1, Stage A.
+-- Add named atomic action lifecycle CAS functions before the API rollout.
+-- This migration intentionally does not revoke table DML or remove the CSA
+-- preapply function; those enforcement changes belong to Stage B.
+
+create or replace function public.claim_game_action_stage(
+  p_game_id uuid,
+  p_action_id uuid,
+  p_expected_status text,
+  p_expected_error_mode text,
+  p_expected_error_code text,
+  p_next_status text,
+  p_next_error_code text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_action public.game_actions%rowtype;
+  v_mode text := upper(trim(coalesce(p_expected_error_mode, '')));
+begin
+  if v_mode not in ('ANY', 'NULL', 'EXACT') then
+    raise exception 'invalid expected error mode' using errcode = '22023';
+  end if;
+  if v_mode = 'EXACT' and p_expected_error_code is null then
+    raise exception 'exact expected error code is required' using errcode = '22023';
+  end if;
+  if not (
+    (p_expected_status = 'story_failed' and p_next_status = 'story_streaming')
+    or (p_expected_status = 'story_streaming' and p_next_status = 'story_streaming')
+    or (p_expected_status = 'extract_failed' and p_next_status = 'extracting')
+    or (p_expected_status = 'extracting' and p_next_status = 'extracting')
+  ) then
+    raise exception 'invalid action claim transition' using errcode = '22023';
+  end if;
+
+  select * into v_action
+  from public.game_actions
+  where game_id = p_game_id and action_id = p_action_id
+  for update;
+  if not found then
+    raise exception 'action not found' using errcode = 'P0002';
+  end if;
+
+  update public.game_actions
+  set processing_status = p_next_status,
+      error_code = p_next_error_code,
+      updated_at = now()
+  where game_id = p_game_id
+    and action_id = p_action_id
+    and processing_status = p_expected_status
+    and (
+      v_mode = 'ANY'
+      or (v_mode = 'NULL' and error_code is null)
+      or (v_mode = 'EXACT' and error_code = p_expected_error_code)
+    )
+  returning * into v_action;
+
+  if not found then
+    return null;
+  end if;
+  return to_jsonb(v_action);
+end;
+$$;
+
+create or replace function public.fail_game_action_stage(
+  p_game_id uuid,
+  p_action_id uuid,
+  p_expected_status text,
+  p_expected_error_mode text,
+  p_expected_error_code text,
+  p_next_status text,
+  p_next_error_code text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_action public.game_actions%rowtype;
+  v_mode text := upper(trim(coalesce(p_expected_error_mode, '')));
+begin
+  if v_mode not in ('ANY', 'NULL', 'EXACT') then
+    raise exception 'invalid expected error mode' using errcode = '22023';
+  end if;
+  if v_mode = 'EXACT' and p_expected_error_code is null then
+    raise exception 'exact expected error code is required' using errcode = '22023';
+  end if;
+  if p_next_error_code is null or trim(p_next_error_code) = '' then
+    raise exception 'next error code is required for failure' using errcode = '22023';
+  end if;
+  if not (
+    (p_expected_status = 'story_streaming' and p_next_status = 'story_failed')
+    or (p_expected_status = 'extracting' and p_next_status = 'extract_failed')
+  ) then
+    raise exception 'invalid action failure transition' using errcode = '22023';
+  end if;
+
+  select * into v_action
+  from public.game_actions
+  where game_id = p_game_id and action_id = p_action_id
+  for update;
+  if not found then
+    raise exception 'action not found' using errcode = 'P0002';
+  end if;
+
+  update public.game_actions
+  set processing_status = p_next_status,
+      error_code = p_next_error_code,
+      updated_at = now()
+  where game_id = p_game_id
+    and action_id = p_action_id
+    and processing_status = p_expected_status
+    and (
+      v_mode = 'ANY'
+      or (v_mode = 'NULL' and error_code is null)
+      or (v_mode = 'EXACT' and error_code = p_expected_error_code)
+    )
+  returning * into v_action;
+
+  if not found then
+    return null;
+  end if;
+  return to_jsonb(v_action);
+end;
+$$;
+
+revoke all on function public.claim_game_action_stage(uuid, uuid, text, text, text, text, text) from public, anon, authenticated;
+revoke all on function public.fail_game_action_stage(uuid, uuid, text, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.claim_game_action_stage(uuid, uuid, text, text, text, text, text) to service_role;
+grant execute on function public.fail_game_action_stage(uuid, uuid, text, text, text, text, text) to service_role;

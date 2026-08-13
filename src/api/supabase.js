@@ -69,23 +69,27 @@ export function createSupabaseClient(env, fetchImpl) {
       const payload = await request(`${baseUrl}/rest/v1/game_turns?${query}`, { method: 'GET' });
       return Array.isArray(payload) ? payload[0] ?? null : payload;
     },
-    updateActionStatus(gameId, actionId, status, errorCode = null) {
-      const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}` });
-      return request(`${baseUrl}/rest/v1/game_actions?${query}`, {
-        method: 'PATCH',
-        headers: { prefer: 'return=minimal' },
-        body: JSON.stringify({ processing_status: status, error_code: errorCode })
+    claimGameActionStage(gameId, actionId, expectedStatus, expectedErrorMode, expectedErrorCode, nextStatus, nextErrorCode = null) {
+      return this.callRpc('claim_game_action_stage', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_expected_status: expectedStatus,
+        p_expected_error_mode: expectedErrorMode,
+        p_expected_error_code: expectedErrorCode,
+        p_next_status: nextStatus,
+        p_next_error_code: nextErrorCode
       });
     },
-    async claimActionStatus(gameId, actionId, expectedStatus, nextStatus, errorCode, requireEmptyErrorCode = false) {
-      const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}`, processing_status: `eq.${expectedStatus}` });
-      if (requireEmptyErrorCode) query.set('error_code', 'is.null');
-      const payload = await request(`${baseUrl}/rest/v1/game_actions?${query}`, {
-        method: 'PATCH',
-        headers: { prefer: 'return=representation' },
-        body: JSON.stringify({ processing_status: nextStatus, error_code: errorCode })
+    failGameActionStage(gameId, actionId, expectedStatus, expectedErrorMode, expectedErrorCode, nextStatus, nextErrorCode) {
+      return this.callRpc('fail_game_action_stage', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_expected_status: expectedStatus,
+        p_expected_error_mode: expectedErrorMode,
+        p_expected_error_code: expectedErrorCode,
+        p_next_status: nextStatus,
+        p_next_error_code: nextErrorCode
       });
-      return Array.isArray(payload) ? payload[0] ?? null : payload;
     },
     /** Read-only, paginated, active-only (record_status=active dedupes revisions to the current one) turn history — no RPC needed, table already carries everything /api/history needs. */
     async listTurns(gameId, { beforeTurn = null, limit = 20 } = {}) {

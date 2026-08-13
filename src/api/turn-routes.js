@@ -541,7 +541,7 @@ const master = masterFromEdition(edition);
       // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,
       // 이 claim 없이는 (replayed && !retryingStory) 조건이 항상 409로 거부된다.
       if (!action.story_text && (action.processing_status === 'story_failed' || action.processing_status === 'story_streaming')) {
-        const claimed = await db.claimActionStatus(gameId, resolvedActionId, action.processing_status, 'story_streaming', null);
+        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, action.processing_status, 'ANY', null, 'story_streaming', null);
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
         retryingStory = true;
@@ -725,7 +725,7 @@ const master = masterFromEdition(edition);
           });
         } catch (error) {
           if (!storyPersisted) {
-            await db.updateActionStatus(gameId, actionId, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
+            await db.failGameActionStage(gameId, actionId, 'story_streaming', 'ANY', null, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
           }
           throw error;
         } finally {
@@ -766,13 +766,13 @@ const master = masterFromEdition(edition);
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
       if (action.processing_status === 'extract_failed') {
-        const claimedRetry = await db.claimActionStatus(gameId, actionId, 'extract_failed', 'extracting', null);
+        const claimedRetry = await db.claimGameActionStage(gameId, actionId, 'extract_failed', 'ANY', null, 'extracting', null);
         if (!claimedRetry) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimedRetry);
       }
       if (action.processing_status !== 'extracting') throw new HttpError(409, 'action_in_progress', 'Action is not ready for Extract', true);
       if (action.error_code === 'extract_in_progress') throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
-      const claimedExtract = await db.claimActionStatus(gameId, actionId, 'extracting', 'extracting', 'extract_in_progress', true);
+      const claimedExtract = await db.claimGameActionStage(gameId, actionId, 'extracting', 'NULL', null, 'extracting', 'extract_in_progress');
       if (!claimedExtract) throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
       Object.assign(action, claimedExtract);
 
@@ -858,24 +858,12 @@ const master = masterFromEdition(edition);
               extraWarnings: [`extract_fail_open:${error?.code ?? 'invalid_observation'}`]
             });
           }
-        try {
-          await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
-        } catch (error) {
-          await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
-          throw error;
-        }
-        try {
-          await db.updateActionStatus(gameId, actionId, 'committing');
-        } catch {
-          // The Extract result is already durably saved; a failed status-transition patch must
-          // not turn a successful Extract into a stuck action, so resync with the source of truth.
-          await db.getAction(gameId, actionId).catch(() => null);
-        }
+        await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, parsed_blocks: parsedStory });
       } catch (error) {
         // Infrastructure/context/persistence failures remain retryable. Only
         // the single Extract completion itself is fail-open degraded above.
-        await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
+        await db.failGameActionStage(gameId, actionId, 'extracting', 'ANY', null, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
         throw error;
       } finally {
         logTurnTiming({

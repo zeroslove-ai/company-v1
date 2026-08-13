@@ -167,6 +167,15 @@ function makeRuntimeHarness() {
       actions.set(args.p_action_id, a);
       return new Response(JSON.stringify({ ...a, replayed: false }), { status: 200 });
     }
+    if (rpc === 'claim_game_action_stage' || rpc === 'fail_game_action_stage') {
+      const a = actions.get(args.p_action_id);
+      const errorMatches = args.p_expected_error_mode === 'ANY'
+        || (args.p_expected_error_mode === 'NULL' && a?.error_code == null)
+        || (args.p_expected_error_mode === 'EXACT' && a?.error_code === args.p_expected_error_code);
+      if (!a || a.processing_status !== args.p_expected_status || !errorMatches) return new Response('null', { status: 200 });
+      Object.assign(a, { processing_status: args.p_next_status, error_code: args.p_next_error_code });
+      return new Response(JSON.stringify(a), { status: 200 });
+    }
     if (rpc === 'record_story_result') {
       const a = actions.get(args.p_action_id);
       if (a) Object.assign(a, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting' });
