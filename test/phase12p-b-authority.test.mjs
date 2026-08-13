@@ -21,7 +21,7 @@ test('target-seated relational CSA does not require the acting NPC to be seated'
       execution: { kind: 'posture_relation', action: 'stand_between_knees', trigger_kind: 'target_seated_interaction', target_required: true }
     } } },
     csa_runtime_state: {},
-    scene: { present_npc_ids: ['heroine3'], location_id: 'office' },
+    scene: { present_npc_ids: ['heroine3'], location_id: 'office', focal_character_id: 'heroine3' },
     npc_scene_state: { heroine3: { posture: 'standing' } },
     player_scene_state: { posture: 'sitting' }
   };

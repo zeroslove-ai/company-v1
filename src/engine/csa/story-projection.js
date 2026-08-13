@@ -41,6 +41,8 @@ function modeFor(rule, preset) {
 function triggerStateFor(triggerKind, { actorPresent, targetCount, postureReady = false, targetPostureReady = false } = {}) {
   if (!actorPresent) return 'not_applicable';
   if (triggerKind === 'always_during_work') return 'required_now';
+  // close_interaction means an authoritative current actor-target pair here;
+  // it does not infer physical distance or run a semantic proximity matcher.
   if (triggerKind === 'scene_interaction' || triggerKind === 'close_interaction' || triggerKind === 'close_conversation') return targetCount > 0 ? 'required_now' : 'conditional';
   if (triggerKind === 'target_seated_interaction') return targetCount > 0 && targetPostureReady ? 'required_now' : 'conditional';
   if (triggerKind === 'both_seated_interaction' || triggerKind === 'both_seated') return postureReady ? 'required_now' : 'conditional';
@@ -87,14 +89,31 @@ function activeRelationTargetIds(save, actorId, candidates) {
 
 function resolvedInteractionTargetIds({ save, actorId, candidates, sceneProfiles = [], playerAction = '', focalCharacterId = null, lastSpeakerId = null }) {
   if (candidates.length === 0) return [];
-  const mentioned = resolveUserMentionedNpcIds({ characters: sceneProfiles.filter(item => candidates.includes(item.id)).map(item => ({ ...item.profile, character_id: item.id })), general_npcs: [] }, playerAction, { allowUniqueKoreanGivenName: false })
-    .filter(id => candidates.includes(id));
-  if (mentioned.length === 1) return mentioned;
-  const focal = [focalCharacterId, lastSpeakerId].find(id => candidates.includes(id));
-  if (focal) return [focal];
+  const mentioned = resolveUserMentionedNpcIds({
+    characters: sceneProfiles.map(item => ({ ...item.profile, character_id: item.id })),
+    general_npcs: []
+  }, playerAction, { allowUniqueKoreanGivenName: false });
+  const mentionedCandidates = mentioned.filter(id => candidates.includes(id));
+
+  // Pair authority is actor-specific.  Mentioning an actor in the Player
+  // action resolves that actor to Player only when Player is an eligible
+  // counterparty; it never resolves every applicable actor in the scene.
+  if (candidates.includes('player') && mentioned.includes(actorId)) return ['player'];
+  if (candidates.includes('player') && focalCharacterId === actorId) return ['player'];
+
+  // An explicitly named eligible NPC counterpart is usable only when the
+  // canonical focal/last-speaker facts also identify this actor as the
+  // current interaction actor.  A candidate name alone is not interaction.
+  if (mentionedCandidates.length === 1
+    && (focalCharacterId === actorId || (lastSpeakerId === actorId && focalCharacterId === mentionedCandidates[0]))) {
+    return mentionedCandidates;
+  }
+
+  // Last-speaker continuity is weaker than focal authority: it is considered
+  // only together with an exact named counterpart and the actor identity.
   const related = activeRelationTargetIds(save, actorId, candidates);
   if (related.length === 1) return related;
-  return candidates.length === 1 ? candidates : [];
+  return [];
 }
 
 function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicableSceneActorIds, playerAction = '' }) {
@@ -141,6 +160,7 @@ function resolvedFactsForRule({ entry, save, execution, sceneProfiles, applicabl
       current_state: currentState,
       required_state: requiredState,
       ...(execution?.target_required ? { eligible_target_ids: targets } : {}),
+      ...(execution?.target_required ? { resolved_target_ids: resolvedTargets } : {}),
       transition_required_now: execution?.kind === 'clothing_state'
         ? clothingVerdict !== 'compliant' && triggerState === 'required_now'
         : triggerState === 'required_now',

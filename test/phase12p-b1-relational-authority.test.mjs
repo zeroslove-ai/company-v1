@@ -56,7 +56,7 @@ test('Company canonical player is a deterministic male_employee counterparty, in
 });
 
 test('player is the resolved csa_2 target and stale position_label cannot make an actor seated', () => {
-  const projection = buildStoryWorldProjection({ save: projectionSave({ npc_scene_state: {
+  const projection = buildStoryWorldProjection({ save: projectionSave({ scene: { present_npc_ids: ['heroine3'], focal_character_id: 'heroine3', last_speaker_id: null }, npc_scene_state: {
     heroine3: { posture: 'standing' },
     heroine5: { posture: 'standing', position_label: '팀장의 벌어진 무릎 사이' }
   } }), master, sceneActorIds: ['heroine3'], expectedTurn: 15 });
@@ -75,9 +75,39 @@ test('unresolved plural eligible targets remain conditional; a resolved seated t
   });
   const unresolved = buildStoryWorldProjection({ save: base, master, sceneActorIds: ['heroine3', 'male1', 'male2'], expectedTurn: 15 });
   assert.equal(unresolved.world_rules[0].resolved_facts[0].trigger_state, 'conditional');
-  const resolved = buildStoryWorldProjection({ save: { ...base, scene: { ...base.scene, focal_character_id: 'male1' } }, master, sceneActorIds: ['heroine3', 'male1', 'male2'], expectedTurn: 15 });
+  const resolved = buildStoryWorldProjection({ save: { ...base, scene: { ...base.scene, focal_character_id: 'heroine3' } }, master, sceneActorIds: ['heroine3', 'male1', 'male2'], expectedTurn: 15 });
   assert.equal(resolved.world_rules[0].resolved_facts[0].trigger_state, 'required_now');
-  assert.deepEqual(resolved.world_rules[0].resolved_facts[0].eligible_target_ids, ['male1']);
+  assert.deepEqual(resolved.world_rules[0].resolved_facts[0].resolved_target_ids, ['player']);
+});
+
+test('interaction pair authority is actor-specific and never inferred from a unique male candidate', () => {
+  const scene = { present_npc_ids: ['heroine3', 'heroine5'], focal_character_id: null, last_speaker_id: null };
+  const npcState = { heroine3: { posture: 'standing' }, heroine5: { posture: 'standing' } };
+  const make = (extra = {}) => buildStoryWorldProjection({
+    save: projectionSave({ scene, npc_scene_state: npcState, ...extra }),
+    master,
+    sceneActorIds: ['heroine3', 'heroine5'],
+    expectedTurn: 15,
+    playerAction: extra.playerAction ?? ''
+  }).world_rules[0].resolved_facts;
+
+  const noAuthority = make();
+  assert.deepEqual(noAuthority.map(fact => fact.resolved_target_ids), [[], []]);
+  assert.deepEqual(noAuthority.map(fact => fact.trigger_state), ['conditional', 'conditional']);
+
+  const explicitActor = make({ playerAction: 'Jena, come between my knees.' });
+  assert.deepEqual(explicitActor[0].resolved_target_ids, ['player']);
+  assert.equal(explicitActor[0].trigger_state, 'required_now');
+  assert.deepEqual(explicitActor[1].resolved_target_ids, []);
+  assert.equal(explicitActor[1].trigger_state, 'conditional');
+
+  const focalActor = make({ scene: { ...scene, focal_character_id: 'heroine3' } });
+  assert.deepEqual(focalActor.map(fact => fact.resolved_target_ids), [['player'], []]);
+  assert.deepEqual(focalActor.map(fact => fact.trigger_state), ['required_now', 'conditional']);
+
+  const activeRelation = make({ active_relations: [{ actor_id: 'heroine5', target_id: 'player', relation_kind: 'stand_between_knees', state: 'active' }] });
+  assert.deepEqual(activeRelation.map(fact => fact.resolved_target_ids), [[], ['player']]);
+  assert.deepEqual(activeRelation.map(fact => fact.trigger_state), ['conditional', 'required_now']);
 });
 
 test('preset trigger matrix uses structural meanings consistent with each label', () => {
@@ -147,8 +177,8 @@ test('Turn 13 to 15 fixture closes heroine5 and makes heroine3 the current relat
   const reduced = reduceObservationDomains({ currentSave: save, observation, parsedStory: { dialogue_lines: [] }, rawStory: story, expectedTurn: 13, master, npcIds: new Set(['heroine3', 'heroine5']), sceneBefore: { present_npc_ids: ['heroine3', 'heroine5'] }, sceneAfter: { present_npc_ids: ['heroine3', 'heroine5'] }, observedNpcIds: new Set(['heroine3', 'heroine5']) });
   assert.equal(reduced.nextSave.active_relations.find(item => item.actor_id === 'heroine5')?.state, 'ended');
   assert.equal(reduced.nextSave.active_relations.find(item => item.actor_id === 'heroine3')?.state, 'active');
-  assert.equal(reduced.nextSave.npc_scene_state.heroine5.position_label, '팀장의 벌어진 무릎 사이');
-  const projection = buildStoryWorldProjection({ save: { ...reduced.nextSave, ...projectionSave(), active_relations: reduced.nextSave.active_relations }, master, sceneActorIds: ['heroine3', 'heroine5'], expectedTurn: 15 });
+  assert.equal(reduced.nextSave.npc_scene_state.heroine5.position_label, null);
+  const projection = buildStoryWorldProjection({ save: { ...projectionSave(), scene: save.scene, npc_scene_state: reduced.nextSave.npc_scene_state, active_relations: reduced.nextSave.active_relations }, master, sceneActorIds: ['heroine3', 'heroine5'], expectedTurn: 15 });
   assert.deepEqual(projection.world_rules[0].resolved_facts[0].eligible_target_ids, ['player']);
 });
 
@@ -169,6 +199,7 @@ test('prompt contracts reinforce per-target Mind Monitor completeness and explic
   assert.match(extract[0].content, /one entry per target/);
   assert.match(extract[0].content, /surface and subconscious/);
   assert.match(extract[0].content, /do not omit image_selection/);
+  assert.match(extract[0].content, /canonical tokens "sitting" or "standing"/);
   const story = buildStoryPrompt({ edition: { editionId: 'company-v1', characters: { characters: { heroine3: { character_id: 'heroine3', name: 'Jena', gender: 'female' } } }, generalNpcs: { profiles: {} }, map: { locations: [] } }, context: { save: { data: { player: { name: 'Player' }, scene: { version: 1, scene_id: 'office', beat: 0, updated_turn: 0, present_npc_ids: ['heroine3'], focal_character_id: null, last_speaker_id: null }, active_relations: [] } } }, playerAction: 'observe', expectedTurn: 15, npcIds: new Set(['heroine3']), sceneCastContract: { present_npc_ids: ['heroine3'], entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null } });
   assert.match(story[0].content, /euphemize away erection/);
   assert.match(story[0].content, /identity of an acted body part/);

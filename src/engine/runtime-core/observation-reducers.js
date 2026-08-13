@@ -73,6 +73,7 @@ function reduceRelationUpdates({ save, updates, expectedTurn, storyText } = {}) 
   const previous = Array.isArray(save?.active_relations) ? save.active_relations : [];
   const next = previous.map(item => ({ ...item }));
   const warnings = [];
+  const explicitlyEndedActors = new Set();
   for (const update of Array.isArray(updates) ? updates : []) {
     if (!update?.actor_id || !update?.target_id || !update?.relation_kind || !update?.state) continue;
     if (!RELATION_KINDS.has(update.relation_kind)) {
@@ -85,7 +86,10 @@ function reduceRelationUpdates({ save, updates, expectedTurn, storyText } = {}) 
     }
     const index = next.findIndex(item => item.actor_id === update.actor_id && item.target_id === update.target_id && item.relation_kind === update.relation_kind);
     if (update.state === 'ended') {
-      if (index >= 0) next[index] = { ...next[index], state: 'ended', updated_turn: expectedTurn, end_quote: update.quote };
+      if (index >= 0 && next[index].state === 'active') {
+        next[index] = { ...next[index], state: 'ended', updated_turn: expectedTurn, end_quote: update.quote };
+        explicitlyEndedActors.add(update.actor_id);
+      }
       else warnings.push(`relation_end_without_active:${update.actor_id}:${update.target_id}:${update.relation_kind}`);
       continue;
     }
@@ -110,7 +114,9 @@ function reduceRelationUpdates({ save, updates, expectedTurn, storyText } = {}) 
     if (index >= 0) next[index] = relation;
     else next.push(relation);
   }
-  return { state: next.slice(-80), warnings };
+  const clearedPresentationActorIds = [...explicitlyEndedActors]
+    .filter(actorId => !next.some(item => item.state === 'active' && item.actor_id === actorId));
+  return { state: next.slice(-80), warnings, clearedPresentationActorIds };
 }
 
 function observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds } = {}) {
@@ -284,6 +290,11 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
   nextSave.player_sexual_state = playerSexual.state; warnings.push(...playerSexual.warnings);
   const relations = reduceRelationUpdates({ save: nextSave, updates: observation.relation_updates, expectedTurn, storyText: rawStory });
   nextSave.active_relations = relations.state;
+  for (const actorId of relations.clearedPresentationActorIds ?? []) {
+    const current = nextSave.npc_scene_state?.[actorId];
+    if (!object(current) || !Object.hasOwn(current, 'position_label')) continue;
+    nextSave.npc_scene_state[actorId] = { ...current, position_label: null };
+  }
   warnings.push(...relations.warnings);
   for (const [npcId, domains] of Object.entries(observation.npc_observations ?? {})) {
     if (!eligibleNpcIds.has(npcId)) {
