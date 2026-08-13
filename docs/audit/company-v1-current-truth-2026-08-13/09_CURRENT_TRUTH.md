@@ -123,7 +123,6 @@ target scene authority. This is a confirmed mismatch outside Cut 1.
    `save.scene`.
 9. Fresh/persisted/legacy parser compatibility surfaces coexist.
 10. Frontend stream/session caches are separate from committed context.
-11. Open PR status still obscures absorbed versus unmerged lineage.
 
 ## Known unknown
 
@@ -155,7 +154,11 @@ target scene authority. This is a confirmed mismatch outside Cut 1.
 - Current source uses `claim_game_action_stage` and
   `fail_game_action_stage` for atomic action lifecycle CAS transitions.
 - `record_extract_result` remains the sole writer of the `committing`
-  transition; the redundant follow-up status write was removed.
+  transition, clears `error_code`, and refreshes `updated_at`; the redundant
+  follow-up status write was removed.
+- Fresh reservations do not self-claim `story_streaming`. Failed Story retries
+  use a status-changing CAS; replayed `story_streaming` recovery requires
+  `updated_at <= now() - interval '3 minutes'` and refreshes ownership time.
 - Stage A migration:
   `20260814000100_company_v1_action_lifecycle_rpc_stage_a.sql` — not applied.
 - Stage B migration:

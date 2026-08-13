@@ -69,7 +69,7 @@ export function createSupabaseClient(env, fetchImpl) {
       const payload = await request(`${baseUrl}/rest/v1/game_turns?${query}`, { method: 'GET' });
       return Array.isArray(payload) ? payload[0] ?? null : payload;
     },
-    claimGameActionStage(gameId, actionId, expectedStatus, expectedErrorMode, expectedErrorCode, nextStatus, nextErrorCode = null) {
+    claimGameActionStage(gameId, actionId, expectedStatus, expectedErrorMode, expectedErrorCode, nextStatus, nextErrorCode = null, requireStale = false) {
       return this.callRpc('claim_game_action_stage', {
         p_game_id: gameId,
         p_action_id: actionId,
@@ -77,7 +77,8 @@ export function createSupabaseClient(env, fetchImpl) {
         p_expected_error_mode: expectedErrorMode,
         p_expected_error_code: expectedErrorCode,
         p_next_status: nextStatus,
-        p_next_error_code: nextErrorCode
+        p_next_error_code: nextErrorCode,
+        p_require_stale: requireStale
       });
     },
     failGameActionStage(gameId, actionId, expectedStatus, expectedErrorMode, expectedErrorCode, nextStatus, nextErrorCode) {

@@ -21,6 +21,9 @@ test('Cut 1 Stage A defines atomic status/error CAS and the actual lifecycle gra
   assert.match(stageA, /p_expected_error_mode text/);
   assert.match(stageA, /p_expected_error_code text/);
   assert.match(stageA, /p_next_error_code text/);
+  assert.match(stageA, /p_require_stale boolean/);
+  assert.match(stageA, /interval '3 minutes'/);
+  assert.match(stageA, /story_streaming recovery requires stale claim/);
   assert.match(stageA, /v_mode = 'ANY'/);
   assert.match(stageA, /v_mode = 'NULL' and error_code is null/);
   assert.match(stageA, /v_mode = 'EXACT' and error_code = p_expected_error_code/);
@@ -28,6 +31,10 @@ test('Cut 1 Stage A defines atomic status/error CAS and the actual lifecycle gra
   assert.match(stageA, /extract_failed.*extracting/s);
   assert.match(routeSource, /extracting.*extract_in_progress/s);
   assert.match(stageA, /story_streaming.*story_failed/s);
+  assert.match(stageA, /processing_status = 'committing'[\s\S]*error_code = null[\s\S]*updated_at = now\(\)/);
+  assert.match(routeSource, /processing_status === 'story_failed'/);
+  assert.match(routeSource, /processing_status === 'story_streaming' && reservation\.replayed/);
+  assert.match(routeSource, /'story_streaming', null, true/);
 });
 
 test('Cut 1 Stage B enforces read-only direct table access and removes the obsolete preapply writer', () => {
@@ -60,7 +67,7 @@ test('Supabase client sends explicit expected error mode and next error code to 
   assert.deepEqual(calls[0].body, {
     p_game_id: 'g', p_action_id: 'a', p_expected_status: 'extracting',
     p_expected_error_mode: 'NULL', p_expected_error_code: null,
-    p_next_status: 'extracting', p_next_error_code: 'extract_in_progress'
+    p_next_status: 'extracting', p_next_error_code: 'extract_in_progress', p_require_stale: false
   });
   assert.equal(calls[1].body.p_expected_error_mode, 'ANY');
   assert.equal(calls[1].body.p_next_error_code, 'provider_error');

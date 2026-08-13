@@ -540,8 +540,13 @@ const master = masterFromEdition(edition);
       // story_failed뿐 아니라 story_streaming(스토리 미완료 좌초)도 재시도를 허용한다.
       // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,
       // 이 claim 없이는 (replayed && !retryingStory) 조건이 항상 409로 거부된다.
-      if (!action.story_text && (action.processing_status === 'story_failed' || action.processing_status === 'story_streaming')) {
-        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, action.processing_status, 'ANY', null, 'story_streaming', null);
+      if (!action.story_text && action.processing_status === 'story_failed') {
+        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_failed', 'ANY', null, 'story_streaming', null);
+        if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
+        Object.assign(action, claimed);
+        retryingStory = true;
+      } else if (!action.story_text && action.processing_status === 'story_streaming' && reservation.replayed) {
+        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_streaming', 'ANY', null, 'story_streaming', null, true);
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
         retryingStory = true;

@@ -85,7 +85,7 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
     if (rpc === 'reserve_turn_action') {
       let action = actions.get(args.p_action_id);
       if (!action) {
-        action = { action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: args.p_structured_action ?? null, processing_status: 'story_streaming' };
+        action = { action_id: args.p_action_id, turn_id: 'turn-8', expected_turn: args.p_expected_turn, player_action: args.p_player_action, structured_action: args.p_structured_action ?? null, processing_status: 'story_streaming', updated_at: new Date().toISOString() };
         actions.set(args.p_action_id, action);
         return json({ ...action, replayed: false });
       }
@@ -96,8 +96,10 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
       const errorMatches = args.p_expected_error_mode === 'ANY'
         || (args.p_expected_error_mode === 'NULL' && action?.error_code == null)
         || (args.p_expected_error_mode === 'EXACT' && action?.error_code === args.p_expected_error_code);
-      if (!action || action.processing_status !== args.p_expected_status || !errorMatches) return json(null);
-      Object.assign(action, { processing_status: args.p_next_status, error_code: args.p_next_error_code });
+      const staleEnough = !args.p_require_stale
+        || Date.parse(action?.updated_at ?? '') <= Date.now() - (3 * 60 * 1000);
+      if (!action || action.processing_status !== args.p_expected_status || !errorMatches || !staleEnough) return json(null);
+      Object.assign(action, { processing_status: args.p_next_status, error_code: args.p_next_error_code, updated_at: new Date().toISOString() });
       return json(action);
     }
     if (rpc === 'record_story_result') {
@@ -107,7 +109,7 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
     }
     if (rpc === 'record_extract_result') {
       const action = actions.get(args.p_action_id);
-      Object.assign(action, { extract_delta: args.p_extract_delta, processing_status: 'committing' });
+      Object.assign(action, { extract_delta: args.p_extract_delta, processing_status: 'committing', error_code: null, updated_at: new Date().toISOString() });
       return json({ replayed: false });
     }
     if (rpc === 'apply_reserved_csa_transaction') return json({ success: true, applied: true, replayed: false });
@@ -216,6 +218,15 @@ test('Phase 2 retries one failed Story explicitly and then replays the persisted
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
 });
 
+test('fresh Story reservation owns story_streaming without a redundant self-claim', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const response = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'fresh reservation' }), env);
+  assert.equal(response.status, 200);
+  await response.text();
+  assert.equal(mock.calls.filter(call => call.url.includes('/rpc/claim_game_action_stage')).length, 0);
+});
+
 test('Extract malformed JSON fails open to a degraded observation', async () => {
   const mock = createMockFetch({ extractContentSequence: ['not JSON'] });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
@@ -226,6 +237,7 @@ test('Extract malformed JSON fails open to a degraded observation', async () => 
   const extractPayload = await extractResponse.json();
   assert.equal(extractPayload.data.extract.outcome, 'degraded');
   assert.equal(mock.actions.get(actionId).processing_status, 'committing');
+  assert.equal(mock.actions.get(actionId).error_code, null);
   assert.equal(mock.actions.get(actionId).extract_delta.outcome, 'degraded');
   assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), true);
 });
@@ -260,16 +272,28 @@ test('a stuck story_streaming action retries the story once, but Extract in prog
   const mock = createMockFetch();
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   // story_streaming + 스토리 없음 = 좌초 액션 → 재시도 허용 (재개 경로)
-  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming' });
+  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming', updated_at: new Date(Date.now() - (4 * 60 * 1000)).toISOString() });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'wait' }), env);
   assert.equal(story.status, 200);
   await story.text();  // SSE body 소비 → run 실행 → LLM 호출
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
+  const staleClaim = mock.calls.find(call => call.url.includes('/rpc/claim_game_action_stage'));
+  assert.equal(JSON.parse(staleClaim.body).p_require_stale, true);
   // extract 진행 중(extracting + 스토리 있음)이면 중복 extract 차단 (409 유지)
   mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', story_text: '[SCENE]\nSaved', processing_status: 'extracting', error_code: 'extract_in_progress' });
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(extract.status, 409);
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
+});
+
+test('non-stale story_streaming replay cannot be reclaimed', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming', updated_at: new Date().toISOString() });
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'wait' }), env);
+  assert.equal(story.status, 409);
+  assert.match(await story.text(), /action_in_progress/);
+  assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 0);
 });
 
 test('authority-violating Extract envelopes fail open without becoming runtime authority', async () => {
