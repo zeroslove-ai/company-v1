@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: open-semantic-observation-authority-reset-audit-v2
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -303,3 +303,41 @@ Then:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only commit;
 - post one terminal report to Issue #68 with START_SHA, FINAL_SHA, V2 audit path, inventory counts, number of zero-impact deletions proposed, number of proven product keeps, CSA conclusion, DB duplicate conclusion, exact recommended first implementation cut, and forbidden-operations confirmation;
 - STOP. Do not auto-start implementation before operator review.
+
+---
+
+## V2 terminal handoff
+
+TASK_ID: open-semantic-observation-authority-reset-audit-v2
+TASK_BLOB_SHA: ba456e4b8c9a1634f92fd0e2c4d0c446da5d1ab3
+START_SHA: ba456e4b8c9a1634f92fd0e2c4d0c446da5d1ab3
+FINAL_SHA: pending docs-only commit
+BRANCH: company/scene-location-presence-v1
+PR: #67 OPEN / DRAFT / UNMERGED
+
+DELIVERABLE:
+`docs/audit/OPEN_SEMANTIC_OBSERVATION_AUTHORITY_RESET_V2_2026-08-15.md`
+
+INVENTORY:
+- 48 expanded finite-list/gate families.
+- 12 proposed zero-gameplay-impact deletion candidates, each with a caller-proof prerequisite.
+- 9 proven product/identity/UI keep categories.
+- Setup catalogs and `heroine1..5` are product/identity keeps from actual API/frontend/content callers, not from finiteness alone.
+- Compact clothing is a narrow UI-state keep candidate from `view-model.js`/`render.js` callers and preserved context evidence.
+- CSA physical execution/posture/relation-kind/mandatory-enactment families are REMOVE-OR-PROVE, with semantic removal as the default; rule identity/lifecycle remains conditional on concrete consumer proof.
+
+EVIDENCE:
+- Source/API/engine/frontend/migration caller trace completed.
+- Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` queried READ ONLY through deployed context/history; no reset or mutation.
+- Seven-turn evidence recorded: clothing and active CSA rules present; relation/event/sexual ledgers empty; turn summaries empty; overall summary corrupted.
+- Direct catalog limitation recorded honestly: no new direct Supabase catalog query because local psql/Supabase CLI and assumed credentials were unavailable; operator-verified live facts and migration/source evidence were used.
+
+RECOMMENDED_FIRST_CUT:
+Architecture-first open-observation boundary: remove closed Extract semantic gating while adding structural exact-evidence persistence/readback in the same cut. Do not add a write-only parallel ledger.
+
+VALIDATION:
+- `git diff --check`: pending final verification.
+- Only audit/CURRENT_TASK documentation changes authorized; no source/content/migration/config/script/test/runtime file changed.
+- Forbidden operations—DB write/reset/migration/DDL, TEST gameplay/LLM, API/frontend deploy, Production, provider/model/retry, new taxonomy/gate/parser, new branch/PR, merge/Ready, and preserved-artifact mutation: all 0.
+
+STOP: wait for owner architecture review. Do not start implementation or generate a next CURRENT_TASK.
