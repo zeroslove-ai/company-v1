@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: cut2-scene-stage-b-apply-and-closure
 Updated: 2026-08-14
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
