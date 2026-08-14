@@ -299,3 +299,20 @@ On completion:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only commit;
 - post one terminal report to Issue #68 with START_SHA, FINAL_SHA, audit document path, counts by disposition, major authority conclusions, exact proposed first implementation cut, and forbidden-operations confirmation;
 - STOP. Do not auto-register an implementation task. Operator must review the redesign first.
+
+## Terminal evidence — 2026-08-15
+
+- Task ID: `open-semantic-observation-authority-reset-audit`.
+- Registration/start SHA: `6e2963285d91f3bb3d0c096a2cb3ac4f02e9c51c`.
+- Branch: `company/scene-location-presence-v1`; canonical PR #67 remains OPEN / DRAFT / UNMERGED.
+- Deliverable: `docs/audit/OPEN_SEMANTIC_OBSERVATION_AUTHORITY_RESET_2026-08-15.md`.
+- Inventory result: 50 grouped gate families — 15 `STRUCTURAL_KEEP`, 14 `MECHANICAL_ISOLATE`, 18 `SEMANTIC_REMOVE`, and 3 `LEGACY_READ_ONLY`.
+- Major conclusion: action/turn/scene/identity/exact-evidence/replay boundaries are structural and should remain. Extract event/relation/action vocabularies, fixed emotional/physical/clothing fields, intimacy ladders, SQL setup/opening catalog copies, and deterministic choice prose currently restrict or author narrative meaning and must be removed from new-write authority in staged cuts.
+- Target model: Extract emits arbitrary evidence-backed free semantic facts with registered identities, exact Story quotes, server provenance, and replay identity. Narrow scene/CSA/counter/media mechanics remain optional projections and cannot erase an open fact.
+- Choice conclusion: retain four literal provider-authored choices as presentation shape; remove `reduceStoryChoiceProjection` deterministic server-authored alternatives.
+- DB conclusion: `commit_company_turn` remains the durable boundary; `reserve_company_player_setup` and `company_apply_opening_scene_v1` contain duplicated semantic catalog lists; structural validators remain, while catalog meaning moves to the edition/catalog authority only after a later additive cut and live proof.
+- Recommended first implementation cut: additive open-observation envelope/storage and context readback, followed by removal of finite semantic gates. It is proposed only; it was not implemented here.
+- Live DB evidence: no new live query was attempted because local `psql` and Supabase CLI are unavailable. Existing operator-verified TEST catalog/readback facts in the current truth/audit documents were used and are explicitly identified as such in the audit. No credentials were printed or changed.
+- Validation: `git diff --check` passed; no `src/**`, `content/**`, `supabase/migrations/**`, runtime test, provider, or deployment file was changed.
+- Forbidden operations: no TEST gameplay/LLM run, DB write/reset/migration/DDL, API/frontend deploy, Production access, provider/model/retry, new taxonomy/gate/parser, branch/PR/merge/Ready, or preserved-evidence access occurred.
+- Operator review is required before any implementation task. No next task was generated. `Status: WAITING_REVIEW` is the terminal state.
