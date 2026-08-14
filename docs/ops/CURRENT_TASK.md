@@ -1,215 +1,79 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: cut3-relation-event-authority-v1
+Status: READY
+Task ID: cut3-relation-event-registered-participant-closure
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution queue for Company v1.
 
-## Why this task exists
+## Context
 
-Cut 2 Scene / Location / Presence Authority is closed through TEST Stage B and scoped live acceptance. The post-Cut2 game-model checkpoint at `a64d9913115e4eb57282823e3ae2ab04f45f014d` independently identified Relationship / Event Authority as the highest-priority remaining root defect.
+The first Cut 3 implementation candidate is executable SHA `c1b14b8d19b76e14f5a56379d5ff6117ca1daea5` with docs-only completion SHA `6f49eb3b7fc420268c5e9df7c467b7fad1494d17` on `company/scene-location-presence-v1` / canonical Draft PR #67.
 
-The preserved 7-turn manual game proves that meaningful contact, explicit boundary reaction, discomfort, apology, and continued interaction occurred in Story, while `active_relations`, `event_ledger`, and `sexual_event_ledger` remained empty and heroine4 relationship state largely stayed at its initial values. This is durable-consequence loss, not merely a presentation complaint.
+Operator review is `CHANGES_REQUIRED` for one concrete authority gap. The architecture direction is otherwise retained: `reduceRelationEventDomains()` is the single fresh-turn relation/event durable writer; `csa-commit-reducer.js` no longer writes `active_relations`; `observation-reducers.js` delegates the targeted domains.
 
-Current source also has a direct duplicate authority defect: observational `reduceRelationUpdates()` and Engine-side `applyEngineRelationEnactments()` both mutate `active_relations` independently.
+The gap is in general-event identity validation. `reduceGeneralEvents()` currently checks only that participant entries are non-empty strings. A non-empty unknown ID such as `ghost_npc` can therefore be persisted into `event_ledger` when its evidence quote appears in Story. This violates the Cut 3 contract that observational relation/event consequences require registered identities and that unknown actor/target observations degrade to warning + no durable mutation.
 
-The owner has now resolved the PR-topology blocker:
-
-- PR #67 is the single canonical implementation PR and is retargeted to `main`.
-- former stacked PR #65 and #66 are closed as superseded review containers only; their commits remain in #67 ancestry.
-- no history rewrite/rebase/squash was performed.
-- do not create another PR or branch for this Cut.
-
-## Binding authority
-
-Read and obey in order:
-
-1. `/CURRENT_TRUTH.md`
-2. `/AGENTS.md`
-3. `/docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`
-4. `/docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`
-5. `/docs/audit/POST_CUT2_GAME_MODEL_RECOVERY_2026-08-14.md`
-6. this file
-7. Issue #68 persistent roadmap/evidence comment
-
-Current source/Git/live TEST truth outrank prose. One durable domain has one canonical writer. Historical applied migrations and preserved evidence are immutable.
-
-Manual playtest game `78fb1d94-266f-455a-bda4-7656cc2370c1` is immutable READ-ONLY evidence and must never be reset or mutated.
-
-## Repository / PR / identity guard
+## Binding identity / topology
 
 Repository: `zeroslove-ai/company-v1`
-Expected branch: `company/scene-location-presence-v1`
+Branch: `company/scene-location-presence-v1`
 Canonical PR: #67
-Expected PR base: `main`
+Expected base: `main`
 Expected PR state: OPEN / DRAFT / UNMERGED
-Checkpoint starting HEAD: `a64d9913115e4eb57282823e3ae2ab04f45f014d`
-Reviewed/deployed pre-Cut3 runtime executable: `a919baf87d92e841e64b731576ccb176d5745570`
+Starting executable candidate: `c1b14b8d19b76e14f5a56379d5ff6117ca1daea5`
+Starting branch HEAD before this handoff: `6f49eb3b7fc420268c5e9df7c467b7fad1494d17`
 
-Before edits:
+PR #65/#66 are superseded closed containers. Do not reopen them. Do not create a branch or PR. Do not rebase/squash/merge/mark Ready.
 
-1. fetch current remote HEAD and PR #67 metadata
-2. confirm #67 still targets `main`, remains Draft/Open/Unmerged, and no new PR exists for this work
-3. confirm #65/#66 closure did not rewrite branch ancestry
-4. inspect every executable change after `a919baf...`; docs-only task/checkpoint commits must remain distinguishable from runtime
-5. verify current source writer/caller inventory below from actual callers, not filenames
-6. if branch/PR ancestry unexpectedly diverged, STOP BLOCKED rather than rebasing or opening a new PR
+Read CURRENT_TRUTH.md, AGENTS.md, 09_CURRENT_TRUTH.md, 10_SOLE_WRITER_DECISION.md, POST_CUT2_GAME_MODEL_RECOVERY_2026-08-14.md, then this task. Current source/Git truth outranks prose.
 
-## Goal
+## Required correction
 
-Make one canonical in-memory Relation/Event reducer the sole owner of fresh-turn durable relationship/event consequences before `commit_company_turn` persists the save.
+Keep the canonical Cut 3 reducer design. Correct only the missing identity invariant at the canonical relation/event boundary.
 
-The target flow is:
+1. General-event participant IDs must be validated against the registered identity set supplied to the canonical reducer.
+2. `player` and already-supported canonical player aliases may normalize to canonical `player`; do not invent new aliases.
+3. Every non-player participant must be a registered NPC/character ID in the authoritative `npcIds` set.
+4. If any participant is unknown/unresolved, drop that observational general event, append a deterministic warning, and continue the ordinary turn.
+5. Do not fuzzy-match names/IDs and do not infer a replacement participant from Story text.
+6. Exact Story evidence remains required. Registered identity is an additional authority requirement, not a replacement for evidence.
+7. Preserve deterministic replay-safe dedupe for accepted general events.
+8. Do not change Engine relation precedence, relation supersession/end semantics, relationship-field evidence gates, sexual-event semantics, physical state, memory/summary, Scene, Setup/Opening, provider/prompt/parser behavior, or frontend architecture.
 
-`Engine mandatory relation facts + exact Extract relation/event observations -> typed relation/event inputs -> ONE canonical reducer -> active_relations / relationship consequence fields / event ledgers -> commit_company_turn`
+If actual source proves a broader identity leak in the same general-event input boundary, fix the shared normalization narrowly rather than adding downstream patches. Do not expand into unrelated domains.
 
-No other fresh-turn module may independently mutate those durable domains after this Cut.
+## Required focused proof
 
-## Required writer inventory before implementation
+Add/adjust behavior tests proving at minimum:
 
-Trace actual callers/writes for at least:
+- exact-evidence general event with a registered participant is accepted;
+- the same accepted event replay does not duplicate the ledger entry;
+- exact-evidence general event with a non-empty unknown participant ID is dropped and produces warning only;
+- unknown participant does not fail Commit/ordinary turn;
+- player canonical identity/allowed existing alias remains valid if currently supported;
+- existing Cut 3 Engine-vs-Extract precedence and relation tests remain green.
 
-- `active_relations`
-- `npc_relationship_state` fields (`closeness`, `romance_status`, `current_boundary`, milestones, relationship summary if currently writable)
-- `event_ledger`
-- `sexual_event_ledger`
-- any relation-presentation helper/mirror
-- Engine CSA relation enactments
-- Extract `relation_updates`, NPC relationship observations, general events, sexual events
-- Story/context/frontend readers of these fields
+Run focused relation/event/commit suites, full current `npm.cmd test`, syntax checks for changed JS/MJS, and `git diff --check`. Test count is regression signal; inspect any failure against the canonical contract rather than adding compatibility.
 
-Classify each as canonical writer, typed input producer, derived projection, compatibility reader, or deletion candidate.
+## Operations boundary
 
-Do not add a second coordinating writer while leaving both current writers alive.
+Allowed: source/test/docs changes on the existing branch; local tests/static checks; read-only inspection.
 
-## Canonical reducer requirements
+Forbidden: TEST gameplay write/reset, DB migration/DDL/DML, API/frontend deploy, Production, manual playtest mutation/reset, provider/model/config changes, retry/regeneration, fuzzy repair, semantic hard gate, parser generation, new branch/PR, merge/Ready/rebase/squash.
 
-Create or refactor toward one explicit canonical relation/event reducer boundary. Exact file naming is implementation choice, but ownership must be unmistakable.
+Manual playtest game `78fb1d94-266f-455a-bda4-7656cc2370c1` remains immutable READ-ONLY evidence.
 
-It must consume typed inputs from two origins:
-
-1. **Engine-authoritative relation events** derived deterministically from validated mandatory/CSA enactments.
-2. **Observational relation/event inputs** derived from fresh Extract only when backed by exact Story evidence and registered identities.
-
-Required deterministic rules:
-
-- Engine mandatory relation event wins over conflicting observational Extract for the same actor/turn/domain.
-- unresolved/unknown actor or target cannot create a relation/event consequence; drop with warning, do not reject the ordinary turn.
-- player free input is intent/attempt, never automatic relation/event success.
-- exact Story/structural evidence is required for observational consequence.
-- applying the same typed event twice is idempotent.
-- a new incompatible active relation for the same actor deterministically ends/supersedes the prior canonical relation before activating the new one.
-- explicit valid end closes the matching active relation; ending a nonexistent relation produces a warning, not a turn failure.
-- relation presentation labels/helpers never choose the durable target and never write canonical relation state.
-- general/sexual event ledger dedupe must be deterministic and replay-safe.
-- do not invent a relationship milestone or relationship summary from player input text alone.
-- do not let uncertainty in Extract block the Story/turn; uncertain observation means no durable consequence plus warning.
-
-## Mandatory deletion / simplification targets in this Cut
-
-On successful focused proof, remove the duplicate fresh-turn writer paths rather than wrapping them forever.
-
-At minimum:
-
-- `csa-commit-reducer.js` must stop directly mutating `active_relations`; it may emit typed Engine relation inputs only.
-- `observation-reducers.js` must stop independently owning `active_relations` and event-ledger durable writes; it may validate/project typed observational inputs for the canonical reducer.
-- any superseded helper whose only purpose was one of those duplicate writes must be deleted or reduced to pure input normalization.
-- obsolete tests asserting the old two-writer implementation must be REWRITE/DELETE, not preserved with compatibility code.
-
-Do not delete historical persisted-data/replay adapters unless caller/data proof for their deletion is part of this exact domain and is complete.
-
-## Scope boundary with Physical/Sexual and Memory Cuts
-
-This Cut may persist **relation/event consequences** of physical or sexual interactions when exact evidence exists, but it must NOT become the full physical-state or sexual-state rewrite.
-
-Do not redesign posture/clothing/contact geometry, player arousal, summary generation, recent memory, parser generations, setup/opening catalog semantics, or frontend session architecture here.
-
-If a needed relation/event consequence requires a new canonical durable field/schema, STOP at a reviewed Stage-A migration proposal; do not apply a migration in this task unless the existing save shape already supports the required state.
-
-Prefer using existing `active_relations`, `npc_relationship_state`, `event_ledger`, and `sexual_event_ledger` shapes if they can represent the invariant cleanly.
-
-## Player-agency / game-flow rule
-
-Do not solve missing consequence by hard-gating free player inputs or forcing the Provider to narrate a predetermined social outcome.
-
-Story remains responsible for natural NPC reaction and outcome. Extract observes. The canonical reducer decides only whether supported evidence becomes durable fact.
-
-A malformed/ambiguous optional relation observation must degrade to no relation mutation with warning; it must not make an otherwise valid turn fail.
-
-Do not add retry/regeneration, provider/model/temperature/token changes, fuzzy target repair, semantic regex gates, or synthetic success inferred directly from player action text.
-
-## Focused invariants / tests
-
-Keep or add behavior-level tests proving at least:
-
-1. Engine relation input and conflicting Extract input in one turn -> Engine wins deterministically.
-2. ordinary exact-evidence Extract relation update -> canonical relation is created.
-3. unresolved target -> no relation created, warning only.
-4. same input replay -> no duplicate active relation/event.
-5. superseding relation -> prior canonical relation ended before new active relation.
-6. explicit relation end -> matching active relation ended; nonexistent end warns only.
-7. relationship boundary/closeness observation changes only with exact evidence and registered actor.
-8. general event dedupe is replay-safe.
-9. sexual event dedupe/evidence remains replay-safe without turning player intent into success.
-10. degraded/invalid optional Extract relation data does not block Commit and does not mutate relation/event state.
-11. CSA reducer no longer writes `active_relations` directly.
-12. observation reducer no longer independently writes the canonical relation/event durable domains.
-13. Story context/frontend readers still see the canonical resulting state.
-
-Classify touched existing tests KEEP / REWRITE / DELETE. Do not restore old phase/source-text/compatibility tests.
-
-Run focused suites first, then full `npm.cmd test`, syntax checks for changed JS/MJS, and `git diff --check`.
-
-## Live / DB / deployment boundary for this task
-
-This is the **source + focused contract implementation stage** only.
-
-Allowed:
-- source/test/docs changes on current branch
-- local tests/static checks
-- read-only TEST DB/manual evidence inspection when needed
-- update PR #67 description if necessary to describe Cut 3 scope
-
-Forbidden:
-- new branch or PR
-- merge / PR Ready / rebase / squash
-- Production access
-- TEST gameplay writes/reset
-- DB migration apply or DDL/DML
-- API/frontend deployment
-- manual playtest mutation/reset
-- provider/model/config change
-- retry/regeneration/fuzzy repair/new parser generation
-- unrelated Scene/Memory/Setup/Physical-state refactor
-
-## Success criteria
-
-Success requires:
-
-1. exactly one fresh-turn canonical relation/event reducer owns all targeted durable relation/event writes
-2. Engine and Extract become typed inputs with deterministic precedence
-3. current duplicate `active_relations` writers are removed
-4. optional ambiguous observations remain fail-open for game flow while durable acceptance remains evidence-gated
-5. focused invariants pass
-6. full current test suite passes without stale compatibility code
-7. no DB/deploy/Production/manual-game mutation
-8. PR #67 remains the only open implementation PR, Draft/Open/Unmerged, based on `main`
-9. exact executable FINAL_SHA is reported separately from docs-only completion state
+## Completion
 
 On success:
 
-- set Status `WAITING_REVIEW`
-- post a terminal COMPLETE report to Issue #68 with exact START_SHA/FINAL_SHA, changed writer map, deleted duplicate paths, test results, and statement that live TEST/deploy was not run
-- STOP for operator review before any deployment/live acceptance or migration
-
-On failure/block:
-
-- do not patch around the architecture conflict
-- set WAITING_REVIEW and report exact blocker/evidence
-- STOP
+- produce one new exact executable SHA descending from `c1b14b8...` with the narrow closure and tests;
+- set CURRENT_TASK to WAITING_REVIEW in a separate docs-only commit;
+- post a terminal COMPLETE report to Issue #68 with START_SHA, FINAL_EXECUTABLE_SHA, FINAL_SHA, changed files, focused/full validation, and explicit zero DB/deploy/Production/manual-game mutations;
+- STOP for operator review.
 
 Success phrase:
 
-`CUT 3 RELATION / EVENT SOLE AUTHORITY IMPLEMENTED — AWAITING OPERATOR REVIEW`
+`CUT 3 REGISTERED PARTICIPANT AUTHORITY CLOSED — AWAITING OPERATOR REVIEW`
