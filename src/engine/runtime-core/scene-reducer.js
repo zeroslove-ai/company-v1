@@ -77,54 +77,78 @@ function legacyNpcPresence(save, npcIds, playerId) {
   return result;
 }
 
-/** Return the canonical scene without changing the supplied save. */
-export function hydrateCanonicalScene(save, options = {}) {
-  const source = plain(save) ? save : {};
+function validateCanonicalScene(source, options = {}) {
+  const current = source.scene;
   const npcIds = registeredNpcIds(options);
   const playerId = playerIdOf(source, options);
-  const hasCanonical = plain(source.scene);
-  const current = hasCanonical && source.scene.version === 1 ? source.scene : null;
-  if (hasCanonical && !current) {
+  if (!plain(current) || current.version !== 1) {
     throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical scene version is invalid');
   }
-  if (current) {
-    if (!Array.isArray(current.present_npc_ids)) {
-      throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical present_npc_ids must be an array');
-    }
-    const rawPresent = current.present_npc_ids.map(stringId);
-    if (rawPresent.some(value => !value) || new Set(rawPresent).size !== rawPresent.length
-      || rawPresent.some(value => isPlayerId(value, playerId) || (npcIds.size && !npcIds.has(value)))) {
-      throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical present_npc_ids contains invalid values');
-    }
-    if (current.focal_character_id !== null && stringId(current.focal_character_id) === null) {
-      throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical focal_character_id is invalid');
-    }
-    if (current.focal_character_id !== null && !rawPresent.includes(current.focal_character_id)) {
-      throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical focal_character_id must be present');
-    }
-    if (current.last_speaker_id !== null && stringId(current.last_speaker_id) === null) {
-      throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical last_speaker_id is invalid');
-    }
-    if (current.last_speaker_id !== null && !isPlayerId(current.last_speaker_id, playerId)
-      && (npcIds.size && !npcIds.has(current.last_speaker_id))) {
-      throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical last_speaker_id is unknown');
-    }
-    if (!Number.isInteger(current.beat) || current.beat < 0 || !Number.isInteger(current.updated_turn) || current.updated_turn < 0) {
-      throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical beat and updated_turn must be non-negative integers');
-    }
-    return {
-      version: 1,
-      scene_id: current.scene_id ?? null,
-      location_id: current.location_id ?? null,
-      beat: current.beat,
-      goal: current.goal ?? null,
-      focus_thread: current.focus_thread ?? null,
-      present_npc_ids: [...rawPresent],
-      focal_character_id: current.focal_character_id ?? null,
-      last_speaker_id: current.last_speaker_id ?? null,
-      updated_turn: current.updated_turn
-    };
+  if (!Array.isArray(current.present_npc_ids)) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical present_npc_ids must be an array');
   }
+  const rawPresent = current.present_npc_ids.map(stringId);
+  if (rawPresent.some(value => !value) || new Set(rawPresent).size !== rawPresent.length
+    || rawPresent.some(value => isPlayerId(value, playerId) || (npcIds.size && !npcIds.has(value)))) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical present_npc_ids contains invalid values');
+  }
+  const locationId = stringId(current.location_id);
+  const locations = locationIds(options);
+  if (locationId && locations.size && !locations.has(locationId)) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', `Canonical location is not registered: ${locationId}`);
+  }
+  if (current.scene_id !== null && stringId(current.scene_id) === null) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical scene_id is invalid');
+  }
+  if (current.goal !== null && stringId(current.goal) === null) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical goal is invalid');
+  }
+  if (current.focus_thread !== null && stringId(current.focus_thread) === null) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical focus_thread is invalid');
+  }
+  if (current.focal_character_id !== null && stringId(current.focal_character_id) === null) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical focal_character_id is invalid');
+  }
+  if (current.focal_character_id !== null && !rawPresent.includes(current.focal_character_id)) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical focal_character_id must be present');
+  }
+  if (current.last_speaker_id !== null && stringId(current.last_speaker_id) === null) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical last_speaker_id is invalid');
+  }
+  if (current.last_speaker_id !== null && !isPlayerId(current.last_speaker_id, playerId)
+    && (npcIds.size && !npcIds.has(current.last_speaker_id))) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical last_speaker_id is unknown');
+  }
+  if (!Number.isInteger(current.beat) || current.beat < 0 || !Number.isInteger(current.updated_turn) || current.updated_turn < 0) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical beat and updated_turn must be non-negative integers');
+  }
+  return {
+    version: 1,
+    scene_id: current.scene_id ?? null,
+    location_id: locationId,
+    beat: current.beat,
+    goal: current.goal ?? null,
+    focus_thread: current.focus_thread ?? null,
+    present_npc_ids: [...rawPresent],
+    focal_character_id: current.focal_character_id ?? null,
+    last_speaker_id: current.last_speaker_id ?? null,
+    updated_turn: current.updated_turn
+  };
+}
+
+/** Strict canonical reader. It never falls back to legacy fields. */
+export function readCanonicalSceneV1(save, options = {}) {
+  const source = plain(save) ? save : {};
+  if (!plain(source.scene)) throw new GameCoreError('CANONICAL_SCENE_MISSING', 'Canonical scene v1 is required');
+  return validateCanonicalScene(source, options);
+}
+
+/** One compatibility boundary for old saves that predate save.scene v1. */
+export function hydrateLegacySceneV1(save, options = {}) {
+  const source = plain(save) ? save : {};
+  if (plain(source.scene)) return readCanonicalSceneV1(source, options);
+  const npcIds = registeredNpcIds(options);
+  const playerId = playerIdOf(source, options);
   const present = uniqueNpcIds(legacyNpcPresence(source, npcIds, playerId), npcIds);
   const focal = stringId(source.focal_character_id);
   return {
@@ -141,9 +165,14 @@ export function hydrateCanonicalScene(save, options = {}) {
   };
 }
 
+/** @deprecated Runtime callers must use readCanonicalSceneV1 after hydration. */
+export function hydrateCanonicalScene(save, options = {}) {
+  return readCanonicalSceneV1(save, options);
+}
+
 /** Reduce one observation into the canonical scene. No legacy save fields are written here. */
 export function reduceCanonicalScene(input = {}) {
-  const current = clone(input.currentScene ?? hydrateCanonicalScene(input.save, input));
+  const current = clone(input.currentScene ?? readCanonicalSceneV1(input.save, input));
   const observation = input.observation ?? {};
   const npcIds = registeredNpcIds(input);
   const locations = locationIds(input);
@@ -166,12 +195,9 @@ export function reduceCanonicalScene(input = {}) {
     next.focus_thread = null;
     next.present_npc_ids = [];
   }
-  if (!degraded && observation.outcome === 'success' && Array.isArray(observation.final_present_npc_ids)) {
+  if (!degraded && observation.outcome === 'success') {
     const explicitExited = new Set(uniqueNpcIds(observation.exited_npc_ids, npcIds));
-    const retained = next.present_npc_ids.filter(id => !explicitExited.has(id));
-    next.present_npc_ids = observation.presence_is_final === true && explicitExited.size === 0
-      ? uniqueNpcIds(observation.final_present_npc_ids, npcIds)
-      : uniqueNpcIds([...retained, ...observation.final_present_npc_ids], npcIds);
+    next.present_npc_ids = next.present_npc_ids.filter(id => !explicitExited.has(id));
     if (observation.scene_id !== null && observation.scene_id !== undefined) next.scene_id = observation.scene_id;
     if (moved && observedLocation !== null) next.location_id = observedLocation;
     if (observation.scene_goal_provided) next.goal = observation.scene_goal;
@@ -181,7 +207,19 @@ export function reduceCanonicalScene(input = {}) {
   for (const entered of uniqueNpcIds(observation.entered_npc_ids, npcIds)) {
     if (!currentIds.has(entered)) { next.present_npc_ids.push(entered); currentIds.add(entered); }
   }
- const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
+  // A normalized presence/entrance evidence item is an exact Story-backed
+  // observation. Final snapshots alone are not authority, but quoted
+  // evidence is sufficient to add the observed local NPC.
+  for (const observed of uniqueNpcIds(
+    (observation.evidence ?? [])
+      .filter(item => item?.kind === 'presence' || item?.kind === 'entrance')
+      .map(item => item?.character_id),
+    npcIds
+  )) {
+    if (!currentIds.has(observed)) { next.present_npc_ids.push(observed); currentIds.add(observed); }
+  }
+  const explicitExited = new Set(uniqueNpcIds(observation.exited_npc_ids, npcIds));
+  const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
   for (const speaker of speakers) {
     if (isPlayerId(speaker) || currentIds.has(speaker)) continue;
     if (observation.remote_speaker_ids?.includes(speaker)) {
@@ -202,7 +240,7 @@ export function reduceCanonicalScene(input = {}) {
     }
     // A final snapshot may add observed actors, but omission alone cannot
     // remove a current actor. Removal requires explicit quoted exit evidence.
-    if (!Array.isArray(observation.final_present_npc_ids)) {
+    if (!explicitExited.has(speaker)) {
       next.present_npc_ids = [...next.present_npc_ids, speaker];
       currentIds.add(speaker);
     }

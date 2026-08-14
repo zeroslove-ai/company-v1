@@ -10,12 +10,25 @@ import {
   npcPromptText,
   renderCompanyMap
 } from '../src/frontend/pages/company-map.js';
+import { resolvePlayerNavigationIntent } from '../src/engine/scene-cast.js';
 
 const locations = edition.map.locations;
 const characters = edition.characters.characters;
 
 function save() {
   return {
+    scene: {
+      version: 1,
+      scene_id: 'brand_strategy_meeting_room',
+      location_id: 'brand_strategy_meeting_room',
+      beat: 0,
+      goal: null,
+      focus_thread: null,
+      present_npc_ids: ['heroine2'],
+      focal_character_id: 'heroine2',
+      last_speaker_id: null,
+      updated_turn: 1
+    },
     scene_state: {
       location_id: 'brand_strategy_meeting_room',
       participants: ['player-1', 'heroine2']
@@ -67,6 +80,33 @@ test('회사맵 제품: 한국어 조사에 맞는 이동·찾아가기 문장�
   assert.equal(locationPromptText('교육장'), '교육장으로 이동한다');
   assert.equal(npcPromptText('윤민아'), '윤민아를 찾아간다');
   assert.equal(npcPromptText('한지석'), '한지석을 찾아간다');
+});
+
+test('scene authority: unique Minah navigation uses catalog default, not stale NPC scene location', () => {
+  const master = {
+    characters: Object.values(edition.characters.characters),
+    general_npcs: Object.values(edition.generalNpcs.profiles)
+  };
+  const navigationSave = {
+    player: { player_id: 'player-1', department_id: 'brand_strategy' },
+    scene: {
+      version: 1, scene_id: 'brand_strategy_meeting_room', location_id: 'brand_strategy_meeting_room', beat: 0,
+      goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0
+    },
+    npc_scene_state: { heroine2: { location_id: 'unrelated_stale_location' } }
+  };
+  const intent = resolvePlayerNavigationIntent({
+    save: navigationSave,
+    master,
+    playerAction: '민아 보러간다',
+    mapLocations: edition.map.locations
+  });
+  assert.deepEqual(intent, {
+    kind: 'player_navigation',
+    destination_location_id: 'brand_strategy_office',
+    target_npc_id: 'heroine2',
+    source: 'registered_npc_destination'
+  });
 });
 
 class FakeClassList {

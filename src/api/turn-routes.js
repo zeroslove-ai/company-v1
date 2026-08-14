@@ -1,7 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
-import { buildSceneCastContract, resolveNavigationLocation, validatePlayerDialogueAgainstPolicy } from '../engine/scene-cast.js';
+import { buildSceneCastContract, resolvePlayerNavigationIntent, validatePlayerDialogueAgainstPolicy } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
@@ -56,7 +56,7 @@ import {
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
-import { hydrateCanonicalScene } from '../engine/runtime-core/scene-reducer.js';
+import { readCanonicalSceneV1 } from '../engine/runtime-core/scene-reducer.js';
 import { logTurnTiming, newRequestId } from './timing.js';
 
 function asHttpError(error) {
@@ -80,9 +80,12 @@ function actionIds(body) {
   };
 }
 
-function projectStorySaveAtLocation(save, locationId, { master, mapLocations } = {}) {
+function projectStorySaveForNavigation(save, navigationIntent, { master, mapLocations } = {}) {
+  const locationId = navigationIntent?.kind === 'player_navigation'
+    ? navigationIntent.destination_location_id
+    : null;
   if (typeof locationId !== 'string' || !locationId.trim()) return save;
-  const scene = hydrateCanonicalScene(save, { master, mapLocations });
+  const scene = readCanonicalSceneV1(save, { master, mapLocations });
   if (scene.location_id === locationId) return save;
   return {
     ...save,
@@ -599,13 +602,13 @@ const master = masterFromEdition(edition);
             csaResolution,
             'story-projection'
           );
-          const resolvedLocationId = resolveNavigationLocation({
+          const navigationIntent = resolvePlayerNavigationIntent({
             save: projectedTransactionSave,
             master,
             playerAction: storyPlayerAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          const storyBaseSave = projectStorySaveAtLocation(projectedTransactionSave, resolvedLocationId, {
+          const storyBaseSave = projectStorySaveForNavigation(projectedTransactionSave, navigationIntent, {
             master,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
@@ -717,7 +720,7 @@ const master = masterFromEdition(edition);
             ...parsed,
             turn_context: turnContextFor({
               save: storySave,
-              locationId: resolvedLocationId ?? storySave?.scene?.location_id,
+              locationId: navigationIntent?.destination_location_id ?? storySave?.scene?.location_id,
               mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
             }),
             // 수정 H — live/replay 동일 순서 재생용
@@ -834,18 +837,7 @@ const master = masterFromEdition(edition);
             csaResolution,
             'extract-projection'
           );
-          const resolvedLocationId = resolveNavigationLocation({
-            save: projectedTransactionSave,
-            master,
-            // Extract observes the completed Story; player input is not an
-            // observation authority and must not influence its prompt context.
-            playerAction: '',
-            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
-          });
-          const extractBaseSave = projectStorySaveAtLocation(projectedTransactionSave, resolvedLocationId, {
-            master,
-            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
-          });
+          const extractBaseSave = projectedTransactionSave;
           // Extract observes the same canonical save that Story observed; the
           // signed resolution is not a second, ephemeral state projection.
           const extractSave = extractBaseSave;
@@ -942,7 +934,7 @@ const master = masterFromEdition(edition);
           csaResolution,
           'commit-validation'
         );
-        const resolvedLocationId = resolveNavigationLocation({
+        const navigationIntent = resolvePlayerNavigationIntent({
           save: commitValidationSave,
           master,
           playerAction: csaResolution ? '' : action.player_action,
@@ -952,7 +944,7 @@ const master = masterFromEdition(edition);
         const persistedEngine = persistedEngineMetadata(action.parsed_blocks);
         const engineEnactments = action.action_kind === 'feedback_revision' ? [] : persistedEngine.enactments;
         if (engineEnactments.length) {
-          const currentScene = hydrateCanonicalScene(commitValidationSave, { master, mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [] });
+          const currentScene = readCanonicalSceneV1(commitValidationSave, { master, mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [] });
           const engineSceneIds = new Set(currentScene.present_npc_ids ?? []);
           for (const enactment of engineEnactments) {
             if (enactment?.actor_id && enactment.actor_id !== 'player') engineSceneIds.add(enactment.actor_id);
@@ -980,7 +972,7 @@ const master = masterFromEdition(edition);
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,
           action, expectedTurn, master, npcIds,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
-          authoritativeLocationId: resolvedLocationId,
+          navigationIntent,
           structuredAction: action.action_kind === 'feedback_revision' ? null : structuredAction,
           transactionResolution: csaResolution,
           engineEnactments

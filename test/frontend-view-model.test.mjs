@@ -54,6 +54,8 @@ test('Company game view model projects every interacting NPC and player clothing
     clothing: { uniform_top: 'worn', uniform_bottom: 'removed' }
   };
   input.save.data.focal_character_id = 'heroine3';
+  input.save.data.scene.focal_character_id = 'heroine3';
+  input.save.data.scene.present_npc_ids = ['heroine1', 'heroine3'];
   input.save.data.last_npcs_present = ['heroine1', 'heroine3'];
   input.save.data.scene_state = {
     ...(input.save.data.scene_state ?? {}),
@@ -83,6 +85,7 @@ test('Company game view model projects every interacting NPC and player clothing
 test('Company game view model uses participants as the only current-scene NPC membership source', () => {
   const staleAbsent = context();
   staleAbsent.save.data.player = { player_id: 'player-1' };
+  staleAbsent.save.data.scene.present_npc_ids = ['heroine1'];
   staleAbsent.save.data.scene_state = { participants: ['player-1', 'heroine1'] };
   staleAbsent.save.data.npc_scene_state = {
     heroine1: { present: false, clothing: { uniform_top: 'removed' } }
@@ -93,6 +96,7 @@ test('Company game view model uses participants as the only current-scene NPC me
 
   const outside = context();
   outside.save.data.player = { player_id: 'player-1' };
+  outside.save.data.scene.present_npc_ids = ['heroine1'];
   outside.save.data.scene_state = { participants: ['player-1', 'heroine1'] };
   outside.save.data.last_npcs_present = ['heroine3'];
   outside.save.data.npc_scene_state = {
@@ -104,6 +108,8 @@ test('Company game view model uses participants as the only current-scene NPC me
 
   const focal = context();
   focal.save.data.player = { player_id: 'player-1' };
+  focal.save.data.scene.present_npc_ids = ['heroine1', 'heroine3'];
+  focal.save.data.scene.focal_character_id = 'heroine3';
   focal.save.data.scene_state = { participants: ['player-1', 'heroine1', 'heroine3'] };
   focal.save.data.focal_character_id = 'heroine3';
   model = buildCompanyGameViewModel(focal);
@@ -111,6 +117,8 @@ test('Company game view model uses participants as the only current-scene NPC me
 
   const staleFocal = context();
   staleFocal.save.data.player = { player_id: 'player-1' };
+  staleFocal.save.data.scene.present_npc_ids = [];
+  staleFocal.save.data.scene.focal_character_id = null;
   staleFocal.save.data.scene_state = { participants: ['player-1'] };
   staleFocal.save.data.focal_character_id = 'heroine1';
   staleFocal.save.data.last_npcs_present = ['heroine1'];

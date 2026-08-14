@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GameCoreError } from '../src/engine/errors.js';
-import { hydrateCanonicalScene, reduceCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
+import { hydrateLegacySceneV1, readCanonicalSceneV1, reduceCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
 import { projectCanonicalSceneToLegacy } from '../src/engine/runtime-core/projections.js';
 import { assertCanonicalSceneInvariants } from '../src/engine/runtime-core/invariants.js';
 
 const NPCS = new Set(['heroine1', 'heroine2', 'heroine3', 'general_park_jungwoo']);
 const LOCATIONS = [{ location_id: 'origin' }, { location_id: 'destination' }, { location_id: 'meeting_room' }];
 const clone = value => structuredClone(value);
+const hydrateCanonicalScene = hydrateLegacySceneV1;
 function save(overrides = {}) {
   const base = {
     edition: 'company-v1', save_schema_version: 1,
@@ -36,14 +37,14 @@ test('bootstrap does not mutate input save', () => { const input = save(); const
 
 // Presence 8-13
 test('null final presence preserves canonical presence', () => assert.deepEqual(reduce({ observation: observation({ final: null }) }).present_npc_ids, ['heroine1']));
-test('empty final presence is an explicit player-only scene', () => assert.deepEqual(reduce({ observation: observation({ final: [] }) }).present_npc_ids, []));
-test('final presence replaces rather than unions legacy ids', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'] }) }).present_npc_ids, ['heroine2']));
-test('final-list omission does not remove current presence without explicit exit evidence', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'], presence_is_final: false }) }).present_npc_ids, ['heroine1', 'heroine2']));
-test('explicit exit evidence removes only the named current actor', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'], presence_is_final: false, exited: ['heroine1'] }) }).present_npc_ids, ['heroine2']));
-test('duplicate and player ids are removed from final presence', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2', 'heroine2', 'player-1'] }) }).present_npc_ids, ['heroine2']));
-test('unknown final presence ids are ignored', () => assert.deepEqual(reduce({ observation: observation({ final: ['ghost', 'heroine2'] }) }).present_npc_ids, ['heroine2']));
+test('final presence snapshot alone never deletes current presence', () => assert.deepEqual(reduce({ observation: observation({ final: [] }) }).present_npc_ids, ['heroine1']));
+test('final presence snapshot alone never adds a new NPC', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'] }) }).present_npc_ids, ['heroine1']));
+test('final-list omission does not remove current presence without explicit exit evidence', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'], presence_is_final: false }) }).present_npc_ids, ['heroine1']));
+test('explicit exit evidence removes only the named current actor', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2'], presence_is_final: false, exited: ['heroine1'] }) }).present_npc_ids, []));
+test('entered evidence controls new presence and filters duplicates/player ids', () => assert.deepEqual(reduce({ observation: observation({ final: ['heroine2', 'heroine2', 'player-1'], entered: ['heroine2'], speakers: ['heroine2'] }) }).present_npc_ids, ['heroine1', 'heroine2']));
+test('unknown final presence ids are ignored without evidence', () => assert.deepEqual(reduce({ observation: observation({ final: ['ghost', 'heroine2'] }) }).present_npc_ids, ['heroine1']));
 test('registered local speaker supplements only an unknown final snapshot', () => assert.deepEqual(reduce({ observation: observation({ final: null, speakers: ['heroine1'] }) }).present_npc_ids, ['heroine1']));
-test('authoritative location resets scene and final presence remains generic', () => {
+test('authoritative location resets scene and exact local speaker may enter', () => {
   const next = reduce({ authoritativeLocationId: 'destination', observation: observation({ location_id: null, final: ['heroine2'], speakers: ['heroine2'] }) });
   assert.equal(next.location_id, 'destination');
   assert.deepEqual(next.present_npc_ids, ['heroine2']);
@@ -74,23 +75,23 @@ test('degraded extract cannot change presence', () => assert.deepEqual(reduce({ 
 test('feedback revision preserves canonical scene', () => assert.equal(reduce({ actionKind: 'feedback_revision', observation: observation({ location_id: 'destination', final: [] }) }).location_id, 'origin'));
 
 // Focal / speaker 23-31
-test('valid focal candidate is retained', () => assert.equal(reduce({ observation: observation({ final: ['heroine1', 'heroine2'], focal: 'heroine2', speakers: ['heroine1'] }) }).focal_character_id, 'heroine2'));
-test('stale focal candidate is ignored', () => assert.equal(reduce({ observation: observation({ final: ['heroine2'], focal: 'heroine1' }) }).focal_character_id, null));
+test('valid focal candidate is retained', () => assert.equal(reduce({ observation: observation({ final: ['heroine1', 'heroine2'], focal: 'heroine2', speakers: ['heroine1', 'heroine2'] }) }).focal_character_id, 'heroine2'));
+test('focal candidate remains bound to the current local scene', () => assert.equal(reduce({ observation: observation({ final: ['heroine2'], focal: 'heroine1', speakers: ['heroine2'] }) }).focal_character_id, 'heroine1'));
 test('single acting current NPC becomes focal', () => assert.equal(reduce({ observation: observation({ final: ['heroine2'], speakers: ['heroine2'] }) }).focal_character_id, 'heroine2'));
 test('multiple acting NPCs produce null focal', () => assert.equal(reduce({ observation: observation({ final: ['heroine1', 'heroine2'], speakers: ['heroine1', 'heroine2'] }) }).focal_character_id, null));
 test('no acting NPC produces null focal', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'] }) }).focal_character_id, null));
 test('current Story last speaker replaces prior speaker', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'], speakers: ['heroine1'] }) }).last_speaker_id, 'heroine1'));
 test('player is a valid last speaker', () => assert.equal(reduce({ observation: observation({ final: ['heroine1'], speakers: ['player-1'] }) }).last_speaker_id, 'player-1'));
-test('speaker absent from complete final presence is not re-added', () => assert.deepEqual(reduce({ observation: observation({ final: [], speakers: ['heroine1'] }) }).present_npc_ids, []));
-test('remote speaker does not get auto-added to presence', () => { const scene = reduce({ observation: observation({ final: [], speakers: ['heroine1'], remote: ['heroine1'] }) }); assert.deepEqual(scene.present_npc_ids, []); });
+test('explicit exit removes the named current actor', () => assert.deepEqual(reduce({ observation: observation({ final: [], exited: ['heroine1'], speakers: ['heroine1'] }) }).present_npc_ids, []));
+test('remote speaker does not get auto-added to presence', () => { const scene = reduce({ observation: observation({ final: [], speakers: ['heroine2'], remote: ['heroine2'] }) }); assert.deepEqual(scene.present_npc_ids, ['heroine1']); });
 
 // Projection 32-38
 test('projection writes canonical scene version', () => assert.equal(projectCanonicalSceneToLegacy(save(), reduce({ observation: observation({ final: ['heroine2'] }) }), { playerId: 'player-1', npcIds: NPCS }).scene.version, 1));
-test('projection participants contain player then NPCs', () => assert.deepEqual(projectCanonicalSceneToLegacy(save(), reduce({ observation: observation({ final: ['heroine2'] }) }), { playerId: 'player-1', npcIds: NPCS }).scene_state.participants, ['player-1', 'heroine2']));
+test('projection participants contain player then evidence-backed NPCs', () => assert.deepEqual(projectCanonicalSceneToLegacy(save(), reduce({ observation: observation({ final: ['heroine2'], speakers: ['heroine2'] }) }), { playerId: 'player-1', npcIds: NPCS }).scene_state.participants, ['player-1', 'heroine1', 'heroine2']));
 test('projection last_npcs_present equals canonical presence', () => { const scene = reduce({ observation: observation({ final: ['heroine2'] }) }); assert.deepEqual(projectCanonicalSceneToLegacy(save(), scene, { npcIds: NPCS }).last_npcs_present, scene.present_npc_ids); });
-test('projection focal never adds presence', () => { const scene = reduce({ observation: observation({ final: [], focal: 'heroine1' }) }); assert.equal(scene.focal_character_id, null); });
+test('projection focal never adds presence', () => { const scene = reduce({ observation: observation({ final: [], focal: 'heroine2' }) }); assert.equal(scene.focal_character_id, null); });
 test('projection preserves physical clothing', () => { const source = save(); const scene = reduce({ observation: observation({ final: ['heroine1'] }) }); const next = projectCanonicalSceneToLegacy(source, scene, { npcIds: NPCS }); assert.deepEqual(next.npc_scene_state.heroine1.clothing, source.npc_scene_state.heroine1.clothing); });
-test('projection marks existing absent NPC state false', () => { const next = projectCanonicalSceneToLegacy(save(), reduce({ observation: observation({ final: [] }) }), { npcIds: NPCS }); assert.equal(next.npc_scene_state.heroine1.present, false); });
+test('projection marks exited NPC state false', () => { const next = projectCanonicalSceneToLegacy(save(), reduce({ observation: observation({ final: [], exited: ['heroine1'] }) }), { npcIds: NPCS }); assert.equal(next.npc_scene_state.heroine1.present, false); });
 test('projection is idempotent', () => { const scene = reduce({ observation: observation({ final: ['heroine2'] }) }); const once = projectCanonicalSceneToLegacy(save(), scene, { npcIds: NPCS }); assert.deepEqual(projectCanonicalSceneToLegacy(once, scene, { npcIds: NPCS }), once); });
 
 // Operational regressions 39-42
@@ -141,4 +142,29 @@ test('remote speaker with final null does not alter presence', () => {
 test('projection writes updated_turn to legacy scene_state', () => {
   const scene = reduce({ observation: observation({ final: [] }) });
   assert.equal(projectCanonicalSceneToLegacy(save(), scene, { npcIds: NPCS }).scene_state.updated_turn, scene.updated_turn);
+});
+
+test('strict canonical reader rejects a save without scene v1', () => assert.throws(
+  () => readCanonicalSceneV1(save(), { npcIds: NPCS }),
+  error => error.code === 'CANONICAL_SCENE_MISSING'
+));
+
+test('strict canonical reader ignores conflicting legacy projections', () => {
+  const canonical = { version: 1, scene_id: 'scene', location_id: 'origin', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['heroine2'], focal_character_id: 'heroine2', last_speaker_id: null, updated_turn: 1 };
+  const result = readCanonicalSceneV1(save({ scene: canonical, last_npcs_present: ['heroine1'] }), { npcIds: NPCS });
+  assert.deepEqual(result.present_npc_ids, ['heroine2']);
+});
+
+test('legacy hydration is non-mutating and produces canonical v1', () => {
+  const source = save();
+  const snapshot = clone(source);
+  const scene = hydrateLegacySceneV1(source, { npcIds: NPCS });
+  assert.equal(scene.version, 1);
+  assert.deepEqual(scene.present_npc_ids, ['heroine1']);
+  assert.deepEqual(source, snapshot);
+});
+
+test('canonical invariant accepts absent legacy scene projections', () => {
+  const scene = readCanonicalSceneV1({ scene: { version: 1, scene_id: null, location_id: 'origin', beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } }, { npcIds: NPCS });
+  assert.equal(assertCanonicalSceneInvariants({ save: { scene }, scene, npcIds: NPCS }), true);
 });

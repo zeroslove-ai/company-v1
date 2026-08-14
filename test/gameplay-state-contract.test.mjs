@@ -102,7 +102,10 @@ test('턴70-C: 사정 진행도는 턴당 최대 +6, 음수는 감소시키지 �
 });
 
 test('턴70-C2: 단순 발기·노출 사례에서는 Extract 예시상 progress delta가 없어야 한다 (프롬프트 계약)', () => {
-  const prompt = buildExtractPrompt({ context: {}, storyText: '플레이어는 서류를 정리했다.', parsedStory: {}, playerAction: 'x', expectedTurn: 1 });
+  const prompt = buildExtractPrompt({
+    context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } },
+    storyText: '플레이어는 서류를 정리했다.', parsedStory: {}, playerAction: 'x', expectedTurn: 1
+  });
   const system = prompt[0].content;
   assert.match(system, /Exposure, erection, conversation, or requests alone never raise it/);
   assert.match(system, /Never decrease\/reset when stimulation stops/);

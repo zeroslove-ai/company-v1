@@ -90,7 +90,7 @@ test('engine and frontend parsers split canonical dialogue into visible TTS line
 test('Story prompt exposes the structural dialogue identity contract', () => {
   const messages = buildStoryPrompt({
     edition,
-    context: { game: {}, save: { edition: 'company-v1', save_schema_version: 1, scene_state: { participants: ['heroine1'] }, world_state: {} }, recent_turns: [] },
+    context: { game: {}, save: { edition: 'company-v1', save_schema_version: 1, scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: null, last_speaker_id: null, updated_turn: 0 }, scene_state: { participants: ['heroine1'] }, world_state: {} }, recent_turns: [] },
     playerAction: 'review the report',
     expectedTurn: 1
   });

@@ -72,6 +72,10 @@ function save() {
       background: '대기업 본사 합동 회의에 처음 합석했다.'
     },
     player_progress: { level: 3, exp: 40 },
+    scene: {
+      version: 1, scene_id: 'large_meeting_room', location_id: 'large_meeting_room', beat: 0,
+      goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1', updated_turn: 1
+    },
     player_scene_state: {
       location_id: 'large_meeting_room',
       location_label: '대회의실',

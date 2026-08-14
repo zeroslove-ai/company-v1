@@ -10,6 +10,7 @@ function context() {
     save: {
       data: {
         world_state: { game_time: { day: 2, minute_of_day: 1320 } },
+        scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 },
         scene_state: { participants: [] },
         csa_active: [],
         csa_rules: {}

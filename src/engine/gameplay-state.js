@@ -1,11 +1,12 @@
 import { GameCoreError } from './errors.js';
 import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
-import { hydrateCanonicalScene } from './runtime-core/scene-reducer.js';
+import { hydrateLegacySceneV1, readCanonicalSceneV1 } from './runtime-core/scene-reducer.js';
+import { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';
 import { canonicalCompanyPlayerProfile } from './player-setup.js';
 
 const TURN_CHANGE_ROOTS = new Set([
   'player_sexual_state', 'npc_stats', 'npc_relationship_state', 'npc_emotion',
-  'scene_state', 'world_state', 'csa_runtime_state', 'csa_aftereffect_state'
+  'scene', 'world_state', 'csa_runtime_state', 'csa_aftereffect_state'
 ]);
 
 export const CSA_LIFECYCLE = new Set(['active', 'temporarily_interrupted', 'suspended', 'completed', 'deactivated']);
@@ -86,7 +87,7 @@ export function selectActiveCharacterIds({ charactersMap, npcIds, save, playerAc
     if (typeof name === 'string' && name && text.includes(name)) push(id);
   }
   const currentSave = object(save) ? save : {};
-  const canonicalScene = hydrateCanonicalScene(currentSave);
+  const canonicalScene = readCanonicalSceneV1(currentSave);
   push(canonicalScene.focal_character_id);
   push(canonicalScene.last_speaker_id);
   for (const id of canonicalScene.present_npc_ids) push(id);
@@ -122,7 +123,7 @@ const ACTIVE_NPC_MAPS = ['npc_stats', 'npc_emotion', 'npc_relationship_state', '
  */
 export function buildSceneContextCore(save, activeIds = []) {
   const s = object(save) ? save : {};
-  const scene = hydrateCanonicalScene(s);
+  const scene = readCanonicalSceneV1(s);
   const world = object(s.world_state) ? s.world_state : {};
   const gameTime = object(world.game_time) ? world.game_time : {};
   const activeSet = new Set(Array.isArray(activeIds) ? activeIds : []);
@@ -371,6 +372,18 @@ const HYDRATION_SOURCES = [
  */
 export function hydrateGameplayState(save, master = {}) {
   const next = migrateCompanySave(save);
+  // The only legacy compatibility boundary: old saves are hydrated once, then
+  // every runtime reader receives a canonical scene v1 projection.
+  const npcIds = new Set((Array.isArray(master?.characters) ? master.characters : [])
+    .map(character => identity(character?.character_id)).filter(Boolean));
+  const canonicalScene = next.scene
+    ? readCanonicalSceneV1(next, { master, npcIds })
+    : hydrateLegacySceneV1(next, { master, npcIds });
+  const projected = projectCanonicalSceneToLegacy(next, canonicalScene, {
+    playerId: next.player?.player_id ?? next.player?.id,
+    npcIds
+  });
+  Object.assign(next, projected);
   if (object(next.player)) next.player = canonicalCompanyPlayerProfile(next.player);
   const characters = Array.isArray(master?.characters) ? master.characters : [];
   for (const character of characters) {

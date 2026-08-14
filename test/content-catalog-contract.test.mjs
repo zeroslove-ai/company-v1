@@ -33,7 +33,11 @@ function charactersMap() {
 }
 
 function saveWithParticipants(ids) {
-  return { save_schema_version: 1, edition: 'company-v1', world_state: {}, scene_state: { participants: ids }, focal_character_id: null, last_speaker_id: null };
+  return {
+    save_schema_version: 1, edition: 'company-v1', world_state: {},
+    scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: ids, focal_character_id: null, last_speaker_id: null, updated_turn: 0 },
+    scene_state: { participants: ids }, focal_character_id: null, last_speaker_id: null
+  };
 }
 
 // --- Content shape ---------------------------------------------------------
@@ -332,12 +336,12 @@ test('Extract receives a compact registered location ID dictionary for grounded 
     department_id: 'brand_strategy'
   });
   assert.equal(Object.hasOwn(office, 'description'), false);
-  const payload = JSON.parse(buildExtractPrompt({ edition, context: {}, storyText: 'x', playerAction: '브랜드전략팀 사무실로 이동한다', expectedTurn: 2 })[1].content);
+  const payload = JSON.parse(buildExtractPrompt({ edition, context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } }, storyText: 'x', playerAction: '브랜드전략팀 사무실로 이동한다', expectedTurn: 2 })[1].content);
   assert.deepEqual(payload.registered_locations.find(location => location.location_id === office.location_id), office);
 });
 
 test('Extract prompt user payload carries one registered identity registry and stable-id rules', () => {
-  const prompt = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, expectedTurn: 1, edition });
+  const prompt = buildExtractPrompt({ context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } }, storyText: 'x', parsedStory: {}, expectedTurn: 1, edition });
   const payload = JSON.parse(prompt[1].content);
   assert.equal(payload.registered_identities.length, 13);
   assert.equal('registered_characters' in payload, false);
@@ -360,7 +364,7 @@ test('Extract payload carries Story text exactly once and strips raw/scene_text/
     dialogue_lines: [],
     warnings: []
   };
-  const prompt = buildExtractPrompt({ context: {}, storyText: '[1. 서사 및 행동]\n전체 원문 그대로.', parsedStory, playerAction: 'x', expectedTurn: 1, edition });
+  const prompt = buildExtractPrompt({ context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } }, storyText: '[1. 서사 및 행동]\n전체 원문 그대로.', parsedStory, playerAction: 'x', expectedTurn: 1, edition });
   const payload = JSON.parse(prompt[1].content);
   assert.equal(payload.story_text, '[1. 서사 및 행동]\n전체 원문 그대로.');
   assert.equal(payload.extract_version, 2);

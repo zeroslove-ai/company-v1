@@ -66,6 +66,11 @@ function baseSave() {
   return {
     player: { name: '플레이어' },
     turn_state: { committed_turn: 2 },
+    scene: {
+      version: 1, scene_id: 'office', location_id: 'office', beat: 2,
+      goal: '캠페인 최종안을 확정한다', focus_thread: 'campaign_deadline',
+      present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1', updated_turn: 2
+    },
     focal_character_id: 'heroine1',
     last_speaker_id: 'heroine1',
     scene_state: {
@@ -93,7 +98,7 @@ test('workplace projection uses only recorded/default location evidence, exclude
 
   const conflict = structuredClone(save);
   conflict.npc_scene_state.general_manager = { location_id: 'project_room', location_label: '프로젝트룸' };
-  assert.deepEqual(buildWorkplaceContext(edition, conflict).eligible_nearby_npcs.map(npc => npc.npc_id), ['general_designer']);
+  assert.deepEqual(buildWorkplaceContext(edition, conflict).eligible_nearby_npcs.map(npc => npc.npc_id), ['general_manager']);
 });
 
 test('general NPC selection requires exact catalog identity from text or persisted scene presence', () => {
@@ -103,7 +108,7 @@ test('general NPC selection requires exact catalog identity from text or persist
     ['general_manager']
   );
   assert.deepEqual(
-    selectActiveGeneralNpcIds({ edition, save: { ...save, scene_state: { ...save.scene_state, participants: ['heroine1', 'general_designer'] } }, text: '보고서를 본다.' }),
+    selectActiveGeneralNpcIds({ edition, save: { ...save, scene: { ...save.scene, present_npc_ids: ['heroine1', 'general_designer'] } }, text: '보고서를 본다.' }),
     ['general_designer']
   );
   assert.deepEqual(selectActiveGeneralNpcIds({ edition, save, text: '박 팀장에게 묻는다.' }), []);

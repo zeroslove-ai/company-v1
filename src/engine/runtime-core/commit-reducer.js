@@ -1,5 +1,5 @@
 import { buildTurnState } from '../turn-state.js';
-import { hydrateCanonicalScene, reduceCanonicalScene } from './scene-reducer.js';
+import { readCanonicalSceneV1, reduceCanonicalScene } from './scene-reducer.js';
 import { projectCanonicalSceneToLegacy } from './projections.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
@@ -45,12 +45,31 @@ function playerOwnedMonitor(mindMonitor, playerThought) {
   return { state, warnings };
 }
 
-function canonicalObservation(observation, parsedStory) {
+function canonicalObservation(observation, parsedStory, { navigationIntent = null, mapLocations = [], storyText = '' } = {}) {
   const scene = observation.scene_observation ?? {};
   const speakers = parserSpeakers(parsedStory);
+  const registeredLocations = new Set((Array.isArray(mapLocations) ? mapLocations : [])
+    .map(item => nonEmpty(item?.location_id)).filter(Boolean));
+  const sceneEvidence = Array.isArray(scene.evidence) ? scene.evidence : [];
+  const exactSceneEvidence = sceneEvidence.find(item => item?.kind === 'scene'
+    && item?.location_id === scene.location_id
+    && typeof item?.quote === 'string'
+    && item.quote.trim()
+    && String(storyText).includes(item.quote.trim()));
+  const proposedLocation = nonEmpty(scene.location_id);
+  const warnings = [];
+  let locationId = null;
+  if (navigationIntent?.kind === 'player_navigation') {
+    locationId = nonEmpty(navigationIntent.destination_location_id);
+    if (proposedLocation && proposedLocation !== locationId) warnings.push('scene_location_proposal_conflicts_with_navigation');
+  } else if (proposedLocation && registeredLocations.has(proposedLocation) && exactSceneEvidence) {
+    locationId = proposedLocation;
+  } else if (proposedLocation) {
+    warnings.push('scene_location_proposal_dropped_without_exact_evidence');
+  }
   return {
     scene_id: scene.scene_id ?? null,
-    location_id: scene.location_id ?? null,
+    location_id: locationId,
    final_present_npc_ids: Array.isArray(scene.final_present_npc_ids) ? scene.final_present_npc_ids : null,
     entered_npc_ids: Array.isArray(scene.entered_npc_ids) ? scene.entered_npc_ids : [],
     exited_npc_ids: Array.isArray(scene.exited_npc_ids) ? scene.exited_npc_ids : [],
@@ -66,7 +85,7 @@ function canonicalObservation(observation, parsedStory) {
     outcome: observation.outcome,
     remote_speaker_ids: scene.remote_speaker_ids ?? [],
     evidence: scene.evidence ?? [],
-    warnings: []
+    warnings
   };
 }
 
@@ -100,11 +119,15 @@ function observationWithPlayerActingPosture(observation, parsedStory) {
   return next;
 }
 
-export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, authoritativeLocationId = null, structuredAction = null, transactionResolution = null, engineEnactments = [] } = {}) {
+export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, navigationIntent = null, authoritativeLocationId = null, structuredAction = null, transactionResolution = null, engineEnactments = [] } = {}) {
   const current = clone(currentSave);
   const canonicalObservationInput = observationWithPlayerActingPosture(observation, { ...parsedStory, raw: rawStory });
-  const sceneBefore = hydrateCanonicalScene(current, { master, npcIds });
-  const sceneObservation = canonicalObservation(canonicalObservationInput, parsedStory);
+  const sceneBefore = readCanonicalSceneV1(current, { master, npcIds });
+  const sceneObservation = canonicalObservation(canonicalObservationInput, parsedStory, {
+    navigationIntent,
+    mapLocations,
+    storyText: rawStory
+  });
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,
     observation: sceneObservation,
@@ -114,7 +137,9 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     mapLocations,
     expectedTurn,
     actionKind: action?.action_kind,
-    authoritativeLocationId,
+    authoritativeLocationId: navigationIntent?.kind === 'player_navigation'
+      ? navigationIntent.destination_location_id
+      : authoritativeLocationId,
   });
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),

@@ -5,6 +5,21 @@ import { reduceGameplayCommit } from '../src/engine/runtime-core/commit-reducer.
 import { normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 
 const save = JSON.parse(fs.readFileSync(new URL('../fixtures/phase-0.5/canonical-save-v1.json', import.meta.url)));
+if (!save.scene) {
+  const participants = Array.isArray(save.scene_state?.participants) ? save.scene_state.participants : [];
+  save.scene = {
+    version: 1,
+    scene_id: save.scene_state?.scene_id ?? null,
+    location_id: save.scene_state?.location_id ?? null,
+    beat: Number.isInteger(save.scene_state?.beat) ? save.scene_state.beat : 0,
+    goal: save.scene_state?.scene_goal ?? null,
+    focus_thread: save.scene_state?.focus_thread ?? null,
+    present_npc_ids: participants.filter(id => typeof id === 'string' && !/^player(?:[-_]|$)/i.test(id)),
+    focal_character_id: save.focal_character_id ?? null,
+    last_speaker_id: save.last_speaker_id ?? null,
+    updated_turn: Number.isInteger(save.scene_state?.updated_turn) ? save.scene_state.updated_turn : 0
+  };
+}
 const NPCS = new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']);
 const baseObservation = { extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] };
 const action = { action_id: 'a', turn_id: 't', action_kind: 'player_turn', player_action: '계속 진행한다' };

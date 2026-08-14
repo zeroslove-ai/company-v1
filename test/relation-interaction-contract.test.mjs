@@ -31,7 +31,7 @@ function switchSave(playerAction = '') {
     csa_runtime_state: {},
     player: { name: 'Player', sex: 'male', gender: 'male' },
     player_scene_state: { posture: 'sitting' },
-    scene: { present_npc_ids: ['heroine3', 'heroine5'], focal_character_id: 'heroine5', last_speaker_id: null },
+    scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine3', 'heroine5'], focal_character_id: 'heroine5', last_speaker_id: null, updated_turn: 13 },
     npc_scene_state: {
       heroine3: { posture: 'standing' },
       heroine5: { posture: 'standing', position_label: '팀장의 벌어진 무릎 사이' }

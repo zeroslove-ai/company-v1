@@ -56,15 +56,19 @@ function v2Save() {
   const base = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   return {
     ...base,
+    scene: {
+      version: 1, scene_id: 'campaign-review', location_id: 'brand_strategy_meeting_room', beat: 0,
+      goal: null, focus_thread: null, present_npc_ids: ['heroine5'], focal_character_id: 'heroine5', last_speaker_id: 'heroine5', updated_turn: 7
+    },
     scene_state: {
       ...(base.scene_state ?? {}),
       scene_id: 'campaign-review',
-      location_id: 'meeting_room_5f',
+      location_id: 'brand_strategy_meeting_room',
       participants: ['player-1', 'heroine5'],
       updated_turn: 7
     },
     last_npcs_present: ['heroine5'],
-    npc_scene_state: { heroine5: { present: true, location_id: 'meeting_room_5f' } },
+    npc_scene_state: { heroine5: { present: true, location_id: 'brand_strategy_meeting_room' } },
     focal_character_id: 'heroine5',
     last_speaker_id: 'heroine5'
   };

@@ -25,6 +25,7 @@ function makeSave({ active = true } = {}) {
       }
     },
     csa_runtime_state: { csa_test: { character_id: 'heroine1', execution_state: 'executed' } },
+    scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: null, last_speaker_id: null, updated_turn: 4 },
     scene_state: { participants: ['player-1', 'heroine1'] },
     npc_scene_state: { heroine1: { present: true } },
     player_scene_state: {},

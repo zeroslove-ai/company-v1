@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as engine from '../src/engine/index.js';
-import { hydrateCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
+import { readCanonicalSceneV1 } from '../src/engine/runtime-core/scene-reducer.js';
 import { buildOpeningPlan } from '../src/engine/player-setup.js';
 
 test('turn-0 has no JavaScript full-save writer or public export', () => {
@@ -44,7 +44,7 @@ test('first gameplay starts at expected turn one without reopening the opening s
     last_npcs_present: ['heroine5']
   };
   assert.equal(saved.turn_state.committed_turn, 0);
-  const hydrated = hydrateCanonicalScene(saved);
+  const hydrated = readCanonicalSceneV1(saved);
   assert.equal(hydrated.updated_turn, 0);
   assert.equal(hydrated.location_id, 'brand_strategy_office');
   assert.deepEqual(hydrated.present_npc_ids, ['heroine1']);

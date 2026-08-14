@@ -34,15 +34,21 @@ function relationRule(action, triggerKind = 'target_seated_interaction', counter
 }
 
 function projectionSave(extra = {}) {
+  const scene = {
+    version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null,
+    present_npc_ids: ['heroine3'], focal_character_id: null, last_speaker_id: null, updated_turn: 15,
+    ...(extra.scene ?? {})
+  };
+  const { scene: _ignoredScene, ...rest } = extra;
   return {
     csa_active: ['csa_2'],
     csa_rules: { csa_2: relationRule('stand_between_knees') },
     csa_runtime_state: {},
     player: { name: 'Player', position_id: 'executive' },
     player_scene_state: { posture: 'sitting' },
-    scene: { present_npc_ids: ['heroine3'], focal_character_id: null, last_speaker_id: null },
+    scene,
     npc_scene_state: { heroine3: { posture: 'standing' } },
-    ...extra
+    ...rest
   };
 }
 
@@ -160,7 +166,7 @@ test('Turn 13 to 15 fixture closes heroine5 and makes heroine3 the current relat
     edition: 'company-v1', save_schema_version: 1, world_state: { game_time: { day: 1, minute_of_day: 780 } },
     player: { name: 'Player' }, player_scene_state: {}, player_sexual_state: {}, npc_scene_state: {
       heroine3: { present: true }, heroine5: { present: true, position_label: '팀장의 벌어진 무릎 사이' }
-    }, scene: { present_npc_ids: ['heroine3', 'heroine5'], location_id: 'office' }, active_relations: [
+    }, scene: { version: 1, scene_id: 'office', location_id: 'office', beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine3', 'heroine5'], focal_character_id: null, last_speaker_id: null, updated_turn: 12 }, active_relations: [
       { actor_id: 'heroine5', target_id: 'player', relation_kind: 'stand_between_knees', state: 'active', started_turn: 12 }
     ]
   };
@@ -195,12 +201,12 @@ test('unknown Extract relation kind is fail-open dropped with a warning', () => 
 });
 
 test('prompt contracts reinforce per-target Mind Monitor completeness and explicit physical continuity', () => {
-  const extract = buildExtractPrompt({ context: {}, storyText: 'x', parsedStory: {}, expectedTurn: 15, edition: { characters: { characters: {} }, map: { locations: [] } }, npcIds: new Set(['heroine3']), mindMonitorTargets: ['heroine3'] });
+  const extract = buildExtractPrompt({ context: { save: { scene: { version: 1, scene_id: 'office', location_id: 'office', beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine3'], focal_character_id: null, last_speaker_id: null, updated_turn: 15 } } }, storyText: 'x', parsedStory: {}, expectedTurn: 15, edition: { characters: { characters: {} }, map: { locations: [] } }, npcIds: new Set(['heroine3']), mindMonitorTargets: ['heroine3'] });
   assert.match(extract[0].content, /one entry per target/);
   assert.match(extract[0].content, /surface and subconscious/);
   assert.match(extract[0].content, /do not omit image_selection/);
   assert.match(extract[0].content, /canonical tokens "sitting" or "standing"/);
-  const story = buildStoryPrompt({ edition: { editionId: 'company-v1', characters: { characters: { heroine3: { character_id: 'heroine3', name: 'Jena', gender: 'female' } } }, generalNpcs: { profiles: {} }, map: { locations: [] } }, context: { save: { data: { player: { name: 'Player' }, scene: { version: 1, scene_id: 'office', beat: 0, updated_turn: 0, present_npc_ids: ['heroine3'], focal_character_id: null, last_speaker_id: null }, active_relations: [] } } }, playerAction: 'observe', expectedTurn: 15, npcIds: new Set(['heroine3']), sceneCastContract: { present_npc_ids: ['heroine3'], entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null } });
+  const story = buildStoryPrompt({ edition: { editionId: 'company-v1', characters: { characters: { heroine3: { character_id: 'heroine3', name: 'Jena', gender: 'female' } } }, generalNpcs: { profiles: {} }, map: { locations: [] } }, context: { save: { data: { player: { name: 'Player' }, scene: { version: 1, scene_id: 'office', location_id: 'office', beat: 0, goal: null, focus_thread: null, updated_turn: 0, present_npc_ids: ['heroine3'], focal_character_id: null, last_speaker_id: null }, active_relations: [] } } }, playerAction: 'observe', expectedTurn: 15, npcIds: new Set(['heroine3']), sceneCastContract: { present_npc_ids: ['heroine3'], entering_npc_ids: [], remote_npc_ids: [], player_dialogue: null } });
   assert.match(story[0].content, /euphemize away erection/);
   assert.match(story[0].content, /identity of an acted body part/);
 });

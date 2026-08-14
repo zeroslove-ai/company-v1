@@ -1,4 +1,4 @@
-import { hydrateCanonicalScene } from './runtime-core/scene-reducer.js';
+import { readCanonicalSceneV1 } from './runtime-core/scene-reducer.js';
 
 /**
  * SceneCastContract — 이번 턴에 "존재하는 인물"과 "말할 수 있는 인물"을 Story 호출
@@ -372,9 +372,10 @@ function generalNpcProfilesOf(master) {
   return map;
 }
 
+// Location authority is canonical scene plus catalog defaults. The legacy
+// npc_scene_state.location_id field is presentation-only and is intentionally
+// ignored here, including when a player names this NPC as a destination.
 export function resolveNpcLocationId({ save, npcId, charactersMap = {}, generalNpcProfiles = {}, mapLocations = [] }) {
-  const stored = identity(save?.npc_scene_state?.[npcId]?.location_id);
-  if (stored) return stored;
   const fromCharacter = identity(charactersMap?.[npcId]?.default_location_id);
   if (fromCharacter) return fromCharacter;
   const fromProfile = identity(generalNpcProfiles?.[npcId]?.default_location_id);
@@ -405,38 +406,51 @@ const CALL_ACTION = /(부른다|불렀다|호출한다|호출했다|오라고|�
  * 축약 때문이다(인사하다→인사한다와 같은 패턴). 활용형을 넣지 않으면 "서원희를 찾아간다"처럼
  * 스펙에 명시된 리터럴 입력조차 이동으로 인식하지 못한다.
  */
-const MOVE_ACTION = /(찾으러|찾아가|찾아간|찾아보|찾아본|보러|만나러|이동하|이동한|이동한다|가본다|가겠다|방문하|방문한|들어간다|향한다|자리로|사무실로|팀으로)/u;
-/** 장소 이름/별칭이 문장에 그대로 등장하면(NPC 언급 없이도) 이동 목적지 장소로 인정한다. 가장 긴 이름을 우선한다. */
-export function resolveNavigationLocation({ save = {}, master = {}, playerAction = '', mapLocations = [] } = {}) {
-  const source = typeof playerAction === 'string' ? playerAction : '';
+const MOVE_ACTION = /(찾으러|찾아가|찾아간|찾아보|찾아본|보러|만나러|이동하|이동한|이동한다|가본다|가겠다|간다|가서|방문하|방문한|들어간다|향한다|자리로|사무실로|팀으로)/u;
+/** Resolve typed ephemeral navigation. Raw player text never writes scene state directly. */
+export function resolvePlayerNavigationIntent({ save = {}, master = {}, playerAction = '', mapLocations = [] } = {}) {
+  const source = typeof playerAction === 'string' ? playerAction.trim() : '';
   if (!source || !MOVE_ACTION.test(source)) return null;
- const currentLocationId = identity(hydrateCanonicalScene(save, { master, mapLocations }).location_id);
-  if (/(?:\uB0B4\s*)?(?:\uAC1C\uC778\uC2E4|\uC0AC\uBB34\uC2E4|\uC0AC\uBB34\uACF5\uAC04)/u.test(source)) {
-    const departmentId = identity(save?.player?.department_id);
-    const candidates = (Array.isArray(mapLocations) ? mapLocations : []).filter(location => {
-      const type = identity(location?.location_type) ?? '';
-      return departmentId && identity(location?.department_id) === departmentId && /(?:office|\uC0AC\uBB34)/i.test(type + ' ' + identity(location?.name));
-    });
-    if (candidates.length === 1 && identity(candidates[0]?.location_id) !== currentLocationId) return identity(candidates[0].location_id);
-  }
- let best = null;
-  for (const location of Array.isArray(mapLocations) ? mapLocations : []) {
-    const id = identity(location?.location_id);
-    if (!id) continue;
-    const names = [location?.name, ...(Array.isArray(location?.aliases) ? location.aliases : [])];
-    for (const name of names) {
-      const trimmed = identity(name);
-      if (!trimmed || !source.includes(trimmed)) continue;
-      if (!best || trimmed.length > best.name.length) best = { id, name: trimmed };
-    }
-  }
-  if (best) return best.id === currentLocationId ? null : best.id;
+  const locations = Array.isArray(mapLocations) ? mapLocations : [];
+  const currentLocationId = identity(readCanonicalSceneV1(save, { master, mapLocations: locations }).location_id);
   const characters = charactersMapOf(master);
   const generalNpcs = generalNpcProfilesOf(master);
-  const mentioned = resolveUserMentionedNpcIds(master, source, { allowUniqueKoreanGivenName: false });
-  for (const npcId of mentioned) {
-    const locationId = resolveNpcLocationId({ save, npcId, charactersMap: characters, generalNpcProfiles: generalNpcs, mapLocations });
-    if (locationId && locationId !== currentLocationId) return locationId;
+  const mentioned = resolveUserMentionedNpcIds(master, source, { allowUniqueKoreanGivenName: true });
+  const targetNpcId = mentioned.length === 1 ? mentioned[0] : null;
+
+  if (/(?:\uAC1C\uC778\uC2E4|\uC0AC\uBB34\uC2E4|\uC0AC\uBB34\uACF5\uAC04)/u.test(source)) {
+    const departmentId = identity(save?.player?.department_id);
+    const candidates = locations.filter(location => {
+      const type = identity(location?.location_type) ?? '';
+      return departmentId && identity(location?.department_id) === departmentId
+        && /(?:office|\uC0AC\uBB34)/i.test(`${type} ${identity(location?.name) ?? ''}`);
+    });
+    if (candidates.length === 1) {
+      const destination = identity(candidates[0]?.location_id);
+      if (destination && destination !== currentLocationId) {
+        return { kind: 'player_navigation', destination_location_id: destination, target_npc_id: targetNpcId, source: 'player_office' };
+      }
+    }
+  }
+
+  let best = null;
+  for (const location of locations) {
+    const locationId = identity(location?.location_id);
+    if (!locationId) continue;
+    for (const name of [location?.name, ...(Array.isArray(location?.aliases) ? location.aliases : [])]) {
+      const candidate = identity(name);
+      if (candidate && source.includes(candidate) && (!best || candidate.length > best.name.length)) best = { locationId, name: candidate };
+    }
+  }
+  if (best && best.locationId !== currentLocationId) {
+    return { kind: 'player_navigation', destination_location_id: best.locationId, target_npc_id: targetNpcId, source: 'explicit_location' };
+  }
+
+  if (targetNpcId) {
+    const destination = resolveNpcLocationId({ save, npcId: targetNpcId, charactersMap: characters, generalNpcProfiles: generalNpcs, mapLocations: locations });
+    if (destination && destination !== currentLocationId) {
+      return { kind: 'player_navigation', destination_location_id: destination, target_npc_id: targetNpcId, source: 'registered_npc_destination' };
+    }
   }
   return null;
 }
@@ -511,7 +525,7 @@ export function buildSceneCastContract({
   mapLocations = []
 } = {}) {
   const registeredIds = registeredNpcIdSet(master);
-  const canonicalScene = hydrateCanonicalScene(save, { master, mapLocations });
+  const canonicalScene = readCanonicalSceneV1(save, { master, mapLocations });
   const locationId = identity(canonicalScene.location_id);
 
   // 수정 7 — action target은 present 승격 근거가 아니다

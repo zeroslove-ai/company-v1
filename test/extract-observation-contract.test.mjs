@@ -40,7 +40,7 @@ test('captured live clothing Extract fails closed when scene evidence has no sce
   );
 });
 test('Extract prompt gives the validator-owned physical shape example', () => {
-  const [system] = buildExtractPrompt({ context: { save: {} }, storyText: STORY, playerAction: 'observe', expectedTurn: 4, edition: { characters: { characters: {} }, map: { locations: [] } }, npcIds: NPCS });
+  const [system] = buildExtractPrompt({ context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } }, storyText: STORY, playerAction: 'observe', expectedTurn: 4, edition: { characters: { characters: {} }, map: { locations: [] } }, npcIds: NPCS });
   assert.match(system.content, /Use position_label, never position\/label/);
   assert.match(system.content, /underwear_bottom/);
   assert.match(system.content, /evidence.*physical_change/s);
@@ -55,7 +55,7 @@ test('valid evidenced clothing observation uses the canonical position_label sha
   } });
   const observation = normalizeExtractObservationV2(input, { npcIds: NPCS, storyText: quote });
   const reduced = reduceNpcPhysicalObservation({
-    save: { npc_scene_state: { heroine2: { present: true, clothing: { underwear_bottom: 'worn' } } } },
+    save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine2'], focal_character_id: null, last_speaker_id: null, updated_turn: 0 }, npc_scene_state: { heroine2: { present: true, clothing: { underwear_bottom: 'worn' } } } },
     npcId: 'heroine2', physical: observation.npc_observations.heroine2.physical, evidence: observation.evidence,
     storyText: quote, expectedTurn: 4, npcIds: NPCS, master: { characters: [{ character_id: 'heroine2', name: '윤민아' }] },
     parsedStory: {}, sceneBefore: { present_npc_ids: ['heroine2'] }, sceneAfter: { present_npc_ids: ['heroine2'] }, observedNpcIds: ['heroine2']
@@ -251,7 +251,7 @@ test('event identity includes participants and sexual actor/target fields', () =
 });
 
 test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibitions', () => {
-  const system = buildExtractPrompt({ context: {}, storyText: 'story', playerAction: 'action', expectedTurn: 1 })[0].content;
+  const system = buildExtractPrompt({ context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } }, storyText: 'story', playerAction: 'action', expectedTurn: 1 })[0].content;
   for (const key of ['extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence', 'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection', 'csa_trigger_evaluations', 'csa_runtime_updates', 'turn_summary', 'warnings']) {
     assert.match(system, new RegExp(`"${key}"`));
   }

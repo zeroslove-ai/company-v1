@@ -43,6 +43,7 @@ const save = {
   },
   player_progress: { level: 2, exp: 30 },
   player_scene_state: { location_id: 'large_meeting_room', location_label: '대회의실', posture: 'standing' },
+  scene: { version: 1, scene_id: 'large_meeting_room', location_id: 'large_meeting_room', beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1', updated_turn: 3 },
   player_sexual_state: { arousal: 4, ejaculation_progress: 10, ejaculation_count: 1 },
   scene_state: { location_id: 'large_meeting_room', location_label: '대회의실', participants: ['heroine1'] },
   focal_character_id: 'heroine1',

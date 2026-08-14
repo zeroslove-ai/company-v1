@@ -2,7 +2,7 @@ import { advanceGameTime, hydrateGameplayState, reducePlayerSexualState } from '
 import { buildSceneStatePatch } from '../state/physical-state.js';
 import { applyNpcStatChanges } from '../relationship/reducer.js';
 import { appendSexualEvents, reduceEjaculationCounts } from '../sexual-state/ledger.js';
-import { hydrateCanonicalScene } from './scene-reducer.js';
+import { readCanonicalSceneV1 } from './scene-reducer.js';
 import { RELATION_KINDS } from '../csa/execution-policy.js';
 import { clearRelationPresentationsForActors } from './relation-presentation.js';
 
@@ -66,7 +66,7 @@ function gateField({ patch, previous, path, evidence, storyText, characterName, 
 }
 function registered(id, npcIds) { return typeof id === 'string' && (!npcIds?.size || npcIds.has(id)); }
 function currentNpcIds(save, npcIds) {
-  const scene = hydrateCanonicalScene(save, { npcIds });
+  const scene = readCanonicalSceneV1(save, { npcIds });
   return new Set(scene.present_npc_ids ?? []);
 }
 

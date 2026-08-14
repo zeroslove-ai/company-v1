@@ -9,6 +9,18 @@
     "expected_turn": 8
   },
   "player": { "player_id": "player-1", "name": "Player", "department": "marketing" },
+  "scene": {
+    "version": 1,
+    "scene_id": "campaign-review",
+    "location_id": "meeting_room_5f",
+    "beat": 2,
+    "goal": "review campaign copy",
+    "focus_thread": "campaign-review",
+    "present_npc_ids": ["npc-hayeon", "npc-areum", "npc-minsu"],
+    "focal_character_id": "npc-hayeon",
+    "last_speaker_id": "npc-areum",
+    "updated_turn": 7
+  },
   "player_scene_state": { "location_id": "meeting_room_5f", "updated_turn": 7, "clothing": { "uniform_top": "worn", "uniform_bottom": "worn", "underwear_top": "worn", "underwear_bottom": "worn" } },
   "player_sexual_state": { "arousal": 0, "updated_turn": 7 },
   "world_state": { "time_block": "afternoon", "work_hook": { "id": "campaign-review", "status": "active" } },

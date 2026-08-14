@@ -3,7 +3,7 @@ import {
   getApplicableCsaEntries,
   resolvePlayerCanonicalNames
 } from '../engine/index.js';
-import { hydrateCanonicalScene } from '../engine/runtime-core/scene-reducer.js';
+import { readCanonicalSceneV1 } from '../engine/runtime-core/scene-reducer.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -53,7 +53,7 @@ export function buildFullPlayerInfo(save, edition) {
   };
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const scene = object(save?.player_scene_state);
-  const worldScene = hydrateCanonicalScene(save);
+  const worldScene = readCanonicalSceneV1(save);
   const sexual = object(save?.player_sexual_state);
   const active = getApplicableCsaEntries(save);
   const capability = calculateCsaCapability(save, active.length);

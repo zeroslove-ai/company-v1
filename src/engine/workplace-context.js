@@ -1,4 +1,4 @@
-import { hydrateCanonicalScene } from './runtime-core/scene-reducer.js';
+import { readCanonicalSceneV1 } from './runtime-core/scene-reducer.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -17,13 +17,9 @@ function locations(edition) {
 }
 
 function currentLocation(edition, save) {
-  const locationId = identity(hydrateCanonicalScene(save).location_id);
+  const locationId = identity(readCanonicalSceneV1(save).location_id);
   if (!locationId) return null;
   return locations(edition).find(location => location?.location_id === locationId) ?? null;
-}
-
-function recordedLocationId(save, npcId) {
-  return identity(save?.npc_scene_state?.[npcId]?.location_id);
 }
 
 function compactProfile(profile) {
@@ -73,7 +69,7 @@ export function selectActiveGeneralNpcIds({ edition, save, text = '' } = {}) {
   for (const [id, profile] of Object.entries(profiles)) {
     if (typeof profile?.name === 'string' && profile.name && source.includes(profile.name)) push(id);
   }
-  const scene = hydrateCanonicalScene(save);
+  const scene = readCanonicalSceneV1(save);
   push(scene.focal_character_id);
   push(scene.last_speaker_id);
   for (const id of scene.present_npc_ids) push(id);
@@ -85,6 +81,7 @@ export function selectActiveGeneralNpcIds({ edition, save, text = '' } = {}) {
  * a plausible entrance, never evidence that the NPC is already present.
  */
 export function buildWorkplaceContext(edition, save, { excludeIds = [], limit = 2 } = {}) {
+  const scene = readCanonicalSceneV1(save);
   const location = currentLocation(edition, save);
   if (!location) return { location: null, eligible_nearby_npcs: [] };
 
@@ -100,12 +97,8 @@ export function buildWorkplaceContext(edition, save, { excludeIds = [], limit = 
     candidates.push({ ...profile, source, location_id: location.location_id });
   };
 
-  for (const id of Object.keys(profiles)) {
-    if (recordedLocationId(save, id) === location.location_id) add(id, 'recorded_location');
-  }
+  for (const id of scene.present_npc_ids) add(id, 'scene_presence');
   for (const id of Array.isArray(location.default_npc_ids) ? location.default_npc_ids : []) {
-    const recorded = recordedLocationId(save, id);
-    if (recorded && recorded !== location.location_id) continue;
     add(id, 'location_default');
   }
 

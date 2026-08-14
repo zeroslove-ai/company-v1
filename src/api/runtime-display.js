@@ -4,7 +4,7 @@ import {
   getApplicableCsaEntries,
   getCsaRules
 } from '../engine/index.js';
-import { hydrateCanonicalScene } from '../engine/runtime-core/scene-reducer.js';
+import { hydrateLegacySceneV1, readCanonicalSceneV1 } from '../engine/runtime-core/scene-reducer.js';
 
 const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
 const AUTHORITY_LABELS = {
@@ -32,7 +32,9 @@ function saveFromContext(context) {
 
 export function buildCanonicalDisplayScene(save = {}) {
   const canonical = object(save?.scene);
-  const scene = hydrateCanonicalScene(save);
+  const scene = object(save?.scene)
+    ? readCanonicalSceneV1(save)
+    : hydrateLegacySceneV1(save);
   const isCanonical = canonical?.version === 1;
   return {
     version: scene.version,
