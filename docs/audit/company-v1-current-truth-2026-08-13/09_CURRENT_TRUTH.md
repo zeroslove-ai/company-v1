@@ -24,13 +24,15 @@ Company v1 runtime에 대해 구현 지시, 리뷰, 배포 판단, 완료 승인
 | Runtime baseline before Cut 1 | `5ba68bb204767756b9c8a4b5a72ea4003f2075b6` |
 | Cut 1 Closure runtime candidate | `fd7faa09aa61e0575469aeddbe322ca4253262e3` |
 | Cut 1 runtime review range | `00f459277868fc5f2d48dae5c3a2dc655c8afd25..fd7faa09aa61e0575469aeddbe322ca4253262e3` |
+| Stage A rollout-prep SHA | `c345107f5017184ed542210c4249acc94a293af4` |
+| Live gate correction / API deploy review SHA | `96888a3492c0d85f6f3c6649217d842e6d391494` |
 | Canonical branch | `company/runtime-authority-consolidation-v1` |
 | Canonical PR | #65 — OPEN / DRAFT / UNMERGED |
 | TEST game | `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` |
 | Supabase project | `fmcrspgxstsmxxsmkeee` |
 | PRODUCTION game | `11111111-1111-4111-8111-111111111111` — no access authorized in current cut |
 
-Documentation-only commits may advance the branch/PR HEAD beyond the runtime candidate SHA. They do not imply a newer runtime candidate unless this Identity section is explicitly updated after source review.
+`96888a3...` contains no `src/**` runtime changes relative to `fd7faa09...`; it adds only rollout/test/documentation corrections, including safe migration ordering and the live-catalog contract gate correction. Documentation-only commits may advance the branch/PR HEAD beyond an executable review SHA; that does not create a new runtime behavior unless source is changed and separately reviewed.
 
 ## Precedence
 
@@ -53,11 +55,11 @@ Documentation-only commits may advance the branch/PR HEAD beyond the runtime can
 
 ## Cut 1 Closure — reviewed source candidate
 
-The current Cut 1 Closure runtime candidate is `fd7faa09aa61e0575469aeddbe322ca4253262e3` (`refactor: close action ownership lifecycle authority`). GitHub CI for that SHA completed successfully. The candidate implements the following target lifecycle model in source/migrations; its Stage A database contract is now live in TEST. The current gate correction is limited to catalog identity normalization.
+The reviewed runtime candidate is `fd7faa09aa61e0575469aeddbe322ca4253262e3` (`refactor: close action ownership lifecycle authority`). GitHub CI for that SHA completed successfully. The current rollout/gate review SHA is `96888a3492c0d85f6f3c6649217d842e6d391494`; GitHub CI for that SHA also completed successfully and no `src/**` runtime code changed between the two SHAs.
 
 ### Action ownership model
 
-`game_actions` target fields:
+`game_actions` canonical Cut 1 fields:
 
 - `processing_status` — current lifecycle stage
 - `stage_owner_token` — current Story/Extract provider-stage owner, nullable
@@ -67,39 +69,39 @@ The current Cut 1 Closure runtime candidate is `fd7faa09aa61e0575469aeddbe322ca4
 
 Story and Extract use the same fenced ownership contract. Every execution attempt gets a unique owner token (`story:<request_id>` / `extract:<request_id>`). Owner acquisition/replacement is atomic. Stage success/failure verifies the exact owner token and atomically clears `stage_owner_token` and `stage_claimed_at`. After stale takeover, the old owner cannot record late success or late failure.
 
-### Candidate Stage A contract
+## Stage A — LIVE TEST truth
 
-Closure Stage A migration:
+Final Stage A source migration:
 
-`20260814000300_company_v1_action_ownership_closure_stage_a`
+`20260814000300_company_v1_action_ownership_closure_stage_a.sql`
 
-It is designed to be pre-deploy compatible and adds/defines:
+Supabase applied this through the operator migration path and recorded:
 
-- nullable `game_actions.stage_owner_token`
-- nullable `game_actions.stage_claimed_at`
-- owner-based `claim_game_action_stage(...)`
-- owner-fenced `fail_game_action_stage(...)`
-- `record_story_result_owned(uuid, uuid, text, jsonb, text)`
-- `record_extract_result_owned(uuid, uuid, jsonb, text)`
-- reserve stale semantics that prefer same-action replay, use `stage_claimed_at` for owned stale actions, and clear ownership when a different stale action is terminated
-- temporary legacy Story/Extract/claim/fail contracts for the currently deployed Worker, guarded so they cannot mutate rows owned by the new Worker
+- migration version: `20260814023308`
+- migration name: `company_v1_action_ownership_closure_stage_a`
 
-The new Worker path uses owned Story and Extract writers. `error_code` is no longer the new-path ownership store.
+Verified live TEST facts:
 
-### Candidate Stage B enforcement
+- `game_actions.stage_owner_token` = nullable `text`
+- `game_actions.stage_claimed_at` = nullable `timestamptz`
+- owner-based `claim_game_action_stage(uuid, uuid, text, text, text, text, text, text, boolean)` is live
+- owner-fenced `fail_game_action_stage(uuid, uuid, text, text, text, text, text, boolean)` is live
+- `record_story_result_owned(uuid, uuid, text, jsonb, text)` is live
+- `record_extract_result_owned(uuid, uuid, jsonb, text)` is live
+- all four new RPCs are `SECURITY DEFINER`
+- all four use `search_path = public, pg_temp`
+- all four grant EXECUTE to `service_role`
+- the live readback also confirmed no unnecessary public/anon/authenticated execution on the newly introduced owned RPC surface
+- legacy Story/Extract/lifecycle RPC overloads remain for the Stage A compatibility window
+- legacy Story/Extract writers reject rows whose `stage_owner_token` is non-null
+- `apply_reserved_csa_transaction(uuid, uuid, integer)` remains live for the Stage A compatibility window
+- service-role direct gameplay `INSERT/UPDATE/DELETE/TRUNCATE` remains live and is a Stage B target
+- Stage B migration is **not applied**
+- API and Frontend are **not deployed** from the Cut 1 candidate
 
-Stage B remains a **post-new-API canary enforcement step**, not a Stage A prerequisite. Its target is:
+## DB contract gate — LIVE VERIFIED
 
-- revoke service-role direct gameplay `INSERT/UPDATE/DELETE/TRUNCATE` on the approved core tables while retaining allowed read/RPC access
-- remove/revoke legacy unowned Story/Extract writers and legacy lifecycle overloads after caller inventory
-- revoke/drop obsolete `apply_reserved_csa_transaction`
-- preserve approved SECURITY DEFINER RPC execution
-
-No target architecture is complete while a duplicate durable writer remains intentionally exposed beyond its staged compatibility window.
-
-## DB contract gate
-
-The runtime candidate adds:
+Contract files:
 
 - `config/company-v1-db-contract.json`
 - `scripts/company-db-contract-gate.mjs`
@@ -107,53 +109,59 @@ The runtime candidate adds:
 
 Contract id/version: `company-v1-action-authority` / version `2`.
 
-The pre-deploy gate compares the required Stage A contract against a read-only DB catalog: exact migration name, ownership columns, canonical type-only function identity arguments, SECURITY DEFINER status, safe search path, and service-role EXECUTE. Stage B additionally rejects forbidden legacy functions and direct service-role DML. The deploy wrapper does not start Wrangler when the gate fails.
+`96888a3492c0d85f6f3c6649217d842e6d391494` corrects the live-catalog assumptions found after Stage A application:
 
-This gate is staged-rollout aware: Stage A intentionally allows temporary legacy compatibility writers/direct DML; Stage B is the enforcement state.
+- migration authority uses exact `schema_migrations.name`, not source filename timestamp
+- function identity uses canonical type-only arguments (`oidvectortypes(p.proargtypes)`), not parameter-name-bearing argument text
 
-## Current live DB truth — verified after Closure candidate
+Independent read-only TEST verification using the corrected catalog shape returned:
 
-The TEST Supabase readback confirms:
+- migration check = PASS
+- ownership-column check = PASS
+- required owned-RPC identity/security/grant check = PASS
+- overall Stage A contract = **PASS**
 
-- migration `company_v1_action_ownership_closure_stage_a` is applied with version `20260814023308`
-- Stage B migration `company_v1_authority_enforcement_stage_b` is not applied
-- `game_actions.stage_owner_token` is live as nullable `text`
-- `game_actions.stage_claimed_at` is live as nullable `timestamptz`
-- the new owner-based `claim_game_action_stage`, `fail_game_action_stage`, `record_story_result_owned`, and `record_extract_result_owned` signatures are live
-- all new RPCs are `SECURITY DEFINER`, use `search_path = public, pg_temp`, and grant EXECUTE to `service_role` without unnecessary public execution
-- legacy Story/Extract/lifecycle RPCs and `apply_reserved_csa_transaction` remain present for the Stage A compatibility window
-- legacy Story/Extract writers guard rows with non-null `stage_owner_token`
-- service-role direct gameplay DML remains present and is a Stage B target
-- API and Frontend are not deployed from this candidate
+Therefore the Stage A DB contract prerequisite for API deployment is satisfied. The deploy wrapper must still execute the corrected gate before Wrangler starts; if that runtime preflight fails, deployment must stop.
 
-The current `c345107f...` gate implementation has live-catalog normalization defects: it compares migration filename timestamps instead of migration names and compares function argument strings without removing parameter names. Gate correction is pending; API deployment remains blocked until the corrected live Stage A gate passes.
+Stage A intentionally permits temporary legacy compatibility writers and direct DML. Stage B is the enforcement state and remains forbidden until the new API passes TEST Golden Path and caller inventory.
 
-Existing live facts still include the pre-Cut-1 compatibility surface: direct service-role gameplay DML and the obsolete CSA preapply writer. Those are not Stage A blockers; they are Stage B cleanup targets after the new API is verified.
+## Candidate Stage B enforcement
+
+Final pending Stage B source migration:
+
+`20260814000400_company_v1_authority_enforcement_stage_b.sql`
+
+Stage B remains a **post-new-API canary enforcement step**. Its target is:
+
+- revoke service-role direct gameplay `INSERT/UPDATE/DELETE/TRUNCATE` on the approved core tables while retaining allowed read/RPC access
+- remove/revoke legacy unowned Story/Extract writers and legacy lifecycle overloads after caller inventory
+- revoke/drop obsolete `apply_reserved_csa_transaction`
+- preserve approved SECURITY DEFINER RPC execution
+
+No target architecture is complete while a duplicate durable writer remains exposed beyond its staged compatibility window.
 
 ## Test and verification policy — binding
 
 The current large legacy test suite is **not a preservation target and raw test count is not proof of correctness**.
 
-Rules:
-
 1. Never add runtime compatibility or preserve superseded architecture merely to keep an obsolete test green.
-2. When a canonical contract changes, affected tests are classified `KEEP`, `REWRITE`, or `DELETE`.
+2. When a canonical contract changes, affected tests are `KEEP`, `REWRITE`, or `DELETE`.
 3. Keep tests that directly protect current product invariants and authority boundaries.
 4. Rewrite tests that express a valid invariant through an obsolete implementation detail.
 5. Delete duplicate mocks, superseded legacy-contract tests, source/SQL-string existence checks, fake E2E and other implementation-detail tests when they no longer prove a canonical invariant.
-6. Focused invariant tests are the development gate. A full suite can be used as a regression signal, but the number `738/738` or any future count is never an acceptance criterion by itself.
-7. A failing old test is triaged against current truth before runtime code is changed. Canonical behavior regression blocks; stale test assumptions do not.
+6. Focused invariant tests are the development gate. A full suite may be a regression signal, but raw pass count is never an acceptance criterion.
+7. A failing old test is triaged against current truth before runtime code is changed.
 8. Runtime acceptance prioritizes source↔DB contract verification and a real TEST Golden Path over accumulation of mocks.
 9. Reuse the existing live canary/E2E/reset helpers. Do not create another harness unless the current harness cannot express a required invariant.
-10. After Cut 1 is safely rolled out, perform a deliberate Test Suite Reset/Consolidation before later authority cuts inherit the old suite unquestioned: inventory all tests, mark `KEEP/REWRITE/DELETE`, remove duplicate/superseded coverage, and retain a smaller contract-oriented suite plus live Golden Path coverage. **No numeric target is binding.**
-
-This policy is also mirrored in `/AGENTS.md` so future implementation agents receive it before work.
+10. After Cut 1 is safely rolled out, perform deliberate Test Suite Reset/Consolidation before later authority cuts inherit the old suite unquestioned. No numeric target is binding.
 
 ## Supersession note for `10_SOLE_WRITER_DECISION.md`
 
-`10_SOLE_WRITER_DECISION.md` remains binding for the durable commit boundary, CSA authority, scene/location target, relations, physical/sexual evidence, setup/opening, frontend projection, parser compatibility and migration policy.
+`10_SOLE_WRITER_DECISION.md` remains binding for durable commit, CSA authority, scene/location target, relations, physical/sexual evidence, setup/opening, frontend projection, parser compatibility and migration policy.
 
-For **Cut 1 action-lifecycle mechanics only**, the Closure model in this file supersedes the older Decision 2 examples that used `error_code` as the in-progress/ownership CAS field. The canonical Cut 1 target is now `stage_owner_token` + `stage_claimed_at`, with `error_code` reserved for failure/diagnostic meaning.
+For **Cut 1 action-lifecycle mechanics only**, this file supersedes the older Decision 2 examples that used `error_code` as the ownership CAS field. The canonical model is `stage_owner_token` + `stage_claimed_at`, with `error_code` reserved for failure/diagnostic meaning.
+
+For **Cut 1 rollout status**, this file also supersedes the old statement in Decision 11 that no migration has been applied: Stage A is now verified live in TEST; Stage B remains unapplied.
 
 ## Known later authority conflicts — do not fold into Cut 1
 
@@ -171,19 +179,18 @@ These are evidence/backlog for their designated authority cuts, not incidental C
 
 ## Cut 1 acceptance / rollout sequence
 
-Current state: **Closure implementation candidate complete in source; Stage A applied to TEST; corrected live contract gate pending; API not deployed; Stage B not applied; PR #65 remains Draft/unmerged.**
+Current state: **Closure source complete; Stage A applied to TEST; corrected live Stage A contract PASS; API not deployed; Stage B not applied; PR #65 remains Draft/unmerged.**
 
-Next sequence, only with explicit owner approval for write/deploy steps:
+Next sequence, with explicit owner approval for deployment/write steps:
 
-1. Verify the corrected gate against the live TEST Stage A catalog; it must pass.
-2. Deploy the exact reviewed API runtime SHA through the contract-gated path.
-5. Operator/assistant runs the real TEST Golden Path first, including reserve → Story → Extract → Commit → context/history/reload/replay/retry and ownership/fencing probes where deterministic.
-4. Read back action/save/turn state and confirm owned success/failure clears ownership correctly.
-5. Inventory callers of legacy RPCs/raw service-role mutation and `apply_reserved_csa_transaction`.
-6. Apply Stage B only after the new API Golden Path passes and the caller gate is clear.
-7. Run Stage B contract gate and Golden Path again; direct raw gameplay writes must fail while approved RPCs succeed.
-8. Only then declare Cut 1 complete and decide merge/main landing strategy.
-9. Perform Test Suite Reset/Consolidation before allowing later authority cuts to inherit the legacy suite as unquestioned contract.
+1. Deploy exact review state `96888a3492c0d85f6f3c6649217d842e6d391494` through `scripts/deploy-api-with-contract-gate.mjs` in Stage A mode. The Worker runtime payload is unchanged from reviewed runtime candidate `fd7faa09...`.
+2. Operator/assistant runs the real TEST Golden Path first: reserve → Story → Extract → Commit → context/history/reload/replay/retry, plus deterministic ownership/fencing probes.
+3. Read back `game_actions` / `game_save` / `game_turns` and confirm success/failure clears ownership and normal Commit remains the durable boundary.
+4. Inventory all callers of legacy lifecycle writers, raw service-role mutation, and `apply_reserved_csa_transaction`.
+5. Apply Stage B only after Golden Path and caller inventory pass.
+6. Run Stage B contract verification and Golden Path again; direct raw gameplay writes must fail while approved RPCs succeed.
+7. Only then declare Cut 1 complete and decide merge/main landing strategy.
+8. Perform Test Suite Reset/Consolidation before later authority cuts inherit the legacy suite as unquestioned contract.
 
 ## Cut 1 final invariants
 
