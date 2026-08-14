@@ -3,8 +3,11 @@
 Status: READY
 Task ID: cut2-scene-stage-a-api-cutover
 Updated: 2026-08-14
+Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution queue for Company v1. Do not start another architecture cut from backlog while this task is active.
+
+Execution authority lives in this file. Codex completion reports and operator review results live in GitHub Issue #68 comments so report traffic does not move Git HEAD. Do not create report-only commits.
 
 ## Mandatory canon
 
@@ -16,6 +19,7 @@ Before work, read:
 4. `/docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`
 5. `/docs/audit/CUT2_SCENE_LOCATION_PRESENCE_2026-08-14.md`
 6. this file
+7. GitHub Issue #68 for operator/Codex handoff messages relevant to this Task ID
 
 Current source / Git / live DB evidence outranks historical prose.
 
@@ -261,10 +265,15 @@ On full success only:
 2. update Cut 2 audit with the same verified facts
 3. change this file Status from `READY` to `WAITING_REVIEW`
 4. record exact final docs-only SHA
+5. post the completion report to GitHub Issue #68 as a comment with first lines:
+   - `TASK_ID: cut2-scene-stage-a-api-cutover`
+   - `STATUS: COMPLETE`
 
 Do NOT create or start the Scene Stage B task yourself. The operator/reviewer will create the next CURRENT_TASK after reviewing this acceptance.
 
 ## Completion report
+
+Post this report to GitHub Issue #68 as a comment. Do not create a report-only commit.
 
 Report:
 
