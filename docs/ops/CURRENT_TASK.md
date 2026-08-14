@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: cut3-relation-event-observation-contract-root-cause
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -95,3 +95,43 @@ Post one terminal report to Issue #68 with:
 - STOP for operator review.
 
 Set CURRENT_TASK to WAITING_REVIEW in a separate docs-only commit after the terminal evidence is ready.
+
+## Terminal evidence
+
+TASK_ID: cut3-relation-event-observation-contract-root-cause
+STATUS: BLOCKED
+TASK_BLOB_SHA: c9a769212d260afdc808aff71be68e943b5cd08b
+START_SHA: c9a769212d260afdc808aff71be68e943b5cd08b
+ACCEPTED_GAMEPLAY_EXECUTABLE_SHA: 1a5c5540a0235fb2e53b2452516897af7664eba1
+BRANCH: company/scene-location-presence-v1
+
+ROOT_CAUSE_CLASSIFICATION: D — acceptance scenario did not produce qualifying typed relation/event evidence; no repository boundary defect proven.
+
+SOURCE CONTRACT TRACE:
+
+- `src/engine/extract-prompt.js` declares the V2 `relation_updates` and `events.general`/`events.sexual` fields and requires exact Story evidence for optional observations.
+- `src/engine/runtime-core/extract-observation.js` normalizes those fields with registered-identity, canonical-type, and exact-quote checks.
+- `src/api/turn-routes.js` calls `normalizeFreshExtractObservationV2`, persists the normalized observation through `recordExtractResultOwned`, and passes the persisted observation to Commit.
+- `src/engine/runtime-core/commit-reducer.js` calls `reduceObservationDomains`; `src/engine/runtime-core/observation-reducers.js` delegates relation/event durability to `reduceRelationEventDomains`.
+- Accepted executable drift is limited to diagnostic canary/test changes; no source runtime drift exists between `1a5c5540...` and this task start.
+
+LIVE SCENARIO EVIDENCE:
+
+- Dedicated TEST turns `31355e86-6210-4d0c-aa5a-e244b99767a1` and `a2b4c4c9-f28d-4948-8144-70e84a1fbf44` completed Story → Extract → Commit.
+- Both Stories were ordinary workplace/meeting-preparation interactions. Neither contained an explicit registered actor-target relation start/end or a qualifying general/sexual event quote.
+- Both normalized Extract results therefore contained `relation_updates=[]`, `events.general=[]`, and `events.sexual=[]`. This is consistent with the optional fail-open contract; no observation was silently dropped by the source boundary.
+- No relation/event durability claim can be made from this scenario. A future acceptance scenario must create meaningful exact Story evidence; this task does not authorize a retry or live rerun.
+
+VALIDATION:
+
+- Focused relation/extract/commit/replay suites: 61/61 passed.
+- Full `npm.cmd test`: 454/454 passed.
+- Relevant JS syntax checks: PASS.
+- `git diff --check`: PASS.
+
+CHANGES:
+
+- No runtime, frontend, test, content, migration, DB, or deployment changes.
+- This status transition is the only repository change and is docs-only.
+- No retry/regeneration/provider/model/fuzzy inference/parser relaxation/semantic gate/duplicate writer/direct DB manufacture was added.
+- PR #67 remains OPEN / DRAFT / UNMERGED. STOP for operator review; no next task generated.
