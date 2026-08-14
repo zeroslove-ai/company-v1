@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: cut3-story-failure-observability-root-cause
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -112,6 +112,16 @@ Post one terminal report to Issue #68 containing:
 - STOP for operator review.
 
 If B/C changed source, set CURRENT_TASK to WAITING_REVIEW in a separate docs-only commit. If A/D has no source change, set CURRENT_TASK to WAITING_REVIEW docs-only after evidence capture.
+
+## Execution result - diagnostic closure
+
+- Classification: **B - HARNESS DEFECT**.
+- The prior accepted failure artifact (`C:\Users\JAEWAN\AppData\Local\Temp\company-cut3-live-acceptance-canary.json`, SHA-256 `fa724bfaae3f5c568c619024cf883ea498230b6e9dd77451a8e35923211f4d6c`) retained only the generic Story failure and discarded the failed turn's decisive request/action/SSE/status evidence. The repository runtime was not changed to compensate.
+- Diagnostic harness commit: `4e2e788db6cc4cf1327c118db9e7199ac7f11ca6` (`scripts/live-playtest-canary.mjs`, `test/live-canary-contract.test.mjs`). It preserves endpoint/status, action identity, complete Worker-facing SSE events, terminal error, raw-story shape, parser shape, action-status readback, and before/after context without auth headers or hidden prompts.
+- One fresh normal TEST invocation was executed against Worker version `6f0940d5-3145-4301-bcdf-61bdccc3cdac` (source `1a5c5540a0235fb2e53b2452516897af7664eba1`). Setup, Opening, ordinary turns, Extract/Commit, and the existing Cut 1 replay path all passed; no deterministic Story/protocol root cause was reproduced. No second live reproduction was run.
+- The invocation's final reset was read back clean: HTTP 200, `committed_turn=0`, `save_revision=889`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, `csa_active=[]`.
+- Diagnostic artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-cut3-story-failure-observability.json` (not repository evidence; SHA-256 `3BB42DB865B5ACEC7252A8569637B4642762EED8E80A042070F07F823549DBD6`).
+- This task is stopped at operator review. No new API deploy, migration, Production/manual-game access, provider/model change, retry, parser relaxation, or gameplay-runtime change occurred.
 
 Success phrase for diagnostic completion:
 
