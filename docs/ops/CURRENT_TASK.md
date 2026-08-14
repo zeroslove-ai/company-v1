@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: cut2-scene-stage-b-apply-and-closure
+Status: READY
+Task ID: post-cut2-architecture-checkpoint-game-model-recovery
 Updated: 2026-08-14
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -9,208 +9,266 @@ This file is the sole active execution queue for Company v1.
 
 ## Why this task exists
 
-Cut 2 Scene / Location / Presence live acceptance has now passed on the exact reviewed runtime executable:
+Cut 2 Scene / Location / Presence Authority is now operator-accepted through TEST Stage B and scoped post-Stage-B Golden Path acceptance.
 
-`a919baf87d92e841e64b731576ccb176d5745570`
+Accepted Cut 2 facts:
 
-The accepted live run proved on the dedicated TEST game that:
+- reviewed/deployed runtime executable: `a919baf87d92e841e64b731576ccb176d5745570`
+- Scene Stage A live: `20260814091536 / company_v1_scene_authority_stage_a`
+- Scene Stage A ACL closure live: `20260814093123 / company_v1_scene_authority_stage_a_acl_closure`
+- Scene Stage B live: `20260814000600 / company_v1_scene_authority_stage_b`
+- `validate_company_save_v1(jsonb)` now structurally requires canonical `save.scene`
+- legacy scene mirrors are optional typed compatibility fields, not canonical authority
+- player navigation and NPC-directed movement authority acceptance passed
+- dedicated TEST game is clean at `save_revision=881`, `committed_turn=0`, actions=0, turns=0
+- PR #67 remains OPEN / DRAFT / UNMERGED
 
-- Setup and fresh Opening completed successfully under the reviewed runtime
-- a normal Story -> Extract -> Commit turn completed
-- explicit player navigation moved canonical/player projection from `brand_strategy_office` to `brand_strategy_meeting_room`
-- NPC-directed input `서원희가 1층 로비로 이동한다.` did **not** move the Player; canonical and player projection remained `brand_strategy_meeting_room`
-- context/history readback succeeded
-- the dedicated TEST game was finally reset clean
+Do **not** mechanically begin Cut 3 just because the roadmap labels it next. Before another implementation cut, recover the actual current Company v1 game model from source and read-only live evidence, identify what still owns each gameplay fact, and choose the next root-cause architecture cut based on player impact and authority debt.
 
-Independent operator readback after the run confirmed:
-
-- game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
-- committed_turn = 0
-- save_revision = 876
-- player_setup/opening = not_started
-- Scene v1 = setup / location null / empty presence
-- actions = 0
-- turns = 0
-
-PR #67 remains OPEN / DRAFT / UNMERGED. The current branch HEAD after the acceptance completion state is docs-only relative to the reviewed runtime.
-
-Scene Stage A and its ACL closure are already applied in TEST. Scene Stage B is still absent. Direct live inspection confirms the current `validate_company_save_v1(jsonb)` still structurally requires legacy `scene_state`, `last_npcs_present`, `focal_character_id`, and `last_speaker_id`, and calls `company_validate_scene_v1(p_save, false)`. This is the compatibility window that Stage B is designed to close.
-
-The repository already contains the reviewed, unapplied additive migration:
-
-`supabase/migrations/20260814000600_company_v1_scene_authority_stage_b.sql`
-
-Its intended change is narrow: make canonical `save.scene` structurally required, make the legacy scene mirror fields optional when present, call `company_validate_scene_v1(p_save, true)`, and retain validator EXECUTE only for `service_role`.
+This is a read/audit/design checkpoint, not an implementation task.
 
 ## Binding authority
 
-Read and obey:
+Read and obey in order:
 
 1. `/CURRENT_TRUTH.md`
 2. `/AGENTS.md`
 3. `/docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`
 4. `/docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`
 5. this file
-6. Issue #68 operator review for `cut2-final-navigation-live-acceptance-after-opening-contract`
+6. Issue #68 persistent comment `SESSION_RECOVERY: CUT3_TO_CUT7_ROADMAP_AND_PLAYTEST_EVIDENCE`
+7. operator review for `cut2-scene-stage-b-apply-and-closure`
 
-Current Git/source/live TEST DB/deployed identity outrank report prose. Historical applied migrations are immutable. One durable domain has one canonical writer. Do not add compatibility code or preserve a legacy requirement merely for old tests.
+Current source, Git ancestry, live TEST DB/catalog, exact deployed identity, and immutable evidence outrank completion prose and historical handoffs.
 
-Manual playtest game `78fb1d94-266f-455a-bda4-7656cc2370c1` must not be reset or mutated.
-
-## Repository / identity guard
+## Repository / branch / PR guard
 
 Repository: `zeroslove-ai/company-v1`
-Expected branch: `company/scene-location-presence-v1`
-PR: #67 — must remain OPEN / DRAFT / UNMERGED.
+Current branch: `company/scene-location-presence-v1`
+Current PR: #67
 
-Reviewed runtime executable remains:
+Before analysis:
 
-`a919baf87d92e841e64b731576ccb176d5745570`
+1. fetch current remote HEAD and PR #67 state
+2. confirm the accepted Cut 2 final HEAD ancestry and distinguish docs-only HEAD from executable `a919baf...`
+3. inspect PR #65 / #66 / #67 ancestry and bases
+4. inspect current `main` ancestry
+5. do not create a branch or PR
+6. do not merge, rebase, retarget, or mark any PR Ready
 
-Current deployed TEST API evidence from the accepted run:
+The checkpoint must explicitly answer whether adding another stacked PR would recreate the PR-lineage debt that the current architecture reset was intended to eliminate. If a landing/consolidation decision is required before implementation can safely continue, say so clearly and stop at a recommendation rather than creating PR #68+.
 
-- Worker: `game-proxy-company-v1`
-- Version reported by the accepted execution: `9a466eaf-7a9a-4850-9e02-89f6be1b09cf`
-- deployed source: exact reviewed `a919baf...`
+## Goal 1 — Reconstruct the real player/game flow from source
 
-Before any DB mutation:
+Trace the actual current flow end-to-end from code, not from old design prose:
 
-1. verify current branch/remote HEAD and ancestry
-2. verify every commit after `a919baf...` is test/docs/workflow-only and no runtime/config/migration source changed
-3. verify the Stage B migration file is byte-identical to the already-reviewed repository source and has not been historically applied
-4. verify Scene Stage A and ACL closure are present in the live migration ledger
-5. verify the current live validator is still the Stage A compatibility form
-6. verify the dedicated TEST game is still clean
-7. verify no operator review already handled this exact task identity
+`player setup -> Opening -> player input/choice -> reserve action -> Story stream -> fresh parser/wire -> Extract observation -> Commit reducers -> commit_company_turn -> context/history -> frontend/session projection -> next turn`
 
-If any guard fails, STOP BLOCKED. Do not rewrite an applied migration or improvise a substitute migration.
+For each stage identify:
 
-## Goal
+- owning module/function/RPC
+- inputs
+- durable writes, if any
+- canonical output
+- replay/recovery path
+- compatibility/projection path
+- what may fail closed
+- what must not block ordinary free player flow
 
-Apply the existing additive Scene Authority Stage B migration to TEST, prove that the DB validator now treats canonical `save.scene` as the structural authority while legacy scene mirrors are optional compatibility fields, and complete a scoped post-Stage-B live acceptance without changing runtime source.
+Also trace how these gameplay systems enter that turn flow:
 
-## Authorized migration
+- CSA applicability / mandatory enactment / runtime / Commit durability
+- Scene/location/presence
+- player action fidelity and navigation/target interpretation
+- relationship state and relation/event ledgers
+- NPC/player physical and sexual state
+- story summaries / turn_summary / recent context / overall memory
+- choices / THOUGHT / committed parsed_blocks
+- setup/opening world/catalog authority
+- frontend session/cache/recovery
+- TTS/image/media only insofar as they can affect turn flow or steal authority
 
-Exactly one TEST migration apply is authorized, using the existing source file:
+Do not infer ownership from filenames alone. Follow actual callers and writers.
 
-`supabase/migrations/20260814000600_company_v1_scene_authority_stage_b.sql`
+## Goal 2 — Build a current authority/debt matrix
 
-Apply it through the normal Supabase migration mechanism under a migration name that clearly records:
+For every durable or continuity-relevant domain below, inventory all current writers, readers, mirrors/adapters, and gates:
 
-`company_v1_scene_authority_stage_b`
+1. turn/action lifecycle
+2. scene/location/presence
+3. CSA active/rules/runtime
+4. active relations
+5. relationship summaries/milestones/boundaries
+6. event ledger
+7. NPC/player posture, clothing, contact, physical relations
+8. player sexual state and NPC sexual/relationship consequence state
+9. setup/opening/world catalog semantics
+10. turn summary / recent summary / overall summary / recent-turn context
+11. committed parsed blocks / replay / persisted parser / legacy parser
+12. frontend/session projections and recovery caches
 
-Do not edit the historical Stage A migrations. Do not edit the Stage B SQL merely to make application easier. If the existing migration does not apply cleanly against current TEST truth, report BLOCKED/FAILED with evidence and STOP.
+For each domain classify current state as one of:
 
-## Required post-apply DB proof
+- `SOLE_CANONICAL`
+- `CANONICAL_PLUS_DERIVED_PROJECTION`
+- `TEMPORARY_COMPATIBILITY_WITH_PROVEN_READER`
+- `DUPLICATE_AUTHORITY_DEFECT`
+- `MISSING_DURABLE_CONSEQUENCE`
+- `UNKNOWN_REQUIRES_EVIDENCE`
 
-After application, independently verify from the live TEST catalog/function body:
+For every retained compatibility path, name the actual proven reader/data reason and the deletion criterion. If there is no proven reader, mark it as a deletion candidate; do not justify it with “just in case”.
 
-1. the new Stage B migration ledger entry exists
-2. `validate_company_save_v1(jsonb)` requires canonical `scene`
-3. legacy `scene_state`, `last_npcs_present`, `focal_character_id`, and `last_speaker_id` are no longer required keys
-4. when those legacy fields are present, their types are still structurally checked
-5. the validator calls `company_validate_scene_v1(p_save, true)`
-6. validator is `SECURITY DEFINER` with `search_path = public, pg_temp`
-7. validator EXECUTE remains available to `service_role` and unavailable to public/anon/authenticated
-8. the current dedicated TEST save validates successfully after the migration
+## Goal 3 — Read-only recovery of the actual 7-turn playtest
 
-Also prove there is no unrelated DDL/DML change from this task.
+Manual playtest game:
 
-## Scoped post-Stage-B acceptance
+`78fb1d94-266f-455a-bda4-7656cc2370c1`
 
-Use only dedicated TEST game:
+This game is immutable evidence. READ ONLY.
 
-`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+You may query TEST Supabase read-only for this game. Never reset or mutate it.
 
-Do not access Production.
+Reconstruct all committed turns and relevant action rows as far as current retained data allows. Compare, turn by turn where useful:
 
-After DB proof:
+- player_action / structured_action
+- raw Story and committed parsed_blocks
+- choices and THOUGHT
+- Extract observation
+- committed save consequences
+- scene/location/presence
+- relation/event changes
+- physical/sexual state changes
+- `turn_summary`
+- `story_summary_recent`
+- `story_summary_overall`
+- context/history continuity
 
-1. health-check the currently deployed API; do not redeploy it
-2. run normal player setup
-3. run fresh Opening once
-4. run one ordinary Story -> Extract -> Commit turn
-5. run one explicit player navigation turn through the normal Story -> Extract -> Commit path, to a catalog-grounded destination
-6. verify after commits that canonical `save.scene` is valid and player/intentional legacy projection parity remains correct
-7. verify normal context/history readback succeeds
-8. final-reset the dedicated TEST game
-9. directly read back clean final state: committed_turn=0, setup/opening reset, Scene v1 setup/location null/empty presence, actions=0, turns=0, and record final save_revision
+Confirm or correct the persistent roadmap observations rather than repeating them blindly. In particular investigate:
 
-This is not a provider-quality experiment. There is no retry/regeneration loop. If a live Story/Opening protocol failure occurs, preserve Worker-facing evidence, final-reset TEST, report FAILED, and STOP. Do not patch source or change provider/model/config.
+- repeated meaningful relationship/sexual/boundary/apology narrative with little or no durable relation/event consequence
+- all/most `game_turns.turn_summary` being empty
+- `story_summary_recent` appearing stuck on Opening/raw content
+- overall-summary mojibake
+- player action fidelity case where `허리를 만진다` became unrelated table-edge touching
+- provider choices missing on some turns and deterministic fallback behavior
+- whether image/media state is gameplay-authority-relevant or merely missing projection
 
-## Validation
+Do not claim an exact root cause unless source + stored evidence supports it.
 
-Required:
+## Goal 4 — Decide the next architecture cut by root cause, not roadmap order
 
-- exact pre/post migration ledger evidence
-- exact pre/post validator body/security/grant evidence
-- current save validation result
-- scoped post-Stage-B live acceptance result
-- final TEST clean readback
-- PR #67 remains Draft/Open/Unmerged
+Compare at minimum these candidates:
 
-If repository source/tests are unchanged, do not manufacture a test-only commit. Existing source CI evidence may be referenced, but live DB and live acceptance are the decisive gates for this task.
+A. Relationship / Event Authority
+B. bounded Memory / Summary prerequisite or full Memory/Summary Authority
+C. Setup / Opening / World Definition Authority
+D. Player/NPC Physical & Sexual State Authority
+E. Parser / replay compatibility cleanup that has become immediately removable
+
+Rank them by:
+
+- player-visible continuity damage
+- risk of durable fact corruption or loss
+- number/severity of duplicate writers/readers
+- likelihood that later Cuts would otherwise build on the wrong authority
+- ability to remove obsolete code in the same Cut
+- ability to preserve ordinary free game flow
+- migration/deployment risk
+
+Then recommend **one** next implementation Cut or, if needed, one bounded prerequisite Cut.
+
+The recommendation must include:
+
+- canonical owner to establish
+- exact current conflicting/missing authority
+- files/modules/RPCs likely affected
+- explicit deletion targets in the same Cut
+- compatibility paths that must remain and why
+- focused invariant tests to KEEP/REWRITE/DELETE
+- live TEST acceptance scenario
+- whether DB Stage A/B rollout is needed
+- whether implementation can safely continue on the current lineage without another PR
+
+## Engineering principles — mandatory
+
+- redesign authority boundaries; do not layer symptom patches
+- one durable domain = one canonical writer
+- typed intent/observation inputs -> canonical reducer/writer -> derived projections
+- ordinary player input must remain free; classification failure must not become an unnecessary Story/turn rejection
+- player input is intent/attempt, not automatic durable success
+- provider/model/temperature/token changes are not architecture fixes
+- no retry/regeneration loop as a structural workaround
+- no fuzzy identity repair or synthetic semantic state
+- no new semantic hard gate to hide ambiguity
+- if prompt/protocol patches are accumulating around the same representation, flag protocol redesign instead of proposing another prose/regex patch
+- stale tests do not justify compatibility runtime
+- superseded writer/reader/gate/test is deleted in the Cut where proof completes
+- historical applied migrations and immutable evidence are never edited
+- Cut 7 is residue cleanup, not permission to postpone known removable legacy
+- exact reviewed executable SHA and moving docs-only branch HEAD remain separate identities
+- do not create a new harness when existing canary/context/history tools can prove the invariant
+
+## Deliverables
+
+Create or update a single docs-only audit artifact under `docs/audit/` named clearly for the post-Cut2 architecture checkpoint. It must contain:
+
+1. current Git/PR/runtime/TEST identities
+2. end-to-end current game-flow map
+3. authority/debt matrix
+4. read-only 7-turn playtest reconstruction and evidence corrections
+5. remaining legacy/compatibility inventory with deletion criteria
+6. ranked next-Cut decision
+7. recommended PR/landing strategy without performing it
+8. exact proposed next implementation task scope and stop boundaries
+
+Update `09_CURRENT_TRUTH.md` only for facts that are newly verified and truly current, especially Cut 2 Stage B live closure. Do not turn recommendations into deployed facts.
 
 ## Allowed
 
-- read-only Git/GitHub/source inspection
-- read-only TEST DB/catalog inspection
-- apply exactly the existing Scene Stage B migration to TEST
-- dedicated TEST setup/Opening/Story/Extract/Commit/context/history/reset for the scoped acceptance
-- out-of-repo temporary evidence capture if needed
-- docs-only CURRENT_TASK completion state
-- Issue #68 lease/terminal report
+- Git/GitHub/source read-only inspection
+- PR/ancestry read-only inspection
+- TEST Supabase read-only queries, including manual playtest game
+- docs-only audit/current-truth/CURRENT_TASK edits on current branch
+- focused local static analysis/tests only when needed to understand current behavior; no runtime behavior changes
+- Issue #68 lease and terminal report
 
 ## Forbidden
 
-- any Production access/write/reset/deploy
-- manual playtest game mutation/reset
 - runtime/source/test/config behavior edits
-- migration source edits
-- historical migration edits
-- additional migrations
-- API or frontend redeploy
-- provider/model/temperature/token/config changes
-- retry/regeneration
+- DB write/migration/reset
+- dedicated TEST gameplay writes for this checkpoint
+- manual playtest mutation/reset
+- API/frontend deploy
+- Production access
+- provider/model/config change
+- retry/regeneration implementation
 - parser/wire relaxation or fuzzy repair
-- broad Cut 3+ implementation
-- PR Ready/merge
-- direct DB mutation to manufacture gameplay state outside the authorized migration and normal game APIs
+- new semantic hard gate
+- branch creation
+- new PR creation
+- merge / rebase / PR Ready / retarget
+- Cut 3+ implementation
 
 ## Success criteria
 
-Success requires all of the following:
+Success means the project can answer, from current evidence rather than memory:
 
-1. existing Stage B migration applies exactly once to TEST
-2. live validator now requires canonical `scene` and no longer structurally requires the legacy scene mirrors
-3. legacy mirror types remain checked when present
-4. validator security/search_path/grants remain correct
-5. current reset save validates
-6. scoped Setup/Opening/normal turn/navigation/context/history path succeeds under the unchanged deployed runtime
-7. canonical scene and intentional projections remain coherent
-8. final dedicated TEST reset/readback is clean
-9. runtime/frontend deployment = 0
-10. Production/manual-playtest mutation = 0
-11. source/test/config/migration-file edits = 0
-12. PR #67 remains Draft/Open/Unmerged
-
-## Stop boundary
+1. how a Company v1 turn actually flows end to end
+2. which module/RPC owns every major durable gameplay fact
+3. which duplicate/legacy paths still exist and why
+4. what the preserved 7-turn game proves about current product failures
+5. what next architecture Cut removes the highest-priority root conflict without harming player freedom
+6. which obsolete paths that Cut must delete
+7. whether PR lineage should be consolidated before implementation continues
 
 On success:
 
-- set this task to `Status: WAITING_REVIEW`
-- do not begin Cut 3
-- do not merge or mark PR Ready
-- post a COMPLETE terminal report with exact live migration version/name, post-apply validator evidence, scoped acceptance result, and final TEST state
-- STOP for operator review
-
-On failure/block:
-
-- if TEST writes began, final-reset the dedicated TEST game when safely possible
-- set this task to `Status: WAITING_REVIEW`
-- post FAILED/BLOCKED with exact evidence
+- set `Status: WAITING_REVIEW`
+- post COMPLETE terminal report to Issue #68 with exact final SHA and audit artifact path
+- state the recommended next Cut and PR/landing recommendation
+- do not start implementation
 - STOP
 
 Success phrase:
 
-`CUT 2 SCENE STAGE B APPLIED AND VERIFIED — AWAITING OPERATOR REVIEW`
+`POST-CUT2 GAME MODEL RECOVERED — NEXT ARCHITECTURE CUT RECOMMENDED, AWAITING OPERATOR REVIEW`
