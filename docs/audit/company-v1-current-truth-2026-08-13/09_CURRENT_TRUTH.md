@@ -226,3 +226,15 @@ Next sequence, with explicit owner approval for deployment/write steps:
 8. Stage success/failure and owner release are atomic.
 9. Stage B removes raw gameplay DML and obsolete/legacy duplicate writers after staged compatibility verification.
 10. An API SHA whose required DB contract is absent must be blocked from deployment.
+
+## Cut 2 scene/location/presence candidate (not live)
+
+The source candidate branch is `company/scene-location-presence-v1`, based on
+the accepted test-suite line. It introduces strict `save.scene` v1 reading,
+legacy-only bootstrap, one canonical scene reducer, a compatibility projection,
+typed ephemeral navigation intent, and evidence-gated location/presence
+observation. The additive source migrations
+`20260814000500_company_v1_scene_authority_stage_a.sql` and
+`20260814000600_company_v1_scene_authority_stage_b.sql` are not applied. No
+Worker is deployed from this candidate. The candidate PR and final SHA are
+intentionally recorded only after the branch is pushed and reviewed.
