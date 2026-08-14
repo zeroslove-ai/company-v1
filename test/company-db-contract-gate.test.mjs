@@ -13,13 +13,13 @@ const functionBase = (name, identity_arguments, extra = {}) => ({
 
 function stageACatalog() {
   return {
-    migration_markers: ['20260814000300_company_v1_action_ownership_closure_stage_a'],
+    migrations: [{ version: '20260814023308', name: 'company_v1_action_ownership_closure_stage_a' }],
     columns: [{ table: 'game_actions', column: 'stage_owner_token' }, { table: 'game_actions', column: 'stage_claimed_at' }],
     functions: [
-      functionBase('claim_game_action_stage', 'uuid, uuid, text, text, text, text, text, text, boolean'),
-      functionBase('fail_game_action_stage', 'uuid, uuid, text, text, text, text, text, boolean'),
-      functionBase('record_story_result_owned', 'uuid, uuid, text, jsonb, text'),
-      functionBase('record_extract_result_owned', 'uuid, uuid, jsonb, text')
+      functionBase('claim_game_action_stage', 'p_game_id uuid, p_action_id uuid, p_expected_status text, p_expected_owner_mode text, p_expected_owner_token text, p_next_status text, p_next_owner_token text, p_next_error_code text, p_require_stale boolean'),
+      functionBase('fail_game_action_stage', 'p_game_id uuid, p_action_id uuid, p_expected_status text, p_expected_owner_mode text, p_expected_owner_token text, p_next_status text, p_next_error_code text, p_require_owner_fence boolean'),
+      functionBase('record_story_result_owned', 'p_game_id uuid, p_action_id uuid, p_story_text text, p_parsed_blocks jsonb, p_owner_token text'),
+      functionBase('record_extract_result_owned', 'p_game_id uuid, p_action_id uuid, p_extract_delta jsonb, p_owner_token text')
     ],
     privileges: [
       { table: 'game_actions', role: 'service_role', privilege: 'UPDATE' }
@@ -28,9 +28,9 @@ function stageACatalog() {
 }
 
 test('DB contract gate fails closed when Stage A catalog is missing', () => {
-  const result = evaluateCatalog(manifest, { migration_markers: [], columns: [], functions: [], privileges: [] }, 'stage_a');
+  const result = evaluateCatalog(manifest, { migrations: [], columns: [], functions: [], privileges: [] }, 'stage_a');
   assert.equal(result.pass, false);
-  assert.ok(result.failures.some(item => item.includes('missing migration marker')));
+  assert.ok(result.failures.some(item => item.includes('missing migration name')));
 });
 
 test('DB contract gate accepts Stage A compatibility leftovers', () => {
@@ -46,6 +46,7 @@ test('DB contract gate accepts Stage A compatibility leftovers', () => {
 
 test('DB contract gate enforces Stage B direct-DML and legacy-writer removal', () => {
   const catalog = stageACatalog();
+  catalog.migrations.push({ version: '20260814030000', name: 'company_v1_authority_enforcement_stage_b' });
   catalog.functions.push(functionBase('record_story_result', 'uuid, uuid, text, jsonb'));
   catalog.privileges.push({ table: 'game_save', role: 'service_role', privilege: 'UPDATE' });
   const result = evaluateCatalog(manifest, catalog, 'stage_b');

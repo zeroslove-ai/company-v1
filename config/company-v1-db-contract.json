@@ -3,7 +3,7 @@
   "contract_version": 2,
   "stages": {
     "stage_a": {
-      "migration_markers": ["20260814000300_company_v1_action_ownership_closure_stage_a"],
+      "required_migration_names": ["company_v1_action_ownership_closure_stage_a"],
       "columns": [
         {"table": "game_actions", "column": "stage_owner_token"},
         {"table": "game_actions", "column": "stage_claimed_at"}
@@ -21,7 +21,7 @@
       ]
     },
     "stage_b": {
-      "migration_markers": ["20260814000400_company_v1_authority_enforcement_stage_b"],
+      "required_migration_names": ["company_v1_authority_enforcement_stage_b"],
       "forbidden_functions": [
         {"name": "claim_game_action_stage", "identity_arguments": "uuid, uuid, text, text, text, text, text, boolean"},
         {"name": "fail_game_action_stage", "identity_arguments": "uuid, uuid, text, text, text, text, text"},

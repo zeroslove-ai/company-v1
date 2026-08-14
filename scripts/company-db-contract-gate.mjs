@@ -13,8 +13,25 @@ const FUNCTION_NAMES = [
   'apply_reserved_csa_transaction'
 ];
 
+const KNOWN_TYPE_STARTS = new Set([
+  'bigint', 'boolean', 'bytea', 'character', 'date', 'double', 'integer',
+  'json', 'jsonb', 'numeric', 'real', 'smallint', 'text', 'time', 'timestamp',
+  'timestamptz', 'uuid', 'varchar'
+]);
+
+function normalizeArgumentIdentity(value) {
+  const tokens = String(value ?? '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean);
+  if (tokens.length === 0) return '';
+  if (/^(in|out|inout|variadic)$/i.test(tokens[0])) tokens.shift();
+  if (tokens.length > 1 && !KNOWN_TYPE_STARTS.has(tokens[0].toLowerCase())) {
+    const typeStart = tokens.findIndex((token, index) => index > 0 && KNOWN_TYPE_STARTS.has(token.toLowerCase()));
+    if (typeStart > 0) return tokens.slice(typeStart).join(' ');
+  }
+  return tokens.join(' ');
+}
+
 function normalizeIdentity(value) {
-  return String(value ?? '').replace(/^\s+|\s+$/g, '').replace(/\s*,\s*/g, ', ');
+  return String(value ?? '').trim().split(/\s*,\s*/).filter(Boolean).map(normalizeArgumentIdentity).join(', ');
 }
 
 function functionKey(item) {
@@ -44,12 +61,11 @@ export function evaluateCatalog(manifest, catalog, stage = 'stage_a') {
   const failures = [];
   const stageA = manifest?.stages?.stage_a ?? {};
   const current = manifest?.stages?.[stage] ?? {};
-  const markers = new Set((catalog?.migration_markers ?? []).map(String));
+  const migrationNames = new Set((catalog?.migrations ?? []).map(item => String(item?.name ?? '')));
   const columns = new Set((catalog?.columns ?? []).map(item => `${item.table}.${item.column}`));
 
-  for (const marker of [...(stageA.migration_markers ?? []), ...(current.migration_markers ?? [])]) {
-    const found = [...markers].some(actual => actual === marker || marker.startsWith(`${actual}_`) || actual.startsWith(`${marker}_`));
-    if (!found) failures.push(`missing migration marker: ${marker}`);
+  for (const migrationName of new Set([...(stageA.required_migration_names ?? []), ...(current.required_migration_names ?? [])])) {
+    if (!migrationNames.has(migrationName)) failures.push(`missing migration name: ${migrationName}`);
   }
   for (const column of [...(stageA.columns ?? []), ...(current.columns ?? [])]) {
     if (!columns.has(`${column.table}.${column.column}`)) failures.push(`missing column: ${column.table}.${column.column}`);
@@ -78,9 +94,9 @@ export function evaluateCatalog(manifest, catalog, stage = 'stage_a') {
 const CATALOG_SQL = `
 with wanted_functions(name) as (select unnest(array[${FUNCTION_NAMES.map(name => `'${name}'`).join(', ')}]))
 select jsonb_build_object(
-  'migration_markers', case when to_regclass('supabase_migrations.schema_migrations') is null then '[]'::jsonb else coalesce((select jsonb_agg(version::text) from supabase_migrations.schema_migrations), '[]'::jsonb) end,
+  'migrations', case when to_regclass('supabase_migrations.schema_migrations') is null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('version', version::text, 'name', name::text)) from supabase_migrations.schema_migrations), '[]'::jsonb) end,
   'columns', coalesce((select jsonb_agg(jsonb_build_object('table', table_name, 'column', column_name)) from information_schema.columns where table_schema = 'public' and table_name = 'game_actions' and column_name in ('stage_owner_token', 'stage_claimed_at')), '[]'::jsonb),
-  'functions', coalesce((select jsonb_agg(jsonb_build_object('name', p.proname, 'identity_arguments', pg_get_function_identity_arguments(p.oid), 'security_definer', p.prosecdef, 'config', coalesce(to_jsonb(p.proconfig), '[]'::jsonb), 'service_role_execute', has_function_privilege('service_role', p.oid, 'EXECUTE'))) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in (select name from wanted_functions)), '[]'::jsonb),
+  'functions', coalesce((select jsonb_agg(jsonb_build_object('name', p.proname, 'identity_arguments', oidvectortypes(p.proargtypes), 'security_definer', p.prosecdef, 'config', coalesce(to_jsonb(p.proconfig), '[]'::jsonb), 'service_role_execute', has_function_privilege('service_role', p.oid, 'EXECUTE'))) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in (select name from wanted_functions)), '[]'::jsonb),
   'privileges', coalesce((select jsonb_agg(jsonb_build_object('table', t.table_name, 'role', 'service_role', 'privilege', p.privilege_type)) from information_schema.tables t cross join lateral (select privilege_type from information_schema.role_table_grants g where g.grantee = 'service_role' and g.table_schema = 'public' and g.table_name = t.table_name and g.privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')) p where t.table_schema = 'public' and t.table_name in (${CORE_TABLES.map(name => `'${name}'`).join(', ')})), '[]'::jsonb)
 )::text;
 `;
