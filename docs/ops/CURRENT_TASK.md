@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: cut3-relation-event-typed-observation-contract-closure
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -126,3 +126,18 @@ On completion:
 - set Status `WAITING_REVIEW` in a docs-only final commit;
 - post one terminal report to Issue #68 with START_SHA, FINAL_SHA, primary classification A/B/C/D, exact evidence, executable files changed (or zero), tests, and forbidden operations confirmation;
 - STOP.
+
+## Terminal evidence — 2026-08-15
+
+- Task identity: `cut3-relation-event-typed-observation-contract-closure`.
+- Task blob SHA / START_SHA: `1a8985e10814005e7303a909aaa2393c4a35f104`.
+- Branch: `company/scene-location-presence-v1`.
+- Accepted gameplay executable: `1a5c5540a0235fb2e53b2452516897af7664eba1`.
+- Primary classification: **A — `NON_QUALIFYING_STORY_EVIDENCE`**.
+- Evidence artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-cut3-relation-event-deterministic.json`; SHA-256 `21E32AA5FB0B87DAE8B7871D1E7CF095E041057F0ACEB37825403D7B17A8DC77`.
+- The deterministic Story contained an apology and a request for clarification, but no supported canonical relation lifecycle, boundary change, reconciliation outcome, promise outcome, or other accepted general/sexual event. The only promise-like text was a player choice, not performed Story evidence. Therefore the Story did not qualify for a durable Relation/Event observation.
+- Extract completed with `relation_updates: []`, `events.general: []`, and `events.sexual: []`. This is consistent with the non-qualifying evidence; no producer/consumer vocabulary gap or normalization/reducer drop was proven.
+- Source trace reviewed: `buildExtractPrompt` → provider Extract → `normalizeFreshExtractObservationV2` → canonical relation/event reducer. No executable source or test change is justified. The only known executable delta from the accepted gameplay SHA remains the previously reviewed canary/test harness work in `scripts/live-playtest-canary.mjs` and `test/live-canary-contract.test.mjs`.
+- Validation: focused relation/event/Extract/turn tests `63/63` passed; full `npm.cmd test` `455/455` passed; changed-source syntax checks passed; `git diff --check` passed.
+- Forbidden operations performed: no TEST gameplay run, live LLM call, deploy, DB write/reset/migration/DDL, Production access, provider/model/retry/parser/taxonomy/semantic-gate change, or direct state manufacture.
+- This task is stopped for operator review. No next task is generated. `Status: WAITING_REVIEW` is the terminal state for this task.
