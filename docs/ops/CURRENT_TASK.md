@@ -1,17 +1,23 @@
 # Company v1 — CURRENT TASK
 
 Status: READY
-Task ID: cut2-scene-stage-a-api-cutover
+Task ID: cut2-scene-stage-a-live-scene-acceptance
 Updated: 2026-08-14
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This file is the sole active execution queue for Company v1. Do not start another architecture cut from backlog while this task is active.
+This file is the sole active execution queue for Company v1.
 
-Execution authority lives in this file. Codex completion reports and operator review results live in GitHub Issue #68 comments so report traffic does not move Git HEAD. Do not create report-only commits.
+## Why this task exists
+
+The prior task `cut2-scene-stage-a-api-cutover` deployed the reviewed Cut 2 API and passed the existing Cut 1 live canary, but stopped because the existing canary could not express the required Scene-specific navigation/presence assertions.
+
+That STOP is evidence, not a runtime defect. Operator review confirmed that the existing `scripts/live-playtest-canary.mjs` has only opening/Cut1/playability modes and does not assert canonical scene location/navigation behavior. The exception already allowed by the prior task and `AGENTS.md` therefore applies: a narrow acceptance runner may be created because the current harness literally cannot express the required invariants.
+
+Do not redo already-passed work merely to create activity. Recover and verify first.
 
 ## Mandatory canon
 
-Before work, read:
+Read in this order before work:
 
 1. `/CURRENT_TRUTH.md`
 2. `/AGENTS.md`
@@ -19,299 +25,247 @@ Before work, read:
 4. `/docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`
 5. `/docs/audit/CUT2_SCENE_LOCATION_PRESENCE_2026-08-14.md`
 6. this file
-7. GitHub Issue #68 for operator/Codex handoff messages relevant to this Task ID
+7. Issue #68 comments for the prior failed report and operator review
 
-Current source / Git / live DB evidence outranks historical prose.
+Current Git/source/live DB/deployed identity outrank report prose.
 
-## Repository / branch guard
+## Repository / identity guard
 
 Repository: `zeroslove-ai/company-v1`
 Expected branch: `company/scene-location-presence-v1`
 Reviewed executable SHA: `ce23612741599493921ae7c68b9ab58d6e23bcc6`
-PR: `#67`, base `company/test-suite-consolidation-v1`, Draft/Open/Unmerged
+Prior docs-only HEAD: `f6144fe75f7df47372e39036d0f10a9b3c375120`
+PR: #67 — must remain OPEN / DRAFT / UNMERGED.
 
-The task-registration commit containing this file is allowed to be a docs-only descendant of the reviewed executable SHA. Before any runtime operation, verify:
+Commits after `ce236127...` must remain docs/workflow-only. Any runtime/migration/config/gate/test source delta after the reviewed executable SHA is a blocker and requires operator review.
 
-```bash
-git branch --show-current
-git rev-parse HEAD
-git diff --name-only ce23612741599493921ae7c68b9ab58d6e23bcc6..HEAD
-```
-
-The only allowed pre-existing delta above `ce236127...` is workflow/canon documentation created for this task. If runtime, migration, config, gate, or test code changed after `ce236127...` unexpectedly, STOP.
-
-## Operator-verified live prerequisites
+## Operator-verified current TEST state
 
 Supabase project: `fmcrspgxstsmxxsmkeee`
 TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
-Production game: `11111111-1111-4111-8111-111111111111` — forbidden in this task.
+Production game: `11111111-1111-4111-8111-111111111111` — forbidden.
 
-Cut 1 action authority:
+Independent readback after the prior run:
 
-- Stage A live
-- Stage B live
-- direct service-role gameplay DML count = 0
-- obsolete action/Story/Extract/CSA-preapply legacy functions = absent
+- committed_turn = 0
+- save_revision = 841
+- processing_status = idle
+- player_setup = not_started
+- opening_state = not_started
+- actions = 0
+- turns = 0
+- csa_active = []
+- canonical `save.scene.version = 1`
+- scene_id = setup
+- location_id = null
+- present_npc_ids = []
+- focal_character_id = null
+- last_speaker_id = null
 
-Cut 2 Scene Stage A live:
+Scene migrations live:
 
 - `20260814091536 / company_v1_scene_authority_stage_a`
 - `20260814093123 / company_v1_scene_authority_stage_a_acl_closure`
+- Scene Stage B is NOT applied.
 
-Verified Scene Stage A behavior:
-
-- `legacy_only_save_accepted = true`
-- `canonical_scene_save_accepted = true`
-- `canonical_missing_nullable_key_rejected = true`
-- `reset_returns_scene_v1 = true`
-
-Verified ACL:
-
-- `company_validate_scene_v1(jsonb, boolean)` → service_role EXECUTE false
-- `company_bootstrap_scene_v1(jsonb)` → service_role EXECUTE false
-- `validate_company_save_v1(jsonb)` → service_role EXECUTE true
-- `reset_company_game(uuid, text)` → service_role EXECUTE true
-- anon/authenticated EXECUTE false for all four
-
-Current TEST after rollback-safe probes:
-
-- committed_turn = 0
-- save_revision = 833
-- actions = 0
-- turns = 0
-- current stored save has no `scene` yet; Stage A reset/bootstrap is expected to create scene v1
-
-Cut 2 Scene Stage B migration is NOT applied.
+Prior Codex report states the deployed Worker Version is `0fc0d42c-1327-454c-bce4-270cd0c1ff95`; re-verify deployed identity before relying on it. Do not treat this report value alone as operator authority.
 
 ## Goal
 
-Deploy the exact reviewed Cut 2 API behavior under the already-live Scene Stage A contract, then run one real TEST Golden Path proving canonical scene/location/presence behavior. Stop before Scene Stage B.
+Finish only the missing Scene Stage A live acceptance and stop before Scene Stage B.
 
-This is a rollout/acceptance task, not another implementation pass.
+No new architecture implementation is authorized.
 
-## Absolute scope
+## Allowed
 
-Allowed:
+- read-only Git/source/DB/deployment verification
+- TEST-only setup/opening/Story/Extract/Commit/reset calls needed for acceptance
+- a **temporary out-of-repository acceptance runner** because the existing canary cannot express the required scene invariants
+- importing existing repo helpers into that temporary runner when useful
+- temporary evidence outside the repository or existing preserved-evidence convention
+- targeted existing tests at exact reviewed source as deterministic supporting evidence
+- docs-only truth/audit/CURRENT_TASK updates after full success
 
-- read-only Git/source/DB verification
-- temporary untracked live DB catalog/probe evidence
-- API deploy dry-run through the gated wrapper
-- API deploy through the gated wrapper
-- TEST-only canary/reset required by the Golden Path
-- docs-only verified-fact updates after successful acceptance
+## Forbidden
 
-Forbidden unless a newly discovered blocker requires STOP:
-
-- runtime source edits
-- migration source edits
-- DB schema changes / migration apply
+- modifying or committing `src/**`
+- modifying or committing `scripts/**` for the new runner
+- modifying or committing `test/**`
+- migration source edits or migration apply
 - Scene Stage B apply
 - frontend deploy
 - Production access/write/reset
 - provider/model changes
-- PR #65/#66/#67 Ready or merge
-- compatibility patching to hide a failed canary
+- retries/regeneration used to hide semantic failure
+- new compatibility readers/gates
+- PR Ready/merge
+- `git clean -fd` or `git reset --hard`
 
-## Step 1 — exact source verification
+The temporary acceptance runner must live outside the repo worktree (OS temp directory is acceptable) so preserved evidence and exact executable review identity stay untouched.
 
-Confirm PR #67 still points to the reviewed runtime line and that any commits after `ce236127...` are docs-only task/canon commits.
+## Step 1 — recover prior accepted facts
 
-Run targeted/full tests only as regression confirmation if the worktree is not already proven clean. Do not change runtime merely to preserve stale tests.
+Verify:
 
-## Step 2 — live contract catalog
+1. PR #67 remains Draft/Open/Unmerged.
+2. `ce236127...` → current HEAD contains only docs/workflow changes.
+3. Scene Stage A + ACL closure remain live; Stage B absent.
+4. TEST is still in the clean canonical setup scene listed above.
+5. current deployed Worker identity. If it is exactly the prior reported Version `0fc0d42c-1327-454c-bce4-270cd0c1ff95` and health still passes, do **not** redeploy.
 
-If the environment has read-only Supabase DB access, independently rebuild a temporary, untracked catalog from the live DB immediately before deployment.
+If deployed identity cannot be verified, STOP:
 
-The catalog used by the deploy gate must represent BOTH:
+`CUT2_DEPLOYED_IDENTITY_UNVERIFIED`
 
-1. Cut 1 action contract at `stage_b`
-2. Cut 2 scene contract at `stage_a`
+Do not redeploy just to avoid verification.
 
-Scene behavioral probes in the temporary catalog must be based on actual live verification, not invented defaults.
+## Step 2 — deterministic source support
 
-If live DB access is unavailable, STOP with exactly:
+Run the existing focused Scene tests at the reviewed executable source. At minimum include `test/scene-runtime-contract.test.mjs` and the existing tests that cover navigation/Extract/commit boundary behavior.
 
-`WAITING_FOR_OPERATOR_LIVE_SCENE_CATALOG`
+Use these deterministic tests as supporting evidence for edge cases that cannot be safely forced through an LLM provider response.
 
-Do not hand-author a fake PASS catalog merely to unblock deployment.
+Required deterministic invariants include:
 
-Do not commit catalog credentials or temporary probe files.
+- canonical NPC universe includes `general_npcs`
+- stale compatibility presence/location cannot override canonical scene
+- Engine authoritative navigation wins same-turn location conflict
+- NPC-directed movement does not become player navigation
+- invalid/missing optional scene observation fails open without killing the turn
+- projection parity is derived from canonical scene
 
-## Step 3 — gated dry-run
+Do not add new repo tests during this rollout task.
 
-Required environment contract:
+## Step 3 — temporary live Scene acceptance runner
 
-```text
-COMPANY_DB_CONTRACT_STAGE=stage_b
-COMPANY_SCENE_DB_CONTRACT_STAGE=stage_a
-COMPANY_DB_CATALOG_PATH=<absolute temporary live catalog json>
-COMPANY_SCENE_DB_CATALOG_PATH=<same or exact scene-aware live catalog json>
-```
+Create a narrow runner outside the repository. Reuse the deployed API and existing TEST game. The runner must record each request/action id and before/after canonical scene snapshots.
 
-Run:
+Minimum live flow:
 
-```bash
-node scripts/deploy-api-with-contract-gate.mjs --dry-run
-```
-
-Acceptance:
-
-- Cut 1 action Stage B gate PASS
-- Cut 2 scene Stage A gate PASS
-- Wrangler dry-run PASS
-- exit 0
-
-Any gate failure = STOP. Do not bypass with direct Wrangler.
-
-## Step 4 — exact API deployment
-
-Only after Step 3 PASS:
-
-```bash
-node scripts/deploy-api-with-contract-gate.mjs
-```
-
-No direct `wrangler deploy` bypass.
-
-Record:
-
-- deployed Git HEAD
-- executable review SHA `ce23612741599493921ae7c68b9ab58d6e23bcc6`
-- Worker Version ID
-- deployment time
-
-A docs-only HEAD descendant is acceptable only if the executable/runtime diff from `ce236127...` is zero.
-
-## Step 5 — health
-
-Verify API health endpoint:
-
-- HTTP 200
-- `ok=true`
-- `edition_id=company-v1`
-
-Failure = STOP without retry loops or source edits.
-
-## Step 6 — TEST Golden Path under Scene Stage A
-
-Use the existing TEST canary/harness. Do not create a new harness unless the existing one literally cannot express the required assertions.
-
-Minimum flow:
-
-1. clean/reset TEST if required by existing canary guard
+1. verify/reset TEST clean if necessary
 2. setup
 3. Opening
-4. verify reset/opening produces canonical `save.scene` v1
-5. Turn 1 normal Story → Extract → Commit
-6. replay same action and verify replay/idempotency invariance
-7. context/history readback
-8. Turn 2 normal Story → Extract → Commit
-9. at least one deterministic navigation/presence case using current registered content if existing harness supports it
-10. context/history readback
-11. final reset
+4. verify canonical scene v1 exists
+5. perform a normal committed turn and capture canonical scene + legacy projections
+6. perform an explicit **player navigation** case grounded in current registered company content
+7. verify `save.scene.location_id` changes to the deterministic registered destination
+8. verify `player_scene_state.location_id` mirrors canonical location
+9. verify legacy scene/presence mirrors agree with canonical scene rather than deciding it
+10. perform an **NPC-directed movement command** case and verify the player location does not move merely because an NPC was told to move
+11. context/history readback
+12. final reset
 
-Required scene assertions:
+Use existing known regression/content cases when still valid after source inspection; do not invent NPC names or location ids. In particular, if the current registered catalog still supports the regression `민아 보러간다` → heroine2/윤민아 → `brand_strategy_office`, it is a preferred explicit player-navigation case because the Engine navigation result must be deterministic and Extract cannot override it.
 
-- `save.scene.version === 1`
-- canonical location/presence/focal/last-speaker are coherent
-- `player_scene_state.location_id` mirrors canonical scene
-- `scene_state` / `last_npcs_present` / NPC scene membership are projections only and agree with canonical scene when present
-- registered general NPCs are not rejected by the canonical NPC universe
-- stale `npc_scene_state.location_id` cannot redirect player navigation
-- explicit player navigation changes canonical location deterministically
-- NPC-directed movement command does not move the player
-- Extract conflicting location cannot override Engine navigation
-- missing/invalid optional scene observation fails open for that observation rather than killing the turn
+If that exact catalog case is no longer current, discover the equivalent registered destination from repo content and record the evidence used.
 
-Required Cut 1 regression assertions:
+Do not require the provider to spontaneously generate a specific general NPC merely to prove registration. The general-NPC universe invariant may be satisfied by the exact deterministic Scene contract test plus live projection/readback showing no unknown-id rejection when such an NPC is naturally present.
 
-- Story replay `meta.replayed=true` and completion replay
-- Extract replay `replayed=true`
-- Commit replay `success=true`, `replayed=true`
-- committed_turn/save_revision unchanged by replay
-- no Stage B permission errors
+## Step 4 — acceptance matrix
 
-Final reset acceptance:
+Full Scene Stage A acceptance requires all rows below to have explicit evidence:
+
+### Live TEST evidence
+
+- reset/setup/opening yields canonical scene v1
+- normal Story/Extract/Commit succeeds under current deployed Worker
+- at least one explicit player navigation changes canonical location deterministically
+- player location compatibility mirror equals canonical location
+- NPC-directed movement does not move player
+- canonical scene and compatibility projections remain coherent
+- context/history readback works
+- no Stage B permission error
+- final reset returns clean canonical setup scene
+
+### Deterministic exact-source evidence
+
+- `general_npcs` are in canonical NPC universe
+- stale `npc_scene_state.location_id` is not navigation authority
+- conflicting Extract location cannot override Engine navigation
+- invalid/missing optional Scene observation fails open for that observation
+- projection is canonical-scene-derived and idempotent
+
+A real contradiction between live behavior and deterministic source is a blocker; preserve evidence and STOP.
+
+## Step 5 — final reset
+
+Required final live state:
 
 - committed_turn = 0
 - processing_status = idle
-- player_setup/opening = not_started
-- `csa_active=[]`
-- recent/history = 0
+- player_setup = not_started
+- opening_state = not_started
+- csa_active = []
 - actions = 0
 - turns = 0
-- reset save contains canonical scene v1 under live Scene Stage A
+- canonical scene v1 exists
+- scene location = null
+- present_npc_ids = []
+- focal_character_id = null
+- last_speaker_id = null
 
-## Failure policy
-
-Do not retry/regenerate to hide semantic failure.
-
-Do not add regex exceptions, compatibility readers, provider/model changes, or one-off gates.
-
-Preserve failure evidence and STOP with exact failing step, action id/turn, source SHA, Worker Version, DB state, and error.
-
-If failure reveals a real runtime defect, leave this CURRENT_TASK status unchanged and report the blocker for operator review.
+Do not reset manual playtest game `78fb1d94-266f-455a-bda4-7656cc2370c1`.
 
 ## Success policy
 
-On full success only:
+Only after the full matrix passes:
 
-1. update `09_CURRENT_TRUTH.md` with verified facts:
-   - Scene Stage A live migrations including ACL closure
-   - deployed Cut 2 API identity / Worker Version
-   - Scene Stage A Golden Path PASS
-   - Scene Stage B NOT APPLIED
-   - PR #67 remains Draft/Unmerged
-2. update Cut 2 audit with the same verified facts
-3. change this file Status from `READY` to `WAITING_REVIEW`
-4. record exact final docs-only SHA
-5. post the completion report to GitHub Issue #68 as a comment with first lines:
-   - `TASK_ID: cut2-scene-stage-a-api-cutover`
-   - `STATUS: COMPLETE`
+1. update `09_CURRENT_TRUTH.md` with actual verified live Cut 2 facts, including ACL closure, deployed Worker identity and Scene Stage A Golden Path acceptance
+2. update Cut 2 audit with the same facts
+3. change this file to `Status: WAITING_REVIEW`
+4. commit/push docs-only changes
+5. post completion report to Issue #68 using this Task ID
+6. STOP before Scene Stage B
 
-Do NOT create or start the Scene Stage B task yourself. The operator/reviewer will create the next CURRENT_TASK after reviewing this acceptance.
-
-## Completion report
-
-Post this report to GitHub Issue #68 as a comment. Do not create a report-only commit.
-
-Report:
-
-1. starting HEAD
-2. runtime review SHA
-3. final HEAD
-4. PR #67 state
-5. action Stage B gate
-6. scene Stage A gate
-7. dry-run
-8. deployed Worker Version
-9. health
-10. setup
-11. Opening
-12. canonical reset/opening scene
-13. Turn 1 Story/Extract/Commit
-14. replay flags and revision invariance
-15. Turn 1 context/history
-16. Turn 2 Story/Extract/Commit
-17. navigation/presence assertions
-18. general NPC assertion
-19. projection parity
-20. permission errors
-21. final reset state
-22. Scene Stage B applied = 0
-23. DB migration writes = 0
-24. frontend deploy = 0
-25. Production access = 0
-26. runtime source changes after review SHA = 0
-27. preserved evidence
-28. CURRENT_TRUTH update SHA
-29. CURRENT_TASK final status
-30. PR #65/#66/#67 status
+Do not create the Stage B task yourself.
 
 Success phrase:
 
-`CUT 2 SCENE STAGE A API GOLDEN PATH PASSED — AWAITING STAGE B REVIEW`
+`CUT 2 SCENE STAGE A LIVE ACCEPTANCE PASSED — AWAITING STAGE B REVIEW`
+
+## Failure policy
+
+If a runtime defect is actually observed, preserve exact action/turn/scene/evidence and STOP. Do not patch runtime in this task.
+
+If only the temporary runner itself is wrong, correct the temporary runner without touching repo source and rerun only the affected deterministic check; do not repeat provider calls unnecessarily.
 
 Failure phrase:
 
-`CUT 2 SCENE STAGE A API GOLDEN PATH FAILED — STOPPED BEFORE STAGE B`
+`CUT 2 SCENE STAGE A LIVE ACCEPTANCE FAILED — STOPPED BEFORE STAGE B`
+
+## Completion report to Issue #68
+
+First lines:
+
+```text
+TASK_ID: cut2-scene-stage-a-live-scene-acceptance
+STATUS: COMPLETE | BLOCKED | FAILED
+START_SHA: <sha>
+FINAL_SHA: <sha>
+BRANCH: company/scene-location-presence-v1
+```
+
+Then include:
+
+- reviewed executable SHA
+- deployed Worker Version verification
+- PR state
+- exact tests run/results
+- temporary runner path and whether it remained outside repo
+- live player-navigation before/after scene
+- NPC-directed movement before/after scene
+- projection parity result
+- general NPC deterministic result
+- Extract conflict result
+- optional observation fail-open result
+- context/history
+- permission errors
+- final reset state
+- Scene Stage B applied = 0
+- DB migration apply = 0
+- frontend deploy = 0
+- Production access = 0
+- repo runtime/test/script changes = 0
+- preserved evidence status
+- docs-only final commit SHA on success
+- exact STOP state
