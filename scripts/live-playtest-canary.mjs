@@ -243,6 +243,47 @@ function contextSnapshot(result) {
   };
 }
 
+export function buildStoryFailureDiagnostic({ gameId, turn, playerAction, actionId, story, parser, actionStatus: status, beforeContext, afterContext }) {
+  return {
+    game_id: gameId ?? null,
+    turn,
+    expected_turn: turn,
+    action_id: actionId ?? null,
+    player_action: playerAction ?? null,
+    request: {
+      endpoint: story?.endpoint ?? '/api/story',
+      http_status: story?.http_status ?? null,
+      local_action_id: story?.local_action_id ?? actionId ?? null,
+      sse_meta_action_id: story?.sse_meta_action_id ?? null
+    },
+    story: {
+      terminal_event: story?.terminal_event ?? null,
+      response_error: story?.response_error ?? null,
+      sse_error_code: story?.sse_error_code ?? null,
+      sse_error_message: story?.sse_error_message ?? null,
+      sse_error_retryable: story?.sse_error_retryable ?? null,
+      raw_story_available: story?.raw_story_available === true,
+      raw_story_char_count: String(story?.raw_story ?? '').length,
+      visible_story_char_count: String(story?.visible_story ?? '').length,
+      complete: story?.complete ?? null,
+      events: Array.isArray(story?.events) ? story.events : []
+    },
+    parser: {
+      status: parser?.status ?? null,
+      error: parser?.error ?? null,
+      block_sequence: parser?.block_sequence ?? [],
+      scene_count: parser?.scene_count ?? null,
+      dialogue_count: parser?.dialogue_count ?? null,
+      thought_count: parser?.thought_count ?? null,
+      choice_count: parser?.choice_count ?? null,
+      warnings: parser?.warnings ?? []
+    },
+    action_status: status ?? null,
+    context_before: beforeContext ?? null,
+    context_after: afterContext ?? null
+  };
+}
+
 function historySnapshot(result) {
   const payload = result?.body?.data ?? result?.body ?? {};
   const records = Array.isArray(payload?.records) ? payload.records : (Array.isArray(payload?.turns) ? payload.turns : []);
@@ -548,9 +589,22 @@ async function readContextAndHistory() {
     const sameActionReplay = {};
     const cut1Turn = async (turn, playerAction) => {
       const actionId = randomUUID();
+      const beforeResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
+      const beforeContext = contextSnapshot(beforeResult);
       const story = await captureStory(base, gameId, { game_id: gameId, action_id: actionId, expected_turn: turn, player_action: playerAction });
       const parser = classifyParserResult(story.raw_story, canaryMaster);
-      if (!story.ok || parser.status === 'failure') throw new Error(`cut1 turn ${turn} Story failure`);
+      if (!story.ok || parser.status === 'failure') {
+        const afterResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
+        const failure = buildStoryFailureDiagnostic({
+          gameId, turn, playerAction, actionId, story, parser,
+          actionStatus: await actionStatus(base, gameId, actionId),
+          beforeContext,
+          afterContext: contextSnapshot(afterResult)
+        });
+        report.turns.push({ turn, stage: 'story', action_id: actionId, diagnostic: failure });
+        report.story_failure_diagnostic = failure;
+        throw new Error(`cut1 turn ${turn} Story failure`);
+      }
       const extractResult = await requestJson(base, '/api/extract', { game_id: gameId, action_id: actionId });
       if (!extractResult.ok) throw new Error(`cut1 turn ${turn} Extract failure: ${JSON.stringify(errorDetails(extractResult.body, extractResult.status))}`);
       const commitResult = await requestJson(base, '/api/commit', { game_id: gameId, action_id: actionId, expected_turn: turn });

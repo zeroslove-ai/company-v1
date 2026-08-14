@@ -11,6 +11,7 @@ import {
   projectionSnapshot,
   buildCompanyEditionMaster,
   buildCanaryProjectionParity,
+  buildStoryFailureDiagnostic,
   canaryMode,
   CUT1_AUTHORITY_MODE,
   PLAYABILITY_MAX_TURNS,
@@ -124,6 +125,38 @@ test('canary uses the Company edition master shape instead of context.master', (
   assert.deepEqual(parity.local_projection.world_rules[0].applicable_scene_actor_ids, ['heroine1']);
   assert.equal(parity.local_projection.scene_obligations.length, 1);
   assert.equal(parity.actor_profiles[0].gender, 'female');
+});
+
+test('live canary preserves bounded Story failure evidence without hidden request data', () => {
+  const diagnostic = buildStoryFailureDiagnostic({
+    gameId: TEST_GAME_ID,
+    turn: 1,
+    playerAction: 'ask about work',
+    actionId: 'action-1',
+    story: {
+      endpoint: '/api/story',
+      http_status: 200,
+      terminal_event: 'error',
+      sse_error_code: 'STORY_PROTOCOL_INVALID',
+      sse_error_message: 'invalid story',
+      raw_story: '[SCENE]visible',
+      visible_story: 'visible',
+      raw_story_available: true,
+      events: [{ name: 'meta', data: { action_id: 'action-1' } }, { name: 'error', data: { code: 'STORY_PROTOCOL_INVALID' } }]
+    },
+    parser: { status: 'failure', error: { code: 'STORY_PROTOCOL_INVALID', message: 'invalid story' }, block_sequence: [] },
+    actionStatus: { processing_status: 'story_failed', error_code: 'STORY_PROTOCOL_INVALID' },
+    beforeContext: { committed_turn: 0, save_revision: 1 },
+    afterContext: { committed_turn: 0, save_revision: 1 }
+  });
+  assert.equal(diagnostic.request.endpoint, '/api/story');
+  assert.equal(diagnostic.story.raw_story_available, true);
+  assert.equal(diagnostic.story.raw_story_char_count, 14);
+  assert.equal(diagnostic.story.events.length, 2);
+  assert.equal(diagnostic.action_status.processing_status, 'story_failed');
+  assert.deepEqual(diagnostic.context_before, { committed_turn: 0, save_revision: 1 });
+  assert.equal('prompt' in diagnostic, false);
+  assert.equal('authorization' in diagnostic, false);
 });
 
 test('cut1 authority mode is distinct from the broad Phase 12K diagnostic', () => {
