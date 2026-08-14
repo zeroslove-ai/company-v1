@@ -26,8 +26,8 @@ Company v1 runtime에 대해 구현 지시, 리뷰, 배포 판단, 완료 승인
 | Cut 1 runtime review range | `00f459277868fc5f2d48dae5c3a2dc655c8afd25..fd7faa09aa61e0575469aeddbe322ca4253262e3` |
 | Stage A rollout-prep SHA | `c345107f5017184ed542210c4249acc94a293af4` |
 | Live gate correction / API deploy review SHA | `96888a3492c0d85f6f3c6649217d842e6d391494` |
-| Deployed API source | `b0e9e38a227e452183c389e80f9153f694c5c876` |
-| Deployed API Worker Version | `3068e016-da34-44ca-9c6e-aadb5a61956a` |
+| Deployed API source | `3c3b41425f0ef536c5d36aec2d4911e7d8de9a8d` |
+| Deployed API Worker Version | `b440d3ea-b96e-4232-a8cc-fdfa1c497ae1` |
 | Stage B live migration | `20260814051254 / company_v1_authority_enforcement_stage_b` |
 | Canonical branch | `company/runtime-authority-consolidation-v1` |
 | Canonical PR | #65 — OPEN / DRAFT / UNMERGED |
@@ -146,7 +146,7 @@ Verified live TEST facts:
 - approved SECURITY DEFINER RPC invocation succeeds
 - legacy lifecycle, Story, Extract, and CSA-preapply RPCs are removed
 
-The pre-Stage-B scoped Golden Path passed. The first post-Stage-B canary then failed during Opening before Turn 1 because the database rejected a non-four-item choice projection with `opening choices must contain exactly four items`. Cut 1 runtime acceptance is therefore not complete.
+The pre-Stage-B scoped Golden Path passed. The post-Stage-B scoped Golden Path now also passes with the `3c3b414...` Worker: Opening, Turn 1/2 Story/Extract/Commit, replay, context/history, and final reset all succeeded. Cut 1 runtime acceptance is complete; the broad Phase12K clothing evidence remains a separate later-cut item.
 
 ## Test and verification policy — binding
 
@@ -187,24 +187,23 @@ These are evidence/backlog for their designated authority cuts, not incidental C
 
 ## Cut 1 acceptance / rollout sequence
 
-Current state: **Closure source deployed as `b0e9e38a...` / Version `3068e016...`; Stage A and Stage B applied to TEST; pre-Stage-B scoped Golden Path passed; post-Stage-B Opening choice contract failed before Turn 1; PR #65 remains Draft/unmerged; Cut 1 is not complete.**
+Current state: **Closure source `3c3b414...` deployed as Version `b440d3ea...`; Stage A and Stage B applied to TEST; post-Stage-B scoped Golden Path passed; final TEST reset is clean; PR #65 remains Draft/unmerged; Cut 1 runtime acceptance is complete.**
 
 Next sequence, with explicit owner approval for deployment/write steps:
 
-1. Review the Opening choice fail-open candidate; it has not been redeployed.
-2. Run the scoped TEST Golden Path only after the candidate is reviewed and redeployed.
-3. Rerun the scoped TEST Golden Path against the live Stage A/B database, including Opening, Turn 1/2, replay, context/history, and final reset.
-4. Only then declare Cut 1 complete and decide merge/main landing strategy.
-5. Perform Test Suite Reset/Consolidation before later authority cuts inherit the legacy suite as unquestioned contract.
+1. Preserve the exact deployed Worker identity and TEST acceptance evidence.
+2. Decide merge/main landing strategy for PR #65.
+3. Perform Test Suite Reset/Consolidation before later authority cuts inherit the legacy suite as unquestioned contract.
 
 ## Post-Stage-B Opening evidence — verified
 
 - Immutable evidence: `C:\Users\JAEWAN\company-v1-cut1-post-stage-b-980f4c5\cut1-post-stage-b.json`
-- Opening streamed visible content but did not produce a successful `commit_company_opening` result.
-- Captured visible Story contained `0` literal `[CHOICE]` markers; the stream decoder observed `5` choice-block starts and `4` choice-block ends.
-- The available reconstructed Story parsed to `0` choices, `0` non-empty choices, and `0` unique choices. The captured artifact does not contain the final `p_choices` RPC argument; the DB error proves the submitted projection did not satisfy the exact-four contract.
-- The canary performed its final reset successfully; TEST ended clean at `save_revision=828`, `committed_turn=0`, with no actions or turns.
-- The Opening choice fail-open correction is a source/test candidate only until exact-SHA review, redeploy, and a new live retest. The broad Phase12K clothing evidence remains separate.
+- The prior Opening failure was resolved by the exact reviewed source `3c3b414...` and redeployed Worker Version `b440d3ea...`.
+- The post-Stage-B canary observed provider/control choices `4`, parsed choices `4`, and committed Opening choices `4`; `commit_company_opening` succeeded.
+- Turn 1 and Turn 2 Story/Extract/Commit succeeded; Story, Extract, and Commit replay all returned their replay/idempotent results without increasing the committed turn or save revision.
+- Context/history readback contained the expected committed turns and story/parsed-block/choice records during the run.
+- Final read-only state: `committed_turn=0`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, `csa_active=[]`, recent turns `0`, history records `0`.
+- Cut 1 runtime acceptance is complete. The broad Phase12K clothing evidence remains separate.
 
 ## Cut 1 final invariants
 
