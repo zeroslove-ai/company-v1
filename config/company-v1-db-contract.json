@@ -21,6 +21,7 @@
       ]
     },
     "stage_b": {
+      "migration_markers": ["20260814000400_company_v1_authority_enforcement_stage_b"],
       "forbidden_functions": [
         {"name": "claim_game_action_stage", "identity_arguments": "uuid, uuid, text, text, text, text, text, boolean"},
         {"name": "fail_game_action_stage", "identity_arguments": "uuid, uuid, text, text, text, text, text"},

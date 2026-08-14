@@ -7,34 +7,34 @@ import { createSupabaseClient } from '../src/api/supabase.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const stageA = read('supabase/migrations/20260814000100_company_v1_action_lifecycle_rpc_stage_a.sql');
-const closureStageA = read('supabase/migrations/20260814000300_company_v1_action_ownership_closure_stage_a.sql');
-const stageB = read('supabase/migrations/20260814000200_company_v1_authority_enforcement_stage_b.sql');
+const stageA = read('supabase/migrations/20260814000300_company_v1_action_ownership_closure_stage_a.sql');
+const stageB = read('supabase/migrations/20260814000400_company_v1_authority_enforcement_stage_b.sql');
 const clientSource = read('src/api/supabase.js');
 const routeSource = read('src/api/turn-routes.js');
 
-test('Cut 1 Stage A defines atomic status/error CAS and the actual lifecycle graph', () => {
+test('Cut 1 Stage A defines atomic owner CAS and the actual lifecycle graph', () => {
   for (const state of ['story_streaming', 'extracting', 'committing', 'ready', 'story_failed', 'extract_failed', 'commit_failed', 'committed']) {
     assert.match(read('supabase/migrations/20260803000100_company_v1_core_schema.sql'), new RegExp(`'${state}'`));
   }
   assert.match(stageA, /claim_game_action_stage/);
   assert.match(stageA, /fail_game_action_stage/);
-  assert.match(stageA, /p_expected_error_mode text/);
-  assert.match(stageA, /p_expected_error_code text/);
+  assert.match(stageA, /p_expected_owner_mode text/);
+  assert.match(stageA, /p_expected_owner_token text/);
+  assert.match(stageA, /p_next_owner_token text/);
   assert.match(stageA, /p_next_error_code text/);
   assert.match(stageA, /p_require_stale boolean/);
   assert.match(stageA, /interval '3 minutes'/);
-  assert.match(stageA, /fresh story claim requires NULL expected error condition/);
+  assert.match(stageA, /fresh story claim requires NULL owner condition/);
   assert.match(stageA, /v_mode = 'ANY'/);
-  assert.match(stageA, /v_mode = 'NULL' and error_code is null/);
-  assert.match(stageA, /v_mode = 'EXACT' and error_code = p_expected_error_code/);
+  assert.match(stageA, /v_mode = 'NULL' and stage_owner_token is null/);
+  assert.match(stageA, /v_mode = 'EXACT' and stage_owner_token = p_expected_owner_token/);
   assert.match(stageA, /returning \* into v_action/);
   assert.match(stageA, /extract_failed.*extracting/s);
   assert.match(routeSource, /extracting.*extractOwnerToken/s);
   assert.match(stageA, /story_streaming.*story_failed/s);
   assert.match(stageA, /processing_status = 'committing'[\s\S]*error_code = null[\s\S]*updated_at = now\(\)/);
   assert.match(stageA, /record_story_result_owned/);
-  assert.match(stageA, /processing_status <> 'story_streaming' or v_action\.error_code <> p_owner_token/);
+  assert.match(stageA, /processing_status <> 'story_streaming' or v_action\.stage_owner_token <> p_owner_token/);
   assert.match(routeSource, /processing_status === 'story_failed'/);
   assert.match(routeSource, /storyOwnerToken/);
   assert.match(routeSource, /stage_owner_token/);
@@ -44,18 +44,18 @@ test('Cut 1 Stage A defines atomic status/error CAS and the actual lifecycle gra
 });
 
 test('Closure Stage A defines the shared owner-token contract for Story and Extract', () => {
-  assert.match(closureStageA, /stage_owner_token text null/);
-  assert.match(closureStageA, /stage_claimed_at timestamptz null/);
-  assert.match(closureStageA, /p_expected_owner_mode text/);
-  assert.match(closureStageA, /p_expected_owner_token text/);
-  assert.match(closureStageA, /p_next_owner_token text/);
-  assert.match(closureStageA, /stage_claimed_at <= now\(\) - interval '3 minutes'/);
-  assert.match(closureStageA, /record_extract_result_owned/);
-  assert.match(closureStageA, /stage_owner_token <> p_owner_token/);
-  assert.match(closureStageA, /record_story_result.*stage_owner_token is not null/s);
-  assert.match(closureStageA, /reserve_turn_action.*stage_claimed_at/s);
-  assert.match(closureStageA, /action_id <> p_action_id/);
-  assert.match(closureStageA, /stage_owner_token = null[\s\S]*stage_claimed_at = null/);
+  assert.match(stageA, /stage_owner_token text null/);
+  assert.match(stageA, /stage_claimed_at timestamptz null/);
+  assert.match(stageA, /p_expected_owner_mode text/);
+  assert.match(stageA, /p_expected_owner_token text/);
+  assert.match(stageA, /p_next_owner_token text/);
+  assert.match(stageA, /stage_claimed_at <= now\(\) - interval '3 minutes'/);
+  assert.match(stageA, /record_extract_result_owned/);
+  assert.match(stageA, /stage_owner_token <> p_owner_token/);
+  assert.match(stageA, /record_story_result.*stage_owner_token is not null/s);
+  assert.match(stageA, /reserve_turn_action.*stage_claimed_at/s);
+  assert.match(stageA, /action_id <> p_action_id/);
+  assert.match(stageA, /stage_owner_token = null[\s\S]*stage_claimed_at = null/);
   assert.doesNotMatch(routeSource, /extract_in_progress/);
   assert.match(routeSource, /extractOwnerToken/);
   assert.match(routeSource, /recordExtractResultOwned/);
