@@ -94,12 +94,16 @@ export function evaluateCatalog(manifest, catalog, stage = 'stage_a') {
 
 export function evaluateSceneCatalog(manifest, catalog, stage = 'stage_a') {
   const failures = [];
+  const stageNames = stage === 'stage_b' ? ['stage_a', 'stage_b'] : [stage];
+  const stages = stageNames.map(name => manifest?.stages?.[name] ?? {});
   const current = manifest?.stages?.[stage] ?? {};
   const migrationNames = new Set((catalog?.migrations ?? []).map(item => String(item?.name ?? '')));
-  for (const migrationName of current.required_migration_names ?? []) {
+  const requiredMigrationNames = [...new Set(stages.flatMap(item => item.required_migration_names ?? []))];
+  for (const migrationName of requiredMigrationNames) {
     if (!migrationNames.has(migrationName)) failures.push(`missing scene migration name: ${migrationName}`);
   }
-  for (const expected of current.functions ?? []) {
+  const expectedFunctions = [...new Map(stages.flatMap(item => item.functions ?? []).map(item => [functionKey(item), item])).values()];
+  for (const expected of expectedFunctions) {
     const actual = findFunction(catalog, expected);
     if (!actual) {
       failures.push(`missing scene function: ${functionKey(expected)}`);
@@ -115,7 +119,7 @@ export function evaluateSceneCatalog(manifest, catalog, stage = 'stage_a') {
       failures.push(`unexpected scene service_role EXECUTE: ${functionKey(expected)}`);
     }
   }
-  const requiredProbes = current.probes ?? [];
+  const requiredProbes = [...new Set(stages.flatMap(item => item.probes ?? []))];
   if (requiredProbes.length > 0 && (!catalog?.scene_probes || typeof catalog.scene_probes !== 'object' || Array.isArray(catalog.scene_probes))) {
     failures.push('missing scene behavioral-probe catalog');
   }

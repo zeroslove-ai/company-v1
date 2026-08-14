@@ -29,6 +29,7 @@ Company v1 runtime에 대해 구현 지시, 리뷰, 배포 판단, 완료 승인
 | Deployed API source | `3c3b41425f0ef536c5d36aec2d4911e7d8de9a8d` |
 | Deployed API Worker Version | `b440d3ea-b96e-4232-a8cc-fdfa1c497ae1` |
 | Stage B live migration | `20260814051254 / company_v1_authority_enforcement_stage_b` |
+| Cut 2 Scene Stage A review SHA | `4f5d77d9bde813d977c99327fe077edb0acb03ff` |
 | Canonical branch | `company/runtime-authority-consolidation-v1` |
 | Canonical PR | #65 — OPEN / DRAFT / UNMERGED |
 | TEST game | `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` |
@@ -227,14 +228,30 @@ Next sequence, with explicit owner approval for deployment/write steps:
 9. Stage B removes raw gameplay DML and obsolete/legacy duplicate writers after staged compatibility verification.
 10. An API SHA whose required DB contract is absent must be blocked from deployment.
 
-## Cut 2 scene/location/presence candidate (not live)
+## Cut 2 scene/location/presence candidate — Stage A live, acceptance pending
 
 The source candidate branch is `company/scene-location-presence-v1`, based on
-the accepted test-suite line. It introduces strict `save.scene` v1 reading,
-legacy-only bootstrap, one canonical scene reducer, a compatibility projection,
-typed ephemeral navigation intent, and evidence-gated location/presence
-observation. The additive source migrations
-`20260814000500_company_v1_scene_authority_stage_a.sql` and
-`20260814000600_company_v1_scene_authority_stage_b.sql` are not applied. No
-Worker is deployed from this candidate. The candidate PR and final SHA are
-intentionally recorded only after the branch is pushed and reviewed.
+the accepted test-suite line. The reviewed source is
+`4f5d77d9bde813d977c99327fe077edb0acb03ff` and introduces strict `save.scene`
+v1 reading, legacy-only bootstrap, one canonical scene reducer, a
+compatibility projection, typed ephemeral navigation intent, and evidence-gated
+location/presence observation.
+
+Operator-verified TEST facts:
+
+- Scene Stage A migration is applied as version `20260814091536` with name
+  `company_v1_scene_authority_stage_a`.
+- Behavioral probes pass: `legacy_only_save_accepted`,
+  `canonical_scene_save_accepted`, `canonical_missing_nullable_key_rejected`,
+  and `reset_returns_scene_v1` (the reset probe used transaction rollback).
+- Final TEST readback is `committed_turn=0`, `save_revision=833`,
+  `actions=0`, and `turns=0`.
+- Live ACL readback found `service_role` EXECUTE on the internal helpers
+  `company_validate_scene_v1(jsonb, boolean)` and
+  `company_bootstrap_scene_v1(jsonb)`, contrary to the reviewed manifest.
+- Scene Stage A acceptance is **not complete**. The historical 00500 migration
+  is immutable; additive ACL closure source
+  `20260814000550_company_v1_scene_authority_stage_a_acl_closure.sql` is
+  pending review and application.
+- API deployment from Cut 2 is `0`; Scene Stage B is not applied; Production
+  access is `0`.

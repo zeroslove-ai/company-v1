@@ -60,6 +60,7 @@ function sceneCatalog(probes) {
   return {
     migrations: [
       { name: 'company_v1_scene_authority_stage_a' },
+      { name: 'company_v1_scene_authority_stage_a_acl_closure' },
       { name: 'company_v1_scene_authority_stage_b' }
     ],
     functions: [
@@ -90,6 +91,47 @@ test('scene Stage B gate fails without canonical-required probes', () => {
   }), 'stage_b');
   assert.equal(result.pass, false);
   assert.ok(result.failures.some(item => item.includes('legacy_only_save_rejected')));
+});
+
+test('scene Stage A gate requires the ACL closure migration', () => {
+  const catalog = sceneCatalog({
+    legacy_only_save_accepted: true,
+    canonical_scene_save_accepted: true,
+    canonical_missing_nullable_key_rejected: true,
+    reset_returns_scene_v1: true
+  });
+  catalog.migrations = catalog.migrations.filter(item => item.name !== 'company_v1_scene_authority_stage_a_acl_closure');
+  const result = evaluateSceneCatalog(sceneManifest, catalog, 'stage_a');
+  assert.equal(result.pass, false);
+  assert.ok(result.failures.some(item => item.includes('company_v1_scene_authority_stage_a_acl_closure')));
+});
+
+test('scene Stage B gate is cumulative and rejects a Stage B-only catalog', () => {
+  const catalog = sceneCatalog({
+    legacy_only_save_accepted: true,
+    canonical_scene_save_accepted: true,
+    canonical_missing_nullable_key_rejected: true,
+    reset_returns_scene_v1: true,
+    legacy_only_save_rejected: true,
+    canonical_without_legacy_scene_mirrors_accepted: true
+  });
+  catalog.migrations = [{ name: 'company_v1_scene_authority_stage_b' }];
+  const result = evaluateSceneCatalog(sceneManifest, catalog, 'stage_b');
+  assert.equal(result.pass, false);
+  assert.ok(result.failures.some(item => item.includes('company_v1_scene_authority_stage_a')));
+  assert.ok(result.failures.some(item => item.includes('company_v1_scene_authority_stage_a_acl_closure')));
+});
+
+test('scene Stage B gate accepts the cumulative Stage A, ACL closure, and Stage B catalog', () => {
+  const result = evaluateSceneCatalog(sceneManifest, sceneCatalog({
+    legacy_only_save_accepted: true,
+    canonical_scene_save_accepted: true,
+    canonical_missing_nullable_key_rejected: true,
+    reset_returns_scene_v1: true,
+    legacy_only_save_rejected: true,
+    canonical_without_legacy_scene_mirrors_accepted: true
+  }), 'stage_b');
+  assert.equal(result.pass, true);
 });
 
 test('scene gate fails closed when behavioral-probe catalog is absent', () => {

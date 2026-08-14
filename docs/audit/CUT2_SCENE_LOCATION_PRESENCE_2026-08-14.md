@@ -1,13 +1,15 @@
 # Cut 2 Scene / Location / Presence Candidate Audit
 
 Status: implementation candidate only. This document records source-level
-changes on `company/scene-location-presence-v1`; no Cut 2 migration has been
-applied and no Worker has been deployed from this branch.
+changes on `company/scene-location-presence-v1`; Scene Stage A behavior is live
+in TEST, but its ACL acceptance remains pending the additive closure migration.
+No Worker has been deployed from this branch.
 
 ## Identity and safety boundary
 
 - Start SHA: `a9d9c95efd3b8433873a693e34ab14e8f733a3e5`
 - Review amendment base SHA: `8e5e6c524c77b8f9793585c3ca37c9f5bf8210f1`
+- ACL closure review base SHA: `4f5d77d9bde813d977c99327fe077edb0acb03ff`
 - Branch: `company/scene-location-presence-v1`
 - Base: `company/test-suite-consolidation-v1`
 - Runtime baseline: Cut 1 deployed source remains
@@ -73,13 +75,24 @@ are migration-faithful: public wrapper functions are executable by
 `service_role`, while internal SECURITY DEFINER helpers are not granted
 directly.
 
-The additive, unapplied source migrations are:
+The source migration files and pending candidates are:
 
 - `supabase/migrations/20260814000500_company_v1_scene_authority_stage_a.sql`
   - adds scene validation/bootstrap helpers and a compatibility-safe validator
-    and reset definition
+    and reset definition; historical source applied live under version
+    `20260814091536`
+- `supabase/migrations/20260814000550_company_v1_scene_authority_stage_a_acl_closure.sql`
+  - closes the live `service_role` EXECUTE gap for internal Stage A helpers
 - `supabase/migrations/20260814000600_company_v1_scene_authority_stage_b.sql`
   - makes `scene` structurally required and legacy scene mirrors optional
+
+Operator-verified live TEST Stage A facts: migration version `20260814091536`
+is recorded as `company_v1_scene_authority_stage_a`; all four behavioral probes
+pass; and the clean readback is `committed_turn=0`, `save_revision=833`,
+`actions=0`, `turns=0`. The live ACL nevertheless grants `service_role`
+EXECUTE to both internal helpers, so Stage A acceptance is not complete. The
+00500 migration is historical and immutable; the ACL closure is source-pending
+and has not been applied. Stage B and API deployment remain zero.
 
 The candidate gate manifest is
 `config/company-v1-scene-db-contract.json`. The gate checks migration names,
@@ -87,7 +100,7 @@ function type identities, SECURITY DEFINER, fixed `search_path = public,
 pg_temp`, migration-faithful EXECUTE expectations, and stage-specific
 behavioral probe results.
 Future rollout remains Stage A → live gate → API cutover → Golden Path → Stage
-B. These migrations are source candidates only and have not been applied.
+B. The 00550 ACL closure and 00600 Stage B candidates have not been applied.
 
 `company_validate_scene_v1()` requires the same canonical scene key set as
 `readCanonicalSceneV1()`, including nullable keys. The

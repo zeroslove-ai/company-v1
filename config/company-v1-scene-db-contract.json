@@ -3,7 +3,10 @@
   "contract_version": 1,
   "stages": {
     "stage_a": {
-      "required_migration_names": ["company_v1_scene_authority_stage_a"],
+      "required_migration_names": [
+        "company_v1_scene_authority_stage_a",
+        "company_v1_scene_authority_stage_a_acl_closure"
+      ],
       "functions": [
         {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean", "service_role_execute": false},
         {"name": "company_bootstrap_scene_v1", "identity_arguments": "jsonb", "service_role_execute": false},
@@ -18,9 +21,14 @@
       ]
     },
     "stage_b": {
-      "required_migration_names": ["company_v1_scene_authority_stage_b"],
+      "required_migration_names": [
+        "company_v1_scene_authority_stage_a",
+        "company_v1_scene_authority_stage_a_acl_closure",
+        "company_v1_scene_authority_stage_b"
+      ],
       "functions": [
         {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean", "service_role_execute": false},
+        {"name": "company_bootstrap_scene_v1", "identity_arguments": "jsonb", "service_role_execute": false},
         {"name": "validate_company_save_v1", "identity_arguments": "jsonb", "service_role_execute": true},
         {"name": "reset_company_game", "identity_arguments": "uuid, text", "service_role_execute": true}
       ],
