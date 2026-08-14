@@ -62,7 +62,9 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
     }
     const parsed = new URL(textUrl);
     if (parsed.pathname === '/rest/v1/game_actions' && (init.method ?? 'GET') === 'GET') {
-      return json([actions.get(parsed.searchParams.get('action_id')?.replace('eq.', ''))].filter(Boolean));
+      const action = actions.get(parsed.searchParams.get('action_id')?.replace('eq.', ''));
+      if (action?.error_code === 'extract_in_progress' && !action.stage_owner_token) action.stage_owner_token = 'extract:legacy';
+      return json([action].filter(Boolean));
     }
     if (parsed.pathname === '/rest/v1/game_actions' && init.method === 'PATCH') {
       const id = parsed.searchParams.get('action_id').replace('eq.', '');
@@ -93,13 +95,20 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
     }
     if (rpc === 'claim_game_action_stage' || rpc === 'fail_game_action_stage') {
       const action = actions.get(args.p_action_id);
-      const errorMatches = args.p_expected_error_mode === 'ANY'
-        || (args.p_expected_error_mode === 'NULL' && action?.error_code == null)
-        || (args.p_expected_error_mode === 'EXACT' && action?.error_code === args.p_expected_error_code);
-      const staleEnough = !args.p_require_stale
-        || Date.parse(action?.updated_at ?? '') <= Date.now() - (3 * 60 * 1000);
-      if (!action || action.processing_status !== args.p_expected_status || !errorMatches || !staleEnough) return json(null);
-      Object.assign(action, { processing_status: args.p_next_status, error_code: args.p_next_error_code, updated_at: new Date().toISOString() });
+      const isFailure = rpc === 'fail_game_action_stage';
+      const ownerMatches = args.p_expected_owner_mode === 'ANY'
+        || (args.p_expected_owner_mode === 'NULL' && action?.stage_owner_token == null)
+        || (args.p_expected_owner_mode === 'EXACT' && action?.stage_owner_token === args.p_expected_owner_token);
+      const staleEnough = !args.p_require_stale || action?.stage_owner_token == null
+        || Date.parse(action?.stage_claimed_at ?? '') <= Date.now() - (3 * 60 * 1000);
+      if (!action || action.processing_status !== args.p_expected_status || !ownerMatches || !staleEnough) return json(null);
+      Object.assign(action, {
+        processing_status: args.p_next_status,
+        stage_owner_token: isFailure ? null : args.p_next_owner_token,
+        stage_claimed_at: isFailure ? null : new Date().toISOString(),
+        error_code: args.p_next_error_code,
+        updated_at: new Date().toISOString()
+      });
       return json(action);
     }
     if (rpc === 'record_story_result') {
@@ -109,14 +118,20 @@ function createMockFetch({ incompleteStory = false, conflict = false, missingCon
     }
     if (rpc === 'record_story_result_owned') {
       const action = actions.get(args.p_action_id);
-      if (!action || action.processing_status !== 'story_streaming' || action.error_code !== args.p_owner_token) return json(null);
-      Object.assign(action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting', error_code: null, updated_at: new Date().toISOString() });
+      if (!action || action.processing_status !== 'story_streaming' || action.stage_owner_token !== args.p_owner_token) return json(null);
+      Object.assign(action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting', stage_owner_token: null, stage_claimed_at: null, error_code: null, updated_at: new Date().toISOString() });
       return json({ replayed: false, processing_status: 'extracting' });
     }
     if (rpc === 'record_extract_result') {
       const action = actions.get(args.p_action_id);
       Object.assign(action, { extract_delta: args.p_extract_delta, processing_status: 'committing', error_code: null, updated_at: new Date().toISOString() });
       return json({ replayed: false });
+    }
+    if (rpc === 'record_extract_result_owned') {
+      const action = actions.get(args.p_action_id);
+      if (!action || action.processing_status !== 'extracting' || action.stage_owner_token !== args.p_owner_token) return json(null);
+      Object.assign(action, { extract_delta: args.p_extract_delta, processing_status: 'committing', stage_owner_token: null, stage_claimed_at: null, error_code: null, updated_at: new Date().toISOString() });
+      return json({ replayed: false, processing_status: 'committing' });
     }
     if (rpc === 'apply_reserved_csa_transaction') return json({ success: true, applied: true, replayed: false });
     if (rpc === 'commit_company_turn') {
@@ -223,9 +238,9 @@ test('Phase 2 retries one failed Story explicitly and then replays the persisted
     .filter(call => call.url.includes('/rpc/claim_game_action_stage'))
     .map(call => JSON.parse(call.body));
   assert.equal(retryClaims.length, 2);
-  assert.match(retryClaims[0].p_next_error_code, /^story_in_progress:/);
-  assert.match(retryClaims[1].p_next_error_code, /^story_in_progress:/);
-  assert.notEqual(retryClaims[0].p_next_error_code, retryClaims[1].p_next_error_code);
+  assert.match(retryClaims[0].p_next_owner_token, /^story:/);
+  assert.match(retryClaims[1].p_next_owner_token, /^story:/);
+  assert.notEqual(retryClaims[0].p_next_owner_token, retryClaims[1].p_next_owner_token);
   assert.equal(mock.actions.get(actionId).processing_status, 'extracting');
   await (await worker.fetch(request('/api/story', body), env)).text();
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
@@ -240,8 +255,8 @@ test('fresh Story reservation acquires a unique fenced owner token', async () =>
   const claim = mock.calls.find(call => call.url.includes('/rpc/claim_game_action_stage'));
   assert.ok(claim);
   const claimBody = JSON.parse(claim.body);
-  assert.equal(claimBody.p_expected_error_mode, 'NULL');
-  assert.match(claimBody.p_next_error_code, /^story_in_progress:/);
+  assert.equal(claimBody.p_expected_owner_mode, 'NULL');
+  assert.match(claimBody.p_next_owner_token, /^story:/);
   assert.equal(mock.actions.get(actionId).error_code, null);
 });
 
@@ -269,7 +284,7 @@ test('Extract malformed JSON fails open to a degraded observation', async () => 
   assert.equal(mock.actions.get(actionId).processing_status, 'committing');
   assert.equal(mock.actions.get(actionId).error_code, null);
   assert.equal(mock.actions.get(actionId).extract_delta.outcome, 'degraded');
-  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), true);
+  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result_owned')), true);
 });
 
 test('Extract upstream failure remains retryable instead of degrading', async () => {
@@ -298,11 +313,11 @@ test('Phase 2 keeps infrastructure/context failures retryable', async () => {
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 2);
 });
 
-test('a stuck story_streaming action retries the story once, but Extract in progress still blocks duplicates', async () => {
+test('a stale story owner is recovered once, while a non-stale Extract owner blocks duplicates', async () => {
   const mock = createMockFetch();
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   // story_streaming + 스토리 없음 = 좌초 액션 → 재시도 허용 (재개 경로)
-  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming', updated_at: new Date(Date.now() - (4 * 60 * 1000)).toISOString() });
+  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming', stage_owner_token: 'story:old', stage_claimed_at: new Date(Date.now() - (4 * 60 * 1000)).toISOString(), updated_at: new Date().toISOString() });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'wait' }), env);
   assert.equal(story.status, 200);
   await story.text();  // SSE body 소비 → run 실행 → LLM 호출
@@ -310,7 +325,7 @@ test('a stuck story_streaming action retries the story once, but Extract in prog
   const staleClaim = mock.calls.find(call => call.url.includes('/rpc/claim_game_action_stage'));
   assert.equal(JSON.parse(staleClaim.body).p_require_stale, true);
   // extract 진행 중(extracting + 스토리 있음)이면 중복 extract 차단 (409 유지)
-  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', story_text: '[SCENE]\nSaved', processing_status: 'extracting', error_code: 'extract_in_progress' });
+  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', story_text: '[SCENE]\nSaved', processing_status: 'extracting', stage_owner_token: 'extract:old', stage_claimed_at: new Date().toISOString(), error_code: null });
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
   assert.equal(extract.status, 409);
   assert.equal(mock.calls.filter(call => call.url.startsWith('https://llm.test')).length, 1);
@@ -319,7 +334,7 @@ test('a stuck story_streaming action retries the story once, but Extract in prog
 test('non-stale story_streaming replay cannot be reclaimed', async () => {
   const mock = createMockFetch();
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
-  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming', updated_at: new Date().toISOString() });
+  mock.actions.set(actionId, { action_id: actionId, turn_id: 'turn-8', expected_turn: 8, player_action: 'wait', processing_status: 'story_streaming', stage_owner_token: 'story:current', stage_claimed_at: new Date().toISOString(), updated_at: new Date().toISOString() });
   const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'wait' }), env);
   assert.equal(story.status, 409);
   assert.match(await story.text(), /action_in_progress/);
@@ -337,30 +352,55 @@ test('Story owner fencing rejects late A after stale takeover by B', async () =>
     updated_at: new Date(Date.now() - (4 * 60 * 1000)).toISOString()
   });
   const claimA = await mock.fetchImpl(rpc('claim_game_action_stage'), body({
-    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_error_mode: 'NULL',
-    p_expected_error_code: null, p_next_status: 'story_streaming', p_next_error_code: 'story_in_progress:A', p_require_stale: false
+    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_owner_mode: 'NULL',
+    p_expected_owner_token: null, p_next_status: 'story_streaming', p_next_owner_token: 'story:A', p_next_error_code: null, p_require_stale: false
   }));
-  assert.equal((await claimA.json()).error_code, 'story_in_progress:A');
-  mock.actions.get(actionId).updated_at = new Date(Date.now() - (4 * 60 * 1000)).toISOString();
+  assert.equal((await claimA.json()).stage_owner_token, 'story:A');
+  mock.actions.get(actionId).stage_claimed_at = new Date(Date.now() - (4 * 60 * 1000)).toISOString();
   const claimB = await mock.fetchImpl(rpc('claim_game_action_stage'), body({
-    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_error_mode: 'ANY',
-    p_expected_error_code: null, p_next_status: 'story_streaming', p_next_error_code: 'story_in_progress:B', p_require_stale: true
+    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_owner_mode: 'ANY',
+    p_expected_owner_token: null, p_next_status: 'story_streaming', p_next_owner_token: 'story:B', p_next_error_code: null, p_require_stale: true
   }));
-  assert.equal((await claimB.json()).error_code, 'story_in_progress:B');
+  assert.equal((await claimB.json()).stage_owner_token, 'story:B');
   const latePersist = await mock.fetchImpl(rpc('record_story_result_owned'), body({
-    p_action_id: actionId, p_story_text: 'late A', p_parsed_blocks: {}, p_owner_token: 'story_in_progress:A'
+    p_action_id: actionId, p_story_text: 'late A', p_parsed_blocks: {}, p_owner_token: 'story:A'
   }));
   assert.equal(await latePersist.json(), null);
   const lateFail = await mock.fetchImpl(rpc('fail_game_action_stage'), body({
-    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_error_mode: 'EXACT',
-    p_expected_error_code: 'story_in_progress:A', p_next_status: 'story_failed', p_next_error_code: 'late_A'
+    p_action_id: actionId, p_expected_status: 'story_streaming', p_expected_owner_mode: 'EXACT',
+    p_expected_owner_token: 'story:A', p_next_status: 'story_failed', p_next_error_code: 'late_A', p_require_owner_fence: true
   }));
   assert.equal(await lateFail.json(), null);
   const persistB = await mock.fetchImpl(rpc('record_story_result_owned'), body({
-    p_action_id: actionId, p_story_text: 'B', p_parsed_blocks: {}, p_owner_token: 'story_in_progress:B'
+    p_action_id: actionId, p_story_text: 'B', p_parsed_blocks: {}, p_owner_token: 'story:B'
   }));
   assert.equal((await persistB.json()).processing_status, 'extracting');
   assert.equal(mock.actions.get(actionId).error_code, null);
+});
+
+test('Extract owner fencing rejects late success and failure after stale takeover', async () => {
+  const mock = createMockFetch();
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  await (await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'prepare extract ownership' }), env)).text();
+  const action = mock.actions.get(actionId);
+  action.processing_status = 'extracting';
+  action.stage_owner_token = 'extract:A';
+  action.stage_claimed_at = new Date(Date.now() - (4 * 60 * 1000)).toISOString();
+  const response = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId }), env);
+  assert.equal(response.status, 200);
+  assert.equal(action.processing_status, 'committing');
+  assert.equal(action.stage_owner_token, null);
+  const rpc = name => `https://supabase.test/rest/v1/rpc/${name}`;
+  const body = value => ({ method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) });
+  const lateSuccess = await mock.fetchImpl(rpc('record_extract_result_owned'), body({
+    p_action_id: actionId, p_extract_delta: { outcome: 'late-A' }, p_owner_token: 'extract:A'
+  }));
+  assert.equal(await lateSuccess.json(), null);
+  const lateFailure = await mock.fetchImpl(rpc('fail_game_action_stage'), body({
+    p_action_id: actionId, p_expected_status: 'extracting', p_expected_owner_mode: 'EXACT',
+    p_expected_owner_token: 'extract:A', p_next_status: 'extract_failed', p_next_error_code: 'late_A', p_require_owner_fence: true
+  }));
+  assert.equal(await lateFailure.json(), null);
 });
 
 test('authority-violating Extract envelopes fail open without becoming runtime authority', async () => {
@@ -373,7 +413,7 @@ test('authority-violating Extract envelopes fail open without becoming runtime a
   const payload = await response.json();
   assert.equal(payload.data.extract.outcome, 'degraded');
   assert.equal(mock.actions.get(actionId).extract_delta.outcome, 'degraded');
-  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result')), true);
+  assert.equal(mock.calls.some(call => call.url.includes('record_extract_result_owned')), true);
 });
 
 test('Extract uses Story choices and the 5000-token envelope, while truncated JSON fails open', async () => {

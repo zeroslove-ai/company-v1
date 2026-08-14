@@ -1,0 +1,34 @@
+{
+  "contract_id": "company-v1-action-authority",
+  "contract_version": 2,
+  "stages": {
+    "stage_a": {
+      "migration_markers": ["20260814000300_company_v1_action_ownership_closure_stage_a"],
+      "columns": [
+        {"table": "game_actions", "column": "stage_owner_token"},
+        {"table": "game_actions", "column": "stage_claimed_at"}
+      ],
+      "functions": [
+        {"name": "claim_game_action_stage", "identity_arguments": "uuid, uuid, text, text, text, text, text, text, boolean"},
+        {"name": "fail_game_action_stage", "identity_arguments": "uuid, uuid, text, text, text, text, text, boolean"},
+        {"name": "record_story_result_owned", "identity_arguments": "uuid, uuid, text, jsonb, text"},
+        {"name": "record_extract_result_owned", "identity_arguments": "uuid, uuid, jsonb, text"}
+      ],
+      "allowed_compatibility_functions": [
+        {"name": "record_story_result", "identity_arguments": "uuid, uuid, text, jsonb"},
+        {"name": "record_extract_result", "identity_arguments": "uuid, uuid, jsonb"},
+        {"name": "apply_reserved_csa_transaction", "identity_arguments": "uuid, uuid, integer"}
+      ]
+    },
+    "stage_b": {
+      "forbidden_functions": [
+        {"name": "claim_game_action_stage", "identity_arguments": "uuid, uuid, text, text, text, text, text, boolean"},
+        {"name": "fail_game_action_stage", "identity_arguments": "uuid, uuid, text, text, text, text, text"},
+        {"name": "record_story_result", "identity_arguments": "uuid, uuid, text, jsonb"},
+        {"name": "record_extract_result", "identity_arguments": "uuid, uuid, jsonb"},
+        {"name": "apply_reserved_csa_transaction", "identity_arguments": "uuid, uuid, integer"}
+      ],
+      "forbidden_direct_dml_tables": ["games", "game_master", "game_save", "game_actions", "game_turns", "image_library"]
+    }
+  }
+}

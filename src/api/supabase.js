@@ -69,27 +69,29 @@ export function createSupabaseClient(env, fetchImpl) {
       const payload = await request(`${baseUrl}/rest/v1/game_turns?${query}`, { method: 'GET' });
       return Array.isArray(payload) ? payload[0] ?? null : payload;
     },
-    claimGameActionStage(gameId, actionId, expectedStatus, expectedErrorMode, expectedErrorCode, nextStatus, nextErrorCode = null, requireStale = false) {
+    claimGameActionStage(gameId, actionId, expectedStatus, expectedOwnerMode, expectedOwnerToken, nextStatus, nextOwnerToken, nextErrorCode = null, requireStale = false) {
       return this.callRpc('claim_game_action_stage', {
         p_game_id: gameId,
         p_action_id: actionId,
         p_expected_status: expectedStatus,
-        p_expected_error_mode: expectedErrorMode,
-        p_expected_error_code: expectedErrorCode,
+        p_expected_owner_mode: expectedOwnerMode,
+        p_expected_owner_token: expectedOwnerToken,
         p_next_status: nextStatus,
+        p_next_owner_token: nextOwnerToken,
         p_next_error_code: nextErrorCode,
         p_require_stale: requireStale
       });
     },
-    failGameActionStage(gameId, actionId, expectedStatus, expectedErrorMode, expectedErrorCode, nextStatus, nextErrorCode) {
+    failGameActionStage(gameId, actionId, expectedStatus, expectedOwnerMode, expectedOwnerToken, nextStatus, nextErrorCode) {
       return this.callRpc('fail_game_action_stage', {
         p_game_id: gameId,
         p_action_id: actionId,
         p_expected_status: expectedStatus,
-        p_expected_error_mode: expectedErrorMode,
-        p_expected_error_code: expectedErrorCode,
+        p_expected_owner_mode: expectedOwnerMode,
+        p_expected_owner_token: expectedOwnerToken,
         p_next_status: nextStatus,
-        p_next_error_code: nextErrorCode
+        p_next_error_code: nextErrorCode,
+        p_require_owner_fence: true
       });
     },
     recordStoryResultOwned(gameId, actionId, storyText, parsedBlocks, ownerToken) {
@@ -98,6 +100,14 @@ export function createSupabaseClient(env, fetchImpl) {
         p_action_id: actionId,
         p_story_text: storyText,
         p_parsed_blocks: parsedBlocks,
+        p_owner_token: ownerToken
+      });
+    },
+    recordExtractResultOwned(gameId, actionId, extractDelta, ownerToken) {
+      return this.callRpc('record_extract_result_owned', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_extract_delta: extractDelta,
         p_owner_token: ownerToken
       });
     },

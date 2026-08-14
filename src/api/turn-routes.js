@@ -498,7 +498,7 @@ const master = masterFromEdition(edition);
 
     async story(request, env) {
       const requestId = newRequestId();
-      const storyOwnerToken = `story_in_progress:${requestId}`;
+      const storyOwnerToken = `story:${requestId}`;
       const startedAt = Date.now();
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
@@ -537,25 +537,31 @@ const master = masterFromEdition(edition);
         requestedStructuredAction,
         stage: 'story'
       });
-      let retryingStory = false;
+      let storyClaimed = false;
       // story_failed뿐 아니라 story_streaming(스토리 미완료 좌초)도 재시도를 허용한다.
       // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,
       // 이 claim 없이는 (replayed && !retryingStory) 조건이 항상 409로 거부된다.
       if (!action.story_text && action.processing_status === 'story_failed') {
-        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_failed', 'ANY', null, 'story_streaming', storyOwnerToken);
+        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_failed', 'NULL', null, 'story_streaming', storyOwnerToken);
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
-        retryingStory = true;
-      } else if (!action.story_text && action.processing_status === 'story_streaming' && !reservation.replayed) {
-        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_streaming', 'NULL', null, 'story_streaming', storyOwnerToken);
+        storyClaimed = true;
+      } else if (!action.story_text && action.processing_status === 'story_streaming') {
+        const hasOwner = typeof action.stage_owner_token === 'string' && action.stage_owner_token.length > 0;
+        const claimed = await db.claimGameActionStage(
+          gameId,
+          resolvedActionId,
+          'story_streaming',
+          hasOwner ? 'ANY' : 'NULL',
+          null,
+          'story_streaming',
+          storyOwnerToken,
+          null,
+          hasOwner
+        );
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
-        retryingStory = true;
-      } else if (!action.story_text && action.processing_status === 'story_streaming' && reservation.replayed) {
-        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_streaming', 'ANY', null, 'story_streaming', storyOwnerToken, true);
-        if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
-        Object.assign(action, claimed);
-        retryingStory = true;
+        storyClaimed = true;
       }
       const meta = { action_id: reservation.action_id ?? actionId, turn_id: reservation.turn_id ?? action.turn_id, expected_turn: reservation.expected_turn ?? expectedTurn, replayed: Boolean(action.story_text) };
 
@@ -569,7 +575,7 @@ const master = masterFromEdition(edition);
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
         } });
       }
-      if ((reservation.replayed && !retryingStory) || action.processing_status !== 'story_streaming') {
+      if ((!storyClaimed && !action.story_text) || action.processing_status !== 'story_streaming') {
         throw new HttpError(409, 'action_in_progress', 'Action already has recoverable work in progress', true);
       }
 
@@ -760,6 +766,7 @@ const master = masterFromEdition(edition);
 
     async extract(request, env) {
       const requestId = newRequestId();
+      const extractOwnerToken = `extract:${requestId}`;
       const startedAt = Date.now();
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
@@ -777,16 +784,30 @@ const master = masterFromEdition(edition);
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
+      let extractClaimed = false;
       if (action.processing_status === 'extract_failed') {
-        const claimedRetry = await db.claimGameActionStage(gameId, actionId, 'extract_failed', 'ANY', null, 'extracting', null);
+        const claimedRetry = await db.claimGameActionStage(gameId, actionId, 'extract_failed', 'NULL', null, 'extracting', extractOwnerToken);
         if (!claimedRetry) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimedRetry);
+        extractClaimed = true;
       }
       if (action.processing_status !== 'extracting') throw new HttpError(409, 'action_in_progress', 'Action is not ready for Extract', true);
-      if (action.error_code === 'extract_in_progress') throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
-      const claimedExtract = await db.claimGameActionStage(gameId, actionId, 'extracting', 'NULL', null, 'extracting', 'extract_in_progress');
-      if (!claimedExtract) throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
-      Object.assign(action, claimedExtract);
+      if (!extractClaimed) {
+        const hasExtractOwner = typeof action.stage_owner_token === 'string' && action.stage_owner_token.length > 0;
+        const claimedExtract = await db.claimGameActionStage(
+          gameId,
+          actionId,
+          'extracting',
+          hasExtractOwner ? 'ANY' : 'NULL',
+          null,
+          'extracting',
+          extractOwnerToken,
+          null,
+          hasExtractOwner
+        );
+        if (!claimedExtract) throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
+        Object.assign(action, claimedExtract);
+      }
 
       const timing = {};
       try {
@@ -861,7 +882,7 @@ const master = masterFromEdition(edition);
           } catch (error) {
             // Extract is an optional observation. Invalid, truncated, or
             // contract-invalid output degrades deterministically and still
-            // reaches record_extract_result and the single Commit path.
+            // reaches the owned Extract completion RPC and the single Commit path.
             const failOpen = error instanceof GameCoreError
               || error?.code === 'extract_invalid_json'
               || error?.code === 'extract_truncated';
@@ -870,12 +891,13 @@ const master = masterFromEdition(edition);
               extraWarnings: [`extract_fail_open:${error?.code ?? 'invalid_observation'}`]
             });
           }
-        await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
+        const ownedResult = await db.recordExtractResultOwned(gameId, actionId, extract, extractOwnerToken);
+        if (!ownedResult) throw new HttpError(409, 'extract_owner_lost', 'Extract ownership was lost before persistence', true);
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, parsed_blocks: parsedStory });
       } catch (error) {
         // Infrastructure/context/persistence failures remain retryable. Only
         // the single Extract completion itself is fail-open degraded above.
-        await db.failGameActionStage(gameId, actionId, 'extracting', 'ANY', null, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
+        await db.failGameActionStage(gameId, actionId, 'extracting', 'EXACT', extractOwnerToken, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
         throw error;
       } finally {
         logTurnTiming({

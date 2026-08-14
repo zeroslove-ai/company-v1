@@ -16,3 +16,18 @@ revoke insert, update, delete, truncate on table public.image_library from servi
 revoke all on function public.apply_reserved_csa_transaction(uuid, uuid, integer)
   from public, anon, authenticated, service_role;
 drop function if exists public.apply_reserved_csa_transaction(uuid, uuid, integer);
+
+-- Legacy unowned lifecycle writers are removed only after the new Worker has
+-- passed the Stage A contract gate and the external-caller inventory is clean.
+revoke all on function public.claim_game_action_stage(uuid, uuid, text, text, text, text, text, boolean)
+  from public, anon, authenticated, service_role;
+revoke all on function public.fail_game_action_stage(uuid, uuid, text, text, text, text, text)
+  from public, anon, authenticated, service_role;
+revoke all on function public.record_story_result(uuid, uuid, text, jsonb)
+  from public, anon, authenticated, service_role;
+revoke all on function public.record_extract_result(uuid, uuid, jsonb)
+  from public, anon, authenticated, service_role;
+drop function if exists public.record_story_result(uuid, uuid, text, jsonb);
+drop function if exists public.record_extract_result(uuid, uuid, jsonb);
+drop function if exists public.claim_game_action_stage(uuid, uuid, text, text, text, text, text, boolean);
+drop function if exists public.fail_game_action_stage(uuid, uuid, text, text, text, text, text);

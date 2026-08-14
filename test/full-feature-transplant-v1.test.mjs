@@ -87,13 +87,14 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
     }
     if (rpc === 'claim_game_action_stage' || rpc === 'fail_game_action_stage') {
       const action = calls.__action;
-      const errorMatches = args.p_expected_error_mode === 'ANY'
-        || (args.p_expected_error_mode === 'NULL' && action?.error_code == null)
-        || (args.p_expected_error_mode === 'EXACT' && action?.error_code === args.p_expected_error_code);
-      const staleEnough = !args.p_require_stale
-        || Date.parse(action?.updated_at ?? '') <= Date.now() - (3 * 60 * 1000);
-      if (!action || action.processing_status !== args.p_expected_status || !errorMatches || !staleEnough) return json(null);
-      Object.assign(action, { processing_status: args.p_next_status, error_code: args.p_next_error_code, updated_at: new Date().toISOString() });
+      const isFailure = rpc === 'fail_game_action_stage';
+      const ownerMatches = args.p_expected_owner_mode === 'ANY'
+        || (args.p_expected_owner_mode === 'NULL' && action?.stage_owner_token == null)
+        || (args.p_expected_owner_mode === 'EXACT' && action?.stage_owner_token === args.p_expected_owner_token);
+      const staleEnough = !args.p_require_stale || action?.stage_owner_token == null
+        || Date.parse(action?.stage_claimed_at ?? '') <= Date.now() - (3 * 60 * 1000);
+      if (!action || action.processing_status !== args.p_expected_status || !ownerMatches || !staleEnough) return json(null);
+      Object.assign(action, { processing_status: args.p_next_status, stage_owner_token: isFailure ? null : args.p_next_owner_token, stage_claimed_at: isFailure ? null : new Date().toISOString(), error_code: args.p_next_error_code, updated_at: new Date().toISOString() });
       return json(action);
     }
     if (rpc === 'record_story_result') {
@@ -101,13 +102,18 @@ function createMockFetch({ initialSave = freshSave(), storySseText, llmJsonRespo
       return json({ replayed: false });
     }
     if (rpc === 'record_story_result_owned') {
-      if (calls.__action.processing_status !== 'story_streaming' || calls.__action.error_code !== args.p_owner_token) return json(null);
-      Object.assign(calls.__action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting', error_code: null, updated_at: new Date().toISOString() });
+      if (calls.__action.processing_status !== 'story_streaming' || calls.__action.stage_owner_token !== args.p_owner_token) return json(null);
+      Object.assign(calls.__action, { story_text: args.p_story_text, parsed_blocks: args.p_parsed_blocks, processing_status: 'extracting', stage_owner_token: null, stage_claimed_at: null, error_code: null, updated_at: new Date().toISOString() });
       return json({ replayed: false, processing_status: 'extracting' });
     }
     if (rpc === 'record_extract_result') {
       Object.assign(calls.__action, { extract_delta: args.p_extract_delta, processing_status: 'committing' });
       return json({ replayed: false });
+    }
+    if (rpc === 'record_extract_result_owned') {
+      if (calls.__action.processing_status !== 'extracting' || calls.__action.stage_owner_token !== args.p_owner_token) return json(null);
+      Object.assign(calls.__action, { extract_delta: args.p_extract_delta, processing_status: 'committing', stage_owner_token: null, stage_claimed_at: null, error_code: null, updated_at: new Date().toISOString() });
+      return json({ replayed: false, processing_status: 'committing' });
     }
     if (rpc === 'apply_reserved_csa_transaction') {
       const resolution = calls.__action?.structured_action?.transaction_resolution;
