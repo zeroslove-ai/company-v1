@@ -93,4 +93,5 @@ test('fresh parser accepts SCENE, DIALOGUE, and ACTING as visible body forms', (
 test('stream decoder rejects missing and unknown speaker IDs without inference', () => {
   assert.throws(() => createStoryStreamDecoder({ master }).push('[DIALOGUE]'), error => error.code === 'STORY_PROTOCOL_INVALID');
   assert.throws(() => createStoryStreamDecoder({ master }).push('[DIALOGUE speaker_id="unknown"]'), error => error.code === 'STORY_PROTOCOL_INVALID');
+  assert.throws(() => createStoryStreamDecoder({ master }).push('[DIALOGUE speaker_id="hero5ine"]'), error => error.code === 'STORY_PROTOCOL_INVALID' && error.message === 'Unknown Story speaker_id: hero5ine');
 });

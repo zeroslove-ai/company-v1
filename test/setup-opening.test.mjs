@@ -318,12 +318,31 @@ test('buildOpeningPrompt only surfaces the plan\'s active heroines and adds the 
   assert.equal('penis_length_cm' in payload.player, false);
   const activeIds = [openingPlan.primary_character_id, ...openingPlan.supporting_character_ids].filter(Boolean);
   assert.deepEqual(Object.keys(payload.active_character_canon).sort(), [...new Set(activeIds)].sort());
+  assert.deepEqual(payload.allowed_speaker_ids, ['player', ...Object.keys(payload.active_character_canon)]);
+  const inactiveRegisteredId = heroineIds.find(id => !activeIds.includes(id));
+  assert.equal(payload.allowed_speaker_ids.includes(inactiveRegisteredId), false);
   assert.equal(payload.cross_team_note, null);
 
   const tfPrompt = buildOpeningPrompt({ edition, player: { name: '김하늘', position_id: 'tf_lead', department_id: 'brand_strategy' }, canonical, openingPlan });
   const tfPayload = JSON.parse(tfPrompt[1].content);
   assert.match(tfPayload.cross_team_note, /cross-team collaboration/);
   assert.doesNotMatch(tfPayload.cross_team_note, /active_character_canon|speaker_id/);
+});
+
+test('fresh Opening protocol requires verbatim allowed speaker IDs without making dialogue mandatory', () => {
+  const openingPlan = buildOpeningPlan({ positionId: 'intern', seedBytes: [3, 6, 9], heroineIds });
+  const prompt = buildOpeningPrompt({ edition, player: { name: '源?섎뒛', position_id: 'intern', department_id: 'brand_strategy' }, canonical: {}, openingPlan });
+  const system = prompt[0].content;
+  assert.match(system, /allowed_speaker_ids/);
+  assert.match(system, /copy one ID verbatim/);
+  assert.match(system, /character name|near-match ID|inactive\/unlisted ID/);
+});
+
+test('fresh Opening allowed speaker IDs deduplicate active canon keys in deterministic order', () => {
+  const openingPlan = { primary_character_id: 'heroine1', supporting_character_ids: ['heroine1', 'heroine2', 'heroine1'] };
+  const payload = JSON.parse(buildOpeningPrompt({ edition, player: {}, canonical: {}, openingPlan })[1].content);
+  assert.deepEqual(Object.keys(payload.active_character_canon), ['heroine1', 'heroine2']);
+  assert.deepEqual(payload.allowed_speaker_ids, ['player', 'heroine1', 'heroine2']);
 });
 
 test('resolvePlayerCanonicalNames resolves every catalog axis independently', () => {

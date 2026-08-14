@@ -20,14 +20,14 @@ export function splitOpeningSections(rawText) {
 const FRESH_OPENING_OUTPUT_PROTOCOL = [
   'Fresh opening output protocol:',
   'Plain narrative is the default and stays in source order; [SCENE] may be used but is not required.',
-  '[DIALOGUE speaker_id="registered_id_or_player"]',
+  '[DIALOGUE speaker_id="..."]',
   'Actual spoken dialogue text.',
   '[/DIALOGUE]',
   '[ACTING]',
   'A standalone visible action narrative in source order; ACTING is not dialogue-direction metadata.',
   '[/ACTING]',
   '[THOUGHT] one unquoted first-person Korean inner monologue written as natural self-talk, never analysis or report prose.',
-  'Output exactly four repeated [CHOICE] blocks. Each [CHOICE] must contain one non-empty concrete literal player action; do not number choices yourself and do not output a human choice heading or numbered list because the UI owns numbering. When possible, provide one [THOUGHT] as well (quality guidance only; not a validity gate). Every speaker_id is an exact registered ID; never infer a speaker.'
+  'Output exactly four repeated [CHOICE] blocks. Each [CHOICE] must contain one non-empty concrete literal player action; do not number choices yourself and do not output a human choice heading or numbered list because the UI owns numbering. When possible, provide one [THOUGHT] as well (quality guidance only; not a validity gate). Every DIALOGUE speaker_id must copy one ID verbatim from the supplied allowed_speaker_ids list. Never use a character name, transformed or near-match ID, reordered string, invented ID, or inactive/unlisted ID.'
 ].join('\n');
 
 const PLAYER_PRIVATE_OPENING_PREMISE = [
@@ -42,13 +42,15 @@ const OPENING_DURABLE_RULES = [
   'Do not invent unregistered named characters or decide unrequested player actions. Show active NPC motives through natural work and dialogue.',
   'Canonical opening time and location are hard facts. Do not invent a different clock time or place. Do not mention apps, CSA, Worker, prompts, game mechanics, or system metadata as world knowledge; the opening is an in-world workplace scene.',
   PLAYER_PRIVATE_OPENING_PREMISE,
-  'Use the output protocol below for dialogue identity and optional footer blocks. Speaker identity is the exact speaker_id marker, never a name or quote.',
+  'Use the output protocol below for dialogue identity and optional footer blocks. Speaker identity is the exact speaker_id marker, never a name or quote. In a fresh Opening, the only valid dialogue IDs are the verbatim values in the supplied allowed_speaker_ids list.',
   FRESH_OPENING_OUTPUT_PROTOCOL
 ].join('\n\n');
 
 export function buildOpeningPrompt({ edition, player, canonical, openingPlan } = {}) {
   const charactersMap = edition?.characters?.characters ?? {};
   const activeIds = [openingPlan?.primary_character_id, ...(openingPlan?.supporting_character_ids ?? [])].filter(Boolean);
+  const activeCharacterCanon = buildActiveCharacterCanon(charactersMap, activeIds);
+  const allowedSpeakerIds = ['player', ...Object.keys(activeCharacterCanon)];
   const crossTeamNote = player?.position_id === 'tf_lead' && player?.department_id === 'brand_strategy'
     ? 'This TF lead is a separate project or cross-team collaboration role and does not replace the brand-strategy team lead.'
     : null;
@@ -71,7 +73,8 @@ export function buildOpeningPrompt({ edition, player, canonical, openingPlan } =
           location_name: openingPlan?.location_name ?? null
         },
         cross_team_note: crossTeamNote,
-        active_character_canon: buildActiveCharacterCanon(charactersMap, activeIds)
+        active_character_canon: activeCharacterCanon,
+        allowed_speaker_ids: allowedSpeakerIds
       })
     }
   ];
