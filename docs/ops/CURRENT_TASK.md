@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: cut2-npc-directed-navigation-authority-fix
+Status: READY
+Task ID: cut2-navigation-fix-deploy-live-acceptance
 Updated: 2026-08-14
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -9,13 +9,17 @@ This file is the sole active execution queue for Company v1.
 
 ## Why this task exists
 
-Cut 2 Scene Stage A live acceptance found one real runtime defect after the exact reviewed Scene candidate was deployed and the focused deterministic suite passed:
+The prior task `cut2-npc-directed-navigation-authority-fix` corrected the exact Cut 2 authority defect exposed by live Scene Stage A acceptance:
 
-- explicit player navigation correctly moved canonical `save.scene.location_id`
-- but the player action `서원희가 1층 로비로 이동한다.` also moved the **player** canonical location from `brand_strategy_meeting_room` to `lobby`
-- Story / Extract / Commit all returned HTTP 200, so this is a semantic authority defect, not a transport failure
+- `서원희가 1층 로비로 이동한다.` previously crossed the player-navigation authority boundary and moved the player canonical location
+- the reviewed source correction moved actor/mover classification ahead of authoritative player-navigation resolution
+- registered NPC, unknown named, and ambiguous non-player movers now fail closed only for Engine player-navigation authority
+- explicit/self player movement and catalog-grounded player-to-NPC destination movement remain supported
+- deterministic behavior coverage was added and GitHub CI passed
 
-The prior acceptance task correctly stopped before Scene Stage B. This task fixes only that root cause, proves the fix deterministically, and prepares a new exact executable review candidate. It does **not** deploy, apply Scene Stage B, or rerun the live acceptance.
+The prior task intentionally stopped before deployment and live acceptance. This task deploys only the reviewed executable candidate to the TEST API, reruns the narrow Scene Stage A live acceptance, and stops before Scene Stage B.
+
+Do not broaden this into Cut 3+ or a new parser/NLU project.
 
 ## Mandatory canon
 
@@ -27,27 +31,59 @@ Read in this order before work:
 4. `/docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`
 5. `/docs/audit/CUT2_SCENE_LOCATION_PRESENCE_2026-08-14.md`
 6. this file
-7. GitHub Issue #68, especially the FAILED report for `cut2-scene-stage-a-live-scene-acceptance` and its operator review
+7. GitHub Issue #68, especially:
+   - FAILED report + operator review for `cut2-scene-stage-a-live-scene-acceptance`
+   - COMPLETE report for `cut2-npc-directed-navigation-authority-fix`
+   - operator review that registered this task
 
-Current Git/source/live DB/deployed identity outrank report prose.
+Current Git/source/live TEST DB/deployed identity outrank report prose.
 
 ## Repository / identity guard
 
 Repository: `zeroslove-ai/company-v1`
 Expected branch: `company/scene-location-presence-v1`
 Prior reviewed executable SHA: `ce23612741599493921ae7c68b9ab58d6e23bcc6`
-Task-registration base HEAD: `f3fb6db007b5ff826a3f9d01c316a67064c54998`
+New reviewed executable candidate: `c3fc61f5aecef421bd7e7ff201d6d17bf567b7cd`
+Prior docs-only terminal HEAD: `e41eed5edb25e268d30b3e03da8304da58d471ad`
 PR: #67 — must remain OPEN / DRAFT / UNMERGED.
 
-Before editing runtime source, verify that all commits after `ce236127...` through the current task-registration HEAD are docs/workflow-only. If unexpected runtime/migration/config/gate/test source changed, STOP for operator review.
+Before any deploy or live call:
 
-## Independently verified live blocker state
+1. verify `c3fc61f...` is an ancestor of current branch HEAD
+2. verify every commit after `c3fc61f...` through current task-registration HEAD is docs/workflow-only
+3. verify runtime/config/migration/test source at current HEAD is executable-equivalent to `c3fc61f...`
+4. verify PR #67 remains Draft/Open/Unmerged
 
-TEST project: `fmcrspgxstsmxxsmkeee`
+If any executable delta exists after `c3fc61f...`, STOP for operator review. Do not silently deploy a different candidate.
+
+## Reviewed source facts to preserve
+
+Operator review independently confirmed:
+
+- executable delta from `ce236127...` to `c3fc61f...` is limited to:
+  - `src/engine/scene-cast.js`
+  - `test/navigation-authority-contract.test.mjs`
+  - task/docs lineage
+- the authority fix is upstream in `resolvePlayerNavigationIntent()` rather than the canonical scene reducer
+- registered NPC / unknown named / ambiguous movers fail closed for player navigation
+- explicit/self movement remains player navigation
+- `민아 보러간다` remains a catalog-grounded player-to-NPC navigation case
+- Commit regression coverage proves NPC movement text cannot change canonical player location
+- conflicting Extract location still cannot override Engine player navigation
+- stale `npc_scene_state.location_id` remains non-authoritative
+- GitHub Actions `Company v1 tests` for `c3fc61f...` completed successfully
+- `c3fc61f...` → `e41eed5...` is docs-only
+
+These are supporting facts, not permission to skip live verification.
+
+## TEST / deployment scope
+
+TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+Manual playtest game: `78fb1d94-266f-455a-bda4-7656cc2370c1` — DO NOT RESET OR MUTATE.
 Production game: `11111111-1111-4111-8111-111111111111` — forbidden.
 
-After the failed Scene acceptance, operator readback independently confirmed:
+Last independently verified clean TEST state after the failed acceptance:
 
 - committed_turn = 0
 - save_revision = 854
@@ -61,151 +97,207 @@ After the failed Scene acceptance, operator readback independently confirmed:
 - scene_id = setup
 - location_id = null
 - present_npc_ids = []
-- Scene Stage B is NOT applied
 
-The prior failed report's Worker Version remains deployment evidence, but deployment identity is not a prerequisite for this source-fix task because deployment is forbidden here.
+Scene Stage A + ACL closure are live. Scene Stage B is NOT applied.
+
+Prior deployed Worker Version evidence: `0fc0d42c-1327-454c-bce4-270cd0c1ff95` for the pre-fix executable. Re-verify current deployment identity before deployment; do not assume it from report prose.
 
 ## Goal
 
-Fix the authority bug that interprets an NPC-directed movement command as player navigation.
+Prove the reviewed navigation authority fix in the live TEST runtime without changing any other durable authority.
 
-Canonical rule:
+Success means:
 
-- only an explicit **player/self navigation intent** may produce Engine authoritative player location movement
-- a command whose grammatical/semantic mover is an NPC must not set player `authoritativeLocationId`
-- Extract/Story observations still cannot independently redirect player navigation
-- canonical scene remains sole location/presence authority and compatibility projections remain derived only
-
-This is a narrow Cut 2 root-cause correction, not a parser generation rewrite or broad NLU project.
+1. exact reviewed executable `c3fc61f...` is the API runtime source identity being deployed
+2. the deployed TEST Worker identity is recorded and health passes
+3. explicit player navigation still changes canonical player location
+4. `서원희가 1층 로비로 이동한다.` no longer moves canonical/player location
+5. canonical-to-legacy projection parity remains intact
+6. context/history still work
+7. final TEST reset is clean
+8. Scene Stage B remains unapplied
 
 ## Allowed
 
-- read-only Git/source/TEST DB verification
-- inspect exact failed action/evidence already recorded in Issue #68
-- edit the minimal runtime source responsible for player-navigation intent classification/resolution
-- edit or add focused deterministic tests that prove the corrected authority boundary
-- update the Cut 2 audit with source-candidate facts after tests pass
-- commit and push the source/test/docs fix on the existing Cut 2 branch
+- read-only Git/source/PR/TEST DB/deployment verification
+- focused deterministic tests at the exact reviewed executable-equivalent source
+- API Worker deploy to the Company v1 TEST runtime only, using the existing `wrangler.api.jsonc` / canonical deployment path
+- TEST-only setup/opening/Story/Extract/Commit/reset calls needed for the Scene acceptance
+- temporary acceptance runner outside the repository
+- reuse/correct the prior temporary Scene runner if still available and if its behavior is independently inspected first
+- docs-only truth/audit/CURRENT_TASK updates after full success
+- Issue #68 lease / terminal report required by the ops loop
 
 ## Forbidden
 
-- deploy API or frontend
-- apply any migration, including Scene Stage B
-- TEST setup/opening/Story/Extract/Commit/reset calls
+- frontend deploy
+- migration apply, including Scene Stage B
+- migration source edits
 - Production access/write/reset
+- manual playtest game mutation/reset
 - provider/model changes
-- retries/regeneration to hide semantics
-- compatibility readers or regex exceptions
-- a third parser generation
+- retry/regeneration loops used to hide semantic failure
+- new compatibility reader/gate
+- broad parser/NLU rewrite
+- runtime/source/test edits in this task
 - unrelated Cut 3+ work
 - PR Ready/merge
 - historical migration edits
 - `git reset --hard` / `git clean -fd`
 
-## Step 1 — recover exact failure path
+If the live acceptance reveals another runtime defect, preserve evidence and STOP. Do not patch it inside this task.
 
-Trace the exact code path from player action text to the typed navigation intent and then to canonical scene reduction/Commit.
+## Step 1 — exact preflight
 
-Use the failed live action as the required regression case:
+Verify and record:
 
-`서원희가 1층 로비로 이동한다.`
+1. current branch/HEAD and ancestry from `c3fc61f...`
+2. diff `c3fc61f...` → current HEAD is docs/workflow-only
+3. PR #67 Draft/Open/Unmerged
+4. focused deterministic navigation/scene tests still pass without source edits
+5. current TEST DB clean state
+6. Scene Stage A + ACL closure live and Stage B absent
+7. currently deployed Worker identity + `/health`
 
-At minimum determine:
+If TEST is dirty from an abandoned run, determine whether it is safe to reset only the dedicated TEST game. Never reset the manual playtest game.
 
-1. where destination `lobby` is resolved
-2. where the mover/subject is classified
-3. where a navigation intent becomes Engine authoritative player location
-4. why the NPC-directed sentence crossed that boundary
+## Step 2 — deploy exact reviewed executable to TEST API
 
-Do not patch the scene reducer if the defect is upstream intent classification. Fix the earliest authority boundary that has enough information to distinguish player/self movement from NPC-directed movement.
-
-## Step 2 — root-cause fix
-
-Implement the smallest deterministic correction that enforces the canonical rule.
+Deploy the Company v1 API Worker only after preflight passes.
 
 Requirements:
 
-- explicit player/self navigation still resolves registered destinations normally
-- NPC-directed movement does not produce player navigation
-- named-NPC subject resolution must use registered content/catalog identities where available; do not add a one-off `서원희` special case
-- unresolved/ambiguous actor must fail closed for **player navigation authority** rather than guessing the player moved
-- this fail-closed rule applies only to Engine player-navigation intent; it must not kill Story/turn execution or become a semantic hard gate
-- no provider/model changes
-- no broad regex exception list tailored to the single failing sentence
+- deployment source must be executable-equivalent to `c3fc61f...`
+- use the canonical API Wrangler config/path already used by Company v1
+- do not deploy frontend
+- do not alter provider/model configuration
+- record the new Cloudflare Worker Version ID
+- verify `/health` after deploy and confirm `edition_id = company-v1`
+- verify TEST Supabase binding still points to project `fmcrspgxstsmxxsmkeee`
 
-## Step 3 — deterministic regression evidence
+If deployment identity cannot be established after deploy, STOP before live Story calls.
 
-Add or rewrite focused tests at the true authority boundary.
+## Step 3 — temporary live Scene acceptance
 
-Required cases:
+Use a temporary runner outside the repo. Record action/request IDs and before/after canonical scene snapshots.
 
-1. explicit player navigation to a registered destination => player authoritative navigation intent exists
-2. equivalent self/implicit-player form currently supported => preserves intended behavior
-3. `서원희가 1층 로비로 이동한다.` => **no player authoritative navigation intent**
-4. another registered NPC-directed movement sentence => no player authoritative navigation intent
-5. unknown named actor / ambiguous mover => no player authoritative navigation intent; turn remains processable
-6. NPC movement text cannot change canonical player location through Commit/reducer integration
-7. player navigation still wins over conflicting Extract location observation
-8. stale `npc_scene_state.location_id` remains non-authoritative
+Minimum flow:
 
-Use behavior assertions, not source-text/regex-existence tests.
+1. ensure/reset dedicated TEST game to clean setup state if necessary
+2. setup
+3. Opening
+4. verify canonical Scene v1 exists
+5. run a normal committed turn as needed to establish the current scene
+6. run explicit player navigation to a registered deterministic destination
+7. verify canonical `save.scene.location_id` changes as intended
+8. verify `player_scene_state.location_id` mirrors canonical location
+9. verify legacy scene/presence projections are derived from canonical scene
+10. run the exact regression action: `서원희가 1층 로비로 이동한다.`
+11. verify canonical/player location does **not** move merely because the NPC was directed to move
+12. verify the turn itself remains processable; no semantic hard-gate failure was introduced
+13. context/history readback
+14. final reset of the dedicated TEST game
 
-If an old test encodes the incorrect behavior, classify it REWRITE or DELETE rather than preserving it with compatibility code.
+Prefer reusing the same registered locations/NPCs from the prior failed acceptance so the only changed variable is the executable fix.
 
-## Step 4 — regression checks
+Do not manufacture provider responses. A provider/Story result that creates a genuine contradictory runtime fact is a failure to preserve, not something to retry away.
 
-Run:
+## Step 4 — acceptance matrix
 
-- focused navigation/scene/commit tests covering the changed boundary
-- the existing Scene deterministic support set used by the prior acceptance, including `test/scene-runtime-contract.test.mjs`
-- broader relevant suite if practical as regression signal
-- syntax checks for changed JS/MJS
-- `git diff --check`
+### Required live evidence
 
-Raw total test count is not acceptance authority; triage any failure against the canonical rule.
+- API deployment identity matches the reviewed executable-equivalent source
+- `/health` passes with Company v1 edition
+- reset/setup/opening yields canonical Scene v1
+- normal Story/Extract/Commit succeeds
+- explicit player navigation changes canonical location deterministically
+- player compatibility location mirrors canonical location
+- exact NPC-directed regression action does not move player location
+- NPC-directed turn remains processable
+- canonical/legacy projection parity remains coherent
+- context/history readback succeeds
+- no Scene Stage B permission/apply occurred
+- final reset returns clean canonical setup scene
 
-## Step 5 — exact executable candidate
+### Required deterministic support
 
-After tests pass:
+At minimum rerun the focused support set containing:
 
-1. commit source/test changes with a focused message
-2. push to `company/scene-location-presence-v1`
-3. record the exact new executable SHA
-4. verify PR #67 remains Draft/Open/Unmerged
-5. verify the diff from `ce236127...` to the new executable candidate contains only the intended Cut 2 correction plus prior Cut 2 source and docs lineage
+- `test/navigation-authority-contract.test.mjs`
+- `test/scene-runtime-contract.test.mjs`
+- the same Extract/Commit Scene support tests used by the previous acceptance when still current
 
-Do not deploy this new SHA in this task.
+Required invariants:
+
+- registered/unknown/ambiguous non-player mover cannot produce player authoritative navigation
+- explicit/self player navigation remains valid
+- catalog-grounded NPC-as-destination player navigation remains valid
+- Engine navigation wins conflicting Extract location
+- stale NPC scene location is not authority
+- optional/degraded Scene observation still fails open for observation rather than killing the turn
+- canonical projection is idempotent/derived
+
+Do not add source or tests in this rollout task.
+
+## Step 5 — final TEST reset
+
+Required final state for dedicated TEST game:
+
+- committed_turn = 0
+- processing_status = idle
+- player_setup = not_started
+- opening_state = not_started
+- csa_active = []
+- actions = 0
+- turns = 0
+- canonical scene version = 1
+- scene_id = setup
+- location_id = null
+- present_npc_ids = []
+- focal_character_id = null
+- last_speaker_id = null
+
+Record final `save_revision` rather than assuming it remains 854.
 
 ## Success policy
 
-On success:
+Only after the full matrix passes:
 
-- leave TEST DB unchanged from the clean state
-- Scene Stage B remains NOT APPLIED
-- update the Cut 2 audit only with source-candidate/test facts, not deployment facts
-- set this file to `Status: WAITING_REVIEW`
-- commit/push the final docs-only status update if needed
-- post completion report to Issue #68
-- STOP for operator review before any deployment/live acceptance
+1. update `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md` with the newly verified deployed executable/Worker identity and live regression result
+2. update `docs/audit/CUT2_SCENE_LOCATION_PRESENCE_2026-08-14.md`
+3. set this file to `Status: WAITING_REVIEW`
+4. commit/push docs-only completion state
+5. post terminal report to Issue #68
+6. STOP before Scene Stage B
 
 Success phrase:
 
-`CUT 2 NPC-DIRECTED NAVIGATION AUTHORITY FIX READY — AWAITING REVIEW`
+`CUT 2 NAVIGATION FIX LIVE ACCEPTANCE PASSED — AWAITING STAGE B REVIEW`
+
+Do not create or execute the Stage B task yourself.
 
 ## Failure policy
 
-If the root cause cannot be isolated without a broader architecture change, preserve findings and STOP. Do not widen the task silently.
+If any of these occur, preserve exact evidence and STOP without runtime patching:
+
+- deploy identity mismatch/unverifiable
+- explicit player navigation regresses
+- NPC-directed movement still moves player
+- NPC-directed turn is killed by a new hard gate
+- canonical/legacy projections diverge
+- TEST cannot be returned to clean state
+- unexpected migration/Stage B state
 
 Failure phrase:
 
-`CUT 2 NPC-DIRECTED NAVIGATION AUTHORITY FIX BLOCKED — AWAITING OPERATOR REVIEW`
+`CUT 2 NAVIGATION FIX LIVE ACCEPTANCE FAILED — STOPPED BEFORE STAGE B`
 
 ## Completion report to Issue #68
 
 First lines:
 
 ```text
-TASK_ID: cut2-npc-directed-navigation-authority-fix
+TASK_ID: cut2-navigation-fix-deploy-live-acceptance
 STATUS: COMPLETE | BLOCKED | FAILED
 START_SHA: <sha>
 FINAL_SHA: <sha>
@@ -214,22 +306,27 @@ BRANCH: company/scene-location-presence-v1
 
 Then include:
 
-- prior reviewed executable SHA
-- root cause path
-- changed runtime files
-- changed tests
-- KEEP / REWRITE / DELETE decisions if any
-- exact regression cases/results
-- broader regression results
-- syntax/diff-check
-- exact new executable SHA
+- reviewed executable SHA `c3fc61f5aecef421bd7e7ff201d6d17bf567b7cd`
+- executable-equivalence / docs-only descendant proof
 - PR #67 state
-- TEST DB writes = 0
+- deterministic tests run/results
+- pre-deploy Worker identity
+- deployed Worker Version ID
+- `/health` / edition result
+- TEST DB preflight state
+- runner path and out-of-repo proof
+- player-navigation before/after canonical scene
+- NPC-directed regression before/after canonical scene
+- NPC-directed turn processability result
+- projection parity
+- context/history result
+- final reset state + final save_revision
+- TEST DB writes/reset summary
 - migration apply = 0
-- API deploy = 0
+- Scene Stage B applied = 0
 - frontend deploy = 0
 - Production access = 0
-- Scene Stage B applied = 0
-- preserved evidence status
+- runtime/source/test edits = 0
+- preserved manual playtest evidence status
 - CURRENT_TASK final status
 - exact STOP state
