@@ -18,5 +18,14 @@ if (gateResult.status !== 0) {
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 const wranglerArgs = ['--yes', 'wrangler', 'deploy', '--config', 'wrangler.api.jsonc'];
 if (process.argv.includes('--dry-run')) wranglerArgs.splice(3, 0, '--dry-run');
-const deployResult = spawnSync(npx, wranglerArgs, { cwd: root, stdio: 'inherit', env: process.env });
+const deployResult = spawnSync(npx, wranglerArgs, {
+  cwd: root,
+  stdio: 'inherit',
+  env: process.env,
+  shell: process.platform === 'win32'
+});
+if (deployResult.error) {
+  process.stderr.write(`API_DEPLOY_FAILED_TO_START_WRANGLER: ${deployResult.error.message}\n`);
+  process.exit(1);
+}
 process.exit(deployResult.status ?? 1);
