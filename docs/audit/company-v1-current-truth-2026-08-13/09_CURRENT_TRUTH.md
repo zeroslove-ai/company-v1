@@ -100,7 +100,7 @@ Verified live TEST facts:
 - `apply_reserved_csa_transaction(uuid, uuid, integer)` was present for Stage A and was removed by live Stage B enforcement
 - service-role direct gameplay `INSERT/UPDATE/DELETE/TRUNCATE` was present for Stage A and is revoked in live Stage B
 - Stage B migration `20260814051254 / company_v1_authority_enforcement_stage_b` is applied in TEST
-- API Worker source `b0e9e38a227e452183c389e80f9153f694c5c876` is deployed as Version `3068e016-da34-44ca-9c6e-aadb5a61956a`; Frontend was not redeployed
+- API Worker source `3c3b41425f0ef536c5d36aec2d4911e7d8de9a8d` is deployed as Version `b440d3ea-b96e-4232-a8cc-fdfa1c497ae1`; Frontend was not redeployed
 
 ## DB contract gate — LIVE VERIFIED
 
