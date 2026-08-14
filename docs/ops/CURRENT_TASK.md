@@ -1,21 +1,19 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: cut3-relation-event-live-acceptance-resume
+Status: READY
+Task ID: cut3-relation-event-observation-contract-root-cause
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution queue for Company v1.
 
-## Context
+## Why this task exists
 
-Cut 3 Relationship / Event Authority source is operator-accepted at exact gameplay executable SHA `1a5c5540a0235fb2e53b2452516897af7664eba1` and is already deployed to the TEST API as Worker version `6f0940d5-3145-4301-bcdf-61bdccc3cdac` from the first acceptance attempt.
+Cut 3 Relationship / Event Authority source is accepted at gameplay executable `1a5c5540a0235fb2e53b2452516897af7664eba1`. The canonical reducer/participant closure is structurally accepted, but two bounded TEST acceptance turns completed Story -> Extract -> Commit with `relation_updates=[]`, `events.general=[]`, and `events.sexual=[]`. Therefore the new reducer had no typed ordinary observation to persist and live Cut 3 acceptance remains unproven.
 
-The first live acceptance stopped because its canary discarded decisive Story failure evidence. Follow-up task `cut3-story-failure-observability-root-cause` classified that as a harness defect and added diagnostic-only commit `4e2e788db6cc4cf1327c118db9e7199ac7f11ca6`; no gameplay runtime/provider/parser/relation-event behavior changed. A single diagnostic TEST invocation then passed Setup/Opening/ordinary turns/Extract/Commit and reset clean, so no deterministic Story runtime defect was proven.
+Do not solve this by retrying Story/Extract, changing provider/model/prompt sampling, adding fuzzy inference, manufacturing DB state, or treating player input as successful durable fact. Determine whether the Story -> Extract -> canonical Relation/Event observation contract is missing, disconnected, overconstrained, or the prior acceptance scenario simply failed to produce qualifying exact Story evidence.
 
-Resume the actual Cut 3 live acceptance now. Do not deploy merely because the diagnostic harness commit moved Git HEAD.
-
-## Binding identity / topology
+## Binding topology
 
 Repository: `zeroslove-ai/company-v1`
 Branch: `company/scene-location-presence-v1`
@@ -23,105 +21,77 @@ Canonical PR: #67
 Expected base: `main`
 Expected PR state: OPEN / DRAFT / UNMERGED
 Accepted Cut 3 gameplay executable: `1a5c5540a0235fb2e53b2452516897af7664eba1`
-Diagnostic harness executable-only commit: `4e2e788db6cc4cf1327c118db9e7199ac7f11ca6`
-Known TEST Worker version: `6f0940d5-3145-4301-bcdf-61bdccc3cdac`
-Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
-Preserved manual evidence game `78fb1d94-266f-455a-bda4-7656cc2370c1` is immutable and must not be accessed or mutated.
-
-PR #65/#66 remain superseded closed containers. No new branch/PR. No merge/Ready/rebase/squash.
+Current docs-only head at handoff descends from `0c00fd6cfcff6f87693b96cb7a28279eda0ea059`.
+Known TEST Worker remains evidence only; do not deploy in this task.
+Dedicated TEST game was reset clean by the prior task.
+Preserved manual evidence game `78fb1d94-266f-455a-bda4-7656cc2370c1` is immutable: do not access or mutate it.
+PR #65/#66 remain closed superseded containers. No new branch/PR, merge, Ready, rebase, or squash.
 
 ## Goal
 
-Close Cut 3 with real TEST evidence that the canonical Relationship/Event reducer persists meaningful relation/event consequences through the normal Setup -> Opening -> Story -> Extract -> Commit path, while replay/recovery remain idempotent and ordinary game flow is preserved.
+Recover the exact ordinary Relationship/Event observation pipeline and fix only a proven repository contract/ownership defect so that meaningful exact Story evidence can become typed canonical Relation/Event reducer input without making semantic uncertainty a turn blocker.
 
-## Preflight
+## Required investigation before any patch
 
-1. Fetch origin and verify #67 remains OPEN/DRAFT/UNMERGED based on `main`.
-2. Prove current HEAD descends from accepted gameplay executable `1a5c5540...` and that gameplay runtime/config/migration diff since it is zero; diagnostic harness/test/docs changes are allowed.
-3. Verify TEST Worker identity is still `6f0940d5-3145-4301-bcdf-61bdccc3cdac` and corresponds to gameplay source `1a5c5540...`. If identity drifted, STOP; do not deploy under this task.
-4. Verify dedicated TEST game starts clean. Never access the manual evidence game.
-5. Re-read CURRENT_TRUTH.md, AGENTS.md, 09_CURRENT_TRUTH.md, 10_SOLE_WRITER_DECISION.md, POST_CUT2_GAME_MODEL_RECOVERY_2026-08-14.md, and the accepted Cut 3 source/participant-closure reviews in Issue #68.
+Trace current source end-to-end for ordinary non-CSA relation/event consequences:
 
-## One bounded live acceptance
+1. Story generation contract: what visible evidence can/should express relationship change, boundary change, apology/reconciliation, general events, and sexual events.
+2. Extract request/schema/normalization: exact fields for `relation_updates`, `events.general`, `events.sexual`; whether they are requested, accepted, normalized, or silently dropped.
+3. Story-evidence validation: what exact quote/participant/type requirements an observation must satisfy before becoming typed reducer input.
+4. Commit orchestration: prove where Extract observations are converted to the canonical Relation/Event reducer input and that no superseded writer independently mutates the same durable fields.
+5. Canonical reducer: confirm registered-participant closure, Engine mandatory precedence, idempotence, supersede/end, and ledger dedupe remain intact.
+6. Acceptance harness/scenario: inspect the exact bounded scenario used in the blocked live run and determine whether its Story actually contained qualifying evidence. If the scenario itself did not create meaningful observable relation/event evidence, classify that as an acceptance-design defect rather than weakening runtime semantics.
 
-Run exactly ONE bounded normal-API Golden Path on the dedicated TEST game using the improved diagnostic harness. No automatic Story retry/regeneration.
+Write a concise root-cause note in the terminal report before describing any fix.
 
-The scenario must create at least one exact-evidence ordinary non-CSA relationship/event consequence involving a registered participant, then verify after Commit:
+## Allowed implementation
 
-- `active_relations` is written only through the canonical Relation/Event reducer semantics;
-- the expected relation/event consequence is durable in committed context/save;
-- registered participant identity is preserved exactly;
-- unknown/unresolved participants cannot become durable relation/event facts;
-- same-turn Engine mandatory relation input, when applicable in the exercised path, has deterministic precedence over conflicting observational Extract input;
-- event and sexual-event ledgers are replay-safe/idempotent and do not duplicate on same-action recovery/re-read;
-- relation supersede/end behavior remains deterministic where exercised;
-- scene/location/presence authority from Cut 2 remains unchanged;
-- player input remains intent/attempt rather than automatic durable success;
-- warnings/no-op semantic uncertainty does not reject an otherwise valid ordinary turn.
+Only if investigation proves a repository defect, make the smallest upstream ownership/contract correction needed to restore the intended typed observation path. Examples of acceptable classes, only when proven:
 
-Use existing targeted/unit evidence for invariants that cannot be naturally exercised in this single bounded live scenario; do not manufacture DB state merely to hit every branch.
+- a missing Extract schema/request field that prevents intended relation/event observations from being emitted;
+- a normalization/wiring defect that drops valid typed observations before the canonical reducer;
+- a mismatch between existing Story evidence contract and existing Extract structural contract;
+- a deterministic acceptance-harness scenario defect that can be corrected without changing gameplay semantics.
 
-If Story fails before relation/event proof, preserve the new diagnostic bundle (HTTP/SSE/action-status/parser/context) and STOP as BLOCKED. Do not retry and do not patch under this lease.
+Do not add a second relation/event writer. Do not infer durable success directly from player input. Do not make absence of optional relation/event observations fail the ordinary turn. Unknown/unregistered participant remains warning + no durable mutation.
 
-## Recovery / replay proof
+If no repository defect is proven and the only fact is that a stochastic provider emitted no qualifying observation, STOP BLOCKED with exact evidence. Do not add prompt hotfixes or retries just to force acceptance.
 
-After the successful committed relation/event turn:
+## Tests / proof
 
-- read context/history through normal APIs;
-- exercise only the existing safe same-action/recovery path already supported by the canary, without creating a second semantic event;
-- prove durable relation/event ledger counts/identities are unchanged after recovery/re-read;
-- prove committed parsed/history/context projections agree on the committed turn identity.
+Classify affected tests KEEP / REWRITE / DELETE against the canonical architecture. Add focused regression proof for the exact root cause. At minimum preserve/prove:
 
-## Final reset
+- valid registered-participant exact-evidence relation observation reaches canonical reducer input and persists in reducer result;
+- valid general/sexual event observation reaches canonical ledger input where applicable;
+- empty/uncertain observation is no-op and does not reject an ordinary turn;
+- unknown participant is warning + no durable mutation;
+- same-turn valid Engine mandatory relation input wins over conflicting observational Extract;
+- same-action/replay remains idempotent;
+- no direct duplicate `active_relations`/event-ledger writer is reintroduced;
+- player input alone cannot create a successful durable relation/event fact;
+- Cut 2 scene/location/presence invariants remain unchanged.
 
-Reset only the dedicated TEST game through the normal reset API and verify clean baseline (`committed_turn=0`, setup/opening not started, no active CSA, idle processing). Do not reset the preserved manual game.
-
-## Required validation
-
-- existing focused Cut 3 relation/event reducer tests;
-- participant identity closure tests;
-- Story/SSE/action lifecycle and diagnostic harness tests;
-- full current test suite if practical within the lease;
-- syntax checks for changed local JS/MJS only if any (no source change is expected);
-- `git diff --check`;
-- exact Worker identity and final TEST reset proof.
-
-Test count is a regression signal, not correctness proof.
+Run focused tests, current full suite if practical, syntax checks for changed JS/MJS, and `git diff --check`. Test count alone is not correctness proof.
 
 ## Operations boundary
 
-Allowed: read-only Git/source/TEST inspection; normal API Setup/Opening/Story/Extract/Commit/context/history/recovery on the dedicated TEST game; exactly one bounded live acceptance; final normal reset; local tests.
+Allowed: Git/source/test inspection and source/test/harness changes on existing #67 branch when root cause is proven; local tests; read-only public TEST identity inspection if needed.
 
-Forbidden: Production; manual evidence game access/mutation/reset; API/frontend deploy; migration/DDL; direct DB gameplay-state manufacture/repair; gameplay runtime source patch; provider/model/temperature/token changes; retry/regeneration; fuzzy repair; parser relaxation; semantic hard gate; new parser; new branch/PR; merge/Ready/rebase/squash.
-
-If a repository defect is discovered, do not patch it here. Preserve evidence and report BLOCKED so the operator can create a separate root-cause task.
+Forbidden: Production; manual evidence game access; TEST gameplay mutation/reset; deploy; migration/DDL; direct DB gameplay-state manufacture/repair; provider/model/temperature/token changes; automatic retry/regeneration; fuzzy repair; parser relaxation; semantic hard gate; new parser generation; new branch/PR; merge/Ready/rebase/squash; historical migration edits.
 
 ## Completion
 
-Post one terminal report to Issue #68 containing:
+Post one terminal report to Issue #68 with:
 
-- exact PR/head and deployed Worker identity;
-- exact live turn/action IDs and bounded scenario;
-- durable `active_relations` / `event_ledger` / `sexual_event_ledger` before/after evidence;
-- replay/recovery idempotence evidence;
-- Story diagnostic evidence if blocked;
-- focused/full validation results;
-- final dedicated TEST reset proof;
-- explicit DB migration/deploy/Production/manual-game operations;
+- STATUS COMPLETE/BLOCKED/FAILED;
+- START_SHA / FINAL_SHA and exact executable candidate if changed;
+- root-cause classification with exact source path/contract evidence;
+- whether the blocked live scenario contained qualifying Story evidence;
+- changed files and why each belongs to the canonical ownership boundary;
+- focused/full test results and invariant proof;
+- explicit confirmation that no retry/provider/model/fuzzy/parser relaxation/semantic gate/duplicate writer was added;
+- DB/deploy/Production/manual-game operations = none;
+- PR #67 remains OPEN/DRAFT/UNMERGED;
 - STOP for operator review.
 
-Set CURRENT_TASK to WAITING_REVIEW in a separate docs-only commit after the evidence run.
-
-## Execution result - blocked acceptance
-
-- One bounded normal-API invocation used the existing improved canary against Worker `6f0940d5-3145-4301-bcdf-61bdccc3cdac`, gameplay source `1a5c5540a0235fb2e53b2452516897af7664eba1`, and dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-- Setup/Opening, Turn 1 and Turn 2 Story/Extract/Commit, and same-action Story/Extract/Commit replay all completed successfully. Story SSE terminal events were `complete`; raw Story was present; parser status was success.
-- Relation/event acceptance was **not proven**: Turn 1 action `31355e86-6210-4d0c-aa5a-e244b99767a1` and Turn 2 action `a2b4c4c9-f28d-4948-8144-70e84a1fbf44` both had `relation_updates=[]`, `events.general=[]`, and `events.sexual=[]`. No durable registered-participant relation/event consequence was therefore observed. This is BLOCKED evidence, not a runtime patch authorization.
-- Replay remained idempotent for Turn 1: `committed_turn=1` and `save_revision=892` before and after replay; Turn 2 committed at `committed_turn=2`, `save_revision=893`.
-- Final TEST reset/readback: HTTP 200, `committed_turn=0`, `save_revision=894`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, `csa_active=[]`, recent_turns=0, empty event ledger.
-- Live artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-cut3-relation-event-live-acceptance.json`, SHA-256 `9B458B1E3C8E321E299898940925995508B65154D0B0BD221D6CD85D79EE88D8`.
-- No source/runtime/test/migration changes were made. No retry, deploy, migration/DDL, Production/manual-game access, provider/model change, or semantic workaround occurred.
-
-Success phrase only if relation/event live acceptance and reset both pass:
-
-`CUT 3 RELATIONSHIP/EVENT AUTHORITY LIVE ACCEPTED — AWAITING OPERATOR REVIEW`
+Set CURRENT_TASK to WAITING_REVIEW in a separate docs-only commit after the terminal evidence is ready.
