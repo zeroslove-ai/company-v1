@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: cut3-relation-event-deterministic-acceptance-scenario
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -119,3 +119,22 @@ Post one terminal report to Issue #68 with:
 - STOP for operator review.
 
 Set CURRENT_TASK to WAITING_REVIEW in a separate docs-only commit after terminal evidence is ready.
+
+## Terminal evidence — BLOCKED
+
+Execution identity: `cut3-relation-event-deterministic-acceptance-scenario` / task blob `3ff23a245fef19e05d96d514595b1b6c4cf9bd3b` / branch `company/scene-location-presence-v1`.
+
+- Start HEAD: `3ff23a245fef19e05d96d514595b1b6c4cf9bd3b`.
+- Harness/test commit: `2186564d9e113148cbc8820e883d5a25acbd7a1f`.
+- Accepted gameplay executable: `1a5c5540a0235fb2e53b2452516897af7664eba1`.
+- TEST Worker: `game-proxy-company-v1`, Version `6f0940d5-3145-4301-bcdf-61bdccc3cdac`; `/health` returned HTTP 200 with `edition_id=company-v1`.
+- Dedicated TEST game only: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`. Preserved manual game was not accessed.
+- One bounded `--cut3-relation-event --reset-if-dirty` run was executed; no retry or regeneration was performed.
+- Registered participant selected from the post-Opening canonical scene: `heroine4` (`한리브`). Player action: `한리브에게 오늘 회의에서 혼란을 준 점을 사과하고 다음 회의 준비를 함께하기로 약속한다.`
+- Story parser succeeded and the Story contained the exact visible quote: `한리브 대리님, 오늘 아침 회의에서 제가 자료를 제대로 준비하지 못해 혼란을 드려서 죄송합니다. 제 준비 부족이었습니다.`
+- Normalized Extract succeeded, but `relation_updates=[]`, `events.general=[]`, and `events.sexual=[]`; no typed relation/event quote or durable consequence was available. Action readback before reset was `processing_status=committing`, `has_story=true`, `has_extract=true`, `error_code=null`.
+- Acceptance status: **BLOCKED** because the single probative Story did not produce a typed Relation/Event observation. Replay was not attempted after this evidence blocker; no commit was manufactured.
+- Live artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-cut3-relation-event-deterministic.json`; SHA-256 `21E32AA5FB0B87DAE8B7871D1E7CF095E041057F0ACEB37825403D7B17A8DC77`.
+- Final dedicated TEST reset readback: `committed_turn=0`, `save_revision=897`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, `active_relations=[]`, `event_ledger=[]`, clean=true.
+- Validation: focused suites `73/73` passed; full `npm.cmd test` `455/455` passed; changed JS syntax passed; `git diff --check` passed.
+- No gameplay runtime semantic patch, provider/model change, retry, fuzzy/parser relaxation, semantic gate, migration, deployment, Production/manual-game access, or direct DB manufacture occurred. Preserved evidence remains unchanged and untracked.
