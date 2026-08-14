@@ -68,6 +68,28 @@ test('fresh choices remain literal and exact four choices are canonical', () => 
   assert.deepEqual(parsed.canonical_choices, ['a', 'b', 'c', 'd']);
 });
 
+test('fresh parser rejects THOUGHT and CHOICE without a visible Story body', () => {
+  assert.throws(
+    () => parseFreshNarrativeV2('[THOUGHT]t[/THOUGHT][CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d', { master }),
+    error => error.code === 'STORY_PROTOCOL_INVALID' && error.message === 'Story body is missing'
+  );
+});
+
+test('fresh parser accepts plain narrative with THOUGHT and exact choices', () => {
+  const parsed = parseFreshNarrativeV2('A visible scene begins.[THOUGHT]t[/THOUGHT][CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d', { master });
+  assert.equal(parsed.blocks.some(block => block.type === 'narrative' && block.text.includes('A visible scene begins.')), true);
+  assert.equal(parsed.choices.length, 4);
+});
+
+test('fresh parser accepts SCENE, DIALOGUE, and ACTING as visible body forms', () => {
+  const scene = parseFreshNarrativeV2('[SCENE]room[/SCENE][THOUGHT]t[/THOUGHT][CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d', { master });
+  const dialogue = parseFreshNarrativeV2('[DIALOGUE speaker_id="heroine2"]hello[/DIALOGUE][THOUGHT]t[/THOUGHT][CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d', { master });
+  const acting = parseFreshNarrativeV2('[ACTING]move[/ACTING][THOUGHT]t[/THOUGHT][CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d', { master });
+  assert.equal(scene.blocks.some(block => block.type === 'scene'), true);
+  assert.equal(dialogue.dialogue_lines[0].text, 'hello');
+  assert.equal(acting.acting_events[0].text, 'move');
+});
+
 test('stream decoder rejects missing and unknown speaker IDs without inference', () => {
   assert.throws(() => createStoryStreamDecoder({ master }).push('[DIALOGUE]'), error => error.code === 'STORY_PROTOCOL_INVALID');
   assert.throws(() => createStoryStreamDecoder({ master }).push('[DIALOGUE speaker_id="unknown"]'), error => error.code === 'STORY_PROTOCOL_INVALID');

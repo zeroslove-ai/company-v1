@@ -34,6 +34,8 @@ test('current Story request uses narrative-default wire, free input, and hard-fa
   const system = messages[0].content;
   assert.match(system, /plain narrative by default/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
+  assert.match(system, /at least one non-empty player-visible Story body segment/i);
+  assert.match(system, /\[THOUGHT\].*\[CHOICE\].*alone is invalid/i);
   assert.match(system, /four literal \[CHOICE\] action blocks/);
   assert.doesNotMatch(system, /\[CHOICE label=/);
   assert.doesNotMatch(system, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
