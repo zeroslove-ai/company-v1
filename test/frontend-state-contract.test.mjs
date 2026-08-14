@@ -522,28 +522,6 @@ test('busy guard admits one operation and toolbar capabilities do not invent end
   clearPending(storage(), gameId);
 });
 
-test('state and shell keep renderer free of raw Context fallback and developer panels', () => {
-  const pages = path.join(root, 'src/frontend/pages');
-  const html = fs.readFileSync(path.join(pages, 'index.html'), 'utf8');
-  const appSource = fs.readFileSync(path.join(pages, 'app.js'), 'utf8');
-  const renderSource = fs.readFileSync(path.join(pages, 'render.js'), 'utf8');
-  assert.match(html, /id="game-title">상식개변: 회사편/);
-  assert.doesNotMatch(html, /COMPANY V1|게임빌더|Warnings|warning-list/);
-  assert.match(appSource, /buildCompanyGameViewModel\(context/);
-  assert.doesNotMatch(appSource, /contextChoices/);
-  assert.doesNotMatch(renderSource, /context\?\.save|save\?\.data/);
-  assert.equal(html.indexOf('id="story-panel"') < html.indexOf('id="character-state"'), true);
-  assert.equal(html.indexOf('id="character-state"') < html.indexOf('id="player-panel"'), true);
-  assert.equal(html.indexOf('id="player-panel"') < html.indexOf('id="choice-list"'), true);
-  // setup-error must be a shared sibling of the form, not nested inside it,
-  // so it stays visible while the form renders.
-  assert.equal(html.indexOf('id="setup-error"') < html.indexOf('id="player-setup-form"'), true);
-  // reserved-opening(재시도 팝업)은 사용자 요구로 완전히 제거되었다.
-  assert.equal(html.includes('id="reserved-opening"'), false);
-  assert.equal(html.indexOf('id="choice-list"') < html.indexOf('class="utility-toolbar"'), true);
-  const values = stateDisplayValues(buildCompanyGameViewModel(validContext()));
-  assert.equal(Object.values(values).some(value => value.includes('[object Object]')), false);
-});
 
 test('numbered choice input ("2", "b", "②") resolves to the exact stored choice text before submitting, never the literal digit/letter', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {

@@ -1,8 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
   buildFullPlayerInfo
@@ -15,8 +12,6 @@ import {
   mergeHistoryRecords
 } from '../src/frontend/pages/history-tools.js';
 import { promoteNewCsaCard } from '../src/frontend/pages/csa-product-ui.js';
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const edition = {
   organization: {
@@ -115,7 +110,32 @@ test('full player app projection preserves setup, physical, sexual, and CSA fiel
   assert.equal(info.active_csa.length, 1);
   assert.equal(info.active_csa[0].content, '회의 중에는 이름으로 부른다.');
 });
-
+test('new CSA card is promoted directly under the add button and focused once', () => {
+  const focus = { called: 0, focus() { this.called += 1; } };
+  const fresh = {
+    textContent: '신규 상식개변', dataset: {}, scrolls: 0,
+    scrollIntoView() { this.scrolls += 1; },
+    querySelector() { return focus; }
+  };
+  const other = { textContent: '기존 상식개변', dataset: {}, querySelector() { return null; } };
+  const add = {
+    textContent: '+ 상식개변 추가', nextElementSibling: other,
+    insertAdjacentElement(position, element) { assert.equal(position, 'afterend'); this.nextElementSibling = element; }
+  };
+  const rootNode = {
+    querySelectorAll(selector) {
+      if (selector === 'button') return [add];
+      if (selector === '.csa-app-effect-card') return [other, fresh];
+      return [];
+    }
+  };
+  assert.equal(promoteNewCsaCard(rootNode), true);
+  assert.equal(add.nextElementSibling, fresh);
+  assert.equal(fresh.scrolls, 1);
+  assert.equal(focus.called, 1);
+  assert.equal(promoteNewCsaCard(rootNode), true);
+  assert.equal(fresh.scrolls, 1);
+});
 test('product recovery uses canonical presence and location over conflicting legacy fields', () => {
   const source = save();
   source.scene = {
@@ -145,8 +165,6 @@ test('product recovery uses canonical presence and location over conflicting leg
   assert.equal(heroine2.present_now, false);
 });
 
-
-
 test('history pagination state, dedupe, and MD/TXT exports preserve committed content', () => {
   assert.deepEqual(historyPageState({ has_more: true, next_before_turn: 21 }), { next_before_turn: 21, has_more: true, hide_more: false });
   assert.deepEqual(historyPageState({ has_more: true, next_before_turn: null }), { next_before_turn: null, has_more: false, hide_more: true });
@@ -171,43 +189,4 @@ test('history pagination state, dedupe, and MD/TXT exports preserve committed co
   assert.match(txt, /\[Turn 1\][\s\S]*\[Turn 2\]/);
   assert.match(txt, /플레이어 행동: 보고한다/);
   assert.match(txt, /턴 요약: 요약/);
-});
-
-test('new CSA card is promoted directly under the add button and focused once', () => {
-  const focus = { called: 0, focus() { this.called += 1; } };
-  const fresh = {
-    textContent: '신규 상식개변', dataset: {}, scrolls: 0,
-    scrollIntoView() { this.scrolls += 1; },
-    querySelector() { return focus; }
-  };
-  const other = { textContent: '기존 상식개변', dataset: {}, querySelector() { return null; } };
-  const add = {
-    textContent: '+ 상식개변 추가', nextElementSibling: other,
-    insertAdjacentElement(position, element) { assert.equal(position, 'afterend'); this.nextElementSibling = element; }
-  };
-  const rootNode = {
-    querySelectorAll(selector) {
-      if (selector === 'button') return [add];
-      if (selector === '.csa-app-effect-card') return [other, fresh];
-      return [];
-    }
-  };
-  assert.equal(promoteNewCsaCard(rootNode), true);
-  assert.equal(add.nextElementSibling, fresh);
-  assert.equal(fresh.scrolls, 1);
-  assert.equal(focus.called, 1);
-  assert.equal(promoteNewCsaCard(rootNode), true);
-  assert.equal(fresh.scrolls, 1, '같은 신규 카드는 한 번만 스크롤한다');
-});
-
-test('static shell exposes fallback, downloads, and dedicated recovery modules without the removed NPC finder UI', () => {
-  const html = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
-  assert.match(html, /id="boot-fallback"/);
-  assert.match(html, /<noscript>/);
-  assert.match(html, /id="history-download-md"/);
-  assert.match(html, /id="history-download-txt"/);
-  assert.match(html, /history-tools\.js/);
-  assert.doesNotMatch(html, /src="\.\/npc-finder\.js"/);
-  assert.match(html, /csa-product-ui\.js/);
-  assert.match(html, /boot-guard\.js/);
 });

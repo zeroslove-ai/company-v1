@@ -162,18 +162,6 @@ test('dialogue parser preserves TTS lines even when quotes or the colon are omit
   assert.equal(parsed.dialogue_lines[1].text, '괜찮아요.');
 });
 
-test('frontend contracts keep inner thought in Story only and preserve safe dataset writes', () => {
-  const index = fs.readFileSync(path.join(root, 'src/frontend/pages/index.html'), 'utf8');
-  const render = fs.readFileSync(path.join(root, 'src/frontend/pages/render.js'), 'utf8');
-  const csaApp = fs.readFileSync(path.join(root, 'src/frontend/pages/csa-app.js'), 'utf8');
-  assert.match(index, /data-tab="npc"/);
-  assert.doesNotMatch(index, /id="player-inner-thought"/);
-  assert.doesNotMatch(render, /heading:\s*'플레이어 속마음'/);
-  assert.doesNotMatch(render, /\.dataset\s*=/);
-  assert.match(csaApp, /surface/);
-  assert.match(csaApp, /subconscious/);
-  assert.doesNotMatch(csaApp, /physical_reaction|body_reaction|신체적·행동적 반응/);
-});
 
 test('captured live turns keep following narrative outside one explicit dialogue paragraph', () => {
   const master = {

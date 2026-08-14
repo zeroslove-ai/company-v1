@@ -1,14 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { createApiWorker } from '../src/api/index.js';
 import { createSupabaseClient } from '../src/api/supabase.js';
 import { makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const gameId = '11111111-1111-4111-8111-111111111111';
 const actionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const storedStructuredAction = {
@@ -45,7 +41,6 @@ test('Supabase reservation sends structured_action in the existing reserve_turn_
   assert.deepEqual(captured.body.p_structured_action, storedStructuredAction);
   assert.equal(captured.body.p_expected_turn, 4);
 });
-
 test('history query selects and API returns the persisted structured_action', async () => {
   const worker = createApiWorker({
     fetchImpl: async (url) => {
@@ -103,18 +98,6 @@ test('a later stage cannot replace the structured action already reserved on gam
   }), env);
 
   assert.equal(response.status, 409);
-  const payload = await response.json();
-  assert.equal(payload.error.code, 'structured_action_mismatch');
-});
-
-test('migration extends the existing action/turn/revision lifecycle and keeps DB slot cap aligned', () => {
-  const sql = fs.readFileSync(path.join(root, 'supabase/migrations/20260804000100_company_v1_history_structured_action.sql'), 'utf8');
-  assert.match(sql, /alter table public\.game_actions[\s\S]*structured_action jsonb/i);
-  assert.match(sql, /alter table public\.game_turns[\s\S]*structured_action jsonb/i);
-  assert.match(sql, /insert into public\.game_actions[\s\S]*structured_action/i);
-  assert.match(sql, /insert into public\.game_turns[\s\S]*v_action\.structured_action/i);
-  assert.match(sql, /reserve_feedback_revision[\s\S]*v_original\.structured_action/i);
-  assert.match(sql, /commit_feedback_revision[\s\S]*v_action\.structured_action/i);
-  assert.match(sql, /jsonb_array_length\(p_save -> 'csa_active'\) > 5/i);
-  assert.match(sql, /grant execute[\s\S]*to service_role/i);
+ const payload = await response.json();
+ assert.equal(payload.error.code, 'structured_action_mismatch');
 });

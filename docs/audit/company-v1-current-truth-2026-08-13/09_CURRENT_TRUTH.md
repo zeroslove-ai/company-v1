@@ -161,7 +161,16 @@ The current large legacy test suite is **not a preservation target and raw test 
 7. A failing old test is triaged against current truth before runtime code is changed.
 8. Runtime acceptance prioritizes source↔DB contract verification and a real TEST Golden Path over accumulation of mocks.
 9. Reuse the existing live canary/E2E/reset helpers. Do not create another harness unless the current harness cannot express a required invariant.
-10. After Cut 1 is safely rolled out, perform deliberate Test Suite Reset/Consolidation before later authority cuts inherit the old suite unquestioned. No numeric target is binding.
+10. Test Suite Reset/Consolidation is complete on Draft PR #66; no numeric test-count target is binding.
+
+## Test Suite Reset / Consolidation — verified
+
+- Test-reset branch: `company/test-suite-consolidation-v1`
+- Test-reset PR: #66 — OPEN / DRAFT / UNMERGED
+- v1.1 final test result: 417/417 passing
+- source/SQL implementation-text regex tests: 0 remaining
+- unreachable/dead-return masked assertions: 0 remaining
+- runtime, content, migration, DB, and deployment changes: 0
 
 ## Supersession note for `10_SOLE_WRITER_DECISION.md`
 
@@ -169,7 +178,7 @@ The current large legacy test suite is **not a preservation target and raw test 
 
 For **Cut 1 action-lifecycle mechanics only**, this file supersedes the older Decision 2 examples that used `error_code` as the ownership CAS field. The canonical model is `stage_owner_token` + `stage_claimed_at`, with `error_code` reserved for failure/diagnostic meaning.
 
-For **Cut 1 rollout status**, this file also supersedes the old statement in Decision 11 that no migration has been applied: Stage A and Stage B are verified live in TEST; the deployed API remains `b0e9e38a...` / Version `3068e016...`.
+For **Cut 1 rollout status**, this file also supersedes the old statement in Decision 11 that no migration has been applied: Stage A and Stage B are verified live in TEST; the deployed API is `3c3b41425f0ef536c5d36aec2d4911e7d8de9a8d` / Version `b440d3ea-b96e-4232-a8cc-fdfa1c497ae1`.
 
 ## Known later authority conflicts — do not fold into Cut 1
 

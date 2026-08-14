@@ -130,9 +130,3 @@ test('Company game view model resolves player aliases to the saved player name w
   assert.deepEqual(lines.map(line => line.speaker_name), ['김하늘', '김하늘', '서원희']);
   assert.deepEqual(lines.map(line => line.order), [0, 1, 2]);
 });
-
-test('Company game view model is a pure module without network or DOM dependencies', () => {
-  const source = fs.readFileSync(path.join(root, 'src/frontend/pages/view-model.js'), 'utf8');
-  assert.doesNotMatch(source, /\bfetch\s*\(|\bdocument\s*\.|\bwindow\s*\.|\blocalStorage\b|\bsessionStorage\b/);
-  assert.deepEqual(Object.keys(buildCompanyGameViewModel({})), ['turn', 'story', 'scene', 'interacting_characters', 'focal_character', 'player', 'media']);
-});

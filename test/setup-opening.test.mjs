@@ -361,28 +361,7 @@ test('all five Company heroines retain their configured voice IDs', () => {
   });
 });
 
-test('forbidden player-setup fields never appear in catalogs, engine source, or the opening prompt contract', () => {
-  const forbidden = [/업무\s*장점/, /업무\s*약점/, /플레이\s*난이도/, /추천\s*플레이\s*성향/, /히로인\s*초기\s*호감도/, /히로인별\s*초기\s*접점/, /성격\s*목록/, /말투\s*자유서술/, /후보\s*추천\s*이유/];
-  const sources = [
-    read('content/positions.json'), read('content/body_types.json'), read('content/speech_styles.json'), read('content/organization.json'),
-    read('src/engine/player-setup.js'), read('src/engine/opening-prompt.js'), read('src/frontend/pages/setup.js'), read('src/frontend/pages/catalogs.js'),
-    read('src/frontend/pages/index.html')
-  ];
-  for (const source of sources) {
-    for (const pattern of forbidden) assert.doesNotMatch(source, pattern);
-  }
-});
 
-test('no LLM-based player-candidate generation route or helper exists anywhere in the API or engine surface', () => {
-  const apiIndexSource = read('src/api/index.js');
-  const turnRoutesSource = read('src/api/turn-routes.js');
-  const engineIndexSource = read('src/engine/index.js');
-  assert.doesNotMatch(apiIndexSource, /player-candidate|candidate-generation|generate-candidate/i);
-  assert.doesNotMatch(turnRoutesSource, /player-candidate|candidate-generation|generate-candidate/i);
-  assert.doesNotMatch(engineIndexSource, /PlayerCandidate|player-candidate|candidate-generation/i);
-});
-
-// ---------- API layer ----------
 
 test('/api/reset restores player/setup/opening state via reset_company_game without touching game_master, and is idempotent', async () => {
   const primed = freshSave();

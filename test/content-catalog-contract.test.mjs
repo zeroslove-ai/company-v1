@@ -296,15 +296,11 @@ test('Story prompt scene_actors scales 1/3/5 participants correctly, excludes St
   assert.equal(JSON.stringify(contextInput), contextBefore);
 });
 
-test('Story prompt system instruction names separated actor/reference facts and forbids inventing characters', () => {
+test('Story prompt exposes actor and reference identity sections', () => {
   const prompt = buildStoryPrompt({ edition, context: { game: {}, save: saveWithParticipants(['heroine1']), recent_turns: [] }, playerAction: 'x', expectedTurn: 1 });
   const system = prompt[0].content;
-  assert.match(system, /scene_actors/);
-  assert.match(system, /reference_characters/);
-  return;
-  assert.match(system, /active_character_canon은.{0,40}유일한 사실 기준/);
-  assert.match(system, /승격/);
-  assert.match(system, /억지로 출연시키지 않는다/);
+  assert.ok(system.includes('scene_actors'));
+  assert.ok(system.includes('reference_characters'));
 });
 
 test('no real-world group or model name appears in the built Story prompt', () => {

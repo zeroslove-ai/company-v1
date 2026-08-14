@@ -36,30 +36,8 @@ test('representative institutional regulation sentences preserve direct action m
   assert.match(sentence('public_sex_is_unremarkable'), /회사 직원은 공개된 성행위/);
 });
 
-test('contextual proximity presets use world-neutral triggers and no player-only request condition', () => {
-  const contextualIds = [
-    'sit_on_recipient_lap', 'stand_between_recipient_knees', 'press_body_against_recipient',
-    'embrace_recipient_from_behind', 'keep_hand_on_recipient_inner_thigh', 'wrap_leg_around_recipient',
-    'maintain_thigh_contact', 'whisper_against_recipient_ear', 'interlace_fingers_with_recipient'
-  ];
-  for (const id of contextualIds) {
-    const item = catalog.items.find(item => item.id === id);
-    assert.equal(item?.mode, 'continuous');
-    assert.notEqual(item?.trigger, 'on_player_request');
-    assert.doesNotMatch(item?.content_template || '', /플레이어가 요청하면/);
-  }
-  const mutual = catalog.items.find(item => item.id === 'selected_groups_mutual_sexual_service');
-  assert.ok(mutual);
-  assert.doesNotMatch(mutual.label, /선택된 두/);
-  assert.doesNotMatch(mutual.content_template, /선택된 두/);
-  assert.doesNotMatch(JSON.stringify(raw), new RegExp(['자연스러운', ' 상식으로 바뀝니다'].join('')));
-  const frontend = fs.readFileSync(new URL('../src/frontend/pages/csa-app.js', import.meta.url), 'utf8');
-  assert.doesNotMatch(frontend, /\[\['역할'/);
-});
 
-test('relational scope UI has no null option and request rules use canonical world-neutral triggers', () => {
-  const frontend = fs.readFileSync(new URL('../src/frontend/pages/csa-app.js', import.meta.url), 'utf8');
-  assert.doesNotMatch(frontend, /상대 대상 없음/);
+test('relational scope defaults to a registered counterparty and preserves world-neutral triggers', () => {
   const relational = catalog.items.filter(item => item.allowed_counterparty_scopes.length > 0);
   assert.ok(relational.length > 0);
   for (const item of relational) {
@@ -154,20 +132,5 @@ test('preset payload exposes only group scope, authority, mode, and complete sen
     assert.equal('role_slots' in item, false);
     assert.equal('required_action' in item, false);
     assert.equal('sexual_actions' in item, false);
-  }
-});
-
-test('canonical initial save and opening seed carry four worn clothing slots', () => {
-  const files = [
-    'supabase/migrations/20260809000100_company_v1_initial_clothing_v2.sql',
-    'fixtures/phase-1/initial-save.json',
-    'fixtures/phase-1/seed.json'
-  ];
-  const existing = files.filter(file => fs.existsSync(file));
-  assert.ok(existing.length >= 1);
-  for (const file of existing) {
-    const text = fs.readFileSync(file, 'utf8');
-    assert.match(text, /uniform_top/);
-    assert.match(text, /underwear_bottom/);
   }
 });

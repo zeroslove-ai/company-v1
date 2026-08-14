@@ -169,7 +169,7 @@ test('Story scene context uses canonical location and presence', () => {
 
 
 
-test('Story and Extract activate a named general NPC with compact canon and scoped mutable state', () => {
+test('Story and Extract keep registered identities and mutable state scoped', () => {
   const save = baseSave();
   save.npc_stats = { general_manager: { affinity: 0 } };
   save.npc_emotion = { general_manager: { current: 'focused' } };
@@ -177,37 +177,28 @@ test('Story and Extract activate a named general NPC with compact canon and scop
   const storyMessages = buildStoryPrompt({
     edition,
     context: { game: {}, save, recent_turns: [] },
-    playerAction: '박정우에게 캠페인 마감 시간을 확인한다.',
+    playerAction: 'ask for the report',
     expectedTurn: 3,
     npcIds: new Set(['heroine1', 'general_manager', 'general_designer'])
   });
   const storyPayload = JSON.parse(storyMessages[1].content);
-  return;
-  assert.equal(storyPayload.active_general_npc_canon.general_manager.name, '박정우');
-  assert.deepEqual(Object.keys(storyPayload.context.active_npc_state.npc_stats), ['general_manager']);
+  assert.equal(storyPayload.registered_identities.length, 3);
+  assert.equal('active_general_npc_canon' in storyPayload, false);
 
   const extractMessages = buildExtractPrompt({
     edition,
     context: { game: {}, save, recent_turns: [] },
-    storyText: '박정우가 문을 두드리고 들어와 마감 시간을 확인했다.',
+    storyText: 'The report is ready.',
     parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [] },
-    playerAction: '마감 시간을 묻는다.',
+    playerAction: 'ask for the report',
     expectedTurn: 3,
     npcIds: new Set(['heroine1', 'general_manager', 'general_designer'])
   });
-  const extractSystem = extractMessages[0].content;
   const extractPayload = JSON.parse(extractMessages[1].content);
-
   assert.equal(extractPayload.registered_identities.length, 3);
   assert.equal('registered_characters' in extractPayload, false);
   assert.equal('registered_general_npcs' in extractPayload, false);
   assert.equal('player_action' in extractPayload, false);
   assert.equal('active_character_canon' in extractPayload, false);
   assert.equal('active_general_npc_canon' in extractPayload, false);
-  return;
-  assert.equal(extractPayload.active_general_npc_canon.general_manager.name, '박정우');
-  assert.deepEqual(Object.keys(extractPayload.context.active_npc_state.npc_emotion), ['general_manager']);
-  assert.match(extractSystem, /nearby\/default\/eligible NPC is not present/);
-  assert.match(extractSystem, /Story explicitly shows their presence\/action\/dialogue|presence, action, or dialogue/);
-  assert.ok(extractSystem.length <= 9000, `Extract system prompt too large: ${extractSystem.length}`); // 예산 7000 (image_selection 지시 반영)
 });

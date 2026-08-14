@@ -1,4 +1,4 @@
-# Company v1 Test Suite Reset / Consolidation
+# Company v1 Test Suite Reset / Consolidation v1.1
 
 ## Result
 
@@ -21,7 +21,9 @@ inventory value, not an acceptance criterion.
 - Baseline test files: 79
 - Baseline Node test cases: 741 passing
 - Final test files: 43
-- Final Node test cases: 447 passing
+- v1 reset intermediate: 43 files / 447 passing
+- v1.1 final test files: 43
+- v1.1 final Node test cases: 417 passing
 - Final package test command remains the flat cross-platform `test/*.test.mjs` command
 
 The baseline and final counts are reported for auditability only. Correctness
@@ -32,21 +34,52 @@ Path acceptance.
 
 | Disposition | File-level result | Unit-level result | Meaning |
 |---|---:|---:|---|
-| KEEP | 43 final authority-oriented files | 447 runnable cases | Current contracts remain connected to current readers/writers |
-| REWRITE | 0 behavior rewrites in this cut | 0 newly authored runtime assumptions | Valid coverage was retained or moved; obsolete implementation contracts were not repaired |
-| DELETE | 36 test files | 294 runner cases removed from the 741-case baseline | Superseded, duplicate, fake-integration, UI-only, or legacy-phase coverage |
+| KEEP | 43 final authority-oriented files | 417 runnable cases | Current contracts remain connected to current readers/writers |
+| REWRITE | 5 retained contract tests | 5 behavioral rewrites | Dead prompt assertions and source-backed checks were replaced with observable outputs |
+| DELETE | 36 initial-reset files plus v1.1 removals | 324 runner cases removed from the 741-case baseline | Superseded, duplicate, fake-integration, UI-only, legacy-phase, or implementation-text coverage |
 
 Forty-two files were renamed into authority-oriented destinations. These are
 consolidations of valid existing contracts, not runtime changes. The runner
-reduction is 294 cases; a direct declaration scan reports 286 `test`/`it`
-declarations in deleted files because some baseline cases use nested Node test
-subtests.
+reduction from the original 741-case baseline is 324 cases. The v1.1
+intermediate-to-final reduction is 30 runner cases. A direct declaration scan
+differs slightly where files use nested Node test subtests.
+
+## v1.1 semantic cleanup delta
+
+The v1.1 pass rescanned all 43 files, removed all direct `src/**` and
+`supabase/migrations/**` source-text/SQL regex tests, removed dead returns and
+masked branches, and replaced five retained tests with behavioral assertions.
+The remaining file reads are content, manifest, fixture, or preflight-input
+data used as test inputs rather than runtime implementation existence checks.
+
+| Changed file | v1.1 result |
+|---|---|
+| `authority-action-lifecycle.test.mjs` | Removed SQL/source/caller-text checks; retained RPC payload behavior |
+| `action-structured-persistence.test.mjs` | Removed migration-text test; retained API/RPC persistence behavior |
+| `csa-definition-contract.test.mjs` | Rewrote relational scope behavior; removed frontend/SQL text checks |
+| `frontend-recovery-contract.test.mjs` | Rewrote prompt check to structural output; removed frontend source scan |
+| `frontend-state-contract.test.mjs` | Removed source-string shell test |
+| `frontend-utility-contract.test.mjs` | Removed HTML/CSS/source existence test |
+| `frontend-view-model.test.mjs` | Removed source purity scan; retained view-model behavior |
+| `product-recovery-contract.test.mjs` | Removed static HTML source test |
+| `prompt-boundary-contract.test.mjs` | Rewrote general-NPC payload test; removed unreachable assertions |
+| `relation-event-contract.test.mjs` | Removed frontend source scans; retained endpoint behavior |
+| `reset-recovery-contract.test.mjs` | Rewrote preflight hash behavior; removed direct SQL/source inspection |
+| `runtime-display-contract.test.mjs` | Removed frontend source scan; retained display behavior |
+| `setup-opening-bootstrap.test.mjs` | Removed migration-text tests; retained engine/opening behavior |
+| `setup-opening.test.mjs` | Removed source-existence/player-candidate text scans |
+
+Before/after semantic scan result:
+
+- source/SQL implementation-text regex tests: 31 identified → 0
+- unreachable/dead-return masked assertions: 4 identified → 0
+- unconditional skip/todo masking: 0 → 0
+- exact prompt prose snapshots: removed from the affected tests
 
 ## Final unit/file inventory
 
-The following is the unit-level inventory ledger. Counts are the Node test
-runner cases in each final file; the decision is KEEP because each file remains
-connected to a current contract or current product projection.
+The following is the v1 inventory ledger before the v1.1 semantic delta. The
+v1.1 delta table above records every file changed by the second scan.
 
 | File | Cases | Authority/domain |
 |---|---:|---|
@@ -208,7 +241,7 @@ where current readers still consume it.
 
 ## Validation
 
-- `npm.cmd test`: PASS, 447/447
+- `npm.cmd test`: PASS, 417/417
 - test-file JavaScript syntax checks: PASS
 - `git diff --check`: PASS
 - API Wrangler dry-run: required final candidate check
