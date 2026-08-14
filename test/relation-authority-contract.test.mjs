@@ -265,13 +265,14 @@ test('general and sexual event ledgers dedupe deterministically on replay', () =
   const save = { active_relations: [], npc_relationship_state: {}, event_ledger: [], sexual_event_ledger: [], player_sexual_state: {} };
   const observation = {
     relation_updates: [], npc_observations: {}, events: {
-      general: [{ event_id: 'event-1', event_type: 'conflict', turn: 13, participants: ['heroine3'], evidence: 'a conflict is observed' }],
+      general: [{ event_id: 'event-1', event_type: 'conflict', turn: 13, participants: ['heroine3', 'player-main'], evidence: 'a conflict is observed' }],
       sexual: [{ actor_id: 'heroine3', target_id: 'player', action_type: 'sexual_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: 'a sexual contact is observed' }]
     }
   };
   reduceRelationEventDomains({ save, observation, rawStory: 'a conflict is observed; a sexual contact is observed', expectedTurn: 13, actionId: 'action-1', npcIds: new Set(['heroine3']) });
   reduceRelationEventDomains({ save, observation, rawStory: 'a conflict is observed; a sexual contact is observed', expectedTurn: 13, actionId: 'action-1', npcIds: new Set(['heroine3']) });
   assert.equal(save.event_ledger.length, 1);
+  assert.deepEqual(save.event_ledger[0].participants, ['heroine3', 'player']);
   assert.equal(save.sexual_event_ledger.length, 1);
 });
 
@@ -281,12 +282,13 @@ test('invalid optional relation/event observations fail open without durable mut
     save,
     observation: {
       relation_updates: [{ actor_id: 'heroine3', target_id: 'player', relation_kind: 'stand_between_knees', state: 'started', quote: 'missing from story' }],
-      npc_observations: {}, events: { general: [{ event_id: 'event-2', event_type: 'conflict', evidence: 'missing event evidence' }], sexual: [] }
+      npc_observations: {}, events: { general: [{ event_id: 'event-2', event_type: 'conflict', participants: ['ghost_npc'], evidence: 'unknown event evidence' }], sexual: [] }
     },
-    rawStory: 'ordinary turn with uncertain observation', expectedTurn: 13, npcIds: new Set(['heroine3'])
+    rawStory: 'ordinary turn with uncertain observation; unknown event evidence', expectedTurn: 13, npcIds: new Set(['heroine3'])
   });
   assert.deepEqual(result.nextSave.active_relations, []);
   assert.deepEqual(result.nextSave.event_ledger, []);
+  assert.ok(result.warnings.includes('general_event_participant_unresolved:ghost_npc'));
   assert.ok(result.warnings.length >= 2);
 });
 

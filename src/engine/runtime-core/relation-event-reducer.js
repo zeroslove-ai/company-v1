@@ -194,30 +194,41 @@ function eventKey(event) {
   return event?.event_id || JSON.stringify(event);
 }
 
-function reduceGeneralEvents(previousLedger, events, storyText, warnings) {
+function registeredParticipant(id, npcIds) {
+  const canonical = canonicalId(id);
+  return canonical === 'player' || (npcIds instanceof Set && npcIds.has(canonical));
+}
+
+function reduceGeneralEvents(previousLedger, events, storyText, warnings, npcIds) {
   const previous = Array.isArray(previousLedger) ? previousLedger : [];
   const seen = new Set(previous.map(eventKey));
   const next = [...previous];
   for (const event of Array.isArray(events) ? events : []) {
-    if (Array.isArray(event?.participants) && event.participants.some(id => typeof id !== 'string' || !id.trim())) {
-      warnings.push('general_event_participant_unresolved');
-      continue;
+    let normalizedEvent = clone(event);
+    if (Array.isArray(event?.participants)) {
+      const participants = event.participants.map(canonicalId);
+      const unknown = participants.find(id => !registeredParticipant(id, npcIds));
+      if (participants.some(id => typeof id !== 'string' || !id.trim()) || unknown) {
+        warnings.push(`general_event_participant_unresolved:${unknown ?? 'empty'}`);
+        continue;
+      }
+      normalizedEvent = { ...normalizedEvent, participants: [...new Set(participants)] };
     }
-    if (!event?.evidence || !String(storyText ?? '').includes(event.evidence)) {
+    if (!normalizedEvent?.evidence || !String(storyText ?? '').includes(normalizedEvent.evidence)) {
       warnings.push('general_event_evidence_missing');
       continue;
     }
-    const key = eventKey(event);
+    const key = eventKey(normalizedEvent);
     if (seen.has(key)) continue;
     seen.add(key);
-    next.push(clone(event));
+    next.push(normalizedEvent);
   }
   return next.slice(-80);
 }
 
-export function reduceGeneralEventObservations({ save, events, storyText = '' } = {}) {
+export function reduceGeneralEventObservations({ save, events, storyText = '', npcIds } = {}) {
   const warnings = [];
-  const state = reduceGeneralEvents(save?.event_ledger, events, storyText, warnings);
+  const state = reduceGeneralEvents(save?.event_ledger, events, storyText, warnings, npcIds);
   return { state, warnings };
 }
 
@@ -261,7 +272,7 @@ export function reduceRelationEventDomains({ save, observation, engineEnactments
     warnings.push(...relationship.warnings);
   }
 
-  save.event_ledger = reduceGeneralEvents(save.event_ledger, observation?.events?.general, rawStory, warnings);
+  save.event_ledger = reduceGeneralEvents(save.event_ledger, observation?.events?.general, rawStory, warnings, npcIds);
   const sexual = reduceSexualEvents({ save, events: observation?.events?.sexual, expectedTurn, actionId, storyText: rawStory, npcIds, warnings });
   save.sexual_event_ledger = sexual.ledger;
   if (sexual.accepted.length) {
