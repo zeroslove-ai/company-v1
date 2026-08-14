@@ -407,10 +407,42 @@ const CALL_ACTION = /(부른다|불렀다|호출한다|호출했다|오라고|�
  * 스펙에 명시된 리터럴 입력조차 이동으로 인식하지 못한다.
  */
 const MOVE_ACTION = /(찾으러|찾아가|찾아간|찾아보|찾아본|보러|만나러|이동하|이동한|이동한다|가본다|가겠다|간다|가서|방문하|방문한|들어간다|향한다|자리로|사무실로|팀으로)/u;
+
+const PLAYER_MOVEMENT_SUBJECTS = new Set(['나', '내', '저', '제', '플레이어', '당신']);
+const MOVEMENT_SUBJECT = /(?:^|[\s"'“”])([가-힣A-Za-z][가-힣A-Za-z0-9_-]{0,19})(?:이|가|은|는|께서)(?=\s|$|[,!?。！？])/gu;
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function hasRegisteredNpcMovementSubject(source, master) {
+  return registeredTargetNames(master).some(({ name }) => new RegExp(
+    `(?:^|[\\s"'“”])${escapeRegExp(name)}(?:이|가|은|는|께서)(?=\\s|$|[,!?。！？])`, 'u'
+  ).test(source));
+}
+
+/**
+ * Only self/player movement may become Engine player navigation.
+ * A subject marker before a movement sentence is enough to identify a
+ * non-player or ambiguous mover; fail closed instead of guessing that the
+ * player moved. Object/goal forms such as "민아를 찾아간다" have no subject
+ * marker here and continue through the registered-NPC destination path.
+ */
+function hasNonPlayerMovementSubject(source, master) {
+  if (hasRegisteredNpcMovementSubject(source, master)) return true;
+  MOVEMENT_SUBJECT.lastIndex = 0;
+  for (const match of source.matchAll(MOVEMENT_SUBJECT)) {
+    if (!PLAYER_MOVEMENT_SUBJECTS.has(match[1])) return true;
+  }
+  MOVEMENT_SUBJECT.lastIndex = 0;
+  return false;
+}
+
 /** Resolve typed ephemeral navigation. Raw player text never writes scene state directly. */
 export function resolvePlayerNavigationIntent({ save = {}, master = {}, playerAction = '', mapLocations = [] } = {}) {
   const source = typeof playerAction === 'string' ? playerAction.trim() : '';
   if (!source || !MOVE_ACTION.test(source)) return null;
+  if (hasNonPlayerMovementSubject(source, master)) return null;
   const locations = Array.isArray(mapLocations) ? mapLocations : [];
   const currentLocationId = identity(readCanonicalSceneV1(save, { master, mapLocations: locations }).location_id);
   const characters = charactersMapOf(master);
