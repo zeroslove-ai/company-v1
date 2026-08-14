@@ -13,7 +13,9 @@ set search_path = public, pg_temp
 as $$
 declare
   v_scene jsonb;
+  v_key text;
   v_errors text[] := '{}';
+  v_required_scene_keys text[] := array['version','scene_id','location_id','beat','goal','focus_thread','present_npc_ids','focal_character_id','last_speaker_id','updated_turn'];
 begin
   if p_save is null or jsonb_typeof(p_save) <> 'object' then
     return jsonb_build_object('valid', false, 'errors', jsonb_build_array('save must be an object'));
@@ -26,6 +28,9 @@ begin
   if jsonb_typeof(v_scene) <> 'object' then
     return jsonb_build_object('valid', false, 'errors', jsonb_build_array('scene must be an object'));
   end if;
+  foreach v_key in array v_required_scene_keys loop
+    if not (v_scene ? v_key) then v_errors := array_append(v_errors, format('missing required key: scene.%s', v_key)); end if;
+  end loop;
   if v_scene ->> 'version' <> '1' then v_errors := array_append(v_errors, 'scene.version must be 1'); end if;
   if jsonb_typeof(v_scene -> 'present_npc_ids') <> 'array' then
     v_errors := array_append(v_errors, 'scene.present_npc_ids must be an array');

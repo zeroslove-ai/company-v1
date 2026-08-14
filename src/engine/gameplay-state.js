@@ -374,8 +374,9 @@ export function hydrateGameplayState(save, master = {}) {
   const next = migrateCompanySave(save);
   // The only legacy compatibility boundary: old saves are hydrated once, then
   // every runtime reader receives a canonical scene v1 projection.
-  const npcIds = new Set((Array.isArray(master?.characters) ? master.characters : [])
-    .map(character => identity(character?.character_id)).filter(Boolean));
+  const characters = Array.isArray(master?.characters) ? master.characters : [];
+  const generalNpcs = Array.isArray(master?.general_npcs) ? master.general_npcs : [];
+  const npcIds = buildStableNpcIdSet({ characters, generalNpcs });
   const canonicalScene = next.scene
     ? readCanonicalSceneV1(next, { master, npcIds })
     : hydrateLegacySceneV1(next, { master, npcIds });
@@ -385,9 +386,8 @@ export function hydrateGameplayState(save, master = {}) {
   });
   Object.assign(next, projected);
   if (object(next.player)) next.player = canonicalCompanyPlayerProfile(next.player);
-  const characters = Array.isArray(master?.characters) ? master.characters : [];
-  for (const character of characters) {
-    const id = identity(character?.character_id);
+  for (const character of [...characters, ...generalNpcs]) {
+    const id = identity(character?.character_id ?? character?.npc_id ?? character?.id);
     if (!id) continue;
     for (const { mapName, canonicalKey, aliasKey } of HYDRATION_SOURCES) {
       next[mapName] = object(next[mapName]) ? next[mapName] : {};

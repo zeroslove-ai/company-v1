@@ -7,6 +7,7 @@ applied and no Worker has been deployed from this branch.
 ## Identity and safety boundary
 
 - Start SHA: `a9d9c95efd3b8433873a693e34ab14e8f733a3e5`
+- Review amendment base SHA: `8e5e6c524c77b8f9793585c3ca37c9f5bf8210f1`
 - Branch: `company/scene-location-presence-v1`
 - Base: `company/test-suite-consolidation-v1`
 - Runtime baseline: Cut 1 deployed source remains
@@ -21,6 +22,9 @@ applied and no Worker has been deployed from this branch.
 `hydrateLegacySceneV1()` is the one compatibility bootstrap for old saves and
 does not mutate the input. After bootstrap, runtime readers use the strict
 canonical reader.
+
+The registered NPC universe is the union of the edition's `characters` and
+`general_npcs` arrays. General NPCs are not a separate scene authority.
 
 `reduceCanonicalScene()` is the scene reducer. It owns location, presence,
 focal character, last speaker, beat, and updated turn. Presence is changed by
@@ -61,6 +65,14 @@ proposal. A proposal without that evidence is dropped with a warning.
 
 ## Database rollout source
 
+The scene deploy preflight is fail-closed when the behavioral-probe catalog is
+absent. An authorized TEST/target database readback must provide `scene_probes`
+with the approved probe results; an offline catalog fixture can test evaluator
+behavior but cannot authorize deployment. The manifest's EXECUTE expectations
+are migration-faithful: public wrapper functions are executable by
+`service_role`, while internal SECURITY DEFINER helpers are not granted
+directly.
+
 The additive, unapplied source migrations are:
 
 - `supabase/migrations/20260814000500_company_v1_scene_authority_stage_a.sql`
@@ -72,16 +84,26 @@ The additive, unapplied source migrations are:
 The candidate gate manifest is
 `config/company-v1-scene-db-contract.json`. The gate checks migration names,
 function type identities, SECURITY DEFINER, fixed `search_path = public,
-pg_temp`, service-role EXECUTE, and stage-specific behavioral probe results.
+pg_temp`, migration-faithful EXECUTE expectations, and stage-specific
+behavioral probe results.
 Future rollout remains Stage A → live gate → API cutover → Golden Path → Stage
 B. These migrations are source candidates only and have not been applied.
+
+`company_validate_scene_v1()` requires the same canonical scene key set as
+`readCanonicalSceneV1()`, including nullable keys. The
+`canonical_missing_nullable_key_rejected` probe is part of both stage
+contracts.
+
+The deprecated `hydrateCanonicalScene` alias had zero production and test
+callers after inventory and was removed. Legacy mirror fields remain for the
+compatibility projection and are not deleted in Cut 2.
 
 ## Verification performed
 
 - scene authority targeted tests: pass
 - DB contract gate behavior tests: pass
 - affected prompt/reducer/map/transaction tests: pass
-- full suite: `424/424` passing
+- full suite: `429/429` passing after the review corrections
 - runtime source behavior is not deployed from this branch
 
 The final candidate SHA and PR identity are recorded in the completion report;

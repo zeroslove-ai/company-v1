@@ -5,27 +5,29 @@
     "stage_a": {
       "required_migration_names": ["company_v1_scene_authority_stage_a"],
       "functions": [
-        {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean"},
-        {"name": "company_bootstrap_scene_v1", "identity_arguments": "jsonb"},
-        {"name": "validate_company_save_v1", "identity_arguments": "jsonb"},
-        {"name": "reset_company_game", "identity_arguments": "uuid, text"}
+        {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean", "service_role_execute": false},
+        {"name": "company_bootstrap_scene_v1", "identity_arguments": "jsonb", "service_role_execute": false},
+        {"name": "validate_company_save_v1", "identity_arguments": "jsonb", "service_role_execute": true},
+        {"name": "reset_company_game", "identity_arguments": "uuid, text", "service_role_execute": true}
       ],
       "probes": [
         "legacy_only_save_accepted",
         "canonical_scene_save_accepted",
+        "canonical_missing_nullable_key_rejected",
         "reset_returns_scene_v1"
       ]
     },
     "stage_b": {
       "required_migration_names": ["company_v1_scene_authority_stage_b"],
       "functions": [
-        {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean"},
-        {"name": "validate_company_save_v1", "identity_arguments": "jsonb"},
-        {"name": "reset_company_game", "identity_arguments": "uuid, text"}
+        {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean", "service_role_execute": false},
+        {"name": "validate_company_save_v1", "identity_arguments": "jsonb", "service_role_execute": true},
+        {"name": "reset_company_game", "identity_arguments": "uuid, text", "service_role_execute": true}
       ],
       "probes": [
         "legacy_only_save_rejected",
         "canonical_without_legacy_scene_mirrors_accepted",
+        "canonical_missing_nullable_key_rejected",
         "reset_returns_scene_v1"
       ]
     }

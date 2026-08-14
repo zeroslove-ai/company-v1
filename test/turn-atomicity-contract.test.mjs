@@ -109,7 +109,11 @@ test('12Q.1 signed activation and Engine ACTING reach one Commit result', () => 
     rawStory,
     action: { action_id: 'action-8', turn_id: 'turn-8', action_kind: 'app_transaction' },
     expectedTurn: 8,
-    master: { characters: [], general_npcs: [{ npc_id: 'npc-hayeon', name: 'Hayeon', sex: 'female', type: 'employee' }] },
+    master: { characters: [], general_npcs: [
+      { npc_id: 'npc-hayeon', name: 'Hayeon', sex: 'female', type: 'employee' },
+      { npc_id: 'npc-areum', name: 'Areum', sex: 'female', type: 'employee' },
+      { npc_id: 'npc-minsu', name: 'Minsu', sex: 'female', type: 'employee' }
+    ] },
     npcIds,
     structuredAction: { version: 1, type: 'app_transaction', operations: [{ domain: 'csa', operation: 'activate', id: 'csa_2' }] },
     transactionResolution: { previous_csa_active: [], previous_csa_rules: {}, next_csa_active: ['csa_2'], next_csa_rules: { csa_2: rule } },

@@ -107,9 +107,19 @@ export function evaluateSceneCatalog(manifest, catalog, stage = 'stage_a') {
     }
     if (actual.security_definer !== true) failures.push(`scene function is not SECURITY DEFINER: ${functionKey(expected)}`);
     if (!hasSafeSearchPath(actual)) failures.push(`unsafe scene search_path: ${functionKey(expected)}`);
-    if (!hasServiceRoleExecute(actual)) failures.push(`scene service_role EXECUTE missing: ${functionKey(expected)}`);
+    const shouldHaveServiceRoleExecute = expected.service_role_execute !== false;
+    if (shouldHaveServiceRoleExecute && !hasServiceRoleExecute(actual)) {
+      failures.push(`scene service_role EXECUTE missing: ${functionKey(expected)}`);
+    }
+    if (!shouldHaveServiceRoleExecute && hasServiceRoleExecute(actual)) {
+      failures.push(`unexpected scene service_role EXECUTE: ${functionKey(expected)}`);
+    }
   }
-  for (const probe of current.probes ?? []) {
+  const requiredProbes = current.probes ?? [];
+  if (requiredProbes.length > 0 && (!catalog?.scene_probes || typeof catalog.scene_probes !== 'object' || Array.isArray(catalog.scene_probes))) {
+    failures.push('missing scene behavioral-probe catalog');
+  }
+  for (const probe of requiredProbes) {
     if (catalog?.scene_probes?.[probe] !== true) failures.push(`scene probe failed: ${probe}`);
   }
   return { pass: failures.length === 0, stage, contract_id: manifest?.contract_id ?? null, contract_version: manifest?.contract_version ?? null, failures };

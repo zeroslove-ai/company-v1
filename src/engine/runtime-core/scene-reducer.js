@@ -1,6 +1,10 @@
 import { GameCoreError } from '../errors.js';
 
 const PLAYER_RE = /^player(?:[-_].*)?$/i;
+const REQUIRED_CANONICAL_SCENE_KEYS = [
+  'version', 'scene_id', 'location_id', 'beat', 'goal', 'focus_thread',
+  'present_npc_ids', 'focal_character_id', 'last_speaker_id', 'updated_turn'
+];
 
 function plain(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -33,9 +37,9 @@ function uniqueNpcIds(value, npcIds) {
 }
 
 function registeredNpcIds(options = {}) {
-  if (options.npcIds instanceof Set) return new Set(options.npcIds);
-  if (Array.isArray(options.npcIds)) return new Set(options.npcIds.filter(stringId));
-  const ids = new Set();
+  const ids = new Set(options.npcIds instanceof Set
+    ? [...options.npcIds].map(stringId).filter(Boolean)
+    : Array.isArray(options.npcIds) ? options.npcIds.map(stringId).filter(Boolean) : []);
   for (const list of [options.master?.characters, options.master?.general_npcs]) {
     for (const item of Array.isArray(list) ? list : []) {
       const id = stringId(item?.character_id ?? item?.npc_id ?? item?.id);
@@ -83,6 +87,11 @@ function validateCanonicalScene(source, options = {}) {
   const playerId = playerIdOf(source, options);
   if (!plain(current) || current.version !== 1) {
     throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical scene version is invalid');
+  }
+  for (const key of REQUIRED_CANONICAL_SCENE_KEYS) {
+    if (!Object.hasOwn(current, key)) {
+      throw new GameCoreError('CANONICAL_SCENE_INVALID', `Canonical scene is missing key: ${key}`);
+    }
   }
   if (!Array.isArray(current.present_npc_ids)) {
     throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical present_npc_ids must be an array');
@@ -163,11 +172,6 @@ export function hydrateLegacySceneV1(save, options = {}) {
     last_speaker_id: stringId(source.last_speaker_id),
     updated_turn: validInteger(source.scene_state?.updated_turn, 0)
   };
-}
-
-/** @deprecated Runtime callers must use readCanonicalSceneV1 after hydration. */
-export function hydrateCanonicalScene(save, options = {}) {
-  return readCanonicalSceneV1(save, options);
 }
 
 /** Reduce one observation into the canonical scene. No legacy save fields are written here. */

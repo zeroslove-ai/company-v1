@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GameCoreError } from '../src/engine/errors.js';
 import { hydrateLegacySceneV1, readCanonicalSceneV1, reduceCanonicalScene } from '../src/engine/runtime-core/scene-reducer.js';
+import { hydrateGameplayState } from '../src/engine/gameplay-state.js';
 import { projectCanonicalSceneToLegacy } from '../src/engine/runtime-core/projections.js';
 import { assertCanonicalSceneInvariants } from '../src/engine/runtime-core/invariants.js';
 
 const NPCS = new Set(['heroine1', 'heroine2', 'heroine3', 'general_park_jungwoo']);
 const LOCATIONS = [{ location_id: 'origin' }, { location_id: 'destination' }, { location_id: 'meeting_room' }];
 const clone = value => structuredClone(value);
-const hydrateCanonicalScene = hydrateLegacySceneV1;
 function save(overrides = {}) {
   const base = {
     edition: 'company-v1', save_schema_version: 1,
@@ -22,18 +22,33 @@ function save(overrides = {}) {
 function observation({ location_id = null, final = null, focal = null, speakers = [], outcome = 'success', scene_id = null, remote = [], entered = [], exited = [], presence_is_final = final !== null } = {}) {
   return { scene_id, location_id, final_present_npc_ids: final, focal_candidate_id: focal, explicit_speaker_ids: speakers, last_explicit_speaker_id: speakers.at(-1) ?? null, scene_goal: null, focus_thread: null, scene_goal_provided: false, focus_thread_provided: false, outcome, presence_is_final, entered_npc_ids: entered, exited_npc_ids: exited, remote_speaker_ids: remote };
 }
-function reduce(input) { return reduceCanonicalScene({ currentScene: hydrateCanonicalScene(input.save ?? save(), { npcIds: NPCS }), npcIds: NPCS, mapLocations: LOCATIONS, expectedTurn: 8, ...input }); }
+function reduce(input) { return reduceCanonicalScene({ currentScene: hydrateLegacySceneV1(input.save ?? save(), { npcIds: NPCS }), npcIds: NPCS, mapLocations: LOCATIONS, expectedTurn: 8, ...input }); }
 
 // Bootstrap 1-7
-test('scene bootstrap uses explicit participants before legacy arrays', () => assert.deepEqual(hydrateCanonicalScene(save(), { npcIds: NPCS }).present_npc_ids, ['heroine1']));
-test('scene bootstrap preserves explicit empty participants', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: { participants: [] }, last_npcs_present: ['heroine1'] }), { npcIds: NPCS }).present_npc_ids, []));
-test('scene bootstrap uses last_npcs_present only when participants are absent', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: {}, last_npcs_present: ['heroine2'] }), { npcIds: NPCS }).present_npc_ids, ['heroine2']));
-test('scene bootstrap uses present flags only when no snapshots exist', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: {}, last_npcs_present: undefined, npc_scene_state: { heroine2: { present: true } } }), { npcIds: NPCS }).present_npc_ids, ['heroine2']));
-test('version one canonical scene ignores legacy presence', () => assert.deepEqual(hydrateCanonicalScene(save({ scene: { version: 1, present_npc_ids: ['heroine2'], scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, focal_character_id: null, last_speaker_id: null, updated_turn: 0 }, last_npcs_present: ['heroine1'] }), { npcIds: NPCS }).present_npc_ids, ['heroine2']));
-test('bootstrap excludes player aliases and unknown ids', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: { participants: ['player', 'player-1', 'heroine1', 'ghost'] } }), { npcIds: NPCS }).present_npc_ids, ['heroine1']));
-test('legacy-only hydration preserves participants without an explicit registry', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: { participants: ['heroine1'] }, last_npcs_present: ['heroine2'] })).present_npc_ids, ['heroine1']));
-test('legacy-only hydration filters unknown ids when an explicit registry is provided', () => assert.deepEqual(hydrateCanonicalScene(save({ scene_state: { participants: ['heroine1', 'unknown'] } }), { npcIds: new Set(['heroine1']) }).present_npc_ids, ['heroine1']));
-test('bootstrap does not mutate input save', () => { const input = save(); const snapshot = clone(input); hydrateCanonicalScene(input, { npcIds: NPCS }); assert.deepEqual(input, snapshot); });
+test('scene bootstrap uses explicit participants before legacy arrays', () => assert.deepEqual(hydrateLegacySceneV1(save(), { npcIds: NPCS }).present_npc_ids, ['heroine1']));
+test('scene bootstrap preserves explicit empty participants', () => assert.deepEqual(hydrateLegacySceneV1(save({ scene_state: { participants: [] }, last_npcs_present: ['heroine1'] }), { npcIds: NPCS }).present_npc_ids, []));
+test('scene bootstrap uses last_npcs_present only when participants are absent', () => assert.deepEqual(hydrateLegacySceneV1(save({ scene_state: {}, last_npcs_present: ['heroine2'] }), { npcIds: NPCS }).present_npc_ids, ['heroine2']));
+test('scene bootstrap uses present flags only when no snapshots exist', () => assert.deepEqual(hydrateLegacySceneV1(save({ scene_state: {}, last_npcs_present: undefined, npc_scene_state: { heroine2: { present: true } } }), { npcIds: NPCS }).present_npc_ids, ['heroine2']));
+test('version one canonical scene ignores legacy presence', () => assert.deepEqual(hydrateLegacySceneV1(save({ scene: { version: 1, present_npc_ids: ['heroine2'], scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, focal_character_id: null, last_speaker_id: null, updated_turn: 0 }, last_npcs_present: ['heroine1'] }), { npcIds: NPCS }).present_npc_ids, ['heroine2']));
+test('bootstrap excludes player aliases and unknown ids', () => assert.deepEqual(hydrateLegacySceneV1(save({ scene_state: { participants: ['player', 'player-1', 'heroine1', 'ghost'] } }), { npcIds: NPCS }).present_npc_ids, ['heroine1']));
+test('legacy-only hydration preserves participants without an explicit registry', () => assert.deepEqual(hydrateLegacySceneV1(save({ scene_state: { participants: ['heroine1'] }, last_npcs_present: ['heroine2'] })).present_npc_ids, ['heroine1']));
+test('legacy-only hydration filters unknown ids when an explicit registry is provided', () => assert.deepEqual(hydrateLegacySceneV1(save({ scene_state: { participants: ['heroine1', 'unknown'] } }), { npcIds: new Set(['heroine1']) }).present_npc_ids, ['heroine1']));
+test('bootstrap does not mutate input save', () => { const input = save(); const snapshot = clone(input); hydrateLegacySceneV1(input, { npcIds: NPCS }); assert.deepEqual(input, snapshot); });
+test('canonical NPC universe includes general_npcs during scene bootstrap and gameplay hydration', () => {
+  const master = {
+    characters: [{ character_id: 'heroine1' }],
+    general_npcs: [{ npc_id: 'general_park_jungwoo', initial_scene_state: { present: true, location_id: 'origin' } }]
+  };
+  const source = save({
+    scene_state: { participants: ['player-1', 'general_park_jungwoo'] },
+    npc_scene_state: {}
+  });
+  const scene = hydrateLegacySceneV1(source, { master, npcIds: new Set(['heroine1']) });
+  assert.deepEqual(scene.present_npc_ids, ['general_park_jungwoo']);
+  const hydrated = hydrateGameplayState(source, master);
+  assert.deepEqual(hydrated.scene.present_npc_ids, ['general_park_jungwoo']);
+  assert.equal(hydrated.npc_scene_state.general_park_jungwoo.present, true);
+});
 
 // Presence 8-13
 test('null final presence preserves canonical presence', () => assert.deepEqual(reduce({ observation: observation({ final: null }) }).present_npc_ids, ['heroine1']));
@@ -97,17 +112,17 @@ test('projection is idempotent', () => { const scene = reduce({ observation: obs
 // Operational regressions 39-42
 test('turn 12 local speakers without final evidence are direct observations', () => assert.deepEqual(reduce({ observation: observation({ final: null, speakers: ['heroine1', 'heroine2'] }) }).present_npc_ids, ['heroine1', 'heroine2']));
 test('turn 16 registered NPC is not added without final evidence', () => assert.deepEqual(reduce({ observation: observation({ final: null, speakers: [] }) }).present_npc_ids, ['heroine1']));
-test('turn 17 stale present flag cannot override participants', () => { const current = save({ scene_state: { participants: ['player-1', 'heroine1'] }, npc_scene_state: { heroine1: { present: false } } }); assert.deepEqual(hydrateCanonicalScene(current, { npcIds: NPCS }).present_npc_ids, ['heroine1']); });
+test('turn 17 stale present flag cannot override participants', () => { const current = save({ scene_state: { participants: ['player-1', 'heroine1'] }, npc_scene_state: { heroine1: { present: false } } }); assert.deepEqual(hydrateLegacySceneV1(current, { npcIds: NPCS }).present_npc_ids, ['heroine1']); });
 
 // Route/commit boundary contracts 43-50
-test('canonical reducer returns a new scene object', () => { const current = hydrateCanonicalScene(save(), { npcIds: NPCS }); const next = reduce({ currentScene: current, observation: observation({ final: ['heroine2'] }) }); assert.notEqual(next, current); assert.deepEqual(current.present_npc_ids, ['heroine1']); });
-test('canonical invariants reject player in present NPC ids', () => assert.throws(() => assertCanonicalSceneInvariants({ save: save(), scene: { ...hydrateCanonicalScene(save(), { npcIds: NPCS }), present_npc_ids: ['player-1'] }, npcIds: NPCS }), error => error.code === 'CANONICAL_SCENE_INVARIANT'));
+test('canonical reducer returns a new scene object', () => { const current = hydrateLegacySceneV1(save(), { npcIds: NPCS }); const next = reduce({ currentScene: current, observation: observation({ final: ['heroine2'] }) }); assert.notEqual(next, current); assert.deepEqual(current.present_npc_ids, ['heroine1']); });
+test('canonical invariants reject player in present NPC ids', () => assert.throws(() => assertCanonicalSceneInvariants({ save: save(), scene: { ...hydrateLegacySceneV1(save(), { npcIds: NPCS }), present_npc_ids: ['player-1'] }, npcIds: NPCS }), error => error.code === 'CANONICAL_SCENE_INVARIANT'));
 
 test('canonical null fields do not fall back to stale legacy values', () => {
   const source = save({ scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 4 }, last_npcs_present: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1' });
-  assert.deepEqual(hydrateCanonicalScene(source, { npcIds: NPCS }), { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 4 });
+  assert.deepEqual(hydrateLegacySceneV1(source, { npcIds: NPCS }), { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 4 });
 });
-test('malformed canonical scene fails without legacy recovery', () => assert.throws(() => hydrateCanonicalScene(save({ scene: { version: 1, present_npc_ids: ['heroine1', 'heroine1'] }, last_npcs_present: ['heroine2'] }), { npcIds: NPCS }), error => error.code === 'CANONICAL_SCENE_INVALID'));
+test('malformed canonical scene fails without legacy recovery', () => assert.throws(() => hydrateLegacySceneV1(save({ scene: { version: 1, present_npc_ids: ['heroine1', 'heroine1'] }, last_npcs_present: ['heroine2'] }), { npcIds: NPCS }), error => error.code === 'CANONICAL_SCENE_INVALID'));
 test('failed movement increments beat and preserves destination fields', () => {
   const next = reduce({ observation: observation({ location_id: 'destination', final: ['heroine2'], outcome: 'partial' }) });
   assert.equal(next.location_id, 'origin');
@@ -126,12 +141,12 @@ test('degraded turn increments beat and updated turn', () => {
   assert.deepEqual(next.present_npc_ids, ['heroine1']);
 });
 test('feedback revision preserves beat and updated turn and ignores speaker projection', () => {
-  const current = hydrateCanonicalScene(save({ scene: { version: 1, scene_id: 's', location_id: 'origin', beat: 7, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1', updated_turn: 6 } }), { npcIds: NPCS });
+  const current = hydrateLegacySceneV1(save({ scene: { version: 1, scene_id: 's', location_id: 'origin', beat: 7, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1', updated_turn: 6 } }), { npcIds: NPCS });
   const next = reduce({ currentScene: current, actionKind: 'feedback_revision', observation: observation({ location_id: 'destination', final: [], speakers: ['heroine2'] }) });
   assert.deepEqual(next, current);
 });
 test('final null local speaker is auto-added as direct evidence', () => {
-  const current = hydrateCanonicalScene(save(), { npcIds: NPCS });
+  const current = hydrateLegacySceneV1(save(), { npcIds: NPCS });
   assert.deepEqual(reduce({ currentScene: current, observation: observation({ final: null, speakers: ['heroine2'] }) }).present_npc_ids, ['heroine1', 'heroine2']);
 });
 test('remote speaker with final null does not alter presence', () => {
@@ -153,6 +168,11 @@ test('strict canonical reader ignores conflicting legacy projections', () => {
   const canonical = { version: 1, scene_id: 'scene', location_id: 'origin', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['heroine2'], focal_character_id: 'heroine2', last_speaker_id: null, updated_turn: 1 };
   const result = readCanonicalSceneV1(save({ scene: canonical, last_npcs_present: ['heroine1'] }), { npcIds: NPCS });
   assert.deepEqual(result.present_npc_ids, ['heroine2']);
+});
+
+test('strict canonical reader rejects a missing nullable scene key', () => {
+  const canonical = { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, updated_turn: 0 };
+  assert.throws(() => readCanonicalSceneV1({ scene: canonical }, { npcIds: NPCS }), error => error.code === 'CANONICAL_SCENE_INVALID');
 });
 
 test('legacy hydration is non-mutating and produces canonical v1', () => {

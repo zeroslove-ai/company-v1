@@ -63,8 +63,8 @@ function sceneCatalog(probes) {
       { name: 'company_v1_scene_authority_stage_b' }
     ],
     functions: [
-      functionBase('company_validate_scene_v1', 'jsonb, boolean'),
-      functionBase('company_bootstrap_scene_v1', 'jsonb'),
+      functionBase('company_validate_scene_v1', 'jsonb, boolean', { service_role_execute: false }),
+      functionBase('company_bootstrap_scene_v1', 'jsonb', { service_role_execute: false }),
       functionBase('validate_company_save_v1', 'jsonb'),
       functionBase('reset_company_game', 'uuid, text')
     ],
@@ -76,6 +76,7 @@ test('scene Stage A gate accepts legacy compatibility and canonical probes', () 
   const result = evaluateSceneCatalog(sceneManifest, sceneCatalog({
     legacy_only_save_accepted: true,
     canonical_scene_save_accepted: true,
+    canonical_missing_nullable_key_rejected: true,
     reset_returns_scene_v1: true
   }), 'stage_a');
   assert.equal(result.pass, true);
@@ -89,4 +90,36 @@ test('scene Stage B gate fails without canonical-required probes', () => {
   }), 'stage_b');
   assert.equal(result.pass, false);
   assert.ok(result.failures.some(item => item.includes('legacy_only_save_rejected')));
+});
+
+test('scene gate fails closed when behavioral-probe catalog is absent', () => {
+  const catalog = sceneCatalog({});
+  delete catalog.scene_probes;
+  const result = evaluateSceneCatalog(sceneManifest, catalog, 'stage_a');
+  assert.equal(result.pass, false);
+  assert.ok(result.failures.includes('missing scene behavioral-probe catalog'));
+});
+
+test('scene gate rejects an unnecessary service_role grant to an internal helper', () => {
+  const catalog = sceneCatalog({
+    legacy_only_save_accepted: true,
+    canonical_scene_save_accepted: true,
+    canonical_missing_nullable_key_rejected: true,
+    reset_returns_scene_v1: true
+  });
+  catalog.functions.find(item => item.name === 'company_validate_scene_v1').service_role_execute = true;
+  const result = evaluateSceneCatalog(sceneManifest, catalog, 'stage_a');
+  assert.equal(result.pass, false);
+  assert.ok(result.failures.some(item => item.includes('unexpected scene service_role EXECUTE')));
+});
+
+test('scene gate requires the missing-nullable-key rejection probe', () => {
+  const result = evaluateSceneCatalog(sceneManifest, sceneCatalog({
+    legacy_only_save_accepted: true,
+    canonical_scene_save_accepted: true,
+    canonical_missing_nullable_key_rejected: false,
+    reset_returns_scene_v1: true
+  }), 'stage_a');
+  assert.equal(result.pass, false);
+  assert.ok(result.failures.some(item => item.includes('canonical_missing_nullable_key_rejected')));
 });
