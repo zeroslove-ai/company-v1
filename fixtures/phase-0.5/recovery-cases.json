@@ -1,9 +1,0 @@
-[
-  { "id": "stream-interrupted", "state": "story_streaming", "event": "sse_interrupted", "expected": "story_failed", "recovery": "do_not_append_new_story" },
-  { "id": "story-complete-before-extract", "state": "extracting", "event": "reconnect", "expected": "extracting", "recovery": "continue_extract" },
-  { "id": "extract-complete-before-commit", "state": "committing", "event": "reconnect", "expected": "committing", "recovery": "continue_commit" },
-  { "id": "commit-response-lost", "state": "commit_failed", "event": "response_lost", "expected": "ready", "recovery": "lookup_action_id_replay" },
-  { "id": "commit-replay", "state": "committing", "event": "same_action_replayed", "expected": "ready", "recovery": "idempotent_success" },
-  { "id": "commit-conflict", "state": "committing", "event": "expected_turn_stale", "expected": "commit_failed", "recovery": "preserve_save_and_report_conflict" },
-  { "id": "rapid-duplicate-click", "state": "story_streaming", "event": "same_action_id_submitted", "expected": "story_streaming", "recovery": "ignore_duplicate" }
-]

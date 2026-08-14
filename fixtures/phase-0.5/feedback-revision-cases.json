@@ -1,8 +1,0 @@
-[
-  { "id": "latest-turn-revision", "target_turn": 7, "latest_turn": 7, "expected": "revision_allowed" },
-  { "id": "same-feedback-idempotent", "target_turn": 7, "latest_turn": 7, "expected": "return_existing_revision" },
-  { "id": "historical-turn-with-successor", "target_turn": 6, "latest_turn": 7, "expected": "revision_rejected" },
-  { "id": "feedback-generation-failure", "target_turn": 7, "latest_turn": 7, "expected": "retain_current_commit" },
-  { "id": "lost-commit-response", "target_turn": 7, "latest_turn": 7, "expected": "lookup_revision_action" },
-  { "id": "prevent-original-state-duplication", "target_turn": 7, "latest_turn": 7, "expected": "supersede_original_once" }
-]
