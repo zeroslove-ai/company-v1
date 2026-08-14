@@ -7,6 +7,7 @@ import { buildStoryWorldProjection, isSeatedState } from '../src/engine/csa/stor
 import { matchesCsaSubjectScope } from '../src/engine/csa/authority-policy.js';
 import { canonicalCompanyPlayerProfile } from '../src/engine/player-setup.js';
 import { normalizeCompanyCsaCatalog } from '../src/engine/csa/catalog.js';
+import { reduceRelationEventDomains } from '../src/engine/runtime-core/relation-event-reducer.js';
 import { reduceCsaCommitState } from '../src/engine/runtime-core/csa-commit-reducer.js';
 import { normalizeFreshExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { reduceObservationDomains } from '../src/engine/runtime-core/observation-reducers.js';
@@ -135,14 +136,11 @@ test('preset trigger matrix uses structural meanings consistent with each label'
   assert.equal(conditional.world_rules[0].resolved_facts[0].trigger_state, 'conditional');
 });
 
-test('Engine mandatory relation with one target writes active_relations and supersedes stale actor relation', () => {
+test('Engine mandatory relation input writes active_relations and supersedes stale actor relation', () => {
   const currentSave = { active_relations: [{ actor_id: 'heroine3', target_id: 'male1', relation_kind: 'stand_between_knees', state: 'active', started_turn: 12 }] };
-  const result = reduceCsaCommitState({
-    currentSave,
-    nextSave: structuredClone(currentSave),
-    observation: { csa_runtime_updates: [] },
-    canonicalScene: { present_npc_ids: ['heroine3'] },
-    action: { action_kind: 'player_turn' },
+  const result = reduceRelationEventDomains({
+    save: structuredClone(currentSave),
+    observation: { relation_updates: [], npc_observations: {}, events: { general: [], sexual: [] } },
     expectedTurn: 13,
     engineEnactments: [{ authority: 'engine', source_rule_id: 'csa_2', actor_id: 'heroine3', execution_kind: 'behavior_execution', action: 'stand_between_knees', target_ids: ['player'], canonical_text: 'Jena stands between the player knees.' }]
   });
@@ -152,13 +150,23 @@ test('Engine mandatory relation with one target writes active_relations and supe
 });
 
 test('Engine relation with unresolved plural targets never writes a fake specific relation', () => {
-  const result = reduceCsaCommitState({
-    currentSave: {}, nextSave: {}, observation: { csa_runtime_updates: [] }, canonicalScene: { present_npc_ids: ['heroine3'] },
-    action: { action_kind: 'player_turn' }, expectedTurn: 13,
+  const result = reduceRelationEventDomains({
+    save: {}, observation: { relation_updates: [], npc_observations: {}, events: { general: [], sexual: [] } }, expectedTurn: 13,
     engineEnactments: [{ authority: 'engine', source_rule_id: 'csa_2', actor_id: 'heroine3', execution_kind: 'behavior_execution', action: 'stand_between_knees', target_ids: [], counterparty_candidate_ids: ['male1', 'male2'] }]
   });
   assert.equal((result.nextSave.active_relations ?? []).length, 0);
   assert.ok(result.warnings.some(warning => warning.startsWith('engine_relation_target_unresolved:')));
+});
+
+test('CSA reducer leaves active_relations to the canonical relation/event reducer', () => {
+  const active = [{ actor_id: 'heroine5', target_id: 'player', relation_kind: 'stand_between_knees', state: 'active' }];
+  const result = reduceCsaCommitState({
+    currentSave: { active_relations: active }, nextSave: { active_relations: structuredClone(active) },
+    observation: { csa_runtime_updates: [] }, canonicalScene: { present_npc_ids: ['heroine3', 'heroine5'] },
+    action: { action_kind: 'player_turn' }, expectedTurn: 13,
+    engineEnactments: [{ authority: 'engine', source_rule_id: 'csa_2', actor_id: 'heroine3', execution_kind: 'behavior_execution', action: 'stand_between_knees', target_ids: ['player'] }]
+  });
+  assert.deepEqual(result.nextSave.active_relations, active);
 });
 
 test('Turn 13 to 15 fixture closes heroine5 and makes heroine3 the current relation authority', () => {
@@ -198,6 +206,114 @@ test('unknown Extract relation kind is fail-open dropped with a warning', () => 
   }, { npcIds: new Set(['heroine3']), storyText: story, expectedTurn: 15 });
   assert.deepEqual(normalized.relation_updates, []);
   assert.ok(normalized.warnings.some(warning => warning.includes('relation_updates')));
+});
+
+test('Engine relation input wins over conflicting exact Extract input', () => {
+  const save = { active_relations: [], npc_relationship_state: {}, event_ledger: [], sexual_event_ledger: [] };
+  const observation = {
+    relation_updates: [{ actor_id: 'heroine3', target_id: 'player', relation_kind: 'stand_between_knees', state: 'started', quote: 'Extract observed a conflicting relation.' }],
+    npc_observations: {}, events: { general: [], sexual: [] }
+  };
+  const result = reduceRelationEventDomains({
+    save, observation, rawStory: 'Engine relation. Extract observed a conflicting relation.', expectedTurn: 13,
+    npcIds: new Set(['heroine3']),
+    engineEnactments: [{ authority: 'engine', source_rule_id: 'csa_2', actor_id: 'heroine3', execution_kind: 'behavior_execution', action: 'stand_between_knees', target_ids: ['player'] }]
+  });
+  assert.equal(result.nextSave.active_relations.length, 1);
+  assert.equal(result.nextSave.active_relations[0].source, 'engine');
+  assert.ok(result.warnings.includes('relation_observation_overridden_by_engine:heroine3'));
+});
+
+test('exact Extract relation creates one canonical relation and replay is idempotent', () => {
+  const save = { active_relations: [], npc_relationship_state: {}, event_ledger: [], sexual_event_ledger: [] };
+  const observation = {
+    relation_updates: [{ actor_id: 'heroine3', target_id: 'player', relation_kind: 'stand_between_knees', state: 'started', quote: 'Jena starts the documented relation.' }],
+    npc_observations: {}, events: { general: [], sexual: [] }
+  };
+  const first = reduceRelationEventDomains({ save, observation, rawStory: observation.relation_updates[0].quote, expectedTurn: 13, npcIds: new Set(['heroine3']) });
+  const second = reduceRelationEventDomains({ save, observation, rawStory: observation.relation_updates[0].quote, expectedTurn: 13, npcIds: new Set(['heroine3']) });
+  assert.equal(first.nextSave.active_relations.filter(item => item.state === 'active').length, 1);
+  assert.equal(second.nextSave.active_relations.filter(item => item.state === 'active').length, 1);
+});
+
+test('unresolved relation target is warning-only and does not mutate relation state', () => {
+  const save = { active_relations: [], npc_relationship_state: {}, event_ledger: [], sexual_event_ledger: [] };
+  const result = reduceRelationEventDomains({
+    save,
+    observation: { relation_updates: [{ actor_id: 'heroine3', target_id: 'unknown', relation_kind: 'stand_between_knees', state: 'started', quote: 'unknown target relation' }], npc_observations: {}, events: { general: [], sexual: [] } },
+    rawStory: 'unknown target relation', expectedTurn: 13, npcIds: new Set(['heroine3'])
+  });
+  assert.deepEqual(result.nextSave.active_relations, []);
+  assert.ok(result.warnings.some(warning => warning.startsWith('relation_target_unresolved:')));
+});
+
+test('supersede and explicit end are canonical and nonexistent end is warning-only', () => {
+  const save = { active_relations: [], npc_relationship_state: {}, event_ledger: [], sexual_event_ledger: [] };
+  const start = (target, quote) => ({ relation_updates: [{ actor_id: 'heroine3', target_id: target, relation_kind: 'stand_between_knees', state: 'started', quote }], npc_observations: {}, events: { general: [], sexual: [] } });
+  reduceRelationEventDomains({ save, observation: start('player', 'relation to player'), rawStory: 'relation to player', expectedTurn: 13, npcIds: new Set(['heroine3', 'heroine5']) });
+  reduceRelationEventDomains({ save, observation: start('heroine5', 'relation to heroine5'), rawStory: 'relation to heroine5', expectedTurn: 14, npcIds: new Set(['heroine3', 'heroine5']) });
+  assert.equal(save.active_relations.find(item => item.target_id === 'player')?.state, 'ended');
+  assert.equal(save.active_relations.find(item => item.target_id === 'heroine5')?.state, 'active');
+  const ended = reduceRelationEventDomains({ save, observation: { relation_updates: [{ actor_id: 'heroine3', target_id: 'heroine5', relation_kind: 'stand_between_knees', state: 'ended', quote: 'relation to heroine5 ends' }], npc_observations: {}, events: { general: [], sexual: [] } }, rawStory: 'relation to heroine5 ends', expectedTurn: 15, npcIds: new Set(['heroine3', 'heroine5']) });
+  assert.equal(save.active_relations.find(item => item.target_id === 'heroine5')?.state, 'ended');
+  const nonexistent = reduceRelationEventDomains({ save, observation: { relation_updates: [{ actor_id: 'heroine3', target_id: 'heroine5', relation_kind: 'sit_on_lap', state: 'ended', quote: 'no such relation ends' }], npc_observations: {}, events: { general: [], sexual: [] } }, rawStory: 'no such relation ends', expectedTurn: 16, npcIds: new Set(['heroine3', 'heroine5']) });
+  assert.ok(nonexistent.warnings.some(warning => warning.startsWith('relation_end_without_active:')));
+  assert.ok(ended.nextSave.active_relations.every(item => item.state !== 'active'));
+});
+
+test('general and sexual event ledgers dedupe deterministically on replay', () => {
+  const save = { active_relations: [], npc_relationship_state: {}, event_ledger: [], sexual_event_ledger: [], player_sexual_state: {} };
+  const observation = {
+    relation_updates: [], npc_observations: {}, events: {
+      general: [{ event_id: 'event-1', event_type: 'conflict', turn: 13, participants: ['heroine3'], evidence: 'a conflict is observed' }],
+      sexual: [{ actor_id: 'heroine3', target_id: 'player', action_type: 'sexual_touch', direction: 'npc_to_player', completed: false, interrupted: false, evidence: 'a sexual contact is observed' }]
+    }
+  };
+  reduceRelationEventDomains({ save, observation, rawStory: 'a conflict is observed; a sexual contact is observed', expectedTurn: 13, actionId: 'action-1', npcIds: new Set(['heroine3']) });
+  reduceRelationEventDomains({ save, observation, rawStory: 'a conflict is observed; a sexual contact is observed', expectedTurn: 13, actionId: 'action-1', npcIds: new Set(['heroine3']) });
+  assert.equal(save.event_ledger.length, 1);
+  assert.equal(save.sexual_event_ledger.length, 1);
+});
+
+test('invalid optional relation/event observations fail open without durable mutation', () => {
+  const save = { active_relations: [], npc_relationship_state: {}, event_ledger: [], sexual_event_ledger: [] };
+  const result = reduceRelationEventDomains({
+    save,
+    observation: {
+      relation_updates: [{ actor_id: 'heroine3', target_id: 'player', relation_kind: 'stand_between_knees', state: 'started', quote: 'missing from story' }],
+      npc_observations: {}, events: { general: [{ event_id: 'event-2', event_type: 'conflict', evidence: 'missing event evidence' }], sexual: [] }
+    },
+    rawStory: 'ordinary turn with uncertain observation', expectedTurn: 13, npcIds: new Set(['heroine3'])
+  });
+  assert.deepEqual(result.nextSave.active_relations, []);
+  assert.deepEqual(result.nextSave.event_ledger, []);
+  assert.ok(result.warnings.length >= 2);
+});
+
+test('relationship observations require a registered actor and exact Story evidence', () => {
+  const save = { active_relations: [], npc_relationship_state: {}, event_ledger: [], sexual_event_ledger: [] };
+  const result = reduceRelationEventDomains({
+    save,
+    observation: {
+      relation_updates: [],
+      npc_observations: {
+        heroine3: { relationship: { closeness: 0.8 } },
+        unknown_npc: { relationship: { closeness: 1 } }
+      },
+      events: { general: [], sexual: [] },
+      evidence: {
+        closeness: { changed: ['npc_relationship_state.heroine3.closeness'], quote: 'Jena becomes closer.' }
+      }
+    },
+    rawStory: 'Jena becomes closer.',
+    master,
+    parsedStory: { dialogue_lines: [] },
+    npcIds: new Set(['heroine3']),
+    expectedTurn: 13
+  });
+  assert.equal(result.nextSave.npc_relationship_state.heroine3.closeness, 0.8);
+  assert.equal(result.nextSave.npc_relationship_state.unknown_npc, undefined);
+  assert.ok(result.warnings.includes('relationship_actor_unresolved:unknown_npc'));
 });
 
 test('prompt contracts reinforce per-target Mind Monitor completeness and explicit physical continuity', () => {

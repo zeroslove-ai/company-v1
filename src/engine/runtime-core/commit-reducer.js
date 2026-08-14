@@ -148,7 +148,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   ]);
   const domains = reduceObservationDomains({
     currentSave: current, observation: canonicalObservationInput, parsedStory, rawStory, expectedTurn, actionId: action?.action_id, master, npcIds,
-    sceneBefore, sceneAfter: canonicalScene, observedNpcIds,
+    sceneBefore, sceneAfter: canonicalScene, observedNpcIds, engineEnactments,
     explicitSpeakerIds: (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
   });
   let nextSave = projectCanonicalSceneToLegacy(domains.nextSave, canonicalScene, {

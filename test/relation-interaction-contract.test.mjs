@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
-import { reduceCsaCommitState } from '../src/engine/runtime-core/csa-commit-reducer.js';
+import { reduceRelationEventDomains } from '../src/engine/runtime-core/relation-event-reducer.js';
 
 const master = {
   characters: [
@@ -84,12 +84,9 @@ test('unique Engine switch ends same-rule target relation on the old actor and c
     active_relations: [{ actor_id: 'heroine5', target_id: 'player', relation_kind: 'stand_between_knees', source_rule_id: 'csa_2', state: 'active', started_turn: 12 }],
     npc_scene_state: { heroine5: { posture: 'standing', position_label: '팀장의 벌어진 무릎 사이' } }
   };
-  const result = reduceCsaCommitState({
-    currentSave,
-    nextSave: structuredClone(currentSave),
-    observation: { csa_runtime_updates: [] },
-    canonicalScene: { present_npc_ids: ['heroine3', 'heroine5'] },
-    action: { action_kind: 'player_turn' },
+  const result = reduceRelationEventDomains({
+    save: structuredClone(currentSave),
+    observation: { relation_updates: [], npc_observations: {}, events: { general: [], sexual: [] } },
     expectedTurn: 13,
     engineEnactments: [{ authority: 'engine', source_rule_id: 'csa_2', actor_id: 'heroine3', execution_kind: 'behavior_execution', action: 'stand_between_knees', target_ids: ['player'], canonical_text: '김제나는 플레이어의 무릎 사이에 섰다.' }]
   });
@@ -104,12 +101,9 @@ test('multiple authoritative Engine actors do not arbitrarily supersede a same-r
     npc_scene_state: { heroine5: { posture: 'standing', position_label: '팀장의 벌어진 무릎 사이' } }
   };
   const enactment = actor_id => ({ authority: 'engine', source_rule_id: 'csa_2', actor_id, execution_kind: 'behavior_execution', action: 'stand_between_knees', target_ids: ['player'] });
-  const result = reduceCsaCommitState({
-    currentSave,
-    nextSave: structuredClone(currentSave),
-    observation: { csa_runtime_updates: [] },
-    canonicalScene: { present_npc_ids: ['heroine3', 'heroine5', 'heroine6'] },
-    action: { action_kind: 'player_turn' },
+  const result = reduceRelationEventDomains({
+    save: structuredClone(currentSave),
+    observation: { relation_updates: [], npc_observations: {}, events: { general: [], sexual: [] } },
     expectedTurn: 13,
     engineEnactments: [enactment('heroine3'), enactment('heroine6')]
   });

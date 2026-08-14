@@ -20,6 +20,7 @@ export { normalizeFreshExtractObservationV2, buildDegradedExtractObservation, as
 export { normalizePersistedExtractObservation } from './runtime-core/persisted-extract-observation.js';
 export { reduceGameplayCommit } from './runtime-core/commit-reducer.js';
 export { reduceCsaCommitState } from './runtime-core/csa-commit-reducer.js';
+export { reduceRelationEventDomains } from './runtime-core/relation-event-reducer.js';
 export {
   reducePlayerPhysicalObservation, reduceNpcPhysicalObservation,
   reducePlayerSexualObservation, reduceNpcStatObservation,
