@@ -10,7 +10,8 @@ const CORE_TABLES = ['games', 'game_master', 'game_save', 'game_actions', 'game_
 const FUNCTION_NAMES = [
   'claim_game_action_stage', 'fail_game_action_stage', 'record_story_result_owned',
   'record_extract_result_owned', 'record_story_result', 'record_extract_result',
-  'apply_reserved_csa_transaction'
+  'apply_reserved_csa_transaction', 'company_validate_scene_v1',
+  'company_bootstrap_scene_v1', 'validate_company_save_v1', 'reset_company_game'
 ];
 
 const KNOWN_TYPE_STARTS = new Set([
@@ -91,13 +92,37 @@ export function evaluateCatalog(manifest, catalog, stage = 'stage_a') {
   return { pass: failures.length === 0, stage, contract_id: manifest?.contract_id ?? null, contract_version: manifest?.contract_version ?? null, failures };
 }
 
+export function evaluateSceneCatalog(manifest, catalog, stage = 'stage_a') {
+  const failures = [];
+  const current = manifest?.stages?.[stage] ?? {};
+  const migrationNames = new Set((catalog?.migrations ?? []).map(item => String(item?.name ?? '')));
+  for (const migrationName of current.required_migration_names ?? []) {
+    if (!migrationNames.has(migrationName)) failures.push(`missing scene migration name: ${migrationName}`);
+  }
+  for (const expected of current.functions ?? []) {
+    const actual = findFunction(catalog, expected);
+    if (!actual) {
+      failures.push(`missing scene function: ${functionKey(expected)}`);
+      continue;
+    }
+    if (actual.security_definer !== true) failures.push(`scene function is not SECURITY DEFINER: ${functionKey(expected)}`);
+    if (!hasSafeSearchPath(actual)) failures.push(`unsafe scene search_path: ${functionKey(expected)}`);
+    if (!hasServiceRoleExecute(actual)) failures.push(`scene service_role EXECUTE missing: ${functionKey(expected)}`);
+  }
+  for (const probe of current.probes ?? []) {
+    if (catalog?.scene_probes?.[probe] !== true) failures.push(`scene probe failed: ${probe}`);
+  }
+  return { pass: failures.length === 0, stage, contract_id: manifest?.contract_id ?? null, contract_version: manifest?.contract_version ?? null, failures };
+}
+
 const CATALOG_SQL = `
 with wanted_functions(name) as (select unnest(array[${FUNCTION_NAMES.map(name => `'${name}'`).join(', ')}]))
 select jsonb_build_object(
   'migrations', case when to_regclass('supabase_migrations.schema_migrations') is null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('version', version::text, 'name', name::text)) from supabase_migrations.schema_migrations), '[]'::jsonb) end,
   'columns', coalesce((select jsonb_agg(jsonb_build_object('table', table_name, 'column', column_name)) from information_schema.columns where table_schema = 'public' and table_name = 'game_actions' and column_name in ('stage_owner_token', 'stage_claimed_at')), '[]'::jsonb),
   'functions', coalesce((select jsonb_agg(jsonb_build_object('name', p.proname, 'identity_arguments', oidvectortypes(p.proargtypes), 'security_definer', p.prosecdef, 'config', coalesce(to_jsonb(p.proconfig), '[]'::jsonb), 'service_role_execute', has_function_privilege('service_role', p.oid, 'EXECUTE'))) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in (select name from wanted_functions)), '[]'::jsonb),
-  'privileges', coalesce((select jsonb_agg(jsonb_build_object('table', t.table_name, 'role', 'service_role', 'privilege', p.privilege_type)) from information_schema.tables t cross join lateral (select privilege_type from information_schema.role_table_grants g where g.grantee = 'service_role' and g.table_schema = 'public' and g.table_name = t.table_name and g.privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')) p where t.table_schema = 'public' and t.table_name in (${CORE_TABLES.map(name => `'${name}'`).join(', ')})), '[]'::jsonb)
+  'privileges', coalesce((select jsonb_agg(jsonb_build_object('table', t.table_name, 'role', 'service_role', 'privilege', p.privilege_type)) from information_schema.tables t cross join lateral (select privilege_type from information_schema.role_table_grants g where g.grantee = 'service_role' and g.table_schema = 'public' and g.table_name = t.table_name and g.privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')) p where t.table_schema = 'public' and t.table_name in (${CORE_TABLES.map(name => `'${name}'`).join(', ')})), '[]'::jsonb),
+  'scene_probes', '{}'::jsonb
 )::text;
 `;
 
@@ -111,13 +136,18 @@ async function loadCatalog({ catalogPath, dbUrl }) {
 async function main() {
   const args = process.argv.slice(2);
   const valueAfter = flag => { const index = args.indexOf(flag); return index >= 0 ? args[index + 1] : null; };
+  const hasActionGate = args.includes('--stage') || args.includes('--manifest') || !args.includes('--scene-stage');
   const stage = valueAfter('--stage') ?? 'stage_a';
   const manifestPath = valueAfter('--manifest') ?? DEFAULT_MANIFEST;
+  const sceneStage = valueAfter('--scene-stage');
+  const sceneManifestPath = valueAfter('--scene-manifest') ?? 'config/company-v1-scene-db-contract.json';
   const catalog = await loadCatalog({ catalogPath: valueAfter('--catalog'), dbUrl: process.env.SUPABASE_DB_URL });
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-  const result = evaluateCatalog(manifest, catalog, stage);
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  if (!result.pass) process.exitCode = 1;
+  const manifest = hasActionGate ? JSON.parse(await readFile(manifestPath, 'utf8')) : null;
+  const result = hasActionGate ? evaluateCatalog(manifest, catalog, stage) : null;
+  const sceneResult = sceneStage ? evaluateSceneCatalog(JSON.parse(await readFile(sceneManifestPath, 'utf8')), catalog, sceneStage) : null;
+  const output = sceneResult && result ? { action: result, scene: sceneResult, pass: result.pass && sceneResult.pass } : (sceneResult ?? result);
+  process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
+  if ((result && !result.pass) || (sceneResult && !sceneResult.pass)) process.exitCode = 1;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main().catch(error => {

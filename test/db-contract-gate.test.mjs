@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { evaluateCatalog } from '../scripts/company-db-contract-gate.mjs';
+import { evaluateCatalog, evaluateSceneCatalog } from '../scripts/company-db-contract-gate.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'config/company-v1-db-contract.json'), 'utf8'));
+const sceneManifest = JSON.parse(fs.readFileSync(path.join(root, 'config/company-v1-scene-db-contract.json'), 'utf8'));
 const functionBase = (name, identity_arguments, extra = {}) => ({
   name, identity_arguments, security_definer: true, config: ['search_path=public, pg_temp'], service_role_execute: true, ...extra
 });
@@ -53,4 +54,39 @@ test('DB contract gate enforces Stage B direct-DML and legacy-writer removal', (
   assert.equal(result.pass, false);
   assert.ok(result.failures.some(item => item.includes('forbidden legacy function')));
   assert.ok(result.failures.some(item => item.includes('direct DML')));
+});
+
+function sceneCatalog(probes) {
+  return {
+    migrations: [
+      { name: 'company_v1_scene_authority_stage_a' },
+      { name: 'company_v1_scene_authority_stage_b' }
+    ],
+    functions: [
+      functionBase('company_validate_scene_v1', 'jsonb, boolean'),
+      functionBase('company_bootstrap_scene_v1', 'jsonb'),
+      functionBase('validate_company_save_v1', 'jsonb'),
+      functionBase('reset_company_game', 'uuid, text')
+    ],
+    scene_probes: probes
+  };
+}
+
+test('scene Stage A gate accepts legacy compatibility and canonical probes', () => {
+  const result = evaluateSceneCatalog(sceneManifest, sceneCatalog({
+    legacy_only_save_accepted: true,
+    canonical_scene_save_accepted: true,
+    reset_returns_scene_v1: true
+  }), 'stage_a');
+  assert.equal(result.pass, true);
+});
+
+test('scene Stage B gate fails without canonical-required probes', () => {
+  const result = evaluateSceneCatalog(sceneManifest, sceneCatalog({
+    legacy_only_save_rejected: false,
+    canonical_without_legacy_scene_mirrors_accepted: true,
+    reset_returns_scene_v1: true
+  }), 'stage_b');
+  assert.equal(result.pass, false);
+  assert.ok(result.failures.some(item => item.includes('legacy_only_save_rejected')));
 });
