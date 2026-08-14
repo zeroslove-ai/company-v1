@@ -27,7 +27,7 @@ const FRESH_OPENING_OUTPUT_PROTOCOL = [
   'A standalone visible action narrative in source order; ACTING is not dialogue-direction metadata.',
   '[/ACTING]',
   '[THOUGHT] one unquoted first-person Korean inner monologue written as natural self-talk, never analysis or report prose.',
-  'When possible, provide one [THOUGHT] and four repeated [CHOICE] blocks, each containing one concrete literal player action (usually around 30 Korean characters as quality guidance only; not a validity gate). Every speaker_id is an exact registered ID; never infer a speaker. The UI owns headings and numbering; do not output labels, human section titles, or numbered choices.'
+  'Output exactly four repeated [CHOICE] blocks. Each [CHOICE] must contain one non-empty concrete literal player action; do not number choices yourself and do not output a human choice heading or numbered list because the UI owns numbering. When possible, provide one [THOUGHT] as well (quality guidance only; not a validity gate). Every speaker_id is an exact registered ID; never infer a speaker.'
 ].join('\n');
 
 const PLAYER_PRIVATE_OPENING_PREMISE = [

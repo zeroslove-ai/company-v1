@@ -262,8 +262,12 @@ export function reduceStoryChoiceProjection({ parsedStory, allowDeterministicFal
   if (observed.some(choice => !choice)) warnings.push('choices_empty');
   if (unique.size !== nonEmpty.length) warnings.push('choices_exact_duplicate');
   const canonical = observed.length === 4 && observed.every(Boolean) && unique.size === 4;
-  if (allowDeterministicFallback && !canonical && nonEmpty.length <= 4) {
-    const state = [...new Set(nonEmpty)];
+  if (allowDeterministicFallback && !canonical) {
+    const state = [];
+    for (const choice of nonEmpty) {
+      if (state.length >= 4) break;
+      if (!state.includes(choice)) state.push(choice);
+    }
     for (const fallback of DETERMINISTIC_CHOICE_FALLBACKS) {
       if (state.length >= 4) break;
       if (!state.includes(fallback)) state.push(fallback);

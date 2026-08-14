@@ -162,9 +162,11 @@ test('Opening Prompt v2 establishes workplace activity and leaves player agency 
   assert.match(system, /\[DIALOGUE speaker_id="registered_id_or_player"\][\s\S]*Actual spoken dialogue text\.[\s\S]*\[\/DIALOGUE\]/);
   assert.match(system, /\[ACTING\][\s\S]*standalone visible action narrative[\s\S]*\[\/ACTING\]/);
   assert.doesNotMatch(system, /followed optionally by \[ACTING\] direction and dialogue text/);
-  assert.match(system, /four repeated/);
+  assert.match(system, /Output exactly four repeated \[CHOICE\] blocks/);
   assert.match(system, /unquoted first-person Korean inner monologue.*natural self-talk/);
   assert.match(system, /repeated \[CHOICE\] blocks.*concrete literal player action/);
+  assert.match(system, /do not number choices yourself/);
+  assert.match(system, /UI owns numbering/);
   assert.match(system, /상식개변/);
   assert.match(system, /no memory of installing/);
   assert.match(system, /never actually used the app yet/);

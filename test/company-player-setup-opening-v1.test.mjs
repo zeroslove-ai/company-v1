@@ -70,6 +70,8 @@ const semanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { conten
 const canonicalOpeningText = '[SCENE]\nThe lobby is busy.\n[DIALOGUE speaker_id="heroine1"]Welcome to the office.[/DIALOGUE]\n[ACTING]calmly[/ACTING]\n[THOUGHT]\nI should look around first.\n[CHOICE]\nCheck the desk.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait quietly.\n[CHOICE]\nGo outside.';
 const canonicalSemanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: canonicalOpeningText } }] })}\n\ndata: [DONE]\n\n`;
 const openingWithoutChoicesSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\\nThe lobby is busy.\\n[THOUGHT]\\nI should look around first.' } }] })}\n\ndata: [DONE]\n\n`;
+const fiveChoiceOpeningText = ['[SCENE]', 'The lobby is busy.', '[CHOICE]', 'One', '[CHOICE]', 'Two', '[CHOICE]', 'Three', '[CHOICE]', 'Four', '[CHOICE]', 'Five'].join('\n');
+const openingWithFiveChoicesSse = `data: ${JSON.stringify({ choices: [{ delta: { content: fiveChoiceOpeningText } }] })}\n\ndata: [DONE]\n\n`;
 
 function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), gameTitle = '상식개변: 회사편', storySseText = semanticOpeningSse, storyThrows = false } = {}) {
   const calls = [];
@@ -123,6 +125,9 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
       return json({ success: true, idempotent: false, setup_id: args.p_setup_id, opening_plan: plan });
     }
     if (rpc === 'commit_company_opening') {
+      if (!Array.isArray(args.p_choices) || args.p_choices.length !== 4) {
+        return json({ code: '22023', message: 'opening choices must contain exactly four items' }, 500);
+      }
       if (currentSave.player_setup?.setup_id !== args.p_setup_id) return json({ code: '22023', message: 'player setup identity mismatch' }, 500);
       if (currentSave.player_setup?.completed === true) return json({ success: true, replayed: true, save_revision: saveRevision });
       const plan = currentSave.opening_state?.plan;
@@ -469,6 +474,25 @@ test('/api/opening projects observed zero choices into four canonical fallback c
   const openingTurn = (await contextResponse.json()).data.context.opening_turn;
   assert.equal(openingTurn.parsed_blocks.choices.length, 0);
   assert.equal(openingTurn.choices.length, 4);
+});
+
+test('/api/opening truncates five provider choices to four projection choices before commit', async () => {
+  const mock = createSetupMockFetch({ storySseText: openingWithFiveChoicesSse });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
+  const { setup_id: setupId } = (await setupResponse.json()).data;
+
+  const openingResponse = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
+  assert.equal(openingResponse.status, 200);
+  const text = await readSseText(openingResponse);
+  const completeLine = text.split('\n\n').find(frame => frame.includes('event: complete'));
+  const completeData = JSON.parse(completeLine.split('data:')[1].trim());
+  assert.deepEqual(completeData.choices, ['One', 'Two', 'Three', 'Four']);
+  assert.equal(completeData.choices.length, 4);
+  assert.ok(completeData.warnings.includes('choices_not_exactly_four'));
+  assert.ok(completeData.warnings.includes('choices_fallback_applied'));
+  assert.equal(mock.getSave().opening_state.choices.length, 4);
+  assert.match(mock.getSave().opening_state.story_text, /Five/);
 });
 
 test('/api/opening first-run and replay expose the same canonical parsed projection as context refresh', async () => {

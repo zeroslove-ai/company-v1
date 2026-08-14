@@ -26,6 +26,9 @@ Company v1 runtime에 대해 구현 지시, 리뷰, 배포 판단, 완료 승인
 | Cut 1 runtime review range | `00f459277868fc5f2d48dae5c3a2dc655c8afd25..fd7faa09aa61e0575469aeddbe322ca4253262e3` |
 | Stage A rollout-prep SHA | `c345107f5017184ed542210c4249acc94a293af4` |
 | Live gate correction / API deploy review SHA | `96888a3492c0d85f6f3c6649217d842e6d391494` |
+| Deployed API source | `b0e9e38a227e452183c389e80f9153f694c5c876` |
+| Deployed API Worker Version | `3068e016-da34-44ca-9c6e-aadb5a61956a` |
+| Stage B live migration | `20260814051254 / company_v1_authority_enforcement_stage_b` |
 | Canonical branch | `company/runtime-authority-consolidation-v1` |
 | Canonical PR | #65 — OPEN / DRAFT / UNMERGED |
 | TEST game | `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` |
@@ -92,12 +95,12 @@ Verified live TEST facts:
 - all four use `search_path = public, pg_temp`
 - all four grant EXECUTE to `service_role`
 - the live readback also confirmed no unnecessary public/anon/authenticated execution on the newly introduced owned RPC surface
-- legacy Story/Extract/lifecycle RPC overloads remain for the Stage A compatibility window
-- legacy Story/Extract writers reject rows whose `stage_owner_token` is non-null
-- `apply_reserved_csa_transaction(uuid, uuid, integer)` remains live for the Stage A compatibility window
-- service-role direct gameplay `INSERT/UPDATE/DELETE/TRUNCATE` remains live and is a Stage B target
-- Stage B migration is **not applied**
-- API and Frontend are **not deployed** from the Cut 1 candidate
+- legacy Story/Extract/lifecycle RPC overloads were present for the Stage A compatibility window; Stage B live readback confirmed their removal
+- legacy Story/Extract writers rejected rows whose `stage_owner_token` was non-null during the Stage A compatibility window
+- `apply_reserved_csa_transaction(uuid, uuid, integer)` was present for Stage A and was removed by live Stage B enforcement
+- service-role direct gameplay `INSERT/UPDATE/DELETE/TRUNCATE` was present for Stage A and is revoked in live Stage B
+- Stage B migration `20260814051254 / company_v1_authority_enforcement_stage_b` is applied in TEST
+- API Worker source `b0e9e38a227e452183c389e80f9153f694c5c876` is deployed as Version `3068e016-da34-44ca-9c6e-aadb5a61956a`; Frontend was not redeployed
 
 ## DB contract gate — LIVE VERIFIED
 
@@ -123,22 +126,27 @@ Independent read-only TEST verification using the corrected catalog shape return
 
 Therefore the Stage A DB contract prerequisite for API deployment is satisfied. The deploy wrapper must still execute the corrected gate before Wrangler starts; if that runtime preflight fails, deployment must stop.
 
-Stage A intentionally permits temporary legacy compatibility writers and direct DML. Stage B is the enforcement state and remains forbidden until the new API passes TEST Golden Path and caller inventory.
+Stage A intentionally permitted temporary legacy compatibility writers and direct DML. Live Stage B readback confirmed that direct gameplay DML is revoked, SELECT is retained, approved RPC invocation succeeds, and the legacy writers are removed.
 
-## Candidate Stage B enforcement
+## Stage B enforcement — LIVE TEST truth
 
-Final pending Stage B source migration:
+Final Stage B source migration:
 
 `20260814000400_company_v1_authority_enforcement_stage_b.sql`
 
-Stage B remains a **post-new-API canary enforcement step**. Its target is:
+The operator-applied live migration is recorded as:
 
-- revoke service-role direct gameplay `INSERT/UPDATE/DELETE/TRUNCATE` on the approved core tables while retaining allowed read/RPC access
-- remove/revoke legacy unowned Story/Extract writers and legacy lifecycle overloads after caller inventory
-- revoke/drop obsolete `apply_reserved_csa_transaction`
-- preserve approved SECURITY DEFINER RPC execution
+`20260814051254 / company_v1_authority_enforcement_stage_b`
 
-No target architecture is complete while a duplicate durable writer remains exposed beyond its staged compatibility window.
+Verified live TEST facts:
+
+- service-role direct gameplay `INSERT/UPDATE/DELETE/TRUNCATE` is revoked on the six approved core tables
+- SELECT remains available where required
+- a raw service-role `UPDATE` was rejected with PostgreSQL `42501`
+- approved SECURITY DEFINER RPC invocation succeeds
+- legacy lifecycle, Story, Extract, and CSA-preapply RPCs are removed
+
+The pre-Stage-B scoped Golden Path passed. The first post-Stage-B canary then failed during Opening before Turn 1 because the database rejected a non-four-item choice projection with `opening choices must contain exactly four items`. Cut 1 runtime acceptance is therefore not complete.
 
 ## Test and verification policy — binding
 
@@ -161,7 +169,7 @@ The current large legacy test suite is **not a preservation target and raw test 
 
 For **Cut 1 action-lifecycle mechanics only**, this file supersedes the older Decision 2 examples that used `error_code` as the ownership CAS field. The canonical model is `stage_owner_token` + `stage_claimed_at`, with `error_code` reserved for failure/diagnostic meaning.
 
-For **Cut 1 rollout status**, this file also supersedes the old statement in Decision 11 that no migration has been applied: Stage A is now verified live in TEST; Stage B remains unapplied.
+For **Cut 1 rollout status**, this file also supersedes the old statement in Decision 11 that no migration has been applied: Stage A and Stage B are verified live in TEST; the deployed API remains `b0e9e38a...` / Version `3068e016...`.
 
 ## Known later authority conflicts — do not fold into Cut 1
 
@@ -179,18 +187,24 @@ These are evidence/backlog for their designated authority cuts, not incidental C
 
 ## Cut 1 acceptance / rollout sequence
 
-Current state: **Closure source complete; Stage A applied to TEST; corrected live Stage A contract PASS; API not deployed; Stage B not applied; PR #65 remains Draft/unmerged.**
+Current state: **Closure source deployed as `b0e9e38a...` / Version `3068e016...`; Stage A and Stage B applied to TEST; pre-Stage-B scoped Golden Path passed; post-Stage-B Opening choice contract failed before Turn 1; PR #65 remains Draft/unmerged; Cut 1 is not complete.**
 
 Next sequence, with explicit owner approval for deployment/write steps:
 
-1. Deploy exact review state `96888a3492c0d85f6f3c6649217d842e6d391494` through `scripts/deploy-api-with-contract-gate.mjs` in Stage A mode. The Worker runtime payload is unchanged from reviewed runtime candidate `fd7faa09...`.
-2. Operator/assistant runs the real TEST Golden Path first: reserve → Story → Extract → Commit → context/history/reload/replay/retry, plus deterministic ownership/fencing probes.
-3. Read back `game_actions` / `game_save` / `game_turns` and confirm success/failure clears ownership and normal Commit remains the durable boundary.
-4. Inventory all callers of legacy lifecycle writers, raw service-role mutation, and `apply_reserved_csa_transaction`.
-5. Apply Stage B only after Golden Path and caller inventory pass.
-6. Run Stage B contract verification and Golden Path again; direct raw gameplay writes must fail while approved RPCs succeed.
-7. Only then declare Cut 1 complete and decide merge/main landing strategy.
-8. Perform Test Suite Reset/Consolidation before later authority cuts inherit the legacy suite as unquestioned contract.
+1. Review the Opening choice fail-open candidate; it has not been redeployed.
+2. Run the scoped TEST Golden Path only after the candidate is reviewed and redeployed.
+3. Rerun the scoped TEST Golden Path against the live Stage A/B database, including Opening, Turn 1/2, replay, context/history, and final reset.
+4. Only then declare Cut 1 complete and decide merge/main landing strategy.
+5. Perform Test Suite Reset/Consolidation before later authority cuts inherit the legacy suite as unquestioned contract.
+
+## Post-Stage-B Opening evidence — verified
+
+- Immutable evidence: `C:\Users\JAEWAN\company-v1-cut1-post-stage-b-980f4c5\cut1-post-stage-b.json`
+- Opening streamed visible content but did not produce a successful `commit_company_opening` result.
+- Captured visible Story contained `0` literal `[CHOICE]` markers; the stream decoder observed `5` choice-block starts and `4` choice-block ends.
+- The available reconstructed Story parsed to `0` choices, `0` non-empty choices, and `0` unique choices. The captured artifact does not contain the final `p_choices` RPC argument; the DB error proves the submitted projection did not satisfy the exact-four contract.
+- The canary performed its final reset successfully; TEST ended clean at `save_revision=828`, `committed_turn=0`, with no actions or turns.
+- The Opening choice fail-open correction is a source/test candidate only until exact-SHA review, redeploy, and a new live retest. The broad Phase12K clothing evidence remains separate.
 
 ## Cut 1 final invariants
 
