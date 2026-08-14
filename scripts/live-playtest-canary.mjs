@@ -11,6 +11,7 @@ export const PRODUCTION_GAME_ID = '11111111-1111-4111-8111-111111111111';
 export const DEFAULT_API_BASE = 'https://game-proxy-company-v1.zeroslove.workers.dev';
 export const PLAYABILITY_MAX_TURNS = 3;
 export const CUT1_AUTHORITY_MODE = 'cut1-authority';
+export const CUT3_RELATION_EVENT_MODE = 'cut3-relation-event';
 let lastReport = null;
 
 /**
@@ -75,6 +76,7 @@ export function buildCanaryProjectionParity({ save, sceneActorIds = [], contextM
 
 export function canaryMode(args = []) {
   const values = args instanceof Set ? args : new Set(args);
+  if (values.has(`--${CUT3_RELATION_EVENT_MODE}`)) return CUT3_RELATION_EVENT_MODE;
   if (values.has(`--${CUT1_AUTHORITY_MODE}`)) return CUT1_AUTHORITY_MODE;
   if (values.has('--phase12k-playability')) return 'phase12k-playability';
   return 'opening-only';
@@ -475,10 +477,11 @@ async function run() {
   const args = new Set(process.argv.slice(2));
   const playabilityMode = args.has('--phase12k-playability');
   const cut1AuthorityMode = args.has(`--${CUT1_AUTHORITY_MODE}`);
+  const cut3RelationEventMode = args.has(`--${CUT3_RELATION_EVENT_MODE}`);
   const gameId = process.env.COMPANY_TEST_GAME_ID ?? TEST_GAME_ID;
   const base = (process.env.COMPANY_API_BASE_URL ?? DEFAULT_API_BASE).replace(/\/$/, '');
   assertTestGameId(gameId);
-  const report = { phase: cut1AuthorityMode ? 'CUT1-AUTHORITY' : (playabilityMode ? '12K' : '12H-A'), game_id: gameId, api_base: base, started_at: now(), turns: [], production_access: false, provider_calls: 'worker-bound only' };
+  const report = { phase: cut3RelationEventMode ? 'CUT3-RELATION-EVENT' : (cut1AuthorityMode ? 'CUT1-AUTHORITY' : (playabilityMode ? '12K' : '12H-A')), game_id: gameId, api_base: base, started_at: now(), turns: [], production_access: false, provider_calls: 'worker-bound only' };
   lastReport = report;
   const canaryMaster = buildCompanyEditionMaster();
   report.master_source = {
@@ -547,7 +550,7 @@ async function run() {
     report.final_reset = { status: reset.status, ok: reset.ok, error: reset.ok ? null : errorDetails(reset.body, reset.status) };
     throw new Error(`opening hard failure (${openingFailure}); artifact=${artifactPath}`);
   }
-  if (!playabilityMode && !cut1AuthorityMode) {
+  if (!playabilityMode && !cut1AuthorityMode && !cut3RelationEventMode) {
     // A successful Opening is itself the acceptance boundary for the original diagnostic.
     // Do not advance to Turn 1 or invoke any CSA transaction in that mode.
     report.status = 'OPENING_PASS_ONLY';
@@ -566,7 +569,7 @@ async function run() {
     context = value.body.data.context; save = saveData(context); return context;
   }
 
-async function readContextAndHistory() {
+  async function readContextAndHistory() {
     const contextResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 10 });
     if (!contextResult.ok) throw new Error(`context failed: ${JSON.stringify(errorDetails(contextResult.body, contextResult.status))}`);
     const historyResult = await requestJson(base, '/api/history', { game_id: gameId, limit: 50 });
@@ -582,6 +585,183 @@ async function readContextAndHistory() {
         identity_source: 'context.recent_turns'
       }
     };
+  }
+
+  if (cut3RelationEventMode) {
+    const artifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'cut3-relation-event-deterministic.json';
+    report.phase = 'CUT3-RELATION-EVENT';
+    report.acceptance = {
+      scenario: 'one bounded registered-participant social commitment',
+      retry_count: 0,
+      provider_or_model_override: false,
+      manual_game_access: false
+    };
+
+    const durableSnapshot = currentSave => ({
+      active_relations: clone(currentSave?.active_relations ?? []),
+      event_ledger: clone(currentSave?.event_ledger ?? []),
+      sexual_event_ledger: clone(currentSave?.sexual_event_ledger ?? [])
+    });
+
+    const writeReportAndReset = async () => {
+      await writeVerifiedArtifact(artifactPath, report);
+      const finalReset = await requestJson(base, '/api/reset', { game_id: gameId });
+      report.final_reset = { status: finalReset.status, ok: finalReset.ok, error: finalReset.ok ? null : errorDetails(finalReset.body, finalReset.status) };
+      if (finalReset.ok) {
+        const finalContext = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
+        const finalSave = saveData(finalContext.body?.data?.context);
+        report.final_reset.readback = {
+          context: contextSnapshot(finalContext),
+          durable: durableSnapshot(finalSave),
+          clean: finalContext.ok
+            && finalSave?.turn_state?.committed_turn === 0
+            && finalSave?.turn_state?.processing_status === 'idle'
+            && finalSave?.player_setup?.status === 'not_started'
+            && finalSave?.opening_state?.status === 'not_started'
+            && Array.isArray(finalSave?.csa_active) && finalSave.csa_active.length === 0
+        };
+      }
+      await writeVerifiedArtifact(artifactPath, report);
+      return report;
+    };
+
+    try {
+      await refreshContext();
+      const targetId = presentNpcIds(save).find(id => id !== 'player') ?? null;
+      const target = targetId ? profileForMaster(canaryMaster, targetId) : null;
+      const targetName = target?.name ?? targetId;
+      report.registered_participant = { target_id: targetId, profile: target };
+      if (!targetId || !targetName) {
+        report.status = 'BLOCKED';
+        report.block_reason = 'no registered non-player NPC was present after Opening';
+        await writeReportAndReset();
+        return report;
+      }
+
+      const actionId = randomUUID();
+      const turn = (save?.turn_state?.committed_turn ?? 0) + 1;
+      const playerAction = `${targetName}에게 오늘 회의에서 혼란을 준 점을 사과하고 다음 회의 준비를 함께하기로 약속한다.`;
+      const before = { context: contextSnapshot({ ok: true, status: 200, body: { data: { context } } }), durable: durableSnapshot(save) };
+      const story = await captureStory(base, gameId, { game_id: gameId, action_id: actionId, expected_turn: turn, player_action: playerAction });
+      const parser = classifyParserResult(story.raw_story, canaryMaster);
+      const failureDiagnostic = !story.ok || parser.status === 'failure'
+        ? buildStoryFailureDiagnostic({
+          gameId, turn, playerAction, actionId, story, parser,
+          actionStatus: await actionStatus(base, gameId, actionId),
+          beforeContext: before.context,
+          afterContext: contextSnapshot(await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 }))
+        }) : null;
+      report.turn = {
+        turn, action_id: actionId, player_action: playerAction,
+        story: { ...story, events: undefined },
+        raw_story: story.raw_story,
+        parsed_story: parser.parsed ?? null,
+        parser: { ...parser, parsed: undefined },
+        story_failure_diagnostic: failureDiagnostic
+      };
+      if (failureDiagnostic) {
+        report.status = 'BLOCKED';
+        report.block_reason = 'Story failed before relation/event acceptance could be observed';
+        await writeReportAndReset();
+        return report;
+      }
+
+      const extractResult = await requestJson(base, '/api/extract', { game_id: gameId, action_id: actionId });
+      const extracted = summarizeExtract(extractResult, save, canaryMaster);
+      const normalized = extracted.extract ?? null;
+      const relationUpdates = Array.isArray(normalized?.relation_updates) ? normalized.relation_updates : [];
+      const generalEvents = Array.isArray(normalized?.events?.general) ? normalized.events.general : [];
+      const sexualEvents = Array.isArray(normalized?.events?.sexual) ? normalized.events.sexual : [];
+      report.turn.extract = extracted;
+      report.turn.typed_observation = {
+        relation_updates: clone(relationUpdates),
+        events_general: clone(generalEvents),
+        events_sexual: clone(sexualEvents),
+        exact_story_quotes: [
+          ...relationUpdates.map(item => item.quote),
+          ...generalEvents.map(item => item.evidence),
+          ...sexualEvents.map(item => item.evidence)
+        ].filter(value => typeof value === 'string' && value.trim())
+      };
+      if (!extractResult.ok) {
+        report.status = 'BLOCKED';
+        report.block_reason = 'Extract failed before relation/event acceptance could be observed';
+        await writeReportAndReset();
+        return report;
+      }
+      if (!relationUpdates.length && !generalEvents.length && !sexualEvents.length) {
+        report.status = 'BLOCKED';
+        report.block_reason = 'no typed relation/event observation was returned; no retry permitted';
+        report.turn.action_status = await actionStatus(base, gameId, actionId);
+        await writeReportAndReset();
+        return report;
+      }
+
+      const commitResult = await requestJson(base, '/api/commit', { game_id: gameId, action_id: actionId, expected_turn: turn });
+      report.turn.commit = commitReplaySnapshot(commitResult);
+      if (!commitResult.ok) {
+        report.status = 'BLOCKED';
+        report.block_reason = 'typed relation/event observation did not commit';
+        await writeReportAndReset();
+        return report;
+      }
+      await refreshContext();
+      const afterCommit = { context: contextSnapshot({ ok: true, status: 200, body: { data: { context } } }), durable: durableSnapshot(save) };
+      const relationMatches = relationUpdates.filter(input => afterCommit.durable.active_relations.some(row =>
+        row.actor_id === input.actor_id && row.target_id === input.target_id && row.relation_kind === input.relation_kind && row.state === (input.state === 'ended' ? 'ended' : 'active')
+      ));
+      const generalMatches = generalEvents.filter(input => afterCommit.durable.event_ledger.some(row =>
+        (input.event_id && row.event_id === input.event_id) || (!input.event_id && row.evidence === input.evidence)
+      ));
+      const sexualMatches = sexualEvents.filter(input => afterCommit.durable.sexual_event_ledger.some(row =>
+        (input.event_id && row.event_id === input.event_id) || (!input.event_id && row.evidence === input.evidence)
+      ));
+      report.durable_consequence = {
+        after_commit: afterCommit,
+        relation_matches: clone(relationMatches),
+        general_event_matches: clone(generalMatches),
+        sexual_event_matches: clone(sexualMatches),
+        registered_participant_ids: [targetId, ...relationUpdates.flatMap(item => [item.actor_id, item.target_id]), ...generalEvents.flatMap(item => item.participants ?? []), ...sexualEvents.flatMap(item => [item.actor_id, item.target_id])].filter(Boolean).filter((id, index, ids) => ids.indexOf(id) === index)
+      };
+      if (!relationMatches.length && !generalMatches.length && !sexualMatches.length) {
+        report.status = 'BLOCKED';
+        report.block_reason = 'typed relation/event observation had no matching durable consequence after Commit';
+        await writeReportAndReset();
+        return report;
+      }
+
+      const replayBefore = { context: afterCommit.context, durable: afterCommit.durable };
+      const replayStory = await captureStory(base, gameId, { game_id: gameId, action_id: actionId, expected_turn: turn, player_action: playerAction });
+      const replayExtractResult = await requestJson(base, '/api/extract', { game_id: gameId, action_id: actionId });
+      const replayCommitResult = await requestJson(base, '/api/commit', { game_id: gameId, action_id: actionId, expected_turn: turn });
+      await refreshContext();
+      const replayAfter = { context: contextSnapshot({ ok: true, status: 200, body: { data: { context } } }), durable: durableSnapshot(save) };
+      report.replay = {
+        story: storyReplaySnapshot(replayStory),
+        extract: extractReplaySnapshot(replayExtractResult),
+        commit: commitReplaySnapshot(replayCommitResult),
+        before: replayBefore,
+        after: replayAfter,
+        unchanged: JSON.stringify(replayBefore) === JSON.stringify(replayAfter)
+      };
+      const historyResult = await requestJson(base, '/api/history', { game_id: gameId, limit: 50 });
+      report.recovery = { context: replayAfter.context, history: historySnapshot(historyResult) };
+      if (report.replay.story.meta_replayed !== true || report.replay.story.complete_replayed !== true
+        || report.replay.extract.replayed !== true || report.replay.commit.replayed !== true || !report.replay.unchanged) {
+        report.status = 'BLOCKED';
+        report.block_reason = 'relation/event replay was not acknowledged as idempotent';
+        await writeReportAndReset();
+        return report;
+      }
+      report.status = 'PASS';
+      await writeReportAndReset();
+      return report;
+    } catch (error) {
+      report.status = 'BLOCKED';
+      report.block_reason = error?.message ?? String(error);
+      await writeReportAndReset();
+      throw error;
+    }
   }
 
   if (cut1AuthorityMode) {

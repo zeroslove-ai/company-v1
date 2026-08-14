@@ -14,6 +14,7 @@ import {
   buildStoryFailureDiagnostic,
   canaryMode,
   CUT1_AUTHORITY_MODE,
+  CUT3_RELATION_EVENT_MODE,
   PLAYABILITY_MAX_TURNS,
   TEST_GAME_ID,
   PRODUCTION_GAME_ID
@@ -163,4 +164,10 @@ test('cut1 authority mode is distinct from the broad Phase 12K diagnostic', () =
   assert.equal(canaryMode([`--${CUT1_AUTHORITY_MODE}`]), CUT1_AUTHORITY_MODE);
   assert.equal(canaryMode(['--phase12k-playability']), 'phase12k-playability');
   assert.notEqual(canaryMode([`--${CUT1_AUTHORITY_MODE}`]), 'phase12k-playability');
+});
+
+test('cut3 relation/event mode is distinct and bounded separately from Cut 1 and Phase 12K', () => {
+  assert.equal(canaryMode([`--${CUT3_RELATION_EVENT_MODE}`]), CUT3_RELATION_EVENT_MODE);
+  assert.notEqual(CUT3_RELATION_EVENT_MODE, CUT1_AUTHORITY_MODE);
+  assert.notEqual(canaryMode([`--${CUT3_RELATION_EVENT_MODE}`]), 'phase12k-playability');
 });
