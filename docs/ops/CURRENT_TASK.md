@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: open-semantic-observation-authority-reset-audit
+Status: READY
+Task ID: open-semantic-observation-authority-reset-audit-v2
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -9,17 +9,19 @@ This file is the sole active execution queue for Company v1.
 
 ## Why this task exists
 
-Cut 1 and Cut 2 authority consolidation remain accepted. Cut 3 also succeeded in consolidating duplicate Relation/Event durable writers into one canonical reducer path at accepted gameplay executable `1a5c5540a0235fb2e53b2452516897af7664eba1`.
+The first open-semantic audit (`open-semantic-observation-authority-reset-audit`, final docs-only SHA `59243b80d7524336d95719af9a0a2e302a21b277`) correctly exposed the broad problem: Company v1 asks Story and Extract LLMs to handle open-ended narrative meaning, but many finite enums/allowlists/fallbacks still constrain that meaning before it reaches durable memory.
 
-However, the latest live/contract investigation exposed a broader architectural problem that crosses the old Cut 3/4/5/6 boundaries: Company v1 still asks two LLMs to author and observe a free-form narrative, then repeatedly constrains the observed meaning through finite JS/SQL enums, allowlists, fixed semantic fields, regex gates, deterministic fallback prose, and narrow state ladders. Facts that do not fit those boxes can be omitted by the Extract prompt, rejected by normalization, or silently dropped before durable state. This is incompatible with the intended open-ended LLM chat-game model.
+However, operator review returned `CHANGES_REQUIRED` because the first audit was not sufficiently grounded in actual product/gameplay consumers. It conflated three different things:
 
-The immediately preceding task `cut3-relation-event-typed-observation-contract-closure` ended BLOCKED with classification `NON_QUALIFYING_STORY_EVIDENCE` under the current closed taxonomy. That report is accepted as evidence for the old contract only. It is NOT approval of the closed taxonomy as the target architecture. Operator review comment on Issue #68 explicitly supersedes that assumption.
+1. **Intentional product catalogs** such as the finite player-setup choices and stable main-character IDs.
+2. **Narrow UI/mechanical state** such as clothing status that the product actually displays and needs to preserve deterministically.
+3. **Semantic gates** that incorrectly define the universe of possible narrative meaning (event types, relation kinds, posture tokens, intimacy ladders, server-authored choice prose, etc.).
 
-The target principle for this audit is:
+This second audit must correct that mistake by tracing every finite list to its real gameplay/UI/storage/integrity consumer and by using the preserved manual game READ-ONLY as behavioral evidence. The goal is not “remove every list.” The goal is:
 
-**Story LLM authors the narrative. Extract LLM observes arbitrary meaningful facts from that narrative. The server owns identity, exact evidence, transactionality, idempotence, replay, structural integrity, and narrow deterministic mechanics; the server must not enumerate the universe of possible emotions, events, relationships, physical actions, or narrative consequences.**
+**Remove every finite list/gate/duplicate authority that can be removed without losing intended gameplay, UI, persistence, identity, transactionality, or required deterministic mechanics. Keep one canonical intentional catalog where the product explicitly defines choices. Keep narrow UI/mechanical projections only where there is a proven consumer. Open narrative meaning must not be gated by finite taxonomies.**
 
-This task is architecture/audit only. Do not make gameplay executable changes yet. First produce a complete evidence-based map and staged deletion/redesign plan, then STOP for operator review.
+No gameplay implementation is authorized in this task. Produce a corrected, source+DB+actual-gameplay grounded redesign and STOP for review.
 
 ## Binding identity / topology
 
@@ -27,292 +29,277 @@ Repository: `zeroslove-ai/company-v1`
 Branch: `company/scene-location-presence-v1`
 Canonical PR: #67
 Expected PR: base `main`, OPEN / DRAFT / UNMERGED
-Starting HEAD: `347c7903d4b16b556bcfcca0ec55d7332a662128` or the docs-only operator registration descendant for this task.
-Accepted gameplay executable before this audit: `1a5c5540a0235fb2e53b2452516897af7664eba1`.
-Current deployed TEST Worker evidence may be inspected read-only if needed, but no deploy/live call is authorized.
-TEST Supabase project: `fmcrspgxstsmxxsmkeee` — read-only metadata/function/schema inspection is allowed; no data mutation, reset, migration, or DDL.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is immutable and MUST NOT be accessed or mutated.
-Do not create/reopen another PR or branch.
+Starting branch HEAD: `59243b80d7524336d95719af9a0a2e302a21b277` or docs-only operator registration descendant.
+Accepted gameplay executable remains `1a5c5540a0235fb2e53b2452516897af7664eba1` unless source ancestry proves otherwise.
+TEST Supabase: `fmcrspgxstsmxxsmkeee`.
+Dedicated TEST game may be read-only inspected; no mutation/reset/gameplay run.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` MAY be queried READ ONLY in this task specifically to understand real gameplay continuity and current stored state. NEVER reset, update, delete, or otherwise mutate it.
+Do not create/reopen another branch/PR. Do not merge/Ready/rebase/squash.
 
-## Primary audit question
+## Product facts that must be treated correctly
 
-For every finite vocabulary, allowlist, enum, regex meaning gate, fixed semantic field set, deterministic fallback, schema validator, parser restriction, and SQL semantic list in the active Story → Extract → Commit → Save → Replay path, determine:
+### Player setup catalogs are intentional product content
+Verify actual UI/API callers, but begin from the evidence that these files define deliberate finite setup choices:
+- `content/organization.json` — selectable player departments.
+- `content/positions.json` — selectable player positions.
+- `content/body_types.json` — selectable player body types.
+- `content/speech_styles.json` — selectable player speech styles.
 
-1. Does it protect **structural integrity** only?
-2. Does it implement a **narrow deterministic machine mechanic** that genuinely requires finite tokens?
-3. Does it instead define or restrict **narrative meaning that the Story/Extract LLM should own**?
-4. Is it only a **legacy read adapter/projection** that should not govern new writes?
-5. Can it cause a valid observed fact to become null/empty, be omitted, be rewritten, or be dropped?
-6. Who calls it now? Is the caller live, test-only, replay-only, UI-only, or dead residue?
+Do NOT classify these catalogs for deletion merely because they are finite. The relevant audit questions are:
+- Is this the one canonical content source?
+- Is the same list duplicated in frontend/JS/SQL/migration code?
+- Can duplicate validation/copies be derived from or removed in favor of one canonical catalog without reducing integrity?
+- Does any copy accidentally gate unrelated open Story/Extract meaning?
 
-Do not assume the known examples below are exhaustive. Search the whole active repository and relevant TEST DB functions/constraints.
+If the DB duplicate list is the only safe boundary for an untrusted request, prove that before retaining it. If API/content validation plus structural DB checks can safely replace the duplicate, recommend removal of the duplicate only—not removal of the product catalog.
 
-## Required classification
+### `heroine1` through `heroine5` are stable IDs for the five main Company NPCs
+They are not an event/relation taxonomy. Verify all five current character records and live callers. Stable registered character IDs are expected to remain if required for identity, assets, voice, content, scene membership, or save/replay references.
 
-Every discovered gate must be assigned exactly one disposition:
+Do not remove or rename these IDs simply to eliminate a finite list. Audit only duplicate hardcoded arrays/copies and any semantic assumptions attached to the word `heroine` beyond stable identity.
+
+### Clothing is an explicit UI/continuity exception
+The current product UI displays compact clothing state. The LLM may forget clothing across turns. Therefore a narrow canonical clothing projection may remain if real frontend/context consumers prove it is required.
+
+Audit requirements:
+- find every clothing writer and reader;
+- prove the exact frontend/UI fields rendered;
+- reduce to one canonical writer if duplicates remain;
+- retain only states/slots actually needed by gameplay/UI or clear deterministic rules;
+- open narrative facts about clothing/accessories/partial states must be preservable even if they cannot map to the compact UI projection;
+- projection failure must never erase the underlying narrative fact.
+
+## Corrected classification — caller/gameplay based
+
+Every discovered finite list/gate must be classified with one of these dispositions, with caller evidence:
+
+### `CONTENT_CATALOG_KEEP`
+Intentional finite game/product content, such as player setup options or registered character/location catalogs. Keep one canonical source. Remove redundant copies if safe.
 
 ### `STRUCTURAL_KEEP`
-Keep only when it protects protocol/data integrity without deciding semantic meaning.
-Examples that are likely structural but MUST still be verified:
-- registered actor/NPC/location IDs;
-- action/turn ownership and expected-turn checks;
-- exact Story evidence substring existence;
-- object/array/string/basic numeric shape;
-- dedupe/idempotence/replay identity;
-- canonical scene membership uniqueness;
-- speaker ID registration;
-- block framing needed to render Story/Dialogue/Thought/Choice;
-- exactly four non-empty choice strings as a presentation shape, if this remains the product contract.
+Identity, protocol framing, expected turn, action ownership, exact evidence provenance, object/array shape, transactionality, idempotence, dedupe/replay identity, required registered IDs, scene integrity.
 
-### `MECHANICAL_ISOLATE`
-A finite vocabulary may remain only inside a deterministic subsystem that genuinely needs it, but it must not define the universe of narrative facts.
-Likely examples to verify:
-- CSA app transaction verbs / deterministic mandatory enactment metadata;
-- canonical machine projections such as a clothing slot needed for a specific CSA rule;
-- optional physiological counters that need bounded numeric values;
-- media/image tags used only for asset selection.
+### `UI_STATE_KEEP`
+A narrow canonical state that the UI or explicit product feature actually renders/depends on and that must survive LLM forgetting (candidate: compact clothing state). Must have one writer and may not gate richer narrative facts.
 
-For each such item, prove that an unknown/open Story fact can still be durably remembered even when it cannot be projected into this narrow mechanic.
+### `MECHANICAL_PROVE_OR_REMOVE`
+Finite mechanics that might be needed by a deterministic subsystem. Do NOT presume they survive. For every item, name the actual consumer and demonstrate what breaks if the list is removed. If no material gameplay/UI/integrity behavior breaks, disposition becomes DELETE.
 
 ### `SEMANTIC_REMOVE`
-Remove from the new-write authority when it limits open-ended narrative meaning.
-Examples to investigate include event categories, relation kinds, posture token sets, sexual action taxonomies used as memory gates, emotion/work field allowlists, intimacy ladders, deterministic server-authored choice prose, semantic regex classifiers, and any other closed meaning vocabulary.
+Finite taxonomies/regexes/fallbacks that constrain arbitrary narrative meaning, rewrite player/Story meaning, or cause otherwise valid facts to become null/empty/dropped.
 
 ### `LEGACY_READ_ONLY`
-Retain only if current historical data/replay requires it. It must not validate or shape new Story/Extract writes. Name the stored data/caller proving the compatibility need and define its deletion condition.
+Only for proven historical saved-data/replay readers. No new writes/validation through it. State exact deletion criterion.
 
-## Mandatory source inventory
+### `DEAD_DELETE`
+No live caller or only obsolete tests/docs. Recommend deletion in the earliest safe implementation cut.
 
-At minimum inspect all live callers and tests around the following; then continue searching beyond them:
+**Default rule:** if a finite list has no proven product/UI/structural/mechanical consumer, delete it. “It already exists” and “tests expect it” are not retention reasons.
 
-### Extract observation contract
-- `src/engine/extract-prompt.js`
-- `src/engine/runtime-core/extract-observation.js`
-- `src/engine/runtime-core/observation-reducers.js`
-- persisted/legacy Extract adapters and their active callers.
+## Mandatory full-system audit
 
-Audit fixed top-level/domain/field allowlists including, but not limited to:
-- `NPC_DOMAINS`
-- `PHYSICAL`
-- clothing slots/states
-- sexual fields and erection states
-- stat axes
-- emotion/work/relationship field sets
-- general/sexual event field/type sets
-- relation update fields/states
-- CSA runtime observation fields/statuses.
+Trace the actual active path end to end:
 
-Do not merely propose adding more values. Determine whether each list should exist at all in new-write semantic authority.
+`player setup / input / choice`
+→ `Story prompt + provider`
+→ `wire/parser`
+→ `Extract prompt + provider JSON`
+→ `normalizer`
+→ `reducers`
+→ `commit_company_turn / setup/opening RPCs`
+→ `game_save / game_turns / game_actions`
+→ `get_company_context / history / replay`
+→ `next Story prompt`
+→ `frontend/UI`
 
-### Relation / event / memory meaning
-- `src/engine/runtime-core/relation-event-reducer.js`
-- `src/engine/csa/execution-policy.js`
-- `src/engine/sexual-state/ledger.js`
-- `src/engine/sexual-state/validator.js`
-- `src/engine/relationship/reducer.js`
-- `src/engine/relationship/guards.js`
-- all presentation/replay readers of `active_relations`, `event_ledger`, `sexual_event_ledger`, `npc_relationship_state`, `npc_emotion`, `npc_work_state`, `npc_stats`.
+For every list/enum/allowlist/fallback/regex/switch/schema semantic field encountered, record:
+- exact file/function/SQL function;
+- exact live callers;
+- whether player setup, Story, Extract, Commit, DB, replay, or UI consumes it;
+- whether it can block/drop/rewrite a valid narrative fact;
+- whether it can be removed with zero gameplay impact;
+- whether a single canonical source can replace duplicate copies;
+- proposed disposition from the corrected classification above.
 
-Explicitly examine the current coupling where CSA mechanical `RELATION_KINDS` also gate Extract narrative relation updates. The redesign must distinguish deterministic rule-enactment relations from arbitrary narrative relationship facts.
+Search beyond known examples. Do not stop at the first audit's 50 grouped families.
 
-### Physical state / posture / clothing
-- `src/engine/state/posture.js`
-- `src/engine/state/physical-state.js`
-- `src/engine/state/clothing.js`
-- `src/engine/story-wire-protocol.js`
-- `src/engine/story-prompt.js`
-- Extract prompt/normalizer physical paths.
+## Specific deep audits
 
-Known contradiction to verify:
-- posture/physical state modules describe new posture/position as open natural-language values;
-- Story protocol/prompt still constrain structural `posture_after` to `sitting|standing`.
+### 1. Setup / catalogs / main NPC identity
+Trace frontend → API → content → setup RPC for department, position, body type, speech style and main-character IDs.
 
-Audit whether the four-slot clothing model is a narrow machine projection rather than the sole durable description of what a character is wearing/doing with clothing. Unknown garments/accessories/partial states must not disappear merely because they cannot map to four slots.
+Determine separately:
+- intentional finite catalog;
+- duplicate JS copy;
+- duplicate SQL copy;
+- structural validation;
+- dead/stale copy.
 
-### Choices
-- Story prompt
-- Opening prompt
-- fresh parser
-- `reduceStoryChoiceProjection()`
-- opening/turn commit paths
-- frontend rendering/input/recovery
-- DB opening/turn choice validation.
+The desired outcome is ONE source of product meaning where possible, not removal of intended player choices.
 
-Target direction to evaluate:
-- Story LLM is the sole author of choice text.
-- Keep exactly four literal choices as a simple presentation protocol if required.
-- Delete deterministic server-authored choice alternatives and semantic choice categorization/metadata.
-- A malformed choice footer must not cause the server to invent a different player decision. Free typed input remains valid gameplay.
+### 2. Extract open observation
+Re-audit:
+- `extract-prompt.js`
+- `runtime-core/extract-observation.js`
+- `observation-reducers.js`
+- `relation-event-reducer.js`
+- legacy extract adapters/readers.
 
-### Story/parser semantic gates
-Inventory parser/wire regexes and finite tokens that do more than identify structural markers or exact registered speakers. Distinguish:
-- framing/identity parsing that should stay;
-- semantic inference/rewriting/fallback that should move out or be removed;
-- historical replay adapter code that may remain read-only.
+Finite emotion/event/relation/work/posture/sexual meaning vocabularies are presumptive `SEMANTIC_REMOVE` unless they are only optional downstream projections. Design the open evidence-backed fact channel so arbitrary observed facts survive.
 
-Do not create a third parser.
+### 3. CSA — much stricter review
+Do not start from the assumption that physical execution grammar is legitimate.
 
-### CSA finite vocabulary
-Audit all sets/allowlists in:
-- semantic contract
-- execution policy
-- applicability/capability/catalog/planner/validator/reducer
-- mandatory enactment / prompt sections.
+Inventory all CSA:
+- rule/app IDs and lifecycle;
+- activation/deactivation/capacity;
+- applicability;
+- `RELATION_KINDS`;
+- `execution_action` / action kinds;
+- `posture_after`;
+- mandatory enactment / direct-coverage logic;
+- planner/validator/reducer;
+- Story prompt sections;
+- Extract/Commit coupling;
+- relation/event/physical/sexual state coupling.
 
-Do NOT delete deterministic mechanics simply because they use enums. Instead prove the boundary: CSA may use finite command grammar to execute a player-configured institutional rule, but those enums must never become the only vocabulary by which Story consequences, emotions, relationships, physical interactions, or memories may be persisted.
+Target hypothesis to test:
+- **keep** only the minimum deterministic app/rule identity, lifecycle, transaction and applicability needed for the user-created institutional rule system;
+- Story receives the active rule and current context and narrates how it is followed/resisted/interpreted naturally;
+- Extract observes what actually happened;
+- do not require the world to map every rule consequence to a finite physical action token;
+- institutional compliance must stay separate from personal consent, comfort, affection, trust and emotion.
 
-### Media/UI-only vocabularies
-Audit image-selection tag allowlists and similar presentation-only adapters. Classify them separately. They may remain finite if failure only means “no matching asset,” never “the narrative fact did not happen.”
+For every physical CSA token/list, prove a deterministic consumer that cannot be safely replaced by rule context + Story + Extract. If that proof is absent, recommend removal.
 
-### SQL / DB semantic duplication
-Read-only inspect current TEST DB functions/constraints and repository migrations. At minimum cover:
-- `reserve_company_player_setup`
-- `company_apply_opening_scene_v1`
-- `commit_company_opening`
-- `commit_company_turn`
-- `validate_company_save_v1`
-- `company_validate_scene_v1`
-- initial clothing/bootstrap helpers
-- any constraints/checks on current JSON state.
+### 4. Physical / posture / sexual
+Audit all finite posture, position, contact, sexual-action and intimacy-stage lists. Narrative fact storage must be open.
 
-Known findings to verify/current-source-map:
-- player setup SQL currently hardcodes department, position, body type, speech style, and heroine IDs even though repository content/catalog should own semantic membership;
-- opening scene SQL also hardcodes heroine IDs;
-- save/scene validators are mostly structural;
-- opening choice count is structural;
-- opening summary logic still contains stale/mojibake fallback behavior and raw truncation, relevant to later Memory/Summary authority.
+Keep only genuinely consumed counters/projections after caller proof. Hardcoded intimacy-stage ladders must not remain narrative relationship authority.
 
-Historical applied migrations are immutable. Any future DB change must be additive and is NOT authorized in this audit.
+### 5. Clothing
+Treat compact clothing state as likely `UI_STATE_KEEP`, not generic `SEMANTIC_REMOVE`, but still audit for unnecessary slots/states and duplicate writers.
 
-## Target architecture to design
+Use actual frontend render/view-model code to prove what must remain.
 
-The audit must produce a concrete target, not just a list of complaints.
+### 6. Choices
+Target product path:
+`Story LLM -> exactly four literal provider-authored strings -> parser/persist -> UI -> selected literal string becomes player input`.
 
-### 1. Open semantic observation / fact authority
-Design a generic evidence-backed durable observation model capable of preserving arbitrary meaningful facts without a closed event taxonomy. A candidate shape may contain concepts such as:
-- stable fact/event id generated by server;
-- subject/actor/participant registered IDs where applicable;
-- concise free-form Korean fact/summary authored by Extract;
-- exact contiguous Story evidence quote(s);
-- turn/action provenance;
-- active/resolved/supersedes linkage only when needed;
-- optional free labels that never gate persistence.
+Audit and plan removal of deterministic server-authored semantic fallback choices and any choice type/event metadata that is not required for rendering four buttons.
 
-The exact schema is for this audit to propose after caller/data analysis. Do not create a new closed `type` enum under a different name.
+Exactly-four is a presentation contract, not a semantic taxonomy.
 
-### 2. Separate open facts from deterministic projections
-Define how open narrative facts coexist with narrow machine projections:
-- Scene location/presence remains canonical structured state because routing requires it.
-- CSA transaction/enactment state remains deterministic.
-- Optional stats/counters/physiological values may remain projections where the product actually consumes them.
-- Clothing machine slots may remain only if a deterministic rule needs them.
-- Open facts must preserve meaning that cannot be represented by any projection.
+### 7. DB / RPC / migrations
+Read-only inspect current TEST DB and migration source. Distinguish:
+- transaction/ownership/shape/integrity validation to keep;
+- intentional catalog identity;
+- duplicate semantic arrays/copies to remove if safely derivable upstream;
+- old compatibility projection/readers;
+- JSON semantic gates.
 
-A projection failure must not erase the underlying fact.
+Do not edit applied migrations. Future cleanup must be additive.
 
-### 3. Relationship/emotion/work continuity
-Design how arbitrary relationship and emotional consequences survive beyond three recent turns without requiring fixed event categories or a one-word mood.
-Consider whether free fact streams plus per-NPC rolling semantic summaries are the durable read model. Numeric affinity/CSA acceptance/etc may remain optional derived mechanics/UI signals, not the sole memory of human relationship change.
+### 8. Memory / summary / next-turn consumption
+An open fact ledger is unacceptable if it becomes write-only data.
 
-### 4. Physical/sexual continuity
-Design an open physical-fact path that can preserve arbitrary posture/contact/clothing/sexual facts with exact evidence without requiring them to match a finite action enum. Keep only narrow machine state needed for deterministic gameplay counters or CSA execution.
+Trace how facts will reach:
+- next Story turn;
+- long-term Story context;
+- per-NPC continuity;
+- history/replay;
+- feedback/recovery.
 
-Explicitly address removal/demotion of the hardcoded intimacy-stage ladder as narrative authority.
+Use the preserved 7-turn game READ ONLY to verify current failures such as empty `turn_summary`, stale recent summary, corrupted overall summary, and relation/event loss. Do not rely only on old prose if current rows can be read safely.
 
-### 5. Choice simplification
-Design the smallest path:
-Story LLM -> exactly four literal choice strings -> parser/persist -> UI.
-No server-authored semantic fallback choices. No choice event/type taxonomy. No choice metadata deciding gameplay meaning. Player selecting a choice submits the exact displayed string; free text remains ordinary input.
+### 9. Frontend/UI consumers
+Inventory all structured state visibly rendered or functionally consumed by the client. This determines which compact projections are genuine product state versus dead backend taxonomy.
 
-### 6. Memory / summary integration
-The new open fact model must not become another unused ledger. Define how Story prompt/recent context/summary/recovery will actually consume durable facts. Account for existing evidence that `turn_summary` may be empty and `story_summary_recent/overall` are unreliable. The audit may reprioritize old Cut 6 work if necessary.
+Especially prove:
+- clothing fields;
+- relationship/stat fields;
+- scene/location;
+- choices;
+- CSA state;
+- any posture/physical/sexual UI state.
+
+A field being stored does not prove it is needed. A field being shown in UI does not prove its current writer/taxonomy is correct.
 
 ## Required deliverable
 
-Create or replace one audit document:
+Create a NEW corrected document, do not overwrite the first audit:
 
-`docs/audit/OPEN_SEMANTIC_OBSERVATION_AUTHORITY_RESET_2026-08-15.md`
+`docs/audit/OPEN_SEMANTIC_OBSERVATION_AUTHORITY_RESET_V2_2026-08-15.md`
 
 It must contain:
 
-1. **Current authority trace** — Story -> wire/parser -> Extract prompt -> provider JSON -> normalizer -> reducers -> Commit -> DB -> context/replay/UI.
-2. **Complete semantic-gate inventory table** with file/function, live callers, current purpose, concrete failure/drop mode, disposition (`STRUCTURAL_KEEP` / `MECHANICAL_ISOLATE` / `SEMANTIC_REMOVE` / `LEGACY_READ_ONLY`).
-3. **DB semantic-duplication table** with exact live functions/constraints and future disposition.
-4. **Choice path audit** proving exactly where provider choice text can be replaced/invented today.
-5. **Before/after authority map** for event/fact, relation, emotion, work, physical, clothing, sexual/physiological, choices, summary/memory, CSA mechanics, media.
-6. **Proposed open observation schema** with examples covering cases that current fixed boxes lose: apology accepted/rejected ambiguously, promise, betrayal, trust repair, resentment, awkwardness, mixed emotion, arbitrary body posture/contact, uncommon clothing/accessory, and an arbitrary sexual/physical interaction not in current enum.
-7. **Persistence/read model** — show exactly how these facts reach the next Story turn and long-term summary instead of becoming write-only data.
-8. **Migration/compatibility strategy** — old stored fields/replay remain readable; no historical migration edits; identify which legacy writer/reader is deleted at which proof point.
-9. **Implementation sequence** in small reviewable cuts. Each cut must list exact modules/tests `KEEP`, `REWRITE`, `DELETE`, live acceptance needed, and DB migration boundary if any.
-10. **Test reset plan** — identify current tests that encode obsolete finite semantics and classify them KEEP/REWRITE/DELETE. Do not preserve old behavior just to keep test counts high.
-11. **Risk analysis** — distinguish real integrity/safety risks from obsolete semantic restrictions. Explain how exact evidence + registered identities + server provenance prevents LLM hallucinations without a closed narrative taxonomy.
-12. **Recommended immediate first implementation cut** after this audit. It should maximize deletion of semantic authority while minimizing migration risk. Do not implement it in this task.
+1. Game/product model summary in plain language: what the player can configure, what Story owns, what Extract owns, what the server/DB owns, what UI requires.
+2. End-to-end authority trace with actual current callers.
+3. Complete finite-list inventory, expanded beyond the first audit.
+4. For each list: caller evidence, gameplay impact if removed, disposition, canonical owner, deletion/retention rationale.
+5. A dedicated **REMOVE WITH ZERO GAMEPLAY IMPACT** table. Maximize this list.
+6. A dedicated **KEEP BECAUSE PRODUCT ACTUALLY NEEDS IT** table with proof. Include player setup catalogs / stable IDs / compact clothing only if proven.
+7. A **DUPLICATE AUTHORITY** table showing where the same intended catalog/state is copied in content/JS/SQL/DB and exactly which copy should disappear.
+8. CSA before/after map with explicit proposed deletion of unnecessary physical command/enactment layers.
+9. Open observation/fact schema and evidence/provenance rules; no required semantic type enum.
+10. Memory/readback design proving open facts reach next Story and long-term continuity.
+11. Choice simplification deletion plan.
+12. DB additive migration strategy.
+13. Test KEEP/REWRITE/DELETE plan; obsolete finite-semantic tests do not protect runtime.
+14. Actual preserved 7-turn game evidence relevant to the redesign, READ ONLY.
+15. Revised implementation sequence. Each implementation cut must maximize deletion and name exact files/functions/tests likely to DELETE/REWRITE/KEEP.
+16. Recommended first implementation cut. It must be architecture-first and should remove substantial semantic gating, not merely add another ledger alongside all old authority.
 
-## Binding redesign rules
+## Binding rules
 
-- No new event/relation/emotion/posture/sexual taxonomy to replace the old one.
-- No “generic_other” catch-all enum; free semantic text/facts are the point.
-- No regex classifier deciding whether a narrative fact is allowed to exist.
-- No deterministic inference from raw player input to successful state. Story evidence remains required for observed outcomes.
-- No direct arbitrary `save` patch from the LLM. Extract emits observations/facts; server owns persistence structure.
-- Registered identity validation remains.
-- Exact Story evidence/provenance remains for durable observed facts.
-- Unknown optional semantic projection must fail open without losing the underlying open fact.
-- Do not conflate institutional/CSA compliance with personal consent, comfort, affection, trust, or relationship sentiment.
+- Intentional player configuration catalogs may remain finite; duplicate copies should not become separate authorities.
+- Stable registered IDs may remain finite.
+- UI-required compact state may remain finite only with caller proof and one canonical writer.
+- Open narrative meaning must not require matching an event/relation/emotion/posture/sexual taxonomy.
+- No `other` catch-all enum.
+- No regex/keyword classifier as existence gate for narrative facts.
+- No deterministic success inference directly from player input.
+- Exact Story evidence/provenance remains required for Extract-observed durable facts where applicable.
+- No arbitrary LLM save patch.
+- Unknown optional projection must fail open without erasing the underlying fact.
+- CSA institutional rule state != personal consent/comfort/affection/trust/emotion.
 - No provider/model/temperature/token/retry workaround.
-- No parser relaxation/new parser merely to bypass architecture.
-- No compatibility runtime for stale tests.
-- Delete superseded semantic writers/gates/tests in the implementation cut where proof completes; do not postpone all residue to a future cleanup bucket.
+- No third parser.
+- No stale-test compatibility runtime.
+- Historical applied migrations and terminal report comments are immutable.
+- No new PR/branch.
 
 ## Allowed
 
-- Whole-repository source/test/docs search and read-only inspection.
-- Read-only TEST Supabase schema/function/constraint queries.
-- Git ancestry/PR/CI inspection.
-- Create/update the audit document and CURRENT_TASK terminal evidence.
-- Local static analysis scripts that do not mutate runtime data.
+- Whole-repo source/test/content/docs search.
+- Read-only TEST DB schema/function/data inspection.
+- Read-only preserved manual-game queries.
+- Git/PR/CI inspection.
+- Create the V2 audit document and update CURRENT_TASK terminal state.
 
 ## Forbidden
 
-- Gameplay executable/source/test semantic changes in this audit task.
-- TEST gameplay/LLM run.
-- TEST DB write/reset/migration/DDL.
-- API/frontend deploy.
+- Any gameplay/source/test/migration semantic implementation change.
+- Any DB write/reset/DDL/migration apply.
+- Any TEST gameplay/LLM call.
+- Any API/frontend deploy.
 - Production access.
-- Preserved manual-game access.
-- new branch/PR, reopening #65/#66, merge, Ready, rebase, squash.
-- provider/model/config changes.
-- retry/regeneration.
-- new semantic taxonomy/allowlist/gate.
+- Any mutation of preserved manual game.
+- provider/model/config changes or retry/regeneration.
+- new branch/PR, merge, Ready, rebase, squash.
 
 ## Validation / terminal report
 
-Before reporting:
-- prove audit scope includes active runtime AND DB boundary, not just grep results;
-- provide caller evidence for deletion/legacy decisions;
-- run `git diff --check` for docs changes;
-- ensure no executable source/test/migration files changed;
-- verify PR #67 remains OPEN/DRAFT/UNMERGED;
-- verify no forbidden operations occurred.
+Before terminal report:
+- prove the V2 audit includes source + DB + frontend + actual manual-game read evidence;
+- prove player setup catalogs and `heroine1..5` were classified by actual product use rather than by “finite = bad”;
+- prove clothing retention/removal decisions use actual UI callers;
+- prove every CSA physical finite token family received a remove-or-prove analysis;
+- run `git diff --check`;
+- ensure only docs/CURRENT_TASK changed;
+- verify PR #67 remains OPEN/DRAFT/UNMERGED.
 
-On completion:
+Then:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only commit;
-- post one terminal report to Issue #68 with START_SHA, FINAL_SHA, audit document path, counts by disposition, major authority conclusions, exact proposed first implementation cut, and forbidden-operations confirmation;
-- STOP. Do not auto-register an implementation task. Operator must review the redesign first.
-
-## Terminal evidence — 2026-08-15
-
-- Task ID: `open-semantic-observation-authority-reset-audit`.
-- Registration/start SHA: `6e2963285d91f3bb3d0c096a2cb3ac4f02e9c51c`.
-- Branch: `company/scene-location-presence-v1`; canonical PR #67 remains OPEN / DRAFT / UNMERGED.
-- Deliverable: `docs/audit/OPEN_SEMANTIC_OBSERVATION_AUTHORITY_RESET_2026-08-15.md`.
-- Inventory result: 50 grouped gate families — 15 `STRUCTURAL_KEEP`, 14 `MECHANICAL_ISOLATE`, 18 `SEMANTIC_REMOVE`, and 3 `LEGACY_READ_ONLY`.
-- Major conclusion: action/turn/scene/identity/exact-evidence/replay boundaries are structural and should remain. Extract event/relation/action vocabularies, fixed emotional/physical/clothing fields, intimacy ladders, SQL setup/opening catalog copies, and deterministic choice prose currently restrict or author narrative meaning and must be removed from new-write authority in staged cuts.
-- Target model: Extract emits arbitrary evidence-backed free semantic facts with registered identities, exact Story quotes, server provenance, and replay identity. Narrow scene/CSA/counter/media mechanics remain optional projections and cannot erase an open fact.
-- Choice conclusion: retain four literal provider-authored choices as presentation shape; remove `reduceStoryChoiceProjection` deterministic server-authored alternatives.
-- DB conclusion: `commit_company_turn` remains the durable boundary; `reserve_company_player_setup` and `company_apply_opening_scene_v1` contain duplicated semantic catalog lists; structural validators remain, while catalog meaning moves to the edition/catalog authority only after a later additive cut and live proof.
-- Recommended first implementation cut: additive open-observation envelope/storage and context readback, followed by removal of finite semantic gates. It is proposed only; it was not implemented here.
-- Live DB evidence: no new live query was attempted because local `psql` and Supabase CLI are unavailable. Existing operator-verified TEST catalog/readback facts in the current truth/audit documents were used and are explicitly identified as such in the audit. No credentials were printed or changed.
-- Validation: `git diff --check` passed; no `src/**`, `content/**`, `supabase/migrations/**`, runtime test, provider, or deployment file was changed.
-- Forbidden operations: no TEST gameplay/LLM run, DB write/reset/migration/DDL, API/frontend deploy, Production access, provider/model/retry, new taxonomy/gate/parser, branch/PR/merge/Ready, or preserved-evidence access occurred.
-- Operator review is required before any implementation task. No next task was generated. `Status: WAITING_REVIEW` is the terminal state.
+- post one terminal report to Issue #68 with START_SHA, FINAL_SHA, V2 audit path, inventory counts, number of zero-impact deletions proposed, number of proven product keeps, CSA conclusion, DB duplicate conclusion, exact recommended first implementation cut, and forbidden-operations confirmation;
+- STOP. Do not auto-start implementation before operator review.
