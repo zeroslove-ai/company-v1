@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
 Status: READY
-Task ID: cut2-navigation-live-acceptance-after-story-contract
+Task ID: cut2-navigation-live-acceptance-location-normalized
 Updated: 2026-08-14
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -9,213 +9,192 @@ This file is the sole active execution queue for Company v1.
 
 ## Why this task exists
 
-Cut 2 Scene Stage A is live, but its final navigation acceptance was interrupted by a Turn 1 Story terminal error before the navigation assertions could run.
+The prior task `cut2-navigation-live-acceptance-after-story-contract` correctly stopped FAILED without claiming navigation success.
 
-The prior diagnostic task correctly stopped BLOCKED because the original failing provider bytes were not preserved and category A vs B could not be reconstructed without guessing.
+Verified facts from that run and operator review:
 
-The immediately completed task `cut2-story-visible-body-contract-closure` then closed a separately proven generation-contract mismatch without relaxing the parser:
+- reviewed executable remains `72012e00685bb12ed0defe66f52df44613cc1a20`
+- TEST API Worker Version `726420b6-5850-41c1-bc4b-178fffb9238d` was deployed through the existing contract-gated path
+- health returned HTTP 200 with `edition_id=company-v1`
+- Story contract did not regress: Opening, Turn 1 Story, Extract, and Commit all completed without retry
+- the run did not reach navigation assertions because Opening itself started at `brand_strategy_meeting_room`, while the temporary acceptance scenario assumed the player would already be at `brand_strategy_office` before sending the exact office -> meeting-room navigation command
+- no explicit player-navigation command and no NPC-directed regression command were sent
+- therefore the prior failure is an acceptance-orchestration/precondition failure, not evidence of a runtime navigation defect
+- final dedicated TEST reset was independently verified clean at committed_turn=0, save_revision=867, actions=0, turns=0, setup/not_started, opening/not_started, Scene v1 setup/location null/empty presence
+- PR #67 remains OPEN / DRAFT / UNMERGED
+- Scene Stage B remains unapplied and unauthorized
 
-- fresh parser already requires at least one non-empty visible Story body (`scene`, `narrative`, `dialogue`, or `acting`)
-- THOUGHT and CHOICE do not satisfy that body requirement
-- Story output rules now explicitly require at least one non-empty player-visible body in addition to THOUGHT and four CHOICE blocks
-- THOUGHT+CHOICE-only output remains invalid
-- parser, retry policy, provider/model, token limits, navigation authority, and Scene reducer were not changed
+This task reruns only the remaining live acceptance with a start-location-independent precondition. Do not redeploy or patch runtime merely to make the test scenario convenient.
 
-Operator review accepted exact executable candidate:
+## Binding authority and operating rules
 
-`72012e00685bb12ed0defe66f52df44613cc1a20`
-
-This task deploys that exact reviewed executable-equivalent source to the TEST API and reruns the previously blocked narrow Scene/navigation live acceptance. It does not authorize Scene Stage B.
-
-## Mandatory authority / operating rules
-
-Before any operation, read and obey:
+Read and obey before acting:
 
 1. `/CURRENT_TRUTH.md`
 2. `/AGENTS.md`
 3. `/docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`
 4. `/docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`
 5. this file
-6. Issue #68 operator review for `cut2-story-visible-body-contract-closure`
-7. relevant Cut 2 acceptance failure reports only as evidence, not authority
+6. Issue #68 operator review for `cut2-navigation-live-acceptance-after-story-contract`
 
 Binding principles:
 
 - current Git/source/live TEST DB/deployed identity outrank completion prose
 - one durable domain has one canonical writer
 - no compatibility code for stale tests
-- no retry/provider/model/semantic hard gate used to hide a structural problem
+- no retry/provider/model/semantic hard gate to hide structural defects
 - historical applied migrations are immutable
-- superseded writer/reader/gate/test is removed in its proven Cut rather than carried indefinitely
+- superseded writer/reader/gate/test is removed only with proof
 - manual playtest evidence is preserved
+- a test harness precondition defect must be fixed in orchestration, not converted into runtime compatibility behavior
 
 ## Repository / identity guard
 
 Repository: `zeroslove-ai/company-v1`
 Expected branch: `company/scene-location-presence-v1`
 Reviewed executable candidate: `72012e00685bb12ed0defe66f52df44613cc1a20`
+Current deployed TEST API Worker Version expected at task start: `726420b6-5850-41c1-bc4b-178fffb9238d`
 Navigation-fix ancestor: `c3fc61f5aecef421bd7e7ff201d6d17bf567b7cd`
 PR: #67 — must remain OPEN / DRAFT / UNMERGED.
 
-Before deploy or TEST mutation:
+Before TEST mutation:
 
-1. verify current branch/HEAD
-2. verify `72012e0...` is an ancestor of current HEAD
-3. inspect every commit after `72012e0...`; all later commits, if any, must be docs/workflow-only
-4. verify runtime/config/migration/test executable source at current HEAD is equivalent to `72012e0...`
-5. verify PR #67 remains Draft/Open/Unmerged
-6. verify no operator review already handled this task identity
+1. verify current branch/HEAD and ancestry from `72012e0...`
+2. inspect all commits after `72012e0...`; later commits must remain docs/workflow-only
+3. verify runtime/config/migration/test executable source is still equivalent to `72012e0...`
+4. verify PR #67 remains Draft/Open/Unmerged
+5. verify no operator review already handled this task identity
+6. verify currently deployed Worker identity and `/health`
+7. verify deployed Worker still targets TEST project `fmcrspgxstsmxxsmkeee`
 
-If any executable delta exists after `72012e0...`, STOP for operator review. Do not silently deploy a different source.
+If deployed executable identity has changed or cannot be established, STOP BLOCKED. Do not redeploy in this task.
 
-## TEST / safety scope
+## TEST scope
 
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`
 Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
 Manual playtest game: `78fb1d94-266f-455a-bda4-7656cc2370c1` — DO NOT RESET OR MUTATE.
 Production game: `11111111-1111-4111-8111-111111111111` — forbidden.
 
-Last independently verified dedicated TEST readback before this handoff:
+Last operator readback:
 
 - committed_turn = 0
-- save_revision = 862
+- save_revision = 867
 - player_setup = not_started
 - opening_state = not_started
 - csa_active = []
 - actions = 0
 - turns = 0
-- canonical scene v1 = setup
-- location_id = null
-- present_npc_ids = []
+- canonical Scene v1 = setup / location null / empty presence
 
-Re-read current TEST before use; do not assume the state is unchanged.
-
-Scene Stage A + ACL closure are live. Scene Stage B is NOT authorized by this task.
+Re-read current TEST before use.
 
 ## Goal
 
-Prove in the real TEST runtime that the accepted Story contract closure and the previously reviewed navigation authority fix coexist correctly.
+Complete the live navigation acceptance against the already deployed reviewed executable without assuming a fixed Opening location.
 
 Required outcomes:
 
-1. exact executable-equivalent `72012e0...` is deployed to the Company v1 TEST API
-2. health/edition and deployed identity are recorded
-3. setup/opening creates canonical Scene v1 correctly
-4. normal Story/Extract/Commit succeeds
-5. explicit player navigation changes canonical player location as intended
-6. canonical compatibility mirrors derive from canonical scene
-7. exact NPC-directed action `서원희가 1층 로비로 이동한다.` does not move the player's canonical location merely because the NPC was directed to move
-8. the NPC-directed turn remains processable
-9. context/history readback remains coherent
-10. final dedicated TEST reset is clean
-11. Scene Stage B remains unapplied/unmodified by this task
+1. Story/Extract/Commit remains healthy without retry
+2. player can be placed at canonical `brand_strategy_office` through an ordinary explicit player-navigation turn when needed
+3. exact accepted player-navigation input from office to `brand_strategy_meeting_room` changes canonical player location correctly
+4. Engine canonical navigation wins any conflicting observational Extract location
+5. exact NPC-directed input `서원희가 1층 로비로 이동한다.` does not move the player's canonical location merely because a registered location is named
+6. the NPC-directed turn remains processable through Commit
+7. canonical-to-legacy scene/location/presence projection remains coherent
+8. context/history readback remains coherent
+9. final dedicated TEST reset is clean
+10. no runtime/source/test/migration/frontend/Production/manual-playtest mutation outside the authorized TEST flow occurs
 
-## Step 1 — exact preflight
+## Step 1 — deterministic navigation input preflight
 
-Record:
+Before live navigation calls, use current source/tests only to prove the exact textual inputs resolve as intended.
 
-- current branch/HEAD
-- exact ancestry/equivalence proof from `72012e0...`
-- PR #67 state
-- current TEST readback
-- current Scene migration ledger relevant to Stage A/Stage B
-- current deployed Worker identity and `/health`
-- focused deterministic Story protocol + navigation authority tests at executable-equivalent source
+Required exact target command already accepted by prior evidence:
 
-The full-suite count is supporting evidence only; targeted invariant tests are the acceptance signal.
+`브랜드전략팀 회의실로 이동한다.`
 
-## Step 2 — deploy exact reviewed candidate to TEST API only
+It must resolve as player navigation to `brand_strategy_meeting_room` when the player is at `brand_strategy_office`.
 
-Use the existing canonical Company v1 API deployment path and contract gate.
+For normalization to the office, first determine from the existing canonical location catalog and current resolver the shortest ordinary explicit player command that resolves unambiguously to `brand_strategy_office`. Prefer the canonical visible label already present in repository content. Do not invent aliases and do not add source/tests.
 
-Requirements:
+Expected example only if current catalog/resolver proves it exactly:
 
-- deployment source must be executable-equivalent to `72012e00685bb12ed0defe66f52df44613cc1a20`
-- API Worker only
-- no frontend deploy
-- no provider/model/config change
-- no migration apply
-- record new Worker Version ID
-- verify `/health` HTTP 200 and `edition_id=company-v1`
-- verify TEST Supabase binding still points to `fmcrspgxstsmxxsmkeee`
+`브랜드전략팀 사무실로 이동한다.`
 
-If exact deployment identity cannot be established, STOP before Story calls.
+If that exact example does not resolve to `brand_strategy_office`, use the existing catalog-grounded phrase that does. Record the phrase and deterministic resolution evidence.
 
-## Step 3 — live acceptance runner and evidence capture
+The normalization command is test orchestration only. It must travel through the normal Story/Extract/Commit pipeline; no DB shortcut or save mutation is allowed.
 
-Prefer the existing Company v1 canary/E2E/reset helpers. Do not create a new repository harness merely for convenience.
-
-A temporary runner outside the repository is allowed only where needed to orchestrate the narrow acceptance or preserve response evidence that the existing helper does not expose.
-
-For every Story call, retain the complete Worker-facing SSE transcript/events needed to distinguish:
-
-- `meta`
-- all visible text/block events
-- terminal `complete` or `error`
-- action/request IDs
-
-If a Story protocol failure occurs again:
-
-- preserve the full Worker-facing SSE transcript exactly
-- preserve action/request IDs and server readback
-- do not retry/regenerate
-- do not patch during this rollout task
-- final-reset the dedicated TEST game if safe
-- report FAILED/BLOCKED and STOP
-
-Do not claim raw upstream provider bytes were captured unless they actually were. Worker-facing SSE evidence is not automatically equivalent to provider-wire bytes.
-
-## Step 4 — minimum live flow
+## Step 2 — setup/opening and location-normalized live flow
 
 Use only the dedicated TEST game.
 
-1. verify/reset clean TEST setup state if needed
+1. verify/reset clean TEST setup state only if needed
 2. player setup
 3. Opening
-4. verify canonical `save.scene.version=1`
-5. run a normal Story/Extract/Commit turn if needed to establish the expected scene
-6. perform the same previously proven explicit player-navigation case that moved the player from `brand_strategy_office` to `brand_strategy_meeting_room`; reuse the exact prior accepted input from preserved evidence/runner rather than inventing a new semantic variant
-7. record before/after canonical scene and `player_scene_state.location_id`
-8. confirm Engine canonical navigation wins any conflicting observational Extract location
-9. run exact regression action: `서원희가 1층 로비로 이동한다.`
-10. record before/after canonical scene
-11. prove player canonical location does not change solely because that NPC-directed command contains a registered location
-12. prove the turn still reaches Commit successfully
-13. verify canonical-to-legacy location/presence projection parity
-14. verify context/history readback
-15. final reset dedicated TEST game
+4. read canonical `save.scene.version` and actual `location_id`
+5. do not assume Opening starts in any particular location
+6. if actual canonical location is not `brand_strategy_office`, send the deterministically proven explicit player-navigation command to `brand_strategy_office` through normal Story -> Extract -> Commit
+7. verify after Commit:
+   - canonical `save.scene.location_id = brand_strategy_office`
+   - `player_scene_state.location_id` is only the derived compatibility projection and matches canonical scene
+   - no unrelated location authority overrides the Engine navigation result
+8. once canonical location is `brand_strategy_office`, send exact prior accepted input:
+   `브랜드전략팀 회의실로 이동한다.`
+9. process Story -> Extract -> Commit with no retry
+10. verify canonical location changed to `brand_strategy_meeting_room`
+11. record any Extract location observation and prove canonical Engine navigation wins on conflict
+12. from the committed meeting-room state send exact regression input:
+   `서원희가 1층 로비로 이동한다.`
+13. process Story -> Extract -> Commit with no retry
+14. verify player canonical `save.scene.location_id` remains `brand_strategy_meeting_room` solely with respect to this NPC-directed command; do not infer NPC movement success unless the normal Story/Extract evidence supports it
+15. verify canonical-to-legacy location/presence projection parity
+16. verify context/history readback contains the committed turns coherently
+17. final-reset only the dedicated TEST game and perform readback
 
-Do not manufacture provider output.
+If Opening happens to start at `brand_strategy_office`, skip only the normalization turn and continue with the exact meeting-room command.
 
-## Required deterministic support
+If a navigation Story/Extract/Commit fails, preserve evidence, do not retry, final-reset if safe, report terminal failure, and STOP.
 
-At minimum rerun current focused suites covering:
+## SSE / failure evidence
 
-- Story prompt visible-body contract
-- fresh narrative parser bodyless rejection
-- Story request/response wire contract
-- `test/navigation-authority-contract.test.mjs`
-- relevant Scene reducer/Commit projection tests
+For every Story call in this acceptance retain complete Worker-facing SSE evidence:
 
-Required invariants include:
+- meta
+- visible block/text events
+- terminal complete or error
+- action/request IDs
 
-- THOUGHT+CHOICE-only remains invalid
-- plain narrative/valid semantic body remains accepted
-- registered/unknown/ambiguous non-player mover cannot become authoritative player navigation
-- explicit/self player navigation remains valid
-- catalog-grounded player-to-NPC destination navigation remains valid
-- Engine navigation wins conflicting Extract location
-- stale compatibility NPC scene location is not authority
-- canonical projections remain derived/idempotent
+If any Story protocol failure recurs:
 
-Do not add or modify source/tests in this rollout task.
+- retain complete Worker-facing SSE transcript exactly
+- retain action/request IDs and server readback
+- no retry/regeneration
+- no source patch in this task
+- do not call Worker-facing evidence provider-wire bytes
+- final-reset dedicated TEST if safe
+- report FAILED/BLOCKED and STOP
+
+## Required readbacks
+
+For each navigation turn record before/after:
+
+- committed_turn
+- canonical `save.scene`
+- `player_scene_state.location_id`
+- relevant `npc_scene_state` membership/location compatibility fields if present
+- Extract candidate location/presence observations if present
+- action processing/commit result
+
+For the NPC-directed regression explicitly record whether the player location changed and why.
 
 ## Final TEST reset requirement
 
-Dedicated TEST final state must read back as:
+Final dedicated TEST state must read back as:
 
 - committed_turn = 0
-- processing_status = idle or equivalent no-active-processing state
+- no active processing
 - player_setup = not_started
 - opening_state = not_started
 - csa_active = []
@@ -228,29 +207,32 @@ Dedicated TEST final state must read back as:
 - focal_character_id = null
 - last_speaker_id = null
 
-Record final save_revision rather than assuming `862`.
+Record final save_revision; do not assume `867`.
 
 ## Allowed
 
 - read-only Git/source/PR/TEST/deployment inspection
-- focused deterministic tests without source edits
-- deploy exact reviewed executable-equivalent source to TEST API Worker only
-- dedicated TEST setup/opening/Story/Extract/Commit/context/history/reset calls for this acceptance
-- temporary out-of-repo orchestration/evidence runner when needed
-- docs/audit/CURRENT_TASK truth updates only after successful acceptance
+- focused deterministic resolver/Story/Scene tests with no source edits
+- dedicated TEST setup/opening/Story/Extract/Commit/context/history/reset calls
+- temporary out-of-repository runner/evidence capture when existing helper cannot express the location-normalized orchestration
+- docs/audit/current-truth updates only after full successful acceptance
 - Issue #68 lease and terminal report
+- normal docs-only completion commit after success
 
 ## Forbidden
 
+- API redeploy in this task
+- frontend deploy
 - runtime/source/test edits
+- direct DB/save shortcut to force location
+- synthetic provider output
+- retry/regeneration
 - parser relaxation
 - fallback/synthetic Story body
-- retry/regeneration loop
-- provider/model/temperature/token-limit/config changes
+- provider/model/temperature/token/config changes
 - navigation authority or Scene reducer changes
-- frontend deploy
 - migration edits/apply, including Scene Stage B
-- Production access/write/reset
+- Production access
 - manual playtest mutation/reset
 - broad Cut 3+ work
 - PR Ready/merge
@@ -258,49 +240,51 @@ Record final save_revision rather than assuming `862`.
 - `git reset --hard`
 - `git clean -fd`
 
-If any unrelated defect appears, preserve evidence and STOP. Do not patch it incidentally.
+If an unrelated defect appears, preserve evidence and STOP. Do not patch it incidentally.
 
 ## Success criteria
 
-Success requires:
+Success requires all of the following:
 
-1. exact reviewed executable `72012e0...` deployment identity verified
-2. Story/Extract/Commit Golden Path succeeds without retry
-3. explicit player navigation succeeds
-4. exact NPC-directed regression does not move the player canonical location
-5. canonical/legacy projection parity remains coherent
-6. context/history succeeds
-7. no Story protocol regression is observed
-8. TEST final reset is clean
-9. no migration/Scene Stage B/frontend/Production/manual-playtest operation occurred
-10. PR #67 remains Draft/Open/Unmerged
+1. current deployed Worker identity remains executable-equivalent to reviewed `72012e0...`
+2. deterministic preflight proves the normalization command and exact meeting-room command resolve to their intended canonical locations
+3. normal live pipeline establishes `brand_strategy_office` when needed without DB shortcut
+4. exact player-navigation command moves canonical location office -> meeting room
+5. exact NPC-directed command does not move player canonical location
+6. all involved turns reach Commit without retry
+7. canonical/legacy projection parity is coherent
+8. context/history succeeds
+9. no Story protocol regression occurs
+10. final dedicated TEST reset is clean
+11. Scene Stage B/migration/frontend/Production/manual-playtest/runtime-source edits remain 0
+12. PR #67 remains Draft/Open/Unmerged
 
 Only after all success criteria pass:
 
-- update Cut 2 audit/current-truth documents with verified deployed identity and acceptance evidence
+- update the relevant Cut 2 audit/current-truth docs with verified deployed identity and live acceptance result
 - set CURRENT_TASK to `WAITING_REVIEW`
 - commit/push docs-only completion state
-- post terminal report
+- post terminal report to Issue #68
 - STOP before Scene Stage B
 
 Success phrase:
 
-`CUT 2 NAVIGATION LIVE ACCEPTANCE PASSED AFTER STORY CONTRACT CLOSURE — AWAITING OPERATOR REVIEW`
+`CUT 2 LOCATION-NORMALIZED NAVIGATION LIVE ACCEPTANCE PASSED — AWAITING OPERATOR REVIEW`
 
 ## Failure policy
 
-On any failure, preserve exact evidence, perform only the safe dedicated TEST cleanup authorized here, post terminal report, and STOP. No runtime patch in this task.
+On any failure, preserve exact evidence, perform only safe dedicated TEST cleanup authorized here, post terminal report, and STOP. No runtime patch or redeploy in this task.
 
 Failure phrase:
 
-`CUT 2 NAVIGATION LIVE ACCEPTANCE FAILED AFTER STORY CONTRACT CLOSURE — STOPPED BEFORE STAGE B`
+`CUT 2 LOCATION-NORMALIZED NAVIGATION LIVE ACCEPTANCE FAILED — STOPPED BEFORE STAGE B`
 
 ## Completion report to Issue #68
 
 First lines:
 
 ```text
-TASK_ID: cut2-navigation-live-acceptance-after-story-contract
+TASK_ID: cut2-navigation-live-acceptance-location-normalized
 STATUS: COMPLETE | BLOCKED | FAILED
 START_SHA: <sha>
 FINAL_SHA: <sha>
@@ -310,26 +294,23 @@ BRANCH: company/scene-location-presence-v1
 Then include:
 
 - task blob SHA / lease comment
-- reviewed executable `72012e00685bb12ed0defe66f52df44613cc1a20`
-- executable-equivalence proof
+- exact reviewed executable and currently deployed Worker Version
+- executable-equivalence/deployment identity verification
 - PR #67 state
-- focused deterministic tests/results
-- pre-deploy Worker identity
-- new deployed Worker Version ID
-- `/health` and edition result
+- focused deterministic input-resolution evidence
 - TEST preflight state
-- runner/evidence path and whether repository or out-of-repo
-- Story SSE transcript/evidence location for each live Story call
-- player navigation exact input and before/after canonical scene
-- conflicting Extract result if observed
-- NPC-directed exact input and before/after canonical scene
+- Opening actual canonical location
+- exact normalization command if used and before/after canonical scene
+- exact office -> meeting-room command and before/after canonical scene
+- Extract candidate location and Engine precedence evidence
+- exact NPC-directed command and before/after canonical scene
 - NPC-directed turn processability
 - projection parity
 - context/history result
+- Story SSE evidence artifact location/hash
 - final TEST reset + final save_revision
-- TEST writes/reset summary
-- deployment count/scope
 - migration/Scene Stage B apply = 0
+- API redeploy = 0
 - frontend deploy = 0
 - Production access = 0
 - runtime/source/test edits = 0
