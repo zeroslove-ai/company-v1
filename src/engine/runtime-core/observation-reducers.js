@@ -159,14 +159,15 @@ export function reduceElapsedTimeObservation({ save, elapsedMinutes, evidence } 
   return { before, after, warnings: [] };
 }
 
-const DETERMINISTIC_CHOICE_FALLBACKS = [
+/* Legacy deterministic choice prose removed from the runtime authority. */
+/*
   '현재 대화를 조금 더 이어간다.',
   '상대에게 지금 상황을 차분히 물어본다.',
   '주변 반응을 잠시 살펴본다.',
   '대화를 정리하고 다음 행동을 생각한다.'
-];
+*/
 
-export function reduceStoryChoiceProjection({ parsedStory, allowDeterministicFallback = false } = {}) {
+export function reduceStoryChoiceProjection({ parsedStory } = {}) {
   const observed = Array.isArray(parsedStory?.choices)
     ? parsedStory.choices.map(choice => typeof choice === 'string' ? choice.trim() : '')
     : [];
@@ -177,21 +178,6 @@ export function reduceStoryChoiceProjection({ parsedStory, allowDeterministicFal
   if (observed.some(choice => !choice)) warnings.push('choices_empty');
   if (unique.size !== nonEmpty.length) warnings.push('choices_exact_duplicate');
   const canonical = observed.length === 4 && observed.every(Boolean) && unique.size === 4;
-  if (allowDeterministicFallback && !canonical) {
-    const state = [];
-    for (const choice of nonEmpty) {
-      if (state.length >= 4) break;
-      if (!state.includes(choice)) state.push(choice);
-    }
-    for (const fallback of DETERMINISTIC_CHOICE_FALLBACKS) {
-      if (state.length >= 4) break;
-      if (!state.includes(fallback)) state.push(fallback);
-    }
-    if (state.length === 4) {
-      warnings.push('choices_fallback_applied');
-      return { state: clone(state), warnings };
-    }
-  }
   return { state: canonical ? clone(observed) : [], warnings };
 }
 
@@ -226,7 +212,7 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
     const attitude = reduceCsaAttitudeObservation({ save: nextSave, npcId, attitude: domains.csa_attitude, expectedTurn, evidence, storyText: rawStory });
     if (domains.csa_attitude) nextSave.csa_attitudes[npcId] = attitude.state; warnings.push(...attitude.warnings);
   }
-  const choices = reduceStoryChoiceProjection({ save: nextSave, parsedStory, master, allowDeterministicFallback: true });
+  const choices = reduceStoryChoiceProjection({ parsedStory });
   nextSave.last_choices = choices.state; warnings.push(...choices.warnings);
   const time = reduceElapsedTimeObservation({ save: nextSave, elapsedMinutes: observation.elapsed_minutes, evidence });
   nextSave.world_state = { ...(object(nextSave.world_state) ? nextSave.world_state : {}), game_time: time.after };

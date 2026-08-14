@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { GameCoreError } from '../src/engine/errors.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
-import { buildDegradedExtractObservation, normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
+import { buildDegradedExtractObservation, normalizeExtractObservationV2, normalizeFreshExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { reduceCsaAttitudeObservation, reduceNpcPhysicalObservation, reduceNpcRelationshipObservation } from '../src/engine/runtime-core/observation-reducers.js';
 
 const NPCS = new Set(['heroine1', 'heroine2']);
@@ -44,8 +44,42 @@ test('Extract prompt gives the validator-owned physical shape example', () => {
   assert.match(system.content, /Use position_label, never position\/label/);
   assert.match(system.content, /underwear_bottom/);
   assert.match(system.content, /evidence.*physical_change/s);
-  assert.match(system.content, /familiarity.*integer.*omit csa_attitude.*familiarity:null/s);
+  assert.match(system.content, /open_facts.*exact evidence/s);
   assert.match(system.content, /multi-NPC scene.*physical\/clothing quote.*actor name/);
+});
+
+test('fresh Extract preserves arbitrary evidence-backed facts and skips invalid optional facts', () => {
+  const storyText = 'Hayeon accepted the apology but remained disappointed. Hayeon leaned sideways against the desk with folded arms. Hayeon removed a silver hairpin. Hayeon and the player agreed to meet privately later.';
+  const result = normalizeFreshExtractObservationV2(valid({
+    open_facts: [
+      { subject_id: 'heroine1', object_id: 'player', fact_text: 'Hayeon accepted the apology but remained disappointed.', story_quote: 'Hayeon accepted the apology but remained disappointed.' },
+      { subject_id: 'heroine1', object_id: null, fact_text: 'Hayeon leaned sideways against the desk with folded arms.', story_quote: 'Hayeon leaned sideways against the desk with folded arms.' },
+      { subject_id: 'heroine1', object_id: null, fact_text: 'Hayeon removed a silver hairpin.', story_quote: 'Hayeon removed a silver hairpin.' },
+      { subject_id: 'heroine1', object_id: 'player', fact_text: 'Hayeon and the player agreed to meet privately later.', story_quote: 'Hayeon and the player agreed to meet privately later.' },
+      { subject_id: 'unknown', object_id: null, fact_text: 'must be skipped', story_quote: 'must be skipped' },
+      { subject_id: 'heroine2', object_id: null, fact_text: 'bad evidence', story_quote: 'not in Story' }
+    ]
+  }), { npcIds: NPCS, storyText, expectedTurn: 4, actionId: 'open-fact' });
+  assert.equal(result.open_facts.length, 4);
+  assert.equal(result.open_facts[0].subject_id, 'heroine1');
+  assert.equal(result.open_facts[0].fact_text, 'Hayeon accepted the apology but remained disappointed.');
+  assert.ok(result.warnings.some(warning => warning.includes('OPEN_FACT_UNKNOWN_ID')));
+  assert.ok(result.warnings.some(warning => warning.includes('OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY')));
+});
+
+test('fresh Extract removes closed semantic event/relation/emotion writers while retaining open facts', () => {
+  const storyText = 'Hayeon accepts the apology.';
+  const result = normalizeFreshExtractObservationV2(valid({
+    events: { general: [{ event_type: 'promise', participants: ['heroine1'], evidence: storyText }], sexual: [] },
+    relation_updates: [{ actor_id: 'heroine1', target_id: 'player', relation_kind: 'friendship', state: 'started', quote: storyText }],
+    npc_observations: { heroine1: { emotion: { mood: 'disappointed' }, relationship: { closeness: 'close' } } },
+    open_facts: [{ subject_id: 'heroine1', object_id: 'player', fact_text: 'Hayeon accepts the apology.', story_quote: storyText }]
+  }), { npcIds: NPCS, storyText, expectedTurn: 5, actionId: 'closed-reset' });
+  assert.deepEqual(result.events, { general: [], sexual: [] });
+  assert.deepEqual(result.relation_updates, []);
+  assert.equal(result.npc_observations.heroine1.emotion, undefined);
+  assert.equal(result.npc_observations.heroine1.relationship, undefined);
+  assert.equal(result.open_facts.length, 1);
 });
 test('valid evidenced clothing observation uses the canonical position_label shape and commits clothing', () => {
   const quote = '윤민아가 팬티를 벗고 근무복 차림으로 업무를 계속한다.';
@@ -252,7 +286,7 @@ test('event identity includes participants and sexual actor/target fields', () =
 
 test('Extract prompt exposes the exact V2 JSON skeleton and save-patch prohibitions', () => {
   const system = buildExtractPrompt({ context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } }, storyText: 'story', playerAction: 'action', expectedTurn: 1 })[0].content;
-  for (const key of ['extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence', 'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection', 'csa_trigger_evaluations', 'csa_runtime_updates', 'turn_summary', 'warnings']) {
+  for (const key of ['extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'open_facts', 'evidence', 'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection', 'csa_trigger_evaluations', 'csa_runtime_updates', 'turn_summary', 'warnings']) {
     assert.match(system, new RegExp(`"${key}"`));
   }
   assert.match(system, /Never return these save-patch or parser fields/);

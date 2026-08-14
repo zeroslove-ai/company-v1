@@ -104,6 +104,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   const player = object(save.player) ?? {};
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
+  const openObservations = Array.isArray(save.open_observations) ? save.open_observations : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
   const sceneCore = buildSceneContextCore(save, activeIds);
   const activeRelations = (Array.isArray(save.active_relations) ? save.active_relations : [])
@@ -143,6 +144,16 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     ...sceneRest,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
     story_summary: { overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '' },
+    open_observations: openObservations.slice(-50).map(fact => ({
+      fact_id: typeof fact?.fact_id === 'string' ? fact.fact_id : null,
+      action_id: typeof fact?.action_id === 'string' ? fact.action_id : null,
+      turn_number: Number.isInteger(fact?.turn_number) ? fact.turn_number : null,
+      subject_id: typeof fact?.subject_id === 'string' ? fact.subject_id : null,
+      object_id: typeof fact?.object_id === 'string' ? fact.object_id : null,
+      fact_text: typeof fact?.fact_text === 'string' ? fact.fact_text : '',
+      story_quote: typeof fact?.story_quote === 'string' ? fact.story_quote : '',
+      ...(typeof fact?.source_block === 'string' ? { source_block: fact.source_block } : {})
+    })),
     recent_turns: recentTurns.map(turn => ({
       turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
       player_action: typeof turn?.player_action === 'string' ? turn.player_action : '',
@@ -156,6 +167,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
 export const DURABLE_STORY_RULES = [
   '[WORLD FACTS]',
   'Treat the canonical JSON payload as fact. scene_actors are present now; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only and never create presence, action, or dialogue authority. world_rules are institutional facts and scene_obligations are read-only current-turn requirements. Never invent an unregistered named NPC.',
+  'context.open_observations contains exact, committed, evidence-backed facts from prior turns. Preserve these facts as context, do not invent or overwrite them, and keep their subject/object identity and quoted Story evidence intact. They are durable observations, not a closed semantic taxonomy.',
  '[PLAYER AGENCY]',
   'Preserve explicit player physical action without expanding its meaning. A choice is only a proposal, never a completed player action. CSA mandatory enactment is distinct from optional player agency; never add unrequested contact, movement, undressing, or sexual escalation.',
   'Player input is the authority for player intent and current explicit target. Do not let stale position labels select a different NPC. Target authority order is current explicit player target, current canonical focal interaction, active structured relation, then presentation-only physical labels (which are never a selector). Do not invent an unrequested player movement, dialogue, apology, concession, withdrawal, promise, contact, physical action, consent, refusal, or outcome. Player dialogue may paraphrase supplied intent without changing its meaning; it must not create a new decision. NPC responses and consequences are authored naturally in the Story.',

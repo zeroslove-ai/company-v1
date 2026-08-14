@@ -79,38 +79,33 @@ test('choice projection exposes canonical choices only when four distinct action
   }
 });
 
-test('opening choice projection normalizes malformed provider counts without rewriting Story', () => {
+test('malformed provider choices remain unavailable without server-authored fallback prose', () => {
   for (const count of [4, 3, 1, 0, 5]) {
     const input = Array.from({ length: count }, (_, index) => `opening-choice-${index}`);
-    const result = reduceStoryChoiceProjection({ parsedStory: { choices: input }, allowDeterministicFallback: true });
-    assert.equal(result.state.length, 4);
-    assert.deepEqual(result.state.slice(0, Math.min(count, 4)), input.slice(0, 4));
-    if (count === 4) assert.equal(result.warnings.includes('choices_fallback_applied'), false);
-    else assert.ok(result.warnings.includes('choices_fallback_applied'));
+    const result = reduceStoryChoiceProjection({ parsedStory: { choices: input } });
+    assert.equal(result.state.length, count === 4 ? 4 : 0);
   }
 
   const duplicateAndEmpty = reduceStoryChoiceProjection({
-    parsedStory: { choices: ['first', '', 'first', 'second'] },
-    allowDeterministicFallback: true
+    parsedStory: { choices: ['first', '', 'first', 'second'] }
   });
-  assert.deepEqual(duplicateAndEmpty.state.slice(0, 2), ['first', 'second']);
-  assert.equal(duplicateAndEmpty.state.length, 4);
-  assert.ok(duplicateAndEmpty.warnings.includes('choices_fallback_applied'));
+  assert.deepEqual(duplicateAndEmpty.state, []);
+  assert.ok(duplicateAndEmpty.warnings.includes('choices_exact_duplicate'));
 });
 
-test('numbered visible text is not parsed as canonical choices and uses generic projection fallback', () => {
+test('numbered visible text is not parsed as canonical choices', () => {
   const raw = '[SCENE]\nThe lobby is busy.\n1. Look around\n2. Say hello\n3. Wait quietly\n4. Leave.';
   const parsed = parseFreshNarrativeV2(raw, { master: { characters: [], general_npcs: [] } });
   assert.equal(parsed.choices.length, 0);
-  const projected = reduceStoryChoiceProjection({ parsedStory: parsed, allowDeterministicFallback: true });
-  assert.equal(projected.state.length, 4);
+  const projected = reduceStoryChoiceProjection({ parsedStory: parsed });
+  assert.equal(projected.state.length, 0);
   assert.equal(parsed.raw, raw);
 });
 
 test('V2 commit leaves canonical choices unavailable when the Story has fewer than four actions', () => {
   const observation = normalizeExtractObservationV2({ extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] }, { npcIds });
   const result = reduceGameplayCommit({ currentSave: structuredClone(seed), observation, parsedStory: { choices: ['one', 'two'], dialogue_lines: [] }, rawStory: 'A plain Story', action: { action_id: 'choices', turn_id: 'turn-8', action_kind: 'player_turn' }, expectedTurn: 8, npcIds, mapLocations: [] });
-  assert.equal(result.nextSave.last_choices.length, 4);
+  assert.deepEqual(result.nextSave.last_choices, []);
 });
 
 test('persisted V1 adapter is the only compatibility bridge and emits an explicit warning', () => {

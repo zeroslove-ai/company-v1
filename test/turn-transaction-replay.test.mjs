@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { reduceGameplayCommit } from '../src/engine/runtime-core/commit-reducer.js';
 import { normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
+import { buildStoryContextProjection } from '../src/engine/story-prompt.js';
 
 const save = JSON.parse(fs.readFileSync(new URL('../fixtures/phase-0.5/canonical-save-v1.json', import.meta.url)));
 if (!save.scene) {
@@ -23,6 +24,26 @@ if (!save.scene) {
 const NPCS = new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']);
 const baseObservation = { extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] };
 const action = { action_id: 'a', turn_id: 't', action_kind: 'player_turn', player_action: '계속 진행한다' };
+
+test('open observations persist only through Commit and remain idempotent', () => {
+  const quote = 'Hayeon accepted the apology but remained disappointed.';
+  const observation = normalizeExtractObservationV2({
+    ...baseObservation,
+    open_facts: [{ subject_id: 'npc-hayeon', object_id: 'player', fact_text: quote, story_quote: quote }]
+  }, { npcIds: NPCS, storyText: quote, expectedTurn: 8, actionId: 'open-fact' });
+  const action = { action_id: 'open-fact', turn_id: 'turn-8', action_kind: 'player_turn' };
+  const first = reduceGameplayCommit({ currentSave: save, observation, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [] }, rawStory: quote, action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
+  assert.equal(first.nextSave.open_observations.length, 1);
+  assert.equal(first.nextSave.open_observations[0].story_quote, quote);
+  const second = reduceGameplayCommit({ currentSave: first.nextSave, observation, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [] }, rawStory: quote, action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
+  assert.equal(second.nextSave.open_observations.length, 1);
+});
+
+test('committed open observations are exposed to later Story context with provenance', () => {
+  const facts = [{ fact_id: 'fact-1', action_id: 'open-fact', turn_number: 8, subject_id: 'npc-hayeon', object_id: 'player', fact_text: 'Hayeon accepted the apology but remained disappointed.', story_quote: 'Hayeon accepted the apology but remained disappointed.' }];
+  const projection = buildStoryContextProjection({ game: { id: 'game-1' }, save: { data: { ...structuredClone(save), open_observations: facts } }, recent_turns: [] }, [], { edition: {}, catalogs: {} });
+  assert.deepEqual(projection.open_observations, facts);
+});
 
 test('reduceGameplayCommit is the single V2 orchestration writer', () => {
   const observation = normalizeExtractObservationV2(baseObservation, { npcIds: NPCS });

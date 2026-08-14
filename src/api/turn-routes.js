@@ -490,6 +490,7 @@ const master = masterFromEdition(edition);
             player_inner_thought: typeof parsedBlocks?.player_inner_thought === 'string' ? parsedBlocks.player_inner_thought : '',
             structured_action: row.structured_action ?? null,
             feedback_text: row.feedback_text ?? null,
+            open_observations: Array.isArray(row.post_save?.open_observations) ? row.post_save.open_observations : [],
             committed_at: row.committed_at
           };
         });
@@ -1202,7 +1203,7 @@ const master = masterFromEdition(edition);
               mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
             })
           };
-          const choiceProjection = reduceStoryChoiceProjection({ parsedStory: parsedOpening, allowDeterministicFallback: true });
+          const choiceProjection = reduceStoryChoiceProjection({ parsedStory: parsedOpening });
           const finalChoices = choiceProjection.state;
           const commit = await db.callRpc('commit_company_opening', {
             p_game_id: gameId,

@@ -6,7 +6,7 @@ const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'block
 const TOP_LEVEL = new Set([
   'extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence',
   'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection',
-  'csa_trigger_evaluations', 'csa_runtime_updates', 'relation_updates', 'turn_summary', 'warnings'
+  'csa_trigger_evaluations', 'csa_runtime_updates', 'relation_updates', 'open_facts', 'turn_summary', 'warnings'
 ]);
 const NPC_DOMAINS = new Set(['physical', 'emotion', 'relationship', 'stats', 'work', 'csa_attitude']);
 const PHYSICAL = new Set(['posture', 'position_label', 'clothing']);
@@ -33,6 +33,7 @@ const FRESH_OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 
 const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'presence_is_final', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
 const RELATION_UPDATE_FIELDS = new Set(['actor_id', 'target_id', 'relation_kind', 'state', 'quote']);
 const RELATION_STATES = new Set(['started', 'ended']);
+const OPEN_FACT_FIELDS = new Set(['subject_id', 'object_id', 'fact_text', 'story_quote', 'source_block']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -270,6 +271,50 @@ function normalizeRelationUpdates(value, npcIds, storyText) {
   }).filter(Boolean);
 }
 
+function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId = null, warnings = [], { softOptional = false } = {}) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    if (softOptional) {
+      warnings.push('open_facts_dropped:INVALID_EXTRACT_OBSERVATION');
+      return [];
+    }
+    throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'open_facts must be an array');
+  }
+  const registered = npcIds instanceof Set ? npcIds : new Set();
+  const normalized = [];
+  for (const [index, item] of value.entries()) {
+    try {
+      assertKeys(item, OPEN_FACT_FIELDS, 'INVALID_OPEN_FACT');
+      const subjectId = canonicalPlayerOrNpcId(nonEmptyId(item.subject_id));
+      const objectId = item.object_id === null || item.object_id === undefined
+        ? null
+        : canonicalPlayerOrNpcId(nonEmptyId(item.object_id));
+      const factText = typeof item.fact_text === 'string' ? item.fact_text.trim() : '';
+      const quote = typeof item.story_quote === 'string' ? item.story_quote.trim() : '';
+      if (!subjectId || (item.object_id !== null && item.object_id !== undefined && !objectId) || !factText || !quote) throw new GameCoreError('INVALID_OPEN_FACT', 'Open facts require subject_id, fact_text, and story_quote');
+      const known = id => id === 'player' || !registered.size || registered.has(id);
+      if (!known(subjectId) || (objectId !== null && !known(objectId))) throw new GameCoreError('OPEN_FACT_UNKNOWN_ID', 'Open fact identity is not registered');
+      if (!String(storyText ?? '').includes(quote)) throw new GameCoreError('OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY', 'Open fact story_quote is not an exact Story substring');
+      if (factText.length > 2000 || quote.length > 2000) throw new GameCoreError('INVALID_OPEN_FACT', 'Open fact text is too long');
+      const sourceBlock = item.source_block === undefined || item.source_block === null
+        ? null
+        : (typeof item.source_block === 'string' && item.source_block.trim() ? item.source_block.trim().slice(0, 80) : null);
+      const identity = { action_id: actionId ?? null, turn_number: expectedTurn, subject_id: subjectId, object_id: objectId, fact_text: factText, story_quote: quote, source_block: sourceBlock };
+      const factId = `turn:${expectedTurn}:action:${actionId ?? 'unknown'}:fact:${stableEventHash(stableSerialize(identity))}`;
+      normalized.push({ fact_id: factId, action_id: actionId ?? null, turn_number: expectedTurn, subject_id: subjectId, object_id: objectId, fact_text: factText, story_quote: quote, ...(sourceBlock ? { source_block: sourceBlock } : {}) });
+    } catch (error) {
+      if (!softOptional) throw error;
+      warnings.push(`open_fact_dropped:${index}:${error?.code ?? 'invalid'}`);
+    }
+  }
+  const seen = new Set();
+  return normalized.filter(item => {
+    if (seen.has(item.fact_id)) return false;
+    seen.add(item.fact_id);
+    return true;
+  });
+}
+
 export function assertExtractObservationContract(observation) {
   if (!object(observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Extract observation must be an object');
   const forbidden = ['state_delta', 'choices', 'dialogue_lines', 'player_inner_thought', 'last_speaker_id', 'npcs_present', 'focal_character_id', 'turn_changes', 'csa_active', 'csa_rules', 'world_state', 'save'];
@@ -341,6 +386,7 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
     image_character_id: dropOptional(softOptional, 'image_character_id', warnings, null, () => nullableId(value.image_character_id, registered, 'image_character_id')),
     image_selection: normalizeImageSelection(value.image_selection),
     csa_trigger_evaluations: [], csa_runtime_updates: [], relation_updates: [],
+    open_facts: normalizeOpenFacts(value.open_facts, registered, storyText, expectedTurn, actionId, warnings, { softOptional }),
     turn_summary: typeof value.turn_summary === 'string' ? value.turn_summary : '',
     warnings
   };
@@ -449,6 +495,20 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
   }
   assertKeys(value.scene_observation, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
   const normalized = normalizeExtractObservationV2(value, { ...options, softOptional: true });
+  if (normalized.events.general.length || normalized.events.sexual.length) normalized.warnings.push('fresh_closed_events_ignored');
+  if (normalized.relation_updates.length) normalized.warnings.push('fresh_closed_relations_ignored');
+  normalized.events = { general: [], sexual: [] };
+  normalized.relation_updates = [];
+  for (const [npcId, domains] of Object.entries(normalized.npc_observations)) {
+    if (domains.emotion) {
+      delete domains.emotion;
+      normalized.warnings.push(`fresh_closed_emotion_ignored:${npcId}`);
+    }
+    if (domains.relationship) {
+      delete domains.relationship;
+      normalized.warnings.push(`fresh_closed_relationship_ignored:${npcId}`);
+    }
+  }
   const required = Array.isArray(options.requiredMindMonitorIds)
     ? options.requiredMindMonitorIds.filter(id => typeof id === 'string' && id.trim())
     : [];

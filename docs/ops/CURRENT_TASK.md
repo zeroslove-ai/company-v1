@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: open-observation-authority-core-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -260,3 +260,39 @@ Before reporting COMPLETE:
 - DB writes/resets/migration apply/deploy/Production/manual-game mutation must all be 0.
 
 Then set CURRENT_TASK to `WAITING_REVIEW`, commit/push the implementation on the same branch, post one immutable terminal report to Issue #68, and STOP. Do not deploy or start live acceptance automatically.
+
+## Implementation handoff — WAITING_REVIEW
+
+- Task ID: `open-observation-authority-core-v1`
+- Task blob / registration SHA at start: `afda38e21496e00321d8c9664231cd87af015685`
+- Start HEAD: `afda38e21496e00321d8c9664231cd87af015685` (docs-only descendant of the accepted source baseline)
+- Runtime candidate SHA: assigned by the implementation commit below; docs-only task state is separate from executable review identity.
+- Branch: `company/scene-location-presence-v1`; PR #67 remains `OPEN / DRAFT / UNMERGED`, base `main`.
+
+### Caller freeze and authority disposition
+
+- Fresh Extract producer: `src/engine/extract-prompt.js`; fresh structural boundary: `src/engine/runtime-core/extract-observation.js`; fresh route caller: `/api/extract` in `src/api/turn-routes.js`.
+- Fresh reducer path: `reduceGameplayCommit` -> `reduceObservationDomains`; durable writer remains the named `commit_company_turn` RPC.
+- `relation-event-reducer.js` and `relationship/*` / `sexual-state/*` remain LEGACY_READ_ONLY or proven narrow mechanical projections for persisted rows and Engine/CSA obligations; fresh Extract event/relation/emotion writers are removed from the fresh normalized input. Future deletion criterion: no current persisted replay/Engine consumer.
+- Compact clothing, scene identity/presence, image/media, setup catalogs, and stable registered IDs remain PROVEN NARROW PROJECTION / product authorities. Unmatched narrative meaning is preserved as an open fact.
+- `persisted-extract-observation.js` remains a LEGACY_READ_ONLY boundary for stored V1/V2 rows; it is not used for fresh provider completion.
+- `get_company_context` / `/api/context`, `/api/history`, replay readers, and `buildStoryContextProjection` now expose committed open observations; history reads `game_turns.post_save`.
+
+### Implemented contract
+
+- Fresh Extract accepts `open_facts[]` with registered `subject_id` / optional `object_id`, open `fact_text`, exact contiguous `story_quote`, and optional `source_block`.
+- Server-owned `fact_id` includes action/turn identity and structural fact content; normal Commit appends with deterministic idempotent dedupe.
+- Exact evidence and registered identity checks remain structural. Invalid optional facts are skipped with warnings; valid facts survive. No arbitrary save patch is accepted.
+- Story ACTING no longer injects player posture into durable observation state without Extract evidence.
+- Deterministic server-authored choice fallback prose was removed; malformed provider choices remain observable and unavailable rather than being rewritten.
+- No additive migration was needed: `game_save.data` JSONB and existing `commit_company_turn` / `game_turns.post_save` already carry the structural ledger. Migration apply count: 0.
+- TEST-only Level 7 acceleration seam was not implemented; it remains a separate acceptance harness design item.
+
+### Verification
+
+- Focused lifecycle / Extract / choice / setup-opening / relation-authority / atomicity tests: PASS.
+- Full `npm.cmd test`: PASS, 459/459. (`npm test` PowerShell shim was blocked by local execution policy; equivalent `npm.cmd test` was used.)
+- Modified JS/MJS syntax checks: PASS.
+- `git diff --check`: PASS before commit.
+- API/frontend dry-runs: not run; this source task forbids deployment preparation beyond local verification and no deploy was authorized.
+- DB writes/resets: 0. Migration apply: 0. API/frontend deployments: 0. Production/manual-game access or mutation: 0.

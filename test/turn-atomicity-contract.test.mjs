@@ -58,7 +58,7 @@ test('12Q visible ACTING preserves source order and exact enactment identity', (
   assert.equal(parsed.acting_events[0].text, 'She moves.');
 });
 
-test('12Q player ACTING posture is structural evidence when Extract is empty', () => {
+test('player ACTING posture is not a durable observation without Extract evidence', () => {
   const rawStory = '[SCENE]room[/SCENE]\nPlayer sits.';
   const result = reduceGameplayCommit({
     currentSave: save,
@@ -68,8 +68,8 @@ test('12Q player ACTING posture is structural evidence when Extract is empty', (
     action: { action_id: 'a', turn_id: 't', action_kind: 'player_turn' },
     expectedTurn: 8, npcIds, mapLocations: []
   });
-  assert.equal(result.nextSave.player_scene_state.posture, 'sitting');
-  assert.equal(result.nextSave.player_scene_state.updated_turn, 8);
+  assert.equal(result.nextSave.player_scene_state.posture, undefined);
+  assert.notEqual(result.nextSave.player_scene_state.updated_turn, 8);
 });
 
 test('12Q player private CSA origin is present in Story payload but not ordinary player_action', () => {

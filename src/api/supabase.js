@@ -115,7 +115,7 @@ export function createSupabaseClient(env, fetchImpl) {
     async listTurns(gameId, { beforeTurn = null, limit = 20 } = {}) {
       const query = new URLSearchParams({
         game_id: `eq.${gameId}`, record_status: 'eq.active',
-        select: 'turn_number,player_action,structured_action,feedback_text,story_text,parsed_blocks,turn_summary,mind_monitor,choices,committed_at',
+        select: 'turn_number,player_action,structured_action,feedback_text,story_text,parsed_blocks,turn_summary,mind_monitor,choices,post_save,committed_at',
         order: 'turn_number.desc', limit: String(limit)
       });
       if (Number.isInteger(beforeTurn)) query.set('turn_number', `lt.${beforeTurn}`);

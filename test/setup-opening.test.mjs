@@ -449,7 +449,7 @@ test('/api/opening streams background plus four choices, commits turn 0, and nev
   assert.equal(save.opening_state.status, 'complete');
 });
 
-test('/api/opening projects observed zero choices into four canonical fallback choices without rewriting raw Story', async () => {
+test('/api/opening does not author choices when the provider emits none', async () => {
   const mock = createSetupMockFetch({ storySseText: openingWithoutChoicesSse });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
@@ -457,24 +457,14 @@ test('/api/opening projects observed zero choices into four canonical fallback c
 
   const openingResponse = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
   assert.equal(openingResponse.status, 200);
-  const text = await readSseText(openingResponse);
-  const completeLine = text.split('\n\n').find(frame => frame.includes('event: complete'));
-  const completeData = JSON.parse(completeLine.split('data:')[1].trim());
-  assert.equal(completeData.choices.length, 4);
-  assert.ok(completeData.warnings.includes('choices_not_exactly_four'));
-  assert.ok(completeData.warnings.includes('choices_fallback_applied'));
-  assert.equal(completeData.parsed_blocks.choices.length, 0);
-  assert.equal(completeData.parsed_blocks.canonical_choices.length, 0);
-  assert.equal(mock.getSave().opening_state.story_text.includes('[CHOICE]'), false);
-  assert.deepEqual(mock.getSave().opening_state.choices, completeData.choices);
-
-  const contextResponse = await worker.fetch(request('/api/context', { game_id: gameId, recent_turns: 1 }), env);
-  const openingTurn = (await contextResponse.json()).data.context.opening_turn;
-  assert.equal(openingTurn.parsed_blocks.choices.length, 0);
-  assert.equal(openingTurn.choices.length, 4);
+  const failureText = await readSseText(openingResponse);
+  assert.match(failureText, /event: error/);
+  assert.match(failureText, /exactly four/);
+  assert.equal(mock.getSave().opening_state.status, 'planned');
+  assert.equal(mock.getSave().opening_state.story_text, undefined);
 });
 
-test('/api/opening truncates five provider choices to four projection choices before commit', async () => {
+test('/api/opening does not invent a fifth provider choice', async () => {
   const mock = createSetupMockFetch({ storySseText: openingWithFiveChoicesSse });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
@@ -482,15 +472,10 @@ test('/api/opening truncates five provider choices to four projection choices be
 
   const openingResponse = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
   assert.equal(openingResponse.status, 200);
-  const text = await readSseText(openingResponse);
-  const completeLine = text.split('\n\n').find(frame => frame.includes('event: complete'));
-  const completeData = JSON.parse(completeLine.split('data:')[1].trim());
-  assert.deepEqual(completeData.choices, ['One', 'Two', 'Three', 'Four']);
-  assert.equal(completeData.choices.length, 4);
-  assert.ok(completeData.warnings.includes('choices_not_exactly_four'));
-  assert.ok(completeData.warnings.includes('choices_fallback_applied'));
-  assert.equal(mock.getSave().opening_state.choices.length, 4);
-  assert.match(mock.getSave().opening_state.story_text, /Five/);
+  const failureText = await readSseText(openingResponse);
+  assert.match(failureText, /event: error/);
+  assert.match(failureText, /exactly four/);
+  assert.equal(mock.getSave().opening_state.status, 'planned');
 });
 
 test('/api/opening first-run and replay expose the same canonical parsed projection as context refresh', async () => {

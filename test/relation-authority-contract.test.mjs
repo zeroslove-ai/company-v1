@@ -169,7 +169,7 @@ test('CSA reducer leaves active_relations to the canonical relation/event reduce
   assert.deepEqual(result.nextSave.active_relations, active);
 });
 
-test('Turn 13 to 15 fixture closes heroine5 and makes heroine3 the current relation authority', () => {
+test('fresh closed relation observations do not become a new durable authority', () => {
   const save = {
     edition: 'company-v1', save_schema_version: 1, world_state: { game_time: { day: 1, minute_of_day: 780 } },
     player: { name: 'Player' }, player_scene_state: {}, player_sexual_state: {}, npc_scene_state: {
@@ -189,9 +189,9 @@ test('Turn 13 to 15 fixture closes heroine5 and makes heroine3 the current relat
     ], turn_summary: '', warnings: []
   }, { npcIds: new Set(['heroine3', 'heroine5']), storyText: story, expectedTurn: 13 });
   const reduced = reduceObservationDomains({ currentSave: save, observation, parsedStory: { dialogue_lines: [] }, rawStory: story, expectedTurn: 13, master, npcIds: new Set(['heroine3', 'heroine5']), sceneBefore: { present_npc_ids: ['heroine3', 'heroine5'] }, sceneAfter: { present_npc_ids: ['heroine3', 'heroine5'] }, observedNpcIds: new Set(['heroine3', 'heroine5']) });
-  assert.equal(reduced.nextSave.active_relations.find(item => item.actor_id === 'heroine5')?.state, 'ended');
-  assert.equal(reduced.nextSave.active_relations.find(item => item.actor_id === 'heroine3')?.state, 'active');
-  assert.equal(reduced.nextSave.npc_scene_state.heroine5.position_label, null);
+  assert.equal(reduced.nextSave.active_relations.find(item => item.actor_id === 'heroine5')?.state, 'active');
+  assert.equal(reduced.nextSave.active_relations.find(item => item.actor_id === 'heroine3'), undefined);
+  assert.equal(reduced.nextSave.npc_scene_state.heroine5.position_label, save.npc_scene_state.heroine5.position_label);
   const projection = buildStoryWorldProjection({ save: { ...projectionSave(), scene: save.scene, npc_scene_state: reduced.nextSave.npc_scene_state, active_relations: reduced.nextSave.active_relations }, master, sceneActorIds: ['heroine3', 'heroine5'], expectedTurn: 15 });
   assert.deepEqual(projection.world_rules[0].resolved_facts[0].eligible_target_ids, ['player']);
 });

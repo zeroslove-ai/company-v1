@@ -89,39 +89,20 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
   };
 }
 
-function observationWithPlayerActingPosture(observation, parsedStory) {
-  const event = (Array.isArray(parsedStory?.acting_events) ? parsedStory.acting_events : [])
-    .filter(item => item?.actor_id === 'player' && (item?.posture_after === 'sitting' || item?.posture_after === 'standing') && typeof item.text === 'string' && item.text.trim())
-    .at(-1);
-  if (!event) return observation;
-  const next = clone(observation) ?? {};
-  const physical = object(next.player_observation?.physical) ? next.player_observation.physical : {};
-  const evidence = object(next.evidence) ? next.evidence : {};
-  const existingPostureEvidence = Object.values(evidence).some(item => object(item)
-    && Array.isArray(item.changed)
-    && item.changed.some(path => String(path).endsWith('.posture'))
-    && typeof item.quote === 'string'
-    && item.quote.trim()
-    && String(parsedStory?.raw ?? '').includes(item.quote.trim()));
-  next.player_observation = {
-    ...(object(next.player_observation) ? next.player_observation : {}),
-    physical: { ...physical, posture: event.posture_after }
-  };
-  next.evidence = existingPostureEvidence
-    ? evidence
-    : {
-        ...evidence,
-        physical_change: {
-          changed: ['player_scene_state.player.posture'],
-          quote: event.text.trim()
-        }
-      };
-  return next;
+function appendOpenObservations(current, additions) {
+  const result = Array.isArray(current) ? clone(current) : [];
+  const seen = new Set(result.map(item => item?.fact_id).filter(Boolean));
+  for (const item of Array.isArray(additions) ? additions : []) {
+    if (!item?.fact_id || seen.has(item.fact_id)) continue;
+    result.push(clone(item));
+    seen.add(item.fact_id);
+  }
+  return result;
 }
 
 export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, navigationIntent = null, authoritativeLocationId = null, structuredAction = null, transactionResolution = null, engineEnactments = [] } = {}) {
   const current = clone(currentSave);
-  const canonicalObservationInput = observationWithPlayerActingPosture(observation, { ...parsedStory, raw: rawStory });
+  const canonicalObservationInput = observation;
   const sceneBefore = readCanonicalSceneV1(current, { master, npcIds });
   const sceneObservation = canonicalObservation(canonicalObservationInput, parsedStory, {
     navigationIntent,
@@ -173,6 +154,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     engineEnactments
   });
   nextSave = csaCommit.nextSave;
+  nextSave.open_observations = appendOpenObservations(current.open_observations, canonicalObservationInput.open_facts);
   assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action?.action_kind, observation: sceneObservation });
   const monitor = presentMindMonitor(canonicalObservationInput.mind_monitor ?? {}, canonicalScene.present_npc_ids ?? []);
   const ownedMonitor = playerOwnedMonitor(monitor.state, parsedStory?.player_inner_thought ?? '');
