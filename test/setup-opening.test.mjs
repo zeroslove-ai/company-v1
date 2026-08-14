@@ -331,7 +331,7 @@ test('buildOpeningPrompt only surfaces the plan\'s active heroines and adds the 
 
 test('fresh Opening protocol requires verbatim allowed speaker IDs without making dialogue mandatory', () => {
   const openingPlan = buildOpeningPlan({ positionId: 'intern', seedBytes: [3, 6, 9], heroineIds });
-  const prompt = buildOpeningPrompt({ edition, player: { name: '源?섎뒛', position_id: 'intern', department_id: 'brand_strategy' }, canonical: {}, openingPlan });
+  const prompt = buildOpeningPrompt({ edition, player: { name: 'Fixture Player', position_id: 'intern', department_id: 'brand_strategy' }, canonical: {}, openingPlan });
   const system = prompt[0].content;
   assert.match(system, /allowed_speaker_ids/);
   assert.match(system, /copy one ID verbatim/);
