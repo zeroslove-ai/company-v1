@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: cut3-relation-event-live-acceptance-resume
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -111,6 +111,16 @@ Post one terminal report to Issue #68 containing:
 - STOP for operator review.
 
 Set CURRENT_TASK to WAITING_REVIEW in a separate docs-only commit after the evidence run.
+
+## Execution result - blocked acceptance
+
+- One bounded normal-API invocation used the existing improved canary against Worker `6f0940d5-3145-4301-bcdf-61bdccc3cdac`, gameplay source `1a5c5540a0235fb2e53b2452516897af7664eba1`, and dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+- Setup/Opening, Turn 1 and Turn 2 Story/Extract/Commit, and same-action Story/Extract/Commit replay all completed successfully. Story SSE terminal events were `complete`; raw Story was present; parser status was success.
+- Relation/event acceptance was **not proven**: Turn 1 action `31355e86-6210-4d0c-aa5a-e244b99767a1` and Turn 2 action `a2b4c4c9-f28d-4948-8144-70e84a1fbf44` both had `relation_updates=[]`, `events.general=[]`, and `events.sexual=[]`. No durable registered-participant relation/event consequence was therefore observed. This is BLOCKED evidence, not a runtime patch authorization.
+- Replay remained idempotent for Turn 1: `committed_turn=1` and `save_revision=892` before and after replay; Turn 2 committed at `committed_turn=2`, `save_revision=893`.
+- Final TEST reset/readback: HTTP 200, `committed_turn=0`, `save_revision=894`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, `csa_active=[]`, recent_turns=0, empty event ledger.
+- Live artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-cut3-relation-event-live-acceptance.json`, SHA-256 `9B458B1E3C8E321E299898940925995508B65154D0B0BD221D6CD85D79EE88D8`.
+- No source/runtime/test/migration changes were made. No retry, deploy, migration/DDL, Production/manual-game access, provider/model change, or semantic workaround occurred.
 
 Success phrase only if relation/event live acceptance and reset both pass:
 
