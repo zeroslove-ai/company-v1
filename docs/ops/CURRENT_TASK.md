@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: post-cut2-architecture-checkpoint-game-model-recovery
 Updated: 2026-08-14
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`

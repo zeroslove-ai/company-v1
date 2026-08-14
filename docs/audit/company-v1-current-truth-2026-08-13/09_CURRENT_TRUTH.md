@@ -230,14 +230,14 @@ Next sequence, with explicit owner approval for deployment/write steps:
 
 ## Cut 2 scene/location/presence candidate — Stage A live, acceptance pending
 
-The source candidate branch is `company/scene-location-presence-v1`, based on
+Historical source candidate branch was `company/scene-location-presence-v1`, based on
 the accepted test-suite line. The reviewed source is
 `4f5d77d9bde813d977c99327fe077edb0acb03ff` and introduces strict `save.scene`
 v1 reading, legacy-only bootstrap, one canonical scene reducer, a
 compatibility projection, typed ephemeral navigation intent, and evidence-gated
 location/presence observation.
 
-Operator-verified TEST facts:
+Historical pre-closure TEST facts:
 
 - Scene Stage A migration is applied as version `20260814091536` with name
   `company_v1_scene_authority_stage_a`.
@@ -253,5 +253,32 @@ Operator-verified TEST facts:
   is immutable; additive ACL closure source
   `20260814000550_company_v1_scene_authority_stage_a_acl_closure.sql` is
   pending review and application.
-- API deployment from Cut 2 is `0`; Scene Stage B is not applied; Production
-  access is `0`.
+- Historical handoff state above is superseded by the verified post-Cut2 closure
+  recorded below; it must not be used as the current deployment state.
+
+## Post-Cut2 scene/location/presence authority — verified current state
+
+The current source branch is `company/scene-location-presence-v1`, with
+docs-only HEAD `1171ccad50ed2dc009c1daf61d784f4c3539de2a`; the reviewed /
+deployed executable is `a919baf87d92e841e64b731576ccb176d5745570`, and the
+current PR is #67 OPEN / DRAFT / UNMERGED.
+
+Verified live TEST facts:
+
+- Scene Stage A: `20260814091536 / company_v1_scene_authority_stage_a`.
+- Scene Stage A ACL closure: `20260814093123 /
+  company_v1_scene_authority_stage_a_acl_closure`.
+- Scene Stage B: `20260814000600 / company_v1_scene_authority_stage_b`.
+- `validate_company_save_v1(jsonb)` structurally requires canonical `save.scene`;
+  legacy scene mirrors remain optional typed compatibility fields.
+- Navigation and NPC-directed movement acceptance passed.
+- Dedicated TEST is clean at `save_revision=881`, `committed_turn=0`, with zero
+  actions and turns. The immutable manual evidence game is
+  `78fb1d94-266f-455a-bda4-7656cc2370c1` and is not the dedicated TEST game.
+- Cut 2 Stage B and scoped post-Stage-B acceptance are complete. Remaining
+  relationship/event, summary, physical/sexual, setup/catalog, and parser/cache
+  debts are not silently marked complete by this fact.
+
+See `docs/audit/POST_CUT2_GAME_MODEL_RECOVERY_2026-08-14.md` for the read-only
+end-to-end flow, seven-turn reconstruction, authority matrix, and recommended
+next cut. No implementation cut is authorized by that document.
