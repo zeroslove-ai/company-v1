@@ -128,3 +128,32 @@ CSA semantics, Scene provider wording, navigation UI redesign, physical/sexual
 state redesign, relationship architecture beyond scene presence/focal
 projection, provider/model changes, and live database rollout remain outside
 Cut 2 candidate implementation.
+
+## NPC-directed navigation authority correction — source candidate
+
+Source/test candidate: `c3fc61f5aecef421bd7e7ff201d6d17bf567b7cd`.
+
+The failed live action `서원희가 1층 로비로 이동한다.` crossed the authority
+boundary in `resolvePlayerNavigationIntent()`: a registered location mention
+was accepted before the mover/subject was classified, producing a
+`player_navigation` intent that Commit treated as `authoritativeLocationId`.
+The candidate adds a deterministic subject boundary before destination
+resolution. Registered NPC subjects, unknown named subjects, and ambiguous
+movers fail closed for player navigation; explicit/self movement and the
+catalog-grounded NPC-as-destination form remain supported. Story/turn
+execution is not gated by this classification.
+
+Verified source-candidate evidence:
+
+- focused navigation/Scene/Commit/pipeline set: `91/91` passing
+- new navigation authority regressions: `8/8` passing
+- full `npm.cmd test`: `440/440` passing
+- changed-source/test syntax: pass
+- `git diff --check`: pass
+- API/frontend deployment: `0`
+- DB writes, migration apply, TEST reset/write, and Production access: `0`
+- Scene Stage B: not applied
+
+This candidate is not deployed and remains awaiting operator review before
+live Scene acceptance is rerun. Historical migrations and preserved evidence
+remain unchanged.
