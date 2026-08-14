@@ -311,7 +311,7 @@ Then:
 TASK_ID: open-semantic-observation-authority-reset-audit-v2
 TASK_BLOB_SHA: ba456e4b8c9a1634f92fd0e2c4d0c446da5d1ab3
 START_SHA: ba456e4b8c9a1634f92fd0e2c4d0c446da5d1ab3
-FINAL_SHA: pending docs-only commit
+FINAL_SHA: see terminal report (final docs-only SHA)
 BRANCH: company/scene-location-presence-v1
 PR: #67 OPEN / DRAFT / UNMERGED
 
