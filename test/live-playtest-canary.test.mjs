@@ -11,6 +11,8 @@ import {
   projectionSnapshot,
   buildCompanyEditionMaster,
   buildCanaryProjectionParity,
+  canaryMode,
+  CUT1_AUTHORITY_MODE,
   PLAYABILITY_MAX_TURNS,
   TEST_GAME_ID,
   PRODUCTION_GAME_ID
@@ -117,8 +119,15 @@ test('canary uses the Company edition master shape instead of context.master', (
   };
   const parity = buildCanaryProjectionParity({ save, contextMaster: undefined, sceneActorIds: ['heroine1'], expectedTurn: 2 });
   assert.equal(parity.context_master_present, false);
-  assert.equal(parity.status, 'INVALID_CONTEXT_MASTER_MISSING');
+  assert.equal(parity.context_master_required, false);
+  assert.equal(parity.status, 'CONTEXT_MASTER_NOT_REQUIRED');
   assert.deepEqual(parity.local_projection.world_rules[0].applicable_scene_actor_ids, ['heroine1']);
   assert.equal(parity.local_projection.scene_obligations.length, 1);
   assert.equal(parity.actor_profiles[0].gender, 'female');
+});
+
+test('cut1 authority mode is distinct from the broad Phase 12K diagnostic', () => {
+  assert.equal(canaryMode([`--${CUT1_AUTHORITY_MODE}`]), CUT1_AUTHORITY_MODE);
+  assert.equal(canaryMode(['--phase12k-playability']), 'phase12k-playability');
+  assert.notEqual(canaryMode([`--${CUT1_AUTHORITY_MODE}`]), 'phase12k-playability');
 });

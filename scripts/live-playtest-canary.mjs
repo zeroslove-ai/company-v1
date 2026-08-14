@@ -10,6 +10,7 @@ export const TEST_GAME_ID = '2d00d76e-85b1-4cf0-8dab-a04e8a044b84';
 export const PRODUCTION_GAME_ID = '11111111-1111-4111-8111-111111111111';
 export const DEFAULT_API_BASE = 'https://game-proxy-company-v1.zeroslove.workers.dev';
 export const PLAYABILITY_MAX_TURNS = 3;
+export const CUT1_AUTHORITY_MODE = 'cut1-authority';
 let lastReport = null;
 
 /**
@@ -59,6 +60,7 @@ export function buildCanaryProjectionParity({ save, sceneActorIds = [], contextM
   );
   return {
     source: 'local_company_edition_catalog',
+    context_master_required: false,
     context_master_present: contextMasterPresent,
     local_master_shape: {
       characters: localMaster.characters.length,
@@ -67,8 +69,15 @@ export function buildCanaryProjectionParity({ save, sceneActorIds = [], contextM
     actor_profiles: known,
     context_projection: projectionSnapshot(contextProjection),
     local_projection: projectionSnapshot(localProjection),
-    status: contextMasterPresent ? 'CONTEXT_MASTER_PRESENT' : 'INVALID_CONTEXT_MASTER_MISSING'
+    status: contextMasterPresent ? 'CONTEXT_MASTER_PRESENT' : 'CONTEXT_MASTER_NOT_REQUIRED'
   };
+}
+
+export function canaryMode(args = []) {
+  const values = args instanceof Set ? args : new Set(args);
+  if (values.has(`--${CUT1_AUTHORITY_MODE}`)) return CUT1_AUTHORITY_MODE;
+  if (values.has('--phase12k-playability')) return 'phase12k-playability';
+  return 'opening-only';
 }
 
 export function assertTestGameId(gameId) {
@@ -215,6 +224,75 @@ async function requestJson(base, endpoint, body) {
   return { ok: response.ok && parsed?.ok === true, endpoint, status: response.status, duration_ms: elapsed(startedAt), body: parsed, raw_body: text };
 }
 
+function contextSnapshot(result) {
+  const context = result?.body?.data?.context ?? null;
+  const save = saveData(context);
+  const turns = Array.isArray(context?.recent_turns) ? context.recent_turns : [];
+  return {
+    ok: result?.ok === true,
+    http_status: result?.status ?? null,
+    committed_turn: save?.turn_state?.committed_turn ?? null,
+    save_revision: context?.save_revision ?? null,
+    processing_status: save?.turn_state?.processing_status ?? null,
+    player_setup: save?.player_setup?.status ?? null,
+    opening_state: save?.opening_state?.status ?? null,
+    csa_active_count: Array.isArray(save?.csa_active) ? save.csa_active.length : null,
+    recent_turn_count: turns.length,
+    recent_action_ids: turns.map(turn => turn?.action_id).filter(Boolean),
+    context_master_present: Boolean(context?.master && (Array.isArray(context.master.characters) || Array.isArray(context.master.general_npcs)))
+  };
+}
+
+function historySnapshot(result) {
+  const payload = result?.body?.data ?? result?.body ?? {};
+  const records = Array.isArray(payload?.records) ? payload.records : (Array.isArray(payload?.turns) ? payload.turns : []);
+  return {
+    ok: result?.ok === true,
+    http_status: result?.status ?? null,
+    record_count: records.length,
+    action_ids: records.map(record => record?.action_id).filter(Boolean),
+    turn_numbers: records.map(record => record?.turn_number ?? record?.turn).filter(value => value != null),
+    has_more: payload?.has_more ?? null,
+    story_present_count: records.filter(record => String(record?.story_text ?? record?.story ?? '').trim()).length,
+    parsed_blocks_present_count: records.filter(record => record?.parsed_blocks != null).length,
+    choices_present_count: records.filter(record => Array.isArray(record?.choices) || Array.isArray(record?.last_choices) || Array.isArray(record?.parsed_blocks?.choices)).length
+  };
+}
+
+function storyReplaySnapshot(story) {
+  const meta = story?.events?.find(event => event.name === 'meta')?.data ?? null;
+  return {
+    http_status: story?.http_status ?? null,
+    terminal_event: story?.terminal_event ?? null,
+    sse_meta_action_id: story?.sse_meta_action_id ?? null,
+    meta_replayed: meta?.replayed ?? null,
+    complete_replayed: story?.complete?.replayed ?? null,
+    raw_story_available: story?.raw_story_available === true,
+    response_error: story?.response_error ?? null
+  };
+}
+
+function extractReplaySnapshot(result) {
+  return {
+    ok: result?.ok === true,
+    http_status: result?.status ?? null,
+    replayed: result?.body?.data?.replayed ?? null,
+    error: result?.ok ? null : errorDetails(result?.body, result?.status)
+  };
+}
+
+function commitReplaySnapshot(result) {
+  const commit = result?.body?.data?.commit ?? null;
+  return {
+    ok: result?.ok === true,
+    http_status: result?.status ?? null,
+    success: commit?.success ?? null,
+    replayed: commit?.replayed ?? null,
+    idempotent: commit?.idempotent ?? null,
+    error: result?.ok ? null : errorDetails(result?.body, result?.status)
+  };
+}
+
 async function actionStatus(base, gameId, actionId) {
   const result = await requestJson(base, '/api/action-status', { game_id: gameId, action_id: actionId });
   return result.ok ? result.body?.data?.status ?? null : { error: errorDetails(result.body, result.status) };
@@ -355,10 +433,11 @@ function csaPhysicalVerdict(projection, rawStory, extract, nextSave, master) {
 async function run() {
   const args = new Set(process.argv.slice(2));
   const playabilityMode = args.has('--phase12k-playability');
+  const cut1AuthorityMode = args.has(`--${CUT1_AUTHORITY_MODE}`);
   const gameId = process.env.COMPANY_TEST_GAME_ID ?? TEST_GAME_ID;
   const base = (process.env.COMPANY_API_BASE_URL ?? DEFAULT_API_BASE).replace(/\/$/, '');
   assertTestGameId(gameId);
-  const report = { phase: playabilityMode ? '12K' : '12H-A', game_id: gameId, api_base: base, started_at: now(), turns: [], production_access: false, provider_calls: 'worker-bound only' };
+  const report = { phase: cut1AuthorityMode ? 'CUT1-AUTHORITY' : (playabilityMode ? '12K' : '12H-A'), game_id: gameId, api_base: base, started_at: now(), turns: [], production_access: false, provider_calls: 'worker-bound only' };
   lastReport = report;
   const canaryMaster = buildCompanyEditionMaster();
   report.master_source = {
@@ -427,7 +506,7 @@ async function run() {
     report.final_reset = { status: reset.status, ok: reset.ok, error: reset.ok ? null : errorDetails(reset.body, reset.status) };
     throw new Error(`opening hard failure (${openingFailure}); artifact=${artifactPath}`);
   }
-  if (!playabilityMode) {
+  if (!playabilityMode && !cut1AuthorityMode) {
     // A successful Opening is itself the acceptance boundary for the original diagnostic.
     // Do not advance to Turn 1 or invoke any CSA transaction in that mode.
     report.status = 'OPENING_PASS_ONLY';
@@ -445,6 +524,92 @@ async function run() {
     if (!value.ok) throw new Error(`context failed: ${JSON.stringify(errorDetails(value.body, value.status))}`);
     context = value.body.data.context; save = saveData(context); return context;
   }
+
+  async function readContextAndHistory() {
+    const contextResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 10 });
+    if (!contextResult.ok) throw new Error(`context failed: ${JSON.stringify(errorDetails(contextResult.body, contextResult.status))}`);
+    const historyResult = await requestJson(base, '/api/history', { game_id: gameId, limit: 50 });
+    if (!historyResult.ok) throw new Error(`history failed: ${JSON.stringify(errorDetails(historyResult.body, historyResult.status))}`);
+    return { context: contextSnapshot(contextResult), history: historySnapshot(historyResult) };
+  }
+
+  if (cut1AuthorityMode) {
+    const cut1ArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12cut1-authority.json';
+    const sameActionReplay = {};
+    const cut1Turn = async (turn, playerAction) => {
+      const actionId = randomUUID();
+      const story = await captureStory(base, gameId, { game_id: gameId, action_id: actionId, expected_turn: turn, player_action: playerAction });
+      const parser = classifyParserResult(story.raw_story, canaryMaster);
+      if (!story.ok || parser.status === 'failure') throw new Error(`cut1 turn ${turn} Story failure`);
+      const extractResult = await requestJson(base, '/api/extract', { game_id: gameId, action_id: actionId });
+      if (!extractResult.ok) throw new Error(`cut1 turn ${turn} Extract failure: ${JSON.stringify(errorDetails(extractResult.body, extractResult.status))}`);
+      const commitResult = await requestJson(base, '/api/commit', { game_id: gameId, action_id: actionId, expected_turn: turn });
+      if (!commitResult.ok) throw new Error(`cut1 turn ${turn} Commit failure: ${JSON.stringify(errorDetails(commitResult.body, commitResult.status))}`);
+      const readback = await readContextAndHistory();
+      const turnReport = {
+        turn,
+        action_id: actionId,
+        player_action: playerAction,
+        story: storyReplaySnapshot(story),
+        parser: { status: parser.status, block_sequence: parser.block_sequence, warnings: parser.warnings },
+        extract: summarizeExtract(extractResult, save, canaryMaster),
+        commit: commitReplaySnapshot(commitResult),
+        readback
+      };
+      report.turns.push(turnReport);
+      return { actionId, playerAction, story, readback };
+    };
+
+    const replayTurn1 = async first => {
+      const before = first.readback.context;
+      const story = await captureStory(base, gameId, {
+        game_id: gameId, action_id: first.actionId, expected_turn: 1, player_action: first.playerAction
+      });
+      const metaReplayed = story.events?.find(event => event.name === 'meta')?.data?.replayed ?? null;
+      const completeReplayed = story.complete?.replayed ?? null;
+      if (!story.ok || metaReplayed !== true || completeReplayed !== true) throw new Error('cut1 Story replay was not acknowledged as replayed');
+      const extractResult = await requestJson(base, '/api/extract', { game_id: gameId, action_id: first.actionId });
+      const extractReplay = extractReplaySnapshot(extractResult);
+      if (!extractResult.ok || extractReplay.replayed !== true) throw new Error('cut1 Extract replay was not acknowledged as replayed');
+      const commitResult = await requestJson(base, '/api/commit', { game_id: gameId, action_id: first.actionId, expected_turn: 1 });
+      const commitReplay = commitReplaySnapshot(commitResult);
+      if (!commitResult.ok || commitReplay.replayed !== true) throw new Error('cut1 Commit replay was not acknowledged as replayed');
+      const after = await readContextAndHistory();
+      if (after.context.committed_turn !== before.committed_turn || after.context.save_revision !== before.save_revision) {
+        throw new Error('cut1 replay changed committed_turn or save_revision');
+      }
+      sameActionReplay.turn1 = { story: storyReplaySnapshot(story), extract: extractReplay, commit: commitReplay, before, after };
+    };
+
+    try {
+      const first = await cut1Turn(1, '김제나씨에게 인사하고 오늘 업무와 팀 분위기를 물어본다.');
+      await replayTurn1(first);
+      const second = await cut1Turn(2, '오늘 업무를 계속하며 팀의 업무 흐름을 살펴본다.');
+      report.replay = sameActionReplay;
+      report.context_history = {
+        turn1_commit: first.readback,
+        after_turn1_replay: sameActionReplay.turn1.after,
+        turn2_commit: second.readback
+      };
+      report.status = 'PASS';
+      report.artifact_path = cut1ArtifactPath;
+      await writeVerifiedArtifact(cut1ArtifactPath, report);
+      const finalReset = await requestJson(base, '/api/reset', { game_id: gameId });
+      report.final_reset = { status: finalReset.status, ok: finalReset.ok, error: finalReset.ok ? null : errorDetails(finalReset.body, finalReset.status) };
+      await writeVerifiedArtifact(cut1ArtifactPath, report);
+      return report;
+    } catch (error) {
+      report.status = 'STOPPED';
+      report.error = { message: error?.message ?? String(error) };
+      report.artifact_path = cut1ArtifactPath;
+      await writeVerifiedArtifact(cut1ArtifactPath, report);
+      const finalReset = await requestJson(base, '/api/reset', { game_id: gameId });
+      report.final_reset = { status: finalReset.status, ok: finalReset.ok, error: finalReset.ok ? null : errorDetails(finalReset.body, finalReset.status) };
+      await writeVerifiedArtifact(cut1ArtifactPath, report);
+      throw error;
+    }
+  }
+
   async function runTurn(turn, playerAction, structuredAction = null, projection = null) {
     const actionId = randomUUID();
     const story = await captureStory(base, gameId, { game_id: gameId, action_id: actionId, expected_turn: turn, player_action: playerAction, ...(structuredAction ? { structured_action: structuredAction } : {}) });
