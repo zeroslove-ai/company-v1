@@ -231,8 +231,8 @@ function contextSnapshot(result) {
   return {
     ok: result?.ok === true,
     http_status: result?.status ?? null,
-    committed_turn: save?.turn_state?.committed_turn ?? null,
-    save_revision: context?.save_revision ?? null,
+    committed_turn: context?.save?.committed_turn ?? save?.turn_state?.committed_turn ?? null,
+    save_revision: context?.save?.save_revision ?? context?.save_revision ?? null,
     processing_status: save?.turn_state?.processing_status ?? null,
     player_setup: save?.player_setup?.status ?? null,
     opening_state: save?.opening_state?.status ?? null,
@@ -525,12 +525,22 @@ async function run() {
     context = value.body.data.context; save = saveData(context); return context;
   }
 
-  async function readContextAndHistory() {
+async function readContextAndHistory() {
     const contextResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 10 });
     if (!contextResult.ok) throw new Error(`context failed: ${JSON.stringify(errorDetails(contextResult.body, contextResult.status))}`);
     const historyResult = await requestJson(base, '/api/history', { game_id: gameId, limit: 50 });
     if (!historyResult.ok) throw new Error(`history failed: ${JSON.stringify(errorDetails(historyResult.body, historyResult.status))}`);
-    return { context: contextSnapshot(contextResult), history: historySnapshot(historyResult) };
+    const contextSummary = contextSnapshot(contextResult);
+    const historySummary = historySnapshot(historyResult);
+    return {
+      context: contextSummary,
+      history: {
+        ...historySummary,
+        action_id_field_present: historySummary.action_ids.length > 0,
+        context_recent_action_ids: contextSummary.recent_action_ids,
+        identity_source: 'context.recent_turns'
+      }
+    };
   }
 
   if (cut1AuthorityMode) {
