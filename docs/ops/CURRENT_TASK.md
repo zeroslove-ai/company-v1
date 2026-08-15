@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: final-runtime-compatibility-residue-cleanup-v1
+Status: READY
+Task ID: committed-parsed-blocks-replay-authority-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,134 +13,83 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Accepted gameplay executable:
+Accepted gameplay executable before compatibility cleanup:
 `0fc509911e5bdf5aabb92fe5241a845f686bdb17`.
 
-Accepted V9 live review:
-Issue #68 comment `5302811891`.
+Accepted compatibility cleanup source/test SHA:
+`1025f4da096389838328afc1982ba9a47d421421`.
 
-Current narrative continuity architecture is fixed for this cut:
-**latest 6 committed raw turns + chronological older natural-language `turn_summary` entries.**
-Do not restore open_facts/open_observations or general relation/event/emotion/work memory authority.
+Operator review: Issue #68 comment `5303044529`.
 
-Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and must not be accessed or mutated in this source/test cut.
+Current narrative continuity remains latest 6 committed raw turns + chronological older natural-language `turn_summary`. Do not restore open_facts/open_observations or general relation/event/emotion/work memory authority.
+
+Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and must not be accessed or mutated.
 
 ## Objective
 
-Perform one deletion-first final active-runtime compatibility residue cleanup after V9 broad acceptance.
+Close the remaining persisted Story reparse compatibility window where current committed `parsed_blocks` already provide replay/recovery authority.
 
-Inventory real callers and persisted-data/replay dependencies first, then remove obsolete runtime/parser/extract/RPC/mirror/gateway/test compatibility code whose active or historical consumer count is proven zero.
+Inventory actual stored-turn shapes and all replay/history/recovery callers. Make committed `parsed_blocks` the sole reader for current-format committed turns. Retain raw Story reparsing only as the minimum inert historical adapter for rows that demonstrably lack usable committed structured blocks. Delete redundant reparsing paths/tests once caller/data proof reaches zero.
 
-This is not a naming cleanup. Names such as `legacy-*` or `hospital-*` are not deletion proof by themselves.
+This is deletion-first. Do not create a replacement parser, semantic fallback, or compatibility wrapper.
 
 ## Required work
 
-### A. Parser / replay authority
+### A. Current committed replay authority
 
-- Fresh generation must continue to use `fresh-narrative-parser.js` only.
-- Committed current-format turns must use their committed structured/parsed representation for replay/recovery where already available; do not introduce a third parser generation.
-- Inventory every import/caller of `legacy-narrative-parser.js`, `narrative-parser.js`, persisted reparse helpers, and any legacy extract adapter.
-- If a compatibility parser/adapter has zero live caller and zero required historical persisted-data reader, delete it and its stale tests in this cut.
-- If historical rows genuinely still require a compatibility boundary, keep only the minimum inert read adapter and document the concrete caller/data proof. It must not become fresh semantic authority.
+- Inventory where `game_turns.parsed_blocks`, raw Story text, `parsePersistedNarrative`, and any reparse helpers are read.
+- Prove the current commit path persists sufficient structured/parsed representation for current-format turns.
+- Route current-format replay/history/recovery through committed `parsed_blocks` without reparsing raw Story.
+- If any current caller reparses raw Story despite usable committed blocks, delete that reparse dependency and rewrite/delete stale tests accordingly.
 
-### B. Old API/RPC aliases and duplicate mirrors
+### B. Historical compatibility window
 
-Inventory remaining old RPC/API aliases, scene/location/presence mirrors, duplicate gameplay-state mirrors, deprecated save/read paths, and compatibility gateways.
+- Determine from repository fixtures/contracts and non-mutating source evidence which historical stored rows can lack usable `parsed_blocks`.
+- If such rows are genuinely supported, retain one minimum inert fallback boundary using the existing historical parser only for those rows.
+- The fallback must never be used for fresh generation/current committed rows and must not become semantic authority.
+- If no concrete historical consumer/data shape remains, delete the persisted reparse boundary entirely.
 
-For each candidate use REMOVE-OR-PROVE:
-- delete it if no live caller or persisted-data dependency exists;
-- keep only when a concrete current UI/mechanical/integrity or historical replay consumer is proven.
+### C. Preserve product consumers
 
-Do not add replacement wrappers merely to preserve stale tests.
-
-### C. Frontend/client residues
-
-Inventory donor/legacy frontend readers and duplicate state caches that can still act as gameplay authority.
-
-- presentation cache may remain only as replaceable UI state;
-- committed server context remains gameplay authority;
-- delete dead duplicate readers/writers/tests where caller proof reaches zero.
-
-Do not rename donor files just for aesthetics if behavior is still required.
-
-### D. Preserve proven machine/UI/media state
-
-Do not regress or delete without consumer proof:
-- registered setup/world IDs/catalogs required for intentional setup;
-- `npc_stats` UI projection;
-- scene/location/presence;
-- player/NPC physical and compact clothing continuity;
-- time/progression and TEST-only Level-7 seam;
-- institutional CSA identity/lifecycle/applicability context;
-- choices/free text/Mind Monitor;
-- `sexual_event_ledger` and derived sexual mechanics where consumed;
-- image_library/catalog/tags/action families/general-sex pools/deterministic image selection as presentation/media adapters.
-
-Media classification failure may affect image choice only; it must never determine whether a Story/Extract fact occurred.
-
-## Architecture constraints
-
-- one durable domain -> one canonical writer;
-- deletion/root-cause redesign over compatibility layering;
-- no semantic enum/allowlist/regex/fuzzy gate for open-ended narrative meaning;
-- no direct player-input success inference;
-- no arbitrary LLM save patch;
-- unknown optional projection remains fail-open;
-- institutional CSA compliance remains separate from consent/comfort/affection/emotion;
-- exactly-four choices are presentation shape, not semantic taxonomy.
+Do not regress scene/location/presence, npc_stats, physical/compact clothing, time/progression/TEST-only Lv7 seam, CSA identity/lifecycle/applicability, literal choices/free text, Mind Monitor, sexual_event_ledger, or image/media presentation adapters. Media classification must never gate Story/Extract fact occurrence.
 
 ## Required proof
 
-Before deleting each compatibility component, show caller/data inventory sufficient to establish zero required consumer or the exact reason it must remain.
-
-Add/update focused regressions proving at minimum:
-1. fresh Story generation still uses only the fresh parser contract;
-2. current committed replay/recovery remains identical after deletions;
-3. historical compatibility rows that are still supported remain readable/inert if such a reader is retained;
-4. deleted aliases/mirrors have no active caller;
-5. choices/free text and simplified six-raw + older-summary context contracts remain intact;
-6. retained scene/stats/physical-clothing/CSA/sexual/media consumers remain unaffected;
-7. full test suite, changed-file syntax checks, and `git diff --check` pass.
+Add/update focused tests proving:
+1. current committed turns replay/recover from committed `parsed_blocks` without invoking raw Story parser;
+2. literal four choices, dialogue/TTS-visible blocks, inner thought/status, and history ordering remain identical;
+3. historical rows without usable structured blocks remain readable only if concrete support is proven;
+4. malformed historical fallback cannot overwrite current committed structured authority;
+5. six-raw + older-summary context remains unchanged;
+6. no new parser/gateway/semantic fallback is introduced;
+7. full suite, changed-file syntax checks, and `git diff --check` pass.
 
 Test count alone is not acceptance evidence.
 
+## Architecture constraints
+
+- one durable domain -> one canonical writer/reader authority;
+- current committed structured data outranks reparsed prose;
+- Story authors narrative; Extract observes; Commit persists; replay reads committed authority;
+- no semantic enums/allowlists/regex/fuzzy gates for open-ended narrative meaning;
+- no direct player-input success inference or arbitrary LLM save patch;
+- exactly-four choices are presentation shape, not semantic taxonomy.
+
 ## Authorized operations
 
-Source/test/docs changes inside the existing #67 branch only.
-No TEST live gameplay, DB write/reset, migration/DDL, Worker/frontend deployment, or Production access in this lease.
+Source/test/docs changes inside existing #67 branch only.
+No TEST live gameplay, DB write/reset, migration/DDL, Worker/frontend deployment, or Production access.
 
 ## Forbidden
 
-- new branch or PR;
-- merge / PR Ready / rebase / squash / force-push;
-- Production access;
-- any access/mutation/reset of manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- provider/model/temperature/token changes;
-- retry/regeneration to hide a defect;
-- new parser generation or parser relaxation;
-- new semantic gateway/classifier/ledger/graph;
-- compatibility runtime added only to rescue stale tests;
-- editing historical applied migrations.
+- new branch/PR, merge, Ready, rebase, squash, force-push;
+- Production access or manual-game access;
+- provider/model/temperature/token changes or retries;
+- third parser generation, parser relaxation, new semantic gateway/classifier/ledger/graph;
+- compatibility runtime solely to rescue stale tests;
+- editing historical applied migrations;
+- direct DB mutation.
 
 ## Completion
 
-Commit source/test changes separately from final docs handoff where practical. Report exact executable SHA and exact final docs SHA.
-Set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit, post one immutable terminal report to Issue #68, and STOP.
-
-No live acceptance in this source/test lease.
-
-## Completion handoff
-
-Source/test cleanup is complete in `1025f4da096389838328afc1982ba9a47d421421`.
-The zero-consumer historical parser alias was removed, persisted Story tests
-now exercise the single persisted-read boundary, and the orphaned projection
-residue was removed. Historical Story/Extract readers, old-save scene
-hydration, canonical scene projection, frontend recovery, and proven product
-state consumers were retained from concrete caller/data inventory.
-
-Validation: `npm.cmd test` 417/417, targeted persisted/replay/scene/display
-tests 92/92, changed JS/MJS syntax checks pass, and `git diff --check` pass.
-No TEST/live DB access, DB write/reset, migration/DDL, deployment, or
-Production access occurred. PR #67 remains OPEN / DRAFT / UNMERGED.
-
-STOP: SOURCE/TEST COMPATIBILITY RESIDUE CLEANUP COMPLETE — WAITING FOR OPERATOR REVIEW
+Commit source/test changes separately from final docs handoff where practical. Report exact source/test SHA and final docs SHA. Set CURRENT_TASK to WAITING_REVIEW in docs-only completion commit, post one immutable terminal report to Issue #68, and STOP.
