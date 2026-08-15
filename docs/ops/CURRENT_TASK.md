@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v8-simplified-memory
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -168,3 +168,26 @@ Test counts alone are not acceptance evidence.
 - new fact ledger, graph, vector/embedding memory, semantic enum/gateway, repair/fuzzy matcher, extra Summary/Memory LLM, or parser generation;
 - treating media/image taxonomy as narrative truth;
 - merge / PR Ready / rebase / squash / force-push / new PR or branch.
+
+## Acceptance result
+
+The bounded TEST Level-7 acceptance completed with PASS on the deployed
+Worker source `44bd231ae2ec43b5d6d8b7fb0b9a02c280273abe`, whose reviewed
+gameplay executable is `5dc5ee740fad5ce395c59dcd03a263df28e526dc`.
+
+- Worker Version: `8dbe290d-ed25-4710-8cab-a8e997ced69b`
+- Opening: HTTP 200, provider-authored four-choice readback PASS
+- Turns: 1 through 7 Story -> Extract -> Commit PASS
+- Literal choice round-trip: Turn 3 exact player-action match PASS
+- Strong institutional CSA validation: PASS
+- Memory boundary: six recent raw turns, Turn 1 absent from raw window,
+  chronological Turn 1 `turn_summary` present
+- Later Story continuity probe: PASS; the earlier report promise was
+  naturally recalled from summary memory
+- Replay: Story meta/complete, Extract, and Commit replay PASS; committed
+  turn and save revision invariant PASS
+- Final TEST reset: PASS; committed_turn 0, idle, setup/opening not_started,
+  no active CSA, no recent turns
+- Evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v8-final.json`
+- No Production or historical manual game access; no migration/DDL or source
+  patch during acceptance
