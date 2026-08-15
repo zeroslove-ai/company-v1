@@ -77,6 +77,7 @@ function v2Save() {
 
 function createMockFetch({
   extractEnvelope,
+  extractSummary = '',
   storySseOverride,
   failRecordExtract = false,    // record_extract_result RPC 실패
   saveOverride = null,
@@ -104,7 +105,7 @@ function createMockFetch({
     scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
     mind_monitor: { heroine1: { surface: '오늘 일부터 하자.', subconscious: '조금 신경 쓰이네.' }, heroine2: { surface: '자료를 확인하자.', subconscious: '괜찮아.' }, heroine5: { surface: '자료를 확인하자.', subconscious: '괜찮아.' } }, action_target_id: null, image_character_id: null, image_selection: null,
-    csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
+    csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: extractSummary, warnings: []
     }),
     block_observations: extractEnvelope?.block_observations ?? blockObservations
   };
@@ -113,6 +114,7 @@ function createMockFetch({
   let extractCall = 0;
   let recordExtractFailedOnce = false;
   let lastCommitSave = null;
+  let lastCommitArgs = null;
 
   async function fetchImpl(url, init = {}) {
     const textUrl = String(url);
@@ -201,6 +203,7 @@ function createMockFetch({
     if (rpc === 'commit_company_turn') {
       const action = actions.get(args.p_action_id);
       action.processing_status = 'committed';
+      lastCommitArgs = structuredClone(args);
       lastCommitSave = structuredClone(args.p_next_save);
       context.save.data = structuredClone(args.p_next_save);
       gameTurns.set(args.p_expected_turn, { turn_number: args.p_expected_turn, turn_id: action.turn_id, story_text: action.story_text, structured_action: action.structured_action, parsed_blocks: action.parsed_blocks });
@@ -212,11 +215,12 @@ function createMockFetch({
     }
     return json({ ok: true });
   }
-  return { fetchImpl, calls, actions, gameTurns, getLastCommitSave: () => lastCommitSave };
+  return { fetchImpl, calls, actions, gameTurns, getLastCommitSave: () => lastCommitSave, getLastCommitArgs: () => lastCommitArgs };
 }
 
 test('14-4: full turn pipeline — raw Story streaming → Extract → Commit and replay', async () => {
-  const mock = createMockFetch({ saveOverride: v2Save() });
+  const summary = '현재 Story에서 확인된 업무 약속과 관계의 연속성';
+  const mock = createMockFetch({ saveOverride: v2Save(), extractSummary: summary });
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
 
   // 1) Story — SSE
@@ -227,6 +231,8 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.ok(storyBody.includes('parsed_blocks')); // canonical parsed_blocks가 SSE complete에 포함
   assert.equal(storyBody.includes('event: block_start'), true, 'stream exposes structured block metadata');
   assert.equal(storyBody.includes(JSON.stringify({ text: STORY })), false, 'visible stream does not emit the raw wire protocol');
+  const storyContextCall = mock.calls.find(call => String(call.url).includes('/rest/v1/rpc/get_company_context'));
+  assert.equal(JSON.parse(storyContextCall.body).p_recent_turns, 50, 'Story reads the bounded summary memory window');
 
   const saved = mock.actions.get(actionId);
   assert.equal(saved.story_text, STORY, 'stored action story is the upstream raw Story');
@@ -273,6 +279,7 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(commit.status, 200);
   const commitBody = await commit.json();
   assert.equal(commitBody.data.commit.success, true);
+  assert.equal(mock.getLastCommitArgs().p_turn_summary, summary, 'Commit persists the normalized Extract turn_summary');
   assert.equal(mock.gameTurns.get(8).story_text, mock.actions.get(actionId).story_text);
   assert.deepEqual(mock.gameTurns.get(8).structured_action, mock.actions.get(actionId).structured_action);
 

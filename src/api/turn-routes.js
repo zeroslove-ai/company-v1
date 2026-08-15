@@ -554,7 +554,7 @@ const master = masterFromEdition(edition);
         const timing = {};
         try {
           const contextRpcStart = Date.now();
-          const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
+          const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 50 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
@@ -917,10 +917,9 @@ const master = masterFromEdition(edition);
           // 잘못된(범위 밖/장면 외/action_state 불일치) update는 경험치도 주지 않는다.
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
-        // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.
-        // 최신 3턴은 Story 원문 전체로 context에 유지되고, story_summary_recent는
-        // 이번 턴마다 갱신하지 않는다 (기존 필드는 호환용으로만 유지).
-        const finalTurnSummary = '';
+        // Extract가 같은 Story에서 생성한 summary가 이 턴의 유일한 압축 memory 입력이다.
+        // 빈 문자열은 provider가 실제로 요약할 내용이 없을 때만 허용되며, 서버가 합성하지 않는다.
+        const finalTurnSummary = typeof extract.turn_summary === 'string' ? extract.turn_summary : '';
         // 선택지 단일 writer — gameplay commit reducer가 확정한 last_choices를
         // 그대로 쓴다 (Story 1~3개 보존 + 부족분 보충 결과 = save와 history 일치).
         const finalChoices = Array.isArray(nextSave.last_choices) ? nextSave.last_choices : [];

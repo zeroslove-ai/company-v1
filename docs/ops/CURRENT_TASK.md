@@ -1,11 +1,23 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: extract-turn-summary-memory-authority-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
+
+## Candidate implementation awaiting review
+
+Implemented on the same branch with source/test-only changes:
+
+- Extract `turn_summary` now has an explicit same-call free-text continuity contract.
+- `/api/commit` passes the normalized Extract summary to both `commit_company_turn` and the existing feedback-revision RPC; no synthetic summary or extra provider call was added.
+- Story requests read the supported 50-turn context window, retain the latest three raw turns, and expose older turns only as chronological `{ turn, turn_summary }` memory objects.
+- Fresh Story input no longer projects stale `story_summary_overall`; historical setup/opening storage and frontend readback were not changed.
+- Behavioral tests cover summary persistence payloads, feedback payload parity, raw-vs-summary memory projection, stale-summary removal, prompt contract, and the 50-turn Story read.
+
+Validation: targeted lifecycle/prompt/pipeline tests 92/92 PASS; full `npm.cmd test` 436/436 PASS; modified JS/MJS syntax PASS; `git diff --check` PASS. No TEST gameplay, DB write/reset, migration, deploy, Production access, or preserved-evidence operation occurred. Awaiting independent review; do not launch live acceptance from this task.
 
 ## Accepted starting point
 

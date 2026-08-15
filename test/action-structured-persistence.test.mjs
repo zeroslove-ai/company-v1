@@ -41,6 +41,21 @@ test('Supabase reservation sends structured_action in the existing reserve_turn_
   assert.deepEqual(captured.body.p_structured_action, storedStructuredAction);
   assert.equal(captured.body.p_expected_turn, 4);
 });
+
+test('feedback revision commit sends the same Extract-authored turn summary field', async () => {
+  let captured = null;
+  const client = createSupabaseClient(env, async (url, init) => {
+    captured = { url: String(url), body: JSON.parse(init.body) };
+    return json({ success: true, replayed: false });
+  });
+  const summary = '수정된 장면에서 확인된 관계와 업무 약속의 요약';
+
+  await client.commitFeedbackRevision(gameId, actionId, 'revision-1', { turn_state: { committed_turn: 3 } }, summary, { heroine1: {} }, ['A', 'B', 'C', 'D']);
+
+  assert.match(captured.url, /\/rest\/v1\/rpc\/commit_feedback_revision$/);
+  assert.equal(captured.body.p_turn_summary, summary);
+  assert.deepEqual(captured.body.p_choices, ['A', 'B', 'C', 'D']);
+});
 test('history query selects and API returns the persisted structured_action', async () => {
   const worker = createApiWorker({
     fetchImpl: async (url) => {

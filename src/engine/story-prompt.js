@@ -82,7 +82,12 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   const game = object(context?.game) ?? {};
   const player = object(save.player) ?? {};
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
-  const recentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns.slice(-3) : [];
+  const allRecentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns : [];
+  const recentTurns = allRecentTurns.slice(-3);
+  const turnSummaryMemory = allRecentTurns.slice(0, -3).map(turn => ({
+    turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
+    turn_summary: typeof turn?.turn_summary === 'string' ? turn.turn_summary : ''
+  }));
   const openObservations = Array.isArray(save.open_observations) ? save.open_observations : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
   const sceneCore = buildSceneContextCore(save, activeIds);
@@ -122,7 +127,6 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     active_relations: activeRelations,
     ...sceneRest,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
-    story_summary: { overall: typeof save.story_summary_overall === 'string' ? save.story_summary_overall : '' },
     open_observations: openObservations.slice(-50).map(fact => ({
       fact_id: typeof fact?.fact_id === 'string' ? fact.fact_id : null,
       action_id: typeof fact?.action_id === 'string' ? fact.action_id : null,
@@ -139,7 +143,8 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
       story_text: typeof turn?.story_text === 'string' ? turn.story_text : '',
       parsed_blocks: turn?.parsed_blocks ?? null,
       choices: Array.isArray(turn?.choices) ? turn.choices : []
-    }))
+    })),
+    turn_summary_memory: turnSummaryMemory
   };
 }
 
@@ -161,7 +166,7 @@ export const DURABLE_STORY_RULES = [
   '[PHYSICAL CONTINUITY]',
   'Saved actual physical and clothing state is current fact. A rule sentence alone is not a physical transition, and unknown actual state is never guessed. Explicit player physical facts needed for continuity must remain identifiable in Story; do not euphemize away erection, direct contact, or the identity of an acted body part. Preserve kind and strength without erotic escalation.',
   '[STORY QUALITY]',
-  'Write natural Korean workplace fiction with appropriate title-plus-name address. The canonical player position_id, position, and address_title in the payload are authoritative; do not downgrade the player to a different team title. Preserve relationship and emotion continuity, the last three turns as context.recent_turns, differentiated functional dialogue, NPC autonomy, and minimal repeated setting exposition. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
+  'Write natural Korean workplace fiction with appropriate title-plus-name address. The canonical player position_id, position, and address_title in the payload are authoritative; do not downgrade the player to a different team title. Preserve relationship and emotion continuity using the latest three raw turns in context.recent_turns and older committed continuity only through context.turn_summary_memory in chronological order. Summary memory is compressed context, never a raw Story replacement; do not invent detail that is absent from it. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
  '[OUTPUT PROTOCOL]',
   'Every response must contain at least one non-empty player-visible Story body segment: plain narrative text, [SCENE], [DIALOGUE], or visible [ACTING] text. A [THOUGHT] plus [CHOICE] blocks alone is invalid and does not count as Story body. Output one short player-only [THOUGHT] paragraph closed by [/THOUGHT], and four literal [CHOICE] action blocks without labels or numbers. Choices are proposals, not completed actions.',
   'Write plain narrative by default, preserving source order. Mark each spoken line with [DIALOGUE speaker_id="registered_id_or_player"] using an exact registered ID; never infer a speaker from a name, quote, or previous line. Player posture may be structurally annotated only when the narrative visibly establishes it, and no ACTING token is required for CSA. Before ending, verify exactly one [THOUGHT], every spoken line has a DIALOGUE marker, and exactly four non-empty distinct [CHOICE] blocks. Add [THOUGHT] and four literal [CHOICE] action blocks when possible; choices are concrete proposals (not completed actions), and preserve the kind, strength, and scope of explicit player actions without strengthening them. The UI owns headings and choice ordering. Do not turn app, marker, and presentation mechanics into world knowledge.',

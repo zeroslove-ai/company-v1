@@ -45,6 +45,26 @@ test('committed open observations are exposed to later Story context with proven
   assert.deepEqual(projection.open_observations, facts);
 });
 
+test('Story memory keeps the latest three turns raw and projects older turns as ordered summaries only', () => {
+  const turns = [1, 2, 3, 4, 5].map(turn_number => ({
+    turn_number,
+    player_action: `action-${turn_number}`,
+    story_text: `raw-story-${turn_number}`,
+    parsed_blocks: { blocks: [`block-${turn_number}`] },
+    choices: [`choice-${turn_number}`],
+    turn_summary: `summary-${turn_number}`
+  }));
+  const projection = buildStoryContextProjection({ game: { id: 'game-1' }, save: { data: structuredClone(save) }, recent_turns: turns }, [], { edition: {}, catalogs: {} });
+  assert.deepEqual(projection.recent_turns.map(turn => turn.turn), [3, 4, 5]);
+  assert.deepEqual(projection.turn_summary_memory, [
+    { turn: 1, turn_summary: 'summary-1' },
+    { turn: 2, turn_summary: 'summary-2' }
+  ]);
+  assert.equal('story_text' in projection.turn_summary_memory[0], false);
+  assert.equal('parsed_blocks' in projection.turn_summary_memory[0], false);
+  assert.equal('story_summary' in projection, false);
+});
+
 test('reduceGameplayCommit is the single V2 orchestration writer', () => {
   const observation = normalizeExtractObservationV2(baseObservation, { npcIds: NPCS });
   const result = reduceGameplayCommit({ currentSave: save, observation, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], player_inner_thought: '' }, rawStory: '본문', action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });

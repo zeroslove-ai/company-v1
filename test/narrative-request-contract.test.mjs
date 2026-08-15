@@ -44,6 +44,34 @@ test('current Story request uses narrative-default wire, free input, and hard-fa
   assert.equal(payload.player_action, '회의실을 둘러본다.');
   assert.equal('player_status' in payload.context, false);
   assert.equal('dialogue' in payload.context, false);
+  assert.deepEqual(payload.context.turn_summary_memory, []);
+  assert.equal('story_summary' in payload.context, false);
+});
+
+test('Story request describes older turn summaries as compressed continuity memory', () => {
+  const messages = buildStoryPrompt({
+    edition,
+    context: {
+      ...context(),
+      recent_turns: [1, 2, 3, 4].map(turn_number => ({
+        turn_number,
+        player_action: `action-${turn_number}`,
+        story_text: `story-${turn_number}`,
+        parsed_blocks: { blocks: [`block-${turn_number}`] },
+        choices: [`choice-${turn_number}`],
+        turn_summary: `summary-${turn_number}`
+      }))
+    },
+    playerAction: 'continue',
+    expectedTurn: 5,
+    npcIds: new Set()
+  });
+  const payload = JSON.parse(messages[1].content);
+  assert.deepEqual(payload.context.recent_turns.map(turn => turn.turn), [2, 3, 4]);
+  assert.deepEqual(payload.context.turn_summary_memory, [{ turn: 1, turn_summary: 'summary-1' }]);
+  assert.equal('story_text' in payload.context.turn_summary_memory[0], false);
+  assert.match(messages[0].content, /turn_summary_memory/);
+  assert.match(messages[0].content, /compressed context/);
 });
 
 test('Extract request carries the exact raw Story and V2-only output contract', () => {
@@ -67,6 +95,8 @@ test('Extract request carries the exact raw Story and V2-only output contract', 
   for (const required of ['scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence', 'elapsed_minutes', 'warnings']) {
     assert.match(messages[0].content, new RegExp(required));
   }
+  assert.match(messages[0].content, /turn_summary is the compressed continuity memory/);
+  assert.match(messages[0].content, /Empty text is allowed only when the Story genuinely has no continuity content/);
 });
 
 test('frontend narrative projection preserves malformed raw Story for later recovery', () => {
