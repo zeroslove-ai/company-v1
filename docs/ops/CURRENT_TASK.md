@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: canary-cli-evidence-safety-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -168,3 +168,19 @@ Before COMPLETE:
 Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP.
 
 Do not launch V5/V6 acceptance yourself. A separately reviewed live task will follow only after operator approval.
+
+## Completion-state outcome
+
+Source/test correction complete at executable commit `521e8acf6c519ea05b92a45caef2f1ff601ad27c`.
+
+- Previous unsafe behavior: `--help`, unknown arguments, and no arguments fell through to implicit opening-only execution; opening-only, Phase 12K, Cut 1, and Cut 3 artifacts defaulted to repo-root filenames.
+- New behavior: `-h`/`--help` prints usage and exits before `run`; unknown options, no explicit mode, and conflicting modes fail before network or file output. Opening-only is explicit as `--opening-only`.
+- Explicit supported modes: `--opening-only`, `--phase12k-playability`, `--cut1-authority`, and `--cut3-relation-event`.
+- Artifact paths now default to deterministic purpose-labelled files under `os.tmpdir()`. Explicit artifact/report paths inside the repository are rejected by `CANARY_OUTPUT_PATH_FORBIDDEN`.
+- Behavioral tests prove help, short help, unknown/no-argument/conflicting modes produce no fetch or output-file side effects; explicit mode parsing is covered without live execution. Imported-module behavior remains side-effect free.
+- Validation: targeted `node --test test/live-canary-contract.test.mjs` = 17/17; full `npm.cmd test` = 441/441; modified JS syntax = PASS; `git diff --check` = PASS.
+- Operations: TEST gameplay/DB/reset/deploy = 0; migrations = 0; API/frontend deploy = 0; Production/manual-game access = 0; provider/model changes = 0.
+- Preserved evidence: 15 trusted artifacts and the quarantined `phase12h-opening-success.json` remained untouched, untracked, unstaged, and uncommitted; quarantine SHA remains `53758E55A651CDB506510A91C118E6E6D57620B73067A38E9C60A2C11A0D9A2F`.
+- PR #67 remains OPEN / DRAFT / UNMERGED. No V5/V6 live acceptance was launched.
+
+The source/test correction is awaiting independent review. No next task is generated here.
