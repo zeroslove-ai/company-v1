@@ -426,7 +426,7 @@ const master = masterFromEdition(edition);
      * RPC); record_status='active' dedupes a revised turn to only its current revision. Zero
      * LLM calls, zero mutation. player_inner_thought is read from the stored parsed_blocks;
      * only falls back to re-parsing story_text (never writing the result back to the DB) for a
-     * legacy/empty parsed_blocks row.
+     * a row without usable current-format structured blocks.
      */
     async history(request, env) {
       const requestId = newRequestId();
@@ -441,7 +441,7 @@ const master = masterFromEdition(edition);
         const hasMore = rows.length > limit;
         const page = hasMore ? rows.slice(0, limit) : rows;
         const records = page.map(row => {
-          const parsedBlocks = plainObject(row.parsed_blocks) && Object.keys(row.parsed_blocks).length
+          const parsedBlocks = plainObject(row.parsed_blocks) && Array.isArray(row.parsed_blocks.blocks)
             ? row.parsed_blocks
             : parsePersistedNarrative(row.story_text ?? '', { master });
           return {
@@ -537,7 +537,10 @@ const master = masterFromEdition(edition);
         logTurnTiming({ event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn, replayed: true, turn_total_ms: Date.now() - startedAt });
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
           // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
-          const parsed = mergePersistedEngineMetadata(parsePersistedNarrative(action.story_text, { master }), action.parsed_blocks);
+          const persistedStory = plainObject(action.parsed_blocks) && Array.isArray(action.parsed_blocks.blocks)
+            ? action.parsed_blocks
+            : parsePersistedNarrative(action.story_text, { master });
+          const parsed = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
           if (parsed.warnings?.includes('legacy_narrative_adapter_used')) emit('delta', { text: action.story_text });
           else emitVisibleStory(emit, action.story_text, { master });
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
@@ -717,7 +720,10 @@ const master = masterFromEdition(edition);
         stage: 'extract'
       });
       if (action.extract_delta) {
-        const replayParsedStory = mergePersistedEngineMetadata(parsePersistedNarrative(action.story_text, { master }), action.parsed_blocks);
+        const persistedStory = plainObject(action.parsed_blocks) && Array.isArray(action.parsed_blocks.blocks)
+          ? action.parsed_blocks
+          : parsePersistedNarrative(action.story_text, { master });
+        const replayParsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: replayParsedStory.blocks, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
@@ -749,7 +755,10 @@ const master = masterFromEdition(edition);
 
       const timing = {};
       try {
-        let parsedStory = mergePersistedEngineMetadata(parsePersistedNarrative(action.story_text, { master }), action.parsed_blocks);
+        const persistedStory = plainObject(action.parsed_blocks) && Array.isArray(action.parsed_blocks.blocks)
+          ? action.parsed_blocks
+          : parsePersistedNarrative(action.story_text, { master });
+        let parsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
         // Extract observes the same raw Story text that was streamed to the player.
         const storyForExtract = action.story_text;
         let extract;
@@ -884,7 +893,10 @@ const master = masterFromEdition(edition);
           playerAction: csaResolution ? '' : action.player_action,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
-        let parsedStory = mergePersistedEngineMetadata(parsePersistedNarrative(action.story_text, { master }), action.parsed_blocks);
+        const persistedStory = plainObject(action.parsed_blocks) && Array.isArray(action.parsed_blocks.blocks)
+          ? action.parsed_blocks
+          : parsePersistedNarrative(action.story_text, { master });
+        let parsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: parsedStory.blocks, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({

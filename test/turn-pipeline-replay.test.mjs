@@ -273,10 +273,19 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(mock.gameTurns.get(8).story_text, mock.actions.get(actionId).story_text);
   assert.deepEqual(mock.gameTurns.get(8).structured_action, mock.actions.get(actionId).structured_action);
 
+  const committedBlocks = structuredClone(mock.actions.get(actionId).parsed_blocks);
+  mock.actions.get(actionId).story_text = '[SCENE]\nreparsed only';
+
   const replayStory = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '주말에 만나자고 한다.' }), env);
   const replayStoryBody = await replayStory.text();
   assert.equal(replayStoryBody.includes('event: block_start'), true, 'replay exposes structured block metadata');
   assert.equal(replayStoryBody.includes(JSON.stringify({ text: STORY })), false, 'replay projects raw wire protocol to visible text');
+  const replayStoryLines = replayStoryBody.split('\n');
+  const replayCompleteIndex = replayStoryLines.findIndex(line => line === 'event: complete');
+  const replayComplete = JSON.parse(replayStoryLines[replayCompleteIndex + 1].slice('data: '.length));
+  assert.equal(replayComplete.replayed, true);
+  assert.deepEqual(replayComplete.parsed_blocks.blocks, committedBlocks.blocks, 'Story replay reads committed parsed_blocks instead of reparsing raw Story');
+  assert.equal(replayComplete.parsed_blocks.warnings?.includes('legacy_narrative_adapter_used'), false);
   const differentReplay = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '다른 행동' }), env);
   assert.equal(differentReplay.status, 409, 'same action_id cannot replay a different player action');
 
@@ -286,6 +295,7 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(replay.status, 200);
   const replayBody = await replay.json();
   assert.equal(replayBody.data.replayed, true);
+  assert.deepEqual(replayBody.data.parsed_blocks.blocks, committedBlocks.blocks, 'Extract replay reads the same committed parsed_blocks');
   const afterReplay = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && !llmBody(c).stream).length;
   assert.equal(afterReplay, beforeReplay, 'replay 시 추가 LLM 호출 없음');
 });
