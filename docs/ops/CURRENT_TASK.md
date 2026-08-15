@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-level7-acceleration-seam-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -91,6 +91,33 @@ The terminal report must specify the exact next live-acceptance procedure using 
 - final dedicated TEST reset.
 
 Do not manufacture Story outcomes merely to satisfy acceptance. If a scenario cannot deterministically prove an invariant without changing gameplay semantics, design bounded evidence capture and fail/block rather than retrying until lucky.
+
+## Implementation handoff — source review pending
+
+The Level-7 seam implementation candidate is complete in the working tree and
+is awaiting operator review. It is intentionally not live: no TEST gameplay,
+LLM call, DB write/reset, migration apply, or deploy was performed.
+
+The candidate uses the existing canonical `reset_company_game` boundary and an
+additive `prepare_company_test_level7_fixture(uuid, text)` RPC source that is
+restricted to the dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+It resets first, changes only the disposable `game_save.player_progress`
+capability to level 7, validates the result, and never changes
+`game_master.initial_save`. The operator harness requires the TEST Supabase
+project, the fixed TEST game, and explicit seam enablement; it uses named RPCs
+only and rejects Production, the preserved manual game, and arbitrary IDs.
+
+Focused and full unit/contract verification passed. The additive migration is
+source-pending and must be applied only in a later authorized operator step.
+After review and migration application, the next live acceptance must reset the
+dedicated TEST game, invoke the seam once, verify canonical strong-CSA
+capability, then run scenario-coverage-driven acceptance (not a fixed turn
+count) across ordinary/free-text conversation, literal four-choice round-trip,
+open facts, institutional CSA context, distinct compliance/reaction semantics,
+non-taxonomy posture/contact, clothing continuity, explicitly exercised
+intimate/sexual memory, post-recent-window readback, presentation-only media,
+replay/recovery/idempotence, and final reset. Capture bounded evidence and
+block on an unproven invariant; do not retry until lucky.
 
 ## Forbidden
 
