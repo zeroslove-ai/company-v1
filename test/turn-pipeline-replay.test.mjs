@@ -4,11 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
-import { masterFromEdition } from '../src/api/turn-routes.js';
 import edition from '../src/api/edition.js';
 import { HttpError } from '../src/api/http.js';
 import { parsedTurnNarrative } from '../src/frontend/pages/render.js';
-import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -91,13 +89,6 @@ function createMockFetch({
   const baseSave = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   const save = saveOverride ?? baseSave;
   const context = { game: { id: gameId, edition_id: 'company-v1' }, save: { data: save }, recent_turns: [] };
-  const coverageStory = storySseOverride
-    ? JSON.parse(String(storySseOverride).match(/^data: (.+)$/m)?.[1] ?? '{}')?.choices?.[0]?.delta?.content ?? STORY
-    : STORY;
-  const blockObservations = parseFreshNarrativeV2(coverageStory, { master: masterFromEdition(edition) }).blocks
-    .map((block, blockIndex) => ({ block_id: `story:${blockIndex}`, block_type: block.type }))
-    .filter(block => ['scene', 'narrative', 'dialogue', 'acting'].includes(block.block_type))
-    .map(block => ({ ...block, facts: [] }));
   const extract = {
     ...(extractEnvelope ?? {
     extract_version: 2,
@@ -106,8 +97,7 @@ function createMockFetch({
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
     mind_monitor: { heroine1: { surface: '오늘 일부터 하자.', subconscious: '조금 신경 쓰이네.' }, heroine2: { surface: '자료를 확인하자.', subconscious: '괜찮아.' }, heroine5: { surface: '자료를 확인하자.', subconscious: '괜찮아.' } }, action_target_id: null, image_character_id: null, image_selection: null,
     csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: extractSummary, warnings: []
-    }),
-    block_observations: extractEnvelope?.block_observations ?? blockObservations
+    })
   };
   const extractContents = [JSON.stringify(extract)];
   let storyCall = 0;
@@ -300,7 +290,7 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(afterReplay, beforeReplay, 'replay 시 추가 LLM 호출 없음');
 });
 
-test('empty fresh block observations complete with an empty optional projection', async () => {
+test('legacy fact-ledger wire input degrades without blocking the normal Extract path', async () => {
   const mock = createMockFetch({
     extractEnvelope: {
       extract_version: 2,
@@ -308,7 +298,7 @@ test('empty fresh block observations complete with an empty optional projection'
       scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
       player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
       mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
-      csa_trigger_evaluations: [], csa_runtime_updates: [], block_observations: [], turn_summary: '', warnings: []
+       csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
     },
     saveOverride: v2Save()
   });
@@ -319,7 +309,7 @@ test('empty fresh block observations complete with an empty optional projection'
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   const extractBody = await extract.json();
   assert.equal(extract.status, 200);
-  assert.deepEqual(extractBody.data.extract.open_facts, []);
+  assert.equal('open_facts' in extractBody.data.extract, false);
   assert.equal(extractBody.data.replayed, false);
 });
 

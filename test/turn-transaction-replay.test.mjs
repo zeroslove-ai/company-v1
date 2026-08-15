@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { reduceGameplayCommit } from '../src/engine/runtime-core/commit-reducer.js';
-import { normalizeExtractObservationV2, normalizeFreshExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
+import { normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { normalizePersistedExtractObservation } from '../src/engine/runtime-core/persisted-extract-observation.js';
 import { buildStoryContextProjection } from '../src/engine/story-prompt.js';
 
@@ -26,55 +26,18 @@ const NPCS = new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']);
 const baseObservation = { extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] };
 const action = { action_id: 'a', turn_id: 't', action_kind: 'player_turn', player_action: '계속 진행한다' };
 
-test('fresh normalized open facts survive stage/persist/read before the Commit reducer', () => {
+test('normal Extract summary survives persisted read and Commit without writing a fact ledger', () => {
   const storyText = 'Hayeon accepted the apology.';
-  const options = { npcIds: NPCS, storyText, storyBlocks: [{ type: 'narrative', text: storyText }], expectedTurn: 8, actionId: 'round-trip' };
-  const fresh = normalizeFreshExtractObservationV2({
-    ...baseObservation,
-    turn_summary: 'Hayeon accepted the apology and the meeting can continue.',
-    block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [{
-      subject_id: 'npc-hayeon', object_id: 'player', fact_text: storyText, story_quote: storyText
-    }] }]
-  }, options);
-  const stagedAndPersisted = structuredClone(fresh);
-  const persisted = normalizePersistedExtractObservation(stagedAndPersisted, options);
-  assert.deepEqual(persisted.open_facts, fresh.open_facts);
-  assert.equal(persisted.turn_summary, fresh.turn_summary);
-  const result = reduceGameplayCommit({
-    currentSave: save,
-    observation: persisted,
-    parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [] },
-    rawStory: storyText,
-    action: { action_id: 'round-trip', turn_id: 'turn-8', action_kind: 'player_turn' },
-    expectedTurn: 8,
-    npcIds: NPCS,
-    mapLocations: []
-  });
-  assert.equal(result.nextSave.open_observations.at(-1).fact_id, fresh.open_facts[0].fact_id);
+  const observation = normalizeExtractObservationV2({ ...baseObservation, turn_summary: storyText }, { npcIds: NPCS, storyText });
+  const persisted = normalizePersistedExtractObservation({ ...observation, open_facts: [{ fact_id: 'legacy', subject_id: 'unknown', fact_text: 'ignored', story_quote: 'not current' }] }, { npcIds: NPCS, storyText });
+  const result = reduceGameplayCommit({ currentSave: save, observation: persisted, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [] }, rawStory: storyText, action: { action_id: 'round-trip', turn_id: 'turn-8', action_kind: 'player_turn' }, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
+  assert.equal(persisted.turn_summary, storyText);
+  assert.equal('open_facts' in persisted, false);
+  assert.deepEqual(result.nextSave.open_observations, save.open_observations);
 });
 
-test('open observations persist only through Commit and remain idempotent', () => {
-  const quote = 'Hayeon accepted the apology but remained disappointed.';
-  const observation = normalizeExtractObservationV2({
-    ...baseObservation,
-    open_facts: [{ subject_id: 'npc-hayeon', object_id: 'player', fact_text: quote, story_quote: quote }]
-  }, { npcIds: NPCS, storyText: quote, expectedTurn: 8, actionId: 'open-fact' });
-  const action = { action_id: 'open-fact', turn_id: 'turn-8', action_kind: 'player_turn' };
-  const first = reduceGameplayCommit({ currentSave: save, observation, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [] }, rawStory: quote, action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
-  assert.equal(first.nextSave.open_observations.length, 1);
-  assert.equal(first.nextSave.open_observations[0].story_quote, quote);
-  const second = reduceGameplayCommit({ currentSave: first.nextSave, observation, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [] }, rawStory: quote, action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
-  assert.equal(second.nextSave.open_observations.length, 1);
-});
-
-test('committed open observations are exposed to later Story context with provenance', () => {
-  const facts = [{ fact_id: 'fact-1', action_id: 'open-fact', turn_number: 8, subject_id: 'npc-hayeon', object_id: 'player', fact_text: 'Hayeon accepted the apology but remained disappointed.', story_quote: 'Hayeon accepted the apology but remained disappointed.' }];
-  const projection = buildStoryContextProjection({ game: { id: 'game-1' }, save: { data: { ...structuredClone(save), open_observations: facts } }, recent_turns: [] }, [], { edition: {}, catalogs: {} });
-  assert.deepEqual(projection.open_observations, facts);
-});
-
-test('Story memory keeps the latest three turns raw and projects older turns as ordered summaries only', () => {
-  const turns = [1, 2, 3, 4, 5].map(turn_number => ({
+test('Story memory keeps the latest six turns raw and projects older turns as ordered summaries only', () => {
+  const turns = [1, 2, 3, 4, 5, 6, 7, 8].map(turn_number => ({
     turn_number,
     player_action: `action-${turn_number}`,
     story_text: `raw-story-${turn_number}`,
@@ -83,7 +46,7 @@ test('Story memory keeps the latest three turns raw and projects older turns as 
     turn_summary: `summary-${turn_number}`
   }));
   const projection = buildStoryContextProjection({ game: { id: 'game-1' }, save: { data: structuredClone(save) }, recent_turns: turns }, [], { edition: {}, catalogs: {} });
-  assert.deepEqual(projection.recent_turns.map(turn => turn.turn), [3, 4, 5]);
+  assert.deepEqual(projection.recent_turns.map(turn => turn.turn), [3, 4, 5, 6, 7, 8]);
   assert.deepEqual(projection.turn_summary_memory, [
     { turn: 1, turn_summary: 'summary-1' },
     { turn: 2, turn_summary: 'summary-2' }
@@ -91,6 +54,7 @@ test('Story memory keeps the latest three turns raw and projects older turns as 
   assert.equal('story_text' in projection.turn_summary_memory[0], false);
   assert.equal('parsed_blocks' in projection.turn_summary_memory[0], false);
   assert.equal('story_summary' in projection, false);
+  assert.equal('open_observations' in projection, false);
 });
 
 test('reduceGameplayCommit is the single V2 orchestration writer', () => {

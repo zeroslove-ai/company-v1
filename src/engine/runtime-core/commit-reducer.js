@@ -89,17 +89,6 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
   };
 }
 
-function appendOpenObservations(current, additions) {
-  const result = Array.isArray(current) ? clone(current) : [];
-  const seen = new Set(result.map(item => item?.fact_id).filter(Boolean));
-  for (const item of Array.isArray(additions) ? additions : []) {
-    if (!item?.fact_id || seen.has(item.fact_id)) continue;
-    result.push(clone(item));
-    seen.add(item.fact_id);
-  }
-  return result;
-}
-
 export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, navigationIntent = null, authoritativeLocationId = null, structuredAction = null, transactionResolution = null } = {}) {
   const current = clone(currentSave);
   const canonicalObservationInput = observation;
@@ -153,7 +142,6 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     transactionResolution
   });
   nextSave = csaCommit.nextSave;
-  nextSave.open_observations = appendOpenObservations(current.open_observations, canonicalObservationInput.open_facts);
   assertCanonicalSceneInvariants({ save: nextSave, scene: canonicalScene, npcIds, parsedStory, actionKind: action?.action_kind, observation: sceneObservation });
   const monitor = presentMindMonitor(canonicalObservationInput.mind_monitor ?? {}, canonicalScene.present_npc_ids ?? []);
   const ownedMonitor = playerOwnedMonitor(monitor.state, parsedStory?.player_inner_thought ?? '');

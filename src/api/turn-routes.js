@@ -455,7 +455,6 @@ const master = masterFromEdition(edition);
             player_inner_thought: typeof parsedBlocks?.player_inner_thought === 'string' ? parsedBlocks.player_inner_thought : '',
             structured_action: row.structured_action ?? null,
             feedback_text: row.feedback_text ?? null,
-            open_observations: Array.isArray(row.post_save?.open_observations) ? row.post_save.open_observations : [],
             committed_at: row.committed_at
           };
         });
@@ -819,22 +818,10 @@ const master = masterFromEdition(edition);
             // Extract is an optional observation. Invalid, truncated, or
             // contract-invalid output degrades deterministically and still
             // reaches the owned Extract completion RPC and the single Commit path.
-            const structuralObservationFailure = new Set([
-              'BLOCK_OBSERVATIONS_REQUIRED',
-              'INVALID_BLOCK_OBSERVATIONS',
-              'INVALID_BLOCK_OBSERVATION_FACT',
-              'STORY_BLOCK_OBSERVATIONS_INCOMPLETE',
-              'FRESH_TOP_LEVEL_OPEN_FACTS_FORBIDDEN',
-              'OPEN_FACT_UNKNOWN_ID',
-              'OPEN_FACT_SOURCE_BLOCK_REQUIRED',
-              'OPEN_FACT_SOURCE_BLOCK_UNKNOWN',
-              'OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY',
-              'OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_BLOCK'
-            ]).has(error?.code);
             const failOpen = error instanceof GameCoreError
               || error?.code === 'extract_invalid_json'
               || error?.code === 'extract_truncated';
-            if (!failOpen || structuralObservationFailure) throw error;
+            if (!failOpen) throw error;
             extract = buildDegradedExtractObservation({
               extraWarnings: [`extract_fail_open:${error?.code ?? 'invalid_observation'}`]
             });

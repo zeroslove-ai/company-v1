@@ -82,7 +82,7 @@ test('history query selects and API returns the persisted structured_action', as
   assert.equal(response.status, 200);
   const payload = await response.json();
   assert.deepEqual(payload.data.records[0].structured_action, storedStructuredAction);
-  assert.equal(payload.data.records[0].open_observations[0].fact_id, 'fact-1');
+  assert.equal('open_observations' in payload.data.records[0], false);
 });
 
 test('a later stage cannot replace the structured action already reserved on game_actions', async () => {

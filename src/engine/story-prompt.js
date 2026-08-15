@@ -83,12 +83,11 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   const player = object(save.player) ?? {};
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const allRecentTurns = Array.isArray(context?.recent_turns) ? context.recent_turns : [];
-  const recentTurns = allRecentTurns.slice(-3);
-  const turnSummaryMemory = allRecentTurns.slice(0, -3).map(turn => ({
+  const recentTurns = allRecentTurns.slice(-6);
+  const turnSummaryMemory = allRecentTurns.slice(0, -6).map(turn => ({
     turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
     turn_summary: typeof turn?.turn_summary === 'string' ? turn.turn_summary : ''
   }));
-  const openObservations = Array.isArray(save.open_observations) ? save.open_observations : [];
   const gameTime = object(save.world_state?.game_time) ?? {};
   const sceneCore = buildSceneContextCore(save, activeIds);
   const activeRelations = (Array.isArray(save.active_relations) ? save.active_relations : [])
@@ -127,16 +126,6 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     active_relations: activeRelations,
     ...sceneRest,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
-    open_observations: openObservations.slice(-50).map(fact => ({
-      fact_id: typeof fact?.fact_id === 'string' ? fact.fact_id : null,
-      action_id: typeof fact?.action_id === 'string' ? fact.action_id : null,
-      turn_number: Number.isInteger(fact?.turn_number) ? fact.turn_number : null,
-      subject_id: typeof fact?.subject_id === 'string' ? fact.subject_id : null,
-      object_id: typeof fact?.object_id === 'string' ? fact.object_id : null,
-      fact_text: typeof fact?.fact_text === 'string' ? fact.fact_text : '',
-      story_quote: typeof fact?.story_quote === 'string' ? fact.story_quote : '',
-      ...(typeof fact?.source_block === 'string' ? { source_block: fact.source_block } : {})
-    })),
     recent_turns: recentTurns.map(turn => ({
       turn: typeof turn?.turn_number === 'number' ? turn.turn_number : null,
       player_action: typeof turn?.player_action === 'string' ? turn.player_action : '',
@@ -151,7 +140,6 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
 export const DURABLE_STORY_RULES = [
   '[WORLD FACTS]',
   'Treat the canonical JSON payload as fact. scene_actors are present now; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only and never create presence, action, or dialogue authority. world_rules are institutional rule/context facts only. Never invent an unregistered named NPC.',
-  'context.open_observations contains exact, committed, evidence-backed facts from prior turns. Preserve these facts as context, do not invent or overwrite them, and keep their subject/object identity and quoted Story evidence intact. They are durable observations, not a closed semantic taxonomy.',
  '[PLAYER AGENCY]',
   'Preserve explicit player physical action without expanding its meaning. A choice is only a proposal, never a completed player action. Institutional rules are context, not proof of physical enactment, consent, emotion, or relationship change; never add unrequested contact, movement, undressing, or sexual escalation.',
   'Player input is the authority for player intent and current explicit target. Do not let stale position labels select a different NPC. Target authority order is current explicit player target, current canonical focal interaction, active structured relation, then presentation-only physical labels (which are never a selector). Do not invent an unrequested player movement, dialogue, apology, concession, withdrawal, promise, contact, physical action, consent, refusal, or outcome. Player dialogue may paraphrase supplied intent without changing its meaning; it must not create a new decision. NPC responses and consequences are authored naturally in the Story.',
@@ -166,7 +154,7 @@ export const DURABLE_STORY_RULES = [
   '[PHYSICAL CONTINUITY]',
   'Saved actual physical and clothing state is current fact. A rule sentence alone is not a physical transition, and unknown actual state is never guessed. Explicit player physical facts needed for continuity must remain identifiable in Story; do not euphemize away erection, direct contact, or the identity of an acted body part. Preserve kind and strength without erotic escalation.',
   '[STORY QUALITY]',
-  'Write natural Korean workplace fiction with appropriate title-plus-name address. The canonical player position_id, position, and address_title in the payload are authoritative; do not downgrade the player to a different team title. Preserve relationship and emotion continuity using the latest three raw turns in context.recent_turns and older committed continuity only through context.turn_summary_memory in chronological order. Summary memory is compressed context, never a raw Story replacement; do not invent detail that is absent from it. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
+  'Write natural Korean workplace fiction with appropriate title-plus-name address. The canonical player position_id, position, and address_title in the payload are authoritative; do not downgrade the player to a different team title. Preserve relationship and emotion continuity using the latest six raw turns in context.recent_turns and older committed continuity only through context.turn_summary_memory in chronological order. Summary memory is compressed context, never a raw Story replacement; do not invent detail that is absent from it. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
  '[OUTPUT PROTOCOL]',
   'Every response must contain at least one non-empty player-visible Story body segment: plain narrative text, [SCENE], [DIALOGUE], or visible [ACTING] text. A [THOUGHT] plus [CHOICE] blocks alone is invalid and does not count as Story body. Output one short player-only [THOUGHT] paragraph closed by [/THOUGHT], and four literal [CHOICE] action blocks without labels or numbers. Choices are proposals, not completed actions.',
   'Write plain narrative by default, preserving source order. Mark each spoken line with [DIALOGUE speaker_id="registered_id_or_player"] using an exact registered ID; never infer a speaker from a name, quote, or previous line. Player posture may be structurally annotated only when the narrative visibly establishes it, and no ACTING token is required for CSA. Before ending, verify exactly one [THOUGHT], every spoken line has a DIALOGUE marker, and exactly four non-empty distinct [CHOICE] blocks. Add [THOUGHT] and four literal [CHOICE] action blocks when possible; choices are concrete proposals (not completed actions), and preserve the kind, strength, and scope of explicit player actions without strengthening them. The UI owns headings and choice ordering. Do not turn app, marker, and presentation mechanics into world knowledge.',

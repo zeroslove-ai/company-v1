@@ -353,7 +353,7 @@ test('Extract prompt user payload carries one registered identity registry and s
   assert.match(system, /never copy one into another/);
 });
 
-test('Extract payload carries raw Story plus exact parser-owned block text and strips parsed internals', () => {
+test('Extract payload carries raw Story and strips parser-memory internals', () => {
   const parsedStory = {
     raw: '[1. 서사 및 행동]\n전체 원문 그대로.',
     scene_text: '전체 원문 그대로.',
@@ -370,14 +370,9 @@ test('Extract payload carries raw Story plus exact parser-owned block text and s
   assert.equal(payload.extract_version, 2);
   assert.equal('parsed_story' in payload, false);
   assert.equal('parser_projection' in payload, false);
-  assert.deepEqual(payload.story_observation_blocks, [{
-    block_id: 'story:0',
-    block_index: 0,
-    block_type: 'scene',
-    text: parsedStory.blocks[0].text
-  }]);
+  assert.equal('story_observation_blocks' in payload, false);
   const occurrences = prompt[1].content.split('전체 원문 그대로').length - 1;
-  assert.equal(occurrences, 2, 'Raw Story and parser-owned block text are both supplied');
+  assert.equal(occurrences, 1, 'Only the raw Story is supplied to Extract');
 });
 
 test('Extract context has no full save, no character prompt_card/personality/appearance, and only the active NPCs\' mutable state', () => {

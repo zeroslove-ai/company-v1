@@ -53,7 +53,7 @@ test('Story request describes older turn summaries as compressed continuity memo
     edition,
     context: {
       ...context(),
-      recent_turns: [1, 2, 3, 4].map(turn_number => ({
+      recent_turns: [1, 2, 3, 4, 5, 6, 7, 8].map(turn_number => ({
         turn_number,
         player_action: `action-${turn_number}`,
         story_text: `story-${turn_number}`,
@@ -67,8 +67,11 @@ test('Story request describes older turn summaries as compressed continuity memo
     npcIds: new Set()
   });
   const payload = JSON.parse(messages[1].content);
-  assert.deepEqual(payload.context.recent_turns.map(turn => turn.turn), [2, 3, 4]);
-  assert.deepEqual(payload.context.turn_summary_memory, [{ turn: 1, turn_summary: 'summary-1' }]);
+  assert.deepEqual(payload.context.recent_turns.map(turn => turn.turn), [3, 4, 5, 6, 7, 8]);
+  assert.deepEqual(payload.context.turn_summary_memory, [
+    { turn: 1, turn_summary: 'summary-1' },
+    { turn: 2, turn_summary: 'summary-2' }
+  ]);
   assert.equal('story_text' in payload.context.turn_summary_memory[0], false);
   assert.match(messages[0].content, /turn_summary_memory/);
   assert.match(messages[0].content, /compressed context/);

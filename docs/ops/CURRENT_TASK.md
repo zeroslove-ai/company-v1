@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: narrative-memory-simplification-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -188,3 +188,33 @@ Before COMPLETE:
 Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP.
 
 Do not launch deep live acceptance yourself. After operator review, the next live acceptance must validate the simplified **latest-six raw turns + older turn summaries** architecture rather than the superseded open-fact subsystem.
+
+## Completion record
+
+Source/test implementation is complete and awaiting exact review.
+
+### Reader/writer deletion map
+
+- `src/engine/story-prompt.js`: removed the `save.open_observations` Story reader and its durable-fact Story rule; the Story context now contains only the latest six raw committed turns plus older `turn_summary_memory` entries.
+- `src/engine/extract-prompt.js`: removed the fresh `block_observations`/nested-facts output contract and parser-owned Story block payload. Fresh Extract requests narrow proven projections plus the existing natural-language `turn_summary`.
+- `src/engine/runtime-core/extract-observation.js`: removed fresh open-fact/block-observation normalization and their active contract fields. Historical fields are no longer accepted as fresh output.
+- `src/engine/runtime-core/commit-reducer.js`: removed the fresh observation-to-`save.open_observations` append writer. Existing historical save fields are not rewritten.
+- `src/api/turn-routes.js`: removed `open_observations` from the active history response and removed the obsolete fact-ledger structural hard-fail list; invalid optional Extract output remains deterministic fail-open.
+- `src/engine/runtime-core/persisted-extract-observation.js`: historical V2 `open_facts`/`block_observations` fields are stripped and ignored at replay/Commit normalization; the legacy V1 adapter remains only for stored `state_delta` rows.
+- `src/engine/csa/execution-policy.js`: narrative continuity reference now points to `turn_summary`, not an open-fact ledger.
+
+### Final payload shapes
+
+- Story memory: current machine/UI projections, latest six raw turns (`turn`, `player_action`, `story_text`, `parsed_blocks`, `choices`), and chronological summaries for turns older than that window (`turn`, `turn_summary`). No `open_observations` channel.
+- Fresh Extract: V2 narrow scene/player/NPC projections, evidence, time/image/CSA narrow fields, warnings, and one natural-language `turn_summary`. No `block_observations` or `open_facts` output field.
+
+### Validation
+
+- Focused memory/turn/prompt/atomicity tests: 34/34 passing.
+- Full regression: 412/412 passing.
+- Changed JS/MJS syntax checks: PASS.
+- `git diff --check`: PASS.
+- Live acceptance/deploy/TEST reset/DB write/migration/Production access: 0.
+- PR #67 remains OPEN / DRAFT / UNMERGED.
+
+STOP: awaiting operator review; do not launch live acceptance under this source/test task.

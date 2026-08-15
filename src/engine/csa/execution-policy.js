@@ -2,7 +2,7 @@
  * CSA is an institutional rule/context authority.  The only retained machine
  * projection is compact clothing continuity, which has a real UI/state
  * consumer.  Natural physical, relational, emotional, and sexual HOW belongs
- * to Story -> Extract -> open_facts, not to a finite CSA execution grammar.
+ * to Story -> Extract -> turn_summary, not to a finite CSA execution grammar.
  */
 export const EXECUTION_KINDS = Object.freeze(['clothing_state']);
 export const EXECUTION_ACTIONS = Object.freeze(new Set(['set_clothing_state']));
