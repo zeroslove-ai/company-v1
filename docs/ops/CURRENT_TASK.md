@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: open-fact-persisted-read-contract-v1
+Status: READY
+Task ID: deep-level7-live-acceptance-v5
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -12,154 +12,188 @@ This file is the sole active execution authority.
 Repository: `zeroslove-ai/company-v1`
 Branch: `company/scene-location-presence-v1`
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
-Last reviewed executable with newly proven live defect: `1ffc3ca269fcf34d748d5380c2b70be19696b5d4`.
-V4 blocked evidence comment: Issue #68 comment `5300672729`.
-Operator evidence review: Issue #68 comment `5300696675`.
+Exact reviewed executable to test: `0627f01d5118e3a936d9280fb8f889644137550c` (`open-fact-persisted-read-contract-v1`).
+Operator ACCEPTED review: Issue #68 comment `5300826049`.
+Previous V4 blocker evidence: Issue #68 comment `5300672729`.
 
-TEST Worker currently contains the V4 TEST-only deployment of `1ffc3ca...` as Version `997a89f4-f129-4fca-b42c-d1ee62df0bfd`, with `COMPANY_V1_EXTRACT_DIAGNOSTIC=true`. Do not deploy or run live TEST gameplay in this source task.
-Dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` has been independently read back after V4 reset at committed_turn=0, level=1/exp=0, setup/opening not_started, csa_active empty, actions=0, turns=0.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever and must not be accessed.
+TEST Supabase project: `fmcrspgxstsmxxsmkeee`.
+Dedicated disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+Existing Level-7 migration `20260815000100 / company_v1_test_level7_acceleration` is already applied. Do not edit or reapply it.
+Preserved manual playtest game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever and must not be accessed.
 
-Durable preserved-evidence authority remains `docs/audit/PRESERVED_EVIDENCE_APPROVAL_2026-08-15.md`; the exact already-approved 16-path untracked snapshot carries forward while unchanged/untracked/unstaged/uncommitted. Unknown new local state must still STOP.
+Durable preserved-evidence authority: `docs/audit/PRESERVED_EVIDENCE_APPROVAL_2026-08-15.md`. The unchanged approved 16-path untracked snapshot carries forward automatically. All new V5 evidence must be written under OS TEMP, never inside the repo.
 
-## Proven defect
+Canonical loop under acceptance:
+`player input / literal choice -> Story -> Extract -> Commit -> game_save/game_turns -> Context/History/UI/next Story`.
 
-V4 proved the following exact runtime path:
+## Why V5 exists
 
-1. Fresh Extract succeeded.
-2. `normalizeFreshExtractObservationV2()` converted provider block-local facts into canonical flat `open_facts` and added server-owned metadata including `fact_id`, `action_id`, `turn_number`, and derived `source_block`.
-3. The owned Extract result was persisted in `game_actions.extract_delta`.
-4. Commit loaded that persisted V2 Extract via `normalizePersistedExtractObservation(action.extract_delta, ...)`.
-5. `normalizePersistedExtractObservation()` routed the stored object back through `normalizeExtractObservationV2()`.
-6. `normalizeOpenFacts()` still validates each fact against the provider-authorable `OPEN_FACT_FIELDS`, which do not include server-owned `fact_id`.
-7. Commit therefore failed with HTTP 422 `invalid_open_fact` / `Unknown observation field: fact_id` on its own canonical persisted output.
+V4 proved the new block-local Extract wire itself succeeded on Turn 1 and produced canonical open facts + turn_summary, but Commit rejected its own persisted canonical fact metadata (`fact_id`) because the persisted reader reused the fresh/provider allowlist.
 
-This is an internal fresh->persisted contract mismatch. It is not a provider protocol defect and must not be fixed by weakening the fresh provider wire.
+Accepted source correction `0627f01...` now:
+- keeps fresh provider block facts narrow (`subject_id/object_id/fact_text/story_quote` only);
+- validates persisted canonical `fact_id/action_id/turn_number/source_block` separately;
+- checks deterministic identity, action/turn boundary, registered IDs, exact Story quote, parser-owned source block;
+- passes parser-owned Story blocks to persisted read in replay and Commit;
+- proves fresh normalize -> persisted read -> reducer round trip with non-empty turn_summary.
 
-## Goal
+V5 must determine whether the real TEST runtime now survives that boundary and then continue deep scenario coverage beyond the first turn.
 
-Make the persisted canonical V2 Extract read boundary able to read and validate the exact canonical `open_facts` shape produced by fresh normalization, while keeping the fresh provider-authorable block fact shape narrow.
+## Mandatory preflight
 
-Target separation:
+Before live mutation:
+1. Fresh-fetch PR #67 and verify base `main`, OPEN, DRAFT, UNMERGED.
+2. Verify exact executable `0627f01d5118e3a936d9280fb8f889644137550c` is an ancestor of current branch HEAD and any descendant delta is docs/workflow-only.
+3. Record current TEST Worker version/config. V4 left `COMPANY_V1_EXTRACT_DIAGNOSTIC=true` on TEST; do not assume otherwise—verify.
+4. Verify Level-7 migration already exists; do not reapply.
+5. Verify dedicated TEST game id exactly and prove current canonical baseline before acceleration: committed_turn=0, level1/exp0, setup/opening not_started, csa_active empty, actions=0, turns=0.
+6. Do not access preserved manual game.
+7. Verify repo dirt is only the already-approved preserved evidence snapshot.
+8. New evidence bundle must be under `%TEMP%` / OS TEMP.
 
-- Fresh provider fact input: only `subject_id`, `object_id`, `fact_text`, `story_quote` nested under `block_observations[i].facts`.
-- Fresh server normalization: derives `source_block` and generates canonical server metadata such as `fact_id`, `action_id`, `turn_number`.
-- Persisted/replay/Commit reader: accepts that canonical server-owned shape and validates it structurally/provenance-wise without teaching those fields back to the provider.
+If identity cannot be proven, STOP before deployment/live mutation.
 
-## Mandatory Phase 0 — exact caller/data proof
+## Authorized TEST operations
 
-Before editing:
-1. Read current `normalizeFreshExtractObservationV2`, `normalizeBlockObservations`, `normalizeOpenFacts`, `normalizeExtractObservationV2`, `normalizePersistedExtractObservation`, `/api/extract` persistence, `/api/commit`, `reduceGameplayCommit`, history/replay readers, and affected tests.
-2. Enumerate the exact canonical fields fresh normalization writes into every persisted `open_facts` item.
-3. Prove all current callers of `normalizePersistedExtractObservation` and whether historical rows may contain older V2 open-fact shapes with some server metadata absent.
-4. Prove action/turn/story evidence available at the persisted boundary so server-owned metadata can be checked rather than blindly trusted where practical.
-5. Do not modify historical applied migrations.
+1. Deploy exactly executable SHA `0627f01d5118e3a936d9280fb8f889644137550c` to TEST API Worker `game-proxy-company-v1` only.
+2. Enable `COMPANY_V1_EXTRACT_DIAGNOSTIC=true` only while this TEST acceptance runs.
+3. Run existing guarded `prepare_company_test_level7_fixture` exactly once for the dedicated TEST game.
+4. Run normal TEST setup/opening/Story/Extract/Commit/context/history/app flows required below.
+5. On first decisive architecture/protocol defect: capture evidence, do not retry/regenerate/patch, canonical-reset the dedicated TEST game, report, STOP.
+6. At task finalization (PASS or FAIL), disable `COMPANY_V1_EXTRACT_DIAGNOSTIC` again on TEST and prove health/config. If disabling requires a redeploy, it must use the exact same reviewed executable `0627f01...`; no source change is authorized.
+7. Always final-reset the dedicated TEST game and prove clean baseline.
 
-## Required implementation
+No migration apply/edit is authorized.
 
-### A. Separate provider-authorable facts from persisted canonical facts
+## Evidence handling
 
-Do not add `fact_id`, `action_id`, `turn_number`, or `source_block` to the fresh provider nested fact schema.
+Use one TEMP bundle such as `%TEMP%/company-v1-deep-level7-v5-evidence.json`.
+Capture at minimum:
+- PR/branch/executable identity;
+- TEST Worker version + diagnostic state before/after;
+- Level-7 seam result;
+- each exact player input / selected literal choice;
+- action ids / expected turns;
+- raw Story, parsed Story body blocks;
+- raw provider Extract response when diagnostic is available;
+- normalized Extract response;
+- canonical open_facts before Commit and committed/readback form;
+- Commit result;
+- committed turn_summary;
+- context/history after Commit;
+- scene/location/presence/CSA state;
+- later Story input proving latest-three raw + older summary-only memory;
+- final reset proof;
+- final diagnostic-disabled proof.
 
-The provider remains unable to author server identity/provenance metadata.
+Terminal report must include TEMP path + SHA-256. Never commit evidence.
 
-At the persisted canonical boundary, accept the exact server-owned metadata shape generated by fresh normalization. Prefer an explicit persisted canonical fact normalization path or an equally clear mode separation over broadening the fresh `OPEN_FACT_FIELDS` allowlist globally.
+## No-retry / no-mask rule
 
-### B. Validate canonical metadata
+For Story/Extract/Commit/context/history authority defects:
+- no retry;
+- no regeneration;
+- no provider/model/temperature/token change;
+- no source/prompt/parser patch;
+- no fuzzy repair;
+- no synthetic facts/summary/state;
+- no manual DB repair.
 
-For persisted canonical facts, retain structural integrity:
-- subject/object IDs remain registered/player IDs;
-- `story_quote` remains an exact substring of committed Story;
-- `source_block`, when present/required by the stored canonical format, remains valid provenance;
-- turn/action identity must not drift from the Commit/replay boundary when those values are available;
-- `fact_id` must remain deterministic/consistent with the canonical fact identity when practical from current helpers.
+Stop at first decisive reproducible defect after evidence capture and final cleanup.
 
-Do not simply drop arbitrary unknown metadata and continue. Distinguish known server-owned canonical metadata from truly unknown fields.
+## Required scenario coverage
 
-If historical legitimate V2 rows omit some server-owned metadata, preserve only the minimal proven historical read compatibility needed for replay. Do not add compatibility code for hypothetical data or stale tests.
+### A. Fixture / Opening / literal-choice integrity
+- Level-7 seam exactly once; no synthetic semantic state.
+- Normal setup/opening.
+- Exactly four non-empty unique opening choices.
+- Select at least one displayed literal unchanged and prove exact literal becomes player_action.
 
-### C. Round-trip authority
+### B. Multi-turn ordinary continuity + open-fact round trip
+Run multiple ordinary workplace/dialogue turns.
+For every committed turn verify:
+- Story succeeds;
+- Extract structurally accounts for every parser-owned Story body block via one `block_observations` entry per block;
+- `facts: []` works for zero-fact blocks;
+- nested facts keep registered IDs and exact quote provenance;
+- normalized canonical facts contain server metadata;
+- persisted-read/Commit accepts those canonical facts without self-rejection;
+- durable `open_observations`/history/context preserve provenance;
+- committed `turn_summary` equals Extract-authored summary, not server synthesis.
 
-A fresh normalized Extract must survive this exact behavioral round trip without semantic transformation:
+### C. Scene / navigation / presence
+Exercise player navigation or NPC-directed movement/visit.
+Verify no duplicate/wrong NPC creation, no wrong speaker identity, explicit player navigation authority, and canonical scene/location/presence continuity through next Story.
 
-`provider block_observations -> normalizeFreshExtractObservationV2 -> recordExtractResultOwned / stored extract_delta -> normalizePersistedExtractObservation -> reduceGameplayCommit / Commit`
+### D. CSA natural-rule behavior at Level 7
+Use normal app/transaction path for at least one applicable CSA, including strong capability if naturally available.
+Verify CSA is institutional context only, Story authors observable HOW, Extract observes Story, and compliance does not mechanically imply consent/comfort/affection/trust/emotion/physical outcome.
 
-The canonical `open_facts` observed before persistence and after persisted read should retain the same meaning, provenance, deterministic identity, and ordering/dedupe semantics.
+### E. Open semantic durability
+Across turns, when naturally present, preserve arbitrary work/agreement/refusal/relationship/emotion/physical/clothing/intimate observations without closed semantic event/relation/posture/sexual taxonomy deciding existence.
+Block facts are observations, not importance gates.
 
-### D. Preserve adjacent accepted architecture
+### F. Turn-summary memory beyond latest 3 raw turns — mandatory
+Create an early continuity fact/commitment and continue at least four newer committed turns.
+Then inspect the next Story request/context and prove:
+- old raw Story body is outside `context.recent_turns`;
+- its committed summary appears chronologically in `context.turn_summary_memory`;
+- stale `story_summary_overall` / `story_summary_recent` does not compete in fresh Story input;
+- later Story preserves continuity without inventing unsupported detail.
 
-Do not change:
-- one `block_observations[]` fresh provider wire;
-- parser-owned Story block text projection;
-- same-call Extract `turn_summary` memory path;
-- latest 3 raw Story + older turn-summary memory design;
-- canonical scene/location/presence authority;
-- compact clothing projection;
-- CSA natural-rule/institutional context model;
-- Mind Monitor/image/media sidecars;
-- literal choices/free-text player action authority.
+### G. Feedback revision parity
+If existing normal harness safely supports it, revise one committed turn through canonical feedback flow and verify active revised Story + regenerated turn_summary align with one active revision. If harness genuinely cannot, report `NOT EXERCISED — harness limitation` with source proof; do not invent broad new harness.
 
-## Tests required
+### H. Deep physical / intimate coverage
+Continue naturally far enough to exercise deeper physical/intimate behavior when Level-7 state/rules/player steering make it reachable. This is a coverage domain, not a forced outcome on a specific turn.
+When reached verify player action kind/strength/scope fidelity, Story authors what actually happens, Extract preserves exact evidence without closed sexual-action truth gate, compact clothing/image tags remain projection-only, and CSA compliance stays separate from personal acceptance/consent/emotion/relationship.
+If substantial natural play still cannot reach it without prohibited synthetic state, report exact reached state and coverage gap.
 
-At minimum add behavioral tests proving:
-1. A fresh provider block fact normalizes to canonical persisted `open_facts` with server `fact_id/action_id/turn_number/source_block`.
-2. That exact object can be passed unchanged into `normalizePersistedExtractObservation()` and is accepted.
-3. Persisted read returns stable canonical fact identity/provenance rather than stripping or duplicating it.
-4. Mismatched stored `action_id`, `turn_number`, or `fact_id` is rejected when the current boundary can deterministically verify it.
-5. Truly unknown persisted fact fields are rejected.
-6. Fresh provider facts containing server-owned metadata remain rejected.
-7. Exact Story quote/source-block validation remains intact.
-8. Fresh-normalize -> stage/persist -> persisted-read -> Commit/reducer path succeeds with at least one open fact and non-empty `turn_summary`.
-9. Replay/idempotence does not duplicate open observations.
-10. Empty facts/empty summary cases remain valid where already allowed.
+### I. Post-deep continuity / cleanup
+After any deep turn, continue several turns if reached and verify continuity does not snap back and no processing state sticks.
+Always final-reset and prove:
+- committed_turn=0;
+- actions=0;
+- turns=0;
+- processing/pending clean;
+- setup/opening baseline;
+- progression baseline level1/exp0 unless canonical reset contract says otherwise;
+- csa_active empty/baseline;
+- Scene v1 setup baseline;
+- manual game untouched;
+- TEST Extract diagnostic disabled.
 
-Run focused tests, full `npm.cmd test`, syntax checks for modified JS/MJS, and `git diff --check`. Test count is regression evidence only.
+## Acceptance criteria
+
+PASS only if mandatory A-F plus final cleanup in I succeed and no decisive architecture/protocol defect occurs.
+G/H may be explicit coverage gaps only if normal product/harness path genuinely cannot reach them without prohibited synthetic state.
+Do not mislabel untested rows as PASS.
 
 ## Forbidden
 
-- Live TEST gameplay/LLM.
-- TEST DB writes/resets.
-- API/frontend deploy.
+- Production access/deploy/mutation.
+- Any access/mutation/reset of preserved manual game.
 - Migration edit/apply/reapply/rollback.
-- Production access/mutation/deploy.
-- Any access to preserved manual game.
-- Provider/model/temperature/token changes.
-- Retry/regeneration/fuzzy repair/synthetic facts/synthetic summary.
-- Broadening the fresh provider schema with server-owned identity fields.
-- New parser, semantic enums/classifiers, parallel fact ledger/writer.
+- Direct semantic DB edits.
+- Provider/model/temperature/token changes other than TEST-only diagnostic flag.
+- Retry/regeneration/fuzzy repair/synthetic facts/summaries.
+- Source/runtime patch after lease starts.
+- Frontend deployment.
 - New branch/PR, merge, Ready, rebase, squash, force-push.
-- Cleaning/deleting/moving/committing preserved evidence.
+- `git clean -fd`, `git reset --hard`, deletion/move/commit of preserved evidence.
 
-## Completion
+## Terminal report
 
-Before COMPLETE:
-- report START_SHA and executable FINAL_SHA separately from any docs-only descendant;
-- show the exact old self-rejection path and the corrected persisted canonical read path;
-- enumerate fresh provider fact fields vs persisted canonical fact fields;
-- show round-trip behavioral proof including Commit/reducer path;
-- report treatment of historical legitimate V2 rows with caller/data proof;
-- report focused/full/syntax/diff-check results;
-- verify live TEST/DB/deploy/migration/Production/manual-game operations all 0;
-- verify preserved evidence unchanged;
-- verify PR #67 remains OPEN / DRAFT / UNMERGED.
+Before terminal report:
+1. final-reset dedicated TEST game even on failure;
+2. disable TEST Extract diagnostic and prove it;
+3. verify PR #67 OPEN/DRAFT/UNMERGED;
+4. verify preserved repo evidence unchanged and no new repo artifact;
+5. report exact deployed executable + Worker Version(s);
+6. report scenario A-I PASS/FAIL/NOT EXERCISED with evidence references;
+7. report every failing action/turn if any;
+8. report open-fact persisted round-trip proof and scenario F summary-memory proof if reached;
+9. report final reset state;
+10. report TEMP evidence path + SHA-256.
 
-Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP. Do not launch V5 live acceptance yourself.
-
-## Terminal result — source/test correction complete
-
-- Start SHA: `dbc0c20d887bfeed1586dee9f27cc06b7df05aac`
-- Execution lease: Issue #68 comment `5300705405`
-- Old self-rejection: persisted V2 `open_facts` were sent back through the fresh/provider field allowlist, which rejected server-owned `fact_id` as `Unknown observation field: fact_id`.
-- Corrected read path: persisted V2 facts now use the canonical persisted field set, validate `fact_id`, `action_id`, `turn_number`, registered identities, exact Story quotes, and `source_block` provenance, then pass the validated observation to Commit/replay. Fresh nested facts remain limited to `subject_id`, `object_id`, `fact_text`, and `story_quote`; `source_block` and server identity metadata remain server-owned.
-- Caller proof: `normalizePersistedExtractObservation` is used only by Extract replay and Commit; both now pass parser-owned Story blocks for source provenance validation.
-- Historical compatibility: persisted V2 rows may omit server metadata; the read boundary derives the canonical metadata from the current action/turn boundary (or the stored identity when no boundary is supplied), while present metadata must match. Legacy V1 rows continue through `adaptLegacyExtractDelta`.
-- Behavioral proof: fresh block facts -> normalized canonical `open_facts` -> staged/persisted object -> persisted read -> `reduceGameplayCommit` succeeds with non-empty `turn_summary`; identity/provenance/order are retained and reducer deduplication remains idempotent.
-- Drift/unknown rejection: mismatched `fact_id`, `action_id`, `turn_number`, unknown persisted fact fields, invalid source blocks, and provider-authored server metadata are rejected.
-- Focused tests: `node --test test/extract-observation-contract.test.mjs test/turn-transaction-replay.test.mjs test/turn-pipeline-replay.test.mjs test/action-structured-persistence.test.mjs` — 61/61 PASS.
-- Full regression: `npm.cmd test` — 439/439 PASS.
-- Syntax: modified JS/MJS PASS.
-- `git diff --check`: PASS.
-- Runtime/source changes are limited to the persisted Extract contract; no prompt/provider/model, migration, DB, deploy, TEST gameplay/reset, Production, or preserved-manual-game operation occurred.
-- Preserved approved evidence remains unchanged, untracked, unstaged, and uncommitted.
-
-STOP: OPEN-FACT PERSISTED READ CONTRACT SOURCE/TEST CORRECTION COMPLETE — AWAITING REVIEWED DEPLOY / LIVE ACCEPTANCE AUTHORIZATION.
+Set CURRENT_TASK to `WAITING_REVIEW`, commit/push only the completion-state docs update if needed, post one immutable terminal report to Issue #68, and STOP. Do not patch a discovered defect or generate the next task yourself.
