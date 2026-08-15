@@ -76,3 +76,31 @@ live and requires operator review before any TEST application or deployment.
 
 `docs/ops/CURRENT_TASK.md` is set to `WAITING_REVIEW`. No next task was
 generated. PR #67 remains OPEN / DRAFT / UNMERGED.
+
+## TEST rollout result: BLOCKED
+
+The exact reviewed migration was applied once to TEST:
+`20260816000100_company_v1_opening_structured_persistence`.
+Live readback confirmed the six-argument writer, removal of the five-argument
+writer, SECURITY DEFINER, `search_path = public, pg_temp`, service_role-only
+execution, and a function body that stores `opening_state.parsed_blocks`.
+
+The exact reviewed executable from `c62c92e231a0f0b44a723474bd16a7dba1985124`
+was deployed as Worker `game-proxy-company-v1`, version
+`4660b79f-8ff3-40f5-ae1f-cd8134219f7c`, at
+`2026-08-15T19:11:34.108703Z`; `/health` returned HTTP 200 with
+`edition_id=company-v1`.
+
+The bounded canary used the dedicated TEST game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`. Setup and Opening completed, but the
+first ordinary Story stopped at the first deterministic protocol error:
+`story_protocol_invalid` / `Malformed Story control marker`.
+The action was `e0fcda84-3130-4b19-9bcd-5851f9662ae6`; no Extract or Commit
+was attempted. The preserved failure artifact is
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-canary-cut1-authority.json`.
+The canonical final reset returned HTTP 200 with `ok=true`; the artifact
+records `committed_turn=0`, `save_revision=975`, `processing_status=idle`,
+and no recent actions after reset. No retry was performed.
+
+This rollout is blocked pending operator review. No source, migration, or
+provider workaround was made.

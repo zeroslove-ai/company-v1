@@ -447,3 +447,33 @@ broader focused tests passed 80/80; full `npm.cmd test` passed 419/419;
 changed JS/MJS syntax checks and `git diff --check` passed. No DB write, TEST
 reset/live access, migration/DDL, deployment, or Production access was
 performed. PR #67 remains OPEN / DRAFT / UNMERGED; operator review is pending.
+
+## Opening structured persistence TEST rollout: BLOCKED
+
+The exact reviewed source/test/migration contract
+`c62c92e231a0f0b44a723474bd16a7dba1985124` was deployed to TEST after the
+docs-only descendant `ca25605082cd14991320f18df939b87326aed8e3` was verified
+to contain no executable changes. The additive migration
+`20260816000100_company_v1_opening_structured_persistence` was applied once;
+live migration ledger and RPC readback confirmed the canonical six-argument
+`commit_company_opening` writer, removal of the old five-argument writer,
+SECURITY DEFINER, `search_path = public, pg_temp`, service_role-only execute,
+and persistence of `opening_state.parsed_blocks`.
+
+Worker `game-proxy-company-v1` version
+`4660b79f-8ff3-40f5-ae1f-cd8134219f7c` was deployed at
+`2026-08-15T19:11:34.108703Z`; health returned HTTP 200 and
+`edition_id=company-v1`. Frontend deploy and Production access were zero.
+
+The bounded dedicated TEST canary used game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`. Setup and Opening passed, then the
+first ordinary Story failed deterministically with
+`story_protocol_invalid` / `Malformed Story control marker` for action
+`e0fcda84-3130-4b19-9bcd-5851f9662ae6`. Extract and Commit were not attempted.
+The preserved artifact is
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-canary-cut1-authority.json`.
+Canonical final reset passed with HTTP 200/`ok=true`; the artifact records
+`committed_turn=0`, `save_revision=975`, `processing_status=idle`, and no
+recent actions. No retry or workaround was performed. Cut 2 opening
+structured persistence rollout acceptance remains incomplete pending operator
+review.

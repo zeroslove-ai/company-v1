@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: opening-structured-persistence-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -112,5 +112,31 @@ On success:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
+
+## Execution outcome: BLOCKED
+
+- Start HEAD: `ca25605082cd14991320f18df939b87326aed8e3`
+- Reviewed executable/migration SHA: `c62c92e231a0f0b44a723474bd16a7dba1985124`
+- Migration applied exactly once: `20260816000100_company_v1_opening_structured_persistence`
+- Live canonical writer: six arguments; old five-argument writer absent;
+  SECURITY DEFINER; `search_path=public, pg_temp`; service_role-only
+- Worker: `game-proxy-company-v1`, version
+  `4660b79f-8ff3-40f5-ae1f-cd8134219f7c`; health HTTP 200;
+  `edition_id=company-v1`
+- Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+- Setup and Opening passed. First ordinary Story failed with
+  `story_protocol_invalid` / `Malformed Story control marker` on action
+  `e0fcda84-3130-4b19-9bcd-5851f9662ae6`.
+- Extract/Commit were not attempted. No retry or runtime/provider workaround
+  was made.
+- Preserved failure artifact:
+  `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-canary-cut1-authority.json`
+- Canonical final reset passed HTTP 200/`ok=true`; clean state recorded as
+  `committed_turn=0`, `save_revision=975`, `processing_status=idle`, with no
+  recent actions.
+- API redeploy count: 1 exact reviewed executable; frontend deploy: 0;
+  Production access: 0; migration apply count: 1 authorized migration;
+  source/migration/provider changes after review: 0.
+- This task is blocked pending operator review. No next task was generated.
 
 On blocked/failed execution, report the same identity fields available plus the first decisive failure evidence and STOP without creating a workaround task yourself.
