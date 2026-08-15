@@ -128,13 +128,16 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
       if (!Array.isArray(args.p_choices) || args.p_choices.length !== 4) {
         return json({ code: '22023', message: 'opening choices must contain exactly four items' }, 500);
       }
+      if (!args.p_parsed_blocks || typeof args.p_parsed_blocks !== 'object' || !Array.isArray(args.p_parsed_blocks.blocks)) {
+        return json({ code: '22023', message: 'opening parsed_blocks must contain an array of blocks' }, 500);
+      }
       if (currentSave.player_setup?.setup_id !== args.p_setup_id) return json({ code: '22023', message: 'player setup identity mismatch' }, 500);
       if (currentSave.player_setup?.completed === true) return json({ success: true, replayed: true, save_revision: saveRevision });
       const plan = currentSave.opening_state?.plan;
       currentSave = {
         ...currentSave,
         player: { ...currentSave.player, background: args.p_background },
-        opening_state: { ...currentSave.opening_state, story_text: args.p_story_text, choices: args.p_choices, status: 'complete' },
+        opening_state: { ...currentSave.opening_state, story_text: args.p_story_text, choices: args.p_choices, parsed_blocks: args.p_parsed_blocks, status: 'complete' },
         player_setup: { ...currentSave.player_setup, status: 'complete', completed: true },
         last_choices: args.p_choices,
         last_npcs_present: [plan?.primary_character_id, ...(plan?.supporting_character_ids ?? [])].filter(Boolean),
@@ -447,6 +450,9 @@ test('/api/opening streams background plus four choices, commits turn 0, and nev
   assert.equal(save.turn_state.committed_turn, 0);
   assert.equal(save.player_setup.completed, true);
   assert.equal(save.opening_state.status, 'complete');
+  const commitCall = mock.calls.find(call => String(call.url).endsWith('/rest/v1/rpc/commit_company_opening'));
+  const commitArgs = JSON.parse(commitCall.body);
+  assert.deepEqual(commitArgs.p_parsed_blocks, save.opening_state.parsed_blocks);
 });
 
 test('/api/opening does not author choices when the provider emits none', async () => {
@@ -504,11 +510,14 @@ test('/api/opening first-run and replay expose the same canonical parsed project
   assert.deepEqual(context.opening_turn.parsed_blocks, firstComplete.parsed_blocks);
   assert.deepEqual(context.opening_turn.choices, firstComplete.parsed_blocks.choices);
 
+  const committedBlocks = structuredClone(firstComplete.parsed_blocks);
+  mock.getSave().opening_state.story_text = '[SCENE]\nRaw Opening changed after commit';
   const replay = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
   const replayText = await readSseText(replay);
   const replayComplete = JSON.parse(replayText.split('\n\n').find(frame => frame.includes('event: complete')).split('data:')[1].trim());
   assert.equal(replayComplete.replayed, true);
-  assert.deepEqual(replayComplete.parsed_blocks, firstComplete.parsed_blocks);
+  assert.deepEqual(replayComplete.parsed_blocks, committedBlocks);
+  assert.equal(replayComplete.parsed_blocks.raw, firstComplete.parsed_blocks.raw);
   assert.equal(mock.storyCallCount(), 1);
 });
 

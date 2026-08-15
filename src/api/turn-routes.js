@@ -250,8 +250,11 @@ function hydratedSaveContext(context, master) {
 function openingTurnProjection(save, master) {
   const opening = plainObject(save?.opening_state) ? save.opening_state : null;
   if (opening?.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
+  const persistedBlocks = plainObject(opening.parsed_blocks) && Array.isArray(opening.parsed_blocks.blocks)
+    ? opening.parsed_blocks
+    : null;
   const parsedBlocks = {
-    ...parsePersistedNarrative(opening.story_text, { master }),
+    ...(persistedBlocks ?? parsePersistedNarrative(opening.story_text, { master })),
     turn_context: {
       day: 1,
       minute_of_day: Number.isInteger(opening?.plan?.minute_of_day) ? opening.plan.minute_of_day : null,
@@ -1138,7 +1141,8 @@ const master = masterFromEdition(edition);
             p_setup_id: setupId,
             p_background: background,
             p_story_text: parsedOpening.raw,
-            p_choices: finalChoices
+            p_choices: finalChoices,
+            p_parsed_blocks: parsedOpening
           });
           emit('complete', {
             setup_id: setupId, choices: finalChoices, background,
