@@ -1,134 +1,120 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: csa-natural-rule-authority-reset-v1-land-recovery
+Status: READY
+Task ID: test-level7-acceleration-seam-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
 
-## Why this recovery task exists
-
-The prior task `csa-natural-rule-authority-reset-v1` completed a local implementation and verification at local commit:
-
-`b60011c5a25684a53fcd53908128873fc31e3c9b`
-
-but correctly STOPPED because the remote branch moved during execution. The remote-only movement was operator-created and has now been independently verified:
-
-`ce19f3ed919eb1acb82701eb7a3f3d1afdf83c31..b69bcc25cecef777b87c071a120e73d1389d47c2`
-
-is exactly one docs-only commit modifying only `CURRENT_TRUTH.md` (+40/-0). There is no competing executable remote delta.
-
-The local implementation must NOT be discarded or reconstructed from memory if the commit object still exists. This task exists only to safely land that implementation source/test delta on top of the current canonical remote docs head, reverify it, and stop for operator review.
-
-## Binding topology / identities
+## Accepted starting point
 
 Repository: `zeroslove-ai/company-v1`
 Branch: `company/scene-location-presence-v1`
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
-Accepted pre-CSA executable: `efd4f167a837a9e31982b974704d9f8c9af9e4a4`.
-Original CSA task registration/start head: `ce19f3ed919eb1acb82701eb7a3f3d1afdf83c31`.
-Preserved local implementation candidate: `b60011c5a25684a53fcd53908128873fc31e3c9b`.
-Canonical remote docs-only head before this recovery registration: `b69bcc25cecef777b87c071a120e73d1389d47c2`.
-A docs-only recovery registration descendant is the expected remote HEAD when this task begins.
+Accepted executable: `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f` (`csa-natural-rule-authority-reset-v1-land-recovery`).
+Current HEAD may be a docs-only registration descendant.
+TEST Supabase: `fmcrspgxstsmxxsmkeee`.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever.
 
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` remains READ ONLY forever.
-
-## Mandatory Phase 0 — prove the local candidate before touching it
-
-1. Fetch remote.
-2. Verify the local object `b60011c5a25684a53fcd53908128873fc31e3c9b` exists and is a commit.
-3. Verify its ancestry/parent relationship against the prior task start. If it is not the expected local implementation descendant of `ce19f3ed...`, STOP/BLOCK.
-4. Inventory every path changed by `ce19f3ed... -> b60011c...`.
-5. Separately verify the canonical remote delta from `ce19f3ed...` to the current remote recovery-registration HEAD consists only of operator docs/workflow changes (`CURRENT_TRUTH.md` and `docs/ops/CURRENT_TASK.md`). Any executable remote delta means STOP/BLOCK.
-6. Preserve all approved untracked evidence artifacts untouched.
-
-## Landing method — preserve implementation, do not merge histories
-
-Do NOT merge, force-push, create another branch, or blindly rebase the whole local commit including its stale CURRENT_TASK patch.
-
-Land the local candidate as follows, or an exactly equivalent safe procedure:
-
-1. Save the immutable source identity `b60011c...` and its changed-path/diff evidence.
-2. Bring the local checked-out canonical branch to the current `origin/company/scene-location-presence-v1` docs-only recovery-registration HEAD only after the local candidate object is proven safely addressable.
-3. Reapply ONLY the implementation/runtime/test/content delta from `b60011c...`, explicitly EXCLUDING `docs/ops/CURRENT_TASK.md` and excluding any operator-updated `CURRENT_TRUTH.md`.
-   - Prefer a path-scoped diff/apply or equivalent deterministic transfer from the local commit.
-   - Do not manually re-author the implementation from prose.
-4. Commit the reapplied implementation as a new executable commit on top of the current canonical docs head.
-5. Prove that the new executable commit's runtime/test/content diff is equivalent to the corresponding runtime/test/content diff in `b60011c...`. Differences are allowed only where the new canonical docs/current-task context requires docs-only changes; any unexplained executable difference => STOP/BLOCK.
-6. Run the required validation again.
-7. Only after validation passes, set this CURRENT_TASK to `WAITING_REVIEW` in a docs/workflow-only descendant if needed and push fast-forward normally.
-
-Local `reset --hard` is not a default instruction. If local branch positioning cannot be achieved without destructive history movement, STOP/BLOCK and report the exact Git graph instead. Do not risk the preserved local implementation object or untracked evidence.
-
-## Expected implementation semantics to preserve
-
-The landed implementation must remain the CSA natural-rule authority reset already reported from `b60011c...`:
-
-- remove fresh CSA finite physical execution grammar as Story/Commit authority;
-- remove mandatory-enactment/direct-coverage/relation-switch authority from the fresh path;
-- remove old CSA runtime/aftereffect writers where superseded;
-- keep active institutional `world_rules` / human-readable rule context;
-- keep CSA app lifecycle, level/slot/strength/product capability, applicable registered identity and transaction/idempotence mechanics where actually used;
-- Story authors the natural HOW; no exact physical action/posture token is required;
-- Extract open facts observe what actually happened;
-- ACTING may remain a visible narrative block, but legacy `enactment_id` / `actor_id` / `posture_after` attributes must not become fresh durable semantic authority;
-- institutional compliance must not mechanically write affinity/romance/trust/emotion/consent/sexual willingness;
-- compact clothing UI continuity remains a narrow projection;
-- image/media including sexual image pools/tags remain presentation adapters and must not gate narrative facts;
-- setup catalogs, stable registered character/location IDs, canonical scene integrity, open facts, literal provider choices, action/turn transactionality and replay remain intact;
-- retained historical execution readers, if any, are LEGACY_READ_ONLY only.
-
-The six-stage main-loop canon now in `CURRENT_TRUTH.md` is binding and must remain byte-preserved through this recovery:
+Canonical spine remains:
 `player input/choice -> Story -> Extract -> Commit -> game_save/game_turns -> Context/History/UI/next Story`.
-Sidecars must not become competing semantic authorities or turn blockers.
+CSA is now a narrow institutional rule/context system; Story owns natural HOW and Extract/open facts observe actual outcomes.
 
-## Validation
+## Goal
 
-At minimum:
-- rerun the focused CSA/open-observation/Story contract tests relevant to the local implementation;
-- full `npm.cmd test`;
-- syntax checks for modified JS/MJS;
-- `git diff --check`;
-- inspect the final executable diff against both the current canonical docs head and the preserved local candidate;
-- verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED;
-- DB writes/resets, migration apply, live TEST gameplay/LLM, deploy, Production access, and manual-game mutation must all be 0.
+Create exactly one safe TEST-only Level-7 acceleration seam for future deep acceptance. The seam exists only to avoid ~100 organic low-level turns needed to unlock strong CSA scenarios. It must not alter Production progression, become a second gameplay writer, or permit arbitrary save mutation.
 
-The prior local report had 420/420 full tests; do not treat that count as correctness proof and do not force the new suite to have the same count if source/test files are byte-equivalent and current branch context changes counts legitimately. Explain any difference.
+This is a source/test/harness cut only. Do not perform live TEST gameplay, DB mutation/reset, migration apply, or deploy in this task.
+
+## Phase 0 — inventory before implementation
+
+Trace current progression authority end to end:
+- where `player_progress.level` / EXP are initialized, validated, advanced, persisted and read;
+- exact Lv7 strong-CSA capability checks and slot/strength gates;
+- existing TEST/canary/E2E/reset/setup helpers and whether any already provide a safe seed/override boundary;
+- runtime environment/config surfaces that could accidentally expose a test override to Production;
+- DB/RPC validators that would reject or independently rewrite an accelerated state.
+
+Classify candidate seams. Prefer, in order:
+1. a dedicated test harness/seed helper that uses the same canonical setup/reset transaction boundary and can target only an explicitly disposable TEST game;
+2. a narrowly authenticated TEST-only API/helper impossible to enable through normal Production configuration;
+3. if neither is structurally safe, STOP/BLOCK with a concrete design instead of adding direct DB mutation.
+
+Do not add a generic save patch endpoint, arbitrary level setter, SQL console mutation recipe, hidden Production flag, or second progression writer.
+
+## Required implementation
+
+Implement the smallest safe seam proven by Phase 0.
+
+Required properties:
+- can establish the dedicated disposable TEST acceptance game at Level 7 capability without simulating ~100 turns;
+- cannot operate on the preserved manual game;
+- cannot be activated in Production through ordinary runtime configuration;
+- is explicit and auditable in source; no magic environment-name guessing if stronger project/identity proof is available;
+- writes through one canonical transaction/seed boundary, not ad-hoc table updates;
+- does not change normal setup/opening/progression behavior;
+- does not change Production XP thresholds, level formula, CSA unlock rules, slot rules, or strength rules;
+- idempotent for the same disposable test fixture where practical;
+- reset returns the disposable game to canonical baseline and removes the acceleration state;
+- no semantic gameplay facts, relations, emotions, physical outcomes, CSA compliance outcomes, clothing state, or Story results are manufactured by the seam. It grants capability only.
+
+If the safest design requires an additive migration/RPC, repository migration source may be authored but MUST NOT be applied in this task. Historical applied migrations remain immutable. If an unapplied migration is necessary for the seam, stop at source review; live use belongs to a later authorized task.
+
+## Required tests
+
+Prove at minimum:
+1. normal Production/runtime progression semantics are byte/behavior unchanged outside the isolated seam;
+2. Level 7 capability is available through the seam for an explicitly disposable TEST fixture;
+3. the seam rejects/has no route for arbitrary game IDs and explicitly protects `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+4. strong CSA availability derives from the existing canonical Lv7 rules, not a duplicated test-only strength rule;
+5. reset/baseline behavior removes the accelerated capability state;
+6. no direct semantic save patch or second gameplay writer is introduced;
+7. CSA natural-rule/open-fact/clothing/media/choices/replay tests remain intact.
+
+Run focused tests, full suite, syntax checks for modified JS/MJS, and `git diff --check`. Test count is supporting evidence only.
+
+## Next live acceptance design to record, not execute
+
+The terminal report must specify the exact next live-acceptance procedure using this seam. It must be scenario-coverage driven, not fixed-turn-count driven, and cover enough turns/scenes to prove:
+- ordinary conversation and free text;
+- exactly four provider-authored literal choices and selected-literal round trip;
+- arbitrary emotion/relation/event open facts outside old enums;
+- active strong CSA reaching Story as natural institutional context;
+- compliance and resistance/reaction remaining distinct from consent/comfort/affection/trust/emotion;
+- posture/contact outside old CSA vocabularies without mandatory enactment/direct coverage;
+- compact clothing UI continuity;
+- intimate/sexual-path state/memory behavior when explicitly exercised, without finite semantic gates;
+- multi-turn memory/readback after important facts leave the immediate recent-turn window;
+- image/media, including sex/general pools and sexual image families, remaining presentation-only: no/alternate image must never erase or reject the narrative fact;
+- replay/recovery/idempotence;
+- final dedicated TEST reset.
+
+Do not manufacture Story outcomes merely to satisfy acceptance. If a scenario cannot deterministically prove an invariant without changing gameplay semantics, design bounded evidence capture and fail/block rather than retrying until lucky.
 
 ## Forbidden
 
-- Production access/mutation.
-- TEST live gameplay/LLM calls.
-- DB writes/resets, DDL/migration apply, deploy.
+- Production access/mutation/deploy.
+- Any live TEST gameplay/LLM call, DB write/reset, DDL/migration apply, or Worker deploy in this source cut.
 - Mutation/reset of preserved manual game.
-- New branch/PR, merge commit, PR Ready, squash, force-push.
-- Editing historical applied migrations.
-- Reconstructing the implementation from memory when `b60011c...` is available.
-- Losing or cleaning approved untracked evidence artifacts.
-- Provider/model/temperature/token changes, retries/regeneration, fuzzy semantic repair, regex semantic classifiers, parser relaxation/new parser, new physical enum/taxonomy.
+- New branch/PR, merge, Ready, rebase, squash, force-push.
+- Provider/model/temperature/token changes, retries/regeneration.
+- Fuzzy semantic repair, regex semantic inference, parser relaxation/new parser, semantic hard gates.
+- New finite event/relation/emotion/posture/sexual taxonomy.
+- Direct player-input success inference or arbitrary LLM save patch.
+- Removing/degrading image/media or sexual-image catalogs because they are finite.
 
 ## Terminal report
 
-The recovery implementation is landed and waiting for operator review.
+Before COMPLETE:
+- report START_SHA and executable FINAL_SHA;
+- list exact progression writers/readers and chosen seam ownership;
+- explain why the seam is TEST-only and why Production cannot activate it normally;
+- prove normal progression/Lv7 CSA rules were not duplicated or changed;
+- list runtime/test/migration files changed;
+- report focused/full/syntax/diff-check results;
+- verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED;
+- verify live TEST/LLM, DB write/reset, migration apply, deploy, Production and preserved-game mutation are all 0;
+- give the exact proposed next live-acceptance procedure and cleanup/reset boundary.
 
-- Preserved local candidate: `b60011c5a25684a53fcd53908128873fc31e3c9b`, parent `ce19f3ed919eb1acb82701eb7a3f3d1afdf83c31`.
-- Recovery start head: `30865263b8f63ae359d73a3eaea6476975a104b9`.
-- Landed executable: `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`.
-- The runtime/test implementation tree is byte-equivalent to the preserved candidate. `docs/ops/CURRENT_TASK.md` and operator-maintained `CURRENT_TRUTH.md` were excluded from the executable transfer.
-- Focused CSA/open-observation/Story tests passed 73/73; full `npm.cmd test` passed 420/420; modified JS/MJS syntax and `git diff --check` passed.
-- No live TEST gameplay/LLM, DB write/reset, migration apply, deploy, Production access, or preserved manual-game mutation was performed.
-
-No next task was generated. Stop for PR #67 operator review.
-
-On success report:
-- original local candidate `b60011c...` proof and parent/changed paths;
-- recovery START_SHA;
-- new landed executable FINAL_SHA;
-- exact source/test/content equivalence result versus local candidate;
-- any paths deliberately excluded (`CURRENT_TASK.md`, operator `CURRENT_TRUTH.md`);
-- focused/full/syntax/diff-check results;
-- PR #67 state;
-- all forbidden live/DB/deploy/Production/manual-game operations = 0.
-
-Then set CURRENT_TASK to `WAITING_REVIEW`, post one immutable terminal report to Issue #68, and STOP. Do not start live acceptance or another Cut automatically.
+Then set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP.
