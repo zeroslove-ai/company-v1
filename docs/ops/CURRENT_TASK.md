@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: committed-parsed-blocks-replay-authority-v1
+Status: READY
+Task ID: opening-structured-replay-authority-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,13 +13,10 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Accepted gameplay executable before compatibility cleanup:
-`0fc509911e5bdf5aabb92fe5241a845f686bdb17`.
+Accepted current-format replay source/test SHA:
+`7b61c9fd69930e82afc97a2dc907136ce3678beb`.
 
-Accepted compatibility cleanup source/test SHA:
-`1025f4da096389838328afc1982ba9a47d421421`.
-
-Operator review: Issue #68 comment `5303044529`.
+Operator review: Issue #68 comment `5303313116`.
 
 Current narrative continuity remains latest 6 committed raw turns + chronological older natural-language `turn_summary`. Do not restore open_facts/open_observations or general relation/event/emotion/work memory authority.
 
@@ -27,53 +24,58 @@ Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and m
 
 ## Objective
 
-Close the remaining persisted Story reparse compatibility window where current committed `parsed_blocks` already provide replay/recovery authority.
+Close the remaining Opening replay/recovery authority gap identified by the accepted parsed-blocks cut. Ordinary committed turns now replay from committed `parsed_blocks`; Opening must no longer require a separate prose-reparse semantic authority if its persisted contract can carry the same structured presentation state.
 
-Inventory actual stored-turn shapes and all replay/history/recovery callers. Make committed `parsed_blocks` the sole reader for current-format committed turns. Retain raw Story reparsing only as the minimum inert historical adapter for rows that demonstrably lack usable committed structured blocks. Delete redundant reparsing paths/tests once caller/data proof reaches zero.
-
-This is deletion-first. Do not create a replacement parser, semantic fallback, or compatibility wrapper.
+Use REMOVE-OR-PROVE. Prefer extending the existing canonical Opening persistence/readback contract to store/read structured blocks and deleting duplicate Opening reparse/projection paths. Do not create a second parser, a new semantic fallback, or a compatibility wrapper merely to preserve stale tests.
 
 ## Required work
 
-### A. Current committed replay authority
+### A. Inventory the Opening boundary
 
-- Inventory where `game_turns.parsed_blocks`, raw Story text, `parsePersistedNarrative`, and any reparse helpers are read.
-- Prove the current commit path persists sufficient structured/parsed representation for current-format turns.
-- Route current-format replay/history/recovery through committed `parsed_blocks` without reparsing raw Story.
-- If any current caller reparses raw Story despite usable committed blocks, delete that reparse dependency and rewrite/delete stale tests accordingly.
+- Inventory `commit_company_opening`, opening save/action fields, setup/opening API routes, frontend opening recovery, persisted opening projection, and every raw-opening Story parser/reparse caller.
+- Prove exactly what current Opening persistence lacks compared with ordinary committed turns.
+- Identify any historical Opening rows that genuinely require an inert compatibility read boundary.
 
-### B. Historical compatibility window
+### B. Make committed structured Opening state authoritative
 
-- Determine from repository fixtures/contracts and non-mutating source evidence which historical stored rows can lack usable `parsed_blocks`.
-- If such rows are genuinely supported, retain one minimum inert fallback boundary using the existing historical parser only for those rows.
-- The fallback must never be used for fresh generation/current committed rows and must not become semantic authority.
-- If no concrete historical consumer/data shape remains, delete the persisted reparse boundary entirely.
+- If the existing DB/API contract can persist structured Opening blocks without DDL, use the existing canonical field/boundary and remove redundant reparsing.
+- If additive DDL/RPC change is genuinely required, STOP with BLOCKED evidence and the exact minimal migration/API contract needed. Do not author/apply migration in this source/test lease.
+- Current-format Opening replay/recovery/frontend hydration must prefer committed structured state over reparsed raw prose.
+- Raw Opening Story remains presentation/evidence text; it must not override usable committed structured state.
 
-### C. Preserve product consumers
+### C. Delete superseded paths/tests
 
-Do not regress scene/location/presence, npc_stats, physical/compact clothing, time/progression/TEST-only Lv7 seam, CSA identity/lifecycle/applicability, literal choices/free text, Mind Monitor, sexual_event_ledger, or image/media presentation adapters. Media classification must never gate Story/Extract fact occurrence.
+- Delete zero-consumer Opening reparse/projection helpers, aliases, and stale implementation-detail tests once caller/data proof reaches zero.
+- Retain only one minimum inert historical read adapter if concrete historical stored shape proves it is required.
+- Do not add runtime compatibility solely to keep old tests green.
+
+### D. Preserve proven product consumers
+
+Do not regress setup catalogs/stable IDs, scene/location/presence, npc_stats, physical/compact clothing, time/progression/TEST-only Lv7 seam, CSA identity/lifecycle/applicability, literal exactly-four choices/free text, Mind Monitor, sexual_event_ledger, or image/media presentation adapters. Media classification failure must never gate Story/Extract fact occurrence.
 
 ## Required proof
 
-Add/update focused tests proving:
-1. current committed turns replay/recover from committed `parsed_blocks` without invoking raw Story parser;
-2. literal four choices, dialogue/TTS-visible blocks, inner thought/status, and history ordering remain identical;
-3. historical rows without usable structured blocks remain readable only if concrete support is proven;
-4. malformed historical fallback cannot overwrite current committed structured authority;
-5. six-raw + older-summary context remains unchanged;
-6. no new parser/gateway/semantic fallback is introduced;
-7. full suite, changed-file syntax checks, and `git diff --check` pass.
+Focused tests must prove, where source contract permits:
+1. current Opening replay/recovery uses committed structured blocks and does not reparse raw Story;
+2. mutating raw Opening prose after persistence cannot replace usable committed structure;
+3. literal four choices and visible dialogue/ACTING/inner-thought/status projection remain intact;
+4. frontend refresh/recovery reads committed Opening authority;
+5. historical unstructured Opening remains readable only if concrete support is proven;
+6. six-raw + older-summary ordinary-turn context is unchanged;
+7. no new parser/gateway/semantic fallback is introduced;
+8. full suite, changed-file syntax checks, and `git diff --check` pass.
 
 Test count alone is not acceptance evidence.
 
 ## Architecture constraints
 
 - one durable domain -> one canonical writer/reader authority;
-- current committed structured data outranks reparsed prose;
-- Story authors narrative; Extract observes; Commit persists; replay reads committed authority;
+- committed structured data outranks reparsed prose;
+- Story authors narrative; Extract observes; Commit persists; replay/recovery reads committed authority;
 - no semantic enums/allowlists/regex/fuzzy gates for open-ended narrative meaning;
 - no direct player-input success inference or arbitrary LLM save patch;
-- exactly-four choices are presentation shape, not semantic taxonomy.
+- exactly-four choices are presentation shape, not semantic taxonomy;
+- institutional CSA compliance remains separate from consent/comfort/affection/emotion.
 
 ## Authorized operations
 
@@ -84,28 +86,15 @@ No TEST live gameplay, DB write/reset, migration/DDL, Worker/frontend deployment
 
 - new branch/PR, merge, Ready, rebase, squash, force-push;
 - Production access or manual-game access;
-- provider/model/temperature/token changes or retries;
+- provider/model/temperature/token changes or retries/regeneration;
 - third parser generation, parser relaxation, new semantic gateway/classifier/ledger/graph;
 - compatibility runtime solely to rescue stale tests;
 - editing historical applied migrations;
-- direct DB mutation.
+- direct DB mutation;
+- applying or deploying a migration in this lease.
 
 ## Completion
 
-Commit source/test changes separately from final docs handoff where practical. Report exact source/test SHA and final docs SHA. Set CURRENT_TASK to WAITING_REVIEW in docs-only completion commit, post one immutable terminal report to Issue #68, and STOP.
+If source-only closure is possible, commit source/test changes separately from final docs handoff where practical, report exact source/test SHA and final docs SHA, set CURRENT_TASK to WAITING_REVIEW, post one immutable terminal report to Issue #68, and STOP.
 
-## Completion handoff
-
-Source/test commit: `7b61c9fd69930e82afc97a2dc907136ce3678beb`.
-
-Committed current-format `parsed_blocks.blocks` is now preferred by the
-replay/history/Extract/Commit callers in `src/api/turn-routes.js`; the one
-existing `parsePersistedNarrative` boundary remains only for rows without
-usable structured blocks. Focused replay/structured-persistence tests passed
-11/11, the broader focused set passed 80/80, and `npm.cmd test` passed 419/419.
-Changed JS/MJS syntax checks and `git diff --check` passed. No DB writes, TEST
-reset/live access, migrations, deployments, or Production access occurred.
-
-Audit: `docs/audit/COMMITTED_PARSED_BLOCKS_REPLAY_AUTHORITY_2026-08-16.md`.
-
-This task is complete for operator review. No next task was generated.
+If additive DB/RPC contract is required, do not patch around it. Record exact caller/schema evidence, set CURRENT_TASK to BLOCKED or WAITING_REVIEW as appropriate, post one immutable terminal report, and STOP for operator authorization of a dedicated migration cut.
