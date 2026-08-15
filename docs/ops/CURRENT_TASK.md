@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v2
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -178,6 +178,31 @@ On success OR first decisive failure/block:
 - Production access/mutation/deploy.
 - Any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`.
 - Migration reapply/rollback.
+
+## Execution result — BLOCKED
+
+TASK_ID: `deep-level7-live-acceptance-v2`
+EXECUTION: `BLOCKED`
+TASK_BLOB_SHA: `41e0c6cc1f61e1eded286eaadbfa6526ee509e0`
+START_SHA: `56616b8439f8b933a528a0fc20e1656adad85278`
+REVIEWED_GAMEPLAY_EXECUTABLE_SHA: `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`
+
+Read-only preflight passed: PR #67 remained OPEN/DRAFT/UNMERGED; the approved gameplay/runtime diff had no executable drift beyond the accepted seam/script/test and docs; migration `20260815000100 / company_v1_test_level7_acceleration` was applied exactly once; `prepare_company_test_level7_fixture(uuid,text)` remained SECURITY DEFINER with `search_path=public, pg_temp`, service_role EXECUTE only, and no anon/authenticated/public EXECUTE; Worker `game-proxy-company-v1` remained version `0df3468e-65f3-45c4-9e3b-9ea36ae21d54` and health returned HTTP 200 with `edition_id=company-v1`; the disposable TEST game was clean at baseline.
+
+The Level-7 fixture was invoked exactly once in this task and returned `{level:7,exp:0}` without manufacturing Story, semantic facts, relations, emotions, clothing, CSA compliance, actions, or turns. No reset-owning canary or redeploy was used after fixture setup.
+
+Direct normal API execution then produced:
+
+- Opening completed with four choices.
+- Turn 1 action `196a6940-2de3-4646-b07f-b36767f1e0e3`: selected opening literal path; Story/Extract/Commit passed.
+- Turn 2 action `e262781b-14bb-4ef2-aa9a-3f0c1a73d117`: independent free-text Story/Extract/Commit passed.
+- Turn 3 action `89984add-936b-40d8-86a4-0496ced11e86`: Story/Extract/Commit transport passed, but Extract emitted zero `open_facts` for the exact Story evidence. This is the first decisive acceptance block; no retry was made.
+
+Therefore strong CSA, posture/contact, clothing, intimate/sexual, long-horizon, media, and replay criteria were not attempted after the B block. Temporary evidence is preserved at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v2-evidence.json`.
+
+Canonical cleanup reset passed. Final readback: `committed_turn=0`, `processing_status=idle`, `player_progress={level:1,exp:0}`, setup/opening not_started, `csa_active=[]`, actions=0, turns=0, Scene v1 baseline.
+
+No gameplay/source patch, migration apply/reapply, Worker redeploy, Production access, preserved manual-game access, frontend deploy, retry/regeneration/provider change, merge, Ready transition, or next task occurred after the v2 start. Preserved evidence remains unchanged and uncommitted.
 - Worker/frontend deploy unless this task explicitly stops and requests a separate authorization; default is zero deploys.
 - Gameplay/source/test/migration patch.
 - New branch/PR, merge, Ready, rebase, squash, force-push.
