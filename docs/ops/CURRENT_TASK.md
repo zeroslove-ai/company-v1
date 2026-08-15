@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: extract-open-fact-coverage-contract-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -143,3 +143,43 @@ Before COMPLETE:
 - verify live TEST/LLM, DB write/reset, migration apply/reapply, deploy, Production and preserved-game access are all 0.
 
 Then set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP. Do not start another live acceptance until operator review.
+
+## Execution handoff — WAITING_REVIEW
+
+- `START_SHA`: `458572da11ff915f9e93360a39197fb67b03d7d5`
+- `EXECUTABLE_FINAL_SHA`: `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0`
+- `TASK_BLOB_SHA`: `ad4148de07b14aaacdfe85f52967e2c436bd1452`
+- `EXPECTED_BRANCH`: `company/scene-location-presence-v1`
+
+### Evidence and root cause
+
+The preserved deep-v2 artifact records the decisive Turn 3 action `89984add-936b-40d8-86a4-0496ced11e86`: Story, Extract, and Commit all returned successfully, while the accepted Extract object contained `open_facts: []` and `warnings: []`; the later durable `open_observations` remained empty. The artifact does not retain the provider's raw LLM envelope, so it cannot prove whether the empty array was emitted by the provider or produced by normalization. Source proof does establish the contract gap: `normalizeOpenFacts` accepted undefined/null/empty values and no fresh validator related Extract accounting to the existing ordered Story blocks. The fix therefore closes the proven silent-omission boundary without attributing an unrecorded provider response.
+
+### Chosen contract
+
+The existing `parseFreshNarrativeV2(...).blocks` order is projected as `story:<index>` structural inputs for `scene`, `narrative`, `dialogue`, and `acting` blocks. Fresh Extract must return exactly one `observation_coverage` entry per block with `decision: "facts"` or `"none"`. `none` is legal and does not assert semantic absence beyond this Extract decision. Each open fact in the fresh path must use a covered `source_block`, a registered subject/object, and an exact quote contained in that block. Missing/duplicate/mismatched coverage and fabricated block provenance fail structurally; no keyword inference, old semantic enum, minimum-fact rule, retry, or synthetic fact was added.
+
+### Source/test changes
+
+Changed:
+
+- `src/engine/fresh-narrative-parser.js`: structural block projection helper only; no new parser.
+- `src/engine/extract-prompt.js`: sends block identities and the compact coverage contract; raw Story remains the sole text evidence.
+- `src/engine/runtime-core/extract-observation.js`: validates coverage, exact block quotes, source provenance, and preserves normalized coverage through persisted/replay normalization.
+- `src/api/turn-routes.js`: passes parsed Story blocks and does not convert structural coverage/provenance failures into degraded success; ordinary malformed optional Extract output retains the existing fail-open behavior.
+- `test/extract-observation-contract.test.mjs`: arbitrary facts, explicit zero-fact coverage, omitted blocks, fabricated provenance, and prompt behavior.
+- `test/turn-pipeline-replay.test.mjs`: behavioral mocks now satisfy the structural contract while retaining replay/commit coverage.
+
+No fresh Extract fields were removed. Existing narrow scene/presence, compact clothing, sexual counters, image/media, and mind-monitor projections remain bounded by their current consumers. Existing fresh closed event/relation/emotion compatibility normalization remains `LEGACY_READ_ONLY` at `src/api/turn-routes.js` -> `normalizeFreshExtractObservationV2`; deletion requires a later deployed-provider contract proving no fresh caller sends those legacy fields. No migration or DB shape was needed.
+
+### Validation and forbidden operations
+
+- Focused lifecycle/narrative/extract/turn tests: PASS.
+- Full `npm.cmd test`: `429/429 PASS` (regression signal; count is not acceptance).
+- Modified JS/MJS syntax: PASS.
+- `git diff --check`: PASS.
+- Live TEST/LLM: `0`; DB writes/resets: `0`; migration apply/reapply: `0`; deploy: `0`; Production/preserved-game access: `0`.
+- Preserved repository evidence: 16 files unchanged, untracked, unstaged, and uncommitted.
+- PR #67 remains `main` base, OPEN / DRAFT / UNMERGED.
+
+No next task was generated. Stop at `WAITING_REVIEW` pending operator review.
