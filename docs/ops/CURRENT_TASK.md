@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: live-acceptance-sse-reader-canonicalization-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -96,3 +96,27 @@ On success:
 - Retry/regeneration/fuzzy repair/new semantic parser/gate.
 - Gameplay runtime semantic changes.
 - New generic gateway/wrapper.
+
+## Execution completion — pending review
+
+- Execution lease: Issue #68 comment `5301679253`.
+- Start SHA: `a3629fefe5df4375356fd470b8fec8d680ace731`.
+- Start CURRENT_TASK blob SHA: `821c4771169e0ee38bb247b32287ca6b7b2ed91b`.
+- Harness changes are complete and are pending operator review; the final
+  source/docs SHA and final CURRENT_TASK blob SHA will be recorded by the
+  terminal report after commit/push.
+- Added `scripts/live-sse-decoder.mjs` as the single transport-only decoder.
+- Updated `scripts/live-playtest-canary.mjs`,
+  `scripts/live-phase-2-e2e.mjs`, and
+  `scripts/live-csa-extract-diagnostic.mjs` to use the shared decoder.
+- Added `test/live-sse-decoder.test.mjs` with LF, CRLF, multiple-data,
+  terminal-error, malformed/non-SSE, chunk-boundary, and incomplete-frame
+  behavior assertions.
+- Focused harness validation: `25/25` passed.
+- Full local validation: `npm.cmd test`, `449/449` passed.
+- Changed-file syntax checks and `git diff --check`: passed.
+- The immutable V5 evidence contains only response hash/byte metadata and no
+  recoverable raw frame body; the test uses a V5-compatible meta/block_start/
+  complete fixture and does not claim to reproduce the unavailable raw body.
+- Live operations: TEST/DB/deploy/reset/migration/Production/manual-game = 0.
+- Preserved V5 evidence was read only and remains unchanged.
