@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v3
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -214,6 +214,18 @@ On success OR first decisive failure:
 - Semantic regex/heuristic repair, synthetic facts, parser relaxation/new parser, new finite event/relation/emotion/posture/sexual taxonomy.
 - Direct DB mutation to manufacture gameplay state.
 - New branch/PR, merge, Ready, rebase, squash, force-push.
+
+## Execution result — BLOCKED
+
+Execution identity: `deep-level7-live-acceptance-v3` / task blob `eb39d08b88a5e6e3e7d664660aacde9da5367e11` / branch `company/scene-location-presence-v1`.
+
+- TEST Worker `game-proxy-company-v1` was deployed through the existing Stage B contract-gated path from exact reviewed executable `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0`; Version ID: `d2138893-f96b-4539-9d69-bda4ca0511f3`.
+- Level-7 seam `prepare_company_test_level7_fixture` was invoked exactly once on the disposable TEST game. Result: `{level:7, exp:0}` with no actions, turns, facts, relations, emotion, clothing, or CSA state manufactured.
+- A: **BLOCKED** at first ordinary selected-literal turn. Opening setup succeeded with exactly four choices and the first displayed literal was sent as `player_action`; decisive action `22535b2b-2bc9-49c5-ab15-3ca8f93bd44e` reached Story successfully but Extract returned `story_observation_coverage_mismatch` (`Block story:0 declares facts without a fact`). No retry or regeneration occurred.
+- B–I: **NOT ATTEMPTED** after the first decisive A failure. No `decision:none` acceptance judgment was made.
+- Decisive evidence is preserved outside the repository at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v3-evidence.json` (SHA-256 `ADD4752EE76856FA129B76F495AD7C68362C2E77ACC3D502C48A67A12864D0FD`). It contains raw Story/parsed blocks, the normalized Worker response/error, action identity, and readback. The Worker response did not expose a raw provider Extract envelope, so provider output versus normalization cannot be inferred.
+- Final canonical reset: PASS. TEST readback: `committed_turn=0`, `save_revision=918`, `processing_status=idle`, `player_progress.level=1`, setup/opening `not_started`, `csa_active=[]`, `game_actions=0`, `game_turns=0`, Scene v1 baseline.
+- Operations: migration apply/reapply `0`; frontend deploy `0`; Production/manual-game access `0`; source patch/retry/provider change `0`.
 
 ## Terminal report
 
