@@ -67,6 +67,78 @@ test('fresh Extract preserves arbitrary evidence-backed facts and skips invalid 
   assert.ok(result.warnings.some(warning => warning.includes('OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY')));
 });
 
+test('fresh Extract accounts for Story blocks while preserving arbitrary open facts', () => {
+  const storyBlocks = [
+    { type: 'narrative', text: 'Hayeon agreed to postpone the meeting. Hayeon felt relieved.' },
+    { type: 'dialogue', text: 'We can decide together tomorrow.' }
+  ];
+  const storyText = storyBlocks.map(block => block.text).join('\n');
+  const result = normalizeFreshExtractObservationV2(valid({
+    open_facts: [
+      { subject_id: 'heroine1', object_id: 'player', fact_text: 'Hayeon agreed to postpone the meeting.', story_quote: 'Hayeon agreed to postpone the meeting.', source_block: 'story:0' },
+      { subject_id: 'heroine1', object_id: null, fact_text: 'Hayeon felt relieved.', story_quote: 'Hayeon felt relieved.', source_block: 'story:0' }
+    ],
+    observation_coverage: [
+      { block_id: 'story:0', block_type: 'narrative', decision: 'facts' },
+      { block_id: 'story:1', block_type: 'dialogue', decision: 'none' }
+    ]
+  }), { npcIds: NPCS, storyText, storyBlocks, expectedTurn: 4, actionId: 'coverage-facts' });
+  assert.deepEqual(result.observation_coverage, [
+    { block_id: 'story:0', block_type: 'narrative', decision: 'facts' },
+    { block_id: 'story:1', block_type: 'dialogue', decision: 'none' }
+  ]);
+  assert.equal(result.open_facts.length, 2);
+});
+
+test('fresh Extract permits an explicit zero-fact decision for every Story block', () => {
+  const storyBlocks = [
+    { type: 'scene', text: 'The office lights stayed on.' },
+    { type: 'acting', text: 'The player checked the clock.' }
+  ];
+  const result = normalizeFreshExtractObservationV2(valid({
+    observation_coverage: [
+      { block_id: 'story:0', block_type: 'scene', decision: 'none' },
+      { block_id: 'story:1', block_type: 'acting', decision: 'none' }
+    ]
+  }), { npcIds: NPCS, storyText: storyBlocks.map(block => block.text).join('\n'), storyBlocks, expectedTurn: 4, actionId: 'coverage-none' });
+  assert.deepEqual(result.open_facts, []);
+  assert.deepEqual(result.observation_coverage.map(item => item.decision), ['none', 'none']);
+});
+
+test('fresh Extract rejects omitted Story block coverage and fabricated provenance', () => {
+  const storyBlocks = [
+    { type: 'narrative', text: 'Hayeon accepted the apology.' },
+    { type: 'acting', text: 'She folded the note.' }
+  ];
+  const baseOptions = { npcIds: NPCS, storyText: storyBlocks.map(block => block.text).join('\n'), storyBlocks, expectedTurn: 4, actionId: 'coverage-invalid' };
+  assert.throws(
+    () => normalizeFreshExtractObservationV2(valid({ observation_coverage: [{ block_id: 'story:0', block_type: 'narrative', decision: 'none' }] }), baseOptions),
+    error => error.code === 'STORY_OBSERVATION_COVERAGE_INCOMPLETE'
+  );
+  assert.throws(
+    () => normalizeFreshExtractObservationV2(valid({
+      open_facts: [{ subject_id: 'heroine1', object_id: 'player', fact_text: 'fabricated', story_quote: 'She folded the note.', source_block: 'story:0' }],
+      observation_coverage: [
+        { block_id: 'story:0', block_type: 'narrative', decision: 'facts' },
+        { block_id: 'story:1', block_type: 'acting', decision: 'none' }
+      ]
+    }), baseOptions),
+    error => error.code === 'OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_BLOCK'
+  );
+});
+
+test('Extract prompt exposes structural Story block identities without duplicating block text', () => {
+  const parsedStory = { blocks: [{ type: 'narrative', text: 'Hayeon accepted the apology.' }, { type: 'choice', text: 'not an observation block' }] };
+  const [system, user] = buildExtractPrompt({
+    context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } },
+    storyText: 'Hayeon accepted the apology.', parsedStory, expectedTurn: 4, edition: { characters: { characters: {} }, map: { locations: [] } }, npcIds: NPCS
+  });
+  const payload = JSON.parse(user.content);
+  assert.deepEqual(payload.story_observation_blocks, [{ block_id: 'story:0', block_index: 0, block_type: 'narrative' }]);
+  assert.equal(user.content.includes('Hayeon accepted the apology.'), true);
+  assert.match(system.content, /observation_coverage/);
+});
+
 test('physical, posture, intimate, and sexual outcomes outside CSA vocabulary survive as open facts', () => {
   const storyText = 'Hayeon leaned against the desk. Hayeon held the player hand. Hayeon kissed the player. Hayeon felt unexpectedly shy.';
   const result = normalizeFreshExtractObservationV2(valid({

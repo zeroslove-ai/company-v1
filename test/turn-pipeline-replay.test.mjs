@@ -8,6 +8,7 @@ import { masterFromEdition } from '../src/api/turn-routes.js';
 import edition from '../src/api/edition.js';
 import { HttpError } from '../src/api/http.js';
 import { parsedTurnNarrative } from '../src/frontend/pages/render.js';
+import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -89,13 +90,23 @@ function createMockFetch({
   const baseSave = readJson('fixtures/phase-0.5/canonical-save-v1.json');
   const save = saveOverride ?? baseSave;
   const context = { game: { id: gameId, edition_id: 'company-v1' }, save: { data: save }, recent_turns: [] };
-  const extract = extractEnvelope ?? {
+  const coverageStory = storySseOverride
+    ? JSON.parse(String(storySseOverride).match(/^data: (.+)$/m)?.[1] ?? '{}')?.choices?.[0]?.delta?.content ?? STORY
+    : STORY;
+  const observationCoverage = parseFreshNarrativeV2(coverageStory, { master: masterFromEdition(edition) }).blocks
+    .map((block, blockIndex) => ({ block_id: `story:${blockIndex}`, block_type: block.type }))
+    .filter(block => ['scene', 'narrative', 'dialogue', 'acting'].includes(block.block_type))
+    .map(block => ({ ...block, decision: 'none' }));
+  const extract = {
+    ...(extractEnvelope ?? {
     extract_version: 2,
     outcome: 'partial',
     scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
     player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
     mind_monitor: { heroine1: { surface: '오늘 일부터 하자.', subconscious: '조금 신경 쓰이네.' }, heroine2: { surface: '자료를 확인하자.', subconscious: '괜찮아.' }, heroine5: { surface: '자료를 확인하자.', subconscious: '괜찮아.' } }, action_target_id: null, image_character_id: null, image_selection: null,
     csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
+    }),
+    observation_coverage: extractEnvelope?.observation_coverage ?? observationCoverage
   };
   const extractContents = [JSON.stringify(extract)];
   let storyCall = 0;

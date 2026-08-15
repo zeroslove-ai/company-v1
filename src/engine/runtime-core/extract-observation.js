@@ -6,7 +6,7 @@ const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'block
 const TOP_LEVEL = new Set([
   'extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence',
   'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection',
-  'csa_trigger_evaluations', 'csa_runtime_updates', 'relation_updates', 'open_facts', 'turn_summary', 'warnings'
+  'csa_trigger_evaluations', 'csa_runtime_updates', 'relation_updates', 'open_facts', 'observation_coverage', 'turn_summary', 'warnings'
 ]);
 const NPC_DOMAINS = new Set(['physical', 'emotion', 'relationship', 'stats', 'work', 'csa_attitude']);
 const PHYSICAL = new Set(['posture', 'position_label', 'clothing']);
@@ -34,6 +34,9 @@ const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_np
 const RELATION_UPDATE_FIELDS = new Set(['actor_id', 'target_id', 'relation_kind', 'state', 'quote']);
 const RELATION_STATES = new Set(['started', 'ended']);
 const OPEN_FACT_FIELDS = new Set(['subject_id', 'object_id', 'fact_text', 'story_quote', 'source_block']);
+const STORY_OBSERVATION_BLOCK_TYPES = new Set(['scene', 'narrative', 'dialogue', 'acting']);
+const STORY_OBSERVATION_COVERAGE_FIELDS = new Set(['block_id', 'block_type', 'decision']);
+const STORY_OBSERVATION_DECISIONS = new Set(['facts', 'none']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -271,7 +274,18 @@ function normalizeRelationUpdates(value, npcIds, storyText) {
   }).filter(Boolean);
 }
 
-function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId = null, warnings = [], { softOptional = false } = {}) {
+function expectedStoryObservationBlocks(storyBlocks) {
+  if (!Array.isArray(storyBlocks)) return null;
+  return storyBlocks
+    .map((block, blockIndex) => ({
+      block_id: `story:${blockIndex}`,
+      block_type: block?.type ?? null,
+      text: typeof block?.text === 'string' ? block.text.trim() : ''
+    }))
+    .filter(block => STORY_OBSERVATION_BLOCK_TYPES.has(block.block_type) && block.text);
+}
+
+function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId = null, warnings = [], { softOptional = false, storyBlocks = null } = {}) {
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) {
     if (softOptional) {
@@ -299,11 +313,18 @@ function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId
       const sourceBlock = item.source_block === undefined || item.source_block === null
         ? null
         : (typeof item.source_block === 'string' && item.source_block.trim() ? item.source_block.trim().slice(0, 80) : null);
+      const expectedBlocks = expectedStoryObservationBlocks(storyBlocks);
+      if (expectedBlocks) {
+        if (!sourceBlock) throw new GameCoreError('OPEN_FACT_SOURCE_BLOCK_REQUIRED', 'Fresh open facts require source_block provenance');
+        const block = expectedBlocks.find(candidate => candidate.block_id === sourceBlock);
+        if (!block) throw new GameCoreError('OPEN_FACT_SOURCE_BLOCK_UNKNOWN', 'Open fact source_block is not a Story body block');
+        if (!block.text.includes(quote)) throw new GameCoreError('OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_BLOCK', 'Open fact story_quote must be an exact substring of its source Story block');
+      }
       const identity = { action_id: actionId ?? null, turn_number: expectedTurn, subject_id: subjectId, object_id: objectId, fact_text: factText, story_quote: quote, source_block: sourceBlock };
       const factId = `turn:${expectedTurn}:action:${actionId ?? 'unknown'}:fact:${stableEventHash(stableSerialize(identity))}`;
       normalized.push({ fact_id: factId, action_id: actionId ?? null, turn_number: expectedTurn, subject_id: subjectId, object_id: objectId, fact_text: factText, story_quote: quote, ...(sourceBlock ? { source_block: sourceBlock } : {}) });
     } catch (error) {
-      if (!softOptional) throw error;
+      if (!softOptional || storyBlocks) throw error;
       warnings.push(`open_fact_dropped:${index}:${error?.code ?? 'invalid'}`);
     }
   }
@@ -313,6 +334,42 @@ function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId
     seen.add(item.fact_id);
     return true;
   });
+}
+
+function normalizeStoryObservationCoverage(value, storyBlocks, openFacts) {
+  const expectedBlocks = expectedStoryObservationBlocks(storyBlocks);
+  if (value === undefined || value === null) {
+    if (expectedBlocks) throw new GameCoreError('STORY_OBSERVATION_COVERAGE_REQUIRED', 'Fresh Extract must account for every Story body block');
+    return [];
+  }
+  if (!Array.isArray(value)) throw new GameCoreError('INVALID_STORY_OBSERVATION_COVERAGE', 'observation_coverage must be an array');
+  const normalized = value.map((item, index) => {
+    assertKeys(item, STORY_OBSERVATION_COVERAGE_FIELDS, 'INVALID_STORY_OBSERVATION_COVERAGE');
+    if (typeof item.block_id !== 'string' || !item.block_id.trim()) throw new GameCoreError('INVALID_STORY_OBSERVATION_COVERAGE', `Missing block_id at observation_coverage[${index}]`);
+    if (!STORY_OBSERVATION_BLOCK_TYPES.has(item.block_type)) throw new GameCoreError('INVALID_STORY_OBSERVATION_COVERAGE', `Invalid block_type at observation_coverage[${index}]`);
+    if (!STORY_OBSERVATION_DECISIONS.has(item.decision)) throw new GameCoreError('INVALID_STORY_OBSERVATION_COVERAGE', `Invalid decision at observation_coverage[${index}]`);
+    return { block_id: item.block_id.trim(), block_type: item.block_type, decision: item.decision };
+  });
+  const seen = new Set();
+  for (const item of normalized) {
+    if (seen.has(item.block_id)) throw new GameCoreError('INVALID_STORY_OBSERVATION_COVERAGE', `Duplicate block_id: ${item.block_id}`);
+    seen.add(item.block_id);
+  }
+  if (!expectedBlocks) return normalized;
+  if (normalized.length !== expectedBlocks.length) throw new GameCoreError('STORY_OBSERVATION_COVERAGE_INCOMPLETE', 'Fresh Extract must account for every Story body block exactly once');
+  const factsByBlock = new Map(expectedBlocks.map(block => [block.block_id, 0]));
+  for (const fact of openFacts) {
+    if (!factsByBlock.has(fact.source_block)) throw new GameCoreError('OPEN_FACT_SOURCE_BLOCK_UNKNOWN', 'Open fact source_block is not covered');
+    factsByBlock.set(fact.source_block, factsByBlock.get(fact.source_block) + 1);
+  }
+  for (const block of expectedBlocks) {
+    const coverage = normalized.find(item => item.block_id === block.block_id);
+    if (!coverage || coverage.block_type !== block.block_type) throw new GameCoreError('STORY_OBSERVATION_COVERAGE_INCOMPLETE', `Missing or mismatched Story block coverage: ${block.block_id}`);
+    const factCount = factsByBlock.get(block.block_id);
+    if (coverage.decision === 'facts' && factCount === 0) throw new GameCoreError('STORY_OBSERVATION_COVERAGE_MISMATCH', `Block ${block.block_id} declares facts without a fact`);
+    if (coverage.decision === 'none' && factCount > 0) throw new GameCoreError('STORY_OBSERVATION_COVERAGE_MISMATCH', `Block ${block.block_id} declares none but has facts`);
+  }
+  return normalized;
 }
 
 export function assertExtractObservationContract(observation) {
@@ -326,7 +383,7 @@ export function assertExtractObservationContract(observation) {
   return true;
 }
 
-export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, softOptional = false } = {}) {
+export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, softOptional = false, storyBlocks = null } = {}) {
   assertExtractObservationContract(value);
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
   const warnings = Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string') : [];
@@ -362,6 +419,8 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
   if (!locationValid && !softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'location_id must be a string or null');
   const locationId = locationValid ? (scene.location_id === null || scene.location_id === undefined ? null : scene.location_id.trim()) : null;
   const hasPresenceEvidenceFields = Object.hasOwn(scene, 'entered_npc_ids') || Object.hasOwn(scene, 'exited_npc_ids') || Object.hasOwn(scene, 'presence_is_final');
+  const openFacts = normalizeOpenFacts(value.open_facts, registered, storyText, expectedTurn, actionId, warnings, { softOptional, storyBlocks });
+  const observationCoverage = normalizeStoryObservationCoverage(value.observation_coverage, storyBlocks, openFacts);
   const normalized = {
     extract_version: 2,
     outcome: value.outcome,
@@ -386,7 +445,8 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
     image_character_id: dropOptional(softOptional, 'image_character_id', warnings, null, () => nullableId(value.image_character_id, registered, 'image_character_id')),
     image_selection: normalizeImageSelection(value.image_selection),
     csa_trigger_evaluations: [], csa_runtime_updates: [], relation_updates: [],
-    open_facts: normalizeOpenFacts(value.open_facts, registered, storyText, expectedTurn, actionId, warnings, { softOptional }),
+    open_facts: openFacts,
+    observation_coverage: observationCoverage,
     turn_summary: typeof value.turn_summary === 'string' ? value.turn_summary : '',
     warnings
   };

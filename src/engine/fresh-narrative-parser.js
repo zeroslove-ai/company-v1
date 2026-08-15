@@ -200,3 +200,22 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
     warnings
   };
 }
+
+const OBSERVATION_BLOCK_TYPES = new Set(['scene', 'narrative', 'dialogue', 'acting']);
+
+/**
+ * Stable structural inputs for the fresh Story -> Extract observation
+ * contract.  This is an accounting projection of already parsed Story
+ * blocks; it does not infer whether any block contains a durable fact.
+ */
+export function buildStoryObservationBlocks(parsedStory) {
+  const blocks = Array.isArray(parsedStory?.blocks) ? parsedStory.blocks : [];
+  return blocks
+    .map((block, blockIndex) => ({
+      block_id: `story:${blockIndex}`,
+      block_index: blockIndex,
+      block_type: block?.type ?? null,
+      text: normalizeProjectionText(block?.text ?? '')
+    }))
+    .filter(block => OBSERVATION_BLOCK_TYPES.has(block.block_type) && block.text);
+}

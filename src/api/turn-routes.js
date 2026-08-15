@@ -804,6 +804,7 @@ const master = masterFromEdition(edition);
               storyText: storyForExtract,
               expectedTurn: action.expected_turn,
               actionId,
+              storyBlocks: parsedStory.blocks,
               requiredMindMonitorIds: mindMonitorTargets,
             });
             timing.extract_parse_ms = Date.now() - parseStart;
@@ -811,10 +812,19 @@ const master = masterFromEdition(edition);
             // Extract is an optional observation. Invalid, truncated, or
             // contract-invalid output degrades deterministically and still
             // reaches the owned Extract completion RPC and the single Commit path.
+            const structuralCoverageFailure = new Set([
+              'STORY_OBSERVATION_COVERAGE_REQUIRED',
+              'STORY_OBSERVATION_COVERAGE_INCOMPLETE',
+              'STORY_OBSERVATION_COVERAGE_MISMATCH',
+              'INVALID_STORY_OBSERVATION_COVERAGE',
+              'OPEN_FACT_SOURCE_BLOCK_REQUIRED',
+              'OPEN_FACT_SOURCE_BLOCK_UNKNOWN',
+              'OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_BLOCK'
+            ]).has(error?.code);
             const failOpen = error instanceof GameCoreError
               || error?.code === 'extract_invalid_json'
               || error?.code === 'extract_truncated';
-            if (!failOpen) throw error;
+            if (!failOpen || structuralCoverageFailure) throw error;
             extract = buildDegradedExtractObservation({
               extraWarnings: [`extract_fail_open:${error?.code ?? 'invalid_observation'}`]
             });
