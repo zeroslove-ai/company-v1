@@ -7,6 +7,7 @@ import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
 import { buildDegradedExtractObservation, normalizeExtractObservationV2, normalizeFreshExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { normalizePersistedExtractObservation } from '../src/engine/runtime-core/persisted-extract-observation.js';
 import { reduceCsaAttitudeObservation, reduceNpcPhysicalObservation, reduceNpcRelationshipObservation } from '../src/engine/runtime-core/observation-reducers.js';
+import { buildStoryObservationBlocks, parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 
 const NPCS = new Set(['heroine1', 'heroine2']);
 const STORY = 'scene-exit-evidence work-happened';
@@ -46,7 +47,8 @@ test('Extract prompt gives the validator-owned physical shape example', () => {
   assert.equal(system.content.includes('Use position_label, never position/label'), true);
   assert.equal(system.content.includes('underwear_bottom'), true);
   assert.equal(system.content.includes('physical_change'), true);
-  assert.equal(system.content.includes('open_facts'), true);
+  assert.equal(system.content.includes('block_observations[].facts'), true);
+  assert.equal(system.content.includes('open_facts'), false);
   assert.equal(system.content.includes('multi-NPC scene'), true);
 });
 
@@ -163,18 +165,22 @@ test('persisted V2 replay keeps canonical open facts while ignoring obsolete pro
   assert.equal('observation_coverage' in result, false);
 });
 
-test('Extract prompt exposes structural Story block identities without duplicating block text', () => {
-  const parsedStory = { blocks: [{ type: 'narrative', text: 'Hayeon accepted the apology.' }, { type: 'choice', text: 'not an observation block' }] };
+test('Extract prompt exposes parser-owned Story block identities and exact text without a second parser', () => {
+  const rawStory = '[SCENE]Office lights are low.[/SCENE][DIALOGUE speaker_id="heroine1"]Are you ready?[/DIALOGUE][ACTING]She folds the note.[/ACTING][THOUGHT]Not an observation block.[/THOUGHT][CHOICE]Wait.[/CHOICE][CHOICE]Ask.[/CHOICE][CHOICE]Leave.[/CHOICE][CHOICE]Work.[/CHOICE]';
+  const parsedStory = parseFreshNarrativeV2(rawStory, { master: { characters: [{ character_id: 'heroine1', name: 'Hayeon' }] } });
   const [system, user] = buildExtractPrompt({
     context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 } } },
-    storyText: 'Hayeon accepted the apology.', parsedStory, expectedTurn: 4, edition: { characters: { characters: {} }, map: { locations: [] } }, npcIds: NPCS
+    storyText: rawStory, parsedStory, expectedTurn: 4, edition: { characters: { characters: {} }, map: { locations: [] } }, npcIds: new Set(['heroine1'])
   });
   const payload = JSON.parse(user.content);
-  assert.deepEqual(payload.story_observation_blocks, [{ block_id: 'story:0', block_index: 0, block_type: 'narrative' }]);
-  assert.equal(user.content.includes('Hayeon accepted the apology.'), true);
+  const expectedBlocks = buildStoryObservationBlocks(parsedStory);
+  assert.deepEqual(payload.story_observation_blocks, expectedBlocks);
+  assert.deepEqual(payload.story_observation_blocks.map(block => block.block_type), ['scene', 'dialogue', 'acting']);
+  assert.equal(payload.story_observation_blocks.every(block => typeof block.text === 'string' && block.text.length > 0), true);
   assert.equal(system.content.includes('observation_coverage'), false);
-  assert.equal(system.content.includes('decision "facts"'), false);
-  assert.equal(payload.story_observation_blocks[0].block_id, 'story:0');
+  assert.equal(system.content.includes('decision'), false);
+  assert.equal(system.content.includes('open_facts'), false);
+  assert.equal(user.content.includes('source_block'), false);
 });
 
 test('physical, posture, intimate, and sexual outcomes outside CSA vocabulary survive as open facts', () => {
