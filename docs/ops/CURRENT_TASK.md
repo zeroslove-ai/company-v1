@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: extract-block-observation-wire-simplification-v1
+Status: READY
+Task ID: extract-block-observation-prompt-closure-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -12,10 +12,10 @@ This file is the sole active execution authority.
 Repository: `zeroslove-ai/company-v1`
 Branch: `company/scene-location-presence-v1`
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
-Accepted gameplay executable before this task: `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0`.
-Current docs head before registration: `0f2b2dc08a54c0726eac9ed1b453d05ece34f824`.
-TEST Worker currently has reviewed executable `2a804fd...` deployed as Version `d2138893-f96b-4539-9d69-bda4ca0511f3`.
-TEST Level-7 migration `20260815000100 / company_v1_test_level7_acceleration` is already applied and must not be reapplied or edited.
+Accepted gameplay executable remains `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0` until this revision is independently accepted.
+Current candidate requiring revision: `a35294022b72b4cc7f65b32a0c6bcc8a870a76bd` (`extract-block-observation-wire-simplification-v1`).
+TEST Worker currently has accepted executable `2a804fd...` deployed as Version `d2138893-f96b-4539-9d69-bda4ca0511f3`; do not deploy in this task.
+TEST Level-7 migration `20260815000100 / company_v1_test_level7_acceleration` is already applied; do not reapply/edit it.
 Dedicated disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
 Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever.
 
@@ -23,29 +23,20 @@ Canonical spine remains:
 `player input/choice -> Story -> Extract -> Commit -> game_save/game_turns -> Context/History/UI/next Story`.
 Story owns narrative truth. Extract observes Story. Server validates structural identity/evidence/provenance/transaction/replay, not narrative meaning.
 
-## Triggering live evidence
+## Operator review that triggered this revision
 
-`deep-level7-live-acceptance-v3` BLOCKED on first selected-literal turn, action `22535b2b-2bc9-49c5-ab15-3ca8f93bd44e`.
-- setup/opening succeeded;
-- exactly four opening choices existed;
-- the selected displayed literal was sent unchanged as `player_action`;
-- Story transport succeeded, raw Story length 1176, 12 parsed blocks;
-- Extract failed with `STORY_OBSERVATION_COVERAGE_MISMATCH`: `Block story:0 declares facts without a fact`;
-- no retry/regeneration/source patch/provider change occurred;
-- final canonical TEST reset passed.
+`extract-block-observation-wire-simplification-v1` is CHANGES_REQUIRED at candidate `a352940...`.
 
-Independent source proof narrows the failure:
-- fresh `normalizeOpenFacts(..., { storyBlocks })` does not silently discard invalid candidate facts; with Story blocks present, invalid candidate facts throw their own structural error;
-- therefore `facts` + zero normalized facts means the provider-parsed object supplied no retained open fact for that block (for example absent/null/empty `open_facts`) while separately declaring `decision:facts`;
-- `runExtract()` currently parses provider `message.content` and discards the exact raw string; JSON repair is syntactic only and does not semantically rewrite facts.
+The block-local direction is retained, but two provider-contract defects must be closed before any live acceptance:
 
-The proven design defect is that the provider must keep two separate structures (`observation_coverage` decisions and top-level `open_facts`) mutually consistent. This duplicated wire authority is unnecessary and failed immediately in live use.
+1. Fresh Extract system instructions still contain stale wording that tells the provider to use top-level `open_facts` / describes a minimal output using `open_facts`, while later instructions forbid top-level `open_facts` and require only `block_observations[].facts`. A provider can obey either instruction and fail structurally.
+2. `story_observation_blocks` currently exposes only `block_id`, `block_index`, and `block_type`; its exact parsed block text is omitted while raw `story_text` is separate. The provider therefore has to reconstruct parser boundaries to determine what text belongs to `story:0`, `story:1`, etc. That is avoidable protocol work and conflicts with the principle that Extract should observe the already-parsed Story rather than recreate parser structure.
+
+Do not deploy or rerun live acceptance until this source/test closure is reviewed.
 
 ## Goal
 
-Replace the separate `observation_coverage` + top-level provider `open_facts` fresh wire with one simpler block-local observation structure so block accounting and its facts cannot contradict each other.
-
-Preferred fresh provider shape:
+Finish the block-local Extract wire so there is one unambiguous fresh provider contract:
 
 ```json
 {
@@ -58,7 +49,7 @@ Preferred fresh provider shape:
           "subject_id": "heroine1",
           "object_id": "player",
           "fact_text": "...",
-          "story_quote": "exact contiguous quote"
+          "story_quote": "exact contiguous quote from this supplied block"
         }
       ]
     },
@@ -71,149 +62,127 @@ Preferred fresh provider shape:
 }
 ```
 
-Names may differ if a materially simpler representation is proven, but the invariants below are binding.
+`facts: []` is the sole zero-fact representation. There is no provider `decision`, no fresh `observation_coverage`, and no fresh top-level provider `open_facts`.
 
-## Binding representation rules
-
-1. Exactly one provider observation entry per existing Story observation body block (`scene`, `narrative`, `dialogue`, `acting`).
-2. Block identity/order comes only from existing `parseFreshNarrativeV2(...).blocks`; no new parser or semantic classifier.
-3. `facts: []` is the explicit zero-durable-fact decision. Remove the separate `decision: facts|none` field; do not preserve two fields that can contradict each other.
-4. Facts live inside their source block in the provider wire. Do not ask the provider to repeat `source_block` on each nested fact if the enclosing block already establishes it.
-5. Normalization derives canonical `source_block = block_id` and flattens accepted nested facts into the existing canonical durable `open_facts` shape used by Commit/context/history.
-6. The provider block-local wire is observation protocol, not a second durable fact store. Do not create a parallel ledger or duplicate semantic writer.
-7. Server validates only:
-   - every required Story body block accounted for exactly once;
-   - block id/type matches parsed Story structure;
-   - registered subject/object IDs;
-   - exact contiguous `story_quote` inside the enclosing Story block;
-   - action/turn provenance, deterministic fact identity, dedupe/replay.
-8. Server does not decide whether a block semantically should have a fact. Empty `facts` remains legal.
-9. No enum/category/keyword/regex/heuristic inference, minimum fact count, synthetic fact, retry, regeneration, or second LLM call.
-
-## Delete superseded V1 coverage wire in the same cut
-
-After caller/test proof, remove from the fresh path rather than keeping compatibility code for stale tests:
-- provider `observation_coverage` field;
-- `decision: facts|none` vocabulary;
-- separate provider top-level `open_facts` input if the new block-local wire fully replaces it;
-- `STORY_OBSERVATION_COVERAGE_MISMATCH` logic that exists only because the two structures could disagree;
-- prompt instructions/examples that teach the old duplicated representation;
-- fresh tests/mocks that exist only to preserve the superseded representation.
-
-Historical persisted data is different from fresh provider input. If a real stored/replay reader needs old normalized `open_facts`, preserve that canonical durable reader. Do not preserve the old provider wire merely because old unit fixtures used it.
-
-## Durable output / replay contract
-
-The normalizer must continue to produce the canonical durable open-fact representation expected by Commit and next-turn readback:
-- stable fact_id;
-- action_id;
-- turn_number;
-- subject_id;
-- optional object_id;
-- fact_text;
-- exact story_quote;
-- derived source_block.
-
-Do not require the block-local provider protocol itself to become permanent save authority. Persist only what actual replay/readback needs. Prove same-action replay does not duplicate facts.
-
-## Prompt simplification
-
-Simplify the Extract prompt around the new block-local representation.
-- Explain each Story body block once.
-- Make `facts: []` the only zero-fact representation.
-- Keep arbitrary Korean facts open-ended.
-- Keep exact quote/registered identity rules.
-- Do not reintroduce old event/relation/emotion/posture/sexual taxonomies.
-- Preserve narrow compact clothing, scene/presence, media hint, Mind Monitor, and other proven product/mechanical projections only where they have actual consumers.
-- If contradictory stale wording is encountered, remove it when caller proof permits.
-
-## Raw provider observability
-
-`runExtract()` currently destroys the exact provider `message.content` after parse. Inspect the full caller boundary and implement the smallest non-durable observability improvement that allows a future TEST acceptance to distinguish exact provider wire from normalized output **without changing normal gameplay authority**.
-
-Preferred constraints:
-- no DB column/migration;
-- no save/action durable semantic writer;
-- no raw provider content exposed to ordinary frontend clients;
-- no Production-only behavior change;
-- no secret/config expansion unless strictly necessary and justified.
-
-A safe internal callback/diagnostic result shape/test seam is acceptable if it can actually be used by the next TEST acceptance. If exact raw live capture cannot be made safely without broader operational/config changes, do not fake it: document the precise limitation and the safest future capture method. The wire simplification itself is not contingent on adding a risky debug surface.
-
-## Required source/caller proof
+## Mandatory Phase 0 — fresh caller/protocol proof
 
 Before editing:
-1. Trace `buildExtractPrompt -> runExtract -> repairAndParseExtractJson -> normalizeFreshExtractObservationV2 -> recordExtractResultOwned -> normalizePersistedExtractObservation -> reduceGameplayCommit -> open_observations/context/history/next Story`.
-2. Prove which fields are fresh provider wire versus canonical durable output.
-3. Prove whether any live persisted row can contain the just-introduced V1 `observation_coverage`; V3 failed before Extract persistence/Commit and reset, so do not invent a compatibility requirement without evidence.
-4. Verify compact clothing/media/scene/CSA sidecars are unaffected.
+1. Read current `buildExtractPrompt`, `buildStoryObservationBlocks`, `normalizeFreshExtractObservationV2`, `normalizeBlockObservations`, `normalizeOpenFacts`, `runExtract`, persisted Extract reader, and affected tests.
+2. Enumerate every phrase in the actual fresh provider system/user messages that mentions `open_facts`, `observation_coverage`, `decision`, or otherwise teaches the superseded provider wire.
+3. Distinguish provider wire terminology from the canonical durable internal `open_facts` output used after normalization. The internal durable name may remain in code/readback; the fresh provider must not be instructed to author that top-level field.
+4. Prove the exact text representation already available from `parseFreshNarrativeV2(...).blocks`; do not create a parser or infer boundaries a second time.
+5. Confirm raw-provider diagnostic behavior remains default-off and non-durable. `COMPANY_V1_EXTRACT_DIAGNOSTIC=true` is operator/TEST diagnostic use only and must never be enabled by default or in Production.
 
-## Required tests
+## Required implementation
 
-At minimum prove:
-1. Every Story body block is represented exactly once.
-2. A block with no durable fact uses `facts: []` and succeeds.
-3. A block may emit one or multiple arbitrary facts without semantic type enums.
-4. Nested fact source_block is derived from its enclosing block and not provider-authored twice.
-5. Missing/duplicate/unknown block id or wrong block type fails structurally.
-6. Quote outside the enclosing block fails.
-7. Unknown subject/object fails.
-8. No separate `decision` field exists in the fresh provider contract.
-9. No separate provider top-level open-fact array can contradict block-local facts.
-10. Normalized canonical open facts preserve stable provenance and deterministic IDs.
-11. Commit persists facts once; replay/idempotence does not duplicate them.
-12. Context/history/next Story still consume canonical facts.
-13. Literal choices/free text unaffected.
-14. Strong CSA remains institutional-context only; no physical execution grammar returns.
-15. Compact clothing projection remains functional.
-16. Image/media including sexual image families remains presentation-only and unchanged.
-17. Degraded optional Extract behavior does not swallow malformed block-accounting/provenance corruption.
-18. Any raw-provider diagnostic hook is disabled/unreachable in ordinary gameplay and does not persist provider output.
+### A. Make the fresh prompt self-consistent
 
-Run focused tests plus full `npm.cmd test`, modified JS/MJS syntax checks, and `git diff --check`. Test count is only regression evidence.
+Remove or rewrite all stale fresh-provider wording that asks for or exemplifies:
+- top-level `open_facts`;
+- `observation_coverage`;
+- `decision: facts|none`;
+- any second source-block declaration on nested facts.
 
-## Forbidden
+When arbitrary narrative meaning is described in the prompt, say explicitly that it belongs in `block_observations[].facts` under the matching supplied Story block.
 
-- Live TEST gameplay/LLM, TEST DB writes/resets, migration apply/reapply, deploy in this source cut.
+The output-shape example and every explanatory sentence must agree on the same wire.
+
+Do not globally rename the canonical durable `open_facts` implementation if Commit/context/history already depend on it. This task is about the fresh provider boundary, not gratuitous storage churn.
+
+### B. Give the provider direct block text
+
+`story_observation_blocks` must expose each already-parsed observation block directly, including at minimum:
+- `block_id`;
+- `block_index`;
+- `block_type`;
+- the exact parser-owned block text used for quote validation.
+
+Preferred shape:
+
+```json
+{
+  "block_id": "story:3",
+  "block_index": 3,
+  "block_type": "dialogue",
+  "text": "...exact parsed block text..."
+}
+```
+
+Use the existing `buildStoryObservationBlocks(parsedStory)` projection. Do not ask the provider to reconstruct tags or parser boundaries from the raw Story.
+
+Raw `story_text` may remain in the user payload because it is useful as full narrative context, but block-local grounding must be possible solely from the supplied block record.
+
+Server validation remains authoritative: a nested `story_quote` must be an exact contiguous substring of the actual parser-owned enclosing block. Supplying block text to the provider does not weaken validation.
+
+### C. Preserve the good parts of `a352940...`
+
+Keep unless a direct defect is proven:
+- one `block_observations` entry per existing Story observation body block;
+- nested `facts`;
+- `facts: []` as zero-fact representation;
+- server-derived canonical `source_block`;
+- flattening into the existing durable canonical `open_facts` used by Commit/readback;
+- structural rejection of missing/duplicate/wrong block identities, unknown IDs, and fabricated/out-of-block quotes;
+- persisted/replay compatibility for canonical durable facts;
+- default-off non-durable raw provider diagnostic callback.
+
+Do not restore the separate coverage/decision wire.
+
+## Tests required
+
+At minimum add/adjust behavioral tests proving:
+1. Actual fresh system instructions do not tell the provider to emit top-level `open_facts`.
+2. Actual fresh system instructions do not teach `observation_coverage` or `decision:facts|none`.
+3. All instructions/examples point to `block_observations[].facts` for arbitrary facts.
+4. `story_observation_blocks` contains exact block text alongside ID/index/type for a multi-block Story containing at least scene/narrative/dialogue/acting where representable.
+5. Block ID/order/text exactly matches the existing fresh parser projection; no reparse/new parser.
+6. One block can have multiple facts; another can use `facts: []`.
+7. Nested provider facts cannot author a separate `source_block`; canonical source_block is derived from the enclosing block.
+8. Quote outside the enclosing supplied block fails structurally.
+9. Unknown subject/object fails structurally.
+10. Canonical normalized/durable `open_facts` still preserve deterministic ID/action/turn/source/quote and Commit/readback/replay semantics.
+11. Existing literal-choice/free-text, CSA institutional context, compact clothing, scene/presence, Mind Monitor, image/media—including sexual image families—remain unaffected.
+12. Raw provider diagnostic callback is absent when the diagnostic flag is not explicitly true and no raw provider content is returned to the ordinary Extract client or persisted.
+
+Run focused tests plus full `npm.cmd test`, syntax checks for modified JS/MJS, and `git diff --check`. Test count is regression evidence only.
+
+## Architecture constraints
+
+Do NOT add:
+- semantic event/relation/emotion/posture/sexual enums as fact truth gates;
+- regex/keyword/heuristic fact detection;
+- minimum fact count;
+- synthetic facts;
+- retries/regeneration/second LLM call;
+- another parser;
+- parallel durable fact ledger/writer;
+- compatibility provider path merely for stale tests.
+
+A block may legitimately have `facts: []`. Server structural validation must not decide whether narrative meaning should exist.
+
+## Forbidden operations
+
+- Live TEST gameplay/LLM.
+- TEST DB writes/resets.
+- Migration change/apply/reapply/rollback.
+- API/frontend deploy.
 - Production access/mutation/deploy.
-- Access/mutation/reset of preserved manual game.
-- New branch/PR, merge, Ready, rebase, squash, force-push.
+- Any access/mutation/reset of preserved manual game.
 - Provider/model/temperature/token changes.
-- Retry/regeneration/second LLM call.
-- Semantic regex/heuristic repair or synthetic facts.
-- New finite event/relation/emotion/posture/sexual taxonomy.
-- New parser generation.
-- DB migration/shape expansion for provider diagnostics.
-- Removing/degrading media/image/sexual-image behavior because its catalog is finite.
+- New branch/PR, merge, Ready, rebase, squash, force-push.
+- Enabling raw Extract diagnostic in Production.
 
-## Deliverable / terminal report
+## Completion / terminal report
 
-Report separately:
-- START_SHA;
-- executable FINAL_SHA;
-- docs-only final SHA;
-- exact source/test files changed;
-- old duplicated provider-wire code/tests deleted;
-- new block-local provider contract;
-- canonical durable open-fact output and replay/readback proof;
-- raw-provider observability result or exact reason it was safely deferred;
-- focused/full/syntax/diff-check results;
-- live TEST/DB/deploy/migration/Production/manual-game operations all 0;
-- PR #67 remains base main, OPEN / DRAFT / UNMERGED.
+Before COMPLETE:
+- report START_SHA and executable FINAL_SHA separately from any docs-only final SHA;
+- list exact prompt contradictions removed;
+- show final fresh provider JSON shape;
+- show `story_observation_blocks` exact text-bearing shape and multi-block test proof;
+- prove canonical durable `open_facts`/Commit/context/history/replay remain unchanged in authority;
+- describe raw-provider diagnostic behavior and default-off proof;
+- report focused/full/syntax/diff-check results;
+- verify live TEST/DB/deploy/migration/Production/manual-game operations all 0;
+- verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
 
-Set CURRENT_TASK to WAITING_REVIEW in a docs-only descendant, post one immutable terminal report to Issue #68, and STOP. Do not launch another live acceptance yourself.
-
-## Execution result — COMPLETE / WAITING_REVIEW
-
-Execution identity: `extract-block-observation-wire-simplification-v1` / task blob `4e5e9d1bc304c578d88bb911e20ce1573fc1b59d` / branch `company/scene-location-presence-v1`.
-
-- Source caller trace completed: `buildExtractPrompt` -> `runExtract` -> JSON repair -> `normalizeFreshExtractObservationV2` -> `recordExtractResultOwned` -> persisted Extract reader -> Commit reducer -> open-observation context/history/next Story.
-- Fresh provider wire is now block-local: one `block_observations` entry per Story body block, with nested `facts` and `facts: []` as the only zero-fact representation. The removed fresh fields are `observation_coverage`, `decision`, and a separate top-level `open_facts` input.
-- Canonical durable output remains the existing flat `open_facts` shape with deterministic `fact_id`, action/turn provenance, exact quote, and derived `source_block`. Nested providers cannot author `source_block` twice.
-- Structural validation rejects missing/duplicate/unknown/mismatched block identity, wrong block type, unknown subject/object, out-of-block quote, top-level fresh facts, and legacy decision fields. These failures are not silently degraded by the route.
-- Persisted V2 replay strips obsolete coverage metadata only at the historical read boundary and preserves canonical durable `open_facts`; no new database shape or migration was added.
-- `runExtract` now has an explicit non-durable `onRawResponse` callback carrying raw provider content and finish reason. The route records it only when the TEST/operator-only `COMPANY_V1_EXTRACT_DIAGNOSTIC=true` flag is explicitly enabled; ordinary gameplay does not expose or persist provider output.
-- Changed source/test files: `src/api/llm.js`, `src/api/turn-routes.js`, `src/engine/extract-prompt.js`, `src/engine/runtime-core/extract-observation.js`, `src/engine/runtime-core/persisted-extract-observation.js`, `test/content-catalog-contract.test.mjs`, `test/extract-observation-contract.test.mjs`, `test/turn-atomicity-contract.test.mjs`, `test/turn-pipeline-replay.test.mjs`.
-- Focused Extract/turn tests: PASS. Full `npm.cmd test`: PASS 433/433. Modified JS/MJS syntax: PASS. `git diff --check`: PASS.
-- Live TEST/LLM, DB writes/resets, migration apply/reapply, deploy, Production/manual-game access: 0. Preserved evidence artifacts remained untouched and untracked.
-- PR #67 remains OPEN / DRAFT / UNMERGED, base `main`. No next task was generated and no live acceptance was launched.
+Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP. Do not launch live acceptance yourself.
