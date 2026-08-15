@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: deep-level7-live-acceptance-v3
+Status: READY
+Task ID: extract-block-observation-wire-simplification-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -12,237 +12,193 @@ This file is the sole active execution authority.
 Repository: `zeroslove-ai/company-v1`
 Branch: `company/scene-location-presence-v1`
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
-Accepted gameplay executable: `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0` (`extract-open-fact-coverage-contract-v1`).
-Accepted TEST Level-7 seam source: `abc9c3f9e06d6b2eb474b4cade6daa3bc7c5a484`.
-TEST Supabase: `fmcrspgxstsmxxsmkeee`.
+Accepted gameplay executable before this task: `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0`.
+Current docs head before registration: `0f2b2dc08a54c0726eac9ed1b453d05ece34f824`.
+TEST Worker currently has reviewed executable `2a804fd...` deployed as Version `d2138893-f96b-4539-9d69-bda4ca0511f3`.
+TEST Level-7 migration `20260815000100 / company_v1_test_level7_acceleration` is already applied and must not be reapplied or edited.
 Dedicated disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever and must never be reset/mutated.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever.
 
-Already-applied TEST migration:
-- `20260815000100 / company_v1_test_level7_acceleration`
-- do NOT reapply, edit, or roll it back.
-
-Previously deployed TEST Worker before this task:
-- `game-proxy-company-v1`
-- Version `0df3468e-65f3-45c4-9e3b-9ea36ae21d54`
-- this version predates executable `2a804fd...` and therefore must not be used for acceptance after preflight.
-
-Canonical game spine remains binding:
+Canonical spine remains:
 `player input/choice -> Story -> Extract -> Commit -> game_save/game_turns -> Context/History/UI/next Story`.
-CSA is an institutional-rule/context sidecar only. Story owns natural HOW. Extract observes actual Story. Commit owns durable persistence. Media is presentation-only.
+Story owns narrative truth. Extract observes Story. Server validates structural identity/evidence/provenance/transaction/replay, not narrative meaning.
+
+## Triggering live evidence
+
+`deep-level7-live-acceptance-v3` BLOCKED on first selected-literal turn, action `22535b2b-2bc9-49c5-ab15-3ca8f93bd44e`.
+- setup/opening succeeded;
+- exactly four opening choices existed;
+- the selected displayed literal was sent unchanged as `player_action`;
+- Story transport succeeded, raw Story length 1176, 12 parsed blocks;
+- Extract failed with `STORY_OBSERVATION_COVERAGE_MISMATCH`: `Block story:0 declares facts without a fact`;
+- no retry/regeneration/source patch/provider change occurred;
+- final canonical TEST reset passed.
+
+Independent source proof narrows the failure:
+- fresh `normalizeOpenFacts(..., { storyBlocks })` does not silently discard invalid candidate facts; with Story blocks present, invalid candidate facts throw their own structural error;
+- therefore `facts` + zero normalized facts means the provider-parsed object supplied no retained open fact for that block (for example absent/null/empty `open_facts`) while separately declaring `decision:facts`;
+- `runExtract()` currently parses provider `message.content` and discards the exact raw string; JSON repair is syntactic only and does not semantically rewrite facts.
+
+The proven design defect is that the provider must keep two separate structures (`observation_coverage` decisions and top-level `open_facts`) mutually consistent. This duplicated wire authority is unnecessary and failed immediately in live use.
 
 ## Goal
 
-Deploy exactly reviewed executable `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0` to the TEST API through the existing contract-gated deployment path, prepare the disposable TEST game at Level 7 through the already-installed seam, then run the full deep scenario-coverage acceptance A-I without retries, source patches, semantic repair, or hidden state manufacturing.
+Replace the separate `observation_coverage` + top-level provider `open_facts` fresh wire with one simpler block-local observation structure so block accounting and its facts cannot contradict each other.
 
-This is the first live acceptance of the new Story-block observation coverage contract.
+Preferred fresh provider shape:
 
-## Phase 0 — freeze identity and preflight
+```json
+{
+  "block_observations": [
+    {
+      "block_id": "story:0",
+      "block_type": "narrative",
+      "facts": [
+        {
+          "subject_id": "heroine1",
+          "object_id": "player",
+          "fact_text": "...",
+          "story_quote": "exact contiguous quote"
+        }
+      ]
+    },
+    {
+      "block_id": "story:1",
+      "block_type": "dialogue",
+      "facts": []
+    }
+  ]
+}
+```
 
-Before any TEST mutation:
-1. Fetch remote and verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
-2. Verify `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0` is an ancestor of current branch HEAD and that any descendants before execution are docs/workflow-only. Any unreviewed gameplay/runtime delta => BLOCK.
-3. Verify migration `20260815000100` is already applied exactly once and `prepare_company_test_level7_fixture(uuid,text)` still has the accepted SECURITY DEFINER/search_path/service_role-only/fixed-game properties. Do not reapply migration.
-4. Verify the dedicated TEST game is clean/reset baseline. If it contains evidence that should be preserved, BLOCK rather than erase it.
-5. Never query or mutate Production. Never access/mutate/reset the preserved manual game.
+Names may differ if a materially simpler representation is proven, but the invariants below are binding.
 
-## TEST deployment authorization
+## Binding representation rules
 
-Deploy only TEST Worker `game-proxy-company-v1` from a source tree proven gameplay/runtime-identical to executable `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0`.
+1. Exactly one provider observation entry per existing Story observation body block (`scene`, `narrative`, `dialogue`, `acting`).
+2. Block identity/order comes only from existing `parseFreshNarrativeV2(...).blocks`; no new parser or semantic classifier.
+3. `facts: []` is the explicit zero-durable-fact decision. Remove the separate `decision: facts|none` field; do not preserve two fields that can contradict each other.
+4. Facts live inside their source block in the provider wire. Do not ask the provider to repeat `source_block` on each nested fact if the enclosing block already establishes it.
+5. Normalization derives canonical `source_block = block_id` and flattens accepted nested facts into the existing canonical durable `open_facts` shape used by Commit/context/history.
+6. The provider block-local wire is observation protocol, not a second durable fact store. Do not create a parallel ledger or duplicate semantic writer.
+7. Server validates only:
+   - every required Story body block accounted for exactly once;
+   - block id/type matches parsed Story structure;
+   - registered subject/object IDs;
+   - exact contiguous `story_quote` inside the enclosing Story block;
+   - action/turn provenance, deterministic fact identity, dedupe/replay.
+8. Server does not decide whether a block semantically should have a fact. Empty `facts` remains legal.
+9. No enum/category/keyword/regex/heuristic inference, minimum fact count, synthetic fact, retry, regeneration, or second LLM call.
 
-Requirements:
-- use the existing contract-gated deployment wrapper/process;
-- record exact deployed Worker Version ID and source identity;
-- health must return HTTP 200 and `edition_id=company-v1`;
-- no frontend deploy;
-- no Production deploy;
-- no migration action.
+## Delete superseded V1 coverage wire in the same cut
 
-If exact runtime identity cannot be proven, BLOCK instead of deploying a branch HEAD by assumption.
+After caller/test proof, remove from the fresh path rather than keeping compatibility code for stale tests:
+- provider `observation_coverage` field;
+- `decision: facts|none` vocabulary;
+- separate provider top-level `open_facts` input if the new block-local wire fully replaces it;
+- `STORY_OBSERVATION_COVERAGE_MISMATCH` logic that exists only because the two structures could disagree;
+- prompt instructions/examples that teach the old duplicated representation;
+- fresh tests/mocks that exist only to preserve the superseded representation.
 
-## Level-7 fixture
+Historical persisted data is different from fresh provider input. If a real stored/replay reader needs old normalized `open_facts`, preserve that canonical durable reader. Do not preserve the old provider wire merely because old unit fixtures used it.
 
-After deployment proof:
-1. Invoke `prepare_company_test_level7_fixture` exactly once for `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-2. Verify `{level:7, exp:0}` and canonical strong-CSA capability.
-3. Verify the seam did not manufacture Story, facts, relations, emotion, clothing, CSA compliance, actions, or turns.
-4. Do not run a reset-owning canary after seam setup.
-5. Do not invoke the seam a second time in this task.
+## Durable output / replay contract
 
-## Evidence capture requirement — critical
+The normalizer must continue to produce the canonical durable open-fact representation expected by Commit and next-turn readback:
+- stable fact_id;
+- action_id;
+- turn_number;
+- subject_id;
+- optional object_id;
+- fact_text;
+- exact story_quote;
+- derived source_block.
 
-For every decisive Extract turn, preserve all three layers separately:
-1. raw Worker-facing Story text / parsed Story blocks;
-2. raw provider Extract message/envelope before normalization, including `observation_coverage`, `open_facts`, warnings/finish reason when available;
-3. normalized/staged Extract actually used by Commit.
+Do not require the block-local provider protocol itself to become permanent save authority. Persist only what actual replay/readback needs. Prove same-action replay does not duplicate facts.
 
-Also capture action ID, turn number, player action, Commit response, relevant context/history/DB readback.
+## Prompt simplification
 
-This is mandatory so any failure can distinguish:
-- provider explicitly chose `decision:none`;
-- provider omitted/malformed coverage;
-- provider emitted facts but normalizer rejected/dropped them;
-- another adapter lost data.
+Simplify the Extract prompt around the new block-local representation.
+- Explain each Story body block once.
+- Make `facts: []` the only zero-fact representation.
+- Keep arbitrary Korean facts open-ended.
+- Keep exact quote/registered identity rules.
+- Do not reintroduce old event/relation/emotion/posture/sexual taxonomies.
+- Preserve narrow compact clothing, scene/presence, media hint, Mind Monitor, and other proven product/mechanical projections only where they have actual consumers.
+- If contradictory stale wording is encountered, remove it when caller proof permits.
 
-Do not infer which occurred if the raw envelope is missing.
+## Raw provider observability
 
-## A. Ordinary spine + literal choices + free text
+`runExtract()` currently destroys the exact provider `message.content` after parse. Inspect the full caller boundary and implement the smallest non-durable observability improvement that allows a future TEST acceptance to distinguish exact provider wire from normalized output **without changing normal gameplay authority**.
 
-- Complete setup/opening normally.
-- Verify provider-authored exactly-four choices when contract-compliant.
-- Select one displayed choice through the normal literal choice path and prove the exact displayed text becomes the next `player_action` without server-authored replacement.
-- Complete a separate free-text turn.
-- Story -> Extract -> Commit -> context/history must complete.
+Preferred constraints:
+- no DB column/migration;
+- no save/action durable semantic writer;
+- no raw provider content exposed to ordinary frontend clients;
+- no Production-only behavior change;
+- no secret/config expansion unless strictly necessary and justified.
 
-## B. Open facts and observation coverage
+A safe internal callback/diagnostic result shape/test seam is acceptable if it can actually be used by the next TEST acceptance. If exact raw live capture cannot be made safely without broader operational/config changes, do not fake it: document the precise limitation and the safest future capture method. The wire simplification itself is not contingent on adding a risky debug surface.
 
-Create a natural scene that visibly establishes at least one durable fact outside old event/relation/emotion/posture taxonomies, preferably mixed human meaning such as emotion + practical agreement/boundary.
+## Required source/caller proof
 
-Prove:
-- Story body block has exact visible evidence;
-- raw Extract provider output explicitly accounts for every required Story body block;
-- the relevant block uses `decision:facts` and emits one or more arbitrary open facts, OR if provider chooses `none`, record that exact false-negative evidence and BLOCK without retry;
-- each accepted fact has registered IDs, correct `story:<index>` source block and exact quote contained in that block;
-- Commit persists it once;
-- Context/History read it back;
-- no semantic enum is required.
+Before editing:
+1. Trace `buildExtractPrompt -> runExtract -> repairAndParseExtractJson -> normalizeFreshExtractObservationV2 -> recordExtractResultOwned -> normalizePersistedExtractObservation -> reduceGameplayCommit -> open_observations/context/history/next Story`.
+2. Prove which fields are fresh provider wire versus canonical durable output.
+3. Prove whether any live persisted row can contain the just-introduced V1 `observation_coverage`; V3 failed before Extract persistence/Commit and reset, so do not invent a compatibility requirement without evidence.
+4. Verify compact clothing/media/scene/CSA sidecars are unaffected.
 
-A turn with genuinely no durable fact may legally use `decision:none`. Do not require a minimum fact count globally.
+## Required tests
 
-If coverage is missing/malformed or structural validation blocks, preserve raw provider output and BLOCK. Do not add retries or patch source in this task.
+At minimum prove:
+1. Every Story body block is represented exactly once.
+2. A block with no durable fact uses `facts: []` and succeeds.
+3. A block may emit one or multiple arbitrary facts without semantic type enums.
+4. Nested fact source_block is derived from its enclosing block and not provider-authored twice.
+5. Missing/duplicate/unknown block id or wrong block type fails structurally.
+6. Quote outside the enclosing block fails.
+7. Unknown subject/object fails.
+8. No separate `decision` field exists in the fresh provider contract.
+9. No separate provider top-level open-fact array can contradict block-local facts.
+10. Normalized canonical open facts preserve stable provenance and deterministic IDs.
+11. Commit persists facts once; replay/idempotence does not duplicate them.
+12. Context/history/next Story still consume canonical facts.
+13. Literal choices/free text unaffected.
+14. Strong CSA remains institutional-context only; no physical execution grammar returns.
+15. Compact clothing projection remains functional.
+16. Image/media including sexual image families remains presentation-only and unchanged.
+17. Degraded optional Extract behavior does not swallow malformed block-accounting/provenance corruption.
+18. Any raw-provider diagnostic hook is disabled/unreachable in ordinary gameplay and does not persist provider output.
 
-## C. Strong CSA as institutional context
-
-Through the normal CSA app/validation/transaction path, create and activate one Level-7 strong rule suitable for a meaningful physical/intimate scenario.
-
-Prove:
-- Story receives human-readable active institutional rule/context;
-- no `execution_action`, mandatory enactment ID, direct-coverage token, `posture_after`, relation-kind switch or other finite physical HOW is required;
-- Story authors HOW naturally;
-- Extract/open facts observe only actual Story outcomes;
-- CSA activation/compliance does not mechanically create consent, comfort, affection, trust, romance, emotion or sexual willingness.
-
-## D. Natural posture/contact outside old CSA vocabulary
-
-Exercise one visible posture/contact outcome not dependent on removed physical action vocabulary. It must not be rejected merely because no old enum/token exists. Preserve meaningful outcome as open fact when Story evidence exists.
-
-## E. Clothing continuity
-
-Cause one supported compact clothing UI-state change through Story + Extract evidence.
-
-Prove:
-- compact clothing projection changes and persists through later context refreshes;
-- richer clothing/accessory detail outside compact slots may remain an open fact and is not discarded merely because the compact UI cannot represent it;
-- clothing projection is not narrative truth authority.
-
-## F. Bounded intimate/sexual scenario
-
-Explicitly exercise one bounded intimate/sexual path through normal gameplay, using strong CSA context where appropriate.
-
-Rules:
-- one intentional scenario only; no regeneration/retry until a desired result;
-- player request is intent, not success evidence;
-- Story determines actual outcome;
-- no old sexual action taxonomy may be required for the meaningful fact to exist;
-- if Story actually establishes intimate/sexual evidence, verify open-fact continuity and any still-valid narrow sexual/UI/media projection with a real consumer;
-- if provider naturally does not establish the needed event, mark BLOCKED and stop after cleanup rather than gaming the model.
-
-## G. Long-horizon memory beyond recent-three raw Story
-
-Choose one important accepted open fact from an earlier turn.
-
-After committing it, complete at least four additional ordinary turns without reset so its origin Story leaves the last-three raw Story window.
-
-Then prove:
-- durable fact still exists with action/turn/source-block/quote provenance;
-- later Story context receives that committed fact through open-observation readback;
-- a subsequent Story maintains continuity consistent with it without depending on the original raw recent Story.
-
-Do not overclaim final summary-system correctness from this criterion.
-
-## H. Media remains presentation-only
-
-Exercise normal image selection and, only if the actual intimate/sexual Story supports it, sex-pool image selection.
-
-Prove:
-- finite media tags/families may choose an asset;
-- image miss/null/alternate does not reject or erase Story, Extract fact, Commit or memory;
-- do not alter image taxonomy.
-
-## I. Replay/idempotence
-
-Exercise one safe same-action replay/idempotence path.
-
-Prove:
-- no duplicate committed turn;
-- no duplicate open fact;
-- normalized observation coverage/open-fact provenance remains stable;
-- context/history remain consistent.
-
-Do not intentionally corrupt the game to test recovery.
-
-## Failure discipline
-
-On the first decisive failure:
-- capture exact raw Story, raw provider Extract, normalized Extract, action/turn identity and readback;
-- do not retry/regenerate/change provider/model/temperature/token budget;
-- do not patch source;
-- do not use regex/semantic repair/synthetic facts/direct DB gameplay patches;
-- perform final canonical reset and report BLOCKED/FAILED truthfully.
-
-A provider `decision:none` on an obviously acceptance-designed durable-fact Story is evidence of Extract semantic miss, not permission for the server to invent a fact.
-
-Repeated protocol-format failure is evidence to reconsider the representation/wire contract in a later source task, not permission to add retries.
-
-## Final cleanup
-
-On success OR first decisive failure:
-1. canonical reset of the disposable TEST game;
-2. verify committed_turn=0, level 1, actions=0, turns=0, setup/opening baseline, csa_active empty, Scene v1 baseline;
-3. leave TEST migration installed;
-4. leave accepted TEST Worker deployment in place unless the task itself proves it unsafe; do not deploy anything else;
-5. preserve evidence outside tracked runtime source.
+Run focused tests plus full `npm.cmd test`, modified JS/MJS syntax checks, and `git diff --check`. Test count is only regression evidence.
 
 ## Forbidden
 
-- Any Production access/mutation/deploy.
-- Any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`.
-- Migration apply/reapply/rollback/edit.
-- Frontend deploy.
-- Gameplay/source/test patch during live acceptance.
-- Provider/model/temperature/token changes or retries/regeneration.
-- Semantic regex/heuristic repair, synthetic facts, parser relaxation/new parser, new finite event/relation/emotion/posture/sexual taxonomy.
-- Direct DB mutation to manufacture gameplay state.
+- Live TEST gameplay/LLM, TEST DB writes/resets, migration apply/reapply, deploy in this source cut.
+- Production access/mutation/deploy.
+- Access/mutation/reset of preserved manual game.
 - New branch/PR, merge, Ready, rebase, squash, force-push.
+- Provider/model/temperature/token changes.
+- Retry/regeneration/second LLM call.
+- Semantic regex/heuristic repair or synthetic facts.
+- New finite event/relation/emotion/posture/sexual taxonomy.
+- New parser generation.
+- DB migration/shape expansion for provider diagnostics.
+- Removing/degrading media/image/sexual-image behavior because its catalog is finite.
 
-## Execution result — BLOCKED
+## Deliverable / terminal report
 
-Execution identity: `deep-level7-live-acceptance-v3` / task blob `eb39d08b88a5e6e3e7d664660aacde9da5367e11` / branch `company/scene-location-presence-v1`.
+Report separately:
+- START_SHA;
+- executable FINAL_SHA;
+- docs-only final SHA;
+- exact source/test files changed;
+- old duplicated provider-wire code/tests deleted;
+- new block-local provider contract;
+- canonical durable open-fact output and replay/readback proof;
+- raw-provider observability result or exact reason it was safely deferred;
+- focused/full/syntax/diff-check results;
+- live TEST/DB/deploy/migration/Production/manual-game operations all 0;
+- PR #67 remains base main, OPEN / DRAFT / UNMERGED.
 
-- TEST Worker `game-proxy-company-v1` was deployed through the existing Stage B contract-gated path from exact reviewed executable `2a804fd96bc876d7c28deb0ed8aa1637a3ac1ba0`; Version ID: `d2138893-f96b-4539-9d69-bda4ca0511f3`.
-- Level-7 seam `prepare_company_test_level7_fixture` was invoked exactly once on the disposable TEST game. Result: `{level:7, exp:0}` with no actions, turns, facts, relations, emotion, clothing, or CSA state manufactured.
-- A: **BLOCKED** at first ordinary selected-literal turn. Opening setup succeeded with exactly four choices and the first displayed literal was sent as `player_action`; decisive action `22535b2b-2bc9-49c5-ab15-3ca8f93bd44e` reached Story successfully but Extract returned `story_observation_coverage_mismatch` (`Block story:0 declares facts without a fact`). No retry or regeneration occurred.
-- B–I: **NOT ATTEMPTED** after the first decisive A failure. No `decision:none` acceptance judgment was made.
-- Decisive evidence is preserved outside the repository at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v3-evidence.json` (SHA-256 `ADD4752EE76856FA129B76F495AD7C68362C2E77ACC3D502C48A67A12864D0FD`). It contains raw Story/parsed blocks, the normalized Worker response/error, action identity, and readback. The Worker response did not expose a raw provider Extract envelope, so provider output versus normalization cannot be inferred.
-- Final canonical reset: PASS. TEST readback: `committed_turn=0`, `save_revision=918`, `processing_status=idle`, `player_progress.level=1`, setup/opening `not_started`, `csa_active=[]`, `game_actions=0`, `game_turns=0`, Scene v1 baseline.
-- Operations: migration apply/reapply `0`; frontend deploy `0`; Production/manual-game access `0`; source patch/retry/provider change `0`.
-
-## Terminal report
-
-Report:
-- START_SHA and final docs SHA separately from accepted/deployed executable `2a804fd...`;
-- exact TEST Worker Version ID and source-equivalence proof;
-- Level-7 fixture result;
-- A-I matrix with PASS/BLOCKED/FAILED and decisive action IDs;
-- for key Extract turns: raw Story, raw provider coverage/facts summary, normalized Extract summary and exact quote provenance;
-- whether any `decision:none` was a legitimate zero-fact decision or an acceptance false-negative;
-- CSA context outcome;
-- posture/contact, clothing, intimate/sexual, media and long-horizon findings;
-- replay/idempotence result;
-- player-agency substitution/escalation findings;
-- final reset/readback;
-- migration operations 0; Production/manual-game/frontend operations 0;
-- PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
-
-On full success set CURRENT_TASK to WAITING_REVIEW in a docs-only descendant, post one immutable COMPLETE report to Issue #68, and STOP.
-On decisive failure/block still reset, set WAITING_REVIEW if safe, post immutable BLOCKED/FAILED evidence, and STOP. Do not generate a later task yourself.
+Set CURRENT_TASK to WAITING_REVIEW in a docs-only descendant, post one immutable terminal report to Issue #68, and STOP. Do not launch another live acceptance yourself.
