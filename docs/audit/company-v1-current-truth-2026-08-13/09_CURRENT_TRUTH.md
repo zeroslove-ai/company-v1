@@ -448,6 +448,35 @@ changed JS/MJS syntax checks and `git diff --check` passed. No DB write, TEST
 reset/live access, migration/DDL, deployment, or Production access was
 performed. PR #67 remains OPEN / DRAFT / UNMERGED; operator review is pending.
 
+## Story control-marker root-cause cut: source/test ready for review
+
+The preserved ordinary Story failure artifact showed the provider stream
+starting with `[SCENE brand_strategy_meeting_room]`, which the strict shared
+wire parser correctly rejects as `STORY_PROTOCOL_INVALID / Malformed Story
+control marker`. The repository-owned ordinary Story prompt did not explicitly
+separate JSON `scene_id` data from marker syntax, and Opening/ordinary prompts
+held overlapping marker instructions.
+
+At start HEAD `bceafd9adc0e001b42a5de29caf02485da9ea6c7`, the fix consolidates
+one `FRESH_MARKER_GRAMMAR` into both prompts. It requires bare `[SCENE]`,
+forbids scene IDs/attributes in that marker, and leaves the strict parser as
+the sole acceptance boundary. No parser relaxation, normalization, retry,
+provider/model change, fallback Story, semantic gateway, TEST live call, DB
+write, migration, or deployment was made.
+
+Changed source/test files:
+
+- `src/engine/story-prompt.js`
+- `src/engine/opening-prompt.js`
+- `test/narrative-protocol.test.mjs`
+- `test/narrative-request-contract.test.mjs`
+- `test/setup-opening.test.mjs`
+
+Focused and full validation passed: 18/18 narrative tests, 24/24 setup/
+Opening tests, 38/38 related persistence/replay tests, and `npm.cmd test`
+420/420. Syntax checks and `git diff --check` passed. The Cut remains source/
+test-only and awaits review before any live rollout.
+
 ## Opening structured persistence TEST rollout: BLOCKED
 
 The exact reviewed source/test/migration contract

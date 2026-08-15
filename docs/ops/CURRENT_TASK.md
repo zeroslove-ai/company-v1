@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: story-control-marker-root-cause-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -93,3 +93,27 @@ On success or deterministic BLOCKED finding:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
+
+## Execution outcome: SOURCE/TEST READY FOR REVIEW
+
+- Start HEAD: `bceafd9adc0e001b42a5de29caf02485da9ea6c7`
+- Reviewed executable/migration SHA: `c62c92e231a0f0b44a723474bd16a7dba1985124`
+- Root cause: preserved ordinary Story output used attributed
+  `[SCENE brand_strategy_meeting_room]`; the strict parser correctly rejected
+  it, while the ordinary producer prompt did not explicitly prohibit using
+  JSON `scene_id` as marker syntax. Opening/ordinary marker guidance was also
+  duplicated.
+- Fix: one shared `FRESH_MARKER_GRAMMAR` in the ordinary and Opening prompts;
+  bare `[SCENE]` is required and attributed scene markers are prohibited.
+  Strict parser ownership remains unchanged.
+- Changed files: `src/engine/story-prompt.js`,
+  `src/engine/opening-prompt.js`, `test/narrative-protocol.test.mjs`,
+  `test/narrative-request-contract.test.mjs`,
+  `test/setup-opening.test.mjs`.
+- Focused tests: narrative 18/18, setup/Opening 24/24, related replay set
+  38/38. Full `npm.cmd test`: 420/420.
+- Syntax checks: PASS. `git diff --check`: PASS.
+- TEST live gameplay/reset: 0; DB writes/migration/DDL: 0; deployments: 0;
+  Production/manual-game access: 0.
+- Preserved failure artifact unchanged and uncommitted.
+- This source/test cut is `WAITING_REVIEW`; no next task generated.
