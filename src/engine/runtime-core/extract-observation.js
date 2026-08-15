@@ -340,7 +340,7 @@ function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId
       }
       normalized.push(canonicalFact);
     } catch (error) {
-      if (!softOptional || storyBlocks) throw error;
+      if (!softOptional) throw error;
       warnings.push(`open_fact_dropped:${index}:${error?.code ?? 'invalid'}`);
     }
   }
@@ -352,33 +352,65 @@ function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId
   });
 }
 
-function normalizeBlockObservations(value, storyBlocks) {
-  if (!Array.isArray(value)) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', 'block_observations must be an array');
+function normalizeBlockObservations(value, storyBlocks, { softOptional = false, warnings = [] } = {}) {
+  if (!Array.isArray(value)) {
+    if (!softOptional) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', 'block_observations must be an array');
+    warnings.push('extract_optional_dropped:block_observations:INVALID_BLOCK_OBSERVATIONS');
+    return [];
+  }
   const expectedBlocks = expectedStoryObservationBlocks(storyBlocks);
-  const normalized = value.map((item, index) => {
-    assertKeys(item, BLOCK_OBSERVATION_FIELDS, 'INVALID_BLOCK_OBSERVATIONS');
-    if (typeof item.block_id !== 'string' || !item.block_id.trim()) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `Missing block_id at block_observations[${index}]`);
-    if (!STORY_OBSERVATION_BLOCK_TYPES.has(item.block_type)) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `Invalid block_type at block_observations[${index}]`);
-    if (!Array.isArray(item.facts)) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `facts must be an array at block_observations[${index}]`);
-    return { block_id: item.block_id.trim(), block_type: item.block_type, facts: item.facts };
-  });
+  const normalized = [];
+  for (const [index, item] of value.entries()) {
+    try {
+      assertKeys(item, BLOCK_OBSERVATION_FIELDS, 'INVALID_BLOCK_OBSERVATIONS');
+      if (typeof item.block_id !== 'string' || !item.block_id.trim()) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `Missing block_id at block_observations[${index}]`);
+      if (!STORY_OBSERVATION_BLOCK_TYPES.has(item.block_type)) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `Invalid block_type at block_observations[${index}]`);
+      if (!Array.isArray(item.facts)) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `facts must be an array at block_observations[${index}]`);
+      const blockId = item.block_id.trim();
+      if (expectedBlocks) {
+        const expected = expectedBlocks.find(block => block.block_id === blockId);
+        if (!expected) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `Unknown Story block observation: ${blockId}`);
+        if (expected.block_type !== item.block_type) throw new GameCoreError('STORY_BLOCK_OBSERVATIONS_INCOMPLETE', `Mismatched Story block observation: ${blockId}`);
+      }
+      normalized.push({ block_id: blockId, block_type: item.block_type, facts: item.facts });
+    } catch (error) {
+      if (!softOptional) throw error;
+      warnings.push(`extract_optional_dropped:block_observations.${index}:${error?.code ?? 'invalid'}`);
+    }
+  }
   const seen = new Set();
+  const uniqueNormalized = [];
   for (const item of normalized) {
-    if (seen.has(item.block_id)) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `Duplicate block_id: ${item.block_id}`);
+    if (seen.has(item.block_id)) {
+      if (!softOptional) throw new GameCoreError('INVALID_BLOCK_OBSERVATIONS', `Duplicate block_id: ${item.block_id}`);
+      warnings.push(`extract_optional_dropped:block_observations.duplicate:${item.block_id}`);
+      continue;
+    }
     seen.add(item.block_id);
+    uniqueNormalized.push(item);
   }
   if (expectedBlocks) {
-    if (normalized.length !== expectedBlocks.length) throw new GameCoreError('STORY_BLOCK_OBSERVATIONS_INCOMPLETE', 'Fresh Extract must account for every Story body block exactly once');
+    const missing = expectedBlocks.filter(block => !seen.has(block.block_id));
+    if (missing.length && !softOptional) throw new GameCoreError('STORY_BLOCK_OBSERVATIONS_INCOMPLETE', 'Fresh Extract must account for every Story body block exactly once');
+    if (missing.length) warnings.push(`extract_optional_dropped:block_observations.missing:${missing.map(block => block.block_id).join(',')}`);
     for (const block of expectedBlocks) {
       const observed = normalized.find(item => item.block_id === block.block_id);
-      if (!observed || observed.block_type !== block.block_type) throw new GameCoreError('STORY_BLOCK_OBSERVATIONS_INCOMPLETE', `Missing or mismatched Story block observation: ${block.block_id}`);
+      if (!observed || observed.block_type !== block.block_type) {
+        if (!softOptional) throw new GameCoreError('STORY_BLOCK_OBSERVATIONS_INCOMPLETE', `Missing or mismatched Story block observation: ${block.block_id}`);
+        warnings.push(`extract_optional_dropped:block_observations.mismatch:${block.block_id}`);
+      }
     }
   }
   const nestedFacts = [];
-  for (const item of normalized) {
+  for (const item of uniqueNormalized) {
     for (const fact of item.facts) {
-      assertKeys(fact, BLOCK_LOCAL_FACT_FIELDS, 'INVALID_BLOCK_OBSERVATION_FACT');
-      nestedFacts.push({ ...fact, source_block: item.block_id });
+      try {
+        assertKeys(fact, BLOCK_LOCAL_FACT_FIELDS, 'INVALID_BLOCK_OBSERVATION_FACT');
+        nestedFacts.push({ ...fact, source_block: item.block_id });
+      } catch (error) {
+        if (!softOptional) throw error;
+        warnings.push(`extract_optional_dropped:${item.block_id}.fact:${error?.code ?? 'invalid'}`);
+      }
     }
   }
   return nestedFacts;
@@ -567,13 +599,15 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
   if (!Object.hasOwn(value, 'block_observations')) throw new GameCoreError('BLOCK_OBSERVATIONS_REQUIRED', 'Fresh Extract must provide block_observations');
   if (Object.hasOwn(value, 'open_facts')) throw new GameCoreError('FRESH_TOP_LEVEL_OPEN_FACTS_FORBIDDEN', 'Fresh Extract facts must be nested under block_observations');
   assertKeys(value.scene_observation, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+  const blockWarnings = [];
   const blockFacts = normalizeBlockObservations(
     value.block_observations,
-    options.storyBlocks
+    options.storyBlocks,
+    { softOptional: true, warnings: blockWarnings }
   );
   const { block_observations: _blockObservations, ...canonicalValue } = value;
   const normalized = normalizeExtractObservationV2(
-    { ...canonicalValue, open_facts: blockFacts },
+    { ...canonicalValue, open_facts: blockFacts, warnings: [...(Array.isArray(value.warnings) ? value.warnings : []), ...blockWarnings] },
     { ...options, softOptional: true }
   );
   if (normalized.events.general.length || normalized.events.sexual.length) normalized.warnings.push('fresh_closed_events_ignored');

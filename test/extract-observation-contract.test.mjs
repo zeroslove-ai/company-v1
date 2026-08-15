@@ -114,44 +114,89 @@ test('fresh Extract uses facts: [] as the explicit zero-fact representation', ()
   assert.deepEqual(result.open_facts, []);
 });
 
-test('fresh Extract rejects missing, duplicate, unknown, or mismatched Story block observations', () => {
+test('fresh Extract treats missing, duplicate, unknown, or mismatched Story block observations as optional warnings', () => {
   const storyBlocks = [
     { type: 'narrative', text: 'Hayeon accepted the apology.' },
     { type: 'acting', text: 'She folded the note.' }
   ];
   const baseOptions = { npcIds: NPCS, storyText: storyBlocks.map(block => block.text).join('\n'), storyBlocks, expectedTurn: 4, actionId: 'coverage-invalid' };
-  assert.throws(
-    () => normalizeFreshExtractObservationV2(valid({ block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [] }] }), baseOptions),
-    error => error.code === 'STORY_BLOCK_OBSERVATIONS_INCOMPLETE'
-  );
-  assert.throws(
-    () => normalizeFreshExtractObservationV2(valid({
-      block_observations: [
-        { block_id: 'story:0', block_type: 'narrative', facts: [] },
-        { block_id: 'story:0', block_type: 'narrative', facts: [] }
-      ]
-    }), baseOptions),
-    error => error.code === 'INVALID_BLOCK_OBSERVATIONS'
-  );
-  assert.throws(
-    () => normalizeFreshExtractObservationV2(valid({
-      block_observations: [
-        { block_id: 'story:0', block_type: 'dialogue', facts: [] },
-        { block_id: 'story:1', block_type: 'acting', facts: [] }
-      ]
-    }), baseOptions),
-    error => error.code === 'STORY_BLOCK_OBSERVATIONS_INCOMPLETE'
-  );
+  const incomplete = normalizeFreshExtractObservationV2(valid({ block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [] }] }), baseOptions);
+  assert.deepEqual(incomplete.open_facts, []);
+  assert.ok(incomplete.warnings.some(warning => warning.includes('missing')));
+  const duplicate = normalizeFreshExtractObservationV2(valid({
+    block_observations: [
+      { block_id: 'story:0', block_type: 'narrative', facts: [] },
+      { block_id: 'story:0', block_type: 'narrative', facts: [] },
+      { block_id: 'story:1', block_type: 'acting', facts: [] }
+    ]
+  }), baseOptions);
+  assert.deepEqual(duplicate.open_facts, []);
+  assert.ok(duplicate.warnings.some(warning => warning.includes('duplicate')));
+  const mismatched = normalizeFreshExtractObservationV2(valid({
+    block_observations: [
+      { block_id: 'story:0', block_type: 'dialogue', facts: [] },
+      { block_id: 'story:1', block_type: 'acting', facts: [] }
+    ]
+  }), baseOptions);
+  assert.deepEqual(mismatched.open_facts, []);
+  assert.ok(mismatched.warnings.some(warning => warning.includes('STORY_BLOCK_OBSERVATIONS_INCOMPLETE')));
 });
 
-test('fresh Extract rejects unknown identities, out-of-block quotes, top-level facts, and legacy decision fields', () => {
+test('fresh Extract drops invalid optional facts while preserving the fresh protocol boundary', () => {
   const storyBlocks = [{ type: 'narrative', text: 'Hayeon accepted the apology.' }];
   const baseOptions = { npcIds: NPCS, storyText: storyBlocks[0].text, storyBlocks, expectedTurn: 4, actionId: 'wire-invalid' };
   const block = facts => ({ block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts }] });
-  assert.throws(() => normalizeFreshExtractObservationV2(valid(block([{ subject_id: 'unknown', object_id: null, fact_text: 'x', story_quote: 'Hayeon accepted the apology.' }])), baseOptions), error => error.code === 'OPEN_FACT_UNKNOWN_ID');
-  assert.throws(() => normalizeFreshExtractObservationV2(valid(block([{ subject_id: 'heroine1', object_id: null, fact_text: 'x', story_quote: 'not in block' }])), baseOptions), error => error.code === 'OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY');
+  const unknown = normalizeFreshExtractObservationV2(valid(block([{ subject_id: 'unknown', object_id: null, fact_text: 'x', story_quote: 'Hayeon accepted the apology.' }])), baseOptions);
+  assert.deepEqual(unknown.open_facts, []);
+  assert.ok(unknown.warnings.some(warning => warning.includes('OPEN_FACT_UNKNOWN_ID')));
+  const unknownObject = normalizeFreshExtractObservationV2(valid(block([{ subject_id: 'heroine1', object_id: 'unknown', fact_text: 'x', story_quote: 'Hayeon accepted the apology.' }])), baseOptions);
+  assert.deepEqual(unknownObject.open_facts, []);
+  assert.ok(unknownObject.warnings.some(warning => warning.includes('OPEN_FACT_UNKNOWN_ID')));
+  const badQuote = normalizeFreshExtractObservationV2(valid(block([{ subject_id: 'heroine1', object_id: null, fact_text: 'x', story_quote: 'not in block' }])), baseOptions);
+  assert.deepEqual(badQuote.open_facts, []);
+  assert.ok(badQuote.warnings.some(warning => warning.includes('OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY')));
   assert.throws(() => normalizeFreshExtractObservationV2(valid({ ...block([]), open_facts: [] }), baseOptions), error => error.code === 'FRESH_TOP_LEVEL_OPEN_FACTS_FORBIDDEN');
-  assert.throws(() => normalizeFreshExtractObservationV2(valid({ block_observations: [{ block_id: 'story:0', block_type: 'narrative', decision: 'none', facts: [] }] }), baseOptions), error => error.code === 'INVALID_BLOCK_OBSERVATIONS');
+  const malformedBlock = normalizeFreshExtractObservationV2(valid({ block_observations: [{ block_id: 'story:0', block_type: 'narrative', decision: 'none', facts: [] }] }), baseOptions);
+  assert.deepEqual(malformedBlock.open_facts, []);
+  assert.ok(malformedBlock.warnings.some(warning => warning.includes('INVALID_BLOCK_OBSERVATIONS')));
+});
+
+test('fresh Extract keeps valid facts beside invalid identities, quotes, source blocks, and fact shapes', () => {
+  const storyBlocks = [
+    { type: 'narrative', text: 'Hayeon accepted the apology.' },
+    { type: 'acting', text: 'Hayeon folded the note.' }
+  ];
+  const storyText = storyBlocks.map(block => block.text).join('\n');
+  const result = normalizeFreshExtractObservationV2(valid({
+    block_observations: [
+      { block_id: 'story:0', block_type: 'narrative', facts: [
+        { subject_id: 'heroine1', object_id: 'player', fact_text: 'Hayeon accepted the apology.', story_quote: 'Hayeon accepted the apology.' },
+        { subject_id: 'unknown', object_id: null, fact_text: 'ignored', story_quote: 'Hayeon accepted the apology.' },
+        { subject_id: 'heroine1', object_id: 'unknown', fact_text: 'ignored', story_quote: 'Hayeon accepted the apology.' },
+        { subject_id: 'heroine1', object_id: null, fact_text: 'ignored', story_quote: 'not in the Story' },
+        { subject_id: 'heroine1', object_id: null, fact_text: 'ignored' }
+      ] },
+      { block_id: 'story:99', block_type: 'narrative', facts: [{ subject_id: 'heroine1', object_id: null, fact_text: 'ignored', story_quote: 'Hayeon accepted the apology.' }] },
+      { block_id: 'story:1', block_type: 'acting', facts: 'malformed' }
+    ]
+  }), { npcIds: NPCS, storyText, storyBlocks, expectedTurn: 4, actionId: 'mixed-optional' });
+  assert.equal(result.open_facts.length, 1);
+  assert.equal(result.open_facts[0].subject_id, 'heroine1');
+  assert.equal(result.open_facts[0].object_id, 'player');
+  assert.equal(result.open_facts[0].source_block, 'story:0');
+  assert.ok(result.warnings.length >= 4);
+});
+
+test('fresh Extract with no usable block observations completes as an empty optional projection', () => {
+  const result = normalizeFreshExtractObservationV2(valid({ block_observations: [] }), {
+    npcIds: NPCS,
+    storyText: 'Hayeon accepted the apology.',
+    storyBlocks: [{ type: 'narrative', text: 'Hayeon accepted the apology.' }],
+    expectedTurn: 4,
+    actionId: 'no-usable-facts'
+  });
+  assert.deepEqual(result.open_facts, []);
+  assert.ok(result.warnings.some(warning => warning.includes('missing')));
 });
 
 test('persisted V2 replay keeps canonical open facts while ignoring obsolete provider coverage metadata', () => {
@@ -199,16 +244,15 @@ test('persisted canonical open facts validate server identity metadata and rejec
   );
 });
 
-test('fresh provider facts remain unable to author persisted server metadata', () => {
+test('fresh provider facts cannot author persisted server metadata and are dropped as optional input', () => {
   const storyText = 'Hayeon agreed.';
-  assert.throws(
-    () => normalizeFreshExtractObservationV2(valid({
-      block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [{
-        subject_id: 'heroine1', object_id: 'player', fact_text: storyText, story_quote: storyText, fact_id: 'provider-authored'
-      }] }]
-    }), { npcIds: NPCS, storyText, storyBlocks: [{ type: 'narrative', text: storyText }], expectedTurn: 4, actionId: 'fresh-wire' }),
-    error => error.code === 'INVALID_BLOCK_OBSERVATION_FACT'
-  );
+  const result = normalizeFreshExtractObservationV2(valid({
+    block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [{
+      subject_id: 'heroine1', object_id: 'player', fact_text: storyText, story_quote: storyText, fact_id: 'provider-authored'
+    }] }]
+  }), { npcIds: NPCS, storyText, storyBlocks: [{ type: 'narrative', text: storyText }], expectedTurn: 4, actionId: 'fresh-wire' });
+  assert.deepEqual(result.open_facts, []);
+  assert.ok(result.warnings.some(warning => warning.includes('INVALID_BLOCK_OBSERVATION_FACT')));
 });
 
 test('Extract prompt exposes parser-owned Story block identities and exact text without a second parser', () => {

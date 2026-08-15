@@ -300,7 +300,7 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(afterReplay, beforeReplay, 'replay 시 추가 LLM 호출 없음');
 });
 
-test('malformed fresh block observations remain a structural error instead of degrading silently', async () => {
+test('empty fresh block observations complete with an empty optional projection', async () => {
   const mock = createMockFetch({
     extractEnvelope: {
       extract_version: 2,
@@ -318,8 +318,9 @@ test('malformed fresh block observations remain a structural error instead of de
   await story.text();
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   const extractBody = await extract.json();
-  assert.equal(extract.status, 422);
-  assert.equal(extractBody.error.code, 'story_block_observations_incomplete');
+  assert.equal(extract.status, 200);
+  assert.deepEqual(extractBody.data.extract.open_facts, []);
+  assert.equal(extractBody.data.replayed, false);
 });
 
 test('stored action route parity rejects reservation/row divergence before Story LLM and preserves exact rows when omitted', async () => {
