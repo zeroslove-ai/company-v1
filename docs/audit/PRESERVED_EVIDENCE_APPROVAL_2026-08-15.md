@@ -4,17 +4,16 @@ Date: 2026-08-15 KST
 Authority: Operator approval for local preserved evidence only
 Repository: `zeroslove-ai/company-v1`
 Canonical branch: `company/scene-location-presence-v1`
-Active task: `extract-block-observation-prompt-closure-v1`
 
 ## Why this approval exists
 
-The local Codex Skill correctly stopped before executing the active READY task with:
+The local Codex Skill correctly stopped before executing a READY task with:
 
 `UNKNOWN_UNTRACKED_FILE — OPERATOR REVIEW REQUIRED`
 
-Hermes/worker were healthy. The stop was caused by the local worktree containing preserved TEST evidence files that were not carried forward into the current canon/audit approval surface.
+Hermes/worker were healthy. The stop was caused by the local worktree containing preserved TEST evidence files whose prior approval had not been carried forward into the current canon/audit approval surface.
 
-The immediately preceding immutable terminal report for `extract-block-observation-wire-simplification-v1` (Issue #68 comment `5300270118`) explicitly recorded:
+The immutable terminal report for `extract-block-observation-wire-simplification-v1` (Issue #68 comment `5300270118`) explicitly recorded:
 
 - `Preserved repository evidence: 16 approved untracked files unchanged, unstaged, uncommitted.`
 
@@ -22,9 +21,9 @@ No cleanup, reset, move, or commit of those evidence files is authorized.
 
 ## Explicit snapshot approval
 
-The operator hereby approves **the exact set of 16 untracked evidence paths that already existed in the local repository at the STOP which reported `UNKNOWN_UNTRACKED_FILE` for `extract-block-observation-prompt-closure-v1`**.
+The operator approves **the exact set of 16 untracked evidence paths that existed in the local repository at the STOP which reported `UNKNOWN_UNTRACKED_FILE` for `extract-block-observation-prompt-closure-v1`**.
 
-This is a snapshot approval of that existing 16-path set, **not a filename-pattern or wildcard approval**.
+This is a snapshot approval, not a filename-pattern or wildcard approval.
 
 Known members reported from that exact local snapshot include:
 
@@ -34,19 +33,29 @@ Known members reported from that exact local snapshot include:
 
 The remaining members are the already-existing preserved `phase12*` / `phase12q1*` TEST evidence files in the same 16-path local snapshot referenced above and by the preceding terminal report. Their approval is by membership in that exact contemporaneous 16-path snapshot, not merely by matching a filename prefix.
 
+## Durable carry-forward rule
+
+This approval persists across future `CURRENT_TASK` transitions. A new task must not require the operator to re-approve the same already-approved preserved snapshot merely because `CURRENT_TASK.md`, docs HEAD, or the execution identity changed.
+
+For every future task:
+
+1. The previously approved preserved evidence set remains approved while each path is still present as the same local untracked evidence artifact and remains unchanged, unstaged, and uncommitted.
+2. Docs-only fast-forward and normal task lease acquisition may proceed in the presence of that approved set.
+3. A task that is expected to create additional evidence must declare the intended evidence output path(s) or deterministic output location before execution when reasonably knowable.
+4. Newly created evidence that was explicitly authorized by the active task may be preserved after terminal completion, but the terminal report must enumerate or otherwise identify it so the next operator handoff can extend this durable approval deliberately.
+5. Unknown new paths, changed contents of previously approved artifacts, tracked dirt, or an unprovable evidence identity are still STOP conditions.
+6. Never solve evidence-state friction with `git clean -fd`, `git reset --hard`, deletion, move, rename, overwrite, or automatic commit of preserved artifacts.
+
+The purpose is to prevent repeated false stops on already-reviewed evidence without weakening protection against genuinely unknown local state.
+
 ## Safety conditions for Codex Skill
 
-Before treating the local worktree as safely preserved, Codex must verify all of the following:
+Before treating the local worktree as safely preserved, Codex must verify:
 
-1. The local untracked set is exactly the same 16-path snapshot that triggered the current `UNKNOWN_UNTRACKED_FILE` stop.
-2. There are exactly 16 approved preserved untracked paths; no 17th/new untracked path is implicitly approved.
-3. No tracked source/test/config/runtime file is dirty merely because this approval exists.
-4. The approved evidence files remain untracked, unchanged, unstaged, and uncommitted.
-5. Do not run `git clean -fd`, `git reset --hard`, delete, move, rename, overwrite, or auto-commit these files.
-6. If the untracked set differs from that exact 16-path snapshot, if any additional unknown file exists, or if identity cannot be proven, STOP again for operator review.
+1. Previously approved preserved paths are unchanged, unstaged, and uncommitted.
+2. No additional unknown untracked path exists unless the active task explicitly authorized its creation.
+3. No tracked source/test/config/runtime file is dirty merely because preserved evidence exists.
+4. Approved evidence is never cleaned, reset, deleted, moved, renamed, overwritten, or auto-committed.
+5. If the approved set has changed unexpectedly, if any additional unknown file exists, or if identity cannot be proven, STOP for operator review.
 
-This approval exists only to allow the safe docs-only fast-forward and execution of the already-registered active task. It does not broaden any task scope, authorize live TEST/Production operations, or weaken the dirty-worktree guard for future unknown artifacts.
-
-## Active task remains unchanged
-
-`extract-block-observation-prompt-closure-v1` remains the sole CURRENT_TASK authority. This audit approval does not alter its source/test-only scope or its prohibitions. Once the local evidence snapshot is verified, Codex may perform the normal docs-only fast-forward, acquire the execution lease, and execute that task exactly as written.
+This approval does not broaden gameplay/runtime task scope, authorize live TEST/Production operations, or weaken branch/SHA/lease checks.
