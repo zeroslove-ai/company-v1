@@ -282,3 +282,22 @@ Verified live TEST facts:
 See `docs/audit/POST_CUT2_GAME_MODEL_RECOVERY_2026-08-14.md` for the read-only
 end-to-end flow, seven-turn reconstruction, authority matrix, and recommended
 next cut. No implementation cut is authorized by that document.
+
+## Narrative semantic-state residue simplification — source/test review pending
+
+The source/test task `narrative-semantic-state-residue-simplification-v1` was
+implemented on `company/scene-location-presence-v1` in commit `648a823` and is
+now marked `WAITING_REVIEW` in `docs/ops/CURRENT_TASK.md`. This is not a live
+deployment or acceptance fact.
+
+The candidate removes continuity-only relation/general-event/emotion/work
+writers and Story-facing projections. Fresh Extract rejects those non-empty
+semantic residue channels; historical persisted residue is inert at the read
+boundary. It preserves concrete consumers for stats, sexual records/counters,
+canonical scene/location/presence, physical/clothing, time/progression/CSA,
+choices, Mind Monitor, raw Story, and `turn_summary`.
+
+Verification facts: full test command `npm.cmd test` passed 413/413, focused
+semantic/consumer tests passed 103/103, changed JS/MJS syntax checks passed,
+and `git diff --check` passed. No DB write, migration, reset, deployment, or
+Production access was performed; PR #67 remains OPEN / DRAFT / UNMERGED.

@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: narrative-semantic-state-residue-simplification-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -228,3 +228,18 @@ Before COMPLETE:
 Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP.
 
 No live acceptance until operator review.
+
+## Source/test completion handoff
+
+Source/test implementation commit: `648a823` (`refactor: remove continuity semantic residue`).
+
+Verified in this execution:
+
+- Story context no longer projects `active_relations` or relationship/emotion/work continuity maps; target authority is explicit current target, canonical focal interaction, then current scene actors/speakers.
+- Fresh Extract V2 rejects non-empty `relation_updates`, `events.general`, and NPC relationship/emotion/work residue with `FRESH_SEMANTIC_RESIDUE_FORBIDDEN`.
+- Fresh Commit writes only retained narrow domains from this removed path; historical residue is inert at the persisted read boundary.
+- Retained consumers: `npc_stats` visible stat/delta surface; `sexual_event_ledger` and derived sexual records/counters; canonical scene/location/presence; physical/clothing; time/progression/CSA; choices; Mind Monitor; Story and `turn_summary`.
+- Removed active continuity writers/readers: relation-event reducer/presentation, general event ledger path, NPC emotion/work observation and Story/API/frontend plumbing, and orphaned relation guards.
+- `npm.cmd test`: 413 passed, 0 failed; focused semantic/consumer regression: 103 passed, 0 failed; changed JS/MJS syntax checks: 21 passed; `git diff --check`: pass.
+
+This source/test candidate is **WAITING_REVIEW**. No DB write, migration, reset, deployment, or Production access was performed. PR #67 remains OPEN / DRAFT / UNMERGED.
