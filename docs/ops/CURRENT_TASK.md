@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v5
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -197,3 +197,17 @@ Before terminal report:
 10. report TEMP evidence path + SHA-256.
 
 Set CURRENT_TASK to `WAITING_REVIEW`, commit/push only the completion-state docs update if needed, post one immutable terminal report to Issue #68, and STOP. Do not patch a discovered defect or generate the next task yourself.
+
+## V5 execution outcome — BLOCKED
+
+This V5 execution did not reach scenario acceptance. Before the planned V5 flow, the command `node scripts/live-playtest-canary.mjs --help` was invoked, but this script has no help-only mode; it executed an opening-only live TEST path and overwrote the already-approved preserved artifact `phase12h-opening-success.json`.
+
+Preserved-artifact integrity evidence:
+
+- expected pre-execution SHA-256: `DE1061D5B1BBCE796E4113E6DC8FABEFE21815D8C5D59B7AE956868BF42A2BE0`;
+- observed post-invocation SHA-256: `53758E55A651CDB506510A91C118E6E6D57620B73067A38E9C60A2C11A0D9A2F`;
+- the original contents are not recoverable from the current worktree. No restoration, deletion, rename, staging, or commit of the evidence file was attempted.
+
+No V5 scenario result is claimed, no product defect is classified, and no further gameplay or retry was performed. The authorized final cleanup completed with the exact reviewed executable: diagnostic-off TEST Worker Version `a5314e6e-46ba-4609-9393-9b5cbb07edac`, `COMPANY_V1_EXTRACT_DIAGNOSTIC=false`, health HTTP 200/`ok=true`, and dedicated TEST reset readback `committed_turn=0`, `save_revision=929`, level 1/exp 0, setup/opening `not_started`, `csa_active=[]`, and history records 0. No Production or manual-game access occurred; migrations and frontend deployment were 0. The remaining 15 approved preserved artifacts were not modified.
+
+The task remains `WAITING_REVIEW`; a separately authorized rerun is required after this process/evidence violation. The next task is not generated here.
