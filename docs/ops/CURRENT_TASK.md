@@ -1,201 +1,263 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: extract-turn-summary-memory-authority-v1
+Status: READY
+Task ID: deep-level7-live-acceptance-v4
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
-
-## Candidate implementation awaiting review
-
-Implemented on the same branch with source/test-only changes:
-
-- Extract `turn_summary` now has an explicit same-call free-text continuity contract.
-- `/api/commit` passes the normalized Extract summary to both `commit_company_turn` and the existing feedback-revision RPC; no synthetic summary or extra provider call was added.
-- Story requests read the supported 50-turn context window, retain the latest three raw turns, and expose older turns only as chronological `{ turn, turn_summary }` memory objects.
-- Fresh Story input no longer projects stale `story_summary_overall`; historical setup/opening storage and frontend readback were not changed.
-- Behavioral tests cover summary persistence payloads, feedback payload parity, raw-vs-summary memory projection, stale-summary removal, prompt contract, and the 50-turn Story read.
-
-Validation: targeted lifecycle/prompt/pipeline tests 92/92 PASS; full `npm.cmd test` 436/436 PASS; modified JS/MJS syntax PASS; `git diff --check` PASS. No TEST gameplay, DB write/reset, migration, deploy, Production access, or preserved-evidence operation occurred. Awaiting independent review; do not launch live acceptance from this task.
 
 ## Accepted starting point
 
 Repository: `zeroslove-ai/company-v1`
 Branch: `company/scene-location-presence-v1`
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
-Accepted gameplay executable: `47f6ff08497189e0fa2c917ae9b3e311f8b631e0`.
-Prompt-closure docs descendant before this task: `98d16616d28bb13f603196e6e3092471a6fdf7aa`.
-Durable preserved-evidence authority: `docs/audit/PRESERVED_EVIDENCE_APPROVAL_2026-08-15.md`; previously approved preserved evidence carries forward across task transitions while unchanged/untracked/unstaged/uncommitted.
-Preserved manual playtest game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever.
+Exact reviewed executable to test: `1ffc3ca269fcf34d748d5380c2b70be19696b5d4` (`extract-turn-summary-memory-authority-v1`).
+Previous accepted prompt-closure executable: `47f6ff08497189e0fa2c917ae9b3e311f8b631e0`.
 
-Canonical spine:
-`player input/choice -> Story -> Extract -> Commit -> game_save/game_turns -> Context/History/UI/next Story`.
+TEST Supabase project: `fmcrspgxstsmxxsmkeee`.
+Dedicated disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+TEST Level-7 migration `20260815000100 / company_v1_test_level7_acceleration` is already applied. Do not edit or reapply it.
+Preserved manual playtest game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever and must not be accessed in this task.
 
-Binding architecture clarification: Issue #68 `OPERATOR_ARCHITECTURE_CLARIFICATION: EXTRACT_OBSERVATION_VS_MEMORY_V1`.
+Durable preserved-evidence authority: `docs/audit/PRESERVED_EVIDENCE_APPROVAL_2026-08-15.md`.
+The exact previously approved 16-path local untracked evidence snapshot carries forward automatically while unchanged/untracked/unstaged/uncommitted. Do not STOP merely because that same approved snapshot exists.
 
-## Problem proven in current source
+Canonical loop under acceptance:
+`player input / literal choice -> Story -> Extract -> Commit -> game_save/game_turns -> Context/History/UI/next Story`.
 
-1. Fresh Extract already returns and normalizes a top-level string `turn_summary` in the same Extract LLM call.
-2. Commit currently discards it unconditionally with `const finalTurnSummary = ''` before both normal `commit_company_turn` and feedback-revision commit.
-3. Story currently receives the latest three raw Story turns, while the Story route already reads up to 15 recent turns from `get_company_context`.
-4. `story_summary_overall` is still projected into Story context, but no current fresh canonical writer has been proven for it; prior preserved play evidence showed stale/mojibake summary state.
-5. `block_observations[].facts` are evidence-grounded Story observations, not an importance/"worth remembering" gate.
+## Why this live acceptance exists
 
-Do not add another LLM call or a rolling-memory writer merely to repair this disconnected path.
+The previous deep Level-7 live acceptance V3 stopped at Turn 1 Extract with:
+
+`story_observation_coverage_mismatch — Block story:0 declares facts without a fact`
+
+That failure exposed two structural protocol defects which have now been independently fixed and accepted:
+
+1. Fresh Extract provider wire is one block-local `block_observations[]` structure; each parser-owned Story block is supplied with exact `{block_id, block_index, block_type, text}` and facts are nested only at `block_observations[i].facts`.
+2. Extract `turn_summary` is now the same-call per-turn compressed memory output; Commit persists it, feedback revision preserves parity, latest three turns remain raw Story context, and older selected turns are summary-only memory. No third Summary/Memory LLM exists.
+
+This task tests those accepted source contracts against the actual TEST Worker/runtime. It is observation/acceptance, not an implementation task.
 
 ## Goal
 
-Make the existing Extract `turn_summary` the sole fresh per-turn compressed narrative-memory output while keeping raw Story and block observations as the underlying provenance.
+Run a scenario-driven deep Company v1 live acceptance at TEST Level 7 that proves the current two-LLM architecture works across multiple turns and beyond the three-raw-turn context window.
 
-Target model:
+Do not target a fixed small turn count. Continue only as many turns as needed to cover the required scenarios below. Stop immediately on the first decisive architecture/protocol defect. A long scenario is expected if necessary.
 
-`Story -> Extract once -> { block_observations, narrow projections, turn_summary } -> Commit`
+## Mandatory Phase 0 — preflight identity proof
 
-Then later Story context should receive:
-- latest 3 committed turns as raw Story, as today;
-- older committed turns in a bounded summary-only memory window using their committed `turn_summary`;
-- committed open observations as evidence-grounded facts.
+Before any live mutation:
 
-No third Summary/Memory LLM. No rolling-summary rewrite is required in this cut.
+1. Fresh-fetch PR #67 and verify:
+   - base `main`;
+   - OPEN;
+   - DRAFT;
+   - UNMERGED.
+2. Verify exact executable `1ffc3ca269fcf34d748d5380c2b70be19696b5d4` is an ancestor of the current branch HEAD and that any descendant delta before execution is docs/workflow-only.
+3. Verify current TEST Worker identity/version before deployment and record it.
+4. Verify the Level-7 migration exists in TEST and do not reapply it.
+5. Verify the dedicated TEST game id is exactly `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+6. Verify the preserved manual game id is different and do not read/write/reset it.
+7. Verify the repo worktree contains only the already-approved preserved 16-path untracked snapshot and no tracked dirt/unknown new untracked path.
+8. All new V4 evidence must be written outside the repository, under the OS TEMP directory. Do not create a new untracked repo artifact.
 
-## Mandatory Phase 0 — caller/writer proof
+If any identity cannot be proven, STOP before deployment/live mutation.
 
-Before editing, prove from exact current source/tests/RPC call sites:
-1. where fresh `turn_summary` enters the Extract prompt/output shape;
-2. where `normalizeFreshExtractObservationV2` validates/preserves it;
-3. where `/api/commit` currently replaces it with `''`;
-4. how `commit_company_turn` and feedback revision persist `p_turn_summary`;
-5. what `get_company_context` returns for recent committed turn summaries and their order/revision semantics;
-6. all fresh Story readers of `story_summary_overall` and `story_summary_recent`;
-7. whether either overall/recent summary field has a current canonical writer. If a writer exists, inventory it before changing authority.
+## Authorized TEST operations
 
-If the existing RPC/history contract cannot persist and return per-turn summaries without a migration, STOP and report the exact blocker. Do not add/apply a migration in this task.
+This task may perform only the following live TEST operations:
 
-## Required implementation
+1. Deploy exactly executable SHA `1ffc3ca269fcf34d748d5380c2b70be19696b5d4` to TEST API Worker `game-proxy-company-v1`.
+2. Enable `COMPANY_V1_EXTRACT_DIAGNOSTIC=true` only for this TEST Worker acceptance so raw provider Extract content can be captured from TEST Worker diagnostics. Do not enable it in Production and do not persist raw provider output to DB/client payloads.
+3. Run the existing named Level-7 fixture seam exactly once for the dedicated TEST game with the existing safety guards.
+4. Run actual setup/opening/Story/Extract/Commit/context/history/app operations through normal TEST APIs/RPC paths needed for the acceptance scenarios.
+5. At the end, or after any failure, reset the dedicated TEST game through the canonical reset path and prove final clean state.
 
-### A. Keep one Extract LLM call
+No migration apply/reapply/edit is authorized.
 
-Retain `turn_summary` in the existing fresh Extract response. Do not add another provider request.
+## Evidence handling
 
-Prompt semantics for `turn_summary`:
-- summarize only the completed current Story, never player intent that the Story did not realize;
-- concise enough for many-turn context;
-- retain continuity-relevant commitments, refusals, relationship movement, work developments, physical/clothing/intimate developments, and other meaningful consequences when actually present;
-- free natural text, not a semantic taxonomy or enum;
-- it may select/compress importance for memory, but this must not affect whether `block_observations` facts are accepted/persisted;
-- empty summary is allowed only when the Story genuinely has no useful continuity content; do not impose a server semantic minimum.
+Use one TEMP evidence bundle, for example:
 
-### B. Stop discarding Extract summary at Commit
+`%TEMP%/company-v1-deep-level7-v4-evidence.json`
 
-For a valid fresh Extract, use the normalized Extract `turn_summary` as the turn summary passed to the existing canonical commit transaction.
+The exact temp filename may differ, but it must remain outside the repo.
 
-Normal turn:
-- `commit_company_turn` remains the sole normal transaction writer.
+Capture at minimum:
+- preflight PR / branch / executable identity;
+- pre-deploy and post-deploy TEST Worker version/health;
+- Level-7 seam result;
+- each player input or exact selected literal choice;
+- each action id / expected turn;
+- raw Story text;
+- parsed Story block ids/types/text sufficient to map Extract observations;
+- normalized Extract response;
+- raw provider Extract response when diagnostic capture is available;
+- Commit result;
+- context/history after Commit;
+- committed `turn_summary`;
+- committed/open observations and source block evidence;
+- scene/location/presence continuity;
+- active CSA / app state when used;
+- image/Mind Monitor sidecar observations when returned;
+- final reset proof.
 
-Feedback revision:
-- use the regenerated Extract summary for the revised turn through the existing feedback-revision transaction so the active revision's Story and summary stay aligned.
-- do not create a parallel summary ledger or out-of-band patch.
+At terminal report, provide TEMP path and SHA-256 of the evidence bundle. Do not commit it.
 
-Replay/idempotence must not duplicate or drift summaries.
+## No-retry rule
 
-### C. Story memory projection
+For Story or Extract provider/protocol failures:
+- no automatic retry;
+- no regeneration;
+- no provider/model/temperature/token change;
+- no prompt/source patch;
+- no parser relaxation;
+- no fuzzy repair;
+- no synthetic observation/summary;
+- no DB manual repair.
 
-Use committed turn summaries as the long-horizon compressed memory source.
+Capture the exact failing Story + raw provider response + normalized error, perform final canonical reset, report BLOCKED/FAILED, and STOP.
 
-Preferred projection:
-- latest 3 committed turns: existing raw Story context;
-- older committed turns from the same context fetch: summary-only objects containing at minimum `turn` and `turn_summary`; include player_action only if caller proof shows it materially improves grounding without duplicating large raw text.
-- preserve chronological order.
+Network/auth/transient infrastructure errors may be distinguished from semantic/protocol defects, but do not conceal a reproducible runtime defect with retries.
 
-The Story route may increase its existing `get_company_context(... p_recent_turns ...)` request up to the already-supported maximum 50 if needed so the summary-only window materially exceeds the three raw turns. Do not duplicate raw Story for those older summary-only turns.
+## Required scenario coverage
 
-Do not let a summary override a contradictory newer raw Story or canonical save fact. Raw committed Story/current canonical state remain higher-fidelity authority.
+### A. Fixture / Opening / literal-choice integrity
 
-### D. Stale overall/recent summary residue
+- Apply the Level-7 seam once and prove level 7 derives existing strong CSA capability without manufacturing semantic game state.
+- Complete setup/opening through the normal flow.
+- Opening must expose exactly four non-empty literal choices.
+- Select at least one displayed literal choice exactly as shown and prove that exact literal becomes `player_action`; no silent semantic substitution.
 
-Because the new fresh memory authority is committed per-turn summary, independently prove current writers/readers of `story_summary_overall` and `story_summary_recent`.
+### B. Multi-turn ordinary continuity
 
-If there is no current canonical fresh writer:
-- remove those stale fields from fresh Story-authority input or otherwise make them explicitly non-authoritative so stale/mojibake compatibility state cannot compete with committed turn summaries;
-- preserve stored fields only as historical compatibility if a real reader still requires them.
+Run ordinary workplace/dialogue turns long enough to establish several continuity facts such as work commitments, refusals/boundaries, relationship reactions, or scene changes.
 
-Do not introduce a new rolling `story_summary_overall` writer in this cut.
+For each committed turn verify:
+- Story succeeds;
+- Extract observes every supplied parser-owned body block structurally with exactly one `block_observations` entry per supplied observation block;
+- `facts: []` is allowed for genuinely zero-fact blocks;
+- nested facts, when present, retain registered IDs and exact quote provenance;
+- Commit succeeds without a semantic hard gate;
+- committed `turn_summary` is the Extract-authored string for that Story, not server-synthetic text.
 
-### E. Preserve observation roles
+### C. Scene / navigation / presence
 
-`block_observations[].facts` remain raw evidence-grounded observations. Do not ask Extract block-by-block whether a fact is "worth remembering".
+Exercise at least one player navigation or NPC-directed location interaction through normal player input/choice.
 
-`turn_summary` is the compression layer. It must never become a structural prerequisite for accepting valid block facts.
+Verify:
+- explicit player navigation wins over stale/conflicting presentation state;
+- moving/visiting an NPC does not fabricate a duplicate NPC or wrong speaker identity;
+- canonical scene/location/presence remains consistent after Commit and in the next Story context.
 
-## Tests required
+### D. CSA natural-rule behavior at Level 7
 
-At minimum prove behaviorally:
-1. Extract prompt still performs one provider call and returns `turn_summary` in the same response.
-2. Normalized `turn_summary` survives Extract -> staged action -> Commit -> `game_turns.turn_summary` readback.
-3. Commit no longer hardcodes normal valid summary to `''`.
-4. Feedback revision replaces/aligns the active turn's summary with its revised Story using existing revision semantics.
-5. Replay/idempotence preserves one committed summary and does not duplicate history.
-6. Latest 3 raw Story turns remain present in next Story context.
-7. A fact originating at least 4 turns earlier, outside the three-raw-turn window, remains represented to later Story through committed turn-summary memory.
-8. Older memory projection is summary-only and does not duplicate raw Story bodies.
-9. Summary ordering matches committed chronological/revision authority.
-10. Block observations persist independently of whether summary is empty/nonempty.
-11. No extra LLM/provider call, retry, regeneration, semantic keyword classifier, or synthetic server summary is introduced.
-12. Stale `story_summary_overall` / `story_summary_recent` cannot override the new committed per-turn summary memory path.
-13. Scene/presence, compact clothing, CSA institutional context, Mind Monitor, image/media, literal choices/free text remain unaffected.
-14. Preserved evidence remains unchanged and approved across the task boundary.
+Use normal app/transaction paths to exercise at least one CSA rule available under Level-7 capability, including strong capability if the existing catalog/product flow permits it.
 
-Run focused tests plus full `npm.cmd test`, syntax checks for modified JS/MJS, and `git diff --check`. Test count is regression evidence only.
+Verify:
+- CSA remains institutional rule/context input, not a second physical-story engine;
+- Story authors the natural observable HOW;
+- Extract observes actual Story outcomes;
+- rule compliance does not mechanically imply consent, comfort, affection, trust, emotion, intimacy, or a physical outcome that Story did not show;
+- no old direct-coverage/mandatory-enactment/physical-action grammar becomes a gameplay hard gate.
 
-## Architecture constraints
+Do not directly patch CSA state in DB.
 
-Do NOT add:
-- a third Summary/Memory LLM call;
-- rolling-memory LLM rewrite in this cut;
-- semantic event/relation/emotion/posture/sexual enums as summary gates;
-- keyword/regex importance classifier;
-- minimum summary/fact count hard gate;
-- server-authored synthetic narrative memory;
-- parallel summary table/ledger/writer;
-- compatibility code merely for stale tests;
-- a new parser.
+### E. Open observation durability
 
-Story remains narrative author. Extract remains the single observer/interpreter call. Commit remains non-LLM transaction authority.
+Produce multiple meaningful Story outcomes across different domains when they arise naturally: agreement/refusal, work, relationship/emotional reaction, physical/clothing/intimate facts, etc.
 
-## Preserved evidence / dirty-worktree rule
+Verify:
+- open facts are accepted from arbitrary exact Story observations without closed event/relation/posture/sexual taxonomies defining whether the fact exists;
+- canonical durable observations survive Commit/history/context;
+- source block and exact quote provenance remain valid;
+- block observations are raw observations, not a `worth remembering`/importance filter.
 
-The durable approval in `docs/audit/PRESERVED_EVIDENCE_APPROVAL_2026-08-15.md` carries forward automatically.
+### F. Turn-summary memory beyond the raw three-turn window
 
-- Do not STOP merely because the same already-approved preserved evidence remains present and unchanged.
-- Do not clean/reset/delete/move/commit preserved evidence.
-- Any genuinely new unknown untracked path, changed preserved artifact, or tracked dirt still requires STOP.
-- This source/test task is not expected to create new live evidence artifacts.
+Create at least one continuity fact/commitment early enough that it falls outside the latest three raw Story turns.
+
+After at least four newer committed turns:
+- inspect the next Story request/context;
+- prove the old raw Story body is no longer duplicated in `context.recent_turns`;
+- prove its committed `turn_summary` appears in chronological `context.turn_summary_memory`;
+- prove stale `story_summary_overall` / `story_summary_recent` is not competing in the fresh Story input;
+- verify later Story can preserve the earlier continuity without inventing details beyond current canonical state + summary/open observations.
+
+This is a required acceptance point, not optional.
+
+### G. Feedback-revision parity
+
+If the existing normal acceptance harness supports feedback revision safely, revise one committed turn through the canonical feedback path and verify the active revised Story is aligned with its regenerated Extract `turn_summary`, with no duplicate active turn or stale summary winning.
+
+If the existing harness cannot safely express feedback revision, record `NOT EXERCISED — harness limitation` with source proof; do not invent a new broad harness solely for this row unless CURRENT_TASK/AGENTS already permits the narrow addition.
+
+### H. Deep physical / intimate domain
+
+Continue the scenario far enough to exercise at least one deeper physical/intimate interaction when the game's normal Level-7 state/rules and player steering make it contextually reachable. Sexual/intimate behavior is a coverage domain, not a required forced outcome on a specific turn.
+
+Verify when such content occurs:
+- exact player action kind/strength/scope is not silently substituted;
+- Story remains the author of what actually happens;
+- Extract preserves exact-evidence observations without requiring a closed narrative sexual-action enum;
+- compact clothing/image tags may project presentation state but do not decide narrative truth;
+- institutional CSA compliance remains separate from NPC personal acceptance/consent/emotion/relationship reaction.
+
+Do not force a synthetic semantic state merely to satisfy this row. If the scenario remains legitimately not yet contextually reachable after substantial natural play, report the exact reached state and coverage gap rather than mutating DB state.
+
+### I. Post-deep continuity and recovery
+
+After any deep physical/intimate turn, continue for several additional committed turns if reached and verify:
+- continuity survives subsequent turns;
+- prior facts/summary memory remain coherent;
+- scene/presence and relationship/world context do not snap back merely because the recent raw window moved;
+- no turn is left stuck in processing state.
+
+Finally reset the dedicated TEST game through the canonical reset path and prove:
+- committed_turn = 0;
+- actions = 0;
+- turns = 0;
+- processing_status / pending action state clean;
+- player_setup/opening reset to baseline;
+- Level-7 fixture state is gone and player progression is baseline level 1 unless the canonical reset contract defines otherwise;
+- CSA active state empty/baseline;
+- canonical Scene v1 baseline restored;
+- no preserved manual game was accessed.
+
+## Acceptance criteria
+
+PASS only if all mandatory structural scenarios A-F and I's final-reset proof succeed, and no decisive architectural defect is observed.
+
+Rows G/H may be reported as explicit coverage gaps only when the normal product/harness path genuinely cannot reach them without prohibited synthetic state. Do not mislabel an untested row as PASS.
+
+Any first decisive Story/Extract/Commit/context/history authority failure is enough to BLOCK/FAIL the acceptance. Preserve evidence and STOP rather than patching inline.
 
 ## Forbidden operations
 
-- Live TEST gameplay/LLM.
-- TEST DB writes/resets.
-- Migration change/apply/reapply/rollback.
-- API/frontend deploy.
-- Production access/mutation/deploy.
-- Any access/mutation/reset of preserved manual game.
-- Provider/model/temperature/token changes.
+- Production access/deploy/mutation.
+- Any access/mutation/reset of manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`.
+- Any migration edit/apply/reapply/rollback.
+- Direct manual DB edits to manufacture gameplay semantics or Level 7.
+- New provider/model/temperature/token configuration except the explicit TEST-only diagnostic flag.
+- Retry/regeneration/fuzzy semantic repair/synthetic facts/synthetic summaries.
+- Source/runtime patch after the execution lease starts.
+- Frontend deployment.
 - New branch/PR, merge, Ready, rebase, squash, force-push.
+- `git clean -fd`, `git reset --hard`, deletion/move/commit of preserved evidence.
 
 ## Completion / terminal report
 
-Before COMPLETE:
-- report START_SHA and executable FINAL_SHA separately from docs-only final SHA;
-- show exact source proof of old summary discard and new summary flow;
-- show final Extract turn-summary prompt contract;
-- show normal + feedback-revision persistence/readback tests;
-- show next-Story projection with last 3 raw plus older summary-only memory;
-- report treatment of `story_summary_overall` / `story_summary_recent` with caller proof;
-- prove block observation persistence remains independent;
-- report focused/full/syntax/diff-check results;
-- verify live TEST/DB/deploy/migration/Production/manual-game operations all 0;
-- verify preserved evidence unchanged and no repeated re-approval STOP;
-- verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
+Before terminal report:
+1. final-reset the dedicated TEST game even on failure;
+2. verify PR #67 remains OPEN / DRAFT / UNMERGED;
+3. verify repository preserved evidence remains the same approved snapshot and no new repo evidence artifact was created;
+4. report exact deployed executable SHA and TEST Worker Version ID;
+5. report exact scenario matrix A-I as PASS / FAIL / NOT EXERCISED with evidence references;
+6. report every action id/turn where a defect occurred;
+7. if Extract protocol fails, include raw provider response and exact block mapping from the TEMP evidence bundle;
+8. report committed `turn_summary` and older summary-memory proof for scenario F;
+9. report final reset state;
+10. report TEMP evidence path + SHA-256.
 
-Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP. Do not launch live acceptance yourself.
+Set CURRENT_TASK to `WAITING_REVIEW`, commit/push only that completion-state docs change if needed, post one immutable terminal report to Issue #68, and STOP. Do not patch the defect or generate the next task yourself.
