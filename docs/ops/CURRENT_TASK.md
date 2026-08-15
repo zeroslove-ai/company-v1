@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
 Status: READY
-Task ID: deep-level7-live-acceptance-v7
+Task ID: narrative-memory-simplification-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,122 +13,178 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Reviewed gameplay executable:
+Accepted source/test executable before this task:
 `53710caa6a2255dc2b8d1aab47053df5f9d6fe06`.
 
-Reviewed SSE harness ancestor:
-`97d0fc840a3e99717ca75c07e7055f18944398d1`.
+Its docs-only completion descendant:
+`faad762ae34c5e50d022d5cd70b2a40b9242e774`.
 
-Fresh optional-observation fail-open review: Issue #68 comment `5301920394`.
-Previous V6 terminal: Issue #68 comment `5301754574`.
-Previous V6 review: Issue #68 comment `5301876748`.
+The former live task `deep-level7-live-acceptance-v7` was registered at `04c68d0ffb617f380e7d59085851bb60911f9be5` but had no `EXECUTION: STARTED`. It is superseded by this owner architecture correction before execution.
 
-TEST Supabase: `fmcrspgxstsmxxsmkeee`.
-Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` must not be accessed or mutated.
+## Owner architecture correction
 
-## Purpose
+The open-fact/open-observation subsystem grew into an unnecessary second narrative-memory system.
 
-Resume the same deep Level-7 live acceptance after removing the deterministic `OPEN_FACT_UNKNOWN_ID` whole-turn blocker.
+The intended game model is simpler:
 
-This is acceptance/proof, not another architecture or harness-building task. Exercise the real Story -> Extract -> Commit -> committed readback/recovery path deeply enough to either prove the current architecture or stop on the next real deterministic defect.
+**Story authors the narrative -> Extract derives only narrow machine/UI state plus one natural-language `turn_summary` -> Commit persists the turn -> the next Story reads recent raw turns plus older turn summaries and infers narrative continuity itself.**
 
-Do not retry/regenerate until a favorable semantic result appears. Do not add a new parser, gateway, semantic gate, fallback taxonomy, or repair LLM.
+Before the open-fact redesign, recent raw narrative plus turn summaries were already the useful continuity mechanism. The current runtime now additionally sends `open_observations`, requires `block_observations[].facts`, assigns `fact_id`/subject/object/source-block provenance, and accumulates `save.open_observations`. That extra semantic-memory authority is not required by the product and has already produced deterministic blockers such as `OPEN_FACT_UNKNOWN_ID`.
 
-## Mandatory preflight
+This task is deletion/simplification, not a replacement memory framework.
 
-1. Fresh-fetch Issue #68. If this exact task already has a terminal or operator review, stop without duplicate work.
-2. Verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED, and current HEAD descends from reviewed executable `53710caa...` and reviewed SSE harness `97d0fc840...`.
-3. Distinguish docs-only branch HEAD from executable identity.
-4. Verify the dedicated TEST game identity exactly. Never use the historical manual game.
-5. Verify the previously reviewed TEST-only Level-7 acceleration seam; do not alter Production progression and do not manufacture gameplay state with ad-hoc DB writes.
-6. All new evidence artifacts must go to OS TEMP or another path outside the repository.
+## Target memory model
 
-## Authorized TEST operations
+### 1. Recent raw turns
 
-This task authorizes only the TEST operations needed for this acceptance:
+Story context must contain the latest **6 committed raw turns** in chronological order.
 
-- verify the currently deployed TEST API Worker identity;
-- if needed, deploy the exact reviewed executable lineage containing `53710caa6a2255dc2b8d1aab47053df5f9d6fe06`; do not deploy unrelated branch drift;
-- use the already-reviewed TEST-only Level-7 acceleration seam on disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`;
-- reset only that disposable TEST game before/after the bounded run as needed;
-- run the existing reviewed canary/live acceptance harness and read TEST action/turn/save evidence required for proof;
-- use already-existing diagnostics if required, then clean them before terminal.
+Each recent raw turn may contain only the existing useful committed turn material such as:
+- turn number
+- player action
+- raw `story_text`
+- committed parsed blocks if currently needed by Story/recovery callers
+- committed literal choices if currently needed
 
-No Production access. No manual-game access. No migration/DDL under this task. If a DB contract/DDL change is required, stop BLOCKED rather than applying it.
+Do not create a new semantic representation of these six turns.
 
-## Scenario coverage
+### 2. Older continuity
 
-Acceptance is scenario-driven, not a fixed turn count. Continue only while needed to cover meaningful depth.
+Turns older than the latest six are represented to Story by their existing natural-language `turn_summary` only, in chronological order.
 
-### A. Core spine and choices
+Keep the current same-Extract-call `turn_summary`; do not add a Summary/Memory LLM call.
 
-- Setup/Opening and ordinary free-text conversation.
-- Provider-authored exactly four literal choices persist/read/render; selecting one becomes the ordinary next player input string.
-- Story, Extract, Commit, committed readback and replay agree on action/turn identity.
+A summary is ordinary compressed narrative continuity. It is not a taxonomy, fact ledger, importance-scoring engine, entity graph, or semantic authority.
 
-### B. Open semantic memory
+### 3. Story inference
 
-- At least one meaningful fact outside old event/relation/emotion/posture/sexual taxonomies is narrated by Story, grounded in exact Story evidence, committed, and available to later context.
-- Mixed valid + invalid optional observations must preserve valid facts and complete the turn.
-- Unknown/malformed optional fact/projection/block observation must fail open locally and must not erase the Story or other valid observations.
-- No success fact may be manufactured directly from player input.
+Story LLM reads the latest six raw turns plus older summaries and naturally infers relationships, promises, refusals, emotions, physical continuity, work context, and other narrative meaning.
 
-### C. CSA Level-7 behavior
+Do not require the server to enumerate or validate those meanings as separate semantic facts.
 
-- Exercise a strong CSA context naturally, including compliance/resistance or institutional-rule tension.
-- CSA supplies rule identity/context/lifecycle/applicability rather than a finite physical execution grammar.
-- Institutional compliance remains separate from consent, comfort, affection, trust, relationship, and emotion.
+Narrow deterministic product state may still exist where a proven consumer needs it, for example canonical scene/location/presence, compact clothing UI projection, progression, institutional CSA state, current time, and other true machine state. Those narrow states must not become a second general narrative-memory engine.
 
-### D. Physical/clothing/intimate continuity
+## Required source changes
 
-- Exercise posture/contact wording outside former finite semantic enums and verify narrative/open memory is not rejected because no old taxonomy value exists.
-- Verify compact clothing continuity if clothing changes occur; compact clothing remains a narrow product projection, not the universe of physical meaning.
-- If an intimate/sexual path occurs in the bounded scenario, verify the narrative fact/memory survives independently of image-family classification.
+### A. Remove open observations from Story memory authority
 
-### E. Memory depth and recovery
+In `buildStoryContextProjection` and Story rules/payload:
+- remove `context.open_observations` projection;
+- remove Story instructions that treat `open_observations` as durable narrative facts;
+- change recent raw continuity from latest 3 turns to latest 6 turns;
+- build `turn_summary_memory` only from turns older than those latest six.
 
-- Continue beyond the immediate recent raw-Story window so at least one earlier committed fact must survive through durable summary/open-observation context rather than only the latest raw stories.
-- Refresh/recovery must reconstruct the same durable context.
-- Replay/readback must be idempotent; no duplicate fact creation from replay.
+Story should receive recent raw narrative + older summaries, not an additional fact ledger.
 
-### F. Media boundary
+### B. Remove fresh open-fact generation contract
 
-- Observe media/image selection when naturally applicable.
-- Finite image catalogs/action families/general-sex pools are presentation adapters only.
-- Missing, alternate, or unclassifiable image selection may change the image result but must never reject the turn, delete the narrative fact, or redefine whether the action occurred.
+From the fresh Extract prompt/contract:
+- remove `block_observations` as a required output channel;
+- remove nested `facts` instructions;
+- remove the requirement that arbitrary emotion/relation/agreement/refusal/physical/intimate meaning be represented as an open fact;
+- remove fresh `open_facts` generation/normalization as narrative continuity authority;
+- keep `turn_summary` as the free natural-language narrative continuity product from the same Extract call.
 
-## Failure discipline
+Extract should continue to produce only narrow observations that have real machine/UI consumers. If a narrative meaning does not need a narrow machine projection, the Story itself plus `turn_summary` is sufficient continuity.
 
-- One bounded scenario. No retry/regeneration to obtain a pass.
-- On the first deterministic failure, preserve HTTP status, raw SSE/terminal event, action status/error, relevant Story/Extract/Commit payload identity, committed TEST DB state, deployed Worker identity, and TEMP evidence paths; then stop.
-- Classify the failure before proposing a fix: deployment identity / harness transport / Story / Extract / Commit / persisted read-replay / context-memory / UI-media / DB contract.
-- If source or migration changes are required, do not patch under this acceptance task. Terminal BLOCKED with root-cause evidence for operator review.
+### C. Stop writing general narrative open observations
 
-## Acceptance criteria
+Commit must stop appending fresh narrative facts into `save.open_observations`.
 
-PASS only if the exercised scenario proves the real committed gameplay spine and no hidden finite semantic gate is required for the meaning exercised.
+Existing historical `save.open_observations` or persisted Extract `open_facts` may remain as inert legacy data if removing the stored field itself would require migration or would break historical row decoding, but:
+- they must not be projected into new Story prompts;
+- they must not receive new writes;
+- they must not be revalidated as an active gameplay gate;
+- they must not be required for replay/Commit of new turns.
 
-Test counts are supporting evidence only, not acceptance proof.
+Prefer deleting now-unused active reader/writer/validator code when caller proof shows it is no longer needed. Do not create a compatibility subsystem to preserve obsolete semantics.
 
-Report exact scenario/turns, Story evidence, Extract observations/warnings, committed facts/summaries, recovery/replay evidence, Level-7/CSA behavior, clothing/media behavior if exercised, exact deployed identity, and final TEST cleanup.
+### D. Keep turn summary simple
 
-## Completion
+`turn_summary` remains generated by the existing Extract call.
 
-1. Reset only disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` to the documented clean baseline after the bounded run.
-2. Clean/disable any temporary diagnostic toggle used.
-3. Set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit.
-4. Post one immutable terminal report to Issue #68 with PASS/BLOCKED/FAILED, exact executable/deployed identities, evidence paths, TEST cleanup proof, and explicit zero Production/manual-game access.
-5. Stop. Do not patch a discovered defect and do not create the next task yourself.
+Prompt it as concise natural Korean continuity memory of what materially happened in that completed Story. It may mention promises, refusals, relationship changes, work events, physical/clothing/intimate continuity, or anything else the Story actually established.
+
+No enum, subject/object IDs, exact-quote ledger, fact IDs, source-block accounting, importance score, vector embedding, graph, semantic tag, separate memory model, or additional LLM call.
+
+### E. Context retrieval
+
+Story may continue fetching enough committed turns (for example current `p_recent_turns: 50`) so that the projection can supply:
+- latest six raw turns;
+- older turn summaries.
+
+Do not increase context complexity merely because more rows are fetched. The Story-facing memory shape should remain these two layers only, plus narrow current machine state.
+
+## Deletion-first audit within this task
+
+Inspect all active callers of:
+- `open_observations`
+- `open_facts`
+- `block_observations`
+- `fact_id`
+- `source_block` when used solely for general narrative facts
+- `normalizeOpenFacts`
+- `normalizeBlockObservations`
+- persisted open-fact validation that still participates in ordinary new-turn replay/Commit
+
+Remove or isolate obsolete fresh-path code in the same task rather than leaving a parallel memory system behind.
+
+Do not touch source-block/provenance concepts that are independently required by another proven non-memory consumer; prove the caller before retaining them.
+
+## Tests / proof
+
+Update tests to prove the simplified architecture rather than preserving the old implementation.
+
+Must prove at minimum:
+1. Story gets the latest six raw committed turns in chronological order.
+2. A seventh-and-older turn leaves the raw window and is represented by `turn_summary_memory`.
+3. Story prompt/payload contains no active `open_observations` narrative-memory channel.
+4. Fresh Extract no longer requires or requests `block_observations` / general `open_facts`.
+5. A normal Story -> Extract -> Commit turn succeeds without any fact ledger.
+6. Commit does not append new `save.open_observations` entries.
+7. `turn_summary` persists/readbacks through the existing transaction path.
+8. Replay/recovery of current-format new turns does not depend on open-fact validation.
+9. Compact clothing/current scene/current time/CSA/progression and other proven narrow machine state remain intact.
+10. Full regression passes after deleting stale tests that existed only to enforce the superseded open-fact architecture.
+
+Test count may decrease if obsolete open-fact contract tests are deleted. Do not add compatibility code merely to preserve the old count.
 
 ## Forbidden
 
-- new branch/PR; reopen #65/#66; merge/Ready/rebase/squash/force-push;
-- Production access;
-- any access/mutation/reset of historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+Do not replace the removed subsystem with another one.
+
+Specifically forbidden:
+- new fact/memory ledger;
+- entity graph;
+- vector DB/embedding memory;
+- importance scoring;
+- subject/object semantic graph;
+- new enum/taxonomy/allowlist;
+- generic semantic validator/gateway;
+- fact repair/fuzzy matcher;
+- second Summary/Memory LLM call;
+- retry/regeneration to hide architecture defects;
 - provider/model/temperature/token changes;
-- retry/regeneration/fuzzy repair/parser relaxation/new parser/semantic hard gate;
-- ad-hoc direct DB mutation to manufacture gameplay state outside the reviewed TEST-only Level-7 acceleration seam;
-- new semantic enum/allowlist/fallback/gateway to make acceptance pass;
-- treating image/media classification as authority over whether a narrative fact occurred;
-- editing historical applied migrations or immutable terminal evidence.
+- new parser generation;
+- migration solely to clean historical inert JSON during this task;
+- Production access;
+- TEST live gameplay/deploy/reset under this source/test task;
+- manual-game access;
+- merge/PR Ready/rebase/squash/force-push;
+- new branch/PR.
+
+## Completion
+
+Source/test only.
+
+Before COMPLETE:
+- show the actual active reader/writer deletion map for open-fact/open-observation memory;
+- report the final Story memory payload shape;
+- report the final fresh Extract output shape;
+- run focused tests and full regression;
+- run syntax checks for changed JS/MJS and `git diff --check`;
+- verify PR #67 remains OPEN / DRAFT / UNMERGED.
+
+Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP.
+
+Do not launch deep live acceptance yourself. After operator review, the next live acceptance must validate the simplified **latest-six raw turns + older turn summaries** architecture rather than the superseded open-fact subsystem.
