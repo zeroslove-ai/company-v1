@@ -87,3 +87,28 @@ current Opening/parser/replay evidence, the rollout is PASS.
 No retry, regeneration, workaround, parser/provider change, frontend deploy,
 Production access, or preserved manual-game access occurred. Preserved
 artifacts remain unchanged.
+
+## Literal-choice closure evidence — BLOCKED — 2026-08-16
+
+The acceptance-only follow-up used the already deployed reviewed Worker
+`game-proxy-company-v1`, Version
+`10044238-541e-4e8a-a115-fb5a6cd1ecb5`; no redeployment occurred. The live
+Opening migration/RPC contract remained read-only verified.
+
+The single bounded run used dedicated TEST game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`. Setup passed with setup ID
+`30267c31-cbea-4042-bd22-9c1c82f43c0b`. Opening returned HTTP 200 and a
+complete SSE event with four literal choices, then the strict parser stopped
+on provider output `[DIALOGUE speaker_id="heroine3"]` with
+`Unknown Story speaker_id: heroine3`. No selected-literal turn or free-text
+turn was attempted after this first deterministic failure.
+
+Evidence is preserved at
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-story-marker-literal-choice-live-closure.json`.
+The dedicated game was reset once through the canonical API and independently
+read back clean (`committed_turn=0`, idle, setup/opening not started, no CSA,
+no recent turns/history). No retry, regeneration, provider/model workaround,
+parser relaxation, fuzzy repair, semantic fallback, source/runtime/test
+change, migration/DDL, deployment, Production access, or preserved manual
+game access occurred. This is BLOCKED pending operator review; it is not a
+runtime hotfix authorization.

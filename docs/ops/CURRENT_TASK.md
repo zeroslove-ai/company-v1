@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: story-marker-literal-choice-live-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -101,3 +101,40 @@ On success or deterministic BLOCKED finding:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
+
+## Execution result — 2026-08-16
+
+The already deployed reviewed Worker was used without redeployment:
+`game-proxy-company-v1`, Version
+`10044238-541e-4e8a-a115-fb5a6cd1ecb5`, with health previously verified as
+HTTP 200, `ok=true`, `edition_id=company-v1`. Read-only TEST contract
+verification remained PASS for migration
+`20260816000100_company_v1_opening_structured_persistence` and the canonical
+six-argument Opening writer with SECURITY DEFINER,
+`search_path=public, pg_temp`, service_role EXECUTE, and parsed_blocks
+persistence. No migration, DDL, or deployment occurred in this task.
+
+The single bounded run used dedicated TEST game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`. Setup passed with setup ID
+`30267c31-cbea-4042-bd22-9c1c82f43c0b`. Opening returned HTTP 200 and a
+complete SSE event with four literal choices, but the strict parser stopped
+on the provider's attributed identity `DIALOGUE speaker_id="heroine3"`:
+`Unknown Story speaker_id: heroine3`. The four returned choices were:
+
+1. `자리를 먼저 정리하고 김제나에게 간단히 인사한 뒤, 오늘 할 일이 무엇인지 물어본다.`
+2. `지하철에서 봤던 광고 캠페인 이야기를 꺼내며 가볍게 대화를 시작해 본다.`
+3. `자리에 앉기 전에 팀장이 돌아올 때까지 기다리며 사무실 분위기를 더 둘러본다.`
+4. `스마트폰을 꺼내 상식개변 앱이 여전히 그대로 있는지 몰래 확인해 본다.`
+
+Because Opening parsing failed, no literal-choice Story/Extract/Commit or
+free-text turn was attempted. Evidence is preserved at
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-story-marker-literal-choice-live-closure.json`.
+Canonical reset succeeded, and a separate read-only readback was clean:
+committed_turn=0, processing_status=idle, player_setup=not_started,
+opening_state=not_started, csa_active=[], recent turns=0, history=0.
+
+This is a deterministic live acceptance BLOCKER, not authority to modify the
+parser/provider/runtime or retry the provider. No retry, regeneration,
+provider/model workaround, parser relaxation, fuzzy repair, semantic
+fallback, Production/manual-game access, or source/runtime/test change was
+performed.
