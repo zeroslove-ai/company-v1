@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: opening-structured-persistence-contract-v1
+Status: READY
+Task ID: opening-structured-persistence-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,158 +13,104 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous terminal evidence:
-- task `opening-structured-replay-authority-v1`
-- terminal comment `5303325427`
-- operator review `5303536743` = ACCEPTED_BLOCKED_EVIDENCE
-- docs-only reviewed HEAD `4c5f1182a86c326ceedce52c6e8592944873e37d`
-- accepted ordinary-turn replay source/test SHA `7b61c9fd69930e82afc97a2dc907136ce3678beb`
+Accepted source/test/migration contract:
+- task `opening-structured-persistence-contract-v1`
+- operator review `5303762857` = ACCEPTED
+- reviewed source/test/migration SHA `c62c92e231a0f0b44a723474bd16a7dba1985124`
+- docs-only reviewed HEAD before this registration `39bbb76763ee5d185868801000ea2557cc467065`
+- additive migration `20260816000100_company_v1_opening_structured_persistence.sql`
 
-Independent live TEST catalog verification confirmed the current canonical Opening writer is exactly:
-`commit_company_opening(p_game_id uuid, p_setup_id uuid, p_background text, p_story_text text, p_choices jsonb)`.
-It is SECURITY DEFINER with `search_path=public, pg_temp` and persists raw Opening Story + choices, but no structured Opening blocks.
+The reviewed migration replaces the zero-active-caller five-argument Opening writer with canonical `commit_company_opening(uuid, uuid, text, text, jsonb, jsonb)` carrying server-produced `p_parsed_blocks`. Current-format replay prefers committed `opening_state.parsed_blocks`; historical rows lacking it retain the single inert persisted-parser fallback.
 
 Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and must not be accessed or mutated.
 Production access is forbidden.
 
 ## Objective
 
-Create the minimum additive source/test/migration contract needed to make **current-format Opening committed structured state authoritative**, matching the already-accepted ordinary-turn `parsed_blocks` replay architecture.
+Roll the exact reviewed Opening structured persistence contract into TEST and prove the live DB/API/replay boundary end-to-end. This is a bounded TEST rollout/acceptance cut, not a new redesign cut.
 
-This is a **contract authoring/review cut only**. Author the additive migration and source/test changes in #67, but DO NOT apply the migration, deploy Workers/frontend, write/reset TEST DB, or run live gameplay in this lease.
+Do not change the reviewed contract merely to make rollout pass. If migration application, live RPC catalog, exact-SHA deployment, Setup/Opening, replay/recovery, or reset reveals a deterministic defect, preserve evidence and STOP for operator review instead of layering compatibility, retry, parser, provider, or semantic-gate fixes.
 
-Do not patch around the DB boundary. Do not preserve the old five-argument Opening writer as an active duplicate writer merely for compatibility. Historical applied migrations remain immutable.
+## Required execution order
 
-## Required architecture
+1. Freeze and verify exact Git ancestry before mutation:
+   - #67 remains base `main`, OPEN / DRAFT / UNMERGED;
+   - current HEAD is a descendant of reviewed source/test/migration SHA `c62c92e231a0f0b44a723474bd16a7dba1985124` with only docs/ops/audit changes after it;
+   - migration file content at execution HEAD is byte-equivalent to reviewed migration content.
 
-### A. Canonical Opening writer contract
+2. Verify live TEST pre-state before applying anything:
+   - migration `20260816000100_company_v1_opening_structured_persistence` is not already applied, or if already applied unexpectedly, STOP with exact evidence;
+   - current live TEST Opening writer is the old five-argument signature before apply;
+   - record its ACL/security/search_path facts.
 
-Add one new additive migration that replaces the active canonical Opening RPC contract with a structured form carrying server-produced parsed blocks.
+3. Apply exactly the reviewed additive migration to TEST. Do not edit historical migrations and do not create a replacement migration in this lease.
 
-Target logical contract:
-`commit_company_opening(uuid, uuid, text, text, jsonb, jsonb)`
-with the final jsonb argument being `p_parsed_blocks`.
+4. Immediately verify live TEST post-state:
+   - migration is present exactly once;
+   - six-argument `commit_company_opening(uuid, uuid, text, text, jsonb, jsonb)` exists;
+   - old five-argument signature no longer exists;
+   - canonical writer is SECURITY DEFINER with safe `search_path = public, pg_temp`;
+   - execute privilege is service_role-only according to the intended policy;
+   - function body persists `opening_state.parsed_blocks` in the same canonical transaction with story/choices and preserves setup/turn-zero/idempotence/scene/clothing behavior.
 
-Requirements:
-- preserve existing game/setup identity checks;
-- preserve exactly-four non-empty literal choice validation;
-- preserve idempotence semantics;
-- preserve SECURITY DEFINER and safe `search_path = public, pg_temp`;
-- preserve service-role-only execution surface / current ACL policy;
-- persist `opening_state.parsed_blocks` together with `story_text` and `choices` in the same canonical transaction;
-- structured blocks are presentation/replay state produced by the server parser, not an arbitrary LLM save patch;
-- validate only structural shape required for safe persistence/readback; do not add semantic enums/allowlists/regex/fuzzy gates over narrative meaning;
-- if choices also appear inside parsed blocks, server/API remains responsible for canonical literal choices; do not create a second choice writer.
+5. Deploy the exact reviewed API executable needed by the new RPC contract to TEST. The deployed gameplay source must correspond to reviewed source/test/migration SHA `c62c92e231a0f0b44a723474bd16a7dba1985124`; docs-only descendants are not new executable identity. Do not deploy frontend unless source proof shows it is actually required by this contract; server projection/frontend consumer was already reviewed as compatible.
 
-The old five-argument public writer must not remain an independently usable canonical writer after this migration unless concrete external caller proof requires a temporary compatibility window. If such a caller exists, STOP with exact caller evidence rather than silently keeping duplicate authority. Prefer explicit DROP + new canonical signature in the additive migration when safe.
+6. Verify actual deployed Worker identity/source equivalence before live gameplay. Do not infer deployment success from CLI exit alone.
 
-### B. API write path
+7. Run one bounded dedicated TEST Setup -> Opening -> replay/recovery acceptance using existing canonical harness/helpers where possible. Do not use or mutate the preserved manual game.
 
-Update `src/api/turn-routes.js` so Opening commit sends the exact server-produced `parsedOpening` through the new canonical RPC in the same commit operation.
+Acceptance must prove:
+- Setup reserves/commits normally.
+- Opening Story produces provider-authored exactly four literal choices and the server commits them unchanged.
+- `opening_state.parsed_blocks` is present after commit and corresponds to the server-produced Opening structured projection.
+- `/api/context` / Opening replay uses committed structured blocks.
+- Current-format replay does not require raw Opening reparse; where the existing harness can prove it safely, demonstrate structured replay authority without manufacturing a second writer.
+- Recovery/replay does not call Story again for an already committed Opening.
+- Ordinary first gameplay turn after Opening can proceed through Story -> Extract -> Commit without regression.
+- Scene/location/presence, compact clothing, progression/TEST Level-7 seam, CSA rule identity/lifecycle, sexual/media adapters, and recent-six/older-summary memory architecture are not altered by this rollout.
+- Image/media selection remains presentation-only and cannot gate narrative/Extract facts.
 
-Do not:
-- serialize structured state into raw Story text;
-- call an internal helper directly;
-- create a second persistence endpoint;
-- add retry/regeneration/provider changes;
-- add a new parser or parser relaxation.
+8. Reset only the dedicated TEST acceptance game using the canonical reset path and verify clean reset. Never reset or mutate `78fb1d94-266f-455a-bda4-7656cc2370c1`.
 
-### C. Replay/read authority
+## Failure policy
 
-Update `openingTurnProjection()` so:
-- usable `opening_state.parsed_blocks` is preferred as current-format authority;
-- raw `opening_state.story_text` remains evidence/presentation text and cannot override usable committed structured blocks;
-- only historical Opening rows that genuinely lack structured blocks may use the existing persisted parser as one inert fallback boundary;
-- frontend continues consuming server committed projection and must not gain its own parser/semantic writer.
+At the first deterministic defect:
+- capture exact HTTP/SSE/action status/live DB/deployed identity evidence relevant to the failure;
+- do not retry for a favorable provider result;
+- do not change provider/model/temperature/tokens;
+- do not add compatibility overloads, fuzzy repair, parser relaxation/new parser, semantic enums/gates, or direct DB state manufacturing;
+- reset the dedicated TEST game if safe and possible without destroying failure evidence;
+- mark CURRENT_TASK `WAITING_REVIEW` with BLOCKED/FAILED evidence and STOP.
 
-Delete or rewrite stale tests/helpers that assume current-format Opening must always reparse raw prose.
-
-### D. Migration immutability and rollout separation
-
-- Never edit any historical applied migration.
-- Add exactly one new migration file for this contract.
-- This task MUST NOT apply it to TEST.
-- Do not change Production progression, TEST Level-7 seam, scene/location/presence authority, stats, compact clothing, CSA rule identity/lifecycle/applicability, sexual_event_ledger, or image/media presentation adapters.
-- Media/image classification remains presentation-only and must never gate Story/Extract facts.
-
-## Required proof
-
-Source/test proof must demonstrate:
-1. Opening API commit passes server-produced parsed blocks to the canonical RPC.
-2. New migration defines one canonical structured Opening writer with correct security/search_path/ACL intent and no active duplicate five-arg writer when caller proof is zero.
-3. Current-format Opening replay uses committed structured blocks without reparsing raw Story.
-4. Mutating raw persisted Opening prose in a test fixture cannot replace usable committed structured blocks.
-5. Historical row without `parsed_blocks` remains readable through the single inert fallback if concrete historical compatibility is retained.
-6. Literal exactly-four choices remain byte/literal stable through Opening commit -> replay -> frontend projection.
-7. No semantic enum/allowlist/regex/fuzzy gateway is introduced for dialogue/acting/inner-thought/relationship/emotion/physical narrative meaning.
-8. Ordinary-turn six-raw + older-summary memory architecture is unchanged.
-9. Full relevant regression, changed-file syntax checks, migration/static contract tests that prove behavior rather than string-presence alone, and `git diff --check` pass.
-
-Test count alone is not proof.
-
-## Remove-or-prove checks
-
-Before completion, inventory:
-- all callers of `commit_company_opening`;
-- any old five-argument overload expectation;
-- Opening raw reparse callers;
-- frontend Opening reconstruction paths.
-
-Delete zero-consumer duplicate authority in this cut. Do not keep compatibility runtime solely for stale tests.
+A transient external failure may be classified as such only with concrete evidence; do not hide deterministic defects behind retry.
 
 ## Authorized operations
 
-Authorized:
-- source/test/docs changes inside existing #67 branch;
-- author one additive migration file;
-- local/static tests and source inspection.
+Authorized in TEST only:
+- apply migration `20260816000100_company_v1_opening_structured_persistence.sql` exactly as reviewed;
+- deploy exact reviewed API executable required by the contract;
+- create/use one dedicated TEST acceptance game through existing supported paths;
+- Setup/Opening/replay/recovery/one ordinary turn acceptance;
+- canonical reset of that dedicated TEST game;
+- docs/audit completion evidence inside #67.
 
 Not authorized:
-- applying migration/DDL to TEST;
-- TEST DB writes/reset/live gameplay;
-- API/frontend deploy;
-- Production access;
-- preserved manual-game access;
+- Production access of any kind;
+- access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+- source/runtime redesign in this lease;
+- new migration or editing any migration;
+- frontend deploy unless proven strictly required and reported before doing it;
 - new branch/PR, merge, Ready, rebase, squash, force-push;
-- provider/model/temperature/token changes;
-- retry/regeneration for favorable output.
+- direct DB mutation to manufacture gameplay/progression state;
+- provider/model/temperature/token changes or retries/regeneration for favorable output.
 
 ## Completion
 
-On completion:
-- report exact source/test/migration SHA and final docs SHA separately;
-- identify old writer/caller handling and whether the five-arg signature is removed in the authored migration;
-- list the exact migration filename;
-- show replay/current-vs-historical behavior proof;
-- show focused/full/syntax/diff-check results;
-- confirm migration applied = 0, DB writes = 0, deploy = 0, Production/manual-game access = 0;
+On success:
+- report exact registration/start HEAD, reviewed executable/migration SHA, deployed Worker identity, migration live identity, live RPC signature/ACL/security/search_path proof, dedicated TEST game ID, Opening parsed_blocks/replay proof, first ordinary turn result, and final reset proof;
+- distinguish executable SHA from any docs-only completion SHA;
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
-- STOP for operator review before any TEST migration application or deployment.
+- STOP for operator review.
 
-## Completion handoff — 2026-08-16
-
-This task is now `WAITING_REVIEW` after source/test/migration authoring.
-
-- Start HEAD: `625ec976dce59b8e86d877a29eeb9a01aaf6b99d`
-- Source/test/migration SHA: `c62c92e231a0f0b44a723474bd16a7dba1985124`
-- Authored migration: `20260816000100_company_v1_opening_structured_persistence.sql`
-- Additive migration application: `0`
-- API/frontend deployment: `0`
-- TEST/live DB writes, reset, and gameplay: `0`
-- Production/manual-game access: `0`
-- Targeted tests: `75/75 PASS`
-- Full `npm.cmd test`: `419/419 PASS`
-- Changed JS/MJS syntax: `PASS`
-- `git diff --check`: `PASS`
-- Audit: `docs/audit/OPENING_STRUCTURED_PERSISTENCE_CONTRACT_2026-08-16.md`
-
-The authored migration removes the zero-active-caller five-argument writer
-and creates the structured six-argument canonical RPC. The API sends
-server-produced `parsedOpening`; current-format Opening replay prefers stored
-`opening_state.parsed_blocks`; historical no-block rows retain the existing
-single inert fallback. Historical verification/preflight references to the
-old signature remain unchanged as prior-contract evidence, not active callers.
-
-No next task was generated. STOP for operator review before TEST migration
-application or deployment.
+On blocked/failed execution, report the same identity fields available plus the first decisive failure evidence and STOP without creating a workaround task yourself.
