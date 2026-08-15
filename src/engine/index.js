@@ -3,11 +3,9 @@ export { createEditionAdapter, validateEditionAdapter } from './edition.js';
 export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
 export { buildStoryWorldProjection } from './csa/story-projection.js';
 export {
-  buildMandatoryEnactments,
   buildInstitutionalSegments,
   composeCanonicalStory,
-  attachEngineEnactments,
-  validateMandatoryEnactment
+  attachEngineEnactments
 } from './csa/mandatory-enactment.js';
 export { buildExtractPrompt, buildExtractRelevantNpcIds, buildMindMonitorTargetIds } from './extract-prompt.js';
 export { parseFreshNarrativeV2 } from './fresh-narrative-parser.js';
@@ -39,15 +37,11 @@ export {
   deriveTurnChanges,
   migrateCompanySave,
   hydrateGameplayState,
-  validateCsaRuntimeStatePatch,
   buildStableNpcIdSet,
   selectActiveCharacterIds,
   buildActiveCharacterCanon,
   buildSceneContextCore,
   projectGlobalCsa,
-  CSA_LIFECYCLE,
-  CSA_APPLICABILITY,
-  CSA_EXECUTION_STATE
 } from './gameplay-state.js';
 export {
   COMPANY_PLAYER_CANONICAL_PROFILE,
@@ -94,7 +88,6 @@ export {
   signTransactionValidationProof, verifyTransactionValidationProof,
   verifySignedTransactionResolution
 } from './csa/transaction-authority.js';
-export { buildCsaRuntimeStatePatch as buildCsaSceneRuntimeStatePatch, buildCsaAftereffectPatch } from './csa/reducer.js';
 export {
   buildCsaApplicationCheckSection, buildCsaRuntimeExtractContractSection,
   buildMindEffectExtractFirewallSection
@@ -106,7 +99,7 @@ export {
 } from './csa/authority-policy.js';
 export {
   EXECUTION_KINDS, EXECUTION_ACTIONS, EXECUTION_TRIGGER_KINDS, RELATION_KINDS,
-  deriveExecutionMetadata, normalizeExecutionMetadata, validateExecutionMetadata,
+  deriveExecutionMetadata, normalizeExecutionMetadata,
   executionMetadataForRule
 } from './csa/execution-policy.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';

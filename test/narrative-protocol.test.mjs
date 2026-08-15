@@ -5,11 +5,11 @@ import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 
 const master = { characters: [{ character_id: 'heroine2', name: 'Jena' }] };
 
-test('semantic markers expose exact identity and acting metadata', () => {
+test('semantic markers enforce dialogue identity while ACTING remains visible-only', () => {
   const marker = parseStoryControlMarker('[ACTING enactment_id="turn:1:csa:heroine2:0" actor_id="heroine2"]', { directory: new Map([['heroine2', 'Jena']]) });
   assert.equal(marker.type, 'acting');
-  assert.equal(marker.enactment_id, 'turn:1:csa:heroine2:0');
-  assert.equal(marker.actor_id, 'heroine2');
+  assert.equal('enactment_id' in marker, false);
+  assert.equal('actor_id' in marker, false);
   assert.throws(() => parseStoryControlMarker('[DIALOGUE]', { directory: new Map([['heroine2', 'Jena']]) }), error => error.code === 'STORY_PROTOCOL_INVALID');
 });
 
@@ -45,7 +45,7 @@ test('stream decoder emits visible ACTING blocks in source order', () => {
   assert.equal(events.some(event => event.data?.acting_direction), false);
 });
 
-test('stream ACTING metadata survives chunk boundaries and remains visible text', () => {
+test('stream legacy ACTING attributes remain visible text without metadata authority', () => {
   const decoder = createStoryStreamDecoder({ master });
   const events = [
     ...decoder.push('[ACTING enactment_id="turn:1:csa:heroine2:0"]'),
@@ -53,7 +53,7 @@ test('stream ACTING metadata survives chunk boundaries and remains visible text'
     ...decoder.push(' action[/ACTING]'),
     ...decoder.finish()
   ];
-  assert.equal(events.find(event => event.type === 'acting')?.enactment_id, 'turn:1:csa:heroine2:0');
+  assert.equal('enactment_id' in (events.find(event => event.type === 'acting') ?? {}), false);
   assert.equal(events.filter(event => event.type === 'text_delta').map(event => event.text).join(''), 'visible action');
 });
 

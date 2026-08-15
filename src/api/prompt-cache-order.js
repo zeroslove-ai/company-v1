@@ -8,7 +8,6 @@ const STORY_KEY_ORDER = [
   'reference_characters',
   'player_dialogue_policy',
   'world_rules',
-  'scene_obligations',
   'context',
   'player_action',
   'expected_turn'

@@ -64,7 +64,6 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
         return;
       }
       if (current.type === 'acting') {
-        if (current.enactment_id) fail('ACTING block must contain text');
         warnings.push('empty_acting_dropped');
         current = null;
         return;
@@ -93,10 +92,7 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       const item = {
         type: 'acting',
         text,
-        order: blocks.length,
-        ...(current.enactment_id ? { enactment_id: current.enactment_id } : {}),
-        ...(current.actor_id ? { actor_id: current.actor_id } : {}),
-        ...(current.posture_after ? { posture_after: current.posture_after } : {})
+        order: blocks.length
       };
       blocks.push(item);
       actingEvents.push({ ...item });
@@ -141,9 +137,6 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       flush();
       current = {
         type: 'acting',
-        enactment_id: marker.enactment_id ?? null,
-        actor_id: marker.actor_id ?? null,
-        posture_after: marker.posture_after ?? null,
         lines: []
       };
       continue;

@@ -67,6 +67,24 @@ test('fresh Extract preserves arbitrary evidence-backed facts and skips invalid 
   assert.ok(result.warnings.some(warning => warning.includes('OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY')));
 });
 
+test('physical, posture, intimate, and sexual outcomes outside CSA vocabulary survive as open facts', () => {
+  const storyText = 'Hayeon leaned against the desk. Hayeon held the player hand. Hayeon kissed the player. Hayeon felt unexpectedly shy.';
+  const result = normalizeFreshExtractObservationV2(valid({
+    open_facts: [
+      { subject_id: 'heroine1', object_id: null, fact_text: 'Hayeon leaned against the desk.', story_quote: 'Hayeon leaned against the desk.' },
+      { subject_id: 'heroine1', object_id: 'player', fact_text: 'Hayeon held the player hand.', story_quote: 'Hayeon held the player hand.' },
+      { subject_id: 'heroine1', object_id: 'player', fact_text: 'Hayeon kissed the player.', story_quote: 'Hayeon kissed the player.' },
+      { subject_id: 'heroine1', object_id: null, fact_text: 'Hayeon felt unexpectedly shy.', story_quote: 'Hayeon felt unexpectedly shy.' }
+    ]
+  }), { npcIds: NPCS, storyText, expectedTurn: 4, actionId: 'open-fact-natural-outcome' });
+  assert.deepEqual(result.open_facts.map(fact => fact.fact_text), [
+    'Hayeon leaned against the desk.',
+    'Hayeon held the player hand.',
+    'Hayeon kissed the player.',
+    'Hayeon felt unexpectedly shy.'
+  ]);
+});
+
 test('fresh Extract removes closed semantic event/relation/emotion writers while retaining open facts', () => {
   const storyText = 'Hayeon accepts the apology.';
   const result = normalizeFreshExtractObservationV2(valid({

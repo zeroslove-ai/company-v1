@@ -9,12 +9,9 @@ const TURN_CHANGE_ROOTS = new Set([
   'scene', 'world_state', 'csa_runtime_state', 'csa_aftereffect_state'
 ]);
 
-export const CSA_LIFECYCLE = new Set(['active', 'temporarily_interrupted', 'suspended', 'completed', 'deactivated']);
 
 // 플레이어 발기 상태 enum — delta가 아닌 현재 물리 상태 (지시 22).
 const ERECTION_STATES = new Set(['unknown', 'flaccid', 'partial', 'erect']);
-export const CSA_APPLICABILITY = new Set(['applicable', 'not_applicable', 'unknown']);
-export const CSA_EXECUTION_STATE = new Set(['not_started', 'proposed', 'executed', 'refused', 'interrupted']);
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -224,28 +221,6 @@ export function buildStableNpcIdSet({ characters = [], generalNpcs = [] } = {}) 
  * Invalid individual fields are dropped with a warning; valid fields are kept so a
  * single bad axis never discards the rest of an otherwise valid CSA update.
  */
-export function validateCsaRuntimeStatePatch(csaId, patch) {
-  const warnings = [];
-  if (!object(patch)) return { patch: null, warnings: [`invalid_csa_runtime_state:${csaId}`] };
-  const clean = {};
-  if ('lifecycle' in patch) {
-    if (CSA_LIFECYCLE.has(patch.lifecycle)) clean.lifecycle = patch.lifecycle;
-    else warnings.push(`invalid_csa_lifecycle:${csaId}`);
-  }
-  if ('applicability' in patch) {
-    if (CSA_APPLICABILITY.has(patch.applicability)) clean.applicability = patch.applicability;
-    else warnings.push(`invalid_csa_applicability:${csaId}`);
-  }
-  if ('execution_state' in patch) {
-    if (CSA_EXECUTION_STATE.has(patch.execution_state)) clean.execution_state = patch.execution_state;
-    else warnings.push(`invalid_csa_execution_state:${csaId}`);
-  }
-  for (const key of Object.keys(patch)) {
-    if (!['lifecycle', 'applicability', 'execution_state'].includes(key)) clean[key] = clone(patch[key]);
-  }
-  return { patch: clean, warnings };
-}
-
 /** Extract may propose 1-30 minutes, or 1-480 with explicit time_advance evidence. */
 export function normalizeElapsedMinutes(value, evidence = {}) {
   const max = object(evidence) && evidence.time_advance === true ? 480 : 30;

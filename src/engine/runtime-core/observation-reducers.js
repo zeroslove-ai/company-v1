@@ -181,7 +181,7 @@ export function reduceStoryChoiceProjection({ parsedStory } = {}) {
   return { state: canonical ? clone(observed) : [], warnings };
 }
 
-export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, explicitSpeakerIds, engineEnactments = [] } = {}) {
+export function reduceObservationDomains({ currentSave, observation, parsedStory, rawStory, expectedTurn, actionId, master, npcIds, sceneBefore, sceneAfter, observedNpcIds, explicitSpeakerIds } = {}) {
   const nextSave = hydrateGameplayState(currentSave, master ?? {});
   const warnings = [...(observation.warnings ?? [])];
   const evidence = observation.evidence ?? {};
@@ -194,7 +194,7 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
   nextSave.player_scene_state = playerPhysical.state; warnings.push(...playerPhysical.warnings);
   const playerSexual = reducePlayerSexualObservation({ save: nextSave, sexual: observation.player_observation?.sexual, evidence, storyText: rawStory, expectedTurn });
   nextSave.player_sexual_state = playerSexual.state; warnings.push(...playerSexual.warnings);
-  const relationEvents = reduceRelationEventDomains({ save: nextSave, observation, engineEnactments, expectedTurn, actionId, rawStory, master, npcIds, parsedStory });
+  const relationEvents = reduceRelationEventDomains({ save: nextSave, observation, expectedTurn, actionId, rawStory, master, npcIds, parsedStory });
   warnings.push(...relationEvents.warnings);
   for (const [npcId, domains] of Object.entries(observation.npc_observations ?? {})) {
     if (!eligibleNpcIds.has(npcId)) {

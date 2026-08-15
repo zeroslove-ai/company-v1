@@ -1,4 +1,3 @@
-import { RELATION_KINDS } from '../csa/execution-policy.js';
 import { appendSexualEvents, reduceEjaculationCounts } from '../sexual-state/ledger.js';
 import { clearRelationPresentationsForActors } from './relation-presentation.js';
 
@@ -73,45 +72,6 @@ function relationKey(item) {
   return `${canonicalId(item.actor_id)}\u0000${canonicalId(item.target_id)}\u0000${item.relation_kind}`;
 }
 
-function engineRelationInputs(engineEnactments, expectedTurn, warnings, npcIds) {
-  const inputs = [];
-  const actorsByRuleTarget = new Map();
-  for (const enactment of Array.isArray(engineEnactments) ? engineEnactments : []) {
-    if (enactment?.authority !== 'engine' || enactment.execution_kind !== 'behavior_execution' || !RELATION_KINDS.has(enactment.action)) continue;
-    const targets = [...new Set(Array.isArray(enactment.target_ids)
-      ? enactment.target_ids.filter(id => typeof id === 'string' && id.trim())
-      : [])];
-    if (targets.length !== 1) {
-      warnings.push(`engine_relation_target_unresolved:${enactment.source_rule_id ?? 'unknown'}:${enactment.actor_id ?? 'unknown'}`);
-      continue;
-    }
-    const actorId = enactment.actor_id;
-    const targetId = targets[0];
-    if (!known(actorId, npcIds) || !known(targetId, npcIds) || actorId === targetId) {
-      warnings.push(`engine_relation_target_invalid:${enactment.source_rule_id ?? 'unknown'}`);
-      continue;
-    }
-    const sourceRuleId = enactment.source_rule_id ?? null;
-    if (sourceRuleId) {
-      const key = `${sourceRuleId}\u0000${canonicalId(targetId)}`;
-      const actors = actorsByRuleTarget.get(key) ?? new Set();
-      actors.add(actorId);
-      actorsByRuleTarget.set(key, actors);
-    }
-    inputs.push({
-      actor_id: actorId,
-      target_id: targetId,
-      relation_kind: enactment.action,
-      state: 'started',
-      source: 'engine',
-      source_rule_id: sourceRuleId,
-      started_turn: expectedTurn,
-      updated_turn: expectedTurn
-    });
-  }
-  return { inputs, actorsByRuleTarget };
-}
-
 function applyRelationInput(relations, input, expectedTurn, warnings, clearedActors) {
   const key = relationKey(input);
   const index = relations.findIndex(item => relationKey(item) === key);
@@ -145,19 +105,11 @@ function applyRelationInput(relations, input, expectedTurn, warnings, clearedAct
   else relations.push(relation);
 }
 
-function reduceRelationInputs({ save, relationUpdates, engineEnactments, expectedTurn, storyText, npcIds } = {}) {
+function reduceRelationInputs({ save, relationUpdates, expectedTurn, storyText, npcIds } = {}) {
   const warnings = [];
   const relations = (Array.isArray(save?.active_relations) ? save.active_relations : []).map(item => ({ ...item }));
   const clearedActors = new Set();
-  const engine = engineRelationInputs(engineEnactments, expectedTurn, warnings, npcIds);
-  for (const input of engine.inputs) applyRelationInput(relations, input, expectedTurn, warnings, clearedActors);
-
-  const engineActors = new Set(engine.inputs.map(input => canonicalId(input.actor_id)));
   for (const update of Array.isArray(relationUpdates) ? relationUpdates : []) {
-    if (engineActors.has(canonicalId(update?.actor_id))) {
-      warnings.push(`relation_observation_overridden_by_engine:${update?.actor_id ?? 'unknown'}`);
-      continue;
-    }
     if (!known(update?.actor_id, npcIds) || !known(update?.target_id, npcIds) || canonicalId(update.actor_id) === canonicalId(update.target_id)) {
       warnings.push(`relation_target_unresolved:${update?.actor_id ?? 'unknown'}:${update?.target_id ?? 'unknown'}`);
       continue;
@@ -173,18 +125,6 @@ function reduceRelationInputs({ save, relationUpdates, engineEnactments, expecte
     applyRelationInput(relations, { ...update, source: 'extract' }, expectedTurn, warnings, clearedActors);
   }
 
-  const uniqueEngineActors = new Map();
-  for (const [key, actors] of engine.actorsByRuleTarget) if (actors.size === 1) uniqueEngineActors.set(key, [...actors][0]);
-  for (const [key, actorId] of uniqueEngineActors) {
-    const [sourceRuleId, targetId] = key.split('\u0000');
-    for (let i = 0; i < relations.length; i += 1) {
-      const relation = relations[i];
-      if (relation?.state !== 'active' || relation.actor_id === actorId
-        || relation.source_rule_id !== sourceRuleId || canonicalId(relation.target_id) !== targetId) continue;
-      relations[i] = { ...relation, state: 'ended', updated_turn: expectedTurn, end_reason: 'superseded_by_engine_interaction_switch' };
-      clearedActors.add(relation.actor_id);
-    }
-  }
   const state = relations.slice(-80);
   const activeActors = new Set(state.filter(item => item.state === 'active').map(item => item.actor_id));
   return { state, warnings, clearedPresentationActorIds: [...clearedActors].filter(id => !activeActors.has(id)) };
@@ -246,13 +186,13 @@ export function reduceSexualEventObservations({ save, events, expectedTurn, acti
 
 /**
  * Sole fresh-turn writer for relation, relationship-consequence, and event
- * domains. Engine enactments and exact Extract observations are typed inputs;
- * this reducer owns precedence, dedupe, supersession, and presentation cleanup.
+ * domains. Exact Extract observations are typed inputs; this reducer owns
+ * validation, dedupe, supersession, and presentation cleanup.
  */
-export function reduceRelationEventDomains({ save, observation, engineEnactments = [], expectedTurn, actionId, rawStory, master, npcIds, parsedStory } = {}) {
+export function reduceRelationEventDomains({ save, observation, expectedTurn, actionId, rawStory, master, npcIds, parsedStory } = {}) {
   const warnings = [];
   const relationResult = reduceRelationInputs({
-    save, relationUpdates: observation?.relation_updates, engineEnactments,
+    save, relationUpdates: observation?.relation_updates,
     expectedTurn, storyText: rawStory, npcIds
   });
   save.active_relations = relationResult.state;

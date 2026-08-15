@@ -351,7 +351,7 @@ test('navigation Commit uses the current deterministic location and generic scen
   assert.equal(nextSave.npc_scene_state.heroine2?.present ?? true, true);
 });
 
-test('engine mandatory clothing composes before provider Story and wins at Commit', async () => {
+test('CSA clothing is contextual in Story and cannot become durable state without Extract evidence', async () => {
   const save = v2Save();
   save.csa_active = ['csa_clothing'];
   save.csa_rules = {
@@ -375,24 +375,16 @@ test('engine mandatory clothing composes before provider Story and wins at Commi
   const stored = mock.actions.get(actionId);
   const storyRequest = mock.calls.find(call => String(call.url).startsWith('https://llm.test') && call.body && JSON.parse(call.body).stream === true);
   const storyPayload = JSON.parse(JSON.parse(storyRequest.body).messages[1].content);
-  assert.equal(storyPayload.engine_canonical_segments.length, 1);
-  assert.deepEqual(storyPayload.engine_canonical_segments[0], {
-    segment_id: storyPayload.engine_canonical_segments[0].segment_id,
-    segment_kind: 'clothing_state',
-    source_rule_id: 'csa_clothing',
-    actor_id: 'heroine5',
-    execution_kind: 'clothing_state',
-    action: 'set_clothing_state',
-    state_effect: 'transitioned',
-    required_state: { underwear_bottom: 'removed' },
-  });
-  assert.equal('canonical_text' in storyPayload.engine_canonical_segments[0], false);
+  assert.equal('engine_canonical_segments' in storyPayload, false);
+  assert.equal(storyPayload.world_rules.length, 1);
+  assert.equal(storyPayload.world_rules[0].content, save.csa_rules.csa_clothing.content);
+  assert.equal('resolved_facts' in storyPayload.world_rules[0], false);
   assert.doesNotMatch(stored.story_text, /canonical_text/);
   assert.match(stored.story_text, /enactment_id="turn:8:csa_clothing:heroine5:0"/);
-  assert.equal(stored.parsed_blocks.engine_enactments.length, 1);
+  assert.equal('engine_enactments' in stored.parsed_blocks, false);
   const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(extract.status, 200);
   const commit = await worker.fetch(request('/api/commit', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
   assert.equal(commit.status, 200);
-  assert.equal(mock.getLastCommitSave().npc_scene_state.heroine5.clothing.underwear_bottom, 'removed');
+  assert.equal(mock.getLastCommitSave().npc_scene_state.heroine5.clothing.underwear_bottom, 'worn');
 });

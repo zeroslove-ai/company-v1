@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import edition from '../src/api/edition.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
+import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
+import { reduceCsaCommitState } from '../src/engine/runtime-core/csa-commit-reducer.js';
 
 function makeSave({ active = true } = {}) {
   return {
@@ -78,4 +80,38 @@ test('inactive CSA produces an empty Story world-rule list', () => {
   const story = payload(buildMessages(makeSave({ active: false })));
   assert.deepEqual(story.world_rules, []);
   assert.ok(!('global_csa' in story.context));
+});
+
+test('active CSA is institutional context and does not emit a finite physical execution contract', () => {
+  const save = makeSave();
+  const projection = buildStoryWorldProjection({
+    save,
+    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon' }], general_npcs: [] },
+    sceneActorIds: ['heroine1'],
+    expectedTurn: 5
+  });
+  const rule = projection.world_rules[0];
+  assert.equal(rule.content, 'UNIQUE_RULE_XYZ');
+  assert.equal('scene_obligations' in projection, false);
+  assert.equal('resolved_facts' in rule, false);
+  assert.equal('execution_contract' in rule, false);
+  assert.equal('action' in rule, false);
+  assert.equal('target_ids' in rule, false);
+});
+
+test('CSA commit keeps definitions and lifecycle progression but ignores provider execution claims', () => {
+  const currentSave = makeSave();
+  const nextSave = structuredClone(currentSave);
+  const result = reduceCsaCommitState({
+    currentSave,
+    nextSave,
+    observation: { outcome: 'success', csa_runtime_updates: [], csa_trigger_evaluations: [] },
+    canonicalScene: { present_npc_ids: ['heroine1'] },
+    action: { action_kind: 'player_turn' },
+    expectedTurn: 5,
+    engineEnactments: [{ authority: 'engine', actor_id: 'heroine1', execution_kind: 'clothing_state', action: 'set_clothing_state', required_state: { underwear_top: 'removed' } }]
+  });
+  assert.deepEqual(result.acceptedExecutions, []);
+  assert.deepEqual(result.nextSave.csa_runtime_state, currentSave.csa_runtime_state);
+  assert.equal(result.nextSave.npc_scene_state.heroine1?.clothing, undefined);
 });

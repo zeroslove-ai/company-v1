@@ -1,9 +1,5 @@
-import { getApplicableCsaEntries } from '../csa/applicability.js';
-import { buildCsaRuntimeStatePatch, buildCsaAftereffectPatch } from '../csa/reducer.js';
 import { applyAuthorizedRuleDefinitions, assertRuleDefinitionAuthority } from './action-authority.js';
 import { calculateCsaProgression, calculateProgress } from '../progression.js';
-import { compareRequiredClothing } from '../state/clothing.js';
-import { executionMetadataForRule } from '../csa/execution-policy.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 
@@ -13,46 +9,6 @@ function isFeedback(action) {
 
 function activeIds(save) {
   return new Set(Array.isArray(save?.csa_active) ? save.csa_active : []);
-}
-
-function engineRuntimeUpdates(engineEnactments) {
-  return (Array.isArray(engineEnactments) ? engineEnactments : [])
-    .filter(item => item?.authority === 'engine' && item?.source_rule_id && item?.actor_id)
-    .map(item => ({ csa_id: item.source_rule_id, character_id: item.actor_id, status: 'active' }));
-}
-
-function applyEngineClothingEnactments(nextSave, engineEnactments) {
-  for (const enactment of Array.isArray(engineEnactments) ? engineEnactments : []) {
-    if (enactment?.authority !== 'engine' || enactment.execution_kind !== 'clothing_state') continue;
-    const actorId = enactment.actor_id;
-    if (!actorId || actorId === 'player') continue;
-    const current = nextSave.npc_scene_state?.[actorId] ?? {};
-    const clothing = current.clothing && typeof current.clothing === 'object' && !Array.isArray(current.clothing) ? current.clothing : {};
-    const required = enactment.required_state && typeof enactment.required_state === 'object' && !Array.isArray(enactment.required_state) ? enactment.required_state : {};
-    if (!Object.keys(required).length) continue;
-    nextSave.npc_scene_state = { ...(nextSave.npc_scene_state ?? {}), [actorId]: { ...current, clothing: { ...clothing, ...required } } };
-  }
-}
-
-function mergeEngineRuntimeUpdates(engineEnactments, observedUpdates) {
-  const engineUpdates = engineRuntimeUpdates(engineEnactments);
-  const engineKeys = new Set(engineUpdates.map(item => `${item.csa_id}:${item.character_id}`));
-  const observed = (Array.isArray(observedUpdates) ? observedUpdates : []).filter(item => !engineKeys.has(`${item?.csa_id}:${item?.character_id}`));
-  return [...engineUpdates, ...observed];
-}
-
-function canonicalRuntimeUpdates({ updates, activeCsa, nextSave, warnings }) {
-  const entries = new Map((activeCsa ?? []).map(entry => [entry.id, entry]));
-  return (Array.isArray(updates) ? updates : []).filter(update => {
-    const entry = entries.get(update?.csa_id);
-    const execution = executionMetadataForRule(entry ?? {});
-    if (execution?.kind !== 'clothing_state' || update?.status !== 'active') return true;
-    const actual = nextSave?.npc_scene_state?.[update.character_id]?.clothing ?? {};
-    const verdict = compareRequiredClothing(actual, execution.required_state ?? {});
-    if (verdict === 'compliant') return true;
-    warnings.push(`csa_clothing_not_satisfied:${update.csa_id}:${update.character_id}`);
-    return false;
-  });
 }
 
 /**
@@ -69,7 +25,6 @@ export function reduceCsaCommitState({
   expectedTurn,
   structuredAction = null,
   transactionResolution = null,
-  engineEnactments = []
 } = {}) {
   const warnings = [];
   const current = currentSave ?? {};
@@ -82,53 +37,26 @@ export function reduceCsaCommitState({
     return { nextSave, warnings, acceptedExecutions: [], progression: { amount: 0, newly_experienced_keys: [] }, deactivatedIds: [] };
   }
 
-  // Server-generated engine evidence is consumed by the canonical relation/
-  // event reducer before CSA runtime validation. This module does not write
-  // active_relations; it owns only CSA state.
-  applyEngineClothingEnactments(nextSave, engineEnactments);
-
   // Commit is the sole durable writer for signed CSA definitions. Story and
   // Extract may receive an in-memory projection, but they never mutate save.
   if (structuredAction && transactionResolution) {
     applyAuthorizedRuleDefinitions({ currentSave: current, nextSave, transactionResolution, structuredAction, stage: 'commit-csa' });
   }
 
-  const activeCsa = getApplicableCsaEntries(nextSave);
-  // Fresh Extract is observational only. Runtime CSA state is sourced from
-  // signed definitions and Engine enactments; compatibility fields returned
-  // by an LLM are deliberately ignored.
-  const runtimeUpdates = canonicalRuntimeUpdates({ updates: mergeEngineRuntimeUpdates(engineEnactments, []), activeCsa, nextSave, warnings });
-  const runtimeResult = buildCsaRuntimeStatePatch({
-    previousSave: current,
-    csaRuntimeUpdates: runtimeUpdates,
-    csaTriggerEvaluations: [],
-    activeCsa,
-    npcsPresent: [...new Set([
-      ...(canonicalScene?.present_npc_ids ?? []),
-      ...(Array.isArray(engineEnactments) ? engineEnactments.map(item => item?.actor_id).filter(Boolean) : [])
-    ])],
-    turnNumber: expectedTurn
-  });
-  if (runtimeResult.patch) nextSave.csa_runtime_state = clone(runtimeResult.patch);
-  warnings.push(...(runtimeResult.warnings ?? []));
+  // Fresh Extract never writes a physical CSA execution state. Historical
+  // csa_runtime_state remains readable, while observed physical/clothing facts
+  // arrive through the structural open-fact and narrow clothing projections.
+  const acceptedExecutions = [];
 
   const beforeActive = transactionResolution && Array.isArray(transactionResolution.previous_csa_active)
     ? new Set(transactionResolution.previous_csa_active)
     : activeIds(current);
   const afterActive = activeIds(nextSave);
   const deactivatedIds = [...beforeActive].filter(id => !afterActive.has(id));
-  const aftereffectPatch = buildCsaAftereffectPatch({
-    previousSave: current,
-    deactivatedIds,
-    npcsPresent: canonicalScene?.present_npc_ids ?? [],
-    turnNumber: expectedTurn
-  });
-  if (aftereffectPatch) nextSave.csa_aftereffect_state = clone(aftereffectPatch);
-
   const previouslyExperienced = new Set(Array.isArray(current.csa_experienced_ids) ? current.csa_experienced_ids : []);
   const progression = calculateCsaProgression({
     csaOperations: structuredAction?.operations ?? [],
-    experiencedThisTurn: runtimeResult.accepted_executions,
+    experiencedThisTurn: acceptedExecutions,
     previouslyExperienced,
     degraded: observation?.outcome === 'degraded'
   });
@@ -151,7 +79,7 @@ export function reduceCsaCommitState({
   return {
     nextSave,
     warnings,
-    acceptedExecutions: runtimeResult.accepted_executions ?? [],
+    acceptedExecutions,
     progression,
     deactivatedIds
   };

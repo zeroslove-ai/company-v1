@@ -140,8 +140,10 @@ export function buildMindMonitorContext({ context, edition, targetIds = [], expe
       .map(rule => ({
         id: rule.id,
         content: rule.content,
-        execution_policy: rule.execution_policy,
-        resolved_fact: rule.resolved_facts?.find(fact => fact.actor_id === id) ?? null
+        phase: rule.phase,
+        institutional_form: rule.institutional_form,
+        mode: rule.mode,
+        clothing_projection: rule.clothing_projection?.actors?.find(actor => actor.actor_id === id) ?? null
       }));
     return {
       ...profileForMindMonitor(edition, id),

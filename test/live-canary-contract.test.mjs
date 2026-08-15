@@ -106,7 +106,8 @@ test('live canary captures CSA projection snapshot without mutating save', () =>
   const projection = buildStoryWorldProjection({ save, master: masterWithRule, sceneActorIds: ['heroine1'], expectedTurn: 2 });
   const snapshot = projectionSnapshot(projection);
   assert.equal(snapshot.world_rules.length, 1);
-  assert.equal(snapshot.scene_obligations.length, 1);
+  assert.equal('scene_obligations' in snapshot, false);
+  assert.equal('execution_contract' in snapshot.world_rules[0], false);
   assert.equal(save.npc_scene_state.heroine1.clothing.underwear_top, 'worn');
 });
 
@@ -124,7 +125,7 @@ test('canary uses the Company edition master shape instead of context.master', (
   assert.equal(parity.context_master_required, false);
   assert.equal(parity.status, 'CONTEXT_MASTER_NOT_REQUIRED');
   assert.deepEqual(parity.local_projection.world_rules[0].applicable_scene_actor_ids, ['heroine1']);
-  assert.equal(parity.local_projection.scene_obligations.length, 1);
+  assert.equal('scene_obligations' in parity.local_projection, false);
   assert.equal(parity.actor_profiles[0].gender, 'female');
 });
 

@@ -174,8 +174,7 @@ export function choiceContract(parsed, committedSave = null) {
 
 export function projectionSnapshot(projection) {
   return {
-    world_rules: projection?.world_rules ?? [],
-    scene_obligations: projection?.scene_obligations ?? []
+    world_rules: projection?.world_rules ?? []
   };
 }
 

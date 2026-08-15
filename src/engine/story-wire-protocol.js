@@ -77,10 +77,10 @@ export function parseStoryControlMarker(input, { directory = null } = {}) {
   }
   if (source.startsWith('[ACTING')) {
     if (!/^\[ACTING(?:\s|\])/.test(token)) throw protocolError('Malformed ACTING marker');
-    const attributes = parseQuotedAttributes(token.slice('[ACTING'.length, -1), new Set(['enactment_id', 'actor_id', 'posture_after']));
-    if (attributes.actor_id && directory && !directory.has(attributes.actor_id)) throw protocolError(`Unknown Story actor_id: ${attributes.actor_id}`);
-    if (attributes.posture_after && !new Set(['sitting', 'standing']).has(attributes.posture_after)) throw protocolError('posture_after must be sitting or standing');
-    return { type: 'acting', raw: token, remainder, ...attributes, leadingWhitespace: leading, end: leading.length + close + 1 };
+    // ACTING is only a visible narrative block. Legacy attributes are
+    // intentionally ignored so no enactment/posture token can become a
+    // fresh Story contract or durable state authority.
+    return { type: 'acting', raw: token, remainder, leadingWhitespace: leading, end: leading.length + close + 1 };
   }
   if (source.startsWith('[CHOICE')) {
     if (!/^\[CHOICE(?:\s|\])/.test(token)) throw protocolError('Malformed CHOICE marker');
@@ -162,7 +162,6 @@ export function createStoryStreamDecoder({ registeredIdentities = null, master =
       activeDialogue = false;
       activeBlockType = 'acting';
       const data = { type: 'block_start', block_type: 'acting' };
-      for (const key of ['enactment_id', 'actor_id', 'posture_after']) if (marker[key]) data[key] = marker[key];
       events.push(data);
       events.push({ ...data, type: 'acting' });
     } else if (marker.type === 'acting_end') {

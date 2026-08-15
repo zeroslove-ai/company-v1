@@ -100,7 +100,7 @@ function appendOpenObservations(current, additions) {
   return result;
 }
 
-export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, navigationIntent = null, authoritativeLocationId = null, structuredAction = null, transactionResolution = null, engineEnactments = [] } = {}) {
+export function reduceGameplayCommit({ currentSave, observation, parsedStory, rawStory, action, expectedTurn, master, npcIds, mapLocations, navigationIntent = null, authoritativeLocationId = null, structuredAction = null, transactionResolution = null } = {}) {
   const current = clone(currentSave);
   const canonicalObservationInput = observation;
   const sceneBefore = readCanonicalSceneV1(current, { master, npcIds });
@@ -129,7 +129,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   ]);
   const domains = reduceObservationDomains({
     currentSave: current, observation: canonicalObservationInput, parsedStory, rawStory, expectedTurn, actionId: action?.action_id, master, npcIds,
-    sceneBefore, sceneAfter: canonicalScene, observedNpcIds, engineEnactments,
+    sceneBefore, sceneAfter: canonicalScene, observedNpcIds,
     explicitSpeakerIds: (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
   });
   let nextSave = projectCanonicalSceneToLegacy(domains.nextSave, canonicalScene, {
@@ -150,8 +150,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     action,
     expectedTurn,
     structuredAction,
-    transactionResolution,
-    engineEnactments
+    transactionResolution
   });
   nextSave = csaCommit.nextSave;
   nextSave.open_observations = appendOpenObservations(current.open_observations, canonicalObservationInput.open_facts);

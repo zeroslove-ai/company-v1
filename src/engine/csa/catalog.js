@@ -144,7 +144,7 @@ export function buildPresetCatalogPayload(catalog, availableStrength) {
       available: STRENGTH_RANK[item.strength] <= availableRank,
       content_template: item.content_template,
       scope_template: item.scope_template,
-      execution: { ...item.execution, ...(item.execution.required_state ? { required_state: { ...item.execution.required_state } } : {}) }
+      ...(item.execution ? { execution: { ...item.execution, ...(item.execution.required_state ? { required_state: { ...item.execution.required_state } } : {}) } } : {})
     }))
   };
 }

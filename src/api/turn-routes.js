@@ -13,10 +13,8 @@ import {
   buildStoryPrompt,
   buildStoryWorldProjection,
   buildInstitutionalSegments,
-  buildMandatoryEnactments,
   composeCanonicalStory,
   attachEngineEnactments,
-  validateMandatoryEnactment,
   deriveRecoverableStep,
   deriveTurnChanges,
   hydrateGameplayState,
@@ -380,13 +378,6 @@ function emitVisibleStory(emit, raw, { master, timing } = {}) {
   emitStoryWireEvents(emit, decoder.finish(), timing, visibleStartedAt);
 }
 
-function registeredIdsForMaster(master) {
-  return new Set([
-    ...(Array.isArray(master?.characters) ? master.characters : []).map(entry => entry?.character_id ?? entry?.id),
-    ...(Array.isArray(master?.general_npcs) ? master.general_npcs : []).map(entry => entry?.npc_id ?? entry?.id)
-  ].filter(id => typeof id === 'string' && id));
-}
-
 function persistedEngineMetadata(parsedBlocks = {}) {
   return {
     enactments: Array.isArray(parsedBlocks?.engine_enactments) ? parsedBlocks.engine_enactments : [],
@@ -401,32 +392,6 @@ function mergePersistedEngineMetadata(parsedBlocks, persistedBlocks) {
     : { ...parsedBlocks };
   if (plainObject(persistedBlocks?.turn_context)) merged.turn_context = { ...persistedBlocks.turn_context };
   return merged;
-}
-
-function validateEngineMetadata({ enactments, worldRules, sceneObligations, master, playerName }) {
-  const registeredIds = registeredIdsForMaster(master);
-  for (const enactment of enactments) {
-    validateMandatoryEnactment(enactment, {
-      sceneObligations,
-      worldRules,
-      registeredIds,
-      playerName
-    });
-  }
-}
-
-function validateProviderEnactmentBinding(parsed, enactments) {
-  const expected = [...new Set((Array.isArray(enactments) ? enactments : [])
-    .map(item => item?.segment_id)
-    .filter(id => typeof id === 'string' && id.trim()))];
-  const actual = (Array.isArray(parsed?.acting_events) ? parsed.acting_events : [])
-    .map(item => item?.enactment_id)
-    .filter(id => typeof id === 'string' && id.trim());
-  if (actual.length !== new Set(actual).size
-    || actual.some(id => !expected.includes(id))
-    || expected.some(id => !actual.includes(id))) {
-    throw new GameCoreError('STORY_PROTOCOL_INVALID', 'mandatory enactment ACTING binding mismatch');
-  }
 }
 
 export function createTurnRoutes({ fetchImpl, edition }) {
@@ -640,22 +605,12 @@ const master = masterFromEdition(edition);
             playerAction: storyPlayerAction
           });
           let institutionalSegments = [];
-          let engineEnactments = [];
           if (actionKind === 'feedback_revision') {
             const previous = persistedEngineMetadata(feedbackSourceTurn?.parsed_blocks);
             institutionalSegments = previous.institutional;
-            engineEnactments = previous.enactments;
           } else {
             institutionalSegments = buildInstitutionalSegments({ worldRules: storyWorld.world_rules, expectedTurn });
-            engineEnactments = buildMandatoryEnactments({
-              scene_obligations: storyWorld.scene_obligations,
-              world_rules: storyWorld.world_rules,
-              master,
-              playerName: storySave?.player?.name ?? '',
-              expectedTurn
-            });
           }
-          const engineCanonicalSegments = [...institutionalSegments, ...engineEnactments];
           const messages = buildStoryPrompt({
             edition,
             context: storyContext,
@@ -667,7 +622,6 @@ const master = masterFromEdition(edition);
             turnTrigger: buildStoryTurnTrigger({ actionKind, csaResolution, preSave: hydratedSave }),
             feedbackText: action.action_kind === 'feedback_revision' ? action.feedback_text : '',
             storyWorld,
-            engineCanonicalSegments,
             playerPrivateOrigin: playerPrivateOriginFor(structuredAction, csaResolution)
           });
           timing.story_prompt_ms = Date.now() - promptStart;
@@ -683,15 +637,6 @@ const master = masterFromEdition(edition);
           const wireDecoder = createStoryStreamDecoder({ master });
           const visibleStartedAt = Date.now();
           const engineText = institutionalSegments.map(segment => segment.canonical_text).filter(Boolean).join('\n\n');
-          if (actionKind !== 'feedback_revision') {
-            validateEngineMetadata({
-              enactments: engineEnactments,
-              worldRules: storyWorld.world_rules,
-              sceneObligations: storyWorld.scene_obligations,
-              master,
-              playerName: storySave?.player?.name ?? '',
-            });
-          }
           if (engineText) emitVisibleStory(emit, engineText, { master, timing });
           try {
             stream = await streamStory({ env, fetchImpl, messages, timing });
@@ -706,10 +651,9 @@ const master = masterFromEdition(edition);
           }
           // 문서 5절 — 정본 story_text는 upstreamRaw(플레이어 가시 원문)다.
           // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
-          const canonicalStory = composeCanonicalStory({ institutionalSegments, engineEnactments, providerNarrative: upstreamRaw });
+          const canonicalStory = composeCanonicalStory({ institutionalSegments, providerNarrative: upstreamRaw });
           raw = canonicalStory;
           const parsed = parseFreshNarrativeV2(canonicalStory, { master });
-          if (actionKind !== 'feedback_revision') validateProviderEnactmentBinding(parsed, engineEnactments);
           const playerPolicy = sceneCastContract.player_dialogue;
           const unauthorizedPlayerDialogue = (parsed.dialogue_lines ?? [])
             .filter(line => /^player(?:[-_]|$)/i.test(String(line?.speaker_id ?? '')))
@@ -726,16 +670,7 @@ const master = masterFromEdition(edition);
             }),
             // 수정 H — live/replay 동일 순서 재생용
             warnings: mergedWarnings
-          }, engineEnactments, institutionalSegments);
-          if (actionKind !== 'feedback_revision') {
-            validateEngineMetadata({
-              enactments: engineEnactments,
-              worldRules: storyWorld.world_rules,
-              sceneObligations: storyWorld.scene_obligations,
-              master,
-              playerName: storySave?.player?.name ?? '',
-            });
-          }
+          }, [], institutionalSegments);
           timing.upstream_story_chars = upstreamRaw.length;
           timing.canonical_story_chars = canonicalStory.length;
           const ownedResult = await db.recordStoryResultOwned(gameId, resolvedActionId, raw, contractPersisted, storyOwnerToken);
@@ -942,31 +877,6 @@ const master = masterFromEdition(edition);
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
         let parsedStory = mergePersistedEngineMetadata(parsePersistedNarrative(action.story_text, { master }), action.parsed_blocks);
-        const persistedEngine = persistedEngineMetadata(action.parsed_blocks);
-        const engineEnactments = action.action_kind === 'feedback_revision' ? [] : persistedEngine.enactments;
-        if (engineEnactments.length) {
-          const currentScene = readCanonicalSceneV1(commitValidationSave, { master, mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [] });
-          const engineSceneIds = new Set(currentScene.present_npc_ids ?? []);
-          for (const enactment of engineEnactments) {
-            if (enactment?.actor_id && enactment.actor_id !== 'player') engineSceneIds.add(enactment.actor_id);
-            for (const id of enactment?.counterparty_candidate_ids ?? []) if (id !== 'player') engineSceneIds.add(id);
-            for (const id of enactment?.target_ids ?? []) if (id !== 'player') engineSceneIds.add(id);
-          }
-          const commitWorld = buildStoryWorldProjection({
-            save: commitValidationSave,
-            master,
-            sceneActorIds: [...engineSceneIds],
-            expectedTurn,
-            playerAction: csaResolution ? '' : (action.player_action ?? '')
-          });
-          validateEngineMetadata({
-            enactments: engineEnactments,
-            worldRules: commitWorld.world_rules,
-            sceneObligations: commitWorld.scene_obligations,
-            master,
-            playerName: currentSave?.player?.name ?? ''
-          });
-        }
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({
@@ -975,8 +885,7 @@ const master = masterFromEdition(edition);
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
           navigationIntent,
           structuredAction: action.action_kind === 'feedback_revision' ? null : structuredAction,
-          transactionResolution: csaResolution,
-          engineEnactments
+          transactionResolution: csaResolution
         });
         timing.commit_reducer_ms = Date.now() - reducerStart;
         let nextSave = merged.nextSave;
