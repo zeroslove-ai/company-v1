@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: live-acceptance-sse-reader-canonicalization-v1
+Status: READY
+Task ID: deep-level7-live-acceptance-v6
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,110 +13,110 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Accepted gameplay executable remains:
+Accepted gameplay executable:
 `0627f01d5118e3a936d9280fb8f889644137550c`.
 
-Accepted canary safety executable remains:
+Accepted canary safety executable:
 `521e8acf6c519ea05b92a45caef2f1ff601ad27c`.
 
-Previous live task `deep-level7-live-acceptance-v5-rerun` ended BLOCKED at FINAL_SHA `cdaea953f7fd72e3fe63182b4650b96eb9b615b1`, terminal comment `5301260524`, operator review `5301268568`.
-The blocked evidence classified the first direct turn failure as a local temporary SSE evidence-reader defect, not a gameplay/provider defect. Opening-only passed; final TEST reset and diagnostic-disable cleanup passed.
+Accepted SSE harness executable:
+`97d0fc840a3e99717ca75c07e7055f18944398d1`.
+Operator review: Issue #68 comment `5301710693`.
+
+Previous V5 rerun was BLOCKED only by the now-closed local SSE evidence-reader defect. Do not reinterpret that blocker as a gameplay/provider defect.
 
 TEST Supabase: `fmcrspgxstsmxxsmkeee`.
 Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever and must not be accessed.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is historical READ-ONLY evidence and must not be accessed or reset.
 
 ## Purpose
 
-Remove the acceptance-tool ambiguity that blocked V5 without adding any gameplay/runtime semantic layer.
+Resume the deep Level-7 live acceptance that V5 could not reach. This is an acceptance/proof task, not a source redesign task.
 
-There must be one canonical SSE event-decoding behavior for Company live acceptance tooling. Inventory the existing canary/direct acceptance readers, prove the actual frame-shape mismatch that caused comment `5301260524`, and consolidate onto one tested decoder or one minimal shared helper. Do not create a third parser/decoder generation.
+Use the reviewed gameplay executable plus the accepted canary/SSE harness. Exercise the real Story -> Extract -> Commit -> committed readback spine deeply enough to prove or precisely block on the next real defect.
 
-This is harness/source-test work only. It is not authorization to rerun live acceptance.
+Do not add another harness/parser/gateway. Do not retry until a stochastic pass appears.
 
 ## Mandatory preflight
 
-1. Fresh-fetch Issue #68 and verify this exact task has no terminal report/review already.
-2. Verify PR #67 is OPEN / DRAFT / UNMERGED, base `main`, and HEAD descends from `cdaea953...` or this registration commit only.
-3. Inspect the V5 terminal evidence/report and current source before editing. Treat terminal report as immutable.
-4. Inventory every SSE decoder/reader used by `scripts/live-playtest-canary.mjs` and any direct live-acceptance helper/script. Identify whether the V5 temporary reader duplicated or diverged from the existing decoder.
-5. Do not access TEST DB/Worker or preserved manual game.
+1. Fresh-fetch Issue #68 and verify this exact task has no terminal/review already.
+2. Verify PR #67 is OPEN / DRAFT / UNMERGED, base `main`, and HEAD is this registration descendant.
+3. Verify the executable ancestry includes accepted gameplay `0627f01...`, canary safety `521e8acf...`, and SSE harness `97d0fc8...`; distinguish docs-only HEAD from executable identities.
+4. Verify TEST-only Level-7 acceleration seam remains the previously reviewed seam and does not alter Production progression.
+5. Verify dedicated TEST game identity exactly. Never use the preserved manual game.
+6. All new evidence output must use OS TEMP or another path outside the repository.
 
-## Required implementation
+## Authorized live operations
 
-A. Canonical decoder boundary
-- Reuse the existing proven SSE decoding behavior where possible.
-- If extraction to a shared helper is required, move existing behavior rather than inventing a new semantic parser.
-- Decoder must handle actual Worker SSE framing used by Story/Opening, including CRLF/LF frame separators, event/data fields, multiple data lines if present, and terminal `complete`/`error` events.
-- Preserve raw response text/status for evidence; decoder failure must be distinguishable from Worker terminal error.
+This task authorizes only the TEST operations required for this acceptance:
+- deploy/verify the exact accepted API executable identity if the currently deployed TEST Worker is not already that identity;
+- use the reviewed TEST-only Level-7 acceleration seam;
+- reset only disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` before/after the bounded run as needed;
+- run explicit canary/live acceptance modes and read TEST DB/action/turn/save evidence required for proof;
+- temporary diagnostics only if already-existing reviewed diagnostic support is required, with cleanup proof before terminal.
 
-B. Delete duplication
-- Remove the temporary/direct duplicate reader or make it call the canonical decoder.
-- No parallel SSE implementations may remain in active live-acceptance paths unless caller proof demonstrates materially different transport framing.
+No Production access. No manual-game access. No migration unless a missing DB contract is discovered; if DDL is required, STOP rather than applying it under this task.
 
-C. Behavioral tests
-Add focused tests with representative raw SSE fixtures proving at minimum:
-- LF-delimited complete event;
-- CRLF-delimited complete event;
-- multiple events in one body;
-- JSON `data:` parsing;
-- terminal error event;
-- malformed/non-SSE body is classified as harness decode failure rather than gameplay/provider failure;
-- the exact V5 frame shape, reconstructed from preserved report/evidence if available, parses correctly.
+## Scenario coverage
 
-D. No semantic expansion
-- Do not change Story/Extract/Commit/open-fact/summary/CSA/scene/progression/provider semantics.
-- Do not add retries/regeneration/fuzzy repair/parser relaxation/semantic hard gates.
-- Do not add a gameplay gateway/wrapper.
-- Do not alter TEST Level-7 acceleration or Production progression.
-- Do not alter media/image catalog, sex/general pools, image selection, or make media classification gate narrative facts.
+Acceptance is scenario-driven, not a fixed turn count. Continue only while needed to cover the following without artificial repetition:
 
-## Verification
+A. Core spine
+- Setup/Opening and ordinary free-text conversation.
+- Provider-authored exactly four literal choices persist/render/read back; selected literal can become ordinary next player input.
+- Story, Extract, Commit and committed recovery/replay agree on action/turn identity.
 
-Run focused harness tests and the full local test suite required by repository policy. Test count alone is not proof: report the exact decoder fixtures/assertions and executable diff.
+B. Open semantic observations
+- At least one meaningful arbitrary fact outside old closed event/relation/emotion/posture taxonomies is narrated by Story, grounded by exact Extract evidence, committed, and available to later context.
+- Unknown optional narrow projection must fail open without erasing the underlying open fact.
+- Do not manufacture success directly from player input.
 
-No TEST deploy, TEST gameplay, DB mutation/reset, migration, diagnostic toggle, Production access, frontend deploy, or live API call is authorized in this task.
+C. CSA at Level 7
+- Exercise a strong CSA context naturally, including compliance/resistance or institutional-rule tension.
+- Verify CSA supplies rule identity/context/lifecycle/applicability rather than a finite physical execution grammar.
+- Institutional compliance must remain distinct from consent/comfort/affection/trust/emotion.
+
+D. Physical/clothing/intimate continuity
+- Exercise posture/contact wording outside former finite enums and verify narrative/open-fact continuity is not gated by an old taxonomy.
+- Verify compact clothing UI continuity if clothing changes occur; richer facts must not be dropped because compact projection cannot classify them.
+- If an intimate/sexual path occurs in the bounded scenario, verify the narrative fact and memory do not depend on sexual image-family classification.
+
+E. Memory depth
+- Continue beyond the immediate latest-three raw Story window so at least one earlier committed fact must be carried by committed per-turn summary/open-observation memory rather than raw recent Story alone.
+- Verify recovered/refreshed context preserves the same durable memory and replay remains idempotent.
+
+F. Media boundary
+- Observe image/media selection when naturally applicable. Finite general/sex pools and sexual image families may select presentation assets.
+- Missing/alternate image selection must not reject the turn, erase Extract facts, or redefine whether the narrative event occurred.
+
+## Failure discipline
+
+- One bounded scenario. Do not retry/regenerate to obtain a passing semantic outcome.
+- On first deterministic failure, preserve HTTP status, raw SSE, terminal event, action status/error, relevant committed DB state, exact deployed identity, and TEMP artifact paths, then STOP.
+- Classify failure as harness / deployment identity / DB contract / Story / Extract / Commit / context-memory / UI-media boundary before proposing a fix.
+- If source or migration change is required, do not patch under this task. Terminal as BLOCKED with root-cause evidence so the operator can create the next architecture task.
+
+## Acceptance criteria
+
+PASS only if the covered scenarios prove the committed gameplay spine and no hidden finite semantic gate is required for the exercised meaning. Test count alone is not proof.
+
+Report exact turns/scenarios, Story evidence, Extract observations, committed facts/summaries, recovery/replay evidence, Level-7/CSA behavior, clothing/media behavior if exercised, and final TEST cleanup state.
 
 ## Completion
 
-On success:
-1. Commit source/test changes on the existing #67 branch only.
-2. Set CURRENT_TASK to WAITING_REVIEW in a docs-only completion commit if required by the runner contract.
-3. Post one immutable terminal report to Issue #68 with START_SHA, FINAL_SHA, changed files, decoder consolidation/deletion proof, focused/full tests, and explicit `live operations = 0`.
-4. STOP. Do not rerun V5 and do not create the next task yourself.
+1. Reset only the disposable TEST game to the documented clean baseline after the run.
+2. Disable/clean any temporary diagnostic toggle if used.
+3. Set CURRENT_TASK to WAITING_REVIEW in a docs-only completion commit.
+4. Post one immutable terminal report to Issue #68 with result PASS/BLOCKED/FAILED, exact executable/deployed identities, evidence paths, DB cleanup proof, and no Production/manual-game access.
+5. STOP. Do not patch a discovered defect and do not create the next task yourself.
 
 ## Forbidden
 
-- New branch/PR; reopening #65/#66; merge/Ready/rebase/squash/force-push.
+- New branch/PR; reopen #65/#66; merge/Ready/rebase/squash/force-push.
 - Production access.
-- Any preserved manual-game access.
-- TEST DB/deploy/reset/gameplay/migration/diagnostic mutation.
-- Editing historical applied migrations or immutable terminal evidence.
+- Any access or mutation of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`.
 - Provider/model/temperature/token changes.
-- Retry/regeneration/fuzzy repair/new semantic parser/gate.
-- Gameplay runtime semantic changes.
-- New generic gateway/wrapper.
-
-## Execution completion — pending review
-
-- Execution lease: Issue #68 comment `5301679253`.
-- Start SHA: `a3629fefe5df4375356fd470b8fec8d680ace731`.
-- Start CURRENT_TASK blob SHA: `821c4771169e0ee38bb247b32287ca6b7b2ed91b`.
-- Harness changes are complete and are pending operator review; the final
-  source/docs SHA and final CURRENT_TASK blob SHA will be recorded by the
-  terminal report after commit/push.
-- Added `scripts/live-sse-decoder.mjs` as the single transport-only decoder.
-- Updated `scripts/live-playtest-canary.mjs`,
-  `scripts/live-phase-2-e2e.mjs`, and
-  `scripts/live-csa-extract-diagnostic.mjs` to use the shared decoder.
-- Added `test/live-sse-decoder.test.mjs` with LF, CRLF, multiple-data,
-  terminal-error, malformed/non-SSE, chunk-boundary, and incomplete-frame
-  behavior assertions.
-- Focused harness validation: `25/25` passed.
-- Full local validation: `npm.cmd test`, `449/449` passed.
-- Changed-file syntax checks and `git diff --check`: passed.
-- The immutable V5 evidence contains only response hash/byte metadata and no
-  recoverable raw frame body; the test uses a V5-compatible meta/block_start/
-  complete fixture and does not claim to reproduce the unavailable raw body.
-- Live operations: TEST/DB/deploy/reset/migration/Production/manual-game = 0.
-- Preserved V5 evidence was read only and remains unchanged.
+- Retry/regeneration/fuzzy repair/parser relaxation/new parser/semantic hard gate.
+- Direct DB mutation to manufacture gameplay state outside the reviewed TEST-only Level-7 acceleration seam.
+- New semantic enum/allowlist/fallback/gateway to make acceptance pass.
+- Editing historical applied migrations or immutable terminal evidence.
