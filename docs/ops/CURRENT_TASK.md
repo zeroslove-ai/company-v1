@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: deep-level7-live-acceptance-v8-simplified-memory
+Status: READY
+Task ID: narrative-semantic-state-residue-simplification-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,181 +13,218 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Reviewed gameplay executable:
+Accepted gameplay executable:
 `5dc5ee740fad5ce395c59dcd03a263df28e526dc`.
 
-Operator review:
-Issue #68 comment `5302110951`.
+Accepted simplified-memory live evidence:
+- task `deep-level7-live-acceptance-v8-simplified-memory`
+- terminal comment `5302186228`
+- operator ACCEPTED review `5302207560`
+- docs-only acceptance descendant `36a327992bea80c545499d5de9c6aabbf78e34be`
 
-The active narrative-memory model is now intentionally simple:
+The accepted narrative-memory model is now:
 
-**latest 6 committed raw turns + chronological older natural-language `turn_summary` entries**.
+**latest 6 committed raw turns + chronological older natural-language `turn_summary` entries.**
 
-There is no active general narrative `open_facts` / `open_observations` / `block_observations` memory authority. Do not recreate or test for that superseded subsystem.
+Do not recreate a second general narrative-memory authority.
 
-TEST Supabase: `fmcrspgxstsmxxsmkeee`.
-Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` must not be accessed or mutated.
+## Owner direction
 
-## Purpose
+The previous open-fact system was removed because ordinary narrative meaning does not need a server-owned fact ledger. The same rule now applies to older semantic residue that still duplicates Story/summary continuity.
 
-Run one deep TEST Level-7 gameplay acceptance against the simplified memory executable and prove that normal narrative continuity works without the removed fact ledger.
+Story authors narrative. Extract should only derive narrow state that has a real product/UI/mechanical consumer. Commit should persist only that narrow state plus the committed Story/summary transaction.
 
-This is live acceptance, not another architecture task. Do not patch source during this lease. On the first deterministic product defect, collect evidence and stop.
+A relation, emotion, work event, promise, refusal, conflict, or other narrative meaning does **not** need its own server taxonomy merely so a later Story can remember it. Recent raw Story and older `turn_summary` are the continuity mechanism.
 
-Do not retry/regenerate merely to obtain a favorable semantic result.
+This task is deletion/simplification. Do not replace removed state with a new ledger, graph, enum, gateway, classifier, score, repair layer, or additional LLM call.
 
-## Preflight
+## Verified residue before execution
 
-- Fresh-fetch Issue #68 and stop only if this exact task already has a terminal/review or another execution already owns it.
-- Verify PR #67 is still on `company/scene-location-presence-v1`, base `main`, OPEN / DRAFT / UNMERGED.
-- Verify the executable under test descends from and contains exact reviewed source `5dc5ee740fad5ce395c59dcd03a263df28e526dc`.
-- Verify the dedicated TEST game identity exactly.
-- Verify the existing TEST-only Level-7 acceleration seam. Do not alter Production progression.
-- Use OS TEMP / repo-external paths for any new evidence output.
+Fresh source inspection at the accepted descendant showed:
 
-## Authorized TEST operations
+- `src/engine/story-prompt.js` still projects `active_relations` into Story context and target authority.
+- `src/engine/runtime-core/extract-observation.js` still contains closed fresh semantic contracts for `relation_updates`, general events, `npc_observations.relationship`, `npc_observations.emotion`, and `npc_observations.work`.
+- general event types are still a closed set (`promise`, `refusal`, `conflict`, `intimacy`, `csa_event`, `work_event`, `secret`).
+- `src/engine/runtime-core/relation-event-reducer.js` still writes `active_relations`, `npc_relationship_state`, and `event_ledger`.
+- `src/engine/runtime-core/observation-reducers.js` still writes `npc_emotion` and `npc_work_state`.
+- `src/engine/gameplay-state.js` still projects `npc_emotion`, `npc_relationship_state`, and `npc_work_state` through `active_npc_state`.
+- current `RELATION_KINDS` is an empty Set, so the active relation subsystem cannot accept a new fresh relation kind even though old relation state still influences Story targeting.
 
-- deploy the exact reviewed gameplay executable to the TEST API Worker if the current TEST deployment does not already contain it;
-- reset only disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` as needed for this bounded acceptance;
-- invoke the existing reviewed TEST-only Level-7 acceleration seam;
-- run the existing canonical API/harness path for Story -> Extract -> Commit -> context/readback/replay;
-- query TEST DB/readback evidence needed to verify committed turns and summaries;
-- use an already-existing diagnostic switch only if genuinely needed, then disable it before terminal.
+At the same time, source inspection found real consumers that must not be casually removed in this task:
 
-No Production access. No manual-game access. No migration/DDL in this task.
+- `npc_stats` feeds the visible character stat strip and committed stat deltas.
+- `sexual_event_ledger` feeds relationship/sexual records, player sexual counters, and media pool selection.
+- canonical scene/location/presence, player/NPC physical state, compact clothing state, current time, progression, institutional CSA state, literal choices, committed Story/summary, and Mind Monitor have proven product consumers.
 
-## Required scenario coverage
+Treat this list as a starting inventory, not permission to preserve other stale fields without caller proof.
 
-The run is scenario-driven, but it must commit enough turns to cross the six-raw-turn memory boundary.
+## Primary objective
 
-### A. Core gameplay spine
+Remove the remaining **continuity-only general semantic state** from the active fresh-turn Story -> Extract -> Commit path.
 
-- Setup/Opening succeeds.
-- Ordinary free-text actions work.
-- Provider-authored four literal choices are displayed/read back; select at least one literal choice as the next player action and prove exact round-trip.
-- Story -> Extract -> Commit -> context/readback identities agree.
-- No ordinary turn requires a general fact ledger.
+After this task, ordinary narrative continuity should come from raw Story + `turn_summary`, not from parallel relation/event/emotion/work semantic state.
 
-### B. Narrative continuity inside the raw-six window
+## Required work
 
-During early committed turns, establish at least one clear, naturally important continuity item in Story, for example a promise, refusal, work commitment, relationship reaction, boundary, or other specific remembered circumstance.
+### A. Remove stale relation authority
 
-Verify subsequent turns within the latest-six raw window preserve that continuity naturally from raw Story context.
+Inventory every active caller/reader/writer of:
+- `active_relations`
+- `relation_updates`
+- `npc_relationship_state`
+- `RELATION_KINDS`
+- relation presentation helpers that exist only for that superseded semantic authority
 
-Do not manufacture a structured fact record for it.
+Expected direction if caller proof matches current inspection:
+- remove `active_relations` from Story context and `target_authority`;
+- remove stale active-relation fallback from target selection/order;
+- remove fresh `relation_updates` from Extract V2 contract/normalization;
+- remove fresh `npc_observations.relationship` from the general observation contract;
+- remove Commit writers/reducers that only maintain these continuity fields;
+- delete relation-only tests/helpers that no longer have a real consumer.
 
-### C. Cross the raw-memory boundary
+Do not replace this with another relationship enum or semantic object. Relationships remain narrative continuity in recent Story/summary unless a separate proven product feature requires a specific narrow state.
 
-Commit at least 7 ordinary turns after setup/opening so that an early committed turn leaves the latest-six raw window.
+### B. Remove general event ledger authority
 
-Before it leaves the raw window:
-- verify its committed `turn_summary` is present and meaningfully represents the important event that actually happened;
-- do not regenerate merely because wording is imperfect.
+Inventory every active caller/reader/writer of:
+- `event_ledger`
+- `events.general`
+- `GENERAL_EVENT_TYPES`
+- general event importance/active/summary/participant semantic normalization
 
-After it leaves the raw window:
-- verify the older turn is no longer part of the latest-six raw Story window according to committed order/source behavior;
-- verify its chronological `turn_summary` remains available as older memory;
-- exercise a later Story where that older continuity is relevant and observe whether Story carries it forward naturally from summary context.
+Expected direction if no real product consumer is found:
+- remove fresh general-event generation/normalization;
+- remove general event ledger writes/readers;
+- remove closed general event type taxonomy;
+- delete tests that exist only to preserve that superseded ledger.
 
-A deterministic loss caused by missing/empty/incorrectly ordered summary memory is a real product defect. Stop with evidence rather than introducing another memory layer.
+Do **not** remove `sexual_event_ledger` under this step. It has proven visible/mechanical consumers and is a separate narrow domain.
 
-### D. Absence of the superseded fact subsystem
+### C. Remove continuity-only NPC emotion/work state
 
-Prove the active new-turn path does not depend on the deleted general fact ledger:
-- fresh Extract payload/committed current-format observation must not require `block_observations` or `open_facts`;
-- new Commit must not append new general narrative entries to `save.open_observations`;
-- Story input must not depend on `open_observations` for narrative continuity;
-- old historical fields, if physically present in stored JSON, remain inert and must not block replay/readback.
+Inventory active callers of:
+- `npc_emotion`
+- `npc_work_state`
+- fresh `npc_observations.emotion`
+- fresh `npc_observations.work`
 
-Do not fail merely because a historical inert field still physically exists in old JSON.
+If their only role is to duplicate narrative continuity into Story/Extract context, remove them from:
+- fresh Extract contract;
+- normalization;
+- Commit reducers/writers;
+- Story/Extract `active_npc_state` projection;
+- view-model plumbing that is not actually rendered/consumed;
+- stale tests.
 
-### E. Strong CSA and natural narrative behavior
+Do not add replacement mood/work enums or hidden summaries. Relevant emotion/work context remains in recent Story and `turn_summary`.
 
-Use the existing Level-7 seam to exercise at least one strong institutional CSA situation.
+### D. Consumer-proof the remaining narrow state
 
-Verify:
-- CSA provides institutional rule/context, not a second physical Story engine;
-- compliance/resistance is separate from consent, comfort, affection, trust, relationship, and emotion;
-- Story remains free to narrate natural reactions without a closed semantic event/fact taxonomy.
+Do not perform a blind wipe. For each remaining semantic-looking domain encountered during the inventory, identify its concrete product consumer.
 
-### F. Physical/clothing continuity
+Known preserve candidates with current proof:
+- `npc_stats`: visible UI stat strip / committed deltas; may remain a narrow game stat system, but must not become a substitute narrative-memory ledger.
+- `sexual_event_ledger` and derived sexual counters/relationship sexual record: visible/mechanical consumer.
+- physical/clothing state: visible current-state/attire consumer.
+- scene/location/presence: navigation/current-scene consumer.
+- time/progression/CSA: actual mechanics/UI.
 
-Exercise ordinary posture/contact/physical continuity naturally where the scenario allows it.
+`csa_attitudes`, relationship summaries/presentation fields, or any other nearby state must be checked by real source callers. If there is no current product/UI/mechanical consumer, remove the active fresh writer/projection rather than preserving it for hypothetical future use.
 
-If clothing actually changes, verify the existing compact clothing projection remains continuous because it has a real UI/gameplay consumer.
+### E. Simplify Story target/context authority
 
-Do not require a separate general physical fact ledger. Image/media classification remains presentation-only and may not decide whether a Story event occurred.
+Story targeting must rely on current action/scene authority rather than stale semantic relation memory.
 
-### G. Replay / recovery
+Preserve the existing useful priority around:
+- explicit current player target when present;
+- canonical current scene/focal interaction;
+- current registered scene actors/speakers.
 
-- Refresh/context recovery must reconstruct the committed latest-six raw turns and older summaries consistently.
-- Re-reading/replaying current-format committed turns must not create new memory entries or duplicate state.
-- No old `open_fact` validation should be required for a current-format turn.
+Do not invent a new target graph, relationship fallback, fuzzy target resolver, or semantic selector.
 
-## Failure discipline
+### F. Fresh Extract should describe only needed narrow observations
 
-At the first deterministic failure:
-- preserve exact turn/action identity;
-- preserve HTTP status / SSE terminal event if applicable;
-- preserve Story text, Extract output/error, Commit/readback state, relevant turn summaries, Worker identity, and TEMP evidence path;
-- classify the failing stage: Story / Extract / Commit / context-memory / replay-recovery / CSA / narrow UI state / transport;
-- stop.
+After deletion, fresh Extract V2 should not ask for or accept general narrative meaning merely to persist it.
 
-Do not patch source, change provider/model/temperature/tokens, add retries, add a new gate, add repair logic, or recreate a fact-memory subsystem under this acceptance lease.
+Remove obsolete general semantic keys/types from the fresh contract rather than silently accepting and ignoring them forever.
 
-## PASS criteria
+Keep only current proven narrow outputs such as scene observation, required physical/clothing/UI state, needed stats/mechanics, time, Mind Monitor, CSA narrow outputs, sexual/mechanical outputs with real consumers, image presentation data, `turn_summary`, and warnings.
 
-PASS requires real committed evidence that:
+A malformed or omitted optional narrow projection must not kill an otherwise valid ordinary turn.
 
-1. the normal gameplay spine completes across enough turns to cross the six-turn boundary;
-2. latest six raw turns remain the recent narrative context;
-3. an older meaningful turn survives through its natural-language `turn_summary` and can inform later Story continuity;
-4. current-format Story/Extract/Commit/replay works without general `open_facts` / `open_observations` / `block_observations` memory;
-5. narrow machine/UI state such as scene, time, progression, institutional CSA state, and compact clothing remains functional where exercised;
-6. final dedicated TEST cleanup succeeds.
+## Historical data / compatibility
 
-Test counts alone are not acceptance evidence.
+Historical save JSON may physically contain removed fields such as `active_relations`, `npc_relationship_state`, `npc_emotion`, `npc_work_state`, or `event_ledger`.
 
-## Completion
+Do not add a migration merely to erase old JSON in this source/test task.
 
-- Reset only disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` back to clean documented baseline after PASS or decisive failure.
-- Disable any temporary diagnostic toggle used.
-- Set CURRENT_TASK to `WAITING_REVIEW` in one docs-only completion commit.
-- Post one immutable terminal report to Issue #68 with PASS/BLOCKED/FAILED, exact executable/deployed identity, exact scenario turns, summaries/raw-window evidence, any defect evidence, and final TEST cleanup.
-- Stop. Do not create the next task yourself.
+Historical fields may remain inert if physical deletion would require data migration, but they must:
+- receive no new fresh-turn writes;
+- not be projected into new Story prompts as narrative authority;
+- not gate current-format replay/Commit;
+- not select targets or author outcomes;
+- not require a new compatibility subsystem.
+
+Prefer stripping/ignoring at the current-format read boundary when needed.
+
+## Tests / proof
+
+Update tests to prove the simplified architecture rather than preserve old semantics.
+
+Must prove at minimum:
+1. Story context/target authority no longer depends on `active_relations`.
+2. Fresh Extract V2 no longer requests/accepts `relation_updates` or general `events.general` continuity semantics.
+3. Fresh Extract no longer requests/accepts `npc_observations.relationship`, `npc_observations.emotion`, or `npc_observations.work` when no proven consumer remains.
+4. Normal Story -> Extract -> Commit works with those semantic channels absent.
+5. Commit no longer writes new `active_relations`, general `event_ledger`, `npc_relationship_state`, `npc_emotion`, or `npc_work_state` entries where those domains are removed.
+6. Historical versions of those fields, if present, are inert and do not affect current Story targeting/replay.
+7. `npc_stats` visible stat behavior remains intact.
+8. `sexual_event_ledger` and its visible/mechanical consumers remain intact.
+9. scene/location/presence, time, progression, CSA, physical/clothing, choices, Mind Monitor, and turn summaries remain intact.
+10. full regression passes after deleting stale semantic-residue tests. Test count may decrease.
+
+Do not add compatibility runtime merely to keep an old test count green.
 
 ## Forbidden
 
-- Production access;
-- any access/mutation/reset of historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- source/runtime patch during acceptance;
-- migration/DDL;
+- new fact/memory/relation/event ledger;
+- new semantic taxonomy/enum/allowlist to replace deleted ones;
+- new relationship graph or target graph;
+- vector/embedding memory;
+- importance scoring;
+- semantic classifier/gateway;
+- fuzzy repair/matching;
+- retry/regeneration to hide defects;
+- extra Summary/Memory LLM call;
+- new parser generation;
 - provider/model/temperature/token changes;
-- retry/regeneration to obtain a lucky pass;
-- new fact ledger, graph, vector/embedding memory, semantic enum/gateway, repair/fuzzy matcher, extra Summary/Memory LLM, or parser generation;
-- treating media/image taxonomy as narrative truth;
-- merge / PR Ready / rebase / squash / force-push / new PR or branch.
+- Production access;
+- TEST live gameplay/deploy/reset under this source/test task;
+- DB migration/DDL;
+- historical manual-game access;
+- merge / PR Ready / rebase / squash / force-push;
+- new branch/PR.
 
-## Acceptance result
+## Execution discipline
 
-The bounded TEST Level-7 acceptance completed with PASS on the deployed
-Worker source `44bd231ae2ec43b5d6d8b7fb0b9a02c280273abe`, whose reviewed
-gameplay executable is `5dc5ee740fad5ce395c59dcd03a263df28e526dc`.
+- Work only on existing branch `company/scene-location-presence-v1` / PR #67.
+- Source/test only.
+- Do not launch the next live acceptance yourself.
+- Do not create new safety/semantic gates as a substitute for deleting residue.
+- When a stale semantic field has no real consumer, delete the active path instead of building an adapter around it.
 
-- Worker Version: `8dbe290d-ed25-4710-8cab-a8e997ced69b`
-- Opening: HTTP 200, provider-authored four-choice readback PASS
-- Turns: 1 through 7 Story -> Extract -> Commit PASS
-- Literal choice round-trip: Turn 3 exact player-action match PASS
-- Strong institutional CSA validation: PASS
-- Memory boundary: six recent raw turns, Turn 1 absent from raw window,
-  chronological Turn 1 `turn_summary` present
-- Later Story continuity probe: PASS; the earlier report promise was
-  naturally recalled from summary memory
-- Replay: Story meta/complete, Extract, and Commit replay PASS; committed
-  turn and save revision invariant PASS
-- Final TEST reset: PASS; committed_turn 0, idle, setup/opening not_started,
-  no active CSA, no recent turns
-- Evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v8-final.json`
-- No Production or historical manual game access; no migration/DDL or source
-  patch during acceptance
+## Completion
+
+Before COMPLETE:
+- provide a consumer map: removed domains vs retained domains and their concrete consumers;
+- provide the exact Story-facing context/target shape after simplification;
+- provide the exact Fresh Extract V2 semantic domains after simplification;
+- list deleted writers/readers/validators/tests;
+- run focused tests and full regression;
+- run syntax checks for changed JS/MJS and `git diff --check`;
+- verify PR #67 remains OPEN / DRAFT / UNMERGED.
+
+Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP.
+
+No live acceptance until operator review.
