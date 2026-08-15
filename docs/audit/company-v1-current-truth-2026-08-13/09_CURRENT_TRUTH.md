@@ -301,3 +301,22 @@ Verification facts: full test command `npm.cmd test` passed 413/413, focused
 semantic/consumer tests passed 103/103, changed JS/MJS syntax checks passed,
 and `git diff --check` passed. No DB write, migration, reset, deployment, or
 Production access was performed; PR #67 remains OPEN / DRAFT / UNMERGED.
+
+## Semantic residue fail-open closure — source/test review pending
+
+The follow-up correction `narrative-semantic-residue-fail-open-closure-v1`
+was implemented in source/test commit `0fc5099` and is marked
+`WAITING_REVIEW` in `docs/ops/CURRENT_TASK.md`. This remains a source/test
+candidate, not a live deployment or acceptance fact.
+
+The prior fresh Extract `FRESH_SEMANTIC_RESIDUE_FORBIDDEN` whole-turn failure
+was removed. Current-format normalization now drops removed or unknown
+optional relation/general-event/emotion/work observation residue with
+diagnostic warnings while preserving valid narrow siblings; explicit
+save/state patch violations remain hard failures. No removed semantic writer,
+reader, projection, or replacement gateway was restored.
+
+Verification facts: focused correction tests passed 35/35, full `npm.cmd test`
+passed 417/417, changed JS/MJS syntax checks passed, and `git diff --check`
+passed. No DB write, migration, reset, deployment, or Production access was
+performed; PR #67 remains OPEN / DRAFT / UNMERGED.

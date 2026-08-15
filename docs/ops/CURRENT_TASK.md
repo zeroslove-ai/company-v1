@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: narrative-semantic-residue-fail-open-closure-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -150,3 +150,20 @@ Before COMPLETE:
 Set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit, post one immutable terminal report to Issue #68, and STOP.
 
 No live acceptance until operator review.
+
+## Source/test correction handoff
+
+Implementation commit: `0fc5099` (`fix: fail open on semantic residue`).
+
+The bespoke `FRESH_SEMANTIC_RESIDUE_FORBIDDEN` whole-turn failure path was
+removed. Fresh optional relation/general-event/emotion/work residue and
+unknown optional observation domains are dropped before current-format
+normalization with diagnostic `extract_optional_dropped:*` warnings; valid
+narrow sibling projections continue through normalization. Explicit
+save/state patch authority violations remain hard failures.
+
+Verification: focused Extract/turn/scene/state tests `35/35` PASS; full
+`npm.cmd test` `417/417` PASS; changed JS/MJS syntax checks PASS; and
+`git diff --check` PASS. No live acceptance, DB write, migration/DDL, TEST
+reset, deployment, or Production access was performed. PR #67 remains OPEN /
+DRAFT / UNMERGED.
