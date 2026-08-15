@@ -357,35 +357,52 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
 
 function prepareFreshExtractInput(value) {
   const fresh = clone(value);
+  const warnings = [];
+  if (!object(fresh)) return { value: fresh, warnings };
+  const warn = (path, reason = 'REMOVED_OPTIONAL_FIELD') => warnings.push(`extract_optional_dropped:${path}:${reason}`);
   if (Object.hasOwn(fresh, 'relation_updates')) {
-    if (Array.isArray(fresh.relation_updates) && fresh.relation_updates.length) {
-      throw new GameCoreError('FRESH_SEMANTIC_RESIDUE_FORBIDDEN', 'Fresh Extract must not contain relation_updates');
-    }
     delete fresh.relation_updates;
+    warn('relation_updates');
   }
   if (object(fresh.events)) {
-    if (Array.isArray(fresh.events.general) && fresh.events.general.length) {
-      throw new GameCoreError('FRESH_SEMANTIC_RESIDUE_FORBIDDEN', 'Fresh Extract must not contain events.general');
-    }
     fresh.events = { ...fresh.events };
-    delete fresh.events.general;
+    for (const key of Object.keys(fresh.events)) {
+      if (key !== 'general' && key !== 'sexual') {
+        delete fresh.events[key];
+        warn(`events.${key}`, 'UNKNOWN_OPTIONAL_FIELD');
+      }
+    }
+    if (Object.hasOwn(fresh.events, 'general')) {
+      delete fresh.events.general;
+      warn('events.general');
+    }
+  }
+  if (object(fresh.player_observation)) {
+    fresh.player_observation = { ...fresh.player_observation };
+    for (const key of Object.keys(fresh.player_observation)) {
+      if (key !== 'physical' && key !== 'sexual') {
+        delete fresh.player_observation[key];
+        warn(`player_observation.${key}`, 'UNKNOWN_OPTIONAL_FIELD');
+      }
+    }
   }
   if (object(fresh.npc_observations)) {
+    const npcObservations = fresh.npc_observations;
     fresh.npc_observations = {};
-    for (const [npcId, domains] of Object.entries(object(value.npc_observations) ? value.npc_observations : {})) {
+    for (const [npcId, domains] of Object.entries(npcObservations)) {
       const nextDomains = object(domains) ? { ...domains } : domains;
-      for (const domain of ['relationship', 'emotion', 'work']) {
-        if (object(nextDomains) && Object.hasOwn(nextDomains, domain)) {
-          if (object(nextDomains[domain]) && Object.keys(nextDomains[domain]).length) {
-            throw new GameCoreError('FRESH_SEMANTIC_RESIDUE_FORBIDDEN', `Fresh Extract must not contain npc_observations.${npcId}.${domain}`);
+      if (object(nextDomains)) {
+        for (const domain of Object.keys(nextDomains)) {
+          if (!NPC_DOMAINS.has(domain)) {
+            delete nextDomains[domain];
+            warn(`npc_observations.${npcId}.${domain}`, 'REMOVED_OR_UNKNOWN_OPTIONAL_FIELD');
           }
-          delete nextDomains[domain];
         }
       }
       fresh.npc_observations[npcId] = nextDomains;
     }
   }
-  return fresh;
+  return { value: fresh, warnings };
 }
 
 /**
@@ -395,7 +412,8 @@ function prepareFreshExtractInput(value) {
  * by a new Extract completion.
  */
 export function normalizeFreshExtractObservationV2(value, options = {}) {
-  const freshValue = prepareFreshExtractInput(value);
+  const prepared = prepareFreshExtractInput(value);
+  const freshValue = prepared.value;
   assertExtractObservationContract(freshValue);
   if (!FRESH_OUTCOMES.has(freshValue.outcome)) {
     throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Fresh Extract outcome is not allowed');
@@ -403,6 +421,7 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
   if (!object(freshValue.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
   assertKeys(freshValue.scene_observation, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
   const normalized = normalizeExtractObservationV2(freshValue, { ...options, softOptional: true });
+  normalized.warnings.unshift(...prepared.warnings);
   const required = Array.isArray(options.requiredMindMonitorIds)
     ? options.requiredMindMonitorIds.filter(id => typeof id === 'string' && id.trim())
     : [];

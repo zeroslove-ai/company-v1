@@ -55,19 +55,53 @@ test('fresh Extract rejects superseded fact-ledger wire fields instead of normal
   );
 });
 
-test('fresh Extract rejects continuity-only relation, event, emotion, and work residue', () => {
-  for (const residue of [
-    { relation_updates: [{ actor_id: 'heroine1', target_id: 'heroine2', relation_kind: 'legacy', state: 'started', quote: STORY }] },
-    { events: { general: [{ event_type: 'promise', evidence: STORY }] } },
-    { npc_observations: { heroine1: { relationship: { closeness: 'close' } } } },
-    { npc_observations: { heroine1: { emotion: { mood: 'focused' } } } },
-    { npc_observations: { heroine1: { work: { task: 'review' } } } }
-  ]) {
-    assert.throws(
-      () => normalizeFreshExtractObservationV2(valid(residue), { npcIds: NPCS, storyText: STORY }),
-      error => error.code === 'FRESH_SEMANTIC_RESIDUE_FORBIDDEN'
-    );
-  }
+test('fresh Extract drops relation residue warning-only while retaining a valid narrow sibling', () => {
+  const result = normalizeFreshExtractObservationV2(valid({
+    relation_updates: [{ actor_id: 'heroine1', target_id: 'heroine2', relation_kind: 'legacy', state: 'started', quote: STORY }],
+    npc_observations: { heroine1: { physical: { posture: 'standing' } } }
+  }), { npcIds: NPCS, storyText: STORY });
+  assert.ok(result.warnings.includes('extract_optional_dropped:relation_updates:REMOVED_OPTIONAL_FIELD'));
+  assert.equal(result.relation_updates, undefined);
+  assert.deepEqual(result.npc_observations.heroine1.physical, { posture: 'standing' });
+});
+
+test('fresh Extract drops general events warning-only while retaining sexual events', () => {
+  const result = normalizeFreshExtractObservationV2(valid({
+    events: {
+      general: [{ event_type: 'promise', evidence: STORY }],
+      sexual: [{ actor_id: 'heroine1', target_id: 'player', action_type: 'kiss', direction: 'npc_to_player', completed: false, interrupted: false, evidence: STORY }]
+    }
+  }), { npcIds: NPCS, storyText: STORY, expectedTurn: 4, actionId: 'sexual-sibling' });
+  assert.ok(result.warnings.includes('extract_optional_dropped:events.general:REMOVED_OPTIONAL_FIELD'));
+  assert.deepEqual(result.events.general, []);
+  assert.equal(result.events.sexual.length, 1);
+});
+
+test('fresh Extract drops NPC semantic residue and unknown optional domains while retaining narrow siblings', () => {
+  const result = normalizeFreshExtractObservationV2(valid({
+    npc_observations: {
+      heroine1: {
+        relationship: { closeness: 'close' }, emotion: { mood: 'focused' }, work: { task: 'review' },
+        unexpected_projection: { value: 'ignored' },
+        physical: { posture: 'standing' }, stats: { affinity_delta: 1 }, csa_attitude: { familiarity: 2 }
+      }
+    }
+  }), { npcIds: NPCS, storyText: STORY });
+  assert.ok(result.warnings.includes('extract_optional_dropped:npc_observations.heroine1.relationship:REMOVED_OR_UNKNOWN_OPTIONAL_FIELD'));
+  assert.ok(result.warnings.includes('extract_optional_dropped:npc_observations.heroine1.emotion:REMOVED_OR_UNKNOWN_OPTIONAL_FIELD'));
+  assert.ok(result.warnings.includes('extract_optional_dropped:npc_observations.heroine1.work:REMOVED_OR_UNKNOWN_OPTIONAL_FIELD'));
+  assert.ok(result.warnings.includes('extract_optional_dropped:npc_observations.heroine1.unexpected_projection:REMOVED_OR_UNKNOWN_OPTIONAL_FIELD'));
+  assert.deepEqual(Object.keys(result.npc_observations.heroine1).sort(), ['csa_attitude', 'physical', 'stats']);
+});
+
+test('fresh Extract drops unknown optional event/player fields without losing valid siblings', () => {
+  const result = normalizeFreshExtractObservationV2(valid({
+    events: { general: [], sexual: [], continuity_noise: { promise: true } },
+    player_observation: { physical: { posture: 'standing' }, sexual: null, old_mood_projection: { mood: 'focused' } }
+  }), { npcIds: NPCS, storyText: STORY });
+  assert.ok(result.warnings.includes('extract_optional_dropped:events.continuity_noise:UNKNOWN_OPTIONAL_FIELD'));
+  assert.ok(result.warnings.includes('extract_optional_dropped:player_observation.old_mood_projection:UNKNOWN_OPTIONAL_FIELD'));
+  assert.deepEqual(result.player_observation.physical, { posture: 'standing' });
 });
 
 test('fresh Extract output retains sexual mechanics but exposes no general semantic channels', () => {
@@ -84,6 +118,13 @@ test('fresh Extract output retains sexual mechanics but exposes no general seman
   assert.equal(result.npc_observations.heroine1.emotion, undefined);
   assert.equal(result.npc_observations.heroine1.work, undefined);
   assert.equal(result.events.sexual.length, 1);
+});
+
+test('fresh Extract still hard-fails explicit save-patch authority violations', () => {
+  assert.throws(
+    () => normalizeFreshExtractObservationV2(valid({ save: { npc_stats: {} } }), { npcIds: NPCS, storyText: STORY }),
+    error => error.code === 'EXTRACT_SAVE_PATCH_FORBIDDEN'
+  );
 });
 
 test('persisted historical fact-ledger fields are inert during replay normalization', () => {
