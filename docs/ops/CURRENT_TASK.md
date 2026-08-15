@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -162,3 +162,41 @@ Report:
 
 On full success set CURRENT_TASK to WAITING_REVIEW in a docs-only descendant, post one immutable COMPLETE terminal report to Issue #68, and STOP.
 On any decisive live failure, still perform final reset, set WAITING_REVIEW if safe, post FAILED/BLOCKED with evidence, and STOP. Do not generate the next task yourself.
+
+## Execution result — BLOCKED
+
+TASK_ID: `deep-level7-live-acceptance-v1`
+EXECUTION: `BLOCKED`
+TASK_BLOB_SHA: `d2d9ef56815a249ba21cec0ebd4a3d3adf222a0b`
+START_SHA: `d7dc446c4e5099af1f14a0db005b8701e502fbf5`
+REVIEWED_GAMEPLAY_EXECUTABLE_SHA: `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`
+SEAM_SHA: `abc9c3f9e06d6b2eb474b4cade6daa3bc7c5a484`
+
+The approved TEST migration was applied exactly once through a single-migration dry-run/apply workdir:
+
+- version/name: `20260815000100` / `company_v1_test_level7_acceleration`
+- source git blob: `49b80b697a00272408a929f2e92bc1e7423689af`
+- source SHA-256: `F51CF8438D0290A3247D662B11149B6C0A7FC5F153ADB31745424B3B3B45B3AF`
+- `prepare_company_test_level7_fixture(uuid,text)`: SECURITY DEFINER, `search_path=public, pg_temp`, service_role EXECUTE only; anon/authenticated/public EXECUTE false
+
+The TEST Worker was deployed through the Stage B contract-gated wrapper from the gameplay-equivalent source tree:
+
+- Worker: `game-proxy-company-v1`
+- Version: `0df3468e-65f3-45c4-9e3b-9ea36ae21d54`
+- source tree: `d7dc446c4e5099af1f14a0db005b8701e502fbf5`, with no gameplay/runtime delta after accepted executable `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`
+- health: HTTP 200, `ok=true`, `edition_id=company-v1`
+
+Fixture proof passed before the live canary: the disposable game changed from level 1 to `{level:7,exp:0}` while `initial_save` remained level 1 and no `csa_active`, semantic facts, relations, emotion/clothing outcomes, Story results, or turns were seeded.
+
+The existing `--cut1-authority` canary then passed the bounded ordinary spine and replay path:
+
+- Opening: HTTP 200, complete, four canonical choices
+- Turn 1 action `ac7caeb0-3fe9-4ebe-97c2-7b9836a9ae22`: Story/Extract/Commit pass; committed_turn 1; save_revision 903
+- Same-action Story/Extract/Commit replay: all replay flags true; committed_turn/save_revision unchanged
+- Turn 2 action `ca198559-cf16-4223-8fd9-675337d9dc13`: Story/Extract/Commit pass; committed_turn 2; save_revision 904
+- final reset: pass; readback committed_turn 0, level 1, setup/opening not_started, csa_active empty, actions 0, turns 0
+- temporary evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-cut1-db63c4cd1ae44b3abcc08e774656644d.json`
+
+This is not full deep acceptance. The existing canary did not exercise selected-literal round trip, open-fact provenance/long horizon, strong CSA institutional activation/context, posture/contact, clothing continuity, bounded intimate/sexual scenario, or media behavior. It also reset the fixture before those criteria could be run. A second fixture invocation would violate the task's exactly-once seam setup rule, so no attempt was made to game the result with another invocation, retry, provider change, or source patch. Criteria A and I are only partially evidenced; B–H remain unproven. Stage B and Production were not touched.
+
+No source, migration, frontend, or runtime patch was made. No preserved manual game was accessed. No merge, Ready transition, or next task was generated.
