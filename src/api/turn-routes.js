@@ -794,7 +794,14 @@ const master = masterFromEdition(edition);
           timing.active_character_count = activeCountFromNpcState(extractUserPayload.context?.active_npc_state);
           try {
             const llmStart = Date.now();
-            const raw = await runExtract({ env, fetchImpl, messages });
+            const raw = await runExtract({
+              env,
+              fetchImpl,
+              messages,
+              onRawResponse: env.COMPANY_V1_EXTRACT_DIAGNOSTIC === 'true'
+                ? response => { timing.extract_provider_response = response; }
+                : null
+            });
             timing.extract_llm_ms = Date.now() - llmStart;
             const parseStart = Date.now();
             // Fresh Extract calls are V2-only. The legacy adapter is reserved for
@@ -812,19 +819,22 @@ const master = masterFromEdition(edition);
             // Extract is an optional observation. Invalid, truncated, or
             // contract-invalid output degrades deterministically and still
             // reaches the owned Extract completion RPC and the single Commit path.
-            const structuralCoverageFailure = new Set([
-              'STORY_OBSERVATION_COVERAGE_REQUIRED',
-              'STORY_OBSERVATION_COVERAGE_INCOMPLETE',
-              'STORY_OBSERVATION_COVERAGE_MISMATCH',
-              'INVALID_STORY_OBSERVATION_COVERAGE',
+            const structuralObservationFailure = new Set([
+              'BLOCK_OBSERVATIONS_REQUIRED',
+              'INVALID_BLOCK_OBSERVATIONS',
+              'INVALID_BLOCK_OBSERVATION_FACT',
+              'STORY_BLOCK_OBSERVATIONS_INCOMPLETE',
+              'FRESH_TOP_LEVEL_OPEN_FACTS_FORBIDDEN',
+              'OPEN_FACT_UNKNOWN_ID',
               'OPEN_FACT_SOURCE_BLOCK_REQUIRED',
               'OPEN_FACT_SOURCE_BLOCK_UNKNOWN',
+              'OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY',
               'OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_BLOCK'
             ]).has(error?.code);
             const failOpen = error instanceof GameCoreError
               || error?.code === 'extract_invalid_json'
               || error?.code === 'extract_truncated';
-            if (!failOpen || structuralCoverageFailure) throw error;
+            if (!failOpen || structuralObservationFailure) throw error;
             extract = buildDegradedExtractObservation({
               extraWarnings: [`extract_fail_open:${error?.code ?? 'invalid_observation'}`]
             });
@@ -845,6 +855,7 @@ const master = masterFromEdition(edition);
           extract_system_chars: timing.extract_system_chars, extract_context_chars: timing.extract_context_chars,
           parsed_story_chars: timing.parsed_story_chars, extract_request_chars: timing.extract_request_chars,
           active_character_count: timing.active_character_count,
+          extract_provider_response: timing.extract_provider_response,
           turn_total_ms: Date.now() - startedAt
         });
       }

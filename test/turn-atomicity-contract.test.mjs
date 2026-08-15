@@ -14,7 +14,7 @@ const observation = {
   scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], presence_is_final: false, remote_speaker_ids: [], evidence: [] },
   player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
   mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
-  csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
+  csa_trigger_evaluations: [], csa_runtime_updates: [], block_observations: [], turn_summary: '', warnings: []
 };
 
 test('12Q Engine mandatory enactments are metadata-only and never enter visible canonical Story', () => {

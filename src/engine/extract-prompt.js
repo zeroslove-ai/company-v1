@@ -179,8 +179,7 @@ const SYSTEM_INSTRUCTIONS = [
     },
     player_observation: {},
     npc_observations: {},
-     open_facts: [],
-     observation_coverage: [],
+     block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [] }],
      evidence: {},
     elapsed_minutes: 3,
     mind_monitor: {},
@@ -209,8 +208,8 @@ const SYSTEM_INSTRUCTIONS = [
   'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
   'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, do not omit image_selection; return the existing sex-pool contract and tags describing that ongoing act.',
   'Mind Monitor style contract: surface and subconscious are each one natural Korean first-person inner monologue, spoken to self in conversational language. Do not write reports, status summaries, narrator prose, labels, "NPC는..." sentences, or the player THOUGHT; surface and subconscious must be distinct and personality-specific. Missing Mind Monitor remains fail-open. Final scene presence: a local dialogue speaker is evidence of presence during the Story, but removal requires an explicit exact quoted exit; if the final snapshot cannot be established, preserve null rather than guessing.'
-  , 'Do not emit semantic relation_updates or closed events for fresh Extract. When the Story states an agreement, refusal, feeling, physical act, intimacy, or other meaningful fact, emit an open_facts item with registered subject/object IDs and an exact contiguous quote. Never infer a fact from player intent alone.',
-  'Fresh observation_coverage is structural accounting, not semantic inference: return one matching block_id/block_type per story_observation_blocks entry with decision "facts" or "none". "none" is a valid zero-fact result. Each open_facts source_block must be its exact story:<index> id and its story_quote must be contiguous in that block; facts requires a fact, none forbids one. Do not omit or invent blocks.',
+  , 'Do not emit semantic relation_updates or closed events for fresh Extract. When the Story states an agreement, refusal, feeling, physical act, intimacy, or other meaningful fact, emit a nested block_observations fact with registered subject/object IDs and an exact contiguous quote. Never infer a fact from player intent alone.',
+  'Fresh block_observations must contain one matching block_id/block_type entry per story_observation_blocks item. Facts are nested; facts: [] means zero facts. Do not return decision, nested source_block, or top-level open_facts. Do not omit or invent blocks.',
   'Explicit player physical continuity: preserve the observable kind and strength of player contact or sexual facts in Story evidence; do not euphemize them into an unidentifiable thing or pressure.',
 ].join(' ');
 

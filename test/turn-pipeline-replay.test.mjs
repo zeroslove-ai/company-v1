@@ -93,10 +93,10 @@ function createMockFetch({
   const coverageStory = storySseOverride
     ? JSON.parse(String(storySseOverride).match(/^data: (.+)$/m)?.[1] ?? '{}')?.choices?.[0]?.delta?.content ?? STORY
     : STORY;
-  const observationCoverage = parseFreshNarrativeV2(coverageStory, { master: masterFromEdition(edition) }).blocks
+  const blockObservations = parseFreshNarrativeV2(coverageStory, { master: masterFromEdition(edition) }).blocks
     .map((block, blockIndex) => ({ block_id: `story:${blockIndex}`, block_type: block.type }))
     .filter(block => ['scene', 'narrative', 'dialogue', 'acting'].includes(block.block_type))
-    .map(block => ({ ...block, decision: 'none' }));
+    .map(block => ({ ...block, facts: [] }));
   const extract = {
     ...(extractEnvelope ?? {
     extract_version: 2,
@@ -106,7 +106,7 @@ function createMockFetch({
     mind_monitor: { heroine1: { surface: '오늘 일부터 하자.', subconscious: '조금 신경 쓰이네.' }, heroine2: { surface: '자료를 확인하자.', subconscious: '괜찮아.' }, heroine5: { surface: '자료를 확인하자.', subconscious: '괜찮아.' } }, action_target_id: null, image_character_id: null, image_selection: null,
     csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: []
     }),
-    observation_coverage: extractEnvelope?.observation_coverage ?? observationCoverage
+    block_observations: extractEnvelope?.block_observations ?? blockObservations
   };
   const extractContents = [JSON.stringify(extract)];
   let storyCall = 0;
@@ -248,6 +248,7 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(extract.status, 200);
   const extractBody = await extract.json();
   assert.ok(extractBody.data.extract);
+  assert.equal('extract_provider_response' in mock.actions.get(actionId).extract_delta, false, 'raw provider content is not persisted in ordinary gameplay');
   const extractRequest = mock.calls.find(c => String(c.url).startsWith('https://llm.test') && c.body && JSON.parse(c.body).max_tokens === 5000 && JSON.parse(c.body).stream !== true);
   assert.equal(JSON.parse(JSON.parse(extractRequest.body).messages[1].content).story_text, STORY, 'Extract receives the raw Story verbatim');
 
@@ -290,6 +291,28 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   assert.equal(replayBody.data.replayed, true);
   const afterReplay = mock.calls.filter(c => String(c.url).startsWith('https://llm.test') && !llmBody(c).stream).length;
   assert.equal(afterReplay, beforeReplay, 'replay 시 추가 LLM 호출 없음');
+});
+
+test('malformed fresh block observations remain a structural error instead of degrading silently', async () => {
+  const mock = createMockFetch({
+    extractEnvelope: {
+      extract_version: 2,
+      outcome: 'success',
+      scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
+      player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
+      mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
+      csa_trigger_evaluations: [], csa_runtime_updates: [], block_observations: [], turn_summary: '', warnings: []
+    },
+    saveOverride: v2Save()
+  });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const story = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: 'ordinary action' }), env);
+  assert.equal(story.status, 200);
+  await story.text();
+  const extract = await worker.fetch(request('/api/extract', { game_id: gameId, action_id: actionId, expected_turn: 8 }), env);
+  const extractBody = await extract.json();
+  assert.equal(extract.status, 422);
+  assert.equal(extractBody.error.code, 'story_block_observations_incomplete');
 });
 
 test('stored action route parity rejects reservation/row divergence before Story LLM and preserves exact rows when omitted', async () => {

@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: extract-block-observation-wire-simplification-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -202,3 +202,18 @@ Report separately:
 - PR #67 remains base main, OPEN / DRAFT / UNMERGED.
 
 Set CURRENT_TASK to WAITING_REVIEW in a docs-only descendant, post one immutable terminal report to Issue #68, and STOP. Do not launch another live acceptance yourself.
+
+## Execution result — COMPLETE / WAITING_REVIEW
+
+Execution identity: `extract-block-observation-wire-simplification-v1` / task blob `4e5e9d1bc304c578d88bb911e20ce1573fc1b59d` / branch `company/scene-location-presence-v1`.
+
+- Source caller trace completed: `buildExtractPrompt` -> `runExtract` -> JSON repair -> `normalizeFreshExtractObservationV2` -> `recordExtractResultOwned` -> persisted Extract reader -> Commit reducer -> open-observation context/history/next Story.
+- Fresh provider wire is now block-local: one `block_observations` entry per Story body block, with nested `facts` and `facts: []` as the only zero-fact representation. The removed fresh fields are `observation_coverage`, `decision`, and a separate top-level `open_facts` input.
+- Canonical durable output remains the existing flat `open_facts` shape with deterministic `fact_id`, action/turn provenance, exact quote, and derived `source_block`. Nested providers cannot author `source_block` twice.
+- Structural validation rejects missing/duplicate/unknown/mismatched block identity, wrong block type, unknown subject/object, out-of-block quote, top-level fresh facts, and legacy decision fields. These failures are not silently degraded by the route.
+- Persisted V2 replay strips obsolete coverage metadata only at the historical read boundary and preserves canonical durable `open_facts`; no new database shape or migration was added.
+- `runExtract` now has an explicit non-durable `onRawResponse` callback carrying raw provider content and finish reason. The route records it only when the TEST/operator-only `COMPANY_V1_EXTRACT_DIAGNOSTIC=true` flag is explicitly enabled; ordinary gameplay does not expose or persist provider output.
+- Changed source/test files: `src/api/llm.js`, `src/api/turn-routes.js`, `src/engine/extract-prompt.js`, `src/engine/runtime-core/extract-observation.js`, `src/engine/runtime-core/persisted-extract-observation.js`, `test/content-catalog-contract.test.mjs`, `test/extract-observation-contract.test.mjs`, `test/turn-atomicity-contract.test.mjs`, `test/turn-pipeline-replay.test.mjs`.
+- Focused Extract/turn tests: PASS. Full `npm.cmd test`: PASS 433/433. Modified JS/MJS syntax: PASS. `git diff --check`: PASS.
+- Live TEST/LLM, DB writes/resets, migration apply/reapply, deploy, Production/manual-game access: 0. Preserved evidence artifacts remained untouched and untracked.
+- PR #67 remains OPEN / DRAFT / UNMERGED, base `main`. No next task was generated and no live acceptance was launched.

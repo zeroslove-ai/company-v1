@@ -10,7 +10,13 @@ function object(value) { return value !== null && typeof value === 'object' && !
  */
 export function normalizePersistedExtractObservation(value, options = {}) {
   if (!object(value)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Persisted Extract must be an object');
-  if (value.extract_version === 2) return normalizeExtractObservationV2(value, options);
+  if (value.extract_version === 2) {
+    // Older persisted V2 rows may retain the superseded provider accounting
+    // field. It is not read as fresh authority; canonical durable open_facts
+    // remain the only replay input we preserve.
+    const { observation_coverage: _legacyCoverage, block_observations: _freshWire, ...persisted } = value;
+    return normalizeExtractObservationV2(persisted, options);
+  }
   if (object(value.state_delta)) return adaptLegacyExtractDelta(value, options);
   throw new GameCoreError('EXTRACT_VERSION_UNSUPPORTED', 'Persisted Extract format is unsupported');
 }

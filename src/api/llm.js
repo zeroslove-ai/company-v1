@@ -133,7 +133,7 @@ function parseExtractContent(content) {
 }
 
 /** Runs the single Extract completion. No automatic retry or repair call is ever issued here. */
-export async function runExtract({ env, fetchImpl, messages }) {
+export async function runExtract({ env, fetchImpl, messages, onRawResponse = null }) {
   const signal = typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(EXTRACT_TIMEOUT_MS) : undefined;
   const response = await postCompletion(env, fetchImpl, {
     model: requireEnv(env, 'EXTRACT_MODEL'),
@@ -151,6 +151,8 @@ export async function runExtract({ env, fetchImpl, messages }) {
     throw new HttpError(502, 'extract_invalid_json', 'Extract upstream response is not JSON', true);
   }
   const choice = payload.choices?.[0];
+  const content = choice?.message?.content;
+  if (typeof onRawResponse === 'function') onRawResponse({ content: String(content ?? ''), finish_reason: choice?.finish_reason ?? null });
   if (choice?.finish_reason === 'length') throw new HttpError(502, 'extract_truncated', 'Extract response exceeded its output limit', true);
-  return parseExtractContent(choice?.message?.content);
+  return parseExtractContent(content);
 }
