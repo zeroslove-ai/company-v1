@@ -120,3 +120,41 @@ Report exact turns/scenarios, Story evidence, Extract observations, committed fa
 - Direct DB mutation to manufacture gameplay state outside the reviewed TEST-only Level-7 acceleration seam.
 - New semantic enum/allowlist/fallback/gateway to make acceptance pass.
 - Editing historical applied migrations or immutable terminal evidence.
+
+## Execution completion — BLOCKED pending review
+
+- Execution lease: Issue #68 comment `5301724552`.
+- Start SHA: `b63dfdcf2aab63bc59173ed2d3aa649dde47670e`.
+- Start CURRENT_TASK blob SHA: `d9a5f39fab5729ba9c8bbb52ed31c1ed318eb2c7`.
+- Accepted gameplay executable: `0627f01d5118e3a936d9280fb8f889644137550c`.
+- Accepted canary/SSE harness executable: `521e8acf6c519ea05b92a45caef2f1ff601ad27c` /
+  `97d0fc840a3e99717ca75c07e7055f18944398d1`.
+- TEST Worker used without redeploy: version
+  `0c3c350b-2eb5-403d-950e-0319eb8716d7`; health returned HTTP 200 with
+  `edition_id=company-v1`.
+- Level-7 seam: PASS, exactly one fixture call, dedicated TEST game only,
+  `test_only=true`, `reset_before_seed=true`, `committed_turn=0`.
+- Single canary command: `node scripts/live-playtest-canary.mjs
+  --phase12k-playability --reset-if-dirty`.
+- Turn 1 Story/Extract/Commit: PASS. Story was HTTP 200 with terminal
+  `complete`; canonical choices were 4; committed action was
+  `d46374a8-7ac2-4d84-9d9e-1752282c1d09`.
+- Turn 2 Story: HTTP 200 with terminal `complete`; action
+  `0c2c886e-631d-4a8d-a7fd-a4e2647273a3` persisted the Story and parsed
+  blocks, but Extract stopped deterministically with
+  `processing_status=extract_failed`, `error_code=OPEN_FACT_UNKNOWN_ID`, and
+  no `extract_delta`.
+- Result: `BLOCKED` at the Extract/open-fact identity validation boundary.
+  No retry or regeneration was performed; no source or migration patch was
+  attempted.
+- Failure evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v6-failure-action-0c2c886e.json`
+  (SHA-256 `0B723758BB88464C569AAB53EECF55A058767ACBC6418935BE0861B59C6EFC78`).
+- Final TEST cleanup: `/api/reset` PASS; `save_revision=940`,
+  `committed_turn=0`, `processing_status=idle`, player setup/opening
+  `not_started`, `csa_active=[]`; direct readback found zero `game_actions`
+  and zero `game_turns` rows.
+- Live operations: one Level-7 TEST fixture call, one bounded canary, and
+  one final TEST reset; additional DB writes, migration apply, Production,
+  and preserved manual-game access = 0.
+- CURRENT_TASK remains `WAITING_REVIEW`; the final docs SHA and final task
+  blob SHA are recorded by the Issue #68 terminal report after push.
