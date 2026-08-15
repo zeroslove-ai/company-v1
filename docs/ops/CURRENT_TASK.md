@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v5-rerun
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -229,3 +229,23 @@ Before terminal report:
 Set CURRENT_TASK to `WAITING_REVIEW`, commit/push only the completion-state docs update if needed, post one immutable terminal report to Issue #68, and STOP.
 
 Do not generate or execute any follow-up fix yourself.
+
+## Execution completion state (2026-08-15)
+
+This task is terminally blocked pending operator review; no follow-up execution is authorized.
+
+- Start SHA: `885608e9c7b4192a93f761b9d7053c0dca932006`
+- Gameplay executable under test: `0627f01d5118e3a936d9280fb8f889644137550c`
+- Accepted canary safety SHA: `521e8acf6c519ea05b92a45caef2f1ff601ad27c`
+- Issue #68 lease comment: `5301222785`
+- PR #67 remained OPEN / DRAFT / UNMERGED.
+- TEST Worker diagnostic-enabled deployment: `e5a951b4-46b8-4249-b7eb-6e5c114edc97` (`COMPANY_V1_EXTRACT_DIAGNOSTIC=true`)
+- Level-7 guarded fixture seam: executed exactly once; `test_only=true`, `reset_before_seed=true`, `level=7`.
+- Opening-only acceptance: HTTP 200 / terminal complete / 4 canonical choices; exact first literal was recorded in TEMP evidence.
+- Direct V5 scenario: blocked at the first Story call for turn 1 by the local temporary evidence reader's SSE frame parsing defect. The Worker response was HTTP 200 with no parsed terminal event; this is not classified as a provider/runtime defect and no retry was made.
+- A: BLOCKED after opening-only PASS; B-F: NOT EXERCISED; G-H: NOT EXERCISED; I: final cleanup PASS.
+- Final reset: PASS; committed_turn=0, processing_status=idle, setup/opening not_started, csa_active empty, history=0.
+- Diagnostic-disabled cleanup deployment: `0c3c350b-2eb5-403d-950e-0319eb8716d7`; `wrangler versions view` verified `COMPANY_V1_EXTRACT_DIAGNOSTIC=false`; health HTTP 200.
+- TEMP evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v5-rerun-evidence-5301222785.json`
+- TEMP evidence SHA-256: `160B6D040A945258BD5C751F4E88FA9D44BFF8ED7B7F629801E4E0730BEA43BB`
+- No migration was applied or edited; no Production/manual-game access occurred; no source/runtime patch was made during execution.
