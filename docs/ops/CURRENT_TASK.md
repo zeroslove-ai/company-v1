@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: story-control-marker-test-rollout-v1
+Status: READY
+Task ID: story-marker-literal-choice-live-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,113 +13,91 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Operator review `5304229804` accepted source/test SHA `b3c06f931d8bd216f217412343621781670f0722` for `story-control-marker-root-cause-v1`.
+Operator review `5304452735` found the preceding TEST rollout materially successful for the Story-marker defect but incomplete for one explicit live acceptance invariant.
 
-Accepted live TEST contract already established before this task:
-- additive migration `20260816000100_company_v1_opening_structured_persistence` is applied exactly once;
-- canonical Opening writer is six-argument `commit_company_opening(uuid, uuid, text, text, jsonb, jsonb)` and old five-argument writer is absent;
-- `opening_state.parsed_blocks` is persisted transactionally;
-- prior TEST API identity was executable `c62c92e231a0f0b44a723474bd16a7dba1985124` / Worker version `4660b79f-8ff3-40f5-ae1f-cd8134219f7c`;
-- prior rollout reached Setup + Opening and then failed first ordinary Story because provider emitted attributed `[SCENE brand_strategy_meeting_room]`.
+Reviewed gameplay/source executable remains:
+`b3c06f931d8bd216f217412343621781670f0722`.
 
-Reviewed source/test fix `b3c06f931d8bd216f217412343621781670f0722` consolidates one producer grammar: `[SCENE]` is bare; JSON `scene_id` is data, not marker syntax; DIALOGUE alone carries registered `speaker_id`; parser strictness is unchanged.
+Current branch head before this registration is docs-only completion:
+`7f37384cac5f0140f1163ce3e5afd87a95bf69ea`.
 
-Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and must not be accessed or mutated. Production access is forbidden.
+Already verified live TEST facts:
+- migration `20260816000100_company_v1_opening_structured_persistence` is applied;
+- canonical Opening writer is exactly `commit_company_opening(uuid, uuid, text, text, jsonb, jsonb)`;
+- it is SECURITY DEFINER with `search_path=public, pg_temp`, service_role execution, and stores `opening_state.parsed_blocks`;
+- Story marker grammar fix is deployed and a bounded Setup -> Opening -> two ordinary free-text Story/Extract/Commit turns plus replay succeeded;
+- prior dedicated game was reset clean.
+
+The missing proof is narrow and live-only: the previous rollout did not select one of the provider-authored Opening choices as the next literal player input on the current reviewed deployment. Both ordinary turns were free text and the terminal substituted older V9 ancestor evidence.
+
+Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and must never be accessed or mutated. Production access is forbidden.
 
 ## Objective
 
-Roll the exact reviewed Story-marker source fix to TEST and close the previously blocked Opening → ordinary Story boundary with one bounded dedicated TEST acceptance. This is a rollout/acceptance task, not authority to invent another parser/gateway/fallback.
+Close the exact literal-choice live acceptance gap without changing runtime architecture.
 
-## Required work
+Use the already reviewed/deployed executable lineage. Run one bounded dedicated TEST flow where:
+1. Setup and Opening succeed through normal API paths.
+2. Capture the four provider-authored canonical Opening choice strings.
+3. Select exactly one returned literal string unchanged and submit that exact string as the next `player_action`.
+4. Prove Story -> Extract -> Commit succeeds and persisted/action/history evidence retains the exact selected literal identity; no semantic choice metadata or server-authored fallback is involved.
+5. Use ordinary free text for the following turn and prove it remains ordinary gameplay input.
+6. Prove current-format replay/recovery prefers committed `parsed_blocks` and is idempotent.
+7. Reset only the dedicated TEST game and independently confirm clean readback.
 
-1. Verify exact ancestry and #67 topology. Distinguish executable SHA `b3c06f931d8bd216f217412343621781670f0722` from docs-only descendants.
-2. Re-verify live TEST Opening RPC shape/security/search_path and that migration `20260816000100_company_v1_opening_structured_persistence` is already applied. Do not reapply or edit it.
-3. Deploy the exact reviewed API executable lineage containing `b3c06f9...` to TEST only, then independently record deployed Worker identity/version and prove it corresponds to the reviewed executable. Do not deploy frontend unless direct evidence shows it is required; otherwise frontend deploy is forbidden.
-4. Use one dedicated disposable TEST game through normal API paths. Existing reviewed TEST-only Level-7 acceleration seam may be used if needed, but do not directly mutate gameplay state in DB.
-5. Execute Setup → Opening → at least two ordinary Story → Extract → Commit turns, including one literal provider-authored choice round-trip and one free-text input when reachable without retry. Acceptance requires:
-   - Opening committed structured `parsed_blocks` remain present and recovery/replay uses them;
-   - ordinary Story no longer fails with the attributed-SCENE marker class;
-   - Story terminal SSE/parser status is complete/success;
-   - Extract and Commit complete normally;
-   - exactly four provider-authored literal choices survive parser/persist/UI contract and selected literal becomes player input;
-   - free text remains ordinary player input;
-   - current-format committed turn replay/recovery prefers committed `parsed_blocks` and is idempotent;
-   - no relation/event/emotion/work semantic ledger or server-authored semantic choice fallback is reintroduced.
-6. Do not retry/regenerate to obtain a pass. At the first deterministic failure, preserve bounded HTTP/SSE/action/parser/context evidence in OS TEMP and STOP as BLOCKED.
-7. On success, reset only the dedicated TEST game and verify clean readback. Never access/reset the preserved manual game.
-8. Run only the focused/local checks needed to corroborate the deployed reviewed executable; test count alone is not proof.
+This is acceptance closure, not source work.
+
+## Required proof
+
+- exact PR #67 branch/head/topology and reviewed executable ancestry;
+- current TEST Worker is healthy and still corresponds to the reviewed executable lineage; do not redeploy merely to refresh identity if the accepted deployment is already current;
+- live Opening six-argument writer/migration contract remains intact read-only;
+- four literal provider choices are present after Opening;
+- selected literal string equals submitted `player_action` byte-for-byte/string-for-string;
+- committed action/turn/history/recovery identifies that literal input without server semantic rewrite;
+- next free-text input remains unchanged ordinary player input;
+- Story terminal parser status, Extract, Commit, and replay succeed;
+- committed `parsed_blocks` are present and used by current-format replay/recovery;
+- final dedicated TEST reset leaves committed_turn=0, setup/opening not_started, no actions/turns, and no active CSA.
+
+If any deterministic failure appears, preserve bounded evidence in OS TEMP and stop without retry/regeneration.
 
 ## Architecture constraints
 
-- Fresh Story parser remains strict generation contract; no parser relaxation, new parser, normalization, regex cleanup, retry/regeneration, provider/model/temperature/token changes, fallback Story, or semantic hard gate.
-- Story authors open-ended narrative; Extract observes facts. Do not add finite event/relation/emotion/posture/sexual semantic taxonomies.
-- Exactly-four choices are provider-authored literal presentation shape, not a server semantic taxonomy.
-- CSA remains natural institutional rule context; institutional compliance is not consent/comfort/affection/trust/emotion.
-- Recent six raw Story + older natural-language `turn_summary` remains narrative continuity architecture.
-- Media/image catalogs, sex/general pools, sexual image families, compact clothing UI state, scene/location/presence, sexual state/media adapters, and TEST Level-7 seam are protected actual-consumer functionality unless a direct defect proves otherwise.
-- Historical applied migrations are immutable.
+- No source/runtime/test semantic changes in this lease.
+- No provider/model/temperature/token changes, retries/regeneration, parser relaxation/new parser, fuzzy repair, regex cleanup, fallback Story, semantic hard gate, or server-authored semantic choice fallback.
+- Exactly-four choices are provider-authored literal presentation shape only; the clicked literal becomes ordinary player input.
+- Free text remains ordinary gameplay.
+- Story authors narrative; Extract observes; Commit owns structural transactionality/idempotence.
+- Recent six raw Story + older natural-language `turn_summary` remains continuity authority.
+- No relation/general-event/emotion/work narrative ledger may be restored.
+- CSA remains institutional rule/context, not consent/comfort/affection/emotion authority.
+- Scene/location/presence, compact clothing UI continuity, TEST-only Level-7 seam, sexual state/media adapters, image catalogs/pools/families, and TTS remain protected actual-consumer side systems. Media classification must never gate whether Story/Extract facts occurred.
+- Historical migrations are immutable.
 
 ## Authorized operations
 
 Authorized:
-- TEST-only API deployment of the exact reviewed executable lineage containing `b3c06f931d8bd216f217412343621781670f0722`;
 - read-only TEST DB/RPC/migration/deployed-identity verification;
-- dedicated disposable TEST game Setup/Opening/ordinary turns/replay/recovery and final reset;
+- one dedicated disposable TEST game through normal API paths;
+- Setup/Opening, one exact literal-choice turn, one free-text turn, replay/recovery, final reset of that dedicated game only;
 - OS TEMP evidence;
 - docs/audit completion evidence in #67.
 
 Not authorized:
-- source/runtime/test semantic changes during this lease;
-- new migration/DDL or reapplication/edit of historical migration;
-- frontend deploy unless direct deterministic need is proven and operator review is obtained first;
 - Production access;
-- any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+- any access/mutation/reset of manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+- source/runtime/test changes;
+- migration/DDL/reapplication;
 - direct DB mutation to manufacture gameplay state;
-- provider/model/temperature/token changes, retry/regeneration, fuzzy repair, parser relaxation/new parser/fallback Story;
+- API/frontend deploy unless current deployed identity is proven not to contain the reviewed executable, in which case STOP and report BLOCKED rather than improvising;
 - new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Completion
 
 On success or deterministic BLOCKED finding:
-- report exact deployed executable + Worker identity, live TEST RPC/migration facts, dedicated game ID, turn/action evidence, Opening/ordinary parsed-block persistence/replay result, choice/free-text result, final reset state, and any blocker evidence;
-- keep source/runtime unchanged in this lease;
+- report dedicated TEST game ID, exact four Opening choices, selected literal and submitted `player_action`, commit/history/replay proof, free-text proof, parsed-block recovery result, final reset state, deployed identity, and any blocker evidence;
+- keep executable source unchanged;
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
-
-## Execution result — 2026-08-16
-
-The exact reviewed executable lineage containing `b3c06f931d8bd216f217412343621781670f0722`
-was deployed to TEST only as Worker `game-proxy-company-v1`, Version
-`10044238-541e-4e8a-a115-fb5a6cd1ecb5`, at `2026-08-15T21:08:34.371359Z`.
-Health returned HTTP 200 with `ok=true` and `edition_id=company-v1`.
-
-The live Opening contract remained present and unchanged: migration
-`20260816000100_company_v1_opening_structured_persistence`, canonical six-argument
-writer, SECURITY DEFINER, `search_path=public, pg_temp`, and service_role-only
-execution. No migration or DDL was applied.
-
-The dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` completed Setup,
-Opening, two ordinary Story/Extract/Commit turns, Turn 1 Story/Extract/Commit
-replay, context/history readback, and final reset. Opening returned four raw and
-four canonical provider choices; its complete SSE payload contained four parsed
-choices and four canonical choices. Both ordinary inputs were free text and
-both ordinary Story parser/Extract/Commit paths passed. The final read-only
-context check was clean: committed_turn=0, processing_status=idle,
-player_setup=not_started, opening_state=not_started, csa_active=[], and no
-recent turns.
-
-The required literal-choice contract is corroborated by preserved v9 live
-evidence at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v9-evidence.json`:
-the exact Opening literal was submitted as `player_action` and matched exactly.
-That evidence ran on ancestor `0fc509911e5bdf5aabb92fe5241a845f686bdb17`, which
-is an ancestor of reviewed executable `b3c06f931d8bd216f217412343621781670f0722`;
-the reviewed change only consolidates the Story marker grammar and does not
-alter the choice path. The current rollout's Opening 4-choice and current
-ordinary/replay evidence is preserved at
-`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-canary-cut1-authority.json`.
-
-No retry, regeneration, provider/model workaround, parser change, semantic
-fallback, frontend deployment, Production access, or preserved manual-game
-access occurred. Source/runtime/test files remained unchanged during this
-lease.
