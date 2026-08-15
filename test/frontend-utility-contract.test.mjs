@@ -61,7 +61,6 @@ test('legacy progressed Company save still exposes the CSA app entry', () => {
       committed_turn: 4,
       data: {
         turn_state: { committed_turn: 4 },
-        event_ledger: [],
         npc_stats: {}
       }
     }

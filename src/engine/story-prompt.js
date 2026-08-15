@@ -90,9 +90,6 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   }));
   const gameTime = object(save.world_state?.game_time) ?? {};
   const sceneCore = buildSceneContextCore(save, activeIds);
-  const activeRelations = (Array.isArray(save.active_relations) ? save.active_relations : [])
-    .filter(item => item?.state === 'active' && item.actor_id && item.target_id)
-    .map(item => ({ actor_id: item.actor_id, target_id: item.target_id, relation_kind: item.relation_kind, state: 'active', started_turn: item.started_turn, updated_turn: item.updated_turn }));
   const registeredSet = registeredIds instanceof Set ? registeredIds : null;
   const filterRegistered = values => {
     const ids = Array.isArray(values) ? values : [];
@@ -123,7 +120,6 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     current_time: { day: typeof gameTime.day === 'number' ? gameTime.day : null, minute_of_day: typeof gameTime.minute_of_day === 'number' ? gameTime.minute_of_day : null },
     player: buildPlayerPromptProjection({ player, canonical, playerAction }),
     scene,
-    active_relations: activeRelations,
     ...sceneRest,
     workplace: buildWorkplaceContext(edition, save, { excludeIds: activeIds }),
     recent_turns: recentTurns.map(turn => ({
@@ -142,9 +138,9 @@ export const DURABLE_STORY_RULES = [
   'Treat the canonical JSON payload as fact. scene_actors are present now; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only and never create presence, action, or dialogue authority. world_rules are institutional rule/context facts only. Never invent an unregistered named NPC.',
  '[PLAYER AGENCY]',
   'Preserve explicit player physical action without expanding its meaning. A choice is only a proposal, never a completed player action. Institutional rules are context, not proof of physical enactment, consent, emotion, or relationship change; never add unrequested contact, movement, undressing, or sexual escalation.',
-  'Player input is the authority for player intent and current explicit target. Do not let stale position labels select a different NPC. Target authority order is current explicit player target, current canonical focal interaction, active structured relation, then presentation-only physical labels (which are never a selector). Do not invent an unrequested player movement, dialogue, apology, concession, withdrawal, promise, contact, physical action, consent, refusal, or outcome. Player dialogue may paraphrase supplied intent without changing its meaning; it must not create a new decision. NPC responses and consequences are authored naturally in the Story.',
+  'Player input is the authority for player intent and current explicit target. Do not let stale position labels select a different NPC. Target authority order is current explicit player target, current canonical focal interaction, then registered current scene actors/speakers. Do not invent an unrequested player movement, dialogue, apology, concession, withdrawal, promise, contact, physical action, consent, refusal, or outcome. Player dialogue may paraphrase supplied intent without changing its meaning; it must not create a new decision. NPC responses and consequences are authored naturally in the Story.',
   '[NPC AUTONOMY]',
-  'NPCs act from their established motives, relationships, and situation. A registered possible entrant may appear occasionally when the scene makes it meaningful; most turns should add no new NPC. Do not create probability, cooldown, or scheduler state.',
+  'NPCs act from their established profiles and current situation. A registered possible entrant may appear occasionally when the scene makes it meaningful; most turns should add no new NPC. Do not create probability, cooldown, or scheduler state.',
  '[CSA AND WORLD RULES]',
   'Institutional rules provide workplace context and human-readable constraints only. Story authors the natural observable outcome; no finite CSA physical action, posture token, enactment id, direct-coverage marker, or mandatory ACTING block is required.',
   'player_private_origin is private causal knowledge for the player only. Never reveal it through NPC dialogue, NPC behavior as explicit knowledge, Mind Monitor, or world facts; NPCs may react only to observable scene consequences.',
@@ -193,10 +189,7 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
     target_authority: {
       explicit_player_target_ids: Array.isArray(canonicalCast.player_dialogue?.allowed_target_ids)
         ? canonicalCast.player_dialogue.allowed_target_ids.slice()
-        : [],
-      active_relations: (Array.isArray(save.active_relations) ? save.active_relations : [])
-        .filter(item => item?.state === 'active')
-        .map(item => ({ actor_id: item.actor_id, target_id: item.target_id, relation_kind: item.relation_kind }))
+        : []
     },
     world_rules: storyWorld.world_rules,
     registered_locations: registeredLocations,

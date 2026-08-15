@@ -36,7 +36,6 @@ test('Company game view model keeps identity axes separate and does not invent N
   input.save.data.last_speaker_id = 'npc-areum';
   input.save.data.npc_stats = {};
   input.save.data.npc_relationship_state = {};
-  input.save.data.npc_emotion = {};
   const snapshot = structuredClone(input);
   const model = buildCompanyGameViewModel(input);
   assert.equal(model.focal_character.id, 'npc-hayeon');

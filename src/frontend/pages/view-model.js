@@ -225,15 +225,13 @@ function npcView(save, id, details = {}) {
   if (!id) return null;
   const stats = object(save.npc_stats)?.[id];
   const relationship = object(save.npc_relationship_state)?.[id];
-  const emotion = object(save.npc_emotion)?.[id];
   const detail = object(details?.[id]);
-  if (!stats && !relationship && !emotion && !detail) return null;
+  if (!stats && !relationship && !detail) return null;
   return {
     id,
     stats: detail ? normalizedStats(detail.stats) : normalizedStats(stats),
     stat_changes: normalizedChanges(detail?.stat_changes),
     relationship: object(relationship) ?? {},
-    emotion: object(emotion) ?? {},
     profile: object(detail?.profile) ?? {},
     body: object(detail?.body) ?? {},
     relationship_summary: text(detail?.relationship_summary),

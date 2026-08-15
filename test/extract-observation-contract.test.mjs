@@ -55,6 +55,37 @@ test('fresh Extract rejects superseded fact-ledger wire fields instead of normal
   );
 });
 
+test('fresh Extract rejects continuity-only relation, event, emotion, and work residue', () => {
+  for (const residue of [
+    { relation_updates: [{ actor_id: 'heroine1', target_id: 'heroine2', relation_kind: 'legacy', state: 'started', quote: STORY }] },
+    { events: { general: [{ event_type: 'promise', evidence: STORY }] } },
+    { npc_observations: { heroine1: { relationship: { closeness: 'close' } } } },
+    { npc_observations: { heroine1: { emotion: { mood: 'focused' } } } },
+    { npc_observations: { heroine1: { work: { task: 'review' } } } }
+  ]) {
+    assert.throws(
+      () => normalizeFreshExtractObservationV2(valid(residue), { npcIds: NPCS, storyText: STORY }),
+      error => error.code === 'FRESH_SEMANTIC_RESIDUE_FORBIDDEN'
+    );
+  }
+});
+
+test('fresh Extract output retains sexual mechanics but exposes no general semantic channels', () => {
+  const result = normalizeFreshExtractObservationV2(valid({
+    events: {
+      general: [],
+      sexual: [{ actor_id: 'heroine1', target_id: 'player', action_type: 'kiss', direction: 'npc_to_player', completed: false, interrupted: false, evidence: STORY }]
+    },
+    npc_observations: { heroine1: { physical: { posture: 'standing' } } }
+  }), { npcIds: NPCS, storyText: STORY, expectedTurn: 4, actionId: 'sexual-contract' });
+  assert.deepEqual(result.events.general, []);
+  assert.equal(result.relation_updates, undefined);
+  assert.equal(result.npc_observations.heroine1.relationship, undefined);
+  assert.equal(result.npc_observations.heroine1.emotion, undefined);
+  assert.equal(result.npc_observations.heroine1.work, undefined);
+  assert.equal(result.events.sexual.length, 1);
+});
+
 test('persisted historical fact-ledger fields are inert during replay normalization', () => {
   const result = normalizePersistedExtractObservation({
     ...valid({

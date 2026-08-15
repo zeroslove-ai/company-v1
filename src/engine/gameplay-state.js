@@ -5,7 +5,7 @@ import { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';
 import { canonicalCompanyPlayerProfile } from './player-setup.js';
 
 const TURN_CHANGE_ROOTS = new Set([
-  'player_sexual_state', 'npc_stats', 'npc_relationship_state', 'npc_emotion',
+  'player_sexual_state', 'npc_stats', 'npc_relationship_state',
   'scene', 'world_state', 'csa_runtime_state', 'csa_aftereffect_state'
 ]);
 
@@ -112,7 +112,7 @@ export function buildActiveCharacterCanon(charactersMap, activeIds) {
   return canon;
 }
 
-const ACTIVE_NPC_MAPS = ['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes'];
+const ACTIVE_NPC_MAPS = ['npc_stats', 'npc_scene_state', 'csa_attitudes'];
 
 /**
  * The compact scene/time/CSA/active-NPC-state core shared by the Story and Extract
@@ -333,7 +333,6 @@ const HYDRATION_SOURCES = [
   { mapName: 'npc_stats', canonicalKey: 'initial_stats' },
   { mapName: 'npc_relationship_state', canonicalKey: 'initial_relationship', aliasKey: 'initial_relationship_state' },
   { mapName: 'csa_attitudes', canonicalKey: 'initial_csa_attitudes' },
-  { mapName: 'npc_emotion', canonicalKey: 'initial_emotion' },
   { mapName: 'npc_scene_state', canonicalKey: 'initial_scene_state' }
 ];
 

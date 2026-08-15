@@ -44,9 +44,9 @@ function freshSave() {
     save_schema_version: 1, edition: 'company-v1',
     turn_state: { committed_turn: 0 },
     player: {}, scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 }, scene_state: {}, world_state: {},
-    npc_stats: {}, npc_emotion: {}, npc_relationship_state: {}, npc_scene_state: {}, npc_work_state: {},
+    npc_stats: {}, npc_relationship_state: {}, npc_scene_state: {},
     csa_active: [], csa_rules: {}, csa_attitudes: {}, csa_runtime_state: {}, csa_aftereffect_state: {},
-    event_ledger: [], story_summary_overall: '', story_summary_recent: '',
+    story_summary_overall: '', story_summary_recent: '',
     focal_character_id: null, last_speaker_id: null, last_npcs_present: [], last_image_id: null,
     last_choices: [], last_choice_meta: []
   };

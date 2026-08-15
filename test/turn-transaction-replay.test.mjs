@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { reduceGameplayCommit } from '../src/engine/runtime-core/commit-reducer.js';
 import { normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { normalizePersistedExtractObservation } from '../src/engine/runtime-core/persisted-extract-observation.js';
-import { buildStoryContextProjection } from '../src/engine/story-prompt.js';
+import { buildStoryContextProjection, buildStoryPrompt } from '../src/engine/story-prompt.js';
 
 const save = JSON.parse(fs.readFileSync(new URL('../fixtures/phase-0.5/canonical-save-v1.json', import.meta.url)));
 if (!save.scene) {
@@ -55,6 +55,32 @@ test('Story memory keeps the latest six turns raw and projects older turns as or
   assert.equal('parsed_blocks' in projection.turn_summary_memory[0], false);
   assert.equal('story_summary' in projection, false);
   assert.equal('open_observations' in projection, false);
+});
+
+test('Story context and target authority ignore continuity-only relation state', () => {
+  const projected = buildStoryContextProjection({
+    game: { id: 'game-1' },
+    save: { data: {
+      ...structuredClone(save),
+      active_relations: [{ actor_id: 'npc-hayeon', target_id: 'npc-areum', relation_kind: 'legacy', state: 'active' }],
+      npc_emotion: { 'npc-hayeon': { mood: 'focused' } },
+      npc_work_state: { 'npc-hayeon': { task: 'review' } }
+    } },
+    recent_turns: []
+  }, ['npc-hayeon'], { edition: {}, catalogs: {} });
+  assert.equal('active_relations' in projected, false);
+  assert.equal('npc_emotion' in projected.active_npc_state, false);
+  assert.equal('npc_relationship_state' in projected.active_npc_state, false);
+  assert.equal('npc_work_state' in projected.active_npc_state, false);
+
+  const [system, user] = buildStoryPrompt({
+    edition: { editionId: 'company-v1', characters: { characters: {} }, generalNpcs: { profiles: {} }, map: { locations: [] } },
+    context: { save: { data: structuredClone(save) }, recent_turns: [] },
+    playerAction: '계속한다', expectedTurn: 1, npcIds: new Set(), catalogs: {}
+  });
+  const payload = JSON.parse(user.content);
+  assert.equal('active_relations' in payload.target_authority, false);
+  assert.equal(system.content.includes('active structured relation'), false);
 });
 
 test('reduceGameplayCommit is the single V2 orchestration writer', () => {
@@ -111,7 +137,7 @@ test('mind monitor entries for off-scene NPCs are dropped with an explicit warni
   assert.ok(result.warnings.includes('mind_monitor_off_scene_dropped:npc-areum'));
 });
 
-test('all persistent NPC domains share observed eligibility and remote speakers stay excluded', () => {
+test('continuity-only NPC residue stays inert and remote narrow observations stay excluded', () => {
   const currentSave = {
     ...structuredClone(save),
     scene: { version: 1, scene_id: 'room', location_id: 'meeting_room_5f', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 7 },
@@ -129,10 +155,7 @@ test('all persistent NPC domains share observed eligibility and remote speakers 
     npc_observations: {
       'npc-areum': {
         physical: { clothing: { uniform_top: 'removed' } },
-        emotion: { mood: 'angry' },
-        relationship: { closeness: 'familiar' },
         stats: { affinity_delta: 2 },
-        work: { task: '회의' },
         csa_attitude: { familiarity: 2 }
       }
     }

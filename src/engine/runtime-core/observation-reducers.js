@@ -2,8 +2,8 @@ import { advanceGameTime, hydrateGameplayState, reducePlayerSexualState } from '
 import { buildSceneStatePatch } from '../state/physical-state.js';
 import { applyNpcStatChanges } from '../relationship/reducer.js';
 import { readCanonicalSceneV1 } from './scene-reducer.js';
-import { reduceRelationEventDomains } from './relation-event-reducer.js';
-export { reduceNpcRelationshipObservation, reduceGeneralEventObservations, reduceSexualEventObservations } from './relation-event-reducer.js';
+import { reduceSexualEventDomain } from './sexual-event-reducer.js';
+export { reduceSexualEventObservations } from './sexual-event-reducer.js';
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -42,26 +42,6 @@ function evidenceMap(proposal, evidence, actorId) {
     }
   }
   return result;
-}
-function findQuote(evidence, path) {
-  for (const item of Object.values(object(evidence) ? evidence : {})) {
-    if (object(item) && Array.isArray(item.changed) && item.changed.includes(path) && typeof item.quote === 'string' && item.quote.trim()) return item.quote.trim();
-  }
-  return null;
-}
-function fieldEvidence({ evidence, path, quote, storyText, characterName, dialogue }) {
-  if (typeof quote !== 'string' || !quote.trim()) return 'evidence_missing';
-  if (!String(storyText ?? '').includes(quote.trim())) return 'evidence_quote_not_in_story';
-  if ((characterName && quote.includes(characterName)) || dialogue.some(line => quote.includes(line) || line.includes(quote))) return null;
-  return 'evidence_actor_mismatch';
-}
-function gateField({ patch, previous, path, evidence, storyText, characterName, dialogue, npcId, field }) {
-  if (!(field in patch) || patch[field] === previous?.[field]) return { patch, warning: null };
-  const verdict = fieldEvidence({ evidence, path: `${path}.${npcId}.${field}`, quote: findQuote(evidence, `${path}.${npcId}.${field}`), storyText, characterName, dialogue });
-  if (!verdict) return { patch, warning: null };
-  const gatedPatch = { ...patch };
-  delete gatedPatch[field];
-  return { patch: gatedPatch, warning: `${verdict}:${path}.${npcId}.${field}` };
 }
 function registered(id, npcIds) { return typeof id === 'string' && (!npcIds?.size || npcIds.has(id)); }
 function currentNpcIds(save, npcIds) {
@@ -114,13 +94,6 @@ export function reduceNpcStatObservation({ save, npcId, stats, evidence, storyTe
   return { state: result.state, warnings: [...warnings, ...(result.warnings ?? [])] };
 }
 
-export function reduceNpcEmotionObservation({ save, npcId, emotion, evidence, storyText, master, parsedStory } = {}) {
-  if (!object(emotion) || !Object.keys(emotion).length) return { state: save.npc_emotion?.[npcId] ?? {}, warnings: [] };
-  const previous = save.npc_emotion?.[npcId] ?? {};
-  const gated = gateField({ patch: emotion, previous, path: 'npc_emotion', evidence, storyText, characterName: masterName(master, npcId), dialogue: dialogueLines(parsedStory, npcId), npcId, field: 'mood' });
-  return { state: merge(previous, gated.patch), warnings: gated.warning ? [gated.warning] : [] };
-}
-
 function exactDomainQuote(evidence, candidates, storyText) {
   const roots = object(evidence) ? evidence : {};
   for (const path of candidates) {
@@ -133,15 +106,6 @@ function exactDomainQuote(evidence, candidates, storyText) {
     if (object(item) && Array.isArray(item.changed) && item.changed.some(path => candidates.some(candidate => candidate.join('.') === path)) && typeof item.quote === 'string' && String(storyText ?? '').includes(item.quote.trim())) return item.quote.trim();
   }
   return null;
-}
-
-export function reduceNpcWorkObservation({ save, npcId, work, evidence, storyText } = {}) {
-  if (!object(work) || !Object.keys(work).length) return { state: save.npc_work_state?.[npcId] ?? {}, warnings: [] };
-  const previous = save.npc_work_state?.[npcId] ?? {};
-  if (work.task === previous.task) return { state: previous, warnings: [] };
-  const quote = exactDomainQuote(evidence, [['npc_work_state', npcId, 'task'], ['npc_work', npcId, 'task'], ['work', npcId, 'task']], storyText);
-  if (!quote) return { state: previous, warnings: [`work_evidence_missing:${npcId}`] };
-  return { state: merge(previous, { task: work.task }), warnings: [] };
 }
 
 export function reduceCsaAttitudeObservation({ save, npcId, attitude, expectedTurn, evidence, storyText } = {}) {
@@ -194,8 +158,8 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
   nextSave.player_scene_state = playerPhysical.state; warnings.push(...playerPhysical.warnings);
   const playerSexual = reducePlayerSexualObservation({ save: nextSave, sexual: observation.player_observation?.sexual, evidence, storyText: rawStory, expectedTurn });
   nextSave.player_sexual_state = playerSexual.state; warnings.push(...playerSexual.warnings);
-  const relationEvents = reduceRelationEventDomains({ save: nextSave, observation, expectedTurn, actionId, rawStory, master, npcIds, parsedStory });
-  warnings.push(...relationEvents.warnings);
+  const sexualEvents = reduceSexualEventDomain({ save: nextSave, observation, expectedTurn, actionId, rawStory, npcIds });
+  warnings.push(...sexualEvents.warnings);
   for (const [npcId, domains] of Object.entries(observation.npc_observations ?? {})) {
     if (!eligibleNpcIds.has(npcId)) {
       warnings.push(`off_scene_npc_observation_dropped:${npcId}`);
@@ -203,12 +167,8 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
     }
     const physical = reduceNpcPhysicalObservation({ save: nextSave, npcId, physical: domains.physical, evidence, storyText: rawStory, expectedTurn, npcIds, master, parsedStory, sceneBefore, sceneAfter, observedNpcIds: observedNpcIds ?? new Set([...(sceneBefore?.present_npc_ids ?? []), ...(sceneAfter?.present_npc_ids ?? []), ...(explicitSpeakerIds ?? [])]) });
     if (domains.physical) nextSave.npc_scene_state[npcId] = physical.state; warnings.push(...physical.warnings);
-    const emotion = reduceNpcEmotionObservation({ save: nextSave, npcId, emotion: domains.emotion, evidence, storyText: rawStory, master, parsedStory });
-    if (domains.emotion) nextSave.npc_emotion[npcId] = emotion.state; warnings.push(...emotion.warnings);
     const stats = reduceNpcStatObservation({ save: nextSave, npcId, stats: domains.stats, evidence, storyText: rawStory, npcIds });
     if (domains.stats && observation.outcome !== 'degraded') nextSave.npc_stats[npcId] = stats.state; warnings.push(...stats.warnings);
-    const work = reduceNpcWorkObservation({ save: nextSave, npcId, work: domains.work, evidence, storyText: rawStory });
-    if (domains.work) nextSave.npc_work_state[npcId] = work.state; warnings.push(...work.warnings);
     const attitude = reduceCsaAttitudeObservation({ save: nextSave, npcId, attitude: domains.csa_attitude, expectedTurn, evidence, storyText: rawStory });
     if (domains.csa_attitude) nextSave.csa_attitudes[npcId] = attitude.state; warnings.push(...attitude.warnings);
   }

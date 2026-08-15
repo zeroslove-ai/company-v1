@@ -7,7 +7,6 @@
 export const EXECUTION_KINDS = Object.freeze(['clothing_state']);
 export const EXECUTION_ACTIONS = Object.freeze(new Set(['set_clothing_state']));
 export const EXECUTION_TRIGGER_KINDS = Object.freeze(new Set(['always_during_work']));
-export const RELATION_KINDS = Object.freeze(new Set());
 
 const CLOTHING_STATES = Object.freeze({
   work_nude: { uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'removed', underwear_bottom: 'removed' },

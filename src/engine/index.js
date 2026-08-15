@@ -18,13 +18,10 @@ export { normalizeFreshExtractObservationV2, buildDegradedExtractObservation, as
 export { normalizePersistedExtractObservation } from './runtime-core/persisted-extract-observation.js';
 export { reduceGameplayCommit } from './runtime-core/commit-reducer.js';
 export { reduceCsaCommitState } from './runtime-core/csa-commit-reducer.js';
-export { reduceRelationEventDomains } from './runtime-core/relation-event-reducer.js';
 export {
   reducePlayerPhysicalObservation, reduceNpcPhysicalObservation,
   reducePlayerSexualObservation, reduceNpcStatObservation,
-  reduceNpcEmotionObservation, reduceNpcRelationshipObservation,
-  reduceNpcWorkObservation, reduceCsaAttitudeObservation,
-  reduceGeneralEventObservations, reduceSexualEventObservations,
+  reduceCsaAttitudeObservation, reduceSexualEventObservations,
   reduceElapsedTimeObservation, reduceStoryChoiceProjection,
   reduceObservationDomains
 } from './runtime-core/observation-reducers.js';
@@ -98,7 +95,7 @@ export {
   phaseFor, phaseForRule, profileSex, subjectScopeForRule
 } from './csa/authority-policy.js';
 export {
-  EXECUTION_KINDS, EXECUTION_ACTIONS, EXECUTION_TRIGGER_KINDS, RELATION_KINDS,
+  EXECUTION_KINDS, EXECUTION_ACTIONS, EXECUTION_TRIGGER_KINDS,
   deriveExecutionMetadata, normalizeExecutionMetadata,
   executionMetadataForRule
 } from './csa/execution-policy.js';

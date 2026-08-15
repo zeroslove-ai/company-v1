@@ -108,13 +108,6 @@ function profileForMindMonitor(edition, id) {
   };
 }
 
-function relationshipContext(save, id) {
-  const value = object(save?.npc_relationship_state?.[id]) ?? {};
-  return Object.fromEntries(['closeness', 'romance_status', 'current_boundary']
-    .filter(key => value[key] !== undefined)
-    .map(key => [key, value[key]]));
-}
-
 function sceneContext(save, id) {
   const value = object(save?.npc_scene_state?.[id]) ?? {};
   return Object.fromEntries(['present', 'location_id', 'position_label', 'posture', 'current_action']
@@ -147,7 +140,6 @@ export function buildMindMonitorContext({ context, edition, targetIds = [], expe
       }));
     return {
       ...profileForMindMonitor(edition, id),
-      relationship: relationshipContext(save, id),
       scene: sceneContext(save, id),
       active_csa: rules
     };
@@ -195,8 +187,8 @@ const SYSTEM_INSTRUCTIONS = [
   'Return final_present_npc_ids:null unless the Story explicitly establishes a complete final presence snapshot. If a current actor is omitted but no exact exit evidence exists, keep it out of exited_npc_ids and let the reducer preserve it. A newly seen actor may be entered only with exact entrance evidence.',
   'Parser projections are authoritative for the displayed Story selections, spoken-line order, and player inner monologue. Do not generate replacements for those projections in this observation. Mind Monitor interpretation evidence is separate from exact state evidence; it may not invent a new event, memory, agreement, contact, or fact.',
   'Return narrow player_observation and npc_observations projections only when a proven product/UI or mechanical consumer needs them. Compact clothing may use the four existing UI slots; physical posture/position and sexual counters are optional projections, never the universe of valid facts. Never propose scene, location, presence, or ID fields through a projection.',
-   'Return npc_observations only for registered NPCs and only for narrow projections that the current product consumes. Do not use emotion/mood or relationship fields as the authority for arbitrary narrative meaning. Never return arbitrary nested save patches, absolute stats, resistance, last_changed_turn, milestones, or relationship_summary.',
-  'The top-level keys of npc_observations must be registered NPC IDs, never a domain key; for example: {"npc_observations":{"heroine2":{"emotion":{"mood":"..."}}}}.',
+   'Return npc_observations only for registered NPCs and only for narrow projections that the current product consumes. Never return arbitrary nested save patches, absolute stats, resistance, last_changed_turn, milestones, or relationship_summary. Do not return continuity-only emotion, relationship, work, relation, or general-event semantics.',
+  'The top-level keys of npc_observations must be registered NPC IDs, never a domain key; for example: {"npc_observations":{"heroine2":{"physical":{"posture":"sitting"}}}}.',
    'If a narrow projection has no exact observed change, omit it. The safe minimal observation for ordinary dialogue is empty projections, no semantic event/relation taxonomy, scene_observation with final_present_npc_ids:null, and the remaining structural defaults.',
   'Exact evidence contract: evidence is a top-level sibling of player_observation and npc_observations. Never put an evidence key inside a player or NPC object. Use evidence.clothing.<actor_id>={quote,character_id}, evidence.changed {changed:[path],quote}, and scene evidence uses {kind,character_id or location_id,quote}; kind is presence, entrance, exit, or scene. Entrance/exit require registered ids and exact contiguous Story quotes; kind:"scene" requires scene_observation.scene_id. Copy quotes verbatim from story_text; never compose a quote from inferred facts or any input outside story_text. Omit unsupported or unobserved evidence; locations must be registered.',
   'Illustrative physical shape (not mandatory output): {"npc_observations":{"heroine2":{"physical":{"position_label":"회의실 테이블 옆","clothing":{"underwear_bottom":"removed"}}}},"evidence":{"clothing":{"heroine2":{"character_id":"heroine2","quote":"exact Story substring"}},"physical_change":{"changed":["npc_scene_state.heroine2.clothing.underwear_bottom"],"quote":"same exact substring"}}}. Use position_label, never position/label; posture is only "sitting" or "standing" when clear. In a multi-NPC scene, include the actor name in physical/clothing quotes. Clothing slots are uniform_top, uniform_bottom, underwear_top, underwear_bottom with states worn, removed, open, unknown. Copy the real Story substring and omit unobserved fields.',
@@ -207,7 +199,7 @@ const SYSTEM_INSTRUCTIONS = [
   'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
   'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, do not omit image_selection; return the existing sex-pool contract and tags describing that ongoing act.',
   'Mind Monitor style contract: surface and subconscious are each one natural Korean first-person inner monologue, spoken to self in conversational language. Do not write reports, status summaries, narrator prose, labels, "NPC는..." sentences, or the player THOUGHT; surface and subconscious must be distinct and personality-specific. Missing Mind Monitor remains fail-open. Final scene presence: a local dialogue speaker is evidence of presence during the Story, but removal requires an explicit exact quoted exit; if the final snapshot cannot be established, preserve null rather than guessing.'
-   , 'Do not emit semantic relation_updates or closed events for fresh Extract. Narrative meaning without a proven narrow machine/UI consumer remains in the raw Story and turn_summary; never infer a durable state change from player intent alone.',
+   , 'Do not emit relation_updates, events.general, npc_observations.relationship, npc_observations.emotion, or npc_observations.work. Narrative meaning without a proven narrow machine/UI consumer remains in the raw Story and turn_summary; never infer a durable state change from player intent alone.',
   'Explicit player physical continuity: preserve the observable kind and strength of player contact or sexual facts in Story evidence; do not euphemize them into an unidentifiable thing or pressure.',
 ].join(' ');
 

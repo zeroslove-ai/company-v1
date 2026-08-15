@@ -41,7 +41,6 @@ function legacyProgressedSave(context) {
   return !Object.prototype.hasOwnProperty.call(save, 'player_setup')
     && !Object.prototype.hasOwnProperty.call(save, 'opening_state')
     && committedTurn(context) > 0
-    && Array.isArray(save.event_ledger)
     && save.npc_stats !== null
     && typeof save.npc_stats === 'object'
     && !Array.isArray(save.npc_stats);

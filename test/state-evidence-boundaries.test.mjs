@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { reduceNpcPhysicalObservation, reduceNpcRelationshipObservation, reduceNpcStatObservation, reduceStoryChoiceProjection } from '../src/engine/runtime-core/observation-reducers.js';
+import { reduceNpcPhysicalObservation, reduceNpcStatObservation, reduceStoryChoiceProjection } from '../src/engine/runtime-core/observation-reducers.js';
 import { normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { reduceGameplayCommit } from '../src/engine/runtime-core/commit-reducer.js';
 import { adaptLegacyExtractDelta } from '../src/engine/runtime-core/legacy-extract-adapter.js';
@@ -46,27 +46,15 @@ test('entered NPC clothing is retained while an off-scene NPC is rejected', () =
   assert.ok(offScene.warnings.some(item => item.includes('off_scene')));
 });
 
-test('relationship fields remain independently evidence-gated', () => {
-  const save = { npc_relationship_state: { 'npc-hayeon': { closeness: 'familiar', romance_status: 'none', current_boundary: 'professional' } } };
-  const result = reduceNpcRelationshipObservation({ save, npcId: 'npc-hayeon', relationship: { closeness: 'close', romance_status: 'interest', current_boundary: 'open' }, evidence: { closeness: { changed: ['npc_relationship_state.npc-hayeon.closeness'], quote: 'Hayeon moves closer' } }, storyText: 'Hayeon moves closer', master, parsedStory: {} });
-  assert.equal(result.state.closeness, 'close');
-  assert.equal(result.state.romance_status, 'none');
-  assert.equal(result.state.current_boundary, 'professional');
-});
-
-test('relationship and stat reducers reject absolute or out-of-range proposals', () => {
-  const relationship = reduceNpcRelationshipObservation({ save: { npc_relationship_state: { 'npc-hayeon': { closeness: 'familiar' } } }, npcId: 'npc-hayeon', relationship: { closeness: 'close', relationship_summary: 'invented' }, evidence: {}, storyText: '', master, parsedStory: {} });
-  assert.equal(relationship.state.closeness, 'familiar');
+test('stat reducer rejects absolute or out-of-range proposals', () => {
   const stats = reduceNpcStatObservation({ save: { npc_stats: { 'npc-hayeon': { affinity: 20 } } }, npcId: 'npc-hayeon', stats: { affinity: 99, affinity_delta: 99 }, evidence: {}, storyText: '', npcIds });
   assert.equal(stats.state.affinity, 20);
   assert.ok(stats.warnings.length > 0);
 });
 
-test('degraded observation leaves relationship and stats unchanged', () => {
-  const save = { npc_relationship_state: { 'npc-hayeon': { closeness: 'familiar' } }, npc_stats: { 'npc-hayeon': { affinity: 20 } } };
-  const relationship = reduceNpcRelationshipObservation({ save, npcId: 'npc-hayeon', relationship: {}, evidence: {}, storyText: '' });
+test('degraded observation leaves retained stats unchanged', () => {
+  const save = { npc_stats: { 'npc-hayeon': { affinity: 20 } } };
   const stats = reduceNpcStatObservation({ save, npcId: 'npc-hayeon', stats: {}, evidence: {}, storyText: '', npcIds });
-  assert.deepEqual(relationship.state, save.npc_relationship_state['npc-hayeon']);
   assert.deepEqual(stats.state, save.npc_stats['npc-hayeon']);
 });
 

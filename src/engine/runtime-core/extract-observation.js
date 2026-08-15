@@ -1,28 +1,22 @@
 import { GameCoreError } from '../errors.js';
-import { RELATION_KINDS } from '../csa/execution-policy.js';
 import { normalizeImageSelection } from '../gameplay-state.js';
 
 const OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked', 'degraded']);
 const TOP_LEVEL = new Set([
   'extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence',
   'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection',
-  'csa_trigger_evaluations', 'csa_runtime_updates', 'relation_updates', 'turn_summary', 'warnings'
+  'csa_trigger_evaluations', 'csa_runtime_updates', 'turn_summary', 'warnings'
 ]);
-const NPC_DOMAINS = new Set(['physical', 'emotion', 'relationship', 'stats', 'work', 'csa_attitude']);
+const NPC_DOMAINS = new Set(['physical', 'stats', 'csa_attitude']);
 const PHYSICAL = new Set(['posture', 'position_label', 'clothing']);
 const CLOTHING = new Set(['uniform_top', 'uniform_bottom', 'underwear_top', 'underwear_bottom']);
 const CLOTHING_STATES = new Set(['worn', 'removed', 'open', 'unknown']);
 const SEXUAL = new Set(['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed', 'erection_state']);
 const ERECTION = new Set(['unknown', 'flaccid', 'partial', 'erect']);
 const STAT = new Set(['affinity_delta', 'csa_acceptance_delta', 'sexual_arousal_delta', 'reasons', 'reason']);
-const EMOTION = new Set(['mood']);
-const RELATIONSHIP = new Set(['closeness', 'romance_status', 'current_boundary']);
-const WORK = new Set(['task']);
 const CSA_ATTITUDE = new Set(['familiarity']);
 const SEXUAL_EVENT_FIELDS = new Set(['actor_id', 'target_id', 'action_type', 'direction', 'completed', 'interrupted', 'evidence', 'event_id']);
-const GENERAL_EVENT_FIELDS = new Set(['event_type', 'type', 'turn', 'summary', 'participants', 'importance', 'active', 'evidence', 'event_id']);
 const SEXUAL_ACTION_TYPES = new Set(['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration', 'orgasm']);
-const GENERAL_EVENT_TYPES = new Set(['promise', 'refusal', 'conflict', 'intimacy', 'csa_event', 'work_event', 'secret']);
 const TRIGGER = new Set(['satisfied', 'continuing', 'temporarily_interrupted', 'not_satisfied', 'ended']);
 const CSA_TRIGGER_FIELDS = new Set(['csa_id', 'status']);
 const RUNTIME = new Set(['inactive', 'active', 'paused', 'ended']);
@@ -31,8 +25,6 @@ const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'q
 const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'scene']);
 const FRESH_OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked']);
 const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'presence_is_final', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
-const RELATION_UPDATE_FIELDS = new Set(['actor_id', 'target_id', 'relation_kind', 'state', 'quote']);
-const RELATION_STATES = new Set(['started', 'ended']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -104,25 +96,6 @@ function normalizeNpcObservation(value) {
   assertKeys(value, NPC_DOMAINS, 'INVALID_EXTRACT_OBSERVATION');
   const result = {};
   if ('physical' in value) result.physical = normalizePhysical(value.physical);
-  if ('emotion' in value) {
-    assertKeys(value.emotion, EMOTION, 'INVALID_EXTRACT_OBSERVATION');
-    if ('mood' in value.emotion && value.emotion.mood !== null && typeof value.emotion.mood !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'mood must be string or null');
-    result.emotion = clone(value.emotion);
-  }
-  if ('relationship' in value) {
-    assertKeys(value.relationship, RELATIONSHIP, 'INVALID_EXTRACT_OBSERVATION');
-    for (const field of RELATIONSHIP) {
-      if (field in value.relationship && value.relationship[field] !== null && typeof value.relationship[field] !== 'string') {
-        throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} must be string or null`);
-      }
-    }
-    result.relationship = clone(value.relationship);
-  }
-  if ('work' in value) {
-    assertKeys(value.work, WORK, 'INVALID_EXTRACT_OBSERVATION');
-    if ('task' in value.work && value.work.task !== null && typeof value.work.task !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'task must be string or null');
-    result.work = clone(value.work);
-  }
   if ('csa_attitude' in value) {
     assertKeys(value.csa_attitude, CSA_ATTITUDE, 'INVALID_EXTRACT_OBSERVATION');
     if ('familiarity' in value.csa_attitude && !Number.isInteger(value.csa_attitude.familiarity)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'familiarity must be an integer');
@@ -163,58 +136,35 @@ function normalizeEventEvidence(value, storyText, field) {
 
 function normalizeEvents(value, npcIds, storyText, expectedTurn = 0, actionId = null) {
   assertKeys(value, new Set(['general', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
-  const normalize = (items, field) => {
-    if (!Array.isArray(items)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} must be an array`);
+  const normalizeSexual = items => {
+    if (!Array.isArray(items)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual must be an array');
     return items.map((item, index) => {
-      assertKeys(item, field === 'events.sexual' ? SEXUAL_EVENT_FIELDS : GENERAL_EVENT_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+      assertKeys(item, SEXUAL_EVENT_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
       const event = clone(item);
-      const type = event.type ?? event.event_type;
-      if (event.type !== undefined && event.event_type !== undefined && event.type !== event.event_type) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} type fields disagree`);
-      if (field === 'events.sexual') {
-        event.actor_id = nullableId(item.actor_id, npcIds, `${field}.actor_id`);
-        event.target_id = nullableId(item.target_id, npcIds, `${field}.target_id`);
-        if (!event.actor_id || !event.target_id) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} actor_id and target_id are required`);
-        if (canonicalPlayerOrNpcId(event.actor_id) === canonicalPlayerOrNpcId(event.target_id)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} actor and target must differ`);
-        if (!SEXUAL_ACTION_TYPES.has(event.action_type)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} action_type is invalid`);
-        if (typeof event.completed !== 'boolean' || typeof event.interrupted !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} completed/interrupted must be boolean`);
-      } else {
-        if (!GENERAL_EVENT_TYPES.has(type)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} type is invalid`);
-        event.event_type = type;
-        delete event.type;
-        if ('participants' in event) event.participants = ids(event.participants, npcIds, `${field}.participants`);
-        if ('turn' in event && !Number.isInteger(event.turn)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field}.turn must be an integer`);
-        if ('summary' in event && event.summary !== null && typeof event.summary !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field}.summary must be string or null`);
-        if ('importance' in event && (!Number.isInteger(event.importance) || event.importance < 0)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field}.importance must be a non-negative integer`);
-        if ('active' in event && typeof event.active !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field}.active must be boolean`);
-        event.turn = expectedTurn;
-      }
-      event.evidence = normalizeEventEvidence(item.evidence, storyText, `${field}[${index}]`);
-      const identity = field === 'events.sexual'
-        ? {
-            turn: expectedTurn,
-            action_id: actionId ?? null,
-            domain: 'sexual',
-            actor_id: canonicalPlayerOrNpcId(event.actor_id),
-            target_id: canonicalPlayerOrNpcId(event.target_id),
-            action_type: event.action_type,
-            direction: event.direction ?? null,
-            completed: event.completed,
-            interrupted: event.interrupted,
-            evidence: event.evidence
-          }
-        : {
-            turn: expectedTurn,
-            action_id: actionId ?? null,
-            domain: 'general',
-            event_type: event.event_type,
-            participants: [...(event.participants ?? [])].map(canonicalPlayerOrNpcId).sort(),
-            evidence: event.evidence
-          };
+      event.actor_id = nullableId(item.actor_id, npcIds, `events.sexual[${index}].actor_id`);
+      event.target_id = nullableId(item.target_id, npcIds, `events.sexual[${index}].target_id`);
+      if (!event.actor_id || !event.target_id) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual actor_id and target_id are required');
+      if (canonicalPlayerOrNpcId(event.actor_id) === canonicalPlayerOrNpcId(event.target_id)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual actor and target must differ');
+      if (!SEXUAL_ACTION_TYPES.has(event.action_type)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual action_type is invalid');
+      if (typeof event.completed !== 'boolean' || typeof event.interrupted !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual completed/interrupted must be boolean');
+      event.evidence = normalizeEventEvidence(item.evidence, storyText, `events.sexual[${index}]`);
+      const identity = {
+        turn: expectedTurn,
+        action_id: actionId ?? null,
+        domain: 'sexual',
+        actor_id: canonicalPlayerOrNpcId(event.actor_id),
+        target_id: canonicalPlayerOrNpcId(event.target_id),
+        action_type: event.action_type,
+        direction: event.direction ?? null,
+        completed: event.completed,
+        interrupted: event.interrupted,
+        evidence: event.evidence
+      };
       event.event_id = `turn:${expectedTurn}:action:${actionId ?? 'unknown'}:${identity.domain}:${stableEventHash(stableSerialize(identity))}`;
       return event;
     });
   };
-  return { general: normalize(value.general ?? [], 'events.general'), sexual: normalize(value.sexual ?? [], 'events.sexual') };
+  return { general: [], sexual: normalizeSexual(value.sexual ?? []) };
 }
 
 function normalizeElapsedMinutes(value, evidence) {
@@ -245,29 +195,6 @@ function normalizeSceneEvidence(value, npcIds, storyText, sceneId) {
     }
   }
   return result;
-}
-
-function normalizeRelationUpdates(value, npcIds, storyText) {
-  if (!Array.isArray(value)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation_updates must be an array');
-  const seen = new Set();
-  return value.map((item, index) => {
-    assertKeys(item, RELATION_UPDATE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
-    const actorId = nullableId(item.actor_id, npcIds, `relation_updates[${index}].actor_id`);
-    const targetId = nullableId(item.target_id, npcIds, `relation_updates[${index}].target_id`);
-    if (!actorId || !targetId || actorId === targetId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation update requires distinct registered actor and target');
-    if (typeof item.relation_kind !== 'string' || !item.relation_kind.trim()) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation_kind is required');
-    const relationKind = item.relation_kind.trim();
-    if (!RELATION_KINDS.has(relationKind)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation_kind is not canonical');
-    if (!RELATION_STATES.has(item.state)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'relation update state is invalid');
-    if (typeof item.quote !== 'string' || !item.quote.trim() || !String(storyText ?? '').includes(item.quote.trim())) {
-      throw new GameCoreError('RELATION_EVIDENCE_QUOTE_NOT_IN_STORY', 'relation update quote must be an exact Story substring');
-    }
-    const normalized = { actor_id: actorId, target_id: targetId, relation_kind: relationKind, state: item.state, quote: item.quote.trim() };
-    const key = JSON.stringify([normalized.actor_id, normalized.target_id, normalized.relation_kind, normalized.state, normalized.quote]);
-    if (seen.has(key)) return null;
-    seen.add(key);
-    return normalized;
-  }).filter(Boolean);
 }
 
 export function assertExtractObservationContract(observation) {
@@ -340,7 +267,7 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
     action_target_id: dropOptional(softOptional, 'action_target_id', warnings, null, () => nullableId(value.action_target_id, registered, 'action_target_id')),
     image_character_id: dropOptional(softOptional, 'image_character_id', warnings, null, () => nullableId(value.image_character_id, registered, 'image_character_id')),
     image_selection: normalizeImageSelection(value.image_selection),
-    csa_trigger_evaluations: [], csa_runtime_updates: [], relation_updates: [],
+    csa_trigger_evaluations: [], csa_runtime_updates: [],
     turn_summary: typeof value.turn_summary === 'string' ? value.turn_summary : '',
     warnings
   };
@@ -425,12 +352,40 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
       })();
     if (parsed) normalized.csa_runtime_updates.push(parsed);
   }
-  if (Object.hasOwn(value, 'relation_updates')) {
-    normalized.relation_updates = softOptional
-      ? dropOptional(true, 'relation_updates', warnings, [], () => normalizeRelationUpdates(value.relation_updates, registered, storyText))
-      : normalizeRelationUpdates(value.relation_updates, registered, storyText);
-  }
   return normalized;
+}
+
+function prepareFreshExtractInput(value) {
+  const fresh = clone(value);
+  if (Object.hasOwn(fresh, 'relation_updates')) {
+    if (Array.isArray(fresh.relation_updates) && fresh.relation_updates.length) {
+      throw new GameCoreError('FRESH_SEMANTIC_RESIDUE_FORBIDDEN', 'Fresh Extract must not contain relation_updates');
+    }
+    delete fresh.relation_updates;
+  }
+  if (object(fresh.events)) {
+    if (Array.isArray(fresh.events.general) && fresh.events.general.length) {
+      throw new GameCoreError('FRESH_SEMANTIC_RESIDUE_FORBIDDEN', 'Fresh Extract must not contain events.general');
+    }
+    fresh.events = { ...fresh.events };
+    delete fresh.events.general;
+  }
+  if (object(fresh.npc_observations)) {
+    fresh.npc_observations = {};
+    for (const [npcId, domains] of Object.entries(object(value.npc_observations) ? value.npc_observations : {})) {
+      const nextDomains = object(domains) ? { ...domains } : domains;
+      for (const domain of ['relationship', 'emotion', 'work']) {
+        if (object(nextDomains) && Object.hasOwn(nextDomains, domain)) {
+          if (object(nextDomains[domain]) && Object.keys(nextDomains[domain]).length) {
+            throw new GameCoreError('FRESH_SEMANTIC_RESIDUE_FORBIDDEN', `Fresh Extract must not contain npc_observations.${npcId}.${domain}`);
+          }
+          delete nextDomains[domain];
+        }
+      }
+      fresh.npc_observations[npcId] = nextDomains;
+    }
+  }
+  return fresh;
 }
 
 /**
@@ -440,27 +395,14 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
  * by a new Extract completion.
  */
 export function normalizeFreshExtractObservationV2(value, options = {}) {
-  assertExtractObservationContract(value);
-  if (!FRESH_OUTCOMES.has(value.outcome)) {
+  const freshValue = prepareFreshExtractInput(value);
+  assertExtractObservationContract(freshValue);
+  if (!FRESH_OUTCOMES.has(freshValue.outcome)) {
     throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Fresh Extract outcome is not allowed');
   }
-  if (!object(value.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
-  assertKeys(value.scene_observation, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
-  const normalized = normalizeExtractObservationV2(value, { ...options, softOptional: true });
-  if (normalized.events.general.length || normalized.events.sexual.length) normalized.warnings.push('fresh_closed_events_ignored');
-  if (normalized.relation_updates.length) normalized.warnings.push('fresh_closed_relations_ignored');
-  normalized.events = { general: [], sexual: [] };
-  normalized.relation_updates = [];
-  for (const [npcId, domains] of Object.entries(normalized.npc_observations)) {
-    if (domains.emotion) {
-      delete domains.emotion;
-      normalized.warnings.push(`fresh_closed_emotion_ignored:${npcId}`);
-    }
-    if (domains.relationship) {
-      delete domains.relationship;
-      normalized.warnings.push(`fresh_closed_relationship_ignored:${npcId}`);
-    }
-  }
+  if (!object(freshValue.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
+  assertKeys(freshValue.scene_observation, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+  const normalized = normalizeExtractObservationV2(freshValue, { ...options, softOptional: true });
   const required = Array.isArray(options.requiredMindMonitorIds)
     ? options.requiredMindMonitorIds.filter(id => typeof id === 'string' && id.trim())
     : [];

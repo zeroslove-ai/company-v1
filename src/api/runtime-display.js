@@ -134,8 +134,8 @@ function evidenceIds(save, latestMindMonitor = {}) {
   add(scene.last_speaker_id);
   for (const value of scene.present_npc_ids) add(value);
   for (const mapName of [
-    'npc_stats', 'npc_relationship_state', 'npc_emotion', 'npc_scene_state',
-    'npc_work_state', 'csa_attitudes', 'npc_sexual_state', 'npc_identity_state'
+    'npc_stats', 'npc_relationship_state', 'npc_scene_state',
+    'csa_attitudes', 'npc_sexual_state', 'npc_identity_state'
   ]) {
     for (const id of Object.keys(object(save?.[mapName]) ?? {})) add(id);
   }
@@ -206,7 +206,7 @@ function relationshipSummary(value) {
 }
 
 function npcMind(latestMindMonitor, save, id) {
-  const source = object(latestMindMonitor?.[id]) ?? object(save?.npc_emotion?.[id]) ?? {};
+  const source = object(latestMindMonitor?.[id]) ?? {};
   return {
     surface: text(source.surface ?? source['표면의식']),
     subconscious: text(source.subconscious ?? source.latent ?? source.inner ?? source['잠재의식'])
@@ -215,14 +215,13 @@ function npcMind(latestMindMonitor, save, id) {
 
 function npcLocation(save, id, presentNow, edition) {
   const sceneState = object(save?.npc_scene_state?.[id]) ?? {};
-  const workState = object(save?.npc_work_state?.[id]) ?? {};
   const currentScene = buildCanonicalDisplayScene(save);
   const locationId = presentNow
-    ? text(currentScene.location_id) || text(sceneState.location_id) || text(workState.location_id)
-    : text(sceneState.location_id) || text(workState.location_id);
+    ? text(currentScene.location_id) || text(sceneState.location_id)
+    : text(sceneState.location_id);
   let label = presentNow
-    ? locationLabel(edition, locationId) || text(sceneState.location_label) || text(workState.location_label)
-    : text(sceneState.location_label) || text(workState.location_label);
+    ? locationLabel(edition, locationId) || text(sceneState.location_label)
+    : text(sceneState.location_label);
   label ||= locationLabel(edition, locationId);
   return { known: Boolean(locationId || label), location_label: label, location_id: locationId };
 }
