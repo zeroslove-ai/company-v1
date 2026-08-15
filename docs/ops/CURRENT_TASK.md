@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: deep-level7-live-acceptance-v1
+Status: READY
+Task ID: deep-level7-live-acceptance-v2
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -12,191 +12,195 @@ This file is the sole active execution authority.
 Repository: `zeroslove-ai/company-v1`
 Branch: `company/scene-location-presence-v1`
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
-Accepted gameplay executable: `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f` (`csa-natural-rule-authority-reset-v1-land-recovery`).
-Accepted TEST seam source: `abc9c3f9e06d6b2eb474b4cade6daa3bc7c5a484` (`test-level7-acceleration-seam-v1`).
+Reviewed gameplay executable: `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`.
+Current docs head before registration: `3c3d895236630cdb21673d7350ff1685b96badba`.
 TEST Supabase: `fmcrspgxstsmxxsmkeee`.
 Dedicated disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever and must never be reset/mutated.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever.
 
-Canonical game spine is binding:
+Already-applied TEST seam migration:
+- version/name: `20260815000100 / company_v1_test_level7_acceleration`
+- accepted source SHA: `abc9c3f9e06d6b2eb474b4cade6daa3bc7c5a484`
+- function: `prepare_company_test_level7_fixture(uuid,text)`
+- expected properties: SECURITY DEFINER, `search_path=public, pg_temp`, fixed dedicated TEST game, service_role EXECUTE only.
+
+Currently deployed TEST API evidence from prior task:
+- Worker: `game-proxy-company-v1`
+- Version ID: `0df3468e-65f3-45c4-9e3b-9ea36ae21d54`
+- health previously HTTP 200 / `edition_id=company-v1`
+- deployed gameplay runtime was proven equivalent to reviewed executable `95ed069...`.
+
+Canonical spine remains:
 `player input/choice -> Story -> Extract -> Commit -> game_save/game_turns -> Context/History/UI/next Story`.
-CSA is a sidecar institutional rule/context system only. Story owns natural HOW; Extract/open facts observe actual outcomes; Commit owns durable persistence.
+CSA is sidecar institutional rule/context only. Story owns natural HOW; Extract/open facts observe actual outcomes; Commit owns durable persistence.
+
+## Why V1 blocked
+
+`deep-level7-live-acceptance-v1` did not prove or disprove deep gameplay criteria B-H. The Level-7 seam worked, but the existing `--cut1-authority` canary was run after seam setup and performed its own canonical final reset after two turns. That removed Level 7 before strong CSA, open-fact, posture/contact, clothing, intimate/sexual, long-horizon memory, and media criteria could be exercised. The runner correctly refused a second seam invocation and stopped BLOCKED.
+
+This V2 task fixes only the acceptance orchestration. It is not authorization for a gameplay/source patch.
 
 ## Goal
 
-Perform the first deep live acceptance of the redesigned spine using the approved TEST-only Level-7 acceleration seam. This task may apply the one approved additive TEST migration, deploy the exact reviewed gameplay runtime to the TEST API, run live LLM gameplay against only the disposable TEST game, collect evidence, and reset the disposable game at the end.
+Run the deep live acceptance to completion on the already-reviewed runtime and already-installed TEST seam. The acceptance is scenario-coverage driven, not fixed-turn-count driven.
 
-This is scenario-coverage driven, not a fixed-turn-count test. Do not stop because a nominal number of turns has been reached; stop when all required invariants are either proven or one is honestly BLOCKED/FAILED.
-
-## Phase 0 — freeze identities before mutation
+## Phase 0 — read-only preflight
 
 Before any TEST mutation:
-1. Fetch remote and verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
-2. Verify `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f..HEAD` contains no gameplay runtime drift under `src/**`, Worker runtime/config, package/runtime dependency surfaces. Docs/tests/scripts and the approved Level-7 migration are allowed descendants. Any unexplained gameplay executable drift => STOP/BLOCK.
-3. Verify migration source `supabase/migrations/20260815000100_company_v1_test_level7_acceleration.sql` matches the accepted seam and is not already ambiguously applied under a different version/name.
-4. Read TEST migration catalog, TEST function catalog/grants, deployed TEST Worker identity, and dedicated TEST game baseline.
-5. Baseline dedicated TEST game must be resettable and disposable. If it contains evidence that should be preserved, STOP instead of erasing it.
-6. Never query or mutate Production. Never mutate/reset the preserved manual game.
+1. Fetch remote; verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
+2. Verify there is no gameplay/runtime drift after reviewed executable `95ed069...`; docs-only CURRENT_TASK descendants are allowed.
+3. Verify TEST migration `20260815000100` is already applied exactly once. DO NOT reapply it.
+4. Verify `prepare_company_test_level7_fixture(uuid,text)` function definition/grants still match the approved TEST-only contract.
+5. Verify TEST Worker identity is still Version `0df3468e-65f3-45c4-9e3b-9ea36ae21d54`, healthy, and gameplay-equivalent to `95ed069...`. If it has drifted, STOP/BLOCK; do not redeploy under this task.
+6. Verify the dedicated TEST game is currently clean/reset baseline: committed_turn 0, level 1, no actions/turns, setup/opening not_started, csa_active empty, canonical Scene baseline.
+7. Never query or mutate Production. Never access/mutate/reset the preserved manual game.
 
-## Authorized TEST changes
+## Critical orchestration rule
 
-Only the following are authorized:
-- Apply additive migration `20260815000100_company_v1_test_level7_acceleration` to TEST Supabase `fmcrspgxstsmxxsmkeee` only.
-- Verify `prepare_company_test_level7_fixture(uuid,text)` is SECURITY DEFINER, `search_path = public, pg_temp`, service_role execute only, and fixed to the dedicated TEST game.
-- Deploy the TEST API Worker `game-proxy-company-v1` from an executable source tree proven gameplay-equivalent to accepted runtime `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`. Do not deploy an unreviewed gameplay source delta merely because branch HEAD is newer.
-- Invoke the approved Level-7 fixture seam on `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` only.
-- Run setup/opening and live Story/Extract/Commit through normal API paths.
-- Use CSA app/validation/transaction paths normally; do not manufacture CSA save state directly.
-- Query TEST readback needed for acceptance evidence.
-- Final reset of the disposable TEST game through canonical `reset_company_game`.
+Do NOT run `--cut1-authority` or any other helper that owns a final reset after the Level-7 seam invocation.
 
-No frontend deploy is authorized unless it is strictly required to observe a criterion that cannot be verified from API/context/readback; if so STOP/BLOCK and request a separate task instead of broadening this task.
+If a generic canary is desired for health, it may only run BEFORE the Level-7 fixture setup, and the dedicated game must then be confirmed clean again before the seam is invoked.
 
-## Level-7 fixture proof
+After the seam invocation, use the normal API/CSA paths directly for the deep scenario and do not reset until either:
+- one decisive acceptance criterion honestly fails/blocks, or
+- all required criteria are complete.
 
-After migration apply:
-1. Read the TEST game title/context.
-2. Reset through canonical `reset_company_game`.
-3. Invoke `prepare_company_test_level7_fixture` exactly once for the fixture setup.
-4. Verify `player_progress.level=7`, `exp=0` and existing `calculateCsaCapability` semantics expose strong CSA. Do not add/patch a second strength rule.
-5. Verify no semantic facts, relations, emotions, clothing, Story results or CSA compliance outcomes were seeded by the fixture.
+Then perform the one canonical cleanup reset.
 
-## Required live acceptance coverage
+## Level-7 fixture setup
 
-### A. Ordinary spine and choices
-- Complete setup/opening and at least one ordinary free-text turn through Story -> Extract -> Commit -> context refresh.
-- Story must expose exactly four provider-authored literal choices when the provider satisfies the contract.
-- Exercise one selected choice through the normal literal-string round trip and prove the exact displayed choice text becomes the next player action; no server-authored semantic replacement.
-- Free text must remain independently usable.
+1. Read the dedicated TEST game title/context.
+2. Invoke `prepare_company_test_level7_fixture` exactly once in this V2 task.
+3. Verify `{level:7, exp:0}` and existing canonical strong-CSA capability.
+4. Verify no Story, semantic fact, relation, emotion, clothing outcome, CSA compliance outcome, action, or turn was manufactured by the fixture.
+5. Do not invoke the seam again in the same task.
 
-### B. Open facts outside old semantic taxonomies
-Create a natural scene where Story visibly supports at least one meaningful fact whose wording does not depend on old event/relation/emotion/posture enums, for example mixed emotion + practical agreement + interpersonal boundary. Extract must preserve the fact with exact Story evidence in `open_facts`; Commit must persist it; context/history must read it back.
+## Required deep live coverage
 
-Do not instruct the provider to emit a specific enum or hidden token. Do not manufacture the fact from player input alone. If Story does not actually establish the fact, it must not be durably claimed.
+### A. Ordinary spine + literal choices + free text
+- Complete setup/opening.
+- Verify opening/turn Story exposes exactly four provider-authored literal choices when contract-compliant.
+- Select one displayed choice through the normal UI/API choice-input path and prove the exact literal displayed text becomes the next `player_action` without server-authored semantic replacement.
+- Also complete a separate ordinary free-text turn.
+- Story -> Extract -> Commit -> context/history must complete normally.
 
-### C. Strong CSA as institutional context, not physical engine
-Through the normal CSA app path, create/activate one strong Level-7 rule suitable for exercising a meaningful physical/intimate scenario.
-- Verify Story receives the active human-readable institutional rule/context.
-- Verify no `execution_action`, mandatory enactment ID, direct-coverage token, `posture_after`, relation-kind switch, or equivalent finite physical HOW is required to complete the turn.
-- Story authors the observable HOW naturally.
-- Extract observes only what actually happened.
-- CSA activation/compliance must not mechanically write consent, comfort, affection, trust, romance, emotion or sexual willingness.
-- NPC reaction may be positive, negative, resistant, embarrassed, indifferent, etc.; preserve what Story actually shows.
+### B. Open fact outside old taxonomies
+Create a natural scene that visibly establishes at least one meaningful fact not dependent on old event/relation/emotion/posture enums. Prefer a fact combining human nuance, e.g. mixed emotion + practical agreement or interpersonal boundary.
 
-### D. Physical/posture/contact outside old vocabulary
-Exercise at least one visible posture/contact outcome that is natural language and not dependent on the former CSA physical action vocabulary. Prove the turn is not rejected merely because the posture/contact has no old enum/token. Preserve any meaningful fact through open observations when Story evidence exists.
+Required proof:
+- exact Story evidence exists;
+- Extract emits an open fact grounded in that evidence;
+- Commit persists it;
+- context/history read it back;
+- no old semantic enum/type is required for persistence.
+
+Player input alone is never evidence of success.
+
+### C. Strong CSA as institutional context
+Through the normal CSA app/validation/transaction path, create/activate one Level-7 strong rule suitable for a meaningful physical/intimate scenario.
+
+Prove:
+- Story receives the active human-readable institutional rule/context;
+- no finite `execution_action`, mandatory enactment ID, direct-coverage token, `posture_after`, relation-kind switch, or equivalent physical HOW is required;
+- Story authors the observable HOW naturally;
+- Extract observes only what actually happened;
+- CSA activation/compliance does not mechanically write consent, comfort, affection, trust, romance, emotion, or sexual willingness.
+
+### D. Posture/contact outside old CSA vocabulary
+Exercise at least one visible natural-language physical/posture/contact outcome that does not depend on the removed CSA physical vocabulary. The turn must remain valid and meaningful open facts must persist when exact Story evidence exists.
 
 ### E. Clothing continuity
-Exercise a scene that changes a currently supported compact clothing UI state through actual Story/Extract evidence. Verify the compact clothing projection persists across subsequent turns/context refresh. Rich clothing/accessory details outside compact slots may survive as open facts but must not be required to fit the compact UI projection.
+Cause one supported compact clothing UI state change through actual Story/Extract evidence. Verify the compact clothing projection persists through subsequent turns/context refresh. Rich details outside compact slots may remain open facts and must not be dropped merely because the UI projection cannot represent them.
 
-### F. Intimate/sexual path
-Because Level 7 exists specifically to reach deep scenarios without ~100 low-level turns, explicitly exercise an intimate/sexual path through normal player/CSA gameplay.
-- Use normal Story/Extract/Commit only.
-- Do not infer success from player request text.
-- Do not require an old sexual action taxonomy to recognize/persist the meaningful narrative fact.
-- If Story produces an intimate/sexual event, verify relevant open-fact/memory continuity and any still-valid narrow sexual/player projection that has a real UI/mechanical consumer.
-- Do not repeatedly regenerate/retry until a desired sexual outcome appears. One bounded intentional scenario is enough; if the provider naturally does not produce the needed evidence, record the criterion as unproven/BLOCKED rather than gaming the model.
+### F. Bounded intimate/sexual scenario
+Explicitly exercise one intimate/sexual path using normal gameplay and the active strong CSA context where appropriate.
 
-### G. Long-horizon memory beyond recent raw turns
-After establishing one important exact-evidence open fact, commit at least four additional ordinary turns so that the originating Story is outside the last-three raw Story window used by Story context.
+Rules:
+- one bounded intentional scenario; do not regenerate/retry until a desired result appears;
+- Story determines what actually happens;
+- player request text does not prove success;
+- no old sexual action taxonomy may be required for the meaningful fact to persist;
+- if Story actually establishes intimate/sexual evidence, verify open-fact continuity and any still-valid narrow UI/mechanical projection with a real consumer;
+- if the provider naturally does not establish the needed event, mark the criterion unproven/BLOCKED and stop after cleanup rather than gaming the model.
+
+### G. Long-horizon open-fact memory
+Choose one important exact-evidence open fact established earlier.
+
+After that fact is committed, complete at least four additional ordinary turns without resetting so the origin Story leaves the last-three raw Story window.
+
 Then prove:
-- the durable open observation still exists with provenance;
-- later Story context receives the committed fact through the open-observation readback path;
-- a subsequent Story can maintain continuity without relying on the original raw recent-turn text.
-Do not claim final summary-system correctness beyond what this proves; `story_summary_overall` remains a separate architecture surface unless current evidence closes it.
+- the durable open fact still exists with provenance;
+- later Story context receives it via committed open-fact readback rather than the origin raw Story;
+- a subsequent Story maintains continuity consistent with the fact.
+
+Do not overclaim final summary-system correctness from this proof.
 
 ### H. Media remains presentation-only
-Exercise image selection in both a normal and, when the intimate/sexual scenario actually supports it, sex-pool context.
-- Existing finite image tags/action families may select an asset.
-- No match / alternate image / image null must never reject or erase Story, Extract open fact, Commit, or memory.
-- Do not change image taxonomy in this task.
+Exercise normal image selection and, only if the intimate/sexual Story actually supports it, sex-pool image selection.
 
-### I. Replay/recovery/idempotence
-Prove at least one safe replay/idempotence path using existing action/status/context/history contracts without creating duplicate durable facts or duplicate turns. Do not intentionally corrupt the game merely to exercise recovery.
+Prove:
+- finite image tags/families may select assets;
+- alternate/no-match/null image never rejects or erases Story, Extract open facts, Commit, or memory;
+- do not modify media taxonomy.
 
-## Evidence discipline
+### I. Replay/idempotence/recovery
+Exercise at least one safe same-action replay/idempotence path without duplicate turn or duplicate durable open fact. Use context/history readback to prove stable committed state. Do not corrupt the game intentionally.
 
-- Capture Worker-facing Story SSE and Extract/Commit responses for decisive scenarios.
-- Capture exact action IDs/turn numbers and the relevant TEST DB/readback rows.
-- Preserve exact Story quote -> open fact provenance for key facts.
-- Compare intended player action with Story outcome for agency fidelity; explicitly report any silent substitution/escalation.
-- Do not hide failures with retries, regeneration, provider/model/temperature/token changes, fuzzy repair, parser relaxation, semantic hard gates, direct DB patches or synthetic facts.
-- If one decisive criterion fails, capture the evidence, finish safe cleanup/reset, report FAILED/BLOCKED, and STOP. Do not patch source in this task.
+## Evidence requirements
+
+Capture for decisive turns:
+- action ID and turn number;
+- player action / selected literal choice text;
+- Worker-facing Story SSE;
+- Extract response;
+- Commit response;
+- exact Story quote -> open fact provenance;
+- relevant context/history/TEST DB readback;
+- active CSA rule/context when tested;
+- clothing projection before/after;
+- media result where applicable;
+- long-horizon context proving the origin Story is outside recent-three raw turns;
+- any player-agency substitution/escalation.
+
+Do not hide failures with retries, regeneration, provider/model changes, parser relaxation, fuzzy semantic repair, semantic hard gates, direct DB gameplay patches, or synthetic facts.
 
 ## Final cleanup
 
-Regardless of success/failure after any TEST mutation:
-1. Reset disposable TEST game through canonical `reset_company_game`.
-2. Verify committed_turn=0, actions=0, turns=0, setup/opening baseline, canonical Scene v1 baseline, and Level-7 acceleration removed.
-3. Do NOT roll back the additive TEST migration merely because the game is reset; the seam may remain installed in TEST for future acceptance, subject to service_role/fixed-game guards.
-4. Preserve all evidence artifacts outside tracked runtime source unless the task explicitly requires a docs artifact.
+On success OR first decisive failure/block:
+1. reset the disposable TEST game exactly through canonical `reset_company_game`;
+2. verify committed_turn=0, level=1 baseline, actions=0, turns=0, setup/opening not_started, csa_active empty, Scene baseline;
+3. leave the approved TEST Level-7 migration installed;
+4. do not redeploy anything;
+5. preserve evidence outside tracked runtime source.
 
 ## Forbidden
 
-- Any Production access/mutation/deploy.
-- Any mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`.
+- Production access/mutation/deploy.
+- Any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`.
+- Migration reapply/rollback.
+- Worker/frontend deploy unless this task explicitly stops and requests a separate authorization; default is zero deploys.
+- Gameplay/source/test/migration patch.
 - New branch/PR, merge, Ready, rebase, squash, force-push.
-- Gameplay source patch in response to a live failure.
-- Provider/model/temperature/token changes or retries/regeneration to obtain a preferred result.
-- Fuzzy semantic repair, regex semantic inference, parser relaxation/new parser, new finite event/relation/emotion/posture/sexual taxonomy.
-- Direct table mutation to manufacture Level 7 or semantic gameplay state; use only the approved named fixture RPC for capability.
-- Editing historical applied migrations.
-- Removing/degrading image/media or sexual-image functionality.
+- Provider/model/temperature/token changes or retries/regeneration.
+- New finite semantic taxonomy, regex semantic inference, parser relaxation/new parser, arbitrary LLM save patch, direct player-input success inference.
+- Any reset-owning canary after the Level-7 seam invocation.
 
 ## Terminal report
 
 Report:
-- START_SHA and current/final docs SHA; freeze reviewed gameplay executable identity separately.
-- exact TEST migration apply result/version/hash and function/grant verification;
-- exact deployed TEST Worker identity and proof its gameplay runtime is equivalent to `95ed069...`;
-- Level-7 fixture before/after capability proof;
-- scenario coverage results A-I with turn/action IDs and decisive evidence summaries;
-- every open fact used for acceptance with exact Story evidence/provenance;
-- player-agency substitution/escalation findings;
-- clothing and media outcomes;
-- long-horizon readback proof after the origin leaves recent-three raw Story context;
+- START_SHA / final docs SHA and frozen gameplay executable identity;
+- preflight migration/function/grant/Worker/game baseline proof;
+- Level-7 seam single invocation proof;
+- A-I coverage matrix with PASS/BLOCKED/FAILED and decisive turn/action IDs;
+- exact open fact(s) and Story quote provenance;
+- strong CSA natural-context evidence;
+- posture/contact, clothing, intimate/sexual and media findings;
+- long-horizon proof after origin leaves recent-three raw Story;
 - replay/idempotence result;
-- final TEST reset/readback;
-- Production/manual-game/frontend-deploy/source-patch operations all 0;
-- PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
+- player agency substitution/escalation findings;
+- final reset/readback;
+- migration apply/redeploy/source patch/Production/manual-game operations all 0 in V2;
+- PR #67 remains base main, OPEN / DRAFT / UNMERGED.
 
 On full success set CURRENT_TASK to WAITING_REVIEW in a docs-only descendant, post one immutable COMPLETE terminal report to Issue #68, and STOP.
-On any decisive live failure, still perform final reset, set WAITING_REVIEW if safe, post FAILED/BLOCKED with evidence, and STOP. Do not generate the next task yourself.
-
-## Execution result — BLOCKED
-
-TASK_ID: `deep-level7-live-acceptance-v1`
-EXECUTION: `BLOCKED`
-TASK_BLOB_SHA: `d2d9ef56815a249ba21cec0ebd4a3d3adf222a0b`
-START_SHA: `d7dc446c4e5099af1f14a0db005b8701e502fbf5`
-REVIEWED_GAMEPLAY_EXECUTABLE_SHA: `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`
-SEAM_SHA: `abc9c3f9e06d6b2eb474b4cade6daa3bc7c5a484`
-
-The approved TEST migration was applied exactly once through a single-migration dry-run/apply workdir:
-
-- version/name: `20260815000100` / `company_v1_test_level7_acceleration`
-- source git blob: `49b80b697a00272408a929f2e92bc1e7423689af`
-- source SHA-256: `F51CF8438D0290A3247D662B11149B6C0A7FC5F153ADB31745424B3B3B45B3AF`
-- `prepare_company_test_level7_fixture(uuid,text)`: SECURITY DEFINER, `search_path=public, pg_temp`, service_role EXECUTE only; anon/authenticated/public EXECUTE false
-
-The TEST Worker was deployed through the Stage B contract-gated wrapper from the gameplay-equivalent source tree:
-
-- Worker: `game-proxy-company-v1`
-- Version: `0df3468e-65f3-45c4-9e3b-9ea36ae21d54`
-- source tree: `d7dc446c4e5099af1f14a0db005b8701e502fbf5`, with no gameplay/runtime delta after accepted executable `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`
-- health: HTTP 200, `ok=true`, `edition_id=company-v1`
-
-Fixture proof passed before the live canary: the disposable game changed from level 1 to `{level:7,exp:0}` while `initial_save` remained level 1 and no `csa_active`, semantic facts, relations, emotion/clothing outcomes, Story results, or turns were seeded.
-
-The existing `--cut1-authority` canary then passed the bounded ordinary spine and replay path:
-
-- Opening: HTTP 200, complete, four canonical choices
-- Turn 1 action `ac7caeb0-3fe9-4ebe-97c2-7b9836a9ae22`: Story/Extract/Commit pass; committed_turn 1; save_revision 903
-- Same-action Story/Extract/Commit replay: all replay flags true; committed_turn/save_revision unchanged
-- Turn 2 action `ca198559-cf16-4223-8fd9-675337d9dc13`: Story/Extract/Commit pass; committed_turn 2; save_revision 904
-- final reset: pass; readback committed_turn 0, level 1, setup/opening not_started, csa_active empty, actions 0, turns 0
-- temporary evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-cut1-db63c4cd1ae44b3abcc08e774656644d.json`
-
-This is not full deep acceptance. The existing canary did not exercise selected-literal round trip, open-fact provenance/long horizon, strong CSA institutional activation/context, posture/contact, clothing continuity, bounded intimate/sexual scenario, or media behavior. It also reset the fixture before those criteria could be run. A second fixture invocation would violate the task's exactly-once seam setup rule, so no attempt was made to game the result with another invocation, retry, provider change, or source patch. Criteria A and I are only partially evidenced; B–H remain unproven. Stage B and Production were not touched.
-
-No source, migration, frontend, or runtime patch was made. No preserved manual game was accessed. No merge, Ready transition, or next task was generated.
+On decisive failure/block, still reset, set WAITING_REVIEW if safe, post immutable BLOCKED/FAILED evidence, and STOP. Do not generate a later task yourself.
