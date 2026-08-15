@@ -165,6 +165,52 @@ test('persisted V2 replay keeps canonical open facts while ignoring obsolete pro
   assert.equal('observation_coverage' in result, false);
 });
 
+test('persisted canonical open facts validate server identity metadata and reject drift or unknown fields', () => {
+  const storyText = 'Hayeon agreed.';
+  const options = { npcIds: NPCS, storyText, storyBlocks: [{ type: 'narrative', text: storyText }], expectedTurn: 4, actionId: 'persisted-contract' };
+  const fresh = normalizeFreshExtractObservationV2(valid({
+    block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [{
+      subject_id: 'heroine1', object_id: 'player', fact_text: storyText, story_quote: storyText
+    }] }]
+  }), options);
+  assert.equal(fresh.open_facts[0].action_id, 'persisted-contract');
+  assert.equal(fresh.open_facts[0].turn_number, 4);
+  assert.equal(fresh.open_facts[0].source_block, 'story:0');
+  for (const [field, value, code] of [
+    ['fact_id', 'tampered', 'PERSISTED_OPEN_FACT_ID_MISMATCH'],
+    ['action_id', 'other-action', 'PERSISTED_OPEN_FACT_ACTION_MISMATCH'],
+    ['turn_number', 5, 'PERSISTED_OPEN_FACT_TURN_MISMATCH'],
+    ['unknown_server_field', true, 'INVALID_OPEN_FACT']
+  ]) {
+    const tampered = structuredClone(fresh);
+    tampered.open_facts[0][field] = value;
+    assert.throws(
+      () => normalizePersistedExtractObservation(tampered, options),
+      error => error.code === code
+    );
+  }
+  const persisted = normalizePersistedExtractObservation(structuredClone(fresh), options);
+  assert.deepEqual(persisted.open_facts, fresh.open_facts);
+  const badSource = structuredClone(fresh);
+  badSource.open_facts[0].source_block = 'story:1';
+  assert.throws(
+    () => normalizePersistedExtractObservation(badSource, options),
+    error => error.code === 'OPEN_FACT_SOURCE_BLOCK_UNKNOWN'
+  );
+});
+
+test('fresh provider facts remain unable to author persisted server metadata', () => {
+  const storyText = 'Hayeon agreed.';
+  assert.throws(
+    () => normalizeFreshExtractObservationV2(valid({
+      block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [{
+        subject_id: 'heroine1', object_id: 'player', fact_text: storyText, story_quote: storyText, fact_id: 'provider-authored'
+      }] }]
+    }), { npcIds: NPCS, storyText, storyBlocks: [{ type: 'narrative', text: storyText }], expectedTurn: 4, actionId: 'fresh-wire' }),
+    error => error.code === 'INVALID_BLOCK_OBSERVATION_FACT'
+  );
+});
+
 test('Extract prompt exposes parser-owned Story block identities and exact text without a second parser', () => {
   const rawStory = '[SCENE]Office lights are low.[/SCENE][DIALOGUE speaker_id="heroine1"]Are you ready?[/DIALOGUE][ACTING]She folds the note.[/ACTING][THOUGHT]Not an observation block.[/THOUGHT][CHOICE]Wait.[/CHOICE][CHOICE]Ask.[/CHOICE][CHOICE]Leave.[/CHOICE][CHOICE]Work.[/CHOICE]';
   const parsedStory = parseFreshNarrativeV2(rawStory, { master: { characters: [{ character_id: 'heroine1', name: 'Hayeon' }] } });

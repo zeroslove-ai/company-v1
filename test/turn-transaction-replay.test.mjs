@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { reduceGameplayCommit } from '../src/engine/runtime-core/commit-reducer.js';
-import { normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
+import { normalizeExtractObservationV2, normalizeFreshExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
+import { normalizePersistedExtractObservation } from '../src/engine/runtime-core/persisted-extract-observation.js';
 import { buildStoryContextProjection } from '../src/engine/story-prompt.js';
 
 const save = JSON.parse(fs.readFileSync(new URL('../fixtures/phase-0.5/canonical-save-v1.json', import.meta.url)));
@@ -24,6 +25,33 @@ if (!save.scene) {
 const NPCS = new Set(['npc-hayeon', 'npc-areum', 'npc-minsu']);
 const baseObservation = { extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null, csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: [] };
 const action = { action_id: 'a', turn_id: 't', action_kind: 'player_turn', player_action: '계속 진행한다' };
+
+test('fresh normalized open facts survive stage/persist/read before the Commit reducer', () => {
+  const storyText = 'Hayeon accepted the apology.';
+  const options = { npcIds: NPCS, storyText, storyBlocks: [{ type: 'narrative', text: storyText }], expectedTurn: 8, actionId: 'round-trip' };
+  const fresh = normalizeFreshExtractObservationV2({
+    ...baseObservation,
+    turn_summary: 'Hayeon accepted the apology and the meeting can continue.',
+    block_observations: [{ block_id: 'story:0', block_type: 'narrative', facts: [{
+      subject_id: 'npc-hayeon', object_id: 'player', fact_text: storyText, story_quote: storyText
+    }] }]
+  }, options);
+  const stagedAndPersisted = structuredClone(fresh);
+  const persisted = normalizePersistedExtractObservation(stagedAndPersisted, options);
+  assert.deepEqual(persisted.open_facts, fresh.open_facts);
+  assert.equal(persisted.turn_summary, fresh.turn_summary);
+  const result = reduceGameplayCommit({
+    currentSave: save,
+    observation: persisted,
+    parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [] },
+    rawStory: storyText,
+    action: { action_id: 'round-trip', turn_id: 'turn-8', action_kind: 'player_turn' },
+    expectedTurn: 8,
+    npcIds: NPCS,
+    mapLocations: []
+  });
+  assert.equal(result.nextSave.open_observations.at(-1).fact_id, fresh.open_facts[0].fact_id);
+});
 
 test('open observations persist only through Commit and remain idempotent', () => {
   const quote = 'Hayeon accepted the apology but remained disappointed.';

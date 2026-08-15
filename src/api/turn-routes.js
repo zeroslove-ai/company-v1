@@ -719,7 +719,7 @@ const master = masterFromEdition(edition);
       });
       if (action.extract_delta) {
         const replayParsedStory = mergePersistedEngineMetadata(parsePersistedNarrative(action.story_text, { master }), action.parsed_blocks);
-        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId });
+        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: replayParsedStory.blocks, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
@@ -898,7 +898,7 @@ const master = masterFromEdition(edition);
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
         let parsedStory = mergePersistedEngineMetadata(parsePersistedNarrative(action.story_text, { master }), action.parsed_blocks);
-        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
+        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: parsedStory.blocks, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,

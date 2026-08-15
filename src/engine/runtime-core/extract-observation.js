@@ -34,6 +34,7 @@ const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_np
 const RELATION_UPDATE_FIELDS = new Set(['actor_id', 'target_id', 'relation_kind', 'state', 'quote']);
 const RELATION_STATES = new Set(['started', 'ended']);
 const OPEN_FACT_FIELDS = new Set(['subject_id', 'object_id', 'fact_text', 'story_quote', 'source_block']);
+const PERSISTED_OPEN_FACT_FIELDS = new Set([...OPEN_FACT_FIELDS, 'fact_id', 'action_id', 'turn_number']);
 const STORY_OBSERVATION_BLOCK_TYPES = new Set(['scene', 'narrative', 'dialogue', 'acting']);
 const BLOCK_OBSERVATION_FIELDS = new Set(['block_id', 'block_type', 'facts']);
 const BLOCK_LOCAL_FACT_FIELDS = new Set(['subject_id', 'object_id', 'fact_text', 'story_quote']);
@@ -285,7 +286,7 @@ function expectedStoryObservationBlocks(storyBlocks) {
     .filter(block => STORY_OBSERVATION_BLOCK_TYPES.has(block.block_type) && block.text);
 }
 
-function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId = null, warnings = [], { softOptional = false, storyBlocks = null } = {}) {
+function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId = null, warnings = [], { softOptional = false, storyBlocks = null, persistedCanonical = false } = {}) {
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) {
     if (softOptional) {
@@ -298,21 +299,24 @@ function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId
   const normalized = [];
   for (const [index, item] of value.entries()) {
     try {
-      assertKeys(item, OPEN_FACT_FIELDS, 'INVALID_OPEN_FACT');
-      const subjectId = canonicalPlayerOrNpcId(nonEmptyId(item.subject_id));
-      const objectId = item.object_id === null || item.object_id === undefined
+      assertKeys(item, persistedCanonical ? PERSISTED_OPEN_FACT_FIELDS : OPEN_FACT_FIELDS, 'INVALID_OPEN_FACT');
+      const factInput = persistedCanonical
+        ? Object.fromEntries(Object.entries(item).filter(([key]) => OPEN_FACT_FIELDS.has(key)))
+        : item;
+      const subjectId = canonicalPlayerOrNpcId(nonEmptyId(factInput.subject_id));
+      const objectId = factInput.object_id === null || factInput.object_id === undefined
         ? null
-        : canonicalPlayerOrNpcId(nonEmptyId(item.object_id));
-      const factText = typeof item.fact_text === 'string' ? item.fact_text.trim() : '';
-      const quote = typeof item.story_quote === 'string' ? item.story_quote.trim() : '';
-      if (!subjectId || (item.object_id !== null && item.object_id !== undefined && !objectId) || !factText || !quote) throw new GameCoreError('INVALID_OPEN_FACT', 'Open facts require subject_id, fact_text, and story_quote');
+        : canonicalPlayerOrNpcId(nonEmptyId(factInput.object_id));
+      const factText = typeof factInput.fact_text === 'string' ? factInput.fact_text.trim() : '';
+      const quote = typeof factInput.story_quote === 'string' ? factInput.story_quote.trim() : '';
+      if (!subjectId || (factInput.object_id !== null && factInput.object_id !== undefined && !objectId) || !factText || !quote) throw new GameCoreError('INVALID_OPEN_FACT', 'Open facts require subject_id, fact_text, and story_quote');
       const known = id => id === 'player' || !registered.size || registered.has(id);
       if (!known(subjectId) || (objectId !== null && !known(objectId))) throw new GameCoreError('OPEN_FACT_UNKNOWN_ID', 'Open fact identity is not registered');
       if (!String(storyText ?? '').includes(quote)) throw new GameCoreError('OPEN_FACT_EVIDENCE_QUOTE_NOT_IN_STORY', 'Open fact story_quote is not an exact Story substring');
       if (factText.length > 2000 || quote.length > 2000) throw new GameCoreError('INVALID_OPEN_FACT', 'Open fact text is too long');
-      const sourceBlock = item.source_block === undefined || item.source_block === null
+      const sourceBlock = factInput.source_block === undefined || factInput.source_block === null
         ? null
-        : (typeof item.source_block === 'string' && item.source_block.trim() ? item.source_block.trim().slice(0, 80) : null);
+        : (typeof factInput.source_block === 'string' && factInput.source_block.trim() ? factInput.source_block.trim().slice(0, 80) : null);
       const expectedBlocks = expectedStoryObservationBlocks(storyBlocks);
       if (expectedBlocks) {
         if (!sourceBlock) throw new GameCoreError('OPEN_FACT_SOURCE_BLOCK_REQUIRED', 'Fresh open facts require source_block provenance');
@@ -322,7 +326,19 @@ function normalizeOpenFacts(value, npcIds, storyText, expectedTurn = 0, actionId
       }
       const identity = { action_id: actionId ?? null, turn_number: expectedTurn, subject_id: subjectId, object_id: objectId, fact_text: factText, story_quote: quote, source_block: sourceBlock };
       const factId = `turn:${expectedTurn}:action:${actionId ?? 'unknown'}:fact:${stableEventHash(stableSerialize(identity))}`;
-      normalized.push({ fact_id: factId, action_id: actionId ?? null, turn_number: expectedTurn, subject_id: subjectId, object_id: objectId, fact_text: factText, story_quote: quote, ...(sourceBlock ? { source_block: sourceBlock } : {}) });
+      const canonicalFact = { fact_id: factId, action_id: actionId ?? null, turn_number: expectedTurn, subject_id: subjectId, object_id: objectId, fact_text: factText, story_quote: quote, ...(sourceBlock ? { source_block: sourceBlock } : {}) };
+      if (persistedCanonical) {
+        if (Object.hasOwn(item, 'fact_id') && (typeof item.fact_id !== 'string' || item.fact_id.trim() !== canonicalFact.fact_id)) {
+          throw new GameCoreError('PERSISTED_OPEN_FACT_ID_MISMATCH', 'Persisted open fact fact_id does not match canonical identity');
+        }
+        if (Object.hasOwn(item, 'action_id') && item.action_id !== canonicalFact.action_id) {
+          throw new GameCoreError('PERSISTED_OPEN_FACT_ACTION_MISMATCH', 'Persisted open fact action_id does not match the Commit boundary');
+        }
+        if (Object.hasOwn(item, 'turn_number') && item.turn_number !== canonicalFact.turn_number) {
+          throw new GameCoreError('PERSISTED_OPEN_FACT_TURN_MISMATCH', 'Persisted open fact turn_number does not match the Commit boundary');
+        }
+      }
+      normalized.push(canonicalFact);
     } catch (error) {
       if (!softOptional || storyBlocks) throw error;
       warnings.push(`open_fact_dropped:${index}:${error?.code ?? 'invalid'}`);
@@ -379,7 +395,7 @@ export function assertExtractObservationContract(observation) {
   return true;
 }
 
-export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, softOptional = false, storyBlocks = null } = {}) {
+export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, softOptional = false, storyBlocks = null, persistedCanonical = false } = {}) {
   assertExtractObservationContract(value);
   if (Object.hasOwn(value, 'block_observations')) throw new GameCoreError('FRESH_BLOCK_OBSERVATIONS_UNSUPPORTED_HERE', 'Fresh block observations must use the fresh Extract boundary');
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
@@ -416,7 +432,7 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
   if (!locationValid && !softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'location_id must be a string or null');
   const locationId = locationValid ? (scene.location_id === null || scene.location_id === undefined ? null : scene.location_id.trim()) : null;
   const hasPresenceEvidenceFields = Object.hasOwn(scene, 'entered_npc_ids') || Object.hasOwn(scene, 'exited_npc_ids') || Object.hasOwn(scene, 'presence_is_final');
-  const openFacts = normalizeOpenFacts(value.open_facts, registered, storyText, expectedTurn, actionId, warnings, { softOptional, storyBlocks });
+  const openFacts = normalizeOpenFacts(value.open_facts, registered, storyText, expectedTurn, actionId, warnings, { softOptional, storyBlocks, persistedCanonical });
   const normalized = {
     extract_version: 2,
     outcome: value.outcome,

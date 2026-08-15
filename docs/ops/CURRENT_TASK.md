@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: open-fact-persisted-read-contract-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -144,3 +144,22 @@ Before COMPLETE:
 - verify PR #67 remains OPEN / DRAFT / UNMERGED.
 
 Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP. Do not launch V5 live acceptance yourself.
+
+## Terminal result — source/test correction complete
+
+- Start SHA: `dbc0c20d887bfeed1586dee9f27cc06b7df05aac`
+- Execution lease: Issue #68 comment `5300705405`
+- Old self-rejection: persisted V2 `open_facts` were sent back through the fresh/provider field allowlist, which rejected server-owned `fact_id` as `Unknown observation field: fact_id`.
+- Corrected read path: persisted V2 facts now use the canonical persisted field set, validate `fact_id`, `action_id`, `turn_number`, registered identities, exact Story quotes, and `source_block` provenance, then pass the validated observation to Commit/replay. Fresh nested facts remain limited to `subject_id`, `object_id`, `fact_text`, and `story_quote`; `source_block` and server identity metadata remain server-owned.
+- Caller proof: `normalizePersistedExtractObservation` is used only by Extract replay and Commit; both now pass parser-owned Story blocks for source provenance validation.
+- Historical compatibility: persisted V2 rows may omit server metadata; the read boundary derives the canonical metadata from the current action/turn boundary (or the stored identity when no boundary is supplied), while present metadata must match. Legacy V1 rows continue through `adaptLegacyExtractDelta`.
+- Behavioral proof: fresh block facts -> normalized canonical `open_facts` -> staged/persisted object -> persisted read -> `reduceGameplayCommit` succeeds with non-empty `turn_summary`; identity/provenance/order are retained and reducer deduplication remains idempotent.
+- Drift/unknown rejection: mismatched `fact_id`, `action_id`, `turn_number`, unknown persisted fact fields, invalid source blocks, and provider-authored server metadata are rejected.
+- Focused tests: `node --test test/extract-observation-contract.test.mjs test/turn-transaction-replay.test.mjs test/turn-pipeline-replay.test.mjs test/action-structured-persistence.test.mjs` — 61/61 PASS.
+- Full regression: `npm.cmd test` — 439/439 PASS.
+- Syntax: modified JS/MJS PASS.
+- `git diff --check`: PASS.
+- Runtime/source changes are limited to the persisted Extract contract; no prompt/provider/model, migration, DB, deploy, TEST gameplay/reset, Production, or preserved-manual-game operation occurred.
+- Preserved approved evidence remains unchanged, untracked, unstaged, and uncommitted.
+
+STOP: OPEN-FACT PERSISTED READ CONTRACT SOURCE/TEST CORRECTION COMPLETE — AWAITING REVIEWED DEPLOY / LIVE ACCEPTANCE AUTHORIZATION.
