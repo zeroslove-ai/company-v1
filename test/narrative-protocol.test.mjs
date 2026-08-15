@@ -63,6 +63,13 @@ test('stream plain narrative is visible and marker-free', () => {
   assert.equal(events.filter(event => event.type === 'text_delta').map(event => event.text).join(''), '[unknown]literal');
 });
 
+test('fresh parser rejects attributed SCENE markers at the strict wire boundary', () => {
+  assert.throws(
+    () => parseFreshNarrativeV2('[SCENE brand_strategy_meeting_room]\\nVisible story[THOUGHT]t[/THOUGHT][CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d', { master }),
+    error => error.code === 'STORY_PROTOCOL_INVALID' && error.message === 'Malformed Story control marker'
+  );
+});
+
 test('fresh choices remain literal and exact four choices are canonical', () => {
   const parsed = parseFreshNarrativeV2('[SCENE]s[THOUGHT]t[CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d', { master });
   assert.deepEqual(parsed.canonical_choices, ['a', 'b', 'c', 'd']);

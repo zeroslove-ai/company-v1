@@ -1,5 +1,6 @@
 import { buildActiveCharacterCanon } from './gameplay-state.js';
 import { buildOpeningPlayerProjection } from './player-setup.js';
+import { FRESH_MARKER_GRAMMAR } from './story-prompt.js';
 
 const BACKGROUND_MAX = 120;
 const OPENING_BODY_HEADER = '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]';
@@ -19,6 +20,7 @@ export function splitOpeningSections(rawText) {
 
 const FRESH_OPENING_OUTPUT_PROTOCOL = [
   'Fresh opening output protocol:',
+  FRESH_MARKER_GRAMMAR,
   'Plain narrative is the default and stays in source order; [SCENE] may be used but is not required.',
   '[DIALOGUE speaker_id="..."]',
   'Actual spoken dialogue text.',

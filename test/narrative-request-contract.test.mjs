@@ -33,6 +33,9 @@ test('current Story request uses narrative-default wire, free input, and hard-fa
   const payload = JSON.parse(messages[1].content);
   const system = messages[0].content;
   assert.match(system, /plain narrative by default/);
+  assert.match(system, /Control-marker grammar is exact/);
+  assert.match(system, /JSON scene_id and other context fields are data, not marker syntax/);
+  assert.match(system, /Never emit \[SCENE scene_id\]/);
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /at least one non-empty player-visible Story body segment/i);
   assert.match(system, /\[THOUGHT\].*\[CHOICE\].*alone is invalid/i);

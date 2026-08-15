@@ -336,6 +336,8 @@ test('fresh Opening protocol requires verbatim allowed speaker IDs without makin
   const openingPlan = buildOpeningPlan({ positionId: 'intern', seedBytes: [3, 6, 9], heroineIds });
   const prompt = buildOpeningPrompt({ edition, player: { name: 'Fixture Player', position_id: 'intern', department_id: 'brand_strategy' }, canonical: {}, openingPlan });
   const system = prompt[0].content;
+  assert.match(system, /Control-marker grammar is exact/);
+  assert.match(system, /Never emit \[SCENE scene_id\]/);
   assert.match(system, /allowed_speaker_ids/);
   assert.match(system, /copy one ID verbatim/);
   assert.match(system, /character name|near-match ID|inactive\/unlisted ID/);

@@ -133,6 +133,11 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   };
 }
 
+export const FRESH_MARKER_GRAMMAR = [
+  'Control-marker grammar is exact: [SCENE] is a bare marker with no scene ID or attributes; [DIALOGUE speaker_id="registered_id"] carries only the registered speaker_id; [ACTING], [THOUGHT], and [CHOICE] are bare markers with matching closing markers where shown.',
+  'The JSON scene_id and other context fields are data, not marker syntax. Never emit [SCENE scene_id], [SCENE id="..."], or any other attributed SCENE marker.'
+].join(' ');
+
 export const DURABLE_STORY_RULES = [
   '[WORLD FACTS]',
   'Treat the canonical JSON payload as fact. scene_actors are present now; possible_entrants are optional registered candidates; remote_contacts are remote only; reference_characters are context only and never create presence, action, or dialogue authority. world_rules are institutional rule/context facts only. Never invent an unregistered named NPC.',
@@ -151,7 +156,8 @@ export const DURABLE_STORY_RULES = [
   'Saved actual physical and clothing state is current fact. A rule sentence alone is not a physical transition, and unknown actual state is never guessed. Explicit player physical facts needed for continuity must remain identifiable in Story; do not euphemize away erection, direct contact, or the identity of an acted body part. Preserve kind and strength without erotic escalation.',
   '[STORY QUALITY]',
   'Write natural Korean workplace fiction with appropriate title-plus-name address. The canonical player position_id, position, and address_title in the payload are authoritative; do not downgrade the player to a different team title. Preserve relationship and emotion continuity using the latest six raw turns in context.recent_turns and older committed continuity only through context.turn_summary_memory in chronological order. Summary memory is compressed context, never a raw Story replacement; do not invent detail that is absent from it. Keep the scene flow natural and do not let routine work explanation overwhelm the requested scene. context.current_time.day and context.current_time.minute_of_day are hard facts; never invent elapsed time.',
- '[OUTPUT PROTOCOL]',
+  '[OUTPUT PROTOCOL]',
+  FRESH_MARKER_GRAMMAR,
   'Every response must contain at least one non-empty player-visible Story body segment: plain narrative text, [SCENE], [DIALOGUE], or visible [ACTING] text. A [THOUGHT] plus [CHOICE] blocks alone is invalid and does not count as Story body. Output one short player-only [THOUGHT] paragraph closed by [/THOUGHT], and four literal [CHOICE] action blocks without labels or numbers. Choices are proposals, not completed actions.',
   'Write plain narrative by default, preserving source order. Mark each spoken line with [DIALOGUE speaker_id="registered_id_or_player"] using an exact registered ID; never infer a speaker from a name, quote, or previous line. Player posture may be structurally annotated only when the narrative visibly establishes it, and no ACTING token is required for CSA. Before ending, verify exactly one [THOUGHT], every spoken line has a DIALOGUE marker, and exactly four non-empty distinct [CHOICE] blocks. Add [THOUGHT] and four literal [CHOICE] action blocks when possible; choices are concrete proposals (not completed actions), and preserve the kind, strength, and scope of explicit player actions without strengthening them. The UI owns headings and choice ordering. Do not turn app, marker, and presentation mechanics into world knowledge.',
 ].join('\n');
