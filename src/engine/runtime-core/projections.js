@@ -56,5 +56,3 @@ export function projectCanonicalSceneToLegacy(save, scene, options = {}) {
   next.npc_scene_state = npcState;
   return next;
 }
-
-/** Build a normalized legacy-shaped observation for diagnostics and compatibility callers. */

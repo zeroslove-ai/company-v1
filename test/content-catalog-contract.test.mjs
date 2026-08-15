@@ -7,7 +7,7 @@ import edition from '../src/api/edition.js';
 import { masterFromEdition, npcIdsFromEdition } from '../src/api/turn-routes.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt, buildRegisteredCharacters, buildRegisteredLocations } from '../src/engine/extract-prompt.js';
-import { parseNarrative } from '../src/engine/narrative-parser.js';
+import { parsePersistedNarrative } from '../src/engine/persisted-narrative-parser.js';
 import { buildActiveCharacterCanon, hydrateGameplayState, migrateCompanySave, selectActiveCharacterIds } from '../src/engine/gameplay-state.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -196,15 +196,15 @@ test('masterFromEdition and npcIdsFromEdition resolve exactly the five registere
   assert.equal(npcIds.has('heroine6'), false);
 });
 
-test('the parser resolves each heroine name to its correct stable ID and never partial-matches', () => {
+test('the persisted Story reader resolves each heroine name to its correct stable ID and never partial-matches', () => {
   const master = masterFromEdition(edition);
   for (const [id, name] of Object.entries(NAMES)) {
     const text = `[SCENE]\n${name} (담담하게): "확인했습니다."\n[PLAYER_STATUS]\nx\n[PLAYER_INNER_THOUGHT]\nx\n[CHOICES]\n1. a\n2. b\n3. c\n4. d`;
-    const parsed = parseNarrative(text, { master });
+    const parsed = parsePersistedNarrative(text, { master });
     assert.equal(parsed.dialogue_lines[0].speaker_id, id, name);
   }
   const partial = `[SCENE]\n김 (담담하게): "확인했습니다."\n[PLAYER_STATUS]\nx\n[PLAYER_INNER_THOUGHT]\nx\n[CHOICES]\n1. a\n2. b\n3. c\n4. d`;
-  assert.equal(parseNarrative(partial, { master }).dialogue_lines[0].speaker_id, null);
+  assert.equal(parsePersistedNarrative(partial, { master }).dialogue_lines[0].speaker_id, null);
 });
 
 // --- Active character selection ---------------------------------------------

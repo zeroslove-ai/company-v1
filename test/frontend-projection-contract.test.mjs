@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createApiWorker } from '../src/api/index.js';
-import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-parser.js';
+import { parsePersistedNarrative as parseEngineNarrative } from '../src/engine/persisted-narrative-parser.js';
 import { buildSceneStatePatch } from '../src/engine/state/physical-state.js';
 import { renderHistory, renderMindMonitor } from '../src/frontend/pages/render.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
@@ -173,7 +173,7 @@ test('loading status is a dismissible DOM state and does not own Story content',
   assert.equal(controller.overlay.removed, true);
 });
 
-test('engine parser strips compact labels from authoritative full choices', () => {
+test('persisted Story reader strips compact labels from authoritative full choices', () => {
   const parsed = parseEngineNarrative(`[1. 서사 및 행동]\n본문\n[2. 플레이어 속마음]\n생각\n[3. 플레이어 상황판]\n상태\n[4. 선택지]\n1. [자료검토] 보고서를 함께 검토한다.\n2. [사례질문] 이메이에게 사례를 묻는다.\n3. [의자배려] 김제나 곁에 의자를 놓는다.\n4. [대화종료] 대화를 마무리한다.`);
   assert.deepEqual(parsed.choice_labels, ['자료검토', '사례질문', '의자배려', '대화종료']);
   assert.deepEqual(parsed.choices, [

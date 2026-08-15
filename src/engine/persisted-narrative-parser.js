@@ -1,5 +1,5 @@
 import { parseFreshNarrativeV2 } from './fresh-narrative-parser.js';
-import { parseNarrative } from './legacy-narrative-parser.js';
+import { parseNarrative } from './narrative-parser.js';
 
 export function parsePersistedNarrative(rawText, { master } = {}) {
   const raw = String(rawText ?? '');

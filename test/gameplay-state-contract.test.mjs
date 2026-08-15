@@ -13,7 +13,7 @@ import {
   reducePlayerSexualState,
   buildExtractPrompt
 } from '../src/engine/index.js';
-import { parseNarrative } from '../src/engine/narrative-parser.js';
+import { parsePersistedNarrative } from '../src/engine/persisted-narrative-parser.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -29,10 +29,10 @@ test('gameplay state and narrative contracts retain the current v1 boundaries', 
   assert.match(narrative, /speaker_id/);
 });
 
-test('Story parser keeps authored inner thought and malformed Story nonblocking', () => {
-  const structured = parseNarrative(read('fixtures/gameplay-state-v1/story-structured.txt'));
+test('persisted Story reader keeps authored inner thought and malformed Story nonblocking', () => {
+  const structured = parsePersistedNarrative(read('fixtures/gameplay-state-v1/story-structured.txt'));
   const malformedRaw = read('fixtures/gameplay-state-v1/story-malformed-nonblocking.txt');
-  const malformed = parseNarrative(malformedRaw);
+  const malformed = parsePersistedNarrative(malformedRaw);
   assert.ok(structured.player_inner_thought.length >= 180);
   assert.ok(structured.blocks.some(block => block.type === 'player_inner_thought'));
   assert.equal(structured.choices.length, 4);

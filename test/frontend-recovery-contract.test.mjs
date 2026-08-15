@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from '../src/api/character-display.js';
-import { parseNarrative as parseEngineNarrative } from '../src/engine/narrative-parser.js';
+import { parsePersistedNarrative as parseEngineNarrative } from '../src/engine/persisted-narrative-parser.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { parseNarrative as parseFrontendNarrative } from '../src/frontend/pages/narrative.js';
 import { createUtilityUi } from '../src/frontend/pages/utility-ui.js';
@@ -66,7 +66,7 @@ function fakeDocument(ids) {
   };
 }
 
-test('engine and frontend parsers split canonical dialogue into visible TTS lines', () => {
+test('persisted Story and frontend parsers split canonical dialogue into visible TTS lines', () => {
   const story = [
     '[1. 서사 및 행동]',
     '서원희 (낮고 단호하게): “보고서를 다시 확인하세요.”',

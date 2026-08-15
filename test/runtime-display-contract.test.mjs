@@ -9,7 +9,7 @@ import {
   buildCsaTransactionDetailsSection,
   buildNpcAppPayload
 } from '../src/api/runtime-display.js';
-import { parseNarrative } from '../src/engine/narrative-parser.js';
+import { parsePersistedNarrative } from '../src/engine/persisted-narrative-parser.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -143,8 +143,8 @@ test('transaction details preserve authority tiers for Extract/runtime observati
 
 });
 
-test('dialogue parser preserves TTS lines even when quotes or the colon are omitted', () => {
-  const parsed = parseNarrative([
+test('persisted Story reader preserves TTS lines even when quotes or the colon are omitted', () => {
+  const parsed = parsePersistedNarrative([
     '[1. 서사 및 행동]',
     '히로인1 (낮고 단호하게) 보고서를 다시 봐요.',
     '히로인1 (숨을 고르며): “괜찮아요.”',
@@ -172,7 +172,7 @@ test('captured live turns keep following narrative outside one explicit dialogue
   };
   for (const turnNumber of [3, 4]) {
     const turn = acceptanceFixture.turns.find((entry) => entry.turn_number === turnNumber);
-    const parsed = parseNarrative(turn.story_text, { master });
+    const parsed = parsePersistedNarrative(turn.story_text, { master });
     const dialogue = parsed.blocks.filter((block) => block.type === 'dialogue');
     assert.ok(dialogue.length >= 2, `turn ${turnNumber} should retain both dialogue blocks`);
     assert.ok(parsed.blocks.some((block) => block.type === 'scene' && block.text.includes('대리가 그 말에 고개를 끄덕이며 덧붙였다.')) || turnNumber === 3);
