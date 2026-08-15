@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: canary-cli-evidence-safety-v1
+Status: READY
+Task ID: deep-level7-live-acceptance-v5-rerun
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -9,178 +9,223 @@ This file is the sole active execution authority.
 
 ## Accepted starting point
 
-Repository: `zeroslove-ai/company-v1`
-Branch: `company/scene-location-presence-v1`
+Repository: `zeroslove-ai/company-v1`.
+Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
-Last accepted gameplay executable: `0627f01d5118e3a936d9280fb8f889644137550c` (`open-fact-persisted-read-contract-v1`).
-Current docs/audit registration ancestor: `7a99e70df9f7d28e4135dbb2f4598139dd901907`.
-V5 BLOCKED terminal report: Issue #68 comment `5300864698`.
-Operator BLOCKED review: Issue #68 comment `5300987365`.
 
-TEST Supabase project remains `fmcrspgxstsmxxsmkeee`, but **no TEST gameplay/DB/deploy/reset operation is authorized in this task**.
-Dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` was independently read back after V5 cleanup at committed_turn=0, save_revision=929, level1/exp0, setup/opening not_started, csa_active empty, actions=0, turns=0.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever and must not be accessed.
+Accepted gameplay executable under test:
+`0627f01d5118e3a936d9280fb8f889644137550c` (`open-fact-persisted-read-contract-v1`).
 
-Durable local evidence authority is `docs/audit/PRESERVED_EVIDENCE_APPROVAL_2026-08-15.md`:
-- 15 trusted preserved untracked artifacts carry forward only while unchanged/untracked/unstaged/uncommitted;
-- `phase12h-opening-success.json` is no longer trusted evidence and is a known-corrupted quarantine artifact only at SHA-256 `53758E55A651CDB506510A91C118E6E6D57620B73067A38E9C60A2C11A0D9A2F`;
-- do not clean/delete/move/rename/rewrite/stage/commit any trusted or quarantined artifact.
+Accepted canary harness safety executable:
+`521e8acf6c519ea05b92a45caef2f1ff601ad27c` (`canary-cli-evidence-safety-v1`).
+Operator ACCEPTED review: Issue #68 comment `5301070173`.
 
-## Proven operator/harness defect
+Current branch HEAD before this task is a docs-only descendant of the accepted harness completion. Comparison from gameplay executable `0627f01...` to the pre-registration branch showed only:
+- docs/audit evidence authority;
+- docs/ops CURRENT_TASK;
+- `scripts/live-playtest-canary.mjs` harness safety;
+- `test/live-canary-contract.test.mjs`.
+No Story/Extract/Commit/CSA/scene/progression/provider/DB gameplay source changed after `0627f01...`.
 
-V5 never reached product acceptance. Before the intended flow, Codex invoked:
+TEST Supabase project: `fmcrspgxstsmxxsmkeee`.
+Dedicated disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+Existing Level-7 migration `20260815000100 / company_v1_test_level7_acceleration` is already applied. Do not edit or reapply it.
+Preserved manual playtest game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ ONLY forever and must not be accessed.
 
-`node scripts/live-playtest-canary.mjs --help`
+Preserved evidence authority:
+- 15 trusted preserved untracked artifacts remain approved only while unchanged/untracked/unstaged/uncommitted;
+- `phase12h-opening-success.json` is quarantined, not trusted evidence, and must remain untouched at SHA-256 `53758E55A651CDB506510A91C118E6E6D57620B73067A38E9C60A2C11A0D9A2F`;
+- all new V5 rerun evidence must be written under OS TEMP, never inside the repository.
 
-Actual source behavior at accepted executable `0627f01...` proves:
+## Purpose
 
-1. CLI mode selection recognizes only a few positive mode flags and otherwise silently returns `opening-only`.
-2. `--help` is therefore not help; it falls into a live opening path.
-3. The opening-only success path defaults `CANARY_ARTIFACT_PATH` to repo-root `phase12h-opening-success.json`.
-4. The command performed a live TEST opening and overwrote previously preserved evidence.
+Resume the previously interrupted deep Level-7 acceptance. The prior V5 attempt did not classify any product defect; it was stopped before scenario execution because an unsafe `--help` invocation triggered live opening and overwrote preserved evidence. That harness defect is now independently accepted as fixed.
 
-This is a harness safety contract defect. Do not rerun V5 until the harness is made fail-safe.
+This task adds no new gameplay feature, semantic gate, wrapper, parser, writer, or compatibility layer. It is live acceptance only.
 
-## Goal
+## Mandatory preflight
 
-Make `scripts/live-playtest-canary.mjs` impossible to trigger live TEST/network/filesystem evidence mutation through help, unknown arguments, or implicit/default mode selection, and make all generated canary evidence default outside the repository.
+Before any live mutation:
 
-This task is source/test only. It must not execute a live canary against the actual TEST Worker.
+1. Fresh-fetch PR #67 and verify OPEN / DRAFT / UNMERGED, base `main`.
+2. Verify accepted gameplay executable `0627f01...` is an ancestor of current branch HEAD.
+3. Prove all executable changes after `0627f01...` are harness/test-only and do not alter Worker gameplay runtime semantics.
+4. Record current TEST Worker version and diagnostic configuration.
+5. Verify the dedicated TEST game baseline is canonical and clean: committed_turn=0, level1/exp0, setup/opening not_started, csa_active empty, actions=0, turns=0.
+6. Verify the Level-7 migration/function exists; do not reapply it.
+7. Verify local worktree contains only the approved 15 trusted artifacts plus the known quarantined artifact, all in their approved states.
+8. Do not access the preserved manual game.
+9. Choose one OS TEMP evidence bundle before the first live call and record its path.
+10. Do not invoke any live-capable script merely to inspect its interface. `--help` is now safe, but source inspection is preferred. Never probe unknown flags against live tooling.
 
-## Mandatory Phase 0 — caller and CLI inventory
+If identity, evidence state, or baseline cannot be proven, STOP before live mutation.
 
-Before editing:
+## Authorized TEST operations
 
-1. Read the complete current `scripts/live-playtest-canary.mjs`, all tests importing its exported helpers, package scripts/callers, and docs that invoke it.
-2. Enumerate every currently supported live mode and all artifact/report output paths:
-   - opening-only;
-   - `--phase12k-playability`;
-   - `--cut1-authority`;
-   - `--cut3-relation-event`;
-   - any other actual caller-proven mode.
-3. Identify whether any current caller intentionally relies on **no arguments** meaning opening-only. Do not preserve an unsafe implicit behavior merely for stale tests; if a real operational caller relies on it, migrate that caller to an explicit mode in the same task.
-4. Identify all repo-root/default artifact filenames used by the script.
-5. Do not run the script in any mode that can perform network/live mutation during this source task.
+1. Deploy the exact reviewed gameplay runtime represented by `0627f01d5118e3a936d9280fb8f889644137550c` to TEST API Worker `game-proxy-company-v1` only. Harness/test/docs differences must not be part of gameplay-runtime reasoning.
+2. Enable `COMPANY_V1_EXTRACT_DIAGNOSTIC=true` only for this TEST acceptance window.
+3. Run the existing guarded Level-7 fixture seam exactly once on the dedicated TEST game.
+4. Run normal TEST setup/opening/Story/Extract/Commit/context/history/app/CSA paths needed for scenarios A-I below.
+5. On the first decisive architecture/protocol defect: capture evidence, do not retry/regenerate/patch, then perform final cleanup and STOP.
+6. At finalization, always canonical-reset the dedicated TEST game and disable `COMPANY_V1_EXTRACT_DIAGNOSTIC` again. If diagnostic cleanup requires redeploy, use the same exact reviewed gameplay runtime only.
 
-## Required implementation
+No migration apply/edit/reapply is authorized.
+No source/runtime patch is authorized after execution starts.
 
-### A. Explicit CLI modes only
+## Harness safety rules
 
-Introduce one clear argument parsing boundary before any environment-sensitive, network, reset, setup, opening, Story, Extract, Commit, or artifact-writing operation.
+The accepted canary safety boundary is an operator tool only, not a gameplay gateway.
 
-Required behavior:
+- Explicit live modes only.
+- If `scripts/live-playtest-canary.mjs` is used, use only a caller-proven explicit mode and explicit/validated OS TEMP output.
+- Do not invent a new canary mode or wrapper for V5.
+- Do not add a generic gateway around Story/Extract/Commit.
+- Do not use the canary where direct normal API/app flow is clearer.
+- No repo-contained artifact/report output.
+- Never touch the quarantined `phase12h-opening-success.json`.
 
-- `--help` and `-h`: print usage and exit success with **zero network calls and zero file writes**.
-- unknown option: fail non-zero before network/filesystem side effects.
-- conflicting multiple live modes: fail non-zero before side effects.
-- no explicit live mode: fail safe or show help; it must **not** execute opening-only.
-- opening-only must have an explicit flag, e.g. `--opening-only`.
-- existing legitimate modes remain explicit and behaviorally equivalent after successful parse.
+## Evidence bundle
 
-Do not make `canaryMode()` silently convert unknown/no args into opening-only.
+Use one OS TEMP bundle such as `%TEMP%/company-v1-deep-level7-v5-rerun-evidence.json`.
 
-### B. Evidence output must not default into the repository
+Capture at minimum:
+- PR/branch/executable/Worker identity;
+- diagnostic state before/after;
+- dedicated TEST baseline;
+- Level-7 seam result;
+- exact player input or selected literal choice per turn;
+- action id / expected turn;
+- raw Story and parser-owned blocks;
+- raw provider Extract response when diagnostic is available;
+- normalized Extract response;
+- canonical open_facts before Commit and committed/readback form;
+- Commit result;
+- committed `turn_summary`;
+- context/history after each decisive turn;
+- scene/location/presence/CSA state;
+- later Story input proving latest-three raw + older summary memory;
+- final reset proof;
+- diagnostic-disabled proof.
 
-The canary must not have a default artifact/report path in repo root.
+Terminal report must include TEMP path + SHA-256. Never commit evidence.
 
-Preferred contract:
+## No-retry / no-mask rule
 
-- use explicit env/CLI output path when provided; otherwise generate under `os.tmpdir()` with a deterministic/purpose-labelled filename, or fail requiring an explicit output path;
-- all built-in defaults must resolve outside the repository;
-- opening-only must never default to `phase12h-opening-success.json` in cwd;
-- playability/authority-mode artifact defaults must also be audited and made safe;
-- an explicitly supplied path inside the repo should be rejected by default unless there is a separate, deliberately named operator-only override with no current use. Prefer simply rejecting repo-contained output for this harness.
+For Story/Extract/Commit/context/history authority defects:
+- no retry;
+- no regeneration;
+- no provider/model/temperature/token change;
+- no source/prompt/parser patch;
+- no fuzzy repair;
+- no synthetic facts/summary/state;
+- no manual semantic DB repair.
 
-The active preserved/quarantine files are forensic state and must never be valid implicit output targets.
+A failed ordinary turn is evidence, not permission to make it pass.
 
-### C. Side-effect boundary must be testable
+## Scenario coverage
 
-Separate/structure CLI parsing and execution enough that tests can prove side-effect-free behavior without contacting the real Worker.
+### A. Fixture / Opening / literal-choice integrity
+- Level-7 seam exactly once.
+- Normal setup/opening.
+- Exactly four non-empty unique opening choices.
+- Select at least one displayed literal unchanged and prove exact literal becomes player_action.
 
-At minimum tests must prove:
+### B. Open-fact persisted round trip
+Run ordinary workplace/dialogue turns and prove the defect fixed by `0627f01...` in the real TEST runtime:
+- Story succeeds;
+- Extract accounts structurally for parser-owned observation blocks;
+- `facts: []` works for zero-fact blocks;
+- facts preserve registered IDs + exact Story quote provenance;
+- canonical facts include server metadata;
+- persisted reader + Commit accepts `fact_id/action_id/turn_number/source_block` without self-rejection;
+- durable `open_observations`, history, and context read back correctly;
+- committed `turn_summary` equals Extract-authored summary rather than server synthesis.
 
-1. `--help` returns/prints usage and performs zero `fetch` calls and zero writes.
-2. `-h` same.
-3. unknown option fails before fetch/write.
-4. no args does not start opening/live work.
-5. conflicting live mode options fail before fetch/write.
-6. explicit `--opening-only` is recognized as opening-only but can be tested with mocked execution only; do not live-call TEST.
-7. every existing legitimate mode remains recognized.
-8. default artifact path is OS TEMP/outside repo, or missing output is rejected before live execution according to the chosen design.
-9. repo-contained artifact output is rejected if implementing path validation.
-10. imported-module behavior remains side-effect free.
+### C. Scene / navigation / presence
+Exercise explicit player navigation and NPC-directed movement/visit when naturally reachable.
+Verify canonical player location/presence does not get rewritten by NPC movement, no wrong NPC duplication occurs, and next Story sees the committed scene.
 
-Prefer unit/child-process tests with mocked/stubbed execution boundaries; do not make test success depend on real network credentials.
+### D. CSA natural-rule behavior at Level 7
+Exercise at least one applicable CSA through the normal product transaction path, including strong capability if naturally available.
+Verify CSA supplies institutional context/rule state only; Story authors HOW; Extract observes actual Story; compliance does not mechanically imply consent, comfort, affection, trust, emotion, relationship, or physical outcome.
 
-### D. Preserve product architecture
+### E. Open semantic durability
+When naturally present, verify arbitrary work/agreement/refusal/relationship/emotion/physical/clothing/intimate observations persist without a closed event/relation/posture/sexual taxonomy deciding whether they exist.
+`block_observations[].facts` are evidence-grounded observations, not an importance-to-memory gate.
 
-Do not change gameplay runtime semantics:
-- Story/Extract/Commit contracts;
-- open facts;
-- turn_summary memory;
-- CSA;
-- scene/navigation;
-- progression;
-- provider/model/prompt;
-- DB schema/RPCs.
+### F. Turn-summary memory beyond latest three raw turns — mandatory
+Create an early continuity fact/commitment and continue at least four newer committed turns.
+Then prove:
+- old raw Story body is outside the latest-three raw Story window supplied to fresh Story;
+- its committed summary appears chronologically in `turn_summary_memory`;
+- stale `story_summary_recent` / `story_summary_overall` does not compete in the fresh Story prompt path;
+- later Story preserves continuity without inventing unsupported detail.
 
-This is a harness/ops safety correction only.
+### G. Feedback revision parity
+Only if the existing canonical harness/product path already supports safe feedback revision. Verify revised Story and regenerated turn_summary align with one active revision. If not safely supported, report `NOT EXERCISED — harness limitation` with source proof. Do not create new feedback tooling.
 
-## Validation
+### H. Deep physical / intimate coverage
+Continue naturally far enough to exercise deeper physical/intimate behavior when Level-7 state/rules/player steering make it reachable. This is coverage, not a forced per-turn outcome.
+When reached, verify:
+- player action kind/strength/scope fidelity;
+- Story owns what actually happens;
+- Extract preserves exact evidence without closed sexual-action truth gating;
+- clothing/image tags remain projection/presentation only;
+- CSA compliance remains separate from personal acceptance/consent/emotion/relationship.
+If substantial natural play cannot reach this without prohibited synthetic state, report exact reached state and the coverage gap.
 
-Run:
-- focused canary/ops tests;
-- full `npm.cmd test`;
-- syntax checks for modified JS/MJS;
-- `git diff --check`.
+### I. Post-deep continuity / cleanup
+If a deep turn is reached, continue several turns and verify continuity does not snap back and processing does not stick.
+Always final-reset and prove:
+- committed_turn=0;
+- actions=0;
+- turns/history=0;
+- processing/pending clean;
+- setup/opening baseline;
+- progression level1/exp0 baseline;
+- csa_active empty;
+- Scene v1 setup baseline;
+- manual game untouched;
+- TEST Extract diagnostic disabled.
 
-Test count is regression evidence only.
+## Acceptance criteria
+
+PASS only if mandatory A-F and final cleanup in I succeed with no decisive architecture/protocol defect.
+G/H may be explicit coverage gaps only if the normal product/harness path genuinely cannot reach them without prohibited synthetic state.
+Do not label an untested row PASS.
 
 ## Forbidden
 
-- Any live TEST gameplay/LLM call.
-- Any TEST DB write/reset.
-- API/frontend deploy.
+- Production access/deploy/mutation.
+- Any access/mutation/reset of preserved manual game.
 - Migration edit/apply/reapply/rollback.
-- Production access.
-- Any access to preserved manual game.
-- Provider/model/temperature/token changes.
-- Retry/regeneration.
-- Any modification/deletion/move/rename/stage/commit of the 15 trusted preserved artifacts.
-- Any modification/deletion/move/rename/stage/commit of quarantined `phase12h-opening-success.json`.
-- `git clean -fd` / `git reset --hard`.
+- Direct semantic DB edits.
+- Provider/model/temperature/token changes except TEST-only diagnostic flag.
+- Retry/regeneration/fuzzy repair/synthetic facts/summaries.
+- Source/runtime patch after lease starts.
+- New gameplay gate/wrapper/parser/writer/ledger.
+- New canary mode or broad harness redesign.
+- Frontend deployment.
 - New branch/PR, merge, Ready, rebase, squash, force-push.
+- `git clean -fd` / `git reset --hard`.
+- deletion/move/rename/rewrite/stage/commit of the 15 trusted evidence artifacts or quarantined artifact.
+- repo-contained new evidence output.
 
-## Completion
+## Terminal report
 
-Before COMPLETE:
+Before terminal report:
+1. final-reset the dedicated TEST game even on failure;
+2. disable TEST Extract diagnostic and prove it;
+3. verify PR #67 OPEN/DRAFT/UNMERGED;
+4. verify trusted/quarantined repo evidence unchanged and no new repo artifact;
+5. report exact deployed gameplay executable + Worker Version(s);
+6. report A-I PASS/FAIL/NOT EXERCISED with evidence references;
+7. report every failing action/turn if any;
+8. report open-fact persisted round-trip proof and scenario F summary-memory proof if reached;
+9. report final reset state;
+10. report TEMP evidence path + SHA-256;
+11. report source/runtime changes = 0 during this live task.
 
-1. report exact START_SHA and executable FINAL_SHA;
-2. show old unsafe parse/default-output behavior and new fail-safe behavior;
-3. enumerate supported explicit live modes after the change;
-4. report exact artifact path policy;
-5. show behavioral proof that help/unknown/no-arg/conflicting modes produce no network/file side effects;
-6. report focused/full/syntax/diff-check results;
-7. verify live TEST/DB/deploy/migration/Production/manual-game operations all 0;
-8. verify 15 trusted preserved artifacts and one quarantine artifact remain untouched;
-9. verify PR #67 remains OPEN / DRAFT / UNMERGED.
+Set CURRENT_TASK to `WAITING_REVIEW`, commit/push only the completion-state docs update if needed, post one immutable terminal report to Issue #68, and STOP.
 
-Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP.
-
-Do not launch V5/V6 acceptance yourself. A separately reviewed live task will follow only after operator approval.
-
-## Completion-state outcome
-
-Source/test correction complete at executable commit `521e8acf6c519ea05b92a45caef2f1ff601ad27c`.
-
-- Previous unsafe behavior: `--help`, unknown arguments, and no arguments fell through to implicit opening-only execution; opening-only, Phase 12K, Cut 1, and Cut 3 artifacts defaulted to repo-root filenames.
-- New behavior: `-h`/`--help` prints usage and exits before `run`; unknown options, no explicit mode, and conflicting modes fail before network or file output. Opening-only is explicit as `--opening-only`.
-- Explicit supported modes: `--opening-only`, `--phase12k-playability`, `--cut1-authority`, and `--cut3-relation-event`.
-- Artifact paths now default to deterministic purpose-labelled files under `os.tmpdir()`. Explicit artifact/report paths inside the repository are rejected by `CANARY_OUTPUT_PATH_FORBIDDEN`.
-- Behavioral tests prove help, short help, unknown/no-argument/conflicting modes produce no fetch or output-file side effects; explicit mode parsing is covered without live execution. Imported-module behavior remains side-effect free.
-- Validation: targeted `node --test test/live-canary-contract.test.mjs` = 17/17; full `npm.cmd test` = 441/441; modified JS syntax = PASS; `git diff --check` = PASS.
-- Operations: TEST gameplay/DB/reset/deploy = 0; migrations = 0; API/frontend deploy = 0; Production/manual-game access = 0; provider/model changes = 0.
-- Preserved evidence: 15 trusted artifacts and the quarantined `phase12h-opening-success.json` remained untouched, untracked, unstaged, and uncommitted; quarantine SHA remains `53758E55A651CDB506510A91C118E6E6D57620B73067A38E9C60A2C11A0D9A2F`.
-- PR #67 remains OPEN / DRAFT / UNMERGED. No V5/V6 live acceptance was launched.
-
-The source/test correction is awaiting independent review. No next task is generated here.
+Do not generate or execute any follow-up fix yourself.
