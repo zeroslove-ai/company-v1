@@ -1,5 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import {
   assertTestGameId,
   choiceContract,
@@ -13,6 +17,10 @@ import {
   buildCanaryProjectionParity,
   buildStoryFailureDiagnostic,
   canaryMode,
+  parseCanaryArgs,
+  assertCanaryOutputPath,
+  defaultCanaryArtifactPath,
+  OPENING_ONLY_MODE,
   CUT1_AUTHORITY_MODE,
   CUT3_RELATION_EVENT_MODE,
   PLAYABILITY_MAX_TURNS,
@@ -56,13 +64,18 @@ test('opening hard stop schedules no gameplay follow-up calls', () => {
   assert.deepEqual(calls, []);
 });
 
-test('opening artifact helper verifies persistence before any reset decision', async () => {
-  const file = `${process.cwd()}\\.phase12h-opening-artifact-test.json`;
+test('opening artifact helper verifies persistence outside the repository', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'company-v1-canary-test-'));
+  const file = join(directory, 'artifact.json');
   const artifact = { terminal_event: 'error', follow_up_calls: { turn1: 0, turn2: 0, retry: 0 } };
-  await writeVerifiedArtifact(file, artifact);
-  const persisted = JSON.parse(await (await import('node:fs/promises')).readFile(file, 'utf8'));
-  assert.deepEqual(persisted, artifact);
-  await (await import('node:fs/promises')).unlink(file);
+  try {
+    await writeVerifiedArtifact(file, artifact);
+    const persisted = JSON.parse(readFileSync(file, 'utf8'));
+    assert.deepEqual(persisted, artifact);
+    assert.throws(() => assertCanaryOutputPath(process.cwd()), /CANARY_OUTPUT_PATH_FORBIDDEN/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test('live canary classifies parser success and preserves block sequence/warnings', () => {
@@ -171,4 +184,64 @@ test('cut3 relation/event mode is distinct and bounded separately from Cut 1 and
   assert.equal(canaryMode([`--${CUT3_RELATION_EVENT_MODE}`]), CUT3_RELATION_EVENT_MODE);
   assert.notEqual(CUT3_RELATION_EVENT_MODE, CUT1_AUTHORITY_MODE);
   assert.notEqual(canaryMode([`--${CUT3_RELATION_EVENT_MODE}`]), 'phase12k-playability');
+});
+
+test('canary CLI help and invalid modes are side-effect free', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'company-v1-canary-cli-'));
+  const artifactPath = join(directory, 'artifact.json');
+  const reportPath = join(directory, 'report.json');
+  const script = resolve('scripts/live-playtest-canary.mjs');
+  const env = { ...process.env, CANARY_ARTIFACT_PATH: artifactPath, CANARY_REPORT_PATH: reportPath };
+  const before = readdirSync(directory);
+  const help = spawnSync(process.execPath, [script, '--help'], { cwd: process.cwd(), env, encoding: 'utf8' });
+  const shortHelp = spawnSync(process.execPath, [script, '-h'], { cwd: process.cwd(), env, encoding: 'utf8' });
+  const unknown = spawnSync(process.execPath, [script, '--unknown'], { cwd: process.cwd(), env, encoding: 'utf8' });
+  const noArgs = spawnSync(process.execPath, [script], { cwd: process.cwd(), env, encoding: 'utf8' });
+  const conflict = spawnSync(process.execPath, [script, '--opening-only', '--cut1-authority'], { cwd: process.cwd(), env, encoding: 'utf8' });
+  try {
+    assert.equal(help.status, 0);
+    assert.equal(shortHelp.status, 0);
+    assert.notEqual(unknown.status, 0);
+    assert.notEqual(noArgs.status, 0);
+    assert.notEqual(conflict.status, 0);
+    assert.match(help.stdout, /Usage: node scripts\/live-playtest-canary\.mjs/);
+    assert.match(shortHelp.stdout, /--opening-only/);
+    assert.match(unknown.stderr, /CANARY_CLI_UNKNOWN_OPTION/);
+    assert.match(noArgs.stderr, /CANARY_CLI_MODE_REQUIRED/);
+    assert.match(conflict.stderr, /CANARY_CLI_MODE_CONFLICT/);
+    assert.deepEqual(readdirSync(directory), before);
+    assert.equal(existsSync(artifactPath), false);
+    assert.equal(existsSync(reportPath), false);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('canary CLI recognizes only explicit live modes and uses TEMP defaults', () => {
+  const modes = [
+    ['--opening-only', OPENING_ONLY_MODE],
+    ['--phase12k-playability', 'phase12k-playability'],
+    [`--${CUT1_AUTHORITY_MODE}`, CUT1_AUTHORITY_MODE],
+    [`--${CUT3_RELATION_EVENT_MODE}`, CUT3_RELATION_EVENT_MODE]
+  ];
+  let fetchCalls = 0;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { fetchCalls += 1; throw new Error('fetch must not run during parse'); };
+  try {
+    for (const [flag, expectedMode] of modes) {
+      const parsed = parseCanaryArgs([flag], {});
+      assert.equal(parsed.kind, 'run');
+      assert.equal(parsed.mode, expectedMode);
+      assert.equal(parsed.artifactPath.startsWith(tmpdir()), true);
+      assert.equal(parsed.artifactPath.includes(resolve('.')), false);
+    }
+    assert.equal(canaryMode(['--opening-only']), OPENING_ONLY_MODE);
+    assert.throws(() => canaryMode([]), /CANARY_CLI_MODE_REQUIRED/);
+    assert.throws(() => parseCanaryArgs(['--opening-only', '--cut3-relation-event']), /CANARY_CLI_MODE_CONFLICT/);
+    assert.throws(() => parseCanaryArgs(['--opening-only', '--artifact-path', resolve('phase12h-opening-success.json')]), /CANARY_OUTPUT_PATH_FORBIDDEN/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert.equal(fetchCalls, 0);
+  assert.equal(defaultCanaryArtifactPath(OPENING_ONLY_MODE).startsWith(tmpdir()), true);
 });

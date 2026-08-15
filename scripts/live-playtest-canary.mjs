@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
 import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
@@ -10,8 +12,30 @@ export const TEST_GAME_ID = '2d00d76e-85b1-4cf0-8dab-a04e8a044b84';
 export const PRODUCTION_GAME_ID = '11111111-1111-4111-8111-111111111111';
 export const DEFAULT_API_BASE = 'https://game-proxy-company-v1.zeroslove.workers.dev';
 export const PLAYABILITY_MAX_TURNS = 3;
+export const OPENING_ONLY_MODE = 'opening-only';
 export const CUT1_AUTHORITY_MODE = 'cut1-authority';
 export const CUT3_RELATION_EVENT_MODE = 'cut3-relation-event';
+export const CANARY_LIVE_MODES = Object.freeze([
+  OPENING_ONLY_MODE,
+  'phase12k-playability',
+  CUT1_AUTHORITY_MODE,
+  CUT3_RELATION_EVENT_MODE
+]);
+export const CANARY_USAGE = [
+  'Usage: node scripts/live-playtest-canary.mjs <mode> [--reset-if-dirty]',
+  '',
+  'Modes:',
+  '  --opening-only',
+  '  --phase12k-playability',
+  `  --${CUT1_AUTHORITY_MODE}`,
+  `  --${CUT3_RELATION_EVENT_MODE}`,
+  '',
+  'Options:',
+  '  --reset-if-dirty',
+  '  --artifact-path <path>   (must be outside the repository)',
+  '  --report-path <path>     (must be outside the repository)',
+  '  -h, --help'
+].join('\n');
 let lastReport = null;
 
 /**
@@ -74,12 +98,104 @@ export function buildCanaryProjectionParity({ save, sceneActorIds = [], contextM
   };
 }
 
+function cliError(message, code = 'CANARY_CLI_INVALID_ARGUMENT') {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+export function assertCanaryOutputPath(filePath, { cwd = process.cwd() } = {}) {
+  const absolutePath = resolve(cwd, filePath);
+  const relativePath = relative(resolve(cwd), absolutePath);
+  if (relativePath === '' || (!relativePath.startsWith(`..${sep}`) && relativePath !== '..')) {
+    throw cliError(`CANARY_OUTPUT_PATH_FORBIDDEN: output must be outside the repository: ${filePath}`, 'CANARY_OUTPUT_PATH_FORBIDDEN');
+  }
+  return absolutePath;
+}
+
+export function defaultCanaryArtifactPath(mode, { tempDirectory = tmpdir() } = {}) {
+  const safeMode = String(mode).replace(/[^a-z0-9-]+/gi, '-').toLowerCase();
+  return join(tempDirectory, `company-v1-canary-${safeMode}.json`);
+}
+
+function optionValue(argv, index, option) {
+  const token = argv[index];
+  if (token === option) {
+    const value = argv[index + 1];
+    if (!value || value.startsWith('-')) throw cliError(`${option} requires a path`);
+    return { value, nextIndex: index + 1 };
+  }
+  const prefix = `${option}=`;
+  if (token.startsWith(prefix)) {
+    const value = token.slice(prefix.length);
+    if (!value) throw cliError(`${option} requires a path`);
+    return { value, nextIndex: index };
+  }
+  return null;
+}
+
+export function parseCanaryArgs(argv = [], env = process.env, { cwd = process.cwd() } = {}) {
+  const values = Array.isArray(argv) ? argv.map(String) : [...argv].map(String);
+  const modes = [];
+  let help = false;
+  let resetIfDirty = false;
+  let artifactPath = null;
+  let reportPath = null;
+
+  for (let index = 0; index < values.length; index += 1) {
+    const token = values[index];
+    if (token === '-h' || token === '--help') {
+      help = true;
+      continue;
+    }
+    const mode = token.startsWith('--') ? token.slice(2) : null;
+    if (CANARY_LIVE_MODES.includes(mode)) {
+      modes.push(mode);
+      continue;
+    }
+    if (token === '--reset-if-dirty') {
+      resetIfDirty = true;
+      continue;
+    }
+    const artifactOption = optionValue(values, index, '--artifact-path');
+    if (artifactOption) {
+      artifactPath = artifactOption.value;
+      index = artifactOption.nextIndex;
+      continue;
+    }
+    const reportOption = optionValue(values, index, '--report-path');
+    if (reportOption) {
+      reportPath = reportOption.value;
+      index = reportOption.nextIndex;
+      continue;
+    }
+    throw cliError(`CANARY_CLI_UNKNOWN_OPTION: ${token}`);
+  }
+
+  if (help) return { kind: 'help', usage: CANARY_USAGE };
+  if (modes.length === 0) throw cliError('CANARY_CLI_MODE_REQUIRED: choose one explicit live mode');
+  if (modes.length > 1) throw cliError(`CANARY_CLI_MODE_CONFLICT: choose only one live mode (${modes.join(', ')})`);
+  const mode = modes[0];
+  const resolvedArtifactPath = assertCanaryOutputPath(
+    artifactPath ?? env.CANARY_ARTIFACT_PATH ?? defaultCanaryArtifactPath(mode), { cwd }
+  );
+  const resolvedReportPath = reportPath || env.CANARY_REPORT_PATH
+    ? assertCanaryOutputPath(reportPath ?? env.CANARY_REPORT_PATH, { cwd })
+    : null;
+  return {
+    kind: 'run',
+    mode,
+    args: new Set(values),
+    artifactPath: resolvedArtifactPath,
+    reportPath: resolvedReportPath,
+    usage: CANARY_USAGE,
+    resetIfDirty
+  };
+}
+
 export function canaryMode(args = []) {
-  const values = args instanceof Set ? args : new Set(args);
-  if (values.has(`--${CUT3_RELATION_EVENT_MODE}`)) return CUT3_RELATION_EVENT_MODE;
-  if (values.has(`--${CUT1_AUTHORITY_MODE}`)) return CUT1_AUTHORITY_MODE;
-  if (values.has('--phase12k-playability')) return 'phase12k-playability';
-  return 'opening-only';
+  const parsed = parseCanaryArgs(args);
+  return parsed.kind === 'help' ? 'help' : parsed.mode;
 }
 
 export function assertTestGameId(gameId) {
@@ -118,10 +234,11 @@ export function openingFollowUpAllowed(opening, parser) {
 }
 
 export async function writeVerifiedArtifact(path, artifact) {
-  await writeFile(path, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
-  const persisted = JSON.parse(await readFile(path, 'utf8'));
+  const outputPath = assertCanaryOutputPath(path);
+  await writeFile(outputPath, `${JSON.stringify(artifact, null, 2)}\n`, 'utf8');
+  const persisted = JSON.parse(await readFile(outputPath, 'utf8'));
   if (JSON.stringify(persisted) !== JSON.stringify(artifact)) throw new Error('CANARY_ARTIFACT_VERIFY_FAILED');
-  return path;
+  return outputPath;
 }
 
 export function classifyParserResult(rawStory, master) {
@@ -472,11 +589,14 @@ function csaPhysicalVerdict(projection, rawStory, extract, nextSave, master) {
   return { status: pass ? 'PASS' : 'FAIL', obligations: details, projection_coherence: projectionCoherence, projection_coherence_ok: projectionCoherence.every(item => item.matching_scene_obligation === 1) };
 }
 
-async function run() {
-  const args = new Set(process.argv.slice(2));
-  const playabilityMode = args.has('--phase12k-playability');
-  const cut1AuthorityMode = args.has(`--${CUT1_AUTHORITY_MODE}`);
-  const cut3RelationEventMode = args.has(`--${CUT3_RELATION_EVENT_MODE}`);
+export async function run(parsed = parseCanaryArgs(process.argv.slice(2))) {
+  if (parsed?.kind !== 'run') throw cliError('CANARY_CLI_MODE_REQUIRED: choose one explicit live mode');
+  const args = parsed.args;
+  const playabilityMode = parsed.mode === 'phase12k-playability';
+  const cut1AuthorityMode = parsed.mode === CUT1_AUTHORITY_MODE;
+  const cut3RelationEventMode = parsed.mode === CUT3_RELATION_EVENT_MODE;
+  const openingOnlyMode = parsed.mode === OPENING_ONLY_MODE;
+  const artifactPath = parsed.artifactPath;
   const gameId = process.env.COMPANY_TEST_GAME_ID ?? TEST_GAME_ID;
   const base = (process.env.COMPANY_API_BASE_URL ?? DEFAULT_API_BASE).replace(/\/$/, '');
   assertTestGameId(gameId);
@@ -529,8 +649,8 @@ async function run() {
       },
       follow_up_calls: { turn1: 0, turn2: 0, retry: 0 }
     };
-    const artifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12h-opening-failure.json';
-    await writeVerifiedArtifact(artifactPath, artifact);
+    const failureArtifactPath = artifactPath;
+    await writeVerifiedArtifact(failureArtifactPath, artifact);
     const evidenceContext = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
     const evidenceSave = saveData(evidenceContext.body?.data?.context);
     artifact.action_status = actionId ? await actionStatus(base, gameId, actionId) : null;
@@ -542,25 +662,25 @@ async function run() {
       csa_active: evidenceSave?.csa_active ?? null,
       processing_status: evidenceSave?.turn_state?.processing_status ?? null
     };
-    await writeVerifiedArtifact(artifactPath, artifact);
-    report.artifact_path = artifactPath;
+    await writeVerifiedArtifact(failureArtifactPath, artifact);
+    report.artifact_path = failureArtifactPath;
     report.artifact_verified = true;
     const reset = await requestJson(base, '/api/reset', { game_id: gameId });
     report.final_reset = { status: reset.status, ok: reset.ok, error: reset.ok ? null : errorDetails(reset.body, reset.status) };
-    throw new Error(`opening hard failure (${openingFailure}); artifact=${artifactPath}`);
+    throw new Error(`opening hard failure (${openingFailure}); artifact=${failureArtifactPath}`);
   }
-  if (!playabilityMode && !cut1AuthorityMode && !cut3RelationEventMode) {
+  if (openingOnlyMode) {
     // A successful Opening is itself the acceptance boundary for the original diagnostic.
     // Do not advance to Turn 1 or invoke any CSA transaction in that mode.
     report.status = 'OPENING_PASS_ONLY';
-    const successArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12h-opening-success.json';
+    const successArtifactPath = artifactPath;
     report.artifact_path = successArtifactPath;
     report.artifact_verified = true;
     await writeVerifiedArtifact(successArtifactPath, report);
     return report;
   }
 
-  const playabilityArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12k-playability.json';
+  const playabilityArtifactPath = artifactPath;
 
   async function refreshContext() {
     const value = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
@@ -587,7 +707,7 @@ async function run() {
   }
 
   if (cut3RelationEventMode) {
-    const artifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'cut3-relation-event-deterministic.json';
+    const cut3ArtifactPath = artifactPath;
     report.phase = 'CUT3-RELATION-EVENT';
     report.acceptance = {
       scenario: 'one bounded registered-participant social commitment',
@@ -603,7 +723,7 @@ async function run() {
     });
 
     const writeReportAndReset = async () => {
-      await writeVerifiedArtifact(artifactPath, report);
+      await writeVerifiedArtifact(cut3ArtifactPath, report);
       const finalReset = await requestJson(base, '/api/reset', { game_id: gameId });
       report.final_reset = { status: finalReset.status, ok: finalReset.ok, error: finalReset.ok ? null : errorDetails(finalReset.body, finalReset.status) };
       if (finalReset.ok) {
@@ -620,7 +740,7 @@ async function run() {
             && Array.isArray(finalSave?.csa_active) && finalSave.csa_active.length === 0
         };
       }
-      await writeVerifiedArtifact(artifactPath, report);
+      await writeVerifiedArtifact(cut3ArtifactPath, report);
       return report;
     };
 
@@ -764,7 +884,7 @@ async function run() {
   }
 
   if (cut1AuthorityMode) {
-    const cut1ArtifactPath = process.env.CANARY_ARTIFACT_PATH ?? 'phase12cut1-authority.json';
+    const cut1ArtifactPath = artifactPath;
     const sameActionReplay = {};
     const cut1Turn = async (turn, playerAction) => {
       const actionId = randomUUID();
@@ -931,16 +1051,27 @@ async function run() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  run().then(async report => {
-    const output = JSON.stringify(report, null, 2);
-    const reportPath = process.env.CANARY_REPORT_PATH;
-    if (reportPath) await writeFile(reportPath, `${output}\n`, 'utf8');
-    process.stdout.write(`${output}\n`);
-  }).catch(async error => {
-    const stopped = { ...(lastReport ?? {}), status: 'STOPPED', error: { message: error?.message ?? String(error) } };
-    const output = JSON.stringify(stopped, null, 2);
-    if (process.env.CANARY_REPORT_PATH) await writeFile(process.env.CANARY_REPORT_PATH, `${output}\n`, 'utf8');
-    process.stderr.write(`${output}\n`);
-    process.exitCode = 1;
-  });
+  let parsed;
+  try {
+    parsed = parseCanaryArgs(process.argv.slice(2));
+    if (parsed.kind === 'help') {
+      process.stdout.write(`${parsed.usage}\n`);
+      process.exitCode = 0;
+    } else {
+      run(parsed).then(async report => {
+        const output = JSON.stringify(report, null, 2);
+        if (parsed.reportPath) await writeFile(parsed.reportPath, `${output}\n`, 'utf8');
+        process.stdout.write(`${output}\n`);
+      }).catch(async error => {
+        const stopped = { ...(lastReport ?? {}), status: 'STOPPED', error: { message: error?.message ?? String(error) } };
+        const output = JSON.stringify(stopped, null, 2);
+        if (parsed.reportPath) await writeFile(parsed.reportPath, `${output}\n`, 'utf8');
+        process.stderr.write(`${output}\n`);
+        process.exitCode = 1;
+      });
+    }
+  } catch (error) {
+    process.stderr.write(`${error?.message ?? String(error)}\n${CANARY_USAGE}\n`);
+    process.exitCode = 2;
+  }
 }
