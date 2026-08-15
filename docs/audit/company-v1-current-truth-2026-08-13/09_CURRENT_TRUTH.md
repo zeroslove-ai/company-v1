@@ -372,6 +372,29 @@ changed JS/MJS syntax checks and `git diff --check` passed. No DB write,
 TEST reset/live access, migration/DDL, deployment, or Production access was
 performed. PR #67 remains OPEN / DRAFT / UNMERGED; operator review is pending.
 
+## Opening structured replay authority — BLOCKED on additive DB/RPC contract
+
+The source/test task `opening-structured-replay-authority-v1` was investigated
+from start HEAD `4d8fc0cf57c465f1be1ba3336adffc0a3f508079` on
+`company/scene-location-presence-v1`. The current
+`commit_company_opening(uuid, uuid, text, text, jsonb)` contract stores only
+Opening `story_text` and `choices` in `opening_state`. The API's structured
+`parsedOpening` exists in the response but is not sent to or stored by the
+RPC. `openingTurnProjection()` therefore still reparses persisted raw Opening
+prose; the frontend consumes that server projection and does not add a second
+parser.
+
+This cannot be closed by a source-only patch without inventing a non-canonical
+storage path. The minimum required follow-up is an approved additive
+`p_parsed_blocks jsonb` Opening RPC/write contract that stores
+`opening_state.parsed_blocks`, followed by server projection preference for
+that field and a historical fallback only when it is absent. No migration was
+authored or applied in this task.
+
+Existing Opening/setup/frontend recovery tests passed 54/54. No source/test
+behavior changes, DB write, TEST reset/live access, migration/DDL, deployment,
+or Production access occurred. PR #67 remains OPEN / DRAFT / UNMERGED.
+
 ## Committed `parsed_blocks` replay authority — source/test verified
 
 The follow-up source/test task `committed-parsed-blocks-replay-authority-v1`

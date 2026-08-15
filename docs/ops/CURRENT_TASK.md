@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: BLOCKED
 Task ID: opening-structured-replay-authority-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -98,3 +98,22 @@ No TEST live gameplay, DB write/reset, migration/DDL, Worker/frontend deployment
 If source-only closure is possible, commit source/test changes separately from final docs handoff where practical, report exact source/test SHA and final docs SHA, set CURRENT_TASK to WAITING_REVIEW, post one immutable terminal report to Issue #68, and STOP.
 
 If additive DB/RPC contract is required, do not patch around it. Record exact caller/schema evidence, set CURRENT_TASK to BLOCKED or WAITING_REVIEW as appropriate, post one immutable terminal report, and STOP for operator authorization of a dedicated migration cut.
+
+## Blocked handoff
+
+The current `commit_company_opening(uuid, uuid, text, text, jsonb)` contract
+does not accept or persist `parsed_blocks`; `src/api/turn-routes.js` sends only
+background, raw Story, and choices. `openingTurnProjection()` consequently
+reparses raw Opening prose. Existing Opening/setup/frontend tests passed 54/54,
+but the required current-format structured replay authority cannot be proven
+without an additive approved RPC/migration contract.
+
+Exact minimum follow-up: add `p_parsed_blocks jsonb` to the canonical Opening
+write boundary, persist it at `opening_state.parsed_blocks`, then make server
+projection prefer the stored field and retain the existing parser only for
+historical rows lacking it. No source workaround or migration was authored in
+this lease.
+
+Audit: `docs/audit/OPENING_STRUCTURED_REPLAY_AUTHORITY_2026-08-16.md`.
+
+STOP: BLOCKED — ADDITIVE OPENING DB/RPC CONTRACT REQUIRED
