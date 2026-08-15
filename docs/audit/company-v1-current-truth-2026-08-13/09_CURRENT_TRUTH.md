@@ -579,3 +579,24 @@ migration/DDL, deployment, or Production/manual-game operation occurred in
 this task. The active task is `WAITING_REVIEW`; the blocker is an acceptance
 result requiring operator review, not authorization for an incidental parser
 or provider change.
+
+## Story speaker identity projection investigation — BLOCKED
+
+Task `story-speaker-identity-projection-root-cause-v1` started at source/test
+HEAD `67d0f87d3c8e4af411e8513a5ed728ca00a34de0`, with reviewed executable
+`b3c06f931d8bd216f217412343621781670f0722`. Source tracing verified that the
+current Company edition registers `heroine3`, `masterFromEdition()` projects
+the canonical character set, and Opening exposes the active canonical ID.
+The strict parser accepts registered `heroine3` and rejects the unregistered
+`heroine3_alias`; the focused regression is in
+`test/setup-opening.test.mjs` at source/test SHA
+`6446b9873ee14865a9f292e5795d4f547c3690af`.
+
+No stale alias/template or deterministic source producer defect was found.
+The preserved live artifact's outer `Unknown Story speaker_id: heroine3`
+diagnostic conflicts with this source behavior and does not preserve a valid,
+independently reproducible probe boundary. The exact live failure boundary is
+therefore BLOCKED for operator review; no parser relaxation or runtime fix is
+authorized or made. Focused tests passed 55/55 and the full local suite passed
+421/421. No source runtime, content, migration, DB, live TEST/reset, deploy,
+or Production changes occurred. Cut 2 acceptance remains incomplete.

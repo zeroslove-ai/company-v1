@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: story-speaker-identity-projection-root-cause-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -77,3 +77,31 @@ On success or deterministic BLOCKED finding:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
+
+## Execution result — BLOCKED / identity evidence contradiction
+
+- Start CURRENT_TASK blob SHA: `5b1919953b93d599630fcf0bea5924c8825e007c`
+- Start HEAD: `67d0f87d3c8e4af411e8513a5ed728ca00a34de0`
+- Reviewed executable SHA: `b3c06f931d8bd216f217412343621781670f0722`
+- Source/test SHA: `6446b9873ee14865a9f292e5795d4f547c3690af`
+- Expected branch: `company/scene-location-presence-v1`
+
+Source tracing established that `heroine3` is a registered canonical
+character ID. `masterFromEdition()` combines the current character and
+general-NPC catalogs, Opening projects active canonical IDs, and the strict
+parser accepts registered `heroine3` while rejecting `heroine3_alias`.
+No stale alias/template or source runtime defect was found, so no parser
+relaxation, provider workaround, retry, or runtime change was made.
+
+The preserved live artifact's outer `Unknown Story speaker_id: heroine3`
+diagnostic is contradictory to the source behavior and does not preserve the
+probe implementation needed to locate the live boundary. This task is
+therefore BLOCKED for operator review rather than a runtime-fix authorization.
+
+Changed files: `test/setup-opening.test.mjs` and the audit/current-truth/task
+documents. Runtime source/content/migrations unchanged. Focused tests passed
+55/55; `npm.cmd test` passed 421/421; syntax and `git diff --check` passed.
+Live TEST/gameplay/reset, DB writes, migration/DDL, deployment, Production,
+and preserved-artifact mutation were all 0. The preserved artifact remains
+unmodified and uncommitted. This task is complete only as a WAITING_REVIEW
+blocked finding; do not generate or start a next task.

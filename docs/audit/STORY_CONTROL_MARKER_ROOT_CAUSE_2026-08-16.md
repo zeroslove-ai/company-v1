@@ -112,3 +112,30 @@ parser relaxation, fuzzy repair, semantic fallback, source/runtime/test
 change, migration/DDL, deployment, Production access, or preserved manual
 game access occurred. This is BLOCKED pending operator review; it is not a
 runtime hotfix authorization.
+
+## Speaker identity projection investigation — BLOCKED / no runtime source defect
+
+- Task: `story-speaker-identity-projection-root-cause-v1`
+- Start HEAD: `67d0f87d3c8e4af411e8513a5ed728ca00a34de0`
+- Source/test SHA: `6446b9873ee14865a9f292e5795d4f547c3690af`
+- Reviewed executable SHA: `b3c06f931d8bd216f217412343621781670f0722`
+
+The source trace found no stale `heroine3` alias or template producer. The
+current Company edition catalog registers `heroine3`; `masterFromEdition()`
+projects the character catalog into the parser master, and the Opening
+projection exposes the active canonical ID. A focused regression proves that
+`heroine3` is accepted through that registered path while `heroine3_alias`
+remains rejected by the strict parser. No parser alias, fuzzy repair, retry,
+provider change, or runtime workaround was added.
+
+The preserved live closure artifact still records an outer
+`Unknown Story speaker_id: heroine3` diagnostic, but it does not preserve the
+probe implementation and cannot be independently parsed as valid JSON in the
+current worktree. Its available raw evidence is therefore contradictory to
+the source behavior and is insufficient to establish the exact live failure
+boundary. This is recorded as a deterministic evidence contradiction / BLOCKED
+finding, not as authorization for a runtime fix.
+
+Changed source: 0. Changed test: `test/setup-opening.test.mjs` only.
+Live TEST/gameplay/reset, DB writes, migration/DDL, deployments, Production,
+and preserved-artifact mutations: 0.
