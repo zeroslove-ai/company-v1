@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: story-control-marker-root-cause-v1
+Status: READY
+Task ID: story-control-marker-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,107 +13,76 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous rollout `opening-structured-persistence-test-rollout-v1` was accepted as BLOCKED evidence by operator review `5303999559`.
+Operator review `5304229804` accepted source/test SHA `b3c06f931d8bd216f217412343621781670f0722` for `story-control-marker-root-cause-v1`.
 
-Live TEST facts established by that rollout:
+Accepted live TEST contract already established before this task:
 - additive migration `20260816000100_company_v1_opening_structured_persistence` is applied exactly once;
-- canonical Opening writer is six-argument `commit_company_opening(uuid, uuid, text, text, jsonb, jsonb)`;
-- old five-argument writer is absent;
-- writer is SECURITY DEFINER with `search_path=public, pg_temp` and service_role-only execute;
-- `opening_state.parsed_blocks` is persisted by the canonical transaction;
-- exact reviewed API executable `c62c92e231a0f0b44a723474bd16a7dba1985124` is deployed to TEST as Worker version `4660b79f-8ff3-40f5-ae1f-cd8134219f7c`;
-- Setup and Opening passed on dedicated TEST game, but first ordinary Story failed with `story_protocol_invalid` / `Malformed Story control marker` for action `e0fcda84-3130-4b19-9bcd-5851f9662ae6`;
-- no Extract/Commit followed that failure and the dedicated TEST game was reset cleanly.
+- canonical Opening writer is six-argument `commit_company_opening(uuid, uuid, text, text, jsonb, jsonb)` and old five-argument writer is absent;
+- `opening_state.parsed_blocks` is persisted transactionally;
+- prior TEST API identity was executable `c62c92e231a0f0b44a723474bd16a7dba1985124` / Worker version `4660b79f-8ff3-40f5-ae1f-cd8134219f7c`;
+- prior rollout reached Setup + Opening and then failed first ordinary Story because provider emitted attributed `[SCENE brand_strategy_meeting_room]`.
+
+Reviewed source/test fix `b3c06f931d8bd216f217412343621781670f0722` consolidates one producer grammar: `[SCENE]` is bare; JSON `scene_id` is data, not marker syntax; DIALOGUE alone carries registered `speaker_id`; parser strictness is unchanged.
 
 Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and must not be accessed or mutated. Production access is forbidden.
 
 ## Objective
 
-Find and fix the root cause of the ordinary Story `Malformed Story control marker` failure at the existing Story production / fresh parser contract boundary. This is a source/test architecture cut. Do not perform live TEST gameplay, DB writes/reset, migration/DDL, or deploy in this lease.
-
-This failure class has appeared before. Inventory the actual current producer prompt/output contract, transport assembly, fresh Story parser control-marker grammar, parser callers, and tests before changing code. Determine whether the defect is a contradictory/obsolete producer instruction, duplicate control syntax, parser ownership mismatch, transport corruption, or another deterministic repository defect.
-
-## Architecture constraints
-
-- Fresh Story parser remains the generation contract; do not create a third parser generation.
-- Committed `parsed_blocks` remain replay authority for current-format committed turns/Opening.
-- Do not relax parsing merely to accept malformed or ambiguous control syntax.
-- Do not add retry/regeneration, provider/model/temperature/token changes, fuzzy repair, regex cleanup of provider output, fallback Story, compatibility parser, or a new semantic/protocol gateway.
-- Prefer deleting contradictory/obsolete control-marker instructions or duplicate grammar ownership over adding normalization.
-- Exactly-four provider-authored literal choices remain presentation shape; server must not become a semantic choice author.
-- Story remains open-ended narrative; do not introduce event/relation/emotion/posture/sexual semantic enums or allowlists.
-- CSA remains natural institutional rule context, not a finite physical execution grammar.
-- Media/image catalogs and sex/general image pools are presentation adapters and are out of scope; do not delete or alter them.
-- TEST Level-7 acceleration seam, scene/location/presence, compact clothing, sexual state/media adapters, and recent-six/older-summary memory architecture are out of scope unless direct caller proof shows the control-marker defect originates there.
+Roll the exact reviewed Story-marker source fix to TEST and close the previously blocked Opening → ordinary Story boundary with one bounded dedicated TEST acceptance. This is a rollout/acceptance task, not authority to invent another parser/gateway/fallback.
 
 ## Required work
 
-1. Verify exact ancestry and #67 topology before edits. Current HEAD must descend from reviewed executable/migration SHA `c62c92e231a0f0b44a723474bd16a7dba1985124`; executable changes after it must be inventoried rather than assumed absent.
-2. Trace the complete ordinary Story boundary:
-   - prompt/template instructions that define control markers;
-   - provider request assembly and any streaming/text concatenation;
-   - fresh parser marker recognition and rejection path producing `Malformed Story control marker`;
-   - Opening vs ordinary Story differences;
-   - committed/replay readers to ensure the fix does not reintroduce raw reparse authority.
-3. Search current source/tests for every accepted/forbidden control-marker spelling and duplicate grammar definition. REMOVE-OR-PROVE any obsolete finite marker vocabulary or duplicated parser contract.
-4. Reconstruct the deterministic failure class from preserved report evidence and repository tests without replaying the live provider call. If the exact raw failed Story is not available in repository evidence, build the smallest source-level fixture representing the malformed marker class already identified by the parser error; do not invent a different failure.
-5. Fix the earliest repository-owned root cause. Prefer one authoritative grammar/instruction boundary and delete superseded producer/parser assumptions in the same cut.
-6. Add focused regression tests proving:
-   - canonical ordinary Story output accepted by the producer contract parses into expected blocks/choices;
-   - the previously failing malformed-marker class is prevented at the repository-owned producer/contract boundary or deterministically rejected for the correct reason without a workaround;
-   - Opening and ordinary Story share compatible structured block semantics where intended;
-   - current-format replay continues to prefer committed `parsed_blocks` and does not call Story/parser again;
-   - no server-authored semantic choice fallback is introduced.
-7. Run focused tests, full suite, syntax checks for changed JS/MJS, and `git diff --check`.
+1. Verify exact ancestry and #67 topology. Distinguish executable SHA `b3c06f931d8bd216f217412343621781670f0722` from docs-only descendants.
+2. Re-verify live TEST Opening RPC shape/security/search_path and that migration `20260816000100_company_v1_opening_structured_persistence` is already applied. Do not reapply or edit it.
+3. Deploy the exact reviewed API executable lineage containing `b3c06f9...` to TEST only, then independently record deployed Worker identity/version and prove it corresponds to the reviewed executable. Do not deploy frontend unless direct evidence shows it is required; otherwise frontend deploy is forbidden.
+4. Use one dedicated disposable TEST game through normal API paths. Existing reviewed TEST-only Level-7 acceleration seam may be used if needed, but do not directly mutate gameplay state in DB.
+5. Execute Setup → Opening → at least two ordinary Story → Extract → Commit turns, including one literal provider-authored choice round-trip and one free-text input when reachable without retry. Acceptance requires:
+   - Opening committed structured `parsed_blocks` remain present and recovery/replay uses them;
+   - ordinary Story no longer fails with the attributed-SCENE marker class;
+   - Story terminal SSE/parser status is complete/success;
+   - Extract and Commit complete normally;
+   - exactly four provider-authored literal choices survive parser/persist/UI contract and selected literal becomes player input;
+   - free text remains ordinary player input;
+   - current-format committed turn replay/recovery prefers committed `parsed_blocks` and is idempotent;
+   - no relation/event/emotion/work semantic ledger or server-authored semantic choice fallback is reintroduced.
+6. Do not retry/regenerate to obtain a pass. At the first deterministic failure, preserve bounded HTTP/SSE/action/parser/context evidence in OS TEMP and STOP as BLOCKED.
+7. On success, reset only the dedicated TEST game and verify clean readback. Never access/reset the preserved manual game.
+8. Run only the focused/local checks needed to corroborate the deployed reviewed executable; test count alone is not proof.
 
-If investigation proves the malformed marker was solely provider noncompliance with a single clear current contract and there is no contradictory repository-owned instruction/assembly/parser defect, do not add retries or parser tolerance. Mark BLOCKED with exact source/test proof for operator review.
+## Architecture constraints
+
+- Fresh Story parser remains strict generation contract; no parser relaxation, new parser, normalization, regex cleanup, retry/regeneration, provider/model/temperature/token changes, fallback Story, or semantic hard gate.
+- Story authors open-ended narrative; Extract observes facts. Do not add finite event/relation/emotion/posture/sexual semantic taxonomies.
+- Exactly-four choices are provider-authored literal presentation shape, not a server semantic taxonomy.
+- CSA remains natural institutional rule context; institutional compliance is not consent/comfort/affection/trust/emotion.
+- Recent six raw Story + older natural-language `turn_summary` remains narrative continuity architecture.
+- Media/image catalogs, sex/general pools, sexual image families, compact clothing UI state, scene/location/presence, sexual state/media adapters, and TEST Level-7 seam are protected actual-consumer functionality unless a direct defect proves otherwise.
+- Historical applied migrations are immutable.
 
 ## Authorized operations
 
 Authorized:
-- source/test/docs changes inside existing #67 branch only;
-- deletion/consolidation of contradictory or duplicate Story control-marker contract code/tests;
-- focused/full local tests and syntax/diff checks;
-- docs/audit completion evidence.
+- TEST-only API deployment of the exact reviewed executable lineage containing `b3c06f931d8bd216f217412343621781670f0722`;
+- read-only TEST DB/RPC/migration/deployed-identity verification;
+- dedicated disposable TEST game Setup/Opening/ordinary turns/replay/recovery and final reset;
+- OS TEMP evidence;
+- docs/audit completion evidence in #67.
 
 Not authorized:
-- TEST live gameplay, DB write/reset, migration/DDL, or deployment;
+- source/runtime/test semantic changes during this lease;
+- new migration/DDL or reapplication/edit of historical migration;
+- frontend deploy unless direct deterministic need is proven and operator review is obtained first;
 - Production access;
-- access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- provider/model/temperature/token changes, retry/regeneration;
-- parser relaxation/new parser/fuzzy cleanup/fallback Story;
-- new branch/PR, merge, Ready, rebase, squash, force-push;
-- changes to applied historical migration `20260816000100_company_v1_opening_structured_persistence.sql`.
+- any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+- direct DB mutation to manufacture gameplay state;
+- provider/model/temperature/token changes, retry/regeneration, fuzzy repair, parser relaxation/new parser/fallback Story;
+- new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Completion
 
 On success or deterministic BLOCKED finding:
-- distinguish executable source/test SHA from any docs-only completion SHA;
-- report exact files changed/deleted, root cause, parser/producer ownership decision, focused/full test results, and invariant checks;
+- report exact deployed executable + Worker identity, live TEST RPC/migration facts, dedicated game ID, turn/action evidence, Opening/ordinary parsed-block persistence/replay result, choice/free-text result, final reset state, and any blocker evidence;
+- keep source/runtime unchanged in this lease;
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
-
-## Execution outcome: SOURCE/TEST READY FOR REVIEW
-
-- Start HEAD: `bceafd9adc0e001b42a5de29caf02485da9ea6c7`
-- Reviewed executable/migration SHA: `c62c92e231a0f0b44a723474bd16a7dba1985124`
-- Root cause: preserved ordinary Story output used attributed
-  `[SCENE brand_strategy_meeting_room]`; the strict parser correctly rejected
-  it, while the ordinary producer prompt did not explicitly prohibit using
-  JSON `scene_id` as marker syntax. Opening/ordinary marker guidance was also
-  duplicated.
-- Fix: one shared `FRESH_MARKER_GRAMMAR` in the ordinary and Opening prompts;
-  bare `[SCENE]` is required and attributed scene markers are prohibited.
-  Strict parser ownership remains unchanged.
-- Changed files: `src/engine/story-prompt.js`,
-  `src/engine/opening-prompt.js`, `test/narrative-protocol.test.mjs`,
-  `test/narrative-request-contract.test.mjs`,
-  `test/setup-opening.test.mjs`.
-- Focused tests: narrative 18/18, setup/Opening 24/24, related replay set
-  38/38. Full `npm.cmd test`: 420/420.
-- Syntax checks: PASS. `git diff --check`: PASS.
-- TEST live gameplay/reset: 0; DB writes/migration/DDL: 0; deployments: 0;
-  Production/manual-game access: 0.
-- Preserved failure artifact unchanged and uncommitted.
-- This source/test cut is `WAITING_REVIEW`; no next task generated.
