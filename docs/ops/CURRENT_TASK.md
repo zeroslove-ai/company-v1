@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: csa-natural-rule-authority-reset-v1-land-recovery
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -109,6 +109,17 @@ The prior local report had 420/420 full tests; do not treat that count as correc
 - Provider/model/temperature/token changes, retries/regeneration, fuzzy semantic repair, regex semantic classifiers, parser relaxation/new parser, new physical enum/taxonomy.
 
 ## Terminal report
+
+The recovery implementation is landed and waiting for operator review.
+
+- Preserved local candidate: `b60011c5a25684a53fcd53908128873fc31e3c9b`, parent `ce19f3ed919eb1acb82701eb7a3f3d1afdf83c31`.
+- Recovery start head: `30865263b8f63ae359d73a3eaea6476975a104b9`.
+- Landed executable: `95ed0692f0da2ceff786ffcd8e0543e5a11b4e6f`.
+- The runtime/test implementation tree is byte-equivalent to the preserved candidate. `docs/ops/CURRENT_TASK.md` and operator-maintained `CURRENT_TRUTH.md` were excluded from the executable transfer.
+- Focused CSA/open-observation/Story tests passed 73/73; full `npm.cmd test` passed 420/420; modified JS/MJS syntax and `git diff --check` passed.
+- No live TEST gameplay/LLM, DB write/reset, migration apply, deploy, Production access, or preserved manual-game mutation was performed.
+
+No next task was generated. Stop for PR #67 operator review.
 
 On success report:
 - original local candidate `b60011c...` proof and parent/changed paths;
