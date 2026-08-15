@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: extract-block-observation-prompt-closure-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -186,3 +186,17 @@ Before COMPLETE:
 - verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
 
 Set CURRENT_TASK to `WAITING_REVIEW`, commit/push on the same branch, post one immutable terminal report to Issue #68, and STOP. Do not launch live acceptance yourself.
+
+## Execution result — COMPLETE / WAITING_REVIEW
+
+Execution identity: `extract-block-observation-prompt-closure-v1` / task blob `ab7d35a4cb83517123db3b2d4ef7ea88af3df27b` / branch `company/scene-location-presence-v1`.
+
+- Phase 0 caller proof confirmed that `buildStoryObservationBlocks(parsedStory)` already exposes parser-owned normalized block text; the fresh prompt map was discarding only the `text` field.
+- Removed the remaining fresh-provider instructions that taught top-level `open_facts`. Fresh instructions now route arbitrary meaning only through `block_observations[].facts` and no longer mention `observation_coverage`, provider `decision`, or nested `source_block`.
+- `story_observation_blocks` now sends `{block_id, block_index, block_type, text}` from the existing parser projection. A behavioral test compares the complete multi-block payload against `buildStoryObservationBlocks(parseFreshNarrativeV2(...))` for scene, dialogue, and acting blocks; THOUGHT/CHOICE remain excluded observation blocks.
+- Fresh provider shape remains one `block_observations` entry per supplied block, nested `facts`, and `facts: []` for zero facts. Canonical durable flat `open_facts`, derived `source_block`, Commit/context/history/replay authority, structural quote validation, and default-off raw diagnostic callback are unchanged.
+- Changed source/test files: `src/engine/extract-prompt.js`, `test/extract-observation-contract.test.mjs`, `test/content-catalog-contract.test.mjs`.
+- Focused Extract/content/narrative tests: 80/80 PASS. Full `npm.cmd test`: 433/433 PASS. Modified JS/MJS syntax: PASS. `git diff --check`: PASS.
+- Live TEST/LLM, DB writes/resets, migration changes/apply, API/frontend deploy, Production/manual-game access: 0.
+- Preserved evidence: exact approved 16-path snapshot remains unchanged, untracked, unstaged, and uncommitted.
+- PR #67 remains OPEN / DRAFT / UNMERGED, base `main`. No live acceptance or next task was launched.
