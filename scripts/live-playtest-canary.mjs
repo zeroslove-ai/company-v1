@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
 import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 import edition from '../src/api/edition.js';
+import { createSseStreamDecoder, parseSseEvents } from './live-sse-decoder.mjs';
 
 export const TEST_GAME_ID = '2d00d76e-85b1-4cf0-8dab-a04e8a044b84';
 export const PRODUCTION_GAME_ID = '11111111-1111-4111-8111-111111111111';
@@ -307,24 +308,6 @@ function profileName(master, id) {
   const profile = all.find(item => (item?.character_id ?? item?.npc_id ?? item?.id) === id);
   return profile?.name ?? profile?.display_name ?? id;
 }
-function parseSseEntry(entry, atMs) {
-  const lines = entry.split(/\r?\n/);
-  const eventLine = lines.find(line => line.startsWith('event:'));
-  const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('\n');
-  if (!eventLine || !data) return null;
-  try {
-    return { name: eventLine.slice(6).trim(), data: JSON.parse(data), at_ms: atMs };
-  } catch {
-    return { name: 'invalid_sse_data', data: { raw: data }, at_ms: atMs };
-  }
-}
-
-function parseSseEvents(text, startedAt) {
-  return String(text ?? '').split(/\r?\n\r?\n/)
-    .map(entry => parseSseEntry(entry, elapsed(startedAt)))
-    .filter(Boolean);
-}
-
 async function requestJson(base, endpoint, body) {
   const startedAt = Date.now();
   let response;
@@ -465,7 +448,7 @@ async function captureStory(base, gameId, body, { poll = true, endpoint = '/api/
     request_duration_ms: null, http_status: null, sse_meta_action_id: null, first_delta_ms: null,
     terminal_ms: null, terminal_event: null, sse_error_code: null, sse_error_message: null, sse_error_retryable: null,
     status_at_30s: null, status_at_120s: null, status_at_130s: null, transport_timeout: false,
-    raw_story: '', visible_story: '', raw_story_available: false, events: [], response_error: null
+    raw_story: '', visible_story: '', raw_sse: '', raw_story_available: false, events: [], response_error: null
   };
   const controller = new AbortController();
   const timeout = setTimeout(() => { evidence.transport_timeout = true; controller.abort(); }, 130_000);
@@ -485,26 +468,31 @@ async function captureStory(base, gameId, body, { poll = true, endpoint = '/api/
     }
     evidence.http_status = response.status;
     evidence.request_duration_ms = elapsed(startedAt);
-    const reader = response.body?.getReader?.();
-    if (reader) {
-      const decoder = new TextDecoder();
-      let buffer = '';
-      const consume = (final = false) => {
-        const entries = buffer.split(/\r?\n\r?\n/);
-        buffer = final ? '' : (entries.pop() ?? '');
-        for (const entry of entries) {
-          const event = parseSseEntry(entry, elapsed(startedAt));
-          if (event) evidence.events.push(event);
+    try {
+      const reader = response.body?.getReader?.();
+      if (reader) {
+        const textDecoder = new TextDecoder();
+        const streamDecoder = createSseStreamDecoder({ startedAt });
+        while (true) {
+          const chunk = await reader.read();
+          const text = textDecoder.decode(chunk.value ?? new Uint8Array(), { stream: !chunk.done });
+          evidence.raw_sse += text;
+          evidence.events.push(...streamDecoder.push(text));
+          if (chunk.done) {
+            evidence.events.push(...streamDecoder.finish());
+            break;
+          }
         }
-      };
-      while (true) {
-        const chunk = await reader.read();
-        buffer += decoder.decode(chunk.value ?? new Uint8Array(), { stream: !chunk.done });
-        consume(chunk.done);
-        if (chunk.done) break;
+      } else {
+        evidence.raw_sse = await response.text();
+        evidence.events = parseSseEvents(evidence.raw_sse, startedAt);
       }
-    } else {
-      evidence.events = parseSseEvents(await response.text(), startedAt);
+    } catch (error) {
+      evidence.response_error = {
+        code: error?.code ?? 'SSE_DECODE_FAILED',
+        message: error?.message ?? String(error)
+      };
+      return evidence;
     }
     evidence.request_duration_ms = elapsed(startedAt);
     const meta = evidence.events.find(event => event.name === 'meta')?.data;

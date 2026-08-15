@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
 import { repairAndParseExtractJson } from '../src/engine/extract/json-repair.js';
+import { parseSseEvents } from './live-sse-decoder.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const gameId = '2d00d76e-85b1-4cf0-8dab-a04e8a044b84';
@@ -34,17 +35,6 @@ async function responseRecord(response) {
   let body = null;
   try { body = text ? JSON.parse(text) : null; } catch { body = { raw_text: text }; }
   return { status: response.status, ok: response.ok, body };
-}
-
-function parseSse(text) {
-  const events = [];
-  for (const block of text.split(/\r?\n\r?\n/)) {
-    const name = block.match(/^event:\s*(.+)$/m)?.[1]?.trim();
-    const data = block.match(/^data:\s*(.+)$/m)?.[1];
-    if (!name || !data) continue;
-    try { events.push({ name, data: JSON.parse(data) }); } catch { events.push({ name, data }); }
-  }
-  return events;
 }
 
 function extractDiagnosticForCalls(llmCalls, startIndex) {
@@ -116,7 +106,7 @@ async function main() {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
     }), env);
     const text = await response.text();
-    const events = parseSse(text);
+    const events = parseSseEvents(text);
     const metaActionId = events.find(event => event.name === 'meta')?.data?.action_id ?? null;
     const record = { status: response.status, ok: response.ok, request_action_id: body.action_id ?? null, action_id: metaActionId, events, raw_sse: text };
     record.validation = storyValidation(record);

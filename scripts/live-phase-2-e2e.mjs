@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createApiWorker } from '../src/api/index.js';
+import { parseSseEvents } from './live-sse-decoder.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const gameId = '11111111-1111-4111-8111-111111111111';
@@ -93,22 +94,6 @@ async function parseJsonResponse(endpoint, response) {
   return body.data;
 }
 
-function parseSse(text) {
-  const events = [];
-  for (const entry of text.split(/\r?\n\r?\n/)) {
-    const lines = entry.split(/\r?\n/);
-    const name = lines.find(line => line.startsWith('event:'))?.slice(6).trim();
-    const data = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('\n');
-    if (!name || !data) continue;
-    try {
-      events.push({ name, data: JSON.parse(data) });
-    } catch {
-      throw new E2eError('/api/story', 502, 'invalid_worker_sse');
-    }
-  }
-  return events;
-}
-
 async function callJson(worker, env, endpoint, body) {
   const startedAt = Date.now();
   const response = await worker.fetch(new Request(`https://local.company-v1${endpoint}`, {
@@ -123,7 +108,12 @@ async function callStory(worker, env, body) {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
   }), env);
   if (!response.ok) throw new E2eError('/api/story', response.status, 'story_request_failed');
-  const events = parseSse(await response.text());
+  let events;
+  try {
+    events = parseSseEvents(await response.text());
+  } catch (error) {
+    throw new E2eError('/api/story', 502, error?.code ?? 'invalid_worker_sse');
+  }
   const meta = events.find(event => event.name === 'meta')?.data;
   const complete = events.find(event => event.name === 'complete')?.data;
   const failure = events.find(event => event.name === 'error')?.data;
