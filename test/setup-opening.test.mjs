@@ -14,6 +14,8 @@ import {
   validatePlayerSetupInput
 } from '../src/engine/index.js';
 import edition from '../src/api/edition.js';
+import { masterFromEdition } from '../src/api/turn-routes.js';
+import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 import { DEPARTMENTS, POSITIONS, BODY_TYPES, SPEECH_STYLES } from '../src/frontend/pages/catalogs.js';
 import { makeJsonRequest as request, makeJsonResponse as json } from './helpers/http-mocks.mjs';
 
@@ -348,6 +350,21 @@ test('fresh Opening allowed speaker IDs deduplicate active canon keys in determi
   const payload = JSON.parse(buildOpeningPrompt({ edition, player: {}, canonical: {}, openingPlan })[1].content);
   assert.deepEqual(Object.keys(payload.active_character_canon), ['heroine1', 'heroine2']);
   assert.deepEqual(payload.allowed_speaker_ids, ['player', 'heroine1', 'heroine2']);
+});
+
+test('Opening projects a registered heroine3 ID to the strict parser without accepting alias identities', () => {
+  const openingPlan = { primary_character_id: 'heroine3', supporting_character_ids: ['heroine1'] };
+  const payload = JSON.parse(buildOpeningPrompt({ edition, player: {}, canonical: {}, openingPlan })[1].content);
+  const master = masterFromEdition(edition);
+  const raw = '[SCENE]office[/SCENE][DIALOGUE speaker_id="heroine3"]hello[/DIALOGUE][THOUGHT]t[/THOUGHT][CHOICE]a[/CHOICE][CHOICE]b[/CHOICE][CHOICE]c[/CHOICE][CHOICE]d[/CHOICE]';
+
+  assert.deepEqual(payload.allowed_speaker_ids, ['player', 'heroine3', 'heroine1']);
+  assert.equal(master.characters.some(entry => entry.character_id === 'heroine3'), true);
+  assert.equal(parseFreshNarrativeV2(raw, { master }).dialogue_lines[0].speaker_id, 'heroine3');
+  assert.throws(
+    () => parseFreshNarrativeV2(raw.replaceAll('heroine3', 'heroine3_alias'), { master }),
+    error => error.code === 'STORY_PROTOCOL_INVALID' && error.message === 'Unknown Story speaker_id: heroine3_alias'
+  );
 });
 
 test('resolvePlayerCanonicalNames resolves every catalog axis independently', () => {
