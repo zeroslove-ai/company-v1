@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: opening-structured-persistence-contract-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -141,3 +141,30 @@ On completion:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review before any TEST migration application or deployment.
+
+## Completion handoff — 2026-08-16
+
+This task is now `WAITING_REVIEW` after source/test/migration authoring.
+
+- Start HEAD: `625ec976dce59b8e86d877a29eeb9a01aaf6b99d`
+- Source/test/migration SHA: `c62c92e231a0f0b44a723474bd16a7dba1985124`
+- Authored migration: `20260816000100_company_v1_opening_structured_persistence.sql`
+- Additive migration application: `0`
+- API/frontend deployment: `0`
+- TEST/live DB writes, reset, and gameplay: `0`
+- Production/manual-game access: `0`
+- Targeted tests: `75/75 PASS`
+- Full `npm.cmd test`: `419/419 PASS`
+- Changed JS/MJS syntax: `PASS`
+- `git diff --check`: `PASS`
+- Audit: `docs/audit/OPENING_STRUCTURED_PERSISTENCE_CONTRACT_2026-08-16.md`
+
+The authored migration removes the zero-active-caller five-argument writer
+and creates the structured six-argument canonical RPC. The API sends
+server-produced `parsedOpening`; current-format Opening replay prefers stored
+`opening_state.parsed_blocks`; historical no-block rows retain the existing
+single inert fallback. Historical verification/preflight references to the
+old signature remain unchanged as prior-contract evidence, not active callers.
+
+No next task was generated. STOP for operator review before TEST migration
+application or deployment.

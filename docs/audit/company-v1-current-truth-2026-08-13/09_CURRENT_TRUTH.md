@@ -372,6 +372,38 @@ changed JS/MJS syntax checks and `git diff --check` passed. No DB write,
 TEST reset/live access, migration/DDL, deployment, or Production access was
 performed. PR #67 remains OPEN / DRAFT / UNMERGED; operator review is pending.
 
+## Opening structured persistence contract — authored, not live
+
+Task `opening-structured-persistence-contract-v1` was completed as source,
+test, and additive-migration authoring only from start HEAD
+`625ec976dce59b8e86d877a29eeb9a01aaf6b99d` on
+`company/scene-location-presence-v1`.
+
+Source/test/migration commit:
+`c62c92e231a0f0b44a723474bd16a7dba1985124`.
+
+Authored migration:
+`supabase/migrations/20260816000100_company_v1_opening_structured_persistence.sql`.
+It drops the zero-active-caller five-argument Opening writer in the authored
+additive migration and defines the six-argument
+`commit_company_opening(uuid, uuid, text, text, jsonb, jsonb)` contract with
+server-produced `p_parsed_blocks`, preserved structural checks/idempotence,
+`SECURITY DEFINER`, `search_path = public, pg_temp`, and service-role-only
+execution. The API sends `parsedOpening`; current-format Opening projection
+prefers stored `opening_state.parsed_blocks`; historical rows without it keep
+the existing single inert persisted-parser boundary.
+
+The active runtime caller inventory found no five-argument writer caller.
+Historical verification/preflight references remain unchanged as immutable
+prior-contract evidence and are not runtime writers. No semantic narrative
+gate, parser, provider change, retry, or regeneration was added.
+
+Targeted Opening/replay/frontend/reset/turn tests passed 75/75 and the full
+`npm.cmd test` passed 419/419; changed JS/MJS syntax and diff checks passed.
+The migration is **not applied**. API/deploy/live DB/TEST reset/DB writes and
+Production access remain 0. PR #67 remains OPEN / DRAFT / UNMERGED. Operator
+review is required before any TEST migration application or deployment.
+
 ## Opening structured replay authority — BLOCKED on additive DB/RPC contract
 
 The source/test task `opening-structured-replay-authority-v1` was investigated
