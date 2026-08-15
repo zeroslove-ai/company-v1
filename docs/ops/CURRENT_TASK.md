@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: final-runtime-compatibility-residue-cleanup-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -128,3 +128,19 @@ Commit source/test changes separately from final docs handoff where practical. R
 Set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit, post one immutable terminal report to Issue #68, and STOP.
 
 No live acceptance in this source/test lease.
+
+## Completion handoff
+
+Source/test cleanup is complete in `1025f4da096389838328afc1982ba9a47d421421`.
+The zero-consumer historical parser alias was removed, persisted Story tests
+now exercise the single persisted-read boundary, and the orphaned projection
+residue was removed. Historical Story/Extract readers, old-save scene
+hydration, canonical scene projection, frontend recovery, and proven product
+state consumers were retained from concrete caller/data inventory.
+
+Validation: `npm.cmd test` 417/417, targeted persisted/replay/scene/display
+tests 92/92, changed JS/MJS syntax checks pass, and `git diff --check` pass.
+No TEST/live DB access, DB write/reset, migration/DDL, deployment, or
+Production access occurred. PR #67 remains OPEN / DRAFT / UNMERGED.
+
+STOP: SOURCE/TEST COMPATIBILITY RESIDUE CLEANUP COMPLETE — WAITING FOR OPERATOR REVIEW

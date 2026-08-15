@@ -350,3 +350,24 @@ Final disposable-game reset was independently read back clean at
 zero recent turns, and `save_revision=973`. No Production or historical
 manual-game access occurred. `docs/ops/CURRENT_TASK.md` is now
 `WAITING_REVIEW`; the next architecture task was not generated.
+
+## Final active-runtime compatibility residue cleanup — source/test verified
+
+The source/test cleanup task `final-runtime-compatibility-residue-cleanup-v1`
+was completed on `company/scene-location-presence-v1` in source/test commit
+`1025f4da096389838328afc1982ba9a47d421421`; `docs/ops/CURRENT_TASK.md` is
+`WAITING_REVIEW`. This is not a new live deployment or TEST acceptance fact.
+
+The zero-consumer `legacy-narrative-parser.js` re-export alias was deleted and
+historical parser tests were routed through the single `parsePersistedNarrative`
+read boundary. The persisted Story reader, V1 Extract adapter, old-save scene
+hydration, canonical scene-to-mirror projection, frontend recovery, and
+proven product/media/state consumers were retained because concrete current
+callers or historical persisted-data dependencies remain. Historical applied
+migrations were not edited.
+
+Verification: `npm.cmd test` passed 417/417; targeted persisted-parser,
+replay, Extract, scene, display, and frontend recovery tests passed 92/92;
+changed JS/MJS syntax checks and `git diff --check` passed. No DB write,
+TEST reset/live access, migration/DDL, deployment, or Production access was
+performed. PR #67 remains OPEN / DRAFT / UNMERGED; operator review is pending.
