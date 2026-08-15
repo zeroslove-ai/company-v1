@@ -1,8 +1,8 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: deep-level7-live-acceptance-v9-simplified-runtime
-Updated: 2026-08-15
+Status: READY
+Task ID: final-runtime-compatibility-residue-cleanup-v1
+Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
@@ -13,169 +13,118 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Accepted source/test executable:
+Accepted gameplay executable:
 `0fc509911e5bdf5aabb92fe5241a845f686bdb17`.
 
-Accepted correction review:
-Issue #68 comment `5302484444`.
+Accepted V9 live review:
+Issue #68 comment `5302811891`.
 
-The active narrative continuity model is intentionally simple:
-
+Current narrative continuity architecture is fixed for this cut:
 **latest 6 committed raw turns + chronological older natural-language `turn_summary` entries.**
+Do not restore open_facts/open_observations or general relation/event/emotion/work memory authority.
 
-Fresh general narrative relation/event/emotion/work state has been removed. Do not restore it and do not introduce a replacement memory/semantic layer.
+Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and must not be accessed or mutated in this source/test cut.
 
-TEST Supabase: `fmcrspgxstsmxxsmkeee`.
-Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` must not be accessed or mutated.
+## Objective
 
-## Purpose
+Perform one deletion-first final active-runtime compatibility residue cleanup after V9 broad acceptance.
 
-Run one broad Level-7 TEST acceptance against the simplified runtime after semantic-residue deletion and fail-open closure.
+Inventory real callers and persisted-data/replay dependencies first, then remove obsolete runtime/parser/extract/RPC/mirror/gateway/test compatibility code whose active or historical consumer count is proven zero.
 
-This is not another narrow architecture audit. Exercise enough real gameplay in one run to determine whether the simplified Story -> Extract -> Commit system is actually usable and continuous without the removed general semantic state.
+This is not a naming cleanup. Names such as `legacy-*` or `hospital-*` are not deletion proof by themselves.
 
-Do not patch source during this lease. On the first deterministic product defect, preserve evidence and stop.
+## Required work
+
+### A. Parser / replay authority
+
+- Fresh generation must continue to use `fresh-narrative-parser.js` only.
+- Committed current-format turns must use their committed structured/parsed representation for replay/recovery where already available; do not introduce a third parser generation.
+- Inventory every import/caller of `legacy-narrative-parser.js`, `narrative-parser.js`, persisted reparse helpers, and any legacy extract adapter.
+- If a compatibility parser/adapter has zero live caller and zero required historical persisted-data reader, delete it and its stale tests in this cut.
+- If historical rows genuinely still require a compatibility boundary, keep only the minimum inert read adapter and document the concrete caller/data proof. It must not become fresh semantic authority.
+
+### B. Old API/RPC aliases and duplicate mirrors
+
+Inventory remaining old RPC/API aliases, scene/location/presence mirrors, duplicate gameplay-state mirrors, deprecated save/read paths, and compatibility gateways.
+
+For each candidate use REMOVE-OR-PROVE:
+- delete it if no live caller or persisted-data dependency exists;
+- keep only when a concrete current UI/mechanical/integrity or historical replay consumer is proven.
+
+Do not add replacement wrappers merely to preserve stale tests.
+
+### C. Frontend/client residues
+
+Inventory donor/legacy frontend readers and duplicate state caches that can still act as gameplay authority.
+
+- presentation cache may remain only as replaceable UI state;
+- committed server context remains gameplay authority;
+- delete dead duplicate readers/writers/tests where caller proof reaches zero.
+
+Do not rename donor files just for aesthetics if behavior is still required.
+
+### D. Preserve proven machine/UI/media state
+
+Do not regress or delete without consumer proof:
+- registered setup/world IDs/catalogs required for intentional setup;
+- `npc_stats` UI projection;
+- scene/location/presence;
+- player/NPC physical and compact clothing continuity;
+- time/progression and TEST-only Level-7 seam;
+- institutional CSA identity/lifecycle/applicability context;
+- choices/free text/Mind Monitor;
+- `sexual_event_ledger` and derived sexual mechanics where consumed;
+- image_library/catalog/tags/action families/general-sex pools/deterministic image selection as presentation/media adapters.
+
+Media classification failure may affect image choice only; it must never determine whether a Story/Extract fact occurred.
+
+## Architecture constraints
+
+- one durable domain -> one canonical writer;
+- deletion/root-cause redesign over compatibility layering;
+- no semantic enum/allowlist/regex/fuzzy gate for open-ended narrative meaning;
+- no direct player-input success inference;
+- no arbitrary LLM save patch;
+- unknown optional projection remains fail-open;
+- institutional CSA compliance remains separate from consent/comfort/affection/emotion;
+- exactly-four choices are presentation shape, not semantic taxonomy.
+
+## Required proof
+
+Before deleting each compatibility component, show caller/data inventory sufficient to establish zero required consumer or the exact reason it must remain.
+
+Add/update focused regressions proving at minimum:
+1. fresh Story generation still uses only the fresh parser contract;
+2. current committed replay/recovery remains identical after deletions;
+3. historical compatibility rows that are still supported remain readable/inert if such a reader is retained;
+4. deleted aliases/mirrors have no active caller;
+5. choices/free text and simplified six-raw + older-summary context contracts remain intact;
+6. retained scene/stats/physical-clothing/CSA/sexual/media consumers remain unaffected;
+7. full test suite, changed-file syntax checks, and `git diff --check` pass.
+
+Test count alone is not acceptance evidence.
 
 ## Authorized operations
 
-- deploy the exact accepted source/test executable lineage to the TEST API Worker if needed;
-- reset only disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`;
-- invoke the existing TEST-only Level-7 acceleration seam;
-- run the canonical Story -> Extract -> Commit -> context/readback/replay path;
-- query TEST DB/readback evidence needed for acceptance;
-- use only existing diagnostic switches if genuinely needed, and disable them before terminal.
-
-No Production, manual-game access, migration/DDL, provider/model changes, source patching, or new branch/PR.
-
-## Scenario coverage
-
-Use a scenario-driven run rather than one micro-test per invariant. Aim for roughly 8-12 committed ordinary turns if no earlier decisive defect occurs.
-
-### A. Core playability
-
-- setup/opening succeeds;
-- free-text player actions work;
-- provider-authored literal choices are displayed and at least one exact literal choice round-trips as the next player action;
-- explicit player intent/action kind and target are not silently substituted;
-- Story -> Extract -> Commit identities and turn order agree.
-
-### B. Simplified narrative continuity
-
-Naturally establish several ordinary narrative facts across the run, such as:
-- a work promise or refusal;
-- a relationship reaction or boundary;
-- an emotional reaction;
-- a current work situation.
-
-Verify continuity is carried by recent raw Story and, once older than the six-turn raw window, by `turn_summary` only.
-
-Do not require or create `active_relations`, general `event_ledger`, `npc_relationship_state`, `npc_emotion`, or `npc_work_state` as fresh continuity authority.
-
-### C. Removed semantic residue must stay non-authoritative
-
-Across fresh turns/readback verify:
-- new current-format Commit does not create fresh general relation/event/emotion/work continuity state;
-- stale or accidental optional provider residue, if emitted, is dropped warning-only and does not kill an otherwise valid turn;
-- valid sibling narrow projections in the same Extract result survive;
-- historical inert fields, if physically present, do not become current Story authority.
-
-Do not fail merely because an old inert JSON field exists.
-
-### D. Retained real consumers
-
-Exercise, where naturally reachable:
-- visible `npc_stats` changes and UI/readback projection;
-- scene/location/presence;
-- player/NPC physical and compact clothing continuity;
-- progression and time;
-- strong institutional CSA as context only;
-- Mind Monitor;
-- sexual mechanics / `sexual_event_ledger` only if naturally reached, without forcing the scenario merely to satisfy coverage;
-- media/image remains presentation-only and must not determine narrative truth.
-
-### E. Long-enough continuity
-
-Cross the six-raw-turn boundary. Verify:
-- latest six committed raw turns are the recent Story context;
-- at least one meaningful early turn leaves the raw window;
-- its committed `turn_summary` remains in chronological older memory;
-- a later relevant Story can naturally carry that older continuity without a general semantic ledger.
-
-### F. Replay/recovery
-
-- replay at least one committed current-format turn;
-- committed turn/save revision remains invariant on replay;
-- refresh/context readback reconstructs latest raw turns + older summaries consistently;
-- replay does not recreate removed semantic state.
-
-## Failure discipline
-
-At the first deterministic product failure:
-- record exact turn/action id and failing stage;
-- preserve Story text, Extract result/error, Commit/readback, relevant summaries/context, HTTP/SSE terminal state, Worker identity, and TEMP evidence path;
-- stop without retrying for a favorable semantic outcome;
-- do not patch source or add a gate/repair/retry/model change during this lease.
-
-Harness-only failure may be classified separately, but do not confuse it with product failure and do not create a new gameplay gateway to work around it.
-
-## PASS criteria
-
-PASS requires one coherent live TEST run proving:
-1. ordinary gameplay remains usable after semantic-state deletion;
-2. removed relation/general-event/emotion/work channels are not needed for continuity and do not block fresh turns;
-3. latest-six raw Story + older `turn_summary` carries continuity across the raw-window boundary;
-4. retained narrow machine/UI state still functions where exercised;
-5. replay/recovery is idempotent;
-6. final dedicated TEST cleanup succeeds.
-
-Test counts alone are not acceptance evidence.
-
-## Completion
-
-After PASS or first decisive failure:
-- reset only the disposable TEST game to clean documented baseline;
-- disable any temporary diagnostic switch used;
-- set CURRENT_TASK to `WAITING_REVIEW` in one docs-only completion commit;
-- post one immutable terminal report to Issue #68;
-- STOP. Do not create the next task yourself.
+Source/test/docs changes inside the existing #67 branch only.
+No TEST live gameplay, DB write/reset, migration/DDL, Worker/frontend deployment, or Production access in this lease.
 
 ## Forbidden
 
+- new branch or PR;
+- merge / PR Ready / rebase / squash / force-push;
 - Production access;
-- any access/mutation/reset of historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- source/runtime patch during acceptance;
-- migration/DDL;
+- any access/mutation/reset of manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
 - provider/model/temperature/token changes;
-- retry/regeneration to obtain a lucky pass;
-- new fact/relation/event/emotion/work memory ledger;
-- new semantic taxonomy/gateway/repair layer;
-- new parser generation;
-- merge / PR Ready / rebase / squash / force-push / new branch / new PR.
+- retry/regeneration to hide a defect;
+- new parser generation or parser relaxation;
+- new semantic gateway/classifier/ledger/graph;
+- compatibility runtime added only to rescue stale tests;
+- editing historical applied migrations.
 
-## Execution result — waiting for operator review
+## Completion
 
-The accepted executable lineage `0fc509911e5bdf5aabb92fe5241a845f686bdb17`
-was deployed to the TEST Worker `game-proxy-company-v1` as Version
-`20052ce9-4c65-4158-9bae-5a7cd8372e1e`. The Stage B action contract gate and
-Wrangler dry-run passed before deployment; health returned HTTP 200 with
-`edition_id=company-v1`.
+Commit source/test changes separately from final docs handoff where practical. Report exact executable SHA and exact final docs SHA.
+Set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit, post one immutable terminal report to Issue #68, and STOP.
 
-One coherent dedicated TEST run completed eight ordinary Story → Extract →
-Commit turns. Setup/opening passed, an exact literal Opening choice
-round-tripped, free-text actions committed, removed semantic residue remained
-empty/non-authoritative in fresh Extract results, and replay returned
-`meta.replayed=true`, `complete.replayed=true`, `extract.replayed=true`, and
-`commit.replayed=true` without changing committed turn or save revision. The
-live history readback contained eight committed records with natural-language
-`turn_summary` values, and the accepted source projection contract uses the
-latest six raw turns plus chronological older summaries. The temporary
-acceptance probe requested a broad `recent_turns=15` readback, so its artifact
-does not claim a direct six-item response; the six-plus-summary boundary is
-verified from the accepted projection contract alongside the live history.
-
-Preserved evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v9-evidence.json`.
-Final TEST reset passed with `committed_turn=0`, `processing_status=idle`,
-setup/opening `not_started`, zero recent turns, and `save_revision=973`.
-No Production or historical manual-game access occurred. No source,
-migration, provider/model, or repository runtime file changed.
+No live acceptance in this source/test lease.
