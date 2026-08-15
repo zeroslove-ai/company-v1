@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: committed-parsed-blocks-replay-authority-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -93,3 +93,19 @@ No TEST live gameplay, DB write/reset, migration/DDL, Worker/frontend deployment
 ## Completion
 
 Commit source/test changes separately from final docs handoff where practical. Report exact source/test SHA and final docs SHA. Set CURRENT_TASK to WAITING_REVIEW in docs-only completion commit, post one immutable terminal report to Issue #68, and STOP.
+
+## Completion handoff
+
+Source/test commit: `7b61c9fd69930e82afc97a2dc907136ce3678beb`.
+
+Committed current-format `parsed_blocks.blocks` is now preferred by the
+replay/history/Extract/Commit callers in `src/api/turn-routes.js`; the one
+existing `parsePersistedNarrative` boundary remains only for rows without
+usable structured blocks. Focused replay/structured-persistence tests passed
+11/11, the broader focused set passed 80/80, and `npm.cmd test` passed 419/419.
+Changed JS/MJS syntax checks and `git diff --check` passed. No DB writes, TEST
+reset/live access, migrations, deployments, or Production access occurred.
+
+Audit: `docs/audit/COMMITTED_PARSED_BLOCKS_REPLAY_AUTHORITY_2026-08-16.md`.
+
+This task is complete for operator review. No next task was generated.

@@ -371,3 +371,24 @@ replay, Extract, scene, display, and frontend recovery tests passed 92/92;
 changed JS/MJS syntax checks and `git diff --check` passed. No DB write,
 TEST reset/live access, migration/DDL, deployment, or Production access was
 performed. PR #67 remains OPEN / DRAFT / UNMERGED; operator review is pending.
+
+## Committed `parsed_blocks` replay authority — source/test verified
+
+The follow-up source/test task `committed-parsed-blocks-replay-authority-v1`
+was implemented on `company/scene-location-presence-v1` in source/test commit
+`7b61c9fd69930e82afc97a2dc907136ce3678beb`. Current-format replay, history,
+Extract, and Commit readers now prefer usable committed `parsed_blocks.blocks`;
+the existing `parsePersistedNarrative` boundary remains only for rows without
+usable structured blocks. Fresh generation still uses the fresh parser, and
+opening state remains on its separate persisted opening projection because the
+current opening RPC does not store committed-turn `parsed_blocks`.
+
+The current raw Story remains the exact Extract/presentation input, but it no
+longer overrides usable committed structured blocks during replay/recovery.
+No new parser, gateway, semantic fallback, or compatibility wrapper was added.
+
+Verification: targeted replay/structured-persistence tests passed 11/11;
+broader focused tests passed 80/80; full `npm.cmd test` passed 419/419;
+changed JS/MJS syntax checks and `git diff --check` passed. No DB write, TEST
+reset/live access, migration/DDL, deployment, or Production access was
+performed. PR #67 remains OPEN / DRAFT / UNMERGED; operator review is pending.
