@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: story-control-marker-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -86,3 +86,40 @@ On success or deterministic BLOCKED finding:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
+
+## Execution result — 2026-08-16
+
+The exact reviewed executable lineage containing `b3c06f931d8bd216f217412343621781670f0722`
+was deployed to TEST only as Worker `game-proxy-company-v1`, Version
+`10044238-541e-4e8a-a115-fb5a6cd1ecb5`, at `2026-08-15T21:08:34.371359Z`.
+Health returned HTTP 200 with `ok=true` and `edition_id=company-v1`.
+
+The live Opening contract remained present and unchanged: migration
+`20260816000100_company_v1_opening_structured_persistence`, canonical six-argument
+writer, SECURITY DEFINER, `search_path=public, pg_temp`, and service_role-only
+execution. No migration or DDL was applied.
+
+The dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` completed Setup,
+Opening, two ordinary Story/Extract/Commit turns, Turn 1 Story/Extract/Commit
+replay, context/history readback, and final reset. Opening returned four raw and
+four canonical provider choices; its complete SSE payload contained four parsed
+choices and four canonical choices. Both ordinary inputs were free text and
+both ordinary Story parser/Extract/Commit paths passed. The final read-only
+context check was clean: committed_turn=0, processing_status=idle,
+player_setup=not_started, opening_state=not_started, csa_active=[], and no
+recent turns.
+
+The required literal-choice contract is corroborated by preserved v9 live
+evidence at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v9-evidence.json`:
+the exact Opening literal was submitted as `player_action` and matched exactly.
+That evidence ran on ancestor `0fc509911e5bdf5aabb92fe5241a845f686bdb17`, which
+is an ancestor of reviewed executable `b3c06f931d8bd216f217412343621781670f0722`;
+the reviewed change only consolidates the Story marker grammar and does not
+alter the choice path. The current rollout's Opening 4-choice and current
+ordinary/replay evidence is preserved at
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-canary-cut1-authority.json`.
+
+No retry, regeneration, provider/model workaround, parser change, semantic
+fallback, frontend deployment, Production access, or preserved manual-game
+access occurred. Source/runtime/test files remained unchanged during this
+lease.

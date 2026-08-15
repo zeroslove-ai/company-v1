@@ -56,3 +56,34 @@ change, fallback Story, or semantic gateway was added.
 
 The source/test root-cause fix is ready for operator review. No live canary or
 deployment was performed, and no next task was generated.
+
+## TEST rollout evidence — 2026-08-16
+
+The exact reviewed executable lineage containing
+`b3c06f931d8bd216f217412343621781670f0722` was deployed to TEST only as
+Worker `game-proxy-company-v1`, Version
+`10044238-541e-4e8a-a115-fb5a6cd1ecb5`, at
+`2026-08-15T21:08:34.371359Z`. Health was HTTP 200 with `ok=true` and
+`edition_id=company-v1`. The live Opening migration/RPC contract was
+read-only verified; no migration or DDL was applied.
+
+The existing canary on dedicated TEST game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84` returned Opening HTTP 200/complete,
+parser success, 4 raw choices, 4 canonical choices, and a complete SSE
+payload with 4 parsed and 4 canonical choices. It then passed two ordinary
+free-text Story/Extract/Commit turns and Turn 1 Story/Extract/Commit replay;
+history contained parsed blocks for both committed turns. Final reset plus a
+separate read-only context check was clean (`committed_turn=0`, idle,
+setup/opening not started, no CSA, no recent turns).
+
+The exact literal-choice round-trip is retained in the prior v9 live evidence
+at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v9-evidence.json`:
+the selected Opening literal and submitted `player_action` matched exactly.
+That evidence used ancestor `0fc509911e5bdf5aabb92fe5241a845f686bdb17`, which
+is an ancestor of the reviewed executable; the current change is limited to
+Story marker grammar and does not alter choice handling. Combined with the
+current Opening/parser/replay evidence, the rollout is PASS.
+
+No retry, regeneration, workaround, parser/provider change, frontend deploy,
+Production access, or preserved manual-game access occurred. Preserved
+artifacts remain unchanged.
