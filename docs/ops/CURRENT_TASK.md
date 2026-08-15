@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: fresh-extract-optional-observation-fail-open-v1
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -134,3 +134,24 @@ Post one immutable terminal report to Issue #68 with:
 - live/DB/deploy/migration/Production/manual-game operations = 0.
 
 Then stop for review.
+
+## Completion state
+
+- Execution lease: Issue #68 comment `5301891398`.
+- START_SHA: `917b6bcbac5bd1e3968bbac279ae71d314d60a90`.
+- START CURRENT_TASK_BLOB_SHA: `7fca01fe077be04838884e43b6ca4bbe3882af47`.
+- Source/test commit: `53710ca` (`fix: make fresh extract observations fail open`).
+- Final completion SHA: the docs-only commit containing this section; reported in the immutable Issue #68 terminal report.
+- Exact changed source/test files:
+  - `src/engine/runtime-core/extract-observation.js`
+  - `test/extract-observation-contract.test.mjs`
+  - `test/turn-pipeline-replay.test.mjs`
+- Softened fatal paths: fresh per-fact identity, exact-quote, source-block, malformed-fact, duplicate/unknown/mismatched block, and incomplete block-accounting failures now drop only the affected optional observation with warnings; valid observations remain normalizable.
+- Preserved strict boundaries: fresh protocol shape, top-level `open_facts` prohibition, parser-owned block identity, server-authored fact identity/provenance, and persisted replay validation remain enforced.
+- Focused tests: `node --test test/extract-observation-contract.test.mjs test/turn-pipeline-replay.test.mjs` — 48/48 pass.
+- Full tests: `npm.cmd test` — 451/451 pass.
+- Syntax: changed JS/MJS files passed `node --check`.
+- `git diff --check`: PASS.
+- No new semantic gate, retry/regeneration, parser/decoder/wrapper, provider/model, enum, allowlist, fuzzy matcher, or repair path was introduced.
+- Live acceptance = 0; DB writes = 0; TEST reset = 0; migration apply = 0; deployments = 0; Production/manual-game access = 0.
+- PR #67 remains OPEN / DRAFT / UNMERGED.
