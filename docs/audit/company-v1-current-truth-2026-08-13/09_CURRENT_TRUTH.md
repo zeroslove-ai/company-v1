@@ -320,3 +320,33 @@ Verification facts: focused correction tests passed 35/35, full `npm.cmd test`
 passed 417/417, changed JS/MJS syntax checks passed, and `git diff --check`
 passed. No DB write, migration, reset, deployment, or Production access was
 performed; PR #67 remains OPEN / DRAFT / UNMERGED.
+
+## Deep Level-7 live acceptance v9 — TEST verified, operator review pending
+
+The accepted simplified-runtime executable `0fc509911e5bdf5aabb92fe5241a845f686bdb17`
+was deployed to the TEST Worker `game-proxy-company-v1` as Version
+`20052ce9-4c65-4158-9bae-5a7cd8372e1e`. The Stage B action contract gate and
+Wrangler dry-run passed before deployment, and `/health` returned HTTP 200 with
+`edition_id=company-v1`.
+
+One coherent run on disposable TEST game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84` completed setup/opening and eight
+ordinary Story → Extract → Commit turns. An exact literal Opening choice
+round-tripped as the next player action; free-text actions committed; fresh
+Extract results contained no current-format relation/general-event/emotion/work
+residue; scene/progression/time and other narrow readback remained usable; and
+the selected committed turn replayed with Story/Extract/Commit replay flags
+true while `committed_turn` and `save_revision` remained invariant. The live
+history readback contained eight committed records, each with a natural-language
+`turn_summary`. The accepted source projection contract was verified to slice
+the latest six raw turns and place older summaries in chronological
+`turn_summary_memory`; the temporary broad context probe used
+`recent_turns=15`, so it is not represented as a direct six-item API response.
+
+Evidence is preserved at
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v9-evidence.json`.
+Final disposable-game reset was independently read back clean at
+`committed_turn=0`, `processing_status=idle`, setup/opening `not_started`,
+zero recent turns, and `save_revision=973`. No Production or historical
+manual-game access occurred. `docs/ops/CURRENT_TASK.md` is now
+`WAITING_REVIEW`; the next architecture task was not generated.

@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v9-simplified-runtime
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -152,3 +152,30 @@ After PASS or first decisive failure:
 - new semantic taxonomy/gateway/repair layer;
 - new parser generation;
 - merge / PR Ready / rebase / squash / force-push / new branch / new PR.
+
+## Execution result — waiting for operator review
+
+The accepted executable lineage `0fc509911e5bdf5aabb92fe5241a845f686bdb17`
+was deployed to the TEST Worker `game-proxy-company-v1` as Version
+`20052ce9-4c65-4158-9bae-5a7cd8372e1e`. The Stage B action contract gate and
+Wrangler dry-run passed before deployment; health returned HTTP 200 with
+`edition_id=company-v1`.
+
+One coherent dedicated TEST run completed eight ordinary Story → Extract →
+Commit turns. Setup/opening passed, an exact literal Opening choice
+round-tripped, free-text actions committed, removed semantic residue remained
+empty/non-authoritative in fresh Extract results, and replay returned
+`meta.replayed=true`, `complete.replayed=true`, `extract.replayed=true`, and
+`commit.replayed=true` without changing committed turn or save revision. The
+live history readback contained eight committed records with natural-language
+`turn_summary` values, and the accepted source projection contract uses the
+latest six raw turns plus chronological older summaries. The temporary
+acceptance probe requested a broad `recent_turns=15` readback, so its artifact
+does not claim a direct six-item response; the six-plus-summary boundary is
+verified from the accepted projection contract alongside the live history.
+
+Preserved evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v9-evidence.json`.
+Final TEST reset passed with `committed_turn=0`, `processing_status=idle`,
+setup/opening `not_started`, zero recent turns, and `save_revision=973`.
+No Production or historical manual-game access occurred. No source,
+migration, provider/model, or repository runtime file changed.
