@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v4
 Updated: 2026-08-15
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -261,3 +261,16 @@ Before terminal report:
 10. report TEMP evidence path + SHA-256.
 
 Set CURRENT_TASK to `WAITING_REVIEW`, commit/push only that completion-state docs change if needed, post one immutable terminal report to Issue #68, and STOP. Do not patch the defect or generate the next task yourself.
+
+## V4 terminal result — BLOCKED at first decisive commit boundary
+
+- Executed exact reviewed executable `1ffc3ca269fcf34d748d5380c2b70be19696b5d4` on TEST Worker `game-proxy-company-v1`, Version `997a89f4-f129-4fca-b42c-d1ee62df0bfd`.
+- Stage B action gate and Scene Stage A gate dry-run: PASS. Level-7 seam `prepare_company_test_level7_fixture` was invoked exactly once for the dedicated TEST game and returned `test_only=true`, `player_progress.level=7`, `reset_before_seed=true`.
+- Initial TEST readback: `committed_turn=0`, `save_revision=920`, `processing_status=idle`, setup/opening `not_started`, `actions=0`, `turns=0`.
+- Opening PASS: four unique non-empty literal choices; Turn 1 used the first displayed literal unchanged.
+- Turn 1 Story PASS and Extract PASS. Action `f1f599f5-6349-44f5-8306-dd5c698125bf`, expected turn 1. Extract returned three exact `open_facts` with `source_block=story:0`, exact Story quotes, and `turn_summary`.
+- First decisive failure: `/api/commit` HTTP 422, `invalid_open_fact`, `Unknown observation field: fact_id`. No retry, regeneration, source patch, provider change, or manual DB repair was performed.
+- The failure evidence is outside the repository at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v4-evidence.json`, SHA-256 `EE1A086291BE01EFB866E5C21EFE97F0B96AAD01458E71078D07A78695B61C7E`.
+- Final canonical reset PASS: `committed_turn=0`, `save_revision=926`, `processing_status=idle`, setup/opening `not_started`, `csa_active=[]`, `actions=0`, `turns=0`, Level-7/player progression baseline restored. Preserved manual game was not accessed.
+- Scenario matrix: A `PASS` through opening/literal choice; B `FAIL` at Turn 1 Commit; C/D/E/F/G/H/I `NOT EXERCISED` after the decisive failure, except I final reset `PASS`.
+- API deploys in this task: 1 TEST-only; frontend deploys 0; migrations 0; Production access 0. Acceptance is `BLOCKED` pending the commit open-fact contract correction and a separately authorized reviewed rerun.
