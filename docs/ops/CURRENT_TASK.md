@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: canary-opening-choice-option-plumbing-fix-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -83,3 +83,24 @@ On PASS or first deterministic blocker:
 - update this file to `WAITING_REVIEW` in the same source/test lineage;
 - post one immutable terminal report to Issue #68 with START SHA, FINAL source/test SHA, exact files changed, focused/full test results, syntax/diff checks, and forbidden-operation confirmation;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution record
+
+- Task ID: `canary-opening-choice-option-plumbing-fix-v1`
+- Start SHA: `0a6ea8d9437d354ef16bd98e4c30b49fbdd22497`
+- Current task blob SHA at start: `a3f5a1d1cfae09081c4c8a7c762f40c514610359`
+- Source/test SHA: `5c14561f478859309c26100c6d9217734a23018b`
+- Changed source/test files: `scripts/live-playtest-canary.mjs`, `test/live-canary-contract.test.mjs`
+- Fix: Cut 1 now passes the parsed top-level `openingChoiceIndex` into the existing literal-selection path; index `0` is preserved and the selected canonical literal is transported unchanged. No-option free text remains unchanged.
+- Focused canary contract: `24/24 PASS`
+- Full `npm.cmd test`: `427/427 PASS`
+- Syntax: both modified JS/MJS files `node --check PASS`
+- `git diff --check`: `PASS`
+- TEST live/DB/reset: `0`
+- Migration/DDL application: `0`
+- API/frontend deploy: `0`
+- Production/manual-game access: `0`
+- Provider/model/config/retry/parser/runtime semantic changes: `0`
+- Final docs completion commit: pending
+
+STOP for operator review. Do not start the live closure task or generate the next task from this record.
