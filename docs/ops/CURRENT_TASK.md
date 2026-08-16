@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-duplicate-thought-privacy-boundary-v1
+Status: READY
+Task ID: minimal-story-runtime-release-candidate-product-acceptance-v3
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,166 +13,234 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous task:
-- Task: `minimal-story-runtime-release-candidate-product-acceptance-v2`
-- Terminal: Issue #68 comment `5310274932` — `EXECUTION: BLOCKED`
-- Operator review: Issue #68 comment `5310299489` — `CHANGES_REQUIRED`
-- Verified remote head before this registration: `a6c7312a1bd221eb88ff086c6a9de75ffdb2e719`.
-- Accepted same-location source/test SHA remains `c4ceed11845c127d813c821506f688f02d4c063c` in this lineage.
+Previous accepted task:
+- Task: `minimal-story-runtime-duplicate-thought-privacy-boundary-v1`
+- Terminal: Issue #68 comment `5310327614` — COMPLETE
+- Operator review: Issue #68 comment `5310335579` — ACCEPTED
+- Reviewed source/test SHA: `2be4b7ee29df47529f53f13393f3e3bf829a7c24`
+- Accepted final docs SHA before this registration: `6249cac19db290312df1fcecaefedca5bff2e943`
+- GitHub Actions on the accepted final SHA: `Company v1 tests` run `31980407039` = SUCCESS.
 
-The blocked product-acceptance run did not mutate TEST state and did not deploy. It stopped during the mandatory deterministic duplicate-THOUGHT preflight.
+The duplicate-THOUGHT privacy leak is now closed at source/test level: first THOUGHT remains canonical private `player_inner_thought`; later duplicate THOUGHT content is dropped from public parsed blocks / `scene_text` / Extract observation while the raw provider Story and duplicate warning remain available.
 
-Independent source proof at the reviewed head confirms the defect in `src/engine/fresh-narrative-parser.js`:
-- `parseFreshNarrativeV2()` counts `[THOUGHT]` blocks;
-- the first THOUGHT becomes `player_inner_thought`;
-- the second and later THOUGHT blocks are currently emitted as ordinary `narrative` blocks;
-- `scene_text` is assembled from `scene` + `narrative`, so duplicate private-thought text becomes player-visible narrative;
-- `player_inner_thought_duplicate` is only a warning and does not prevent that leak.
+The earlier same-location registered-NPC handoff source fix also remains in this lineage at `c4ceed11845c127d813c821506f688f02d4c063c`.
 
-This is a narrow parser privacy-boundary source defect. It is not permission to create another parser generation or semantic verification layer.
+Expected TEST DB baseline to verify before writes:
+- `20260816050000 / company_v1_minimal_story_runtime_contract` live exactly once.
+- `20260817000100 / company_v1_final_residue_closure` live exactly once.
+- No migration/DDL authoring or application is authorized.
 
-Forbidden game IDs — do not access:
+Allowed disposable TEST game only:
+- `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+
+Forbidden game IDs — fail closed before network access:
 - Production/sentinel `11111111-1111-4111-8111-111111111111`;
 - preserved manual `78fb1d94-266f-455a-bda4-7656cc2370c1`;
 - QA evidence `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`;
-- disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` is also not authorized for access in this source/test task.
+- every other game ID.
 
-Production is forbidden. No TEST gameplay/reset/write is authorized.
+Production is forbidden.
 
 ## Objective
 
-Correct the existing fresh Story parser privacy boundary so duplicate provider-authored `[THOUGHT]` blocks can never become player-visible narrative, `scene_text`, or Extract observation while preserving the first canonical private thought and the current fail-open Story behavior.
+Run one bounded, coherent release-candidate product acceptance against the exact reviewed Minimal Story Runtime lineage after both:
+1. same-location exact registered-NPC handoff correction; and
+2. duplicate-THOUGHT privacy-boundary correction.
 
-The intended behavior is:
+This is a product-evidence task, not a source-fixing task. No source/test/runtime/content patch is allowed inside this run.
 
-- first canonical THOUGHT -> `player_inner_thought`;
-- second and later THOUGHT -> never ordinary narrative and never Extract-visible Story evidence;
-- keep `player_inner_thought_duplicate` warning when duplicates occur;
-- do not fail/reject the entire Story only because the provider emitted duplicate THOUGHT;
-- do not concatenate duplicate private thought into the canonical thought;
-- do not invent another durable/private-thought bag merely to preserve discarded duplicate text.
+The gameplay spine under test is:
 
-Apply this same contract to Opening and ordinary Story because they share the fresh parser. Do not create an Opening-only parser fork.
+`player input / exact choice literal`
+→ minimal committed context
+→ Story LLM
+→ fresh parser/private-thought boundary
+→ Extract observation
+→ Commit
+→ committed save/turn/history/readback
+→ next Story.
 
-## Required work
+## Mandatory preflight — before TEST mutation
 
-1. Restore/verify a clean canonical worktree exactly matching the remote registration HEAD, freeze it as `START_SHA`, and verify PR #67 is OPEN / DRAFT / UNMERGED with head == START_SHA.
-2. Re-read the current caller/projection chain around:
-   - `parseFreshNarrativeV2()`;
-   - `scene_text` construction;
-   - `buildStoryObservationBlocks()`;
-   - Opening parsing/persistence/readback;
-   - ordinary Story parsing/Extract handoff;
-   - committed `parsed_blocks` replay/presentation.
-3. Add a deterministic regression that reproduces the accepted blocker before accepting the implementation:
-   - one visible `[SCENE]` block;
-   - at least two non-empty `[THOUGHT]` blocks;
-   - exactly four distinct `[CHOICE]` blocks;
-   - current baseline must demonstrate that duplicate thought text reaches a `narrative` block / `scene_text`.
-4. Fix the root in the existing `parseFreshNarrativeV2()` implementation only as needed:
-   - preserve the first canonical private THOUGHT as `player_inner_thought`;
-   - second and later THOUGHT blocks must not be converted to `narrative`;
-   - duplicate THOUGHT text must not appear in `scene_text`;
-   - duplicate THOUGHT text must not appear in `buildStoryObservationBlocks()` or any Extract-facing Story evidence;
-   - duplicate THOUGHT text must not be persisted in committed `parsed_blocks` under a public/narrative block type;
-   - preserve `player_inner_thought_duplicate` warning;
-   - keep fail-open usability: duplicate THOUGHT alone must not invalidate an otherwise valid Story.
-5. Preserve the current raw Story authority boundary. The raw provider response may of course still contain the duplicate marker/text for audit/history where raw Story is stored; the parser must not reinterpret private content as public narrative. Do not mutate or rewrite raw provider text to hide the defect.
-6. Do not broaden the parser into semantic content adjudication. No sentiment/action/consent/relationship/CSA inference and no regex semantic gate are authorized.
-7. Exercise edge cases without redesigning unrelated protocol behavior:
-   - adjacent duplicate THOUGHT blocks;
-   - duplicate THOUGHT separated by visible scene/dialogue/acting blocks;
-   - duplicate THOUGHT around paragraph boundaries/whitespace as current parser permits;
-   - preserve existing handling of empty/missing THOUGHT unless a privacy leak is directly proven there.
-8. Prove unaffected contracts:
-   - exactly four canonical choices still round-trip unchanged;
-   - dialogue/scene/acting parsing remains unchanged;
-   - first `player_inner_thought` is still available to the intended private-thought projection/UI;
-   - `scene_text` contains only player-visible scene/narrative material;
-   - `buildStoryObservationBlocks()` remains limited to observable scene/narrative/dialogue/acting blocks and never private thought;
-   - Opening and ordinary Story use the same corrected parser behavior;
-   - committed readback/replay of parsed blocks cannot resurrect a dropped duplicate THOUGHT as narrative.
-9. Update the most direct existing regression surfaces rather than adding a parallel harness. Expected relevant tests include:
-   - `test/narrative-protocol.test.mjs`;
-   - `test/narrative-presentation-contract.test.mjs`;
-   - `test/setup-opening.test.mjs` / `test/setup-opening-bootstrap.test.mjs` only where needed to prove shared Opening behavior;
-   - any committed parsed-block/readback test directly reached by this parser contract.
-10. Deletion-first residual CSA cleanup may be performed only for the exact zero-caller evidence already surfaced by the blocked preflight:
-   - independently caller-check `authorityFor()` / `modeFor()` in `src/engine/csa/story-projection.js`;
-   - if they are truly zero-caller dead helpers at START_SHA, delete them in this same source cut and adjust direct tests if necessary;
-   - do **not** delete or alter clothing `required_state` / `compliant` merely by name. They remain outside this privacy fix unless current caller/behavior proof shows a direct, safe, independently testable zero-authority deletion; otherwise report them as carry-forward only.
-   - this optional dead-helper cleanup must not expand into a CSA redesign.
-11. Run focused narrative/parser/Opening/presentation/readback tests, full `npm.cmd test`, `node --check` for every changed JS/MJS file, and `git diff --check`.
-12. No migration/DDL is expected or authorized. If a current DB contract unexpectedly blocks the parser-only correction, STOP and report rather than broadening scope.
-13. Commit source/test changes on the canonical branch.
-14. Set this CURRENT_TASK to `Status: WAITING_REVIEW` in the same lineage after tests pass.
-15. Perform a normal fast-forward push of the complete source/test/docs lineage to `origin/company/scene-location-presence-v1`.
-16. After push, independently verify:
-   - local HEAD == remote branch HEAD;
-   - PR #67 head == that same FINAL_SHA;
-   - source/test commit(s) are GitHub-resolvable;
-   - remote CURRENT_TASK is `WAITING_REVIEW`;
-   - PR #67 remains OPEN / DRAFT / UNMERGED.
-17. Only after the remote checks pass, post one immutable terminal report to Issue #68 containing START_SHA, SOURCE_TEST_SHA, FINAL_SHA, exact privacy-boundary change, focused/full/static test results, remote/PR HEAD equality and forbidden-operation confirmation.
-18. STOP. Do not create the next CURRENT_TASK yourself.
+1. Fetch origin and freeze exact current branch HEAD as `START_SHA`.
+2. Verify PR #67 remains OPEN / DRAFT / UNMERGED and head equals START_SHA.
+3. Verify reviewed source/test SHA `2be4b7ee29df47529f53f13393f3e3bf829a7c24` is an ancestor of START_SHA and that commits after it to START_SHA are docs-only unless independently reviewed otherwise.
+4. Verify expected TEST migrations above are live exactly once and no unreviewed DB contract drift is present.
+5. Verify current deployed TEST API identity/source equivalence.
+   - If already source-equivalent to reviewed SHA `2be4b7ee29df47529f53f13393f3e3bf829a7c24`, do not redeploy.
+   - Otherwise deploy exactly that reviewed source-equivalent API once through the existing guarded deployment path.
+   - Frontend source did not change in the accepted privacy cut; do not redeploy Frontend merely to match docs-only SHA.
+   - Record exact Worker Version after any deploy and verify source identity before gameplay.
+6. Deterministically re-run the duplicate-THOUGHT privacy preflight locally/read-only using the current source:
+   - one visible SCENE;
+   - at least two non-empty THOUGHT blocks;
+   - exactly four distinct CHOICE blocks;
+   - first THOUGHT must remain canonical private thought;
+   - later duplicate THOUGHT must not appear in public blocks, `scene_text`, or `buildStoryObservationBlocks()`;
+   - duplicate warning must remain;
+   - no retry/regeneration and no source patch.
+   - If this deterministic boundary is not satisfied, STOP as a source blocker.
+7. Read-only residual CSA caller audit:
+   - `authorityFor()` / `modeFor()` were previously observed as zero-caller deletion candidates; recheck only if still present.
+   - clothing `required_state` / `compliant` must not be removed or treated as dead merely by name. This acceptance task does not redesign CSA projection.
 
-## Architecture constraints
+## Live acceptance — one coherent attempt only
 
-- Story LLM remains narrative authority.
-- The fresh parser is a structural/privacy projection boundary, not a second semantic author.
-- Do not create a third/new parser generation.
-- Do not retry/regenerate provider output to avoid duplicate THOUGHT.
-- Do not add a runtime semantic gate/judge, regex outcome verifier, fuzzy repair, compatibility bag, or generic memory authority.
-- Do not expose duplicate private-thought text through narrative, `scene_text`, Extract observation, media/TTS projection, or committed public parsed blocks.
-- Preserve raw Story streaming and raw Story storage; the fix is parsed/presentation privacy, not provider-output rewriting.
-- Preserve exact four provider-authored choices and existing literal round-trip authority.
-- Preserve the Minimal Story Runtime deletion work and same-location registered-NPC handoff correction already landed.
-- No provider/model/config/retry change.
+After preflight passes, use only disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+
+### A. Clean start / Setup / Opening
+
+1. Canonical reset and independently read back clean baseline.
+2. Perform normal Setup and Opening through the existing production-equivalent path.
+3. Capture raw Opening, parsed blocks, canonical four choices, committed Opening readback, canonical scene/time and player state.
+4. Verify no duplicate/private THOUGHT is rendered as ordinary narrative. If provider naturally emits duplicate THOUGHT, inspect that single sample; do not regenerate for a cleaner result.
+5. Use one exact provider-returned Opening choice literal for the first normal turn.
+
+### B. Coherent 10–14 turn scenario
+
+One provider attempt per stage only. Do not assemble disconnected probes.
+
+The same run must cover the following mandatory proofs where current mechanics support them:
+
+1. **Literal and free-text player agency**
+   - use both exact clicked literals and natural free-text;
+   - Story must not replace a material explicit player action/current self-state with a different fact.
+
+2. **Explicit representable player self-state fidelity — positive proof**
+   - inspect current source contract first and choose one current player physical/sexual fact that the existing narrow state can actually represent;
+   - state it explicitly together with an ordinary next intent;
+   - Story must preserve rather than contradict/replace the explicit current fact;
+   - where the existing narrow Extract/Commit contract legitimately represents it, verify committed/readback continuity on the next turn;
+   - intent/attempt is not success unless Story establishes success.
+
+3. **Same-location exact registered NPC handoff — mandatory live regression**
+   - naturally reach `brand_strategy_office` with prior active local participant(s);
+   - send exact free text `윤민아 보러간다`;
+   - Story target/cast must hand off to registered `heroine2` without fake identity or location jump;
+   - canonical location/time must not change merely because target shares the same broad location;
+   - after Commit, `save.scene.present_npc_ids` must include `heroine2` and must not retain prior active-scene NPCs solely because the map location string is unchanged;
+   - additional NPC presence is allowed only from existing exact destination-phase Story evidence.
+
+4. **Canonical time**
+   - Story must not contradict committed game time;
+   - elapsed time advances only through the established deterministic/observed path.
+
+5. **CSA activation-time premise coherence and side-system isolation**
+   - if needed, use only the already-existing guarded TEST-only Level-7 acceleration seam and clean it afterward;
+   - activate one current CSA through the normal TEST product path at a specific turn/time;
+   - once active and applicable, following the valid company rule must be treated as the altered natural workplace premise, not an optional/not-yet-effective policy decision;
+   - personality/emotion may differ;
+   - compliance must not imply unrelated consent, comfort, affection, trust, romance, or arousal;
+   - no semantic gate/retry may rewrite Story into compliance.
+
+6. **Positive compact clothing persistence — mandatory proof**
+   - inspect actual supported compact vocabulary first; use only current supported slots such as `uniform_top`, `uniform_bottom`, `underwear_top`, `underwear_bottom` where source confirms them;
+   - obtain one positive Story-established supported clothing-state change through normal narrative/CSA behavior without inventing unsupported mappings or retry-until-lucky;
+   - verify Extract/Commit persistence and next-turn/readback continuity;
+   - if the single coherent attempt never establishes a supported positive clothing event, report `COVERAGE_NOT_REACHED`; do not manufacture or rerun coverage.
+
+7. **Long-horizon continuity beyond the six-raw window — mandatory**
+   - establish a distinctive work/context fact early enough that the source turn leaves the most-recent six raw turns;
+   - continue far enough to verify chronological older `turn_summary` memory is non-empty/updating and later Story does not suffer a continuity cliff;
+   - inspect exact context/readback shape, not only turn count.
+
+8. **Choice quality**
+   - every normal provider turn must expose exactly four literal committed choices;
+   - record whether the choices represent meaningfully different next actions rather than repetitive paraphrases;
+   - structural four-count alone is not semantic acceptance.
+
+9. **Reaction/progression quality**
+   - narrative must not get stuck repeatedly re-litigating the same active rule or repeating the same non-progressing reaction loop;
+   - no runtime LLM judge/hard semantic gate is permitted.
+
+10. **Refresh / history / replay authority**
+   - perform committed context/history readback after important milestones;
+   - perform at least one supported replay/idempotence check without advancing committed turn/revision;
+   - exercise the existing refresh/readback path and verify the same committed reality reappears: Story, parsed blocks/private thought, exact choices, summaries, canonical scene/time and narrow physical/clothing state.
+
+11. **Presentation sidecars remain sidecars**
+   - image/media/TTS/Mind Monitor classification/failure must not erase, reject, or redefine Story or block Commit.
+
+### C. Stop rule
+
+- Stop immediately on the first decisive architecture/protocol/product blocker.
+- Do not continue turns and later count them as acceptance evidence after a decisive blocker.
+- Do not retry/regenerate a failed provider/Story/Extract stage.
+- Do not patch source, add compatibility behavior, switch provider/model, add regex verification, fuzzy matching, or semantic gates.
+- Capture exact player action, raw Story, parsed blocks, Extract, pre/post canonical save, committed turn/history and deployed identity for the blocker.
+
+If a mandatory positive proof is simply not reached in the single coherent attempt, report `COVERAGE_NOT_REACHED`, not PRODUCT_PLAY_PASS.
+
+### D. Mandatory cleanup
+
+Whether PASS, BLOCKED or COVERAGE_NOT_REACHED:
+1. restore/disable the existing TEST-only Level-7 acceleration seam if used;
+2. canonical reset disposable TEST game;
+3. independently read back clean final state: no committed turns/actions, setup/opening not_started, Level 1 baseline, no active CSA, canonical setup scene and empty presence as the current reset contract defines;
+4. do not touch any forbidden game.
+
+## Acceptance
+
+`PRODUCT_PLAY_PASS` requires all mandatory proofs above, including:
+- duplicate-THOUGHT privacy deterministic preflight passes on reviewed source;
+- same-location exact registered NPC handoff works live;
+- no decisive player-agency/time/scene/premise/readback defect;
+- explicit player self-state positive proof;
+- positive supported compact-clothing persistence proof;
+- continuity after the six-raw window through chronological summaries;
+- exactly four committed choices with useful semantic diversity;
+- refresh/history/replay parity;
+- presentation side systems remain non-authoritative.
+
+A failing run may still be `EVIDENCE_ACCEPTED`; that is not `PRODUCT_PLAY_PASS`.
 
 ## Authorized operations
 
 Authorized:
 - read-only Git/source/PR inspection;
-- source/test/docs edits on the canonical branch only;
-- local focused/full tests and static checks;
-- normal fast-forward push of this task lineage;
-- one immutable Issue #68 terminal report after remote equality is proven.
+- deterministic local parser/caller preflight without source edits;
+- read-only TEST DB/deployment identity preflight;
+- at most one exact reviewed source-equivalent TEST API deployment if required;
+- disposable TEST game reset/setup/opening/gameplay/readback/history/replay/final reset;
+- existing guarded TEST-only Level-7 acceleration seam when needed, with mandatory cleanup;
+- immutable Issue #68 terminal report;
+- docs-only CURRENT_TASK status update to WAITING_REVIEW and normal fast-forward push.
 
 Not authorized:
-- TEST gameplay/reset/write or any game access;
-- DB write/migration/DDL authoring or apply;
-- API/frontend deploy;
-- Production or forbidden-game access;
+- source/test/runtime/content changes;
+- migration/DDL authoring or application;
+- Frontend deploy merely to match docs-only/source-equivalent API state;
+- Production, sentinel, preserved-manual, QA evidence or any non-disposable game access;
 - provider/model/config/retry/regeneration changes;
-- new parser generation;
-- new branch/PR;
-- merge, PR Ready, rebase, squash or force-push.
+- new parser generation, fuzzy target logic, semantic gate/judge, compatibility layer or generic memory system;
+- new branch/PR, merge, Ready, rebase, squash or force-push.
 
-## Acceptance
+## Terminal report requirements
 
-PASS only if all of the following are proven:
-- the accepted duplicate-THOUGHT leak is reproduced by a regression on the baseline;
-- after the fix, first THOUGHT remains the canonical private thought;
-- second/later THOUGHT content never becomes ordinary narrative, `scene_text`, Extract observation, or committed public parsed-block content;
-- duplicate warning remains;
-- an otherwise valid Story remains usable without retry/regeneration;
-- Opening and ordinary Story share the corrected behavior;
-- choices/dialogue/scene/acting/readback contracts remain green;
-- full tests/static checks pass;
-- the complete source/test/docs lineage is actually landed remotely with branch HEAD == PR #67 head == reported FINAL_SHA.
+On PRODUCT_PLAY_PASS, first decisive blocker, or COVERAGE_NOT_REACHED:
+- set this file to `WAITING_REVIEW` and fast-forward push the docs-only status change;
+- post exactly one immutable terminal report to Issue #68 containing:
+  - START_SHA / reviewed source-equivalence / deployed API Version if changed;
+  - migration/DB preflight result;
+  - duplicate-THOUGHT deterministic preflight result;
+  - residual CSA caller audit result;
+  - exact live scenario committed-turn count and stop point;
+  - same-location Mina handoff evidence;
+  - player self-state evidence;
+  - compact clothing positive evidence or explicit COVERAGE_NOT_REACHED;
+  - six-raw-window summary/continuity evidence;
+  - choice-quality observations;
+  - CSA premise/side-system observations;
+  - replay/context/history/refresh evidence;
+  - final reset readback;
+  - forbidden-operation confirmation;
+  - PR #67 OPEN / DRAFT / UNMERGED state.
+- STOP. Do not generate the next CURRENT_TASK yourself.
 
-A local-only PASS is BLOCKED, not COMPLETE.
+## Deferred release hygiene — do not execute here
 
-## Product-acceptance debt after this source fix — preserve, do not execute here
+Only after stable product evidence:
+- refresh stale PR #67 body to match actual Minimal Story Runtime state;
+- decide landing/history consolidation strategy for the very large PR history.
 
-After independent review of this source correction, the next bounded TEST acceptance must still prove:
-1. same-location exact registered NPC handoff live (`윤민아 보러간다`);
-2. explicit representable player physical/self-state fidelity;
-3. positive supported compact four-slot clothing persistence;
-4. continuity after the recent six raw turns through chronological `turn_summary` memory;
-5. exactly four literal choices with useful semantic diversity and no repetitive non-progressing reaction loop;
-6. CSA activation-time premise coherence while keeping unrelated consent/comfort/affection/trust/romance/arousal separate;
-7. canonical time plus refresh/history/replay parity;
-8. presentation side-system isolation.
-
-Do not run these live proofs in this source/test task.
+These are operator decisions after product stabilization, not part of this acceptance run.
