@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-destination-target-handoff-v1
+Status: READY
+Task ID: minimal-story-runtime-destination-target-handoff-test-rollout-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,135 +13,126 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5308823061` — `ACCEPTED_BLOCKED_EVIDENCE` for `minimal-story-runtime-test-rollout-v6`.
-Reviewed source/runtime SHA: `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`.
-V6 terminal docs SHA: `0da414578ef77420701a0b79ca273a19a82a2c66`.
-Terminal comment: `5308794650`.
+Previous operator review: `5308903596` — ACCEPTED `minimal-story-runtime-destination-target-handoff-v1`.
+Reviewed source/runtime SHA: `beae855ebc5a9706bae234af80b2569d73566f0a`.
+Source terminal comment: `5308879240`.
 
-TEST migration `20260816050000 / company_v1_minimal_story_runtime_contract` is already applied exactly once. DO NOT EDIT, REAPPLY OR REPLACE IT in this task.
+The accepted source cut fixes one proven product defect only:
+- exact player action `윤민아 보러간다` can resolve through the existing navigation resolver to destination `brand_strategy_office`, target `heroine2`, source `explicit_npc_destination`;
+- the exact registered target is then carried through existing destination Story cast/presence and Commit `entered_npc_ids` instead of being dropped;
+- source-location NPCs are still filtered on authoritative A->B movement;
+- explicit location-only navigation remains target-free;
+- ambiguous/unregistered/wrong-catalog identities remain unresolved/fail closed.
 
-Disposable TEST game remains `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`, but this source/test task is NOT authorized to run gameplay, reset, write DB state or deploy.
+TEST migration `20260816050000 / company_v1_minimal_story_runtime_contract` is already applied exactly once. DO NOT EDIT, REAPPLY OR REPLACE IT.
+
+Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
 Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`, QA evidence game `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`, and Production are forbidden.
-
-## Proven blocker
-
-V6 used the canonical Setup -> `/api/opening` -> Story/Extract/Commit flow and reached a deterministic product defect:
-
-- exact action: `윤민아 보러간다`;
-- canonical source location: `brand_strategy_meeting_room`;
-- resolver correctly produced destination `brand_strategy_office`, target `heroine2`, source `explicit_npc_destination`;
-- canonical location moved to `brand_strategy_office`;
-- committed destination `present_npc_ids=[]` instead of carrying the uniquely resolved registered destination target.
-
-Independent source review confirms the handoff loss:
-
-1. `resolvePlayerNavigationIntent()` already produces `target_npc_id` for exact registered-NPC destination navigation.
-2. `projectStorySaveForNavigation()` consumes only `destination_location_id` and clears destination presence/focal state.
-3. `reduceGameplayCommit()` forwards navigation for authoritative location but does not carry destination target identity into the canonical scene reducer.
-4. `reduceCanonicalScene()` therefore has no destination-target input. Source-phase speakers/presence are correctly filtered on authoritative A->B movement, but the registered target is also lost.
-
-This task fixes only that dropped handoff. Do not restore the old semantic router.
 
 ## Objective
 
-Make exact registered-NPC destination navigation carry its already-resolved target identity through the existing navigation -> Story scene/cast -> Extract/Commit -> canonical scene path, while preserving Minimal Story Runtime authority boundaries.
+Perform one bounded TEST-only live acceptance of the accepted destination-target handoff using the normal Company gameplay path.
 
-Expected user-visible meaning:
-- `윤민아 보러간다` may deterministically navigate to Mina's uniquely registered canonical destination and carry `heroine2` as the destination target/cast identity;
-- no generated/fake duplicate Mina may appear;
-- source-location NPCs must not teleport into the destination;
-- ordinary location-only navigation must not invent an NPC;
-- ambiguous/unregistered NPC movement must remain unresolved;
-- this target handoff must not become relationship, consent, affection, trust, CSA, sexual or general semantic-memory authority.
+The decisive product assertion is:
 
-## Required implementation
+`brand_strategy_meeting_room` (or another confirmed non-destination location)
+→ exact player action `윤민아 보러간다`
+→ deterministic navigation destination `brand_strategy_office`
+→ destination Story/canonical scene carries the one registered identity `heroine2`
+→ no source-location NPC teleports into the destination
+→ no generated/fake/duplicate Mina identity appears.
 
-1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`.
-2. Re-inventory current callers of:
-   - `resolvePlayerNavigationIntent()`;
-   - `projectStorySaveForNavigation()`;
-   - `navigationIntent.target_npc_id`;
-   - `reduceGameplayCommit()`;
-   - `reduceCanonicalScene()`;
-   - Story active-character/cast projection and Extract scene observation.
-3. Prove the exact current loss point before editing. Do not add a second navigation resolver or a new semantic target bag.
-4. For `navigationIntent.source === 'explicit_npc_destination'` only, validate that:
-   - `target_npc_id` is a registered NPC;
-   - destination is uniquely derived from existing repository character/general-NPC + map location authority;
-   - target and destination still match the canonical catalog relationship used by the resolver.
-5. Carry that target through existing structures only. Prefer existing `scene.present_npc_ids` / `focal_character_id` or an existing reducer argument over inventing a new persisted schema.
-6. Story projection for the destination must receive the exact registered destination target so the Story is not asked to narrate an empty destination after resolving `윤민아 보러간다`.
-7. Commit/canonical scene handling must preserve phase correctness:
-   - source-location speakers/presence remain excluded after authoritative A->B movement;
-   - destination target may be present only because it is the uniquely registered exact NPC destination and/or because destination-phase Story evidence establishes it;
-   - destination-phase exact presence/entrance/speaker evidence continues to work;
-   - remote dialogue never creates local presence;
-   - unknown IDs still fail closed structurally.
-8. Do not generalize this into "named NPC in player input => present". Only the existing exact `explicit_npc_destination` result may use this narrow handoff.
-9. Do not make arbitrary player action/intent equal physical or relationship success. This task is limited to deterministic navigation/world-cast identity from repository content authority.
-10. Add focused behavioral regressions covering at minimum:
-   - `윤민아 보러간다` from another location resolves destination `brand_strategy_office` and target `heroine2`;
-   - destination Story projection carries only the registered target, not source presence;
-   - canonical committed destination contains `heroine2` on the exact registered destination path under the chosen narrow authority rule;
-   - source speaker/presence cannot teleport to destination;
-   - destination evidence can add valid accompanying NPCs;
-   - explicit location-only navigation does not invent Mina or another default NPC;
-   - same-location NPC visit does not create a fake movement;
-   - ambiguous/unregistered NPC visit does not resolve;
-   - general registered NPC with a unique canonical destination behaves by the same identity rule without hardcoding Mina/heroine2;
-   - no duplicate/fake identity can be produced.
-11. Preserve the accepted Minimal Story Runtime reductions and already-applied DB contract. Do not resurrect retired semantic roots, generic NPC relationship/emotion/work state, csa attitude/acceptance semantic memory, event ledgers, old hydration, old semantic router or finite physical execution authority.
-12. Run focused navigation/scene/Story-context/Commit regressions, full `npm.cmd test`, changed JS/MJS syntax checks and `git diff --check`.
-13. Report actual caller map, exact source/test SHA, changed files, focused/full test result, and explicit proof that no new compatibility/semantic layer was introduced.
+This is a rollout/acceptance task. Do not patch source on failure.
+
+## Required execution
+
+1. Freeze START HEAD. Verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`, and HEAD is only the reviewed source lineage plus this docs-only registration.
+2. Verify the accepted source/runtime SHA `beae855ebc5a9706bae234af80b2569d73566f0a` is an ancestor of the branch and re-check the exact changed runtime files before deployment.
+3. Verify current TEST API Worker identity.
+   - If the deployed API does not contain the reviewed `beae855...` runtime lineage, deploy exactly the reviewed branch lineage through the existing Stage-B contract-gated API path.
+   - Do not make source edits during deployment.
+   - Frontend source did not change in the accepted cut; do NOT redeploy frontend merely for this task.
+4. Canonically reset only disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` and verify baseline:
+   - `committed_turn=0`;
+   - actions/history empty;
+   - setup/opening not started;
+   - canonical Scene v1 bootstrap valid;
+   - no legacy semantic roots are recreated.
+5. Run normal Setup + Opening. Do not use direct DB patches or synthetic scene state.
+6. Establish a confirmed non-destination source location through normal API gameplay if Opening did not already place the player there.
+   - Preferred source for exact regression parity: `brand_strategy_meeting_room`.
+   - If movement is needed, use an ordinary explicit location action through Story -> Extract -> Commit, not a save mutation.
+   - Before the decisive action, read committed context and prove current `scene.location_id` is not `brand_strategy_office` and preferably exactly `brand_strategy_meeting_room`.
+7. Record the source scene before the decisive turn: location, `present_npc_ids`, focal, last speaker, committed turn, and exact registered identity directory for Mina/`heroine2`.
+8. Send the exact free-text player action, unchanged:
+   - `윤민아 보러간다`
+9. Run exactly one normal Story -> Extract -> Commit for that decisive action. Capture bounded evidence sufficient to distinguish:
+   - the submitted `player_action` literal;
+   - resolver/navigation metadata if exposed by existing diagnostics/logs;
+   - raw Story and parsed Story speaker IDs;
+   - Extract scene observation;
+   - Commit/canonical scene readback;
+   - committed history/action identity.
+   Do not add a new harness or diagnostics layer merely to obtain prettier evidence.
+10. PASS requirements for the decisive turn:
+   - canonical destination `scene.location_id === 'brand_strategy_office'`;
+   - canonical destination `present_npc_ids` contains `heroine2`;
+   - Mina resolves to the existing registered `heroine2`, not a generated/new ID;
+   - no duplicate Mina-like registered/generated identity is created in save/context/history/display;
+   - source-location NPCs from the pre-move scene are absent unless the destination-phase Story contains independent valid destination evidence for them;
+   - source-phase dialogue alone cannot teleport a source NPC into the destination;
+   - target presence is not written into relationship/consent/affection/trust/CSA/sexual semantic authority merely because navigation targeted Mina.
+11. If the destination Story naturally introduces another registered NPC with valid destination-phase evidence, verify that accompaniment can coexist with `heroine2`; do not manufacture such an NPC solely for coverage.
+12. Verify committed readback after refresh/context/history uses the same destination and registered target identity. No client-side fallback may invent a different cast.
+13. Perform same-action Story/Extract/Commit replay for the decisive committed action and verify idempotence:
+   - replay flags true where expected;
+   - committed turn and canonical destination scene do not change;
+   - no duplicate target/presence is appended.
+14. Do not run extra provider attempts to obtain a nicer narrative. One scenario attempt only. If a deterministic product defect occurs at Setup/Opening/source-move/decisive navigation/Extract/Commit/readback/replay, capture the first decisive evidence, cleanup if safe, and STOP BLOCKED.
+15. Finish with one canonical reset of the disposable TEST game and verify:
+   - `committed_turn=0`;
+   - actions/history 0;
+   - setup/opening not started;
+   - canonical scene bootstrap;
+   - no residual destination-target state.
+16. Set this file to `WAITING_REVIEW` in a docs-only completion commit and post one immutable terminal report to Issue #68. STOP. Do not generate the next task.
 
 ## Architecture constraints
 
 - Story LLM remains narrative author.
-- Extract remains one narrow Story-grounded observer plus natural-language `turn_summary`.
+- Extract remains one Story-grounded observer plus natural-language `turn_summary`.
 - Commit remains structural transaction authority.
-- Registered character/location identity and exact deterministic navigation are permitted narrow mechanics.
-- Do not add generic target memory, relationship memory, entity graph, semantic gateway, fuzzy name matching, fallback NPC generation, retry/regeneration, provider/model changes, new parser generation or compatibility runtime.
-- CSA remains institutional lifecycle/context/capability only.
-- Historical migrations are immutable.
-- The already-applied Minimal Story Runtime migration is unchanged in this task.
+- Registered character/location identity and exact deterministic navigation are allowed narrow product mechanics.
+- This narrow `explicit_npc_destination` handoff is not relationship, consent, comfort, affection, trust, CSA, sexual, or generic narrative-memory authority.
+- Do not restore the old semantic router.
+- Do not generalize `named NPC in player input => present`.
+- No generic target-memory bag, entity graph, semantic gateway, fuzzy name matching, fallback NPC generation, new parser generation, compatibility runtime, retry/regeneration or provider/model change.
+- Historical migrations are immutable; already-applied Minimal Story Runtime migration is unchanged.
 
 ## Authorized operations
 
 Authorized:
-- read-only Git/PR/source inspection;
-- source/test/docs edits on the canonical branch limited to this handoff;
-- local focused/full tests and static checks.
+- read-only Git/PR/source/deployed-identity inspection;
+- TEST API deployment of the exact reviewed runtime lineage only if required;
+- disposable TEST game canonical reset/setup/opening/ordinary gameplay/context/history/replay;
+- read-only TEST DB verification for the disposable TEST game if needed;
+- docs completion commit and immutable Issue #68 terminal report.
 
 Not authorized:
-- TEST gameplay/setup/opening/reset/write;
-- DB write or migration/DDL authoring/application/edit;
-- API/frontend deploy;
+- source/runtime/test behavior edits;
+- migration/DDL authoring/application/reapplication/edit;
+- frontend deployment unless a proven deployment identity defect directly blocks using unchanged accepted frontend assets, in which case STOP for operator review rather than improvising;
 - Production access/deploy;
-- preserved manual or QA evidence game access;
+- any access/mutation/reset of preserved manual game `78fb...` or QA evidence game `f31b...`;
 - provider/model/temperature/token changes;
 - retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic gate or compatibility layer;
 - new branch/PR, rebase, squash, force-push, merge or Ready.
 
 ## Acceptance
 
-PASS only if the resolved exact registered destination target no longer disappears between navigation resolution and canonical destination scene, while source-phase presence remains filtered and no broader semantic authority is introduced.
+PASS only if one normal TEST scenario proves the previously dropped exact registered destination target survives from navigation resolution through Story destination cast and canonical Commit/readback, with no source-NPC teleport and no fake/duplicate Mina identity, followed by replay idempotence and final canonical reset.
 
 On PASS or first deterministic blocker:
-- set this file to `WAITING_REVIEW` in the same source/test/docs lineage;
-- post one immutable terminal report to Issue #68 with START SHA, SOURCE_TEST_SHA/FINAL_SHA, exact handoff changes, regression results, forbidden-operation confirmation and PR state;
+- set Status to `WAITING_REVIEW`;
+- post one immutable terminal report with START SHA, reviewed/deployed source identity, Worker version, decisive action ID/turn, source scene, destination Story/Extract/Commit/readback evidence, replay result, final reset state and forbidden-operation confirmation;
 - STOP for operator review. Do not generate the next CURRENT_TASK yourself.
-
-## Execution result — WAITING_REVIEW
-
-- Start HEAD: `bdebddfa498d9c01a56b65767e9938811c58e030`.
-- Reviewed source/runtime SHA remains `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`; this source/test/docs descendant is not a new reviewed runtime SHA.
-- Caller inventory and loss proof: `resolvePlayerNavigationIntent()` already produced the exact registered target; the loss was the navigation Story projection clearing destination cast and Commit canonical observation not carrying that target.
-- Source change: the existing exact `explicit_npc_destination` result now validates registered identity plus its unique catalog-derived destination, seeds only that target into the existing Story `scene.present_npc_ids`, and carries it through the existing Commit `entered_npc_ids` observation path. Location-only navigation remains target-free; source-phase speakers remain filtered at A→B movement; destination evidence can add registered accompaniment; unknown/duplicate identities fail closed.
-- Test change: `test/destination-target-handoff-contract.test.mjs` covers exact Mina resolution, Story cast projection, canonical Commit destination, source non-teleport, destination evidence, location-only navigation, same-location/ambiguous/unregistered visits, a general-NPC catalog case, and fake/duplicate identity rejection.
-- Focused navigation/scene/Story-context/Commit regression: **27/27 passed**.
-- Full `npm.cmd test`: **295/295 passed**.
-- Changed JS/MJS syntax checks: **PASS** (`src/api/turn-routes.js`, `src/engine/scene-cast.js`, `src/engine/runtime-core/commit-reducer.js`, and the new test).
-- `git diff --check`: **PASS**.
-- DB writes, migration authoring/application, TEST gameplay/reset, deploy, Production/preserved/QA access: **0**.
-- Already-applied Minimal Story Runtime migration unchanged; no provider/model/retry/parser/fuzzy/semantic compatibility layer introduced.
-- Stop point: operator review required. No live acceptance or Scene Stage B is authorized by this task.
