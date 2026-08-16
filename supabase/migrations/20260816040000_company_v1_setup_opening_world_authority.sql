@@ -124,6 +124,7 @@ set search_path to 'public', 'pg_temp'
 as $$
 declare
   v_game public.games%rowtype;
+  v_master public.game_master%rowtype;
   v_save public.game_save%rowtype;
   v_data jsonb;
   v_existing_setup jsonb;
@@ -216,6 +217,27 @@ begin
   if not found or v_game.edition_id <> 'company-v1' then
     raise exception 'company game not found' using errcode = 'P0002';
   end if;
+  select * into v_master from public.game_master where game_id = p_game_id;
+  if not found then
+    raise exception 'company game master not found' using errcode = 'P0002';
+  end if;
+  if not coalesce(
+    (jsonb_typeof(v_master.data -> 'characters') = 'object' and (v_master.data -> 'characters') ? v_primary)
+    or (jsonb_typeof(v_master.data -> 'general_npcs') = 'object' and (v_master.data -> 'general_npcs') ? v_primary),
+    false
+  ) then
+    raise exception 'opening primary character id is not registered' using errcode = '22023';
+  end if;
+  for v_item in select btrim(value) from jsonb_array_elements_text(v_supporting) item(value)
+  loop
+    if not coalesce(
+      (jsonb_typeof(v_master.data -> 'characters') = 'object' and (v_master.data -> 'characters') ? v_item)
+      or (jsonb_typeof(v_master.data -> 'general_npcs') = 'object' and (v_master.data -> 'general_npcs') ? v_item),
+      false
+    ) then
+      raise exception 'opening supporting character id is not registered' using errcode = '22023';
+    end if;
+  end loop;
   select * into v_save from public.game_save where game_id = p_game_id for update;
   if not found then
     raise exception 'company save not found' using errcode = 'P0002';

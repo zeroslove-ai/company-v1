@@ -40,6 +40,10 @@ const catalogs = {
   speechStyles: SPEECH_STYLES
 };
 const heroineIds = Object.keys(edition.characters.characters);
+const defaultRegisteredMaster = {
+  characters: Object.fromEntries(heroineIds.map(id => [id, {}])),
+  general_npcs: Object.fromEntries(Object.keys(edition.generalNpcs.profiles).map(id => [id, {}]))
+};
 
 function freshSave() {
   return {
@@ -116,10 +120,11 @@ const openingWithoutChoicesSse = `data: ${JSON.stringify({ choices: [{ delta: { 
 const fiveChoiceOpeningText = ['[SCENE]', 'The lobby is busy.', '[CHOICE]', 'One', '[CHOICE]', 'Two', '[CHOICE]', 'Three', '[CHOICE]', 'Four', '[CHOICE]', 'Five'].join('\n');
 const openingWithFiveChoicesSse = `data: ${JSON.stringify({ choices: [{ delta: { content: fiveChoiceOpeningText } }] })}\n\ndata: [DONE]\n\n`;
 
-function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), gameTitle = '상식개변: 회사편', storySseText = semanticOpeningSse, storyThrows = false } = {}) {
+function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = freshSave(), registeredMaster = defaultRegisteredMaster, gameTitle = '상식개변: 회사편', storySseText = semanticOpeningSse, storyThrows = false } = {}) {
   const calls = [];
   let currentSave = structuredClone(initialSave);
   masterInitialSave = structuredClone(masterInitialSave);
+  registeredMaster = structuredClone(registeredMaster);
   let saveRevision = 1;
   const resetObservations = [];
   let storyCallCount = 0;
@@ -159,6 +164,14 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
         return json({ code: '22023', message: 'player setup is already completed for this game; reset to configure again' }, 500);
       }
       const plan = args.p_opening_plan;
+      const registeredIds = new Set([
+        ...Object.keys(registeredMaster.characters ?? {}),
+        ...Object.keys(registeredMaster.general_npcs ?? {})
+      ]);
+      const requestedIds = [plan.primary_character_id, ...(Array.isArray(plan.supporting_character_ids) ? plan.supporting_character_ids : [])];
+      if (requestedIds.some(id => !registeredIds.has(id))) {
+        return json({ code: '22023', message: 'opening character id is not registered' }, 500);
+      }
       const participants = ['player-1', plan.primary_character_id, ...plan.supporting_character_ids];
       currentSave = {
         ...currentSave,
@@ -207,6 +220,19 @@ function validPlayerBody() {
     name: '김하늘', department_id: 'brand_strategy', position_id: 'intern',
     age: 30, height_cm: 170, weight_kg: 65, penis_length_cm: 13,
     body_type_id: 'balanced', speech_style_id: 'polite'
+  };
+}
+
+function directSetupRpcBody({ primary = 'future_character', supporting = [] } = {}) {
+  return {
+    p_game_id: gameId,
+    p_setup_id: '00000000-0000-4000-8000-000000000001',
+    p_player: validPlayerBody(),
+    p_opening_plan: {
+      weekday: 'Monday', minute_of_day: 600, date_label: 'Day 1',
+      location_id: 'future_location', work_hook_id: 'future_hook', scene_goal: 'Future Goal',
+      primary_character_id: primary, supporting_character_ids: supporting
+    }
   };
 }
 
@@ -328,6 +354,37 @@ test('repository catalogs remain the semantic authority for future setup and ope
   assert.equal(plan.primary_character_id, 'future_character');
   assert.equal(plan.work_hook_id, 'future_hook');
   assert.equal(plan.scene_goal, 'Future Goal');
+});
+
+test('setup RPC boundary uses the canonical master identity projection for future IDs and rejects ghost IDs before mutation', async () => {
+  const registeredMaster = {
+    characters: { ...defaultRegisteredMaster.characters, future_character: {} },
+    general_npcs: { ...defaultRegisteredMaster.general_npcs, future_general: {} }
+  };
+
+  for (const registeredId of ['future_character', 'future_general']) {
+    const acceptedMock = createSetupMockFetch({ registeredMaster });
+    const accepted = await acceptedMock.fetchImpl(
+      'https://supabase.test/rest/v1/rpc/reserve_company_player_setup',
+      { method: 'POST', body: JSON.stringify(directSetupRpcBody({ primary: registeredId })) }
+    );
+    assert.equal(accepted.status, 200, registeredId);
+    assert.equal(acceptedMock.getSave().scene.focal_character_id, registeredId);
+  }
+
+  for (const body of [
+    directSetupRpcBody({ primary: 'ghost_primary' }),
+    directSetupRpcBody({ primary: 'future_character', supporting: ['ghost_supporting'] })
+  ]) {
+    const rejectedMock = createSetupMockFetch({ registeredMaster });
+    const before = structuredClone(rejectedMock.getSave());
+    const rejected = await rejectedMock.fetchImpl(
+      'https://supabase.test/rest/v1/rpc/reserve_company_player_setup',
+      { method: 'POST', body: JSON.stringify(body) }
+    );
+    assert.equal(rejected.status, 500);
+    assert.deepEqual(rejectedMock.getSave(), before);
+  }
 });
 
 test('buildPlayerPromptProjection always sends canonical identity and speech style, and gates body/sexual/background fields on relevance', () => {
