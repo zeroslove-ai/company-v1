@@ -1,12 +1,8 @@
 const STORY_KEY_ORDER = [
   'edition',
   'turn_trigger',
-  'registered_identities',
   'scene_actors',
-  'possible_entrants',
-  'remote_contacts',
   'reference_characters',
-  'player_dialogue_policy',
   'world_rules',
   'context',
   'player_action',
@@ -15,8 +11,6 @@ const STORY_KEY_ORDER = [
 
 const EXTRACT_KEY_ORDER = [
   'extract_version',
-  'registered_identities',
-  'registered_locations',
   'story_text',
   'context',
   'expected_turn'

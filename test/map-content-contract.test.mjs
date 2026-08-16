@@ -82,7 +82,7 @@ test('회사맵 제품: 한국어 조사에 맞는 이동·찾아가기 문장�
   assert.equal(npcPromptText('한지석'), '한지석을 찾아간다');
 });
 
-test('scene authority: unique Minah navigation uses catalog default, not stale NPC scene location', () => {
+test('scene authority: NPC-directed movement does not navigate the player', () => {
   const master = {
     characters: Object.values(edition.characters.characters),
     general_npcs: Object.values(edition.generalNpcs.profiles)
@@ -101,12 +101,7 @@ test('scene authority: unique Minah navigation uses catalog default, not stale N
     playerAction: '민아 보러간다',
     mapLocations: edition.map.locations
   });
-  assert.deepEqual(intent, {
-    kind: 'player_navigation',
-    destination_location_id: 'brand_strategy_office',
-    target_npc_id: 'heroine2',
-    source: 'registered_npc_destination'
-  });
+  assert.equal(intent, null);
 });
 
 class FakeClassList {

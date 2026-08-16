@@ -51,14 +51,13 @@ test('Company game view model uses server display projections over save mirrors 
   assert.deepEqual(model.scene.csa_active, ['display-rule']);
 });
 
-test('Company game view model preserves an external committed turn and numeric image ID', () => {
+test('Company game view model preserves an external committed turn without a retired image root', () => {
   const input = context();
   input.save.committed_turn = 12;
   delete input.save.data.turn_state;
-  input.save.data.last_image_id = 123;
   const model = buildCompanyGameViewModel(input);
   assert.equal(model.turn.committed_turn, 12);
-  assert.equal(model.media.image_id, 123);
+  assert.equal(model.media.image_id, null);
 });
 
 test('Company game view model keeps identity axes separate and does not invent NPC state', () => {

@@ -18,8 +18,7 @@ export { reduceGameplayCommit } from './runtime-core/commit-reducer.js';
 export { reduceCsaCommitState } from './runtime-core/csa-commit-reducer.js';
 export {
   reducePlayerPhysicalObservation, reduceNpcPhysicalObservation,
-  reducePlayerSexualObservation, reduceNpcStatObservation,
-  reduceCsaAttitudeObservation, reduceSexualEventObservations,
+  reducePlayerSexualObservation,
   reduceElapsedTimeObservation, reduceStoryChoiceProjection,
   reduceObservationDomains
 } from './runtime-core/observation-reducers.js';

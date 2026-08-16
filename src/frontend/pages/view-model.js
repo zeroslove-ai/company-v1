@@ -186,7 +186,6 @@ function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory =
   return [...ids].map(id => {
     const value = object(source[id]) ?? {};
     const detail = detailFor(details, id);
-    const savedStats = object(object(save.npc_stats)?.[id]);
     const hasDetail = Boolean(object(details)?.[id]);
     const entry = {
       id,
@@ -194,8 +193,8 @@ function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory =
       surface: text(value.surface ?? value['표면의식']),
       subconscious: text(value.subconscious ?? value.latent ?? value['잠재의식'])
     };
-    if (hasDetail || savedStats) {
-      entry.stats = hasDetail ? detail.stats : normalizedStats(savedStats);
+    if (hasDetail) {
+      entry.stats = detail.stats;
       entry.stat_changes = hasDetail ? detail.stat_changes : {};
     }
     if (hasDetail) {
@@ -210,13 +209,11 @@ function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory =
 
 function npcView(save, id, details = {}) {
   if (!id) return null;
-  const stats = object(save.npc_stats)?.[id];
-  const relationship = object(save.npc_relationship_state)?.[id];
   const detail = object(details?.[id]);
-  if (!stats && !relationship && !detail) return null;
+  if (!detail) return null;
   return {
     id,
-    stats: detail ? normalizedStats(detail.stats) : normalizedStats(stats),
+    stats: normalizedStats(detail.stats),
     stat_changes: normalizedChanges(detail?.stat_changes),
     profile: object(detail?.profile) ?? {},
     body: object(detail?.body) ?? {},
@@ -287,10 +284,7 @@ export function buildCompanyGameViewModel(context) {
     ? imageCandidate
     : (lastLocalDialogueId || focalFallback || firstPresentFallback || '');
   const imageSelection = object(committedV2.image_selection) ?? {};
-  const committedTurnNumber = committedTurn(context, save);
-  const committedSexualEvent = Array.isArray(save.sexual_event_ledger)
-    && save.sexual_event_ledger.some(event => Number(event?.turn) === committedTurnNumber);
-  const imagePool = imageSelection.pool === 'sex' || committedSexualEvent ? 'sex' : 'general';
+  const imagePool = imageSelection.pool === 'sex' ? 'sex' : 'general';
   const imageTags = Array.isArray(imageSelection.tags) ? imageSelection.tags : [];
   const monitor = mindMonitor(turn);
   const monitorEntries = mindMonitorEntries(save, monitor, scene, [imageCharacterId, focalId], directory, details);
@@ -319,7 +313,7 @@ export function buildCompanyGameViewModel(context) {
       scene_state: focalSceneState
     },
     player: {
-      state: player, stats: object(save.npc_stats)?.player ?? {}, name: playerName,
+      state: player, stats: {}, name: playerName,
       department: text(player.department) || catalogName(CATALOGS.departments, 'department_id', player.department_id) || text(save.player_department),
       position: text(player.position) || catalogName(CATALOGS.positions, 'position_id', player.position_id),
       level: integer(capability.level) ?? integer(playerProgress.level) ?? 1,
@@ -338,7 +332,7 @@ export function buildCompanyGameViewModel(context) {
       position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
-      image_id: imageId(committedV2.image_id ?? save.last_image_id), image_character_id: imageCharacterId,
+      image_id: imageId(committedV2.image_id), image_character_id: imageCharacterId,
       image_selection: imageSelection, image_pool: imagePool, image_tags: imageTags,
       image_situation: text(committedV2.image_situation) || text(turn.turn_summary), dialogue_lines: projectedDialogueLines,
       mind_monitor: monitor, mind_monitor_entries: monitorEntries, default_mind_character_id: monitorEntries[0]?.id ?? ''

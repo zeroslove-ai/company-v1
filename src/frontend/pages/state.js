@@ -41,9 +41,11 @@ function legacyProgressedSave(context) {
   return !Object.prototype.hasOwnProperty.call(save, 'player_setup')
     && !Object.prototype.hasOwnProperty.call(save, 'opening_state')
     && committedTurn(context) > 0
-    && save.npc_stats !== null
-    && typeof save.npc_stats === 'object'
-    && !Array.isArray(save.npc_stats);
+    && save.edition === 'company-v1'
+    && save.scene?.version === 1
+    && save.player !== null
+    && typeof save.player === 'object'
+    && !Array.isArray(save.player);
 }
 
 /**

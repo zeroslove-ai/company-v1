@@ -224,7 +224,9 @@ export function reduceCanonicalScene(input = {}) {
   }
   const explicitExited = new Set(uniqueNpcIds(observation.exited_npc_ids, npcIds));
   const speakers = [...new Set(observation.explicit_speaker_ids ?? [])].filter(Boolean);
-  for (const speaker of speakers) {
+  // Speakers before an authoritative movement boundary belong to the source
+  // phase and cannot be carried into the destination by whole-turn union.
+  if (!authoritativeLocationChange) for (const speaker of speakers) {
     if (isPlayerId(speaker) || currentIds.has(speaker)) continue;
     if (observation.remote_speaker_ids?.includes(speaker)) {
       if (!npcIds.has(speaker)) {

@@ -36,7 +36,7 @@ test('app.npcs keeps evidence-aware scope and never enumerates Finder-only NPCs'
   const generalPresent = baseSave();
   generalPresent.scene = { ...generalPresent.scene, present_npc_ids: [generalIds[0]], focal_character_id: generalIds[0], last_speaker_id: generalIds[0], location_id: 'meeting_room' };
   const evidenceOnly = baseSave();
-  evidenceOnly.npc_stats[generalIds[1]] = { affection: 1 };
+  evidenceOnly.npc_scene_state[generalIds[1]] = { posture: 'standing' };
   const registeredUnknownGeneral = baseSave();
 
   const fixtures = [

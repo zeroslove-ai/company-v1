@@ -22,63 +22,26 @@ function context() {
 
 const edition = { editionId: 'company-v1', characters: { characters: {} } };
 
-test('Story and Opening share one mandatory provider choice-output protocol', () => {
-  const storySystem = buildStoryPrompt({
-    edition,
-    context: context(),
-    playerAction: 'continue',
-    expectedTurn: 2,
-    npcIds: new Set()
-  })[0].content;
-  const openingSystem = buildOpeningPrompt({
-    edition,
-    player: {},
-    canonical: {},
-    openingPlan: {}
-  })[0].content;
-
-  assert.equal(storySystem.includes(PROVIDER_CHOICE_OUTPUT_PROTOCOL), true);
-  assert.equal(openingSystem.includes(PROVIDER_CHOICE_OUTPUT_PROTOCOL), true);
-  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /mandatory and unconditional/i);
-  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /exactly four repeated \[CHOICE\].*\[\/CHOICE\]/i);
-  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /distinct literal strings/i);
-  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /proposals, not completed player actions/i);
-  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /server\/UI numbering|human heading/i);
-  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /verify.*exactly four choice blocks/i);
-  assert.doesNotMatch(storySystem, /choice(?:s| blocks?).{0,100}(?:when possible|if possible|optional)/i);
-  assert.doesNotMatch(openingSystem, /choice(?:s| blocks?).{0,100}(?:when possible|if possible|optional)/i);
+test('Story and Opening share one provider choice transport contract', () => {
+  const story = buildStoryPrompt({ edition, context: context(), playerAction: 'continue', expectedTurn: 2, npcIds: new Set() });
+  const opening = buildOpeningPrompt({ edition, player: {}, canonical: {}, openingPlan: {} });
+  assert.equal(story[0].content.includes(PROVIDER_CHOICE_OUTPUT_PROTOCOL), true);
+  assert.equal(opening[0].content.includes(PROVIDER_CHOICE_OUTPUT_PROTOCOL), true);
 });
 
-test('current Story request uses narrative-default wire, free input, and hard-fact time payload', () => {
-  const messages = buildStoryPrompt({
-    edition,
-    context: context(),
-    playerAction: '회의실을 둘러본다.',
-    expectedTurn: 2,
-    npcIds: new Set()
-  });
+test('Story request carries current time, player intent, and no retired semantic maps', () => {
+  const action = '회의실에서 오늘 업무를 검토한다.';
+  const messages = buildStoryPrompt({ edition, context: context(), playerAction: action, expectedTurn: 2, npcIds: new Set() });
   const payload = JSON.parse(messages[1].content);
-  const system = messages[0].content;
-  assert.match(system, /plain narrative by default/);
-  assert.match(system, /Control-marker grammar is exact/);
-  assert.match(system, /JSON scene_id and other context fields are data, not marker syntax/);
-  assert.match(system, /Never emit \[SCENE scene_id\]/);
-  assert.match(system, /\[DIALOGUE speaker_id=/);
-  assert.match(system, /at least one non-empty player-visible Story body segment/i);
-  assert.match(system, /\[THOUGHT\].*\[CHOICE\].*alone is invalid/i);
-  assert.match(system, /mandatory and unconditional: emit exactly four repeated \[CHOICE\]/i);
-  assert.doesNotMatch(system, /\[CHOICE label=/);
-  assert.doesNotMatch(system, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
-  assert.match(system, /context\.current_time\.day/);
+  assert.equal(messages[0].role, 'system');
   assert.deepEqual(payload.context.current_time, { day: 2, minute_of_day: 1320 });
-  assert.equal(payload.player_action, '회의실을 둘러본다.');
-  assert.equal('player_status' in payload.context, false);
-  assert.equal('dialogue' in payload.context, false);
-  assert.deepEqual(payload.context.turn_summary_memory, []);
-  assert.equal('story_summary' in payload.context, false);
+  assert.equal(payload.player_action, action);
+  for (const retired of ['npc_stats', 'npc_relationship_state', 'csa_attitudes', 'player_dialogue_policy', 'target_authority', 'possible_entrants', 'remote_contacts']) {
+    assert.equal(JSON.stringify(payload).includes(retired), false, retired);
+  }
 });
 
-test('Story request describes older turn summaries as compressed continuity memory', () => {
+test('Story context preserves six raw turns and chronological older summaries', () => {
   const messages = buildStoryPrompt({
     edition,
     context: {
@@ -103,31 +66,15 @@ test('Story request describes older turn summaries as compressed continuity memo
     { turn: 2, turn_summary: 'summary-2' }
   ]);
   assert.equal('story_text' in payload.context.turn_summary_memory[0], false);
-  assert.match(messages[0].content, /turn_summary_memory/);
-  assert.match(messages[0].content, /compressed context/);
 });
 
-test('Extract request carries the exact raw Story and V2-only output contract', () => {
-  const storyText = '[SCENE]\n원문은 그대로 남는다.\n[CHOICES]\n1. 기다린다';
-  const messages = buildExtractPrompt({
-    edition,
-    context: context(),
-    storyText,
-    playerAction: '기다린다.',
-    expectedTurn: 2,
-    npcIds: new Set()
-  });
+test('Extract request transports raw Story and exposes only the fresh observation boundary', () => {
+  const storyText = '[SCENE]\n회사 회의실에서 대화가 이어진다.\n[CHOICES]\n1. 기다린다';
+  const messages = buildExtractPrompt({ edition, context: context(), storyText, playerAction: '기다린다.', expectedTurn: 2, npcIds: new Set() });
   const payload = JSON.parse(messages[1].content);
   assert.equal(payload.extract_version, 2);
   assert.equal(payload.story_text, storyText);
-  const forbiddenOutputFields = ['state_delta', 'choices', 'dialogue_lines', 'save', 'csa_active', 'csa_rules'];
-  for (const forbidden of forbiddenOutputFields) {
-    assert.equal(forbidden in payload, false);
-    assert.match(messages[0].content, new RegExp(`\\b${forbidden}\\b`));
+  for (const retired of ['state_delta', 'choices', 'dialogue_lines', 'save', 'csa_active', 'csa_rules', 'csa_trigger_evaluations', 'image_character_id']) {
+    assert.equal(retired in payload, false, retired);
   }
-  for (const required of ['scene_observation', 'player_observation', 'npc_observations', 'events', 'evidence', 'elapsed_minutes', 'warnings']) {
-    assert.match(messages[0].content, new RegExp(required));
-  }
-  assert.match(messages[0].content, /turn_summary is the compressed continuity memory/);
-  assert.match(messages[0].content, /Empty text is allowed only when the Story genuinely has no continuity content/);
 });

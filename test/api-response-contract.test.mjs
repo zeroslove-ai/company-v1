@@ -75,7 +75,7 @@ test('context enrichment keeps active display fields and omits dead projections'
   assert.equal(enriched.data.context.display.npc_finder, undefined);
   assert.ok(Array.isArray(enriched.data.context.display.map_locations));
   assert.ok(enriched.data.context.display.npc_default_locations);
-  assert.ok(enriched.data.context.display.character_details);
+  assert.equal(enriched.data.context.display.character_details, undefined);
   assert.ok(enriched.data.context.display.player_sexual);
 });
 
@@ -89,7 +89,7 @@ test('app enrichment keeps canonical app data without finder projections', () =>
   assert.equal(enriched.data.app.player_info.penis_length_cm, 19);
   assert.equal(enriched.data.app.npcs.length, 1);
   assert.equal(enriched.data.app.npcs[0].name, '서원희');
-  assert.equal(enriched.data.app.npcs[0].stats.resistance, 40);
+  assert.equal('stats' in enriched.data.app.npcs[0], false);
   assert.equal(enriched.data.app.npcs[0].mind.surface, '업무를 확인한다.');
   assert.equal(enriched.data.app.finder_npcs, undefined);
   assert.deepEqual(enriched.data.app.npcs[0].location, {

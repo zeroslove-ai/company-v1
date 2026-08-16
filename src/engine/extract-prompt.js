@@ -128,14 +128,13 @@ export function buildMindMonitorContext({ context, edition, targetIds = [], expe
   };
   const world = buildStoryWorldProjection({ save, master, sceneActorIds: ids, expectedTurn });
   return ids.map(id => {
-    const rules = world.world_rules
-      .filter(rule => rule.applicable_scene_actor_ids?.includes(id))
-      .map(rule => ({
+    const rules = world.world_rules.map(rule => ({
         id: rule.id,
         content: rule.content,
-        phase: rule.phase,
-        institutional_form: rule.institutional_form,
-        mode: rule.mode,
+        subject_scope: rule.subject_scope,
+        counterparty_scope: rule.counterparty_scope,
+        effective_game_time: rule.effective_game_time,
+        trigger: rule.trigger,
         clothing_projection: rule.clothing_projection?.actors?.find(actor => actor.actor_id === id) ?? null
       }));
     return {
@@ -173,11 +172,6 @@ const SYSTEM_INSTRUCTIONS = [
      evidence: {},
     elapsed_minutes: 3,
     mind_monitor: {},
-    action_target_id: null,
-    image_character_id: null,
-    image_selection: null,
-    csa_trigger_evaluations: [],
-    csa_runtime_updates: [],
     turn_summary: '',
     warnings: []
   })}`,
@@ -196,8 +190,7 @@ const SYSTEM_INSTRUCTIONS = [
   'turn_summary is the compressed continuity memory for this completed Story only. Write concise free natural text covering important commitments, refusals, relationships, work, physical, clothing, or intimate continuity when actually present; do not use a taxonomy, labels, or invented detail. Empty text is allowed only when the Story genuinely has no continuity content. Do not summarize future intent or rewrite the raw Story.',
   'elapsed_minutes is the only time proposal: 1-30 normally, up to 480 only with evidence.time_advance=true. Never propose world clock fields.',
   'mind_monitor_targets is authoritative. For each target return nonempty unquoted first-person Korean surface/subconscious talk, grounded in that NPC only. Differentiate by personality/voice and never copy one into another. Before output, verify one entry per target with non-empty surface and subconscious; missing entries are fail-open warnings, never retries. [THOUGHT] is player-only; NPCs know rules, not app/player action.',
-  'CSA observation is limited to csa_trigger_evaluations and csa_runtime_updates arrays. Never return csa_active, csa_rules, or a csa runtime save object.',
-  'Announcement, compliance, embarrassment, or body reaction alone never raises affinity or sexual arousal. csa_acceptance records acceptance or resistance to that rule only. Exposure, erection, conversation, or requests alone never raise it (ejaculation progress). Progress is direct stimulation only: brief +1~2, sustained +2~4, strong +4~6. completion requires evidence.sexual_resolution === true when Story explicitly shows resolution. Never decrease/reset when stimulation stops. Before returning image_selection, reread the final physical scene only. If a sexual physical act is still being performed at the final moment, do not omit image_selection; return the existing sex-pool contract and tags describing that ongoing act.',
+  'CSA is not a fresh Extract semantic channel. Observe only narrow physical/clothing facts and the retained direct player sexual mechanic when exact Story evidence supports it; do not emit csa attitudes, runtime, aftereffects, generic stats, events, target or media fields.',
   'Mind Monitor style contract: surface and subconscious are each one natural Korean first-person inner monologue, spoken to self in conversational language. Do not write reports, status summaries, narrator prose, labels, "NPC는..." sentences, or the player THOUGHT; surface and subconscious must be distinct and personality-specific. Missing Mind Monitor remains fail-open. Final scene presence: a local dialogue speaker is evidence of presence during the Story, but removal requires an explicit exact quoted exit; if the final snapshot cannot be established, preserve null rather than guessing.'
    , 'Do not emit relation_updates, events.general, npc_observations.relationship, npc_observations.emotion, or npc_observations.work. Narrative meaning without a proven narrow machine/UI consumer remains in the raw Story and turn_summary; never infer a durable state change from player intent alone.',
   'Explicit player physical continuity: preserve the observable kind and strength of player contact or sexual facts in Story evidence; do not euphemize them into an unidentifiable thing or pressure.',

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from '../src/api/character-display.js';
+import { buildPlayerSexualDisplay } from '../src/api/character-display.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { createUtilityUi } from '../src/frontend/pages/utility-ui.js';
 
@@ -71,12 +71,12 @@ test('Story prompt exposes the structural dialogue identity contract', () => {
     playerAction: 'review the report',
     expectedTurn: 1
   });
-  const system = messages[0].content;
-  assert.ok(system.includes('scene_actors'));
-  assert.ok(system.includes('speaker_id'));
+  const payload = JSON.parse(messages[1].content);
+  assert.deepEqual(payload.context.scene.present_npc_ids, ['heroine1']);
+  assert.equal('scene_actors' in payload, true);
 });
 
-test('character display derives stat deltas from pre/post saves and unlocks private records from committed ledger', () => {
+test('player sexual display derives only the retained player mechanic', () => {
   const save = {
     npc_stats: { heroine1: { affinity: 4, resistance: 40, csa_acceptance: 12, sexual_arousal: 3 } },
     npc_relationship_state: { heroine1: { relationship_summary: '서로의 경계를 확인한 관계다.', milestones: { sexual_relationship_started_turn: 4 } } },
@@ -85,23 +85,11 @@ test('character display derives stat deltas from pre/post saves and unlocks priv
     ],
     player_sexual_state: { arousal: 22, ejaculation_progress: 60, ejaculation_count: 1 }
   };
-  const latestTurn = {
-    pre_save: { npc_stats: { heroine1: { affinity: 2, resistance: 40, csa_acceptance: 5, sexual_arousal: 0 } } },
-    post_save: { npc_stats: save.npc_stats }
-  };
-  const details = buildCharacterDisplayDetails(save, edition, latestTurn).heroine1;
-  assert.deepEqual(details.stat_changes, {
-    affinity: { from: 2, to: 4, delta: 2 },
-    csa_acceptance: { from: 5, to: 12, delta: 7 },
-    sexual_arousal: { from: 0, to: 3, delta: 3 }
-  });
-  assert.equal(details.relationship_record.player_ejaculation_count, 1);
-  assert.equal(details.relationship_record.total_events, 1);
-  assert.equal(details.private_info.unlocked, true);
-  assert.equal(details.private_info.past_partner_count, 2);
-
+  save.player_sexual_state.total_sexual_events = 2;
+  save.player_sexual_state.last_sexual_event = { turn: 5, type: 'mechanic', completed: true };
   const player = buildPlayerSexualDisplay(save);
   assert.equal(player.ejaculation_progress, 60);
   assert.equal(player.ejaculation_count, 1);
- assert.equal(player.total_sexual_events, 1);
+  assert.equal(player.total_sexual_events, 2);
+  assert.equal(player.last_sexual_event.type, 'mechanic');
 });

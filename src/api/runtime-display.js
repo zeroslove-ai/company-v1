@@ -133,10 +133,7 @@ function evidenceIds(save, latestMindMonitor = {}) {
   add(scene.focal_character_id);
   add(scene.last_speaker_id);
   for (const value of scene.present_npc_ids) add(value);
-  for (const mapName of [
-    'npc_stats', 'npc_relationship_state', 'npc_scene_state',
-    'csa_attitudes', 'npc_sexual_state', 'npc_identity_state'
-  ]) {
+  for (const mapName of ['npc_scene_state']) {
     for (const id of Object.keys(object(save?.[mapName]) ?? {})) add(id);
   }
   for (const id of Object.keys(object(latestMindMonitor) ?? {})) add(id);
@@ -230,7 +227,7 @@ function displayStats(detail, fallback) {
   };
 }
 
-function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition, detail = null }) {
+function npcPayloadEntryLegacy({ id, profile, save, latestMindMonitor, directory, presentIds, edition, detail = null }) {
   const stats = object(save?.npc_stats?.[id]) ?? {};
   const attitude = object(save?.csa_attitudes?.[id]) ?? {};
   const sexualState = object(save?.npc_sexual_state?.[id]) ?? {};
@@ -266,6 +263,28 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
     relationship_summary: typeof detail?.relationship_summary === 'string'
       ? detail.relationship_summary
       : relationshipSummary(save?.npc_relationship_state?.[id])
+  };
+}
+
+function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition, detail = null }) {
+  const sceneState = object(save?.npc_scene_state?.[id]) ?? {};
+  const presentNow = presentIds.has(id);
+  const identity = directory[id] ?? { id, name: text(profile?.name) || id, department: '', position: '', role: '' };
+  return {
+    id,
+    name: identity.name,
+    department: identity.department,
+    position: identity.position,
+    role: identity.role,
+    present_now: presentNow,
+    location: npcLocation(save, id, presentNow, edition),
+    mind: npcMind(latestMindMonitor, save, id),
+    scene_state: {
+      posture: text(sceneState.posture),
+      posture_detail: text(sceneState.posture_detail ?? sceneState.posture_description),
+      position_label: text(sceneState.position_label)
+    },
+    ...(typeof detail?.relationship_summary === 'string' ? { relationship_summary: detail.relationship_summary } : {})
   };
 }
 

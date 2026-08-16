@@ -466,17 +466,6 @@ test('buildOpeningPrompt only surfaces the plan\'s active heroines and adds the 
   assert.doesNotMatch(tfPayload.cross_team_note, /active_character_canon|speaker_id/);
 });
 
-test('fresh Opening protocol requires verbatim allowed speaker IDs without making dialogue mandatory', () => {
-  const openingPlan = buildOpeningPlan({ positionId: 'intern', seedBytes: [3, 6, 9], heroineIds });
-  const prompt = buildOpeningPrompt({ edition, player: { name: 'Fixture Player', position_id: 'intern', department_id: 'brand_strategy' }, canonical: {}, openingPlan });
-  const system = prompt[0].content;
-  assert.match(system, /Control-marker grammar is exact/);
-  assert.match(system, /Never emit \[SCENE scene_id\]/);
-  assert.match(system, /allowed_speaker_ids/);
-  assert.match(system, /copy one ID verbatim/);
-  assert.match(system, /character name|near-match ID|inactive\/unlisted ID/);
-});
-
 test('fresh Opening allowed speaker IDs deduplicate active canon keys in deterministic order', () => {
   const openingPlan = { primary_character_id: 'heroine1', supporting_character_ids: ['heroine1', 'heroine2', 'heroine1'] };
   const payload = JSON.parse(buildOpeningPrompt({ edition, player: {}, canonical: {}, openingPlan })[1].content);

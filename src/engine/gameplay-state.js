@@ -4,8 +4,7 @@ import { hydrateLegacySceneV1, readCanonicalSceneV1 } from './runtime-core/scene
 import { canonicalCompanyPlayerProfile } from './player-setup.js';
 
 const TURN_CHANGE_ROOTS = new Set([
-  'player_sexual_state', 'npc_stats', 'npc_relationship_state',
-  'scene', 'world_state', 'csa_runtime_state', 'csa_aftereffect_state'
+  'player_sexual_state', 'scene', 'world_state', 'csa_active', 'csa_rules'
 ]);
 
 
@@ -143,7 +142,7 @@ export function buildActiveCharacterCanon(charactersMap, activeIds) {
   return canon;
 }
 
-const ACTIVE_NPC_MAPS = ['npc_stats', 'npc_scene_state', 'csa_attitudes'];
+const ACTIVE_NPC_MAPS = ['npc_scene_state'];
 
 /**
  * The compact scene/time/CSA/active-NPC-state core shared by the Story and Extract
@@ -188,7 +187,6 @@ export function buildSceneContextCore(save, activeIds = []) {
       scene_goal: identity(scene.scene_goal ?? scene.goal),
       beat: integer(scene.beat)
     },
-    global_csa: projectGlobalCsa(s),
     active_npc_state: activeNpcState
   };
 }
@@ -205,20 +203,18 @@ export function projectGlobalCsa(save) {
   const activeIds = Array.isArray(save?.csa_active) ? [...save.csa_active] : [];
   const activeIdSet = new Set(activeIds);
   const allRules = object(save?.csa_rules) ? save.csa_rules : {};
-  const allRuntime = object(save?.csa_runtime_state) ? save.csa_runtime_state : {};
   const rules = {};
   for (const [id, rule] of Object.entries(allRules)) {
-    if (activeIdSet.has(id) && rule?.active !== false) rules[id] = rule;
+    if (!activeIdSet.has(id) || rule?.active === false) continue;
+    rules[id] = {
+      content: typeof rule?.content === 'string' ? rule.content : '',
+      subject_scope: rule?.subject_scope ?? rule?.scope ?? null,
+      counterparty_scope: rule?.counterparty_scope ?? null,
+      effective_game_time: rule?.effective_game_time ?? rule?.activated_game_time ?? null,
+      trigger: rule?.trigger ?? null
+    };
   }
-  const runtime_state = {};
-  for (const [id, state] of Object.entries(allRuntime)) {
-    if (activeIdSet.has(id)) runtime_state[id] = state;
-  }
-  return {
-    active_ids: activeIds,
-    rules,
-    runtime_state
-  };
+  return { active_ids: activeIds, rules };
 }
 
 function canonicalGameTime(value) {
@@ -369,6 +365,7 @@ export function migrateCompanySave(save) {
   delete next.npc_emotion;
   delete next.npc_work_state;
   delete next.event_ledger;
+  for (const root of ['npc_stats', 'npc_relationship_state', 'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'sexual_event_ledger', 'last_image_id']) delete next[root];
   next.world_state = object(next.world_state) ? next.world_state : {};
   if (!object(next.world_state.game_time)) next.world_state.game_time = { day: 1, minute_of_day: 540 };
   else next.world_state.game_time = canonicalGameTime(next.world_state.game_time);
@@ -397,9 +394,6 @@ function stripSceneMirrors(save) {
 }
 
 const HYDRATION_SOURCES = [
-  { mapName: 'npc_stats', canonicalKey: 'initial_stats' },
-  { mapName: 'npc_relationship_state', canonicalKey: 'initial_relationship', aliasKey: 'initial_relationship_state' },
-  { mapName: 'csa_attitudes', canonicalKey: 'initial_csa_attitudes' },
   { mapName: 'npc_scene_state', canonicalKey: 'initial_scene_state' }
 ];
 
@@ -411,7 +405,7 @@ const HYDRATION_SOURCES = [
  *   이미 affinity가 있으면 affection으로 덮어쓰지 않는다. 변환 후에는 내부 상태에서 affection을 갱신하지 않는다.
  * - 나머지 map(relationship/emotion/scene_state/csa_attitudes)은 entry 단위 hydration 유지.
  */
-export function hydrateGameplayState(save, master = {}) {
+function hydrateGameplayStateLegacy(save, master = {}) {
   const next = migrateCompanySave(save);
   // The only legacy compatibility boundary: old saves are hydrated once, then
   // every runtime reader receives a canonical scene v1 projection.
@@ -452,6 +446,26 @@ export function hydrateGameplayState(save, master = {}) {
       if (id in next[mapName]) continue;
       if (source) next[mapName][id] = clone(source);
     }
+  }
+  return stripSceneMirrors(next);
+}
+
+/** Fresh runtime hydration: preserve only canonical scene, player and narrow clothing state. */
+export function hydrateGameplayState(save, master = {}) {
+  const next = migrateCompanySave(save);
+  const characters = Array.isArray(master?.characters) ? master.characters : [];
+  const generalNpcs = Array.isArray(master?.general_npcs) ? master.general_npcs : [];
+  const npcIds = buildStableNpcIdSet({ characters, generalNpcs });
+  const canonicalScene = next.scene
+    ? readCanonicalSceneV1(next, { master, npcIds })
+    : hydrateLegacySceneV1(next, { master, npcIds });
+  next.scene = clone(canonicalScene);
+  if (object(next.player)) next.player = canonicalCompanyPlayerProfile(next.player);
+  next.npc_scene_state = object(next.npc_scene_state) ? next.npc_scene_state : {};
+  for (const character of [...characters, ...generalNpcs]) {
+    const id = identity(character?.character_id ?? character?.npc_id ?? character?.id);
+    const source = object(character?.initial_scene_state) ? character.initial_scene_state : null;
+    if (id && !(id in next.npc_scene_state) && source) next.npc_scene_state[id] = clone(source);
   }
   return stripSceneMirrors(next);
 }

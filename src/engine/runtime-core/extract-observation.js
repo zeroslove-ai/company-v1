@@ -25,6 +25,7 @@ const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'q
 const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'scene']);
 const FRESH_OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked']);
 const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'presence_is_final', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
+const FRESH_TOP_LEVEL = new Set(['extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'evidence', 'elapsed_minutes', 'mind_monitor', 'turn_summary', 'warnings']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
@@ -414,7 +415,7 @@ function prepareFreshExtractInput(value) {
  * and persisted degraded rows are handled by the persisted read boundary, not
  * by a new Extract completion.
  */
-export function normalizeFreshExtractObservationV2(value, options = {}) {
+function normalizeFreshExtractObservationV2Legacy(value, options = {}) {
   const prepared = prepareFreshExtractInput(value);
   const freshValue = prepared.value;
   assertExtractObservationContract(freshValue);
@@ -440,12 +441,64 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
   return normalized;
 }
 
+/** Fresh provider vocabulary: narrow observation only; it never enters the legacy normalizer. */
+export function normalizeFreshExtractObservationV2(value, options = {}) {
+  if (!object(value)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Fresh Extract observation must be an object');
+  assertKeys(value, FRESH_TOP_LEVEL, 'INVALID_EXTRACT_OBSERVATION');
+  if (value.extract_version !== 2 || !FRESH_OUTCOMES.has(value.outcome)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid fresh Extract contract');
+  const registered = options.npcIds instanceof Set ? options.npcIds : new Set(Array.isArray(options.npcIds) ? options.npcIds : []);
+  const scene = object(value.scene_observation) ? value.scene_observation : {};
+  assertKeys(scene, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+  const sceneId = scene.scene_id === null || scene.scene_id === undefined ? null : nonEmptyId(scene.scene_id);
+  const locationId = scene.location_id === null || scene.location_id === undefined ? null : nonEmptyId(scene.location_id);
+  const finalIds = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
+  const entered = ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false });
+  const exited = ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false });
+  const warnings = Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string') : [];
+  const evidence = normalizeSceneEvidence(scene.evidence ?? [], registered, options.storyText ?? '', sceneId);
+  const player = object(value.player_observation) ? value.player_observation : {};
+  assertKeys(player, new Set(['physical', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
+  const npcObservations = {};
+  for (const [id, domains] of Object.entries(object(value.npc_observations) ? value.npc_observations : {})) {
+    if (registered.size && !registered.has(id)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Unknown NPC observation: ${id}`);
+    assertKeys(domains, new Set(['physical']), 'INVALID_EXTRACT_OBSERVATION');
+    npcObservations[id] = { physical: normalizePhysical(domains.physical) };
+  }
+  const monitor = {};
+  for (const [id, entry] of Object.entries(object(value.mind_monitor) ? value.mind_monitor : {})) {
+    if (registered.size && !registered.has(id)) continue;
+    if (!object(entry) || typeof entry.surface !== 'string' || typeof entry.subconscious !== 'string') continue;
+    monitor[id] = { surface: entry.surface, subconscious: entry.subconscious };
+  }
+  return {
+    extract_version: 2,
+    outcome: value.outcome,
+    scene_observation: {
+      scene_id: sceneId,
+      location_id: locationId,
+      final_present_npc_ids: finalIds,
+      entered_npc_ids: entered,
+      exited_npc_ids: exited,
+      presence_is_final: scene.presence_is_final === true,
+      focal_candidate_id: nullableId(scene.focal_candidate_id, registered, 'focal_candidate_id'),
+      remote_speaker_ids: ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false }),
+      evidence
+    },
+    player_observation: { physical: normalizePhysical(player.physical), sexual: normalizeSexual(player.sexual) },
+    npc_observations: npcObservations,
+    evidence: object(value.evidence) ? clone(value.evidence) : {},
+    elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
+    mind_monitor: monitor,
+    turn_summary: typeof value.turn_summary === 'string' ? value.turn_summary : '',
+    warnings
+  };
+}
+
 export function buildDegradedExtractObservation({ extraWarnings = [] } = {}) {
-  return normalizeExtractObservationV2({
+  return {
     extract_version: 2, outcome: 'degraded',
-    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, remote_speaker_ids: [], evidence: [] },
-    player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
-    mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
-    csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: ['extract_degraded', ...extraWarnings]
-  });
+    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], presence_is_final: false, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
+    player_observation: { physical: null, sexual: null }, npc_observations: {}, evidence: {}, elapsed_minutes: 3,
+    mind_monitor: {}, turn_summary: '', warnings: ['extract_degraded', ...extraWarnings]
+  };
 }

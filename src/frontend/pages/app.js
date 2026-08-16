@@ -2,7 +2,7 @@ import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
-import { normalizeNarrativeDisplay, renderChoices, renderHistory, renderNarrative, renderState, setCommittedStatDeltas, text } from './render.js';
+import { normalizeNarrativeDisplay, renderChoices, renderHistory, renderNarrative, renderState, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
@@ -124,21 +124,6 @@ function withStructuredAction(body, pending) {
  * Commit 응답의 실제 turn_changes → {npcId: {statKey: delta}} 일시 표시용.
  * 서버가 확정한 before/after 차이만 사용한다 (프론트 수치 계산기 없음).
  */
-export function statDeltasFromTurnChanges(turnChanges) {
-  const deltas = {};
-  for (const change of Array.isArray(turnChanges) ? turnChanges : []) {
-    const match = /^npc_stats\.([^.]+)\.(affinity|csa_acceptance|sexual_arousal|resistance)$/.exec(change?.path ?? '');
-    if (!match) continue;
-    const from = Number(change?.from);
-    const to = Number(change?.to);
-    if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
-    const npcId = match[1];
-    deltas[npcId] = deltas[npcId] ?? {};
-    deltas[npcId][match[2]] = to - from;
-  }
-  return deltas;
-}
-
 export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitStart, onCommitted, onPendingChange, createActionId = newActionId, consumeStory = consumeStorySse, onTerminated = null }) {
   function persistPending(pending) { savePending(storage, pending); onPendingChange?.(pending); }
   function dropPending(pendingGameId) { clearPending(storage, pendingGameId); onPendingChange?.(null); }
@@ -440,7 +425,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     // 이후 렌더링(턴 갱신)에서는 사용자 스크롤 위치를 침범하지 않는다.
   }
   // Commit delta 일시 표시 타이머 (2~3초 후 클리어).
-  let committedStatDeltaTimer = null;
   const setBusy = value => { busy = value; render(); };
   const setMediaLoading = value => { mediaLoading = value; render(); };
   function clearRecoveryUi() {
@@ -489,18 +473,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       // Commit이 확정된 경우에만 실제 turn_changes 기반 delta를 잠시 표시한다.
       // replayed Commit(피드백 재생)은 변화 애니메이션을 반복하지 않는다.
       // Extract가 제안했지만 Commit에서 거부된 delta는 turn_changes에 없으므로 표시되지 않는다.
-      if (committed?.commit?.success === true && committed?.commit?.replayed !== true && !committed?.terminated) {
-        const deltas = statDeltasFromTurnChanges(committed.turn_changes);
-        if (Object.keys(deltas).length) {
-          setCommittedStatDeltas(deltas);
-          render();
-          clearTimeout(committedStatDeltaTimer);
-          committedStatDeltaTimer = setTimeout(() => {
-            setCommittedStatDeltas({});
-            render();
-          }, 2500);
-        }
-      }
       // Commit 화면 인계 — refreshContext가 방금 커밋한 턴을 정본(recent_turns + action_id 일치)으로
       // 반영했을 때만 current-story를 비운다. 확인이 안 되면 실시간 Story를 그대로 유지하고
       // 오류로 턴을 막지 않는다 (terminated/failed/refresh 실패에서는 절대 지우지 않는다).

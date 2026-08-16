@@ -1,7 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
-import { buildSceneCastContract, resolvePlayerNavigationIntent, validatePlayerDialogueAgainstPolicy } from '../engine/scene-cast.js';
+import { resolvePlayerNavigationIntent } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
@@ -581,13 +581,7 @@ const master = masterFromEdition(edition);
               : storySave
           };
           // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
-          const sceneCastContract = buildSceneCastContract({
-            save: storySave, master, playerAction: storyPlayerAction, structuredAction: csaResolution ? null : structuredAction,
-            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
-          });
-          timing.cast_present_count = sceneCastContract.present_npc_ids.length;
-          timing.cast_entering_count = sceneCastContract.entering_npc_ids.length;
-          timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
+          const sceneCastContract = { present_npc_ids: readCanonicalSceneV1(storySave).present_npc_ids };
           const promptStart = Date.now();
           const actionKind = action.action_kind === 'feedback_revision'
             ? 'feedback_revision'
@@ -649,13 +643,8 @@ const master = masterFromEdition(edition);
           const canonicalStory = composeCanonicalStory({ institutionalSegments, providerNarrative: upstreamRaw });
           raw = canonicalStory;
           const parsed = parseFreshNarrativeV2(canonicalStory, { master });
-          const playerPolicy = sceneCastContract.player_dialogue;
-          const unauthorizedPlayerDialogue = (parsed.dialogue_lines ?? [])
-            .filter(line => /^player(?:[-_]|$)/i.test(String(line?.speaker_id ?? '')))
-            .filter(line => !validatePlayerDialogueAgainstPolicy(line?.text ?? '', playerPolicy));
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
           const mergedWarnings = [...(parsed.warnings ?? [])];
-          if (unauthorizedPlayerDialogue.length) mergedWarnings.push('player_dialogue_policy_violation');
           const contractPersisted = attachEngineEnactments({
             ...parsed,
             turn_context: turnContextFor({

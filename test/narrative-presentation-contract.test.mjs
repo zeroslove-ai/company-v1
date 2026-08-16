@@ -14,11 +14,11 @@ test('canonical scene is the sole frontend presence/focal/speaker authority', ()
   assert.equal(model.media.image_character_id, 'heroine1');
 });
 
-test('media target prefers the last local dialogue speaker and derives sexual pool from committed evidence', () => {
-  const save = { player: { player_id: 'player-1' }, scene: { version: 1, scene_id: 'scene-a', location_id: 'room-a', beat: 2, goal: null, focus_thread: null, present_npc_ids: ['heroine1', 'heroine2'], focal_character_id: null, last_speaker_id: 'heroine2', updated_turn: 4 }, turn_state: { committed_turn: 4 }, npc_scene_state: { heroine1: {}, heroine2: {} }, sexual_event_ledger: [{ turn: 4, kind: 'sexual_contact' }] };
+test('media target prefers the last local dialogue speaker without a semantic event ledger', () => {
+  const save = { player: { player_id: 'player-1' }, scene: { version: 1, scene_id: 'scene-a', location_id: 'room-a', beat: 2, goal: null, focus_thread: null, present_npc_ids: ['heroine1', 'heroine2'], focal_character_id: null, last_speaker_id: 'heroine2', updated_turn: 4 }, turn_state: { committed_turn: 4 }, npc_scene_state: { heroine1: {}, heroine2: {} } };
   const model = buildCompanyGameViewModel(context(save, { extract_delta: { image_character_id: 'heroine3', image_selection: null }, parsed_blocks: { dialogue_lines: [{ speaker_id: 'heroine1', text: '첫 대사' }, { speaker_id: 'heroine2', text: '마지막 대사' }] } }));
   assert.equal(model.media.image_character_id, 'heroine2');
-  assert.equal(model.media.image_pool, 'sex');
+  assert.equal(model.media.image_pool, 'general');
 });
 
 test('canonical empty presence ignores stale legacy members and monitor keys', () => {

@@ -113,12 +113,14 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),
     ...(canonicalScene.present_npc_ids ?? []),
-    ...(sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
+    ...(!navigationIntent ? (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id)) : [])
   ]);
   const domains = reduceObservationDomains({
     currentSave: current, observation: canonicalObservationInput, parsedStory, rawStory, expectedTurn, actionId: action?.action_id, master, npcIds,
     sceneBefore, sceneAfter: canonicalScene, observedNpcIds,
-    explicitSpeakerIds: (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
+    explicitSpeakerIds: !navigationIntent
+      ? (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
+      : []
   });
   let nextSave = { ...domains.nextSave, scene: clone(canonicalScene) };
   nextSave.turn_state = buildTurnState({
@@ -147,8 +149,6 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     time_before: domains.time_before,
     elapsed_minutes: domains.elapsed_minutes,
     time_after: domains.time_after,
-    action_target_id: canonicalObservationInput.action_target_id ?? null,
-    image_character_id: canonicalObservationInput.image_character_id ?? null,
     mind_monitor: ownedMonitor.state,
     canonical_scene: canonicalScene,
     csa_commit: {

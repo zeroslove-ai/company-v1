@@ -221,7 +221,8 @@ test('canary uses the Company edition master shape instead of context.master', (
   assert.equal(parity.context_master_present, false);
   assert.equal(parity.context_master_required, false);
   assert.equal(parity.status, 'CONTEXT_MASTER_NOT_REQUIRED');
-  assert.deepEqual(parity.local_projection.world_rules[0].applicable_scene_actor_ids, ['heroine1']);
+  assert.equal('applicable_scene_actor_ids' in parity.local_projection.world_rules[0], false);
+  assert.equal(typeof parity.local_projection.world_rules[0].content, 'string');
   assert.equal('scene_obligations' in parity.local_projection, false);
   assert.equal(parity.actor_profiles[0].gender, 'female');
 });

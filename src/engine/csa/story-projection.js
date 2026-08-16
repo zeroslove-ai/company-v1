@@ -1,11 +1,6 @@
 import { getActiveCsaEntries } from './applicability.js';
 import { compareRequiredClothing } from '../state/clothing.js';
-import {
-  authorityPolicyFor,
-  matchesCsaSubjectScope,
-  phaseForRule,
-  subjectScopeForRule
-} from './authority-policy.js';
+import { subjectScopeForRule } from './authority-policy.js';
 import { executionMetadataForRule } from './execution-policy.js';
 
 function object(value) {
@@ -55,34 +50,18 @@ function clothingProjection({ entry, execution, applicableSceneActorIds, save })
 function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
   const rule = object(entry);
   const preset = object(rule.preset);
-  const authority = authorityFor(rule, preset);
-  const phase = phaseForRule(rule, expectedTurn);
   const subjectScope = subjectScopeForRule(rule);
-  const policy = authorityPolicyFor(authority);
   const execution = executionMetadataForRule(rule);
-  const knownSceneActorIds = sceneProfiles.map(({ id }) => id);
-  const applicableSceneActorIds = sceneProfiles
-    .filter(({ id, profile }) => matchesCsaSubjectScope({ ...profile, id }, subjectScope))
-    .map(({ id }) => id);
   const result = {
     id: entry.id,
     content: text(rule.content) ?? '',
-    authority,
-    phase,
-    institutional_form: policy.institutional_form,
-    mode: modeFor(rule, preset),
     subject_scope: subjectScope,
     counterparty_scope: text(preset.counterparty_scope) ?? text(rule.counterparty_scope),
-    trigger: text(preset.trigger) ?? (modeFor(rule, preset) === 'on_player_request' ? 'on_counterparty_request' : 'continuous'),
-    known_scene_actor_ids: knownSceneActorIds,
-    applicable_scene_actor_ids: applicableSceneActorIds
+    effective_game_time: rule.effective_game_time ?? rule.activated_game_time ?? null,
+    trigger: text(preset.trigger) ?? text(rule.trigger)
   };
-  const clothing = clothingProjection({ entry, execution, applicableSceneActorIds, save });
+  const clothing = clothingProjection({ entry, execution, applicableSceneActorIds: sceneProfiles.map(({ id }) => id), save });
   if (clothing) result.clothing_projection = clothing;
-  if (Number.isInteger(rule.created_turn)) result.created_turn = rule.created_turn;
-  if (Number.isInteger(rule.updated_turn)) result.updated_turn = rule.updated_turn;
-  if (Object.keys(object(rule.activated_game_time)).length) result.activated_game_time = object(rule.activated_game_time);
-  if (Object.keys(object(rule.updated_game_time)).length) result.updated_game_time = object(rule.updated_game_time);
   return result;
 }
 

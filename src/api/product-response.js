@@ -1,5 +1,5 @@
 import { buildContextDisplayPayload, buildNpcAppPayload } from './runtime-display.js';
-import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from './character-display.js';
+import { buildPlayerSexualDisplay } from './character-display.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 
 function object(value) {
@@ -49,19 +49,7 @@ function canonicalNpcDefaultLocations(edition) {
 }
 
 function mergeNpcPayload(save, edition, latestMindMonitor, details) {
-  return buildNpcAppPayload(save, edition, latestMindMonitor, details).map(base => {
-    const detail = details[base.id] ?? {};
-    return {
-      ...base,
-      // App NPC identity/scope comes only from the evidence-aware app projection.
-      profile: detail.profile ?? base.profile ?? {},
-      body: detail.body ?? base.body ?? {},
-      stat_changes: detail.stat_changes ?? base.stat_changes ?? {},
-      relationship_summary: base.relationship_summary || '',
-      relationship_record: detail.relationship_record ?? {},
-      private_info: detail.private_info ?? { unlocked: false }
-    };
-  });
+  return buildNpcAppPayload(save, edition, latestMindMonitor, details);
 }
 
 export function enrichContextEnvelope(payload, edition) {
@@ -69,7 +57,6 @@ export function enrichContextEnvelope(payload, edition) {
   const context = object(data?.context);
   if (!data || !context) return payload;
   const save = contextSave(context);
-  const currentTurn = latestTurn(context);
   const baseDisplay = buildContextDisplayPayload(save, edition, latestMind(context));
   data.context = {
     ...context,
@@ -80,7 +67,6 @@ export function enrichContextEnvelope(payload, edition) {
       // description/zone/type/default_npcs가 빠지면 프론트가 빈 구조도로 축약된다.
       map_locations: canonicalMapLocations(edition),
       npc_default_locations: canonicalNpcDefaultLocations(edition),
-      character_details: buildCharacterDisplayDetails(save, edition, currentTurn),
       player_sexual: buildPlayerSexualDisplay(save)
     }
   };
@@ -93,11 +79,10 @@ export function enrichAppEnvelope(payload, context, edition) {
   const resolvedContext = object(context);
   if (!data || !app || !resolvedContext) return payload;
   const save = contextSave(resolvedContext);
-  const details = buildCharacterDisplayDetails(save, edition, latestTurn(resolvedContext));
   data.app = {
     ...app,
     player_info: buildFullPlayerInfo(save, edition),
-    npcs: mergeNpcPayload(save, edition, latestMind(resolvedContext), details)
+    npcs: mergeNpcPayload(save, edition, latestMind(resolvedContext), {})
   };
   return payload;
 }
