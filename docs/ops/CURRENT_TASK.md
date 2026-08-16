@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-test-rollout-v1
+Status: READY
+Task ID: minimal-story-runtime-test-rollout-v2
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,223 +13,180 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5308377329` — ACCEPTED `minimal-story-runtime-navigation-phase-closure-v1`.
+Previous operator review: `5308534268` — `ACCEPTED_BLOCKED_EVIDENCE` for `minimal-story-runtime-test-rollout-v1`.
 Reviewed source/runtime SHA: `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`.
-Reviewed final/docs SHA: `e6cf25225f9e7f1d9bbccc06c206ca4a43b89ff3`.
+Previous rollout final docs SHA: `0770675fad5648b474c1b06f9eaec3ad551278e4`.
 
 Binding semantic canon:
 - `docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md`
 - root `CURRENT_TRUTH.md`
-- accepted Minimal Story Runtime audit review `5308024297` / audit SHA `7418750a84b0b2925330330469c5a519d0dd11a2`.
+- accepted Minimal Story Runtime audit review `5308024297`.
 
-Required additive migration source:
-- `supabase/migrations/20260816050000_company_v1_minimal_story_runtime_contract.sql`
-- reviewed source blob at final head: `26b1a1b43b4d6a6b6d7c766ba516f16b88c453e9`
-- operator read-only TEST check immediately before registration found no applied migration row for version/name `20260816050000 / company_v1_minimal_story_runtime_contract`.
+TEST contract already live:
+- migration `20260816050000 / company_v1_minimal_story_runtime_contract` is already applied to TEST. **Do not reapply it.**
+- reviewed rollout deployed TEST API Worker version `37c05efd-b8b9-4be3-b0f8-c823576b0149`; preflight exact current identity/source lineage before deciding whether any redeploy is necessary.
+- frontend was source-equivalent to the reviewed lineage in V1; do not redeploy unless current frontend runtime/assets actually differ.
 
 Disposable TEST game:
-- `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
-- operator preflight readback: committed_turn 0, Level 1, setup/opening not_started, canonical scene `setup`, actions 0, turns 0.
-- because the migration is not live yet, its current save still contains pre-migration roots such as `npc_stats`, `npc_relationship_state`, and `csa_attitudes`; this is expected pre-rollout evidence, not a reason to preserve those roots.
+- `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+- operator post-V1 read-only verification: committed_turn=0, save_revision=1071, Level 1/exp 0, setup/opening not_started, canonical scene `setup`, csa_active=[], actions=0, history=0.
+- retired current-save roots are absent after reset: `npc_stats`, `npc_relationship_state`, `csa_attitudes`, `csa_runtime_state`, `csa_aftereffect_state`, `sexual_event_ledger`, `story_summary_overall`, `story_summary_recent`, `npc_emotion`, `npc_work_state`, and general `event_ledger`.
 
 Forbidden evidence games:
 - preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`: DO NOT ACCESS.
-- QA evidence game `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`: DO NOT ACCESS in this rollout. Existing recorded evidence is enough.
+- QA evidence game `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`: DO NOT ACCESS.
 - Production: forbidden.
+
+## Why V1 was BLOCKED
+
+V1 is accepted as accurate blocked evidence, not as a runtime failure.
+
+The first coherent V1 run already proved a valid live registered-NPC movement: `윤민아 보러간다` resolved registered `heroine2` at canonical `brand_strategy_office`, moved `brand_strategy_meeting_room -> brand_strategy_office`, and did not teleport source-phase presence into the destination.
+
+The corrected no-provider-retry run happened to receive an Opening already located at `brand_strategy_office`. Reusing the same Mina action was therefore a same-location action and could not prove A->B movement. The blocker is deterministic acceptance orchestration around a provider-authored starting location, not evidence that the reviewed navigation reducer is wrong.
+
+Do not change runtime to force an Opening location and do not retry/regenerate Opening until it starts somewhere convenient.
+
+Immutable repository content provides normal-player-action destinations:
+- registered `heroine2` 윤민아 has `default_location_id = brand_strategy_office`;
+- registered location `brand_strategy_meeting_room` is `브랜드전략팀 회의실` and is adjacent to `brand_strategy_office`.
 
 ## Objective
 
-Perform one controlled TEST-only rollout and scenario-driven product acceptance of the reviewed Minimal Story Runtime plus the accepted navigation/scene-phase correction.
+Run one bounded TEST-only continuation that completes the product acceptance left unfinished by V1, without modifying the reviewed Minimal Story Runtime.
 
-This is the first live boundary for the reviewed semantic reset. Do not split it into more evidence-only probes unless the first deterministic product defect requires source review.
-
-The runtime should remain explainable as:
-
-`player input / exact provider literal`
-→ `minimal committed context`
-→ `Story LLM authors narrative`
-→ `fresh parser structures presentation/wire`
-→ `Extract observes narrow Story-grounded machine/UI facts + natural-language turn_summary`
-→ `Commit structural transaction boundary`
-→ `game_save + game_turns committed authority`
-→ `latest six raw committed turns + chronological older turn_summary memory`
-→ next turn.
+Choose the navigation sequence from the actual committed Opening/current scene so a true A->B movement is exercised through ordinary player actions regardless of provider-authored Opening location. Then finish CSA premise separation, six-raw + older-summary continuity, committed readback/replay/idempotence, and final canonical reset in the same coherent run.
 
 ## Required execution
 
 ### A. Freeze and preflight
 
-1. Freeze START HEAD and verify it is the current docs-only descendant of reviewed source `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`. Verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
-2. Re-read the exact migration source and verify its blob/content is unchanged from the reviewed candidate. Do not edit historical migrations or author another migration.
-3. Read-only verify TEST live state before mutation:
-   - migration `20260816050000 / company_v1_minimal_story_runtime_contract` is absent;
-   - disposable game is at clean turn-0 baseline;
-   - current DB validator/reset still represents the pre-migration contract;
-   - existing TEST-only Level-7 fixture migration/function may remain installed, but do not invoke it until after the Minimal Story Runtime migration/reset contract is verified.
-4. Verify current TEST API and Frontend deployed identities/source lineage. Determine deployment need from actual changed source surfaces, not from commit age.
+1. Freeze START HEAD and verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
+2. Verify TEST migration `20260816050000 / company_v1_minimal_story_runtime_contract` is already present exactly once. Do not reapply or edit it.
+3. Read-only verify the disposable game is still at the clean post-V1 baseline and retired semantic roots remain absent.
+4. Verify current TEST API Worker identity/source lineage. If it still corresponds to the reviewed runtime `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`, do not redeploy. Deploy only the exact reviewed lineage if actual executable drift is proven.
+5. Verify frontend source equivalence. Do not redeploy merely because branch/docs HEAD changed. The stale smoke-helper `/narrative.js` probe is not current source authority; validate only assets actually present in reviewed frontend source.
 
-### B. Apply exactly one reviewed migration to TEST
+### B. Setup / Opening / literal input
 
-5. Apply **only** `20260816050000_company_v1_minimal_story_runtime_contract.sql` to TEST using the established single-migration dry-run/apply path. Apply exactly once. Do not modify the migration to make live state pass.
-6. After application, independently verify:
-   - migration ledger row exists exactly once;
-   - `company_minimalize_save_v1`, current `validate_company_save_v1`, reset/opening/commit writers match the reviewed migration body and required ACL/search_path properties;
-   - no unexpected function/grant/schema mutation accompanied it.
-7. Canonically reset only the disposable TEST game using the named reset boundary. Verify the resulting current save:
-   - committed_turn 0, actions 0, turns/history 0, Level 1;
-   - canonical `scene` v1 setup bootstrap;
-   - required narrow roots remain valid;
-   - retired fresh semantic roots stripped by `company_minimalize_save_v1` are absent, including `npc_stats`, `npc_relationship_state`, `csa_attitudes`, `csa_runtime_state`, `csa_aftereffect_state`, `sexual_event_ledger`, `story_summary_overall`, `story_summary_recent`, `npc_emotion`, `npc_work_state`, and general `event_ledger`;
-   - no hydration/default path immediately resurrects them.
+6. Canonically reset only the disposable TEST game if preflight shows it is not already clean. Do not reset merely for ritual if it is already canonical turn 0.
+7. Run Setup + Opening once. Verify exactly four provider-authored canonical literal choices and committed Opening structured blocks.
+8. Turn 1 must send one actual Opening provider literal unchanged and complete Story -> Extract -> Commit once.
+9. Read the committed canonical `scene.location_id` after Opening/Turn 1 before selecting the navigation sequence.
 
-### C. Deploy exact reviewed lineage
+### C. Deterministic registered navigation through normal gameplay
 
-8. Deploy the TEST API from the exact reviewed source lineage containing `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d` plus only docs-only descendants if the currently deployed API source differs. Use the existing Stage-B/contract-gated deployment path. Record Worker Version ID and health.
-9. Deploy the TEST Frontend only if actual frontend runtime/assets in the reviewed lineage differ from the deployed frontend. If source-equivalent, prove equivalence and skip redeployment. Do not deploy merely because branch HEAD changed.
-10. No source/runtime/test/config/content patch is authorized in this rollout. A deterministic defect means capture evidence, cleanup if safe, and STOP for operator review.
+10. The navigation acceptance must use normal player inputs and immutable registered catalog/map identity only. No direct save patch, synthetic Extract, DB manufacture, provider retry/regeneration, or forced Opening location.
+11. Mina destination authority is registered `heroine2` -> `brand_strategy_office`.
+12. If the current canonical location is **not** `brand_strategy_office`:
+    - send `윤민아 보러간다` as the normal player action;
+    - verify the typed structural navigation target is registered `heroine2`, destination is `brand_strategy_office`, and final committed location actually changes A -> office.
+13. If the current canonical location **is** `brand_strategy_office`:
+    - first send a normal exact registered-location action such as `브랜드전략팀 회의실로 간다` and verify canonical movement to `brand_strategy_meeting_room`;
+    - then send `윤민아 보러간다` and verify registered `heroine2` resolves back to `brand_strategy_office`.
+14. For the true A->B movement, verify chronology:
+    - destination is the canonical final location;
+    - source-phase speakers/presence/entrance evidence do not teleport into B;
+    - an NPC appears/accompanies in B only when destination-phase evidence establishes it there;
+    - remote speakers never become local presence;
+    - no stale `npc_scene_state.location_id` or removed mirror chooses the destination.
+15. Story must actually continue at the destination and must not create a duplicate/fake Mina or route another NPC's dialogue under Mina's identity.
 
-### D. One coherent product scenario
+### D. Continue one coherent scenario
 
-11. Run Setup + Opening on the disposable game. Verify Opening returns exactly four provider-authored literal choices and committed `parsed_blocks` carries the same four literals/order.
-12. Turn 1 must send one actual Opening provider literal **unchanged** as player input and complete Story → Extract → Commit once.
-13. Use several subsequent free-text actions in one coherent workplace scenario. Target 8–10 committed ordinary turns unless a decisive defect occurs earlier; the goal is scenario coverage, not a numeric pass count.
-14. Explicitly exercise registered-NPC destination navigation with the reviewed structural form using the actual registered Mina identity, e.g. `윤민아 보러간다`. Verify:
-   - typed navigation has target `heroine2` and canonical destination `brand_strategy_office`;
-   - stale/mutable NPC scene mirrors do not select the destination;
-   - Story actually proceeds at the destination rather than generating a duplicate/fake Mina or keeping the player at the source location.
-15. Exercise at least one authoritative A → B movement after a source NPC has spoken/been present. Verify final committed scene after movement:
-   - location is B;
-   - source-phase speaker/presence/entrance evidence from A does not teleport that NPC into B;
-   - a source NPC may accompany/appear in B only when exact destination-phase evidence establishes entry/accompaniment/presence there;
-   - remote speakers never become local presence.
-16. Verify scene/time chronology remains sane across movement: no backwards/duplicate scene authority, no stale source location overriding canonical destination, and current time advances only through the accepted narrow time path.
+16. Continue ordinary gameplay with several free-text actions. Target enough total committed ordinary turns to cross the six-raw-turn memory boundary, normally 8–10 unless a decisive defect occurs earlier.
+17. Establish one meaningful early work detail, promise, request, agreement/refusal, or other natural-language continuity fact before it leaves the latest-six raw window. Do not create a generic semantic ledger for it.
+18. Verify every sampled post-Commit current save and Story input remain minimal: retired semantic roots from V1 must not be resurrected as current-save or fresh Story authority.
+19. Preserve accepted narrow authority only: canonical scene/time, player progression, CSA lifecycle/capability, compact physical/clothing continuity when naturally observed, direct-evidence `player_sexual_state` if naturally reached, literal choices, Mind Monitor, media/TTS sidecars, committed parsed blocks, turn summaries, transaction/replay identity.
 
-### E. Minimal Story Runtime invariants
+### E. CSA premise separation
 
-17. For every fresh turn sampled, inspect the actual Story input/context projection and post-Commit save/readback. Confirm retired semantic roots are not reintroduced as fresh Story authority or durable current-save authority. In particular, do not accept silent resurrection of:
-   - `npc_stats` / generic affinity-resistance-csa-acceptance state;
-   - generic `npc_relationship_state` narrative authority;
-   - `csa_attitudes`, `csa_runtime_state`, `csa_aftereffect_state`;
-   - fresh general relation/event/emotion/work/fact memory bags;
-   - fresh `sexual_event_ledger` taxonomy;
-   - image/media state as narrative truth.
-18. Preserve and verify narrow current mechanics that the owner canon keeps:
-   - canonical scene/location/presence/focal/last speaker;
-   - current time;
-   - player progression and CSA rule lifecycle/capability;
-   - compact physical/clothing continuity only where actually observed;
-   - direct-evidence `player_sexual_state` if naturally reached;
-   - exact literal choices;
-   - Mind Monitor, TTS/image/media as presentation sidecars;
-   - committed parsed blocks, history, transaction/idempotence/replay identity.
-19. If using the already-installed TEST-only Level-7 seam, invoke it at most once after the migration/reset contract is proven. It may grant progression/capability only. It must not seed narrative facts, compliance, relationship, physical, clothing or sexual outcomes.
-20. Exercise one valid CSA activation/context if practical in the coherent scenario. Verify owner semantics:
-   - activation-time company notice/rule is sufficient; no retroactive memory is required;
-   - once valid and applicable, the rule is in force as the altered workplace premise;
-   - personal dislike/embarrassment may affect reaction, but cannot make the active applicable rule optional/not-in-force;
-   - CSA compliance must not automatically become consent, comfort, affection, trust, romance, or arousal;
-   - do not require or restore finite physical execution grammar.
-21. Do not force a sexual outcome merely for coverage. If a direct-evidence player sexual mechanical update occurs naturally, verify it remains narrow and does not reconstruct the removed generic relationship/event memory. If not reached, report not reached rather than retrying.
+20. If Level 7 is required for the chosen CSA, use only the already-installed approved TEST-only Level-7 seam, at most once in this run and only after preflight/reset correctness is proven. It may grant capability only and must not seed narrative outcomes.
+21. Activate one valid CSA through the normal product path if practical in the coherent scenario and verify the owner semantics:
+    - activation-time company notice/rule is sufficient; no retroactive memory is required;
+    - once valid and applicable, the rule is in force as the altered workplace premise;
+    - personal dislike, embarrassment, reluctance, or reaction may vary but must not make the active applicable company rule optional/not-in-force;
+    - CSA compliance does not automatically imply unrelated consent, comfort, affection, trust, romance, or arousal;
+    - no finite physical execution grammar is required or restored.
+22. Do not force a sexual outcome for coverage. If direct-evidence player sexual mechanics occur naturally, verify they remain narrow; otherwise report not reached without retrying.
 
-### F. Memory/readback/recovery
+### F. Six raw + older turn_summary memory
 
-22. Continue enough turns that at least one meaningful early work detail/promise/request leaves the latest-six raw window. Verify the next Story context contains exactly the latest six raw committed turns plus older chronological natural-language `turn_summary` entries, and that continuity can proceed without the retired general semantic ledgers.
-23. Verify committed refresh/context/frontend readback after the rollout uses committed authority:
-   - choices from committed parsed blocks / Opening projection;
-   - scene/display from canonical committed projection;
-   - no stale client/save mirror regains semantic authority.
-24. Perform same-action replay/recovery on one committed ordinary turn. Verify Story/Extract/Commit replay flags/identity and no committed-turn/save duplication. Do not regenerate provider output for replay.
-25. Verify history uses committed parsed blocks and turn summaries; the single persisted legacy Extract adapter remains historical read-only and is not entered by fresh provider output.
+23. Continue until the early meaningful fact from step 17 leaves the latest-six raw window.
+24. Inspect the actual next Story committed context and prove:
+    - exactly the latest six committed raw turns are present as raw recent turns;
+    - older committed `turn_summary` entries are chronological and natural language;
+    - the older work/promise/request detail remains usable for continuity without `npc_relationship_state`, generic event/emotion/work ledgers, `open_facts`, or another memory bag.
+25. If the provider simply chooses not to mention the older detail, do not retry until it does. Verify that the correct summary memory was available to Story; only deterministic omission/corruption in the server projection is a product defect.
 
-### G. Stop/cleanup
+### G. Readback / replay / recovery
 
-26. One scenario attempt only. No provider retry/regeneration to obtain a prettier result. No parser relaxation, fuzzy repair, semantic gate, compatibility bag, generic memory system, or model/provider/config change.
-27. On the first deterministic product defect:
-   - capture turn/action/stage plus the smallest decisive raw Story/parsed/Extract/Commit/readback evidence;
-   - perform canonical cleanup reset if safe;
-   - report BLOCKED/FAILED and STOP. Do not patch source inside this rollout.
-28. On PASS, finish with one canonical reset of the disposable game. Verify:
-   - committed_turn 0;
-   - actions 0 / turns-history 0;
-   - processing idle;
-   - player setup/opening not_started;
-   - Level 1 / exp 0;
-   - canonical scene `setup`;
-   - retired semantic roots remain absent after reset;
-   - no Level-7 acceleration state remains.
-29. Record exact applied migration identity, API/Frontend deployed identity or source-equivalence proof, scenario turn/action evidence, navigation and A→B scene evidence, memory boundary, replay result, final reset and forbidden-operation confirmation.
+26. Verify committed refresh/context/frontend readback uses committed authority: choices from Opening/committed parsed blocks, canonical scene/display, no stale client/save semantic mirror regains authority.
+27. Perform same-action replay/recovery on one committed ordinary turn and verify Story/Extract/Commit replay identity/flags and no duplicate committed turn/save transition. Never regenerate provider output for replay.
+28. Verify history uses committed parsed blocks and turn summaries. The single persisted legacy Extract boundary remains historical read-only and fresh provider output must not enter it.
+
+### H. Stop and cleanup
+
+29. One coherent scenario attempt only. Do not retry/regenerate provider Story/Opening/Extract for prettier evidence.
+30. On the first deterministic product defect, capture the smallest decisive turn/action/stage/raw/structured/readback evidence, canonically reset if safe, mark BLOCKED/FAILED, and STOP. Do not patch source inside this rollout.
+31. On PASS, perform one final canonical reset and independently verify:
+    - committed_turn=0;
+    - actions=0 and history/turns=0;
+    - processing idle;
+    - setup/opening not_started;
+    - Level 1 / exp 0;
+    - canonical scene `setup` v1;
+    - retired semantic roots remain absent;
+    - no Level-7 acceleration state remains.
+32. Record exact API/frontend identity or equivalence, navigation branch chosen from actual start location, A->B evidence, CSA result, six-raw/older-summary evidence, replay result, final reset and forbidden-operation confirmation.
 
 ## Architecture constraints
 
-- Story LLM authors narrative; server must not become a second narrative author.
-- Extract is one observer LLM for narrow grounded projections + `turn_summary`, not a general fact/relationship/emotion/event memory engine.
-- Commit is structural transaction authority, not semantic interpreter.
-- No `open_facts`, `open_observations`, generic relationship/event/emotion/work ledger, entity graph/vector DB, importance score, semantic gateway, finite physical execution authority, fuzzy inference, or third summary/memory LLM.
-- No semantic/evidence hard gate added to ordinary turns.
-- Registered character/location/catalog IDs are allowed finite content identity; do not broaden the exact NPC navigation helper into a generic intent ontology.
-- CSA is institutional lifecycle/context/capability. Compliance remains distinct from unrelated consent/comfort/affection/trust/romance/arousal.
-- Media/image/TTS are presentation sidecars and may never block or redefine narrative truth.
-- Historical `game_turns.pre_save/post_save`, committed `parsed_blocks`, and the single persisted legacy Extract read boundary remain historical/replay evidence; do not rewrite historical rows to make the new current save look cleaner.
-- Historical applied migrations are immutable.
+- Story LLM authors narrative; server is not a second narrative author.
+- Extract remains one narrow Story-grounded observer + natural-language `turn_summary`, not a generic semantic-memory engine.
+- Commit remains structural transaction authority, not narrative interpreter.
+- No `open_facts`, `open_observations`, generic relation/event/emotion/work ledger, entity graph/vector DB, importance scoring, semantic gateway, finite physical execution authority, fuzzy inference, third summary/memory LLM, retry/regeneration workaround, or replacement compatibility bag.
+- Registered character/location/catalog IDs and exact deterministic navigation resolution are permitted narrow product identity, not a generic intent ontology.
+- CSA is institutional lifecycle/context/capability; compliance stays separate from unrelated consent/comfort/affection/trust/romance/arousal.
+- Media/image/TTS are presentation sidecars and cannot define narrative truth.
+- Historical committed parsed blocks, turn snapshots and the single legacy persisted-Extract read boundary remain historical/replay evidence.
+- Historical migrations are immutable.
 
 ## Authorized operations
 
 Authorized:
 - read-only Git/PR/source/deployment inspection;
-- read-only TEST DB preflight;
-- apply exactly the reviewed migration `20260816050000_company_v1_minimal_story_runtime_contract.sql` to TEST once if still absent;
-- deploy exact reviewed API lineage to TEST if required;
-- deploy exact reviewed Frontend lineage to TEST only if actual frontend source differs;
+- read-only TEST DB verification;
+- exact reviewed TEST API deployment only if executable drift is proven;
+- TEST frontend deployment only if actual reviewed frontend source drift is proven;
 - disposable TEST game reset/setup/opening/gameplay/CSA/history/replay;
-- existing TEST-only Level-7 seam at most once if needed for CSA coverage;
-- read-only TEST DB verification and bounded temporary evidence artifact;
-- docs-only completion record and immutable Issue #68 terminal report.
+- approved existing TEST-only Level-7 seam at most once if needed;
+- bounded temporary evidence artifact;
+- docs-only terminal record and immutable Issue #68 terminal report.
 
 Not authorized:
-- any Production access/deploy;
+- migration reapply or any new DDL/migration;
+- source/runtime/test/config/content edits;
+- Production access/deploy;
 - any access to preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
 - any access to QA evidence game `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`;
-- source/runtime/test/config/content/migration editing;
-- another migration/DDL outside the one reviewed migration application;
 - provider/model/temperature/token changes;
 - retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic hard gate, compatibility runtime/bag;
 - new branch/PR, rebase, squash, force-push, merge or Ready transition.
 
-## Rollout result
-
-Result: BLOCKED — WAITING_REVIEW
-
-Execution identity:
-- Current task blob: `3dc000bd29bb66c5086c00617d9ff9064de5d791`
-- Start head: `ea0304278de01e931c38b33b8839deed6e736248`
-- Reviewed source: `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`
-- Branch: `company/scene-location-presence-v1`
-
-TEST rollout:
-- Applied exactly once: `20260816050000_company_v1_minimal_story_runtime_contract`
-- API deployment: Worker Version `37c05efd-b8b9-4be3-b0f8-c823576b0149`
-- API health/version readback: PASS
-- Frontend: source-equivalent to the reviewed lineage; no deploy. The existing smoke helper's `/narrative.js` probe is stale because that asset is absent from current frontend source; all current source assets probed successfully.
-
-Scenario evidence:
-- Disposable game only: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-- Setup and Opening succeeded; four canonical literal choices were returned and Turn 1 completed literal Story -> Extract -> Commit.
-- Several free-text turns completed. One run reached `brand_strategy_meeting_room` -> `brand_strategy_office` with `윤민아 보러간다` resolving the canonical `heroine2` / `brand_strategy_office` destination and no source-presence teleport.
-- The corrected run reached the same workplace flow but Opening started already at `brand_strategy_office`; the same navigation input therefore remained a same-location step and did not produce a typed destination observation. This leaves live navigation/A->B acceptance non-deterministic across the provider-authored Opening and is the decisive rollout blocker; no source patch or provider retry was used.
-- CSA validation was attempted once in the corrected run after using the live committed turn as `base_turn_count`; the scenario stopped at the navigation blocker before CSA commit, so CSA premise separation and memory/replay acceptance remain unverified in the terminal run.
-- First harness attempt was preserved outside the repository as `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-minimal-story-runtime-rollout-v1-harness-base-turn-mismatch.json`; its only failure was an operator harness stale-state input (`base_turn_count=7` while committed turn was 6), not a product failure.
-
-Final reset readback: PASS — committed_turn 0, save_revision 1071, processing idle, setup/opening not_started, scene setup v1, Level 1/exp 0, zero recent turns, and all retired semantic roots absent.
-
-Forbidden operations: Production 0; preserved/QA evidence games 0; source/runtime/content/config/test edits 0; migration source edits 0; PR merge/Ready 0; provider/model/retry/regeneration changes 0.
-
 ## Acceptance
 
-PASS only if the reviewed Minimal Story Runtime contract is live on TEST, current saves no longer resurrect retired semantic roots, ordinary gameplay continues through the canonical Story → Extract → Commit spine, exact provider choices/free text work, registered-NPC navigation and A→B scene chronology behave correctly, older continuity survives through turn summaries after leaving the six-raw window, committed readback/replay remain correct, and the disposable TEST game returns to a clean minimal turn-0 baseline.
+PASS only if this single run proves all of the following without source changes or provider retries:
+- exact provider literal + free-text gameplay works;
+- a true registered-NPC A->B navigation is exercised by choosing the movement sequence from the actual committed start location;
+- source-phase presence does not teleport and Story/identity remain correct at the destination;
+- Minimal Story Runtime retired roots remain absent and are not resurrected;
+- one valid CSA premise path, if capability is used, preserves institutional-rule semantics without consent/relationship conflation;
+- latest-six raw + chronological older `turn_summary` memory projection is correct after the boundary;
+- committed readback/history and replay/idempotence are correct;
+- final TEST reset is canonical and clean.
 
-Transport success or test count alone is not PRODUCT_PLAY_PASS. Story/premise coherence, player navigation/agency, scene chronology, memory continuity and absence of duplicate semantic authority are part of acceptance.
-
-On PASS or first decisive blocker:
+On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
-- post one immutable terminal report to Issue #68 with exact reviewed source, migration/deploy identities, scenario evidence, any unexercised optional surface, final reset state, forbidden-operation confirmation and final docs SHA;
-- STOP for operator review. Do not generate the next task yourself.
+- post one immutable terminal report to Issue #68 with exact identities and decisive evidence;
+- STOP for operator review. Do not generate the next CURRENT_TASK yourself.
