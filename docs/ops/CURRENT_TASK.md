@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-test-rollout-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -194,6 +194,34 @@ Not authorized:
 - provider/model/temperature/token changes;
 - retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic hard gate, compatibility runtime/bag;
 - new branch/PR, rebase, squash, force-push, merge or Ready transition.
+
+## Rollout result
+
+Result: BLOCKED — WAITING_REVIEW
+
+Execution identity:
+- Current task blob: `3dc000bd29bb66c5086c00617d9ff9064de5d791`
+- Start head: `ea0304278de01e931c38b33b8839deed6e736248`
+- Reviewed source: `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`
+- Branch: `company/scene-location-presence-v1`
+
+TEST rollout:
+- Applied exactly once: `20260816050000_company_v1_minimal_story_runtime_contract`
+- API deployment: Worker Version `37c05efd-b8b9-4be3-b0f8-c823576b0149`
+- API health/version readback: PASS
+- Frontend: source-equivalent to the reviewed lineage; no deploy. The existing smoke helper's `/narrative.js` probe is stale because that asset is absent from current frontend source; all current source assets probed successfully.
+
+Scenario evidence:
+- Disposable game only: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+- Setup and Opening succeeded; four canonical literal choices were returned and Turn 1 completed literal Story -> Extract -> Commit.
+- Several free-text turns completed. One run reached `brand_strategy_meeting_room` -> `brand_strategy_office` with `윤민아 보러간다` resolving the canonical `heroine2` / `brand_strategy_office` destination and no source-presence teleport.
+- The corrected run reached the same workplace flow but Opening started already at `brand_strategy_office`; the same navigation input therefore remained a same-location step and did not produce a typed destination observation. This leaves live navigation/A->B acceptance non-deterministic across the provider-authored Opening and is the decisive rollout blocker; no source patch or provider retry was used.
+- CSA validation was attempted once in the corrected run after using the live committed turn as `base_turn_count`; the scenario stopped at the navigation blocker before CSA commit, so CSA premise separation and memory/replay acceptance remain unverified in the terminal run.
+- First harness attempt was preserved outside the repository as `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-minimal-story-runtime-rollout-v1-harness-base-turn-mismatch.json`; its only failure was an operator harness stale-state input (`base_turn_count=7` while committed turn was 6), not a product failure.
+
+Final reset readback: PASS — committed_turn 0, save_revision 1071, processing idle, setup/opening not_started, scene setup v1, Level 1/exp 0, zero recent turns, and all retired semantic roots absent.
+
+Forbidden operations: Production 0; preserved/QA evidence games 0; source/runtime/content/config/test edits 0; migration source edits 0; PR merge/Ready 0; provider/model/retry/regeneration changes 0.
 
 ## Acceptance
 
