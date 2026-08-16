@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-final-residue-test-rollout-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -147,3 +147,17 @@ On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post exactly one immutable terminal report to Issue #68 with START SHA, migration ledger identity, live function/ACL verification, API/Frontend Worker versions/source equivalence, reset/setup/opening/Turn1/replay/readback/final-reset evidence, forbidden-operation confirmation and final docs SHA;
 - STOP. Do not generate the next CURRENT_TASK yourself.
+
+## Execution record — 2026-08-17
+
+Status: `WAITING_REVIEW` after a deterministic evidence-tool blocker. The exact reviewed migration was applied once to TEST and the exact reviewed executable-equivalent API and Frontend were deployed. Initial reset, Setup, and Opening all succeeded; Opening returned HTTP 200/SSE complete, four non-empty unique provider-authored literal choices, and parser success. The external TEMP verifier then incorrectly required `scene_id=setup` after Opening; the canonical live scene was valid `version=1`, `scene_id=opening`, with the Opening participants. No Turn 1, replay, or post-commit evidence is claimed. This is an operator evidence-script contract error, not a product defect conclusion. No second Opening, retry, regeneration, source patch, workaround, or additional product-play loop was attempted. Final cleanup reset succeeded with HTTP 200.
+
+Rollout evidence:
+
+- Migration applied exactly once through the synchronized Supabase migration runner: ledger `20260817000100 / company_v1_final_residue_closure`. The preflight remote history had the prior 26 migrations and the dry-run selected exactly this one migration. Live `company_minimalize_save_v1(jsonb)` now strips `last_choices`, `last_choice_meta`, final scene/location/presence mirrors, and preserves narrow physical/clothing state. Live `validate_company_save_v1(jsonb)` no longer requires choice mirrors, remains `SECURITY DEFINER` with `search_path=public, pg_temp`, and is executable only by `service_role`; the minimalizer has no service-role/public/anon/authenticated execute ACL.
+- API deployment: `game-proxy-company-v1`, Version `1011e5a2-f034-40ae-bef7-6cdd76b266a6`. `/health` and `/api/version` returned HTTP 200 with `edition_id=company-v1`; no game endpoint was used for smoke verification.
+- Frontend deployment: `gamebuilder-company-v1`, Version `1a3c1416-5362-4658-a8fe-465006a342dd`. Root HTML and the current source asset set returned HTTP 200 and the required product markers. The legacy `scripts/smoke-frontend-worker.mjs` was not an acceptance gate because it incorrectly requires removed `/narrative.js` and returned a stale-harness 404.
+- Disposable TEST artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-final-residue-rollout.json`. It records initial reset 200, setup 200, Opening 200/complete with four choices, the verifier blocker, and final cleanup reset 200. Artifact SHA-256: `3DA1F016526E33F0F35C19995C258C5F16DA9591B43F9CF5B7C7F236399A2ED4`.
+- No forbidden game ID was accessed. No Production/preserved/QA access, additional migration, rollback/repair, source/runtime/test/content/config patch, provider/model change, retry/regeneration, extra product-play loop, merge, PR Ready, or Ready operation occurred.
+
+STOP: terminal result is `BLOCKED` for incomplete/invalid live evidence capture only. No product defect is asserted; no next CURRENT_TASK generated and no next Cut started.
