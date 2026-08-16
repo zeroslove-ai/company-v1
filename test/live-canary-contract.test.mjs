@@ -27,7 +27,8 @@ import {
   TEST_GAME_ID,
   PRODUCTION_GAME_ID,
   selectOpeningChoiceLiteral,
-  resolveOpeningPlayerAction
+  resolveOpeningPlayerAction,
+  resolveCut1PlayerAction
 } from '../scripts/live-playtest-canary.mjs';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
 
@@ -155,6 +156,30 @@ test('Opening choice CLI option is explicit and bounded to Cut 1', () => {
     () => parseCanaryArgs(['--opening-only', '--opening-choice-index', '0'], {}),
     /CANARY_OPENING_CHOICE_MODE_REQUIRED/
   );
+});
+
+test('Cut 1 run-path consumes parsed Opening choice index 0 and preserves the literal', () => {
+  const literal = '  exact Opening literal: 한글, punctuation?!  ';
+  const parsed = parseCanaryArgs(['--cut1-authority', '--opening-choice-index', '0'], {});
+  const resolved = resolveCut1PlayerAction({
+    parsedOpening: { canonical_choices: [literal, '둘', '셋', '넷'] },
+    parsedOptions: parsed,
+    freeText: '사용하지 않는 자유 입력'
+  });
+  assert.equal(parsed.openingChoiceIndex, 0);
+  assert.equal(resolved.mode, 'opening-literal');
+  assert.equal(resolved.choice_index, 0);
+  assert.equal(resolved.player_action, literal);
+});
+
+test('Cut 1 run-path preserves free text when no Opening choice index is parsed', () => {
+  const freeText = '공백과 unicode를 그대로 보내는 자유 입력';
+  const parsed = parseCanaryArgs(['--cut1-authority'], {});
+  assert.deepEqual(resolveCut1PlayerAction({
+    parsedOpening: { canonical_choices: ['하나', '둘', '셋', '넷'] },
+    parsedOptions: parsed,
+    freeText
+  }), { mode: 'free-text', choice_index: null, player_action: freeText });
 });
 
 test('Opening literal mode changes only player_action while replay identity stays stable', () => {

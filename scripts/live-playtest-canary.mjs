@@ -337,6 +337,14 @@ export function resolveOpeningPlayerAction({ parsedOpening, choiceIndex = null, 
   };
 }
 
+export function resolveCut1PlayerAction({ parsedOpening, parsedOptions, freeText }) {
+  return resolveOpeningPlayerAction({
+    parsedOpening,
+    choiceIndex: parsedOptions?.openingChoiceIndex ?? null,
+    freeText
+  });
+}
+
 export function projectionSnapshot(projection) {
   return {
     world_rules: projection?.world_rules ?? []
@@ -918,7 +926,7 @@ export async function run(parsed = parseCanaryArgs(process.argv.slice(2))) {
     const sameActionReplay = {};
     const cut1Turn = async (turn, playerAction) => {
       const resolvedPlayerAction = turn === 1
-        ? resolveOpeningPlayerAction({ parsedOpening: openingParser.parsed, choiceIndex: args.openingChoiceIndex, freeText: playerAction })
+        ? resolveCut1PlayerAction({ parsedOpening: openingParser.parsed, parsedOptions: parsed, freeText: playerAction })
         : { mode: 'free-text', choice_index: null, player_action: playerAction };
       if (turn === 1) report.opening.next_player_action = resolvedPlayerAction;
       const actionId = randomUUID();
