@@ -116,4 +116,5 @@ On PASS or first deterministic blocker:
 - KEY_PROTECTED_CONSUMERS: compact four-slot clothing state, evidenced physical reducer boundary, player sexual mechanical display, sexual event ledger, deterministic image/media adapter, committed replay compatibility.
 - KEY_NEXT_CUT: `physical-sexual-evidence-boundary-v1` — exact Story evidence for posture/position and sexual deltas; open-ended sexual fact preservation; remove unused finite/duplicate residue only after caller/data proof.
 - FORBIDDEN_OPERATIONS: source/runtime/test behavior changes 0; migration authoring/application/DDL 0; DB writes 0; TEST gameplay/setup/opening/reset 0; API/frontend deploy 0; Production/manual-game access 0.
-- FINAL_DOCS_SHA: pending docs-only commit.
+- AUDIT_DOCS_COMMIT_SHA: `73dcbdc` (the docs-only commit containing this audit artifact and the WAITING_REVIEW transition).
+- FINAL_DOCS_SHA: recorded as the terminal docs HEAD in the Issue #68 report after the completion-record commit.
