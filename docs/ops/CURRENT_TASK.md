@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: canary-opening-literal-choice-roundtrip-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -98,3 +98,21 @@ On PASS or deterministic BLOCKED evidence:
 - confirm live TEST/DB/deploy/Production/manual-game operations were zero;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution result — PASS / WAITING_REVIEW
+
+- `START_HEAD`: `620fb3e256e28633f60b9b82e717bc5422a9fa90`
+- `SOURCE_TEST_SHA`: `545541d8e83a89e5b090d201ae5e2c2952894f63` (`test: support exact Opening literal canary roundtrip`)
+- Harness changes: `scripts/live-playtest-canary.mjs`, `test/live-canary-contract.test.mjs`
+- Cut 1 canary now accepts an explicit `--opening-choice-index 0..3`, selects only from the actual parsed `canonical_choices`, and submits that exact string through the existing ordinary Story action request. Missing/non-canonical/invalid selection fails closed in the harness.
+- Free-text Cut 1 mode remains unchanged when the option is absent; replay identity fields remain unchanged.
+- Targeted canary contract: `22/22 PASS`
+- Full `npm.cmd test`: `424/424 PASS`
+- Syntax: `node --check scripts/live-playtest-canary.mjs`, `node --check test/live-canary-contract.test.mjs` PASS
+- `git diff --check`: PASS
+- TEST live gameplay/reset/DB writes: `0`
+- Migration/DDL application: `0`
+- API/frontend deployment: `0`
+- Production/preserved manual-game access: `0`
+- `FINAL_DOCS_SHA`: pending this docs-only completion commit
+- Status: `WAITING_REVIEW`; operator must review before any bounded TEST closure run.
