@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: story-speaker-identity-projection-root-cause-v1
+Status: READY
+Task ID: story-speaker-identity-live-evidence-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,95 +13,73 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Operator review `5304651320` accepted the preceding `story-marker-literal-choice-live-closure-v1` terminal as accurate BLOCKED evidence, not feature success.
+Operator review `5304838713` accepted `story-speaker-identity-projection-root-cause-v1` as accurate BLOCKED evidence, not feature success.
 
 Reviewed gameplay/source executable remains `b3c06f931d8bd216f217412343621781670f0722`.
-The preceding terminal docs SHA is `0e05b6a03c8387bac901065b2fd875bdb181b045`.
+Focused identity regression SHA is `6446b9873ee14865a9f292e5795d4f547c3690af`; it changes tests only and proves the current source master/parser accepts registered `heroine3` while rejecting `heroine3_alias`.
+The preceding terminal docs SHA is `f76e22a003a4f94dfccd61ab2f936ae91302d294`.
 
-Deterministic live evidence: dedicated TEST Setup succeeded and Opening returned HTTP 200/complete plus four provider-authored literal choices, but strict parsing stopped on provider output `[DIALOGUE speaker_id="heroine3"]` with `Unknown Story speaker_id: heroine3`. No literal-choice turn was attempted after that first failure. Dedicated TEST game was reset clean. No retry/provider/parser workaround occurred.
+The prior live closure artifact reported `Unknown Story speaker_id: heroine3`, but did not preserve the exact parser/master/probe boundary needed to reconcile that diagnostic with current source. Do not infer a runtime fix from contradictory evidence.
 
 Historical manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is READ-ONLY and must never be accessed or mutated. Production access is forbidden.
 
 ## Objective
 
-Find and fix the root cause of the Story speaker identity mismatch without weakening registered stable identity integrity.
-
-Trace the complete boundary:
-Setup/catalog canonical registered character IDs -> Story/Opening prompt identity projection -> any heroine aliases/template labels -> provider DIALOGUE `speaker_id` -> fresh parser registered-ID set.
-
-Determine whether `heroine3` comes from a stale producer alias/template, missing canonical-ID projection, inconsistent Setup/Open world projection, or another deterministic wiring defect. Fix the earliest owning boundary and delete superseded alias/template/compatibility logic when proof permits.
+Close the contradictory speaker-identity evidence with one bounded dedicated TEST live run on the exact reviewed runtime, preserving canonical transport/parser evidence. If the registered `heroine3` path succeeds, continue the previously blocked literal-choice closure. If it fails, preserve enough evidence to identify the exact deterministic boundary and STOP without workaround.
 
 ## Required work
 
-1. Verify exact #67 topology and ancestry. Separate reviewed executable SHA from docs-only descendants.
-2. Inventory every active source/test producer or consumer of Story `speaker_id`, including Setup/Opening world projection, heroine slot/alias labels, prompt examples/templates, registered NPC IDs, parser validation, and replay/recovery.
-3. Establish the canonical registered identity set supplied for the failing Opening path and explain exactly why `heroine3` could be emitted while the parser rejected it.
-4. Apply the smallest architecture-first source/test correction at the owning producer/projection boundary. Preferred outcomes are deletion of stale alias/template output or projection of canonical registered IDs. Do not teach the parser to accept arbitrary aliases and do not add fuzzy repair.
-5. REMOVE-OR-PROVE any finite alias map/template vocabulary encountered. Stable registered character IDs are legitimate integrity state; semantic heroine labels are not automatically legitimate runtime identity.
-6. Add focused regression proof that Story/Opening producer instructions expose only canonical registered speaker IDs and that an unregistered `heroine3`-style identity remains rejected by the strict parser.
-7. Verify ordinary current-format replay/recovery and committed `parsed_blocks` authority are unchanged.
-8. Run focused tests plus the full relevant local suite. Test count alone is not proof.
+1. Verify #67 topology/ancestry and separate reviewed executable `b3c06f9...` from test/docs descendants.
+2. Verify the TEST API deployed executable identity. Deploy exact reviewed executable `b3c06f931d8bd216f217412343621781670f0722` only if identity is not already exact. No frontend deploy.
+3. Use only the existing reviewed canary/SSE transport decoder and dedicated TEST game path. Do not create another probe/parser/decoder generation.
+4. Run one bounded Setup -> Opening flow. Preserve in TEMP evidence sufficient to identify:
+   - Setup/opening canonical registered character IDs relevant to the active Opening plan;
+   - provider raw Story terminal payload/frame before fresh parsing;
+   - parser master registered character IDs at the parse boundary;
+   - exact parser success/error code/message;
+   - Opening returned provider-authored four literal choices if successful.
+5. If the same raw `[DIALOGUE speaker_id="heroine3"]` fails while parser master demonstrably contains registered `heroine3`, classify the exact source/runtime drift or boundary defect from preserved evidence and STOP. No retry.
+6. If Opening succeeds, select exactly one returned provider-authored choice literal unchanged as the next `player_action`; verify persisted/history identity is byte-for-byte the selected literal and current-format committed `parsed_blocks` remain replay authority.
+7. Then submit one ordinary free-text turn to prove free text remains ordinary gameplay and verify Story -> Extract -> Commit plus replay/recovery/idempotence.
+8. Do not require a particular semantic relation/event/emotion/sexual outcome from this closure; this task tests identity/choice/replay transport boundaries, not provider semantic luck.
+9. Reset only the dedicated TEST game at the end, including after a deterministic failure if reset remains safe. Never touch the preserved manual game.
+10. Preserve evidence in OS TEMP, not repository paths. Do not commit live artifacts.
 
 ## Architecture constraints
 
-- Registered stable character identity remains a finite integrity boundary.
-- No parser relaxation/new parser, compatibility alias acceptance, fuzzy repair, regex cleanup, fallback Story, retry/regeneration, provider/model/temperature/token changes, or semantic hard gate.
-- Story authors open-ended narrative meaning; identity validation only proves that a named speaker is a registered character.
-- Do not reintroduce relation/general-event/emotion/work semantic ledgers or semantic choice metadata/fallbacks.
-- Exactly-four choices remain provider-authored literal strings; free text remains ordinary gameplay.
+- Registered stable character IDs remain strict finite integrity authority. No alias acceptance/fuzzy repair/parser relaxation.
+- No source/runtime/test change is authorized unless this fresh bounded run proves a deterministic repository defect. If proven, STOP as BLOCKED with exact evidence; do not hotfix in this task.
+- No retry/regeneration, provider/model/temperature/token change, fallback Story, regex cleanup, semantic hard gate, or new parser.
+- Exactly-four choices are provider-authored literal strings. No server semantic fallback/choice metadata.
 - Recent six raw Story + older natural-language `turn_summary` remains continuity authority.
+- Story authors narrative; Extract observes grounded facts; server owns identity/provenance/transaction/idempotence/narrow projections.
 - CSA remains institutional rule/context, not consent/comfort/affection/emotion authority.
-- Scene/location/presence, compact clothing UI continuity, TEST-only Level-7 seam, sexual state/media adapters, image catalogs/pools/families, and TTS are protected actual-consumer systems. Media classification must never gate whether Story/Extract facts occurred.
+- Scene/location/presence, compact clothing UI continuity, TEST-only Level-7 seam, sexual state/media adapters, image catalogs/pools/families, and TTS are protected actual-consumer systems. Media classification must never gate Story/Extract fact occurrence.
 - Historical applied migrations are immutable.
 
 ## Authorized operations
 
 Authorized:
-- source/test/docs changes on existing branch `company/scene-location-presence-v1` only;
-- local focused/full tests;
-- read-only repository/history inspection.
+- read-only source/history inspection on existing branch;
+- exact TEST API deploy of reviewed executable only if required by identity mismatch;
+- dedicated TEST Setup/Opening/two bounded ordinary turns as described;
+- existing TEST-only Level-7 seam only if already required by the dedicated harness; do not manufacture gameplay state;
+- dedicated TEST game reset;
+- TEMP evidence capture;
+- docs-only completion update.
 
 Not authorized:
-- live TEST gameplay, DB write/reset, migration/DDL, API/frontend deployment;
+- source/runtime/test modification or migration/DDL;
+- frontend deploy;
 - Production access;
 - any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- provider/model/temperature/token changes or retries/regeneration;
-- new branch/PR, merge, Ready, rebase, squash, force-push.
-
-If the root cause requires a new DB/migration/live contract rather than source/test correction, do not invent compatibility code: preserve evidence and STOP as BLOCKED for operator review.
+- new branch/PR, merge, Ready, rebase, squash, force-push;
+- retries/regeneration or provider/model changes.
 
 ## Completion
 
 On success or deterministic BLOCKED finding:
-- report root cause, exact source/test SHA, changed files, removed/proven identity alias boundaries, parser invariant, focused/full test results, and exact ancestry;
+- report exact deployed identity, dedicated TEST game ID, canonical speaker-ID evidence, raw provider speaker ID, parser-master evidence, literal-choice identity result if reached, free-text/replay result if reached, reset proof, and exact branch ancestry;
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
-
-## Execution result — BLOCKED / identity evidence contradiction
-
-- Start CURRENT_TASK blob SHA: `5b1919953b93d599630fcf0bea5924c8825e007c`
-- Start HEAD: `67d0f87d3c8e4af411e8513a5ed728ca00a34de0`
-- Reviewed executable SHA: `b3c06f931d8bd216f217412343621781670f0722`
-- Source/test SHA: `6446b9873ee14865a9f292e5795d4f547c3690af`
-- Expected branch: `company/scene-location-presence-v1`
-
-Source tracing established that `heroine3` is a registered canonical
-character ID. `masterFromEdition()` combines the current character and
-general-NPC catalogs, Opening projects active canonical IDs, and the strict
-parser accepts registered `heroine3` while rejecting `heroine3_alias`.
-No stale alias/template or source runtime defect was found, so no parser
-relaxation, provider workaround, retry, or runtime change was made.
-
-The preserved live artifact's outer `Unknown Story speaker_id: heroine3`
-diagnostic is contradictory to the source behavior and does not preserve the
-probe implementation needed to locate the live boundary. This task is
-therefore BLOCKED for operator review rather than a runtime-fix authorization.
-
-Changed files: `test/setup-opening.test.mjs` and the audit/current-truth/task
-documents. Runtime source/content/migrations unchanged. Focused tests passed
-55/55; `npm.cmd test` passed 421/421; syntax and `git diff --check` passed.
-Live TEST/gameplay/reset, DB writes, migration/DDL, deployment, Production,
-and preserved-artifact mutation were all 0. The preserved artifact remains
-unmodified and uncommitted. This task is complete only as a WAITING_REVIEW
-blocked finding; do not generate or start a next task.
