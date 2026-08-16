@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: opening-literal-choice-live-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -95,3 +95,20 @@ On PASS or first deterministic blocker:
 - report exact START SHA, reviewed harness SHA, deployed runtime identity if observed, selected literal/index evidence, Turn-1 commit/replay result, optional Turn-2 free-text result, final reset/readback, operations performed/forbidden, and FINAL_DOCS_SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution result — BLOCKED / WAITING_REVIEW
+
+- `START_HEAD`: `964f2ddc871e4e69ed4af3212ef15bd8ad149ddb`
+- `REVIEWED_HARNESS_SHA`: `545541d8e83a89e5b090d201ae5e2c2952894f63`
+- Worker health readback: HTTP 200, `ok=true`, `edition_id=company-v1`; no redeploy performed and no Worker version change was introduced.
+- TEST migration readback: `20260816045221 / company_v1_setup_opening_world_authority` present. `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)` remains SECURITY DEFINER with `search_path=public, pg_temp` and validates registered IDs across `characters` + `general_npcs`.
+- One bounded TEST canary invocation used `--opening-choice-index 0` on game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; health/setup/opening/Turn 1/Turn 1 replay/Turn 2/final reset all returned transport success.
+- Opening returned four non-empty unique canonical choices (`raw_count=4`, `canonical_count=4`). Preserved artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-opening-literal-choice-live-closure.json`, SHA-256 `5164B0540D3DE59E1AC9DBC4A8A8F118DB4F7A7A45FE3F6E15F3F3556A2B3314`.
+- Acceptance blocker: artifact recorded `next_player_action.mode=free-text`, `choice_index=null`, and the hardcoded free-text Turn 1 action, despite the explicit CLI index. The selected Opening literal was not submitted or committed. The observed harness wiring reads `args.openingChoiceIndex` from `parsed.args` instead of the parsed option field; no source patch or retry was attempted.
+- Turn 1 Story/Extract/Commit and same-action Story/Extract/Commit replay passed, with `committed_turn=1` and `save_revision=1011` unchanged across replay, but against the wrong free-text action.
+- Turn 2 free-text Story/Extract/Commit passed; context/history readback reached `committed_turn=2`, `save_revision=1012`, two records, and parsed blocks present.
+- Final reset readback: `committed_turn=0`, `save_revision=1013`, `processing_status=idle`, setup/opening `not_started`, `csa_active=[]`, canonical scene present, history/actions/turns `0`.
+- TEST DB writes: only the explicitly authorized bounded canary/reset path; no out-of-scope DB writes. Migration/DDL application: `0`.
+- API/frontend deployment: `0`; Production/preserved manual-game access: `0`; provider/model/config/retry changes: `0`.
+- `FINAL_DOCS_SHA`: pending this docs-only completion commit
+- Status: `WAITING_REVIEW`; operator review is required before any harness correction or new live attempt.
