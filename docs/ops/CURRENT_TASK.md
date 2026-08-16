@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-csa-agency-continuity-product-play-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -214,3 +214,14 @@ On PASS or first blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68 with START SHA, Worker identity/deploy decision, exact CSA operation/rule and activation time, turn-by-turn decisive semantic evidence, promise/summary boundary evidence, literal-choice/agency/time observations, replay result, final reset state, forbidden-operation confirmation and FINAL docs SHA;
 - STOP for operator review. Do not generate the next CURRENT_TASK yourself.
+
+## Execution result — WAITING_REVIEW / BLOCKED
+
+- Start HEAD: `541ce96a34eaa0a7d742f74923fcc03d6317162f`.
+- Accepted runtime SHA: `beae855ebc5a9706bae234af80b2569d73566f0a`. The TEST Worker deployment was read-only verified as `game-proxy-company-v1` version `51c5ac28-8d52-49bc-bb14-fdd1f0164126`, 100%; no deploy was needed. No migration was applied.
+- One canonical TEST Setup/Opening attempt and one continuous 9-turn sequence were run only on disposable game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`. Opening passed at `brand_strategy_meeting_room`, Day 1 / Thursday `minute_of_day=611`, with present registered `heroine1` and exactly four provider-authored choices.
+- CSA activation passed through the real app path on turn 3: `/api/app-validate` accepted the exact current weak non-clothing preset `interlace_fingers_with_recipient`, with `subject_scope=female_employee`, `counterparty_scope=player`, `trigger=when_in_close_conversation`, `base_turn_count=2`; the validated canonical action was carried unchanged through Story/Extract/Commit. The committed rule became `csa_3` at Day 1 `minute_of_day=617` and remained active through turn 9. Replay of turn 8 returned Story/Extract/Commit `replayed=true` with no state change.
+- BLOCKER: the temporary PowerShell inline runner's non-ASCII source encoding converted all free-text Korean player inputs (turns 1, 3–5, 7, and 9) to literal `?` characters before transport. The committed turn/history records preserve those corrupted literals. Consequently the required early concrete work promise (turn 1) was not actually established, the later follow-up could not prove continuity from that promise, and the required free-text player-intent/agency evidence is invalid. Provider choices selected unchanged on turns 2 and 6 were preserved, but they cannot cure the failed work-memory premise.
+- The raw Story/Extract/Commit evidence, canonical validation result, per-turn context/time/state, history, replay, and reset readback are preserved outside the repository at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-csa-v1-opening-20260817.json` and `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-csa-v1-continuation-20260817.json`. This is an operator/evidence-tool encoding failure, not a runtime defect conclusion; no rerun, retry, regeneration, source patch, or alternate scenario was attempted.
+- Final canonical reset succeeded once and independent readback was clean: `committed_turn=0`, canonical scene `setup`, empty presence, `csa_active=[]`, setup/opening not_started, processing idle, Level 1 / exp 0, and zero game turns/actions. No Production/sentinel, preserved manual, or QA evidence game was accessed.
+- No source/runtime/test/content/config change, migration/DDL, deploy, direct DB write, frontend operation, new harness, parser, semantic gate, retry, or provider change occurred. Stop for operator review/rearm. No next task generated.
