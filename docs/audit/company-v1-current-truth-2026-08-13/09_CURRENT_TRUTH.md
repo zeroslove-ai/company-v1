@@ -694,3 +694,42 @@ The first authoritative artifact is preserved at
 The TEST game remains in the failed acceptance state pending operator review;
 no rollback, second migration, source/config change, Production access, or
 preserved manual-game access occurred.
+
+## Legacy save reset canonicalization closure — WAITING_REVIEW
+
+The deterministic reset regression was corrected from the accepted source/test
+baseline `9c52e74a8e32278207e6e9b729c33d64eb770fd1` in commit
+`a65a757d560ac15f01619de6df0eafbcc4905368`, with one focused reset-contract
+test addition and exactly one additive migration source:
+`20260816020000_company_v1_reset_canonicalization_closure.sql`.
+Historical migrations were not edited. Local focused tests passed 26/26 and
+the full suite passed 422/422; JavaScript syntax and `git diff --check` passed.
+
+The migration was applied exactly once to TEST and independently read back as
+ledger version `20260816013408` /
+`company_v1_reset_canonicalization_closure`. The live
+`reset_company_game(uuid,text)` is SECURITY DEFINER with
+`search_path=public, pg_temp`, service_role EXECUTE, and PUBLIC/anon/
+authenticated revoked. Its candidate order is: remove the five deleted
+save-level keys, call the existing `company_bootstrap_scene_v1`, call the
+existing `company_apply_initial_clothing_v2`, validate that same candidate
+with the strict current `validate_company_save_v1`, then delete turns/actions
+and persist that same validated candidate. The scene helper remains an
+internal SECURITY DEFINER helper with the same search path and no service_role
+grant; the clothing helper remains the existing immutable internal helper
+with no service_role grant; validator strictness was not changed.
+
+The canonical reset was called once on dedicated TEST game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84` and returned HTTP 200. Final readback:
+`committed_turn=0`, `processing_status=idle`,
+`player_setup.status=not_started`, `opening_state.status=not_started`,
+`turn_count=0`, `action_count=0`, `save_revision=994`; canonical `scene`
+exists and `validate_company_save_v1` returned `{valid:true,errors:[]}`.
+`story_summary_overall`, `story_summary_recent`, `npc_emotion`,
+`npc_work_state`, and general `event_ledger` are absent. Retained
+relationship, sexual, stats, CSA, physical/clothing, identity, and literal
+choice structures remain present. Progression and sexual-event media were
+absent in the master initial save and were not lost by reset. No API/frontend
+deployment, Production/manual-game access, additional gameplay, retry,
+rollback, or second migration occurred. Cut 2 acceptance remains
+WAITING_REVIEW pending operator review of this exact closure.

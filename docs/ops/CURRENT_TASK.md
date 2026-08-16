@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: legacy-save-reset-canonicalization-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -109,3 +109,40 @@ On success or a new deterministic blocker:
 - report exact source/test/migration SHA, corrective migration name/version, live function body/ACL facts, dedicated TEST reset result/readback, deleted-key absence, protected-structure checks, and final branch SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not create the next task yourself.
+
+## Execution result — reset canonicalization closure
+
+Execution identity: `legacy-save-reset-canonicalization-closure-v1` / task blob
+`62eefa4bd458c2f48fa2a5971da3e02780901d77` / branch
+`company/scene-location-presence-v1`.
+
+The exact source/test/migration candidate is commit
+`a65a757d560ac15f01619de6df0eafbcc4905368`; it contains the single additive
+migration `20260816020000_company_v1_reset_canonicalization_closure.sql` and
+the focused reset-contract regression. Focused tests passed 26/26 and the
+full local suite passed 422/422. JavaScript syntax and `git diff --check`
+passed.
+
+The migration was applied once to TEST as ledger version
+`20260816013408` / `company_v1_reset_canonicalization_closure`. Readback of
+`reset_company_game(uuid,text)` showed SECURITY DEFINER,
+`search_path=public, pg_temp`, and `service_role` EXECUTE with PUBLIC/anon/
+authenticated revoked. The existing scene helper remained SECURITY DEFINER
+with the same search path and no service_role grant; the clothing helper
+remained the existing immutable internal helper with no service_role grant;
+the strict validator remained unchanged.
+
+The canonical reset was called once on the dedicated TEST game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84` and returned HTTP 200. Readback is
+clean: `committed_turn=0`, `processing_status=idle`,
+`player_setup.status=not_started`, `opening_state.status=not_started`,
+`turn_count=0`, `action_count=0`, `save_revision=994`, canonical `scene`
+exists and `validate_company_save_v1` returned `{valid:true,errors:[]}`.
+All five deleted residue keys are absent. Retained relationship, sexual,
+stats, CSA, physical/clothing, identity, and literal-choice structures remain
+present; progression and sexual-event media were absent from the master
+initial save and therefore were not lost by reset.
+
+No API/frontend deployment, Production access, preserved-manual-game access,
+additional TEST gameplay, retry, rollback, or second migration occurred.
+STOP: waiting for operator review.
