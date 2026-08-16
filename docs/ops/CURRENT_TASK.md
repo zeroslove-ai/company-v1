@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-final-residue-test-rollout-v2
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -124,3 +124,39 @@ On PASS or first real deterministic blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post exactly one immutable terminal report to Issue #68 with START SHA, verified live migration/API/Frontend identity, reset/setup/opening/Turn1/replay/readback/final-reset evidence, forbidden-operation confirmation and final docs SHA;
 - STOP. Do not generate the next CURRENT_TASK yourself.
+
+## V2 execution record (2026-08-17)
+
+- Execution identity: `minimal-story-runtime-final-residue-test-rollout-v2`;
+  START HEAD `baca5ac036f5f9480b680c12700fddffaaf04d59`; reviewed source/test
+  SHA `907eee3bcace9918e4965221eec2f44719213682` remained the executable
+  ancestor with no runtime/test/config delta through START HEAD.
+- TEST preflight: migration `20260817000100 /
+  company_v1_final_residue_closure` is present exactly once, alongside
+  `20260816050000 / company_v1_minimal_story_runtime_contract`. The live
+  `company_minimalize_save_v1(jsonb)` and `validate_company_save_v1(jsonb)`
+  definitions, SECURITY DEFINER/search-path, and ACLs match the reviewed
+  contract. No migration was reapplied.
+- Deployment preflight: API `game-proxy-company-v1` Version
+  `1011e5a2-f034-40ae-bef7-6cdd76b266a6` and Frontend
+  `gamebuilder-company-v1` Version `1a3c1416-5362-4658-a8fe-465006a342dd`
+  were live at 100%; health, version, root HTML, and current frontend assets
+  were read successfully. No deployment occurred.
+- One bounded sequence used only disposable TEST game
+  `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`: initial reset 200; Setup 200;
+  Opening 200/SSE complete with four non-empty unique provider-authored
+  literal choices; one exact returned literal was sent unchanged as Turn 1;
+  Story/Extract/Commit succeeded; committed turn became 1; canonical
+  `save.scene` was valid with `scene_id=opening`; all retired choice/scene/
+  location/presence mirrors and `compatibility_mode` remained absent; context
+  and history returned 200 with committed parsed choices; same-action Story /
+  Extract / Commit replay was acknowledged without an extra turn; final reset
+  returned 200 and restored clean Level 1/setup state with canonical
+  `scene_id=setup` and empty presence.
+- Preserved OS TEMP evidence:
+  `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-final-residue-rollout-v2.json`
+  SHA-256 `D3F3D336B96388FB5A27266E10DE8295CAFF230190BC9BFB83EE55471B83FD13`.
+- Forbidden operations: Production/preserved/QA/sentinel access 0; extra
+  game loop 0; migration/DDL 0; API/Frontend deploy 0; source/runtime/test/
+  content/config edits 0; provider retry/regeneration/model change 0; direct
+  DB writes 0; merge/PR Ready/Ready/rebase/squash/force-push 0.
