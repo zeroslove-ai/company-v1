@@ -17,11 +17,13 @@ function registeredEntries(master = {}) {
   return [
     ...entries(master.characters, 'character_id').map(item => ({
       id: identity(item?.character_id ?? item?.id),
-      name: identity(item?.name)
+      name: identity(item?.name),
+      default_location_id: identity(item?.default_location_id)
     })),
     ...entries(master.general_npcs, 'npc_id').map(item => ({
       id: identity(item?.npc_id ?? item?.id),
-      name: identity(item?.name)
+      name: identity(item?.name),
+      default_location_id: identity(item?.default_location_id)
     }))
   ].filter(item => item.id);
 }
@@ -53,6 +55,25 @@ function locationCandidates(mapLocations) {
   return candidates;
 }
 
+function npcDestinationCandidates(entry, mapLocations) {
+  const ids = new Set();
+  if (entry?.default_location_id) ids.add(entry.default_location_id);
+  for (const location of Array.isArray(mapLocations) ? mapLocations : []) {
+    if (Array.isArray(location?.default_npc_ids) && location.default_npc_ids.includes(entry?.id)) {
+      const id = identity(location?.location_id);
+      if (id) ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
+function exactNpcVisitIntent(source, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const beforeName = new RegExp(`(?:^|\\s)${escaped}(?:을|를)?\\s*(?:보러|찾으러|만나러|방문하러)(?:간다|가다|가요|갑니다)?`, 'u');
+  const afterIntent = new RegExp(`(?:go\\s+to|go\\s+see|visit|find|meet|see)\\s+${escaped}\\b`, 'i');
+  return beforeName.test(source) || afterIntent.test(source);
+}
+
 /**
  * Structural player navigation only. A player action may name one exact
  * catalog location, but an NPC-directed action never becomes player movement.
@@ -60,7 +81,20 @@ function locationCandidates(mapLocations) {
 export function resolvePlayerNavigationIntent({ save = {}, master = {}, playerAction = '', mapLocations = [] } = {}) {
   const source = typeof playerAction === 'string' ? playerAction.trim() : '';
   if (!source || !(/\b(?:go|move|walk|enter|visit|leave)\b|이동|가다|간다|들어가|찾아가|방문/u.test(source))) return null;
-  if (registeredEntries(master).some(entry => entry.name && source.includes(entry.name))) return null;
+  const registered = registeredEntries(master);
+  const mentioned = registered.filter(entry => entry.name && source.includes(entry.name));
+  if (mentioned.length) {
+    if (mentioned.length !== 1 || !exactNpcVisitIntent(source, mentioned[0].name)) return null;
+    const destinations = npcDestinationCandidates(mentioned[0], mapLocations);
+    const current = identity(readCanonicalSceneV1(save, { master, mapLocations }).location_id);
+    if (destinations.length !== 1 || destinations[0] === current) return null;
+    return {
+      kind: 'player_navigation',
+      destination_location_id: destinations[0],
+      target_npc_id: mentioned[0].id,
+      source: 'explicit_npc_destination'
+    };
+  }
   const current = identity(readCanonicalSceneV1(save, { master, mapLocations }).location_id);
   const best = locationCandidates(mapLocations)
     .filter(candidate => source.includes(candidate.name))

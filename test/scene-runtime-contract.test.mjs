@@ -13,6 +13,41 @@ test('movement clears source presence and accepts destination evidence only', ()
   assert.equal(result.present_npc_ids.includes('heroine4'), false);
 });
 
+test('source-location presence evidence cannot repopulate final destination presence', () => {
+  const result = reduceCanonicalScene({
+    currentScene: base,
+    authoritativeLocationId: 'office',
+    mapLocations: [{ location_id: 'meeting' }, { location_id: 'office' }],
+    master,
+    npcIds: new Set(['heroine1', 'heroine4']),
+    expectedTurn: 7,
+    observation: observation({
+      speakers: ['heroine4'],
+      evidence: [{ kind: 'presence', character_id: 'heroine4', location_id: 'meeting', quote: 'heroine4 remains in meeting' }]
+    })
+  });
+  assert.deepEqual(result.present_npc_ids, []);
+});
+
+test('destination-phase accompaniment evidence may establish source NPC in destination', () => {
+  const result = reduceCanonicalScene({
+    currentScene: base,
+    authoritativeLocationId: 'office',
+    mapLocations: [{ location_id: 'meeting' }, { location_id: 'office' }],
+    master,
+    npcIds: new Set(['heroine1', 'heroine4']),
+    expectedTurn: 7,
+    observation: observation({
+      speakers: ['heroine1'],
+      evidence: [
+        { kind: 'entrance', character_id: 'heroine4', location_id: 'office', quote: 'heroine4 enters the office' },
+        { kind: 'presence', character_id: 'heroine1', location_id: 'office', quote: 'heroine1 is in the office' }
+      ]
+    })
+  });
+  assert.deepEqual(result.present_npc_ids, ['heroine4', 'heroine1']);
+});
+
 test('remote speakers never become local presence', () => {
   const result = reduceCanonicalScene({ currentScene: base, mapLocations: [{ location_id: 'meeting' }], master, npcIds: new Set(['heroine1', 'heroine4']), expectedTurn: 7, observation: observation({ speakers: ['heroine1'], remote: ['heroine1'] }) });
   assert.deepEqual(result.present_npc_ids, ['heroine4']);

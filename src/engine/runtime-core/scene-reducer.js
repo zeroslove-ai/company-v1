@@ -217,6 +217,7 @@ export function reduceCanonicalScene(input = {}) {
   for (const observed of uniqueNpcIds(
     (observation.evidence ?? [])
       .filter(item => item?.kind === 'presence' || item?.kind === 'entrance')
+      .filter(item => !authoritativeLocationChange || item?.location_id === observedLocation)
       .map(item => item?.character_id),
     npcIds
   )) {
