@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: canary-opening-choice-option-plumbing-fix-v1
+Status: READY
+Task ID: opening-literal-choice-live-closure-v2
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,94 +13,88 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5306683174` accepted the prior live run as accurate BLOCKED evidence.
-Blocked terminal comment: `5306542914`.
-Reviewed harness/source-test ancestor: `545541d8e83a89e5b090d201ae5e2c2952894f63`.
-Current registration parent: `a78d442accd468ed9d3942f1e8fe133e090a0354`.
+Previous operator review: `5306830655` ACCEPTED `canary-opening-choice-option-plumbing-fix-v1`.
+Reviewed harness/source-test SHA: `5c14561f478859309c26100c6d9217734a23018b`.
+Previous live blocker: `opening-literal-choice-live-closure-v1`, terminal comment `5306542914`; operator review `5306683174` accepted the blocker as harness-wiring evidence, not gameplay failure.
 
-## Proven root cause
+TEST project: `fmcrspgxstsmxxsmkeee`.
+Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` only.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden. Production is forbidden.
 
-`parseCanaryArgs()` returns the validated `openingChoiceIndex` as a top-level field on the parsed run object. `run()` assigns `const args = parsed.args`, where `parsed.args` is a Set of raw CLI tokens. The Cut-1 branch then reads `args.openingChoiceIndex`, which is undefined. Therefore an explicitly supplied `--opening-choice-index 0` deterministically falls back to the existing free-text path even though Opening returned four valid provider-authored literals.
+## Proven state
 
-The prior bounded TEST run proved Setup/Opening, exactly-four provider choices, ordinary Story -> Extract -> Commit, replay/idempotence, free-text Turn 2, and final reset. It did not prove exact literal round-trip. This task fixes only that harness option plumbing defect.
+- Setup/Opening world-authority migration is already applied on TEST.
+- Live SQL duplicate semantic allowlists were removed while dynamic registered-character integrity remained.
+- The previous bounded run reached valid Setup, valid Opening with exactly four non-empty unique provider-authored literals, ordinary Story -> Extract -> Commit, same-action replay, free-text Turn 2, and final reset.
+- Exact Opening literal round-trip failed only because the canary read `openingChoiceIndex` from the raw-token Set instead of the parsed top-level option.
+- Reviewed harness SHA `5c14561...` fixes that exact plumbing defect. Index `0` is preserved and selects `canonical_choices[0]` unchanged.
+- No gameplay/runtime/provider/parser/DB defect is presently proven by the prior blocker.
 
 ## Objective
 
-Make the existing canonical canary consume the already-validated parsed `openingChoiceIndex` from the correct authority and prove by source tests that an explicit Opening choice index selects the actual returned literal unchanged. Preserve all existing free-text behavior.
+Run one bounded TEST-only closure proving an actual provider-returned Opening choice literal is selected by the reviewed canonical canary and submitted unchanged as Turn-1 `player_action`, then committed/read back/replayed through the normal gameplay path. If this passes, close this acceptance gap and do not create further Opening-choice harness work.
 
 ## Required work
 
-1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED and based on `main`.
-2. Inspect the current `parseCanaryArgs()` -> `run()` -> Cut-1 call chain and confirm the root cause above before editing.
-3. Fix the smallest owning boundary so Cut-1 uses the top-level parsed `openingChoiceIndex` (or an equivalently single canonical parsed-options object) rather than reading a property from the raw-token Set.
-4. Do not change `selectOpeningChoiceLiteral()` semantics: the selected value must remain exactly `canonical_choices[index]`, with no trim/rewrite/numbering/metadata/fallback/truncate/pad.
-5. Preserve no-option free-text mode exactly.
-6. Add/adjust focused tests that exercise the actual `run()` option plumbing boundary, not only helper functions. At minimum prove:
-   - explicit valid index reaches Opening-literal mode;
-   - index 0 is not lost because it is falsy;
-   - selected player_action is byte/string identical to the provider literal;
-   - absent option remains free text;
-   - invalid/missing choice still fails closed under the existing contract;
-   - replay identity semantics are unchanged.
-7. Remove or rewrite any stale test that encoded the broken `args.openingChoiceIndex` assumption; do not preserve it with compatibility code.
-8. Run focused canary tests, full repository tests, syntax checks for modified JS/MJS, and `git diff --check`.
-9. Record exact source/test SHA and executable diff scope. STOP for operator review.
+1. Freeze START HEAD and verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
+2. Verify the working lineage contains reviewed harness SHA `5c14561f478859309c26100c6d9217734a23018b` and no unreviewed executable delta affecting this live run.
+3. Use the existing canonical canary only. Do not create a new script/parser/client protocol.
+4. Use only dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+5. Canonical reset at start if needed; verify clean turn/action state before Setup.
+6. Run valid Setup and Opening through the currently deployed TEST runtime.
+7. Opening must return exactly four non-empty unique canonical/provider-authored choices. Do not retry/regenerate if it does not.
+8. Invoke the reviewed Cut-1 harness option with explicit `--opening-choice-index 0` (or another explicitly recorded valid index only if the harness invocation contract requires it; no semantic substitution).
+9. Capture and prove, in the same run:
+   - the exact returned Opening literal selected;
+   - canary `opening.next_player_action.player_action` equals that literal string-for-string;
+   - Turn-1 Story request/player_action equals that same literal;
+   - Story -> Extract -> Commit succeeds;
+   - committed action/history/readback preserves the exact literal;
+   - same-action replay preserves action identity and does not advance committed_turn/save_revision;
+   - one ordinary free-text Turn 2 still succeeds as a sanity check.
+10. Do not turn choice selection into a semantic taxonomy. No numbering, metadata, normalization, trim, fallback, truncate/pad, retry, fuzzy repair, parser relaxation, or provider/model/config change.
+11. Do not modify source, migration, DB functions, runtime semantics, frontend, CSA, scene, progression, clothing, open-fact memory, sexual/media/image adapters, or choice authority during this task.
+12. Final canonical reset is required after evidence capture; verify committed_turn=0 and zero action/turn rows.
+13. Preserve one evidence artifact outside the repository if the canary normally produces one. Do not commit generated evidence.
 
 ## Architecture constraints
 
-- Harness-only source/test correction. Gameplay runtime, Story, Extract, Commit, parser, provider, DB, frontend, progression, CSA, scene, clothing, sexual/media/image semantics must not change.
-- Provider remains sole author of exactly four literal choices; the harness transports one returned literal unchanged.
-- No second gameplay protocol, choice metadata authority, fallback, normalization, fuzzy repair, parser relaxation/new parser, retry/regeneration, provider/model/temperature/token change, or semantic gate.
-- No compatibility runtime to preserve stale tests.
-- TEST Level-7 acceleration seam remains unchanged and is not exercised in this source/test task.
-- Sexual/image catalogs and media selection remain protected presentation adapters and are not in scope.
+- Provider authors the four literal choices. Harness may select and transport one only.
+- One ordinary gameplay protocol and one canonical action writer.
+- Exact literal identity is the acceptance target; server-authored fallback prose remains forbidden.
+- This is acceptance, not a new feature cut.
+- Do not add any new gate, compatibility adapter, semantic layer, parser, retry, or fallback.
+- Setup/stable identity, canonical scene, compact clothing UI projection, open narrative memory, CSA lifecycle, and media/image presentation boundaries remain unchanged.
 
 ## Authorized operations
 
 Authorized:
-- read-only Git/PR/source inspection;
-- edits only to the canonical canary harness and directly relevant tests/docs completion record;
-- local source/test validation.
+- read-only Git/PR inspection;
+- dedicated TEST reset/setup/opening and bounded two-turn live gameplay through the existing deployed runtime;
+- same-action replay/readback;
+- final dedicated TEST reset;
+- evidence artifact outside repo;
+- docs-only completion record.
 
 Not authorized:
-- TEST live gameplay/setup/opening/reset;
-- TEST DB writes, migration/DDL application or authoring;
+- source/test/runtime/config edits;
+- migration/DDL application or DB function patch;
 - API/frontend deployment;
 - Production access;
-- any access to preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- new branch/PR, merge, Ready, rebase, squash, force-push;
-- provider/model/config/retry/parser/runtime semantic changes.
+- any access to preserved manual game;
+- provider/model/temperature/token changes or retry/regeneration;
+- parser changes/relaxation, fuzzy repair, compatibility workaround;
+- new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Acceptance
 
-PASS only if the actual canary run-path plumbing consumes the validated explicit Opening choice index, including index 0, and focused tests prove the exact returned literal becomes Turn-1 player_action unchanged while free-text mode remains unchanged when no index is supplied.
+PASS only if one actual provider-returned Opening literal is transported unchanged through Turn-1 action -> Story -> Extract -> Commit -> committed readback and same-action replay, free-text Turn 2 remains usable, and final reset returns the dedicated TEST game to canonical turn 0.
 
-If fixing this requires gameplay/runtime/provider/parser/DB changes, STOP as BLOCKED rather than expanding scope.
+On the first deterministic failure, preserve exact evidence and STOP BLOCKED. Do not retry or patch around it.
 
 ## Completion
 
 On PASS or first deterministic blocker:
-- update this file to `WAITING_REVIEW` in the same source/test lineage;
-- post one immutable terminal report to Issue #68 with START SHA, FINAL source/test SHA, exact files changed, focused/full test results, syntax/diff checks, and forbidden-operation confirmation;
+- set CURRENT_TASK to `WAITING_REVIEW` in one docs-only completion commit;
+- post one immutable terminal report to Issue #68 containing exact START SHA, reviewed harness SHA, selected Opening literal/index, Turn-1 exact-literal proof, Story/Extract/Commit/replay result, Turn-2 result if reached, final reset/readback, operations performed, and FINAL_DOCS_SHA;
 - STOP for operator review. Do not generate the next task yourself.
-
-## Execution record
-
-- Task ID: `canary-opening-choice-option-plumbing-fix-v1`
-- Start SHA: `0a6ea8d9437d354ef16bd98e4c30b49fbdd22497`
-- Current task blob SHA at start: `a3f5a1d1cfae09081c4c8a7c762f40c514610359`
-- Source/test SHA: `5c14561f478859309c26100c6d9217734a23018b`
-- Changed source/test files: `scripts/live-playtest-canary.mjs`, `test/live-canary-contract.test.mjs`
-- Fix: Cut 1 now passes the parsed top-level `openingChoiceIndex` into the existing literal-selection path; index `0` is preserved and the selected canonical literal is transported unchanged. No-option free text remains unchanged.
-- Focused canary contract: `24/24 PASS`
-- Full `npm.cmd test`: `427/427 PASS`
-- Syntax: both modified JS/MJS files `node --check PASS`
-- `git diff --check`: `PASS`
-- TEST live/DB/reset: `0`
-- Migration/DDL application: `0`
-- API/frontend deploy: `0`
-- Production/manual-game access: `0`
-- Provider/model/config/retry/parser/runtime semantic changes: `0`
-- Final docs completion commit: this docs-only completion lineage
-
-STOP for operator review. Do not start the live closure task or generate the next task from this record.
