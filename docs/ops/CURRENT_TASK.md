@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-csa-agency-continuity-product-play-v2
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -214,3 +214,18 @@ On PASS, first real product defect, or local encoding preflight failure:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post exactly one immutable terminal report to Issue #68 with START SHA, UTF-8 preflight evidence, Worker identity/deploy decision, exact CSA rule/time, turn-by-turn decisive semantic evidence, summary boundary, choice/agency/time observations, replay, final reset, forbidden-operation confirmation and FINAL docs SHA;
 - STOP. Do not generate the next task.
+
+## Execution result — 2026-08-17
+
+Disposition: **BLOCKED — evidence boundary incomplete; no product defect asserted.**
+
+- Identity: `minimal-story-runtime-csa-agency-continuity-product-play-v2`; START SHA `9377fc6f35e973ea76435f80af93b43d42673605`; CURRENT_TASK lease blob `2299a2cddfbc5156cf7f6b20acf84e1a13324ed4`; expected branch `company/scene-location-presence-v1`; reviewed runtime SHA `beae855ebc5a9706bae234af80b2569d73566f0a`; Issue #68 lease `5309329288`; runner `CODEX_WATCHER`.
+- UTF-8 preflight passed before product calls. Exact input JSON SHA256 `D2B99530F728475BD33B6665AAD129D22EEF8D99C6FAD7EF73B8891E13A258D7`; preflight report SHA256 `4E29E9C0CD3D7B5EA506CDF3665EDBAB9A78C8A577876DACF092ACB2D8121876`. The decisive promise and follow-up survived the UTF-8/JSON round trips with no replacement corruption.
+- Canonical Opening ran once on disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`: HTTP/SSE/parser passed, exact four choices were returned, scene `brand_strategy_office`, Day 1 Thursday, `minute_of_day=730`, presence `heroine1`/`heroine3`. Opening artifact SHA256 `3F35EABB486AD8FB4C476F2B1048341F033FE016F2B0FB0B020F10E591A1C3E5`.
+- One continuation attempt ran 9 committed turns; every Story/Extract/Commit path returned success. The exact promise was committed at turn 1 and the exact follow-up at turn 9. Provider literal choices were carried unchanged at turns 2, 6, and 8; all captured choice sets had four useful, non-duplicate choices. Player actions remained intact in the artifact.
+- CSA activation: `/api/app-validate` returned canonical `app_transaction` with unchanged structured action; weak non-clothing preset `interlace_fingers_with_recipient`, `trigger=when_in_close_conversation`, `subject_scope=female_employee`, `counterparty_scope=player`, source `preset`. It activated as `csa_3` at turn 3, created at game time Day 1 minute 736; pre-state committed turn 2 / post-state committed turn 3. Turn 4 summary treated the applicable hand-interlace premise as current workplace reality. Turn 5 preserved the unrelated kiss request as an unrelated request without claiming CSA mandate or automatic consent/comfort/affection/trust/romance/arousal.
+- Canonical time advanced coherently: opening `730`, then `733, 736, 739, 742, 745, 748, 751, 754, 757`; no contradiction observed. Fresh committed context/history, replayed turn-8 Story/Extract/Commit with replay flags true, and replay state remained unchanged.
+- Evidence blocker: the continuation runner queried `/api/context` with `recent_turns=10` throughout. The artifact therefore records `recent_turn_count=9` and nine raw records, while acceptance requires verification of a latest-six raw projection plus older chronological summaries. The artifact does contain chronological summaries for turns 1–9 and preserves the early 4 PM detail, but it does not prove the required six-record API projection. No further product call or rerun is authorized, so this cannot be promoted to PASS.
+- Continuation artifact SHA256 `533B577078632F30EBBAF3359788501C74DD1A83D9F7D4BE654C799D245F1400`: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-csa-v2-continuation-20260817.json`. Inputs, preflight, Opening, and continuation artifacts remain outside the repository.
+- Final canonical reset succeeded: `committed_turn=0`, `game_turns=0`, `game_actions=0`, processing idle, setup scene with empty presence, Level 1 / exp 0, `csa_active=[]`, history empty. No forbidden game ID was accessed; migration/DDL=0, source/runtime/test/content/config edits=0, frontend deploy=0, reviewed Worker deploy=0, Production/preserved/QA writes=0, retry/regeneration=0.
+- Docs-only handoff required. Do not rerun, generate the next task, or treat this evidence-only blocker as a product PASS.
