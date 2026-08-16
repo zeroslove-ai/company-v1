@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: opening-literal-choice-live-closure-v2
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -98,3 +98,24 @@ On PASS or first deterministic blocker:
 - set CURRENT_TASK to `WAITING_REVIEW` in one docs-only completion commit;
 - post one immutable terminal report to Issue #68 containing exact START SHA, reviewed harness SHA, selected Opening literal/index, Turn-1 exact-literal proof, Story/Extract/Commit/replay result, Turn-2 result if reached, final reset/readback, operations performed, and FINAL_DOCS_SHA;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution record
+
+- Task ID: `opening-literal-choice-live-closure-v2`
+- Start SHA: `25132a918c8ed1e1c7009d45d8b220fd2425177a`
+- Current task blob SHA at start: `ee169547ef6a3dec3cde4e8ece50687c6ecaf15a`
+- Reviewed harness SHA: `5c14561f478859309c26100c6d9217734a23018b`
+- TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+- Opening: HTTP 200/complete, raw choices 4, canonical choices 4, unique/non-empty; selected index `0`.
+- Selected Opening literal: `이메이 사원님 질문에 브랜드 전략에서 사람들의 일상적인 관심을 사로잡는 측면에 매력을 느껴 지원했다고 정중하게 답하고, 이어서 오늘 확인할 자료 목록을 물어본다.`
+- Turn 1 exact-literal proof: `opening.next_player_action.player_action` equals the Opening literal exactly; Turn 1 `player_action` equals the same string exactly.
+- Turn 1 Story/Extract/Commit: PASS; committed readback `committed_turn=1`, `save_revision=1016`, history record/story/parsed_blocks/choices present.
+- Same-action replay: Story `meta.replayed=true`, complete `replayed=true`; Extract `replayed=true`; Commit `success=true`, `replayed=true`; before/after `committed_turn=1`, `save_revision=1016` unchanged.
+- Turn 2 free text: PASS; Commit PASS; readback `committed_turn=2`, `save_revision=1017`, two history records present.
+- Final reset/readback: PASS; context `committed_turn=0`, `save_revision=1018`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`; history records `0` and canonical setup scene restored.
+- Preserved evidence artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-canary-cut1-authority.json`; SHA-256 `26D144C288355695A97722C4C3A86736453C241C48ED24FC695F599EB1D8932B`.
+- Result: PASS; no further Opening-choice harness task is required.
+- Operations: one bounded TEST reset/setup/opening/Turn 1/replay/Turn 2/final reset; no source/test/runtime/config edits, migration/DDL, API/frontend deploy, Production/manual-game access, provider/model/retry/parser workaround, or new branch/PR/merge/Ready.
+- Final docs completion SHA: pending
+
+STOP for operator review. Do not generate the next task or start the next Cut from this record.
