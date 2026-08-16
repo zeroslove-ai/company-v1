@@ -7,7 +7,19 @@ const save = () => ({ edition: 'company-v1', save_schema_version: 1, turn_state:
 
 test('fresh migration removes retired semantic save roots', () => {
   const result = migrateCompanySave({ ...save(), npc_stats: {}, npc_relationship_state: {}, csa_attitudes: {}, csa_runtime_state: {}, csa_aftereffect_state: {}, sexual_event_ledger: [], last_image_id: 'x' });
-  for (const key of ['npc_stats', 'npc_relationship_state', 'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'sexual_event_ledger', 'last_image_id']) assert.equal(key in result, false);
+  for (const key of ['npc_stats', 'npc_relationship_state', 'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'sexual_event_ledger', 'last_image_id', 'last_choices', 'last_choice_meta']) assert.equal(key in result, false);
+});
+
+test('hydration removes duplicate scene location labels while preserving narrow physical state', () => {
+  const input = save();
+  input.player_scene_state = { location_id: 'stale', location_label: 'stale', posture: 'standing' };
+  input.npc_scene_state['npc-1'] = { location_id: 'stale', location_label: 'stale', posture: 'sitting', clothing: { uniform_top: 'worn' } };
+  const result = hydrateGameplayState(input);
+  assert.equal('location_id' in result.player_scene_state, false);
+  assert.equal('location_label' in result.player_scene_state, false);
+  assert.equal('location_id' in result.npc_scene_state['npc-1'], false);
+  assert.equal('location_label' in result.npc_scene_state['npc-1'], false);
+  assert.equal(result.npc_scene_state['npc-1'].posture, 'sitting');
 });
 
 test('Story context exposes scene/time and narrow active physical state only', () => {

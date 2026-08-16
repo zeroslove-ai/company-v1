@@ -51,6 +51,27 @@ test('Company game view model uses server display projections over save mirrors 
   assert.deepEqual(model.scene.csa_active, ['display-rule']);
 });
 
+test('Company game view model keeps canonical identity and map location ahead of save/detail aliases', () => {
+  const input = context({ turns: [{ parsed_blocks: { dialogue_lines: [{ speaker_id: 'heroine1', text: 'Hello', order: 0 }] } }] });
+  input.save.data.player = { player_id: 'player-1', name: 'Canonical player', department_id: 'brand_strategy' };
+  input.save.data.player_name = 'stale player name';
+  input.save.data.player_department = 'stale department';
+  input.save.data.player_scene_state = { location_label: 'stale location', posture: 'standing' };
+  input.save.data.characters = { heroine1: { name: 'stale save name' } };
+  input.save.data.scene = { version: 1, scene_id: 'canonical-scene', location_id: 'canonical-location', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: null, updated_turn: 1 };
+  input.display = {
+    npc_directory: { heroine1: { name: 'Canonical directory name' } },
+    character_details: { heroine1: { name: 'stale detail name', profile: {}, body: {} } },
+    map_locations: [{ location_id: 'canonical-location', name: 'Canonical map room' }]
+  };
+  const model = buildCompanyGameViewModel(input);
+  assert.equal(model.player.name, 'Canonical player');
+  assert.notEqual(model.player.department, 'stale department');
+  assert.equal(model.player.location_label, 'Canonical map room');
+  assert.equal(model.focal_character.name, 'Canonical directory name');
+  assert.equal(model.story.dialogue_lines[0].speaker_name, 'Canonical directory name');
+});
+
 test('Company game view model preserves an external committed turn without a retired image root', () => {
   const input = context();
   input.save.committed_turn = 12;

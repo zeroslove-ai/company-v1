@@ -65,8 +65,7 @@ export function canonicalSceneView(save, projectedScene = null) {
       present_npc_ids: normalizeIds(source.present_npc_ids),
       focal_character_id: text(source.focal_character_id),
       last_speaker_id: text(source.last_speaker_id),
-      updated_turn: integer(source.updated_turn),
-      compatibility_mode: 'canonical'
+      updated_turn: integer(source.updated_turn)
     };
   }
   return {
@@ -79,8 +78,7 @@ export function canonicalSceneView(save, projectedScene = null) {
     present_npc_ids: [],
     focal_character_id: '',
     last_speaker_id: '',
-    updated_turn: null,
-    compatibility_mode: 'missing_canonical_scene'
+    updated_turn: null
   };
 }
 
@@ -95,16 +93,10 @@ function catalogName(list, idField, id) {
   return text(list.find(item => item?.[idField] === id)?.name);
 }
 
-function characterName(save, id, directory = {}, details = {}) {
+function characterName(id, directory = {}) {
   if (!id) return '';
-  const detailedName = text(object(details)?.[id]?.name);
-  if (detailedName) return detailedName;
   const projectedName = text(object(directory)?.[id]?.name);
   if (projectedName) return projectedName;
-  for (const source of [save.characters, save.npc_profiles, save.npc_identity_state, save.npc_state]) {
-    const name = text(object(object(source)?.[id])?.name);
-    if (name) return name;
-  }
   return catalogName(CATALOGS.characters ?? [], 'character_id', id);
 }
 
@@ -123,7 +115,7 @@ function normalizeDialogueLines(value) {
     .sort((left, right) => left.order - right.order);
 }
 
-function dialogueLines(parsedStory, { playerName = '', save = {}, directory = {}, details = {} } = {}) {
+function dialogueLines(parsedStory, { playerName = '', save = {}, directory = {} } = {}) {
   const parsedLines = normalizeDialogueLines(parsedStory?.dialogue_lines);
   const lines = parsedLines.length ? parsedLines : (!Array.isArray(parsedStory?.blocks) ? [] : normalizeDialogueLines(parsedStory.blocks
     .filter(block => block?.type === 'dialogue' && typeof block.text === 'string' && block.text.trim())
@@ -138,7 +130,7 @@ function dialogueLines(parsedStory, { playerName = '', save = {}, directory = {}
     const id = line.speaker_id;
     const resolved = isPlayerAlias(id, text(object(save.player)?.player_id) || 'player')
       ? playerName
-      : characterName(save, id, directory, details);
+      : characterName(id, directory);
     return resolved ? { ...line, speaker_name: resolved } : line;
   });
 }
@@ -189,7 +181,7 @@ function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory =
     const hasDetail = Boolean(object(details)?.[id]);
     const entry = {
       id,
-      name: characterName(save, id, directory, details) || id,
+      name: characterName(id, directory) || id,
       surface: text(value.surface ?? value['표면의식']),
       subconscious: text(value.subconscious ?? value.latent ?? value['잠재의식'])
     };
@@ -235,7 +227,7 @@ function npcSceneView(save, id) {
 }
 
 /** 현재 장면 참여 정본만 사용한다. focal을 먼저 두고, 퇴장(present:false)은 제외한다. */
-function interactingCharacterViews(save, scene, directory = {}, details = {}) {
+function interactingCharacterViews(save, scene, directory = {}) {
   const playerId = text(object(save.player)?.player_id) || 'player';
   const participantIds = strings(scene?.present_npc_ids);
   const focalId = text(scene?.focal_character_id);
@@ -246,7 +238,7 @@ function interactingCharacterViews(save, scene, directory = {}, details = {}) {
     .filter(id => id && !isPlayerAlias(id, playerId))
     .map(id => ({
       id,
-      name: characterName(save, id, directory, details) || id,
+      name: characterName(id, directory) || id,
       scene_state: npcSceneView(save, id)
     }));
 }
@@ -272,9 +264,9 @@ export function buildCompanyGameViewModel(context) {
   const playerSexualState = object(save.player_sexual_state) ?? {};
   const playerSceneState = object(save.player_scene_state) ?? {};
   const focalSceneState = npcSceneView(save, focalId);
-  const playerName = text(player.name ?? save.player_name);
-  const projectedDialogueLines = dialogueLines(parsedStory, { playerName, save, directory, details });
-  const interactingCharacters = interactingCharacterViews(save, scene, directory, details);
+  const playerName = text(player.name);
+  const projectedDialogueLines = dialogueLines(parsedStory, { playerName, save, directory });
+  const interactingCharacters = interactingCharacterViews(save, scene, directory);
   const presentNpcIds = new Set(strings(scene.present_npc_ids));
   const imageCandidate = text(committedV2.image_character_id);
   const lastLocalDialogueId = [...projectedDialogueLines].reverse().find(line => presentNpcIds.has(line.speaker_id))?.speaker_id ?? '';
@@ -308,13 +300,13 @@ export function buildCompanyGameViewModel(context) {
     },
     interacting_characters: interactingCharacters,
     focal_character: {
-      id: focalId, name: characterName(save, focalId, directory, details), last_speaker_id: lastSpeakerId,
+      id: focalId, name: characterName(focalId, directory), last_speaker_id: lastSpeakerId,
       character: npcView(save, focalId, details),
       scene_state: focalSceneState
     },
     player: {
       state: player, stats: {}, name: playerName,
-      department: text(player.department) || catalogName(CATALOGS.departments, 'department_id', player.department_id) || text(save.player_department),
+      department: text(player.department) || catalogName(CATALOGS.departments, 'department_id', player.department_id),
       position: text(player.position) || catalogName(CATALOGS.positions, 'position_id', player.position_id),
       level: integer(capability.level) ?? integer(playerProgress.level) ?? 1,
       exp: integer(capability.exp) ?? integer(playerProgress.exp) ?? 0,
@@ -327,7 +319,7 @@ export function buildCompanyGameViewModel(context) {
       erection_state: ['unknown', 'flaccid', 'partial', 'erect'].includes(playerSexualState.erection_state) ? playerSexualState.erection_state : 'unknown',
       total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events), last_sexual_event: object(sexualDisplay.last_sexual_event),
       inner_thought: text(parsedStory.player_inner_thought),
-      location_label: text(playerSceneState.location_label) || text(scene.location_label),
+      location_label: text((Array.isArray(display.map_locations) ? display.map_locations : []).find(location => location?.location_id === scene.location_id || location?.id === scene.location_id)?.name),
       posture: text(playerSceneState.posture), posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
       position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}
     },

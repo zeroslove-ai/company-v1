@@ -50,13 +50,13 @@ test('API display scene fails closed without canonical scene and does not revive
     last_speaker_id: 'heroine1'
   };
   const display = buildCanonicalDisplayScene(legacy);
-  assert.equal(display.compatibility_mode, 'missing_canonical_scene');
+  assert.equal('compatibility_mode' in display, false);
   assert.deepEqual(display.present_npc_ids, []);
 });
 
 test('canonicalSceneView fails closed without canonical scene and ignores legacy mirrors', () => {
   const legacy = canonicalSceneView({ scene_state: { participants: ['player', 'heroine1'] }, focal_character_id: 'heroine1' });
-  assert.equal(legacy.compatibility_mode, 'missing_canonical_scene');
+  assert.equal('compatibility_mode' in legacy, false);
   assert.deepEqual(legacy.present_npc_ids, []);
   const canonical = canonicalSceneView({ scene: { version: 1, present_npc_ids: [], focal_character_id: 'heroine1', last_speaker_id: null } , scene_state: { participants: ['heroine1'] } });
   assert.deepEqual(canonical.present_npc_ids, []);

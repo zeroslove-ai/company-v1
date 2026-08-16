@@ -88,16 +88,8 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
   });
   if (posturePatch?.rejected && !warnings.includes(posturePatch.rejected)) warnings.push(posturePatch.rejected);
 
-  const locationRequested = identity(raw.location_label, 100);
-  const locationEvidenceValid = Boolean(locationRequested)
-    && exactStoryEvidence(evidence.location, narrativeText, characterName);
-  if (locationRequested && locationRequested !== prev.location_label && !locationEvidenceValid) {
-    warnings.push('unevidenced_location_change');
-  }
-
   return {
     state: {
-      location_label: locationEvidenceValid ? locationRequested : (prev.location_label ?? null),
       posture: posturePatch?.posture ?? prev.posture ?? 'unknown',
       position_label: posturePatch?.position_label ?? prev.position_label ?? null,
       clothing: { ...(isPlainObject(prev.clothing) ? prev.clothing : {}), ...acceptedClothing },

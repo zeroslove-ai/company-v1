@@ -220,6 +220,7 @@ test('physical state rejects invented posture and position changes without exact
   // Evidence-free optional posture/position projections preserve committed state.
   assert.equal(result.state.posture, 'sitting');
   assert.equal(result.state.position_label, '플레이어 맞은편 의자에 앉아 있다');
+  assert.equal('location_label' in result.state, false);
   assert.equal(result.warnings.includes('unevidenced_posture_change'), true);
   assert.equal(result.warnings.includes('unevidenced_position_label'), true);
   assert.equal(result.warnings.includes('unevidenced_posture_end_reason'), true);

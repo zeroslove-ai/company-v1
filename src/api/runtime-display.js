@@ -20,16 +20,10 @@ function object(value) {
 function text(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
-function numberOrNull(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
 
 function saveFromContext(context) {
   return object(context?.save?.data) ?? object(context?.save) ?? {};
 }
-
 export function buildCanonicalDisplayScene(save = {}) {
   const canonical = object(save?.scene);
   const scene = canonical?.version === 1
@@ -48,8 +42,7 @@ export function buildCanonicalDisplayScene(save = {}) {
     last_speaker_id: text(scene.last_speaker_id),
     updated_turn: isCanonical
       ? (Number.isInteger(scene.updated_turn) ? scene.updated_turn : null)
-      : (Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : scene.updated_turn),
-    compatibility_mode: isCanonical ? 'canonical' : 'missing_canonical_scene'
+      : (Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : scene.updated_turn)
   };
 }
 
@@ -186,22 +179,6 @@ export function buildContextDisplayPayload(save, edition, latestMindMonitor = {}
   };
 }
 
-function statValue(stats, ...keys) {
-  for (const key of keys) {
-    const value = numberOrNull(stats?.[key]);
-    if (value !== null) return value;
-  }
-  return null;
-}
-
-function relationshipSummary(value) {
-  const relationship = object(value) ?? {};
-  return text(relationship.relationship_summary)
-    || text(relationship.summary)
-    || text(relationship.current_boundary)
-    || text(relationship.closeness);
-}
-
 function npcMind(latestMindMonitor, save, id) {
   const source = object(latestMindMonitor?.[id]) ?? {};
   return {
@@ -215,55 +192,6 @@ function npcLocation(save, id, presentNow, edition) {
   const locationId = presentNow ? text(currentScene.location_id) : '';
   const label = locationLabel(edition, locationId);
   return { known: Boolean(locationId || label), location_label: label, location_id: locationId };
-}
-
-function displayStats(detail, fallback) {
-  if (!object(detail?.stats)) return fallback;
-  return {
-    affection: statValue(detail.stats, 'affinity', 'affection', '호감도') ?? 0,
-    resistance: statValue(detail.stats, 'resistance', '저항도') ?? 0,
-    acceptance: statValue(detail.stats, 'csa_acceptance', 'acceptance', '상식수용도') ?? 0,
-    arousal: statValue(detail.stats, 'sexual_arousal', 'arousal', '성적흥분도') ?? 0
-  };
-}
-
-function npcPayloadEntryLegacy({ id, profile, save, latestMindMonitor, directory, presentIds, edition, detail = null }) {
-  const stats = object(save?.npc_stats?.[id]) ?? {};
-  const attitude = object(save?.csa_attitudes?.[id]) ?? {};
-  const sexualState = object(save?.npc_sexual_state?.[id]) ?? {};
-  const sceneState = object(save?.npc_scene_state?.[id]) ?? {};
-  const presentNow = presentIds.has(id);
-  const identity = directory[id] ?? { id, name: text(profile?.name) || id, department: '', position: '', role: '' };
-  const mind = npcMind(latestMindMonitor, save, id);
-  return {
-    id,
-    name: identity.name,
-    department: identity.department,
-    position: identity.position,
-    role: identity.role,
-    present_now: presentNow,
-    location: npcLocation(save, id, presentNow, edition),
-    stats: displayStats(detail, {
-      affection: statValue(stats, '호감도', 'affection', 'affinity') ?? 0,
-      resistance: statValue(stats, '저항도', 'resistance') ?? 0,
-
-      acceptance: statValue(stats, '상식수용도', 'acceptance', 'csa_acceptance')
-        ?? statValue(attitude, 'acceptance', '상식수용도')
-        ?? 0,
-      arousal: statValue(stats, '성적흥분도', 'arousal', 'sexual_arousal')
-        ?? statValue(sexualState, 'arousal', '성적흥분도')
-        ?? 0
-    }),
-    mind,
-    scene_state: {
-      posture: text(sceneState.posture),
-      posture_detail: text(sceneState.posture_detail ?? sceneState.posture_description),
-      position_label: text(sceneState.position_label)
-    },
-    relationship_summary: typeof detail?.relationship_summary === 'string'
-      ? detail.relationship_summary
-      : relationshipSummary(save?.npc_relationship_state?.[id])
-  };
 }
 
 function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition, detail = null }) {

@@ -45,6 +45,16 @@ const defaultRegisteredMaster = {
   general_npcs: Object.fromEntries(Object.keys(edition.generalNpcs.profiles).map(id => [id, {}]))
 };
 
+test('final residue migration is additive source only and removes fresh choice/scene mirrors at the minimalization boundary', () => {
+  const sql = read('supabase/migrations/20260817000100_company_v1_final_residue_closure.sql');
+  assert.match(sql, /source only; do not apply/i);
+  for (const key of ['last_choices', 'last_choice_meta', 'scene_state', 'last_npcs_present', 'focal_character_id', 'last_speaker_id']) {
+    assert.match(sql, new RegExp(`['"]${key}['"]`), key);
+  }
+  assert.match(sql, /player_scene_state.*location_label/s);
+  assert.match(sql, /npc_scene_state.*location_label/s);
+});
+
 function freshSave() {
   return {
     save_schema_version: 1, edition: 'company-v1',
@@ -52,12 +62,11 @@ function freshSave() {
     player: {}, scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 }, scene_state: {}, world_state: {},
     npc_stats: {}, npc_relationship_state: {}, npc_scene_state: {},
     csa_active: [], csa_rules: {}, csa_attitudes: {}, csa_runtime_state: {}, csa_aftereffect_state: {},
-    focal_character_id: null, last_speaker_id: null, last_npcs_present: [], last_image_id: null,
-    last_choices: [], last_choice_meta: []
+    focal_character_id: null, last_speaker_id: null, last_npcs_present: [], last_image_id: null
   };
 }
 
-const RESET_RESIDUE_KEYS = ['story_summary_overall', 'story_summary_recent', 'npc_emotion', 'npc_work_state', 'event_ledger'];
+const RESET_RESIDUE_KEYS = ['story_summary_overall', 'story_summary_recent', 'npc_emotion', 'npc_work_state', 'event_ledger', 'last_choices', 'last_choice_meta'];
 
 function canonicalResetCandidate(masterInitialSave) {
   const candidate = structuredClone(masterInitialSave);
@@ -80,6 +89,10 @@ function canonicalResetCandidate(masterInitialSave) {
       updated_turn: sceneState.updated_turn ?? 0
     };
   }
+  delete candidate.scene_state;
+  delete candidate.last_npcs_present;
+  delete candidate.focal_character_id;
+  delete candidate.last_speaker_id;
   const playerScene = candidate.player_scene_state && typeof candidate.player_scene_state === 'object'
     ? candidate.player_scene_state
     : {};
@@ -205,7 +218,6 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
         player: { ...currentSave.player, background: args.p_background },
         opening_state: { ...currentSave.opening_state, story_text: args.p_story_text, choices: args.p_choices, parsed_blocks: args.p_parsed_blocks, status: 'complete' },
         player_setup: { ...currentSave.player_setup, status: 'complete', completed: true },
-        last_choices: args.p_choices,
       };
       saveRevision += 1;
       return json({ success: true, replayed: false, save_revision: saveRevision });
@@ -626,6 +638,8 @@ test('/api/opening streams background plus four choices, commits turn 0, and nev
   assert.equal(save.turn_state.committed_turn, 0);
   assert.equal(save.player_setup.completed, true);
   assert.equal(save.opening_state.status, 'complete');
+  assert.equal('last_choices' in save, false);
+  assert.equal('last_choice_meta' in save, false);
   const commitCall = mock.calls.find(call => String(call.url).endsWith('/rest/v1/rpc/commit_company_opening'));
   const commitArgs = JSON.parse(commitCall.body);
   assert.deepEqual(commitArgs.p_parsed_blocks, save.opening_state.parsed_blocks);

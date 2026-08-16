@@ -85,7 +85,7 @@ export function reduceObservationDomains({ currentSave, observation, parsedStory
     warnings.push(...physical.warnings);
   }
   const choices = reduceStoryChoiceProjection({ parsedStory });
-  nextSave.last_choices = choices.state; warnings.push(...choices.warnings);
+  warnings.push(...choices.warnings);
   const time = reduceElapsedTimeObservation({ save: nextSave, elapsedMinutes: observation.elapsed_minutes, evidence });
   nextSave.world_state = { ...(object(nextSave.world_state) ? nextSave.world_state : {}), game_time: time.after };
   return { nextSave, warnings, time_before: time.before, time_after: time.after, elapsed_minutes: observation.elapsed_minutes };

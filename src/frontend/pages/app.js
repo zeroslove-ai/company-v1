@@ -12,7 +12,7 @@ import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
 
-// Duplicated (deliberately, not imported) from src/engine/choice-input.js: the frontend Worker
+// The frontend remains the only literal-choice convenience path; the server receives exact text.
 // serves only src/frontend/pages as static assets (wrangler.frontend.jsonc), so a relative
 // import reaching into src/engine/ would 404 in production even though it resolves locally.
 const CHOICE_DIGIT_INDEX = { 1: 0, 2: 1, 3: 2, 4: 3 };

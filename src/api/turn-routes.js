@@ -44,7 +44,6 @@ import {
   verifySignedTransactionResolution,
   verifyStructuredActionValidation,
   stableStringify,
-  resolveNumberedChoiceInput,
   selectImage,
   resolveStoredStructuredAction,
   assertStoredActionPersistenceParity,
@@ -900,7 +899,7 @@ const master = masterFromEdition(edition);
         const finalTurnSummary = typeof extract.turn_summary === 'string' ? extract.turn_summary : '';
         // 선택지 단일 writer — gameplay commit reducer가 확정한 last_choices를
         // 그대로 쓴다 (Story 1~3개 보존 + 부족분 보충 결과 = save와 history 일치).
-        const finalChoices = Array.isArray(nextSave.last_choices) ? nextSave.last_choices : [];
+        const finalChoices = reduceStoryChoiceProjection({ parsedStory }).state;
 
         const commitRpcStart = Date.now();
         // A feedback-revision action never advances committed_turn — it replaces the content of

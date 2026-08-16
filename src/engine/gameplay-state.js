@@ -365,7 +365,7 @@ export function migrateCompanySave(save) {
   delete next.npc_emotion;
   delete next.npc_work_state;
   delete next.event_ledger;
-  for (const root of ['npc_stats', 'npc_relationship_state', 'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'sexual_event_ledger', 'last_image_id']) delete next[root];
+  for (const root of ['npc_stats', 'npc_relationship_state', 'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'sexual_event_ledger', 'last_image_id', 'last_choices', 'last_choice_meta']) delete next[root];
   next.world_state = object(next.world_state) ? next.world_state : {};
   if (!object(next.world_state.game_time)) next.world_state.game_time = { day: 1, minute_of_day: 540 };
   else next.world_state.game_time = canonicalGameTime(next.world_state.game_time);
@@ -380,13 +380,13 @@ function stripSceneMirrors(save) {
   delete next.focal_character_id;
   delete next.last_speaker_id;
   if (object(next.player_scene_state)) {
-    const { location_id: _locationId, ...physical } = next.player_scene_state;
+    const { location_id: _locationId, location_label: _locationLabel, ...physical } = next.player_scene_state;
     next.player_scene_state = physical;
   }
   if (object(next.npc_scene_state)) {
     next.npc_scene_state = Object.fromEntries(Object.entries(next.npc_scene_state).map(([id, value]) => {
       if (!object(value)) return [id, value];
-      const { present: _present, location_id: _locationId, scene_id: _sceneId, ...physical } = value;
+      const { present: _present, location_id: _locationId, location_label: _locationLabel, scene_id: _sceneId, ...physical } = value;
       return [id, physical];
     }));
   }
