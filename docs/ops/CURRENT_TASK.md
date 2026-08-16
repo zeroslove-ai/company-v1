@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-test-rollout-v2
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -173,6 +173,32 @@ Not authorized:
 - provider/model/temperature/token changes;
 - retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic hard gate, compatibility runtime/bag;
 - new branch/PR, rebase, squash, force-push, merge or Ready transition.
+
+## Rollout result
+
+Result: BLOCKED — WAITING_REVIEW
+
+Execution identity:
+- Current task blob: `cdde4b9a3f627993470c0755f86dacdb811ef3a8`
+- Start head: `be674874b24df3af16f352873e4e8347d76bcd18`
+- Reviewed source: `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`
+- Branch: `company/scene-location-presence-v1`
+
+Preflight:
+- TEST migration `20260816050000 / company_v1_minimal_story_runtime_contract` present exactly once; not reapplied.
+- API Worker remained Version `37c05efd-b8b9-4be3-b0f8-c823576b0149`; health/version readback passed; no redeploy.
+- Disposable TEST baseline was clean and retired current-save roots were absent.
+
+Scenario evidence:
+- Disposable TEST game only: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+- Setup/Opening passed; four canonical choices were observed; Turn 1 used an Opening literal and completed Story -> Extract -> Commit.
+- Opening started at `brand_strategy_office`, so the authorized branch was office -> meeting room -> office. The first normal location action was stored in the bounded artifact as `?????? ???? ??` and did not move the canonical scene; the Mina action was therefore not attempted. This is an operator harness input-encoding failure, not a product navigation finding.
+- No provider retry/regeneration, source patch, semantic workaround, or second scenario attempt was used. CSA premise, memory boundary, destination chronology, and replay remain unverified.
+- Artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-minimal-story-runtime-rollout-v2.json`.
+
+Final reset readback: PASS — committed_turn 0, save_revision 1076, processing idle, setup/opening not_started, scene setup v1, Level 1/exp 0, zero recent turns, and retired roots absent.
+
+Forbidden operations: migration reapply 0; API/frontend redeploy 0; Production/preserved/QA evidence access 0; source/migration edits 0; PR merge/Ready 0.
 
 ## Acceptance
 
