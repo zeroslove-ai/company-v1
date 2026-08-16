@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: BLOCKED
-Task ID: legacy-save-db-residue-test-rollout-v1
+Status: READY
+Task ID: legacy-save-reset-canonicalization-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,148 +13,99 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Operator review `5305063507` ACCEPTED the deletion-first source/test/migration candidate from `legacy-save-db-residue-deletion-v1`.
+Operator review `5305132123` accepted the preceding rollout as accurate BLOCKED evidence and isolated one deterministic reset-contract regression.
 
-Reviewed source/test/migration SHA:
-`9c52e74a8e32278207e6e9b729c33d64eb770fd1`
+Accepted residue-deletion source/test/migration SHA:
+`9c52e74a8e32278207e6e9b729c33d64eb770fd1`.
 
-Terminal docs SHA before this registration:
-`33c790348179d438f62c912345e656e7181cd42b`
+Applied TEST migration:
+`20260816011104 / company_v1_legacy_save_residue_cleanup`.
 
-Reviewed additive migration source:
-`supabase/migrations/20260816000200_company_v1_legacy_save_residue_cleanup.sql`
+Current TEST deployments from that lineage:
+- API Worker `game-proxy-company-v1`: `52daecdd-c589-4013-942b-1bd80dda18e2`
+- Frontend Worker `gamebuilder-company-v1`: `4bd2ddfb-151e-4b93-a57f-eebf1b49446f`
 
-Independent live TEST migration-ledger read before registration confirmed that `company_v1_opening_structured_persistence` is applied and `company_v1_legacy_save_residue_cleanup` is not yet applied.
+Dedicated TEST game:
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+It is currently dirty because the required final reset failed. Production and preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` are forbidden.
 
-TEST Supabase project: `fmcrspgxstsmxxsmkeee`.
-Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden and must not be read, mutated, or reset.
-Production access is forbidden.
+## Proven facts
 
-## Objective
+The residue deletion itself already passed live TEST evidence:
+- Setup / Opening passed;
+- one provider-authored literal choice turn passed Story -> Extract -> Commit;
+- one free-text turn passed Story -> Extract -> Commit;
+- replay passed;
+- the five deleted save-level keys stayed absent after commits;
+- `turn_summary` and committed `parsed_blocks` remained present;
+- retained relationship/sexual/stats/CSA/scene structures remained intact.
 
-Roll out and verify the already-reviewed legacy save/DB residue deletion on TEST without adding any compatibility runtime or changing gameplay semantics.
-
-The five deleted save-level residues are:
+Deleted save-level residues are:
 - `story_summary_overall`
 - `story_summary_recent`
 - `npc_emotion`
 - `npc_work_state`
 - general `event_ledger`
 
-`npc_relationship_state` is intentionally retained because current frontend/relationship/sexual-record consumers still read it. `sexual_event_ledger` is a separate protected sexual/media consumer. `game_turns.turn_summary` remains the memory authority beyond the recent raw-turn window.
+The only blocker is reset:
+`invalid reset initial save: [missing required key: scene, missing required key: scene]`.
+
+Root cause is already source-proven:
+- Scene Stage A canonical reset used `company_bootstrap_scene_v1(v_master.initial_save)` before validation.
+- The applied residue-cleanup migration replaced `reset_company_game` and accidentally removed that canonical bootstrap step.
+- The replacement now validates raw legacy `game_master.initial_save` against the Stage-B validator that requires canonical `scene`.
+
+## Objective
+
+Close this reset regression at the existing canonical boundary. Do not redesign gameplay and do not repeat the already-passed broad live acceptance.
 
 ## Required work
 
-1. Freeze exact start HEAD and re-check PR #67 is still base `main`, OPEN / DRAFT / UNMERGED, with no ancestry conflict and no executable change after reviewed SHA `9c52e74...` except docs/ops registration.
-2. Re-read the exact reviewed migration and verify the live TEST preconditions read-only before applying anything:
-   - migration `company_v1_legacy_save_residue_cleanup` is absent from the live ledger;
-   - current Opening structured-persistence contract remains live;
-   - current canonical function identities/ACL/security/search_path needed by the migration are present.
-3. Apply exactly the reviewed additive migration `20260816000200_company_v1_legacy_save_residue_cleanup.sql` to TEST once. Do not edit the migration before application. If source text at HEAD differs from reviewed SHA, STOP BLOCKED.
-4. Immediately read back live TEST facts after migration:
-   - migration ledger contains the new migration exactly once;
-   - `validate_company_save_v1(jsonb)` no longer requires the five deleted keys and still validates required protected structure;
-   - canonical six-argument `commit_company_opening(uuid,uuid,text,text,jsonb,jsonb)` remains the sole Opening writer and its body strips the five deleted keys while preserving committed `parsed_blocks`;
-   - `reset_company_game(uuid,text)` strips the five deleted keys from reset materialization;
-   - all relevant functions remain `SECURITY DEFINER`, `search_path = public, pg_temp`, executable only by the intended role(s); do not widen ACLs.
-5. Deploy the exact reviewed runtime/source identity `9c52e74a8e32278207e6e9b729c33d64eb770fd1` to the TEST-facing Company workers only where that SHA changed executable code:
-   - API Worker because `src/engine/gameplay-state.js` changed;
-   - Frontend Worker because `src/frontend/pages/view-model.js` changed.
-   Use the existing reviewed deployment paths. Do not modify source/config to make deployment pass. Record exact Worker Version IDs and `/health`/identity evidence where available.
-6. Run one bounded dedicated TEST structural acceptance using only the dedicated TEST game. Reuse existing reviewed canary/reset helpers; do not create a new harness.
-7. Acceptance flow:
-   - reset the dedicated TEST game through the canonical reset RPC;
-   - read back reset save and prove all five deleted keys are absent;
-   - Setup -> Opening and read back committed Opening/save; prove the five deleted keys remain absent and Opening `parsed_blocks` remains committed;
-   - execute at least one ordinary provider-authored literal choice turn and one ordinary free-text turn through Story -> Extract -> Commit;
-   - after each commit, read back save/history and prove the five deleted keys are not recreated;
-   - prove literal choice identity round-trips unchanged when selected;
-   - prove `game_turns.turn_summary` is populated/readable under the current contract and replay/recovery uses committed state without recreating deleted keys;
-   - read a normal frontend/context projection and confirm relationship display can still consume retained `npc_relationship_state` without inventing a replacement relation/event authority.
-8. Protected systems must remain intact. Do not force a sexual scenario merely to prove this structural rollout, but verify source/live projection boundaries still preserve `sexual_event_ledger`, player/NPC physical-clothing state, image/media presentation adapters, `npc_stats`, CSA, progression/TEST-only Level-7 seam, stable identity, literal choices, Mind Monitor, and TTS. Media classification must remain presentation-only and must not gate Story/Extract facts.
-9. Final dedicated TEST reset is authorized and required after evidence capture. Confirm committed_turn=0 / no recent turns or actions / setup-opening reset state as provided by the canonical reset contract.
-10. If migration application, DB contract readback, exact-SHA deploy, Story/Extract/Commit, literal-choice round-trip, replay/recovery, or residue absence fails deterministically, preserve the first authoritative evidence and STOP as BLOCKED. Do not retry/regenerate to obtain a pass.
+1. Re-verify the exact live TEST `reset_company_game(uuid,text)`, `validate_company_save_v1(jsonb)`, `company_bootstrap_scene_v1(jsonb)`, and `company_apply_initial_clothing_v2(jsonb)` definitions/ACLs before mutation.
+2. Author exactly one new additive corrective migration. Historical applied migrations are immutable.
+3. The corrected `reset_company_game` must build one canonical reset candidate before validation and persist that same candidate. Required order/semantics:
+   - start from `game_master.initial_save`;
+   - remove the five deleted residue keys;
+   - run the existing `company_bootstrap_scene_v1` so legacy initial-save shape becomes canonical Scene v1;
+   - run the existing initial-clothing bootstrap where required by the current reset contract;
+   - validate the resulting candidate with current `validate_company_save_v1`;
+   - delete game turns/actions and write exactly that validated candidate to `game_save`.
+4. Do not weaken the current validator and do not make `scene` optional again.
+5. Do not add compatibility overloads, aliases, second reset RPCs, fallback scene bags, semantic gates, retries, provider/model changes, or direct DB state manufacture.
+6. Add/adjust only focused reset-contract tests needed to prove:
+   - a legacy-shaped master initial save without `scene` is canonicalized before validation;
+   - reset output has canonical `scene`;
+   - the five deleted keys remain absent;
+   - protected save systems remain present;
+   - reset uses one canonical candidate for validation and persistence.
+7. Run focused tests, full suite as regression signal, relevant syntax/static checks, and `git diff --check`.
+8. Apply the exact newly reviewed-in-task corrective migration to TEST once after local/source tests pass. This task is explicitly authorized to author and apply this one reset-only corrective migration in the same execution; do not split into another rollout task.
+9. Immediately read back the live function body/ACL/search_path and migration ledger. No API/Frontend deploy is required unless executable source outside migration/test files actually changes; do not redeploy merely for ritual.
+10. Call the canonical reset once on the currently dirty dedicated TEST game. Verify:
+    - HTTP/RPC success;
+    - `committed_turn=0`;
+    - actions/history empty;
+    - setup/opening reset state;
+    - canonical `scene` exists and validates;
+    - the five deleted keys are absent;
+    - retained `npc_relationship_state`, sexual/media-compatible state, `npc_stats`, CSA, progression, physical/clothing and identity structures are not structurally lost.
+11. Do not rerun Setup/Opening/two gameplay turns merely to reproduce evidence already proven in the preceding rollout. Only run further gameplay if the reset-only correction itself exposes a new deterministic defect that requires one minimal probe.
+12. Stop after clean TEST reset/readback. No Production/manual-game access, new branch/PR, merge, Ready transition, provider retry, or unrelated cleanup.
 
 ## Architecture constraints
 
+- Deletion-first remains binding: do not reintroduce deleted fields as compatibility state.
 - One durable domain -> one canonical writer.
-- This is rollout/acceptance, not a license for source changes.
-- No new generic state bag, relation/event ledger, summary mirror, alias map, semantic enum/gate, parser, compatibility overload, retry, provider/model/config change, fuzzy repair, or fallback Story.
-- Do not delete `npc_relationship_state` or sexual/media state in this task; current consumer proof keeps them until a later caller-removal cut proves zero consumer.
-- Exactly-four choices remain provider-authored literal strings; exactly-four is presentation shape, not semantic taxonomy.
-- Story authors narrative; Extract observes; Commit/DB owns structural persistence.
-- Unknown optional media/projection failure must fail open and must never erase a narrative fact.
-
-## Authorized operations
-
-Authorized:
-- read-only Git/source/PR/TEST DB inspection;
-- apply exactly the reviewed TEST migration `company_v1_legacy_save_residue_cleanup` once;
-- exact reviewed API/Frontend TEST-facing deployment for SHA `9c52e74...` only;
-- dedicated TEST game reset/setup/opening/ordinary gameplay/readback/replay necessary for the bounded acceptance;
-- final reset of that dedicated TEST game;
-- TEMP/local evidence capture outside the repository;
-- docs-only completion update.
-
-Not authorized:
-- any Production access;
-- any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- source/runtime/test/migration/config edits;
-- editing any historical applied migration;
-- a second migration or compatibility overload;
-- direct DB mutation to manufacture state;
-- provider/model/temperature/token changes, retries/regeneration, parser relaxation/new parser, fuzzy repair, semantic hard gates;
-- new branch/PR, reopening #65/#66, merge, Ready, rebase, squash, or force-push.
-
-## Acceptance
-
-PASS only if all are proven on the exact reviewed lineage:
-- migration applied exactly once and live function/ACL/security contract matches the reviewed additive migration;
-- exact reviewed executable is the deployed TEST identity for changed workers;
-- reset, Opening, literal-choice ordinary turn, free-text ordinary turn, replay/recovery all complete through canonical paths;
-- the five deleted save-level residues are absent after reset, Opening, and ordinary commits;
-- `game_turns.turn_summary` and committed `parsed_blocks` remain intact;
-- retained relationship display consumer still works from retained `npc_relationship_state` without new writer/taxonomy;
-- protected scene/physical/clothing/sexual/media/stats/CSA/progression/identity/TTS systems are not structurally removed;
-- final dedicated TEST reset is clean;
-- no Production/manual-game access and no unauthorized source/config change occurred.
+- Canonical Scene v1 remains required; fix reset canonicalization, not validator strictness.
+- Recent six raw Story + older natural-language `turn_summary` remains narrative continuity authority.
+- `npc_relationship_state` is retained only because a current UI/sexual-record consumer exists; do not expand it into general narrative-memory authority.
+- Scene/physical/clothing/sexual-media/npc_stats/CSA/progression/stable identity/literal choices/Mind Monitor/TTS remain protected real-consumer systems.
+- No generic ledger, semantic taxonomy, open-fact replacement, alias map, parser generation, fuzzy repair, retry, or fallback Story.
 
 ## Completion
 
-On completion:
-- set CURRENT_TASK to `WAITING_REVIEW` in one docs-only commit;
-- report exact START SHA, reviewed executable SHA, migration apply result/version/name, post-apply live function/ACL facts, API/Frontend deployed identities, dedicated TEST game ID, reset/Opening/turn/replay evidence, deleted-key absence probes, protected-consumer checks, final reset state, and exact FINAL_DOCS_SHA;
+On success or a new deterministic blocker:
+- update this file to `WAITING_REVIEW` in one docs-only completion commit;
+- report exact source/test/migration SHA, corrective migration name/version, live function body/ACL facts, dedicated TEST reset result/readback, deleted-key absence, protected-structure checks, and final branch SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not create the next task yourself.
-
-## Execution result — BLOCKED
-
-The reviewed TEST rollout applied the additive migration exactly once and
-deployed the exact reviewed executable, but the bounded acceptance did not
-complete because the required final canonical reset failed deterministically.
-
-- Start HEAD: `616534f99dc4c2d9adec1aee12cec1d4bf6d1280`.
-- Reviewed executable: `9c52e74a8e32278207e6e9b729c33d64eb770fd1`.
-- Live migration: version `20260816011104`, name
-  `company_v1_legacy_save_residue_cleanup`, applied exactly once.
-- API Worker: `game-proxy-company-v1`, Version
-  `52daecdd-c589-4013-942b-1bd80dda18e2`; health `200`, `edition_id=company-v1`.
-- Frontend Worker: `gamebuilder-company-v1`, Version
-  `4bd2ddfb-151e-4b93-a57f-eebf1b49446f`; root `200`.
-- Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-- Setup/Opening, literal-choice Turn 1, free-text Turn 2, Story/Extract/Commit,
-  and Turn 1 Story/Extract/Commit replay all returned success; committed
-  revisions were 992 and 993 and replay preserved Turn 1 revision 992.
-- Live readback after the commits showed all five deleted keys absent,
-  `turn_summary` and `parsed_blocks` present for both turns, and retained
-  relationship/sexual/stats/CSA/opening structures present.
-- Final reset failed with HTTP 400 `invalid reset initial save:
-  ["missing required key: scene", "missing required key: scene"]`.
-- First authoritative evidence is preserved at
-  `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-legacy-save-residue-rollout.json`.
-
-No retry, second reset, source/config change, second migration, rollback,
-provider/model change, Production access, or preserved manual-game access was
-performed. The dedicated TEST game remains in the failed acceptance state;
-operator review/root-cause action is required before any further operation.
