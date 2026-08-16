@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: scene-legacy-mirror-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -113,3 +113,18 @@ On PASS or deterministic BLOCKED evidence:
 - report exact start SHA, reviewed executable SHA, applied migration ledger version/name, live function/ACL/search_path facts, deployed Worker identities if deployment occurred, dedicated TEST reset/setup/opening/turn/replay results, mirror-absence checks, protected-state checks, final reset result, and final docs SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution result — PASS, waiting for operator review
+
+- Start HEAD: `9c6d09baa72d2ac2b86f7157c69945bada5e52e5`.
+- Reviewed executable SHA: `cd615b4926a5a7092247459d44d25f886b8ac92b`.
+- No executable source/test/migration changes occurred after the reviewed lineage; only the task/audit docs changed before this completion commit.
+- Exact migration applied once to TEST: ledger version `20260816021437`, name `company_v1_scene_mirror_residue_closure`.
+- Live functions after apply: `company_apply_opening_scene_v1(jsonb)` is non-definer with `search_path=public, pg_temp` and no service-role grant; `company_bootstrap_scene_v1(jsonb)` and `company_validate_scene_v1(jsonb, boolean)` are SECURITY DEFINER with `search_path=public, pg_temp` and no service-role grant; `validate_company_save_v1(jsonb)` and `reset_company_game(uuid,text)` are SECURITY DEFINER with the same search path and service-role EXECUTE. Core service-role direct-DML privileges read back as `[]`.
+- Stage B action gate and Scene Stage A behavioral catalog gate both passed; Windows API wrapper dry-run passed.
+- API deployed from the reviewed lineage as `game-proxy-company-v1`, Version `744e74b9-4ac9-4596-9751-c754bdfbf6af`; health returned HTTP 200 with `ok=true`, `edition_id=company-v1`.
+- Frontend deployed as `gamebuilder-company-v1`, Version `9d7dcd0c-ab3f-45ab-87b5-71755d902ee5`; root returned HTTP 200.
+- Dedicated TEST game only: canonical reset returned HTTP 200; Setup and Opening passed. Opening provider/control output contained 4 literal `[CHOICE]` markers and 4 canonical choices.
+- Bounded ordinary smoke passed: Turn 1 used the exact first provider-authored literal choice, with action ID `30b15da2-e42b-491c-a670-eaccaadd848b`; Story/Extract/Commit passed. Same-action Story/Extract/Commit replay returned `meta.replayed=true`, `complete.replayed=true`, `replayed=true`, and `replayed=true` respectively with `committed_turn` and `save_revision` unchanged. Turn 2 free-text action (`21c636b7-0539-4706-80d6-09a1ab10841b`) Story/Extract/Commit passed. Canonical scene/presence/location continuity remained readable and removed mirrors stayed absent after each readback. The committed Story/Extract response path produced parsed blocks/turn summary; final reset intentionally removed the temporary history rows.
+- Final canonical reset returned HTTP 200; direct TEST readback: `committed_turn=0`, `processing_status=idle`, `player_setup.status=not_started`, `opening_state.status=not_started`, `save_revision=1000`, `game_turns=0`, `game_actions=0`; canonical `scene` exists and all removed mirror keys are absent. Physical/clothing, NPC stats, relationship, sexual/media-compatible, CSA, progression, stable identity, choices, and presentation structures remained available in reset data.
+- No Production/manual-game access, no additional migration, no source/config patch, no provider/model change, and no retry/regeneration/workaround occurred.

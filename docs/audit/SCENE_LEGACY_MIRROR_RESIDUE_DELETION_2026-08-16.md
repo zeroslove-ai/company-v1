@@ -1,8 +1,8 @@
-# Scene legacy-mirror residue deletion candidate
+# Scene legacy-mirror residue deletion — TEST rollout
 
-Status: `WAITING_REVIEW` candidate. This is a source/test/contract change on
-`company/scene-location-presence-v1`; it has not been migrated, deployed, or
-used against the TEST game.
+Status: `WAITING_REVIEW` after PASS. The reviewed source/test/contract lineage
+was applied to TEST and accepted by the bounded live rollout; operator review
+remains the terminal gate.
 
 ## Identity and safety
 
@@ -11,8 +11,13 @@ used against the TEST game.
 - Source/test/migration candidate commit: `cd615b4`
 - Branch: `company/scene-location-presence-v1`
 - Canonical PR: #67, still open/draft/unmerged
-- DB writes, TEST reset/gameplay, migration apply, API/frontend deploy, and
-  Production/manual-game access: `0`
+- TEST migration apply: exactly once, ledger `20260816021437 /
+  company_v1_scene_mirror_residue_closure`.
+- API deployment: `game-proxy-company-v1` Version
+  `744e74b9-4ac9-4596-9751-c754bdfbf6af`.
+- Frontend deployment: `gamebuilder-company-v1` Version
+  `9d7dcd0c-ab3f-45ab-87b5-71755d902ee5`.
+- Production/manual-game access: `0`.
 
 ## Authority inventory
 
@@ -72,6 +77,18 @@ recreated.
 The additive migration is exactly
 `supabase/migrations/20260816030000_company_v1_scene_mirror_residue_closure.sql`
 and is included in `cd615b4`; it remains unapplied.
+
+## TEST acceptance result
+
+On dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`, the canonical
+reset, Setup, Opening, one exact provider-authored literal-choice turn, one
+free-text turn, Story/Extract/Commit, same-action replay, context continuity,
+and final canonical reset passed. Opening returned four literal choices. Root
+scene mirrors, player location mirror, and NPC presence/scene/location mirrors
+were absent across the new Worker readbacks. The final readback was clean at
+`committed_turn=0`, `save_revision=1000`, zero turns, and zero actions; the
+canonical `scene` and retained physical/clothing and protected state shapes
+were present.
 
 ## Review boundary
 
