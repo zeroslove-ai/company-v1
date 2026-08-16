@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: physical-sexual-evidence-boundary-v1
+Status: READY
+Task ID: physical-sexual-residue-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,82 +13,52 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5306916713` ACCEPTED `physical-sexual-state-authority-residue-audit-v1` at `8705b66e72c89b61c129b4d3f7fd0c217055e07d`.
-Audit artifact: `docs/audit/PHYSICAL_SEXUAL_STATE_AUTHORITY_RESIDUE_AUDIT_2026-08-16.md`.
+Previous operator review: `5307115582` ACCEPTED `physical-sexual-evidence-boundary-v1` at source/test SHA `6c8bfb47851cc04f60ebce41c25ef19b73e844a0`.
 
-The accepted architecture is Story-authored narrative + narrow evidenced machine/UI projections + natural-language `turn_summary` memory. Do not reintroduce `open_facts`, `open_observations`, general relation/event/emotion/work ledgers, semantic taxonomies, or another memory layer.
-
-## Proven defect
-
-`src/engine/state/physical-state.js::buildSceneStatePatch()` currently emits `unevidenced_posture_change` / `unevidenced_position_label` warnings but still builds and applies a posture/position patch even when exact Story evidence is absent. This lets an unevidenced fresh Extract proposal become durable state.
-
-Player input and ACTING metadata are intent/presentation only. They must not become physical success authority.
+The accepted architecture is Story-authored narrative + exact-evidence narrow machine/UI projections + natural-language turn-summary memory. Physical/sexual/media taxonomies may not define whether arbitrary narrative meaning occurred.
 
 ## Objective
 
-Close the physical/sexual evidence boundary in one deletion-first source/test cut. Durable physical/mechanical projections may update only from exact Story-grounded Extract evidence. Optional projection misses must fail open: preserve previous durable state, emit warning, keep valid sibling domains, and do not block Story/Extract/Commit.
+Finish the remaining physical/sexual authority residue in one deletion-first source/test cut. Remove obsolete finite physical/CSA execution grammar and duplicate mirrors where actual caller proof permits, while preserving the narrow state/media surfaces that current product consumers demonstrably read.
 
 ## Required work
 
-1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED.
-2. Fix posture/position persistence:
-   - exact Story evidence present -> apply arbitrary normalized posture/position text;
-   - evidence absent/invalid -> keep previous posture/position, emit existing warning;
-   - do not create a hard turn gate.
-3. Preserve evidenced compact clothing behavior exactly. The four-slot clothing UI continuity state remains a proven narrow projection.
-4. Audit `reducePlayerSexualObservation()` / `reducePlayerSexualState()` at the actual fresh caller boundary. Any changed arousal/progress/count/erection/mechanical field that currently becomes durable without exact Story evidence must be narrowed to the same fail-open rule: preserve previous field + warning, while valid evidenced sibling changes still apply.
-5. Preserve `sexual_event_ledger` only as evidenced mechanical/UI/history state. Do not infer consent, affection, trust, relationship, intimacy stage, or CSA compliance from a sexual event.
-6. Sexual action/type families and image tags remain presentation/mechanical projections only. Unknown classification must never erase the narrative meaning, create a semantic hard failure, or block Commit.
-7. Re-run final caller proof for these residue candidates and delete them in this same cut when genuinely zero-production-caller:
-   - unused `POSTURE_VALUES` / `END_REASON_VALUES`;
-   - unused intimacy-stage validator and tests;
-   - unused `requiredClothingFromActiveCsa` / remaining CSA physical-enactment residue and stale tests.
-   If a real current consumer exists, keep only the narrow consumer surface and document it; do not add compatibility code.
-8. Do not delete `player_sexual_state`, `sexual_event_ledger`, compact clothing, or image/media adapters merely because they are finite; they have proven consumers.
-9. Do not touch historical applied migrations. No DB migration is authorized in this task. NPC sexual/relationship historical mirrors remain outside this source cut unless caller proof shows they are source-only and safely removable without DB/data migration.
-10. Rewrite stale tests that assert unevidenced posture/position persistence. Add regressions proving:
-   - unevidenced posture/position proposal is dropped while turn/sibling valid domains survive;
-   - evidenced arbitrary text persists;
-   - clothing evidence behavior is unchanged;
-   - player sexual changed fields require exact evidence where applicable and fail open per-field;
-   - sexual event/image classification miss cannot gate the narrative turn;
-   - input/ACTING alone cannot create physical success.
-11. Run focused physical/sexual/evidence tests, full `npm.cmd test`, changed JS/MJS syntax checks, and `git diff --check`.
+1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`; no new branch/PR.
+2. Inventory all current production callers/readers/writers for remaining posture/contact/sexual/relationship physical state after `6c8bfb4`:
+   - posture/contact finite enums or validators;
+   - CSA execution/posture/direct-coverage/mandatory-enactment residue;
+   - NPC sexual/relationship mirrors and compatibility projections;
+   - player input or ACTING metadata paths that could still imply physical success;
+   - sexual event/action classification and media/image selection consumers.
+3. REMOVE-OR-PROVE every finite mechanic. Delete zero-production-caller posture/contact/CSA physical-execution grammar and its stale tests in this cut. Do not wrap deleted semantics in compatibility runtime.
+4. CSA may retain only proven institutional rule identity/lifecycle/transaction/applicability/context surfaces. Story receives natural-language rule context and narrates naturally; Extract observes what actually occurred. CSA compliance is not consent, comfort, affection, trust, emotion, relationship, or proof of physical enactment.
+5. Verify direct player input and structural ACTING metadata remain intent/presentation only. If any fresh path still turns them directly into durable posture/contact/sexual success without exact Story-grounded Extract evidence, remove that writer/inference and add a regression.
+6. Inventory NPC sexual/relationship mirrors against actual frontend/history/recovery consumers. Delete source-only duplicate writers/readers if caller proof is complete. If DB/data migration would be required to remove a historical durable field, document the exact live consumer/data boundary and STOP that deletion at source/test scope rather than manufacturing a compatibility layer or editing historical migrations.
+7. Preserve compact four-slot clothing as one canonical UI continuity projection where current frontend callers prove it. Delete duplicate clothing projections/copies if any remain.
+8. Preserve `player_sexual_state`, evidenced `sexual_event_ledger`, image catalogs/image_library, sexual/general pools, action families/tags, deterministic image selection, and TTS only to the extent real consumers prove them. These are narrow mechanics/presentation sidecars, not narrative truth authorities.
+9. Unknown sexual action/image classification must remain fail-open for the gameplay spine: it may yield no/alternate mechanical/media projection, but must not reject Story, erase an Extract fact, or block Commit.
+10. Do not resurrect `open_facts`, `open_observations`, relation/general-event/emotion/work semantic ledgers, generic-other enums, regex existence gates, or another memory layer.
+11. Rewrite/delete stale tests that encode removed authority. Add focused regressions for every deleted writer/gate and every kept narrow consumer boundary.
+12. Run focused physical/sexual/CSA/media/frontend-history tests, full `npm.cmd test`, syntax checks for changed JS/MJS, and `git diff --check`. Test count alone is not acceptance evidence; report invariant coverage and any triaged failures.
 
 ## Architecture constraints
 
-- No `open_facts`/`open_observations` resurrection.
-- No new event/relation/emotion/posture/contact/sexual enum as narrative authority.
-- No fuzzy repair, regex semantic gateway, retry/regeneration, provider/model change, parser relaxation/new parser, or arbitrary save patch.
-- No compatibility runtime solely to preserve stale tests.
-- CSA remains institutional context/lifecycle only; compliance is not consent/comfort/affection/trust/emotion or proof of physical occurrence.
-- Image/media/TTS remain presentation sidecars and cannot gate narrative truth.
 - One durable domain -> one canonical writer.
+- No provider/model/temperature/token changes, retries/regeneration, fuzzy repair, parser relaxation/new parser, semantic hard gates, or arbitrary LLM save patch.
+- No direct player-input success inference.
+- No finite narrative posture/contact/sexual/relation taxonomy as Story/Extract truth authority.
+- Historical applied migrations are immutable.
+- Keep TEST-only Level-7 acceleration seam unchanged; do not alter Production progression.
+- Media/image classification remains presentation-only and cannot gate narrative truth.
 
 ## Authorized operations
 
 Authorized: source/test/docs edits on this branch; read-only source/history/PR inspection; local tests/static checks.
 
-Not authorized: TEST live gameplay/reset, DB writes/migration/DDL, API/frontend deploy, Production, preserved manual-game access, new branch/PR, merge/Ready/rebase/squash/force-push.
+Not authorized: TEST live gameplay/reset, DB writes/migration/DDL/apply, API/frontend deploy, Production, preserved manual-game `78fb1d94-266f-455a-bda4-7656cc2370c1` access, new branch/PR, merge/Ready/rebase/squash/force-push.
 
 ## Acceptance
 
-PASS only if unevidenced fresh Extract physical/mechanical proposals can no longer change durable state, evidenced arbitrary Story-grounded facts still project correctly, valid sibling domains continue to commit, proven clothing/sexual/media consumers remain functional, and zero-caller semantic residue is deleted rather than wrapped.
+PASS only if remaining zero-caller physical/CSA semantic authority is deleted, no input/ACTING success writer survives, proven compact clothing/sexual/media consumers remain functional and narrow, unknown optional classification remains fail-open, and any historical mirror that cannot yet be deleted is explicitly justified by a concrete current reader/data boundary rather than compatibility speculation.
 
-On PASS or deterministic blocker: set CURRENT_TASK to WAITING_REVIEW, post one immutable terminal report with exact source/test SHA, changed files, deletions/keeps, tests/checks, and forbidden-operation confirmation, then STOP. Do not generate the next task.
-
-## Completion record
-
-- Source/test SHA: `6c8bfb47851cc04f60ebce41c25ef19b73e844a0`
-- Physical evidence boundary: unevidenced posture/position axes preserve prior state with existing warnings; evidenced arbitrary text remains accepted independently per axis.
-- Sexual evidence boundary: non-zero arousal/progress deltas require an exact Story quote for their field; missing evidence preserves each field and warns. Existing erection/completion evidence rules remain in force.
-- Projection behavior: unknown sexual event action types are dropped with a warning and do not block normalized Extract; compact clothing and image/media consumers remain.
-- Deleted zero-caller residue: `POSTURE_VALUES`, `END_REASON_VALUES`, `src/engine/sexual-state/validator.js`, `requiredClothingFromActiveCsa`, and its obsolete test.
-- Kept proven consumers: evidenced physical reducer, compact four-slot clothing, player sexual state, sexual event ledger, and image/media adapters.
-- Focused invariant tests: `node --test test/frontend-projection-contract.test.mjs test/gameplay-state-contract.test.mjs test/extract-observation-contract.test.mjs test/csa-definition-contract.test.mjs test/csa-runtime-contract.test.mjs test/content-media-contract.test.mjs test/turn-atomicity-contract.test.mjs test/turn-transaction-replay.test.mjs` — 78/78 PASS.
-- Full regression: `npm.cmd test` — 428/428 PASS.
-- Syntax: all changed JS/MJS `node --check` PASS.
-- `git diff --check`: PASS.
-- Forbidden operations: TEST live/reset 0; DB writes/migrations 0; API/frontend deploy 0; Production/manual-game 0; provider/model/parser/retry/fuzzy/semantic-gate/compatibility changes 0; new branch/PR/merge/Ready 0.
-- Preserved evidence artifacts: unchanged and uncommitted.
-- Stop state: waiting for operator review; do not deploy, run live TEST, or generate the next task.
+On PASS or deterministic blocker: set CURRENT_TASK to WAITING_REVIEW, post one immutable terminal report with exact source/test SHA, changed files, caller proof, deletions/keeps, tests/checks, and forbidden-operation confirmation, then STOP. Do not generate the next task.
