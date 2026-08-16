@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-physical-clothing-sexual-product-play-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -197,3 +197,17 @@ On PASS, first real product defect, or bounded coverage-limited completion:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post exactly one immutable terminal report to Issue #68 with START SHA, reviewed/deployed Worker identity, Level-7 seam evidence, decisive physical/clothing/sexual turns and exact Story evidence, state deltas, unrelated consent/relationship checks, media/choice/time observations, replay result, coverage limitations, final reset, forbidden-operation confirmation and FINAL docs SHA;
 - STOP. Do not generate the next task.
+
+## Execution record — evidence-only blocked
+
+- Execution lease: Issue #68 comment `5309459150`.
+- Start SHA: `4f8a73e40b33ceb66c670b82c005d270f5966705`.
+- Reviewed executable SHA: `beae855ebc5a9706bae234af80b2569d73566f0a`.
+- Worker lineage read-only verified as `game-proxy-company-v1` version `51c5ac28-8d52-49bc-bb14-fdd1f0164126` at 100%; health HTTP 200; no deploy.
+- UTF-8 preflight passed before product calls. Input artifact SHA-256: `93ea2b414563b51ccb1e7e04f5a7a27038bbb82a1af925219f38ebc6d71d56e2`.
+- The existing TEST Level-7 fixture RPC was invoked exactly once for the disposable game and the fixture read back Level 7. The REST schema read-only probe exposed `prepare_company_test_level7_fixture`; no migration was applied or re-applied.
+- Evidence-only blocker: the external runner accidentally sent the Setup/Opening request to `/api/story` instead of the reviewed `/api/opening` endpoint. The decoder received no SSE frames, so the scenario stopped before any product turn (`turns=0`). No retry, second opening, alternate scenario, or source patch was performed.
+- Final reset succeeded and read back `committed_turn=0`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, `Level 1`, and `csa_active=[]`.
+- Artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-physical-v1-product-play-20260817.json`.
+- Forbidden operations: Production/preserved/QA access 0; migration/DDL 0; frontend deploy 0; runtime/source/test/content/config changes 0; direct DB writes 0; provider retry/regeneration 0; PR/merge/Ready 0.
+- Result: `COVERAGE_LIMITATION / EVIDENCE_BLOCKED`; no product defect conclusion and no rerun authorized by this execution.
