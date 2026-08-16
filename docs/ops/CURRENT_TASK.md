@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-test-rollout-v5
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -32,6 +32,16 @@ V4 proved the local ASCII Unicode-escape -> UTF-8 -> JSON transport preflight, S
 V4 did **not** prove a runtime/history defect. The reviewed server history route returns `ok({ records, ... })`, so the HTTP JSON shape is `{ ok:true, data:{ records:[...] } }`. The repository canary already unwraps `result.body.data ?? result.body` before reading `records`. V4's temporary acceptance reader reported `keys=[] / value=null`; treat that as a response-shape reader mistake unless canonical `body.data.records` itself is shown empty/missing after a committed action.
 
 Do not patch product source, navigation, history response shape, or add a duplicate compatibility alias because of V4.
+
+## V5 rollout result — WAITING_REVIEW / BLOCKED
+
+- V5 execution identity: `minimal-story-runtime-test-rollout-v5` on `company/scene-location-presence-v1`, starting from `478b0145edb19db038166ad6968fac67c0d5e2fd`, with task blob `79ce57ed1b9b94176d6b24f5522473368995d606`.
+- Read-only preflight before gameplay: Worker version `37c05efd-b8b9-4be3-b0f8-c823576b0149` (version 168) remained live; health/version returned 200; TEST migration `20260816050000 / company_v1_minimal_story_runtime_contract` was listed exactly once; disposable game baseline was turn 0, idle, setup/opening not_started, retired roots absent.
+- Local ASCII-only escaped Korean action preflight was not reached as a product scenario requirement because the runner stopped at Opening. Setup returned HTTP 200 with setup id `933ba169-8ad2-4b39-b097-5c85a732986f`, but the temporary runner incorrectly sent the Opening request to `/api/story` instead of the authorized `/api/opening` endpoint; the response was HTTP 400 and no canonical Opening was parsed.
+- This is a runner execution/harness error, not a product/runtime defect and provides no evidence against Opening, navigation, history, memory, CSA, or replay. No retry or second scenario was attempted.
+- V5 rollout artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-minimal-story-runtime-rollout-v5.json`.
+- Final disposable TEST reset: PASS. Readback: `committed_turn=0`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, canonical scene `setup` v1, empty presence, retired roots absent, `clean=true`.
+- No source/runtime/test/config/content or migration change was made; no deployment, Production access, preserved/QA game access, or PR state change occurred.
 
 ## Objective
 
