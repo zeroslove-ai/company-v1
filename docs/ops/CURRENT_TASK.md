@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: setup-opening-world-definition-authority-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -124,3 +124,19 @@ On PASS or deterministic BLOCKED evidence:
 - report exact START SHA, source/test/migration candidate SHA, changed authority boundaries, REMOVE-OR-PROVE inventory, tests/static checks, live read-only facts used, and FINAL_DOCS_SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Candidate completion record
+
+- Start SHA: `829a2db55290de32d755030b8086c99cf8449387`
+- Source/test/migration candidate SHA: `6b2c9941f8e6e89410a4518821bc0c6550785991`
+- Additive migration source: `20260816040000_company_v1_setup_opening_world_authority.sql` (not applied)
+- Focused Setup/Opening/bootstrap tests: PASS
+- Focused DB contract gate tests: PASS
+- Full `npm.cmd test`: PASS, 419/419
+- JS/MJS syntax checks: PASS
+- UTF-8 JSON parse checks: PASS
+- `git diff --check`: PASS
+- TEST/DB writes, reset, gameplay, migration apply, deployments, and Production: 0
+
+This candidate remains pending operator review. No TEST rollout or deployment is
+authorized by this task.

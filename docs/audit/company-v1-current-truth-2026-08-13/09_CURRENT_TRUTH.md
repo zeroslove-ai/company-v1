@@ -733,3 +733,24 @@ absent in the master initial save and were not lost by reset. No API/frontend
 deployment, Production/manual-game access, additional gameplay, retry,
 rollback, or second migration occurred. Cut 2 acceptance remains
 WAITING_REVIEW pending operator review of this exact closure.
+
+## Setup / Opening / world-definition authority candidate — WAITING_REVIEW
+
+The source/test/migration candidate `setup-opening-world-definition-authority-v1`
+started from docs-only HEAD `829a2db55290de32d755030b8086c99cf8449387` and keeps
+the accepted executable lineage `cd615b4926a5a7092247459d44d25f886b8ac92b`.
+Repository/application validation remains the semantic authority for setup
+catalogs, registered character/NPC identity, and map-driven Opening plans. The
+single additive migration source
+`20260816040000_company_v1_setup_opening_world_authority.sql` removes the
+duplicate SQL department/position/body/speech/weekday/heroine membership lists,
+retains structural and transactional invariants, and removes duplicate turn-0
+legacy scene-mirror construction before the canonical scene helper runs.
+
+`masterFromEdition` is verified as the combined `characters` + `general_npcs`
+registered identity universe. Focused Setup/Opening/bootstrap and DB gate tests
+pass; the full local suite passes 419/419. No migration was applied, no DB or
+TEST write/reset/gameplay occurred, no deployment or Production access occurred,
+and PR #67 remains OPEN / DRAFT / UNMERGED. This is a source/test/migration
+candidate awaiting operator review and separately authorized TEST rollout, not
+a live acceptance fact.
