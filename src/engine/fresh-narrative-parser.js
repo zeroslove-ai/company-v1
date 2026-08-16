@@ -100,7 +100,7 @@ export function parseFreshNarrativeV2(rawText, { master } = {}) {
       blocks.push({ type: 'scene', text });
     } else if (current.type === 'thought') {
       thoughtCount += 1;
-      blocks.push({ type: thoughtCount === 1 ? 'player_inner_thought' : 'narrative', text });
+      if (thoughtCount === 1) blocks.push({ type: 'player_inner_thought', text });
     } else if (current.type === 'choice') {
       choices.push(text);
       blocks.push({ type: 'choice', text });

@@ -129,6 +129,8 @@ const canonicalOpeningSse = [
 const semanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\\nThe lobby is busy.\\n[THOUGHT]\\nI feel nervous.\\n[CHOICE label="관찰"]\\nLook around\\n[CHOICE label="인사"]\\nSay hello\\n[CHOICE label="대기"]\\nWait here\\n[CHOICE label="이동"]\\nFind a desk' } }] })}\n\ndata: [DONE]\n\n`;
 const canonicalOpeningText = '[SCENE]\nThe lobby is busy.\n[DIALOGUE speaker_id="heroine1"]Welcome to the office.[/DIALOGUE]\n[ACTING]calmly[/ACTING]\n[THOUGHT]\nI should look around first.\n[CHOICE]\nCheck the desk.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait quietly.\n[CHOICE]\nGo outside.';
 const canonicalSemanticOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: canonicalOpeningText } }] })}\n\ndata: [DONE]\n\n`;
+const duplicateThoughtOpeningText = '[SCENE]\nVisible opening.\n[THOUGHT]\nFirst private thought.\n[THOUGHT]\nDuplicate private thought.\n[CHOICE]\nCheck the desk.\n[CHOICE]\nAsk a question.\n[CHOICE]\nWait quietly.\n[CHOICE]\nGo outside.';
+const duplicateThoughtOpeningSse = `data: ${JSON.stringify({ choices: [{ delta: { content: duplicateThoughtOpeningText } }] })}\n\ndata: [DONE]\n\n`;
 const openingWithoutChoicesSse = `data: ${JSON.stringify({ choices: [{ delta: { content: '[SCENE]\\nThe lobby is busy.\\n[THOUGHT]\\nI should look around first.' } }] })}\n\ndata: [DONE]\n\n`;
 const fiveChoiceOpeningText = ['[SCENE]', 'The lobby is busy.', '[CHOICE]', 'One', '[CHOICE]', 'Two', '[CHOICE]', 'Three', '[CHOICE]', 'Four', '[CHOICE]', 'Five'].join('\n');
 const openingWithFiveChoicesSse = `data: ${JSON.stringify({ choices: [{ delta: { content: fiveChoiceOpeningText } }] })}\n\ndata: [DONE]\n\n`;
@@ -708,6 +710,28 @@ test('/api/opening first-run and replay expose the same canonical parsed project
   assert.deepEqual(replayComplete.parsed_blocks, committedBlocks);
   assert.equal(replayComplete.parsed_blocks.raw, firstComplete.parsed_blocks.raw);
   assert.equal(mock.storyCallCount(), 1);
+});
+
+test('/api/opening preserves raw duplicate THOUGHT evidence but commits no public duplicate projection', async () => {
+  const mock = createSetupMockFetch({ storySseText: duplicateThoughtOpeningSse });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+  const setupResponse = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
+  const { setup_id: setupId } = (await setupResponse.json()).data;
+
+  const openingResponse = await worker.fetch(request('/api/opening', { game_id: gameId, setup_id: setupId }), env);
+  const openingText = await readSseText(openingResponse);
+  const completeLine = openingText.split('\n\n').find(frame => frame.includes('event: complete'));
+  const completeData = JSON.parse(completeLine.split('data:')[1].trim());
+  const parsed = completeData.parsed_blocks;
+
+  assert.equal(openingResponse.status, 200);
+  assert.equal(parsed.player_inner_thought, 'First private thought.');
+  assert.equal(parsed.warnings.includes('player_inner_thought_duplicate'), true);
+  assert.equal(parsed.raw.includes('Duplicate private thought.'), true);
+  assert.equal(parsed.scene_text.includes('Duplicate private thought.'), false);
+  assert.equal(parsed.blocks.some(block => block.type === 'narrative' && block.text.includes('Duplicate private thought.')), false);
+  assert.equal(mock.getSave().opening_state.parsed_blocks.scene_text.includes('Duplicate private thought.'), false);
+  assert.deepEqual(parsed.canonical_choices, ['Check the desk.', 'Ask a question.', 'Wait quietly.', 'Go outside.']);
 });
 
 test('/api/context does not reparse an opening without committed structured blocks', async () => {

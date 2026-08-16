@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStoryStreamDecoder, parseStoryControlMarker } from '../src/engine/story-wire-protocol.js';
-import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
+import { buildStoryObservationBlocks, parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 import { reduceStoryChoiceProjection } from '../src/engine/runtime-core/observation-reducers.js';
 
 const master = { characters: [{ character_id: 'heroine2', name: 'Jena' }] };
@@ -21,6 +21,28 @@ test('fresh bare ACTING is a visible block, not dialogue direction metadata', ()
   assert.deepEqual(parsed.dialogue_lines.map(line => line.text), ['first line', 'second line']);
   assert.equal(parsed.dialogue_lines[0].acting_direction, null);
   assert.equal(parsed.acting_events[0].text, 'visible action');
+});
+
+test('fresh duplicate THOUGHT blocks stay private across adjacent, separated, and paragraph-boundary forms', () => {
+  const choices = ['A', 'B', 'C', 'D'].map(choice => `[CHOICE]${choice}[/CHOICE]`).join('');
+  const cases = [
+    '[SCENE]visible scene[/SCENE][THOUGHT]first private[/THOUGHT][THOUGHT]adjacent duplicate[/THOUGHT]',
+    '[SCENE]visible scene[/SCENE][THOUGHT]first private[/THOUGHT][DIALOGUE speaker_id="heroine2"]visible dialogue[/DIALOGUE][THOUGHT]separated duplicate[/THOUGHT][ACTING]visible acting[/ACTING]',
+    '[SCENE]visible scene[/SCENE][THOUGHT]\nfirst private\n\n[/THOUGHT][THOUGHT]\nparagraph duplicate\n\n[/THOUGHT]'
+  ];
+
+  for (const prefix of cases) {
+    const parsed = parseFreshNarrativeV2(`${prefix}${choices}`, { master });
+    const publicBlocks = parsed.blocks.filter(block => block.type !== 'player_inner_thought');
+    const observations = buildStoryObservationBlocks(parsed);
+
+    assert.equal(parsed.player_inner_thought, 'first private');
+    assert.equal(parsed.warnings.includes('player_inner_thought_duplicate'), true);
+    assert.equal(publicBlocks.some(block => block.text?.includes('duplicate')), false);
+    assert.equal(parsed.scene_text.includes('duplicate'), false);
+    assert.equal(observations.some(block => block.text.includes('duplicate')), false);
+    assert.deepEqual(parsed.canonical_choices, ['A', 'B', 'C', 'D']);
+  }
 });
 
 test('fresh ACTING preserves source order and same-speaker dialogue does not merge across it', () => {
