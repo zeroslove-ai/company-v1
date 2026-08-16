@@ -810,3 +810,39 @@ The authorized final TEST reset passed and read back `save_revision=1003`,
 `committed_turn=0`, setup/opening `not_started`, canonical setup scene valid,
 removed Scene mirrors absent, and zero actions/turns. The rollout is
 `WAITING_REVIEW` and Cut 2 world-authority acceptance is not complete.
+
+## Opening exact-four root-cause review — deterministic BLOCKED
+
+Task `opening-provider-exact-four-root-cause-v1` started from registration
+HEAD `841edf9d595ac840ee7857110873fceea2319675`, with reviewed executable
+lineage `1a221665f91b352607724912ba8a06250ac60fc5`. Source inspection found
+no repository-owned producer/parser mismatch to correct:
+
+- `buildOpeningPrompt()` explicitly requires exactly four repeated bare
+  `[CHOICE]` blocks, each containing one non-empty literal action, and forbids
+  numbering or a human choice heading.
+- Opening stream assembly concatenates provider chunks into `raw` and emits
+  decoder events; it does not add, remove, truncate, pad, deduplicate, or
+  author choice text.
+- `parseFreshNarrativeV2()` preserves provider choice text in source order and
+  exposes `canonical_choices` only for four non-empty unique literals.
+- `reduceStoryChoiceProjection()` is the sole server choice projection for
+  Opening and ordinary Story. It preserves exactly four valid literals and
+  returns an empty projection with structural warnings for any other shape.
+- `commit_company_opening` receives that projection and the live contract
+  rejects any choice array whose length is not exactly four. No server prose
+  fallback, truncation, padding, retry, or regeneration exists in this path.
+- Completed Opening recovery prefers persisted `opening.choices` and stored
+  parsed blocks; numbered input resolves to the exact saved literal, while
+  ordinary free text remains a separate path.
+
+The preserved TEST artifact records provider-visible deltas and the first
+valid Opening terminal error `invalid_request: opening choices must contain
+exactly four items` (`retryable=false`), with no persisted Opening Story. It
+does not contain the provider raw payload, so no unsupported raw choice count
+is inferred from the artifact. Focused malformed/non-four fixtures and the
+full local suite confirm the structural fail-closed behavior, literal choice
+identity, ordinary Story choice behavior, and absence of deterministic fallback
+prose. Therefore the live non-four result is classified as provider
+nondeterminism, not a provable repository defect. No speculative source patch
+was made; the task is `WAITING_REVIEW` pending operator review.
