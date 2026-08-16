@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-physical-clothing-sexual-product-play-v2
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -201,3 +201,24 @@ On PASS, first real product defect, or bounded coverage-limited completion:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post exactly one immutable terminal report to Issue #68 with START SHA, reviewed/deployed Worker identity, deterministic `/api/opening` preflight proof, Level-7 seam evidence, decisive turns/state/evidence, coverage limitations, replay result, final reset and forbidden-operation confirmation;
 - STOP. Do not generate the next task.
+
+## Execution record — bounded coverage-limited completion
+
+- Execution lease: Issue #68 comment `5309535961`.
+- Start SHA: `bef5da21d1c36713a7ff7ba1260479473b48cef7`.
+- Reviewed executable SHA: `beae855ebc5a9706bae234af80b2569d73566f0a`.
+- Worker lineage read-only verified as `game-proxy-company-v1` version `51c5ac28-8d52-49bc-bb14-fdd1f0164126` at 100%; health HTTP 200 with `edition_id=company-v1`; deploy 0.
+- Deterministic local route preflight passed before fixture/provider calls. `/api/opening` requires `game_id, setup_id`; ordinary `/api/story` requires `game_id, action_id, expected_turn, player_action`. Preflight artifact SHA-256: `80D50BF3B36D81C3B65F5B40C012664BD043A688F329CE0C7B7B19B7679B2E13`.
+- Existing Level-7 seam fixture was invoked exactly once for disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; canonical readback was Level 7. No migration was applied/reapplied.
+- Setup/Opening used `/api/player-setup` once and `/api/opening` once. Opening returned HTTP/SSE success and exactly four provider-authored choices.
+- One continuous scenario completed 12 committed turns. Story/Extract/Commit succeeded for every turn. Provider literals were transported unchanged on turns 4, 6, 8, 10, and 12. Canonical time advanced coherently from minute 584 to 617 in three-minute steps. History/context readback returned HTTP 200. Media remained presentation-only and did not block the pipeline.
+- Physical/contact coverage: turn 3 Story explicitly narrated the attempted shoulder contact and boundary response; fresh Extract returned no physical/npc observation and committed narrow physical state remained unchanged. This is evidence-gated coverage limitation, not a manufactured state change.
+- Clothing coverage: turn 5 Story narrated the jacket removal/shirt state, but fresh Extract returned no clothing observation; compact `npc_scene_state` remained at the prior worn values. No durable clothing change was asserted without typed evidence. Record as coverage limitation.
+- Intimate/sexual coverage: turns 7 and 9 produced a refusal/boundary response; no supported sexual event was established, `player_sexual_state` remained zeroed, and no sexual ledger change occurred. Record as coverage limitation, not a defect.
+- Unrelated consent/comfort/affection/trust/romance/relationship/CSA state was not mechanically advanced by the attempted contact or refused intimate request; `csa_active` remained empty.
+- Replay of turn 10 returned Story meta/complete replayed, Extract replayed, Commit replayed, with unchanged state and no extra turn.
+- Final reset succeeded and read back committed_turn=0, processing idle, setup/opening not_started, Level 1, csa_active=[], canonical scene=setup with empty presence.
+- Artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-physical-v2-product-play-20260817.json`.
+- Artifact SHA-256: `63626E296544FD9ADD3E8D023E5EB0DB0AD067204DB83D20A1902B1C403C38A8`.
+- Forbidden operations: Production/preserved/QA access 0; migration/DDL 0; frontend deploy 0; runtime/source/test/content/config changes 0; direct DB writes 0; provider retry/regeneration 0; alternate scenario 0; PR/merge/Ready 0.
+- Result: bounded coverage-limited completion; no product defect asserted and no next task generated.
