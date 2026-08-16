@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: opening-literal-choice-live-closure-v2
+Status: READY
+Task ID: physical-sexual-state-authority-residue-audit-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,109 +13,93 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5306830655` ACCEPTED `canary-opening-choice-option-plumbing-fix-v1`.
-Reviewed harness/source-test SHA: `5c14561f478859309c26100c6d9217734a23018b`.
-Previous live blocker: `opening-literal-choice-live-closure-v1`, terminal comment `5306542914`; operator review `5306683174` accepted the blocker as harness-wiring evidence, not gameplay failure.
+Previous operator review: `5306868867` ACCEPTED `opening-literal-choice-live-closure-v2` at terminal docs SHA `06ed6ed4a41b964f35182960ebec69e7bd7d4565` with reviewed harness SHA `5c14561f478859309c26100c6d9217734a23018b`.
 
-TEST project: `fmcrspgxstsmxxsmkeee`.
-Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` only.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden. Production is forbidden.
+Architecture already accepted on this lineage includes open-ended Story/Extract observation, simplified CSA natural-rule authority, canonical Scene authority, setup/opening world-definition cleanup with dynamic registered-ID integrity, committed parsed-block replay authority, simplified recent-raw + natural-language turn-summary memory, and removal of multiple legacy semantic/mirror residues. Opening literal choice transport is now live-accepted and must not be revisited without new evidence.
 
-## Proven state
-
-- Setup/Opening world-authority migration is already applied on TEST.
-- Live SQL duplicate semantic allowlists were removed while dynamic registered-character integrity remained.
-- The previous bounded run reached valid Setup, valid Opening with exactly four non-empty unique provider-authored literals, ordinary Story -> Extract -> Commit, same-action replay, free-text Turn 2, and final reset.
-- Exact Opening literal round-trip failed only because the canary read `openingChoiceIndex` from the raw-token Set instead of the parsed top-level option.
-- Reviewed harness SHA `5c14561...` fixes that exact plumbing defect. Index `0` is preserved and selects `canonical_choices[0]` unchanged.
-- No gameplay/runtime/provider/parser/DB defect is presently proven by the prior blocker.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is historical READ-ONLY evidence only and is forbidden to mutate/reset. Production is forbidden.
 
 ## Objective
 
-Run one bounded TEST-only closure proving an actual provider-returned Opening choice literal is selected by the reviewed canonical canary and submitted unchanged as Turn-1 `player_action`, then committed/read back/replayed through the normal gameplay path. If this passes, close this acceptance gap and do not create further Opening-choice harness work.
+Perform one architecture-first source + migration-history audit of the remaining player/NPC physical and sexual durable-state boundaries. Produce a precise REMOVE-OR-PROVE map for every finite vocabulary, writer, reducer, mirror, validator, compatibility adapter, and UI/media consumer that can affect posture, contact, clothing, intimate/sexual facts, or sexual event/image state.
+
+This is an audit/decision cut, not an implementation or live-play cut. The next implementation task must be derivable from concrete caller/writer/data proof rather than assumptions.
 
 ## Required work
 
-1. Freeze START HEAD and verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
-2. Verify the working lineage contains reviewed harness SHA `5c14561f478859309c26100c6d9217734a23018b` and no unreviewed executable delta affecting this live run.
-3. Use the existing canonical canary only. Do not create a new script/parser/client protocol.
-4. Use only dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-5. Canonical reset at start if needed; verify clean turn/action state before Setup.
-6. Run valid Setup and Opening through the currently deployed TEST runtime.
-7. Opening must return exactly four non-empty unique canonical/provider-authored choices. Do not retry/regenerate if it does not.
-8. Invoke the reviewed Cut-1 harness option with explicit `--opening-choice-index 0` (or another explicitly recorded valid index only if the harness invocation contract requires it; no semantic substitution).
-9. Capture and prove, in the same run:
-   - the exact returned Opening literal selected;
-   - canary `opening.next_player_action.player_action` equals that literal string-for-string;
-   - Turn-1 Story request/player_action equals that same literal;
-   - Story -> Extract -> Commit succeeds;
-   - committed action/history/readback preserves the exact literal;
-   - same-action replay preserves action identity and does not advance committed_turn/save_revision;
-   - one ordinary free-text Turn 2 still succeeds as a sanity check.
-10. Do not turn choice selection into a semantic taxonomy. No numbering, metadata, normalization, trim, fallback, truncate/pad, retry, fuzzy repair, parser relaxation, or provider/model/config change.
-11. Do not modify source, migration, DB functions, runtime semantics, frontend, CSA, scene, progression, clothing, open-fact memory, sexual/media/image adapters, or choice authority during this task.
-12. Final canonical reset is required after evidence capture; verify committed_turn=0 and zero action/turn rows.
-13. Preserve one evidence artifact outside the repository if the canary normally produces one. Do not commit generated evidence.
+1. Freeze START HEAD and verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED and contains the accepted lineage above.
+2. Inventory the full fresh Story -> Extract -> Commit -> save/history -> next Story/UI path for physical/intimate/sexual meaning. Include at minimum:
+   - player intent/action handling versus Story-established outcome;
+   - Extract schemas/prompts/normalizers for arbitrary physical/contact/intimate/sexual observations;
+   - Commit reducers/writers touching player/NPC physical state, posture, contact, clothing, sexual state/event state;
+   - `npc_scene_state`, player physical state, compact clothing state, sexual ledgers/projections, and any compatibility mirrors;
+   - current Story context projection/readback for those states;
+   - frontend consumers that display clothing/physical/relationship/intimate state;
+   - media/image selection consumers, including real sexual image families/pools/tags/action families.
+3. Search for all finite semantic vocabularies and gates in this domain: posture enums, contact/action kinds, sexual action/type/stage enums, relation-kind reuse, regex existence gates, allowlists, fallback-to-other/default taxonomies, mandatory physical execution tokens, direct player-input success inference, or arbitrary save-patch paths.
+4. For every finite mechanic classify exactly one of:
+   - `REMOVE`: no current deterministic product/integrity consumer and it restricts open-ended Story/Extract meaning;
+   - `KEEP_WITH_PROVEN_CONSUMER`: identify exact source caller/UI/media/integrity consumer and why a finite projection is required;
+   - `NARROW_PROJECTION_ONLY`: may classify/project for UI/media, but classification failure must fail open and must never erase/reject the underlying narrative fact or block Commit;
+   - `HISTORICAL_COMPATIBILITY_ONLY`: current fresh path does not use it; identify exact stored-data/replay reader that still requires it and deletion condition.
+5. Explicitly prove whether compact clothing remains one canonical UI continuity state. If duplicate clothing copies/writers exist, identify deletion target; do not delete the proven UI state itself merely because it is finite.
+6. Explicitly prove the media/image boundary. Existing `image_library`, sex/general pools, sexual image families (including manual/oral/penetration/climax or current equivalents), tags/action families, and deterministic image selection are presentation adapters when callers prove them. They may return no/alternate image on classification miss, but must not gate Story/Extract fact occurrence or persistence.
+7. Explicitly inspect sexual-event/state persistence. Determine whether any sexual ledger/state is a true gameplay/mechanical/UI consumer, a media-selection adapter, duplicate semantic memory, or stale compatibility residue. Do not assume either deletion or preservation from the name.
+8. Explicitly inspect physical posture/contact persistence. Player input is intent/attempt, not success. Story/Extract evidence must be the source of occurrence. Identify any path that writes success directly from input or structural ACTING metadata and mark it for removal unless a deterministic non-semantic consumer proves necessity.
+9. Verify institutional CSA compliance state is separate from consent/comfort/affection/trust/emotion and does not act as physical-story authority. Any remaining CSA physical execution grammar is REMOVE-OR-PROVE against actual current consumers.
+10. Inspect current migrations and live-contract source definitions read-only. Historical applied migrations are immutable. If a future cleanup needs DB changes, specify additive migration requirements only; do not author/apply one in this audit.
+11. Audit tests in this domain as `KEEP / REWRITE / DELETE`. Stale tests do not justify compatibility runtime or finite semantic gates.
+12. Produce a concise audit artifact under `docs/audit/` and update CURRENT_TASK to WAITING_REVIEW in the same docs-only lineage. The audit must name exact files/functions/fields and propose the next coherent implementation cut with deletion targets and protected consumers.
 
 ## Architecture constraints
 
-- Provider authors the four literal choices. Harness may select and transport one only.
-- One ordinary gameplay protocol and one canonical action writer.
-- Exact literal identity is the acceptance target; server-authored fallback prose remains forbidden.
-- This is acceptance, not a new feature cut.
-- Do not add any new gate, compatibility adapter, semantic layer, parser, retry, or fallback.
-- Setup/stable identity, canonical scene, compact clothing UI projection, open narrative memory, CSA lifecycle, and media/image presentation boundaries remain unchanged.
+- Story LLM authors narrative; Extract LLM observes arbitrary meaningful facts grounded in exact Story evidence.
+- Server owns registered identity, exact evidence/provenance, action/turn identity, structural validation, transactionality, idempotence/dedupe/replay, and narrow deterministic projections.
+- No required event/relation/emotion/posture/contact/sexual semantic taxonomy for a fact to exist.
+- No generic-other enum as a hidden closed-world gate.
+- Unknown optional projection/classification must fail open without erasing the underlying fact or blocking the turn.
+- No direct player-input success inference and no arbitrary LLM save patch.
+- One durable domain -> one canonical writer; duplicate writers/mirrors are deletion targets once caller/data proof is complete.
+- Compact clothing may remain if its actual frontend continuity consumer is proven; richer facts must not be erased for not fitting it.
+- Image/media/TTS are presentation sidecars. Finite image taxonomies may remain with proven consumers, but cannot define whether narrative actions/facts occurred.
+- CSA owns institutional rule identity/lifecycle/applicability/transaction mechanics only to the extent proven; compliance is not consent/comfort/affection/trust/emotion.
+- Choices remain provider-authored exactly four literal strings; this task must not touch choice authority.
+
+## TEST Level-7 / acceptance policy
+
+No live TEST play is authorized in this audit. Preserve the existing single TEST-only Level-7 acceleration seam. Do not change Production progression and do not create another acceleration writer.
+
+The next implementation/live acceptance plan produced by this audit must be scenario-coverage driven and deep enough, when authorized later, to exercise ordinary conversation, arbitrary physical/contact/emotion/relation/event facts, strong CSA context with compliance/resistance, posture/contact outside old enums, clothing UI continuity, an explicitly tested intimate/sexual path, memory after facts leave the immediate raw window, choices/free text, and media/image classification remaining presentation-only.
 
 ## Authorized operations
 
 Authorized:
-- read-only Git/PR inspection;
-- dedicated TEST reset/setup/opening and bounded two-turn live gameplay through the existing deployed runtime;
-- same-action replay/readback;
-- final dedicated TEST reset;
-- evidence artifact outside repo;
-- docs-only completion record.
+- read-only Git/source/history/migration inspection;
+- read-only PR #67 verification;
+- read-only TEST DB catalog/function inspection only if needed to resolve current contract identity;
+- docs/audit artifact and CURRENT_TASK docs-only commits on the existing #67 branch;
+- local/source tests only if needed to understand existing contracts; no runtime behavior changes.
 
 Not authorized:
-- source/test/runtime/config edits;
-- migration/DDL application or DB function patch;
+- gameplay/runtime/frontend/source/test behavior edits;
+- migration authoring/application or DDL;
+- TEST gameplay/setup/opening/reset or direct DB mutation;
 - API/frontend deployment;
 - Production access;
-- any access to preserved manual game;
-- provider/model/temperature/token changes or retry/regeneration;
-- parser changes/relaxation, fuzzy repair, compatibility workaround;
+- any mutation/reset/access of preserved manual game beyond repository evidence already present;
+- provider/model/temperature/token changes, retry/regeneration;
+- parser relaxation/new parser, fuzzy repair, semantic hard gate, compatibility runtime;
 - new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Acceptance
 
-PASS only if one actual provider-returned Opening literal is transported unchanged through Turn-1 action -> Story -> Extract -> Commit -> committed readback and same-action replay, free-text Turn 2 remains usable, and final reset returns the dedicated TEST game to canonical turn 0.
+PASS only if the audit traces the current physical/sexual authority end-to-end and every finite mechanic/writer/mirror is classified with concrete caller/data proof, with a next implementation cut that removes duplicate/closed semantic authority while explicitly protecting proven compact-clothing and media/image consumers.
 
-On the first deterministic failure, preserve exact evidence and STOP BLOCKED. Do not retry or patch around it.
+If current evidence cannot distinguish a consumer or stored-data dependency, mark it unresolved with the exact proof needed; do not guess and do not implement around uncertainty.
 
 ## Completion
 
 On PASS or first deterministic blocker:
-- set CURRENT_TASK to `WAITING_REVIEW` in one docs-only completion commit;
-- post one immutable terminal report to Issue #68 containing exact START SHA, reviewed harness SHA, selected Opening literal/index, Turn-1 exact-literal proof, Story/Extract/Commit/replay result, Turn-2 result if reached, final reset/readback, operations performed, and FINAL_DOCS_SHA;
+- set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
+- post one immutable terminal report to Issue #68 with START SHA, FINAL_SHA, audit artifact path, key REMOVE/KEEP/NARROW/HISTORICAL decisions, exact next implementation recommendation, PR state, and forbidden-operation confirmation;
 - STOP for operator review. Do not generate the next task yourself.
-
-## Execution record
-
-- Task ID: `opening-literal-choice-live-closure-v2`
-- Start SHA: `25132a918c8ed1e1c7009d45d8b220fd2425177a`
-- Current task blob SHA at start: `ee169547ef6a3dec3cde4e8ece50687c6ecaf15a`
-- Reviewed harness SHA: `5c14561f478859309c26100c6d9217734a23018b`
-- TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
-- Opening: HTTP 200/complete, raw choices 4, canonical choices 4, unique/non-empty; selected index `0`.
-- Selected Opening literal: `이메이 사원님 질문에 브랜드 전략에서 사람들의 일상적인 관심을 사로잡는 측면에 매력을 느껴 지원했다고 정중하게 답하고, 이어서 오늘 확인할 자료 목록을 물어본다.`
-- Turn 1 exact-literal proof: `opening.next_player_action.player_action` equals the Opening literal exactly; Turn 1 `player_action` equals the same string exactly.
-- Turn 1 Story/Extract/Commit: PASS; committed readback `committed_turn=1`, `save_revision=1016`, history record/story/parsed_blocks/choices present.
-- Same-action replay: Story `meta.replayed=true`, complete `replayed=true`; Extract `replayed=true`; Commit `success=true`, `replayed=true`; before/after `committed_turn=1`, `save_revision=1016` unchanged.
-- Turn 2 free text: PASS; Commit PASS; readback `committed_turn=2`, `save_revision=1017`, two history records present.
-- Final reset/readback: PASS; context `committed_turn=0`, `save_revision=1018`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`; history records `0` and canonical setup scene restored.
-- Preserved evidence artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-canary-cut1-authority.json`; SHA-256 `26D144C288355695A97722C4C3A86736453C241C48ED24FC695F599EB1D8932B`.
-- Result: PASS; no further Opening-choice harness task is required.
-- Operations: one bounded TEST reset/setup/opening/Turn 1/replay/Turn 2/final reset; no source/test/runtime/config edits, migration/DDL, API/frontend deploy, Production/manual-game access, provider/model/retry/parser workaround, or new branch/PR/merge/Ready.
-- Final docs completion SHA: pending
-
-STOP for operator review. Do not generate the next task or start the next Cut from this record.
