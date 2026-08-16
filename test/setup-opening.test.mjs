@@ -53,6 +53,39 @@ function freshSave() {
   };
 }
 
+const RESET_RESIDUE_KEYS = ['story_summary_overall', 'story_summary_recent', 'npc_emotion', 'npc_work_state', 'event_ledger'];
+
+function canonicalResetCandidate(masterInitialSave) {
+  const candidate = structuredClone(masterInitialSave);
+  for (const key of RESET_RESIDUE_KEYS) delete candidate[key];
+  if (!candidate.scene || candidate.scene.version !== 1) {
+    const sceneState = candidate.scene_state ?? {};
+    const participants = Array.isArray(sceneState.participants)
+      ? sceneState.participants.filter(id => !/^player([_-]|$)/i.test(id))
+      : (Array.isArray(candidate.last_npcs_present) ? candidate.last_npcs_present : []);
+    candidate.scene = {
+      version: 1,
+      scene_id: sceneState.scene_id ?? null,
+      location_id: sceneState.location_id ?? null,
+      beat: sceneState.beat ?? 0,
+      goal: sceneState.scene_goal ?? null,
+      focus_thread: sceneState.focus_thread ?? null,
+      present_npc_ids: participants,
+      focal_character_id: candidate.focal_character_id ?? null,
+      last_speaker_id: candidate.last_speaker_id ?? null,
+      updated_turn: sceneState.updated_turn ?? 0
+    };
+  }
+  const playerScene = candidate.player_scene_state && typeof candidate.player_scene_state === 'object'
+    ? candidate.player_scene_state
+    : {};
+  candidate.player_scene_state = {
+    ...playerScene,
+    clothing: { uniform_top: 'worn', uniform_bottom: 'worn', ...(playerScene.clothing ?? {}) }
+  };
+  return candidate;
+}
+
 const openingSse = 'data: {"choices":[{"delta":{"content":"[배경] 신입사원으로 출근한 첫날이다."}}]}\n\n'
   + 'data: {"choices":[{"delta":{"content":"\\n[1. 서사 및 행동]\\n로비가 분주하다."}}]}\n\n'
   + 'data: {"choices":[{"delta":{"content":"\\n[2. 플레이어 속마음]\\n긴장된다."}}]}\n\n'
@@ -79,6 +112,7 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
   let currentSave = structuredClone(initialSave);
   masterInitialSave = structuredClone(masterInitialSave);
   let saveRevision = 1;
+  const resetObservations = [];
   let storyCallCount = 0;
   let remainingStoryFailures = Number(storyThrows) || 0;
 
@@ -102,7 +136,13 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
       return json({ game: { id: gameId, edition_id: 'company-v1', title: gameTitle }, save: { data: currentSave, committed_turn: currentSave.turn_state?.committed_turn ?? 0 }, recent_turns: [] });
     }
     if (rpc === 'reset_company_game') {
-      currentSave = structuredClone(masterInitialSave);
+      const candidate = canonicalResetCandidate(masterInitialSave);
+      if (!candidate.scene || candidate.scene.version !== 1) {
+        return json({ code: '22023', message: 'invalid reset initial save: missing canonical scene' }, 500);
+      }
+      const validatedCandidate = structuredClone(candidate);
+      currentSave = structuredClone(validatedCandidate);
+      resetObservations.push({ validatedCandidate, persistedCandidate: structuredClone(currentSave) });
       return json({ success: true, game_id: args.p_game_id, committed_turn: 0 });
     }
     if (rpc === 'reserve_company_player_setup') {
@@ -149,7 +189,7 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
     }
     throw new Error(`Unhandled mock RPC: ${rpc}`);
   }
-  return { fetchImpl, calls, getSave: () => currentSave, storyCallCount: () => storyCallCount };
+  return { fetchImpl, calls, getSave: () => currentSave, resetObservations, storyCallCount: () => storyCallCount };
 }
 
 function validPlayerBody() {
@@ -418,6 +458,37 @@ test('/api/reset restores player/setup/opening state via reset_company_game with
   const second = await worker.fetch(request('/api/reset', { game_id: gameId }), env);
   assert.equal(second.status, 200);
   assert.equal(mock.calls.filter(call => call.url.includes('/reset_company_game')).length, 2);
+});
+
+test('/api/reset canonicalizes a legacy master save once before validation and persists that same candidate', async () => {
+  const legacyMaster = freshSave();
+  delete legacyMaster.scene;
+  legacyMaster.scene_state = { scene_id: 'opening', location_id: 'lobby', participants: ['player-1', 'heroine1'], scene_goal: 'arrive', beat: 0 };
+  Object.assign(legacyMaster, {
+    story_summary_overall: 'obsolete',
+    story_summary_recent: 'obsolete',
+    npc_emotion: {},
+    npc_work_state: {},
+    event_ledger: [],
+    npc_relationship_state: { heroine1: { affinity: 2 } },
+    npc_stats: { heroine1: { trust: 1 } },
+    csa_active: [],
+    player_scene_state: { clothing: { uniform_top: 'custom' } }
+  });
+  const mock = createSetupMockFetch({ masterInitialSave: legacyMaster });
+  const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
+
+  const response = await worker.fetch(request('/api/reset', { game_id: gameId }), env);
+  assert.equal(response.status, 200);
+  assert.equal(mock.resetObservations.length, 1);
+  const [{ validatedCandidate, persistedCandidate }] = mock.resetObservations;
+  assert.equal(validatedCandidate.scene.version, 1);
+  assert.deepEqual(persistedCandidate, validatedCandidate);
+  assert.deepEqual(persistedCandidate.scene.present_npc_ids, ['heroine1']);
+  for (const key of RESET_RESIDUE_KEYS) assert.equal(key in persistedCandidate, false, key);
+  assert.deepEqual(persistedCandidate.npc_relationship_state, legacyMaster.npc_relationship_state);
+  assert.deepEqual(persistedCandidate.npc_stats, legacyMaster.npc_stats);
+  assert.equal(persistedCandidate.player_scene_state.clothing.uniform_top, 'custom');
 });
 
 test('/api/player-setup re-validates server-side, rejects invalid submissions before any RPC write, and rolls exactly one opening plan', async () => {
