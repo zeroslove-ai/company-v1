@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: scene-legacy-mirror-test-rollout-v1
+Status: READY
+Task ID: setup-opening-world-definition-authority-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,118 +13,114 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Operator review `5305266344` ACCEPTED source/test/migration SHA:
+Operator review `5305470277` ACCEPTED Scene mirror TEST rollout.
+Accepted gameplay/source lineage includes reviewed Scene cleanup SHA:
 `cd615b4926a5a7092247459d44d25f886b8ac92b`.
-
 Terminal docs SHA before this registration:
-`7dae17475d40bde00598340d22806ea0e1c83506`.
-
-Reviewed additive migration, not yet applied at review time:
-`supabase/migrations/20260816030000_company_v1_scene_mirror_residue_closure.sql`.
+`eb9428c57f5eb2e789fe779d104e26d6c9bbc406`.
 
 TEST project: `fmcrspgxstsmxxsmkeee`.
 Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden: do not read, mutate, reset, or include it in any migration/data operation.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is historical READ-ONLY evidence and must not be read, mutated, reset, or bulk-migrated in this task.
 Production access is forbidden.
 
 ## Accepted architecture
 
-`save.scene` is the only active durable authority for scene id, location, presence, focal NPC, last speaker, beat, goal, and focus thread.
-
-The reviewed source removes active persistence/readback of these duplicate mirrors:
-- `scene_state` scene/location/participants/beat/goal/focus fields;
-- top-level `last_npcs_present`, `focal_character_id`, `last_speaker_id`;
-- `player_scene_state.location_id`;
-- `npc_scene_state[*].present`, `.location_id`, `.scene_id`.
-
-`hydrateLegacySceneV1()` remains only as one bounded old-save/master-shape -> canonical `scene` ingress. Canonical state must never be projected back into the removed mirrors.
-
-`npc_scene_state` and `player_scene_state` remain for proven physical/clothing/posture/position continuity. Do not delete those real consumer fields.
-
-Existing SQL semantic heroine/world allowlists are separate pre-existing setup/opening authority debt. Do not expand, redesign, or compatibility-patch them in this rollout.
+- Repository content/catalog owns semantic setup/world membership and display names.
+- DB owns transactional persistence, structural save integrity, conflict/idempotence, not a second semantic catalog.
+- `src/engine/player-setup.js` already validates submitted `department_id`, `position_id`, `body_type_id`, and `speech_style_id` against repository-supplied catalogs and builds opening plans from repository location/registered-character content.
+- Stable registered character IDs remain a real identity-integrity boundary. Do not replace them with fuzzy aliases or open-ended IDs.
+- Canonical `save.scene` remains the sole scene/location/presence authority. Do not reintroduce removed Scene mirrors.
+- Provider-authored exactly-four literal choices remain presentation shape; no server semantic choice authoring.
+- TEST-only Level-7 acceleration and media/image catalogs are protected separate consumers; do not change them here.
 
 ## Objective
 
-Roll out the exact reviewed Scene mirror closure to TEST and prove the live canonical contract end-to-end without reintroducing compatibility state.
+Eliminate duplicate Setup / Opening / turn-0 world-definition semantic authority from SQL and runtime boundaries where repository validation already owns the meaning. Keep one transactional DB writer, but remove DB hardcoded copies of departments, positions, body types, speech styles, heroine/world membership, opening semantic routing, or equivalent finite semantic allowlists unless a current non-semantic structural/integrity consumer proves each one is required.
+
+This is deletion/authority consolidation, not a compatibility expansion.
 
 ## Required work
 
-1. Freeze exact start HEAD and verify it is the accepted source/test/migration lineage plus docs-only descendants only. Verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED.
-2. Re-read the exact reviewed migration and confirm no executable source has changed since `cd615b4926a5a7092247459d44d25f886b8ac92b`. If executable HEAD moved, STOP for operator review.
-3. Read-only inspect TEST before mutation: migration ledger and live definitions/ACL/security/search_path for `validate_company_save_v1(jsonb)`, `reset_company_game(uuid,text)`, `company_apply_opening_scene_v1(jsonb)`, `company_bootstrap_scene_v1(jsonb)`, and any setup/opening writer directly affected by the reviewed migration.
-4. Apply exactly the reviewed additive migration `20260816030000_company_v1_scene_mirror_residue_closure.sql` to TEST once. Historical migrations are immutable. Do not add or edit another migration in this rollout.
-5. Immediately read back the TEST migration ledger and affected live function bodies/ACL/security/search_path. Verify canonical `scene` remains strict and the dead scene mirrors are no longer required/recreated by reset/opening contract.
-6. Deploy the exact reviewed executable lineage to TEST API/frontend only if required by the source changes. Verify deployed Worker identities correspond to the reviewed executable; do not deploy a later unreviewed executable. Do not redeploy unrelated services.
-7. Use only the dedicated TEST game. Run canonical reset once before the smoke. Verify turn/actions/history are clean, `save.scene` exists and validates, the five previously deleted semantic residue keys remain absent, and removed Scene mirror keys are absent from reset output.
-8. Run Setup -> Opening using the existing canonical paths. Verify Opening succeeds and committed/readback state contains canonical `scene` but does not recreate removed mirrors.
-9. Run a bounded ordinary gameplay smoke sufficient to exercise both input forms without retry-for-luck:
-   - submit one provider-authored literal choice exactly as returned by the committed UI/context path if available;
-   - submit one ordinary free-text action;
-   - require Story -> Extract -> Commit success for each attempted ordinary turn;
-   - verify committed `parsed_blocks`, `turn_summary`, literal-choice identity where exercised, replay/recovery idempotence, and canonical scene/presence/location continuity.
-   If the provider does not return a usable literal choice in this single bounded run, record that as evidence; do not synthesize a server fallback or regenerate solely to obtain one.
-10. After each reset/opening/Commit readback, assert removed mirrors remain absent:
-   - root `scene_state`;
-   - root `last_npcs_present`, `focal_character_id`, `last_speaker_id`;
-   - `player_scene_state.location_id`;
-   - every `npc_scene_state[*].present/location_id/scene_id`.
-11. Simultaneously prove retained physical/presentation state was not structurally lost: player/NPC physical maps, NPC clothing/posture/position fields when present, `npc_stats`, `npc_relationship_state`, sexual/media-compatible state, CSA, progression/TEST-Level7 seam, stable identity, choices, Mind Monitor/TTS contracts remain structurally available. Do not require a sexual/media scenario merely for this Scene rollout.
-12. Verify frontend/API display/map/navigation derive membership/location from canonical `scene`; no live path requires the removed durable mirrors.
-13. Finish by canonical-resetting only the dedicated TEST game and verify clean turn 0 plus mirror absence. Do not touch any other game.
-14. On the first deterministic source/DB/deploy/runtime defect, preserve exact evidence and STOP. No retry/regeneration, provider/model change, parser relaxation, fuzzy repair, compatibility bag/alias, second scene writer, or direct DB manufacture of gameplay state.
+1. Freeze exact START HEAD. Verify #67 remains base `main`, OPEN / DRAFT / UNMERGED and that executable changes after accepted `cd615b4...` are understood before editing.
+2. Inventory the complete current Setup -> reserve -> Opening path in source, tests, migrations, and live TEST function definitions read-only. At minimum trace:
+   - client/server setup validation;
+   - repository catalogs and registered character/location content;
+   - `reserve_company_player_setup` current caller and SQL body;
+   - `commit_company_opening` and any turn-0/opening helpers;
+   - `game_master` / initial-save inputs and structural validators;
+   - any SQL hardcoded `department_id`, `position_id`, `body_type_id`, `speech_style_id`, heroine IDs, location/world membership, weekday/work-hook/scene-goal semantic rules.
+3. Classify every finite setup/world rule with REMOVE-OR-PROVE:
+   - KEEP only if an actual product/UI or narrow structural-integrity consumer requires it at that exact layer;
+   - MOVE/DELETE if repository content already validates/defines it;
+   - stable registered IDs may remain for identity integrity, but SQL must not independently define who the registered heroines/world members are if repository content already does.
+4. Redesign the authority boundary so semantic validation happens once in repository/application code, while the canonical DB RPC persists already-validated structured input transactionally and validates only structural shape/identity/transaction invariants that belong in DB.
+5. Do not make the API a second durable writer. The DB RPC remains the sole transactional persistence boundary for setup reservation/opening state. Application code may validate/construct canonical structured input before the RPC, but must not directly PATCH/INSERT gameplay save state.
+6. Remove superseded SQL/source/test semantic allowlists and duplicate turn-0 projection writers in the same cut when caller proof is complete. Do not preserve stale tests by adding compatibility branches.
+7. Preserve current real consumer behavior:
+   - player setup fields and UI catalog choices;
+   - stable character IDs/names;
+   - repository-driven opening location/character selection;
+   - canonical `save.scene`;
+   - physical/clothing/posture state;
+   - `npc_stats`, CSA, progression, literal choices, Mind Monitor/TTS;
+   - sexual/media/image selection presentation adapters.
+8. Historical applied migrations are immutable. If DB contract changes are needed, author exactly one new additive migration source for this authority cut. Do not edit applied migrations.
+9. If the clean design requires a canonical RPC signature change, remove the superseded active signature in that additive migration once source/caller proof shows zero active caller. Do not add an overload merely for compatibility.
+10. Tests must prove authority, not just count:
+    - invalid semantic IDs are rejected by repository/server validation before DB mutation;
+    - DB contract does not carry a second hardcoded semantic catalog;
+    - valid repository-catalog values pass through canonical Setup -> Opening;
+    - arbitrary future valid catalog entries can pass without editing SQL, subject only to structural/registered identity invariants;
+    - one transactional DB writer persists setup/opening reservation state;
+    - reset/recovery/opening structured persistence remain valid;
+    - removed Scene mirrors remain absent.
+11. Run focused tests, full suite, syntax/static checks, and `git diff --check`.
+12. Produce a concise audit note listing each removed/retained finite rule and its proven consumer.
 
-## Test policy
+## Architecture constraints
 
-- This rollout is Scene-authority acceptance, not a new deep Level-7 scenario. Use the existing TEST-only Level-7 seam only if already required by the chosen dedicated TEST setup; do not modify progression or add a second seam.
-- No fixed turn count beyond the bounded choice/free-text smoke is required. Do not waste turns solely for depth already proven by V9.
-- Media/image catalogs, sexual image families, general/sex pools, and deterministic image selection are protected presentation adapters. Do not alter them; image classification must not gate narrative facts.
+- One durable domain -> one canonical writer.
+- Semantic catalog/world definition belongs to repository content, not duplicated SQL.
+- Structural DB validation must remain strict; do not weaken save schema, transaction identity, registered-ID integrity, ACL/security/search_path, or idempotence.
+- No generic state bag, semantic `other` enum, regex existence gate, fuzzy ID repair, new parser, retry/regeneration, provider/model/config change, or server-authored fallback choices.
+- Institutional CSA rules are separate from NPC consent/comfort/affection/emotion.
+- Image/media taxonomy is presentation-only and must never gate whether narrative facts occurred.
 
 ## Authorized operations
 
-Authorized in TEST only:
-- apply exactly the reviewed Scene mirror closure migration once;
-- deploy exact reviewed API/frontend executable lineage as required;
-- reset/setup/opening/bounded ordinary gameplay/replay/recovery on dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`;
-- read-only TEST catalog/data/deployment verification needed for acceptance.
+Authorized:
+- source/test/docs edits within this single cut;
+- read-only Git/PR and TEST DB/catalog/function inspection;
+- exactly one additive migration SOURCE if required by the clean DB contract;
+- local/focused/full tests and static checks.
 
-Not authorized:
+Not authorized in this task:
+- applying any new migration to TEST;
+- TEST gameplay/reset/setup writes or live acceptance;
+- API/frontend deployment;
 - Production access;
-- any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- bulk migration of Company game rows or direct DB gameplay-state manufacture;
-- new migration/source/runtime semantic changes during rollout;
+- any read/mutation/reset of preserved manual game;
 - new branch/PR, merge, Ready, rebase, squash, force-push;
-- provider/model/config changes, retries/regeneration, semantic hard gates, parser relaxation/new parser, fuzzy repair, compatibility bags/aliases.
+- direct DB gameplay mutation;
+- provider/model/temperature/token changes, retries/regeneration, parser relaxation/new parser, fuzzy repair, compatibility overloads/aliases.
 
 ## Acceptance
 
-PASS only if exact reviewed migration/source lineage is live in TEST and:
-- canonical `save.scene` alone owns scene/location/presence/focal/last-speaker durable state;
-- removed mirrors stay absent across reset -> Setup -> Opening -> ordinary Commit -> recovery/replay -> final reset;
-- bounded gameplay succeeds or any unrelated deterministic blocker is accurately evidenced without workaround;
-- physical/clothing/posture/position and other protected real-consumer systems remain intact;
-- no Production/manual-game access or unrelated mutation occurs.
+PASS only if source/test/migration candidate establishes one semantic authority and one transactional writer:
+- repository/application validation owns setup/world semantic membership;
+- DB owns structural/transactional persistence only;
+- duplicate SQL semantic catalogs and duplicate turn-0 writers are deleted wherever consumer proof permits;
+- stable identity and all protected actual product consumers remain intact;
+- tests demonstrate future repository catalog entries do not require SQL semantic-list edits;
+- no live TEST/Production/manual-game mutation occurred.
 
-A deterministic unrelated blocker may be reported as BLOCKED evidence; do not patch it inside this rollout.
+If current live/source coupling prevents a clean one-writer design without a broader dependency change, record the exact blocker and STOP as BLOCKED rather than adding compatibility.
 
 ## Completion
 
 On PASS or deterministic BLOCKED evidence:
-- set CURRENT_TASK to `WAITING_REVIEW` in one docs-only completion commit;
-- report exact start SHA, reviewed executable SHA, applied migration ledger version/name, live function/ACL/search_path facts, deployed Worker identities if deployment occurred, dedicated TEST reset/setup/opening/turn/replay results, mirror-absence checks, protected-state checks, final reset result, and final docs SHA;
+- set CURRENT_TASK to `WAITING_REVIEW` in one docs-only completion commit after source/test/migration candidate commit(s);
+- report exact START SHA, source/test/migration candidate SHA, changed authority boundaries, REMOVE-OR-PROVE inventory, tests/static checks, live read-only facts used, and FINAL_DOCS_SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not generate the next task yourself.
-
-## Execution result — PASS, waiting for operator review
-
-- Start HEAD: `9c6d09baa72d2ac2b86f7157c69945bada5e52e5`.
-- Reviewed executable SHA: `cd615b4926a5a7092247459d44d25f886b8ac92b`.
-- No executable source/test/migration changes occurred after the reviewed lineage; only the task/audit docs changed before this completion commit.
-- Exact migration applied once to TEST: ledger version `20260816021437`, name `company_v1_scene_mirror_residue_closure`.
-- Live functions after apply: `company_apply_opening_scene_v1(jsonb)` is non-definer with `search_path=public, pg_temp` and no service-role grant; `company_bootstrap_scene_v1(jsonb)` and `company_validate_scene_v1(jsonb, boolean)` are SECURITY DEFINER with `search_path=public, pg_temp` and no service-role grant; `validate_company_save_v1(jsonb)` and `reset_company_game(uuid,text)` are SECURITY DEFINER with the same search path and service-role EXECUTE. Core service-role direct-DML privileges read back as `[]`.
-- Stage B action gate and Scene Stage A behavioral catalog gate both passed; Windows API wrapper dry-run passed.
-- API deployed from the reviewed lineage as `game-proxy-company-v1`, Version `744e74b9-4ac9-4596-9751-c754bdfbf6af`; health returned HTTP 200 with `ok=true`, `edition_id=company-v1`.
-- Frontend deployed as `gamebuilder-company-v1`, Version `9d7dcd0c-ab3f-45ab-87b5-71755d902ee5`; root returned HTTP 200.
-- Dedicated TEST game only: canonical reset returned HTTP 200; Setup and Opening passed. Opening provider/control output contained 4 literal `[CHOICE]` markers and 4 canonical choices.
-- Bounded ordinary smoke passed: Turn 1 used the exact first provider-authored literal choice, with action ID `30b15da2-e42b-491c-a670-eaccaadd848b`; Story/Extract/Commit passed. Same-action Story/Extract/Commit replay returned `meta.replayed=true`, `complete.replayed=true`, `replayed=true`, and `replayed=true` respectively with `committed_turn` and `save_revision` unchanged. Turn 2 free-text action (`21c636b7-0539-4706-80d6-09a1ab10841b`) Story/Extract/Commit passed. Canonical scene/presence/location continuity remained readable and removed mirrors stayed absent after each readback. The committed Story/Extract response path produced parsed blocks/turn summary; final reset intentionally removed the temporary history rows.
-- Final canonical reset returned HTTP 200; direct TEST readback: `committed_turn=0`, `processing_status=idle`, `player_setup.status=not_started`, `opening_state.status=not_started`, `save_revision=1000`, `game_turns=0`, `game_actions=0`; canonical `scene` exists and all removed mirror keys are absent. Physical/clothing, NPC stats, relationship, sexual/media-compatible, CSA, progression, stable identity, choices, and presentation structures remained available in reset data.
-- No Production/manual-game access, no additional migration, no source/config patch, no provider/model change, and no retry/regeneration/workaround occurred.
