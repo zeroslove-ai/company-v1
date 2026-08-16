@@ -173,3 +173,51 @@ the final production caller/data check for the intimacy validator, CSA clothing
 projection, NPC sexual mirrors, and persisted legacy rows; these are explicit
 gates, not assumptions.
 
+## Residue closure result
+
+The follow-up source/test cut was completed at `e4c1534` on
+`company/scene-location-presence-v1`.
+
+Caller proof and decisions:
+
+- `CSA_ENACTMENT_BY_PHASE` / `enactmentForPhase` had no production or test
+  caller. They were deleted; `phaseFor` remains because Story projection uses
+  it for institutional rule context.
+- `EXECUTION_ACTIONS`, `EXECUTION_TRIGGER_KINDS`, and the public
+  `deriveExecutionMetadata` export had no caller. They were removed from the
+  public surface. The private clothing-only derivation and
+  `normalizeExecutionMetadata` remain because catalog normalization and Story
+  projection have a proven compact clothing consumer.
+- Non-clothing execution metadata is normalized to no projection. A focused
+  regression proves sexual/physical catalog execution metadata cannot produce a
+  clothing projection, while the four-slot clothing projection remains
+  functional.
+- `test/fixtures/csa-physical-invalid-position.json` and
+  `test/fixtures/csa-physical-invalid-scene-id.json` had zero current readers
+  and were deleted. No preserved failure/canary evidence was touched.
+- `mandatory-enactment.js` and its `engine_institutional_segments` boundary
+  remain because current turn-route replay/history paths read persisted
+  institutional metadata. The legacy `engine_enactments` input is ignored and
+  is not a fresh physical writer.
+- `npc_relationship_state` and its sexual-history fields remain at current
+  display/history/recovery boundaries. `sexual_event_ledger` remains the sole
+  fresh sexual-event writer; a regression proves a committed sexual event does
+  not mutate the relationship mirror.
+- Direct player input and ACTING metadata remain intent/presentation only;
+  the existing commit regression still proves ACTING posture does not become a
+  durable observation without Extract evidence. The prompt test now checks the
+  observable private-origin payload instead of exact prompt prose.
+
+Validation for this closure:
+
+- focused physical/sexual/CSA/media/frontend-history tests: 82 passed, 0 failed;
+- full `npm.cmd test`: 430 passed, 0 failed, 0 skipped;
+- changed JS/MJS syntax checks: pass;
+- `git diff --check`: pass;
+- DB writes, TEST reset, migration apply, API/frontend deploy, Production
+  access: 0.
+
+The content catalog's non-clothing `execution` fields and historical persisted
+mirror fields were not edited: source normalization does not expose the former
+as a machine projection, and the latter still have concrete current readers.
+No migration or compatibility runtime was introduced.

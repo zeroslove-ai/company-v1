@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: physical-sexual-residue-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -62,3 +62,24 @@ Not authorized: TEST live gameplay/reset, DB writes/migration/DDL/apply, API/fro
 PASS only if remaining zero-caller physical/CSA semantic authority is deleted, no input/ACTING success writer survives, proven compact clothing/sexual/media consumers remain functional and narrow, unknown optional classification remains fail-open, and any historical mirror that cannot yet be deleted is explicitly justified by a concrete current reader/data boundary rather than compatibility speculation.
 
 On PASS or deterministic blocker: set CURRENT_TASK to WAITING_REVIEW, post one immutable terminal report with exact source/test SHA, changed files, caller proof, deletions/keeps, tests/checks, and forbidden-operation confirmation, then STOP. Do not generate the next task.
+
+## Terminal review handoff
+
+Source/test closure PASS at source/test SHA `e4c1534`.
+
+- Deleted zero-caller public CSA phase enactment mapping/functions and unused
+  public execution grammar exports.
+- Deleted the two unreferenced `csa-physical-invalid-*.json` fixtures.
+- Kept institutional persisted metadata, compact four-slot clothing, sexual
+  event/player mechanical state, media/TTS, and NPC relationship/history
+  readers because current caller proof requires them.
+- Added behavioral regressions for inert non-clothing execution metadata,
+  compact clothing projection, relationship-mirror non-mutation, and
+  player-input/ACTING boundary.
+- Focused tests: 82 passed; full `npm.cmd test`: 430 passed, 0 failed, 0
+  skipped; syntax and `git diff --check`: pass.
+- DB writes, migration/DDL/apply, TEST reset, API/frontend deploy,
+  Production access, new PR, merge, and PR Ready: 0.
+
+Awaiting operator review of exact source/test/docs diff. No next task is
+generated here.
