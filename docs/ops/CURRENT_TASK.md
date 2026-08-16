@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-destination-target-handoff-test-rollout-v2
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -126,3 +126,14 @@ On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68 with START SHA, exact deployed TEST API identity/source decision, scenario turn/action IDs, decisive destination/presence/identity evidence, replay result, final reset state, forbidden-operation confirmation and FINAL docs SHA;
 - STOP for operator review. Do not generate the next CURRENT_TASK yourself.
+
+## Execution result — WAITING_REVIEW / BLOCKED
+
+- Start HEAD: `5e2bc198c70d42c630b08a2b83864e7b5a4f6e1e`.
+- Accepted destination runtime: `beae855ebc5a9706bae234af80b2569d73566f0a`. Current TEST API 100% deployment was read-only verified as Worker `game-proxy-company-v1`, Version `51c5ac28-8d52-49bc-bb14-fdd1f0164126`, matching the previously accepted deployment; no deploy was needed.
+- Pre-network target guard was fixed to the disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; Production/sentinel, preserved manual, and QA evidence IDs were rejected before requests. The deleted `scripts/live-phase-2-e2e.mjs` was not recreated.
+- One canonical TEST attempt started. Baseline reset/readback passed: committed_turn=0, setup/opening not_started, canonical setup scene, Level 1, zero history records. Normal Setup succeeded with setup_id `37d1450a-7189-4d76-a936-04cb119399fb`.
+- BLOCKER: canonical `/api/opening` returned HTTP 400 and no SSE event frames; the temporary runner classified this as `SSE_NON_SSE_BODY`. The destination action was never sent, so no product destination/presence/replay conclusion is claimed. The temporary artifact did not preserve the non-SSE response body; this is an operator evidence-format limitation, not permission to rerun.
+- Final canonical reset/readback passed: committed_turn=0, setup/opening not_started, canonical setup scene, Level 1, zero history records. No retry, second scenario, or provider regeneration was attempted.
+- No source/runtime/test/content change, migration/DDL, deploy, Production/preserved/QA access, or frontend operation occurred. TEST operations were limited to the one disposable-game attempt and final cleanup reset.
+- Stop for operator review/rearm. No next task generated.
