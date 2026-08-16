@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-semantic-cut-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -268,3 +268,16 @@ On PASS or first real blocker:
 - set this file to `WAITING_REVIEW` in the same implementation lineage;
 - post one immutable terminal report to Issue #68 with START SHA, SOURCE/TEST/FINAL SHA(s), changed/deleted surfaces, exact migration source name if any, focused/full test evidence, source-search proof, any retained exception with caller reason, forbidden-operation confirmation and PR state;
 - STOP for operator review. Do not apply migration, deploy, run live TEST, generate the rollout task, or start another semantic cut yourself.
+
+## Implementation validation — 2026-08-16
+
+This task reached the required source-cut PASS boundary and is waiting for operator review.
+
+- Start HEAD: `e6c4bb9d096b908093d4a59bc67922af38bc2fbe`.
+- Full regression: `npm.cmd test` — 283 passed, 0 failed, 0 skipped, 0 todo.
+- Changed JavaScript/ES modules: `node --check` passed for all 36 existing changed files; deleted files were excluded from the syntax invocation.
+- Content JSON: `content/characters.json` parses successfully.
+- Additive migration source: `supabase/migrations/20260816050000_company_v1_minimal_story_runtime_contract.sql`; static contract passed for the minimal validator, save/opening/reset/commit boundaries, retired-root stripping, helper revoke/no-grant, and the existing setup caller's helper boundary.
+- `git diff --check` passed.
+- No live TEST/QA/Production access, DB write/reset, migration apply, or deployment was performed.
+- Retained compatibility surfaces are read-only historical boundaries: persisted legacy Extract normalization, old save-root stripping during migration, and the existing `character_details` input tolerated by frontend view-model tests; current API/UI projections no longer source retired NPC metric/relationship/ledger state.
