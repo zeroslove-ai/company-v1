@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: physical-sexual-state-authority-residue-audit-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -103,3 +103,17 @@ On PASS or first deterministic blocker:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68 with START SHA, FINAL_SHA, audit artifact path, key REMOVE/KEEP/NARROW/HISTORICAL decisions, exact next implementation recommendation, PR state, and forbidden-operation confirmation;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution record — watcher audit completion
+
+- TASK_ID: `physical-sexual-state-authority-residue-audit-v1`
+- CURRENT_TASK_BLOB_SHA at start: `595ece8252944821dc4633fcd086d89f5bb56022`
+- EXPECTED_BRANCH: `company/scene-location-presence-v1`
+- START_HEAD: `ade5e7e78e05fc1fe53075bfa4daa118eeb575f0`
+- EXECUTION_LEASE: Issue #68 comment `5306877681`
+- AUDIT_ARTIFACT: `docs/audit/PHYSICAL_SEXUAL_STATE_AUTHORITY_RESIDUE_AUDIT_2026-08-16.md`
+- RESULT: architecture-first source/migration-history audit completed; all identified mechanics are classified as REMOVE, KEEP_WITH_PROVEN_CONSUMER, NARROW_PROJECTION_ONLY, or HISTORICAL_COMPATIBILITY_ONLY, with unresolved caller/data proof called out explicitly.
+- KEY_PROTECTED_CONSUMERS: compact four-slot clothing state, evidenced physical reducer boundary, player sexual mechanical display, sexual event ledger, deterministic image/media adapter, committed replay compatibility.
+- KEY_NEXT_CUT: `physical-sexual-evidence-boundary-v1` — exact Story evidence for posture/position and sexual deltas; open-ended sexual fact preservation; remove unused finite/duplicate residue only after caller/data proof.
+- FORBIDDEN_OPERATIONS: source/runtime/test behavior changes 0; migration authoring/application/DDL 0; DB writes 0; TEST gameplay/setup/opening/reset 0; API/frontend deploy 0; Production/manual-game access 0.
+- FINAL_DOCS_SHA: pending docs-only commit.
