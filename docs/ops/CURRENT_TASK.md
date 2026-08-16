@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: deep-level7-live-acceptance-v10-physical-memory-runtime
+Status: READY
+Task ID: legacy-replay-compatibility-residue-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,159 +13,101 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5307183204` ACCEPTED `physical-sexual-residue-closure-v1`.
+Previous operator review: `5307279051` ACCEPTED `deep-level7-live-acceptance-v10-physical-memory-runtime`.
 Reviewed executable SHA: `e4c15345c1c23afda85df09381830421d8428d73`.
-Reviewed docs/final SHA: `15c3146d63ecc10ef9df2bde3e51480520b32bdb`.
+Accepted live docs SHA / registration parent: `f0a620f7fbf45f9f33485951ac9d9d6ece6fe9a7`.
 
-Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-TEST API Worker: `game-proxy-company-v1`.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden to access or mutate.
-Production is forbidden.
+The V10 broad TEST run proved 16 ordinary Story -> Extract -> Commit turns, literal/free-text actions, canonical scene/identity, latest-six raw + older chronological `turn_summary` memory, replay/idempotence and final canonical reset. Coverage must not be overstated: the run did not naturally produce a durable physical/clothing mutation, did not reach sexual mechanics, and had no active CSA trigger. Do not rerun that same scenario just to manufacture those outcomes.
 
-Accepted architecture to validate:
-- Story authors narrative.
-- Extract observes narrow machine/UI projections plus one natural-language `turn_summary`.
-- Commit is transaction authority, not a semantic interpreter.
-- next Story receives latest six committed raw turns plus chronological older turn summaries.
-- `save.scene` is canonical scene/location/presence/focal/last-speaker authority.
-- physical posture/position changes require exact Story-grounded Extract evidence; unevidenced proposals must preserve prior durable state and warn only.
-- compact four-slot clothing, `player_sexual_state`, evidenced `sexual_event_ledger`, `npc_stats`, CSA institutional state, progression, media/image and TTS remain narrow proven consumers.
-- relation/emotion/work/general-event/open-fact style semantic ledgers are not fresh narrative-memory authority.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden to access or mutate. Production is forbidden.
+
+Operator read-only TEST DB baseline excluding that preserved game:
+- `game_turns`: 18 rows total, all on game `11111111-1111-4111-8111-111111111111`;
+- 18/18 have usable committed `parsed_blocks.blocks`;
+- 18/18 have legacy `extract_delta.state_delta` shape rather than fresh `extract_version=2`.
+This is evidence only: do not assume either adapter deletion or preservation until actual replay callers are traced.
 
 ## Objective
 
-Run one broad scenario-driven TEST-only acceptance of the accumulated simplified runtime after the physical/sexual evidence and residue closures. This is the acceptance step; do not split it into additional micro harness tasks unless a deterministic product defect proves a source change is required.
+Close the remaining historical parser / persisted Extract / replay compatibility residue in one caller-and-data-driven source/test cut. Fresh generation must remain the strict current parser/Extract contract; committed structured data must remain replay authority. Delete superseded compatibility readers, aliases, adapters, fixtures and tests only where current caller + supported stored-data proof is complete. Keep at most one explicit read-only historical boundary where real supported data still requires it.
 
-## Required execution
+This is not another architecture memo. Perform the proof and implementation in the same cut where safe.
 
-1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`.
-2. Verify the currently deployed TEST API identity. If it does not contain the reviewed executable `e4c15345c1c23afda85df09381830421d8428d73`, deploy exactly that reviewed executable lineage to the TEST API Worker under the established TEST-only lease. Do not deploy frontend merely for this acceptance.
-3. Canonically reset only the disposable TEST game and verify turn/action/history are empty and progression is Level 1.
-4. Apply only the existing TEST-only Level-7 acceleration seam. Do not create another acceleration path and do not change Production progression.
-5. Run Setup + Opening, then commit **12–16 ordinary turns in one coherent scenario**. Avoid tiny independent probes. Use a mix of:
-   - at least one actual provider-returned Opening/player choice literal transported unchanged;
-   - later provider choice literal(s) where available;
-   - several free-text player actions.
-6. Scenario coverage must naturally exercise as much of the following as possible without changing provider/model/config or inventing server-side outcomes:
-   - ordinary work/conversation continuity;
-   - a promise, request, refusal/agreement, or work detail that should survive beyond the six-raw-turn boundary through `turn_summary_memory`;
-   - scene/location/presence transitions and stable speaker/target identity;
-   - arbitrary natural-language posture/position outside any old finite posture vocabulary;
-   - physical/contact intent where player input remains intent only and Story/Extract determine what actually occurred;
-   - strong institutional CSA context with compliance/resistance separated from consent/comfort/affection/trust;
-   - compact clothing continuity if the scenario produces a clothing change;
-   - an intimate/sexual mechanical path if naturally reachable at Level 7, including `player_sexual_state` and/or `sexual_event_ledger`, while proving it does not automatically mutate relationship/consent state;
-   - media/image classification as presentation-only: no/alternate classification must not block Story/Extract/Commit.
-7. For posture/position evidence specifically, inspect committed state and Extract evidence turn-by-turn:
-   - if a changed axis has valid exact Story evidence, the durable axis may change;
-   - if Extract proposes a changed axis without valid exact Story evidence, durable state must remain at its previous value and only a warning may be emitted;
-   - do not manufacture an unevidenced Extract output just to force this case. Record naturally observed cases; source/unit regressions already cover the deterministic negative path.
-8. At the first boundary where turn 1 leaves the latest-six raw window, verify:
-   - exactly six latest raw committed turns are projected;
-   - older committed `turn_summary` entries remain chronological;
-   - a meaningful older promise/work/relationship detail can influence later Story naturally without any relation/event/emotion/work ledger.
-9. Verify fresh Extract/Commit does **not** recreate removed semantic-memory authority such as `open_facts`, `open_observations`, fresh general relation/event/emotion/work ledgers, or a new semantic gate/equivalent.
-10. Verify preserved narrow consumers still function: canonical scene, `npc_stats`, physical/clothing UI state when observed, progression/CSA, Mind Monitor, choices, and sexual/media mechanics when reached.
-11. Perform same-action replay/recovery on at least one committed ordinary turn and verify idempotent committed identity/state.
-12. Record concise evidence sufficient to identify turn numbers, literal/free-text actions, summary-window boundary, physical evidence decisions, relevant narrow state, replay result, Worker version/source identity, and final cleanup. Evidence-file formatting is secondary; do not block a successful product run merely because an auxiliary evidence reader is imperfect.
-13. Finish with one canonical reset of the disposable TEST game and verify turn 0 / history 0 / action 0 / Level 1 and canonical scene bootstrap.
+## Required work
 
-## Stop-on-defect policy
-
-One scenario attempt only. Do not retry/regenerate a failed provider Story/Extract to obtain a prettier result.
-
-On the first deterministic product defect:
-- capture the failing turn/action/HTTP stage and the smallest relevant raw/structured evidence;
-- perform cleanup reset if safe;
-- STOP as BLOCKED/FAILED for operator review.
-
-Do **not** patch source, parser, provider, prompt, model settings, retry logic, fuzzy matching, semantic gates, compatibility layers, or DB schema inside this live acceptance task.
-
-Auxiliary harness/evidence formatting mistakes are not product defects. If the gameplay pipeline itself already proved the requested invariant and only a disposable evidence formatter failed, report the limitation instead of starting another microtask or rerunning the whole scenario.
+1. Freeze START HEAD. Verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`, and that no executable branch movement occurred after the accepted V10 docs head except this task registration.
+2. Trace end-to-end replay/history/recovery callers for:
+   - fresh narrative parser versus persisted/historical narrative parser/fallback;
+   - committed `game_turns.parsed_blocks` and action/turn structured blocks;
+   - `src/engine/runtime-core/persisted-extract-observation.js`;
+   - `src/engine/runtime-core/legacy-extract-adapter.js`;
+   - all callers of `normalizePersistedExtractObservation` / legacy `state_delta` adaptation;
+   - Story replay, Extract replay, Commit replay/readback, history API, recovery/product projection and tests/fixtures.
+3. Treat committed `parsed_blocks` as canonical replay/presentation authority whenever a stored turn has a usable `blocks` array. Raw Story reparsing is fallback-only historical compatibility and must not compete with committed blocks.
+4. Use read-only TEST DB catalog/data proof excluding preserved manual game. Quantify supported stored rows by shape (`parsed_blocks`, `extract_delta`, `post_save`, record_status/revision where relevant). Do not inspect, read, reset or otherwise access preserved manual game `78fb...`.
+5. Narrative fallback decision:
+   - if every currently supported non-preserved stored row and every active replay/history caller already has committed usable `parsed_blocks`, delete zero-caller raw-story reparse adapters/exports/tests that no longer protect a supported path;
+   - if an explicit current reader still requires fallback, keep exactly one read-only historical boundary and document its deletion condition. Do not create a new parser generation or compatibility wrapper.
+6. Persisted Extract decision:
+   - TEST baseline currently has 18/18 legacy `extract_delta.state_delta` rows. Determine whether current replay/recovery actually requires semantic re-normalization of those deltas, or whether committed `post_save`, committed turn identity and/or other structured data already provide replay authority;
+   - if the legacy adapter is no longer needed by any supported reader, delete it and its stale fixtures/tests in this cut;
+   - if it is still required for those rows, keep it only behind `normalizePersistedExtractObservation` (or one equivalent explicit historical read boundary), prove fresh provider output cannot enter it, and delete any duplicate/public aliases or semantic behavior that exceed historical read compatibility.
+7. Historical compatibility must be inert. It may deserialize old data for read/replay, but it must not:
+   - write new semantic state;
+   - resurrect `open_facts`, `open_observations`, general relation/event/emotion/work ledgers;
+   - become a second Story/Extract truth authority;
+   - normalize arbitrary fresh narrative meaning into a closed semantic taxonomy.
+8. Remove stale compatibility-only tests/fixtures/source-string assertions when their protected caller/data path is gone. Replace them with behavioral replay/recovery tests at the surviving canonical boundary.
+9. Inspect old RPC aliases / action-history fallback aliases encountered in the same replay path. Delete only zero-caller source aliases in this cut. If DB function removal would require DDL, identify the exact current caller first; author at most one additive migration candidate only if necessary for a proven dead current canonical alias, but do not apply it in this task.
+10. Do not expand into unrelated UI cosmetic/donor naming cleanup. However, if a frontend/recovery reader is the only reason a legacy replay field survives, name that exact consumer and deletion condition.
+11. Preserve all proven current product boundaries:
+   - strict fresh parser contract;
+   - committed `parsed_blocks` authority;
+   - literal choices;
+   - canonical scene/location/presence;
+   - recent-six raw + older `turn_summary` memory;
+   - compact clothing / evidenced physical state;
+   - `npc_stats`, player sexual mechanical state, evidenced sexual event ledger;
+   - CSA institutional lifecycle/context;
+   - progression, image/media/TTS, Mind Monitor;
+   - transaction/idempotence/replay identity.
+12. Run focused persisted/replay/history/recovery tests, full `npm.cmd test`, syntax checks for changed JS/MJS, and `git diff --check`. Test count is secondary; report which historical/canonical invariants were proved.
 
 ## Architecture constraints
 
-- No new narrative memory ledger, entity graph, vector DB, importance score, semantic gateway, finite relationship/emotion/event taxonomy, or third summary/memory LLM.
-- Do not resurrect `open_facts` / `open_observations` or equivalents.
-- No direct player-input or ACTING success writer.
-- No CSA physical/sexual enactment authority; CSA remains institutional context/lifecycle/mechanics only.
-- Unknown optional projection/classification fails open and cannot block Story/Extract/Commit.
-- Historical applied migrations are immutable.
-- Image/media/TTS remain presentation sidecars.
+- Story LLM authors narrative; Extract LLM emits narrow grounded observations + one natural-language `turn_summary`.
+- Fresh parser is generation/wire structure only, not semantic truth authority.
+- Committed `parsed_blocks` are committed narrative replay authority.
+- Commit is structural/transaction authority, not narrative interpreter.
+- One supported historical compatibility need -> one explicit read-only boundary, not a web of adapters.
+- No third parser generation, new semantic gateway, generic memory ledger, entity graph/vector DB, importance score, compatibility runtime, fuzzy repair, regex existence gate, retry/regeneration or provider/model changes.
+- Do not keep dead code solely because old tests mention it.
+- Historical applied migrations and immutable evidence are not edited.
 
 ## Authorized operations
 
 Authorized:
-- read-only Git/PR/source/deployed-identity inspection;
-- TEST API Worker deployment of the exact reviewed executable only if required;
-- disposable TEST game reset/setup/opening/gameplay/history/replay;
-- existing TEST-only Level-7 acceleration seam;
-- read-only TEST DB verification needed for acceptance evidence;
-- docs completion record and immutable Issue #68 terminal report.
+- read-only Git/PR/source/history inspection;
+- read-only TEST DB catalog/data inspection excluding preserved manual game;
+- source/test/config/docs cleanup on the canonical branch;
+- at most one additive migration candidate authored but NOT applied, only if a proven dead current DB alias cannot otherwise be removed;
+- local/focused/full tests and static checks.
 
 Not authorized:
-- Production access or deployment;
-- any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- frontend deployment;
-- migration/DDL authoring or application;
-- source/runtime/test behavior edits;
-- provider/model/temperature/token changes;
-- retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic hard gate, compatibility runtime;
+- TEST gameplay/setup/opening/reset or other DB writes;
+- migration/DDL application;
+- API/frontend deploy;
+- Production access/deploy;
+- any access to preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+- provider/model/temperature/token changes, retry/regeneration;
+- parser relaxation/new parser generation, fuzzy repair, semantic hard gate, new compatibility layer;
 - new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Acceptance
 
-PASS only if the 12–16 turn scenario proves the current simplified runtime can progress normally with literal/free-text input, canonical scene and machine/UI projections, evidence-gated physical state, long-context continuity through six raw turns + older natural-language summaries, replay/idempotence, and final TEST reset, without reintroducing removed semantic-memory authority or coupling media/CSA taxonomies to narrative truth.
+PASS only if the task produces a concrete REMOVE/KEEP result from actual current callers plus supported stored-data shape, deletes zero-caller replay/parser/Extract compatibility residue in the same source/test cut, and leaves any unavoidable legacy reader as one narrow read-only boundary with an explicit deletion condition. Fresh Story/Extract/Commit behavior must not become more complex.
 
 On PASS or first deterministic blocker:
-- set this file to `WAITING_REVIEW` in a docs-only completion commit;
-- post one immutable terminal report to Issue #68 with exact reviewed executable/deployed identity, turn count, decisive evidence, replay result, final reset state, forbidden-operation confirmation, and final docs SHA;
+- set this file to `WAITING_REVIEW` in the same source/test/docs lineage;
+- post one immutable terminal report to Issue #68 with START SHA, SOURCE_TEST_SHA/FINAL_SHA, exact deleted/kept compatibility surfaces, DB shape proof, focused/full tests, migration candidate status, forbidden-operation confirmation and PR state;
 - STOP for operator review. Do not generate the next task yourself.
-
-## Execution result — 2026-08-16
-
-Status: `WAITING_REVIEW` after one TEST-only scenario PASS. The temporary
-evidence reader omitted the top-level `save_revision` field from its compact
-snapshots; replay HTTP/idempotency and committed-turn invariance were captured,
-and this auxiliary evidence limitation is recorded for operator review. No
-provider Story/Extract failure occurred and no provider retry/regeneration was
-performed.
-
-- Start HEAD: `dd89ecbbe60ccf2c268484dd97492f6ff8a7db3d`.
-- Reviewed executable: `e4c15345c1c23afda85df09381830421d8428d73`.
-- TEST API deployed exact reviewed lineage: `game-proxy-company-v1`, Worker
-  Version `73fb5490-c728-4f65-9325-b0ddaf57fa4a`.
-- Stage B action contract gate and Wrangler dry-run: PASS. API health: HTTP
-  200, `ok=true`, `edition_id=company-v1`.
-- Disposable TEST game only: reset, Level-7 TEST seam, setup, Opening, 16
-  ordinary turns, replay, and final reset. Preserved manual game and
-  Production were not accessed.
-- Opening provider choices: 4; parsed choices: 4; final canonical choices: 4.
-  Turn 1 transported an unchanged provider-returned Opening literal. Turn 10
-  transported a later provider-returned choice literal. The remaining turns
-  used free-text actions.
-- Turn 1–16 Story → Extract → Commit: PASS. Scene remained canonical; actual
-  presence and speaker identities changed during the run. Post-commit state
-  introduced zero new semantic-memory key paths relative to the Level-7
-  baseline. No `open_facts`/`open_observations` path appeared.
-- At the summary boundary, history contained 16 records. The latest raw
-  subset was turns 11–16, while older turns 7–10 remained chronological with
-  natural-language summaries. No relation/event/emotion/work ledger was
-  introduced by the run.
-- Physical/contact intent was observed as narrative input without a durable
-  physical/clothing mutation. Sexual mechanics were not naturally reached;
-  `player_sexual_state` remained unchanged. CSA did not block the narrative
-  path (`csa_active=[]`, no CSA trigger update).
-- Same-action replay: Story `meta.replayed=true` and `complete.replayed=true`,
-  Extract `replayed=true`, Commit `success=true` and `replayed=true`; committed
-  turn remained 16. The compact evidence reader did not retain the numeric
-  `save_revision` field, so that field is an explicit operator-review evidence
-  limitation rather than a runtime failure.
-- Final reset: committed turn 0, processing `idle`, setup `not_started`,
-  opening `not_started`, canonical scene `setup`, Level 1, `csa_active=[]`,
-  history 0.
-- No source/runtime/test changes, migrations, DB schema changes, frontend
-  deployment, Production access, preserved-game access, provider/model change,
-  or PR state change was made by this acceptance.
-- External evidence artifact (not committed):
-  `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v10-evidence.json`.
