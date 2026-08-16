@@ -846,3 +846,35 @@ identity, ordinary Story choice behavior, and absence of deterministic fallback
 prose. Therefore the live non-four result is classified as provider
 nondeterminism, not a provable repository defect. No speculative source patch
 was made; the task is `WAITING_REVIEW` pending operator review.
+
+## Opening exact-four live evidence closure — BLOCKED / incomplete acceptance
+
+Task `opening-exact-four-live-evidence-closure-v1` started at registration
+HEAD `ed9fc002f4429b01fef5793911412e06955143be`, with reviewed executable
+lineage `1a221665f91b352607724912ba8a06250ac60fc5`. The single bounded
+dedicated TEST run used the existing `--cut1-authority` canary and preserved
+its evidence outside the repository at:
+
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-opening-exact-four-live-evidence-closure.json`
+
+The Opening request passed at HTTP 200 with terminal `complete`. The
+transport artifact contains the ordered SSE events/raw SSE boundary, the
+provider-authored raw Story, parsed block sequence, and four literal choices.
+The parser reported `choice_count=4`, `raw_count=4`, `canonical_count=4`,
+non-empty and duplicate-free. The committed Opening and subsequent canary
+turns also preserved parsed blocks and four-choice Story projections.
+
+The existing canary then exercised an ordinary free-text Turn 1, its Story /
+Extract / Commit replay, and an ordinary free-text Turn 2. It did not submit
+one of the Opening-returned literals unchanged as the next `player_action`;
+therefore this run does not prove the task's required Opening literal-choice
+round-trip. No second Opening generation, retry, provider/model change, or
+source/test workaround was attempted. The result is BLOCKED for incomplete
+acceptance evidence, not evidence of a runtime choice-authority defect.
+
+The canary final reset succeeded. Independent readback is clean at
+`committed_turn=0`, `processing_status=idle`, `player_setup=not_started`,
+`opening_state=not_started`, empty history, zero actions/turns, and canonical
+`save.scene` intact. No Production or preserved manual-game access occurred;
+no source, test, migration, or deployment change occurred. The task is
+`WAITING_REVIEW` pending operator review.
