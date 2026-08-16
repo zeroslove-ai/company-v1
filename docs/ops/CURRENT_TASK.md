@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: story-speaker-identity-live-evidence-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -83,3 +83,40 @@ On success or deterministic BLOCKED finding:
 - set CURRENT_TASK to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review.
+
+## Execution result — BLOCKED / history evidence capture incomplete
+
+- Start CURRENT_TASK blob SHA: `6def5f907c3357927c10747d0a553b28357953d4`
+- Start HEAD: `9c0c61947ec23ef9c401e8d7e8f6fa4241b3e8a7`
+- Expected branch: `company/scene-location-presence-v1`
+- Reviewed executable SHA: `b3c06f931d8bd216f217412343621781670f0722`
+- Worker: `game-proxy-company-v1`
+- Worker Version: `10044238-541e-4e8a-a115-fb5a6cd1ecb5`
+- TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+- Evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-story-speaker-live-closure.json`
+
+The single bounded TEST run reached Setup and Opening successfully. Opening
+provider raw Story contained canonical `heroine4` and `heroine3` speaker IDs;
+the parser master contained `heroine1` through `heroine5` plus the registered
+general-NPC IDs; strict parsing succeeded; and four provider-authored literal
+choices were returned. The exact first literal was submitted unchanged as
+Turn 1 `player_action`, followed by one ordinary free-text Turn 2.
+
+Both turns completed Story -> Extract -> Commit. Story meta/complete replay,
+Extract replay, and Commit success/replay were all acknowledged for both
+actions, and the Turn 1 replay revision invariant held. The final dedicated
+TEST reset and readback were clean (`committed_turn=0`, `processing_status=idle`,
+`opening_state=not_started`, history count 0).
+
+However, the temporary evidence orchestrator read the `/api/history` response
+using the wrong field shape and therefore recorded empty history identities
+after the committed turns. The game was already reset by the required
+finally path, so the missing committed history/action/parsed-block evidence
+cannot be recovered without a second live run. No runtime defect is proven;
+the acceptance evidence is incomplete and is BLOCKED for operator review.
+
+No source/runtime/test/migration change occurred. No frontend or API deploy,
+Production/manual-game access, retry, provider/model change, parser workaround,
+or preserved-artifact mutation occurred. The only live writes were the
+authorized dedicated TEST Setup/Opening/Turn 1/Turn 2/replay/reset operations.
+Do not generate or start a next task.

@@ -600,3 +600,31 @@ therefore BLOCKED for operator review; no parser relaxation or runtime fix is
 authorized or made. Focused tests passed 55/55 and the full local suite passed
 421/421. No source runtime, content, migration, DB, live TEST/reset, deploy,
 or Production changes occurred. Cut 2 acceptance remains incomplete.
+
+## Story speaker identity live evidence closure — BLOCKED / incomplete history capture
+
+On `company/scene-location-presence-v1`, the bounded TEST closure used the
+already deployed reviewed executable
+`b3c06f931d8bd216f217412343621781670f0722` as Worker
+`game-proxy-company-v1`, Version
+`10044238-541e-4e8a-a115-fb5a6cd1ecb5`. No redeploy or migration occurred.
+
+Dedicated TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` Setup and Opening
+passed. The raw provider Story terminal payload contained canonical speaker
+IDs `heroine4` and `heroine3`; the parser master contained registered
+characters `heroine1` through `heroine5` and the registered general-NPC IDs;
+strict parsing succeeded; and Opening returned four provider-authored literal
+choices. The first literal was submitted unchanged as Turn 1 input, followed
+by one free-text Turn 2. Both Story/Extract/Commit pipelines passed, and
+Story/Extract/Commit replay was acknowledged for both actions with the Turn 1
+revision invariant preserved.
+
+The temporary evidence orchestrator used the wrong field shape when extracting
+the `/api/history` response, so committed history action IDs and parsed-block
+presence were not preserved in the artifact. The required final reset was
+successful and read back clean (`committed_turn=0`, `processing_status=idle`,
+`opening_state=not_started`, history count 0). Because the live game has
+already been reset, this missing history evidence cannot be reconstructed
+without another bounded run. This is an evidence-capture BLOCKED state, not a
+runtime defect or authorization for a retry. The artifact is preserved at
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-story-speaker-live-closure.json`.
