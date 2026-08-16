@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-test-rollout-v4
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -16,6 +16,15 @@ Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 Previous operator review: `5308625192` — `ACCEPTED_BLOCKED_EVIDENCE` for `minimal-story-runtime-test-rollout-v3`.
 Reviewed source/runtime SHA: `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`.
 V3 final docs SHA: `389a3002558c143010dbee7a11216f3448bab7a2`.
+
+## V4 rollout result — WAITING_REVIEW / BLOCKED
+
+- V4 execution identity: `minimal-story-runtime-test-rollout-v4` on `company/scene-location-presence-v1`, starting from `e8c5bc5bc4bbffecf1ba32ae592be08e53950e3c`, with task blob `ad1e4863d9c508c59b21dc5f098f3e8e52effbe1`.
+- Local ASCII-only escaped-source UTF-8/JSON preflight: PASS. Evidence: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-minimal-story-runtime-rollout-v4-utf8-preflight.json`.
+- TEST gameplay: Turn 1 Story -> Extract -> Commit PASS; opening returned exactly four canonical choices. The first direct navigation action then failed the required exact committed/history `player_action` echo contract: the expected preflighted Mina action was not found in the returned history echo (`found=false`, `keys=[]`, `value=null`).
+- This is a deterministic product acceptance blocker, not a harness encoding blocker. No source/runtime or migration change was made and no retry/regeneration or second scenario was attempted.
+- V4 rollout artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-minimal-story-runtime-rollout-v4.json`.
+- Final disposable TEST reset: PASS. Readback: `committed_turn=0`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, canonical scene `setup` v1, empty presence, retired roots absent, `clean=true`. Final `save_revision=1081`.
 
 Binding semantic canon:
 - `docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md`
