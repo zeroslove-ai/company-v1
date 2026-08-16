@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-test-rollout-v6
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -34,6 +34,17 @@ V5 did **not** prove any product/runtime defect. Setup returned HTTP 200, then a
 Independent operator verification after V5 confirms the disposable TEST game is clean: committed_turn=0, game_turns=0, game_actions=0, Level 1/exp 0, setup/opening not_started, canonical scene `setup` v1 with empty presence, csa_active=[], and all retired Minimal Story Runtime semantic roots absent.
 
 Do not change runtime, Opening prompt/parser, history response shape, navigation, provider/model, or compatibility behavior because of V5.
+
+## V6 rollout result — WAITING_REVIEW / BLOCKED
+
+- V6 execution identity: `minimal-story-runtime-test-rollout-v6` on `company/scene-location-presence-v1`, starting from `87b24c0a523964c3460ff17e666f1f4e347a2ed3`, with task blob `c9bb634014afb749bb6d7e4126fe84622fe518c4`.
+- Read-only preflight: Worker Version `37c05efd-b8b9-4be3-b0f8-c823576b0149` (version 168) remained healthy; health/version returned 200; TEST migration `20260816050000 / company_v1_minimal_story_runtime_contract` was present exactly once; disposable baseline was turn 0, idle, setup/opening not_started, canonical setup scene, retired roots absent.
+- Canonical flow was used: Setup -> `/api/opening` -> ordinary Story/Extract/Commit. Setup and Opening returned 200; Opening parser returned exactly four canonical choices. Turn 1 literal Story -> Extract -> Commit passed and canonical `body.data.records` echoed the exact outbound literal.
+- Same-action Turn 1 replay passed: Story meta/complete, Extract, and Commit all returned replay=true; committed state and history cardinality remained unchanged.
+- First navigation action `윤민아 보러간다` was byte-safe preflighted and echoed exactly in canonical history. Location moved from `brand_strategy_meeting_room` to `brand_strategy_office`, but destination `present_npc_ids` was empty instead of containing exactly registered `heroine2`. This is the first deterministic product acceptance blocker for registered Mina destination presence/identity; no retry, second scenario, source patch, or compatibility alias was used.
+- V6 artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-minimal-story-runtime-rollout-v6.json`.
+- Final disposable TEST reset: PASS. API readback was `committed_turn=0`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, canonical scene `setup` v1, empty presence, retired roots absent, `clean=true`. Independent read-only DB count after reset: `game_turns=0`, `game_actions=0`.
+- No source/runtime/test/config/content or migration change was made; no deployment, Production access, preserved/QA game access, or PR state change occurred.
 
 ## Objective
 
