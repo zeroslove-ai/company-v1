@@ -664,3 +664,33 @@ Validation: targeted residue/Opening/display tests 54/54; full
 passed. No DB write, migration application, TEST reset/live gameplay, deploy,
 Production access, provider/model change, or new semantic compatibility
 authority occurred. The next architecture cut was not generated.
+
+## Legacy save/DB residue TEST rollout — BLOCKED
+
+The accepted source/test candidate `9c52e74a8e32278207e6e9b729c33d64eb770fd1`
+was applied to TEST through the single additive migration
+`20260816000200_company_v1_legacy_save_residue_cleanup.sql`. The live ledger
+recorded it exactly once as version `20260816011104` with name
+`company_v1_legacy_save_residue_cleanup`. The post-apply validator,
+`commit_company_opening`, and `reset_company_game` function identities,
+SECURITY DEFINER settings, `search_path=public, pg_temp`, and intended ACLs
+were read back successfully.
+
+The exact reviewed API executable was deployed as Worker Version
+`52daecdd-c589-4013-942b-1bd80dda18e2`; the changed frontend was deployed as
+Version `4bd2ddfb-151e-4b93-a57f-eebf1b49446f`. Health and frontend readback
+passed. On dedicated TEST game
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`, Setup/Opening, one literal-choice
+turn, one free-text turn, Story/Extract/Commit, and Turn 1 replay passed.
+Read-only post-commit evidence showed all five deleted keys absent,
+`turn_summary` and `parsed_blocks` present for both turns, and retained
+relationship/sexual/stats/CSA/opening structures present.
+
+Acceptance is **BLOCKED** because the required final canonical reset returned
+HTTP 400 `invalid reset initial save: ["missing required key: scene",
+"missing required key: scene"]`. No retry or cleanup reset was attempted.
+The first authoritative artifact is preserved at
+`C:\Users\JAEWAN\AppData\Local\Temp\company-v1-legacy-save-residue-rollout.json`.
+The TEST game remains in the failed acceptance state pending operator review;
+no rollback, second migration, source/config change, Production access, or
+preserved manual-game access occurred.

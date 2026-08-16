@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: BLOCKED
 Task ID: legacy-save-db-residue-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -127,3 +127,34 @@ On completion:
 - report exact START SHA, reviewed executable SHA, migration apply result/version/name, post-apply live function/ACL facts, API/Frontend deployed identities, dedicated TEST game ID, reset/Opening/turn/replay evidence, deleted-key absence probes, protected-consumer checks, final reset state, and exact FINAL_DOCS_SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not create the next task yourself.
+
+## Execution result — BLOCKED
+
+The reviewed TEST rollout applied the additive migration exactly once and
+deployed the exact reviewed executable, but the bounded acceptance did not
+complete because the required final canonical reset failed deterministically.
+
+- Start HEAD: `616534f99dc4c2d9adec1aee12cec1d4bf6d1280`.
+- Reviewed executable: `9c52e74a8e32278207e6e9b729c33d64eb770fd1`.
+- Live migration: version `20260816011104`, name
+  `company_v1_legacy_save_residue_cleanup`, applied exactly once.
+- API Worker: `game-proxy-company-v1`, Version
+  `52daecdd-c589-4013-942b-1bd80dda18e2`; health `200`, `edition_id=company-v1`.
+- Frontend Worker: `gamebuilder-company-v1`, Version
+  `4bd2ddfb-151e-4b93-a57f-eebf1b49446f`; root `200`.
+- Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+- Setup/Opening, literal-choice Turn 1, free-text Turn 2, Story/Extract/Commit,
+  and Turn 1 Story/Extract/Commit replay all returned success; committed
+  revisions were 992 and 993 and replay preserved Turn 1 revision 992.
+- Live readback after the commits showed all five deleted keys absent,
+  `turn_summary` and `parsed_blocks` present for both turns, and retained
+  relationship/sexual/stats/CSA/opening structures present.
+- Final reset failed with HTTP 400 `invalid reset initial save:
+  ["missing required key: scene", "missing required key: scene"]`.
+- First authoritative evidence is preserved at
+  `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-legacy-save-residue-rollout.json`.
+
+No retry, second reset, source/config change, second migration, rollback,
+provider/model change, Production access, or preserved manual-game access was
+performed. The dedicated TEST game remains in the failed acceptance state;
+operator review/root-cause action is required before any further operation.
