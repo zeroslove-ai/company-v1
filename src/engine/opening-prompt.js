@@ -1,6 +1,6 @@
 import { buildActiveCharacterCanon } from './gameplay-state.js';
 import { buildOpeningPlayerProjection } from './player-setup.js';
-import { FRESH_MARKER_GRAMMAR } from './story-prompt.js';
+import { FRESH_MARKER_GRAMMAR, PROVIDER_CHOICE_OUTPUT_PROTOCOL } from './story-prompt.js';
 
 const BACKGROUND_MAX = 120;
 const OPENING_BODY_HEADER = '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]';
@@ -28,8 +28,9 @@ const FRESH_OPENING_OUTPUT_PROTOCOL = [
   '[ACTING]',
   'A standalone visible action narrative in source order; ACTING is not dialogue-direction metadata.',
   '[/ACTING]',
-  '[THOUGHT] one unquoted first-person Korean inner monologue written as natural self-talk, never analysis or report prose.',
-  'Output exactly four repeated [CHOICE] blocks. Each [CHOICE] must contain one non-empty concrete literal player action; do not number choices yourself and do not output a human choice heading or numbered list because the UI owns numbering. When possible, provide one [THOUGHT] as well (quality guidance only; not a validity gate). Every DIALOGUE speaker_id must copy one ID verbatim from the supplied allowed_speaker_ids list. Never use a character name, transformed or near-match ID, reordered string, invented ID, or inactive/unlisted ID.'
+  '[THOUGHT] may be included as a short unquoted first-person Korean inner monologue written as natural self-talk, never analysis or report prose; choice validity is governed only by the mandatory protocol below.',
+  PROVIDER_CHOICE_OUTPUT_PROTOCOL,
+  'Every DIALOGUE speaker_id must copy one ID verbatim from the supplied allowed_speaker_ids list. Never use a character name, transformed or near-match ID, reordered string, invented ID, or inactive/unlisted ID.'
 ].join('\n');
 
 const PLAYER_PRIVATE_OPENING_PREMISE = [
@@ -44,7 +45,7 @@ const OPENING_DURABLE_RULES = [
   'Do not invent unregistered named characters or decide unrequested player actions. Show active NPC motives through natural work and dialogue.',
   'Canonical opening time and location are hard facts. Do not invent a different clock time or place. Do not mention apps, CSA, Worker, prompts, game mechanics, or system metadata as world knowledge; the opening is an in-world workplace scene.',
   PLAYER_PRIVATE_OPENING_PREMISE,
-  'Use the output protocol below for dialogue identity and optional footer blocks. Speaker identity is the exact speaker_id marker, never a name or quote. In a fresh Opening, the only valid dialogue IDs are the verbatim values in the supplied allowed_speaker_ids list.',
+  'Use the output protocol below for dialogue identity and footer block structure. Speaker identity is the exact speaker_id marker, never a name or quote. In a fresh Opening, the only valid dialogue IDs are the verbatim values in the supplied allowed_speaker_ids list.',
   FRESH_OPENING_OUTPUT_PROTOCOL
 ].join('\n\n');
 

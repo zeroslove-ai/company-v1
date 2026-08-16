@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStoryStreamDecoder, parseStoryControlMarker } from '../src/engine/story-wire-protocol.js';
 import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
+import { reduceStoryChoiceProjection } from '../src/engine/runtime-core/observation-reducers.js';
 
 const master = { characters: [{ character_id: 'heroine2', name: 'Jena' }] };
 
@@ -71,8 +72,13 @@ test('fresh parser rejects attributed SCENE markers at the strict wire boundary'
 });
 
 test('fresh choices remain literal and exact four choices are canonical', () => {
-  const parsed = parseFreshNarrativeV2('[SCENE]s[THOUGHT]t[CHOICE]a[CHOICE]b[CHOICE]c[CHOICE]d', { master });
-  assert.deepEqual(parsed.canonical_choices, ['a', 'b', 'c', 'd']);
+  const choices = ['literal A', 'literal B', 'literal C', 'literal D'];
+  const raw = `[SCENE]s[THOUGHT]t${choices.map(choice => `[CHOICE]${choice}[/CHOICE]`).join('')}`;
+  const parsed = parseFreshNarrativeV2(raw, { master });
+  const projected = reduceStoryChoiceProjection({ parsedStory: parsed });
+  assert.deepEqual(parsed.canonical_choices, choices);
+  assert.deepEqual(projected.state, choices);
+  assert.deepEqual(parsed.blocks.filter(block => block.type === 'choice').map(block => block.text), choices);
 });
 
 test('fresh parser rejects THOUGHT and CHOICE without a visible Story body', () => {

@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildStoryPrompt } from '../src/engine/story-prompt.js';
+import { buildStoryPrompt, PROVIDER_CHOICE_OUTPUT_PROTOCOL } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
+import { buildOpeningPrompt } from '../src/engine/opening-prompt.js';
 
 function context() {
   return {
@@ -21,6 +22,33 @@ function context() {
 
 const edition = { editionId: 'company-v1', characters: { characters: {} } };
 
+test('Story and Opening share one mandatory provider choice-output protocol', () => {
+  const storySystem = buildStoryPrompt({
+    edition,
+    context: context(),
+    playerAction: 'continue',
+    expectedTurn: 2,
+    npcIds: new Set()
+  })[0].content;
+  const openingSystem = buildOpeningPrompt({
+    edition,
+    player: {},
+    canonical: {},
+    openingPlan: {}
+  })[0].content;
+
+  assert.equal(storySystem.includes(PROVIDER_CHOICE_OUTPUT_PROTOCOL), true);
+  assert.equal(openingSystem.includes(PROVIDER_CHOICE_OUTPUT_PROTOCOL), true);
+  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /mandatory and unconditional/i);
+  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /exactly four repeated \[CHOICE\].*\[\/CHOICE\]/i);
+  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /distinct literal strings/i);
+  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /proposals, not completed player actions/i);
+  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /server\/UI numbering|human heading/i);
+  assert.match(PROVIDER_CHOICE_OUTPUT_PROTOCOL, /verify.*exactly four choice blocks/i);
+  assert.doesNotMatch(storySystem, /choice(?:s| blocks?).{0,100}(?:when possible|if possible|optional)/i);
+  assert.doesNotMatch(openingSystem, /choice(?:s| blocks?).{0,100}(?:when possible|if possible|optional)/i);
+});
+
 test('current Story request uses narrative-default wire, free input, and hard-fact time payload', () => {
   const messages = buildStoryPrompt({
     edition,
@@ -38,7 +66,7 @@ test('current Story request uses narrative-default wire, free input, and hard-fa
   assert.match(system, /\[DIALOGUE speaker_id=/);
   assert.match(system, /at least one non-empty player-visible Story body segment/i);
   assert.match(system, /\[THOUGHT\].*\[CHOICE\].*alone is invalid/i);
-  assert.match(system, /four literal \[CHOICE\] action blocks/);
+  assert.match(system, /mandatory and unconditional: emit exactly four repeated \[CHOICE\]/i);
   assert.doesNotMatch(system, /\[CHOICE label=/);
   assert.doesNotMatch(system, /\[1\. 서사 및 행동\]|\[2\. 플레이어 속마음\]|\[3\. 선택지\]/);
   assert.match(system, /context\.current_time\.day/);
