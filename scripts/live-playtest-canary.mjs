@@ -706,7 +706,6 @@ export async function run(parsed = parseCanaryArgs(process.argv.slice(2))) {
 
     const durableSnapshot = currentSave => ({
       active_relations: clone(currentSave?.active_relations ?? []),
-      event_ledger: clone(currentSave?.event_ledger ?? []),
       sexual_event_ledger: clone(currentSave?.sexual_event_ledger ?? [])
     });
 
@@ -817,20 +816,16 @@ export async function run(parsed = parseCanaryArgs(process.argv.slice(2))) {
       const relationMatches = relationUpdates.filter(input => afterCommit.durable.active_relations.some(row =>
         row.actor_id === input.actor_id && row.target_id === input.target_id && row.relation_kind === input.relation_kind && row.state === (input.state === 'ended' ? 'ended' : 'active')
       ));
-      const generalMatches = generalEvents.filter(input => afterCommit.durable.event_ledger.some(row =>
-        (input.event_id && row.event_id === input.event_id) || (!input.event_id && row.evidence === input.evidence)
-      ));
       const sexualMatches = sexualEvents.filter(input => afterCommit.durable.sexual_event_ledger.some(row =>
         (input.event_id && row.event_id === input.event_id) || (!input.event_id && row.evidence === input.evidence)
       ));
       report.durable_consequence = {
         after_commit: afterCommit,
         relation_matches: clone(relationMatches),
-        general_event_matches: clone(generalMatches),
         sexual_event_matches: clone(sexualMatches),
         registered_participant_ids: [targetId, ...relationUpdates.flatMap(item => [item.actor_id, item.target_id]), ...generalEvents.flatMap(item => item.participants ?? []), ...sexualEvents.flatMap(item => [item.actor_id, item.target_id])].filter(Boolean).filter((id, index, ids) => ids.indexOf(id) === index)
       };
-      if (!relationMatches.length && !generalMatches.length && !sexualMatches.length) {
+      if (!relationMatches.length && !sexualMatches.length) {
         report.status = 'BLOCKED';
         report.block_reason = 'typed relation/event observation had no matching durable consequence after Commit';
         await writeReportAndReset();

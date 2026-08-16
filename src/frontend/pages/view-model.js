@@ -332,7 +332,7 @@ export function buildCompanyGameViewModel(context) {
     },
     scene: {
       ...scene,
-      scene_state: { ...scene, location_label: text(save.scene_state?.location_label) }, world_state: object(save.world_state) ?? {}, story_summary_recent: text(save.story_summary_recent),
+      scene_state: { ...scene, location_label: text(save.scene_state?.location_label) }, world_state: object(save.world_state) ?? {},
       csa_active: Array.isArray(save.csa_active) ? save.csa_active : [], csa_rules: activeRules,
       npcs_present: strings(scene.present_npc_ids), action_target_id: '', clothing_state: {}
     },

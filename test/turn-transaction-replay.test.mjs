@@ -63,15 +63,11 @@ test('Story context and target authority ignore continuity-only relation state',
     save: { data: {
       ...structuredClone(save),
       active_relations: [{ actor_id: 'npc-hayeon', target_id: 'npc-areum', relation_kind: 'legacy', state: 'active' }],
-      npc_emotion: { 'npc-hayeon': { mood: 'focused' } },
-      npc_work_state: { 'npc-hayeon': { task: 'review' } }
     } },
     recent_turns: []
   }, ['npc-hayeon'], { edition: {}, catalogs: {} });
   assert.equal('active_relations' in projected, false);
-  assert.equal('npc_emotion' in projected.active_npc_state, false);
   assert.equal('npc_relationship_state' in projected.active_npc_state, false);
-  assert.equal('npc_work_state' in projected.active_npc_state, false);
 
   const [system, user] = buildStoryPrompt({
     edition: { editionId: 'company-v1', characters: { characters: {} }, generalNpcs: { profiles: {} }, map: { locations: [] } },
@@ -85,11 +81,15 @@ test('Story context and target authority ignore continuity-only relation state',
 
 test('reduceGameplayCommit is the single V2 orchestration writer', () => {
   const observation = normalizeExtractObservationV2(baseObservation, { npcIds: NPCS });
-  const result = reduceGameplayCommit({ currentSave: save, observation, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], player_inner_thought: '' }, rawStory: '본문', action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
+  const legacySave = { ...structuredClone(save), story_summary_overall: 'obsolete', story_summary_recent: 'obsolete', npc_emotion: {}, npc_work_state: {}, event_ledger: [] };
+  const result = reduceGameplayCommit({ currentSave: legacySave, observation, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], player_inner_thought: '' }, rawStory: '본문', action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
   assert.equal(result.nextSave.turn_state.committed_turn, 7);
   assert.equal(result.nextSave.turn_state.expected_turn, 9);
   assert.equal(result.nextSave.scene_state.updated_turn, 8);
   assert.equal(result.canonical_scene.updated_turn, 8);
+  for (const key of ['story_summary_overall', 'story_summary_recent', 'npc_emotion', 'npc_work_state', 'event_ledger']) {
+    assert.equal(key in result.nextSave, false, `${key} must not survive Commit`);
+  }
 });
 test('V2 reducer keeps scene authority separate from NPC physical observation', () => {
   const observation = normalizeExtractObservationV2({ ...baseObservation, npc_observations: { 'npc-hayeon': { physical: { clothing: { uniform_top: 'removed' } } } }, evidence: { clothing: { 'npc-hayeon': { quote: '하연이 셔츠를 벗었다', character_id: 'npc-hayeon' } } } }, { npcIds: NPCS });
@@ -142,10 +142,8 @@ test('continuity-only NPC residue stays inert and remote narrow observations sta
     ...structuredClone(save),
     scene: { version: 1, scene_id: 'room', location_id: 'meeting_room_5f', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['npc-hayeon'], focal_character_id: 'npc-hayeon', last_speaker_id: null, updated_turn: 7 },
     scene_state: { ...save.scene_state, participants: ['player-1', 'npc-hayeon'] },
-    npc_emotion: { ...(save.npc_emotion ?? {}), 'npc-areum': { mood: 'calm' } },
     npc_relationship_state: { ...(save.npc_relationship_state ?? {}), 'npc-areum': { closeness: 'acquaintance', romance_status: 'none', current_boundary: 'professional' } },
     npc_stats: { ...(save.npc_stats ?? {}), 'npc-areum': { affinity: 10 } },
-    npc_work_state: { ...(save.npc_work_state ?? {}), 'npc-areum': { task: '정리' } },
     csa_attitudes: { ...(save.csa_attitudes ?? {}), 'npc-areum': { familiarity: 1 } }
   };
   const rawStory = 'npc-areum said this from a remote office';
@@ -166,10 +164,8 @@ test('continuity-only NPC residue stays inert and remote narrow observations sta
     rawStory, action, expectedTurn: 8, npcIds: NPCS, mapLocations: []
   });
   assert.deepEqual(result.nextSave.npc_scene_state['npc-areum']?.clothing, currentSave.npc_scene_state['npc-areum']?.clothing);
-  assert.deepEqual(result.nextSave.npc_emotion['npc-areum'], { mood: 'calm' });
   assert.deepEqual(result.nextSave.npc_relationship_state['npc-areum'], { closeness: 'acquaintance', romance_status: 'none', current_boundary: 'professional' });
   assert.deepEqual(result.nextSave.npc_stats['npc-areum'], { affinity: 10 });
-  assert.deepEqual(result.nextSave.npc_work_state['npc-areum'], { task: '정리' });
   assert.deepEqual(result.nextSave.csa_attitudes['npc-areum'], { familiarity: 1 });
   assert.ok(result.warnings.includes('off_scene_npc_observation_dropped:npc-areum'));
 });

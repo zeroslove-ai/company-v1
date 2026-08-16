@@ -64,16 +64,12 @@ test('app.npcs location shape uses canonical scene and scene-state compatibility
   canonical.npc_scene_state.heroine2 = { location_id: 'stale_lounge', location_label: 'stale' };
   const legacyScene = baseSave();
   legacyScene.npc_scene_state.heroine2 = { location_id: 'lounge', location_label: 'lounge' };
-  const workOnly = baseSave();
-  workOnly.npc_work_state = { heroine2: { location_id: 'cafe', location_label: 'cafe' } };
 
   const canonicalLocation = appNpcs(canonical).find(item => item.id === 'heroine2')?.location;
   assert.equal(canonicalLocation.location_id, 'meeting_room');
   const legacyLocation = appNpcs(legacyScene).find(item => item.id === 'heroine2')?.location;
   assert.equal(legacyLocation.location_id, 'lounge');
-  const workOnlyLocation = appNpcs(workOnly).find(item => item.id === 'heroine2')?.location;
-  assert.equal(workOnlyLocation.known, false);
-  for (const location of [canonicalLocation, legacyLocation, workOnlyLocation]) {
+  for (const location of [canonicalLocation, legacyLocation]) {
     assert.equal('status' in location, false);
     assert.equal('can_move' in location, false);
     assert.equal('suggested_location_id' in location, false);

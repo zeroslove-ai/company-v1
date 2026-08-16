@@ -322,6 +322,14 @@ export function migrateCompanySave(save) {
     throw new GameCoreError('UNSUPPORTED_SAVE_SCHEMA', 'Only company-v1 save schema 1 is supported');
   }
   const next = clone(save);
+  // These save-level fields have no current reader or writer. Remove residue at
+  // the runtime boundary so an old save cannot reintroduce superseded state on
+  // the next Commit.
+  delete next.story_summary_overall;
+  delete next.story_summary_recent;
+  delete next.npc_emotion;
+  delete next.npc_work_state;
+  delete next.event_ledger;
   next.world_state = object(next.world_state) ? next.world_state : {};
   if (!object(next.world_state.game_time)) next.world_state.game_time = { day: 1, minute_of_day: 540 };
   else next.world_state.game_time = canonicalGameTime(next.world_state.game_time);

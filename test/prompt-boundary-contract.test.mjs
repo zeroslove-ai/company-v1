@@ -177,7 +177,6 @@ test('Story scene context uses canonical location and presence', () => {
 test('Story and Extract keep registered identities and mutable state scoped', () => {
   const save = baseSave();
   save.npc_stats = { general_manager: { affinity: 0 } };
-  save.npc_emotion = { general_manager: { current: 'focused' } };
 
   const storyMessages = buildStoryPrompt({
     edition,
