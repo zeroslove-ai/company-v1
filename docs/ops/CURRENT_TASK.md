@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-test-rollout-v3
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -160,6 +160,28 @@ Not authorized:
 - provider/model/temperature/token changes;
 - retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic gate, compatibility runtime/bag;
 - new branch/PR, rebase, squash, force-push, merge or Ready.
+
+## Rollout result
+
+Result: BLOCKED — WAITING_REVIEW
+
+Execution identity:
+- Current task blob: `26d9f6f4df97aff5c23b6eb0e9a0652626f3c2f9`
+- Start head: `1473d4b9f5cf0c652ba43b4f896a00c603a22d93`
+- Reviewed source: `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`
+- Branch: `company/scene-location-presence-v1`
+
+Preflight result:
+- TEST migration was read-only verified present exactly once; no reapply.
+- API Worker remained Version `37c05efd-b8b9-4be3-b0f8-c823576b0149`; health/version readback passed; no deploy.
+- Disposable TEST baseline was read-only verified clean at turn 0 with retired roots absent.
+- Required local ASCII-only Unicode/UTF-8/JSON preflight was attempted before Setup/Opening but failed at harness JavaScript parsing because the expected code-point array used malformed tokens (`0ube0c`, etc.). No gameplay, provider, TEST reset, or DB write was performed in V3.
+
+Stop state:
+- Per the task contract, local preflight failure is a BLOCKED harness result and no gameplay retry or corrected preflight was attempted.
+- V2/V3 preserved evidence remains outside the repository; no Production, preserved manual game, or QA evidence game was accessed.
+
+Forbidden operations: migration reapply/DDL 0; API/frontend deploy 0; gameplay/DB writes 0; source/runtime/test/config/content/migration edits 0; PR merge/Ready 0.
 
 ## Acceptance
 
