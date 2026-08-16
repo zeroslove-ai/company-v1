@@ -1,6 +1,3 @@
-import { matchesCsaSubjectScope, subjectScopeForRule } from '../csa/authority-policy.js';
-import { deriveExecutionMetadata } from '../csa/execution-policy.js';
-
 /**
  * Story-grounded clothing continuity — canonical four-slot model.
  *
@@ -248,38 +245,6 @@ export function retainEvidencedClothing({ previousClothing = {}, proposedClothin
  *
  * 규정 우선순위(strength/updated_turn/created_turn)는 추론하지 않는다.
  */
-export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {}) {
-  const applicable = [];
-  for (const rule of activeRules) {
-    const preset = rule?.preset ?? {};
-    const execution = preset.execution ?? rule?.execution ?? deriveExecutionMetadata({ id: preset.template_id, category: 'clothing', mode: preset.mode });
-    if (execution?.kind !== 'clothing_state' || !execution.required_state || typeof execution.required_state !== 'object') continue;
-    const actorGroup = subjectScopeForRule({ preset });
-    const mode = preset.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
-    if (mode === 'on_player_request') continue;
-    const isPlayer = npcProfile?.id === 'player' || npcProfile?.character_id === 'player' || npcProfile?.player === true;
-    if (actorGroup === 'player' && !isPlayer) continue;
-    // company_employee explicitly includes both the player and registered NPCs.
-    if (actorGroup !== 'player' && !matchesCsaSubjectScope({ ...npcProfile, id: npcProfile?.id ?? npcProfile?.character_id }, actorGroup)) continue;
-    // male_employee 규정이 남성 전용일 경우 — 프로필 성별과 충돌하면 적용하지 않는다.
-    applicable.push({ rule, requiredState: execution.required_state });
-  }
-
-  if (applicable.length === 0) {
-    return { required_clothing: {}, source_csa_id: null, conflicted: false };
-  }
-  if (applicable.length > 1) {
-    // 서로 다른 착의 요구가 있으면 미확정 — 우선순위로 추론하지 않는다.
-    return { required_clothing: {}, source_csa_id: null, conflicted: true };
-  }
-  const { rule, requiredState } = applicable[0];
-  return {
-    required_clothing: { ...requiredState },
-    source_csa_id: rule?.csa_id ?? rule?.id ?? null,
-    conflicted: false
-  };
-}
-
 /**
  * 실제 착의와 규정상 요구 착의를 비교한다.
  * - not_applicable: 요구 슬롯 없음 (conflicted 포함)

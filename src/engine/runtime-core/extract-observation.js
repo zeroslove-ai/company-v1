@@ -134,18 +134,21 @@ function normalizeEventEvidence(value, storyText, field) {
   return quote;
 }
 
-function normalizeEvents(value, npcIds, storyText, expectedTurn = 0, actionId = null) {
+function normalizeEvents(value, npcIds, storyText, expectedTurn = 0, actionId = null, warnings = []) {
   assertKeys(value, new Set(['general', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
   const normalizeSexual = items => {
     if (!Array.isArray(items)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual must be an array');
-    return items.map((item, index) => {
+    return items.flatMap((item, index) => {
       assertKeys(item, SEXUAL_EVENT_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
       const event = clone(item);
       event.actor_id = nullableId(item.actor_id, npcIds, `events.sexual[${index}].actor_id`);
       event.target_id = nullableId(item.target_id, npcIds, `events.sexual[${index}].target_id`);
       if (!event.actor_id || !event.target_id) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual actor_id and target_id are required');
       if (canonicalPlayerOrNpcId(event.actor_id) === canonicalPlayerOrNpcId(event.target_id)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual actor and target must differ');
-      if (!SEXUAL_ACTION_TYPES.has(event.action_type)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual action_type is invalid');
+      if (!SEXUAL_ACTION_TYPES.has(event.action_type)) {
+        warnings.push(`sexual_event_projection_dropped:${index}:unknown_action_type`);
+        return [];
+      }
       if (typeof event.completed !== 'boolean' || typeof event.interrupted !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual completed/interrupted must be boolean');
       event.evidence = normalizeEventEvidence(item.evidence, storyText, `events.sexual[${index}]`);
       const identity = {
@@ -161,7 +164,7 @@ function normalizeEvents(value, npcIds, storyText, expectedTurn = 0, actionId = 
         evidence: event.evidence
       };
       event.event_id = `turn:${expectedTurn}:action:${actionId ?? 'unknown'}:${identity.domain}:${stableEventHash(stableSerialize(identity))}`;
-      return event;
+      return [event];
     });
   };
   return { general: [], sexual: normalizeSexual(value.sexual ?? []) };
@@ -259,8 +262,8 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
     player_observation: {},
     npc_observations: {},
     events: softOptional
-      ? dropOptional(true, 'events', warnings, { general: [], sexual: [] }, () => normalizeEvents(object(value.events) ? value.events : { general: [], sexual: [] }, registered, storyText, expectedTurn, actionId))
-      : normalizeEvents(object(value.events) ? value.events : { general: [], sexual: [] }, registered, storyText, expectedTurn, actionId),
+      ? dropOptional(true, 'events', warnings, { general: [], sexual: [] }, () => normalizeEvents(object(value.events) ? value.events : { general: [], sexual: [] }, registered, storyText, expectedTurn, actionId, warnings))
+      : normalizeEvents(object(value.events) ? value.events : { general: [], sexual: [] }, registered, storyText, expectedTurn, actionId, warnings),
     evidence: object(value.evidence) ? clone(value.evidence) : {},
     elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
     mind_monitor: {},

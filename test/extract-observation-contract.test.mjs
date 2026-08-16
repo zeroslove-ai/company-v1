@@ -77,6 +77,19 @@ test('fresh Extract drops general events warning-only while retaining sexual eve
   assert.equal(result.events.sexual.length, 1);
 });
 
+test('unknown sexual event classification fails open without blocking Extract', () => {
+  const result = normalizeFreshExtractObservationV2(valid({
+    events: {
+      general: [],
+      sexual: [{ actor_id: 'heroine1', target_id: 'player', action_type: 'unclassified_contact', direction: 'npc_to_player', completed: true, interrupted: false, evidence: STORY }]
+    },
+    turn_summary: 'Hayeon accepted the apology.'
+  }), { npcIds: NPCS, storyText: STORY, expectedTurn: 4, actionId: 'unknown-sexual-classification' });
+  assert.deepEqual(result.events.sexual, []);
+  assert.ok(result.warnings.includes('sexual_event_projection_dropped:0:unknown_action_type'));
+  assert.equal(result.turn_summary, 'Hayeon accepted the apology.');
+});
+
 test('fresh Extract drops NPC semantic residue and unknown optional domains while retaining narrow siblings', () => {
   const result = normalizeFreshExtractObservationV2(valid({
     npc_observations: {
@@ -157,7 +170,7 @@ test('narrow evidenced clothing observation remains durable product state', () =
     npc_observations: { heroine2: { physical: { position_label: 'at the desk', clothing: { underwear_bottom: 'removed' } } } },
     evidence: {
       clothing: { heroine2: { character_id: 'heroine2', quote } },
-      physical_change: { changed: ['npc_scene_state.heroine2.clothing.underwear_bottom'], quote }
+      physical_change: { changed: ['npc_scene_state.heroine2.position_label', 'npc_scene_state.heroine2.clothing.underwear_bottom'], quote }
     }
   }), { npcIds: NPCS, storyText: quote });
   const reduced = reduceNpcPhysicalObservation({

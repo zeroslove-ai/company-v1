@@ -28,6 +28,38 @@ function stringOrEmpty(value) {
   return typeof value === 'string' ? value : '';
 }
 
+function exactSexualEvidenceQuote(evidence, field, storyText) {
+  const roots = object(evidence) ? evidence : {};
+  const baseField = field.endsWith('_delta') ? field.slice(0, -6) : field;
+  const candidates = new Set([
+    `player_sexual_state.${field}`,
+    `player_sexual_state.${baseField}`,
+    `player_observation.sexual.${field}`,
+    `player_observation.sexual.${baseField}`
+  ]);
+  const validQuote = value => {
+    const quote = typeof value === 'string' ? value : object(value) ? value.quote : null;
+    return typeof quote === 'string' && quote.trim() && String(storyText ?? '').includes(quote.trim()) ? quote.trim() : null;
+  };
+  for (const path of candidates) {
+    const parts = path.split('.');
+    let value = roots;
+    for (const part of parts) value = object(value) ? value[part] : undefined;
+    const quote = validQuote(value);
+    if (quote) return quote;
+  }
+  if (Array.isArray(roots.changed) && roots.changed.some(path => candidates.has(String(path)))) {
+    const quote = validQuote(roots.quote);
+    if (quote) return quote;
+  }
+  for (const item of Object.values(roots)) {
+    if (!object(item) || !Array.isArray(item.changed) || !item.changed.some(path => candidates.has(String(path)))) continue;
+    const quote = validQuote(item.quote);
+    if (quote) return quote;
+  }
+  return null;
+}
+
 // 이미지 선택 태그 allowlist — 알 수 없는 태그는 버린다 (턴70 지시 10).
 const IMAGE_SELECTION_TAGS = new Set([
   'handjob', 'fellatio', 'deepthroat', 'fingering', 'cunnilingus', 'breast_sucking',
@@ -250,15 +282,23 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
     ejaculation_count: Math.max(0, integer(base.ejaculation_count) ?? 0),
     updated_turn: integer(base.updated_turn) ?? 0
   };
-  state.arousal = clamp(state.arousal + (integer(patch.arousal_delta) ?? 0), 0, 100);
+  const warnings = [];
+  const arousalDelta = integer(patch.arousal_delta) ?? 0;
+  if (arousalDelta !== 0) {
+    if (exactSexualEvidenceQuote(storyEvidence, 'arousal_delta', storyText)) state.arousal = clamp(state.arousal + arousalDelta, 0, 100);
+    else warnings.push('unevidenced_arousal_change');
+  }
   // 사정 진행도는 느리게 누적 — 턴당 최대 +6, 음수(자동 감소·초기화)는 폐기.
   // 단순 노출·발기·성적 대화·요청만으로는 증가하지 않도록 Extract가 작은 delta만
   // 제안하고, 여기서 서버가 상한을 보장한다. 기존 전체 진행도 clamp 0~100 유지.
   const progressDelta = integer(patch.ejaculation_progress_delta) ?? 0;
-  if (progressDelta > 0) {
-    state.ejaculation_progress = clamp(state.ejaculation_progress + Math.min(progressDelta, 6), 0, 100);
+  if (progressDelta !== 0) {
+    if (progressDelta > 0 && exactSexualEvidenceQuote(storyEvidence, 'ejaculation_progress_delta', storyText)) {
+      state.ejaculation_progress = clamp(state.ejaculation_progress + Math.min(progressDelta, 6), 0, 100);
+    } else {
+      warnings.push('unevidenced_ejaculation_progress_change');
+    }
   }
-  const warnings = [];
   // 발기 상태는 delta가 아닌 현재 물리 상태다 — evidence.player_erection의 quote가
   // 최종 Story에 정확히 존재하고 enum이 유효할 때만 갱신한다.
   // 추론 금지: arousal 수치·CSA 활성·요청·복장·이미지 태그만으로는 변경하지 않는다.

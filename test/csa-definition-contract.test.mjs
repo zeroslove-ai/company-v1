@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { buildPresetCatalogPayload, normalizeCompanyCsaCatalog, renderPresetContent } from '../src/engine/csa/catalog.js';
 import { validatePresetOperation } from '../src/engine/csa/transaction-planner.js';
-import { requiredClothingFromActiveCsa } from '../src/engine/state/clothing.js';
 
 const raw = JSON.parse(fs.readFileSync(new URL('../content/csa_presets.json', import.meta.url), 'utf8'));
 const catalog = normalizeCompanyCsaCatalog(raw);
@@ -111,17 +110,6 @@ test('work_nude alias permits player or company_employee subjects without creati
   assert.equal(result.preset.subject_scope, 'player');
   assert.equal(result.preset.counterparty_scope, null);
   assert.match(result.content, /^플레이어는/);
-});
-
-test('company_employee clothing scope includes the player while player-only scope excludes NPCs', () => {
-  const companyRule = { preset: { template_id: 'work_nude', subject_scope: 'company_employee', mode: 'continuous' } };
-  const playerRule = { preset: { template_id: 'work_nude', subject_scope: 'player', mode: 'continuous' } };
-  const required = {
-    uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'removed', underwear_bottom: 'removed'
-  };
-  assert.deepEqual(requiredClothingFromActiveCsa([companyRule], { id: 'player' }).required_clothing, required);
-  assert.deepEqual(requiredClothingFromActiveCsa([companyRule], { id: 'heroine1', gender: 'female' }).required_clothing, required);
-  assert.deepEqual(requiredClothingFromActiveCsa([playerRule], { id: 'heroine1', gender: 'female' }).required_clothing, {});
 });
 
 test('preset payload exposes only group scope, authority, mode, and complete sentence', () => {

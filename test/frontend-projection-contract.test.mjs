@@ -230,9 +230,9 @@ test('physical state rejects invented posture and position changes without exact
     characterName: '김제나',
     turnNumber: 3
   });
-  // 증거 불충분에도 Extract 제안 posture/position은 반영된다 (경고만 기록)
-  assert.equal(result.state.posture, 'kneeling');
-  assert.equal(result.state.position_label, '플레이어 앞에 무릎을 꿇고 있다');
+  // Evidence-free optional posture/position projections preserve committed state.
+  assert.equal(result.state.posture, 'sitting');
+  assert.equal(result.state.position_label, '플레이어 맞은편 의자에 앉아 있다');
   assert.equal(result.warnings.includes('unevidenced_posture_change'), true);
   assert.equal(result.warnings.includes('unevidenced_position_label'), true);
   assert.equal(result.warnings.includes('unevidenced_posture_end_reason'), true);

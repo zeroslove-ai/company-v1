@@ -53,16 +53,35 @@ test('time proposals default safely and advance across days without mutating inp
 test('sexual reducer requires evidence for completion and clamps supported deltas', () => {
   const base = { arousal: 95, ejaculation_progress: 99, ejaculation_count: 2, updated_turn: 4 };
   const ignored = reducePlayerSexualState(base, { arousal_delta: 10, ejaculation_progress_delta: 10, ejaculation_completed: true });
-  assert.deepEqual(ignored.state, { arousal: 100, ejaculation_progress: 100, ejaculation_count: 2, updated_turn: 4 });
-  assert.deepEqual(ignored.warnings, ['unauthorized_ejaculation_completion_ignored']);
+  assert.deepEqual(ignored.state, base);
+  assert.deepEqual(ignored.warnings, ['unevidenced_arousal_change', 'unevidenced_ejaculation_progress_change', 'unauthorized_ejaculation_completion_ignored']);
   const completed = reducePlayerSexualState(base, { arousal_delta: 10, ejaculation_progress_delta: 10, ejaculation_completed: true }, { storyEvidence: { sexual_resolution: true }, updatedTurn: 5 });
   assert.deepEqual(completed.state, { arousal: 0, ejaculation_progress: 0, ejaculation_count: 3, updated_turn: 5 });
+  assert.deepEqual(completed.warnings, ['unevidenced_arousal_change', 'unevidenced_ejaculation_progress_change']);
+});
+
+test('sexual mechanical deltas require exact Story evidence independently', () => {
+  const base = { arousal: 10, ejaculation_progress: 20, ejaculation_count: 0, updated_turn: 4 };
+  const storyText = 'Story: direct stimulation raises arousal and progress.';
+  const completeEvidence = { changed: ['player_sexual_state.arousal_delta', 'player_sexual_state.ejaculation_progress_delta'], quote: storyText };
+  const complete = reducePlayerSexualState(base, { arousal_delta: 5, ejaculation_progress_delta: 4 }, { storyEvidence: completeEvidence, storyText, updatedTurn: 5 });
+  assert.deepEqual(complete.state, { arousal: 15, ejaculation_progress: 24, ejaculation_count: 0, updated_turn: 5 });
+  assert.deepEqual(complete.warnings, []);
+  const partialEvidence = { changed: ['player_sexual_state.arousal_delta'], quote: storyText };
+  const partial = reducePlayerSexualState(base, { arousal_delta: 5, ejaculation_progress_delta: 4 }, { storyEvidence: partialEvidence, storyText, updatedTurn: 5 });
+  assert.equal(partial.state.arousal, 15);
+  assert.equal(partial.state.ejaculation_progress, 20);
+  assert.deepEqual(partial.warnings, ['unevidenced_ejaculation_progress_change']);
 });
 
 test('sexual progress is bounded per turn and never decreases from a negative proposal', () => {
   const base = { arousal: 0, ejaculation_progress: 20, ejaculation_count: 0, updated_turn: 0 };
-  assert.equal(reducePlayerSexualState(base, { ejaculation_progress_delta: 50 }).state.ejaculation_progress, 26);
-  assert.equal(reducePlayerSexualState(base, { ejaculation_progress_delta: -50 }).state.ejaculation_progress, 20);
+  const storyText = 'Story: sustained direct stimulation continues.';
+  const evidence = { changed: ['player_sexual_state.ejaculation_progress_delta'], quote: storyText };
+  assert.equal(reducePlayerSexualState(base, { ejaculation_progress_delta: 50 }, { storyEvidence: evidence, storyText }).state.ejaculation_progress, 26);
+  const negative = reducePlayerSexualState(base, { ejaculation_progress_delta: -50 });
+  assert.equal(negative.state.ejaculation_progress, 20);
+  assert.deepEqual(negative.warnings, ['unevidenced_ejaculation_progress_change']);
 });
 
 test('Extract prompt keeps sexual completion evidence separate from mere exposure or request', () => {
