@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-authority-audit-v1
+Status: READY
+Task ID: minimal-story-runtime-semantic-cut-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,258 +13,258 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Owner canon added on this branch:
+Previous operator review: `5308024297` ACCEPTED `minimal-story-runtime-authority-audit-v1`.
+Accepted audit/final docs SHA: `7418750a84b0b2925330330469c5a519d0dd11a2`.
+
+Binding semantic canon:
 - `docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md`
-- root `CURRENT_TRUTH.md` now requires that canon to be read for semantic-runtime decisions.
+- `CURRENT_TRUTH.md`
+- the four accepted audit documents under `docs/audit/company-v1-minimal-story-runtime-reset-2026-08-16/`.
 
-The previously READY task `relationship-history-mirror-boundary-closure-v1` is **SUPERSEDED and must not be executed**. Its narrower cleanup may later be absorbed into the single semantic simplification cut if the audit proves it should be removed.
+The previous `relationship-history-mirror-boundary-closure-v1` is superseded and must not execute independently.
 
-Current accepted transport/readback lineage remains useful evidence, but it is not product-play acceptance. Do not treat `N/N tests pass`, transport success, replay success, or an `ACCEPTED` evidence report as proof that narrative semantics are correct.
-
-### Owner corrections that are binding
-
-1. Seo Won-hee speaking informally to an intern/junior player is not inherently a bug. Do not create an `always honorific` rule or regression test.
-2. Common-sense alteration may validly appear as a **company notice/rule/regulation that begins at its activation time**. It is not retroactive memory.
-3. Once such a rule is active and applicable, **following the valid company rule is itself the altered natural/common-sense workplace premise**. An NPC may dislike, resent, enjoy or feel awkward about it, but personal reaction must not turn the active rule into an optional/not-yet-in-force policy.
-4. CSA compliance remains separate from unrelated consent, comfort, affection, trust, romance and sexual arousal.
-5. The target is a smaller Story-first runtime. Audit first; after review, perform one coherent semantic simplification cut rather than a chain of P0/P1 patches.
-
-### Evidence games
-
-- User QA regression evidence: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f` — READ ONLY for this audit. Do not reset or mutate it.
-- Historical preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` — FORBIDDEN to access or mutate.
-- Disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` — do not run gameplay or write/reset it in this audit.
-- Production is forbidden.
+Evidence/safety games:
+- QA evidence game `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`: READ ONLY / do not mutate or reset in this task.
+- historical preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`: FORBIDDEN to access or mutate.
+- disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`: no gameplay/reset/write in this source cut.
+- Production: forbidden.
 
 ## Objective
 
-Perform one exhaustive **source + actual Story-payload + TEST DB residue + preserved QA evidence audit** that explains why the supposedly Story-first runtime still produces repeated old semantic failure classes.
+Implement one coherent **Minimal Story Runtime semantic reset** from the accepted audit. Make the fresh gameplay spine materially smaller:
 
-The audit must identify every field/helper/state/mirror/gate that can influence fresh Opening or ordinary Story, every Extract/Commit path that can discard or rewrite meaning after Story, and every current DB/save residue that can leak obsolete semantic assumptions back into Story.
+`player input / literal choice + minimal committed facts -> Story -> raw Story stream -> Extract narrow observation -> Commit narrow structural/mechanical persistence -> committed readback`
 
-The output must be concrete enough that the next operator/session can author **one large `minimal-story-runtime-semantic-cut-v1` implementation task** without rediscovering the system or falling back to symptom patching.
+Do not split this into symptom patches or preserve a removed semantic layer merely because another current layer still reads it. If a duplicate consumer is the only reason a retired root appears necessary, remove/derive that consumer in this same cut.
 
-This task is audit/design only. Do not change gameplay runtime behavior.
+This is a source/test/content + DB-contract-source implementation task. It is NOT a rollout task.
 
-## Required work
+## Binding product semantics
 
-### A. Freeze and authority preflight
+1. Story remains narrative authority.
+2. A CSA may become valid at activation time as a company notice/rule/regulation; no retroactive memory is required.
+3. Once active and applicable, following the valid company rule is the altered ordinary/common-sense workplace premise. Dislike, embarrassment, resentment or other personal reaction may coexist with compliance but cannot make the applicable rule optional/not in force.
+4. CSA compliance does not imply unrelated consent, comfort, affection, trust, romance or arousal.
+5. Do not restore finite physical/sexual execution authority to enforce CSA.
+6. Seo Won-hee informal speech to an intern/junior is not inherently a bug. Do not add an always-honorific gate/regression.
+7. Recent raw Story + older natural-language `turn_summary` remains narrative memory; do not replace deleted semantics with a new relationship/event/fact/memory graph.
+8. Player input is intent/attempt, but Story must not silently substitute a materially different explicit player action/self-state.
 
-1. Record exact START HEAD and verify PR #67 is OPEN / DRAFT / UNMERGED, base `main`.
-2. Read, in order:
-   - `AGENTS.md`;
-   - `CURRENT_TRUTH.md`;
-   - `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`;
-   - `docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`;
-   - `docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md`.
-3. Treat the 2026-08-16 owner canon as controlling where older semantic implementation assumptions conflict.
+## Required implementation
 
-### B. Fresh Story prompt contamination inventory
+### A. Collapse fresh Story input authority
 
-4. Trace the exact fresh Opening prompt construction and exact ordinary Story prompt construction from request boundary to provider messages.
-5. Produce the **actual field-level payload inventory**, not just file names. For every field/section sent to Story, record:
-   - exact JSON/message path;
-   - source file/function;
-   - source of data: repository content / `game_master` / `game_save` / recent turns / derived helper / compatibility mirror;
-   - whether the value is raw, normalized or inferred;
-   - which character(s)/turn conditions expose it;
-   - what narrative meaning the model can reasonably infer from it;
-   - current tests protecting it.
-6. Specifically prove current Story visibility or non-visibility for at least:
-   - `npc_stats.affinity`;
-   - `npc_stats.affection`;
-   - `npc_stats.resistance`;
-   - `npc_stats.csa_acceptance`;
-   - `npc_stats.sexual_arousal`;
+1. Rework `src/engine/story-prompt.js`, `src/engine/gameplay-state.js`, `src/engine/csa/story-projection.js`, `src/engine/workplace-context.js`, `src/engine/player-setup.js` and exact callers so ordinary Story receives only facts it genuinely needs:
+   - current raw `player_action` / feedback revision text;
+   - canonical current time;
+   - canonical current location and current present NPC IDs;
+   - compact relevant character canon and stable player canon;
+   - confirmed narrow player/NPC physical/clothing facts required for continuity;
+   - active CSA human-readable content + human subject/counterparty scope when required + activation/effective fact + genuinely necessary trigger facts;
+   - exact deterministic navigation destination when explicitly resolved;
+   - latest six committed raw turns + chronological older committed `turn_summary` memory;
+   - narrow player-private origin for the player's own structured rule transaction when applicable.
+2. Remove from fresh Story payload/authority:
+   - `npc_stats` including affinity/affection/resistance/csa_acceptance/NPC generic arousal;
    - `csa_attitudes`;
-   - `npc_relationship_state` and any derived relationship summary/boundary;
+   - generic `npc_relationship_state`;
+   - `csa_runtime_state` / `csa_aftereffect_state`;
+   - full all-NPC/all-location directories as narrative context;
+   - nearby candidate/possible entrant scheduler context;
+   - semantic `player_dialogue_policy` / target authority;
+   - CSA strength/authority tier as narrative pressure;
+   - precomputed applicable/known actor lists and compliance booleans;
+   - scene goal/focus/focal/last-speaker as future Story semantic planning state;
+   - media/image selection semantics.
+3. Keep full registered identity/location universes only outside Story where strict parser/ID/navigation validation needs them.
+4. Rewrite the CSA Story premise once and positively. It must state active+applicable rule compliance as ordinary workplace reality while keeping emotion/unrelated consent separate. Do not introduce required action tokens, pose grammar, mandatory ACTING, direct-coverage or semantic execution contracts.
+5. Opening remains narrow. Do not import retired ordinary-turn semantic roots into Opening. Preserve the already accepted shared provider exact-four literal-choice protocol.
+
+### B. Delete pre-Story semantic adjudication
+
+6. In `src/engine/scene-cast.js` and callers, remove fresh semantic meaning authority including:
+   - `HIGH_IMPACT_INTENTS` / regex intent ontology;
+   - semantic `classifyDialogueIntents`, `resolvePlayerDialoguePolicy`, `validatePlayerDialogueAgainstPolicy` fresh enforcement;
+   - fuzzy unique Korean given-name target resolution;
+   - generic entering-NPC / remote-NPC inference and possible-entrant scheduling;
+   - any pending semantic cast queue with no separate proven structural use.
+7. Preserve/refactor only exact structural responsibilities:
+   - registered ID/full-name validation/resolution;
+   - exact registered location/alias resolution;
+   - narrow deterministic navigation destination when the player's explicit input resolves unambiguously;
+   - current canonical presence.
+8. Do not replace deleted semantics with another regex ontology, classifier, semantic route, LLM gate, fuzzy repair or compatibility wrapper.
+9. Story may naturally narrate a requested contact/arrival/departure. Extract observes what actually happened; Commit persists the observed final state.
+
+### C. Collapse fresh Extract to observation
+
+10. Rework `src/engine/extract-prompt.js` and `src/engine/runtime-core/extract-observation.js` so the fresh V2 contract contains only product-proven observation fields:
+   - end/ordered scene evidence sufficient for final location/presence;
+   - narrow player/NPC physical/clothing observations;
+   - direct-evidence retained `player_sexual_state` mechanical observations only where current product/UI still consumes them;
+   - exact evidence/provenance;
+   - elapsed minutes;
+   - one natural-language `turn_summary`;
+   - Mind Monitor only as presentation/readback output if retained in the same call;
+   - structural warnings only where useful.
+11. Remove from the fresh Extract contract/instructions/normalizers:
+   - NPC generic stats;
+   - CSA attitudes;
+   - generic relationship/emotion/work/event ghost surfaces;
+   - `csa_trigger_evaluations` / `csa_runtime_updates` provider semantic channels;
+   - closed fresh `events.sexual` taxonomy/ledger output;
+   - semantic `action_target_id`;
+   - `image_character_id` / image tags/pool/selection.
+12. Do not keep removed domains merely so fresh normalization can warning-drop them. They should cease to be fresh output vocabulary.
+13. Preserve `persisted-extract-observation.js` and its private legacy `state_delta` adapter only as the already-proven historical read boundary. Fresh provider output must not enter that compatibility path.
+
+### D. Collapse Commit to narrow persistence
+
+14. Rework `src/engine/runtime-core/observation-reducers.js`, `commit-reducer.js`, `csa-commit-reducer.js` and exact callers so fresh Commit writes only retained narrow domains.
+15. Delete fresh reducers/writers for:
+   - generic NPC stats;
+   - generic relationship state/mirrors as narrative authority;
+   - CSA attitudes/runtime/aftereffect semantic updates;
+   - closed sexual-event ledger taxonomy if no retained narrow mechanical caller requires it after the same-cut presentation rewrite.
+16. Preserve the direct-evidence `player_sexual_state` mechanic only to the extent current product/UI genuinely consumes arousal/progress/count/erection. Do not infer relationship/consent from it.
+17. Preserve canonical physical/clothing reducers and evidence requirements.
+18. Preserve CSA definition/activation/deactivation + progression/capability/slot mechanics. These are institutional/product mechanics, not Story physical execution authority.
+19. `migrateCompanySave()` / fresh runtime migration must strip retired active-save roots rather than carrying them into the next Commit. Historical committed `game_turns.pre_save/post_save` snapshots remain untouched.
+
+### E. Fix scene chronology at the root
+
+20. In `src/engine/runtime-core/scene-reducer.js` and the observation path, delete the rule equivalent to:
+   `registered local speaker anywhere in the whole Story => present at final destination`.
+21. Preserve exact authoritative navigation destination as the final location when structurally resolved.
+22. Derive final presence from ordered destination-phase Story/Extract evidence:
+   - a local speaker proves presence only at that point in Story;
+   - source-location speakers before a movement boundary do not automatically survive into destination presence;
+   - destination-phase local dialogue/presence/entrance evidence may establish final presence;
+   - explicit exit evidence removes actors;
+   - remote speakers never become local presence;
+   - a complete valid final snapshot may be used when genuinely evidenced.
+23. Use the existing ordered parsed Story blocks / Extract evidence. Do not create a second narrative parser or an NPC-specific exception.
+24. Required regression based on QA Turn 6: heroine4 speaks in meeting room, player leaves for office, heroine1 speaks in office -> final location office; heroine1 may be present; heroine4 must not be carried into office solely because she spoke before departure.
+
+### F. Remove source/content hydration resurrection
+
+25. In `src/engine/gameplay-state.js` and content defaults, remove fresh hydration/default-fill for retired generic semantic state:
+   - `npc_stats` generic affinity/affection/resistance/csa_acceptance/NPC arousal model;
+   - `npc_relationship_state` generic mutable model;
+   - `csa_attitudes`.
+26. Remove corresponding legacy mutable bootstrap data such as heroine `initial_stats`, `initial_relationship`, `initial_csa_attitudes` from `content/characters.json` when their only purpose is the retired model.
+27. Preserve authored immutable character canon: identity, role, personality, speech/address style, background/content facts and narrative `csa_style` guidance. `csa_style` may shape emotional reaction but may not veto an applicable active rule.
+28. Preserve `npc_scene_state` only for proven narrow physical/clothing continuity, not semantic location/presence mirrors.
+
+### G. Presentation/readback derivation
+
+29. Rework `src/api/runtime-display.js`, `src/api/product-response.js`, frontend view-model/render helpers and related app payloads so retired generic semantic roots are not kept alive merely for UI.
+30. Remove presentation dependence on generic NPC affinity/resistance/csa_acceptance/NPC arousal/relationship object and closed sexual-event ledger when those are removed as fresh state.
+31. Derive presentation-only surfaces from existing committed authority instead of writing new gameplay semantics:
+   - image character/pool/tags/selection from committed parsed Story + final scene + visible physical facts + media catalog;
+   - focal/last-speaker highlighting from committed Story/current scene;
+   - CSA labels from retained rule/capability/catalog mechanics;
+   - TTS from committed dialogue blocks;
+   - relationship/history labels only if product still needs them, derived from committed Story/turn summaries/history rather than a new mutable relationship memory bag;
+   - Mind Monitor stays presentation/readback and must not feed Story/Commit authority.
+32. `last_image_id`, if still needed as a client/presentation cache, must not remain a required gameplay save semantic root.
+
+### H. Fresh save / DB structural contract source
+
+33. Author **at most one additive migration source** for the new fresh-save contract. Historical applied migrations are immutable. Do NOT apply the migration in this task.
+34. The migration source/function revisions must make current structural DB boundaries accept the minimal fresh save and stop requiring/preserving retired roots, including as necessary:
+   - `validate_company_save_v1`;
+   - `create_company_game`;
+   - `reset_company_game`;
+   - `reserve_company_player_setup`;
+   - `commit_company_opening`;
+   - helper functions that canonicalize initial/current save.
+35. Remove fresh-save requirements/preservation for at least:
+   - `npc_stats`;
+   - `npc_relationship_state`;
+   - `csa_attitudes`;
    - `csa_runtime_state`;
    - `csa_aftereffect_state`;
-   - active CSA rule `content`, scope, strength/authority, preset metadata, trigger/mode/execution metadata;
-   - compact clothing/physical state;
-   - scene/presence/focal/last-speaker state;
-   - player body/sexual state;
-   - navigation intent/destination metadata;
-   - recent raw Story and older summaries;
-   - image/TTS/media metadata if any reaches Story.
-7. Search for prompt wording that tells the model to use, ignore, negotiate, interpret, comply with or react to those fields. Identify contradictory instructions in the same prompt.
+   - `last_image_id` as a gameplay root.
+36. Preserve strict canonical scene validation, transaction ownership, save/version identity, CSA active/rule structural shape, physical/clothing/player-sexual retained mechanics, choices, clock/progression and atomic commit.
+37. Do **not** include a bulk data scrub of current games, the QA game, preserved manual game, or Production in this source migration. It is acceptable for legacy `game_master.initial_save` JSON to contain retired keys temporarily if reset/setup/runtime strips them before current-save validation/writing. Exact live row cleanup, if ever needed, requires later rollout authorization.
+38. Historical `game_turns.pre_save/post_save` and old Extract payloads must remain untouched/readable.
 
-### C. Pre-Story semantic authority inventory
+### I. Tests: reset around product authority, not old shape
 
-8. Inventory every fresh gameplay helper that executes before Story and can decide or narrow narrative meaning, including but not limited to:
-   - action classifiers/routes;
-   - actor/target resolution;
-   - navigation resolvers;
-   - Scene Cast / active-character selection;
-   - CSA applicability/scope/trigger helpers;
-   - any `bold`/risk/probability machinery still reachable;
-   - relationship/consent/privacy/authority logic if reachable;
-   - physical/sexual action taxonomies;
-   - parser-driven preconditions;
-   - compatibility adapters.
-9. For each, classify whether it is:
-   - structural identity/navigation only;
-   - a real narrow product mechanic;
-   - Story prompt projection only;
-   - semantic authority that should likely be deleted.
-10. Do not infer reachability from file name. Prove fresh callers.
+39. Rewrite/delete stale tests that require removed fields, semantic routers, candidate casts, closed Extract taxonomies, old scene speaker-union behavior or generic display metrics.
+40. Keep/reinforce structural tests for identity, exact navigation, parser wire markers, choice literal transport, atomic commit/replay/idempotence, save schema, current scene, physical evidence, clock and CSA lifecycle/progression.
+41. Add scenario-level deterministic regressions modeled on the accepted QA evidence/canon, including:
+   - active company rule from activation time is treated as in-force when applicable;
+   - different character emotions may coexist with compliance;
+   - an unrelated request outside CSA scope may still be refused;
+   - no `csa_acceptance`/resistance/relationship map in Story payload;
+   - movement A -> B with source speaker and destination speaker does not teleport source NPC;
+   - remote speaker does not become local presence;
+   - canonical time is preserved;
+   - explicit player movement/action/self-state is not silently substituted by runtime semantic routing;
+   - provider-authored four literal choices remain exact/order-preserved;
+   - latest six raw + older summaries remain intact;
+   - media/Mind/TTS presentation cannot block or redefine Story/Extract/Commit;
+   - minimal fresh reset/save shape contains no retired semantic roots.
+42. Do NOT add a `Won-hee always honorific` test.
+43. An evaluation-only LLM judge is NOT part of this source cut. Do not add runtime or CI dependency on another model.
 
-### D. Extract / Commit semantic authority inventory
+## Implementation discipline
 
-11. Trace every current Extract output field and every Commit/reducer consumer.
-12. Record every place a valid Story-established fact can be:
-   - rejected;
-   - dropped;
-   - normalized into a different meaning;
-   - overwritten by an earlier save value;
-   - mapped into a closed enum/taxonomy;
-   - lost because actor/presence/scene evidence was precomputed before Story.
-13. Separate structural validation from semantic adjudication. Structural examples to keep include ID membership, exact quote provenance, turn/revision ownership and atomicity. Semantic interpretation beyond those must be justified.
+44. Treat the accepted 152-item classification as the baseline, but re-check the current caller before deleting a field that might be a retained narrow mechanic or required historical reader. The task must not blindly delete:
+   - historical `game_turns.pre_save/post_save`;
+   - persisted legacy Extract read boundary;
+   - direct-evidence `player_sexual_state` mechanic;
+   - canonical scene/time/physical/clothing state;
+   - CSA lifecycle/capability/progression;
+   - committed `parsed_blocks`, exact literal choices, `turn_summary`, replay/idempotence.
+45. If a claimed REMOVE item has an unavoidable proven current product need that cannot be derived/preserved within this architecture, record the exact blocker and STOP for operator review rather than inventing a replacement semantic subsystem.
+46. Do not split this task into a chain of independently deployable semantic patches. Internal implementation commits are allowed, but the terminal review unit is the one complete semantic cut.
 
-### E. Scene / movement / presence audit
+## Required validation
 
-14. Trace the exact path for the QA movement case where a source-location NPC spoke before the player moved and a destination NPC spoke after arrival.
-15. Prove why `save.scene.present_npc_ids` could end with both source and destination NPCs.
-16. Inventory every rule equivalent to `speaker => current presence`, `acted => presence`, `final snapshot`, `entered/exited`, authoritative navigation, and any legacy scene mirror.
-17. The design recommendation must preserve one simple rule: destination presence comes from destination-phase evidence; a speaker from the source phase must not teleport merely because they spoke somewhere in the same Story.
-18. Do not propose a new fuzzy NPC-search/cast gateway.
+47. Run focused tests for Story prompt authority, scene chronology, Extract observation, Commit reducers, gameplay save hydration, CSA lifecycle/premise, runtime display/frontend and DB migration static contract.
+48. Run full `npm.cmd test` as regression signal; report semantic coverage, not merely pass count.
+49. Run syntax checks for all changed JS/MJS, JSON parse checks for changed content/config, migration/static SQL contract checks, and `git diff --check`.
+50. Verify by source search that fresh runtime no longer exposes/writes the retired semantic surfaces and that no renamed equivalent/replacement bag was introduced.
+51. Verify PR #67 remains OPEN / DRAFT / UNMERGED and branch HEAD is pushed normally.
 
-### F. CSA semantic audit
+## Explicitly forbidden in this task
 
-19. Audit current CSA from activation transaction through Story projection, Extract, Commit, progression and UI.
-20. Reconstruct how older design changes transformed the concept across time, especially where `common-sense premise` became merely `institutional context` or `company regulation` without preserving natural compliance.
-21. Prove whether `csa_acceptance`, `resistance`, `csa_attitudes`, strength/authority tier, execution metadata or other legacy values can bias Story toward treating an active rule as negotiable/optional.
-22. Distinguish these three facts explicitly:
-   - rule becomes valid at activation time;
-   - applicable staff naturally treat following the valid rule as ordinary/common-sense workplace behavior;
-   - feelings and unrelated consent remain character-specific.
-23. Identify every current test whose PASS condition proves removal of old CSA execution authority but does **not** prove the positive common-sense premise.
-24. Recommend the minimal Story-facing CSA projection. Default target is only the premise/content, scope/applicability, activation phase/time and genuinely necessary trigger facts—not acceptance scores or execution grammar.
-25. Do not implement the future content/preset redesign in this audit. Only map dependencies that the later content redesign must know.
+- no TEST gameplay/setup/opening/reset or DB writes;
+- no QA game mutation/reset;
+- no migration/DDL application;
+- no API/frontend deployment;
+- no Production access/deploy;
+- no access/mutation of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+- no provider/model/temperature/token changes;
+- no retry/regeneration;
+- no new parser generation or parser relaxation;
+- no semantic hard gate/verifier/evidence existence gateway as replacement runtime;
+- no generic fact/relationship/event/memory ledger, entity graph, vector DB or importance scoring;
+- no fuzzy identity/cast repair;
+- no new branch/PR, merge, Ready, rebase, squash or force-push.
 
-### G. DB / save / reset / migration residue audit
-
-26. Inspect current TEST DB schema/catalog/functions read-only. Do not apply DDL/DML.
-27. Inventory `game_master.data`, `game_master.initial_save`, current save roots/defaults/reset bootstrapping and validators relevant to semantic state.
-28. Quantify which stale/legacy semantic fields still exist in supported TEST saves and whether fresh runtime reads them.
-29. A DB field being present is not proof it should be deleted; a DB field being historical is also not proof it should reach Story. Classify storage and Story visibility separately.
-30. Inspect stored procedure/RPC bodies only to distinguish structural DB responsibility from hidden semantic authority. Confirm whether DB itself is deciding narrative meaning or merely preserving values that Worker later projects.
-31. No migration may be authored or applied in this audit. The report may propose a later additive migration only if the implementation cut truly needs a structural contract change.
-
-### H. Preserved QA evidence audit
-
-32. Read only game `f31b6c1b-0b27-4a4e-8c9d-7a238360891f` and extract the exact relevant evidence for all committed turns, including player action, Story text/parsed blocks, Extract observation, Commit/post-save state, scene, CSA state, physical/clothing state, summary and Mind Monitor where available.
-33. Re-evaluate the previous bug list under the corrected owner canon. Explicitly mark:
-   - **NOT A BUG:** Won-hee informal speech to an intern/junior by itself;
-   - **BUG/SEMANTIC FAILURE:** active applicable company rule treated as optional/not-yet-enforceable merely from personal resistance;
-   - movement/presence contamination;
-   - canonical time contradiction;
-   - duplicate/misplaced THOUGHT handling if proven;
-   - material explicit player intent/self-state loss if proven;
-   - repetitive non-progressing reaction/choice loops if proven;
-   - any additional defect discovered independently.
-34. Do not modify/reset the QA game after evidence extraction.
-
-### I. Test-quality audit
-
-35. Inventory tests that protect transport/shape/implementation but miss product semantics.
-36. Identify tests that currently certify an undesirable intermediate state, such as proving execution authority is absent while never proving the positive common-sense premise.
-37. Produce a proposed **Golden Play Regression** suite covering at least:
-   - activation-time company rule + natural compliance;
-   - differentiated character emotion without premise denial;
-   - unrelated request refusal remains possible;
-   - movement A->B with source speaker and destination speaker without teleport;
-   - canonical time fidelity;
-   - player explicit intent/self-state fidelity;
-   - exactly-four literal choices plus meaningful action diversity evaluated at product level;
-   - long-horizon continuity after raw-turn window;
-   - refresh/readback/replay parity.
-38. Explicitly exclude `Won-hee always honorific` from the golden regressions.
-39. Recommend whether a separate evaluation-only LLM judge should score semantic regressions. It must never become runtime authority.
-
-### J. Required classification and target cut plan
-
-40. Produce one exhaustive classification table. Every audited item must land in exactly one bucket:
-   - `KEEP_STORY_INPUT`;
-   - `KEEP_NARROW_MECHANIC_NOT_STORY`;
-   - `KEEP_HISTORICAL_READ_ONLY`;
-   - `DERIVE_AT_PRESENTATION`;
-   - `REMOVE`.
-41. Every KEEP must cite a concrete current caller/product need. Default for unexplained Story prompt fields is `REMOVE` from Story projection.
-42. Estimate the semantic simplification cut by concrete files/symbols to remove/change, but **do not implement it in this audit**.
-43. The proposed implementation must be one coherent `minimal-story-runtime-semantic-cut-v1`, not a sequence of symptom hotfixes. It should preferentially:
-   - delete Story prompt contamination;
-   - remove pre-Story semantic adjudication;
-   - remove duplicate/mirror authority;
-   - simplify scene/presence temporal handling;
-   - restore the corrected CSA premise semantics;
-   - keep structural transaction/replay/identity work intact;
-   - delete stale tests and add scenario-level product regressions.
-44. If the audit proves one area cannot safely be included in that single cut, identify the exact structural reason and the smallest prerequisite boundary. Do not split merely because the codebase is large.
-
-## Required deliverables
-
-Create/update docs only:
-
-1. `docs/audit/company-v1-minimal-story-runtime-reset-2026-08-16/01_STORY_PROMPT_AUTHORITY_INVENTORY.md`
-2. `docs/audit/company-v1-minimal-story-runtime-reset-2026-08-16/02_DB_SAVE_RESIDUE_AND_QA_EVIDENCE.md`
-3. `docs/audit/company-v1-minimal-story-runtime-reset-2026-08-16/03_REMOVE_KEEP_CLASSIFICATION.md`
-4. `docs/audit/company-v1-minimal-story-runtime-reset-2026-08-16/04_SINGLE_SEMANTIC_CUT_PLAN.md`
-
-The four docs together must be sufficient for another fresh session to author the implementation CURRENT_TASK without relying on chat memory.
-
-## Architecture constraints
-
-- Story remains narrative authority.
-- Active CSA is an activation-time company rule whose compliance is natural/common-sense for applicable staff; do not restore finite physical execution authority.
-- Do not add `always honorific` character enforcement.
-- Do not build a new generic memory/relationship/event graph.
-- Do not add a semantic verifier/gate to runtime as the answer to LLM inconsistency.
-- Do not add retry/regeneration/provider/model changes.
-- Do not add fuzzy identity/cast repair.
-- Do not preserve dead runtime solely for stale tests.
-- Do not rewrite historical applied migrations or immutable evidence.
-- Do not modify gameplay source/tests/config in this audit except `docs/ops/CURRENT_TASK.md` completion-state change; audit deliverables are docs only.
-
-## Authorized operations
-
-Authorized:
-- read-only Git/PR/source/history inspection;
-- read-only TEST DB schema/catalog/data inspection;
-- read-only access to QA regression game `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`;
-- creation/update of the four audit docs and this CURRENT_TASK completion state;
-- static source searches and non-mutating local analysis scripts if useful.
-
-Not authorized:
-- gameplay runtime/source/test/config behavior changes;
-- TEST gameplay/setup/opening/reset or other DB writes;
-- any QA-game mutation/reset;
-- any access/mutation of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- migration authoring/application or DDL/DML;
-- API/frontend deployment;
-- Production access/deployment;
-- live provider/LLM gameplay calls;
-- retry/regeneration/provider/model changes;
-- new branch/PR, merge, Ready, rebase, squash, force-push.
+Read-only inspection of source/Git/PR and TEST DB catalog/function definitions is authorized if necessary. The QA game should not need another read during implementation because accepted audit docs already contain the evidence; if a read is absolutely necessary it must remain read-only and be explicitly reported.
 
 ## Acceptance
 
-PASS only if the four audit documents give a complete, evidence-backed explanation of the current semantic runtime and a concrete one-cut simplification plan, including actual Story payload fields, fresh caller reachability, DB/save residue, QA turn evidence, false-positive bug corrections, test gaps, and exact REMOVE/KEEP classifications.
+PASS only if the source/test/content/migration-source cut materially implements the new Minimal Story Runtime as one coherent authority model:
 
-The audit must answer, with evidence:
+- Story payload is factual/minimal and no longer contaminated by generic stats/relationship/CSA attitude/runtime semantics;
+- pre-Story engine no longer interprets general narrative meaning beyond exact structural identity/navigation;
+- active applicable CSA is represented to Story as an in-force common-sense workplace premise while emotion/unrelated consent remain separate;
+- fresh Extract is an observer with no generic stats/attitude/closed sexual-event/image/runtime semantic outputs;
+- Commit writes only retained structural/narrow mechanics and no retired generic roots;
+- movement chronology cannot teleport a source-location speaker into the final destination;
+- fresh hydration/reset/save contract does not resurrect retired roots;
+- UI/media/readback no longer requires retired roots as gameplay authority;
+- historical committed snapshots and legacy Extract read compatibility remain intact;
+- choices/history/replay/transaction/canonical scene/time/physical and retained player-sexual + CSA lifecycle mechanics are preserved;
+- no replacement semantic system has been introduced.
 
-- Why did repeated live/CI acceptance miss basic product-semantic failures?
-- Which old semantic values still enter Story and through what exact path?
-- Which values may remain stored but must no longer enter Story?
-- Which runtime helpers are genuinely structural vs unnecessary semantic authority?
-- Why did movement merge source/destination presence?
-- How should CSA remain activation-time company regulation while making compliance the natural common-sense premise?
-- What exactly will the single implementation cut delete/change/keep?
-- What scenario-level regressions will prove product behavior afterward?
-
-On PASS or first deterministic blocker:
-- set this file to `WAITING_REVIEW` in the same docs-only lineage;
-- post one immutable terminal report to Issue #68 with START SHA, FINAL DOCS SHA, major findings, QA/DB access confirmation, REMOVE/KEEP counts, proposed semantic-cut scope, forbidden-operation confirmation and PR state;
-- STOP for operator review.
-
-**Do not generate or start the implementation task yourself.** A fresh operator/session must review the audit and then author the single `minimal-story-runtime-semantic-cut-v1` CURRENT_TASK from these four docs.
+On PASS or first real blocker:
+- set this file to `WAITING_REVIEW` in the same implementation lineage;
+- post one immutable terminal report to Issue #68 with START SHA, SOURCE/TEST/FINAL SHA(s), changed/deleted surfaces, exact migration source name if any, focused/full test evidence, source-search proof, any retained exception with caller reason, forbidden-operation confirmation and PR state;
+- STOP for operator review. Do not apply migration, deploy, run live TEST, generate the rollout task, or start another semantic cut yourself.
