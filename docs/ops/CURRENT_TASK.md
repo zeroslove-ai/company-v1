@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-destination-target-handoff-test-rollout-v3
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -141,3 +141,18 @@ On PASS or first blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68 with START SHA, deployed identity decision, canonical Opening result/evidence, source/destination action evidence, replay result, final reset state, forbidden-operation confirmation, and FINAL docs SHA;
 - STOP for operator review. Do not generate the next CURRENT_TASK yourself.
+
+## Execution result — V3 canonical TEST acceptance
+
+- START HEAD: `7cbf71cb8cbcca073c9a6ada447c26f87b1e4de7`.
+- Canonical Opening attempt: PASS through `scripts/live-playtest-canary.mjs --opening-only`; HTTP 200, SSE `complete`, parser success, exact four choices, raw SSE and setup evidence preserved at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-destination-v3-opening-20260817.json`.
+- Accepted Worker lineage remained deployed as TEST version `51c5ac28-8d52-49bc-bb14-fdd1f0164126` at 100%; no deploy was performed. The preexisting Minimal Story Runtime migration remained applied and was not reapplied or edited.
+- Same disposable TEST game continuation artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-destination-v3-continuation-20260817.json`.
+- Source scene was `brand_strategy_meeting_room` with `heroine5` and `heroine1`; exact UTF-8/JSON round-trip for `윤민아 보러간다` passed without replacement characters.
+- One Story -> Extract -> Commit produced destination `brand_strategy_office` with registered `heroine2` exactly once; source NPCs were absent, no duplicate presence or unrelated semantic/CSA/relationship/sexual mutation appeared, and retired roots remained absent.
+- `/api/history` `body.data.records` contained one committed record whose `player_action` and `player_input` exactly equaled `윤민아 보러간다`; parsed blocks were retained.
+- Same-action replay returned Story `meta.replayed=true` and `complete.replayed=true`, Extract `replayed=true`, Commit `success=true`/`replayed=true`, unchanged `save_revision=1094`, and unchanged committed turn/presence.
+- The first external continuation evaluator labeled the artifact `BLOCKED` because it incorrectly required a history `action_id` (the canonical record has no such field) and an optional `commit.idempotent` field. Offline artifact recovery verified the required canonical facts above; no second attempt was made.
+- Final canonical reset: HTTP 200; readback `committed_turn=0`, `save_revision=1095`, `processing_status=idle`, setup/opening `not_started`, scene `setup` with empty presence, Level 1 baseline, `csa_active=[]`, and retired roots absent.
+- Operations: authorized TEST setup/opening/Story/Extract/Commit/replay/reset API sequence performed once; direct DB writes 0; migration apply/reapply/edit 0; API/frontend deploy 0; Production/sentinel, preserved manual, and QA game access 0; source/config/frontend/migration changes 0; retries/regeneration 0; PR #67 remains OPEN/DRAFT/UNMERGED.
+- Live acceptance result: `PASS`; stop at operator review. Final docs SHA is the commit containing this record.
