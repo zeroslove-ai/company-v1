@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: client-readback-projection-test-rollout-v2
+Status: READY
+Task ID: relationship-history-mirror-boundary-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,19 +13,21 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5307574326` ACCEPTED `opening-story-choice-protocol-unification-v1`.
-Accepted combined lineage:
-- client/readback authority source: `f5d93f9563fa23f16c1e599e4a51e38c846c890d`;
-- provider choice protocol closure / current branch head: `a176e997f3dac1e03968f92b07ab50f37e1b49ec`.
+Previous operator review: `5307646651` ACCEPTED `client-readback-projection-test-rollout-v2`.
+Accepted current runtime/readback lineage includes:
+- client committed-readback projection authority: `f5d93f9563fa23f16c1e599e4a51e38c846c890d`;
+- shared Opening/ordinary Story provider choice protocol: `a176e997f3dac1e03968f92b07ab50f37e1b49ec`;
+- rollout completion docs head: `1997a4d89c81d2e2d4dc2bc1cdb606c48051de1a`.
 
-Previous rollout V1 evidence (`5307484215`) is accepted blocked evidence:
-- TEST API exact `f5d93f9` was deployed as Worker Version `e4b62c5e-9d43-40e9-addb-e37db8c97d89`;
-- TEST frontend exact `f5d93f9` was deployed as Worker Version `62a31a54-55c9-4c94-bb99-e9894817560e`;
-- setup reached Opening, then provider emitted zero `[CHOICE]` blocks and Opening stopped before commit;
-- no Turn 1/2 gameplay was attempted;
-- final reset returned the disposable TEST game to clean turn 0.
+The V2 rollout is accepted live evidence: four provider-authored Opening choices, exact literal Turn 1, free-text Turn 2, committed readback/history/replay, and canonical final reset all passed without retry/regeneration.
 
-The deterministic blocker was addressed at source by `a176e997...`: Opening and ordinary Story now share one mandatory exact-four provider `[CHOICE]...[/CHOICE]` protocol. No fallback/retry/parser repair was added.
+Owner narrative-memory direction remains binding:
+- Story authors narrative;
+- Extract emits narrow proven machine/UI observations plus one natural-language `turn_summary`;
+- latest six raw committed turns + chronological older `turn_summary` entries are narrative continuity;
+- generic relation/emotion/work/event/open-fact style durable memory is not to be rebuilt as another semantic authority.
+
+Current concrete residue to inspect is `npc_relationship_state`. Frontend raw relationship authority has already been removed, but server display code still reads this generic map for relationship summary and historical sexual-history/milestone/counter fields. `sexual_event_ledger`, `ejaculation_counts`, `player_sexual_state`, `npc_stats`, canonical scene, CSA institutional state and turn-summary memory remain separate proven narrow domains.
 
 Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
 Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden to access or mutate.
@@ -33,81 +35,101 @@ Production is forbidden.
 
 ## Objective
 
-Re-run the previously blocked committed-readback/frontend projection rollout once on the accepted combined lineage. Prove that the choice-protocol root fix allows Opening to commit and that the accepted client/readback authority cut works through refresh/recovery, two committed turns, replay, history, and final reset.
+Narrow or delete the remaining `npc_relationship_state` generic mirror authority using actual current callers, writers and supported stored-data proof. Keep only proven historical/mechanical/display compatibility that cannot yet be reconstructed from an existing canonical narrow domain. Do not turn sexual events, CSA mechanics, stats, or summaries into a replacement relationship/consent/emotion system.
 
-This is a bounded TEST-only rollout, not another source-change task.
+This is an implementation cut, not another memo. Inventory and delete in the same cut where proof is complete.
 
-## Required execution
+## Required work
 
 1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`.
-2. Verify exact source lineage before deployment:
-   - API runtime must include current accepted head `a176e997f3dac1e03968f92b07ab50f37e1b49ec`.
-   - Frontend source did not change after accepted readback SHA `f5d93f9563fa23f16c1e599e4a51e38c846c890d`; explicitly prove this. If the existing TEST frontend Worker `62a31a54-55c9-4c94-bb99-e9894817560e` is source-equivalent to current frontend files, do not redeploy it merely to change commit identity. If not source-equivalent, deploy the current reviewed frontend lineage once.
-3. Run the established Stage-B action-contract gate and relevant Wrangler dry-run(s). No source patch is authorized.
-4. Deploy the TEST API Worker once from exact current accepted head `a176e997...` if the deployed API identity does not already contain that prompt/runtime lineage. Verify health/version HTTP 200 and `edition_id=company-v1`.
-5. Canonically reset only the disposable TEST game and verify turn/action/history empty, setup/opening not_started, canonical scene setup, Level 1 baseline.
-6. Run one existing-canary scenario attempt only. Use the existing supported option for an actual Opening choice literal; do not create another harness.
-7. Setup + Opening must succeed with exactly four provider-visible / parsed / canonical choices. Capture the four exact literal strings.
-8. Turn 1 must send one actual Opening provider-returned choice literal unchanged as `player_action`. Complete Story -> Extract -> Commit.
-9. Refresh/readback after Turn 1 and verify the accepted readback authority:
-   - visible/canonical choices come from committed `parsed_blocks.choices`, not `save.last_choices` or top-level turn choices fallback;
-   - scene comes from server `display.scene` / canonical scene authority;
-   - heroine stats/relationship summary use committed `display.character_details` projection when supplied;
-   - active CSA/player capability use server display projection, not frontend raw-save reconstruction;
-   - session pending/transient streaming presentation is replaced by committed context after refresh.
-10. Turn 2 must use one free-text player action and complete Story -> Extract -> Commit without provider retry/regeneration.
-11. Verify history uses committed parsed blocks / committed choices and does not resurrect removed raw-history or duplicate choice fallback authority.
-12. Perform same-action replay/recovery on one committed ordinary turn and verify idempotent Story/Extract/Commit result and committed-turn invariance.
-13. Browser/Playwright numbered-key proof remains optional evidence only because the repository has no established browser helper. Do not invent a new browser harness or block otherwise-valid server/frontend readback acceptance solely on that absence. The literal-choice roundtrip itself is mandatory.
-14. Finish with one canonical reset of the disposable TEST game and independently verify turn 0, history 0, action 0, setup/opening not_started, Level 1, canonical scene setup.
-15. Record deployed Worker versions/source identity, exact Opening choice count/literal used, Turn 1/2 actions, refresh/readback assertions, replay result, and final cleanup.
-
-## Stop-on-defect policy
-
-One scenario attempt only.
-
-On the first deterministic product defect:
-- capture the failing stage/turn/action and smallest decisive raw/structured evidence;
-- perform cleanup reset if safe;
-- STOP as BLOCKED for operator review.
-
-Do not retry/regenerate provider output until lucky. Do not patch source, prompt, parser, frontend, model/provider settings, retry logic, fuzzy repair, compatibility layer, semantic gate, DB schema, or migration inside this rollout.
+2. Build an exact source + current TEST catalog/data caller map for:
+   - `npc_relationship_state` itself;
+   - `relationship_summary`, `summary`, `current_boundary`, `closeness`;
+   - `sexual_history` and all nested sexual counters/first-turn fields;
+   - relationship-level ejaculation counter mirrors;
+   - `milestones.sexual_relationship_started_turn` or equivalent unlock fields;
+   - `sexual_event_ledger`;
+   - `ejaculation_counts`;
+   - `player_sexual_state` / any current NPC sexual mechanical state;
+   - server `character-display` / `runtime-display` / context/history/recovery consumers;
+   - save defaults/migration helper/validator/reset/setup/opening contracts and tests.
+3. Classify each current field/path as one of:
+   - `CANONICAL_NARROW_MECHANIC`;
+   - `PRESENTATION_DERIVED`;
+   - `HISTORICAL_READ_ONLY`;
+   - `REMOVE`.
+   Classification must be justified by a concrete current writer/reader or supported historical stored-data need, not by field name or stale tests.
+4. Relationship narrative boundary:
+   - `npc_relationship_state` must not remain or become general narrative memory for promises, consent, comfort, affection, trust, emotion, work facts, arbitrary relations, or Story truth.
+   - Do not create a new relationship ledger, enum, stage machine, summary store, graph, vector memory, inference rule, or compatibility bag.
+   - Current narrative continuity remains latest-six raw Story + older natural-language `turn_summary` memory.
+5. Sexual/mechanical boundary:
+   - preserve `sexual_event_ledger`, `ejaculation_counts`, `player_sexual_state`, and any other narrow state only where current mechanics/UI actually consume them;
+   - never infer or mutate consent/comfort/trust/affection/relationship stage from a sexual event;
+   - where current display can derive counts/last-event/unlock from the canonical sexual ledger/counters without semantic loss, remove duplicate relationship-map fallback precedence;
+   - where legacy route-specific counters (for example vaginal/anal/oral or first-turn fields) cannot be reconstructed from the current ledger shape, retain them only through one explicit historical read-only boundary and state the deletion condition. Do not add fields to the current ledger merely to preserve stale historical shape unless a current product mechanic proves the need.
+6. Inspect `src/api/character-display.js` specifically. Its current `eventRecord()` reads both `npc_relationship_state[id].sexual_history` and current ledger/counters, and `privateInfo()` also consults a relationship milestone. Collapse duplicate current authority where proof permits. Historical fallbacks must be visibly historical and must not affect fresh narrative truth.
+7. Inspect `src/api/runtime-display.js` evidence/directory logic. A generic historical relationship map must not by itself become current gameplay/identity evidence for a general NPC unless a unique visible product requirement proves that behavior is necessary. Preserve stable registered identity/catalog and canonical scene evidence.
+8. Trace fresh-turn writers. If current Story/Extract/Commit still actively writes generic `npc_relationship_state` narrative semantics despite the simplified memory direction, remove that writer/reader/test surface in this cut. If there is no fresh writer, document the map as historical/readback only and prevent accidental active-authority use.
+9. Inspect save migration/default/validation/DB contract:
+   - if current save shape structurally requires `npc_relationship_state` even though active gameplay no longer does, remove the source/default requirement where safe;
+   - author at most one additive migration candidate only if a proven current DB validator/reset/RPC contract must change to stop requiring/writing the generic mirror;
+   - do NOT apply any migration in this task;
+   - historical applied migrations are immutable;
+   - do not mutate preserved manual-game data to make the field disappear.
+10. If supported non-preserved TEST stored data still contains relationship historical data, quantify shape/count read-only. Do not access the preserved manual game. Historical data presence alone does not make the field current narrative authority; it may justify only a narrow read-only boundary.
+11. Frontend must continue to consume committed server display projections only. Do not reintroduce raw `save.npc_relationship_state` fallback or client semantic reconstruction.
+12. Preserve the accepted current boundaries:
+   - provider-authored exactly-four literal choices;
+   - committed `parsed_blocks` replay/history authority;
+   - one persisted legacy Extract read-only boundary;
+   - canonical `save.scene`;
+   - `npc_stats`;
+   - evidence-gated physical posture/position and compact clothing;
+   - CSA institutional lifecycle/context;
+   - progression;
+   - Mind Monitor / media / image / TTS presentation sidecars;
+   - latest-six raw + older `turn_summary` memory;
+   - transaction/idempotence/replay identity.
+13. Delete stale source exports, fallback branches, fixtures and tests in the same cut when their protected current caller/data path is removed. Rewrite tests around the surviving canonical/historical boundary rather than preserving implementation-detail assertions.
+14. Run focused relationship/display/sexual/history/recovery/save-contract tests, full `npm.cmd test`, syntax checks for changed JS/MJS, and `git diff --check`.
+15. Report a concrete REMOVE/KEEP result, any additive migration candidate (authored but not applied), exact source/test SHA, test results, and forbidden-operation confirmation.
 
 ## Architecture constraints
 
-- Provider-authored exactly-four literal choices remain the sole choice authority.
-- Frontend displays committed server authority; it is not a semantic writer.
-- Committed `parsed_blocks` remain replay/history/choice authority.
-- Server `display.scene`, `display.character_details`, `display.active_csa`, and `display.player_capability` are presentation/readback projections of committed state, not independent durable writers.
-- Preserve the one persisted legacy Extract read-only boundary; do not expand compatibility.
-- Preserve canonical scene, `npc_stats`, physical/clothing/sexual narrow mechanics, CSA institutional state, progression, media/TTS/Mind Monitor, natural-language turn-summary memory.
-- No new semantic memory, relationship/event ledger, parser generation, generic compatibility bag, retry/regeneration, or provider/model workaround.
+- No new general narrative-memory system.
+- No semantic gate/evidence completeness gate around ordinary Story/Extract/Commit.
+- No fuzzy identity matching, relationship inference, sexual-to-consent inference, retry/regeneration, provider/model changes, parser generation, or compatibility bag.
+- Do not preserve dead runtime solely for stale tests.
+- One supported historical need may keep one explicit read-only boundary; it may never become a fresh writer.
+- Current sexual/media taxonomies are narrow mechanics/presentation only and must not decide whether arbitrary narrative meaning occurred.
+- Historical migrations and immutable evidence are not edited.
 
 ## Authorized operations
 
 Authorized:
-- read-only Git/PR/source/deployed-identity inspection;
-- TEST API deployment of exact accepted head if required;
-- TEST frontend deployment only if current deployed frontend is not source-equivalent to accepted current frontend files;
-- disposable TEST reset/setup/opening/Turn 1/Turn 2/context/history/replay;
-- read-only TEST DB verification needed for acceptance evidence;
-- docs completion record and immutable Issue #68 terminal report.
+- read-only Git/PR/source/history inspection;
+- read-only TEST DB catalog/data inspection excluding the preserved manual game;
+- source/test/config/docs cleanup on the canonical branch;
+- at most one additive migration candidate authored but NOT applied, only if proven current DB structural contracts require it;
+- local focused/full tests and static checks.
 
 Not authorized:
-- source/runtime/test behavior edits;
-- migration/DDL authoring or application;
+- TEST gameplay/setup/opening/reset or other DB writes;
+- migration/DDL application;
+- API/frontend deployment;
 - Production access/deployment;
 - any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
 - provider/model/temperature/token changes;
 - retry/regeneration;
-- new harness/browser framework/parser/fuzzy repair/semantic gate/compatibility layer;
+- new semantic memory/relationship system, parser, fuzzy repair, semantic hard gate, compatibility runtime;
 - new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Acceptance
 
-PASS only if Opening now provides and commits exactly four provider-authored literal choices, one literal survives unchanged as Turn 1 input, a free-text Turn 2 commits, committed refresh/recovery uses the accepted server readback authorities without stale frontend/save fallback precedence, history/replay are correct and idempotent, and final TEST reset is canonical.
+PASS only if `npc_relationship_state` and its sexual/history mirrors are reduced to their smallest caller/data-proven role: active generic narrative-memory authority is removed, duplicate display/mechanical fallback precedence is deleted where canonical narrow state already exists, and any unavoidable old-save fields survive only behind an explicit read-only historical boundary with a clear deletion condition. Current UI/readback and narrow mechanics must remain intact without inventing replacement semantic state.
 
 On PASS or first deterministic blocker:
-- set this file to `WAITING_REVIEW` in a docs-only completion commit;
-- post one immutable terminal report to Issue #68 with exact START/FINAL docs SHA, deployed identities, Opening choice evidence, Turn 1/2 results, readback assertions, replay result, final reset, forbidden-operation confirmation and PR state;
+- set this file to `WAITING_REVIEW` in the same source/test/docs lineage;
+- post one immutable terminal report to Issue #68 with START SHA, SOURCE_TEST_SHA/FINAL_SHA, exact REMOVE/KEEP classification, stored-data proof, migration-candidate status, focused/full tests, forbidden-operation confirmation and PR state;
 - STOP for operator review. Do not generate the next task yourself.
