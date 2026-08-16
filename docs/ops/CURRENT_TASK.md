@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: setup-opening-world-authority-test-rollout-v1
+Status: READY
+Task ID: opening-provider-exact-four-root-cause-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,143 +13,100 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Operator review `5305771557` ACCEPTED the corrected Setup/Opening world-authority candidate.
+Previous operator review: `5306072891` — `setup-opening-world-authority-test-rollout-v1` accepted as accurate BLOCKED evidence.
 
-Reviewed source/test/migration SHA:
-`1a221665f91b352607724912ba8a06250ac60fc5`.
-
-Reviewed unapplied migration:
-`supabase/migrations/20260816040000_company_v1_setup_opening_world_authority.sql`.
-
-Current accepted/deployed Scene executable remains:
-`cd615b4926a5a7092247459d44d25f886b8ac92b`.
-The Setup/Opening candidate changes SQL/test/docs only; there is no new API/frontend executable source to deploy.
+Current branch HEAD at registration parent: `66fca08ffa8425270ad3b032d27c57d2c4455823`.
+Reviewed Setup/Opening world-authority source/test/migration SHA remains `1a221665f91b352607724912ba8a06250ac60fc5`.
+TEST migration `20260816045221 / company_v1_setup_opening_world_authority` is already applied and immutable.
 
 TEST Supabase project: `fmcrspgxstsmxxsmkeee`.
 Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
 Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden. Production is forbidden.
 
-## Proven pre-rollout facts
+## Proven blocker
 
-- Live TEST `reserve_company_player_setup` still contains duplicated SQL semantic allowlists for departments, positions, body types, speech styles and heroine1..heroine5.
-- The reviewed migration removes those semantic catalogs and duplicate turn-0 scene mirrors.
-- Repository/application remains semantic authority for setup catalogs and opening-plan meaning.
-- DB retains narrow structural/transactional checks and dynamic registered-character integrity by reading per-game `game_master.data.characters` + `game_master.data.general_npcs` object keys.
-- Registered future IDs can pass without SQL edits; ghost primary/supporting IDs fail before durable mutation.
-- Canonical `save.scene` remains the only scene/location/presence/focal/last-speaker authority.
+The world-authority migration itself passed its intended live boundary: SQL semantic setup catalogs are removed, registered-ID integrity is dynamic, ghost primary ID is rejected before mutation, canonical Scene remains valid, and the dedicated TEST game was finally reset clean.
+
+The first valid application Opening request then failed deterministically at HTTP 200 SSE terminal `invalid_request: opening choices must contain exactly four items` with `retryable=false`. Provider visible deltas existed, but no committed Opening Story/parsed blocks were available because persistence correctly rejected the non-four choice shape. No retry or workaround was attempted.
+
+Exactly-four is an intentional UI/presentation shape. It is not permission for the server to author semantic fallback choices, silently truncate/pad provider output, retry/regenerate, or relax the contract.
 
 ## Objective
 
-Roll out the exact reviewed Setup/Opening authority migration to TEST, prove the live DB no longer duplicates repository semantic catalogs while retaining registered-ID integrity, and close the rollout with one bounded dedicated TEST smoke and final reset.
+Find the earliest owning cause of the Opening non-four provider choice result and restore one coherent provider-authored exact-four literal choice path without adding a second semantic choice author or a compatibility gateway.
 
 ## Required work
 
-1. Freeze exact START HEAD. Verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED and the reviewed migration text at HEAD is byte-for-byte the reviewed candidate from SHA `1a221665...` except docs-only descendants.
-2. Read-only verify before apply:
-   - migration `company_v1_setup_opening_world_authority` is absent from TEST migration ledger;
-   - current `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)` is the old semantic-allowlist implementation;
-   - current canonical Scene mirror-closure functions/validator/reset contract are still live.
-3. Apply exactly `20260816040000_company_v1_setup_opening_world_authority.sql` to TEST once. Do not edit it during rollout and do not create a second migration.
-4. Immediately read back live DB function contracts:
-   - `reserve_company_player_setup` no longer contains finite department/position/body/speech/weekday/location/work-hook/scene-goal/heroine semantic allowlists;
-   - it dynamically validates primary/supporting IDs against `game_master.data.characters` + `general_npcs` before any save mutation;
-   - `company_apply_opening_scene_v1` writes canonical `save.scene` and strips the already-deleted scene mirrors while retaining physical/clothing map data;
-   - function identity, SECURITY DEFINER/search_path/ACL and turn-0/idempotence checks remain correct;
-   - migration ledger contains this migration exactly once.
-5. Do not redeploy API or Frontend merely for ritual: reviewed candidate contains no executable API/frontend source delta. Confirm current TEST workers remain healthy and on the previously accepted Scene lineage.
-6. Use only the dedicated TEST game. Start with one canonical reset and confirm clean turn-0 state and canonical scene.
-7. Prove DB registered-ID integrity without manufacturing state:
-   - read the dedicated game master registered character/general-NPC IDs;
-   - make one direct transactional RPC probe using an unregistered/ghost primary or supporting ID and require rejection before mutation; read back save revision/setup/opening/scene unchanged;
-   - do not retry the same probe or add aliases/fuzzy handling if it fails unexpectedly: preserve first evidence and STOP BLOCKED.
-8. Run normal application Setup -> Opening with valid repository-backed current IDs. Confirm:
-   - setup/opening succeeds;
-   - canonical scene contains only registered participant IDs;
-   - removed Scene mirrors remain absent;
-   - player/npc physical-clothing state remains available;
-   - no deleted narrative residue fields are recreated.
-9. Run one provider-authored literal choice ordinary turn and one free-text ordinary turn through Story -> Extract -> Commit. Do not force a special semantic scenario.
-10. Verify committed `parsed_blocks` and `turn_summary`, canonical scene continuity, exact literal-choice identity, recovery/replay, and no recreation of removed Setup/Scene semantic/mirror state.
-11. Protected real-consumer systems must remain intact: physical/clothing, `npc_stats`, retained relationship display state, sexual/media presentation state where present, CSA institutional state, progression, stable identity, Mind Monitor, TTS, literal choices.
-12. Final dedicated TEST reset is required. Confirm `committed_turn=0`, setup/opening `not_started`, actions=0, turns=0, canonical scene valid, deleted save residue and removed Scene mirrors absent.
-13. If migration/function contract, ghost-ID rejection, valid Setup/Opening, Story/Extract/Commit, replay/recovery or final reset fails deterministically, preserve the first evidence and STOP BLOCKED. No retry/regeneration/source patch under this rollout.
+1. Freeze exact START HEAD and verify PR #67 is still base `main`, OPEN / DRAFT / UNMERGED. Verify all executable deltas since the last reviewed source SHA before changing anything.
+2. Trace the complete Opening choice path end-to-end in source/tests:
+   - Opening prompt/instruction construction;
+   - provider response/stream assembly;
+   - fresh Opening parser and choice extraction;
+   - exact-four structural validation;
+   - Opening commit/persistence;
+   - recovery/UI projection of committed literal choices.
+3. Inventory every place that can author, rewrite, filter, dedupe, truncate, pad, default, fallback, or validate Opening choices. For each finite choice mechanism use REMOVE-OR-PROVE.
+4. Determine why a provider-visible Opening response can reach the commit boundary with a non-four choice set under the current canonical prompt/parser contract. Do not infer from the error string alone; prove the producer/parser mismatch in source or a focused deterministic fixture.
+5. Preserve the target contract:
+   - provider authors exactly four literal choice strings;
+   - parser/persistence preserve those literal strings;
+   - UI renders those same strings;
+   - selecting one sends that exact literal as player input;
+   - free text remains ordinary gameplay.
+6. Delete any duplicate server-authored semantic fallback choice prose/metadata or stale Opening-only choice authority proven unnecessary. Do not replace it with another fallback layer.
+7. If producer instructions are duplicated, contradictory, stale, or permit ambiguous choice syntax, consolidate them at the earliest owning boundary. Reuse the canonical fresh marker/choice grammar rather than creating a third parser or special Opening parser generation.
+8. Keep exactly-four as structural presentation validation. Do not relax to 0..N, silently slice/pad, synthesize alternatives, retry/regenerate, or change provider/model/temperature/tokens.
+9. Add focused tests that prove:
+   - a canonical provider Opening with exactly four literals survives prompt/parse/persist projection unchanged;
+   - malformed/non-four provider output fails structurally without server-authored semantic replacement;
+   - no deterministic fallback prose is introduced;
+   - ordinary Story choice contract is not regressed;
+   - literal identity is preserved through committed Opening recovery where current source can test it without live DB mutation.
+10. Run targeted invariant tests plus the relevant broader suite. Test count alone is not acceptance; inspect failures against the canonical contract.
+11. Classify stale tests as KEEP / REWRITE / DELETE. Do not add runtime compatibility to keep obsolete fallback assumptions green.
+12. If source inspection proves the non-four result is purely provider nondeterminism with no contradictory/insufficient producer contract and no repository defect, do not invent a patch. Record BLOCKED evidence explaining the proof and STOP for operator review.
 
 ## Architecture constraints
 
-- Repository/application owns semantic catalogs and world meaning.
-- DB owns transactionality, structural validation, idempotence and dynamic registered-ID integrity only.
-- No hardcoded heroine/world semantic catalog in SQL.
-- No compatibility alias, fuzzy ID repair, regex semantic classifier, generic state bag, new parser, semantic gate, retry, provider/model/config change or server-authored choice fallback.
-- `save.scene` remains sole Scene authority; do not recreate `scene_state`, root presence/focal/last-speaker mirrors, player location mirror or NPC present/location/scene mirrors.
-- Narrative continuity remains recent six raw turns + older `game_turns.turn_summary`; do not create a new narrative fact ledger.
-- Institutional CSA compliance remains separate from consent/comfort/affection/emotion.
-- Media/image taxonomy remains presentation-only.
+- One durable domain -> one canonical writer.
+- Provider is the semantic author of choices; server owns exact-four structural validation and literal persistence, not alternative semantic prose.
+- No retry/regeneration, provider/model/config change, fuzzy repair, truncation/padding, deterministic semantic fallback choices, new parser generation, parser relaxation, regex semantic gate, or arbitrary save patch.
+- Repository/application owns setup/world semantic catalogs; TEST DB world-authority migration is already applied and must not be rolled back or edited.
+- `save.scene` remains sole Scene/location/presence authority.
+- Story/Extract open-ended meaning must not be restricted by choice taxonomy.
+- CSA institutional state remains separate from consent/comfort/affection/emotion.
+- Media/image catalogs and sexual image families are protected presentation adapters; do not change or delete them in this task.
+- TEST-only Level 7 acceleration seam is protected and unchanged.
 
 ## Authorized operations
 
 Authorized:
-- read-only Git/PR/TEST DB inspection;
-- apply exactly the reviewed TEST migration once;
-- dedicated TEST reset/setup/opening/ghost-rejection probe/ordinary two-turn smoke/replay/readback/final reset;
-- health/identity readback for current TEST workers;
-- TEMP/local evidence capture;
-- docs-only completion update.
+- source/test/docs edits within this exact root-cause scope;
+- read-only Git/PR inspection;
+- focused and broader local tests;
+- docs/audit evidence updates;
+- one docs-only terminal status commit/report.
 
 Not authorized:
-- source/test/migration/config edits;
-- API/frontend redeploy absent an unexpected executable identity defect;
-- second migration or rollback;
+- TEST gameplay/LLM calls;
+- TEST DB writes/reset/migration/DDL;
+- API/frontend deploy;
 - Production access;
 - any access/mutation/reset of preserved manual game;
-- retries/regeneration to obtain a pass;
-- provider/model/temperature/token change;
+- provider/model/temperature/token changes;
+- retry/regeneration;
 - new branch/PR, merge, Ready, rebase, squash or force-push.
 
 ## Acceptance
 
-PASS only if the exact reviewed migration is applied once and live TEST proves:
-- SQL semantic catalog duplication is removed;
-- registered character integrity is dynamic from the per-game master projection;
-- ghost IDs are rejected before mutation while normal registered Setup/Opening succeeds;
-- canonical Scene and deleted mirror/residue cleanup remain intact;
-- literal-choice and free-text ordinary turns plus replay/recovery succeed;
-- protected real-consumer state remains structurally intact;
-- final dedicated TEST reset is clean;
-- no Production/manual-game access or unauthorized source/deploy/retry occurred.
+PASS only if a repository-owned root cause is proven and corrected at the earliest authority boundary while preserving provider-authored exactly-four literal choices with no server semantic fallback, or if deletion-only proof shows a duplicate/stale choice authority can be removed safely. Focused tests must prove literal identity and structural non-four rejection.
+
+If no repository defect is provable, BLOCKED evidence is an acceptable terminal result and no speculative runtime patch is allowed.
 
 ## Completion
 
 On PASS or deterministic BLOCKED evidence:
 - set this file to `WAITING_REVIEW` in one docs-only completion commit;
-- report exact START SHA, reviewed SHA, migration ledger version/name, live function/ACL facts, worker health identities, ghost-ID probe result, valid Setup/Opening/turn/replay evidence, final reset state, and FINAL_DOCS_SHA;
+- report START_SHA, executable FINAL_SHA if any, exact changed files, root-cause proof, deleted/retained choice authorities, targeted/broader tests, DB/deploy/Production operations (expected zero), and FINAL_DOCS_SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not create the next task yourself.
-
-## Rollout result — deterministic BLOCKED
-
-The reviewed migration was applied exactly once to the dedicated TEST project.
-Supabase ledger name: `company_v1_setup_opening_world_authority`; assigned
-ledger version: `20260816045221`. Live readback confirmed removal of finite
-semantic arrays and heroine literals from `reserve_company_player_setup`,
-dynamic membership checks against `game_master.data.characters` and
-`general_npcs`, canonical `save.scene` projection, removed Scene mirrors, and
-the expected SECURITY DEFINER/search_path/ACL contracts. The API health
-readback was HTTP 200 with `ok=true`, `edition_id=company-v1`; API version was
-`744e74b9-4ac9-4596-9751-c754bdfbf6af` and the previously accepted frontend
-lineage was `9d7dcd0c-ab3f-45ab-87b5-71755d902ee5`.
-
-The ghost primary-ID probe was rejected before mutation with
-`22023: opening primary character id is not registered`; save revision,
-committed turn, setup/opening, scene fingerprint, action count, and turn count
-were unchanged. Valid Setup succeeded, but the first Opening attempt stopped
-deterministically at HTTP 200 SSE terminal error
-`invalid_request: opening choices must contain exactly four items`.
-No retry, provider/model change, parser workaround, or runtime patch was made.
-First-failure evidence is preserved outside the repository at
-`C:\Users\JAEWAN\AppData\Local\hermes\company-v1-codex-watcher\setup-opening-world-authority-failure.json`.
-
-The authorized final TEST reset passed. Final readback: `save_revision=1003`,
-`committed_turn=0`, setup/opening `not_started`, canonical setup scene valid,
-deleted Scene mirrors absent, `actions=0`, and `turns=0`. This rollout is
-BLOCKED pending operator review of the deployed Opening choice failure; no
-next task is generated here.
