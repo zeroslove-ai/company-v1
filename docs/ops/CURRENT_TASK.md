@@ -101,6 +101,6 @@ On PASS or first deterministic blocker:
 - API/frontend deploy: `0`
 - Production/manual-game access: `0`
 - Provider/model/config/retry/parser/runtime semantic changes: `0`
-- Final docs completion commit: pending
+- Final docs completion commit: this docs-only completion lineage
 
 STOP for operator review. Do not start the live closure task or generate the next task from this record.
