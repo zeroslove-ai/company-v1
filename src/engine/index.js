@@ -89,13 +89,12 @@ export {
   buildMindEffectExtractFirewallSection
 } from './csa/prompt-sections.js';
 export {
-  CSA_AUTHORITY_POLICY, CSA_ENACTMENT_BY_PHASE, authorityPolicyFor,
-  authorityPolicyPayload, enactmentForPhase, matchesCsaSubjectScope,
+  CSA_AUTHORITY_POLICY, authorityPolicyFor,
+  authorityPolicyPayload, matchesCsaSubjectScope,
   phaseFor, phaseForRule, profileSex, subjectScopeForRule
 } from './csa/authority-policy.js';
 export {
-  EXECUTION_KINDS, EXECUTION_ACTIONS, EXECUTION_TRIGGER_KINDS,
-  deriveExecutionMetadata, normalizeExecutionMetadata,
+  normalizeExecutionMetadata,
   executionMetadataForRule
 } from './csa/execution-policy.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';

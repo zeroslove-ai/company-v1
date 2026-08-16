@@ -64,7 +64,7 @@ test('player ACTING posture is not a durable observation without Extract evidenc
 });
 
 test('player private CSA origin is present in Story payload but does not create a physical enactment contract', () => {
-  const [system, user] = buildStoryPrompt({
+  const [, user] = buildStoryPrompt({
     edition: { id: 'company-v1', characters: { characters: {} }, map: { locations: [] } },
     context: { save: { data: save } },
     playerAction: '',
@@ -76,6 +76,7 @@ test('player private CSA origin is present in Story payload but does not create 
   const payload = JSON.parse(user.content);
   assert.equal(payload.player_action, undefined);
   assert.deepEqual(payload.player_private_origin.affected_rule_ids, ['csa_1']);
-  assert.doesNotMatch(system.content, /ACTING enactment_id/);
-  assert.doesNotMatch(system.content, /mandatory enactment/);
+  assert.equal(payload.player_private_origin.initiated_by_player, true);
+  assert.equal(payload.player_private_origin.operation, 'activate');
+  assert.equal(payload.player_private_origin.kind, 'csa_transaction');
 });

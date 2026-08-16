@@ -17,6 +17,19 @@ test('Company CSA catalog V2 uses institutional authority and group selectors on
   assert.ok(catalog.items.every(item => ['continuous', 'on_player_request'].includes(item.mode)));
 });
 
+test('catalog execution metadata keeps only the compact clothing projection', () => {
+  const physical = catalog.items.find(item => item.id === 'press_body_against_recipient');
+  const clothing = catalog.items.find(item => item.id === 'work_nude');
+  assert.equal(physical.execution, null);
+  assert.deepEqual(clothing.execution, {
+    kind: 'clothing_state',
+    action: 'set_clothing_state',
+    trigger_kind: 'always_during_work',
+    target_required: false,
+    required_state: clothing.execution.required_state
+  });
+});
+
 test('preset JSON is the sole sentence authority and contains no individual selectors or dead role fields', () => {
   const forbidden = /character:heroine|current_partner|current_scene_npcs|role_slots|sexual_actions|method_policy|required_action|synergy_ids|minimum_strength|public_normalization|persistent/;
   assert.doesNotMatch(JSON.stringify(raw), forbidden);

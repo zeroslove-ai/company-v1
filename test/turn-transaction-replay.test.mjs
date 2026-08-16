@@ -187,6 +187,7 @@ test('same-quote sexual events from two NPCs remain distinct in the ledger', () 
   const matching = result.nextSave.sexual_event_ledger.filter(event => event.evidence === rawStory);
   assert.equal(matching.length, 2);
   assert.notEqual(matching[0].event_id, matching[1].event_id);
+  assert.deepEqual(result.nextSave.npc_relationship_state, save.npc_relationship_state);
 });
 
 test('commit applies one authoritative location and generic observed presence', () => {

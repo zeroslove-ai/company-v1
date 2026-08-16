@@ -24,12 +24,6 @@ export const CSA_AUTHORITY_POLICY = Object.freeze({
   })
 });
 
-export const CSA_ENACTMENT_BY_PHASE = Object.freeze({
-  newly_activated: 'announce_new',
-  updated: 'announce_update',
-  ongoing: 'already_established'
-});
-
 export function authorityPolicyFor(value) {
   const id = typeof value === 'string' && Object.hasOwn(CSA_AUTHORITY_POLICY, value) ? value : 'weak';
   return CSA_AUTHORITY_POLICY[id];
@@ -37,10 +31,6 @@ export function authorityPolicyFor(value) {
 
 export function authorityPolicyPayload() {
   return Object.values(CSA_AUTHORITY_POLICY).map(policy => ({ ...policy }));
-}
-
-export function enactmentForPhase(phase) {
-  return CSA_ENACTMENT_BY_PHASE[phase] ?? CSA_ENACTMENT_BY_PHASE.ongoing;
 }
 
 export function phaseFor(rule = {}, expectedTurn = null) {

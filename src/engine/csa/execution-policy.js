@@ -4,9 +4,7 @@
  * consumer.  Natural physical, relational, emotional, and sexual HOW belongs
  * to Story -> Extract -> turn_summary, not to a finite CSA execution grammar.
  */
-export const EXECUTION_KINDS = Object.freeze(['clothing_state']);
-export const EXECUTION_ACTIONS = Object.freeze(new Set(['set_clothing_state']));
-export const EXECUTION_TRIGGER_KINDS = Object.freeze(new Set(['always_during_work']));
+const EXECUTION_KINDS = Object.freeze(['clothing_state']);
 
 const CLOTHING_STATES = Object.freeze({
   work_nude: { uniform_top: 'removed', uniform_bottom: 'removed', underwear_top: 'removed', underwear_bottom: 'removed' },
@@ -18,7 +16,7 @@ const CLOTHING_STATES = Object.freeze({
 });
 
 /** Derive only for old catalog rows; new rows should carry `execution`. */
-export function deriveExecutionMetadata(item = {}) {
+function deriveExecutionMetadata(item = {}) {
   const id = typeof item.id === 'string' ? item.id : '';
   const category = item.category;
   if (category === 'clothing' || CLOTHING_STATES[id]) {

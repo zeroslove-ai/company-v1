@@ -99,6 +99,35 @@ test('active CSA is institutional context and does not emit a finite physical ex
   assert.equal('target_ids' in rule, false);
 });
 
+test('non-clothing CSA execution metadata is inert while compact clothing remains a projection-only consumer', () => {
+  const save = makeSave();
+  save.csa_rules.csa_test.preset.execution = {
+    kind: 'sexual_behavior', action: 'perform_oral_sex_on', trigger_kind: 'always_during_work'
+  };
+  const physical = buildStoryWorldProjection({
+    save,
+    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon' }], general_npcs: [] },
+    sceneActorIds: ['heroine1'],
+    expectedTurn: 5
+  });
+  assert.equal('clothing_projection' in physical.world_rules[0], false);
+
+  save.csa_rules.csa_test.preset.execution = {
+    kind: 'clothing_state', action: 'set_clothing_state', trigger_kind: 'always_during_work',
+    required_state: { underwear_top: 'removed' }
+  };
+  save.npc_scene_state.heroine1.clothing = { underwear_top: 'removed' };
+  const clothing = buildStoryWorldProjection({
+    save,
+    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon' }], general_npcs: [] },
+    sceneActorIds: ['heroine1'],
+    expectedTurn: 5
+  });
+  assert.deepEqual(clothing.world_rules[0].clothing_projection.actors, [{
+    actor_id: 'heroine1', current_state: { underwear_top: 'removed' }, compliant: true
+  }]);
+});
+
 test('CSA commit keeps definitions and lifecycle progression but ignores provider execution claims', () => {
   const currentSave = makeSave();
   const nextSave = structuredClone(currentSave);
