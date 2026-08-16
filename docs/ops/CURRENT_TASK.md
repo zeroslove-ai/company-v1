@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: deep-level7-live-acceptance-v10-physical-memory-runtime
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -121,3 +121,51 @@ On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68 with exact reviewed executable/deployed identity, turn count, decisive evidence, replay result, final reset state, forbidden-operation confirmation, and final docs SHA;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution result — 2026-08-16
+
+Status: `WAITING_REVIEW` after one TEST-only scenario PASS. The temporary
+evidence reader omitted the top-level `save_revision` field from its compact
+snapshots; replay HTTP/idempotency and committed-turn invariance were captured,
+and this auxiliary evidence limitation is recorded for operator review. No
+provider Story/Extract failure occurred and no provider retry/regeneration was
+performed.
+
+- Start HEAD: `dd89ecbbe60ccf2c268484dd97492f6ff8a7db3d`.
+- Reviewed executable: `e4c15345c1c23afda85df09381830421d8428d73`.
+- TEST API deployed exact reviewed lineage: `game-proxy-company-v1`, Worker
+  Version `73fb5490-c728-4f65-9325-b0ddaf57fa4a`.
+- Stage B action contract gate and Wrangler dry-run: PASS. API health: HTTP
+  200, `ok=true`, `edition_id=company-v1`.
+- Disposable TEST game only: reset, Level-7 TEST seam, setup, Opening, 16
+  ordinary turns, replay, and final reset. Preserved manual game and
+  Production were not accessed.
+- Opening provider choices: 4; parsed choices: 4; final canonical choices: 4.
+  Turn 1 transported an unchanged provider-returned Opening literal. Turn 10
+  transported a later provider-returned choice literal. The remaining turns
+  used free-text actions.
+- Turn 1–16 Story → Extract → Commit: PASS. Scene remained canonical; actual
+  presence and speaker identities changed during the run. Post-commit state
+  introduced zero new semantic-memory key paths relative to the Level-7
+  baseline. No `open_facts`/`open_observations` path appeared.
+- At the summary boundary, history contained 16 records. The latest raw
+  subset was turns 11–16, while older turns 7–10 remained chronological with
+  natural-language summaries. No relation/event/emotion/work ledger was
+  introduced by the run.
+- Physical/contact intent was observed as narrative input without a durable
+  physical/clothing mutation. Sexual mechanics were not naturally reached;
+  `player_sexual_state` remained unchanged. CSA did not block the narrative
+  path (`csa_active=[]`, no CSA trigger update).
+- Same-action replay: Story `meta.replayed=true` and `complete.replayed=true`,
+  Extract `replayed=true`, Commit `success=true` and `replayed=true`; committed
+  turn remained 16. The compact evidence reader did not retain the numeric
+  `save_revision` field, so that field is an explicit operator-review evidence
+  limitation rather than a runtime failure.
+- Final reset: committed turn 0, processing `idle`, setup `not_started`,
+  opening `not_started`, canonical scene `setup`, Level 1, `csa_active=[]`,
+  history 0.
+- No source/runtime/test changes, migrations, DB schema changes, frontend
+  deployment, Production access, preserved-game access, provider/model change,
+  or PR state change was made by this acceptance.
+- External evidence artifact (not committed):
+  `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-deep-level7-v10-evidence.json`.
