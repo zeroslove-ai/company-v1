@@ -114,6 +114,21 @@ test('NPC app payload includes five heroines and evidence-backed general NPCs wi
   assert.deepEqual(unseen.stats, { affection: 0, acceptance: 0, arousal: 0, resistance: 0 });
 });
 
+test('NPC app payload accepts the committed display detail projection as its readback authority', () => {
+  const save = baseSave();
+  save.npc_stats.heroine1 = { affinity: 1, resistance: 2, csa_acceptance: 3, sexual_arousal: 4 };
+  save.npc_relationship_state.heroine1 = { relationship_summary: 'raw mirror' };
+  const details = {
+    heroine1: {
+      stats: { affinity: 9, resistance: 8, csa_acceptance: 7, sexual_arousal: 6 },
+      relationship_summary: 'committed display', relationship_record: { total_events: 2 }, profile: {}, body: {}
+    }
+  };
+  const heroine = buildNpcAppPayload(save, edition, {}, details).find(npc => npc.id === 'heroine1');
+  assert.deepEqual(heroine.stats, { affection: 9, acceptance: 7, arousal: 6, resistance: 8 });
+  assert.equal(heroine.relationship_summary, 'committed display');
+});
+
 test('transaction details preserve authority tiers for Extract/runtime observation', () => {
   const previousSave = baseSave();
   previousSave.csa_rules = { old: { strength: 'weak', content: '예전 규정' } };

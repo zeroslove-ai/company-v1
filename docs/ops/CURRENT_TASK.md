@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: client-readback-projection-authority-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -129,6 +129,46 @@ Not authorized:
 PASS only if active committed readback -> frontend presentation has a clear single authority per surface, duplicate semantic/client fallback authority is removed where caller/data proof is complete, and any retained mirror/read-only boundary has a concrete unique current product consumer and deletion condition.
 
 The cut must preserve current UI behavior after refresh/recovery and must not replace removed mirrors with a new semantic system.
+
+## Execution result — source/test PASS, operator review pending
+
+- START_HEAD / registration SHA: `ebc2dd6090a1d1bb428faf3a62813bce350cc498`.
+- CURRENT_TASK blob at lease acquisition: `e75d6894cb717f2f27f3c51d32cfacc5b3c4da7d`.
+- Changed source/test surfaces: `src/api/product-response.js`,
+  `src/api/runtime-display.js`, `src/frontend/pages/app.js`,
+  `src/frontend/pages/history-tools.js`, `src/frontend/pages/render.js`,
+  `src/frontend/pages/state.js`, `src/frontend/pages/view-model.js`,
+  `test/frontend-state-contract.test.mjs`, `test/frontend-view-model.test.mjs`,
+  and `test/runtime-display-contract.test.mjs`.
+- Relationship: retained `npc_relationship_state` because the server's
+  relationship/history and sexual-record consumers still read it; frontend
+  view-models no longer expose it as a second raw semantic source when the
+  committed `display.character_details` projection exists. App payloads use
+  the same committed display detail projection for heroine stats and
+  relationship summary when supplied; evidence-backed general-NPC payloads
+  retain their unique app projection.
+- Stats: server display details win over stale save mirrors in frontend view
+  models and app payloads; no stat reducer or durable writer changed.
+- CSA: removed `fallbackActiveRules(save)` from the frontend view model;
+  `display.active_csa` / `display.player_capability` is the readback source,
+  with no raw-save semantic reconstruction.
+- Choices: refresh/recovery reads Opening's server projection or the latest
+  committed `parsed_blocks.choices`; stale `save.last_choices`, duplicate
+  `game_turns.choices`, and history fallback precedence are no longer used by
+  the frontend. Provider-authored literal values and the transient streaming
+  presentation remain unchanged.
+- Scene: frontend view-models prefer the server `display.scene` projection,
+  with canonical `save.scene` only as a narrow direct-model/test input path;
+  legacy scene mirrors remain non-authoritative.
+- Reset/recovery/session: pending-action recovery remains intact and refresh
+  replaces the view-model from committed server context; no new client cache
+  or semantic adapter was added.
+- No additive migration candidate was necessary. No content, DB, migration,
+  deployment, TEST gameplay/reset/write, Production, provider/model, parser,
+  retry, fuzzy, semantic-gate, or compatibility-layer change occurred.
+- Focused frontend/context/history/recovery/runtime-display tests: `70/70`.
+- Full `npm.cmd test`: `416/416`, 0 failed, 0 skipped.
+- Changed JS/MJS `node --check`: PASS. `git diff --check`: PASS.
 
 On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in the same source/test/docs lineage;

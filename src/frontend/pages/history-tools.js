@@ -12,9 +12,7 @@ function safe(value) {
 }
 
 function choices(record) {
-  const source = Array.isArray(record?.parsed_blocks?.choices)
-    ? record.parsed_blocks.choices
-    : Array.isArray(record?.choices) ? record.choices : [];
+  const source = Array.isArray(record?.parsed_blocks?.choices) ? record.parsed_blocks.choices : [];
   return source.filter(item => typeof item === 'string' && item.trim());
 }
 

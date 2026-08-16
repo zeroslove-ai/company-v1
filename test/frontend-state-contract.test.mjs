@@ -67,14 +67,14 @@ test('frontend state resolves game IDs and keeps the external committed turn aut
   assert.equal(committedTurn(context), 1);
 });
 
-test('frontend state preserves pending metadata and committed choice fallback', () => {
+test('frontend state preserves pending metadata and reads committed parsed choices', () => {
   const local = storage();
   const action = { game_id: gameId, action_id: 'action-1', expected_turn: 3, player_action: 'Keep action', created_at: 'now', step: 'story' };
   savePending(local, action);
   assert.deepEqual(loadPending(local, gameId), action);
   clearPending(local, gameId);
   assert.equal(local.getItem(pendingKey(gameId)), null);
-  assert.deepEqual(contextChoices({ save: { data: { last_choices: [] } }, recent_turns: [{ choices: ['old'] }, { choices: ['new', '', 'newer'] }] }), ['new', 'newer']);
+  assert.deepEqual(contextChoices({ save: { data: { last_choices: ['stale'] } }, recent_turns: [{ parsed_blocks: { choices: ['old'] } }, { choices: ['stale'], parsed_blocks: { choices: ['new', '', 'newer'] } }] }), ['new', 'newer']);
 });
 
 test('Story renderer separates dialogue speaker, direction, and line', () => {
@@ -133,7 +133,7 @@ test('renderer uses view-model choices, short labels, and full choice payloads',
 
 test('reconnect renders the latest Story and choices and resume makes no API call', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
-    const context = validContext({ turns: [{ player_action: 'Previous action', story_text: 'fallback', parsed_blocks: { blocks: [{ type: 'scene', text: 'Latest Story' }] }, choices: ['turn A', 'turn B'], mind_monitor: { 표면의식: 'steady' } }] });
+    const context = validContext({ turns: [{ player_action: 'Previous action', story_text: 'fallback', parsed_blocks: { blocks: [{ type: 'scene', text: 'Latest Story' }], choices: ['turn A', 'turn B', 'turn C', 'turn D'] }, choices: ['stale A', 'stale B'], mind_monitor: { 표면의식: 'steady' } }] });
     const snapshot = structuredClone(context); let contextCalls = 0, statusCalls = 0;
     const api = { context: async () => { contextCalls += 1; return { context }; }, actionStatus: async () => { statusCalls += 1; return {}; } };
     const app = createFrontendApp({ documentRef, storage: storage(), api }); await app.init();
@@ -525,7 +525,7 @@ test('busy guard admits one operation and toolbar capabilities do not invent end
 
 test('numbered choice input ("2", "b", "②") resolves to the exact stored choice text before submitting, never the literal digit/letter', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
-    const context = validContext({ choices: ['보고서를 제출한다', '회의에 참석한다', '휴식을 취한다', '상사에게 문의한다'] });
+    const context = validContext({ choices: [], turns: [{ parsed_blocks: { choices: ['보고서를 제출한다', '회의에 참석한다', '휴식을 취한다', '상사에게 문의한다'] } }] });
     const calls = [];
     const api = {
       context: async () => ({ context }),
@@ -653,11 +653,11 @@ test('commit 성공·실패 모두 입력창을 비우고 실패한 입력을 �
   });
 });
 
-test('Story complete uses top-level choices fallback and projects once without page scrolling', async () => {
+test('Story streaming choices remain transient while committed parsed choices win after refresh', async () => {
   await withFakeDocument(async ({ nodes, documentRef }) => {
     nodes['current-story'].scrollHeight = 200;
     nodes['current-story'].clientHeight = 100;
-    const context = validContext();
+    const context = validContext({ choices: [], turns: [{ parsed_blocks: { blocks: [{ type: 'scene', text: 'Committed projection' }], choices: ['Committed A', 'Committed B', 'Committed C', 'Committed D'] } }] });
     const api = {
       context: async () => ({ context }),
       story: async () => new Response(
@@ -676,7 +676,7 @@ test('Story complete uses top-level choices fallback and projects once without p
     await app.startNewAction('진행한다');
     assert.equal(nodes['current-story'].children[0].className, 'narrative-scene');
     assert.equal(nodes['current-story'].children[0].textContent, 'Final projection');
-    assert.equal(nodes['choice-list'].children.length, 4, 'top-level complete choices are rendered');
+    assert.equal(nodes['choice-list'].children.length, 4, 'committed parsed choices are rendered after refresh');
     assert.equal(nodes['current-story'].scrolls, initialScrolls, 'streaming never calls page scrollIntoView');
     assert.equal(nodes['current-story'].scrollTop, nodes['current-story'].scrollHeight, 'near-bottom stream scrolls only its container');
   });

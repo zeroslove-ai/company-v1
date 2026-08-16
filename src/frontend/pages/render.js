@@ -88,12 +88,7 @@ function normalizedStrings(value) {
 }
 
 function parsedChoices(turn, parsed) {
-  const candidates = [parsed?.choices, turn?.choices, turn?.parsed_blocks?.choices];
-  for (const candidate of candidates) {
-    const normalized = normalizedStrings(candidate);
-    if (normalized.length) return normalized;
-  }
-  return [];
+  return normalizedStrings(parsed?.choices);
 }
 
 function parsedChoiceLabels(turn, parsed, choiceCount) {

@@ -49,7 +49,7 @@ function canonicalNpcDefaultLocations(edition) {
 }
 
 function mergeNpcPayload(save, edition, latestMindMonitor, details) {
-  return buildNpcAppPayload(save, edition, latestMindMonitor).map(base => {
+  return buildNpcAppPayload(save, edition, latestMindMonitor, details).map(base => {
     const detail = details[base.id] ?? {};
     return {
       ...base,
@@ -57,7 +57,7 @@ function mergeNpcPayload(save, edition, latestMindMonitor, details) {
       profile: detail.profile ?? base.profile ?? {},
       body: detail.body ?? base.body ?? {},
       stat_changes: detail.stat_changes ?? base.stat_changes ?? {},
-      relationship_summary: base.relationship_summary || detail.relationship_summary || '',
+      relationship_summary: base.relationship_summary || '',
       relationship_record: detail.relationship_record ?? {},
       private_info: detail.private_info ?? { unlocked: false }
     };

@@ -12,12 +12,43 @@ function context({ lastChoices = fixture.last_choices, turns = [] } = {}) {
   return { game: { edition_id: 'company-v1' }, save: { data: { ...structuredClone(fixture), last_choices: lastChoices } }, recent_turns: turns };
 }
 
-test('Company game view model uses authoritative choices and the newest committed fallback', () => {
+test('Company game view model ignores save mirrors and reads committed parsed choices', () => {
   const latest = { turn_id: 'turn-8', action_id: 'action-8', choices: ['turn one', 'turn two'], mind_monitor: { npc: { mood: 'focused' } }, parsed_blocks: { choices: ['parsed'] } };
-  assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: ['save one', 'save two'], turns: [latest] })).story.choices, ['save one', 'save two']);
-  assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: [], turns: [{ choices: ['old'] }, latest] })).story.choices, ['turn one', 'turn two']);
+  assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: ['stale one', 'stale two'], turns: [latest] })).story.choices, ['parsed']);
+  assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: [], turns: [{ choices: ['old'] }, latest] })).story.choices, ['parsed']);
   assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: [], turns: [{ parsed_blocks: { choices: ['parsed only'] } }] })).story.choices, ['parsed only']);
   assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: [], turns: [latest] })).media.mind_monitor, latest.mind_monitor);
+  assert.deepEqual(buildCompanyGameViewModel({ ...context({ lastChoices: ['stale'] }), opening_turn: { choices: ['Opening A', 'Opening B', 'Opening C', 'Opening D'] } }).story.choices, ['Opening A', 'Opening B', 'Opening C', 'Opening D']);
+});
+
+test('Company game view model uses server display projections over save mirrors after refresh', () => {
+  const input = context({ lastChoices: ['stale A', 'stale B', 'stale C', 'stale D'], turns: [{ parsed_blocks: { choices: ['A', 'B', 'C', 'D'] } }] });
+  input.save.data.player = { player_id: 'player', name: '플레이어' };
+  input.save.data.scene = { version: 1, scene_id: 'raw-scene', location_id: 'raw-location', beat: 1, goal: null, focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1', updated_turn: 1 };
+  input.save.data.npc_stats = { heroine1: { affinity: 1 } };
+  input.save.data.npc_relationship_state = { heroine1: { relationship_summary: 'raw mirror' } };
+  input.save.data.csa_active = ['raw-rule'];
+  input.save.data.csa_rules = { 'raw-rule': { active: true, content: 'raw rule' } };
+  input.display = {
+    scene: { version: 1, scene_id: 'display-scene', location_id: 'display-location', beat: 2, goal: 'display goal', focus_thread: null, present_npc_ids: ['heroine1'], focal_character_id: 'heroine1', last_speaker_id: 'heroine1', updated_turn: 2 },
+    active_csa: [{ id: 'display-rule', content: 'display rule', strength: 'medium' }],
+    character_details: {
+      heroine1: {
+        stats: { affinity: 9, resistance: 8, csa_acceptance: 7, sexual_arousal: 6 },
+        relationship_summary: 'display relationship', relationship_record: { total_events: 3 }, profile: {}, body: {}
+      }
+    }
+  };
+  const model = buildCompanyGameViewModel(input);
+  assert.equal(model.scene.scene_id, 'display-scene');
+  assert.equal(model.scene.location_id, 'display-location');
+  assert.deepEqual(model.story.choices, ['A', 'B', 'C', 'D']);
+  assert.deepEqual(model.focal_character.character.stats, { affinity: 9, resistance: 8, csa_acceptance: 7, sexual_arousal: 6 });
+  assert.equal(model.focal_character.character.relationship_summary, 'display relationship');
+  assert.deepEqual(model.focal_character.character.relationship_record, { total_events: 3 });
+  assert.equal('relationship' in model.focal_character.character, false);
+  assert.deepEqual(model.player.active_csa.map(rule => rule.id), ['display-rule']);
+  assert.deepEqual(model.scene.csa_active, ['display-rule']);
 });
 
 test('Company game view model preserves an external committed turn and numeric image ID', () => {

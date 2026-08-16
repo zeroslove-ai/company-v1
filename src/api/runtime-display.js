@@ -220,7 +220,17 @@ function npcLocation(save, id, presentNow, edition) {
   return { known: Boolean(locationId || label), location_label: label, location_id: locationId };
 }
 
-function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }) {
+function displayStats(detail, fallback) {
+  if (!object(detail?.stats)) return fallback;
+  return {
+    affection: statValue(detail.stats, 'affinity', 'affection', '호감도') ?? 0,
+    resistance: statValue(detail.stats, 'resistance', '저항도') ?? 0,
+    acceptance: statValue(detail.stats, 'csa_acceptance', 'acceptance', '상식수용도') ?? 0,
+    arousal: statValue(detail.stats, 'sexual_arousal', 'arousal', '성적흥분도') ?? 0
+  };
+}
+
+function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition, detail = null }) {
   const stats = object(save?.npc_stats?.[id]) ?? {};
   const attitude = object(save?.csa_attitudes?.[id]) ?? {};
   const sexualState = object(save?.npc_sexual_state?.[id]) ?? {};
@@ -236,7 +246,7 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
     role: identity.role,
     present_now: presentNow,
     location: npcLocation(save, id, presentNow, edition),
-    stats: {
+    stats: displayStats(detail, {
       affection: statValue(stats, '호감도', 'affection', 'affinity') ?? 0,
       resistance: statValue(stats, '저항도', 'resistance') ?? 0,
 
@@ -246,14 +256,16 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
       arousal: statValue(stats, '성적흥분도', 'arousal', 'sexual_arousal')
         ?? statValue(sexualState, 'arousal', '성적흥분도')
         ?? 0
-    },
+    }),
     mind,
     scene_state: {
       posture: text(sceneState.posture),
       posture_detail: text(sceneState.posture_detail ?? sceneState.posture_description),
       position_label: text(sceneState.position_label)
     },
-    relationship_summary: relationshipSummary(save?.npc_relationship_state?.[id])
+    relationship_summary: typeof detail?.relationship_summary === 'string'
+      ? detail.relationship_summary
+      : relationshipSummary(save?.npc_relationship_state?.[id])
   };
 }
 
@@ -262,7 +274,7 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
  * already produced state/presence/location evidence. It never exposes private
  * guesses or a third physical/body Mind field.
  */
-export function buildNpcAppPayload(save, edition, latestMindMonitor = {}) {
+export function buildNpcAppPayload(save, edition, latestMindMonitor = {}, details = {}) {
   const directory = npcDirectory(save, edition, latestMindMonitor);
   const presentIds = new Set(buildCanonicalDisplayScene(save).present_npc_ids);
   const heroineProfiles = profilesFromEdition(edition);
@@ -270,11 +282,11 @@ export function buildNpcAppPayload(save, edition, latestMindMonitor = {}) {
   const evidence = evidenceIds(save, latestMindMonitor);
   const entries = [];
   for (const [id, profile] of Object.entries(heroineProfiles)) {
-    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }));
+    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition, detail: details?.[id] }));
   }
   for (const [id, profile] of Object.entries(generalProfiles)) {
     if (!evidence.has(id)) continue;
-    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition }));
+    entries.push(npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, presentIds, edition, detail: details?.[id] }));
   }
   return entries;
 }

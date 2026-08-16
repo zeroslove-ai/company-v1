@@ -1,4 +1,5 @@
 import { CATALOGS } from './catalogs.js';
+import { contextChoices } from './state.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -45,20 +46,12 @@ function parsed(turn) {
   return object(turn?.parsed_blocks) ?? {};
 }
 
-function choices(save, turn) {
-  const saved = strings(save.last_choices);
-  if (saved.length > 0) return saved;
-  const committed = strings(turn.choices);
-  if (committed.length > 0) return committed;
-  return strings(parsed(turn).choices);
-}
-
 function committedTurn(context, save) {
   return integer(context?.save?.committed_turn) ?? integer(save.turn_state?.committed_turn) ?? 0;
 }
 
-export function canonicalSceneView(save) {
-  const source = object(save?.scene);
+export function canonicalSceneView(save, projectedScene = null) {
+  const source = object(projectedScene) ?? object(save?.scene);
   const playerId = text(object(save?.player)?.player_id) || 'player';
   const normalizeIds = value => strings(value).filter(id => !isPlayerAlias(id, playerId));
   if (source && source.version === 1) {
@@ -225,7 +218,6 @@ function npcView(save, id, details = {}) {
     id,
     stats: detail ? normalizedStats(detail.stats) : normalizedStats(stats),
     stat_changes: normalizedChanges(detail?.stat_changes),
-    relationship: object(relationship) ?? {},
     profile: object(detail?.profile) ?? {},
     body: object(detail?.body) ?? {},
     relationship_summary: text(detail?.relationship_summary),
@@ -262,15 +254,6 @@ function interactingCharacterViews(save, scene, directory = {}, details = {}) {
     }));
 }
 
-function fallbackActiveRules(save) {
-  const rules = object(save.csa_rules) ?? {};
-  return strings(save.csa_active).flatMap(id => {
-    const rule = object(rules[id]);
-    if (!rule || rule.active === false) return [];
-    return [{ id, strength: text(rule.strength), strength_label: text(rule.strength), authority_label: text(rule.authority_label), scope_label: text(rule.scope_label) || '회사 전체', content: text(rule.content ?? rule.required_action) }];
-  });
-}
-
 export function buildCompanyGameViewModel(context) {
   const save = saveFromContext(context);
   const turn = latestTurn(context);
@@ -283,8 +266,8 @@ export function buildCompanyGameViewModel(context) {
   const details = object(display.character_details) ?? {};
   const capability = object(display.player_capability) ?? {};
   const sexualDisplay = object(display.player_sexual) ?? {};
-  const activeRules = Array.isArray(display.active_csa) ? display.active_csa.filter(object) : fallbackActiveRules(save);
-  const scene = canonicalSceneView(save);
+  const activeRules = Array.isArray(display.active_csa) ? display.active_csa.filter(object) : [];
+  const scene = canonicalSceneView(save, display.scene);
   const focalId = text(scene.focal_character_id);
   const lastSpeakerId = text(scene.last_speaker_id);
   const player = object(save.player) ?? {};
@@ -320,13 +303,13 @@ export function buildCompanyGameViewModel(context) {
     },
     story: {
       story_text: text(turn.story_text), blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
-      choices: choices(save, turn), player_inner_thought: text(parsedStory.player_inner_thought),
+      choices: strings(contextChoices(context)), player_inner_thought: text(parsedStory.player_inner_thought),
       dialogue_lines: projectedDialogueLines, warnings: strings(parsedStory.warnings)
     },
     scene: {
       ...scene,
       scene_state: { ...scene }, world_state: object(save.world_state) ?? {},
-      csa_active: Array.isArray(save.csa_active) ? save.csa_active : [], csa_rules: activeRules,
+      csa_active: activeRules.map(rule => text(rule.id)).filter(Boolean), csa_rules: activeRules,
       npcs_present: strings(scene.present_npc_ids), action_target_id: '', clothing_state: {}
     },
     interacting_characters: interactingCharacters,

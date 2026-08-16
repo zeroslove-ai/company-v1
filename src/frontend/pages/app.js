@@ -18,7 +18,7 @@ import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
 const CHOICE_DIGIT_INDEX = { 1: 0, 2: 1, 3: 2, 4: 3 };
 const CHOICE_LETTER_INDEX = { a: 0, b: 1, c: 2, d: 3, A: 0, B: 1, C: 2, D: 3 };
 const CHOICE_CIRCLED_INDEX = { '①': 0, '②': 1, '③': 2, '④': 3 };
-function resolveNumberedChoiceInput(rawInput, save) {
+function resolveNumberedChoiceInput(rawInput, choices) {
   const trimmed = typeof rawInput === 'string' ? rawInput.trim() : '';
   let index = null;
   if (trimmed.length === 1) {
@@ -27,7 +27,6 @@ function resolveNumberedChoiceInput(rawInput, save) {
     else if (trimmed in CHOICE_CIRCLED_INDEX) index = CHOICE_CIRCLED_INDEX[trimmed];
   }
   if (index === null) return null;
-  const choices = Array.isArray(save?.last_choices) ? save.last_choices : [];
   // 현재 화면에 유효한 네 선택지가 있을 때만 1~4를 번호 선택으로 해석한다.
   // 부족/범위 밖이면 일반 자유 입력으로 처리한다 (CHOICE_INDEX_OUT_OF_RANGE로 턴 차단 금지).
   if (choices.length !== 4 || typeof choices[index] !== 'string' || !choices[index].trim()) return null;
@@ -606,7 +605,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       if (outcome === 'error') return false;    // actionStatus 실패 — 오류 배너가 표시됨
       // 'cleaned' — stale pending 제거됨. 아래에서 새 행동을 계속 진행한다.
     }
-    const numbered = resolveNumberedChoiceInput(action, saveFromContext(context));
+    const numbered = resolveNumberedChoiceInput(action, viewModel?.story?.choices);
     if (numbered?.ok) action = numbered.text;
     return withBusy(async () => {
       showCurrentAction(action);

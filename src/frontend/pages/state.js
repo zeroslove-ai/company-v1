@@ -13,10 +13,10 @@ function integer(value) {
 export function committedTurn(context) { return integer(context?.save?.committed_turn) ?? integer(saveFromContext(context)?.turn_state?.committed_turn) ?? 0; }
 const validChoice = value => typeof value === 'string' && value.trim();
 export function contextChoices(context) {
-  const saved = saveFromContext(context)?.last_choices;
-  if (Array.isArray(saved) && saved.some(validChoice)) return saved.filter(validChoice);
+  const opening = context?.opening_turn?.choices;
+  if (Array.isArray(opening) && opening.some(validChoice)) return opening.filter(validChoice);
   const latest = Array.isArray(context?.recent_turns) ? context.recent_turns.at(-1) : undefined;
-  const committedChoices = Array.isArray(latest?.choices) ? latest.choices : latest?.parsed_blocks?.choices;
+  const committedChoices = latest?.parsed_blocks?.choices;
   return Array.isArray(committedChoices) ? committedChoices.filter(validChoice) : [];
 }
 export function loadPending(storage, gameId) { try { const value = JSON.parse(storage?.getItem(pendingKey(gameId)) ?? 'null'); return value?.game_id === gameId && value.action_id && value.player_action ? value : null; } catch { return null; } }
