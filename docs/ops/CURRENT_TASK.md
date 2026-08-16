@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-final-residue-closure-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -158,3 +158,23 @@ On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in the same source/test/docs lineage;
 - post exactly one immutable terminal report to Issue #68 with START SHA, SOURCE_TEST_SHA/FINAL_SHA, exact REMOVE/KEEP map, any additive migration source and unapplied status, focused/full/static checks, forbidden-operation confirmation and PR state;
 - STOP. Do not generate the next CURRENT_TASK yourself.
+
+## Execution record — 2026-08-17
+
+Status: `WAITING_REVIEW` after source/test PASS. Source/test implementation commit: `907eee3c7f4d1c8d10b4b19f48a89d55b218ef54`.
+
+Caller/writer/default/reset/validator result:
+
+- `scene_state`: `KEEP_HISTORICAL_READ_ONLY` only at legacy hydration/recovery boundaries; fresh reset/opening minimalization removes it after canonical scene bootstrap. No new fresh writer.
+- `last_npcs_present`, top-level `focal_character_id`, top-level `last_speaker_id`: `KEEP_HISTORICAL_READ_ONLY` only for legacy scene hydration; fresh canonical reset/opening minimalization removes them.
+- `last_choices`, `last_choice_meta`: `REMOVE`. No current runtime reader remains; the dead save-based numbered-choice helper was deleted, ordinary choices persist from committed parsed blocks, and fresh migration minimalization/validation no longer requires or recreates these roots.
+- `world_state`: `KEEP_CURRENT`; game time remains the active reducer/context state.
+- `player_scene_state`: `KEEP_CURRENT` for narrow posture/position/clothing/UI continuity; duplicate `location_id` and `location_label` are `REMOVE` and frontend labels derive from canonical scene `location_id` plus `display.map_locations`.
+- `npc_scene_state`: `KEEP_CURRENT` for narrow posture/position/clothing; `present`, `scene_id`, `location_id`, and `location_label` are `REMOVE` identity/location mirrors.
+- Raw save stats/relationship/CSA-attitude/NPC-sexual presentation fallbacks: `REMOVE` from the zero-caller legacy app payload path. Current explicit display detail readback remains narrow and is not replaced by old save bags.
+- Frontend identity: `DERIVE_PRESENTATION` from `display.npc_directory`, then finite registered catalog identity; stale `display.character_details` names and old save name/profile/department aliases no longer override it.
+- `compatibility_mode`: `REMOVE`; canonical display/view-model projections now fail closed without emitting the stale compatibility field.
+
+Migration source authored but not applied: `supabase/migrations/20260817000100_company_v1_final_residue_closure.sql`. It is source-only and was not applied, re-applied, or inspected through any live database write. It preserves legacy scene bootstrap input until canonical `scene` exists, then strips fresh scene/choice mirrors at the minimalization boundary and removes validator requirements for the choice mirrors.
+
+Validation: focused residue/setup/frontend checks PASS; full `npm.cmd test` PASS (298 tests after the final focused source/migration regression); changed JS/MJS `node --check` PASS; `git diff --check` PASS. No live TEST gameplay/setup/opening/reset, DB write, migration application, deploy, Production/preserved/QA access, provider/parser/retry/fuzzy/semantic replacement, merge, or Ready operation was performed.
