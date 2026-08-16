@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-final-residue-closure-v1
+Status: READY
+Task ID: minimal-story-runtime-final-residue-test-rollout-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,168 +13,137 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5309607414` — ACCEPTED `minimal-story-runtime-physical-clothing-sexual-product-play-v2`.
-Previous terminal: `5309574183`.
-Previous docs-only final SHA: `93db5de1f927c87e4d9c95f19cef6068ccdd7355`.
-Reviewed Minimal Story Runtime executable SHA: `beae855ebc5a9706bae234af80b2569d73566f0a`.
+Previous operator review: `5309724395` — ACCEPTED `minimal-story-runtime-final-residue-closure-v1`.
+Reviewed source/test SHA: `907eee3bcace9918e4965221eec2f44719213682`.
+Reviewed docs/final SHA: `ed3437c2563863a768793f4f8b1989b892ccf09c`.
+Reviewed additive migration source: `supabase/migrations/20260817000100_company_v1_final_residue_closure.sql`.
 
-The accepted V2 product-play completed 12 ordinary turns with literal/free-text transport, canonical time, Story→Extract→Commit, context/history, replay/idempotence, media fail-open behavior and final reset. It did not naturally establish a completed physical/contact change, a compact four-slot clothing change, or a supported sexual event. Those are coverage limitations, not permission to rerun until lucky or broaden narrow mechanics.
+Independent operator preflight after review:
+- TEST migration ledger already contains `20260816050000 company_v1_minimal_story_runtime_contract`.
+- `20260817000100 company_v1_final_residue_closure` is NOT yet applied.
+- live `public.company_minimalize_save_v1(p_data jsonb)` is still the prior SQL implementation. It strips the Minimal Story Runtime retired semantic roots but does not yet strip `last_choices`, `last_choice_meta`, final legacy scene mirrors, or duplicate scene location labels.
+- PR #67 was independently verified OPEN / DRAFT / UNMERGED / mergeable at `ed3437c2563863a768793f4f8b1989b892ccf09c`.
 
-Independent operator reset readback after V2 on disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`:
-- committed_turn=0, save_revision=1140;
-- game_turns=0, game_actions=0;
-- player_setup/opening not_started;
-- player_progress={level:1,exp:0};
-- csa_active=[];
-- canonical scene.version=1, scene_id=setup, empty presence.
+The accepted source closure removes the zero-caller `npcPayloadEntryLegacy()` fallback stack, removes fresh `last_choices`/`last_choice_meta` authority, narrows identity to server directory + registered catalog identity, removes duplicate scene/location mirrors from fresh physical state, and removes `compatibility_mode`. `world_state` remains canonical game-time state. Narrow posture/position/clothing and direct-evidence sexual mechanics remain product side mechanics; they must not be broadened or inferred.
 
-Read-only reset key inventory nevertheless still contains legacy/duplicate-looking roots alongside canonical state:
-- canonical/proven: `scene`, `npc_scene_state`, `player_scene_state`, `player`, `player_progress`, `player_sexual_state`, `csa_active`, `csa_rules`, setup/opening/turn state;
-- suspicious residue requiring caller/writer proof: `scene_state`, `last_npcs_present`, top-level `focal_character_id`, top-level `last_speaker_id`, `last_choices`, `last_choice_meta`, `world_state`.
-This inventory is evidence only. Do not delete a field merely because it looks old; trace current readers/writers/reset/default/validator contracts first.
+Disposable TEST game authorized for this rollout only:
+`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
 
-Current source also has a concrete zero-caller candidate in `src/api/runtime-display.js`: `npcPayloadEntryLegacy()` still reconstructs old stats/CSA-attitude/NPC-sexual/relationship fallbacks while `buildNpcAppPayload()` calls the newer `npcPayloadEntry()` path. Helpers used only by that legacy function are deletion candidates once caller proof is confirmed.
+Forbidden game IDs — do not read, mutate, reset, or use for evidence:
+- preserved manual: `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+- QA evidence: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`;
+- production/sentinel: `11111111-1111-4111-8111-111111111111`.
 
-Production is forbidden. Do not access preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`, QA evidence game `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`, or production/sentinel game `11111111-1111-4111-8111-111111111111`.
+Production is forbidden.
 
 ## Objective
 
-Perform one deletion-first source/test/docs closure of the remaining **post-Minimal-Story-Runtime fresh-path residue**. The goal is not another architecture audit and not another product-play rerun. Trace actual current callers/writers/defaults/validators and remove stale semantic/presentation compatibility authority in the same cut where proof is complete.
+Roll out the accepted final Minimal Story Runtime residue closure to TEST only and prove the live fresh path no longer recreates removed save/presentation mirrors while preserving the canonical Story → Extract → Commit spine, literal choices, canonical scene, readback/replay, and reset.
 
-The fresh runtime must remain explainable as:
+This is a bounded rollout/smoke task, not another architecture cut and not another 12-turn product-play. Do not patch source inside this task.
 
-`player input/literal choice → minimal committed context → Story → fresh parser wire structure → Extract narrow grounded observations + turn_summary → Commit structural transaction → committed readback/next Story`.
+## Required execution
 
-Do not replace removed residue with a new compatibility bag, semantic memory system, fallback hierarchy, parser, gate, retry or inference layer.
+1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`.
+2. Verify executable equivalence before any deployment:
+   - `907eee3bcace9918e4965221eec2f44719213682` is the reviewed source/test SHA;
+   - all commits after it up to START HEAD must be docs/ops-only for executable surfaces used by this rollout;
+   - if any runtime/frontend/config/content/migration behavior changed after `907eee3...`, STOP before migration/deploy and report BLOCKED.
+3. Reconfirm TEST DB preflight read-only:
+   - `20260816050000 company_v1_minimal_story_runtime_contract` is applied;
+   - `20260817000100 company_v1_final_residue_closure` is absent;
+   - current live `company_minimalize_save_v1` is the prior implementation;
+   - do not query forbidden game rows.
+4. Apply exactly one additive migration to TEST:
+   - `supabase/migrations/20260817000100_company_v1_final_residue_closure.sql`;
+   - use the established migration mechanism and record the actual migration ledger version/name;
+   - do not apply, reapply, repair, rollback, or author any other migration.
+5. Immediately verify live DB contract after migration:
+   - migration ledger contains the new closure exactly once;
+   - `company_minimalize_save_v1(p_data jsonb)` strips `last_choices`, `last_choice_meta`; once canonical `scene` exists it strips `scene_state`, `last_npcs_present`, top-level `focal_character_id`, top-level `last_speaker_id`; it strips `player_scene_state.location_id/location_label` and NPC `present/scene_id/location_id/location_label` while preserving other narrow physical/clothing fields;
+   - `validate_company_save_v1` no longer requires choice mirrors and still requires canonical structural keys/scene;
+   - `company_minimalize_save_v1` remains non-callable by public/anon/authenticated/service_role; `validate_company_save_v1` remains service_role-only as intended.
+6. Verify current TEST API and Frontend deployed source identities. Because `907eee3...` changed both server and frontend, deploy the exact reviewed executable-equivalent lineage to TEST API Worker and TEST Frontend Worker if either is not already at that source. Do not deploy Production.
+   - API Worker: `game-proxy-company-v1`.
+   - Frontend Worker: `gamebuilder-company-v1`.
+   - record resulting Worker version IDs/source equivalence and health/readability.
+7. Run one canonical reset of only the disposable TEST game. Read back the save and prove:
+   - committed_turn=0, history/action count=0, Level 1, setup/opening not_started;
+   - canonical `scene.version=1`, scene_id=`setup`, empty presence;
+   - fresh save roots do NOT contain `scene_state`, `last_npcs_present`, top-level `focal_character_id`, top-level `last_speaker_id`, `last_choices`, `last_choice_meta`;
+   - `player_scene_state` has no `location_id`/`location_label` mirror;
+   - each present `npc_scene_state` entry has no `present`/`scene_id`/`location_id`/`location_label` mirror;
+   - narrow surviving physical/clothing fields, if present, are not erased merely for this assertion.
+8. Run Setup + Opening once using the normal TEST API route. Verify after Opening:
+   - Opening succeeds and returns exactly four provider-authored literal choices;
+   - `opening_state` persists story/choices/parsed_blocks as the committed Opening authority;
+   - removed save roots/mirrors above remain absent after setup/opening;
+   - context/display scene and registered identity resolve from canonical server projection/catalog, not stale aliases.
+9. Select exactly one actual Opening provider choice literal and transport that exact text as ordinary Turn 1 `player_action`. Run Story → Extract → Commit once. Do not use numbered shorthand for this proof and do not synthesize a choice.
+10. Verify Turn 1 committed/readback authority:
+   - turn commits successfully;
+   - committed `parsed_blocks.choices` is the ordinary choice readback authority;
+   - no fresh `save.last_choices` or `save.last_choice_meta` appears;
+   - canonical scene/readback remains valid;
+   - `world_state.game_time` remains present and coherent;
+   - frontend/context display payload has no `compatibility_mode` and uses server directory/catalog identity plus canonical map location presentation;
+   - no removed scene/location mirror is recreated by Story/Extract/Commit.
+11. Perform same-action replay for the committed Turn 1 through Story/Extract/Commit recovery and verify replay/idempotence with no extra committed turn and no resurrected removed roots.
+12. Verify `/api/context` and `/api/history` readback after Turn 1 succeeds and the current committed Story/parsed blocks/literal choices remain usable. Do not invent a compatibility fallback if a field is absent.
+13. Finish with exactly one canonical reset of the disposable TEST game and re-run the same reset residue assertions from step 7. Final state must be committed_turn=0, history/action=0, Level 1, setup/opening not_started, canonical scene=setup.
+14. Evidence may be stored under OS TEMP only. Do not add new repository evidence artifacts.
 
-## Required work
+## Stop-on-defect policy
 
-1. Freeze START HEAD and verify PR #67 is still OPEN / DRAFT / UNMERGED, base `main`.
-2. Re-read current `CURRENT_TRUTH.md`, Minimal Story Runtime canon, current source, current migration contract and tests. Historical roadmap prose does not override current source/canon.
-3. Build a concrete current caller/writer/default/reset/validator map for the following surfaces and classify each `KEEP_CURRENT`, `KEEP_HISTORICAL_READ_ONLY`, `DERIVE_PRESENTATION`, or `REMOVE`:
-   - `scene_state`;
-   - `last_npcs_present`;
-   - top-level `focal_character_id`;
-   - top-level `last_speaker_id`;
-   - `last_choices`;
-   - `last_choice_meta`;
-   - `world_state`;
-   - `player_scene_state` fields that duplicate canonical scene/location versus fields that still carry narrow player physical/UI state;
-   - `npc_scene_state` physical/clothing fields versus any legacy scene/presence/location identity fields;
-   - any remaining raw relationship/stat/CSA-attitude/NPC-sexual fallback used only for presentation compatibility;
-   - current server/frontend identity/name/profile fallback chains that can override `display.npc_directory` / registered catalog identity;
-   - any remaining `compatibility_mode`, legacy read alias, duplicate context projection or stale save fallback encountered on these paths.
-4. Start with the proven source candidate in `src/api/runtime-display.js`:
-   - confirm `npcPayloadEntryLegacy()` has zero current production caller;
-   - if zero, delete it in this cut;
-   - delete `relationshipSummary`, `displayStats`, `statValue` or other private helpers only when their remaining caller count is also zero;
-   - do not move their old fallback behavior into another function.
-5. Scene/presence authority:
-   - `save.scene` remains the only active durable scene/location/presence/focal/last-speaker authority;
-   - no canonical→legacy scene mirror writer may be reintroduced;
-   - if reset/default/migration source is still copying legacy scene mirrors into fresh saves, remove the active source of that duplication where safe;
-   - preserve historical turn snapshots if they are immutable history, but do not make them fresh save authority.
-6. Choice authority:
-   - Opening uses its committed server projection;
-   - ordinary committed choices come from committed `parsed_blocks.choices`;
-   - if `last_choices` / `last_choice_meta` are now zero-reader fresh-save residue, remove their active defaults/writers/readers/validator requirements in this cut;
-   - do not add a replacement choice cache or numbered semantic mapping layer.
-7. Presentation/readback authority:
-   - current context/display projection should win after refresh/recovery;
-   - inspect frontend `characterName()` and similar fallback lists (`save.characters`, `save.npc_profiles`, `save.npc_identity_state`, `save.npc_state`, legacy player-name/department aliases) and remove only those with no unique current product consumer;
-   - registered repository/catalog identity remains valid finite product identity and must not be weakened;
-   - do not keep arbitrary old save bags merely as name fallbacks when the server directory/catalog already supplies the canonical identity.
-8. Physical/clothing/sexual boundaries:
-   - do not broaden compact clothing beyond its current proven four-slot UI contract merely because V2 narrated jacket/shirt state;
-   - preserve `npc_scene_state` posture/position and compact clothing only where current UI/continuity consumes them;
-   - preserve current direct-evidence `player_sexual_state` / `sexual_event_ledger` mechanics where proven;
-   - do not infer consent, comfort, affection, trust, romance or relationship state from physical/clothing/sexual facts;
-   - do not add positive-path forcing, synthetic Extract observations or fallback inference.
-9. Memory/replay boundaries:
-   - preserve latest-six raw committed turns + chronological older `turn_summary` memory;
-   - preserve committed `parsed_blocks` replay/history authority;
-   - preserve the one persisted legacy Extract read-only boundary only if current supported stored rows still require it;
-   - do not recreate general open-fact/relation/event/emotion/work memory ledgers.
-10. DB/reset/default closure:
-   - inspect current live-compatible validator/reset/setup/opening SQL source and current master/default source read-only;
-   - if fresh reset/default still structurally requires or recreates fields proven `REMOVE`, author **at most one additive migration source** that removes those fresh-save requirements/projections and strips them at the canonical reset/write boundary;
-   - do not edit historical applied migrations;
-   - do **not apply** any new migration in this task;
-   - do not mutate any live game.
-11. Tests:
-   - add/rewrite focused behavioral regressions for each actually removed authority surface;
-   - prove current server context/frontend still renders canonical scene, registered identity, choices, Mind Monitor, player capability, narrow physical/clothing state and sexual/media sidecars from the surviving authority;
-   - prove refresh/recovery cannot prefer stale mirror data over committed projection;
-   - prove reset/default source no longer reintroduces any field removed in this cut if DB source is changed;
-   - delete stale tests that exist solely to protect the removed fallback/compatibility implementation.
-12. Run focused tests, full `npm.cmd test`, syntax checks for changed JS/MJS, and `git diff --check`. Test count is regression signal, not the acceptance definition.
+- One rollout sequence only. No provider retry/regeneration to obtain a prettier Story/Extract.
+- If migration application, DB contract, API/frontend deployment, reset/setup/opening, literal Turn 1, replay, or final reset exposes a deterministic defect, capture the smallest exact evidence, perform final disposable-game cleanup reset if safe, then STOP as BLOCKED/FAILED for operator review.
+- Do not patch source, author a second migration, add a compatibility field, restore `last_choices`, restore legacy scene mirrors, change provider/model/config, or create a new parser/gate/retry inside this rollout task.
 
 ## Architecture constraints
 
-- Story LLM remains narrative authority.
-- Fresh parser is wire/presentation structure only.
-- Extract is one observer LLM: narrow grounded machine/UI observations plus natural-language `turn_summary`.
-- Commit is structural/transaction authority only.
-- `save.scene` is canonical scene/location/presence authority.
-- Choices are provider-authored literals, committed through Opening or `parsed_blocks`.
-- CSA is institutional lifecycle/context/progression, separate from unrelated consent/emotion/relationship state.
-- Compact physical/clothing and sexual state remain narrow proven mechanics, not general narrative truth.
-- Media/image/TTS/Mind Monitor are sidecars/presentation unless a separately proven mechanic exists.
-- No generic relationship/event/emotion/work/open-fact ledger, entity graph, vector DB, importance score, semantic gateway, finite execution engine, third Summary/Memory LLM, new parser generation, fuzzy repair, retry/regeneration, provider/model change or compatibility replacement layer.
-- Do not keep dead code solely because an old test expects it.
+- Story remains narrative authority.
+- Extract remains one observer LLM with narrow grounded projections + natural-language `turn_summary`.
+- Commit remains structural/transaction authority.
+- `save.scene` is the only active durable scene/location/presence/focal/last-speaker authority.
+- Opening choices live in committed Opening projection; ordinary choices live in committed parsed blocks. No fresh save choice cache.
+- `world_state` remains the canonical game-time state.
+- `player_scene_state` / `npc_scene_state` retain only narrow physical/clothing continuity fields with proven consumers, not location/presence identity mirrors.
+- Registered repository/catalog identity remains valid finite product identity; stale save identity bags must not regain precedence.
+- CSA remains institutional lifecycle/context/progression, separate from consent/emotion/relationship semantics.
+- No generic relationship/event/emotion/work/open-fact memory ledger, compatibility bag, semantic gateway, third Summary/Memory LLM, new parser generation, fuzzy repair, retry/regeneration, or provider/model change.
+- Preserve the existing one persisted legacy Extract read-only boundary; this rollout does not attempt to delete it.
 
 ## Authorized operations
 
 Authorized:
-- read-only Git/PR/source/current migration inspection;
-- read-only TEST DB catalog/contract inspection **only for the disposable TEST game or schema/function metadata**; do not query forbidden game rows;
-- source/test/content/config/docs deletion/consolidation on the canonical branch;
-- at most one additive migration source authored but NOT applied, only when proven fresh-save/reset contract cleanup requires it;
-- local focused/full/static validation.
+- read-only Git/PR/source/deployed-identity inspection;
+- TEST schema/function/migration-ledger reads;
+- exactly one application of `20260817000100_company_v1_final_residue_closure.sql` to TEST;
+- TEST API and TEST Frontend deployment of the exact reviewed executable-equivalent source only;
+- disposable TEST game reset/setup/opening/one ordinary turn/context/history/replay/final reset;
+- read-only TEST DB verification for that disposable game;
+- OS TEMP evidence;
+- docs-only completion record and one immutable Issue #68 terminal report.
 
 Not authorized:
-- live TEST gameplay/setup/opening/reset or any DB write;
-- migration/DDL application/reapplication;
-- API/frontend deploy;
-- Production access/deploy;
-- any access to forbidden game IDs;
-- provider/model/temperature/token changes;
-- retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic gate, new compatibility layer;
-- widening narrow clothing/physical/sexual mechanics without a proven current product consumer;
-- new branch/PR, merge, Ready, rebase, squash or force-push.
+- any other migration or DDL;
+- source/runtime/test/content/config behavior edits;
+- Production access/deployment;
+- any access to preserved manual, QA evidence, production/sentinel, or any other game IDs;
+- provider/model/temperature/token changes or retry/regeneration;
+- parser relaxation/new parser, fuzzy repair, semantic gate, compatibility replacement;
+- additional product-play loops or forcing physical/clothing/sexual positive outcomes;
+- new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Acceptance
 
-PASS only if the cut produces a concrete caller-driven REMOVE/KEEP result, deletes proven zero-caller/duplicate fresh-path residue in the same implementation, and leaves one clear authority per active surface without adding replacement semantic machinery.
-
-A successful result should specifically answer:
-- whether `npcPayloadEntryLegacy()` and its helper-only fallback stack are gone;
-- why each suspicious reset key listed above remains or is removed;
-- whether fresh reset/default source still emits legacy scene/choice mirrors;
-- whether frontend identity/readback fallbacks were narrowed to current committed/catalog authority;
-- whether any additive migration source was necessary and, if so, that it remains unapplied.
+PASS only if the exact reviewed migration/source is live on TEST and the bounded reset → setup/opening → exact literal Turn 1 → readback/replay → final reset proves:
+- removed fresh choice/scene/location mirrors remain absent at every fresh durable boundary;
+- canonical scene, game time, registered identity, Opening/ordinary choices, context/history and replay still work;
+- frontend/server presentation no longer needs `compatibility_mode` or stale identity/location fallbacks;
+- no replacement semantic/compatibility authority was introduced.
 
 On PASS or first deterministic blocker:
-- set this file to `WAITING_REVIEW` in the same source/test/docs lineage;
-- post exactly one immutable terminal report to Issue #68 with START SHA, SOURCE_TEST_SHA/FINAL_SHA, exact REMOVE/KEEP map, any additive migration source and unapplied status, focused/full/static checks, forbidden-operation confirmation and PR state;
+- set this file to `WAITING_REVIEW` in a docs-only completion commit;
+- post exactly one immutable terminal report to Issue #68 with START SHA, migration ledger identity, live function/ACL verification, API/Frontend Worker versions/source equivalence, reset/setup/opening/Turn1/replay/readback/final-reset evidence, forbidden-operation confirmation and final docs SHA;
 - STOP. Do not generate the next CURRENT_TASK yourself.
-
-## Execution record — 2026-08-17
-
-Status: `WAITING_REVIEW` after source/test PASS. Source/test implementation commit: `907eee3c7f4d1c8d10b4b19f48a89d55b218ef54`.
-
-Caller/writer/default/reset/validator result:
-
-- `scene_state`: `KEEP_HISTORICAL_READ_ONLY` only at legacy hydration/recovery boundaries; fresh reset/opening minimalization removes it after canonical scene bootstrap. No new fresh writer.
-- `last_npcs_present`, top-level `focal_character_id`, top-level `last_speaker_id`: `KEEP_HISTORICAL_READ_ONLY` only for legacy scene hydration; fresh canonical reset/opening minimalization removes them.
-- `last_choices`, `last_choice_meta`: `REMOVE`. No current runtime reader remains; the dead save-based numbered-choice helper was deleted, ordinary choices persist from committed parsed blocks, and fresh migration minimalization/validation no longer requires or recreates these roots.
-- `world_state`: `KEEP_CURRENT`; game time remains the active reducer/context state.
-- `player_scene_state`: `KEEP_CURRENT` for narrow posture/position/clothing/UI continuity; duplicate `location_id` and `location_label` are `REMOVE` and frontend labels derive from canonical scene `location_id` plus `display.map_locations`.
-- `npc_scene_state`: `KEEP_CURRENT` for narrow posture/position/clothing; `present`, `scene_id`, `location_id`, and `location_label` are `REMOVE` identity/location mirrors.
-- Raw save stats/relationship/CSA-attitude/NPC-sexual presentation fallbacks: `REMOVE` from the zero-caller legacy app payload path. Current explicit display detail readback remains narrow and is not replaced by old save bags.
-- Frontend identity: `DERIVE_PRESENTATION` from `display.npc_directory`, then finite registered catalog identity; stale `display.character_details` names and old save name/profile/department aliases no longer override it.
-- `compatibility_mode`: `REMOVE`; canonical display/view-model projections now fail closed without emitting the stale compatibility field.
-
-Migration source authored but not applied: `supabase/migrations/20260817000100_company_v1_final_residue_closure.sql`. It is source-only and was not applied, re-applied, or inspected through any live database write. It preserves legacy scene bootstrap input until canonical `scene` exists, then strips fresh scene/choice mirrors at the minimalization boundary and removes validator requirements for the choice mirrors.
-
-Validation: focused residue/setup/frontend checks PASS; full `npm.cmd test` PASS (298 tests after the final focused source/migration regression); changed JS/MJS `node --check` PASS; `git diff --check` PASS. No live TEST gameplay/setup/opening/reset, DB write, migration application, deploy, Production/preserved/QA access, provider/parser/retry/fuzzy/semantic replacement, merge, or Ready operation was performed.
