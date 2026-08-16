@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: physical-sexual-residue-closure-v1
+Status: READY
+Task ID: deep-level7-live-acceptance-v10-physical-memory-runtime
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,73 +13,111 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5307115582` ACCEPTED `physical-sexual-evidence-boundary-v1` at source/test SHA `6c8bfb47851cc04f60ebce41c25ef19b73e844a0`.
+Previous operator review: `5307183204` ACCEPTED `physical-sexual-residue-closure-v1`.
+Reviewed executable SHA: `e4c15345c1c23afda85df09381830421d8428d73`.
+Reviewed docs/final SHA: `15c3146d63ecc10ef9df2bde3e51480520b32bdb`.
 
-The accepted architecture is Story-authored narrative + exact-evidence narrow machine/UI projections + natural-language turn-summary memory. Physical/sexual/media taxonomies may not define whether arbitrary narrative meaning occurred.
+Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+TEST API Worker: `game-proxy-company-v1`.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden to access or mutate.
+Production is forbidden.
+
+Accepted architecture to validate:
+- Story authors narrative.
+- Extract observes narrow machine/UI projections plus one natural-language `turn_summary`.
+- Commit is transaction authority, not a semantic interpreter.
+- next Story receives latest six committed raw turns plus chronological older turn summaries.
+- `save.scene` is canonical scene/location/presence/focal/last-speaker authority.
+- physical posture/position changes require exact Story-grounded Extract evidence; unevidenced proposals must preserve prior durable state and warn only.
+- compact four-slot clothing, `player_sexual_state`, evidenced `sexual_event_ledger`, `npc_stats`, CSA institutional state, progression, media/image and TTS remain narrow proven consumers.
+- relation/emotion/work/general-event/open-fact style semantic ledgers are not fresh narrative-memory authority.
 
 ## Objective
 
-Finish the remaining physical/sexual authority residue in one deletion-first source/test cut. Remove obsolete finite physical/CSA execution grammar and duplicate mirrors where actual caller proof permits, while preserving the narrow state/media surfaces that current product consumers demonstrably read.
+Run one broad scenario-driven TEST-only acceptance of the accumulated simplified runtime after the physical/sexual evidence and residue closures. This is the acceptance step; do not split it into additional micro harness tasks unless a deterministic product defect proves a source change is required.
 
-## Required work
+## Required execution
 
-1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`; no new branch/PR.
-2. Inventory all current production callers/readers/writers for remaining posture/contact/sexual/relationship physical state after `6c8bfb4`:
-   - posture/contact finite enums or validators;
-   - CSA execution/posture/direct-coverage/mandatory-enactment residue;
-   - NPC sexual/relationship mirrors and compatibility projections;
-   - player input or ACTING metadata paths that could still imply physical success;
-   - sexual event/action classification and media/image selection consumers.
-3. REMOVE-OR-PROVE every finite mechanic. Delete zero-production-caller posture/contact/CSA physical-execution grammar and its stale tests in this cut. Do not wrap deleted semantics in compatibility runtime.
-4. CSA may retain only proven institutional rule identity/lifecycle/transaction/applicability/context surfaces. Story receives natural-language rule context and narrates naturally; Extract observes what actually occurred. CSA compliance is not consent, comfort, affection, trust, emotion, relationship, or proof of physical enactment.
-5. Verify direct player input and structural ACTING metadata remain intent/presentation only. If any fresh path still turns them directly into durable posture/contact/sexual success without exact Story-grounded Extract evidence, remove that writer/inference and add a regression.
-6. Inventory NPC sexual/relationship mirrors against actual frontend/history/recovery consumers. Delete source-only duplicate writers/readers if caller proof is complete. If DB/data migration would be required to remove a historical durable field, document the exact live consumer/data boundary and STOP that deletion at source/test scope rather than manufacturing a compatibility layer or editing historical migrations.
-7. Preserve compact four-slot clothing as one canonical UI continuity projection where current frontend callers prove it. Delete duplicate clothing projections/copies if any remain.
-8. Preserve `player_sexual_state`, evidenced `sexual_event_ledger`, image catalogs/image_library, sexual/general pools, action families/tags, deterministic image selection, and TTS only to the extent real consumers prove them. These are narrow mechanics/presentation sidecars, not narrative truth authorities.
-9. Unknown sexual action/image classification must remain fail-open for the gameplay spine: it may yield no/alternate mechanical/media projection, but must not reject Story, erase an Extract fact, or block Commit.
-10. Do not resurrect `open_facts`, `open_observations`, relation/general-event/emotion/work semantic ledgers, generic-other enums, regex existence gates, or another memory layer.
-11. Rewrite/delete stale tests that encode removed authority. Add focused regressions for every deleted writer/gate and every kept narrow consumer boundary.
-12. Run focused physical/sexual/CSA/media/frontend-history tests, full `npm.cmd test`, syntax checks for changed JS/MJS, and `git diff --check`. Test count alone is not acceptance evidence; report invariant coverage and any triaged failures.
+1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`.
+2. Verify the currently deployed TEST API identity. If it does not contain the reviewed executable `e4c15345c1c23afda85df09381830421d8428d73`, deploy exactly that reviewed executable lineage to the TEST API Worker under the established TEST-only lease. Do not deploy frontend merely for this acceptance.
+3. Canonically reset only the disposable TEST game and verify turn/action/history are empty and progression is Level 1.
+4. Apply only the existing TEST-only Level-7 acceleration seam. Do not create another acceleration path and do not change Production progression.
+5. Run Setup + Opening, then commit **12–16 ordinary turns in one coherent scenario**. Avoid tiny independent probes. Use a mix of:
+   - at least one actual provider-returned Opening/player choice literal transported unchanged;
+   - later provider choice literal(s) where available;
+   - several free-text player actions.
+6. Scenario coverage must naturally exercise as much of the following as possible without changing provider/model/config or inventing server-side outcomes:
+   - ordinary work/conversation continuity;
+   - a promise, request, refusal/agreement, or work detail that should survive beyond the six-raw-turn boundary through `turn_summary_memory`;
+   - scene/location/presence transitions and stable speaker/target identity;
+   - arbitrary natural-language posture/position outside any old finite posture vocabulary;
+   - physical/contact intent where player input remains intent only and Story/Extract determine what actually occurred;
+   - strong institutional CSA context with compliance/resistance separated from consent/comfort/affection/trust;
+   - compact clothing continuity if the scenario produces a clothing change;
+   - an intimate/sexual mechanical path if naturally reachable at Level 7, including `player_sexual_state` and/or `sexual_event_ledger`, while proving it does not automatically mutate relationship/consent state;
+   - media/image classification as presentation-only: no/alternate classification must not block Story/Extract/Commit.
+7. For posture/position evidence specifically, inspect committed state and Extract evidence turn-by-turn:
+   - if a changed axis has valid exact Story evidence, the durable axis may change;
+   - if Extract proposes a changed axis without valid exact Story evidence, durable state must remain at its previous value and only a warning may be emitted;
+   - do not manufacture an unevidenced Extract output just to force this case. Record naturally observed cases; source/unit regressions already cover the deterministic negative path.
+8. At the first boundary where turn 1 leaves the latest-six raw window, verify:
+   - exactly six latest raw committed turns are projected;
+   - older committed `turn_summary` entries remain chronological;
+   - a meaningful older promise/work/relationship detail can influence later Story naturally without any relation/event/emotion/work ledger.
+9. Verify fresh Extract/Commit does **not** recreate removed semantic-memory authority such as `open_facts`, `open_observations`, fresh general relation/event/emotion/work ledgers, or a new semantic gate/equivalent.
+10. Verify preserved narrow consumers still function: canonical scene, `npc_stats`, physical/clothing UI state when observed, progression/CSA, Mind Monitor, choices, and sexual/media mechanics when reached.
+11. Perform same-action replay/recovery on at least one committed ordinary turn and verify idempotent committed identity/state.
+12. Record concise evidence sufficient to identify turn numbers, literal/free-text actions, summary-window boundary, physical evidence decisions, relevant narrow state, replay result, Worker version/source identity, and final cleanup. Evidence-file formatting is secondary; do not block a successful product run merely because an auxiliary evidence reader is imperfect.
+13. Finish with one canonical reset of the disposable TEST game and verify turn 0 / history 0 / action 0 / Level 1 and canonical scene bootstrap.
+
+## Stop-on-defect policy
+
+One scenario attempt only. Do not retry/regenerate a failed provider Story/Extract to obtain a prettier result.
+
+On the first deterministic product defect:
+- capture the failing turn/action/HTTP stage and the smallest relevant raw/structured evidence;
+- perform cleanup reset if safe;
+- STOP as BLOCKED/FAILED for operator review.
+
+Do **not** patch source, parser, provider, prompt, model settings, retry logic, fuzzy matching, semantic gates, compatibility layers, or DB schema inside this live acceptance task.
+
+Auxiliary harness/evidence formatting mistakes are not product defects. If the gameplay pipeline itself already proved the requested invariant and only a disposable evidence formatter failed, report the limitation instead of starting another microtask or rerunning the whole scenario.
 
 ## Architecture constraints
 
-- One durable domain -> one canonical writer.
-- No provider/model/temperature/token changes, retries/regeneration, fuzzy repair, parser relaxation/new parser, semantic hard gates, or arbitrary LLM save patch.
-- No direct player-input success inference.
-- No finite narrative posture/contact/sexual/relation taxonomy as Story/Extract truth authority.
+- No new narrative memory ledger, entity graph, vector DB, importance score, semantic gateway, finite relationship/emotion/event taxonomy, or third summary/memory LLM.
+- Do not resurrect `open_facts` / `open_observations` or equivalents.
+- No direct player-input or ACTING success writer.
+- No CSA physical/sexual enactment authority; CSA remains institutional context/lifecycle/mechanics only.
+- Unknown optional projection/classification fails open and cannot block Story/Extract/Commit.
 - Historical applied migrations are immutable.
-- Keep TEST-only Level-7 acceleration seam unchanged; do not alter Production progression.
-- Media/image classification remains presentation-only and cannot gate narrative truth.
+- Image/media/TTS remain presentation sidecars.
 
 ## Authorized operations
 
-Authorized: source/test/docs edits on this branch; read-only source/history/PR inspection; local tests/static checks.
+Authorized:
+- read-only Git/PR/source/deployed-identity inspection;
+- TEST API Worker deployment of the exact reviewed executable only if required;
+- disposable TEST game reset/setup/opening/gameplay/history/replay;
+- existing TEST-only Level-7 acceleration seam;
+- read-only TEST DB verification needed for acceptance evidence;
+- docs completion record and immutable Issue #68 terminal report.
 
-Not authorized: TEST live gameplay/reset, DB writes/migration/DDL/apply, API/frontend deploy, Production, preserved manual-game `78fb1d94-266f-455a-bda4-7656cc2370c1` access, new branch/PR, merge/Ready/rebase/squash/force-push.
+Not authorized:
+- Production access or deployment;
+- any access/mutation/reset of preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+- frontend deployment;
+- migration/DDL authoring or application;
+- source/runtime/test behavior edits;
+- provider/model/temperature/token changes;
+- retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic hard gate, compatibility runtime;
+- new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Acceptance
 
-PASS only if remaining zero-caller physical/CSA semantic authority is deleted, no input/ACTING success writer survives, proven compact clothing/sexual/media consumers remain functional and narrow, unknown optional classification remains fail-open, and any historical mirror that cannot yet be deleted is explicitly justified by a concrete current reader/data boundary rather than compatibility speculation.
+PASS only if the 12–16 turn scenario proves the current simplified runtime can progress normally with literal/free-text input, canonical scene and machine/UI projections, evidence-gated physical state, long-context continuity through six raw turns + older natural-language summaries, replay/idempotence, and final TEST reset, without reintroducing removed semantic-memory authority or coupling media/CSA taxonomies to narrative truth.
 
-On PASS or deterministic blocker: set CURRENT_TASK to WAITING_REVIEW, post one immutable terminal report with exact source/test SHA, changed files, caller proof, deletions/keeps, tests/checks, and forbidden-operation confirmation, then STOP. Do not generate the next task.
-
-## Terminal review handoff
-
-Source/test closure PASS at source/test SHA `e4c1534`.
-
-- Deleted zero-caller public CSA phase enactment mapping/functions and unused
-  public execution grammar exports.
-- Deleted the two unreferenced `csa-physical-invalid-*.json` fixtures.
-- Kept institutional persisted metadata, compact four-slot clothing, sexual
-  event/player mechanical state, media/TTS, and NPC relationship/history
-  readers because current caller proof requires them.
-- Added behavioral regressions for inert non-clothing execution metadata,
-  compact clothing projection, relationship-mirror non-mutation, and
-  player-input/ACTING boundary.
-- Focused tests: 82 passed; full `npm.cmd test`: 430 passed, 0 failed, 0
-  skipped; syntax and `git diff --check`: pass.
-- DB writes, migration/DDL/apply, TEST reset, API/frontend deploy,
-  Production access, new PR, merge, and PR Ready: 0.
-
-Awaiting operator review of exact source/test/docs diff. No next task is
-generated here.
+On PASS or first deterministic blocker:
+- set this file to `WAITING_REVIEW` in a docs-only completion commit;
+- post one immutable terminal report to Issue #68 with exact reviewed executable/deployed identity, turn count, decisive evidence, replay result, final reset state, forbidden-operation confirmation, and final docs SHA;
+- STOP for operator review. Do not generate the next task yourself.
