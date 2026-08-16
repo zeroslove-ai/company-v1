@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: setup-opening-registered-identity-closure-v1
+Status: READY
+Task ID: setup-opening-world-authority-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,103 +13,114 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous task `setup-opening-world-definition-authority-v1` produced source/test/migration candidate `6b2c9941f8e6e89410a4518821bc0c6550785991` and was reviewed CHANGES_REQUIRED in Issue #68 comment `5305657230`.
+Operator review `5305771557` ACCEPTED the corrected Setup/Opening world-authority candidate.
 
-The candidate direction is accepted except for one over-deletion: the unapplied migration removes SQL hardcoded heroine/world semantic lists, but also removes the registered-character identity-integrity check entirely. `primary_character_id` and supporting IDs are reduced to non-empty strings and can be persisted into canonical `save.scene` / `npc_scene_state` without proof that they belong to the game's registered character universe.
+Reviewed source/test/migration SHA:
+`1a221665f91b352607724912ba8a06250ac60fc5`.
 
-Accepted Scene cleanup executable remains `cd615b4926a5a7092247459d44d25f886b8ac92b` until this candidate is accepted and rolled out.
+Reviewed unapplied migration:
+`supabase/migrations/20260816040000_company_v1_setup_opening_world_authority.sql`.
 
-TEST project: `fmcrspgxstsmxxsmkeee`.
+Current accepted/deployed Scene executable remains:
+`cd615b4926a5a7092247459d44d25f886b8ac92b`.
+The Setup/Opening candidate changes SQL/test/docs only; there is no new API/frontend executable source to deploy.
+
+TEST Supabase project: `fmcrspgxstsmxxsmkeee`.
 Dedicated TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden in this task. Production access is forbidden.
+Preserved manual game `78fb1d94-266f-455a-bda4-7656cc2370c1` is forbidden. Production is forbidden.
+
+## Proven pre-rollout facts
+
+- Live TEST `reserve_company_player_setup` still contains duplicated SQL semantic allowlists for departments, positions, body types, speech styles and heroine1..heroine5.
+- The reviewed migration removes those semantic catalogs and duplicate turn-0 scene mirrors.
+- Repository/application remains semantic authority for setup catalogs and opening-plan meaning.
+- DB retains narrow structural/transactional checks and dynamic registered-character integrity by reading per-game `game_master.data.characters` + `game_master.data.general_npcs` object keys.
+- Registered future IDs can pass without SQL edits; ghost primary/supporting IDs fail before durable mutation.
+- Canonical `save.scene` remains the only scene/location/presence/focal/last-speaker authority.
 
 ## Objective
 
-Correct the Setup/Opening authority candidate without restoring duplicate semantic catalogs.
-
-Repository/application code remains the sole semantic catalog/world-definition authority. DB remains the sole transactional persistence boundary and must keep narrow registered-ID integrity. A newly registered repository/master character must work without SQL edits; an unregistered/ghost character ID must not be durably persisted into Opening/canonical Scene.
+Roll out the exact reviewed Setup/Opening authority migration to TEST, prove the live DB no longer duplicates repository semantic catalogs while retaining registered-ID integrity, and close the rollout with one bounded dedicated TEST smoke and final reset.
 
 ## Required work
 
-1. Freeze exact START HEAD and verify #67 remains base `main`, OPEN / DRAFT / UNMERGED. Understand all executable changes after accepted `cd615b4...` before editing.
-2. Reuse the existing unapplied migration source `20260816040000_company_v1_setup_opening_world_authority.sql`; because it has never been applied, correct that candidate rather than adding a second migration solely to repair an unapplied migration.
-3. Keep the previous deletion decisions:
-   - no SQL hardcoded department/position/body/speech semantic membership lists;
-   - no finite weekday/location/work-hook/scene-goal semantic membership lists;
-   - no SQL heroine-slot list or duplicated repository character catalog;
-   - no removed Scene mirrors or duplicate turn-0 scene writer.
-4. Restore registered-character identity integrity dynamically from the game's canonical repository/master projection rather than a hardcoded SQL list. Trace the actual current game/master storage and use the narrowest existing authoritative registered-ID projection available to the transactional boundary.
-5. Primary/supporting Opening IDs must be proven registered before durable setup/opening/scene mutation. Unknown/ghost IDs must fail before persistence. Duplicate supporting/primary and structural shape checks remain strict.
-6. Do not make DB a second semantic catalog. The identity check must consume game/master registered IDs, not independently enumerate heroines, roles, departments, locations, aliases, or semantic slots.
-7. Preserve future repository extensibility: a new character/general-NPC that is present in the canonical master projection must pass without editing SQL.
-8. Preserve the application-side semantic validation already added/proven in the previous candidate. Do not add a second API writer or direct save mutation.
-9. Preserve ACL/security/search_path/idempotence/turn-0 guards and the single transactional `reserve_company_player_setup` writer.
-10. Tests must prove, specifically:
-    - repository-invalid semantic setup IDs are rejected before RPC;
-    - a future valid repository catalog value does not require SQL list edits;
-    - a registered future character ID in canonical master projection passes DB identity validation without SQL edits;
-    - an unregistered/ghost primary or supporting character ID is rejected before durable mutation;
-    - no hardcoded heroine list or fuzzy alias is reintroduced;
-    - canonical `save.scene` remains the only scene/location/presence authority;
-    - physical/clothing, stats, CSA, progression, choices, Mind Monitor/TTS, sexual/media/image adapters remain untouched.
-11. Run focused tests, full suite, syntax/static checks, and `git diff --check`.
-12. Update the authority audit note to distinguish semantic catalog deletion from retained dynamic registered-ID integrity.
+1. Freeze exact START HEAD. Verify PR #67 remains base `main`, OPEN / DRAFT / UNMERGED and the reviewed migration text at HEAD is byte-for-byte the reviewed candidate from SHA `1a221665...` except docs-only descendants.
+2. Read-only verify before apply:
+   - migration `company_v1_setup_opening_world_authority` is absent from TEST migration ledger;
+   - current `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)` is the old semantic-allowlist implementation;
+   - current canonical Scene mirror-closure functions/validator/reset contract are still live.
+3. Apply exactly `20260816040000_company_v1_setup_opening_world_authority.sql` to TEST once. Do not edit it during rollout and do not create a second migration.
+4. Immediately read back live DB function contracts:
+   - `reserve_company_player_setup` no longer contains finite department/position/body/speech/weekday/location/work-hook/scene-goal/heroine semantic allowlists;
+   - it dynamically validates primary/supporting IDs against `game_master.data.characters` + `general_npcs` before any save mutation;
+   - `company_apply_opening_scene_v1` writes canonical `save.scene` and strips the already-deleted scene mirrors while retaining physical/clothing map data;
+   - function identity, SECURITY DEFINER/search_path/ACL and turn-0/idempotence checks remain correct;
+   - migration ledger contains this migration exactly once.
+5. Do not redeploy API or Frontend merely for ritual: reviewed candidate contains no executable API/frontend source delta. Confirm current TEST workers remain healthy and on the previously accepted Scene lineage.
+6. Use only the dedicated TEST game. Start with one canonical reset and confirm clean turn-0 state and canonical scene.
+7. Prove DB registered-ID integrity without manufacturing state:
+   - read the dedicated game master registered character/general-NPC IDs;
+   - make one direct transactional RPC probe using an unregistered/ghost primary or supporting ID and require rejection before mutation; read back save revision/setup/opening/scene unchanged;
+   - do not retry the same probe or add aliases/fuzzy handling if it fails unexpectedly: preserve first evidence and STOP BLOCKED.
+8. Run normal application Setup -> Opening with valid repository-backed current IDs. Confirm:
+   - setup/opening succeeds;
+   - canonical scene contains only registered participant IDs;
+   - removed Scene mirrors remain absent;
+   - player/npc physical-clothing state remains available;
+   - no deleted narrative residue fields are recreated.
+9. Run one provider-authored literal choice ordinary turn and one free-text ordinary turn through Story -> Extract -> Commit. Do not force a special semantic scenario.
+10. Verify committed `parsed_blocks` and `turn_summary`, canonical scene continuity, exact literal-choice identity, recovery/replay, and no recreation of removed Setup/Scene semantic/mirror state.
+11. Protected real-consumer systems must remain intact: physical/clothing, `npc_stats`, retained relationship display state, sexual/media presentation state where present, CSA institutional state, progression, stable identity, Mind Monitor, TTS, literal choices.
+12. Final dedicated TEST reset is required. Confirm `committed_turn=0`, setup/opening `not_started`, actions=0, turns=0, canonical scene valid, deleted save residue and removed Scene mirrors absent.
+13. If migration/function contract, ghost-ID rejection, valid Setup/Opening, Story/Extract/Commit, replay/recovery or final reset fails deterministically, preserve the first evidence and STOP BLOCKED. No retry/regeneration/source patch under this rollout.
 
 ## Architecture constraints
 
-- One durable domain -> one canonical writer.
-- Repository content owns semantic membership; DB may enforce only structural/transactional and registered identity integrity at this boundary.
-- Stable registered IDs are a proven integrity consumer. Do not replace them with non-empty-string acceptance, fuzzy aliases, regex existence gates, or a hardcoded heroine enum.
-- No compatibility overload, new parser, semantic `other`, retry/regeneration, provider/model/config change, deterministic fallback choices, or generic state bag.
+- Repository/application owns semantic catalogs and world meaning.
+- DB owns transactionality, structural validation, idempotence and dynamic registered-ID integrity only.
+- No hardcoded heroine/world semantic catalog in SQL.
+- No compatibility alias, fuzzy ID repair, regex semantic classifier, generic state bag, new parser, semantic gate, retry, provider/model/config change or server-authored choice fallback.
+- `save.scene` remains sole Scene authority; do not recreate `scene_state`, root presence/focal/last-speaker mirrors, player location mirror or NPC present/location/scene mirrors.
+- Narrative continuity remains recent six raw turns + older `game_turns.turn_summary`; do not create a new narrative fact ledger.
 - Institutional CSA compliance remains separate from consent/comfort/affection/emotion.
-- Media/image taxonomy remains presentation-only and must not gate narrative facts.
+- Media/image taxonomy remains presentation-only.
 
 ## Authorized operations
 
 Authorized:
-- source/test/docs edits within this corrective cut;
-- read-only Git/PR and TEST DB/catalog/function inspection;
-- correction of the existing unapplied `20260816040000_company_v1_setup_opening_world_authority.sql` migration source;
-- focused/full tests and static checks.
+- read-only Git/PR/TEST DB inspection;
+- apply exactly the reviewed TEST migration once;
+- dedicated TEST reset/setup/opening/ghost-rejection probe/ordinary two-turn smoke/replay/readback/final reset;
+- health/identity readback for current TEST workers;
+- TEMP/local evidence capture;
+- docs-only completion update.
 
 Not authorized:
-- applying the migration to TEST;
-- TEST gameplay/setup/reset or direct DB gameplay mutation;
-- API/frontend deployment;
+- source/test/migration/config edits;
+- API/frontend redeploy absent an unexpected executable identity defect;
+- second migration or rollback;
 - Production access;
-- any access to preserved manual game;
-- new branch/PR, merge, Ready, rebase, squash, force-push;
-- provider/model/temperature/token changes, retries/regeneration, parser changes, fuzzy repair, compatibility aliases/overloads.
+- any access/mutation/reset of preserved manual game;
+- retries/regeneration to obtain a pass;
+- provider/model/temperature/token change;
+- new branch/PR, merge, Ready, rebase, squash or force-push.
 
 ## Acceptance
 
-PASS only if the corrected candidate keeps the semantic-authority deletion while restoring dynamic registered-ID integrity: repository/application owns meaning, DB transactionally rejects ghost character IDs using the canonical registered master projection, and no hardcoded semantic catalog is reintroduced.
-
-If no canonical registered-ID projection is available at the DB transaction boundary without introducing a second authority, document the exact coupling and STOP BLOCKED rather than inventing a new catalog.
+PASS only if the exact reviewed migration is applied once and live TEST proves:
+- SQL semantic catalog duplication is removed;
+- registered character integrity is dynamic from the per-game master projection;
+- ghost IDs are rejected before mutation while normal registered Setup/Opening succeeds;
+- canonical Scene and deleted mirror/residue cleanup remain intact;
+- literal-choice and free-text ordinary turns plus replay/recovery succeed;
+- protected real-consumer state remains structurally intact;
+- final dedicated TEST reset is clean;
+- no Production/manual-game access or unauthorized source/deploy/retry occurred.
 
 ## Completion
 
 On PASS or deterministic BLOCKED evidence:
-- set CURRENT_TASK to `WAITING_REVIEW` in one docs-only completion commit after source/test/migration candidate commit(s);
-- report exact START SHA, corrected source/test/migration SHA, identity source used, tests/static checks, and FINAL_DOCS_SHA;
+- set this file to `WAITING_REVIEW` in one docs-only completion commit;
+- report exact START SHA, reviewed SHA, migration ledger version/name, live function/ACL facts, worker health identities, ghost-ID probe result, valid Setup/Opening/turn/replay evidence, final reset state, and FINAL_DOCS_SHA;
 - post one immutable terminal report to Issue #68;
-- STOP for operator review. Do not generate the next task yourself.
-
-## Candidate completion record
-
-- Start SHA: `8e2d6713938870c0f7bb7dd6851e423cd16160f9`
-- Corrected source/test/migration SHA: `1a221665f91b352607724912ba8a06250ac60fc5`
-- Existing unapplied migration corrected in place: `supabase/migrations/20260816040000_company_v1_setup_opening_world_authority.sql`
-- Dynamic identity source: per-game `game_master.data.characters` and `game_master.data.general_npcs` object-key projection; no SQL heroine catalog restored.
-- Focused Setup/Opening/bootstrap tests: 32/32 PASS
-- DB contract gate tests: 11/11 PASS
-- Full `npm.cmd test`: 420/420 PASS
-- JavaScript syntax checks: PASS
-- UTF-8 JSON/config parse: PASS
-- migration static semantic-list scan: PASS; no finite semantic allowlist literals
-- `git diff --check`: PASS
-- Migration apply: 0; TEST/gameplay/setup/reset/DB writes: 0; deployments: 0; Production/manual-game access: 0
-- Preserved evidence: unchanged
-- Final docs SHA: recorded in the docs-only completion commit
-
-Candidate is ready for operator review. No TEST rollout or deployment is authorized by this task.
+- STOP for operator review. Do not create the next task yourself.
