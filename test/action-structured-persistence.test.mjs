@@ -120,33 +120,6 @@ test('history uses usable committed parsed_blocks even when raw Story is not par
   assert.equal(payload.data.records[0].player_inner_thought, 'committed thought');
 });
 
-test('history keeps the historical parser only for rows without usable structured blocks', async () => {
-  const worker = createApiWorker({
-    fetchImpl: async (url) => {
-      const parsed = new URL(String(url));
-      assert.equal(parsed.pathname, '/rest/v1/game_turns');
-      return json([{
-        turn_number: 5,
-        player_action: 'continue',
-        structured_action: null,
-        feedback_text: null,
-        story_text: '[PLAYER_INNER_THOUGHT]\nhistorical',
-        parsed_blocks: {},
-        turn_summary: 'summary',
-        mind_monitor: {},
-        choices: [],
-        post_save: {},
-        committed_at: '2026-08-05T00:00:00Z'
-      }]);
-    }
-  });
-
-  const response = await worker.fetch(post('/api/history', { game_id: gameId, limit: 20 }), env);
-  assert.equal(response.status, 200);
-  const payload = await response.json();
-  assert.equal(payload.data.records[0].parsed_blocks.warnings.includes('legacy_narrative_adapter_used'), true);
-});
-
 test('a later stage cannot replace the structured action already reserved on game_actions', async () => {
   const worker = createApiWorker({
     fetchImpl: async (url, init = {}) => {

@@ -13,7 +13,6 @@ import {
   reducePlayerSexualState,
   buildExtractPrompt
 } from '../src/engine/index.js';
-import { parsePersistedNarrative } from '../src/engine/persisted-narrative-parser.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -27,17 +26,6 @@ test('gameplay state and narrative contracts retain the current v1 boundaries', 
   assert.match(narrative, /canonical_choices[\s\S]*exactly four non-empty, non-duplicate choices/i);
   assert.match(narrative, /free input remains available/i);
   assert.match(narrative, /speaker_id/);
-});
-
-test('persisted Story reader keeps authored inner thought and malformed Story nonblocking', () => {
-  const structured = parsePersistedNarrative(read('fixtures/gameplay-state-v1/story-structured.txt'));
-  const malformedRaw = read('fixtures/gameplay-state-v1/story-malformed-nonblocking.txt');
-  const malformed = parsePersistedNarrative(malformedRaw);
-  assert.ok(structured.player_inner_thought.length >= 180);
-  assert.ok(structured.blocks.some(block => block.type === 'player_inner_thought'));
-  assert.equal(structured.choices.length, 4);
-  assert.equal(malformed.raw, malformedRaw);
-  assert.ok(malformed.warnings.includes('choices_not_exactly_four'));
 });
 
 test('time proposals default safely and advance across days without mutating input', () => {

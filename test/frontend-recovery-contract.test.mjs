@@ -5,9 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { buildCharacterDisplayDetails, buildPlayerSexualDisplay } from '../src/api/character-display.js';
-import { parsePersistedNarrative as parseEngineNarrative } from '../src/engine/persisted-narrative-parser.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
-import { parseNarrative as parseFrontendNarrative } from '../src/frontend/pages/narrative.js';
 import { createUtilityUi } from '../src/frontend/pages/utility-ui.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -66,27 +64,6 @@ function fakeDocument(ids) {
   };
 }
 
-test('persisted Story and frontend parsers split canonical dialogue into visible TTS lines', () => {
-  const story = [
-    '[1. 서사 및 행동]',
-    '서원희 (낮고 단호하게): “보고서를 다시 확인하세요.”',
-    '서원희: “이번에는 숫자부터 봐요.”',
-    '[2. 플레이어 속마음]', '다시 보자.',
-    '[3. 플레이어 상황판]', '검토 중.',
-    '[4. 선택지]', '1. A', '2. B', '3. C', '4. D'
-  ].join('\n');
-  const master = { characters: [{ character_id: 'heroine1', name: '서원희' }] };
-  const engine = parseEngineNarrative(story, { master });
-  assert.equal(engine.dialogue_lines.length, 2);
-  assert.equal(engine.dialogue_lines[0].speaker_id, 'heroine1');
-  assert.equal(engine.dialogue_lines[1].direction, '자연스럽게');
-  assert.equal(engine.blocks.filter(block => block.type === 'dialogue').length, 2);
-
-  const frontend = parseFrontendNarrative(story, { speakerDirectory: { heroine1: { name: '서원희' } } });
-  assert.equal(frontend.dialogue_lines.length, 2);
-  assert.equal(frontend.dialogue_lines[0].speaker_id, 'heroine1');
-  assert.equal(frontend.blocks.filter(block => block.type === 'dialogue').length, 2);
-});
 test('Story prompt exposes the structural dialogue identity contract', () => {
   const messages = buildStoryPrompt({
     edition,

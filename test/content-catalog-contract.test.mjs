@@ -7,7 +7,6 @@ import edition from '../src/api/edition.js';
 import { masterFromEdition, npcIdsFromEdition } from '../src/api/turn-routes.js';
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt, buildRegisteredCharacters, buildRegisteredLocations } from '../src/engine/extract-prompt.js';
-import { parsePersistedNarrative } from '../src/engine/persisted-narrative-parser.js';
 import { buildActiveCharacterCanon, hydrateGameplayState, migrateCompanySave, selectActiveCharacterIds } from '../src/engine/gameplay-state.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -15,7 +14,6 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const readJson = file => JSON.parse(read(file));
 
 const HEROINE_IDS = ['heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5'];
-const NAMES = { heroine1: '서원희', heroine2: '윤민아', heroine3: '김제나', heroine4: '한리브', heroine5: '이메이' };
 const STORAGE_MAP = {
   heroine1: { storage_prefix: 'Heroine1', primary_image_path: 'Heroine1/one_main.jpg', adult_image_prefix: 'Heroine1/adult/' },
   heroine2: { storage_prefix: 'Heroine2', primary_image_path: 'Heroine2/minami_main.jpg', adult_image_prefix: 'Heroine2/adult/' },
@@ -194,17 +192,6 @@ test('masterFromEdition and npcIdsFromEdition resolve exactly the five registere
   const npcIds = npcIdsFromEdition(edition);
   for (const id of HEROINE_IDS) assert.equal(npcIds.has(id), true, id);
   assert.equal(npcIds.has('heroine6'), false);
-});
-
-test('the persisted Story reader resolves each heroine name to its correct stable ID and never partial-matches', () => {
-  const master = masterFromEdition(edition);
-  for (const [id, name] of Object.entries(NAMES)) {
-    const text = `[SCENE]\n${name} (담담하게): "확인했습니다."\n[PLAYER_STATUS]\nx\n[PLAYER_INNER_THOUGHT]\nx\n[CHOICES]\n1. a\n2. b\n3. c\n4. d`;
-    const parsed = parsePersistedNarrative(text, { master });
-    assert.equal(parsed.dialogue_lines[0].speaker_id, id, name);
-  }
-  const partial = `[SCENE]\n김 (담담하게): "확인했습니다."\n[PLAYER_STATUS]\nx\n[PLAYER_INNER_THOUGHT]\nx\n[CHOICES]\n1. a\n2. b\n3. c\n4. d`;
-  assert.equal(parsePersistedNarrative(partial, { master }).dialogue_lines[0].speaker_id, null);
 });
 
 // --- Active character selection ---------------------------------------------

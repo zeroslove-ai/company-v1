@@ -285,7 +285,6 @@ test('14-4: full turn pipeline — raw Story streaming → Extract → Commit an
   const replayComplete = JSON.parse(replayStoryLines[replayCompleteIndex + 1].slice('data: '.length));
   assert.equal(replayComplete.replayed, true);
   assert.deepEqual(replayComplete.parsed_blocks.blocks, committedBlocks.blocks, 'Story replay reads committed parsed_blocks instead of reparsing raw Story');
-  assert.equal(replayComplete.parsed_blocks.warnings?.includes('legacy_narrative_adapter_used'), false);
   const differentReplay = await worker.fetch(request('/api/story', { game_id: gameId, action_id: actionId, expected_turn: 8, player_action: '다른 행동' }), env);
   assert.equal(differentReplay.status, 409, 'same action_id cannot replay a different player action');
 

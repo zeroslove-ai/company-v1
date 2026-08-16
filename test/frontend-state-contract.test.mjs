@@ -103,7 +103,7 @@ test('history preserves accepted parsed blocks, summaries, and database order', 
     assert.equal(container.children[1].children[0].textContent, 'Turn 2 action');
     assert.equal(container.children[0].children[1].children[0].textContent, 'Turn 1 story');
     assert.equal(container.children[1].children[2].textContent, 'Turn 2 summary');
-    assert.equal(parsedTurnNarrative({ story_text: 'fallback' }).blocks[0].type, 'unparsed');
+    assert.equal(parsedTurnNarrative({ story_text: 'fallback' }).blocks, undefined);
   } finally { globalThis.document = previousDocument; }
 });
 

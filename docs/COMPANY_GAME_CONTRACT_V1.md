@@ -33,7 +33,7 @@ Master → Context → Story named SSE → parsed Story → Extract delta
 - `complete`: `{ action_id, turn_id, warnings, replayed }`
 - `error`: `{ code, message, retryable }`
 
-The worker persists the complete raw Story and Fresh semantic projection before final `complete`. A replay emits the stored raw Story and makes no model call. Fresh parsing uses `parseFreshNarrativeV2(raw)` and preserves exact raw bytes/source order. Historical rows use `parsePersistedNarrative` only at the persisted/read boundary. Footer incompleteness is a warning; it never triggers choice generation or repair.
+The worker persists the complete raw Story and Fresh semantic projection before final `complete`. A replay emits the stored raw Story and makes no model call. Fresh parsing uses `parseFreshNarrativeV2(raw)` and preserves exact raw bytes/source order. Replay and history use committed `parsed_blocks` as their narrative authority; the only historical read boundary is persisted Extract normalization for legacy `state_delta` rows. Footer incompleteness is a warning; it never triggers choice generation or repair.
 
 ## Extract, merge, and Commit
 

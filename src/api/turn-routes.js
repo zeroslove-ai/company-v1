@@ -23,7 +23,6 @@ import {
   reduceGameplayCommit,
   reduceStoryChoiceProjection,
   parseFreshNarrativeV2,
-  parsePersistedNarrative,
   resolvePlayerCanonicalNames,
   splitOpeningSections,
   validatePlayerSetupInput,
@@ -247,14 +246,11 @@ function hydratedSaveContext(context, master) {
   return { ...context, save: wrapped ? { ...context.save, data: hydrated } : hydrated };
 }
 
-function openingTurnProjection(save, master) {
+function openingTurnProjection(save) {
   const opening = plainObject(save?.opening_state) ? save.opening_state : null;
   if (opening?.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
-  const persistedBlocks = plainObject(opening.parsed_blocks) && Array.isArray(opening.parsed_blocks.blocks)
-    ? opening.parsed_blocks
-    : null;
   const parsedBlocks = {
-    ...(persistedBlocks ?? parsePersistedNarrative(opening.story_text, { master })),
+    ...(plainObject(opening.parsed_blocks) ? opening.parsed_blocks : {}),
     turn_context: {
       day: 1,
       minute_of_day: Number.isInteger(opening?.plan?.minute_of_day) ? opening.plan.minute_of_day : null,
@@ -277,9 +273,9 @@ function openingTurnProjection(save, master) {
   };
 }
 
-function withOpeningTurnProjection(context, master) {
+function withOpeningTurnProjection(context) {
   const save = context?.save?.data ?? context?.save;
-  return { ...context, opening_turn: openingTurnProjection(save, master) };
+  return { ...context, opening_turn: openingTurnProjection(save) };
 }
 
 function storySse({ meta, run }) {
@@ -418,7 +414,7 @@ const master = masterFromEdition(edition);
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: recentTurns });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
         const hydrated = hydratedSaveContext(context, master);
-        return ok({ context: withOpeningTurnProjection(hydrated, master) });
+        return ok({ context: withOpeningTurnProjection(hydrated) });
       } finally {
         logTurnTiming({ event_stage: 'context', request_id: requestId, game_id: gameId, context_rpc_ms: timing.context_rpc_ms, turn_total_ms: Date.now() - startedAt });
       }
@@ -428,8 +424,7 @@ const master = masterFromEdition(edition);
      * Read-only, paginated turn history. game_turns already carries everything needed (no new
      * RPC); record_status='active' dedupes a revised turn to only its current revision. Zero
      * LLM calls, zero mutation. player_inner_thought is read from the stored parsed_blocks;
-     * only falls back to re-parsing story_text (never writing the result back to the DB) for a
-     * a row without usable current-format structured blocks.
+     * committed structured blocks are the only replay/history narrative authority.
      */
     async history(request, env) {
       const requestId = newRequestId();
@@ -444,9 +439,7 @@ const master = masterFromEdition(edition);
         const hasMore = rows.length > limit;
         const page = hasMore ? rows.slice(0, limit) : rows;
         const records = page.map(row => {
-          const parsedBlocks = plainObject(row.parsed_blocks) && Array.isArray(row.parsed_blocks.blocks)
-            ? row.parsed_blocks
-            : parsePersistedNarrative(row.story_text ?? '', { master });
+          const parsedBlocks = plainObject(row.parsed_blocks) ? row.parsed_blocks : {};
           return {
             turn_number: row.turn_number,
             player_input: row.player_action,
@@ -540,12 +533,9 @@ const master = masterFromEdition(edition);
         logTurnTiming({ event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn, replayed: true, turn_total_ms: Date.now() - startedAt });
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
           // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
-          const persistedStory = plainObject(action.parsed_blocks) && Array.isArray(action.parsed_blocks.blocks)
-            ? action.parsed_blocks
-            : parsePersistedNarrative(action.story_text, { master });
+          const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
           const parsed = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
-          if (parsed.warnings?.includes('legacy_narrative_adapter_used')) emit('delta', { text: action.story_text });
-          else emitVisibleStory(emit, action.story_text, { master });
+          emitVisibleStory(emit, action.story_text, { master });
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
         } });
       }
@@ -723,9 +713,7 @@ const master = masterFromEdition(edition);
         stage: 'extract'
       });
       if (action.extract_delta) {
-        const persistedStory = plainObject(action.parsed_blocks) && Array.isArray(action.parsed_blocks.blocks)
-          ? action.parsed_blocks
-          : parsePersistedNarrative(action.story_text, { master });
+        const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
         const replayParsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: replayParsedStory.blocks, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
@@ -758,9 +746,7 @@ const master = masterFromEdition(edition);
 
       const timing = {};
       try {
-        const persistedStory = plainObject(action.parsed_blocks) && Array.isArray(action.parsed_blocks.blocks)
-          ? action.parsed_blocks
-          : parsePersistedNarrative(action.story_text, { master });
+        const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
         let parsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
         // Extract observes the same raw Story text that was streamed to the player.
         const storyForExtract = action.story_text;
@@ -896,9 +882,7 @@ const master = masterFromEdition(edition);
           playerAction: csaResolution ? '' : action.player_action,
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
-        const persistedStory = plainObject(action.parsed_blocks) && Array.isArray(action.parsed_blocks.blocks)
-          ? action.parsed_blocks
-          : parsePersistedNarrative(action.story_text, { master });
+        const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
         let parsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: parsedStory.blocks, expectedTurn, actionId });
         const reducerStart = Date.now();
@@ -1088,10 +1072,9 @@ const master = masterFromEdition(edition);
 
       if (preSave?.player_setup?.completed === true && preSave?.opening_state?.status === 'complete') {
         return storySse({ meta: { setup_id: setupId, replayed: true }, run: async emit => {
-          const projection = openingTurnProjection(preSave, master);
-          const parsedOpening = projection?.parsed_blocks ?? parsePersistedNarrative(preSave.opening_state.story_text, { master });
-          if (parsedOpening.warnings?.includes('legacy_narrative_adapter_used')) emit('delta', { text: preSave.opening_state.story_text });
-          else emitVisibleStory(emit, preSave.opening_state.story_text, { master });
+          const projection = openingTurnProjection(preSave);
+          const parsedOpening = projection?.parsed_blocks ?? {};
+          emitVisibleStory(emit, preSave.opening_state.story_text, { master });
           emit('complete', {
             setup_id: setupId,
             choices: projection?.choices ?? [],

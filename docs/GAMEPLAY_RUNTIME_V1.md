@@ -27,7 +27,7 @@ This connects the merged `docs/COMPANY_GAMEPLAY_STATE_CONTRACT_V1.md` and `docs/
 
 The current Story prompt emits semantic `[SCENE]`, `[DIALOGUE speaker_id="registered_id"]`, optional `[ACTING]`, `[THOUGHT]`, and repeated literal `[CHOICE]` blocks. Human section headings, labels, and numbering belong to the UI and are not Fresh output authority.
 
-Fresh parsing uses `parseFreshNarrativeV2` and treats non-empty exact `speaker_id` as the only speaker authority. Historical rows may use `parsePersistedNarrative` and its legacy adapter only at the persisted/read compatibility boundary.
+Fresh parsing uses `parseFreshNarrativeV2` and treats non-empty exact `speaker_id` as the only speaker authority. Replay/history uses committed `parsed_blocks`; legacy persisted Extract `state_delta` is normalized only by the explicit read boundary used by replay and Commit.
 
 ## Story-authoritative fields
 

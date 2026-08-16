@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { reduceNpcPhysicalObservation, reduceNpcStatObservation, reduceStoryChoiceProjection } from '../src/engine/runtime-core/observation-reducers.js';
 import { normalizeExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { reduceGameplayCommit } from '../src/engine/runtime-core/commit-reducer.js';
-import { adaptLegacyExtractDelta } from '../src/engine/runtime-core/legacy-extract-adapter.js';
+import { normalizePersistedExtractObservation } from '../src/engine/runtime-core/persisted-extract-observation.js';
 import { parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
 
 const seed = JSON.parse(fs.readFileSync(new URL('../fixtures/phase-0.5/canonical-save-v1.json', import.meta.url)));
@@ -96,9 +96,9 @@ test('V2 commit leaves canonical choices unavailable when the Story has fewer th
   assert.deepEqual(result.nextSave.last_choices, []);
 });
 
-test('persisted V1 adapter is the only compatibility bridge and emits an explicit warning', () => {
+test('persisted legacy Extract rows use one explicit read boundary and emit an explicit warning', () => {
   const legacy = JSON.parse(fs.readFileSync(new URL('../fixtures/gameplay-state-v1/extract-invalid-time.json', import.meta.url)));
-  const observation = adaptLegacyExtractDelta(legacy, { npcIds, storyText: 'legacy story' });
+  const observation = normalizePersistedExtractObservation(legacy, { npcIds, storyText: 'legacy story' });
   assert.equal(observation.extract_version, 2);
   assert.ok(observation.warnings.includes('legacy_extract_adapter_used'));
 });

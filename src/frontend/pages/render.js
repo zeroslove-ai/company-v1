@@ -1,5 +1,3 @@
-﻿import { parseNarrative } from './narrative.js';
-
 export function text(element, value) { if (element) element.textContent = value ?? ''; }
 
 function displayValue(value) { return typeof value === 'string' || typeof value === 'number' ? String(value) : ''; }
@@ -131,7 +129,7 @@ export function parsedTurnNarrative(turn) {
   let parsed;
   if (Array.isArray(turn?.parsed_blocks)) parsed = { blocks: turn.parsed_blocks };
   else if (Array.isArray(turn?.parsed_blocks?.blocks)) parsed = turn.parsed_blocks;
-  else parsed = parseNarrative(turn?.story_text ?? '');
+  else parsed = {};
   const choices = parsedChoices(turn, parsed);
   return { ...parsed, choices, choice_labels: parsedChoiceLabels(turn, parsed, choices.length) };
 }

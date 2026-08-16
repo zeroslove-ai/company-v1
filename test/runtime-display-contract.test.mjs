@@ -1,19 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
   buildContextDisplayPayload,
   buildCsaTransactionDetailsSection,
   buildNpcAppPayload
 } from '../src/api/runtime-display.js';
-import { parsePersistedNarrative } from '../src/engine/persisted-narrative-parser.js';
 import { buildCompanyGameViewModel } from '../src/frontend/pages/view-model.js';
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const acceptanceFixture = JSON.parse(fs.readFileSync(path.join(root, 'test/fixtures/runtime-acceptance-turns-2-4.json'), 'utf8'));
 
 const edition = {
   organization: {
@@ -140,42 +133,4 @@ test('transaction details preserve authority tiers for Extract/runtime observati
   assert.match(details, /수정 updated · 강도 중간 · 권위 취업규칙·전사 준수 규정 · .*내용: 수정 규정/);
   assert.match(details, /법령 규정/);
   assert.match(details, /해제 old · 강도 약함 · 권위 인사팀 공식 공지·사내 운영지침 · .*내용: 예전 규정/);
-
-});
-
-test('persisted Story reader preserves TTS lines even when quotes or the colon are omitted', () => {
-  const parsed = parsePersistedNarrative([
-    '[1. 서사 및 행동]',
-    '히로인1 (낮고 단호하게) 보고서를 다시 봐요.',
-    '히로인1 (숨을 고르며): “괜찮아요.”',
-    '[2. 플레이어 속마음]',
-    '다시 확인하자.',
-    '[3. 플레이어 상황판]',
-    '검토 중.',
-    '[4. 선택지]',
-    '1. A', '2. B', '3. C', '4. D'
-  ].join('\n'), { master: { characters: [{ character_id: 'heroine1', name: '히로인1' }] } });
-  assert.equal(parsed.dialogue_lines.length, 2);
-  assert.equal(parsed.dialogue_lines[0].speaker_id, 'heroine1');
-  assert.equal(parsed.dialogue_lines[0].direction, '낮고 단호하게');
-  assert.equal(parsed.dialogue_lines[0].text, '보고서를 다시 봐요.');
-  assert.equal(parsed.dialogue_lines[1].text, '괜찮아요.');
-});
-
-
-test('captured live turns keep following narrative outside one explicit dialogue paragraph', () => {
-  const master = {
-    characters: [
-      { character_id: 'heroine2', name: '윤민아' },
-      { character_id: 'heroine4', name: '한리브' }
-    ]
-  };
-  for (const turnNumber of [3, 4]) {
-    const turn = acceptanceFixture.turns.find((entry) => entry.turn_number === turnNumber);
-    const parsed = parsePersistedNarrative(turn.story_text, { master });
-    const dialogue = parsed.blocks.filter((block) => block.type === 'dialogue');
-    assert.ok(dialogue.length >= 2, `turn ${turnNumber} should retain both dialogue blocks`);
-    assert.ok(parsed.blocks.some((block) => block.type === 'scene' && block.text.includes('대리가 그 말에 고개를 끄덕이며 덧붙였다.')) || turnNumber === 3);
-    assert.ok(dialogue.every((block) => !block.text.includes('대리가 그 말에 고개를 끄덕이며 덧붙였다.')));
-  }
 });

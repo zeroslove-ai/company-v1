@@ -687,7 +687,6 @@ test('/api/opening first-run and replay expose the same canonical parsed project
   assert.equal(firstComplete.parsed_blocks.player_inner_thought, 'I should look around first.');
   assert.equal(firstComplete.parsed_blocks.choices.length, 4);
   assert.equal(firstComplete.parsed_blocks.canonical_choices.length, 4);
-  assert.equal(firstComplete.parsed_blocks.warnings.includes('legacy_narrative_adapter_used'), false);
   assert.equal(firstComplete.parsed_blocks.raw, mock.getSave().opening_state.story_text);
   assert.equal(mock.storyCallCount(), 1);
 
@@ -708,7 +707,7 @@ test('/api/opening first-run and replay expose the same canonical parsed project
   assert.equal(mock.storyCallCount(), 1);
 });
 
-test('/api/context keeps historical opening parsing on the server persisted boundary', async () => {
+test('/api/context does not reparse an opening without committed structured blocks', async () => {
   const legacy = freshSave();
   legacy.player_setup = { version: 1, completed: true, status: 'complete', setup_id: 'legacy-opening' };
   legacy.opening_state = {
@@ -720,7 +719,7 @@ test('/api/context keeps historical opening parsing on the server persisted boun
   const worker = createApiWorker({ fetchImpl: mock.fetchImpl });
   const response = await worker.fetch(request('/api/context', { game_id: gameId, recent_turns: 1 }), env);
   const openingTurn = (await response.json()).data.context.opening_turn;
-  assert.ok(openingTurn.parsed_blocks.warnings.includes('legacy_narrative_adapter_used'));
+  assert.deepEqual(openingTurn.parsed_blocks.blocks, undefined);
   assert.equal(openingTurn.story_text, legacy.opening_state.story_text);
 });
 

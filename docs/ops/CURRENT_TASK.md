@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: legacy-replay-compatibility-residue-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -111,3 +111,17 @@ On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in the same source/test/docs lineage;
 - post one immutable terminal report to Issue #68 with START SHA, SOURCE_TEST_SHA/FINAL_SHA, exact deleted/kept compatibility surfaces, DB shape proof, focused/full tests, migration candidate status, forbidden-operation confirmation and PR state;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution result — legacy-replay-compatibility-residue-closure-v1
+
+- Result: source/test/docs cleanup PASS; waiting for operator review.
+- Start HEAD: `8cf1051913b4d1709896b589703b0db02270bdc0`.
+- Reviewed executable SHA retained: `e4c15345c1c23afda85df09381830421d8428d73`.
+- Supported non-preserved TEST shape, read-only and excluding `78fb1d94-266f-455a-bda4-7656cc2370c1`: game `11111111-1111-4111-8111-111111111111` has 18 `game_turns` and 18 `game_actions`; all 18/18 rows in both tables have usable `parsed_blocks.blocks`, all 18/18 rows have legacy `extract_delta.state_delta`, and 0 rows have fresh `extract_version=2`. All 18 turns have `post_save`, `record_status=active`, and `revision_number=1`.
+- REMOVE: server `persisted-narrative-parser.js`, engine `narrative-parser.js`, frontend raw-history parser `src/frontend/pages/narrative.js`, their zero-caller exports/imports, raw-story replay/history fallback branches, parser-only tests, and superseded Story parser fixtures. The 2,289-line runtime acceptance fixture was parser-only and was removed with its parser-only tests.
+- KEEP: `fresh-narrative-parser.js` for fresh generation; committed `parsed_blocks` for Story/opening/history/replay/presentation authority; `normalizePersistedExtractObservation()` plus its private `legacy-extract-adapter.js` path as the single read-only boundary required by the 18 legacy `state_delta` rows. `state-evidence-boundaries.test.mjs` now tests that public boundary rather than the private adapter.
+- No old RPC/action-history alias had a current caller in the inspected Supabase client/replay path; no migration candidate was necessary.
+- Canonical docs now describe committed parsed blocks as replay/history authority and persisted legacy Extract as the only historical read boundary.
+- Focused persisted/replay/history/recovery tests: 116/116 PASS. Full `npm.cmd test`: 414/414 PASS. Changed JS/MJS syntax: 14 files checked. `git diff --check`: PASS.
+- Forbidden operations: TEST gameplay/reset/write 0; migration apply 0; API deploy 0; frontend deploy 0; Production access 0; provider/model/retry/parser-generation/semantic-gate changes 0; preserved artifacts/manual game unchanged.
+- SOURCE_TEST_SHA/FINAL_SHA: recorded in the immutable Issue #68 terminal report after commit/push.

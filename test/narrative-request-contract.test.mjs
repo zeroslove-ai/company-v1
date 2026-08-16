@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 
 import { buildStoryPrompt } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
-import { parseNarrative } from '../src/frontend/pages/narrative.js';
 
 function context() {
   return {
@@ -103,19 +102,4 @@ test('Extract request carries the exact raw Story and V2-only output contract', 
   }
   assert.match(messages[0].content, /turn_summary is the compressed continuity memory/);
   assert.match(messages[0].content, /Empty text is allowed only when the Story genuinely has no continuity content/);
-});
-
-test('frontend narrative projection preserves malformed raw Story for later recovery', () => {
-  const raw = '[SCENE]\n장면은 표시된다.\n[CHOICES]\n1. 하나';
-  const parsed = parseNarrative(raw);
-  assert.equal(parsed.raw, raw);
-  assert.ok(parsed.warnings.includes('choices_not_exactly_four'));
-  assert.ok(parsed.blocks.some(block => block.type === 'scene' && block.text.includes('장면은 표시된다.')));
-});
-
-test('frontend narrative projection keeps unparsed Story text instead of dropping it', () => {
-  const raw = '화자 표식을 해석할 수 없는 원문도 보존한다.';
-  const parsed = parseNarrative(raw);
-  assert.deepEqual(parsed.blocks, [{ type: 'unparsed', text: raw }]);
-  assert.ok(parsed.warnings.includes('no_recognized_markers'));
 });
