@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-navigation-phase-closure-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -129,6 +129,18 @@ Also delete the private zero-caller `hydrateGameplayStateLegacy()` semantic hydr
 - no provider/model/retry/regeneration changes;
 - no new semantic router/gate/fuzzy matcher/parser/compatibility bag;
 - no new branch/PR, rebase, squash, force-push, Ready or merge.
+
+## Execution validation
+
+- Start HEAD: `02f6ff81a24406baeb39064d5933de98a32e560d`.
+- Focused navigation/scene regressions: 11 passed, 0 failed, 0 skipped, 0 todo.
+- Full `npm.cmd test`: 287 passed, 0 failed, 0 skipped, 0 todo.
+- Changed JS/MJS syntax: 5 files checked and passed; JSON contract/content checks passed; `git diff --check` passed.
+- `hydrateGameplayStateLegacy` and `HYDRATION_SOURCES` have no remaining source/test references. Retired-root names remain only in the intentional legacy-save stripping list.
+- The exact registered-NPC visit path resolves `윤민아 보러간다` to `brand_strategy_office` / `heroine2`; stale scene mirrors do not control the destination, and unmarked/NPC-directed movement remains rejected.
+- Authoritative movement from source location A to destination B excludes source-location presence evidence; destination-phase accompaniment evidence remains accepted.
+- `supabase/migrations/20260816050000_company_v1_minimal_story_runtime_contract.sql` is unchanged and unapplied.
+- Source correction is a descendant of `e2deee44202e732dd6c15907eb77c8cc35892669`; push and PR #67 draft/unmerged state remain pending final handoff.
 
 ## Acceptance
 
