@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-final-residue-test-rollout-v2
+Status: READY
+Task ID: minimal-story-runtime-release-candidate-product-acceptance-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,150 +13,132 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5309810778` — ACCEPTED_BLOCKED_EVIDENCE for `minimal-story-runtime-final-residue-test-rollout-v1`.
-Previous terminal: `5309781084`.
-Reviewed source/test SHA: `907eee3bcace9918e4965221eec2f44719213682`.
-Reviewed source/docs SHA before rollout: `ed3437c2563863a768793f4f8b1989b892ccf09c`.
-Previous rollout docs SHA: `affb8dc86f616514d6398802a188012c5662befa`.
+Previous operator review: `5309876392` — ACCEPTED `minimal-story-runtime-final-residue-test-rollout-v2`.
+Accepted final docs/head: `b8dfe8b8b1e4aaccd780f222849fec14dbae1abf`.
+Reviewed source/test lineage: `907eee3bcace9918e4965221eec2f44719213682` plus the accepted registered-destination handoff lineage already included in current deployed source ancestry.
 
-The previous rollout already completed the structural TEST rollout work:
-- migration `20260817000100 / company_v1_final_residue_closure` is live exactly once on TEST;
-- live helper/validator ACL contract was verified;
-- TEST API version `1011e5a2-f034-40ae-bef7-6cdd76b266a6` and TEST Frontend version `1a3c1416-5362-4658-a8fe-465006a342dd` were deployed from the reviewed executable-equivalent lineage;
-- reset, Setup and Opening succeeded;
-- Opening returned four non-empty unique provider-authored literal choices;
-- final cleanup reset succeeded.
-
-Independent operator verification after the BLOCKED terminal confirms the disposable TEST game is clean at committed_turn=0, Level 1, setup/opening not_started, canonical scene=`setup`, turn/action counts 0, and removed save roots (`scene_state`, `last_npcs_present`, top-level focal/last-speaker, `last_choices`, `last_choice_meta`) are absent.
-
-The previous task stopped only because the OS TEMP evidence verifier incorrectly required `scene_id=setup` immediately after Opening. A canonical post-Opening scene of `scene_id=opening` with Opening participants is valid. The removed `/narrative.js` expectation in the old frontend smoke script is also stale and is not a product acceptance authority.
-
-Disposable TEST game authorized for this rollout only:
-`2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+Accepted live state before this task:
+- TEST migration `20260816050000 / company_v1_minimal_story_runtime_contract` is live exactly once.
+- TEST migration `20260817000100 / company_v1_final_residue_closure` is live exactly once.
+- TEST API `game-proxy-company-v1` Version `1011e5a2-f034-40ae-bef7-6cdd76b266a6` and Frontend `gamebuilder-company-v1` Version `1a3c1416-5362-4658-a8fe-465006a342dd` were verified live at 100% in the immediately preceding accepted rollout. Do not redeploy if these reviewed identities remain live/equivalent.
+- Disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` was independently verified clean after final reset: committed_turn=0, actions=0, turns=0, Level 1, setup/opening not_started, canonical scene=`setup`, empty presence, retired choice/scene/location mirrors absent.
 
 Forbidden game IDs — do not read, mutate, reset, or use for evidence:
+- Production/sentinel: `11111111-1111-4111-8111-111111111111`;
 - preserved manual: `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- QA evidence: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`;
-- production/sentinel: `11111111-1111-4111-8111-111111111111`.
+- QA evidence: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`.
 
 Production is forbidden.
 
+## Accepted product evidence already available
+
+Do not rerun old microtests merely to reproduce these facts:
+- registered NPC destination navigation and A→B source-phase presence isolation are accepted live;
+- weak non-clothing CSA activation-time premise, separation from unrelated consent/affection/trust/arousal, exact UTF-8 player-action fidelity, canonical time and useful literal choices were exercised in one 9-turn product run;
+- physical/contact, compact clothing and intimate/sexual side systems were exercised in one 12-turn bounded run; naturally unreached positive mechanics were correctly treated as coverage limitations, not retry-until-lucky targets;
+- post-Minimal-Story-Runtime final residue migration/API/Frontend contract is accepted live, including removed mirror non-resurrection and replay/reset.
+
 ## Objective
 
-Finish the one incomplete bounded TEST acceptance from V1 without reopening architecture or migration work. Prove the already-live final-residue contract through one fresh reset → Setup/Opening → exact provider literal Turn 1 → Story/Extract/Commit → committed readback/replay → final reset sequence.
+Run one final release-candidate **product acceptance** of the current post-Minimal-Story-Runtime TEST lineage in a single coherent multi-turn scenario. The goal is not to force every mechanic to fire and not to create more architecture. The goal is to verify that the current user-facing gameplay spine remains coherent after the accumulated semantic simplification and final-residue rollout.
 
-This is not another product-play loop and not a source-fix task.
+This is acceptance only. Do not patch source inside this task.
 
 ## Required execution
 
-1. Freeze START HEAD. Verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`.
-2. Preflight only; do not redo completed rollout work:
-   - verify migration ledger contains exactly one `20260817000100 / company_v1_final_residue_closure`;
-   - verify `company_minimalize_save_v1(jsonb)` and `validate_company_save_v1(jsonb)` still match the already-reviewed live ACL/contract;
-   - verify TEST API and Frontend identities/source equivalence. If the exact prior versions are still live, do not redeploy. If source identity drifted from the reviewed lineage, STOP as BLOCKED rather than silently broadening scope.
-3. Do not run the stale frontend smoke assertion requiring removed `/narrative.js`. Current root HTML/current asset readability may be checked directly if needed.
-4. Run exactly one canonical reset of only the disposable TEST game. Verify baseline: turn/action/history 0, Level 1, setup/opening not_started, canonical scene.version=1 / scene_id=`setup` / empty presence, and removed choice/scene/location mirrors absent.
-5. Run Setup + Opening exactly once through normal TEST API routes.
-6. Verify Opening succeeds with exactly four non-empty unique provider-authored literal choices and committed Opening story/parsed blocks/choices.
-7. Evidence contract correction: after Opening, canonical `scene_id=opening` (or another canonical non-setup Opening scene produced by the accepted server flow) is valid. Do NOT require it to remain `setup`. Verify only that `save.scene` is canonical and removed legacy mirrors remain absent.
-8. Select one actual Opening provider literal and send that exact string as Turn 1 `player_action`. No numbered shorthand, metadata substitution, normalization, or synthetic choice.
-9. Run Turn 1 Story → Extract → Commit once. No provider retry/regeneration.
-10. Verify committed Turn 1/readback:
-   - commit succeeds and committed_turn becomes 1;
-   - stored player_action equals the selected literal exactly;
-   - committed `parsed_blocks.choices` is ordinary choice readback authority;
-   - `last_choices` / `last_choice_meta` do not reappear;
-   - `scene_state`, `last_npcs_present`, top-level focal/last-speaker, player location mirrors, and NPC present/scene/location mirrors do not reappear;
-   - canonical `save.scene` remains valid;
-   - `world_state.game_time` remains present/coherent;
-   - context/display identity/scene comes from the canonical server projection/catalog and contains no `compatibility_mode`.
-11. Perform same-action Story/Extract/Commit replay for Turn 1 and verify replay/idempotence: no extra committed turn and no resurrected removed mirrors.
-12. Verify `/api/context` and `/api/history` after Turn 1. Current Story/parsed blocks/literal choices must remain usable without legacy fallback invention.
-13. Finish with exactly one canonical reset of the disposable TEST game. Reverify committed_turn=0, history/action=0, Level 1, setup/opening not_started, canonical scene=`setup`, and all removed mirrors/choice roots absent.
-14. Evidence may be stored under OS TEMP only. Do not commit evidence artifacts.
+1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`.
+2. Before any gameplay request, fail closed unless the target is exactly disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+3. Read-only preflight:
+   - verify the two accepted TEST migrations remain present exactly once;
+   - verify the reviewed TEST API/Frontend identities are still live/source-equivalent. If runtime identity drifted from the accepted lineage, STOP as BLOCKED; do not deploy or broaden scope without separate review.
+4. Canonically reset only the disposable TEST game and verify clean baseline: turn/action/history 0, Level 1, setup/opening not_started, canonical `save.scene=setup`, empty presence, retired save mirrors absent.
+5. Run Setup + Opening once through the canonical request path. Opening must produce exactly four non-empty unique provider-authored literal choices.
+6. Commit **10–14 ordinary turns in one coherent workplace scenario**. Do not run disconnected probes. Use:
+   - Turn 1 as one actual Opening-returned literal transported unchanged;
+   - at least two later provider-returned literal choices when available;
+   - several exact UTF-8 free-text player actions.
+7. Establish one concrete early work promise/request/detail by turn 2 or 3, then refer back to it naturally only after it has left the latest-six raw window. Verify later Story can preserve the meaning through chronological older `turn_summary` memory. Do not create a relation/event/work ledger to help it.
+8. Exercise one registered navigation/presence transition naturally in the scenario. Reuse current exact registered location/NPC authority; no fuzzy name matching, named-input→presence shortcut, or new semantic router. Verify source-location NPCs do not teleport to the destination and registered identity remains stable.
+9. Exercise player agency with at least two explicit free-text actions whose intended action/target matters. Inspect Story outcome rather than requiring success: the player input is intent/attempt, but Story must not silently replace the requested target/action with an unrelated one without narrative reason.
+10. If a weak non-clothing CSA can be activated naturally through the canonical app transaction path without changing progression/config, exercise one activation at a concrete game time. Verify:
+    - it begins from activation time, not retroactively;
+    - when applicable, it is treated as the current workplace premise;
+    - unrelated consent/comfort/affection/trust/romance/arousal are not mechanically inferred from compliance.
+    If the scenario cannot naturally activate one, record this as coverage limitation; do not rerun or mutate state just to force it.
+11. Physical/contact/clothing/intimate/sexual/media side systems are observation-only acceptance axes in this run:
+    - if Story establishes an evidenced physical or compact-clothing change, durable narrow state may follow;
+    - if Story establishes only attempt/refusal/boundary, prior durable state should remain;
+    - sexual mechanical state/ledger may change only when Story actually establishes supported events;
+    - no such side mechanic may auto-mutate consent/relationship/CSA semantics;
+    - media/image miss or alternate classification must remain presentation-only and cannot block Story/Extract/Commit.
+    Do not manufacture outcomes or retry until a mechanic fires.
+12. Verify canonical time remains chronological/coherent across the scenario.
+13. At/after the summary boundary, inspect the actual Story context projection or equivalent accepted evidence and verify exactly six latest raw committed turns are used for raw recent context while older chronological natural-language summaries remain available. Do not mistake a broader DB/context fetch window for Story’s six-raw projection.
+14. Mid-run, perform a normal committed refresh/context/history readback. Verify current canonical scene/identity, choices, Mind Monitor and supported narrow display/mechanical state come from committed server authority; retired roots/mirrors remain absent.
+15. Perform same-action Story/Extract/Commit replay on one committed ordinary turn. Verify replay acknowledgement/idempotence and unchanged committed_turn.
+16. Throughout the run verify fresh state does not resurrect retired/general semantic-memory authority or final-residue mirrors. In particular, do not recreate generic relation/emotion/work/general-event ledgers, stale choice caches, duplicate scene/location/presence mirrors, or compatibility bags.
+17. Finish with exactly one canonical reset of the disposable TEST game and verify committed_turn=0, action/history=0, Level 1, setup/opening not_started, canonical scene=`setup`, empty presence, and retired mirrors absent.
+18. Evidence may be stored under OS TEMP only. Do not commit evidence artifacts.
+
+## Acceptance interpretation
+
+This task is `PRODUCT_PLAY_PASS` only if the one coherent scenario completes without a deterministic gameplay/runtime defect and demonstrates:
+- literal + free-text player agency;
+- coherent Story→Extract→Commit progression;
+- registered navigation/presence identity;
+- long-horizon six-raw + older-summary continuity;
+- canonical time;
+- committed refresh/history/replay/idempotence;
+- side-system isolation and final-residue non-resurrection;
+- final canonical reset.
+
+A naturally unreached optional side mechanic is a **coverage limitation**, not failure and not permission to rerun until lucky.
+
+Provider wording that is merely stylistically imperfect is not a deterministic product defect. However, a clear player-agency substitution, contradictory world premise, wrong identity/location/presence, broken committed memory, or turn-blocking side-system coupling is a product blocker and must be captured rather than patched in this task.
 
 ## Stop-on-defect policy
 
-One sequence only. On the first deterministic product/runtime defect, capture exact minimal evidence, perform final disposable cleanup reset if safe, and STOP.
+One scenario attempt only. On first deterministic product defect:
+- capture the exact turn/action/stage and smallest relevant Story/Extract/committed evidence;
+- perform final disposable cleanup reset if safe;
+- STOP as BLOCKED for operator review.
 
-Do not stop for the already-known invalid evidence expectations:
-- post-Opening scene is not required to remain `setup`;
-- removed `/narrative.js` is not required to exist.
-
-Do not patch source or evidence tooling in the repository during this task. Do not retry/regenerate until lucky.
+Do not retry/regenerate the provider, alter model/settings, patch prompt/runtime/parser, add fuzzy repair, semantic gate, compatibility layer, or manual DB state to make the attempt pass.
 
 ## Architecture constraints
 
-- Story remains narrative authority; Extract remains one grounded observer; Commit remains structural transaction authority.
-- `save.scene` is the sole active durable scene/location/presence/focal/last-speaker authority.
-- Opening choices live in committed Opening projection; ordinary choices live in committed parsed blocks. No fresh save choice cache.
-- `world_state` remains canonical game-time state.
-- Physical/clothing/sexual/CSA mechanics remain narrow proven side systems; do not expand or infer them in this smoke.
-- Preserve the existing persisted legacy Extract read-only boundary.
-- No generic relationship/event/emotion/work/open-fact memory ledger, compatibility bag, semantic gateway, new parser, fuzzy repair, retry/regeneration, provider/model change, or semantic gate.
+- Minimal gameplay spine remains: player input/literal choice → committed minimal context → Story LLM → raw Story → Extract grounded observations + natural `turn_summary` → structural Commit → committed save/history → next turn.
+- Story is narrative authority; Commit is not a narrative interpreter.
+- `save.scene` is sole durable scene/location/presence authority.
+- ordinary choices come from committed `parsed_blocks`; no fresh save choice cache.
+- latest six raw turns + older chronological `turn_summary` are narrative memory; do not introduce generic fact/relation/event/emotion/work memory.
+- CSA remains institutional lifecycle/context/mechanics, not consent/relationship/physical truth.
+- physical/clothing/sexual/media/Mind Monitor/TTS remain narrow proven side systems only.
+- preserve the one proven historical persisted-Extract read-only boundary; do not expand compatibility.
 
 ## Authorized operations
 
 Authorized:
-- read-only Git/PR/source/deployed-identity inspection;
-- TEST migration/function/ACL read-only verification;
-- direct current TEST frontend asset readability checks;
-- disposable TEST game reset/setup/opening/one ordinary Turn 1/context/history/replay/final reset;
-- read-only TEST DB verification for that disposable game;
+- read-only Git/PR/deployed-identity inspection;
+- read-only TEST migration/function verification;
+- disposable TEST game reset/setup/opening/ordinary gameplay/context/history/replay/final reset;
+- canonical app transaction path for one weak CSA activation if naturally practical;
+- read-only TEST DB verification for the disposable game;
 - OS TEMP evidence;
-- docs-only completion record and one immutable Issue #68 terminal report.
+- docs-only completion record and immutable Issue #68 terminal report.
 
 Not authorized:
-- migration application/reapplication/repair/rollback or any DDL;
-- API/frontend deployment if the reviewed prior source identity is still live; if identity drift prevents proof, STOP;
-- source/runtime/test/content/config edits;
-- Production or forbidden-game access;
-- retry/regeneration/provider/model changes;
-- parser/fuzzy/semantic/compatibility replacement;
-- extra product-play loops;
+- Production or any forbidden-game access;
+- migration/DDL apply/reapply/repair;
+- API/frontend deploy unless a future operator task separately authorizes it; identity drift here is BLOCKED;
+- source/runtime/test/content/config edit;
+- provider retry/regeneration/model/temperature/token change;
+- new parser, fuzzy repair, semantic gateway/gate, compatibility runtime, memory ledger or manual DB outcome manufacture;
 - new branch/PR, merge, Ready, rebase, squash, force-push.
 
-## Acceptance
+## Completion
 
-PASS only if the already-live reviewed contract survives one bounded fresh sequence through exact literal Turn 1, committed readback, replay/idempotence and final reset, with all retired choice/scene/location mirrors absent throughout and no compatibility replacement introduced.
-
-On PASS or first real deterministic blocker:
+On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
-- post exactly one immutable terminal report to Issue #68 with START SHA, verified live migration/API/Frontend identity, reset/setup/opening/Turn1/replay/readback/final-reset evidence, forbidden-operation confirmation and final docs SHA;
+- post one immutable terminal report to Issue #68 with START SHA, exact deployed identities, turn count, decisive scenario evidence, summary-boundary evidence, replay result, optional coverage limitations, final reset proof, forbidden-operation confirmation and final docs SHA;
 - STOP. Do not generate the next CURRENT_TASK yourself.
-
-## V2 execution record (2026-08-17)
-
-- Execution identity: `minimal-story-runtime-final-residue-test-rollout-v2`;
-  START HEAD `baca5ac036f5f9480b680c12700fddffaaf04d59`; reviewed source/test
-  SHA `907eee3bcace9918e4965221eec2f44719213682` remained the executable
-  ancestor with no runtime/test/config delta through START HEAD.
-- TEST preflight: migration `20260817000100 /
-  company_v1_final_residue_closure` is present exactly once, alongside
-  `20260816050000 / company_v1_minimal_story_runtime_contract`. The live
-  `company_minimalize_save_v1(jsonb)` and `validate_company_save_v1(jsonb)`
-  definitions, SECURITY DEFINER/search-path, and ACLs match the reviewed
-  contract. No migration was reapplied.
-- Deployment preflight: API `game-proxy-company-v1` Version
-  `1011e5a2-f034-40ae-bef7-6cdd76b266a6` and Frontend
-  `gamebuilder-company-v1` Version `1a3c1416-5362-4658-a8fe-465006a342dd`
-  were live at 100%; health, version, root HTML, and current frontend assets
-  were read successfully. No deployment occurred.
-- One bounded sequence used only disposable TEST game
-  `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`: initial reset 200; Setup 200;
-  Opening 200/SSE complete with four non-empty unique provider-authored
-  literal choices; one exact returned literal was sent unchanged as Turn 1;
-  Story/Extract/Commit succeeded; committed turn became 1; canonical
-  `save.scene` was valid with `scene_id=opening`; all retired choice/scene/
-  location/presence mirrors and `compatibility_mode` remained absent; context
-  and history returned 200 with committed parsed choices; same-action Story /
-  Extract / Commit replay was acknowledged without an extra turn; final reset
-  returned 200 and restored clean Level 1/setup state with canonical
-  `scene_id=setup` and empty presence.
-- Preserved OS TEMP evidence:
-  `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-final-residue-rollout-v2.json`
-  SHA-256 `D3F3D336B96388FB5A27266E10DE8295CAFF230190BC9BFB83EE55471B83FD13`.
-- Forbidden operations: Production/preserved/QA/sentinel access 0; extra
-  game loop 0; migration/DDL 0; API/Frontend deploy 0; source/runtime/test/
-  content/config edits 0; provider retry/regeneration/model change 0; direct
-  DB writes 0; merge/PR Ready/Ready/rebase/squash/force-push 0.
