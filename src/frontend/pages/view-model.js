@@ -76,24 +76,18 @@ export function canonicalSceneView(save) {
       compatibility_mode: 'canonical'
     };
   }
-  const legacy = object(save?.scene_state) ?? {};
-  const legacyPresence = strings(legacy.participants ?? save?.last_npcs_present);
-  if (!legacyPresence.length) {
-    if (typeof save?.focal_character_id === 'string' && save.focal_character_id) legacyPresence.push(save.focal_character_id);
-    if (typeof save?.last_speaker_id === 'string' && save.last_speaker_id) legacyPresence.push(save.last_speaker_id);
-  }
   return {
-    version: 0,
-    scene_id: text(legacy.scene_id),
-    location_id: text(legacy.location_id),
-    beat: integer(legacy.beat) ?? 0,
-    goal: legacy.goal ?? null,
-    focus_thread: legacy.focus_thread ?? null,
-    present_npc_ids: normalizeIds(legacyPresence),
-    focal_character_id: text(save?.focal_character_id),
-    last_speaker_id: text(save?.last_speaker_id),
-    updated_turn: integer(save?.turn_state?.committed_turn),
-    compatibility_mode: 'legacy_pre_scene_v1'
+    version: 1,
+    scene_id: '',
+    location_id: '',
+    beat: 0,
+    goal: null,
+    focus_thread: null,
+    present_npc_ids: [],
+    focal_character_id: '',
+    last_speaker_id: '',
+    updated_turn: null,
+    compatibility_mode: 'missing_canonical_scene'
   };
 }
 
@@ -243,7 +237,6 @@ function npcView(save, id, details = {}) {
 function npcSceneView(save, id) {
   const state = object(object(save.npc_scene_state)?.[id]) ?? {};
   return {
-    location_label: text(state.location_label),
     posture: text(state.posture),
     posture_detail: text(state.posture_detail ?? state.posture_description),
     position_label: text(state.position_label),
@@ -332,7 +325,7 @@ export function buildCompanyGameViewModel(context) {
     },
     scene: {
       ...scene,
-      scene_state: { ...scene, location_label: text(save.scene_state?.location_label) }, world_state: object(save.world_state) ?? {},
+      scene_state: { ...scene }, world_state: object(save.world_state) ?? {},
       csa_active: Array.isArray(save.csa_active) ? save.csa_active : [], csa_rules: activeRules,
       npcs_present: strings(scene.present_npc_ids), action_target_id: '', clothing_state: {}
     },

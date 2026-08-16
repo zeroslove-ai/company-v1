@@ -58,7 +58,7 @@ test('app.npcs keeps evidence-aware scope and never enumerates Finder-only NPCs'
   }
 });
 
-test('app.npcs location shape uses canonical scene and scene-state compatibility only', () => {
+test('app.npcs location shape uses canonical scene only', () => {
   const canonical = baseSave();
   canonical.scene = { ...canonical.scene, present_npc_ids: ['heroine2'], focal_character_id: 'heroine2', last_speaker_id: 'heroine2', location_id: 'meeting_room' };
   canonical.npc_scene_state.heroine2 = { location_id: 'stale_lounge', location_label: 'stale' };
@@ -68,7 +68,7 @@ test('app.npcs location shape uses canonical scene and scene-state compatibility
   const canonicalLocation = appNpcs(canonical).find(item => item.id === 'heroine2')?.location;
   assert.equal(canonicalLocation.location_id, 'meeting_room');
   const legacyLocation = appNpcs(legacyScene).find(item => item.id === 'heroine2')?.location;
-  assert.equal(legacyLocation.location_id, 'lounge');
+  assert.equal(legacyLocation.location_id, '');
   for (const location of [canonicalLocation, legacyLocation]) {
     assert.equal('status' in location, false);
     assert.equal('can_move' in location, false);

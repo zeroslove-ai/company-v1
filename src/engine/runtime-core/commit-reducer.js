@@ -1,6 +1,5 @@
 import { buildTurnState } from '../turn-state.js';
 import { readCanonicalSceneV1, reduceCanonicalScene } from './scene-reducer.js';
-import { projectCanonicalSceneToLegacy } from './projections.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
 import { reduceCsaCommitState } from './csa-commit-reducer.js';
@@ -121,10 +120,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     sceneBefore, sceneAfter: canonicalScene, observedNpcIds,
     explicitSpeakerIds: (sceneObservation.explicit_speaker_ids ?? []).filter(id => !(sceneObservation.remote_speaker_ids ?? []).includes(id))
   });
-  let nextSave = projectCanonicalSceneToLegacy(domains.nextSave, canonicalScene, {
-    playerId: current.player?.player_id ?? current.player?.id,
-    npcIds
-  });
+  let nextSave = { ...domains.nextSave, scene: clone(canonicalScene) };
   nextSave.turn_state = buildTurnState({
     currentTurn: current.turn_state?.committed_turn ?? 0,
     expectedTurn,

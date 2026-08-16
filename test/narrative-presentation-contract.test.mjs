@@ -42,7 +42,7 @@ test('API display scene and present_now use exact canonical presence', () => {
   assert.equal(entries.find(item => item.id === 'heroine2').present_now, false);
 });
 
-test('API display scene hydrates legacy-only saves through the shared adapter', () => {
+test('API display scene fails closed without canonical scene and does not revive legacy mirrors', () => {
   const legacy = {
     scene_state: { scene_id: 'legacy', location_id: 'room', participants: ['heroine1'] },
     last_npcs_present: ['heroine2'],
@@ -50,13 +50,14 @@ test('API display scene hydrates legacy-only saves through the shared adapter', 
     last_speaker_id: 'heroine1'
   };
   const display = buildCanonicalDisplayScene(legacy);
-  assert.equal(display.compatibility_mode, 'legacy_pre_scene_v1');
-  assert.deepEqual(display.present_npc_ids, ['heroine1']);
+  assert.equal(display.compatibility_mode, 'missing_canonical_scene');
+  assert.deepEqual(display.present_npc_ids, []);
 });
 
-test('canonicalSceneView only uses legacy compatibility when canonical scene is absent', () => {
+test('canonicalSceneView fails closed without canonical scene and ignores legacy mirrors', () => {
   const legacy = canonicalSceneView({ scene_state: { participants: ['player', 'heroine1'] }, focal_character_id: 'heroine1' });
-  assert.equal(legacy.compatibility_mode, 'legacy_pre_scene_v1');
+  assert.equal(legacy.compatibility_mode, 'missing_canonical_scene');
+  assert.deepEqual(legacy.present_npc_ids, []);
   const canonical = canonicalSceneView({ scene: { version: 1, present_npc_ids: [], focal_character_id: 'heroine1', last_speaker_id: null } , scene_state: { participants: ['heroine1'] } });
   assert.deepEqual(canonical.present_npc_ids, []);
   assert.equal(canonical.focal_character_id, 'heroine1');

@@ -1,7 +1,6 @@
 import { GameCoreError } from './errors.js';
 import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
 import { hydrateLegacySceneV1, readCanonicalSceneV1 } from './runtime-core/scene-reducer.js';
-import { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';
 import { canonicalCompanyPlayerProfile } from './player-setup.js';
 
 const TURN_CHANGE_ROOTS = new Set([
@@ -337,6 +336,26 @@ export function migrateCompanySave(save) {
   return next;
 }
 
+function stripSceneMirrors(save) {
+  const next = object(save) ? save : {};
+  delete next.scene_state;
+  delete next.last_npcs_present;
+  delete next.focal_character_id;
+  delete next.last_speaker_id;
+  if (object(next.player_scene_state)) {
+    const { location_id: _locationId, ...physical } = next.player_scene_state;
+    next.player_scene_state = physical;
+  }
+  if (object(next.npc_scene_state)) {
+    next.npc_scene_state = Object.fromEntries(Object.entries(next.npc_scene_state).map(([id, value]) => {
+      if (!object(value)) return [id, value];
+      const { present: _present, location_id: _locationId, scene_id: _sceneId, ...physical } = value;
+      return [id, physical];
+    }));
+  }
+  return next;
+}
+
 const HYDRATION_SOURCES = [
   { mapName: 'npc_stats', canonicalKey: 'initial_stats' },
   { mapName: 'npc_relationship_state', canonicalKey: 'initial_relationship', aliasKey: 'initial_relationship_state' },
@@ -362,11 +381,7 @@ export function hydrateGameplayState(save, master = {}) {
   const canonicalScene = next.scene
     ? readCanonicalSceneV1(next, { master, npcIds })
     : hydrateLegacySceneV1(next, { master, npcIds });
-  const projected = projectCanonicalSceneToLegacy(next, canonicalScene, {
-    playerId: next.player?.player_id ?? next.player?.id,
-    npcIds
-  });
-  Object.assign(next, projected);
+  next.scene = clone(canonicalScene);
   if (object(next.player)) next.player = canonicalCompanyPlayerProfile(next.player);
   for (const character of [...characters, ...generalNpcs]) {
     const id = identity(character?.character_id ?? character?.npc_id ?? character?.id);
@@ -398,5 +413,5 @@ export function hydrateGameplayState(save, master = {}) {
       if (source) next[mapName][id] = clone(source);
     }
   }
-  return next;
+  return stripSceneMirrors(next);
 }

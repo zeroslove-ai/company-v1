@@ -127,7 +127,8 @@ test('NPC movement text cannot change canonical player location through Commit',
     navigationIntent: intent(playerAction)
   });
   assert.equal(result.canonical_scene.location_id, 'brand_strategy_meeting_room');
-  assert.equal(result.nextSave.player_scene_state.location_id, 'brand_strategy_meeting_room');
+  assert.equal(result.nextSave.scene.location_id, 'brand_strategy_meeting_room');
+  assert.equal(result.nextSave.player_scene_state.location_id, undefined);
 });
 
 test('player navigation wins over a conflicting Extract location proposal', () => {

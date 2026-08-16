@@ -49,9 +49,7 @@ function contextWithMindMonitor() {
         edition: 'company-v1',
         save_schema_version: 1,
         turn_state: { committed_turn: 3 },
-        focal_character_id: 'heroine3',
-        last_speaker_id: 'heroine5',
-        scene_state: { location_id: 'office' },
+        scene: { version: 1, scene_id: 'office', location_id: 'office', beat: 0, goal: null, focus_thread: null, present_npc_ids: ['heroine3', 'heroine5'], focal_character_id: 'heroine3', last_speaker_id: 'heroine5', updated_turn: 3 },
         world_state: {},
         player: { name: '플레이어' },
         npc_scene_state: { heroine3: { posture: 'kneeling' } }

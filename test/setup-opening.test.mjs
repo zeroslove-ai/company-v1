@@ -83,6 +83,15 @@ function canonicalResetCandidate(masterInitialSave) {
     ...playerScene,
     clothing: { uniform_top: 'worn', uniform_bottom: 'worn', ...(playerScene.clothing ?? {}) }
   };
+  delete candidate.scene_state;
+  delete candidate.last_npcs_present;
+  delete candidate.focal_character_id;
+  delete candidate.last_speaker_id;
+  delete candidate.player_scene_state.location_id;
+  candidate.npc_scene_state = Object.fromEntries(Object.entries(candidate.npc_scene_state ?? {}).map(([id, state]) => {
+    const { present: _present, location_id: _locationId, scene_id: _sceneId, ...physical } = state ?? {};
+    return [id, physical];
+  }));
   return candidate;
 }
 
@@ -156,13 +165,16 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
         player: { player_id: 'player-1', adult: true, ...args.p_player, background: '' },
         player_setup: { version: 1, completed: false, status: 'reserved', setup_id: args.p_setup_id },
         opening_state: { setup_id: args.p_setup_id, plan, status: 'planned' },
-        scene_state: { scene_id: 'opening', location_id: plan.location_id, participants, scene_goal: plan.scene_goal, beat: 0 },
-        player_scene_state: { location_id: plan.location_id, updated_turn: 0, clothing: { uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn' } },
+        scene: { version: 1, scene_id: 'opening', location_id: plan.location_id, beat: 0, goal: plan.scene_goal, focus_thread: plan.work_hook_id, present_npc_ids: [plan.primary_character_id, ...plan.supporting_character_ids], focal_character_id: plan.primary_character_id, last_speaker_id: null, updated_turn: 0 },
+        player_scene_state: { updated_turn: 0, clothing: { uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn' } },
         npc_scene_state: Object.fromEntries([plan.primary_character_id, ...plan.supporting_character_ids].map(id => [id, {
-          present: true,
           clothing: { uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'worn', underwear_bottom: 'worn' }
         }]))
       };
+      delete currentSave.scene_state;
+      delete currentSave.last_npcs_present;
+      delete currentSave.focal_character_id;
+      delete currentSave.last_speaker_id;
       return json({ success: true, idempotent: false, setup_id: args.p_setup_id, opening_plan: plan });
     }
     if (rpc === 'commit_company_opening') {
@@ -181,8 +193,6 @@ function createSetupMockFetch({ initialSave = freshSave(), masterInitialSave = f
         opening_state: { ...currentSave.opening_state, story_text: args.p_story_text, choices: args.p_choices, parsed_blocks: args.p_parsed_blocks, status: 'complete' },
         player_setup: { ...currentSave.player_setup, status: 'complete', completed: true },
         last_choices: args.p_choices,
-        last_npcs_present: [plan?.primary_character_id, ...(plan?.supporting_character_ids ?? [])].filter(Boolean),
-        focal_character_id: plan?.primary_character_id ?? null,
       };
       saveRevision += 1;
       return json({ success: true, replayed: false, save_revision: saveRevision });

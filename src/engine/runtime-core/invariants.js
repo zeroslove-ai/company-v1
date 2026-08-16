@@ -38,40 +38,6 @@ export function assertCanonicalSceneInvariants({ save, scene, npcIds, parsedStor
     updated_turn: current.updated_turn
   };
   if (!same(source.scene, expectedScene)) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'canonical scene object diverges');
-  const sceneState = plain(source.scene_state) ? source.scene_state : null;
-  const participants = [player, ...current.present_npc_ids];
-  if (sceneState) {
-    for (const [field, expected] of [
-      ['scene_id', current.scene_id ?? null],
-      ['location_id', current.location_id ?? null],
-      ['beat', current.beat],
-      ['scene_goal', current.goal ?? null],
-      ['focus_thread', current.focus_thread ?? null],
-      ['updated_turn', current.updated_turn]
-    ]) {
-      if (Object.prototype.hasOwnProperty.call(sceneState, field) && !same(sceneState[field], expected)) {
-        throw new GameCoreError('CANONICAL_SCENE_INVARIANT', `scene_state.${field} diverges`);
-      }
-    }
-    if (Object.prototype.hasOwnProperty.call(sceneState, 'participants') && !same(sceneState.participants, participants)) {
-      throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'scene_state.participants diverges');
-    }
-  }
-  if (Object.prototype.hasOwnProperty.call(source, 'last_npcs_present')
-    && !same(source.last_npcs_present, current.present_npc_ids)) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'legacy presence diverges');
-  if (Object.prototype.hasOwnProperty.call(source, 'focal_character_id')
-    && (source.focal_character_id ?? null) !== (current.focal_character_id ?? null)) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'legacy focal diverges');
-  if (Object.prototype.hasOwnProperty.call(source, 'last_speaker_id')
-    && (source.last_speaker_id ?? null) !== (current.last_speaker_id ?? null)) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', 'legacy last speaker diverges');
-  for (const [npcId, state] of Object.entries(plain(source.npc_scene_state) ? source.npc_scene_state : {})) {
-    const expectedPresent = current.present_npc_ids.includes(npcId);
-    if (Object.prototype.hasOwnProperty.call(state ?? {}, 'present')
-      && Boolean(state?.present) !== expectedPresent) throw new GameCoreError('CANONICAL_SCENE_INVARIANT', `legacy NPC presence diverges: ${npcId}`);
-    if (expectedPresent && Object.prototype.hasOwnProperty.call(state ?? {}, 'location_id')
-      && (state?.location_id !== (current.location_id ?? null) || (Object.prototype.hasOwnProperty.call(state, 'scene_id') && state?.scene_id !== (current.scene_id ?? null)))) {
-      throw new GameCoreError('CANONICAL_SCENE_INVARIANT', `legacy NPC location diverges: ${npcId}`);
-    }
-  }
   if (actionKind !== 'feedback_revision' && parsedStory && Array.isArray(parsedStory.dialogue_lines)) {
     const parsedIds = parsedStory.dialogue_lines.map(line => id(line?.speaker_id)).filter(Boolean);
     const expectedLast = parsedIds.at(-1) ?? null;

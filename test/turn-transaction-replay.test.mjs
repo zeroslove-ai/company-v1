@@ -85,8 +85,11 @@ test('reduceGameplayCommit is the single V2 orchestration writer', () => {
   const result = reduceGameplayCommit({ currentSave: legacySave, observation, parsedStory: { choices: ['a', 'b', 'c', 'd'], dialogue_lines: [], player_inner_thought: '' }, rawStory: '본문', action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
   assert.equal(result.nextSave.turn_state.committed_turn, 7);
   assert.equal(result.nextSave.turn_state.expected_turn, 9);
-  assert.equal(result.nextSave.scene_state.updated_turn, 8);
+  assert.equal(result.nextSave.scene.updated_turn, 8);
   assert.equal(result.canonical_scene.updated_turn, 8);
+  for (const key of ['scene_state', 'last_npcs_present', 'focal_character_id', 'last_speaker_id']) {
+    assert.equal(key in result.nextSave, false, `${key} must not survive Commit`);
+  }
   for (const key of ['story_summary_overall', 'story_summary_recent', 'npc_emotion', 'npc_work_state', 'event_ledger']) {
     assert.equal(key in result.nextSave, false, `${key} must not survive Commit`);
   }
@@ -94,8 +97,9 @@ test('reduceGameplayCommit is the single V2 orchestration writer', () => {
 test('V2 reducer keeps scene authority separate from NPC physical observation', () => {
   const observation = normalizeExtractObservationV2({ ...baseObservation, npc_observations: { 'npc-hayeon': { physical: { clothing: { uniform_top: 'removed' } } } }, evidence: { clothing: { 'npc-hayeon': { quote: '하연이 셔츠를 벗었다', character_id: 'npc-hayeon' } } } }, { npcIds: NPCS });
   const result = reduceGameplayCommit({ currentSave: save, observation, parsedStory: { choices: [], dialogue_lines: [], player_inner_thought: '' }, rawStory: '하연이 셔츠를 벗었다', action, expectedTurn: 8, npcIds: NPCS, mapLocations: [] });
-  assert.equal(result.nextSave.scene_state.location_id, save.scene_state.location_id);
-  assert.equal(result.nextSave.scene_state.participants.join(','), save.scene_state.participants.join(','));
+  assert.equal(result.nextSave.scene.location_id, save.scene.location_id);
+  assert.deepEqual(result.nextSave.scene.present_npc_ids, save.scene.present_npc_ids);
+  assert.equal(result.nextSave.npc_scene_state['npc-hayeon'].present, undefined);
 });
 
 test('final presence is reduced before domains so an observed NPC physical state is retained', () => {

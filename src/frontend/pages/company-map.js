@@ -109,10 +109,10 @@ export function buildCompanyMapModel({ save, characters, locations } = {}) {
   const staticCharacters = staticNpcDirectory(map);
   const characterMap = { ...staticCharacters, ...suppliedCharacters };
   const canonicalScene = object(save?.scene) && save.scene.version === 1 ? save.scene : null;
-  const playerLocationId = identity(canonicalScene?.location_id ?? object(save?.scene_state)?.location_id);
+  const playerLocationId = identity(canonicalScene?.location_id);
   const participantIds = (Array.isArray(canonicalScene?.present_npc_ids)
     ? canonicalScene.present_npc_ids
-    : (Array.isArray(object(save?.scene_state)?.participants) ? save.scene_state.participants : []))
+    : [])
     .filter(id => typeof id === 'string');
   const participants = new Set(participantIds);
 

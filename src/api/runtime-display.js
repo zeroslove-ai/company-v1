@@ -4,7 +4,7 @@ import {
   getApplicableCsaEntries,
   getCsaRules
 } from '../engine/index.js';
-import { hydrateLegacySceneV1, readCanonicalSceneV1 } from '../engine/runtime-core/scene-reducer.js';
+import { readCanonicalSceneV1 } from '../engine/runtime-core/scene-reducer.js';
 
 const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
 const AUTHORITY_LABELS = {
@@ -32,9 +32,9 @@ function saveFromContext(context) {
 
 export function buildCanonicalDisplayScene(save = {}) {
   const canonical = object(save?.scene);
-  const scene = object(save?.scene)
+  const scene = canonical?.version === 1
     ? readCanonicalSceneV1(save)
-    : hydrateLegacySceneV1(save);
+    : { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: null };
   const isCanonical = canonical?.version === 1;
   return {
     version: scene.version,
@@ -49,7 +49,7 @@ export function buildCanonicalDisplayScene(save = {}) {
     updated_turn: isCanonical
       ? (Number.isInteger(scene.updated_turn) ? scene.updated_turn : null)
       : (Number.isInteger(save?.turn_state?.committed_turn) ? save.turn_state.committed_turn : scene.updated_turn),
-    compatibility_mode: isCanonical ? 'canonical' : 'legacy_pre_scene_v1'
+    compatibility_mode: isCanonical ? 'canonical' : 'missing_canonical_scene'
   };
 }
 
@@ -214,15 +214,9 @@ function npcMind(latestMindMonitor, save, id) {
 }
 
 function npcLocation(save, id, presentNow, edition) {
-  const sceneState = object(save?.npc_scene_state?.[id]) ?? {};
   const currentScene = buildCanonicalDisplayScene(save);
-  const locationId = presentNow
-    ? text(currentScene.location_id) || text(sceneState.location_id)
-    : text(sceneState.location_id);
-  let label = presentNow
-    ? locationLabel(edition, locationId) || text(sceneState.location_label)
-    : text(sceneState.location_label);
-  label ||= locationLabel(edition, locationId);
+  const locationId = presentNow ? text(currentScene.location_id) : '';
+  const label = locationLabel(edition, locationId);
   return { known: Boolean(locationId || label), location_label: label, location_id: locationId };
 }
 

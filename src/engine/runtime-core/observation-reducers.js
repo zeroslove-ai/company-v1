@@ -68,7 +68,7 @@ export function reduceNpcPhysicalObservation({ save, npcId, physical, evidence, 
   if (!observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds }).has(npcId)) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [`off_scene_npc:${npcId}`] };
   if (!object(physical) || !Object.keys(physical).length) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [] };
   const result = buildSceneStatePatch({ previous: save.npc_scene_state?.[npcId] ?? {}, proposal: physical, evidenceMap: evidenceMap(physical, evidence, npcId), narrativeText: storyText, characterName: masterName(master, npcId), turnNumber: expectedTurn, actorId: npcId, npcsPresent: [...currentNpcIds(save, npcIds)], registeredNpcNames: [], npcDialogueLines: dialogueLines(parsedStory, npcId) });
-  return { state: { ...result.state, present: save.npc_scene_state?.[npcId]?.present ?? true }, warnings: result.warnings.map(code => `npc_scene_state:${npcId}:${code}`) };
+  return { state: result.state, warnings: result.warnings.map(code => `npc_scene_state:${npcId}:${code}`) };
 }
 
 export function reducePlayerSexualObservation({ save, sexual, evidence, storyText, expectedTurn } = {}) {

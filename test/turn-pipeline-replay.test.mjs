@@ -385,12 +385,11 @@ test('navigation Commit uses the current deterministic location and generic scen
   assert.equal(commit.status, 200);
 
   const nextSave = mock.getLastCommitSave();
-  assert.equal(nextSave.scene_state.location_id, 'brand_strategy_office');
-  assert.deepEqual(nextSave.scene_state.participants, ['player-1', 'heroine2']);
-  assert.deepEqual(nextSave.last_npcs_present, ['heroine2']);
-  assert.equal(nextSave.focal_character_id, null);
-  assert.equal(nextSave.npc_scene_state.heroine5?.present ?? false, false);
-  assert.equal(nextSave.npc_scene_state.heroine2?.present ?? true, true);
+  assert.equal(nextSave.scene.location_id, 'brand_strategy_office');
+  assert.deepEqual(nextSave.scene.present_npc_ids, ['heroine2']);
+  assert.equal(nextSave.scene.focal_character_id, null);
+  assert.equal(nextSave.npc_scene_state.heroine5?.present, undefined);
+  assert.equal(nextSave.npc_scene_state.heroine2?.present, undefined);
 });
 
 test('CSA clothing is contextual in Story and cannot become durable state without Extract evidence', async () => {

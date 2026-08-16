@@ -12,7 +12,6 @@ export { parseFreshNarrativeV2 } from './fresh-narrative-parser.js';
 export { createStoryStreamDecoder, parseStoryControlMarker, buildStoryIdentityDirectory } from './story-wire-protocol.js';
 export { parsePersistedNarrative } from './persisted-narrative-parser.js';
 export { readCanonicalSceneV1, hydrateLegacySceneV1, reduceCanonicalScene } from './runtime-core/scene-reducer.js';
-export { projectCanonicalSceneToLegacy } from './runtime-core/projections.js';
 export { assertCanonicalSceneInvariants } from './runtime-core/invariants.js';
 export { normalizeFreshExtractObservationV2, buildDegradedExtractObservation, assertExtractObservationContract } from './runtime-core/extract-observation.js';
 export { normalizePersistedExtractObservation } from './runtime-core/persisted-extract-observation.js';
