@@ -40,12 +40,24 @@ const sourceSave = {
   last_choices: [],
   last_choice_meta: []
 };
+const sameLocationSave = {
+  ...sourceSave,
+  scene: {
+    ...sourceScene,
+    scene_id: 'brand_strategy_office',
+    location_id: 'brand_strategy_office',
+    present_npc_ids: ['heroine3', 'heroine1'],
+    focal_character_id: 'heroine3',
+    last_speaker_id: 'heroine1',
+    updated_turn: 4
+  }
+};
 
 function exactNavigation(save = sourceSave) {
   return resolvePlayerNavigationIntent({ save, master, mapLocations, playerAction: action });
 }
 
-function observation({ entered_npc_ids = [], evidence = [], speakers = [] } = {}) {
+function observation({ entered_npc_ids = [], evidence = [], speakers = [], elapsed_minutes = 3 } = {}) {
   return {
     outcome: 'success',
     scene_observation: {
@@ -64,7 +76,7 @@ function observation({ entered_npc_ids = [], evidence = [], speakers = [] } = {}
     mind_monitor: {},
     turn_summary: 'navigation handoff',
     dialogue_lines: speakers.map(speaker_id => ({ speaker_id })),
-    elapsed_minutes: 3
+    elapsed_minutes
   };
 }
 
@@ -148,9 +160,53 @@ test('location-only navigation does not invent a target NPC', () => {
   assert.deepEqual(projected.scene.present_npc_ids, []);
 });
 
+test('same-location exact registered NPC visits hand off Story and Commit cast without moving time or location', () => {
+  const sameLocation = exactNavigation(sameLocationSave);
+  assert.deepEqual(sameLocation, {
+    kind: 'player_navigation',
+    destination_location_id: 'brand_strategy_office',
+    target_npc_id: 'heroine2',
+    source: 'explicit_npc_destination'
+  });
+  const projected = projectStorySaveForNavigation(sameLocationSave, sameLocation, { master, mapLocations });
+  assert.equal(projected.scene.location_id, 'brand_strategy_office');
+  assert.equal(projected.scene.scene_id, 'brand_strategy_office');
+  assert.deepEqual(projected.scene.present_npc_ids, ['heroine2']);
+  assert.equal(projected.scene.present_npc_ids.includes('heroine3'), false);
+  assert.equal(projected.scene.present_npc_ids.includes('heroine1'), false);
+  assert.deepEqual(projected.world_state.game_time, sameLocationSave.world_state.game_time);
+  const projection = buildStoryCharacterProjection({
+    edition,
+    playerAction: action,
+    sceneCastContract: { present_npc_ids: projected.scene.present_npc_ids }
+  });
+  assert.deepEqual(projection.scene_actor_ids, ['heroine2']);
+  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine2'), true);
+  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine3'), false);
+  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine1'), false);
+
+  const result = reduceGameplayCommit({
+    currentSave: sameLocationSave,
+    observation: observation({ speakers: ['heroine2'], elapsed_minutes: 0 }),
+    parsedStory: { dialogue_lines: [{ speaker_id: 'heroine2' }] },
+    rawStory: 'heroine2 receives the exact registered visit at the existing office location',
+    action: { action_id: 'same-location-action', turn_id: 'turn-5', action_kind: 'ordinary' },
+    expectedTurn: 5,
+    master,
+    npcIds: new Set(Object.keys(edition.characters.characters).concat(Object.keys(edition.generalNpcs.profiles))),
+    mapLocations,
+    navigationIntent: sameLocation
+  });
+  assert.equal(result.nextSave.scene.location_id, 'brand_strategy_office');
+  assert.equal(result.nextSave.scene.scene_id, 'brand_strategy_office');
+  assert.deepEqual(result.nextSave.scene.present_npc_ids, ['heroine2']);
+  assert.equal(result.nextSave.scene.focal_character_id, 'heroine2');
+  assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine3'), false);
+  assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine1'), false);
+});
+
 test('same-location, ambiguous, and unregistered visits remain unresolved', () => {
-  const sameLocation = exactNavigation({ ...sourceSave, scene: { ...sourceScene, location_id: 'brand_strategy_office', scene_id: 'brand_strategy_office' } });
-  assert.equal(sameLocation, null);
+  assert.equal(resolvePlayerNavigationIntent({ save: sameLocationSave, master, mapLocations, playerAction: '브랜드전략팀 사무실로 이동한다' }), null);
   assert.equal(resolvePlayerNavigationIntent({ save: sourceSave, master, mapLocations, playerAction: '\uC724\uBBFC\uC544\uAC00 \uB85C\uBE44\uC5D0\uC11C \uC77C\uD55C\uB2E4' }), null);
   assert.equal(resolvePlayerNavigationIntent({ save: sourceSave, master, mapLocations, playerAction: 'visit Unknown Person' }), null);
 });

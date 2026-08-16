@@ -82,8 +82,21 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
     : null;
   if (typeof locationId !== 'string' || !locationId.trim()) return save;
   const scene = readCanonicalSceneV1(save, { master, mapLocations });
-  if (scene.location_id === locationId) return save;
-  const presentNpcIds = isCanonicalNpcDestinationIntent(navigationIntent, { master, mapLocations })
+  const canonicalNpcDestination = isCanonicalNpcDestinationIntent(navigationIntent, { master, mapLocations });
+  if (scene.location_id === locationId) {
+    if (!canonicalNpcDestination) return save;
+    const presentNpcIds = [navigationIntent.target_npc_id];
+    return {
+      ...save,
+      scene: {
+        ...scene,
+        present_npc_ids: presentNpcIds,
+        focal_character_id: presentNpcIds[0],
+        last_speaker_id: null
+      }
+    };
+  }
+  const presentNpcIds = canonicalNpcDestination
     ? [navigationIntent.target_npc_id]
     : [];
   return {

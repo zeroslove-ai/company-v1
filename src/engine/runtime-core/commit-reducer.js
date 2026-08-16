@@ -80,10 +80,11 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
     ])],
     exited_npc_ids: Array.isArray(scene.exited_npc_ids) ? scene.exited_npc_ids : [],
     presence_is_final: scene.presence_is_final === true,
-    focal_candidate_id: scene.focal_candidate_id ?? null,
+    focal_candidate_id: destinationTargetId ?? scene.focal_candidate_id ?? null,
     explicit_speaker_ids: speakers,
     acted_npc_ids: [],
     last_explicit_speaker_id: speakers.at(-1) ?? null,
+    destination_target_id: destinationTargetId,
     scene_goal: null,
     focus_thread: null,
     scene_goal_provided: false,
@@ -117,6 +118,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     authoritativeLocationId: navigationIntent?.kind === 'player_navigation'
       ? navigationIntent.destination_location_id
       : authoritativeLocationId,
+    destinationTargetId: sceneObservation.destination_target_id,
   });
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),

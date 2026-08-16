@@ -97,7 +97,7 @@ export function resolvePlayerNavigationIntent({ save = {}, master = {}, playerAc
     if (mentioned.length !== 1 || !exactNpcVisitIntent(source, mentioned[0].name)) return null;
     const destinations = npcDestinationCandidates(mentioned[0], mapLocations);
     const current = identity(readCanonicalSceneV1(save, { master, mapLocations }).location_id);
-    if (destinations.length !== 1 || destinations[0] === current) return null;
+    if (destinations.length !== 1) return null;
     return {
       kind: 'player_navigation',
       destination_location_id: destinations[0],

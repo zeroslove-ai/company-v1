@@ -191,6 +191,13 @@ export function reduceCanonicalScene(input = {}) {
   const moved = observedLocation !== null && observedLocation !== current.location_id;
   const degraded = observation.outcome === 'degraded';
   const authoritativeLocationChange = Boolean(authoritativeLocationId && moved);
+  const destinationTargetId = stringId(input.destinationTargetId);
+  const sameLocationTargetHandoff = Boolean(
+    destinationTargetId
+      && npcIds.has(destinationTargetId)
+      && authoritativeLocationId
+      && authoritativeLocationId === current.location_id
+  );
   if (authoritativeLocationChange) {
     next.location_id = observedLocation;
     next.scene_id = observedLocation;
@@ -198,6 +205,10 @@ export function reduceCanonicalScene(input = {}) {
     next.goal = null;
     next.focus_thread = null;
     next.present_npc_ids = [];
+  }
+  if (sameLocationTargetHandoff) {
+    next.present_npc_ids = [];
+    next.focal_character_id = null;
   }
   if (!degraded && observation.outcome === 'success') {
     const explicitExited = new Set(uniqueNpcIds(observation.exited_npc_ids, npcIds));
