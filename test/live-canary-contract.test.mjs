@@ -25,7 +25,9 @@ import {
   CUT3_RELATION_EVENT_MODE,
   PLAYABILITY_MAX_TURNS,
   TEST_GAME_ID,
-  PRODUCTION_GAME_ID
+  PRODUCTION_GAME_ID,
+  selectOpeningChoiceLiteral,
+  resolveOpeningPlayerAction
 } from '../scripts/live-playtest-canary.mjs';
 import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
 
@@ -106,6 +108,63 @@ test('live canary records choice soft contract separately from parser hard statu
   assert.equal(result.raw_count, 1);
   assert.equal(result.canonical_exact_four, false);
   assert.equal(result.invariant_ok, false);
+});
+
+test('Opening literal selection returns the exact provider value without numbering or metadata', () => {
+  const literal = '  그대로 전달한다: 한글, punctuation?!  ';
+  const parsedOpening = { canonical_choices: [literal, '둘', '셋', '넷'] };
+  const selected = resolveOpeningPlayerAction({ parsedOpening, choiceIndex: 0, freeText: '사용하지 않는 자유 입력' });
+  assert.equal(selected.mode, 'opening-literal');
+  assert.equal(selected.choice_index, 0);
+  assert.equal(selected.player_action, literal);
+  assert.equal(selected.player_action, parsedOpening.canonical_choices[0]);
+  assert.equal(selected.player_action.includes('1.'), false);
+  assert.equal(selected.player_action.includes('player_action'), false);
+});
+
+test('Opening literal selection fails closed when the requested returned choice is unavailable', () => {
+  assert.throws(
+    () => selectOpeningChoiceLiteral({ canonical_choices: ['하나'] }, 0),
+    /CANARY_OPENING_CHOICE_UNAVAILABLE/
+  );
+  assert.throws(
+    () => selectOpeningChoiceLiteral({ canonical_choices: ['하나', '둘', '셋', '넷'] }, 4),
+    /CANARY_OPENING_CHOICE_UNAVAILABLE/
+  );
+  assert.throws(
+    () => selectOpeningChoiceLiteral({ canonical_choices: ['하나', '둘', '셋', '넷'] }, 1.5),
+    /CANARY_OPENING_CHOICE_INDEX_INVALID/
+  );
+});
+
+test('Cut 1 keeps free-text mode unchanged when no Opening literal is requested', () => {
+  const freeText = '공백과 unicode를 그대로 보내는 자유 입력';
+  assert.deepEqual(resolveOpeningPlayerAction({ parsedOpening: null, freeText }), {
+    mode: 'free-text', choice_index: null, player_action: freeText
+  });
+});
+
+test('Opening choice CLI option is explicit and bounded to Cut 1', () => {
+  const parsed = parseCanaryArgs(['--cut1-authority', '--opening-choice-index', '3'], {});
+  assert.equal(parsed.openingChoiceIndex, 3);
+  assert.throws(
+    () => parseCanaryArgs(['--cut1-authority', '--opening-choice-index', 'x'], {}),
+    /CANARY_OPENING_CHOICE_INDEX_INVALID/
+  );
+  assert.throws(
+    () => parseCanaryArgs(['--opening-only', '--opening-choice-index', '0'], {}),
+    /CANARY_OPENING_CHOICE_MODE_REQUIRED/
+  );
+});
+
+test('Opening literal mode changes only player_action while replay identity stays stable', () => {
+  const parsedOpening = { canonical_choices: ['선택 literal', '둘', '셋', '넷'] };
+  const selected = resolveOpeningPlayerAction({ parsedOpening, choiceIndex: 0, freeText: 'free text' });
+  const identity = { game_id: TEST_GAME_ID, action_id: 'action-1', expected_turn: 1 };
+  const firstRequest = { ...identity, player_action: selected.player_action };
+  const replayRequest = { ...identity, player_action: selected.player_action };
+  assert.deepEqual(replayRequest, firstRequest);
+  assert.deepEqual({ game_id: replayRequest.game_id, action_id: replayRequest.action_id, expected_turn: replayRequest.expected_turn }, identity);
 });
 
 test('live canary captures CSA projection snapshot without mutating save', () => {

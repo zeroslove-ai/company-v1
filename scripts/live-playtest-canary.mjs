@@ -33,6 +33,7 @@ export const CANARY_USAGE = [
   '',
   'Options:',
   '  --reset-if-dirty',
+  '  --opening-choice-index <0-3>  (Cut 1: submit the returned Opening literal unchanged)',
   '  --artifact-path <path>   (must be outside the repository)',
   '  --report-path <path>     (must be outside the repository)',
   '  -h, --help'
@@ -140,6 +141,7 @@ export function parseCanaryArgs(argv = [], env = process.env, { cwd = process.cw
   const modes = [];
   let help = false;
   let resetIfDirty = false;
+  let openingChoiceIndex = null;
   let artifactPath = null;
   let reportPath = null;
 
@@ -156,6 +158,18 @@ export function parseCanaryArgs(argv = [], env = process.env, { cwd = process.cw
     }
     if (token === '--reset-if-dirty') {
       resetIfDirty = true;
+      continue;
+    }
+    if (token === '--opening-choice-index') {
+      const value = values[index + 1];
+      if (value === undefined || value.startsWith('--')) throw cliError('--opening-choice-index requires an index');
+      openingChoiceIndex = value;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith('--opening-choice-index=')) {
+      openingChoiceIndex = token.slice('--opening-choice-index='.length);
+      if (!openingChoiceIndex) throw cliError('--opening-choice-index requires an index');
       continue;
     }
     const artifactOption = optionValue(values, index, '--artifact-path');
@@ -177,6 +191,12 @@ export function parseCanaryArgs(argv = [], env = process.env, { cwd = process.cw
   if (modes.length === 0) throw cliError('CANARY_CLI_MODE_REQUIRED: choose one explicit live mode');
   if (modes.length > 1) throw cliError(`CANARY_CLI_MODE_CONFLICT: choose only one live mode (${modes.join(', ')})`);
   const mode = modes[0];
+  if (openingChoiceIndex !== null) {
+    const parsedIndex = Number(openingChoiceIndex);
+    if (!Number.isInteger(parsedIndex) || parsedIndex < 0) throw cliError('CANARY_OPENING_CHOICE_INDEX_INVALID: expected a non-negative integer');
+    if (mode !== CUT1_AUTHORITY_MODE) throw cliError(`CANARY_OPENING_CHOICE_MODE_REQUIRED: --opening-choice-index requires --${CUT1_AUTHORITY_MODE}`);
+    openingChoiceIndex = parsedIndex;
+  }
   const resolvedArtifactPath = assertCanaryOutputPath(
     artifactPath ?? env.CANARY_ARTIFACT_PATH ?? defaultCanaryArtifactPath(mode), { cwd }
   );
@@ -190,7 +210,8 @@ export function parseCanaryArgs(argv = [], env = process.env, { cwd = process.cw
     artifactPath: resolvedArtifactPath,
     reportPath: resolvedReportPath,
     usage: CANARY_USAGE,
-    resetIfDirty
+    resetIfDirty,
+    openingChoiceIndex
   };
 }
 
@@ -287,6 +308,32 @@ export function choiceContract(parsed, committedSave = null) {
     committed_count: committed.length,
     committed_exact_four: committed.length === 4,
     invariant_ok: canonical.length === 4 && committed.length === 4
+  };
+}
+
+export function selectOpeningChoiceLiteral(parsedStory, index) {
+  if (!Number.isInteger(index) || index < 0) {
+    throw cliError('CANARY_OPENING_CHOICE_INDEX_INVALID: expected a non-negative integer');
+  }
+  const choices = Array.isArray(parsedStory?.canonical_choices) ? parsedStory.canonical_choices : [];
+  if (choices.length !== 4 || index >= choices.length) {
+    throw cliError(`CANARY_OPENING_CHOICE_UNAVAILABLE: canonical Opening choices do not contain index ${index}`);
+  }
+  const literal = choices[index];
+  if (typeof literal !== 'string' || !literal.trim()) {
+    throw cliError(`CANARY_OPENING_CHOICE_UNAVAILABLE: Opening choice index ${index} is not a non-empty literal`);
+  }
+  return literal;
+}
+
+export function resolveOpeningPlayerAction({ parsedOpening, choiceIndex = null, freeText }) {
+  if (choiceIndex === null || choiceIndex === undefined) {
+    return { mode: 'free-text', choice_index: null, player_action: freeText };
+  }
+  return {
+    mode: 'opening-literal',
+    choice_index: choiceIndex,
+    player_action: selectOpeningChoiceLiteral(parsedOpening, choiceIndex)
   };
 }
 
@@ -870,15 +917,19 @@ export async function run(parsed = parseCanaryArgs(process.argv.slice(2))) {
     const cut1ArtifactPath = artifactPath;
     const sameActionReplay = {};
     const cut1Turn = async (turn, playerAction) => {
+      const resolvedPlayerAction = turn === 1
+        ? resolveOpeningPlayerAction({ parsedOpening: openingParser.parsed, choiceIndex: args.openingChoiceIndex, freeText: playerAction })
+        : { mode: 'free-text', choice_index: null, player_action: playerAction };
+      if (turn === 1) report.opening.next_player_action = resolvedPlayerAction;
       const actionId = randomUUID();
       const beforeResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
       const beforeContext = contextSnapshot(beforeResult);
-      const story = await captureStory(base, gameId, { game_id: gameId, action_id: actionId, expected_turn: turn, player_action: playerAction });
+      const story = await captureStory(base, gameId, { game_id: gameId, action_id: actionId, expected_turn: turn, player_action: resolvedPlayerAction.player_action });
       const parser = classifyParserResult(story.raw_story, canaryMaster);
       if (!story.ok || parser.status === 'failure') {
         const afterResult = await requestJson(base, '/api/context', { game_id: gameId, recent_turns: 5 });
         const failure = buildStoryFailureDiagnostic({
-          gameId, turn, playerAction, actionId, story, parser,
+          gameId, turn, playerAction: resolvedPlayerAction.player_action, actionId, story, parser,
           actionStatus: await actionStatus(base, gameId, actionId),
           beforeContext,
           afterContext: contextSnapshot(afterResult)
@@ -895,7 +946,7 @@ export async function run(parsed = parseCanaryArgs(process.argv.slice(2))) {
       const turnReport = {
         turn,
         action_id: actionId,
-        player_action: playerAction,
+        player_action: resolvedPlayerAction.player_action,
         story: storyReplaySnapshot(story),
         parser: { status: parser.status, block_sequence: parser.block_sequence, warnings: parser.warnings },
         extract: summarizeExtract(extractResult, save, canaryMaster),
@@ -903,7 +954,7 @@ export async function run(parsed = parseCanaryArgs(process.argv.slice(2))) {
         readback
       };
       report.turns.push(turnReport);
-      return { actionId, playerAction, story, readback };
+      return { actionId, playerAction: resolvedPlayerAction.player_action, story, readback };
     };
 
     const replayTurn1 = async first => {
