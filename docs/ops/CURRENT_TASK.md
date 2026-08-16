@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: setup-opening-world-authority-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -124,3 +124,32 @@ On PASS or deterministic BLOCKED evidence:
 - report exact START SHA, reviewed SHA, migration ledger version/name, live function/ACL facts, worker health identities, ghost-ID probe result, valid Setup/Opening/turn/replay evidence, final reset state, and FINAL_DOCS_SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not create the next task yourself.
+
+## Rollout result — deterministic BLOCKED
+
+The reviewed migration was applied exactly once to the dedicated TEST project.
+Supabase ledger name: `company_v1_setup_opening_world_authority`; assigned
+ledger version: `20260816045221`. Live readback confirmed removal of finite
+semantic arrays and heroine literals from `reserve_company_player_setup`,
+dynamic membership checks against `game_master.data.characters` and
+`general_npcs`, canonical `save.scene` projection, removed Scene mirrors, and
+the expected SECURITY DEFINER/search_path/ACL contracts. The API health
+readback was HTTP 200 with `ok=true`, `edition_id=company-v1`; API version was
+`744e74b9-4ac9-4596-9751-c754bdfbf6af` and the previously accepted frontend
+lineage was `9d7dcd0c-ab3f-45ab-87b5-71755d902ee5`.
+
+The ghost primary-ID probe was rejected before mutation with
+`22023: opening primary character id is not registered`; save revision,
+committed turn, setup/opening, scene fingerprint, action count, and turn count
+were unchanged. Valid Setup succeeded, but the first Opening attempt stopped
+deterministically at HTTP 200 SSE terminal error
+`invalid_request: opening choices must contain exactly four items`.
+No retry, provider/model change, parser workaround, or runtime patch was made.
+First-failure evidence is preserved outside the repository at
+`C:\Users\JAEWAN\AppData\Local\hermes\company-v1-codex-watcher\setup-opening-world-authority-failure.json`.
+
+The authorized final TEST reset passed. Final readback: `save_revision=1003`,
+`committed_turn=0`, setup/opening `not_started`, canonical setup scene valid,
+deleted Scene mirrors absent, `actions=0`, and `turns=0`. This rollout is
+BLOCKED pending operator review of the deployed Opening choice failure; no
+next task is generated here.

@@ -784,3 +784,29 @@ sections and ghost primary/supporting rejection before the mock save changes.
 The corrected candidate remains pending operator review and separately
 authorized TEST rollout; Cut 2 acceptance is not changed by this source-only
 candidate.
+
+## Setup / Opening world-authority TEST rollout — deterministic BLOCKED
+
+The reviewed source/test/migration candidate `1a221665f91b352607724912ba8a06250ac60fc5`
+was applied exactly once to the dedicated TEST project. The live migration
+ledger records `20260816045221 / company_v1_setup_opening_world_authority`.
+Live readback confirmed that `reserve_company_player_setup` no longer carries
+finite semantic department/position/body/speech/weekday/location/work-hook/
+scene-goal/heroine lists and instead validates primary/supporting IDs against
+the per-game `game_master.data.characters` + `general_npcs` key projection.
+Canonical `save.scene` projection and Scene mirror stripping remain active;
+the expected SECURITY DEFINER/search_path/ACL contracts were preserved.
+
+The dedicated TEST ghost primary-ID probe was rejected before mutation with
+`22023: opening primary character id is not registered`; the save revision,
+setup/opening, scene fingerprint, action count, and turn count were unchanged.
+Valid Setup succeeded, but the first Opening request deterministically failed
+with HTTP 200 SSE `invalid_request: opening choices must contain exactly four
+items` (`retryable=false`). No retry, provider/model change, parser workaround,
+runtime patch, or redeploy occurred. First-failure evidence is preserved at
+`C:\Users\JAEWAN\AppData\Local\hermes\company-v1-codex-watcher\setup-opening-world-authority-failure.json`.
+
+The authorized final TEST reset passed and read back `save_revision=1003`,
+`committed_turn=0`, setup/opening `not_started`, canonical setup scene valid,
+removed Scene mirrors absent, and zero actions/turns. The rollout is
+`WAITING_REVIEW` and Cut 2 world-authority acceptance is not complete.

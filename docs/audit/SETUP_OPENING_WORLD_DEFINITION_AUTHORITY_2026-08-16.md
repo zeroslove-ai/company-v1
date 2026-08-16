@@ -1,7 +1,7 @@
 # Setup / Opening / World-Definition Authority — 2026-08-16
 
-Status: corrected source/test/migration candidate, `WAITING_REVIEW`; not applied or
-deployed.
+Status: reviewed migration applied once on TEST; deterministic Opening acceptance
+BLOCKED; `WAITING_REVIEW`.
 
 ## Boundary
 
@@ -60,8 +60,8 @@ The read-only TEST function inventory matched the current six-argument
 ## Candidate change
 
 `supabase/migrations/20260816040000_company_v1_setup_opening_world_authority.sql`
-is the single additive migration source. It does not edit historical migrations
-and is not applied. It replaces the active reserve function with the same RPC
+was the single additive migration source at candidate review. It did not edit
+historical migrations and was unapplied at that review boundary. It replaces the active reserve function with the same RPC
 identity and transaction/idempotence behavior, removes SQL semantic catalog
 lists, removes duplicate turn-0 mirror construction, and keeps the canonical
 scene projection helper as the sole scene projection boundary. The reserve
@@ -100,7 +100,37 @@ semantic fallback was added.
 - Full `npm.cmd test`: PASS, 420/420
 - JavaScript syntax, UTF-8 JSON/config parse, migration semantic-list scan, and
   `git diff --check`: PASS
-- No live write or deployment performed
+- No live write or deployment performed during candidate review
 
-The candidate remains pending operator review and a separately authorized
-TEST rollout.
+At candidate review, the migration remained pending operator review and a
+separately authorized TEST rollout; the rollout result is recorded below.
+
+## TEST rollout result — deterministic BLOCKED
+
+The exact reviewed migration source from `1a221665f91b352607724912ba8a06250ac60fc5`
+was applied once to project `fmcrspgxstsmxxsmkeee`. The live ledger contains
+`20260816045221 / company_v1_setup_opening_world_authority` exactly once.
+Live `reserve_company_player_setup` no longer contains finite semantic
+department/position/body/speech/weekday/location/work-hook/scene-goal/heroine
+lists; it checks registered primary/supporting IDs dynamically against the
+per-game `game_master.data.characters` + `general_npcs` projection. The live
+function has `SECURITY DEFINER`, `search_path=public, pg_temp`, and
+`service_role` execute; the pure Opening helper has no service-role grant.
+Canonical `save.scene` projection and deleted Scene mirror stripping remain
+present, with physical/clothing state retained.
+
+Dedicated TEST reset passed at the start (`save_revision=1001`). The single
+ghost primary probe was rejected before mutation with `22023` and the same
+save fingerprint/revision/setup/opening/scene/action/turn state was read back.
+Valid Setup succeeded with registered `heroine1`/`heroine5`, but the first
+Opening request returned HTTP 200 SSE `invalid_request: opening choices must
+contain exactly four items` with `retryable=false`; this is the first and only
+Opening attempt. The failure evidence is preserved outside the repository at
+`C:\Users\JAEWAN\AppData\Local\hermes\company-v1-codex-watcher\setup-opening-world-authority-failure.json`.
+
+No API/frontend redeploy, source/test/migration patch, second migration,
+retry, provider/model change, or workaround occurred. The authorized final
+TEST reset passed and read back `save_revision=1003`, `committed_turn=0`,
+setup/opening `not_started`, canonical setup scene valid, removed mirrors
+absent, and zero actions/turns. The world-authority rollout is not accepted;
+Opening choice failure remains pending operator review.
