@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-destination-target-handoff-test-rollout-v3
+Status: READY
+Task ID: minimal-story-runtime-csa-agency-continuity-product-play-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -13,10 +13,13 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Previous operator review: `5309112951` — ACCEPTED_BLOCKED_EVIDENCE for `minimal-story-runtime-destination-target-handoff-test-rollout-v2`.
-Accepted destination-target runtime SHA: `beae855ebc5a9706bae234af80b2569d73566f0a`.
-Accepted CLI deletion/safety SHA: `7a188ff5fd5114d193e813d5da0e431becea5bf8`.
-Previous blocked docs SHA: `80173c1a1881a4cd1487cc1b0cb858ac94209380`.
+Previous operator review: `5309209515` — ACCEPTED `minimal-story-runtime-destination-target-handoff-test-rollout-v3`.
+Accepted Minimal Story Runtime executable SHA: `beae855ebc5a9706bae234af80b2569d73566f0a`.
+Accepted V3 docs SHA / registration parent: `18a3bcdc88834ce52694ae838424531efc97eb51`.
+
+V3 proved the registered destination handoff live: a non-destination source with heroine5/heroine1 -> exact `윤민아 보러간다` -> `brand_strategy_office` with registered `heroine2` exactly once, no source-NPC teleport/fake Mina, exact history echo, same-action replay/idempotence, and final canonical reset. Do not create another navigation/Mina micro-probe without new evidence.
+
+Canonical owner direction is `docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md`. This task closes the next unproved **product-play** axis. Structural transport success alone is not sufficient.
 
 TEST Minimal Story Runtime migration `20260816050000_company_v1_minimal_story_runtime_contract` is already applied. DO NOT REAPPLY, EDIT, OR REAUTHOR IT.
 
@@ -25,134 +28,189 @@ Forbidden Production/sentinel game: `11111111-1111-4111-8111-111111111111`.
 Forbidden preserved manual game: `78fb1d94-266f-455a-bda4-7656cc2370c1`.
 Forbidden QA evidence game: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`.
 
-Independent operator verification after V2:
-- PR #67 remained OPEN / DRAFT / UNMERGED / mergeable at docs-only head `80173c1...`.
-- Disposable TEST game was clean: committed_turn=0, save_revision=1091, idle, setup/opening not_started, canonical scene=setup, Level 1/exp 0, csa_active=[], game_turns=0, game_actions=0; retired semantic roots remained absent.
-- Current reviewed `/api/opening` requires `game_id` + `setup_id`.
-- Repository `scripts/live-playtest-canary.mjs` already uses the canonical flow `setup.body.data.setup_id` -> `/api/opening` and captures raw response/SSE evidence.
-- V2 temporary out-of-repo runner received HTTP 400 but did not preserve the non-SSE body. That is insufficient evidence for an Opening or destination-runtime source defect. Do not patch product code from that result.
+Independent operator verification immediately before registration:
+- PR #67 remained OPEN / DRAFT / UNMERGED / mergeable at head `18a3bcdc88834ce52694ae838424531efc97eb51`.
+- V3 terminal commit was docs-only.
+- Disposable TEST final DB state was clean: committed_turn=0, save_revision=1095, setup/opening not_started, canonical scene=setup with empty presence, Level 1/exp 0, csa_active=[], game_turns=0, game_actions=0.
+- Current API exposes the canonical app transaction path `/api/app-state` -> `/api/app-validate` -> the same signed `structured_action` carried through `/api/story`, `/api/extract`, `/api/commit`.
+- Current `content/csa_presets.json` includes the weak non-clothing premise `interlace_fingers_with_recipient`; current content must be re-read at execution time rather than assumed.
 
 ## Objective
 
-Re-arm exactly one bounded TEST-only acceptance of the accepted registered destination-target handoff, but remove the V2 request/evidence ambiguity by using the repository's already-reviewed canonical canary Setup/Opening path directly.
+Run **one coherent bounded TEST-only product-play scenario** that validates the remaining central Minimal Story Runtime semantics together:
 
-PASS target remains narrow:
-non-destination canonical scene -> exact byte-preserved `윤민아 보러간다` -> committed `brand_strategy_office` with registered `heroine2`, no source-NPC teleport, no fake/duplicate Mina, exact history echo, replay/idempotence, and final clean reset.
+1. an applicable CSA rule is activated at a concrete current time and is treated from then on as an in-force ordinary workplace premise, not as optional policy or retroactive memory;
+2. personality/emotional reaction remains free while CSA compliance stays separate from unrelated consent, comfort, affection, trust, romance and arousal;
+3. explicit player intent is not silently replaced by a materially different action;
+4. Story does not contradict canonical game time;
+5. provider choices remain exact literal transport and are meaningfully distinct enough to be useful choices;
+6. an important work promise/detail survives after its source turn leaves the latest-six raw window through chronological `turn_summary` memory;
+7. refresh/context/history/replay show the same committed reality;
+8. final disposable TEST reset is canonical and clean.
 
-This is not a new source cut, broad semantic acceptance, or harness-development task.
+This is acceptance/evidence, not a source-fixing task. Do not patch runtime in response to a failure. Stop on the first decisive deterministic/product-semantic defect after safe cleanup.
 
-## Mandatory pre-network safety gate
+## Mandatory safety and preflight
 
 Before any network/API/DB/reset/gameplay operation:
 
 1. Freeze START HEAD and verify PR #67 remains OPEN / DRAFT / UNMERGED, base `main`.
 2. Fail closed unless the game ID is exactly `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
-3. Production/sentinel `11111111-1111-4111-8111-111111111111`, preserved manual `78fb1d94-266f-455a-bda4-7656cc2370c1`, QA evidence `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`, and every other game ID are forbidden before network access.
-4. Do not recreate, invoke, copy, or imitate deleted `scripts/live-phase-2-e2e.mjs`.
-5. Verify the current TEST API Worker identity. If runtime lineage still equals accepted `beae855...` / the accepted TEST deployment lineage, do not redeploy. If it has drifted, deploy only the exact reviewed runtime lineage. Do not deploy frontend.
-6. Do not apply/reapply/edit any migration.
-7. Confirm `scripts/live-playtest-canary.mjs` is the current repository canonical Company live request path. Do not hand-roll Setup or Opening in a temporary runner.
+3. Do not access Production/sentinel `11111111-1111-4111-8111-111111111111`, preserved manual `78fb1d94-266f-455a-bda4-7656cc2370c1`, QA evidence `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`, or any other game ID.
+4. Verify TEST API Worker identity. If the deployed runtime already contains the accepted `beae855...` lineage, deploy 0. If drift is proven, deploy only that exact reviewed runtime lineage. Do not deploy frontend.
+5. Do not apply/reapply/edit any migration or DDL.
+6. Verify the current repository app transaction/client contract before constructing a CSA action. Use the existing canonical `/api/app-state`, `/api/app-manual` if needed, `/api/app-validate`, and signed `structured_action` contract; do not hand-invent proof fields or create a new harness/protocol.
+7. Start from the disposable game's actual clean state. If unexpectedly dirty, one canonical reset is authorized before Setup; record why. No repeated reset to obtain a preferred Opening.
 
-## Canonical Opening boundary — reuse existing canary
+## One product attempt
 
-1. Start the one product attempt by running the existing repository canary in its side-effect-safe explicit `--opening-only` mode against the exact disposable TEST game, with `--reset-if-dirty` only if the preflight proves that game dirty.
-2. Use an artifact path outside the repository.
-3. The canary's existing flow must own:
-   - context/reset safety;
-   - `/api/player-setup`;
-   - reading `setup.body.data.setup_id`;
-   - `/api/opening` request;
-   - raw HTTP/SSE capture and Opening parsing.
-4. Do not duplicate those calls in another runner.
-5. If Opening returns non-2xx, non-SSE, parser failure, or another terminal failure, STOP the product attempt. Preserve from the existing canary artifact, or additionally capture read-only if already available without a retry:
-   - exact HTTP status;
-   - exact raw response body/raw_sse;
-   - request endpoint and request shape excluding secrets;
-   - setup_id;
-   - immediate read-only context/opening_state.
-   Do not retry/regenerate Opening.
-6. A successful `--opening-only` run leaves the same disposable game at committed Opening state. Continue that same game; do not reset and do not run a second Opening.
+One attempt means one Setup/Opening and one continuous gameplay sequence. No provider retry/regeneration, second Opening, alternate scenario rerun, or choice reroll to obtain prettier evidence.
 
-## Destination continuation — same one attempt
+### A. Setup / Opening
 
-After canonical Opening succeeds:
+1. Use existing reviewed repository request/capture primitives for canonical Setup -> Opening. Prefer the existing `scripts/live-playtest-canary.mjs --opening-only` path rather than hand-rolling Opening.
+2. Verify Opening HTTP/SSE/parsing succeeds and returns exactly four provider-authored literal choices.
+3. Continue the same game without reset.
+4. Record canonical scene, present registered NPCs and canonical `world_state.game_time` before the first ordinary turn.
 
-1. Read committed context and establish the current canonical location.
-2. Destination for exact registered Mina/`heroine2` is `brand_strategy_office`.
-3. If Opening is already at `brand_strategy_office`, use one ordinary byte-safe exact registered-location action to move through Story -> Extract -> Commit to a different canonical source such as `brand_strategy_meeting_room`, then verify that source readback. If Opening is already elsewhere, use it as the source; do not add movement merely for turn count.
-4. Use only normal current endpoints and canonical envelopes for continuation: `/api/context`, `/api/story`, `/api/extract`, `/api/commit`, `/api/history`, `/api/reset`. A small temp process may orchestrate these exact calls after Opening, but it must not implement a new endpoint contract, parser, retry system, compatibility alias, or repository harness.
-5. Before sending Korean scripted actions, locally verify exact JS string -> UTF-8 Buffer encode/decode -> JSON stringify/parse round-trip and absence of `?` replacement/U+FFFD. Do not use a hand-written code-point oracle.
-6. Record source canonical scene: location, present_npc_ids, focal_character_id, last_speaker_id.
-7. Submit exact player action `윤민아 보러간다` unchanged and run Story -> Extract -> Commit exactly once.
-8. Verify canonical `/api/history` via `body.data.records` or the existing canonical history unwrapping and prove the committed `player_action` exactly equals outbound action.
-9. Verify committed destination:
-   - `scene.location_id === 'brand_strategy_office'`;
-   - `heroine2` is present as the uniquely registered destination target;
-   - no generated/fake/duplicate Mina identity exists;
-   - source-location NPCs are absent unless exact destination-phase Story evidence establishes accompaniment/presence;
-   - no relationship/consent/comfort/trust/affection/romance/CSA/sexual semantic state is invented by target routing.
-10. Verify the reviewed Minimal Story Runtime retired roots remain absent; do not broaden into another semantic audit.
-11. Perform same-action Story/Extract/Commit replay for the Mina action and verify replay flags/idempotence, unchanged committed turn cardinality, unchanged destination identity, and no duplicate presence.
-12. Finish with one canonical reset of the disposable TEST game and verify turn 0, history/action 0, setup/opening not_started, canonical scene setup, Level 1 baseline, csa_active=[], and retired roots absent.
+### B. Establish one important work-memory fact
+
+Within the first two ordinary turns, naturally establish a concrete work promise/detail that should matter later, for example a specific review/deadline time such as **"오늘 오후 4시에 최종 시안을 다시 검토한다"**. Do not inject the fact directly into save/DB; it must be established by player input + Story and captured by normal Extract/Commit.
+
+Requirements:
+- Story must not materially replace the player's harmless explicit work intent with a different action.
+- Capture the committed `turn_summary` for the turn that establishes the promise/detail.
+- Do not repeat the full fact in every later player input; later memory verification must actually depend on committed continuity.
+
+### C. Activate one weak CSA through the real app transaction path
+
+1. Read `/api/app-state` and current content/capability. Level 1 is sufficient for a weak rule; do not use the Level-7 acceleration seam unless current canonical capability unexpectedly proves otherwise. If so, STOP for operator review rather than silently escalating capability.
+2. Prefer current preset `interlace_fingers_with_recipient` **only if the current app-state/catalog exposes it and its scope can validly apply to a currently present registered female employee and the player**. Use subject/counterparty scope exactly as the current product contract requires. If that exact preset is absent because current content legitimately changed, choose another current weak **non-clothing** CSA premise with clear applicability and record the reason; do not substitute a deterministic clothing rule merely to force a pass.
+3. Construct the operation through the same canonical app contract/frontend semantics used by the product. Call `/api/app-validate`; take its signed/validated result unchanged into `/api/story`, `/api/extract`, `/api/commit` for that transaction turn.
+4. Record immediately before activation:
+   - canonical game time;
+   - csa_active/current rule state;
+   - relevant narrow mechanical/relationship/sexual state that could reveal unrelated mutation.
+5. The activation Story must be evaluated against the owner canon:
+   - the rule becomes current/in-force from activation time;
+   - Story may frame it as a company notice/rule/regulation;
+   - it must not claim a false retroactive history/memory that the rule had always existed;
+   - an applicable NPC may dislike, joke, resent, enjoy or feel awkward about it, but must not treat whether the valid active rule itself applies/is in force as an optional personal vote.
+6. This semantic evaluation is **test evidence only**. Do not create a runtime semantic gate, keyword regex, second model call, or repair loop.
+
+### D. Applicable CSA interaction + unrelated request separation
+
+1. On the next applicable ordinary interaction, make the scene naturally satisfy the rule's current applicability (for `interlace_fingers_with_recipient`, a close seated/work conversation or equivalent current trigger). Do not server-script the outcome.
+2. Verify Story treats the active applicable rule as the altered ordinary workplace premise rather than reverting to pre-activation common sense or debating whether the rule is valid.
+3. Then make one clearly unrelated request outside the CSA scope, preferably an intimate request such as asking for a kiss, while preserving the exact player wording.
+4. Acceptance does **not** require the NPC to refuse or accept. Either may be narratively valid. It requires:
+   - Story must not say the CSA mandates the unrelated request;
+   - the CSA activation itself must not automatically create consent/comfort/affection/trust/romance/arousal;
+   - if an unrelated act actually occurs in Story, any narrow sexual/mechanical projection may follow its own evidenced path, but it must be attributable to that Story event rather than inferred merely from CSA.
+5. Compare committed state before/after and record the exact evidence.
+
+### E. Player agency, time and choice quality during ordinary turns
+
+Continue the same scenario to a total of **9–12 committed ordinary turns** (including the CSA transaction turn) unless a decisive defect stops it earlier.
+
+During these turns:
+- use several free-text actions;
+- click at least two actual provider-returned choices unchanged, if normal turns expose choices;
+- verify the outbound literal equals committed player_action/history input exactly;
+- include at least one harmless, concrete player action whose material intent can be checked against Story; Story may narratively resolve an attempt but must not silently substitute a materially different action;
+- capture canonical game time each turn and flag a clear Story contradiction of day/time as a product defect; do not demand prose mention the clock every turn;
+- inspect each four-choice set qualitatively. Exact duplicates or a set that is effectively four restatements of the same no-op are product-quality defects. Do not add a server choice author/repairer to fix them.
+
+### F. Long-horizon summary continuity
+
+Once the early work promise/detail has left the latest-six raw Story window:
+
+1. Fetch canonical context/history/readback and prove the latest raw projection is six turns and the older chronological `turn_summary` path contains the earlier important promise/detail with enough fidelity to support continuation.
+2. Use one natural follow-up that refers to the earlier promise without restating its decisive value, e.g. "아까 약속한 최종 시안 검토 시간에 맞춰 자료를 챙긴다." Do not repeat "오후 4시" in the follow-up if 4시 was the remembered value.
+3. PASS requires later Story to preserve/use the earlier important detail naturally from committed continuity. If the committed summary omitted/corrupted the decisive detail and later Story therefore loses it, record that as a real product-memory defect; do not synthesize or patch memory during this task.
+
+### G. Refresh / history / replay
+
+Before final reset:
+
+1. Perform a fresh `/api/context` read and `/api/history` read; verify canonical scene, active CSA state, latest choices/readback, committed summaries and player inputs agree with the committed turns.
+2. Select one already committed ordinary action and perform same-action Story/Extract/Commit replay through the canonical endpoints.
+3. Verify replay flags and idempotence: no additional committed turn, no duplicate CSA activation, no duplicate presence/state mutation, no save revision mutation caused by replay.
+4. Do not require optional/non-contract evidence fields merely because a temporary evaluator would find them convenient.
 
 ## Stop-on-defect policy
 
-One product attempt only. No provider retry/regeneration and no second Opening/scenario attempt.
+On the first decisive product defect after a canonical request reaches the server:
+- preserve exact turn number, player input, canonical pre-state/time, raw Story, parsed blocks, Extract result, committed post-state/history as available;
+- perform one final canonical cleanup reset if safe;
+- mark the task BLOCKED/FAILED for operator review;
+- do not retry/regenerate or patch source to get a pass.
 
-If a deterministic product failure occurs after a canonical request reached the server, preserve the smallest decisive raw evidence and stop after safe cleanup.
+Operator/evidence-tool mistakes are not product failures. If gameplay already proves the invariant and only an auxiliary evaluator expects a non-contract field, correct the evidence interpretation from preserved raw evidence without rerunning the product attempt.
 
-If an operator/orchestration/evidence bug occurs, do not reinterpret it as product failure and do not patch runtime. Record exact evidence, cleanup if needed, and STOP for operator review.
+## Final cleanup
+
+Finish with one canonical reset of the disposable TEST game and independently verify:
+- committed_turn=0;
+- game_turns=0;
+- game_actions=0;
+- processing idle/not active;
+- player setup/opening not_started;
+- canonical scene=setup with empty presence;
+- player_progress Level 1 / exp 0;
+- csa_active=[];
+- Minimal Story Runtime retired semantic roots remain absent.
 
 ## Architecture constraints
 
-- Keep accepted destination runtime `beae855...` unchanged unless a future separately reviewed source task is explicitly authorized.
-- Story remains narrative authority; exact registered destination target handoff is narrow identity/location routing, not general semantic success inference.
-- `save.scene` remains sole active durable scene/location/presence/focal/last-speaker authority.
-- Preserve A->B phase filtering: source speakers/presence cannot teleport to destination.
-- No new semantic router, target/memory bag, fuzzy name matcher, gateway, parser, compatibility wrapper, retry layer, third model call, or server-authored narrative outcome.
-- Historical applied migrations remain immutable.
+- Story LLM remains narrative authority.
+- CSA is an active world/workplace premise from activation time, not retroactive memory and not optional policy once valid/applicable.
+- CSA compliance is separate from unrelated consent/comfort/affection/trust/romance/arousal.
+- No finite physical execution grammar is restored.
+- No generic relationship/event/emotion/open-fact memory system is introduced.
+- Long-horizon narrative continuity is recent six raw turns + older natural-language `turn_summary`.
+- Exact registered identity/navigation and canonical scene remain narrow deterministic mechanics.
+- Player input is intent/attempt, but its material meaning must not be silently replaced.
+- Choices remain provider-authored literals; testing may judge their usefulness, but runtime must not add semantic fallback/repair choices.
+- Image/media/TTS remain presentation sidecars and cannot determine whether narrative facts occurred.
+- No new parser generation, semantic router/gateway, fuzzy matcher, compatibility layer, retry/regeneration system, third Summary/Memory LLM, or runtime evaluation judge.
 
 ## Authorized operations
 
 Authorized:
 - read-only Git/PR/source/deployed-identity inspection;
-- exact reviewed TEST API deploy only if lineage drift is proven;
-- existing canonical `live-playtest-canary.mjs --opening-only` against the disposable TEST game;
-- ordinary canonical context/story/extract/commit/history/replay/reset continuation on that same disposable TEST game only;
-- read-only TEST DB/context evidence for that game;
-- external temp evidence artifacts, not committed;
+- exact reviewed TEST API deployment only if lineage drift is proven;
+- disposable TEST game canonical reset/setup/opening;
+- canonical `/api/context`, `/api/app-state`, `/api/app-manual`, `/api/app-validate`, `/api/story`, `/api/extract`, `/api/commit`, `/api/history`, `/api/reset` operations for this one scenario;
+- read-only TEST DB verification for the disposable game only;
+- external evidence artifacts outside the repository;
 - docs-only completion commit and immutable Issue #68 terminal report.
 
 Not authorized:
-- any Production/sentinel access, including read-only;
+- Production/sentinel access of any kind;
 - preserved manual or QA evidence game access;
+- direct DB writes;
 - migration/DDL authoring/edit/apply/reapply;
-- frontend deploy;
-- source/runtime/test/content behavior edits;
+- frontend deployment;
+- source/runtime/test/content/config behavior edits;
 - provider/model/temperature/token changes;
-- retry/regeneration, parser relaxation/new parser, fuzzy repair, semantic gate, compatibility alias/layer, new repository harness;
+- retry/regeneration, semantic repair, parser relaxation/new parser, fuzzy matching, compatibility layer, new repository harness;
 - new branch/PR, merge, Ready, rebase, squash, force-push.
 
 ## Acceptance
 
-PASS only if the same one attempt proves canonical Opening through the existing canary and then exact registered Mina destination handoff end to end, with canonical destination/presence identity, no teleport/fake identity/unrelated semantic inference, exact committed action echo, replay/idempotence, and final clean reset.
+PASS only if the single coherent scenario proves, without product reruns or runtime patches:
+- canonical Setup/Opening and exact literal transport;
+- one real CSA activation through the canonical app transaction path;
+- activation-time/non-retroactive premise coherence;
+- applicable rule treated as in-force while unrelated consent/emotion remains independent;
+- player agency and canonical time remain coherent;
+- provider choices remain exact and meaningfully useful;
+- one important early work detail survives beyond the six-raw-turn boundary through committed chronological `turn_summary` and influences later Story naturally;
+- refresh/history/replay preserve the same committed reality;
+- final TEST reset is clean.
 
 On PASS or first blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
-- post one immutable terminal report to Issue #68 with START SHA, deployed identity decision, canonical Opening result/evidence, source/destination action evidence, replay result, final reset state, forbidden-operation confirmation, and FINAL docs SHA;
+- post one immutable terminal report to Issue #68 with START SHA, Worker identity/deploy decision, exact CSA operation/rule and activation time, turn-by-turn decisive semantic evidence, promise/summary boundary evidence, literal-choice/agency/time observations, replay result, final reset state, forbidden-operation confirmation and FINAL docs SHA;
 - STOP for operator review. Do not generate the next CURRENT_TASK yourself.
-
-## Execution result — V3 canonical TEST acceptance
-
-- START HEAD: `7cbf71cb8cbcca073c9a6ada447c26f87b1e4de7`.
-- Canonical Opening attempt: PASS through `scripts/live-playtest-canary.mjs --opening-only`; HTTP 200, SSE `complete`, parser success, exact four choices, raw SSE and setup evidence preserved at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-destination-v3-opening-20260817.json`.
-- Accepted Worker lineage remained deployed as TEST version `51c5ac28-8d52-49bc-bb14-fdd1f0164126` at 100%; no deploy was performed. The preexisting Minimal Story Runtime migration remained applied and was not reapplied or edited.
-- Same disposable TEST game continuation artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-destination-v3-continuation-20260817.json`.
-- Source scene was `brand_strategy_meeting_room` with `heroine5` and `heroine1`; exact UTF-8/JSON round-trip for `윤민아 보러간다` passed without replacement characters.
-- One Story -> Extract -> Commit produced destination `brand_strategy_office` with registered `heroine2` exactly once; source NPCs were absent, no duplicate presence or unrelated semantic/CSA/relationship/sexual mutation appeared, and retired roots remained absent.
-- `/api/history` `body.data.records` contained one committed record whose `player_action` and `player_input` exactly equaled `윤민아 보러간다`; parsed blocks were retained.
-- Same-action replay returned Story `meta.replayed=true` and `complete.replayed=true`, Extract `replayed=true`, Commit `success=true`/`replayed=true`, unchanged `save_revision=1094`, and unchanged committed turn/presence.
-- The first external continuation evaluator labeled the artifact `BLOCKED` because it incorrectly required a history `action_id` (the canonical record has no such field) and an optional `commit.idempotent` field. Offline artifact recovery verified the required canonical facts above; no second attempt was made.
-- Final canonical reset: HTTP 200; readback `committed_turn=0`, `save_revision=1095`, `processing_status=idle`, setup/opening `not_started`, scene `setup` with empty presence, Level 1 baseline, `csa_active=[]`, and retired roots absent.
-- Operations: authorized TEST setup/opening/Story/Extract/Commit/replay/reset API sequence performed once; direct DB writes 0; migration apply/reapply/edit 0; API/frontend deploy 0; Production/sentinel, preserved manual, and QA game access 0; source/config/frontend/migration changes 0; retries/regeneration 0; PR #67 remains OPEN/DRAFT/UNMERGED.
-- Live acceptance result: `PASS`; stop at operator review. Final docs SHA is the commit containing this record.
