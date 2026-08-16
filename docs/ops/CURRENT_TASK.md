@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: client-readback-projection-test-rollout-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -108,3 +108,40 @@ On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in a docs-only completion commit;
 - post one immutable terminal report to Issue #68 with START SHA, reviewed/deployed identities, decisive live evidence, any bounded limitation, final reset, forbidden-operation confirmation and final docs SHA;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Execution result — deterministic Opening blocker
+
+Execution identity:
+
+- `TASK_ID`: `client-readback-projection-test-rollout-v1`
+- `CURRENT_TASK_BLOB_SHA`: `626b6e3ca91c8fefade8b003db7518aaa98fd90e`
+- `START_HEAD`: `4e7bc4b2b75935d109d7481636bb042c6b0fc719`
+- `REVIEWED_EXECUTABLE_SHA`: `f5d93f9563fa23f16c1e599e4a51e38c846c890d`
+- `FINAL_SOURCE_DEPLOY_LINEAGE`: `f5d93f9563fa23f16c1e599e4a51e38c846c890d` from detached exact-review worktree
+
+Deployment and gate evidence:
+
+- Stage-B action contract gate: PASS using the existing read-only TEST catalog.
+- API and frontend Wrangler dry-runs: PASS.
+- Exact reviewed TEST API Worker `game-proxy-company-v1`: Version `e4b62c5e-9d43-40e9-addb-e37db8c97d89`, deployed `2026-08-16T12:36:34.7301629Z`.
+- Exact reviewed TEST frontend Worker `gamebuilder-company-v1`: Version `62a31a54-55c9-4c94-bb99-e9894817560e`, deployed `2026-08-16T12:36:45.4575159Z`.
+- API `/health` and `/api/version`: HTTP 200, `ok=true`, `edition_id=company-v1`.
+- Frontend root: HTTP 200, static application marker present.
+
+Bounded live attempt:
+
+- Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+- Existing canary: `--cut1-authority --reset-if-dirty --opening-choice-index 0`; no retry or regeneration.
+- Setup reached the Opening request; Turn 1/2, Extract, Commit, history-success, and replay were not attempted after the first deterministic Opening failure.
+- Provider-visible raw SSE contained `0` `[CHOICE]` control markers; raw Story was unavailable at the terminal error; parsed/canonical choice count was `0`; `commit_company_opening` was not reached and no `p_choices` was sent.
+- Opening terminal: HTTP `200` SSE `error`, `invalid_request`, message `opening choices must contain exactly four items`, `retryable=false`.
+- Preserved artifact: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-client-readback-projection-test-rollout.json`.
+- Artifact SHA-256: `479DAFB73445D7376C4B63052B1EC2A9DEAD9C90C7EF9C343C01C7E044A5F846`.
+- No established browser/Playwright/E2E helper exists in the repository; frontend numbered-choice browser proof is recorded as a bounded limitation. The existing canary exact-literal API path and accepted behavioral regressions were not used to mask the live Opening blocker.
+
+Final reset and independent readback:
+
+- Canary final reset returned HTTP 200; independent read-only context/history readback passed.
+- `committed_turn=0`, `save_revision=1047`, `processing_status=idle`, `player_setup=not_started`, `opening_state=not_started`, `scene.version=1`, `scene.scene_id=setup`, `csa_active=[]`, history `0`, recent turns `0`.
+
+Result: `BLOCKED` for operator review. No source/test behavior change, migration/DDL apply, Production access, preserved-manual-game access, provider/model change, retry, parser workaround, or additional gameplay was performed.
