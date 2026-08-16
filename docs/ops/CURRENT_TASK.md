@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: legacy-save-db-residue-deletion-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -113,3 +113,31 @@ On completion:
 - report exact START SHA, executable/source-test SHA, migration filename if authored, final docs SHA, files changed, DELETE/KEEP decisions with consumer proof, tests/checks, and explicit zero live mutation/deploy statement;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not generate another evidence-only acceptance task.
+
+## Completion update
+
+Source/test candidate completed at `WAITING_REVIEW` on 2026-08-16. The exact
+start SHA was `45eeacadc2c269cfeafa654cbe56dd2116ed82ab`; source/test candidate
+SHA is `9c52e74`. One additive migration
+was authored, `20260816000200_company_v1_legacy_save_residue_cleanup`, but it
+was not applied or verified against live DB state in this task.
+
+Decisions:
+
+- DELETE `story_summary_overall` and `story_summary_recent`: no current source
+  reader/writer; `game_turns.turn_summary` and recent-six/older summary memory
+  remain authoritative.
+- KEEP `npc_relationship_state`: current API/frontend relationship display and
+  sexual-state validation consume it.
+- DELETE `npc_emotion`, `npc_work_state`, and `event_ledger`: no current
+  gameplay/UI reader or writer; general event observations are already removed
+  from the fresh Extract contract. `sexual_event_ledger` is separate and was
+  preserved.
+
+The candidate removes deleted fields from current runtime hydration, Opening /
+reset SQL candidate paths, seed/current fixtures, stale mocks, and the stale
+general-event canary read. Historical migrations remain untouched. Targeted
+residue/Opening/display tests passed 54/54; full `npm.cmd test` passed 421/421;
+JSON and JavaScript syntax checks plus `git diff --check` passed. No DB write,
+migration application, TEST reset/live gameplay, deployment, Production access,
+provider/model change, or new compatibility authority occurred.

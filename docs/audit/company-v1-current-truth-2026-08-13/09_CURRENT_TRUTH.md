@@ -628,3 +628,39 @@ already been reset, this missing history evidence cannot be reconstructed
 without another bounded run. This is an evidence-capture BLOCKED state, not a
 runtime defect or authorization for a retry. The artifact is preserved at
 `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-story-speaker-live-closure.json`.
+
+## Legacy save/DB residue cleanup candidate — WAITING_REVIEW
+
+Task `legacy-save-db-residue-deletion-v1` started from source/test SHA
+`45eeacadc2c269cfeafa654cbe56dd2116ed82ab` on
+`company/scene-location-presence-v1`; source/test candidate SHA is `9c52e74`.
+The source/test candidate is complete for operator review; this is not a live
+DB acceptance fact.
+
+The consumer audit classified the candidate fields as follows:
+
+- DELETE `story_summary_overall` and `story_summary_recent`. Current Story
+  context uses recent raw Story plus `game_turns.turn_summary` memory; no active
+  source/UI reader remains for either save-level summary field.
+- KEEP `npc_relationship_state`. `character-display`, `runtime-display`, the
+  frontend relationship projection, and sexual-state validation consume this
+  map. It was not removed from current fixtures or contracts.
+- DELETE `npc_emotion`, `npc_work_state`, and general `event_ledger`. Current
+  gameplay/UI has no reader or writer for these maps; fresh Extract explicitly
+  drops general event observations. The separate `sexual_event_ledger` remains
+  in the sexual/media path.
+
+The candidate removes deleted fields at the runtime save boundary and from the
+current Opening/reset contract candidate, seed, fixtures, mocks, frontend
+projection, and stale general-event canary read. It authors exactly one
+additive migration:
+`20260816000200_company_v1_legacy_save_residue_cleanup.sql`.
+Historical migrations were not edited. The migration is not applied; live DB
+contract acceptance remains pending operator review and a separately authorized
+rollout.
+
+Validation: targeted residue/Opening/display tests 54/54; full
+`npm.cmd test` 421/421; JSON/JavaScript syntax checks and `git diff --check`
+passed. No DB write, migration application, TEST reset/live gameplay, deploy,
+Production access, provider/model change, or new semantic compatibility
+authority occurred. The next architecture cut was not generated.
