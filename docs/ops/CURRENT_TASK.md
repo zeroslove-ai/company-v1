@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: live-e2e-cli-prod-guard-closure-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -107,3 +107,13 @@ On PASS or first deterministic blocker:
 - set Status to `WAITING_REVIEW`;
 - post one immutable terminal report with START SHA, FINAL SHA, caller classification, exact deletion/fix, tests/static checks, and forbidden-operation confirmation;
 - STOP for operator review. Do not generate the next CURRENT_TASK yourself.
+
+## Execution result — WAITING_REVIEW / COMPLETE
+
+- Start HEAD: `672d6273b1740f5e23c931c203cbb166e88de310`.
+- Reviewed destination runtime SHA remains `beae855ebc5a9706bae234af80b2569d73566f0a`; no gameplay/runtime semantics were changed.
+- Caller classification: `DELETE_ZERO_CALLER`. Repository inventory found zero current callers of `scripts/live-phase-2-e2e.mjs`, zero callers of `expectedCommitRevision` / `expectedCleanupRevision`, zero package/test references, and no tracked `test-results/phase-2-live-e2e.json` assumption. The only remaining path mentions are this execution record and historical audit evidence.
+- Deleted `scripts/live-phase-2-e2e.mjs` in full. No replacement harness, CLI framework, guard layer, or sibling refactor was added. Historical `06_TEST_HARNESS_BASELINE.md` remains unchanged as immutable audit evidence.
+- `test/live-canary-contract.test.mjs`: 24/24 PASS. Full `npm.cmd test`: 295/295 PASS. No JS/MJS files remain changed for syntax validation. `git diff --check`: PASS.
+- No TEST/API/DB/Production/QA/preserved-game access, reset, write, migration/DDL, deployment, provider/model/retry/parser/semantic change, merge, or Ready occurred.
+- Stop for operator review. No next task generated.
