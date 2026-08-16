@@ -74,6 +74,16 @@ function exactNpcVisitIntent(source, name) {
   return beforeName.test(source) || afterIntent.test(source);
 }
 
+export function isCanonicalNpcDestinationIntent(intent, { master = {}, mapLocations = [] } = {}) {
+  if (intent?.kind !== 'player_navigation' || intent.source !== 'explicit_npc_destination') return false;
+  const targetId = identity(intent.target_npc_id);
+  const destinationId = identity(intent.destination_location_id);
+  const entry = registeredEntries(master).find(item => item.id === targetId);
+  if (!entry || !destinationId) return false;
+  const destinations = npcDestinationCandidates(entry, mapLocations);
+  return destinations.length === 1 && destinations[0] === destinationId;
+}
+
 /**
  * Structural player navigation only. A player action may name one exact
  * catalog location, but an NPC-directed action never becomes player movement.

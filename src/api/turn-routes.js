@@ -1,7 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
-import { resolvePlayerNavigationIntent } from '../engine/scene-cast.js';
+import { isCanonicalNpcDestinationIntent, resolvePlayerNavigationIntent } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
@@ -77,13 +77,16 @@ function actionIds(body) {
   };
 }
 
-function projectStorySaveForNavigation(save, navigationIntent, { master, mapLocations } = {}) {
+export function projectStorySaveForNavigation(save, navigationIntent, { master, mapLocations } = {}) {
   const locationId = navigationIntent?.kind === 'player_navigation'
     ? navigationIntent.destination_location_id
     : null;
   if (typeof locationId !== 'string' || !locationId.trim()) return save;
   const scene = readCanonicalSceneV1(save, { master, mapLocations });
   if (scene.location_id === locationId) return save;
+  const presentNpcIds = isCanonicalNpcDestinationIntent(navigationIntent, { master, mapLocations })
+    ? [navigationIntent.target_npc_id]
+    : [];
   return {
     ...save,
     scene: {
@@ -94,8 +97,8 @@ function projectStorySaveForNavigation(save, navigationIntent, { master, mapLoca
       beat: 0,
       goal: null,
       focus_thread: null,
-      present_npc_ids: [],
-      focal_character_id: null,
+      present_npc_ids: presentNpcIds,
+      focal_character_id: presentNpcIds[0] ?? null,
       last_speaker_id: null
     }
   };

@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-destination-target-handoff-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -130,3 +130,18 @@ On PASS or first deterministic blocker:
 - set this file to `WAITING_REVIEW` in the same source/test/docs lineage;
 - post one immutable terminal report to Issue #68 with START SHA, SOURCE_TEST_SHA/FINAL_SHA, exact handoff changes, regression results, forbidden-operation confirmation and PR state;
 - STOP for operator review. Do not generate the next CURRENT_TASK yourself.
+
+## Execution result — WAITING_REVIEW
+
+- Start HEAD: `bdebddfa498d9c01a56b65767e9938811c58e030`.
+- Reviewed source/runtime SHA remains `a341c04c3c5417efc5e5dcad8a3a9105ea1add5d`; this source/test/docs descendant is not a new reviewed runtime SHA.
+- Caller inventory and loss proof: `resolvePlayerNavigationIntent()` already produced the exact registered target; the loss was the navigation Story projection clearing destination cast and Commit canonical observation not carrying that target.
+- Source change: the existing exact `explicit_npc_destination` result now validates registered identity plus its unique catalog-derived destination, seeds only that target into the existing Story `scene.present_npc_ids`, and carries it through the existing Commit `entered_npc_ids` observation path. Location-only navigation remains target-free; source-phase speakers remain filtered at A→B movement; destination evidence can add registered accompaniment; unknown/duplicate identities fail closed.
+- Test change: `test/destination-target-handoff-contract.test.mjs` covers exact Mina resolution, Story cast projection, canonical Commit destination, source non-teleport, destination evidence, location-only navigation, same-location/ambiguous/unregistered visits, a general-NPC catalog case, and fake/duplicate identity rejection.
+- Focused navigation/scene/Story-context/Commit regression: **27/27 passed**.
+- Full `npm.cmd test`: **295/295 passed**.
+- Changed JS/MJS syntax checks: **PASS** (`src/api/turn-routes.js`, `src/engine/scene-cast.js`, `src/engine/runtime-core/commit-reducer.js`, and the new test).
+- `git diff --check`: **PASS**.
+- DB writes, migration authoring/application, TEST gameplay/reset, deploy, Production/preserved/QA access: **0**.
+- Already-applied Minimal Story Runtime migration unchanged; no provider/model/retry/parser/fuzzy/semantic compatibility layer introduced.
+- Stop point: operator review required. No live acceptance or Scene Stage B is authorized by this task.

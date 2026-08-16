@@ -3,6 +3,7 @@ import { readCanonicalSceneV1, reduceCanonicalScene } from './scene-reducer.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
 import { reduceCsaCommitState } from './csa-commit-reducer.js';
+import { isCanonicalNpcDestinationIntent } from '../scene-cast.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
@@ -44,7 +45,7 @@ function playerOwnedMonitor(mindMonitor, playerThought) {
   return { state, warnings };
 }
 
-function canonicalObservation(observation, parsedStory, { navigationIntent = null, mapLocations = [], storyText = '' } = {}) {
+function canonicalObservation(observation, parsedStory, { navigationIntent = null, mapLocations = [], storyText = '', master = {} } = {}) {
   const scene = observation.scene_observation ?? {};
   const speakers = parserSpeakers(parsedStory);
   const registeredLocations = new Set((Array.isArray(mapLocations) ? mapLocations : [])
@@ -57,6 +58,9 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
     && String(storyText).includes(item.quote.trim()));
   const proposedLocation = nonEmpty(scene.location_id);
   const warnings = [];
+  const destinationTargetId = isCanonicalNpcDestinationIntent(navigationIntent, { master, mapLocations })
+    ? navigationIntent.target_npc_id
+    : null;
   let locationId = null;
   if (navigationIntent?.kind === 'player_navigation') {
     locationId = nonEmpty(navigationIntent.destination_location_id);
@@ -70,7 +74,10 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
     scene_id: scene.scene_id ?? null,
     location_id: locationId,
    final_present_npc_ids: Array.isArray(scene.final_present_npc_ids) ? scene.final_present_npc_ids : null,
-    entered_npc_ids: Array.isArray(scene.entered_npc_ids) ? scene.entered_npc_ids : [],
+    entered_npc_ids: [...new Set([
+      ...(Array.isArray(scene.entered_npc_ids) ? scene.entered_npc_ids : []),
+      ...(destinationTargetId ? [destinationTargetId] : [])
+    ])],
     exited_npc_ids: Array.isArray(scene.exited_npc_ids) ? scene.exited_npc_ids : [],
     presence_is_final: scene.presence_is_final === true,
     focal_candidate_id: scene.focal_candidate_id ?? null,
@@ -95,7 +102,8 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
   const sceneObservation = canonicalObservation(canonicalObservationInput, parsedStory, {
     navigationIntent,
     mapLocations,
-    storyText: rawStory
+    storyText: rawStory,
+    master
   });
   const canonicalScene = reduceCanonicalScene({
     currentScene: sceneBefore,
