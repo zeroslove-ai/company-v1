@@ -3,9 +3,22 @@ import assert from 'node:assert/strict';
 import * as engine from '../src/engine/index.js';
 import { readCanonicalSceneV1 } from '../src/engine/runtime-core/scene-reducer.js';
 import { buildOpeningPlan } from '../src/engine/player-setup.js';
+import edition from '../src/api/edition.js';
+import { masterFromEdition } from '../src/api/turn-routes.js';
 
 test('turn-0 has no JavaScript full-save writer or public export', () => {
   assert.equal('buildOpeningNextSave' in engine, false);
+});
+
+test('the registered NPC universe is the combined canonical character and general-NPC catalog', () => {
+  const master = masterFromEdition(edition);
+  const ids = [...master.characters, ...master.general_npcs].map(entry => entry.character_id ?? entry.npc_id);
+  assert.equal(ids.length, Object.keys(edition.characters.characters).length + Object.keys(edition.generalNpcs.profiles).length);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual(ids, [
+    ...Object.keys(edition.characters.characters),
+    ...Object.keys(edition.generalNpcs.profiles)
+  ]);
 });
 
 test('opening plan remains deterministic and scene facts come from the plan', () => {

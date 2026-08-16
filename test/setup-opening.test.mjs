@@ -302,6 +302,34 @@ test('buildOpeningPlan prioritizes the player department over a public elevator 
   assert.equal(plan.scene_goal, '첫 업무를 시작한다');
 });
 
+test('repository catalogs remain the semantic authority for future setup and opening identifiers', () => {
+  const futureCatalogs = {
+    departments: [{ department_id: 'future_department', name: 'Future Department' }],
+    positions: [{ position_id: 'future_position', name: 'Future Position' }],
+    bodyTypes: [{ body_type_id: 'future_body', name: 'Future Body' }],
+    speechStyles: [{ speech_style_id: 'future_speech', name: 'Future Speech' }]
+  };
+  const validated = validatePlayerSetupInput({
+    ...validPlayerBody(), department_id: 'future_department', position_id: 'future_position',
+    body_type_id: 'future_body', speech_style_id: 'future_speech'
+  }, futureCatalogs);
+  assert.equal(validated.valid, true);
+
+  const plan = buildOpeningPlan({
+    positionId: 'future_position', departmentId: 'future_department', seedBytes: [0, 0, 0],
+    heroineIds: ['future_character'],
+    locations: [{
+      location_id: 'future_location', name: 'Future Location', opening_enabled: true,
+      opening_hooks: [{ id: 'future_hook', label: 'Future Hook' }],
+      opening_goals: ['Future Goal']
+    }]
+  });
+  assert.equal(plan.location_id, 'future_location');
+  assert.equal(plan.primary_character_id, 'future_character');
+  assert.equal(plan.work_hook_id, 'future_hook');
+  assert.equal(plan.scene_goal, 'Future Goal');
+});
+
 test('buildPlayerPromptProjection always sends canonical identity and speech style, and gates body/sexual/background fields on relevance', () => {
   const player = { name: '김하늘', height_cm: 170, weight_kg: 65, penis_length_cm: 13, background: '전 직장에서 마케팅을 했다.' };
   const canonical = { departmentName: '브랜드전략팀', positionName: '인턴', bodyTypeName: '균형 잡힌 체형', speechStyleName: '정중한 존댓말' };
@@ -508,6 +536,11 @@ test('/api/player-setup re-validates server-side, rejects invalid submissions be
   const invalid = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: { ...validPlayerBody(), height_cm: 999 } }), env);
   assert.equal(invalid.status, 400);
   assert.equal((await invalid.json()).error.code, 'invalid_player_setup');
+  assert.equal(mock.calls.some(call => call.url.includes('/reserve_company_player_setup')), false);
+
+  const invalidSemanticId = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: { ...validPlayerBody(), department_id: 'future_department' } }), env);
+  assert.equal(invalidSemanticId.status, 400);
+  assert.equal((await invalidSemanticId.json()).error.code, 'invalid_player_setup');
   assert.equal(mock.calls.some(call => call.url.includes('/reserve_company_player_setup')), false);
 
   const response = await worker.fetch(request('/api/player-setup', { game_id: gameId, player: validPlayerBody() }), env);
