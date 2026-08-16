@@ -1,26 +1,11 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-same-location-npc-visit-handoff-land-recovery-v1
+Status: READY
+Task ID: minimal-story-runtime-release-candidate-product-acceptance-v2
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
-
-## Why this recovery exists
-
-The preceding task `minimal-story-runtime-same-location-npc-visit-handoff-v1` produced terminal report Issue #68 comment `5310184982` and reported a PASS, but its source/test/docs commits were never pushed.
-
-Independent operator verification found:
-- canonical remote branch/PR #67 still at `2b52d52c36047df5c039b13de6083f48e13578db` before this registration;
-- reported local `SOURCE_TEST_SHA: 7596d36` is not resolvable on GitHub;
-- reported local `FINAL_DOCS_SHA: b6d8f0bd9fe136bb4f2765149e64b4a95015c5b7` is not resolvable on GitHub;
-- the terminal itself states the final clean clone was two local commits ahead of remote and records `no push`;
-- remote `docs/ops/CURRENT_TASK.md` therefore also remained READY for the original task instead of landing its local WAITING_REVIEW state.
-
-Operator review `5310195753` classifies the prior result as `ACCEPTED_BLOCKED_LANDING`: useful behavioral/test evidence, but not a source-reviewable or canonical implementation.
-
-Do not advance to TEST/product acceptance until this recovery is landed and reviewed.
 
 ## Starting point
 
@@ -28,122 +13,231 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
-Before changing source:
-1. fetch origin;
-2. discard/isolate any old watcher-local unpushed implementation/docs lineage for the prior task;
-3. restore the canonical worktree to a clean checkout exactly matching the current remote branch HEAD created by this registration;
-4. freeze that exact SHA as START_SHA;
-5. verify PR #67 is still OPEN / DRAFT / UNMERGED and its head equals START_SHA.
+Previous accepted task:
+- Task: `minimal-story-runtime-same-location-npc-visit-handoff-land-recovery-v1`
+- Operator review: Issue #68 comment `5310233293` — ACCEPTED
+- Reviewed source/test SHA: `c4ceed11845c127d813c821506f688f02d4c063c`
+- Accepted final docs SHA before this registration: `be684bb6aead877aa02ad5e461d9b847da56d35b`
+- GitHub Actions on the accepted final SHA: `Company v1 tests` run `31979206141` = SUCCESS.
 
-Do not merge/rebase/cherry-pick the old local-only `7596d36` / `b6d8f0bd...` lineage into the canonical branch. Reproduce and review the change from current remote source.
+The same-location registered-NPC visit fix is now actually landed and reviewable. This task is therefore a bounded TEST product-acceptance task, not a source-fixing continuation.
 
-Forbidden game IDs — do not access:
+Expected TEST DB baseline to verify before writes:
+- Minimal Story Runtime migration `20260816050000 / company_v1_minimal_story_runtime_contract` is live once.
+- Final residue migration `20260817000100 / company_v1_final_residue_closure` is live once.
+- No migration/DDL change is authorized in this task.
+
+Allowed disposable TEST game only:
+- `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+
+Forbidden game IDs — fail closed before network access:
 - Production/sentinel `11111111-1111-4111-8111-111111111111`;
 - preserved manual `78fb1d94-266f-455a-bda4-7656cc2370c1`;
-- QA evidence `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`.
+- QA evidence `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`;
+- every other game ID.
 
-No live TEST gameplay/reset/write is authorized.
+Production is forbidden.
 
 ## Objective
 
-Land the already-proven same-location exact registered NPC visit handoff correction onto the canonical remote branch and make it independently reviewable.
+Run one coherent release-candidate product acceptance against the exact post-Minimal-Story-Runtime lineage after the same-location handoff fix.
 
-Behavioral target remains narrow:
-- with current canonical location `brand_strategy_office` and present `[heroine3, heroine1]`, player action `윤민아 보러간다` resolves exact registered target `heroine2` even though her unique destination is the same broad location;
-- Story projection changes the active local cast/focal target to `heroine2` while preserving canonical location/time;
-- Commit canonical scene includes `heroine2` and does not retain prior active-scene participants solely because the map location string did not change;
-- cross-location behavior and exact destination-phase evidence remain unchanged;
-- ambiguous, unregistered, casual mention, location-only, and fake identity cases remain unresolved/rejected.
+The run must prove the actual gameplay spine, not only transport/tests:
 
-This is not fuzzy NPC search and not a new semantic target system.
+`player input / exact literal`
+→ minimal committed context
+→ Story
+→ Extract observation
+→ Commit
+→ committed save/turn/history/readback
+→ next Story.
 
-## Required work
+The decisive live regression is now the prior Turn-5 failure:
+- while already at broad location `brand_strategy_office`, with other active local participants,
+- action `윤민아 보러간다`
+- must resolve to exact registered target `heroine2`, hand Story to the target scene/cast, and Commit canonical presence without retaining prior active-scene NPCs merely because the map location string stayed the same.
 
-1. Re-read the exact current caller chain from the registration SHA:
-   `player_action -> resolvePlayerNavigationIntent -> projectStorySaveForNavigation -> Story cast -> Extract scene observation -> reduceGameplayCommit/reduceCanonicalScene`.
-2. Reproduce the same-location blocker in a regression before accepting any implementation.
-3. Apply the minimal root-cause source change through the existing authority path only:
-   - `resolvePlayerNavigationIntent()` may return existing `explicit_npc_destination` for an exact registered NPC visit with exactly one canonical destination even when destination equals current location;
-   - keep exact registered-name matching and unique destination proof;
-   - `projectStorySaveForNavigation()` must not discard that validated target only because location is unchanged; preserve time/location and project target-only active Story cast/focal target;
-   - Commit must carry the already-validated target through the canonical scene reducer and replace prior same-location active-scene cast only for this validated handoff;
-   - do not add a second scene reducer, persistent target bag, relationship/event writer, semantic router, or fuzzy matcher.
-4. Preserve destination-phase evidence behavior: a registered accompanying/destination NPC may be added only through existing accepted evidence; unknown/fake identities remain rejected.
-5. Rewrite/retain tests covering at minimum:
-   - blocker reproduction and corrected resolve -> Story projection -> Commit result;
-   - canonical location/time unchanged for same-location visit;
-   - prior `[heroine3, heroine1]` not carried without new destination evidence;
-   - same-location location-only action does not invent target/presence;
-   - casual mention such as `윤민아가 로비에서 일한다` does not become navigation;
-   - ambiguous/unregistered names remain unresolved;
-   - cross-location Mina/general-NPC handoff remains green;
-   - exact registered accompanying-NPC destination evidence remains supported;
-   - unknown/fake identities remain rejected.
-6. Inspect current Minimal Story Runtime final-residue source around this path and prove the change does not resurrect retired scene/location/presence mirrors, save choice caches, generic relationship/stat/CSA-attitude authority, or pre-Story semantic gates.
-7. Run:
-   - focused navigation/scene/Story/Commit tests;
-   - full `npm.cmd test`;
-   - `node --check` for changed JS/MJS;
-   - `git diff --check`.
-8. Commit source/test changes on the canonical branch.
-9. Update this CURRENT_TASK to `Status: WAITING_REVIEW` in the same lineage after tests pass.
-10. **Mandatory landing gate:** perform a normal fast-forward `git push` of the complete source/test/docs lineage to `origin/company/scene-location-presence-v1`.
-11. After push, independently verify:
-   - local HEAD == remote branch HEAD;
-   - PR #67 head == that same FINAL_SHA;
-   - the final source/test commits are resolvable from GitHub;
-   - this CURRENT_TASK is remotely `WAITING_REVIEW`;
-   - PR #67 remains OPEN / DRAFT / UNMERGED.
-12. Only after those remote checks pass, post one immutable terminal report to Issue #68 with START_SHA, SOURCE_TEST_SHA, FINAL_SHA, focused/full tests, exact changed files/root cause, remote/PR HEAD equality, and forbidden-operation confirmation.
-13. STOP. Do not create the next CURRENT_TASK.
+This task also carries the owner acceptance debt that was explicitly deferred until this blocker landed.
 
-## Carry-forward product acceptance debt — preserve, do not execute here
+## Mandatory preflight — before TEST mutation
 
-After this source blocker is canonically landed and independently reviewed, the next product-acceptance planning must still carry:
-1. Opening duplicate `[THOUGHT]` leakage risk without creating another parser generation.
-2. Explicit player physical/self-state fidelity positive proof.
-3. Positive compact 4-slot clothing persistence proof using supported slots only.
-4. Long-horizon human-play continuity across the six-raw-turn boundary plus useful four-choice diversity and no repetitive reaction loop.
-5. Deletion-first caller review of residual CSA Story projection helpers/fields such as dead `authorityFor()` / `modeFor()` candidates and whether clothing `required_state` / `compliant` is genuinely needed.
-6. PR #67 body/history/landing hygiene only after product stabilization.
+1. Fetch origin and freeze exact current branch HEAD as `START_SHA`.
+2. Verify PR #67 remains OPEN / DRAFT / UNMERGED and head equals START_SHA.
+3. Verify accepted source/test SHA `c4ceed11845c127d813c821506f688f02d4c063c` is an ancestor of START_SHA and that commits after it up to START_SHA are docs-only unless independently reviewed otherwise.
+4. Verify the two expected Minimal Story Runtime TEST migrations above are live exactly once and no unreviewed DB contract drift is present.
+5. Verify current deployed TEST API identity/source equivalence.
+   - If the current API is already source-equivalent to `c4ceed11845c127d813c821506f688f02d4c063c`, do not redeploy.
+   - Otherwise deploy exactly the reviewed source-equivalent API once using the existing guarded deployment path.
+   - Frontend source did not change in the accepted blocker cut; do not redeploy Frontend merely to match a docs-only SHA.
+   - After any API deploy, record exact Worker Version and independently verify source identity before gameplay.
+6. Run a deterministic local/read-only preflight for the known Opening duplicate-THOUGHT risk before spending the live attempt:
+   - exercise the current Opening parser/projection with a synthetic provider output containing more than one `[THOUGHT]` block;
+   - verify player thought does not leak into player-visible narrative or become misleading narrative through duplicate demotion;
+   - do not create a new parser generation or patch source in this task;
+   - if current code deterministically leaks duplicate THOUGHT into narrative, STOP as a source blocker, final-reset only if TEST was already touched, and report exact evidence.
+7. Read-only caller audit before live run:
+   - inspect `src/engine/csa/story-projection.js` residual candidates including `authorityFor()` / `modeFor()` and clothing `required_state` / `compliant` projection;
+   - classify current callers/Story visibility only; do not delete or patch them here;
+   - if a field is proven to actively reintroduce retired semantic Story authority and would invalidate the product run, STOP and report; otherwise carry zero-caller/deletion candidates to review.
 
-Do not convert these into incidental patches in this recovery.
+No retry/regeneration or provider/model/config change is allowed during preflight or live acceptance.
 
-## Architecture constraints
+## Live acceptance — one attempt only
 
-- Story remains narrative authority.
-- `save.scene` remains sole durable scene/location/presence authority.
-- Exact registered identity/navigation resolution is structural context only.
-- Same-location visit handoff selects the active scene/cast; it does not imply other employees cease to exist in the broader office/world.
-- Do not infer relationship, consent, comfort, affection, trust, CSA compliance, physical state, or sexual state from the visit.
-- No fuzzy/substring target guessing beyond the existing exact registered-name contract.
-- No semantic gate, regex outcome verifier, retry/regeneration, provider/model change, new parser, compatibility bag, or generic memory authority.
-- No migration/DDL candidate is expected. If current DB contract unexpectedly blocks this source-only recovery, STOP and report instead of broadening scope.
+After preflight passes, use only disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`.
+
+### A. Clean start / setup / Opening
+
+1. Canonical reset and read back the clean state before setup.
+2. Perform normal Setup and Opening with the existing production-equivalent path.
+3. Capture raw Opening, parsed blocks, exact four choices, committed Opening readback, canonical scene/time and player state.
+4. Verify no player THOUGHT is rendered as ordinary narrative. If the provider naturally emits duplicate THOUGHT, inspect the exact behavior; do not regenerate to obtain a cleaner sample.
+5. Click one exact provider-returned Opening choice literal for the first normal turn; no rewritten/paraphrased choice transport.
+
+### B. Coherent 10–14 turn human-style scenario
+
+Run one continuous scenario, not disconnected probes. One provider attempt per stage only.
+
+The scenario must cover all of the following when current mechanics permit:
+
+1. **Literal and free-text player agency**
+   - include both exact clicked literals and natural free-text actions;
+   - Story must not silently replace a material explicit player action/current self-state with a different fact.
+
+2. **Explicit player physical/self-state fidelity — positive proof**
+   - before choosing the action, inspect the current source contract and choose one explicit current player physical or sexual fact that is actually representable by the existing narrow player state; do not invent a new schema;
+   - state that fact explicitly in player input together with an ordinary next intent;
+   - verify Story preserves rather than contradicts/replaces the explicit current fact;
+   - where the existing narrow Extract/Commit contract legitimately represents it, verify committed/readback continuity on the next turn;
+   - player intent/attempt is not success unless Story establishes success.
+
+3. **Registered navigation and same-location handoff — mandatory live regression**
+   - construct the naturally coherent situation where player is already in `brand_strategy_office` with prior active local participant(s);
+   - send exact free text `윤민아 보러간다`;
+   - verify Story target/cast is `heroine2` and canonical location/time do not jump merely to perform the handoff;
+   - after Commit, canonical `save.scene.present_npc_ids` includes `heroine2` and does not carry prior active-scene participants solely from the previous same-location scene;
+   - if Story gives exact destination-phase evidence for an additional registered accompanying NPC, that existing path may add the NPC; fake/unknown identities must not appear.
+
+4. **Canonical time**
+   - Story must not contradict committed game time;
+   - elapsed time must advance through the established deterministic/observed path only.
+
+5. **CSA premise coherence and side-system isolation**
+   - if needed for deep coverage, use the already-existing safe TEST-only Level-7 acceleration seam; do not modify Production progression or create another seam;
+   - activate one current CSA at a specific turn/time using the normal TEST product path;
+   - once active/applicable, Story must treat following the valid company rule as the altered natural workplace premise rather than an optional policy decision;
+   - personality/emotion may differ;
+   - unrelated consent/comfort/affection/trust/romance/arousal must not be inferred from compliance;
+   - no runtime semantic gate/retry may rewrite Story to force a pass.
+
+6. **Positive compact clothing persistence — mandatory proof**
+   - inspect the current supported compact slots first: use only actual supported vocabulary such as `uniform_top`, `uniform_bottom`, `underwear_top`, `underwear_bottom` as current source confirms;
+   - obtain one positive Story-established clothing-state change through normal narrative/CSA behavior without retry-until-lucky or inventing unsupported jacket/shirt mapping;
+   - verify Extract/Commit persist the supported compact change and next-turn/readback continuity preserves it;
+   - if the single coherent attempt never establishes any supported positive clothing event, report `COVERAGE_NOT_REACHED` rather than inventing success or rerunning until green. This means full product acceptance is not proven.
+
+7. **Long-horizon continuity across the six-raw boundary — mandatory**
+   - establish one distinctive work/context fact early enough that its source turn leaves the most-recent six raw turns;
+   - continue far enough to verify chronological older `turn_summary` memory is non-empty/updating and the later Story does not suffer a continuity cliff;
+   - inspect the exact context/readback shape rather than merely counting turns.
+
+8. **Choice quality**
+   - every normal provider turn must expose exactly four literal choices through the committed/UI readback contract;
+   - record whether the four choices represent meaningfully different next actions rather than repetitive paraphrases;
+   - a structural four-count alone is not semantic product acceptance.
+
+9. **Reaction/progression quality**
+   - verify the narrative does not get stuck repeatedly re-litigating the same active rule or repeating the same non-progressing reaction loop;
+   - do not add a runtime LLM judge or hard semantic gate. Human/operator evidence is sufficient for this task.
+
+10. **Refresh / history / replay authority**
+   - during the run, perform committed context/history readback after important milestones;
+   - perform at least one supported replay/idempotence check without advancing committed turn/revision;
+   - simulate/reuse the existing refresh/readback path and verify the same committed reality reappears: Story, parsed blocks, exact choices, summary, canonical scene/time and narrow physical/clothing state.
+
+11. **Presentation sidecars remain sidecars**
+   - media/image/TTS/Mind Monitor failure or classification must not erase/reject/redefine Story or block Commit;
+   - do not treat presentation classification as gameplay semantic authority.
+
+### C. Stop rule
+
+- Stop immediately on the first decisive architecture/protocol/product blocker.
+- Do not continue turns and later claim them as acceptance evidence after a decisive blocker.
+- Do not retry/regenerate the failed Story/Extract/provider stage.
+- Do not patch source, add compatibility behavior, switch providers/models, add regex verification, fuzzy matching or semantic gates.
+- Capture the exact player action, raw Story, parsed blocks, Extract, pre/post canonical save, committed turn/history and relevant deployed identity for the blocker.
+
+### D. Final cleanup
+
+Whether PASS, BLOCKED or COVERAGE_NOT_REACHED:
+1. restore/disable the existing TEST-only Level-7 acceleration seam if it was used, using its current supported cleanup path;
+2. canonical reset disposable TEST game;
+3. independently read back clean final state: no committed turns/actions, setup/opening not_started, Level 1 baseline, no active CSA, canonical setup scene/empty presence as current reset contract defines;
+4. do not touch any forbidden game.
+
+## Acceptance
+
+`PRODUCT_PLAY_PASS` requires all mandatory proofs above, including:
+- same-location exact registered NPC handoff works live;
+- no decisive player-agency/time/scene/premise/readback defect;
+- explicit player self-state positive proof;
+- positive supported compact-clothing persistence proof;
+- continuity after the six-raw window through chronological summaries;
+- exact four committed choices with useful semantic diversity;
+- refresh/history/replay parity;
+- side systems remain presentation-only.
+
+If a mandatory positive path is not reached in this one attempt, do not call the product accepted. Report `COVERAGE_NOT_REACHED` and let operator review decide the next evidence task. Do not rerun until lucky.
+
+A failing run may still be `EVIDENCE_ACCEPTED`; that is not `PRODUCT_PLAY_PASS`.
 
 ## Authorized operations
 
 Authorized:
 - read-only Git/source/PR inspection;
-- source/test/docs edits on the canonical branch;
-- local focused/full tests and static checks;
-- normal fast-forward push of this task lineage to the canonical branch;
-- immutable Issue #68 terminal report after remote equality is proven.
+- deterministic local parser/caller preflight without source edits;
+- read-only TEST DB/deployment identity preflight;
+- at most one exact reviewed source-equivalent TEST API deployment if required;
+- disposable TEST game reset/setup/opening/gameplay/readback/history/replay/final reset;
+- existing guarded TEST-only Level-7 acceleration seam when needed, with mandatory cleanup;
+- immutable Issue #68 terminal report;
+- docs-only CURRENT_TASK status update to WAITING_REVIEW in the canonical lineage and normal fast-forward push of that docs-only status commit.
 
 Not authorized:
-- TEST gameplay/reset/write;
-- DB write/migration/DDL apply;
-- API/frontend deploy;
-- Production or forbidden-game access;
-- provider/model/config/retry/regeneration;
-- new branch/PR;
-- merge, PR Ready, rebase, squash, force-push.
+- source/test/runtime/content changes;
+- migration/DDL authoring or application;
+- Frontend deploy without a newly proven frontend source identity mismatch attributable to this accepted cut; frontend source is expected unchanged;
+- Production, sentinel, preserved-manual, QA evidence or any non-disposable game access;
+- provider/model/config/retry/regeneration changes;
+- new parser generation, fuzzy target logic, semantic gate/judge, compatibility layer or generic memory system;
+- new branch/PR, merge, Ready, rebase, squash or force-push.
 
-## Acceptance
+## Terminal report requirements
 
-PASS only if:
-- the behavioral blocker is reproduced and corrected through the existing exact registered destination -> Story cast -> canonical scene reducer path;
-- required regressions/static checks pass;
-- no retired authority is resurrected;
-- and, unlike the previous attempt, the complete source/test/docs lineage is actually fast-forward landed so GitHub branch HEAD == PR #67 head == reported FINAL_SHA and remote CURRENT_TASK is WAITING_REVIEW.
+On PASS, first decisive blocker, or COVERAGE_NOT_REACHED:
+- set this file to `WAITING_REVIEW` and fast-forward push the docs-only status change;
+- post exactly one immutable terminal report to Issue #68 containing:
+  - START_SHA / reviewed executable/source-equivalence / deployed API Version if changed;
+  - migration/DB preflight result;
+  - duplicate-THOUGHT deterministic preflight result;
+  - residual CSA Story-projection caller audit result;
+  - exact live scenario turn count and stop point;
+  - same-location Mina handoff evidence;
+  - player self-state evidence;
+  - compact clothing positive evidence or explicit COVERAGE_NOT_REACHED;
+  - six-raw-window memory evidence;
+  - choice-quality observations;
+  - CSA premise/side-system observations;
+  - replay/context/history/refresh evidence;
+  - final reset readback;
+  - forbidden-operation confirmation;
+  - PR #67 OPEN / DRAFT / UNMERGED state.
+- STOP. Do not create the next CURRENT_TASK yourself.
 
-A local-only PASS is BLOCKED, not COMPLETE.
+## Deferred release hygiene — do not execute here
+
+After stable product evidence only:
+- refresh stale PR #67 body to match actual Minimal Story Runtime state;
+- decide landing/history consolidation strategy for the very large PR history.
+
+These are operator decisions after product stabilization, not part of this acceptance run.
