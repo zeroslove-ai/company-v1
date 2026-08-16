@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: physical-sexual-evidence-boundary-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -76,3 +76,19 @@ Not authorized: TEST live gameplay/reset, DB writes/migration/DDL, API/frontend 
 PASS only if unevidenced fresh Extract physical/mechanical proposals can no longer change durable state, evidenced arbitrary Story-grounded facts still project correctly, valid sibling domains continue to commit, proven clothing/sexual/media consumers remain functional, and zero-caller semantic residue is deleted rather than wrapped.
 
 On PASS or deterministic blocker: set CURRENT_TASK to WAITING_REVIEW, post one immutable terminal report with exact source/test SHA, changed files, deletions/keeps, tests/checks, and forbidden-operation confirmation, then STOP. Do not generate the next task.
+
+## Completion record
+
+- Source/test SHA: `6c8bfb47851cc04f60ebce41c25ef19b73e844a0`
+- Physical evidence boundary: unevidenced posture/position axes preserve prior state with existing warnings; evidenced arbitrary text remains accepted independently per axis.
+- Sexual evidence boundary: non-zero arousal/progress deltas require an exact Story quote for their field; missing evidence preserves each field and warns. Existing erection/completion evidence rules remain in force.
+- Projection behavior: unknown sexual event action types are dropped with a warning and do not block normalized Extract; compact clothing and image/media consumers remain.
+- Deleted zero-caller residue: `POSTURE_VALUES`, `END_REASON_VALUES`, `src/engine/sexual-state/validator.js`, `requiredClothingFromActiveCsa`, and its obsolete test.
+- Kept proven consumers: evidenced physical reducer, compact four-slot clothing, player sexual state, sexual event ledger, and image/media adapters.
+- Focused invariant tests: `node --test test/frontend-projection-contract.test.mjs test/gameplay-state-contract.test.mjs test/extract-observation-contract.test.mjs test/csa-definition-contract.test.mjs test/csa-runtime-contract.test.mjs test/content-media-contract.test.mjs test/turn-atomicity-contract.test.mjs test/turn-transaction-replay.test.mjs` — 78/78 PASS.
+- Full regression: `npm.cmd test` — 428/428 PASS.
+- Syntax: all changed JS/MJS `node --check` PASS.
+- `git diff --check`: PASS.
+- Forbidden operations: TEST live/reset 0; DB writes/migrations 0; API/frontend deploy 0; Production/manual-game 0; provider/model/parser/retry/fuzzy/semantic-gate/compatibility changes 0; new branch/PR/merge/Ready 0.
+- Preserved evidence artifacts: unchanged and uncommitted.
+- Stop state: waiting for operator review; do not deploy, run live TEST, or generate the next task.
