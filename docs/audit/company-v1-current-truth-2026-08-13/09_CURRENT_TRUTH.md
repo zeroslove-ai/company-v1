@@ -754,3 +754,33 @@ TEST write/reset/gameplay occurred, no deployment or Production access occurred,
 and PR #67 remains OPEN / DRAFT / UNMERGED. This is a source/test/migration
 candidate awaiting operator review and separately authorized TEST rollout, not
 a live acceptance fact.
+
+## Setup / Opening registered-identity closure candidate ??WAITING_REVIEW
+
+The follow-up task `setup-opening-registered-identity-closure-v1` started at
+`8e2d6713938870c0f7bb7dd6851e423cd16160f9` on
+`company/scene-location-presence-v1`, after the prior world-definition
+candidate `6b2c9941f8e6e89410a4518821bc0c6550785991` was marked
+`CHANGES_REQUIRED`. The prior deletion of duplicate SQL semantic catalogs is
+retained, but the corrected candidate restores narrow dynamic registered-ID
+integrity: `reserve_company_player_setup` reads the game's canonical
+`game_master.data.characters` and `game_master.data.general_npcs` key
+projection and rejects unknown primary/supporting Opening IDs before save
+mutation. It does not restore a heroine enum, semantic alias, fuzzy matcher, or
+second catalog.
+
+Corrected source/test/migration candidate: `1a221665f91b352607724912ba8a06250ac60fc5`.
+Focused Setup/Opening/bootstrap tests pass 32/32, the DB contract gate passes
+11/11, and the full local suite passes 420/420. JavaScript syntax, UTF-8
+JSON/config parsing, migration semantic-list scan, and `git diff --check` pass.
+
+Read-only TEST inspection confirmed the dedicated game's `game_master.data`
+stores `characters` and `general_npcs` as object projections; the current live
+character keys were `heroine1` through `heroine5`, with the general-NPC
+projection present as an object. No migration was applied, no TEST/gameplay
+write or reset occurred, and no API/frontend deployment or Production access
+occurred. Behavioral setup tests cover future IDs in both canonical master
+sections and ghost primary/supporting rejection before the mock save changes.
+The corrected candidate remains pending operator review and separately
+authorized TEST rollout; Cut 2 acceptance is not changed by this source-only
+candidate.

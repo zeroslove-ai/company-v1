@@ -1,11 +1,11 @@
 # Setup / Opening / World-Definition Authority — 2026-08-16
 
-Status: source/test/migration candidate, `WAITING_REVIEW`; not applied or
+Status: corrected source/test/migration candidate, `WAITING_REVIEW`; not applied or
 deployed.
 
 ## Boundary
 
-- Start HEAD: `829a2db55290de32d755030b8086c99cf8449387`
+- Start HEAD: `8e2d6713938870c0f7bb7dd6851e423cd16160f9`
 - Accepted executable lineage: `cd615b4926a5a7092247459d44d25f886b8ac92b`
 - Branch: `company/scene-location-presence-v1`
 - PR: `#67`, base `main`, OPEN / DRAFT / UNMERGED
@@ -49,8 +49,8 @@ The read-only TEST function inventory matched the current six-argument
 | `department_id`, `position_id`, `body_type_id`, `speech_style_id` membership | Remove from DB catalog allowlists | Application validates against edition catalogs; DB retains non-empty string and numeric structural checks. |
 | Weekday membership | Remove finite weekday list | Application-generated opening plan owns the semantic value; DB retains non-empty string shape. |
 | `location_id`, `work_hook_id`, `scene_goal` membership | Remove DB semantic membership | `buildOpeningPlan` reads edition map content; DB retains required non-empty fields. |
-| Primary/supporting character membership | Remove heroine list | Application supplies registered edition character IDs; DB retains non-empty string, array cardinality, and duplicate checks. |
-| Registered NPC identity universe | Keep one repository/master projection | `masterFromEdition` combines `characters` and `general_npcs`; no second SQL catalog is introduced. |
+| Primary/supporting character membership | Remove heroine list, retain dynamic identity integrity | Application supplies semantic IDs; the transactional reserve RPC checks the game's canonical `game_master.data.characters` + `general_npcs` key projection before any save mutation. |
+| Registered NPC identity universe | Keep one repository/master projection | `masterFromEdition` combines `characters` and `general_npcs`; the DB consumes the per-game projection's keys and introduces no second SQL catalog. |
 | Name/measurement ranges | Keep | Structural player-save integrity and existing product contract. |
 | `edition_id = company-v1`, game/save lookup, turn-0 guard | Keep | Transaction identity and write boundary. |
 | Setup ID conflict/idempotence | Keep | Transactional reservation invariant. |
@@ -64,9 +64,12 @@ is the single additive migration source. It does not edit historical migrations
 and is not applied. It replaces the active reserve function with the same RPC
 identity and transaction/idempotence behavior, removes SQL semantic catalog
 lists, removes duplicate turn-0 mirror construction, and keeps the canonical
-scene projection helper as the sole scene projection boundary. The helper's
-registered-membership list is removed; its structural non-empty/distinct ID
-checks remain.
+scene projection helper as the sole scene projection boundary. The reserve
+boundary retains structural non-empty/distinct checks and dynamically verifies
+primary/supporting IDs against the game's canonical `game_master` projection;
+it does not enumerate heroines or introduce a second semantic catalog.
+
+The corrected source/test/migration candidate is `1a221665f91b352607724912ba8a06250ac60fc5`.
 
 No compatibility overload, alias, fuzzy ID repair, parser, provider, retry, or
 semantic fallback was added.
@@ -78,6 +81,9 @@ semantic fallback was added.
 - The same test verifies future repository catalog IDs and future opening
   location/character IDs are accepted by pure application planning without an
   SQL semantic-list edit.
+- The setup RPC contract mock verifies future IDs present in either the
+  canonical `characters` or `general_npcs` master projection are accepted, while
+  ghost primary/supporting IDs are rejected before the save changes.
 - `setup-opening-bootstrap.test.mjs` verifies the registered NPC universe is
   the combined character/general-NPC master projection and that no JavaScript
   turn-0 full-save writer exists.
@@ -88,8 +94,12 @@ semantic fallback was added.
 
 ## Validation
 
-- Focused Setup/Opening/bootstrap tests: PASS
-- Focused DB contract gate tests: PASS
+- Focused Setup/Opening/bootstrap tests: PASS, 32/32, including dynamic
+  registered-ID and ghost rejection behavior
+- Focused DB contract gate tests: PASS, 11/11
+- Full `npm.cmd test`: PASS, 420/420
+- JavaScript syntax, UTF-8 JSON/config parse, migration semantic-list scan, and
+  `git diff --check`: PASS
 - No live write or deployment performed
 
 The candidate remains pending operator review and a separately authorized

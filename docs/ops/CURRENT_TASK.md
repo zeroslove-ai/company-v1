@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: setup-opening-registered-identity-closure-v1
 Updated: 2026-08-16
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -94,3 +94,22 @@ On PASS or deterministic BLOCKED evidence:
 - report exact START SHA, corrected source/test/migration SHA, identity source used, tests/static checks, and FINAL_DOCS_SHA;
 - post one immutable terminal report to Issue #68;
 - STOP for operator review. Do not generate the next task yourself.
+
+## Candidate completion record
+
+- Start SHA: `8e2d6713938870c0f7bb7dd6851e423cd16160f9`
+- Corrected source/test/migration SHA: `1a221665f91b352607724912ba8a06250ac60fc5`
+- Existing unapplied migration corrected in place: `supabase/migrations/20260816040000_company_v1_setup_opening_world_authority.sql`
+- Dynamic identity source: per-game `game_master.data.characters` and `game_master.data.general_npcs` object-key projection; no SQL heroine catalog restored.
+- Focused Setup/Opening/bootstrap tests: 32/32 PASS
+- DB contract gate tests: 11/11 PASS
+- Full `npm.cmd test`: 420/420 PASS
+- JavaScript syntax checks: PASS
+- UTF-8 JSON/config parse: PASS
+- migration static semantic-list scan: PASS; no finite semantic allowlist literals
+- `git diff --check`: PASS
+- Migration apply: 0; TEST/gameplay/setup/reset/DB writes: 0; deployments: 0; Production/manual-game access: 0
+- Preserved evidence: unchanged
+- Final docs SHA: recorded in the docs-only completion commit
+
+Candidate is ready for operator review. No TEST rollout or deployment is authorized by this task.
