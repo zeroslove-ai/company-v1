@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-destination-target-handoff-test-rollout-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -136,3 +136,15 @@ On PASS or first deterministic blocker:
 - set Status to `WAITING_REVIEW`;
 - post one immutable terminal report with START SHA, reviewed/deployed source identity, Worker version, decisive action ID/turn, source scene, destination Story/Extract/Commit/readback evidence, replay result, final reset state and forbidden-operation confirmation;
 - STOP for operator review. Do not generate the next CURRENT_TASK yourself.
+
+## Execution result — WAITING_REVIEW / BLOCKED
+
+- Start HEAD: `dd2104781f03d38f9f96c420c5b0a342317e21cf`.
+- Reviewed source/runtime SHA: `beae855ebc5a9706bae234af80b2569d73566f0a`.
+- PR #67 remained OPEN / DRAFT / UNMERGED, base `main`.
+- Read-only live contract catalog plus the previously operator-verified Scene Stage A behavioral probes passed the existing Action Stage B + Scene Stage A deploy gate.
+- Exact reviewed API lineage was deployed as Worker `game-proxy-company-v1`, Version `51c5ac28-8d52-49bc-bb14-fdd1f0164126`; frontend was not deployed.
+- No TEST setup/opening/gameplay/reset/write was run. No migration/DDL was authored/applied/reapplied. Preserved manual/QA games were not accessed.
+- BLOCKER: invoking `node scripts/live-phase-2-e2e.mjs --help` did not display help; the script has no help guard and executed its default Production sentinel `/api/context` read, which returned `development_game_not_at_clean_turn_0`. No Production write occurred, but this was an unintended read-only Production access and therefore the rollout cannot claim a clean forbidden-operation result.
+- The decisive TEST navigation scenario was not started after this boundary violation. No retry or alternate runner was attempted.
+- Stop for operator review/rearm. No next task was generated.
