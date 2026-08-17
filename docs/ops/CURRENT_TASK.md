@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-runtime-live-acceptance-v4
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -251,3 +251,17 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal containing registration/final SHA/blob, verified Worker versions, API/frontend smoke results/counts, reset/session counts, committed-turn count, per-coverage verdicts, exact failed turn(s) if any, disposable reconciliation, summary/memory evidence, migration/gate evidence, protected-game invariants, safety counts and terminal classification;
 3. STOP. Do not merge, deploy, patch, create another task, or start Cut 3.
+
+## 9. Terminal evidence — BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V4
+
+- Execution identity: `test-runtime-live-acceptance-v4` / start blob `344268afe723de70f089a1b8fc63a50d9bd4b04e` / branch `company/test-runtime-live-acceptance-v4` / registration `f0256a420263693814ab1a8a0ec490c4b93bd00a` / lease `5319966625`.
+- Preflight: branch HEAD was registration `f0256a420263693814ab1a8a0ec490c4b93bd00a`; `origin/main=8f3c5326e483650211fbc6c9f54a7527d2278d4e`; runtime/config/content/package/workflow trees were byte-identical to `origin/main`; Stage B action and scene gates PASS; full regression `338/338` PASS; five `node --check` checks and `git diff --check` PASS.
+- Worker identity: API `game-proxy-company-v1` version `2a976491-451d-4fc8-8808-65353cad137b`; frontend `gamebuilder-company-v1` version `d3c1bb47-e779-431e-a0ac-98eb513561c6`; API redeploy `0`; frontend redeploy `0`; config remained Company `company-v1`, TEST project `fmcrspgxstsmxxsmkeee`, DeepSeek story/extract model and TTS binding unchanged.
+- Corrected smokes: API invoked exactly once with disposable game and PASS; frontend invoked exactly once and PASS with `direct_assets=15`, `reachable_modules=21`, and no `/narrative.js` request.
+- Binding/reset: explicit frontend URL `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; shipped `resolveGameId` query rule and all 47 external-driver product requests used only that disposable UUID; reset count `1`, reset HTTP `200/ok`, setup `200/ok`, Opening `200/complete`, exactly four canonical choices, and selected literal was preserved unchanged into turn 1.
+- Session: one session began and stopped at the first material failure after committed turns `1..5`; no retry, replacement session, second reset, or post-failure gameplay request occurred. Turns `1..5` each had Story SSE begin/progress/complete, Extract `200`, Commit success, and readback. Turn 6 action `72cc2486-cc80-408c-9d86-8196cab7b6ad` used exact input `윤민아와 서원희에게 각자 맡은 업무를 확인하고 팀의 일정과 우선순위를 자연스럽게 조율한다.`; Story `200/complete` and Extract `200/success` completed, but Commit returned `422 invalid_extract_observation` with non-retryable message `scene evidence requires scene_id`. The action remained `committing` in the read-only post snapshot; no turn 6 durable turn was created.
+- Coverage: setup/Opening exact-four/literal PASS; free-text/workplace continuity and movement/NPC handoff were exercised through turns `2..5`; CSA exact-scope, unrelated-after-CSA, adult physical continuity, sidecar non-authority, beyond-six memory, refresh/recovery, and completed streaming/transaction acceptance were NOT RUN because the first P1 Commit failure is terminal evidence. Turn 6 Story stream itself began/progressed/terminated, but session transaction integrity failed at Commit.
+- Reconciliation: disposable pre-reset was `save/turns/actions/committed_turn=1/11/12/11`; post-failure was `1/5/6/5`, with failed action status `committing`. Preserved/manual, QA, and protected sentinel rows were unchanged pre/post (`1/7/9/7`, `1/7/7/7`, `1/18/18/18/18` respectively); no protected/preserved/QA mutation. Migration rows remained `27`, target `20260817000200` absent, accepted bridge canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`, accepted forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`, and accepted function/ACL invariants unchanged.
+- Preserved external evidence: session artifact `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-v4-session.json`; pre-reset full row/action/turn/save snapshot `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-v4-pre-reset.json` SHA-256 `F667FD048DACD8DDE0C1EF0010026124CD5E0278E62CC8AE0FB28D1425FAB955`; post-failure snapshot `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-v4-post-failure.json` SHA-256 `AC85A7B25EF8A0E9CAD8B719EBBE1C7BFF982C95604AE5B06CB4A80242697503`.
+- Safety: API/frontend redeploy `0/0`; TEST reset `1`; live sessions `1`; committed turns in this execution `5`; schema/migration/history writes `0`; migration apply/push/repair `0`; Production/hospital/v2 access `0`; provider/model/TTS/binding changes `0`; source/runtime/script/config/content/test/package/workflow changes after registration `0`.
+- Terminal classification: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V4`; stop at first P1 failure, await review. Do not patch, retry, reset, redeploy, merge, generate another task, or start Cut 3.
