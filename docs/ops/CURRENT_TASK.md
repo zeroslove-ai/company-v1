@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-pr67-draft-to-ready-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -125,3 +125,14 @@ The terminal must include:
 - statement that merge remains a separate owner decision.
 
 Then STOP. Do not self-generate the next CURRENT_TASK.
+
+## Execution result
+
+- START SHA: `54cb6a6ef7f9e8cb29e01f1dc4b081c1807967f2`.
+- Fresh `origin/main` remained `1e3a5255e51a284e45baf551dcfd415360981927`.
+- Before transition, PR #67 was OPEN / DRAFT / UNMERGED, base `main` at `1e3a5255e51a284e45baf551dcfd415360981927`, branch `company/scene-location-presence-v1` at START SHA, `mergeable=true`, `mergeStateStatus=CLEAN`.
+- Accepted executable `f03e32c4194c114d702c43df1f6122c17c4ca7c1` remained an ancestor. Accepted-source -> START compare was `status=ahead`, `ahead_by=16`, `behind_by=0`, `total_commits=16`, with changed paths limited to `CURRENT_TRUTH.md`, `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`, `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`, and `docs/ops/CURRENT_TASK.md`; no executable drift was found.
+- START `Company v1 tests` CI run `32016912997` was SUCCESS; gate CI `31992966892` was also SUCCESS.
+- Authorized action `AUTHORIZE_PR67_DRAFT_TO_READY` completed. After transition PR #67 remained OPEN / READY (`draft=false`) / UNMERGED (`merged_at=null`), base remained `main`, branch and head remained unchanged at `54cb6a6ef7f9e8cb29e01f1dc4b081c1807967f2`, and GitHub still reported `mergeable=true`, `mergeStateStatus=CLEAN`. No merge or auto-merge was enabled.
+- No merge, auto-merge, main push, rebase, squash, cherry-pick, force-push, reconstructed landing, Production/game access, DB write/SQL/DDL/migration, deploy, or source/runtime/test/config/content/script/package/workflow/provider/model/retry/regeneration/gameplay operation occurred.
+- Merge remains a separate owner decision after Ready-state verification.
