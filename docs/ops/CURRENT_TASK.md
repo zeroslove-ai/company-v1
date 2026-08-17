@@ -1,163 +1,89 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
-Task ID: minimal-story-runtime-pr67-merge-commit-landing-v1
+Status: WAITING_OWNER_DECISION
+Task ID: gameplay-core-simplification-cut1-landing-sequence-owner-gate-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This file is the sole active execution authority.
+This file is the sole active **landing-sequence owner decision authority**. It does not authorize execution by itself.
 
-## Owner authorization
+## Accepted Cut 1 review
 
-The owner explicitly resolves `minimal-story-runtime-owner-merge-authorization-gate-v1` and authorizes exactly:
+Operator review classification:
 
-`AUTHORIZE_PR67_MERGE_COMMIT_AS_IS`
+`ACCEPTED_GAMEPLAY_CORE_SIMPLIFICATION_CUT1_REWORK`
 
-This authorizes one normal GitHub merge of PR #67 using merge method `merge`, only after all fresh guards below pass.
+Accepted implementation PR:
+- PR: #70
+- Branch: `company/gameplay-core-simplification-v1`
+- Exact accepted head: `0f1e36c049b16c51302376a4f46cc714c89315d1`
+- Final task blob on PR #70: `c824cbcf4920cc9b9637f4020d162deef6f9ec96`
+- Exact-head CI: `Company v1 tests` run `32035382245` — SUCCESS
+- Full suite reported and independently anchored by exact-head CI: 316/316
+- PR #70 state at review: OPEN / non-Draft / UNMERGED / mergeable
+- Merge/deploy/migration-apply/DB-write/Production-game-access/Cut-2-start counts: 0
 
-This authorization does **not** authorize Production rollout, API/frontend deployment, Production/game access, DB writes, SQL/DDL/migration application, source/runtime/test/config/content/script/package/workflow changes, squash/rebase/cherry-pick/force-push/reconstructed landing, additional gameplay, or follow-on feature work.
+The accepted rework closes the eight findings from Issue #68 comment `5316218766`: universal work-fiction authority, heroine mandatory-enactment wording, exact clothing CSA subject scope including player, Extract prompt/schema parity, clothing-visible body canon, dead work/generic execution residue, stale tests, and exact-head CI.
 
-## Canonical identities
+## Current landing topology
 
-Repository: `zeroslove-ai/company-v1`
-Canonical PR: #67
-PR branch: `company/scene-location-presence-v1`
-PR base: `main`
-Owner-gate registration SHA: `0209b779c954a967291702d759f49dcf5060b4a7`
-Owner-gate CURRENT_TASK blob: `e4547e0415fcd3e37840b6d7168e75261a03a877`
-Owner-gate Issue #68 comment: `5314567754` (`IC_kwDOTfvo8c8AAAABPMXeSg`)
-Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
-Accepted TEST API Worker: `761a01bb-8cca-47ad-afde-87c0ba85c01d`
-Accepted landing recommendation: `LANDING_RECOMMEND_MERGE_COMMIT_AS_IS`
-Expected main before registration: `1e3a5255e51a284e45baf551dcfd415360981927`
-Pre-registration PR HEAD: `0209b779c954a967291702d759f49dcf5060b4a7`
-Pre-registration HEAD CI: `32017770788` = SUCCESS
+Current `main`:
+- `9d1a80137980baa67ccfba60bae2173ca17cf8d8`
 
-## Objective
+Separate infrastructure PR #69:
+- title: `ci: run Company v1 tests on main`
+- exact head: `677051664dc2dc2185f0b5193fe3f11d4aa1b2a9`
+- state: OPEN / non-Draft / UNMERGED / mergeable
+- purpose: add `main` to `Company v1 tests` push trigger
+- runtime behavior change: none
 
-Land the accepted Company v1 Minimal Story Runtime release candidate by merging PR #67 **as-is with a normal merge commit**, preserving the reviewed ancestry and accepted executable traceability.
+Cut 1 PR #70:
+- exact accepted head: `0f1e36c049b16c51302376a4f46cc714c89315d1`
+- state: OPEN / non-Draft / UNMERGED / mergeable
+- base: current `main` above
 
-Perform no other product/runtime operation.
+Both PRs contain `docs/ops/CURRENT_TASK.md`, so blindly landing either and then landing the other can create authority-document conflict/drift. Cut 2 must not start on top of an unlanded Cut 1.
 
-## Mandatory fresh pre-merge guards
+## Recommended owner action
 
-Before any merge mutation:
+Recommended decision token:
 
-1. Fetch current remote refs and freeze:
-   - `START_SHA` = exact current `company/scene-location-presence-v1` head;
-   - `PRE_MERGE_MAIN_SHA` = exact current `main` head.
-2. Fresh-read this CURRENT_TASK and the Issue #68 owner authorization / CURRENT_TASK_READY comment that registered it.
-3. Fresh-read PR #67 metadata and repository merge settings.
-4. Require all of the following:
-   - CURRENT_TASK is exactly `Status: READY` and Task ID `minimal-story-runtime-pr67-merge-commit-landing-v1`;
-   - branch head equals the registration SHA from the CURRENT_TASK_READY comment; no later branch commit exists;
-   - `main` is still exactly `1e3a5255e51a284e45baf551dcfd415360981927`;
-   - PR #67 is OPEN / READY (`draft=false`) / UNMERGED;
-   - PR base is `main` and head branch is `company/scene-location-presence-v1`;
-   - GitHub reports the PR mergeable with no conflict/dirty blocker;
-   - repository settings still permit normal merge commits;
-   - accepted executable `f03e32c4194c114d702c43df1f6122c17c4ca7c1` remains an ancestor of START;
-   - every commit after the accepted executable through START changes only the established release/ops documentation paths (`CURRENT_TRUTH.md`, `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`, `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`, `docs/ops/CURRENT_TASK.md`); no executable drift;
-   - `Company v1 tests` for exact START SHA is completed SUCCESS.
-5. If START CI is pending, wait only for its result. If failed/cancelled or any other guard fails, **do not merge**.
+`AUTHORIZE_PR69_MERGE_COMMIT_AS_IS_THEN_SYNC_PR70_TO_NEW_MAIN`
 
-## Authorized merge action
+If the owner grants this token, the next executable task may do only this bounded sequence:
 
-If and only if all guards pass:
+1. Fresh-freeze `main`, PR #69 exact head/state/mergeability and its exact-head successful CI evidence.
+2. Merge PR #69 exactly once with normal GitHub merge commit and exact-head guard.
+3. Verify PR #69 MERGED and `main` advanced to the resulting merge commit.
+4. Require the newly enabled `main` push `Company v1 tests` run to complete SUCCESS on that landed main.
+5. Sync that new `main` into PR #70's branch without rewriting accepted Cut 1 implementation history. Resolve only the expected `docs/ops/CURRENT_TASK.md` authority conflict if present; do not alter accepted Cut 1 runtime/content/test behavior except mechanically required conflict resolution.
+6. Re-run `Company v1 tests` on the exact new PR #70 head and require SUCCESS.
+7. Prove the accepted Cut 1 commit `0f1e36c049b16c51302376a4f46cc714c89315d1` remains an ancestor of the synchronized PR #70 head and that no unintended product diff was introduced by the sync.
+8. Return to operator review and STOP **before PR #70 merge**.
 
-- merge PR #67 once using GitHub merge method `merge`;
-- use an exact expected-head guard equal to `START_SHA` so the merge must fail rather than land a changed head;
-- do not enable auto-merge;
-- do not squash or rebase;
-- do not manually push to `main`.
+A separate explicit owner authorization will still be required to merge PR #70 after that sync/revalidation.
 
-The GitHub-created merge commit is the only authorized `main` mutation.
+## Not authorized
 
-## Required post-merge verification
+Until explicit owner decision, do not:
+- merge PR #69;
+- modify or sync PR #70;
+- merge PR #70;
+- start/create Cut 2 / `presentation-sidecars-cleanup-v1`;
+- deploy API/frontend Workers;
+- apply any migration;
+- write/reset TEST or Production DB;
+- access/mutate Production or preserved gameplay;
+- change provider/model/retry behavior;
+- add semantic gates, compatibility mirrors, generic execution layers, or unrelated source changes;
+- force-push, rebase, squash, cherry-pick, reconstruct, or rewrite reviewed ancestry.
 
-Immediately after the merge:
+## Owner decision boundary
 
-1. Fresh-read PR #67 and require `MERGED` / `merged_at != null`.
-2. Fetch `main` and require it advanced from `PRE_MERGE_MAIN_SHA` to the GitHub merge commit returned by the merge operation.
-3. Fetch the merge commit and verify parent identities:
-   - first parent = `PRE_MERGE_MAIN_SHA`;
-   - second parent = `START_SHA` (or otherwise prove the PR head is the exact merged second-parent ancestry if GitHub representation differs; any ambiguity is a review blocker).
-4. Verify `START_SHA` and accepted executable `f03e32c4...` are ancestors of landed `main`.
-5. Verify the merge commit tree equals the reviewed `START_SHA` tree. Because `main` must not have diverged, any tree mismatch is a post-landing blocker requiring operator review.
-6. Verify no extra commit appeared on `main` after the merge commit during this task.
-7. Wait for the `Company v1 tests` run on the exact landed main merge commit and record its final conclusion.
-8. Record exact landed main SHA, merge commit SHA, both parent SHAs, CI run ID/conclusion, and PR merged state in the terminal.
+Owner may approve exactly:
 
-## Success / blocker classifications
+`AUTHORIZE_PR69_MERGE_COMMIT_AS_IS_THEN_SYNC_PR70_TO_NEW_MAIN`
 
-Use exactly one terminal classification:
+or decline/replace the sequence.
 
-1. `PR67_MERGE_COMMIT_LANDED_VERIFIED` — merge completed, ancestry/tree checks pass, landed-main CI SUCCESS.
-2. `PR67_MERGE_BLOCKED_PRECONDITION` — no merge occurred because a pre-merge guard failed.
-3. `PR67_MERGE_BLOCKED_CI` — no merge occurred because START CI was not SUCCESS.
-4. `PR67_MERGED_POSTCHECK_BLOCKER` — merge occurred but a post-merge ancestry/tree/main-state check failed or landed-main CI did not succeed.
-5. `PR67_MERGE_BLOCKED_OTHER` — no merge occurred for another concrete reason.
-
-Never attempt to undo, revert, force-push, or perform a second merge inside this task.
-
-## CURRENT_TASK lifecycle for this landing task
-
-### If merge does not occur
-
-You may update only `docs/ops/CURRENT_TASK.md` on the PR branch to `Status: WAITING_REVIEW`, make one docs-only fast-forward commit, post one terminal, and STOP.
-
-### If merge succeeds
-
-**Do not make any Git commit after the merge**, neither on the PR branch nor on `main`.
-
-Reason: the exact registered `START_SHA` is the reviewed head being landed; a post-merge branch status commit would create a new unlanded descendant, and a direct docs push to `main` would create a second unauthorized main mutation.
-
-After successful merge and post-merge verification, post exactly one immutable terminal to Issue #68 and STOP. It is expected that the merged copy of this CURRENT_TASK on `main` still says `Status: READY`; the operator review will replace it with the next post-landing authority after verifying the terminal.
-
-## Production boundary
-
-A successful merge is **not** Production authorization.
-
-Do not:
-- deploy API/frontend;
-- inspect or mutate Production or any game/game-ID;
-- write DB state or apply migrations;
-- change Worker/provider/model/retry/config;
-- run gameplay acceptance.
-
-After successful landing, STOP at operator post-landing review. Production rollout requires a new explicit owner authorization after landed-main identity, CI, deployment artifact traceability, and migration compatibility are reviewed.
-
-## Forbidden operations
-
-- auto-merge;
-- squash/rebase/cherry-pick/force-push/reconstructed landing;
-- manual/direct push to `main` other than the GitHub-created merge commit;
-- any second merge or revert attempt;
-- source/test/runtime/config/content/script/package/workflow/migration changes;
-- Production/game/game-ID access;
-- DB write/SQL/DDL/migration application;
-- API/frontend deployment;
-- provider/model/config/retry/regeneration changes;
-- gameplay loops;
-- starting the next feature/Cut.
-
-## Required terminal evidence
-
-Terminal must include:
-- exact Task ID and registration CURRENT_TASK blob;
-- `START_SHA` and `PRE_MERGE_MAIN_SHA`;
-- exact START CI run ID/conclusion;
-- PR pre-merge state and mergeability;
-- accepted executable ancestry/no-executable-drift proof;
-- merge method actually used;
-- expected-head guard used;
-- whether merge mutation occurred exactly once;
-- resulting PR state;
-- landed `main`/merge commit SHA;
-- merge commit parent SHAs and tree-equivalence result;
-- landed-main CI run ID/conclusion;
-- exact terminal classification;
-- explicit counts: `merge=0|1`, `auto_merge=0`, `manual_main_push=0`, `deploy=0`, `Production/game_access=0`, `db_write=0`, `migration_apply=0`, `runtime_change=0`, `gameplay=0`;
-- explicit statement that Production rollout remains unauthorized.
-
-Post exactly one terminal report to Issue #68 and STOP. Do not self-generate the next CURRENT_TASK.
+Status remains `WAITING_OWNER_DECISION` until an explicit owner decision is recorded in Issue #68. Do not post `CURRENT_TASK_READY` and do not let Hermes execute this gate automatically.
