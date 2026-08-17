@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-final-release-handoff-metadata-correction-v1
+Status: READY
+Task ID: minimal-story-runtime-final-release-handoff-descendant-inventory-closure-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -14,144 +14,116 @@ Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
 Previous task:
-- Task: `minimal-story-runtime-final-release-handoff-v1`
-- STARTED: Issue #68 comment `5311312909` (`IC_kwDOTfvo8c8AAAABPJQ0DQ`)
-- Terminal/Trigger: Issue #68 comment `5311366310` (`IC_kwDOTfvo8c8AAAABPJUEpg`) — `EXECUTION: COMPLETE`
-- Previous START SHA: `1bb73802dfa0e0dc577af2cb168ed803d013df6a`
-- Previous FINAL SHA: `09919ca2a13dcc1e026a9d323999dcd00dcdad85`
-- Previous final CURRENT_TASK blob: `dcd6b452aa59b05389de206c4eb0c6c04535af67`
-- Previous handoff doc blob: `99eee9ffae589699f946c368153b58817756e6ce`
+- Task: `minimal-story-runtime-final-release-handoff-metadata-correction-v1`
+- Trigger/CURRENT_TASK_READY: Issue #68 comment `5311421861` (`IC_kwDOTfvo8c8AAAABPJXdpQ`)
+- STARTED: Issue #68 comment `5311443810`
+- Terminal: Issue #68 comment `5311463622` (`IC_kwDOTfvo8c8AAAABPJaAxg`) — `EXECUTION: COMPLETE`
+- Previous START SHA: `5614ffe40f7308179e9c0f2413892be73ffc056c`
+- Previous FINAL SHA: `18d97d6ff6fc09b236b8472e2cf2911d0becae10`
+- Previous final CURRENT_TASK blob: `f10b12ca27eccb5fccbfb51fbd26e57ee19934ce`
 - Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
-- Accepted TEST API Worker: `761a01bb-8cca-47ad-afde-87c0ba85c01d` (version 173)
-- Accepted source CI: `31986414926` = SUCCESS.
-- v10 final-docs CI: `31989482449` = SUCCESS.
-- previous final handoff docs CI: `31990584300` = SUCCESS.
+- Accepted TEST API Worker: `761a01bb-8cca-47ad-afde-87c0ba85c01d`
+- Previous FINAL CI: `31991516753` = SUCCESS.
 
 ## Operator review of previous terminal
 
-Classification: `CHANGES_REQUIRED_HANDOFF_METADATA_RECONCILIATION`.
+Classification: `CHANGES_REQUIRED_HANDOFF_DESCENDANT_INVENTORY`.
 
-The prior final-handoff task is accepted for executable/live scope:
-- no executable drift exists after accepted source `f03e32c4...`;
-- previous task changed only the four authorized documentation paths;
-- accepted TEST Worker and migration metadata were read-only verified;
-- source/v10/final-docs CI runs are SUCCESS;
-- no gameplay/game-row access, DB write, migration application, deployment, source/test/runtime/config/content/script change, merge or Ready transition occurred;
-- v9/v10 release-candidate evidence remains accepted for handoff, with the one explicit compact-clothing positive-path non-reach preserved as neither PASS nor demonstrated persistence failure.
+Accepted from the previous correction:
+- the supplied Trigger resolves exactly to the metadata-correction READY comment;
+- the immutable terminal for that task is Issue #68 comment `5311463622`;
+- START `5614ffe4...` -> FINAL `18d97d6f...` is exactly one commit and changes only the four authorized documentation paths;
+- accepted executable `f03e32c4...` remains an ancestor;
+- PR title/body no longer contain the stale `minimal-story-runtime-authority-audit-v1` current-task wording;
+- PR metadata correction from the capped `250` enumeration to authoritative PR metadata was correct: 419 commits at START and 420 at FINAL;
+- `CURRENT_TRUTH.md` now treats `1bb73802...` and `5614ffe4...` as dated docs-only snapshots rather than executable identities;
+- FINAL CI `31991516753` is SUCCESS;
+- no source/test/runtime/config/content/script/migration/package/workflow change, gameplay/game-ID access, DB write, migration application, deploy, merge, Ready, rebase, squash, force-push or main push occurred;
+- accepted v9/v10 evidence and the compact-clothing non-reach remain unchanged.
 
-Two owner-facing metadata issues require correction before the handoff can be treated as factually final:
-
-1. **PR commit-count overclaim.**
-   - Terminal `5311366310` and `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md` call `250` the exact paginated PR commit count.
-   - Fresh GitHub PR metadata at head `09919ca2...` reports `commits: 418`, `changed_files: 243`, additions `18857`, deletions `13047`.
-   - The PR commit-list REST surface can cap/enumerate only the first 250 entries for very large PRs; reaching 250 entries is therefore not proof that the total is exactly 250.
-   - Do not preserve or rationalize the false `exact 250` claim. Use the authoritative PR metadata field for a frozen PR snapshot, or explicitly label any list enumeration as capped/incomplete.
-
-2. **Stale current-status prose.**
-   - Before this operator review, the PR body still described `minimal-story-runtime-authority-audit-v1` as the current task even though the release-candidate handoff was complete.
-   - Operator has already replaced the PR title/body metadata with current release-candidate wording while preserving Draft/open/unmerged state. Re-read and verify that metadata; do not revert it to historical status prose.
-   - `CURRENT_TRUTH.md` and the dated release-candidate supersession in `09_CURRENT_TRUTH.md` use the prior audit START `1bb73802...` as a “current/docs-only branch head”. After handoff commits this is no longer the literal current head. Rewrite this as a clearly dated audit snapshot or update to the frozen current head; avoid documentation that becomes false merely because another docs-only registration commit advances HEAD.
-
-This is a documentation/metadata truth correction only. It does not reopen product acceptance, runtime architecture, deployment, DB, choice, Mina handoff, memory, CSA, or clothing implementation work.
+Remaining owner-facing defect:
+- `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md` still says: `Against the accepted executable SHA, the six descendants are:` and lists only six commits through `1bb73802...`.
+- Fresh GitHub compare `f03e32c4194c114d702c43df1f6122c17c4ca7c1...18d97d6ff6fc09b236b8472e2cf2911d0becae10` reports `ahead_by=10` / `total_commits=10`.
+- Therefore the six-item wording is not an exhaustive descendant inventory at the corrected FINAL snapshot and makes the purported final owner handoff factually stale.
+- This is documentation metadata only. It is not executable drift, live drift, or a product defect.
 
 ## Objective
 
-Produce a factually precise final owner handoff by correcting only release/landing metadata.
+Close the last brittle descendant-inventory wording in the final owner handoff without changing runtime/live conclusions.
 
-Required result:
-- the handoff document no longer claims an exact total of 250 commits;
-- PR #67 current metadata is represented using a source that can establish the total count, with the observation timestamp/head SHA stated;
-- PR title/body reflect current release-candidate/owner-decision status and contain no false “current task” statement;
-- current-truth release sections distinguish immutable accepted executable identity from moving docs-only branch-head snapshots;
-- the landing classification remains one of the original four final-handoff classifications and is changed only if fresh facts warrant it.
+The preferred durable correction is **not** to keep chasing a moving exact descendant count. Instead:
+- remove or rewrite the brittle sentence/list that implies the six listed commits are the complete descendants after `f03e32c4...`;
+- describe the executable-drift proof using a frozen compare boundary, e.g. accepted executable SHA -> frozen audit/correction snapshot;
+- state the compare result and changed-path set for that frozen boundary;
+- if individual orchestration commits are retained for historical context, label the list explicitly as a partial/historical sequence and not the exhaustive current descendant set;
+- keep current docs-only registration commits from invalidating the handoff merely by advancing HEAD.
 
-If fresh verification finds no live/executable/structural blocker beyond the metadata mistakes, retain `HANDOFF_READY_OWNER_DECISION` after correction. Do not invent a new landing classification inside the handoff document.
+If fresh facts reveal no other blocker, retain landing classification `HANDOFF_READY_OWNER_DECISION`.
 
 ## Mandatory fresh verification
 
-1. Fetch origin and freeze exact branch head as `START_SHA`.
-2. Fresh-read this CURRENT_TASK, previous terminal `5311366310`, PR #67 metadata/body, final handoff document, `CURRENT_TRUTH.md`, and the dated current supersession section of `09_CURRENT_TRUTH.md`.
-3. Verify PR #67 is OPEN / DRAFT / UNMERGED and head equals START.
-4. Verify accepted executable `f03e32c4194c114d702c43df1f6122c17c4ca7c1` remains an ancestor and that every change after it through START is documentation/metadata only. Any executable drift is a blocker; do not repair it here.
-5. Verify accepted source CI `31986414926`, v10 final-docs CI `31989482449`, and previous handoff final CI `31990584300` remain SUCCESS.
-6. No live Worker/DB revalidation is required unless metadata has actually drifted since terminal `5311366310`. If a read-only deployment/migration metadata check is necessary to resolve a contradiction, it is allowed; game-row access is never allowed.
-
-## Commit-count correction rule
-
-For PR #67:
-- Freeze the PR head and retrieve the PR metadata snapshot.
-- Treat GitHub's PR metadata `commits` field as the total commit count for that snapshot.
-- Do not infer total count from a commit-list response that stops at 250 entries.
-- If the connector/API itself reports conflicting counts, document the conflict and avoid the adjective `exact` rather than choosing a convenient number.
-- Preserve changed-file/addition/deletion counts only when they come from the same frozen PR metadata snapshot.
-- Explain in the handoff why the previous `250` statement was corrected so a future operator does not reintroduce it.
+1. Fetch origin and freeze exact branch HEAD as `START_SHA`.
+2. Fresh-read this CURRENT_TASK, terminal `5311463622`, PR #67 title/body/metadata, final handoff document, `CURRENT_TRUTH.md`, and the dated release section of `09_CURRENT_TRUTH.md`.
+3. Verify PR #67 remains OPEN / DRAFT / UNMERGED / mergeable and head equals START.
+4. Verify accepted executable `f03e32c4194c114d702c43df1f6122c17c4ca7c1` is an ancestor of START.
+5. Use GitHub compare for accepted executable -> START and record `ahead_by/total_commits` plus the complete changed-path set. The important invariant is zero executable drift, not a brittle moving docs-commit count.
+6. Verify previous FINAL CI `31991516753` SUCCESS and current START CI if present.
+7. No Worker/DB/game-row revalidation is required unless fresh metadata contradicts previously accepted live facts.
 
 ## Authorized edits
 
 Repository edits are limited to:
 - `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`;
-- `CURRENT_TRUTH.md` only if its release-candidate status section needs snapshot wording corrected;
-- `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md` only if its dated release-candidate supersession needs snapshot wording corrected;
+- `CURRENT_TRUTH.md` only if needed to remove a newly discovered stale release-status claim;
+- `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md` only if needed to remove a newly discovered stale release-status claim;
 - `docs/ops/CURRENT_TASK.md`.
 
-PR #67 title/body metadata may be inspected and corrected if still stale. Keep the PR Draft/open/unmerged.
+PR #67 title/body may be read and only corrected if it has drifted back to stale status. Keep Draft/open/unmerged.
 
-Do not rewrite historical audit evidence sections merely because their historical branch/PR identities are old. Correct only prose that presents an old snapshot as current truth.
+## Required handoff invariants
 
-## Handoff document correction
-
-`docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md` must continue to preserve:
+The final handoff must continue to preserve:
 - accepted executable/source-test SHA `f03e32c4...`;
 - accepted TEST API Worker `761a01bb-8cca-47ad-afde-87c0ba85c01d`;
-- expected migration metadata;
+- expected migration metadata already accepted;
 - v9/v10 evidence IDs;
-- canonical Story → Extract → Commit authority boundaries;
+- Story -> Extract -> Commit authority boundaries;
 - exact-four committed choice/history authority;
 - six-raw + older-summary continuity;
 - CSA activation-time/non-retroactivity/isolation;
-- exact compact-clothing gap wording;
-- owner-only merge/Ready/main/Production decisions.
-
-Correct only false/stale owner-facing metadata. In particular:
-- replace `250 commits` with the freshly verified PR metadata count for the frozen snapshot, or with a non-exact statement if the available authoritative surfaces conflict;
-- keep the changed-file/additions/deletions snapshot internally consistent;
-- distinguish `accepted executable SHA` from `current docs-only PR head`;
-- keep landing classification `HANDOFF_READY_OWNER_DECISION` only if no new blocker is found.
+- compact-clothing gap: one legitimate supported attempt, no Story/Extract completion evidence, neither positive PASS nor demonstrated persistence failure;
+- owner-only merge/Ready/main/Production decisions;
+- `HANDOFF_READY_OWNER_DECISION` unless fresh verification proves a different one of the original four landing classifications.
 
 ## Validation
 
-- `git diff --check` must pass.
-- Changed repository files must be a subset of the authorized documentation paths above.
-- No source/test/runtime/content/config/script/migration/package/workflow file may change.
-- Fresh PR readback must remain OPEN / DRAFT / UNMERGED / mergeable.
-- Final HEAD CI should complete SUCCESS; if still pending at terminal time, report it as pending rather than falsely claiming success.
-- No gameplay/game-ID access, DB write, migration application, API/frontend deployment, provider/model/config change, retry/regeneration, merge, Ready, rebase, squash, force-push or main push.
+- `git diff --check` PASS.
+- Repository changes limited to authorized docs paths.
+- No source/test/runtime/content/config/script/migration/package/workflow file changes.
+- Fresh compare accepted executable -> FINAL must still prove docs-only descendants.
+- PR #67 remains OPEN / DRAFT / UNMERGED / mergeable.
+- Final HEAD CI SUCCESS; if pending at terminal time, report pending honestly.
+- No gameplay/game-ID access, DB writes, migration application, API/frontend deploy, provider/model/config change, retry/regeneration, merge, Ready, rebase, squash, force-push, or main push.
 
 ## Landing / terminal protocol
 
-1. Make the minimal coherent docs-only correction commit(s).
+1. Make the minimal docs-only correction.
 2. Finish this file as `Status: WAITING_REVIEW` in the final docs-only commit.
 3. Normal fast-forward push only.
 4. Post exactly one immutable Issue #68 terminal and STOP. Do not generate the next task.
 
-Terminal must report:
+Terminal must include:
 - START and FINAL SHA;
 - final CURRENT_TASK blob;
 - exact changed repository paths;
-- PR #67 frozen base/head/state/mergeability snapshot;
-- PR metadata total commit count and why prior 250 was wrong/capped;
-- changed-files/additions/deletions from the same snapshot;
-- PR title/body reconciliation status;
-- accepted executable lineage / executable-drift proof;
+- accepted executable -> FINAL compare result including `ahead_by/total_commits` and changed-path set;
+- PR #67 frozen base/head/state/mergeability/metadata snapshot;
+- confirmation the false/exhaustive six-descendant wording was removed or correctly relabeled;
+- PR title/body status;
 - CI status;
-- handoff/current-truth files corrected and their blobs where applicable;
-- exact clothing non-blocking gap wording retained;
-- final landing classification using the original four-value classification set;
+- exact compact-clothing gap wording retained;
+- final landing classification using the original four-value set;
 - zero forbidden-operation counts;
 - owner-only next decisions.
 
 Then STOP.
-
-## Execution result - 2026-08-17
-
-Metadata correction completed from START `5614ffe40f7308179e9c0f2413892be73ffc056c`. The handoff now uses the authoritative PR metadata total for the frozen snapshot and explains why the prior 250-entry REST enumeration was capped/incomplete; current-truth release prose now labels branch heads as dated docs-only snapshots. PR title/body were freshly verified as current release-candidate/owner-decision metadata. The accepted executable lineage remains unchanged and the landing classification remains `HANDOFF_READY_OWNER_DECISION`. Final SHA, blobs, CI, and final PR metadata are reported in the terminal Issue #68 comment.
