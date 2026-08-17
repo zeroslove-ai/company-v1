@@ -1,177 +1,141 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: test-additive-schema-bridge-audit-v1
+Status: READY
+Task ID: test-additive-schema-bridge-apply-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This task continues from the accepted forensic terminal `5317733211` for `test-migration-lineage-forensics-v2`.
+This task is the controlled TEST-only execution step after accepted terminal `5317875505` (`ADDITIVE_SCHEMA_BRIDGE_READY_FOR_REVIEW`). The prior audit proved that the current TEST schema can be converged to the landed-main gameplay-core DB contract with five in-place function replacements and no table/data/history rewrite.
 
-The prior forensic proved that TEST migration history cannot safely be repaired yet: final stable TEST history has 27 applied rows, 22 remote-only rows, and 25 local-only rows, with provenance totals `PROVEN_EXACT=13`, `PARTIAL=8`, `UNKNOWN=1`. The accepted recommendation was `LINEAGE_REMAINS_AMBIGUOUS`.
-
-This task must **not** repair migration history. Its sole purpose is to determine whether the current TEST schema can be converged to the exact landed-main runtime contract using one fresh additive bridge migration, applied later as a single explicit TEST-only migration, without replaying or rewriting historical migrations.
-
-## 0. Frozen facts
+## 0. Frozen authority and evidence
 
 - Repository: `zeroslove-ai/company-v1`
-- Current `main` at registration: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-- Accepted forensic terminal SHA: `ee1180b8e173ea5b9683c7704cf2ec543975c747`
-- Forensic terminal comment: `5317733211`
-- Forensic report: `docs/ops/TEST_MIGRATION_LINEAGE_RECONCILIATION.md`
-- TEST Supabase project: `fmcrspgxstsmxxsmkeee`
-- Landed-main target migration source: `supabase/migrations/20260817000200_company_v1_gameplay_core_simplification.sql`
-- `20260817000200` is not present in TEST migration history.
+- Current main at registration: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
+- Accepted audit final SHA: `f319c149ae92cdc9755f71f522b34c575049ce9d`
+- Accepted audit terminal comment: `5317875505`
+- Audit registration SHA: `f9c9c9403c5f71e472afb07175c50e2db3de073e`
+- TEST project: `fmcrspgxstsmxxsmkeee`
+- Reviewed bridge artifact: `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql`
+- Reviewed bridge Git blob: `cf3158db1960a52053a8b31fda1c4473ed05486d`
+- Reviewed bridge SHA-256: `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`
+- Reviewed plan: `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_PLAN.md`
+- Landed-main target source: `supabase/migrations/20260817000200_company_v1_gameplay_core_simplification.sql`
+- Target source SHA-256 from accepted audit: `57b990f37988fb7dacc1a01b232fe475b58a146f8f18d8416169b7b257744e7b`
+- Accepted audit migration snapshot: 27 rows, canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; row `20260817000200` absent.
 
-Independent operator read-only verification at registration showed that TEST still has the older semantic scene/setup DB behavior, including:
-- `company_apply_opening_scene_v1` requiring `scene_goal` and `work_hook_id` and producing `scene_id`, `beat`, `goal`, and `focus_thread`;
-- `company_validate_scene_v1` requiring the older extended scene shape;
-- `reserve_company_player_setup` enforcing catalog/body ranges plus `work_hook_id` / `scene_goal` semantics.
+The owner previously authorized autonomous TEST rollout inside the overnight loop. Registering this READY task is the operator approval for this exact reviewed TEST bridge only. It does not authorize Production or migration-history repair.
 
-The landed-main `20260817000200` source instead defines the minimal scene/literal setup contract and removes those stale work/scene semantic requirements.
+## 1. Mandatory fresh preflight — before any write
 
-## 1. Primary question
+STOP without mutation if any check fails.
 
-Answer exactly this:
+1. Fresh-fetch and require `origin/main == 8f3c5326e483650211fbc6c9f54a7527d2278d4e`.
+2. Require this branch to descend from accepted audit final `f319c149ae92cdc9755f71f522b34c575049ce9d` with only this CURRENT_TASK registration added before execution.
+3. Re-read terminal `5317875505`, the bridge SQL, and the bridge plan.
+4. Recompute the bridge SHA-256 and require exactly `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`.
+5. Recompute the target source SHA-256 and require exactly `57b990f37988fb7dacc1a01b232fe475b58a146f8f18d8416169b7b257744e7b`.
+6. Rerun the **same canonical migration-snapshot procedure used by the accepted audit** and require:
+   - 27 applied rows;
+   - canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`;
+   - `20260817000200` absent.
+7. Fresh-read the five target function definitions/signatures/ACLs and require no unexplained drift from the accepted audit.
+8. Verify `fmcrspgxstsmxxsmkeee` is the TEST project. Do not infer environment identity from a hostname or variable name alone.
 
-> Can the current TEST schema be brought to the landed-main Company v1 gameplay-core schema contract with one new additive migration that does not depend on legacy migration-history repair, does not replay already-applied historical SQL, and does not mutate existing persisted gameplay rows except through future normal runtime calls?
+Preflight failure terminal: `BLOCKED_TEST_BRIDGE_PREFLIGHT_DRIFT`.
 
-Do not assume the answer is yes. Prove it from current TEST catalog/function/permission state and the landed-main source.
+## 2. Exact authorized TEST mutation
 
-## 2. Read-only TEST schema audit
+Apply **only** the exact reviewed bytes of `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql` to TEST.
 
-Fresh-read the current TEST database using read-only catalog queries only.
+Requirements:
+- one execution only;
+- TEST project only;
+- the whole SQL file must execute inside **one atomic transaction**;
+- stop-on-first-error / equivalent behavior is mandatory;
+- if the available client cannot prove atomic single-transaction execution, STOP `BLOCKED_ATOMIC_EXECUTION_CHANNEL` before any write;
+- do not edit or regenerate the SQL artifact before execution;
+- do not use `supabase db push`;
+- do not use `supabase migration repair`;
+- do not insert/update/delete `supabase_migrations.schema_migrations`;
+- do not replay any historical migration;
+- do not execute `supabase/migrations/20260817000200...` directly as a migration;
+- do not call gameplay/setup RPCs during the mutation step.
 
-Inventory every database object touched or depended on by `20260817000200_company_v1_gameplay_core_simplification.sql`, including at minimum:
+A suitable execution path may be `psql --single-transaction -v ON_ERROR_STOP=1 -f <exact reviewed file>` against the proven TEST connection, or another client only if it provides equivalent all-or-nothing semantics. Do not assume a CLI subcommand exists; verify the execution channel before mutation.
+
+## 3. Mandatory post-apply verification
+
+After a successful commit, independently prove all of the following.
+
+### 3.1 Migration ledger unchanged
+
+Rerun the accepted audit's exact snapshot method and require:
+- count remains 27;
+- canonical SHA-256 remains `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`;
+- row `20260817000200` remains absent.
+
+Any ledger change is a hard failure: `BLOCKED_MIGRATION_LEDGER_CHANGED`.
+
+### 3.2 Five target functions converged
+
+Fresh-read `pg_get_functiondef`, identity arguments, volatility/security mode, and ACLs for:
 - `company_apply_opening_scene_v1(jsonb)`;
 - `company_minimalize_save_v1(jsonb)`;
-- `company_validate_scene_v1(...)` including exact current signature(s);
+- `company_validate_scene_v1(jsonb,boolean)`;
 - `validate_company_save_v1(jsonb)`;
-- `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)`;
-- all functions called transitively by those functions that must already exist for the target definitions to compile;
-- current EXECUTE privileges / ACLs for the target functions;
-- any table columns or types referenced by the target SQL.
+- `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)`.
 
-For each target statement/object, classify current TEST state as exactly one:
-- `ALREADY_TARGET_EQUIVALENT`;
-- `SAFE_CREATE_OR_REPLACE_REQUIRED`;
-- `SAFE_GRANT_REVOKE_REQUIRED`;
-- `MISSING_PREREQUISITE`;
-- `DESTRUCTIVE_OR_DATA_REWRITE_REQUIRED`;
-- `AMBIGUOUS`.
+Require the accepted bridge contract exactly. The retained input name `p_require_scene` on `company_validate_scene_v1` is expected and accepted; the boolean is unused and all callers are positional.
 
-Use `pg_get_functiondef`, `pg_get_function_identity_arguments`, ACL/catalog metadata, and direct schema metadata. Do not infer from migration names alone.
+### 3.3 Pure structural probes only
 
-## 3. Target-contract audit
+Read-only/pure function probes are authorized using synthetic JSON only. Verify at minimum:
+- `company_apply_opening_scene_v1` accepts a minimal opening plan with primary character + location and produces the narrow six-key scene without `scene_goal`, `work_hook`, `scene_id`, `beat`, `goal`, or `focus_thread` authority;
+- `company_minimalize_save_v1` removes the stale keys targeted by landed main;
+- `company_validate_scene_v1` accepts the narrow structural scene and does not require the old extended fields;
+- `validate_company_save_v1` validates a synthetically constructed minimal canonical save shape.
 
-Read the exact landed-main `20260817000200_company_v1_gameplay_core_simplification.sql` and current runtime/source callers.
+Do **not** invoke `reserve_company_player_setup` because it is a write RPC. Verify that function by catalog definition only in this task.
 
-Prove:
-1. which SQL statements are still required on TEST;
-2. which statements are already satisfied by later-applied TEST migrations;
-3. whether any target statement would accidentally restore removed legacy authority;
-4. whether any object signature must be dropped rather than `CREATE OR REPLACE`d;
-5. whether all dependencies compile in current TEST without replaying older migration files;
-6. whether the target can be expressed without table rewrites, data backfill, save reset, or historical-row mutation.
+### 3.4 No unrelated state change
 
-The bridge must implement the **current landed-main contract**, not blindly copy an old migration if current source has moved beyond it.
+- no TEST game/save/turn/action row may be created, reset, or mutated;
+- no Worker deploy;
+- no live provider/gameplay turn;
+- no Production access/change.
 
-## 4. Bridge design
+## 4. Repository scope
 
-If and only if all required target changes are proven additive/safe, create:
+Execution evidence may update only `docs/ops/CURRENT_TASK.md` lifecycle/terminal text.
 
-- `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_PLAN.md`
-- `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql`
+Do not modify:
+- bridge SQL or bridge plan;
+- `supabase/migrations/*`;
+- runtime/source/content/tests/package/workflows;
+- any other docs unless strictly required to preserve immutable execution evidence, in which case STOP for operator review instead of broadening scope.
 
-The SQL file is a **review artifact only**, not an entry in `supabase/migrations/` yet.
+`git diff --check` must PASS.
 
-Bridge SQL rules:
-- smallest possible delta from current TEST schema to the current landed-main contract;
-- prefer `CREATE OR REPLACE FUNCTION`, exact `REVOKE`, and exact `GRANT` only where required;
-- preserve existing tables and persisted rows;
-- no `UPDATE`, `DELETE`, `INSERT`, `TRUNCATE`, reset, backfill, or fixture mutation;
-- no mutation of `supabase_migrations.schema_migrations`;
-- no recreation of old timestamps;
-- no semantic compatibility shadow layer;
-- no restoration of `work_hook`, `scene_goal`, extended scene authority, old npc stat authority, or other superseded semantics;
-- no provider/model/retry logic;
-- no runtime/source/content/test/package/workflow changes.
+## 5. Terminal classification
 
-The plan must specify an exact future application mechanism that avoids `supabase db push` scanning the ambiguous legacy filename set. It may recommend one explicit new TEST-only migration application using the reviewed bridge SQL, but this task must not execute it.
+Choose exactly one.
 
-If a single clean bridge cannot be proven safe, do not create speculative SQL. Record the blocking object(s) and stop.
-
-## 5. Verification before terminal
-
-Required:
-- Fresh-read TEST migration-history snapshot at start and terminal; existing rows must not be removed or rewritten.
-- `git diff --check` PASS.
-- Changed paths limited to:
-  - `docs/ops/CURRENT_TASK.md`
-  - `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_PLAN.md`
-  - `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql` only if bridge is proven possible.
-- No `supabase/migrations/*.sql` file may change.
-- No DB/schema/migration-history write may occur.
-- No Worker deploy.
-- No TEST game creation/reset/mutation or live provider turn.
-- No Production access/change.
-
-## 6. Terminal classification
-
-Choose exactly one:
-
-### `ADDITIVE_SCHEMA_BRIDGE_READY_FOR_REVIEW`
+### `TEST_SCHEMA_BRIDGE_APPLIED_VERIFIED`
 Use only if:
-- every required target object is fully inventoried;
-- no destructive/data rewrite is required;
-- the exact bridge SQL is written;
-- compile/dependency/ACL reasoning is complete from current catalog evidence;
-- future application can be performed as one explicit new TEST-only migration without repairing old migration history first.
+- all preflight checks matched;
+- exact bridge SHA was executed exactly once;
+- execution was atomic and committed successfully;
+- migration ledger remained byte-for-byte/canonical-snapshot unchanged;
+- all five function contracts/ACLs match the reviewed target;
+- pure structural probes pass;
+- TEST gameplay mutations = 0;
+- deploy = 0;
+- Production access = 0.
 
-### `ADDITIVE_SCHEMA_BRIDGE_BLOCKED`
-Use if any required object remains ambiguous, a destructive/history mutation is required, the target depends on unavailable prerequisites, or a safe single bridge cannot be proven.
-
-## 7. Forbidden operations
-
-Strictly forbidden in this task:
-- `supabase migration repair`;
-- mutation of `supabase_migrations.schema_migrations`;
-- applying any migration;
-- non-dry-run `supabase db push`;
-- DDL/DML writes to TEST;
-- creating or editing files under `supabase/migrations/`;
-- Worker deploy;
-- TEST fixture/game writes, resets, or live gameplay;
-- Production access/change;
-- runtime/source/content/test/package/workflow changes;
-- starting Cut 3 or unrelated gameplay work.
-
-## 8. Stop condition
+### `BLOCKED_TEST_SCHEMA_BRIDGE`
+Use for any failure or ambiguity. If execution began, report whether the atomic transaction committed or rolled back and prove the resulting catalog state. Never retry the mutation speculatively.
 
 At terminal:
-1. set this task to `WAITING_REVIEW`;
-2. post exactly one Issue #68 terminal containing:
-   - registration/final SHA and task blob;
-   - start/final TEST migration snapshot count/hash;
-   - object classification totals;
-   - bridge classification;
-   - bridge SQL digest if created;
-   - exact future application mechanism recommendation;
-   - DB/schema/history writes = 0;
-   - migration applies = 0;
-   - deploys = 0;
-   - TEST gameplay mutations/live turns = 0;
-   - Production access = 0;
-3. STOP. Do not apply the bridge, deploy, or create the next task.
-
-## Lifecycle — CODEX_WATCHER execution
-
-- STARTED comment: `5317815900`
-- Terminal classification: `ADDITIVE_SCHEMA_BRIDGE_READY_FOR_REVIEW`
-- Start TEST migration snapshot: 27 rows, canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`
-- Final TEST migration snapshot: 27 rows, canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`
-- Target migration row `20260817000200`: absent at start and final.
-- Object classifications: `SAFE_CREATE_OR_REPLACE_REQUIRED=5`, `ALREADY_TARGET_EQUIVALENT=3`, all other classifications `0`.
-- Bridge SQL SHA-256: `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`.
-- Future mechanism: one separately authorized `supabase db query --db-url <encoded TEST URL> --file docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql` invocation after exact-SHA and unchanged-snapshot preflight; never `supabase db push`.
-- Safety counts: DB/schema/migration-history writes `0`; migration applies `0`; deploys `0`; TEST gameplay mutations/live turns `0`; Production access `0`.
-- Changed paths are limited to `docs/ops/CURRENT_TASK.md`, `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_PLAN.md`, and review-only `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql`; no `supabase/migrations/*.sql` path changed.
+1. set CURRENT_TASK to `WAITING_REVIEW`;
+2. post exactly one Issue #68 terminal with registration/final SHA/blob, exact pre/post migration snapshot, bridge SHA, execution channel, transaction result, five-function verification, pure-probe results, and safety counts;
+3. STOP. Do not deploy or create the next task.
