@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-single-statement-wrapper-digest-correction-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -147,3 +147,10 @@ At terminal:
 1. set CURRENT_TASK to `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal with registration/final SHA/blob, both byte-source results, canonical digest, trailing-LF diagnosis, equivalence result, TEST snapshot, changed paths, and safety counts;
 3. STOP. Do not apply the wrapper or create the next task.
+
+## Execution lifecycle
+
+- 2026-08-18: `EXECUTION: STARTED` lease posted to Issue #68 as comment `5318420903`.
+- 2026-08-18: immutable blob paths agreed; wrapper digest correction proven.
+- 2026-08-18: mandatory TEST migration snapshot repeated twice read-only; row count and target absence matched, but canonical SHA was `240c423e5b8e6dc19096b3d8914f4c29cc648580659a3e30b5b928b035659d3e`, not frozen `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`.
+- 2026-08-18: terminal classification `WRAPPER_DIGEST_CORRECTION_BLOCKED`; stop without wrapper/bridge execution or any writes.
