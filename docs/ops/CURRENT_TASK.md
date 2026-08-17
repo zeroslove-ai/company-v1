@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-release-candidate-product-acceptance-v9
+Status: READY
+Task ID: minimal-story-runtime-release-candidate-remaining-coverage-v10
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -14,254 +14,214 @@ Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
 
 Previous task:
-- Task: `minimal-story-runtime-choice-fail-open-projection-v1`
-- Terminal/Trigger: Issue #68 comment `5310922893` (`IC_kwDOTfvo8c8AAAABPI5AjQ`) — `EXECUTION: COMPLETE`
-- Previous START SHA: `4a280bc0d32b296609d77ca49560326b4d0d92bb`
-- Accepted source/test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
-- Previous final docs SHA: `99f6ac749538a151a20b151d7721aa3faedb64b1`
-- Previous final CURRENT_TASK blob: `65a458306b9532a03cabef5a79cdef8070a1d5e4`
-- Source/test GitHub Actions run `31986414926` = SUCCESS.
-- Final-docs GitHub Actions run `31986429907` = SUCCESS.
-- Last reviewed TEST API Worker Version before this source fix: `1039c4c3-3391-44ce-bafd-1d6929841a81` (old executable identity; do not treat it as source-equivalent to `f03e32c4...`).
+- Task: `minimal-story-runtime-release-candidate-product-acceptance-v9`
+- Trigger/CURRENT_TASK_READY: Issue #68 comment `5310948234` (`IC_kwDOTfvo8c8AAAABPI6jig`)
+- STARTED: Issue #68 comment `5310986787`
+- Terminal: Issue #68 comment `5311089704` (`IC_kwDOTfvo8c8AAAABPJDMKA`) — `EXECUTION: COMPLETE`, terminal classification `COVERAGE_NOT_REACHED`
+- Previous START SHA: `31efac5f222890817044a8d35a50f5622743444e`
+- Previous final docs SHA: `7be7d860534a096e8a0cd5d4e703c161ea9942d2`
+- Previous final CURRENT_TASK blob: `c6ab2d5e650b9597ecd368fb29c567bb6e764c17`
+- Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
+- TEST API Worker deployed by v9: `761a01bb-8cca-47ad-afde-87c0ba85c01d` (version 173)
+- v9 final-docs GitHub Actions run: `31987977805` = SUCCESS.
 
-## Operator review of previous task
+## Operator review of v9
 
-Classification: `ACCEPTED`.
+Classification: `EVIDENCE_ACCEPTED_COVERAGE_INCOMPLETE`.
 
-Independent source/test findings:
-- START → source/test is exactly one commit touching only `src/api/turn-routes.js`, `src/engine/index.js`, `src/engine/runtime-core/observation-reducers.js`, `test/choice-projection-api.test.mjs`, and `test/narrative-protocol.test.mjs`.
-- source/test → FINAL is exactly one docs-only `CURRENT_TASK.md` READY → WAITING_REVIEW commit.
-- normal-turn choice projection now preserves exact four provider choices unchanged; preserves 1–3 usable literals in order and fills only missing slots; takes earliest four from 5+ usable choices; removes empty/exact-duplicate structural invalidity only as needed; and uses four deterministic generic fallbacks when zero usable choices exist.
-- fallback vocabulary does not assert success, consent, affection, CSA compliance, relationship state, hidden facts, or a specific NPC.
-- provider-shape warnings remain attached to projected parsed Story, including missing-count/empty/duplicate/padding/truncation/fallback evidence.
-- raw Story text and provider narrative blocks are not rewritten to append synthetic `[CHOICE]` text.
-- normal Story completion projects choices before owned persistence; Extract and Story replay re-read that projected persisted parsed Story; Commit passes the same `choiceProjection.state` to `commit_company_turn`; `/api/history` reads durable `game_turns.choices`.
-- direct API regression proves the prior v8 zero-choice shape through Story completion → owned persistence → Extract → Commit → `game_turns.choices` → `/api/history` → Story replay with identical four-choice order.
-- focused tests 16/16 + 1/1 and full suite 305/305 passed; syntax and diff checks passed; both GitHub Actions runs succeeded.
-- no `save.last_choices`, `last_choice_meta`, Extract choice writer, structured choice metadata, or second durable choice ledger was restored.
-- no live TEST/deploy/DB/migration/forbidden-game operation occurred in the source-fix task.
+Accepted v9 product evidence:
+- exact Node/WHATWG UTF-8 Setup payload for `김하늘` passed once; exact body hash/round-trip was recorded;
+- Opening passed once with four provider choices and one selected Opening literal was submitted unchanged as Turn 1;
+- exactly one guarded TEST API deployment produced source-equivalent Worker `761a01bb-8cca-47ad-afde-87c0ba85c01d`; no frontend deployment;
+- 10 ordinary turns committed successfully with Story/Extract/Commit success on every turn;
+- every ordinary turn exposed exactly four distinct non-empty provider-projected choices and the same committed `/api/history` choices in exact order/text; no deterministic fallback was needed in this run;
+- exact free-text movement `브랜드전략팀 사무실로 간다` established `brand_strategy_office`;
+- exact `서원희 보러간다` established registered heroine1 as the prior participant;
+- exact `윤민아 보러간다` then performed the same-location handoff: heroine2 became focal/present and heroine1 was removed while location continuity was preserved;
+- canonical time advanced coherently from minute 739 to 766;
+- Turn 7 same-action Story/Extract/Commit replay returned replayed=true without advancing committed_turn/save_revision;
+- committed turn summaries were non-empty across the 10-turn run;
+- side systems did not reject/rewrite Story or prevent Commit;
+- final canonical reset returned the disposable TEST game to committed_turn=0, idle, setup/opening not_started, Level 1, no active CSA, empty history/actions/turn residue, and forbidden-game access counts remained zero;
+- START -> FINAL is exactly one docs-only CURRENT_TASK READY -> WAITING_REVIEW commit; no source/test/runtime/content change occurred.
+
+This is **not** `PRODUCT_PLAY_PASS` because mandatory acceptance debt remains.
+
+### Why v9 long-memory evidence is incomplete, not a proven product defect
+
+v9 established the distinctive blue-folder fact only at Turn 5 and queried it at Turn 8. At Turn 8 the origin was still inside the latest-six raw-turn window, so that interaction cannot prove older-summary continuity.
+
+Do not use the length of raw `/api/context recent_turns` as the Story-memory verdict. Current accepted source `src/engine/story-prompt.js::buildStoryContextProjection()` deterministically projects incoming committed turns as:
+- `recent_turns = turns.slice(-6)` with raw Story/parsed choices;
+- `turn_summary_memory = turns.slice(0, -6)` in chronological order.
+
+Therefore a raw context readback containing turns 1..10 does not imply that Story receives ten raw turns. The evidence runner must evaluate the actual current Story projection contract, not require a nonexistent `older_summary_count` field on `/api/context`.
+
+### Other remaining coverage
+
+- CSA activation-time premise/isolation was not exercised at all in v9; this is mandatory non-stochastic acceptance debt, not an optional coverage caveat.
+- Compact clothing positive persistence was not attempted. One bounded supported attempt remains useful, but a provider/story outcome that does not establish a positive supported transition after the one attempt may be reported as positive-path coverage not reached; do not retry until lucky.
+- v9's player self-state turn is accepted as agency/evidence-boundary coverage only; do not manufacture a posture mutation when Story/Extract exact evidence does not support one.
+
+Do not repeat source choice micro-fixes, Mina handoff fixes, Setup transport fixes, history `action_id` compatibility, or save-level choice mirrors without new source-proven evidence.
 
 ## Objective
 
-Run one final bounded coherent release-candidate product acceptance against the exact accepted source/test SHA `f03e32c4194c114d702c43df1f6122c17c4ca7c1`.
+Close only the remaining release-candidate acceptance debt with one final bounded disposable-TEST run against the same accepted executable/source lineage.
 
-This run must verify the accumulated Minimal Story Runtime as a product, not just transport. Use one disposable TEST scenario of 10–14 ordinary committed turns. Do not patch repository source/tests/runtime/content during this task.
+Primary mandatory goals:
+1. prove the six-raw + older chronological `turn_summary_memory` path with a fact whose origin is genuinely outside the six raw turns at the later query;
+2. exercise one real supported App/CSA activation and prove activation-time workplace-premise behavior plus isolation from unrelated consent/comfort/affection/trust/romance/arousal;
+3. make one natural supported compact-clothing positive-path attempt and record the exact evidence-gated result;
+4. continuously retain the already-proven exact-four choice/history parity, server-authority readback, time, replay, and final-reset contracts while doing the above.
 
-The first decisive product/architecture/protocol blocker ends the run immediately. Do not continue later turns to dilute or overwrite a real failure.
+This is remaining-coverage acceptance, not retry-until-lucky after a product failure. Do not create another full general-purpose acceptance loop after this task merely because a stochastic positive clothing transition fails to fire.
 
 ## Mandatory preflight — before TEST mutation
 
-1. Fetch origin and freeze exact branch HEAD as `START_SHA`.
-2. Verify PR #67 is OPEN / DRAFT / UNMERGED and head equals START.
-3. Verify accepted source/test SHA `f03e32c4194c114d702c43df1f6122c17c4ca7c1` is an ancestor of START and every descendant is docs-only.
-4. Verify expected TEST migrations exist exactly once:
+1. Fetch origin; freeze exact branch HEAD as `START_SHA`.
+2. Verify PR #67 remains OPEN / DRAFT / UNMERGED and head equals START.
+3. Verify `f03e32c4194c114d702c43df1f6122c17c4ca7c1` is an ancestor and all descendants through START are docs-only.
+4. Verify GitHub Actions for v9 final docs SHA `7be7d860...` is SUCCESS.
+5. Verify expected TEST migrations exist exactly once:
    - `20260816050000 / company_v1_minimal_story_runtime_contract`
    - `20260817000100 / company_v1_final_residue_closure`
-5. Verify TEST API deployment identity. The previously reviewed Worker `1039c4c3-3391-44ce-bafd-1d6929841a81` predates the accepted source fix.
-   - Deploy at most once, through the existing guarded TEST API path, an exact runtime/source-equivalent build of accepted source `f03e32c4...` plus docs-only descendants.
-   - Record deployed Version ID and prove source/config/binding identity.
+6. Verify TEST API Worker `761a01bb-8cca-47ad-afde-87c0ba85c01d` is still active and source/config/binding-equivalent to accepted source `f03e32c4...` plus docs-only descendants.
+   - Do **not** redeploy merely because HEAD changed docs.
+   - At most one guarded redeployment is authorized only if current Worker identity actually drifted or disappeared.
    - No frontend deployment.
-6. Re-run local/read-only deterministic duplicate-THOUGHT privacy self-check.
-7. Re-run local/read-only choice projection matrix self-check for 0/1/2/3/4/5+ plus blank/duplicate cases.
-   - effective projection must always be exactly four distinct non-empty strings;
-   - 1–3 provider literals must remain in original order;
-   - exact four must remain unchanged;
-   - 5+ must keep earliest usable four;
-   - malformed provider evidence must remain visible in warnings;
-   - raw Story must remain unchanged.
-8. Re-run the history identity harness self-check: match committed rows by `turn_number` plus exact `player_action/player_input`; never require history `action_id`, save `last_choices`, or `last_choice_meta`.
-9. Residual CSA inspection is read-only only. No source redesign.
+7. Re-run local/read-only choice matrix, duplicate-THOUGHT privacy, and history identity self-checks only as brief deterministic guards. Do not create or edit repository test/source files.
+8. Read current `buildStoryContextProjection()` and prove locally with a synthetic 10-turn input that:
+   - final Story projection contains exactly raw turns 5..10;
+   - `turn_summary_memory` contains turns 1..4 in chronological order;
+   - the runner does not inspect raw `/api/context recent_turns.length` as if that were final Story prompt shape.
+9. Read-only inspect the current App/CSA catalog and capability. Choose one existing rule/preset appropriate for a simple workplace scenario. Record exact rule/item ID, scope, operation, and current capability before live mutation. Do not invent a rule.
+10. Read-only inspect compact clothing support. Canonical slots remain only `uniform_top`, `uniform_bottom`, `underwear_top`, `underwear_bottom`; values remain the current supported enums. Do not broaden schema.
 
-If preflight cannot prove exact reviewed source/deployment identity or the deterministic harnesses fail, STOP before live mutation with the appropriate deployment/harness blocker.
+If any harness cannot satisfy these current contracts without source edits, STOP before live mutation as a harness blocker.
 
 ## Allowed disposable TEST game only
 
 `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
 
-Forbidden before any network access:
+Forbidden:
 - Production/sentinel `11111111-1111-4111-8111-111111111111`
 - preserved manual `78fb1d94-266f-455a-bda4-7656cc2370c1`
 - QA evidence `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`
 - every other game ID.
 
-## Clean start / Setup / Opening
+## One coherent remaining-coverage scenario
 
-1. Canonical reset disposable TEST and verify clean readback: committed_turn=0, idle, setup/opening not_started, Level 1, no active CSA, canonical setup scene, empty presence, zero history/actions.
-2. Use exact Node/WHATWG `fetch` + `JSON.stringify` payload:
-   - name `김하늘`
-   - department `brand_strategy`
-   - position `intern`
-   - age 30
-   - height 170
-   - weight 65
-   - penis length 13
-   - body type `balanced`
-   - speech style `polite`
-3. Preserve exact serialized UTF-8 body, byte length, SHA-256, and round-trip evidence.
-4. Setup exactly once. Opening exactly once. No alternate client/name.
-5. Capture raw Opening, private THOUGHT behavior, four Opening choices, committed Opening readback, canonical scene/time/player state.
-6. Turn 1 must submit one exact provider-returned Opening choice literal unchanged.
+Target 10–12 ordinary committed turns. One scenario, one Setup, one Opening, no restart, no Story regeneration/retry.
 
-## Choice contract — every ordinary turn
+1. Canonical reset disposable TEST and verify clean baseline.
+2. Use the same known-good exact UTF-8 Setup payload as v9 (`김하늘`, brand_strategy, intern, age 30, 170/65, penis 13, balanced, polite). Setup once.
+3. Opening once. Submit one exact provider-returned Opening choice literal as Turn 1.
+4. Move naturally to `brand_strategy_office` if required. Use exact registered identities only; no fuzzy NPC search.
+5. **Establish a distinctive harmless fact early enough.**
+   - It must be Story-established and included non-empty in that turn's committed `turn_summary` no later than Turn 4.
+   - Record the exact origin turn, raw Story evidence, and committed summary text.
+   - After that origin turn, do not intentionally repeat/restate the distinctive fact in later player inputs or raw Story evidence before the final query. If provider spontaneously repeats it, record that contamination and choose the earliest independently clean fact already established; do not regenerate.
+6. Continue ordinary coherent turns until the fact's origin is outside the current Story `recent_turns` six-raw projection.
+7. On a later turn, preferably Turn 10 or later, naturally ask/reference that fact once.
+8. At that query turn, capture the live committed context and locally run the exact accepted `buildStoryContextProjection()` over that context. Prove:
+   - origin turn is absent from projected raw `recent_turns`;
+   - origin turn appears in chronological `turn_summary_memory` with its committed non-empty summary;
+   - no later raw recent turn contains an equivalent restatement that would independently reveal the fact;
+   - Story's response coherently retains or correctly reasons from the distinctive fact.
+   This is the memory acceptance authority. Do not expect `/api/context` itself to expose an `older_summary_count` field.
 
-For every committed ordinary turn record separately:
-- provider/raw parsed choice shape before deterministic projection, when observable;
-- projected live effective choices;
-- Story complete/persisted `parsed_blocks.choices`;
-- same committed turn `/api/history records[].choices`;
-- warnings such as `choices_not_exactly_four`, `choices_empty`, `choices_exact_duplicate`, `choices_padded`, `choices_truncated`, `choices_fallback_applied`.
+## Mandatory CSA proof in the same run
 
-Requirements:
-1. projected live choices are exactly four distinct non-empty strings;
-2. committed history choices are exactly four distinct non-empty strings;
-3. projected live and committed values match exactly in order/text;
-4. replay of a checked turn exposes the same projected choices;
-5. raw Story is not rejected/replaced solely because provider choice shape is malformed;
-6. fallback use is a structural safety success but **not** evidence that the provider itself produced semantically good choices;
-7. do not restore/save/read legacy choice mirrors.
+This must be exercised; do not skip it merely because Level 1 gameplay is otherwise coherent.
 
-A mismatch or empty committed choice set is a real product blocker. Do not retry/regenerate.
+1. Use only the current App/CSA transaction path and one existing catalog rule/preset selected during preflight.
+2. If current Level 1 capability cannot execute the selected supported transaction, use the already-approved guarded TEST-only Level-7 acceleration seam exactly once. It may change only progression/capability needed to exercise the App path; do not seed CSA rule state, scene state, memory, clothing, relations, or Story facts directly.
+3. Record pre-activation game time, active rule IDs, capability, and relevant unrelated emotion/relationship/sexual state.
+4. Execute the supported App transaction once. No direct DB rule seed.
+5. Record the exact committed activation/effective time and post-transaction canonical active rule.
+6. On the first ordinary applicable turn after activation:
+   - verify Story receives the active rule through current Story world projection;
+   - verify Story treats the valid applicable company rule as an in-force ordinary workplace premise from activation onward;
+   - verify it does not rewrite earlier turns as if the rule had always existed;
+   - personal dislike/awkwardness may remain, but must not make the active rule nonexistent/optional;
+   - rule compliance must not by itself create unrelated consent, comfort, affection, trust, romance, arousal, sexual completion, or relationship milestone state.
+7. Capture before/after canonical state and history/readback evidence. A real activation/projection/isolation mismatch is a product blocker. Do not retry another rule.
 
-## Coherent route and identity/presence proof
+## Compact clothing positive-path attempt
 
-Do this inside the same 10–14-turn scenario; all route turns count.
+Make exactly one natural attempt during the coherent scenario when scene context reasonably permits it.
 
-After the exact Opening-choice Turn 1:
-1. Inspect committed canonical `save.scene`.
-2. If not `brand_strategy_office`, submit exact free text `브랜드전략팀 사무실로 간다` once.
-   - normal movement must establish the destination or a genuine coherent in-world obstacle;
-   - silent ignore/replacement is a player-agency/movement blocker.
-3. Establish a prior registered non-Mina local participant if necessary using exact `서원희 보러간다` (`heroine1`) or another exact registered already-local non-Mina participant.
-4. Then submit exact `윤민아 보러간다` (`heroine2`) once.
-5. Verify same broad location/time continuity, exact registered target identity, destination-phase Story evidence, and post-Commit canonical presence/focal handoff. A previous active participant must not remain solely because the broad location is the same.
-6. Do not require nonexistent `/api/history action_id` for this proof.
+- Use only a currently supported canonical slot/value transition. Current model includes `uniform_top` / `uniform_bottom` (`worn|removed|open|unknown`) and underwear slots (`worn|removed|unknown`).
+- Prefer an unambiguous player-self transition such as explicitly changing a supported uniform slot rather than inferring an outerwear/jacket state.
+- Player input is intent/attempt. Story must establish completion; Extract must provide exact Story-grounded evidence; only then may Commit change the compact clothing slot.
+- If Story refuses, interrupts, leaves it as planning-only, or Extract lacks exact evidence, preserve prior clothing and record `COVERAGE_NOT_REACHED_CLOTHING_POSITIVE`; do not retry the clothing action.
+- A claimed completed/evidenced transition that fails to persist in Commit/readback is a real product defect.
+- Rule text alone must never mutate actual clothing.
 
-## Mandatory product proofs within the same bounded run
+## Contracts carried forward on every turn
 
-### A. Literal + free-text player agency
-- Turn 1 exact clicked/provider Opening literal unchanged.
-- Include free-text actions naturally in the scenario.
-- Input is intent/attempt, not guaranteed success; Story may produce coherent refusal/obstacle.
-- No silent semantic rewrite of harmless player intent without Story reason.
+These are not the main coverage target but must not regress:
+- Story/Extract/Commit succeeds once per valid ordinary turn unless first decisive blocker occurs;
+- projected choices exactly four distinct non-empty;
+- committed `/api/history` choices exactly match projected choices in order/text;
+- provider fallback/padding/truncation warnings, if any, remain distinguishable from provider-quality PASS;
+- canonical scene/identity/time readback remains coherent;
+- private THOUGHT does not leak into public narrative/Extract observation;
+- side systems remain non-authoritative and fail-open;
+- no `save.last_choices`, `last_choice_meta`, or history `action_id` compatibility assertion.
 
-### B. Canonical scene, identity and time
-- movement/handoff requirements above;
-- canonical `save.scene` remains the narrow scene/presence authority;
-- canonical game time advances coherently from Extract-supported elapsed time and survives readback/replay.
+Perform one same-action Story/Extract/Commit replay/idempotence check at a safe milestone; committed_turn/save_revision must not advance.
 
-### C. Explicit representable player self-state
-- Include one natural explicit player self-state action that maps to currently supported narrow state (for example a clear posture/current physical state), without inventing a new schema.
-- If Story establishes completion and Extract supplies valid evidence, Commit/readback must preserve it.
-- If Story coherently refuses/interrupts or no supported evidence is established, do not manufacture state; record the actual outcome.
+## Decision rules
 
-### D. Same-location Mina handoff
-- Re-prove once in this coherent run using the exact route above.
-- v7 historical success is supporting evidence but does not replace this run's coherent sequence.
+- First actual product/architecture/protocol blocker stops the run immediately. Evidence after it is invalid.
+- Harness assertions must be checked against current source contract before classifying a product blocker.
+- Memory and CSA are mandatory non-stochastic proofs in this task. If either is simply skipped/not attempted, the task is incomplete, not PRODUCT_PLAY_PASS.
+- Clothing positive completion is the only remaining path that may finish as `COVERAGE_NOT_REACHED_CLOTHING_POSITIVE` after its single genuine attempt, provided memory + CSA + all carried-forward non-stochastic contracts pass.
+- Do not retry/regenerate or run a second scenario to force a positive clothing result.
+- If memory + CSA + carried-forward contracts pass and clothing either passes positively or is the sole allowed coverage gap, report that explicitly so operator can move to final release handoff rather than another gameplay acceptance loop.
 
-### E. Six-raw-turn + older-summary continuity
-- Establish one distinctive, harmless fact early in the scenario in Story.
-- Continue until its originating turn is outside the latest six raw committed turns.
-- Verify older chronological `turn_summary` entries are non-empty/updating where provider Extract has content.
-- Later naturally reference or query the distinctive fact and evaluate whether Story continuity retains it from the intended six-raw + older-summary context.
-- Do not add a semantic memory ledger or direct DB fact seed.
+## Mandatory cleanup
 
-### F. CSA activation-time premise and isolation
-- Use only the current supported App/CSA transaction path. No direct DB rule seeding.
-- If Level 7 is needed to exercise the supported path, use only the already-approved guarded TEST-only Level-7 acceleration seam and restore it during cleanup.
-- Prove a rule begins at activation time rather than retroactively.
-- While active/applicable, Story treats valid company-rule compliance as the altered workplace premise while keeping unrelated consent/comfort/affection/trust/romance/arousal separate.
-- Personal emotion may vary; it must not silently make an applicable valid rule nonexistent/optional.
-- Do not introduce finite physical execution grammar or semantic hard gates.
-
-### G. Compact clothing persistence — positive path when genuinely established
-- Current supported slots only: `uniform_top`, `uniform_bottom`, `underwear_top`, `underwear_bottom`.
-- Attempt one natural supported clothing-state action only if it fits the ongoing scene/current model.
-- Positive proof requires Story-established completion + valid Extract evidence + Commit/readback persistence in the compact slot model.
-- Do not infer richer jacket/outerwear states into compact slots.
-- If the positive path is genuinely not established after the full bounded scenario, report it as coverage not reached; do not retry until lucky.
-
-### H. Choice quality evidence
-- Structural exact-four projection is mandatory every turn.
-- Separately record whether choices came from provider exact-four or deterministic fallback/padding/truncation.
-- For provider-produced choices, inspect usefulness/diversity as product evidence without adding a semantic judge/gate.
-- Fallback-generated choices may keep play usable but must not be mislabeled provider-quality PASS.
-- If provider quality is repeatedly poor across the bounded scenario, report that product-quality evidence explicitly; do not alter provider/model or retry.
-
-### I. Replay / refresh / committed readback
-- At milestones, read context/history and verify Story/raw/parsed/private thought/projected choices/summary/scene/time/narrow supported state parity.
-- Perform one same-action Story/Extract/Commit replay/idempotence check without advancing committed_turn/save revision.
-- Refresh/readback must be reconstructible from committed server authority, not client cache.
-
-### J. Side-system isolation
-- Image/media/TTS/Mind Monitor sidecars may succeed or fail-open according to their current contracts, but may not erase/reject/redefine Story or prevent Commit of an otherwise valid turn.
-- Do not deploy frontend or change side-system semantics.
-
-## Bounded-run decision rules
-
-- Target: 10–14 ordinary committed turns in one coherent scenario.
-- No alternate scenario, restart, provider/model/config change, retry, or regeneration.
-- First decisive actual product/architecture/protocol blocker ends the run immediately; evidence after it is invalid.
-- Do not classify a harness-only assertion as product failure; prove contract first.
-- Do not use `COVERAGE_NOT_REACHED` before completing the full bounded scenario.
-- After a complete 10–14-turn attempt, `COVERAGE_NOT_REACHED` is allowed only for genuinely positive/stochastic narrow paths not established despite the coherent attempt (for example compact clothing positive persistence), not for transport/choice/movement/history defects.
-- `PRODUCT_PLAY_PASS` requires the mandatory non-stochastic contracts above to pass and a coherent full run; transport success alone is insufficient.
-- Provider fallback use is allowed structurally but must remain visible as provider-quality evidence.
-
-## Mandatory cleanup / isolation
-
-Whether PASS, COVERAGE_NOT_REACHED, or BLOCKED:
-1. restore Level-7 acceleration state/seam effects if used;
+Whether COMPLETE/PASS/COVERAGE/BLOCKED:
+1. restore/remove Level-7 acceleration effects if used;
 2. canonical reset disposable TEST;
-3. verify committed_turn=0, processing idle, setup/opening not_started, Level 1, no active CSA, canonical setup scene, empty presence, no action/turn/history residue;
-4. verify forbidden game access counts remain zero;
-5. record exact TEST API Version used.
+3. verify committed_turn=0, idle, setup/opening not_started, Level 1, no active CSA, canonical setup scene, empty presence, zero action/turn/history residue;
+4. forbidden-game access counts all zero;
+5. record exact API Worker Version used.
 
-## Authorized operations
+## Forbidden / out of scope
 
-Authorized:
-- read-only Git/source/PR/CI inspection;
-- local deterministic parser/choice/history harness checks;
-- read-only TEST DB/deployment identity checks;
-- at most one guarded TEST API deployment of exact accepted source `f03e32c4...` if current deployment differs;
-- disposable TEST reset/setup/opening/gameplay/readback/history/replay/final reset;
-- existing guarded TEST-only Level-7 acceleration seam if needed, with cleanup;
-- docs-only final WAITING_REVIEW status commit;
-- one immutable Issue #68 terminal report.
-
-Forbidden:
-- repository source/test/runtime/content changes;
-- migration author/apply or DDL;
-- frontend deploy;
-- Production/preserved/QA/other-game access;
-- provider/model/config/temperature/token changes;
-- retry/regeneration/restart/alternate scenario;
-- fuzzy matching, semantic hard gate/judge, regex outcome verifier, compatibility layer, new parser;
-- direct DB scene/presence/clothing/memory/CSA semantic seeding;
-- `history.action_id` compatibility addition;
-- `save.last_choices` / `last_choice_meta` restoration;
-- merge, Ready, rebase, squash, force-push.
+Do NOT:
+- patch repository source/test/runtime/content/config;
+- author/apply migration or DDL;
+- deploy frontend;
+- access Production, preserved manual, QA, sentinel, or any other game;
+- change provider/model/temperature/token/config;
+- retry/regenerate Story, restart, or run an alternate scenario;
+- add LLM repair/judge, semantic regex outcome gate, fuzzy matching, compatibility layer, new parser, or memory ledger;
+- direct-DB seed CSA semantic state, scene/presence, clothing, or memory facts;
+- restore `save.last_choices`, `last_choice_meta`, or history `action_id`;
+- merge PR #67, mark Ready, rebase, squash, or force-push.
 
 ## Landing / terminal protocol
 
-1. Do not create any source/test/runtime/content commit in this task.
-2. After execution and mandatory cleanup, change this file only from `Status: READY` to `Status: WAITING_REVIEW` in one docs-only commit and normal fast-forward push.
-3. Post exactly one immutable terminal to Issue #68 and STOP. Do not generate the next CURRENT_TASK.
+1. No source/test/runtime/content commit.
+2. After execution and mandatory cleanup, change only this file `Status: READY` -> `Status: WAITING_REVIEW` in one docs-only commit and normal fast-forward push.
+3. Post exactly one immutable terminal report to Issue #68 and STOP. Do not generate the next CURRENT_TASK.
 
 Terminal must include:
-- START_SHA and accepted source/test SHA;
-- deployed TEST API Version and source-equivalence proof/deploy_count;
-- final docs SHA/blob and changed-file proof;
-- exact Setup body bytes/hash and Opening evidence;
-- per-turn table or compact evidence ledger containing input, provider choice shape, projected choices, warnings, Story/Extract/Commit result, committed history choice parity, scene/time, and key state observations;
-- first-decisive-blocker if any;
-- movement/prior-participant/Mina handoff evidence;
-- self-state result;
-- six-raw + older-summary continuity evidence;
-- CSA activation-time/isolation evidence if exercised;
-- compact clothing result/coverage classification;
-- provider-choice quality observations separate from structural projection;
-- replay/idempotence/readback evidence;
-- side-system observations;
-- final reset/forbidden-game isolation proof;
-- PR #67 final state/head;
-- one terminal classification: `PRODUCT_PLAY_PASS`, `COVERAGE_NOT_REACHED`, or a precise blocker class.
+- START_SHA, accepted source SHA, final docs SHA/blob;
+- API Worker Version/source-equivalence/deploy_count;
+- exact Setup/Opening evidence and total committed-turn count;
+- per-turn compact ledger with input, provider/projected choices, warnings, S/E/C result, history parity, scene/time, summary, active CSA, clothing state;
+- memory proof: origin turn/raw evidence/summary, query turn, exact locally reproduced Story projection recent-turn IDs + summary-memory IDs, contamination check, Story continuity result;
+- CSA proof: selected catalog rule/operation, Level-7 seam use count, pre/post activation time/state, first applicable Story result, non-retroactivity and unrelated-state isolation;
+- clothing single-attempt input, Story completion/refusal/planning result, Extract evidence, Commit/readback result and classification;
+- replay/idempotence result;
+- first decisive blocker if any;
+- final reset/isolation proof;
+- zero forbidden/source/provider/retry operations;
+- PR #67 state/head;
+- terminal classification: `PRODUCT_PLAY_PASS`, `COVERAGE_NOT_REACHED_CLOTHING_POSITIVE`, or exact first-blocker class.
