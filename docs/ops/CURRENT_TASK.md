@@ -25,7 +25,7 @@ For every non-Production phase below, the operator/watcher is delegated authorit
 - run live TEST gameplay;
 - if live evidence proves a real defect, create and execute a bounded repair task without asking the owner again.
 
-**Do not stop merely because a prior document says “owner approval required”. This directive supersedes those workflow gates for the scope above.** Architectural/product canons remain binding.
+**Do not stop merely because a prior document or PR description says “owner approval required”, “merge forbidden”, “Cut 2 forbidden”, or equivalent. This directive supersedes those workflow gates for the scope above.** Architectural/product canons remain binding.
 
 ## 1. Hard boundaries that still require STOP
 
