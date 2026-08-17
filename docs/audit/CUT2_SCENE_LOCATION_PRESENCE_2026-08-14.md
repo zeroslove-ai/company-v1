@@ -1,0 +1,159 @@
+# Cut 2 Scene / Location / Presence Candidate Audit
+
+Status: implementation candidate only. This document records source-level
+changes on `company/scene-location-presence-v1`; Scene Stage A behavior is live
+in TEST, but its ACL acceptance remains pending the additive closure migration.
+No Worker has been deployed from this branch.
+
+## Identity and safety boundary
+
+- Start SHA: `a9d9c95efd3b8433873a693e34ab14e8f733a3e5`
+- Review amendment base SHA: `8e5e6c524c77b8f9793585c3ca37c9f5bf8210f1`
+- ACL closure review base SHA: `4f5d77d9bde813d977c99327fe077edb0acb03ff`
+- Branch: `company/scene-location-presence-v1`
+- Base: `company/test-suite-consolidation-v1`
+- Runtime baseline: Cut 1 deployed source remains
+  `3c3b41425f0ef536c5d36aec2d4911e7d8de9a8d`
+- TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+- Production access, DB writes, reset, migration apply, and deployment: zero
+
+## Authority boundary
+
+`save.scene` version 1 is the only durable scene authority in the candidate.
+`readCanonicalSceneV1()` is strict and never falls back to legacy fields.
+`hydrateLegacySceneV1()` is the one compatibility bootstrap for old saves and
+does not mutate the input. After bootstrap, runtime readers use the strict
+canonical reader.
+
+The registered NPC universe is the union of the edition's `characters` and
+`general_npcs` arrays. General NPCs are not a separate scene authority.
+
+`reduceCanonicalScene()` is the scene reducer. It owns location, presence,
+focal character, last speaker, beat, and updated turn. Presence is changed by
+explicit quoted exit/entrance evidence, normalized quoted presence evidence,
+and registered local Story speakers. A final snapshot or omission alone does
+not add or remove an NPC; remote speakers never create local presence.
+
+`projectCanonicalSceneToLegacy()` is the sole compatibility projection. It
+updates legacy scene mirrors for old readers, overwrites the player location
+from canonical scene, preserves unrelated physical state, and does not use
+NPC scene location fields as authority.
+
+## Navigation contract
+
+Player text is intent only. `resolvePlayerNavigationIntent()` returns the typed
+ephemeral value:
+
+```json
+{
+  "kind": "player_navigation",
+  "destination_location_id": "registered_location",
+  "target_npc_id": "registered_npc-or-null",
+  "source": "explicit_location|registered_npc_destination|player_office"
+}
+```
+
+Explicit registered location aliases have priority. A unique registered NPC
+mention resolves to that NPC's catalog `default_location_id`; ambiguous names
+and vague movement produce no intent. The player's own office is resolved
+deterministically from the player's department and the registered map. The
+intent is used for Story preview and Commit; raw player text never writes a
+location.
+
+Extract location proposals are accepted only for a registered location with
+an exact Story substring in `scene_observation.evidence` of kind `scene` that
+matches the proposal. An Engine navigation intent wins a conflicting Extract
+proposal. A proposal without that evidence is dropped with a warning.
+
+## Database rollout source
+
+The scene deploy preflight is fail-closed when the behavioral-probe catalog is
+absent. An authorized TEST/target database readback must provide `scene_probes`
+with the approved probe results; an offline catalog fixture can test evaluator
+behavior but cannot authorize deployment. The manifest's EXECUTE expectations
+are migration-faithful: public wrapper functions are executable by
+`service_role`, while internal SECURITY DEFINER helpers are not granted
+directly.
+
+The source migration files and pending candidates are:
+
+- `supabase/migrations/20260814000500_company_v1_scene_authority_stage_a.sql`
+  - adds scene validation/bootstrap helpers and a compatibility-safe validator
+    and reset definition; historical source applied live under version
+    `20260814091536`
+- `supabase/migrations/20260814000550_company_v1_scene_authority_stage_a_acl_closure.sql`
+  - closes the live `service_role` EXECUTE gap for internal Stage A helpers
+- `supabase/migrations/20260814000600_company_v1_scene_authority_stage_b.sql`
+  - makes `scene` structurally required and legacy scene mirrors optional
+
+Operator-verified live TEST Stage A facts: migration version `20260814091536`
+is recorded as `company_v1_scene_authority_stage_a`; all four behavioral probes
+pass; and the clean readback is `committed_turn=0`, `save_revision=833`,
+`actions=0`, `turns=0`. The live ACL nevertheless grants `service_role`
+EXECUTE to both internal helpers, so Stage A acceptance is not complete. The
+00500 migration is historical and immutable; the ACL closure is source-pending
+and has not been applied. Stage B and API deployment remain zero.
+
+The candidate gate manifest is
+`config/company-v1-scene-db-contract.json`. The gate checks migration names,
+function type identities, SECURITY DEFINER, fixed `search_path = public,
+pg_temp`, migration-faithful EXECUTE expectations, and stage-specific
+behavioral probe results.
+Future rollout remains Stage A → live gate → API cutover → Golden Path → Stage
+B. The 00550 ACL closure and 00600 Stage B candidates have not been applied.
+
+`company_validate_scene_v1()` requires the same canonical scene key set as
+`readCanonicalSceneV1()`, including nullable keys. The
+`canonical_missing_nullable_key_rejected` probe is part of both stage
+contracts.
+
+The deprecated `hydrateCanonicalScene` alias had zero production and test
+callers after inventory and was removed. Legacy mirror fields remain for the
+compatibility projection and are not deleted in Cut 2.
+
+## Verification performed
+
+- scene authority targeted tests: pass
+- DB contract gate behavior tests: pass
+- affected prompt/reducer/map/transaction tests: pass
+- full suite: `429/429` passing after the review corrections
+- runtime source behavior is not deployed from this branch
+
+The final candidate SHA and PR identity are recorded in the completion report;
+this document does not promote the candidate to deployed truth.
+
+## Out of scope
+
+CSA semantics, Scene provider wording, navigation UI redesign, physical/sexual
+state redesign, relationship architecture beyond scene presence/focal
+projection, provider/model changes, and live database rollout remain outside
+Cut 2 candidate implementation.
+
+## NPC-directed navigation authority correction — source candidate
+
+Source/test candidate: `c3fc61f5aecef421bd7e7ff201d6d17bf567b7cd`.
+
+The failed live action `서원희가 1층 로비로 이동한다.` crossed the authority
+boundary in `resolvePlayerNavigationIntent()`: a registered location mention
+was accepted before the mover/subject was classified, producing a
+`player_navigation` intent that Commit treated as `authoritativeLocationId`.
+The candidate adds a deterministic subject boundary before destination
+resolution. Registered NPC subjects, unknown named subjects, and ambiguous
+movers fail closed for player navigation; explicit/self movement and the
+catalog-grounded NPC-as-destination form remain supported. Story/turn
+execution is not gated by this classification.
+
+Verified source-candidate evidence:
+
+- focused navigation/Scene/Commit/pipeline set: `91/91` passing
+- new navigation authority regressions: `8/8` passing
+- full `npm.cmd test`: `440/440` passing
+- changed-source/test syntax: pass
+- `git diff --check`: pass
+- API/frontend deployment: `0`
+- DB writes, migration apply, TEST reset/write, and Production access: `0`
+- Scene Stage B: not applied
+
+This candidate is not deployed and remains awaiting operator review before
+live Scene acceptance is rerun. Historical migrations and preserved evidence
+remain unchanged.

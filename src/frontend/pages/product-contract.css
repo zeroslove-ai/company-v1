@@ -295,10 +295,38 @@
 }
 
 @media (max-width: 560px) {
+  .media-panel[hidden] { display: none; }
+
+  #player-panel > summary,
+  #company-map-panel > summary { cursor: pointer; }
+
+  #player-compact-summary {
+    margin-left: .4rem;
+    color: var(--hospital-text-secondary, #9fb4c5);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .mind-monitor-body { gap: .25rem; }
+  .mind-line {
+    display: block;
+    margin: 0;
+    padding: .35rem .45rem;
+    border: 1px solid var(--hospital-border, #2a4052);
+    border-radius: .4rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+  .mind-line strong { color: var(--hospital-text-secondary, #9fb4c5); }
+  .csa-entry-copy { display: none; }
+
   .media-panel,
   .mind-panel,
   .state-panel,
-  .player-panel {
+  .player-panel,
+  .company-map-panel {
     padding-top: 12px;
     padding-bottom: 12px;
   }

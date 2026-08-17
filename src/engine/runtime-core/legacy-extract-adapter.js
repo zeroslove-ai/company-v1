@@ -21,8 +21,6 @@ function known(value, npcIds) {
   if (!(npcIds instanceof Set) || !npcIds.size || npcIds.has(value) || /^player(?:[-_].*)?$/i.test(value)) return value;
   return null;
 }
-const LEGACY_GENERAL_EVENT_TYPES = new Set(['promise', 'refusal', 'conflict', 'intimacy', 'csa_event', 'work_event', 'secret']);
-
 /** Converts persisted V1 Extract rows only; fresh Extract output must be V2. */
 export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText = '', expectedTurn = 0, actionId = null } = {}) {
   if (!object(value) || !object(value.state_delta)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Legacy Extract requires state_delta');
@@ -30,7 +28,14 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
   const evidence = object(value.evidence) ? clone(value.evidence) : {};
   const sceneState = object(delta.scene_state) ? delta.scene_state : {};
   const typedSceneEvidence = Array.isArray(evidence.scene_observation) ? evidence.scene_observation : [];
-  const final = value.evidence?.scene_presence_final === true && typedSceneEvidence.length
+  const canonicalSceneEvidence = typedSceneEvidence.map(item => {
+    if (!object(item)) return null;
+    if (item.kind === 'presence' || item.kind === 'scene') return item;
+    if (item.kind === 'entrance' || item.kind === 'exit') return { ...item, kind: 'presence' };
+    if (item.kind === 'movement' && (sceneState.scene_id ?? null) !== null) return { ...item, kind: 'scene' };
+    return null;
+  }).filter(Boolean);
+  const final = value.evidence?.scene_presence_final === true && canonicalSceneEvidence.length
     ? (Array.isArray(value.npcs_present) ? value.npcs_present.map(id => known(id, npcIds)).filter(Boolean) : [])
     : null;
   const remote = Array.isArray(value.evidence?.remote_speaker_ids)
@@ -45,16 +50,12 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
     const physicalOnlyPatch = physicalOnly(physical);
     if (physicalOnlyPatch) npcObservations[id].physical = physicalOnlyPatch;
   }
-  for (const domain of ['npc_emotion', 'npc_relationship_state', 'npc_stats', 'npc_work_state', 'csa_attitudes']) {
+  for (const domain of ['npc_stats', 'csa_attitudes']) {
     for (const [id, patch] of Object.entries(object(delta[domain]) ? delta[domain] : {})) {
       if (npcIds instanceof Set && npcIds.size && !npcIds.has(id)) continue;
       npcObservations[id] ??= {};
-      const key = domain === 'npc_relationship_state' ? 'relationship' : domain === 'npc_work_state' ? 'work' : domain === 'csa_attitudes' ? 'csa_attitude' : domain.replace(/^npc_/, '');
-      const allowed = key === 'emotion' ? ['mood']
-        : key === 'relationship' ? ['closeness', 'romance_status', 'current_boundary']
-          : key === 'stats' ? ['affinity_delta', 'csa_acceptance_delta', 'sexual_arousal_delta', 'reasons', 'reason']
-            : key === 'work' ? ['task']
-              : ['familiarity'];
+      const key = domain === 'csa_attitudes' ? 'csa_attitude' : 'stats';
+      const allowed = key === 'stats' ? ['affinity_delta', 'csa_acceptance_delta', 'sexual_arousal_delta', 'reasons', 'reason'] : ['familiarity'];
       const filtered = pick(patch, allowed);
       if (filtered) npcObservations[id][key] = filtered;
     }
@@ -63,13 +64,11 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
     extract_version: 2,
     outcome: value.outcome === 'degraded' ? 'degraded' : value.outcome,
     scene_observation: {
-      scene_id: typedSceneEvidence.length ? (sceneState.scene_id ?? null) : null,
-      location_id: typedSceneEvidence.length ? (sceneState.location_id ?? null) : null,
+      scene_id: canonicalSceneEvidence.length ? (sceneState.scene_id ?? null) : null,
+      location_id: canonicalSceneEvidence.length ? (sceneState.location_id ?? null) : null,
       final_present_npc_ids: final,
-      entered_npc_ids: [], exited_npc_ids: [],
       focal_candidate_id: known(value.focal_character_id, npcIds),
-      presence_is_final: final !== null,
-      remote_speaker_ids: remote, evidence: typedSceneEvidence
+      remote_speaker_ids: remote, evidence: canonicalSceneEvidence
     },
     player_observation: {
       physical: physicalOnly(delta.player_scene_state),
@@ -77,11 +76,7 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
     },
     npc_observations: npcObservations,
     events: {
-      general: (Array.isArray(delta.event_ledger) ? delta.event_ledger : []).map(item => ({
-        event_id: item?.event_id ?? null, event_type: item?.event_type ?? item?.type,
-        turn: item?.turn, summary: item?.summary, participants: item?.participants,
-        importance: item?.importance, active: item?.active, evidence: item?.evidence ?? item?.summary ?? ''
-      })).filter(item => LEGACY_GENERAL_EVENT_TYPES.has(item.event_type)).map(item => Object.fromEntries(Object.entries(item).filter(([, value]) => value !== undefined))),
+      general: [],
       sexual: Array.isArray(delta.sexual_event_ledger) ? delta.sexual_event_ledger : []
     },
     evidence,

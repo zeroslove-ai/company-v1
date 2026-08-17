@@ -89,8 +89,6 @@ function staticNpcDirectory(locations) {
 
 /** 저장 위치 → 캐릭터 default_location_id → map default_npc_ids 순으로 해석한다. */
 export function resolveDisplayLocationId(save, npcId, characters, locations) {
-  const stored = identity(object(save?.npc_scene_state)?.[npcId]?.location_id);
-  if (stored) return stored;
   const fromCharacter = identity(object(characters)?.[npcId]?.default_location_id);
   if (fromCharacter) return fromCharacter;
   for (const location of Array.isArray(locations) ? locations : []) {
@@ -110,8 +108,11 @@ export function buildCompanyMapModel({ save, characters, locations } = {}) {
   const suppliedCharacters = object(characters) ?? {};
   const staticCharacters = staticNpcDirectory(map);
   const characterMap = { ...staticCharacters, ...suppliedCharacters };
-  const playerLocationId = identity(object(save?.scene_state)?.location_id);
-  const participantIds = (Array.isArray(object(save?.scene_state)?.participants) ? save.scene_state.participants : [])
+  const canonicalScene = object(save?.scene) && save.scene.version === 1 ? save.scene : null;
+  const playerLocationId = identity(canonicalScene?.location_id);
+  const participantIds = (Array.isArray(canonicalScene?.present_npc_ids)
+    ? canonicalScene.present_npc_ids
+    : [])
     .filter(id => typeof id === 'string');
   const participants = new Set(participantIds);
 
@@ -120,7 +121,9 @@ export function buildCompanyMapModel({ save, characters, locations } = {}) {
   for (const [npcId, character] of Object.entries(characterMap)) {
     const name = identity(character?.name);
     if (!name) continue;
-    const locationId = resolveDisplayLocationId(save, npcId, characterMap, map);
+    const locationId = participants.has(npcId)
+      ? playerLocationId
+      : resolveDisplayLocationId(save, npcId, characterMap, map);
     const entry = {
       npc_id: npcId,
       name,

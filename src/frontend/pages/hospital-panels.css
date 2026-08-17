@@ -218,6 +218,45 @@
   letter-spacing: 0.04em;
 }
 
+.mind-monitor-name {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  font-size: 1rem;
+  line-height: 1.35;
+  order: -1;
+}
+
+.mind-card h4 {
+  margin: 0 0 6px;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.mind-line {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: var(--hospital-bg-tertiary);
+}
+
+.mind-line h4 {
+  margin: 0;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.mind-line p {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
 .mind-card p,
 .mind-monitor-empty {
   margin: 0;

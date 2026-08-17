@@ -1,8 +1,6 @@
 import { HttpError, ok, readJson, requireString } from './http.js';
-import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes-runtime.js';
-import { createTurnRoutes as createRawTurnRoutes } from './turn-routes.js';
+import { createTurnRoutes as createBaseTurnRoutes, masterFromEdition } from './turn-routes.js';
 import { resolveTtsEligibility } from '../engine/index.js';
-import { createRegisteredNpcPolicyFetch } from './npc-policy-fetch.js';
 import { createPromptCacheOrderFetch } from './prompt-cache-order.js';
 import { enrichAppEnvelope, enrichContextEnvelope } from './product-response.js';
 
@@ -20,14 +18,7 @@ function isContextRpc(url) {
   return url.includes('/rest/v1/rpc/get_company_context');
 }
 
-function bytesToBase64(bytes) {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  if (typeof btoa === 'function') return btoa(binary);
-  return globalThis.Buffer?.from?.(bytes)?.toString?.('base64') ?? '';
-}
-
-async function parseTtsUrl(response, { allowAudioCompatibility = false } = {}) {
+async function parseTtsUrl(response) {
   if (!response?.ok) {
     throw new HttpError(502, 'tts_upstream_failure', 'TTS Worker request failed', true);
   }
@@ -40,11 +31,6 @@ async function parseTtsUrl(response, { allowAudioCompatibility = false } = {}) {
       throw new HttpError(502, 'tts_invalid_response', 'TTS Worker returned no audio URL', true);
     }
     return payload.url;
-  }
-  if (allowAudioCompatibility && /^audio\//i.test(contentType)) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const encoded = bytesToBase64(bytes);
-    if (encoded) return `data:${contentType.split(';')[0] || 'audio/mpeg'};base64,${encoded}`;
   }
   throw new HttpError(502, 'tts_invalid_response', 'TTS Worker returned no audio URL', true);
 }
@@ -61,21 +47,6 @@ async function synthesizeViaServiceBinding({ env, eligibility, spokenText, direc
     throw new HttpError(502, 'tts_upstream_failure', 'TTS Worker request failed', true);
   }
   return parseTtsUrl(response);
-}
-
-/** Compatibility-only path for isolated tests or old local environments. */
-async function synthesizeViaLegacyProvider({ env, eligibility, spokenText, direction, fetchImpl }) {
-  let response;
-  try {
-    response = await fetchImpl(env.TTS_API_URL, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${env.TTS_API_KEY}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ voice_id: eligibility.voice_id, text: spokenText, direction })
-    });
-  } catch {
-    throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
-  }
-  return parseTtsUrl(response, { allowAudioCompatibility: true });
 }
 
 async function jsonPayload(response) {
@@ -100,8 +71,7 @@ function responseWithJson(response, payload) {
  * downloads and re-wraps production service-binding audio as a Blob.
  */
 export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) {
-  const policyFetch = createRegisteredNpcPolicyFetch(fetchImpl);
-  const llmFetch = createPromptCacheOrderFetch(policyFetch);
+  const llmFetch = createPromptCacheOrderFetch(fetchImpl);
   const routes = createBaseTurnRoutes({ fetchImpl: llmFetch, edition });
   const master = masterFromEdition(edition);
 
@@ -126,8 +96,8 @@ export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) 
         }
         return response;
       };
-      const rawRoutes = createRawTurnRoutes({ fetchImpl: captureFetch, edition });
-      const response = await rawRoutes.appState(request, env, ctx);
+      const routes = createBaseTurnRoutes({ fetchImpl: captureFetch, edition });
+      const response = await routes.appState(request, env, ctx);
       if (!response?.ok || !plainObject(capturedContext)) return response;
       const payload = await jsonPayload(response);
       if (!plainObject(payload)) return response;
@@ -149,8 +119,6 @@ export function createMediaAwareTurnRoutes({ fetchImpl = fetch, edition } = {}) 
       let url;
       if (env?.TTS_WORKER && typeof env.TTS_WORKER.fetch === 'function') {
         url = await synthesizeViaServiceBinding({ env, eligibility, spokenText, direction });
-      } else if (typeof env?.TTS_API_URL === 'string' && env.TTS_API_URL && typeof env?.TTS_API_KEY === 'string' && env.TTS_API_KEY) {
-        url = await synthesizeViaLegacyProvider({ env, eligibility, spokenText, direction, fetchImpl: llmFetch });
       } else {
         throw new HttpError(500, 'configuration_error', 'TTS_WORKER service binding is not configured', false);
       }

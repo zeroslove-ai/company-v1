@@ -38,22 +38,6 @@
     "relationship": "현재 연인 없음",
     "intimate_notes": "주도권을 쉽게 내주지 않으며 충분한 신뢰와 명확한 합의를 중요하게 여긴다."
    },
-   "initial_relationship": {
-    "closeness": "acquaintance",
-    "romance_status": "none",
-    "current_boundary": "professional",
-    "milestones": {
-     "first_kiss_turn": null,
-     "sexual_relationship_started_turn": null
-    },
-    "relationship_summary": "브랜드전략팀에 합류한 플레이어를 팀원으로 대하며 실무 능력, 책임감, 타인을 대하는 태도를 관찰하고 있다."
-   },
-   "initial_stats": {
-    "affinity": 10,
-    "resistance": 45,
-    "csa_acceptance": 50
-   },
-   "initial_csa_attitudes": {},
    "storage_bucket": "Image",
    "storage_prefix": "Heroine1",
    "primary_image_path": "Heroine1/one_main.jpg",
@@ -100,22 +84,6 @@
     "relationship": "장기 연애 종료 후 현재 솔로",
     "intimate_notes": "자신의 통제권과 준비가 확보되어야 긴장을 풀며, 예상 밖의 상황에는 방어적으로 반응한다."
    },
-   "initial_relationship": {
-    "closeness": "acquaintance",
-    "romance_status": "none",
-    "current_boundary": "professional",
-    "milestones": {
-     "first_kiss_turn": null,
-     "sexual_relationship_started_turn": null
-    },
-    "relationship_summary": "플레이어를 프로젝트 구성원으로 대하며 말보다 결과를 만드는 사람인지, 책임을 남에게 넘기지 않는지 관찰한다."
-   },
-   "initial_stats": {
-    "affinity": 8,
-    "resistance": 60,
-    "csa_acceptance": 35
-   },
-   "initial_csa_attitudes": {},
    "storage_bucket": "Image",
    "storage_prefix": "Heroine2",
    "primary_image_path": "Heroine2/minami_main.jpg",
@@ -162,22 +130,6 @@
     "relationship": "연애 경험이 거의 없음",
     "intimate_notes": "불안을 숨기지 못하지만 신뢰가 생기면 자신의 감각과 경계를 솔직하게 설명하려 한다."
    },
-   "initial_relationship": {
-    "closeness": "acquaintance",
-    "romance_status": "none",
-    "current_boundary": "cautious_professional",
-    "milestones": {
-     "first_kiss_turn": null,
-     "sexual_relationship_started_turn": null
-    },
-    "relationship_summary": "플레이어에게 먼저 다가가기보다 말투와 표정을 관찰하며 안전하고 존중할 수 있는 동료인지 확인하고 있다."
-   },
-   "initial_stats": {
-    "affinity": 12,
-    "resistance": 35,
-    "csa_acceptance": 65
-   },
-   "initial_csa_attitudes": {},
    "storage_bucket": "Image",
    "storage_prefix": "Heroine3",
    "primary_image_path": "Heroine3/jena_main.jpg",
@@ -224,22 +176,6 @@
     "relationship": "현재 연인 없음",
     "intimate_notes": "말보다 행동의 일관성을 오래 확인하며, 사적인 정보를 쉽게 공개하지 않는다."
    },
-   "initial_relationship": {
-    "closeness": "acquaintance",
-    "romance_status": "none",
-    "current_boundary": "reserved_professional",
-    "milestones": {
-     "first_kiss_turn": null,
-     "sexual_relationship_started_turn": null
-    },
-    "relationship_summary": "플레이어에게 친절하지만 일정한 거리를 유지하며, 말과 행동의 일관성을 조용히 기억하고 판단한다."
-   },
-   "initial_stats": {
-    "affinity": 6,
-    "resistance": 65,
-    "csa_acceptance": 30
-   },
-   "initial_csa_attitudes": {},
    "storage_bucket": "Image",
    "storage_prefix": "Heroine4",
    "primary_image_path": "Heroine4/live_main.jpg",
@@ -286,22 +222,6 @@
     "relationship": "가벼운 연애 이후 현재 솔로",
     "intimate_notes": "호기심은 많지만 분위기에 휩쓸린 뒤에도 자신의 경계와 감정을 다시 확인하려 한다."
    },
-   "initial_relationship": {
-    "closeness": "acquaintance",
-    "romance_status": "none",
-    "current_boundary": "friendly_professional",
-    "milestones": {
-     "first_kiss_turn": null,
-     "sexual_relationship_started_turn": null
-    },
-    "relationship_summary": "플레이어를 처음에는 조심스럽게 관찰하며, 안전한 동료라고 판단하면 아이디어와 일상적인 이야기를 빠르게 공유한다."
-   },
-   "initial_stats": {
-    "affinity": 14,
-    "resistance": 30,
-    "csa_acceptance": 70
-   },
-   "initial_csa_attitudes": {},
    "storage_bucket": "Image",
    "storage_prefix": "Heroine5",
    "primary_image_path": "Heroine5/may_main.jpg",

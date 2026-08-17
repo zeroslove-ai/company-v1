@@ -13,13 +13,11 @@ declare
     "world_state": {"time_block": "morning", "work_hook": {"id": "campaign-review", "status": "open"}},
     "scene_state": {"scene_id": "opening", "location_id": "marketing_floor", "participants": ["player-1", "npc-hayeon", "npc-areum", "npc-minsu"], "focus_thread": "campaign-review", "scene_goal": "begin the campaign review", "beat": 0, "exit_conditions": [], "updated_turn": 0},
     "npc_stats": {"npc-hayeon": {"affection": 5}, "npc-areum": {"affection": 2}, "npc-minsu": {"affection": 0}},
-    "npc_emotion": {"npc-hayeon": {"mood": "focused"}, "npc-areum": {"mood": "guarded"}, "npc-minsu": {"mood": "neutral"}},
     "npc_relationship_state": {
       "npc-hayeon": {"closeness": "familiar", "romance_status": "interest", "current_boundary": "cautious", "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null}, "relationship_summary": "Campaign partner."},
       "npc-areum": {"closeness": "acquaintance", "romance_status": "none", "current_boundary": "open", "milestones": {"first_kiss_turn": null, "sexual_relationship_started_turn": null}, "relationship_summary": "Works in the same team."}
     },
     "npc_scene_state": {"npc-hayeon": {"present": true, "clothing": {"uniform_top":"worn","uniform_bottom":"worn","underwear_top":"worn","underwear_bottom":"worn"}}, "npc-areum": {"present": true, "clothing": {"uniform_top":"worn","uniform_bottom":"worn","underwear_top":"worn","underwear_bottom":"worn"}}, "npc-minsu": {"present": true, "clothing": {"uniform_top":"worn","uniform_bottom":"worn","underwear_top":"worn","underwear_bottom":"worn"}}},
-    "npc_work_state": {"npc-hayeon": {"task": "campaign-review"}, "npc-areum": {"task": "campaign-review"}, "npc-minsu": {"task": "support"}},
     "csa_active": ["csa-dress-code", "csa-status-report"],
     "csa_rules": {
       "csa-dress-code": {"execution_mode": "mandatory", "required_action": "wear campaign badge", "strength": 2},
@@ -31,9 +29,6 @@ declare
     },
     "csa_runtime_state": {},
     "csa_aftereffect_state": {},
-    "event_ledger": [{"event_id": "event-opening", "event_type": "work_event", "turn": 0, "summary": "Development campaign review is open.", "participants": ["npc-hayeon", "npc-areum"], "importance": 1, "active": true}],
-    "story_summary_overall": "Company v1 development game.",
-    "story_summary_recent": "The marketing team is preparing a campaign review.",
     "focal_character_id": "npc-hayeon",
     "last_speaker_id": "npc-areum",
     "last_npcs_present": ["npc-hayeon", "npc-areum", "npc-minsu"],

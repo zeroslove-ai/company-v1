@@ -13,21 +13,18 @@ import {
   presetPreviewContent, presetStrength, resetPresetSelection
 } from './csa-app-state.js';
 
-const STRENGTH_DESCRIPTIONS = {
-  weak: '사내 지침·운영 규정 — 밀착, 은근한 접촉, 야한 자세와 복장에 관한 제도입니다.',
-  medium: '취업규칙·전사 준수 규정 — 직접적인 신체 노출과 성적 접촉에 관한 제도입니다.',
-  strong: '국가 법령·관계 당국 의무 지침 — 플레이어가 지정한 구체적인 성행위와 체위에 관한 제도입니다.'
-};
-
 function messageFor(error) {
   return error instanceof ApiError ? error.message : '상식개변 앱 요청에 실패했습니다.';
 }
-
 function issuesFor(error) {
   if (error instanceof ApiError && Array.isArray(error.issues) && error.issues.length) {
     return error.issues.map(issue => ({ message: typeof issue?.message === 'string' && issue.message ? issue.message : messageFor(error) }));
   }
   return [{ message: messageFor(error) }];
+}
+
+function strengthDescription(state, id) {
+  return state?.strength_options?.find(option => option.id === id)?.description ?? '';
 }
 
 export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
@@ -253,8 +250,8 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
       resetPresetSelection(item);
       renderTab('csa');
     }));
-    if (selectedStrength && STRENGTH_DESCRIPTIONS[selectedStrength]) {
-      wrap.appendChild(el('p', 'csa-app-scope-label', STRENGTH_DESCRIPTIONS[selectedStrength]));
+    if (selectedStrength && strengthDescription(appState, selectedStrength)) {
+      wrap.appendChild(el('p', 'csa-app-scope-label', strengthDescription(appState, selectedStrength)));
     }
 
     const strengthItems = selectedStrength ? presets.items.filter(entry => presetStrength(entry) === selectedStrength) : [];
@@ -283,6 +280,27 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
 
     const catalogItem = presetCatalogItem(appState, item.template_id);
     if (catalogItem && presetStrength(catalogItem) === selectedStrength) {
+      const scopeLabels = Object.fromEntries((presets.subject_scope_options || presets.selector_options || []).map(option => [option.id, option.label]));
+      const subjectOptions = (catalogItem.allowed_subject_scopes || [catalogItem.affected_group]).map(id => ({
+        id, label: scopeLabels[id] || id
+      }));
+      wrap.appendChild(selectField('규정 적용 대상', item.subject_scope || catalogItem.default_subject_scope || catalogItem.affected_group, subjectOptions, value => {
+        item.subject_scope = value;
+        renderTab('csa');
+      }));
+      const counterpartyOptions = (catalogItem.allowed_counterparty_scopes || []).map(id => ({ id, label: scopeLabels[id] || id }));
+      if (counterpartyOptions.length) {
+        const defaultCounterparty = item.counterparty_scope
+          || catalogItem.default_counterparty_scope
+          || counterpartyOptions.find(option => option.id === 'company_employee')?.id
+          || counterpartyOptions[0]?.id
+          || '';
+        wrap.appendChild(selectField('상대 대상', defaultCounterparty, counterpartyOptions, value => {
+          item.counterparty_scope = value || null;
+          renderTab('csa');
+        }));
+      }
+      if (catalogItem.trigger) wrap.appendChild(el('p', 'csa-app-scope-label', `적용 조건: ${catalogItem.trigger === 'continuous' ? '근무·장면 조건이 성립할 때' : '상대방의 요청 또는 지정이 있을 때'}`));
       const previewPlaceholder = '항목을 모두 선택하면 문장이 완성됩니다.';
       const previewText = el('p', '', presetPreviewContent(appState, item) || previewPlaceholder);
       const previewBox = el('div', 'csa-app-preview');
@@ -320,7 +338,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     strength.onchange = () => { item.strength = strength.value || null; renderTab('csa'); };
     strengthField.append(el('span', 'csa-app-field-label', '강도'), strength);
     wrap.append(strengthField, el('p', 'csa-app-scope-label', '적용 범위: 회사 전체'));
-    if (selectedStrength && STRENGTH_DESCRIPTIONS[selectedStrength]) wrap.appendChild(el('p', 'csa-app-scope-label', STRENGTH_DESCRIPTIONS[selectedStrength]));
+    if (selectedStrength && strengthDescription(appState, selectedStrength)) wrap.appendChild(el('p', 'csa-app-scope-label', strengthDescription(appState, selectedStrength)));
     if (!selectedStrength) wrap.appendChild(el('p', 'csa-app-scope-label', '먼저 강도를 선택하세요.'));
     const content = el('textarea', 'csa-app-textarea');
     content.value = item.content || '';

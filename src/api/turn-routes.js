@@ -1,64 +1,59 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
-import { buildSceneCastContract } from '../engine/scene-cast.js';
+import { isCanonicalNpcDestinationIntent, resolvePlayerNavigationIntent } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
+  buildMindMonitorTargetIds,
+  buildDegradedExtractObservation,
   buildOpeningPlan,
   buildOpeningPrompt,
   buildStableNpcIdSet,
   buildStoryPrompt,
+  buildStoryWorldProjection,
+  buildInstitutionalSegments,
+  composeCanonicalStory,
+  attachEngineEnactments,
   deriveRecoverableStep,
   deriveTurnChanges,
   hydrateGameplayState,
-  normalizeExtractObservationV2,
-  buildDegradedExtractObservation,
-  adaptLegacyExtractDelta,
+  normalizeFreshExtractObservationV2,
+  normalizePersistedExtractObservation,
   reduceGameplayCommit,
-  parseNarrative,
+  reduceStoryChoiceProjection, projectStoryChoiceProjection,
+  parseFreshNarrativeV2,
   resolvePlayerCanonicalNames,
   splitOpeningSections,
   validatePlayerSetupInput,
   buildAppManualPayload,
   buildAppStatePayload,
-  buildAppUsageStorySection,
-  buildCsaAftereffectPatch,
-  buildCsaSceneRuntimeStatePatch,
-  buildCsaApplicationCheckSection,
-  buildCsaRuntimeExtractContractSection,
-  buildMindEffectExtractFirewallSection,
   calculateCsaCapability,
   classifyAppOperationStrengths,
   collectSemanticStrengthCandidates,
   getApplicableCsaEntries,
   getCsaLimits,
   getCsaRules,
-  isAppUsageInfoRequest,
   normalizeStructuredAction,
   normalizeCompanyCsaCatalog,
   planCsaTransaction,
   semanticStrengthIssues,
   sha256Base64url,
-  signAppValidationProof,
-  stableStringify,
+  signTransactionValidationProof,
+  buildTransactionResolution,
+  verifySignedTransactionResolution,
   verifyStructuredActionValidation,
-  buildRegenerationFeedbackSection,
-  resolveNumberedChoiceInput,
+  stableStringify,
   selectImage,
-  resolveTtsEligibility,
-  calculateProgress,
-  calculateCsaProgression,
   resolveStoredStructuredAction,
   assertStoredActionPersistenceParity,
+  createStoryStreamDecoder,
   applyAuthorizedRuleDefinitions,
-  assertRuleDefinitionAuthority,
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
+import { readCanonicalSceneV1 } from '../engine/runtime-core/scene-reducer.js';
 import { logTurnTiming, newRequestId } from './timing.js';
-
-const EXTRACT_DEGRADE_CODES = new Set(['llm_upstream_failure', 'extract_timeout', 'extract_invalid_json', 'extract_truncated']);
 
 function asHttpError(error) {
   if (error instanceof HttpError) return error;
@@ -81,8 +76,112 @@ function actionIds(body) {
   };
 }
 
+export function projectStorySaveForNavigation(save, navigationIntent, { master, mapLocations } = {}) {
+  const locationId = navigationIntent?.kind === 'player_navigation'
+    ? navigationIntent.destination_location_id
+    : null;
+  if (typeof locationId !== 'string' || !locationId.trim()) return save;
+  const scene = readCanonicalSceneV1(save, { master, mapLocations });
+  const canonicalNpcDestination = isCanonicalNpcDestinationIntent(navigationIntent, { master, mapLocations });
+  if (scene.location_id === locationId) {
+    if (!canonicalNpcDestination) return save;
+    const presentNpcIds = [navigationIntent.target_npc_id];
+    return {
+      ...save,
+      scene: {
+        ...scene,
+        present_npc_ids: presentNpcIds,
+        focal_character_id: presentNpcIds[0],
+        last_speaker_id: null
+      }
+    };
+  }
+  const presentNpcIds = canonicalNpcDestination
+    ? [navigationIntent.target_npc_id]
+    : [];
+  return {
+    ...save,
+    scene: {
+      ...scene,
+      version: 1,
+      scene_id: locationId,
+      location_id: locationId,
+      beat: 0,
+      goal: null,
+      focus_thread: null,
+      present_npc_ids: presentNpcIds,
+      focal_character_id: presentNpcIds[0] ?? null,
+      last_speaker_id: null
+    }
+  };
+}
+
+function projectCsaTransactionSave(save, structuredAction, transactionResolution, stage) {
+  if (!structuredAction || !transactionResolution) return save;
+  const projected = structuredClone(save ?? {});
+  applyAuthorizedRuleDefinitions({
+    currentSave: save,
+    nextSave: projected,
+    transactionResolution,
+    structuredAction,
+    stage
+  });
+  return projected;
+}
+
+function playerPrivateOriginFor(structuredAction, csaResolution) {
+  if (!structuredAction || !csaResolution) return null;
+  const operations = Array.isArray(structuredAction.operations) ? structuredAction.operations : [];
+  const affected = [...new Set(operations
+    .map(operation => operation?.id ?? operation?.rule_id ?? operation?.client_id)
+    .filter(id => typeof id === 'string' && id.trim()))];
+  const previousIds = new Set(Array.isArray(csaResolution.previous_csa_active) ? csaResolution.previous_csa_active : []);
+  const nextIds = Array.isArray(csaResolution.next_csa_active) ? csaResolution.next_csa_active : [];
+  for (const id of nextIds) if (!previousIds.has(id)) affected.push(id);
+  for (const id of Object.keys(csaResolution.next_csa_rules ?? {})) {
+    const before = csaResolution.previous_csa_rules?.[id];
+    const after = csaResolution.next_csa_rules?.[id];
+    if (JSON.stringify(before) !== JSON.stringify(after)) affected.push(id);
+  }
+  const operationSet = [...new Set(operations
+    .map(operation => operation?.operation)
+    .filter(operation => typeof operation === 'string' && operation.trim()))];
+  return {
+    kind: 'csa_transaction',
+    initiated_by_player: true,
+    operation: operationSet.length === 1 ? operationSet[0] : 'multiple',
+    affected_rule_ids: [...new Set(affected)]
+  };
+}
+
+function buildStoryTurnTrigger({ actionKind, csaResolution, preSave }) {
+  if (actionKind === 'feedback_revision') return { kind: 'feedback_revision' };
+  if (!csaResolution) return { kind: 'player_action' };
+  const before = new Set(Array.isArray(preSave?.csa_active) ? preSave.csa_active : []);
+  const after = new Set(Array.isArray(csaResolution.next_csa_active) ? csaResolution.next_csa_active : []);
+  return {
+    kind: 'institutional_rule_change',
+    activated_rule_ids: [...after].filter(id => !before.has(id)),
+    deactivated_rule_ids: [...before].filter(id => !after.has(id))
+  };
+}
+
 function plainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function turnContextFor({ save = {}, locationId = null, mapLocations = [] } = {}) {
+  const time = plainObject(save?.world_state?.game_time) ? save.world_state.game_time : {};
+  const resolvedId = typeof locationId === 'string' && locationId.trim()
+    ? locationId.trim()
+    : (typeof save?.scene?.location_id === 'string' ? save.scene.location_id : null);
+  const location = (Array.isArray(mapLocations) ? mapLocations : []).find(item => item?.location_id === resolvedId);
+  return {
+    day: Number.isInteger(time.day) ? time.day : null,
+    minute_of_day: Number.isInteger(time.minute_of_day) ? time.minute_of_day : null,
+    location_id: resolvedId,
+    location_name: typeof location?.name === 'string' ? location.name : resolvedId
+  };
 }
 
 // 이미지 태그 allowlist — 알 수 없는 태그는 버린다 (턴70 지시 10).
@@ -162,6 +261,38 @@ function hydratedSaveContext(context, master) {
   return { ...context, save: wrapped ? { ...context.save, data: hydrated } : hydrated };
 }
 
+function openingTurnProjection(save) {
+  const opening = plainObject(save?.opening_state) ? save.opening_state : null;
+  if (opening?.status !== 'complete' || typeof opening.story_text !== 'string' || !opening.story_text.trim()) return null;
+  const parsedBlocks = {
+    ...(plainObject(opening.parsed_blocks) ? opening.parsed_blocks : {}),
+    turn_context: {
+      day: 1,
+      minute_of_day: Number.isInteger(opening?.plan?.minute_of_day) ? opening.plan.minute_of_day : null,
+      location_id: opening?.plan?.location_id ?? null,
+      location_name: opening?.plan?.location_name ?? null
+    }
+  };
+  const choices = Array.isArray(opening.choices) && opening.choices.length
+    ? opening.choices
+    : (Array.isArray(parsedBlocks?.choices) ? parsedBlocks.choices : []);
+  return {
+    player_action: '(opening)',
+    story_text: opening.story_text,
+    parsed_blocks: parsedBlocks,
+    turn_summary: '',
+    choices,
+    turn_number: 0,
+    turn_id: 'opening',
+    action_id: 'opening'
+  };
+}
+
+function withOpeningTurnProjection(context) {
+  const save = context?.save?.data ?? context?.save;
+  return { ...context, opening_turn: openingTurnProjection(save) };
+}
+
 function storySse({ meta, run }) {
   const encoder = new TextEncoder();
   return sseResponse(new ReadableStream({
@@ -207,61 +338,77 @@ function playerInfoPayload(save, catalogs, capability) {
 }
 
 /**
- * Re-verifies a structured_action's validation proof and re-derives its plan
+ * Re-verifies a structured_action's signed proof and reserved resolution
  * fresh from the currently-persisted save — never trusts the client's own
  * plan content, only that the signed operations digest matches. Called
  * independently at Story, Extract, and Commit (matching the donor's own
- * re-derive-at-each-stage pattern) instead of persisting the plan once.
+ * immutable proof and canonical definition parity. Legacy structured actions
+ * retain their explicit compatibility verification.
  */
-async function resolveCsaTransactionPlan({ env, gameId, structuredAction, save, csaCatalog, expectedTurn }) {
+async function resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save, csaCatalog, expectedTurn }) {
   if (structuredAction == null) return null;
   const normalized = normalizeStructuredAction(structuredAction);
   if (!normalized) throw new HttpError(400, 'invalid_structured_action', 'structured_action has an invalid shape');
-  const verification = await verifyStructuredActionValidation(appValidationSecret(env), gameId, structuredAction);
-  if (!verification.ok) throw new HttpError(409, 'structured_action_invalid', 'structured_action failed validation-proof verification', false);
+  if (!structuredAction.transaction_resolution) {
+    const legacyVerification = await verifyStructuredActionValidation(appValidationSecret(env), gameId, structuredAction);
+    if (!legacyVerification.ok) throw new HttpError(409, 'structured_action_invalid', 'legacy structured_action proof verification failed', false);
+    if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', 'legacy structured_action base state is stale', false);
+    const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
+    const legacyPlan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, capability });
+    if (!legacyPlan.ok) throw new HttpError(422, (legacyPlan.error_code ?? 'app_action_invalid').toLowerCase(), 'legacy structured_action is no longer valid', false);
+    return legacyPlan;
+  }
+  const verification = await verifySignedTransactionResolution({ secret: appValidationSecret(env), gameId, structuredAction, save, expectedTurn });
+  if (!verification.ok) {
+    const code = verification.code ?? (verification.reason === 'missing transaction resolution' ? 'app_validation_expired' : 'structured_action_invalid');
+    throw new HttpError(409, code, 'signed transaction resolution verification failed', false);
+  }
   if (normalized.base_turn_count !== expectedTurn - 1) throw new HttpError(409, 'app_stale_state', '상식개변 앱을 연 뒤 게임 상태가 변경되었습니다.', false);
-  const capability = calculateCsaCapability(save, getApplicableCsaEntries(save).length);
-  const plan = planCsaTransaction(save, csaCatalog, normalized.operations, { turnNumber: expectedTurn, capability });
-  if (!plan.ok) throw new HttpError(422, (plan.error_code ?? 'app_action_invalid').toLowerCase(), '상식개변 앱 변경사항을 적용할 수 없습니다.', false);
-  return plan;
+  return verification.resolution;
 }
 
-export function createTurnRoutes({ fetchImpl, edition }) {
-  // 오프닝 fail-open — LLM 선택지가 부족하면 deterministic 기본 선택지로 채운다 (RPC 기본값과 동일).
-const DEFAULT_OPENING_CHOICES = [
-  '분위기를 살피며 첫인사를 건넨다.',
-  '자연스럽게 자리에 앉아 업무를 시작한다.',
-  '새 동료에게 먼저 말을 걸어 본다.',
-  '조용히 정리하며 상황을 파악한다.'
-];
-
-// app_transaction fail-open — Story upstream이 첫 콘텐츠를 주지 않거나(story_timeout/
-// llm_upstream_failure/story_incomplete) 실패하면 deterministic fallback Story로 계속
-// 진행한다. 현재 장면 NPC를 임의로 발화시키지 않고 [SCENE]만 사용한다.
-const APP_TRANSACTION_STORY_FALLBACK_ERRORS = new Set(['story_timeout', 'llm_upstream_failure', 'story_incomplete']);
-
-function buildAppTransactionFallbackStory() {
-  return '[SCENE]\n현재 장면은 직전 행동의 결과를 이어간다.';
-}
-
-function parseStoryProjection(raw, master) {
-  try {
-    const parsed = parseNarrative(raw ?? '', { master });
-    return plainObject(parsed) ? parsed : { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
-  } catch {
-    return { blocks: [{ type: 'unparsed', text: raw ?? '' }], choices: [], warnings: ['narrative_parse_failed'] };
+function emitStoryWireEvents(emit, events, timing, visibleStartedAt) {
+  for (const event of events ?? []) {
+    if (event.type === 'section_start') emit('section_start', event);
+    else if (event.type === 'block_start') emit('block_start', event);
+    else if (event.type === 'block_end') emit('block_end', event);
+    else if (event.type === 'acting') emit('acting', event);
+    else if (event.type === 'text_delta' && event.text) {
+      if (timing && timing.story_visible_first_content_ms === undefined) {
+        timing.story_visible_first_content_ms = Date.now() - visibleStartedAt;
+        if (timing.story_first_content_ms !== undefined) {
+          timing.story_decode_overhead_ms = Math.max(0, timing.story_visible_first_content_ms - timing.story_first_content_ms);
+        }
+      }
+      emit('delta', { text: event.text });
+    }
   }
 }
 
-// 오프닝 fail-open — Story upstream이 최종 실패했을 때 저장된 opening plan 기반의
-// 짧은 기본 오프닝. 플레이어 설정이 reserved 상태로 영구 고착되지 않게 한다.
-function buildFallbackOpeningStory(openingPlan, player) {
-  const name = typeof player?.name === 'string' && player.name.trim() ? player.name.trim() : '플레이어';
-  const location = openingPlan?.location_name ?? '사무실';
-  const hook = openingPlan?.work_hook_label ? `, ${openingPlan.work_hook_label}을(를) 시작하며` : '';
-  return `[1. 서사 및 행동]\n회사의 첫 날, ${name}은(는) ${location}에 도착했다${hook}. 새로운 업무 환경에서 첫 장면이 시작되었다.\n[4. 선택지]\n1. 분위기를 살피며 첫인사를 건넨다.\n2. 자연스럽게 자리에 앉아 업무를 시작한다.\n3. 새 동료에게 먼저 말을 걸어 본다.\n4. 조용히 정리하며 상황을 파악한다.`;
+function emitVisibleStory(emit, raw, { master, timing } = {}) {
+  const decoder = createStoryStreamDecoder({ master });
+  const visibleStartedAt = Date.now();
+  emitStoryWireEvents(emit, decoder.push(raw), timing, visibleStartedAt);
+  emitStoryWireEvents(emit, decoder.finish(), timing, visibleStartedAt);
 }
 
+function persistedEngineMetadata(parsedBlocks = {}) {
+  return {
+    enactments: Array.isArray(parsedBlocks?.engine_enactments) ? parsedBlocks.engine_enactments : [],
+    institutional: Array.isArray(parsedBlocks?.engine_institutional_segments) ? parsedBlocks.engine_institutional_segments : []
+  };
+}
+
+function mergePersistedEngineMetadata(parsedBlocks, persistedBlocks) {
+  const metadata = persistedEngineMetadata(persistedBlocks);
+  const merged = (metadata.enactments.length || metadata.institutional.length)
+    ? attachEngineEnactments(parsedBlocks, metadata.enactments, metadata.institutional)
+    : { ...parsedBlocks };
+  if (plainObject(persistedBlocks?.turn_context)) merged.turn_context = { ...persistedBlocks.turn_context };
+  return merged;
+}
+
+export function createTurnRoutes({ fetchImpl, edition }) {
 const master = masterFromEdition(edition);
   const npcIds = npcIdsFromEdition(edition);
   const catalogs = catalogsFromEdition(edition);
@@ -281,7 +428,8 @@ const master = masterFromEdition(edition);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: recentTurns });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
-        return ok({ context: hydratedSaveContext(context, master) });
+        const hydrated = hydratedSaveContext(context, master);
+        return ok({ context: withOpeningTurnProjection(hydrated) });
       } finally {
         logTurnTiming({ event_stage: 'context', request_id: requestId, game_id: gameId, context_rpc_ms: timing.context_rpc_ms, turn_total_ms: Date.now() - startedAt });
       }
@@ -291,8 +439,7 @@ const master = masterFromEdition(edition);
      * Read-only, paginated turn history. game_turns already carries everything needed (no new
      * RPC); record_status='active' dedupes a revised turn to only its current revision. Zero
      * LLM calls, zero mutation. player_inner_thought is read from the stored parsed_blocks;
-     * only falls back to re-parsing story_text (never writing the result back to the DB) for a
-     * legacy/empty parsed_blocks row.
+     * committed structured blocks are the only replay/history narrative authority.
      */
     async history(request, env) {
       const requestId = newRequestId();
@@ -307,15 +454,14 @@ const master = masterFromEdition(edition);
         const hasMore = rows.length > limit;
         const page = hasMore ? rows.slice(0, limit) : rows;
         const records = page.map(row => {
-          const parsedBlocks = plainObject(row.parsed_blocks) && Object.keys(row.parsed_blocks).length
-            ? row.parsed_blocks
-            : parseNarrative(row.story_text ?? '', { master });
+          const parsedBlocks = plainObject(row.parsed_blocks) ? row.parsed_blocks : {};
           return {
             turn_number: row.turn_number,
             player_input: row.player_action,
             player_action: row.player_action,
             story_text: row.story_text,
             parsed_blocks: parsedBlocks,
+            choices: Array.isArray(row.choices) ? row.choices : [],
             turn_summary: row.turn_summary,
             mind_monitor: row.mind_monitor,
             player_inner_thought: typeof parsedBlocks?.player_inner_thought === 'string' ? parsedBlocks.player_inner_thought : '',
@@ -332,6 +478,7 @@ const master = masterFromEdition(edition);
 
     async story(request, env) {
       const requestId = newRequestId();
+      const storyOwnerToken = `story:${requestId}`;
       const startedAt = Date.now();
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
@@ -361,21 +508,40 @@ const master = masterFromEdition(edition);
       // 이후 조회·claim·SSE meta 모두 서버 정본 액션 ID를 따른다.
       const resolvedActionId = reservation?.action_id ?? actionId;
       const action = actionOrNotFound(existingAction ?? await db.getAction(gameId, resolvedActionId));
+      const feedbackSourceTurn = action.action_kind === 'feedback_revision' && action.target_turn_id
+        ? await db.getTurnById(gameId, action.target_turn_id).catch(() => null)
+        : null;
       const structuredAction = assertStoredActionPersistenceParity({
         reservation,
         action,
         requestedStructuredAction,
         stage: 'story'
       });
-      let retryingStory = false;
+      let storyClaimed = false;
       // story_failed뿐 아니라 story_streaming(스토리 미완료 좌초)도 재시도를 허용한다.
       // 기존 액션은 reserve_turn_action이 replayed=true를 반환하므로,
       // 이 claim 없이는 (replayed && !retryingStory) 조건이 항상 409로 거부된다.
-      if (!action.story_text && (action.processing_status === 'story_failed' || action.processing_status === 'story_streaming')) {
-        const claimed = await db.claimActionStatus(gameId, resolvedActionId, action.processing_status, 'story_streaming', null);
+      if (!action.story_text && action.processing_status === 'story_failed') {
+        const claimed = await db.claimGameActionStage(gameId, resolvedActionId, 'story_failed', 'NULL', null, 'story_streaming', storyOwnerToken);
         if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimed);
-        retryingStory = true;
+        storyClaimed = true;
+      } else if (!action.story_text && action.processing_status === 'story_streaming') {
+        const hasOwner = typeof action.stage_owner_token === 'string' && action.stage_owner_token.length > 0;
+        const claimed = await db.claimGameActionStage(
+          gameId,
+          resolvedActionId,
+          'story_streaming',
+          hasOwner ? 'ANY' : 'NULL',
+          null,
+          'story_streaming',
+          storyOwnerToken,
+          null,
+          hasOwner
+        );
+        if (!claimed) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
+        Object.assign(action, claimed);
+        storyClaimed = true;
       }
       const meta = { action_id: reservation.action_id ?? actionId, turn_id: reservation.turn_id ?? action.turn_id, expected_turn: reservation.expected_turn ?? expectedTurn, replayed: Boolean(action.story_text) };
 
@@ -383,12 +549,16 @@ const master = masterFromEdition(edition);
         logTurnTiming({ event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn, replayed: true, turn_total_ms: Date.now() - startedAt });
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
           // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
-          const parsed = parseStoryProjection(action.story_text, master);
-          emit('delta', { text: action.story_text });
+          const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
+          const parsed = projectStoryChoiceProjection({
+            parsedStory: mergePersistedEngineMetadata(persistedStory, action.parsed_blocks),
+            allowDeterministicFallback: true
+          }).parsedStory;
+          emitVisibleStory(emit, action.story_text, { master });
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
         } });
       }
-      if ((reservation.replayed && !retryingStory) || action.processing_status !== 'story_streaming') {
+      if ((!storyClaimed && !action.story_text) || action.processing_status !== 'story_streaming') {
         throw new HttpError(409, 'action_in_progress', 'Action already has recoverable work in progress', true);
       }
 
@@ -398,82 +568,120 @@ const master = masterFromEdition(edition);
         const timing = {};
         try {
           const contextRpcStart = Date.now();
-          const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
+          const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 50 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
-          const csaPlan = action.action_kind === 'feedback_revision'
+          const csaResolution = action.action_kind === 'feedback_revision'
             ? null
-            : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
-          const storySave = csaPlan
-            ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
-            : hydratedSave;
-          const storyContext = csaPlan
-            ? {
-                ...hydratedContext,
-                save: hydratedContext.save?.data
-                  ? { ...hydratedContext.save, data: storySave }
-                  : storySave
-              }
-            : hydratedContext;
-          // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
-          const sceneCastContract = buildSceneCastContract({
-            save: hydratedSave, master, playerAction, structuredAction,
+            : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn });
+          const storyPlayerAction = csaResolution ? '' : playerAction;
+          const projectedTransactionSave = projectCsaTransactionSave(
+            hydratedSave,
+            csaResolution ? structuredAction : null,
+            csaResolution,
+            'story-projection'
+          );
+          const navigationIntent = resolvePlayerNavigationIntent({
+            save: projectedTransactionSave,
+            master,
+            playerAction: storyPlayerAction,
             mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
           });
-          timing.cast_present_count = sceneCastContract.present_npc_ids.length;
-          timing.cast_entering_count = sceneCastContract.entering_npc_ids.length;
-          timing.cast_player_dialogue_mode = sceneCastContract.player_dialogue.mode;
+          const storyBaseSave = projectStorySaveForNavigation(projectedTransactionSave, navigationIntent, {
+            master,
+            mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          });
+          const storySave = storyBaseSave;
+          const storyContext = {
+            ...hydratedContext,
+            save: hydratedContext.save?.data
+              ? { ...hydratedContext.save, data: storySave }
+              : storySave
+          };
+          // Scene Cast는 현재 장면 사실과 이동 문맥만 제공한다.
+          const sceneCastContract = { present_npc_ids: readCanonicalSceneV1(storySave).present_npc_ids };
           const promptStart = Date.now();
-          let messages = buildStoryPrompt({ edition, context: storyContext, playerAction, expectedTurn, npcIds, catalogs, sceneCastContract });
-          if (!csaPlan && isAppUsageInfoRequest(playerAction)) {
-            messages = [{ ...messages[0], content: messages[0].content + buildAppUsageStorySection() }, ...messages.slice(1)];
+          const actionKind = action.action_kind === 'feedback_revision'
+            ? 'feedback_revision'
+            : (csaResolution ? 'institutional_rule_change' : 'ordinary');
+          const storyWorld = buildStoryWorldProjection({
+            save: storySave,
+            master,
+            sceneActorIds: sceneCastContract.present_npc_ids,
+            expectedTurn,
+            playerAction: storyPlayerAction
+          });
+          let institutionalSegments = [];
+          if (actionKind === 'feedback_revision') {
+            const previous = persistedEngineMetadata(feedbackSourceTurn?.parsed_blocks);
+            institutionalSegments = previous.institutional;
+          } else {
+            institutionalSegments = buildInstitutionalSegments({ worldRules: storyWorld.world_rules, expectedTurn });
           }
-          if (action.action_kind === 'feedback_revision' && action.feedback_text) {
-            messages = [{ ...messages[0], content: messages[0].content + buildRegenerationFeedbackSection(action.feedback_text) }, ...messages.slice(1)];
-          }
+          const messages = buildStoryPrompt({
+            edition,
+            context: storyContext,
+            playerAction: storyPlayerAction,
+            expectedTurn,
+            npcIds,
+            catalogs,
+            sceneCastContract,
+            turnTrigger: buildStoryTurnTrigger({ actionKind, csaResolution, preSave: hydratedSave }),
+            feedbackText: action.action_kind === 'feedback_revision' ? action.feedback_text : '',
+            storyWorld,
+            playerPrivateOrigin: playerPrivateOriginFor(structuredAction, csaResolution)
+          });
           timing.story_prompt_ms = Date.now() - promptStart;
           const storyUserPayload = JSON.parse(messages[1].content);
           timing.story_system_chars = messages[0].content.length;
           timing.story_context_chars = JSON.stringify(storyUserPayload.context).length;
-          timing.active_character_canon_chars = JSON.stringify(storyUserPayload.active_character_canon).length;
+          timing.scene_actor_chars = JSON.stringify(storyUserPayload.scene_actors ?? {}).length;
           timing.story_request_chars = messages[0].content.length + messages[1].content.length;
-          timing.active_character_count = Object.keys(storyUserPayload.active_character_canon ?? {}).length;
+          timing.scene_actor_count = Object.keys(storyUserPayload.scene_actors ?? {}).length;
           timing.recent_turn_count = Array.isArray(storyUserPayload.context?.recent_turns) ? storyUserPayload.context.recent_turns.length : 0;
           let stream = null;
           let upstreamRaw = '';
-          let storyFallback = false;
+          const wireDecoder = createStoryStreamDecoder({ master });
+          const visibleStartedAt = Date.now();
+          const engineText = institutionalSegments.map(segment => segment.canonical_text).filter(Boolean).join('\n\n');
+          if (engineText) emitVisibleStory(emit, engineText, { master, timing });
           try {
             stream = await streamStory({ env, fetchImpl, messages, timing });
             for await (const text of stream.chunks) {
               upstreamRaw += text;
-              emit('delta', { text });
+              emitStoryWireEvents(emit, wireDecoder.push(text), timing, visibleStartedAt);
             }
+            emitStoryWireEvents(emit, wireDecoder.finish(), timing, visibleStartedAt);
+            timing.story_visible_network_total_ms = Date.now() - visibleStartedAt;
           } catch (error) {
-            // app_transaction fail-open — Story upstream이 첫 콘텐츠를 주지 않으면
-            // (30초 timeout/upstream 실패/불완전 스트림) deterministic fallback Story로
-            // 계속 진행한다. 일반 플레이어 턴은 그대로 실패(입력 복원·종료)한다.
-            const code = error?.code;
-            if (!csaPlan || !APP_TRANSACTION_STORY_FALLBACK_ERRORS.has(code)) throw error;
-            storyFallback = true;
-            const fallbackText = buildAppTransactionFallbackStory(csaPlan, hydratedSave);
-            upstreamRaw = fallbackText;
-            emit('delta', { text: fallbackText });
-            timing.story_fallback = 1;
+            throw error;
           }
           // 문서 5절 — 정본 story_text는 upstreamRaw(플레이어 가시 원문)다.
           // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
-          raw = upstreamRaw;
-          const parsed = parseStoryProjection(raw, master);
+          const canonicalStory = composeCanonicalStory({ institutionalSegments, providerNarrative: upstreamRaw });
+          raw = canonicalStory;
+          const choiceProjection = projectStoryChoiceProjection({
+            parsedStory: parseFreshNarrativeV2(canonicalStory, { master }),
+            allowDeterministicFallback: true
+          });
+          const parsed = choiceProjection.parsedStory;
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
-          const mergedWarnings = [...(parsed.warnings ?? []), ...(storyFallback ? ['app_story_fallback'] : [])];
-          const contractPersisted = {
+          const mergedWarnings = [...(parsed.warnings ?? [])];
+          const contractPersisted = attachEngineEnactments({
             ...parsed,
+            turn_context: turnContextFor({
+              save: storySave,
+              locationId: navigationIntent?.destination_location_id ?? storySave?.scene?.location_id,
+              mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+            }),
             // 수정 H — live/replay 동일 순서 재생용
             warnings: mergedWarnings
-          };
+          }, [], institutionalSegments);
           timing.upstream_story_chars = upstreamRaw.length;
-          await db.callRpc('record_story_result', { p_game_id: gameId, p_action_id: resolvedActionId, p_story_text: raw, p_parsed_blocks: contractPersisted });
+          timing.canonical_story_chars = canonicalStory.length;
+          const ownedResult = await db.recordStoryResultOwned(gameId, resolvedActionId, raw, contractPersisted, storyOwnerToken);
+          if (!ownedResult) throw new HttpError(409, 'story_owner_lost', 'Story ownership was lost before persistence', true);
           storyPersisted = true;
           emit('complete', {
             action_id: meta.action_id, turn_id: meta.turn_id, warnings: mergedWarnings, replayed: false,
@@ -481,7 +689,7 @@ const master = masterFromEdition(edition);
           });
         } catch (error) {
           if (!storyPersisted) {
-            await db.updateActionStatus(gameId, actionId, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
+            await db.failGameActionStage(gameId, resolvedActionId, 'story_streaming', 'EXACT', storyOwnerToken, 'story_failed', error.code ?? 'story_failed').catch(() => undefined);
           }
           throw error;
         } finally {
@@ -489,10 +697,13 @@ const master = masterFromEdition(edition);
             event_stage: 'story', request_id: requestId, action_id: meta.action_id, game_id: gameId, expected_turn: meta.expected_turn,
             context_rpc_ms: timing.context_rpc_ms, story_prompt_ms: timing.story_prompt_ms, story_headers_ms: timing.story_headers_ms,
             story_first_content_ms: timing.story_first_content_ms, story_network_total_ms: timing.story_network_total_ms,
+            story_visible_first_content_ms: timing.story_visible_first_content_ms,
+            story_decode_overhead_ms: timing.story_decode_overhead_ms,
+            story_visible_network_total_ms: timing.story_visible_network_total_ms,
             story_character_count: timing.story_character_count,
             story_system_chars: timing.story_system_chars, story_context_chars: timing.story_context_chars,
-            active_character_canon_chars: timing.active_character_canon_chars, story_request_chars: timing.story_request_chars,
-            active_character_count: timing.active_character_count, recent_turn_count: timing.recent_turn_count,
+            scene_actor_chars: timing.scene_actor_chars, story_request_chars: timing.story_request_chars,
+            scene_actor_count: timing.scene_actor_count, recent_turn_count: timing.recent_turn_count,
             turn_total_ms: Date.now() - startedAt
           });
         }
@@ -501,6 +712,7 @@ const master = masterFromEdition(edition);
 
     async extract(request, env) {
       const requestId = newRequestId();
+      const extractOwnerToken = `extract:${requestId}`;
       const startedAt = Date.now();
       const body = await readJson(request);
       const { gameId, actionId } = actionIds(body);
@@ -513,108 +725,140 @@ const master = masterFromEdition(edition);
         stage: 'extract'
       });
       if (action.extract_delta) {
-        const replayParsedStory = parseStoryProjection(action.story_text, master);
-        const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId })
-          : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn: action.expected_turn, actionId });
+        const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
+        const replayParsedStory = projectStoryChoiceProjection({
+          parsedStory: mergePersistedEngineMetadata(persistedStory, action.parsed_blocks),
+          allowDeterministicFallback: true
+        }).parsedStory;
+        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: replayParsedStory.blocks, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
       }
+      let extractClaimed = false;
       if (action.processing_status === 'extract_failed') {
-        const claimedRetry = await db.claimActionStatus(gameId, actionId, 'extract_failed', 'extracting', null);
+        const claimedRetry = await db.claimGameActionStage(gameId, actionId, 'extract_failed', 'NULL', null, 'extracting', extractOwnerToken);
         if (!claimedRetry) throw new HttpError(409, 'action_in_progress', 'Action retry is already in progress', true);
         Object.assign(action, claimedRetry);
+        extractClaimed = true;
       }
       if (action.processing_status !== 'extracting') throw new HttpError(409, 'action_in_progress', 'Action is not ready for Extract', true);
-      if (action.error_code === 'extract_in_progress') throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
-      const claimedExtract = await db.claimActionStatus(gameId, actionId, 'extracting', 'extracting', 'extract_in_progress', true);
-      if (!claimedExtract) throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
-      Object.assign(action, claimedExtract);
+      if (!extractClaimed) {
+        const hasExtractOwner = typeof action.stage_owner_token === 'string' && action.stage_owner_token.length > 0;
+        const claimedExtract = await db.claimGameActionStage(
+          gameId,
+          actionId,
+          'extracting',
+          hasExtractOwner ? 'ANY' : 'NULL',
+          null,
+          'extracting',
+          extractOwnerToken,
+          null,
+          hasExtractOwner
+        );
+        if (!claimedExtract) throw new HttpError(409, 'action_in_progress', 'Extract is already in progress', true);
+        Object.assign(action, claimedExtract);
+      }
 
       const timing = {};
-      let degraded = false;
       try {
-        let parsedStory = parseStoryProjection(action.story_text, master);
+        const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
+        let parsedStory = projectStoryChoiceProjection({
+          parsedStory: mergePersistedEngineMetadata(persistedStory, action.parsed_blocks),
+          allowDeterministicFallback: true
+        }).parsedStory;
         // Extract observes the same raw Story text that was streamed to the player.
         const storyForExtract = action.story_text;
         let extract;
-        try {
-          const contextRpcStart = Date.now();
+        const contextRpcStart = Date.now();
           const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
           timing.context_rpc_ms = Date.now() - contextRpcStart;
           const hydratedContext = hydratedSaveContext(context, master);
           const hydratedSave = hydratedContext.save?.data ?? hydratedContext.save;
-          const csaPlan = action.action_kind === 'feedback_revision'
+          const csaResolution = action.action_kind === 'feedback_revision'
             ? null
-            : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
-          const applicableCsa = getApplicableCsaEntries(hydratedSave);
+            : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: hydratedSave, csaCatalog, expectedTurn: action.expected_turn });
            // Speaker identity remains a post-hoc projection; raw Story is passed to Extract unchanged.
 
           const promptStart = Date.now();
           // CSA transaction 턴에는 post-transaction save로 Extract context를 만든다
           // (Story 경로와 동일한 단일 정본 — runtime wrapper가 다시 덮어쓸 필요가 없다).
-          const extractSave = csaPlan
-            ? { ...hydratedSave, csa_active: csaPlan.next_csa_active, csa_rules: csaPlan.next_csa_rules }
-            : hydratedSave;
-          const extractContext = csaPlan
-            ? {
-                ...hydratedContext,
-                save: hydratedContext.save?.data
-                  ? { ...hydratedContext.save, data: extractSave }
-                  : extractSave
-              }
-            : hydratedContext;
-          let messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, playerAction: action.player_action, expectedTurn: action.expected_turn, edition, npcIds });
-          const extractFirewall = buildMindEffectExtractFirewallSection({ hasApplicableCsa: applicableCsa.length > 0, hasCsaTransaction: Boolean(csaPlan) })
-            + buildCsaApplicationCheckSection(applicableCsa)
-            + buildCsaRuntimeExtractContractSection(applicableCsa);
-          if (extractFirewall) messages = [{ ...messages[0], content: messages[0].content + extractFirewall }, ...messages.slice(1)];
+          const projectedTransactionSave = projectCsaTransactionSave(
+            hydratedSave,
+            csaResolution ? structuredAction : null,
+            csaResolution,
+            'extract-projection'
+          );
+          const extractBaseSave = projectedTransactionSave;
+          // Extract observes the same canonical save that Story observed; the
+          // signed resolution is not a second, ephemeral state projection.
+          const extractSave = extractBaseSave;
+          const extractContext = {
+            ...hydratedContext,
+            save: hydratedContext.save?.data
+              ? { ...hydratedContext.save, data: extractSave }
+              : extractSave
+          };
+          const mindMonitorTargets = buildMindMonitorTargetIds({ context: extractContext, parsedStory, npcIds });
+          const messages = buildExtractPrompt({ context: extractContext, storyText: storyForExtract, parsedStory, expectedTurn: action.expected_turn, edition, npcIds, mindMonitorTargets });
           timing.extract_prompt_ms = Date.now() - promptStart;
           const extractUserPayload = JSON.parse(messages[1].content);
           timing.extract_system_chars = messages[0].content.length;
           timing.extract_context_chars = JSON.stringify(extractUserPayload.context).length;
-          timing.parsed_story_chars = 0;
+          timing.parsed_story_chars = JSON.stringify(parsedStory).length;
           timing.extract_request_chars = messages[0].content.length + messages[1].content.length;
           timing.active_character_count = activeCountFromNpcState(extractUserPayload.context?.active_npc_state);
-          const llmStart = Date.now();
-          const raw = await runExtract({ env, fetchImpl, messages });
-          timing.extract_llm_ms = Date.now() - llmStart;
-          const parseStart = Date.now();
-          // Fresh Extract calls are V2-only. The legacy adapter is reserved for
-          // persisted V1 rows during replay/recovery, never for a new LLM result.
-          extract = normalizeExtractObservationV2(raw, { npcIds, storyText: storyForExtract, expectedTurn: action.expected_turn, actionId });
-          timing.extract_parse_ms = Date.now() - parseStart;
-        } catch (error) {
-          const degradable = error instanceof HttpError && EXTRACT_DEGRADE_CODES.has(error.code);
-          if (!degradable) {
-            await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
-            throw error;
+          try {
+            const llmStart = Date.now();
+            const raw = await runExtract({
+              env,
+              fetchImpl,
+              messages,
+              onRawResponse: env.COMPANY_V1_EXTRACT_DIAGNOSTIC === 'true'
+                ? response => { timing.extract_provider_response = response; }
+                : null
+            });
+            timing.extract_llm_ms = Date.now() - llmStart;
+            const parseStart = Date.now();
+            // Fresh Extract calls are V2-only. The legacy adapter is reserved for
+            // persisted V1 rows during replay/recovery, never for a new LLM result.
+            extract = normalizeFreshExtractObservationV2(raw, {
+              npcIds,
+              storyText: storyForExtract,
+              expectedTurn: action.expected_turn,
+              actionId,
+              storyBlocks: parsedStory.blocks,
+              requiredMindMonitorIds: mindMonitorTargets,
+            });
+            timing.extract_parse_ms = Date.now() - parseStart;
+          } catch (error) {
+            // Extract is an optional observation. Invalid, truncated, or
+            // contract-invalid output degrades deterministically and still
+            // reaches the owned Extract completion RPC and the single Commit path.
+            const failOpen = error instanceof GameCoreError
+              || error?.code === 'extract_invalid_json'
+              || error?.code === 'extract_truncated';
+            if (!failOpen) throw error;
+            extract = buildDegradedExtractObservation({
+              extraWarnings: [`extract_fail_open:${error?.code ?? 'invalid_observation'}`]
+            });
           }
-          degraded = true;
-          extract = buildDegradedExtractObservation({ extraWarnings: [`extract_error:${error.code ?? error.name ?? 'unknown'}`] });
-        }
-        try {
-          await db.callRpc('record_extract_result', { p_game_id: gameId, p_action_id: actionId, p_extract_delta: extract });
-        } catch (error) {
-          await db.updateActionStatus(gameId, actionId, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
-          throw error;
-        }
-        try {
-          await db.updateActionStatus(gameId, actionId, 'committing');
-        } catch {
-          // The Extract result is already durably saved; a failed status-transition patch must
-          // not turn a successful Extract into a stuck action, so resync with the source of truth.
-          await db.getAction(gameId, actionId).catch(() => null);
-        }
-        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, degraded, parsed_blocks: parsedStory });
+        const ownedResult = await db.recordExtractResultOwned(gameId, actionId, extract, extractOwnerToken);
+        if (!ownedResult) throw new HttpError(409, 'extract_owner_lost', 'Extract ownership was lost before persistence', true);
+        return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: false, parsed_blocks: parsedStory });
+      } catch (error) {
+        // Infrastructure/context/persistence failures remain retryable. Only
+        // the single Extract completion itself is fail-open degraded above.
+        await db.failGameActionStage(gameId, actionId, 'extracting', 'EXACT', extractOwnerToken, 'extract_failed', error.code ?? 'extract_failed').catch(() => undefined);
+        throw error;
       } finally {
         logTurnTiming({
           event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId,
           context_rpc_ms: timing.context_rpc_ms, extract_prompt_ms: timing.extract_prompt_ms, extract_llm_ms: timing.extract_llm_ms,
-          extract_parse_ms: timing.extract_parse_ms, extract_degraded: degraded,
+          extract_parse_ms: timing.extract_parse_ms,
           extract_system_chars: timing.extract_system_chars, extract_context_chars: timing.extract_context_chars,
           parsed_story_chars: timing.parsed_story_chars, extract_request_chars: timing.extract_request_chars,
           active_character_count: timing.active_character_count,
+          extract_provider_response: timing.extract_provider_response,
           turn_total_ms: Date.now() - startedAt
         });
       }
@@ -640,92 +884,53 @@ const master = masterFromEdition(edition);
         const contextRpcStart = Date.now();
         const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 15 });
         timing.context_rpc_ms = Date.now() - contextRpcStart;
-        const currentSave = context.save?.data ?? context.save;
-        let parsedStory = parseStoryProjection(action.story_text, master);
-        const extract = action.extract_delta?.extract_version === 2
-          ? normalizeExtractObservationV2(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId })
-          : adaptLegacyExtractDelta(action.extract_delta, { npcIds, storyText: action.story_text, expectedTurn, actionId });
+        const currentSave = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        const csaResolution = action.action_kind === 'feedback_revision'
+          ? null
+          : await resolveSignedCsaTransactionResolution({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
+        const commitValidationSave = projectCsaTransactionSave(
+          currentSave,
+          csaResolution ? structuredAction : null,
+          csaResolution,
+          'commit-validation'
+        );
+        const navigationIntent = resolvePlayerNavigationIntent({
+          save: commitValidationSave,
+          master,
+          playerAction: csaResolution ? '' : action.player_action,
+          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+        });
+        const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
+        const choiceProjection = projectStoryChoiceProjection({
+          parsedStory: mergePersistedEngineMetadata(persistedStory, action.parsed_blocks),
+          allowDeterministicFallback: true
+        });
+        let parsedStory = choiceProjection.parsedStory;
+        const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: parsedStory.blocks, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({
           currentSave, observation: extract, parsedStory, rawStory: action.story_text,
           action, expectedTurn, master, npcIds,
-          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+          mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : [],
+          navigationIntent,
+          structuredAction: action.action_kind === 'feedback_revision' ? null : structuredAction,
+          transactionResolution: csaResolution
         });
         timing.commit_reducer_ms = Date.now() - reducerStart;
         let nextSave = merged.nextSave;
         const warnings = merged.warnings;
-        const canonicalScene = merged.canonical_scene;
-        // Canonical scene reduction is the only gameplay presence writer. Feedback revisions
-        // and degraded observations preserve the existing canonical scene.
-        // The app transaction never gets its own save API; its csa_active/csa_rules result rides
-        // through the normal V2 Commit reducer on top of the Extract observation.
-        const csaPlan = action.action_kind === 'feedback_revision'
-          ? null
-          : await resolveCsaTransactionPlan({ env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn });
-        const definitionAction = action.action_kind === 'feedback_revision' ? null : structuredAction;
-        applyAuthorizedRuleDefinitions({
-          currentSave,
-          nextSave,
-          csaPlan,
-          structuredAction: definitionAction,
-          stage: 'commit'
-        });
-        // Extract's csa_trigger_evaluations/csa_runtime_updates persist scene-execution
-        // status (active/temporarily_interrupted/paused/ended) into next turn's Context.
-        // Validated per-item against the *post-transaction* active-preset-CSA set and the
+        // Commit gameplay state is reduced by reduceGameplayCommit.
         // NPCs actually present this turn — an item naming anything else is silently
-        // dropped inside buildCsaRuntimeStatePatch itself.
-        const activeCsaAfterPlan = getApplicableCsaEntries(nextSave);
-        const runtimeResult = buildCsaSceneRuntimeStatePatch({
-          previousSave: currentSave, csaRuntimeUpdates: extract.csa_runtime_updates, csaTriggerEvaluations: extract.csa_trigger_evaluations,
-          activeCsa: activeCsaAfterPlan, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn
-        });
-        if (runtimeResult.patch) nextSave.csa_runtime_state = { ...(nextSave.csa_runtime_state ?? {}), ...runtimeResult.patch };
-        if (runtimeResult.warnings.length) warnings.push(...runtimeResult.warnings);
-        if (csaPlan) {
-          const deactivatedIds = csaPlan.canonical_action.operations.filter(operation => operation.operation === 'deactivate').map(operation => operation.id);
-          if (deactivatedIds.length) {
-            const aftereffectPatch = buildCsaAftereffectPatch({ previousSave: nextSave, deactivatedIds, npcsPresent: canonicalScene.present_npc_ids, turnNumber: expectedTurn });
-            if (aftereffectPatch) nextSave.csa_aftereffect_state = aftereffectPatch;
-          }
-        }
-        // Player level/exp — ported verbatim from donor's live calculateProgress/
-        // calculateCsaProgression (see src/engine/progression.js); Company had no progression
-        // writer of its own before this. Never grants exp on a degraded-Extract turn or for a
-        // feedback revision (replacing a turn's content is not a new turn earning fresh exp).
-        if (action.action_kind !== 'feedback_revision') {
           // 진행도는 reducer가 승인한 실행(accepted_executions)만 반영한다 —
           // 잘못된(범위 밖/장면 외/action_state 불일치) update는 경험치도 주지 않는다.
-          const experiencedThisTurn = runtimeResult.accepted_executions;
-          const previouslyExperienced = new Set(Array.isArray(currentSave.csa_experienced_ids) ? currentSave.csa_experienced_ids : []);
-          const progressionAmount = calculateCsaProgression({
-            csaOperations: csaPlan?.canonical_action?.operations ?? [], experiencedThisTurn, previouslyExperienced,
-            degraded: extract.outcome === 'degraded'
-          });
-          if (progressionAmount.newly_experienced_keys.length) {
-            nextSave.csa_experienced_ids = [...previouslyExperienced, ...progressionAmount.newly_experienced_keys];
-          }
-          if (progressionAmount.amount > 0) {
-            const progress = calculateProgress(currentSave.player_progress, progressionAmount.amount);
-            nextSave.player_progress = { level: progress.level, exp: progress.exp };
-          }
-        }
-        assertRuleDefinitionAuthority({
-          currentSave,
-          nextSave,
-          csaPlan,
-          structuredAction: definitionAction,
-          stage: 'commit-final'
-        });
         const turnChanges = deriveTurnChanges(currentSave, nextSave);
 
-        // turn_summary는 빈 문자열을 허용한다 — 최신 Story context의 근거로 사용하지 않는다.
-        // 최신 3턴은 Story 원문 전체로 context에 유지되고, story_summary_recent는
-        // 이번 턴마다 갱신하지 않는다 (기존 필드는 호환용으로만 유지).
-        const finalTurnSummary = '';
-        // 선택지 단일 writer — gameplay commit reducer가 확정한 last_choices를
-        // 그대로 쓴다 (Story 1~3개 보존 + 부족분 보충 결과 = save와 history 일치).
-        const finalChoices = Array.isArray(nextSave.last_choices) ? nextSave.last_choices : [];
+        // Extract가 같은 Story에서 생성한 summary가 이 턴의 유일한 압축 memory 입력이다.
+        // 빈 문자열은 provider가 실제로 요약할 내용이 없을 때만 허용되며, 서버가 합성하지 않는다.
+        const finalTurnSummary = typeof extract.turn_summary === 'string' ? extract.turn_summary : '';
+        // Choice authority stays on the current Story projection; Commit passes
+        // that exact four-item array to the durable game_turns choice column.
+        const finalChoices = choiceProjection.state;
 
         const commitRpcStart = Date.now();
         // A feedback-revision action never advances committed_turn — it replaces the content of
@@ -787,46 +992,6 @@ const master = masterFromEdition(edition);
         return ok({ character_id: characterId, image: selected });
       } finally {
         logTurnTiming({ event_stage: 'image', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
-      }
-    },
-
-    /**
-     * TTS is opt-in and only ever called by the frontend for a confirmed, already-rendered
-     * dialogue line — this route's own job is the server-side backstop: narrator lines, unknown
-     * speakers, and characters with no voice_id are all rejected before any external call is
-     * made, regardless of what the client requests. A rejection or an upstream TTS failure
-     * returns a normal error response; it can never fail Story/Extract/Commit since nothing in
-     * that pipeline ever calls this route.
-     */
-    async tts(request, env) {
-      const requestId = newRequestId();
-      const startedAt = Date.now();
-      const body = await readJson(request);
-      const gameId = requireString(body.game_id, 'game_id');
-      const text = requireString(body.text, 'text');
-      const speakerId = typeof body.character_id === 'string' ? body.character_id : null;
-      try {
-        const eligibility = resolveTtsEligibility({ speakerId, text, master });
-        if (!eligibility.eligible) throw new HttpError(422, eligibility.code.toLowerCase(), 'TTS를 재생할 수 없습니다.', false);
-        const ttsUrl = env?.TTS_API_URL;
-        const ttsKey = env?.TTS_API_KEY;
-        if (typeof ttsUrl !== 'string' || !ttsUrl || typeof ttsKey !== 'string' || !ttsKey) {
-          throw new HttpError(500, 'configuration_error', 'TTS_API_URL/TTS_API_KEY is not configured', false);
-        }
-        let response;
-        try {
-          response = await fetchImpl(ttsUrl, {
-            method: 'POST',
-            headers: { authorization: `Bearer ${ttsKey}`, 'content-type': 'application/json' },
-            body: JSON.stringify({ voice_id: eligibility.voice_id, text })
-          });
-        } catch {
-          throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
-        }
-        if (!response.ok) throw new HttpError(502, 'tts_upstream_failure', 'TTS upstream request failed', true);
-        return new Response(response.body, { headers: { 'content-type': response.headers.get('content-type') ?? 'audio/mpeg', 'cache-control': 'public, max-age=86400' } });
-      } finally {
-        logTurnTiming({ event_stage: 'tts', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
     },
 
@@ -904,7 +1069,7 @@ const master = masterFromEdition(edition);
           throw new HttpError(409, 'opening_retry_required', 'A player setup is already reserved; retry the opening or reset the game first', false);
         }
         const setupId = randomUuid();
-        const openingPlan = buildOpeningPlan({ positionId: validation.player.position_id, seedBytes: randomSeedBytes(), heroineIds, locations: edition?.map?.locations });
+        const openingPlan = buildOpeningPlan({ positionId: validation.player.position_id, departmentId: validation.player.department_id, seedBytes: randomSeedBytes(), heroineIds, locations: edition?.map?.locations });
         const result = await db.callRpc('reserve_company_player_setup', {
           p_game_id: gameId, p_setup_id: setupId, p_player: validation.player, p_opening_plan: openingPlan
         });
@@ -929,8 +1094,16 @@ const master = masterFromEdition(edition);
 
       if (preSave?.player_setup?.completed === true && preSave?.opening_state?.status === 'complete') {
         return storySse({ meta: { setup_id: setupId, replayed: true }, run: async emit => {
-          emit('delta', { text: preSave.opening_state.story_text });
-          emit('complete', { setup_id: setupId, choices: preSave.opening_state.choices, replayed: true });
+          const projection = openingTurnProjection(preSave);
+          const parsedOpening = projection?.parsed_blocks ?? {};
+          emitVisibleStory(emit, preSave.opening_state.story_text, { master });
+          emit('complete', {
+            setup_id: setupId,
+            choices: projection?.choices ?? [],
+            parsed_blocks: parsedOpening,
+            warnings: parsedOpening.warnings ?? [],
+            replayed: true
+          });
         } });
       }
 
@@ -943,52 +1116,52 @@ const master = masterFromEdition(edition);
           const canonical = resolvePlayerCanonicalNames(player, catalogs);
           const messages = buildOpeningPrompt({ edition, player, canonical, openingPlan });
           let raw = '';
+          const wireDecoder = createStoryStreamDecoder({ master });
+          const visibleStartedAt = Date.now();
           try {
             const stream = await streamStory({ env, fetchImpl, messages, timing });
             for await (const text of stream.chunks) {
               raw += text;
-              emit('delta', { text });
+              emitStoryWireEvents(emit, wireDecoder.push(text), timing, visibleStartedAt);
             }
+            emitStoryWireEvents(emit, wireDecoder.finish(), timing, visibleStartedAt);
+            timing.story_visible_network_total_ms = Date.now() - visibleStartedAt;
           } catch (error) {
-            // fail-open: Story upstream 최종 실패 시 저장된 opening plan으로 짧은
-            // 기본 오프닝을 Commit한다 — 플레이어 설정이 reserved로 고착되지 않게 한다.
-            const fallbackText = buildFallbackOpeningStory(openingPlan, player);
-            const fallbackCommit = await db.callRpc('commit_company_opening', {
-              p_game_id: gameId,
-              p_setup_id: setupId,
-              p_background: '회사에서의 첫 장면이 시작되었다.',
-              p_story_text: fallbackText,
-              p_choices: DEFAULT_OPENING_CHOICES
-            });
-            emit('delta', { text: fallbackText });
-            emit('complete', {
-              setup_id: setupId, choices: DEFAULT_OPENING_CHOICES,
-              background: '회사에서의 첫 장면이 시작되었다.',
-              warnings: ['opening_fallback'], replayed: false, commit: fallbackCommit
-            });
-            return;
+            throw error;
           }
-          const { background, body: sections, warnings: splitWarnings } = splitOpeningSections(raw);
-          const parsedOpening = parseNarrative(sections, { master });
-          // fail-open: 선택지가 부족하면 deterministic 기본 선택지로 채운다 (설정 완료 차단 금지).
-          const rawChoices = (Array.isArray(parsedOpening.choices) ? parsedOpening.choices : []).filter(choice => typeof choice === 'string' && choice.trim());
-          const finalChoices = rawChoices.length === 4 ? rawChoices : DEFAULT_OPENING_CHOICES;
+          const background = '';
+          const splitWarnings = [];
+          const parsedOpening = {
+            ...parseFreshNarrativeV2(raw, { master }),
+            turn_context: turnContextFor({
+              save: { world_state: { game_time: { day: 1, minute_of_day: openingPlan.minute_of_day } } },
+              locationId: openingPlan.location_id,
+              mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
+            })
+          };
+          const choiceProjection = reduceStoryChoiceProjection({ parsedStory: parsedOpening });
+          const finalChoices = choiceProjection.state;
           const commit = await db.callRpc('commit_company_opening', {
             p_game_id: gameId,
             p_setup_id: setupId,
             p_background: background,
             p_story_text: parsedOpening.raw,
-            p_choices: finalChoices
+            p_choices: finalChoices,
+            p_parsed_blocks: parsedOpening
           });
           emit('complete', {
             setup_id: setupId, choices: finalChoices, background,
-            warnings: [...splitWarnings, ...parsedOpening.warnings], replayed: false, commit
+            warnings: [...splitWarnings, ...parsedOpening.warnings, ...choiceProjection.warnings],
+            parsed_blocks: parsedOpening,
+            replayed: false, commit
           });
         } finally {
           logTurnTiming({
             event_stage: 'opening', request_id: requestId, game_id: gameId,
             story_headers_ms: timing.story_headers_ms, story_first_content_ms: timing.story_first_content_ms,
-            story_network_total_ms: timing.story_network_total_ms, story_character_count: timing.story_character_count,
+            story_network_total_ms: timing.story_network_total_ms, story_visible_first_content_ms: timing.story_visible_first_content_ms,
+            story_decode_overhead_ms: timing.story_decode_overhead_ms, story_visible_network_total_ms: timing.story_visible_network_total_ms,
+            story_character_count: timing.story_character_count,
             turn_total_ms: Date.now() - startedAt
           });
         }
@@ -1083,11 +1256,33 @@ const master = masterFromEdition(edition);
             ))
           };
         }
+        const finalPlan = semanticResults.length
+          ? planCsaTransaction(save, csaCatalog, canonicalAction.operations, { turnNumber: committedTurn + 1, capability })
+          : plan;
+        if (!finalPlan.ok) {
+          throw new HttpError(finalPlan.status ?? 422, (finalPlan.error_code ?? 'app_action_invalid').toLowerCase(), 'final transaction resolution is invalid', false, finalPlan.issues);
+        }
+        canonicalAction = finalPlan.canonical_action;
+        const transactionResolution = await buildTransactionResolution({ plan: finalPlan, save, baseTurnCount: canonicalAction.base_turn_count });
         const actionDigest = await sha256Base64url(stableStringify({ version: canonicalAction.version, type: canonicalAction.type, base_turn_count: canonicalAction.base_turn_count, operations: canonicalAction.operations }));
         const resolvedResults = semanticResults.map(item => ({ client_id: item.client_id, required_strength: item.required_strength, semantic_contract: item.semantic_contract }));
-        const semantic_validation = { version: 1, game_id: gameId, base_turn_count: canonicalAction.base_turn_count, action_digest: actionDigest, results: resolvedResults };
-        const validation_proof = await signAppValidationProof(appValidationSecret(env), { game_id: gameId, base_turn_count: canonicalAction.base_turn_count, action_digest: actionDigest, semantic_results: resolvedResults });
-        canonicalAction = { ...canonicalAction, semantic_validation, validation_proof };
+        const semantic_validation = {
+          version: 2,
+          game_id: gameId,
+          base_turn_count: canonicalAction.base_turn_count,
+          action_digest: actionDigest,
+          planner_input_digest: transactionResolution.planner_input_digest,
+          resolution_digest: transactionResolution.resolution_digest,
+          results: resolvedResults
+        };
+        const validation_proof = await signTransactionValidationProof(appValidationSecret(env), {
+          game_id: gameId,
+          base_turn_count: canonicalAction.base_turn_count,
+          action_digest: actionDigest,
+          resolution_digest: transactionResolution.resolution_digest,
+          semantic_results: resolvedResults
+        });
+        canonicalAction = { ...canonicalAction, transaction_resolution: transactionResolution, semantic_validation, validation_proof };
 
         return ok({ canonical_action: canonicalAction, display_input: plan.display_input, summary: plan.summary });
       } finally {

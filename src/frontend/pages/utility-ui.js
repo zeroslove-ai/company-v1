@@ -18,7 +18,7 @@ export function createUtilityUi({
   const elements = {
     historyOverlay: get('history-overlay'), historyList: get('history-list'), historyClose: get('history-close'), historyMore: get('history-more'), historyStatus: get('history-status'),
     feedbackOverlay: get('feedback-overlay'), feedbackForm: get('feedback-form'), feedbackText: get('feedback-text'), feedbackClose: get('feedback-close'), feedbackStatus: get('feedback-status'),
-    image: get('character-image'), imageStatus: get('image-status')
+    image: get('character-image'), imageStatus: get('image-status'), mediaPanel: get('media-panel')
   };
   const available = {
     history: Boolean(elements.historyOverlay && elements.historyList && typeof api.history === 'function'),
@@ -58,9 +58,11 @@ export function createUtilityUi({
   function renderImage(image) {
     const url = image?.image_url;
     const situation = typeof image?.situation === 'string' ? image.situation.trim() : '';
+    if (elements.mediaPanel) elements.mediaPanel.hidden = !url;
     if (elements.image) { elements.image.hidden = !url; if (url) { elements.image.src = url; elements.image.alt = situation || '현재 장면 이미지'; } else elements.image.removeAttribute?.('src'); }
     const generic = !situation || situation === '현재 장면';
-    if (elements.imageStatus) elements.imageStatus.hidden = Boolean(url && generic);
+    if (elements.imageStatus) elements.imageStatus.hidden = !url || generic;
+    if (!url) text(elements.imageStatus, '');
     text(elements.imageStatus, url ? (generic ? '' : situation) : '표시할 이미지가 없습니다.');
   }
   function imageKey(viewModel) {

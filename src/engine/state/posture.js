@@ -7,14 +7,6 @@
  * the caller has exact Story evidence or an established legacy end reason.
  */
 
-export const POSTURE_VALUES = new Set([
-  'standing', 'sitting', 'kneeling', 'lying_supine', 'lying_prone', 'side_lying',
-  'straddling', 'bent_forward', 'leaning', 'walking', 'crouching', 'carrying', 'unknown'
-]);
-
-const END_REASON_VALUES = new Set([
-  'movement', 'task_ended', 'explicit_change', 'physical_interruption', 'player_request'
-]);
 const UNKNOWN_VALUES = new Set(['unknown', 'none', 'null', 'n/a', '알 수 없음', '미상', '자세 미확인']);
 
 function isPlainObject(value) {

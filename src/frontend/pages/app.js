@@ -2,7 +2,7 @@ import { createApiClient, ApiError } from './api.js';
 import { CATALOGS } from './catalogs.js';
 import { createCsaApp } from './csa-app.js';
 import { FRONTEND_CONFIG } from './config.js';
-import { renderChoices, renderHistory, renderNarrative, renderState, setCommittedStatDeltas, text } from './render.js';
+import { normalizeNarrativeDisplay, renderChoices, renderHistory, renderNarrative, renderState, text } from './render.js';
 import { catalogOptions, validateSetupValues } from './setup.js';
 import { consumeStorySse } from './sse.js';
 import { clearPending, committedTurn, loadPending, openingCompleted, openingHistoryTurn, playerSetupCompleted, recoveryFor, reservedPlayerSetupId, resolveGameId, savePending, saveFromContext, validateContext } from './state.js';
@@ -12,13 +12,13 @@ import { buildCompanyGameViewModel } from './view-model.js';
 import { computeTurnPhase, turnPhaseUiFlags } from './turn-phase.js';
 import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
 
-// Duplicated (deliberately, not imported) from src/engine/choice-input.js: the frontend Worker
+// The frontend remains the only literal-choice convenience path; the server receives exact text.
 // serves only src/frontend/pages as static assets (wrangler.frontend.jsonc), so a relative
 // import reaching into src/engine/ would 404 in production even though it resolves locally.
 const CHOICE_DIGIT_INDEX = { 1: 0, 2: 1, 3: 2, 4: 3 };
 const CHOICE_LETTER_INDEX = { a: 0, b: 1, c: 2, d: 3, A: 0, B: 1, C: 2, D: 3 };
 const CHOICE_CIRCLED_INDEX = { '①': 0, '②': 1, '③': 2, '④': 3 };
-function resolveNumberedChoiceInput(rawInput, save) {
+function resolveNumberedChoiceInput(rawInput, choices) {
   const trimmed = typeof rawInput === 'string' ? rawInput.trim() : '';
   let index = null;
   if (trimmed.length === 1) {
@@ -27,7 +27,6 @@ function resolveNumberedChoiceInput(rawInput, save) {
     else if (trimmed in CHOICE_CIRCLED_INDEX) index = CHOICE_CIRCLED_INDEX[trimmed];
   }
   if (index === null) return null;
-  const choices = Array.isArray(save?.last_choices) ? save.last_choices : [];
   // 현재 화면에 유효한 네 선택지가 있을 때만 1~4를 번호 선택으로 해석한다.
   // 부족/범위 밖이면 일반 자유 입력으로 처리한다 (CHOICE_INDEX_OUT_OF_RANGE로 턴 차단 금지).
   if (choices.length !== 4 || typeof choices[index] !== 'string' || !choices[index].trim()) return null;
@@ -39,7 +38,11 @@ function messageFor(error) {
   if (error instanceof ApiError) return error.code === 'turn_conflict' ? '턴 충돌이 발생했습니다. 현재 상태를 다시 불러오세요.' : error.message;
   return '예상하지 못한 오류가 발생했습니다.';
 }
-function hasFourChoices(value) { return Array.isArray(value) && value.length === 4 && value.every(choice => typeof choice === 'string' && choice.trim()); }
+function hasFourChoices(value) {
+  return Array.isArray(value) && value.length === 4
+    && value.every(choice => typeof choice === 'string' && choice.trim())
+    && new Set(value.map(choice => choice.trim())).size === 4;
+}
 
 /**
  * 세션 단위 Story 타임라인 병합 — 새 브라우저 세션에서 진행한 턴을 누적한다.
@@ -57,8 +60,48 @@ export function mergeSessionTurns(current, incoming) {
   return [...map.values()].sort((a, b) => a.turn_number - b.turn_number);
 }
 
-export function choicesForRenderer(viewModel, streamedStoryChoices = []) {
-  return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : viewModel?.story?.choices ?? [];
+export function choicesForRenderer(viewModel, streamedStoryChoices) {
+  if (streamedStoryChoices === null) return [];
+  if (Array.isArray(streamedStoryChoices)) return hasFourChoices(streamedStoryChoices) ? streamedStoryChoices : [];
+  return viewModel?.story?.choices ?? [];
+}
+
+export function reduceStoryWireProjection(state = {}, item = {}) {
+  const blocks = Array.isArray(state.blocks) ? state.blocks : [];
+  let current = state.current ?? null;
+  let lastDialogue = state.lastDialogue ?? null;
+  if (item.event === 'block_start') {
+    current = {
+      type: item.data?.block_type ?? 'scene',
+      speaker_id: item.data?.speaker_id ?? null,
+      speaker_name: item.data?.speaker_name ?? item.data?.speaker_id ?? '',
+      acting_direction: null,
+      enactment_id: item.data?.enactment_id ?? null,
+      actor_id: item.data?.actor_id ?? null,
+      posture_after: item.data?.posture_after ?? null,
+      label: item.data?.label ?? null,
+      text: ''
+    };
+    blocks.push(current);
+    lastDialogue = null;
+  } else if (item.event === 'block_end') {
+    if (current?.type === 'dialogue') lastDialogue = current;
+    else lastDialogue = null;
+    current = null;
+  } else if (item.event === 'acting') {
+    if (current?.type === 'acting') {
+      current.enactment_id = item.data?.enactment_id ?? current.enactment_id ?? null;
+      current.actor_id = item.data?.actor_id ?? current.actor_id ?? null;
+      current.posture_after = item.data?.posture_after ?? current.posture_after ?? null;
+    } else {
+      const target = current?.type === 'dialogue' ? current : lastDialogue;
+      if (target && item.data?.acting_direction) target.acting_direction = item.data.acting_direction;
+    }
+  } else if (item.event === 'delta') {
+    if (current) current.text += item.data?.text ?? '';
+    else lastDialogue = null;
+  }
+  return { blocks, current, lastDialogue };
 }
 
 export function toolbarCapabilities(viewModel, pendingAction, { context, busy = false, recoveryPending = false, utilityAvailable = null } = {}) {
@@ -81,21 +124,6 @@ function withStructuredAction(body, pending) {
  * Commit 응답의 실제 turn_changes → {npcId: {statKey: delta}} 일시 표시용.
  * 서버가 확정한 before/after 차이만 사용한다 (프론트 수치 계산기 없음).
  */
-export function statDeltasFromTurnChanges(turnChanges) {
-  const deltas = {};
-  for (const change of Array.isArray(turnChanges) ? turnChanges : []) {
-    const match = /^npc_stats\.([^.]+)\.(affinity|csa_acceptance|sexual_arousal|resistance)$/.exec(change?.path ?? '');
-    if (!match) continue;
-    const from = Number(change?.from);
-    const to = Number(change?.to);
-    if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
-    const npcId = match[1];
-    deltas[npcId] = deltas[npcId] ?? {};
-    deltas[npcId][match[2]] = to - from;
-  }
-  return deltas;
-}
-
 export function createTurnCoordinator({ api, storage, gameId, getContext, refreshContext, onStory, onExtract, onCommitStart, onCommitted, onPendingChange, createActionId = newActionId, consumeStory = consumeStorySse, onTerminated = null }) {
   function persistPending(pending) { savePending(storage, pending); onPendingChange?.(pending); }
   function dropPending(pendingGameId) { clearPending(storage, pendingGameId); onPendingChange?.(null); }
@@ -136,6 +164,9 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
           pending.action_id = serverActionId;
           persistPending(pending);
         }
+      }
+      if (item.event === 'section_start' || item.event === 'block_start' || item.event === 'block_end' || item.event === 'acting') {
+        onStory?.({ item, pending, streaming: true, protocol: item.data });
       }
       if (item.event === 'delta') {
         const text = item.data?.text ?? '';
@@ -216,7 +247,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     penisLength: get('setup-penis-length'), bodyType: get('setup-body-type'), speechStyle: get('setup-speech-style')
   };
   const gameId = resolveGameId(locationSearch);
-  let context = null, viewModel = null, viewModelContext = null, streamedStoryChoices = [], busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null, ttsController = null;
+  let context = null, viewModel = null, viewModelContext = null, streamedStoryChoices, busy = false, recoveryPending = false, progressTimer = null, mediaLoading = false, utilityUi = null, ttsController = null;
   // 세션 단위 Story 타임라인 — 페이지 로드 시 최신 1턴으로 시작하고, 같은 세션에서
   // 완료된 턴을 메모리에 누적한다. 새로고침하면 다시 최신 1턴만 표시한다.
   let sessionHistory = [];
@@ -227,14 +258,65 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const showError = error => { text(elements.error, messageFor(error)); if (elements.error) elements.error.hidden = false; };
   const clearError = () => { if (elements.error) elements.error.hidden = true; text(elements.error, ''); };
   const clearCurrentTurn = () => { text(elements.currentAction, ''); if (elements.currentAction) elements.currentAction.hidden = true; elements.current?.replaceChildren?.(); if (elements.current) elements.current.textContent = ''; };
-  const resetRawStory = () => { elements.current?.replaceChildren?.(); if (elements.current) { elements.current.textContent = ''; elements.current.classList?.add?.('raw-story-stream'); } };
-  const appendRawStory = value => {
-    if (!elements.current || !value) return;
+  let rawStoryStream = '';
+  let semanticStreamBlocks = [];
+  let semanticStreamCurrent = null;
+  let semanticStreamLastDialogue = null;
+  let pendingRawProjection = false;
+  const resetRawStory = () => { rawStoryStream = ''; semanticStreamBlocks = []; semanticStreamCurrent = null; semanticStreamLastDialogue = null; pendingRawProjection = true; if (elements.current) elements.current.classList?.add?.('raw-story-stream'); };
+  const clearTransientStoryProjection = () => {
+    rawStoryStream = '';
+    pendingRawProjection = false;
+    elements.current?.replaceChildren?.();
+    elements.current?.classList?.remove?.('raw-story-stream');
+  };
+  const renderStreamingProjection = projection => {
+    if (!elements.current) return;
     const nearBottom = typeof elements.current.scrollHeight === 'number'
-      && elements.current.scrollHeight - elements.current.scrollTop - elements.current.clientHeight <= 120;
-    elements.current.classList?.add?.('raw-story-stream');
-    elements.current.textContent = `${elements.current.textContent ?? ''}${value}`;
-    if (nearBottom) elements.current.scrollTop = elements.current.scrollHeight;
+      && typeof elements.current.scrollTop === 'number'
+      && typeof elements.current.clientHeight === 'number'
+      && elements.current.scrollHeight - (elements.current.scrollTop + elements.current.clientHeight) <= elements.current.clientHeight;
+    const fragment = documentRef.createDocumentFragment?.();
+    if (!fragment) {
+      elements.current.textContent = projection.map(segment => segment.text ?? '').join('\n');
+      if (nearBottom && typeof elements.current.scrollHeight === 'number') elements.current.scrollTop = elements.current.scrollHeight;
+      return;
+    }
+    for (const segment of projection) {
+      // Footer blocks are rendered from the completed parser projection only;
+      // never expose a mid-stream thought or partial choice box.
+      if (segment.type === 'player_inner_thought' || segment.type === 'thought' || segment.type === 'choice' || segment.type === 'choices') continue;
+      const block = documentRef.createElement?.('section');
+      if (!block) continue;
+      block.className = `streaming-${segment.type}`;
+      block.dataset.streamingProjection = segment.type;
+      if (segment.type === 'dialogue') {
+        const meta = documentRef.createElement?.('header');
+        const speaker = documentRef.createElement?.('strong');
+        const direction = documentRef.createElement?.('span');
+        const body = documentRef.createElement?.('p');
+        if (speaker) speaker.textContent = segment.speaker_name ?? segment.speaker_id ?? '';
+        if (direction) { direction.textContent = segment.acting_direction ?? ''; direction.className = 'dialogue-direction'; }
+        if (meta) meta.append(speaker, direction);
+        if (body) body.textContent = normalizeNarrativeDisplay(segment.text ?? '');
+        block.append(meta, body);
+      } else if (segment.type === 'choice') {
+        block.textContent = segment.text ?? '';
+        block.dataset.choiceLabel = segment.label ?? '';
+      } else block.textContent = normalizeNarrativeDisplay(segment.text ?? '');
+      fragment.appendChild(block);
+    }
+    elements.current.replaceChildren?.(fragment);
+    if (nearBottom && typeof elements.current.scrollHeight === 'number') elements.current.scrollTop = elements.current.scrollHeight;
+  };
+  const appendStoryWireEvent = item => {
+    if (!item) return;
+    if (item.event === 'delta') rawStoryStream += item.data?.text ?? '';
+    const next = reduceStoryWireProjection({ blocks: semanticStreamBlocks, current: semanticStreamCurrent, lastDialogue: semanticStreamLastDialogue }, item);
+    semanticStreamBlocks = next.blocks;
+    semanticStreamCurrent = next.current;
+    semanticStreamLastDialogue = next.lastDialogue;
+    if (item.event === 'block_start' || item.event === 'acting' || item.event === 'delta') renderStreamingProjection(semanticStreamBlocks);
   };
   const showCurrentAction = value => { text(elements.currentAction, value); if (elements.currentAction) elements.currentAction.hidden = false; };
   function refreshViewModel() {
@@ -252,7 +334,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (elements.feedback) { elements.feedback.disabled = !capabilities.canSendFeedback; elements.feedback.onclick = capabilities.canSendFeedback ? () => utilityUi?.openFeedback() : null; }
     if (elements.apps) { elements.apps.disabled = !capabilities.canOpenApps; elements.apps.onclick = capabilities.canOpenApps ? () => csaApp.open('home') : null; }
   }
-  function setupPending() { return !playerSetupCompleted(context); }
+  function setupPending() { return !playerSetupCompleted(context) && !reservedPlayerSetupId(context); }
+  function openingPending() { return Boolean(reservedPlayerSetupId(context)) && !openingCompleted(context); }
+  function interactionBlocked() { return setupPending() || openingPending(); }
   function populateSetupSelect(select, list, idField) {
     if (!select) return;
     select.replaceChildren();
@@ -325,22 +409,22 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     renderHistory(elements.history, recent.length ? recent : (openingTurn ? [openingTurn] : []));
     renderCompanyMapPanel();
     const setupOpen = setupPending();
+    const openingOpen = openingPending();
     // 오버레이는 순수 설정 폼 전용. 저장된 설정(reserved)은 init에서 자동 진행되고
     // 재시도 팝업은 완전히 제거되었다(사용자 요구).
     if (setupElements.overlay) setupElements.overlay.hidden = !setupOpen;
-    if (setupElements.form) setupElements.form.hidden = false;
+    if (setupElements.form) setupElements.form.hidden = !setupOpen;
     const pendingStep = loadPending(storage, gameId)?.step ?? null;
     const phase = computeTurnPhase({ busy, recoveryPending, pendingStep, mediaLoading });
     const flags = turnPhaseUiFlags(phase);
-    if (elements.input) elements.input.disabled = !flags.inputEditable || setupOpen;
-    if (elements.submit) elements.submit.disabled = flags.inputSubmitDisabled || setupOpen;
-    renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: flags.choicesDisabled || setupOpen, onChoose: startNewAction });
+    if (elements.input) elements.input.disabled = !flags.inputEditable || setupOpen || openingOpen;
+    if (elements.submit) elements.submit.disabled = flags.inputSubmitDisabled || setupOpen || openingOpen;
+    renderChoices(elements.choices, choicesForRenderer(viewModel, streamedStoryChoices), { busy: flags.choicesDisabled || setupOpen || openingOpen, onChoose: startNewAction });
     renderToolbar();
     // 초기 로드 시 최근 턴(current)이 보이도록 1회 스크롤 — 오프닝부터 쭉 내려야 하는 낭비 제거.
     // 이후 렌더링(턴 갱신)에서는 사용자 스크롤 위치를 침범하지 않는다.
   }
   // Commit delta 일시 표시 타이머 (2~3초 후 클리어).
-  let committedStatDeltaTimer = null;
   const setBusy = value => { busy = value; render(); };
   const setMediaLoading = value => { mediaLoading = value; render(); };
   function clearRecoveryUi() {
@@ -354,7 +438,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     const data = await api.context({ game_id: gameId, recent_turns: FRONTEND_CONFIG.recentTurns });
     if (!validateContext(data.context)) throw new ApiError({ endpoint: '/api/context', status: 502, code: 'invalid_context', message: '게임 데이터 계약이 올바르지 않습니다.' });
     context = data.context;
-    if (!preserveStreamedChoices) streamedStoryChoices = [];
+    if (!preserveStreamedChoices) streamedStoryChoices = undefined;
     // 세션 타임라인 누적 — refresh가 recent_turns(최신 1턴)로 세션 기록을 덮어쓰지 않는다.
     // 같은 turn_number는 교체(피드백 revision이 해당 카드를 갱신), 새 턴만 추가, 중복 금지.
     sessionHistory = mergeSessionTurns(sessionHistory, context?.recent_turns ?? []);
@@ -366,11 +450,18 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     api, storage, gameId, getContext: () => context, refreshContext,
     onStory: ({ item, text: deltaText, parsed }) => {
       if (item?.event === 'start') { resetRawStory(); return; }
-      if (item?.event === 'delta') { appendRawStory(deltaText); return; }
+      if (item?.event === 'block_start' || item?.event === 'block_end' || item?.event === 'acting') { appendStoryWireEvent(item); return; }
+      if (item?.event === 'delta') { appendStoryWireEvent(item); return; }
       if (item?.event === 'complete') {
-        const choices = hasFourChoices(item.data?.choices) ? item.data.choices : parsed?.choices;
+        const observedChoices = Array.isArray(parsed?.choices) ? parsed.choices : [];
+        const canonicalChoices = Array.isArray(parsed?.canonical_choices)
+          ? parsed.canonical_choices
+          : (hasFourChoices(item.data?.choices) ? item.data.choices : []);
+        const choices = observedChoices;
+        streamedStoryChoices = hasFourChoices(canonicalChoices) ? canonicalChoices : null;
         if (parsed?.blocks) renderNarrative(elements.current, choices ? { ...parsed, choices } : parsed);
-        if (hasFourChoices(choices)) { streamedStoryChoices = choices; render(); }
+        // Keep committed choices/inner thought until Commit succeeds; the
+        // parsed Story body is only a pending presentation at this point.
       }
     },
     onExtract: () => {
@@ -382,18 +473,6 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       // Commit이 확정된 경우에만 실제 turn_changes 기반 delta를 잠시 표시한다.
       // replayed Commit(피드백 재생)은 변화 애니메이션을 반복하지 않는다.
       // Extract가 제안했지만 Commit에서 거부된 delta는 turn_changes에 없으므로 표시되지 않는다.
-      if (committed?.commit?.success === true && committed?.commit?.replayed !== true && !committed?.terminated) {
-        const deltas = statDeltasFromTurnChanges(committed.turn_changes);
-        if (Object.keys(deltas).length) {
-          setCommittedStatDeltas(deltas);
-          render();
-          clearTimeout(committedStatDeltaTimer);
-          committedStatDeltaTimer = setTimeout(() => {
-            setCommittedStatDeltas({});
-            render();
-          }, 2500);
-        }
-      }
       // Commit 화면 인계 — refreshContext가 방금 커밋한 턴을 정본(recent_turns + action_id 일치)으로
       // 반영했을 때만 current-story를 비운다. 확인이 안 되면 실시간 Story를 그대로 유지하고
       // 오류로 턴을 막지 않는다 (terminated/failed/refresh 실패에서는 절대 지우지 않는다).
@@ -402,6 +481,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         ? (context?.recent_turns ?? []).find(turn => turn.turn_number === turnNumber && turn.action_id === pending.action_id)
         : null;
       if (canonicalTurn) {
+        clearCurrentTurn();
         showStatus('턴이 완료되었습니다.');
       } else {
         showStatus('저장된 기록을 다시 확인하는 중…');
@@ -485,7 +565,9 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     });
   }
   async function startNewAction(playerAction, structuredAction = null) {
-    let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || setupPending()) return false;
+    let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || interactionBlocked()) return false;
+    if (elements.input) elements.input.value = '';
+    // Keep the last committed choices visible while the new turn is pending.
     // 저장 파이프라인 핫픽스 — 이미 종료된 과거 액션(stale pending)은 자동 정리하고
     // 실제 in-flight 상태만 자동 재개한다. 정리된 경우 같은 클릭에서 새 행동을 계속 진행한다.
     const pending = loadPending(storage, gameId);
@@ -495,7 +577,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       if (outcome === 'error') return false;    // actionStatus 실패 — 오류 배너가 표시됨
       // 'cleaned' — stale pending 제거됨. 아래에서 새 행동을 계속 진행한다.
     }
-    const numbered = resolveNumberedChoiceInput(action, saveFromContext(context));
+    const numbered = resolveNumberedChoiceInput(action, viewModel?.story?.choices);
     if (numbered?.ok) action = numbered.text;
     return withBusy(async () => {
       showCurrentAction(action);
@@ -504,14 +586,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         await coordinator.startNewAction(action, structuredAction);
         // 정상 commit 확인 — 입력창과 선택 상태를 초기화한다.
         // 실패·미확정·재시도 상태에서는 사용자 입력을 지우지 않는다 (실패 시 catch가 복원).
-        if (elements.input) elements.input.value = '';
-        streamedStoryChoices = [];
         render();
       } catch (error) {
         // Story 생성 실패 등 — pending을 비우고 원래 행동을 입력창에 복원한다.
         // failed 상태가 새 턴 입력을 막지 않게 한다 (하드락 전면 제거).
         clearPending(storage, gameId);
-        if (elements.input) elements.input.value = action;
         throw error;
       }
     });
@@ -537,6 +616,19 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (busy) return false;
     return busyGuard.run(async () => {
       clearSetupError();
+      const reservedSetupId = reservedPlayerSetupId(context);
+      if (reservedSetupId) {
+        if (setupElements.overlay) setupElements.overlay.hidden = true;
+        if (setupElements.form) setupElements.form.hidden = true;
+        try {
+          await streamOpening(reservedSetupId, elements.status);
+          return true;
+        } catch (error) {
+          showError(error);
+          render();
+          return false;
+        }
+      }
       const validation = validateSetupValues(readSetupFormValues(), CATALOGS);
       if (!validation.valid) { showSetupError('입력값을 확인해 주세요.'); return false; }
       if (setupElements.submit) setupElements.submit.disabled = true;
@@ -564,28 +656,35 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     let raw = '';
     resetRawStory();
     await consumeStorySse(response, item => {
+      if (item.event === 'block_start' || item.event === 'block_end' || item.event === 'acting') {
+        appendStoryWireEvent(item);
+      }
       if (item.event === 'delta') {
         const text = item.data?.text ?? '';
         raw += text;
-        appendRawStory(text);
+        appendStoryWireEvent(item);
       }
       if (item.event === 'complete') {
         const choices = hasFourChoices(item.data?.choices)
           ? item.data.choices
           : item.data?.parsed_blocks?.choices;
+        if (item.data?.parsed_blocks && Array.isArray(item.data.parsed_blocks.choices) && !hasFourChoices(item.data.parsed_blocks.choices)) streamedStoryChoices = null;
+        else if (hasFourChoices(choices)) streamedStoryChoices = choices;
         if (item.data?.parsed_blocks?.blocks) {
           renderNarrative(elements.current, choices
             ? { ...item.data.parsed_blocks, choices }
             : item.data.parsed_blocks);
         }
-        if (hasFourChoices(choices)) {
-          streamedStoryChoices = choices;
-          render();
-        }
+        // Footer completeness is soft: keep the observed opening visible and
+        // leave free input available even when canonical four choices are absent.
+        render();
       }
     });
     text(statusElement, '');
-    await refreshContext({ preserveStreamedChoices: true });
+    const refreshed = await refreshContext({ preserveStreamedChoices: true });
+    // Opening is now present in canonical history after the refresh. Remove
+    // only the transient opening projection; raw Story storage is untouched.
+    if (openingHistoryTurn(refreshed)) clearTransientStoryProjection();
   }
   async function retryOpening(setupId) {
     if (busy || !setupId) return false;
@@ -596,6 +695,7 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         return true;
       } catch (error) {
         showSetupError(error);
+        showError(error);
         render();
         return false;
       } finally {
@@ -618,10 +718,10 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   const csaApp = createCsaApp({
     documentRef, api, gameId,
     onSubmit: (displayInput, canonicalAction) => {
+      const accepted = !busy && Boolean(context) && !interactionBlocked();
+      if (!accepted) return false;
       const handoff = startNewAction(displayInput, canonicalAction);
-      Promise.resolve(handoff).then(result => {
-        if (result === false) showStatus('상식개변 적용 행동을 시작하지 못했습니다. 복구 상태를 확인해 주세요.');
-      }).catch(showError);
+      Promise.resolve(handoff).catch(showError);
       return true;
     },
     onError: showError
@@ -647,6 +747,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   async function init() {
     populateSetupOptions();
     elements.submit?.addEventListener('click', () => startNewAction());
+    elements.input?.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (!busy) startNewAction();
+      }
+    });
     elements.reset?.addEventListener('click', () => handleReset());
     setupElements.form?.addEventListener('submit', event => handleSetupSubmit(event));
     await refreshContext();

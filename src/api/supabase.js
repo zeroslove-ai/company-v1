@@ -63,29 +63,59 @@ export function createSupabaseClient(env, fetchImpl) {
       const payload = await request(`${baseUrl}/rest/v1/game_actions?${query}`, { method: 'GET' });
       return Array.isArray(payload) ? payload[0] ?? null : payload;
     },
-    updateActionStatus(gameId, actionId, status, errorCode = null) {
-      const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}` });
-      return request(`${baseUrl}/rest/v1/game_actions?${query}`, {
-        method: 'PATCH',
-        headers: { prefer: 'return=minimal' },
-        body: JSON.stringify({ processing_status: status, error_code: errorCode })
+    async getTurnById(gameId, turnId) {
+      if (typeof turnId !== 'string' || !turnId) return null;
+      const query = new URLSearchParams({ game_id: `eq.${gameId}`, turn_id: `eq.${turnId}`, select: 'turn_id,turn_number,story_text,parsed_blocks' });
+      const payload = await request(`${baseUrl}/rest/v1/game_turns?${query}`, { method: 'GET' });
+      return Array.isArray(payload) ? payload[0] ?? null : payload;
+    },
+    claimGameActionStage(gameId, actionId, expectedStatus, expectedOwnerMode, expectedOwnerToken, nextStatus, nextOwnerToken, nextErrorCode = null, requireStale = false) {
+      return this.callRpc('claim_game_action_stage', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_expected_status: expectedStatus,
+        p_expected_owner_mode: expectedOwnerMode,
+        p_expected_owner_token: expectedOwnerToken,
+        p_next_status: nextStatus,
+        p_next_owner_token: nextOwnerToken,
+        p_next_error_code: nextErrorCode,
+        p_require_stale: requireStale
       });
     },
-    async claimActionStatus(gameId, actionId, expectedStatus, nextStatus, errorCode, requireEmptyErrorCode = false) {
-      const query = new URLSearchParams({ game_id: `eq.${gameId}`, action_id: `eq.${actionId}`, processing_status: `eq.${expectedStatus}` });
-      if (requireEmptyErrorCode) query.set('error_code', 'is.null');
-      const payload = await request(`${baseUrl}/rest/v1/game_actions?${query}`, {
-        method: 'PATCH',
-        headers: { prefer: 'return=representation' },
-        body: JSON.stringify({ processing_status: nextStatus, error_code: errorCode })
+    failGameActionStage(gameId, actionId, expectedStatus, expectedOwnerMode, expectedOwnerToken, nextStatus, nextErrorCode) {
+      return this.callRpc('fail_game_action_stage', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_expected_status: expectedStatus,
+        p_expected_owner_mode: expectedOwnerMode,
+        p_expected_owner_token: expectedOwnerToken,
+        p_next_status: nextStatus,
+        p_next_error_code: nextErrorCode,
+        p_require_owner_fence: true
       });
-      return Array.isArray(payload) ? payload[0] ?? null : payload;
+    },
+    recordStoryResultOwned(gameId, actionId, storyText, parsedBlocks, ownerToken) {
+      return this.callRpc('record_story_result_owned', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_story_text: storyText,
+        p_parsed_blocks: parsedBlocks,
+        p_owner_token: ownerToken
+      });
+    },
+    recordExtractResultOwned(gameId, actionId, extractDelta, ownerToken) {
+      return this.callRpc('record_extract_result_owned', {
+        p_game_id: gameId,
+        p_action_id: actionId,
+        p_extract_delta: extractDelta,
+        p_owner_token: ownerToken
+      });
     },
     /** Read-only, paginated, active-only (record_status=active dedupes revisions to the current one) turn history — no RPC needed, table already carries everything /api/history needs. */
     async listTurns(gameId, { beforeTurn = null, limit = 20 } = {}) {
       const query = new URLSearchParams({
         game_id: `eq.${gameId}`, record_status: 'eq.active',
-        select: 'turn_number,player_action,structured_action,feedback_text,story_text,parsed_blocks,turn_summary,mind_monitor,choices,committed_at',
+        select: 'turn_number,player_action,structured_action,feedback_text,story_text,parsed_blocks,turn_summary,mind_monitor,choices,post_save,committed_at',
         order: 'turn_number.desc', limit: String(limit)
       });
       if (Number.isInteger(beforeTurn)) query.set('turn_number', `lt.${beforeTurn}`);

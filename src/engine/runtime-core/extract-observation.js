@@ -7,30 +7,35 @@ const TOP_LEVEL = new Set([
   'elapsed_minutes', 'mind_monitor', 'action_target_id', 'image_character_id', 'image_selection',
   'csa_trigger_evaluations', 'csa_runtime_updates', 'turn_summary', 'warnings'
 ]);
-const NPC_DOMAINS = new Set(['physical', 'emotion', 'relationship', 'stats', 'work', 'csa_attitude']);
+const NPC_DOMAINS = new Set(['physical', 'stats', 'csa_attitude']);
 const PHYSICAL = new Set(['posture', 'position_label', 'clothing']);
 const CLOTHING = new Set(['uniform_top', 'uniform_bottom', 'underwear_top', 'underwear_bottom']);
 const CLOTHING_STATES = new Set(['worn', 'removed', 'open', 'unknown']);
 const SEXUAL = new Set(['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed', 'erection_state']);
 const ERECTION = new Set(['unknown', 'flaccid', 'partial', 'erect']);
 const STAT = new Set(['affinity_delta', 'csa_acceptance_delta', 'sexual_arousal_delta', 'reasons', 'reason']);
-const EMOTION = new Set(['mood']);
-const RELATIONSHIP = new Set(['closeness', 'romance_status', 'current_boundary']);
-const WORK = new Set(['task']);
 const CSA_ATTITUDE = new Set(['familiarity']);
 const SEXUAL_EVENT_FIELDS = new Set(['actor_id', 'target_id', 'action_type', 'direction', 'completed', 'interrupted', 'evidence', 'event_id']);
-const GENERAL_EVENT_FIELDS = new Set(['event_type', 'type', 'turn', 'summary', 'participants', 'importance', 'active', 'evidence', 'event_id']);
 const SEXUAL_ACTION_TYPES = new Set(['kiss', 'sexual_touch', 'genital_exposure', 'genital_touch', 'oral', 'penetration', 'orgasm']);
-const GENERAL_EVENT_TYPES = new Set(['promise', 'refusal', 'conflict', 'intimacy', 'csa_event', 'work_event', 'secret']);
 const TRIGGER = new Set(['satisfied', 'continuing', 'temporarily_interrupted', 'not_satisfied', 'ended']);
 const CSA_TRIGGER_FIELDS = new Set(['csa_id', 'status']);
 const RUNTIME = new Set(['inactive', 'active', 'paused', 'ended']);
 const CSA_RUNTIME_FIELDS = new Set(['csa_id', 'character_id', 'status', 'target_type', 'action_state', 'position_label', 'reason']);
 const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'quote']);
-const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'movement', 'scene']);
+const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'scene']);
+const FRESH_OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked']);
+const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'presence_is_final', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
+const FRESH_TOP_LEVEL = new Set(['extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'evidence', 'elapsed_minutes', 'mind_monitor', 'turn_summary', 'warnings']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
+function dropOptional(soft, label, warnings, fallback, fn) {
+  if (!soft) return fn();
+  try { return fn(); } catch (error) {
+    warnings.push(`extract_optional_dropped:${label}:${error?.code ?? 'invalid'}`);
+    return fallback;
+  }
+}
 function nonEmptyId(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
 function canonicalPlayerOrNpcId(value) { return /^player(?:[-_].*)?$/i.test(value) ? 'player' : value; }
 function assertKeys(value, allowed, code) {
@@ -92,25 +97,6 @@ function normalizeNpcObservation(value) {
   assertKeys(value, NPC_DOMAINS, 'INVALID_EXTRACT_OBSERVATION');
   const result = {};
   if ('physical' in value) result.physical = normalizePhysical(value.physical);
-  if ('emotion' in value) {
-    assertKeys(value.emotion, EMOTION, 'INVALID_EXTRACT_OBSERVATION');
-    if ('mood' in value.emotion && value.emotion.mood !== null && typeof value.emotion.mood !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'mood must be string or null');
-    result.emotion = clone(value.emotion);
-  }
-  if ('relationship' in value) {
-    assertKeys(value.relationship, RELATIONSHIP, 'INVALID_EXTRACT_OBSERVATION');
-    for (const field of RELATIONSHIP) {
-      if (field in value.relationship && value.relationship[field] !== null && typeof value.relationship[field] !== 'string') {
-        throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} must be string or null`);
-      }
-    }
-    result.relationship = clone(value.relationship);
-  }
-  if ('work' in value) {
-    assertKeys(value.work, WORK, 'INVALID_EXTRACT_OBSERVATION');
-    if ('task' in value.work && value.work.task !== null && typeof value.work.task !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'task must be string or null');
-    result.work = clone(value.work);
-  }
   if ('csa_attitude' in value) {
     assertKeys(value.csa_attitude, CSA_ATTITUDE, 'INVALID_EXTRACT_OBSERVATION');
     if ('familiarity' in value.csa_attitude && !Number.isInteger(value.csa_attitude.familiarity)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'familiarity must be an integer');
@@ -149,60 +135,40 @@ function normalizeEventEvidence(value, storyText, field) {
   return quote;
 }
 
-function normalizeEvents(value, npcIds, storyText, expectedTurn = 0, actionId = null) {
+function normalizeEvents(value, npcIds, storyText, expectedTurn = 0, actionId = null, warnings = []) {
   assertKeys(value, new Set(['general', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
-  const normalize = (items, field) => {
-    if (!Array.isArray(items)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} must be an array`);
-    return items.map((item, index) => {
-      assertKeys(item, field === 'events.sexual' ? SEXUAL_EVENT_FIELDS : GENERAL_EVENT_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+  const normalizeSexual = items => {
+    if (!Array.isArray(items)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual must be an array');
+    return items.flatMap((item, index) => {
+      assertKeys(item, SEXUAL_EVENT_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
       const event = clone(item);
-      const type = event.type ?? event.event_type;
-      if (event.type !== undefined && event.event_type !== undefined && event.type !== event.event_type) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} type fields disagree`);
-      if (field === 'events.sexual') {
-        event.actor_id = nullableId(item.actor_id, npcIds, `${field}.actor_id`);
-        event.target_id = nullableId(item.target_id, npcIds, `${field}.target_id`);
-        if (!event.actor_id || !event.target_id) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} actor_id and target_id are required`);
-        if (canonicalPlayerOrNpcId(event.actor_id) === canonicalPlayerOrNpcId(event.target_id)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} actor and target must differ`);
-        if (!SEXUAL_ACTION_TYPES.has(event.action_type)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} action_type is invalid`);
-        if (typeof event.completed !== 'boolean' || typeof event.interrupted !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} completed/interrupted must be boolean`);
-      } else {
-        if (!GENERAL_EVENT_TYPES.has(type)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field} type is invalid`);
-        event.event_type = type;
-        delete event.type;
-        if ('participants' in event) event.participants = ids(event.participants, npcIds, `${field}.participants`);
-        if ('turn' in event && !Number.isInteger(event.turn)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field}.turn must be an integer`);
-        if ('summary' in event && event.summary !== null && typeof event.summary !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field}.summary must be string or null`);
-        if ('importance' in event && (!Number.isInteger(event.importance) || event.importance < 0)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field}.importance must be a non-negative integer`);
-        if ('active' in event && typeof event.active !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${field}.active must be boolean`);
-        event.turn = expectedTurn;
+      event.actor_id = nullableId(item.actor_id, npcIds, `events.sexual[${index}].actor_id`);
+      event.target_id = nullableId(item.target_id, npcIds, `events.sexual[${index}].target_id`);
+      if (!event.actor_id || !event.target_id) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual actor_id and target_id are required');
+      if (canonicalPlayerOrNpcId(event.actor_id) === canonicalPlayerOrNpcId(event.target_id)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual actor and target must differ');
+      if (!SEXUAL_ACTION_TYPES.has(event.action_type)) {
+        warnings.push(`sexual_event_projection_dropped:${index}:unknown_action_type`);
+        return [];
       }
-      event.evidence = normalizeEventEvidence(item.evidence, storyText, `${field}[${index}]`);
-      const identity = field === 'events.sexual'
-        ? {
-            turn: expectedTurn,
-            action_id: actionId ?? null,
-            domain: 'sexual',
-            actor_id: canonicalPlayerOrNpcId(event.actor_id),
-            target_id: canonicalPlayerOrNpcId(event.target_id),
-            action_type: event.action_type,
-            direction: event.direction ?? null,
-            completed: event.completed,
-            interrupted: event.interrupted,
-            evidence: event.evidence
-          }
-        : {
-            turn: expectedTurn,
-            action_id: actionId ?? null,
-            domain: 'general',
-            event_type: event.event_type,
-            participants: [...(event.participants ?? [])].map(canonicalPlayerOrNpcId).sort(),
-            evidence: event.evidence
-          };
+      if (typeof event.completed !== 'boolean' || typeof event.interrupted !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'events.sexual completed/interrupted must be boolean');
+      event.evidence = normalizeEventEvidence(item.evidence, storyText, `events.sexual[${index}]`);
+      const identity = {
+        turn: expectedTurn,
+        action_id: actionId ?? null,
+        domain: 'sexual',
+        actor_id: canonicalPlayerOrNpcId(event.actor_id),
+        target_id: canonicalPlayerOrNpcId(event.target_id),
+        action_type: event.action_type,
+        direction: event.direction ?? null,
+        completed: event.completed,
+        interrupted: event.interrupted,
+        evidence: event.evidence
+      };
       event.event_id = `turn:${expectedTurn}:action:${actionId ?? 'unknown'}:${identity.domain}:${stableEventHash(stableSerialize(identity))}`;
-      return event;
+      return [event];
     });
   };
-  return { general: normalize(value.general ?? [], 'events.general'), sexual: normalize(value.sexual ?? [], 'events.sexual') };
+  return { general: [], sexual: normalizeSexual(value.sexual ?? []) };
 }
 
 function normalizeElapsedMinutes(value, evidence) {
@@ -225,7 +191,6 @@ function normalizeSceneEvidence(value, npcIds, storyText, sceneId) {
     const locationId = item.location_id === undefined || item.location_id === null ? null : nonEmptyId(item.location_id);
     if (item.location_id !== undefined && item.location_id !== null && !locationId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Scene evidence location_id must be a string');
     if (['presence', 'entrance', 'exit'].includes(item.kind) && !characterId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${item.kind} evidence requires character_id`);
-    if (item.kind === 'movement' && !locationId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'movement evidence requires location_id');
     if (item.kind === 'scene' && (sceneId === null || sceneId === undefined)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene evidence requires scene_id');
     const key = JSON.stringify([item.kind, characterId, locationId, quote]);
     if (!seen.has(key)) {
@@ -247,125 +212,293 @@ export function assertExtractObservationContract(observation) {
   return true;
 }
 
-export function assertScenePresenceCoverage(observation, { currentScene = null } = {}) {
-  const scene = observation?.scene_observation ?? {};
-  const before = new Set(Array.isArray(currentScene?.present_npc_ids) ? currentScene.present_npc_ids : []);
-  const final = Array.isArray(scene.final_present_npc_ids) ? new Set(scene.final_present_npc_ids) : null;
-  const evidence = Array.isArray(scene.evidence) ? scene.evidence : [];
-  const has = (kind, id) => evidence.some(item => item.kind === kind && item.character_id === id);
-  if (final === null) {
-    const entered = new Set(scene.entered_npc_ids ?? []);
-    const exited = new Set(scene.exited_npc_ids ?? []);
-    for (const id of entered) if (exited.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `NPC cannot be both entered and exited: ${id}`);
-    for (const id of entered) if (!has('entrance', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Entered NPC lacks entrance evidence: ${id}`);
-    for (const id of exited) if (!has('exit', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Exited NPC lacks exit evidence: ${id}`);
-    return true;
-  }
-  const entered = new Set(scene.entered_npc_ids ?? []);
-  const exited = new Set(scene.exited_npc_ids ?? []);
-  for (const id of entered) if (exited.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `NPC cannot be both entered and exited: ${id}`);
-  for (const id of entered) if (before.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `NPC already present cannot be entered again: ${id}`);
-  for (const id of entered) if (!final.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `Entered NPC is absent from final presence: ${id}`);
-  for (const id of exited) if (final.has(id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_CONFLICT', `Exited NPC remains in final presence: ${id}`);
-  const added = [...final].filter(id => !before.has(id));
-  const removed = [...before].filter(id => !final.has(id));
-  const retained = [...final].filter(id => before.has(id));
-  for (const id of added) {
-    if (!has('entrance', id) && !has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Added NPC lacks entrance/presence evidence: ${id}`);
-  }
-  for (const id of removed) if (!has('exit', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Removed NPC lacks exit evidence: ${id}`);
-  for (const id of retained) if (!has('presence', id)) throw new GameCoreError('SCENE_PRESENCE_EVIDENCE_MISSING', `Retained NPC lacks presence evidence: ${id}`);
-  return true;
-}
-
-export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null } = {}) {
+export function normalizeExtractObservationV2(value, { npcIds = new Set(), storyText = '', currentScene = null, expectedTurn = 0, actionId = null, softOptional = false, storyBlocks = null, persistedCanonical = false } = {}) {
   assertExtractObservationContract(value);
   const registered = npcIds instanceof Set ? npcIds : new Set(Array.isArray(npcIds) ? npcIds : []);
+  const warnings = Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string') : [];
   if (!object(value.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
   const scene = value.scene_observation;
-  assertKeys(scene, new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'presence_is_final', 'remote_speaker_ids', 'evidence']), 'INVALID_EXTRACT_OBSERVATION');
+  assertKeys(scene, new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'remote_speaker_ids', 'evidence', 'presence_is_final']), 'INVALID_EXTRACT_OBSERVATION');
   const final = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
-  const finalFlag = scene.presence_is_final === true;
-  if (finalFlag !== (final !== null)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'presence_is_final and final_present_npc_ids disagree');
-  const sceneId = scene.scene_id === null || scene.scene_id === undefined ? null : (typeof scene.scene_id === 'string' && scene.scene_id.trim() ? scene.scene_id.trim() : null);
-  if (scene.scene_id !== null && scene.scene_id !== undefined && !sceneId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_id must be a string or null');
-  const sceneEvidence = normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId);
-  if (scene.location_id !== null && scene.location_id !== undefined && (typeof scene.location_id !== 'string' || !scene.location_id.trim())) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'location_id must be a string or null');
+  let entered = ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false });
+  let exited = ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false });
+  if (entered.some(id => exited.includes(id))) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'entered_npc_ids and exited_npc_ids must not overlap');
+  if (Object.hasOwn(scene, 'presence_is_final') && typeof scene.presence_is_final !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'presence_is_final must be a boolean when provided for legacy compatibility');
+  let sceneId = scene.scene_id === null || scene.scene_id === undefined ? null : (typeof scene.scene_id === 'string' && scene.scene_id.trim() ? scene.scene_id.trim() : null);
+  if (scene.scene_id !== null && scene.scene_id !== undefined && !sceneId) {
+    if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_id must be a string or null');
+    warnings.push('extract_optional_dropped:scene_observation.scene_id:INVALID_EXTRACT_OBSERVATION');
+    sceneId = null;
+  }
+  const sceneEvidence = softOptional
+    ? dropOptional(true, 'scene_observation.evidence', warnings, [], () => normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId))
+    : normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId);
+  const evidenceFor = (kind, id) => sceneEvidence.some(item => item.character_id === id && (item.kind === kind || item.kind === 'presence'));
+  for (const id of entered.filter(candidate => !evidenceFor('entrance', candidate))) {
+    if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Missing exact entrance evidence for ${id}`);
+    warnings.push(`extract_optional_dropped:entered_npc_ids:${id}`);
+  }
+  for (const id of exited.filter(candidate => !evidenceFor('exit', candidate))) {
+    if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Missing exact exit evidence for ${id}`);
+    warnings.push(`extract_optional_dropped:exited_npc_ids:${id}`);
+  }
+  entered = entered.filter(id => evidenceFor('entrance', id));
+  exited = exited.filter(id => evidenceFor('exit', id));
+  const locationValid = scene.location_id === null || scene.location_id === undefined || (typeof scene.location_id === 'string' && scene.location_id.trim());
+  if (!locationValid && !softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'location_id must be a string or null');
+  const locationId = locationValid ? (scene.location_id === null || scene.location_id === undefined ? null : scene.location_id.trim()) : null;
+  const hasPresenceEvidenceFields = Object.hasOwn(scene, 'entered_npc_ids') || Object.hasOwn(scene, 'exited_npc_ids') || Object.hasOwn(scene, 'presence_is_final');
   const normalized = {
     extract_version: 2,
     outcome: value.outcome,
     scene_observation: {
       scene_id: sceneId,
-      location_id: scene.location_id === null || scene.location_id === undefined ? null : scene.location_id.trim(),
-      final_present_npc_ids: final,
-      entered_npc_ids: ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false }),
-      exited_npc_ids: ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false }),
-      focal_candidate_id: nullableId(scene.focal_candidate_id, registered, 'focal_candidate_id'),
-      presence_is_final: finalFlag,
-      remote_speaker_ids: ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false }),
+      location_id: locationId,
+     final_present_npc_ids: final,
+      ...(hasPresenceEvidenceFields ? { entered_npc_ids: entered, exited_npc_ids: exited } : {}),
+      focal_candidate_id: dropOptional(softOptional, 'scene_observation.focal_candidate_id', warnings, null, () => nullableId(scene.focal_candidate_id, registered, 'focal_candidate_id')),
+      remote_speaker_ids: dropOptional(softOptional, 'scene_observation.remote_speaker_ids', warnings, [], () => ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false })),
       evidence: sceneEvidence
     },
     player_observation: {},
     npc_observations: {},
-    events: normalizeEvents(object(value.events) ? value.events : { general: [], sexual: [] }, registered, storyText, expectedTurn, actionId),
+    events: softOptional
+      ? dropOptional(true, 'events', warnings, { general: [], sexual: [] }, () => normalizeEvents(object(value.events) ? value.events : { general: [], sexual: [] }, registered, storyText, expectedTurn, actionId, warnings))
+      : normalizeEvents(object(value.events) ? value.events : { general: [], sexual: [] }, registered, storyText, expectedTurn, actionId, warnings),
     evidence: object(value.evidence) ? clone(value.evidence) : {},
     elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
     mind_monitor: {},
-    action_target_id: nullableId(value.action_target_id, registered, 'action_target_id'),
-    image_character_id: nullableId(value.image_character_id, registered, 'image_character_id'),
+    action_target_id: dropOptional(softOptional, 'action_target_id', warnings, null, () => nullableId(value.action_target_id, registered, 'action_target_id')),
+    image_character_id: dropOptional(softOptional, 'image_character_id', warnings, null, () => nullableId(value.image_character_id, registered, 'image_character_id')),
     image_selection: normalizeImageSelection(value.image_selection),
     csa_trigger_evaluations: [], csa_runtime_updates: [],
     turn_summary: typeof value.turn_summary === 'string' ? value.turn_summary : '',
-    warnings: Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string') : []
+    warnings
   };
   if (value.player_observation !== null && value.player_observation !== undefined) {
-    assertKeys(value.player_observation, new Set(['physical', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
-    normalized.player_observation = {
-      physical: normalizePhysical(value.player_observation.physical),
-      sexual: normalizeSexual(value.player_observation.sexual)
-    };
+    if (!object(value.player_observation)) {
+      if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'player_observation must be an object');
+      warnings.push('extract_optional_dropped:player_observation:INVALID_EXTRACT_OBSERVATION');
+    } else {
+      assertKeys(value.player_observation, new Set(['physical', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
+      normalized.player_observation = {
+        physical: dropOptional(softOptional, 'player_observation.physical', warnings, null, () => normalizePhysical(value.player_observation.physical)),
+        sexual: dropOptional(softOptional, 'player_observation.sexual', warnings, null, () => normalizeSexual(value.player_observation.sexual))
+      };
+    }
   }
   if (value.npc_observations !== null && value.npc_observations !== undefined && !object(value.npc_observations)) {
     throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'npc_observations must be an object');
   }
   for (const [npcId, npcObservation] of Object.entries(object(value.npc_observations) ? value.npc_observations : {})) {
     if (registered.size && !registered.has(npcId)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Unknown NPC observation: ${npcId}`);
-    normalized.npc_observations[npcId] = normalizeNpcObservation(npcObservation);
+    if (softOptional) {
+      if (!object(npcObservation)) { warnings.push(`extract_optional_dropped:npc_observations.${npcId}:INVALID_EXTRACT_OBSERVATION`); continue; }
+      const domains = {};
+      for (const domain of NPC_DOMAINS) if (Object.hasOwn(npcObservation, domain)) {
+        domains[domain] = dropOptional(true, `npc_observations.${npcId}.${domain}`, warnings, null, () => normalizeNpcObservation({ [domain]: npcObservation[domain] })[domain]);
+      }
+      normalized.npc_observations[npcId] = domains;
+    } else normalized.npc_observations[npcId] = normalizeNpcObservation(npcObservation);
   }
   if (value.mind_monitor !== null && value.mind_monitor !== undefined) {
-    if (!object(value.mind_monitor)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'mind_monitor must be an object');
+    if (!object(value.mind_monitor)) {
+      if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'mind_monitor must be an object');
+      warnings.push('extract_optional_dropped:mind_monitor:INVALID_EXTRACT_OBSERVATION');
+    }
     for (const [npcId, monitor] of Object.entries(value.mind_monitor)) {
-      if (registered.size && !registered.has(npcId)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Unknown mind monitor NPC: ${npcId}`);
-      assertKeys(monitor, new Set(['surface', 'subconscious']), 'INVALID_EXTRACT_OBSERVATION');
-      normalized.mind_monitor[npcId] = { surface: typeof monitor.surface === 'string' ? monitor.surface : '', subconscious: typeof monitor.subconscious === 'string' ? monitor.subconscious : '' };
+      if (registered.size && !registered.has(npcId)) {
+        if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Unknown mind monitor NPC: ${npcId}`);
+        warnings.push(`extract_optional_dropped:mind_monitor.${npcId}:UNKNOWN_NPC`);
+        continue;
+      }
+      const parsedMonitor = softOptional
+        ? dropOptional(true, `mind_monitor.${npcId}`, warnings, null, () => {
+            assertKeys(monitor, new Set(['surface', 'subconscious']), 'INVALID_EXTRACT_OBSERVATION');
+            if (typeof monitor.surface !== 'string' || typeof monitor.subconscious !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'mind monitor text must be strings');
+            return { surface: monitor.surface, subconscious: monitor.subconscious };
+          })
+        : (() => { assertKeys(monitor, new Set(['surface', 'subconscious']), 'INVALID_EXTRACT_OBSERVATION'); return { surface: typeof monitor.surface === 'string' ? monitor.surface : '', subconscious: typeof monitor.subconscious === 'string' ? monitor.subconscious : '' }; })();
+      if (parsedMonitor) normalized.mind_monitor[npcId] = parsedMonitor;
     }
   }
   for (const item of Array.isArray(value.csa_trigger_evaluations) ? value.csa_trigger_evaluations : []) {
-    assertKeys(item, CSA_TRIGGER_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
-    if (!nonEmptyId(item?.csa_id) || !TRIGGER.has(item?.status)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid CSA trigger observation');
-    normalized.csa_trigger_evaluations.push({ csa_id: item.csa_id, status: item.status });
+    const parsed = softOptional
+      ? dropOptional(true, 'csa_trigger_evaluations.item', warnings, null, () => { assertKeys(item, CSA_TRIGGER_FIELDS, 'INVALID_EXTRACT_OBSERVATION'); if (!nonEmptyId(item?.csa_id) || !TRIGGER.has(item?.status)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid CSA trigger observation'); return { csa_id: item.csa_id, status: item.status }; })
+      : (() => { assertKeys(item, CSA_TRIGGER_FIELDS, 'INVALID_EXTRACT_OBSERVATION'); if (!nonEmptyId(item?.csa_id) || !TRIGGER.has(item?.status)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid CSA trigger observation'); return { csa_id: item.csa_id, status: item.status }; })();
+    if (parsed) normalized.csa_trigger_evaluations.push(parsed);
   }
   for (const item of Array.isArray(value.csa_runtime_updates) ? value.csa_runtime_updates : []) {
-    assertKeys(item, CSA_RUNTIME_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
-    const characterId = nullableId(item.character_id, registered, 'csa_runtime_updates.character_id');
-    if (!nonEmptyId(item?.csa_id) || !characterId || !RUNTIME.has(item?.status)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid CSA runtime observation');
-    normalized.csa_runtime_updates.push({
-      csa_id: item.csa_id, character_id: characterId, status: item.status,
-      target_type: typeof item.target_type === 'string' ? item.target_type.slice(0, 40) : null,
-      action_state: typeof item.action_state === 'string' ? item.action_state.slice(0, 60) : null,
-      position_label: typeof item.position_label === 'string' ? item.position_label.slice(0, 100) : null,
-      reason: typeof item.reason === 'string' ? item.reason.slice(0, 100) : null
-    });
+    const parsed = softOptional
+      ? dropOptional(true, 'csa_runtime_updates.item', warnings, null, () => {
+        assertKeys(item, CSA_RUNTIME_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+        const characterId = nullableId(item.character_id, registered, 'csa_runtime_updates.character_id');
+        if (!nonEmptyId(item?.csa_id) || !characterId || !RUNTIME.has(item?.status)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid CSA runtime observation');
+        return {
+          csa_id: item.csa_id, character_id: characterId, status: item.status,
+          target_type: typeof item.target_type === 'string' ? item.target_type.slice(0, 40) : null,
+          action_state: typeof item.action_state === 'string' ? item.action_state.slice(0, 60) : null,
+          position_label: typeof item.position_label === 'string' ? item.position_label.slice(0, 100) : null,
+          reason: typeof item.reason === 'string' ? item.reason.slice(0, 100) : null
+        };
+      })
+      : (() => {
+        assertKeys(item, CSA_RUNTIME_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+        const characterId = nullableId(item.character_id, registered, 'csa_runtime_updates.character_id');
+        if (!nonEmptyId(item?.csa_id) || !characterId || !RUNTIME.has(item?.status)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid CSA runtime observation');
+        return {
+          csa_id: item.csa_id, character_id: characterId, status: item.status,
+          target_type: typeof item.target_type === 'string' ? item.target_type.slice(0, 40) : null,
+          action_state: typeof item.action_state === 'string' ? item.action_state.slice(0, 60) : null,
+          position_label: typeof item.position_label === 'string' ? item.position_label.slice(0, 100) : null,
+          reason: typeof item.reason === 'string' ? item.reason.slice(0, 100) : null
+        };
+      })();
+    if (parsed) normalized.csa_runtime_updates.push(parsed);
   }
   return normalized;
 }
 
+function prepareFreshExtractInput(value) {
+  const fresh = clone(value);
+  const warnings = [];
+  if (!object(fresh)) return { value: fresh, warnings };
+  const warn = (path, reason = 'REMOVED_OPTIONAL_FIELD') => warnings.push(`extract_optional_dropped:${path}:${reason}`);
+  if (Object.hasOwn(fresh, 'relation_updates')) {
+    delete fresh.relation_updates;
+    warn('relation_updates');
+  }
+  if (object(fresh.events)) {
+    fresh.events = { ...fresh.events };
+    for (const key of Object.keys(fresh.events)) {
+      if (key !== 'general' && key !== 'sexual') {
+        delete fresh.events[key];
+        warn(`events.${key}`, 'UNKNOWN_OPTIONAL_FIELD');
+      }
+    }
+    if (Object.hasOwn(fresh.events, 'general')) {
+      delete fresh.events.general;
+      warn('events.general');
+    }
+  }
+  if (object(fresh.player_observation)) {
+    fresh.player_observation = { ...fresh.player_observation };
+    for (const key of Object.keys(fresh.player_observation)) {
+      if (key !== 'physical' && key !== 'sexual') {
+        delete fresh.player_observation[key];
+        warn(`player_observation.${key}`, 'UNKNOWN_OPTIONAL_FIELD');
+      }
+    }
+  }
+  if (object(fresh.npc_observations)) {
+    const npcObservations = fresh.npc_observations;
+    fresh.npc_observations = {};
+    for (const [npcId, domains] of Object.entries(npcObservations)) {
+      const nextDomains = object(domains) ? { ...domains } : domains;
+      if (object(nextDomains)) {
+        for (const domain of Object.keys(nextDomains)) {
+          if (!NPC_DOMAINS.has(domain)) {
+            delete nextDomains[domain];
+            warn(`npc_observations.${npcId}.${domain}`, 'REMOVED_OR_UNKNOWN_OPTIONAL_FIELD');
+          }
+        }
+      }
+      fresh.npc_observations[npcId] = nextDomains;
+    }
+  }
+  return { value: fresh, warnings };
+}
+
+/**
+ * Fresh LLM boundary.  This deliberately rejects persisted/legacy affordances
+ * before delegating to the compatibility V2 normalizer below.  Historical V1
+ * and persisted degraded rows are handled by the persisted read boundary, not
+ * by a new Extract completion.
+ */
+function normalizeFreshExtractObservationV2Legacy(value, options = {}) {
+  const prepared = prepareFreshExtractInput(value);
+  const freshValue = prepared.value;
+  assertExtractObservationContract(freshValue);
+  if (!FRESH_OUTCOMES.has(freshValue.outcome)) {
+    throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Fresh Extract outcome is not allowed');
+  }
+  if (!object(freshValue.scene_observation)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation is required');
+  assertKeys(freshValue.scene_observation, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+  const normalized = normalizeExtractObservationV2(freshValue, { ...options, softOptional: true });
+  normalized.warnings.unshift(...prepared.warnings);
+  const required = Array.isArray(options.requiredMindMonitorIds)
+    ? options.requiredMindMonitorIds.filter(id => typeof id === 'string' && id.trim())
+    : [];
+  for (const npcId of required) {
+    const monitor = normalized.mind_monitor[npcId];
+    if (!monitor || !monitor.surface.trim() || !monitor.subconscious.trim()) normalized.warnings.push(`mind_monitor_missing:${npcId}`);
+  }
+  if (normalized.csa_trigger_evaluations.length || normalized.csa_runtime_updates.length) {
+    normalized.warnings.push('fresh_csa_observation_ignored');
+  }
+  normalized.csa_trigger_evaluations = [];
+  normalized.csa_runtime_updates = [];
+  return normalized;
+}
+
+/** Fresh provider vocabulary: narrow observation only; it never enters the legacy normalizer. */
+export function normalizeFreshExtractObservationV2(value, options = {}) {
+  if (!object(value)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Fresh Extract observation must be an object');
+  assertKeys(value, FRESH_TOP_LEVEL, 'INVALID_EXTRACT_OBSERVATION');
+  if (value.extract_version !== 2 || !FRESH_OUTCOMES.has(value.outcome)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid fresh Extract contract');
+  const registered = options.npcIds instanceof Set ? options.npcIds : new Set(Array.isArray(options.npcIds) ? options.npcIds : []);
+  const scene = object(value.scene_observation) ? value.scene_observation : {};
+  assertKeys(scene, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
+  const sceneId = scene.scene_id === null || scene.scene_id === undefined ? null : nonEmptyId(scene.scene_id);
+  const locationId = scene.location_id === null || scene.location_id === undefined ? null : nonEmptyId(scene.location_id);
+  const finalIds = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
+  const entered = ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false });
+  const exited = ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false });
+  const warnings = Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string') : [];
+  const evidence = normalizeSceneEvidence(scene.evidence ?? [], registered, options.storyText ?? '', sceneId);
+  const player = object(value.player_observation) ? value.player_observation : {};
+  assertKeys(player, new Set(['physical', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
+  const npcObservations = {};
+  for (const [id, domains] of Object.entries(object(value.npc_observations) ? value.npc_observations : {})) {
+    if (registered.size && !registered.has(id)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Unknown NPC observation: ${id}`);
+    assertKeys(domains, new Set(['physical']), 'INVALID_EXTRACT_OBSERVATION');
+    npcObservations[id] = { physical: normalizePhysical(domains.physical) };
+  }
+  const monitor = {};
+  for (const [id, entry] of Object.entries(object(value.mind_monitor) ? value.mind_monitor : {})) {
+    if (registered.size && !registered.has(id)) continue;
+    if (!object(entry) || typeof entry.surface !== 'string' || typeof entry.subconscious !== 'string') continue;
+    monitor[id] = { surface: entry.surface, subconscious: entry.subconscious };
+  }
+  return {
+    extract_version: 2,
+    outcome: value.outcome,
+    scene_observation: {
+      scene_id: sceneId,
+      location_id: locationId,
+      final_present_npc_ids: finalIds,
+      entered_npc_ids: entered,
+      exited_npc_ids: exited,
+      presence_is_final: scene.presence_is_final === true,
+      focal_candidate_id: nullableId(scene.focal_candidate_id, registered, 'focal_candidate_id'),
+      remote_speaker_ids: ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false }),
+      evidence
+    },
+    player_observation: { physical: normalizePhysical(player.physical), sexual: normalizeSexual(player.sexual) },
+    npc_observations: npcObservations,
+    evidence: object(value.evidence) ? clone(value.evidence) : {},
+    elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
+    mind_monitor: monitor,
+    turn_summary: typeof value.turn_summary === 'string' ? value.turn_summary : '',
+    warnings
+  };
+}
+
 export function buildDegradedExtractObservation({ extraWarnings = [] } = {}) {
-  return normalizeExtractObservationV2({
+  return {
     extract_version: 2, outcome: 'degraded',
-    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, presence_is_final: false, remote_speaker_ids: [], evidence: [] },
-    player_observation: {}, npc_observations: {}, events: { general: [], sexual: [] }, evidence: {}, elapsed_minutes: 3,
-    mind_monitor: {}, action_target_id: null, image_character_id: null, image_selection: null,
-    csa_trigger_evaluations: [], csa_runtime_updates: [], turn_summary: '', warnings: ['extract_degraded', ...extraWarnings]
-  });
+    scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], presence_is_final: false, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] },
+    player_observation: { physical: null, sexual: null }, npc_observations: {}, evidence: {}, elapsed_minutes: 3,
+    mind_monitor: {}, turn_summary: '', warnings: ['extract_degraded', ...extraWarnings]
+  };
 }

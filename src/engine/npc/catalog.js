@@ -1,7 +1,7 @@
 /**
  * General (non-heroine) NPC catalog — background employees/partners distinct from the 5
  * registered heroines. They never get full per-turn state in the Story prompt (only the
- * currently-present ones do, via the same npc_scene_state/npc_emotion maps heroines use), are
+ * currently-present ones do, via the same canonical scene maps heroines use), are
  * never automatic romance targets, and are used for CSA actor/target-group role resolution
  * (see resolver.js) so a preset like "male_staff" can resolve to a real, concrete NPC instead
  * of only ever collapsing to the current focal heroine.

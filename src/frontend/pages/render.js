@@ -1,9 +1,11 @@
-﻿import { parseNarrative } from './narrative.js';
-
 export function text(element, value) { if (element) element.textContent = value ?? ''; }
 
 function displayValue(value) { return typeof value === 'string' || typeof value === 'number' ? String(value) : ''; }
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null; }
+function normalizeNarrativeDisplay(value) {
+  return String(value ?? '').replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+export { normalizeNarrativeDisplay };
 
 /**
  * 플레이어 속마음 표시 전용 최소 정규화 — 문장부호 자동 개행 없음, 모델 줄바꿈 유지.
@@ -86,12 +88,7 @@ function normalizedStrings(value) {
 }
 
 function parsedChoices(turn, parsed) {
-  const candidates = [parsed?.choices, turn?.choices, turn?.parsed_blocks?.choices];
-  for (const candidate of candidates) {
-    const normalized = normalizedStrings(candidate);
-    if (normalized.length) return normalized;
-  }
-  return [];
+  return normalizedStrings(parsed?.choices);
 }
 
 function parsedChoiceLabels(turn, parsed, choiceCount) {
@@ -127,7 +124,7 @@ export function parsedTurnNarrative(turn) {
   let parsed;
   if (Array.isArray(turn?.parsed_blocks)) parsed = { blocks: turn.parsed_blocks };
   else if (Array.isArray(turn?.parsed_blocks?.blocks)) parsed = turn.parsed_blocks;
-  else parsed = parseNarrative(turn?.story_text ?? '');
+  else parsed = {};
   const choices = parsedChoices(turn, parsed);
   return { ...parsed, choices, choice_labels: parsedChoiceLabels(turn, parsed, choices.length) };
 }
@@ -182,20 +179,27 @@ function dialogueToneClass(speakerId) {
 export function renderNarrative(container, parsed) {
   if (!container) return;
   container.replaceChildren();
+  const context = object(parsed?.turn_context);
+  if (context && (Number.isInteger(context.day) || Number.isInteger(context.minute_of_day) || context.location_name)) {
+    const bar = document.createElement('div');
+    bar.className = 'turn-context-bar';
+    const day = Number.isInteger(context.day) ? `${context.day}일차` : '';
+    const minute = Number.isInteger(context.minute_of_day)
+      ? `${String(Math.floor(context.minute_of_day / 60)).padStart(2, '0')}:${String(context.minute_of_day % 60).padStart(2, '0')}`
+      : '';
+    const location = typeof context.location_name === 'string' ? context.location_name : '';
+    bar.textContent = [day, minute].filter(Boolean).join(' · ') + (location ? ` | ${location}` : '');
+    container.append(bar);
+  }
   const choices = normalizedStrings(parsed?.choices);
   const labels = parsedChoiceLabels({ choice_labels: parsed?.choice_labels }, {}, choices.length);
   if (container.id === 'current-story') currentChoiceSet = choiceSet(choices, labels);
-  let embeddedChoices = false;
   let lastDialogueCard = null;
-  let sawThoughtBlock = false;
   for (const block of parsed?.blocks ?? []) {
-    if (block.type === 'player_inner_thought') sawThoughtBlock = true;
-    if (block.type === 'choices') {
-      renderNarrativeChoices(container, block.choices ?? choices, block.choice_labels ?? labels);
-      embeddedChoices = true;
-      lastDialogueCard = null;
-      continue;
-    }
+    // THOUGHT and CHOICE are footer blocks.  Their raw blocks remain part of
+    // the parsed projection, but the narrative body renders each canonical
+    // value once below so mid-story/duplicate blocks cannot become paragraphs.
+    if (block.type === 'player_inner_thought' || block.type === 'choice' || block.type === 'choices') continue;
     if (block.type === 'dialogue') {
       // 같은 화자가 연속으로 말하면 한 대사칸에 이어 붙인다
       if (lastDialogueCard && lastDialogueCard.dataset?.speakerId === block.speaker_id) {
@@ -209,33 +213,28 @@ export function renderNarrative(container, parsed) {
       if (speakerTone) card.classList.add(speakerTone);
       const meta = document.createElement('header'); meta.className = 'dialogue-meta';
       const speaker = document.createElement('strong'); speaker.className = 'dialogue-speaker'; speaker.textContent = block.speaker ?? block.speaker_name ?? '';
-      const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = block.direction ?? '';
-      const line = document.createElement('p'); line.className = 'dialogue-text'; line.textContent = block.text ?? '';
+      const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = normalizeNarrativeDisplay(block.direction ?? '');
+      const line = document.createElement('p'); line.className = 'dialogue-text'; line.textContent = normalizeNarrativeDisplay(block.text ?? '');
       meta.append(speaker, direction); card.append(meta, line); container.append(card);
       lastDialogueCard = card;
       continue;
     }
     lastDialogueCard = null;
     const paragraph = document.createElement('p'); paragraph.className = `narrative-${block.type ?? 'unparsed'}`;
-    const blockText = block.text ?? '';
-    paragraph.textContent = block.type === 'player_inner_thought'
-      ? normalizeInnerThought(blockText)
-      : blockText;
+    paragraph.textContent = normalizeNarrativeDisplay(block.text ?? '');
     container.append(paragraph);
   }
-  // 플레이어 속마음 복구 — blocks에 thought 블록이 없어도 parsed.player_inner_thought가
-  // 있으면 서사·대화 뒤, 선택지 앞에 한 번만 표시한다. 블록이 이미 있으면 중복 표시하지 않는다.
-  if (!sawThoughtBlock) {
-    const thought = displayValue(parsed?.player_inner_thought);
-    if (thought) {
-      const paragraph = document.createElement('p');
-      paragraph.className = 'narrative-player_inner_thought';
-      // 바깥쪽 불필요한 따옴표만 제거하고, 모델이 만든 줄바꿈은 유지한다 (문장부호 자동 개행 없음).
-      paragraph.textContent = normalizeInnerThought(String(thought));
-      container.append(paragraph);
-    }
+  // Canonical footer projection: one thought card, followed by one narrative
+  // choice box.  Missing thought/partial choices remain observable in the
+  // parsed result and are handled as soft completeness warnings.
+  const thought = normalizeInnerThought(displayValue(parsed?.player_inner_thought));
+  if (thought) {
+    const paragraph = document.createElement('p');
+    paragraph.className = 'narrative-player_inner_thought';
+    paragraph.textContent = thought;
+    container.append(paragraph);
   }
-  if (!embeddedChoices) renderNarrativeChoices(container, choices, labels);
+  renderNarrativeChoices(container, choices, labels);
 }
 
 export function renderChoices(container, choices, { busy = false, onChoose } = {}) {
@@ -245,7 +244,8 @@ export function renderChoices(container, choices, { busy = false, onChoose } = {
   const labels = labelsForChoices(normalized);
   for (const [index, choice] of normalized.entries()) {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'choice-button';
-    button.textContent = `${index + 1} ${labels[index] || choice}`;
+    const compact = choiceLabel(choice, 5, labels[index]);
+    button.textContent = labels[index] ? `${index + 1} ${compact}` : compact;
     button.title = choice;
     button.ariaLabel = `${index + 1}번 선택지: ${choice}`;
     button.disabled = busy;
@@ -356,13 +356,12 @@ function renderMindEntry(container, entry) {
   renderStatStrip(container, entry);
   const body = document.createElement('div'); body.className = 'mind-monitor-body';
   for (const [label, value] of [['표면의식', entry.surface], ['잠재의식', entry.subconscious]]) {
-    const card = document.createElement('section'); card.className = 'mind-card';
-    const heading = document.createElement('h3'); heading.textContent = label;
+    const card = document.createElement('section'); card.className = 'mind-line';
+    const heading = document.createElement('h4'); heading.textContent = label;
     const detail = document.createElement('p'); detail.textContent = value || '이번 턴에는 확인할 수 없습니다.';
     card.append(heading, detail); body.append(card);
   }
   container.append(body);
-  // 캐릭터 이름: 컨테이너 마지막에 추가 (CSS order로 최상단 표시, 카드 구조 유지)
   const name = displayValue(entry.name) || displayValue(entry.id);
   if (name && !container.querySelector?.('.mind-monitor-name')) {
     const nameHeading = document.createElement('h3'); nameHeading.className = 'mind-monitor-name'; nameHeading.textContent = name;
@@ -643,6 +642,8 @@ function renderPlayer(container, player, scene) {
   const activeRules = Array.isArray(player?.active_csa) ? player.active_csa : [];
   const activeCount = typeof player?.active_csa_count === 'number' ? player.active_csa_count : activeRules.length;
   const activeMax = typeof player?.max_active_csa === 'number' ? player.max_active_csa : null;
+  const compact = container.parentElement?.querySelector?.('#player-compact-summary');
+  if (compact) compact.textContent = [typeof player?.level === 'number' ? `Lv.${player.level}` : '', `규정 ${activeMax === null ? activeCount : `${activeCount}/${activeMax}`}`].filter(Boolean).join(' · ');
   const entries = [
     ['이름', displayValue(player?.name)],
     ['소속', [displayValue(player?.department), displayValue(player?.position)].filter(Boolean).join(' · ')],
@@ -790,8 +791,6 @@ export function renderState(elements, viewModel, { title = '상식개변: 회사
   text(elements.turn, `Turn ${model.turn?.committed_turn ?? 0}`);
   text(elements.dayTime, [day ? `Day ${day}` : '', clock].filter(Boolean).join(' · '));
   // scene-state: 활성 규정은 플레이어 상태창으로 통합되어 여기선 비움 (중복 방지)
-  const characterPanel = elements.focal?.closest?.('details');
-  if (characterPanel) characterPanel.open = true;
   renderFocalCharacter(elements.focal, model.focal_character, model.player, model.interacting_characters);
   renderMindMonitor(elements.mind, model.media?.mind_monitor_entries ?? model.media?.mind_monitor, {
     preferredId: model.media?.default_mind_character_id

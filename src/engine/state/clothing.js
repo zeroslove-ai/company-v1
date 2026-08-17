@@ -228,22 +228,6 @@ export function retainEvidencedClothing({ previousClothing = {}, proposedClothin
 }
 
 /** 규정이 요구하는 착의 template — canonical slot → enum. */
-const REQUIRED_BY_TEMPLATE = {
-  work_in_underwear_only: {
-    uniform_top: 'removed',
-    uniform_bottom: 'removed',
-    underwear_top: 'worn',
-    underwear_bottom: 'worn'
-  },
-  work_without_underwear: {
-    underwear_top: 'removed',
-    underwear_bottom: 'removed'
-  },
-  no_bra_under_work_clothes: { underwear_top: 'removed' },
-  no_panties_under_work_clothes: { underwear_bottom: 'removed' },
-  work_topless: { uniform_top: 'removed' }
-};
-
 /**
  * NPC별 규정상 요구 착의 — 최소 정책 (추론·우선순위 없음).
  *
@@ -261,37 +245,6 @@ const REQUIRED_BY_TEMPLATE = {
  *
  * 규정 우선순위(strength/updated_turn/created_turn)는 추론하지 않는다.
  */
-export function requiredClothingFromActiveCsa(activeRules = [], npcProfile = {}) {
-  const applicable = [];
-  const gender = typeof npcProfile?.gender === 'string' ? npcProfile.gender.toLowerCase() : null;
-  for (const rule of activeRules) {
-    const templateId = rule?.preset?.template_id;
-    if (!templateId || !REQUIRED_BY_TEMPLATE[templateId]) continue;
-    const preset = rule?.preset ?? {};
-    const actorGroup = preset.affected_group;
-    const mode = preset.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
-    if (mode === 'on_player_request') continue;
-    if (actorGroup === 'female_employee' && gender !== 'female') continue;
-    // male_employee 규정이 남성 전용일 경우 — 프로필 성별과 충돌하면 적용하지 않는다.
-    if (actorGroup === 'male_employee' && gender !== null && gender !== 'male') continue;
-    applicable.push({ rule, templateId });
-  }
-
-  if (applicable.length === 0) {
-    return { required_clothing: {}, source_csa_id: null, conflicted: false };
-  }
-  if (applicable.length > 1) {
-    // 서로 다른 착의 요구가 있으면 미확정 — 우선순위로 추론하지 않는다.
-    return { required_clothing: {}, source_csa_id: null, conflicted: true };
-  }
-  const { rule, templateId } = applicable[0];
-  return {
-    required_clothing: REQUIRED_BY_TEMPLATE[templateId],
-    source_csa_id: rule?.csa_id ?? rule?.id ?? null,
-    conflicted: false
-  };
-}
-
 /**
  * 실제 착의와 규정상 요구 착의를 비교한다.
  * - not_applicable: 요구 슬롯 없음 (conflicted 포함)

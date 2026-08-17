@@ -1,4 +1,5 @@
 import { CATALOGS } from './catalogs.js';
+import { contextChoices } from './state.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : null;
@@ -45,20 +46,12 @@ function parsed(turn) {
   return object(turn?.parsed_blocks) ?? {};
 }
 
-function choices(save, turn) {
-  const saved = strings(save.last_choices);
-  if (saved.length > 0) return saved;
-  const committed = strings(turn.choices);
-  if (committed.length > 0) return committed;
-  return strings(parsed(turn).choices);
-}
-
 function committedTurn(context, save) {
   return integer(context?.save?.committed_turn) ?? integer(save.turn_state?.committed_turn) ?? 0;
 }
 
-export function canonicalSceneView(save) {
-  const source = object(save?.scene);
+export function canonicalSceneView(save, projectedScene = null) {
+  const source = object(projectedScene) ?? object(save?.scene);
   const playerId = text(object(save?.player)?.player_id) || 'player';
   const normalizeIds = value => strings(value).filter(id => !isPlayerAlias(id, playerId));
   if (source && source.version === 1) {
@@ -72,28 +65,20 @@ export function canonicalSceneView(save) {
       present_npc_ids: normalizeIds(source.present_npc_ids),
       focal_character_id: text(source.focal_character_id),
       last_speaker_id: text(source.last_speaker_id),
-      updated_turn: integer(source.updated_turn),
-      compatibility_mode: 'canonical'
+      updated_turn: integer(source.updated_turn)
     };
   }
-  const legacy = object(save?.scene_state) ?? {};
-  const legacyPresence = strings(legacy.participants ?? save?.last_npcs_present);
-  if (!legacyPresence.length) {
-    if (typeof save?.focal_character_id === 'string' && save.focal_character_id) legacyPresence.push(save.focal_character_id);
-    if (typeof save?.last_speaker_id === 'string' && save.last_speaker_id) legacyPresence.push(save.last_speaker_id);
-  }
   return {
-    version: 0,
-    scene_id: text(legacy.scene_id),
-    location_id: text(legacy.location_id),
-    beat: integer(legacy.beat) ?? 0,
-    goal: legacy.goal ?? null,
-    focus_thread: legacy.focus_thread ?? null,
-    present_npc_ids: normalizeIds(legacyPresence),
-    focal_character_id: text(save?.focal_character_id),
-    last_speaker_id: text(save?.last_speaker_id),
-    updated_turn: integer(save?.turn_state?.committed_turn),
-    compatibility_mode: 'legacy_pre_scene_v1'
+    version: 1,
+    scene_id: '',
+    location_id: '',
+    beat: 0,
+    goal: null,
+    focus_thread: null,
+    present_npc_ids: [],
+    focal_character_id: '',
+    last_speaker_id: '',
+    updated_turn: null
   };
 }
 
@@ -108,16 +93,10 @@ function catalogName(list, idField, id) {
   return text(list.find(item => item?.[idField] === id)?.name);
 }
 
-function characterName(save, id, directory = {}, details = {}) {
+function characterName(id, directory = {}) {
   if (!id) return '';
-  const detailedName = text(object(details)?.[id]?.name);
-  if (detailedName) return detailedName;
   const projectedName = text(object(directory)?.[id]?.name);
   if (projectedName) return projectedName;
-  for (const source of [save.characters, save.npc_profiles, save.npc_identity_state, save.npc_state]) {
-    const name = text(object(object(source)?.[id])?.name);
-    if (name) return name;
-  }
   return catalogName(CATALOGS.characters ?? [], 'character_id', id);
 }
 
@@ -136,11 +115,9 @@ function normalizeDialogueLines(value) {
     .sort((left, right) => left.order - right.order);
 }
 
-function dialogueLines(parsedStory) {
+function dialogueLines(parsedStory, { playerName = '', save = {}, directory = {} } = {}) {
   const parsedLines = normalizeDialogueLines(parsedStory?.dialogue_lines);
-  if (parsedLines.length) return parsedLines;
-  if (!Array.isArray(parsedStory?.blocks)) return [];
-  return normalizeDialogueLines(parsedStory.blocks
+  const lines = parsedLines.length ? parsedLines : (!Array.isArray(parsedStory?.blocks) ? [] : normalizeDialogueLines(parsedStory.blocks
     .filter(block => block?.type === 'dialogue' && typeof block.text === 'string' && block.text.trim())
     .map((block, order) => ({
       speaker_id: block.speaker_id ?? block.character_id,
@@ -148,7 +125,14 @@ function dialogueLines(parsedStory) {
       text: block.text,
       direction: block.direction,
       order
-    })));
+    }))));
+  return lines.map(line => {
+    const id = line.speaker_id;
+    const resolved = isPlayerAlias(id, text(object(save.player)?.player_id) || 'player')
+      ? playerName
+      : characterName(id, directory);
+    return resolved ? { ...line, speaker_name: resolved } : line;
+  });
 }
 
 function normalizedStats(value) {
@@ -194,16 +178,15 @@ function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory =
   return [...ids].map(id => {
     const value = object(source[id]) ?? {};
     const detail = detailFor(details, id);
-    const savedStats = object(object(save.npc_stats)?.[id]);
     const hasDetail = Boolean(object(details)?.[id]);
     const entry = {
       id,
-      name: characterName(save, id, directory, details) || id,
+      name: characterName(id, directory) || id,
       surface: text(value.surface ?? value['표면의식']),
       subconscious: text(value.subconscious ?? value.latent ?? value['잠재의식'])
     };
-    if (hasDetail || savedStats) {
-      entry.stats = hasDetail ? detail.stats : normalizedStats(savedStats);
+    if (hasDetail) {
+      entry.stats = detail.stats;
       entry.stat_changes = hasDetail ? detail.stat_changes : {};
     }
     if (hasDetail) {
@@ -218,17 +201,12 @@ function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory =
 
 function npcView(save, id, details = {}) {
   if (!id) return null;
-  const stats = object(save.npc_stats)?.[id];
-  const relationship = object(save.npc_relationship_state)?.[id];
-  const emotion = object(save.npc_emotion)?.[id];
   const detail = object(details?.[id]);
-  if (!stats && !relationship && !emotion && !detail) return null;
+  if (!detail) return null;
   return {
     id,
-    stats: detail ? normalizedStats(detail.stats) : normalizedStats(stats),
+    stats: normalizedStats(detail.stats),
     stat_changes: normalizedChanges(detail?.stat_changes),
-    relationship: object(relationship) ?? {},
-    emotion: object(emotion) ?? {},
     profile: object(detail?.profile) ?? {},
     body: object(detail?.body) ?? {},
     relationship_summary: text(detail?.relationship_summary),
@@ -240,7 +218,6 @@ function npcView(save, id, details = {}) {
 function npcSceneView(save, id) {
   const state = object(object(save.npc_scene_state)?.[id]) ?? {};
   return {
-    location_label: text(state.location_label),
     posture: text(state.posture),
     posture_detail: text(state.posture_detail ?? state.posture_description),
     position_label: text(state.position_label),
@@ -250,7 +227,7 @@ function npcSceneView(save, id) {
 }
 
 /** 현재 장면 참여 정본만 사용한다. focal을 먼저 두고, 퇴장(present:false)은 제외한다. */
-function interactingCharacterViews(save, scene, directory = {}, details = {}) {
+function interactingCharacterViews(save, scene, directory = {}) {
   const playerId = text(object(save.player)?.player_id) || 'player';
   const participantIds = strings(scene?.present_npc_ids);
   const focalId = text(scene?.focal_character_id);
@@ -261,18 +238,9 @@ function interactingCharacterViews(save, scene, directory = {}, details = {}) {
     .filter(id => id && !isPlayerAlias(id, playerId))
     .map(id => ({
       id,
-      name: characterName(save, id, directory, details) || id,
+      name: characterName(id, directory) || id,
       scene_state: npcSceneView(save, id)
     }));
-}
-
-function fallbackActiveRules(save) {
-  const rules = object(save.csa_rules) ?? {};
-  return strings(save.csa_active).flatMap(id => {
-    const rule = object(rules[id]);
-    if (!rule || rule.active === false) return [];
-    return [{ id, strength: text(rule.strength), strength_label: text(rule.strength), authority_label: text(rule.authority_label), scope_label: text(rule.scope_label) || '회사 전체', content: text(rule.content ?? rule.required_action) }];
-  });
 }
 
 export function buildCompanyGameViewModel(context) {
@@ -287,8 +255,8 @@ export function buildCompanyGameViewModel(context) {
   const details = object(display.character_details) ?? {};
   const capability = object(display.player_capability) ?? {};
   const sexualDisplay = object(display.player_sexual) ?? {};
-  const activeRules = Array.isArray(display.active_csa) ? display.active_csa.filter(object) : fallbackActiveRules(save);
-  const scene = canonicalSceneView(save);
+  const activeRules = Array.isArray(display.active_csa) ? display.active_csa.filter(object) : [];
+  const scene = canonicalSceneView(save, display.scene);
   const focalId = text(scene.focal_character_id);
   const lastSpeakerId = text(scene.last_speaker_id);
   const player = object(save.player) ?? {};
@@ -296,10 +264,17 @@ export function buildCompanyGameViewModel(context) {
   const playerSexualState = object(save.player_sexual_state) ?? {};
   const playerSceneState = object(save.player_scene_state) ?? {};
   const focalSceneState = npcSceneView(save, focalId);
-  const interactingCharacters = interactingCharacterViews(save, scene, directory, details);
+  const playerName = text(player.name);
+  const projectedDialogueLines = dialogueLines(parsedStory, { playerName, save, directory });
+  const interactingCharacters = interactingCharacterViews(save, scene, directory);
   const presentNpcIds = new Set(strings(scene.present_npc_ids));
   const imageCandidate = text(committedV2.image_character_id);
-  const imageCharacterId = imageCandidate && presentNpcIds.has(imageCandidate) && directory[imageCandidate] ? imageCandidate : '';
+  const lastLocalDialogueId = [...projectedDialogueLines].reverse().find(line => presentNpcIds.has(line.speaker_id))?.speaker_id ?? '';
+  const focalFallback = focalId && presentNpcIds.has(focalId) ? focalId : '';
+  const firstPresentFallback = [...presentNpcIds][0] ?? '';
+  const imageCharacterId = imageCandidate && presentNpcIds.has(imageCandidate) && directory[imageCandidate]
+    ? imageCandidate
+    : (lastLocalDialogueId || focalFallback || firstPresentFallback || '');
   const imageSelection = object(committedV2.image_selection) ?? {};
   const imagePool = imageSelection.pool === 'sex' ? 'sex' : 'general';
   const imageTags = Array.isArray(imageSelection.tags) ? imageSelection.tags : [];
@@ -314,24 +289,24 @@ export function buildCompanyGameViewModel(context) {
     },
     story: {
       story_text: text(turn.story_text), blocks: Array.isArray(parsedStory.blocks) ? parsedStory.blocks : [],
-      choices: choices(save, turn), player_inner_thought: text(parsedStory.player_inner_thought),
-      dialogue_lines: dialogueLines(parsedStory), warnings: strings(parsedStory.warnings)
+      choices: strings(contextChoices(context)), player_inner_thought: text(parsedStory.player_inner_thought),
+      dialogue_lines: projectedDialogueLines, warnings: strings(parsedStory.warnings)
     },
     scene: {
       ...scene,
-      scene_state: { ...scene, location_label: text(save.scene_state?.location_label) }, world_state: object(save.world_state) ?? {}, story_summary_recent: text(save.story_summary_recent),
-      csa_active: Array.isArray(save.csa_active) ? save.csa_active : [], csa_rules: activeRules,
+      scene_state: { ...scene }, world_state: object(save.world_state) ?? {},
+      csa_active: activeRules.map(rule => text(rule.id)).filter(Boolean), csa_rules: activeRules,
       npcs_present: strings(scene.present_npc_ids), action_target_id: '', clothing_state: {}
     },
     interacting_characters: interactingCharacters,
     focal_character: {
-      id: focalId, name: characterName(save, focalId, directory, details), last_speaker_id: lastSpeakerId,
+      id: focalId, name: characterName(focalId, directory), last_speaker_id: lastSpeakerId,
       character: npcView(save, focalId, details),
       scene_state: focalSceneState
     },
     player: {
-      state: player, stats: object(save.npc_stats)?.player ?? {}, name: text(player.name ?? save.player_name),
-      department: text(player.department) || catalogName(CATALOGS.departments, 'department_id', player.department_id) || text(save.player_department),
+      state: player, stats: {}, name: playerName,
+      department: text(player.department) || catalogName(CATALOGS.departments, 'department_id', player.department_id),
       position: text(player.position) || catalogName(CATALOGS.positions, 'position_id', player.position_id),
       level: integer(capability.level) ?? integer(playerProgress.level) ?? 1,
       exp: integer(capability.exp) ?? integer(playerProgress.exp) ?? 0,
@@ -344,14 +319,14 @@ export function buildCompanyGameViewModel(context) {
       erection_state: ['unknown', 'flaccid', 'partial', 'erect'].includes(playerSexualState.erection_state) ? playerSexualState.erection_state : 'unknown',
       total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events), last_sexual_event: object(sexualDisplay.last_sexual_event),
       inner_thought: text(parsedStory.player_inner_thought),
-      location_label: text(playerSceneState.location_label) || text(scene.location_label),
+      location_label: text((Array.isArray(display.map_locations) ? display.map_locations : []).find(location => location?.location_id === scene.location_id || location?.id === scene.location_id)?.name),
       posture: text(playerSceneState.posture), posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
       position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
-      image_id: imageId(committedV2.image_id ?? save.last_image_id), image_character_id: imageCharacterId,
+      image_id: imageId(committedV2.image_id), image_character_id: imageCharacterId,
       image_selection: imageSelection, image_pool: imagePool, image_tags: imageTags,
-      image_situation: text(committedV2.image_situation) || text(turn.turn_summary), dialogue_lines: dialogueLines(parsedStory),
+      image_situation: text(committedV2.image_situation) || text(turn.turn_summary), dialogue_lines: projectedDialogueLines,
       mind_monitor: monitor, mind_monitor_entries: monitorEntries, default_mind_character_id: monitorEntries[0]?.id ?? ''
     }
   };

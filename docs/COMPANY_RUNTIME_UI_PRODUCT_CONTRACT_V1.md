@@ -30,9 +30,9 @@
 ```text
 Player action
 → Story 1회
-→ Story parser
-→ Extract 1회
-→ guarded merge
+→ Fresh semantic Story parser
+→ Extract V2 observation 1회
+→ Commit reducer
 → Commit
 → Context reload
 → Company view model
@@ -90,9 +90,9 @@ Mind Monitor는 Company UI의 핵심 정보이며 숨기거나 축소 대상이 
 - 자연스러운 1인칭 한국어 독백으로 작성한다.
 - CSA 시스템 용어·상태 라벨·키워드 나열을 금지한다.
 
-### 3.2 현재 확인된 버그
+### 3.2 현재 projection
 
-Company DB에는 NPC별 `surface/subconscious`가 정상 저장돼 있다. 현재 UI는 NPC별 map 전체에서 최상위 `surface`를 찾기 때문에 제목만 렌더링되고 내용이 비어 있다. 이는 데이터 생성 실패가 아니라 프론트 projection 버그다.
+Company DB의 NPC별 `surface/subconscious`는 view-model이 canonical 이름과 함께 projection한다. 데이터가 없는 턴에는 명시적인 빈 상태를 표시하며, UI가 임의로 NPC 상태를 생성하지 않는다.
 
 ### 3.3 UI 계약
 
@@ -119,66 +119,23 @@ Company DB에는 NPC별 `surface/subconscious`가 정상 저장돼 있다. 현�
 
 ---
 
-## 4. 선택지와 5글자 버튼 계약
+## 4. Fresh semantic Story choices
 
-### 4.1 권위값
+Fresh Story emits repeated `[CHOICE]` blocks containing literal player action text.
+There is no `[4. 선택지]`, numbered-choice grammar, short label, `choice_labels`,
+or label database authority in the Fresh contract.
 
-- Story의 `[4. 선택지]` 전문 4개가 권위값이다.
-- Extract는 Story가 정확히 4개를 생성한 경우 선택지를 덮어쓰지 않는다.
-- 클릭·저장·Commit에는 항상 원문 전문을 사용한다.
+`canonical_choices` is authoritative only when the observed blocks contain exactly
+four non-empty, non-duplicate literal actions. The bottom choice UI consumes only
+that canonical array. Otherwise the button list is unavailable and free input
+remains available; no previous turn and no Extract-generated choice is used as a
+fallback.
 
-### 4.2 현재 방식의 문제
-
-현재 프론트는 정규식으로 원문을 추측해 `자료보기`, `업무집중`, `곁에앉기` 같은 라벨을 만든다. 이는 실제 선택지의 핵심 행동을 잘못 요약할 수 있으므로 정본 방식으로 사용하지 않는다.
-
-### 4.3 새 Story 출력 계약
-
-별도 LLM을 추가하지 않고 Story가 전문과 짧은 라벨을 동시에 생성한다.
-
-Raw Story 형식:
-
-```text
-[4. 선택지]
-1. [자료검토] 김제나가 가리키는 브랜드 포지셔닝 문구를 함께 살펴보고 의견을 말한다.
-2. [의자가져오기] 무릎을 꿇고 있는 김제나 곁에 빈 의자를 가져다 놓는다.
-3. [사례질문] 이메이에게 타깃 정렬을 해결했던 사례를 묻는다.
-4. [자세배려] 김제나가 더 편한 자세를 취해도 된다고 말한다.
-```
-
-Parser 결과:
-
-```json
-{
-  "choices": ["전문 1", "전문 2", "전문 3", "전문 4"],
-  "choice_labels": ["자료검토", "의자가져오기", "사례질문", "자세배려"]
-}
-```
-
-라벨 규칙:
-
-- 2–5글자 권장, 최대 6글자
-- 행동과 대상을 구별할 수 있어야 함
-- 네 라벨은 서로 중복되면 안 됨
-- 번호·확률·위험도·성공률을 포함하지 않음
-- 전문을 대체하지 않음
-
-### 4.4 저장과 복구
-
-- `game_turns.choices`: 전문 4개
-- `game_turns.parsed_blocks.choice_labels`: 라벨 4개
-- `save.last_choices`: 전문 4개
-- `save.last_choice_labels`: 라벨 4개, optional JSONB 필드
-- opening도 `opening_state.choice_labels`를 보존한다.
-
-기존 턴처럼 라벨이 없을 때만 원문 앞부분을 안전하게 자르는 표시 fallback을 사용한다. 의미를 추측하는 정규식 fallback은 제거한다.
-
-### 4.5 UI 계약
-
-- 서사 영역에는 전문 4개를 그대로 표시한다.
-- 하단에는 한 줄 4버튼을 표시한다.
-- 버튼에는 번호 + Story 라벨만 표시한다.
-- `title`, `aria-label`, 클릭 payload는 전문 전체다.
-- 390px·412px에서 줄바꿈과 가로 overflow가 없어야 한다.
+Raw Story and observed CHOICE blocks remain preserved in source order. Button
+numbering, display length, ellipsis, and other presentation belong to the UI. The
+click payload is always the full literal action text. Historical `choice_labels`
+fields may be read only at an explicitly marked historical compatibility boundary;
+they are not Fresh authority.
 
 ---
 
@@ -197,7 +154,7 @@ Parser 결과:
 ```
 
 - parser 대사 원문·순서·연기지시가 권위값이다.
-- Extract는 parser가 해결하지 못한 `speaker_id`만 보강한다.
+- Fresh parser는 정확한 `speaker_id`가 없는 대사를 dialogue authority로 만들지 않는다. Extract는 화자를 추론하거나 보강하지 않는다.
 - 프론트는 `speaker_id`를 정본으로 읽고, 구형 `character_id`는 호환 fallback으로만 읽는다.
 - 캐릭터 `voice_id`는 Company master에서 서버가 조회한다.
 
@@ -218,10 +175,8 @@ Narrator·player·voice_id 없는 인물은 제외한다.
 ### 5.3 TTS 토글 의미
 
 - `TTS 사용 ON`: 새 Commit 이후 최신 재생 가능 대사를 자동재생할 수 있음
-- `TTS 사용 OFF`: 자동 `/api/tts` 호출 0건
-- 수동 `대사 재생`: ON/OFF와 무관하게 사용자가 눌렀을 때 재생
-
-현재처럼 OFF 상태에서 수동 재생 버튼까지 비활성화하는 동작은 버그다.
+- `TTS 사용 OFF`: 자동·수동 모두 `/api/tts` 호출 0건
+- OFF 상태에서는 수동 재생 control도 disabled 상태로 유지한다.
 
 ### 5.4 모바일 오디오
 
@@ -402,13 +357,11 @@ API/DB/LLM 변경 없이 테스트 가능하다.
 
 API Worker 배포가 필요하다.
 
-### Phase C — Story 선택지 라벨 계약
+### Phase C — superseded historical choice-label work
 
-- Story·Opening 프롬프트에 `[짧은라벨] 전문` 형식 추가
-- parser가 `choices`와 `choice_labels` 분리
-- save/opening/turn 복구 경로 추가
-- 프론트 정규식 의미 추측 제거
-- 과거 턴 fallback 유지
+The former Story/Opening short-label experiment is historical only. It is not a
+Fresh writer, parser, UI, or database authority; historical rows may be read at
+their explicit compatibility boundary.
 
 추가 LLM 호출과 DB column migration은 없다.
 
@@ -447,8 +400,8 @@ API Worker 배포가 필요하다.
 
 ### Choices
 
-- Story 전문 4개 보존
-- 라벨 4개 정확히 매칭
+- Story literal action 전문 4개 보존
+- `canonical_choices`는 non-empty distinct 4개일 때만 사용
 - 하단 한 줄 4버튼
 - 클릭 payload 전문 동일
 - 정규식 의미 추측 미사용
@@ -456,7 +409,7 @@ API Worker 배포가 필요하다.
 ### TTS
 
 - OFF 상태 자동 `/api/tts` 0건
-- OFF 상태에서도 수동 재생 가능
+- OFF 상태에서 자동·수동 `/api/tts` 호출 0건; replay control은 disabled
 - `speaker_id`로 voice 선택
 - 최신 NPC 대사 한 줄 재생
 - 모바일 사용자 gesture 안에서 audio prime
@@ -504,7 +457,7 @@ Company Supabase 최근 3턴 기준:
 - Mind Monitor renderer가 NPC별 map을 잘못 읽음
 - 수동 TTS 버튼이 토글 ON에 종속됨
 - frontend TTS가 `character_id`를 우선 읽어 `speaker_id` 계약과 불일치함
-- API TTS가 직접 외부 URL/secret을 요구하지만 Wrangler에 실제 연결 설정이 없음
-- 선택지 버튼은 프론트 정규식 추측 라벨을 사용함
+- API TTS는 `TTS_WORKER` Service Binding과 JSON URL 응답을 사용한다.
+- 선택지 버튼은 `canonical_choices`만 소비하며, incomplete choices에서는 free input만 제공한다.
 
 이 문서 이후의 구현은 위 문제를 Phase A부터 순서대로 수정한다.

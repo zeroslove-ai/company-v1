@@ -1,17 +1,15 @@
 import { GameCoreError } from './errors.js';
 import { STRUCTURED_SEXUAL_ACTIONS } from './csa/semantic-contract.js';
+import { hydrateLegacySceneV1, readCanonicalSceneV1 } from './runtime-core/scene-reducer.js';
+import { canonicalCompanyPlayerProfile } from './player-setup.js';
 
 const TURN_CHANGE_ROOTS = new Set([
-  'player_sexual_state', 'npc_stats', 'npc_relationship_state', 'npc_emotion',
-  'scene_state', 'world_state', 'csa_runtime_state', 'csa_aftereffect_state'
+  'player_sexual_state', 'scene', 'world_state', 'csa_active', 'csa_rules'
 ]);
 
-export const CSA_LIFECYCLE = new Set(['active', 'temporarily_interrupted', 'suspended', 'completed', 'deactivated']);
 
 // 플레이어 발기 상태 enum — delta가 아닌 현재 물리 상태 (지시 22).
 const ERECTION_STATES = new Set(['unknown', 'flaccid', 'partial', 'erect']);
-export const CSA_APPLICABILITY = new Set(['applicable', 'not_applicable', 'unknown']);
-export const CSA_EXECUTION_STATE = new Set(['not_started', 'proposed', 'executed', 'refused', 'interrupted']);
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -27,6 +25,38 @@ function integer(value) {
 
 function stringOrEmpty(value) {
   return typeof value === 'string' ? value : '';
+}
+
+function exactSexualEvidenceQuote(evidence, field, storyText) {
+  const roots = object(evidence) ? evidence : {};
+  const baseField = field.endsWith('_delta') ? field.slice(0, -6) : field;
+  const candidates = new Set([
+    `player_sexual_state.${field}`,
+    `player_sexual_state.${baseField}`,
+    `player_observation.sexual.${field}`,
+    `player_observation.sexual.${baseField}`
+  ]);
+  const validQuote = value => {
+    const quote = typeof value === 'string' ? value : object(value) ? value.quote : null;
+    return typeof quote === 'string' && quote.trim() && String(storyText ?? '').includes(quote.trim()) ? quote.trim() : null;
+  };
+  for (const path of candidates) {
+    const parts = path.split('.');
+    let value = roots;
+    for (const part of parts) value = object(value) ? value[part] : undefined;
+    const quote = validQuote(value);
+    if (quote) return quote;
+  }
+  if (Array.isArray(roots.changed) && roots.changed.some(path => candidates.has(String(path)))) {
+    const quote = validQuote(roots.quote);
+    if (quote) return quote;
+  }
+  for (const item of Object.values(roots)) {
+    if (!object(item) || !Array.isArray(item.changed) || !item.changed.some(path => candidates.has(String(path)))) continue;
+    const quote = validQuote(item.quote);
+    if (quote) return quote;
+  }
+  return null;
 }
 
 // 이미지 선택 태그 allowlist — 알 수 없는 태그는 버린다 (턴70 지시 10).
@@ -84,10 +114,10 @@ export function selectActiveCharacterIds({ charactersMap, npcIds, save, playerAc
     if (typeof name === 'string' && name && text.includes(name)) push(id);
   }
   const currentSave = object(save) ? save : {};
-  push(currentSave.focal_character_id);
-  push(currentSave.last_speaker_id);
-  const participants = Array.isArray(currentSave.scene_state?.participants) ? currentSave.scene_state.participants : [];
-  for (const id of participants) push(id);
+  const canonicalScene = readCanonicalSceneV1(currentSave);
+  push(canonicalScene.focal_character_id);
+  push(canonicalScene.last_speaker_id);
+  for (const id of canonicalScene.present_npc_ids) push(id);
   return ordered;
 }
 
@@ -112,7 +142,7 @@ export function buildActiveCharacterCanon(charactersMap, activeIds) {
   return canon;
 }
 
-const ACTIVE_NPC_MAPS = ['npc_stats', 'npc_emotion', 'npc_relationship_state', 'npc_scene_state', 'npc_work_state', 'csa_attitudes'];
+const ACTIVE_NPC_MAPS = ['npc_scene_state'];
 
 /**
  * The compact scene/time/CSA/active-NPC-state core shared by the Story and Extract
@@ -120,11 +150,12 @@ const ACTIVE_NPC_MAPS = ['npc_stats', 'npc_emotion', 'npc_relationship_state', '
  */
 export function buildSceneContextCore(save, activeIds = []) {
   const s = object(save) ? save : {};
-  const scene = object(s.scene_state) ? s.scene_state : {};
+  const scene = readCanonicalSceneV1(s);
   const world = object(s.world_state) ? s.world_state : {};
   const gameTime = object(world.game_time) ? world.game_time : {};
   const activeSet = new Set(Array.isArray(activeIds) ? activeIds : []);
-  const participants = new Set(Array.isArray(scene.participants) ? scene.participants : []);
+  const participantIds = scene.present_npc_ids;
+  const participants = new Set(Array.isArray(participantIds) ? participantIds : []);
   const activeNpcState = {};
   for (const mapName of ACTIVE_NPC_MAPS) {
     const map = object(s[mapName]) ? s[mapName] : {};
@@ -150,12 +181,12 @@ export function buildSceneContextCore(save, activeIds = []) {
     scene: {
       scene_id: identity(scene.scene_id),
       location_id: identity(scene.location_id),
-      participants: Array.isArray(scene.participants) ? scene.participants : [],
-      focus_thread: identity(scene.focus_thread),
-      scene_goal: identity(scene.scene_goal),
+      participants: Array.isArray(participantIds) ? participantIds : [],
+      present_npc_ids: [...participantIds],
+      focus_thread: identity(scene.focus_thread ?? scene.focus_thread_id),
+      scene_goal: identity(scene.scene_goal ?? scene.goal),
       beat: integer(scene.beat)
     },
-    global_csa: projectGlobalCsa(s),
     active_npc_state: activeNpcState
   };
 }
@@ -165,27 +196,25 @@ export function buildSceneContextCore(save, activeIds = []) {
  *
  * 활성 ID 목록(csa_active)에 있고 active !== false인 규정만 rules에 넣는다.
  * 비활성 과거 규정(csa_rules 전체 이력)은 DB에 보존되지만 어떤 LLM payload에도
- * 포함되지 않는다. buildSceneContextCore와 turn-routes-runtime의
- * replaceGlobalCsaContext가 반드시 이 함수만 사용해야 한다 (중복 경로 금지).
+ * 포함되지 않는다. buildSceneContextCore와 Story/Extract prompt projections가
+ * 이 순수 helper를 사용하며, 별도 runtime wrapper는 존재하지 않는다.
  */
 export function projectGlobalCsa(save) {
   const activeIds = Array.isArray(save?.csa_active) ? [...save.csa_active] : [];
   const activeIdSet = new Set(activeIds);
   const allRules = object(save?.csa_rules) ? save.csa_rules : {};
-  const allRuntime = object(save?.csa_runtime_state) ? save.csa_runtime_state : {};
   const rules = {};
   for (const [id, rule] of Object.entries(allRules)) {
-    if (activeIdSet.has(id) && rule?.active !== false) rules[id] = rule;
+    if (!activeIdSet.has(id) || rule?.active === false) continue;
+    rules[id] = {
+      content: typeof rule?.content === 'string' ? rule.content : '',
+      subject_scope: rule?.subject_scope ?? rule?.scope ?? null,
+      counterparty_scope: rule?.counterparty_scope ?? null,
+      effective_game_time: rule?.effective_game_time ?? rule?.activated_game_time ?? null,
+      trigger: rule?.trigger ?? null
+    };
   }
-  const runtime_state = {};
-  for (const [id, state] of Object.entries(allRuntime)) {
-    if (activeIdSet.has(id)) runtime_state[id] = state;
-  }
-  return {
-    active_ids: activeIds,
-    rules,
-    runtime_state
-  };
+  return { active_ids: activeIds, rules };
 }
 
 function canonicalGameTime(value) {
@@ -219,28 +248,6 @@ export function buildStableNpcIdSet({ characters = [], generalNpcs = [] } = {}) 
  * Invalid individual fields are dropped with a warning; valid fields are kept so a
  * single bad axis never discards the rest of an otherwise valid CSA update.
  */
-export function validateCsaRuntimeStatePatch(csaId, patch) {
-  const warnings = [];
-  if (!object(patch)) return { patch: null, warnings: [`invalid_csa_runtime_state:${csaId}`] };
-  const clean = {};
-  if ('lifecycle' in patch) {
-    if (CSA_LIFECYCLE.has(patch.lifecycle)) clean.lifecycle = patch.lifecycle;
-    else warnings.push(`invalid_csa_lifecycle:${csaId}`);
-  }
-  if ('applicability' in patch) {
-    if (CSA_APPLICABILITY.has(patch.applicability)) clean.applicability = patch.applicability;
-    else warnings.push(`invalid_csa_applicability:${csaId}`);
-  }
-  if ('execution_state' in patch) {
-    if (CSA_EXECUTION_STATE.has(patch.execution_state)) clean.execution_state = patch.execution_state;
-    else warnings.push(`invalid_csa_execution_state:${csaId}`);
-  }
-  for (const key of Object.keys(patch)) {
-    if (!['lifecycle', 'applicability', 'execution_state'].includes(key)) clean[key] = clone(patch[key]);
-  }
-  return { patch: clean, warnings };
-}
-
 /** Extract may propose 1-30 minutes, or 1-480 with explicit time_advance evidence. */
 export function normalizeElapsedMinutes(value, evidence = {}) {
   const max = object(evidence) && evidence.time_advance === true ? 480 : 30;
@@ -271,15 +278,23 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
     ejaculation_count: Math.max(0, integer(base.ejaculation_count) ?? 0),
     updated_turn: integer(base.updated_turn) ?? 0
   };
-  state.arousal = clamp(state.arousal + (integer(patch.arousal_delta) ?? 0), 0, 100);
+  const warnings = [];
+  const arousalDelta = integer(patch.arousal_delta) ?? 0;
+  if (arousalDelta !== 0) {
+    if (exactSexualEvidenceQuote(storyEvidence, 'arousal_delta', storyText)) state.arousal = clamp(state.arousal + arousalDelta, 0, 100);
+    else warnings.push('unevidenced_arousal_change');
+  }
   // 사정 진행도는 느리게 누적 — 턴당 최대 +6, 음수(자동 감소·초기화)는 폐기.
   // 단순 노출·발기·성적 대화·요청만으로는 증가하지 않도록 Extract가 작은 delta만
   // 제안하고, 여기서 서버가 상한을 보장한다. 기존 전체 진행도 clamp 0~100 유지.
   const progressDelta = integer(patch.ejaculation_progress_delta) ?? 0;
-  if (progressDelta > 0) {
-    state.ejaculation_progress = clamp(state.ejaculation_progress + Math.min(progressDelta, 6), 0, 100);
+  if (progressDelta !== 0) {
+    if (progressDelta > 0 && exactSexualEvidenceQuote(storyEvidence, 'ejaculation_progress_delta', storyText)) {
+      state.ejaculation_progress = clamp(state.ejaculation_progress + Math.min(progressDelta, 6), 0, 100);
+    } else {
+      warnings.push('unevidenced_ejaculation_progress_change');
+    }
   }
-  const warnings = [];
   // 발기 상태는 delta가 아닌 현재 물리 상태다 — evidence.player_erection의 quote가
   // 최종 Story에 정확히 존재하고 enum이 유효할 때만 갱신한다.
   // 추론 금지: arousal 수치·CSA 활성·요청·복장·이미지 태그만으로는 변경하지 않는다.
@@ -342,6 +357,15 @@ export function migrateCompanySave(save) {
     throw new GameCoreError('UNSUPPORTED_SAVE_SCHEMA', 'Only company-v1 save schema 1 is supported');
   }
   const next = clone(save);
+  // These save-level fields have no current reader or writer. Remove residue at
+  // the runtime boundary so an old save cannot reintroduce superseded state on
+  // the next Commit.
+  delete next.story_summary_overall;
+  delete next.story_summary_recent;
+  delete next.npc_emotion;
+  delete next.npc_work_state;
+  delete next.event_ledger;
+  for (const root of ['npc_stats', 'npc_relationship_state', 'csa_attitudes', 'csa_runtime_state', 'csa_aftereffect_state', 'sexual_event_ledger', 'last_image_id', 'last_choices', 'last_choice_meta']) delete next[root];
   next.world_state = object(next.world_state) ? next.world_state : {};
   if (!object(next.world_state.game_time)) next.world_state.game_time = { day: 1, minute_of_day: 540 };
   else next.world_state.game_time = canonicalGameTime(next.world_state.game_time);
@@ -349,54 +373,42 @@ export function migrateCompanySave(save) {
   return next;
 }
 
-const HYDRATION_SOURCES = [
-  { mapName: 'npc_stats', canonicalKey: 'initial_stats' },
-  { mapName: 'npc_relationship_state', canonicalKey: 'initial_relationship', aliasKey: 'initial_relationship_state' },
-  { mapName: 'csa_attitudes', canonicalKey: 'initial_csa_attitudes' },
-  { mapName: 'npc_emotion', canonicalKey: 'initial_emotion' },
-  { mapName: 'npc_scene_state', canonicalKey: 'initial_scene_state' }
-];
+function stripSceneMirrors(save) {
+  const next = object(save) ? save : {};
+  delete next.scene_state;
+  delete next.last_npcs_present;
+  delete next.focal_character_id;
+  delete next.last_speaker_id;
+  if (object(next.player_scene_state)) {
+    const { location_id: _locationId, location_label: _locationLabel, ...physical } = next.player_scene_state;
+    next.player_scene_state = physical;
+  }
+  if (object(next.npc_scene_state)) {
+    next.npc_scene_state = Object.fromEntries(Object.entries(next.npc_scene_state).map(([id, value]) => {
+      if (!object(value)) return [id, value];
+      const { present: _present, location_id: _locationId, location_label: _locationLabel, scene_id: _sceneId, ...physical } = value;
+      return [id, physical];
+    }));
+  }
+  return next;
+}
 
-/**
- * Hydrates master-defined characters into gameplay maps.
- * - npc_stats는 필드 단위로 보충한다: 기존 값이 있는 필드는 보존, 없는 필드만 초기 정본값으로 채운다.
- *   (NPC map entry가 존재한다는 이유만으로 전체 주입을 건너뛰지 않는다)
- * - 레거시 affection→affinity 변환: affinity가 없고 affection만 있으면 affinity = affection.
- *   이미 affinity가 있으면 affection으로 덮어쓰지 않는다. 변환 후에는 내부 상태에서 affection을 갱신하지 않는다.
- * - 나머지 map(relationship/emotion/scene_state/csa_attitudes)은 entry 단위 hydration 유지.
- */
+/** Fresh runtime hydration: preserve only canonical scene, player and narrow clothing state. */
 export function hydrateGameplayState(save, master = {}) {
   const next = migrateCompanySave(save);
   const characters = Array.isArray(master?.characters) ? master.characters : [];
-  for (const character of characters) {
-    const id = identity(character?.character_id);
-    if (!id) continue;
-    for (const { mapName, canonicalKey, aliasKey } of HYDRATION_SOURCES) {
-      next[mapName] = object(next[mapName]) ? next[mapName] : {};
-      const source = object(character[canonicalKey]) ? character[canonicalKey]
-        : (aliasKey && object(character[aliasKey]) ? character[aliasKey] : null);
-      if (mapName === 'npc_stats') {
-        const entry = object(next[mapName][id]) ? next[mapName][id] : {};
-        const canon = object(source) ? source : {};
-        // 레거시 affection → affinity 이전 (affinity가 없을 때만). 변환 후에도 affection 필드는
-        // 표시 계층 호환용으로 유지한다(갱신은 안 함) — 정본 읽기는 항상 affinity가 우선.
-        const legacyAffection = Number.isFinite(entry.affection) ? entry.affection : undefined;
-        const hasAffinity = Number.isFinite(entry.affinity);
-        if (!hasAffinity && legacyAffection !== undefined) entry.affinity = legacyAffection;
-        // 필드 단위 보충 — 기존 값이 있는 필드는 보존
-        if (!Number.isFinite(entry.affinity)) {
-          if (Number.isFinite(canon.affinity)) entry.affinity = canon.affinity;
-          else if (Number.isFinite(canon.affection)) entry.affinity = canon.affection; // 레거시 초기값도 affinity로 정본화
-        }
-        if (!Number.isFinite(entry.resistance) && Number.isFinite(canon.resistance)) entry.resistance = canon.resistance;
-        if (!Number.isFinite(entry.csa_acceptance) && Number.isFinite(canon.csa_acceptance)) entry.csa_acceptance = canon.csa_acceptance;
-        if (!Number.isFinite(entry.sexual_arousal)) entry.sexual_arousal = 0;
-        next[mapName][id] = entry;
-        continue;
-      }
-      if (id in next[mapName]) continue;
-      if (source) next[mapName][id] = clone(source);
-    }
+  const generalNpcs = Array.isArray(master?.general_npcs) ? master.general_npcs : [];
+  const npcIds = buildStableNpcIdSet({ characters, generalNpcs });
+  const canonicalScene = next.scene
+    ? readCanonicalSceneV1(next, { master, npcIds })
+    : hydrateLegacySceneV1(next, { master, npcIds });
+  next.scene = clone(canonicalScene);
+  if (object(next.player)) next.player = canonicalCompanyPlayerProfile(next.player);
+  next.npc_scene_state = object(next.npc_scene_state) ? next.npc_scene_state : {};
+  for (const character of [...characters, ...generalNpcs]) {
+    const id = identity(character?.character_id ?? character?.npc_id ?? character?.id);
+    const source = object(character?.initial_scene_state) ? character.initial_scene_state : null;
+    if (id && !(id in next.npc_scene_state) && source) next.npc_scene_state[id] = clone(source);
   }
-  return next;
+  return stripSceneMirrors(next);
 }

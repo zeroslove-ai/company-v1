@@ -1,6 +1,5 @@
 import { HttpError } from './http.js';
 import { repairAndParseExtractJson } from '../engine/extract/json-repair.js';
-import { appendLateAuthoritativeCharacterCanon } from '../engine/story-prompt.js';
 
 const EXTRACT_TIMEOUT_MS = 75000;
 
@@ -94,7 +93,6 @@ const STORY_TOTAL_TIMEOUT_MS = 120_000;
 /** Streams the Story completion. thinking stays disabled and the model name is never hardcoded. */
 export async function streamStory({ env, fetchImpl, messages, timing = {} }) {
   const startedAt = Date.now();
-  const finalMessages = appendLateAuthoritativeCharacterCanon(messages);
   const controller = new AbortController();
   const firstContentTimer = setTimeout(() => controller.abort(new Error('story-first-content-timeout')), STORY_FIRST_CONTENT_TIMEOUT_MS);
   const totalTimer = setTimeout(() => controller.abort(new Error('story-total-timeout')), STORY_TOTAL_TIMEOUT_MS);
@@ -103,7 +101,7 @@ export async function streamStory({ env, fetchImpl, messages, timing = {} }) {
   try {
     response = await postCompletion(env, fetchImpl, {
       model: requireEnv(env, 'STORY_MODEL'),
-      messages: finalMessages,
+      messages,
       stream: true,
       thinking: { type: 'disabled' },
       max_tokens: 5000
@@ -135,7 +133,7 @@ function parseExtractContent(content) {
 }
 
 /** Runs the single Extract completion. No automatic retry or repair call is ever issued here. */
-export async function runExtract({ env, fetchImpl, messages }) {
+export async function runExtract({ env, fetchImpl, messages, onRawResponse = null }) {
   const signal = typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(EXTRACT_TIMEOUT_MS) : undefined;
   const response = await postCompletion(env, fetchImpl, {
     model: requireEnv(env, 'EXTRACT_MODEL'),
@@ -143,6 +141,7 @@ export async function runExtract({ env, fetchImpl, messages }) {
     stream: false,
     thinking: { type: 'disabled' },
     response_format: { type: 'json_object' },
+    temperature: 0,
     max_tokens: 5000
   }, { signal });
   let payload;
@@ -152,6 +151,8 @@ export async function runExtract({ env, fetchImpl, messages }) {
     throw new HttpError(502, 'extract_invalid_json', 'Extract upstream response is not JSON', true);
   }
   const choice = payload.choices?.[0];
+  const content = choice?.message?.content;
+  if (typeof onRawResponse === 'function') onRawResponse({ content: String(content ?? ''), finish_reason: choice?.finish_reason ?? null });
   if (choice?.finish_reason === 'length') throw new HttpError(502, 'extract_truncated', 'Extract response exceeded its output limit', true);
-  return parseExtractContent(choice?.message?.content);
+  return parseExtractContent(content);
 }

@@ -7,9 +7,21 @@
  */
 
 const STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
+const SCOPE_LABELS = {
+  player: '플레이어',
+  female_employee: '회사 여성 직원',
+  male_employee: '회사 남성 직원',
+  company_employee: '회사 직원 전체'
+};
 
 function clone(value) { return JSON.parse(JSON.stringify(value || [])); }
 function normalize(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
+function hasFinalConsonant(label) {
+  const last = Array.from(typeof label === 'string' ? label : '').at(-1);
+  if (!last) return false;
+  const code = last.codePointAt(0);
+  return code >= 0xac00 && code <= 0xd7a3 ? (code - 0xac00) % 28 !== 0 : false;
+}
 export function activeItems(draft) {
   return (draft?.csa || []).filter(item => !item._deleted);
 }
@@ -21,7 +33,8 @@ export function normalizeStrengthId(appState, value) {
 }
 
 export function presetCatalogItem(appState, templateId) {
-  return (appState?.csa_presets?.items || []).find(entry => entry.id === templateId) || null;
+  const canonicalId = templateId === 'work_topless' ? 'work_nude' : templateId;
+  return (appState?.csa_presets?.items || []).find(entry => entry.id === canonicalId) || null;
 }
 
 export function presetStrength(item) {
@@ -32,7 +45,23 @@ export function presetStrength(item) {
 export function presetPreviewContent(appState, item) {
   const catalogItem = presetCatalogItem(appState, item.template_id);
   if (!catalogItem || !catalogItem.content_template || presetStrength(catalogItem) !== normalizeStrengthId(appState, item.strength)) return '';
-  return catalogItem.content_template;
+  const labels = { ...SCOPE_LABELS, ...Object.fromEntries((appState?.csa_presets?.subject_scope_options || appState?.csa_presets?.selector_options || []).map(option => [option.id, option.label])) };
+  const subject = labels[item.subject_scope || catalogItem.default_subject_scope || catalogItem.affected_group] || SCOPE_LABELS.company_employee;
+  const counterpartyScope = Object.hasOwn(item, 'counterparty_scope')
+    ? item.counterparty_scope
+    : (catalogItem.default_counterparty_scope
+      || catalogItem.allowed_counterparty_scopes?.find(scope => scope === 'company_employee')
+      || null);
+  const counterparty = counterpartyScope ? (labels[counterpartyScope] || SCOPE_LABELS.company_employee) : '';
+  const rendered = (catalogItem.scope_template || catalogItem.content_template)
+    .replaceAll('{subject}는', `{subject}${hasFinalConsonant(subject) ? '은' : '는'}`)
+    .replaceAll('{subject}', subject)
+    .replaceAll('{counterparty}와', `{counterparty}${hasFinalConsonant(counterparty) ? '과' : '와'}`)
+    .replaceAll('{counterparty}과', `{counterparty}${hasFinalConsonant(counterparty) ? '과' : '와'}`)
+    .replaceAll('{counterparty}', counterparty);
+  return catalogItem.mode === 'on_player_request'
+    ? rendered.replaceAll('플레이어가 요청하면', '상대방이 요청하면').replaceAll('플레이어', counterparty)
+    : rendered;
 }
 
 export function applyPresetDefaults(item, catalogItem) {
@@ -41,10 +70,16 @@ export function applyPresetDefaults(item, catalogItem) {
   item.template_id = catalogItem.id;
   delete item.roles;
   item.strength = presetStrength(catalogItem);
+  item.subject_scope = catalogItem.default_subject_scope || catalogItem.affected_group || 'company_employee';
+  item.counterparty_scope = catalogItem.default_counterparty_scope
+    || catalogItem.allowed_counterparty_scopes?.find(scope => scope === 'company_employee')
+    || null;
+  item.trigger = catalogItem.trigger || catalogItem.mode || 'continuous';
 }
 
 export function resetPresetSelection(item, { preserveStrength = true } = {}) {
   item.category = null; item.template_id = null; delete item.roles; item.content = '';
+  delete item.subject_scope; delete item.counterparty_scope; delete item.trigger;
   if (!preserveStrength) item.strength = null;
 }
 
@@ -60,6 +95,9 @@ export function hydrateDraftItem(item, appState = null) {
     item.category = catalogItem?.category ?? item.category ?? null;
     delete item.roles;
     item.strength = normalizeStrengthId(appState, item.strength) || presetStrength(catalogItem) || null;
+    item.subject_scope = item.preset.subject_scope || catalogItem?.default_subject_scope || catalogItem?.affected_group || 'company_employee';
+    item.counterparty_scope = item.preset.counterparty_scope || catalogItem?.default_counterparty_scope || null;
+    item.trigger = item.preset.trigger || catalogItem?.trigger || catalogItem?.mode || 'continuous';
   } else {
     item.source_type = 'custom';
   }
@@ -69,13 +107,22 @@ export function hydrateDraftItem(item, appState = null) {
 export function isPresetPayloadComplete(appState, preset, selectedStrength) {
   if (!preset || !preset.template_id) return false;
   const catalogItem = presetCatalogItem(appState, preset.template_id);
+  const subjectScopes = catalogItem?.allowed_subject_scopes || [catalogItem?.default_subject_scope || catalogItem?.affected_group];
+  const counterpartyScopes = catalogItem?.allowed_counterparty_scopes || [];
   return Boolean(catalogItem
     && normalizeStrengthId(appState, selectedStrength)
-    && presetStrength(catalogItem) === normalizeStrengthId(appState, selectedStrength));
+    && presetStrength(catalogItem) === normalizeStrengthId(appState, selectedStrength)
+    && subjectScopes.includes(preset.subject_scope || catalogItem.default_subject_scope || catalogItem.affected_group)
+    && (!counterpartyScopes.length || counterpartyScopes.includes(preset.counterparty_scope)));
 }
 
 function currentPresetPayload(item) {
-  return { template_id: item.template_id || null };
+  return {
+    template_id: item.template_id || null,
+    subject_scope: item.subject_scope || null,
+    counterparty_scope: item.counterparty_scope || null,
+    trigger: item.trigger || null
+  };
 }
 
 function payloadFields(appState, item) {
@@ -98,7 +145,14 @@ function payloadFields(appState, item) {
 
 function presetStructureEqual(appState, item, beforePreset) {
   if (!beforePreset) return false;
+  const catalogItem = presetCatalogItem(appState, beforePreset.template_id);
+  const beforeSubject = beforePreset.subject_scope || catalogItem?.default_subject_scope || catalogItem?.affected_group || null;
+  const beforeCounterparty = beforePreset.counterparty_scope || catalogItem?.default_counterparty_scope || null;
+  const beforeTrigger = beforePreset.trigger || catalogItem?.trigger || catalogItem?.mode || null;
   return item.template_id === beforePreset.template_id
+    && (item.subject_scope || null) === beforeSubject
+    && (item.counterparty_scope || null) === beforeCounterparty
+    && (item.trigger || null) === beforeTrigger
     && normalizeStrengthId(appState, item.strength) === presetStrength(presetCatalogItem(appState, beforePreset.template_id));
 }
 

@@ -1,4 +1,5 @@
 import { expForNextLevel } from '../progression.js';
+import { authorityPolicyFor } from './authority-policy.js';
 
 /**
  * Level/EXP/slot/strength arithmetic — the single canonical source every
@@ -11,9 +12,9 @@ import { expForNextLevel } from '../progression.js';
  * 2 at Lv.1, 3 at Lv.3, 4 at Lv.5, 5 at Lv.10.
  */
 
-export const STRENGTH_TIERS_KO = ['약함', '중간', '강함'];
 export const APP_STRENGTHS = new Set(['weak', 'medium', 'strong']);
-export const APP_STRENGTH_LABELS = { weak: '약함', medium: '중간', strong: '강함' };
+export const APP_STRENGTH_LABELS = Object.fromEntries(['weak', 'medium', 'strong'].map(id => [id, authorityPolicyFor(id).label]));
+export const STRENGTH_TIERS_KO = ['weak', 'medium', 'strong'].map(id => authorityPolicyFor(id).label);
 export const APP_STRENGTH_RANK = { weak: 1, medium: 2, strong: 3 };
 export const APP_STRENGTH_UNLOCKS = { weak: 1, medium: 3, strong: 7 };
 
@@ -43,7 +44,7 @@ export function calculateCsaCapability(save = {}, activeCsaCount = 0) {
   const level = Math.max(1, Number(save?.player_progress?.level) || 1);
   const exp = Math.max(0, Number(save?.player_progress?.exp) || 0);
   const nextLevelExp = level >= 10 ? 0 : (expForNextLevel(level) ?? 0);
-  const availableStrength = level >= 7 ? '강함' : level >= 3 ? '중간' : '약함';
+  const availableStrength = level >= 7 ? authorityPolicyFor('strong').label : level >= 3 ? authorityPolicyFor('medium').label : authorityPolicyFor('weak').label;
   const maxStrengthRank = csaStrengthRank(availableStrength);
   const csaLimits = getCsaLimits(level);
   return {

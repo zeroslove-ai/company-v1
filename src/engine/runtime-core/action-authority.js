@@ -114,14 +114,13 @@ export function assertStoredActionPersistenceParity({
 }
 
 /**
- * Verify that csa_active/csa_rules can only change through the validated
- * structured action plan. Ordinary turns must preserve both values exactly;
- * transaction turns are overwritten from the freshly re-derived plan.
+ * Verify that csa_active/csa_rules can only change through the signed
+ * transaction resolution. Ordinary turns must preserve both values exactly.
  */
 export function assertRuleDefinitionAuthority({
   currentSave,
   nextSave,
-  csaPlan = null,
+  transactionResolution = null,
   structuredAction = null,
   stage = 'commit'
 } = {}) {
@@ -139,23 +138,23 @@ export function assertRuleDefinitionAuthority({
     return true;
   }
 
-  if (!csaPlan || !Object.prototype.hasOwnProperty.call(csaPlan, 'next_csa_active')
-    || !Object.prototype.hasOwnProperty.call(csaPlan, 'next_csa_rules')) {
+  if (!transactionResolution || !Object.prototype.hasOwnProperty.call(transactionResolution, 'next_csa_active')
+    || !Object.prototype.hasOwnProperty.call(transactionResolution, 'next_csa_rules')) {
     throw authorityError(
       'unauthorized_rule_definition_mutation',
-      `validated csa transaction plan is missing (${stage})`,
+      `signed transaction resolution is missing (${stage})`,
       stage
     );
   }
 
   const authorized = {
-    csa_active: csaPlan.next_csa_active,
-    csa_rules: csaPlan.next_csa_rules
+    csa_active: transactionResolution.next_csa_active,
+    csa_rules: transactionResolution.next_csa_rules
   };
   if (!sameJson(next, authorized)) {
     throw authorityError(
       'unauthorized_rule_definition_mutation',
-      `csa rule definitions do not match the validated transaction plan (${stage})`,
+      `csa rule definitions do not match the signed transaction resolution (${stage})`,
       stage
     );
   }
@@ -164,30 +163,30 @@ export function assertRuleDefinitionAuthority({
 
 /**
  * Apply the only authorized CSA definition write. The caller must have
- * resolved the stored action and re-derived csaPlan from the current save.
+ * verified the stored action's signed transaction resolution.
  */
 export function applyAuthorizedRuleDefinitions({
   currentSave,
   nextSave,
-  csaPlan = null,
+  transactionResolution = null,
   structuredAction = null,
   stage = 'commit'
 } = {}) {
   if (structuredAction === null) {
-    assertRuleDefinitionAuthority({ currentSave, nextSave, csaPlan, structuredAction, stage });
+    assertRuleDefinitionAuthority({ currentSave, nextSave, transactionResolution, structuredAction, stage });
     return nextSave;
   }
 
-  if (!csaPlan) {
+  if (!transactionResolution) {
     throw authorityError(
       'unauthorized_rule_definition_mutation',
-      `validated csa transaction plan is required (${stage})`,
+      `signed transaction resolution is required (${stage})`,
       stage
     );
   }
 
-  nextSave.csa_active = clone(csaPlan.next_csa_active);
-  nextSave.csa_rules = clone(csaPlan.next_csa_rules);
-  assertRuleDefinitionAuthority({ currentSave, nextSave, csaPlan, structuredAction, stage });
+  nextSave.csa_active = clone(transactionResolution.next_csa_active);
+  nextSave.csa_rules = clone(transactionResolution.next_csa_rules);
+  assertRuleDefinitionAuthority({ currentSave, nextSave, transactionResolution, structuredAction, stage });
   return nextSave;
 }

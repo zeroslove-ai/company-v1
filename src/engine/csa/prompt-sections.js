@@ -1,9 +1,10 @@
 /**
  * Story/Extract prompt contract sections ported from the donor's CSA-runtime
  * Story-only prompt builders were removed after the Story projection became
- * single-authority. Extract-only builders remain below. The original donor
- * prompt builders are intentionally not retained here.
- * buildCsaOnlyAppUsageStorySection, buildCsaApplicationCheckSection,
+ * single-authority. Extract-only builders remain below. World terms are
+ * resolved by the Worker projection before these observation contracts run.
+ * The original donor prompt builders are intentionally not retained here.
+ * buildCsaApplicationCheckSection,
  * buildMindEffectExtractFirewallSection). World terms swapped to Company's
  * (병원 -> 회사, 간호사/의사 -> 동료/상사, 환자/보호자 -> 방문자/협력사
  * 담당자); every behavioral guarantee kept as-written. The relationship-
@@ -11,23 +12,6 @@
  * buildRelationshipInterpretationSection, not the whole general-relationship
  * system (out of scope for this port).
  */
-
-export function isAppUsageInfoRequest(playerInput) {
-  const input = typeof playerInput === 'string' ? playerInput.trim() : '';
-  if (!input) return false;
-  return /(?:어플|앱|상식개변 어플).*(?:정보|사용법|설명|기능|예시)|(?:정보|사용법|설명|기능|예시).*(?:어플|앱|상식개변 어플)/.test(input);
-}
-
-export function buildAppUsageStorySection() {
-  return `
-
-[상식개변 앱 안내]
-- 이 앱은 특정 개인에게 암시나 최면을 거는 기능 없이, 회사 집단에 적용되는 지침·취업규칙·법령만 생성·수정·해제한다.
-- 현재 레벨이 허용하는 강도·범위·활성 슬롯 안에서만 작동한다.
-- 강도는 직접 의미 범위 안의 확신과 사회적 압력만 바꾸며 의미 범위를 넓히지 않는다.
-- 범위를 벗어나면 현재 적용은 멈추지만 이미 벌어진 사건의 기억과 물리 상태는 유지된다.
-- 모든 관리는 상식개변 앱 UI에서만 한다.`;
-}
 
 /** Extract omission repair prompt — reminds the model which active CSAs actually needed to fire this turn. */
 export function buildCsaApplicationCheckSection(applicableCsa) {

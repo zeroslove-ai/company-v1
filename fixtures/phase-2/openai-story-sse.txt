@@ -1,7 +1,0 @@
-data: {"choices":[{"delta":{"content":"[SC"}}]}
-
-data: {"choices":[{"delta":{"content":"ENE]\n회의실에 "}}]}
-
-data: {"choices":[{"delta":{"content":"햇빛이 비쳤다."}}]}
-
-data: [DONE]

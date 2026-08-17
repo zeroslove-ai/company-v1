@@ -69,13 +69,13 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
   if (positionChanges && !positionEvidenceValid) warnings.push('unevidenced_position_label');
   if (endReasonRequested && postureChanges && !endReasonEvidenceValid) warnings.push('unevidenced_posture_end_reason');
 
-  // Extract가 제안한 posture/position_label은 증거 검증과 무관하게 반영한다.
-  // (증거 불충분은 unevidenced 경고로만 기록 — 33~37턴 자세 저장 누락 방지)
-  const postureProposal = requestedPosture || requestedPosition ? {
-    posture: requestedPosture || previousPosture,
-    position_label: requestedPosition || previousPosition,
+  // Each optional posture/position axis is accepted only with its own exact Story quote.
+  // Missing evidence remains warning-only for the turn and preserves the prior axis.
+  const postureProposal = postureEvidenceValid || positionEvidenceValid ? {
+    posture: postureEvidenceValid ? requestedPosture : previousPosture,
+    position_label: positionEvidenceValid ? requestedPosition : previousPosition,
     end_reason: endReasonEvidenceValid ? endReasonRequested : null,
-    evidence_valid: postureEvidenceValid
+    evidence_valid: postureEvidenceValid || positionEvidenceValid
   } : null;
   const posturePatch = buildPosturePatch({
     previous: prev.posture || prev.position_label ? {
@@ -88,16 +88,8 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
   });
   if (posturePatch?.rejected && !warnings.includes(posturePatch.rejected)) warnings.push(posturePatch.rejected);
 
-  const locationRequested = identity(raw.location_label, 100);
-  const locationEvidenceValid = Boolean(locationRequested)
-    && exactStoryEvidence(evidence.location, narrativeText, characterName);
-  if (locationRequested && locationRequested !== prev.location_label && !locationEvidenceValid) {
-    warnings.push('unevidenced_location_change');
-  }
-
   return {
     state: {
-      location_label: locationEvidenceValid ? locationRequested : (prev.location_label ?? null),
       posture: posturePatch?.posture ?? prev.posture ?? 'unknown',
       position_label: posturePatch?.position_label ?? prev.position_label ?? null,
       clothing: { ...(isPlainObject(prev.clothing) ? prev.clothing : {}), ...acceptedClothing },

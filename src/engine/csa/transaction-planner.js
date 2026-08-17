@@ -67,15 +67,46 @@ export function validatePresetOperation(catalog, raw, { availableStrength } = {}
   if (!allowedGroups.has(item.affected_group)) {
     return { ok: false, code: 'PRESET_SCOPE_INVALID', message: 'Preset scope must be a company group.' };
   }
-  const content = renderPresetContent(normalizedCatalog, item);
+  const subjectScope = typeof preset.subject_scope === 'string' ? preset.subject_scope : item.default_subject_scope;
+  const counterpartyScope = Object.hasOwn(preset, 'counterparty_scope')
+    ? (typeof preset.counterparty_scope === 'string' ? preset.counterparty_scope : null)
+    : item.default_counterparty_scope;
+  if (!item.allowed_subject_scopes.includes(subjectScope)) {
+    return { ok: false, code: 'CSA_SUBJECT_SCOPE_INVALID', message: '규정 적용 대상 범위를 선택할 수 없습니다.' };
+  }
+  if (item.allowed_counterparty_scopes.length > 0 && counterpartyScope === null) {
+    return { ok: false, code: 'CSA_COUNTERPARTY_REQUIRED', message: '관계형 규정에는 상대 대상을 선택해야 합니다.' };
+  }
+  if (counterpartyScope !== null && !item.allowed_counterparty_scopes.includes(counterpartyScope)) {
+    return { ok: false, code: 'CSA_COUNTERPARTY_SCOPE_INVALID', message: '규정 상대 범위를 선택할 수 없습니다.' };
+  }
+  if (counterpartyScope === subjectScope && item.allowed_counterparty_scopes.length > 0) {
+    // Overlapping scopes are valid (for example company_employee/company_employee),
+    // but a runtime instance must still choose two distinct people.  The
+    // scope metadata is not an actor/target decision and is therefore retained.
+  }
+  // Trigger semantics are catalog-owned; the client only persists the selected
+  // scope values and cannot inject a new activation condition.
+  const trigger = item.trigger;
+  const content = renderPresetContent(normalizedCatalog, item, {
+    subject_scope: subjectScope,
+    counterparty_scope: counterpartyScope,
+    trigger
+  });
   return {
     ok: true, content, strength: catalogStrength,
     preset: {
       version: 2,
-      template_id: item.id,
+      template_id: preset.template_id === 'work_nude' ? 'work_nude' : item.id,
       authority_tier: item.authority_tier || item.strength,
       affected_group: item.affected_group,
-      mode: item.mode
+      mode: item.mode,
+      trigger,
+      subject_scope: subjectScope,
+      counterparty_scope: counterpartyScope,
+      allowed_subject_scopes: [...item.allowed_subject_scopes],
+      allowed_counterparty_scopes: [...item.allowed_counterparty_scopes],
+      ...(item.execution ? { execution: item.execution } : {})
     }
   }
 }
@@ -225,7 +256,7 @@ export function planCsaTransaction(previousSave, catalog, rawOperations, { turnN
   return {
     ok: true,
     canonical_action: { version: 1, type: 'app_transaction', base_turn_count: turnNumber - 1, operations: canonicalOperations },
-    display_input: `상식개변 앱에서 상식개변 ${canonicalOperations.length}건의 변경사항을 적용한다.`,
+    display_input: `회사 규정 변경사항 ${canonicalOperations.length}건이 공식 반영된다.`,
     summary,
     next_csa_active: activeIds,
     next_csa_rules: rules
