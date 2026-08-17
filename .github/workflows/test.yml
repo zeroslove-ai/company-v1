@@ -5,6 +5,7 @@ on:
     branches:
       - company/full-feature-transplant-v1
       - company/scene-cast-structured-story-v2
+      - main
   pull_request:
 
 permissions:
