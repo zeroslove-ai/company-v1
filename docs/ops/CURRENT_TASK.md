@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-additive-schema-bridge-apply-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -139,3 +139,17 @@ At terminal:
 1. set CURRENT_TASK to `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal with registration/final SHA/blob, exact pre/post migration snapshot, bridge SHA, execution channel, transaction result, five-function verification, pure-probe results, and safety counts;
 3. STOP. Do not deploy or create the next task.
+
+## Lifecycle — CODEX_WATCHER execution
+
+- STARTED comment: `5317977499`
+- Terminal classification: `BLOCKED_TEST_SCHEMA_BRIDGE`
+- Blocker: `BLOCKED_ATOMIC_EXECUTION_CHANNEL`.
+- All repository/TEST identity preflight checks passed: `origin/main` was `8f3c5326e483650211fbc6c9f54a7527d2278d4e`; HEAD was the exact registration `ee3885546de4c48b5835f3c891d2cc2b5bc95751`; the branch descended from accepted audit `f319c149ae92cdc9755f71f522b34c575049ce9d` with only this registration; TEST project was `fmcrspgxstsmxxsmkeee`; bridge blob/SHA-256 matched `cf3158db1960a52053a8b31fda1c4473ed05486d` / `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`.
+- Read-only migration preflight: 27 rows; canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; target row `20260817000200` absent.
+- Read-only function preflight matched the accepted audit: five expected type identities present with no unexplained drift.
+- Execution channel check: `psql` is absent. Verified `supabase db query` exposes `--file`, but its prepared-statement path rejected both harmless explicit transaction probes (`begin; select 1; commit;` and `begin; select 1 / 0; commit;`) with `LegacyDbQueryExecError: cannot insert multiple commands into a prepared statement`.
+- Transaction result: bridge mutation was **not attempted**; no transaction was opened for the bridge and no rollback/commit was needed. No speculative retry was made.
+- Five-function post-apply verification: not applicable because no mutation occurred. Pure structural probes: not run because the bridge was not applied.
+- Safety counts: DB/schema/migration-history writes `0`; migration applies `0`; TEST gameplay/save/fixture mutations or live turns `0`; Worker deploys `0`; Production access `0`.
+- `git diff --check`: PASS; only `docs/ops/CURRENT_TASK.md` changed; bridge SQL/plan and `supabase/migrations/*` unchanged.
