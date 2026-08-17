@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: extract-scene-evidence-test-api-deploy-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -137,3 +137,17 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal containing registration/final SHA/blob, preflight/tests/gates, pre/post API version, deployment count, smoke invocation/result/count, TEST pre/post snapshots, failed-action status, frontend/reset/gameplay/DB/safety counts, and terminal classification;
 3. STOP. Do not resume gameplay, merge, create another task, or start Cut3.
+
+## 7. Terminal evidence
+
+- Starting registration SHA: `10770cd1c495c537733c744bc2afa072fb0537c4`.
+- Reviewed runtime SHA: `d8fbc5cca47b62e897adc73afc816812f736316b`.
+- This lifecycle-only terminal update is the only repository change after registration; no source/runtime/config/content/test/package/workflow file changed.
+- Preflight targeted Extract tests `8/8 PASS`; full `npm.cmd test` `342/342 PASS`; changed-file `node --check` and `git diff --check` PASS.
+- Action Stage B and scene Stage B read-only catalog gates PASS. The local `psql` executable was unavailable, so the preserved TEST catalog was evaluated with the identical repository gate functions and manifests; no DB write occurred.
+- Pre-deploy API Worker version: `2a976491-451d-4fc8-8808-65353cad137b`. Exactly one TEST API deploy succeeded through `node scripts/deploy-api-with-contract-gate.mjs`; resulting version: `a01aea11-e828-4d81-bd5d-06f9cf1ec39f`.
+- Corrected smoke ran exactly once: `node scripts/smoke-api-worker.mjs https://game-proxy-company-v1.zeroslove.workers.dev 2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; result `REMOTE API SMOKE PASSED`.
+- Post-deploy TEST read: migrations `27`; target `20260817000200` absent; disposable `save/turns/actions/committed_turn=1/5/6/5`; preserved/manual `1/7/9/7`; QA `1/7/7/7`; protected sentinel `1/18/18/18`.
+- Failed action `72cc2486-cc80-408c-9d86-8196cab7b6ad` remains `processing_status=committing`, `expected_turn=6`; durable turn-6 rows `0`; no in-place repair or retry.
+- API deploy count `1`; frontend deploy `0`; reset `0`; gameplay/provider turns `0`; DB/schema/migration/history writes `0`; Production/hospital/v2 access `0`; protected/preserved/QA mutation `0`; PR/merge/Cut3 `0`.
+- Terminal classification: `EXTRACT_SCENE_EVIDENCE_TEST_API_DEPLOYED`. STOP for review; do not generate another task or start Cut 3.
