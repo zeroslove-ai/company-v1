@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-migration-lineage-forensics-v2
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -205,3 +205,23 @@ At completion:
    - TEST gameplay mutation/live turns = 0;
    - Production access = 0.
 3. STOP for operator review. Do not execute the recommended remediation and do not register a further task.
+
+## 9. Terminal report — COMPLETE_FORENSIC_RECONCILIATION
+
+Status is now `WAITING_REVIEW` after the stable v2 forensic report was
+written. Registration: `88314d524ef0335a0a97194d9f7455cd12193c9c` with task
+blob `bd4b27e0dd918e440a43c40d0016c54defc076f4`. Final commit/blob and exact
+terminal identity are recorded in the immutable Issue #68 report.
+
+Verified main remained `8f3c5326e483650211fbc6c9f54a7527d2278d4e`. Snapshot A
+and B were both 27 applied rows with SHA-256
+`e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`.
+The final stable comparison is 22 remote-only and 25 local-only migrations.
+Provenance totals are `PROVEN_EXACT=13`,
+`PROVEN_TRANSFORMED_LINEAGE=0`, `PARTIAL=8`, `UNKNOWN=1`.
+
+The recommended remediation classification is
+`LINEAGE_REMAINS_AMBIGUOUS`; no repair or bridge was executed. DB/history
+writes, migration applies, deploys, TEST gameplay mutation/live turns, and
+Production access are all zero. STOP for operator review; do not register a
+next task or execute the recommendation.
