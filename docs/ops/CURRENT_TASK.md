@@ -1,285 +1,215 @@
 # Company v1 — CURRENT TASK
 
 Status: WAITING_REVIEW
-Task ID: overnight-cut2-live-quality-loop-v1
+Task ID: test-effective-db-contract-live-resume-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This file is the sole active execution authority for the owner-authorized overnight continuation loop.
+This file is the sole active execution authority. It supersedes the terminal stop of `overnight-cut2-live-quality-loop-v1` only for the bounded TEST-resume work below.
 
-## 0. Owner directive — supersedes prior owner gates
+## 0. Owner/operator decision
 
-At 2026-08-18 00:34 KST the owner explicitly authorized continuous execution through:
-
-`land Cut 1 → implement/review/land Cut 2 → TEST rollout → player-style live acceptance → evidence-driven repair/retest when necessary`
-
-The owner does **not** want intermediate `WAITING_OWNER_DECISION`, merge-authorization, deploy-authorization, or “ask the user before continuing” gates inside this scope.
-
-For every non-Production phase below, the operator/watcher is delegated authority to:
-- review the exact implementation;
-- classify ACCEPTED / CHANGES_REQUIRED / BLOCKED from evidence;
-- create/update the next branch/PR/task as needed;
-- merge an ACCEPTED PR by normal GitHub `merge` with exact-head guard;
-- apply explicitly scoped TEST-only migrations/fixture writes;
-- deploy the accepted TEST candidate;
-- run live TEST gameplay;
-- if live evidence proves a real defect, create and execute a bounded repair task without asking the owner again.
+The previous overnight loop stopped before TEST deployment because `supabase db push --dry-run` found migration-version history drift between the TEST project and this checkout.
 
-**Do not stop merely because a prior document or PR description says “owner approval required”, “merge forbidden”, “Cut 2 forbidden”, or equivalent. This directive supersedes those workflow gates for the scope above.** Architectural/product canons remain binding.
+Independent read-only review after that stop established a narrower fact:
 
-## 1. Hard boundaries that still require STOP
+- current accepted `main`: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`;
+- Cut 1 and Cut 2 are already landed and their landed-main CI runs succeeded;
+- TEST project: `fmcrspgxstsmxxsmkeee`;
+- remote migration history uses historical timestamp versions that do not match several current repository migration filenames;
+- however the **effective TEST DB definitions** of the Cut 1 target functions already match the intended gameplay-core-simplification contract: work-hook-free opening/setup, six-field canonical scene, minimal save, and current validation shape;
+- therefore migration-history metadata drift is not evidence that TEST runtime schema is missing the Cut 1 behavior.
 
-Never auto-authorize any of the following:
-- Production game access or mutation;
-- Production DB write/reset/migration;
-- Production-only deployment or route change;
-- provider/model swap as a correctness strategy;
-- retry/regenerate-until-lucky acceptance;
-- a new semantic gateway/verifier/router, consent matrix, finite physical-action grammar, relationship/event/open-fact ledger, generic CSA execution DSL, or compatibility shadow architecture;
-- a change that contradicts `CURRENT_TRUTH.md` or `docs/COMPANY_V1_POST_MERGE_GAMEPLAY_SIMPLIFICATION_CANON_2026-08-17.md` rather than implementing it;
-- destructive rewriting of historical migrations/evidence;
-- resetting a failed live-test game before its evidence is preserved.
+The correct next step is **not** to repair old migration history merely to make `db push` happy.
 
-If one of these becomes necessary, preserve exact evidence and STOP `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`.
+Resume live acceptance by proving the effective DB contract, performing no historical migration-table repair, deploying the exact accepted main to the established TEST Workers, and running a new disposable player-style Level-7 session.
 
-## 2. Auto-approval rule
+Intermediate non-Production review/merge/deploy decisions remain operator-self-approved. Do not ask the owner to continue when the objective evidence below is satisfied.
 
-At every source/merge boundary, the operator may self-approve and continue when all are true:
-1. exact branch/head/ancestry is frozen and no unexplained drift exists;
-2. full `npm test` passes with zero failures;
-3. `git diff --check` passes;
-4. exact-head `Company v1 tests` GitHub Actions concludes `SUCCESS`;
-5. code review finds no unresolved P0/P1 gameplay correctness defect;
-6. changes remain within the current canon and do not add a prohibited authority layer;
-7. optional/presentation failures remain nonblocking to Story/Commit;
-8. the change is deletion-first or is the smallest proven single-writer mechanic/sidecar needed by the product.
+## 1. Frozen baseline
 
-When these conditions pass, post an immutable Issue #68 review record and **continue automatically**. Do not wait for user confirmation.
-
-## 3. Phase A — land accepted Cut 1
+Repository: `zeroslove-ai/company-v1`
+Expected starting `main`: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
+Expected branch: `company/test-effective-db-live-resume-v1`
 
-Frozen pre-registration facts to re-verify before mutation:
-- repository: `zeroslove-ai/company-v1`
-- current `main` at registration: `111be1fba0029c8086d76ca72afcd8b22a18fcca`
-- PR #70: `company/gameplay-core-simplification-v1`
-- previously accepted executable head: `0f1e36c049b16c51302376a4f46cc714c89315d1`
-- synchronized implementation head before this docs-only registration: `917c03eb198f111bba69b9b6698136b592f48970`
-- exact-head CI before registration: run `32041771244` SUCCESS
-- PR #69 is already merged and `main` push CI coverage is present.
+Landed Cut 1:
+- PR #70 merge: `cfcd328a00b3caa9d87034e6ab7ca60c6ace51ce`
+- landed-main CI: `32043074446` SUCCESS
 
-Required:
-1. Fresh-fetch main, PR #70 and this task.
-2. Prove the only change after `917c03eb...` is this owner-authorized lifecycle/task document unless a newer owner instruction exists.
-3. Require CI SUCCESS on the exact new PR #70 head created by this task registration.
-4. Self-review that no gameplay/source/runtime change occurred after the accepted implementation.
-5. Merge PR #70 exactly once by normal GitHub `merge` with exact-head guard.
-6. Require `Company v1 tests` SUCCESS on the exact resulting main merge SHA.
-7. Record `CUT1_LANDED_ACCEPTED` and immediately continue to Phase B. Do not stop at an owner gate.
+Landed Cut 2:
+- source: `d4c9c4f7895d3efe764ff31b9b6a66098c35885e`
+- PR #71 merge: `f91f2579947befacb10a45abde2599a92faf3276`
+- landed-main CI: `32043850713` SUCCESS
 
-## 4. Phase B — Cut 2 `presentation-sidecars-cleanup-v1`
+Terminal/docs main:
+- PR #72 merge/current main: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
+- exact main CI: `32044041912` SUCCESS
 
-Create a fresh branch from the exact accepted Cut 1 landed main and one normal PR against main.
+TEST infrastructure expected from current repo config:
+- Supabase project: `fmcrspgxstsmxxsmkeee`
+- API Worker: `game-proxy-company-v1`
+- Frontend Worker: `gamebuilder-company-v1`
 
-### 4.1 Primary goal
+Preserved games must not be reset/reused, including prior owner/manual evidence games such as `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` and `78fb1d94-266f-455a-bda4-7656cc2370c1`.
 
-Finish presentation-sidecar cleanup **without reopening Story/Extract/Commit semantic authority**.
+## 2. Hard prohibitions
 
-### 4.2 Required audit first
+Do not:
+- access or mutate Production;
+- run `supabase migration repair` against historical TEST migration rows;
+- insert/update/delete `supabase_migrations.schema_migrations` merely to reconcile filename timestamps;
+- run broad `supabase db push` while legacy history remains divergent;
+- rewrite/delete historical migration files;
+- add a compatibility migration solely to mirror old timestamps;
+- change provider/model as a correctness strategy;
+- retry/regenerate until Story happens to pass;
+- introduce a semantic action router/verifier, consent matrix, finite physical-action grammar, relationship/event/open-fact ledger, generic CSA execution DSL, or shadow compatibility architecture;
+- reset a failed live-test game before evidence is preserved.
 
-Before editing, inventory fresh callers/readers/writers for:
-- legacy NPC stat UI: `affinity`, `resistance`, `csa_acceptance`, `sexual_arousal`, `relationship_summary`;
-- image selection / `image_selection` / `image_character_id` / media coupling;
-- TTS/media failure paths;
-- historical compatibility adapters still reachable from fresh requests;
-- dead donor/work/relationship/event/stat helpers/readers;
-- any reader with no current writer and any writer with no concrete product consumer.
+If the **effective DB contract** does not match the accepted runtime and reconciling it would require destructive/history surgery rather than a clearly additive current migration, STOP `BLOCKED_EFFECTIVE_DB_CONTRACT_MISMATCH` with exact definitions/differences.
 
-Do not preserve a subsystem merely because a stale test or UI field references it.
+## 3. Phase A — effective TEST DB contract proof
 
-### 4.3 Reaction meters decision — owner intent
+Before any deployment or write:
 
-The owner reported “stats do not change” as a real UX defect. Preserve useful visible reaction feedback, but **do not resurrect `npc_stats`**.
+1. Fresh-fetch `main`, branch head, CURRENT_TASK, and Issue #68 READY registration.
+2. Require starting main remains `8f3c5326...`; otherwise rebase the evidence on the new exact main only if the intervening commits are already accepted docs/CI lineage. Any gameplay/source drift => STOP.
+3. Read-only query TEST `supabase_migrations.schema_migrations` and record the migration-version drift as metadata evidence only.
+4. Read the repository file `supabase/migrations/20260817000200_company_v1_gameplay_core_simplification.sql`.
+5. Read-only inspect TEST `pg_get_functiondef` + ACL for:
+   - `company_apply_opening_scene_v1(jsonb)`
+   - `company_minimalize_save_v1(jsonb)`
+   - `company_validate_scene_v1(jsonb,boolean)`
+   - `validate_company_save_v1(jsonb)`
+   - `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)`
+6. Compare behavior/signatures, not historical parameter-name cosmetics.
+7. Required effective facts:
+   - Opening/setup does not require or write work_hook / scene_goal.
+   - Opening creates scene with exactly structural fields: version, location_id, present_npc_ids, focal_character_id, last_speaker_id, updated_turn.
+   - minimalizer strips retired stats/relation/CSA-runtime/sexual-ledger/image-choice/work residue required by current contract.
+   - save validator requires the current structural scene and player sexual state.
+   - setup RPC calls the current opening function and only service_role has intended mutation access.
 
-If current UI still materially benefits from numeric meters, implement at most a tiny presentation-only `npc_reaction_state` with exactly the smallest useful set:
-- `affinity`
-- `sexual_arousal`
+### Decision
 
-Rules:
-- one writer from post-Story observation/committed turn evidence;
-- bounded numeric display state only;
-- no `csa_acceptance`;
-- no `resistance` as an action/CSA gate;
-- no machine-authored relationship summary;
-- never project these meters back into Story as consent, permission, rule applicability, affection truth, or action authority;
-- missing/ambiguous update is dropped and never blocks the turn;
-- if the UX can be made clearer by deleting a dead meter rather than implementing it, delete it.
-
-The operator may choose deletion instead of implementation for any legacy meter except that the final UI must not falsely display a frozen stat as though it were live.
-
-### 4.4 Media/image sidecar
+If these effective facts already match, record `EFFECTIVE_DB_CONTRACT_ALREADY_CURRENT` and **perform no DB DDL/migration-history write at all**. Proceed to Phase B.
 
-Move image selection completely out of fresh Extract semantic authority.
-
-Preferred inputs:
-- committed parsed Story;
-- current focal/present actor;
-- confirmed compact clothing state;
-- finite existing asset metadata.
-
-Rules:
-- no image semantic verdict may reject/retry/rewrite Story;
-- no image result becomes durable narrative authority;
-- failure means no image or neutral fallback;
-- do not add another LLM call solely for image selection unless an already-approved sidecar architecture requires it; prefer deterministic presentation mapping from committed data.
-
-TTS follows the same nonblocking rule.
-
-### 4.5 Cleanup
-
-Delete or collapse, after caller proof:
-- dead legacy stat readers/writers/helpers;
-- fresh media/Extract coupling;
-- stale compatibility adapters not required by persisted historical readback;
-- dead work/event/relation/stat naming residue;
-- obsolete tests that protect removed implementation shape.
-
-Do not delete a historical adapter solely by name; prove fresh/persisted caller safety first.
-
-### 4.6 Cut 2 acceptance
-
-Add behavior-oriented tests for:
-- visible reaction UI is either truly live or absent; never fake/frozen;
-- `csa_acceptance`, resistance gating and relationship-summary authority cannot re-enter fresh state;
-- reaction sidecar cannot affect Story prompt/CSA applicability/Commit validity;
-- image/media failure cannot fail a valid turn;
-- fresh Extract contains no image-selection authority;
-- refresh/recovery reads committed presentation state correctly where retained;
-- source surface is reduced where old readers/writers are removed.
-
-Run full suite, diff check and exact-head CI. Self-review. If accepted, merge Cut 2 normally with exact-head guard, require landed-main CI SUCCESS, record `CUT2_LANDED_ACCEPTED`, and continue immediately to Phase C.
-
-If review finds a real defect within Cut 2 scope, fix it on the same branch and repeat validation. Do not ask the owner.
-
-## 5. Phase C — TEST-only rollout
-
-After Cut 2 landed-main CI SUCCESS, prepare one TEST candidate from that exact main lineage.
-
-Fresh-verify deployment identities from repo/config before mutation. Current expected TEST infrastructure is:
-- Supabase TEST project URL host: `fmcrspgxstsmxxsmkeee.supabase.co`
-- API Worker config name: `game-proxy-company-v1`
-- Frontend Worker config name: `gamebuilder-company-v1`
-
-Do not infer Production safety from names. Before deployment prove the operation is the same established TEST acceptance route used by prior Company v1 TEST evidence and does not require Production game access.
-
-Authorized TEST operations:
-- apply unapplied additive Company v1 migrations required by Cut 1/Cut 2 to TEST only, in order;
-- validate resulting save/functions structurally;
-- deploy API/Frontend TEST candidate from exact accepted main lineage;
-- create a **new disposable TEST game** for this acceptance;
-- prepare that new game at Level 7 / EXP 0 using a TEST-only fixture mutation or existing safe fixture seam.
-
-Do **not** reset or reuse preserved historical/manual evidence games, including any game that contains the owner’s prior manual QA turns. If the existing Level-7 helper is hard-locked to a preserved game, use a one-off TEST-only fixture write for a newly created disposable game rather than broadening Production runtime architecture merely for testing.
-
-Record exact migration names, Worker version IDs, disposable game ID and deployed commit SHA.
-
-## 6. Phase D — player-style live TEST acceptance
-
-Use live provider calls and the real committed Story→Extract→Commit path. Prefer the actual frontend path/headless interaction if an existing maintained harness supports it; otherwise use the existing SSE/canary gameplay harness plus committed frontend/readback verification. **Do not build a new large harness just to continue this task.**
-
-Use one natural, coherent session of roughly 15–20 committed turns. Do not make it a list of synthetic endpoint assertions. Vary choices and free text like a real player.
-
-Minimum scenario coverage:
-1. Opening and several normal choices; prove choices never fall back to stale Opening choices.
-2. Free-text literal action fidelity; actor/target/directionality must not silently change.
-3. Ordinary non-work conversation; verify narration does not compulsively snap back to meetings/onboarding/work reports.
-4. Cross-location movement and same-location registered-NPC handoff.
-5. Activate at least one exact clothing CSA and verify Story + four-slot durable state agree immediately for the correct subject scope.
-6. Exercise an active on-request/narrative CSA and separately request an unrelated action; verify the CSA is ordinary/in-force but does not grant unrelated obedience/consent/permission.
-7. Exercise explicit adult intimate/sexual progression naturally enough to verify:
-   - direct executable requests progress meaningfully in the same turn rather than repeated wait/continue staging;
-   - visible body description can use confirmed exposed canon;
-   - player sexual mechanic changes when Story explicitly establishes the evidence;
-   - description is not reduced to repetitive generic gestures/work-report language.
-8. Verify Cut 2 reaction meters, if retained, visibly change only as presentation and never alter rule/action authority.
-9. Verify image/media sidecar works or fails harmlessly without affecting Story/Commit.
-10. Continue past six raw-turn memory depth; revisit an early promise/relationship/situation and verify older chronological `turn_summary` supports coherent continuity.
-11. Refresh/reload/recovery/readback parity.
-12. Inspect exact DB turn/action/save evidence for any suspicious turn rather than judging UI text alone.
-
-### Live acceptance rules
-
-- one scenario at a time;
-- no stochastic retry/regeneration to obtain a pass;
-- do not silently discard an ugly or wrong provider turn;
-- a deterministic or materially reproducible defect is evidence, not something to retry away;
-- preserve the game immediately when a real defect is found.
-
-## 7. Phase E — autonomous defect-driven repair loop
-
-If Phase D finds a real product defect, classify it before changing code:
-- literal input / choice authority;
-- Story prompt/context quality;
-- scene/location/presence;
-- CSA scope/premise;
-- physical/clothing/player mechanic writer;
-- Extract observation/evidence;
-- Commit/state persistence;
-- memory/summary;
-- frontend readback/UI;
-- presentation sidecar.
-
-Then inspect exact game turn/action/save + current code and choose the smallest deletion-first root fix.
-
-The operator is pre-authorized for **up to 3 substantive repair cycles** tonight, provided each fix:
-- stays inside the binding architecture;
-- does not add prohibited semantic layers;
-- addresses preserved live evidence;
-- is reviewed with focused + full tests + exact-head CI;
-- is merged normally after self-acceptance;
-- is redeployed to TEST only;
-- is retested on a **new disposable game** while preserving the failed game.
-
-Do not create symptom-specific regex gates for arbitrary narrative quality. If a provider-quality issue is not deterministic enough for a structural fix, record it as a quality finding and continue collecting evidence rather than inventing a semantic verifier.
-
-STOP early if:
-- the same root failure remains after two attempted fixes;
-- a fix would require a prohibited/new architecture layer;
-- Production access/change is required;
-- test/deploy lineage cannot be proven;
-- DB migration cannot be made additive/safe;
-- a security/data-integrity issue appears.
-
-Otherwise continue until live acceptance is materially clean or 3 repair cycles are consumed.
-
-## 8. Terminal condition
-
-Do **not** stop at intermediate `WAITING_REVIEW` solely for user approval.
-
-Terminal only when one of these occurs:
-
-### `OVERNIGHT_LIVE_ACCEPTED`
-- Cut 1 landed-main CI SUCCESS;
-- Cut 2 landed-main CI SUCCESS;
-- TEST migrations/deploy verified;
-- one final disposable live game completes the required player-style acceptance without unresolved P0/P1 product defects;
-- any remaining findings are explicitly classified as nonblocking quality/UX follow-up;
-- Production untouched.
-
-### `OVERNIGHT_REPAIR_LIMIT_REACHED`
-- 3 evidence-driven repair cycles used and unresolved defect remains.
+Do not mark `20260817000200` as applied by editing migration history. The historical ledger mismatch can be audited separately; it is not allowed to block live product validation when the effective schema is already current.
+
+If one narrowly required current function is actually missing/outdated, first prove that applying only the additive/current `20260817000200` definitions is safe and dependency-complete. Apply it TEST-only only if exact preconditions are proven. Never fix the old ledger merely to enable CLI push.
+
+## 4. Phase B — exact-main TEST deployment
+
+After `EFFECTIVE_DB_CONTRACT_ALREADY_CURRENT` (or a separately proven narrow additive apply):
+
+1. Confirm local/remote checkout uses exact accepted `main` executable tree. Ops-only task metadata may be excluded from executable identity.
+2. Run `npm test` and require zero failures.
+3. Run `git diff --check`.
+4. Run the existing API and frontend Worker dry-run/contract gates.
+5. Deploy API Worker `game-proxy-company-v1` from the exact accepted main executable.
+6. Deploy frontend Worker `gamebuilder-company-v1` from the same accepted lineage.
+7. Record exact Worker version IDs and deployed commit/tree identity.
+8. Smoke/readback must prove API/FE are reachable and target the intended TEST project.
+
+This task authorizes TEST deployment only. Production remains forbidden.
+
+## 5. Phase C — new disposable Level-7 game
+
+Create a brand-new TEST game for this acceptance. Do not reset an existing evidence game.
+
+Prepare:
+- Level 7
+- EXP 0
+- committed_turn 0
+- clean Opening/setup state
+- no prior history
+
+Use the existing TEST-only acceleration seam if it safely accepts the new game. If it is hard-coded to an old evidence game, use a one-off TEST-only fixture write for the new game rather than broadening production runtime code.
+
+Record the new game ID before gameplay.
+
+## 6. Phase D — player-style live acceptance
+
+Run one natural coherent live-provider session of roughly 15–20 committed turns using the real Story → Extract → Commit → committed readback path. Prefer actual frontend interaction if the maintained harness supports it; otherwise use the existing SSE/canary harness plus frontend/readback verification. Do not build another large harness.
+
+The session must mix provider choices and free text like a real player and cover:
+
+1. Opening and repeated choices: no stale Opening choice may reappear after committed turns.
+2. Literal free-text fidelity: actor, target, direction and explicit self-state must not silently change.
+3. Several personal/non-work turns: Story must not compulsively return to meetings/onboarding/work reports.
+4. Cross-location movement plus same-location registered-NPC handoff.
+5. Activate one exact structured clothing CSA: Story and four-slot durable state must agree immediately for the correct subject scope.
+6. Exercise one narrative/on-request CSA, then separately request an unrelated act: rule is ordinary/in-force but does not create unrelated obedience/consent/permission.
+7. Natural adult intimate progression sufficient to check same-turn meaningful progress, visible body canon, player sexual state updates and non-generic character-specific description.
+8. Cut 2 presentation behavior:
+   - retired/frozen NPC stats must not be falsely displayed;
+   - Mind Monitor remains usable;
+   - image/media may be absent/fallback but must never block Story/Commit.
+9. Continue past six raw turns; revisit an early promise/situation and verify chronological turn_summary memory remains coherent.
+10. Refresh/reload/recovery parity.
+11. For every suspicious turn, inspect exact `game_actions`, `game_turns`, save and Extract evidence before classification.
+
+No stochastic retry. A bad provider turn is evidence and must remain in the preserved game.
+
+## 7. Phase E — evidence-driven repair loop
+
+The prior owner authorization for up to 3 substantive repair cycles remains active.
+
+On the first material defect:
+1. preserve the game and exact turn evidence;
+2. classify root domain: input/choice, Story context/prompt, scene/presence, CSA, clothing/physical/player mechanic, Extract, Commit/persistence, memory/summary, frontend, presentation sidecar;
+3. audit the existing path before coding;
+4. prefer deleting conflicting authority or reconnecting the canonical writer;
+5. do not add regex semantic gates or retry loops;
+6. create one bounded repair branch/PR from current main;
+7. focused + full tests + diff check + exact-head CI;
+8. self-review and normal merge if no unresolved P0/P1;
+9. TEST redeploy;
+10. retest on a **new disposable game**, preserving the failed one.
+
+Maximum 3 substantive cycles. STOP early if the same root cause survives two attempted fixes or resolution requires prohibited architecture/Production/destructive DB work.
+
+## 8. Post-live review targets (do not preempt live evidence)
+
+Record these as explicit quality findings during the session rather than automatically adding systems before testing:
+
+- Cut 2 removed fake/frozen legacy numeric NPC stats rather than rebuilding them. Decide after play whether Mind Monitor is sufficient UX. If numeric feedback is still clearly valuable, a later presentation-only sidecar may contain at most small non-authoritative fields such as affinity/sexual_arousal; never csa_acceptance/resistance gates.
+- Cut 2 removed Extract image authority, but current frontend media projection may still be only a neutral/general fallback. Verify actual user experience before adding deterministic asset selection from committed Story + focal actor + clothing + existing asset metadata.
+- Audit remaining named residue only after live core behavior is known: `mandatory-enactment.js`, `semantic-contract.js`, `sexual-state/ledger.js`, `posture.js`, `workplace-context.js`, legacy extract adapters, and donor-named frontend files. Delete only after caller/persisted-read proof; do not create another cleanup architecture.
+- Delete commented-out obsolete tests instead of preserving dead test bodies as comments when encountered in the next source change.
+
+## 9. Success / terminal
+
+### `LIVE_RESUME_ACCEPTED`
+- effective TEST DB contract proven current without unsafe history repair;
+- exact accepted main deployed to TEST;
+- final disposable live game completes required session without unresolved P0/P1;
+- Production untouched;
+- remaining UX/cleanup findings documented and prioritized.
+
+### `LIVE_RESUME_REPAIR_LIMIT_REACHED`
+- 3 evidence-driven repair cycles used with unresolved material defect.
+
+### `BLOCKED_EFFECTIVE_DB_CONTRACT_MISMATCH`
+- current effective DB actually differs and cannot be brought current by a clearly safe additive/narrow TEST-only change.
 
 ### `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`
-- only for the hard boundaries in section 1.
+- resolution requires Production or prohibited architecture.
 
-At terminal, update this file to `WAITING_REVIEW`, post one complete immutable Issue #68 report with exact SHAs/PRs/CI/deploy/migrations/game IDs/turn evidence, and STOP.
+Do not stop for ordinary intermediate approval. At terminal, set CURRENT_TASK to WAITING_REVIEW, post one immutable Issue #68 report with exact SHAs/CI/Worker versions/game IDs/turn evidence/findings, and STOP.
 
-## 9. Terminal report — BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION
+## 10. Terminal report
 
-- Cut 1 PR #70 merged at `cfcd328a00b3caa9d87034e6ab7ca60c6ace51ce`; main CI run `32043074446` was SUCCESS.
-- Cut 2 PR #71 merged at `f91f2579947befacb10a45abde2599a92faf3276`; PR CI run `32043791667` and main CI run `32043850713` were SUCCESS.
-- Cut 2 branch commit: `d4c9c4f7895d3efe764ff31b9b6a66098c35885e`, pushed as `company/presentation-sidecars-cleanup-v1`.
-- TEST migration read-only preflight targeted project `fmcrspgxstsmxxsmkeee` and found remote-only migration history versions absent from this checkout. `supabase db push --dry-run` stopped with `LegacyDbPushMissingLocalError` and listed remote versions requiring migration-history repair before any push.
-- No TEST migration was applied, no Worker deployment was attempted, no disposable game was created, no live turns were run, and Production was untouched.
-- Blocker: repairing remote-only migration history or applying schema changes without a reconciled additive migration lineage would be an unsafe DB/history operation outside the explicit task boundary. Owner/operator review is required before TEST rollout can continue.
+Terminal: `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`
 
-Production rollout is explicitly outside this overnight authority.
+- execution identity: `test-effective-db-contract-live-resume-v1` + CURRENT_TASK blob `b9b6ed15855a704b3c126bd56d2f96b17ab2e9ab` + branch `company/test-effective-db-live-resume-v1`
+- accepted main executable SHA/tree: `8f3c5326e483650211fbc6c9f54a7527d2278d4e` / `8a50f8f423254a17983c263fc4f71271adb87c54`
+- TEST effective DB result: `EFFECTIVE_DB_CONTRACT_ALREADY_CURRENT`; no migration-history, DDL, Production, protected-game, or preserved-game mutation
+- validation: `npm test` 316 pass / 0 fail; JavaScript syntax checks 131 pass; `git diff --check` pass; API/frontend dry-run gates pass
+- deployed TEST Workers: API `game-proxy-company-v1`, version `43512536-7933-4274-bc1d-269d2281c335`; frontend `gamebuilder-company-v1`, version `2da6d9e9-6dc6-4d05-9d0b-09469c7e3617`
+- disposable TEST game: `1cb25cc3-7e7e-4dcf-b0f3-b54e1338eb20`; setup `4a2912a2-12a7-4eef-846b-d5485d1ba5d1`; Level 7, EXP 0, committed turn 0 at creation
+- live session: one Story → Extract → Commit/readback session, 15 committed turns, zero provider retries, no reset; final committed turn 15, save revision 17, processing ready, level 7, EXP 6
+- final readback: scene remained `brand_strategy_meeting_room` with `[heroine4]`; turn 4 movement was not durable; turn 5 registered-NPC handoff was absent; turn 6 exact clothing CSA did not change four-slot durable clothing or Extract observation; turns 8 and 10 did not update player sexual state or produce scoped intimate observation; turns 9–15 remained work-oriented; Cut 2 app-state/Mind Monitor/readback remained reachable
+- preserved evidence: exact `game_actions`, `game_turns`, save, and Extract evidence remain in TEST for the disposable game; external evidence record: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-live-resume-v1-terminal.md`
+- root classification: Story context/prompt plus scene/presence, CSA, clothing/physical/player mechanic, Extract, and persistence acceptance gaps. Existing source prompt already carries canonical payload, registered locations/actors, exact `player_action`, committed history, and explicit action-scope/no-invention rules. The provider still ignored the tested movement, personal/non-work, clothing, and intimate semantics.
+- decision: no safe narrow canonical-writer reconnect was identified. A general correctness fix would require a prohibited semantic action router/verifier, finite physical-action grammar, consent/event ledger, generic CSA execution DSL, shadow compatibility architecture, or provider/model change. No source repair, retry, DB reset, migration-history repair, or Production action was performed.
