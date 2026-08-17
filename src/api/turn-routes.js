@@ -461,6 +461,7 @@ const master = masterFromEdition(edition);
             player_action: row.player_action,
             story_text: row.story_text,
             parsed_blocks: parsedBlocks,
+            choices: Array.isArray(row.choices) ? row.choices : [],
             turn_summary: row.turn_summary,
             mind_monitor: row.mind_monitor,
             player_inner_thought: typeof parsedBlocks?.player_inner_thought === 'string' ? parsedBlocks.player_inner_thought : '',

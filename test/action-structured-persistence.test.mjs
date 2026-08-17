@@ -81,8 +81,47 @@ test('history query selects and API returns the persisted structured_action', as
   const response = await worker.fetch(post('/api/history', { game_id: gameId, limit: 20 }), env);
   assert.equal(response.status, 200);
   const payload = await response.json();
+  assert.deepEqual(payload.data.records[0], {
+    turn_number: 3,
+    player_input: '앱 변경을 적용한다',
+    player_action: '앱 변경을 적용한다',
+    story_text: '[1. 서사 및 행동]\n본문',
+    parsed_blocks: { player_inner_thought: '확인한다.' },
+    choices: ['A', 'B', 'C', 'D'],
+    turn_summary: '요약',
+    mind_monitor: {},
+    player_inner_thought: '확인한다.',
+    structured_action: storedStructuredAction,
+    feedback_text: null,
+    committed_at: '2026-08-04T00:00:00Z'
+  });
+  assert.equal(payload.data.has_more, false);
+  assert.equal(payload.data.next_before_turn, null);
   assert.deepEqual(payload.data.records[0].structured_action, storedStructuredAction);
   assert.equal('open_observations' in payload.data.records[0], false);
+});
+
+test('history returns [] for missing, null, and non-array committed choices without inventing values', async () => {
+  const worker = createApiWorker({
+    fetchImpl: async (url) => {
+      const parsed = new URL(String(url));
+      assert.equal(parsed.pathname, '/rest/v1/game_turns');
+      assert.equal(parsed.searchParams.get('record_status'), 'eq.active');
+      assert.match(parsed.searchParams.get('select'), /(^|,)choices(,|$)/);
+      return json([
+        { turn_number: 3, player_action: 'missing', parsed_blocks: {}, choices: undefined },
+        { turn_number: 2, player_action: 'null', parsed_blocks: {}, choices: null },
+        { turn_number: 1, player_action: 'non-array', parsed_blocks: {}, choices: { generated: true } }
+      ]);
+    }
+  });
+
+  const response = await worker.fetch(post('/api/history', { game_id: gameId, limit: 20 }), env);
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.deepEqual(payload.data.records.map(record => record.choices), [[], [], []]);
+  assert.equal(payload.data.has_more, false);
+  assert.equal(payload.data.next_before_turn, null);
 });
 
 test('history uses usable committed parsed_blocks even when raw Story is not parseable as the current record', async () => {
