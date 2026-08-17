@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-runtime-live-acceptance-v5
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -218,3 +218,15 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal with registration/final SHA/blob, main, preflight/gates/tests/smokes, Worker versions, explicit game binding, reset/session counts, committed-turn count, per-coverage evidence, exact first blocker if any, repair-specific scene evidence proof, post DB/action/history reconciliation, summary/memory evidence, protected-game invariants and all safety counts;
 3. STOP. Do not create next task, merge, deploy, patch, or start Cut 3.
+
+## 9. Terminal evidence
+
+- Starting registration SHA: `d89319d5d59f8e87af17baa9b147f976a7e7662e`.
+- Reviewed runtime SHA: `d8fbc5cca47b62e897adc73afc816812f736316b`.
+- The branch is exactly one registration commit after accepted final `b7b7fd13407b8b136dac8d4c0075172c64fae92c`; `origin/main` is `8f3c5326e483650211fbc6c9f54a7527d2278d4e`; only this CURRENT_TASK lifecycle file may change after registration.
+- No reset, live session, gameplay/provider turn, deployment, source patch, DB/schema/migration/history write, Production/hospital/v2 access, protected/preserved/QA mutation, PR, merge, or Cut3 occurred. Reset count `0`; session count `0`; committed-turn count `0`.
+- The first and terminal blocker occurred during the preflight frontend-smoke command invocation: `node scripts/smoke-frontend-worker.mjs --help` was not a URL and returned `REMOTE FRONTEND ASSET SMOKE FAILED endpoint=argument status=0 error_code=invalid_base_url`. No valid frontend smoke PASS exists; no retry is authorized.
+- The corrected API smoke and read-only preflight commands were issued in the same preflight batch, but their individual output was not recoverable after the frontend invocation failed. This evidence uncertainty is itself terminal; no further smoke, reset, or session was attempted.
+- Accepted prior Worker identities remain API `a01aea11-e828-4d81-bd5d-06f9cf1ec39f` and frontend `d3c1bb47-e779-431e-a0ac-98eb513561c6`; this task performed no redeploy.
+- Previous TEST forensic evidence remains untouched; the failed action `72cc2486-cc80-408c-9d86-8196cab7b6ad` was not retried or mutated by this task.
+- Terminal classification: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V5`. STOP; do not retry, reset, deploy, patch, create another task, or start Cut 3.
