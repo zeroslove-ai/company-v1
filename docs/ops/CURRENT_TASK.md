@@ -1,141 +1,100 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
-Task ID: minimal-story-runtime-landed-main-ci-trigger-closure-v1
+Status: WAITING_OWNER_DECISION
+Task ID: minimal-story-runtime-owner-pr69-merge-authorization-gate-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This file is the sole active execution authority.
+This file is the sole active execution authority for the Hermes watcher.
 
-## Starting point
+## Previous task review
 
-Repository: `zeroslove-ai/company-v1`
-Working branch: `company/post-landing-main-ci-closure-v1`
-Branch base / landed main at branch creation: `9d1a80137980baa67ccfba60bae2173ca17cf8d8`
-Merged release PR: #67
-Merged PR head / merge second parent: `d8e301d0b28fc7a590c5f0c77854c114661395d5`
-Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
-Accepted TEST API Worker: `761a01bb-8cca-47ad-afde-87c0ba85c01d`
-Blocked landing terminal: Issue #68 comment `5314721284` (`IC_kwDOTfvo8c8AAAABPMg2BA`)
+Previous task: `minimal-story-runtime-landed-main-ci-trigger-closure-v1`
 
-## Operator review of blocked landing terminal
+Execution identity:
+- READY trigger: Issue #68 comment `5315099000` (`IC_kwDOTfvo8c8AAAABPM35eA`).
+- STARTED: Issue #68 comment `5315128147`.
+- Terminal: Issue #68 comment `5315178613` (`IC_kwDOTfvo8c8AAAABPM8wdQ`).
+- Terminal classification: `MAIN_CI_TRIGGER_FIX_PR_READY`.
+- START SHA: `a033eda9eceeb71b181f12eaa7681369841e8aed`.
+- Final execution-branch SHA: `677051664dc2dc2185f0b5193fe3f11d4aa1b2a9`.
+- Initial task blob: `ddaa53e91c33c07507ddb6041b956f892512ff6a`.
+- Final execution-branch task blob: `d99a2807f77fda6ffc85462b074b93b5752812fc`.
 
-Classification: `ACCEPTED_MERGE_LANDED_CI_TRIGGER_BLOCKER`.
+Operator classification: `ACCEPTED_MAIN_CI_TRIGGER_FIX_PR_READY`.
 
-Independent verification establishes:
-- the supplied READY trigger belongs to `minimal-story-runtime-pr67-merge-commit-landing-v1`;
-- PR #67 was merged exactly once with normal merge method `merge`;
-- PR #67 is CLOSED / MERGED and `merged_at=2026-08-17T10:10:18Z`;
-- landed `main` is exactly `9d1a80137980baa67ccfba60bae2173ca17cf8d8`;
-- merge parents are exactly prior main `1e3a5255e51a284e45baf551dcfd415360981927` and reviewed PR head `d8e301d0b28fc7a590c5f0c77854c114661395d5`;
-- merge tree `82bfa6505c38fc19224a97b5c2e7f7bd8fb7e5c7` equals the reviewed PR-head tree;
-- accepted executable and reviewed PR head are ancestors of landed main;
-- no second merge, revert, manual main push, deployment, Production/game access, DB write/migration, runtime change, or gameplay occurred;
-- the blocker is CI-only: `.github/workflows/test.yml` does not subscribe `Company v1 tests` to pushes on `main`, so GitHub created no test run for the landed merge commit;
-- the merged release itself must not be reverted or reconstructed for this CI configuration gap.
+Independent verification:
+- PR #69 is OPEN / non-Draft / UNMERGED / mergeable, base `main`, head branch `company/post-landing-main-ci-closure-v1`.
+- Exact reviewed PR #69 head is `677051664dc2dc2185f0b5193fe3f11d4aa1b2a9`.
+- Current `main` remains `9d1a80137980baa67ccfba60bae2173ca17cf8d8`.
+- `main` -> PR #69 head is `ahead_by=3`, `behind_by=0`.
+- Complete changed-path set is exactly:
+  - `.github/workflows/test.yml`
+  - `docs/ops/CURRENT_TASK.md`
+- The only substantive workflow change is one added branch entry: `main` under the existing `on.push.branches` list. Existing test commands, Node version, permissions, Wrangler dry-runs, runtime/source/tests/package/migrations and product behavior are unchanged.
+- Exact final-head `Company v1 tests` run `32022784879` at `67705166...` is SUCCESS.
+- PR #69 remains unmerged; direct/manual main push, deploy, Production/game access, DB write/migration, runtime change and gameplay remain zero.
+- PR #67 remains correctly landed at `9d1a8013...`; it must not be reverted, reconstructed or re-merged.
 
-## Objective
+## Owner decision required
 
-Close the structural CI trigger gap with the smallest isolated workflow change, without touching Company runtime behavior or Production.
+No automated execution is authorized while this file is `WAITING_OWNER_DECISION`.
 
-Create a tiny follow-up PR against `main` whose substantive change is only:
+The smallest next owner-only action is:
 
-> add `main` to `.github/workflows/test.yml` under `on.push.branches` so every future push/merge to `main` creates a `Company v1 tests` run.
+`AUTHORIZE_PR69_MERGE_COMMIT_AS_IS`
 
-Do not change test commands, Node version, dry-run commands, job permissions, runtime source, package files, migrations, provider/model/config, or product behavior.
+This means authorizing exactly one normal GitHub merge of PR #69 using merge method `merge`, only after fresh no-drift checks and exact-head CI verification.
 
-## Mandatory fresh checks
+The purpose is to land the verified CI-only fix so that pushes/merges to `main` create `Company v1 tests`. The first proper landed-main CI closure evidence must be the `Company v1 tests` push run on the exact PR #69 merge commit after that merge.
 
-Before editing:
-1. Fetch remote refs and freeze exact `START_SHA` for this branch and exact current `main`.
-2. Require current `main` still equals `9d1a80137980baa67ccfba60bae2173ca17cf8d8`. If main moved, STOP and report exact drift.
-3. Fresh-read PR #67, merge commit `9d1a8013...`, this CURRENT_TASK, blocked terminal `5314721284`, and `.github/workflows/test.yml` from current main.
-4. Re-confirm workflow currently lacks `main` under `push.branches` and that this omission explains why no landed-main test run exists.
-5. Confirm there is no already-open PR implementing the same main-trigger fix.
-6. Confirm working tree is clean except any explicitly preserved runner artifacts allowed by the existing runner rules.
+This authorization does **not** authorize Production rollout, API/frontend deployment, Production/game access, DB writes, SQL/DDL/migration application, runtime/source/test/package/content/config changes, squash/rebase/cherry-pick/force-push/reconstructed landing, gameplay, or follow-on product work.
 
-## Authorized repository changes
+## If owner authorizes PR #69 merge
 
-Only these paths may change:
-- `.github/workflows/test.yml`
-- `docs/ops/CURRENT_TASK.md`
+Register a separate `Status: READY` CURRENT_TASK that may do only the following:
+1. fresh-freeze `main`, PR #69 exact head/state/mergeability and repository merge settings;
+2. require `main` still equals `9d1a80137980baa67ccfba60bae2173ca17cf8d8`;
+3. require PR #69 still OPEN / non-Draft / UNMERGED / mergeable with exact head `677051664dc2dc2185f0b5193fe3f11d4aa1b2a9`;
+4. re-prove the complete PR diff is only the verified one-line workflow trigger plus CURRENT_TASK lifecycle docs;
+5. require exact-head `Company v1 tests` SUCCESS;
+6. merge PR #69 exactly once with GitHub merge method `merge` and exact expected-head guard;
+7. verify the resulting GitHub merge commit is the exact new `main` and has prior main + exact PR head as parents, with the reviewed PR-head tree landed unchanged;
+8. wait for and require the `Company v1 tests` **push** run on that exact new main merge commit to finish SUCCESS;
+9. record the landed main SHA, merge parents/tree identity and exact main CI run ID/conclusion in one terminal;
+10. STOP for operator review. Do not deploy Production.
 
-The workflow diff must be minimal. Add exactly one branch entry:
+If any precondition fails, do not merge. Report the blocker and STOP.
 
-```yaml
-  push:
-    branches:
-      - main
-      - company/full-feature-transplant-v1
-      - company/scene-cast-structured-story-v2
-```
+## Production boundary
 
-Do not add `workflow_dispatch`, schedules, new jobs, new permissions, matrix changes, caching changes, action-version changes, or unrelated cleanup in this task.
+Production remains a separate explicit owner decision even after a future successful PR #69 merge and landed-main CI SUCCESS.
 
-## Validation
+Before any Production rollout, operator review must separately verify at least:
+- exact landed `main` identity and CI SUCCESS;
+- accepted executable/runtime traceability from `f03e32c4194c114d702c43df1f6122c17c4ca7c1` through the landed release lineage;
+- current TEST API Worker identity `761a01bb-8cca-47ad-afde-87c0ba85c01d` and any intended Production artifact identity;
+- migration compatibility/current live schema requirements;
+- explicit rollout scope and rollback boundary.
 
-After the workflow edit:
-1. `git diff --check` PASS.
-2. Parse/review YAML and confirm the only workflow semantic change is enabling push CI on `main`.
-3. Run `npm test` and require success.
-4. Run the existing API Worker dry-run command exactly as CI does: `npx --yes wrangler deploy --dry-run --config wrangler.api.jsonc`.
-5. Run the existing Frontend Worker dry-run command exactly as CI does: `npx --yes wrangler deploy --dry-run --config wrangler.frontend.jsonc`.
-6. Confirm no runtime/source/test/package/migration file changed.
+## Forbidden until explicit owner authorization
 
-## Follow-up PR
-
-After local validation passes:
-1. Commit/push the authorized changes normally on `company/post-landing-main-ci-closure-v1`.
-2. Open exactly one normal PR against `main` from this branch, not Draft, titled approximately `ci: run Company v1 tests on main`.
-3. PR body must state:
-   - PR #67 is already merged at `9d1a8013...`;
-   - this PR is CI infrastructure-only and does not alter runtime behavior;
-   - it fixes the missing `main` push trigger that caused terminal `PR67_MERGED_POSTCHECK_BLOCKER`;
-   - Production rollout remains unauthorized.
-4. Wait for the PR-triggered `Company v1 tests` workflow on the exact final branch head and require SUCCESS.
-5. Fresh-read PR metadata and require OPEN / UNMERGED / mergeable.
-6. Do **not** merge this follow-up PR. Its merge remains an explicit owner decision after operator review.
-
-## Important evidence interpretation
-
-The original landed merge commit `9d1a8013...` cannot retroactively acquire a `push` workflow run from a trigger that did not exist for `main` at merge time. Do not fake or mislabel another SHA as CI for that exact historical merge commit.
-
-The purpose of this task is instead to prove all of the following honestly:
-- PR #67 landing/tree/ancestry is already structurally correct;
-- the missing run was caused by workflow trigger coverage, not runtime failure;
-- the proposed workflow-only fix passes the same test/dry-run job on its PR head;
-- once owner later merges the CI-fix PR, that new `main` push must generate the first proper `Company v1 tests` main run, which will become the post-landing CI closure evidence.
-
-## Terminal classifications
-
-Use exactly one:
-1. `MAIN_CI_TRIGGER_FIX_PR_READY` — minimal workflow fix committed, PR opened, PR CI SUCCESS.
-2. `MAIN_CI_TRIGGER_FIX_BLOCKED_MAIN_DRIFT`
-3. `MAIN_CI_TRIGGER_FIX_BLOCKED_VALIDATION`
-4. `MAIN_CI_TRIGGER_FIX_BLOCKED_PR_OR_CI`
-5. `MAIN_CI_TRIGGER_FIX_BLOCKED_OTHER`
-
-## Forbidden operations
-
-- merge the CI-fix PR;
+- merge or auto-merge PR #69;
 - direct/manual push to `main`;
-- revert or alter PR #67 landing;
-- modify runtime/source/test/package/migration/content/config files;
-- change existing CI commands beyond adding the `main` branch trigger;
+- squash/rebase/cherry-pick/force-push/reconstructed landing;
+- revert/re-merge PR #67;
 - Production/game/game-ID access;
-- DB write/SQL/DDL/migration application;
+- DB writes/SQL/DDL/migration application;
 - API/frontend deployment;
-- provider/model/retry/config changes;
-- gameplay or new product/Cut work.
+- runtime/source/test/package/content/config/provider/model/retry changes;
+- gameplay/follow-on feature work.
 
-## CURRENT_TASK lifecycle
+## Resume protocol
 
-When finished:
-- update this file to `Status: WAITING_REVIEW` with exact result, final branch SHA, PR number/head, CI run ID/conclusion, current main SHA, and zero forbidden-operation counts;
-- the final status commit may touch only `docs/ops/CURRENT_TASK.md` after the workflow-fix commit;
-- push normally;
-- if that final docs commit changes the PR head, wait for CI on the exact new final head and require SUCCESS before terminal;
-- post exactly one immutable terminal to Issue #68 and STOP;
-- do not self-generate the next task.
+Do not post `CURRENT_TASK_READY` for this gate and do not let Hermes execute it.
 
-Production rollout remains unauthorized throughout this task.
+Resume only after an explicit owner instruction equivalent to:
+
+> Authorize PR #69 merge commit as-is. Verify the new main CI run. Do not deploy Production yet.
+
+Until then, STOP.
