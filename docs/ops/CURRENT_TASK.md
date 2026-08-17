@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-owner-landing-strategy-preflight-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -192,3 +192,16 @@ Terminal must include:
 - post-landing verification checklist before any Production rollout.
 
 Then STOP.
+
+## Execution result
+
+- START SHA: `4883811da4241f18d3fcf975e1b272c1adeead30`.
+- Frozen `origin/main`: `1e3a5255e51a284e45baf551dcfd415360981927`.
+- Frozen PR #67 head: `4883811da4241f18d3fcf975e1b272c1adeead30`; PR base: `1e3a5255e51a284e45baf551dcfd415360981927`; merge-base with current main: `1e3a5255e51a284e45baf551dcfd415360981927`.
+- Current main equals the historical PR base, so it contains no newer commits absent from that base. PR #67 is `ahead_by=423`, `behind_by=0`; GitHub reports OPEN / DRAFT / UNMERGED, `mergeable=true`, `mergeStateStatus=CLEAN`.
+- Accepted executable `f03e32c4194c114d702c43df1f6122c17c4ca7c1` remains an ancestor of START. Accepted source CI `31986414926` and previous final CI `31992111972` are SUCCESS. The accepted-source descendants remain documentation-only after the accepted executable.
+- Open-PR inventory found only PR #67. PR #65 is CLOSED, base `main`, head `46f6d93ff9b4d9ec02b3242b0939dbe57c058150`; its head is an ancestor of PR #67 and compare is `ahead_by=291`, `behind_by=0`, so `ANCESTOR/INCLUDED`. PR #66 is CLOSED, base `company/runtime-authority-consolidation-v1` at `46f6d93ff9b4d9ec02b3242b0939dbe57c058150`, head `a9d9c95efd3b8433873a693e34ab14e8f733a3e5`; its head is an ancestor of PR #67 and compare is `ahead_by=288`, `behind_by=0`, so `ANCESTOR/INCLUDED`. Neither is a dependency or missing overlapping open PR.
+- Strategy comparison: merge commit as-is preserves the reviewed PR ancestry, accepted executable traceability, and exact Issue #68 evidence while current main has no divergence or conflict; squash as-is could preserve the final tree but would discard the reviewed commit ancestry and require an explicit post-squash traceability mapping; reconstruct would be unnecessary and would create a new unreviewed lineage requiring exact tree-equivalence proof. Recommendation: `LANDING_RECOMMEND_MERGE_COMMIT_AS_IS`.
+- Smallest next owner-authorized action: authorize the existing PR #67 Draft-to-Ready transition without changing its branch/tree; if the owner then approves landing, merge PR #67 using a merge commit. No such action was performed here.
+- Before any separate TEST-to-Production rollout, verify the landed main SHA/tree, CI at landed main, source/runtime equivalence to the accepted executable where applicable, deployment artifact/version traceability, migration compatibility, and obtain explicit Production rollout authority.
+- No merge/Ready/main push, reconstructed branch, Production/game access, DB write/SQL/DDL/migration application, deploy, runtime/source/test/config/content/script/package/workflow change, provider/model/config change, retry/regeneration, or gameplay loop occurred.
