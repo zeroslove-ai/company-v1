@@ -170,7 +170,7 @@ test('same-location exact registered NPC visits hand off Story and Commit cast w
   });
   const projected = projectStorySaveForNavigation(sameLocationSave, sameLocation, { master, mapLocations });
   assert.equal(projected.scene.location_id, 'brand_strategy_office');
-  assert.equal(projected.scene.scene_id, 'brand_strategy_office');
+  assert.equal('scene_id' in projected.scene, false);
   assert.deepEqual(projected.scene.present_npc_ids, ['heroine2']);
   assert.equal(projected.scene.present_npc_ids.includes('heroine3'), false);
   assert.equal(projected.scene.present_npc_ids.includes('heroine1'), false);
@@ -198,7 +198,7 @@ test('same-location exact registered NPC visits hand off Story and Commit cast w
     navigationIntent: sameLocation
   });
   assert.equal(result.nextSave.scene.location_id, 'brand_strategy_office');
-  assert.equal(result.nextSave.scene.scene_id, 'brand_strategy_office');
+  assert.equal('scene_id' in result.nextSave.scene, false);
   assert.deepEqual(result.nextSave.scene.present_npc_ids, ['heroine2']);
   assert.equal(result.nextSave.scene.focal_character_id, 'heroine2');
   assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine3'), false);

@@ -16,7 +16,7 @@ const SUBJECT_SCOPE_LABELS = {
 
 const RELATIONAL_CATEGORIES = new Set(['posture', 'contact', 'sexual_action']);
 const CLOTHING_OR_WORLD_CATEGORIES = new Set(['clothing', 'world_behavior']);
-import { normalizeExecutionMetadata } from './execution-policy.js';
+import { normalizeClothingStateMechanic } from './clothing-state-mechanic.js';
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -78,7 +78,7 @@ export function normalizeCompanyCsaCatalog(catalog = {}) {
       // Execution metadata is the machine-readable authority. Missing
       // metadata remains missing so a malformed catalog item cannot silently
       // fall back to interpreting natural-language content.
-      execution: item?.execution ? normalizeExecutionMetadata({ ...item, execution: item.execution }) : null
+      execution: item?.execution ? normalizeClothingStateMechanic({ ...item, execution: item.execution }) : null
     }))
   };
 }

@@ -18,7 +18,7 @@ test('Company game view model ignores save mirrors and reads committed parsed ch
   assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: [], turns: [{ choices: ['old'] }, latest] })).story.choices, ['parsed']);
   assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: [], turns: [{ parsed_blocks: { choices: ['parsed only'] } }] })).story.choices, ['parsed only']);
   assert.deepEqual(buildCompanyGameViewModel(context({ lastChoices: [], turns: [latest] })).media.mind_monitor, latest.mind_monitor);
-  assert.deepEqual(buildCompanyGameViewModel({ ...context({ lastChoices: ['stale'] }), opening_turn: { choices: ['Opening A', 'Opening B', 'Opening C', 'Opening D'] } }).story.choices, ['Opening A', 'Opening B', 'Opening C', 'Opening D']);
+  assert.deepEqual(buildCompanyGameViewModel({ ...context({ lastChoices: ['stale'] }), opening_turn: { choices: ['Opening A', 'Opening B', 'Opening C', 'Opening D'] } }).story.choices, []);
 });
 
 test('Company game view model uses server display projections over save mirrors after refresh', () => {
@@ -40,7 +40,7 @@ test('Company game view model uses server display projections over save mirrors 
     }
   };
   const model = buildCompanyGameViewModel(input);
-  assert.equal(model.scene.scene_id, 'display-scene');
+  assert.equal('scene_id' in model.scene, false);
   assert.equal(model.scene.location_id, 'display-location');
   assert.deepEqual(model.story.choices, ['A', 'B', 'C', 'D']);
   assert.deepEqual(model.focal_character.character.stats, { affinity: 9, resistance: 8, csa_acceptance: 7, sexual_arousal: 6 });

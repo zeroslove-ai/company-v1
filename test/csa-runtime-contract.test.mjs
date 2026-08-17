@@ -20,6 +20,7 @@ function makeSave({ active = true } = {}) {
         scope_label: '회사 전체',
         preset: {
           actor_group: 'female_employee',
+          subject_scope: 'female_employee',
           trigger: 'during_work',
           duration: 'while_on_duty',
           required_action: 'work_in_underwear_only'
@@ -86,7 +87,7 @@ test('active CSA is institutional context and does not emit a finite physical ex
   const save = makeSave();
   const projection = buildStoryWorldProjection({
     save,
-    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon' }], general_npcs: [] },
+    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon', gender: 'female' }], general_npcs: [] },
     sceneActorIds: ['heroine1'],
     expectedTurn: 5
   });
@@ -106,7 +107,7 @@ test('non-clothing CSA execution metadata is inert while compact clothing remain
   };
   const physical = buildStoryWorldProjection({
     save,
-    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon' }], general_npcs: [] },
+    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon', gender: 'female' }], general_npcs: [] },
     sceneActorIds: ['heroine1'],
     expectedTurn: 5
   });
@@ -119,7 +120,7 @@ test('non-clothing CSA execution metadata is inert while compact clothing remain
   save.npc_scene_state.heroine1.clothing = { underwear_top: 'removed' };
   const clothing = buildStoryWorldProjection({
     save,
-    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon' }], general_npcs: [] },
+    master: { characters: [{ character_id: 'heroine1', name: 'Hayeon', gender: 'female' }], general_npcs: [] },
     sceneActorIds: ['heroine1'],
     expectedTurn: 5
   });

@@ -2,8 +2,7 @@ import { GameCoreError } from '../errors.js';
 
 const PLAYER_RE = /^player(?:[-_].*)?$/i;
 const REQUIRED_CANONICAL_SCENE_KEYS = [
-  'version', 'scene_id', 'location_id', 'beat', 'goal', 'focus_thread',
-  'present_npc_ids', 'focal_character_id', 'last_speaker_id', 'updated_turn'
+  'version', 'location_id', 'present_npc_ids', 'focal_character_id', 'last_speaker_id', 'updated_turn'
 ];
 
 function plain(value) {
@@ -106,15 +105,6 @@ function validateCanonicalScene(source, options = {}) {
   if (locationId && locations.size && !locations.has(locationId)) {
     throw new GameCoreError('CANONICAL_SCENE_INVALID', `Canonical location is not registered: ${locationId}`);
   }
-  if (current.scene_id !== null && stringId(current.scene_id) === null) {
-    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical scene_id is invalid');
-  }
-  if (current.goal !== null && stringId(current.goal) === null) {
-    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical goal is invalid');
-  }
-  if (current.focus_thread !== null && stringId(current.focus_thread) === null) {
-    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical focus_thread is invalid');
-  }
   if (current.focal_character_id !== null && stringId(current.focal_character_id) === null) {
     throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical focal_character_id is invalid');
   }
@@ -128,16 +118,12 @@ function validateCanonicalScene(source, options = {}) {
     && (npcIds.size && !npcIds.has(current.last_speaker_id))) {
     throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical last_speaker_id is unknown');
   }
-  if (!Number.isInteger(current.beat) || current.beat < 0 || !Number.isInteger(current.updated_turn) || current.updated_turn < 0) {
-    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical beat and updated_turn must be non-negative integers');
+  if (!Number.isInteger(current.updated_turn) || current.updated_turn < 0) {
+    throw new GameCoreError('CANONICAL_SCENE_INVALID', 'Canonical updated_turn must be a non-negative integer');
   }
   return {
     version: 1,
-    scene_id: current.scene_id ?? null,
     location_id: locationId,
-    beat: current.beat,
-    goal: current.goal ?? null,
-    focus_thread: current.focus_thread ?? null,
     present_npc_ids: [...rawPresent],
     focal_character_id: current.focal_character_id ?? null,
     last_speaker_id: current.last_speaker_id ?? null,
@@ -155,18 +141,14 @@ export function readCanonicalSceneV1(save, options = {}) {
 /** One compatibility boundary for old saves that predate save.scene v1. */
 export function hydrateLegacySceneV1(save, options = {}) {
   const source = plain(save) ? save : {};
-  if (plain(source.scene)) return readCanonicalSceneV1(source, options);
+  if (plain(source.scene) && REQUIRED_CANONICAL_SCENE_KEYS.every(key => Object.hasOwn(source.scene, key))) return readCanonicalSceneV1(source, options);
   const npcIds = registeredNpcIds(options);
   const playerId = playerIdOf(source, options);
   const present = uniqueNpcIds(legacyNpcPresence(source, npcIds, playerId), npcIds);
   const focal = stringId(source.focal_character_id);
   return {
     version: 1,
-    scene_id: stringId(source.scene_state?.scene_id),
     location_id: stringId(source.scene_state?.location_id),
-    beat: validInteger(source.scene_state?.beat, 0),
-    goal: source.scene_state?.scene_goal ?? null,
-    focus_thread: source.scene_state?.focus_thread ?? null,
     present_npc_ids: present,
     focal_character_id: focal && present.includes(focal) ? focal : null,
     last_speaker_id: stringId(source.last_speaker_id),
@@ -200,10 +182,6 @@ export function reduceCanonicalScene(input = {}) {
   );
   if (authoritativeLocationChange) {
     next.location_id = observedLocation;
-    next.scene_id = observedLocation;
-    next.beat = 0;
-    next.goal = null;
-    next.focus_thread = null;
     next.present_npc_ids = [];
   }
   if (sameLocationTargetHandoff) {
@@ -213,10 +191,7 @@ export function reduceCanonicalScene(input = {}) {
   if (!degraded && observation.outcome === 'success') {
     const explicitExited = new Set(uniqueNpcIds(observation.exited_npc_ids, npcIds));
     next.present_npc_ids = next.present_npc_ids.filter(id => !explicitExited.has(id));
-    if (observation.scene_id !== null && observation.scene_id !== undefined) next.scene_id = observation.scene_id;
     if (moved && observedLocation !== null) next.location_id = observedLocation;
-    if (observation.scene_goal_provided) next.goal = observation.scene_goal;
-    if (observation.focus_thread_provided) next.focus_thread = observation.focus_thread;
   }
  const currentIds = new Set(next.present_npc_ids);
   for (const entered of uniqueNpcIds(observation.entered_npc_ids, npcIds)) {
@@ -273,7 +248,6 @@ export function reduceCanonicalScene(input = {}) {
   const lastSpeaker = stringId(observation.last_explicit_speaker_id);
   next.last_speaker_id = lastSpeaker;
   next.updated_turn = Number.isInteger(input.expectedTurn) ? input.expectedTurn : validInteger(current.updated_turn, 0) + 1;
-  if (!authoritativeLocationChange) next.beat = validInteger(current.beat, 0) + 1;
   return next;
 }
 

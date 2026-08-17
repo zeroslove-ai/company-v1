@@ -1,7 +1,7 @@
 import { getActiveCsaEntries } from './applicability.js';
 import { compareRequiredClothing } from '../state/clothing.js';
-import { subjectScopeForRule } from './authority-policy.js';
-import { executionMetadataForRule } from './execution-policy.js';
+import { matchesCsaSubjectScope, subjectScopeForRule } from './authority-policy.js';
+import { clothingMechanicForRule } from './clothing-state-mechanic.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -19,25 +19,28 @@ function profileFor(master, id) {
     ?? {};
 }
 
-function authorityFor(rule, preset) {
-  return text(preset?.authority_tier)
-    ?? text(rule?.authority_tier)
-    ?? text(rule?.strength)
-    ?? 'weak';
+function actorProfile(master, save, id) {
+  if (id === 'player') {
+    const player = object(save?.player);
+    return { ...player, id: 'player', character_id: 'player', player: true, gender: player.gender ?? player.sex ?? 'male' };
+  }
+  const profile = profileFor(master, id);
+  return { ...profile, id, character_id: profile.character_id ?? profile.npc_id ?? profile.id ?? id };
 }
 
-function modeFor(rule, preset) {
-  return preset?.mode === 'on_player_request' ? 'on_player_request' : 'continuous';
+function clothingForActor(save, actorId) {
+  if (actorId === 'player') return object(save?.player_scene_state?.clothing) ?? object(save?.player?.clothing) ?? {};
+  return object(save?.npc_scene_state?.[actorId]?.clothing) ?? {};
 }
 
-function clothingProjection({ entry, execution, applicableSceneActorIds, save }) {
+function clothingProjection({ execution, applicableActorIds, save }) {
   if (execution?.kind !== 'clothing_state') return null;
   const requiredState = { ...(execution.required_state ?? {}) };
   return {
     kind: 'clothing_state',
     required_state: requiredState,
-    actors: applicableSceneActorIds.map(actorId => {
-      const current = object(save?.npc_scene_state?.[actorId]?.clothing);
+    actors: applicableActorIds.map(actorId => {
+      const current = clothingForActor(save, actorId);
       return {
         actor_id: actorId,
         current_state: Object.fromEntries(Object.keys(requiredState).map(slot => [slot, current[slot] ?? 'unknown'])),
@@ -47,11 +50,11 @@ function clothingProjection({ entry, execution, applicableSceneActorIds, save })
   };
 }
 
-function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
+function projectWorldRule(entry, expectedTurn, actorProfiles, save) {
   const rule = object(entry);
   const preset = object(rule.preset);
   const subjectScope = subjectScopeForRule(rule);
-  const execution = executionMetadataForRule(rule);
+  const execution = clothingMechanicForRule(rule);
   const result = {
     id: entry.id,
     content: text(rule.content) ?? '',
@@ -60,7 +63,10 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
     effective_game_time: rule.effective_game_time ?? rule.activated_game_time ?? null,
     trigger: text(preset.trigger) ?? text(rule.trigger)
   };
-  const clothing = clothingProjection({ entry, execution, applicableSceneActorIds: sceneProfiles.map(({ id }) => id), save });
+  const applicableActorIds = actorProfiles
+    .filter(({ profile }) => matchesCsaSubjectScope(profile, subjectScope))
+    .map(({ id }) => id);
+  const clothing = clothingProjection({ execution, applicableActorIds, save });
   if (clothing) result.clothing_projection = clothing;
   return result;
 }
@@ -71,11 +77,11 @@ function projectWorldRule(entry, expectedTurn, sceneProfiles, save) {
  */
 export function buildStoryWorldProjection({ save = {}, master = {}, sceneActorIds = [], expectedTurn = null } = {}) {
   const activeEntries = getActiveCsaEntries(save);
-  const sceneProfiles = (Array.isArray(sceneActorIds) ? sceneActorIds : [])
-    .filter(id => text(id) && id !== 'player')
-    .map(id => ({ id, profile: profileFor(master, id) }));
+  const actorIds = ['player', ...(Array.isArray(sceneActorIds) ? sceneActorIds : [])]
+    .filter((id, index, ids) => text(id) && ids.indexOf(id) === index);
+  const actorProfiles = actorIds.map(id => ({ id, profile: actorProfile(master, save, id) }));
   return {
-    world_rules: activeEntries.map(entry => projectWorldRule(entry, expectedTurn, sceneProfiles, save))
+    world_rules: activeEntries.map(entry => projectWorldRule(entry, expectedTurn, actorProfiles, save))
   };
 }
 

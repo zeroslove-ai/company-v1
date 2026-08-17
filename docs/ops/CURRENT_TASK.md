@@ -1,151 +1,276 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-landed-main-ci-trigger-closure-v1
-Updated: 2026-08-17
+Status: READY
+Task ID: overnight-cut2-live-quality-loop-v1
+Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This file is the sole active execution authority.
+This file is the sole active execution authority for the owner-authorized overnight continuation loop.
 
-## Starting point
+## 0. Owner directive — supersedes prior owner gates
 
-Repository: `zeroslove-ai/company-v1`
-Working branch: `company/post-landing-main-ci-closure-v1`
-Branch base / landed main at branch creation: `9d1a80137980baa67ccfba60bae2173ca17cf8d8`
-Merged release PR: #67
-Merged PR head / merge second parent: `d8e301d0b28fc7a590c5f0c77854c114661395d5`
-Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
-Accepted TEST API Worker: `761a01bb-8cca-47ad-afde-87c0ba85c01d`
-Blocked landing terminal: Issue #68 comment `5314721284` (`IC_kwDOTfvo8c8AAAABPMg2BA`)
+At 2026-08-18 00:34 KST the owner explicitly authorized continuous execution through:
 
-## Execution result — WAITING_REVIEW
+`land Cut 1 → implement/review/land Cut 2 → TEST rollout → player-style live acceptance → evidence-driven repair/retest when necessary`
 
-- Workflow-only fix committed at `b414a524364d79a777881f71b1465df8c1fad895`; `.github/workflows/test.yml` adds exactly `main` to the existing `on.push.branches` list.
-- `git diff --check`: PASS; YAML parse/review: PASS; `npm test`: PASS (`305` tests, `0` failures).
-- API Worker dry-run: PASS (`npx --yes wrangler deploy --dry-run --config wrangler.api.jsonc`).
-- Frontend Worker dry-run: PASS (`npx --yes wrangler deploy --dry-run --config wrangler.frontend.jsonc`).
-- PR #69: `OPEN`, non-Draft, `MERGEABLE`, base `main`, workflow-fix head `b414a524364d79a777881f71b1465df8c1fad895`; `Company v1 tests` run `32022662736`: SUCCESS.
-- Current `main`: `9d1a80137980baa67ccfba60bae2173ca17cf8d8`. The final docs-only status commit will change the PR head; its exact final SHA and CI run are recorded in the terminal report after that required recheck.
-- Forbidden-operation counts: follow-up merges `0`; direct `main` pushes `0`; deployments `0`; Production/game access `0`; DB writes `0`; migrations `0`; runtime/source/test/package/content/config changes `0` beyond the authorized workflow file; gameplay `0`.
+The owner does **not** want intermediate `WAITING_OWNER_DECISION`, merge-authorization, deploy-authorization, or “ask the user before continuing” gates inside this scope.
 
-## Operator review of blocked landing terminal
+For every non-Production phase below, the operator/watcher is delegated authority to:
+- review the exact implementation;
+- classify ACCEPTED / CHANGES_REQUIRED / BLOCKED from evidence;
+- create/update the next branch/PR/task as needed;
+- merge an ACCEPTED PR by normal GitHub `merge` with exact-head guard;
+- apply explicitly scoped TEST-only migrations/fixture writes;
+- deploy the accepted TEST candidate;
+- run live TEST gameplay;
+- if live evidence proves a real defect, create and execute a bounded repair task without asking the owner again.
 
-Classification: `ACCEPTED_MERGE_LANDED_CI_TRIGGER_BLOCKER`.
+**Do not stop merely because a prior document or PR description says “owner approval required”, “merge forbidden”, “Cut 2 forbidden”, or equivalent. This directive supersedes those workflow gates for the scope above.** Architectural/product canons remain binding.
 
-Independent verification establishes:
-- the supplied READY trigger belongs to `minimal-story-runtime-pr67-merge-commit-landing-v1`;
-- PR #67 was merged exactly once with normal merge method `merge`;
-- PR #67 is CLOSED / MERGED and `merged_at=2026-08-17T10:10:18Z`;
-- landed `main` is exactly `9d1a80137980baa67ccfba60bae2173ca17cf8d8`;
-- merge parents are exactly prior main `1e3a5255e51a284e45baf551dcfd415360981927` and reviewed PR head `d8e301d0b28fc7a590c5f0c77854c114661395d5`;
-- merge tree `82bfa6505c38fc19224a97b5c2e7f7bd8fb7e5c7` equals the reviewed PR-head tree;
-- accepted executable and reviewed PR head are ancestors of landed main;
-- no second merge, revert, manual main push, deployment, Production/game access, DB write/migration, runtime change, or gameplay occurred;
-- the blocker is CI-only: `.github/workflows/test.yml` does not subscribe `Company v1 tests` to pushes on `main`, so GitHub created no test run for the landed merge commit;
-- the merged release itself must not be reverted or reconstructed for this CI configuration gap.
+## 1. Hard boundaries that still require STOP
 
-## Objective
+Never auto-authorize any of the following:
+- Production game access or mutation;
+- Production DB write/reset/migration;
+- Production-only deployment or route change;
+- provider/model swap as a correctness strategy;
+- retry/regenerate-until-lucky acceptance;
+- a new semantic gateway/verifier/router, consent matrix, finite physical-action grammar, relationship/event/open-fact ledger, generic CSA execution DSL, or compatibility shadow architecture;
+- a change that contradicts `CURRENT_TRUTH.md` or `docs/COMPANY_V1_POST_MERGE_GAMEPLAY_SIMPLIFICATION_CANON_2026-08-17.md` rather than implementing it;
+- destructive rewriting of historical migrations/evidence;
+- resetting a failed live-test game before its evidence is preserved.
 
-Close the structural CI trigger gap with the smallest isolated workflow change, without touching Company runtime behavior or Production.
+If one of these becomes necessary, preserve exact evidence and STOP `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`.
 
-Create a tiny follow-up PR against `main` whose substantive change is only:
+## 2. Auto-approval rule
 
-> add `main` to `.github/workflows/test.yml` under `on.push.branches` so every future push/merge to `main` creates a `Company v1 tests` run.
+At every source/merge boundary, the operator may self-approve and continue when all are true:
+1. exact branch/head/ancestry is frozen and no unexplained drift exists;
+2. full `npm test` passes with zero failures;
+3. `git diff --check` passes;
+4. exact-head `Company v1 tests` GitHub Actions concludes `SUCCESS`;
+5. code review finds no unresolved P0/P1 gameplay correctness defect;
+6. changes remain within the current canon and do not add a prohibited authority layer;
+7. optional/presentation failures remain nonblocking to Story/Commit;
+8. the change is deletion-first or is the smallest proven single-writer mechanic/sidecar needed by the product.
 
-Do not change test commands, Node version, dry-run commands, job permissions, runtime source, package files, migrations, provider/model/config, or product behavior.
+When these conditions pass, post an immutable Issue #68 review record and **continue automatically**. Do not wait for user confirmation.
 
-## Mandatory fresh checks
+## 3. Phase A — land accepted Cut 1
 
-Before editing:
-1. Fetch remote refs and freeze exact `START_SHA` for this branch and exact current `main`.
-2. Require current `main` still equals `9d1a80137980baa67ccfba60bae2173ca17cf8d8`. If main moved, STOP and report exact drift.
-3. Fresh-read PR #67, merge commit `9d1a8013...`, this CURRENT_TASK, blocked terminal `5314721284`, and `.github/workflows/test.yml` from current main.
-4. Re-confirm workflow currently lacks `main` under `push.branches` and that this omission explains why no landed-main test run exists.
-5. Confirm there is no already-open PR implementing the same main-trigger fix.
-6. Confirm working tree is clean except any explicitly preserved runner artifacts allowed by the existing runner rules.
+Frozen pre-registration facts to re-verify before mutation:
+- repository: `zeroslove-ai/company-v1`
+- current `main` at registration: `111be1fba0029c8086d76ca72afcd8b22a18fcca`
+- PR #70: `company/gameplay-core-simplification-v1`
+- previously accepted executable head: `0f1e36c049b16c51302376a4f46cc714c89315d1`
+- synchronized implementation head before this docs-only registration: `917c03eb198f111bba69b9b6698136b592f48970`
+- exact-head CI before registration: run `32041771244` SUCCESS
+- PR #69 is already merged and `main` push CI coverage is present.
 
-## Authorized repository changes
+Required:
+1. Fresh-fetch main, PR #70 and this task.
+2. Prove the only change after `917c03eb...` is this owner-authorized lifecycle/task document unless a newer owner instruction exists.
+3. Require CI SUCCESS on the exact new PR #70 head created by this task registration.
+4. Self-review that no gameplay/source/runtime change occurred after the accepted implementation.
+5. Merge PR #70 exactly once by normal GitHub `merge` with exact-head guard.
+6. Require `Company v1 tests` SUCCESS on the exact resulting main merge SHA.
+7. Record `CUT1_LANDED_ACCEPTED` and immediately continue to Phase B. Do not stop at an owner gate.
 
-Only these paths may change:
-- `.github/workflows/test.yml`
-- `docs/ops/CURRENT_TASK.md`
+## 4. Phase B — Cut 2 `presentation-sidecars-cleanup-v1`
 
-The workflow diff must be minimal. Add exactly one branch entry:
+Create a fresh branch from the exact accepted Cut 1 landed main and one normal PR against main.
 
-```yaml
-  push:
-    branches:
-      - main
-      - company/full-feature-transplant-v1
-      - company/scene-cast-structured-story-v2
-```
+### 4.1 Primary goal
 
-Do not add `workflow_dispatch`, schedules, new jobs, new permissions, matrix changes, caching changes, action-version changes, or unrelated cleanup in this task.
+Finish presentation-sidecar cleanup **without reopening Story/Extract/Commit semantic authority**.
 
-## Validation
+### 4.2 Required audit first
 
-After the workflow edit:
-1. `git diff --check` PASS.
-2. Parse/review YAML and confirm the only workflow semantic change is enabling push CI on `main`.
-3. Run `npm test` and require success.
-4. Run the existing API Worker dry-run command exactly as CI does: `npx --yes wrangler deploy --dry-run --config wrangler.api.jsonc`.
-5. Run the existing Frontend Worker dry-run command exactly as CI does: `npx --yes wrangler deploy --dry-run --config wrangler.frontend.jsonc`.
-6. Confirm no runtime/source/test/package/migration file changed.
+Before editing, inventory fresh callers/readers/writers for:
+- legacy NPC stat UI: `affinity`, `resistance`, `csa_acceptance`, `sexual_arousal`, `relationship_summary`;
+- image selection / `image_selection` / `image_character_id` / media coupling;
+- TTS/media failure paths;
+- historical compatibility adapters still reachable from fresh requests;
+- dead donor/work/relationship/event/stat helpers/readers;
+- any reader with no current writer and any writer with no concrete product consumer.
 
-## Follow-up PR
+Do not preserve a subsystem merely because a stale test or UI field references it.
 
-After local validation passes:
-1. Commit/push the authorized changes normally on `company/post-landing-main-ci-closure-v1`.
-2. Open exactly one normal PR against `main` from this branch, not Draft, titled approximately `ci: run Company v1 tests on main`.
-3. PR body must state:
-   - PR #67 is already merged at `9d1a8013...`;
-   - this PR is CI infrastructure-only and does not alter runtime behavior;
-   - it fixes the missing `main` push trigger that caused terminal `PR67_MERGED_POSTCHECK_BLOCKER`;
-   - Production rollout remains unauthorized.
-4. Wait for the PR-triggered `Company v1 tests` workflow on the exact final branch head and require SUCCESS.
-5. Fresh-read PR metadata and require OPEN / UNMERGED / mergeable.
-6. Do **not** merge this follow-up PR. Its merge remains an explicit owner decision after operator review.
+### 4.3 Reaction meters decision — owner intent
 
-## Important evidence interpretation
+The owner reported “stats do not change” as a real UX defect. Preserve useful visible reaction feedback, but **do not resurrect `npc_stats`**.
 
-The original landed merge commit `9d1a8013...` cannot retroactively acquire a `push` workflow run from a trigger that did not exist for `main` at merge time. Do not fake or mislabel another SHA as CI for that exact historical merge commit.
+If current UI still materially benefits from numeric meters, implement at most a tiny presentation-only `npc_reaction_state` with exactly the smallest useful set:
+- `affinity`
+- `sexual_arousal`
 
-The purpose of this task is instead to prove all of the following honestly:
-- PR #67 landing/tree/ancestry is already structurally correct;
-- the missing run was caused by workflow trigger coverage, not runtime failure;
-- the proposed workflow-only fix passes the same test/dry-run job on its PR head;
-- once owner later merges the CI-fix PR, that new `main` push must generate the first proper `Company v1 tests` main run, which will become the post-landing CI closure evidence.
+Rules:
+- one writer from post-Story observation/committed turn evidence;
+- bounded numeric display state only;
+- no `csa_acceptance`;
+- no `resistance` as an action/CSA gate;
+- no machine-authored relationship summary;
+- never project these meters back into Story as consent, permission, rule applicability, affection truth, or action authority;
+- missing/ambiguous update is dropped and never blocks the turn;
+- if the UX can be made clearer by deleting a dead meter rather than implementing it, delete it.
 
-## Terminal classifications
+The operator may choose deletion instead of implementation for any legacy meter except that the final UI must not falsely display a frozen stat as though it were live.
 
-Use exactly one:
-1. `MAIN_CI_TRIGGER_FIX_PR_READY` — minimal workflow fix committed, PR opened, PR CI SUCCESS.
-2. `MAIN_CI_TRIGGER_FIX_BLOCKED_MAIN_DRIFT`
-3. `MAIN_CI_TRIGGER_FIX_BLOCKED_VALIDATION`
-4. `MAIN_CI_TRIGGER_FIX_BLOCKED_PR_OR_CI`
-5. `MAIN_CI_TRIGGER_FIX_BLOCKED_OTHER`
+### 4.4 Media/image sidecar
 
-## Forbidden operations
+Move image selection completely out of fresh Extract semantic authority.
 
-- merge the CI-fix PR;
-- direct/manual push to `main`;
-- revert or alter PR #67 landing;
-- modify runtime/source/test/package/migration/content/config files;
-- change existing CI commands beyond adding the `main` branch trigger;
-- Production/game/game-ID access;
-- DB write/SQL/DDL/migration application;
-- API/frontend deployment;
-- provider/model/retry/config changes;
-- gameplay or new product/Cut work.
+Preferred inputs:
+- committed parsed Story;
+- current focal/present actor;
+- confirmed compact clothing state;
+- finite existing asset metadata.
 
-## CURRENT_TASK lifecycle
+Rules:
+- no image semantic verdict may reject/retry/rewrite Story;
+- no image result becomes durable narrative authority;
+- failure means no image or neutral fallback;
+- do not add another LLM call solely for image selection unless an already-approved sidecar architecture requires it; prefer deterministic presentation mapping from committed data.
 
-When finished:
-- update this file to `Status: WAITING_REVIEW` with exact result, final branch SHA, PR number/head, CI run ID/conclusion, current main SHA, and zero forbidden-operation counts;
-- the final status commit may touch only `docs/ops/CURRENT_TASK.md` after the workflow-fix commit;
-- push normally;
-- if that final docs commit changes the PR head, wait for CI on the exact new final head and require SUCCESS before terminal;
-- post exactly one immutable terminal to Issue #68 and STOP;
-- do not self-generate the next task.
+TTS follows the same nonblocking rule.
 
-Production rollout remains unauthorized throughout this task.
+### 4.5 Cleanup
+
+Delete or collapse, after caller proof:
+- dead legacy stat readers/writers/helpers;
+- fresh media/Extract coupling;
+- stale compatibility adapters not required by persisted historical readback;
+- dead work/event/relation/stat naming residue;
+- obsolete tests that protect removed implementation shape.
+
+Do not delete a historical adapter solely by name; prove fresh/persisted caller safety first.
+
+### 4.6 Cut 2 acceptance
+
+Add behavior-oriented tests for:
+- visible reaction UI is either truly live or absent; never fake/frozen;
+- `csa_acceptance`, resistance gating and relationship-summary authority cannot re-enter fresh state;
+- reaction sidecar cannot affect Story prompt/CSA applicability/Commit validity;
+- image/media failure cannot fail a valid turn;
+- fresh Extract contains no image-selection authority;
+- refresh/recovery reads committed presentation state correctly where retained;
+- source surface is reduced where old readers/writers are removed.
+
+Run full suite, diff check and exact-head CI. Self-review. If accepted, merge Cut 2 normally with exact-head guard, require landed-main CI SUCCESS, record `CUT2_LANDED_ACCEPTED`, and continue immediately to Phase C.
+
+If review finds a real defect within Cut 2 scope, fix it on the same branch and repeat validation. Do not ask the owner.
+
+## 5. Phase C — TEST-only rollout
+
+After Cut 2 landed-main CI SUCCESS, prepare one TEST candidate from that exact main lineage.
+
+Fresh-verify deployment identities from repo/config before mutation. Current expected TEST infrastructure is:
+- Supabase TEST project URL host: `fmcrspgxstsmxxsmkeee.supabase.co`
+- API Worker config name: `game-proxy-company-v1`
+- Frontend Worker config name: `gamebuilder-company-v1`
+
+Do not infer Production safety from names. Before deployment prove the operation is the same established TEST acceptance route used by prior Company v1 TEST evidence and does not require Production game access.
+
+Authorized TEST operations:
+- apply unapplied additive Company v1 migrations required by Cut 1/Cut 2 to TEST only, in order;
+- validate resulting save/functions structurally;
+- deploy API/Frontend TEST candidate from exact accepted main lineage;
+- create a **new disposable TEST game** for this acceptance;
+- prepare that new game at Level 7 / EXP 0 using a TEST-only fixture mutation or existing safe fixture seam.
+
+Do **not** reset or reuse preserved historical/manual evidence games, including any game that contains the owner’s prior manual QA turns. If the existing Level-7 helper is hard-locked to a preserved game, use a one-off TEST-only fixture write for a newly created disposable game rather than broadening Production runtime architecture merely for testing.
+
+Record exact migration names, Worker version IDs, disposable game ID and deployed commit SHA.
+
+## 6. Phase D — player-style live TEST acceptance
+
+Use live provider calls and the real committed Story→Extract→Commit path. Prefer the actual frontend path/headless interaction if an existing maintained harness supports it; otherwise use the existing SSE/canary gameplay harness plus committed frontend/readback verification. **Do not build a new large harness just to continue this task.**
+
+Use one natural, coherent session of roughly 15–20 committed turns. Do not make it a list of synthetic endpoint assertions. Vary choices and free text like a real player.
+
+Minimum scenario coverage:
+1. Opening and several normal choices; prove choices never fall back to stale Opening choices.
+2. Free-text literal action fidelity; actor/target/directionality must not silently change.
+3. Ordinary non-work conversation; verify narration does not compulsively snap back to meetings/onboarding/work reports.
+4. Cross-location movement and same-location registered-NPC handoff.
+5. Activate at least one exact clothing CSA and verify Story + four-slot durable state agree immediately for the correct subject scope.
+6. Exercise an active on-request/narrative CSA and separately request an unrelated action; verify the CSA is ordinary/in-force but does not grant unrelated obedience/consent/permission.
+7. Exercise explicit adult intimate/sexual progression naturally enough to verify:
+   - direct executable requests progress meaningfully in the same turn rather than repeated wait/continue staging;
+   - visible body description can use confirmed exposed canon;
+   - player sexual mechanic changes when Story explicitly establishes the evidence;
+   - description is not reduced to repetitive generic gestures/work-report language.
+8. Verify Cut 2 reaction meters, if retained, visibly change only as presentation and never alter rule/action authority.
+9. Verify image/media sidecar works or fails harmlessly without affecting Story/Commit.
+10. Continue past six raw-turn memory depth; revisit an early promise/relationship/situation and verify older chronological `turn_summary` supports coherent continuity.
+11. Refresh/reload/recovery/readback parity.
+12. Inspect exact DB turn/action/save evidence for any suspicious turn rather than judging UI text alone.
+
+### Live acceptance rules
+
+- one scenario at a time;
+- no stochastic retry/regeneration to obtain a pass;
+- do not silently discard an ugly or wrong provider turn;
+- a deterministic or materially reproducible defect is evidence, not something to retry away;
+- preserve the game immediately when a real defect is found.
+
+## 7. Phase E — autonomous defect-driven repair loop
+
+If Phase D finds a real product defect, classify it before changing code:
+- literal input / choice authority;
+- Story prompt/context quality;
+- scene/location/presence;
+- CSA scope/premise;
+- physical/clothing/player mechanic writer;
+- Extract observation/evidence;
+- Commit/state persistence;
+- memory/summary;
+- frontend readback/UI;
+- presentation sidecar.
+
+Then inspect exact game turn/action/save + current code and choose the smallest deletion-first root fix.
+
+The operator is pre-authorized for **up to 3 substantive repair cycles** tonight, provided each fix:
+- stays inside the binding architecture;
+- does not add prohibited semantic layers;
+- addresses preserved live evidence;
+- is reviewed with focused + full tests + exact-head CI;
+- is merged normally after self-acceptance;
+- is redeployed to TEST only;
+- is retested on a **new disposable game** while preserving the failed game.
+
+Do not create symptom-specific regex gates for arbitrary narrative quality. If a provider-quality issue is not deterministic enough for a structural fix, record it as a quality finding and continue collecting evidence rather than inventing a semantic verifier.
+
+STOP early if:
+- the same root failure remains after two attempted fixes;
+- a fix would require a prohibited/new architecture layer;
+- Production access/change is required;
+- test/deploy lineage cannot be proven;
+- DB migration cannot be made additive/safe;
+- a security/data-integrity issue appears.
+
+Otherwise continue until live acceptance is materially clean or 3 repair cycles are consumed.
+
+## 8. Terminal condition
+
+Do **not** stop at intermediate `WAITING_REVIEW` solely for user approval.
+
+Terminal only when one of these occurs:
+
+### `OVERNIGHT_LIVE_ACCEPTED`
+- Cut 1 landed-main CI SUCCESS;
+- Cut 2 landed-main CI SUCCESS;
+- TEST migrations/deploy verified;
+- one final disposable live game completes the required player-style acceptance without unresolved P0/P1 product defects;
+- any remaining findings are explicitly classified as nonblocking quality/UX follow-up;
+- Production untouched.
+
+### `OVERNIGHT_REPAIR_LIMIT_REACHED`
+- 3 evidence-driven repair cycles used and unresolved defect remains.
+
+### `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`
+- only for the hard boundaries in section 1.
+
+At terminal, update this file to `WAITING_REVIEW`, post one complete immutable Issue #68 report with exact SHAs/PRs/CI/deploy/migrations/game IDs/turn evidence, and STOP.
+
+Production rollout is explicitly outside this overnight authority.

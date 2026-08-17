@@ -8,7 +8,7 @@ const TOP_LEVEL = new Set([
   'csa_trigger_evaluations', 'csa_runtime_updates', 'turn_summary', 'warnings'
 ]);
 const NPC_DOMAINS = new Set(['physical', 'stats', 'csa_attitude']);
-const PHYSICAL = new Set(['posture', 'position_label', 'clothing']);
+const PHYSICAL = new Set(['position_label', 'clothing']);
 const CLOTHING = new Set(['uniform_top', 'uniform_bottom', 'underwear_top', 'underwear_bottom']);
 const CLOTHING_STATES = new Set(['worn', 'removed', 'open', 'unknown']);
 const SEXUAL = new Set(['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed', 'erection_state']);
@@ -24,7 +24,7 @@ const CSA_RUNTIME_FIELDS = new Set(['csa_id', 'character_id', 'status', 'target_
 const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'quote']);
 const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'scene']);
 const FRESH_OUTCOMES = new Set(['success', 'partial', 'refused', 'interrupted', 'blocked']);
-const FRESH_SCENE_FIELDS = new Set(['scene_id', 'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'presence_is_final', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
+const FRESH_SCENE_FIELDS = new Set(['location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids', 'focal_candidate_id', 'remote_speaker_ids', 'evidence']);
 const FRESH_TOP_LEVEL = new Set(['extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations', 'evidence', 'elapsed_minutes', 'mind_monitor', 'turn_summary', 'warnings']);
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
@@ -65,10 +65,6 @@ function normalizePhysical(value) {
   if (value === null || value === undefined) return null;
   assertKeys(value, PHYSICAL, 'INVALID_EXTRACT_OBSERVATION');
   const result = {};
-  if ('posture' in value) {
-    if (value.posture !== null && typeof value.posture !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'posture must be string or null');
-    result.posture = value.posture;
-  }
   if ('position_label' in value) {
     if (value.position_label !== null && typeof value.position_label !== 'string') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'position_label must be string or null');
     result.position_label = value.position_label;
@@ -88,7 +84,7 @@ function normalizeSexual(value) {
   assertKeys(value, SEXUAL, 'INVALID_EXTRACT_OBSERVATION');
   const result = clone(value);
   if ('arousal_delta' in result && !Number.isInteger(result.arousal_delta)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'arousal_delta must be an integer');
-  if ('ejaculation_progress_delta' in result && (!Number.isInteger(result.ejaculation_progress_delta) || result.ejaculation_progress_delta < 0 || result.ejaculation_progress_delta > 6)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid sexual delta: ejaculation_progress_delta');
+  if ('ejaculation_progress_delta' in result && (!Number.isInteger(result.ejaculation_progress_delta) || result.ejaculation_progress_delta < 0 || result.ejaculation_progress_delta > 100)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid sexual delta: ejaculation_progress_delta');
   if ('ejaculation_completed' in result && typeof result.ejaculation_completed !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'ejaculation_completed must be boolean');
   if ('erection_state' in result && !ERECTION.has(result.erection_state)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid erection_state');
   return result;
@@ -449,13 +445,12 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
   const registered = options.npcIds instanceof Set ? options.npcIds : new Set(Array.isArray(options.npcIds) ? options.npcIds : []);
   const scene = object(value.scene_observation) ? value.scene_observation : {};
   assertKeys(scene, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
-  const sceneId = scene.scene_id === null || scene.scene_id === undefined ? null : nonEmptyId(scene.scene_id);
   const locationId = scene.location_id === null || scene.location_id === undefined ? null : nonEmptyId(scene.location_id);
   const finalIds = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
   const entered = ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false });
   const exited = ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false });
   const warnings = Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string') : [];
-  const evidence = normalizeSceneEvidence(scene.evidence ?? [], registered, options.storyText ?? '', sceneId);
+  const evidence = normalizeSceneEvidence(scene.evidence ?? [], registered, options.storyText ?? '', locationId);
   const player = object(value.player_observation) ? value.player_observation : {};
   assertKeys(player, new Set(['physical', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
   const npcObservations = {};
@@ -474,12 +469,10 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
     extract_version: 2,
     outcome: value.outcome,
     scene_observation: {
-      scene_id: sceneId,
       location_id: locationId,
       final_present_npc_ids: finalIds,
       entered_npc_ids: entered,
       exited_npc_ids: exited,
-      presence_is_final: scene.presence_is_final === true,
       focal_candidate_id: nullableId(scene.focal_candidate_id, registered, 'focal_candidate_id'),
       remote_speaker_ids: ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false }),
       evidence

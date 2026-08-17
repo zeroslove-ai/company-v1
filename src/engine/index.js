@@ -92,9 +92,9 @@ export {
   phaseFor, phaseForRule, profileSex, subjectScopeForRule
 } from './csa/authority-policy.js';
 export {
-  normalizeExecutionMetadata,
-  executionMetadataForRule
-} from './csa/execution-policy.js';
+  normalizeClothingStateMechanic,
+  clothingMechanicForRule
+} from './csa/clothing-state-mechanic.js';
 export { buildAppManualPayload, buildAppStatePayload } from './csa/payloads.js';
 
 export { listGeneralNpcs, getGeneralNpc, isGeneralNpcId } from './npc/catalog.js';

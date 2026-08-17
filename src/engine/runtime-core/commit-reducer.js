@@ -71,7 +71,6 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
     warnings.push('scene_location_proposal_dropped_without_exact_evidence');
   }
   return {
-    scene_id: scene.scene_id ?? null,
     location_id: locationId,
    final_present_npc_ids: Array.isArray(scene.final_present_npc_ids) ? scene.final_present_npc_ids : null,
     entered_npc_ids: [...new Set([
@@ -79,16 +78,11 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
       ...(destinationTargetId ? [destinationTargetId] : [])
     ])],
     exited_npc_ids: Array.isArray(scene.exited_npc_ids) ? scene.exited_npc_ids : [],
-    presence_is_final: scene.presence_is_final === true,
     focal_candidate_id: destinationTargetId ?? scene.focal_candidate_id ?? null,
     explicit_speaker_ids: speakers,
     acted_npc_ids: [],
     last_explicit_speaker_id: speakers.at(-1) ?? null,
     destination_target_id: destinationTargetId,
-    scene_goal: null,
-    focus_thread: null,
-    scene_goal_provided: false,
-    focus_thread_provided: false,
     outcome: observation.outcome,
     remote_speaker_ids: scene.remote_speaker_ids ?? [],
     evidence: scene.evidence ?? [],
@@ -146,6 +140,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     canonicalScene,
     action,
     expectedTurn,
+    master,
     structuredAction,
     transactionResolution
   });

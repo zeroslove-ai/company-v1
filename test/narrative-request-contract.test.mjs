@@ -29,6 +29,14 @@ test('Story and Opening share one provider choice transport contract', () => {
   assert.equal(opening[0].content.includes(PROVIDER_CHOICE_OUTPUT_PROTOCOL), true);
 });
 
+test('Story and Opening retain the company setting without universal workplace-fiction authority', () => {
+  const story = buildStoryPrompt({ edition, context: context(), playerAction: 'continue', expectedTurn: 2, npcIds: new Set() });
+  const opening = buildOpeningPrompt({ edition, player: {}, canonical: {}, openingPlan: {} });
+  const text = [...story, ...opening].map(message => String(message.content)).join('\n');
+  assert.doesNotMatch(text, /workplace fiction/i);
+  assert.doesNotMatch(text, /work agenda|mandatory enactment|permanent work-performance/i);
+});
+
 test('Story request carries current time, player intent, and no retired semantic maps', () => {
   const action = '회의실에서 오늘 업무를 검토한다.';
   const messages = buildStoryPrompt({ edition, context: context(), playerAction: action, expectedTurn: 2, npcIds: new Set() });
