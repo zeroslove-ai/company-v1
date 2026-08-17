@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-additive-schema-bridge-single-statement-apply-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -178,3 +178,18 @@ At terminal:
 1. set CURRENT_TASK to `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal with registration/final SHA/blob, pre/post migration snapshot, wrapper SHA, invocation count/result, five-function verification, pure probes, gameplay-data digest comparison, and safety counts;
 3. STOP. Do not deploy or create the next task.
+## 7. CODEX_WATCHER execution lifecycle
+
+- EXECUTION STARTED comment: 5318262821
+- Terminal classification: BLOCKED_TEST_SINGLE_STATEMENT_BRIDGE
+- Blocker: BLOCKED_TEST_SINGLE_STATEMENT_BRIDGE_PREFLIGHT
+- origin/main matched 8f3c5326e483650211fbc6c9f54a7527d2278d4e.
+- Expected branch b1d0fa9b5bf761a42f462ef3a8a098484135bd4d descended from accepted wrapper final 2428b8765fe3ae44f6160c2b1262dc6d0c2243f3 with only this READY task registration before execution.
+- Original reviewed bridge SHA-256 matched 6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9.
+- Accepted wrapper blob matched 1f959e140eacd88e281f3217cc1bf990f15dc41c, but the exact checked-out wrapper bytes hashed to 433b8f2352b97536932350fcba5b1a3a4610a59546c5dc40b0a58e2459b2c3e0 instead of the frozen required 8a5e438919d25fae4a618348c0b32473dcef1adc9f6baa10c09700cc886495f2. The required hash corresponds to an extra final LF that is not present in the committed wrapper bytes.
+- Because the task forbids editing or regenerating the wrapper, the exact frozen wrapper could not be proven. Wrapper invocation count = 0; no mutation was attempted.
+- Migration snapshot was not queried after this preflight mismatch; no preflight query or mutation was issued in this run. Frozen accepted snapshot remains 27 rows, canonical SHA-256 6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc, target row 20260817000200 absent.
+- Five-function verification and pure structural probes were not run because wrapper execution was not authorized after hash mismatch.
+- DB/schema/migration-history writes = 0; migration applies/push/repair = 0; TEST gameplay/save/fixture writes/live turns = 0; deploy = 0; Production access = 0.
+- Only docs/ops/CURRENT_TASK.md changed; original bridge, wrapper, wrapper audit, and supabase/migrations/* are unchanged. git diff --check: PASS.
+- STOP. Do not edit the wrapper, retry, apply, deploy, or create another task.
