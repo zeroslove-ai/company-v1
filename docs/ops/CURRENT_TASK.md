@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-migration-lineage-forensics-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -183,3 +183,28 @@ When the forensic report is complete:
 5. STOP for operator review.
 
 Do not self-authorize migration-history repair from this task.
+
+## 9. Terminal report — BLOCKED_EVIDENCE_DRIFT
+
+The mandatory fresh freeze stopped before provenance classification. `origin/main`
+remains the required `8f3c5326e483650211fbc6c9f54a7527d2278d4e`, the registered
+branch remains a direct one-commit descendant at `b0e31fbcbda5ade08aa125fc1f920ea0b0aa543a`,
+and the task blob before this lifecycle update was
+`0ab6c324902d54bec571c6be6dcd95b701cf04ab`.
+
+The read-only TEST migration list for project `fmcrspgxstsmxxsmkeee` returned the
+21 versions registered above plus an additional remote-only applied version
+`20260816045221`, which is absent from the task's frozen blocker evidence. This
+is current migration-history drift, so exact provenance classification was not
+safe to continue. The required 21 versions are therefore unclassified pending
+an owner-approved fresh baseline; no old→new mapping or inverse local-only
+reconciliation was asserted.
+
+No migration repair, schema/history write, migration apply, `db push` without
+`--dry-run`, Worker deploy, TEST fixture/game mutation, live gameplay, or
+Production access occurred. The local migration filename/hash inventory was
+read-only; no runtime/source/content/test/package/workflow file changed.
+
+Recommended classification: `LINEAGE_REMAINS_AMBIGUOUS` pending a new frozen
+task/evidence set that includes `20260816045221`. STOP for owner review; do not
+generate the next task or remediation.
