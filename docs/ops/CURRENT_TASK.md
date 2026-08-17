@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-runtime-live-acceptance-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -218,3 +218,14 @@ At terminal:
 - Cut 3 implementation: forbidden until this rollout acceptance is reviewed.
 
 `git diff --check` must PASS at terminal. Repository lifecycle change after registration is limited to `docs/ops/CURRENT_TASK.md`.
+
+## 8. Watcher terminal stop — pre-deploy contract blocker
+
+- Execution lease: Issue #68 comment `5318715906`; no later lease or terminal report exists for this identity.
+- Preflight stopped before deployment because the existing read-only scene contract gate at `stage_b` failed against the current TEST catalog. `company_validate_scene_v1(jsonb,boolean)` was not `SECURITY DEFINER`, had no `search_path=public, pg_temp`, and the required scene behavioral-probe catalog was absent.
+- Action contract gate `stage_b`: PASS. No source/runtime/config/test/package/workflow edits were made.
+- Bridge post-check: migration rows `27`; target `20260817000200` absent; bridge canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`.
+- Five target function MD5s matched the frozen values: `415242b4a452ae218c01106b35900efe`, `78547de247e2b6e8ee2a184cbf760de2`, `e982167db59fc5be1447b8866dd35a65`, `d9a165eb01ee70cf92b63e7935e44f1b`, `74a8c352c5380fc2273821695ade4908`.
+- Pre-deploy Worker metadata was read-only frozen: API deployment `a7cfe371-6811-4f62-a662-53137dc7b531` / version `761a01bb-8cca-47ad-afde-87c0ba85c01d`; frontend deployment `13d98d9b-8d9e-439f-80ba-b0711f518c21` / version `1a3c1416-5362-4658-a8fe-465006a342dd`. No post-deploy IDs exist; API/frontend smokes were not run.
+- Pre-session read-only counts were captured for disposable, preserved/manual, QA, and Production-sentinel games. No reset, gameplay, or live session occurred; committed turns remain `0` for this execution.
+- Narrow repair domain for review: reconcile the existing TEST scene contract gate/catalog with the accepted scene function security/ACL contract and preserve behavioral-probe evidence. Do not repair it in this task.
