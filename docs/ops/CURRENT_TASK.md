@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-landed-main-ci-trigger-closure-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -17,6 +17,16 @@ Merged PR head / merge second parent: `d8e301d0b28fc7a590c5f0c77854c114661395d5`
 Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
 Accepted TEST API Worker: `761a01bb-8cca-47ad-afde-87c0ba85c01d`
 Blocked landing terminal: Issue #68 comment `5314721284` (`IC_kwDOTfvo8c8AAAABPMg2BA`)
+
+## Execution result — WAITING_REVIEW
+
+- Workflow-only fix committed at `b414a524364d79a777881f71b1465df8c1fad895`; `.github/workflows/test.yml` adds exactly `main` to the existing `on.push.branches` list.
+- `git diff --check`: PASS; YAML parse/review: PASS; `npm test`: PASS (`305` tests, `0` failures).
+- API Worker dry-run: PASS (`npx --yes wrangler deploy --dry-run --config wrangler.api.jsonc`).
+- Frontend Worker dry-run: PASS (`npx --yes wrangler deploy --dry-run --config wrangler.frontend.jsonc`).
+- PR #69: `OPEN`, non-Draft, `MERGEABLE`, base `main`, workflow-fix head `b414a524364d79a777881f71b1465df8c1fad895`; `Company v1 tests` run `32022662736`: SUCCESS.
+- Current `main`: `9d1a80137980baa67ccfba60bae2173ca17cf8d8`. The final docs-only status commit will change the PR head; its exact final SHA and CI run are recorded in the terminal report after that required recheck.
+- Forbidden-operation counts: follow-up merges `0`; direct `main` pushes `0`; deployments `0`; Production/game access `0`; DB writes `0`; migrations `0`; runtime/source/test/package/content/config changes `0` beyond the authorized workflow file; gameplay `0`.
 
 ## Operator review of blocked landing terminal
 
