@@ -1,156 +1,181 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: test-single-statement-wrapper-digest-correction-v1
+Status: READY
+Task ID: test-additive-schema-bridge-single-statement-apply-v2
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This task follows terminal `5318275354` (`BLOCKED_TEST_SINGLE_STATEMENT_BRIDGE / BLOCKED_TEST_SINGLE_STATEMENT_BRIDGE_PREFLIGHT`). The wrapper was not executed. The blocker is evidence-only: the committed wrapper blob matched, but the previously frozen SHA-256 appears to have been calculated with a different trailing-newline serialization.
+This is the corrected TEST-only application task after terminal `5318469522` (`WRAPPER_DIGEST_CORRECTION_BLOCKED`). The prior task safely stopped without applying anything. Independent operator review proved both apparent blockers were evidence-serialization issues rather than TEST schema/data drift:
 
-This task must determine the exact SHA-256 of the immutable committed Git blob bytes and correct the audit evidence. It must not apply or edit the wrapper.
+- the immutable wrapper Git blob `1f959e140eacd88e281f3217cc1bf990f15dc41c` is exactly 8691 bytes and its canonical raw-byte SHA-256 is `433b8f2352b97536932350fcba5b1a3a4610a59546c5dc40b0a58e2459b2c3e0`;
+- historical wrapper hash `8a5e438919d25fae4a618348c0b32473dcef1adc9f6baa10c09700cc886495f2` is exactly `SHA256(blob_bytes || LF)` and is superseded for execution-byte verification;
+- current TEST migration history is still the same 27-row lineage: the earlier bridge-audit canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc` is reproduced when both statement-array and row separators are literal backslash+n bytes; `240c423e5b8e6dc19096b3d8914f4c29cc648580659a3e30b5b928b035659d3e` is the same rows serialized with actual LF separators;
+- the independent v2 forensic canonical is still exactly `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`;
+- the five target functions remain in their pre-bridge definitions.
 
-## 0. Frozen evidence
+This task authorizes exactly one execution of the frozen wrapper against TEST and then read-only verification. It does not authorize Production, migration-history mutation, gameplay writes, deployment, or any semantic rewrite of the reviewed bridge.
+
+## 0. Frozen authority
 
 - Repository: `zeroslove-ai/company-v1`
 - Expected main: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-- Previous blocked final SHA: `a7ff80e60eff8b0a4c72bf225a992369f41a6bc6`
-- Previous terminal: `5318275354`
+- Previous terminal: `5318469522`
+- Previous final SHA: `e998dcf0d85c56dee5b2fd1143e6dcedcd16db07`
 - TEST project: `fmcrspgxstsmxxsmkeee`
-- Original bridge path: `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql`
-- Original bridge blob: `cf3158db1960a52053a8b31fda1c4473ed05486d`
-- Original bridge SHA-256: `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`
-- Wrapper path: `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT.sql`
-- Wrapper Git blob: `1f959e140eacd88e281f3217cc1bf990f15dc41c`
-- Historical frozen wrapper SHA-256: `8a5e438919d25fae4a618348c0b32473dcef1adc9f6baa10c09700cc886495f2`
-- Blocked-run checked-out byte SHA-256: `433b8f2352b97536932350fcba5b1a3a4610a59546c5dc40b0a58e2459b2c3e0`
-- Ordered payload SHA-256 from wrapper audit: `54fde93e424e3a34b730a2c48eb09c828c783e03b14b0efa0e3e1b950452848b`
-- Accepted TEST migration snapshot: 27 rows; canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; `20260817000200` absent.
+- Original reviewed bridge blob: `cf3158db1960a52053a8b31fda1c4473ed05486d`
+- Original reviewed bridge SHA-256: `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`
+- Frozen wrapper path: `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT.sql`
+- Frozen wrapper blob: `1f959e140eacd88e281f3217cc1bf990f15dc41c`
+- Canonical wrapper raw-byte SHA-256: `433b8f2352b97536932350fcba5b1a3a4610a59546c5dc40b0a58e2459b2c3e0`
+- Wrapper byte length: `8691`
+- Wrapper final byte: LF (`0a`)
+- Ordered unwrapped payload SHA-256: `54fde93e424e3a34b730a2c48eb09c828c783e03b14b0efa0e3e1b950452848b`
+- Corrected digest evidence: `docs/ops/TEST_SINGLE_STATEMENT_WRAPPER_DIGEST_CORRECTION.md`
 
-Do not assume either wrapper SHA-256 is correct. Recompute from raw immutable bytes.
+### Canonical TEST migration snapshot rules
 
-## 1. Mandatory start freeze
+Do not reconstruct the migration snapshot hash in client code from displayed text.
+Compute it inside PostgreSQL from `supabase_migrations.schema_migrations`.
 
-Before evidence work:
-1. require `origin/main == 8f3c5326e483650211fbc6c9f54a7527d2278d4e`;
-2. require this branch to be the direct descendant of `a7ff80e60eff8b0a4c72bf225a992369f41a6bc6` with only this registration added before execution;
-3. require wrapper path at HEAD to resolve to blob `1f959e140eacd88e281f3217cc1bf990f15dc41c`;
-4. require original bridge path/blob unchanged;
-5. fresh-read TEST migration history read-only and require 27 applied rows and `20260817000200` absent. If the accepted canonical snapshot procedure is available, rerun it and require the same hash.
+Required invariants before and after execution:
+- applied rows = `27`;
+- target `20260817000200` absent;
+- bridge-audit canonical = `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`, where the canonical input is ordered `version|name|array_to_string(statements, E'\\\\n')` rows joined with `E'\\\\n'` — i.e. literal backslash+n separators;
+- independent v2 forensic canonical = `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`, where each ordered row is `version|name|statement_count|statements_bytes|statements_md5`, using actual LF to join the statements array and rows as documented in `TEST_MIGRATION_LINEAGE_RECONCILIATION.md`.
 
-Any mismatch: STOP `WRAPPER_DIGEST_CORRECTION_BLOCKED`.
+Diagnostic LF/LF hash `240c423e5b8e6dc19096b3d8914f4c29cc648580659a3e30b5b928b035659d3e` is expected for the same current rows when actual LF is used for both bridge-audit separators. It is not a drift hash.
 
-## 2. Two independent raw-byte reads
+## 1. Mandatory preflight — no writes before all checks pass
 
-Read the exact wrapper blob through two independent byte-preserving paths.
+1. Fresh-fetch and require `origin/main == 8f3c5326e483650211fbc6c9f54a7527d2278d4e`.
+2. Require this branch to descend directly from `e998dcf0d85c56dee5b2fd1143e6dcedcd16db07`, with only this CURRENT_TASK registration before execution.
+3. Require TEST identity exactly `fmcrspgxstsmxxsmkeee`.
+4. Re-read terminal `5318469522`, corrected digest evidence, original bridge, wrapper, wrapper audit, and bridge plan.
+5. Resolve wrapper path to blob `1f959e140eacd88e281f3217cc1bf990f15dc41c`.
+6. Read wrapper as raw bytes with binary-safe Git object access and require:
+   - length `8691`;
+   - SHA-256 `433b8f2352b97536932350fcba5b1a3a4610a59546c5dc40b0a58e2459b2c3e0`;
+   - final byte `0a`.
+7. Revalidate wrapper structure/equivalence without rewriting it:
+   - original executable statements = 8;
+   - wrapper top-level executable statements = 1 `DO`;
+   - dynamic `EXECUTE` payloads = 8;
+   - exact order/content match;
+   - ordered payload SHA-256 `54fde93e424e3a34b730a2c48eb09c828c783e03b14b0efa0e3e1b950452848b`.
+8. Compute both canonical TEST migration hashes **inside PostgreSQL** and require exact values from section 0, plus 27 rows and target absence.
+9. Fresh-read the five target functions and require the known pre-bridge definitions/no unexplained drift. Expected pre-bridge `pg_get_functiondef` MD5 values:
+   - `company_apply_opening_scene_v1(jsonb)` = `8a754cb7458696a248df4e655c8fccff`
+   - `company_minimalize_save_v1(jsonb)` = `53968bc860f288c833db477828f07e13`
+   - `company_validate_scene_v1(jsonb,boolean)` = `ccace7ee7fab211bfc8d3ed1c8623645`
+   - `validate_company_save_v1(jsonb)` = `e65ebc00e0c48a2d605b5ecb68952775`
+   - `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)` = `e8d1eeb1bed91929acb3137324fbe16c`
+10. Freeze read-only row counts plus deterministic stable-identifier/revision digests for `game_save`, `game_turns`, and `game_actions`.
 
-### Path A — local Git object database
-Use the blob SHA directly, e.g. binary-safe `git cat-file blob 1f959e140eacd88e281f3217cc1bf990f15dc41c`. Capture stdout as raw bytes with no text decoding/newline conversion and compute SHA-256.
+Any mismatch: STOP `BLOCKED_TEST_SINGLE_STATEMENT_BRIDGE_V2` without wrapper execution.
 
-Do not hash PowerShell text output, `Get-Content`, line arrays, or any decoded/re-serialized string.
+## 2. Exact authorized mutation
 
-### Path B — GitHub blob API
-Fetch the exact same blob SHA from GitHub in raw/base64 form, decode to raw bytes without text normalization, and compute SHA-256.
+Execute exactly once against TEST only the exact raw bytes of:
 
-Require:
-- identical byte length;
-- identical raw bytes;
-- identical SHA-256;
-- record exact byte length;
-- record final byte(s) in hex;
-- state whether the blob ends with LF (`0a`), CRLF (`0d0a`), or neither.
+`docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT.sql`
 
-If Path A and B disagree, STOP.
+Use the same prepared-statement channel already proven to accept one `DO` statement and propagate an uncaught error.
 
-## 3. Diagnose the historical digest discrepancy
+Hard rules:
+- exactly one invocation;
+- wrapper raw-byte SHA-256 immediately before invocation must still be `433b8f2352b97536932350fcba5b1a3a4610a59546c5dc40b0a58e2459b2c3e0`;
+- do not edit, regenerate, normalize, concatenate, prepend, append, or reserialize the wrapper;
+- do not add client-side transaction-control statements;
+- do not use `supabase db push`;
+- do not use `supabase migration repair`;
+- do not write `supabase_migrations.schema_migrations`;
+- do not replay historical migrations;
+- do not invoke `reserve_company_player_setup` or any other write RPC;
+- if the single invocation errors or has an ambiguous result, do not retry. Proceed only to read-only catalog/ledger verification and terminal BLOCKED.
 
-Let the independently verified committed blob bytes be `B`.
+Atomicity basis remains the reviewed one top-level `DO` statement with eight synchronous dynamic `EXECUTE`s, no inner transaction control, and no exception handler swallowing failures.
 
-1. Compute `SHA256(B)`.
-2. If `B` does not end in LF, diagnostically compute `SHA256(B || 0x0A)`.
-3. Compare against both historical values:
-   - `8a5e438919d25fae4a618348c0b32473dcef1adc9f6baa10c09700cc886495f2`
-   - `433b8f2352b97536932350fcba5b1a3a4610a59546c5dc40b0a58e2459b2c3e0`
-4. Prove exactly whether the prior audit digest came from an extra trailing LF or another serialization difference.
-5. Canonical future execution digest must be `SHA256(B)`, the exact committed Git blob bytes.
+## 3. Mandatory post-execution verification
 
-Do not modify the wrapper to make a historical digest match.
+### 3.1 Migration history unchanged
 
-## 4. Revalidate wrapper semantics without changing it
+Recompute both PostgreSQL-side canonical hashes from section 0 and require exact equality with preflight:
+- rows 27;
+- target `20260817000200` absent;
+- bridge-audit canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`;
+- v2 forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`.
 
-Rerun the deterministic wrapper equivalence proof against the immutable blob:
-- original executable statements = 8;
-- wrapper top-level executable statements = 1 `DO`;
-- dynamic EXECUTE payloads = 8;
-- exact order/content equivalence;
-- ordered payload SHA-256 remains `54fde93e424e3a34b730a2c48eb09c828c783e03b14b0efa0e3e1b950452848b`.
+### 3.2 Five target functions converged
 
-If semantic/payload evidence differs from the accepted audit, STOP.
+Fresh-read identity args, `pg_get_functiondef`, language, volatility, security mode, `proconfig`/search_path, owner and ACLs for:
+- `company_apply_opening_scene_v1(jsonb)`;
+- `company_minimalize_save_v1(jsonb)`;
+- `company_validate_scene_v1(jsonb,boolean)`;
+- `validate_company_save_v1(jsonb)`;
+- `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)`.
 
-No TEST execution-channel probe is needed unless strictly necessary to prove a byte-handling claim. Do not submit the wrapper.
+Require the reviewed bridge contract exactly:
+- opening scene is the narrow six-key authority and removes stale work/scene-goal mirrors;
+- minimalizer is the reviewed immutable SQL form and strips reviewed stale keys;
+- scene validator is the narrow immutable structural validator; retained parameter name `p_require_scene` is expected and unused;
+- save validator is the reviewed structural `SECURITY DEFINER` form and intended service-role boundary;
+- setup RPC no longer enforces stale semantic catalogs/body bounds/work-hook/scene-goal authority and preserves intended service-role execution boundary;
+- target ACLs match the bridge plan.
 
-## 5. Evidence artifact
+Do not require a hand-guessed post-bridge MD5 if PostgreSQL formatting differs; compare exact normalized definition/metadata against the reviewed SQL payload and record resulting MD5s as evidence.
 
-Create exactly one new evidence file:
-- `docs/ops/TEST_SINGLE_STATEMENT_WRAPPER_DIGEST_CORRECTION.md`
+### 3.3 Pure structural probes only
 
-It must record:
-- blob SHA;
-- Path A and Path B methods;
-- byte lengths and SHA-256 values;
-- final byte(s);
-- historical `8a5e...` and `433b...` comparison;
-- trailing-LF diagnosis;
-- canonical corrected wrapper SHA-256;
-- wrapper semantic equivalence revalidation;
-- TEST migration snapshot;
-- explicit zero-write safety counts.
+Synthetic, non-persisted JSON only:
+- minimal opening plan -> `company_apply_opening_scene_v1` -> narrow scene;
+- stale-key save -> `company_minimalize_save_v1` -> reviewed stale keys removed;
+- narrow scene -> `company_validate_scene_v1` -> valid without extended fields;
+- synthetic canonical save -> `validate_company_save_v1` -> reviewed structural behavior.
 
-Do not edit the wrapper, original wrapper audit, original bridge, bridge plan, or migrations.
+Never call `reserve_company_player_setup`.
 
-## 6. Repository / DB scope
+### 3.4 Gameplay rows unchanged
 
-Allowed repository changes only:
-- `docs/ops/CURRENT_TASK.md`
-- `docs/ops/TEST_SINGLE_STATEMENT_WRAPPER_DIGEST_CORRECTION.md`
+Recompute the preflight row-count/digest evidence for `game_save`, `game_turns`, and `game_actions` and require exact equality.
 
-Forbidden:
-- wrapper edits/regeneration;
-- original bridge/audit/plan edits;
-- `supabase/migrations/*` edits;
-- runtime/source/content/test/package/workflow changes;
-- any DB/schema/data/history write;
-- migration apply/push/repair;
-- TEST gameplay/save/fixture mutation or live turn;
-- Worker/frontend deploy;
-- Production access/change;
-- starting Cut 3 or unrelated work.
+## 4. Repository scope
+
+Allowed repository change after registration:
+- `docs/ops/CURRENT_TASK.md` lifecycle/terminal evidence only.
+
+Do not modify:
+- wrapper or original bridge;
+- wrapper/digest/bridge audit evidence;
+- `supabase/migrations/*`;
+- runtime/source/content/tests/package/workflows;
+- unrelated docs.
 
 `git diff --check` must PASS.
 
-## 7. Terminal classification
+## 5. Forbidden
 
-Choose exactly one.
+- Production access/change;
+- migration repair/history mutation;
+- `supabase db push`;
+- historical migration replay;
+- second wrapper invocation/retry;
+- TEST gameplay/save/fixture mutation/reset or live provider turn;
+- Worker/frontend deploy;
+- provider/model change;
+- runtime/source/content/test/package/workflow changes;
+- Cut 3 or unrelated work.
 
-### `WRAPPER_DIGEST_CORRECTION_PROVEN`
-Use only if:
-- both raw-byte paths agree exactly;
-- canonical SHA-256 of committed blob bytes is proven;
-- historical digest discrepancy is exactly explained;
-- wrapper semantic/payload equivalence remains unchanged;
-- TEST migration snapshot has no material drift;
-- DB/schema/history/gameplay/deploy/Production writes/access = 0.
+## 6. Terminal classification
 
-### `WRAPPER_DIGEST_CORRECTION_BLOCKED`
-Use for any byte-source disagreement, unexplained digest discrepancy, wrapper semantic mismatch, Git/main drift, TEST migration-history drift, or other uncertainty.
+Choose exactly one:
+
+### `TEST_SINGLE_STATEMENT_BRIDGE_V2_APPLIED_VERIFIED`
+Only if the exact wrapper was invoked once successfully, both migration canonical hashes remain identical, five target function/ACL contracts converge, pure probes pass, gameplay evidence is unchanged, and all forbidden-operation counts are zero.
+
+### `BLOCKED_TEST_SINGLE_STATEMENT_BRIDGE_V2`
+For any preflight mismatch, invocation error/ambiguity, post-apply catalog mismatch, migration-history difference, gameplay-data difference, or verification uncertainty. Never retry the wrapper.
 
 At terminal:
 1. set CURRENT_TASK to `WAITING_REVIEW`;
-2. post exactly one Issue #68 terminal with registration/final SHA/blob, both byte-source results, canonical digest, trailing-LF diagnosis, equivalence result, TEST snapshot, changed paths, and safety counts;
-3. STOP. Do not apply the wrapper or create the next task.
-
-## Execution lifecycle
-
-- 2026-08-18: `EXECUTION: STARTED` lease posted to Issue #68 as comment `5318420903`.
-- 2026-08-18: immutable blob paths agreed; wrapper digest correction proven.
-- 2026-08-18: mandatory TEST migration snapshot repeated twice read-only; row count and target absence matched, but canonical SHA was `240c423e5b8e6dc19096b3d8914f4c29cc648580659a3e30b5b928b035659d3e`, not frozen `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`.
-- 2026-08-18: terminal classification `WRAPPER_DIGEST_CORRECTION_BLOCKED`; stop without wrapper/bridge execution or any writes.
+2. post exactly one Issue #68 terminal with registration/final SHA/blob, wrapper byte digest and invocation count/result, both pre/post migration canonical hashes, five-function/ACL verification, pure probes, gameplay digest comparison and safety counts;
+3. STOP. Do not deploy or create the next task.
