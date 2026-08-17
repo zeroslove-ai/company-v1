@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: extract-scene-evidence-roundtrip-reconciliation-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -237,3 +237,16 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal with registration/final SHA/blob, exact root cause, changed files, before/after current-vs-legacy contract, exact failure-fixture proof, focused/full test counts, TEST pre/post counts, and all safety counts;
 3. STOP. Do not deploy, resume live acceptance, merge, or start Cut 3.
+
+## 8. Execution terminal evidence
+
+- Classification: `EXTRACT_SCENE_EVIDENCE_ROUNDTRIP_RECONCILED`.
+- Starting HEAD: `f218ba01a026bfe6a674cdd28c432222e564526b`.
+- Root cause reproduced before repair: `normalizeFreshExtractObservationV2()` accepted the current fresh scene vocabulary (`location_id` plus exact `kind:"scene"` evidence), while `normalizePersistedExtractObservation()` sent that same current result through the historical V2 path, which required obsolete `scene_id` and rejected the Commit readback.
+- Changed files only: `src/engine/runtime-core/extract-observation.js`, `src/engine/runtime-core/persisted-extract-observation.js`, `test/extract-observation-contract.test.mjs`, and this lifecycle evidence.
+- Contract before/after: current fresh/persisted V2 now has an explicit shape boundary with no `scene_id`; current scene evidence requires a non-empty location matching `scene_observation.location_id` and an exact Story quote. Historical V2 rows with legacy shape remain on the historical `scene_id` path. No scene_id was added to fresh output or manufactured by current persisted normalization.
+- Exact preserved failure fixture: the turn-6 shape with action `72cc2486-cc80-408c-9d86-8196cab7b6ad`, `location_id="brand_strategy_office"`, and quote `오전 11시 54분, 브랜드전략팀 사무실.` reproduced fresh PASS then persisted failure before repair; after repair it produces fresh PASS, persisted PASS, unchanged exact quote/location, and no `scene_id` in either current result.
+- Regression coverage: current round-trip parity, exact quote fail-closed, matching location provenance, registered presence evidence, historical V2 readability, fresh `scene_id` rejection, and retired semantic-field rejection. Focused Extract contract tests `8/8 PASS`; full `npm.cmd test` `342/342 PASS`; changed-file `node --check` and `git diff --check` PASS.
+- TEST read-only evidence before and after source-only work: migrations `27`, target `20260817000200` absent; disposable `save/turns/actions/committed_turn=1/5/6/5`; preserved/manual `1/7/9/7`; QA `1/7/7/7`; protected sentinel `1/18/18/18`; failed action remains `processing_status=committing`, `expected_turn=6`, with no durable turn 6.
+- Safety counts: API/frontend deploy `0`; TEST reset/gameplay/provider turn `0`; DB schema/migration/history writes `0`; migration apply/push/repair `0`; Production/hospital/v2 access `0`; provider/model/TTS/binding changes `0`; protected/preserved/QA mutation `0`; PR/merge/Cut3 `0`.
+- STOP: review required. Do not deploy, reset, resume or repair the stuck action, run live gameplay, merge, generate the next task, or start Cut 3.
