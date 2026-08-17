@@ -1,155 +1,165 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: test-additive-schema-bridge-apply-v1
+Status: READY
+Task ID: test-additive-schema-bridge-single-statement-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This task is the controlled TEST-only execution step after accepted terminal `5317875505` (`ADDITIVE_SCHEMA_BRIDGE_READY_FOR_REVIEW`). The prior audit proved that the current TEST schema can be converged to the landed-main gameplay-core DB contract with five in-place function replacements and no table/data/history rewrite.
+This task continues from terminal `5317989486` (`BLOCKED_TEST_SCHEMA_BRIDGE / BLOCKED_ATOMIC_EXECUTION_CHANNEL`). The reviewed TEST bridge itself remains accepted; the blocker was only that the available `supabase db query` prepared-statement channel rejects multiple top-level SQL commands, while `psql` is unavailable.
 
-## 0. Frozen authority and evidence
+The bridge was **not submitted** in the blocked task. TEST schema/data/migration history/gameplay remained unchanged.
+
+## 0. Frozen evidence
 
 - Repository: `zeroslove-ai/company-v1`
 - Current main at registration: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-- Accepted audit final SHA: `f319c149ae92cdc9755f71f522b34c575049ce9d`
-- Accepted audit terminal comment: `5317875505`
-- Audit registration SHA: `f9c9c9403c5f71e472afb07175c50e2db3de073e`
+- Previous apply-task registration: `ee3885546de4c48b5835f3c891d2cc2b5bc95751`
+- Previous blocked final SHA: `d507c5353ea3ad819b98a3f8d021027b71594de9`
+- Previous terminal: `5317989486`
+- Previous blocker: `BLOCKED_ATOMIC_EXECUTION_CHANNEL`
+- Accepted bridge-audit final SHA: `f319c149ae92cdc9755f71f522b34c575049ce9d`
 - TEST project: `fmcrspgxstsmxxsmkeee`
-- Reviewed bridge artifact: `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql`
-- Reviewed bridge Git blob: `cf3158db1960a52053a8b31fda1c4473ed05486d`
+- Accepted reviewed bridge: `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql`
+- Reviewed bridge blob: `cf3158db1960a52053a8b31fda1c4473ed05486d`
 - Reviewed bridge SHA-256: `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`
-- Reviewed plan: `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_PLAN.md`
-- Landed-main target source: `supabase/migrations/20260817000200_company_v1_gameplay_core_simplification.sql`
-- Target source SHA-256 from accepted audit: `57b990f37988fb7dacc1a01b232fe475b58a146f8f18d8416169b7b257744e7b`
-- Accepted audit migration snapshot: 27 rows, canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; row `20260817000200` absent.
+- Accepted migration snapshot: 27 rows, canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`, target row `20260817000200` absent.
 
-The owner previously authorized autonomous TEST rollout inside the overnight loop. Registering this READY task is the operator approval for this exact reviewed TEST bridge only. It does not authorize Production or migration-history repair.
+Blocked-task evidence proved:
+- all exact-SHA, environment, migration-snapshot, and five-function preflight checks passed;
+- `psql` was unavailable;
+- `supabase db query` rejected harmless multi-command transaction probes because its prepared-statement path accepts only one top-level SQL command;
+- exact bridge bytes were never submitted;
+- DB/schema/history writes = 0; gameplay writes = 0; deploy = 0; Production access = 0.
 
-## 1. Mandatory fresh preflight — before any write
+## 1. Goal
 
-STOP without mutation if any check fails.
+Determine whether the already-reviewed bridge can be represented **without semantic change** as exactly one top-level PostgreSQL statement that the prepared-statement execution channel accepts and that preserves all-or-nothing PostgreSQL statement atomicity.
 
-1. Fresh-fetch and require `origin/main == 8f3c5326e483650211fbc6c9f54a7527d2278d4e`.
-2. Require this branch to descend from accepted audit final `f319c149ae92cdc9755f71f522b34c575049ce9d` with only this CURRENT_TASK registration added before execution.
-3. Re-read terminal `5317875505`, the bridge SQL, and the bridge plan.
-4. Recompute the bridge SHA-256 and require exactly `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`.
-5. Recompute the target source SHA-256 and require exactly `57b990f37988fb7dacc1a01b232fe475b58a146f8f18d8416169b7b257744e7b`.
-6. Rerun the **same canonical migration-snapshot procedure used by the accepted audit** and require:
-   - 27 applied rows;
-   - canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`;
-   - `20260817000200` absent.
-7. Fresh-read the five target function definitions/signatures/ACLs and require no unexplained drift from the accepted audit.
-8. Verify `fmcrspgxstsmxxsmkeee` is the TEST project. Do not infer environment identity from a hostname or variable name alone.
+Preferred form:
+- one `DO ...` statement;
+- each original bridge DDL/ACL command executed inside that block through PL/pgSQL dynamic `EXECUTE`;
+- no transaction-control statements inside the block;
+- any error must escape the block, causing the single statement to fail rather than being swallowed;
+- no exception handler may convert a failure into success.
 
-Preflight failure terminal: `BLOCKED_TEST_BRIDGE_PREFLIGHT_DRIFT`.
+This task is an **audit/wrapper-generation task only**. Do not apply the real bridge.
 
-## 2. Exact authorized TEST mutation
+## 2. Mandatory start freeze
 
-Apply **only** the exact reviewed bytes of `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql` to TEST.
+Before generating anything:
+
+1. Require `origin/main == 8f3c5326e483650211fbc6c9f54a7527d2278d4e`.
+2. Require branch ancestry to descend directly from blocked final `d507c5353ea3ad819b98a3f8d021027b71594de9` with only this CURRENT_TASK registration added before execution.
+3. Re-read terminal `5317989486`, accepted terminal `5317875505`, the reviewed bridge, and bridge plan.
+4. Recompute the reviewed bridge SHA-256 and require exactly `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`.
+5. Rerun the exact accepted migration snapshot and require 27 rows / hash `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc` / `20260817000200` absent.
+6. Confirm TEST identity is `fmcrspgxstsmxxsmkeee`.
+
+Any drift: STOP `SINGLE_STATEMENT_BRIDGE_BLOCKED` without mutation.
+
+## 3. Exact wrapper construction
+
+Create only if it can be proven mechanically equivalent:
+- `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT.sql`
+- `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT_AUDIT.md`
+
+### 3.1 One top-level statement invariant
+
+The generated SQL file must contain exactly one executable top-level PostgreSQL statement after comments/whitespace: one `DO` block.
+
+It must not contain top-level `BEGIN`, `COMMIT`, `ROLLBACK`, a second `DO`, or any other second statement.
+
+### 3.2 Mechanical payload equivalence
+
+Do not rewrite the accepted bridge semantics by hand.
+
+Inventory every executable top-level statement in `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql` in original order. For each statement:
+
+1. capture the exact reviewed SQL payload, allowing only removal of the outer statement terminator and mechanically necessary quoting/escaping for embedding as a dynamic SQL string;
+2. embed that payload as one dynamic `EXECUTE` inside the `DO` block;
+3. preserve statement order exactly;
+4. preserve the accepted `p_require_scene` parameter-name adaptation exactly;
+5. do not add/drop/reorder function definitions, ACL operations, security modes, volatility attributes, grants, revokes, or function bodies.
+
+Write a local, non-committed verification script or equivalent deterministic check that unwraps/extracts all embedded dynamic payloads and compares them to the original reviewed executable statements after only the documented terminator/quoting normalization.
+
+The audit report must give:
+- original executable statement count;
+- wrapped dynamic statement count;
+- per-statement digest before/after unwrapping;
+- overall ordered payload digest;
+- proof that semantic payload count/order/content are identical.
+
+If byte/mechanical equivalence cannot be proven, STOP rather than hand-wave equivalence.
+
+## 4. Prepared-statement channel proof — no persistent mutation
+
+Use only harmless single-statement probes against TEST to prove the available channel accepts a `DO` statement and propagates errors.
+
+Authorized probes:
+1. a success probe equivalent to `DO ... BEGIN PERFORM 1; END ...` as exactly one top-level statement;
+2. a failure probe equivalent to `DO ... BEGIN PERFORM 1; RAISE EXCEPTION 'single_statement_atomic_probe'; END ...` as exactly one top-level statement.
 
 Requirements:
-- one execution only;
-- TEST project only;
-- the whole SQL file must execute inside **one atomic transaction**;
-- stop-on-first-error / equivalent behavior is mandatory;
-- if the available client cannot prove atomic single-transaction execution, STOP `BLOCKED_ATOMIC_EXECUTION_CHANNEL` before any write;
-- do not edit or regenerate the SQL artifact before execution;
-- do not use `supabase db push`;
-- do not use `supabase migration repair`;
-- do not insert/update/delete `supabase_migrations.schema_migrations`;
-- do not replay any historical migration;
-- do not execute `supabase/migrations/20260817000200...` directly as a migration;
-- do not call gameplay/setup RPCs during the mutation step.
+- no CREATE/ALTER/DROP/INSERT/UPDATE/DELETE/TRUNCATE;
+- no migration-history mutation;
+- no persistent/temp schema object creation;
+- no gameplay/save/fixture mutation;
+- success probe must succeed;
+- failure probe must return a non-success/error result and must not be retried to get a different outcome.
 
-A suitable execution path may be `psql --single-transaction -v ON_ERROR_STOP=1 -f <exact reviewed file>` against the proven TEST connection, or another client only if it provides equivalent all-or-nothing semantics. Do not assume a CLI subcommand exists; verify the execution channel before mutation.
+This proves channel compatibility/error propagation only. Do not submit the real wrapper in this task.
 
-## 3. Mandatory post-apply verification
+## 5. Atomicity reasoning
 
-After a successful commit, independently prove all of the following.
+The audit must explicitly explain why the proposed execution is all-or-nothing:
+- the client submits one top-level `DO` statement;
+- inner DDL is executed synchronously inside that statement through dynamic `EXECUTE`;
+- no inner exception is swallowed;
+- an uncaught failure aborts the statement and its effects rather than leaving earlier inner commands committed independently;
+- the wrapper contains no autonomous transaction mechanism and no transaction-control command.
 
-### 3.1 Migration ledger unchanged
+If any chosen SQL construct can commit independently or swallow a failure, classification must be BLOCKED.
 
-Rerun the accepted audit's exact snapshot method and require:
-- count remains 27;
-- canonical SHA-256 remains `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`;
-- row `20260817000200` remains absent.
+## 6. Repository and DB scope
 
-Any ledger change is a hard failure: `BLOCKED_MIGRATION_LEDGER_CHANGED`.
+Allowed repository changes only:
+- `docs/ops/CURRENT_TASK.md`
+- `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT.sql`
+- `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT_AUDIT.md`
 
-### 3.2 Five target functions converged
+Do not modify the accepted bridge/plan, `supabase/migrations/*`, runtime/source/content/tests/package/workflows, or unrelated docs.
 
-Fresh-read `pg_get_functiondef`, identity arguments, volatility/security mode, and ACLs for:
-- `company_apply_opening_scene_v1(jsonb)`;
-- `company_minimalize_save_v1(jsonb)`;
-- `company_validate_scene_v1(jsonb,boolean)`;
-- `validate_company_save_v1(jsonb)`;
-- `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)`.
-
-Require the accepted bridge contract exactly. The retained input name `p_require_scene` on `company_validate_scene_v1` is expected and accepted; the boolean is unused and all callers are positional.
-
-### 3.3 Pure structural probes only
-
-Read-only/pure function probes are authorized using synthetic JSON only. Verify at minimum:
-- `company_apply_opening_scene_v1` accepts a minimal opening plan with primary character + location and produces the narrow six-key scene without `scene_goal`, `work_hook`, `scene_id`, `beat`, `goal`, or `focus_thread` authority;
-- `company_minimalize_save_v1` removes the stale keys targeted by landed main;
-- `company_validate_scene_v1` accepts the narrow structural scene and does not require the old extended fields;
-- `validate_company_save_v1` validates a synthetically constructed minimal canonical save shape.
-
-Do **not** invoke `reserve_company_player_setup` because it is a write RPC. Verify that function by catalog definition only in this task.
-
-### 3.4 No unrelated state change
-
-- no TEST game/save/turn/action row may be created, reset, or mutated;
-- no Worker deploy;
-- no live provider/gameplay turn;
-- no Production access/change.
-
-## 4. Repository scope
-
-Execution evidence may update only `docs/ops/CURRENT_TASK.md` lifecycle/terminal text.
-
-Do not modify:
-- bridge SQL or bridge plan;
-- `supabase/migrations/*`;
-- runtime/source/content/tests/package/workflows;
-- any other docs unless strictly required to preserve immutable execution evidence, in which case STOP for operator review instead of broadening scope.
+DB rules:
+- real bridge application = forbidden;
+- DDL/DML writes = forbidden;
+- migration apply/db push/repair/history mutation = forbidden;
+- pure success/failure DO probes from section 4 only;
+- TEST gameplay/save/fixture mutation = forbidden;
+- Worker deploy/live provider turn = forbidden;
+- Production access/change = forbidden.
 
 `git diff --check` must PASS.
 
-## 5. Terminal classification
+## 7. Terminal classification
 
 Choose exactly one.
 
-### `TEST_SCHEMA_BRIDGE_APPLIED_VERIFIED`
+### `SINGLE_STATEMENT_BRIDGE_READY_FOR_REVIEW`
 Use only if:
-- all preflight checks matched;
-- exact bridge SHA was executed exactly once;
-- execution was atomic and committed successfully;
-- migration ledger remained byte-for-byte/canonical-snapshot unchanged;
-- all five function contracts/ACLs match the reviewed target;
-- pure structural probes pass;
-- TEST gameplay mutations = 0;
-- deploy = 0;
-- Production access = 0.
+- start freeze matches;
+- wrapper is exactly one top-level statement;
+- all original reviewed bridge statements are mechanically preserved in exact order and equivalence is proven;
+- success DO probe succeeds;
+- failure DO probe returns failure;
+- atomicity/no-error-swallow reasoning is complete;
+- migration snapshot is unchanged at terminal;
+- persistent DB writes = 0.
 
-### `BLOCKED_TEST_SCHEMA_BRIDGE`
-Use for any failure or ambiguity. If execution began, report whether the atomic transaction committed or rolled back and prove the resulting catalog state. Never retry the mutation speculatively.
+### `SINGLE_STATEMENT_BRIDGE_BLOCKED`
+Use for any ambiguity, drift, payload mismatch, channel rejection, or atomicity uncertainty.
 
 At terminal:
 1. set CURRENT_TASK to `WAITING_REVIEW`;
-2. post exactly one Issue #68 terminal with registration/final SHA/blob, exact pre/post migration snapshot, bridge SHA, execution channel, transaction result, five-function verification, pure-probe results, and safety counts;
-3. STOP. Do not deploy or create the next task.
-
-## Lifecycle — CODEX_WATCHER execution
-
-- STARTED comment: `5317977499`
-- Terminal classification: `BLOCKED_TEST_SCHEMA_BRIDGE`
-- Blocker: `BLOCKED_ATOMIC_EXECUTION_CHANNEL`.
-- All repository/TEST identity preflight checks passed: `origin/main` was `8f3c5326e483650211fbc6c9f54a7527d2278d4e`; HEAD was the exact registration `ee3885546de4c48b5835f3c891d2cc2b5bc95751`; the branch descended from accepted audit `f319c149ae92cdc9755f71f522b34c575049ce9d` with only this registration; TEST project was `fmcrspgxstsmxxsmkeee`; bridge blob/SHA-256 matched `cf3158db1960a52053a8b31fda1c4473ed05486d` / `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`.
-- Read-only migration preflight: 27 rows; canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; target row `20260817000200` absent.
-- Read-only function preflight matched the accepted audit: five expected type identities present with no unexplained drift.
-- Execution channel check: `psql` is absent. Verified `supabase db query` exposes `--file`, but its prepared-statement path rejected both harmless explicit transaction probes (`begin; select 1; commit;` and `begin; select 1 / 0; commit;`) with `LegacyDbQueryExecError: cannot insert multiple commands into a prepared statement`.
-- Transaction result: bridge mutation was **not attempted**; no transaction was opened for the bridge and no rollback/commit was needed. No speculative retry was made.
-- Five-function post-apply verification: not applicable because no mutation occurred. Pure structural probes: not run because the bridge was not applied.
-- Safety counts: DB/schema/migration-history writes `0`; migration applies `0`; TEST gameplay/save/fixture mutations or live turns `0`; Worker deploys `0`; Production access `0`.
-- `git diff --check`: PASS; only `docs/ops/CURRENT_TASK.md` changed; bridge SQL/plan and `supabase/migrations/*` unchanged.
+2. post one immutable Issue #68 terminal with registration/final SHA/blob, original/wrapped statement counts and digests, wrapper SHA-256 if generated, channel probe results, start/final migration snapshot, and zero-write safety counts;
+3. STOP. Do not apply the wrapper, deploy, or create the next task.
