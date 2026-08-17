@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-additive-schema-bridge-single-statement-apply-v2
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -179,3 +179,14 @@ At terminal:
 1. set CURRENT_TASK to `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal with registration/final SHA/blob, wrapper byte digest and invocation count/result, both pre/post migration canonical hashes, five-function/ACL verification, pure probes, gameplay digest comparison and safety counts;
 3. STOP. Do not deploy or create the next task.
+
+## Execution lifecycle
+
+- 2026-08-18: `EXECUTION: STARTED` lease posted to Issue #68 as comment `5318559043`.
+- 2026-08-18: mandatory preflight passed. `origin/main` remained `8f3c5326e483650211fbc6c9f54a7527d2278d4e`; branch descended from `e998dcf0d85c56dee5b2fd1143e6dcedcd16db07` with only this registration; TEST identity matched `fmcrspgxstsmxxsmkeee`; wrapper blob/bridge blob matched frozen values; `git diff --check` was clean before execution.
+- 2026-08-18: wrapper raw bytes immediately before invocation were 8691 bytes, SHA-256 `433b8f2352b97536932350fcba5b1a3a4610a59546c5dc40b0a58e2459b2c3e0`, final byte `0a`. Exact frozen wrapper was invoked exactly once through `supabase db query --file`; result `DO`, exit 0. No retry.
+- 2026-08-18: migration post-check matched preflight: 27 rows, target `20260817000200` absent, bridge-audit canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`, forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`.
+- 2026-08-18: five target functions converged to the reviewed bridge contract. Post-apply `pg_get_functiondef` MD5s: `company_apply_opening_scene_v1` `415242b4a452ae218c01106b35900efe`; `company_minimalize_save_v1` `78547de247e2b6e8ee2a184cbf760de2`; `company_validate_scene_v1` `e982167db59fc5be1447b8866dd35a65`; `validate_company_save_v1` `d9a165eb01ee70cf92b63e7935e44f1b`; `reserve_company_player_setup` `74a8c352c5380fc2273821695ade4908`. Language, volatility, security mode, search path, and service-role ACLs matched the reviewed contract.
+- 2026-08-18: pure synthetic non-persisted probes passed for opening scene narrowing, stale-key minimalization, narrow scene validation, and structural save validation. `reserve_company_player_setup` was not called.
+- 2026-08-18: gameplay row evidence was unchanged: `game_save` 4 / `5fe7e4bfbcac6a92b73806df58496eb753ba7df9d3d3ebe889c025a02eb93503`; `game_turns` 43 / `7f0c07f2035e112f22ed373eeeecf95e03b2fffd1620b2ddce80260f44482857`; `game_actions` 46 / `f9374fbb749b0691b04130324604ba08bd847cba77ec7e5992a63166981a23b6` before and after.
+- 2026-08-18: terminal classification `TEST_SINGLE_STATEMENT_BRIDGE_V2_APPLIED_VERIFIED`; stop without deployment or further task generation.
