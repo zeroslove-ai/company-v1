@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-additive-schema-bridge-audit-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -162,3 +162,16 @@ At terminal:
    - TEST gameplay mutations/live turns = 0;
    - Production access = 0;
 3. STOP. Do not apply the bridge, deploy, or create the next task.
+
+## Lifecycle — CODEX_WATCHER execution
+
+- STARTED comment: `5317815900`
+- Terminal classification: `ADDITIVE_SCHEMA_BRIDGE_READY_FOR_REVIEW`
+- Start TEST migration snapshot: 27 rows, canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`
+- Final TEST migration snapshot: 27 rows, canonical SHA-256 `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`
+- Target migration row `20260817000200`: absent at start and final.
+- Object classifications: `SAFE_CREATE_OR_REPLACE_REQUIRED=5`, `ALREADY_TARGET_EQUIVALENT=3`, all other classifications `0`.
+- Bridge SQL SHA-256: `6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9`.
+- Future mechanism: one separately authorized `supabase db query --db-url <encoded TEST URL> --file docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql` invocation after exact-SHA and unchanged-snapshot preflight; never `supabase db push`.
+- Safety counts: DB/schema/migration-history writes `0`; migration applies `0`; deploys `0`; TEST gameplay mutations/live turns `0`; Production access `0`.
+- Changed paths are limited to `docs/ops/CURRENT_TASK.md`, `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_PLAN.md`, and review-only `docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE.sql`; no `supabase/migrations/*.sql` path changed.
