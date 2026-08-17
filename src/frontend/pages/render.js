@@ -41,9 +41,6 @@ const DISPLAY_LABELS = {
   crouching: '몸을 낮추고 있음', walking: '이동 중', leaning: '기대어 있음', bent_forward: '몸을 앞으로 숙이고 있음',
   weak: '약함', medium: '중간', strong: '강함'
 };
-const STAT_LABELS = {
-  affinity: '호감', csa_acceptance: '수용', sexual_arousal: '흥분', resistance: '저항'
-};
 const SEXUAL_ACTION_LABELS = {
   none: '기타', kiss: '키스', sexual_touch: '성적 접촉', genital_exposure: '성기 노출',
   genital_touch: '성기 자극', oral: '구강 행위', penetration: '삽입', orgasm: '절정'
@@ -55,12 +52,10 @@ let committedChoiceSet = null;
 // Commit 직후 확정 수치 옆에 잠시(+N/-N) 표시하기 위한 일시 delta 상태.
 // 데이터 출처는 서버 Commit 응답의 turn_changes뿐 (프론트 계산기 없음).
 // replayed Commit은 세팅하지 않으며, 2~3초 뒤 render()가 빈 상태로 덮어쓴다.
-let committedStatDeltas = {};
+
 
 /** Commit 응답 turn_changes → {npcId: {statKey: delta}} (일시 표시용, app.js에서 호출). */
-export function setCommittedStatDeltas(deltas) {
-  committedStatDeltas = deltas;
-}
+
 
 function localizedValue(value) {
   const raw = displayValue(value).trim();
@@ -300,50 +295,16 @@ function normalizedMindEntries(value) {
   if (Array.isArray(value)) return value.filter(entry => object(entry) && entry.id);
   const source = object(value) ?? {};
   const direct = mindMonitorDisplay(source);
-  if (direct.length) return [{ id: '', name: '', surface: direct.find(([label]) => label === '표면의식')?.[1] ?? '', subconscious: direct.find(([label]) => label === '잠재의식')?.[1] ?? '', stats: {}, stat_changes: {} }];
+  if (direct.length) return [{ id: '', name: '', surface: direct.find(([label]) => label === '표면의식')?.[1] ?? '', subconscious: direct.find(([label]) => label === '잠재의식')?.[1] ?? '' }];
   return Object.entries(source).filter(([, entry]) => object(entry)).map(([id, entry]) => ({
     id,
     name: id,
     surface: displayValue(entry.surface ?? entry['표면의식']),
     subconscious: displayValue(entry.subconscious ?? entry.latent ?? entry['잠재의식']),
-    stats: object(entry.stats) ?? {},
-    stat_changes: object(entry.stat_changes) ?? {}
-  })).filter(entry => entry.surface || entry.subconscious || Object.keys(entry.stats).length);
-}
-
-function statDisplay(entry, key) {
-  const value = Number(entry?.stats?.[key]);
-  // 증감 표시는 Commit 직후 일시 delta(committedStatDeltas)만 사용한다.
-  // context.character_details.stat_changes는 최신 턴마다 재생성되므로 fallback으로
-  // 쓰면 +N/-N이 계속 남는다 — 실시간 패널에는 사용하지 않는다.
-  const committedDelta = Number(committedStatDeltas?.[entry?.id]?.[key]);
-  return {
-    value: Number.isFinite(value) ? value : null,
-    delta: Number.isFinite(committedDelta) && committedDelta !== 0 ? committedDelta : null
-  };
-}
-
-function renderStatStrip(container, entry) {
-  const stats = document.createElement('div'); stats.className = 'mind-stat-strip';
-  for (const key of Object.keys(STAT_LABELS)) {
-    const display = statDisplay(entry, key);
-    const item = document.createElement('span'); item.className = 'mind-stat';
-    const label = document.createElement('small'); label.textContent = STAT_LABELS[key];
-    const value = document.createElement('strong'); value.textContent = display.value === null ? '-' : String(display.value);
-    item.append(label, value);
-    if (display.delta !== null) {
-      const delta = document.createElement('small');
-      delta.className = display.delta > 0 ? 'delta-up' : 'delta-down';
-      delta.textContent = `${display.delta > 0 ? '+' : ''}${display.delta}`;
-      item.append(delta);
-    }
-    stats.append(item);
-  }
-  container.append(stats);
+  })).filter(entry => entry.surface || entry.subconscious);
 }
 
 function renderMindEntry(container, entry) {
-  renderStatStrip(container, entry);
   const body = document.createElement('div'); body.className = 'mind-monitor-body';
   for (const [label, value] of [['표면의식', entry.surface], ['잠재의식', entry.subconscious]]) {
     const card = document.createElement('section'); card.className = 'mind-line';
@@ -565,7 +526,6 @@ export function renderFocalCharacter(container, focal, player, interactingCharac
   );
   container.append(detailsSection('현재 상태', currentRows));
   if (Object.keys(character).length) {
-    renderStatStrip(container, { id: focal?.id ?? character?.id, stats: character.stats, stat_changes: character.stat_changes });
     const profile = object(character.profile) ?? {};
     const body = object(character.body) ?? {};
     container.append(detailsSection('인물정보', [

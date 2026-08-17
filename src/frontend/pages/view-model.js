@@ -15,10 +15,6 @@ function integer(value) {
   return null;
 }
 
-function imageId(value) {
-  return typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value)) ? value : null;
-}
-
 function numberOrNull(value) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
@@ -127,65 +123,28 @@ function dialogueLines(parsedStory, { playerName = '', save = {}, directory = {}
   });
 }
 
-function normalizedStats(value) {
-  const source = object(value) ?? {};
-  return {
-    affinity: numberOrNull(source.affinity ?? source.affection ?? source['호감도']) ?? 0,
-    resistance: numberOrNull(source.resistance ?? source['저항도']) ?? 0,
-    csa_acceptance: numberOrNull(source.csa_acceptance ?? source.acceptance ?? source['상식수용도']) ?? 0,
-    sexual_arousal: numberOrNull(source.sexual_arousal ?? source.arousal ?? source['성적흥분도']) ?? 0
-  };
-}
-
-function normalizedChanges(value) {
-  const source = object(value) ?? {};
-  const result = {};
-  for (const key of ['affinity', 'resistance', 'csa_acceptance', 'sexual_arousal']) {
-    const entry = object(source[key]);
-    const delta = numberOrNull(entry?.delta);
-    if (delta === null || delta === 0) continue;
-    result[key] = { from: numberOrNull(entry.from), to: numberOrNull(entry.to), delta };
-  }
-  return result;
-}
-
 function detailFor(details, id) {
   const detail = object(object(details)?.[id]) ?? {};
   return {
     profile: object(detail.profile) ?? {},
     body: object(detail.body) ?? {},
-    stats: normalizedStats(detail.stats),
-    stat_changes: normalizedChanges(detail.stat_changes),
-    relationship_summary: text(detail.relationship_summary),
-    relationship_record: object(detail.relationship_record) ?? {},
     private_info: object(detail.private_info) ?? { unlocked: false }
   };
 }
 
-function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory = {}, details = {}) {
+function mindMonitorEntries(save, monitor, scene, preferredIds = [], directory = {}) {
   const source = object(monitor) ?? {};
   const present = new Set(strings(scene?.present_npc_ids));
   const ids = new Set(Object.keys(source).filter(id => present.has(id)));
   const rank = new Map(strings(scene?.present_npc_ids).map((id, index) => [id, index]));
   return [...ids].map(id => {
     const value = object(source[id]) ?? {};
-    const detail = detailFor(details, id);
-    const hasDetail = Boolean(object(details)?.[id]);
     const entry = {
       id,
       name: characterName(id, directory) || id,
       surface: text(value.surface ?? value['표면의식']),
       subconscious: text(value.subconscious ?? value.latent ?? value['잠재의식'])
     };
-    if (hasDetail) {
-      entry.stats = detail.stats;
-      entry.stat_changes = hasDetail ? detail.stat_changes : {};
-    }
-    if (hasDetail) {
-      entry.relationship_summary = detail.relationship_summary;
-      entry.relationship_record = detail.relationship_record;
-      entry.private_info = detail.private_info;
-    }
     return entry;
   }).filter(entry => entry.id && (entry.surface || entry.subconscious))
     .sort((left, right) => (rank.get(left.id) ?? 99) - (rank.get(right.id) ?? 99));
@@ -197,12 +156,8 @@ function npcView(save, id, details = {}) {
   if (!detail) return null;
   return {
     id,
-    stats: normalizedStats(detail.stats),
-    stat_changes: normalizedChanges(detail?.stat_changes),
     profile: object(detail?.profile) ?? {},
     body: object(detail?.body) ?? {},
-    relationship_summary: text(detail?.relationship_summary),
-    relationship_record: object(detail?.relationship_record) ?? {},
     private_info: object(detail?.private_info) ?? { unlocked: false }
   };
 }
@@ -239,9 +194,6 @@ export function buildCompanyGameViewModel(context) {
   const save = saveFromContext(context);
   const turn = latestTurn(context);
   const parsedStory = parsed(turn);
-  // Image authority is the latest committed turn's V2 extract_delta.
-  const latestExtract = object(turn?.extract_delta) ?? {};
-  const committedV2 = latestExtract.extract_version === 2 ? latestExtract : {};
   const display = object(context?.display) ?? {};
   const directory = object(display.npc_directory) ?? {};
   const details = object(display.character_details) ?? {};
@@ -260,18 +212,16 @@ export function buildCompanyGameViewModel(context) {
   const projectedDialogueLines = dialogueLines(parsedStory, { playerName, save, directory });
   const interactingCharacters = interactingCharacterViews(save, scene, directory);
   const presentNpcIds = new Set(strings(scene.present_npc_ids));
-  const imageCandidate = text(committedV2.image_character_id);
   const lastLocalDialogueId = [...projectedDialogueLines].reverse().find(line => presentNpcIds.has(line.speaker_id))?.speaker_id ?? '';
   const focalFallback = focalId && presentNpcIds.has(focalId) ? focalId : '';
   const firstPresentFallback = [...presentNpcIds][0] ?? '';
-  const imageCharacterId = imageCandidate && presentNpcIds.has(imageCandidate) && directory[imageCandidate]
-    ? imageCandidate
-    : (lastLocalDialogueId || focalFallback || firstPresentFallback || '');
-  const imageSelection = object(committedV2.image_selection) ?? {};
-  const imagePool = imageSelection.pool === 'sex' ? 'sex' : 'general';
-  const imageTags = Array.isArray(imageSelection.tags) ? imageSelection.tags : [];
+  // Media is a deterministic post-commit sidecar; fresh Extract fields never select it.
+  const imageCharacterId = lastLocalDialogueId || focalFallback || firstPresentFallback || '';
+  const imageSelection = {};
+  const imagePool = 'general';
+  const imageTags = [];
   const monitor = mindMonitor(turn);
-  const monitorEntries = mindMonitorEntries(save, monitor, scene, [imageCharacterId, focalId], directory, details);
+  const monitorEntries = mindMonitorEntries(save, monitor, scene, [imageCharacterId, focalId], directory);
 
   return {
     turn: {
@@ -316,9 +266,9 @@ export function buildCompanyGameViewModel(context) {
       position_label: text(playerSceneState.position_label), clothing: object(playerSceneState.clothing) ?? {}
     },
     media: {
-      image_id: imageId(committedV2.image_id), image_character_id: imageCharacterId,
+      image_id: null, image_character_id: imageCharacterId,
       image_selection: imageSelection, image_pool: imagePool, image_tags: imageTags,
-      image_situation: text(committedV2.image_situation) || text(turn.turn_summary), dialogue_lines: projectedDialogueLines,
+      image_situation: text(turn.turn_summary), dialogue_lines: projectedDialogueLines,
       mind_monitor: monitor, mind_monitor_entries: monitorEntries, default_mind_character_id: monitorEntries[0]?.id ?? ''
     }
   };

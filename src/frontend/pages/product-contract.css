@@ -32,37 +32,6 @@
   align-self: start;
 }
 
-.mind-stat-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: .35rem;
-  margin-bottom: .55rem;
-}
-
-.mind-stat {
-  display: grid;
-  place-items: center;
-  gap: .12rem;
-  min-width: 0;
-  padding: .4rem .25rem;
-  border: 1px solid #345267;
-  border-radius: .45rem;
-  background: #1d2a35;
-}
-
-.mind-stat small {
-  color: #9fc9df;
-  font-size: .68rem;
-}
-
-.mind-stat strong {
-  color: #f1f7fa;
-  font-size: .9rem;
-}
-
-.delta-up { color: #7ee2a8 !important; }
-.delta-down { color: #ff9a9a !important; }
-
 #focal-character {
   display: grid;
   gap: .65rem;
@@ -177,24 +146,6 @@
 .csa-app-npc-presence.active {
   background: #234536;
   color: #c9f5dc;
-}
-
-.csa-app-npc-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: .45rem;
-}
-
-.csa-app-npc-stat {
-  display: grid;
-  gap: .15rem;
-  padding: .55rem;
-  border-radius: .5rem;
-  background: #223241;
-}
-
-.csa-app-npc-stat small {
-  color: #9fc9df;
 }
 
 .csa-app-npc-mind {
@@ -342,13 +293,6 @@
 
   .mind-monitor-tabs {
     margin-top: -1px;
-  }
-
-  .mind-stat-strip {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .csa-app-npc-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .csa-app-npc-mind {
