@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-additive-schema-bridge-single-statement-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -163,3 +163,21 @@ At terminal:
 1. set CURRENT_TASK to `WAITING_REVIEW`;
 2. post one immutable Issue #68 terminal with registration/final SHA/blob, original/wrapped statement counts and digests, wrapper SHA-256 if generated, channel probe results, start/final migration snapshot, and zero-write safety counts;
 3. STOP. Do not apply the wrapper, deploy, or create the next task.
+
+## 8. CODEX_WATCHER execution lifecycle
+
+- EXECUTION STARTED comment: 5318067222
+- Terminal classification: SINGLE_STATEMENT_BRIDGE_READY_FOR_REVIEW
+- Start freeze: origin/main 8f3c5326e483650211fbc6c9f54a7527d2278d4e; branch registration 4cffae459d6e86260dba66fc87a387c9b3d82ffa descended from d507c5353ea3ad819b98a3f8d021027b71594de9; working tree was clean before execution.
+- TEST identity: SUPABASE_PROJECT_REF matched fmcrspgxstsmxxsmkeee.
+- Reviewed bridge blob/SHA-256 matched cf3158db1960a52053a8b31fda1c4473ed05486d / 6d0593b22d50c36a4c68c8c71407be7a25f03f8542ae73aee1083e9b102031f9.
+- Mechanical wrapper result: original 8, wrapped top-level 1, dynamic EXECUTE 8, all payloads equal in exact order; ordered payload SHA-256 54fde93e424e3a34b730a2c48eb09c828c783e03b14b0efa0e3e1b950452848b; wrapper SHA-256 8a5e438919d25fae4a618348c0b32473dcef1adc9f6baa10c09700cc886495f2.
+- Per-statement payload SHA-256 values are recorded in TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT_AUDIT.md and matched before/after unwrapping.
+- Atomicity reasoning: the wrapper is one top-level DO statement; inner commands execute synchronously through dynamic EXECUTE; there is no exception handler or transaction-control command; an uncaught error escapes and aborts the statement rather than being swallowed.
+- Channel success probe: one DO statement through Supabase CLI 2.114.0 db query with the verified TEST direct connection; returned DO with exit code 0.
+- Channel failure probe: one DO statement with PERFORM 1 and deliberate single_statement_bridge_failure_probe exception; exit code 1 with LegacyDbQueryExecError. No retry.
+- Migration snapshot after probes: 27 rows; canonical SHA-256 6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc; target row 20260817000200 absent.
+- Bridge/wrapper application = 0; DB/schema/migration-history writes = 0; migration applies/push/repair = 0; TEST gameplay/save/fixture writes/live turns = 0; Worker deploy = 0; Production access = 0.
+- Changed paths are limited to docs/ops/CURRENT_TASK.md, docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT.sql, and docs/ops/TEST_ADDITIVE_SCHEMA_BRIDGE_SINGLE_STATEMENT_AUDIT.md. Accepted bridge/plan and supabase/migrations/* are unchanged.
+- git diff --check: PASS.
+- STOP. The wrapper is review evidence only; it was not submitted or applied.
