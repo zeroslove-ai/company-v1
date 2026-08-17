@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: overnight-cut2-live-quality-loop-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -272,5 +272,14 @@ Terminal only when one of these occurs:
 - only for the hard boundaries in section 1.
 
 At terminal, update this file to `WAITING_REVIEW`, post one complete immutable Issue #68 report with exact SHAs/PRs/CI/deploy/migrations/game IDs/turn evidence, and STOP.
+
+## 9. Terminal report — BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION
+
+- Cut 1 PR #70 merged at `cfcd328a00b3caa9d87034e6ab7ca60c6ace51ce`; main CI run `32043074446` was SUCCESS.
+- Cut 2 PR #71 merged at `f91f2579947befacb10a45abde2599a92faf3276`; PR CI run `32043791667` and main CI run `32043850713` were SUCCESS.
+- Cut 2 branch commit: `d4c9c4f7895d3efe764ff31b9b6a66098c35885e`, pushed as `company/presentation-sidecars-cleanup-v1`.
+- TEST migration read-only preflight targeted project `fmcrspgxstsmxxsmkeee` and found remote-only migration history versions absent from this checkout. `supabase db push --dry-run` stopped with `LegacyDbPushMissingLocalError` and listed remote versions requiring migration-history repair before any push.
+- No TEST migration was applied, no Worker deployment was attempted, no disposable game was created, no live turns were run, and Production was untouched.
+- Blocker: repairing remote-only migration history or applying schema changes without a reconciled additive migration lineage would be an unsafe DB/history operation outside the explicit task boundary. Owner/operator review is required before TEST rollout can continue.
 
 Production rollout is explicitly outside this overnight authority.
