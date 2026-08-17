@@ -44,9 +44,16 @@ Exactly one supported compact-clothing transition was attempted. Story/Extract d
 
 ## E. Landing audit
 
-At the metadata-correction START snapshot, PR #67 was freshly verified as OPEN / DRAFT / UNMERGED with base `main` at `1e3a5255e51a284e45baf551dcfd415360981927`, head `5614ffe40f7308179e9c0f2413892be73ffc056c`, merge state `CLEAN`, PR metadata `commits=419`, 243 changed files, 18,783 additions, and 13,047 deletions. The earlier `250` value was only the capped commit-list enumeration and was not an exact total. The final post-correction metadata snapshot is recorded in the terminal report.
+At the final-descendant-inventory START snapshot, PR #67 was freshly verified as OPEN / DRAFT / UNMERGED with base `main` at `1e3a5255e51a284e45baf551dcfd415360981927`, head `345f047903bc5a50304dc18b68a8959307a41f11`, merge state `CLEAN`, PR metadata `commits=421`, 243 changed files, 18,761 additions, and 13,047 deletions. The earlier `250` value was only the capped commit-list enumeration and was not an exact total; the PR metadata `commits` field is authoritative for each frozen snapshot. The final post-correction metadata snapshot is recorded in the terminal report.
 
-Against the accepted executable SHA, the six descendants are:
+For the frozen accepted-source-to-START boundary, GitHub compare `f03e32c4194c114d702c43df1f6122c17c4ca7c1...345f047903bc5a50304dc18b68a8959307a41f11` reports `status=ahead`, `ahead_by=11`, `behind_by=0`, and `total_commits=11`. Its complete changed-path set is exactly:
+
+- `CURRENT_TRUTH.md`
+- `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`
+- `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`
+- `docs/ops/CURRENT_TASK.md`
+
+This frozen boundary is documentation-only: there is no `src/**`, `test/**`, migration, config, worker, frontend, content, or script executable drift after `f03e32c4...`. The following six commits are retained only as a partial historical sequence for audit context; they are not an exhaustive descendant inventory:
 
 1. `99f6ac749538a151a20b151d7721aa3faedb64b1` - `ops: mark choice projection task waiting review`
 2. `31efac5f222890817044a8d35a50f5622743444e` - `docs: register minimal Story runtime product acceptance v9`
@@ -55,7 +62,7 @@ Against the accepted executable SHA, the six descendants are:
 5. `6f9e38b0e178ff747134c89459609e1dde7207db` - `docs: close remaining coverage v10`
 6. `1bb73802dfa0e0dc577af2cb168ed803d013df6a` - `docs: register minimal Story runtime final release handoff`
 
-The complete accepted-source-to-correction-START path contains documentation-only descendants; there is no `src/**`, `test/**`, migration, config, worker, frontend, content, or script executable drift after `f03e32c4...`. The broad PR diff against `main` is the intentionally owned historical implementation lineage: 69 `src` paths, 87 `test` paths, 18 `supabase` paths, 7 `scripts` paths, 2 `config` paths, 2 `content` paths, 14 `fixtures` paths, 41 `docs` paths, plus `AGENTS.md` and `CURRENT_TRUTH.md`. The current executable portions are covered by the accepted source/test review and v9/v10 evidence; no separate dependency or duplicated landing container was proven by this audit.
+The broad PR diff against `main` is the intentionally owned historical implementation lineage: 69 `src` paths, 87 `test` paths, 18 `supabase` paths, 7 `scripts` paths, 2 `config` paths, 2 `content` paths, 14 `fixtures` paths, 41 `docs` paths, plus `AGENTS.md` and `CURRENT_TRUTH.md`. The current executable portions are covered by the accepted source/test review and v9/v10 evidence; no separate dependency or duplicated landing container was proven by this audit.
 
 The large historical diff is not treated as a blocker by itself. Landing classification: **`HANDOFF_READY_OWNER_DECISION`**.
 

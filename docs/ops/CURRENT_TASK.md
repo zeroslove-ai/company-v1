@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-final-release-handoff-descendant-inventory-closure-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -127,3 +127,13 @@ Terminal must include:
 - owner-only next decisions.
 
 Then STOP.
+
+## Execution result
+
+- START SHA: `345f047903bc5a50304dc18b68a8959307a41f11`.
+- The final docs-only correction removes the false exhaustive six-descendant claim and labels the retained six-commit sequence as partial historical context.
+- Frozen compare `f03e32c4194c114d702c43df1f6122c17c4ca7c1...345f047903bc5a50304dc18b68a8959307a41f11`: `status=ahead`, `ahead_by=11`, `behind_by=0`, `total_commits=11`; complete changed-path set is `CURRENT_TRUTH.md`, `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`, `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`, and `docs/ops/CURRENT_TASK.md`, proving docs-only descendants and zero executable drift.
+- PR #67 START metadata: base `1e3a5255e51a284e45baf551dcfd415360981927`, head `345f047903bc5a50304dc18b68a8959307a41f11`, OPEN / DRAFT / UNMERGED, mergeable CLEAN, `commits=421`, `changed_files=243`, `additions=18761`, `deletions=13047`. The earlier `250` value was a capped commit-list enumeration, not an exact total.
+- PR title/body remain the current release-candidate and owner-decision wording; no stale current-task phrase was restored. Previous final CI `31991516753` and START CI `31991799691` are SUCCESS.
+- Accepted executable `f03e32c4...`, Worker `761a01bb-8cca-47ad-afde-87c0ba85c01d`, accepted evidence, and the exact compact-clothing gap remain unchanged: one legitimate supported attempt, no Story/Extract completion evidence, Extract clothing evidence empty, Commit preserved `worn -> worn`; neither positive PASS nor demonstrated persistence failure.
+- Landing classification remains `HANDOFF_READY_OWNER_DECISION`. No source/test/runtime/config/content/script/migration change, gameplay/game-ID access, DB write, deploy, merge/Ready, rebase/squash, force-push, or main push occurred.
