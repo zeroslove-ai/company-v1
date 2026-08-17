@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: frontend-smoke-asset-canon-reconciliation-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -91,6 +91,49 @@ After fetching `/` and validating the existing structural HTML markers:
 - reject malformed/unsupported paths cleanly rather than silently skipping a required current asset.
 
 The current direct asset set must therefore be proven from deployed HTML rather than a stale hand-maintained list.
+
+## 8. Execution evidence — 2026-08-18
+
+- Execution lease: Issue #68 comment `5319786053`.
+- Start SHA: `72ebfbea24798f4cb3962c7d0adfaeff1d71746a`.
+- Reviewed runtime/main baseline: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`.
+- Changed repository files: `scripts/smoke-frontend-worker.mjs`,
+  `test/frontend-smoke-contract.test.mjs`, and this lifecycle file only.
+- Old smoke contract: a detached hardcoded asset list including deleted
+  `/narrative.js`, plus a protected-sentinel config marker requirement.
+- New smoke contract: deployed HTML stylesheet/module references are the
+  direct-asset root; same-origin relative ES-module imports are followed
+  transitively with visited-set cycle/duplicate protection; Company HTML/API
+  markers and credential rejection remain fail-closed; the sentinel UUID is
+  not a health marker.
+- Focused regression: `node --test test/frontend-smoke-contract.test.mjs`
+  — 9/9 passed.
+- Full regression: `npm.cmd test` — 338/338 passed.
+- Syntax/diff checks: both changed JS/MJS `node --check` commands passed;
+  `git diff --check` passed.
+- Read-only contract preflight: action Stage B and scene Stage B gates passed;
+  `origin/main` remained frozen at `8f3c5326...`; current frontend remained
+  deployed as `d3c1bb47-e779-431e-a0ac-98eb513561c6`; API remained
+  `2a976491-451d-4fc8-8808-65353cad137b`.
+- Corrected remote frontend smoke: invoked exactly once against
+  `https://gamebuilder-company-v1.zeroslove.workers.dev` and passed.
+  Discovered direct assets: 15. Reachable modules: 21 — `/app.js`,
+  `/relationship-icons.js`, `/history-tools.js`, `/csa-product-ui.js`,
+  `/boot-guard.js`, `/hospital-scroll.js`, `/api.js`, `/catalogs.js`,
+  `/csa-app.js`, `/config.js`, `/render.js`, `/setup.js`, `/sse.js`,
+  `/state.js`, `/utility-ui.js`, `/tts.js`, `/view-model.js`,
+  `/turn-phase.js`, `/company-map.js`, `/hospital-mobile.js`, and
+  `/loading-overlay.js`. No `/narrative.js` request occurred.
+- TEST read-only invariants were identical before/after smoke: migration rows
+  `27`; target `20260817000200` absent; bridge canonical
+  `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`;
+  forensic canonical
+  `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`;
+  protected `18/18/18/18`; disposable `11/12/11/11`; preserved/manual
+  `7/9/7/7`; QA `7/7/7/7`.
+- Safety counts: frontend/API redeploy `0`; TEST reset/live gameplay/provider
+  turn `0`; DB/schema/migration/history writes `0`; Production access/change
+  `0`; protected/preserved/QA mutation `0`.
 
 ### 3.3 Validate current ES-module dependency closure
 
