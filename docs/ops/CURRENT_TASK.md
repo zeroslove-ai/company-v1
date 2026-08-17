@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: gameplay-core-simplification-cut1-landing-sync-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
