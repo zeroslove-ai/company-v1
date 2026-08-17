@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-final-release-handoff-metadata-correction-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -151,3 +151,7 @@ Terminal must report:
 - owner-only next decisions.
 
 Then STOP.
+
+## Execution result - 2026-08-17
+
+Metadata correction completed from START `5614ffe40f7308179e9c0f2413892be73ffc056c`. The handoff now uses the authoritative PR metadata total for the frozen snapshot and explains why the prior 250-entry REST enumeration was capped/incomplete; current-truth release prose now labels branch heads as dated docs-only snapshots. PR title/body were freshly verified as current release-candidate/owner-decision metadata. The accepted executable lineage remains unchanged and the landing classification remains `HANDOFF_READY_OWNER_DECISION`. Final SHA, blobs, CI, and final PR metadata are reported in the terminal Issue #68 comment.

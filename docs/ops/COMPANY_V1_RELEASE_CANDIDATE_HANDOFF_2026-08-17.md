@@ -8,14 +8,15 @@ Task: `minimal-story-runtime-final-release-handoff-v1`
 
 - Repository: `zeroslove-ai/company-v1`
 - Branch: `company/scene-location-presence-v1`
-- Handoff START head: `1bb73802dfa0e0dc577af2cb168ed803d013df6a`
+- Prior handoff audit snapshot head: `1bb73802dfa0e0dc577af2cb168ed803d013df6a`
+- Metadata-correction START snapshot head: `5614ffe40f7308179e9c0f2413892be73ffc056c`
 - Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
 - Current docs handoff commit is a documentation descendant of the accepted executable SHA.
 - Accepted source CI: GitHub Actions run `31986414926`, SUCCESS.
 - v10 final-docs CI: run `31989482449`, SUCCESS.
 - Current handoff START CI: run `31989752453`, SUCCESS.
 
-The accepted executable is the source/test identity. The current branch head is orchestration/documentation state, not a new runtime review identity.
+The accepted executable is the source/test identity. The two branch heads above are dated orchestration/documentation snapshots, not new runtime review identities.
 
 ## B. TEST Worker and database contract
 
@@ -43,7 +44,7 @@ Exactly one supported compact-clothing transition was attempted. Story/Extract d
 
 ## E. Landing audit
 
-PR #67 was freshly verified as OPEN / DRAFT / UNMERGED with base `main` at `1e3a5255e51a284e45baf551dcfd415360981927`, audit head `1bb73802dfa0e0dc577af2cb168ed803d013df6a`, merge state `CLEAN`, 250 commits (verified through the paginated PR-commit API), 242 changed files, 18,765 additions, and 13,047 deletions. After the handoff docs commit, the final PR state is 250 commits, 243 changed files, 18,857 additions, and 13,047 deletions.
+At the metadata-correction START snapshot, PR #67 was freshly verified as OPEN / DRAFT / UNMERGED with base `main` at `1e3a5255e51a284e45baf551dcfd415360981927`, head `5614ffe40f7308179e9c0f2413892be73ffc056c`, merge state `CLEAN`, PR metadata `commits=419`, 243 changed files, 18,783 additions, and 13,047 deletions. The earlier `250` value was only the capped commit-list enumeration and was not an exact total. The final post-correction metadata snapshot is recorded in the terminal report.
 
 Against the accepted executable SHA, the six descendants are:
 
@@ -54,7 +55,7 @@ Against the accepted executable SHA, the six descendants are:
 5. `6f9e38b0e178ff747134c89459609e1dde7207db` - `docs: close remaining coverage v10`
 6. `1bb73802dfa0e0dc577af2cb168ed803d013df6a` - `docs: register minimal Story runtime final release handoff`
 
-The complete accepted-source-to-START path changes only `docs/ops/CURRENT_TASK.md`; there is no `src/**`, `test/**`, migration, config, worker, frontend, content, or script executable drift after `f03e32c4...`. The broad PR diff against `main` is the intentionally owned historical implementation lineage: 69 `src` paths, 87 `test` paths, 18 `supabase` paths, 7 `scripts` paths, 2 `config` paths, 2 `content` paths, 14 `fixtures` paths, 41 `docs` paths, plus `AGENTS.md` and `CURRENT_TRUTH.md`. The current executable portions are covered by the accepted source/test review and v9/v10 evidence; no separate dependency or duplicated landing container was proven by this audit.
+The complete accepted-source-to-correction-START path contains documentation-only descendants; there is no `src/**`, `test/**`, migration, config, worker, frontend, content, or script executable drift after `f03e32c4...`. The broad PR diff against `main` is the intentionally owned historical implementation lineage: 69 `src` paths, 87 `test` paths, 18 `supabase` paths, 7 `scripts` paths, 2 `config` paths, 2 `content` paths, 14 `fixtures` paths, 41 `docs` paths, plus `AGENTS.md` and `CURRENT_TRUTH.md`. The current executable portions are covered by the accepted source/test review and v9/v10 evidence; no separate dependency or duplicated landing container was proven by this audit.
 
 The large historical diff is not treated as a blocker by itself. Landing classification: **`HANDOFF_READY_OWNER_DECISION`**.
 

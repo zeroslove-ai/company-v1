@@ -884,10 +884,11 @@ no source, test, migration, or deployment change occurred. The task is
 This dated section supersedes only the current identity/status claims above; historical evidence and prior rollout records remain immutable context. Fresh read-only verification established:
 
 - accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`;
-- current docs-only branch head: `1bb73802dfa0e0dc577af2cb168ed803d013df6a`;
+- prior handoff audit snapshot: docs-only head `1bb73802dfa0e0dc577af2cb168ed803d013df6a`;
+- metadata-correction audit START snapshot: docs-only head `5614ffe40f7308179e9c0f2413892be73ffc056c`;
 - TEST Worker `game-proxy-company-v1`, version `761a01bb-8cca-47ad-afde-87c0ba85c01d`, at 100%;
 - expected migration metadata present: `20260816050000/company_v1_minimal_story_runtime_contract` and `20260817000100/company_v1_final_residue_closure`;
 - accepted source, v10 final-docs, and current-start CI runs `31986414926`, `31989482449`, and `31989752453` are SUCCESS;
 - PR #67 is OPEN / DRAFT / UNMERGED / CLEAN, with no executable drift after the accepted source.
 
-The final handoff classification is `HANDOFF_READY_OWNER_DECISION`. This does not authorize merge, Ready, deploy, Production, DB writes, or another gameplay loop. The exact remaining risk is one legitimate compact-clothing attempt without Story/Extract completion evidence; it is neither a positive PASS nor a demonstrated persistence defect. Full handoff details are in `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`.
+The final handoff classification is `HANDOFF_READY_OWNER_DECISION`. The two branch-head values above are dated docs-only snapshots, not executable identities. This does not authorize merge, Ready, deploy, Production, DB writes, or another gameplay loop. The exact remaining risk is one legitimate compact-clothing attempt without Story/Extract completion evidence; it is neither a positive PASS nor a demonstrated persistence defect. Full handoff details are in `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`.
