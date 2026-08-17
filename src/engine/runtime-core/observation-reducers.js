@@ -32,6 +32,13 @@ function observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds 
   return result;
 }
 
+const DETERMINISTIC_CHOICE_FALLBACKS = [
+  '현재 대화를 조금 더 이어간다.',
+  '상대에게 지금 상황을 차분히 물어본다.',
+  '주변 반응을 잠시 살펴본다.',
+  '대화를 정리하고 다음 행동을 생각한다.'
+];
+
 export function reducePlayerPhysicalObservation({ save, physical, evidence, storyText, expectedTurn, npcIds } = {}) {
   if (!object(physical) || !Object.keys(physical).length) return { state: save.player_scene_state ?? {}, warnings: [] };
   const result = buildSceneStatePatch({ previous: save.player_scene_state ?? {}, proposal: physical, evidenceMap: evidenceMap(physical, evidence, 'player'), narrativeText: storyText, characterName: '', turnNumber: expectedTurn, actorId: 'player', npcsPresent: [...currentNpcIds(save, npcIds)], registeredNpcNames: [] });
@@ -57,7 +64,7 @@ export function reduceElapsedTimeObservation({ save, elapsedMinutes, evidence } 
   return { before, after, warnings: [] };
 }
 
-export function reduceStoryChoiceProjection({ parsedStory } = {}) {
+export function reduceStoryChoiceProjection({ parsedStory, allowDeterministicFallback = false } = {}) {
   const observed = Array.isArray(parsedStory?.choices) ? parsedStory.choices.map(choice => typeof choice === 'string' ? choice.trim() : '') : [];
   const nonEmpty = observed.filter(Boolean);
   const unique = new Set(nonEmpty);
@@ -65,7 +72,40 @@ export function reduceStoryChoiceProjection({ parsedStory } = {}) {
   if (observed.length !== 4) warnings.push('choices_not_exactly_four');
   if (observed.some(choice => !choice)) warnings.push('choices_empty');
   if (unique.size !== nonEmpty.length) warnings.push('choices_exact_duplicate');
-  return { state: observed.length === 4 && observed.every(Boolean) && unique.size === 4 ? clone(observed) : [], warnings };
+  const canonical = observed.length === 4 && observed.every(Boolean) && unique.size === 4;
+  if (allowDeterministicFallback && !canonical) {
+    const state = [];
+    for (const choice of nonEmpty) {
+      if (state.length >= 4) break;
+      if (!state.includes(choice)) state.push(choice);
+    }
+    if (state.length < 4) warnings.push('choices_padded');
+    if (nonEmpty.length > 4) warnings.push('choices_truncated');
+    for (const fallback of DETERMINISTIC_CHOICE_FALLBACKS) {
+      if (state.length >= 4) break;
+      if (!state.includes(fallback)) state.push(fallback);
+    }
+    if (state.length === 4) {
+      warnings.push('choices_fallback_applied');
+      return { state: clone(state), warnings };
+    }
+  }
+  return { state: canonical ? clone(observed) : [], warnings };
+}
+
+export function projectStoryChoiceProjection({ parsedStory, allowDeterministicFallback = false } = {}) {
+  const projection = reduceStoryChoiceProjection({ parsedStory, allowDeterministicFallback });
+  const warnings = [...new Set([
+    ...(Array.isArray(parsedStory?.warnings) ? parsedStory.warnings : []),
+    ...projection.warnings
+  ])];
+  const projectedStory = {
+    ...(object(parsedStory) ? parsedStory : {}),
+    choices: clone(projection.state),
+    canonical_choices: clone(projection.state),
+    warnings
+  };
+  return { ...projection, parsedStory: projectedStory };
 }
 
 /** Fresh Commit reduces only scene, physical/clothing, player sexual mechanic, choices and time. */

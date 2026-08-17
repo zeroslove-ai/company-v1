@@ -19,7 +19,7 @@ export { reduceCsaCommitState } from './runtime-core/csa-commit-reducer.js';
 export {
   reducePlayerPhysicalObservation, reduceNpcPhysicalObservation,
   reducePlayerSexualObservation,
-  reduceElapsedTimeObservation, reduceStoryChoiceProjection,
+  reduceElapsedTimeObservation, reduceStoryChoiceProjection, projectStoryChoiceProjection,
   reduceObservationDomains
 } from './runtime-core/observation-reducers.js';
 export { deriveRecoverableStep } from './turn-state.js';

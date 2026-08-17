@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStoryStreamDecoder, parseStoryControlMarker } from '../src/engine/story-wire-protocol.js';
 import { buildStoryObservationBlocks, parseFreshNarrativeV2 } from '../src/engine/fresh-narrative-parser.js';
-import { reduceStoryChoiceProjection } from '../src/engine/runtime-core/observation-reducers.js';
+import { projectStoryChoiceProjection, reduceStoryChoiceProjection } from '../src/engine/runtime-core/observation-reducers.js';
 
 const master = { characters: [{ character_id: 'heroine2', name: 'Jena' }] };
 
@@ -101,6 +101,66 @@ test('fresh choices remain literal and exact four choices are canonical', () => 
   assert.deepEqual(parsed.canonical_choices, choices);
   assert.deepEqual(projected.state, choices);
   assert.deepEqual(parsed.blocks.filter(block => block.type === 'choice').map(block => block.text), choices);
+});
+
+test('normal Story choice projection fails open to one deterministic exact-four set', () => {
+  const fallback = [
+    '현재 대화를 조금 더 이어간다.',
+    '상대에게 지금 상황을 차분히 물어본다.',
+    '주변 반응을 잠시 살펴본다.',
+    '대화를 정리하고 다음 행동을 생각한다.'
+  ];
+  const cases = [
+    { choices: [], expected: fallback },
+    { choices: ['provider A'], expected: ['provider A', ...fallback.slice(0, 3)] },
+    { choices: ['provider A', 'provider B'], expected: ['provider A', 'provider B', ...fallback.slice(0, 2)] },
+    { choices: ['provider A', 'provider B', 'provider C'], expected: ['provider A', 'provider B', 'provider C', fallback[0]] },
+    { choices: ['A', 'B', 'C', 'D'], expected: ['A', 'B', 'C', 'D'] },
+    { choices: ['A', 'B', 'C', 'D', 'E'], expected: ['A', 'B', 'C', 'D'] },
+    { choices: ['A', '', 'A', 'B'], expected: ['A', 'B', ...fallback.slice(0, 2)] }
+  ];
+
+  for (const { choices, expected } of cases) {
+    const blocks = choices.map(text => ({ type: 'choice', text }));
+    const parsedStory = { raw: 'provider raw Story', blocks, choices, canonical_choices: choices, warnings: ['provider_warning'] };
+    const projected = projectStoryChoiceProjection({ parsedStory, allowDeterministicFallback: true });
+    assert.deepEqual(projected.state, expected);
+    assert.deepEqual(projected.parsedStory.choices, expected);
+    assert.deepEqual(projected.parsedStory.canonical_choices, expected);
+    assert.deepEqual(projected.parsedStory.blocks, blocks);
+    assert.equal(projected.parsedStory.raw, 'provider raw Story');
+    assert.equal(projected.parsedStory.warnings.includes('provider_warning'), true);
+    if (choices.length !== 4 || new Set(choices.filter(Boolean)).size !== choices.filter(Boolean).length || choices.some(choice => !choice)) {
+      assert.equal(projected.parsedStory.warnings.includes('choices_fallback_applied'), true);
+    }
+  }
+});
+
+test('normal Story choice projection remains coherent through persisted, Extract, Commit, history, and replay views', () => {
+  const providerBlocks = [{ type: 'scene', text: 'raw narrative' }, { type: 'choice', text: 'Only provider choice' }];
+  const storyComplete = projectStoryChoiceProjection({
+    parsedStory: {
+      raw: 'raw Story with one provider choice',
+      blocks: providerBlocks,
+      choices: ['Only provider choice'],
+      warnings: ['choices_not_exactly_four']
+    },
+    allowDeterministicFallback: true
+  });
+  const persisted = structuredClone(storyComplete.parsedStory);
+  const extractView = projectStoryChoiceProjection({ parsedStory: persisted, allowDeterministicFallback: true });
+  const commitView = projectStoryChoiceProjection({ parsedStory: extractView.parsedStory, allowDeterministicFallback: true });
+  const historyRow = { parsed_blocks: persisted, choices: commitView.state };
+  const replayView = projectStoryChoiceProjection({ parsedStory: historyRow.parsed_blocks, allowDeterministicFallback: true });
+
+  assert.equal(storyComplete.state.length, 4);
+  assert.deepEqual(extractView.state, storyComplete.state);
+  assert.deepEqual(commitView.state, storyComplete.state);
+  assert.deepEqual(historyRow.choices, storyComplete.state);
+  assert.deepEqual(replayView.state, storyComplete.state);
+  assert.equal(persisted.raw, 'raw Story with one provider choice');
+  assert.deepEqual(persisted.blocks, providerBlocks);
+  assert.equal(replayView.parsedStory.warnings.includes('choices_fallback_applied'), true);
 });
 
 test('fresh parser rejects THOUGHT and CHOICE without a visible Story body', () => {

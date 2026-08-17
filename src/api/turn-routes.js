@@ -21,7 +21,7 @@ import {
   normalizeFreshExtractObservationV2,
   normalizePersistedExtractObservation,
   reduceGameplayCommit,
-  reduceStoryChoiceProjection,
+  reduceStoryChoiceProjection, projectStoryChoiceProjection,
   parseFreshNarrativeV2,
   resolvePlayerCanonicalNames,
   splitOpeningSections,
@@ -550,7 +550,10 @@ const master = masterFromEdition(edition);
         return storySse({ meta: { ...meta, replayed: true }, run: async emit => {
           // live와 동일한 이벤트 계약을 유지한다. 레거시 턴은 기존 단일 delta 유지.
           const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
-          const parsed = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
+          const parsed = projectStoryChoiceProjection({
+            parsedStory: mergePersistedEngineMetadata(persistedStory, action.parsed_blocks),
+            allowDeterministicFallback: true
+          }).parsedStory;
           emitVisibleStory(emit, action.story_text, { master });
           emit('complete', { action_id: meta.action_id, turn_id: meta.turn_id, warnings: parsed.warnings ?? [], parsed_blocks: parsed, replayed: true });
         } });
@@ -658,7 +661,11 @@ const master = masterFromEdition(edition);
           // gate는 검증만 수행하고 원문을 재작성·삭제하지 않는다.
           const canonicalStory = composeCanonicalStory({ institutionalSegments, providerNarrative: upstreamRaw });
           raw = canonicalStory;
-          const parsed = parseFreshNarrativeV2(canonicalStory, { master });
+          const choiceProjection = projectStoryChoiceProjection({
+            parsedStory: parseFreshNarrativeV2(canonicalStory, { master }),
+            allowDeterministicFallback: true
+          });
+          const parsed = choiceProjection.parsedStory;
           // 수정 11 — gate warnings를 포함한 병합 warnings (complete에도 그대로 전달)
           const mergedWarnings = [...(parsed.warnings ?? [])];
           const contractPersisted = attachEngineEnactments({
@@ -719,7 +726,10 @@ const master = masterFromEdition(edition);
       });
       if (action.extract_delta) {
         const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
-        const replayParsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
+        const replayParsedStory = projectStoryChoiceProjection({
+          parsedStory: mergePersistedEngineMetadata(persistedStory, action.parsed_blocks),
+          allowDeterministicFallback: true
+        }).parsedStory;
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: replayParsedStory.blocks, expectedTurn: action.expected_turn, actionId });
         logTurnTiming({ event_stage: 'extract', request_id: requestId, action_id: actionId, game_id: gameId, replayed: true, turn_total_ms: Date.now() - startedAt });
         return ok({ action_id: actionId, extract, warnings: extract.warnings, replayed: true, parsed_blocks: replayParsedStory });
@@ -752,7 +762,10 @@ const master = masterFromEdition(edition);
       const timing = {};
       try {
         const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
-        let parsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
+        let parsedStory = projectStoryChoiceProjection({
+          parsedStory: mergePersistedEngineMetadata(persistedStory, action.parsed_blocks),
+          allowDeterministicFallback: true
+        }).parsedStory;
         // Extract observes the same raw Story text that was streamed to the player.
         const storyForExtract = action.story_text;
         let extract;
@@ -888,7 +901,11 @@ const master = masterFromEdition(edition);
           mapLocations: Array.isArray(edition?.map?.locations) ? edition.map.locations : []
         });
         const persistedStory = plainObject(action.parsed_blocks) ? action.parsed_blocks : {};
-        let parsedStory = mergePersistedEngineMetadata(persistedStory, action.parsed_blocks);
+        const choiceProjection = projectStoryChoiceProjection({
+          parsedStory: mergePersistedEngineMetadata(persistedStory, action.parsed_blocks),
+          allowDeterministicFallback: true
+        });
+        let parsedStory = choiceProjection.parsedStory;
         const extract = normalizePersistedExtractObservation(action.extract_delta, { npcIds, storyText: action.story_text, storyBlocks: parsedStory.blocks, expectedTurn, actionId });
         const reducerStart = Date.now();
         const merged = reduceGameplayCommit({
@@ -911,9 +928,9 @@ const master = masterFromEdition(edition);
         // Extract가 같은 Story에서 생성한 summary가 이 턴의 유일한 압축 memory 입력이다.
         // 빈 문자열은 provider가 실제로 요약할 내용이 없을 때만 허용되며, 서버가 합성하지 않는다.
         const finalTurnSummary = typeof extract.turn_summary === 'string' ? extract.turn_summary : '';
-        // 선택지 단일 writer — gameplay commit reducer가 확정한 last_choices를
-        // 그대로 쓴다 (Story 1~3개 보존 + 부족분 보충 결과 = save와 history 일치).
-        const finalChoices = reduceStoryChoiceProjection({ parsedStory }).state;
+        // Choice authority stays on the current Story projection; Commit passes
+        // that exact four-item array to the durable game_turns choice column.
+        const finalChoices = choiceProjection.state;
 
         const commitRpcStart = Date.now();
         // A feedback-revision action never advances committed_turn — it replaces the content of
