@@ -43,7 +43,7 @@ Exactly one supported compact-clothing transition was attempted. Story/Extract d
 
 ## E. Landing audit
 
-PR #67 was freshly verified as OPEN / DRAFT / UNMERGED with base `main` at `1e3a5255e51a284e45baf551dcfd415360981927`, head `1bb73802dfa0e0dc577af2cb168ed803d013df6a`, merge state `CLEAN`, 100 commits, 242 changed files, 18,765 additions, and 13,047 deletions.
+PR #67 was freshly verified as OPEN / DRAFT / UNMERGED with base `main` at `1e3a5255e51a284e45baf551dcfd415360981927`, audit head `1bb73802dfa0e0dc577af2cb168ed803d013df6a`, merge state `CLEAN`, 250 commits (verified through the paginated PR-commit API), 242 changed files, 18,765 additions, and 13,047 deletions. After the handoff docs commit, the final PR state is 250 commits, 243 changed files, 18,857 additions, and 13,047 deletions.
 
 Against the accepted executable SHA, the six descendants are:
 
