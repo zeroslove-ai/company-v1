@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-runtime-live-acceptance-v3
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -173,3 +173,21 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal containing registration/final SHA/blob, pre/post Worker IDs, smoke results, reset/session counts, per-coverage verdicts, exact failed turn(s) if any, post-session gate/migration evidence, protected-game invariants, safety counts and terminal classification;
 3. STOP. Do not start Cut 3 or create another task.
+
+## 9. Execution evidence — BLOCKED
+
+- Execution lease: Issue #68 comment `5319659300`.
+- Starting SHA / registration SHA: `c0649be4f4317c077e97664bc30bdc17485005cb`.
+- Starting CURRENT_TASK blob: `ea9b9f5b6f6038219079fcc33c7ac8f2307fa349`.
+- Preflight: `origin/main` exact; branch descended directly from accepted smoke final; runtime/config/content/test/package/workflow trees unchanged from origin/main except inherited reviewed docs/task history; action Stage B and scene Stage B gates PASS; full regression `329/329` PASS; syntax checks and `git diff --check` PASS; frozen-main CI PASS; TEST secrets/config identity PASS.
+- API pre/post Worker: accepted version `2a976491-451d-4fc8-8808-65353cad137b`; API redeploy `0`; corrected API smoke PASSed exactly once before frontend deployment.
+- Frontend pre Worker version: `1a3c1416-5362-4658-a8fe-465006a342dd`.
+- Frontend deploy: PASS exactly once, `gamebuilder-company-v1`, post version `d3c1bb47-e779-431e-a0ac-98eb513561c6`, URL `https://gamebuilder-company-v1.zeroslove.workers.dev`.
+- Frontend smoke: FAILED on its single invocation at `https://gamebuilder-company-v1.zeroslove.workers.dev/narrative.js`, HTTP `404`, `error_code=unexpected_status`.
+- Game preparation/session: disposable game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; reset `0`; live sessions `0`; committed turns in this execution `0`. No reset was attempted after the frontend smoke failure.
+- Coverage: Opening/choices, literal input, free-text agency, workplace continuity, movement/handoff, CSA scope, adult physical continuity, sidecars, >6-turn memory/summary, refresh/recovery, and streaming/transaction health: NOT RUN; frontend smoke blocked before reset/live gameplay. Failed turn(s): none. Failed gate: frontend `/narrative.js` 404.
+- Pre-session TEST invariants: migration rows `27`; target `20260817000200` absent; bridge `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; forensic `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`; protected `18/18/18/18`; disposable `11/12/11/11`; preserved/manual `7/9/7/7`; QA `7/7/7/7`; accepted function metadata matched. Post-session checks not run because no session began.
+- Safety: DB/schema/migration/history writes `0`; migration apply/push/repair `0`; API redeploy `0`; frontend deploy `1`; TEST reset/live gameplay `0`; Production access/change `0`; preserved/manual, QA, and protected mutation `0`; source/runtime/script/config/content/test/package/workflow changes `0`.
+
+Terminal classification: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V3`.
+STOP. Preserve the frontend smoke 404; do not retry, redeploy, reset the game, patch source, run a replacement session, or start another task/Cut.
