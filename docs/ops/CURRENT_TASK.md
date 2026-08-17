@@ -1,252 +1,139 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: extract-scene-evidence-roundtrip-reconciliation-v1
+Status: READY
+Task ID: extract-scene-evidence-test-api-deploy-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 ## Purpose
 
-Repair only the deterministic Extract→persisted-read→Commit round-trip defect exposed by the first real TEST live acceptance. The live session proved that fresh Extract can accept and persist a current V2 scene observation with canonical `location_id` plus exact `kind:"scene"` evidence, but Commit immediately re-reads that same persisted V2 row through the historical compatibility normalizer and rejects it because the compatibility path still requires obsolete `scene_id` for `kind:"scene"` evidence. Reconcile the current-fresh persisted read path with the owner canon that removed `scene_id`, preserve historical compatibility deliberately, add exact round-trip regression coverage for the live failure shape, and STOP for review. Do not deploy or resume gameplay in this task.
+Deploy the accepted Extract scene-evidence round-trip runtime repair to the Company TEST API exactly once, verify the deployed API with the corrected read-only API smoke, prove TEST data remains unchanged, and STOP for review. This is deployment verification only. Do not resume/retry the stuck turn-6 action, reset a game, run gameplay/provider turns, deploy frontend, merge, or start Cut 3.
 
 ## 0. Frozen authority
 
 - Repository: `zeroslove-ai/company-v1`
 - Expected `origin/main`: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-- Previous task: `test-runtime-live-acceptance-v4`
-- Previous STARTED: Issue #68 comment `5319966625`
-- Previous terminal: Issue #68 comment `5320067594`
-- Previous classification: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V4`
-- Previous final SHA: `f426a77b64a56d4cbca9c18e9c605b0753324f54`
-- Previous final CURRENT_TASK blob: `4defca25a436920c8367370e0dd0b0aec5b10af0`
-- This branch must be: `company/extract-scene-evidence-roundtrip-reconciliation-v1`
+- Previous task: `extract-scene-evidence-roundtrip-reconciliation-v1`
+- Previous STARTED: Issue #68 comment `5320196241`
+- Previous terminal: Issue #68 comment `5320266879`
+- Previous classification: `EXTRACT_SCENE_EVIDENCE_ROUNDTRIP_RECONCILED`
+- Previous final SHA: `d8fbc5cca47b62e897adc73afc816812f736316b`
+- Previous final CURRENT_TASK blob: `49314240b700eead8c3996368cb6a2aba683589a`
+- Expected branch: `company/extract-scene-evidence-test-api-deploy-v1`
 - TEST Supabase: `fmcrspgxstsmxxsmkeee`
 - API Worker: `game-proxy-company-v1`
-- Accepted currently deployed API version: `2a976491-451d-4fc8-8808-65353cad137b`
+- API URL: `https://game-proxy-company-v1.zeroslove.workers.dev`
+- Previously accepted API version: `2a976491-451d-4fc8-8808-65353cad137b`
 - Frontend Worker: `gamebuilder-company-v1`
-- Accepted currently deployed frontend version: `d3c1bb47-e779-431e-a0ac-98eb513561c6`
+- Frontend version to remain untouched: `d3c1bb47-e779-431e-a0ac-98eb513561c6`
 - Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
-- Preserved/manual game — do not touch: `78fb1d94-266f-455a-bda4-7656cc2370c1`
-- QA game — do not touch: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`
-- Protected sentinel — do not touch: `11111111-1111-4111-8111-111111111111`
+- Preserved/manual game: `78fb1d94-266f-455a-bda4-7656cc2370c1` — do not mutate
+- QA game: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f` — do not mutate
+- Protected sentinel: `11111111-1111-4111-8111-111111111111` — do not mutate
+- Failed disposable action: `72cc2486-cc80-408c-9d86-8196cab7b6ad` — forensic evidence only; do not retry/repair/complete
 - Production and hospital/v2: forbidden
 
-Current TEST post-failure safety snapshot independently re-read by operator:
-- migration rows `27`;
-- target migration `20260817000200` absent;
-- disposable: save `1`, turns `5`, actions `6`, committed_turn `5`;
-- preserved/manual: `1 / 7 / 9 / 7`;
-- QA: `1 / 7 / 7 / 7`;
-- protected sentinel: `1 / 18 / 18 / 18`.
+Accepted repair facts from terminal `5320266879` and operator review:
+- current Fresh V2 has no `scene_id`;
+- current `kind:"scene"` evidence requires exact Story quote plus location matching `scene_observation.location_id`;
+- current persisted V2 is deterministically separated from historical V2 compatibility;
+- historical V2 with legacy `scene_id` remains readable on the historical path;
+- Commit still re-reads persisted Extract through `normalizePersistedExtractObservation()`; no bypass/fallback was added;
+- focused Extract tests `8/8 PASS`; full regression `342/342 PASS`; syntax/diff PASS;
+- repair task performed zero deploy/gameplay/reset/DB writes/Production/hospital access.
 
-The failed disposable action is preserved and must not be retried or repaired in-place:
-- action_id `72cc2486-cc80-408c-9d86-8196cab7b6ad`
-- expected_turn `6`
-- processing_status `committing`
-- exact player input: `윤민아와 서원희에게 각자 맡은 업무를 확인하고 팀의 일정과 우선순위를 자연스럽게 조율한다.`
-- Story completed and Extract succeeded;
-- Commit returned HTTP 422 `invalid_extract_observation`, message `scene evidence requires scene_id`;
-- no durable turn 6 exists.
+Accepted TEST snapshot:
+- migrations `27`; target `20260817000200` absent;
+- disposable `save/turns/actions/committed_turn = 1/5/6/5`;
+- preserved/manual `1/7/9/7`;
+- QA `1/7/7/7`;
+- protected sentinel `1/18/18/18`;
+- failed action remains `processing_status=committing`, `expected_turn=6`, no durable turn 6.
 
-Operator-verified persisted Extract evidence from that exact action:
-- `scene_observation.location_id = "brand_strategy_office"`;
-- `scene_observation` has no `scene_id`;
-- evidence contains `{kind:"scene", location_id:"brand_strategy_office", quote:"오전 11시 54분, 브랜드전략팀 사무실."}`;
-- that quote is an exact substring of persisted Story;
-- presence evidence for registered NPCs is also exact-quote grounded.
+## 1. Mandatory preflight — read-only
 
-Binding owner canon (`docs/COMPANY_V1_POST_MERGE_GAMEPLAY_SIMPLIFICATION_CANON_2026-08-17.md`): canonical scene is exactly
-`{version, location_id, present_npc_ids, focal_character_id, last_speaker_id, updated_turn}`;
-`scene_id` was explicitly removed because it duplicated/contradicted location authority. Do not reintroduce it into fresh scene, fresh Extract, prompts, save, or runtime semantics.
-
-## 1. Mandatory preflight
-
-Before editing:
-1. fresh-fetch `origin/main` and require exact SHA above;
-2. require this branch to descend directly from previous final `f426a77b64a56d4cbca9c18e9c605b0753324f54` with only the registration commit before execution;
-3. re-read terminal `5320067594` and the preserved TEST action row read-only;
-4. inspect, at minimum:
+Before any deployment:
+1. fresh-fetch and require `origin/main` exactly `8f3c5326e483650211fbc6c9f54a7527d2278d4e`;
+2. require this branch to descend directly from accepted final `d8fbc5cca47b62e897adc73afc816812f736316b` with only this CURRENT_TASK registration commit before execution;
+3. fresh-read terminal `5320266879` and verify previous final SHA/blob;
+4. prove runtime delta from `origin/main` contains only the reviewed Extract/persisted-read repair lineage plus previously accepted ops/test harness repairs; no unrelated runtime/config/content/package/workflow drift;
+5. inspect current HEAD for:
    - `src/engine/runtime-core/extract-observation.js`
    - `src/engine/runtime-core/persisted-extract-observation.js`
-   - `src/api/turn-routes.js`
-   - `src/engine/runtime-core/scene-reducer.js`
-   - `src/engine/extract-prompt.js`
-   - `test/extract-observation-contract.test.mjs`;
-5. prove the exact current flow:
-   - fresh provider result → `normalizeFreshExtractObservationV2()` at Extract;
-   - normalized result persisted as `game_actions.extract_delta`;
-   - Commit re-reads V2 through `normalizePersistedExtractObservation()`;
-   - current V2 branch presently delegates to historical `normalizeExtractObservationV2()`;
-6. prove the contract mismatch before modifying code:
-   - fresh scene fields do not allow `scene_id`;
-   - prompt does not request `scene_id` and explicitly uses `location_id` for scene evidence;
-   - canonical scene reducer has no `scene_id` consumer;
-   - historical compatibility normalizer still has obsolete `scene_id` handling and `kind:"scene"` evidence requirement;
-7. deterministically reproduce the failure locally using a minimal fixture shaped like the preserved turn-6 Extract delta and exact Story quote. No live API/provider call is needed for reproduction;
-8. read TEST only to confirm the failed action and protected-game counts remain unchanged. No DB write.
+   - `test/extract-observation-contract.test.mjs`
+   - `scripts/smoke-api-worker.mjs`;
+6. require the accepted current-vs-historical V2 boundary and exact quote/location fail-closed behavior unchanged;
+7. run focused Extract contract tests and full `npm.cmd test`; require zero failures;
+8. run `node --check` on changed JS/MJS files and `git diff --check`; require PASS;
+9. run corrected action Stage B and scene Stage B DB gates read-only; require PASS;
+10. fresh-read TEST migration/game counts and require exactly the accepted snapshot above;
+11. require failed action `72cc2486-...` unchanged and no durable turn 6;
+12. record currently deployed Worker identities/versions where tooling exposes them. Lack of metadata is not authorization to redeploy for proof.
 
-If the evidence does not reproduce coherently, or if the actual failing path differs materially, STOP `EXTRACT_SCENE_EVIDENCE_ROUNDTRIP_RECONCILIATION_BLOCKED` without speculative patching.
+Any mismatch or ambiguity => terminal `EXTRACT_SCENE_EVIDENCE_TEST_API_DEPLOY_BLOCKED`, deployment count `0`, STOP.
 
-## 2. Architecture decision
+## 2. Exactly one TEST API deploy
 
-The repair must follow these constraints:
+Only after all preflight checks pass:
+- deploy API Worker `game-proxy-company-v1` exactly once from this branch/HEAD using the repository's normal Company TEST deployment path;
+- deployed runtime must include accepted repair final `d8fbc5cca47b62e897adc73afc816812f736316b`; this registration/lifecycle doc is non-runtime;
+- record resulting API Worker version/deployment evidence;
+- frontend deployment count must remain `0`;
+- no second API deployment or retry-to-pass is authorized.
 
-### 2.1 Current fresh V2 vocabulary stays current
+If deployment fails or identity/version is ambiguous, STOP blocked without another deploy.
 
-Fresh Extract remains narrow and must not gain:
-- `scene_id`;
-- `presence_is_final`;
-- old semantic event/relation fields;
-- save-patch vocabulary;
-- a new parser/adapter/gateway.
+## 3. Post-deploy verification — read-only only
 
-Do not alter the Extract prompt to ask the provider for `scene_id`.
+After the one successful API deploy:
+1. run corrected API smoke exactly once:
+   `node scripts/smoke-api-worker.mjs https://game-proxy-company-v1.zeroslove.workers.dev 2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+2. require `/health`, `/api/version`, `/api/context` PASS and final `REMOTE API SMOKE PASSED`;
+3. frontend smoke is not required because frontend is unchanged; default frontend smoke count `0`;
+4. fresh-read TEST and require migrations `27`, target absent, disposable `1/5/6/5`, preserved `1/7/9/7`, QA `1/7/7/7`, sentinel `1/18/18/18`;
+5. failed action must remain `committing`, expected turn `6`, with no durable turn 6;
+6. record counts: API deploy `1`; frontend deploy `0`; reset `0`; gameplay/provider turn `0`; DB/schema/migration/history write `0`; Production/hospital `0`.
 
-### 2.2 `location_id` is scene-location provenance
+Do not interpret API smoke as repaired Commit-path live acceptance. No gameplay is authorized here. The next owner-reviewed task will run a fresh disposable-game acceptance session.
 
-For current fresh V2 scene observations:
-- `scene_observation.location_id` is the only scene-location identifier;
-- `kind:"scene"` evidence must remain an exact Story quote and location-grounded;
-- a current `kind:"scene"` evidence item must not need an independent `scene_id`;
-- malformed/unknown location evidence must not become authority merely to make Commit pass.
+## 4. Repository scope
 
-Prefer a precise current contract such as requiring the scene evidence location to be non-empty/registered-consistent with the observation location where the current runtime has that information. Do not weaken exact quote provenance.
+After registration, repository changes are limited to `docs/ops/CURRENT_TASK.md` lifecycle/terminal evidence only.
 
-### 2.3 Historical compatibility stays historical
+Forbidden:
+- any runtime/engine/API/frontend/content/config/script/test/package/workflow patch;
+- migration/schema/RPC change;
+- provider/model/TTS/binding change;
+- gate/smoke weakening;
+- PR/merge/Cut3.
 
-`normalizePersistedExtractObservation()` is the historical read boundary. Existing historical V1/V2 rows that actually carry legacy fields must remain readable where already supported.
+If any new defect appears, preserve exact evidence and STOP blocked. Do not patch it in this deployment task.
 
-The target is not to delete legacy compatibility blindly. The target is to ensure **current fresh V2 persisted rows round-trip through Commit using current vocabulary**, while true legacy rows still use the compatibility path.
+## 5. Hard prohibitions
 
-Do not use exception-driven "try fresh then silently fall back to legacy" dispatch if that can reinterpret malformed current data as historical data. Prefer an explicit, deterministic shape boundary or a simpler proven equivalent.
-
-### 2.4 Commit remains structural/provenance authority
-
-Do not bypass `normalizePersistedExtractObservation()` at Commit simply to avoid validation. Commit must still re-read persisted Extract and validate:
-- registered IDs;
-- exact evidence quote provenance;
-- allowed narrow current fields;
-- scene location/presence structure.
-
-The repair must remove the obsolete semantic contradiction, not skip persisted validation.
-
-## 3. Allowed repository scope
-
-After registration, only these files may change unless the root-cause proof demonstrates one additional directly required caller test file:
-- `src/engine/runtime-core/extract-observation.js`
-- `src/engine/runtime-core/persisted-extract-observation.js`
-- `test/extract-observation-contract.test.mjs`
-- optionally one existing narrowly-related Commit/turn test file if needed to prove the actual API caller path
-- `docs/ops/CURRENT_TASK.md`
-
-Do not modify:
-- Story prompt/runtime behavior;
-- scene reducer semantics except if a direct compile-only adjustment is strictly required and justified (default: no change);
-- frontend;
-- content/catalog;
-- Wrangler configs;
-- DB gates/smoke repairs;
-- migrations/schema/RPCs;
-- package/lock/workflows;
-- provider/model/TTS/bindings;
-- unrelated tests/docs.
-
-## 4. Required regression proof
-
-Add behavior-level tests proving at least:
-
-1. **Exact live failure round-trip**
-   - fresh V2 input with `location_id="brand_strategy_office"`;
-   - `kind:"scene"` evidence with matching location and exact Story quote;
-   - fresh normalization succeeds;
-   - persisted normalization of that fresh normalized result also succeeds;
-   - no `scene_id` is required or manufactured as current semantic authority.
-
-2. **Commit-reader parity**
-   - the normalized current persisted result consumed by the Commit path preserves the same current scene location/evidence facts required by the reducer;
-   - it does not reinterpret the action as legacy semantic scene identity.
-
-3. **Exact-quote fail closed**
-   - `kind:"scene"` quote not present in Story still fails/drops according to the existing intended strictness; do not weaken to arbitrary location text.
-
-4. **Location provenance fail closed**
-   - malformed/empty/contradictory scene location evidence does not become accepted authority simply because `scene_id` was removed.
-
-5. **Presence evidence remains intact**
-   - registered presence/entrance/exit exact-quote behavior remains unchanged.
-
-6. **Historical V2 compatibility remains readable**
-   - an actual legacy-shaped V2 fixture with the old fields already supported by the reader still passes through the historical path.
-
-7. **Fresh vocabulary rejects legacy authority**
-   - direct fresh provider input containing `scene_id` remains rejected as unknown fresh vocabulary.
-
-8. **No accidental semantic widening**
-   - retired relationship/events/work/CSA semantic fields stay rejected or inert exactly as current canon requires.
-
-Run focused tests, then full `npm.cmd test`; require zero failures. Run `node --check` on every changed JS/MJS file and `git diff --check`.
-
-## 5. Deterministic failure-fixture proof
-
-Before terminal success, replay the preserved turn-6 shape **locally only** through the same normalization sequence used by Extract then Commit. It must prove:
-- fresh normalize PASS;
-- persisted re-read PASS;
-- exact scene quote still verified against Story;
-- location remains `brand_strategy_office`;
-- no provider call, DB mutation, reset, gameplay turn, or Worker deploy occurs.
-
-Do not attempt to commit the already-stuck live action. Do not alter its DB row. That action is forensic evidence for the later live-acceptance rerun.
-
-## 6. Safety / forbidden operations
-
-Forbidden in this task:
-- API deploy/redeploy;
-- frontend deploy/redeploy;
-- TEST reset or gameplay/provider turn;
-- retry/repair/complete of stuck action `72cc2486-...`;
+- more than one API deploy;
+- any frontend deploy;
+- reset;
+- gameplay/provider Story/Extract/Commit turn;
+- retry/repair/complete stuck action `72cc2486-...`;
 - direct gameplay DML;
-- DB/schema/DDL/migration/history write;
+- DB/schema/migration/history write;
 - migration apply/push/repair;
-- Production infrastructure access/change;
-- hospital/v2 access;
-- provider/model/TTS/binding changes;
-- protected/preserved/QA mutation;
-- Cut 3;
-- PR/merge unless a later owner task explicitly authorizes it.
+- protected/preserved/QA/sentinel mutation;
+- Production or hospital/v2 access/change;
+- Cut3 or unrelated work.
 
-Read-only TEST queries are allowed only for pre/post evidence.
-
-## 7. Terminal classification
+## 6. Terminal classification
 
 Choose exactly one:
 
-### `EXTRACT_SCENE_EVIDENCE_ROUNDTRIP_RECONCILED`
-Only if:
-- the preserved failure is reproduced deterministically;
-- current fresh V2 persisted observations round-trip through the Commit reader without `scene_id`;
-- exact Story/location provenance remains fail-closed;
-- historical compatibility remains intentionally supported;
-- focused/full tests and syntax/diff checks pass;
-- TEST rows/counts remain unchanged;
-- deploy/reset/gameplay/DB-write/Production counts remain zero.
+### `EXTRACT_SCENE_EVIDENCE_TEST_API_DEPLOYED`
+Only if preflight/tests/gates pass, exactly one API deploy succeeds, corrected API smoke runs exactly once and passes, TEST DB/game counts remain unchanged, failed action remains untouched, frontend deploy/reset/gameplay/DB write/Production/hospital counts remain zero.
 
-### `EXTRACT_SCENE_EVIDENCE_ROUNDTRIP_RECONCILIATION_BLOCKED`
-Use if root cause differs, current-vs-legacy shape cannot be separated safely, provenance would need weakening, tests fail, unrelated scope is required, or any safety invariant drifts.
+### `EXTRACT_SCENE_EVIDENCE_TEST_API_DEPLOY_BLOCKED`
+Use for any preflight, deployment, smoke, identity, DB invariant, safety or scope failure. No retry/deploy/patch after the first failure.
 
 At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
-2. post exactly one Issue #68 terminal with registration/final SHA/blob, exact root cause, changed files, before/after current-vs-legacy contract, exact failure-fixture proof, focused/full test counts, TEST pre/post counts, and all safety counts;
-3. STOP. Do not deploy, resume live acceptance, merge, or start Cut 3.
-
-## 8. Execution terminal evidence
-
-- Classification: `EXTRACT_SCENE_EVIDENCE_ROUNDTRIP_RECONCILED`.
-- Starting HEAD: `f218ba01a026bfe6a674cdd28c432222e564526b`.
-- Root cause reproduced before repair: `normalizeFreshExtractObservationV2()` accepted the current fresh scene vocabulary (`location_id` plus exact `kind:"scene"` evidence), while `normalizePersistedExtractObservation()` sent that same current result through the historical V2 path, which required obsolete `scene_id` and rejected the Commit readback.
-- Changed files only: `src/engine/runtime-core/extract-observation.js`, `src/engine/runtime-core/persisted-extract-observation.js`, `test/extract-observation-contract.test.mjs`, and this lifecycle evidence.
-- Contract before/after: current fresh/persisted V2 now has an explicit shape boundary with no `scene_id`; current scene evidence requires a non-empty location matching `scene_observation.location_id` and an exact Story quote. Historical V2 rows with legacy shape remain on the historical `scene_id` path. No scene_id was added to fresh output or manufactured by current persisted normalization.
-- Exact preserved failure fixture: the turn-6 shape with action `72cc2486-cc80-408c-9d86-8196cab7b6ad`, `location_id="brand_strategy_office"`, and quote `오전 11시 54분, 브랜드전략팀 사무실.` reproduced fresh PASS then persisted failure before repair; after repair it produces fresh PASS, persisted PASS, unchanged exact quote/location, and no `scene_id` in either current result.
-- Regression coverage: current round-trip parity, exact quote fail-closed, matching location provenance, registered presence evidence, historical V2 readability, fresh `scene_id` rejection, and retired semantic-field rejection. Focused Extract contract tests `8/8 PASS`; full `npm.cmd test` `342/342 PASS`; changed-file `node --check` and `git diff --check` PASS.
-- TEST read-only evidence before and after source-only work: migrations `27`, target `20260817000200` absent; disposable `save/turns/actions/committed_turn=1/5/6/5`; preserved/manual `1/7/9/7`; QA `1/7/7/7`; protected sentinel `1/18/18/18`; failed action remains `processing_status=committing`, `expected_turn=6`, with no durable turn 6.
-- Safety counts: API/frontend deploy `0`; TEST reset/gameplay/provider turn `0`; DB schema/migration/history writes `0`; migration apply/push/repair `0`; Production/hospital/v2 access `0`; provider/model/TTS/binding changes `0`; protected/preserved/QA mutation `0`; PR/merge/Cut3 `0`.
-- STOP: review required. Do not deploy, reset, resume or repair the stuck action, run live gameplay, merge, generate the next task, or start Cut 3.
+2. post exactly one Issue #68 terminal containing registration/final SHA/blob, preflight/tests/gates, pre/post API version, deployment count, smoke invocation/result/count, TEST pre/post snapshots, failed-action status, frontend/reset/gameplay/DB/safety counts, and terminal classification;
+3. STOP. Do not resume gameplay, merge, create another task, or start Cut3.
