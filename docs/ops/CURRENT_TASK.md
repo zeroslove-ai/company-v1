@@ -1,7 +1,7 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: minimal-story-runtime-final-release-handoff-descendant-inventory-closure-v1
+Status: READY
+Task ID: minimal-story-runtime-owner-landing-strategy-preflight-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -11,129 +11,184 @@ This file is the sole active execution authority.
 
 Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
-Canonical PR: #67, base `main`, must remain OPEN / DRAFT / UNMERGED.
+Canonical PR: #67, base `main`.
+PR #67 must remain OPEN / DRAFT / UNMERGED for this task.
 
 Previous task:
-- Task: `minimal-story-runtime-final-release-handoff-metadata-correction-v1`
-- Trigger/CURRENT_TASK_READY: Issue #68 comment `5311421861` (`IC_kwDOTfvo8c8AAAABPJXdpQ`)
-- STARTED: Issue #68 comment `5311443810`
-- Terminal: Issue #68 comment `5311463622` (`IC_kwDOTfvo8c8AAAABPJaAxg`) — `EXECUTION: COMPLETE`
-- Previous START SHA: `5614ffe40f7308179e9c0f2413892be73ffc056c`
-- Previous FINAL SHA: `18d97d6ff6fc09b236b8472e2cf2911d0becae10`
-- Previous final CURRENT_TASK blob: `f10b12ca27eccb5fccbfb51fbd26e57ee19934ce`
+- Task: `minimal-story-runtime-final-release-handoff-descendant-inventory-closure-v1`
+- Trigger/CURRENT_TASK_READY: Issue #68 comment `5311485236` (`IC_kwDOTfvo8c8AAAABPJbVNA`)
+- STARTED: Issue #68 comment `5311505922`
+- Terminal: Issue #68 comment `5311520756` (`IC_kwDOTfvo8c8AAAABPJdf9A`) — `EXECUTION: COMPLETE`
+- Previous START SHA: `345f047903bc5a50304dc18b68a8959307a41f11`
+- Previous FINAL SHA: `2d1d6e56dbe9ae71f9c6a4c363caee05f24ac0f7`
+- Previous final CURRENT_TASK blob: `56cb893de2ebea8479b654917e0cf13682a2e2e5`
 - Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`
 - Accepted TEST API Worker: `761a01bb-8cca-47ad-afde-87c0ba85c01d`
-- Previous FINAL CI: `31991516753` = SUCCESS.
+- Accepted source CI: `31986414926` = SUCCESS.
+- Previous FINAL CI: `31992111972` = SUCCESS.
+- Final release handoff: `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`.
 
 ## Operator review of previous terminal
 
-Classification: `CHANGES_REQUIRED_HANDOFF_DESCENDANT_INVENTORY`.
+Classification: `ACCEPTED_FINAL_RELEASE_HANDOFF`.
 
-Accepted from the previous correction:
-- the supplied Trigger resolves exactly to the metadata-correction READY comment;
-- the immutable terminal for that task is Issue #68 comment `5311463622`;
-- START `5614ffe4...` -> FINAL `18d97d6f...` is exactly one commit and changes only the four authorized documentation paths;
-- accepted executable `f03e32c4...` remains an ancestor;
-- PR title/body no longer contain the stale `minimal-story-runtime-authority-audit-v1` current-task wording;
-- PR metadata correction from the capped `250` enumeration to authoritative PR metadata was correct: 419 commits at START and 420 at FINAL;
-- `CURRENT_TRUTH.md` now treats `1bb73802...` and `5614ffe4...` as dated docs-only snapshots rather than executable identities;
-- FINAL CI `31991516753` is SUCCESS;
-- no source/test/runtime/config/content/script/migration/package/workflow change, gameplay/game-ID access, DB write, migration application, deploy, merge, Ready, rebase, squash, force-push or main push occurred;
-- accepted v9/v10 evidence and the compact-clothing non-reach remain unchanged.
+Independent verification:
+- supplied Trigger resolves exactly to Issue #68 comment `5311485236`;
+- task STARTED at comment `5311505922` and terminal is comment `5311520756`;
+- START `345f0479...` -> FINAL `2d1d6e56...` is exactly one fast-forward commit;
+- START -> FINAL changes only `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md` and `docs/ops/CURRENT_TASK.md`;
+- accepted executable `f03e32c4...` -> FINAL compare is `ahead_by=12`, `behind_by=0`, and the complete changed-path set is exactly `CURRENT_TRUTH.md`, `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`, `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`, and `docs/ops/CURRENT_TASK.md`; therefore there is zero executable drift after the accepted source;
+- final handoff now explicitly labels the retained six-commit sequence as partial historical context and not an exhaustive descendant inventory;
+- PR #67 at reviewed FINAL `2d1d6e56...` is OPEN / DRAFT / UNMERGED / mergeable, with authoritative frozen metadata `commits=422`, `changed_files=243`, `additions=18778`, `deletions=13047`;
+- FINAL CI `31992111972` is SUCCESS;
+- accepted TEST Worker/live migration facts, v9/v10 gameplay evidence, and the explicit compact-clothing positive-path non-reach remain unchanged;
+- no gameplay/game-ID access, DB write, migration application, deployment, source/test/runtime/config/content/script/package/workflow change, merge, Ready, rebase, squash, force-push, or main push occurred.
 
-Remaining owner-facing defect:
-- `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md` still says: `Against the accepted executable SHA, the six descendants are:` and lists only six commits through `1bb73802...`.
-- Fresh GitHub compare `f03e32c4194c114d702c43df1f6122c17c4ca7c1...18d97d6ff6fc09b236b8472e2cf2911d0becae10` reports `ahead_by=10` / `total_commits=10`.
-- Therefore the six-item wording is not an exhaustive descendant inventory at the corrected FINAL snapshot and makes the purported final owner handoff factually stale.
-- This is documentation metadata only. It is not executable drift, live drift, or a product defect.
+The release handoff is now factually sufficient for an owner landing decision. This task must not reopen gameplay acceptance or implementation cleanup.
 
 ## Objective
 
-Close the last brittle descendant-inventory wording in the final owner handoff without changing runtime/live conclusions.
+Produce a bounded **owner landing-strategy preflight** for PR #67 without performing any owner-only action.
 
-The preferred durable correction is **not** to keep chasing a moving exact descendant count. Instead:
-- remove or rewrite the brittle sentence/list that implies the six listed commits are the complete descendants after `f03e32c4...`;
-- describe the executable-drift proof using a frozen compare boundary, e.g. accepted executable SHA -> frozen audit/correction snapshot;
-- state the compare result and changed-path set for that frozen boundary;
-- if individual orchestration commits are retained for historical context, label the list explicitly as a partial/historical sequence and not the exhaustive current descendant set;
-- keep current docs-only registration commits from invalidating the handoff merely by advancing HEAD.
+The task must answer one practical question from fresh Git/GitHub facts:
 
-If fresh facts reveal no other blocker, retain landing classification `HANDOFF_READY_OWNER_DECISION`.
+> Given the accepted executable/source evidence, current PR #67 ancestry/diff, current `main`, and any still-open overlapping Company PRs, what is the safest landing strategy for the owner to authorize next?
 
-## Mandatory fresh verification
+Evaluate these four possible recommendations and choose exactly one:
 
-1. Fetch origin and freeze exact branch HEAD as `START_SHA`.
-2. Fresh-read this CURRENT_TASK, terminal `5311463622`, PR #67 title/body/metadata, final handoff document, `CURRENT_TRUTH.md`, and the dated release section of `09_CURRENT_TRUTH.md`.
-3. Verify PR #67 remains OPEN / DRAFT / UNMERGED / mergeable and head equals START.
-4. Verify accepted executable `f03e32c4194c114d702c43df1f6122c17c4ca7c1` is an ancestor of START.
-5. Use GitHub compare for accepted executable -> START and record `ahead_by/total_commits` plus the complete changed-path set. The important invariant is zero executable drift, not a brittle moving docs-commit count.
-6. Verify previous FINAL CI `31991516753` SUCCESS and current START CI if present.
-7. No Worker/DB/game-row revalidation is required unless fresh metadata contradicts previously accepted live facts.
+1. `LANDING_RECOMMEND_MERGE_COMMIT_AS_IS`
+2. `LANDING_RECOMMEND_SQUASH_AS_IS`
+3. `LANDING_RECOMMEND_RECONSTRUCT`
+4. `LANDING_HOLD_BLOCKER`
 
-## Authorized edits
+This task is recommendation/preflight only. It must **not** merge, mark Ready, push to main, create a reconstructed landing branch, deploy, or touch game/DB state.
 
-Repository edits are limited to:
-- `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`;
-- `CURRENT_TRUTH.md` only if needed to remove a newly discovered stale release-status claim;
-- `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md` only if needed to remove a newly discovered stale release-status claim;
-- `docs/ops/CURRENT_TASK.md`.
+## Mandatory fresh preflight
 
-PR #67 title/body may be read and only corrected if it has drifted back to stale status. Keep Draft/open/unmerged.
+1. Fetch current remote refs and freeze exact `START_SHA` for `company/scene-location-presence-v1`.
+2. Freeze current `origin/main` SHA separately. Do not assume it remains `1e3a5255...`.
+3. Fresh-read:
+   - PR #67 metadata/title/body;
+   - `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`;
+   - `CURRENT_TRUTH.md`;
+   - relevant current section of `09_CURRENT_TRUTH.md`;
+   - previous terminal `5311520756` and this CURRENT_TASK.
+4. Verify accepted executable `f03e32c4194c114d702c43df1f6122c17c4ca7c1` remains an ancestor of START and every descendant remains documentation-only.
+5. Verify accepted source CI `31986414926` and previous FINAL CI `31992111972` remain SUCCESS.
+6. Verify PR #67 remains OPEN / DRAFT / UNMERGED / mergeable. If current main moved and GitHub mergeability changed, record that exact fact instead of assuming prior CLEAN state.
+7. No Worker/DB/game-row revalidation is required unless Git/PR evidence contains a new contradiction to the accepted handoff. Never access a game row.
 
-## Required handoff invariants
+## Landing-strategy analysis
 
-The final handoff must continue to preserve:
-- accepted executable/source-test SHA `f03e32c4...`;
-- accepted TEST API Worker `761a01bb-8cca-47ad-afde-87c0ba85c01d`;
-- expected migration metadata already accepted;
-- v9/v10 evidence IDs;
-- Story -> Extract -> Commit authority boundaries;
-- exact-four committed choice/history authority;
-- six-raw + older-summary continuity;
-- CSA activation-time/non-retroactivity/isolation;
-- compact-clothing gap: one legitimate supported attempt, no Story/Extract completion evidence, neither positive PASS nor demonstrated persistence failure;
-- owner-only merge/Ready/main/Production decisions;
-- `HANDOFF_READY_OWNER_DECISION` unless fresh verification proves a different one of the original four landing classifications.
+### A. Current main divergence
+
+Record:
+- frozen `origin/main` SHA;
+- frozen PR head SHA;
+- merge-base between current main and PR head;
+- PR ahead/behind relationship against current main;
+- whether current main contains commits not present in the historical PR base;
+- whether GitHub reports merge conflict/dirty/blocked state.
+
+Do not rebase or merge main into the branch.
+
+### B. Accepted executable traceability
+
+For each candidate strategy, evaluate how it affects the ability to trace the landed main tree back to accepted executable `f03e32c4...` and Issue #68 evidence.
+
+Specifically assess:
+- **merge commit as-is:** preserves PR history and exact accepted executable ancestry;
+- **squash as-is:** may preserve final tree content but replaces commit ancestry; determine how this would affect evidence/source identity and post-landing deploy traceability;
+- **reconstruct:** may produce a cleaner history but creates a new unreviewed commit lineage unless exact tree equivalence and review scope can be proven; do not create it in this task.
+
+Do not choose based on commit-count aesthetics alone.
+
+### C. PR tree/diff coherence
+
+Freshly verify that PR #67's broad diff against current main is still the intended Company release candidate and is not missing or duplicating a dependency because of another open PR.
+
+Inspect current open Company PRs that could plausibly overlap, especially historical PRs #65 and #66 if still open. For each relevant PR:
+- record state/base/head;
+- determine ancestry/tree/diff relationship to PR #67 using actual compare/merge-base evidence;
+- classify it as `ANCESTOR/INCLUDED`, `OVERLAP_BUT_NOT_REQUIRED`, `DEPENDENCY`, `INDEPENDENT`, or `UNKNOWN`;
+- do not close, edit, merge, or retarget it.
+
+Do not infer dependency merely because an older PR has a related title.
+
+### D. Merge-method recommendation
+
+Choose exactly one of the four recommendation values.
+
+Use these rules:
+
+- Prefer `LANDING_RECOMMEND_MERGE_COMMIT_AS_IS` if PR #67 is coherent/mergeable, current main introduces no unresolved conflict, and preserving reviewed ancestry materially helps traceability.
+- Choose `LANDING_RECOMMEND_SQUASH_AS_IS` only if fresh evidence proves squash preserves the intended final tree and the loss of reviewed commit ancestry is acceptable and explicitly manageable; explain how accepted-source evidence would be mapped after squash.
+- Choose `LANDING_RECOMMEND_RECONSTRUCT` only if PR #67 history/diff structurally prevents safe landing as-is even though the desired final tree is known. Explain exactly what would need reconstruction, but do not create it.
+- Choose `LANDING_HOLD_BLOCKER` if current main drift, conflict, missing dependency, CI/evidence drift, or another concrete fact prevents a safe recommendation.
+
+The recommendation must be evidence-based and include the smallest next owner-authorized action.
+
+## Production boundary
+
+This task must not call Production, inspect Production game data, or deploy anything.
+
+It may state the already accepted TEST facts, but it must explicitly distinguish:
+- **landing recommendation** from
+- **TEST-to-Production rollout authorization**.
+
+A successful landing recommendation is not Production approval.
+
+If the recommended landing method is eventually authorized, list the post-landing verification that should happen before any Production rollout, such as:
+- exact landed main SHA/tree identity;
+- CI at landed main;
+- runtime/source equivalence to accepted executable where applicable;
+- deployment artifact/version traceability;
+- DB migration compatibility;
+- a separate explicit Production rollout authority.
+
+Do not perform those future steps.
+
+## Repository changes authorized
+
+Only `docs/ops/CURRENT_TASK.md` may change in the repository for this task.
+
+Do not create another handoff document. The final decision packet belongs in the immutable Issue #68 terminal report.
+
+PR metadata is read-only for this task. Do not edit title/body.
 
 ## Validation
 
 - `git diff --check` PASS.
-- Repository changes limited to authorized docs paths.
-- No source/test/runtime/content/config/script/migration/package/workflow file changes.
-- Fresh compare accepted executable -> FINAL must still prove docs-only descendants.
-- PR #67 remains OPEN / DRAFT / UNMERGED / mergeable.
-- Final HEAD CI SUCCESS; if pending at terminal time, report pending honestly.
-- No gameplay/game-ID access, DB writes, migration application, API/frontend deploy, provider/model/config change, retry/regeneration, merge, Ready, rebase, squash, force-push, or main push.
+- START -> FINAL, if a final status commit is needed, must change only `docs/ops/CURRENT_TASK.md`.
+- Accepted executable -> FINAL must continue to show only documentation descendants after `f03e32c4...`.
+- PR #67 remains OPEN / DRAFT / UNMERGED.
+- No source/test/runtime/content/config/script/migration/package/workflow changes.
+- No gameplay/game-ID access.
+- No DB writes/SQL/migration application/DDL.
+- No API/frontend deployment.
+- No provider/model/config/retry/regeneration change.
+- No merge/Ready/rebase/squash/force-push/main push.
+- Do not create or push a reconstructed landing branch.
 
 ## Landing / terminal protocol
 
-1. Make the minimal docs-only correction.
-2. Finish this file as `Status: WAITING_REVIEW` in the final docs-only commit.
-3. Normal fast-forward push only.
-4. Post exactly one immutable Issue #68 terminal and STOP. Do not generate the next task.
+1. Perform the read-only landing-strategy analysis.
+2. Update this file to `Status: WAITING_REVIEW` with a concise execution result and the chosen recommendation.
+3. Make at most one final docs-only commit touching only this file.
+4. Normal fast-forward push only.
+5. Post exactly one immutable terminal report to Issue #68 and STOP. Do not generate another task.
 
 Terminal must include:
 - START and FINAL SHA;
 - final CURRENT_TASK blob;
-- exact changed repository paths;
-- accepted executable -> FINAL compare result including `ahead_by/total_commits` and changed-path set;
-- PR #67 frozen base/head/state/mergeability/metadata snapshot;
-- confirmation the false/exhaustive six-descendant wording was removed or correctly relabeled;
-- PR title/body status;
-- CI status;
-- exact compact-clothing gap wording retained;
-- final landing classification using the original four-value set;
-- zero forbidden-operation counts;
-- owner-only next decisions.
+- frozen current main SHA and PR head/base/merge-base;
+- current PR state/mergeability/metadata;
+- accepted executable ancestry and CI status;
+- relevant open-PR ancestry/dependency findings;
+- comparison of merge commit vs squash vs reconstruct;
+- exactly one recommendation from the four-value set;
+- smallest next owner-authorized action;
+- explicit statement that no merge/Ready/main push/Production/deploy/game/DB operation occurred;
+- post-landing verification checklist before any Production rollout.
 
 Then STOP.
-
-## Execution result
-
-- START SHA: `345f047903bc5a50304dc18b68a8959307a41f11`.
-- The final docs-only correction removes the false exhaustive six-descendant claim and labels the retained six-commit sequence as partial historical context.
-- Frozen compare `f03e32c4194c114d702c43df1f6122c17c4ca7c1...345f047903bc5a50304dc18b68a8959307a41f11`: `status=ahead`, `ahead_by=11`, `behind_by=0`, `total_commits=11`; complete changed-path set is `CURRENT_TRUTH.md`, `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`, `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`, and `docs/ops/CURRENT_TASK.md`, proving docs-only descendants and zero executable drift.
-- PR #67 START metadata: base `1e3a5255e51a284e45baf551dcfd415360981927`, head `345f047903bc5a50304dc18b68a8959307a41f11`, OPEN / DRAFT / UNMERGED, mergeable CLEAN, `commits=421`, `changed_files=243`, `additions=18761`, `deletions=13047`. The earlier `250` value was a capped commit-list enumeration, not an exact total.
-- PR title/body remain the current release-candidate and owner-decision wording; no stale current-task phrase was restored. Previous final CI `31991516753` and START CI `31991799691` are SUCCESS.
-- Accepted executable `f03e32c4...`, Worker `761a01bb-8cca-47ad-afde-87c0ba85c01d`, accepted evidence, and the exact compact-clothing gap remain unchanged: one legitimate supported attempt, no Story/Extract completion evidence, Extract clothing evidence empty, Commit preserved `worn -> worn`; neither positive PASS nor demonstrated persistence failure.
-- Landing classification remains `HANDOFF_READY_OWNER_DECISION`. No source/test/runtime/config/content/script/migration change, gameplay/game-ID access, DB write, deploy, merge/Ready, rebase/squash, force-push, or main push occurred.
