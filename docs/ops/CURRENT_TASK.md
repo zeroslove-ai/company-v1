@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: scene-contract-gate-canon-reconciliation-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -160,3 +160,17 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal containing registration/final SHA/blob, changed files, root cause, before/after exact gate failures, behavioral probe mechanism/results, full test count, TEST metadata/hash invariants, and safety counts;
 3. STOP. Do not deploy and do not create the next task.
+
+## 9. Terminal evidence — SCENE_CONTRACT_GATE_CANON_RECONCILED
+
+- Registration SHA: `73516e71a026437be84f7409d52412c4e9c6d005`; execution lease: Issue #68 comment `5319089540`.
+- Changed files are limited to `scripts/company-db-contract-gate.mjs`, `config/company-v1-scene-db-contract.json`, `test/db-contract-gate.test.mjs`, and this lifecycle record.
+- Root cause: the old evaluator imposed blanket `SECURITY DEFINER` and safe-search-path requirements, while the accepted current canon intentionally keeps `company_validate_scene_v1(jsonb,boolean)` as an invoker with no proconfig; the live catalog also fabricated `scene_probes={}`.
+- Repaired contract is manifest-driven with explicit `security_definer`, `require_safe_search_path`, and `service_role_execute` booleans. Current Stage B expects the accepted invoker validator and preserves strict metadata/ACL checks for the security-definer functions.
+- Before correction, the reproduced scene Stage B failures were: `company_validate_scene_v1(jsonb, boolean)` not SECURITY DEFINER; unsafe scene search_path for that function; missing/failed `legacy_only_save_accepted`, `canonical_scene_save_accepted`, `canonical_missing_nullable_key_rejected`, `reset_returns_scene_v1`, `legacy_only_save_rejected`, and `canonical_without_legacy_scene_mirrors_accepted` probes.
+- After correction, action Stage B and scene Stage B both PASS against the live TEST catalog. The live catalog now invokes real non-persisting synthetic JSON probes; no reset or persisted-table access is used. Results: `canonical_narrow_scene_accepted=true`, `canonical_scene_missing_required_key_rejected=true`, `canonical_save_without_legacy_scene_mirrors_accepted=true`, and `legacy_only_save_rejected=true`.
+- Validation: focused `node --test test/db-contract-gate.test.mjs` = 15/15 PASS; full `npm.cmd test` = 320/320 PASS; `node --check` for changed JS/MJS files PASS; `git diff --check` PASS.
+- TEST project `fmcrspgxstsmxxsmkeee` read-only final invariants: migration rows `27`; target `20260817000200` absent; bridge canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`.
+- TEST function metadata remained unchanged: `company_validate_scene_v1` MD5 `e982167db59fc5be1447b8866dd35a65`, invoker/no proconfig/no service-role EXECUTE; `company_bootstrap_scene_v1` MD5 `57b28451f9baaaba13e760b644eb38e3`, SECURITY DEFINER/search_path `public, pg_temp`/no service-role EXECUTE; `validate_company_save_v1` MD5 `d9a165eb01ee70cf92b63e7935e44f1b`, SECURITY DEFINER/search_path/service-role EXECUTE; `reset_company_game` MD5 `ebc2957fdf9e9a7eaf6c48d9a1e9604b`, SECURITY DEFINER/search_path/service-role EXECUTE.
+- Read-only gameplay counts remained unchanged: disposable `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` = game_master 1 / game_save 1 / game_actions 12 / game_turns 11; preserved manual `78fb1d94-266f-455a-bda4-7656cc2370c1` = 1 / 1 / 9 / 7; QA `f31b6c1b-0b27-4a4e-8c9d-7a238360891f` = 1 / 1 / 7 / 7; Production sentinel `11111111-1111-4111-8111-111111111111` = 1 / 1 / 18 / 18.
+- Safety: DB/schema/migration-history writes `0`; migration apply/push `0`; TEST reset/live gameplay `0`; Worker/frontend deploy `0`; Production access/change `0`; forbidden runtime/provider/config/content changes `0`; PR/merge `0`.

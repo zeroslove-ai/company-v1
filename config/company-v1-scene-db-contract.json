@@ -8,10 +8,10 @@
         "company_v1_scene_authority_stage_a_acl_closure"
       ],
       "functions": [
-        {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean", "service_role_execute": false},
-        {"name": "company_bootstrap_scene_v1", "identity_arguments": "jsonb", "service_role_execute": false},
-        {"name": "validate_company_save_v1", "identity_arguments": "jsonb", "service_role_execute": true},
-        {"name": "reset_company_game", "identity_arguments": "uuid, text", "service_role_execute": true}
+        {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean", "security_definer": true, "require_safe_search_path": true, "service_role_execute": false},
+        {"name": "company_bootstrap_scene_v1", "identity_arguments": "jsonb", "security_definer": true, "require_safe_search_path": true, "service_role_execute": false},
+        {"name": "validate_company_save_v1", "identity_arguments": "jsonb", "security_definer": true, "require_safe_search_path": true, "service_role_execute": true},
+        {"name": "reset_company_game", "identity_arguments": "uuid, text", "security_definer": true, "require_safe_search_path": true, "service_role_execute": true}
       ],
       "probes": [
         "legacy_only_save_accepted",
@@ -27,16 +27,16 @@
         "company_v1_scene_authority_stage_b"
       ],
       "functions": [
-        {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean", "service_role_execute": false},
-        {"name": "company_bootstrap_scene_v1", "identity_arguments": "jsonb", "service_role_execute": false},
-        {"name": "validate_company_save_v1", "identity_arguments": "jsonb", "service_role_execute": true},
-        {"name": "reset_company_game", "identity_arguments": "uuid, text", "service_role_execute": true}
+        {"name": "company_validate_scene_v1", "identity_arguments": "jsonb, boolean", "security_definer": false, "require_safe_search_path": false, "service_role_execute": false},
+        {"name": "company_bootstrap_scene_v1", "identity_arguments": "jsonb", "security_definer": true, "require_safe_search_path": true, "service_role_execute": false},
+        {"name": "validate_company_save_v1", "identity_arguments": "jsonb", "security_definer": true, "require_safe_search_path": true, "service_role_execute": true},
+        {"name": "reset_company_game", "identity_arguments": "uuid, text", "security_definer": true, "require_safe_search_path": true, "service_role_execute": true}
       ],
       "probes": [
-        "legacy_only_save_rejected",
-        "canonical_without_legacy_scene_mirrors_accepted",
-        "canonical_missing_nullable_key_rejected",
-        "reset_returns_scene_v1"
+        "canonical_narrow_scene_accepted",
+        "canonical_scene_missing_required_key_rejected",
+        "canonical_save_without_legacy_scene_mirrors_accepted",
+        "legacy_only_save_rejected"
       ]
     }
   }
