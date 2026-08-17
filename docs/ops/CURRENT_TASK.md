@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-runtime-live-acceptance-v2
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -175,3 +175,19 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal containing registration/final SHA/blob, pre/post Worker IDs, smoke results, game/reset/session counts, per-coverage verdicts, exact failed turn(s) if any, post-session gate/migration evidence, safety counts and terminal classification;
 3. STOP. Do not start Cut 3 or create another task.
+
+## 9. Execution evidence — BLOCKED
+
+- Execution lease: Issue #68 comment `5319362207`.
+- Starting SHA / registration SHA: `4700733a83613724f9129e4c342198f4fe4f6252`.
+- Starting CURRENT_TASK blob: `bdc2e688397c73b2d57f02ec577855559eb4fb91`.
+- Preflight: `origin/main` exact; branch ancestry and docs-only registration exact; runtime/config/content/test/package/workflow scope unchanged; corrected action Stage B PASS; corrected scene Stage B PASS; frozen TEST invariants PASS; full regression `320/320` PASS; syntax checks PASS; `git diff --check` PASS; frozen CI PASS; pre-deploy API version `761a01bb-8cca-47ad-afde-87c0ba85c01d`; pre-deploy frontend version `1a3c1416-5362-4658-a8fe-465006a342dd`.
+- API TEST deploy: PASS, `game-proxy-company-v1`, version `2a976491-451d-4fc8-8808-65353cad137b`, URL `https://game-proxy-company-v1.zeroslove.workers.dev`.
+- API smoke: FAILED immediately at `/api/context`; HTTP status `200`, error `unexpected_context_payload` from `scripts/smoke-api-worker.mjs`.
+- Frontend deploy/smoke: NOT RUN because the required API smoke gate failed.
+- Game session: disposable game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; reset `0`; live sessions `0`; committed turns `0`; no gameplay mutation in this execution. Preserved/manual, QA, and Production-sentinel games were not touched.
+- Coverage: Opening/choices, literal input, workplace continuity, movement/handoff, CSA scope, adult physical continuity, sidecars, >6-turn continuity, refresh/recovery, and streaming/transaction health: NOT RUN; deployment acceptance was blocked before frontend/live gameplay.
+- Safety: DB/schema/migration-history writes `0`; migration apply/push/repair `0`; TEST gameplay writes `0`; frontend deploy `0`; Production access/change/deploy `0`; source/runtime/config/content/test/package/workflow edits `0`.
+
+Terminal classification: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V2`.
+STOP. Preserve the API smoke failure; do not retry, redeploy, reset the game, or start another task/Cut.
