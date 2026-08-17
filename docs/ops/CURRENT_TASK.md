@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: minimal-story-runtime-final-release-handoff-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -221,3 +221,7 @@ Terminal must include:
 - final PR state.
 
 Then STOP.
+
+## Execution result - 2026-08-17
+
+Fresh audit completed at START head `1bb73802dfa0e0dc577af2cb168ed803d013df6a`. Accepted executable lineage remained fixed at `f03e32c4194c114d702c43df1f6122c17c4ca7c1`; all six descendants to START changed only this documentation file. Handoff document: `docs/ops/COMPANY_V1_RELEASE_CANDIDATE_HANDOFF_2026-08-17.md`. Landing classification: `HANDOFF_READY_OWNER_DECISION`. The final docs commit and blob are reported in the terminal Issue #68 comment. This task is now `WAITING_REVIEW`; do not merge, mark Ready, deploy, access game data, write DB state, or generate another task.
