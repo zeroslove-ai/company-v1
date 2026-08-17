@@ -19,6 +19,7 @@ test('fresh Extract accepts only narrow scene, physical, sexual and summary obse
 test('fresh Extract rejects retired semantic vocabulary instead of warning-dropping it', () => {
   assert.throws(() => normalizeFreshExtractObservationV2({ ...base, events: { general: [], sexual: [] } }, { npcIds: NPCS, storyText: '' }), /Unknown observation field/);
   assert.throws(() => normalizeFreshExtractObservationV2({ ...base, npc_observations: { heroine1: { stats: { affinity_delta: 1 } } } }, { npcIds: NPCS, storyText: '' }), /Unknown observation field/);
+  assert.throws(() => normalizeFreshExtractObservationV2({ ...base, image_selection: { pool: 'general', tags: [] } }, { npcIds: NPCS, storyText: '' }), /Unknown observation field/);
 });
 
 test('persisted legacy boundary remains separate and readable', () => {

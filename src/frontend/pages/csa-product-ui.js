@@ -93,15 +93,6 @@ function npcCard(documentRef, npc, { detailed = true } = {}) {
   article.append(heading, role, presence);
   // 스탯·마인드는 메인 히로인(상세)에게만
   if (!detailed) return article;
-  const stats = documentRef.createElement('div');
-  stats.className = 'csa-app-npc-stats';
-  [
-    ['호감도', npc.stats?.affection ?? 0],
-
-    ['상식수용도', npc.stats?.acceptance ?? 0],
-    ['성적흥분도', npc.stats?.arousal ?? 0]
-  ].forEach(([label, content]) => stats.append(field(documentRef, label, content)));
-  article.append(stats);
   if (npc.mind?.surface || npc.mind?.subconscious) {
     const mind = documentRef.createElement('div');
     mind.className = 'csa-app-npc-mind';
@@ -116,16 +107,6 @@ function npcCard(documentRef, npc, { detailed = true } = {}) {
       mind.append(section);
     }
     article.append(mind);
-  }
-  if (npc.relationship_summary) {
-    const details = documentRef.createElement('details');
-    details.className = 'csa-app-npc-details';
-    const summary = documentRef.createElement('summary');
-    summary.textContent = '관계 요약';
-    const p = documentRef.createElement('p');
-    p.textContent = npc.relationship_summary;
-    details.append(summary, p);
-    article.append(details);
   }
   return article;
 }

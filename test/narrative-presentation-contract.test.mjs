@@ -12,6 +12,8 @@ test('canonical scene is the sole frontend presence/focal/speaker authority', ()
   assert.equal(model.focal_character.id, '');
   assert.equal(model.focal_character.last_speaker_id, '');
   assert.equal(model.media.image_character_id, 'heroine1');
+  assert.equal(model.media.image_pool, 'general');
+  assert.deepEqual(model.media.image_tags, []);
 });
 
 test('media target prefers the last local dialogue speaker without a semantic event ledger', () => {

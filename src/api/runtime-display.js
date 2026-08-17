@@ -207,8 +207,7 @@ function npcPayloadEntry({ id, profile, save, latestMindMonitor, directory, pres
       posture: text(sceneState.posture),
       posture_detail: text(sceneState.posture_detail ?? sceneState.posture_description),
       position_label: text(sceneState.position_label)
-    },
-    ...(typeof detail?.relationship_summary === 'string' ? { relationship_summary: detail.relationship_summary } : {})
+    }
   };
 }
 

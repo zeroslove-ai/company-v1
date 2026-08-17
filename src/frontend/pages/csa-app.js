@@ -138,10 +138,6 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     body.appendChild(grid);
   }
 
-  function displayStat(value) {
-    return typeof value === 'number' && Number.isFinite(value) ? String(value) : '미확인';
-  }
-
   function renderNpcMind(card, npc) {
     const mind = npc?.mind || {};
     if (!mind.surface && !mind.subconscious) return;
@@ -174,26 +170,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
     );
     card.appendChild(summary);
 
-    const stats = npc.stats || {};
-    const statGrid = el('div', 'csa-app-npc-stats');
-    [
-      ['호감도', displayStat(stats.affection)],
-      ['저항도', displayStat(stats.resistance)],
-      ['상식수용도', displayStat(stats.acceptance)],
-      ['성적흥분도', displayStat(stats.arousal)]
-    ].forEach(([label, value]) => {
-      const item = el('div', 'csa-app-npc-stat');
-      item.append(el('small', '', label), el('strong', '', value));
-      statGrid.appendChild(item);
-    });
-    card.appendChild(statGrid);
     renderNpcMind(card, npc);
-
-    if (npc.relationship_summary) {
-      const relationship = el('details', 'csa-app-npc-details');
-      relationship.append(el('summary', '', '관계 요약'), el('p', '', npc.relationship_summary));
-      card.appendChild(relationship);
-    }
     return card;
   }
 

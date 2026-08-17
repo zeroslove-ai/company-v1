@@ -43,9 +43,9 @@ test('Company game view model uses server display projections over save mirrors 
   assert.equal('scene_id' in model.scene, false);
   assert.equal(model.scene.location_id, 'display-location');
   assert.deepEqual(model.story.choices, ['A', 'B', 'C', 'D']);
-  assert.deepEqual(model.focal_character.character.stats, { affinity: 9, resistance: 8, csa_acceptance: 7, sexual_arousal: 6 });
-  assert.equal(model.focal_character.character.relationship_summary, 'display relationship');
-  assert.deepEqual(model.focal_character.character.relationship_record, { total_events: 3 });
+  assert.equal('stats' in model.focal_character.character, false);
+  assert.equal('relationship_summary' in model.focal_character.character, false);
+  assert.equal('relationship_record' in model.focal_character.character, false);
   assert.equal('relationship' in model.focal_character.character, false);
   assert.deepEqual(model.player.active_csa.map(rule => rule.id), ['display-rule']);
   assert.deepEqual(model.scene.csa_active, ['display-rule']);
