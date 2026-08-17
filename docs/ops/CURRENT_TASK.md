@@ -1,11 +1,21 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_OWNER_DECISION
-Task ID: minimal-story-runtime-owner-landing-authorization-gate-v1
+Status: READY
+Task ID: minimal-story-runtime-pr67-draft-to-ready-v1
 Updated: 2026-08-17
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
+
+## Owner authorization
+
+The owner has explicitly resolved the previous `WAITING_OWNER_DECISION` gate and authorizes exactly this next action:
+
+`AUTHORIZE_PR67_DRAFT_TO_READY`
+
+This authorization is **only** for changing PR #67 from Draft to Ready for review after fresh no-drift checks.
+
+It does **not** authorize merge, auto-merge, push to `main`, rebase, squash, force-push, reconstructed landing, Production rollout, deployment, DB/game access, migration application, source/runtime/config changes, or gameplay.
 
 ## Starting point
 
@@ -13,83 +23,105 @@ Repository: `zeroslove-ai/company-v1`.
 Branch: `company/scene-location-presence-v1`.
 Canonical PR: #67, base `main`.
 
-Previous task:
-- Task: `minimal-story-runtime-owner-landing-strategy-preflight-v1`
-- STARTED: Issue #68 comment `5311552995`.
-- Terminal/Trigger: Issue #68 comment `5311568295` (`IC_kwDOTfvo8c8AAAABPJgZpw`) — `EXECUTION: COMPLETE`.
-- Previous START SHA: `4883811da4241f18d3fcf975e1b272c1adeead30`.
-- Previous FINAL SHA: `392d4609151e868672225d869b65ac56cb52ebbc`.
-- Previous final CURRENT_TASK blob: `ae6038c01db17f76fc0642f5746f03113ee5a5a0`.
+Previous owner gate:
+- Task: `minimal-story-runtime-owner-landing-authorization-gate-v1`.
+- Gate registration SHA: `ccfbc629eecc33594c5a53d6f6d2c9f40c97336d`.
+- Gate CURRENT_TASK blob: `fac3f5eb18379c85c4ad73ac7313a5147abcd4d4`.
+- Issue #68 gate comment: `5311603347` (`IC_kwDOTfvo8c8AAAABPJiikw`).
+- Accepted landing recommendation: `LANDING_RECOMMEND_MERGE_COMMIT_AS_IS`.
 - Accepted executable/source-test SHA: `f03e32c4194c114d702c43df1f6122c17c4ca7c1`.
 - Accepted TEST API Worker: `761a01bb-8cca-47ad-afde-87c0ba85c01d`.
-- Final release handoff classification: `HANDOFF_READY_OWNER_DECISION`.
+- Gate HEAD CI: `31992966892` = SUCCESS.
+- Fresh main at authorization time: `1e3a5255e51a284e45baf551dcfd415360981927`.
 
-## Operator review of landing-strategy preflight
+## Objective
 
-Classification: `ACCEPTED_LANDING_RECOMMENDATION`.
+Perform exactly one owner-authorized PR metadata transition:
 
-Fresh independent verification supports the terminal recommendation:
-- supplied Trigger resolves exactly to terminal comment `5311568295` for the previous task;
-- START `4883811d...` -> FINAL `392d4609...` is exactly one commit and changes only `docs/ops/CURRENT_TASK.md`;
-- FINAL CI run `31992614748` is `SUCCESS`;
-- current `main` is still `1e3a5255e51a284e45baf551dcfd415360981927`, equal to PR #67's base;
-- PR #67 at reviewed FINAL `392d4609...` is OPEN / DRAFT / UNMERGED / mergeable with no main divergence;
-- the only open PR in the repository is #67;
-- PR #65 and #66 are CLOSED and their heads are ancestors of PR #67, so they are `ANCESTOR/INCLUDED`, not missing dependencies;
-- accepted executable `f03e32c4...` remains in PR #67 ancestry and every later descendant remains documentation-only;
-- merge-commit-as-is preserves the reviewed ancestry and Issue #68 evidence traceability, whereas squash would replace that ancestry and reconstruct would create a new unreviewed lineage.
+> PR #67: Draft -> Ready for review
 
-Accepted recommendation:
+Do not merge it. Do not change its branch/tree except for the final `CURRENT_TASK.md` status commit required by this workflow.
 
-`LANDING_RECOMMEND_MERGE_COMMIT_AS_IS`
+## Mandatory fresh checks before Ready transition
 
-This is a recommendation, not authorization to change PR state or merge.
+1. Fetch remote refs and freeze exact branch HEAD as `START_SHA`.
+2. Fresh-read this CURRENT_TASK and Issue #68 authorization comment that registered it.
+3. Fresh-read PR #67 and `origin/main`.
+4. Require all of the following before changing PR state:
+   - PR #67 state is OPEN;
+   - PR #67 is still DRAFT;
+   - PR #67 is UNMERGED;
+   - PR #67 base is `main`;
+   - PR #67 is mergeable and has no newly reported conflict/dirty landing state;
+   - `origin/main` is still `1e3a5255e51a284e45baf551dcfd415360981927`;
+   - accepted executable `f03e32c4194c114d702c43df1f6122c17c4ca7c1` remains an ancestor of START;
+   - all descendants after accepted executable remain documentation-only;
+   - START CI for `Company v1 tests` is SUCCESS. If CI is still pending, wait only long enough to obtain the current result; do not mark Ready while CI is pending or failed.
+5. If any required condition fails, do **not** mark Ready. Record the exact blocker, finish CURRENT_TASK as WAITING_REVIEW, post one terminal, and STOP.
 
-## Owner decision gate
+## Authorized action
 
-No automated execution is authorized while this file is `WAITING_OWNER_DECISION`.
+After all checks pass, perform only:
 
-The smallest next owner-only action recommended by the accepted preflight is:
+- mark PR #67 Ready for review using the normal GitHub Draft -> Ready transition.
 
-`AUTHORIZE_PR67_DRAFT_TO_READY`
+The transition must not alter the PR branch/tree or base.
 
-If the owner explicitly authorizes that action, register a new executable CURRENT_TASK that may do **only** the following:
-1. fresh-freeze `main` and PR #67 head/state/mergeability;
-2. verify no branch/main/executable drift and current CI success;
-3. mark PR #67 Draft -> Ready without changing its branch/tree;
-4. verify Ready/open/unmerged state and STOP.
+Then verify immediately:
+- PR #67 remains OPEN;
+- `draft=false` / Ready for review;
+- `merged=false` / `merged_at=null`;
+- base remains `main`;
+- branch remains `company/scene-location-presence-v1`;
+- branch HEAD is unchanged by the metadata transition itself;
+- no merge or auto-merge was enabled.
 
-That Draft-to-Ready task must **not** merge PR #67, push to `main`, deploy, access Production/game rows, write DB state, apply migrations, change source/runtime/config, or run gameplay.
+## Repository changes authorized
 
-Merge authorization remains a separate owner decision after Ready-state verification. If later explicitly authorized, the preferred merge method is a normal GitHub **merge commit**, with an exact expected-head guard and post-landing verification before any Production rollout.
+Only `docs/ops/CURRENT_TASK.md` may change in Git for this task.
 
-## Preserved release facts
+After the Ready transition and verification:
+- update this file from `Status: READY` to `Status: WAITING_REVIEW`;
+- record START SHA, final SHA, Ready transition result, PR state, main SHA, CI identity, and zero forbidden-operation counts;
+- make one normal fast-forward docs-only commit/push;
+- post one immutable terminal report to Issue #68;
+- STOP.
 
-- Final handoff remains `HANDOFF_READY_OWNER_DECISION`.
-- Landing recommendation remains `LANDING_RECOMMEND_MERGE_COMMIT_AS_IS` unless fresh drift later invalidates it.
-- Accepted executable/source-test identity remains `f03e32c4194c114d702c43df1f6122c17c4ca7c1`.
-- Accepted TEST Worker remains `761a01bb-8cca-47ad-afde-87c0ba85c01d`.
-- v9/v10 release evidence remains accepted.
-- Compact-clothing positive coverage remains exactly one legitimate supported attempt with no Story/Extract completion evidence; it is neither a positive PASS nor a demonstrated persistence failure.
-- Landing/Ready decisions are separate from TEST-to-Production rollout authorization.
+## Terminal classifications
 
-## Forbidden until explicit owner authorization
+Use exactly one:
 
-- Draft -> Ready transition;
-- PR merge or auto-merge;
-- rebase, squash, force-push, reconstructed landing branch, or `main` push;
+1. `PR67_READY_TRANSITION_COMPLETE`
+2. `PR67_READY_BLOCKED_HEAD_OR_MAIN_DRIFT`
+3. `PR67_READY_BLOCKED_CI`
+4. `PR67_READY_BLOCKED_PR_STATE`
+5. `PR67_READY_BLOCKED_OTHER`
+
+## Forbidden operations
+
+- merge PR #67;
+- enable auto-merge;
+- push/merge to `main`;
+- rebase, squash, cherry-pick, force-push, or reconstruct the landing branch;
+- edit source/test/runtime/config/content/script/package/workflow/migration files;
 - Production or game/game-ID access;
-- DB write/SQL/DDL/migration application;
+- DB writes, SQL, DDL, migration application;
 - API/frontend deployment;
-- source/test/runtime/config/content/script/package/workflow/provider/model/retry changes;
-- gameplay loop.
+- provider/model/config/retry/regeneration changes;
+- gameplay loops.
 
-## Resume protocol
+## Required terminal evidence
 
-Do not post `CURRENT_TASK_READY` and do not let the watcher execute this gate.
+The terminal must include:
+- START and FINAL SHA;
+- final CURRENT_TASK blob;
+- frozen `origin/main` SHA;
+- PR #67 state before and after transition;
+- PR branch/base/head before the metadata transition and confirmation the transition itself did not change them;
+- CI run ID/conclusion used for authorization;
+- accepted executable ancestry/no-executable-drift confirmation;
+- exact terminal classification;
+- explicit `merge=0`, `auto_merge=0`, `main_push=0`, `deploy=0`, `game_access=0`, `db_write=0`;
+- statement that merge remains a separate owner decision.
 
-Resume only after an explicit owner instruction. The safest next explicit instruction is equivalent to:
-
-> Authorize PR #67 Draft-to-Ready only. Do not merge yet.
-
-Until then, STOP.
+Then STOP. Do not self-generate the next CURRENT_TASK.
