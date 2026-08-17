@@ -135,7 +135,11 @@ export function buildActiveCharacterCanon(charactersMap, activeIds) {
       character_id: id,
       name: typeof character.name === 'string' ? character.name : null,
       position: typeof character.position === 'string' ? character.position : null,
-      role_title: typeof character.role_title === 'string' ? character.role_title : null
+      role_title: typeof character.role_title === 'string' ? character.role_title : null,
+      body: object(character.body) ? {
+        height_cm: Number.isFinite(character.body.height_cm) ? character.body.height_cm : null,
+        body_type: typeof character.body.body_type === 'string' ? character.body.body_type : null
+      } : null
     };
     canon[id] = index < 3 ? { ...identityFields, prompt_card: object(character.prompt_card) ? character.prompt_card : null } : identityFields;
   });
@@ -179,13 +183,12 @@ export function buildSceneContextCore(save, activeIds = []) {
     turn: { committed_turn: integer(object(s.turn_state) ? s.turn_state.committed_turn : null) ?? 0 },
     time: { day: integer(gameTime.day) ?? 1, minute_of_day: integer(gameTime.minute_of_day) ?? 540 },
     scene: {
-      scene_id: identity(scene.scene_id),
+      version: 1,
       location_id: identity(scene.location_id),
-      participants: Array.isArray(participantIds) ? participantIds : [],
       present_npc_ids: [...participantIds],
-      focus_thread: identity(scene.focus_thread ?? scene.focus_thread_id),
-      scene_goal: identity(scene.scene_goal ?? scene.goal),
-      beat: integer(scene.beat)
+      focal_character_id: identity(scene.focal_character_id),
+      last_speaker_id: identity(scene.last_speaker_id),
+      updated_turn: integer(scene.updated_turn) ?? 0
     },
     active_npc_state: activeNpcState
   };
@@ -290,7 +293,7 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
   const progressDelta = integer(patch.ejaculation_progress_delta) ?? 0;
   if (progressDelta !== 0) {
     if (progressDelta > 0 && exactSexualEvidenceQuote(storyEvidence, 'ejaculation_progress_delta', storyText)) {
-      state.ejaculation_progress = clamp(state.ejaculation_progress + Math.min(progressDelta, 6), 0, 100);
+      state.ejaculation_progress = clamp(state.ejaculation_progress + progressDelta, 0, 100);
     } else {
       warnings.push('unevidenced_ejaculation_progress_change');
     }

@@ -91,7 +91,7 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
 
 export const FRESH_MARKER_GRAMMAR = [
   'Control-marker grammar is exact: [SCENE] is bare; [DIALOGUE speaker_id="registered_id"] carries an exact registered speaker id; [ACTING], [THOUGHT], and [CHOICE] use the documented markers.',
-  'The JSON scene_id and other context fields are data, not marker syntax. Never emit an attributed [SCENE] marker. Never emit [SCENE scene_id].',
+  'The JSON scene context is data, not marker syntax. Never emit an attributed [SCENE] marker.',
   'Plain narrative by default. Every response contains at least one non-empty player-visible Story body segment; a [THOUGHT] plus [CHOICE] blocks alone is invalid.'
 ].join(' ');
 

@@ -57,11 +57,7 @@ export function canonicalSceneView(save, projectedScene = null) {
   if (source && source.version === 1) {
     return {
       version: 1,
-      scene_id: text(source.scene_id),
       location_id: text(source.location_id),
-      beat: integer(source.beat) ?? 0,
-      goal: source.goal ?? null,
-      focus_thread: source.focus_thread ?? null,
       present_npc_ids: normalizeIds(source.present_npc_ids),
       focal_character_id: text(source.focal_character_id),
       last_speaker_id: text(source.last_speaker_id),
@@ -70,11 +66,7 @@ export function canonicalSceneView(save, projectedScene = null) {
   }
   return {
     version: 1,
-    scene_id: '',
     location_id: '',
-    beat: 0,
-    goal: null,
-    focus_thread: null,
     present_npc_ids: [],
     focal_character_id: '',
     last_speaker_id: '',

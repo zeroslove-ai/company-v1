@@ -157,12 +157,10 @@ const SYSTEM_INSTRUCTIONS = [
     extract_version: 2,
     outcome: 'success',
     scene_observation: {
-      scene_id: null,
       location_id: null,
      final_present_npc_ids: null,
       entered_npc_ids: [],
       exited_npc_ids: [],
-      presence_is_final: false,
      focal_candidate_id: null,
       remote_speaker_ids: [],
       evidence: []
@@ -184,7 +182,7 @@ const SYSTEM_INSTRUCTIONS = [
    'Return npc_observations only for registered NPCs and only for narrow projections that the current product consumes. Never return arbitrary nested save patches, absolute stats, resistance, last_changed_turn, milestones, or relationship_summary. Do not return continuity-only emotion, relationship, work, relation, or general-event semantics.',
   'The top-level keys of npc_observations must be registered NPC IDs, never a domain key; for example: {"npc_observations":{"heroine2":{"physical":{"posture":"sitting"}}}}.',
    'If a narrow projection has no exact observed change, omit it. The safe minimal observation for ordinary dialogue is empty projections, no semantic event/relation taxonomy, scene_observation with final_present_npc_ids:null, and the remaining structural defaults.',
-  'Exact evidence contract: evidence is a top-level sibling of player_observation and npc_observations. Never put an evidence key inside a player or NPC object. Use evidence.clothing.<actor_id>={quote,character_id}, evidence.changed {changed:[path],quote}, and scene evidence uses {kind,character_id or location_id,quote}; kind is presence, entrance, exit, or scene. Entrance/exit require registered ids and exact contiguous Story quotes; kind:"scene" requires scene_observation.scene_id. Copy quotes verbatim from story_text; never compose a quote from inferred facts or any input outside story_text. Omit unsupported or unobserved evidence; locations must be registered.',
+  'Exact evidence contract: evidence is a top-level sibling of player_observation and npc_observations. Never put an evidence key inside a player or NPC object. Use evidence.clothing.<actor_id>={quote,character_id}, evidence.changed {changed:[path],quote}, and scene evidence uses {kind,character_id or location_id,quote}; kind is presence, entrance, exit, or scene. Entrance/exit require registered ids and exact contiguous Story quotes. Copy quotes verbatim from story_text; never compose a quote from inferred facts or any input outside story_text. Omit unsupported or unobserved evidence; locations must be registered.',
   'Illustrative physical shape (not mandatory output): {"npc_observations":{"heroine2":{"physical":{"position_label":"회의실 테이블 옆","clothing":{"underwear_bottom":"removed"}}}},"evidence":{"clothing":{"heroine2":{"character_id":"heroine2","quote":"exact Story substring"}},"physical_change":{"changed":["npc_scene_state.heroine2.clothing.underwear_bottom"],"quote":"same exact substring"}}}. Use position_label, never position/label; posture is only "sitting" or "standing" when clear. In a multi-NPC scene, include the actor name in physical/clothing quotes. Clothing slots are uniform_top, uniform_bottom, underwear_top, underwear_bottom with states worn, removed, open, unknown. Copy the real Story substring and omit unobserved fields.',
    'Every retained narrow projection requires exact Story evidence. Narrative meaning that does not fit a proven compact projection remains ordinary Story/turn-summary continuity. Do not emit semantic event or relation arrays for fresh Extract; counters and projections never decide arbitrary narrative meaning.',
   'turn_summary is the compressed continuity memory for this completed Story only. Write concise free natural text covering important commitments, refusals, relationships, work, physical, clothing, or intimate continuity when actually present; do not use a taxonomy, labels, or invented detail. Empty text is allowed only when the Story genuinely has no continuity content. Do not summarize future intent or rewrite the raw Story.',

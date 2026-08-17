@@ -1,5 +1,6 @@
 import { applyAuthorizedRuleDefinitions, assertRuleDefinitionAuthority } from './action-authority.js';
 import { calculateCsaProgression, calculateProgress } from '../progression.js';
+import { executionMetadataForRule } from '../csa/execution-policy.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 
@@ -9,6 +10,28 @@ function isFeedback(action) {
 
 function activeIds(save) {
   return new Set(Array.isArray(save?.csa_active) ? save.csa_active : []);
+}
+
+function applyClothingContinuity(nextSave, canonicalScene) {
+  const present = Array.isArray(canonicalScene?.present_npc_ids) ? canonicalScene.present_npc_ids : [];
+  const rules = nextSave?.csa_rules && typeof nextSave.csa_rules === 'object' ? nextSave.csa_rules : {};
+  const active = new Set(Array.isArray(nextSave?.csa_active) ? nextSave.csa_active : []);
+  const patches = [];
+  for (const id of active) {
+    const execution = executionMetadataForRule(rules[id]);
+    const required = execution?.kind === 'clothing_state' ? execution.required_state : null;
+    if (!required || Object.keys(required).length === 0) continue;
+    for (const actorId of present) {
+      const current = nextSave.npc_scene_state?.[actorId];
+      if (!current || typeof current !== 'object') continue;
+      nextSave.npc_scene_state[actorId] = {
+        ...current,
+        clothing: { ...(current.clothing ?? {}), ...required }
+      };
+      patches.push(`${actorId}:${id}`);
+    }
+  }
+  return patches;
 }
 
 /**
@@ -42,6 +65,11 @@ export function reduceCsaCommitState({
   if (structuredAction && transactionResolution) {
     applyAuthorizedRuleDefinitions({ currentSave: current, nextSave, transactionResolution, structuredAction, stage: 'commit-csa' });
   }
+
+  // Clothing is the single retained machine-readable CSA mechanic.  Its exact
+  // required_state is applied directly to present actors; no generic action DSL
+  // or inferred physical action is created.
+  applyClothingContinuity(nextSave, canonicalScene);
 
   // Fresh Extract never writes a physical CSA execution state. Historical
   // csa_runtime_state remains readable, while observed physical/clothing facts

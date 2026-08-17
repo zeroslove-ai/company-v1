@@ -27,11 +27,7 @@ export function assertCanonicalSceneInvariants({ save, scene, npcIds, parsedStor
   }
   const expectedScene = {
     version: 1,
-    scene_id: current.scene_id ?? null,
     location_id: current.location_id ?? null,
-    beat: current.beat,
-    goal: current.goal ?? null,
-    focus_thread: current.focus_thread ?? null,
     present_npc_ids: [...current.present_npc_ids],
     focal_character_id: current.focal_character_id ?? null,
     last_speaker_id: current.last_speaker_id ?? null,

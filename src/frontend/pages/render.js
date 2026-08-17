@@ -132,15 +132,18 @@ export function parsedTurnNarrative(turn) {
 export function stateDisplayValues(viewModel) {
   const scene = object(viewModel?.scene?.scene_state) ?? {};
   const world = object(viewModel?.scene?.world_state) ?? {};
-  const work = workHook(world.work_hook);
-  const flow = localizedValue(scene.focus_thread) || localizedValue(scene.beat);
+  // Work metadata is not a gameplay authority or a display contract.
   return {
+    location_id: localizedValue(scene.location_label || scene.location_id),
+    csa_active_count: Array.isArray(viewModel?.scene?.csa_active) ? String(viewModel.scene.csa_active.length) : ''
+  };
+  /*
     장소: localizedValue(scene.location_label || scene.location_id),
     업무: work,
     목표: localizedValue(scene.scene_goal),
     흐름: flow && flow !== work ? flow : '',
     활성규정: Array.isArray(viewModel?.scene?.csa_active) ? String(viewModel.scene.csa_active.length) : ''
-  };
+  */
 }
 
 export function choiceLabel(choice, maxLength = 5, explicitLabel = '') {

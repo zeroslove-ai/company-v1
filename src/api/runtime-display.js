@@ -28,15 +28,11 @@ export function buildCanonicalDisplayScene(save = {}) {
   const canonical = object(save?.scene);
   const scene = canonical?.version === 1
     ? readCanonicalSceneV1(save)
-    : { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: null };
+    : { version: 1, location_id: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: null };
   const isCanonical = canonical?.version === 1;
   return {
     version: scene.version,
-    scene_id: text(scene.scene_id),
     location_id: text(scene.location_id),
-    beat: Number.isInteger(scene.beat) ? scene.beat : 0,
-    goal: scene.goal ?? null,
-    focus_thread: scene.focus_thread ?? null,
     present_npc_ids: [...scene.present_npc_ids],
     focal_character_id: text(scene.focal_character_id),
     last_speaker_id: text(scene.last_speaker_id),

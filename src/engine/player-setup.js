@@ -105,37 +105,36 @@ function openingLocationCandidates(locations, positionId, departmentId) {
     return [{
       location_id: locationId,
       name,
-      selection_score: departmentMatch ? 3 : (positionMatch ? 2 : 0),
-      opening_hooks: Array.isArray(location?.opening_hooks) ? location.opening_hooks : [],
-      opening_goals: Array.isArray(location?.opening_goals) ? location.opening_goals : []
+      selection_score: departmentMatch ? 3 : (positionMatch ? 2 : 0)
     }];
   });
-  if (!normalized.length) return [{ location_id: 'office', name: '사무실', selection_score: 0, opening_hooks: [], opening_goals: [] }];
+  if (!normalized.length) return [{ location_id: 'office', name: '사무실', selection_score: 0 }];
   const bestScore = Math.max(...normalized.map(item => item.selection_score ?? 0));
   return normalized.filter(item => (item.selection_score ?? 0) === bestScore);
 }
 
+/* Legacy opening work hooks/goals are intentionally not part of fresh setup. */
 function normalizedHook(value, location) {
   if (typeof value === 'string') {
     const label = compactText(value);
-    return label ? { work_hook_id: `location:${location.location_id}:${label}`, work_hook_label: label } : null;
+    return label ? { legacy_context_id: `location:${location.location_id}:${label}`, legacy_context_label: label } : null;
   }
   const label = compactText(value?.label);
   if (!label) return null;
-  const id = compactText(value?.id ?? value?.work_hook_id, 100) || `location:${location.location_id}:${label}`;
-  return { work_hook_id: id, work_hook_label: label };
+  const id = compactText(value?.id ?? value?.legacy_context_id, 100) || `location:${location.location_id}:${label}`;
+  return { legacy_context_id: id, legacy_context_label: label };
 }
 
 function openingHooks(location) {
-  const hooks = location.opening_hooks.map(value => normalizedHook(value, location)).filter(Boolean);
+  const hooks = location.legacy_context_options.map(value => normalizedHook(value, location)).filter(Boolean);
   return hooks.length ? hooks : [{
-    work_hook_id: `location:${location.location_id}`,
-    work_hook_label: `${location.name} 첫 업무`
+    legacy_context_id: `location:${location.location_id}`,
+    legacy_context_label: `${location.name} context`
   }];
 }
 
 function openingGoals(location) {
-  const goals = location.opening_goals.map(value => compactText(value, 180)).filter(Boolean);
+  const goals = location.legacy_context_goals.map(value => compactText(value, 180)).filter(Boolean);
   return goals.length ? goals : [`${location.name}에서 현재 상황을 파악하고 첫 업무 관계를 만든다`];
 }
 
@@ -161,10 +160,6 @@ export function buildOpeningPlan({ positionId, departmentId, seedBytes, heroineI
   const remaining = ids.filter(id => id !== primaryCharacterId);
   const includeSupporting = remaining.length > 0 && next(2) === 1;
   const supportingCharacterIds = includeSupporting ? [remaining[next(remaining.length)]] : [];
-  const hooks = openingHooks(location);
-  const hook = hooks[next(hooks.length)];
-  const goals = openingGoals(location);
-  const sceneGoal = goals[next(goals.length)];
   return {
     weekday,
     date_label: `Day 1 · ${weekday}`,
@@ -172,10 +167,7 @@ export function buildOpeningPlan({ positionId, departmentId, seedBytes, heroineI
     location_id: location.location_id,
     location_name: location.name,
     primary_character_id: primaryCharacterId,
-    supporting_character_ids: supportingCharacterIds,
-    work_hook_id: hook.work_hook_id,
-    work_hook_label: hook.work_hook_label,
-    scene_goal: sceneGoal
+    supporting_character_ids: supportingCharacterIds
   };
 }
 

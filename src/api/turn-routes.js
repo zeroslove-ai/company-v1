@@ -89,7 +89,9 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
     return {
       ...save,
       scene: {
-        ...scene,
+        version: 1,
+        location_id: scene.location_id,
+        updated_turn: scene.updated_turn,
         present_npc_ids: presentNpcIds,
         focal_character_id: presentNpcIds[0],
         last_speaker_id: null
@@ -102,13 +104,9 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
   return {
     ...save,
     scene: {
-      ...scene,
       version: 1,
-      scene_id: locationId,
       location_id: locationId,
-      beat: 0,
-      goal: null,
-      focus_thread: null,
+      updated_turn: scene.updated_turn,
       present_npc_ids: presentNpcIds,
       focal_character_id: presentNpcIds[0] ?? null,
       last_speaker_id: null

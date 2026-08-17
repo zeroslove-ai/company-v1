@@ -37,11 +37,11 @@ const PLAYER_PRIVATE_OPENING_PREMISE = [
   'Player-private premise only: after accepting the job, the player noticed an unfamiliar app named 상식개변 on their phone despite having no memory of installing it. Its description claims it can change rules that people around the player accept as ordinary or natural.',
   'The player has never actually used the app yet. On the first day of work, the player is curious and slightly excited to see whether it really works in the company. The origin and mechanism of the app remain unknown.',
   'NPCs do not know the app exists. Nothing in reality has changed merely because the app exists. No CSA, institutional rule, relationship, event, or behavior change occurs until the player actually uses the app through the normal game mechanic.',
-  'Let the first day unfold naturally from the supplied workplace facts, location, work hook, scene goal, and active NPCs; leave the player free to decide what to do next.'
+  'Let the first day unfold naturally from the supplied weekday, time, location, and active NPCs; leave the player free to decide what to do next.'
 ].join(' ');
 
 const OPENING_DURABLE_RULES = [
-  'Write natural Korean workplace fiction from the canonical opening payload. Use the supplied weekday, time, location, work hook, and scene goal as facts.',
+  'Write natural Korean workplace fiction from the canonical opening payload. Use the supplied weekday, time, and location as facts.',
   'Do not invent unregistered named characters or decide unrequested player actions. Show active NPC motives through natural work and dialogue.',
   'Canonical opening time and location are hard facts. Do not invent a different clock time or place. Do not mention apps, CSA, Worker, prompts, game mechanics, or system metadata as world knowledge; the opening is an in-world workplace scene.',
   PLAYER_PRIVATE_OPENING_PREMISE,
@@ -66,8 +66,7 @@ export function buildOpeningPrompt({ edition, player, canonical, openingPlan } =
         player: buildOpeningPlayerProjection({ player, canonical }),
         opening_plan: {
           weekday: openingPlan?.weekday, minute_of_day: openingPlan?.minute_of_day,
-          location_name: openingPlan?.location_name, work_hook_label: openingPlan?.work_hook_label,
-          scene_goal: openingPlan?.scene_goal
+          location_name: openingPlan?.location_name
         },
         turn_context: {
           day: 1,
