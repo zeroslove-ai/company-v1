@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: api-smoke-context-canon-reconciliation-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -157,3 +157,20 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal containing registration/final SHA/blob, changed files, root cause, old vs corrected smoke assertions, focused/full test counts, exact remote smoke result, pre/post disposable game state, migration invariants, deploy/reset/gameplay/write counts, and terminal classification;
 3. STOP. Do not resume frontend deployment/live acceptance and do not create the next task.
+
+## 8. Execution evidence — COMPLETE
+
+- Execution lease: Issue #68 comment `5319524827`.
+- Starting SHA / registration SHA: `c9a334700bd1120d06dbab1d785ba289f40d5515`.
+- Starting CURRENT_TASK blob: `13dfa9c18ccb3b566f2df3c2a758cf3c76c149ea`.
+- Root cause: the old smoke hardcoded the protected sentinel game and required committed turn zero, although the current context route accepts coherent nonzero committed state.
+- Changed files: `scripts/smoke-api-worker.mjs`, `test/api-smoke-contract.test.mjs`, and this CURRENT_TASK lifecycle evidence.
+- Correction: explicit UUID game-id CLI input; missing/invalid input fails before network; Company edition/schema and requested identity are checked; wrapper/direct save shapes are accepted; nonnegative integer committed turns are required and wrapper/nested values must agree; zero-turn fixture assertion removed.
+- Focused smoke regression: `9/9` PASS. Full regression: `329/329` PASS. `node --check scripts/smoke-api-worker.mjs`: PASS. `git diff --check`: PASS.
+- API deployment: no redeploy. Already-deployed `game-proxy-company-v1` version `2a976491-451d-4fc8-8808-65353cad137b` was independently confirmed. Frontend deployment list showed no deployment after the previous blocked run; no frontend deployment was performed in this task.
+- Corrected remote smoke: exactly one invocation against `https://game-proxy-company-v1.zeroslove.workers.dev` with disposable game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; `/health`, `/api/version`, and `/api/context` all PASSed; context edition/schema and committed-turn consistency PASSed.
+- TEST pre/post state identical: migration rows `27`; target `20260817000200` absent; bridge `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; forensic `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`; disposable `game_save=1/actions=12/turns=11`, committed turn `11`/`11`; preserved/manual `1/9/7`, committed `7`/`7`; QA `1/7/7`, committed `7`/`7`.
+- Safety: API redeploy `0`; frontend deploy `0`; TEST reset/live gameplay `0`; DB/schema/migration/history writes `0`; Production access/change `0`; protected sentinel/preserved/QA mutation `0`; provider/model/TTS/runtime/engine/frontend/content/config changes `0`.
+
+Terminal classification: `API_SMOKE_CONTEXT_CANON_RECONCILED`.
+STOP. Do not redeploy, run gameplay, resume frontend deployment, or create another task/Cut.
