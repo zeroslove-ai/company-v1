@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-effective-db-contract-live-resume-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -197,3 +197,19 @@ Record these as explicit quality findings during the session rather than automat
 - resolution requires Production or prohibited architecture.
 
 Do not stop for ordinary intermediate approval. At terminal, set CURRENT_TASK to WAITING_REVIEW, post one immutable Issue #68 report with exact SHAs/CI/Worker versions/game IDs/turn evidence/findings, and STOP.
+
+## 10. Terminal report
+
+Terminal: `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`
+
+- execution identity: `test-effective-db-contract-live-resume-v1` + CURRENT_TASK blob `b9b6ed15855a704b3c126bd56d2f96b17ab2e9ab` + branch `company/test-effective-db-live-resume-v1`
+- accepted main executable SHA/tree: `8f3c5326e483650211fbc6c9f54a7527d2278d4e` / `8a50f8f423254a17983c263fc4f71271adb87c54`
+- TEST effective DB result: `EFFECTIVE_DB_CONTRACT_ALREADY_CURRENT`; no migration-history, DDL, Production, protected-game, or preserved-game mutation
+- validation: `npm test` 316 pass / 0 fail; JavaScript syntax checks 131 pass; `git diff --check` pass; API/frontend dry-run gates pass
+- deployed TEST Workers: API `game-proxy-company-v1`, version `43512536-7933-4274-bc1d-269d2281c335`; frontend `gamebuilder-company-v1`, version `2da6d9e9-6dc6-4d05-9d0b-09469c7e3617`
+- disposable TEST game: `1cb25cc3-7e7e-4dcf-b0f3-b54e1338eb20`; setup `4a2912a2-12a7-4eef-846b-d5485d1ba5d1`; Level 7, EXP 0, committed turn 0 at creation
+- live session: one Story → Extract → Commit/readback session, 15 committed turns, zero provider retries, no reset; final committed turn 15, save revision 17, processing ready, level 7, EXP 6
+- final readback: scene remained `brand_strategy_meeting_room` with `[heroine4]`; turn 4 movement was not durable; turn 5 registered-NPC handoff was absent; turn 6 exact clothing CSA did not change four-slot durable clothing or Extract observation; turns 8 and 10 did not update player sexual state or produce scoped intimate observation; turns 9–15 remained work-oriented; Cut 2 app-state/Mind Monitor/readback remained reachable
+- preserved evidence: exact `game_actions`, `game_turns`, save, and Extract evidence remain in TEST for the disposable game; external evidence record: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-live-resume-v1-terminal.md`
+- root classification: Story context/prompt plus scene/presence, CSA, clothing/physical/player mechanic, Extract, and persistence acceptance gaps. Existing source prompt already carries canonical payload, registered locations/actors, exact `player_action`, committed history, and explicit action-scope/no-invention rules. The provider still ignored the tested movement, personal/non-work, clothing, and intimate semantics.
+- decision: no safe narrow canonical-writer reconnect was identified. A general correctness fix would require a prohibited semantic action router/verifier, finite physical-action grammar, consent/event ledger, generic CSA execution DSL, shadow compatibility architecture, or provider/model change. No source repair, retry, DB reset, migration-history repair, or Production action was performed.
