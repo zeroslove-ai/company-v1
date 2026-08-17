@@ -33,8 +33,6 @@ test('opening plan remains deterministic and scene facts come from the plan', ()
   const planB = buildOpeningPlan({ positionId: 'intern', seedBytes: [3, 6, 9], heroineIds: ['heroine1', 'heroine2', 'heroine3'], locations });
   assert.deepEqual(planA, planB);
   assert.equal(planA.location_id, 'brand_strategy_office');
-  assert.equal(planA.work_hook_id, 'hook-1');
-  assert.equal(planA.scene_goal, '첫 업무를 시작한다');
   assert.equal(typeof planA.primary_character_id, 'string');
 });
 

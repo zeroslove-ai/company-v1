@@ -326,9 +326,6 @@ test('buildOpeningPlan is deterministic, map-driven, and keeps one primary plus 
     }]
   });
   assert.equal(custom.location_id, 'sky_lounge');
-  assert.equal(custom.work_hook_id, 'coffee_briefing');
-  assert.equal(custom.work_hook_label, '커피 브리핑');
-  assert.equal(custom.scene_goal, '새 프로젝트의 비공식 브리핑을 듣는다');
 });
 
 test('buildOpeningPlan prioritizes the player department over a public elevator fallback', () => {
@@ -338,8 +335,6 @@ test('buildOpeningPlan prioritizes the player department over a public elevator 
   ];
   const plan = buildOpeningPlan({ positionId: 'intern', departmentId: 'brand_strategy', seedBytes: [0, 0, 0], heroineIds: ['heroine1'], locations });
   assert.equal(plan.location_id, 'brand_strategy_office');
-  assert.equal(plan.work_hook_id, 'hook-1');
-  assert.equal(plan.scene_goal, '첫 업무를 시작한다');
 });
 
 test('repository catalogs remain the semantic authority for future setup and opening identifiers', () => {
@@ -366,8 +361,6 @@ test('repository catalogs remain the semantic authority for future setup and ope
   });
   assert.equal(plan.location_id, 'future_location');
   assert.equal(plan.primary_character_id, 'future_character');
-  assert.equal(plan.work_hook_id, 'future_hook');
-  assert.equal(plan.scene_goal, 'Future Goal');
 });
 
 test('setup RPC boundary uses the canonical master identity projection for future IDs and rejects ghost IDs before mutation', async () => {

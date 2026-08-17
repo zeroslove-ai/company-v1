@@ -1,6 +1,7 @@
 import { applyAuthorizedRuleDefinitions, assertRuleDefinitionAuthority } from './action-authority.js';
 import { calculateCsaProgression, calculateProgress } from '../progression.js';
-import { executionMetadataForRule } from '../csa/execution-policy.js';
+import { matchesCsaSubjectScope, subjectScopeForRule } from '../csa/authority-policy.js';
+import { clothingMechanicForRule } from '../csa/clothing-state-mechanic.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 
@@ -12,22 +13,42 @@ function activeIds(save) {
   return new Set(Array.isArray(save?.csa_active) ? save.csa_active : []);
 }
 
-function applyClothingContinuity(nextSave, canonicalScene) {
+function actorProfile(master, save, actorId) {
+  if (actorId === 'player') {
+    const player = save?.player && typeof save.player === 'object' ? save.player : {};
+    return { ...player, id: 'player', character_id: 'player', player: true, gender: player.gender ?? player.sex ?? 'male' };
+  }
+  const entries = [
+    ...(Array.isArray(master?.characters) ? master.characters : []),
+    ...(Array.isArray(master?.general_npcs) ? master.general_npcs : [])
+  ];
+  const profile = entries.find(item => (item?.character_id ?? item?.npc_id ?? item?.id) === actorId) ?? {};
+  return { ...profile, id: actorId, character_id: profile.character_id ?? profile.npc_id ?? profile.id ?? actorId };
+}
+
+function applyClothingContinuity(nextSave, canonicalScene, master = {}) {
   const present = Array.isArray(canonicalScene?.present_npc_ids) ? canonicalScene.present_npc_ids : [];
+  const actorIds = ['player', ...present].filter((id, index, ids) => ids.indexOf(id) === index);
   const rules = nextSave?.csa_rules && typeof nextSave.csa_rules === 'object' ? nextSave.csa_rules : {};
   const active = new Set(Array.isArray(nextSave?.csa_active) ? nextSave.csa_active : []);
   const patches = [];
   for (const id of active) {
-    const execution = executionMetadataForRule(rules[id]);
+    const rule = rules[id];
+    const execution = clothingMechanicForRule(rule);
     const required = execution?.kind === 'clothing_state' ? execution.required_state : null;
     if (!required || Object.keys(required).length === 0) continue;
-    for (const actorId of present) {
-      const current = nextSave.npc_scene_state?.[actorId];
-      if (!current || typeof current !== 'object') continue;
-      nextSave.npc_scene_state[actorId] = {
-        ...current,
-        clothing: { ...(current.clothing ?? {}), ...required }
-      };
+    const subjectScope = subjectScopeForRule(rule);
+    for (const actorId of actorIds) {
+      const profile = actorProfile(master, nextSave, actorId);
+      if (!matchesCsaSubjectScope(profile, subjectScope)) continue;
+      if (actorId === 'player') {
+        const current = nextSave.player_scene_state && typeof nextSave.player_scene_state === 'object' ? nextSave.player_scene_state : {};
+        nextSave.player_scene_state = { ...current, clothing: { ...(current.clothing ?? {}), ...required } };
+      } else {
+        const current = nextSave.npc_scene_state?.[actorId];
+        if (!current || typeof current !== 'object') continue;
+        nextSave.npc_scene_state[actorId] = { ...current, clothing: { ...(current.clothing ?? {}), ...required } };
+      }
       patches.push(`${actorId}:${id}`);
     }
   }
@@ -46,6 +67,7 @@ export function reduceCsaCommitState({
   canonicalScene,
   action,
   expectedTurn,
+  master = {},
   structuredAction = null,
   transactionResolution = null,
 } = {}) {
@@ -69,7 +91,7 @@ export function reduceCsaCommitState({
   // Clothing is the single retained machine-readable CSA mechanic.  Its exact
   // required_state is applied directly to present actors; no generic action DSL
   // or inferred physical action is created.
-  applyClothingContinuity(nextSave, canonicalScene);
+  applyClothingContinuity(nextSave, canonicalScene, master);
 
   // Fresh Extract never writes a physical CSA execution state. Historical
   // csa_runtime_state remains readable, while observed physical/clothing facts

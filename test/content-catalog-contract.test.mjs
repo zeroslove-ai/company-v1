@@ -15,6 +15,14 @@ test('content uses one canonical characters/general_npcs identity universe', () 
   assert.equal(new Set([...ids, ...Object.keys(edition.generalNpcs.profiles)]).size, ids.length + Object.keys(edition.generalNpcs.profiles).length);
 });
 
+test('human character prompt cards do not encode permanent work-performance or mandatory enactment', () => {
+  for (const character of Object.values(edition.characters.characters)) {
+    const card = JSON.stringify(character.prompt_card);
+    assert.doesNotMatch(card, /행동 여부|반드시|항상 .* 유지|업무 성과/);
+    assert.match(character.prompt_card.identity, /성인|세/);
+  }
+});
+
 test('fresh Story payload contains current actors and no retired semantic maps', () => {
   const messages = buildStoryPrompt({ edition, context: { save: save() }, playerAction: '회의를 계속한다', expectedTurn: 1, catalogs: {} });
   const payload = JSON.parse(messages[1].content);

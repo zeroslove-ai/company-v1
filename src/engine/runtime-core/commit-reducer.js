@@ -140,6 +140,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
     canonicalScene,
     action,
     expectedTurn,
+    master,
     structuredAction,
     transactionResolution
   });

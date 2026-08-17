@@ -68,11 +68,6 @@ function localizedValue(value) {
   return DISPLAY_LABELS[raw] ?? (/^[a-z0-9_:-]+$/i.test(raw) ? '' : raw);
 }
 
-function workHook(value) {
-  const raw = typeof value === 'string' ? value : displayValue(value?.id) || displayValue(value?.status);
-  return localizedValue(raw);
-}
-
 function definitionList(container, entries) {
   if (!container) return;
   container.replaceChildren();
@@ -131,19 +126,11 @@ export function parsedTurnNarrative(turn) {
 
 export function stateDisplayValues(viewModel) {
   const scene = object(viewModel?.scene?.scene_state) ?? {};
-  const world = object(viewModel?.scene?.world_state) ?? {};
   // Work metadata is not a gameplay authority or a display contract.
   return {
     location_id: localizedValue(scene.location_label || scene.location_id),
     csa_active_count: Array.isArray(viewModel?.scene?.csa_active) ? String(viewModel.scene.csa_active.length) : ''
   };
-  /*
-    장소: localizedValue(scene.location_label || scene.location_id),
-    업무: work,
-    목표: localizedValue(scene.scene_goal),
-    흐름: flow && flow !== work ? flow : '',
-    활성규정: Array.isArray(viewModel?.scene?.csa_active) ? String(viewModel.scene.csa_active.length) : ''
-  */
 }
 
 export function choiceLabel(choice, maxLength = 5, explicitLabel = '') {

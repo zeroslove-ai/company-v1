@@ -87,6 +87,22 @@ function identity(value) {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
+function exposedClothingBody(character, clothing = {}) {
+  const privateInfo = object(character?.private_info) ? character.private_info : {};
+  const upperExposed = ['removed', 'open'].includes(clothing.uniform_top) && clothing.underwear_top === 'removed';
+  const lowerExposed = ['removed', 'open'].includes(clothing.uniform_bottom) && clothing.underwear_bottom === 'removed';
+  const visible = {};
+  if (upperExposed) {
+    for (const key of ['nipple', 'areola_size', 'areola_color']) {
+      if (typeof privateInfo[key] === 'string' && privateInfo[key].trim()) visible[key] = privateInfo[key];
+    }
+  }
+  if (lowerExposed && typeof privateInfo.pubic_hair === 'string' && privateInfo.pubic_hair.trim()) {
+    visible.pubic_hair = privateInfo.pubic_hair;
+  }
+  return Object.keys(visible).length ? visible : null;
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
@@ -125,7 +141,7 @@ export function selectActiveCharacterIds({ charactersMap, npcIds, save, playerAc
  * The first three active ids get their full prompt_card; the rest get identity-only
  * fields. A character not actually active this turn is never included at all.
  */
-export function buildActiveCharacterCanon(charactersMap, activeIds) {
+export function buildActiveCharacterCanon(charactersMap, activeIds, clothingById = {}) {
   const map = object(charactersMap) ? charactersMap : {};
   const canon = {};
   (Array.isArray(activeIds) ? activeIds : []).forEach((id, index) => {
@@ -138,7 +154,9 @@ export function buildActiveCharacterCanon(charactersMap, activeIds) {
       role_title: typeof character.role_title === 'string' ? character.role_title : null,
       body: object(character.body) ? {
         height_cm: Number.isFinite(character.body.height_cm) ? character.body.height_cm : null,
-        body_type: typeof character.body.body_type === 'string' ? character.body.body_type : null
+        body_type: typeof character.body.body_type === 'string' ? character.body.body_type : null,
+        ...(typeof character.body.cup === 'string' && character.body.cup.trim() ? { cup: character.body.cup } : {}),
+        ...((() => { const clothing = object(clothingById[id]) ? clothingById[id] : {}; const visible = exposedClothingBody(character, clothing); return visible ? { visible_intimate: visible } : {}; })())
       } : null
     };
     canon[id] = index < 3 ? { ...identityFields, prompt_card: object(character.prompt_card) ? character.prompt_card : null } : identityFields;

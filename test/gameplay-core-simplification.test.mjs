@@ -4,6 +4,7 @@ import { buildOpeningPlan } from '../src/engine/player-setup.js';
 import { buildActiveCharacterCanon, buildSceneContextCore, reducePlayerSexualState } from '../src/engine/gameplay-state.js';
 import { normalizeFreshExtractObservationV2 } from '../src/engine/runtime-core/extract-observation.js';
 import { reduceCsaCommitState } from '../src/engine/runtime-core/csa-commit-reducer.js';
+import { buildStoryWorldProjection } from '../src/engine/csa/story-projection.js';
 import { contextChoices } from '../src/frontend/pages/state.js';
 
 const scene = {
@@ -52,4 +53,62 @@ test('active character canon carries compact deterministic body canon without pr
   const canon = buildActiveCharacterCanon({ heroine1: { name: 'A', position: 'Lead', role_title: 'Role', body: { height_cm: 168, body_type: 'balanced' }, private_info: { nipple: 'secret' } } }, ['heroine1']);
   assert.deepEqual(canon.heroine1.body, { height_cm: 168, body_type: 'balanced' });
   assert.equal('private_info' in canon.heroine1, false);
+});
+
+test('clothing projection applies exact player, sex, and company employee scopes', () => {
+  const makeRule = subject_scope => ({
+    active: true,
+    content: subject_scope,
+    preset: {
+      subject_scope,
+      execution: { kind: 'clothing_state', required_state: { underwear_top: 'removed' } }
+    }
+  });
+  const save = {
+    player: { gender: 'male' },
+    player_scene_state: { clothing: { underwear_top: 'removed' } },
+    npc_scene_state: {
+      female: { clothing: { underwear_top: 'removed' } },
+      male: { clothing: { underwear_top: 'worn' } }
+    },
+    csa_active: ['female_rule', 'male_rule', 'company_rule', 'player_rule'],
+    csa_rules: {
+      female_rule: makeRule('female_employee'),
+      male_rule: makeRule('male_employee'),
+      company_rule: makeRule('company_employee'),
+      player_rule: makeRule('player')
+    }
+  };
+  const projection = buildStoryWorldProjection({
+    save,
+    master: { characters: [{ character_id: 'female', gender: 'female' }, { character_id: 'male', gender: 'male' }], general_npcs: [] },
+    sceneActorIds: ['female', 'male'],
+    expectedTurn: 2
+  });
+  const actorsByRule = Object.fromEntries(projection.world_rules.map(rule => [rule.id, rule.clothing_projection.actors.map(actor => actor.actor_id)]));
+  assert.deepEqual(actorsByRule, {
+    female_rule: ['female'],
+    male_rule: ['player', 'male'],
+    company_rule: ['player', 'female', 'male'],
+    player_rule: ['player']
+  });
+});
+
+test('body canon exposes confirmed intimate facts only when the matching clothing area is exposed', () => {
+  const characters = {
+    heroine1: {
+      name: 'A', position: 'Lead', role_title: 'Role',
+      body: { height_cm: 168, body_type: 'balanced', cup: 'C' },
+      private_info: { nipple: 'pink', areola_size: 'medium', areola_color: 'brown', pubic_hair: 'trimmed' }
+    }
+  };
+  const covered = buildActiveCharacterCanon(characters, ['heroine1'], {
+    heroine1: { uniform_top: 'worn', underwear_top: 'removed', uniform_bottom: 'worn', underwear_bottom: 'removed' }
+  });
+  assert.equal('visible_intimate' in covered.heroine1.body, false);
+  const exposed = buildActiveCharacterCanon(characters, ['heroine1'], {
+    heroine1: { uniform_top: 'open', underwear_top: 'removed', uniform_bottom: 'removed', underwear_bottom: 'removed' }
+  });
+  assert.deepEqual(exposed.heroine1.body.visible_intimate, { nipple: 'pink', areola_size: 'medium', areola_color: 'brown', pubic_hair: 'trimmed' });
+  assert.equal('private_info' in exposed.heroine1, false);
 });

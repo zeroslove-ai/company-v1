@@ -113,34 +113,9 @@ function openingLocationCandidates(locations, positionId, departmentId) {
   return normalized.filter(item => (item.selection_score ?? 0) === bestScore);
 }
 
-/* Legacy opening work hooks/goals are intentionally not part of fresh setup. */
-function normalizedHook(value, location) {
-  if (typeof value === 'string') {
-    const label = compactText(value);
-    return label ? { legacy_context_id: `location:${location.location_id}:${label}`, legacy_context_label: label } : null;
-  }
-  const label = compactText(value?.label);
-  if (!label) return null;
-  const id = compactText(value?.id ?? value?.legacy_context_id, 100) || `location:${location.location_id}:${label}`;
-  return { legacy_context_id: id, legacy_context_label: label };
-}
-
-function openingHooks(location) {
-  const hooks = location.legacy_context_options.map(value => normalizedHook(value, location)).filter(Boolean);
-  return hooks.length ? hooks : [{
-    legacy_context_id: `location:${location.location_id}`,
-    legacy_context_label: `${location.name} context`
-  }];
-}
-
-function openingGoals(location) {
-  const goals = location.legacy_context_goals.map(value => compactText(value, 180)).filter(Boolean);
-  return goals.length ? goals : [`${location.name}에서 현재 상황을 파악하고 첫 업무 관계를 만든다`];
-}
-
 /**
- * Pure deterministic opening selection from edition content. Locations, hooks and goals are not
- * hardcoded in the engine: content/map.json (or another edition adapter) supplies them. Exactly
+ * Pure deterministic opening selection from edition content. Locations are not hardcoded in the
+ * engine: content/map.json (or another edition adapter) supplies them. Exactly
  * one primary heroine and at most one supporting heroine are still selected for scene clarity.
  */
 export function buildOpeningPlan({ positionId, departmentId, seedBytes, heroineIds, locations = [] }) {

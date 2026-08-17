@@ -35,7 +35,7 @@ function compact(entry) {
 }
 
 /** Fresh Story receives current actors and only directly relevant identity canon. */
-export function buildStoryCharacterProjection({ edition, playerAction = '', sceneCastContract = null } = {}) {
+export function buildStoryCharacterProjection({ edition, playerAction = '', sceneCastContract = null, clothingById = {} } = {}) {
   const characters = object(edition?.characters?.characters);
   const entries = registeredEntries(edition);
   const byId = new Map(entries.map(entry => [entry.id, entry]));
@@ -47,7 +47,7 @@ export function buildStoryCharacterProjection({ edition, playerAction = '', scen
     .filter(entry => !sceneIds.includes(entry.id)).map(compact).filter(Boolean).slice(0, 6);
   return {
     scene_actors: {
-      ...buildActiveCharacterCanon(characters, characterIds),
+      ...buildActiveCharacterCanon(characters, characterIds, clothingById),
       ...buildGeneralNpcCanon(edition, generalIds)
     },
     reference_characters: mentioned,
@@ -110,7 +110,7 @@ export const DURABLE_STORY_RULES = [
   '[CSA PREMISE]',
   'An active and applicable company rule is an in-force ordinary workplace notice or regulation from its activation/effective time. Following that rule is part of common-sense workplace reality. Personal dislike, embarrassment, or discomfort may shape emotion and reaction but cannot make the applicable rule optional. This premise does not imply consent, comfort, affection, trust, romance, or arousal.',
   '[STORY MEMORY AND OUTPUT]',
-  'Use recent raw turns and chronological older summaries as read-only continuity. The context.turn_summary_memory is compressed continuity, never a replacement for raw Story. context.current_time.day and context.current_time.minute_of_day are hard facts. Do not invent semantic ledgers or future-planning state. Write natural Korean workplace fiction, mark spoken lines with exact dialogue ids, keep [THOUGHT] player-only and reaction-only, and preserve the exact structural marker protocol.',
+    'Use recent raw turns and chronological older summaries as read-only continuity. The context.turn_summary_memory is compressed continuity, never a replacement for raw Story. context.current_time.day and context.current_time.minute_of_day are hard facts. Do not invent semantic ledgers or future-planning state. Write natural Korean fiction in the supplied company setting, mark spoken lines with exact dialogue ids, keep [THOUGHT] player-only and reaction-only, and preserve the exact structural marker protocol.',
   FRESH_MARKER_GRAMMAR,
   PROVIDER_CHOICE_OUTPUT_PROTOCOL
 ].join('\n');
@@ -125,7 +125,12 @@ export function buildStoryPrompt({ edition, context, playerAction, expectedTurn,
   const canonicalScene = buildSceneContextCore(save, []).scene;
   const cast = sceneCastContract ?? { present_npc_ids: canonicalScene.present_npc_ids };
   const action = typeof playerAction === 'string' ? playerAction.trim() : '';
-  const projection = buildStoryCharacterProjection({ edition, playerAction: action, sceneCastContract: cast });
+  const clothingById = Object.fromEntries(
+    Object.entries(save.npc_scene_state ?? {})
+      .filter(([, state]) => object(state?.clothing))
+      .map(([id, state]) => [id, state.clothing])
+  );
+  const projection = buildStoryCharacterProjection({ edition, playerAction: action, sceneCastContract: cast, clothingById });
   const storyWorld = precomputedStoryWorld ?? buildStoryWorldProjection({
     save,
     master: { characters: Object.values(object(edition?.characters?.characters) || {}), general_npcs: Object.values(object(edition?.generalNpcs?.profiles) || {}) },
