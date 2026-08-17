@@ -1,215 +1,166 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: test-effective-db-contract-live-resume-v1
+Status: READY
+Task ID: test-live-input-utf8-fidelity-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This file is the sole active execution authority. It supersedes the terminal stop of `overnight-cut2-live-quality-loop-v1` only for the bounded TEST-resume work below.
+This file is the sole active execution authority.
 
-## 0. Owner/operator decision
+## 0. Owner review decision
 
-The previous overnight loop stopped before TEST deployment because `supabase db push --dry-run` found migration-version history drift between the TEST project and this checkout.
+Previous terminal: Issue #68 comment `5321134956`
+Previous task: `test-effective-db-contract-live-resume-v1`
+Previous terminal status: `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`
+Previous final branch SHA: `dd8c7ef4741655cedc9ebb8dc3313eea6e441168`
+Previous CURRENT_TASK blob: `34bc131e0201ac4fb247447c989399220430516f`
+Expected main: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
+Expected branch: `company/test-live-input-utf8-fidelity-v1`
+TEST project: `fmcrspgxstsmxxsmkeee`
+API Worker: `game-proxy-company-v1`
+Frontend Worker: `gamebuilder-company-v1`
+Production/hospital-v2: forbidden.
 
-Independent read-only review after that stop established a narrower fact:
+The previous stop itself is valid, but its root-cause classification is not accepted as an architecture/provider conclusion.
 
-- current accepted `main`: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`;
-- Cut 1 and Cut 2 are already landed and their landed-main CI runs succeeded;
-- TEST project: `fmcrspgxstsmxxsmkeee`;
-- remote migration history uses historical timestamp versions that do not match several current repository migration filenames;
-- however the **effective TEST DB definitions** of the Cut 1 target functions already match the intended gameplay-core-simplification contract: work-hook-free opening/setup, six-field canonical scene, minimal save, and current validation shape;
-- therefore migration-history metadata drift is not evidence that TEST runtime schema is missing the Cut 1 behavior.
+Independent operator readback of the preserved disposable game `1cb25cc3-7e7e-4dcf-b0f3-b54e1338eb20` proved that **all 15 committed `game_turns.player_action` values were already corrupted to ASCII `?` characters before they could serve as meaningful Korean gameplay evidence**. Direct `convert_to(player_action,'UTF8')` hex for the Korean portions is `3f...`, not Korean UTF-8 bytes.
 
-The correct next step is **not** to repair old migration history merely to make `db push` happy.
+Examples independently verified:
+- turn 4 stored `player_action` is `?? ?????? ????? ...` and hex is `3f...`;
+- turn 6 stored `player_action` is likewise `3f...` while its structured CSA JSON still contains intact Korean content;
+- turns 8 and 10 also have corrupted `player_action` but intact structured-action Korean where present;
+- the same pattern exists across turns 1–15.
 
-Resume live acceptance by proving the effective DB contract, performing no historical migration-table repair, deploying the exact accepted main to the established TEST Workers, and running a new disposable player-style Level-7 session.
+Therefore the previous findings “provider ignored movement/personal/intimate semantics” and “general correctness would require prohibited architecture/provider changes” are **not proven**. A provider cannot be judged for failing to follow text that reached persistence as `?`.
 
-Intermediate non-Production review/merge/deploy decisions remain operator-self-approved. Do not ask the owner to continue when the objective evidence below is satisfied.
+Do not change gameplay architecture, provider/model, Story semantics, scene authority, CSA authority, physical/sexual reducers, or persistence based on the previous terminal until UTF-8 input fidelity is proven.
 
-## 1. Frozen baseline
+## 1. Purpose
 
-Repository: `zeroslove-ai/company-v1`
-Expected starting `main`: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-Expected branch: `company/test-effective-db-live-resume-v1`
+Determine exactly where Korean free-text `player_action` was corrupted in the previous live harness and establish one reproducible UTF-8-safe TEST request path.
 
-Landed Cut 1:
-- PR #70 merge: `cfcd328a00b3caa9d87034e6ab7ca60c6ace51ce`
-- landed-main CI: `32043074446` SUCCESS
+This is a harness/input-transport diagnostic only. It is not a gameplay repair task and not a full live acceptance.
 
-Landed Cut 2:
-- source: `d4c9c4f7895d3efe764ff31b9b6a66098c35885e`
-- PR #71 merge: `f91f2579947befacb10a45abde2599a92faf3276`
-- landed-main CI: `32043850713` SUCCESS
+## 2. Mandatory read-only preflight
 
-Terminal/docs main:
-- PR #72 merge/current main: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-- exact main CI: `32044041912` SUCCESS
+Before any TEST write:
 
-TEST infrastructure expected from current repo config:
-- Supabase project: `fmcrspgxstsmxxsmkeee`
-- API Worker: `game-proxy-company-v1`
-- Frontend Worker: `gamebuilder-company-v1`
+1. Fresh-fetch and require `main` is still exactly `8f3c5326e483650211fbc6c9f54a7527d2278d4e`.
+2. Require this branch descends directly from previous final `dd8c7ef4741655cedc9ebb8dc3313eea6e441168` with only this registration commit before execution.
+3. Re-read terminal `5321134956` and previous final CURRENT_TASK.
+4. Read-only verify preserved game `1cb25cc3-7e7e-4dcf-b0f3-b54e1338eb20` remains committed turn 15 and is not mutated by this task.
+5. Read-only query both `game_actions.player_action` and `game_turns.player_action` for turns 1–15 and record exact text plus UTF-8 hex. Confirm the observed `?` bytes are literal `0x3f`, not display/OCR/rendering loss.
+6. Confirm structured-action Korean JSON from turns such as 6/8 remains valid UTF-8, proving this is not a blanket Postgres/Worker Unicode failure.
+7. Inspect the exact local runner/invocation used by the previous live session, including preserved evidence at `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-live-resume-v1-terminal.md` and any temporary script that generated those requests, if still present.
+8. Inspect existing maintained repo tooling, especially `scripts/live-playtest-canary.mjs`, before creating or modifying any harness. Do not build another large harness.
 
-Preserved games must not be reset/reused, including prior owner/manual evidence games such as `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` and `78fb1d94-266f-455a-bda4-7656cc2370c1`.
+If the preserved DB facts differ materially from the above, STOP `BLOCKED_LIVE_INPUT_UTF8_EVIDENCE_AMBIGUOUS` with exact evidence and no TEST write.
 
-## 2. Hard prohibitions
+## 3. UTF-8-safe probe design
 
-Do not:
-- access or mutate Production;
-- run `supabase migration repair` against historical TEST migration rows;
-- insert/update/delete `supabase_migrations.schema_migrations` merely to reconcile filename timestamps;
-- run broad `supabase db push` while legacy history remains divergent;
-- rewrite/delete historical migration files;
-- add a compatibility migration solely to mirror old timestamps;
-- change provider/model as a correctness strategy;
-- retry/regenerate until Story happens to pass;
-- introduce a semantic action router/verifier, consent matrix, finite physical-action grammar, relationship/event/open-fact ledger, generic CSA execution DSL, or shadow compatibility architecture;
-- reset a failed live-test game before evidence is preserved.
+Use a **brand-new disposable TEST game**. Never reset/reuse any prior evidence game, including:
+- `1cb25cc3-7e7e-4dcf-b0f3-b54e1338eb20`
+- `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+- `78fb1d94-266f-455a-bda4-7656cc2370c1`
+- QA/protected sentinel games.
 
-If the **effective DB contract** does not match the accepted runtime and reconciling it would require destructive/history surgery rather than a clearly additive current migration, STOP `BLOCKED_EFFECTIVE_DB_CONTRACT_MISMATCH` with exact definitions/differences.
+Create only the minimum normal setup/opening state needed for one gameplay action. No Level-7 acceleration is required unless the normal setup contract requires it.
 
-## 3. Phase A — effective TEST DB contract proof
+The probe request must avoid shell/codepage interpretation of literal Korean. Preferred method:
+- create a temporary Node `.mjs` file **outside the repository**;
+- keep its source transport-safe by constructing the Korean test string from ASCII JavaScript `\uXXXX` escapes or an equivalent ASCII-only encoding;
+- use Node `fetch` + `JSON.stringify` directly;
+- do not pass Korean text through `cmd.exe`, PowerShell interpolation, environment-variable transcoding, or CLI arguments.
 
-Before any deployment or write:
+Canonical probe action after decoding in Node:
+`UTF8검증: 브랜드전략팀 사무실로 이동한다.`
 
-1. Fresh-fetch `main`, branch head, CURRENT_TASK, and Issue #68 READY registration.
-2. Require starting main remains `8f3c5326...`; otherwise rebase the evidence on the new exact main only if the intervening commits are already accepted docs/CI lineage. Any gameplay/source drift => STOP.
-3. Read-only query TEST `supabase_migrations.schema_migrations` and record the migration-version drift as metadata evidence only.
-4. Read the repository file `supabase/migrations/20260817000200_company_v1_gameplay_core_simplification.sql`.
-5. Read-only inspect TEST `pg_get_functiondef` + ACL for:
-   - `company_apply_opening_scene_v1(jsonb)`
-   - `company_minimalize_save_v1(jsonb)`
-   - `company_validate_scene_v1(jsonb,boolean)`
-   - `validate_company_save_v1(jsonb)`
-   - `reserve_company_player_setup(uuid,uuid,jsonb,jsonb)`
-6. Compare behavior/signatures, not historical parameter-name cosmetics.
-7. Required effective facts:
-   - Opening/setup does not require or write work_hook / scene_goal.
-   - Opening creates scene with exactly structural fields: version, location_id, present_npc_ids, focal_character_id, last_speaker_id, updated_turn.
-   - minimalizer strips retired stats/relation/CSA-runtime/sexual-ledger/image-choice/work residue required by current contract.
-   - save validator requires the current structural scene and player sexual state.
-   - setup RPC calls the current opening function and only service_role has intended mutation access.
+Record the exact JavaScript string, code points, expected UTF-8 bytes, request JSON bytes where practical, new game ID, action ID, HTTP/SSE status, and durable DB values.
 
-### Decision
+Run exactly **one** gameplay action in the probe game. No retry if Story/Extract/Commit fails; the input reservation evidence is still sufficient for transport diagnosis.
 
-If these effective facts already match, record `EFFECTIVE_DB_CONTRACT_ALREADY_CURRENT` and **perform no DB DDL/migration-history write at all**. Proceed to Phase B.
+## 4. Required diagnosis
 
-Do not mark `20260817000200` as applied by editing migration history. The historical ledger mismatch can be audited separately; it is not allowed to block live product validation when the effective schema is already current.
+After the one request, read back `game_actions.player_action` and, if a turn committed, `game_turns.player_action`.
 
-If one narrowly required current function is actually missing/outdated, first prove that applying only the additive/current `20260817000200` definitions is safe and dependency-complete. Apply it TEST-only only if exact preconditions are proven. Never fix the old ledger merely to enable CLI push.
+### A. UTF-8 arrives intact
 
-## 4. Phase B — exact-main TEST deployment
+If the exact string `UTF8검증: 브랜드전략팀 사무실로 이동한다.` and its expected UTF-8 bytes are preserved in `game_actions` (and `game_turns` when committed):
 
-After `EFFECTIVE_DB_CONTRACT_ALREADY_CURRENT` (or a separately proven narrow additive apply):
+- classify previous corruption as runner/harness/shell-side, not Worker/DB/provider architecture;
+- identify the exact previous corruption point as narrowly as evidence permits;
+- establish the ASCII-only Node request pattern as the required path for the next full live acceptance;
+- do not modify runtime/provider architecture;
+- do not continue into a 15–20 turn session in this task.
 
-1. Confirm local/remote checkout uses exact accepted `main` executable tree. Ops-only task metadata may be excluded from executable identity.
-2. Run `npm test` and require zero failures.
-3. Run `git diff --check`.
-4. Run the existing API and frontend Worker dry-run/contract gates.
-5. Deploy API Worker `game-proxy-company-v1` from the exact accepted main executable.
-6. Deploy frontend Worker `gamebuilder-company-v1` from the same accepted lineage.
-7. Record exact Worker version IDs and deployed commit/tree identity.
-8. Smoke/readback must prove API/FE are reachable and target the intended TEST project.
+If the maintained repo canary itself is proven to corrupt input, a minimal test-harness-only patch is allowed. Prefer fixing the existing harness rather than adding a new large one.
 
-This task authorizes TEST deployment only. Production remains forbidden.
+Allowed repo changes in that case only:
+- `scripts/live-playtest-canary.mjs` as narrowly necessary;
+- one tightly related test file for the harness;
+- `docs/ops/CURRENT_TASK.md` lifecycle evidence.
 
-## 5. Phase C — new disposable Level-7 game
+If the existing canary is not the source of corruption, do not patch it merely for convenience.
 
-Create a brand-new TEST game for this acceptance. Do not reset an existing evidence game.
+### B. UTF-8 is corrupted despite ASCII-only Node construction
 
-Prepare:
-- Level 7
-- EXP 0
-- committed_turn 0
-- clean Opening/setup state
-- no prior history
+If the request is constructed correctly in Node but `game_actions.player_action` is already corrupted:
 
-Use the existing TEST-only acceleration seam if it safely accepts the new game. If it is hard-coded to an old evidence game, use a one-off TEST-only fixture write for the new game rather than broadening production runtime code.
+- stop before any gameplay architecture change;
+- locate the earliest transport boundary where bytes/text diverge: request construction → HTTP body → Worker JSON parse → action reservation RPC → DB;
+- no provider/model call is a valid explanation if corruption is already present at reservation persistence;
+- terminal must preserve exact boundary evidence.
 
-Record the new game ID before gameplay.
+No broad repair is authorized in this task.
 
-## 6. Phase D — player-style live acceptance
+## 5. Safety and scope
 
-Run one natural coherent live-provider session of roughly 15–20 committed turns using the real Story → Extract → Commit → committed readback path. Prefer actual frontend interaction if the maintained harness supports it; otherwise use the existing SSE/canary harness plus frontend/readback verification. Do not build another large harness.
+Allowed TEST writes:
+- create one brand-new disposable game;
+- normal setup/opening for that game;
+- exactly one normal gameplay action for UTF-8 diagnosis.
 
-The session must mix provider choices and free text like a real player and cover:
+Forbidden:
+- resetting or mutating any prior evidence game;
+- Production/hospital-v2 access or mutation;
+- migration-history repair, `db push`, DDL, schema/RPC changes;
+- API/frontend Worker deploy/redeploy;
+- provider/model change;
+- gameplay engine/Story/Extract/Commit semantic patch;
+- semantic router/verifier, finite action grammar, consent/event ledger, generic CSA DSL, shadow compatibility layer;
+- second gameplay action, retry-to-pass, or full live session;
+- PR merge/Cut3.
 
-1. Opening and repeated choices: no stale Opening choice may reappear after committed turns.
-2. Literal free-text fidelity: actor, target, direction and explicit self-state must not silently change.
-3. Several personal/non-work turns: Story must not compulsively return to meetings/onboarding/work reports.
-4. Cross-location movement plus same-location registered-NPC handoff.
-5. Activate one exact structured clothing CSA: Story and four-slot durable state must agree immediately for the correct subject scope.
-6. Exercise one narrative/on-request CSA, then separately request an unrelated act: rule is ordinary/in-force but does not create unrelated obedience/consent/permission.
-7. Natural adult intimate progression sufficient to check same-turn meaningful progress, visible body canon, player sexual state updates and non-generic character-specific description.
-8. Cut 2 presentation behavior:
-   - retired/frozen NPC stats must not be falsely displayed;
-   - Mind Monitor remains usable;
-   - image/media may be absent/fallback but must never block Story/Commit.
-9. Continue past six raw turns; revisit an early promise/situation and verify chronological turn_summary memory remains coherent.
-10. Refresh/reload/recovery parity.
-11. For every suspicious turn, inspect exact `game_actions`, `game_turns`, save and Extract evidence before classification.
+The previous deployed TEST Workers stay exactly as they are for this probe:
+- API version `43512536-7933-4274-bc1d-269d2281c335`
+- frontend version `2da6d9e9-6dc6-4d05-9d0b-09469c7e3617`
 
-No stochastic retry. A bad provider turn is evidence and must remain in the preserved game.
+## 6. Verification if a harness-only source patch is needed
 
-## 7. Phase E — evidence-driven repair loop
+If and only if a maintained harness source patch is made:
+- add focused regression proving non-ASCII Korean survives argument/request construction exactly;
+- run focused tests;
+- run full `npm test`;
+- run relevant `node --check`;
+- run `git diff --check`;
+- no Worker deployment.
 
-The prior owner authorization for up to 3 substantive repair cycles remains active.
+Do not alter runtime expectations to make the test pass.
 
-On the first material defect:
-1. preserve the game and exact turn evidence;
-2. classify root domain: input/choice, Story context/prompt, scene/presence, CSA, clothing/physical/player mechanic, Extract, Commit/persistence, memory/summary, frontend, presentation sidecar;
-3. audit the existing path before coding;
-4. prefer deleting conflicting authority or reconnecting the canonical writer;
-5. do not add regex semantic gates or retry loops;
-6. create one bounded repair branch/PR from current main;
-7. focused + full tests + diff check + exact-head CI;
-8. self-review and normal merge if no unresolved P0/P1;
-9. TEST redeploy;
-10. retest on a **new disposable game**, preserving the failed one.
+## 7. Terminal classifications
 
-Maximum 3 substantive cycles. STOP early if the same root cause survives two attempted fixes or resolution requires prohibited architecture/Production/destructive DB work.
+Choose exactly one:
 
-## 8. Post-live review targets (do not preempt live evidence)
+### `LIVE_INPUT_UTF8_FIDELITY_PROVEN`
+Use when the ASCII-only Node probe proves exact Korean action fidelity through durable action reservation, and the previous 15-turn architecture/provider conclusion is invalidated as harness-corrupted evidence.
 
-Record these as explicit quality findings during the session rather than automatically adding systems before testing:
+### `BLOCKED_LIVE_INPUT_UTF8_TRANSPORT`
+Use when correctly constructed UTF-8 is still corrupted within the API/Worker/RPC/DB transport and the exact earliest failing boundary is preserved.
 
-- Cut 2 removed fake/frozen legacy numeric NPC stats rather than rebuilding them. Decide after play whether Mind Monitor is sufficient UX. If numeric feedback is still clearly valuable, a later presentation-only sidecar may contain at most small non-authoritative fields such as affinity/sexual_arousal; never csa_acceptance/resistance gates.
-- Cut 2 removed Extract image authority, but current frontend media projection may still be only a neutral/general fallback. Verify actual user experience before adding deterministic asset selection from committed Story + focal actor + clothing + existing asset metadata.
-- Audit remaining named residue only after live core behavior is known: `mandatory-enactment.js`, `semantic-contract.js`, `sexual-state/ledger.js`, `posture.js`, `workplace-context.js`, legacy extract adapters, and donor-named frontend files. Delete only after caller/persisted-read proof; do not create another cleanup architecture.
-- Delete commented-out obsolete tests instead of preserving dead test bodies as comments when encountered in the next source change.
+### `BLOCKED_LIVE_INPUT_UTF8_EVIDENCE_AMBIGUOUS`
+Use only when preflight evidence cannot establish the previous corruption or the probe cannot be interpreted without unsafe/repeated writes.
 
-## 9. Success / terminal
-
-### `LIVE_RESUME_ACCEPTED`
-- effective TEST DB contract proven current without unsafe history repair;
-- exact accepted main deployed to TEST;
-- final disposable live game completes required session without unresolved P0/P1;
-- Production untouched;
-- remaining UX/cleanup findings documented and prioritized.
-
-### `LIVE_RESUME_REPAIR_LIMIT_REACHED`
-- 3 evidence-driven repair cycles used with unresolved material defect.
-
-### `BLOCKED_EFFECTIVE_DB_CONTRACT_MISMATCH`
-- current effective DB actually differs and cannot be brought current by a clearly safe additive/narrow TEST-only change.
-
-### `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`
-- resolution requires Production or prohibited architecture.
-
-Do not stop for ordinary intermediate approval. At terminal, set CURRENT_TASK to WAITING_REVIEW, post one immutable Issue #68 report with exact SHAs/CI/Worker versions/game IDs/turn evidence/findings, and STOP.
-
-## 10. Terminal report
-
-Terminal: `BLOCKED_OWNER_ARCHITECTURE_OR_PRODUCTION_DECISION`
-
-- execution identity: `test-effective-db-contract-live-resume-v1` + CURRENT_TASK blob `b9b6ed15855a704b3c126bd56d2f96b17ab2e9ab` + branch `company/test-effective-db-live-resume-v1`
-- accepted main executable SHA/tree: `8f3c5326e483650211fbc6c9f54a7527d2278d4e` / `8a50f8f423254a17983c263fc4f71271adb87c54`
-- TEST effective DB result: `EFFECTIVE_DB_CONTRACT_ALREADY_CURRENT`; no migration-history, DDL, Production, protected-game, or preserved-game mutation
-- validation: `npm test` 316 pass / 0 fail; JavaScript syntax checks 131 pass; `git diff --check` pass; API/frontend dry-run gates pass
-- deployed TEST Workers: API `game-proxy-company-v1`, version `43512536-7933-4274-bc1d-269d2281c335`; frontend `gamebuilder-company-v1`, version `2da6d9e9-6dc6-4d05-9d0b-09469c7e3617`
-- disposable TEST game: `1cb25cc3-7e7e-4dcf-b0f3-b54e1338eb20`; setup `4a2912a2-12a7-4eef-846b-d5485d1ba5d1`; Level 7, EXP 0, committed turn 0 at creation
-- live session: one Story → Extract → Commit/readback session, 15 committed turns, zero provider retries, no reset; final committed turn 15, save revision 17, processing ready, level 7, EXP 6
-- final readback: scene remained `brand_strategy_meeting_room` with `[heroine4]`; turn 4 movement was not durable; turn 5 registered-NPC handoff was absent; turn 6 exact clothing CSA did not change four-slot durable clothing or Extract observation; turns 8 and 10 did not update player sexual state or produce scoped intimate observation; turns 9–15 remained work-oriented; Cut 2 app-state/Mind Monitor/readback remained reachable
-- preserved evidence: exact `game_actions`, `game_turns`, save, and Extract evidence remain in TEST for the disposable game; external evidence record: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-live-resume-v1-terminal.md`
-- root classification: Story context/prompt plus scene/presence, CSA, clothing/physical/player mechanic, Extract, and persistence acceptance gaps. Existing source prompt already carries canonical payload, registered locations/actors, exact `player_action`, committed history, and explicit action-scope/no-invention rules. The provider still ignored the tested movement, personal/non-work, clothing, and intimate semantics.
-- decision: no safe narrow canonical-writer reconnect was identified. A general correctness fix would require a prohibited semantic action router/verifier, finite physical-action grammar, consent/event ledger, generic CSA execution DSL, shadow compatibility architecture, or provider/model change. No source repair, retry, DB reset, migration-history repair, or Production action was performed.
+At terminal:
+1. set CURRENT_TASK `WAITING_REVIEW`;
+2. post exactly one Issue #68 terminal with registration/final SHA/blob, previous-game read-only byte evidence, probe game/action IDs, exact probe code points/UTF-8 bytes, request method, durable DB readback, corruption boundary classification, repo diff/tests if any, and all mutation/deploy/safety counts;
+3. STOP. Do not start full live acceptance, architecture repair, provider change, Production, merge, or Cut3.
