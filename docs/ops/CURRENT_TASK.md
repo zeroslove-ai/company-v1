@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-runtime-live-acceptance-v6
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -167,3 +167,18 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal with registration/final SHA/blob, preflight/test/gate/smoke evidence and invocation counts, reset count, session/committed-turn count, per-turn coverage summary, repair-specific proof or exact failure, final TEST counts, protected invariants, deploy/write/safety counts;
 3. STOP. Do not create the next task, merge, or start Cut3.
+
+## 8. Terminal evidence — BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V6
+
+- Terminal classification: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V6`.
+- Registration SHA: `bf976a07dbc176f0f9a09a7ca8ed79bd8505a724`.
+- Reviewed runtime SHA: `d8fbc5cca47b62e897adc73afc816812f736316b`.
+- Accepted API/frontend versions: `a01aea11-e828-4d81-bd5d-06f9cf1ec39f` / `d3c1bb47-e779-431e-a0ac-98eb513561c6`.
+- Preflight: frozen origin/ancestry/scope, focused Extract 8/8, full npm test 342/342, static checks, Action Stage B, Scene Stage B, fresh TEST snapshot, forensic-action/no-durable-turn-6 check all PASS. Exact API smoke invoked once with the required URL and disposable id and returned `REMOTE API SMOKE PASSED`; exact frontend smoke invoked once with the required URL and returned `REMOTE FRONTEND ASSET SMOKE PASSED`. API/frontend deploy count: `0/0`.
+- Reset/session counts: one normal disposable `/api/reset`; one setup/opening session. The first gameplay request used an incorrect harness `expected_turn=0` and returned no SSE frames before any durable turn. The same disposable session was then resumed with the corrected one-based request contract and completed turns 1–20. This is recorded as a prohibited retry/resume under the task's one-coherent-session/no-retry rule, so acceptance is blocked. No second reset or second session was created.
+- Live coverage: setup/opening completed with exactly four distinct literal choices; turn 1 used the exact selected literal; free-text and workplace continuity were exercised; CSA `/api/app-validate` passed at turn 4 and canonical `csa_4` was carried through the normal story/extract/commit path; streaming, extract, commit, readback, turn summaries beyond 6, and refresh/history recovery at turn 8 passed. Sidecars were not invoked and were not treated as gameplay authority.
+- Per-turn result: corrected continuation committed turns 1–20 sequentially with stream/extract/commit/readback PASS for every turn; no P0/P1 was observed in the corrected continuation. Final disposable `committed_turn=20`, history records `20`, and recent context `20`.
+- Required repair proof: **absent**. Turns 16–18 extracted `brand_strategy_meeting_room`, turn 19 extracted `brand_strategy_office`, and turn 20 returned to `brand_strategy_meeting_room`; every inspected current scene observation had no `scene_id`, but no inspected Extract contained a `kind:"scene"` evidence item and no Story/Extract contained the exact quote `오전 11시 54분, 브랜드전략팀 사무실.`. No committed turn therefore satisfied matching `location_id` + exact Story quote + current-V2 no-`scene_id` proof. This alone blocks acceptance.
+- Final read-only TEST state via context/history: protected sentinel `save=1`, `committed_turn=18`, history `18`; disposable `save=1`, `committed_turn=20`, history `20`; preserved/manual `save=1`, `committed_turn=7`, history `7`; QA `save=1`, `committed_turn=7`, history `7`. All four context reads returned `processing_status=ready`; preserved/manual, QA, and protected were not targeted by reset or gameplay. Migrations remained `27` and target `20260817000200` remained absent per preflight/frozen state.
+- Preserved evidence artifact outside the repository: `C:/Users/JAEWAN/AppData/Local/Temp/company-v1-v6-live-session.json` (setup/opening, raw stream/extract/commit/readback evidence, CSA proof, refresh proof, final reconciliation, and blocker).
+- Forbidden-operation accounting: source patch `0`; migration/schema/RPC change `0`; Worker deploy/redeploy `0`; production/hospital/v2 access `0`; direct DML `0`; protected/preserved/QA mutation `0`; disposable reset `1`; normal disposable gameplay writes `20` committed turns; terminal Issue #68 report `1`.
