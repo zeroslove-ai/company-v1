@@ -1,176 +1,177 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: scene-contract-gate-canon-reconciliation-v1
+Status: READY
+Task ID: test-runtime-live-acceptance-v2
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 ## Purpose
 
-Repair only the stale TEST pre-deploy scene DB contract gate that blocked `test-runtime-live-acceptance-v1` before any Worker deployment or gameplay. The accepted TEST schema bridge is already applied and verified. Do **not** modify TEST DB/schema to satisfy the old gate. Reconcile the gate/manifest/tests to the accepted current canon, preserve fail-closed contract evidence, and STOP for review before any deploy/live session.
+Resume the TEST-only rollout/live acceptance that previously stopped before deployment on a stale scene contract gate. The gate has now been reconciled to current canon and independently reviewed. Deploy the unchanged current-main runtime to the Company TEST Workers, smoke both Workers, then run exactly one natural 15–20 turn player-style live acceptance session on the disposable TEST game. Preserve exact failure evidence and STOP. Do not start Cut 3.
 
 ## 0. Frozen authority
 
 - Repository: `zeroslove-ai/company-v1`
 - Expected `origin/main`: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-- Previous task: `test-runtime-live-acceptance-v1`
-- Previous STARTED comment: `5318715906`
-- Previous terminal comment: `5318843656`
-- Previous terminal: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE`
-- Previous final SHA: `63d4fb971ad9baceb1391f38ecb76debe1310d72`
-- Previous final CURRENT_TASK blob: `2ecbfff920b9df5af071e4da8a07232d68033a51`
+- Accepted gate terminal: Issue #68 comment `5319202426`
+- Accepted gate final SHA: `0c4296fa6b6de27c68e4341ffae9c8caef28dd4b`
+- Accepted gate final CURRENT_TASK blob: `50744e7b82b66b6540f4793633da7c603d08e751`
 - TEST Supabase: `fmcrspgxstsmxxsmkeee`
-- Production: forbidden
+- API Worker: `game-proxy-company-v1`
+- Frontend Worker: `gamebuilder-company-v1`
+- API URL: `https://game-proxy-company-v1.zeroslove.workers.dev`
+- Frontend URL: `https://gamebuilder-company-v1.zeroslove.workers.dev`
+- Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+- Preserved/manual game — NEVER reset/reuse: `78fb1d94-266f-455a-bda4-7656cc2370c1`
+- QA game — do not reuse: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`
+- Production sentinel — forbidden: `11111111-1111-4111-8111-111111111111`
 
-Accepted post-bridge TEST invariants:
-- migration rows = `27`
-- target migration `20260817000200` absent
-- bridge canonical = `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`
-- forensic canonical = `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`
-- `company_validate_scene_v1(jsonb,boolean)` MD5 `e982167db59fc5be1447b8866dd35a65`, `SECURITY INVOKER`, no `proconfig`, no service-role EXECUTE
-- `company_bootstrap_scene_v1(jsonb)` MD5 `57b28451f9baaaba13e760b644eb38e3`, `SECURITY DEFINER`, `search_path=public, pg_temp`, no service-role EXECUTE
-- `validate_company_save_v1(jsonb)` MD5 `d9a165eb01ee70cf92b63e7935e44f1b`, `SECURITY DEFINER`, `search_path=public, pg_temp`, service-role EXECUTE
-- `reset_company_game(uuid,text)` MD5 `ebc2957fdf9e9a7eaf6c48d9a1e9604b`, `SECURITY DEFINER`, `search_path=public, pg_temp`, service-role EXECUTE
+Accepted TEST schema invariants:
+- migration rows `27`; target `20260817000200` absent;
+- bridge canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`;
+- forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`;
+- `company_validate_scene_v1(jsonb,boolean)` MD5 `e982167db59fc5be1447b8866dd35a65`, SECURITY INVOKER, no proconfig, no service-role EXECUTE;
+- `company_bootstrap_scene_v1(jsonb)` MD5 `57b28451f9baaaba13e760b644eb38e3`, SECURITY DEFINER, `search_path=public, pg_temp`, no service-role EXECUTE;
+- `validate_company_save_v1(jsonb)` MD5 `d9a165eb01ee70cf92b63e7935e44f1b`, SECURITY DEFINER, safe search_path, service-role EXECUTE;
+- `reset_company_game(uuid,text)` MD5 `ebc2957fdf9e9a7eaf6c48d9a1e9604b`, SECURITY DEFINER, safe search_path, service-role EXECUTE.
 
-Binding source canon:
-- `supabase/migrations/20260817000200_company_v1_gameplay_core_simplification.sql` intentionally defines `company_validate_scene_v1` as a narrow immutable structural validator without `SECURITY DEFINER` or a `SET search_path` clause.
-- Historical `20260814000500_company_v1_scene_authority_stage_a.sql` defined an older extended validator as `SECURITY DEFINER`; that historical migration is evidence, not current semantic/security authority.
+Corrected scene Stage B live probes must remain true:
+- `canonical_narrow_scene_accepted`
+- `canonical_scene_missing_required_key_rejected`
+- `canonical_save_without_legacy_scene_mirrors_accepted`
+- `legacy_only_save_rejected`
 
-Observed gate defects to reproduce before editing:
-1. `evaluateSceneCatalog()` unconditionally requires **every** scene-contract function to be `SECURITY DEFINER` and to have `search_path=public, pg_temp`, even though the manifest only explicitly models `service_role_execute` and current canon intentionally has an invoker-only internal validator.
-2. Live `CATALOG_SQL` hardcodes `'scene_probes', '{}'::jsonb`, so any stage that requires scene behavioral probes cannot pass using the live catalog path regardless of actual DB behavior.
-3. Existing unit fixtures encode the obsolete blanket-definer assumption through `functionBase()` defaults.
+Binding runtime canon:
+`player literal/input -> committed context -> Story streaming -> Extract observations -> structural/provenance Commit -> durable save/history -> committed readback/UI/next Story`.
 
-## 1. Mandatory start freeze
+Story is narrative authority; Extract observes Story-established facts; Commit owns structure/provenance/transaction; DB owns durable state/history; frontend is presentation/readback only. No semantic hard judges, retry-until-lucky, hidden player-input rewriting, or duplicate semantic authority.
 
-Before any edit:
-1. fresh-fetch and require `origin/main == 8f3c5326e483650211fbc6c9f54a7527d2278d4e`;
-2. require this branch to descend directly from `63d4fb971ad9baceb1391f38ecb76debe1310d72` with only this registration commit before execution;
-3. re-read terminal `5318843656`, current scene manifest, `scripts/company-db-contract-gate.mjs`, `test/db-contract-gate.test.mjs`, landed-main simplification SQL, and historical Stage A scene migration;
-4. fresh-read TEST function metadata above and require exact accepted values;
-5. recompute TEST migration row count/target absence plus both canonical hashes and require exact accepted values;
-6. reproduce current scene Stage B gate failure without DB writes and record the exact failure set.
+## 1. Mandatory preflight
 
-Any unrelated drift: STOP `SCENE_CONTRACT_GATE_RECONCILIATION_BLOCKED` with no source change.
+Before any deployment/gameplay write:
+1. fresh-fetch and require `origin/main` exactly the SHA above;
+2. require this branch to be the direct descendant of `0c4296fa6b6de27c68e4341ffae9c8caef28dd4b`, with only this registration before execution;
+3. prove `src/**`, content/catalog, Wrangler runtime configs, package/lock files and workflows are byte-identical to `origin/main`; the only accepted non-doc divergence from main is the reviewed gate repair in `scripts/company-db-contract-gate.mjs`, `config/company-v1-scene-db-contract.json`, and `test/db-contract-gate.test.mjs`;
+4. re-read terminal `5319202426` and do not modify the accepted gate repair;
+5. fresh-read TEST migration/function/ACL invariants and both migration canonicals; require exact accepted values;
+6. run corrected action Stage B + scene Stage B gates against live TEST in read-only mode; both must PASS with the four real non-persisting scene probes above;
+7. verify TEST project/Worker names/config bindings exactly; TTS service `fancy-dust-7f8c` unchanged;
+8. verify required deploy credentials/secrets exist without printing values;
+9. run full local regression, changed-script syntax/static checks and `git diff --check`; require 0 failures;
+10. verify frozen-main CI is successful; do not create runtime commits to obtain CI;
+11. freeze current API/frontend deployment/version IDs;
+12. freeze pre-session DB evidence for disposable/preserved/QA/Production-sentinel games.
 
-## 2. Allowed repository scope
+Any mismatch: terminal `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V2`, no deployment.
 
-After registration, only these files may change:
-- `scripts/company-db-contract-gate.mjs`
-- `config/company-v1-scene-db-contract.json`
-- `test/db-contract-gate.test.mjs`
-- `docs/ops/CURRENT_TASK.md` lifecycle evidence
+Forbidden in preflight: DB/schema/migration-history write, migration apply/push/repair, TEST reset/live gameplay, Production.
 
-Do not modify migrations, runtime API/engine/frontend/content, package/workflow files, deployment configs, or unrelated docs.
+## 2. Controlled TEST deployment
 
-## 3. Required correction — security contract must be manifest-driven
+### API
+Use the repository gated deploy path with action Stage B and scene Stage B explicitly enabled. Deploy exactly `wrangler.api.jsonc` to `game-proxy-company-v1`.
 
-Do not weaken the gate globally.
+Requirements:
+- TEST Supabase only;
+- no provider/model/TTS/binding/secret/config changes;
+- no gate bypass;
+- record deployment/version ID and URL;
+- at most one successful API deploy;
+- ambiguous/failing deploy => STOP, no second deploy.
 
-Change the scene manifest/evaluator so each expected function explicitly declares its security contract, including at minimum:
-- expected `security_definer` boolean;
-- whether a safe `search_path=public, pg_temp` is required;
-- expected `service_role_execute` boolean.
+Run existing API smoke immediately and require PASS before frontend deploy/live gameplay.
 
-Current Stage B expectations must match accepted canon:
-- `company_validate_scene_v1(jsonb,boolean)`: `security_definer=false`, safe search_path **not required**, `service_role_execute=false`;
-- `company_bootstrap_scene_v1(jsonb)`: `security_definer=true`, safe search_path required, `service_role_execute=false`;
-- `validate_company_save_v1(jsonb)`: `security_definer=true`, safe search_path required, `service_role_execute=true`;
-- `reset_company_game(uuid,text)`: `security_definer=true`, safe search_path required, `service_role_execute=true`.
+### Frontend
+Deploy exactly `wrangler.frontend.jsonc` to `gamebuilder-company-v1`.
 
-Rules:
-- evaluator must reject either direction of a security-mode mismatch;
-- when safe search_path is required, missing/unsafe path must fail;
-- when not required for an invoker helper, absence of proconfig must not fail;
-- ACL mismatch must still fail in either direction;
-- action DB contract gate behavior must remain unchanged.
+Requirements:
+- record deployment/version ID and URL;
+- at most one successful frontend deploy;
+- run existing frontend smoke and verify Company TEST API/experience;
+- do not edit frontend to make smoke pass.
 
-## 4. Required correction — live behavioral evidence must be real, not fabricated
+Deploy/smoke failure => BLOCKED. No redeploy-to-pass.
 
-The live gate may not keep `scene_probes: {}` while claiming Stage B deploy safety, and it may not simply remove all behavioral probes to make the gate green.
+## 3. Disposable TEST game preparation
 
-Design the narrowest fail-closed current-canon probe mechanism. Preferred direction:
-- generate **non-persisting, deterministic structural scene/save probe results from the live DB** for functions that are safe to invoke without data mutation;
-- probe the current six-key scene/save contract, not the obsolete extended `scene_id/beat/goal/focus_thread` authority;
-- do not invoke `reset_company_game` in a pre-deploy read-only probe because it mutates persisted rows;
-- if reset behavior cannot be proven non-persistently by the existing gate architecture, remove only the obsolete live reset behavioral requirement and continue to enforce its exact function identity/security/search_path/ACL metadata. Do not fake `reset_returns_scene_v1=true`.
+Only `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` may be mutated.
 
-At minimum, current Stage B behavioral evidence must prove with synthetic non-persisted JSON:
-1. a canonical narrow six-key scene is accepted;
-2. a scene missing a required six-key field is rejected;
-3. a canonical save containing the narrow scene and no legacy scene mirrors is accepted by `validate_company_save_v1`;
-4. a legacy-only save lacking current canonical scene/save shape is rejected.
+- capture its pre-state first;
+- if a clean Opening is required, use the existing TEST-safe application reset path exactly once;
+- never reset/reuse preserved/manual game;
+- never mutate QA or Production-sentinel games;
+- no direct SQL fabrication of gameplay rows;
+- use normal TEST application API/RPC flows;
+- live transcript/evidence stays outside the repo.
 
-Probe names may be updated to accurately describe current behavior. If stage_a historical compatibility probe names remain for historical tests, they must not force current Stage B live deployment to assert superseded semantics.
+## 4. Exactly one natural 15–20 turn live session
 
-No probe may write to `game_save`, `game_turns`, `game_actions`, migration history, or any other persisted table.
+After deploy/smokes, run one and only one coherent player-style session, including Opening/setup. Commit at least 15 turns and stop by 20. Do not retry a bad run or replay turns merely to obtain nicer provider output.
 
-## 5. Regression requirements
+Required coverage in that single session:
+1. **Opening/choices:** Opening streams/completes; exactly four choices resolve; click at least one returned choice and prove committed/Story input equals the clicked literal exactly.
+2. **Free-text agency:** multiple natural inputs; Story may refuse/fail/partially satisfy, but may not silently replace the requested action with a materially unrelated action.
+3. **Workplace continuity:** ordinary company/work narrative works without durable `work_hook`/`scene_goal` semantic authority reappearing.
+4. **Movement/handoff:** registered-location movement plus same-location focal/cast handoff; speaker must not create false presence; known requested NPC must not be replaced by invented/wrong identity.
+5. **CSA scope:** exercise an applicable clothing-state CSA at exact target/scope, then an unrelated action; no spurious reapplication. Compliance remains separate from comfort/consent/affection/trust/arousal.
+6. **Adult physical continuity:** include a natural adult intimate/physical progression sufficient to inspect clothing and physical continuity. Input is intent/attempt, not automatic durable success; durable changes require Story-grounded or narrowly authorized evidence.
+7. **Sidecars:** reaction/media/TTS/image sidecars may present but cannot become semantic authority; missing media must not block Story/Commit.
+8. **>6-turn memory:** continue well past turn 6; inspect `game_turns.turn_summary`, recent/overall summary projection, and context continuity for empty/stale/mojibake/continuity-cliff behavior. Any defect claim needs exact turn evidence.
+9. **Refresh/recovery:** after a committed mid/late turn, discard client/session state, refetch committed context/history and continue the same game; recovery must come from committed server state.
+10. **Streaming/transaction:** every committed turn shows Story stream progress and one terminal result; no duplicate commit, missing action, stuck pending turn, or history divergence.
 
-Add/update tests proving all of the following:
-- invoker internal scene validator with no proconfig passes when manifest expects that exact contract;
-- the same function fails if it unexpectedly becomes `SECURITY DEFINER`;
-- a function expected to be definer fails if it is invoker;
-- required safe search_path functions fail on missing/unsafe search_path;
-- service-role ACL mismatch still fails in both directions;
-- live current-canon scene probes PASS for the accepted narrow shape;
-- each required probe independently fails when its behavior is false/missing;
-- no live probe requires persisted writes;
-- Stage B gate no longer depends on fabricated `{}` scene probe catalog;
-- action Stage A/B gate regression remains intact.
+For each turn preserve externally: turn number, exact input/click literal, key Story result, terminal status, committed input/action, scene/focal/present NPCs, choice count, relevant CSA/physical deltas, summary state, warnings/errors.
 
-Run focused gate tests, then full `npm.cmd test`; require 0 failures. Run syntax checks and `git diff --check`.
+A provider transient error is evidence. Do not retry-until-lucky. Only a deterministic product recovery action explicitly required by normal product behavior may be exercised and must remain part of the recorded same session.
 
-## 6. Read-only TEST proof after source correction
+## 5. Acceptance classification
 
-Using the corrected gate against current TEST:
-- action Stage B: PASS;
-- scene Stage B: PASS;
-- exact accepted function/security/ACL metadata remains unchanged;
-- migration rows/canonical hashes remain unchanged;
-- gameplay row counts remain unchanged.
+### P0 blocker
+Production access/change; migration/history corruption; mutation outside disposable TEST game; duplicate/dropped commit; unrecoverable durable state; Worker identity mismatch.
 
-This task does **not** authorize applying any DB change to make the gate pass. If corrected gate still requires a DB semantic/security change, STOP `SCENE_CONTRACT_GATE_RECONCILIATION_BLOCKED` and preserve the exact mismatch.
+### P1 blocker
+Material player-input rewrite; wrong/invented NPC identity; stale `work_hook`/`scene_goal` authority returning; scene/cast/speaker divergence; CSA scope leakage or rule/consent conflation; durable physical success from input intent without Story evidence; material >6-turn memory/summary continuity failure; refresh/recovery state loss; Story streaming blocked by semantic/presentation gate; API/frontend runtime/config mismatch.
 
-## 7. Hard prohibitions
+### P2 note
+Purely cosmetic/presentation issue with no authority/state/streaming/input/continuity/recovery impact. Record only; do not patch.
 
-- Worker/frontend deploy: forbidden;
-- live provider/gameplay turn or TEST reset: forbidden;
-- any DB/schema/DDL/DML write: forbidden;
-- migration apply/repair/history mutation/db push: forbidden;
-- Production access/change: forbidden;
-- hospital/v2 access: forbidden;
-- provider/model/TTS/config change: forbidden;
-- runtime/engine/frontend/content behavior change: forbidden;
-- weakening/skipping the action gate: forbidden;
-- replacing behavioral evidence with unconditional constants: forbidden;
-- Cut 3: forbidden.
+## 6. Post-session verification
+
+After the one session:
+- re-run action + scene Stage B gates read-only and require PASS;
+- recheck migration rows, target absence, both canonicals and accepted scene/bridge function metadata;
+- prove preserved/manual, QA and Production-sentinel games unchanged;
+- reconcile disposable game committed turns/actions/history with the captured per-turn evidence;
+- record API/frontend deployment IDs and smoke results.
+
+Do not repair defects in this task.
+
+## 7. Repository scope and prohibitions
+
+After registration, repository changes are limited to `docs/ops/CURRENT_TASK.md` lifecycle/terminal evidence. No source/runtime/config/content/test/package/workflow changes.
+
+Forbidden:
+- Production access/change/deploy/reset/gameplay/migration;
+- hospital/v2 access;
+- `supabase db push`, migration repair/history mutation/replay;
+- schema changes;
+- provider/model/TTS changes;
+- gate weakening/skipping;
+- multiple live sessions or retry-until-lucky;
+- reset/reuse of preserved/manual game;
+- Cut 3 or unrelated work.
 
 ## 8. Terminal classification
 
 Choose exactly one:
 
-### `SCENE_CONTRACT_GATE_CANON_RECONCILED`
-Only if source/test corrections are narrow, full tests pass, corrected action+scene Stage B gates pass against unchanged TEST, live scene probes are non-persisting and real, and no forbidden operation occurred.
+### `TEST_RUNTIME_LIVE_ACCEPTED_V2`
+Only if all preflight checks pass, API+frontend deploy/smokes pass, exactly one 15–20 turn session completes with at least 15 committed turns and all required coverage, no unresolved P0/P1 exists, post-session DB/gate invariants pass, and Production access/change is zero.
 
-### `SCENE_CONTRACT_GATE_RECONCILIATION_BLOCKED`
-Use for any uncertainty, remaining contract mismatch, need for DB change, inability to produce non-persisting behavioral evidence, test failure, or scope drift.
+### `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V2`
+For any preflight/deploy/smoke/session/post-check failure, P0/P1 defect, provider/runtime ambiguity, or evidence uncertainty. Preserve the exact failing game/turn evidence. Do not reset away the failure, patch source, redeploy, or run a replacement session.
 
 At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
-2. post exactly one Issue #68 terminal containing registration/final SHA/blob, changed files, root cause, before/after exact gate failures, behavioral probe mechanism/results, full test count, TEST metadata/hash invariants, and safety counts;
-3. STOP. Do not deploy and do not create the next task.
-
-## 9. Terminal evidence — SCENE_CONTRACT_GATE_CANON_RECONCILED
-
-- Registration SHA: `73516e71a026437be84f7409d52412c4e9c6d005`; execution lease: Issue #68 comment `5319089540`.
-- Changed files are limited to `scripts/company-db-contract-gate.mjs`, `config/company-v1-scene-db-contract.json`, `test/db-contract-gate.test.mjs`, and this lifecycle record.
-- Root cause: the old evaluator imposed blanket `SECURITY DEFINER` and safe-search-path requirements, while the accepted current canon intentionally keeps `company_validate_scene_v1(jsonb,boolean)` as an invoker with no proconfig; the live catalog also fabricated `scene_probes={}`.
-- Repaired contract is manifest-driven with explicit `security_definer`, `require_safe_search_path`, and `service_role_execute` booleans. Current Stage B expects the accepted invoker validator and preserves strict metadata/ACL checks for the security-definer functions.
-- Before correction, the reproduced scene Stage B failures were: `company_validate_scene_v1(jsonb, boolean)` not SECURITY DEFINER; unsafe scene search_path for that function; missing/failed `legacy_only_save_accepted`, `canonical_scene_save_accepted`, `canonical_missing_nullable_key_rejected`, `reset_returns_scene_v1`, `legacy_only_save_rejected`, and `canonical_without_legacy_scene_mirrors_accepted` probes.
-- After correction, action Stage B and scene Stage B both PASS against the live TEST catalog. The live catalog now invokes real non-persisting synthetic JSON probes; no reset or persisted-table access is used. Results: `canonical_narrow_scene_accepted=true`, `canonical_scene_missing_required_key_rejected=true`, `canonical_save_without_legacy_scene_mirrors_accepted=true`, and `legacy_only_save_rejected=true`.
-- Validation: focused `node --test test/db-contract-gate.test.mjs` = 15/15 PASS; full `npm.cmd test` = 320/320 PASS; `node --check` for changed JS/MJS files PASS; `git diff --check` PASS.
-- TEST project `fmcrspgxstsmxxsmkeee` read-only final invariants: migration rows `27`; target `20260817000200` absent; bridge canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`; forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`.
-- TEST function metadata remained unchanged: `company_validate_scene_v1` MD5 `e982167db59fc5be1447b8866dd35a65`, invoker/no proconfig/no service-role EXECUTE; `company_bootstrap_scene_v1` MD5 `57b28451f9baaaba13e760b644eb38e3`, SECURITY DEFINER/search_path `public, pg_temp`/no service-role EXECUTE; `validate_company_save_v1` MD5 `d9a165eb01ee70cf92b63e7935e44f1b`, SECURITY DEFINER/search_path/service-role EXECUTE; `reset_company_game` MD5 `ebc2957fdf9e9a7eaf6c48d9a1e9604b`, SECURITY DEFINER/search_path/service-role EXECUTE.
-- Read-only gameplay counts remained unchanged: disposable `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` = game_master 1 / game_save 1 / game_actions 12 / game_turns 11; preserved manual `78fb1d94-266f-455a-bda4-7656cc2370c1` = 1 / 1 / 9 / 7; QA `f31b6c1b-0b27-4a4e-8c9d-7a238360891f` = 1 / 1 / 7 / 7; Production sentinel `11111111-1111-4111-8111-111111111111` = 1 / 1 / 18 / 18.
-- Safety: DB/schema/migration-history writes `0`; migration apply/push `0`; TEST reset/live gameplay `0`; Worker/frontend deploy `0`; Production access/change `0`; forbidden runtime/provider/config/content changes `0`; PR/merge `0`.
+2. post exactly one Issue #68 terminal containing registration/final SHA/blob, pre/post Worker IDs, smoke results, game/reset/session counts, per-coverage verdicts, exact failed turn(s) if any, post-session gate/migration evidence, safety counts and terminal classification;
+3. STOP. Do not start Cut 3 or create another task.
