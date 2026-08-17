@@ -1,193 +1,159 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: test-runtime-live-acceptance-v2
+Status: READY
+Task ID: api-smoke-context-canon-reconciliation-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 ## Purpose
 
-Resume the TEST-only rollout/live acceptance that previously stopped before deployment on a stale scene contract gate. The gate has now been reconciled to current canon and independently reviewed. Deploy the unchanged current-main runtime to the Company TEST Workers, smoke both Workers, then run exactly one natural 15–20 turn player-style live acceptance session on the disposable TEST game. Preserve exact failure evidence and STOP. Do not start Cut 3.
+Repair only the stale read-only API smoke assertion that blocked `test-runtime-live-acceptance-v2` after a successful TEST API deployment. Independent operator verification shows the deployed/current-main API context contract is healthy; the smoke script is stale because it hardcodes the protected sentinel game and requires `turn_state.committed_turn === 0`, while that existing TEST game is legitimately at turn 18. Reconcile the smoke harness to the current committed-context canon, prove the already-deployed TEST API passes the corrected smoke once, and STOP for review. Do not redeploy or run gameplay.
 
 ## 0. Frozen authority
 
 - Repository: `zeroslove-ai/company-v1`
 - Expected `origin/main`: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-- Accepted gate terminal: Issue #68 comment `5319202426`
-- Accepted gate final SHA: `0c4296fa6b6de27c68e4341ffae9c8caef28dd4b`
-- Accepted gate final CURRENT_TASK blob: `50744e7b82b66b6540f4793633da7c603d08e751`
+- Previous task: `test-runtime-live-acceptance-v2`
+- Previous STARTED comment: `5319362207`
+- Previous terminal comment: `5319385191`
+- Previous terminal: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V2`
+- Previous final SHA: `36b916f40522f4814b0c432a6df130cece0ef57a`
+- Previous final CURRENT_TASK blob: `6ed0f6b54535bec59ccc971010e8c5d339c119b5`
 - TEST Supabase: `fmcrspgxstsmxxsmkeee`
 - API Worker: `game-proxy-company-v1`
-- Frontend Worker: `gamebuilder-company-v1`
+- Already-deployed API version from the accepted blocked terminal: `2a976491-451d-4fc8-8808-65353cad137b`
 - API URL: `https://game-proxy-company-v1.zeroslove.workers.dev`
-- Frontend URL: `https://gamebuilder-company-v1.zeroslove.workers.dev`
-- Disposable TEST game: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
-- Preserved/manual game — NEVER reset/reuse: `78fb1d94-266f-455a-bda4-7656cc2370c1`
-- QA game — do not reuse: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`
-- Production sentinel — forbidden: `11111111-1111-4111-8111-111111111111`
+- Frontend Worker was not deployed in the blocked task.
+- Disposable TEST game for read-only smoke: `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+- Preserved/manual game — do not touch: `78fb1d94-266f-455a-bda4-7656cc2370c1`
+- QA game — do not touch: `f31b6c1b-0b27-4a4e-8c9d-7a238360891f`
+- Protected sentinel — do not use as smoke fixture and do not mutate: `11111111-1111-4111-8111-111111111111`
+- Production: forbidden
 
-Accepted TEST schema invariants:
-- migration rows `27`; target `20260817000200` absent;
+Accepted TEST schema invariants remain:
+- migration rows `27`;
+- target migration `20260817000200` absent;
 - bridge canonical `6fc2d673ca6bbcc406d8f6b312cacadbed208057a379948c0969cc7bc412dadc`;
-- forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`;
-- `company_validate_scene_v1(jsonb,boolean)` MD5 `e982167db59fc5be1447b8866dd35a65`, SECURITY INVOKER, no proconfig, no service-role EXECUTE;
-- `company_bootstrap_scene_v1(jsonb)` MD5 `57b28451f9baaaba13e760b644eb38e3`, SECURITY DEFINER, `search_path=public, pg_temp`, no service-role EXECUTE;
-- `validate_company_save_v1(jsonb)` MD5 `d9a165eb01ee70cf92b63e7935e44f1b`, SECURITY DEFINER, safe search_path, service-role EXECUTE;
-- `reset_company_game(uuid,text)` MD5 `ebc2957fdf9e9a7eaf6c48d9a1e9604b`, SECURITY DEFINER, safe search_path, service-role EXECUTE.
+- forensic canonical `e35e88200ea72671518f0f7ad2bf340de55511023b370518003d64544354168d`.
 
-Corrected scene Stage B live probes must remain true:
-- `canonical_narrow_scene_accepted`
-- `canonical_scene_missing_required_key_rejected`
-- `canonical_save_without_legacy_scene_mirrors_accepted`
-- `legacy_only_save_rejected`
+Independent operator root-cause evidence:
+- current `scripts/smoke-api-worker.mjs` hardcodes game ID `11111111-1111-4111-8111-111111111111` and rejects any context where `save.turn_state.committed_turn !== 0`;
+- current TEST row for that game has `game_save.committed_turn=18` and `save.data.turn_state.committed_turn=18`;
+- current TEST disposable game has `game_save.committed_turn=11` and `save.data.turn_state.committed_turn=11`;
+- direct read-only `get_company_context` evidence for the protected sentinel has `game.edition_id=company-v1`, wrapped save `data.edition=company-v1`, `save_schema_version=1`, and committed turn `18`;
+- API route canon returns `ok({ context: withOpeningTurnProjection(hydrated) })`; nonzero committed turn is valid state, not an API error;
+- therefore the failed `/api/context` smoke is a stale fixture/assertion, not evidence that the deployed runtime is broken.
 
-Binding runtime canon:
-`player literal/input -> committed context -> Story streaming -> Extract observations -> structural/provenance Commit -> durable save/history -> committed readback/UI/next Story`.
+## 1. Mandatory start freeze
 
-Story is narrative authority; Extract observes Story-established facts; Commit owns structure/provenance/transaction; DB owns durable state/history; frontend is presentation/readback only. No semantic hard judges, retry-until-lucky, hidden player-input rewriting, or duplicate semantic authority.
-
-## 1. Mandatory preflight
-
-Before any deployment/gameplay write:
+Before editing:
 1. fresh-fetch and require `origin/main` exactly the SHA above;
-2. require this branch to be the direct descendant of `0c4296fa6b6de27c68e4341ffae9c8caef28dd4b`, with only this registration before execution;
-3. prove `src/**`, content/catalog, Wrangler runtime configs, package/lock files and workflows are byte-identical to `origin/main`; the only accepted non-doc divergence from main is the reviewed gate repair in `scripts/company-db-contract-gate.mjs`, `config/company-v1-scene-db-contract.json`, and `test/db-contract-gate.test.mjs`;
-4. re-read terminal `5319202426` and do not modify the accepted gate repair;
-5. fresh-read TEST migration/function/ACL invariants and both migration canonicals; require exact accepted values;
-6. run corrected action Stage B + scene Stage B gates against live TEST in read-only mode; both must PASS with the four real non-persisting scene probes above;
-7. verify TEST project/Worker names/config bindings exactly; TTS service `fancy-dust-7f8c` unchanged;
-8. verify required deploy credentials/secrets exist without printing values;
-9. run full local regression, changed-script syntax/static checks and `git diff --check`; require 0 failures;
-10. verify frozen-main CI is successful; do not create runtime commits to obtain CI;
-11. freeze current API/frontend deployment/version IDs;
-12. freeze pre-session DB evidence for disposable/preserved/QA/Production-sentinel games.
+2. require this branch to descend directly from previous final `36b916f40522f4814b0c432a6df130cece0ef57a`, with only this registration commit before execution;
+3. re-read terminal `5319385191`, current `scripts/smoke-api-worker.mjs`, `src/api/turn-routes.js` context route, and relevant API-response tests;
+4. fresh-read the two TEST games above and require the observed nonzero committed-turn values remain internally consistent between `game_save.committed_turn` and `save.data.turn_state.committed_turn`;
+5. fresh-read TEST migration row count/target absence and both accepted migration canonicals;
+6. verify API Worker current version is still `2a976491-451d-4fc8-8808-65353cad137b` if the available tooling can prove it. If Worker version cannot be independently read, record that limitation but do not redeploy merely to obtain evidence;
+7. prove no frontend deployment/live gameplay/reset occurred after terminal `5319385191` from available durable evidence.
 
-Any mismatch: terminal `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V2`, no deployment.
+Any unrelated runtime/DB drift: STOP `API_SMOKE_CONTEXT_RECONCILIATION_BLOCKED` without source change.
 
-Forbidden in preflight: DB/schema/migration-history write, migration apply/push/repair, TEST reset/live gameplay, Production.
+## 2. Allowed repository scope
 
-## 2. Controlled TEST deployment
+After registration, only these files may change:
+- `scripts/smoke-api-worker.mjs`
+- one narrowly-scoped smoke regression test file under `test/**` (prefer `test/api-smoke-contract.test.mjs` if a new file is needed)
+- `docs/ops/CURRENT_TASK.md` lifecycle evidence
 
-### API
-Use the repository gated deploy path with action Stage B and scene Stage B explicitly enabled. Deploy exactly `wrangler.api.jsonc` to `game-proxy-company-v1`.
+Do not modify API runtime, engine, frontend, content, migrations, Wrangler configs, package/workflow files, DB contract gate, provider/model/TTS config, or unrelated tests/docs.
 
-Requirements:
-- TEST Supabase only;
-- no provider/model/TTS/binding/secret/config changes;
-- no gate bypass;
-- record deployment/version ID and URL;
-- at most one successful API deploy;
-- ambiguous/failing deploy => STOP, no second deploy.
+## 3. Required smoke correction
 
-Run existing API smoke immediately and require PASS before frontend deploy/live gameplay.
+The smoke must validate the current API contract, not a specific historical save state.
 
-### Frontend
-Deploy exactly `wrangler.frontend.jsonc` to `gamebuilder-company-v1`.
+### 3.1 Remove hidden protected-sentinel fixture
 
-Requirements:
-- record deployment/version ID and URL;
-- at most one successful frontend deploy;
-- run existing frontend smoke and verify Company TEST API/experience;
-- do not edit frontend to make smoke pass.
+Do not hardcode `11111111-1111-4111-8111-111111111111` in the API smoke.
 
-Deploy/smoke failure => BLOCKED. No redeploy-to-pass.
+Require the smoke game ID explicitly from CLI input after the base URL, for example:
+`node scripts/smoke-api-worker.mjs <base-url> <game-id>`
 
-## 3. Disposable TEST game preparation
+For this task's one remote smoke, use only the disposable TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` in read-only `/api/context`.
 
-Only `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` may be mutated.
+Invalid/missing game ID input must fail closed before network context validation. Do not silently substitute another game.
 
-- capture its pre-state first;
-- if a clean Opening is required, use the existing TEST-safe application reset path exactly once;
-- never reset/reuse preserved/manual game;
-- never mutate QA or Production-sentinel games;
-- no direct SQL fabrication of gameplay rows;
-- use normal TEST application API/RPC flows;
-- live transcript/evidence stays outside the repo.
+### 3.2 Validate context identity/schema and turn consistency, not turn zero
 
-## 4. Exactly one natural 15–20 turn live session
+For `/api/context`, require at minimum:
+- response envelope `ok === true` via existing `readSuccess`;
+- `context.game.edition_id === 'company-v1'`;
+- requested game identity is preserved when the current context payload exposes a game ID;
+- save resolves correctly whether wrapped (`context.save.data`) or direct;
+- `save.edition === 'company-v1'`;
+- `save.save_schema_version === 1`;
+- committed-turn values exposed by the save wrapper and canonical `save.turn_state.committed_turn` are non-negative integers when present;
+- if both wrapper `context.save.committed_turn` and nested canonical `save.turn_state.committed_turn` are present, they must be exactly equal;
+- a legitimate nonzero committed turn must PASS;
+- malformed/missing edition/schema or contradictory committed-turn values must FAIL.
 
-After deploy/smokes, run one and only one coherent player-style session, including Opening/setup. Commit at least 15 turns and stop by 20. Do not retry a bad run or replay turns merely to obtain nicer provider output.
+Do **not** weaken smoke to only HTTP 200/`ok=true`. It must still prove a coherent Company v1 context contract.
 
-Required coverage in that single session:
-1. **Opening/choices:** Opening streams/completes; exactly four choices resolve; click at least one returned choice and prove committed/Story input equals the clicked literal exactly.
-2. **Free-text agency:** multiple natural inputs; Story may refuse/fail/partially satisfy, but may not silently replace the requested action with a materially unrelated action.
-3. **Workplace continuity:** ordinary company/work narrative works without durable `work_hook`/`scene_goal` semantic authority reappearing.
-4. **Movement/handoff:** registered-location movement plus same-location focal/cast handoff; speaker must not create false presence; known requested NPC must not be replaced by invented/wrong identity.
-5. **CSA scope:** exercise an applicable clothing-state CSA at exact target/scope, then an unrelated action; no spurious reapplication. Compliance remains separate from comfort/consent/affection/trust/arousal.
-6. **Adult physical continuity:** include a natural adult intimate/physical progression sufficient to inspect clothing and physical continuity. Input is intent/attempt, not automatic durable success; durable changes require Story-grounded or narrowly authorized evidence.
-7. **Sidecars:** reaction/media/TTS/image sidecars may present but cannot become semantic authority; missing media must not block Story/Commit.
-8. **>6-turn memory:** continue well past turn 6; inspect `game_turns.turn_summary`, recent/overall summary projection, and context continuity for empty/stale/mojibake/continuity-cliff behavior. Any defect claim needs exact turn evidence.
-9. **Refresh/recovery:** after a committed mid/late turn, discard client/session state, refetch committed context/history and continue the same game; recovery must come from committed server state.
-10. **Streaming/transaction:** every committed turn shows Story stream progress and one terminal result; no duplicate commit, missing action, stuck pending turn, or history divergence.
+Do not require Opening, turn 0, empty history, or any other mutable fixture state merely to prove API health.
 
-For each turn preserve externally: turn number, exact input/click literal, key Story result, terminal status, committed input/action, scene/focal/present NPCs, choice count, relevant CSA/physical deltas, summary state, warnings/errors.
+## 4. Regression requirements
 
-A provider transient error is evidence. Do not retry-until-lucky. Only a deterministic product recovery action explicitly required by normal product behavior may be exercised and must remain part of the recorded same session.
+Add focused tests proving at least:
+1. a valid wrapped Company v1 context with committed turn `18` passes;
+2. a valid direct-save shape with a nonzero committed turn passes if the route contract permits that compatibility shape;
+3. wrapped-vs-nested committed-turn mismatch fails;
+4. wrong edition fails;
+5. wrong save schema version fails;
+6. missing/invalid game-id CLI input fails closed;
+7. the source no longer contains the protected sentinel as a smoke fixture;
+8. the smoke still checks `/health`, `/api/version`, and `/api/context` and preserves existing failure codes/diagnostic clarity.
 
-## 5. Acceptance classification
+Prefer behavior tests over source-text-only tests. If the script must be minimally refactored to make assertions testable, keep the refactor inside `scripts/smoke-api-worker.mjs`; do not create a second semantic smoke implementation.
 
-### P0 blocker
-Production access/change; migration/history corruption; mutation outside disposable TEST game; duplicate/dropped commit; unrecoverable durable state; Worker identity mismatch.
+Run focused smoke tests, then full `npm.cmd test`; require 0 failures. Run `node --check` on changed MJS/JS and `git diff --check`.
 
-### P1 blocker
-Material player-input rewrite; wrong/invented NPC identity; stale `work_hook`/`scene_goal` authority returning; scene/cast/speaker divergence; CSA scope leakage or rule/consent conflation; durable physical success from input intent without Story evidence; material >6-turn memory/summary continuity failure; refresh/recovery state loss; Story streaming blocked by semantic/presentation gate; API/frontend runtime/config mismatch.
+## 5. Read-only remote proof
 
-### P2 note
-Purely cosmetic/presentation issue with no authority/state/streaming/input/continuity/recovery impact. Record only; do not patch.
+After the source/test correction and all local tests pass:
+1. do **not** redeploy API;
+2. run the corrected API smoke exactly once against `https://game-proxy-company-v1.zeroslove.workers.dev` with disposable game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`;
+3. require `/health`, `/api/version`, `/api/context` all PASS;
+4. record the returned context's edition/schema and committed-turn consistency without dumping secrets or full private save contents;
+5. re-read disposable TEST game afterward and prove no row/action/turn count or committed-turn change occurred from the smoke;
+6. recheck migration row count/target absence and both canonicals remain unchanged.
 
-## 6. Post-session verification
+Only one corrected remote smoke invocation is authorized. If it fails or is ambiguous: STOP `API_SMOKE_CONTEXT_RECONCILIATION_BLOCKED`. No redeploy/retry-to-pass.
 
-After the one session:
-- re-run action + scene Stage B gates read-only and require PASS;
-- recheck migration rows, target absence, both canonicals and accepted scene/bridge function metadata;
-- prove preserved/manual, QA and Production-sentinel games unchanged;
-- reconcile disposable game committed turns/actions/history with the captured per-turn evidence;
-- record API/frontend deployment IDs and smoke results.
+## 6. Hard prohibitions
 
-Do not repair defects in this task.
+- API Worker redeploy: forbidden;
+- frontend deploy: forbidden;
+- live gameplay/provider turn: forbidden;
+- TEST reset: forbidden;
+- any DB/schema/DDL/DML write: forbidden;
+- migration apply/push/repair/history mutation: forbidden;
+- Production access/change: forbidden;
+- protected sentinel smoke usage/mutation: forbidden;
+- preserved/manual or QA game mutation: forbidden;
+- API/runtime/engine/frontend/content/config behavior changes: forbidden;
+- gate weakening/skipping: forbidden;
+- provider/model/TTS changes: forbidden;
+- Cut 3: forbidden.
 
-## 7. Repository scope and prohibitions
-
-After registration, repository changes are limited to `docs/ops/CURRENT_TASK.md` lifecycle/terminal evidence. No source/runtime/config/content/test/package/workflow changes.
-
-Forbidden:
-- Production access/change/deploy/reset/gameplay/migration;
-- hospital/v2 access;
-- `supabase db push`, migration repair/history mutation/replay;
-- schema changes;
-- provider/model/TTS changes;
-- gate weakening/skipping;
-- multiple live sessions or retry-until-lucky;
-- reset/reuse of preserved/manual game;
-- Cut 3 or unrelated work.
-
-## 8. Terminal classification
+## 7. Terminal classification
 
 Choose exactly one:
 
-### `TEST_RUNTIME_LIVE_ACCEPTED_V2`
-Only if all preflight checks pass, API+frontend deploy/smokes pass, exactly one 15–20 turn session completes with at least 15 committed turns and all required coverage, no unresolved P0/P1 exists, post-session DB/gate invariants pass, and Production access/change is zero.
+### `API_SMOKE_CONTEXT_CANON_RECONCILED`
+Only if the stale fixture/turn-zero assertion is narrowly corrected, focused/full tests pass, one read-only corrected smoke against the already-deployed API passes, disposable/other game state and migration invariants remain unchanged, and no forbidden operation occurred.
 
-### `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V2`
-For any preflight/deploy/smoke/session/post-check failure, P0/P1 defect, provider/runtime ambiguity, or evidence uncertainty. Preserve the exact failing game/turn evidence. Do not reset away the failure, patch source, redeploy, or run a replacement session.
+### `API_SMOKE_CONTEXT_RECONCILIATION_BLOCKED`
+Use for any runtime/context mismatch remaining after the smoke correction, inability to prove a coherent contract, test failure, unexpected Worker/runtime drift, remote smoke failure, or scope drift.
 
 At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
-2. post exactly one Issue #68 terminal containing registration/final SHA/blob, pre/post Worker IDs, smoke results, game/reset/session counts, per-coverage verdicts, exact failed turn(s) if any, post-session gate/migration evidence, safety counts and terminal classification;
-3. STOP. Do not start Cut 3 or create another task.
-
-## 9. Execution evidence — BLOCKED
-
-- Execution lease: Issue #68 comment `5319362207`.
-- Starting SHA / registration SHA: `4700733a83613724f9129e4c342198f4fe4f6252`.
-- Starting CURRENT_TASK blob: `bdc2e688397c73b2d57f02ec577855559eb4fb91`.
-- Preflight: `origin/main` exact; branch ancestry and docs-only registration exact; runtime/config/content/test/package/workflow scope unchanged; corrected action Stage B PASS; corrected scene Stage B PASS; frozen TEST invariants PASS; full regression `320/320` PASS; syntax checks PASS; `git diff --check` PASS; frozen CI PASS; pre-deploy API version `761a01bb-8cca-47ad-afde-87c0ba85c01d`; pre-deploy frontend version `1a3c1416-5362-4658-a8fe-465006a342dd`.
-- API TEST deploy: PASS, `game-proxy-company-v1`, version `2a976491-451d-4fc8-8808-65353cad137b`, URL `https://game-proxy-company-v1.zeroslove.workers.dev`.
-- API smoke: FAILED immediately at `/api/context`; HTTP status `200`, error `unexpected_context_payload` from `scripts/smoke-api-worker.mjs`.
-- Frontend deploy/smoke: NOT RUN because the required API smoke gate failed.
-- Game session: disposable game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`; reset `0`; live sessions `0`; committed turns `0`; no gameplay mutation in this execution. Preserved/manual, QA, and Production-sentinel games were not touched.
-- Coverage: Opening/choices, literal input, workplace continuity, movement/handoff, CSA scope, adult physical continuity, sidecars, >6-turn continuity, refresh/recovery, and streaming/transaction health: NOT RUN; deployment acceptance was blocked before frontend/live gameplay.
-- Safety: DB/schema/migration-history writes `0`; migration apply/push/repair `0`; TEST gameplay writes `0`; frontend deploy `0`; Production access/change/deploy `0`; source/runtime/config/content/test/package/workflow edits `0`.
-
-Terminal classification: `BLOCKED_TEST_RUNTIME_LIVE_ACCEPTANCE_V2`.
-STOP. Preserve the API smoke failure; do not retry, redeploy, reset the game, or start another task/Cut.
+2. post exactly one Issue #68 terminal containing registration/final SHA/blob, changed files, root cause, old vs corrected smoke assertions, focused/full test counts, exact remote smoke result, pre/post disposable game state, migration invariants, deploy/reset/gameplay/write counts, and terminal classification;
+3. STOP. Do not resume frontend deployment/live acceptance and do not create the next task.
