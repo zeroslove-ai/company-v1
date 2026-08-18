@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-integrated-main-utf8-safe-live-acceptance-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -218,6 +218,49 @@ A proven product defect will be reviewed and receive its own bounded next CURREN
 - Cut3 implementation
 - retries/regeneration to obtain a passing semantic result
 - conclusions based on corrupted player input
+
+## 11. Terminal evidence — 2026-08-18
+
+Terminal classification: `LIVE_ACCEPTANCE_PRODUCT_DEFECT_FOUND`
+
+The exact accepted main `43aa03cf645a2e1a2cae3e0283d2e485170db021` was deployed to TEST before the live run:
+
+- API Worker version: `1b095790-eb05-437f-8009-f3b10fca26ae`
+- frontend Worker version: `06b1cc87-77ec-4fd2-add3-10d1ad226311`
+- corrected API and frontend transitive-asset smokes passed
+- repository gates passed before deploy: full `npm test` 342/342, syntax 133/133, `git diff --check`, Action Stage B, Scene Stage B, and effective TEST DB contract read-only check
+
+Fresh disposable TEST game (created exactly once through the normal named create RPC; no preserved game was touched):
+
+- game: `16184902-7415-468b-a276-dae291c6c74c`
+- setup: `c3beb9ec-42f3-409a-8287-a8c495cedcac`
+- initial fixture: Level 7 / EXP 0, committed turn 0, save revision 0, office scene, no active CSA
+- final read-only DB count: 20 `game_actions` rows and 20 active `game_turns` rows, expected turns 1–20, all 20 actions `committed`; final save committed turn 20 / revision 22 / Level 7 / EXP 3
+- final scene: `employee_lounge`, present NPC `heroine3`; final active rule `csa_17`; final `npc_scene_state` remained `{}` and `player_sexual_state.arousal` remained `0`
+- evidence artifact: `C:/Users/JAEWAN/AppData/Local/Temp/company-v1-integrated-main-live-acceptance-16184902.json`
+- evidence SHA-256: `23bd6f8d5bb5b4e8546cfe65ac3f8b3030fb9767b7cbf23495519ae393d40c76`
+
+Live acceptance details:
+
+- one coherent 20-committed-turn session after setup/opening; 20 provider attempts, no provider retries/regeneration, no reset calls
+- every free-text action used ASCII-only JS code-point construction plus Node `fetch`/`JSON.stringify`; every turn's `game_actions.player_action` and `game_turns.player_action` matched the intended value exactly; UTF-8 parity was 20/20
+- opening returned four choices and turn 1 persisted the selected literal; personal/non-work conversation passed at turns 2 and 10; cross-location movement passed at turn 16 (`employee_lounge` Story/readback agreement); continuity beyond six turns and next-day promise revisit passed
+- turn 6 handoff request had no canonical structured handoff/presence transition, so it is unproven and is not promoted to a semantic pass from prose alone
+- turn 12 physical attempt did not produce Story-established durable sexual success; unchanged sexual state is not classified as a defect
+- at turn 17, TEST-only `app-validate` produced canonical clothing CSA `csa_17` with required state `underwear_bottom: removed` and `subject_scope: female_employee`; the structured action persisted and `csa_active/csa_rules` became active
+- defect: on turns 19–20, `heroine3` was again present, but `npc_scene_state[heroine3]` was still absent and no exact four-slot clothing durable state was written; Story described ordinary neat work clothing rather than the required clothing premise. This is a valid physical/clothing-state writer and CSA-scope product defect, not a UTF-8 or provider-input failure.
+
+Safety/write counters:
+
+- Production access: 0
+- preserved-game mutations/resets/reuse: 0
+- TEST disposable game creations: 1
+- TEST reset calls: 0
+- migrations/DDL/history writes: 0
+- provider/model changes: 0
+- retries/regenerations: 0
+
+Action IDs in scenario-step / committed-turn order are recorded in the artifact: `e62856c8-df81-4274-bdd5-b3a1661fabbe`, `1c34dacc-c49a-48ad-8086-a3f734092a29`, `8d374a27-407a-42ea-821e-611b1f926b17`, `73159916-a6ee-44dd-8d5a-ebd3582222e0`, `3c43833b-e816-4266-999d-047e2bc9a807`, `3b8f026c-249b-4d1c-8339-b673c58c87f5`, `52b5d705-149e-4c53-a717-2192f67b0aba`, `8d4638b9-72de-421f-8e27-01879437cae9`, `65a6aa5e-af77-4b0c-a5a9-d02a74711864`, `edd4ac79-8370-43ca-8e55-7280a072b1e1`, `f2de7069-700a-48a3-888d-62daf065d5b8`, `7e7c3135-3e6b-4bad-a216-71535ed8ff12`, `f5fcf866-3b8b-4542-bdab-a240a5512b02`, `580267fd-7ec8-41a7-9a19-ececd1812b25`, `78acdec7-d9d0-4202-93c1-7c78bafe49f0`, `3ba37f66-0da8-4f22-af76-ef4060629f20`, `5ef96dcd-37c1-40a8-a343-23d2f6f382af`, `34fc8179-19c8-4d14-9ddc-295c8bda93a9`, `8beb630e-1f22-4806-8096-2930572bdafa`, `8d3f9673-74e9-46f6-96c6-76ac7da43ca3`.
 
 ## 10. Terminal states
 
