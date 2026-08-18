@@ -1,176 +1,197 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
-Task ID: integrate-reviewed-runtime-tooling-repairs-v1
+Status: WAITING_REVIEW
+Task ID: clothing-csa-npc-state-bootstrap-repair-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
 
-## 0. Operator review decision
+## 0. Accepted predecessor / live evidence
 
-Previous accepted terminal:
-- Task: `test-live-input-utf8-fidelity-v1`
-- Issue #68 terminal: `5321824525`
-- Classification: `LIVE_INPUT_UTF8_FIDELITY_PROVEN`
-- Final SHA: `a4120b473a102f5625c34cc14b2c650823af1995`
-- Final CURRENT_TASK blob: `a7ee3e1ed98528056f5c41ff78ff588f4f43e119`
+Previous task: `test-integrated-main-utf8-safe-live-acceptance-v1`
+Accepted terminal candidate: Issue #68 comment `5322507579`
+Classification: `LIVE_ACCEPTANCE_PRODUCT_DEFECT_FOUND`
+Previous final branch SHA: `9bca5cef4c75521c2223d41865bdd1c0f6d43b5c`
+Previous final CURRENT_TASK blob: `653100695f36f626d1d1740a85e2207befc17d9e`
+Accepted base/main: `43aa03cf645a2e1a2cae3e0283d2e485170db021`
 
-Independent DB readback confirmed the UTF-8-safe probe action `UTF8검증: 브랜드전략팀 사무실로 이동한다.` is byte-exact in both `game_actions` and committed `game_turns`; the earlier 15-turn `?` corruption was runner/harness-side, not Worker/DB/provider evidence.
+Independent TEST DB readback of disposable game `16184902-7415-468b-a276-dae291c6c74c` confirms:
+- one coherent 20-turn session committed successfully;
+- Korean free-text `player_action` values are real UTF-8, not the prior `?` harness corruption;
+- turn 16 movement to `employee_lounge` persisted with current-V2 exact scene evidence;
+- turn 17 activated canonical `csa_17` with `subject_scope=female_employee` and structured clothing mechanic `required_state.underwear_bottom=removed`;
+- turn 19 brought registered `heroine3` back into the canonical scene (`present_npc_ids=[heroine3]`), yet post-save `npc_scene_state` remained `{}`;
+- turn 20 still had `npc_scene_state={}` and Story continued without the required clothing premise.
 
-Before another full live acceptance, current `main` must first regain already-reviewed repair work that is absent from `8f3c5326e483650211fbc6c9f54a7527d2278d4e`. In particular, current main still requires obsolete `scene_id` for current V2 `kind:"scene"` Extract evidence and would reintroduce the previously reproduced Commit failure.
+Current main source independently exposes the deterministic root seam in `src/engine/runtime-core/csa-commit-reducer.js`: `applyClothingContinuity()` applies an active clothing CSA to a present matching NPC only when `nextSave.npc_scene_state[actorId]` already exists; if it is absent, the reducer executes `continue`. Therefore a fresh registered NPC with no prior physical observation can never receive its first durable clothing-state record from the one retained structured clothing CSA mechanic.
 
-This task integrates only previously ACCEPTED source/test/tooling repairs into main. It does not invent new architecture and does not deploy TEST yet.
+This task repairs only that bootstrap seam. Do not broaden into general physical-state, relationship/event, consent, provider, or Cut3 work.
 
-## 1. Frozen base and branch
+## 1. Frozen lineage
 
 Repository: `zeroslove-ai/company-v1`
-Required base main: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`
-Expected branch: `company/integrate-reviewed-runtime-tooling-repairs-v1`
+Required base main: `43aa03cf645a2e1a2cae3e0283d2e485170db021`
+Expected branch: `company/clothing-csa-npc-state-bootstrap-repair-v1`
 
-The branch intentionally starts from exact main, not from the long ops/evidence descendant. Do not merge/cherry-pick the whole 30-commit evidence lineage.
+Before editing:
+1. fresh-fetch `main` and require exact base above;
+2. verify this branch is exactly one docs-only registration commit ahead of base;
+3. re-read terminal `5322507579` and this exact CURRENT_TASK blob;
+4. inspect the preserved TEST game read-only, especially turns 17, 19, 20;
+5. inspect current `csa-commit-reducer.js`, `clothing-state-mechanic.js`, `state/clothing.js`, `observation-reducers.js`, Story context projection, and relevant tests before choosing the minimal patch.
 
-Reviewed repair commits and accepted meanings:
+If current main or evidence differs materially, STOP `BLOCKED_CLOTHING_CSA_NPC_BOOTSTRAP_DRIFT` rather than guessing.
 
-1. Scene contract gate canon
-   - reviewed commit: `0c4296fa6b6de27c68e4341ffae9c8caef28dd4b`
-   - accepted classification: `ACCEPTED_SCENE_CONTRACT_GATE_CANON_RECONCILED`
-   - integrate only:
-     - `config/company-v1-scene-db-contract.json`
-     - `scripts/company-db-contract-gate.mjs`
-     - `test/db-contract-gate.test.mjs`
+## 2. Exact repair objective
 
-2. API smoke context canon
-   - reviewed commit: `ca7481851510de89d9d1e5aa78e8e393a25cd5f7`
-   - accepted classification: `ACCEPTED_API_SMOKE_CONTEXT_CANON_RECONCILED`
-   - integrate only:
-     - `scripts/smoke-api-worker.mjs`
-     - `test/api-smoke-contract.test.mjs`
+Keep Commit as the sole durable writer for the retained structured clothing CSA mechanic.
 
-3. Frontend smoke asset canon
-   - reviewed commit: `b7d86b7c3de2b5d7ec69e390ec627cf60917f493`
-   - accepted classification: `ACCEPTED_FRONTEND_SMOKE_ASSET_CANON_RECONCILED`
-   - integrate only:
-     - `scripts/smoke-frontend-worker.mjs`
-     - `test/frontend-smoke-contract.test.mjs`
+For an active clothing-state CSA and a canonical-scene actor whose registered profile exactly matches the rule subject scope:
+- player behavior remains as currently accepted;
+- a present matching NPC must receive the rule's exact `required_state` even when `npc_scene_state[npc_id]` did not previously exist;
+- the new NPC record must use the existing canonical physical-state shape and exact four clothing slots;
+- absent/unobserved slots must be structural `unknown`, not inferred `worn` or invented garment facts;
+- overlay only the exact required slots from the structured CSA mechanic;
+- preserve any pre-existing evidenced NPC physical/clothing fields;
+- record a current `updated_turn` consistent with the Commit turn when a new/changed clothing state is written.
 
-4. Extract current-V2 scene-evidence roundtrip
-   - reviewed commit: `d8fbc5cca47b62e897adc73afc816812f736316b`
-   - accepted classification: `ACCEPTED_EXTRACT_SCENE_EVIDENCE_ROUNDTRIP_RECONCILED`
-   - integrate only:
-     - `src/engine/runtime-core/extract-observation.js`
-     - `src/engine/runtime-core/persisted-extract-observation.js`
-     - `test/extract-observation-contract.test.mjs`
+The expected structural bootstrap for the live defect is therefore equivalent in meaning to:
+- `uniform_top: unknown`
+- `uniform_bottom: unknown`
+- `underwear_top: unknown`
+- `underwear_bottom: removed`
 
-Do not copy lifecycle docs, TEST bridge SQL/audits, migration-forensic docs, or unrelated commits from the long reviewed lineage.
+Do not infer ordinary work clothes, posture, location mirrors, sexual state, emotion, consent, compliance preference, relation, or historical events from the rule.
 
-## 2. Required preflight
+## 3. Scope / authority rules
 
-Before source changes:
+Preserve all existing boundaries:
+- only canonical scene participants are candidates;
+- exact registered actor identity and existing `matchesCsaSubjectScope()` policy remain authoritative;
+- female-only rule must not affect male NPC/player;
+- off-scene NPCs must not be seeded;
+- inactive/deactivated/non-clothing CSA must not create clothing state;
+- no target fuzziness/name search;
+- no generic CSA execution DSL;
+- no semantic parser/router/verifier;
+- no Story-text regex used to force compliance;
+- ordinary Extract physical/clothing observations remain exact-Story-evidence gated;
+- this narrow structured CSA mechanic remains the only rule-driven exception already sanctioned by canon.
 
-1. Fresh-fetch main and require exact `8f3c5326e483650211fbc6c9f54a7527d2278d4e`.
-2. Verify this branch is exactly one docs-only registration commit ahead of that main.
-3. Re-read Issue #68 terminal `5321824525` and this exact CURRENT_TASK blob.
-4. Inspect each reviewed commit above directly. Do not rely on remembered summaries.
-5. Confirm the target files on main still lack the accepted repair or differ only because of subsequent accepted main changes. If semantic conflicts exist, STOP instead of guessing.
-6. Read-only TEST access is allowed only for contract-gate verification. No gameplay/reset/write/deploy.
+Do not change the meaning of `state/clothing.js` ordinary observation path merely to make the test pass. If comments there conflict with the already-retained structured CSA exception, clarify comments only if necessary; do not weaken evidence gating for ordinary observations.
 
-## 3. Integration method
+## 4. Required regression proof
 
-Reapply/transplant the reviewed hunks onto current main. Path-level cherry-pick, manual patch application, or equivalent is allowed, but the resulting semantics must match the reviewed repairs.
+Add focused behavior tests proving at minimum:
+1. present female registered NPC + active `female_employee` clothing CSA + no prior `npc_scene_state` => canonical NPC state is created with four slots, unknown defaults, exact required slot applied;
+2. same case with an existing evidenced NPC state preserves unrelated slots/physical fields and overlays only exact required slots;
+3. present male NPC is not affected by `female_employee` scope;
+4. matching NPC not present in canonical scene is not created/mutated;
+5. inactive/deactivated/non-clothing rule does not bootstrap state;
+6. repeated Commit is idempotent for unchanged required state;
+7. player clothing behavior remains unchanged;
+8. Story context projection on the following turn can read the newly bootstrapped `npc_scene_state` clothing state for the active NPC;
+9. the preserved live-defect shape (turn-19 style: newly present heroine3, active csa_17, no prior npc_scene_state) reproduces FAIL before fix and PASS after fix.
 
-Do not:
-- merge the old repair branch wholesale;
-- bring `docs/ops/CURRENT_TASK.md` from old commits;
-- import old migration-lineage/bridge documents;
-- alter provider/model/TTS/bindings;
-- add compatibility wrappers, semantic gates, routers, retries, finite action grammar, consent/event ledger, generic CSA DSL, or shadow architecture.
+Prefer extending the existing closest CSA/Commit/gameplay contract test files. Do not create a new test architecture.
 
-### Exact Extract contract to preserve
+## 5. Allowed changed files
 
-Current fresh/persisted V2:
-- no `scene_id` manufacture or requirement;
-- `scene_observation.location_id` is canonical;
-- `kind:"scene"` evidence requires exact Story quote and non-empty `location_id` matching the observation location;
-- current persisted Commit normalization recognizes the explicit current-V2 shape and does not reinterpret malformed current data as legacy;
-- historical V2 rows with true legacy shape may retain the legacy `scene_id` compatibility path;
-- validation remains fail-closed for quote/location provenance.
-
-### Smoke/gate contracts to preserve
-
-- API smoke uses an explicit valid game UUID, not the protected sentinel fixture and not a forced turn-zero assumption.
-- Frontend smoke derives direct assets from deployed HTML and follows same-origin relative ES-module imports; deleted `/narrative.js` is not resurrected.
-- Scene Stage B gate is manifest-driven for SECURITY DEFINER/search_path/ACL expectations and executes the accepted non-persisting current behavioral probes.
-
-## 4. Allowed changed files
-
-Before PR creation, repository diff versus base main may contain only:
-
-- `config/company-v1-scene-db-contract.json`
-- `scripts/company-db-contract-gate.mjs`
-- `scripts/smoke-api-worker.mjs`
-- `scripts/smoke-frontend-worker.mjs`
-- `src/engine/runtime-core/extract-observation.js`
-- `src/engine/runtime-core/persisted-extract-observation.js`
-- `test/db-contract-gate.test.mjs`
-- `test/api-smoke-contract.test.mjs`
-- `test/frontend-smoke-contract.test.mjs`
-- `test/extract-observation-contract.test.mjs`
+Expected minimal executable scope:
+- `src/engine/runtime-core/csa-commit-reducer.js`
+- closest existing CSA/Commit/gameplay contract test file(s)
+- optionally one existing clothing/state helper only if required to centralize the canonical four-slot unknown bootstrap without duplicating constants
 - `docs/ops/CURRENT_TASK.md`
 
-Any other path requires STOP `BLOCKED_REVIEWED_REPAIR_INTEGRATION_DRIFT` unless it is strictly generated metadata required by the normal PR mechanism and is not committed.
+Any unrelated runtime/prompt/provider/frontend/DB/config/migration file requires STOP `BLOCKED_CLOTHING_CSA_NPC_BOOTSTRAP_DRIFT` unless independently proven indispensable to this exact writer seam.
 
-## 5. Verification
+## 6. Verification
 
-Run at minimum:
+Run:
+- focused CSA clothing/Commit tests;
+- focused Story context projection tests if touched/needed;
+- full `npm test` with zero failures;
+- `node --check` for all changed JS/MJS;
+- `git diff --check`;
+- inspect final diff for accidental generic physical/CSA authority expansion.
 
-1. focused Extract scene-evidence contract tests;
-2. focused DB gate tests;
-3. focused API smoke tests;
-4. focused frontend smoke tests;
-5. full `npm test` / platform-equivalent npm command with zero failures;
-6. `node --check` on every changed JS/MJS source/tool file;
-7. `git diff --check`;
-8. read-only Action Stage B gate PASS;
-9. read-only Scene Stage B gate PASS.
+No live TEST gameplay is authorized in this repair task. TEST DB may be queried read-only only to preserve/compare the existing evidence.
 
-No remote API/frontend smoke is required in this integration task because TEST Workers are still the old exact-main deployment. No Worker deploy is authorized here.
+## 7. PR / merge boundary
 
-## 6. PR, review, and merge authorization
+After implementation and local validation:
+1. commit one coherent source/test repair;
+2. open one PR against `main`;
+3. require exact-head CI SUCCESS;
+4. self-review exact diff against the live evidence and the authority boundaries above;
+5. do NOT merge in this task; stop for operator review with the PR open and unmerged.
 
-If verification passes:
+The next operator-reviewed task will decide merge + exact-main TEST redeploy + a narrow live reproduction/acceptance.
 
-1. commit the reviewed integration as one coherent source/test commit (registration/lifecycle docs may be separate);
-2. create a PR to `main` from this branch;
-3. require the PR diff to contain only the allowlisted paths and reviewed semantics above;
-4. require exact-head CI green;
-5. self-review the final PR diff against all four reviewed commits;
-6. if no unresolved P0/P1 and CI is green, normal merge to `main` is authorized under the existing owner overnight delegation;
-7. fresh-fetch merged main and record exact merge/main SHA and main CI result.
-
-Do not deploy after merge in this task. TEST rollout + UTF-8-safe full live acceptance is the next task after operator review of this terminal.
-
-## 7. Hard prohibitions
+## 8. Hard prohibitions
 
 - Production/hospital-v2 access or mutation
-- TEST gameplay/reset/game creation
-- API/frontend Worker deploy
-- DB DDL/schema/migration/history write
-- `supabase db push` or migration repair
-- provider/model change
-- new gameplay architecture
-- merge of unrelated old lineage
-- Cut3 implementation
+- Worker deploy
+- TEST game reset/new gameplay/session
+- migration/DDL/schema/history write or repair
+- `supabase db push`
+- provider/model/TTS/binding change
+- Story/Extract prompt change
+- general physical/sexual-state redesign
+- relationship/event/Cut3 implementation
+- new consent or compliance semantic layer
+- retry/regenerate-until-pass
 
-## 8. Terminal
+## 9. Terminal
 
 Success terminal:
-`REVIEWED_RUNTIME_TOOLING_REPAIRS_INTEGRATED_MAIN`
+`CLOTHING_CSA_NPC_STATE_BOOTSTRAP_REPAIR_READY`
 
 Blocked terminal:
-`BLOCKED_REVIEWED_REPAIR_INTEGRATION_DRIFT`
+`BLOCKED_CLOTHING_CSA_NPC_BOOTSTRAP_DRIFT`
 
 At terminal:
 - set CURRENT_TASK `WAITING_REVIEW`;
-- post exactly one Issue #68 terminal containing registration SHA/blob, source commit, PR number/head, exact changed paths, focused/full tests, syntax/diff checks, Action/Scene Stage B results, CI, merge/main SHA if merged, and all safety/deploy/DB-write counts;
-- STOP. Do not deploy TEST or begin live acceptance in this task.
+- post exactly one Issue #68 terminal with registration SHA/blob, source/test commit SHA, PR number/head, changed paths, focused/full test results, syntax/diff checks, exact regression proof, and safety-operation counts;
+- STOP with PR unmerged and no TEST deploy/gameplay.
+
+## 10. Terminal evidence — 2026-08-18
+
+Classification: `CLOTHING_CSA_NPC_STATE_BOOTSTRAP_REPAIR_READY`
+
+- Registration SHA: `df16ad67e4e2ccecb73ef6da16a09cf1abb1cf89`
+- Registration CURRENT_TASK blob SHA: `0d1adbac805ddb32d931e5b63f7433e1b60fa55a`
+- Source/test commit: `051bcc8118ccdbb6bf2ee7131086f1eb57268817`
+- Expected branch: `company/clothing-csa-npc-state-bootstrap-repair-v1`
+- PR: #78, head `051bcc8118ccdbb6bf2ee7131086f1eb57268817`, OPEN and unmerged
+- Exact-head CI: Company v1 tests SUCCESS, run `32091508613` / job `95574418899`
+
+Changed paths:
+- `src/engine/runtime-core/csa-commit-reducer.js`
+- `test/gameplay-core-simplification.test.mjs`
+- `docs/ops/CURRENT_TASK.md` (this lifecycle update)
+
+Validation:
+- Focused CSA/Commit/Story projection regression tests: `18/18` pass.
+- Full `npm test`: `351/351` pass, `0` fail.
+- `node --check` for both changed executable JS/MJS files: pass.
+- `git diff --check`: pass.
+- Self-review: the executable diff is limited to the existing `applyClothingContinuity()` bootstrap seam and focused regression coverage; no generic CSA/physical/consent architecture, provider/model, prompt, DB, migration, or deployment changes.
+
+Exact regression proof:
+- A present, registered, scope-matching `heroine3`/`female_employee` with no prior `npc_scene_state` now receives the canonical four clothing slots with structural `unknown` defaults and the exact active `csa_17` required slot `underwear_bottom: removed`, with `updated_turn` recorded at Commit turn.
+- Existing physical/clothing fields are preserved; unrelated slots are not inferred or overwritten; male, off-scene, inactive/deactivated, and non-clothing cases remain unaffected; repeated Commit is idempotent.
+
+Safety counts:
+- TEST gameplay/deploy/reset: `0`
+- preserved-game mutation/reset/reuse: `0`
+- DB writes, migrations, DDL, and history repair: `0`
+- Production: `0`
+- provider/model/prompt changes: `0`
+- retries/regenerations: `0`
+- source commits: `1`
+- lifecycle commits: `1`
+- pushes: `2` (source/test and lifecycle)
+- PRs opened: `1`
+- merges: `0`

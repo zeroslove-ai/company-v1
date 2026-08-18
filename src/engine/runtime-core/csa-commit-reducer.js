@@ -2,6 +2,7 @@ import { applyAuthorizedRuleDefinitions, assertRuleDefinitionAuthority } from '.
 import { calculateCsaProgression, calculateProgress } from '../progression.js';
 import { matchesCsaSubjectScope, subjectScopeForRule } from '../csa/authority-policy.js';
 import { clothingMechanicForRule } from '../csa/clothing-state-mechanic.js';
+import { CANONICAL_CLOTHING_SLOTS } from '../state/clothing.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 
@@ -26,7 +27,7 @@ function actorProfile(master, save, actorId) {
   return { ...profile, id: actorId, character_id: profile.character_id ?? profile.npc_id ?? profile.id ?? actorId };
 }
 
-function applyClothingContinuity(nextSave, canonicalScene, master = {}) {
+function applyClothingContinuity(nextSave, canonicalScene, master = {}, expectedTurn = null) {
   const present = Array.isArray(canonicalScene?.present_npc_ids) ? canonicalScene.present_npc_ids : [];
   const actorIds = ['player', ...present].filter((id, index, ids) => ids.indexOf(id) === index);
   const rules = nextSave?.csa_rules && typeof nextSave.csa_rules === 'object' ? nextSave.csa_rules : {};
@@ -34,6 +35,7 @@ function applyClothingContinuity(nextSave, canonicalScene, master = {}) {
   const patches = [];
   for (const id of active) {
     const rule = rules[id];
+    if (rule?.active === false) continue;
     const execution = clothingMechanicForRule(rule);
     const required = execution?.kind === 'clothing_state' ? execution.required_state : null;
     if (!required || Object.keys(required).length === 0) continue;
@@ -45,9 +47,23 @@ function applyClothingContinuity(nextSave, canonicalScene, master = {}) {
         const current = nextSave.player_scene_state && typeof nextSave.player_scene_state === 'object' ? nextSave.player_scene_state : {};
         nextSave.player_scene_state = { ...current, clothing: { ...(current.clothing ?? {}), ...required } };
       } else {
-        const current = nextSave.npc_scene_state?.[actorId];
-        if (!current || typeof current !== 'object') continue;
-        nextSave.npc_scene_state[actorId] = { ...current, clothing: { ...(current.clothing ?? {}), ...required } };
+        const npcStates = nextSave.npc_scene_state && typeof nextSave.npc_scene_state === 'object'
+          ? nextSave.npc_scene_state
+          : {};
+        const current = npcStates[actorId] && typeof npcStates[actorId] === 'object' ? npcStates[actorId] : {};
+        const currentClothing = current.clothing && typeof current.clothing === 'object' ? current.clothing : {};
+        const clothing = Object.fromEntries(CANONICAL_CLOTHING_SLOTS.map(slot => [slot, 'unknown']));
+        for (const slot of CANONICAL_CLOTHING_SLOTS) {
+          if (currentClothing[slot] !== undefined) clothing[slot] = currentClothing[slot];
+        }
+        Object.assign(clothing, required);
+        const changed = !current.clothing
+          || CANONICAL_CLOTHING_SLOTS.some(slot => currentClothing[slot] !== clothing[slot]);
+        if (!changed) continue;
+        const nextState = { ...current, clothing };
+        if (Number.isInteger(expectedTurn)) nextState.updated_turn = expectedTurn;
+        npcStates[actorId] = nextState;
+        nextSave.npc_scene_state = npcStates;
       }
       patches.push(`${actorId}:${id}`);
     }
@@ -91,7 +107,7 @@ export function reduceCsaCommitState({
   // Clothing is the single retained machine-readable CSA mechanic.  Its exact
   // required_state is applied directly to present actors; no generic action DSL
   // or inferred physical action is created.
-  applyClothingContinuity(nextSave, canonicalScene, master);
+  applyClothingContinuity(nextSave, canonicalScene, master, expectedTurn);
 
   // Fresh Extract never writes a physical CSA execution state. Historical
   // csa_runtime_state remains readable, while observed physical/clothing facts
