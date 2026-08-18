@@ -5,76 +5,55 @@ Task ID: hospital-spine-pr82-lineage-reconcile-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This file is the sole active execution authority for this task identity.
+This existing file is the sole active execution authority. Reuse it in place. Do not create a new CURRENT_TASK file or a new ops/task-registration branch.
 
-## 0. Operator review decision
+## 0. Why this task exists
 
 Binding design:
 
 `docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md`
 
-Blocked predecessor task:
+Blocked predecessor terminal: Issue #68 comment `5325982174`.
 
-`merge-hospital-spine-alignment-test-manual-handoff-v1`
+The predecessor correctly stopped because an ops-only `CURRENT_TASK.md` commit advanced `main` and made reviewed PR #82 mechanically conflicted. Independent review proved that the drift changed only `docs/ops/CURRENT_TASK.md`; no source/test/config/content/migration/runtime behavior changed.
 
-Blocked terminal: Issue #68 comment `5325982174`.
+Reviewed executable source/test authority remains:
 
-Review classification: `ACCEPT_BLOCKED_LINEAGE_DRIFT`.
+`67b8cce260e23a953ef8d8353b96fb0c316c64e2`
 
-The block was correct and occurred before lease/merge/deploy. The only drift from the previously frozen main was the docs-only ops commit:
+Old reviewed PR:
 
-`6e405d31172bfe4b73e43fb4989dd96211a7200b`
+- PR #82
+- head `4cc4b67b1b29d9269eedbbbb81b9ebf38ee76928`
+- source/test content accepted
+- currently unmerged and mechanically conflicted only because both lineages changed `docs/ops/CURRENT_TASK.md`
 
-Independent operator verification established:
+This task is lineage reconciliation only. No application semantic redesign is authorized.
 
-- `20080497d782598600200afa45b5171087595ff9 -> 6e405d31172bfe4b73e43fb4989dd96211a7200b` is exactly one commit;
-- that commit changes only `docs/ops/CURRENT_TASK.md`;
-- no source/test/config/content/migration/runtime file changed on main;
-- PR #82 remains exact head `4cc4b67b1b29d9269eedbbbb81b9ebf38ee76928` but is now `mergeable=false` because both lineages changed `docs/ops/CURRENT_TASK.md`;
-- reviewed executable source/test SHA remains `67b8cce260e23a953ef8d8353b96fb0c316c64e2`;
-- its exact-head Company v1 tests run `32115092019` was SUCCESS.
+## 1. Execution identity — in-place CURRENT_TASK reuse
 
-Therefore this task is **lineage reconciliation only**. It must not redesign or alter application semantics.
+The Issue #68 rearm comment for this task supplies the exact authoritative `REGISTRATION_MAIN_SHA` and `CURRENT_TASK_BLOB_SHA`.
 
-## 1. Frozen registration identity
+Execution start requirements:
 
-Repository: `zeroslove-ai/company-v1`
+1. fresh-fetch `origin/main`;
+2. require `origin/main == REGISTRATION_MAIN_SHA` from the latest rearm comment;
+3. require `docs/ops/CURRENT_TASK.md` blob == the registered blob;
+4. use the already-existing branch `company/hospital-spine-pr82-lineage-reconcile-v1`; do not create another branch;
+5. require that existing branch HEAD == `REGISTRATION_MAIN_SHA` before source application;
+6. require old PR #82 remains OPEN/unmerged with exact head `4cc4b67b1b29d9269eedbbbb81b9ebf38ee76928`;
+7. require reviewed executable SHA `67b8cce...` remains reachable;
+8. if main has any non-doc source/config/test/content/migration drift after this registration, STOP `BLOCKED_HOSPITAL_SPINE_RELINEARIZE_DRIFT`.
 
-Pre-registration main:
+Do not generate another task or another ops branch if any precondition fails.
 
-`6e405d31172bfe4b73e43fb4989dd96211a7200b`
+## 2. Apply only the already-reviewed source/test content
 
-Expected branch:
-
-`company/hospital-spine-pr82-lineage-reconcile-v1`
-
-The authoritative registration SHA and CURRENT_TASK blob SHA are supplied in the Issue #68 `CURRENT_TASK_READY` comment created for this task.
-
-At execution start:
-
-1. fresh-fetch GitHub;
-2. require `main` == the exact registration SHA from that Issue comment;
-3. require this branch HEAD == that same registration SHA;
-4. require this file blob == the exact registered CURRENT_TASK blob;
-5. require the registration commit(s) since `6e405d...` to be docs-only `docs/ops/CURRENT_TASK.md` authority changes;
-6. require old PR #82 to remain OPEN, unmerged, base `main`, exact head `4cc4b67...`;
-7. require reviewed executable SHA `67b8cce...` to remain reachable and unchanged.
-
-If any source/config/test/content/migration drift exists on main, STOP `BLOCKED_HOSPITAL_SPINE_RELINEARIZE_DRIFT` rather than guessing.
-
-## 2. Goal — cleanly relinearize the already-reviewed source/test patch
-
-Create one clean replacement source lineage on this branch from the exact registered current main.
-
-Do **not** merge or rebase PR #82 and do not cherry-pick its workflow/docs commits wholesale.
-
-Apply only the already-reviewed non-doc source/test content represented by the diff:
+On the existing reconciliation branch, reproduce only the non-doc content represented by:
 
 `20080497d782598600200afa45b5171087595ff9..67b8cce260e23a953ef8d8353b96fb0c316c64e2`
 
-restricted to current reviewed `src/**` and `test/**` paths.
-
-The expected non-doc path set is exactly:
+restricted to these exact paths:
 
 - `src/engine/extract-prompt.js`
 - `src/engine/gameplay-state.js`
@@ -92,65 +71,65 @@ The expected non-doc path set is exactly:
 - `test/narrative-request-contract.test.mjs`
 - `test/state-evidence-boundaries.test.mjs`
 
-No other source/test/config/content/migration file may change.
+Do not transplant PR #82's `docs/ops/CURRENT_TASK.md` changes. Do not rebase/merge PR #82 wholesale. No additional source/test/config/content/migration path may change.
 
-## 3. Exact equivalence proof
+## 3. Exact equivalence is mandatory
 
-This is not a reimplementation task. After applying the reviewed patch, prove:
+After application, prove all resulting `src/**` and `test/**` files are byte/content-equivalent to reviewed executable SHA `67b8cce...`.
 
-1. every `src/**` and `test/**` file in the resulting candidate tree is byte/content-equivalent to the corresponding tree at reviewed executable SHA `67b8cce...`;
-2. the only intentional difference between the new candidate lineage and old reviewed lineage is workflow/ops documentation ancestry;
-3. no old `docs/ops/CURRENT_TASK.md` content from PR #82 is transplanted;
-4. no semantic edit, cleanup, formatting pass, dependency change, config change, migration, content change, provider/model change, or unrelated repair is introduced.
+The only allowed difference from the old reviewed lineage is ops/document ancestry.
+
+No cleanup, formatting pass, refactor, dependency/config change, semantic tweak, compatibility patch, provider/model change, or unrelated repair is allowed.
 
 If exact equivalence cannot be proven, STOP `BLOCKED_HOSPITAL_SPINE_RELINEARIZE_EQUIVALENCE`.
 
 ## 4. Verification and replacement PR
 
-After exact equivalence is proven:
+After equivalence proof:
 
-1. run the same focused alignment/navigation/scene/physical/sexual/memory suites used by the reviewed candidate;
+1. run the same focused alignment/navigation/scene/physical/sexual/memory tests used for the reviewed candidate;
 2. run full `npm.cmd test`;
 3. run changed JS/MJS syntax checks;
 4. run `git diff --check`;
 5. require all PASS;
-6. open exactly one replacement PR from this branch to `main`;
-7. PR body must state that it is a lineage-only replacement for now-conflicted PR #82 and that non-doc source/test content is exact-equivalent to reviewed executable `67b8cce...`;
-8. require exact-head `Company v1 tests` CI SUCCESS for the replacement PR;
-9. do **not** merge either PR in this task;
-10. do not close PR #82 in this task; leave it as historical reviewed-but-conflicted evidence until owner review of the replacement PR.
+6. open exactly one replacement PR from the existing reconciliation branch to `main`;
+7. state in the PR body that this is a lineage-only replacement for conflicted PR #82 and that non-doc source/test content is exact-equivalent to `67b8cce...`;
+8. require exact-head `Company v1 tests` CI SUCCESS;
+9. do not merge the replacement PR;
+10. do not close or modify PR #82 in this task.
 
-If CI fails, STOP with the exact failure. Do not repair source in this task.
+If CI fails, STOP with the exact failure. No source repair is authorized here.
 
 ## 5. Success terminal
 
-On success:
+On success, overwrite this same `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW` and record:
 
-- set this CURRENT_TASK on this branch to `WAITING_REVIEW`;
-- record candidate source/test commit SHA;
-- record workflow docs head SHA;
-- record replacement PR number/head;
-- record exact equivalence proof result;
-- record focused/full/syntax/diff results;
-- record exact-head CI run/result;
-- post one terminal to Issue #68;
-- terminal classification: `HOSPITAL_SPINE_RELINEARIZED_READY`;
-- STOP.
+- candidate source/test commit SHA;
+- final branch/docs head SHA;
+- replacement PR number/head;
+- exact equivalence result;
+- focused/full/syntax/diff results;
+- exact-head CI run/result.
 
-The next operator review may then authorize the normal merge -> merged-main CI -> exact TEST deployment -> structural smoke -> genuinely fresh Level-7 zero-turn manual fixture -> `WAITING_USER_LIVE_ACCEPTANCE` tail.
+Then post one terminal report to Issue #68 with classification:
+
+`HOSPITAL_SPINE_RELINEARIZED_READY`
+
+STOP. Do not create the next task.
 
 ## 6. Absolute prohibitions
 
-- no source semantic redesign or cleanup beyond the exact reviewed patch;
+- no new CURRENT_TASK file;
+- no new ops/task-registration branch;
+- no source semantic redesign beyond the exact reviewed patch;
 - no merge/rebase/cherry-pick-wholesale of PR #82;
-- no merge of the replacement PR in this task;
-- no closing PR #82 before owner review;
-- no TEST deploy or gameplay;
-- no game creation/reset/reseed;
-- no DB write, migration, DDL, migration-history repair, or history mutation;
+- no merge of the replacement PR;
+- no closing/modifying PR #82;
+- no TEST deploy/gameplay/game creation/reset/reseed;
+- no DB write/migration/DDL/history repair;
 - no Production/hospital-v2 access;
-- no provider/model/TTS/binding changes;
-- no retry-until-lucky behavior;
+- no provider/model/TTS/binding change;
+- no retry-until-lucky;
 - no semantic router/classifier/verifier;
 - no relationship/event/emotion/open-fact ledger or generic CSA DSL;
 - no next roadmap Cut.
