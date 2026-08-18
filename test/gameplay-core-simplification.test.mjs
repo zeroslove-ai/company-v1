@@ -32,7 +32,7 @@ test('canonical scene fresh shape has exactly six fields', () => {
 });
 
 test('fresh Extract rejects legacy scene identity and accepts narrow scene observation', () => {
-  const base = { extract_version: 2, outcome: 'success', scene_observation: { location_id: 'office', final_present_npc_ids: ['heroine1'], entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: 'heroine1', remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, turn_summary: '', warnings: [] };
+  const base = { extract_version: 2, outcome: 'success', scene_observation: { location_id: 'office', final_present_npc_ids: ['heroine1'], entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] }, player_observation: {}, npc_observations: {}, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, turn_summary: '', warnings: [] };
   assert.throws(() => normalizeFreshExtractObservationV2({ ...base, scene_observation: { ...base.scene_observation, scene_id: 'old' } }, { npcIds: new Set(['heroine1']), storyText: '' }));
   assert.equal(normalizeFreshExtractObservationV2(base, { npcIds: new Set(['heroine1']), storyText: '' }).scene_observation.location_id, 'office');
 });
@@ -185,7 +185,7 @@ test('preserved turn-19 live shape now bootstraps heroine3 instead of skipping i
 });
 
 test('player sexual progression accepts exact evidenced delta without legacy six-point pacing', () => {
-  const result = reducePlayerSexualState({}, { ejaculation_progress_delta: 7 }, { storyEvidence: { player_observation: { sexual: { ejaculation_progress_delta: { quote: '증거' } } } }, storyText: '증거' });
+  const result = reducePlayerSexualState({}, { ejaculation_progress_delta: 7 }, { storyEvidence: { actors: { player: { character_id: 'player', changed: ['player_sexual_state.ejaculation_progress_delta'], quote: '증거' } } }, storyText: '증거' });
   assert.equal(result.state.ejaculation_progress, 7);
 });
 

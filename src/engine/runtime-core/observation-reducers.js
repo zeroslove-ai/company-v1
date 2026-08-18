@@ -13,29 +13,11 @@ function masterName(master, id) {
 function dialogueLines(parsedStory, id) {
   return Array.isArray(parsedStory?.dialogue_lines) ? parsedStory.dialogue_lines.filter(line => line?.speaker_id === id).map(line => line.text ?? line.dialogue ?? '').filter(Boolean) : [];
 }
-function clothingQuote(evidence, actorId) {
-  const root = object(evidence?.clothing) ? evidence.clothing : {};
+function actorEvidence(evidence, actorId) {
+  const root = object(evidence?.actors) ? evidence.actors : {};
   const key = Object.keys(root).find(candidate => canonicalId(candidate) === canonicalId(actorId));
   const entry = key && object(root[key]) ? root[key] : null;
-  return entry && typeof entry.quote === 'string' && entry.quote.trim() ? entry.quote.trim() : null;
-}
-function physicalEvidenceQuote(evidence, actorId, axis) {
-  const root = object(evidence?.physical_change) ? evidence.physical_change : {};
-  const key = Object.keys(root).find(candidate => canonicalId(candidate) === canonicalId(actorId));
-  const entry = key && object(root[key]) ? root[key] : null;
-  if (!entry || canonicalId(entry.character_id) !== canonicalId(actorId)) return null;
-  const prefix = canonicalId(actorId) === 'player' ? 'player_scene_state' : `npc_scene_state.${actorId}`;
-  const path = `${prefix}.${axis}`;
-  if (!Array.isArray(entry.changed) || !entry.changed.includes(path)) return null;
-  return typeof entry.quote === 'string' && entry.quote.trim() ? entry.quote.trim() : null;
-}
-function evidenceMap(proposal, evidence, actorId) {
-  return {
-    ...(object(proposal?.evidence) ? proposal.evidence : {}),
-    clothing: clothingQuote(evidence, actorId),
-    position: physicalEvidenceQuote(evidence, actorId, 'position_label'),
-    posture: physicalEvidenceQuote(evidence, actorId, 'posture')
-  };
+  return entry && canonicalId(entry.character_id) === canonicalId(actorId) ? entry : {};
 }
 function registered(id, npcIds) { return typeof id === 'string' && (!npcIds?.size || npcIds.has(id)); }
 function currentNpcIds(save, npcIds) { return new Set(readCanonicalSceneV1(save, { npcIds }).present_npc_ids ?? []); }
@@ -56,7 +38,7 @@ const DETERMINISTIC_CHOICE_FALLBACKS = [
 
 export function reducePlayerPhysicalObservation({ save, physical, evidence, storyText, expectedTurn, npcIds } = {}) {
   if (!object(physical) || !Object.keys(physical).length) return { state: save.player_scene_state ?? {}, warnings: [] };
-  const result = buildSceneStatePatch({ previous: save.player_scene_state ?? {}, proposal: physical, evidenceMap: evidenceMap(physical, evidence, 'player'), narrativeText: storyText, characterName: '', turnNumber: expectedTurn, actorId: 'player', npcsPresent: [...currentNpcIds(save, npcIds)], registeredNpcNames: [] });
+  const result = buildSceneStatePatch({ previous: save.player_scene_state ?? {}, proposal: physical, evidence: actorEvidence(evidence, 'player'), narrativeText: storyText, characterName: '', turnNumber: expectedTurn, actorId: 'player', npcsPresent: [...currentNpcIds(save, npcIds)], registeredNpcNames: [] });
   return { state: result.state, warnings: result.warnings.map(code => `player_scene_state:${code}`) };
 }
 
@@ -64,7 +46,7 @@ export function reduceNpcPhysicalObservation({ save, npcId, physical, evidence, 
   if (!registered(npcId, npcIds)) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [`unknown_npc:${npcId}`] };
   if (!observedNpcSet({ save, npcIds, sceneBefore, sceneAfter, observedNpcIds }).has(npcId)) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [`off_scene_npc:${npcId}`] };
   if (!object(physical) || !Object.keys(physical).length) return { state: save.npc_scene_state?.[npcId] ?? {}, warnings: [] };
-  const result = buildSceneStatePatch({ previous: save.npc_scene_state?.[npcId] ?? {}, proposal: physical, evidenceMap: evidenceMap(physical, evidence, npcId), narrativeText: storyText, characterName: masterName(master, npcId), turnNumber: expectedTurn, actorId: npcId, npcsPresent: [...currentNpcIds(save, npcIds)], registeredNpcNames: [], npcDialogueLines: dialogueLines(parsedStory, npcId) });
+  const result = buildSceneStatePatch({ previous: save.npc_scene_state?.[npcId] ?? {}, proposal: physical, evidence: actorEvidence(evidence, npcId), narrativeText: storyText, characterName: masterName(master, npcId), turnNumber: expectedTurn, actorId: npcId, npcsPresent: [...currentNpcIds(save, npcIds)], registeredNpcNames: [], npcDialogueLines: dialogueLines(parsedStory, npcId) });
   return { state: result.state, warnings: result.warnings.map(code => `npc_scene_state:${npcId}:${code}`) };
 }
 
