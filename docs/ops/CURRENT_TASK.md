@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: BLOCKED
 Task ID: hospital-spine-test-manual-handoff-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -149,3 +149,13 @@ Do not create another CURRENT_TASK and do not start another roadmap Cut. The use
 - no generic CSA execution DSL;
 - no retry/regenerate-until-lucky behavior;
 - no next roadmap Cut.
+
+## Terminal BLOCKED — 2026-08-18
+
+Classification: `BLOCKED_HOSPITAL_HANDOFF_NO_FRESH_LEVEL7_WRITER`
+
+The exact registered main (`e3d00dba4381a9f77f6d5aaa4be6f08e7fdc9c46`) was deployed to TEST API Worker `game-proxy-company-v1` as version `5eb3ebc7-a4a3-43c0-ba0b-b159ee93ce52` at `2026-08-18T10:42:49Z` (source tree `b397708faa738d41bd7c682af60d6e1e4d091936`). Read-only structural smoke passed: registration-main CI `32125901150`, action/scene contract gates passed, `/health` and `/api/version` returned company-v1 / phase-2-vertical-loop, preserved-game API smoke passed, and frontend asset/public-route smoke passed at `https://gamebuilder-company-v1.zeroslove.workers.dev`.
+
+Fresh UUID `1ee28d34-af78-4a07-a784-248e075ebd9c` was generated and, before any write, read-only counts were zero in `games` (key `id`), `game_save`, `game_actions`, and `game_turns` (key `game_id`). The current TEST function definition for `public.prepare_company_test_level7_fixture(uuid,text)` hard-codes the existing dedicated UUID `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` and calls `reset_company_game` before applying Level 7. It therefore cannot seed the proven-absent UUID and would violate this task’s mandatory fresh-UUID/no-reuse/no-reset procedure. No fixture write was attempted; all preserved games remain untouched.
+
+Required next action is an owner-authorized source/migration/runtime contract change that provides a genuinely fresh-UUID TEST-only Level-7 creation path. That is outside this task’s absolute prohibitions, so execution stops here. No Production, migration/DDL, source repair, gameplay call, or unpushed commit was performed.
