@@ -79,6 +79,12 @@ begin
   v_data := v_template_save.data;
   v_data := jsonb_set(
     v_data,
+    '{save_schema_version}',
+    to_jsonb(v_template_save.save_schema_version),
+    true
+  );
+  v_data := jsonb_set(
+    v_data,
     '{player_progress}',
     coalesce(v_data -> 'player_progress', '{}'::jsonb) || jsonb_build_object('level', 7, 'exp', 0),
     true
@@ -110,13 +116,13 @@ begin
   )
   values (
     p_game_id, v_template_master.master_schema_version,
-    v_template_master.data, v_template_master.initial_save
+    v_template_master.data, v_data
   );
 
   insert into public.game_save (
     game_id, save_schema_version, committed_turn, save_revision, data
   )
-  values (p_game_id, 1, 0, 0, v_data);
+  values (p_game_id, v_template_save.save_schema_version, 0, 0, v_data);
 
   select count(*) into v_action_count
   from public.game_actions where game_id = p_game_id;

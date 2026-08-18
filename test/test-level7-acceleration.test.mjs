@@ -151,11 +151,20 @@ test('fresh migration is additive, fail-closed, validated, and service-role-only
     assert.match(migration, new RegExp(`public\\.${table}`));
   }
   assert.match(migration, /validate_company_save_v1/);
+  assert.match(migration, /v_template_save\.save_schema_version/);
   assert.match(migration, /player_progress/);
   assert.match(migration, /committed_turn.*0/s);
   assert.match(migration, /processing_status.*idle/s);
   assert.match(migration, /target_reused.*false/s);
   assert.match(migration, /template_read_only.*true/s);
+  const validationIndex = migration.indexOf('v_validation := public.validate_company_save_v1(v_data)');
+  const insertIndex = migration.indexOf('insert into public.games');
+  assert.ok(validationIndex >= 0 && validationIndex < insertIndex, 'candidate must be validated before inserts');
+  const gameMasterInsert = migration.match(/insert into public\.game_master[\s\S]*?;/)?.[0] ?? '';
+  const gameSaveInsert = migration.match(/insert into public\.game_save[\s\S]*?;/)?.[0] ?? '';
+  assert.match(gameMasterInsert, /v_data/);
+  assert.match(gameSaveInsert, /v_data/);
+  assert.doesNotMatch(migration, /v_template_master\.initial_save/);
   assert.doesNotMatch(migration, /reset_company_game/);
   assert.match(migration, /revoke all on function public\.create_company_test_level7_fixture/);
   assert.match(migration, /grant execute on function public\.create_company_test_level7_fixture.*to service_role/s);
