@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: hospital-reference-spine-alignment-v1
 Rework: true
 Updated: 2026-08-18
@@ -197,6 +197,18 @@ After the coherent rework:
 7. require `Company v1 tests` SUCCESS on the exact PR head;
 8. do NOT merge in this rework task;
 9. set CURRENT_TASK to `WAITING_REVIEW`, post one terminal report, and STOP.
+
+## 9.1 Execution result
+
+- Reviewed executable SHA: `67b8cce260e23a953ef8d8353b96fb0c316c64e2`
+- Workflow docs-only HEAD: recorded by the commit that changes this task file to `WAITING_REVIEW`
+- PR: `#82` (`company/hospital-reference-spine-alignment-v1-rework` -> `main`), open and unmerged
+- Exact-head Company v1 `test`: SUCCESS
+- Focused tests: PASS (61/61)
+- Full `npm.cmd test`: PASS (359/359)
+- Changed JS/MJS syntax checks: PASS
+- `git diff --check`: PASS
+- No TEST/DB/Production/deployment/live-game operations performed
 
 Terminal success classification:
 `HOSPITAL_REFERENCE_SPINE_ALIGNMENT_REWORK_READY`
