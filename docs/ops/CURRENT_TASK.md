@@ -1,8 +1,8 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_OWNER_DECISION
+Status: READY
 Task ID: hospital-reference-spine-alignment-v1
-Updated: 2026-08-18
+Updated: 2026-08-18 (owner rearm: resume loop, execute canon alignment)
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
