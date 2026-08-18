@@ -1,147 +1,151 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: hospital-spine-pr82-lineage-reconcile-v1
+Status: READY
+Task ID: hospital-spine-test-manual-handoff-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-## 7. Verified lineage handoff
+This existing `docs/ops/CURRENT_TASK.md` is reused in place. Do not create a new CURRENT_TASK file and do not create a new ops/task-registration branch.
 
-- Candidate source/test commit: `9154c01d661d11918dedc873899d59bcb993fcc7`
-- Replacement PR: `#83`, head `9154c01d661d11918dedc873899d59bcb993fcc7`, open/non-Draft/mergeable
-- Exact reviewed source/test equivalence to `67b8cce260e23a953ef8d8353b96fb0c316c64e2`: EXACT
-- Focused alignment/navigation/scene/physical/sexual/memory tests: `61/61 PASS`
-- Full `npm.cmd test`: `359/359 PASS`
-- Changed JS/MJS syntax: PASS
-- `git diff --check`: PASS
-- Exact-head Company v1 test workflow: run `32125134575`, SUCCESS
-- Final branch/docs head SHA is the pushed workflow-handoff commit recorded in the Issue #68 terminal report.
-
-This existing file is the sole active execution authority. Reuse it in place. Do not create a new CURRENT_TASK file or a new ops/task-registration branch.
-
-## 0. Why this task exists
+## 0. Owner review and merged source authority
 
 Binding design:
 
 `docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md`
 
-Blocked predecessor terminal: Issue #68 comment `5325982174`.
+Predecessor task: `hospital-spine-pr82-lineage-reconcile-v1`
 
-The predecessor correctly stopped because an ops-only `CURRENT_TASK.md` commit advanced `main` and made reviewed PR #82 mechanically conflicted. Independent review proved that the drift changed only `docs/ops/CURRENT_TASK.md`; no source/test/config/content/migration/runtime behavior changed.
+Owner review decision: `ACCEPT`.
 
-Reviewed executable source/test authority remains:
+Replacement PR #83 was independently verified before merge:
 
-`67b8cce260e23a953ef8d8353b96fb0c316c64e2`
+- PR head: `66b1f777481b7f3989d09d037e24255003692438`
+- candidate source/test commit: `9154c01d661d11918dedc873899d59bcb993fcc7`
+- exact-head Company v1 tests: run `32125276984` — SUCCESS
+- candidate `src` tree: `b397708faa738d41bd7c682af60d6e1e4d091936`
+- candidate `test` tree: `9f24659243417edb40d38d7e0fdce9c7397fc19b`
+- those tree SHAs exactly equal reviewed executable `67b8cce260e23a953ef8d8353b96fb0c316c64e2`
+- focused 61/61, full 359/359, syntax, and diff checks accepted
 
-Old reviewed PR:
+Owner merged only PR #83 by normal merge with exact expected-head protection.
 
-- PR #82
-- head `4cc4b67b1b29d9269eedbbbb81b9ebf38ee76928`
-- source/test content accepted
-- currently unmerged and mechanically conflicted only because both lineages changed `docs/ops/CURRENT_TASK.md`
+Merged source authority: `b8efd92085fb660e18090373800994b64d003e73`
 
-This task is lineage reconciliation only. No application semantic redesign is authorized.
+Old PR #82 remains historical reviewed-but-conflicted evidence and must not be merged.
 
-## 1. Execution identity — in-place CURRENT_TASK reuse
+No source repair is authorized. This is the final TEST deployment + zero-turn manual-fixture handoff tail.
 
-The Issue #68 rearm comment for this task supplies the exact authoritative `REGISTRATION_MAIN_SHA` and `CURRENT_TASK_BLOB_SHA`.
+## 1. Frozen in-place registration identity
 
-Execution start requirements:
+The latest Issue #68 `CURRENT_TASK_READY` comment for this Task ID supplies exact `REGISTRATION_MAIN_SHA` and `CURRENT_TASK_BLOB_SHA`.
+
+At execution start:
 
 1. fresh-fetch `origin/main`;
-2. require `origin/main == REGISTRATION_MAIN_SHA` from the latest rearm comment;
-3. require `docs/ops/CURRENT_TASK.md` blob == the registered blob;
-4. use the already-existing branch `company/hospital-spine-pr82-lineage-reconcile-v1`; do not create another branch;
-5. require that existing branch HEAD == `REGISTRATION_MAIN_SHA` before source application;
-6. require old PR #82 remains OPEN/unmerged with exact head `4cc4b67b1b29d9269eedbbbb81b9ebf38ee76928`;
-7. require reviewed executable SHA `67b8cce...` remains reachable;
-8. if main has any non-doc source/config/test/content/migration drift after this registration, STOP `BLOCKED_HOSPITAL_SPINE_RELINEARIZE_DRIFT`.
+2. require `origin/main == REGISTRATION_MAIN_SHA` from that comment;
+3. require this file blob == registered `CURRENT_TASK_BLOB_SHA`;
+4. require `REGISTRATION_MAIN_SHA` to be a docs-only descendant of merged source `b8efd920...`, changing only `docs/ops/CURRENT_TASK.md`;
+5. require current `src` tree == `b397708f...` and current `test` tree == `9f246592...`;
+6. require PR #83 MERGED with merge commit `b8efd920...` and PR #82 UNMERGED;
+7. create no task/ops branch; operational work proceeds from exact registered main;
+8. if any non-doc source/config/test/content/migration drift exists, STOP `BLOCKED_HOSPITAL_HANDOFF_MAIN_DRIFT`.
 
-Do not generate another task or another ops branch if any precondition fails.
+## 2. Phase A — exact registration-main CI
 
-## 2. Apply only the already-reviewed source/test content
+The repository workflow runs on pushes to `main`. Require `Company v1 tests` for exact `REGISTRATION_MAIN_SHA` to complete SUCCESS before deployment.
 
-On the existing reconciliation branch, reproduce only the non-doc content represented by:
+If exact registration-main CI is not SUCCESS, STOP `BLOCKED_HOSPITAL_HANDOFF_MAIN_CI`. Do not patch source or alter workflow/provider/model settings.
 
-`20080497d782598600200afa45b5171087595ff9..67b8cce260e23a953ef8d8353b96fb0c316c64e2`
+## 3. Phase B — deploy exact registered main to TEST only
 
-restricted to these exact paths:
+Deploy the exact Company v1 runtime from `REGISTRATION_MAIN_SHA` to TEST only using the current contract-gated deployment path.
 
-- `src/engine/extract-prompt.js`
-- `src/engine/gameplay-state.js`
-- `src/engine/runtime-core/commit-reducer.js`
-- `src/engine/runtime-core/extract-observation.js`
-- `src/engine/runtime-core/legacy-extract-adapter.js`
-- `src/engine/runtime-core/observation-reducers.js`
-- `src/engine/runtime-core/persisted-extract-observation.js`
-- `src/engine/state/clothing.js`
-- `src/engine/state/physical-state.js`
-- `src/engine/story-prompt.js`
-- `test/extract-observation-contract.test.mjs`
-- `test/frontend-projection-contract.test.mjs`
-- `test/gameplay-core-simplification.test.mjs`
-- `test/narrative-request-contract.test.mjs`
-- `test/state-evidence-boundaries.test.mjs`
+Required:
 
-Do not transplant PR #82's `docs/ops/CURRENT_TASK.md` changes. Do not rebase/merge PR #82 wholesale. No additional source/test/config/content/migration path may change.
+- deploy exact API Worker/runtime from registered main;
+- record Worker name/version/deployment timestamp and source SHA;
+- frontend source was not changed by this alignment; do not perform an unnecessary frontend rewrite/workaround;
+- retain existing source-equivalent TEST frontend unless the normal deployment contract explicitly requires a deploy;
+- record frontend version only if actually deployed by the normal authorized path;
+- no source/config/content repair during deployment.
 
-## 3. Exact equivalence is mandatory
+Hard boundaries:
 
-After application, prove all resulting `src/**` and `test/**` files are byte/content-equivalent to reviewed executable SHA `67b8cce...`.
+- TEST only;
+- no Production/hospital-v2;
+- no migration/DDL/migration-history repair/broad DB push;
+- no provider/model/TTS/binding change;
+- no retry-until-lucky/regeneration loop.
 
-The only allowed difference from the old reviewed lineage is ops/document ancestry.
+If exact registered main cannot deploy, STOP with the precise deployment blocker.
 
-No cleanup, formatting pass, refactor, dependency/config change, semantic tweak, compatibility patch, provider/model change, or unrelated repair is allowed.
+## 4. Phase C — structural/read-only smoke only
 
-If exact equivalence cannot be proven, STOP `BLOCKED_HOSPITAL_SPINE_RELINEARIZE_EQUIVALENCE`.
+After deployment, perform only non-gameplay verification required to prove TEST is structurally ready:
 
-## 4. Verification and replacement PR
+- `/health` and API reachability/edition identity;
+- effective TEST DB contract checks read-only;
+- Action Stage A / Scene Stage B contract gates where applicable;
+- frontend asset/public-route reachability;
+- deployed-source/version identity checks.
 
-After equivalence proof:
+Any infrastructure smoke fixture must be disposable and must not become the final manual fixture.
 
-1. run the same focused alignment/navigation/scene/physical/sexual/memory tests used for the reviewed candidate;
-2. run full `npm.cmd test`;
-3. run changed JS/MJS syntax checks;
-4. run `git diff --check`;
-5. require all PASS;
-6. open exactly one replacement PR from the existing reconciliation branch to `main`;
-7. state in the PR body that this is a lineage-only replacement for conflicted PR #82 and that non-doc source/test content is exact-equivalent to `67b8cce...`;
-8. require exact-head `Company v1 tests` CI SUCCESS;
-9. do not merge the replacement PR;
-10. do not close or modify PR #82 in this task.
+Do not run Setup, Opening, Story, Extract, or Commit gameplay turns as acceptance.
 
-If CI fails, STOP with the exact failure. No source repair is authorized here.
+If structural smoke fails, STOP with exact evidence. Do not alter application semantics.
 
-## 5. Success terminal
+## 5. Phase D — one genuinely fresh Level-7 manual TEST fixture
 
-On success, overwrite this same `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW` and record:
+Only after exact-head CI, deployment, and structural smoke pass, create exactly one fresh disposable Level-7 TEST game for the user's manual product-play acceptance.
 
-- candidate source/test commit SHA;
-- final branch/docs head SHA;
-- replacement PR number/head;
-- exact equivalence result;
-- focused/full/syntax/diff results;
-- exact-head CI run/result.
+Mandatory freshness procedure:
 
-Then post one terminal report to Issue #68 with classification:
+1. generate a brand-new UUID not copied from any prior manual/QA/evidence fixture;
+2. BEFORE any write, prove zero rows for that UUID in at least `games`, `game_save`, `game_actions`, and `game_turns`;
+3. if any row exists, discard that UUID without mutation and generate another;
+4. seed/create only the proven-absent UUID using the current authorized TEST Level-7 fixture path;
+5. never reset/reseed/reuse an existing UUID;
+6. preserve all prior manual/QA/evidence games read-only, including `9755b57b-5cbb-44dd-a624-020fe516c16d`, `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`, and every other prior fixture;
+7. perform ZERO Setup/Opening/Story/Extract/Commit gameplay calls in the final manual fixture;
+8. verify after creation: Level 7, `committed_turn=0`, game action count 0, active committed turn count 0, idle/no pending gameplay action, TEST-only identity, and public frontend URL reachable;
+9. record exact fresh UUID and public TEST URL.
 
-`HOSPITAL_SPINE_RELINEARIZED_READY`
+The user, not Codex/Hermes, owns long gameplay acceptance.
 
-STOP. Do not create the next task.
+## 6. Success terminal — WAITING_USER_LIVE_ACCEPTANCE
 
-## 6. Absolute prohibitions
+On full success, overwrite this SAME `docs/ops/CURRENT_TASK.md` on main in place to `Status: WAITING_USER_LIVE_ACCEPTANCE` and record:
+
+- registration main SHA/blob;
+- exact-head main CI run/result;
+- deployed API Worker version and exact source SHA;
+- frontend deployment status/version if any;
+- DB/action/scene structural gate results;
+- health/frontend reachability results;
+- fresh UUID pre-write absence proof;
+- final fresh Level-7 game UUID;
+- zero-turn/action-count readback;
+- public TEST frontend URL.
+
+Post one terminal report to Issue #68 with classification `HOSPITAL_REFERENCE_SPINE_ALIGNMENT_WAITING_USER_LIVE_ACCEPTANCE`, then STOP.
+
+Do not create another CURRENT_TASK and do not start another roadmap Cut. The user will next perform the long 30–50+ turn manual product-play acceptance.
+
+## 7. Absolute prohibitions
 
 - no new CURRENT_TASK file;
 - no new ops/task-registration branch;
-- no source semantic redesign beyond the exact reviewed patch;
-- no merge/rebase/cherry-pick-wholesale of PR #82;
-- no merge of the replacement PR;
-- no closing/modifying PR #82;
-- no TEST deploy/gameplay/game creation/reset/reseed;
-- no DB write/migration/DDL/history repair;
-- no Production/hospital-v2 access;
+- no source/test/config/content semantic changes;
+- no merge of PR #82 or any other PR;
+- no automated long live gameplay;
+- no gameplay turn in the final manual fixture;
+- no reset/reseed/reuse/mutation of any pre-existing manual/QA/evidence game;
+- no Production/hospital-v2 operation;
+- no migration/DDL/history repair/broad DB push;
 - no provider/model/TTS/binding change;
-- no retry-until-lucky;
 - no semantic router/classifier/verifier;
-- no relationship/event/emotion/open-fact ledger or generic CSA DSL;
+- no relationship/event/emotion/open-fact ledger;
+- no generic CSA execution DSL;
+- no retry/regenerate-until-lucky behavior;
 - no next roadmap Cut.
