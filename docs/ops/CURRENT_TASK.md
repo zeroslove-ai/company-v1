@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_USER_LIVE_ACCEPTANCE
 Task ID: user-live-turn33-continuity-contract-repair-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -325,3 +325,22 @@ Terminal report must include:
 - explicit `final_manual_game_story_turns=0`;
 - migration/DDL/Production/provider-model/retry safety counts;
 - STOP. Do not begin user gameplay or the next roadmap Cut.
+
+## 17. Execution record — source repair and manual-acceptance handoff
+
+- Registration: `a934627004a649e1b9a5079110074c90bd387a3a`; CURRENT_TASK blob `41ed6652551c358547f49a6f107d09630ff336cd`; expected branch `company/user-live-turn33-continuity-contract-repair-v1`.
+- Preserved user game `9755b57b-5cbb-44dd-a624-020fe516c16d` was inspected read-only through committed turn 33 only; preserved-game mutation/reset/reuse counts: 0.
+- A root cause: actor-scoped physical Story evidence was not mapped to the position writer. The single current path is now `evidence.physical_change.<actor_id>` with exact canonical changed paths and quote/actor matching before the existing physical-state writer.
+- B root cause: the retained player sexual reducer was live but its fresh Extract evidence wording was not coherent with its existing exact Story gates. The existing reducer remains the sole writer; exact arousal/erection evidence regressions pass, and input without Story evidence remains unchanged.
+- C root cause: exact multi-NPC mentions were rejected before deterministic destination resolution. Same-destination registered targets now hand off together; non-movement and divergent-destination cases remain unresolved.
+- D root cause: successful Extract could return blank summary/Mind Monitor outputs silently, and older blank summaries lost continuity. Fresh normalization now emits deterministic warnings; older blank summaries retain committed raw Story/parsed-block fallback, while nonblank summaries remain preferred.
+- Secondary focal audit: `focal_character_id` is consumed by canonical scene reduction, API display, frontend interaction ordering, and Story context projection. It remains a current presentation/context authority; no separate focal decision was introduced without a new authority decision.
+- Source/test commit: `db0cc1ce1ac29bf77f3e34dc6d40b7bf4698eac2` (PR #79 exact head); changed paths are the existing navigation, turn-route, extract prompt/normalization, observation reducers, scene/commit reducers, Story context, and focused contract tests.
+- Focused A-D tests: 31/31 passed. Full `npm test`: 358/358 passed. Changed-JS `node --check`: passed. `git diff --check`: passed. Final architecture inventory found no new generic router/verifier, finite physical/sexual grammar, CSA DSL, retry loop, or duplicate durable writer.
+- PR/CI: PR #79 exact-head `Company v1 tests` run `32095871921` SUCCESS; merged main SHA `5654fe20a5d39c6fd4c9d2e94c7d450e331bc83d`; merged-main CI `32095924434` SUCCESS.
+- TEST rollout: API Worker exact merged-main version `626e21cd-6eeb-4db9-ae6b-a40ea324d7a5`; action Stage A and scene Stage B effective-DB read-only gates PASS; API read-only smoke PASS. Frontend source was unchanged, so no frontend deploy was performed; existing frontend version `06b1cc87-77ec-4fd2-add3-10d1ad226311` remained source-equivalent and frontend asset smoke PASS (15 direct assets, 21 reachable modules).
+- Final manual handoff game: dedicated Level-7 TEST game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`, one authorized fixture preparation returned `success:true`, `test_only:true`, `committed_turn:0`, `reset_before_seed:true`; public URL `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=2d00d76e-85b1-4cf0-8dab-a04e8a044b84` returned HTTP 200. `final_manual_game_story_turns=0`; no gameplay Story request was sent.
+- Safety counts: Production access 0; migration/DDL/history repair 0; provider/model/TTS change 0; automated gameplay/retry loop 0; preserved-game mutation/reset 0; authorized final TEST fixture preparation 1; final manual-game gameplay turns 0.
+
+Final terminal: `USER_LIVE_TURN33_CONTINUITY_REPAIR_WAITING_MANUAL_ACCEPTANCE`
+Final status: `WAITING_USER_LIVE_ACCEPTANCE`
