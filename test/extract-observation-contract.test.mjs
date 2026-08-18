@@ -9,7 +9,7 @@ const base = { extract_version: 2, outcome: 'success', scene_observation: { scen
 
 test('fresh Extract accepts only narrow scene, physical, sexual and summary observation', () => {
   const freshBase = structuredClone(base);
-  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, remote_speaker_ids: [], evidence: [] };
+  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] };
   const result = normalizeFreshExtractObservationV2({ ...freshBase, player_observation: { physical: { position_label: 'standing' }, sexual: { arousal_delta: 1 } } }, { npcIds: NPCS, storyText: '' });
   assert.equal(result.player_observation.physical.position_label, 'standing');
   assert.equal(result.player_observation.sexual.arousal_delta, 1);
@@ -18,7 +18,7 @@ test('fresh Extract accepts only narrow scene, physical, sexual and summary obse
 
 test('fresh Extract reports missing continuity summary and required Mind Monitor entries', () => {
   const freshBase = structuredClone(base);
-  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, remote_speaker_ids: [], evidence: [] };
+  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] };
   freshBase.turn_summary = '';
   const result = normalizeFreshExtractObservationV2(freshBase, {
     npcIds: NPCS,
@@ -27,6 +27,25 @@ test('fresh Extract reports missing continuity summary and required Mind Monitor
   });
   assert.ok(result.warnings.includes('mind_monitor_missing:heroine1'));
   assert.ok(result.warnings.includes('turn_summary_missing_for_nonempty_story'));
+});
+
+test('fresh actor evidence is one exact quote with canonical changed paths', () => {
+  const freshBase = structuredClone(base);
+  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] };
+  const result = normalizeFreshExtractObservationV2({
+    ...freshBase,
+    evidence: { actors: { heroine1: { character_id: 'heroine1', quote: 'Heroine stands by the window', changed: ['npc_scene_state.heroine1.position_label'] } } }
+  }, { npcIds: NPCS, storyText: 'Heroine stands by the window.' });
+  assert.deepEqual(result.evidence.actors.heroine1.changed, ['npc_scene_state.heroine1.position_label']);
+  const unsupported = normalizeFreshExtractObservationV2({ ...freshBase, evidence: { actors: { heroine1: { character_id: 'heroine1', quote: 'Heroine stands by the window', changed: ['npc_scene_state.heroine1.posture'] } } } }, { npcIds: NPCS, storyText: 'Heroine stands by the window.' });
+  assert.deepEqual(unsupported.evidence, {});
+  assert.ok(unsupported.warnings.some(warning => warning.includes('evidence.heroine1')));
+  const retired = normalizeFreshExtractObservationV2({
+    ...freshBase,
+    evidence: { physical_change: { heroine1: { character_id: 'heroine1', quote: 'Heroine stands by the window', changed: ['npc_scene_state.heroine1.position_label'] } } }
+  }, { npcIds: NPCS, storyText: 'Heroine stands by the window.' });
+  assert.deepEqual(retired.evidence, {});
+  assert.ok(retired.warnings.some(warning => warning.includes('evidence.physical_change')));
 });
 
 test('fresh current scene evidence round-trips through the persisted Commit reader', () => {
@@ -39,7 +58,6 @@ test('fresh current scene evidence round-trips through the persisted Commit read
       final_present_npc_ids: null,
       entered_npc_ids: [],
       exited_npc_ids: [],
-      focal_candidate_id: null,
       remote_speaker_ids: [],
       evidence: [{ kind: 'scene', location_id: 'brand_strategy_office', quote }]
     },
@@ -57,7 +75,7 @@ test('fresh current scene evidence round-trips through the persisted Commit read
 test('current scene evidence remains fail-closed for quote and location provenance', () => {
   const make = (evidence, location_id = 'brand_strategy_office') => ({
     extract_version: 2, outcome: 'success',
-    scene_observation: { location_id, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, remote_speaker_ids: [], evidence },
+    scene_observation: { location_id, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence },
     player_observation: { physical: null, sexual: null }, npc_observations: {}, evidence: {}, elapsed_minutes: 3,
     mind_monitor: {}, turn_summary: '', warnings: []
   });
@@ -72,7 +90,7 @@ test('presence evidence remains exact-quote grounded and registered', () => {
     extract_version: 2, outcome: 'success',
     scene_observation: {
       location_id: 'brand_strategy_office', final_present_npc_ids: null,
-      entered_npc_ids: ['heroine1'], exited_npc_ids: [], focal_candidate_id: null,
+      entered_npc_ids: ['heroine1'], exited_npc_ids: [],
       remote_speaker_ids: [], evidence: [{ kind: 'entrance', character_id: 'heroine1', location_id: 'brand_strategy_office', quote: '서연이 사무실로 들어왔다.' }]
     },
     player_observation: { physical: null, sexual: null }, npc_observations: {}, evidence: {}, elapsed_minutes: 3,
@@ -97,7 +115,7 @@ test('persisted legacy boundary remains separate and readable', () => {
 
 test('fresh Extract rejects legacy scene_id and semantic authority', () => {
   const freshBase = structuredClone(base);
-  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, remote_speaker_ids: [], evidence: [] };
+  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] };
   assert.throws(() => normalizeFreshExtractObservationV2({ ...freshBase, scene_observation: { ...freshBase.scene_observation, scene_id: 'legacy-scene' } }, { npcIds: NPCS, storyText: '' }), /Unknown observation field/);
   assert.throws(() => normalizeFreshExtractObservationV2({ ...freshBase, events: { general: [], sexual: [] } }, { npcIds: NPCS, storyText: '' }), /Unknown observation field/);
 });
@@ -106,9 +124,11 @@ test('Extract prompt names the minimal fresh contract and keeps raw Story eviden
   const messages = buildExtractPrompt({ context: { save: { scene: { version: 1, scene_id: null, location_id: null, beat: 0, goal: null, focus_thread: null, present_npc_ids: [], focal_character_id: null, last_speaker_id: null, updated_turn: 0 }, world_state: { game_time: { day: 1, minute_of_day: 540 } } } }, storyText: 'raw story', parsedStory: {}, expectedTurn: 1, edition: { characters: { characters: {} }, generalNpcs: { profiles: {} }, map: { locations: [] } }, npcIds: NPCS });
   const text = messages[0].content;
   assert.match(text, /narrow player_observation/i);
-  assert.match(text, /semantic event\/relation taxonomy/i);
+  assert.match(text, /same actor evidence shape/i);
+  assert.equal(/relation_updates|events\.general|npc_observations\.relationship|npc_observations\.emotion|npc_observations\.work/.test(text), false);
+  assert.equal(text.includes('focal_candidate_id: null'), false);
   assert.equal(text.includes('csa_trigger_evaluations'), false);
-  assert.equal(text.includes('posture'), false);
+  assert.match(text, /actors/i);
   assert.match(text, /position_label/);
   assert.equal(JSON.parse(messages[1].content).story_text, 'raw story');
 });

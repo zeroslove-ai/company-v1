@@ -190,9 +190,10 @@ test('physical state accepts evidenced position labels and carries them across u
       position_label: '플레이어 앞에 무릎을 꿇고 보고서를 무릎 위에 펼쳐 보이고 있다',
       evidence: { posture: evidence, position: evidence }
     },
-    evidenceMap: { posture: evidence, position: evidence },
+    evidence: { character_id: 'npc1', changed: ['npc_scene_state.npc1.posture', 'npc_scene_state.npc1.position_label'], quote: evidence },
     narrativeText: evidence,
     characterName: '김제나',
+    actorId: 'npc1',
     turnNumber: 4
   });
   assert.equal(first.state.posture, 'kneeling');
@@ -219,7 +220,7 @@ test('physical state rejects invented posture and position changes without exact
       position_label: '플레이어 앞에 무릎을 꿇고 있다',
       posture_end_reason: 'explicit_change'
     },
-    evidenceMap: {
+    evidence: {
       posture: 'Story에 존재하지 않는 문장',
       position: 'Story에 존재하지 않는 문장',
       posture_end_reason: 'Story에 존재하지 않는 문장'

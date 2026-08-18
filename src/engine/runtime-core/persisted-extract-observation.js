@@ -25,9 +25,8 @@ function isCurrentV2(value) {
 function inertSemanticResidue(value) {
   const persisted = { ...value };
   delete persisted.relation_updates;
-  if (object(persisted.events)) {
-    persisted.events = { ...persisted.events, general: [] };
-  }
+  for (const key of ['events', 'action_target_id', 'image_character_id', 'image_selection', 'csa_trigger_evaluations', 'csa_runtime_updates']) delete persisted[key];
+  if (object(persisted.evidence) && !Object.hasOwn(persisted.evidence, 'actors')) persisted.evidence = {};
   if (object(persisted.npc_observations)) {
     persisted.npc_observations = {};
     for (const [npcId, domains] of Object.entries(value.npc_observations)) {

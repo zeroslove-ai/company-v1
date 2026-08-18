@@ -1,9 +1,21 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: hospital-spine-pr82-lineage-reconcile-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
+
+## 7. Verified lineage handoff
+
+- Candidate source/test commit: `9154c01d661d11918dedc873899d59bcb993fcc7`
+- Replacement PR: `#83`, head `9154c01d661d11918dedc873899d59bcb993fcc7`, open/non-Draft/mergeable
+- Exact reviewed source/test equivalence to `67b8cce260e23a953ef8d8353b96fb0c316c64e2`: EXACT
+- Focused alignment/navigation/scene/physical/sexual/memory tests: `61/61 PASS`
+- Full `npm.cmd test`: `359/359 PASS`
+- Changed JS/MJS syntax: PASS
+- `git diff --check`: PASS
+- Exact-head Company v1 test workflow: run `32125134575`, SUCCESS
+- Final branch/docs head SHA is the pushed workflow-handoff commit recorded in the Issue #68 terminal report.
 
 This existing file is the sole active execution authority. Reuse it in place. Do not create a new CURRENT_TASK file or a new ops/task-registration branch.
 

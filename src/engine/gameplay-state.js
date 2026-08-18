@@ -28,35 +28,13 @@ function stringOrEmpty(value) {
 }
 
 function exactSexualEvidenceQuote(evidence, field, storyText) {
-  const roots = object(evidence) ? evidence : {};
-  const baseField = field.endsWith('_delta') ? field.slice(0, -6) : field;
-  const candidates = new Set([
-    `player_sexual_state.${field}`,
-    `player_sexual_state.${baseField}`,
-    `player_observation.sexual.${field}`,
-    `player_observation.sexual.${baseField}`
-  ]);
-  const validQuote = value => {
-    const quote = typeof value === 'string' ? value : object(value) ? value.quote : null;
-    return typeof quote === 'string' && quote.trim() && String(storyText ?? '').includes(quote.trim()) ? quote.trim() : null;
-  };
-  for (const path of candidates) {
-    const parts = path.split('.');
-    let value = roots;
-    for (const part of parts) value = object(value) ? value[part] : undefined;
-    const quote = validQuote(value);
-    if (quote) return quote;
-  }
-  if (Array.isArray(roots.changed) && roots.changed.some(path => candidates.has(String(path)))) {
-    const quote = validQuote(roots.quote);
-    if (quote) return quote;
-  }
-  for (const item of Object.values(roots)) {
-    if (!object(item) || !Array.isArray(item.changed) || !item.changed.some(path => candidates.has(String(path)))) continue;
-    const quote = validQuote(item.quote);
-    if (quote) return quote;
-  }
-  return null;
+  const actor = object(evidence?.actors?.player) ? evidence.actors.player : null;
+  if (!actor || actor.character_id !== 'player' || !Array.isArray(actor.changed)) return null;
+  const paths = new Set([`player_sexual_state.${field}`]);
+  if (field.endsWith('_delta')) paths.add(`player_sexual_state.${field.slice(0, -6)}`);
+  if (!actor.changed.some(path => paths.has(String(path)))) return null;
+  const quote = typeof actor.quote === 'string' ? actor.quote.trim() : '';
+  return quote && String(storyText ?? '').includes(quote) ? quote : null;
 }
 
 // 이미지 선택 태그 allowlist — 알 수 없는 태그는 버린다 (턴70 지시 10).
@@ -322,12 +300,7 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
   // 자극이 잠시 멈춰도 자동 flaccid 처리하지 않는다. 사정 완료만으로 flaccid 처리하지 않는다.
   const erectionProposal = patch.erection_state;
   if (erectionProposal !== undefined) {
-    const erectionEvidence = object(storyEvidence) ? storyEvidence.player_erection : null;
-    const quoteValid = erectionEvidence?.state === erectionProposal
-      && typeof erectionEvidence?.quote === 'string'
-      && erectionEvidence.quote.length > 0
-      && typeof storyText === 'string'
-      && storyText.includes(erectionEvidence.quote);
+    const quoteValid = exactSexualEvidenceQuote(storyEvidence, 'erection_state', storyText);
     if (ERECTION_STATES.has(erectionProposal) && quoteValid) {
       state.erection_state = erectionProposal;
     } else {
@@ -335,7 +308,7 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
     }
   }
   if (patch.ejaculation_completed === true) {
-    if (!object(storyEvidence) || storyEvidence.sexual_resolution !== true) {
+    if (!exactSexualEvidenceQuote(storyEvidence, 'ejaculation_completed', storyText)) {
       warnings.push('unauthorized_ejaculation_completion_ignored');
     } else {
       state.ejaculation_count += 1;

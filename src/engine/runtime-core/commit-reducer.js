@@ -79,7 +79,7 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
       ...destinationTargetIds
     ])],
     exited_npc_ids: Array.isArray(scene.exited_npc_ids) ? scene.exited_npc_ids : [],
-    focal_candidate_id: destinationTargetId ?? scene.focal_candidate_id ?? null,
+    focal_candidate_id: destinationTargetId ?? null,
     explicit_speaker_ids: speakers,
     acted_npc_ids: [],
     last_explicit_speaker_id: speakers.at(-1) ?? null,
