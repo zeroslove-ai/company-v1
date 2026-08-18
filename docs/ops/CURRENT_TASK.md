@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: clothing-csa-npc-state-bootstrap-repair-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -155,3 +155,43 @@ At terminal:
 - set CURRENT_TASK `WAITING_REVIEW`;
 - post exactly one Issue #68 terminal with registration SHA/blob, source/test commit SHA, PR number/head, changed paths, focused/full test results, syntax/diff checks, exact regression proof, and safety-operation counts;
 - STOP with PR unmerged and no TEST deploy/gameplay.
+
+## 10. Terminal evidence — 2026-08-18
+
+Classification: `CLOTHING_CSA_NPC_STATE_BOOTSTRAP_REPAIR_READY`
+
+- Registration SHA: `df16ad67e4e2ccecb73ef6da16a09cf1abb1cf89`
+- Registration CURRENT_TASK blob SHA: `0d1adbac805ddb32d931e5b63f7433e1b60fa55a`
+- Source/test commit: `051bcc8118ccdbb6bf2ee7131086f1eb57268817`
+- Expected branch: `company/clothing-csa-npc-state-bootstrap-repair-v1`
+- PR: #78, head `051bcc8118ccdbb6bf2ee7131086f1eb57268817`, OPEN and unmerged
+- Exact-head CI: Company v1 tests SUCCESS, run `32091508613` / job `95574418899`
+
+Changed paths:
+- `src/engine/runtime-core/csa-commit-reducer.js`
+- `test/gameplay-core-simplification.test.mjs`
+- `docs/ops/CURRENT_TASK.md` (this lifecycle update)
+
+Validation:
+- Focused CSA/Commit/Story projection regression tests: `18/18` pass.
+- Full `npm test`: `351/351` pass, `0` fail.
+- `node --check` for both changed executable JS/MJS files: pass.
+- `git diff --check`: pass.
+- Self-review: the executable diff is limited to the existing `applyClothingContinuity()` bootstrap seam and focused regression coverage; no generic CSA/physical/consent architecture, provider/model, prompt, DB, migration, or deployment changes.
+
+Exact regression proof:
+- A present, registered, scope-matching `heroine3`/`female_employee` with no prior `npc_scene_state` now receives the canonical four clothing slots with structural `unknown` defaults and the exact active `csa_17` required slot `underwear_bottom: removed`, with `updated_turn` recorded at Commit turn.
+- Existing physical/clothing fields are preserved; unrelated slots are not inferred or overwritten; male, off-scene, inactive/deactivated, and non-clothing cases remain unaffected; repeated Commit is idempotent.
+
+Safety counts:
+- TEST gameplay/deploy/reset: `0`
+- preserved-game mutation/reset/reuse: `0`
+- DB writes, migrations, DDL, and history repair: `0`
+- Production: `0`
+- provider/model/prompt changes: `0`
+- retries/regenerations: `0`
+- source commits: `1`
+- lifecycle commits: `1`
+- pushes: `2` (source/test and lifecycle)
+- PRs opened: `1`
+- merges: `0`
