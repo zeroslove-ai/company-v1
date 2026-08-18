@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: test-live-input-utf8-fidelity-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -164,3 +164,14 @@ At terminal:
 1. set CURRENT_TASK `WAITING_REVIEW`;
 2. post exactly one Issue #68 terminal with registration/final SHA/blob, previous-game read-only byte evidence, probe game/action IDs, exact probe code points/UTF-8 bytes, request method, durable DB readback, corruption boundary classification, repo diff/tests if any, and all mutation/deploy/safety counts;
 3. STOP. Do not start full live acceptance, architecture repair, provider change, Production, merge, or Cut3.
+
+## 8. Terminal evidence — `LIVE_INPUT_UTF8_FIDELITY_PROVEN`
+
+- Registration: `4c078c2b973e61627fbc4e22c61ac37f544fdf27`; branch: `company/test-live-input-utf8-fidelity-v1`; accepted main: `8f3c5326e483650211fbc6c9f54a7527d2278d4e`; base terminal SHA: `dd8c7ef4741655cedc9ebb8dc3313eea6e441168`.
+- Preserved game read-only evidence: `1cb25cc3-7e7e-4dcf-b0f3-b54e1338eb20` remained `committed_turn=15`, `save_revision=17`, with 15 active turns (1–15). Turns 1–15 `game_actions.player_action` and `game_turns.player_action` all began with literal ASCII `?`; selected turn 4 action hex began `3f3f203f...`, turn 6 `3f3f203f...`, turn 8 `3f3f203f...`, and turn 10 `3f3f203f...`. Turn 6 and 8 structured JSON retained non-ASCII content, proving this was not a blanket DB Unicode failure.
+- Prior runner evidence inspected: `C:\Users\JAEWAN\AppData\Local\Temp\company-v1-live-resume-v1-terminal.md`, `company-v1-deep-level7-v9-run.mjs`, and maintained `scripts/live-playtest-canary.mjs`. The prior request path used JSON POSTs; this task did not modify the canary.
+- Probe game: `78bb312e-4d66-4ee6-acde-7c3fe58c4136` (created once via the existing `create_company_game` RPC from canonical TEST seed data; no prior game was reset or changed). Setup: `6eb4101a-a871-4806-8ce2-ee74289eac3d`. Action: `26d0b147-e3ca-4513-bce0-c0af0c108f16`.
+- Exact probe string: `UTF8검증: 브랜드전략팀 사무실로 이동한다.`. Code points: `[85,84,70,56,44160,51613,58,32,48652,47004,46300,51204,47029,54016,32,49324,47924,49892,47196,32,51060,46041,54620,45796,46]`. UTF-8 hex: `55544638eab280eca69d3a20ebb88ceb9e9ceb939ceca084eb9eb5ed8c8020ec82acebacb4ec8ba4eba19c20ec9db4eb8f99ed959ceb8ba42e`.
+- Request method/path: Node `fetch` with `POST`, `content-type: application/json`, direct `JSON.stringify`, ASCII-only `.mjs` source using `String.fromCodePoint`; Korean was not passed through PowerShell, cmd, env, or CLI arguments. Setup/opening/story/extract/commit returned HTTP 200; the one gameplay action committed.
+- Durable readback: `game_actions` row for the action stored the exact string and hex above with `processing_status=committed`; `game_turns` turn 1 stored the exact same string and exact same hex. `game_save` readback was `committed_turn=1`, `save_revision=3`. No retry or second gameplay action was run.
+- Boundary classification: previous corruption was runner/harness/shell-side; the UTF-8-safe Node path preserved exact input through HTTP, Worker, reservation RPC, `game_actions`, and committed `game_turns`. No runtime/provider/semantic patch, deploy, migration/DDL, Production access, preserved-game mutation, merge, or Cut3 was performed. Repo source diff is lifecycle evidence only; tests were not applicable because no harness source was changed.
