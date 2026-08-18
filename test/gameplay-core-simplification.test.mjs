@@ -44,6 +44,146 @@ test('direct clothing CSA required_state synchronizes only present actors', () =
   assert.equal(result.nextSave.npc_scene_state.heroine2.clothing.underwear_bottom, 'worn');
 });
 
+function clothingRule(subjectScope = 'female_employee', requiredState = { underwear_bottom: 'removed' }, active = true) {
+  return {
+    active,
+    preset: {
+      subject_scope: subjectScope,
+      execution: { kind: 'clothing_state', required_state: requiredState }
+    }
+  };
+}
+
+function clothingSave({ active = ['rule'], rule = clothingRule(), npcSceneState = {}, playerClothing = {} } = {}) {
+  return {
+    player: { gender: 'male' },
+    player_scene_state: { clothing: playerClothing },
+    npc_scene_state: npcSceneState,
+    csa_active: active,
+    csa_rules: { rule }
+  };
+}
+
+function reduceClothingSave(save, { sceneInput = scene, master = { characters: [{ character_id: 'heroine1', gender: 'female' }], general_npcs: [] }, expectedTurn = 19 } = {}) {
+  const currentSave = structuredClone(save);
+  const nextSave = structuredClone(save);
+  return reduceCsaCommitState({
+    currentSave,
+    nextSave,
+    canonicalScene: sceneInput,
+    observation: { outcome: 'success' },
+    action: {},
+    expectedTurn,
+    master,
+    structuredAction: { operations: [] },
+    transactionResolution: {
+      previous_csa_active: save.csa_active,
+      next_csa_active: save.csa_active,
+      next_csa_rules: save.csa_rules
+    }
+  });
+}
+
+test('present female NPC bootstraps exact four-slot clothing with unknown defaults', () => {
+  const result = reduceClothingSave(clothingSave({ npcSceneState: {} }));
+  assert.deepEqual(result.nextSave.npc_scene_state.heroine1, {
+    clothing: {
+      uniform_top: 'unknown', uniform_bottom: 'unknown',
+      underwear_top: 'unknown', underwear_bottom: 'removed'
+    },
+    updated_turn: 19
+  });
+});
+
+test('NPC bootstrap preserves evidenced fields and overlays only required slots', () => {
+  const result = reduceClothingSave(clothingSave({
+    npcSceneState: { heroine1: { posture: 'sitting', updated_turn: 7, clothing: { uniform_top: 'worn', underwear_bottom: 'worn' } } }
+  }));
+  assert.deepEqual(result.nextSave.npc_scene_state.heroine1, {
+    posture: 'sitting',
+    updated_turn: 19,
+    clothing: {
+      uniform_top: 'worn', uniform_bottom: 'unknown',
+      underwear_top: 'unknown', underwear_bottom: 'removed'
+    }
+  });
+});
+
+test('female employee clothing CSA does not affect a present male NPC', () => {
+  const result = reduceClothingSave(clothingSave({ npcSceneState: {} }), {
+    sceneInput: { ...scene, present_npc_ids: ['male1'] },
+    master: { characters: [{ character_id: 'male1', gender: 'male' }], general_npcs: [] }
+  });
+  assert.deepEqual(result.nextSave.npc_scene_state, {});
+});
+
+test('matching NPC outside the canonical scene is not bootstrapped', () => {
+  const result = reduceClothingSave(clothingSave({ npcSceneState: {} }), {
+    sceneInput: { ...scene, present_npc_ids: [] }
+  });
+  assert.deepEqual(result.nextSave.npc_scene_state, {});
+});
+
+test('inactive, deactivated, and non-clothing rules do not bootstrap NPC state', () => {
+  const inactive = reduceClothingSave(clothingSave({ active: [], npcSceneState: {} }));
+  assert.deepEqual(inactive.nextSave.npc_scene_state, {});
+  const deactivated = reduceClothingSave(clothingSave({ rule: clothingRule('female_employee', { underwear_bottom: 'removed' }, false), npcSceneState: {} }));
+  assert.deepEqual(deactivated.nextSave.npc_scene_state, {});
+  const nonClothing = reduceClothingSave(clothingSave({ rule: { active: true, preset: { subject_scope: 'female_employee', execution: { kind: 'narrative_only' } } }, npcSceneState: {} }));
+  assert.deepEqual(nonClothing.nextSave.npc_scene_state, {});
+});
+
+test('repeated Commit is idempotent after clothing bootstrap is complete', () => {
+  const first = reduceClothingSave(clothingSave({ npcSceneState: {} }));
+  const second = reduceClothingSave(first.nextSave, { expectedTurn: 20 });
+  assert.deepEqual(second.nextSave, first.nextSave);
+});
+
+test('player clothing CSA behavior remains an exact required-slot overlay', () => {
+  const save = clothingSave({
+    rule: clothingRule('player', { underwear_top: 'removed' }),
+    playerClothing: { uniform_top: 'worn', uniform_bottom: 'worn', underwear_bottom: 'worn' }
+  });
+  const result = reduceClothingSave(save);
+  assert.deepEqual(result.nextSave.player_scene_state.clothing, {
+    uniform_top: 'worn', uniform_bottom: 'worn', underwear_top: 'removed', underwear_bottom: 'worn'
+  });
+  assert.deepEqual(result.nextSave.npc_scene_state, {});
+});
+
+test('Story context reads bootstrapped NPC clothing projection on the following turn', () => {
+  const result = reduceClothingSave(clothingSave({ npcSceneState: {} }));
+  const projection = buildStoryWorldProjection({
+    save: result.nextSave,
+    master: { characters: [{ character_id: 'heroine1', gender: 'female' }], general_npcs: [] },
+    sceneActorIds: ['heroine1'],
+    expectedTurn: 20
+  });
+  assert.deepEqual(projection.world_rules[0].clothing_projection.actors, [{
+    actor_id: 'heroine1',
+    current_state: { underwear_bottom: 'removed' },
+    compliant: true
+  }]);
+});
+
+test('preserved turn-19 live shape now bootstraps heroine3 instead of skipping it', () => {
+  const liveShape = clothingSave({
+    active: ['csa_17'],
+    rule: clothingRule('female_employee'),
+    npcSceneState: {}
+  });
+  liveShape.csa_rules = { csa_17: liveShape.csa_rules.rule };
+  const result = reduceClothingSave(liveShape, {
+    sceneInput: { ...scene, present_npc_ids: ['heroine3'], focal_character_id: 'heroine3' },
+    master: { characters: [{ character_id: 'heroine3', gender: 'female' }], general_npcs: [] },
+    expectedTurn: 20
+  });
+  assert.deepEqual(result.nextSave.npc_scene_state.heroine3.clothing, {
+    uniform_top: 'unknown', uniform_bottom: 'unknown', underwear_top: 'unknown', underwear_bottom: 'removed'
+  });
+  assert.equal(result.nextSave.npc_scene_state.heroine3.updated_turn, 20);
+});
+
 test('player sexual progression accepts exact evidenced delta without legacy six-point pacing', () => {
   const result = reducePlayerSexualState({}, { ejaculation_progress_delta: 7 }, { storyEvidence: { player_observation: { sexual: { ejaculation_progress_delta: { quote: '증거' } } } }, storyText: '증거' });
   assert.equal(result.state.ejaculation_progress, 7);
