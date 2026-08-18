@@ -4,6 +4,24 @@ import { adaptLegacyExtractDelta } from './legacy-extract-adapter.js';
 
 function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
 
+const CURRENT_V2_TOP_LEVEL = new Set([
+  'extract_version', 'outcome', 'scene_observation', 'player_observation', 'npc_observations',
+  'evidence', 'elapsed_minutes', 'mind_monitor', 'turn_summary', 'warnings'
+]);
+const CURRENT_V2_SCENE_FIELDS = new Set([
+  'location_id', 'final_present_npc_ids', 'entered_npc_ids', 'exited_npc_ids',
+  'focal_candidate_id', 'remote_speaker_ids', 'evidence'
+]);
+
+function isCurrentV2(value) {
+  const scene = value?.scene_observation;
+  return object(scene)
+    && !Object.hasOwn(scene, 'scene_id')
+    && !Object.hasOwn(scene, 'presence_is_final')
+    && Object.keys(value).every(key => CURRENT_V2_TOP_LEVEL.has(key))
+    && Object.keys(scene).every(key => CURRENT_V2_SCENE_FIELDS.has(key));
+}
+
 function inertSemanticResidue(value) {
   const persisted = { ...value };
   delete persisted.relation_updates;
@@ -30,6 +48,12 @@ function inertSemanticResidue(value) {
 export function normalizePersistedExtractObservation(value, options = {}) {
   if (!object(value)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Persisted Extract must be an object');
   if (value.extract_version === 2) {
+    if (isCurrentV2(value)) {
+      return normalizeExtractObservationV2(
+        inertSemanticResidue(value),
+        { ...options, persistedCanonical: true }
+      );
+    }
     // Historical V2 rows may retain the superseded fact-ledger fields. They
     // remain inert compatibility data and are deliberately not revalidated or
     // projected into the active turn reducer.

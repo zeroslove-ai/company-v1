@@ -173,7 +173,7 @@ function normalizeElapsedMinutes(value, evidence) {
   return value <= max ? value : 3;
 }
 
-function normalizeSceneEvidence(value, npcIds, storyText, sceneId) {
+function normalizeSceneEvidence(value, npcIds, storyText, { sceneId = null, sceneLocationId = null, currentVocabulary = false } = {}) {
   if (!Array.isArray(value)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene_observation.evidence must be an array');
   const seen = new Set();
   const result = [];
@@ -187,7 +187,13 @@ function normalizeSceneEvidence(value, npcIds, storyText, sceneId) {
     const locationId = item.location_id === undefined || item.location_id === null ? null : nonEmptyId(item.location_id);
     if (item.location_id !== undefined && item.location_id !== null && !locationId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Scene evidence location_id must be a string');
     if (['presence', 'entrance', 'exit'].includes(item.kind) && !characterId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `${item.kind} evidence requires character_id`);
-    if (item.kind === 'scene' && (sceneId === null || sceneId === undefined)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene evidence requires scene_id');
+    if (item.kind === 'scene') {
+      if (currentVocabulary) {
+        if (!sceneLocationId || locationId !== sceneLocationId) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'current scene evidence requires matching location_id');
+      } else if (sceneId === null || sceneId === undefined) {
+        throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'scene evidence requires scene_id');
+      }
+    }
     const key = JSON.stringify([item.kind, characterId, locationId, quote]);
     if (!seen.has(key)) {
       seen.add(key);
@@ -226,9 +232,12 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
     warnings.push('extract_optional_dropped:scene_observation.scene_id:INVALID_EXTRACT_OBSERVATION');
     sceneId = null;
   }
+  const sceneEvidenceOptions = persistedCanonical
+    ? { sceneLocationId: scene.location_id === null || scene.location_id === undefined ? null : nonEmptyId(scene.location_id), currentVocabulary: true }
+    : { sceneId };
   const sceneEvidence = softOptional
-    ? dropOptional(true, 'scene_observation.evidence', warnings, [], () => normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId))
-    : normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneId);
+    ? dropOptional(true, 'scene_observation.evidence', warnings, [], () => normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneEvidenceOptions))
+    : normalizeSceneEvidence(scene.evidence ?? [], registered, storyText, sceneEvidenceOptions);
   const evidenceFor = (kind, id) => sceneEvidence.some(item => item.character_id === id && (item.kind === kind || item.kind === 'presence'));
   for (const id of entered.filter(candidate => !evidenceFor('entrance', candidate))) {
     if (!softOptional) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Missing exact entrance evidence for ${id}`);
@@ -248,7 +257,7 @@ export function normalizeExtractObservationV2(value, { npcIds = new Set(), story
     extract_version: 2,
     outcome: value.outcome,
     scene_observation: {
-      scene_id: sceneId,
+      ...(persistedCanonical ? {} : { scene_id: sceneId }),
       location_id: locationId,
      final_present_npc_ids: final,
       ...(hasPresenceEvidenceFields ? { entered_npc_ids: entered, exited_npc_ids: exited } : {}),
@@ -450,7 +459,7 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
   const entered = ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false });
   const exited = ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false });
   const warnings = Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string') : [];
-  const evidence = normalizeSceneEvidence(scene.evidence ?? [], registered, options.storyText ?? '', locationId);
+  const evidence = normalizeSceneEvidence(scene.evidence ?? [], registered, options.storyText ?? '', { sceneLocationId: locationId, currentVocabulary: true });
   const player = object(value.player_observation) ? value.player_observation : {};
   assertKeys(player, new Set(['physical', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
   const npcObservations = {};
