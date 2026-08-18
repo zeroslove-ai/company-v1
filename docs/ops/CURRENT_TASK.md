@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_USER_LIVE_ACCEPTANCE
 Task ID: fresh-level7-test-fixture-rollout-handoff-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -174,3 +174,21 @@ Then STOP. Do not generate/register another CURRENT_TASK. The user will manually
 - no relationship/event/emotion/open-fact ledger;
 - no generic physical/sexual grammar or generic CSA DSL;
 - no next roadmap Cut.
+
+## 9. Rollout execution record
+
+- Final status: `WAITING_USER_LIVE_ACCEPTANCE`.
+- Registration main/blob: `af2e4f1741f938597f2eedf141dab09a319dfe23` / `45de99988f4e2d7815ee58e8e21f1e676dd50fef`.
+- PR #84 merge SHA: `64928ea0cf6a1174de4fdb269bd3be9db8ae75c8`; merged-main drift gate passed; post-merge source/config/content/migration diff was docs-only CURRENT_TASK reuse.
+- Post-merge verification: focused fixture tests 9/9 PASS; full `npm.cmd test` 363/363 PASS; changed JS/MJS syntax PASS; migration/static contract checks PASS; `git diff --check` PASS.
+- TEST project: `fmcrspgxstsmxxsmkeee`, ACTIVE_HEALTHY.
+- TEST migration application: version `20260818112702`, `company_v1_fresh_level7_test_fixture`; Supabase apply result SUCCESS. Fresh function exists with owner `postgres`, service_role EXECUTE only; public/anon/authenticated EXECUTE false. Historical `prepare_company_test_level7_fixture(uuid,text)` remains present, fixed-template-ID, service_role-only.
+- Supabase advisor read-only result: only pre-existing INFO/WARN lints were returned; no migration-specific failure blocked this fixture seam.
+- Pre-write candidate: generated at execution time as `587de547-8bb7-4a92-a7c2-07f2831e2d38`; five-table absence proof was games=0, game_master=0, game_save=0, game_actions=0, game_turns=0. Candidate was not reserved/preserved/Production identity.
+- Fresh fixture: UUID `587de547-8bb7-4a92-a7c2-07f2831e2d38`; title `Company v1 Manual Acceptance 2026-08-18`; fresh RPC called exactly once; result `fresh_creation=true`, `target_reused=false`, `template_read_only=true`, `reset_performed=false`, Level 7/exp 0, actions 0, turns 0.
+- Post-create target proof: games=1, game_master=1, game_save=1, game_actions=0, game_turns=0; committed_turn=0; save_revision=0; player_progress.level=7, exp=0; turn_state.committed_turn=0, expected_turn=1, processing_status=idle, turn_id=null, action_id=null; scene.scene_id=setup; player name empty and player_setup.status=not_started; both `validate_company_save_v1(game_save.data)` and `validate_company_save_v1(game_master.initial_save)` returned valid=true; initial_save equals game_save.data.
+- Preserved/dedicated read-only post-proof: template `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` remained 1/1/1 rows with actions=0/turns=0; preserved manual `78fb1d94-266f-455a-bda4-7656cc2370c1` remained 1/1/1 with actions=9/turns=7; preserved QA `9755b57b-5cbb-44dd-a624-020fe516c16d` remained 1/1/1 with actions=36/turns=33.
+- Public TEST frontend URL: `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=587de547-8bb7-4a92-a7c2-07f2831e2d38`; read-only GET returned HTTP 200 with the Company v1 shell marker.
+- `AUTOMATED_GAMEPLAY_TURNS: 0` (Setup=0, Opening=0, Story=0, Extract=0, Commit=0; no reset/reseed/gameplay call).
+- No Production/hospital-v2 access, API/frontend deployment, provider/model change, historical migration edit, or pre-existing game mutation occurred.
+- Terminal classification: `FRESH_LEVEL7_MANUAL_FIXTURE_WAITING_USER_LIVE_ACCEPTANCE`.
