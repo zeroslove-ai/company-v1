@@ -247,3 +247,32 @@ test('crafted unknown target and duplicate evidence cannot create a fake identit
   });
   assert.deepEqual(result.present_npc_ids, ['heroine2']);
 });
+
+test('same-destination multi-NPC navigation preserves every exact registered target', () => {
+  const multiAction = '\uBC15\uC815\uC6B0\uC640 \uC11C\uC6D0\uD76C\uB97C \uB9CC\uB098\uB7EC \uBE0C\uB79C\uB4DC\uC804\uB7B5\uD300 \uC0AC\uBB34\uC2E4\uB85C \uC774\uB3D9\uD55C\uB2E4';
+  const intent = resolvePlayerNavigationIntent({ save: sourceSave, master, mapLocations, playerAction: multiAction });
+  assert.deepEqual(intent, {
+    kind: 'player_navigation',
+    destination_location_id: 'brand_strategy_office',
+    target_npc_ids: ['heroine1', 'general_park_jungwoo'],
+    source: 'explicit_npc_destination'
+  });
+  const projected = projectStorySaveForNavigation(sourceSave, intent, { master, mapLocations });
+  assert.deepEqual(projected.scene.present_npc_ids, ['heroine1', 'general_park_jungwoo']);
+});
+
+test('multi-NPC names without explicit movement and divergent destinations remain unresolved', () => {
+  const noMovement = '\uBC15\uC815\uC6B0\uC640 \uC11C\uC6D0\uD76C\uAC00 \uD68C\uC758\uD55C\uB2E4';
+  assert.equal(resolvePlayerNavigationIntent({ save: sourceSave, master, mapLocations, playerAction: noMovement }), null);
+
+  const divergentMaster = {
+    characters: [
+      { character_id: 'alpha', name: 'Alpha', default_location_id: 'one' },
+      { character_id: 'beta', name: 'Beta', default_location_id: 'two' }
+    ],
+    general_npcs: []
+  };
+  const divergentMap = [{ location_id: 'one' }, { location_id: 'two' }, { location_id: 'three' }];
+  const save = { scene: { ...sourceScene, location_id: 'three', present_npc_ids: [], focal_character_id: null, last_speaker_id: null } };
+  assert.equal(resolvePlayerNavigationIntent({ save, master: divergentMaster, mapLocations: divergentMap, playerAction: 'go see Alpha and Beta' }), null);
+});

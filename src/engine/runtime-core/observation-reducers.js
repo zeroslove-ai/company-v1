@@ -19,8 +19,23 @@ function clothingQuote(evidence, actorId) {
   const entry = key && object(root[key]) ? root[key] : null;
   return entry && typeof entry.quote === 'string' && entry.quote.trim() ? entry.quote.trim() : null;
 }
+function physicalEvidenceQuote(evidence, actorId, axis) {
+  const root = object(evidence?.physical_change) ? evidence.physical_change : {};
+  const key = Object.keys(root).find(candidate => canonicalId(candidate) === canonicalId(actorId));
+  const entry = key && object(root[key]) ? root[key] : null;
+  if (!entry || canonicalId(entry.character_id) !== canonicalId(actorId)) return null;
+  const prefix = canonicalId(actorId) === 'player' ? 'player_scene_state' : `npc_scene_state.${actorId}`;
+  const path = `${prefix}.${axis}`;
+  if (!Array.isArray(entry.changed) || !entry.changed.includes(path)) return null;
+  return typeof entry.quote === 'string' && entry.quote.trim() ? entry.quote.trim() : null;
+}
 function evidenceMap(proposal, evidence, actorId) {
-  return { ...(object(proposal?.evidence) ? proposal.evidence : {}), clothing: clothingQuote(evidence, actorId) };
+  return {
+    ...(object(proposal?.evidence) ? proposal.evidence : {}),
+    clothing: clothingQuote(evidence, actorId),
+    position: physicalEvidenceQuote(evidence, actorId, 'position_label'),
+    posture: physicalEvidenceQuote(evidence, actorId, 'posture')
+  };
 }
 function registered(id, npcIds) { return typeof id === 'string' && (!npcIds?.size || npcIds.has(id)); }
 function currentNpcIds(save, npcIds) { return new Set(readCanonicalSceneV1(save, { npcIds }).present_npc_ids ?? []); }

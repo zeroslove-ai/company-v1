@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildStoryPrompt, PROVIDER_CHOICE_OUTPUT_PROTOCOL } from '../src/engine/story-prompt.js';
+import { buildStoryContextProjection, buildStoryPrompt, PROVIDER_CHOICE_OUTPUT_PROTOCOL } from '../src/engine/story-prompt.js';
 import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
 import { buildOpeningPrompt } from '../src/engine/opening-prompt.js';
 
@@ -74,6 +74,23 @@ test('Story context preserves six raw turns and chronological older summaries', 
     { turn: 2, turn_summary: 'summary-2' }
   ]);
   assert.equal('story_text' in payload.context.turn_summary_memory[0], false);
+});
+
+test('blank older summaries retain committed Story as continuity fallback', () => {
+  const projection = buildStoryContextProjection({
+    save: context().save,
+    recent_turns: [
+      { turn_number: 1, story_text: 'committed raw Story', parsed_blocks: { blocks: ['dialogue'] }, turn_summary: '' },
+      ...Array.from({ length: 6 }, (_, index) => ({ turn_number: index + 2, story_text: `story-${index + 2}`, turn_summary: `summary-${index + 2}` }))
+    ]
+  }, [], {});
+  assert.deepEqual(projection.turn_summary_memory, [{
+    turn: 1,
+    turn_summary: '',
+    raw_story_fallback: 'committed raw Story',
+    parsed_blocks_fallback: { blocks: ['dialogue'] },
+    continuity_source: 'committed_story'
+  }]);
 });
 
 test('Extract request transports raw Story and exposes only the fresh observation boundary', () => {

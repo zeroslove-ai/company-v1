@@ -173,13 +173,15 @@ export function reduceCanonicalScene(input = {}) {
   const moved = observedLocation !== null && observedLocation !== current.location_id;
   const degraded = observation.outcome === 'degraded';
   const authoritativeLocationChange = Boolean(authoritativeLocationId && moved);
-  const destinationTargetId = stringId(input.destinationTargetId);
-  const sameLocationTargetHandoff = Boolean(
-    destinationTargetId
-      && npcIds.has(destinationTargetId)
-      && authoritativeLocationId
-      && authoritativeLocationId === current.location_id
+  const destinationTargetIds = uniqueNpcIds(
+    Array.isArray(input.destinationTargetIds)
+      ? input.destinationTargetIds
+      : [input.destinationTargetId],
+    npcIds
   );
+  const sameLocationTargetHandoff = destinationTargetIds.length > 0
+    && authoritativeLocationId
+    && authoritativeLocationId === current.location_id;
   if (authoritativeLocationChange) {
     next.location_id = observedLocation;
     next.present_npc_ids = [];
