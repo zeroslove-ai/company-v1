@@ -3,7 +3,7 @@ import { readCanonicalSceneV1, reduceCanonicalScene } from './scene-reducer.js';
 import { assertCanonicalSceneInvariants } from './invariants.js';
 import { reduceObservationDomains } from './observation-reducers.js';
 import { reduceCsaCommitState } from './csa-commit-reducer.js';
-import { isCanonicalNpcDestinationIntent } from '../scene-cast.js';
+import { canonicalNpcDestinationIds, isCanonicalNpcDestinationIntent } from '../scene-cast.js';
 
 function clone(value) { return value === undefined ? undefined : structuredClone(value); }
 function nonEmpty(value) { return typeof value === 'string' && value.trim() ? value.trim() : null; }
@@ -58,9 +58,10 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
     && String(storyText).includes(item.quote.trim()));
   const proposedLocation = nonEmpty(scene.location_id);
   const warnings = [];
-  const destinationTargetId = isCanonicalNpcDestinationIntent(navigationIntent, { master, mapLocations })
-    ? navigationIntent.target_npc_id
-    : null;
+  const destinationTargetIds = isCanonicalNpcDestinationIntent(navigationIntent, { master, mapLocations })
+    ? canonicalNpcDestinationIds(navigationIntent, { master, mapLocations })
+    : [];
+  const destinationTargetId = destinationTargetIds[0] ?? null;
   let locationId = null;
   if (navigationIntent?.kind === 'player_navigation') {
     locationId = nonEmpty(navigationIntent.destination_location_id);
@@ -75,7 +76,7 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
    final_present_npc_ids: Array.isArray(scene.final_present_npc_ids) ? scene.final_present_npc_ids : null,
     entered_npc_ids: [...new Set([
       ...(Array.isArray(scene.entered_npc_ids) ? scene.entered_npc_ids : []),
-      ...(destinationTargetId ? [destinationTargetId] : [])
+      ...destinationTargetIds
     ])],
     exited_npc_ids: Array.isArray(scene.exited_npc_ids) ? scene.exited_npc_ids : [],
     focal_candidate_id: destinationTargetId ?? scene.focal_candidate_id ?? null,
@@ -83,6 +84,7 @@ function canonicalObservation(observation, parsedStory, { navigationIntent = nul
     acted_npc_ids: [],
     last_explicit_speaker_id: speakers.at(-1) ?? null,
     destination_target_id: destinationTargetId,
+    destination_target_ids: destinationTargetIds,
     outcome: observation.outcome,
     remote_speaker_ids: scene.remote_speaker_ids ?? [],
     evidence: scene.evidence ?? [],
@@ -113,6 +115,7 @@ export function reduceGameplayCommit({ currentSave, observation, parsedStory, ra
       ? navigationIntent.destination_location_id
       : authoritativeLocationId,
     destinationTargetId: sceneObservation.destination_target_id,
+    destinationTargetIds: sceneObservation.destination_target_ids,
   });
   const observedNpcIds = new Set([
     ...(sceneBefore.present_npc_ids ?? []),

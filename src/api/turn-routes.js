@@ -1,7 +1,7 @@
 import { HttpError, ok, readJson, requireString, sseEvent, sseResponse } from './http.js';
 import { createSupabaseClient } from './supabase.js';
 import { runExtract, streamStory } from './llm.js';
-import { isCanonicalNpcDestinationIntent, resolvePlayerNavigationIntent } from '../engine/scene-cast.js';
+import { canonicalNpcDestinationIds, isCanonicalNpcDestinationIntent, resolvePlayerNavigationIntent } from '../engine/scene-cast.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 import {
   buildExtractPrompt,
@@ -83,9 +83,12 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
   if (typeof locationId !== 'string' || !locationId.trim()) return save;
   const scene = readCanonicalSceneV1(save, { master, mapLocations });
   const canonicalNpcDestination = isCanonicalNpcDestinationIntent(navigationIntent, { master, mapLocations });
+  const destinationTargetIds = canonicalNpcDestination
+    ? canonicalNpcDestinationIds(navigationIntent, { master, mapLocations })
+    : [];
   if (scene.location_id === locationId) {
     if (!canonicalNpcDestination) return save;
-    const presentNpcIds = [navigationIntent.target_npc_id];
+    const presentNpcIds = destinationTargetIds;
     return {
       ...save,
       scene: {
@@ -99,7 +102,7 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
     };
   }
   const presentNpcIds = canonicalNpcDestination
-    ? [navigationIntent.target_npc_id]
+    ? destinationTargetIds
     : [];
   return {
     ...save,

@@ -16,6 +16,19 @@ test('fresh Extract accepts only narrow scene, physical, sexual and summary obse
   assert.throws(() => normalizeFreshExtractObservationV2({ ...freshBase, player_observation: { physical: { posture: 'standing' } } }, { npcIds: NPCS, storyText: '' }), /Unknown observation field/);
 });
 
+test('fresh Extract reports missing continuity summary and required Mind Monitor entries', () => {
+  const freshBase = structuredClone(base);
+  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, remote_speaker_ids: [], evidence: [] };
+  freshBase.turn_summary = '';
+  const result = normalizeFreshExtractObservationV2(freshBase, {
+    npcIds: NPCS,
+    storyText: 'A committed Story paragraph with continuity.',
+    requiredMindMonitorIds: ['heroine1']
+  });
+  assert.ok(result.warnings.includes('mind_monitor_missing:heroine1'));
+  assert.ok(result.warnings.includes('turn_summary_missing_for_nonempty_story'));
+});
+
 test('fresh current scene evidence round-trips through the persisted Commit reader', () => {
   const quote = '오전 11시 54분, 브랜드전략팀 사무실.';
   const fresh = normalizeFreshExtractObservationV2({

@@ -474,6 +474,16 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
     if (!object(entry) || typeof entry.surface !== 'string' || typeof entry.subconscious !== 'string') continue;
     monitor[id] = { surface: entry.surface, subconscious: entry.subconscious };
   }
+  const requiredMindMonitorIds = Array.isArray(options.requiredMindMonitorIds)
+    ? options.requiredMindMonitorIds.filter(id => typeof id === 'string' && id.trim())
+    : [];
+  for (const npcId of requiredMindMonitorIds) {
+    const entry = monitor[npcId];
+    if (!entry || !entry.surface.trim() || !entry.subconscious.trim()) warnings.push(`mind_monitor_missing:${npcId}`);
+  }
+  if (value.outcome !== 'degraded' && typeof options.storyText === 'string' && options.storyText.trim() && typeof value.turn_summary === 'string' && !value.turn_summary.trim()) {
+    warnings.push('turn_summary_missing_for_nonempty_story');
+  }
   return {
     extract_version: 2,
     outcome: value.outcome,
@@ -492,7 +502,7 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
     elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),
     mind_monitor: monitor,
     turn_summary: typeof value.turn_summary === 'string' ? value.turn_summary : '',
-    warnings
+    warnings: [...new Set(warnings)]
   };
 }
 

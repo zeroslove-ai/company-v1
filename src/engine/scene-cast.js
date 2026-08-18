@@ -69,19 +69,41 @@ function npcDestinationCandidates(entry, mapLocations) {
 
 function exactNpcVisitIntent(source, name) {
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const beforeName = new RegExp(`(?:^|\\s)${escaped}(?:을|를)?\\s*(?:보러|찾으러|만나러|방문하러)(?:간다|가다|가요|갑니다)?`, 'u');
+  const beforeName = new RegExp(`(?:^|\\s)${escaped}(?:\\uC744|\\uB97C)?\\s*(?:\\uBCF4\\uB7EC|\\uCC3E\\uC73C\\uB7EC|\\uB9CC\\uB098\\uB7EC|\\uBC29\\uBB38\\uD558\\uB7EC)`, 'u');
   const afterIntent = new RegExp(`(?:go\\s+to|go\\s+see|visit|find|meet|see)\\s+${escaped}\\b`, 'i');
   return beforeName.test(source) || afterIntent.test(source);
 }
 
+const EXPLICIT_MOVEMENT_INTENT = new RegExp('\\b(?:go|move|walk|enter|visit|leave)\\b|\\uC774\\uB3D9|\\uAC00\\uB2E4|\\uAC04\\uB2E4|\\uB098\\uAC00|\\uB4E4\\uC5B4\\uAC00|\\uCC3E\\uC544\\uAC00|\\uBC29\\uBB38|\\uBCF4\\uB7EC|\\uCC3E\\uC73C\\uB7EC|\\uB9CC\\uB098\\uB7EC', 'iu');
+
+function targetIdsFromIntent(intent) {
+  if (Array.isArray(intent?.target_npc_ids)) return [...new Set(intent.target_npc_ids.filter(id => typeof id === 'string' && id.trim()))];
+  return typeof intent?.target_npc_id === 'string' && intent.target_npc_id.trim() ? [intent.target_npc_id.trim()] : [];
+}
+
+export function canonicalNpcDestinationIds(intent, { master = {}, mapLocations = [] } = {}) {
+  if (intent?.kind !== 'player_navigation' || intent.source !== 'explicit_npc_destination') return [];
+  const targets = targetIdsFromIntent(intent);
+  if (!targets.length) return [];
+  const entries = registeredEntries(master);
+  const destinations = targets.map(targetId => {
+    const entry = entries.find(item => item.id === targetId);
+    const candidates = entry ? npcDestinationCandidates(entry, mapLocations) : [];
+    return candidates.length === 1 ? candidates[0] : null;
+  });
+  if (destinations.some(destination => !destination) || new Set(destinations).size !== 1) return [];
+  return targets;
+}
+
 export function isCanonicalNpcDestinationIntent(intent, { master = {}, mapLocations = [] } = {}) {
-  if (intent?.kind !== 'player_navigation' || intent.source !== 'explicit_npc_destination') return false;
-  const targetId = identity(intent.target_npc_id);
-  const destinationId = identity(intent.destination_location_id);
-  const entry = registeredEntries(master).find(item => item.id === targetId);
-  if (!entry || !destinationId) return false;
-  const destinations = npcDestinationCandidates(entry, mapLocations);
-  return destinations.length === 1 && destinations[0] === destinationId;
+  const destinationId = identity(intent?.destination_location_id);
+  const targets = canonicalNpcDestinationIds(intent, { master, mapLocations });
+  if (!destinationId || !targets.length) return false;
+  const entries = registeredEntries(master);
+  return targets.every(targetId => {
+    const entry = entries.find(item => item.id === targetId);
+    return entry && npcDestinationCandidates(entry, mapLocations)[0] === destinationId;
+  });
 }
 
 /**
@@ -90,18 +112,20 @@ export function isCanonicalNpcDestinationIntent(intent, { master = {}, mapLocati
  */
 export function resolvePlayerNavigationIntent({ save = {}, master = {}, playerAction = '', mapLocations = [] } = {}) {
   const source = typeof playerAction === 'string' ? playerAction.trim() : '';
-  if (!source || !(/\b(?:go|move|walk|enter|visit|leave)\b|이동|가다|간다|들어가|찾아가|방문/u.test(source))) return null;
+  if (!source || !EXPLICIT_MOVEMENT_INTENT.test(source)) return null;
   const registered = registeredEntries(master);
   const mentioned = registered.filter(entry => entry.name && source.includes(entry.name));
   if (mentioned.length) {
-    if (mentioned.length !== 1 || !exactNpcVisitIntent(source, mentioned[0].name)) return null;
-    const destinations = npcDestinationCandidates(mentioned[0], mapLocations);
-    const current = identity(readCanonicalSceneV1(save, { master, mapLocations }).location_id);
-    if (destinations.length !== 1) return null;
+    if (mentioned.length === 1 && !exactNpcVisitIntent(source, mentioned[0].name)) return null;
+    const destinations = mentioned.map(entry => npcDestinationCandidates(entry, mapLocations));
+    if (destinations.some(candidate => candidate.length !== 1) || new Set(destinations.map(candidate => candidate[0])).size !== 1) return null;
+    const destination = destinations[0][0];
     return {
       kind: 'player_navigation',
-      destination_location_id: destinations[0],
-      target_npc_id: mentioned[0].id,
+      destination_location_id: destination,
+      ...(mentioned.length === 1
+        ? { target_npc_id: mentioned[0].id }
+        : { target_npc_ids: mentioned.map(entry => entry.id) }),
       source: 'explicit_npc_destination'
     };
   }

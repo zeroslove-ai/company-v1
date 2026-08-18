@@ -69,10 +69,20 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
     parsed_blocks: turn?.parsed_blocks ?? null,
     choices: Array.isArray(turn?.choices) ? turn.choices : []
   }));
-  const summaries = turns.slice(0, -6).map(turn => ({
-    turn: Number.isInteger(turn?.turn_number) ? turn.turn_number : null,
-    turn_summary: typeof turn?.turn_summary === 'string' ? turn.turn_summary : ''
-  }));
+  const summaries = turns.slice(0, -6).map(turn => {
+    const turnSummary = typeof turn?.turn_summary === 'string' ? turn.turn_summary : '';
+    return {
+      turn: Number.isInteger(turn?.turn_number) ? turn.turn_number : null,
+      turn_summary: turnSummary,
+      ...(turnSummary.trim() || typeof turn?.story_text !== 'string' || !turn.story_text.trim()
+        ? {}
+        : {
+            raw_story_fallback: turn.story_text,
+            parsed_blocks_fallback: turn?.parsed_blocks ?? null,
+            continuity_source: 'committed_story'
+          })
+    };
+  });
   const core = buildSceneContextCore(save, activeIds);
   const gameTime = object(save.world_state?.game_time) || {};
   return {
@@ -110,7 +120,7 @@ export const DURABLE_STORY_RULES = [
   '[CSA PREMISE]',
   'An active and applicable company rule is an in-force ordinary workplace notice or regulation from its activation/effective time. Following that rule is part of common-sense workplace reality. Personal dislike, embarrassment, or discomfort may shape emotion and reaction but cannot make the applicable rule optional. This premise does not imply consent, comfort, affection, trust, romance, or arousal.',
   '[STORY MEMORY AND OUTPUT]',
-    'Use recent raw turns and chronological older summaries as read-only continuity. The context.turn_summary_memory is compressed continuity, never a replacement for raw Story. context.current_time.day and context.current_time.minute_of_day are hard facts. Do not invent semantic ledgers or future-planning state. Write natural Korean fiction in the supplied company setting, mark spoken lines with exact dialogue ids, keep [THOUGHT] player-only and reaction-only, and preserve the exact structural marker protocol.',
+  'Use recent raw turns and chronological older summaries as read-only continuity. If an older summary is blank, use its committed raw_story_fallback or parsed_blocks_fallback instead; a blank summary never means that turn had no continuity. The context.turn_summary_memory is compressed continuity, never a replacement for raw Story. context.current_time.day and context.current_time.minute_of_day are hard facts. Do not invent semantic ledgers or future-planning state. Write natural Korean fiction in the supplied company setting, mark spoken lines with exact dialogue ids, keep [THOUGHT] player-only and reaction-only, and preserve the exact structural marker protocol.',
   FRESH_MARKER_GRAMMAR,
   PROVIDER_CHOICE_OUTPUT_PROTOCOL
 ].join('\n');
