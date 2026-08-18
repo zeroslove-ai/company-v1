@@ -22,15 +22,11 @@ test('actor-scoped physical evidence authorizes exact NPC position changes', () 
     save,
     npcId: 'npc1',
     physical: { position_label: 'by the window' },
-    evidence: {
-      physical_change: {
-        npc1: {
-          character_id: 'npc1',
-          changed: ['npc_scene_state.npc1.position_label'],
-          quote: 'NPC stands by the window'
-        }
-      }
-    },
+    evidence: { actors: { npc1: {
+      character_id: 'npc1',
+      changed: ['npc_scene_state.npc1.position_label'],
+      quote: 'NPC stands by the window'
+    } } },
     storyText: 'NPC stands by the window.',
     expectedTurn: 1,
     npcIds: new Set(['npc1']),
@@ -48,7 +44,7 @@ test('actor mismatch cannot authorize another NPC physical state', () => {
     save,
     npcId: 'npc1',
     physical: { position_label: 'by the window' },
-    evidence: { physical_change: { npc2: { character_id: 'npc2', changed: ['npc_scene_state.npc2.position_label'], quote: 'NPC stands by the window' } } },
+    evidence: { actors: { npc2: { character_id: 'npc2', changed: ['npc_scene_state.npc2.position_label'], quote: 'NPC stands by the window' } } },
     storyText: 'NPC stands by the window.',
     expectedTurn: 1,
     npcIds: new Set(['npc1', 'npc2']),
@@ -64,10 +60,11 @@ test('retained player sexual state updates only from exact Story evidence', () =
   const result = reducePlayerSexualObservation({
     save: { player_sexual_state: { arousal: 10 } },
     sexual: { arousal_delta: 2, erection_state: 'erect' },
-    evidence: {
-      player_observation: { sexual: { arousal_delta: { quote: 'heart races' } } },
-      player_erection: { state: 'erect', quote: 'The player is erect' }
-    },
+    evidence: { actors: { player: {
+      character_id: 'player',
+      changed: ['player_sexual_state.arousal_delta', 'player_sexual_state.erection_state'],
+      quote: 'The player is erect as their heart races'
+    } } },
     storyText: 'The player is erect as their heart races.',
     expectedTurn: 2
   });

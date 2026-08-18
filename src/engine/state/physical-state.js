@@ -16,35 +16,29 @@ function identity(value, maxLength = 180) {
   return Array.from(value.trim().replace(/\s+/g, ' ')).slice(0, maxLength).join('');
 }
 
-function evidenceObject(value) {
-  if (isPlainObject(value)) return value;
-  if (typeof value === 'string' && value.trim()) return { posture: value, position: value, location: value };
-  return {};
-}
-
-function exactStoryEvidence(evidence, narrativeText, characterName = '') {
-  if (typeof evidence !== 'string' || !evidence.trim()) return false;
-  const quote = evidence.trim();
+function exactStoryEvidence(evidence, path, narrativeText, characterName = '') {
+  if (!isPlainObject(evidence) || !Array.isArray(evidence.changed) || !evidence.changed.includes(path)) return false;
+  const quote = typeof evidence.quote === 'string' ? evidence.quote.trim() : '';
+  if (!quote) return false;
   const text = typeof narrativeText === 'string' ? narrativeText : '';
   if (!text.includes(quote)) return false;
   if (typeof characterName === 'string' && characterName.trim() && !quote.includes(characterName.trim())) return false;
   return true;
 }
 
-export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceMap = {}, narrativeText = '', characterName = '', turnNumber = null, actorId = null, npcsPresent = [], registeredNpcNames = [] } = {}) {
+export function buildSceneStatePatch({ previous = {}, proposal = null, evidence = {}, narrativeText = '', characterName = '', turnNumber = null, actorId = null, npcsPresent = [], registeredNpcNames = [] } = {}) {
   const prev = isPlainObject(previous) ? previous : {};
   const raw = isPlainObject(proposal) ? proposal : {};
-  const evidence = evidenceObject(evidenceMap);
-  const localEvidence = evidenceObject(raw.evidence);
   const warnings = [];
-  const clothingEvidence = typeof evidence.clothing === 'string' && evidence.clothing.trim()
-    ? evidence.clothing.trim()
-    : (typeof localEvidence.clothing === 'string' && localEvidence.clothing.trim() ? localEvidence.clothing.trim() : null);
+  const actorPrefix = actorId === 'player' || /^player(?:[-_].*)?$/i.test(actorId) ? 'player_scene_state' : `npc_scene_state.${actorId}`;
+  const clothingEvidence = Array.isArray(evidence.changed) && evidence.changed.some(path => path.startsWith(`${actorPrefix}.clothing.`))
+    ? evidence.quote
+    : null;
 
   const { clothing: acceptedClothing, rejections } = retainEvidencedClothing({
     previousClothing: prev.clothing ?? {},
     proposedClothing: raw.clothing ?? {},
-    evidenceMap: clothingEvidence,
+    evidenceQuote: clothingEvidence,
     narrativeText,
     characterName,
     actorId,
@@ -59,11 +53,11 @@ export function buildSceneStatePatch({ previous = {}, proposal = null, evidenceM
   const previousPosition = normalizePhysicalText(prev.position_label, 140);
   const postureChanges = Boolean(requestedPosture && requestedPosture !== previousPosture);
   const positionChanges = Boolean(requestedPosition && requestedPosition !== previousPosition);
-  const postureEvidenceValid = Boolean(requestedPosture) && exactStoryEvidence(evidence.posture, narrativeText, characterName);
-  const positionEvidenceValid = Boolean(requestedPosition) && exactStoryEvidence(evidence.position ?? evidence.posture, narrativeText, characterName);
+  const postureEvidenceValid = Boolean(requestedPosture) && exactStoryEvidence(evidence, `${actorPrefix}.posture`, narrativeText, characterName);
+  const positionEvidenceValid = Boolean(requestedPosition) && exactStoryEvidence(evidence, `${actorPrefix}.position_label`, narrativeText, characterName);
   const endReasonRequested = identity(raw.posture_end_reason, 80);
   const endReasonEvidenceValid = Boolean(endReasonRequested)
-    && exactStoryEvidence(evidence.posture_end_reason ?? evidence.posture, narrativeText, characterName);
+    && exactStoryEvidence(evidence, `${actorPrefix}.posture`, narrativeText, characterName);
 
   if (postureChanges && !postureEvidenceValid) warnings.push('unevidenced_posture_change');
   if (positionChanges && !positionEvidenceValid) warnings.push('unevidenced_position_label');
