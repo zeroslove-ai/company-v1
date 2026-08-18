@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: merge-clothing-csa-repair-test-live-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -171,5 +171,14 @@ At terminal:
 - set this CURRENT_TASK to `WAITING_REVIEW` on the task branch;
 - post exactly one Issue #68 terminal containing registration SHA/blob, PR #78 exact pre-merge head, merge/main SHA, post-merge CI, deployed TEST API Worker version, smoke/gate results, disposable game/setup/action/turn IDs, exact UTF-8 evidence, pre/post clothing state, next-turn idempotence/context projection result, and all prohibited-operation counts;
 - STOP.
+
+## 9. Execution record
+
+- Merge/main: PR #78 merged as `196e4ef632017c88c27f76c2d00a77f8ce194f7c`; post-merge `Company v1 tests` run `32092604861` SUCCESS.
+- TEST API: exact merged main deployed to `game-proxy-company-v1`; Worker version `867c3789-60e9-4c7f-b621-98787ee886a1`; contract-gated Stage A/Stage B checks, dry-run, and explicit disposable UUID smoke passed; no frontend deploy.
+- Disposable proof: game `bde757fc-2ced-489e-ad92-1145084cfba5`, setup `496041a1-4bd0-46a5-a9a7-63390895876a`, opening primary `heroine3`; opening transport-only retry returned `200 text/event-stream; charset=utf-8` and committed the canonical opening with `npc_scene_state={}` for present `heroine3`.
+- Live proof: 20 committed turns, all `game_actions.player_action` and `game_turns.player_action` UTF-8/codepoint parity assertions passed. CSA activation action `d833f001-0219-4e4e-a773-3fed59161215`, committed turn `17`, turn ID `ede59115-54a4-41f4-ba7d-41cb19e28199`; exact four-slot state was created with unknown defaults and `underwear_bottom=removed`, `updated_turn=17`. Next unrelated turn action `93813824-9614-4c52-953d-1d600d3d8e0e` preserved the required state and following context; final turn action `b611464e-a8d1-4ebf-8d77-fb457adc15a6` committed turn 20.
+- Safety: production access 0, preserved-game mutations 0, preserved-game resets 0, migration calls 0, provider/model changes 0, gameplay retries 0, one permitted transport-only opening retry, one disposable game creation.
+- Full local merged-main test: `351/351 PASS`; syntax and `git diff --check` passed. Full artifact: `C:/Users/JAEWAN/AppData/Local/Temp/company-v1-live-harness-utf8-clothing-v1.json`.
 
 Do not start the full 15–20-turn acceptance rerun or Cut3 in this task. If this narrow live proof passes, the next operator task is a fresh full UTF-8-safe acceptance rerun on the repaired merged main before any Cut3 work.
