@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: fresh-level7-test-fixture-writer-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -155,3 +155,20 @@ Run:
 - no retry/regeneration loop;
 - no merge;
 - no next roadmap Cut.
+
+## 6. Rework execution record
+
+- Final status: `WAITING_REVIEW`.
+- Registration main: `3b8537ccfc3c67ad8ad726a033722261c6732fdf`.
+- Execution lease start head: `87a46880fdc69b2210b064dce617bd14dc0d7e7e`.
+- Correction commit: `e570aabb0251ba7ca5f673f36c4123cd6f2b22b7`.
+- Implementation branch / PR: `company/fresh-level7-test-fixture-writer-v1` / `#84`.
+- Final PR head: `e570aabb0251ba7ca5f673f36c4123cd6f2b22b7`.
+- PR state: open, non-draft, mergeable and clean; not merged.
+- Exact-head `Company v1 tests`: GitHub Actions run `32130673396`, job `95690897162`, SUCCESS.
+- Focused fixture tests: 9/9 pass.
+- Full `npm.cmd test`: 363/363 pass.
+- Changed JS/MJS syntax, migration/static contract checks, and `git diff --check`: pass.
+- Baseline invariant proof: the current template `game_save.data` is normalized to one validated Level-7, committed-turn-zero, idle baseline; that same `v_data` is used for both new `game_master.initial_save` and new `game_save.data`. The migration contains no `v_template_master.initial_save` copy, and the template save/master rows remain read-only.
+- No migration application, TEST game creation/reset/reseed, gameplay call, deployment, provider/model change, merge, or historical migration edit was performed.
+- Terminal classification: `FRESH_LEVEL7_TEST_FIXTURE_WRITER_REWORK_READY`.
