@@ -109,17 +109,23 @@ export function evaluateSceneCatalog(manifest, catalog, stage = 'stage_a') {
       failures.push(`missing scene function: ${functionKey(expected)}`);
       continue;
     }
-    if (actual.security_definer !== true) failures.push(`scene function is not SECURITY DEFINER: ${functionKey(expected)}`);
-    if (!hasSafeSearchPath(actual)) failures.push(`unsafe scene search_path: ${functionKey(expected)}`);
-    const shouldHaveServiceRoleExecute = expected.service_role_execute !== false;
-    if (shouldHaveServiceRoleExecute && !hasServiceRoleExecute(actual)) {
-      failures.push(`scene service_role EXECUTE missing: ${functionKey(expected)}`);
+    if (typeof expected.security_definer !== 'boolean') {
+      failures.push(`missing scene security_definer contract: ${functionKey(expected)}`);
+    } else if (actual.security_definer !== expected.security_definer) {
+      failures.push(`scene security_definer mismatch: ${functionKey(expected)}`);
     }
-    if (!shouldHaveServiceRoleExecute && hasServiceRoleExecute(actual)) {
-      failures.push(`unexpected scene service_role EXECUTE: ${functionKey(expected)}`);
+    if (typeof expected.require_safe_search_path !== 'boolean') {
+      failures.push(`missing scene search_path contract: ${functionKey(expected)}`);
+    } else if (expected.require_safe_search_path && !hasSafeSearchPath(actual)) {
+      failures.push(`unsafe scene search_path: ${functionKey(expected)}`);
+    }
+    if (typeof expected.service_role_execute !== 'boolean') {
+      failures.push(`missing scene service_role_execute contract: ${functionKey(expected)}`);
+    } else if (hasServiceRoleExecute(actual) !== expected.service_role_execute) {
+      failures.push(`scene service_role EXECUTE mismatch: ${functionKey(expected)}`);
     }
   }
-  const requiredProbes = [...new Set(stages.flatMap(item => item.probes ?? []))];
+  const requiredProbes = [...new Set(current.probes ?? [])];
   if (requiredProbes.length > 0 && (!catalog?.scene_probes || typeof catalog.scene_probes !== 'object' || Array.isArray(catalog.scene_probes))) {
     failures.push('missing scene behavioral-probe catalog');
   }
@@ -130,13 +136,68 @@ export function evaluateSceneCatalog(manifest, catalog, stage = 'stage_a') {
 }
 
 const CATALOG_SQL = `
-with wanted_functions(name) as (select unnest(array[${FUNCTION_NAMES.map(name => `'${name}'`).join(', ')}]))
+with wanted_functions(name) as (select unnest(array[${FUNCTION_NAMES.map(name => `'${name}'`).join(', ')}])),
+scene_probe_scenes as (
+  select
+    jsonb_build_object(
+      'version', 1,
+      'location_id', 'office-main',
+      'present_npc_ids', jsonb_build_array('heroine1'),
+      'focal_character_id', 'heroine1',
+      'last_speaker_id', null,
+      'updated_turn', 0
+    ) as canonical_scene,
+    jsonb_build_object(
+      'version', 1,
+      'location_id', 'office-main',
+      'present_npc_ids', jsonb_build_array('heroine1'),
+      'focal_character_id', 'heroine1',
+      'last_speaker_id', null
+    ) as missing_scene
+),
+scene_probe_values as (
+  select
+    canonical_scene,
+    missing_scene,
+    jsonb_build_object(
+      'save_schema_version', 1,
+      'edition', 'company-v1',
+      'turn_state', '{}'::jsonb,
+      'player', '{}'::jsonb,
+      'scene', canonical_scene,
+      'player_scene_state', '{}'::jsonb,
+      'player_sexual_state', '{}'::jsonb,
+      'world_state', '{}'::jsonb,
+      'npc_scene_state', '{}'::jsonb,
+      'csa_active', '[]'::jsonb,
+      'csa_rules', '[]'::jsonb
+    ) as canonical_save,
+    jsonb_build_object(
+      'save_schema_version', 1,
+      'edition', 'company-v1',
+      'turn_state', '{}'::jsonb,
+      'player', '{}'::jsonb,
+      'scene_state', jsonb_build_object('location_id', 'office-main'),
+      'player_scene_state', '{}'::jsonb,
+      'player_sexual_state', '{}'::jsonb,
+      'world_state', '{}'::jsonb,
+      'npc_scene_state', '{}'::jsonb,
+      'csa_active', '[]'::jsonb,
+      'csa_rules', '[]'::jsonb
+    ) as legacy_save
+  from scene_probe_scenes
+)
 select jsonb_build_object(
   'migrations', case when to_regclass('supabase_migrations.schema_migrations') is null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('version', version::text, 'name', name::text)) from supabase_migrations.schema_migrations), '[]'::jsonb) end,
   'columns', coalesce((select jsonb_agg(jsonb_build_object('table', table_name, 'column', column_name)) from information_schema.columns where table_schema = 'public' and table_name = 'game_actions' and column_name in ('stage_owner_token', 'stage_claimed_at')), '[]'::jsonb),
   'functions', coalesce((select jsonb_agg(jsonb_build_object('name', p.proname, 'identity_arguments', oidvectortypes(p.proargtypes), 'security_definer', p.prosecdef, 'config', coalesce(to_jsonb(p.proconfig), '[]'::jsonb), 'service_role_execute', has_function_privilege('service_role', p.oid, 'EXECUTE'))) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in (select name from wanted_functions)), '[]'::jsonb),
   'privileges', coalesce((select jsonb_agg(jsonb_build_object('table', t.table_name, 'role', 'service_role', 'privilege', p.privilege_type)) from information_schema.tables t cross join lateral (select privilege_type from information_schema.role_table_grants g where g.grantee = 'service_role' and g.table_schema = 'public' and g.table_name = t.table_name and g.privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')) p where t.table_schema = 'public' and t.table_name in (${CORE_TABLES.map(name => `'${name}'`).join(', ')})), '[]'::jsonb),
-  'scene_probes', '{}'::jsonb
+  'scene_probes', (select jsonb_build_object(
+    'canonical_narrow_scene_accepted', coalesce((public.company_validate_scene_v1(jsonb_build_object('scene', canonical_scene), true) ->> 'valid')::boolean, false),
+    'canonical_scene_missing_required_key_rejected', not coalesce((public.company_validate_scene_v1(jsonb_build_object('scene', missing_scene), true) ->> 'valid')::boolean, false),
+    'canonical_save_without_legacy_scene_mirrors_accepted', coalesce((public.validate_company_save_v1(canonical_save) ->> 'valid')::boolean, false),
+    'legacy_only_save_rejected', not coalesce((public.validate_company_save_v1(legacy_save) ->> 'valid')::boolean, false)
+  ) from scene_probe_values)
 )::text;
 `;
 
