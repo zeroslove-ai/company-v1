@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: integrate-reviewed-runtime-tooling-repairs-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -174,3 +174,21 @@ At terminal:
 - set CURRENT_TASK `WAITING_REVIEW`;
 - post exactly one Issue #68 terminal containing registration SHA/blob, source commit, PR number/head, exact changed paths, focused/full tests, syntax/diff checks, Action/Scene Stage B results, CI, merge/main SHA if merged, and all safety/deploy/DB-write counts;
 - STOP. Do not deploy TEST or begin live acceptance in this task.
+
+## 9. Terminal evidence — 2026-08-18
+
+- Registration SHA: `d21a128284f96412f1d1414ca7a74338268d4802`
+- Registration CURRENT_TASK blob SHA: `43ee5dade3f2c3871ea2df54e763027811877dda`
+- Integrated source/test commit: `e0aa771f5bb8f302e45cd011710563d04a6f21dc`
+- PR: `#76`, head `e0aa771f5bb8f302e45cd011710563d04a6f21dc`, exact-head CI `test: pass`
+- Merge commit / main SHA: `43aa03cf645a2e1a2cae3e0283d2e485170db021`
+- Post-merge main CI: run `32087904640`, `Company v1 tests`, `test: pass`
+- Changed paths: the 10 allowlisted source/test/config paths above; this terminal update is the separate lifecycle-doc update.
+- Focused contract tests: `41/41` pass.
+- Full `npm test`: `342/342` pass.
+- `node --check` on all changed JS/MJS files: pass.
+- `git diff --check` and staged diff check: pass.
+- Read-only Action Stage B gate: PASS (`company-v1-action-authority`, v2).
+- Read-only Scene Stage B gate: PASS (`company-v1-scene-authority`, v1).
+- Safety counts: source integration commits `1`; pushes `1`; PRs `1`; merges `1`; TEST writes/gameplay/resets/game creation `0`; DB DDL/migration/history writes `0`; deployments `0`; Production `0`; provider/model changes `0`; retries `0`; old lineage commits `0`; Cut3 `0`.
+- No TEST deployment or live acceptance was performed; this task stops after reviewed integration and merge.
