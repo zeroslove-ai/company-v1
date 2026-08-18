@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_REVIEW
+Status: READY
 Task ID: fresh-level7-test-fixture-writer-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -155,33 +155,3 @@ Run:
 - no retry/regeneration loop;
 - no merge;
 - no next roadmap Cut.
-
-## Terminal WAITING_REVIEW — 2026-08-18
-
-Classification: `FRESH_LEVEL7_TEST_FIXTURE_WRITER_READY`
-
-- registration main: `f61f611d1158dd8c9381152c486f66bc13bbf727`;
-- implementation branch: `company/fresh-level7-test-fixture-writer-v1`;
-- implementation commit: `9c9580bf90f9e1e87acfa55cba36848f45010d32`;
-- PR: #84, exact head `9c9580bf90f9e1e87acfa55cba36848f45010d32`, open/non-draft;
-- exact-head Company v1 tests: run `32129538421`, PASS;
-- focused fixture tests: 9/9 PASS;
-- full `npm.cmd test`: 363/363 PASS;
-- changed JS/MJS syntax: PASS;
-- migration/static contract checks: PASS;
-- `git diff --check`: PASS.
-
-Changed scope is limited to the additive TEST-only migration
-`supabase/migrations/20260818000100_company_v1_fresh_level7_test_fixture.sql`,
-the separately guarded fresh path in
-`scripts/test-level7-acceleration.mjs`, these focused tests, and this lifecycle
-record. The historical dedicated migration/RPC remains fixed-ID and unchanged.
-The new path checks all five target tables before writes, rejects preserved/
-dedicated/Production identities, reads the dedicated fixture only as a
-read-only template, validates Level 7/turn-zero state, creates no actions or
-turns, and uses service-role-only execution.
-
-No migration was applied, no game was created/reset/reseeded, no TEST or
-Production deployment occurred, no merge occurred, and no gameplay/provider/
-model semantics were changed. STOP at WAITING_REVIEW for owner review and
-subsequent separately authorized migration/application and fixture creation.
