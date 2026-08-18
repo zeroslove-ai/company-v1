@@ -1,161 +1,142 @@
 # Company v1 — CURRENT TASK
 
-Status: BLOCKED
-Task ID: hospital-spine-test-manual-handoff-v1
+Status: READY
+Task ID: fresh-level7-test-fixture-writer-v1
 Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-This existing `docs/ops/CURRENT_TASK.md` is reused in place. Do not create a new CURRENT_TASK file and do not create a new ops/task-registration branch.
+This existing `docs/ops/CURRENT_TASK.md` is reused in place on `main`. Do not create a new CURRENT_TASK file and do not create a new ops/task-registration branch.
 
-## 0. Owner review and merged source authority
+## 0. Owner review decision and blocker
 
-Binding design:
+Predecessor task: `hospital-spine-test-manual-handoff-v1`.
 
-`docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md`
+Accepted blocker terminal: Issue #68 comment `5327098320`.
 
-Predecessor task: `hospital-spine-pr82-lineage-reconcile-v1`
+Classification: `BLOCKED_HOSPITAL_HANDOFF_NO_FRESH_LEVEL7_WRITER`.
 
-Owner review decision: `ACCEPT`.
+Verified facts from the blocked run:
 
-Replacement PR #83 was independently verified before merge:
+- exact registered main CI run `32125901150` succeeded;
+- exact main deployed to TEST API Worker `game-proxy-company-v1` as version `5eb3ebc7-a4a3-43c0-ba0b-b159ee93ce52`;
+- deployed source tree is `b397708faa738d41bd7c682af60d6e1e4d091936`;
+- action/scene gates, `/health`, `/api/version`, preserved-game read-only API smoke, and frontend route/assets all passed;
+- fresh candidate UUID `1ee28d34-af78-4a07-a784-248e075ebd9c` was proven absent before any write in `games`, `game_save`, `game_actions`, and `game_turns`;
+- no fixture write was attempted and all existing games were preserved;
+- current TEST RPC `prepare_company_test_level7_fixture(uuid,text)` hard-codes existing dedicated game `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` and calls `reset_company_game`, so it cannot satisfy fresh-UUID/no-reuse/no-reset manual-handoff requirements.
 
-- PR head: `66b1f777481b7f3989d09d037e24255003692438`
-- candidate source/test commit: `9154c01d661d11918dedc873899d59bcb993fcc7`
-- exact-head Company v1 tests: run `32125276984` — SUCCESS
-- candidate `src` tree: `b397708faa738d41bd7c682af60d6e1e4d091936`
-- candidate `test` tree: `9f24659243417edb40d38d7e0fdce9c7397fc19b`
-- those tree SHAs exactly equal reviewed executable `67b8cce260e23a953ef8d8353b96fb0c316c64e2`
-- focused 61/61, full 359/359, syntax, and diff checks accepted
+Owner decision: the block is valid. Authorize only the smallest TEST-fixture tooling/DB-contract repair required to create one genuinely new Level-7 turn-zero game. Do not alter gameplay semantics.
 
-Owner merged only PR #83 by normal merge with exact expected-head protection.
-
-Merged source authority: `b8efd92085fb660e18090373800994b64d003e73`
-
-Old PR #82 remains historical reviewed-but-conflicted evidence and must not be merged.
-
-No source repair is authorized. This is the final TEST deployment + zero-turn manual-fixture handoff tail.
-
-## 1. Frozen in-place registration identity
-
-The latest Issue #68 `CURRENT_TASK_READY` comment for this Task ID supplies exact `REGISTRATION_MAIN_SHA` and `CURRENT_TASK_BLOB_SHA`.
+## 1. Frozen start and branch rule
 
 At execution start:
 
 1. fresh-fetch `origin/main`;
-2. require `origin/main == REGISTRATION_MAIN_SHA` from that comment;
-3. require this file blob == registered `CURRENT_TASK_BLOB_SHA`;
-4. require `REGISTRATION_MAIN_SHA` to be a docs-only descendant of merged source `b8efd920...`, changing only `docs/ops/CURRENT_TASK.md`;
-5. require current `src` tree == `b397708f...` and current `test` tree == `9f246592...`;
-6. require PR #83 MERGED with merge commit `b8efd920...` and PR #82 UNMERGED;
-7. create no task/ops branch; operational work proceeds from exact registered main;
-8. if any non-doc source/config/test/content/migration drift exists, STOP `BLOCKED_HOSPITAL_HANDOFF_MAIN_DRIFT`.
+2. require exact registration main SHA/blob from the latest Issue #68 `CURRENT_TASK_READY` comment for this Task ID;
+3. require current `src` tree remains `b397708faa738d41bd7c682af60d6e1e4d091936` and current `test` tree remains `9f24659243417edb40d38d7e0fdce9c7397fc19b` before implementation;
+4. create/use one normal implementation branch `company/fresh-level7-test-fixture-writer-v1` from exact registration main;
+5. this implementation branch is allowed; a new ops/task-registration branch is not;
+6. if unrelated non-doc drift exists, STOP `BLOCKED_FRESH_LEVEL7_WRITER_MAIN_DRIFT`.
 
-## 2. Phase A — exact registration-main CI
+## 2. Preserve historical migration and old dedicated seam
 
-The repository workflow runs on pushes to `main`. Require `Company v1 tests` for exact `REGISTRATION_MAIN_SHA` to complete SUCCESS before deployment.
+Historical applied migration:
 
-If exact registration-main CI is not SUCCESS, STOP `BLOCKED_HOSPITAL_HANDOFF_MAIN_CI`. Do not patch source or alter workflow/provider/model settings.
+`supabase/migrations/20260815000100_company_v1_test_level7_acceleration.sql`
 
-## 3. Phase B — deploy exact registered main to TEST only
+Do not edit, rename, rewrite, or delete it.
 
-Deploy the exact Company v1 runtime from `REGISTRATION_MAIN_SHA` to TEST only using the current contract-gated deployment path.
+The existing RPC `prepare_company_test_level7_fixture(uuid,text)` and the existing dedicated-game helper behavior may remain for historical/dedicated TEST use. Do not broaden that old RPC by removing its fixed-ID guard.
 
-Required:
+Add a new additive TEST-only migration/RPC for fresh fixture creation instead.
 
-- deploy exact API Worker/runtime from registered main;
-- record Worker name/version/deployment timestamp and source SHA;
-- frontend source was not changed by this alignment; do not perform an unnecessary frontend rewrite/workaround;
-- retain existing source-equivalent TEST frontend unless the normal deployment contract explicitly requires a deploy;
-- record frontend version only if actually deployed by the normal authorized path;
-- no source/config/content repair during deployment.
+## 3. Required fresh fixture contract
 
-Hard boundaries:
+Create one new additive migration defining a distinctly named fresh-fixture RPC, e.g. `create_company_test_level7_fixture(uuid,text)`.
 
-- TEST only;
-- no Production/hospital-v2;
-- no migration/DDL/migration-history repair/broad DB push;
-- no provider/model/TTS/binding change;
-- no retry-until-lucky/regeneration loop.
+The exact implementation may vary only where current schema requires it, but it must prove these properties:
 
-If exact registered main cannot deploy, STOP with the precise deployment blocker.
+1. service-role only; revoke from `public`, `anon`, and `authenticated`;
+2. target UUID is explicit and non-null;
+3. target UUID must be absent before write from `games`, `game_master`, `game_save`, `game_actions`, and `game_turns`; any presence fails closed and performs no mutation;
+4. reject known preserved/dedicated identities, including at minimum:
+   - `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`;
+   - `9755b57b-5cbb-44dd-a624-020fe516c16d`;
+   - `78fb1d94-266f-455a-bda4-7656cc2370c1`;
+   - the repository's explicit production/forbidden game identity if one is defined by current tooling;
+5. use the current dedicated TEST fixture only as a read-only template if a template is necessary; never reset, update, reseed, or otherwise mutate it;
+6. atomically create only the new target game's required `games` / `game_master` / `game_save` rows under current schema;
+7. produce a valid Company v1 save with `player_progress.level=7`, `player_progress.exp=0`, `committed_turn=0`, idle/no pending action state, and current canonical save validation PASS;
+8. create no `game_actions` and no `game_turns` rows;
+9. do not call `reset_company_game` for the new UUID;
+10. return enough structured evidence to verify `game_id`, `committed_turn=0`, Level 7, test-only/fresh creation status, and that no reset/reuse occurred.
 
-## 4. Phase C — structural/read-only smoke only
+Do not introduce a generic arbitrary-game cloning API. This is a narrow TEST acceptance seam only.
 
-After deployment, perform only non-gameplay verification required to prove TEST is structurally ready:
+## 4. Tooling contract
 
-- `/health` and API reachability/edition identity;
-- effective TEST DB contract checks read-only;
-- Action Stage A / Scene Stage B contract gates where applicable;
-- frontend asset/public-route reachability;
-- deployed-source/version identity checks.
+Update `scripts/test-level7-acceleration.mjs` only as needed to add a separate fresh-fixture path.
 
-Any infrastructure smoke fixture must be disposable and must not become the final manual fixture.
+Required boundaries:
 
-Do not run Setup, Opening, Story, Extract, or Commit gameplay turns as acceptance.
+- keep the existing dedicated Level-7 seam hard-locked to its existing UUID;
+- do not simply weaken `assertLevel7SeamTarget()` to accept arbitrary games;
+- fresh creation must have a separate explicit opt-in guard/environment path;
+- fresh path must require the dedicated TEST Supabase project and an explicitly supplied target UUID/title; no implicit fallback to the old dedicated UUID;
+- fresh path calls only the new fresh-fixture RPC and must not call `get_company_context` first for a UUID that does not yet exist;
+- fresh creation helper exposes no reset operation;
+- Production/preserved/dedicated UUIDs must fail before RPC invocation.
 
-If structural smoke fails, STOP with exact evidence. Do not alter application semantics.
+## 5. Tests
 
-## 5. Phase D — one genuinely fresh Level-7 manual TEST fixture
+Add/adjust focused tests proving at minimum:
 
-Only after exact-head CI, deployment, and structural smoke pass, create exactly one fresh disposable Level-7 TEST game for the user's manual product-play acceptance.
+1. existing dedicated seam still accepts only the old dedicated UUID and explicit TEST enablement;
+2. fresh seam accepts a well-formed arbitrary new UUID only on the dedicated TEST project with separate explicit enablement;
+3. fresh seam rejects dedicated, preserved, production/forbidden, missing, and malformed UUIDs;
+4. fresh seam requires a non-empty title;
+5. fresh helper makes exactly the new RPC call and does not first fetch an existing game/reset/directly mutate REST tables;
+6. new migration contains fail-closed preexistence checks covering `games`, `game_master`, `game_save`, `game_actions`, and `game_turns`;
+7. new migration does not call `reset_company_game` and does not modify the template UUID;
+8. new save is validated and Level 7 / committed-turn-zero semantics are explicit;
+9. RPC ACL remains service-role only;
+10. no gameplay/runtime semantics outside fixture tooling changed.
 
-Mandatory freshness procedure:
+Run focused tests, full `npm.cmd test`, changed JS/MJS syntax checks, SQL/static contract checks where current harness supports them, and `git diff --check`.
 
-1. generate a brand-new UUID not copied from any prior manual/QA/evidence fixture;
-2. BEFORE any write, prove zero rows for that UUID in at least `games`, `game_save`, `game_actions`, and `game_turns`;
-3. if any row exists, discard that UUID without mutation and generate another;
-4. seed/create only the proven-absent UUID using the current authorized TEST Level-7 fixture path;
-5. never reset/reseed/reuse an existing UUID;
-6. preserve all prior manual/QA/evidence games read-only, including `9755b57b-5cbb-44dd-a624-020fe516c16d`, `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`, and every other prior fixture;
-7. perform ZERO Setup/Opening/Story/Extract/Commit gameplay calls in the final manual fixture;
-8. verify after creation: Level 7, `committed_turn=0`, game action count 0, active committed turn count 0, idle/no pending gameplay action, TEST-only identity, and public frontend URL reachable;
-9. record exact fresh UUID and public TEST URL.
+## 6. PR and review boundary
 
-The user, not Codex/Hermes, owns long gameplay acceptance.
+After all checks pass:
 
-## 6. Success terminal — WAITING_USER_LIVE_ACCEPTANCE
+1. open exactly one PR from `company/fresh-level7-test-fixture-writer-v1` to `main`;
+2. PR scope may contain only:
+   - the new additive TEST-only migration;
+   - `scripts/test-level7-acceleration.mjs` if required;
+   - focused test changes;
+   - this same `docs/ops/CURRENT_TASK.md` lifecycle update on the branch;
+3. require exact-head `Company v1 tests` CI SUCCESS;
+4. do not merge the PR;
+5. do not apply the new migration to TEST yet;
+6. do not redeploy API/frontend;
+7. do not create any game or run any gameplay call;
+8. overwrite this same CURRENT_TASK file on the implementation branch to `Status: WAITING_REVIEW`, record PR/head/test/CI evidence, post terminal classification `FRESH_LEVEL7_TEST_FIXTURE_WRITER_READY`, and STOP.
 
-On full success, overwrite this SAME `docs/ops/CURRENT_TASK.md` on main in place to `Status: WAITING_USER_LIVE_ACCEPTANCE` and record:
-
-- registration main SHA/blob;
-- exact-head main CI run/result;
-- deployed API Worker version and exact source SHA;
-- frontend deployment status/version if any;
-- DB/action/scene structural gate results;
-- health/frontend reachability results;
-- fresh UUID pre-write absence proof;
-- final fresh Level-7 game UUID;
-- zero-turn/action-count readback;
-- public TEST frontend URL.
-
-Post one terminal report to Issue #68 with classification `HOSPITAL_REFERENCE_SPINE_ALIGNMENT_WAITING_USER_LIVE_ACCEPTANCE`, then STOP.
-
-Do not create another CURRENT_TASK and do not start another roadmap Cut. The user will next perform the long 30–50+ turn manual product-play acceptance.
+The owner/reviewer will decide merge + TEST migration application + final fresh manual fixture creation in the next task.
 
 ## 7. Absolute prohibitions
 
 - no new CURRENT_TASK file;
 - no new ops/task-registration branch;
-- no source/test/config/content semantic changes;
-- no merge of PR #82 or any other PR;
-- no automated long live gameplay;
-- no gameplay turn in the final manual fixture;
-- no reset/reseed/reuse/mutation of any pre-existing manual/QA/evidence game;
+- no edit of historical migration `20260815000100_company_v1_test_level7_acceleration.sql`;
+- no weakening/reusing the old dedicated RPC for arbitrary UUIDs;
+- no gameplay Story/Extract/Commit semantics change;
+- no Story/Extract prompt change;
+- no relationship/event/emotion/open-fact ledger or generic CSA DSL;
 - no Production/hospital-v2 operation;
-- no migration/DDL/history repair/broad DB push;
+- no TEST migration application before owner review;
+- no game creation/reset/reseed/mutation in this task;
+- no migration-history repair or broad DB push;
 - no provider/model/TTS/binding change;
-- no semantic router/classifier/verifier;
-- no relationship/event/emotion/open-fact ledger;
-- no generic CSA execution DSL;
-- no retry/regenerate-until-lucky behavior;
+- no retry/regeneration loop;
+- no merge;
 - no next roadmap Cut.
-
-## Terminal BLOCKED — 2026-08-18
-
-Classification: `BLOCKED_HOSPITAL_HANDOFF_NO_FRESH_LEVEL7_WRITER`
-
-The exact registered main (`e3d00dba4381a9f77f6d5aaa4be6f08e7fdc9c46`) was deployed to TEST API Worker `game-proxy-company-v1` as version `5eb3ebc7-a4a3-43c0-ba0b-b159ee93ce52` at `2026-08-18T10:42:49Z` (source tree `b397708faa738d41bd7c682af60d6e1e4d091936`). Read-only structural smoke passed: registration-main CI `32125901150`, action/scene contract gates passed, `/health` and `/api/version` returned company-v1 / phase-2-vertical-loop, preserved-game API smoke passed, and frontend asset/public-route smoke passed at `https://gamebuilder-company-v1.zeroslove.workers.dev`.
-
-Fresh UUID `1ee28d34-af78-4a07-a784-248e075ebd9c` was generated and, before any write, read-only counts were zero in `games` (key `id`), `game_save`, `game_actions`, and `game_turns` (key `game_id`). The current TEST function definition for `public.prepare_company_test_level7_fixture(uuid,text)` hard-codes the existing dedicated UUID `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` and calls `reset_company_game` before applying Level 7. It therefore cannot seed the proven-absent UUID and would violate this task’s mandatory fresh-UUID/no-reuse/no-reset procedure. No fixture write was attempted; all preserved games remain untouched.
-
-Required next action is an owner-authorized source/migration/runtime contract change that provides a genuinely fresh-UUID TEST-only Level-7 creation path. That is outside this task’s absolute prohibitions, so execution stops here. No Production, migration/DDL, source repair, gameplay call, or unpushed commit was performed.
