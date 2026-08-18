@@ -29,6 +29,22 @@ test('fresh Extract reports missing continuity summary and required Mind Monitor
   assert.ok(result.warnings.includes('turn_summary_missing_for_nonempty_story'));
 });
 
+test('fresh actor evidence is one exact quote with canonical changed paths', () => {
+  const freshBase = structuredClone(base);
+  freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], focal_candidate_id: null, remote_speaker_ids: [], evidence: [] };
+  const result = normalizeFreshExtractObservationV2({
+    ...freshBase,
+    evidence: { actors: { heroine1: { character_id: 'heroine1', quote: 'Heroine stands by the window', changed: ['npc_scene_state.heroine1.position_label'] } } }
+  }, { npcIds: NPCS, storyText: 'Heroine stands by the window.' });
+  assert.deepEqual(result.evidence.actors.heroine1.changed, ['npc_scene_state.heroine1.position_label']);
+  const retired = normalizeFreshExtractObservationV2({
+    ...freshBase,
+    evidence: { physical_change: { heroine1: { character_id: 'heroine1', quote: 'Heroine stands by the window', changed: ['npc_scene_state.heroine1.position_label'] } } }
+  }, { npcIds: NPCS, storyText: 'Heroine stands by the window.' });
+  assert.deepEqual(retired.evidence, {});
+  assert.ok(retired.warnings.some(warning => warning.includes('evidence.physical_change')));
+});
+
 test('fresh current scene evidence round-trips through the persisted Commit reader', () => {
   const quote = '오전 11시 54분, 브랜드전략팀 사무실.';
   const fresh = normalizeFreshExtractObservationV2({
@@ -108,7 +124,7 @@ test('Extract prompt names the minimal fresh contract and keeps raw Story eviden
   assert.match(text, /narrow player_observation/i);
   assert.match(text, /semantic event\/relation taxonomy/i);
   assert.equal(text.includes('csa_trigger_evaluations'), false);
-  assert.equal(text.includes('posture'), false);
+  assert.match(text, /actors/i);
   assert.match(text, /position_label/);
   assert.equal(JSON.parse(messages[1].content).story_text, 'raw story');
 });

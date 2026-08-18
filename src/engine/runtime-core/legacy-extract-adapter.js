@@ -50,16 +50,6 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
     const physicalOnlyPatch = physicalOnly(physical);
     if (physicalOnlyPatch) npcObservations[id].physical = physicalOnlyPatch;
   }
-  for (const domain of ['npc_stats', 'csa_attitudes']) {
-    for (const [id, patch] of Object.entries(object(delta[domain]) ? delta[domain] : {})) {
-      if (npcIds instanceof Set && npcIds.size && !npcIds.has(id)) continue;
-      npcObservations[id] ??= {};
-      const key = domain === 'csa_attitudes' ? 'csa_attitude' : 'stats';
-      const allowed = key === 'stats' ? ['affinity_delta', 'csa_acceptance_delta', 'sexual_arousal_delta', 'reasons', 'reason'] : ['familiarity'];
-      const filtered = pick(patch, allowed);
-      if (filtered) npcObservations[id][key] = filtered;
-    }
-  }
   return normalizeExtractObservationV2({
     extract_version: 2,
     outcome: value.outcome === 'degraded' ? 'degraded' : value.outcome,
@@ -75,18 +65,9 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
       sexual: pick(delta.player_sexual_state, ['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed', 'erection_state'])
     },
     npc_observations: npcObservations,
-    events: {
-      general: [],
-      sexual: Array.isArray(delta.sexual_event_ledger) ? delta.sexual_event_ledger : []
-    },
-    evidence,
     elapsed_minutes: value.elapsed_minutes ?? 3,
     mind_monitor: {},
-    action_target_id: known(value.action_target_id, npcIds),
-    image_character_id: known(value.image_character_id, npcIds),
-    image_selection: value.image_selection ?? null,
-    csa_trigger_evaluations: value.csa_trigger_evaluations ?? [],
-    csa_runtime_updates: value.csa_runtime_updates ?? [],
+    evidence: {},
     turn_summary: value.turn_summary ?? '',
     warnings: ['legacy_extract_adapter_used', ...(Array.isArray(value.warnings) ? value.warnings : [])]
   }, { npcIds, storyText, expectedTurn, actionId });

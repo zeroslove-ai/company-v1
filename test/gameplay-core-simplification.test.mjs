@@ -185,7 +185,7 @@ test('preserved turn-19 live shape now bootstraps heroine3 instead of skipping i
 });
 
 test('player sexual progression accepts exact evidenced delta without legacy six-point pacing', () => {
-  const result = reducePlayerSexualState({}, { ejaculation_progress_delta: 7 }, { storyEvidence: { player_observation: { sexual: { ejaculation_progress_delta: { quote: '증거' } } } }, storyText: '증거' });
+  const result = reducePlayerSexualState({}, { ejaculation_progress_delta: 7 }, { storyEvidence: { actors: { player: { character_id: 'player', changed: ['player_sexual_state.ejaculation_progress_delta'], quote: '증거' } } }, storyText: '증거' });
   assert.equal(result.state.ejaculation_progress, 7);
 });
 

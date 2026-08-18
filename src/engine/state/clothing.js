@@ -187,7 +187,7 @@ export function evaluateClothingFieldEvidence(evidence, narrativeText, character
  * 이것이 actual clothing을 쓰는 유일한 경로다 — 규정/관찰/장면 참여만으로는
  * clothing을 생성하지 않는다.
  */
-export function retainEvidencedClothing({ previousClothing = {}, proposedClothing = {}, evidenceMap = null, narrativeText = '', characterName = '', actorId = null, npcsPresent = [], registeredNpcNames = [] } = {}) {
+export function retainEvidencedClothing({ previousClothing = {}, proposedClothing = {}, evidenceQuote = null, narrativeText = '', characterName = '', actorId = null, npcsPresent = [], registeredNpcNames = [] } = {}) {
   const previous = isPlainObject(previousClothing) ? previousClothing : {};
   const proposed = isPlainObject(proposedClothing) ? proposedClothing : {};
   const clothing = {};
@@ -213,7 +213,7 @@ export function retainEvidencedClothing({ previousClothing = {}, proposedClothin
   if (Object.keys(normalizedProposal).length === 0) return { clothing, rejections };
 
   // actor당 quote 하나 — 유효하면 제안 전체 적용 (slot별 의미 정규식 검증 없음)
-  const quote = typeof evidenceMap === 'string' && evidenceMap.trim() ? evidenceMap.trim() : null;
+  const quote = typeof evidenceQuote === 'string' && evidenceQuote.trim() ? evidenceQuote.trim() : null;
   if (!evaluateClothingFieldEvidence(quote, narrativeText, characterName, {
     actorId, npcsPresent, registeredNpcNames
   })) {

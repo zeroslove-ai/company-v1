@@ -88,7 +88,6 @@ test('blank older summaries retain committed Story as continuity fallback', () =
     turn: 1,
     turn_summary: '',
     raw_story_fallback: 'committed raw Story',
-    parsed_blocks_fallback: { blocks: ['dialogue'] },
     continuity_source: 'committed_story'
   }]);
 });
