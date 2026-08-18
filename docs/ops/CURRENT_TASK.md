@@ -2,172 +2,236 @@
 
 Status: READY
 Task ID: hospital-reference-spine-alignment-v1
-Updated: 2026-08-18 (owner rearm: resume loop, execute canon alignment)
+Rework: true
+Updated: 2026-08-18
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 This file is the sole active execution authority.
 
-**STOP STATE:** The user has paused the execution loop. Codex/Hermes must not start implementation, deploy, create/reset TEST games, or run live gameplay until a later owner/operator registration explicitly changes this task to `Status: READY` with exact branch/SHA/blob authority.
+## 0. Operator review decision
 
-## 0. Owner design decision
+Previous execution trigger: Issue #68 comment `5323477562`.
+Previous terminal: Issue #68 comment `5323612084`.
+Previous candidate source/test commit: `0a7e0214ae15cc17bdaa9fe56ef9c96075c16352`.
+Previous source branch: `company/hospital-reference-spine-alignment-canon-v2`.
 
-Newest binding design:
+Review classification: `CHANGES_REQUIRED_HOSPITAL_REFERENCE_ALIGNMENT_INCOMPLETE`.
+
+Newest binding design remains:
 
 `docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md`
 
-Current main at this design handoff:
+Do not start a new architecture or a new Cut. This is bounded rework of the same Hospital Reference Spine Alignment task identity.
 
-`5654fe20a5d39c6fd4c9d2e94c7d450e331bc83d`
+## 1. Frozen clean lineage
 
-This main already includes:
-- PR #78 clothing-CSA absent-NPC bootstrap repair;
-- PR #79 `user-live-turn33-continuity-contract-repair-v1` bounded continuity repair.
+Repository: `zeroslove-ai/company-v1`
+Required base main: `20080497d782598600200afa45b5171087595ff9`
+Expected branch: `company/hospital-reference-spine-alignment-v1-rework`
 
-Do not revert PR #79 by assumption. Freshly inspect what it changed when this task eventually becomes READY, then keep only source behavior that fits the new Hospital Reference Spine Alignment canon. Delete redundant hotfix residue rather than layering new compatibility paths.
+The prior execution branch is graph-diverged from main because the owner READY rearm commit was independently created on main and on the previous branch. This is content-safe but should not be carried into the final PR:
 
-The earlier `user-live-turn33-continuity-contract-repair-v1` task identity is superseded as the forward implementation plan. Its live evidence and already-landed source changes remain factual inputs.
+- previous branch start `b54b360685dc800f3569f629fe15f279bfaf2df8`
+- current main `20080497d782598600200afa45b5171087595ff9`
+- both commits have the same tree `8dcf7ad66d199d32e2e11d3ffc7f3e4ecd8bf354`
+- the previous source commit `0a7e021...` is therefore a clean source/test patch over content identical to current main, despite commit-graph divergence.
 
-## 1. Target architecture
+Reapply/transplant the reviewed candidate source/test changes onto this new branch from exact main. Do not merge the old diverged branch wholesale and do not preserve its duplicate rearm commit in the final PR lineage.
 
-The intended fresh loop is:
+Before editing:
+1. fresh-fetch main and require exact `20080497d782598600200afa45b5171087595ff9`;
+2. verify this branch is exactly one docs-only registration commit ahead of main;
+3. re-read the Hospital Reference Spine Alignment canon, terminal `5323612084`, and this exact CURRENT_TASK;
+4. inspect candidate `0a7e021...` directly and preserve only behavior that satisfies the canon;
+5. if main or candidate changed materially, STOP `BLOCKED_HOSPITAL_ALIGNMENT_REWORK_DRIFT` rather than guessing.
 
-```text
-literal player input / clicked literal choice
-→ minimal committed facts
-→ Story (sole narrative author)
-→ one lightweight post-Story Extract call
-→ small deterministic reducers
-→ Commit
-→ game_save + game_turns
-→ next Story / UI
-```
+## 2. What the previous candidate got right and should be preserved
 
-The same Extract call may return:
+The rework should keep these accepted directions unless a concrete regression is discovered:
 
-- structural scene observation;
-- compact clothing observation when needed;
-- narrow player sexual delta if the current UI mechanic is retained;
-- elapsed time;
-- natural-language turn summary;
-- Mind Monitor presentation text;
-- one current evidence vocabulary for retained machine changes.
+1. One actor-scoped fresh evidence shape:
+   `evidence.actors.<actor_id>={character_id,quote,changed[]}`.
+2. Actor identity and exact contiguous Story quote remain the provenance boundary for retained optional machine projections.
+3. Malformed optional actor evidence drops locally with warnings rather than becoming narrative authority.
+4. Player sexual state continues through the existing sole reducer only when exact Story evidence supports the proposed delta/state.
+5. Older blank summaries use a deterministic bounded committed-Story fallback instead of disappearing from long-term context.
+6. Mind Monitor stays in the same Extract call, presentation-only, fail-open, no retry.
+7. Exact single/multi-NPC same-destination structural navigation remains intact.
+8. Existing exact structured clothing CSA bootstrap/synchronization remains intact.
+9. Non-navigation provider focal candidates do not decide durable focus; current structural dialogue/navigation signals remain the authority.
+10. Historical persisted Extract/legacy rows remain compatibility-only and must not become fresh semantic authority.
 
-Mind Monitor is **not a separate LLM stage**. It stays in the same Extract call, Hospital-style, but is presentation-only: missing/partial output is fail-open, requires no exact quote provenance, gets no retry solely for completion, and cannot alter Story/Commit authority.
+Do not revert these merely because the previous branch is being replayed cleanly.
 
-## 2. Evidence motivating the alignment
+## 3. Review finding A — Fresh Extract prompt is still not materially lightweight
 
-Preserved manual TEST game:
+The previous candidate changed `src/engine/extract-prompt.js` by only `+3/-3` while the binding canon requires a real fresh-contract reduction.
 
-`9755b57b-5cbb-44dd-a624-020fe516c16d`
+The current candidate prompt still explicitly teaches dead/superseded vocabulary by naming it in prohibitions, including examples such as:
+- `relation_updates`
+- `events.general`
+- `npc_observations.relationship`
+- `npc_observations.emotion`
+- `npc_observations.work`
+- generic stats/events/target/media/CSA attitude/runtime/aftereffect surfaces
+- other old semantic taxonomy names whose only purpose is telling the provider not to emit historical fields.
 
-The 33-turn session showed that Story itself was generally coherent while the fresh observation boundary remained over-fragmented: physical evidence vocabulary mismatch, half-alive player sexual state, blank summaries, blank Mind Monitor, stale focal state, and overly narrow multi-NPC exact navigation.
+This violates the canon rule: **delete fresh legacy vocabulary; do not merely tell the model not to use it.**
 
-These are not authorization for separate new subsystems. They are evidence that the Story→Extract→Reducer contract should become materially smaller.
+Required correction:
+- rewrite the fresh Extract system instructions around the positive current contract only;
+- keep concise generic structural guardrails such as “return only this schema / no arbitrary save patch”, but stop enumerating dead semantic field names and old taxonomies;
+- the output example and explanatory prose must describe only fields that the fresh normalizer/reducers actually consume;
+- do not add a replacement list of semantic prohibitions under new names;
+- reduce prompt size/authority, not just rename evidence fields.
 
-## 3. Required implementation approach once READY
+The intended fresh conceptual output remains only current product needs:
+- extract_version/outcome
+- structural scene observation
+- retained player physical/sexual projection only where current consumer exists
+- retained NPC physical/clothing projection only where current consumer exists
+- one actor evidence vocabulary
+- elapsed time
+- turn_summary
+- mind_monitor
+- warnings
 
-### Phase A — current-source inventory
+## 4. Review finding B — remove dead fresh focal authority surface
 
-Freshly inspect current main, including PR #79 changes, and map:
+The candidate already makes Commit ignore non-navigation provider focal proposals, but fresh Extract still exposes and normalizes `focal_candidate_id`.
 
-- Story payload fields;
-- fresh Extract provider fields;
-- fresh Extract normalization fields;
-- reducer consumers;
-- current UI consumers;
-- historical-only replay/compatibility readers;
-- scene/focus readers;
-- player sexual state readers/writers;
-- memory readers;
-- exact navigation resolver.
+Current proof:
+- candidate `canonicalObservation()` derives `focal_candidate_id` only from deterministic destination target and does not consume provider `scene_observation.focal_candidate_id`;
+- canonical scene reduction can derive presentation focus from exact structural dialogue/navigation signals;
+- frontend still consumes canonical `scene.focal_character_id`, not provider `focal_candidate_id` directly.
 
-Every retained fresh field requires one current consumer and one authority reason.
+Therefore fresh provider `focal_candidate_id` has no current authority/consumer and should not remain a fresh field.
 
-### Phase B — deletion and contract reduction
+Required correction:
+- remove `focal_candidate_id` from the fresh Extract output example/instructions;
+- remove it from fresh-only scene field allowlist/normalization/return shape;
+- keep historical persisted compatibility only where concrete old rows require it;
+- do not add a new focus classifier/router;
+- keep deterministic destination-target and exact dialogue-derived focal behavior already present in scene reduction.
 
-Target outcomes:
+## 5. Review finding C — remove dead fresh posture evidence vocabulary
 
-- one post-Story Extract call only;
-- delete unreachable fresh legacy semantic vocabulary rather than merely adding more prohibitions;
-- one actor-scoped evidence vocabulary consumed directly by retained reducers;
-- remove duplicate evidence translations/adapters;
-- keep compact clothing as the proven finite continuity/CSA mechanic;
-- retain free physical/position durability only if a concrete current consumer is proven;
-- keep Mind Monitor in the same Extract call, presentation-only and fail-open;
-- preserve one natural-language `turn_summary`;
-- when an older summary is empty, use a deterministic bounded read-time projection of already committed Story/parsed narrative so the committed turn does not vanish from long-term memory;
-- make retained player sexual mechanic one-writer coherent or remove writer/state/UI/tests together;
-- audit focal/last-speaker durability and derive presentation-only focus instead of adding a classifier when possible;
-- keep exact navigation structural, including multiple exact registered NPCs that all resolve to one unique destination;
-- do not add generic relationship/event/emotion/open-fact state.
+Fresh physical normalization currently accepts `position_label` + compact clothing, but candidate actor-evidence path validation still accepts `*.posture` changed paths.
 
-### Phase C — scenario/contract tests
+That is stale fresh vocabulary: a fresh provider cannot propose posture through the current `normalizePhysical()` contract, so posture evidence has no corresponding fresh write path.
 
-At minimum prove:
+Required correction:
+- fresh actor evidence may authorize only fields that the fresh provider can actually propose and current consumers use;
+- remove fresh `player_scene_state.posture` / `npc_scene_state.<id>.posture` evidence-path acceptance unless a concrete fresh proposal + current consumer path is proven before edit;
+- historical posture state/readers/adapters may remain if genuinely needed for old committed data or current UI readback; do not rewrite history merely to remove a fresh field;
+- `position_label` may remain because current frontend readback has a concrete consumer;
+- compact four-slot clothing remains retained.
 
-1. literal player action round-trip;
-2. exact single and multi-NPC same-destination navigation;
-3. movement clears source presence and destination evidence adds only destination actors;
-4. exact clothing CSA mechanical continuity;
-5. ordinary clothing evidence cannot cross-authorize another actor;
-6. optional observation failure does not fail a correct Story turn;
-7. retained player sexual mechanic changes only from exact Story evidence;
-8. empty old summary does not erase the committed turn from long-term Story memory;
-9. empty/partial Mind Monitor does not affect Commit or next Story;
-10. fresh Extract has no generic relation/event/emotion/work/sexual-event authority;
-11. refresh/replay returns the same committed reality.
+## 6. Retained player physical/sexual product ownership
 
-Tests that only preserve superseded implementation shape are deletion candidates.
+Do not over-delete current product mechanics during rework.
 
-## 4. Final acceptance order — manual live play must be last
+Independent current UI inspection confirms `src/frontend/pages/view-model.js` still reads:
+- player/NPC posture/position presentation from scene state;
+- player excitement/arousal;
+- ejaculation progress/count;
+- erection state.
 
-When eventually READY, use this order:
+For this rework:
+- retain `position_label` fresh observation because there is a current UI consumer;
+- retain the player sexual mechanic because there is a current UI consumer and the candidate reconnects it to one exact actor-evidence path;
+- do not create sexual event ledgers, consent matrices, action taxonomies, or semantic outcome classifiers;
+- input intent alone never writes sexual/physical success.
 
-1. source audit;
-2. deletion/contract simplification;
-3. focused tests;
-4. full tests;
-5. exact-head CI;
-6. owner review;
-7. merge;
-8. exact merged-main TEST deploy;
-9. structural/API smoke only;
-10. prepare one fresh disposable Level-7 manual TEST game / public URL;
-11. perform **zero automated gameplay Story turns** in that final game;
-12. set `WAITING_USER_LIVE_ACCEPTANCE` and STOP;
-13. user performs the long 30–50+ turn product-play acceptance.
+If re-reading current source proves any of those UI consumers were removed after registration, STOP `BLOCKED_HOSPITAL_ALIGNMENT_REWORK_DRIFT` rather than silently changing product scope.
 
-**Codex/Hermes automated long live gameplay is forbidden for this alignment task.**
+## 7. Fresh-vs-historical boundary
 
-## 5. Hard prohibitions
+The rework must distinguish:
 
-- no implementation while status is `WAITING_OWNER_DECISION`;
-- no automatic loop restart;
-- no Hospital source copy/paste architecture migration;
-- no giant Worker consolidation;
-- no new semantic router/classifier/verifier;
-- no general consent/compliance engine;
-- no relationship/event/emotion/open-fact ledger reintroduction;
-- no finite generic physical/sexual action grammar;
-- no generic CSA execution DSL;
-- no third parser generation;
-- no retry/regenerate-until-lucky behavior;
-- no provider/model change to mask defects;
-- no separate Mind Monitor LLM stage;
-- no optional subsystem failure causing Story loss;
-- no automated long live QA before user manual acceptance;
-- no Production changes without separate owner authorization.
+Fresh generation/runtime:
+- positive minimal current schema only;
+- one actor evidence vocabulary;
+- no dead semantic vocabulary;
+- no provider focal candidate;
+- no unsupported fresh posture evidence;
+- optional observation failure cannot discard a valid Story turn.
 
-## 6. Resume condition
+Historical persisted compatibility:
+- may retain proven adapters/readers for old V1/V2 stored rows;
+- must stay inert and isolated from fresh prompt/provider schema;
+- do not mutate historical applied migrations or old evidence rows;
+- do not add new compatibility mirrors simply to satisfy stale tests.
 
-A future operator may make this executable only by explicitly registering:
+## 8. Required regression/contract proof
 
-- `Status: READY`;
-- exact current `main` SHA;
-- exact task branch;
-- exact registration SHA;
-- exact CURRENT_TASK blob SHA;
-- confirmation that the 2026-08-18 Hospital Reference Spine Alignment Canon was re-read against current source, including PR #79 changes;
-- bounded implementation/deploy authority.
+At minimum add/update tests proving:
 
-Until then: **STOP.**
+1. fresh Extract prompt/schema contains the one actor evidence vocabulary and current positive fields only;
+2. fresh prompt no longer enumerates dead relation/event/emotion/work/stats/CSA-runtime/media/target taxonomies as negative instructions;
+3. fresh `scene_observation` no longer accepts/projects provider `focal_candidate_id`;
+4. non-navigation dialogue focus is still derived deterministically by the existing canonical scene path, and destination navigation focus still works;
+5. fresh actor evidence rejects unsupported posture changed paths while exact `position_label` and clothing paths remain valid;
+6. one actor quote cannot authorize another NPC;
+7. malformed/unsupported optional evidence remains local/drop-warning behavior and does not lose a valid Story turn;
+8. retained player sexual updates require exact Story-backed `evidence.actors.player` paths and input intent without evidence does nothing;
+9. ordinary clothing evidence remains actor-scoped, and exact structured clothing CSA synchronization remains unchanged;
+10. empty old summary still yields bounded committed-Story fallback in chronological memory;
+11. empty/partial Mind Monitor remains presentation-only/fail-open;
+12. exact multi-NPC same-destination routing remains correct and ambiguous/non-movement cases remain unresolved;
+13. refresh/replay current committed reality remains unchanged;
+14. historical persisted Extract fixtures required by actual readers remain readable through the historical boundary;
+15. no new generic semantic router/verifier/retry/ledger/DSL appears in the executable diff.
+
+Prefer current scenario/contract tests. Delete/rewrite stale tests that exist only to preserve superseded fresh vocabulary.
+
+## 9. Verification and PR boundary
+
+After the coherent rework:
+1. run focused Hospital-alignment / Extract / navigation / scene / physical / sexual / memory / replay tests;
+2. run full `npm test` with zero failures;
+3. run `node --check` on every changed JS/MJS file;
+4. run `git diff --check`;
+5. inspect the final executable diff against the binding canon;
+6. open one PR against `main` from this clean rework branch;
+7. require `Company v1 tests` SUCCESS on the exact PR head;
+8. do NOT merge in this rework task;
+9. set CURRENT_TASK to `WAITING_REVIEW`, post one terminal report, and STOP.
+
+Terminal success classification:
+`HOSPITAL_REFERENCE_SPINE_ALIGNMENT_REWORK_READY`
+
+Blocked classifications:
+- `BLOCKED_HOSPITAL_ALIGNMENT_REWORK_DRIFT`
+- `BLOCKED_HOSPITAL_ALIGNMENT_REWORK_CONTRACT`
+
+## 10. Hard prohibitions
+
+- no TEST Worker deploy in this rework task
+- no TEST gameplay/manual-game creation/reset/mutation
+- no DB write, migration, DDL, migration-history repair, or broad db push
+- no Production/hospital-v2 mutation
+- no provider/model/TTS/binding change
+- no Hospital source architecture copy/paste
+- no giant Worker consolidation
+- no semantic router/classifier/verifier
+- no relationship/event/emotion/open-fact ledger reintroduction
+- no finite generic physical/sexual action grammar
+- no generic CSA execution DSL
+- no third parser generation
+- no retry/regenerate-until-lucky
+- no separate Mind Monitor LLM stage
+- no Cut3 or unrelated roadmap work
+- no merge before the next operator review
+
+## 11. What happens after this review boundary
+
+If and only if the exact-head PR is independently accepted:
+- next task will normal-merge the reviewed PR;
+- verify merged-main CI;
+- deploy exact merged main to TEST;
+- run structural/API smoke only;
+- create one fresh Level-7 disposable manual-test game/URL with ZERO automated gameplay turns;
+- stop at `WAITING_USER_LIVE_ACCEPTANCE` for the user’s 30–50+ turn manual acceptance.
+
+Do not perform those post-review operations in this task.
