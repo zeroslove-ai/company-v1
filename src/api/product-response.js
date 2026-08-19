@@ -1,5 +1,4 @@
 import { buildContextDisplayPayload, buildNpcAppPayload } from './runtime-display.js';
-import { buildPlayerSexualDisplay } from './character-display.js';
 import { buildFullPlayerInfo } from './product-recovery.js';
 
 function object(value) {
@@ -67,7 +66,6 @@ export function enrichContextEnvelope(payload, edition) {
       // description/zone/type/default_npcs가 빠지면 프론트가 빈 구조도로 축약된다.
       map_locations: canonicalMapLocations(edition),
       npc_default_locations: canonicalNpcDefaultLocations(edition),
-      player_sexual: buildPlayerSexualDisplay(save)
     }
   };
   return payload;

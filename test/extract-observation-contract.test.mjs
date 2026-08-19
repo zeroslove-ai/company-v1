@@ -7,13 +7,15 @@ import { buildExtractPrompt } from '../src/engine/extract-prompt.js';
 const NPCS = new Set(['heroine1', 'heroine2']);
 const base = { extract_version: 2, outcome: 'success', scene_observation: { scene_id: null, location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], presence_is_final: false, focal_candidate_id: null, remote_speaker_ids: [], evidence: [] }, player_observation: { physical: null, sexual: null }, npc_observations: {}, evidence: {}, elapsed_minutes: 3, mind_monitor: {}, turn_summary: '대화가 이어졌다.', warnings: [] };
 
-test('fresh Extract accepts only narrow scene, physical, sexual and summary observation', () => {
+test('fresh Extract accepts only narrow scene, physical, retained erection and summary observation', () => {
   const freshBase = structuredClone(base);
   freshBase.scene_observation = { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] };
-  const result = normalizeFreshExtractObservationV2({ ...freshBase, player_observation: { physical: { position_label: 'standing' }, sexual: { arousal_delta: 1 } } }, { npcIds: NPCS, storyText: '' });
+  const result = normalizeFreshExtractObservationV2({ ...freshBase, player_observation: { physical: { position_label: 'standing' }, sexual: { erection_state: 'erect' } } }, { npcIds: NPCS, storyText: '' });
   assert.equal(result.player_observation.physical.position_label, 'standing');
-  assert.equal(result.player_observation.sexual.arousal_delta, 1);
-  assert.throws(() => normalizeFreshExtractObservationV2({ ...freshBase, player_observation: { physical: { posture: 'standing' } } }, { npcIds: NPCS, storyText: '' }), /Unknown observation field/);
+  assert.equal(result.player_observation.sexual.erection_state, 'erect');
+  const malformedPhysical = normalizeFreshExtractObservationV2({ ...freshBase, player_observation: { physical: { posture: 'standing' } } }, { npcIds: NPCS, storyText: '' });
+  assert.equal(malformedPhysical.player_observation.physical, null);
+  assert.ok(malformedPhysical.warnings.some(warning => warning.includes('player_observation.physical')));
 });
 
 test('fresh Extract reports missing continuity summary and required Mind Monitor entries', () => {
@@ -72,17 +74,41 @@ test('fresh current scene evidence round-trips through the persisted Commit read
   assert.deepEqual(persisted.scene_observation.evidence, fresh.scene_observation.evidence);
 });
 
-test('current scene evidence remains fail-closed for quote and location provenance', () => {
+test('malformed optional scene evidence drops only that field and preserves valid observations', () => {
   const make = (evidence, location_id = 'brand_strategy_office') => ({
     extract_version: 2, outcome: 'success',
     scene_observation: { location_id, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence },
     player_observation: { physical: null, sexual: null }, npc_observations: {}, evidence: {}, elapsed_minutes: 3,
     mind_monitor: {}, turn_summary: '', warnings: []
   });
-  assert.throws(() => normalizeFreshExtractObservationV2(make([{ kind: 'scene', location_id: 'brand_strategy_office', quote: 'not in Story' }]), { npcIds: NPCS, storyText: 'Story' }), error => error.code === 'SCENE_EVIDENCE_QUOTE_NOT_IN_STORY');
-  assert.throws(() => normalizeFreshExtractObservationV2(make([{ kind: 'scene', location_id: 'other_office', quote: 'exact Story quote' }]), { npcIds: NPCS, storyText: 'exact Story quote' }), /matching location_id/);
-  assert.throws(() => normalizeFreshExtractObservationV2(make([{ kind: 'scene', quote: 'exact Story quote' }]), { npcIds: NPCS, storyText: 'exact Story quote' }), /matching location_id/);
-  assert.throws(() => normalizeFreshExtractObservationV2(make([{ kind: 'scene', location_id: 'brand_strategy_office', quote: 'exact Story quote' }], ''), { npcIds: NPCS, storyText: 'exact Story quote' }), /matching location_id/);
+  const result = normalizeFreshExtractObservationV2({
+    ...make([{ kind: 'scene', location_id: 'brand_strategy_office', quote: 'not in Story' }]),
+    turn_summary: 'valid summary',
+    mind_monitor: { heroine1: { surface: 'surface', subconscious: 'subconscious' } },
+    npc_observations: { heroine1: { physical: { position_label: 'by the window' } } },
+    evidence: { actors: { heroine1: { character_id: 'heroine1', quote: 'Heroine stands by the window', changed: ['npc_scene_state.heroine1.position_label'] } } }
+  }, { npcIds: NPCS, storyText: 'valid Story. Heroine stands by the window' });
+  assert.deepEqual(result.scene_observation.evidence, []);
+  assert.equal(result.turn_summary, 'valid summary');
+  assert.equal(result.mind_monitor.heroine1.surface, 'surface');
+  assert.equal(result.npc_observations.heroine1.physical.position_label, 'by the window');
+  assert.equal(result.evidence.actors.heroine1.character_id, 'heroine1');
+  assert.ok(result.warnings.some(warning => warning.includes('scene_observation.evidence')));
+});
+
+test('one malformed actor domain does not erase another actor observation', () => {
+  const result = normalizeFreshExtractObservationV2({
+    ...base,
+    scene_observation: { location_id: null, final_present_npc_ids: null, entered_npc_ids: [], exited_npc_ids: [], remote_speaker_ids: [], evidence: [] },
+    npc_observations: {
+      heroine1: { physical: { position_label: 42 } },
+      heroine2: { physical: { position_label: 'seated' } }
+    },
+    mind_monitor: { heroine2: { surface: 'surface', subconscious: 'subconscious' } }
+  }, { npcIds: NPCS, storyText: '' });
+  assert.equal(result.npc_observations.heroine1.physical, null);
+  assert.equal(result.npc_observations.heroine2.physical.position_label, 'seated');
+  assert.equal(result.mind_monitor.heroine2.surface, 'surface');
 });
 
 test('presence evidence remains exact-quote grounded and registered', () => {

@@ -62,7 +62,7 @@ export function adaptLegacyExtractDelta(value, { npcIds = new Set(), storyText =
     },
     player_observation: {
       physical: physicalOnly(delta.player_scene_state),
-      sexual: pick(delta.player_sexual_state, ['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed', 'erection_state'])
+      sexual: pick(delta.player_sexual_state, ['erection_state'])
     },
     npc_observations: npcObservations,
     elapsed_minutes: value.elapsed_minutes ?? 3,

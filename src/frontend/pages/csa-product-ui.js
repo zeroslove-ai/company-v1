@@ -43,9 +43,7 @@ export function renderCompletePlayerInfo(documentRef, root, info) {
     ['현재 위치', info.current_location],
     ['자세', info.posture_detail || info.posture],
     ['복장', info.clothing],
-    ['흥분도', info.arousal ?? 0],
-    ['사정 진행도', `${info.ejaculation_progress ?? 0}%`],
-    ['누적 사정', `${info.ejaculation_count ?? 0}회`]
+    ['발기 상태', info.erection_state]
   ].forEach(([label, content]) => grid.append(field(documentRef, label, content)));
   section.append(title, grid);
   if (info.background) {

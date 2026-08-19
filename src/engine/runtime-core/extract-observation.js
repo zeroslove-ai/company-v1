@@ -8,7 +8,7 @@ const NPC_DOMAINS = new Set(['physical']);
 const PHYSICAL = new Set(['position_label', 'clothing']);
 const CLOTHING = new Set(['uniform_top', 'uniform_bottom', 'underwear_top', 'underwear_bottom']);
 const CLOTHING_STATES = new Set(['worn', 'removed', 'open', 'unknown']);
-const SEXUAL = new Set(['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed', 'erection_state']);
+const SEXUAL = new Set(['erection_state']);
 const ERECTION = new Set(['unknown', 'flaccid', 'partial', 'erect']);
 const SCENE_EVIDENCE_FIELDS = new Set(['kind', 'character_id', 'location_id', 'quote']);
 const SCENE_EVIDENCE_KINDS = new Set(['presence', 'entrance', 'exit', 'scene']);
@@ -24,6 +24,12 @@ function dropOptional(soft, label, warnings, fallback, fn) {
   if (!soft) return fn();
   try { return fn(); } catch (error) {
     warnings.push(`extract_optional_dropped:${label}:${error?.code ?? 'invalid'}`);
+    return fallback;
+  }
+}
+function normalizeOptional(fn, label, warnings, fallback) {
+  try { return fn(); } catch (error) {
+    warnings.push(`extract_optional_dropped:${label}:${error?.code ?? 'INVALID_EXTRACT_OBSERVATION'}`);
     return fallback;
   }
 }
@@ -74,9 +80,6 @@ function normalizeSexual(value) {
   if (value === null || value === undefined) return null;
   assertKeys(value, SEXUAL, 'INVALID_EXTRACT_OBSERVATION');
   const result = clone(value);
-  if ('arousal_delta' in result && !Number.isInteger(result.arousal_delta)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'arousal_delta must be an integer');
-  if ('ejaculation_progress_delta' in result && (!Number.isInteger(result.ejaculation_progress_delta) || result.ejaculation_progress_delta < 0 || result.ejaculation_progress_delta > 100)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid sexual delta: ejaculation_progress_delta');
-  if ('ejaculation_completed' in result && typeof result.ejaculation_completed !== 'boolean') throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'ejaculation_completed must be boolean');
   if ('erection_state' in result && !ERECTION.has(result.erection_state)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'Invalid erection_state');
   return result;
 }
@@ -98,9 +101,8 @@ function actorChangePath(actorId, path, npcIds) {
   if (id !== 'player' && npcIds.size && !npcIds.has(id)) return false;
   if (id === 'player') {
     const playerPhysicalPrefix = 'player_scene_state.';
-    const playerSexualPrefix = 'player_sexual_state.';
     return (path.startsWith(playerPhysicalPrefix) && (path.slice(playerPhysicalPrefix.length) === 'position_label' || /^clothing\.(uniform_top|uniform_bottom|underwear_top|underwear_bottom)$/.test(path.slice(playerPhysicalPrefix.length))))
-      || (path.startsWith(playerSexualPrefix) && new Set(['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed', 'erection_state']).has(path.slice(playerSexualPrefix.length)));
+      || (path === 'player_sexual_state.erection_state');
   }
   const prefix = `npc_scene_state.${id}.`;
   if (!path.startsWith(prefix)) return false;
@@ -309,19 +311,41 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
   const registered = options.npcIds instanceof Set ? options.npcIds : new Set(Array.isArray(options.npcIds) ? options.npcIds : []);
   const scene = object(value.scene_observation) ? value.scene_observation : {};
   assertKeys(scene, FRESH_SCENE_FIELDS, 'INVALID_EXTRACT_OBSERVATION');
-  const locationId = scene.location_id === null || scene.location_id === undefined ? null : nonEmptyId(scene.location_id);
-  const finalIds = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined ? null : ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false });
-  const entered = ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false });
-  const exited = ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false });
   const warnings = Array.isArray(value.warnings) ? value.warnings.filter(item => typeof item === 'string') : [];
-  const evidence = normalizeSceneEvidence(scene.evidence ?? [], registered, options.storyText ?? '', { sceneLocationId: locationId, currentVocabulary: true });
-  const player = object(value.player_observation) ? value.player_observation : {};
-  assertKeys(player, new Set(['physical', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
+  const locationId = scene.location_id === null || scene.location_id === undefined
+    ? null
+    : normalizeOptional(() => {
+        const id = nonEmptyId(scene.location_id);
+        if (!id) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', 'location_id must be a string or null');
+        return id;
+      }, 'scene_observation.location_id', warnings, null);
+  const finalIds = scene.final_present_npc_ids === null || scene.final_present_npc_ids === undefined
+    ? null
+    : normalizeOptional(() => ids(scene.final_present_npc_ids, registered, 'final_present_npc_ids', { allowPlayer: false }), 'scene_observation.final_present_npc_ids', warnings, null);
+  let entered = normalizeOptional(() => ids(scene.entered_npc_ids ?? [], registered, 'entered_npc_ids', { allowPlayer: false }), 'scene_observation.entered_npc_ids', warnings, []);
+  let exited = normalizeOptional(() => ids(scene.exited_npc_ids ?? [], registered, 'exited_npc_ids', { allowPlayer: false }), 'scene_observation.exited_npc_ids', warnings, []);
+  const evidence = normalizeOptional(
+    () => normalizeSceneEvidence(scene.evidence ?? [], registered, options.storyText ?? '', { sceneLocationId: locationId, currentVocabulary: true }),
+    'scene_observation.evidence', warnings, []
+  );
+  const hasEvidence = (kind, id) => evidence.some(item => item?.character_id === id && item?.kind === kind);
+  entered = entered.filter(id => hasEvidence('entrance', id));
+  exited = exited.filter(id => hasEvidence('exit', id));
+  const player = object(value.player_observation)
+    ? normalizeOptional(() => {
+        assertKeys(value.player_observation, new Set(['physical', 'sexual']), 'INVALID_EXTRACT_OBSERVATION');
+        return value.player_observation;
+      }, 'player_observation', warnings, {})
+    : {};
   const npcObservations = {};
   for (const [id, domains] of Object.entries(object(value.npc_observations) ? value.npc_observations : {})) {
     if (registered.size && !registered.has(id)) throw new GameCoreError('INVALID_EXTRACT_OBSERVATION', `Unknown NPC observation: ${id}`);
-    assertKeys(domains, new Set(['physical']), 'INVALID_EXTRACT_OBSERVATION');
-    npcObservations[id] = { physical: normalizePhysical(domains.physical) };
+    const validDomains = normalizeOptional(() => {
+      assertKeys(domains, new Set(['physical']), 'INVALID_EXTRACT_OBSERVATION');
+      return domains;
+    }, `npc_observations.${id}`, warnings, null);
+    if (!validDomains) continue;
+    npcObservations[id] = { physical: normalizeOptional(() => normalizePhysical(validDomains.physical), `npc_observations.${id}.physical`, warnings, null) };
   }
   const monitor = {};
   for (const [id, entry] of Object.entries(object(value.mind_monitor) ? value.mind_monitor : {})) {
@@ -349,10 +373,13 @@ export function normalizeFreshExtractObservationV2(value, options = {}) {
       final_present_npc_ids: finalIds,
       entered_npc_ids: entered,
       exited_npc_ids: exited,
-      remote_speaker_ids: ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false }),
+      remote_speaker_ids: normalizeOptional(() => ids(scene.remote_speaker_ids ?? [], registered, 'remote_speaker_ids', { allowPlayer: false }), 'scene_observation.remote_speaker_ids', warnings, []),
       evidence
     },
-    player_observation: { physical: normalizePhysical(player.physical), sexual: normalizeSexual(player.sexual) },
+    player_observation: {
+      physical: normalizeOptional(() => normalizePhysical(player.physical), 'player_observation.physical', warnings, null),
+      sexual: normalizeOptional(() => normalizeSexual(player.sexual), 'player_observation.sexual', warnings, null)
+    },
     npc_observations: npcObservations,
     evidence: actorEvidence.value,
     elapsed_minutes: normalizeElapsedMinutes(value.elapsed_minutes, value.evidence),

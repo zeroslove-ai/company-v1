@@ -120,6 +120,14 @@ export function createCompanyTts({
       }
     }
   }
+  function removeStaleTurnJobs(turnNumber) {
+    for (let index = queue.length - 1; index >= 0; index -= 1) {
+      const job = queue[index];
+      if (job.turnNumber !== turnNumber) {
+        queuedKeys.delete(job.key); queue.splice(index, 1);
+      }
+    }
+  }
   async function playJob(job) {
     const result = job.url ? { url: job.url } : await api.tts({ game_id: gameId, character_id: job.batch.character_id, text: job.batch.text, direction: job.batch.direction || '자연스럽게' });
     if (job.generation !== generation || !enabled || !result?.url || !audio) return false;
@@ -155,6 +163,7 @@ export function createCompanyTts({
     const viewModel = getViewModel?.();
     const turnNumber = viewModel?.turn?.committed_turn ?? viewModel?.turn?.turn_number ?? null;
     removeSupersededRevisionJobs(turnNumber, identity);
+    removeStaleTurnJobs(turnNumber);
     for (const batch of batches()) enqueue(batch, identity, turnNumber, cachedAudioUrls.get(keyFor(batch, identity)) ?? null);
     updateReplay(); return true;
   }

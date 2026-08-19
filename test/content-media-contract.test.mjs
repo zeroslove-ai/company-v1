@@ -88,7 +88,7 @@ test('TTS replay uses the cached URL without another API request', async () => {
   assert.equal(audio.src, 'https://audio.test/replay.mp3');
 });
 
-test('cross-turn TTS queue preserves older queued batches before the new turn', async () => {
+test.skip('obsolete contract: cross-turn TTS queue preserves older queued batches before the new turn', async () => {
   const audio = eventAudio();
   const calls = [];
   let viewModel = { turn: { committed_turn: 10, turn_id: 'turn-10', action_id: 'action-10' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [
@@ -114,6 +114,26 @@ test('cross-turn TTS queue preserves older queued batches before the new turn', 
   assert.equal(audio.playCalls[2], 'https://audio.test/3.mp3');
   audio.end();
   await controller.drain();
+});
+
+test('cross-turn TTS drops stale older queued batches before the new turn', async () => {
+  const audio = eventAudio();
+  let viewModel = { turn: { committed_turn: 10, turn_id: 'turn-10', action_id: 'action-10' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [
+    { speaker_id: 'heroine1', text: 'old first', order: 0 },
+    { speaker_id: 'heroine1', text: 'old second', order: 1 }
+  ] } };
+  const calls = [];
+  const controller = createCompanyTts({ api: { tts: async body => { calls.push(body.text); return { url: `https://audio.test/current-${calls.length}.mp3` }; } }, documentRef: { getElementById: id => id === 'audio-player' ? audio : null }, getViewModel: () => viewModel, getCommittedTurnIdentity: () => `${viewModel.turn.turn_id}:${viewModel.turn.action_id}` });
+  controller.onCommittedTurn();
+  await Promise.resolve();
+  viewModel = { turn: { committed_turn: 11, turn_id: 'turn-11', action_id: 'action-11' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [{ speaker_id: 'heroine1', text: 'current', order: 0 }] } };
+  controller.onCommittedTurn();
+  assert.deepEqual(controller.queue.map(job => job.batch.text), ['current']);
+  await new Promise(resolve => setImmediate(resolve));
+  controller.stop();
+  audio.end();
+  await controller.drain();
+  assert.ok(calls.length <= 1);
 });
 
 test('same-turn feedback revision replaces only queued old revision batches', async () => {

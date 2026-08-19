@@ -16,7 +16,7 @@ const ACTION_FAMILIES = {
   manual: ['handjob', 'fingering', 'genital_touch'],
   oral: ['fellatio', 'cunnilingus', 'deepthroat'],
   penetration: ['missionary', 'doggystyle', 'cowgirl', 'anal', 'standing_rear'],
-  climax: ['facial_cumshot', 'oral_cumshot', 'body_cumshot', 'creampie']
+  climax: ['facial_cumshot', 'oral_cumshot', 'body_cumshot', 'creampie', 'cowgirl_climax', 'missionary_climax', 'squirting', 'hypnosis_sex']
 };
 const FAMILY_OF_TAG = new Map();
 for (const [family, tags] of Object.entries(ACTION_FAMILIES)) {
@@ -59,7 +59,7 @@ function byCurationRank(a, b) {
  * 일반 portrait/default 이미지는 사용하지 않는다. sex pool에서 null을 반환하지 않는다.
  */
 export function selectImage(candidates, request = {}) {
-  const pool = (Array.isArray(candidates) ? candidates : []).filter(isPlainObject).slice(0, 8);
+  const pool = (Array.isArray(candidates) ? candidates : []).filter(isPlainObject);
   if (!pool.length) return null;
 
   const requestedTags = new Set([...(Array.isArray(request.tags) ? request.tags : []), request.locationId].filter(Boolean));

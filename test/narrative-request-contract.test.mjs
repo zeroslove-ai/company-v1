@@ -49,6 +49,16 @@ test('Story request carries current time, player intent, and no retired semantic
   }
 });
 
+test('Story contract keeps THOUGHT player-only and restores same-turn clothing, progression, and vocal guidance', () => {
+  const story = buildStoryPrompt({ edition, context: context(), playerAction: 'perform the executable request now', expectedTurn: 2, npcIds: new Set() });
+  const text = story[0].content;
+  assert.match(text, /THOUGHT.*player-only/);
+  assert.match(text, /NPC private thought belongs to the same post-Story Extract Mind Monitor/);
+  assert.match(text, /clothing_projection\.required_state/);
+  assert.match(text, /meaningful same-turn consequence/);
+  assert.match(text, /vocal, breath, and body reactions/);
+});
+
 test('Story context preserves six raw turns and chronological older summaries', () => {
   const messages = buildStoryPrompt({
     edition,

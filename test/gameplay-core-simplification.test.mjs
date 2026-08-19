@@ -184,9 +184,11 @@ test('preserved turn-19 live shape now bootstraps heroine3 instead of skipping i
   assert.equal(result.nextSave.npc_scene_state.heroine3.updated_turn, 20);
 });
 
-test('player sexual progression accepts exact evidenced delta without legacy six-point pacing', () => {
+test('unsupported numeric player sexual fields are dropped instead of becoming durable state', () => {
   const result = reducePlayerSexualState({}, { ejaculation_progress_delta: 7 }, { storyEvidence: { actors: { player: { character_id: 'player', changed: ['player_sexual_state.ejaculation_progress_delta'], quote: '증거' } } }, storyText: '증거' });
-  assert.equal(result.state.ejaculation_progress, 7);
+  assert.equal(result.state.erection_state, 'unknown');
+  assert.equal('ejaculation_progress' in result.state, false);
+  assert.ok(result.warnings.includes('unsupported_player_sexual_field_ignored:ejaculation_progress_delta'));
 });
 
 test('active character canon carries compact deterministic body canon without private facts', () => {

@@ -52,7 +52,7 @@ import {
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
-import { readCanonicalSceneV1 } from '../engine/runtime-core/scene-reducer.js';
+import { readCanonicalSceneV1, defaultNpcIdsForLocation } from '../engine/runtime-core/scene-reducer.js';
 import { logTurnTiming, newRequestId } from './timing.js';
 
 function asHttpError(error) {
@@ -88,7 +88,11 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
     : [];
   if (scene.location_id === locationId) {
     if (!canonicalNpcDestination) return save;
-    const presentNpcIds = destinationTargetIds;
+    const presentNpcIds = [...new Set([
+      ...scene.present_npc_ids,
+      ...defaultNpcIdsForLocation({ save, master, mapLocations }, locationId),
+      ...destinationTargetIds
+    ])];
     return {
       ...save,
       scene: {
@@ -101,9 +105,10 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
       }
     };
   }
-  const presentNpcIds = canonicalNpcDestination
-    ? destinationTargetIds
-    : [];
+  const presentNpcIds = [...new Set([
+    ...defaultNpcIdsForLocation({ save, master, mapLocations }, locationId),
+    ...(canonicalNpcDestination ? destinationTargetIds : [])
+  ])];
   return {
     ...save,
     scene: {
@@ -194,6 +199,7 @@ const IMAGE_TAG_ALLOWLIST = new Set([
   'facial_cumshot', 'body_cumshot', 'oral_cumshot', 'creampie', 'cumshot',
   // 장소·컨텍스트
   'office_desk', 'office', 'desk', 'meeting_room', 'private_room', 'lounge', 'restroom',
+  'genital_touch', 'oral', 'orgasm', 'climax', 'cowgirl_climax', 'missionary_climax', 'squirting', 'hypnosis_sex',
   // generic (성적 행동 매칭으로 보지 않음)
   'adult', 'sex', 'general', 'default', 'portrait', 'solo', 'sexual_generic'
 ]);

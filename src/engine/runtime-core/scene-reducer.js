@@ -48,6 +48,31 @@ function registeredNpcIds(options = {}) {
   return ids;
 }
 
+function defaultNpcIdsForLocation(options = {}, locationId) {
+  const id = stringId(locationId);
+  if (!id) return [];
+  const registered = registeredNpcIds(options);
+  const result = [];
+  const seen = new Set();
+  const add = candidate => {
+    const npcId = stringId(candidate);
+    if (!npcId || isPlayerId(npcId, playerIdOf(options.save ?? {}, options)) || seen.has(npcId)) return;
+    if (registered.size && !registered.has(npcId)) return;
+    seen.add(npcId); result.push(npcId);
+  };
+  for (const location of Array.isArray(options.mapLocations) ? options.mapLocations : []) {
+    if (stringId(location?.location_id) === id) {
+      for (const npcId of Array.isArray(location?.default_npc_ids) ? location.default_npc_ids : []) add(npcId);
+    }
+  }
+  for (const list of [options.master?.characters, options.master?.general_npcs]) {
+    for (const item of Array.isArray(list) ? list : []) {
+      if (stringId(item?.default_location_id) === id) add(item?.character_id ?? item?.npc_id ?? item?.id);
+    }
+  }
+  return result;
+}
+
 function playerIdOf(save, options = {}) {
   return stringId(options.playerId)
     ?? stringId(save?.player?.player_id)
@@ -179,18 +204,19 @@ export function reduceCanonicalScene(input = {}) {
       : [input.destinationTargetId],
     npcIds
   );
-  const sameLocationTargetHandoff = destinationTargetIds.length > 0
-    && authoritativeLocationId
-    && authoritativeLocationId === current.location_id;
   if (authoritativeLocationChange) {
     next.location_id = observedLocation;
     next.present_npc_ids = [];
   }
-  if (sameLocationTargetHandoff) {
-    next.present_npc_ids = [];
-    next.focal_character_id = null;
-  }
+  // Visiting an exact registered NPC at the current location changes focus,
+  // not reality. Preserve the legitimate same-location cast and add the
+  // target through the normal structural handoff below.
   if (!degraded && observation.outcome === 'success') {
+    const bootstrapLocation = observedLocation ?? current.location_id;
+    const currentIds = new Set(next.present_npc_ids);
+    for (const npcId of defaultNpcIdsForLocation({ ...input, save: input.save ?? {} }, bootstrapLocation)) {
+      if (!currentIds.has(npcId)) { next.present_npc_ids.push(npcId); currentIds.add(npcId); }
+    }
     const explicitExited = new Set(uniqueNpcIds(observation.exited_npc_ids, npcIds));
     next.present_npc_ids = next.present_npc_ids.filter(id => !explicitExited.has(id));
     if (moved && observedLocation !== null) next.location_id = observedLocation;
@@ -253,4 +279,4 @@ export function reduceCanonicalScene(input = {}) {
   return next;
 }
 
-export { isPlayerId };
+export { isPlayerId, defaultNpcIdsForLocation };

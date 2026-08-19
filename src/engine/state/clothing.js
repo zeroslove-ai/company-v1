@@ -140,7 +140,8 @@ export function evidenceIdentifiesCharacter(evidence, narrativeText, characterNa
   const quote = evidence.trim();
   const text = typeof narrativeText === 'string' ? narrativeText : '';
   if (!text.includes(quote)) return false;
-  if (typeof characterName === 'string' && characterName.trim() && !quote.includes(characterName.trim())) return false;
+  // Actor-scoped evidence already binds this quote to the canonical actor;
+  // do not require a duplicated full display name in natural prose.
   return true;
 }
 

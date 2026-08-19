@@ -41,11 +41,6 @@ const DISPLAY_LABELS = {
   crouching: '몸을 낮추고 있음', walking: '이동 중', leaning: '기대어 있음', bent_forward: '몸을 앞으로 숙이고 있음',
   weak: '약함', medium: '중간', strong: '강함'
 };
-const SEXUAL_ACTION_LABELS = {
-  none: '기타', kiss: '키스', sexual_touch: '성적 접촉', genital_exposure: '성기 노출',
-  genital_touch: '성기 자극', oral: '구강 행위', penetration: '삽입', orgasm: '절정'
-};
-
 let currentChoiceSet = null;
 let committedChoiceSet = null;
 
@@ -421,11 +416,6 @@ export function physicalRelationDisplay(focal, player) {
   return parts.filter(Boolean).join(' ');
 }
 
-function recordValue(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.max(0, number) : 0;
-}
-
 function detailsSection(title, rows, className = '') {
   const section = document.createElement('section');
   section.className = ['character-detail-section', className].filter(Boolean).join(' ');
@@ -434,42 +424,6 @@ function detailsSection(title, rows, className = '') {
   definitionList(list, rows);
   section.append(heading, list);
   return section;
-}
-
-// 관계 서사 요약은 2열 grid에 넣으면 긴 문장이 레이아웃을 깨므로 별도 전체 폭 섹션으로
-// 관계·사정 기록이 실제 값(이벤트 1+ 또는 기록 턴 존재)을 가질 때만 표시한다.
-// 전부 0이고 기록 턴도 없으면 섹션 자체를 만들지 않는다(사용자 요구).
-function hasRelationshipRecord(record) {
-  const counts = [
-    record.player_ejaculation_count, record.npc_orgasm_count,
-    record.vaginal_sex_count, record.anal_sex_count, record.oral_sex_count,
-    record.vaginal_ejaculation_count, record.anal_ejaculation_count, record.oral_ejaculation_count,
-    record.facial_ejaculation_count, record.body_ejaculation_count, record.total_events
-  ];
-  return counts.some(value => recordValue(value) >= 1)
-    || Number.isInteger(record.first_event_turn)
-    || Number.isInteger(record.last_event_turn);
-}
-
-function renderRelationshipRecord(container, character) {
-  const record = object(character?.relationship_record) ?? {};
-  if (!hasRelationshipRecord(record)) return;
-  container.append(detailsSection('관계·사정 기록', [
-    ['플레이어 사정', `${recordValue(record.player_ejaculation_count)}회`],
-    ['NPC 절정', `${recordValue(record.npc_orgasm_count)}회`],
-    ['질 성교', `${recordValue(record.vaginal_sex_count)}회`],
-    ['애널 성교', `${recordValue(record.anal_sex_count)}회`],
-    ['구강 성교', `${recordValue(record.oral_sex_count)}회`],
-    ['질내 사정', `${recordValue(record.vaginal_ejaculation_count)}회`],
-    ['애널내 사정', `${recordValue(record.anal_ejaculation_count)}회`],
-    ['입안 사정', `${recordValue(record.oral_ejaculation_count)}회`],
-    ['얼굴 사정', `${recordValue(record.facial_ejaculation_count)}회`],
-    ['몸 사정', `${recordValue(record.body_ejaculation_count)}회`],
-    ['성적 이벤트', `${recordValue(record.total_events)}건`],
-    ['완료/중단', `${recordValue(record.completed_events)} / ${recordValue(record.interrupted_events)}`],
-    ['첫 기록', Number.isInteger(record.first_event_turn) ? `${record.first_event_turn}턴` : '없음'],
-    ['최근 기록', Number.isInteger(record.last_event_turn) ? `${record.last_event_turn}턴` : '없음']
-  ]));
 }
 
 function renderPrivateInfo(container, character) {
@@ -539,7 +493,6 @@ export function renderFocalCharacter(container, focal, player, interactingCharac
       ['체형', displayValue(body.body_type)],
       ['가슴', displayValue(body.cup)]
     ]));
-    renderRelationshipRecord(container, character);
     renderPrivateInfo(container, character);
   }
 }
@@ -571,15 +524,6 @@ function playerProgressDisplay(player) {
   return next === null || next <= 0 ? String(exp) : `${exp} / ${next}`;
 }
 
-function sexualEventDisplay(event) {
-  const source = object(event);
-  if (!source) return '';
-  const type = SEXUAL_ACTION_LABELS[source.type] ?? localizedValue(source.type);
-  const turn = Number.isInteger(source.turn) ? `${source.turn}턴` : '';
-  const status = source.completed === true ? '완료' : source.interrupted === true ? '중단' : '';
-  return [turn, type, status].filter(Boolean).join(' · ');
-}
-
 // 플레이어 발기 상태 표시 (지시 22) — unknown → 확인되지 않음.
 const ERECTION_LABELS = { unknown: '확인되지 않음', flaccid: '이완', partial: '부분 발기', erect: '발기' };
 function erectionDisplay(state) {
@@ -603,11 +547,7 @@ function renderPlayer(container, player, scene) {
     ['레벨', typeof player?.level === 'number' ? `Lv.${player.level}` : ''],
     ['EXP', playerProgressDisplay(player)],
     ['활성 규정', activeMax === null ? String(activeCount) : `${activeCount} / ${activeMax}`],
-    ['흥분도', typeof player?.excitement === 'number' ? String(player.excitement) : ''],
-    ['발기 상태', erectionDisplay(player?.erection_state)],
-    ['누적 사정', typeof player?.ejaculation_count === 'number' ? `${player.ejaculation_count}회` : '0회'],
-    ['성적 이벤트', typeof player?.total_sexual_events === 'number' ? `${player.total_sexual_events}건` : '0건'],
-    ['최근 성적 기록', sexualEventDisplay(player?.last_sexual_event) || '없음']
+    ['발기 상태', erectionDisplay(player?.erection_state)]
   ];
   definitionList(container, entries);
   // 상식개변(활성 규정)은 별도 칸 — 2열 그리드에 넣으면 내용이 잘리므로 분리
@@ -673,15 +613,9 @@ export function playerSupplementalDisplay(viewModel) {
   const gameTime = object(world.game_time) ?? {};
   const day = displayValue(gameTime.day ?? world.day ?? world.day_index);
   const clock = formatClock(gameTime.minute_of_day);
-  const progress = progressValue(model.player?.ejaculation_progress);
-  const count = typeof model.player?.ejaculation_count === 'number' && Number.isFinite(model.player.ejaculation_count)
-    ? model.player.ejaculation_count
-    : null;
   return {
     innerThought: displayValue(model.player?.inner_thought),
     gameTime: [day ? `Day ${day}` : '', clock].filter(Boolean).join(' · '),
-    ejaculationProgress: progress,
-    ejaculationCount: count,
     turnSummary: compactSummary(model.turn?.turn_summary)
   };
 }
@@ -715,9 +649,6 @@ function renderSupplementalPanels(elements, model) {
   }
   renderTextSlot(supplementalElement(elements, 'gameTime', 'game-time-slot'), {
     heading: '현재 시간', value: display.gameTime, className: 'game-time-card'
-  });
-  renderProgressSlot(supplementalElement(elements, 'ejaculationProgress', 'ejaculation-progress-slot'), {
-    progress: display.ejaculationProgress, count: display.ejaculationCount
   });
   renderTextSlot(supplementalElement(elements, 'turnChanges', 'turn-changes-slot'), {
     heading: '요약 기록', value: display.turnSummary, className: 'turn-change-card'
