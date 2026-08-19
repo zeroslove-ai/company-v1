@@ -1,276 +1,321 @@
 # Company v1 — CURRENT TASK
 
-Status: WAITING_USER_LIVE_ACCEPTANCE
-Task ID: user-live-spine-integrity-test-rollout-handoff-v1
+Status: READY
+Task ID: live-7turn-runtime-collapse-v1
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place on `main`. Do not create a new CURRENT_TASK file. Do not create a new ops/task-registration branch.
 
-## 0. Owner decision / accepted source
+## 0. Owner decision
 
-The owner review accepted the 25-turn spine-integrity source cut after two correction rounds.
+The fresh owner manual acceptance run failed hard after only 7 committed turns. Do not continue the 30–50 turn acceptance and do not patch the failed game.
 
-Accepted source evidence:
+Preserved failed evidence game:
 
-- prior task: `user-live-25turn-spine-integrity-v1`
-- accepted Issue #68 review comment: `5337894424`
-- PR: `#85`
-- exact reviewed PR head: `a762bf2bd69c26bc73d6c9b9520916c50f5968f4`
-- final correction source head: `d1d60ef51f8710d8c23ad8a0fa2f626e5809104f`
-- exact-head CI: `32219080664` SUCCESS
-- reported focused validation: `44 PASS / 0 SKIP / 0 FAIL`
-- reported full validation: `371 PASS / 0 SKIP / 0 FAIL`
-- merge method: squash
-- merged main source commit: `c050a192587699e7856bb43c1d8fae7dce3a1fd0`
+- TEST project: `fmcrspgxstsmxxsmkeee`
+- game: `df3045fd-c359-4cdc-8783-357ddfebe398`
+- owner failure review: latest Issue #68 `USER_LIVE_ACCEPTANCE_FAILED` comment
+- preserve read-only; never reset/reseed/revise/replay/mutate this game in this task
 
-The accepted cut covers the live defects found in the preserved 25-turn game, including:
+This failure proves that the current fresh-play architecture is still too fragmented. The next source cut must simplify the turn boundary itself instead of adding another layer of recovery patches.
 
-- field-local Extract fail-open instead of whole-observation erasure;
-- committed Mind Monitor readback and player-only `[THOUGHT]`;
-- deletion of zombie sexual numeric/event UI;
-- retained narrow physical/clothing continuity only;
-- same-turn deterministic clothing projection;
-- bounded CSA/regulation narration and meaningful same-turn progression guidance;
-- registered same-location coworkers in scene bootstrap without anonymous replacement witnesses;
-- explicit NPC exit continuity across later same-location target navigation;
-- deterministic committed-situation media hint and reachable image families;
-- deterministic `HH:mm` Story time projection;
-- current-primary TTS and stale prior-turn in-flight cancellation;
-- compact high-intensity vocal/breath/body reaction Story guidance.
+Binding canon remains the latest repository canon, especially `CURRENT_TRUTH.md`, `AGENTS.md`, and the 2026-08-16 through 2026-08-18 minimal-runtime/spine canons. This task may supersede stale tests or donor-style client orchestration when they conflict with the live evidence below.
 
-This task is **rollout + structural verification + fresh manual acceptance handoff only**. Do not add another gameplay feature or semantic cut.
-
-## 1. Frozen registration and start gate
+## 1. Frozen registration / branch rule
 
 Use the exact `REGISTRATION_MAIN_SHA` and `CURRENT_TASK_BLOB_SHA` from the latest Issue #68 `CURRENT_TASK_READY` comment for this Task ID.
 
 At execution start:
 
 1. fresh-fetch `origin/main`;
-2. require exact registration main SHA and blob;
-3. require the delta from merged source commit `c050a192587699e7856bb43c1d8fae7dce3a1fd0` to registration main to be **only** this reused `docs/ops/CURRENT_TASK.md`;
-4. independently verify PR #85 is MERGED and its reviewed head was exactly `a762bf2bd69c26bc73d6c9b9520916c50f5968f4`;
-5. verify no executable source/config/content/migration drift appeared after the accepted merge;
-6. if any unexpected drift exists, STOP `BLOCKED_SPINE_ROLLOUT_DRIFT`.
+2. require exact registered main SHA and CURRENT_TASK blob;
+3. require the registration delta from prior main to be only this reused `docs/ops/CURRENT_TASK.md`;
+4. require failed game `df3045fd-c359-4cdc-8783-357ddfebe398` to exist and remain read-only;
+5. if executable source/config/content/migration drift exists, STOP `BLOCKED_LIVE7_REGISTRATION_DRIFT`.
 
-Execution branch/worktree rule:
+Implementation branch:
 
-- execute from `main` only;
-- do not create a new implementation branch;
-- do not create a new ops branch;
-- do not create a new PR;
-- no source/test/content/migration edits are authorized in this rollout lease.
+`company/live-7turn-runtime-collapse-v1`
 
-## 2. Environments and immutable evidence
+Create exactly one Draft PR for this task. Do not merge. Stop at `WAITING_REVIEW`.
 
-TEST Supabase project only:
+## 2. Verified live failure evidence
 
-`fmcrspgxstsmxxsmkeee`
+### 2.1 Turn pipeline hard lock
 
-TEST Workers:
+After committed turn 7, expected turn 8 produced two action rows:
 
-- API: `game-proxy-company-v1`
-- Frontend: `gamebuilder-company-v1`
-- public frontend base: `https://gamebuilder-company-v1.zeroslove.workers.dev`
+1. synthetic CSA action `b6fe0daa-06cb-438c-b553-ec655a457da6`
+   - player_action: `회사 규정 변경사항 1건이 공식 반영된다.`
+   - processing_status: `commit_failed`
+   - error_code: `stale_action_timeout`
+   - Story length: 0
 
-Never access or deploy Production/hospital-v2.
+2. actual owner input action `499ecbe6-56c6-4555-8dff-f05f61563673`
+   - same expected_turn=8
+   - processing_status: `story_streaming`
+   - Story length: 0
+   - no Extract/Commit
 
-Preserve all historical/manual evidence. In particular, never reset/reseed/mutate:
+At the same time canonical save remained committed_turn=7 / expected_turn=8 / processing_status=ready. The UI could therefore enter another expected-turn-8 action while an action row was stranded.
 
-- `587de547-8bb7-4a92-a7c2-07f2831e2d38` — 25-turn owner evidence game;
-- `9755b57b-5cbb-44dd-a624-020fe516c16d` — prior 33-turn evidence;
-- `78fb1d94-266f-455a-bda4-7656cc2370c1` — prior manual evidence;
-- `2d00d76e-85b1-4cf0-8dab-a04e8a044b84` — dedicated Level-7 TEST template; read-only for this task.
+### 2.2 Fresh frontend owns too much execution state
 
-The guarded fresh fixture writer may read the dedicated template but must not reset or mutate it.
+Current fresh frontend `src/frontend/pages/app.js`:
 
-## 3. Pre-deploy verification
+- calls Story, Extract and Commit as separate network stages;
+- persists a localStorage pending object with a client-owned `step`;
+- automatically resumes/retries stage work through `checkRecovery`, `settlePendingBeforeNewAction`, and `runRecovery`;
+- may clear a stale pending and continue a new action in the same click.
 
-Before deployment:
+This client-owned stage machine is now rejected for fresh play. Presentation may retain an action ID/reconnect hint, but the browser must not be the owner of Story -> Extract -> Commit progression.
 
-1. verify registration main executable source equals the accepted merged source; the only post-merge delta may be `docs/ops/CURRENT_TASK.md`;
-2. run the relevant full test suite on the registration main and require zero failures and zero skips unless a newly discovered skip is separately explained and STOPped for review;
-3. run syntax checks and `git diff --check`;
-4. verify no new migration needs application. This task has **no DB schema/migration write**;
-5. verify current TEST Worker identities/versions before changing them and report them in terminal evidence.
+### 2.3 CSA app incorrectly consumes a gameplay turn
 
-Do not change provider/model settings to obtain a passing rollout.
+Current `src/frontend/pages/csa-app.js` validates an app transaction and hands `validated.display_input + validated.canonical_action` to `onSubmit`; `app.js` then calls `startNewAction(displayInput, canonicalAction)`.
 
-## 4. Exact-main TEST deployment
+Therefore a deterministic app transaction becomes a synthetic player turn and can block normal gameplay. This is now a proven defect, not an observation-only behavior.
 
-Deploy the accepted registration-main executable to TEST only.
+Required product decision:
 
-### API Worker
+- applying a CSA/common-sense transaction is a deterministic app state transaction, **not** a narrative player turn;
+- it must not increment committed_turn;
+- it must not create `game_turns`;
+- it must not create a fake `player_turn` action whose text is `회사 규정 변경사항 ...`;
+- after a successful app transaction, refresh canonical context and let the next real player action's Story observe the already-active exact rule.
 
-Deploy `game-proxy-company-v1` from the exact registration-main source. Record:
+### 2.4 Player/NPC identity contamination in Extract
 
-- deployed Worker Version ID;
-- deployment/source commit identity;
-- health/version response;
-- `edition_id=company-v1`.
+The player is canonically:
 
-### Frontend Worker
+- `player_id=player-1`
+- `name=금태양`
 
-Deploy `gamebuilder-company-v1` from the exact registration-main source. Record:
+Yet fresh Extract assigned exact quotes naming `금태양` to registered NPC `general_park_jungwoo`.
 
-- deployed Worker Version ID;
-- deployment/source commit identity;
-- public root response.
+Examples from preserved turn 3 / 5:
 
-No Production deployment.
+- quote naming `금태양` -> `general_park_jungwoo.position_label = 이메이 앞에 서 있다`
+- quote `금태양이 그녀의 책상 가장자리에 ...` -> `general_park_jungwoo` presence evidence
 
-If automatic deployment tooling is delayed or ambiguous, a normal explicit TEST `wrangler deploy` from the verified exact main is allowed. Never deploy from an unverified dirty worktree.
+This is forbidden. Player identity and registered NPC identity are finite structural identities and must never be substituted for one another.
 
-## 5. Read-only structural/API smoke after deployment
+### 2.5 Summary / Mind Monitor gaps remain
 
-Perform only bounded read-only smoke that cannot advance gameplay.
+Turn 3:
 
-Required checks:
+- Extract outcome=`success`
+- committed `turn_summary=''`
+- committed Mind Monitor `{}`
+- warnings show all requested Mind Monitor targets missing
 
-1. API health/version returns HTTP 200 and `company-v1` identity;
-2. frontend root loads successfully;
-3. existing preserved manual evidence game is readable but remains byte/row-count unchanged by this task;
-4. image catalog remains populated and active for core heroines;
-5. image route/selector can read a representative heroine3 general request and a representative heroine3 sex/penetration-family request without mutating gameplay state; the sex request must not silently fall back because `penetration` is unreachable;
-6. committed-context/readback route remains structurally readable;
-7. no stale sexual numeric UI contract is reintroduced in the deployed frontend bundle/source;
-8. no automated Story/Opening/Extract/Commit/player-action call is permitted on the new manual game.
+A non-empty successful Story must not create a blank durable summary. Latest canon already permits bounded Story fallback when Extract summary is blank; that fallback must be persisted as committed summary, not merely used transiently later.
 
-TTS note:
+Mind Monitor also over-targets: several turns generated qualitative monitor text for all six present office residents even when only one current interaction mattered. Presence alone must not mean “generate private thoughts for everybody.”
 
-- Company frontend/API queue/caller changes from PR #85 are in scope for deployment;
-- the separately verified external `fancy-dust-7f8c` source gap where `direction` is ignored was **not** changed by PR #85 and must be explicitly reported as a known external dependency in the terminal handoff;
-- do not modify/deploy `zeroslove-ai/py-all` or `fancy-dust-7f8c` in this task.
+### 2.6 Physical state is still unsafe
 
-## 6. Create exactly one genuinely fresh Level-7 manual TEST game
+Turn 3 Extract proposed heroine5 clothing changes while committed clothing remained stale. The same Extract also proposed wrong state (`underwear_top=removed`) from a quote that still described the bra as visible.
 
-After deployment and structural smoke pass, generate a new random UUID that has never existed in TEST.
+Turn 4 persisted an unrelated heroine2 position label while the active interaction was with heroine5.
 
-Before writing, prove for that UUID:
+Turn 6 visible clothing manipulation again left durable clothing unchanged.
 
-- `games=0`
-- `game_master=0`
-- `game_save=0`
-- `game_actions=0`
-- `game_turns=0`.
+Required principle:
 
-Then call exactly once:
+- optional physical state may be conservative, but it may not be confidently wrong;
+- only finite current product clothing/position fields with exact actor identity and exact Story evidence may write;
+- uncertain or unsupported state is dropped field-locally and prior state remains;
+- do not invent a broader posture/contact/sexual grammar in this task.
 
-`public.create_company_test_level7_fixture(p_game_id uuid, p_expected_title text)`
+### 2.7 Visible Story protocol corruption committed
 
-Use a clear title such as:
+Turn 5 visibly contained protocol/self-repair garbage including:
 
-`Company v1 Spine Integrity Manual Acceptance 2026-08-19`
+- `DIALOGUE speaker_id=...`
+- `[ooc]...마커를 잘못 사용했습니다...[/ooc]`
+- repeated SCENE restart text
 
-No retry with the same or another UUID unless the first call produced **no database write at all** and the operator explicitly reviews the failure. Never reset/reseed a partially created candidate.
+Fresh generation/streaming may be fail-open for narrative meaning, but provider protocol-control garbage must not become committed user-visible canonical narrative.
 
-Post-write requirements:
-
-- `games=1`
-- `game_master=1`
-- `game_save=1`
-- `game_actions=0`
-- `game_turns=0`
-- `committed_turn=0`
-- save revision `0`
-- `player_progress.level=7`
-- `player_progress.exp=0`
-- `turn_state.committed_turn=0`
-- `turn_state.expected_turn=1`
-- processing status idle
-- setup/opening remain unplayed/not started as defined by the fresh fixture contract
-- canonical save validators pass
-- `game_master.initial_save` equals the initial `game_save.data` where the contract requires equality
-- dedicated template remains unchanged.
-
-## 7. Absolute zero automated gameplay
-
-For the fresh manual acceptance game, automated gameplay count must remain **0**.
-
-Do not call:
-
-- setup execution that advances gameplay;
-- Opening generation;
-- Story generation;
-- Extract;
-- Commit;
-- feedback regeneration;
-- player choice/free-text submission;
-- reset/reseed after creation.
-
-The owner must be the first person to actually play this fresh game through the public frontend.
-
-## 8. Public manual acceptance handoff
-
-Terminal must provide the exact public URL:
-
-`https://gamebuilder-company-v1.zeroslove.workers.dev/?game=<FRESH_UUID>`
-
-Then set this reused `docs/ops/CURRENT_TASK.md` to:
-
-`Status: WAITING_USER_LIVE_ACCEPTANCE`
-
-Commit that status update on `main` only as a docs-only final handoff commit. Do not create a branch or PR for the status update.
-
-The owner should manually play at least 30–50+ turns, including ordinary office conversation, navigation among known coworkers, physical/clothing continuity, active regulations, image-changing situations, Mind Monitor, TTS/vocal reactions, and enough long-run history to exercise summaries.
-
-Manual acceptance specifically watches for the previously observed defect classes:
-
-- Extract/summary continuity holes;
-- NPC thought leaking into player `[THOUGHT]`;
-- Mind Monitor missing or reading pre-Commit data;
-- meaningless sexual counters/meters reappearing;
-- same-location registered coworkers failing to appear/react;
-- anonymous replacement witnesses instead of registered NPCs;
-- explicitly exited NPCs reappearing without entrance/re-entry;
-- exact known-NPC navigation erasing or resurrecting the wrong cast;
-- images staying generic instead of following current situation;
-- image-family mismatches for representative sexual situations;
-- repetitive `규정이라서 참는다/버틴다` narration or rule-scope expansion;
-- high-intensity scenes lacking natural short vocal/breath/body reactions;
-- stale prior-turn TTS delaying current dialogue;
-- noon/13:xx time rendered as incorrect AM wording;
-- repeated prepare/wait/restart loops instead of meaningful same-turn progression;
-- same-turn CSA clothing Story/Commit contradiction.
-
-## 9. Stop boundary
-
-## 9a. Rollout and fresh fixture evidence
-
-- FINAL_STATUS: `WAITING_USER_LIVE_ACCEPTANCE`
-- TEST API deployment: `game-proxy-company-v1`, Version ID `7ea46aaf-493f-4323-bc1f-f5ab8d47477d`, exact registration-main source `a2a14e6dcba9488a5af3d0d60008eed575139f1f`.
-- TEST Frontend deployment: `gamebuilder-company-v1`, Version ID `3de1edb7-ff31-4ec9-b1c1-9671789fd35e`, exact registration-main source `a2a14e6dcba9488a5af3d0d60008eed575139f1f`.
-- Structural smoke: API `/health` and `/api/version` HTTP 200 with `edition_id=company-v1`; frontend root HTTP 200; preserved API/readback smoke passed; frontend asset smoke passed (`direct_assets=15`, `reachable_modules=21`); heroine3 general image selection returned `source=match`, and heroine3 sex/penetration-family selection returned `source=family_match` with `heroine3-adult-1011251197`.
-- Fresh manual TEST game: `df3045fd-c359-4cdc-8783-357ddfebe398`; title `Company v1 Spine Integrity Manual Acceptance 2026-08-19`.
-- Fresh pre-write counts: `games=0`, `game_master=0`, `game_save=0`, `game_actions=0`, `game_turns=0`.
-- Fresh post-write counts: `games=1`, `game_master=1`, `game_save=1`, `game_actions=0`, `game_turns=0`.
-- Fresh validation: `committed_turn=0`, save revision `0`, `player_progress.level=7`, `player_progress.exp=0`, `turn_state.committed_turn=0`, `turn_state.expected_turn=1`, processing `idle`, `player_setup.status=not_started`, `opening_state.status=not_started`, canonical validator `valid=true`, and `game_master.initial_save` equals `game_save.data`.
-- Automated gameplay count is exactly `0`; no setup/opening/story/extract/commit/player-action call was made on the fresh game.
-- Preserved evidence games and dedicated Level-7 template were read-only and unchanged by before/after row-count and canonical-hash comparison.
-- Known external dependency gap: `fancy-dust-7f8c` still ignores TTS `direction`; that external Worker was not changed or deployed.
-- Public manual acceptance URL: `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=df3045fd-c359-4cdc-8783-357ddfebe398`
-
-Successful terminal state:
-
-`FINAL_STATUS: WAITING_USER_LIVE_ACCEPTANCE`
-
-Terminal report must include:
-
-- accepted PR/head and merge SHA;
-- registration main SHA/blob used;
-- test/syntax/diff results;
-- API and Frontend TEST Worker Version IDs;
-- deployment source identity;
-- health/frontend/image structural smoke evidence;
-- fresh UUID and exact pre/post row counts;
-- fresh fixture validation facts;
-- confirmation automated gameplay = 0;
-- confirmation preserved evidence/template games were not reset/reseeded/mutated;
-- known external `fancy-dust-7f8c direction` gap;
-- final main SHA and final CURRENT_TASK blob;
-- public manual acceptance URL.
-
-At `WAITING_USER_LIVE_ACCEPTANCE`, STOP.
-
-Do not generate/register the next gameplay/source task. Do not start another roadmap Cut. Do not run automated acceptance gameplay. Wait for owner manual evidence.
+This is structural protocol hygiene only. Do not add a semantic Story verifier.
+
+## 3. Architecture target — collapse fresh turn execution
+
+### A. One server-owned fresh turn operation
+
+Create one canonical fresh-play endpoint/operation (name may follow repository conventions, e.g. `/api/turn`) that owns:
+
+1. reserve exactly one action;
+2. stream Story deltas to the client;
+3. parse/store canonical Story;
+4. run the single post-Story Extract observation;
+5. reduce and Commit;
+6. emit terminal committed/failed state.
+
+The browser must not call `/api/story` -> `/api/extract` -> `/api/commit` as three authoritative fresh-play stages anymore.
+
+Existing stage routes may remain temporarily for narrowly proven historical/tests/internal compatibility, but fresh frontend must have one server-owned path. Do not create a second semantic runtime.
+
+### B. Action concurrency / terminality
+
+At the DB/service boundary, guarantee at most one non-terminal action for one game + expected_turn.
+
+Required behavior:
+
+- a second request while the same expected turn already has a real non-terminal action must resolve to the existing action / deterministic in-flight conflict; it must not create another row;
+- stale timeout must transition the stranded action to a terminal failed state server-side;
+- only after terminal failure may a new explicit owner submission reserve that expected turn;
+- no automatic LLM retry/regeneration;
+- no client-created replacement action in the same recovery click;
+- committed action replay is idempotent.
+
+Prefer strengthening the existing `reserve_turn_action` transaction/locking semantics rather than layering a client race workaround. One additive migration that changes the existing transaction boundary is allowed if required, but do not apply it live in this source task.
+
+### C. Simplify frontend recovery
+
+Delete/rewrite the fresh-play client stage machine:
+
+- no client-owned `step=story|extract|commit` authority;
+- no automatic `retry_story/retry_extract/retry_commit` for ordinary turns;
+- no automatic resume that can regenerate LLM output;
+- local pending may retain only a minimal reconnect identity (game/action/expected turn/original input) if genuinely needed;
+- on refresh: committed => refresh canonical context; terminal failed => clear pending and restore input; non-terminal => show processing/reconcile the same server action, never create a second one;
+- user input must never disappear permanently on failed uncommitted action.
+
+Streaming remains required: visible Story deltas should still arrive as they are generated. Do not bring back a full-screen blocking loader.
+
+### D. CSA app is a non-turn transaction
+
+Introduce/reuse the smallest canonical server transaction for applying the already-validated signed CSA transaction without Story/Extract/gameplay Commit.
+
+Requirements:
+
+- verify signed exact transaction against current save/revision;
+- compute exact deterministic next CSA rule/save state using the existing finite CSA implementation;
+- compare-and-swap save safely;
+- increment save revision as required by the save contract but **leave committed_turn unchanged**;
+- create no `game_turns` row;
+- create no fake gameplay `game_actions` row;
+- refresh frontend context after success;
+- transaction failure is shown in the app and does not affect gameplay turn state.
+
+If no safe non-turn CAS save writer exists, one narrow additive RPC/migration source is allowed. It must be structural only, `SECURITY DEFINER`, fixed `search_path`, service_role-only execute, and use existing save validation. Do not apply migration to TEST in this source task.
+
+### E. Finite player-vs-NPC identity boundary
+
+For retained NPC observation/evidence:
+
+- player `player-1` / current canonical player names are explicitly separate from NPC IDs;
+- a quote naming the player cannot be assigned to any NPC;
+- durable NPC physical/presence evidence must contain a finite canonical alias for that exact NPC or use an already-structural speaker/actor ID from parsed Story;
+- use repository-known full/short aliases only; no fuzzy identity matching;
+- if identity is uncertain, drop the optional field rather than guessing;
+- add exact regressions using player `금태양` and `general_park_jungwoo`.
+
+Do not resurrect a semantic actor classifier.
+
+### F. Persisted summary fallback
+
+If Story committed successfully and Extract root JSON is readable but `turn_summary` is blank/missing:
+
+- derive the existing bounded natural-language Story fallback;
+- persist that fallback as the committed `game_turns.turn_summary`;
+- later context/history reads the committed summary;
+- no second summarizer / no second LLM.
+
+### G. Mind Monitor target reduction
+
+Mind Monitor remains qualitative/presentation-only and in the same Extract call.
+
+Target only structurally relevant NPCs, using a small finite set derived from current focal NPC + actual parsed local dialogue speaker(s) + exact registered navigation/action target where already structurally resolved.
+
+- do not request every `present_npc_id` merely because they share the office;
+- no generic emotion/relationship ledger;
+- no exact quote requirement for private thought text;
+- missing MM remains fail-open and cannot fail a turn.
+
+### H. Conservative physical state
+
+Inventory the exact currently consumed clothing/position values.
+
+- retain only states with a real UI/next-Story consumer;
+- require exact actor identity + exact Story evidence for writes;
+- reject/drop unsupported or contradictory proposed state field-locally;
+- the preserved turn-3 style quote must never produce `underwear_top=removed` when the same quote says the bra is still visible;
+- unrelated actor position writes (turn-4 style heroine2 contamination) must be impossible;
+- if a useful clothing state cannot be represented by the current finite schema, preserve prior structured state rather than inventing a new broad grammar in this task.
+
+### I. Structural protocol hygiene
+
+Fresh Story output contract must prohibit OOC/self-repair/control chatter.
+
+At parser/stream canonicalization boundary, ignore/drop unsupported control blocks such as `[ooc]...[/ooc]` and malformed protocol-control lines so they cannot become committed canonical narrative.
+
+This cleanup is limited to protocol/control syntax. Do not classify, rewrite, approve, or reject narrative semantics.
+
+After Story completes, committed/readback rendering must use canonical parsed blocks rather than trusting raw provider protocol text as display authority.
+
+## 4. Required tests
+
+Add/rewrite focused regressions proving at minimum:
+
+1. one fresh frontend submission calls one canonical server turn operation; frontend does not directly orchestrate Extract and Commit;
+2. Story still streams visibly before terminal Commit;
+3. two actions competing for the same game/expected_turn cannot both become non-terminal rows;
+4. stale action terminalizes deterministically; next action is allowed only after terminal state and only from a new explicit submission;
+5. no automatic Story/Extract/Commit LLM retry path remains for ordinary turns;
+6. CSA app apply changes canonical CSA save/revision but committed_turn, game_turn count, and gameplay action count do not advance;
+7. CSA apply failure cannot strand normal turn processing;
+8. player `금태양` evidence cannot mutate `general_park_jungwoo` presence/position/MM/physical state;
+9. finite valid NPC alias evidence still works;
+10. blank Extract summary on successful Story persists bounded Story fallback into committed turn;
+11. Mind Monitor targets current relevant NPCs, not every office resident;
+12. wrong/unsupported clothing proposal is dropped without erasing other valid fields;
+13. unrelated actor position contamination is rejected;
+14. `[ooc]` / malformed DIALOGUE protocol-control garbage is absent from committed canonical display blocks;
+15. exact-four choices, player literal action fidelity, existing navigation, scene, CSA finite mechanics, media and TTS presentation sidecars remain regression-green.
+
+Run focused tests, then full suite, syntax checks, `git diff --check`, and exact-head CI.
+
+KEEP/REWRITE/DELETE stale tests based on the new accepted architecture; do not add compatibility code merely to preserve a test that encoded client-owned stage orchestration or synthetic CSA turns.
+
+## 5. Absolute no-go
+
+- no mutation/reset/reseed/replay/revision of failed game `df3045fd-c359-4cdc-8783-357ddfebe398`;
+- no mutation of other preserved manual games/templates;
+- no TEST/Production deployment in this source task;
+- no live migration apply / DDL / DB data write;
+- no Production/hospital-v2 access;
+- no provider/model change;
+- no retry/regeneration strategy to mask failures;
+- no second LLM call;
+- no semantic router/classifier/verifier;
+- no generic relation/emotion/event/sexual ledger;
+- no generic consent matrix;
+- no schedule/presence simulator;
+- no broad physical DSL;
+- no `zeroslove-ai/py-all` or external TTS Worker write/deploy;
+- no merge;
+- no next task generation.
+
+## 6. Terminal boundary
+
+When implementation is complete:
+
+1. keep exactly one Draft PR open and unmerged;
+2. update this branch copy of `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW`;
+3. post one new immutable Issue #68 terminal report with:
+   - Task ID;
+   - registration main/blob;
+   - implementation/final head;
+   - Draft PR;
+   - focused/full test counts;
+   - exact-head CI run;
+   - exact files/migration source changed;
+   - proof failed game remained untouched;
+   - proof frontend no longer owns fresh Story->Extract->Commit stage progression;
+   - proof CSA apply no longer consumes a gameplay turn;
+   - any remaining known gaps;
+4. STOP `WAITING_REVIEW`.
