@@ -1,8 +1,8 @@
 # Company v2 — CURRENT TASK
 
 Status: READY
-Task ID: company-v2-phase1-test-rollout-v1
-Mode: TEST ROLLOUT + FRESH GAME HANDOFF
+Task ID: company-v2-phase1-acl-closure-v1
+Mode: SOURCE CORRECTION — ACL CLOSURE
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -14,286 +14,196 @@ Binding canon:
 
 `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`
 
-Accepted source:
+Accepted Phase 1 source:
 
 - source task: `company-v2-phase1-clean-vertical-slice-v1`
-- accepted terminal: Issue #68 comment `5339663041`
+- accepted source head: `d339517bfa9df5ec6162b5bfdc91d6b4fa9db06e`
 - source acceptance review: Issue #68 comment `5339692420`
-- exact reviewed source head: `d339517bfa9df5ec6162b5bfdc91d6b4fa9db06e`
-- exact-head CI: run `32233726231` / job `96008963602` SUCCESS
-- PR #87 merged exactly at that reviewed head
+- PR #87 merged at exact reviewed head
 - merge commit: `f80830e48f227e5a3718ecacaec82d9d3427b504`
 
-This task is operations/acceptance only. Do not change gameplay source, provider/model values, content semantics, or Phase 2 scope.
+Rollout evidence:
 
-All preserved v1/manual/QA/evidence games remain READ-ONLY, especially:
+- rollout task: `company-v2-phase1-test-rollout-v1`
+- rollout BLOCKED terminal: Issue #68 comment `5339791555`
+- operator verification/review: Issue #68 comment `5339859038` — `REVIEW: BLOCKED`
+- TEST project: `fmcrspgxstsmxxsmkeee`
+- migrations `20260819000200`, `20260819000300`, `20260819000400` are already applied in TEST and MUST be treated as historical applied migrations.
 
-- `df3045fd-c359-4cdc-8783-357ddfebe398`
-- `587de547-8bb7-4a92-a7c2-07f2831e2d38`
-- `9755b57b-5cbb-44dd-a624-020fe516c16d`
-- `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
-- `78fb1d94-266f-455a-bda4-7656cc2370c1`
-- Production sentinel `11111111-1111-4111-8111-111111111111`
-
-Never reset, reseed, replay, revise, or mutate those games.
+All preserved v1/manual/QA/evidence games remain READ-ONLY. Production/hospital-v2 is forbidden.
 
 ## 1. Goal
 
-Bring the accepted Company v2 Phase 1 vertical slice live on isolated TEST identities and create exactly one fresh game for the owner/user to play manually.
+Close the one rollout-discovered Company v2 database ACL defect without changing gameplay behavior.
 
-Required live targets:
+The live TEST schema has the correct v2 tables and fenced RPC signatures, but several RPCs remain executable by `anon` and `authenticated` because earlier migrations revoked only `PUBLIC` while Supabase role/default privileges left explicit grants.
 
-- TEST Supabase project: `fmcrspgxstsmxxsmkeee`
-- API Worker: `game-proxy-company-v2`
-- Frontend Worker: `gamebuilder-company-v2`
-- frontend URL base: `https://gamebuilder-company-v2.zeroslove.workers.dev`
-- API URL base: `https://game-proxy-company-v2.zeroslove.workers.dev`
+This source task must author one additive ACL-closure migration and compact tests. It must NOT apply the migration or deploy anything.
 
-The task ends after Setup + Opening + bounded read-only smoke verification for one fresh game. Do NOT automatically play turns 1–5. The owner/user must do the 5-turn gameplay manually.
+## 2. Implementation branch / PR
 
-## 2. Start guard
+This is a new narrow source correction after PR #87 was merged.
 
-Before any write/deploy:
+Create exactly one implementation branch from current `main`:
 
-1. fetch remote `main` and verify this CURRENT_TASK is the active main blob;
-2. verify merged source lineage includes `f80830e48f227e5a3718ecacaec82d9d3427b504`;
-3. verify no runtime/config/migration/content changes were introduced after that merge other than this CURRENT_TASK registration;
-4. verify target Supabase project ref is exactly `fmcrspgxstsmxxsmkeee`;
-5. verify Cloudflare target identities are exactly `game-proxy-company-v2` and `gamebuilder-company-v2`;
-6. verify required secret material for the NEW v2 API Worker is available through the authorized runner without printing secret values:
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `LLM_API_KEY`
-7. verify current provider/model values remain exactly those in merged `wrangler.v2.api.jsonc`; do not substitute provider/model values.
+`company-v2/phase1-acl-closure-v1`
 
-If target project/Worker identity or secret source cannot be proven, STOP without changing v1/Production resources.
+Create exactly one Draft PR targeting `main`.
 
-## 3. TEST migration preflight
+Do not create any ops branch. Do not create another CURRENT_TASK file. Do not reopen or modify PR #87.
 
-The v2 migration sequence to apply is exactly:
+Before implementation, synchronize the branch copy of `docs/ops/CURRENT_TASK.md` to this exact main registration and do not mutate CURRENT_TASK again on the implementation branch. Lifecycle and terminal reporting belong in immutable Issue #68 comments.
 
-1. `20260819000200_company_v2_phase1_vertical_slice.sql`
-2. `20260819000300_company_v2_stuck_turn_closure.sql`
-3. `20260819000400_company_v2_attempt_fencing.sql`
+## 3. Required additive migration
 
-Before applying anything:
+Add exactly one new migration source:
 
-- inspect linked TEST migration history;
-- confirm these v2 migrations are not already partially applied in an inconsistent state;
-- confirm there are no unrelated pending migrations that would be applied by the chosen command;
-- if a bulk migration command would apply unrelated pending migrations, do NOT use it; choose an explicit safe method or STOP;
-- do not edit historical migration files.
+`supabase/migrations/20260819000500_company_v2_acl_closure.sql`
 
-Apply only the three accepted v2 migrations to TEST in order.
+Do NOT edit these already-applied migrations:
 
-## 4. Live DB contract verification
+- `20260819000200_company_v2_phase1_vertical_slice.sql`
+- `20260819000300_company_v2_stuck_turn_closure.sql`
+- `20260819000400_company_v2_attempt_fencing.sql`
 
-After migration apply, verify against TEST with read-only catalog/query checks:
+The new migration must normalize the final v2 ACL contract explicitly rather than relying on default privileges.
 
-### Tables
+### RPC execution ACL
 
-Exactly the v2 mutable truth exists:
+For every active Company v2 mutation RPC below, explicitly revoke EXECUTE from:
+
+- `PUBLIC`
+- `anon`
+- `authenticated`
+
+and normalize `service_role` to the only non-owner runtime EXECUTE role.
+
+Functions:
+
+- `company_v2_create_game(text,jsonb)`
+- `company_v2_create_opening(uuid,text,jsonb,jsonb,text,jsonb)`
+- `company_v2_reserve_turn(uuid,integer,uuid,text,boolean)`
+- `company_v2_expire_stale_turn(uuid,integer)`
+- fenced `company_v2_update_turn_progress(uuid,integer,uuid,integer,text)`
+- fenced `company_v2_fail_turn(uuid,integer,uuid,integer,text)`
+- fenced `company_v2_commit_turn(uuid,integer,uuid,integer,integer,text,jsonb,jsonb,text,jsonb,jsonb)`
+
+Prefer explicit normalization:
+
+- revoke all from `PUBLIC, anon, authenticated, service_role`;
+- grant EXECUTE back only to `service_role`.
+
+PostgreSQL function owner/admin capability is not part of the runtime ACL requirement and must not be altered.
+
+### Table ACL / sole-writer boundary
+
+Live TEST currently shows `service_role` full table DML privileges even though v2 runtime writes are designed to go through SECURITY DEFINER RPCs.
+
+Normalize all four v2 tables:
 
 - `company_v2_games`
 - `company_v2_state`
 - `company_v2_turn_jobs`
 - `company_v2_turns`
 
-Do not modify old `game_actions`, `game_save`, or `game_turns`.
+Required runtime ACL:
 
-### Canonical job key
+- `PUBLIC`: no table privileges
+- `anon`: no table privileges
+- `authenticated`: no table privileges
+- `service_role`: SELECT only
 
-Verify `company_v2_turn_jobs` has one canonical primary key on:
+Explicitly revoke existing table privileges from the above runtime roles as needed, then grant SELECT to `service_role` only.
 
-- `(game_id, turn_number)`
+Do not revoke owner/admin privileges. Do not touch v1 tables.
 
-### Required live RPCs
+Because all mutations are inside SECURITY DEFINER functions owned by the database owner, direct service-role table INSERT/UPDATE/DELETE must not be required by the current v2 runtime.
 
-Verify the effective callable v2 surface contains the accepted functions, including:
+## 4. Preserve structural contracts
 
-- `company_v2_create_game`
-- `company_v2_create_opening`
-- `company_v2_reserve_turn`
-- `company_v2_expire_stale_turn`
-- fenced `company_v2_update_turn_progress`
-- fenced `company_v2_fail_turn`
-- fenced `company_v2_commit_turn`
+Do not change:
 
-### Attempt fencing
+- `runtime-v2/**` gameplay behavior;
+- `frontend-v2/**`;
+- provider/model values;
+- Story/Observation prompts;
+- retry/timeout/lease/fencing behavior;
+- v2 table shape;
+- RPC signatures or function bodies;
+- CORS or Worker configs;
+- content/catalog semantics.
 
-Verify the LIVE progress/fail/commit signatures require both:
+No new semantic validation/router/verifier/classifier, no compatibility writer, no automatic retry/regeneration.
 
-- `action_id`
-- `attempt_no`
+The final effective migration sequence must still have no unfenced progress/fail/commit overload.
 
-Verify the superseded unfenced progress/fail/commit signatures are absent.
+## 5. Tests / proof
 
-### ACL
+Add the smallest focused source tests proving at minimum:
 
-Verify mutation RPC execution is service-role only as authored. No `anon`/`authenticated` mutation execution grant may be introduced.
+1. the new ACL migration exists and does not modify historical migration files;
+2. all seven active v2 RPC signatures explicitly revoke `PUBLIC`, `anon`, and `authenticated` and grant runtime EXECUTE only to `service_role`;
+3. fenced progress/fail/commit signatures remain the only callable writer signatures in the final source sequence;
+4. all four v2 tables explicitly deny `PUBLIC`, `anon`, and `authenticated` privileges;
+5. `service_role` table privileges are normalized to SELECT only;
+6. `runtime-v2/server/supabase-store.js` performs direct table reads only and routes all v2 mutations through RPCs, so SELECT-only table access is sufficient;
+7. v1 tables/RPCs are not named or altered by the new migration;
+8. all existing Phase 1 tests remain green.
 
-If live schema/signatures/ACL do not match accepted source, STOP before Worker deployment.
+Do not add broad legacy tests.
 
-## 5. Deploy isolated v2 API
+## 6. Safety / forbidden
 
-Deploy using only:
-
-`wrangler.v2.api.jsonc`
-
-Target must be:
-
-- name: `game-proxy-company-v2`
-- main: `runtime-v2/server/worker.js`
-
-Set/provision the required Worker secrets from the authorized runner without logging values. Do not copy values into source or Issue comments.
-
-Preserve merged config values for:
-
-- `SUPABASE_URL`
-- `LLM_API_URL`
-- `STORY_MODEL`
-- `EXTRACT_MODEL`
-
-Do not deploy or modify `game-proxy-company-v1`.
-
-Record deployed v2 API Worker version/deployment identifier.
-
-## 6. API live smoke gate
-
-Before frontend deploy, perform only bounded live smoke checks against `game-proxy-company-v2`:
-
-- CORS OPTIONS on `/api/v2/turn` returns required origin/method/header contract;
-- invalid/missing context request returns a structured v2 error rather than a v1 payload;
-- no automatic retry/regeneration is triggered by smoke checks.
-
-Do not create gameplay turns for smoke testing.
-
-If API identity/routing/configuration is wrong, STOP before frontend deploy.
-
-## 7. Deploy isolated v2 frontend
-
-Deploy using only:
-
-`wrangler.v2.frontend.jsonc`
-
-Target must be:
-
-- name: `gamebuilder-company-v2`
-- assets: `frontend-v2`
-
-Do not deploy or modify `gamebuilder-company-v1`.
-
-Record deployed v2 frontend Worker version/deployment identifier.
-
-Verify the live frontend asset/config points to:
-
-`https://game-proxy-company-v2.zeroslove.workers.dev`
-
-## 8. Create exactly one fresh Phase 1 manual game
-
-After both v2 Workers are live:
-
-1. call `POST /api/v2/setup` exactly once to create one fresh TEST v2 game;
-2. call `POST /api/v2/opening` for that same game;
-3. call `GET /api/v2/context` read-only and verify:
-   - game identity matches;
-   - `committed_turn = 0`;
-   - Opening is present in history;
-   - Opening exposes exactly four choices;
-   - state shape is only the accepted minimal Phase 1 shape (`player`, `scene`, `time`);
-   - no processing/failed turn-1 job exists before the user acts;
-4. do NOT submit `/api/v2/turn` on behalf of the user.
-
-This fresh v2 game becomes manual acceptance evidence. Do not reset or reseed it after handing it to the user.
-
-## 9. User handoff URL
-
-Construct the exact manual play URL:
-
-`https://gamebuilder-company-v2.zeroslove.workers.dev/?game_id=<FRESH_GAME_ID>`
-
-The terminal report must put BOTH the fresh `game_id` and the full play URL near the bottom so the owner/user can immediately open it.
-
-## 10. Manual acceptance boundary
-
-The owner/user, not Codex, performs the first gameplay session.
-
-Requested manual session:
-
-- play at least 5 committed turns;
-- use natural free input and choices as desired;
-- refresh/reload at least once during the session if convenient to exercise durable readback;
-- report any visible failure immediately rather than pushing through it.
-
-Codex must not pre-play these 5 turns and must not fabricate acceptance evidence.
-
-After handing off the URL, STOP. Do not register Phase 2.
-
-## 11. What to preserve during manual play
-
-Phase 1 acceptance focuses on:
-
-- natural Story quality sufficient for continued play;
-- literal player-action fidelity;
-- exactly four usable choices;
-- one input = one turn;
-- visible Story streaming;
-- no duplicate turn/job;
-- no permanent processing lock;
-- refresh/reconnect to same durable game/job;
-- sensible history and non-empty summaries;
-- relevant-only Mind Monitor;
-- no protocol/OOC garbage in committed display;
-- no player/NPC identity corruption.
-
-Deferred and NOT blockers for this Phase 1 manual session:
-
-- CSA
-- clothing
-- sexual gauges
-- feedback
-- Image
-- TTS
-- relationship/event systems
-- Phase 2/3 presentation features
-
-## 12. Safety / forbidden
+This task is source/test/PR only.
 
 Do NOT:
 
-- access or deploy Production/hospital-v2;
-- deploy/change v1 API or frontend Workers;
-- mutate/reset/reseed/replay any preserved v1 evidence game;
+- apply `20260819000500` to TEST;
+- deploy `game-proxy-company-v2` or `gamebuilder-company-v2`;
+- create a fresh v2 game;
+- submit gameplay turns;
+- access Production/hospital-v2;
+- mutate any preserved v1/manual/QA game;
 - change provider/model values;
-- modify gameplay source/runtime/config/content/tests/migrations during rollout;
-- create another source PR/branch;
-- add retries/regeneration/semantic verifier/router;
-- automatically play the fresh game beyond Setup + Opening;
-- start Phase 2.
+- edit already-applied migrations 002/003/004;
+- change gameplay/runtime/frontend behavior;
+- start Phase 2;
+- merge the new PR automatically.
 
-If rollout reveals a source defect, record evidence and STOP. Do not hotfix inside this operations task.
+## 7. Validation
 
-## 13. Required terminal
+Before terminal require:
+
+- focused v2/ACL tests: 0 fail / 0 skip;
+- full repository tests: 0 fail;
+- changed JS/MJS syntax checks if any JS/MJS changed;
+- `git diff --check`: PASS;
+- exact-head GitHub Actions: SUCCESS;
+- Draft PR OPEN / UNMERGED / mergeable;
+- diff is limited to the additive ACL migration, narrow tests, and synchronized CURRENT_TASK copy only;
+- zero additional DB writes/migrations/deployments/live games after the previously blocked rollout;
+- Production/v1/preserved games untouched.
+
+## 8. Required terminal
 
 Post one new immutable Issue #68 terminal:
 
-`COMPANY_V2_PHASE1_TEST_READY_FOR_USER_5TURN`
+`COMPANY_V2_PHASE1_ACL_CLOSURE_READY_FOR_REVIEW`
 
 Include:
 
+- exact final head;
 - task ID;
-- registration main SHA/blob;
-- accepted source head `d339517bfa9df5ec6162b5bfdc91d6b4fa9db06e`;
-- merge commit `f80830e48f227e5a3718ecacaec82d9d3427b504`;
-- TEST project ref;
-- exact migrations applied and migration-history evidence;
-- live v2 table/RPC/ACL/fenced-signature verification;
-- API Worker name + deployed version/deployment identifier;
-- Frontend Worker name + deployed version/deployment identifier;
-- API smoke results;
-- fresh game ID;
-- Opening/context verification;
-- confirmation that zero gameplay turns were auto-submitted;
-- confirmation that Production/v1/preserved games were untouched;
-- full manual play URL.
+- branch and Draft PR number;
+- previous blocked rollout terminal `5339791555`;
+- operator review `5339859038`;
+- changed paths;
+- exact additive migration filename;
+- normalized RPC ACL proof;
+- normalized table ACL proof;
+- proof service_role SELECT-only tables are compatible with current Supabase store call shape;
+- focused/full test counts;
+- exact-head CI run/job;
+- confirmation that migration 005 was NOT applied and no Worker/gameplay operation occurred.
 
-Then STOP at `WAITING_USER_5TURN`. Do not generate another CURRENT_TASK and do not begin Phase 2.
+Then STOP at `WAITING_REVIEW`. Do not merge and do not resume rollout yourself.
