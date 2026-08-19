@@ -53,8 +53,9 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
   }
   const story = body => streamingPost('/api/story', body, { code: 'story_failed', message: '서사 생성에 실패했습니다.' });
   const opening = body => streamingPost('/api/opening', body, { code: 'opening_failed', message: '오프닝 생성에 실패했습니다.' });
+  const turn = body => streamingPost('/api/turn', body, { code: 'turn_failed', message: 'Turn failed' });
   return {
-    context: body => postJson('/api/context', body), story,
+    context: body => postJson('/api/context', body), story, turn,
     extract: body => postJson('/api/extract', body),
     commit: body => postJson('/api/commit', body),
     actionStatus: body => postJson('/api/action-status', body),
@@ -64,6 +65,7 @@ export function createApiClient({ fetchImpl = fetch, baseUrl = FRONTEND_CONFIG.a
     appManual: body => postJson('/api/app-manual', body),
     appState: body => postJson('/api/app-state', body),
     validateAppAction: (gameId, structuredAction) => postJson('/api/app-validate', { game_id: gameId, structured_action: structuredAction }),
+    applyAppTransaction: (gameId, structuredAction) => postJson('/api/app-apply', { game_id: gameId, structured_action: structuredAction }),
     history: body => postJson('/api/history', body),
     feedback: (gameId, revisionRequestId, feedbackText) => postJson('/api/feedback', { game_id: gameId, revision_request_id: revisionRequestId, feedback_text: feedbackText }),
     image: body => postJson('/api/image', body),

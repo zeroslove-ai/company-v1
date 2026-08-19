@@ -46,6 +46,7 @@ function tokenize(raw, directory) {
 
 export function parseFreshNarrativeV2(rawText, { master } = {}) {
   const raw = String(rawText ?? '');
+  if (/\[\s*ooc\b/i.test(raw)) fail('Out-of-band Story protocol text is not commit-safe');
   const directory = buildStoryIdentityDirectory(master);
   const blocks = [];
   const dialogueLines = [];

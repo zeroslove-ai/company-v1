@@ -308,7 +308,7 @@ function storySse({ meta, run }) {
   return sseResponse(new ReadableStream({
     async start(controller) {
       const emit = (name, data) => controller.enqueue(encoder.encode(sseEvent(name, data)));
-      emit('meta', meta);
+      if (meta !== null && meta !== undefined) emit('meta', meta);
       try {
         await run(emit);
       } catch (error) {
@@ -319,6 +319,57 @@ function storySse({ meta, run }) {
       }
     }
   }));
+}
+
+function deriveBoundedStorySummary(storyText, parsedStory = null) {
+  const blockText = Array.isArray(parsedStory?.blocks)
+    ? parsedStory.blocks.map(block => block?.text).filter(text => typeof text === 'string').join(' ')
+    : '';
+  const source = (blockText || storyText || '').replace(/\s+/g, ' ').trim();
+  if (!source) return '';
+  return source.length <= 280 ? source : `${source.slice(0, 277).trimEnd()}...`;
+}
+
+async function relayInternalStory(response, emit) {
+  if (!response?.body) throw new HttpError(502, 'missing_story_stream', 'Story stream is unavailable', true);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let terminal = null;
+  const consume = frame => {
+    const lines = frame.split('\n');
+    const event = lines.find(line => line.startsWith('event:'))?.slice(6).trim();
+    const dataText = lines.filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('\n');
+    if (!event) return;
+    let data = null;
+    try { data = dataText ? JSON.parse(dataText) : null; }
+    catch { throw new HttpError(502, 'invalid_story_stream', 'Story stream contained invalid JSON', true); }
+    if (event === 'error') throw new HttpError(502, data?.code ?? 'story_failed', data?.message ?? 'Story generation failed', Boolean(data?.retryable));
+    emit(event, data);
+    if (event === 'complete') terminal = data;
+  };
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    buffer = buffer.replace(/\r\n/g, '\n');
+    const frames = buffer.split('\n\n');
+    buffer = done ? '' : (frames.pop() ?? '');
+    for (const frame of frames.filter(Boolean)) consume(frame);
+    if (done) break;
+  }
+  if (!terminal) throw new HttpError(502, 'incomplete_story_stream', 'Story stream did not complete', true);
+  return terminal;
+}
+
+async function readApiEnvelope(response, endpoint) {
+  let payload = null;
+  try { payload = await response.json(); }
+  catch { throw new HttpError(502, 'invalid_api_response', `${endpoint} returned invalid JSON`, true); }
+  if (!response.ok || payload?.ok !== true) {
+    const error = payload?.error ?? {};
+    throw new HttpError(response.status || 502, error.code ?? 'request_failed', error.message ?? `${endpoint} failed`, Boolean(error.retryable), error.issues);
+  }
+  return payload.data;
 }
 
 function csaCatalogFromEdition(edition) {
@@ -484,6 +535,50 @@ const master = masterFromEdition(edition);
       } finally {
         logTurnTiming({ event_stage: 'history', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
+    },
+
+    /**
+     * Fresh-play authority. The browser submits one operation; the server owns
+     * Story -> Extract -> Commit and emits Story deltas before the terminal
+     * commit result. The stage routes remain internal compatibility surfaces.
+     */
+    async turn(request, env) {
+      const body = await readJson(request);
+      const stageRoutes = this;
+      const stageRequest = (path, payload) => new Request(new URL(path, request.url), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return storySse({ meta: null, run: async emit => {
+        const storyResponse = await stageRoutes.story(stageRequest('/api/story', body), env);
+        const storyResult = await relayInternalStory(storyResponse, emit);
+        const actionId = storyResult?.action_id ?? body.action_id;
+        const extract = await readApiEnvelope(
+          await stageRoutes.extract(stageRequest('/api/extract', {
+            game_id: body.game_id,
+            action_id: actionId,
+            structured_action: body.structured_action ?? null
+          }), env),
+          '/api/extract'
+        );
+        const commit = await readApiEnvelope(
+          await stageRoutes.commit(stageRequest('/api/commit', {
+            game_id: body.game_id,
+            action_id: actionId,
+            expected_turn: body.expected_turn,
+            structured_action: body.structured_action ?? null
+          }), env),
+          '/api/commit'
+        );
+        emit('terminal', {
+          action_id: actionId,
+          expected_turn: body.expected_turn,
+          extract,
+          commit,
+          replayed: Boolean(storyResult?.replayed)
+        });
+      } });
     },
 
     async story(request, env) {
@@ -937,7 +1032,9 @@ const master = masterFromEdition(edition);
 
         // Extract가 같은 Story에서 생성한 summary가 이 턴의 유일한 압축 memory 입력이다.
         // 빈 문자열은 provider가 실제로 요약할 내용이 없을 때만 허용되며, 서버가 합성하지 않는다.
-        const finalTurnSummary = typeof extract.turn_summary === 'string' ? extract.turn_summary : '';
+        const finalTurnSummary = typeof extract.turn_summary === 'string' && extract.turn_summary.trim()
+          ? extract.turn_summary.trim()
+          : deriveBoundedStorySummary(action.story_text, parsedStory);
         // Choice authority stays on the current Story projection; Commit passes
         // that exact four-item array to the durable game_turns choice column.
         const finalChoices = choiceProjection.state;
@@ -1297,6 +1394,42 @@ const master = masterFromEdition(edition);
         return ok({ canonical_action: canonicalAction, display_input: plan.display_input, summary: plan.summary });
       } finally {
         logTurnTiming({ event_stage: 'app_validate', request_id: requestId, game_id: gameId, context_rpc_ms: contextRpcCalls, llm_calls: llmCalls, turn_total_ms: Date.now() - startedAt });
+      }
+    },
+
+    /** Applies a signed CSA transaction without reserving or consuming gameplay turn state. */
+    async appApply(request, env) {
+      const requestId = newRequestId();
+      const startedAt = Date.now();
+      const body = await readJson(request);
+      const gameId = requireString(body.game_id, 'game_id');
+      const structuredAction = body.structured_action ?? null;
+      const db = createSupabaseClient(env, fetchImpl);
+      try {
+        const context = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        const saveEnvelope = context?.save?.data ? context.save : null;
+        const currentSave = hydratedSaveContext(context, master).save?.data ?? context.save?.data ?? context.save;
+        const committedTurn = Number.isInteger(currentSave?.turn_state?.committed_turn)
+          ? currentSave.turn_state.committed_turn
+          : 0;
+        const expectedRevision = Number.isInteger(saveEnvelope?.save_revision)
+          ? saveEnvelope.save_revision
+          : Number.isInteger(context?.save_revision) ? context.save_revision : null;
+        if (!Number.isInteger(expectedRevision)) throw new HttpError(502, 'invalid_save_revision', 'Canonical save revision is unavailable', true);
+        const transactionResolution = await resolveSignedCsaTransactionResolution({
+          env, gameId, structuredAction, save: currentSave, csaCatalog, expectedTurn: committedTurn + 1
+        });
+        if (!transactionResolution) throw new HttpError(400, 'invalid_structured_action', 'structured_action is required', false);
+        const nextSave = projectCsaTransactionSave(currentSave, structuredAction, transactionResolution, 'app-apply');
+        const applied = await db.callRpc('apply_company_csa_transaction', {
+          p_game_id: gameId,
+          p_expected_revision: expectedRevision,
+          p_next_save: nextSave
+        });
+        const refreshed = await db.callRpc('get_company_context', { p_game_id: gameId, p_recent_turns: 1 });
+        return ok({ applied, context: hydratedSaveContext(refreshed, master) });
+      } finally {
+        logTurnTiming({ event_stage: 'app_apply', request_id: requestId, game_id: gameId, turn_total_ms: Date.now() - startedAt });
       }
     }
   };

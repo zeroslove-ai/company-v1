@@ -27,7 +27,7 @@ function strengthDescription(state, id) {
   return state?.strength_options?.find(option => option.id === id)?.description ?? '';
 }
 
-export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
+export function createCsaApp({ documentRef, api, gameId, onApply, onError }) {
   const get = id => documentRef.querySelector(`#${id}`);
   const el = (tag, className = '', text = '') => {
     const node = documentRef.createElement(tag);
@@ -489,7 +489,7 @@ export function createCsaApp({ documentRef, api, gameId, onSubmit, onError }) {
       return;
     }
     try {
-      const handedOff = await onSubmit?.(validated.display_input, validated.canonical_action);
+      const handedOff = await onApply?.(validated.canonical_action);
       if (handedOff === false) {
         applying = false;
         draft.issues = [{ message: '변경사항은 확인되었지만 적용에 실패했습니다. 다시 시도해 주세요.' }];

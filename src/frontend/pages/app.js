@@ -183,11 +183,50 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
     return runExtractForPending(pending);
   }
 
+  async function runTurnForPending(pending) {
+    let rawStory = '', sawMeta = false, terminal = null;
+    onStory?.({ item: { event: 'start' }, pending, streaming: true });
+    const response = await api.turn(withStructuredAction({
+      game_id: pending.game_id,
+      action_id: pending.action_id,
+      expected_turn: pending.expected_turn,
+      player_action: pending.player_action
+    }, pending));
+    await consumeStory(response, item => {
+      if (item.event === 'meta') {
+        sawMeta = true;
+        const serverActionId = item.data?.action_id;
+        if (serverActionId && pending.action_id !== serverActionId) {
+          pending.action_id = serverActionId;
+          persistPending(pending);
+        }
+      }
+      if (item.event === 'section_start' || item.event === 'block_start' || item.event === 'block_end' || item.event === 'acting') onStory?.({ item, pending, streaming: true, protocol: item.data });
+      if (item.event === 'delta') {
+        const text = item.data?.text ?? '';
+        rawStory += text;
+        onStory?.({ rawStory, text, item, pending, streaming: true });
+      }
+      if (item.event === 'complete') onStory?.({ rawStory, parsed: item.data?.parsed_blocks, item, pending, complete: true });
+      if (item.event === 'terminal') terminal = item.data;
+    }, { endpoint: '/api/turn', terminalEvent: 'terminal' });
+    if (!sawMeta || !rawStory.trim() || !terminal) throw new ApiError({ endpoint: '/api/turn', status: 502, code: 'incomplete_turn', message: 'Turn stream incomplete', retryable: true });
+    onExtract?.(terminal.extract);
+    if (terminal.terminated === true || terminal.commit?.terminated === true || terminal.commit?.commit?.terminated === true) {
+      dropPending(pending.game_id); onTerminated?.(); await refreshContext(); return terminal;
+    }
+    if (terminal.commit?.success !== true && terminal.commit?.commit?.success !== true) throw new ApiError({ endpoint: '/api/turn', status: 502, code: 'invalid_commit', message: 'Commit result invalid' });
+    dropPending(pending.game_id);
+    await refreshContext();
+    onCommitted?.(terminal.commit, pending);
+    return terminal;
+  }
+
   async function startNewAction(playerAction, structuredAction = null) {
     const action = String(playerAction ?? '').trim(); const context = getContext();
     if (!action || !context) return null;
     const pending = { game_id: gameId, action_id: createActionId(), expected_turn: committedTurn(context) + 1, player_action: action, structured_action: structuredAction, created_at: new Date().toISOString(), step: 'story' };
-    persistPending(pending); return runStoryForPending(pending);
+    persistPending(pending); return typeof api.turn === 'function' ? runTurnForPending(pending) : runStoryForPending(pending);
   }
 
   async function startReservedAction(reservation) {
@@ -204,20 +243,22 @@ export function createTurnCoordinator({ api, storage, gameId, getContext, refres
       step: 'story'
     };
     persistPending(pending);
-    return runStoryForPending(pending);
+    return typeof api.turn === 'function' ? runTurnForPending(pending) : runStoryForPending(pending);
   }
 
   async function runRecovery(pending, step) {
     // wait_story: 스토리가 아직 시작되지 않은 좌초 액션 → 스토리 생성을 새로 시작한다
-    if (step === 'wait_story') return runStoryForPending(pending);
-    if (step === 'resume_story' || step === 'retry_story') return runStoryForPending(pending);
-    if (step === 'resume_extract' || step === 'retry_extract') return runExtractForPending(pending);
-    if (step === 'resume_commit' || step === 'retry_commit') return runCommitForPending(pending);
+    if (step === 'wait_story' || step === 'resume_story' || step === 'retry_story' || step === 'resume_extract' || step === 'retry_extract' || step === 'resume_commit' || step === 'retry_commit') {
+      if (typeof api.turn === 'function') return null;
+      if (step === 'resume_story' || step === 'retry_story' || step === 'wait_story') return runStoryForPending(pending);
+      if (step === 'resume_extract' || step === 'retry_extract') return runExtractForPending(pending);
+      return runCommitForPending(pending);
+    }
     if (step === 'complete') { clearPending(storage, pending.game_id); return refreshContext(); }
     return null;
   }
 
-  return { startNewAction, startReservedAction, runStoryForPending, runExtractForPending, runCommitForPending, runRecovery };
+  return { startNewAction, startReservedAction, runStoryForPending, runExtractForPending, runCommitForPending, runTurnForPending, runRecovery };
 }
 
 export function createBusyGuard({ onChange = () => {} } = {}) {
@@ -521,15 +562,15 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
     if (stale) {
       clearPending(storage, gameId); clearRecoveryUi(); return 'cleaned';
     }
-    recoveryPending = true;
-    try {
-      await resumePending(pending, step);
-      return 'resumed';
-    } catch (error) {
-      showError(error); return 'error';
-    } finally {
-      recoveryPending = false;
+    if (typeof api.turn !== 'function') {
+      recoveryPending = true;
+      try { await resumePending(pending, step); return 'resumed'; }
+      catch (error) { showError(error); return 'error'; }
+      finally { recoveryPending = false; }
     }
+    recoveryPending = true;
+    showStatus('?댁쟾 ?≪뀡??泥섎━ 以묒엯?덈떎. ?좏떆 ?ㅼ떆 ?ㅽ뻾?댁＜?몄슂.');
+    return 'blocked';
   }
   async function checkRecovery() {
     const pending = loadPending(storage, gameId);
@@ -540,13 +581,18 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       // 사용자 요구: 복구 버튼 없이 자동으로 이어서 실행
       recoveryPending = true;
       if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
-      await resumePending(pending, step);
-      recoveryPending = false;
+      if (step === 'wait_story' || step === 'unknown' || step === 'resume_story' || step === 'resume_extract' || step === 'resume_commit') {
+        showStatus('?댁쟾 ?≪뀡??泥섎━ 以묒엯?덈떎.');
+      } else {
+        clearPending(storage, gameId);
+        clearRecoveryUi();
+      }
+      // Keep the submit control disabled while the server-owned action is in flight.
     } catch (error) {
       if (error instanceof ApiError && error.code === 'action_not_found') {
         recoveryPending = true;
         if (elements.recovery) { elements.recovery.hidden = true; elements.recovery.textContent = ''; elements.recovery.onclick = null; }
-        await resumePending(pending, 'retry_story');
+        showStatus('?≪뀡 ?곹깭瑜?李얘퀬 ?덉뒿?덈떎. ?좏떆 ?ㅼ떆 ?ㅽ뻾?댁＜?몄슂.');
         recoveryPending = false;
         return;
       }
@@ -564,15 +610,55 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
       finally { clearProgressTimer(); text(elements.stream, ''); }
     });
   }
+  async function runTurnForPending(pending) {
+    let rawStory = '', sawMeta = false, terminal = null;
+    onStory?.({ item: { event: 'start' }, pending, streaming: true });
+    const response = await api.turn(withStructuredAction({
+      game_id: pending.game_id,
+      action_id: pending.action_id,
+      expected_turn: pending.expected_turn,
+      player_action: pending.player_action
+    }, pending));
+    await consumeStory(response, item => {
+      if (item.event === 'meta') {
+        sawMeta = true;
+        const serverActionId = item.data?.action_id;
+        if (serverActionId && pending.action_id !== serverActionId) {
+          pending.action_id = serverActionId;
+          persistPending(pending);
+        }
+      }
+      if (item.event === 'section_start' || item.event === 'block_start' || item.event === 'block_end' || item.event === 'acting') onStory?.({ item, pending, streaming: true, protocol: item.data });
+      if (item.event === 'delta') {
+        const text = item.data?.text ?? '';
+        rawStory += text;
+        onStory?.({ rawStory, text, item, pending, streaming: true });
+      }
+      if (item.event === 'complete') onStory?.({ rawStory, parsed: item.data?.parsed_blocks, item, pending, complete: true });
+      if (item.event === 'terminal') terminal = item.data;
+    }, { endpoint: '/api/turn', terminalEvent: 'terminal' });
+    if (!sawMeta || !rawStory.trim() || !terminal) throw new ApiError({ endpoint: '/api/turn', status: 502, code: 'incomplete_turn', message: '?쒖옗 ?댁닔媛 遺덉셿?꾪빀?덈떎.', retryable: true });
+    onExtract?.(terminal.extract);
+    if (terminal.terminated === true || terminal.commit?.terminated === true || terminal.commit?.commit?.terminated === true) {
+      dropPending(pending.game_id); onTerminated?.(); await refreshContext(); return terminal;
+    }
+    if (terminal.commit?.success !== true) throw new ApiError({ endpoint: '/api/turn', status: 502, code: 'invalid_commit', message: 'Commit 寃곌낵媛 ?щ컮瑜댁? ?딆뒿?덈떎.' });
+    dropPending(pending.game_id);
+    await refreshContext();
+    onCommitted?.(terminal.commit, pending);
+    return terminal;
+  }
+
   async function startNewAction(playerAction, structuredAction = null) {
     let action = String(playerAction ?? elements.input?.value ?? '').trim(); if (!action || busy || !context || interactionBlocked()) return false;
-    if (elements.input) elements.input.value = '';
+    const originalInput = elements.input?.value ?? action;
     // Keep the last committed choices visible while the new turn is pending.
     // 저장 파이프라인 핫픽스 — 이미 종료된 과거 액션(stale pending)은 자동 정리하고
     // 실제 in-flight 상태만 자동 재개한다. 정리된 경우 같은 클릭에서 새 행동을 계속 진행한다.
     const pending = loadPending(storage, gameId);
     if (pending) {
       const outcome = await settlePendingBeforeNewAction(pending);
+      if (outcome === 'blocked') return false;
       if (outcome === 'resumed') return true;   // in-flight 재개 중 — 새 행동은 재개 완료 후
       if (outcome === 'error') return false;    // actionStatus 실패 — 오류 배너가 표시됨
       // 'cleaned' — stale pending 제거됨. 아래에서 새 행동을 계속 진행한다.
@@ -586,11 +672,12 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
         await coordinator.startNewAction(action, structuredAction);
         // 정상 commit 확인 — 입력창과 선택 상태를 초기화한다.
         // 실패·미확정·재시도 상태에서는 사용자 입력을 지우지 않는다 (실패 시 catch가 복원).
+        if (elements.input) elements.input.value = '';
         render();
       } catch (error) {
         // Story 생성 실패 등 — pending을 비우고 원래 행동을 입력창에 복원한다.
         // failed 상태가 새 턴 입력을 막지 않게 한다 (하드락 전면 제거).
-        clearPending(storage, gameId);
+        if (elements.input) elements.input.value = originalInput;
         throw error;
       }
     });
@@ -717,11 +804,11 @@ export function createFrontendApp({ documentRef = globalThis.document, storage =
   }
   const csaApp = createCsaApp({
     documentRef, api, gameId,
-    onSubmit: (displayInput, canonicalAction) => {
+    onApply: async canonicalAction => {
       const accepted = !busy && Boolean(context) && !interactionBlocked();
       if (!accepted) return false;
-      const handoff = startNewAction(displayInput, canonicalAction);
-      Promise.resolve(handoff).catch(showError);
+      await api.applyAppTransaction(gameId, canonicalAction);
+      await refreshContext();
       return true;
     },
     onError: showError

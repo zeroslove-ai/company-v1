@@ -67,9 +67,14 @@ export function buildMindMonitorTargetIds({ context, parsedStory, npcIds } = {})
   const registeredIds = npcIds instanceof Set
     ? npcIds
     : new Set(Array.isArray(npcIds) ? npcIds : []);
-  const ids = new Set(buildSceneContextCore(save, []).scene.present_npc_ids);
+  const ids = new Set();
+  const focalId = buildSceneContextCore(save, []).scene.focal_character_id;
+  if (registeredIds.has(focalId)) ids.add(focalId);
   for (const line of Array.isArray(parsedStory?.dialogue_lines) ? parsedStory.dialogue_lines : []) {
     if (registeredIds.has(line?.speaker_id)) ids.add(line.speaker_id);
+  }
+  for (const block of Array.isArray(parsedStory?.blocks) ? parsedStory.blocks : []) {
+    if (registeredIds.has(block?.actor_id)) ids.add(block.actor_id);
   }
   return [...ids].filter(id => id && id !== 'player' && id !== 'player-1' && registeredIds.has(id));
 }

@@ -29,6 +29,7 @@ export function createApiWorker({ fetchImpl = fetch } = {}) {
 
         if (request.method === 'POST' && pathname === '/api/context') return await routes.context(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/story') return await routes.story(request, env, ctx);
+        if (request.method === 'POST' && pathname === '/api/turn') return await routes.turn(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/extract') return await routes.extract(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/commit') return await routes.commit(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/action-status') return await routes.actionStatus(request, env, ctx);
@@ -38,6 +39,7 @@ export function createApiWorker({ fetchImpl = fetch } = {}) {
         if (request.method === 'POST' && pathname === '/api/app-manual') return await routes.appManual(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/app-state') return await routes.appState(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/app-validate') return await routes.appValidate(request, env, ctx);
+        if (request.method === 'POST' && pathname === '/api/app-apply') return await routes.appApply(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/history') return await routes.history(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/feedback') return await routes.feedback(request, env, ctx);
         if (request.method === 'POST' && pathname === '/api/image') return await routes.image(request, env, ctx);
