@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_USER_LIVE_ACCEPTANCE
 Task ID: user-live-spine-integrity-test-rollout-handoff-v1
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -235,6 +235,21 @@ Manual acceptance specifically watches for the previously observed defect classe
 - same-turn CSA clothing Story/Commit contradiction.
 
 ## 9. Stop boundary
+
+## 9a. Rollout and fresh fixture evidence
+
+- FINAL_STATUS: `WAITING_USER_LIVE_ACCEPTANCE`
+- TEST API deployment: `game-proxy-company-v1`, Version ID `7ea46aaf-493f-4323-bc1f-f5ab8d47477d`, exact registration-main source `a2a14e6dcba9488a5af3d0d60008eed575139f1f`.
+- TEST Frontend deployment: `gamebuilder-company-v1`, Version ID `3de1edb7-ff31-4ec9-b1c1-9671789fd35e`, exact registration-main source `a2a14e6dcba9488a5af3d0d60008eed575139f1f`.
+- Structural smoke: API `/health` and `/api/version` HTTP 200 with `edition_id=company-v1`; frontend root HTTP 200; preserved API/readback smoke passed; frontend asset smoke passed (`direct_assets=15`, `reachable_modules=21`); heroine3 general image selection returned `source=match`, and heroine3 sex/penetration-family selection returned `source=family_match` with `heroine3-adult-1011251197`.
+- Fresh manual TEST game: `df3045fd-c359-4cdc-8783-357ddfebe398`; title `Company v1 Spine Integrity Manual Acceptance 2026-08-19`.
+- Fresh pre-write counts: `games=0`, `game_master=0`, `game_save=0`, `game_actions=0`, `game_turns=0`.
+- Fresh post-write counts: `games=1`, `game_master=1`, `game_save=1`, `game_actions=0`, `game_turns=0`.
+- Fresh validation: `committed_turn=0`, save revision `0`, `player_progress.level=7`, `player_progress.exp=0`, `turn_state.committed_turn=0`, `turn_state.expected_turn=1`, processing `idle`, `player_setup.status=not_started`, `opening_state.status=not_started`, canonical validator `valid=true`, and `game_master.initial_save` equals `game_save.data`.
+- Automated gameplay count is exactly `0`; no setup/opening/story/extract/commit/player-action call was made on the fresh game.
+- Preserved evidence games and dedicated Level-7 template were read-only and unchanged by before/after row-count and canonical-hash comparison.
+- Known external dependency gap: `fancy-dust-7f8c` still ignores TTS `direction`; that external Worker was not changed or deployed.
+- Public manual acceptance URL: `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=df3045fd-c359-4cdc-8783-357ddfebe398`
 
 Successful terminal state:
 
