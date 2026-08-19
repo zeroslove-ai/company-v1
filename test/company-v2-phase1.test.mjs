@@ -154,10 +154,10 @@ test('real provider uses STORY_MODEL for Story generation', async () => {
   assert.equal(requests[0].model, 'story-role'); assert.equal(story.join(''), '[NARRATIVE] story');
 });
 
-test('frontend-v2 arms immediate explicit retry for failed terminal and surfaces JSON errors', async () => {
+test('frontend-v2 keeps literal retry explicit and reconnects when an SSE stream closes without a terminal', async () => {
   const frontend = await fs.readFile(path.join(root, 'frontend-v2/app.js'), 'utf8');
-  assert.match(frontend, /data\.status === 'failed'/); assert.match(frontend, /pendingLiteralAction/); assert.match(frontend, /retryFailed = true/);
-  assert.match(frontend, /payload\.error\?\.message \?\? payload\.error\?\.code/); assert.match(frontend, /finally \{\s*\$\('send'\)\.disabled = false; \}/);
+  assert.match(frontend, /data\.status === 'failed'/); assert.match(frontend, /pendingLiteralAction/); assert.match(frontend, /state\.retryFailed = context\.job\?\.status === 'failed'/);
+  assert.match(frontend, /if \(!terminal\) await reconnect/); assert.match(frontend, /finally \{\s*\$\('submit-action'\)\.disabled = false; \}/);
   assert.match(frontend, /retry_failed: state\.retryFailed/); assert.doesNotMatch(frontend, /retry_failed:\s*true/);
 });
 
@@ -337,12 +337,11 @@ test('simultaneous explicit retries resolve to one processing attempt and reject
   const committedReplacement = await turn(worker, gameId, 'cannot replace committed'); assert.equal((await committedReplacement.json()).data.reconnect, true); assert.equal(worker.store.getJob(gameId, 1).literal_action, 'retry one');
 });
 
-test('fixture opening is playable and stores exactly four literal choices', async () => {
+test('fixture opening is playable and stores no active choices', async () => {
   const worker = createV2Worker({ content });
   const { opening } = await game(worker);
   assert.equal(opening.state.committed_turn, 0);
-  assert.equal(opening.turns[0].choices.length, 4);
-  assert.ok(opening.turns[0].choices.every((choice) => choice.length > 0));
+  assert.deepEqual(opening.turns[0].choices, []);
 });
 
 test('one client submission reaches one server-owned turn operation', async () => {
@@ -367,6 +366,30 @@ test('Story deltas are observable before terminal commit', async () => {
   const worker = createV2Worker({ content, provider: providerFor({ delay: 15 }) }); const { gameId } = await game(worker);
   const text = await (await turn(worker, gameId, '먼저 이야기를 스트리밍한다.')).text();
   assert.ok(text.indexOf('event: story_delta') < text.indexOf('event: terminal'));
+});
+
+test('free-form Story streams a rich narrative, commits once, and persists an empty choice field', async () => {
+  let storyCalls = 0; let commitCalls = 0;
+  const baseStore = new InMemoryV2Store({ content });
+  const store = new Proxy(baseStore, { get(target, key) {
+    if (key === 'commitTurn') return async (...args) => { commitCalls += 1; return target.commitTurn(...args); };
+    return typeof target[key] === 'function' ? target[key].bind(target) : target[key];
+  } });
+  const provider = providerFor({ story: ({ literalAction }) => { storyCalls += 1; return `[NARRATIVE]\n${literalAction} 이후 로비의 조명과 주변 업무 소리가 선명해지고, 서원은 화면을 가리키며 다음 절차를 설명한다. 사람들은 각자의 자리로 돌아가고 플레이어는 직접 다음 행동을 결정할 수 있다.\n\n[DIALOGUE id="heroine1"]\n서원이 주변 상황을 살핀 뒤 차분하게 질문에 답한다.`; } });
+  const worker = createV2Worker({ content, store, provider }); const { gameId } = await game(worker);
+  const response = await turn(worker, gameId, '서원에게 오늘 업무를 물어본다.');
+  const text = await response.text(); const context = worker.store.context(gameId);
+  assert.match(text, /"status":"committed"/); assert.equal(storyCalls, 1); assert.equal(commitCalls, 1);
+  assert.equal(worker.store.getJob(gameId, 1).status, 'committed'); assert.deepEqual(context.turns[1].choices, []); assert.ok(context.turns[1].story_text.length > 100);
+});
+
+test('aborted Story stream terminalizes the same job failed without a stuck processing state or retry', async () => {
+  let storyCalls = 0;
+  const provider = { async *story() { storyCalls += 1; yield '[NARRATIVE]\n부분적으로 저장된 장면'; throw new Error('v2_story_aborted_stream'); }, async observe() { throw new Error('must_not_observe'); } };
+  const worker = createV2Worker({ content, provider }); const { gameId } = await game(worker);
+  const response = await turn(worker, gameId, '중간에 끊긴 입력을 기록한다.'); const text = await response.text();
+  const job = worker.store.getJob(gameId, 1);
+  assert.match(text, /"status":"failed"/); assert.equal(job.status, 'failed'); assert.equal(job.story_text.includes('부분적으로'), true); assert.equal(storyCalls, 1); assert.equal(worker.store.turns.size, 1);
 });
 
 test('concurrent same-turn requests reconnect to one processing job', async () => {
@@ -421,6 +444,15 @@ test('malformed OOC and protocol garbage are absent from canonical display block
   const badStory = '[NARRATIVE]\n정상 장면.\n[ooc]retry[/ooc]\nDIALOGUE speaker_id=heroine2\n\n[CHOICE]\n1\n[CHOICE]\n2\n[CHOICE]\n3\n[CHOICE]\n4\n[/CHOICE]';
   const worker = createV2Worker({ content, provider: providerFor({ story: () => badStory }) }); const { gameId } = await game(worker); await (await turn(worker, gameId, '프로토콜 쓰레기는 화면에 남지 않는다.')).text();
   const blocks = worker.store.turns.get(`${gameId}:1`).parsed_blocks; assert.equal(blocks.some((block) => /ooc|DIALOGUE\s+speaker_id/i.test(block.text)), false);
+});
+
+test('v2 Story and Opening contracts do not generate, parse, or render choices', async () => {
+  const providerSource = await fs.readFile(path.join(root, 'runtime-v2/server/provider.js'), 'utf8');
+  const storySource = await fs.readFile(path.join(root, 'runtime-v2/domain/story.js'), 'utf8');
+  const frontendSource = await fs.readFile(path.join(root, 'frontend-v2/app.js'), 'utf8');
+  assert.doesNotMatch(providerSource, /\[CHOICE\]|exactly four/i);
+  assert.doesNotMatch(storySource, /exactFourChoices/);
+  assert.doesNotMatch(frontendSource, /choice-list|choices\.map|renderChoices/i);
 });
 
 test('committed state remains minimal and excludes deferred phase fields', async () => {

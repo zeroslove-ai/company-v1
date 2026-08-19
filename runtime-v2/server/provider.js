@@ -4,12 +4,11 @@ import { V2ConfigurationError } from './supabase-store.js';
 export function createDeterministicProvider() {
   return {
     async *story({ literalAction, playerName }) {
-      yield `[NARRATIVE]\n${playerName}의 말이 그대로 기록된다: ${literalAction}\n\n`;
-      yield '[DIALOGUE id="heroine1"]\n서원이 다음 업무를 함께 살펴본다.\n\n';
-      yield '[CHOICE]\n업무 자료를 확인한다.\n[CHOICE]\n서원에게 질문한다.\n[CHOICE]\n로비로 돌아간다.\n[CHOICE]\n브랜드전략실로 이동한다.\n[/CHOICE]';
+      yield `[NARRATIVE]\n${playerName}가 로비에서 ${literalAction}을 시도하자 주변의 소음이 잠시 멀어지고, 눈앞의 업무 화면과 사람들의 반응이 또렷해진다. 다음 행동은 플레이어가 직접 정한다.\n\n`;
+      yield '[DIALOGUE id="heroine1"]\n서원이 당신의 행동을 살피며 말한다. “좋아요. 지금 보이는 상황부터 함께 정리해 보죠.”';
     },
     async observe({ storyText }) {
-      return { elapsed_minutes: 3, scene: { entered: [], exited: [] }, turn_summary: storyText.slice(0, 120), mind_monitor: { heroine1: { surface: '업무를 설명할 준비를 한다.', subconscious: '새 동료의 반응을 살핀다.' } } };
+      return { elapsed_minutes: 3, scene: { entered: [], exited: [] }, turn_summary: storyText.slice(0, 120), mind_monitor: {} };
     },
     opening: ({ playerName }) => openingStory({ playerName }),
     parse: (storyText, content) => parseStoryBlocks(storyText, { content })
@@ -41,7 +40,7 @@ export function createV2Provider({ env, fetchImpl = fetch, content, timeouts: ti
     }
     const responsePromise = fetchImpl(completionUrl, { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal })
       .catch((error) => { if (reason) throw structuralTimeout(reason); throw error; });
-    return { responsePromise, timeoutPromise, signal: controller.signal, abort, reason: () => reason, clear: () => clearTimeout(timer) };
+    return { responsePromise, timeoutPromise, abort, reason: () => reason, clear: () => clearTimeout(timer) };
   }
 
   return {
@@ -80,7 +79,7 @@ export function createV2Provider({ env, fetchImpl = fetch, content, timeouts: ti
 
 export function buildStoryMessages({ literalAction, context }) {
   return [
-    { role: 'system', content: 'You are the Company v2 Story author. Write natural narrative, preserve the literal player action, and emit exactly four provider-authored [CHOICE] blocks. Use only [NARRATIVE], [DIALOGUE id="registered_id"], [THOUGHT], and [CHOICE]. Never emit OOC or self-repair text.' },
+    { role: 'system', content: 'You are the Company v2 Story author. Write a rich natural interactive-fiction scene that preserves the literal player action and elaborates concrete environment, reaction, character behavior, and dialogue when relevant. The player supplies the next action as free text; do not emit choices or choice markers. Use only [NARRATIVE], [DIALOGUE id="registered_id"], and [THOUGHT]. Never emit OOC or self-repair text.' },
     { role: 'user', content: JSON.stringify({ literal_action: literalAction, time: context?.state?.state?.time ?? context?.state?.time, scene: context?.state?.state?.scene ?? context?.state?.scene, present_npc_ids: context?.state?.state?.scene?.present_npc_ids ?? [], recent_turns: (context?.turns ?? []).slice(-6).map((turn) => ({ story_text: turn.story_text, turn_summary: turn.turn_summary })) }) }
   ];
 }
@@ -100,19 +99,13 @@ async function* readOpenAiStream(response, { request, firstContentMs } = {}) {
   let ended = false;
   let firstContent = false;
   let firstTimer;
-  let rejectFirst;
   const firstContentTimeout = new Promise((_, reject) => {
-    rejectFirst = reject;
     firstTimer = setTimeout(() => { request?.abort('v2_story_first_content_timeout'); reject(structuralTimeout('v2_story_first_content_timeout')); }, firstContentMs);
   });
   while (true) {
     let read;
-    try {
-      read = request ? await Promise.race([reader.read(), request.timeoutPromise, firstContent ? new Promise(() => {}) : firstContentTimeout]) : await reader.read();
-    } catch (error) {
-      if (request?.reason()) throw structuralTimeout(request.reason());
-      throw error;
-    }
+    try { read = request ? await Promise.race([reader.read(), request.timeoutPromise, firstContent ? new Promise(() => {}) : firstContentTimeout]) : await reader.read(); }
+    catch (error) { if (request?.reason()) throw structuralTimeout(request.reason()); throw error; }
     const { value, done } = read;
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
@@ -126,7 +119,7 @@ async function* readOpenAiStream(response, { request, firstContentMs } = {}) {
       try { payload = JSON.parse(data); } catch { throw new Error('v2_story_invalid_stream'); }
       const delta = payload?.choices?.[0]?.delta?.content;
       if (typeof delta === 'string' && delta) {
-        if (!firstContent) { firstContent = true; clearTimeout(firstTimer); rejectFirst = null; }
+        if (!firstContent) { firstContent = true; clearTimeout(firstTimer); }
         yield delta;
       }
     }
@@ -135,12 +128,5 @@ async function* readOpenAiStream(response, { request, firstContentMs } = {}) {
   if (!ended) throw new Error('v2_story_incomplete_stream');
 }
 
-function structuralTimeout(code) {
-  const error = new Error(code);
-  error.code = code;
-  return error;
-}
-
-function assertProviderResponse(response) {
-  if (!response?.ok) throw new Error('v2_provider_failure');
-}
+function structuralTimeout(code) { const error = new Error(code); error.code = code; return error; }
+function assertProviderResponse(response) { if (!response?.ok) throw new Error('v2_provider_failure'); }

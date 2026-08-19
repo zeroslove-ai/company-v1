@@ -211,7 +211,7 @@ state_after / state_delta as narrowly needed
 committed_at
 ```
 
-No revision/history compatibility is required in Phase 1. Feedback revision is added later as a v2-native mechanism rather than copied from v1.
+No revision/history compatibility is required in Phase 1. Feedback revision is added later as a v2-native mechanism rather than copied from v1. The `choices` column remains a schema-compatible empty array in this free-form baseline; it is not generated, parsed, accepted, or rendered.
 
 ---
 
@@ -483,7 +483,7 @@ Include only:
 - one server-owned streaming turn endpoint;
 - literal player input;
 - Story;
-- exactly four provider choices;
+- free-form player input only; no provider or frontend choices;
 - one small observation call;
 - summary + relevant Mind Monitor;
 - minimal scene/time state;
@@ -491,7 +491,7 @@ Include only:
 - refresh/reconnect same turn job;
 - no automatic retries.
 
-Then deploy to TEST and STOP for **user 5-turn manual acceptance**.
+Then deploy to TEST for one bounded operator smoke turn and stop before any owner handoff. The smoke must prove literal input, visible incremental Story, durable one-turn commit, readback, and no stuck processing.
 
 Do not wait for 300 legacy tests or 30 features before first manual play.
 
@@ -531,7 +531,7 @@ Phase 1 tests should remain compact:
 - Story streams;
 - Story failure -> terminal failed, no auto retry;
 - optional observation failure -> Story still commits;
-- exactly four committed choices;
+- empty durable choices field where the schema requires it;
 - refresh reconnects to same job;
 - summary always non-empty for non-empty Story;
 - player ID cannot write NPC state;
