@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -239,6 +240,47 @@ test('v2 attempt-fencing migration removes unfenced writers and keeps fenced ser
   assert.doesNotMatch(migration, /create or replace function public\.company_v2_commit_turn\(\s*p_game_id uuid,\s*p_turn_number integer,\s*p_expected_revision integer/s);
   const store = await fs.readFile(path.join(root, 'runtime-v2/server/supabase-store.js'), 'utf8');
   assert.match(store, /p_action_id: attempt\.actionId/); assert.match(store, /p_attempt_no: attempt\.attemptNo/);
+});
+
+test('v2 ACL closure is additive, service-role-only, and compatible with SELECT-only store reads', async () => {
+  const migrationPath = 'supabase/migrations/20260819000500_company_v2_acl_closure.sql';
+  const migration = await fs.readFile(path.join(root, migrationPath), 'utf8');
+  assert.equal(execFileSync('git', ['diff', '--name-only', '--',
+    'supabase/migrations/20260819000200_company_v2_phase1_vertical_slice.sql',
+    'supabase/migrations/20260819000300_company_v2_stuck_turn_closure.sql',
+    'supabase/migrations/20260819000400_company_v2_attempt_fencing.sql'
+  ], { cwd: root, encoding: 'utf8' }).trim(), '');
+  for (const [file, hash] of Object.entries({
+    'supabase/migrations/20260819000200_company_v2_phase1_vertical_slice.sql': 'dd34271328905d15280f27f17c226e3bd63b7109',
+    'supabase/migrations/20260819000300_company_v2_stuck_turn_closure.sql': '6cf89379182ba36dfab3b74123b3c4837ad011df',
+    'supabase/migrations/20260819000400_company_v2_attempt_fencing.sql': 'fbc31a363b5062abdb9a5b8e102b77da577b5eb7'
+  })) assert.equal(execFileSync('git', ['hash-object', file], { cwd: root, encoding: 'utf8' }).trim(), hash, file);
+  assert.doesNotMatch(migration, /create\s+(or replace\s+)?function|alter\s+function/i);
+  assert.doesNotMatch(migration, /game_actions|game_save|game_turns|company_v1|apply_reserved_csa_transaction/i);
+
+  const rpcContracts = [
+    ['company_v2_create_game', 'text, jsonb'],
+    ['company_v2_create_opening', 'uuid, text, jsonb, jsonb, text, jsonb'],
+    ['company_v2_reserve_turn', 'uuid, integer, uuid, text, boolean'],
+    ['company_v2_expire_stale_turn', 'uuid, integer'],
+    ['company_v2_update_turn_progress', 'uuid, integer, uuid, integer, text'],
+    ['company_v2_fail_turn', 'uuid, integer, uuid, integer, text'],
+    ['company_v2_commit_turn', 'uuid, integer, uuid, integer, integer, text, jsonb, jsonb, text, jsonb, jsonb']
+  ];
+  for (const [name, signature] of rpcContracts) {
+    const escaped = signature.replace(/[(),]/g, '\\$&');
+    assert.match(migration, new RegExp(`revoke all on function public\\.${name}\\(${escaped}\\) from public, anon, authenticated, service_role;`, 'i'));
+    assert.match(migration, new RegExp(`grant execute on function public\\.${name}\\(${escaped}\\) to service_role;`, 'i'));
+  }
+  assert.match(migration, /revoke all on table public\.company_v2_games, public\.company_v2_state, public\.company_v2_turn_jobs, public\.company_v2_turns from public, anon, authenticated, service_role;/i);
+  assert.match(migration, /grant select on table public\.company_v2_games, public\.company_v2_state, public\.company_v2_turn_jobs, public\.company_v2_turns to service_role;/i);
+  assert.doesNotMatch(migration, /grant\s+(?:insert|update|delete|truncate|all)\s+on\s+table[\s\S]*?service_role/i);
+
+  const attemptFencing = await fs.readFile(path.join(root, 'supabase/migrations/20260819000400_company_v2_attempt_fencing.sql'), 'utf8');
+  assert.match(attemptFencing, /drop function if exists public\.company_v2_(?:update_turn_progress|fail_turn|commit_turn)\(/i);
+  const store = await fs.readFile(path.join(root, 'runtime-v2/server/supabase-store.js'), 'utf8');
+  assert.doesNotMatch(store, /this\.db\.(?:insert|update|delete|upsert)\s*\(/i);
+  for (const rpc of ['company_v2_create_game', 'company_v2_create_opening', 'company_v2_reserve_turn', 'company_v2_expire_stale_turn', 'company_v2_update_turn_progress', 'company_v2_fail_turn', 'company_v2_commit_turn']) assert.match(store, new RegExp(`rpc\\(['"]${rpc}['"]`));
 });
 
 test('reconstructed Worker/store reads the same durable-test-double progress and job', async () => {
