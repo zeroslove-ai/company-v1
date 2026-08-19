@@ -2,6 +2,7 @@ import { companyV2Content } from '../domain/content.js';
 import { boundedSummary, assertExpectedTurn, reduceObservation, requireLiteralAction } from '../domain/contracts.js';
 import { openingStory, parseStoryBlocks } from '../domain/story.js';
 import { body, errorResponse, json, sse, V2_CORS_HEADERS, V2HttpError } from './http.js';
+import { MAX_PROGRESS_WRITES_PER_ATTEMPT, PROGRESS_SNAPSHOT_INTERVAL_CHARS } from './job-policy.js';
 import { createV2Provider } from './provider.js';
 import { SupabaseV2Store, V2ConfigurationError } from './supabase-store.js';
 import { summarizeJob, V2_ATTEMPT_FENCE_CONFLICT } from './store.js';
@@ -83,21 +84,22 @@ function streamTurn({ store, provider, content, gameId, job, attempt }) {
 async function processTurn({ store, provider, content, gameId, attempt, emit }) {
   const before = await store.context(gameId);
   let storyText = '';
-  let lastProgressAt = 0;
   let lastPersistedLength = 0;
+  let progressWrites = 0;
+  const persistProgress = async () => {
+    if (!storyText.length || storyText.length === lastPersistedLength || progressWrites >= MAX_PROGRESS_WRITES_PER_ATTEMPT) return;
+    await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
+    progressWrites += 1;
+    lastPersistedLength = storyText.length;
+  };
   try {
     for await (const delta of provider.story({ literalAction: attempt.literalAction, playerName: before.state.state.player.name, context: before })) {
       const text = String(delta);
       storyText += text;
       emit('story_delta', { text });
-      const now = Date.now();
-      if (!lastProgressAt || now - lastProgressAt >= 100 || storyText.length - lastPersistedLength >= 256) {
-        await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
-        lastProgressAt = now;
-        lastPersistedLength = storyText.length;
-      }
+      if (progressWrites === 0 || storyText.length - lastPersistedLength >= PROGRESS_SNAPSHOT_INTERVAL_CHARS) await persistProgress();
     }
-    if (storyText.length !== lastPersistedLength) await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
+    await persistProgress();
     const parsed = parseWith(provider, storyText, content);
     let observation = {};
     try { observation = await provider.observe({ literalAction: attempt.literalAction, storyText: parsed.displayText, context: before }); }
