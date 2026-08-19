@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: user-live-25turn-spine-integrity-v1
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -368,7 +368,33 @@ Absolute prohibitions:
 
 Read-only TEST/GitHub evidence inspection is allowed. The manual game is immutable evidence.
 
-## 7. Deliverables / stop boundary
+## 7. Execution result — WAITING_REVIEW
+
+- `START_HEAD`: `e54599552ca28e37067c1f8d7733e3cf3562360f`.
+- `IMPLEMENTATION_HEAD`: `f7342a3` (`fix: restore spine integrity contracts`), pushed to `origin/company/user-live-25turn-spine-integrity-v1`.
+- Draft PR: `#85`, `OPEN`, `DRAFT`, `UNMERGED`.
+- Focused touched-contract tests: `73 PASS / 1 obsolete SKIP / 0 FAIL`.
+- Full `npm.cmd test`: `366 PASS / 1 obsolete SKIP / 0 FAIL`.
+- Syntax sweep: `node --check` PASS. `git diff --check`: PASS.
+- Preserved game `587de547-8bb7-4a92-a7c2-07f2831e2d38` was not queried or mutated by this source/test cut; no DB write, migration, reset, deploy, live gameplay, provider/model change, or Production operation was performed.
+
+### Authority map
+
+- Retained canonical writers/readback: narrow field-local Extract observations, canonical scene cast, exact clothing/physical evidence, retained erection state, committed Mind Monitor, committed media presentation hint, current-speaker TTS queue, and existing CSA progression.
+- Deleted stale authority: numeric player sexual meters/event history, dead sexual ledger module, duplicate full-name evidence gates, Commit text ownership gate, pre-Commit UI readback, and obsolete frontend recovery contract.
+- Presentation-only: image/media hint, image catalog selection, Mind Monitor rendering, and TTS queue/audio; none can block Story or Commit.
+
+### Required proof summary
+
+- Optional malformed scene/actor fields now warning-drop locally while valid summary, Mind Monitor, and independent actor domains survive; malformed root JSON remains bounded fail-closed.
+- `[THOUGHT]` is player-only in the Story contract; NPC private thought uses the same post-Story Extract Mind Monitor, and the frontend reads committed `game_turns.mind_monitor`, never `extract_delta`.
+- Exact actor ID plus exact Story quote authorizes retained concrete physical/clothing facts without a duplicate full-name gate; exact CSA clothing is bootstrapped for present registered NPCs and projected to same-turn Story.
+- `brand_strategy_office` bootstraps registered residents and exact NPC navigation preserves legitimate same-location cast without fuzzy schedules or anonymous replacement witnesses.
+- Rule text is background/direct-scope only, meaningful executable actions progress in the same turn, and intense physical scenes receive compact varied vocal/breath/body guidance without a numeric runtime validator.
+- Media derives a deterministic committed-turn sidecar, reaches active catalog tags including `cowgirl_climax`, `missionary_climax`, `squirting`, and `hypnosis_sex`, and no exact candidate is removed before selector scoring. The external Worker `direction` seam remains deferred and unmodified.
+- TTS retains the current primary speaker and drops stale older-turn queues; one obsolete cross-turn preservation test remains explicitly skipped while the replacement contract passes.
+
+## 8. Deliverables / stop boundary
 
 Deliver:
 
