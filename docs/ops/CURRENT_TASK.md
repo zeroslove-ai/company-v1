@@ -1,8 +1,8 @@
 # Company v2 — CURRENT TASK
 
 Status: READY
-Task ID: company-v2-phase1-test-rollout-after-fetch-fix-v1
-Mode: TEST ROLLOUT RESUME — API REDEPLOY + FRESH GAME HANDOFF
+Task ID: company-v2-phase1-test-auth-probe-and-handoff-v1
+Mode: TEST OPS RESUME — AUTH PROBE + FRESH GAME HANDOFF
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -18,220 +18,286 @@ Accepted source lineage:
 
 - original Phase 1 merge: `f80830e48f227e5a3718ecacaec82d9d3427b504`
 - ACL closure merge: `ebdf1529dd05b7feafbb5857ffde1eb6e3e30617`
-- rollout BLOCKED terminal: Issue #68 comment `5340154630`
-- rollout BLOCKED review: Issue #68 comment `5340209458`
-- fetch-binding correction terminal: Issue #68 comment `5340279492`
+- fetch-binding accepted head: `a30c6650817985ca4345687ed11549ba7eadd8f9`
+- fetch-binding merge: `272e58d39e7d063923d063467602b54d750d5d60`
 - fetch-binding source acceptance: Issue #68 comment `5340298816`
-- accepted fetch-binding head: `a30c6650817985ca4345687ed11549ba7eadd8f9`
-- exact-head CI run `32238411429`: SUCCESS
-- PR #89 merged at exact reviewed head
-- fetch-binding merge commit: `272e58d39e7d063923d063467602b54d750d5d60`
+- latest rollout terminal: Issue #68 comment `5340416019`
+- latest operator review: Issue #68 comment `5340464723`
 
 TEST project:
 
 `fmcrspgxstsmxxsmkeee`
 
-Accepted live DB state from the blocked rollout:
+Current deployed v2 runtime:
 
-- migrations `20260819000200`, `20260819000300`, `20260819000400`, `20260819000500` are already applied exactly once;
-- live v2 table / canonical `(game_id, turn_number)` job PK / fenced-RPC / ACL gate passed;
-- all seven active v2 RPCs are service_role-only for runtime EXECUTE;
-- all four v2 tables expose SELECT only to service_role and no runtime DML;
-- unfenced progress/fail/commit overloads are absent;
-- `company_v2_games` count after the failed Setup was `0`;
-- previous Setup failed before durable game creation;
-- `/api/v2/opening` was not called;
-- `/api/v2/turn` automated calls remain `0`.
+- API Worker: `game-proxy-company-v2`
+- corrected API version from latest run: `e66d87c1-b3d6-4e59-8c32-bf8d36d4add0`
+- Frontend Worker: `gamebuilder-company-v2`
+- accepted frontend version before latest run: `cdbd6c10-0193-487e-a390-2c120946bfdd`
+- frontend API base: `https://game-proxy-company-v2.zeroslove.workers.dev`
 
-Accepted deployed v2 state before this correction:
+Historical live DB state that MUST NOT be reapplied or edited:
 
-- API Worker: `game-proxy-company-v2`, previous version `83569011-ecf9-4e61-8e42-50d26ef27f46`;
-- Frontend Worker: `gamebuilder-company-v2`, accepted version `cdbd6c10-0193-487e-a390-2c120946bfdd`;
-- frontend API base is `https://game-proxy-company-v2.zeroslove.workers.dev`.
+- `20260819000200_company_v2_phase1_vertical_slice`
+- `20260819000300_company_v2_stuck_turn_closure`
+- `20260819000400_company_v2_attempt_fencing`
+- `20260819000500_company_v2_acl_closure`
 
-All v1/manual/QA/preserved evidence games are READ-ONLY. Production/hospital-v2 is forbidden.
+The latest rollout proved the fetch receiver correction is live: the DB-backed request reached Supabase and the prior `Illegal invocation` did not recur.
 
-## 1. Goal
+## 1. Latest BLOCKED evidence
 
-Resume only from the proven failed Setup boundary after the fetch receiver correction.
+Authoritative terminal: Issue #68 comment `5340416019`.
 
-1. verify the merged source and already-live DB contract without applying migrations;
-2. redeploy ONLY the changed v2 API Worker from the merged source;
-3. prove the deployed API can execute a real read-only Supabase transport call without `Illegal invocation`;
-4. verify the existing v2 frontend is still the accepted deployment and still targets the v2 API; do not redeploy it unless source/config drift is first proven, and if drift exists STOP for review instead of silently changing scope;
-5. perform exactly one new fresh Setup attempt;
-6. if Setup succeeds, perform Opening exactly once on that same game;
-7. verify turn-0/context/DB state;
-8. hand the exact URL to the user for manual 5-turn acceptance;
-9. submit zero gameplay turns automatically.
+One verified-absent UUID context probe reached TEST Supabase but returned:
 
-This is operations/acceptance only. No source hotfix is authorized inside this task.
+`JWT issued at future`
 
-## 2. Start guard
+Independent Supabase API logs show the corresponding REST request returned HTTP 401 at approximately `2026-08-19T09:46:56Z`.
 
-Before any deploy or live write:
+About 18 seconds later, the same TEST project logged successful HTTP 200 calls for:
 
-1. fetch `main` and verify it contains merge commit `272e58d39e7d063923d063467602b54d750d5d60`;
-2. verify no runtime/config/provider/frontend/content/migration change exists after that merge other than this CURRENT_TASK registration;
-3. verify TEST project is exactly `fmcrspgxstsmxxsmkeee`;
-4. read migration ledger and confirm 002/003/004/005 are already present exactly once; do NOT apply any migration;
-5. verify live `company_v2_games` currently has zero rows before creating the new acceptance game; if not zero, identify whether an unexpected v2 game was created after the blocked terminal and STOP rather than deleting/mutating it;
-6. verify required API Worker secrets are available without printing values:
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `LLM_API_KEY`;
-7. preserve `wrangler.v2.api.jsonc` values exactly, including SUPABASE_URL, LLM_API_URL, STORY_MODEL, EXTRACT_MODEL and Worker identity;
-8. verify Production/v1 targets are not selected.
+- `company_v2_create_game`
+- `company_v2_create_opening`
+- v2 context table reads
 
-## 3. No migration work
+Therefore:
 
-Hard rule: migrations 002/003/004/005 are historical live state.
+- this is NOT evidence of a DB schema/RPC/fencing/source gameplay defect;
+- do not reopen or change the accepted fetch-binding source;
+- the next boundary is credential/clock/ops verification only.
+
+## 2. Preserve unexpected v2 evidence game
+
+A v2 game appeared during the latest run even though that runner reported no Setup call:
+
+`88625b46-20fa-42c6-82d5-050a98ee2aad`
+
+Verified live state:
+
+- `created_at = 2026-08-19T09:47:15.050883Z`
+- `content_version = company-v2-phase1`
+- `committed_turn = 0`
+- `revision = 0`
+- exactly one turn row
+- zero turn-job rows
+
+Treat this game as immutable rollout evidence.
 
 Do NOT:
 
-- reapply them;
-- edit them;
-- run bulk migration commands;
-- add another migration;
-- change ACLs manually.
+- reset it;
+- delete it;
+- mutate it;
+- submit a gameplay turn to it;
+- use it as the owner manual 5-turn acceptance game;
+- reuse it to avoid creating the one explicitly authorized fresh handoff game later in this task.
 
-Only read-only DB catalog/ledger checks are allowed before Setup.
+## 3. Frontend side-effect finding
 
-## 4. Redeploy only the corrected v2 API
+Current `frontend-v2/app.js` calls Setup then Opening automatically when it executes without a `game_id` query parameter.
 
-Deploy from current main using:
+Therefore a browser/headless-browser execution of the bare frontend root is NOT a read-only verification.
 
-`wrangler.v2.api.jsonc`
+For this task:
 
-Required target:
+- NEVER execute/open `https://gamebuilder-company-v2.zeroslove.workers.dev/` without `?game_id=` in a browser or JS-executing client;
+- do not use Playwright/Puppeteer/browser navigation against the bare root;
+- verify frontend only with non-executing HTTP/static reads such as HTML/config/app source retrieval;
+- fetching static files with curl/Invoke-WebRequest/HTTP is allowed only if JavaScript is not executed;
+- do not redeploy the frontend.
 
-- Worker: `game-proxy-company-v2`
-- entry: `runtime-v2/server/worker.js`
-- source lineage includes merge `272e58d39e7d063923d063467602b54d750d5d60`.
+The final handoff URL with an explicit fresh `game_id` may be constructed for the user, but Codex must not navigate it as a browser gameplay client.
 
-Do not deploy or modify:
+## 4. Goal
 
-- `game-proxy-company-v1`
-- `gamebuilder-company-v1`
-- Production/hospital-v2.
+Close the TEST auth/ops boundary without changing gameplay source or migrations, then hand off one clean fresh v2 game for owner manual 5-turn acceptance.
 
-Do not change provider/model/config values or secret values.
+Sequence:
 
-Record the new API Worker version/deployment identifier.
+1. verify current main/source lineage and existing live DB/migration state read-only;
+2. verify TEST Supabase project health and the current corrected API Worker identity;
+3. perform exactly one fresh DB-backed absent-game context probe against the already-deployed corrected API;
+4. if that probe succeeds with canonical `game_not_found`, make NO credential change and proceed;
+5. if that probe fails with a Supabase auth/JWT error, diagnose and, only if a known-good authorized TEST service-role credential is available, repair ONLY `game-proxy-company-v2` `SUPABASE_SERVICE_ROLE_KEY` without exposing the value, then perform exactly one explicit post-repair absent-game probe;
+6. after a successful auth probe, verify frontend only by static/non-executing HTTP reads;
+7. create exactly one new fresh Setup game;
+8. Opening exactly once on that same fresh game;
+9. verify turn-0 invariants;
+10. provide the exact frontend `?game_id=` URL for owner manual 5-turn play;
+11. automated gameplay turns remain zero.
 
-## 5. Mandatory DB-backed API smoke before Setup
+No source branch/PR/source edit is authorized.
 
-The previous smoke missed the defect because missing `game_id` returned before Supabase transport execution.
+## 5. Start guard
 
-After API redeploy, perform a read-only smoke that MUST reach `SupabaseV2Store` / Supabase HTTP transport:
+Before any secret mutation or Setup:
 
-1. generate one random UUID solely for this read-only probe;
-2. verify directly in TEST DB that this UUID does not exist in `company_v2_games`;
-3. call `GET /api/v2/context?game_id=<ABSENT_UUID>`;
-4. require a structured Company v2 not-found response from the DB-backed path (expected `game_not_found` class); it must NOT return `Illegal invocation`, configuration error, v1 payload, or 5xx transport failure;
-5. do not create a game during this probe;
-6. `/api/v2/turn` calls remain zero.
+1. verify `main` contains `272e58d39e7d063923d063467602b54d750d5d60` and only CURRENT_TASK docs registrations followed it;
+2. verify runtime/config/provider/frontend/content/migration files have no unreviewed drift;
+3. verify TEST project exactly `fmcrspgxstsmxxsmkeee` and status healthy;
+4. read migration ledger and prove 002/003/004/005 are already present exactly once; apply zero migrations;
+5. read-only verify the four v2 tables and existing fenced RPC/ACL contract remain present;
+6. read-only verify evidence game `88625b46-20fa-42c6-82d5-050a98ee2aad` still has committed_turn 0, exactly one turn row and zero job rows; do not mutate it;
+7. verify API Worker is exactly `game-proxy-company-v2` and current deployed code includes accepted fetch-binding merge;
+8. verify Worker secret names include `SUPABASE_SERVICE_ROLE_KEY` and `LLM_API_KEY` without printing values;
+9. verify Production/v1 targets are not selected.
 
-Also verify `OPTIONS /api/v2/turn` still returns expected CORS.
+Do NOT require `company_v2_games` count to be zero; the preserved evidence game is expected to exist.
 
-If the DB-backed context probe fails, STOP. Do not attempt Setup and do not hotfix source.
+## 6. Credential / clock diagnostics — no secret disclosure
 
-## 6. Existing frontend verification only
+Never print, echo, commit, comment, hash-dump, or otherwise expose the raw `SUPABASE_SERVICE_ROLE_KEY`.
 
-Do not redeploy the frontend merely because the API changed.
+Before changing any secret, record only safe metadata sufficient to classify the failure:
 
-Verify read-only:
+- runner UTC clock;
+- an external/server Date header or other trusted UTC comparison if available;
+- whether runner clock differs materially from trusted UTC;
+- whether an authorized local TEST credential source is available;
+- if the credential is a JWT, decode payload locally only to inspect safe claims such as `role`, `iat`, `exp` and project/ref identity when present; do not print the token itself;
+- require role/service identity to correspond to `service_role` for TEST project `fmcrspgxstsmxxsmkeee`;
+- if `iat` is materially in the future relative to trusted UTC, do not deploy that credential; STOP with evidence unless another known-good authorized TEST credential is available.
 
-- Worker identity remains `gamebuilder-company-v2`;
-- deployed version is still the accepted version `cdbd6c10-0193-487e-a390-2c120946bfdd` unless an externally proven deployment occurred;
-- live assets load;
-- frontend API base remains `https://game-proxy-company-v2.zeroslove.workers.dev`;
-- no v1 API base is present.
+Do not rotate Supabase project keys globally. Do not modify v1 Worker secrets.
 
-If frontend deployment/config drift is detected, STOP for operator review rather than expanding this task.
+## 7. First auth probe — exactly once
 
-## 7. Exactly one fresh Setup attempt
+Use the already-deployed corrected API before any secret rewrite.
 
-Only after the DB-backed API smoke passes:
+1. generate one new random UUID for the probe;
+2. directly verify it is absent from `company_v2_games`;
+3. call exactly once:
+   `GET https://game-proxy-company-v2.zeroslove.workers.dev/api/v2/context?game_id=<ABSENT_UUID>`
+4. expected result: structured Company v2 `game_not_found` class response;
+5. `Illegal invocation` must not recur;
+6. any Supabase/JWT/auth error means the first probe failed;
+7. do not call Setup while the probe is failing.
 
-1. call `POST /api/v2/setup` exactly once;
+CORS `OPTIONS /api/v2/turn` may be checked read-only.
+
+## 8. Optional narrow TEST Worker secret repair
+
+This section is authorized ONLY if the first auth probe fails with a Supabase auth/JWT error.
+
+If and only if a known-good authorized service-role credential for TEST project `fmcrspgxstsmxxsmkeee` is available to the runner:
+
+1. validate safe metadata as above without exposing the value;
+2. update ONLY Cloudflare Worker `game-proxy-company-v2` secret `SUPABASE_SERVICE_ROLE_KEY`;
+3. do not modify `LLM_API_KEY`;
+4. do not modify config vars, provider URL, STORY_MODEL, EXTRACT_MODEL, Supabase URL, or frontend;
+5. do not change Supabase project keys globally;
+6. record the resulting API Worker version/deployment identifier if Cloudflare creates one;
+7. perform exactly ONE explicit post-repair absent-game context probe with a newly verified-absent UUID;
+8. require canonical `game_not_found` before continuing.
+
+If no known-good authorized TEST service-role credential is available, STOP and name only the missing credential source; do not guess or manufacture a JWT.
+
+If the explicit post-repair probe still returns a JWT/auth error, STOP. Do not rewrite the secret again and do not create a game.
+
+This explicit ops probe/repair sequence is not an LLM/gameplay retry and must not introduce any gameplay regeneration/retry behavior.
+
+## 9. Frontend verification — static HTTP only
+
+After API auth probe passes, verify frontend without executing JavaScript:
+
+- fetch static root HTML as text only if the client does not execute JS;
+- fetch `/config.js` as text;
+- fetch `/app.js` as text;
+- prove API base is `https://game-proxy-company-v2.zeroslove.workers.dev`;
+- prove no v1 API base is configured;
+- prove `app.js` behavior is understood to auto-Setup only when `game_id` is absent;
+- do not open/navigate bare root in browser/headless browser;
+- do not redeploy frontend.
+
+If frontend config/source drift is found, STOP rather than patching or deploying.
+
+## 10. Exactly one fresh acceptance Setup
+
+Only after auth probe and static frontend verification pass:
+
+1. call `POST /api/v2/setup` exactly once with the normal Phase-1 player payload;
 2. do not retry Setup on failure;
 3. do not create a replacement game;
-4. record the returned game_id on success;
-5. if Setup fails, query TEST DB read-only to determine whether a partial game row exists, preserve it as evidence if present, and STOP;
-6. do not call Opening after a failed Setup.
+4. record the fresh game_id on success;
+5. fresh game_id MUST differ from preserved evidence game `88625b46-20fa-42c6-82d5-050a98ee2aad`;
+6. if Setup fails, inspect DB read-only for partial rows, preserve evidence, and STOP;
+7. do not call Opening after failed Setup.
 
-The prior failed Setup does not count as this run's one authorized attempt because it occurred before the reviewed source fix and created no row.
+## 11. Opening exactly once
 
-## 8. Opening exactly once on the same game
+If Setup succeeds:
 
-If and only if Setup succeeds:
-
-1. call `POST /api/v2/opening` exactly once for that game;
-2. if Opening fails, preserve that same game as failure evidence and STOP;
-3. do not create another game and do not retry Opening;
+1. call `POST /api/v2/opening` exactly once for that same fresh game;
+2. do not retry Opening;
+3. on failure preserve that same game and STOP;
 4. never call `/api/v2/turn` automatically.
 
-## 9. Turn-0 acceptance verification
+## 12. Turn-0 acceptance checks
 
-After Opening succeeds, verify through live API context and direct read-only DB checks:
+After Opening succeeds, verify API context and direct TEST DB state:
 
-- game_id matches the new game;
-- `company_v2_state.committed_turn = 0`;
-- state revision is the expected turn-0 revision;
-- turn 0 exists exactly once;
-- Opening story is non-empty;
-- Opening choices are exactly four and all non-empty;
-- accepted Phase 1 state remains minimal (`player`, `scene`, `time` only at top level unless the canonical contract proves equivalent wrapping);
-- there is no turn-1 job in `company_v2_turn_jobs`;
-- no processing/failed/committed gameplay job exists before user action;
+- fresh game_id matches;
+- `committed_turn = 0`;
+- expected turn-0 revision;
+- exactly one turn 0 row;
+- non-empty Opening story;
+- exactly four non-empty choices;
+- minimal Phase-1 state only (`player`, `scene`, `time` top-level unless canonically equivalent);
+- zero job rows for the fresh game;
+- no turn 1 or gameplay turn exists;
 - no duplicate game/state/turn rows;
-- no v1 table dependency is introduced;
-- automated `/api/v2/turn` call count = 0.
+- automated `/api/v2/turn` calls = 0;
+- preserved evidence game remains unchanged.
 
-## 10. User handoff
+## 13. User handoff
 
-Construct:
+Construct but do not browser-open:
 
 `https://gamebuilder-company-v2.zeroslove.workers.dev/?game_id=<FRESH_GAME_ID>`
 
-The user will manually play at least 5 committed turns.
+Owner/user will manually play 5 turns.
 
 Manual focus:
 
-- Story visibly streams;
-- literal action fidelity;
+- Story streaming visible without screen-blocking modal behavior;
+- literal player action fidelity;
 - exactly four usable choices;
 - one input = one turn;
 - no duplicate job/turn;
 - no stuck processing;
 - refresh/reconnect durability;
-- history ordering and non-empty summaries;
-- relevant-only Mind Monitor;
+- correct ordered history and non-empty summaries;
+- relevant-NPC-only Mind Monitor;
 - no protocol/OOC garbage;
 - no player/NPC identity corruption.
 
-CSA, clothing, sexual gauges, feedback, Image, TTS, relationship/event and other Phase 2/3 features are deferred and are not Phase 1 blockers.
+Do not test Phase 2/3 features as Phase-1 blockers.
 
-## 11. Forbidden
+## 14. Forbidden
 
 Do NOT:
 
-- modify source/config/tests/migrations/content during this rollout;
-- create a branch/PR;
-- apply/reapply migrations;
-- redeploy frontend without a separately reviewed reason;
-- touch v1 Workers;
+- create a branch or PR;
+- modify runtime/source/tests/frontend/config/content/migrations;
+- apply/reapply/edit migrations 002-005;
+- enable/alter RLS or table ACLs in this task;
+- rotate Supabase project keys globally;
+- modify v1 Worker secrets or deploy v1;
+- redeploy frontend;
+- open bare frontend root in an executing browser/headless browser;
+- mutate/delete/reset/reuse evidence game `88625b46-20fa-42c6-82d5-050a98ee2aad`;
+- touch preserved v1/manual/QA games;
 - access Production/hospital-v2;
-- mutate preserved v1/manual/QA games;
 - change provider/model values;
 - add retries/regeneration;
-- create more than one fresh Setup game;
-- automatically play any gameplay turn;
+- create more than one fresh acceptance Setup game;
+- submit any gameplay turn automatically;
 - start Phase 2.
 
-First deterministic defect => preserve evidence and STOP.
+First deterministic defect after the explicitly authorized credential repair boundary => preserve evidence and STOP.
 
-## 12. Required terminal
+## 15. Required terminal
 
 On success post one immutable Issue #68 terminal:
 
@@ -241,27 +307,28 @@ Include:
 
 - task ID;
 - registration main SHA / CURRENT_TASK blob;
-- fetch-binding accepted head `a30c6650817985ca4345687ed11549ba7eadd8f9`;
-- fetch-binding merge `272e58d39e7d063923d063467602b54d750d5d60`;
+- prior BLOCKED terminal `5340416019` and review `5340464723`;
+- accepted fetch-binding source head and merge;
 - TEST project ref;
-- proof migrations 002-005 were already present and none were applied in this run;
-- read-only live DB preflight result;
-- corrected API Worker name + new version;
-- DB-backed absent-game context smoke result proving native Supabase fetch works;
+- proof migrations 002-005 were not changed/applied;
+- preserved evidence game readback before and after;
+- first auth probe result;
+- whether Worker secret repair occurred (`0` or `1`) without secret value;
+- if repair occurred: safe credential classification and resulting API Worker version only;
+- final successful absent-game probe result;
 - CORS result;
-- existing frontend version and API-base verification;
-- exactly one Setup attempt result;
-- fresh game_id;
+- static-only frontend verification result and explicit `bare_frontend_browser_opens=0`;
+- exactly one acceptance Setup result and fresh game_id;
 - exactly one Opening result;
-- turn-0 API/DB verification including exactly four choices and no turn-1 job;
+- turn-0 API/DB checks;
 - explicit `automated_gameplay_turns=0`;
-- confirmation Production/v1/preserved games untouched;
-- full manual play URL near the bottom.
+- explicit Production/v1/preserved games untouched;
+- manual play URL near the bottom.
 
-Then STOP at `WAITING_USER_5TURN`. Do not generate another CURRENT_TASK.
+Then STOP at `WAITING_USER_5TURN`. Do not create another CURRENT_TASK.
 
 If blocked, post one immutable terminal beginning:
 
-`COMPANY_V2_PHASE1_TEST_AFTER_FETCH_FIX_BLOCKED`
+`COMPANY_V2_PHASE1_TEST_AUTH_PROBE_BLOCKED`
 
-with exact evidence and STOP without hotfix/retry/replacement game.
+with the exact first failed boundary, secret-repair count, safe clock/credential metadata only, and explicit confirmation that no gameplay turn was submitted. Then STOP.
