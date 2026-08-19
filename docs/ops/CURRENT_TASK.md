@@ -1,8 +1,8 @@
 # Company v2 — CURRENT TASK
 
 Status: READY
-Task ID: company-v2-phase1-clean-vertical-slice-v1
-Mode: CORRECTION ROUND 4 — ATTEMPT FENCING
+Task ID: company-v2-phase1-test-rollout-v1
+Mode: TEST ROLLOUT + FRESH GAME HANDOFF
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -14,231 +14,286 @@ Binding canon:
 
 `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`
 
-This is the SAME Phase 1 task, SAME implementation branch, and SAME Draft PR.
+Accepted source:
 
-- canonical Draft PR: `#87`
-- implementation branch: `company-v2/phase1-clean-vertical-slice-v1`
-- stuck-turn terminal: Issue #68 comment `5339480574`
-- operator review: Issue #68 comment `5339522677` — `CHANGES_REQUIRED_ATTEMPT_FENCING`
-- reviewed head: `53a6daf0aee614feee0c15dc499cbe0bc0ab8e4b`
-- exact-head CI reviewed: run `32232199902` SUCCESS
+- source task: `company-v2-phase1-clean-vertical-slice-v1`
+- accepted terminal: Issue #68 comment `5339663041`
+- source acceptance review: Issue #68 comment `5339692420`
+- exact reviewed source head: `d339517bfa9df5ec6162b5bfdc91d6b4fa9db06e`
+- exact-head CI: run `32233726231` / job `96008963602` SUCCESS
+- PR #87 merged exactly at that reviewed head
+- merge commit: `f80830e48f227e5a3718ecacaec82d9d3427b504`
 
-All v1/manual/QA/evidence games, especially `df3045fd-c359-4cdc-8783-357ddfebe398`, remain READ-ONLY.
+This task is operations/acceptance only. Do not change gameplay source, provider/model values, content semantics, or Phase 2 scope.
 
-Do not create a replacement Task ID, implementation branch, or PR.
+All preserved v1/manual/QA/evidence games remain READ-ONLY, especially:
 
-## 1. Keep all accepted Phase 1 work
+- `df3045fd-c359-4cdc-8783-357ddfebe398`
+- `587de547-8bb7-4a92-a7c2-07f2831e2d38`
+- `9755b57b-5cbb-44dd-a624-020fe516c16d`
+- `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`
+- `78fb1d94-266f-455a-bda4-7656cc2370c1`
+- Production sentinel `11111111-1111-4111-8111-111111111111`
 
-Do not regress the accepted clean-room/runtime/deployment/stuck-turn work:
+Never reset, reseed, replay, revise, or mutate those games.
 
-- `runtime-v2/**` / `frontend-v2/**` isolation;
-- one server-owned `/api/v2/turn` operation;
-- DB-backed production store and real env-backed provider;
-- exactly one canonical `(game_id, turn_number)` row;
-- literal player-action fidelity and exactly four provider choices;
-- bounded Story first-content/total timeout with no automatic Story retry;
-- Observation timeout/failure remains fail-open after valid Story;
-- durable Story progress and same-job reconnect;
-- stale processing lease terminalizes to failed with no LLM call;
-- initial reservation race converges with `ON CONFLICT`;
-- frontend immediately handles `terminal: failed` and arms an explicit user retry;
-- dedicated v2 API/frontend identities, API base, CORS/preflight;
-- Story uses `STORY_MODEL`; Observation uses `EXTRACT_MODEL`;
-- minimal Phase 1 state only; no Phase 2/3 mechanics.
+## 1. Goal
 
-## 2. Remaining blocker — stale attempt can mutate a newer retry
+Bring the accepted Company v2 Phase 1 vertical slice live on isolated TEST identities and create exactly one fresh game for the owner/user to play manually.
 
-The current retry design correctly reuses one canonical `(game_id, turn_number)` row and changes:
+Required live targets:
 
-- `action_id` to the new retry action id;
-- `attempt_no` from N to N+1;
-- status back to `processing`.
+- TEST Supabase project: `fmcrspgxstsmxxsmkeee`
+- API Worker: `game-proxy-company-v2`
+- Frontend Worker: `gamebuilder-company-v2`
+- frontend URL base: `https://gamebuilder-company-v2.zeroslove.workers.dev`
+- API URL base: `https://game-proxy-company-v2.zeroslove.workers.dev`
 
-But current write RPCs still authorize by turn identity only:
+The task ends after Setup + Opening + bounded read-only smoke verification for one fresh game. Do NOT automatically play turns 1–5. The owner/user must do the 5-turn gameplay manually.
 
-- `company_v2_update_turn_progress(game_id, turn_number, ...)`;
-- `company_v2_fail_turn(game_id, turn_number, ...)`;
-- `company_v2_commit_turn(game_id, turn_number, revision, ...)`.
+## 2. Start guard
 
-They do not prove that the caller is still the active attempt.
+Before any write/deploy:
 
-Unsafe sequence:
+1. fetch remote `main` and verify this CURRENT_TASK is the active main blob;
+2. verify merged source lineage includes `f80830e48f227e5a3718ecacaec82d9d3427b504`;
+3. verify no runtime/config/migration/content changes were introduced after that merge other than this CURRENT_TASK registration;
+4. verify target Supabase project ref is exactly `fmcrspgxstsmxxsmkeee`;
+5. verify Cloudflare target identities are exactly `game-proxy-company-v2` and `gamebuilder-company-v2`;
+6. verify required secret material for the NEW v2 API Worker is available through the authorized runner without printing secret values:
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `LLM_API_KEY`
+7. verify current provider/model values remain exactly those in merged `wrangler.v2.api.jsonc`; do not substitute provider/model values.
 
-1. attempt 1 is processing;
-2. lease expires attempt 1 to terminal failed;
-3. user explicitly starts attempt 2 on the same canonical row;
-4. old attempt-1 Worker/isolate wakes up later;
-5. because its DB writes are not fenced, it can update progress, fail, or commit the now-processing attempt-2 row.
+If target project/Worker identity or secret source cannot be proven, STOP without changing v1/Production resources.
 
-The commit case is critical: the DB can read attempt 2's current `literal_action` while receiving Story/parsed output produced by attempt 1. That violates literal action fidelity and the single-attempt authority boundary.
+## 3. TEST migration preflight
 
-Phase 1 cannot merge until every post-reservation write is fenced to the exact reserved attempt.
+The v2 migration sequence to apply is exactly:
 
-## 3. Required attempt fence
+1. `20260819000200_company_v2_phase1_vertical_slice.sql`
+2. `20260819000300_company_v2_stuck_turn_closure.sql`
+3. `20260819000400_company_v2_attempt_fencing.sql`
 
-Use the existing structural attempt identity. Prefer BOTH:
+Before applying anything:
 
-- `action_id`;
-- `attempt_no`.
+- inspect linked TEST migration history;
+- confirm these v2 migrations are not already partially applied in an inconsistent state;
+- confirm there are no unrelated pending migrations that would be applied by the chosen command;
+- if a bulk migration command would apply unrelated pending migrations, do NOT use it; choose an explicit safe method or STOP;
+- do not edit historical migration files.
 
-Do not introduce a semantic ledger/router/verifier.
+Apply only the three accepted v2 migrations to TEST in order.
 
-At reservation success, snapshot an immutable attempt fence, for example:
+## 4. Live DB contract verification
 
-- `game_id`;
-- `turn_number`;
-- `action_id`;
-- `attempt_no`.
+After migration apply, verify against TEST with read-only catalog/query checks:
 
-Important: do not rely on retaining a mutable in-memory job object as the fence. The in-memory retry path currently mutates the same canonical job object in place, so an old attempt holding that object could observe the new attempt's fields. `processTurn` must carry a value snapshot captured at reservation time.
+### Tables
 
-## 4. Fence every post-reservation mutation
+Exactly the v2 mutable truth exists:
 
-The following writes must require the exact active attempt identity:
+- `company_v2_games`
+- `company_v2_state`
+- `company_v2_turn_jobs`
+- `company_v2_turns`
 
-### Progress
+Do not modify old `game_actions`, `game_save`, or `game_turns`.
 
-`updateProgress` / DB progress RPC must mutate only when all match:
+### Canonical job key
 
-- `game_id`;
-- `turn_number`;
-- `status='processing'`;
-- expected `action_id`;
-- expected `attempt_no`.
+Verify `company_v2_turn_jobs` has one canonical primary key on:
 
-A stale mismatch must fail structurally and must not touch the current row.
+- `(game_id, turn_number)`
 
-### Failure
+### Required live RPCs
 
-`failJob` / DB fail RPC must require the same fence.
+Verify the effective callable v2 surface contains the accepted functions, including:
 
-A stale attempt waking after retry MUST NOT mark the newer attempt failed.
+- `company_v2_create_game`
+- `company_v2_create_opening`
+- `company_v2_reserve_turn`
+- `company_v2_expire_stale_turn`
+- fenced `company_v2_update_turn_progress`
+- fenced `company_v2_fail_turn`
+- fenced `company_v2_commit_turn`
 
-If a stale attempt receives a fencing conflict while handling its own late error, treat that as "this attempt no longer owns the row". Do not convert it into another mutation against the current attempt.
+### Attempt fencing
 
-### Commit
+Verify the LIVE progress/fail/commit signatures require both:
 
-`commitTurn` / DB commit RPC must require the same fence before any state/history/job mutation.
+- `action_id`
+- `attempt_no`
 
-The commit transaction must prove:
+Verify the superseded unfenced progress/fail/commit signatures are absent.
 
-- state revision/turn boundary is valid;
-- current job is processing;
-- current job `action_id` equals the reserved attempt's action id;
-- current job `attempt_no` equals the reserved attempt's attempt number.
+### ACL
 
-Only then may it write state, history, and committed job status.
+Verify mutation RPC execution is service-role only as authored. No `anon`/`authenticated` mutation execution grant may be introduced.
 
-No stale attempt may commit under the newer attempt's literal action.
+If live schema/signatures/ACL do not match accepted source, STOP before Worker deployment.
 
-## 5. SQL / RPC contract
+## 5. Deploy isolated v2 API
 
-Implement the smallest structural migration correction.
+Deploy using only:
 
-Requirements:
+`wrangler.v2.api.jsonc`
 
-- final effective RPC surface must expose only fenced progress/fail/commit signatures used by v2 runtime;
-- do not leave an unfenced callable overload that can bypass the fence;
-- if changing signatures, explicitly drop superseded unfenced signatures in the unapplied v2 migration sequence and preserve service-role-only execution;
-- keep `SECURITY DEFINER` and `search_path = public, pg_temp`;
-- no semantic allowlists/catalogs in SQL;
-- no change to Production/v1 tables or RPCs;
-- migration source remains unapplied in this source task.
+Target must be:
 
-Because the v2 migrations in PR #87 are not yet applied, it is acceptable to correct the unapplied v2 migration sequence directly or add one narrowly scoped additive correction migration. The final sequence that will be applied during rollout must have no usable unfenced writer.
+- name: `game-proxy-company-v2`
+- main: `runtime-v2/server/worker.js`
 
-## 6. In-memory parity
+Set/provision the required Worker secrets from the authorized runner without logging values. Do not copy values into source or Issue comments.
 
-`InMemoryV2Store` must enforce the same attempt fence as Supabase.
+Preserve merged config values for:
 
-Do not let a stale attempt succeed only because tests share mutable object references.
+- `SUPABASE_URL`
+- `LLM_API_URL`
+- `STORY_MODEL`
+- `EXTRACT_MODEL`
 
-Required behavior:
+Do not deploy or modify `game-proxy-company-v1`.
 
-- retry increments `attempt_no` and replaces `action_id` on the canonical row;
-- an old fence from attempt 1 cannot update progress, fail, or commit after attempt 2 has started;
-- attempt 2 can still progress/commit normally;
-- one canonical job row remains.
+Record deployed v2 API Worker version/deployment identifier.
 
-## 7. Required regression — exact stale-wakeup sequence
+## 6. API live smoke gate
 
-Add one direct scenario regression, not just source-regex proof:
+Before frontend deploy, perform only bounded live smoke checks against `game-proxy-company-v2`:
 
-1. reserve attempt 1 and capture its immutable fence;
-2. advance clock / expire its lease to `failed`;
-3. explicitly retry the same turn as attempt 2 and confirm `attempt_no=2` + new `action_id`;
-4. simulate old attempt 1 waking up;
-5. prove old attempt 1 cannot:
-   - update Story progress;
-   - mark attempt 2 failed;
-   - commit a turn;
-6. prove state/history remain unchanged by all stale writes;
-7. then let attempt 2 complete successfully;
-8. prove committed `literal_action`, Story text, parsed blocks/summary, and job identity all belong to attempt 2;
-9. prove exactly one job row and exactly one committed gameplay turn exist.
+- CORS OPTIONS on `/api/v2/turn` returns required origin/method/header contract;
+- invalid/missing context request returns a structured v2 error rather than a v1 payload;
+- no automatic retry/regeneration is triggered by smoke checks.
 
-Also keep regressions for:
+Do not create gameplay turns for smoke testing.
 
-- provider timeouts;
-- stale lease terminalization;
-- initial reservation race convergence;
-- simultaneous explicit retries;
-- frontend failed-terminal explicit retry;
-- reconnect/history/summary/MM;
-- CORS/deployment configs/model roles;
-- clean-room import boundary.
+If API identity/routing/configuration is wrong, STOP before frontend deploy.
 
-Do not port old v1 tests.
+## 7. Deploy isolated v2 frontend
 
-## 8. Safety / forbidden
+Deploy using only:
 
-Source/test/PR only.
+`wrangler.v2.frontend.jsonc`
+
+Target must be:
+
+- name: `gamebuilder-company-v2`
+- assets: `frontend-v2`
+
+Do not deploy or modify `gamebuilder-company-v1`.
+
+Record deployed v2 frontend Worker version/deployment identifier.
+
+Verify the live frontend asset/config points to:
+
+`https://game-proxy-company-v2.zeroslove.workers.dev`
+
+## 8. Create exactly one fresh Phase 1 manual game
+
+After both v2 Workers are live:
+
+1. call `POST /api/v2/setup` exactly once to create one fresh TEST v2 game;
+2. call `POST /api/v2/opening` for that same game;
+3. call `GET /api/v2/context` read-only and verify:
+   - game identity matches;
+   - `committed_turn = 0`;
+   - Opening is present in history;
+   - Opening exposes exactly four choices;
+   - state shape is only the accepted minimal Phase 1 shape (`player`, `scene`, `time`);
+   - no processing/failed turn-1 job exists before the user acts;
+4. do NOT submit `/api/v2/turn` on behalf of the user.
+
+This fresh v2 game becomes manual acceptance evidence. Do not reset or reseed it after handing it to the user.
+
+## 9. User handoff URL
+
+Construct the exact manual play URL:
+
+`https://gamebuilder-company-v2.zeroslove.workers.dev/?game_id=<FRESH_GAME_ID>`
+
+The terminal report must put BOTH the fresh `game_id` and the full play URL near the bottom so the owner/user can immediately open it.
+
+## 10. Manual acceptance boundary
+
+The owner/user, not Codex, performs the first gameplay session.
+
+Requested manual session:
+
+- play at least 5 committed turns;
+- use natural free input and choices as desired;
+- refresh/reload at least once during the session if convenient to exercise durable readback;
+- report any visible failure immediately rather than pushing through it.
+
+Codex must not pre-play these 5 turns and must not fabricate acceptance evidence.
+
+After handing off the URL, STOP. Do not register Phase 2.
+
+## 11. What to preserve during manual play
+
+Phase 1 acceptance focuses on:
+
+- natural Story quality sufficient for continued play;
+- literal player-action fidelity;
+- exactly four usable choices;
+- one input = one turn;
+- visible Story streaming;
+- no duplicate turn/job;
+- no permanent processing lock;
+- refresh/reconnect to same durable game/job;
+- sensible history and non-empty summaries;
+- relevant-only Mind Monitor;
+- no protocol/OOC garbage in committed display;
+- no player/NPC identity corruption.
+
+Deferred and NOT blockers for this Phase 1 manual session:
+
+- CSA
+- clothing
+- sexual gauges
+- feedback
+- Image
+- TTS
+- relationship/event systems
+- Phase 2/3 presentation features
+
+## 12. Safety / forbidden
 
 Do NOT:
 
-- apply any migration;
-- deploy either v2 Worker;
-- create or play a live v2 game;
-- mutate/reset/reseed/replay/revise any preserved v1 game;
-- access Production/hospital-v2;
-- change provider or configured model values;
-- add automatic Story/Observation retry/regeneration;
-- add semantic router/verifier/classifier, generic job framework, compatibility shadow writer, or second canonical row;
-- merge PR #87;
-- create another PR/branch/task;
-- start CSA/clothing/navigation/Image/TTS/feedback/sexual meter or any Phase 2/3 work.
+- access or deploy Production/hospital-v2;
+- deploy/change v1 API or frontend Workers;
+- mutate/reset/reseed/replay any preserved v1 evidence game;
+- change provider/model values;
+- modify gameplay source/runtime/config/content/tests/migrations during rollout;
+- create another source PR/branch;
+- add retries/regeneration/semantic verifier/router;
+- automatically play the fresh game beyond Setup + Opening;
+- start Phase 2.
 
-## 9. Validation / terminal
+If rollout reveals a source defect, record evidence and STOP. Do not hotfix inside this operations task.
 
-Before terminal require:
-
-- focused v2 tests: 0 fail / 0 skip;
-- full repository tests: 0 fail;
-- changed JS/MJS `node --check`: PASS;
-- `git diff --check`: PASS;
-- both v2 Wrangler dry-runs remain PASS;
-- exact-head GitHub CI: SUCCESS;
-- PR #87 remains OPEN / DRAFT / UNMERGED / mergeable;
-- branch copy of `docs/ops/CURRENT_TASK.md` is synchronized to this main registration;
-- zero migration apply/deploy/live game/Production/preserved-game mutation.
+## 13. Required terminal
 
 Post one new immutable Issue #68 terminal:
 
-`COMPANY_V2_PHASE1_ATTEMPT_FENCING_READY_FOR_REVIEW`
+`COMPANY_V2_PHASE1_TEST_READY_FOR_USER_5TURN`
 
 Include:
 
-- exact final head;
-- previous review `5339522677`;
-- PR #87;
-- focused/full counts;
-- exact-head CI run/job;
-- both v2 Wrangler dry-run results;
-- changed paths;
-- final fenced RPC signatures and superseded-signature removal proof;
-- direct stale-attempt-wakeup regression result;
-- proof that stale attempt cannot progress/fail/commit newer attempt;
-- proof that committed literal action and Story originate from the same active attempt;
-- confirmation of zero live operations.
+- task ID;
+- registration main SHA/blob;
+- accepted source head `d339517bfa9df5ec6162b5bfdc91d6b4fa9db06e`;
+- merge commit `f80830e48f227e5a3718ecacaec82d9d3427b504`;
+- TEST project ref;
+- exact migrations applied and migration-history evidence;
+- live v2 table/RPC/ACL/fenced-signature verification;
+- API Worker name + deployed version/deployment identifier;
+- Frontend Worker name + deployed version/deployment identifier;
+- API smoke results;
+- fresh game ID;
+- Opening/context verification;
+- confirmation that zero gameplay turns were auto-submitted;
+- confirmation that Production/v1/preserved games were untouched;
+- full manual play URL.
 
-Then STOP. Do not merge and do not generate the rollout task.
+Then STOP at `WAITING_USER_5TURN`. Do not generate another CURRENT_TASK and do not begin Phase 2.
