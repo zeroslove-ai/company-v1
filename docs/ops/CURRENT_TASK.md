@@ -2,7 +2,7 @@
 
 Status: READY
 Task ID: company-v2-phase1-clean-vertical-slice-v1
-Mode: CORRECTION ROUND 3 — STUCK TURN CLOSURE
+Mode: CORRECTION ROUND 4 — ATTEMPT FENCING
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -14,169 +14,196 @@ Binding canon:
 
 `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`
 
-This remains the SAME Phase 1 task, implementation branch, and Draft PR. It is not a new feature cut.
+This is the SAME Phase 1 task, SAME implementation branch, and SAME Draft PR.
 
 - canonical Draft PR: `#87`
 - implementation branch: `company-v2/phase1-clean-vertical-slice-v1`
-- deployment-boundary terminal: Issue #68 comment `5339250233`
-- operator review: Issue #68 comment `5339311603` — `CHANGES_REQUIRED_STUCK_TURN_CLOSURE`
-- reviewed head before this correction: `8030739a3dc2d98638c7e707617fe9b03419a35d`
-- exact-head CI already reviewed: run `32230547982` SUCCESS
+- stuck-turn terminal: Issue #68 comment `5339480574`
+- operator review: Issue #68 comment `5339522677` — `CHANGES_REQUIRED_ATTEMPT_FENCING`
+- reviewed head: `53a6daf0aee614feee0c15dc499cbe0bc0ab8e4b`
+- exact-head CI reviewed: run `32232199902` SUCCESS
 
 All v1/manual/QA/evidence games, especially `df3045fd-c359-4cdc-8783-357ddfebe398`, remain READ-ONLY.
 
-Do not create a replacement PR, implementation branch, or Task ID.
+Do not create a replacement Task ID, implementation branch, or PR.
 
 ## 1. Keep all accepted Phase 1 work
 
-Do not regress:
+Do not regress the accepted clean-room/runtime/deployment/stuck-turn work:
 
-- physical isolation under `runtime-v2/**` and `frontend-v2/**`;
-- production/default Worker uses `SupabaseV2Store` from env;
-- `InMemoryV2Store` and deterministic provider are explicit test-only injection paths;
-- real env-configured Story/Observation provider is the production/default path;
-- one browser/server `/api/v2/turn` operation with server-owned Story -> optional Observation -> reducer -> commit;
-- durable `company_v2_*` persistence and one canonical `(game_id, turn_number)` job row;
-- literal player action fidelity;
-- exactly four provider-authored choices;
-- optional Observation fail-open and bounded non-empty summary fallback;
-- minimal scene/time state and relevant-only Mind Monitor;
-- no client Story/Extract/Commit stage machine;
-- explicit retry only after terminal failed status; no automatic LLM retry/regeneration;
-- dedicated API/frontend identities `game-proxy-company-v2` / `gamebuilder-company-v2`;
-- explicit frontend v2 API base and browser-valid CORS/preflight;
-- Story uses `STORY_MODEL`, Observation uses `EXTRACT_MODEL`;
-- no Phase 2/3 mechanics.
+- `runtime-v2/**` / `frontend-v2/**` isolation;
+- one server-owned `/api/v2/turn` operation;
+- DB-backed production store and real env-backed provider;
+- exactly one canonical `(game_id, turn_number)` row;
+- literal player-action fidelity and exactly four provider choices;
+- bounded Story first-content/total timeout with no automatic Story retry;
+- Observation timeout/failure remains fail-open after valid Story;
+- durable Story progress and same-job reconnect;
+- stale processing lease terminalizes to failed with no LLM call;
+- initial reservation race converges with `ON CONFLICT`;
+- frontend immediately handles `terminal: failed` and arms an explicit user retry;
+- dedicated v2 API/frontend identities, API base, CORS/preflight;
+- Story uses `STORY_MODEL`; Observation uses `EXTRACT_MODEL`;
+- minimal Phase 1 state only; no Phase 2/3 mechanics.
 
-## 2. Goal — make a turn always reach a terminal state
+## 2. Remaining blocker — stale attempt can mutate a newer retry
 
-Company v2 exists specifically to eliminate the v1 hard-lock class. Before TEST rollout, every reserved Phase 1 turn must deterministically end as either:
+The current retry design correctly reuses one canonical `(game_id, turn_number)` row and changes:
 
-- `committed`; or
-- terminal `failed` that the user may explicitly retry.
+- `action_id` to the new retry action id;
+- `attempt_no` from N to N+1;
+- status back to `processing`.
 
-A job must not remain `processing` forever because of upstream silence, Worker/isolate loss, or reservation races.
+But current write RPCs still authorize by turn identity only:
 
-This correction is structural only. Do not add semantic verification, regeneration, fallback Story calls, or a retry loop.
+- `company_v2_update_turn_progress(game_id, turn_number, ...)`;
+- `company_v2_fail_turn(game_id, turn_number, ...)`;
+- `company_v2_commit_turn(game_id, turn_number, revision, ...)`.
 
-## 3. Blocker A — bounded provider timeouts
+They do not prove that the caller is still the active attempt.
 
-Current defect:
+Unsafe sequence:
 
-- `runtime-v2/server/provider.js` has no bounded Story first-content / Story total / Observation timeout;
-- an upstream fetch/body read can hang until infrastructure termination, leaving the durable job `processing`.
+1. attempt 1 is processing;
+2. lease expires attempt 1 to terminal failed;
+3. user explicitly starts attempt 2 on the same canonical row;
+4. old attempt-1 Worker/isolate wakes up later;
+5. because its DB writes are not fenced, it can update progress, fail, or commit the now-processing attempt-2 row.
 
-Required:
+The commit case is critical: the DB can read attempt 2's current `literal_action` while receiving Story/parsed output produced by attempt 1. That violates literal action fidelity and the single-attempt authority boundary.
 
-- add v2-local transport timeouts without importing old gameplay runtime modules;
-- use the repository's currently proven timeout class unless a smaller v2-safe bound is justified:
-  - Story first content: approximately 30 seconds;
-  - Story total: approximately 120 seconds;
-  - Observation: approximately 75 seconds;
-- AbortSignal/AbortController must cover both upstream fetch and Story stream body read;
-- timeout/transport failure must throw one structural error into the existing server-owned turn boundary;
-- `processTurn` must terminalize the current job as `failed` through the existing fail path;
-- Observation timeout remains optional/fail-open and must not fail an otherwise valid Story commit;
-- no second Story/Observation request and no automatic retry.
+Phase 1 cannot merge until every post-reservation write is fenced to the exact reserved attempt.
 
-Do not change provider/model values.
+## 3. Required attempt fence
 
-## 4. Blocker B — abandoned processing lease must terminalize
+Use the existing structural attempt identity. Prefer BOTH:
 
-Current defect:
+- `action_id`;
+- `attempt_no`.
 
-- Story progress is durable, but if the Worker/isolate disappears before catch/fail/commit, the row can remain `processing` forever;
-- reconstructed Worker/frontend only reads and polls that row.
+Do not introduce a semantic ledger/router/verifier.
 
-Add one narrow structural lease/expiry rule for `company_v2_turn_jobs`.
+At reservation success, snapshot an immutable attempt fence, for example:
+
+- `game_id`;
+- `turn_number`;
+- `action_id`;
+- `attempt_no`.
+
+Important: do not rely on retaining a mutable in-memory job object as the fence. The in-memory retry path currently mutates the same canonical job object in place, so an old attempt holding that object could observe the new attempt's fields. `processTurn` must carry a value snapshot captured at reservation time.
+
+## 4. Fence every post-reservation mutation
+
+The following writes must require the exact active attempt identity:
+
+### Progress
+
+`updateProgress` / DB progress RPC must mutate only when all match:
+
+- `game_id`;
+- `turn_number`;
+- `status='processing'`;
+- expected `action_id`;
+- expected `attempt_no`.
+
+A stale mismatch must fail structurally and must not touch the current row.
+
+### Failure
+
+`failJob` / DB fail RPC must require the same fence.
+
+A stale attempt waking after retry MUST NOT mark the newer attempt failed.
+
+If a stale attempt receives a fencing conflict while handling its own late error, treat that as "this attempt no longer owns the row". Do not convert it into another mutation against the current attempt.
+
+### Commit
+
+`commitTurn` / DB commit RPC must require the same fence before any state/history/job mutation.
+
+The commit transaction must prove:
+
+- state revision/turn boundary is valid;
+- current job is processing;
+- current job `action_id` equals the reserved attempt's action id;
+- current job `attempt_no` equals the reserved attempt's attempt number.
+
+Only then may it write state, history, and committed job status.
+
+No stale attempt may commit under the newer attempt's literal action.
+
+## 5. SQL / RPC contract
+
+Implement the smallest structural migration correction.
 
 Requirements:
 
-- `processing` jobs have a deterministic heartbeat/lease represented by existing `updated_at` or one narrowly added structural timestamp;
-- Story progress updates refresh the lease;
-- normal long-running Story within the configured total timeout must not be expired early;
-- after a conservative bound greater than the maximum normal Story request window, a subsequent server read/reserve/reconnect may atomically transition an abandoned `processing` row to terminal `failed` with a structural error such as `stale_turn_timeout`;
-- expiry must be implemented through one narrow v2 RPC/transaction boundary if DB mutation is required;
-- expiry MUST NOT invoke Story, Observation, Commit, or any automatic retry;
-- after terminalization, the normal explicit failed-turn retry protocol may reopen the same canonical row with incremented `attempt_no`;
-- no background scheduler is required for Phase 1: deterministic detection on server interaction/readback is sufficient;
-- preserve exactly one row per `(game_id, turn_number)`.
+- final effective RPC surface must expose only fenced progress/fail/commit signatures used by v2 runtime;
+- do not leave an unfenced callable overload that can bypass the fence;
+- if changing signatures, explicitly drop superseded unfenced signatures in the unapplied v2 migration sequence and preserve service-role-only execution;
+- keep `SECURITY DEFINER` and `search_path = public, pg_temp`;
+- no semantic allowlists/catalogs in SQL;
+- no change to Production/v1 tables or RPCs;
+- migration source remains unapplied in this source task.
 
-Migration remains additive source only in this correction task; do not apply it live.
+Because the v2 migrations in PR #87 are not yet applied, it is acceptable to correct the unapplied v2 migration sequence directly or add one narrowly scoped additive correction migration. The final sequence that will be applied during rollout must have no usable unfenced writer.
 
-## 5. Blocker C — concurrent first reservation must converge
+## 6. In-memory parity
 
-Current defect in the authored SQL:
+`InMemoryV2Store` must enforce the same attempt fence as Supabase.
 
-- `company_v2_reserve_turn` does `SELECT ... FOR UPDATE`;
-- if no row exists it performs a plain INSERT;
-- two simultaneous initial reservations can both observe no row and one can fail on the primary-key conflict instead of returning the canonical processing job.
+Do not let a stale attempt succeed only because tests share mutable object references.
 
-Required:
+Required behavior:
 
-- make initial reservation transactionally race-safe;
-- concurrent first submissions for the same `(game_id, turn_number)` must converge on exactly one canonical row;
-- at most one caller becomes the creator/Story owner;
-- losing callers deterministically receive the existing processing/terminal job as reconnect/non-created, not an unhandled unique violation;
-- never overwrite a processing or committed action with a replacement action;
-- explicit retry semantics for an already-failed row remain as previously accepted;
-- no advisory-lock system or generic job framework unless strictly necessary; prefer the smallest PostgreSQL row/unique-conflict pattern.
+- retry increments `attempt_no` and replaces `action_id` on the canonical row;
+- an old fence from attempt 1 cannot update progress, fail, or commit after attempt 2 has started;
+- attempt 2 can still progress/commit normally;
+- one canonical job row remains.
 
-Add a regression that exercises the production persistence contract/race shape rather than only the in-memory store behavior.
+## 7. Required regression — exact stale-wakeup sequence
 
-## 6. Blocker D — frontend failed terminal is immediately retryable
+Add one direct scenario regression, not just source-regex proof:
 
-Current defect:
+1. reserve attempt 1 and capture its immutable fence;
+2. advance clock / expire its lease to `failed`;
+3. explicitly retry the same turn as attempt 2 and confirm `attempt_no=2` + new `action_id`;
+4. simulate old attempt 1 waking up;
+5. prove old attempt 1 cannot:
+   - update Story progress;
+   - mark attempt 2 failed;
+   - commit a turn;
+6. prove state/history remain unchanged by all stale writes;
+7. then let attempt 2 complete successfully;
+8. prove committed `literal_action`, Story text, parsed blocks/summary, and job identity all belong to attempt 2;
+9. prove exactly one job row and exactly one committed gameplay turn exist.
 
-- `frontend-v2/readStream()` handles `terminal: committed` but ignores `terminal: failed`;
-- after an SSE failure, `state.retryFailed` is not immediately armed and the user receives no clear terminal failure state;
-- the next click first re-discovers the failed job instead of being the explicit retry attempt.
+Also keep regressions for:
 
-Required:
-
-- on `terminal: failed`:
-  - show a clear user-visible failure/status message;
-  - preserve the literal input in the input control;
-  - reconcile/render the returned canonical failed context or fetch it once from `/api/v2/context`;
-  - set client retry intent from canonical `job.status === 'failed'`;
-  - re-enable input/send through the normal submit `finally` path;
-- the next user click is the one explicit retry submission with a new `action_id` and `retry_failed=true`;
-- do not auto-submit, auto-retry, regenerate, or create a hidden timer-based retry;
-- non-SSE JSON error responses must surface their actual server error cleanly rather than failing through an undefined data object.
-
-## 7. Required focused tests
-
-Keep the suite compact. Add/adjust tests proving at minimum:
-
-1. Story first-content timeout aborts and terminalizes the job failed; Story call count remains 1;
-2. Story total timeout aborts and terminalizes failed; no Observation/Commit follows;
-3. Observation timeout/failure is fail-open and valid Story still commits;
-4. abandoned durable processing job older than the lease bound becomes terminal `failed` on subsequent server interaction without any Story call;
-5. stale terminalization preserves committed turn/history/state;
-6. explicit retry after stale terminalization reopens the same row with incremented `attempt_no`;
-7. simultaneous initial DB reservations converge on one canonical row and one creator instead of a unique-violation error;
-8. simultaneous explicit failed-row retries still produce one processing attempt;
-9. frontend handles SSE `terminal: failed`, preserves literal input, surfaces failure, and arms the next explicit retry;
-10. frontend does not automatically retry;
-11. JSON error response handling surfaces the server error;
-12. all deployment-boundary, CORS, API-base, model-role, DB-store, reconnect, clean-room/import-boundary tests remain green.
+- provider timeouts;
+- stale lease terminalization;
+- initial reservation race convergence;
+- simultaneous explicit retries;
+- frontend failed-terminal explicit retry;
+- reconnect/history/summary/MM;
+- CORS/deployment configs/model roles;
+- clean-room import boundary.
 
 Do not port old v1 tests.
 
 ## 8. Safety / forbidden
 
-This remains source/test/PR only.
+Source/test/PR only.
 
 Do NOT:
 
 - apply any migration;
 - deploy either v2 Worker;
-- create/play a live v2 game;
-- write/reset/reseed/replay/revise any preserved v1 game;
+- create or play a live v2 game;
+- mutate/reset/reseed/replay/revise any preserved v1 game;
 - access Production/hospital-v2;
 - change provider or configured model values;
 - add automatic Story/Observation retry/regeneration;
-- add semantic router/verifier/classifier/generic job framework;
+- add semantic router/verifier/classifier, generic job framework, compatibility shadow writer, or second canonical row;
 - merge PR #87;
 - create another PR/branch/task;
 - start CSA/clothing/navigation/Image/TTS/feedback/sexual meter or any Phase 2/3 work.
@@ -189,29 +216,29 @@ Before terminal require:
 - full repository tests: 0 fail;
 - changed JS/MJS `node --check`: PASS;
 - `git diff --check`: PASS;
-- both dedicated v2 wrangler dry-runs remain PASS;
+- both v2 Wrangler dry-runs remain PASS;
 - exact-head GitHub CI: SUCCESS;
 - PR #87 remains OPEN / DRAFT / UNMERGED / mergeable;
-- branch copy of `docs/ops/CURRENT_TASK.md` is synchronized to this current main registration and introduces no obsolete ops conflict;
+- branch copy of `docs/ops/CURRENT_TASK.md` is synchronized to this main registration;
 - zero migration apply/deploy/live game/Production/preserved-game mutation.
 
 Post one new immutable Issue #68 terminal:
 
-`COMPANY_V2_PHASE1_STUCK_TURN_CLOSURE_READY_FOR_REVIEW`
+`COMPANY_V2_PHASE1_ATTEMPT_FENCING_READY_FOR_REVIEW`
 
 Include:
 
 - exact final head;
-- previous review `5339311603`;
+- previous review `5339522677`;
 - PR #87;
 - focused/full counts;
 - exact-head CI run/job;
-- both v2 wrangler dry-run results;
+- both v2 Wrangler dry-run results;
 - changed paths;
-- proof of bounded provider timeout behavior;
-- proof of stale-processing terminalization with no LLM retry;
-- proof of race-safe initial reservation;
-- proof of immediate frontend failed-terminal explicit-retry behavior;
+- final fenced RPC signatures and superseded-signature removal proof;
+- direct stale-attempt-wakeup regression result;
+- proof that stale attempt cannot progress/fail/commit newer attempt;
+- proof that committed literal action and Story originate from the same active attempt;
 - confirmation of zero live operations.
 
-Then STOP. Do not generate the rollout task.
+Then STOP. Do not merge and do not generate the rollout task.
