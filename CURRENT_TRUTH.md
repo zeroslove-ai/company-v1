@@ -1,106 +1,126 @@
-# Company v1 Current Truth
+# Company Current Truth
 
-**Company v1 runtime/review/deploy questions must not be answered from memory alone. Read the current canon first, then verify Git/DB/deployment facts when the question depends on them.**
+**Current owner architecture decision: rebuild the gameplay runtime as Company v2 clean-room runtime.**
 
-Read in this order before any Company v1 runtime implementation, review, rollout decision, or completion approval:
+Before any Company gameplay-runtime implementation/review/deploy decision, read in this order:
 
 1. [Development Rules](AGENTS.md)
-2. [Current Truth](docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md)
-3. [Sole-Writer Decision](docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md)
-4. [Minimal Story Runtime Reset Canon — 2026-08-16](docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md)
-5. [Post-Merge Gameplay Simplification Canon — 2026-08-17](docs/COMPANY_V1_POST_MERGE_GAMEPLAY_SIMPLIFICATION_CANON_2026-08-17.md)
-6. [Hospital Reference Spine Alignment Canon — 2026-08-18](docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md)
-7. [Current Task](docs/ops/CURRENT_TASK.md)
+2. [Company v2 Clean Runtime Canon — 2026-08-19](docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md)
+3. [Current Task](docs/ops/CURRENT_TASK.md)
+4. Historical architecture/evidence only as needed:
+   - `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`
+   - `docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`
+   - `docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md`
+   - `docs/COMPANY_V1_POST_MERGE_GAMEPLAY_SIMPLIFICATION_CANON_2026-08-17.md`
+   - `docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md`
 
-`09_CURRENT_TRUTH.md` may explicitly supersede an older implementation detail in `10_SOLE_WRITER_DECISION.md` while retaining its other architecture decisions. The 2026-08-16 Minimal Story Runtime Reset Canon simplified semantic-runtime direction after live QA. The 2026-08-17 Post-Merge Gameplay Simplification Canon refined it after direct manual QA. The **2026-08-18 Hospital Reference Spine Alignment Canon is the newest owner architecture decision and controls wherever older fresh Story/Extract/reducer/continuity assumptions conflict with it.** Current source, live DB facts, exact deployed identity, Git ancestry, and immutable evidence outrank historical handoff/completion prose.
+The 2026-08-19 Clean Runtime Canon supersedes older fresh gameplay-runtime implementation assumptions wherever they conflict. Older documents remain useful evidence for product requirements and failure history, not implementation authority for Company v2.
 
-## Canonical gameplay spine
+## Owner decision — 2026-08-19
 
-The Company v1 runtime must remain explainable as one simple loop:
+The preserved manual acceptance game `df3045fd-c359-4cdc-8783-357ddfebe398` failed after 7 committed turns with simultaneous defects in turn concurrency/client stage ownership, CSA synthetic-turn semantics, player-vs-NPC identity, summary/Mind Monitor reliability, physical observation, and committed protocol hygiene.
 
-`literal player input / current literal choice`
-→ `Story LLM authors the player-visible narrative from minimal committed context`
-→ `one lightweight Extract call observes only narrow current-product facts plus summary and Mind Monitor`
-→ `small deterministic reducers own the few retained machine states`
-→ `Commit structurally validates/provenances and persists through the single durable transaction boundary`
-→ `game_save + game_turns become the committed authority`
-→ `context/history/UI and the next Story read that committed authority`
-→ repeat.
+The owner therefore ended the existing runtime repair loop.
 
-The frontend coordinates stages and renders committed state; it is not a gameplay semantic writer. `game_actions` is in-flight turn/workflow state, `game_turns` is committed turn history, and `game_save` is current durable world/game state.
+### Frozen old runtime
 
-Architecture review must ask of every module, enum, gate, projection, compatibility adapter, or side system: **where does it attach to this spine, and why does it exist?** If it is not required for structural integrity or a concrete current product mechanic, delete it rather than preserving it as compatibility architecture.
+The current Company v1 gameplay runtime is historical/reference code during v2 work.
 
-### Core authority boundaries
+Do not:
 
-- **Story** owns narrative presentation and natural NPC/world response to committed facts and the literal player action.
-- **Extract** is one narrow post-Story observer call. Open narrative meaning must not require finite event/relation/emotion/posture/sexual taxonomies. The same call may also produce natural-language `turn_summary` and `mind_monitor`, but those do not gain durable semantic authority merely because they share the response.
-- **Deterministic reducers** own only retained current-product machine mechanics. Fresh observation evidence should use one actor-scoped vocabulary consumed directly rather than multiple translating evidence shapes.
-- **Commit** owns structural validation, identity/evidence provenance, action/turn ownership, transactionality, idempotence/dedupe/replay, and one durable save transition. Commit must not become another narrative interpreter.
-- **DB** owns durable state/history and structural integrity, not a duplicate semantic world definition.
-- **Context/history** are readback of committed authority. Narrative memory remains latest six raw committed turns plus older chronological natural-language summaries; an older committed turn with an empty summary must remain represented through a deterministic bounded projection of its already committed raw Story rather than disappearing from memory.
+- continue symptom repair on the old fresh runtime;
+- merge old PR #82 or equivalent old-runtime repair PRs;
+- use old runtime-core/Extract/client pending-stage code as the implementation base;
+- preserve old tests/compatibility merely to make v2 resemble v1;
+- migrate old saves/games into v2 during initial development.
 
-### Deletion-first rule
+All preserved manual/QA/evidence games are read-only.
 
-When fixing gameplay, do not add a new gateway/verifier/router merely because an older path is broken. First remove duplicated or obsolete authority, then reconnect the smallest required path.
+### What remains product canon
 
-Do not reintroduce generic relationship/event/open-fact/work/sexual ledgers, finite physical-action grammar, general CSA execution DSL, consent matrices, retry-until-lucky behavior, or semantic server fallback choices.
+Keep the Company product:
 
-A historical migration, test, comment, or UI reader is not by itself proof that a fresh runtime subsystem must survive.
+- company setting, departments, roles and character personalities;
+- registered character and location identities;
+- player literal action/choice fidelity;
+- CSA rule/preset product definitions;
+- streaming narrative UX;
+- relevant Mind Monitor presentation;
+- later image/TTS sidecars;
+- player freedom and natural Story-first play.
 
-The 2026-08-18 manual 33-turn evidence is interpreted as one structural class: **the fresh observation boundary remains over-fragmented**. Physical evidence vocabulary mismatch, half-alive player sexual state, blank summaries, blank Mind Monitor, stale focal state, and overly narrow exact-NPC navigation are not authorization to build six new subsystems.
+These product requirements do not require the old runtime implementation.
 
-### Side-system rule
+## Company v2 canonical spine
 
-Side systems may attach to the spine but must not redefine whether a narrative fact occurred:
+```text
+literal player action
+→ one server-owned turn request
+→ Story LLM streams narrative
+→ one small typed post-Story observation
+→ small deterministic reducer
+→ one atomic v2 durable commit
+→ next turn/readback
+```
 
-- **CSA** is a narrow institutional rule/lifecycle/context system. Once active and applicable, the exact rule is an ordinary in-force premise from its effective time. Personal dislike/embarrassment may shape reaction but cannot make the valid rule optional. The rule changes only what it actually states and does not imply unrelated consent, obedience, comfort, affection, trust, romance, arousal, or permission. An exact finite supported preset mechanic such as four-slot `clothing_state.required_state` may synchronize that exact UI/mechanical state directly; this is not permission to rebuild a generic physical execution engine.
-- **Scene/location/presence** is structural. Durable scene must stay minimal. `focal_character_id` and `last_speaker_id` must justify an independent current consumer; if they are presentation convenience, derive them from committed current dialogue/scene instead of treating them as narrative truth. Do not add a new focus classifier.
-- **Exact navigation** may resolve one or multiple exact registered NPC mentions when all mentioned NPCs structurally resolve to the same single registered destination. Ambiguous or conflicting destinations fall back to Story; this must not expand into a generic intent parser.
-- **Compact clothing** remains a deterministic four-slot product/continuity projection. Do not expand it into a general physical ontology. Exact structured CSA clothing state may synchronize directly; ordinary Story-established clothing changes use the one fresh actor-scoped evidence path.
-- **Physical continuity** beyond compact clothing survives only when a concrete current consumer is proven. Free `position_label` is not automatically durable. Do not preserve a posture taxonomy for its own sake.
-- **Player sexual state** may remain only as a narrow displayed gameplay mechanic with one coherent fresh writer and deterministic reducer. It must not require a generic sexual-event ledger. If current product ownership cannot justify it, remove writer/state/UI/tests together rather than keeping zombie fields.
-- **Setup catalogs and stable registered character/location IDs** are intentional finite product/content identity.
-- **Choices** are provider-authored exactly four literal strings. Opening choices are valid only before later committed choices exist; after turn 1 the newest committed `game_turns.choices` is the only choice source. Clicking a choice must preserve its literal through `game_actions.player_action` and Story input.
-- **Mind Monitor** is generated in the **same Extract call**, Hospital-style, but is presentation-only. It does not require exact quote provenance, may be missing/partial, gets no retry solely for completion, cannot fail Commit, and cannot become hard next-Story truth by itself.
-- **Image/media and TTS** remain presentation sidecars and may not block or redefine the narrative turn.
+The browser never owns Story→Extract→Commit stage progression or automatic LLM retries.
 
-### Company setting vs work authority
+The new runtime uses physically separate v2 code and new mutable v2 persistence. Existing static content/catalogs and narrowly proven infrastructure utilities may be reused through explicit clean interfaces. `runtime-v2` must not import old gameplay-engine modules.
 
-Company v1 remains a company setting. Keep departments, roles, offices, hierarchy, coworkers, maps, and company identity.
+## Initial persistence authority
 
-Do **not** force every scene to pursue work. Fresh runtime is to remove `work_hook`, default first-work goals/focus, universal `workplace fiction` style mandates, and equivalent onboarding/work agenda from Story/Opening/save/RPC writers. Work may occur naturally because the setting is a company; it is context, not a mandatory narrative quest.
+V2 durable truth is isolated from old mutable runtime tables:
 
-### Character canon
+- `company_v2_games`
+- `company_v2_state`
+- `company_v2_turn_jobs`
+- `company_v2_turns`
 
-Department/position/role remain identity. Heroine prompt cards should primarily define the person: personality, voice, pride/insecurity, humor, habits, emotional expression, social/intimacy style. Do not duplicate every role as a permanent professional-behavior directive.
+Exact table names may change once during Phase 1 review, but the isolation rule is binding. V2 gameplay must not be forced through old `game_actions/game_save/game_turns` compatibility contracts.
 
-Active Story canon should receive compact body identity needed for consistent description. Intimate appearance facts may be projected only when confirmed four-slot clothing state makes the relevant area exposed; do not create another semantic visibility classifier.
+## Phase order
 
-### Player agency and progression
+### Phase 1
 
-Story must preserve the material actor, target, action/request, directionality, and explicit player self-state in the literal input. It may determine response/outcome but must not substitute a different actor/target/action.
+Build only a 5-turn playable vertical slice:
 
-When a direct requested action is currently executable, Story should advance it to a meaningful result in the same turn rather than defaulting to repeated preparation/wait/continue loops. Enforce this through a compact Story contract and provider/manual scenarios, not a new semantic verifier.
+- v2 game fixture/opening;
+- server-owned streaming `/api/v2/turn`;
+- literal action;
+- Story;
+- exactly four choices;
+- minimal scene/time;
+- one typed observation;
+- summary + relevant Mind Monitor;
+- durable v2 state/history;
+- reconnect to the same in-flight job;
+- no automatic retries.
 
-### Opening simplification
+Then deploy TEST and stop for owner 5-turn manual play.
 
-Fresh Opening needs only player identity, time/day, location, primary actor, optional supporting actor, company/world identity, and the private app premise. Durable `work_hook` and semantic work goal/focus are not required.
+### Phase 2
 
-### Acceptance principle
+Only after Phase 1 manual acceptance:
 
-Passing transport/transaction/unit tests or an `ACCEPTED` code report must not be described as product-play success unless actual player scenarios pass. Optional observation failure should lose only that optional projection, never a correct Story turn.
+- exact navigation;
+- CSA as a non-gameplay transaction;
+- four-slot clothing.
 
-For the Hospital Reference Spine Alignment work, **automated Codex/Hermes long live gameplay is not product acceptance.** After exact merged-main TEST deploy and structural/API smoke, prepare a fresh manual TEST game/URL and stop at `WAITING_USER_LIVE_ACCEPTANCE`. The user performs the long 30–50+ turn acceptance play. Live testing is deliberately a late final stage.
+Then owner 10-turn manual play.
 
-## Owner architecture state — 2026-08-18
+### Phase 3
 
-PR #78 landed as main `196e4ef632017c88c27f76c2d00a77f8ce194f7c` and repaired the proven absent-NPC clothing CSA bootstrap seam.
+Only after Phase 2 acceptance:
 
-PR #79 subsequently landed as main `5654fe20a5d39c6fd4c9d2e94c7d450e331bc83d` while the prior `user-live-turn33-continuity-contract-repair-v1` task was still the active implementation direction. That merge is current source fact and must be inspected rather than reverted by assumption.
+- player sexual meter if still desired;
+- v2-native feedback revision;
+- image/TTS sidecars;
+- longer manual play.
 
-The **task framing** of `user-live-turn33-continuity-contract-repair-v1` is now superseded by the broader [Hospital Reference Spine Alignment Canon](docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md). Its individual repairs/evidence may remain valid, but further work must evaluate them inside the simpler one-Extract/one-evidence-boundary design and delete redundant hotfix residue rather than layering another compatibility path.
+Do not front-load legacy compatibility or hundreds of old tests before the first playable slice.
 
-Proposed next implementation identity: `hospital-reference-spine-alignment-v1`.
+## Stop / execution authority
 
-No architecture canon by itself authorizes Codex/Hermes execution, merge, Worker deploy, DB write, TEST gameplay, Production access, or migration. Execution requires an explicit `Status: READY` task. `WAITING_OWNER_DECISION` / `WAITING_REVIEW` remain stop states.
+`docs/ops/CURRENT_TASK.md` is the sole execution authority.
+
+`WAITING_OWNER_DECISION` and `WAITING_REVIEW` are stop states. A new v2 task may start only from an explicit READY registration after any previous watcher lease is safely terminal.
