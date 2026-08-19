@@ -76,7 +76,7 @@ test('context enrichment keeps active display fields and omits dead projections'
   assert.ok(Array.isArray(enriched.data.context.display.map_locations));
   assert.ok(enriched.data.context.display.npc_default_locations);
   assert.equal(enriched.data.context.display.character_details, undefined);
-  assert.ok(enriched.data.context.display.player_sexual);
+  assert.equal(enriched.data.context.display.player_sexual, undefined);
 });
 
 test('app enrichment keeps canonical app data without finder projections', () => {

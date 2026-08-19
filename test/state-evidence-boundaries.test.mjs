@@ -11,9 +11,10 @@ test('physical/clothing state requires exact Story evidence', () => {
   assert.ok(result.warnings.length > 0);
 });
 
-test('player sexual mechanics remain evidence-gated and separate from relationship state', () => {
-  const result = reducePlayerSexualObservation({ save: { player_sexual_state: { arousal: 0 } }, sexual: { arousal_delta: 2 }, evidence: {}, storyText: '', expectedTurn: 1 });
-  assert.equal(result.state.arousal, 0);
+test('deleted numeric player sexual mechanics do not reappear from Extract', () => {
+  const result = reducePlayerSexualObservation({ save: { player_sexual_state: { arousal: 0, ejaculation_progress: 20 } }, sexual: { arousal_delta: 2, ejaculation_progress_delta: 3 }, evidence: {}, storyText: '', expectedTurn: 1 });
+  assert.deepEqual(result.state, { erection_state: 'unknown', updated_turn: 1 });
+  assert.ok(result.warnings.length >= 2);
 });
 
 test('actor-scoped physical evidence authorizes exact NPC position changes', () => {
@@ -25,12 +26,12 @@ test('actor-scoped physical evidence authorizes exact NPC position changes', () 
     evidence: { actors: { npc1: {
       character_id: 'npc1',
       changed: ['npc_scene_state.npc1.position_label'],
-      quote: 'NPC stands by the window'
+      quote: 'A person stands by the window'
     } } },
-    storyText: 'NPC stands by the window.',
+    storyText: 'A person stands by the window.',
     expectedTurn: 1,
     npcIds: new Set(['npc1']),
-    master: { characters: [{ character_id: 'npc1', name: 'NPC' }] },
+    master: { characters: [{ character_id: 'npc1', name: 'Canonical Name' }] },
     sceneBefore: save.scene,
     sceneAfter: save.scene,
     observedNpcIds: new Set(['npc1'])
@@ -56,18 +57,19 @@ test('actor mismatch cannot authorize another NPC physical state', () => {
   assert.equal(result.state.position_label, 'seated');
 });
 
-test('retained player sexual state updates only from exact Story evidence', () => {
+test('retained player erection state updates only from exact Story evidence', () => {
   const result = reducePlayerSexualObservation({
-    save: { player_sexual_state: { arousal: 10 } },
-    sexual: { arousal_delta: 2, erection_state: 'erect' },
+    save: { player_sexual_state: { arousal: 10, ejaculation_count: 3 } },
+    sexual: { erection_state: 'erect' },
     evidence: { actors: { player: {
       character_id: 'player',
-      changed: ['player_sexual_state.arousal_delta', 'player_sexual_state.erection_state'],
+      changed: ['player_sexual_state.erection_state'],
       quote: 'The player is erect as their heart races'
     } } },
     storyText: 'The player is erect as their heart races.',
     expectedTurn: 2
   });
-  assert.equal(result.state.arousal, 12);
   assert.equal(result.state.erection_state, 'erect');
+  assert.equal('arousal' in result.state, false);
+  assert.equal('ejaculation_count' in result.state, false);
 });

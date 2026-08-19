@@ -136,7 +136,7 @@ export function createSupabaseClient(env, fetchImpl) {
       const query = new URLSearchParams({
         character_id: `eq.${characterId}`, active: 'eq.true', image_pool: `eq.${pool}`,
         select: 'image_id,character_id,situation,tags,image_pool,is_sexual,curation_rank,image_url',
-        order: 'curation_rank.asc.nullslast', limit: '8'
+        order: 'curation_rank.asc.nullslast'
       });
       const payload = await request(`${baseUrl}/rest/v1/image_library?${query}`, { method: 'GET' });
       return Array.isArray(payload) ? payload : [];

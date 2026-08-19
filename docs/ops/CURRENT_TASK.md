@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: user-live-25turn-spine-integrity-v1
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -368,7 +368,60 @@ Absolute prohibitions:
 
 Read-only TEST/GitHub evidence inspection is allowed. The manual game is immutable evidence.
 
-## 7. Deliverables / stop boundary
+## 7. Execution result — WAITING_REVIEW
+
+- `START_HEAD`: `e54599552ca28e37067c1f8d7733e3cf3562360f`.
+- `IMPLEMENTATION_HEAD`: `f7342a3` (`fix: restore spine integrity contracts`), pushed to `origin/company/user-live-25turn-spine-integrity-v1`.
+- Draft PR: `#85`, `OPEN`, `DRAFT`, `UNMERGED`.
+- Focused touched-contract tests: `73 PASS / 1 obsolete SKIP / 0 FAIL`.
+- Full `npm.cmd test`: `366 PASS / 1 obsolete SKIP / 0 FAIL`.
+- Syntax sweep: `node --check` PASS. `git diff --check`: PASS.
+- Preserved game `587de547-8bb7-4a92-a7c2-07f2831e2d38` was not queried or mutated by this source/test cut; no DB write, migration, reset, deploy, live gameplay, provider/model change, or Production operation was performed.
+
+### Authority map
+
+- Retained canonical writers/readback: narrow field-local Extract observations, canonical scene cast, exact clothing/physical evidence, retained erection state, committed Mind Monitor, committed media presentation hint, current-speaker TTS queue, and existing CSA progression.
+- Deleted stale authority: numeric player sexual meters/event history, dead sexual ledger module, duplicate full-name evidence gates, Commit text ownership gate, pre-Commit UI readback, and obsolete frontend recovery contract.
+- Presentation-only: image/media hint, image catalog selection, Mind Monitor rendering, and TTS queue/audio; none can block Story or Commit.
+
+### Required proof summary
+
+- Optional malformed scene/actor fields now warning-drop locally while valid summary, Mind Monitor, and independent actor domains survive; malformed root JSON remains bounded fail-closed.
+- `[THOUGHT]` is player-only in the Story contract; NPC private thought uses the same post-Story Extract Mind Monitor, and the frontend reads committed `game_turns.mind_monitor`, never `extract_delta`.
+- Exact actor ID plus exact Story quote authorizes retained concrete physical/clothing facts without a duplicate full-name gate; exact CSA clothing is bootstrapped for present registered NPCs and projected to same-turn Story.
+- `brand_strategy_office` bootstraps registered residents and exact NPC navigation preserves legitimate same-location cast without fuzzy schedules or anonymous replacement witnesses.
+- Rule text is background/direct-scope only, meaningful executable actions progress in the same turn, and intense physical scenes receive compact varied vocal/breath/body guidance without a numeric runtime validator.
+- Media derives a deterministic committed-turn sidecar, reaches active catalog tags including `cowgirl_climax`, `missionary_climax`, `squirting`, and `hypnosis_sex`, and no exact candidate is removed before selector scoring. The external Worker `direction` seam remains deferred and unmodified.
+- TTS retains the current primary speaker, drops stale older-turn queues, and the replacement active-playback contract passes without an obsolete cross-turn preservation skip.
+
+### 7.1 Correction result — review blockers addressed
+
+- Correction source/test head: `df4afa8` (`fix: address spine integrity review blockers`), pushed to `origin/company/user-live-25turn-spine-integrity-v1`.
+- Korean situation aliases now map committed `삽입`/representative real-Korean penetration wording into the deterministic `penetration` family, with a heroine-family selector regression.
+- Canonical scene default-resident bootstrap is bounded to initial/location-entry/exact target-handoff semantics; an explicit NPC exit survives the next unrelated successful turn, with regression coverage.
+- Story, Opening, and API turn projections now carry deterministic `current_time.clock_24h` (`HH:mm`) derived from canonical `minute_of_day`; noon and 13:07 regressions pass.
+- TTS tracks the active turn and cancels stale prior-turn playback when a newer committed turn arrives while preserving same-turn current-primary playback.
+- The obsolete skipped cross-turn TTS preservation test was deleted; the active queue-pruning and active-playback cancellation contracts pass.
+- Correction focused contracts: `43 PASS / 0 SKIP / 0 FAIL`.
+- Correction full `npm.cmd test`: `370 PASS / 0 SKIP / 0 FAIL`.
+- Correction syntax sweep: `node --check` PASS. `git diff --check`: PASS.
+- Preserved game `587de547-8bb7-4a92-a7c2-07f2831e2d38` remains untouched; no DB write, migration/reset, deploy, live gameplay, provider/model change, or Production operation was performed.
+
+- Media correction now maps representative Korean situations to the intended family; the external Worker `direction` seam remains deferred and unmodified.
+- TTS correction retains the current primary speaker, drops stale older-turn queues, and cancels active older-turn playback when a newer committed turn arrives; no obsolete cross-turn preservation skip remains.
+
+### 7.2 Correction result — same-location NPC rehydration blocker addressed
+
+- Second correction source/test head: `d1d60ef` (`fix: preserve exits across same-location handoff`), pushed to `origin/company/user-live-25turn-spine-integrity-v1`.
+- `projectStorySaveForNavigation()` no longer merges default residents during a same-location exact-NPC handoff; it preserves the current canonical cast, adds only the exact target, and focuses that target.
+- `reduceCanonicalScene()` bootstraps default residents only at initial-scene or actual location-entry boundaries; a same-location target ID is a normal exact entrance/focus event, not a default-cast rehydration trigger.
+- Regression sequence proves default resident A exits, an unrelated successful turn preserves absence, then exact navigation to resident B keeps A absent, retains the currently present resident, adds B, and focuses B in both Story projection and Commit output.
+- Second-correction focused contracts: `44 PASS / 0 SKIP / 0 FAIL`.
+- Second-correction full `npm.cmd test`: `371 PASS / 0 SKIP / 0 FAIL`.
+- Second-correction syntax sweep: `node --check` PASS. `git diff --check`: PASS.
+- Preserved game `587de547-8bb7-4a92-a7c2-07f2831e2d38` remains untouched; no DB write, migration/reset, deploy, live gameplay, provider/model change, or Production operation was performed.
+
+## 8. Deliverables / stop boundary
 
 Deliver:
 

@@ -22,7 +22,8 @@ function exactStoryEvidence(evidence, path, narrativeText, characterName = '') {
   if (!quote) return false;
   const text = typeof narrativeText === 'string' ? narrativeText : '';
   if (!text.includes(quote)) return false;
-  if (typeof characterName === 'string' && characterName.trim() && !quote.includes(characterName.trim())) return false;
+  // Actor-scoped evidence is already the identity authority. Requiring the
+  // full display name again rejects valid natural Korean prose.
   return true;
 }
 

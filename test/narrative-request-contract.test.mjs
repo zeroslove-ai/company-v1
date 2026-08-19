@@ -42,11 +42,30 @@ test('Story request carries current time, player intent, and no retired semantic
   const messages = buildStoryPrompt({ edition, context: context(), playerAction: action, expectedTurn: 2, npcIds: new Set() });
   const payload = JSON.parse(messages[1].content);
   assert.equal(messages[0].role, 'system');
-  assert.deepEqual(payload.context.current_time, { day: 2, minute_of_day: 1320 });
+  assert.deepEqual(payload.context.current_time, { day: 2, minute_of_day: 1320, clock_24h: '22:00' });
   assert.equal(payload.player_action, action);
   for (const retired of ['npc_stats', 'npc_relationship_state', 'csa_attitudes', 'player_dialogue_policy', 'target_authority', 'possible_entrants', 'remote_contacts']) {
     assert.equal(JSON.stringify(payload).includes(retired), false, retired);
   }
+});
+
+test('Story context exposes deterministic unambiguous 24-hour noon and afternoon clocks', () => {
+  const make = minute_of_day => buildStoryContextProjection({
+    ...context(),
+    save: { data: { ...context().save.data, world_state: { game_time: { day: 1, minute_of_day } } } }
+  }, [], {});
+  assert.equal(make(720).current_time.clock_24h, '12:00');
+  assert.equal(make(787).current_time.clock_24h, '13:07');
+});
+
+test('Story contract keeps THOUGHT player-only and restores same-turn clothing, progression, and vocal guidance', () => {
+  const story = buildStoryPrompt({ edition, context: context(), playerAction: 'perform the executable request now', expectedTurn: 2, npcIds: new Set() });
+  const text = story[0].content;
+  assert.match(text, /THOUGHT.*player-only/);
+  assert.match(text, /NPC private thought belongs to the same post-Story Extract Mind Monitor/);
+  assert.match(text, /clothing_projection\.required_state/);
+  assert.match(text, /meaningful same-turn consequence/);
+  assert.match(text, /vocal, breath, and body reactions/);
 });
 
 test('Story context preserves six raw turns and chronological older summaries', () => {

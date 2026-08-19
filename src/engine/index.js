@@ -1,6 +1,6 @@
 export { GameCoreError } from './errors.js';
 export { createEditionAdapter, validateEditionAdapter } from './edition.js';
-export { buildStoryPrompt, buildRegenerationFeedbackSection } from './story-prompt.js';
+export { buildStoryPrompt, buildRegenerationFeedbackSection, formatClock24 } from './story-prompt.js';
 export { buildStoryWorldProjection } from './csa/story-projection.js';
 export {
   buildInstitutionalSegments,

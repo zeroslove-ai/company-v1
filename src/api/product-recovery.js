@@ -54,7 +54,6 @@ export function buildFullPlayerInfo(save, edition) {
   const canonical = resolvePlayerCanonicalNames(player, catalogs);
   const scene = object(save?.player_scene_state);
   const worldScene = readCanonicalSceneV1(save);
-  const sexual = object(save?.player_sexual_state);
   const active = getApplicableCsaEntries(save);
   const capability = calculateCsaCapability(save, active.length);
   return {
@@ -77,9 +76,9 @@ export function buildFullPlayerInfo(save, edition) {
     posture: text(scene.posture),
     posture_detail: text(scene.posture_detail ?? scene.posture_description),
     clothing: clothingSummary(scene.clothing),
-    arousal: numberOrNull(sexual.arousal) ?? 0,
-    ejaculation_progress: numberOrNull(sexual.ejaculation_progress ?? sexual.ejaculation_meter) ?? 0,
-    ejaculation_count: numberOrNull(sexual.ejaculation_count) ?? 0,
+    erection_state: ['unknown', 'flaccid', 'partial', 'erect'].includes(save?.player_sexual_state?.erection_state)
+      ? save.player_sexual_state.erection_state
+      : 'unknown',
     level: capability.current_level,
     exp: capability.exp,
     next_level_exp: capability.next_level_exp,

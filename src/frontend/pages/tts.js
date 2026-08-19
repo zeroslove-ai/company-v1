@@ -63,6 +63,8 @@ export function createCompanyTts({
   const cachedAudioUrls = new Map();
   const queue = [];
   let inFlightKey = null;
+  let inFlightJob = null;
+  let activePlaybackResolver = null;
   let drainPromise = null;
   let generation = 0;
   let playing = false;
@@ -98,12 +100,19 @@ export function createCompanyTts({
     if (!audio || typeof audio.addEventListener !== 'function') return Promise.resolve();
     return new Promise(resolve => {
       let settled = false;
-      const finish = () => { if (settled) return; settled = true; for (const type of ['ended', 'error', 'abort', 'emptied']) audio.removeEventListener?.(type, finish); resolve(); };
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        if (activePlaybackResolver === finish) activePlaybackResolver = null;
+        for (const type of ['ended', 'error', 'abort', 'emptied']) audio.removeEventListener?.(type, finish);
+        resolve();
+      };
+      activePlaybackResolver = finish;
       for (const type of ['ended', 'error', 'abort', 'emptied']) audio.addEventListener(type, finish, { once: true });
     });
   }
   function stop() {
-    generation += 1; queue.length = 0; queuedKeys.clear(); inFlightKey = null; playing = false;
+    generation += 1; queue.length = 0; queuedKeys.clear(); inFlightKey = null; inFlightJob = null; activePlaybackResolver?.(); activePlaybackResolver = null; playing = false;
     audio?.pause?.(); if (audio) { audio.currentTime = 0; audio.removeAttribute?.('src'); audio.load?.(); }
     show(''); updateReplay();
   }
@@ -116,6 +125,20 @@ export function createCompanyTts({
     for (let index = queue.length - 1; index >= 0; index -= 1) {
       const job = queue[index];
       if (job.turnNumber === turnNumber && job.identity !== currentIdentity) {
+        queuedKeys.delete(job.key); queue.splice(index, 1);
+      }
+    }
+  }
+  function removeStaleTurnJobs(turnNumber) {
+    if (inFlightJob && turnNumber !== null && inFlightJob.turnNumber !== turnNumber) {
+      generation += 1;
+      activePlaybackResolver?.(); activePlaybackResolver = null;
+      audio?.pause?.();
+      if (audio) { audio.currentTime = 0; audio.removeAttribute?.('src'); audio.load?.(); }
+    }
+    for (let index = queue.length - 1; index >= 0; index -= 1) {
+      const job = queue[index];
+      if (job.turnNumber !== turnNumber) {
         queuedKeys.delete(job.key); queue.splice(index, 1);
       }
     }
@@ -136,9 +159,11 @@ export function createCompanyTts({
         while (queue.length) {
           const job = queue.shift(); queuedKeys.delete(job.key);
           if (!enabled) continue;
+          inFlightJob = job;
           inFlightKey = job.key;
           try { await playJob(job); } catch (error) { show('TTS 재생에 실패했습니다.', true); }
           if (inFlightKey === job.key) inFlightKey = null;
+          if (inFlightJob === job) inFlightJob = null;
         }
       } finally { playing = false; updateReplay(); }
     })().finally(() => { drainPromise = null; });
@@ -155,6 +180,7 @@ export function createCompanyTts({
     const viewModel = getViewModel?.();
     const turnNumber = viewModel?.turn?.committed_turn ?? viewModel?.turn?.turn_number ?? null;
     removeSupersededRevisionJobs(turnNumber, identity);
+    removeStaleTurnJobs(turnNumber);
     for (const batch of batches()) enqueue(batch, identity, turnNumber, cachedAudioUrls.get(keyFor(batch, identity)) ?? null);
     updateReplay(); return true;
   }
@@ -169,5 +195,5 @@ export function createCompanyTts({
   toggle?.addEventListener?.('click', () => { const next = !enabled; setEnabled(next); if (next) void primeAudio(); });
   replayButton?.addEventListener?.('click', () => { void replayLatest(); });
   updateToggle(); updateReplay();
-  return { onCommittedTurn, replayLatest, primeAudio, setEnabled, stop, drain, queue, get state() { return { queuedKeys, inFlightKey, completedKeys, cachedAudioUrls, enabled, generation }; } };
+  return { onCommittedTurn, replayLatest, primeAudio, setEnabled, stop, drain, queue, get state() { return { queuedKeys, inFlightKey, inFlightTurnNumber: inFlightJob?.turnNumber ?? null, completedKeys, cachedAudioUrls, enabled, generation }; } };
 }

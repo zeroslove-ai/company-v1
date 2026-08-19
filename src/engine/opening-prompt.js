@@ -1,6 +1,6 @@
 import { buildActiveCharacterCanon } from './gameplay-state.js';
 import { buildOpeningPlayerProjection } from './player-setup.js';
-import { FRESH_MARKER_GRAMMAR, PROVIDER_CHOICE_OUTPUT_PROTOCOL } from './story-prompt.js';
+import { FRESH_MARKER_GRAMMAR, PROVIDER_CHOICE_OUTPUT_PROTOCOL, formatClock24 } from './story-prompt.js';
 
 const BACKGROUND_MAX = 120;
 const OPENING_BODY_HEADER = '[1. \uC11C\uC0AC \uBC0F \uD589\uB3D9]';
@@ -71,6 +71,7 @@ export function buildOpeningPrompt({ edition, player, canonical, openingPlan } =
         turn_context: {
           day: 1,
           minute_of_day: Number.isInteger(openingPlan?.minute_of_day) ? openingPlan.minute_of_day : null,
+          clock_24h: formatClock24(openingPlan?.minute_of_day),
           location_id: openingPlan?.location_id ?? null,
           location_name: openingPlan?.location_name ?? null
         },

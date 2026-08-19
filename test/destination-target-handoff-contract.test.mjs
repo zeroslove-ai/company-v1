@@ -52,6 +52,9 @@ const sameLocationSave = {
     updated_turn: 4
   }
 };
+const officeResidents = ['general_park_jungwoo', 'heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5'];
+const sameLocationCast = ['heroine3', 'heroine1'];
+const sameLocationTargetCast = ['heroine3', 'heroine1', 'heroine2'];
 
 function exactNavigation(save = sourceSave) {
   return resolvePlayerNavigationIntent({ save, master, mapLocations, playerAction: action });
@@ -89,23 +92,22 @@ test('exact registered NPC navigation keeps the canonical destination and target
   });
 });
 
-test('destination Story save and cast contain only the exact registered target', () => {
+test('destination Story save and cast bootstrap all configured registered residents plus the exact target', () => {
   const projected = projectStorySaveForNavigation(sourceSave, exactNavigation(), { master, mapLocations });
   assert.equal(projected.scene.location_id, 'brand_strategy_office');
-  assert.deepEqual(projected.scene.present_npc_ids, ['heroine2']);
-  assert.equal(projected.scene.present_npc_ids.includes('heroine4'), false);
+  assert.deepEqual(projected.scene.present_npc_ids, officeResidents);
 
   const projection = buildStoryCharacterProjection({
     edition,
     playerAction: action,
     sceneCastContract: { present_npc_ids: projected.scene.present_npc_ids }
   });
-  assert.deepEqual(projection.scene_actor_ids, ['heroine2']);
+  assert.deepEqual(projection.scene_actor_ids, officeResidents);
   assert.equal(Object.hasOwn(projection.scene_actors, 'heroine2'), true);
-  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine4'), false);
+  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine4'), true);
 });
 
-test('canonical commit carries the exact destination target but not source presence', () => {
+test('canonical commit carries destination residents and never carries the old source cast', () => {
   const result = reduceGameplayCommit({
     currentSave: sourceSave,
     observation: observation({ speakers: ['heroine4'] }),
@@ -119,8 +121,7 @@ test('canonical commit carries the exact destination target but not source prese
     navigationIntent: exactNavigation()
   });
   assert.equal(result.nextSave.scene.location_id, 'brand_strategy_office');
-  assert.deepEqual(result.nextSave.scene.present_npc_ids, ['heroine2']);
-  assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine4'), false);
+  assert.deepEqual(result.nextSave.scene.present_npc_ids, officeResidents);
 });
 
 test('destination Story evidence may add a valid accompanying NPC', () => {
@@ -141,10 +142,12 @@ test('destination Story evidence may add a valid accompanying NPC', () => {
       evidence: [{ kind: 'presence', character_id: 'heroine1', location_id: 'brand_strategy_office', quote: 'heroine1 is here' }]
     }
   });
-  assert.deepEqual(result.present_npc_ids, ['heroine2', 'heroine1']);
+  assert.ok(result.present_npc_ids.includes('heroine2'));
+  assert.ok(result.present_npc_ids.includes('heroine1'));
+  assert.ok(result.present_npc_ids.includes('heroine4'));
 });
 
-test('location-only navigation does not invent a target NPC', () => {
+test('location-only navigation bootstraps configured residents without inventing an unnamed target', () => {
   const intent = resolvePlayerNavigationIntent({
     save: sourceSave,
     master,
@@ -157,7 +160,7 @@ test('location-only navigation does not invent a target NPC', () => {
     source: 'explicit_location'
   });
   const projected = projectStorySaveForNavigation(sourceSave, intent, { master, mapLocations });
-  assert.deepEqual(projected.scene.present_npc_ids, []);
+  assert.deepEqual(projected.scene.present_npc_ids, officeResidents);
 });
 
 test('same-location exact registered NPC visits hand off Story and Commit cast without moving time or location', () => {
@@ -171,19 +174,18 @@ test('same-location exact registered NPC visits hand off Story and Commit cast w
   const projected = projectStorySaveForNavigation(sameLocationSave, sameLocation, { master, mapLocations });
   assert.equal(projected.scene.location_id, 'brand_strategy_office');
   assert.equal('scene_id' in projected.scene, false);
-  assert.deepEqual(projected.scene.present_npc_ids, ['heroine2']);
-  assert.equal(projected.scene.present_npc_ids.includes('heroine3'), false);
-  assert.equal(projected.scene.present_npc_ids.includes('heroine1'), false);
+  assert.deepEqual(projected.scene.present_npc_ids, sameLocationTargetCast);
+  assert.equal(projected.scene.focal_character_id, 'heroine2');
   assert.deepEqual(projected.world_state.game_time, sameLocationSave.world_state.game_time);
   const projection = buildStoryCharacterProjection({
     edition,
     playerAction: action,
     sceneCastContract: { present_npc_ids: projected.scene.present_npc_ids }
   });
-  assert.deepEqual(projection.scene_actor_ids, ['heroine2']);
+  assert.deepEqual(projection.scene_actor_ids, sameLocationTargetCast);
   assert.equal(Object.hasOwn(projection.scene_actors, 'heroine2'), true);
-  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine3'), false);
-  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine1'), false);
+  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine3'), true);
+  assert.equal(Object.hasOwn(projection.scene_actors, 'heroine1'), true);
 
   const result = reduceGameplayCommit({
     currentSave: sameLocationSave,
@@ -199,10 +201,71 @@ test('same-location exact registered NPC visits hand off Story and Commit cast w
   });
   assert.equal(result.nextSave.scene.location_id, 'brand_strategy_office');
   assert.equal('scene_id' in result.nextSave.scene, false);
-  assert.deepEqual(result.nextSave.scene.present_npc_ids, ['heroine2']);
+  assert.deepEqual(result.nextSave.scene.present_npc_ids, sameLocationTargetCast);
+  assert.equal(result.nextSave.scene.focal_character_id, 'heroine2');
+  assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine3'), true);
+  assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine1'), true);
+});
+
+test('an explicit NPC exit survives the next unrelated successful turn', () => {
+  const afterExit = reduceCanonicalScene({
+    currentScene: sameLocationSave.scene,
+    mapLocations,
+    master,
+    npcIds: new Set(officeResidents),
+    expectedTurn: 5,
+    observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: ['heroine3'], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
+  });
+  assert.equal(afterExit.present_npc_ids.includes('heroine3'), false);
+  const nextTurn = reduceCanonicalScene({
+    currentScene: afterExit,
+    mapLocations,
+    master,
+    npcIds: new Set(officeResidents),
+    expectedTurn: 6,
+    observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: [], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
+  });
+  assert.equal(nextTurn.present_npc_ids.includes('heroine3'), false);
+});
+
+test('same-location target handoff does not rehydrate an exited default resident', () => {
+  const afterExit = reduceCanonicalScene({
+    currentScene: sameLocationSave.scene,
+    mapLocations,
+    master,
+    npcIds: new Set(officeResidents),
+    expectedTurn: 5,
+    observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: ['heroine3'], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
+  });
+  const afterUnrelated = reduceCanonicalScene({
+    currentScene: afterExit,
+    mapLocations,
+    master,
+    npcIds: new Set(officeResidents),
+    expectedTurn: 6,
+    observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: [], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
+  });
+  const currentSave = { ...sameLocationSave, scene: afterUnrelated };
+  const navigation = exactNavigation(currentSave);
+  const projected = projectStorySaveForNavigation(currentSave, navigation, { master, mapLocations });
+  assert.deepEqual(projected.scene.present_npc_ids, ['heroine1', 'heroine2']);
+  assert.equal(projected.scene.focal_character_id, 'heroine2');
+
+  const result = reduceGameplayCommit({
+    currentSave,
+    observation: observation({ speakers: ['heroine2'], elapsed_minutes: 0 }),
+    parsedStory: { dialogue_lines: [{ speaker_id: 'heroine2' }] },
+    rawStory: 'heroine2 receives the exact registered visit at the existing office location',
+    action: { action_id: 'same-location-exit-action', turn_id: 'turn-7', action_kind: 'ordinary' },
+    expectedTurn: 7,
+    master,
+    npcIds: new Set(Object.keys(edition.characters.characters).concat(Object.keys(edition.generalNpcs.profiles))),
+    mapLocations,
+    navigationIntent: navigation
+  });
+  assert.deepEqual(result.nextSave.scene.present_npc_ids, ['heroine1', 'heroine2']);
   assert.equal(result.nextSave.scene.focal_character_id, 'heroine2');
   assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine3'), false);
-  assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine1'), false);
 });
 
 test('same-location, ambiguous, and unregistered visits remain unresolved', () => {
@@ -228,14 +291,14 @@ test('crafted unknown target and duplicate evidence cannot create a fake identit
     target_npc_id: 'fake-mina',
     source: 'explicit_npc_destination'
   }, { master, mapLocations });
-  assert.deepEqual(projected.scene.present_npc_ids, []);
+  assert.deepEqual(projected.scene.present_npc_ids, officeResidents);
   const wrongDestination = projectStorySaveForNavigation(sourceSave, {
     kind: 'player_navigation',
     destination_location_id: 'lobby',
     target_npc_id: 'heroine2',
     source: 'explicit_npc_destination'
   }, { master, mapLocations });
-  assert.deepEqual(wrongDestination.scene.present_npc_ids, []);
+  assert.deepEqual(wrongDestination.scene.present_npc_ids, ['general_oh_sehoon']);
   const result = reduceCanonicalScene({
     currentScene: sourceScene,
     authoritativeLocationId: 'brand_strategy_office',
@@ -245,7 +308,7 @@ test('crafted unknown target and duplicate evidence cannot create a fake identit
     expectedTurn: 3,
     observation: { outcome: 'success', location_id: null, entered_npc_ids: ['heroine2', 'heroine2', 'fake-mina'], exited_npc_ids: [], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
   });
-  assert.deepEqual(result.present_npc_ids, ['heroine2']);
+  assert.ok(result.present_npc_ids.includes('heroine2'));
 });
 
 test('same-destination multi-NPC navigation preserves every exact registered target', () => {
@@ -258,7 +321,7 @@ test('same-destination multi-NPC navigation preserves every exact registered tar
     source: 'explicit_npc_destination'
   });
   const projected = projectStorySaveForNavigation(sourceSave, intent, { master, mapLocations });
-  assert.deepEqual(projected.scene.present_npc_ids, ['heroine1', 'general_park_jungwoo']);
+  assert.deepEqual(projected.scene.present_npc_ids, officeResidents);
 });
 
 test('multi-NPC names without explicit movement and divergent destinations remain unresolved', () => {

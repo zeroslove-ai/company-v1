@@ -43,6 +43,7 @@ const IMAGE_SELECTION_TAGS = new Set([
   'missionary', 'doggystyle', 'cowgirl', 'anal', 'standing_rear', 'penetration',
   'facial_cumshot', 'body_cumshot', 'oral_cumshot', 'creampie', 'cumshot',
   'office_desk', 'office', 'desk', 'meeting_room', 'private_room', 'lounge', 'restroom',
+  'genital_touch', 'oral', 'orgasm', 'climax', 'cowgirl_climax', 'missionary_climax', 'squirting', 'hypnosis_sex',
   'adult', 'sex', 'general', 'default', 'portrait', 'solo', 'sexual_generic'
 ]);
 
@@ -79,10 +80,6 @@ function exposedClothingBody(character, clothing = {}) {
     visible.pubic_hair = privateInfo.pubic_hair;
   }
   return Object.keys(visible).length ? visible : null;
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
 }
 
 /**
@@ -271,29 +268,16 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
   const base = object(current) ? current : {};
   const patch = object(delta) ? delta : {};
   const state = {
-    ...base,
-    arousal: clamp(integer(base.arousal) ?? 0, 0, 100),
-    ejaculation_progress: clamp(integer(base.ejaculation_progress) ?? 0, 0, 100),
-    ejaculation_count: Math.max(0, integer(base.ejaculation_count) ?? 0),
+    erection_state: ERECTION_STATES.has(base.erection_state) ? base.erection_state : 'unknown',
     updated_turn: integer(base.updated_turn) ?? 0
   };
   const warnings = [];
-  const arousalDelta = integer(patch.arousal_delta) ?? 0;
-  if (arousalDelta !== 0) {
-    if (exactSexualEvidenceQuote(storyEvidence, 'arousal_delta', storyText)) state.arousal = clamp(state.arousal + arousalDelta, 0, 100);
-    else warnings.push('unevidenced_arousal_change');
+  for (const field of ['arousal_delta', 'ejaculation_progress_delta', 'ejaculation_completed']) {
+    if (Object.hasOwn(patch, field)) warnings.push(`unsupported_player_sexual_field_ignored:${field}`);
   }
   // 사정 진행도는 느리게 누적 — 턴당 최대 +6, 음수(자동 감소·초기화)는 폐기.
   // 단순 노출·발기·성적 대화·요청만으로는 증가하지 않도록 Extract가 작은 delta만
   // 제안하고, 여기서 서버가 상한을 보장한다. 기존 전체 진행도 clamp 0~100 유지.
-  const progressDelta = integer(patch.ejaculation_progress_delta) ?? 0;
-  if (progressDelta !== 0) {
-    if (progressDelta > 0 && exactSexualEvidenceQuote(storyEvidence, 'ejaculation_progress_delta', storyText)) {
-      state.ejaculation_progress = clamp(state.ejaculation_progress + progressDelta, 0, 100);
-    } else {
-      warnings.push('unevidenced_ejaculation_progress_change');
-    }
-  }
   // 발기 상태는 delta가 아닌 현재 물리 상태다 — evidence.player_erection의 quote가
   // 최종 Story에 정확히 존재하고 enum이 유효할 때만 갱신한다.
   // 추론 금지: arousal 수치·CSA 활성·요청·복장·이미지 태그만으로는 변경하지 않는다.
@@ -305,15 +289,6 @@ export function reducePlayerSexualState(current, delta = {}, { storyEvidence = {
       state.erection_state = erectionProposal;
     } else {
       warnings.push('unauthorized_erection_state_ignored');
-    }
-  }
-  if (patch.ejaculation_completed === true) {
-    if (!exactSexualEvidenceQuote(storyEvidence, 'ejaculation_completed', storyText)) {
-      warnings.push('unauthorized_ejaculation_completion_ignored');
-    } else {
-      state.ejaculation_count += 1;
-      state.ejaculation_progress = 0;
-      state.arousal = 0;
     }
   }
   if (integer(updatedTurn) !== null && updatedTurn >= 0) state.updated_turn = updatedTurn;

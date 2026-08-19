@@ -11,6 +11,7 @@ import {
   buildOpeningPrompt,
   buildStableNpcIdSet,
   buildStoryPrompt,
+  formatClock24,
   buildStoryWorldProjection,
   buildInstitutionalSegments,
   composeCanonicalStory,
@@ -52,7 +53,7 @@ import {
 } from '../engine/index.js';
 import { GameCoreError } from '../engine/errors.js';
 import { StoredActionAuthorityError } from '../engine/runtime-core/action-authority.js';
-import { readCanonicalSceneV1 } from '../engine/runtime-core/scene-reducer.js';
+import { readCanonicalSceneV1, defaultNpcIdsForLocation } from '../engine/runtime-core/scene-reducer.js';
 import { logTurnTiming, newRequestId } from './timing.js';
 
 function asHttpError(error) {
@@ -88,7 +89,10 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
     : [];
   if (scene.location_id === locationId) {
     if (!canonicalNpcDestination) return save;
-    const presentNpcIds = destinationTargetIds;
+    const presentNpcIds = [...new Set([
+      ...scene.present_npc_ids,
+      ...destinationTargetIds
+    ])];
     return {
       ...save,
       scene: {
@@ -96,14 +100,15 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
         location_id: scene.location_id,
         updated_turn: scene.updated_turn,
         present_npc_ids: presentNpcIds,
-        focal_character_id: presentNpcIds[0],
+        focal_character_id: destinationTargetIds[0] ?? presentNpcIds[0] ?? null,
         last_speaker_id: null
       }
     };
   }
-  const presentNpcIds = canonicalNpcDestination
-    ? destinationTargetIds
-    : [];
+  const presentNpcIds = [...new Set([
+    ...defaultNpcIdsForLocation({ save, master, mapLocations }, locationId),
+    ...(canonicalNpcDestination ? destinationTargetIds : [])
+  ])];
   return {
     ...save,
     scene: {
@@ -111,7 +116,7 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
       location_id: locationId,
       updated_turn: scene.updated_turn,
       present_npc_ids: presentNpcIds,
-      focal_character_id: presentNpcIds[0] ?? null,
+      focal_character_id: destinationTargetIds[0] ?? presentNpcIds[0] ?? null,
       last_speaker_id: null
     }
   };
@@ -173,13 +178,15 @@ function plainObject(value) {
 
 function turnContextFor({ save = {}, locationId = null, mapLocations = [] } = {}) {
   const time = plainObject(save?.world_state?.game_time) ? save.world_state.game_time : {};
+  const minuteOfDay = Number.isInteger(time.minute_of_day) ? time.minute_of_day : null;
   const resolvedId = typeof locationId === 'string' && locationId.trim()
     ? locationId.trim()
     : (typeof save?.scene?.location_id === 'string' ? save.scene.location_id : null);
   const location = (Array.isArray(mapLocations) ? mapLocations : []).find(item => item?.location_id === resolvedId);
   return {
     day: Number.isInteger(time.day) ? time.day : null,
-    minute_of_day: Number.isInteger(time.minute_of_day) ? time.minute_of_day : null,
+    minute_of_day: minuteOfDay,
+    clock_24h: formatClock24(minuteOfDay),
     location_id: resolvedId,
     location_name: typeof location?.name === 'string' ? location.name : resolvedId
   };
@@ -194,6 +201,7 @@ const IMAGE_TAG_ALLOWLIST = new Set([
   'facial_cumshot', 'body_cumshot', 'oral_cumshot', 'creampie', 'cumshot',
   // 장소·컨텍스트
   'office_desk', 'office', 'desk', 'meeting_room', 'private_room', 'lounge', 'restroom',
+  'genital_touch', 'oral', 'orgasm', 'climax', 'cowgirl_climax', 'missionary_climax', 'squirting', 'hypnosis_sex',
   // generic (성적 행동 매칭으로 보지 않음)
   'adult', 'sex', 'general', 'default', 'portrait', 'solo', 'sexual_generic'
 ]);
@@ -270,6 +278,7 @@ function openingTurnProjection(save) {
     turn_context: {
       day: 1,
       minute_of_day: Number.isInteger(opening?.plan?.minute_of_day) ? opening.plan.minute_of_day : null,
+      clock_24h: formatClock24(opening?.plan?.minute_of_day),
       location_id: opening?.plan?.location_id ?? null,
       location_name: opening?.plan?.location_name ?? null
     }

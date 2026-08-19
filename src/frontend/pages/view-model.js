@@ -15,12 +15,6 @@ function integer(value) {
   return null;
 }
 
-function numberOrNull(value) {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
-  return null;
-}
-
 function strings(value) {
   return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) : [];
 }
@@ -71,9 +65,43 @@ export function canonicalSceneView(save, projectedScene = null) {
 }
 
 function mindMonitor(turn) {
-  const extract = object(turn?.extract_delta);
-  if (extract) return extract.extract_version === 2 ? (object(extract.mind_monitor) ?? {}) : {};
+  // Extract is a pre-Commit working observation, never a readback authority.
   return object(turn?.mind_monitor) ?? {};
+}
+
+const MEDIA_ACTION_TAGS = Object.freeze([
+  'handjob', 'fellatio', 'deepthroat', 'fingering', 'cunnilingus', 'breast_sucking',
+  'missionary', 'doggystyle', 'cowgirl', 'anal', 'standing_rear', 'penetration',
+  'facial_cumshot', 'body_cumshot', 'oral_cumshot', 'creampie', 'cumshot', 'genital_touch',
+  'cowgirl_climax', 'missionary_climax', 'squirting', 'hypnosis_sex'
+]);
+const MEDIA_TAG_ALIASES = Object.freeze({
+  oral: ['fellatio', 'cunnilingus'], climax: ['cumshot'], orgasm: ['cumshot'],
+  '성기': ['genital_touch'], '성기 접촉': ['genital_touch'],
+  '구강': ['fellatio'], '구강성교': ['fellatio'], '오럴': ['fellatio'],
+  '삽입': ['penetration'], '성교': ['penetration'], '질내': ['penetration'],
+  '선교': ['missionary'], '정상위': ['missionary'], '기승위': ['cowgirl'],
+  '후배위': ['doggystyle'], '애널': ['anal'], '항문성교': ['anal'],
+  '사정': ['cumshot'], '오르가즘': ['cumshot'], '절정': ['cumshot']
+});
+
+/** Committed-text-only, presentation-only media hint; never gameplay authority. */
+export function deriveCommittedMediaHint(turn = {}, scene = {}) {
+  const parsedTurn = object(turn?.parsed_blocks) ?? {};
+  const visibleText = [
+    turn?.story_text, turn?.turn_summary,
+    ...(Array.isArray(parsedTurn.dialogue_lines) ? parsedTurn.dialogue_lines.map(line => line?.text) : [])
+  ].filter(value => typeof value === 'string' && value.trim()).join('\n').toLowerCase();
+  const tags = [];
+  for (const tag of MEDIA_ACTION_TAGS) if (visibleText.includes(tag)) tags.push(tag);
+  for (const [needle, aliases] of Object.entries(MEDIA_TAG_ALIASES)) if (visibleText.includes(needle)) tags.push(...aliases);
+  const uniqueTags = [...new Set(tags)];
+  const pool = uniqueTags.length ? 'sex' : 'general';
+  const locationId = text(scene?.location_id);
+  const contextTag = ['brand_strategy_office', 'office', 'meeting_room', 'private_room', 'lounge', 'restroom']
+    .find(tag => locationId === tag || visibleText.includes(tag));
+  if (contextTag && pool === 'general') uniqueTags.push(contextTag);
+  return { pool, tags: [...new Set(uniqueTags)], situation: text(turn?.turn_summary || turn?.story_text) };
 }
 
 function catalogName(list, idField, id) {
@@ -198,14 +226,12 @@ export function buildCompanyGameViewModel(context) {
   const directory = object(display.npc_directory) ?? {};
   const details = object(display.character_details) ?? {};
   const capability = object(display.player_capability) ?? {};
-  const sexualDisplay = object(display.player_sexual) ?? {};
   const activeRules = Array.isArray(display.active_csa) ? display.active_csa.filter(object) : [];
   const scene = canonicalSceneView(save, display.scene);
   const focalId = text(scene.focal_character_id);
   const lastSpeakerId = text(scene.last_speaker_id);
   const player = object(save.player) ?? {};
   const playerProgress = object(save.player_progress) ?? {};
-  const playerSexualState = object(save.player_sexual_state) ?? {};
   const playerSceneState = object(save.player_scene_state) ?? {};
   const focalSceneState = npcSceneView(save, focalId);
   const playerName = text(player.name);
@@ -217,9 +243,7 @@ export function buildCompanyGameViewModel(context) {
   const firstPresentFallback = [...presentNpcIds][0] ?? '';
   // Media is a deterministic post-commit sidecar; fresh Extract fields never select it.
   const imageCharacterId = lastLocalDialogueId || focalFallback || firstPresentFallback || '';
-  const imageSelection = {};
-  const imagePool = 'general';
-  const imageTags = [];
+  const mediaHint = deriveCommittedMediaHint(turn, scene);
   const monitor = mindMonitor(turn);
   const monitorEntries = mindMonitorEntries(save, monitor, scene, [imageCharacterId, focalId], directory);
 
@@ -247,7 +271,7 @@ export function buildCompanyGameViewModel(context) {
       scene_state: focalSceneState
     },
     player: {
-      state: player, stats: {}, name: playerName,
+      state: player, name: playerName,
       department: text(player.department) || catalogName(CATALOGS.departments, 'department_id', player.department_id),
       position: text(player.position) || catalogName(CATALOGS.positions, 'position_id', player.position_id),
       level: integer(capability.level) ?? integer(playerProgress.level) ?? 1,
@@ -255,11 +279,7 @@ export function buildCompanyGameViewModel(context) {
       next_level_exp: integer(capability.next_level_exp), active_csa_count: integer(capability.active_csa_count) ?? activeRules.length,
       max_active_csa: integer(capability.max_active_csa),
       active_csa: activeRules.map(rule => ({ id: text(rule.id), strength: text(rule.strength), strength_label: text(rule.strength_label), authority_label: text(rule.authority_label), scope_label: text(rule.scope_label) || '회사 전체', content: text(rule.content) })),
-      excitement: numberOrNull(sexualDisplay.arousal) ?? numberOrNull(playerSexualState.arousal),
-      ejaculation_progress: numberOrNull(sexualDisplay.ejaculation_progress) ?? numberOrNull(playerSexualState.ejaculation_progress ?? playerSexualState.ejaculation_meter),
-      ejaculation_count: numberOrNull(sexualDisplay.ejaculation_count) ?? numberOrNull(playerSexualState.ejaculation_count),
-      erection_state: ['unknown', 'flaccid', 'partial', 'erect'].includes(playerSexualState.erection_state) ? playerSexualState.erection_state : 'unknown',
-      total_sexual_events: numberOrNull(sexualDisplay.total_sexual_events), last_sexual_event: object(sexualDisplay.last_sexual_event),
+      erection_state: ['unknown', 'flaccid', 'partial', 'erect'].includes(save.player_sexual_state?.erection_state) ? save.player_sexual_state.erection_state : 'unknown',
       inner_thought: text(parsedStory.player_inner_thought),
       location_label: text((Array.isArray(display.map_locations) ? display.map_locations : []).find(location => location?.location_id === scene.location_id || location?.id === scene.location_id)?.name),
       posture: text(playerSceneState.posture), posture_detail: text(playerSceneState.posture_detail ?? playerSceneState.posture_description),
@@ -267,8 +287,8 @@ export function buildCompanyGameViewModel(context) {
     },
     media: {
       image_id: null, image_character_id: imageCharacterId,
-      image_selection: imageSelection, image_pool: imagePool, image_tags: imageTags,
-      image_situation: text(turn.turn_summary), dialogue_lines: projectedDialogueLines,
+      image_selection: mediaHint, image_pool: mediaHint.pool, image_tags: mediaHint.tags,
+      image_situation: mediaHint.situation, dialogue_lines: projectedDialogueLines,
       mind_monitor: monitor, mind_monitor_entries: monitorEntries, default_mind_character_id: monitorEntries[0]?.id ?? ''
     }
   };

@@ -94,7 +94,7 @@ function save() {
   };
 }
 
-test('full player app projection preserves setup, physical, sexual, and CSA fields', () => {
+test('full player app projection preserves setup, physical, retained erection, and CSA fields', () => {
   const info = buildFullPlayerInfo(save(), edition);
   assert.equal(info.name, '금태양');
   assert.equal(info.department, '브랜드전략팀');
@@ -108,9 +108,10 @@ test('full player app projection preserves setup, physical, sexual, and CSA fiel
   assert.equal(info.current_location, '대회의실');
   assert.equal(info.posture_detail, '회의 테이블 옆에 서 있음');
   assert.match(info.clothing, /정장 재킷/);
-  assert.equal(info.arousal, 7);
-  assert.equal(info.ejaculation_progress, 22);
-  assert.equal(info.ejaculation_count, 2);
+  assert.equal(info.erection_state, 'unknown');
+  assert.equal('arousal' in info, false);
+  assert.equal('ejaculation_progress' in info, false);
+  assert.equal('ejaculation_count' in info, false);
   assert.equal(info.active_csa.length, 1);
   assert.equal(info.active_csa[0].content, '회의 중에는 이름으로 부른다.');
 });
