@@ -11,6 +11,11 @@ function identity(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
+export function formatClock24(minuteOfDay) {
+  if (!Number.isInteger(minuteOfDay) || minuteOfDay < 0 || minuteOfDay > 1439) return null;
+  return `${String(Math.floor(minuteOfDay / 60)).padStart(2, '0')}:${String(minuteOfDay % 60).padStart(2, '0')}`;
+}
+
 function registeredEntries(edition) {
   const entries = [];
   for (const [id, character] of Object.entries(object(edition?.characters?.characters) || {})) {
@@ -90,11 +95,13 @@ export function buildStoryContextProjection(context, activeIds, { catalogs, play
   });
   const core = buildSceneContextCore(save, activeIds);
   const gameTime = object(save.world_state?.game_time) || {};
+  const minuteOfDay = Number.isInteger(gameTime.minute_of_day) ? gameTime.minute_of_day : 540;
   return {
     game: { id: identity(game.id), title: identity(game.title) },
     current_time: {
       day: Number.isInteger(gameTime.day) ? gameTime.day : 1,
-      minute_of_day: Number.isInteger(gameTime.minute_of_day) ? gameTime.minute_of_day : 540
+      minute_of_day: minuteOfDay,
+      clock_24h: formatClock24(minuteOfDay)
     },
     player: buildPlayerPromptProjection({ player, canonical, playerAction }),
     scene: core.scene,
@@ -125,7 +132,7 @@ export const DURABLE_STORY_RULES = [
   '[CSA PREMISE]',
   'An active and applicable company rule is background workplace reality from its activation/effective time. Mention or explain it when newly changed, directly questioned, or materially needed to understand the current action; otherwise let people and consequences unfold naturally without repeating the regulation. The rule changes only its exact direct meaning: it never implies indefinite continuation, general obedience, consent, comfort, affection, trust, romance, or arousal.',
   '[STORY MEMORY AND OUTPUT]',
-  'Use recent raw turns and chronological older summaries as read-only continuity. If an older summary is blank, use its bounded committed raw_story_fallback instead; a blank summary never means that turn had no continuity. The context.turn_summary_memory is compressed continuity, never a replacement for raw Story. context.current_time.day and context.current_time.minute_of_day are hard facts. Do not invent semantic ledgers or future-planning state. Write natural Korean fiction in the supplied company setting, mark spoken lines with exact dialogue ids, keep [THOUGHT] player-only and reaction-only, and never put an NPC private thought in [THOUGHT]; NPC private thought belongs to the same post-Story Extract Mind Monitor. Preserve the exact structural marker protocol.',
+  'Use recent raw turns and chronological older summaries as read-only continuity. If an older summary is blank, use its bounded committed raw_story_fallback instead; a blank summary never means that turn had no continuity. The context.turn_summary_memory is compressed continuity, never a replacement for raw Story. context.current_time.day, context.current_time.minute_of_day, and context.current_time.clock_24h are hard facts; use clock_24h as the unambiguous 24-hour display time. Do not invent semantic ledgers or future-planning state. Write natural Korean fiction in the supplied company setting, mark spoken lines with exact dialogue ids, keep [THOUGHT] player-only and reaction-only, and never put an NPC private thought in [THOUGHT]; NPC private thought belongs to the same post-Story Extract Mind Monitor. Preserve the exact structural marker protocol.',
   '[SAME-TURN CLOTHING AND PROGRESSION]',
   'If clothing_projection.required_state changes an actor current_state on this turn, describe that exact transition in the same Story and never contradict the projected post-state. When the literal player request is executable, advance it to a meaningful same-turn consequence instead of default preparation, waiting, restarting, or asking again. During intense physical action, prefer varied short vocal, breath, and body reactions in dialogue over repeated explanatory speeches; this is presentation guidance, not a numeric validator.',
   FRESH_MARKER_GRAMMAR,

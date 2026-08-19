@@ -13,6 +13,17 @@ test('committed media hint is presentation-only and ignores stale Extract media 
   assert.ok(hint.tags.includes('missionary'));
 });
 
+test('Korean committed penetration wording reaches the heroine penetration family', () => {
+  const hint = deriveCommittedMediaHint({ story_text: '상대와 삽입을 시작하고 같은 장면에서 반응이 이어진다.' }, { location_id: 'brand_strategy_office' });
+  assert.ok(hint.tags.includes('penetration'));
+  const result = selectImage([
+    { image_id: 'heroine3-office', image_url: 'https://img/office', image_pool: 'sex', curation_rank: 1, tags: ['office_desk'] },
+    { image_id: 'heroine3-missionary', image_url: 'https://img/missionary', image_pool: 'sex', curation_rank: 5, tags: ['missionary'] }
+  ], { pool: 'sex', tags: hint.tags });
+  assert.equal(result.image_id, 'heroine3-missionary');
+  assert.equal(result.source, 'family_match');
+});
+
 test('image selector does not pre-prune an exact catalog candidate', () => {
   const candidates = Array.from({ length: 8 }, (_, index) => ({ image_id: `general-${index}`, image_url: `https://img/${index}`, image_pool: 'sex', curation_rank: index }));
   candidates.push({ image_id: 'exact-low-rank', image_url: 'https://img/exact', image_pool: 'sex', curation_rank: 99, tags: ['missionary'] });

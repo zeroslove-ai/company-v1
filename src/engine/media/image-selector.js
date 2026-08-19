@@ -15,7 +15,7 @@ const GENERIC_TAGS = new Set(['adult', 'sex', 'office', 'general', 'default', 'p
 const ACTION_FAMILIES = {
   manual: ['handjob', 'fingering', 'genital_touch'],
   oral: ['fellatio', 'cunnilingus', 'deepthroat'],
-  penetration: ['missionary', 'doggystyle', 'cowgirl', 'anal', 'standing_rear'],
+  penetration: ['missionary', 'doggystyle', 'cowgirl', 'anal', 'standing_rear', 'penetration'],
   climax: ['facial_cumshot', 'oral_cumshot', 'body_cumshot', 'creampie', 'cowgirl_climax', 'missionary_climax', 'squirting', 'hypnosis_sex']
 };
 const FAMILY_OF_TAG = new Map();

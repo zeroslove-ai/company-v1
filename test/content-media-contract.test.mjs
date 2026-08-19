@@ -88,34 +88,6 @@ test('TTS replay uses the cached URL without another API request', async () => {
   assert.equal(audio.src, 'https://audio.test/replay.mp3');
 });
 
-test.skip('obsolete contract: cross-turn TTS queue preserves older queued batches before the new turn', async () => {
-  const audio = eventAudio();
-  const calls = [];
-  let viewModel = { turn: { committed_turn: 10, turn_id: 'turn-10', action_id: 'action-10' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [
-    { speaker_id: 'heroine1', text: '턴10 첫 문장', direction: '차분하게', order: 0 },
-    { speaker_id: 'heroine1', text: '턴10 두 번째 문장', direction: '속삭이듯', order: 1 }
-  ] } };
-  const controller = createCompanyTts({ api: { tts: async body => { calls.push(body.text); return { url: `https://audio.test/${calls.length}.mp3` }; } }, documentRef: { getElementById: id => id === 'audio-player' ? audio : null }, getViewModel: () => viewModel, getCommittedTurnIdentity: () => `${viewModel.turn.turn_id}:${viewModel.turn.action_id}` });
-  controller.onCommittedTurn();
-  await Promise.resolve();
-  viewModel = { turn: { committed_turn: 11, turn_id: 'turn-11', action_id: 'action-11' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [{ speaker_id: 'heroine1', text: '턴11 문장', direction: '담담하게', order: 0 }] } };
-  controller.onCommittedTurn();
-  assert.deepEqual(controller.queue.map(job => job.batch.text), ['턴10 두 번째 문장', '턴11 문장']);
-  assert.deepEqual(audio.playCalls, ['https://audio.test/1.mp3']);
-  await new Promise(resolve => setImmediate(resolve));
-  audio.end();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(calls[1], '턴10 두 번째 문장');
-  assert.equal(audio.playCalls[1], 'https://audio.test/2.mp3');
-  await new Promise(resolve => setImmediate(resolve));
-  audio.end();
-  await new Promise(resolve => setImmediate(resolve));
-  assert.equal(calls[2], '턴11 문장');
-  assert.equal(audio.playCalls[2], 'https://audio.test/3.mp3');
-  audio.end();
-  await controller.drain();
-});
-
 test('cross-turn TTS drops stale older queued batches before the new turn', async () => {
   const audio = eventAudio();
   let viewModel = { turn: { committed_turn: 10, turn_id: 'turn-10', action_id: 'action-10' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [
@@ -134,6 +106,23 @@ test('cross-turn TTS drops stale older queued batches before the new turn', asyn
   audio.end();
   await controller.drain();
   assert.ok(calls.length <= 1);
+});
+
+test('cross-turn TTS cancels active prior-turn playback before current audio', async () => {
+  const audio = eventAudio();
+  const calls = [];
+  let viewModel = { turn: { committed_turn: 10, turn_id: 'turn-10', action_id: 'action-10' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [{ speaker_id: 'heroine1', text: 'old active', order: 0 }] } };
+  const controller = createCompanyTts({ api: { tts: async body => { calls.push(body.text); return { url: `https://audio.test/${calls.length}.mp3` }; } }, documentRef: { getElementById: id => id === 'audio-player' ? audio : null }, getViewModel: () => viewModel, getCommittedTurnIdentity: () => `${viewModel.turn.turn_id}:${viewModel.turn.action_id}` });
+  controller.onCommittedTurn();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(controller.state.inFlightTurnNumber, 10);
+  viewModel = { turn: { committed_turn: 11, turn_id: 'turn-11', action_id: 'action-11' }, scene: { present_npc_ids: ['heroine1'] }, media: { dialogue_lines: [{ speaker_id: 'heroine1', text: 'current active', order: 0 }] } };
+  controller.onCommittedTurn();
+  assert.equal(audio.pauseCalls, 1);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(calls, ['old active', 'current active']);
+  controller.stop();
+  await controller.drain();
 });
 
 test('same-turn feedback revision replaces only queued old revision batches', async () => {

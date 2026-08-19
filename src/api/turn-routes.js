@@ -11,6 +11,7 @@ import {
   buildOpeningPrompt,
   buildStableNpcIdSet,
   buildStoryPrompt,
+  formatClock24,
   buildStoryWorldProjection,
   buildInstitutionalSegments,
   composeCanonicalStory,
@@ -178,13 +179,15 @@ function plainObject(value) {
 
 function turnContextFor({ save = {}, locationId = null, mapLocations = [] } = {}) {
   const time = plainObject(save?.world_state?.game_time) ? save.world_state.game_time : {};
+  const minuteOfDay = Number.isInteger(time.minute_of_day) ? time.minute_of_day : null;
   const resolvedId = typeof locationId === 'string' && locationId.trim()
     ? locationId.trim()
     : (typeof save?.scene?.location_id === 'string' ? save.scene.location_id : null);
   const location = (Array.isArray(mapLocations) ? mapLocations : []).find(item => item?.location_id === resolvedId);
   return {
     day: Number.isInteger(time.day) ? time.day : null,
-    minute_of_day: Number.isInteger(time.minute_of_day) ? time.minute_of_day : null,
+    minute_of_day: minuteOfDay,
+    clock_24h: formatClock24(minuteOfDay),
     location_id: resolvedId,
     location_name: typeof location?.name === 'string' ? location.name : resolvedId
   };
@@ -276,6 +279,7 @@ function openingTurnProjection(save) {
     turn_context: {
       day: 1,
       minute_of_day: Number.isInteger(opening?.plan?.minute_of_day) ? opening.plan.minute_of_day : null,
+      clock_24h: formatClock24(opening?.plan?.minute_of_day),
       location_id: opening?.plan?.location_id ?? null,
       location_name: opening?.plan?.location_name ?? null
     }

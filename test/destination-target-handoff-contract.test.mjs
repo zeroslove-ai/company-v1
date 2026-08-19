@@ -205,6 +205,27 @@ test('same-location exact registered NPC visits hand off Story and Commit cast w
   assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine1'), true);
 });
 
+test('an explicit NPC exit survives the next unrelated successful turn', () => {
+  const afterExit = reduceCanonicalScene({
+    currentScene: sameLocationSave.scene,
+    mapLocations,
+    master,
+    npcIds: new Set(officeResidents),
+    expectedTurn: 5,
+    observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: ['heroine3'], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
+  });
+  assert.equal(afterExit.present_npc_ids.includes('heroine3'), false);
+  const nextTurn = reduceCanonicalScene({
+    currentScene: afterExit,
+    mapLocations,
+    master,
+    npcIds: new Set(officeResidents),
+    expectedTurn: 6,
+    observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: [], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
+  });
+  assert.equal(nextTurn.present_npc_ids.includes('heroine3'), false);
+});
+
 test('same-location, ambiguous, and unregistered visits remain unresolved', () => {
   assert.equal(resolvePlayerNavigationIntent({ save: sameLocationSave, master, mapLocations, playerAction: '브랜드전략팀 사무실로 이동한다' }), null);
   assert.equal(resolvePlayerNavigationIntent({ save: sourceSave, master, mapLocations, playerAction: '\uC724\uBBFC\uC544\uAC00 \uB85C\uBE44\uC5D0\uC11C \uC77C\uD55C\uB2E4' }), null);

@@ -72,11 +72,16 @@ function mindMonitor(turn) {
 const MEDIA_ACTION_TAGS = Object.freeze([
   'handjob', 'fellatio', 'deepthroat', 'fingering', 'cunnilingus', 'breast_sucking',
   'missionary', 'doggystyle', 'cowgirl', 'anal', 'standing_rear', 'penetration',
-  'facial_cumshot', 'body_cumshot', 'oral_cumshot', 'creampie', 'cumshot', 'genital_touch'
+  'facial_cumshot', 'body_cumshot', 'oral_cumshot', 'creampie', 'cumshot', 'genital_touch',
+  'cowgirl_climax', 'missionary_climax', 'squirting', 'hypnosis_sex'
 ]);
 const MEDIA_TAG_ALIASES = Object.freeze({
   oral: ['fellatio', 'cunnilingus'], climax: ['cumshot'], orgasm: ['cumshot'],
-  '성기': ['genital_touch'], '구강': ['fellatio'], '삽입': ['penetration'],
+  '성기': ['genital_touch'], '성기 접촉': ['genital_touch'],
+  '구강': ['fellatio'], '구강성교': ['fellatio'], '오럴': ['fellatio'],
+  '삽입': ['penetration'], '성교': ['penetration'], '질내': ['penetration'],
+  '선교': ['missionary'], '정상위': ['missionary'], '기승위': ['cowgirl'],
+  '후배위': ['doggystyle'], '애널': ['anal'], '항문성교': ['anal'],
   '사정': ['cumshot'], '오르가즘': ['cumshot'], '절정': ['cumshot']
 });
 
