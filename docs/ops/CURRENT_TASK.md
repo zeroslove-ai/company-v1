@@ -1,270 +1,211 @@
 # Company v2 — CURRENT TASK
 
-Status: READY
-Task ID: company-v2-phase1-product-identity-shell-restoration-v1
-Mode: SOURCE CORRECTION — OWNER-REPORTED PRODUCT IDENTITY FAILURE
+Status: WAITING_LEASE_TERMINAL
+Task ID: company-v2-product-baseline-rebuild-plan-v1
+Mode: OWNER STOP — PRODUCT CANON / UI / DB / PROMPT BASELINE REBUILD PLAN
 Updated: 2026-08-20
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Why the prior owner-acceptance checkpoint is rejected
+## 0. Stop state
 
-The owner inspected the Phase 1 TEST product and rejected it before gameplay because it does not read as the actual `상식개변: 회사편` game. The current v2 behaves/presents like a generic office chat/work-assistant demo.
+The prior source-correction task `company-v2-phase1-product-identity-shell-restoration-v1` is OWNER-ABORTED.
 
-This is a source/product defect, not a manual-acceptance delay. The prior `WAITING_USER_ACCEPTANCE` gate is closed as REJECTED.
+Issue #68 stop instruction: `5348820636`.
 
-Do not ask the owner to accept or continue playing Handoff H until this source correction is reviewed, merged, rolled out to TEST, and a fresh manual handoff is prepared.
+Its lease must terminalize as `OWNER_ABORTED_DESIGN_CANON_AUDIT_REQUIRED` before any new executable task is registered.
 
-Preserve Handoff H as evidence; do not reset/delete/repair it:
+Until then:
+
+- no source implementation;
+- no new source branch/PR;
+- no merge;
+- no deploy;
+- no migration/DB mutation;
+- no TEST gameplay;
+- no evidence-game mutation;
+- no continuation of the aborted correction branch as an implementation candidate.
+
+Handoff H remains immutable evidence:
 
 `161dda85-5cb4-4598-8331-1b9adc0d64f4`
 
-## 1. Verified root causes
+## 1. Verified failure classification
 
-### A. v2 content adapter is not the Company product canon
+This is not a missing-design problem. Company product/design canon already existed, and the initial v2 task itself required canonical Company content reuse.
 
-Authoritative repository content already exists:
+The failure is `V2_PRODUCT_CANON_INHERITANCE_AND_ACCEPTANCE_GATE_FAILURE`:
 
-- `content/edition.json` — title `상식개변: 회사편`
-- `content/characters.json` — canonical heroines and prompt cards
-- `content/general_npcs.json` — canonical general NPCs
-- `content/map.json` — canonical company locations/map
-- `content/organization.json`, `positions.json`, `speech_styles.json`, `body_types.json` — product catalogs
+1. v2 runtime architecture work preserved the structural turn spine but did not preserve the product baseline;
+2. PR #87 introduced fabricated/demo content (`서원`, `다현`, `민지`, two locations) instead of the authoritative repository catalogs;
+3. PR #87 tests validated structural runtime invariants but did not validate canonical product identity/content parity;
+4. PR #90 interpreted “bring the existing UI” as a reduced shell recreation instead of presentation parity with the established Company UI donor;
+5. source review accepted runtime/SSE/fencing/test correctness without a product-parity acceptance gate;
+6. current v2 persistence/state is too minimal to represent parts of the established Company player/product contract.
 
-Current bad v2 source:
+Issue #68 durable audit finding: `5348837128`.
 
-`runtime-v2/domain/content.js`
+## 2. Recovery direction — keep runtime spine, rebuild product layer
 
-It hardcodes a tiny fake/demo catalog:
+### KEEP
 
-- `heroine1 = 서원`
-- `heroine2 = 다현`
-- `heroine5 = 민지`
-- only `lobby` and `brand_strategy_office`
+Preserve only independently useful clean-runtime infrastructure unless later audit disproves it:
 
-This is invalid. Canonical examples include:
+- physically isolated `runtime-v2` / `frontend-v2` deployment identity;
+- one server-owned turn request;
+- real-time Story SSE;
+- one canonical `(game_id, turn_number)` job;
+- reconnect to same job;
+- explicit failed-attempt retry only;
+- attempt fencing;
+- bounded Story progress persistence / subrequest budget closure;
+- one durable commit boundary;
+- isolated `company_v2_*` persistence namespace;
+- no old frontend Story→Extract→Commit coordinator authority.
 
-- `heroine1 = 서원희`
-- `heroine2 = 윤민아`
-- `heroine3 = 김제나`
-- `heroine4 = 한리브`
-- `heroine5 = 이메이`
+These are infrastructure, not proof of product correctness.
 
-and eight registered general NPCs plus the full repository map.
+### REBUILD / REPLACE
 
-No character/location/product name may be invented or duplicated in v2 when an authoritative repository catalog already exists.
+Treat the following current v2 product layer as non-authoritative and replace from canon:
 
-### B. v2 Opening erased the actual game premise
+- `runtime-v2/domain/content.js` demo catalog;
+- v2 Setup/player-profile contract;
+- v2 Opening;
+- Story context/canon projection;
+- product state projection;
+- `frontend-v2` presentation shell;
+- product-parity tests and acceptance gates.
 
-Current bad source:
+Do not patch fabricated/demo values one by one.
 
-`runtime-v2/domain/story.js::openingStory()`
+### DELETE AS PRODUCT AUTHORITY
 
-It is a generic first-day office greeting ending in work-assistant language such as asking whether to check the first task together.
+The following concepts must not survive as defaults/authority:
 
-The Company product's existing opening canon/reference is in `src/engine/opening-prompt.js` and must be used as PRODUCT REFERENCE ONLY, not imported as old runtime implementation.
+- fabricated `서원/다현/민지` catalog;
+- two-location demo world;
+- generic work-assistant Opening/phrasing;
+- “header + Story + a few panels = UI restored” acceptance rule;
+- tests that pass without comparing against authoritative Company catalogs/UI contracts.
 
-Core product premise that must survive the clean-room rewrite:
+## 3. Next task after this lease terminalizes — docs/audit only
 
-- the player accepted/joined the company;
-- the player notices an unfamiliar phone app named `상식개변` that they do not remember installing;
-- the app claims it can change rules that people around the player accept as ordinary/natural;
-- the player has not used it yet at Opening;
-- NPCs do not know the app exists;
-- reality has not changed merely because the app exists;
-- origin/mechanism are unknown;
-- the first company day unfolds as interactive fiction and the player freely decides what to do next.
+Register exactly one docs/audit task by overwriting this same CURRENT_TASK in place.
 
-Do not copy the old runtime stage machine, parser, reducers, or choice protocol. Preserve only this product premise/canon.
+Planned Task ID:
 
-### C. Story LLM receives almost no Company canon
+`company-v2-product-canon-and-gap-matrix-v1`
 
-Current bad source:
+No product source implementation in that task.
 
-`runtime-v2/server/provider.js::buildStoryMessages()`
+It must produce one binding `Company v2 Product Canon` derived from, and explicitly reconciling, the existing authoritative sources:
 
-It sends time, scene IDs and recent turns, but no actual active character prompt cards, names, roles, company-world/location descriptions, or product premise.
+- latest explicit owner decisions;
+- `docs/COMPANY_RUNTIME_UI_PRODUCT_CONTRACT_V1.md`;
+- `docs/COMPANY_PROMPT_V2_DESIGN.md`;
+- `docs/COMPANY_GAME_CONTRACT_V1.md`;
+- `docs/COMPANY_NARRATIVE_CONTRACT_V1.md`;
+- `CURRENT_TRUTH.md`;
+- `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`;
+- authoritative `content/*.json` catalogs;
+- established Company UI donor/reference, including exact donor commit where applicable.
 
-Therefore the Story model cannot reliably know who `heroine1` is, who 윤민아 is, what the company setting is, or what kind of game it is.
+The canon must explicitly state what carries into v2 and what is deferred. No implicit “historical as needed” product requirements.
 
-### D. v2 frontend is a stripped demo shell, not the Company game shell
+## 4. Mandatory canon sections
 
-Current:
+The new v2 product canon must freeze at minimum:
 
-- `frontend-v2/index.html`
-- `frontend-v2/app.js`
-- `frontend-v2/styles.css`
+1. **Game identity / premise** — `상식개변: 회사편`, company-life interactive fiction, player-private app premise, player agency.
+2. **Canonical world/content** — exact heroine/general-NPC/location/catalog authority comes from repository content, never duplicated hand-maintained demo lists.
+3. **Player Setup/profile** — exact fields the product exposes and which are static profile vs mutable gameplay state.
+4. **Opening** — canonical setup/location/NPC selection and `상식개변` premise; no assistant framing.
+5. **Story context** — exact current location, relevant actors, compact character canon, player profile projection, recent turns/summaries, and literal action authority.
+6. **UI parity** — identify the exact established UI donor and enumerate every visible product section to preserve. “Bring the UI” means presentation parity first, not a newly invented reduced shell.
+7. **Frontend authority boundary** — donor HTML/CSS/presentation/components may be reused; old client-owned turn coordinator may not.
+8. **V2 persistence contract** — which product fields need v2-native durable storage versus static catalog lookup. If current schema is insufficient, authorize a later additive migration rather than faking values in frontend/prompt code.
+9. **Phase boundaries** — features visibly present but disabled/deferred versus active, without false functionality.
+10. **Acceptance gates** — exact product-parity checks required before source merge and before TEST handoff.
 
-Presentation donor/reference already exists in:
+## 5. Required gap matrix
 
-- `src/frontend/pages/index.html`
-- its presentation-only CSS/components
+For every product domain, compare `authoritative product canon` vs `current v2` and classify:
 
-The old product shell visibly includes game-oriented presentation such as:
+- KEEP;
+- REWIRE;
+- REBUILD;
+- DELETE;
+- DEFER.
 
-- story as the dominant center panel;
-- character/current-scene presentation;
+At minimum cover:
+
+- UI shell/components;
+- player Setup/profile;
+- heroine/general NPC identity;
+- map/location catalog;
+- Opening;
+- Story prompt context;
 - Mind Monitor;
-- character state;
-- player state;
-- company map;
-- `상식개변` app/tool entry;
-- bottom action input;
-- history / feedback / reset / media affordances where enabled by phase.
+- current character/player state panels;
+- history/summary;
+- `상식개변` app/tool presentation;
+- CSA runtime boundary;
+- image/TTS/feedback presentation boundary;
+- DB state fields/RPC needs;
+- frontend/server ownership;
+- tests/acceptance.
 
-The v2 canon explicitly allows reuse of existing visual design/components where presentation-only while forbidding the old frontend turn state machine.
+## 6. Implementation direction after canon approval
 
-## 2. Required correction
+After the product canon + gap matrix are reviewed, register one integrated source rebuild task. Do not make another sequence of tiny symptom patches.
 
-Create one source branch from the exact current `main` at task lease time. Do not create any ops branch.
+That source rebuild must:
 
-Recommended branch:
+1. transplant the established Company UI presentation/layout/components into `frontend-v2` at high parity, while replacing only old controller/API authority with the thin v2 client;
+2. wire `runtime-v2` directly to authoritative `content/*.json` through a small static adapter — zero fabricated semantic lists;
+3. restore the canonical player Setup/profile path;
+4. restore Opening and Story context from the v2 product canon;
+5. add an additive v2 migration only if the approved product state contract proves current `company_v2_state` cannot hold required product fields;
+6. preserve the accepted clean turn/job/SSE/commit spine;
+7. add product-parity tests that compare against canonical content and UI contracts, not merely structural existence;
+8. stop at source review before deploy.
 
-`company/v2-phase1-product-identity-shell-restoration-v1`
+## 7. New acceptance gates
 
-Open one Draft PR and stop at source review boundary. Do not merge or deploy.
+A future source rebuild is NOT acceptable merely because unit/full tests pass.
 
-### 2.1 Replace demo content with a canonical static-content adapter
+Before merge, operator review must directly verify:
 
-`runtime-v2/domain/content.js` must derive Company identities and locations from the authoritative `content/*.json` files through a clean v2 static adapter.
+- exact heroine/general NPC IDs and names from authoritative content;
+- exact map/location catalog source;
+- no fabricated product semantic lists;
+- player Setup/profile contract parity;
+- Opening premise parity;
+- Story request contains the correct relevant canon;
+- literal player action remains unchanged;
+- established Company UI sections/layout are present at product parity;
+- old frontend coordinator authority is absent;
+- v2 DB contract actually stores every approved mutable product field;
+- deferred features are clearly disabled rather than faked.
 
-Requirements:
+Before TEST owner handoff:
 
-- all five canonical heroine IDs/names available;
-- all canonical general NPC IDs/names available;
-- full canonical location catalog available;
-- aliases come only from authoritative catalog data or unambiguous full-name-safe derivation;
-- no `다현`, `민지`, or other demo/fabricated replacement names;
-- identity map remains finite and exact;
-- do not import `src/engine`.
+- deploy only exact reviewed head;
+- create a fresh v2 game only after DB/API/UI contract verification;
+- verify Setup + Opening + one bounded automated turn in DB/SSE;
+- inspect real Story for product identity and canon coherence;
+- then hand the fresh game to owner for manual play.
 
-If direct JSON module loading is inconvenient in the Worker build, create a small v2 static-content loading layer from repository content, but do not copy the catalogs into another hand-maintained semantic list.
+No repeated owner handoff until these product gates pass.
 
-### 2.2 Restore the Company opening premise in clean-room form
+## 8. Current decision
 
-Replace the generic deterministic Opening with a Company-specific Phase 1 opening contract.
+Do not attempt another quick repair of the current demo product layer.
 
-The Opening must:
+Recovery strategy is:
 
-- feel like interactive fiction, not an assistant greeting;
-- establish the company day/location and actual canonical active NPC(s);
-- establish the player-private mysterious `상식개변` app premise described above;
-- make clear by narrative implication that NPCs do not know the app and no rule has changed yet;
-- leave the next action entirely to the player;
-- emit no choices in Phase 1;
-- never say or imply that the game is a productivity assistant or that an NPC is there to "help with your work" as an assistant service role;
-- use registered character identity and canon.
+`freeze → single v2 product canon → full current-v2 gap matrix → integrated product-layer rebuild on preserved runtime spine → exact source review → TEST rollout → owner play`
 
-Do not import old opening engine code. It is reference only.
-
-### 2.3 Give Story the actual Company context
-
-Extend the clean `buildStoryMessages()` payload/system contract so Story receives only the relevant Company canon needed for the current turn:
-
-- edition title/identity;
-- current canonical location name/description;
-- current/present relevant registered actors with exact IDs and canonical names;
-- relevant heroine prompt-card fields when a heroine is present/targeted;
-- general NPC role/department facts when relevant;
-- player name and the minimal existing Phase 1 player context;
-- the player-private `상식개변` premise as background truth, while active CSA remains empty in Phase 1;
-- recent raw turns + summaries as already designed.
-
-Do not dump all private character data every turn. Use the public/behavioral character canon relevant to Story. Do not expose database/control metadata as world knowledge.
-
-Literal player action remains authority. No action replacement, no invented player decisions, no hidden semantic retry.
-
-### 2.4 Restore the game-shaped frontend shell without old coordinator authority
-
-Rebuild `frontend-v2` presentation so it unmistakably presents `상식개변: 회사편`, using `src/frontend/pages/index.html` and presentation CSS as donor/reference where useful.
-
-Binding rules:
-
-- Story remains visually dominant.
-- Real-time Story streaming must remain visible; no blocking loading overlay.
-- Keep free-form input only; no choice generation/rendering in Phase 1.
-- Restore game-oriented panels/labels/layout rather than generic chat/productivity UX.
-- Show canonical character names instead of raw IDs where context provides them.
-- Show canonical location names instead of raw location IDs where possible.
-- Mind Monitor remains a game panel.
-- Player state must read as character/game state, not chatbot account/profile state.
-- A Company map presentation may be included from static canonical content, but it must not become a new client-owned navigation authority. Clicking may at most compose literal player input; sending remains explicit.
-- A visible `상식개변` app/tool affordance may be present as PRODUCT IDENTITY, but Phase 1 must not fake functional CSA. If not yet enabled, keep it clearly non-mutating/locked for the current phase rather than silently implementing Phase 2.
-- Deferred Image/TTS/feedback mechanics must not be reimplemented in this task. Presentation placeholders/disabled affordances are acceptable only if they improve product identity without making false functionality claims.
-- Do not import or reuse old `src/frontend/pages/app.js` turn coordinator, pending-step state machine, Story→Extract→Commit progression, or recovery authority.
-- `frontend-v2/app.js` stays a thin client for server-owned v2 context/turn/SSE.
-
-### 2.5 Remove assistant/demo wording
-
-Sweep the new v2 surface and prompts for generic assistant/demo phrasing that makes the product read like a work chatbot.
-
-Examples to remove/rewrite include the current generic `첫 업무를 함께 확인`, `상황부터 함께 정리`, or any `무슨 업무를 도와드릴까요`-style assistant framing.
-
-Do not overcorrect by turning every scene into exposition about the app. It is a company-life interactive-fiction game with the `상식개변` mechanic, not a tutorial chatbot.
-
-## 3. Phase 1 boundaries that remain binding
-
-Do NOT add in this source correction:
-
-- active choices/provider choices/frontend choice list;
-- CSA mutation endpoint or active CSA reducer;
-- clothing mechanics;
-- sexual gauges;
-- relationship/event ledger;
-- feedback revision;
-- Image/TTS runtime;
-- old v1 save compatibility;
-- old frontend coordinator authority;
-- hidden LLM retries/regeneration;
-- model/provider changes;
-- DB schema/RPC/migration changes.
-
-This task restores PRODUCT IDENTITY + CANON + PRESENTATION while keeping the already accepted clean-room server-owned turn spine.
-
-## 4. Tests / proof required
-
-Add or update focused tests that prove at minimum:
-
-1. v2 content adapter contains the authoritative five heroine IDs/names and eight general NPC IDs/names;
-2. demo aliases/names `다현` and `민지` are absent from v2 product canon unless they actually appear in authoritative content (currently they do not);
-3. v2 location adapter is sourced from canonical map and contains more than the two demo locations;
-4. Opening contains the Company/`상식개변` product premise, uses a registered actor, produces `choices=[]`, and does not contain generic assistant-help framing;
-5. Story message builder includes relevant canonical actor and location context while preserving literal action;
-6. frontend product shell includes game title/story/MM/player/character/company-map or equivalent game presentation contracts;
-7. frontend has no active Phase 1 choice list generation;
-8. import-boundary test still proves `runtime-v2` does not import `src/engine` and `frontend-v2` does not import the old frontend coordinator;
-9. existing focused v2 turn/SSE/reconnect/subrequest-budget tests still pass.
-
-Run focused tests and full repository test suite if practical. No live LLM/manual multi-turn test in this source task.
-
-## 5. Forbidden operations
-
-- no DB writes;
-- no migration edit/apply;
-- no Worker deploy;
-- no TEST game creation;
-- no automated gameplay;
-- no mutation/reset/delete/repair of any existing evidence game;
-- no Production/hospital-v2 access;
-- no provider/model/config/secret change;
-- no auto-merge.
-
-## 6. Completion report / stop boundary
-
-Post one terminal report to Issue #68 with:
-
-- `TASK_ID: company-v2-phase1-product-identity-shell-restoration-v1`
-- `FINAL_SHA`
-- Draft PR number
-- changed files
-- exact canonical content source used
-- canonical heroine/general-NPC/location counts
-- Opening premise summary
-- Story-context fields added
-- frontend shell elements restored
-- proof old coordinator imports remain zero
-- focused/full test results
-- confirmation: DB writes 0, migrations 0, deploys 0, live gameplay 0
-
-Then STOP for operator source review. Do not merge, deploy, or prepare another owner handoff automatically.
+This file is a stop/planning state only. It authorizes no implementation while the aborted lease remains unterminated.
