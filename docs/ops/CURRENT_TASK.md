@@ -410,6 +410,17 @@ Read-only TEST/GitHub evidence inspection is allowed. The manual game is immutab
 - Media correction now maps representative Korean situations to the intended family; the external Worker `direction` seam remains deferred and unmodified.
 - TTS correction retains the current primary speaker, drops stale older-turn queues, and cancels active older-turn playback when a newer committed turn arrives; no obsolete cross-turn preservation skip remains.
 
+### 7.2 Correction result — same-location NPC rehydration blocker addressed
+
+- Second correction source/test head: `d1d60ef` (`fix: preserve exits across same-location handoff`), pushed to `origin/company/user-live-25turn-spine-integrity-v1`.
+- `projectStorySaveForNavigation()` no longer merges default residents during a same-location exact-NPC handoff; it preserves the current canonical cast, adds only the exact target, and focuses that target.
+- `reduceCanonicalScene()` bootstraps default residents only at initial-scene or actual location-entry boundaries; a same-location target ID is a normal exact entrance/focus event, not a default-cast rehydration trigger.
+- Regression sequence proves default resident A exits, an unrelated successful turn preserves absence, then exact navigation to resident B keeps A absent, retains the currently present resident, adds B, and focuses B in both Story projection and Commit output.
+- Second-correction focused contracts: `44 PASS / 0 SKIP / 0 FAIL`.
+- Second-correction full `npm.cmd test`: `371 PASS / 0 SKIP / 0 FAIL`.
+- Second-correction syntax sweep: `node --check` PASS. `git diff --check`: PASS.
+- Preserved game `587de547-8bb7-4a92-a7c2-07f2831e2d38` remains untouched; no DB write, migration/reset, deploy, live gameplay, provider/model change, or Production operation was performed.
+
 ## 8. Deliverables / stop boundary
 
 Deliver:
