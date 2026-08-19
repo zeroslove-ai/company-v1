@@ -1,182 +1,267 @@
 # Company v2 — CURRENT TASK
 
 Status: READY
-Task ID: company-v2-phase1-supabase-fetch-binding-v1
-Mode: SOURCE CORRECTION — SUPABASE FETCH BINDING
+Task ID: company-v2-phase1-test-rollout-after-fetch-fix-v1
+Mode: TEST ROLLOUT RESUME — API REDEPLOY + FRESH GAME HANDOFF
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Authority / accepted live state
+## 0. Authority / accepted state
 
 Binding canon:
 
 `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`
 
-Accepted Phase 1 runtime source:
+Accepted source lineage:
 
-- original source merge: `f80830e48f227e5a3718ecacaec82d9d3427b504`
-- ACL correction merge: `ebdf1529dd05b7feafbb5857ffde1eb6e3e30617`
-- rollout-resume BLOCKED terminal: Issue #68 comment `5340154630`
-- operator BLOCKED review: Issue #68 comment `5340209458`
+- original Phase 1 merge: `f80830e48f227e5a3718ecacaec82d9d3427b504`
+- ACL closure merge: `ebdf1529dd05b7feafbb5857ffde1eb6e3e30617`
+- rollout BLOCKED terminal: Issue #68 comment `5340154630`
+- rollout BLOCKED review: Issue #68 comment `5340209458`
+- fetch-binding correction terminal: Issue #68 comment `5340279492`
+- fetch-binding source acceptance: Issue #68 comment `5340298816`
+- accepted fetch-binding head: `a30c6650817985ca4345687ed11549ba7eadd8f9`
+- exact-head CI run `32238411429`: SUCCESS
+- PR #89 merged at exact reviewed head
+- fetch-binding merge commit: `272e58d39e7d063923d063467602b54d750d5d60`
 
-TEST live state that MUST be preserved:
+TEST project:
 
-- Supabase project: `fmcrspgxstsmxxsmkeee`
-- migrations `20260819000200`, `20260819000300`, `20260819000400`, `20260819000500` are already applied exactly once and are historical applied migrations
-- live v2 ACL/PK/fenced-RPC gate passed before deployment
-- API Worker: `game-proxy-company-v2`, reported final deployed version `83569011-ecf9-4e61-8e42-50d26ef27f46`
-- Frontend Worker: `gamebuilder-company-v2`, reported deployed version `cdbd6c10-0193-487e-a390-2c120946bfdd`
-- first fresh Setup attempt failed before creating a game
-- live `company_v2_games` count after failure: `0`
-- `/api/v2/opening` was not called
-- `/api/v2/turn` was called `0` times
+`fmcrspgxstsmxxsmkeee`
 
-All preserved v1/manual/QA/evidence games remain READ-ONLY. Production/hospital-v2 is forbidden.
+Accepted live DB state from the blocked rollout:
 
-## 1. Proven defect
+- migrations `20260819000200`, `20260819000300`, `20260819000400`, `20260819000500` are already applied exactly once;
+- live v2 table / canonical `(game_id, turn_number)` job PK / fenced-RPC / ACL gate passed;
+- all seven active v2 RPCs are service_role-only for runtime EXECUTE;
+- all four v2 tables expose SELECT only to service_role and no runtime DML;
+- unfenced progress/fail/commit overloads are absent;
+- `company_v2_games` count after the failed Setup was `0`;
+- previous Setup failed before durable game creation;
+- `/api/v2/opening` was not called;
+- `/api/v2/turn` automated calls remain `0`.
 
-The first live `POST /api/v2/setup` returned HTTP 422 with:
+Accepted deployed v2 state before this correction:
 
-`Illegal invocation: function called with incorrect this reference`
+- API Worker: `game-proxy-company-v2`, previous version `83569011-ecf9-4e61-8e42-50d26ef27f46`;
+- Frontend Worker: `gamebuilder-company-v2`, accepted version `cdbd6c10-0193-487e-a390-2c120946bfdd`;
+- frontend API base is `https://game-proxy-company-v2.zeroslove.workers.dev`.
 
-Source inspection identifies the narrow receiver bug in:
+All v1/manual/QA/preserved evidence games are READ-ONLY. Production/hospital-v2 is forbidden.
 
-`runtime-v2/server/supabase-store.js`
+## 1. Goal
 
-`V2SupabaseHttp` stores the injected/global fetch function as `this.fetchImpl`, and `request()` currently invokes it using a property-call shape equivalent to:
+Resume only from the proven failed Setup boundary after the fetch receiver correction.
 
-`this.fetchImpl(url, init)`
+1. verify the merged source and already-live DB contract without applying migrations;
+2. redeploy ONLY the changed v2 API Worker from the merged source;
+3. prove the deployed API can execute a real read-only Supabase transport call without `Illegal invocation`;
+4. verify the existing v2 frontend is still the accepted deployment and still targets the v2 API; do not redeploy it unless source/config drift is first proven, and if drift exists STOP for review instead of silently changing scope;
+5. perform exactly one new fresh Setup attempt;
+6. if Setup succeeds, perform Opening exactly once on that same game;
+7. verify turn-0/context/DB state;
+8. hand the exact URL to the user for manual 5-turn acceptance;
+9. submit zero gameplay turns automatically.
 
-For the native Cloudflare Workers fetch, this supplies the `V2SupabaseHttp` instance as the JavaScript receiver and triggers illegal invocation. The v2 provider already invokes its lexical `fetchImpl(...)` directly and does not exhibit this receiver shape.
+This is operations/acceptance only. No source hotfix is authorized inside this task.
 
-The previous invalid-context smoke did not catch this because missing `game_id` was rejected before Supabase transport execution.
+## 2. Start guard
 
-This is NOT an ACL, migration, provider/model, Story/Observation, content, frontend, or DB-contract defect.
+Before any deploy or live write:
 
-## 2. Goal
+1. fetch `main` and verify it contains merge commit `272e58d39e7d063923d063467602b54d750d5d60`;
+2. verify no runtime/config/provider/frontend/content/migration change exists after that merge other than this CURRENT_TASK registration;
+3. verify TEST project is exactly `fmcrspgxstsmxxsmkeee`;
+4. read migration ledger and confirm 002/003/004/005 are already present exactly once; do NOT apply any migration;
+5. verify live `company_v2_games` currently has zero rows before creating the new acceptance game; if not zero, identify whether an unexpected v2 game was created after the blocked terminal and STOP rather than deleting/mutating it;
+6. verify required API Worker secrets are available without printing values:
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `LLM_API_KEY`;
+7. preserve `wrangler.v2.api.jsonc` values exactly, including SUPABASE_URL, LLM_API_URL, STORY_MODEL, EXTRACT_MODEL and Worker identity;
+8. verify Production/v1 targets are not selected.
 
-Make the Supabase HTTP transport invoke injected/global fetch in a receiver-neutral way so the native Cloudflare fetch works during Setup and all existing injected test fetches continue to work.
+## 3. No migration work
 
-Keep the correction minimal. Do not redesign the transport and do not add retries, wrappers, adapters, gateways, or compatibility layers beyond the smallest local call-shape fix needed for correct invocation.
-
-## 3. Implementation branch / PR
-
-Create exactly one narrow implementation branch from current `main`:
-
-`company-v2/phase1-supabase-fetch-binding-v1`
-
-Create exactly one Draft PR targeting `main`.
-
-Do not create an ops branch. Do not create another CURRENT_TASK file. Do not reopen PR #87 or #88.
-
-Before implementation, synchronize the branch copy of this existing `docs/ops/CURRENT_TASK.md` to the exact main registration and do not mutate CURRENT_TASK again on the implementation branch.
-
-## 4. Required source correction
-
-Primary expected changed runtime file:
-
-`runtime-v2/server/supabase-store.js`
-
-Requirements:
-
-1. Preserve `fetchImpl` dependency injection.
-2. Invoke the stored fetch function without binding the `V2SupabaseHttp` instance as its receiver.
-3. The production/native global fetch path must use the same receiver-neutral behavior as a direct lexical function call.
-4. Do not bind native fetch to an arbitrary custom object.
-5. Do not change Supabase URL construction, headers, RPC/table routes, response/error parsing, store API, DB RPC names, retry behavior, fencing, lease behavior, or state semantics.
-6. Do not change `runtime-v2/server/provider.js`; its lexical fetch invocation is already the correct comparison behavior unless an unavoidable test-only import adjustment is required. No provider behavior change is authorized.
-7. Do not change frontend, migrations, Worker config values, prompts, models, content, or Phase 1 domain contracts.
-
-A minimal pattern such as copying the function reference to a local variable before invocation is acceptable if it preserves injection and passes the behavioral regression. Implement behavior, not unnecessary abstraction.
-
-## 5. Required regression proof
-
-Add the smallest focused regression in the existing v2 Phase 1 test surface, normally:
-
-`test/company-v2-phase1.test.mjs`
-
-The regression must be behavioral, not only source-regex proof.
-
-At minimum prove:
-
-1. inject a receiver-sensitive fetch test double into `SupabaseV2Store` that deliberately fails if it is called with a non-neutral object receiver;
-2. exercise a public store path that reaches the Supabase transport — preferably `createGame()` through the create-game RPC and required context reads, not an exported test-only internal helper;
-3. before the fix the old method-call shape would reproduce the same `Illegal invocation` class of failure;
-4. after the fix the injected fetch is invoked receiver-neutrally and the store path completes with expected mocked responses;
-5. existing injected fetch tests and all existing Phase 1 tests remain green;
-6. no automatic retry or duplicate DB request is introduced by the correction.
-
-Do not export `V2SupabaseHttp` solely to make the test easier unless there is no reasonable public-store behavioral test. Prefer testing the public `SupabaseV2Store` contract.
-
-## 6. Scope / forbidden
-
-This task is source/test/PR only.
+Hard rule: migrations 002/003/004/005 are historical live state.
 
 Do NOT:
 
-- apply or edit any migration, especially already-live 002/003/004/005;
-- write to TEST DB;
-- deploy either v2 Worker;
-- retry Setup or create any live game;
-- call Opening or `/api/v2/turn`;
-- touch v1 Workers or preserved games;
+- reapply them;
+- edit them;
+- run bulk migration commands;
+- add another migration;
+- change ACLs manually.
+
+Only read-only DB catalog/ledger checks are allowed before Setup.
+
+## 4. Redeploy only the corrected v2 API
+
+Deploy from current main using:
+
+`wrangler.v2.api.jsonc`
+
+Required target:
+
+- Worker: `game-proxy-company-v2`
+- entry: `runtime-v2/server/worker.js`
+- source lineage includes merge `272e58d39e7d063923d063467602b54d750d5d60`.
+
+Do not deploy or modify:
+
+- `game-proxy-company-v1`
+- `gamebuilder-company-v1`
+- Production/hospital-v2.
+
+Do not change provider/model/config values or secret values.
+
+Record the new API Worker version/deployment identifier.
+
+## 5. Mandatory DB-backed API smoke before Setup
+
+The previous smoke missed the defect because missing `game_id` returned before Supabase transport execution.
+
+After API redeploy, perform a read-only smoke that MUST reach `SupabaseV2Store` / Supabase HTTP transport:
+
+1. generate one random UUID solely for this read-only probe;
+2. verify directly in TEST DB that this UUID does not exist in `company_v2_games`;
+3. call `GET /api/v2/context?game_id=<ABSENT_UUID>`;
+4. require a structured Company v2 not-found response from the DB-backed path (expected `game_not_found` class); it must NOT return `Illegal invocation`, configuration error, v1 payload, or 5xx transport failure;
+5. do not create a game during this probe;
+6. `/api/v2/turn` calls remain zero.
+
+Also verify `OPTIONS /api/v2/turn` still returns expected CORS.
+
+If the DB-backed context probe fails, STOP. Do not attempt Setup and do not hotfix source.
+
+## 6. Existing frontend verification only
+
+Do not redeploy the frontend merely because the API changed.
+
+Verify read-only:
+
+- Worker identity remains `gamebuilder-company-v2`;
+- deployed version is still the accepted version `cdbd6c10-0193-487e-a390-2c120946bfdd` unless an externally proven deployment occurred;
+- live assets load;
+- frontend API base remains `https://game-proxy-company-v2.zeroslove.workers.dev`;
+- no v1 API base is present.
+
+If frontend deployment/config drift is detected, STOP for operator review rather than expanding this task.
+
+## 7. Exactly one fresh Setup attempt
+
+Only after the DB-backed API smoke passes:
+
+1. call `POST /api/v2/setup` exactly once;
+2. do not retry Setup on failure;
+3. do not create a replacement game;
+4. record the returned game_id on success;
+5. if Setup fails, query TEST DB read-only to determine whether a partial game row exists, preserve it as evidence if present, and STOP;
+6. do not call Opening after a failed Setup.
+
+The prior failed Setup does not count as this run's one authorized attempt because it occurred before the reviewed source fix and created no row.
+
+## 8. Opening exactly once on the same game
+
+If and only if Setup succeeds:
+
+1. call `POST /api/v2/opening` exactly once for that game;
+2. if Opening fails, preserve that same game as failure evidence and STOP;
+3. do not create another game and do not retry Opening;
+4. never call `/api/v2/turn` automatically.
+
+## 9. Turn-0 acceptance verification
+
+After Opening succeeds, verify through live API context and direct read-only DB checks:
+
+- game_id matches the new game;
+- `company_v2_state.committed_turn = 0`;
+- state revision is the expected turn-0 revision;
+- turn 0 exists exactly once;
+- Opening story is non-empty;
+- Opening choices are exactly four and all non-empty;
+- accepted Phase 1 state remains minimal (`player`, `scene`, `time` only at top level unless the canonical contract proves equivalent wrapping);
+- there is no turn-1 job in `company_v2_turn_jobs`;
+- no processing/failed/committed gameplay job exists before user action;
+- no duplicate game/state/turn rows;
+- no v1 table dependency is introduced;
+- automated `/api/v2/turn` call count = 0.
+
+## 10. User handoff
+
+Construct:
+
+`https://gamebuilder-company-v2.zeroslove.workers.dev/?game_id=<FRESH_GAME_ID>`
+
+The user will manually play at least 5 committed turns.
+
+Manual focus:
+
+- Story visibly streams;
+- literal action fidelity;
+- exactly four usable choices;
+- one input = one turn;
+- no duplicate job/turn;
+- no stuck processing;
+- refresh/reconnect durability;
+- history ordering and non-empty summaries;
+- relevant-only Mind Monitor;
+- no protocol/OOC garbage;
+- no player/NPC identity corruption.
+
+CSA, clothing, sexual gauges, feedback, Image, TTS, relationship/event and other Phase 2/3 features are deferred and are not Phase 1 blockers.
+
+## 11. Forbidden
+
+Do NOT:
+
+- modify source/config/tests/migrations/content during this rollout;
+- create a branch/PR;
+- apply/reapply migrations;
+- redeploy frontend without a separately reviewed reason;
+- touch v1 Workers;
 - access Production/hospital-v2;
-- change `SUPABASE_URL`, provider URL, models, secrets, prompts, content, CORS, or frontend API base;
+- mutate preserved v1/manual/QA games;
+- change provider/model values;
 - add retries/regeneration;
-- add a new database abstraction, transport framework, semantic verifier/router, or compatibility path;
-- start Phase 2;
-- merge the correction PR automatically.
+- create more than one fresh Setup game;
+- automatically play any gameplay turn;
+- start Phase 2.
 
-## 7. Validation before terminal
+First deterministic defect => preserve evidence and STOP.
 
-Require:
+## 12. Required terminal
 
-- focused receiver-binding regression: PASS, 0 fail / 0 skip;
-- full repository tests: 0 fail;
-- changed JS/MJS syntax checks: PASS;
-- `git diff --check`: PASS;
-- v2 API Wrangler dry-run using `wrangler.v2.api.jsonc`: PASS;
-- exact-head GitHub Actions: SUCCESS;
-- Draft PR OPEN / UNMERGED / mergeable;
-- diff limited to the minimal Supabase transport correction, narrow test update, and synchronized branch copy of CURRENT_TASK only;
-- zero DB writes/migrations/deployments/live-game operations during this task;
-- Production/v1/preserved games untouched.
+On success post one immutable Issue #68 terminal:
 
-## 8. Review focus
-
-The owner review must verify the actual final source, not only test counts:
-
-- no `this.fetchImpl(...)` receiver-sensitive invocation remains on the Supabase transport path;
-- the replacement invokes the function receiver-neutrally;
-- dependency injection is preserved;
-- no retry/fallback was added;
-- no provider/frontend/migration/config semantic drift;
-- regression genuinely distinguishes method-call receiver from receiver-neutral invocation.
-
-If those pass, the next operator action will be exact-head merge and a rollout-resume task that starts from the failed Setup boundary. It must NOT reapply migrations 002-005 and should not redeploy the frontend unless source lineage/config requires it. The corrected API Worker must be deployed before one new Setup attempt.
-
-## 9. Required terminal
-
-Post one new immutable Issue #68 terminal:
-
-`COMPANY_V2_PHASE1_SUPABASE_FETCH_BINDING_READY_FOR_REVIEW`
+`COMPANY_V2_PHASE1_TEST_READY_FOR_USER_5TURN`
 
 Include:
 
 - task ID;
-- exact final head;
-- branch and Draft PR number;
-- triggering blocked terminal `5340154630`;
-- operator review `5340209458`;
-- changed paths;
-- concise root-cause statement;
-- exact receiver-neutral source correction summary;
-- behavioral regression description proving receiver-sensitive injected fetch now succeeds through the public store path;
-- focused/full test counts;
-- syntax/diff/Wrangler dry-run result;
-- exact-head CI run/job;
-- confirmation that migrations 002-005 were untouched and no DB/deploy/live-game/Production/v1 operation occurred.
+- registration main SHA / CURRENT_TASK blob;
+- fetch-binding accepted head `a30c6650817985ca4345687ed11549ba7eadd8f9`;
+- fetch-binding merge `272e58d39e7d063923d063467602b54d750d5d60`;
+- TEST project ref;
+- proof migrations 002-005 were already present and none were applied in this run;
+- read-only live DB preflight result;
+- corrected API Worker name + new version;
+- DB-backed absent-game context smoke result proving native Supabase fetch works;
+- CORS result;
+- existing frontend version and API-base verification;
+- exactly one Setup attempt result;
+- fresh game_id;
+- exactly one Opening result;
+- turn-0 API/DB verification including exactly four choices and no turn-1 job;
+- explicit `automated_gameplay_turns=0`;
+- confirmation Production/v1/preserved games untouched;
+- full manual play URL near the bottom.
 
-Then STOP at `WAITING_REVIEW`. Do not merge and do not resume rollout yourself.
+Then STOP at `WAITING_USER_5TURN`. Do not generate another CURRENT_TASK.
+
+If blocked, post one immutable terminal beginning:
+
+`COMPANY_V2_PHASE1_TEST_AFTER_FETCH_FIX_BLOCKED`
+
+with exact evidence and STOP without hotfix/retry/replacement game.
