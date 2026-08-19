@@ -124,6 +124,86 @@ test('real provider uses STORY_MODEL for Story generation', async () => {
   assert.equal(requests[0].model, 'story-role'); assert.equal(story.join(''), '[NARRATIVE] story');
 });
 
+test('frontend-v2 arms immediate explicit retry for failed terminal and surfaces JSON errors', async () => {
+  const frontend = await fs.readFile(path.join(root, 'frontend-v2/app.js'), 'utf8');
+  assert.match(frontend, /data\.status === 'failed'/); assert.match(frontend, /pendingLiteralAction/); assert.match(frontend, /retryFailed = true/);
+  assert.match(frontend, /payload\.error\?\.message \?\? payload\.error\?\.code/); assert.match(frontend, /finally \{\s*\$\('send'\)\.disabled = false; \}/);
+  assert.match(frontend, /retry_failed: state\.retryFailed/); assert.doesNotMatch(frontend, /retry_failed:\s*true/);
+});
+
+test('Story first-content timeout aborts once and terminalizes the job failed', async () => {
+  let calls = 0; let aborted = false;
+  const fetchImpl = async (_url, options) => {
+    calls += 1;
+    options.signal.addEventListener('abort', () => { aborted = true; });
+    return new Response(new ReadableStream({ start() {} }), { headers: { 'content-type': 'text/event-stream' } });
+  };
+  const provider = createV2Provider({
+    env: { LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'key', STORY_MODEL: 'story-role', EXTRACT_MODEL: 'observation-role' },
+    fetchImpl, content, timeouts: { storyFirstContentMs: 10, storyTotalMs: 100, observationMs: 100 }
+  });
+  const worker = createV2Worker({ provider }); const { gameId } = await game(worker);
+  const text = await (await turn(worker, gameId, 'first-content timeout')).text();
+  assert.match(text, /"status":"failed"/); assert.equal(worker.store.getJob(gameId, 1).error_code, 'v2_story_first_content_timeout');
+  assert.equal(calls, 1); assert.equal(aborted, true); assert.equal(worker.store.turns.size, 1);
+});
+
+test('Story total timeout aborts once without Observation or Commit', async () => {
+  let calls = 0; let aborted = false;
+  const fetchImpl = async (_url, options) => {
+    calls += 1;
+    options.signal.addEventListener('abort', () => { aborted = true; });
+    return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"[NARRATIVE] partial"}}]}\n\n')); } }), { headers: { 'content-type': 'text/event-stream' } });
+  };
+  const provider = createV2Provider({
+    env: { LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'key', STORY_MODEL: 'story-role', EXTRACT_MODEL: 'observation-role' },
+    fetchImpl, content, timeouts: { storyFirstContentMs: 100, storyTotalMs: 15, observationMs: 100 }
+  });
+  const worker = createV2Worker({ provider }); const { gameId } = await game(worker);
+  const text = await (await turn(worker, gameId, 'total timeout')).text();
+  assert.match(text, /"status":"failed"/); assert.equal(worker.store.getJob(gameId, 1).error_code, 'v2_story_timeout');
+  assert.equal(calls, 1); assert.equal(aborted, true); assert.equal(worker.store.turns.size, 1);
+});
+
+test('Observation timeout is fail-open and commits the valid Story', async () => {
+  let calls = 0;
+  const fetchImpl = async (_url, options) => {
+    calls += 1;
+    const request = JSON.parse(options.body);
+    if (request.stream) {
+      const story = '[NARRATIVE] story\n\n[DIALOGUE id="heroine1"]\nhello\n\n[CHOICE]\none\n[CHOICE]\ntwo\n[CHOICE]\nthree\n[CHOICE]\nfour\n[/CHOICE]';
+      return new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: story } }] })}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+    }
+    return new Response(new ReadableStream({ start() {} }), { headers: { 'content-type': 'application/json' } });
+  };
+  const provider = createV2Provider({
+    env: { LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'key', STORY_MODEL: 'story-role', EXTRACT_MODEL: 'observation-role' },
+    fetchImpl, content, timeouts: { storyFirstContentMs: 100, storyTotalMs: 100, observationMs: 10 }
+  });
+  const worker = createV2Worker({ provider }); const { gameId } = await game(worker);
+  const text = await (await turn(worker, gameId, 'observation timeout')).text();
+  assert.match(text, /"status":"committed"/); assert.equal(worker.store.context(gameId).state.committed_turn, 1); assert.equal(calls, 2);
+});
+
+test('stale processing terminalization preserves history and supports explicit retry', async () => {
+  let now = Date.parse('2026-08-19T00:00:00.000Z');
+  const store = new InMemoryV2Store({ content, clock: () => now });
+  const opening = store.createGame({ playerName: 'stale lease' }); const gameId = opening.game.game_id;
+  store.createOpening(gameId, { storyText: 'opening', parsedBlocks: [], choices: ['1', '2', '3', '4'], summary: 'opening' });
+  store.reserveTurn({ gameId, turnNumber: 1, actionId: crypto.randomUUID(), literalAction: 'abandoned' });
+  const before = store.context(gameId); now += 180_001;
+  const stale = store.context(gameId);
+  assert.equal(stale.job.status, 'failed'); assert.equal(stale.job.error_code, 'stale_turn_timeout'); assert.equal(stale.state.committed_turn, before.state.committed_turn); assert.equal(stale.turns.length, before.turns.length);
+  const retry = store.reserveTurn({ gameId, turnNumber: 1, actionId: crypto.randomUUID(), literalAction: 'explicit retry', retryFailed: true });
+  assert.equal(retry.created, true); assert.equal(retry.retried, true); assert.equal(retry.job.attempt_no, 2); assert.equal(store.jobs.size, 1);
+});
+
+test('v2 SQL source uses one narrow stale lease RPC and conflict-safe initial reservation', async () => {
+  const correction = await fs.readFile(path.join(root, 'supabase/migrations/20260819000300_company_v2_stuck_turn_closure.sql'), 'utf8');
+  assert.match(correction, /company_v2_expire_stale_turn/); assert.match(correction, /updated_at\s*<=\s*now\(\)\s*-\s*interval\s+'180 seconds'/);
+  assert.match(correction, /on conflict\s*\(game_id, turn_number\)\s*do nothing/i); assert.match(correction, /if not found then[\s\S]*?select \* into v_job[\s\S]*?for update/s);
+});
+
 test('reconstructed Worker/store reads the same durable-test-double progress and job', async () => {
   let release; let released = false;
   const provider = { async *story() { yield '[NARRATIVE]\nprogress'; await new Promise((resolve) => { release = () => { released = true; resolve(); }; }); yield '\n\n[DIALOGUE id="heroine1"]\nend\n\n[CHOICE]\n1\n[CHOICE]\n2\n[CHOICE]\n3\n[CHOICE]\n4\n[/CHOICE]'; }, async observe() { return { turn_summary: 'done' }; } };

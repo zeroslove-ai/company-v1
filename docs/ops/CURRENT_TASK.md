@@ -2,7 +2,7 @@
 
 Status: READY
 Task ID: company-v2-phase1-clean-vertical-slice-v1
-Mode: CORRECTION ROUND 2 — DEPLOYMENT BOUNDARY
+Mode: CORRECTION ROUND 3 — STUCK TURN CLOSURE
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -14,146 +14,154 @@ Binding canon:
 
 `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`
 
-This is still the SAME Phase 1 task, implementation branch, and Draft PR. It is not a new feature cut.
+This remains the SAME Phase 1 task, implementation branch, and Draft PR. It is not a new feature cut.
 
 - canonical Draft PR: `#87`
 - implementation branch: `company-v2/phase1-clean-vertical-slice-v1`
-- prior correction terminal: Issue #68 comment `5339063880`
-- operator review: Issue #68 comment `5339137010` — `CHANGES_REQUIRED_DEPLOYMENT_BOUNDARY`
-- reviewed head before this correction: `3fbe8b5885965972e01710ffb739c2fb035890ca`
-- exact-head CI already reviewed: run `32229152718` SUCCESS
+- deployment-boundary terminal: Issue #68 comment `5339250233`
+- operator review: Issue #68 comment `5339311603` — `CHANGES_REQUIRED_STUCK_TURN_CLOSURE`
+- reviewed head before this correction: `8030739a3dc2d98638c7e707617fe9b03419a35d`
+- exact-head CI already reviewed: run `32230547982` SUCCESS
 
 All v1/manual/QA/evidence games, especially `df3045fd-c359-4cdc-8783-357ddfebe398`, remain READ-ONLY.
 
-Do not create a replacement PR, implementation branch, or task ID.
+Do not create a replacement PR, implementation branch, or Task ID.
 
-## 1. Keep the accepted correction
+## 1. Keep all accepted Phase 1 work
 
-Do not regress the already accepted Phase 1 corrections:
+Do not regress:
 
+- physical isolation under `runtime-v2/**` and `frontend-v2/**`;
 - production/default Worker uses `SupabaseV2Store` from env;
-- `InMemoryV2Store` is test injection only;
+- `InMemoryV2Store` and deterministic provider are explicit test-only injection paths;
 - real env-configured Story/Observation provider is the production/default path;
-- no deterministic provider fallback in production;
-- one server-owned `/api/v2/turn` operation;
-- durable processing Story progress and reconstructed-worker same-job readback;
-- explicit retry only after terminal failed status on the same `(game_id, turn_number)` row;
-- exactly one canonical job row per game+turn;
+- one browser/server `/api/v2/turn` operation with server-owned Story -> optional Observation -> reducer -> commit;
+- durable `company_v2_*` persistence and one canonical `(game_id, turn_number)` job row;
 - literal player action fidelity;
 - exactly four provider-authored choices;
-- optional Observation fail-open with bounded summary fallback;
+- optional Observation fail-open and bounded non-empty summary fallback;
 - minimal scene/time state and relevant-only Mind Monitor;
-- no old Story/Extract/Commit client state machine;
+- no client Story/Extract/Commit stage machine;
+- explicit retry only after terminal failed status; no automatic LLM retry/regeneration;
+- dedicated API/frontend identities `game-proxy-company-v2` / `gamebuilder-company-v2`;
+- explicit frontend v2 API base and browser-valid CORS/preflight;
+- Story uses `STORY_MODEL`, Observation uses `EXTRACT_MODEL`;
 - no Phase 2/3 mechanics.
 
-## 2. Remaining blocker — separately deployed frontend cannot reach API
+## 2. Goal — make a turn always reach a terminal state
 
-Current reviewed defect:
+Company v2 exists specifically to eliminate the v1 hard-lock class. Before TEST rollout, every reserved Phase 1 turn must deterministically end as either:
 
-- `frontend-v2/app.js` calls `/api/v2/...` only as same-origin relative paths;
-- binding canon §17 prefers separate TEST identities:
-  - API `game-proxy-company-v2`
-  - Frontend `gamebuilder-company-v2`;
-- a static frontend deployed as `gamebuilder-company-v2` therefore sends `/api/v2/...` to the frontend asset worker rather than the API Worker;
-- the API currently returns a bare `OPTIONS 204`, so an absolute cross-origin JSON POST would fail browser CORS preflight.
+- `committed`; or
+- terminal `failed` that the user may explicitly retry.
 
-Phase 1 is not accepted until the source tree is genuinely deployable with the intended isolated v2 identities.
+A job must not remain `processing` forever because of upstream silence, Worker/isolate loss, or reservation races.
 
-## 3. Frontend v2 API boundary
+This correction is structural only. Do not add semantic verification, regeneration, fallback Story calls, or a retry loop.
 
-Implement one explicit v2 frontend API-base configuration.
+## 3. Blocker A — bounded provider timeouts
 
-Requirements:
+Current defect:
 
-- frontend-v2 must construct all API requests from one explicit API base;
-- TEST/default build target may point to `https://game-proxy-company-v2.zeroslove.workers.dev`;
-- do not point v2 frontend at `game-proxy-company-v1`;
-- do not duplicate API URLs across multiple call sites;
-- keep `game_id` query handling and same-job reconnect behavior unchanged;
-- no service worker, proxy workflow, or new client stage machine.
-
-A tiny `frontend-v2/config.js` or equivalent single-source constant is preferred.
-
-## 4. Browser-valid CORS on v2 API
-
-Make separate-origin frontend → API requests valid.
-
-At minimum:
-
-- `OPTIONS` returns the required CORS headers;
-- allow origin for the intended TEST frontend or `*` for this isolated TEST-only Phase 1 if kept consistent with existing responses;
-- allow methods needed by Phase 1 (`GET`, `POST`, `OPTIONS`);
-- allow request header `content-type`;
-- JSON success/error responses and SSE responses keep compatible CORS headers;
-- no credential/cookie authority is introduced.
-
-Add a focused contract test that simulates browser preflight for `POST /api/v2/turn` and proves the required headers are present.
-
-## 5. Dedicated v2 deployment configs
-
-Add source-controlled, isolated deployment configs so rollout does not need to mutate or repurpose v1 Worker identities.
-
-Preferred files:
-
-- `wrangler.v2.api.jsonc`
-- `wrangler.v2.frontend.jsonc`
-
-API config requirements:
-
-- name: `game-proxy-company-v2`
-- main: `runtime-v2/server/worker.js`
-- same compatibility-date class as current Company worker unless a concrete v2 requirement proves otherwise;
-- TEST `SUPABASE_URL` remains the existing Company TEST project;
-- provider endpoint remains the repository's currently configured provider;
-- preserve configured model roles; no provider/model change;
-- required secrets remain service role DB key and LLM API key;
-- no TTS/image/service bindings in Phase 1.
-
-Frontend config requirements:
-
-- name: `gamebuilder-company-v2`
-- static assets directory: `frontend-v2`
-- no v1 frontend files bundled.
-
-Do not alter `wrangler.api.jsonc` or `wrangler.frontend.jsonc` for v1 unless strictly necessary; prefer new isolated files.
-
-Run `wrangler deploy --dry-run` or the repository-equivalent dry-run for BOTH v2 configs. Do not deploy live in this source task.
-
-## 6. Preserve current model roles
-
-The current repository env contract distinguishes:
-
-- `STORY_MODEL`
-- `EXTRACT_MODEL`
-
-Current TEST happens to configure both as `deepseek-v4-flash`, but the v2 source must not silently collapse the two roles.
+- `runtime-v2/server/provider.js` has no bounded Story first-content / Story total / Observation timeout;
+- an upstream fetch/body read can hang until infrastructure termination, leaving the durable job `processing`.
 
 Required:
 
-- Story request uses `STORY_MODEL`;
-- Observation request uses the existing observation/extract-model env role `EXTRACT_MODEL`;
-- both use the existing `LLM_API_URL` + `LLM_API_KEY` provider transport;
-- do not hardcode a different model/provider;
-- if either required model env is missing, production v2 must fail configuration clearly.
+- add v2-local transport timeouts without importing old gameplay runtime modules;
+- use the repository's currently proven timeout class unless a smaller v2-safe bound is justified:
+  - Story first content: approximately 30 seconds;
+  - Story total: approximately 120 seconds;
+  - Observation: approximately 75 seconds;
+- AbortSignal/AbortController must cover both upstream fetch and Story stream body read;
+- timeout/transport failure must throw one structural error into the existing server-owned turn boundary;
+- `processTurn` must terminalize the current job as `failed` through the existing fail path;
+- Observation timeout remains optional/fail-open and must not fail an otherwise valid Story commit;
+- no second Story/Observation request and no automatic retry.
 
-This is role preservation, not reuse of old Extract schema/runtime.
+Do not change provider/model values.
+
+## 4. Blocker B — abandoned processing lease must terminalize
+
+Current defect:
+
+- Story progress is durable, but if the Worker/isolate disappears before catch/fail/commit, the row can remain `processing` forever;
+- reconstructed Worker/frontend only reads and polls that row.
+
+Add one narrow structural lease/expiry rule for `company_v2_turn_jobs`.
+
+Requirements:
+
+- `processing` jobs have a deterministic heartbeat/lease represented by existing `updated_at` or one narrowly added structural timestamp;
+- Story progress updates refresh the lease;
+- normal long-running Story within the configured total timeout must not be expired early;
+- after a conservative bound greater than the maximum normal Story request window, a subsequent server read/reserve/reconnect may atomically transition an abandoned `processing` row to terminal `failed` with a structural error such as `stale_turn_timeout`;
+- expiry must be implemented through one narrow v2 RPC/transaction boundary if DB mutation is required;
+- expiry MUST NOT invoke Story, Observation, Commit, or any automatic retry;
+- after terminalization, the normal explicit failed-turn retry protocol may reopen the same canonical row with incremented `attempt_no`;
+- no background scheduler is required for Phase 1: deterministic detection on server interaction/readback is sufficient;
+- preserve exactly one row per `(game_id, turn_number)`.
+
+Migration remains additive source only in this correction task; do not apply it live.
+
+## 5. Blocker C — concurrent first reservation must converge
+
+Current defect in the authored SQL:
+
+- `company_v2_reserve_turn` does `SELECT ... FOR UPDATE`;
+- if no row exists it performs a plain INSERT;
+- two simultaneous initial reservations can both observe no row and one can fail on the primary-key conflict instead of returning the canonical processing job.
+
+Required:
+
+- make initial reservation transactionally race-safe;
+- concurrent first submissions for the same `(game_id, turn_number)` must converge on exactly one canonical row;
+- at most one caller becomes the creator/Story owner;
+- losing callers deterministically receive the existing processing/terminal job as reconnect/non-created, not an unhandled unique violation;
+- never overwrite a processing or committed action with a replacement action;
+- explicit retry semantics for an already-failed row remain as previously accepted;
+- no advisory-lock system or generic job framework unless strictly necessary; prefer the smallest PostgreSQL row/unique-conflict pattern.
+
+Add a regression that exercises the production persistence contract/race shape rather than only the in-memory store behavior.
+
+## 6. Blocker D — frontend failed terminal is immediately retryable
+
+Current defect:
+
+- `frontend-v2/readStream()` handles `terminal: committed` but ignores `terminal: failed`;
+- after an SSE failure, `state.retryFailed` is not immediately armed and the user receives no clear terminal failure state;
+- the next click first re-discovers the failed job instead of being the explicit retry attempt.
+
+Required:
+
+- on `terminal: failed`:
+  - show a clear user-visible failure/status message;
+  - preserve the literal input in the input control;
+  - reconcile/render the returned canonical failed context or fetch it once from `/api/v2/context`;
+  - set client retry intent from canonical `job.status === 'failed'`;
+  - re-enable input/send through the normal submit `finally` path;
+- the next user click is the one explicit retry submission with a new `action_id` and `retry_failed=true`;
+- do not auto-submit, auto-retry, regenerate, or create a hidden timer-based retry;
+- non-SSE JSON error responses must surface their actual server error cleanly rather than failing through an undefined data object.
 
 ## 7. Required focused tests
 
-Add/adjust compact tests proving:
+Keep the suite compact. Add/adjust tests proving at minimum:
 
-1. frontend-v2 has one explicit v2 API base and does not use the v1 API identity;
-2. separately hosted frontend constructs API requests against the v2 API base;
-3. POST JSON preflight succeeds with required CORS origin/method/header response fields;
-4. JSON success/error and SSE responses remain CORS-compatible;
-5. `wrangler.v2.api.jsonc` targets only `game-proxy-company-v2` + `runtime-v2/server/worker.js`;
-6. `wrangler.v2.frontend.jsonc` targets only `gamebuilder-company-v2` + `frontend-v2`;
-7. both v2 configs dry-run successfully;
-8. Story uses `STORY_MODEL`; Observation uses `EXTRACT_MODEL`;
-9. no v1 runtime/frontend orchestration imports appear;
-10. all prior DB/reconnect/retry invariants continue to pass.
+1. Story first-content timeout aborts and terminalizes the job failed; Story call count remains 1;
+2. Story total timeout aborts and terminalizes failed; no Observation/Commit follows;
+3. Observation timeout/failure is fail-open and valid Story still commits;
+4. abandoned durable processing job older than the lease bound becomes terminal `failed` on subsequent server interaction without any Story call;
+5. stale terminalization preserves committed turn/history/state;
+6. explicit retry after stale terminalization reopens the same row with incremented `attempt_no`;
+7. simultaneous initial DB reservations converge on one canonical row and one creator instead of a unique-violation error;
+8. simultaneous explicit failed-row retries still produce one processing attempt;
+9. frontend handles SSE `terminal: failed`, preserves literal input, surfaces failure, and arms the next explicit retry;
+10. frontend does not automatically retry;
+11. JSON error response handling surfaces the server error;
+12. all deployment-boundary, CORS, API-base, model-role, DB-store, reconnect, clean-room/import-boundary tests remain green.
 
-Do not port old v1 gameplay tests.
+Do not port old v1 tests.
 
 ## 8. Safety / forbidden
 
@@ -164,9 +172,11 @@ Do NOT:
 - apply any migration;
 - deploy either v2 Worker;
 - create/play a live v2 game;
-- mutate/reset/reseed/replay any v1 evidence game;
+- write/reset/reseed/replay/revise any preserved v1 game;
 - access Production/hospital-v2;
 - change provider or configured model values;
+- add automatic Story/Observation retry/regeneration;
+- add semantic router/verifier/classifier/generic job framework;
 - merge PR #87;
 - create another PR/branch/task;
 - start CSA/clothing/navigation/Image/TTS/feedback/sexual meter or any Phase 2/3 work.
@@ -179,26 +189,29 @@ Before terminal require:
 - full repository tests: 0 fail;
 - changed JS/MJS `node --check`: PASS;
 - `git diff --check`: PASS;
-- BOTH dedicated v2 wrangler dry-runs: PASS;
+- both dedicated v2 wrangler dry-runs remain PASS;
 - exact-head GitHub CI: SUCCESS;
 - PR #87 remains OPEN / DRAFT / UNMERGED / mergeable;
-- branch copy of `docs/ops/CURRENT_TASK.md` is synchronized with the current main registration and does not create an obsolete ops conflict;
+- branch copy of `docs/ops/CURRENT_TASK.md` is synchronized to this current main registration and introduces no obsolete ops conflict;
 - zero migration apply/deploy/live game/Production/preserved-game mutation.
 
 Post one new immutable Issue #68 terminal:
 
-`COMPANY_V2_PHASE1_DEPLOYMENT_BOUNDARY_READY_FOR_REVIEW`
+`COMPANY_V2_PHASE1_STUCK_TURN_CLOSURE_READY_FOR_REVIEW`
 
 Include:
 
-- exact final head
-- previous review `5339137010`
-- PR #87
-- focused/full counts
-- exact-head CI run/job
-- both wrangler dry-run results
-- changed paths
-- proof of frontend API base, CORS preflight, v2 Worker identities, STORY_MODEL/EXTRACT_MODEL role preservation
-- confirmation of zero live operations
+- exact final head;
+- previous review `5339311603`;
+- PR #87;
+- focused/full counts;
+- exact-head CI run/job;
+- both v2 wrangler dry-run results;
+- changed paths;
+- proof of bounded provider timeout behavior;
+- proof of stale-processing terminalization with no LLM retry;
+- proof of race-safe initial reservation;
+- proof of immediate frontend failed-terminal explicit-retry behavior;
+- confirmation of zero live operations.
 
 Then STOP. Do not generate the rollout task.

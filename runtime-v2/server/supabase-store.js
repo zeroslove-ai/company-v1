@@ -42,19 +42,23 @@ export class SupabaseV2Store {
   }
 
   async context(gameId) {
-    const [games, states, turns, jobs] = await Promise.all([
+    const [games, states] = await Promise.all([
       this.db.select('company_v2_games', { game_id: `eq.${gameId}` }),
-      this.db.select('company_v2_state', { game_id: `eq.${gameId}` }),
-      this.db.select('company_v2_turns', { game_id: `eq.${gameId}`, order: 'turn_number.asc' }),
-      this.db.select('company_v2_turn_jobs', { game_id: `eq.${gameId}`, order: 'turn_number.asc' })
+      this.db.select('company_v2_state', { game_id: `eq.${gameId}` })
     ]);
     if (!games?.[0] || !states?.[0]) throw new Error('game_not_found');
     const state = states[0];
+    await this.db.rpc('company_v2_expire_stale_turn', { p_game_id: gameId, p_turn_number: state.committed_turn + 1 });
+    const [turns, jobs] = await Promise.all([
+      this.db.select('company_v2_turns', { game_id: `eq.${gameId}`, order: 'turn_number.asc' }),
+      this.db.select('company_v2_turn_jobs', { game_id: `eq.${gameId}`, order: 'turn_number.asc' })
+    ]);
     const job = jobs?.find((candidate) => candidate.turn_number === state.committed_turn + 1) ?? null;
     return { game: clone(games[0]), state: clone(state), turns: clone(turns ?? []), job: job ? summarizeDbJob(job) : null };
   }
 
   async getJob(gameId, turnNumber) {
+    await this.db.rpc('company_v2_expire_stale_turn', { p_game_id: gameId, p_turn_number: turnNumber });
     const rows = await this.db.select('company_v2_turn_jobs', { game_id: `eq.${gameId}`, turn_number: `eq.${turnNumber}` });
     return rows?.[0] ?? null;
   }

@@ -1,6 +1,6 @@
 import { V2_API_BASE_URL } from './config.js';
 
-const state = { gameId: new URLSearchParams(location.search).get('game_id'), expectedTurn: 1, actionId: null, retryFailed: false };
+const state = { gameId: new URLSearchParams(location.search).get('game_id'), expectedTurn: 1, actionId: null, retryFailed: false, pendingLiteralAction: '' };
 const $ = (id) => document.getElementById(id);
 const apiUrl = (path) => `${V2_API_BASE_URL.replace(/\/$/, '')}${path}`;
 
@@ -64,13 +64,16 @@ async function reconnect(job) {
 
 async function submit() {
   const literalAction = $('action').value;
+  state.pendingLiteralAction = literalAction;
   state.actionId = crypto.randomUUID();
   $('send').disabled = true;
   try {
     const response = await request('/api/v2/turn', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: state.gameId, action_id: state.actionId, expected_turn: state.expectedTurn, retry_failed: state.retryFailed, literal_action: literalAction }) });
     if (response.headers.get('content-type')?.includes('text/event-stream')) await readStream(response);
     else {
-      const data = (await response.json()).data;
+      const payload = await response.json();
+      if (!payload.ok) throw new Error(payload.error?.message ?? payload.error?.code ?? 'v2_turn_failed');
+      const data = payload.data;
       render(data.context ?? await api(`/api/v2/context?game_id=${encodeURIComponent(state.gameId)}`));
       if (data.job?.status === 'processing') await reconnect(data.job);
     }
@@ -90,6 +93,13 @@ async function readStream(response) {
       const data = JSON.parse(line.slice(6));
       if (event.startsWith('event: story_delta')) $('story').textContent += data.text;
       if (event.startsWith('event: terminal') && data.status === 'committed') render(data.context);
+      if (event.startsWith('event: terminal') && data.status === 'failed') {
+        if (data.context) render(data.context);
+        else render(await api(`/api/v2/context?game_id=${encodeURIComponent(state.gameId)}`));
+        $('action').value = state.pendingLiteralAction;
+        state.retryFailed = true;
+        $('status').textContent = `Turn failed: ${data.error_code ?? 'turn_failed'}. Click send to retry explicitly.`;
+      }
     }
     buffer = buffer.slice(buffer.lastIndexOf('\n\n') + 2);
   }
