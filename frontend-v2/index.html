@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>회사편 v2</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main id="app" aria-live="polite">
+      <h1>회사편</h1>
+      <p id="status">게임을 준비하는 중입니다.</p>
+      <section id="story" aria-label="이야기"></section>
+      <ol id="choices" aria-label="선택지"></ol>
+      <label for="action">직접 입력</label>
+      <textarea id="action" rows="3" maxlength="2000"></textarea>
+      <button id="send" type="button">행동 실행</button>
+      <p id="summary"></p>
+      <dl id="mind"></dl>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
