@@ -1,8 +1,8 @@
 # Company v2 — CURRENT TASK
 
 Status: READY
-Task ID: company-v2-phase1-subrequest-budget-test-rollout-utf8-resume-v1
-Mode: TEST ROLLOUT RESUME — REUSE DEPLOYED API + ASCII-ONLY UTF-8 HARNESS + FRESH ONE-TURN SMOKE + OWNER HANDOFF
+Task ID: company-v2-phase1-subrequest-budget-test-rollout-harness-correct-resume-v1
+Mode: TEST ROLLOUT RESUME — CORRECT HARNESS ASSERTION + REUSE DEPLOYED API + FRESH ONE-TURN SMOKE + OWNER HANDOFF
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -26,64 +26,56 @@ Accepted choice DB contract:
 - source merge: `2c010a3ffac07750db72c4ee6035e8a8f1a2f253`
 - migration 006: `20260819000600_company_v2_choice_contract_closure.sql`
 
-Accepted subrequest-budget source correction:
+Accepted subrequest-budget correction:
 
 - source terminal: `5342205511`
 - source acceptance: `5342251062`
 - accepted head: `0b7aaeb1c44c034384198cfd6108b1e4ed726a1a`
-- exact-head CI run/job: `32253580067` / `96069985737`, SUCCESS
 - merge: `ccdf41f432102cbf7e930732bacdd8d8d3667c22`
+- exact-head CI: run `32253580067`, job `96069985737`, SUCCESS
 
-Previous TEST rollout:
+Previous rollout evidence:
 
-- task: `company-v2-phase1-subrequest-budget-test-rollout-v1`
-- READY: `5342303801`
-- execution lease: `5342332288`
-- BLOCKED terminal: `5342409308`
+- first harness-corruption terminal: `5342409308`
 - operator review: `5342470445`
+- UTF-8 resume terminal: `5342641296`
+- operator review accepting task-spec typo: `5342773106`
 
 TEST project:
 
 `fmcrspgxstsmxxsmkeee`
 
-This task is an operational resume only. No source correction, migration, or redeploy is authorized.
+This is TEST OPS RESUME only. No source correction, migration, Worker redeploy, provider/model/config/secret change, retry, repair, or Phase 2 work is authorized.
 
-## 1. Proven first failure from previous rollout
+## 1. Proven blocker is the registered harness assertion, not runtime
 
-The previous rollout reached fresh Setup C only after its authorized API deploy and read-only preflight stages had completed.
+The previous UTF-8 resume stopped before any HTTP request because the registered task contained a wrong decimal code point.
 
-Its first deterministic failure was the test harness itself:
+The correct player name is:
 
-- intended player name: `플레이어`
-- intended code points: `[54028,47112,51060,50612]`
-- actual stored name: `????`
-- actual stored code points: `[63,63,63,63]`
-- cause: PowerShell here-string/codepage transport converted the Korean literal before Node received it.
+`플레이어`
 
-No runtime/provider/gameplay quality conclusion is valid from that request.
+Correct JavaScript construction:
 
-Failed harness evidence game:
+```js
+const playerName = String.fromCodePoint(0xD50C, 0xB808, 0xC774, 0xC5B4);
+```
 
-`cc6d45ab-c261-43b0-a84a-93f661ec1683`
+Correct decimal code points:
 
-Independent DB readback:
+```text
+[54540,47112,51060,50612]
+```
 
-- committed_turn=0
-- revision=0
-- turns=0
-- jobs=0
-- player.name=`????`
+The previous value `54028` is wrong and MUST NOT be used as an assertion anywhere in this task.
 
-Preserve it immutable. Never retry, open, reset, delete, repair, reuse, or context/getJob API-call it.
+This task does not modify repository source to fix that typo. The corrected assertion exists only in the temporary external test harness.
 
-## 2. Current immutable TEST baseline
+## 2. Immutable TEST evidence baseline
 
-Independent operator readback after the BLOCKED terminal proves:
+At operator registration time, direct SQL shows 10 Company v2 games.
 
-- total `company_v2_games` = **9**
-- migration 006 ledger count = **1**
-
-The exact nine immutable game IDs are:
+Known immutable IDs:
 
 1. `88625b46-20fa-42c6-82d5-050a98ee2aad`
 2. `09bece94-f2f3-4936-baab-42f64d078708`
@@ -94,248 +86,266 @@ The exact nine immutable game IDs are:
 7. `e2b7019b-ed17-493f-8871-502acbc6e795`
 8. prior subrequest-failure smoke `9cda9783-76ae-436e-a517-a5c9377d273f`
 9. harness-corrupted Setup-only smoke `cc6d45ab-c261-43b0-a84a-93f661ec1683`
+10. unresolved pre-registration Opening-only game `ae7b5146-7f6c-4b66-977f-849a7842623a`
 
-Games 8 and 9 are especially sensitive. Direct SQL only. Never call context/getJob API on either.
+Game 10 was observed at registration with:
 
-Immediately after posting `EXECUTION: STARTED`, direct-read the current v2 games/state/turn/jobs and require the exact nine IDs above and total count=9. No pre-lease absorption is allowed in this resume task. Any unexplained tenth game before authorized fresh Setup E => STOP.
+- created_at `2026-08-19T13:18:25.465386Z`
+- committed_turn=0
+- revision=0
+- player name exactly `플레이어`
+- exactly one turn-0 Opening row
+- Opening choices=[]
+- jobs=0
 
-Expected successful fresh-game count path is exactly:
+Do not infer its origin. Preserve it immutable.
 
-`9 -> 10 -> 11`
+All baseline games are direct-SQL-only. Do not call context/getJob/opening/turn/setup/reset APIs on them. Do not repair, retry, delete, reuse, or mutate them.
 
-## 3. Reuse the API deployment already produced by the previous rollout
+### Execution-start baseline freeze
 
-API deployments authorized in this resume task: **0**.
-Frontend deployments: **0**.
+Immediately after posting the execution lease, direct-read all Company v2 games.
 
-The previous rollout had to pass its deploy gate before it reached Setup C. Therefore do not deploy again.
+Let the frozen baseline count be `N`.
 
-Before any API request:
+1. If the exact 10 registered IDs are present and there are no others, freeze `N=10`.
+2. If additional game(s) appeared before the execution lease, they may be absorbed into the immutable baseline only when every additional game satisfies all of:
+   - created_at strictly before the execution lease;
+   - committed_turn=0;
+   - revision=0;
+   - jobs=0;
+   - and either:
+     - turns=0, or
+     - exactly one turn row with turn_number=0, empty literal_action, choices=[] and no gameplay job.
+3. Do not guess their origin. Add them to the terminal baseline list and never API-context them.
+4. If any additional game was created at/after the execution lease, has committed_turn>0, revision>0, any gameplay turn, or any job, STOP.
+5. After `N` is frozen, any unexplained game-count drift before the authorized fresh Setup below => STOP.
 
-1. Read Issue #68 previous execution/terminal evidence and recover the exact API Worker deployment/version identity produced by `company-v2-phase1-subrequest-budget-test-rollout-v1`.
-2. Read current live deployment/version identity of `game-proxy-company-v2`.
-3. Require exact parity with that previous-run deployment identity.
-4. Require frontend `gamebuilder-company-v2` unchanged from the prior accepted TEST identity; never deploy it.
-5. Verify current main remains a docs-only descendant of source merge `ccdf41f432102cbf7e930732bacdd8d8d3667c22` and runtime still contains `MAX_PROGRESS_WRITES_PER_ATTEMPT = 4` and `PROGRESS_SNAPSHOT_INTERVAL_CHARS = 512`.
+Successful authorized count path is dynamically:
 
-If the prior deployment identity cannot be recovered exactly, or live API identity differs, STOP. Do not deploy over unknown work.
+`N -> N+1 -> N+2`
+
+## 3. Reuse the already-deployed API
+
+API deployments authorized by this task: **0**.
+Frontend deployments authorized: **0**.
+
+Before any mutating request:
+
+- recover the exact `game-proxy-company-v2` deployment identity produced by the prior accepted rollout from Issue #68 runner evidence;
+- compare it with the current live Worker identity;
+- require exact parity;
+- require `gamebuilder-company-v2` has not been newly deployed by this task;
+- verify current main is only an ops/docs descendant of source merge `ccdf41f432102cbf7e930732bacdd8d8d3667c22`;
+- verify runtime source still contains `MAX_PROGRESS_WRITES_PER_ATTEMPT = 4` and the accepted bounded-progress policy.
+
+If deployment identity cannot be proven or live identity drifted, STOP. Do not redeploy over unknown work.
 
 No secret/provider/model/config/subrequest-limit change.
 
-## 4. Read-only DB and transport preflight
+## 4. Read-only DB and transport gates
 
-Before creating a game require:
+Before fresh Setup require:
 
 - migrations 002/003/004/005/006 each exactly once;
 - no unexpected later Company v2 migration;
-- active `company_v2_turns_choices_empty_check` still enforces array length 0 and remains NOT VALID / `convalidated=false`;
-- old exact-four choices CHECK absent;
-- Opening and fenced Commit remain empty-choice-only;
-- action_id + attempt_no/status/revision/turn fencing intact;
+- migration 006 choice contract unchanged;
+- `company_v2_turns_choices_empty_check` present, array length 0, `convalidated=false`;
+- old exact-four choice CHECK absent;
+- Opening empty-choice-only;
+- fenced Commit empty-choice-only;
+- action_id + attempt_no + status + revision + turn fencing intact;
 - no unfenced progress/fail/commit overload;
-- RPC ACL still service_role-only;
-- service_role table privileges not broadened;
-- current game count still 9.
+- RPC EXECUTE remains service_role-only;
+- table privileges not broadened;
+- current game count still exactly frozen `N`.
 
-Read-only transport/static gates:
+Transport/static gates:
 
-- frontend static shell assets return 200;
-- API base remains `https://game-proxy-company-v2.zeroslove.workers.dev`;
-- free-form composer/product shell present;
-- active choice UI absent;
-- `/api/v2/turn` OPTIONS remains browser-valid;
+- `/`, `/index.html`, `/config.js`, `/app.js`, `/styles.css` on frontend return 200;
+- frontend API base remains Company v2 API only;
+- free-form composer present;
+- active choices UI absent;
+- browser-valid OPTIONS `/api/v2/turn` passes;
 - one fresh verified-absent context probe returns canonical `game_not_found`.
 
-If the known transient `JWT issued at future` occurs on that absent probe, exactly one second verified-absent probe is allowed after trusted UTC comparison. No secret repair/redeploy.
+If the known `JWT issued at future` signature occurs, exactly one second verified-absent probe is allowed after trusted UTC re-read. No secret repair and no deploy. Second failure => STOP.
 
-## 5. Mandatory ASCII-only Node harness
+## 5. Mandatory corrected ASCII-only Node harness
 
-Do not reuse the failed stdin/here-string Korean path.
+Create one temporary `.mjs` outside the repository. Do not commit it.
 
-Create one temporary `.mjs` file **outside the repository**. It is test machinery only and must not be committed.
+The source bytes must be ASCII-only. Korean literals must not physically occur in the temp file.
 
-The file source bytes must be ASCII-only. Korean literals must not physically appear in the temp source file.
-
-Construct the player name in JavaScript from code points or Unicode escapes, for example:
+Construct the player name only as ASCII source, for example:
 
 ```js
 const playerName = String.fromCodePoint(0xD50C, 0xB808, 0xC774, 0xC5B4);
 ```
 
-This must yield exactly `플레이어`.
-
-Construct the gameplay action from ASCII-only Unicode escapes/code points equivalent to:
-
-`서원에게 오늘 첫 업무가 무엇인지 물어본다.`
-
-A valid escaped form is:
+Construct the gameplay action from ASCII Unicode escapes:
 
 ```js
 const literalAction = "\uC11C\uC6D0\uC5D0\uAC8C \uC624\uB298 \uCCAB \uC5C5\uBB34\uAC00 \uBB34\uC5C7\uC778\uC9C0 \uBB3C\uC5B4\uBCF8\uB2E4.";
 ```
 
-Before the first HTTP request the Node process itself must assert:
+Before the first HTTP request, the Node process itself must assert all of:
 
-- playerName code points exactly `[54028,47112,51060,50612]`;
-- playerName UTF-8 round-trip through `Buffer.from(playerName, 'utf8').toString('utf8')` is unchanged;
-- literalAction round-trip through UTF-8 is unchanged;
-- temp script source contains no byte > 0x7F.
+- `Array.from(playerName, c => c.codePointAt(0))` equals exactly `[54540,47112,51060,50612]`;
+- `playerName === "\uD50C\uB808\uC774\uC5B4"`;
+- playerName UTF-8 Buffer round-trip unchanged;
+- literalAction UTF-8 Buffer round-trip unchanged;
+- literalAction equals the intended Korean action after JavaScript escape interpretation;
+- temp source contains no byte > 0x7F.
 
-Use Node native `fetch` and native `JSON.stringify` inside that same process. Do not pipe JSON through PowerShell stdin. Do not interpolate Korean in shell variables. Do not use curl body literals.
+Use native Node `fetch` and native `JSON.stringify` in that same process.
 
-If any local harness assertion fails, STOP **before** any Setup request.
+Forbidden:
 
-## 6. Fresh Smoke E — one Setup, one Opening, one gameplay turn
+- PowerShell here-string JSON body;
+- Korean shell variables;
+- curl body literals;
+- stdin transport of Korean request JSON;
+- changing code page to make a literal path appear to work.
 
-After all gates pass, direct-read game count and require exactly 9.
+Any local harness failure => STOP before Setup.
 
-### Setup E
+## 6. Fresh Smoke G
 
-Call `/api/v2/setup` exactly once from the verified ASCII-only Node harness.
+After all gates pass, require game count=`N`.
 
-Body must be generated inside Node from:
+### Setup G
+
+Call `/api/v2/setup` exactly once with body constructed inside Node:
 
 ```js
 { player_name: playerName }
 ```
 
-No retry/replacement.
+No retry or replacement.
 
-Immediately direct-read DB and require:
+Direct DB must prove:
 
-- one new game E only;
-- total count=10;
-- stored `state.player.name` exactly `플레이어`;
-- stored name code points exactly `[54028,47112,51060,50612]`;
+- exactly one new game G;
+- count=`N+1`;
+- player name exactly `플레이어`;
+- player code points exactly `[54540,47112,51060,50612]`;
 - committed_turn=0;
 - revision=0;
 - turns=0;
 - jobs=0.
 
-Any mismatch => STOP and preserve E. Do not call Opening.
+Failure => preserve G and STOP. Do not Opening.
 
-### Opening E
+### Opening G
 
 Call `/api/v2/opening` exactly once.
 
-Require direct DB:
+Require:
 
-- total count=10;
+- count=`N+1`;
 - committed_turn=0 / revision=0;
 - exactly one turn-0 row;
-- non-empty/substantial Opening story;
+- substantial non-empty Opening Story;
 - meaningful parsed blocks;
 - non-empty summary;
-- `choices=[]` exactly;
+- choices=[] exactly;
 - jobs=0;
-- player name remains exact Korean.
+- player name/code points unchanged.
 
-Any failure => STOP and preserve E.
+Failure => preserve G and STOP.
 
-### Gameplay E
+### Gameplay G
 
-Submit exactly once, using the ASCII-only Node-generated `literalAction`:
+Submit exactly one `/api/v2/turn` request with:
 
-`서원에게 오늘 첫 업무가 무엇인지 물어본다.`
-
-Request contract:
-
-- one `/api/v2/turn` request total;
-- one newly generated action_id;
+- one fresh action_id;
 - expected_turn=1;
 - retry_failed=false;
-- no retry/regeneration/replacement under any outcome.
+- exact literal action `서원에게 오늘 첫 업무가 무엇인지 물어본다.` generated by the ASCII-only harness.
 
-Capture the real SSE stream.
+Capture real SSE.
 
 Require:
 
-1. at least one real non-empty `story_delta` before terminal;
-2. Story deltas remain ordinary narrative, not protocol/error payload;
-3. exactly one authoritative terminal;
-4. terminal status=`committed`;
-5. no `Too many subrequests` or equivalent exhaustion signature;
-6. no silent close without authoritative terminal.
+- at least one non-empty real `story_delta` before terminal;
+- all deltas remain narrative, not protocol/error payload;
+- exactly one terminal;
+- terminal status `committed`;
+- no `Too many subrequests` or equivalent exhaustion signature;
+- no silent close.
 
 Direct DB after terminal must prove:
 
-- total count=10;
+- count=`N+1`;
 - committed_turn=1;
 - revision=1;
 - turns exactly [0,1];
-- exactly one canonical turn-1 job;
-- job status=`committed`;
+- exactly one turn-1 canonical job;
+- job status=committed;
 - attempt_no=1;
-- job/turn literal_action exactly the intended Korean action;
-- non-empty substantial full Story;
+- job/turn literal_action exact;
+- substantial full Story;
 - meaningful parsed blocks;
 - non-empty summary;
-- `choices=[]` on turn0 and turn1;
+- choices=[] on turn0 and turn1;
 - no duplicate turn/job;
-- no processing/failed residue for E;
-- structurally valid state_after;
-- relevant-NPC-only Mind Monitor if any entries are present.
+- no processing/failed residue for G;
+- valid state_after;
+- Mind Monitor only for relevant NPCs if present.
 
-Record SSE delta count/order, terminal, Story character length, elapsed timing, action_id, and direct DB result.
+Record Story delta count/order, terminal, action_id, Story character length, elapsed timing and DB readback.
 
-Owner narrative law `5341147788` is binding. Reject terse 1–2 sentence status text, bullets/protocol/OOC output, or Story that replaces the literal player intent instead of elaborating its consequences. Do not regenerate weak output.
+Owner rich-narrative law `5341147788` is binding. Reject terse status text, bullet/protocol/OOC output, or replacement of the literal player intent. Do not regenerate weak output.
 
-## 7. Handoff F — only after Smoke E fully passes
+Any failure => preserve G and STOP. No second gameplay attempt.
 
-Before Setup F require count exactly 10.
+## 7. Owner Handoff H — only after G fully passes
 
-Create exactly one separate handoff game F using the same verified ASCII-only Node harness.
+Before Setup H require count=`N+1`.
 
-### Setup F
+Create exactly one fresh H using the same verified ASCII-only Node harness.
 
-- exactly one Setup request;
-- player name exactly `플레이어`;
-- direct DB code points exactly `[54028,47112,51060,50612]`;
-- no retry/replacement.
+Setup exactly once, then Opening exactly once. No gameplay.
 
-### Opening F
+Require direct DB:
 
-- exactly one Opening request;
-- zero gameplay turns.
-
-Require:
-
-- total count=11;
+- count=`N+2`;
 - committed_turn=0;
 - revision=0;
 - exactly one turn-0 row;
-- non-empty/substantial Opening Story;
+- substantial Opening Story;
 - meaningful parsed blocks;
 - non-empty summary;
-- `choices=[]`;
-- zero jobs;
-- Korean player name exact.
+- choices=[];
+- jobs=0;
+- player exactly `플레이어` with code points `[54540,47112,51060,50612]`.
 
-Do not browser-open or auto-play F.
+Do not browser-open or auto-play H.
 
 Return:
 
-`https://gamebuilder-company-v2.zeroslove.workers.dev/?game_id=<HANDOFF_GAME_F>`
+`https://gamebuilder-company-v2.zeroslove.workers.dev/?game_id=<HANDOFF_GAME_H>`
 
-Then STOP for owner manual play acceptance.
+Then STOP for owner manual acceptance.
 
 ## 8. Hard operation limits
 
-- starting TEST game baseline: exactly 9;
+- baseline: freeze `N` exactly once at execution start;
 - fresh authorized games: at most 2;
-- successful count path: exactly `9 -> 10 -> 11`;
-- API deploys: 0;
-- frontend deploys: 0;
-- migration apply/edit: 0;
-- source/runtime/config changes: 0;
-- secret/provider/model/subrequest-limit changes: 0;
-- automated gameplay turns: exactly 1 total, Smoke E only;
-- Handoff F gameplay: 0;
-- retries/regenerations/resets/deletes/repairs: 0;
-- existing-nine-game API context/getJob calls: 0;
-- v1/Production/Phase2 operations: 0.
+- successful count path: `N -> N+1 -> N+2`;
+- API deploys=0;
+- frontend deploys=0;
+- migration apply/edit=0;
+- source/runtime/config changes=0;
+- secret/provider/model/subrequest-limit changes=0;
+- automated gameplay turns=exactly 1 total, Smoke G only;
+- Handoff H gameplay=0;
+- retries/regenerations/resets/deletes/repairs=0;
+- baseline-game context/getJob/mutating API calls=0;
+- v1/Production/Phase2 operations=0.
 
-If a source/runtime/DB/deployment defect appears, STOP. Do not hotfix it under this rollout task.
+If a source/runtime/DB/deployment defect appears, STOP. Do not hotfix under this task.
 
 ## 9. Required terminal
 
@@ -343,31 +353,27 @@ If a source/runtime/DB/deployment defect appears, STOP. Do not hotfix it under t
 
 Post:
 
-`COMPANY_V2_PHASE1_SUBREQUEST_BUDGET_UTF8_RESUME_READY_FOR_USER`
+`COMPANY_V2_PHASE1_SUBREQUEST_BUDGET_HARNESS_CORRECT_RESUME_READY_FOR_USER`
 
 Status: `WAITING_USER_ACCEPTANCE`
 
 Include:
 
-- task identity / execution lease / registration SHA / CURRENT_TASK blob;
-- source acceptance/head/merge;
-- previous BLOCKED terminal + operator review;
-- exact current baseline nine IDs;
-- migration/choice/fencing/ACL readback;
-- exact API deployment identity recovered from previous rollout and live parity proof;
-- explicit API deploys=0 / frontend deploys=0;
-- ASCII-only harness path and proof its source bytes are ASCII-only;
-- local player-name code points and UTF-8 round-trip proof before HTTP;
-- Smoke E ID;
-- exact Korean DB readback after Setup;
-- Opening E choices/story/summary result;
-- gameplay action_id and exact literal action;
-- real SSE delta count/order and exactly one committed terminal;
+- TASK_ID / execution lease / registration SHA / CURRENT_TASK blob;
+- prior terminal `5342641296` and operator review `5342773106`;
+- frozen baseline N and every immutable game ID;
+- any pre-lease absorbed IDs and their zero-gameplay proof;
+- migration/choice/fencing/ACL proof;
+- recovered live API deployment identity parity and deploys=0;
+- ASCII-only temp harness path plus byte-range proof;
+- corrected player code points `[54540,47112,51060,50612]` before HTTP;
+- Smoke G ID and exact DB Korean-name proof;
+- Opening G readback;
+- gameplay action_id, literal action, SSE delta count/order, one committed terminal;
 - explicit no-subrequest-exhaustion result;
-- turn/job/revision/story/summary/MM/count readback;
-- Handoff F ID and DB readback;
-- handoff URL;
-- final total count=11;
+- turn/job/revision/story/summary/MM readback;
+- Handoff H ID, DB readback and handoff URL;
+- final count=`N+2`;
 - zero retry/reset/delete/repair/migration/source/provider/model/config/secret/v1/Production/Phase2 operations.
 
 Then STOP. Do not create another CURRENT_TASK.
@@ -376,10 +382,10 @@ Then STOP. Do not create another CURRENT_TASK.
 
 Post:
 
-`COMPANY_V2_PHASE1_SUBREQUEST_BUDGET_UTF8_RESUME_BLOCKED`
+`COMPANY_V2_PHASE1_SUBREQUEST_BUDGET_HARNESS_CORRECT_RESUME_BLOCKED`
 
 Status: `BLOCKED`
 
-Identify the first deterministic failure and stop immediately. Preserve any newly created game. No retry, replacement, reset, delete, repair, deploy, source hotfix, migration, or extra gameplay attempt.
+Report the first deterministic failure and preserve any newly created game. No retry, replacement, reset, delete, repair, deploy, source hotfix, migration, or extra gameplay attempt.
 
 Then STOP at review boundary. Do not create another CURRENT_TASK.
