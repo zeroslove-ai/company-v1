@@ -1,6 +1,6 @@
 # Company v2 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-v2-phase1-clean-vertical-slice-v1
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -344,3 +344,38 @@ When Phase 1 source implementation is coherent:
 7. STOP.
 
 The next owner-reviewed task will decide merge + TEST migration/deploy + one fresh v2 game handoff for **user 5-turn manual acceptance**. No automated long gameplay before that.
+
+## 14. Implementation handoff
+
+Implementation source is complete at:
+
+`f49098efdf0bdf9abfe77a39d6807a4542437f0f`
+
+Workflow HEAD will be a docs-only descendant after this lifecycle update.
+
+Changed source paths:
+
+- `runtime-v2/domain/content.js`
+- `runtime-v2/domain/contracts.js`
+- `runtime-v2/domain/story.js`
+- `runtime-v2/server/http.js`
+- `runtime-v2/server/index.js`
+- `runtime-v2/server/provider.js`
+- `runtime-v2/server/store.js`
+- `runtime-v2/server/worker.js`
+- `frontend-v2/index.html`
+- `frontend-v2/app.js`
+- `frontend-v2/styles.css`
+- `supabase/migrations/20260819000200_company_v2_phase1_vertical_slice.sql` (source only; not applied)
+- `test/company-v2-phase1.test.mjs`
+
+Validation before review:
+
+- v2 focused suite: 18 passed / 0 failed
+- full `npm.cmd test`: 387 passed / 0 failed / 0 skipped
+- every new JavaScript file passed `node --check`
+- `git diff --check`: passed
+- import-boundary and v2 persistence/frontend contract assertions: passed
+- no TEST migration, deployment, live v2 game, Production access, provider/model change, preserved-game mutation, or merge
+
+Required next step: exact-head CI for the implementation source, then owner review. This branch is not merged and must not be deployed by this task.
