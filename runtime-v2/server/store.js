@@ -1,0 +1,75 @@
+import { clone, createInitialState, requireLiteralAction } from '../domain/contracts.js';
+
+function id() {
+  return globalThis.crypto?.randomUUID?.() ?? `v2-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+export class InMemoryV2Store {
+  constructor({ content } = {}) {
+    this.content = content;
+    this.games = new Map();
+    this.states = new Map();
+    this.jobs = new Map();
+    this.turns = new Map();
+  }
+
+  createGame({ playerName = '플레이어' } = {}) {
+    const gameId = id();
+    const game = { game_id: gameId, content_version: 'company-v2-phase1', created_at: new Date().toISOString() };
+    this.games.set(gameId, game);
+    this.states.set(gameId, { game_id: gameId, revision: 0, committed_turn: 0, state: createInitialState({ playerName }), updated_at: game.created_at });
+    return this.context(gameId);
+  }
+
+  createOpening(gameId, { storyText, parsedBlocks, choices, summary, mindMonitor = {} }) {
+    const key = `${gameId}:0`;
+    if (!this.games.has(gameId)) throw new Error('game_not_found');
+    if (!this.turns.has(key)) {
+      this.turns.set(key, { game_id: gameId, turn_number: 0, literal_action: '', story_text: storyText, parsed_blocks: parsedBlocks, choices: [...choices], turn_summary: summary, mind_monitor: mindMonitor, committed_at: new Date().toISOString(), state_after: clone(this.states.get(gameId).state) });
+    }
+    return this.context(gameId);
+  }
+
+  context(gameId) {
+    if (!this.games.has(gameId)) throw new Error('game_not_found');
+    const state = this.states.get(gameId);
+    const turns = [...this.turns.values()].filter((turn) => turn.game_id === gameId).sort((a, b) => a.turn_number - b.turn_number);
+    const job = [...this.jobs.values()].filter((item) => item.game_id === gameId && item.turn_number === state.committed_turn + 1)[0] ?? null;
+    return { game: clone(this.games.get(gameId)), state: clone(state), turns: clone(turns), job: summarizeJob(job) };
+  }
+
+  reserveTurn({ gameId, turnNumber, actionId, literalAction }) {
+    requireLiteralAction(literalAction);
+    if (!this.games.has(gameId)) throw new Error('game_not_found');
+    const key = `${gameId}:${turnNumber}`;
+    const existing = this.jobs.get(key);
+    if (existing) return { job: existing, created: false };
+    const job = { game_id: gameId, turn_number: turnNumber, action_id: actionId, literal_action: literalAction, status: 'processing', story_text: '', error_code: null, attempt_no: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), running: false };
+    this.jobs.set(key, job);
+    return { job, created: true };
+  }
+
+  getJob(gameId, turnNumber) { return this.jobs.get(`${gameId}:${turnNumber}`) ?? null; }
+
+  commitTurn({ gameId, turnNumber, expectedRevision, storyText, parsedBlocks, choices, summary, mindMonitor, stateAfter }) {
+    const state = this.states.get(gameId);
+    const job = this.getJob(gameId, turnNumber);
+    if (!state || !job || state.revision !== expectedRevision || state.committed_turn + 1 !== turnNumber) throw new Error('commit_conflict');
+    const committedAt = new Date().toISOString();
+    this.states.set(gameId, { ...state, revision: state.revision + 1, committed_turn: turnNumber, state: clone(stateAfter), updated_at: committedAt });
+    this.turns.set(`${gameId}:${turnNumber}`, { game_id: gameId, turn_number: turnNumber, literal_action: job.literal_action, story_text: storyText, parsed_blocks: clone(parsedBlocks), choices: [...choices], turn_summary: summary, mind_monitor: clone(mindMonitor), committed_at: committedAt, state_after: clone(stateAfter) });
+    Object.assign(job, { status: 'committed', story_text: storyText, updated_at: committedAt, running: false });
+    return this.context(gameId);
+  }
+
+  failJob(gameId, turnNumber, errorCode) {
+    const job = this.getJob(gameId, turnNumber);
+    if (job) Object.assign(job, { status: 'failed', error_code: errorCode, updated_at: new Date().toISOString(), running: false });
+    return this.context(gameId);
+  }
+}
+
+export function summarizeJob(job) {
+  if (!job) return null;
+  return { game_id: job.game_id, turn_number: job.turn_number, action_id: job.action_id, literal_action: job.literal_action, status: job.status, story_text: job.story_text, error_code: job.error_code, attempt_no: job.attempt_no };
+}
