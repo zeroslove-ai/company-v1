@@ -1,374 +1,273 @@
 # Company v2 — CURRENT TASK
 
 Status: READY
-Task ID: company-v2-product-canon-and-gap-matrix-v1
-Mode: DOCS / PRODUCT-AUTHORITY AUDIT ONLY
+Task ID: company-v2-product-canon-gap-matrix-review-correction-v1
+Mode: DOCS / PRODUCT-AUTHORITY REVIEW CORRECTION ONLY
 Updated: 2026-08-20
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Why this task exists
+## 0. Review result being corrected
 
-Company v2 preserved parts of the clean runtime spine but failed to inherit the actual Company product baseline. The failure is not lack of historical design material; product/UI/prompt/game contracts already existed, the original v2 task itself required canonical Company content reuse, and those requirements were weakened or ignored in implementation/review.
+Prior task:
 
-Failure classification:
+`company-v2-product-canon-and-gap-matrix-v1`
 
-`V2_PRODUCT_CANON_INHERITANCE_AND_ACCEPTANCE_GATE_FAILURE`
+Prior terminal:
 
-Durable audit finding: Issue #68 comment `5348837128`.
+- Issue #68 terminal `5349040355`
+- Final SHA `7274cd7c6496542ef3abacfdfcf2998a4351346a`
+- Draft PR #94
 
-The immediately prior correction lease was owner-aborted and then violated the stop order by continuing source work. Its terminal is rejected by operator review comment `5348952812`. Draft PR #93 is closed/unmerged and is diagnostic evidence only. Do not cherry-pick, merge, copy, or treat PR #93 as the implementation base.
+Operator review is **CHANGES_REQUIRED**, recorded in Issue #68 comment `5349079991` and PR #94 conversation comment `5349075777`.
 
-## 1. Hard execution boundary
+The audit direction is accepted, but the candidate canon/gap matrix are not yet binding product authority because they freeze the wrong UI donor snapshot, omit part of the established Setup contract, and contain phase/UI classification contradictions.
 
-This is a **docs/audit-only** task.
+Do not start product implementation until this correction is reviewed and accepted.
 
-Create one normal docs branch from exact current `main` at lease time. Do not create an ops branch.
+## 1. Execution boundary
 
-Recommended branch:
+This is a **docs-only correction of PR #94**.
 
-`company/v2-product-canon-gap-matrix-v1`
+Continue the existing branch/PR:
 
-Open one Draft PR containing only the approved documentation changes below. Stop at review boundary. Do not merge.
+- branch: `company/v2-product-canon-gap-matrix-v1`
+- Draft PR: #94
 
-Forbidden in this task:
+Do not create another PR or another source branch unless the existing branch is technically unusable. Do not create any ops branch.
 
-- no edits under `runtime-v2/`;
-- no edits under `frontend-v2/`;
-- no edits under `src/engine/` or old frontend implementation;
-- no migration/source SQL edits;
-- no DB writes or migration apply;
+Before editing, fetch current `main` and incorporate the new docs-only task-registration commit safely. Do not overwrite unrelated branch work.
+
+Allowed changes:
+
+1. `docs/COMPANY_V2_PRODUCT_CANON_2026-08-20.md`
+2. `docs/COMPANY_V2_PRODUCT_GAP_MATRIX_2026-08-20.md`
+3. `docs/ops/CURRENT_TASK.md` only for runner lifecycle bookkeeping if required.
+
+Forbidden:
+
+- no `runtime-v2/` edits;
+- no `frontend-v2/` edits;
+- no `src/` implementation edits;
+- no SQL/migration edits;
+- no DB writes/migration apply;
 - no Worker deploy;
 - no TEST game creation/gameplay;
 - no Production/hospital access;
 - no provider/model/config/secret changes;
-- no reuse/cherry-pick of PR #93 source;
-- no auto-merge.
+- no merge or Ready-for-review transition;
+- no reuse/cherry-pick of closed PR #93 source.
 
-Allowed writes:
+## 2. Binding UI donor correction
 
-1. `docs/COMPANY_V2_PRODUCT_CANON_2026-08-20.md` — NEW binding candidate canon;
-2. `docs/COMPANY_V2_PRODUCT_GAP_MATRIX_2026-08-20.md` — NEW current-v2 gap/integration plan;
-3. this task file only if terminal bookkeeping is explicitly required by the runner; do not change `CURRENT_TRUTH.md` yet because the new canon is not authoritative until operator review.
+The previous candidate incorrectly froze historical commit:
 
-## 2. Authority sources to read and reconcile
+`f4b228f14d3a0e4446b0ae62e441ed659d3609ca`
 
-Read exact repository source, not memory, in this priority:
+as the exact UI donor.
 
-1. latest explicit owner decisions in Issue #68 and current project handoff notes;
-2. `docs/COMPANY_RUNTIME_UI_PRODUCT_CONTRACT_V1.md`;
-3. `docs/COMPANY_PROMPT_V2_DESIGN.md`;
-4. `docs/COMPANY_GAME_CONTRACT_V1.md`;
-5. `docs/COMPANY_NARRATIVE_CONTRACT_V1.md`;
-6. `CURRENT_TRUTH.md`;
-7. `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`;
-8. authoritative repository static content under `content/*.json`, including at minimum edition, characters, general NPCs, map, organization/departments, positions, body types, speech styles, and CSA definitions if present;
-9. established Company UI implementation/donor source under `src/frontend/pages/*` plus exact historical donor commit `f4b228f14d3a0e4446b0ae62e441ed659d3609ca` where needed to reconstruct the intended presentation;
-10. current `runtime-v2/*`, `frontend-v2/*`, v2 migrations/RPC source, and current v2 tests only as the implementation being audited — never as product authority.
+Direct inspection proves that commit contains an **older reduced shell**. It does not contain the full already-built Company product presentation now present in the repository.
 
-When old product documents conflict with a later explicit owner decision, the later owner decision wins. Record every material conflict and its resolution explicitly in the canon; do not silently blend incompatible generations.
+For this canon, freeze the complete current Company UI snapshot from the audit registration main:
 
-## 3. Deliverable A — one binding candidate Company v2 Product Canon
+`5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
 
-Create:
+Primary donor tree:
 
-`docs/COMPANY_V2_PRODUCT_CANON_2026-08-20.md`
+`src/frontend/pages/*`
 
-The document must be implementation-specific enough that a new engineer cannot produce another generic chat demo while technically passing structural tests.
+At minimum inventory the exact files/components needed to reproduce the visible product shell from that snapshot, including the current `index.html` and all presentation CSS/modules it references.
 
-### 3.1 Game identity and experience
+The complete snapshot visibly contains at least:
 
-Freeze:
+- title/day/time/turn/connectivity header;
+- Story/history/current streaming turn;
+- media/current-scene surface;
+- TTS controls;
+- Mind Monitor;
+- character/current-state panel;
+- player-state panel;
+- company map panel;
+- `상식개변` entry panel and app overlay;
+- free-form action area;
+- history presentation/download affordance;
+- feedback presentation;
+- reset control;
+- full player Setup overlay;
+- responsive/parity CSS layers.
 
-- title/product identity: `상식개변: 회사편`;
-- this is company-life interactive fiction, not a productivity assistant/chatbot;
-- player freedom/literal-action authority;
-- rich streaming narrative as primary UX;
-- the player-private unfamiliar `상식개변` app premise and what NPCs do/do not know at Opening;
-- what constitutes a normal turn from the player's perspective;
-- Phase-1 latest decision on free-form input and absence of active choices, even if older contracts describe choices.
+Historical `f4b228f...` may remain documented as provenance/evolution evidence only. It must not be the binding parity snapshot.
 
-### 3.2 Canonical world/content authority
+### UI parity law
 
-For every semantic catalog identify the sole source of truth and exact current counts/IDs/names where finite:
+“Bring the existing UI” means:
 
-- edition;
-- five heroines;
-- general NPCs;
-- company map/locations;
-- organization/departments;
-- positions;
-- speech styles;
-- body types;
-- CSA presets/definitions that remain product canon even if active mutation is deferred.
+- transplant/copy the completed Company presentation/layout/components at high parity;
+- replace only old controller/API/turn-authority behavior with the thin v2 client;
+- do not redesign the shell merely because runtime authority changed;
+- do not use Phase deferral as a blanket reason to delete already-visible presentation;
+- Story streaming remains visible and no blocking loading overlay may cover it.
 
-Binding rule: v2 must consume these repository catalogs through a small adapter. No hand-maintained shadow/demo semantic list may exist in v2 runtime, frontend, SQL, or tests.
+For every donor surface classify both dimensions explicitly:
 
-### 3.3 Player Setup/profile contract
+1. **presentation status**: `VISIBLE_ACTIVE`, `VISIBLE_DISABLED_LOCKED`, `HIDDEN_BY_EXPLICIT_DECISION`, or `REMOVED_BY_EXPLICIT_DECISION`;
+2. **runtime feature status**: `ACTIVE_PHASE1` or `DEFERRED_RUNTIME`.
 
-Inventory the established Company player-creation experience and freeze the exact fields that should exist in v2, including which are:
+Do not collapse these two dimensions into one ambiguous `DEFER` label.
 
-- user-entered or selected at Setup;
-- static player profile;
-- mutable gameplay state;
-- sensitive/context-gated prompt fields;
-- visible in UI;
-- persisted in v2 DB versus resolved from catalog IDs.
+## 3. Player Setup/profile correction
 
-At minimum explicitly decide name, department, position, age, height, weight, body type, speech style, and any other established setup field found in authoritative source. Do not infer omission from the current minimal v2 state.
+The previous candidate table omitted an established field.
 
-### 3.4 Opening contract
+The complete UI snapshot at `5ec1a76...` contains these Setup inputs:
 
-Freeze:
+- name;
+- department;
+- position;
+- age;
+- height;
+- weight;
+- **penis length / `음경 길이(cm)`**;
+- body type;
+- speech style.
 
-- how Setup transitions to Opening;
-- company day/time/location source;
-- registered actor selection;
-- canonical `상식개변` private premise;
-- no invented unregistered NPC;
-- no generic assistant/help framing;
-- no unrequested player action completion;
-- free next-action handoff;
-- choices behavior for the current phase.
+Audit the exact current source/payload/validation ownership for every Setup field, including the penis-length field. Freeze the exact canonical field name/type/range/persistence/prompt/UI policy.
 
-### 3.5 Story/Observation context contract
+If any established field should be removed from v2, that requires a later explicit owner decision or already-existing later owner decision cited precisely. Do not silently omit it because current `company_v2_state` is minimal.
 
-Specify exactly what the Story LLM must receive on an ordinary turn:
+Update the DB sufficiency verdict accordingly. The future integrated source task may require an additive v2 profile/RPC migration; do not author SQL in this task.
 
-- literal player action verbatim;
-- current canonical location ID/name/description;
-- currently present/relevant registered actor IDs/names;
-- relevant compact character canon/prompt-card fields;
-- relevant general-NPC role/department facts;
-- player-profile projection appropriate to the turn;
-- current time;
-- recent raw turn continuity + summaries;
-- `상식개변`/CSA background state appropriate to the phase;
-- hard rules for identity, player agency, and no assistant framing.
+## 4. Resolve canon/matrix contradictions
 
-Specify what the small post-Story observation owns versus what it must never invent.
+Correct both documents so one implementer cannot choose the less demanding interpretation.
 
-### 3.6 UI parity contract — no redesign
+### 4.1 `상식개변` app/tool presentation
 
-This section is critical.
+The completed Company UI contains a visible `상식개변` entry and full app overlay.
 
-Treat the established Company UI as the presentation donor to **transplant at high visual/information-architecture parity**, not as inspiration for a newly simplified shell.
+For Phase 1:
 
-Inventory the exact visible donor UI structure from source and freeze each element as one of:
+- presentation must remain part of the transplanted UI at parity;
+- mutation/runtime authority remains deferred until the later CSA phase;
+- controls that would mutate CSA must be disabled/locked and must not claim success;
+- the gap matrix must therefore not classify the entire app UI out of the integrated UI cut as generic `DEFER`.
 
-- ACTIVE NOW;
-- PRESENT BUT DISABLED/LOCKED FOR CURRENT PHASE;
-- DEFERRED/HIDDEN BY EXPLICIT LATEST OWNER DECISION;
-- REMOVED BY EXPLICIT LATEST OWNER DECISION.
+Separate `app presentation` from `CSA mutation runtime`.
 
-At minimum inventory:
+### 4.2 Reset versus feedback
 
-- header/title/day/time/turn/connectivity;
-- main Story/history/streaming area;
-- action/free-input area;
-- current character/scene presentation;
-- character image/media surface;
-- Mind Monitor including tabs/cards/empty state;
-- character state/current posture/position presentation;
-- player situation/profile/state;
-- company map/navigation presentation;
-- `상식개변` app/tool entry and current phase behavior;
-- turn summary/history;
-- feedback/reset/NPC-find/media/TTS/image affordances and their latest explicit include/remove/defer status;
-- desktop and mobile information order.
+Do not bundle them into one matrix row/classification.
 
-Binding UI rule: implementation may reuse/copy donor HTML/CSS/presentation components. It must not import old client-owned Story→Extract→Commit coordinator/API authority. Replacing controller behavior must not justify redesigning or deleting presentation.
+- `reset`: the completed UI has an explicit reset control and the candidate canon currently marks it ACTIVE NOW. Decide and document the exact v2-native reset owner required for active Phase 1. If active, classify the missing implementation as `REBUILD/REWIRE`, not `DEFER`.
+- `feedback revision`: runtime behavior remains deferred unless a later explicit owner decision activates it. Preserve visible donor presentation disabled/locked if required for parity, without implementing feedback regeneration in this cut.
 
-Also explicitly preserve: Story streaming must stay visible and no blocking loading overlay may cover the narrative.
+### 4.3 NPC find/search
 
-### 3.7 Persistence / DB product contract
+Latest explicit owner decision removed the useless NPC-find/search feature. The current completed toolbar no longer contains the old NPC-find control.
 
-Inventory the current isolated `company_v2_*` tables/RPCs and compare them to the product fields required by sections above.
+Binding result:
 
-Classify each field as:
+- standalone NPC find/search = `REMOVED_BY_OWNER_DECISION` / `DELETE`;
+- do not describe it as a default future deferred feature;
+- do not confuse it with the `NPC 정보` tab inside the `상식개변` app, which is a different presentation/domain.
 
-- STATIC CONTENT LOOKUP — never duplicated in mutable DB;
-- GAME CREATION PROFILE — durable once created;
-- MUTABLE TURN STATE;
-- TURN HISTORY;
-- DEFERRED PHASE STATE.
+## 5. Re-audit all donor affordance phase statuses
 
-Determine whether the current v2 schema can faithfully represent the approved Phase-1 product without fake frontend defaults or prompt-only values.
+Using the complete `5ec1a76...` UI snapshot plus latest owner decisions, re-check at minimum:
 
-If not, document the exact additive v2 schema/RPC changes that a future implementation task must author. Do not write migration SQL in this task.
-
-### 3.8 Runtime spine to preserve
-
-Document the clean infrastructure that remains valid unless contradicted by audit:
-
-- physically isolated v2 workers/code;
-- one server-owned turn operation;
-- Story SSE;
-- one canonical job per game+turn;
-- same-job reconnect;
-- explicit failed-attempt retry only;
-- attempt fencing;
-- bounded progress writes/subrequest budget;
-- one authoritative durable commit;
-- no old frontend turn-stage authority.
-
-Make clear these infrastructure invariants do not override product requirements.
-
-### 3.9 Phase map
-
-Resolve exact current phase behavior using latest owner decisions. For every major feature state whether it is active now, visible-disabled, or deferred:
-
-- choices;
-- CSA mutation;
-- company map/navigation;
-- clothing;
-- physical state;
-- sexual gauges/progression;
-- relationship/event state;
-- feedback revision;
-- image;
-- TTS;
-- NPC search;
-- player inner thought;
-- any other donor UI feature.
-
-Do not silently revive removed features because an old document contains them.
-
-### 3.10 Acceptance gates
-
-Define product acceptance gates stronger than raw test count.
+- media/image surface;
+- TTS controls;
+- Mind Monitor;
+- character state;
+- player state;
+- company map;
+- `상식개변` entry/app overlay;
+- history;
+- feedback presentation;
+- reset;
+- player Setup overlay;
+- choice surface versus latest no-active-choices decision;
+- player inner-thought surface;
+- mobile/desktop information order.
 
-Before source merge require direct proof of:
+For each, make presentation status and runtime status explicit.
 
-- catalog parity against authoritative content;
-- no fabricated semantic lists;
-- full Setup/profile parity for active fields;
-- Opening premise/identity parity;
-- Story prompt includes correct relevant canon;
-- literal player action fidelity;
-- UI donor parity checklist with every preserved visible component accounted for;
-- no old frontend coordinator authority;
-- DB has real durable authority for every approved mutable field;
-- deferred controls do not claim fake functionality;
-- streaming remains visible/non-blocking.
-
-Before owner handoff require exact reviewed deploy + fresh Setup/Opening + one bounded automated turn + DB/SSE readback + actual Story/product inspection.
+A deferred runtime may still have a visible disabled/locked donor control. Hidden/removed presentation requires an explicit owner/product decision, not implementation convenience.
 
-## 4. Deliverable B — full current-v2 gap matrix
+## 6. Preserve already-correct audit findings
 
-Create:
+Do not regress these accepted findings from prior SHA `7274cd7...`:
 
-`docs/COMPANY_V2_PRODUCT_GAP_MATRIX_2026-08-20.md`
+- product identity `상식개변: 회사편`;
+- company-life interactive fiction, not assistant/chatbot;
+- literal player agency;
+- rich visible Story streaming;
+- canonical five heroines;
+- canonical eight general NPCs;
+- canonical 24-location map;
+- repository `content/*.json` as sole semantic catalog authority;
+- no fabricated runtime/frontend/SQL shadow semantic lists;
+- Story receives bounded relevant actor/location/player/company canon;
+- post-Story observation remains small/evidence-bound;
+- current isolated v2 persistence is insufficient for full approved Setup/profile parity;
+- clean server-owned turn/SSE/job/fencing/commit spine remains KEEP;
+- no active choices in current Phase 1;
+- no old frontend Story→Extract→Commit coordinator authority.
 
-For each product domain show these columns:
+## 7. Gap matrix output requirement
 
-| Domain | Authoritative requirement | Current v2 implementation | Evidence paths | Classification | Exact next change | DB impact | UI impact | Test/acceptance proof |
+Update the matrix so its next integrated implementation cut is executable without interpretation gaps.
 
-Classification must be exactly one of:
+At minimum split these domains independently:
 
-- KEEP;
-- REWIRE;
-- REBUILD;
-- DELETE;
-- DEFER.
+- full UI presentation transplant;
+- player Setup/profile;
+- app presentation;
+- CSA mutation runtime;
+- map presentation/navigation runtime;
+- reset runtime;
+- feedback presentation/runtime;
+- NPC find removal;
+- media presentation/image runtime;
+- TTS presentation/runtime.
 
-At minimum include:
+Recompute `KEEP / REWIRE / REBUILD / DELETE / DEFER` totals after the split.
 
-1. runtime turn spine;
-2. v2 persistence tables/RPCs;
-3. Setup/profile;
-4. edition identity;
-5. heroine canon;
-6. general NPC canon;
-7. map/location canon;
-8. organization/position/body/speech catalogs;
-9. Opening;
-10. Story context;
-11. typed observation;
-12. Mind Monitor;
-13. Story/history/summary;
-14. character/current-scene state;
-15. player state/profile panel;
-16. image/media presentation;
-17. company map UI;
-18. `상식개변` app UI;
-19. CSA mutation runtime;
-20. choices;
-21. clothing/physical/sexual state;
-22. relationship/event memory;
-23. feedback/reset;
-24. NPC search;
-25. TTS/image sidecars;
-26. frontend controller/API ownership;
-27. responsive/mobile UI;
-28. tests;
-29. source-review gates;
-30. TEST rollout/manual acceptance gates.
+The matrix must explicitly say that the next integrated product-layer rebuild starts from the **current completed Company UI donor snapshot**, not from `frontend-v2` and not from historical `f4b...`.
 
-The matrix must identify **exactly what can remain from current v2 and what must be replaced**, so the next implementation is one controlled integration rebuild rather than another patch chain.
+## 8. Validation
 
-## 5. Required historical failure analysis inside the gap matrix
+Before terminal:
 
-Include a short appendix tracing how this failure escaped review:
+- changed paths remain docs-only;
+- exact current completed UI donor SHA/path inventory is recorded;
+- exact Setup input inventory is recorded and includes the established penis-length field unless proven superseded;
+- app presentation vs CSA runtime are separated;
+- reset vs feedback are separated;
+- NPC find/search is recorded as owner-removed;
+- no canon/matrix status contradiction remains;
+- classification totals are recomputed;
+- PR #94 remains Draft and unmerged;
+- DB writes=0, migrations=0, deploys=0, gameplay=0.
 
-- original v2 task required static Company content reuse;
-- PR #87 introduced demo semantic content anyway;
-- tests lacked product-canon parity assertions;
-- later product-baseline task translated “bring existing UI” into a reduced-shell checklist;
-- PR #90 therefore recreated a partial shell instead of transplanting the established presentation;
-- structural/runtime test success was incorrectly treated as product readiness.
+## 9. Terminal / stop boundary
 
-For each failure, add the permanent acceptance guard that prevents recurrence.
+Post one new Issue #68 terminal report:
 
-## 6. No implementation recommendation by hand-waving
-
-The documents must end with one concrete ordered implementation cut proposal, but must not perform it:
-
-1. product-content + player-setup + persistence contract integration;
-2. high-parity UI transplant with thin v2 controller replacement;
-3. Opening + Story/Observation context integration;
-4. product-parity tests and source review;
-5. exact TEST migration/deploy if required;
-6. one bounded automated smoke;
-7. owner manual play.
-
-If audit proves those should be combined differently, explain why and propose the smallest number of cuts that still gives an end-to-end playable product. Avoid a long sequence of symptom hotfixes.
-
-## 7. Validation required
-
-Before terminal report:
-
-- prove changed paths are docs-only;
-- cite exact source paths/commits for every major product decision;
-- list resolved document conflicts and owner-decision precedence;
-- include exact authoritative counts for finite catalogs;
-- include exact UI donor path/commit inventory;
-- include current v2 schema sufficiency verdict;
-- include explicit `KEEP / REWIRE / REBUILD / DELETE / DEFER` totals;
-- verify PR #93 source was not copied/cherry-picked;
-- verify DB writes=0, migrations=0, deploys=0, gameplay=0.
-
-## 8. Completion / stop boundary
-
-Post one terminal report to Issue #68:
-
-`COMPANY_V2_PRODUCT_CANON_AND_GAP_MATRIX_READY_FOR_REVIEW`
+`COMPANY_V2_PRODUCT_CANON_GAP_MATRIX_CORRECTION_READY_FOR_REVIEW`
 
 Include:
 
-- `TASK_ID: company-v2-product-canon-and-gap-matrix-v1`;
-- `FINAL_SHA`;
-- Draft PR number;
+- `TASK_ID: company-v2-product-canon-gap-matrix-review-correction-v1`;
+- previous reviewed SHA `7274cd7c6496542ef3abacfdfcf2998a4351346a`;
+- new `FINAL_SHA`;
+- PR #94 current head;
 - changed paths;
-- product canon document path;
-- gap matrix document path;
-- resolved authority conflicts;
-- finite catalog counts;
-- UI donor inventory summary;
-- v2 DB sufficiency verdict;
-- gap classification totals;
-- next integrated implementation-cut recommendation;
-- confirmation of zero source/runtime/frontend/migration/DB/deploy/gameplay changes.
+- corrected binding UI donor SHA;
+- complete Setup field list;
+- resolved app/reset/feedback/NPC-find classifications;
+- recomputed gap totals;
+- confirmation of zero runtime/frontend/SQL/DB/deploy/gameplay changes.
 
-Then STOP `WAITING_REVIEW`. Do not merge or register the implementation task automatically.
+Then STOP `WAITING_REVIEW` for operator review. Do not merge and do not register the integrated implementation task automatically.
