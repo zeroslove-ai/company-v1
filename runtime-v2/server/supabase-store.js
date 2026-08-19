@@ -20,7 +20,13 @@ class V2SupabaseHttp {
     });
     let payload = null;
     try { payload = await response.json(); } catch { payload = null; }
-    if (!response.ok) throw new Error(`v2_db_${response.status}`);
+    if (!response.ok) {
+      const detail = Array.isArray(payload) ? payload[0] : payload;
+      const message = detail?.message ?? `v2_db_${response.status}`;
+      const error = new Error(message);
+      if (message === 'v2_attempt_fence_conflict' || detail?.code === 'v2_attempt_fence_conflict') error.code = 'v2_attempt_fence_conflict';
+      throw error;
+    }
     return payload;
   }
 
@@ -68,17 +74,17 @@ export class SupabaseV2Store {
     return { job: result.job, created: result.created === true, retried: result.retried === true };
   }
 
-  async updateProgress({ gameId, turnNumber, storyText }) {
-    return this.db.rpc('company_v2_update_turn_progress', { p_game_id: gameId, p_turn_number: turnNumber, p_story_text: storyText });
+  async updateProgress({ gameId, turnNumber, attempt, storyText }) {
+    return this.db.rpc('company_v2_update_turn_progress', { p_game_id: gameId, p_turn_number: turnNumber, p_action_id: attempt.actionId, p_attempt_no: attempt.attemptNo, p_story_text: storyText });
   }
 
-  async commitTurn({ gameId, turnNumber, expectedRevision, storyText, parsedBlocks, choices, summary, mindMonitor, stateAfter }) {
-    await this.db.rpc('company_v2_commit_turn', { p_game_id: gameId, p_turn_number: turnNumber, p_expected_revision: expectedRevision, p_story_text: storyText, p_parsed_blocks: parsedBlocks, p_choices: choices, p_turn_summary: summary, p_mind_monitor: mindMonitor, p_state_after: stateAfter });
+  async commitTurn({ gameId, turnNumber, attempt, expectedRevision, storyText, parsedBlocks, choices, summary, mindMonitor, stateAfter }) {
+    await this.db.rpc('company_v2_commit_turn', { p_game_id: gameId, p_turn_number: turnNumber, p_action_id: attempt.actionId, p_attempt_no: attempt.attemptNo, p_expected_revision: expectedRevision, p_story_text: storyText, p_parsed_blocks: parsedBlocks, p_choices: choices, p_turn_summary: summary, p_mind_monitor: mindMonitor, p_state_after: stateAfter });
     return this.context(gameId);
   }
 
-  async failJob(gameId, turnNumber, errorCode) {
-    await this.db.rpc('company_v2_fail_turn', { p_game_id: gameId, p_turn_number: turnNumber, p_error_code: errorCode });
+  async failJob(gameId, turnNumber, attempt, errorCode) {
+    await this.db.rpc('company_v2_fail_turn', { p_game_id: gameId, p_turn_number: turnNumber, p_action_id: attempt.actionId, p_attempt_no: attempt.attemptNo, p_error_code: errorCode });
     return this.context(gameId);
   }
 }

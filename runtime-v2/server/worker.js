@@ -4,7 +4,7 @@ import { openingStory, parseStoryBlocks } from '../domain/story.js';
 import { body, errorResponse, json, sse, V2_CORS_HEADERS, V2HttpError } from './http.js';
 import { createV2Provider } from './provider.js';
 import { SupabaseV2Store, V2ConfigurationError } from './supabase-store.js';
-import { summarizeJob } from './store.js';
+import { summarizeJob, V2_ATTEMPT_FENCE_CONFLICT } from './store.js';
 
 export function createV2Worker({ store, provider, content = companyV2Content, env, fetchImpl = fetch } = {}) {
   const resolvedStore = store ?? (env ? new SupabaseV2Store({ env, fetchImpl }) : null);
@@ -62,53 +62,61 @@ async function turnResponse(request, store, provider, content) {
     const reservation = await store.reserveTurn({ gameId, turnNumber: input.expected_turn, actionId, literalAction, retryFailed: explicitRetry });
     const { job, created } = reservation;
     if (!created) return json({ status: job.status, reconnect: true, progress_story_text: job.story_text, job: summarizeJob(job), context: job.status === 'committed' ? await store.context(gameId) : undefined });
-    return streamTurn({ store, provider, content, gameId, job });
+    const attempt = Object.freeze({ gameId: job.game_id, turnNumber: job.turn_number, actionId: job.action_id, attemptNo: job.attempt_no, literalAction: job.literal_action });
+    return streamTurn({ store, provider, content, gameId, job, attempt });
   } catch (error) { return errorResponse(error); }
 }
 
-function streamTurn({ store, provider, content, gameId, job }) {
+function streamTurn({ store, provider, content, gameId, job, attempt }) {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
       if (job.running) return;
       job.running = true;
-      void processTurn({ store, provider, content, gameId, job, emit: (name, data) => controller.enqueue(encoder.encode(sse(name, data))) })
+      void processTurn({ store, provider, content, gameId, attempt, emit: (name, data) => controller.enqueue(encoder.encode(sse(name, data))) })
         .then(() => controller.close(), (error) => { controller.enqueue(encoder.encode(sse('terminal', { status: 'failed', error_code: error.message }))); controller.close(); });
     }
   });
   return new Response(stream, { status: 200, headers: { ...V2_CORS_HEADERS, 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache' } });
 }
 
-async function processTurn({ store, provider, content, gameId, job, emit }) {
+async function processTurn({ store, provider, content, gameId, attempt, emit }) {
   const before = await store.context(gameId);
   let storyText = '';
   let lastProgressAt = 0;
   let lastPersistedLength = 0;
   try {
-    for await (const delta of provider.story({ literalAction: job.literal_action, playerName: before.state.state.player.name, context: before })) {
+    for await (const delta of provider.story({ literalAction: attempt.literalAction, playerName: before.state.state.player.name, context: before })) {
       const text = String(delta);
       storyText += text;
       emit('story_delta', { text });
       const now = Date.now();
       if (!lastProgressAt || now - lastProgressAt >= 100 || storyText.length - lastPersistedLength >= 256) {
-        await store.updateProgress({ gameId, turnNumber: job.turn_number, storyText });
+        await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
         lastProgressAt = now;
         lastPersistedLength = storyText.length;
       }
     }
-    if (storyText.length !== lastPersistedLength) await store.updateProgress({ gameId, turnNumber: job.turn_number, storyText });
+    if (storyText.length !== lastPersistedLength) await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
     const parsed = parseWith(provider, storyText, content);
     let observation = {};
-    try { observation = await provider.observe({ literalAction: job.literal_action, storyText: parsed.displayText, context: before }); }
+    try { observation = await provider.observe({ literalAction: attempt.literalAction, storyText: parsed.displayText, context: before }); }
     catch { observation = {}; }
     const targetIds = parsed.blocks.filter((block) => block.type === 'dialogue').map((block) => block.speaker_id);
     const reduced = reduceObservation({ state: before.state.state, observation: observation ?? {}, storyText: parsed.displayText, content, targetIds });
     const summary = boundedSummary(parsed.displayText, observation?.turn_summary);
-    const context = await store.commitTurn({ gameId, turnNumber: job.turn_number, expectedRevision: before.state.revision, storyText: parsed.displayText, parsedBlocks: parsed.blocks, choices: parsed.choices, summary, mindMonitor: reduced.mindMonitor, stateAfter: reduced.state });
+    const context = await store.commitTurn({ gameId, turnNumber: attempt.turnNumber, attempt, expectedRevision: before.state.revision, storyText: parsed.displayText, parsedBlocks: parsed.blocks, choices: parsed.choices, summary, mindMonitor: reduced.mindMonitor, stateAfter: reduced.state });
     emit('terminal', { status: 'committed', context });
   } catch (error) {
-    const context = await store.failJob(gameId, job.turn_number, error.message || 'turn_failed');
-    emit('terminal', { status: 'failed', error_code: error.message || 'turn_failed', context });
+    if (error.code === V2_ATTEMPT_FENCE_CONFLICT || error.message === V2_ATTEMPT_FENCE_CONFLICT) return;
+    const errorCode = error.message || 'turn_failed';
+    try {
+      const context = await store.failJob(gameId, attempt.turnNumber, attempt, errorCode);
+      emit('terminal', { status: 'failed', error_code: errorCode, context });
+    } catch (failure) {
+      if (failure.code === V2_ATTEMPT_FENCE_CONFLICT || failure.message === V2_ATTEMPT_FENCE_CONFLICT) return;
+      throw failure;
+    }
   }
 }
 

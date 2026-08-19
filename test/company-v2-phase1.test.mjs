@@ -198,10 +198,47 @@ test('stale processing terminalization preserves history and supports explicit r
   assert.equal(retry.created, true); assert.equal(retry.retried, true); assert.equal(retry.job.attempt_no, 2); assert.equal(store.jobs.size, 1);
 });
 
+test('stale attempt wakeup cannot progress, fail, or commit a newer retry', async () => {
+  let now = Date.parse('2026-08-19T00:00:00.000Z');
+  const store = new InMemoryV2Store({ content, clock: () => now });
+  const opening = store.createGame({ playerName: 'attempt fence' }); const gameId = opening.game.game_id;
+  store.createOpening(gameId, { storyText: 'opening', parsedBlocks: [], choices: ['1', '2', '3', '4'], summary: 'opening' });
+  const action1 = crypto.randomUUID(); const action2 = crypto.randomUUID();
+  const first = store.reserveTurn({ gameId, turnNumber: 1, actionId: action1, literalAction: 'attempt one literal' });
+  const attempt1 = Object.freeze({ gameId, turnNumber: 1, actionId: action1, attemptNo: first.job.attempt_no, literalAction: first.job.literal_action });
+  now += 180_001; assert.equal(store.context(gameId).job.status, 'failed');
+  const retry = store.reserveTurn({ gameId, turnNumber: 1, actionId: action2, literalAction: 'attempt two literal', retryFailed: true });
+  const attempt2 = Object.freeze({ gameId, turnNumber: 1, actionId: action2, attemptNo: retry.job.attempt_no, literalAction: retry.job.literal_action });
+  assert.equal(attempt2.attemptNo, 2); assert.notEqual(attempt1.actionId, attempt2.actionId);
+  const beforeStale = store.context(gameId);
+  assert.throws(() => store.updateProgress({ gameId, turnNumber: 1, attempt: attempt1, storyText: 'stale progress' }), (error) => error.code === 'v2_attempt_fence_conflict');
+  assert.throws(() => store.failJob(gameId, 1, attempt1, 'stale failure'), (error) => error.code === 'v2_attempt_fence_conflict');
+  assert.throws(() => store.commitTurn({ gameId, turnNumber: 1, attempt: attempt1, expectedRevision: 0, storyText: 'stale story', parsedBlocks: [], choices: ['1', '2', '3', '4'], summary: 'stale summary', mindMonitor: {}, stateAfter: beforeStale.state.state }), (error) => error.code === 'v2_attempt_fence_conflict');
+  const afterStale = store.context(gameId);
+  assert.equal(afterStale.state.revision, beforeStale.state.revision); assert.equal(afterStale.state.committed_turn, beforeStale.state.committed_turn);
+  assert.equal(afterStale.turns.length, beforeStale.turns.length); assert.equal(afterStale.job.status, 'processing'); assert.equal(afterStale.job.story_text, '');
+  const committed = store.commitTurn({ gameId, turnNumber: 1, attempt: attempt2, expectedRevision: 0, storyText: 'attempt two story', parsedBlocks: [{ type: 'narrative', text: 'attempt two story' }], choices: ['1', '2', '3', '4'], summary: 'attempt two summary', mindMonitor: {}, stateAfter: afterStale.state.state });
+  const committedTurn = store.turns.get(`${gameId}:1`);
+  assert.equal(committed.state.committed_turn, 1); assert.equal(committedTurn.literal_action, attempt2.literalAction); assert.equal(committedTurn.story_text, 'attempt two story');
+  assert.equal(store.jobs.size, 1); assert.equal([...store.turns.values()].filter((turn) => turn.turn_number > 0).length, 1); assert.equal(store.getJob(gameId, 1).attempt_no, 2); assert.equal(store.getJob(gameId, 1).status, 'committed');
+});
+
 test('v2 SQL source uses one narrow stale lease RPC and conflict-safe initial reservation', async () => {
   const correction = await fs.readFile(path.join(root, 'supabase/migrations/20260819000300_company_v2_stuck_turn_closure.sql'), 'utf8');
   assert.match(correction, /company_v2_expire_stale_turn/); assert.match(correction, /updated_at\s*<=\s*now\(\)\s*-\s*interval\s+'180 seconds'/);
   assert.match(correction, /on conflict\s*\(game_id, turn_number\)\s*do nothing/i); assert.match(correction, /if not found then[\s\S]*?select \* into v_job[\s\S]*?for update/s);
+});
+
+test('v2 attempt-fencing migration removes unfenced writers and keeps fenced service RPCs', async () => {
+  const migration = await fs.readFile(path.join(root, 'supabase/migrations/20260819000400_company_v2_attempt_fencing.sql'), 'utf8');
+  assert.match(migration, /drop function if exists public\.company_v2_update_turn_progress\(uuid, integer, text\)/i);
+  assert.match(migration, /drop function if exists public\.company_v2_fail_turn\(uuid, integer, text\)/i);
+  assert.match(migration, /drop function if exists public\.company_v2_commit_turn\(uuid, integer, integer, text, jsonb, jsonb, text, jsonb, jsonb\)/i);
+  assert.match(migration, /p_action_id uuid[\s\S]*p_attempt_no integer/); assert.match(migration, /v2_attempt_fence_conflict/);
+  assert.match(migration, /grant execute on function public\.company_v2_commit_turn\(uuid, integer, uuid, integer, integer, text, jsonb, jsonb, text, jsonb, jsonb\) to service_role/);
+  assert.doesNotMatch(migration, /create or replace function public\.company_v2_commit_turn\(\s*p_game_id uuid,\s*p_turn_number integer,\s*p_expected_revision integer/s);
+  const store = await fs.readFile(path.join(root, 'runtime-v2/server/supabase-store.js'), 'utf8');
+  assert.match(store, /p_action_id: attempt\.actionId/); assert.match(store, /p_attempt_no: attempt\.attemptNo/);
 });
 
 test('reconstructed Worker/store reads the same durable-test-double progress and job', async () => {

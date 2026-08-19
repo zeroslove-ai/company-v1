@@ -1,12 +1,24 @@
 import { clone, createInitialState, requireLiteralAction } from '../domain/contracts.js';
 import { V2_TURN_LEASE_MS, isStaleTurn } from './job-policy.js';
 
+export const V2_ATTEMPT_FENCE_CONFLICT = 'v2_attempt_fence_conflict';
+
 export function createInMemoryPersistence() {
   return { games: new Map(), states: new Map(), jobs: new Map(), turns: new Map() };
 }
 
 function id() {
   return globalThis.crypto?.randomUUID?.() ?? `v2-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function attemptFenceError() {
+  const error = new Error(V2_ATTEMPT_FENCE_CONFLICT);
+  error.code = V2_ATTEMPT_FENCE_CONFLICT;
+  return error;
+}
+
+function assertAttempt(job, { gameId, turnNumber, actionId, attemptNo }) {
+  if (!job || job.game_id !== gameId || job.turn_number !== turnNumber || job.status !== 'processing' || job.action_id !== actionId || job.attempt_no !== attemptNo) throw attemptFenceError();
 }
 
 export class InMemoryV2Store {
@@ -76,28 +88,30 @@ export class InMemoryV2Store {
     return false;
   }
 
-  updateProgress({ gameId, turnNumber, storyText }) {
+  updateProgress({ gameId, turnNumber, attempt, storyText }) {
     const job = this.getJob(gameId, turnNumber);
-    if (!job || job.status !== 'processing') throw new Error('job_not_processing');
+    assertAttempt(job, { gameId, turnNumber, ...attempt });
     job.story_text = storyText;
     job.updated_at = this.now();
     return summarizeJob(job);
   }
 
-  commitTurn({ gameId, turnNumber, expectedRevision, storyText, parsedBlocks, choices, summary, mindMonitor, stateAfter }) {
+  commitTurn({ gameId, turnNumber, attempt, expectedRevision, storyText, parsedBlocks, choices, summary, mindMonitor, stateAfter }) {
     const state = this.states.get(gameId);
     const job = this.getJob(gameId, turnNumber);
     if (!state || !job || state.revision !== expectedRevision || state.committed_turn + 1 !== turnNumber) throw new Error('commit_conflict');
+    assertAttempt(job, { gameId, turnNumber, ...attempt });
     const committedAt = this.now();
     this.states.set(gameId, { ...state, revision: state.revision + 1, committed_turn: turnNumber, state: clone(stateAfter), updated_at: committedAt });
-    this.turns.set(`${gameId}:${turnNumber}`, { game_id: gameId, turn_number: turnNumber, literal_action: job.literal_action, story_text: storyText, parsed_blocks: clone(parsedBlocks), choices: [...choices], turn_summary: summary, mind_monitor: clone(mindMonitor), committed_at: committedAt, state_after: clone(stateAfter) });
+    this.turns.set(`${gameId}:${turnNumber}`, { game_id: gameId, turn_number: turnNumber, literal_action: attempt.literalAction, story_text: storyText, parsed_blocks: clone(parsedBlocks), choices: [...choices], turn_summary: summary, mind_monitor: clone(mindMonitor), committed_at: committedAt, state_after: clone(stateAfter) });
     Object.assign(job, { status: 'committed', story_text: storyText, updated_at: committedAt, running: false });
     return this.context(gameId);
   }
 
-  failJob(gameId, turnNumber, errorCode) {
+  failJob(gameId, turnNumber, attempt, errorCode) {
     const job = this.getJob(gameId, turnNumber);
-    if (job) Object.assign(job, { status: 'failed', error_code: errorCode, updated_at: this.now(), running: false });
+    assertAttempt(job, { gameId, turnNumber, ...attempt });
+    Object.assign(job, { status: 'failed', error_code: errorCode, updated_at: this.now(), running: false });
     return this.context(gameId);
   }
 }
