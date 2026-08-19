@@ -60,7 +60,7 @@ test('frontend-v2 submits only literal input to the single v2 turn endpoint', as
 });
 
 test('production Worker selects DB store and real provider, with no silent test fallback', () => {
-  const env = { SUPABASE_URL: 'https://db.example', SUPABASE_SERVICE_ROLE_KEY: 'service-key', LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'llm-key', STORY_MODEL: 'configured-model' };
+  const env = { SUPABASE_URL: 'https://db.example', SUPABASE_SERVICE_ROLE_KEY: 'service-key', LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'llm-key', STORY_MODEL: 'configured-story-model', EXTRACT_MODEL: 'configured-observation-model' };
   const worker = createProductionV2Worker({ env, fetchImpl: async () => { throw new Error('network not expected'); } });
   assert.equal(worker.store instanceof SupabaseV2Store, true); assert.equal(worker.provider.kind, 'v2-llm-provider');
   assert.throws(() => createProductionV2Worker({ env: {} }), /SUPABASE_URL/);
@@ -71,6 +71,32 @@ test('default Worker fails clearly without production configuration', async () =
   assert.equal(response.status, 500); assert.equal((await response.json()).error.code, 'configuration_error');
 });
 
+test('v2 API preflight and responses expose browser CORS contract', async () => {
+  const worker = createV2Worker({ content });
+  const preflight = await worker.fetch(new Request('https://v2.test/api/v2/turn', { method: 'OPTIONS', headers: { origin: 'https://gamebuilder-company-v2.zeroslove.workers.dev', 'access-control-request-method': 'POST', 'access-control-request-headers': 'content-type' } }));
+  assert.equal(preflight.status, 204); assert.equal(preflight.headers.get('access-control-allow-origin'), '*'); assert.match(preflight.headers.get('access-control-allow-methods'), /POST/); assert.match(preflight.headers.get('access-control-allow-headers'), /content-type/);
+  const response = await worker.fetch(new Request('https://v2.test/api/v2/context?game_id=missing'));
+  assert.equal(response.headers.get('access-control-allow-origin'), '*'); assert.equal(response.headers.get('access-control-allow-methods'), 'GET, POST, OPTIONS'); assert.equal(response.headers.get('access-control-allow-headers'), 'content-type');
+  const success = await worker.fetch(new Request('https://v2.test/api/v2/setup', { method: 'POST', body: JSON.stringify({ player_name: 'cors' }) }));
+  assert.equal(success.status, 200); assert.equal(success.headers.get('access-control-allow-origin'), '*');
+  const { gameId } = await game(worker); const stream = await turn(worker, gameId, 'cors stream');
+  assert.match(stream.headers.get('content-type'), /text\/event-stream/); assert.equal(stream.headers.get('access-control-allow-origin'), '*'); await stream.text();
+});
+
+test('frontend-v2 uses one dedicated API base and no v1 identity', async () => {
+  const config = await fs.readFile(path.join(root, 'frontend-v2/config.js'), 'utf8');
+  const frontend = await fs.readFile(path.join(root, 'frontend-v2/app.js'), 'utf8');
+  assert.match(config, /game-proxy-company-v2\.zeroslove\.workers\.dev/); assert.doesNotMatch(config, /game-proxy-company-v1/); assert.match(frontend, /V2_API_BASE_URL/); assert.doesNotMatch(frontend, /fetch\(['"]\//); assert.equal((frontend.match(/V2_API_BASE_URL/g) ?? []).length, 2);
+});
+
+test('dedicated v2 Wrangler configs isolate API and frontend identities', async () => {
+  const apiConfig = JSON.parse(await fs.readFile(path.join(root, 'wrangler.v2.api.jsonc'), 'utf8'));
+  const frontendConfig = JSON.parse(await fs.readFile(path.join(root, 'wrangler.v2.frontend.jsonc'), 'utf8'));
+  assert.deepEqual({ name: apiConfig.name, main: apiConfig.main }, { name: 'game-proxy-company-v2', main: 'runtime-v2/server/worker.js' });
+  assert.deepEqual({ name: frontendConfig.name, directory: frontendConfig.assets.directory }, { name: 'gamebuilder-company-v2', directory: 'frontend-v2' });
+  assert.doesNotMatch(JSON.stringify(apiConfig), /company-v1/); assert.doesNotMatch(JSON.stringify(frontendConfig), /company-v1/);
+});
+
 test('real provider constructs one literal Story request and one typed observation request', async () => {
   const requests = [];
   const fetchImpl = async (_url, options) => {
@@ -78,10 +104,24 @@ test('real provider constructs one literal Story request and one typed observati
     if (payload.stream) return new Response('data: {"choices":[{"delta":{"content":"[NARRATIVE]\\nhello\\n\\n[CHOICE]\\none\\n[CHOICE]\\ntwo\\n[CHOICE]\\nthree\\n[CHOICE]\\nfour\\n[/CHOICE]"}}]}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
     return new Response(JSON.stringify({ choices: [{ message: { content: '{"elapsed_minutes":3,"scene":{"entered":[],"exited":[]},"turn_summary":"ok","mind_monitor":{}}' } }] }), { headers: { 'content-type': 'application/json' } });
   };
-  const provider = createV2Provider({ env: { LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'key', STORY_MODEL: 'configured-model' }, fetchImpl, content });
+  const provider = createV2Provider({ env: { LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'key', STORY_MODEL: 'configured-story-model', EXTRACT_MODEL: 'configured-observation-model' }, fetchImpl, content });
   const story = []; for await (const chunk of provider.story({ literalAction: 'literal 한국어', context: { state: { state: { time: { day: 1, minute: 540 }, scene: { location_id: 'lobby', present_npc_ids: [] } } }, turns: [] } })) story.push(chunk);
   await provider.observe({ literalAction: 'literal 한국어', storyText: story.join(''), context: { state: { state: {} } } });
   assert.equal(requests.length, 2); assert.equal(requests[0].stream, true); assert.match(requests[0].messages[1].content, /literal 한국어/); assert.equal(requests[1].stream, false); assert.match(requests[1].messages[0].content, /typed Company v2 observer/); assert.doesNotMatch(requests[1].messages[0].content, /(?:game_actions|save_path)/);
+});
+
+test('real provider preserves separate configured model roles', async () => {
+  const requests = [];
+  const provider = createV2Provider({ env: { LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'key', STORY_MODEL: 'story-role', EXTRACT_MODEL: 'observation-role' }, fetchImpl: async (_url, options) => { requests.push(JSON.parse(options.body)); return new Response(JSON.stringify({ choices: [{ message: { content: '{"elapsed_minutes":1,"scene":{"entered":[],"exited":[]},"turn_summary":"ok","mind_monitor":{}}' } }] })); }, content });
+  await provider.observe({ literalAction: 'observe', storyText: '[NARRATIVE] observe', context: { state: { state: {} } } });
+  assert.equal(requests[0].model, 'observation-role');
+});
+
+test('real provider uses STORY_MODEL for Story generation', async () => {
+  const requests = [];
+  const provider = createV2Provider({ env: { LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'key', STORY_MODEL: 'story-role', EXTRACT_MODEL: 'observation-role' }, fetchImpl: async (_url, options) => { requests.push(JSON.parse(options.body)); return new Response('data: {"choices":[{"delta":{"content":"[NARRATIVE] story"}}]}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } }); }, content });
+  const story = []; for await (const chunk of provider.story({ literalAction: 'story', context: { state: { state: {} }, turns: [] } })) story.push(chunk);
+  assert.equal(requests[0].model, 'story-role'); assert.equal(story.join(''), '[NARRATIVE] story');
 });
 
 test('reconstructed Worker/store reads the same durable-test-double progress and job', async () => {

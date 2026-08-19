@@ -1,7 +1,7 @@
 import { companyV2Content } from '../domain/content.js';
 import { boundedSummary, assertExpectedTurn, reduceObservation, requireLiteralAction } from '../domain/contracts.js';
 import { openingStory, parseStoryBlocks } from '../domain/story.js';
-import { body, errorResponse, json, sse, V2HttpError } from './http.js';
+import { body, errorResponse, json, sse, V2_CORS_HEADERS, V2HttpError } from './http.js';
 import { createV2Provider } from './provider.js';
 import { SupabaseV2Store, V2ConfigurationError } from './supabase-store.js';
 import { summarizeJob } from './store.js';
@@ -16,7 +16,7 @@ export function createV2Worker({ store, provider, content = companyV2Content, en
     async fetch(request) {
       try {
         const url = new URL(request.url);
-        if (request.method === 'OPTIONS') return new Response(null, { status: 204 });
+        if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: V2_CORS_HEADERS });
         if (request.method === 'GET' && url.pathname === '/api/v2/context') return json(await resolvedStore.context(requiredQuery(url, 'game_id')));
         if (request.method === 'POST' && url.pathname === '/api/v2/setup') {
           const input = await body(request);
@@ -76,7 +76,7 @@ function streamTurn({ store, provider, content, gameId, job }) {
         .then(() => controller.close(), (error) => { controller.enqueue(encoder.encode(sse('terminal', { status: 'failed', error_code: error.message }))); controller.close(); });
     }
   });
-  return new Response(stream, { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache', 'access-control-allow-origin': '*' } });
+  return new Response(stream, { status: 200, headers: { ...V2_CORS_HEADERS, 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache' } });
 }
 
 async function processTurn({ store, provider, content, gameId, job, emit }) {

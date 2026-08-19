@@ -1,8 +1,15 @@
+import { V2_API_BASE_URL } from './config.js';
+
 const state = { gameId: new URLSearchParams(location.search).get('game_id'), expectedTurn: 1, actionId: null, retryFailed: false };
 const $ = (id) => document.getElementById(id);
+const apiUrl = (path) => `${V2_API_BASE_URL.replace(/\/$/, '')}${path}`;
+
+function request(path, options = {}) {
+  return fetch(apiUrl(path), { headers: { 'content-type': 'application/json' }, ...options });
+}
 
 async function api(path, options = {}) {
-  const response = await fetch(path, { headers: { 'content-type': 'application/json' }, ...options });
+  const response = await request(path, options);
   const payload = await response.json();
   if (!payload.ok) throw new Error(payload.error?.message ?? '요청에 실패했습니다.');
   return payload.data;
@@ -60,7 +67,7 @@ async function submit() {
   state.actionId = crypto.randomUUID();
   $('send').disabled = true;
   try {
-    const response = await fetch('/api/v2/turn', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: state.gameId, action_id: state.actionId, expected_turn: state.expectedTurn, retry_failed: state.retryFailed, literal_action: literalAction }) });
+    const response = await request('/api/v2/turn', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: state.gameId, action_id: state.actionId, expected_turn: state.expectedTurn, retry_failed: state.retryFailed, literal_action: literalAction }) });
     if (response.headers.get('content-type')?.includes('text/event-stream')) await readStream(response);
     else {
       const data = (await response.json()).data;

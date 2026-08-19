@@ -19,8 +19,9 @@ export function createDeterministicProvider() {
 export function createV2Provider({ env, fetchImpl = fetch, content } = {}) {
   const baseUrl = env?.LLM_API_URL?.replace(/\/$/, '');
   const apiKey = env?.LLM_API_KEY;
-  const model = env?.STORY_MODEL;
-  if (!baseUrl || !apiKey || !model) throw new V2ConfigurationError('LLM_API_URL, LLM_API_KEY, and STORY_MODEL are required for Company v2');
+  const storyModel = env?.STORY_MODEL;
+  const observationModel = env?.EXTRACT_MODEL;
+  if (!baseUrl || !apiKey || !storyModel || !observationModel) throw new V2ConfigurationError('LLM_API_URL, LLM_API_KEY, STORY_MODEL, and EXTRACT_MODEL are required for Company v2');
   const completionUrl = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
 
   async function completion(body) {
@@ -32,11 +33,11 @@ export function createV2Provider({ env, fetchImpl = fetch, content } = {}) {
   return {
     kind: 'v2-llm-provider',
     async *story({ literalAction, context }) {
-      const response = await completion({ model, stream: true, thinking: { type: 'disabled' }, max_tokens: 5000, messages: buildStoryMessages({ literalAction, context }) });
+      const response = await completion({ model: storyModel, stream: true, thinking: { type: 'disabled' }, max_tokens: 5000, messages: buildStoryMessages({ literalAction, context }) });
       yield* readOpenAiStream(response);
     },
     async observe({ literalAction, storyText, context }) {
-      const response = await completion({ model, stream: false, thinking: { type: 'disabled' }, temperature: 0, max_tokens: 1200, response_format: { type: 'json_object' }, messages: buildObservationMessages({ literalAction, storyText, context }) });
+      const response = await completion({ model: observationModel, stream: false, thinking: { type: 'disabled' }, temperature: 0, max_tokens: 1200, response_format: { type: 'json_object' }, messages: buildObservationMessages({ literalAction, storyText, context }) });
       let payload;
       try { payload = await response.json(); } catch { throw new Error('v2_observation_invalid_json'); }
       const raw = payload?.choices?.[0]?.message?.content;
