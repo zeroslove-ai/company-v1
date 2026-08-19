@@ -1,279 +1,324 @@
 # Company v2 — CURRENT TASK
 
 Status: READY
-Task ID: company-v2-phase1-product-baseline-v1
-Mode: SOURCE CORRECTION — PRODUCT UI PARITY + FREE INPUT + FIRST-TURN CLOSURE
+Task ID: company-v2-phase1-product-baseline-test-rollout-v1
+Mode: TEST ROLLOUT — PRODUCT BASELINE + ONE-TURN SMOKE + OWNER HANDOFF
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Owner directive / authority
+## 0. Authority / accepted source
 
-The previous manual handoff is REJECTED for product quality.
+Binding canon:
 
-Operator/owner rejection comment:
+`docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`
 
-- Issue #68 comment `5341086841`
+Owner product rejection / laws:
 
-Previous handoff terminal is no longer an acceptance signal:
+- previous product handoff rejection: Issue #68 comment `5341086841`
+- rich narrative law: Issue #68 comment `5341147788`
 
-- Issue #68 comment `5340544017`
-- previous game `0daec355-47a8-4b81-a87d-a47dc25b5b96` is now immutable failed-user evidence, not an acceptance game.
+Accepted source task:
 
-Preserved rollout evidence also remains immutable:
+- Task ID: `company-v2-phase1-product-baseline-v1`
+- source terminal: Issue #68 comment `5341256206`
+- source acceptance: Issue #68 comment `5341316161`
+- accepted exact head: `16c5fecd1e407acf9f2f629a1b719e300f11b0ff`
+- exact-head CI: run `32245960387`, test job `96046401180`, SUCCESS
+- PR #90 merged at that exact reviewed head
+- merge commit: `ee46977747dc89b04dca65fc4632e88b45cae7e0`
 
-- `88625b46-20fa-42c6-82d5-050a98ee2aad`
+The accepted source changes:
 
-The owner explicitly changed the Phase-1 product requirement:
+- restore Company product UI shell in `frontend-v2` as presentation only;
+- free-form input only; active Phase-1 choices removed;
+- durable `choices` remains `[]` only for schema compatibility;
+- rich Story prompt preserves literal action and substantial scene progression;
+- first-turn stuck-processing root cause fixed by attaching `processTurn()` to `ReadableStream.start()` lifecycle;
+- SSE close without terminal reconnects to the same canonical job;
+- no hidden retry/regeneration;
+- clean-room server-owned v2 authority remains intact.
 
-1. clean-room runtime does NOT mean deleting the product UI;
-2. restore the established Company product UI shell and remove/hide only unsupported features;
-3. remove choices from current Phase 1 completely — free-form player input only;
-4. choices may return only in a later separately authorized feature;
-5. do not hand anything back to the user until the product shell and a bounded automated end-to-end turn smoke pass in a later rollout task.
+## 1. TEST environment / immutable evidence
 
-Binding runtime architecture remains the clean v2 server-owned model. This task may update the Company v2 canon/documentation only where necessary to reflect the owner's new product requirement; it must not reintroduce v1 runtime authority.
+TEST Supabase project:
 
-## 1. Proven failures to close
+`fmcrspgxstsmxxsmkeee`
 
-### A. Product UI regression
+Historical live migrations already applied exactly once and MUST NOT be changed/applied/replayed:
 
-Current `frontend-v2/index.html` is only a minimal demo document with heading/story/choices/textarea/button/summary/mind. This is not acceptable product parity.
+- `20260819000200_company_v2_phase1_vertical_slice`
+- `20260819000300_company_v2_stuck_turn_closure`
+- `20260819000400_company_v2_attempt_fencing`
+- `20260819000500_company_v2_acl_closure`
 
-Existing product donor is already in this repository:
+Existing isolated Workers before this rollout:
 
-- Company Story UI shell merge commit: `f4b228f14d3a0e4446b0ae62e441ed659d3609ca`
-- donor tree: `src/frontend/pages/*`
-- important donor surfaces include the Story shell, status/header, history/current story, right-side state panels, player situation, input composer, responsive/mobile styling.
+- API: `game-proxy-company-v2`
+- previous API version: `e66d87c1-b3d6-4e59-8c32-bf8d36d4add0`
+- Frontend: `gamebuilder-company-v2`
+- previous accepted frontend version: `cdbd6c10-0193-487e-a390-2c120946bfdd`
 
-Use that donor for VISUAL / LAYOUT / PRODUCT-SHELL behavior only.
+Immutable v2 evidence games:
 
-Hard boundary: DO NOT import or revive the old frontend Story->Extract->Commit coordinator, pending-action state machine, old runtime API authority, `src/engine`, old runtime core, old Extract normalizer, or old reducer.
+- failed owner-product evidence: `0daec355-47a8-4b81-a87d-a47dc25b5b96`
+- preserved rollout evidence: `88625b46-20fa-42c6-82d5-050a98ee2aad`
 
-`frontend-v2/*` must remain a v2-only client of `/api/v2/*`.
+Do not mutate, retry, reset, delete, expire intentionally, reuse, or call API context on either evidence game. If verification is needed, use direct read-only SQL only.
 
-### B. Choice feature is removed from current Phase 1
+All v1/manual/QA/preserved games and Production/hospital-v2 remain forbidden.
 
-Current active source still forces choices in multiple places, including:
+## 2. Goal
 
-- Story provider prompt requires exactly four `[CHOICE]` blocks;
-- deterministic provider emits four choices;
-- `runtime-v2/domain/story.js` parses and normalizes exact-four choices;
-- Opening emits four choices;
-- frontend renders choice buttons;
-- tests/canon/acceptance require exactly four.
+Deploy the exact accepted product-baseline merge to isolated TEST and prove the concrete repaired path live before owner handoff.
 
-Remove this as active Phase-1 behavior.
+Required sequence:
 
-Required new Phase-1 behavior:
+1. read-only preflight;
+2. deploy only Company v2 API and frontend from merge `ee469777...`;
+3. verify DB-backed API auth/transport and deployed frontend assets;
+4. create exactly one dedicated smoke game;
+5. Setup once + Opening once;
+6. submit exactly ONE automated free-form gameplay turn;
+7. prove incremental Story streaming, terminal commit, durable readback, no stuck processing, and `choices=[]`;
+8. if smoke passes, create exactly one separate fresh owner-handoff game with Setup + Opening only;
+9. hand off that turn-0 URL and STOP for owner manual acceptance.
 
-- free-form player text is the only action input;
-- Story provider must NOT be asked to generate choices;
-- Opening must NOT generate choices;
-- frontend must NOT show a choice list;
-- no deterministic four-choice fallback;
-- no turn success/commit dependency on choices;
-- fresh Opening/turn writes should use an empty choices array only if the existing durable schema still structurally carries that field;
-- no migration is required merely to delete the feature from active behavior;
-- historical rows containing choices remain readable evidence but do not drive the new UI.
+Maximum authorized new games in this task: **2 total**.
 
-### C. First user turn stuck in processing
+- game A = one-turn automated smoke game;
+- game B = fresh owner handoff game, zero gameplay turns.
 
-Failed-user evidence game:
+No replacement games and no retries after a failed deterministic gate.
 
-`0daec355-47a8-4b81-a87d-a47dc25b5b96`
+## 3. Start guard
 
-Owner submitted literal action:
+Before deploy or live write:
 
-`인사를 건넨다.`
+1. fetch `main` and require merge commit `ee46977747dc89b04dca65fc4632e88b45cae7e0`;
+2. verify runtime/frontend/canon/test executable lineage is exactly the accepted PR #90 merge plus this CURRENT_TASK registration only;
+3. verify TEST project exactly `fmcrspgxstsmxxsmkeee`;
+4. read migration ledger and confirm 002/003/004/005 are present exactly once; apply zero migrations;
+5. verify four v2 tables, canonical `(game_id, turn_number)` job PK, fenced writer signatures, and accepted ACL shape remain present read-only;
+6. read-only SQL verify both immutable evidence games still exist as evidence; do not invoke API context on them;
+7. verify API Worker secret names include `SUPABASE_SERVICE_ROLE_KEY` and `LLM_API_KEY` without printing values;
+8. preserve existing `SUPABASE_URL`, provider URL, `STORY_MODEL`, `EXTRACT_MODEL`, CORS and Worker identities exactly;
+9. verify v1/Production targets are not selected.
 
-Operator read-only DB evidence after the report:
+Any migration/ACL/PK/fencing/source-lineage drift => STOP BLOCKED. Do not repair inside rollout.
 
-- turn 1 canonical job exists;
-- status observed: `processing`;
-- attempt_no = 1;
-- partial `story_text` was persisted;
-- committed_turn remained 0;
-- no committed gameplay turn 1 existed at observation time.
+## 4. Deploy exact accepted API + frontend
 
-Do NOT mutate, retry, reset, delete, expire intentionally, or reuse this game. Treat it as forensic evidence only.
+Deploy API from current merged main using:
 
-This task must determine the actual source/runtime cause of a Story stream that can persist partial text but fail to reach terminal commit/fail in normal user operation. Do not guess. Inspect the exact server flow, provider stream completion handling, Worker lifetime/stream behavior, progress/fail paths, and existing tests. Fix only the proven cause(s).
+`wrangler.v2.api.jsonc`
 
-No hidden retry/regeneration is allowed as a workaround.
+Required target:
 
-## 2. Product-shell target
+`game-proxy-company-v2`
 
-The v2 frontend should look and behave like the established Company product shell, adapted to the smaller Phase-1 state.
+Deploy frontend from the same current merged main using:
 
-Required visible structure:
+`wrangler.v2.frontend.jsonc`
 
-- established Company title/header treatment;
-- day/time display;
+Required target:
+
+`gamebuilder-company-v2`
+
+Record both resulting Worker version IDs.
+
+Do not deploy v1 Workers. Do not change secrets, provider/model values, config vars, migrations, DB schema, or content.
+
+If deploy alters or loses required secret/var bindings, STOP BLOCKED rather than silently repairing credentials/config.
+
+## 5. Post-deploy API transport smoke
+
+Before any new game:
+
+1. generate one random UUID;
+2. direct SQL verify it is absent from `company_v2_games`;
+3. call exactly once:
+   `GET /api/v2/context?game_id=<ABSENT_UUID>`
+4. require canonical structured `game_not_found`-class response from the DB-backed path;
+5. `Illegal invocation`, JWT/auth error, v1 payload, or transport 5xx => STOP BLOCKED;
+6. verify `OPTIONS /api/v2/turn` CORS remains accepted.
+
+Do not rewrite Worker secrets in this rollout.
+
+## 6. Post-deploy frontend product-shell verification
+
+Verify deployed frontend assets correspond to the accepted v2 product shell:
+
+- title/header;
+- day/time;
 - turn indicator;
-- compact connection/runtime status;
-- main Story column with ordered history and a distinct current streaming turn area;
-- player literal action shown with the current turn while processing;
-- right-side product column using the established panel treatment:
-  - character/current scene state;
-  - Mind Monitor;
-  - player situation;
-- bottom/free-input composer consistent with the existing Company UI family;
-- responsive/mobile behavior based on existing Company/hospital donor styling;
-- inline/non-blocking loading/progress status only; never cover the Story with a blocking loading screen;
-- readable error/retry state when a turn deterministically fails.
+- connection/runtime status;
+- Story history region;
+- distinct current streaming Story region;
+- right-side current scene / Mind Monitor / player situation panels;
+- free-input composer;
+- inline non-blocking status/error treatment;
+- responsive/mobile CSS;
+- no active choice list or choice buttons;
+- API base points only to `https://game-proxy-company-v2.zeroslove.workers.dev`.
 
-Unsupported Phase-2/3 product controls may be hidden or disabled. Do not invent placeholders that dominate the UI.
+Static HTTP asset verification is mandatory.
 
-Do NOT add choices.
+An executing browser/headless client is allowed only with an explicit smoke `?game_id=` after game A exists. Never open the bare frontend root in an executing browser because it may create a game automatically.
 
-## 3. Frontend authority rules
+Do not redeploy again if the first deploy is wrong; STOP BLOCKED with evidence.
 
-`frontend-v2` is presentation + user input only.
+## 7. Game A — one-turn automated live smoke
 
-It may:
+Only after Sections 3-6 pass.
 
-- Setup/Opening only for an explicit new-game flow;
-- fetch `/api/v2/context`;
-- submit one `/api/v2/turn` request for one user action;
-- consume Story SSE;
-- display persisted/reconnected job progress;
-- display committed history/state/MM/summary;
-- allow explicit user retry only after an authoritative failed job, using the existing server retry contract.
+Create exactly one dedicated smoke game A:
 
-It must NOT:
+1. `POST /api/v2/setup` exactly once;
+2. `POST /api/v2/opening` exactly once for the same game;
+3. verify turn-0 context/API + direct DB:
+   - committed_turn = 0;
+   - revision = 0;
+   - exactly one turn 0 row;
+   - Opening Story non-empty;
+   - durable `choices = []`;
+   - zero job rows.
 
-- implement Story->Observation->Commit staging;
-- infer/commit gameplay state locally;
-- synthesize choices;
-- automatically regenerate/retry failed LLM calls;
-- create an extra gameplay turn during refresh/reconnect;
-- use v1 API endpoints.
+Then submit exactly one automated free-form gameplay action to game A:
 
-## 4. First-turn closure requirements
+`서원에게 오늘 첫 업무가 무엇인지 물어본다.`
 
-Close the proven stuck-turn class at source level.
+Requirements for this single smoke turn:
 
-Required tests must prove at least:
+- exactly one `/api/v2/turn` submission;
+- one action_id;
+- expected_turn = 1;
+- retry_failed = false;
+- no retry and no replacement action if anything fails;
+- capture the SSE stream and prove at least one `story_delta` is received before terminal;
+- terminal must be `committed`;
+- no terminal-less close accepted as success;
+- no second Story generation call is allowed by task behavior.
 
-1. a streamed Story that produces content reaches one terminal state under the normal successful provider protocol;
-2. a provider stream that ends/aborts/malforms cannot leave the canonical job permanently `processing` — it reaches authoritative `failed` according to the existing bounded timeout/error policy unless ownership fencing makes the attempt stale;
-3. no second Story call is used to repair the turn;
-4. reconnect reads persisted progress from the same canonical job;
-5. after terminal commit, exactly one gameplay turn exists and committed_turn advances once;
-6. after terminal failure, the same job is failed and only explicit user retry may create the next attempt on that same canonical row;
-7. source behavior is compatible with Cloudflare Worker streaming semantics, not only an in-memory fake.
+If possible, also load the explicit game-A frontend URL in a browser/headless client and verify the deployed product shell displays current/committed Story without blocking overlay. This browser check must not submit an additional action.
 
-If the exact live failure cannot be reproduced deterministically, still add a regression for the concrete protocol/lifetime defect found in code/log evidence. Do not add speculative retries.
+## 8. Game A durable post-smoke verification
 
-## 5. Choice removal requirements
+After terminal commit, verify via API context and direct read-only DB:
 
-Update active code/tests/docs consistently.
+- `committed_turn = 1`;
+- state revision advanced exactly once;
+- exactly one gameplay turn 1 row;
+- exactly one canonical turn-1 job row;
+- turn-1 job status = `committed`;
+- attempt_no = 1;
+- literal_action exactly equals the submitted Korean smoke text;
+- non-empty Story persisted;
+- durable `choices = []`;
+- non-empty summary;
+- no duplicate turn/job;
+- no processing job remains;
+- no failed job remains for turn 1;
+- no turn 2 exists;
+- minimal Phase-1 state contract remains intact.
 
-At minimum inventory and adjust:
+Narrative acceptance is product-level, not a new runtime hard gate:
 
-- `runtime-v2/server/provider.js`
-- `runtime-v2/domain/story.js`
-- `runtime-v2/domain/contracts.js` if exact-four helpers are active v2 authority
-- `runtime-v2/server/worker.js` / stores only as needed to pass `choices: []` through the existing schema
-- `frontend-v2/index.html`
-- `frontend-v2/styles.css`
-- `frontend-v2/app.js`
-- Company v2 tests
-- `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md` where it still says exactly four choices are Phase-1 acceptance
+- record Story length and parsed block types;
+- inspect the actual Story text;
+- reject the rollout if it is merely a terse status/result, one-line summary, protocol/OOC text, or if it replaces the literal player action with a different action;
+- require substantial scene progression consistent with owner narrative law `5341147788`.
 
-Do not edit applied migrations merely because the durable turn table has a choices column.
+Do not modify source/prompt/model in this rollout if Story quality fails. STOP BLOCKED and preserve game A as evidence.
 
-## 6. UI donor rules
+## 9. Game B — fresh owner handoff only after game A passes
 
-Allowed:
+If and only if all game-A smoke checks pass, create exactly one new fresh game B:
 
-- copy/adapt markup structure and CSS from `src/frontend/pages/*` into `frontend-v2/*`;
-- reproduce existing Company visual hierarchy/components/responsive behavior;
-- port pure display formatting where it has no runtime authority.
+1. Setup exactly once;
+2. Opening exactly once;
+3. zero gameplay turns;
+4. verify committed_turn 0 / revision 0 / one Opening row / choices `[]` / zero jobs;
+5. game B must differ from game A and both immutable prior evidence games.
 
-Forbidden:
+Construct:
 
-- importing `src/frontend/pages/app.js` as the v2 controller;
-- importing old `api.js`/turn coordinator/pending state machine;
-- making frontend-v2 depend on v1 runtime modules;
-- using donor naming as an excuse to reintroduce old state authority.
+`https://gamebuilder-company-v2.zeroslove.workers.dev/?game_id=<GAME_B_ID>`
 
-Prefer a small v2 presentation adapter over cloning old logic.
+Do not browser-submit any gameplay action to game B.
 
-## 7. Scope / branch / PR
+Owner/user will manually play at least 5 natural free-form turns.
 
-This is SOURCE CORRECTION only.
+Manual focus:
 
-Create source branch:
+- product UI shell is visually acceptable;
+- Story visibly streams without blocking modal/overlay;
+- rich narrative remains substantial;
+- literal action fidelity;
+- free input only, no choices;
+- one input = one turn;
+- no duplicate/stuck processing;
+- refresh/reconnect durability;
+- ordered history and non-empty summaries;
+- relevant-NPC-only Mind Monitor;
+- no protocol/OOC garbage;
+- no identity corruption.
 
-`company-v2/phase1-product-baseline-v1`
+## 10. Forbidden
 
-Open one Draft PR against `main`.
+Do NOT:
 
-Allowed changes are limited to:
+- create a source branch or PR;
+- modify source/tests/frontend/config/content/canon during rollout;
+- add/edit/apply/replay migrations;
+- change ACL/RLS/schema manually;
+- modify secrets or provider/model values;
+- touch v1 Workers or Production/hospital-v2;
+- mutate the two prior v2 evidence games;
+- reset/delete any evidence game;
+- create more than two new games;
+- retry Setup/Opening/gameplay after a failed gate;
+- submit more than one automated gameplay turn total;
+- automatically play game B;
+- run automated 5-turn acceptance;
+- start Phase 2/3.
 
-- `frontend-v2/**`
-- `runtime-v2/**` only where required for choice removal / first-turn closure
-- `test/**` for focused regressions
-- `docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md`
-- this task's normal implementation evidence if required by repository workflow
+First deterministic defect => preserve evidence and STOP.
 
-Do NOT change:
+## 11. Required terminal
 
-- v1 runtime behavior;
-- `src/engine/**`;
-- old Company frontend behavior under `src/frontend/pages/**` (donor must remain intact);
-- applied Supabase migrations 002-005;
-- provider/model values;
-- Cloudflare worker identities;
-- Production/hospital-v2.
+On full success post one immutable Issue #68 terminal:
 
-No DB writes, migration apply, Worker deploy, live game creation, reset, or gameplay call in this SOURCE task.
-
-## 8. Validation before terminal
-
-Required local/source validation:
-
-- focused Company v2 runtime tests;
-- focused frontend-v2 product-shell tests;
-- tests proving choices are absent from active Phase-1 generation/rendering/acceptance;
-- first-turn successful stream -> commit regression;
-- malformed/aborted/incomplete stream -> failed terminal regression with no stuck processing;
-- reconnect/progress regression;
-- full repository `npm test` green;
-- syntax checks;
-- `git diff --check`;
-- dedicated v2 API Wrangler dry-run;
-- dedicated v2 frontend Wrangler dry-run;
-- exact-head GitHub Actions success.
-
-UI structural tests must assert presence of the required product shell regions and absence of the choice list. Do not use screenshot-only assertions as the sole proof.
-
-## 9. Review stop
-
-Codex stops at source review. Do NOT merge, deploy, migrate, create TEST games, or run live gameplay in this task.
-
-Required terminal:
-
-`COMPANY_V2_PHASE1_PRODUCT_BASELINE_READY_FOR_REVIEW`
+`COMPANY_V2_PHASE1_PRODUCT_BASELINE_TEST_READY_FOR_USER`
 
 Include:
 
-- TASK_ID;
-- branch;
-- Draft PR number;
-- final head SHA;
-- exact changed file list;
-- donor files/commit used for UI parity;
-- concise explanation of how old runtime authority was excluded;
-- choice-removal inventory and resulting behavior;
-- exact root cause of the stuck first-turn class and source fix;
-- focused test results;
-- full test result;
-- Wrangler dry-runs;
-- exact-head CI run/job IDs;
-- explicit confirmation: no deploy, no DB write, no migration apply, no live game mutation, no Production/v1 mutation.
+- Task ID;
+- registration main SHA / CURRENT_TASK blob;
+- accepted source head `16c5fecd1e407acf9f2f629a1b719e300f11b0ff`;
+- source acceptance comment `5341316161`;
+- merge commit `ee46977747dc89b04dca65fc4632e88b45cae7e0`;
+- TEST project;
+- proof migrations 002-005 untouched;
+- previous and new API Worker version IDs;
+- previous and new frontend Worker version IDs;
+- absent-game DB-backed smoke + CORS result;
+- deployed frontend product-shell checks;
+- game A ID;
+- exactly-one smoke action and SSE `story_delta -> terminal committed` evidence;
+- game-A DB/API committed_turn=1 / one turn / one job / attempt 1 / choices=[] / non-empty summary / no processing residue;
+- Story length + concise narrative-quality inspection result;
+- explicit automated gameplay turn count = 1 total;
+- game B fresh handoff ID;
+- game-B committed_turn=0 / choices=[] / zero jobs / zero gameplay turns;
+- confirmation source/config/migrations/provider/model/v1/Production/prior evidence games untouched;
+- full owner manual URL near the bottom.
 
-Then STOP at `WAITING_REVIEW`. Do not create the rollout task yourself.
+Then STOP at `WAITING_USER_ACCEPTANCE`. Do not create another CURRENT_TASK.
+
+If blocked, post one immutable terminal beginning:
+
+`COMPANY_V2_PHASE1_PRODUCT_BASELINE_TEST_BLOCKED`
+
+Include the exact failed gate, HTTP/SSE/DB evidence, created game IDs if any, and explicit counts for Setup/Opening/automated gameplay attempts. Do not repair or retry inside this task.
