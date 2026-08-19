@@ -53,7 +53,8 @@ const sameLocationSave = {
   }
 };
 const officeResidents = ['general_park_jungwoo', 'heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5'];
-const sameLocationCast = ['heroine3', 'heroine1', 'general_park_jungwoo', 'heroine2', 'heroine4', 'heroine5'];
+const sameLocationCast = ['heroine3', 'heroine1'];
+const sameLocationTargetCast = ['heroine3', 'heroine1', 'heroine2'];
 
 function exactNavigation(save = sourceSave) {
   return resolvePlayerNavigationIntent({ save, master, mapLocations, playerAction: action });
@@ -173,14 +174,15 @@ test('same-location exact registered NPC visits hand off Story and Commit cast w
   const projected = projectStorySaveForNavigation(sameLocationSave, sameLocation, { master, mapLocations });
   assert.equal(projected.scene.location_id, 'brand_strategy_office');
   assert.equal('scene_id' in projected.scene, false);
-  assert.deepEqual(projected.scene.present_npc_ids, sameLocationCast);
+  assert.deepEqual(projected.scene.present_npc_ids, sameLocationTargetCast);
+  assert.equal(projected.scene.focal_character_id, 'heroine2');
   assert.deepEqual(projected.world_state.game_time, sameLocationSave.world_state.game_time);
   const projection = buildStoryCharacterProjection({
     edition,
     playerAction: action,
     sceneCastContract: { present_npc_ids: projected.scene.present_npc_ids }
   });
-  assert.deepEqual(projection.scene_actor_ids, sameLocationCast);
+  assert.deepEqual(projection.scene_actor_ids, sameLocationTargetCast);
   assert.equal(Object.hasOwn(projection.scene_actors, 'heroine2'), true);
   assert.equal(Object.hasOwn(projection.scene_actors, 'heroine3'), true);
   assert.equal(Object.hasOwn(projection.scene_actors, 'heroine1'), true);
@@ -199,7 +201,7 @@ test('same-location exact registered NPC visits hand off Story and Commit cast w
   });
   assert.equal(result.nextSave.scene.location_id, 'brand_strategy_office');
   assert.equal('scene_id' in result.nextSave.scene, false);
-  assert.deepEqual(result.nextSave.scene.present_npc_ids, sameLocationCast);
+  assert.deepEqual(result.nextSave.scene.present_npc_ids, sameLocationTargetCast);
   assert.equal(result.nextSave.scene.focal_character_id, 'heroine2');
   assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine3'), true);
   assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine1'), true);
@@ -224,6 +226,46 @@ test('an explicit NPC exit survives the next unrelated successful turn', () => {
     observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: [], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
   });
   assert.equal(nextTurn.present_npc_ids.includes('heroine3'), false);
+});
+
+test('same-location target handoff does not rehydrate an exited default resident', () => {
+  const afterExit = reduceCanonicalScene({
+    currentScene: sameLocationSave.scene,
+    mapLocations,
+    master,
+    npcIds: new Set(officeResidents),
+    expectedTurn: 5,
+    observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: ['heroine3'], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
+  });
+  const afterUnrelated = reduceCanonicalScene({
+    currentScene: afterExit,
+    mapLocations,
+    master,
+    npcIds: new Set(officeResidents),
+    expectedTurn: 6,
+    observation: { outcome: 'success', location_id: null, entered_npc_ids: [], exited_npc_ids: [], explicit_speaker_ids: [], remote_speaker_ids: [], evidence: [] }
+  });
+  const currentSave = { ...sameLocationSave, scene: afterUnrelated };
+  const navigation = exactNavigation(currentSave);
+  const projected = projectStorySaveForNavigation(currentSave, navigation, { master, mapLocations });
+  assert.deepEqual(projected.scene.present_npc_ids, ['heroine1', 'heroine2']);
+  assert.equal(projected.scene.focal_character_id, 'heroine2');
+
+  const result = reduceGameplayCommit({
+    currentSave,
+    observation: observation({ speakers: ['heroine2'], elapsed_minutes: 0 }),
+    parsedStory: { dialogue_lines: [{ speaker_id: 'heroine2' }] },
+    rawStory: 'heroine2 receives the exact registered visit at the existing office location',
+    action: { action_id: 'same-location-exit-action', turn_id: 'turn-7', action_kind: 'ordinary' },
+    expectedTurn: 7,
+    master,
+    npcIds: new Set(Object.keys(edition.characters.characters).concat(Object.keys(edition.generalNpcs.profiles))),
+    mapLocations,
+    navigationIntent: navigation
+  });
+  assert.deepEqual(result.nextSave.scene.present_npc_ids, ['heroine1', 'heroine2']);
+  assert.equal(result.nextSave.scene.focal_character_id, 'heroine2');
+  assert.equal(result.nextSave.scene.present_npc_ids.includes('heroine3'), false);
 });
 
 test('same-location, ambiguous, and unregistered visits remain unresolved', () => {

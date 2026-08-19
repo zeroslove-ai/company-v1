@@ -213,7 +213,7 @@ export function reduceCanonicalScene(input = {}) {
   // not reality. Preserve the legitimate same-location cast and add the
   // target through the normal structural handoff below.
   const shouldBootstrapDefaults = !degraded && observation.outcome === 'success'
-    && (authoritativeLocationChange || current.updated_turn === 0 || destinationTargetIds.length > 0);
+    && (authoritativeLocationChange || current.updated_turn === 0);
   if (shouldBootstrapDefaults) {
     const bootstrapLocation = observedLocation ?? current.location_id;
     const currentIds = new Set(next.present_npc_ids);

@@ -91,7 +91,6 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
     if (!canonicalNpcDestination) return save;
     const presentNpcIds = [...new Set([
       ...scene.present_npc_ids,
-      ...defaultNpcIdsForLocation({ save, master, mapLocations }, locationId),
       ...destinationTargetIds
     ])];
     return {
@@ -101,7 +100,7 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
         location_id: scene.location_id,
         updated_turn: scene.updated_turn,
         present_npc_ids: presentNpcIds,
-        focal_character_id: presentNpcIds[0],
+        focal_character_id: destinationTargetIds[0] ?? presentNpcIds[0] ?? null,
         last_speaker_id: null
       }
     };
@@ -117,7 +116,7 @@ export function projectStorySaveForNavigation(save, navigationIntent, { master, 
       location_id: locationId,
       updated_turn: scene.updated_turn,
       present_npc_ids: presentNpcIds,
-      focal_character_id: presentNpcIds[0] ?? null,
+      focal_character_id: destinationTargetIds[0] ?? presentNpcIds[0] ?? null,
       last_speaker_id: null
     }
   };
