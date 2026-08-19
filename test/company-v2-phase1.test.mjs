@@ -67,6 +67,35 @@ test('production Worker selects DB store and real provider, with no silent test 
   assert.throws(() => createProductionV2Worker({ env: {} }), /SUPABASE_URL/);
 });
 
+test('SupabaseV2Store invokes receiver-sensitive fetch neutrally through createGame', async () => {
+  const gameId = 'receiver-neutral-game';
+  const calls = [];
+  const fetchImpl = function (url, options) {
+    if (this !== undefined) throw new TypeError('Illegal invocation: fetch receiver must be neutral');
+    calls.push({ url, options });
+    const pathname = new URL(url).pathname;
+    let payload;
+    if (pathname.endsWith('/rpc/company_v2_create_game')) payload = { game_id: gameId };
+    else if (pathname.endsWith('/company_v2_games')) payload = [{ game_id: gameId, content_version: 'company-v2-phase1' }];
+    else if (pathname.endsWith('/company_v2_state')) payload = [{ game_id: gameId, committed_turn: 0, revision: 0, state: {} }];
+    else if (pathname.endsWith('/rpc/company_v2_expire_stale_turn')) payload = { ok: true };
+    else if (pathname.endsWith('/company_v2_turns') || pathname.endsWith('/company_v2_turn_jobs')) payload = [];
+    else throw new Error(`unexpected Supabase path: ${pathname}`);
+    return Promise.resolve(new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } }));
+  };
+  const store = new SupabaseV2Store({ env: { SUPABASE_URL: 'https://db.example', SUPABASE_SERVICE_ROLE_KEY: 'service-key' }, fetchImpl });
+  const context = await store.createGame({ playerName: 'receiver test' });
+  assert.equal(context.game.game_id, gameId);
+  assert.equal(context.state.committed_turn, 0);
+  assert.equal(calls.length, 6);
+  assert.equal(calls.filter(({ url }) => url.includes('/rpc/company_v2_create_game')).length, 1);
+  assert.equal(calls.filter(({ url }) => url.includes('/rpc/company_v2_expire_stale_turn')).length, 1);
+  assert.equal(calls.filter(({ url }) => url.includes('/company_v2_games')).length, 1);
+  assert.equal(calls.filter(({ url }) => url.includes('/company_v2_state')).length, 1);
+  assert.equal(calls.filter(({ url }) => url.includes('/company_v2_turns')).length, 1);
+  assert.equal(calls.filter(({ url }) => url.includes('/company_v2_turn_jobs')).length, 1);
+});
+
 test('default Worker fails clearly without production configuration', async () => {
   const response = await (await import('../runtime-v2/server/worker.js')).default.fetch(new Request('https://v2.test/api/v2/context?game_id=missing'), {});
   assert.equal(response.status, 500); assert.equal((await response.json()).error.code, 'configuration_error');

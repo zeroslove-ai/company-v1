@@ -13,7 +13,8 @@ class V2SupabaseHttp {
   }
 
   async request(path, { method = 'GET', body } = {}) {
-    const response = await this.fetchImpl(`${this.base}/rest/v1/${path}`, {
+    const fetchImpl = this.fetchImpl;
+    const response = await fetchImpl(`${this.base}/rest/v1/${path}`, {
       method,
       headers: { apikey: this.key, authorization: `Bearer ${this.key}`, accept: 'application/json', 'content-type': 'application/json' },
       ...(body === undefined ? {} : { body: JSON.stringify(body) })
