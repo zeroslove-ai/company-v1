@@ -1,6 +1,6 @@
 # Company v1 — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: live-7turn-runtime-collapse-v1
 Updated: 2026-08-19
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
@@ -319,3 +319,14 @@ When implementation is complete:
    - proof CSA apply no longer consumes a gameplay turn;
    - any remaining known gaps;
 4. STOP `WAITING_REVIEW`.
+
+## 7. Execution result
+
+- implementation head: `2d053486f86205fbaa552bf9283d317cac5ed620`
+- Draft PR: `#86` (`https://github.com/zeroslove-ai/company-v1/pull/86`), unmerged
+- focused contract tests: `4 passed`
+- full suite: `375 total, 372 passed, 3 skipped, 0 failed`
+- exact-head CI: workflow `Company v1 tests`, run `32224958744`, head `2d053486f86205fbaa552bf9283d317cac5ed620`, `success`
+- changed source: server-owned `/api/turn`, save-only `/api/app-apply`, frontend turn/recovery/CSA wiring, relevant Mind Monitor targeting, summary fallback, protocol OOC rejection, and source-only CSA CAS migration
+- failed game `df3045fd-c359-4cdc-8783-357ddfebe398` was not accessed or mutated by this task
+- no deployment, migration application, TEST reset, Production access, provider/model change, or merge was performed
