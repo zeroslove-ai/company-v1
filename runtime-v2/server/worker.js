@@ -1,6 +1,6 @@
 import { companyV2Content } from '../domain/content.js';
 import { boundedSummary, assertExpectedTurn, reduceObservation, requireLiteralAction } from '../domain/contracts.js';
-import { openingStory, parseStoryBlocks } from '../domain/story.js';
+import { COMPANY_APP_PREMISE, openingStory, parseStoryBlocks } from '../domain/story.js';
 import { body, errorResponse, json, sse, V2_CORS_HEADERS, V2HttpError } from './http.js';
 import { MAX_PROGRESS_WRITES_PER_ATTEMPT, PROGRESS_SNAPSHOT_INTERVAL_CHARS } from './job-policy.js';
 import { createV2Provider } from './provider.js';
@@ -18,7 +18,7 @@ export function createV2Worker({ store, provider, content = companyV2Content, en
       try {
         const url = new URL(request.url);
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: V2_CORS_HEADERS });
-        if (request.method === 'GET' && url.pathname === '/api/v2/context') return json(await resolvedStore.context(requiredQuery(url, 'game_id')));
+        if (request.method === 'GET' && url.pathname === '/api/v2/context') return json(decorateContext(await resolvedStore.context(requiredQuery(url, 'game_id')), content));
         if (request.method === 'POST' && url.pathname === '/api/v2/setup') {
           const input = await body(request);
           return json(await resolvedStore.createGame({ playerName: String(input.player_name ?? 'Player') }));
@@ -39,11 +39,11 @@ async function opening(store, provider, content, input) {
   const gameId = String(input.game_id ?? '');
   const context = await store.context(gameId);
   if (context.state.committed_turn > 0 || context.turns.length > 0) return context;
-  const storyText = (provider.opening ?? openingStory)({ playerName: context.state.state.player.name });
+  const storyText = (provider.opening ?? openingStory)({ playerName: context.state.state.player.name, content });
   const parsed = parseWith(provider, storyText, content);
   const summary = boundedSummary(parsed.displayText, 'Opening begins the Company v2 story.');
   await store.createOpening(gameId, { storyText: parsed.displayText, parsedBlocks: parsed.blocks, choices: parsed.choices, summary });
-  return store.context(gameId);
+  return decorateContext(await store.context(gameId), content);
 }
 
 async function turnResponse(request, store, provider, content) {
@@ -57,12 +57,12 @@ async function turnResponse(request, store, provider, content) {
     const existingJob = Number.isInteger(input.expected_turn) ? await store.getJob(gameId, input.expected_turn) : null;
     const explicitRetry = input.retry_failed === true;
     if (existingJob && !(existingJob.status === 'failed' && explicitRetry)) {
-      return json({ status: existingJob.status, reconnect: true, progress_story_text: existingJob.story_text, job: summarizeJob(existingJob), context: existingJob.status === 'committed' ? await store.context(gameId) : undefined });
+      return json({ status: existingJob.status, reconnect: true, progress_story_text: existingJob.story_text, job: summarizeJob(existingJob), context: existingJob.status === 'committed' ? decorateContext(await store.context(gameId), content) : undefined });
     }
     assertExpectedTurn({ expectedTurn: input.expected_turn, committedTurn: context.state.committed_turn });
     const reservation = await store.reserveTurn({ gameId, turnNumber: input.expected_turn, actionId, literalAction, retryFailed: explicitRetry });
     const { job, created } = reservation;
-    if (!created) return json({ status: job.status, reconnect: true, progress_story_text: job.story_text, job: summarizeJob(job), context: job.status === 'committed' ? await store.context(gameId) : undefined });
+    if (!created) return json({ status: job.status, reconnect: true, progress_story_text: job.story_text, job: summarizeJob(job), context: job.status === 'committed' ? decorateContext(await store.context(gameId), content) : undefined });
     const attempt = Object.freeze({ gameId: job.game_id, turnNumber: job.turn_number, actionId: job.action_id, attemptNo: job.attempt_no, literalAction: job.literal_action });
     return streamTurn({ store, provider, content, gameId, job, attempt });
   } catch (error) { return errorResponse(error); }
@@ -108,13 +108,13 @@ async function processTurn({ store, provider, content, gameId, attempt, emit }) 
     const reduced = reduceObservation({ state: before.state.state, observation: observation ?? {}, storyText: parsed.displayText, content, targetIds });
     const summary = boundedSummary(parsed.displayText, observation?.turn_summary);
     const context = await store.commitTurn({ gameId, turnNumber: attempt.turnNumber, attempt, expectedRevision: before.state.revision, storyText: parsed.displayText, parsedBlocks: parsed.blocks, choices: parsed.choices, summary, mindMonitor: reduced.mindMonitor, stateAfter: reduced.state });
-    emit('terminal', { status: 'committed', context });
+    emit('terminal', { status: 'committed', context: decorateContext(context, content) });
   } catch (error) {
     if (error.code === V2_ATTEMPT_FENCE_CONFLICT || error.message === V2_ATTEMPT_FENCE_CONFLICT) return;
     const errorCode = error.message || 'turn_failed';
     try {
       const context = await store.failJob(gameId, attempt.turnNumber, attempt, errorCode);
-      emit('terminal', { status: 'failed', error_code: errorCode, context });
+      emit('terminal', { status: 'failed', error_code: errorCode, context: decorateContext(context, content) });
     } catch (failure) {
       if (failure.code === V2_ATTEMPT_FENCE_CONFLICT || failure.message === V2_ATTEMPT_FENCE_CONFLICT) return;
       throw failure;
@@ -130,6 +130,18 @@ function requiredQuery(url, name) {
 
 function parseWith(provider, storyText, content) {
   return provider.parse ? provider.parse(storyText, content) : parseStoryBlocks(storyText, { content });
+}
+
+function decorateContext(context, content) {
+  return {
+    ...context,
+    catalog: {
+      edition: content.edition,
+      app: COMPANY_APP_PREMISE,
+      npcs: content.npcIds().map((id) => { const npc = content.getNpc(id); return { id: npc.id, name: npc.name, kind: npc.kind, department: npc.department ?? npc.department_id, role: npc.role ?? npc.role_title }; }),
+      locations: content.locationIds().map((id) => { const location = content.getLocation(id); return { id: location.id, name: location.name, description: location.description, department_id: location.department_id, location_type: location.location_type, default_npc_ids: location.default_npc_ids }; })
+    }
+  };
 }
 
 export default {

@@ -1,23 +1,24 @@
-import { openingStory, parseStoryBlocks } from '../domain/story.js';
+import { companyV2Content } from '../domain/content.js';
+import { COMPANY_APP_PREMISE, openingStory, parseStoryBlocks } from '../domain/story.js';
 import { V2ConfigurationError } from './supabase-store.js';
 
-export function createDeterministicProvider() {
+export function createDeterministicProvider({ content = companyV2Content } = {}) {
+  const actor = content.getNpc('heroine1');
+  const location = content.getLocation('brand_strategy_office');
   return {
     async *story({ literalAction, playerName }) {
-      yield `[NARRATIVE]\n${playerName}가 로비에서 ${literalAction}을 시도하자 주변의 소음이 잠시 멀어지고, 눈앞의 업무 화면과 사람들의 반응이 또렷해진다. 다음 행동은 플레이어가 직접 정한다.\n\n`;
-      yield '[DIALOGUE id="heroine1"]\n서원이 당신의 행동을 살피며 말한다. “좋아요. 지금 보이는 상황부터 함께 정리해 보죠.”';
+      yield `[NARRATIVE]\n${playerName}의 행동 “${literalAction}”이(가) ${location.name}에 기록된다. ${actor.name}은(는) 상황을 지켜보며 다음 행동을 기다린다. ${COMPANY_APP_PREMISE.name}은(는) 아직 사용되지 않았고 현실은 그대로다.\n\n`;
+      yield `[DIALOGUE id="${actor.id}"]\n${actor.name}이(가) 필요한 만큼만 차분하게 묻는다. “무엇을 하려는지 직접 말해 주세요.”`;
     },
-    async observe({ storyText }) {
-      return { elapsed_minutes: 3, scene: { entered: [], exited: [] }, turn_summary: storyText.slice(0, 120), mind_monitor: {} };
-    },
-    opening: ({ playerName }) => openingStory({ playerName }),
-    parse: (storyText, content) => parseStoryBlocks(storyText, { content })
+    async observe({ storyText }) { return { elapsed_minutes: 3, scene: { entered: [], exited: [] }, turn_summary: storyText.slice(0, 120), mind_monitor: {} }; },
+    opening: ({ playerName }) => openingStory({ playerName, content }),
+    parse: (storyText, adapter) => parseStoryBlocks(storyText, { content: adapter ?? content })
   };
 }
 
 export const V2_PROVIDER_TIMEOUTS = Object.freeze({ storyFirstContentMs: 30_000, storyTotalMs: 120_000, observationMs: 75_000 });
 
-export function createV2Provider({ env, fetchImpl = fetch, content, timeouts: timeoutOverrides = {} } = {}) {
+export function createV2Provider({ env, fetchImpl = fetch, content = companyV2Content, timeouts: timeoutOverrides = {} } = {}) {
   const baseUrl = env?.LLM_API_URL?.replace(/\/$/, '');
   const apiKey = env?.LLM_API_KEY;
   const storyModel = env?.STORY_MODEL;
@@ -32,55 +33,43 @@ export function createV2Provider({ env, fetchImpl = fetch, content, timeouts: ti
     let timer;
     let rejectTimeout;
     const timeoutPromise = new Promise((_, reject) => { rejectTimeout = reject; timer = setTimeout(() => abort(timeoutCode), timeoutMs); });
-    function abort(code) {
-      if (reason) return;
-      reason = code;
-      controller.abort(code);
-      rejectTimeout(structuralTimeout(reason));
-    }
-    const responsePromise = fetchImpl(completionUrl, { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal })
-      .catch((error) => { if (reason) throw structuralTimeout(reason); throw error; });
+    function abort(code) { if (reason) return; reason = code; controller.abort(code); rejectTimeout(structuralTimeout(reason)); }
+    const responsePromise = fetchImpl(completionUrl, { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal }).catch((error) => { if (reason) throw structuralTimeout(reason); throw error; });
     return { responsePromise, timeoutPromise, abort, reason: () => reason, clear: () => clearTimeout(timer) };
   }
 
   return {
     kind: 'v2-llm-provider',
     async *story({ literalAction, context }) {
-      const request = timedRequest({ model: storyModel, stream: true, thinking: { type: 'disabled' }, max_tokens: 5000, messages: buildStoryMessages({ literalAction, context }) }, timeouts.storyTotalMs, 'v2_story_timeout');
-      try {
-        const response = await Promise.race([request.responsePromise, request.timeoutPromise]);
-        assertProviderResponse(response);
-        yield* readOpenAiStream(response, { request, firstContentMs: timeouts.storyFirstContentMs });
-      } catch (error) {
-        if (request.reason()) throw structuralTimeout(request.reason());
-        throw error;
-      } finally { request.clear(); }
+      const request = timedRequest({ model: storyModel, stream: true, thinking: { type: 'disabled' }, max_tokens: 5000, messages: buildStoryMessages({ literalAction, context, content }) }, timeouts.storyTotalMs, 'v2_story_timeout');
+      try { const response = await Promise.race([request.responsePromise, request.timeoutPromise]); assertProviderResponse(response); yield* readOpenAiStream(response, { request, firstContentMs: timeouts.storyFirstContentMs }); }
+      catch (error) { if (request.reason()) throw structuralTimeout(request.reason()); throw error; }
+      finally { request.clear(); }
     },
     async observe({ literalAction, storyText, context }) {
       const request = timedRequest({ model: observationModel, stream: false, thinking: { type: 'disabled' }, temperature: 0, max_tokens: 1200, response_format: { type: 'json_object' }, messages: buildObservationMessages({ literalAction, storyText, context }) }, timeouts.observationMs, 'v2_observation_timeout');
       let payload;
-      try {
-        const response = await Promise.race([request.responsePromise, request.timeoutPromise]);
-        assertProviderResponse(response);
-        payload = await Promise.race([response.json(), request.timeoutPromise]);
-      } catch (error) {
-        if (request.reason()) throw structuralTimeout(request.reason());
-        if (error?.message === 'v2_provider_failure') throw error;
-        throw error?.message === 'v2_observation_timeout' ? error : new Error('v2_observation_invalid_json');
-      } finally { request.clear(); }
+      try { const response = await Promise.race([request.responsePromise, request.timeoutPromise]); assertProviderResponse(response); payload = await Promise.race([response.json(), request.timeoutPromise]); }
+      catch (error) { if (request.reason()) throw structuralTimeout(request.reason()); if (error?.message === 'v2_provider_failure') throw error; throw error?.message === 'v2_observation_timeout' ? error : new Error('v2_observation_invalid_json'); }
+      finally { request.clear(); }
       const raw = payload?.choices?.[0]?.message?.content;
       if (typeof raw !== 'string') throw new Error('v2_observation_missing');
       try { return JSON.parse(raw.replace(/^```json\s*/i, '').replace(/\s*```$/, '')); } catch { throw new Error('v2_observation_invalid_json'); }
     },
-    opening: ({ playerName }) => openingStory({ playerName }),
+    opening: ({ playerName }) => openingStory({ playerName, content }),
     parse: (storyText, adapter) => parseStoryBlocks(storyText, { content: adapter ?? content })
   };
 }
 
-export function buildStoryMessages({ literalAction, context }) {
+export function buildStoryMessages({ literalAction, context, content = companyV2Content }) {
+  const state = context?.state?.state ?? context?.state ?? {};
+  const scene = state.scene ?? {};
+  const location = content.getLocation(scene.location_id);
+  const actorIds = [...new Set(scene.present_npc_ids ?? [])].filter((id) => content.getNpc(id));
+  const actors = actorIds.map((id) => { const actor = content.getNpc(id); return { id: actor.id, name: actor.name, kind: actor.kind, department: actor.department ?? actor.department_id, position: actor.position ?? null, role_title: actor.role_title ?? null, role: actor.role ?? null, prompt_card: actor.prompt_card ?? null }; });
   return [
-    { role: 'system', content: 'You are the Company v2 Story author. Write a rich natural interactive-fiction scene that preserves the literal player action and elaborates concrete environment, reaction, character behavior, and dialogue when relevant. The player supplies the next action as free text; do not emit choices or choice markers. Use only [NARRATIVE], [DIALOGUE id="registered_id"], and [THOUGHT]. Never emit OOC or self-repair text.' },
-    { role: 'user', content: JSON.stringify({ literal_action: literalAction, time: context?.state?.state?.time ?? context?.state?.time, scene: context?.state?.state?.scene ?? context?.state?.scene, present_npc_ids: context?.state?.state?.scene?.present_npc_ids ?? [], recent_turns: (context?.turns ?? []).slice(-6).map((turn) => ({ story_text: turn.story_text, turn_summary: turn.turn_summary })) }) }
+    { role: 'system', content: 'You are the Story author for the interactive fiction edition "상식개변: 회사편". Preserve the literal player action exactly as intent and write a grounded company scene with concrete environment, reactions, character behavior, and dialogue when relevant. The player supplies the next action as free text; do not emit choices or choice markers. Use only [NARRATIVE], [DIALOGUE id="registered_id"], and [THOUGHT]. Never emit OOC or self-repair text. The private app premise is background only: it has not been used, other people do not know it, and reality has not changed.' },
+    { role: 'user', content: JSON.stringify({ edition: content.edition, literal_action: literalAction, player: { id: 'player-1', name: state.player?.name ?? '플레이어' }, time: state.time ?? {}, scene: { location_id: scene.location_id ?? null, location: location ? { id: location.id, name: location.name, description: location.description } : null, present_npc_ids: actorIds }, present_npc_ids: actorIds, actors, app: COMPANY_APP_PREMISE, recent_turns: (context?.turns ?? []).slice(-6).map((turn) => ({ literal_action: turn.literal_action, story_text: turn.story_text, turn_summary: turn.turn_summary })) }) }
   ];
 }
 
@@ -99,9 +88,7 @@ async function* readOpenAiStream(response, { request, firstContentMs } = {}) {
   let ended = false;
   let firstContent = false;
   let firstTimer;
-  const firstContentTimeout = new Promise((_, reject) => {
-    firstTimer = setTimeout(() => { request?.abort('v2_story_first_content_timeout'); reject(structuralTimeout('v2_story_first_content_timeout')); }, firstContentMs);
-  });
+  const firstContentTimeout = new Promise((_, reject) => { firstTimer = setTimeout(() => { request?.abort('v2_story_first_content_timeout'); reject(structuralTimeout('v2_story_first_content_timeout')); }, firstContentMs); });
   while (true) {
     let read;
     try { read = request ? await Promise.race([reader.read(), request.timeoutPromise, firstContent ? new Promise(() => {}) : firstContentTimeout]) : await reader.read(); }
@@ -115,13 +102,9 @@ async function* readOpenAiStream(response, { request, firstContentMs } = {}) {
       if (!line.startsWith('data:')) continue;
       const data = line.slice(5).trim();
       if (data === '[DONE]') { ended = true; continue; }
-      let payload;
-      try { payload = JSON.parse(data); } catch { throw new Error('v2_story_invalid_stream'); }
+      let payload; try { payload = JSON.parse(data); } catch { throw new Error('v2_story_invalid_stream'); }
       const delta = payload?.choices?.[0]?.delta?.content;
-      if (typeof delta === 'string' && delta) {
-        if (!firstContent) { firstContent = true; clearTimeout(firstTimer); }
-        yield delta;
-      }
+      if (typeof delta === 'string' && delta) { if (!firstContent) { firstContent = true; clearTimeout(firstTimer); } yield delta; }
     }
   }
   clearTimeout(firstTimer);

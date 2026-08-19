@@ -10,29 +10,33 @@
     <a class="skip-link" href="#story-panel">본문으로 이동</a>
     <main id="game-main" class="game-shell">
       <header class="game-header">
-        <div class="title-group"><h1 id="game-title">상식개변: 회사편</h1><p id="day-time" class="time-display">Day 1 · 09:00</p></div>
+        <div><p class="edition-kicker">INTERACTIVE FICTION · COMPANY EDITION</p><h1 id="game-title">상식개변: 회사편</h1><p id="day-time" class="time-display">Day 1 · 09:00</p></div>
         <div class="header-status"><span id="turn-number">Turn 0</span><span id="api-status" class="connection-indicator" role="status" aria-label="연결 확인 중">●</span></div>
       </header>
       <p id="status-banner" class="status-banner" aria-live="polite">게임 화면을 불러오는 중입니다.</p>
       <section class="game-layout" aria-label="게임 화면">
         <section id="story-panel" class="story-panel" aria-label="이야기">
+          <div class="panel-heading"><span class="eyebrow">STORY</span><span class="live-mark">LIVE</span></div>
           <div id="story-history" class="story-history"></div>
-          <div id="current-turn" class="current-turn">
-            <p id="current-action" class="action-chip" hidden></p>
-            <div id="current-story" class="current-story" aria-live="polite"></div>
-          </div>
+          <div id="current-turn" class="current-turn"><p id="current-action" class="action-chip" hidden></p><div id="current-story" class="current-story" aria-live="polite"></div></div>
         </section>
         <aside class="status-column" aria-label="캐릭터와 플레이어 상태">
-          <section class="state-panel" aria-labelledby="character-heading"><h2 id="character-heading">현재 장면</h2><dl id="scene-state" class="state-list"></dl></section>
-          <section class="mind-panel" aria-labelledby="mind-heading"><h2 id="mind-heading">Mind Monitor</h2><div id="mind-monitor" class="mind-monitor"></div></section>
-          <section class="state-panel" aria-labelledby="player-heading"><h2 id="player-heading">플레이어 상황</h2><dl id="player-situation" class="state-list"></dl></section>
+          <section class="state-panel" aria-labelledby="scene-heading"><div class="panel-heading"><span class="eyebrow">SCENE</span></div><h2 id="scene-heading">현재 장면</h2><dl id="scene-state" class="state-list"></dl></section>
+          <section class="mind-panel" aria-labelledby="mind-heading"><div class="panel-heading"><span class="eyebrow">INNER STATE</span></div><h2 id="mind-heading">Mind Monitor</h2><div id="mind-monitor" class="mind-monitor"></div></section>
+          <section class="state-panel" aria-labelledby="player-heading"><div class="panel-heading"><span class="eyebrow">PLAYER</span></div><h2 id="player-heading">플레이어 상태</h2><dl id="player-situation" class="state-list"></dl></section>
+          <section class="catalog-panel" aria-labelledby="character-heading"><div class="panel-heading"><span class="eyebrow">CAST</span></div><h2 id="character-heading">현재 등장인물</h2><ul id="character-catalog" class="catalog-list"></ul></section>
         </aside>
       </section>
+      <section class="lower-layout" aria-label="게임 정보">
+        <section class="catalog-panel map-panel" aria-labelledby="map-heading"><div class="panel-heading"><span class="eyebrow">COMPANY MAP</span><span class="read-only">READ ONLY</span></div><h2 id="map-heading">회사 지도</h2><p class="panel-note">현재 서버 장면을 이해하기 위한 정본 장소 목록입니다. 지도는 이동을 실행하지 않습니다.</p><ul id="company-map" class="map-list"></ul></section>
+        <section class="catalog-panel app-panel" aria-labelledby="app-heading"><div class="panel-heading"><span class="eyebrow">PRIVATE APP</span><span class="locked">LOCKED</span></div><h2 id="app-heading">상식개변</h2><p id="app-description">사람들이 평범하고 자연스럽다고 받아들이는 규칙을 바꿀 수 있다고 주장하는 앱.</p><p class="panel-note">Phase 1에서는 표시만 하며, 사용·변경·효과 적용을 하지 않습니다.</p></section>
+      </section>
       <section id="action-panel" class="action-panel" aria-labelledby="action-heading">
+        <div class="panel-heading"><span class="eyebrow">FREE-FORM INPUT</span><span class="server-owned">SERVER OWNED</span></div>
         <h2 id="action-heading">다음 행동</h2>
-        <label for="player-action">원하는 행동을 직접 입력하세요</label>
-        <textarea id="player-action" rows="3" maxlength="2000" placeholder="예: 서원에게 오늘 업무를 물어본다."></textarea>
-        <div class="action-controls"><button id="submit-action" type="button">행동 실행</button><button id="recovery-action" type="button" hidden></button></div>
+        <label for="player-action">원하는 행동을 자유롭게 적으세요. 선택지는 제공하지 않습니다.</label>
+        <textarea id="player-action" rows="3" maxlength="2000" placeholder="예: 서원희에게 오늘의 업무와 이 회사에 대해 묻는다."></textarea>
+        <div class="action-controls"><button id="submit-action" type="button">행동 보내기</button><button id="recovery-action" type="button" hidden></button></div>
         <p id="stream-status" aria-live="polite"></p>
       </section>
     </main>
