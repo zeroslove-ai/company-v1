@@ -3,20 +3,38 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>회사편 v2</title>
+    <title>상식개변: 회사편</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <main id="app" aria-live="polite">
-      <h1>회사편</h1>
-      <p id="status">게임을 준비하는 중입니다.</p>
-      <section id="story" aria-label="이야기"></section>
-      <ol id="choices" aria-label="선택지"></ol>
-      <label for="action">직접 입력</label>
-      <textarea id="action" rows="3" maxlength="2000"></textarea>
-      <button id="send" type="button">행동 실행</button>
-      <p id="summary"></p>
-      <dl id="mind"></dl>
+    <a class="skip-link" href="#story-panel">본문으로 이동</a>
+    <main id="game-main" class="game-shell">
+      <header class="game-header">
+        <div class="title-group"><h1 id="game-title">상식개변: 회사편</h1><p id="day-time" class="time-display">Day 1 · 09:00</p></div>
+        <div class="header-status"><span id="turn-number">Turn 0</span><span id="api-status" class="connection-indicator" role="status" aria-label="연결 확인 중">●</span></div>
+      </header>
+      <p id="status-banner" class="status-banner" aria-live="polite">게임 화면을 불러오는 중입니다.</p>
+      <section class="game-layout" aria-label="게임 화면">
+        <section id="story-panel" class="story-panel" aria-label="이야기">
+          <div id="story-history" class="story-history"></div>
+          <div id="current-turn" class="current-turn">
+            <p id="current-action" class="action-chip" hidden></p>
+            <div id="current-story" class="current-story" aria-live="polite"></div>
+          </div>
+        </section>
+        <aside class="status-column" aria-label="캐릭터와 플레이어 상태">
+          <section class="state-panel" aria-labelledby="character-heading"><h2 id="character-heading">현재 장면</h2><dl id="scene-state" class="state-list"></dl></section>
+          <section class="mind-panel" aria-labelledby="mind-heading"><h2 id="mind-heading">Mind Monitor</h2><div id="mind-monitor" class="mind-monitor"></div></section>
+          <section class="state-panel" aria-labelledby="player-heading"><h2 id="player-heading">플레이어 상황</h2><dl id="player-situation" class="state-list"></dl></section>
+        </aside>
+      </section>
+      <section id="action-panel" class="action-panel" aria-labelledby="action-heading">
+        <h2 id="action-heading">다음 행동</h2>
+        <label for="player-action">원하는 행동을 직접 입력하세요</label>
+        <textarea id="player-action" rows="3" maxlength="2000" placeholder="예: 서원에게 오늘 업무를 물어본다."></textarea>
+        <div class="action-controls"><button id="submit-action" type="button">행동 실행</button><button id="recovery-action" type="button" hidden></button></div>
+        <p id="stream-status" aria-live="polite"></p>
+      </section>
     </main>
     <script type="module" src="./app.js"></script>
   </body>

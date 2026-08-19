@@ -45,7 +45,7 @@ export class InMemoryV2Store {
     const key = `${gameId}:0`;
     if (!this.games.has(gameId)) throw new Error('game_not_found');
     if (!this.turns.has(key)) {
-      this.turns.set(key, { game_id: gameId, turn_number: 0, literal_action: '', story_text: storyText, parsed_blocks: parsedBlocks, choices: [...choices], turn_summary: summary, mind_monitor: mindMonitor, committed_at: new Date().toISOString(), state_after: clone(this.states.get(gameId).state) });
+      this.turns.set(key, { game_id: gameId, turn_number: 0, literal_action: '', story_text: storyText, parsed_blocks: parsedBlocks, choices: [...(choices ?? [])], turn_summary: summary, mind_monitor: mindMonitor, committed_at: new Date().toISOString(), state_after: clone(this.states.get(gameId).state) });
     }
     return this.context(gameId);
   }
@@ -103,7 +103,7 @@ export class InMemoryV2Store {
     assertAttempt(job, { gameId, turnNumber, ...attempt });
     const committedAt = this.now();
     this.states.set(gameId, { ...state, revision: state.revision + 1, committed_turn: turnNumber, state: clone(stateAfter), updated_at: committedAt });
-    this.turns.set(`${gameId}:${turnNumber}`, { game_id: gameId, turn_number: turnNumber, literal_action: attempt.literalAction, story_text: storyText, parsed_blocks: clone(parsedBlocks), choices: [...choices], turn_summary: summary, mind_monitor: clone(mindMonitor), committed_at: committedAt, state_after: clone(stateAfter) });
+    this.turns.set(`${gameId}:${turnNumber}`, { game_id: gameId, turn_number: turnNumber, literal_action: attempt.literalAction, story_text: storyText, parsed_blocks: clone(parsedBlocks), choices: [...(choices ?? [])], turn_summary: summary, mind_monitor: clone(mindMonitor), committed_at: committedAt, state_after: clone(stateAfter) });
     Object.assign(job, { status: 'committed', story_text: storyText, updated_at: committedAt, running: false });
     return this.context(gameId);
   }

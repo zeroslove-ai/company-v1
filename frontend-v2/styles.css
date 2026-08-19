@@ -1,7 +1,42 @@
-:root { color-scheme: dark; font-family: system-ui, sans-serif; }
-body { margin: 0; background: #111827; color: #f3f4f6; }
-main { width: min(760px, calc(100% - 2rem)); margin: 2rem auto; }
-#story { min-height: 12rem; white-space: pre-wrap; padding: 1rem; background: #1f2937; border-radius: .5rem; }
-textarea { box-sizing: border-box; width: 100%; margin: 1rem 0; padding: .75rem; }
-button { padding: .6rem .9rem; cursor: pointer; }
-li { margin: .4rem 0; }
+:root { color-scheme: dark; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --ink: #f4f1ea; --muted: #aeb8c5; --panel: #182332; --panel-soft: #202e40; --line: #3c5067; --accent: #d9a85f; --danger: #ef9a9a; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; background: radial-gradient(circle at top, #26384a, #0d141d 65%); color: var(--ink); }
+.skip-link { position: absolute; left: -10000px; top: 0; padding: .7rem 1rem; background: var(--accent); color: #111; }
+.skip-link:focus { left: 1rem; z-index: 3; }
+.game-shell { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 1rem 0 2rem; }
+.game-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
+.title-group h1 { margin: 0; font-size: clamp(1.35rem, 3vw, 2rem); letter-spacing: -.03em; }
+.time-display, .turn-label, .status-banner, .stream-progress { color: var(--muted); }
+.time-display { margin: .35rem 0 0; }
+.header-status { display: flex; align-items: center; gap: 1rem; color: var(--accent); font-weight: 700; }
+.connection-indicator { color: #8de1a7; }
+.status-banner { min-height: 1.5rem; margin: .75rem 0; }
+.status-banner.error { color: var(--danger); }
+.game-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(250px, .8fr); gap: 1rem; }
+.story-panel, .state-panel, .mind-panel, .action-panel { border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 94%, transparent); border-radius: 1rem; box-shadow: 0 1rem 2rem #05090e55; }
+.story-panel { min-height: 38rem; padding: 1.1rem; }
+.story-history { display: grid; gap: .75rem; }
+.story-entry { padding: .9rem; border-left: 3px solid #59738c; background: var(--panel-soft); border-radius: .55rem; }
+.story-entry p { margin: .35rem 0; }
+.turn-label { font-size: .8rem; margin-top: 0 !important; }
+.action-chip { display: inline-block; margin: 0 0 .75rem; padding: .35rem .6rem; border: 1px solid #80663f; border-radius: 999px; color: #f1ca8a; font-size: .9rem; }
+.story-text, .current-story { white-space: pre-wrap; line-height: 1.75; }
+.current-turn { margin-top: 1rem; min-height: 7rem; padding: 1rem; border: 1px dashed #6b8299; border-radius: .75rem; }
+.status-column { display: grid; align-content: start; gap: 1rem; }
+.state-panel, .mind-panel { padding: 1rem; }
+h2 { margin: 0 0 .7rem; font-size: 1rem; }
+.state-list { display: grid; grid-template-columns: minmax(5rem, .7fr) 1fr; gap: .45rem .7rem; margin: 0; }
+.state-list dt { color: var(--muted); }
+.state-list dd { margin: 0; overflow-wrap: anywhere; }
+.mind-monitor { display: grid; gap: .7rem; }
+.mind-card { padding: .7rem; border-radius: .6rem; background: var(--panel-soft); }
+.mind-card h3 { margin: 0 0 .35rem; font-size: .95rem; }
+.mind-card p { margin: .25rem 0; color: var(--muted); line-height: 1.45; }
+.action-panel { margin-top: 1rem; padding: 1rem; }
+.action-panel label { display: block; margin-bottom: .45rem; color: var(--muted); }
+textarea { width: 100%; resize: vertical; min-height: 5.5rem; padding: .8rem; border: 1px solid var(--line); border-radius: .6rem; background: #0d1722; color: var(--ink); font: inherit; }
+.action-controls { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .7rem; }
+button { border: 0; border-radius: .55rem; padding: .7rem 1rem; background: var(--accent); color: #17130c; font-weight: 700; cursor: pointer; }
+button:disabled { opacity: .55; cursor: wait; }
+button[hidden], [hidden] { display: none !important; }
+@media (max-width: 760px) { .game-shell { width: min(100% - 1rem, 600px); padding-top: .5rem; } .game-header { align-items: center; } .game-layout { grid-template-columns: 1fr; } .story-panel { min-height: 24rem; } .status-column { grid-template-columns: 1fr; } }

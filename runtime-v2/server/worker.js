@@ -73,7 +73,7 @@ function streamTurn({ store, provider, content, gameId, job, attempt }) {
     start(controller) {
       if (job.running) return;
       job.running = true;
-      void processTurn({ store, provider, content, gameId, attempt, emit: (name, data) => controller.enqueue(encoder.encode(sse(name, data))) })
+      return processTurn({ store, provider, content, gameId, attempt, emit: (name, data) => controller.enqueue(encoder.encode(sse(name, data))) })
         .then(() => controller.close(), (error) => { controller.enqueue(encoder.encode(sse('terminal', { status: 'failed', error_code: error.message }))); controller.close(); });
     }
   });
