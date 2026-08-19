@@ -9,17 +9,19 @@ Reuse this existing `docs/ops/CURRENT_TASK.md` in place on `main`. Do not create
 
 ## 0. Owner review / why this task exists
 
-The fresh Level-7 manual acceptance game was actually played by the owner and is now preserved regression evidence:
+The fresh Level-7 manual acceptance game was actually played by the owner and is preserved regression evidence:
 
 - TEST project: `fmcrspgxstsmxxsmkeee`
 - preserved game: `587de547-8bb7-4a92-a7c2-07f2831e2d38`
 - public URL: `https://gamebuilder-company-v1.zeroslove.workers.dev/?game=587de547-8bb7-4a92-a7c2-07f2831e2d38`
-- observed committed turns: `25`
-- observed save revision: `27`
+- committed turns: `25`
+- save revision observed after play: `27`
 
-The owner reports that general play feel improved, but the 25-turn evidence shows the remaining failures are not isolated content glitches. They are a single structural class: **the Story -> Extract -> reducer -> Commit boundary and the Story contract are still internally inconsistent.**
+The owner reports that general play feel improved but explicitly rejects the remaining stale/missing media, NPC participation, vocal reaction, regulation-loop and meaningless-stat behavior.
 
-Binding architecture remains the latest repository canon, especially:
+This is one deletion-first **Story -> Extract -> reducer -> Commit -> committed readback/presentation sidecar integrity cut**, not a collection of independent symptom patches.
+
+Binding architecture is the latest repository canon, especially:
 
 1. `CURRENT_TRUTH.md`
 2. `AGENTS.md`
@@ -28,276 +30,374 @@ Binding architecture remains the latest repository canon, especially:
 5. `docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md`
 6. `docs/COMPANY_V1_POST_MERGE_GAMEPLAY_SIMPLIFICATION_CANON_2026-08-17.md`
 7. `docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md`
-8. this CURRENT_TASK
+8. this CURRENT_TASK.
 
-Do not treat old completion reports or the raw test count as authority.
+Do not preserve stale behavior merely because an old test or historical donor module expects it.
 
 ## 1. Frozen registration / branch rule
 
-Use the exact `REGISTRATION_MAIN_SHA` and `CURRENT_TASK_BLOB_SHA` from the latest Issue #68 `CURRENT_TASK_READY` comment for this Task ID.
+Use the exact `REGISTRATION_MAIN_SHA` and `CURRENT_TASK_BLOB_SHA` from the **latest** Issue #68 `CURRENT_TASK_READY` comment for this Task ID. An earlier registration comment for the same Task ID is superseded by the latest one.
 
 At execution start:
 
 1. fresh-fetch `origin/main`;
-2. require the exact registered main SHA/blob from Issue #68;
-3. require the registration change from pre-registration main `28fae5c07f4930cab95c44f565ffd298b60ac3ec` is only this existing `docs/ops/CURRENT_TASK.md`;
-4. require the preserved manual game exists read-only and do not mutate it;
-5. if main has unexpected source/config/content/migration drift, STOP `BLOCKED_USER_LIVE_25TURN_DRIFT` rather than guessing.
+2. require exact registered main SHA/blob from the latest Issue #68 trigger;
+3. require the registration delta from previous main is docs-only `docs/ops/CURRENT_TASK.md` reuse;
+4. require preserved manual game exists read-only and never mutate it;
+5. if unexpected source/config/content/migration drift exists, STOP `BLOCKED_USER_LIVE_25TURN_DRIFT`.
 
 Implementation branch:
 
 `company/user-live-25turn-spine-integrity-v1`
 
-A normal implementation branch is authorized. A new ops/task-registration branch is not.
+Create or reuse exactly one Draft PR for this task. Do not merge it. Stop `WAITING_REVIEW`.
 
-Create or reuse exactly one Draft PR for this task. Do not merge it. Stop at `WAITING_REVIEW`.
+## 2. Verified live evidence — regression facts
 
-## 2. Verified 25-turn evidence — treat as regression facts
+### 2.1 Extract whole-object fragility
 
-These facts were independently read from TEST and current main source before task registration.
+Across 25 turns:
 
-### 2.1 Extract is whole-object fragile
+- Extract `outcome=degraded`: 13/25;
+- blank `game_turns.turn_summary`: 13/25;
+- degraded turns: `2,4,6,9,11,12,14,16,17,19,20,21,25`.
 
-Across 25 committed turns:
+Current degraded fallback erases summary, Mind Monitor and otherwise independent narrow observations together. Optional evidence failure must be field-local fail-open after readable JSON exists. A correct Story must still Commit.
 
-- Extract `outcome=degraded`: **13/25**
-- blank `game_turns.turn_summary`: **13/25**
-- degraded turns: `2,4,6,9,11,12,14,16,17,19,20,21,25`
-- warnings include `extract_invalid_json`, `INVALID_EXTRACT_OBSERVATION`, and `SCENE_EVIDENCE_QUOTE_NOT_IN_STORY`.
+`test/extract-observation-contract.test.mjs` currently protects whole-observation rejection for scene exact-quote mismatch. REWRITE that obsolete contract rather than preserving it.
 
-Current `buildDegradedExtractObservation()` drops summary, Mind Monitor, player observation, NPC observations and scene observation together. This violates the current canon: one malformed optional projection must not erase other valid optional outputs from a correct Story.
+### 2.2 Mind Monitor has two conflicting read/write authorities
 
-Current regression tests also incorrectly protect the old behavior: `test/extract-observation-contract.test.mjs` explicitly asserts that scene quote mismatch throws `SCENE_EVIDENCE_QUOTE_NOT_IN_STORY`. That test must be rewritten to the current field-local fail-open contract; do not preserve the obsolete behavior merely to keep it green.
+Five successful Extract turns (`8,13,18,22,23`) had non-empty `extract_delta.mind_monitor` while committed `game_turns.mind_monitor={}`.
 
-### 2.2 Mind Monitor is incorrectly coupled to Story THOUGHT
+Current Commit code performs text-equality ownership adjudication against `parsedStory.player_inner_thought`; this can delete a valid NPC monitor and violates presentation-only/fail-open Mind Monitor canon.
 
-Five successful Extract turns (`8,13,18,22,23`) contained non-empty `extract_delta.mind_monitor` but committed `game_turns.mind_monitor={}`.
+Separately, current frontend `view-model.js` reads `extract_delta.mind_monitor` whenever `extract_delta` exists, bypassing the committed `game_turns.mind_monitor` field. That is also wrong: readback must use committed turn authority, not pre-Commit working observation.
 
-Root cause in current source: `playerOwnedMonitor()` in `src/engine/runtime-core/commit-reducer.js` drops an NPC Mind Monitor when its surface/subconscious text equals `parsedStory.player_inner_thought`.
+Required result:
 
-That textual equality is not a canonical ownership rule. Mind Monitor is presentation-only and must not require exact Story provenance or semantic comparison against player THOUGHT.
+- no textual thought-ownership gate in Commit;
+- committed `game_turns.mind_monitor` is the UI/readback source;
+- structural registered/present NPC filtering only;
+- no retry, no exact quote requirement, no next-Story semantic authority.
 
-### 2.3 Story THOUGHT ownership is visibly wrong
+### 2.3 Story THOUGHT ownership is wrong
 
-The Story system prompt says `[THOUGHT]` is player-only, but the actual 25-turn Story repeatedly placed heroine3/Jena first-person private thoughts into the marker. The parser then stored them as `parsed_blocks.player_inner_thought`, and the frontend displays them as **player inner thought / 플레이어 속마음**.
+Live Story repeatedly put heroine3/Jena first-person thoughts in `[THOUGHT]`. Parser/UI then label them as player inner thought.
 
-This is a visible semantic inversion and also triggers the Mind Monitor false-drop above.
+`[THOUGHT]` remains **player-only**. NPC private thought belongs to the same post-Story Extract call's Mind Monitor. Fix the compact Story protocol; do not add a semantic thought classifier or second LLM.
 
-Do not add a runtime LLM/classifier to decide whose thought prose resembles. The fresh Story contract itself must make NPC private thought unavailable in the Story THOUGHT channel; NPC inner interpretation belongs to the post-Story Mind Monitor sidecar.
+### 2.4 Player sexual numeric UI is now rejected by owner
 
-### 2.4 Player clothing/sexual state is a zombie writer path
+Live durable state at turn 25 still shows:
 
-All 25 Extracts had `player_observation.physical=null` and `player_observation.sexual=null`.
+- `arousal=0`
+- `ejaculation_progress=0`
+- `ejaculation_count=0`
+- `updated_turn=0`
 
-Yet Story explicitly established player undressing, nudity, erection and prolonged sexual activity. Through turn 25 the durable player state still showed:
+while Story clearly contains sustained sexual activity. The frontend therefore displays false/zombie values such as `사정 진행도 · 누적 0회`.
 
-- all four player clothing slots `worn`;
-- arousal `0`;
-- ejaculation progress `0`;
-- ejaculation count `0`;
-- updated turn effectively unchanged.
+**Owner decision for this task:** do not spend complexity resurrecting meaningless numeric sexual progression.
 
-The frontend actively renders player clothing plus arousal/erection/ejaculation values. Therefore the narrow player clothing/sexual mechanic is retained in this cut and must become one coherent fresh writer path. Do **not** reintroduce a sexual-event ledger, relationship effects, generic sexual action taxonomy or permission semantics.
+Deletion-first target:
 
-Any visible sexual-event history/count UI or source residue that has no current fresh writer must be caller-inventoried and deleted rather than resurrecting a ledger.
+- remove active UI/readers for `ejaculation_progress`, `ejaculation_count`, `total_sexual_events`, `last_sexual_event` and equivalent stale sexual-event history/count presentation unless a current concrete consumer proves otherwise;
+- remove fresh writers/tests whose only purpose is those deleted displays;
+- caller-inventory `src/engine/sexual-state/ledger.js`: it is not exported by current engine index and must be deleted if fresh/replay caller count is zero; do not revive it;
+- do not add a sexual ledger/taxonomy/consent matrix;
+- retain concrete current physical facts only when a real product consumer exists, e.g. four-slot clothing and optionally erection/current physical state if one coherent fresh writer can justify it.
 
-### 2.5 NPC `position_label` writer is internally contradictory
+If `arousal` is likewise only a stale zero display and has no independent current mechanic, delete it end-to-end rather than retaining another zombie meter.
 
-Successful Extracts proposed physical position changes, but heroine3 durable `position_label` remained null throughout all 25 turns.
+Historical stored fields may remain readable only where schema/replay compatibility truly requires; they must not force fresh product UI.
 
-Current `physical-state.js` requires the exact evidence quote to contain the character's full canonical name. Live Story naturally uses `제나`, while canonical name is `김제나`, so valid actor-scoped evidence can be rejected even though `character_id=heroine3` already proves identity.
+### 2.5 NPC `position_label` path is internally contradictory
 
-Current posture code says evidence failure should not silently revert a valid proposal, while the upstream physical gate discards it first. That is a contradictory contract.
+Live heroine3 `position_label` remained null through turn 25. Current physical gate additionally requires full canonical name text even after canonical actor ID + exact Story quote already prove identity.
 
-For this cut, retain at most one free natural-language `position_label` because there is a current frontend/next-Story continuity consumer. Remove/ignore closed posture grammar or duplicate physical authority where it is not independently required. Use the same actor-scoped evidence vocabulary as clothing; do not add another position verifier.
+Keep at most one natural-language `position_label` if current UI/next-Story consumer remains real. Remove duplicate full-name/evidence gates and closed posture grammar that have no consumer. One actor-scoped evidence vocabulary only.
 
-### 2.6 Exact CSA clothing mechanic and same-turn Story disagree
+### 2.6 Exact CSA clothing state and same-turn Story disagree
 
-Turn 1 activated the exact `work_nude` clothing mechanic. The committed Story still said heroine3 was in uniform, while the same turn's post-save deterministically set all required clothing slots to `removed`.
+Turn 1 `work_nude` exact clothing mechanic committed removed slots while same-turn Story still described uniform state.
 
-The exact finite CSA mechanical state is allowed to be deterministic. The same Story turn must be given enough exact transition information to narrate a result consistent with the deterministic post-state. Do not introduce a generic enactment planner or infer clothing from rule prose.
+Structured four-slot `clothing_state.required_state` is an allowed exact mechanic. Activation-turn Story must receive enough exact transition state to avoid contradicting deterministic Commit. Do not build a generic enactment engine.
 
-### 2.7 CSA narrative scope is being over-expanded
+### 2.7 CSA scope is repeatedly over-expanded and narratively over-emphasized
 
-The active rule in this game says only:
+Live rule content is exact:
 
 `회사 여성 직원은 상대방이 구체적인 성적 행동을 요구하면 그 행동을 즉시 시작해야 한다.`
 
-The live Story repeatedly generalized this into claims equivalent to broad/indefinite obedience, inability to stop, body ownership, or continued compliance merely because the act started.
+Story repeatedly expands this into indefinite continuation, ownership/general obedience, or repeated `규정이라서 참고 버틴다` framing.
 
-The current canon is exact: an active/applicable rule is in force, but it changes **only what it states**. `즉시 시작` does not mean indefinite continuation, unrelated acts, general obedience, ownership, affection, trust, comfort, arousal, or permission.
+Current `DURABLE_STORY_RULES` reinforces that embarrassment/discomfort cannot make an applicable rule optional, and every active rule is projected in `world_rules` every turn. Combined with heroine3's shy/anxious prompt traits, the provider repeatedly chooses the cheapest conflict: `당황하지만 규정이라 참고 버틴다`.
 
-Fix this in the compact Story premise contract and scenario regressions. No consent matrix, no semantic verifier, no generic CSA DSL.
+Required Story premise:
 
-### 2.8 Canonical scene cast and Story witnesses diverge
+- active rule is background reality, not mandatory dialogue topic every turn;
+- mention/explain the regulation when it is newly changed, directly questioned, or materially needed to understand the current action;
+- otherwise narrate people and consequences naturally without repeating `규정`;
+- rule changes only its exact direct meaning;
+- `즉시 시작` != `계속해야 함` != `끝낼 수 없음` != `몸의 소유` != unrelated obedience/permission;
+- NPC personality is not synonymous with permanently enduring/suppressing reactions;
+- no phrase blacklist or semantic verifier. Fix the compact provider contract and scenario tests.
 
-Canonical scene stayed on `present_npc_ids=["heroine3"]`, but Story mentioned `다른 직원` in **22/25** turns and repeatedly used those untracked people as witnesses/reaction context. One Extract even attributed an `other employees` sentence as heroine3's scene evidence.
+### 2.8 Registered same-location NPCs are disconnected from scene cast
 
-Fresh Story may use environmental ambience, but an unregistered/absent background person must not become a material local actor, witness, responder, privacy constraint or continuity fact when canonical scene does not contain that actor. Keep scene authority structural; do not add fuzzy NPC search or another cast classifier.
+Current content facts:
 
-### 2.9 Deterministic time fact is being mistranslated by Story
+- `heroine1` through `heroine5` all have `default_location_id=brand_strategy_office`;
+- `map.json` describes `brand_strategy_office` as the main office where the five core heroines and brand-strategy staff work;
+- map default NPC includes `general_park_jungwoo` there;
+- live game turn 25 location is `brand_strategy_office`;
+- yet canonical `present_npc_ids` stayed `["heroine3"]` for all 25 turns;
+- Story nevertheless invented unnamed `다른 직원` witnesses/reactions in 22/25 turns.
 
-The game clock was numerically correct (e.g. pre-turn around minute 733 = 12:13, later 13:xx), but Story rendered noon/afternoon as `오전 12시...`, `오전 1시...`.
+Current Opening intentionally picks exactly one primary heroine and at most one supporting heroine. Current scene/navigation logic uses defaults for destination lookup but does not provide a minimal same-location cast bootstrap/continuity path.
 
-Story currently receives raw `minute_of_day`, forcing the model to do clock conversion. Project an exact deterministic display clock (prefer 24-hour `HH:mm` or an equivalently unambiguous formatted value) from the same canonical time authority and tell Story to use it as fact. Do not create a second time authority.
+Required result is **not** a scheduler/simulation engine. Use existing finite content identity only:
 
-### 2.10 Story progression/repetition still loops
+1. inventory the smallest deterministic relationship between `default_location_id`, `map.default_npc_ids`, opening/location transition, and canonical scene presence;
+2. ensure a team office can contain the already-registered people content says belong there, rather than forcing only the focal heroine to exist;
+3. preserve explicit exits/entries/movement as structural facts after bootstrap;
+4. Story may let present coworkers notice/react/speak naturally, but must not invent unnamed material witnesses while registered scene actors are available;
+5. exact navigation to a known NPC must not erase all other legitimate same-location residents merely to focus the target;
+6. do not create fuzzy NPC search, schedules, probabilistic presence simulation, or semantic cast classifier.
 
-The last 10 turns show repeated staging instead of meaningful progression even after direct executable requests. Across the 40 choices from turns 16-25:
+Scenario tests must cover at least `brand_strategy_office` with multiple registered residents and reactions without fabricating replacement NPCs.
 
-- 9 choices contain waiting language;
-- 7 contain start/restart language;
-- 7 contain `계속`;
-- 7 contain `끝까지`.
+### 2.9 Image catalog exists; the presentation writer is broken
 
-Turn 24 explicitly requested an extreme outcome, yet choices returned `시작해볼까`-style staging while the act had already been ongoing for many turns; turn 25 continued the same setup without resolving it.
+TEST DB `public.image_library` is alive and populated. Active rows:
 
-Across all 25 Story turns repeated motifs are also excessive: `규정이니까` 18 occurrences, `버티*` 19, `적갈색 장발` 24, `귀 끝` 15, `아랫입술` 18, `책상 가장자리` 17.
+- heroine1: general 1 / sex 13
+- heroine2: general 1 / sex 21
+- heroine3: general 1 / sex 20
+- heroine4: general 1 / sex 22
+- heroine5: general 1 / sex 21.
 
-Do not add phrase blacklists. Restore the existing Story progression principle in a compact provider contract: when a requested action is executable, advance it to a meaningful same-turn consequence; do not repeatedly restart, wait, re-ask, or restate unchanged appearance/gesture beats just to avoid progression.
+Heroine3 has real situation images for breast/oral/fingering/penetration positions/cumshot/office-desk/climax-style cases. The catalog was **not deleted**.
+
+Actual 25-turn `extract_delta` had `image_selection=null` and `image_character_id=null` on every turn. Fresh Extract tests explicitly retired old `image_selection` authority.
+
+But current frontend `buildCompanyGameViewModel()` then hardcodes:
+
+- `image_pool='general'`
+- `image_tags=[]`
+
+for every committed turn. Therefore current-situation sex images are unreachable through normal play even though the catalog exists.
+
+Additional catalog/runtime mismatches:
+
+- live active DB tags include `cowgirl_climax`, `missionary_climax`, `squirting`, `hypnosis_sex` but current API allowlist omits them;
+- route comments state candidates are pruned to at most 8 by `curation_rank` before selector scoring. For heroine3, lower-rank rows can crowd out `office_desk`/climax/cumshot rows, making exact high-rank assets unreachable even after tags are restored;
+- several catalog `situation` strings contain malformed Korean particles such as `김제나이` / `김제나과`; presentation copy should be cleaned at the canonical catalog source if source ownership is in this repo/migration evidence, but do not mutate TEST DB in this task.
+
+Required media sidecar result:
+
+1. keep image/media strictly presentation-only and fail-open;
+2. do not make image selection a gameplay/Commit authority;
+3. restore one coherent post-Story/current-turn media hint path that can choose `general` vs `sex` and narrow asset tags for the committed visible situation;
+4. no second LLM call. If the existing same Extract call is the smallest place for an optional presentation-only media hint, it must remain optional, non-durable gameplay meaning, and unable to fail Commit; otherwise use a deterministic sidecar from already committed narrow facts;
+5. do not resurrect the old broad semantic Extract schema merely for media;
+6. align the media tag allowlist/families to the actual active catalog or prove why a catalog tag is intentionally unreachable;
+7. do not pre-prune away exact-match assets before tag matching;
+8. a missing image must never block a turn;
+9. add scenario tests proving a general office turn chooses general imagery and representative current sexual situations can reach the matching heroine asset family.
+
+### 2.10 TTS / vocal reaction path has lost old behavior
+
+Current Company TTS:
+
+- voices only parser `DIALOGUE` lines for one chosen present speaker;
+- batches by a limited `toneGroup`;
+- Company API sends `direction` to `TTS_WORKER`.
+
+However the linked `fancy-dust-7f8c` Worker source in `zeroslove-ai/py-all` currently destructures `text, voice_id, key` and sends only `text + reference_id + format` to Fish Audio; `direction` is ignored in that source.
+
+The older CSA-only runtime also had an explicit tested Story vocal-reaction contract:
+
+- ordinary penetration: independent moan/broken-breath/sensory reactions minimum 2;
+- faster/deeper: minimum 3;
+- climax: minimum 4;
+- as intensity rises, less long explanatory dialogue and more breath/vocal/body reaction.
+
+That compact vocal behavior contract is absent from current Company Story rules. Live Company Story therefore falls back to repetitive explanatory dialogue and `참는다/규정` prose.
+
+Do **not** port the old hospital sexual authorization/gate architecture. Only recover the useful presentation principle:
+
+- intense physical scenes should contain natural short vocal/breath/body reactions with variation;
+- avoid long explanatory speeches during high-intensity action;
+- do not force exact numerical counts as a runtime validator; scenario/prompt regression is sufficient;
+- vocal text that should be spoken must exist in a TTS-eligible character dialogue line; narrative/ACTING alone is not voiced;
+- no audio failure may block Story/Commit.
+
+This Company PR may fix Company Story/TTS caller contracts. **Do not modify or deploy `zeroslove-ai/py-all` / `fancy-dust-7f8c` from this task.** Instead document the verified external dependency gap (`direction` ignored by accessible Worker source) in the terminal report for a later separately reviewed TTS Worker task if voice-style support still requires it.
+
+Also audit current cross-turn TTS queue policy: stale older-turn audio must not make current committed dialogue feel chronically behind. Preserve main/current speaker priority and do not let minor/background NPC audio steal playback.
+
+### 2.11 Mind Monitor has no numeric stats by current design
+
+Current fresh save has no NPC affinity/trust/emotion stat map. Current Mind Monitor UI renders only:
+
+- `표면의식`
+- `잠재의식`.
+
+This is consistent with the latest canon: Mind Monitor is qualitative presentation-only, not durable relationship/emotion authority.
+
+Do not silently re-create generic `호감/신뢰/감정/순응` ledgers inside this cut just because an older product once had them. If the owner later explicitly chooses bounded numeric NPC product stats, that requires a separate product-mechanic decision and one canonical writer.
+
+For this task, make the existing qualitative Mind Monitor reliable and committed-authority-correct. Remove empty/stale stat placeholders such as `player.stats={}` / orphan NPC-stat UI if they have no current consumer.
+
+### 2.12 Deterministic time and Story progression
+
+Canonical game time is numerically correct; Story displayed noon/13:xx as `오전 12시`, `오전 1시`. Project one deterministic unambiguous `HH:mm` display clock from canonical `minute_of_day`; no second time authority.
+
+Last 10 turns repeatedly stage/wait/restart instead of advancing. Restore the compact Story principle:
+
+- executable literal action -> meaningful same-turn consequence;
+- no default prepare/wait/restart/ask-again loop;
+- do not repeatedly restate unchanged appearance/signature gestures;
+- preserve exact player actor/target/action/direction.
+
+No phrase blacklist or runtime semantic checker.
 
 ## 3. One coherent implementation cut
 
-This task is intentionally **not** ten hotfixes. Implement one reduced fresh contract with the following boundaries.
-
 ### A. Fresh Extract / evidence reduction
 
-1. Make optional normalization **field-local fail-open**.
-   - malformed root JSON may still produce the bounded degraded fallback;
-   - malformed/unknown optional scene evidence drops only the scene projection and records a warning;
-   - malformed actor evidence drops only that actor/field projection;
-   - retired/unknown semantic vocabulary is ignored/warning-dropped, never normalized into authority, and must not erase summary/Mind Monitor/other valid narrow fields;
-   - a correct Story must still Commit.
-2. Preserve `turn_summary` and `mind_monitor` independently of scene/physical evidence validity whenever their JSON fields are readable.
-3. Collapse current parallel physical/evidence paths into **one actor-scoped evidence vocabulary** directly consumed by retained reducers. Actor ID is explicit; quote is one exact Story substring; changed narrow fields sit next to that evidence. Do not add translation chains or semantic heuristics.
-4. Remove the exact-full-name substring requirement once canonical `actor_id/character_id` and exact Story quote already establish provenance.
-5. Retain compact clothing plus one free `position_label` only; do not expand posture/contact/action enums.
-6. Retain the narrow player sexual meter only: arousal/erection/progress/count as currently justified by active UI. It must update from the same player-scoped fresh evidence path. Do not create sexual event history to support stale UI.
-7. Caller-inventory stale `src/engine/sexual-state/ledger.js` and related presentation readers. Delete only if no current fresh/replay caller exists; if a real historical reader exists, keep it historical/read-only and keep it out of fresh Story/Extract authority.
+1. readable JSON with one malformed optional field => drop only that field/domain, keep valid summary/Mind Monitor/other actor observation;
+2. malformed root JSON may use bounded degraded fallback;
+3. one actor-scoped exact-quote evidence shape for retained clothing/position/current concrete player physical facts;
+4. remove duplicate exact-full-name requirement once actor ID + exact quote prove provenance;
+5. no generic physical/sexual grammar, relation/event/emotion/open-fact ledger;
+6. test old contracts as KEEP / REWRITE / DELETE against current canon.
 
-### B. Mind Monitor / THOUGHT separation
+### B. Committed readback authority
 
-1. Remove `playerOwnedMonitor()`-style textual ownership adjudication from Commit.
-2. Keep only structural scene/registered-ID presentation filtering for Mind Monitor.
-3. Mind Monitor has no exact quote requirement, never changes Commit success, and is never fed back as durable narrative meaning.
-4. Strengthen the fresh Story protocol so `[THOUGHT]` is explicitly the player's private reaction only; NPC private inner monologue must not be emitted in Story THOUGHT and belongs to Extract Mind Monitor.
-5. Do not add a semantic thought classifier or second LLM call.
+1. UI reads committed `game_turns` projections, not pre-Commit `extract_delta`, for Mind Monitor and similar committed presentation fields;
+2. Extract internals remain evidence/debug, not an independent user-facing authority;
+3. summary failure cannot be collateral damage from unrelated scene evidence failure.
 
-### C. Story fact/progression contract cleanup
+### C. Story contract
 
-1. Exact CSA scope:
-   - applicable rule is genuinely in force;
-   - exact content only;
-   - `start` is not `continue forever`;
-   - no unrelated obedience/ownership/consent/comfort/affection/trust/romance/arousal/permission.
-2. Exact finite CSA clothing transition:
-   - project only structured `clothing_state.required_state` mechanics;
-   - same activation turn Story must not end in a clothing fact that contradicts deterministic Commit post-state;
-   - no generic mandatory-enactment planner.
-3. Scene cast:
-   - only canonical scene actors may become material local participants/witnesses/responders;
-   - ambient text must not fabricate continuity-relevant people outside canonical presence.
-4. Time:
-   - derive one unambiguous formatted clock from canonical `minute_of_day` and project it to Story;
-   - remove the need for provider 12-hour conversion guesses.
-5. Progression:
-   - executable explicit action -> meaningful same-turn result/consequence;
-   - no default wait/prepare/restart/ask-again loops;
-   - do not repeatedly restate unchanged character appearance, clothing, or signature gestures merely because they appeared in recent history.
-6. Player agency remains literal. Story may decide response/outcome, but may not add an unrequested player material action or silently substitute actor/target/action.
+1. THOUGHT player-only;
+2. exact CSA direct scope only;
+3. active rule is background premise, not mandatory repetitive dialogue topic;
+4. exact structured clothing transition must not contradict same-turn Story;
+5. present registered coworkers may naturally react/speak; absent/unregistered material witnesses may not be invented;
+6. deterministic clock projection;
+7. meaningful same-turn progression;
+8. recover compact varied vocal/breath reactions without porting old donor authorization machinery.
 
-### D. Memory/readback
+### D. Presentation sidecars
 
-The current older-turn raw Story fallback for blank summary is retained. Do not add a second summarizer or event ledger.
+1. restore situation-aware image selection using existing `image_library` without making media semantic authority;
+2. media hint is optional/fail-open/no second LLM;
+3. align reachable tags/candidate retrieval with actual catalog;
+4. TTS remains one primary current speaker and fail-open;
+5. document external `direction`-ignored Worker seam; no external deploy in this PR.
 
-Because 13/25 summaries were blank, the new Extract contract must make summary independent of unrelated optional evidence failures. A blank summary may still fail-open, but it must not be caused by a bad scene/actor projection.
+### E. Deletion-first UI/state cleanup
 
-## 4. Required test changes
+1. remove owner-rejected ejaculation progress/count/event-history zombie UI and unsupported writers/readers/tests;
+2. remove arousal numeric UI too if caller/mechanic inventory shows it is only stale display;
+3. keep only concrete current physical facts with one writer and real consumer;
+4. delete dead `sexual-state/ledger.js` if caller count is zero;
+5. remove empty pseudo-stat placeholders rather than implying a Mind Monitor stat system exists.
 
-Treat old tests as KEEP / REWRITE / DELETE against the current canon.
+## 4. Required regression tests
 
-At minimum:
+At minimum prove:
 
-1. **REWRITE** the current scene-evidence test that expects `SCENE_EVIDENCE_QUOTE_NOT_IN_STORY` to reject the whole observation. New invariant: bad scene evidence warning-drops scene only while valid summary/Mind Monitor/other actor observation survives.
-2. Add a mixed-validity Extract fixture proving one bad actor/scene field cannot blank another actor, summary, Mind Monitor or the Story turn.
-3. Add a Mind Monitor regression proving a valid NPC Mind Monitor is not deleted because its text resembles/equal Story THOUGHT.
-4. Add a Story prompt/protocol regression that NPC private thought is not an authorized Story THOUGHT channel. Do not implement semantic runtime classification to satisfy this test.
-5. Add player evidence regressions for:
-   - player clothing undress persists;
-   - explicit erection/sexual delta persists through the retained narrow reducer;
-   - actor mismatch still cannot update another actor.
-6. Add natural-name NPC position regression: canonical actor ID + exact quote using a natural short display name must be sufficient; exact full-name substring is not an independent gate.
-7. Add exact CSA activation-turn clothing consistency contract using structured required state.
-8. Add exact CSA scope prompt regression proving `start` does not imply indefinite continuation/general obedience.
-9. Add current-scene cast contract regression preventing material unnamed local witnesses when they are not canonical scene actors.
-10. Add deterministic clock projection regression for noon/13:xx values.
-11. Add progression/prompt regression that the current Story system instructions explicitly prohibit repeated preparation/wait/restart loops for an executable direct request. Do not make phrase-count runtime gates.
-12. Keep literal exact-four choice round-trip and replay/readback tests intact.
+1. bad scene evidence warning-drops scene only while valid summary/Mind Monitor/actor data survives;
+2. one bad actor field cannot erase another actor/domain;
+3. Mind Monitor survives Commit and frontend reads committed monitor, not `extract_delta`;
+4. Story THOUGHT contract is player-only without semantic runtime classifier;
+5. retained concrete player physical/clothing fact can update from one evidence path;
+6. deleted ejaculation/event UI fields are absent from fresh product view if owner-rejected;
+7. canonical actor ID + exact quote does not require full canonical name substring for `position_label`;
+8. exact CSA activation-turn clothing consistency;
+9. exact `start` rule does not imply indefinite continuation/general obedience;
+10. repeated active CSA need not be verbally restated every turn;
+11. `brand_strategy_office` can bootstrap/retain multiple configured registered residents without fuzzy simulation;
+12. exact navigation to one known resident does not erase legitimate same-location cast;
+13. Story cannot use anonymous absent witnesses as material actors when registered cast exists;
+14. deterministic 12:xx / 13:xx clock projection;
+15. progression contract prohibits default wait/prepare/restart loops for executable requests;
+16. image general office scenario reaches general portrait;
+17. representative sex-scene media hint reaches correct heroine sex asset family;
+18. catalog tags currently active in TEST are either reachable or explicitly/documentedly excluded; high-rank exact assets are not pruned before matching;
+19. image failure remains non-blocking;
+20. vocal/prompt scenario favors short vocal/breath/body reaction over repeated explanatory regulation dialogue in intense physical scenes;
+21. TTS remains current primary speaker-only and stale queue behavior is explicitly tested;
+22. literal exact-four choice round-trip/replay remains intact.
 
-Run focused tests for the touched contracts. Run the full suite as a regression signal, but triage failures against current canon; raw N/N is not the acceptance authority.
+Run focused touched tests plus full suite. Full suite is regression signal, not authority for retaining obsolete contracts.
 
-## 5. Explicitly deferred / do not scope-creep
+## 5. Explicitly deferred
 
-The following were observed but are not part of this core cut unless the implementation directly exposes a necessary tiny presentation change:
-
-- all 25 turns had `choice_labels=null`; current UI derives button labels from the first ~5 characters of the literal choice. Record as a separate presentation issue; do not invent a semantic choice router in this cut.
-- CSA app transactions currently consume committed gameplay turns. This run proves that fact but does not by itself prove the lifecycle must be redesigned. Do not redesign app transaction turn accounting here.
-- provider marker slippage such as an escaped `\\[DIALOGUE` that the current parser recovered is not a standalone architecture cut.
-- a player `attempt` becoming a plausible Story success is not automatically a bug; Story remains outcome author where no exact mechanic predetermines the result.
-- TTS/image/media/provider/model changes are out of scope.
+- `choice_labels=null` / five-character button fallback remains a separate presentation issue unless a tiny non-semantic fix naturally falls out; do not add a choice semantic router.
+- CSA app transactions consuming committed turns are observed but not redesigned here.
+- no provider/model switch.
+- external `fancy-dust-7f8c` Worker source/deployment is not modified in this Company PR; report the seam for later review.
+- no new numeric NPC relationship/emotion stat system in this cut.
 
 ## 6. Safety / preservation
 
 Absolute prohibitions:
 
-- do not mutate/reset/reseed/replay-revise preserved game `587de547-8bb7-4a92-a7c2-07f2831e2d38`;
-- do not mutate/reset preserved games `9755b57b-5cbb-44dd-a624-020fe516c16d`, `78fb1d94-266f-455a-bda4-7656cc2370c1`, or dedicated template `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`;
-- no Production / hospital-v2 access;
-- no TEST DB write, reset, migration or DDL;
-- no API/frontend deploy;
-- no merge / Ready transition;
+- do not mutate/reset/reseed/revise preserved game `587de547-8bb7-4a92-a7c2-07f2831e2d38`;
+- do not mutate preserved `9755b57b-5cbb-44dd-a624-020fe516c16d`, `78fb1d94-266f-455a-bda4-7656cc2370c1`, or template `2d00d76e-85b1-4cf0-8dab-a04e8a044b84`;
+- no Production / hospital-v2;
+- no TEST DB write/reset/migration/DDL;
+- no API/frontend/TTS Worker deploy;
+- no merge / Ready-for-review transition;
 - no provider/model switch;
-- no retry/regeneration-until-lucky strategy;
+- no retry-until-lucky strategy;
 - no new parser generation;
 - no semantic router/classifier/verifier;
 - no consent matrix;
-- no relationship/event/emotion/open-fact ledger;
+- no generic relationship/event/emotion/open-fact/sexual ledger;
 - no generic physical/sexual action grammar;
 - no generic CSA execution DSL;
 - no new CURRENT_TASK file;
 - no new ops/task-registration branch.
 
-Read-only TEST evidence inspection is allowed if needed, but the preserved manual game is immutable evidence.
+Read-only TEST/GitHub evidence inspection is allowed. The manual game is immutable evidence.
 
 ## 7. Deliverables / stop boundary
 
 Deliver:
 
-1. exact start SHA and final SHA;
-2. exact changed-file list;
-3. one concise authority map showing what was deleted/retained;
-4. Extract mixed-validity/fail-open proof;
-5. Mind Monitor/THOUGHT separation proof;
-6. player clothing/sexual writer proof;
-7. position evidence proof or explicit deletion proof if a stronger caller inventory contradicts the pre-task consumer finding;
-8. exact CSA scope + activation-turn clothing consistency proof;
-9. scene-cast/time/progression prompt contract proof;
-10. test KEEP/REWRITE/DELETE notes for affected tests;
-11. focused test results, full-suite regression result, syntax checks, `git diff --check`;
-12. one Draft PR, OPEN / DRAFT / UNMERGED;
-13. zero DB/deploy/live-game mutation proof.
+1. exact start/final SHA and changed-file list;
+2. one authority map: retained / deleted / presentation-only;
+3. Extract field-local fail-open proof;
+4. committed Mind Monitor readback + THOUGHT separation proof;
+5. deleted zombie sexual stat/ledger proof and retained concrete-player-state proof;
+6. same-location registered NPC scene-cast proof;
+7. exact CSA scope / non-repetition / same-turn clothing proof;
+8. time + progression proof;
+9. image catalog reachability/media-sidecar proof;
+10. TTS/vocal caller proof plus explicit external Worker `direction` gap report;
+11. KEEP/REWRITE/DELETE test notes;
+12. focused/full tests, syntax, `git diff --check`;
+13. one Draft PR OPEN/DRAFT/UNMERGED;
+14. zero DB/deploy/live-game mutation proof.
 
 On completion:
 
-- update the branch copy of this same `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW` with evidence;
-- post one Issue #68 terminal report:
+- update the branch copy of this same file to `Status: WAITING_REVIEW` with evidence;
+- post one Issue #68 terminal:
   - `EXECUTION: WAITING_REVIEW`
   - `TASK_ID: user-live-25turn-spine-integrity-v1`
   - exact start/final SHA
   - Draft PR number/head
-  - focused/full test results
-  - preserved game untouched proof
+  - focused/full tests
+  - preserved-game untouched proof
   - classification `USER_LIVE_25TURN_SPINE_INTEGRITY_READY`
 - STOP.
 
-Do not merge, deploy, write TEST, run automated gameplay, register another task, or self-approve the product behavior.
+Do not merge, deploy, write TEST, run automated gameplay, register another task, or self-approve product behavior.
