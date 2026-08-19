@@ -392,7 +392,23 @@ Read-only TEST/GitHub evidence inspection is allowed. The manual game is immutab
 - `brand_strategy_office` bootstraps registered residents and exact NPC navigation preserves legitimate same-location cast without fuzzy schedules or anonymous replacement witnesses.
 - Rule text is background/direct-scope only, meaningful executable actions progress in the same turn, and intense physical scenes receive compact varied vocal/breath/body guidance without a numeric runtime validator.
 - Media derives a deterministic committed-turn sidecar, reaches active catalog tags including `cowgirl_climax`, `missionary_climax`, `squirting`, and `hypnosis_sex`, and no exact candidate is removed before selector scoring. The external Worker `direction` seam remains deferred and unmodified.
-- TTS retains the current primary speaker and drops stale older-turn queues; one obsolete cross-turn preservation test remains explicitly skipped while the replacement contract passes.
+- TTS retains the current primary speaker, drops stale older-turn queues, and the replacement active-playback contract passes without an obsolete cross-turn preservation skip.
+
+### 7.1 Correction result — review blockers addressed
+
+- Correction source/test head: `df4afa8` (`fix: address spine integrity review blockers`), pushed to `origin/company/user-live-25turn-spine-integrity-v1`.
+- Korean situation aliases now map committed `삽입`/representative real-Korean penetration wording into the deterministic `penetration` family, with a heroine-family selector regression.
+- Canonical scene default-resident bootstrap is bounded to initial/location-entry/exact target-handoff semantics; an explicit NPC exit survives the next unrelated successful turn, with regression coverage.
+- Story, Opening, and API turn projections now carry deterministic `current_time.clock_24h` (`HH:mm`) derived from canonical `minute_of_day`; noon and 13:07 regressions pass.
+- TTS tracks the active turn and cancels stale prior-turn playback when a newer committed turn arrives while preserving same-turn current-primary playback.
+- The obsolete skipped cross-turn TTS preservation test was deleted; the active queue-pruning and active-playback cancellation contracts pass.
+- Correction focused contracts: `43 PASS / 0 SKIP / 0 FAIL`.
+- Correction full `npm.cmd test`: `370 PASS / 0 SKIP / 0 FAIL`.
+- Correction syntax sweep: `node --check` PASS. `git diff --check`: PASS.
+- Preserved game `587de547-8bb7-4a92-a7c2-07f2831e2d38` remains untouched; no DB write, migration/reset, deploy, live gameplay, provider/model change, or Production operation was performed.
+
+- Media correction now maps representative Korean situations to the intended family; the external Worker `direction` seam remains deferred and unmodified.
+- TTS correction retains the current primary speaker, drops stale older-turn queues, and cancels active older-turn playback when a newer committed turn arrives; no obsolete cross-turn preservation skip remains.
 
 ## 8. Deliverables / stop boundary
 
