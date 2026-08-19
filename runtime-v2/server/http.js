@@ -7,7 +7,11 @@ export function json(data, status = 200) {
 }
 
 export function errorResponse(error) {
-  const normalized = error instanceof V2HttpError ? error : new V2HttpError(422, error?.message ?? 'v2_error', 'Company v2 request failed');
+  const normalized = error instanceof V2HttpError
+    ? error
+    : error?.code === 'configuration_error'
+      ? new V2HttpError(500, error.code, error.message)
+      : new V2HttpError(422, error?.message ?? 'v2_error', 'Company v2 request failed');
   return new Response(JSON.stringify({ ok: false, error: { code: normalized.code, message: normalized.message } }), { status: normalized.status, headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*' } });
 }
 

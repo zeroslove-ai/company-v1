@@ -1,4 +1,4 @@
-const state = { gameId: new URLSearchParams(location.search).get('game_id'), expectedTurn: 1, actionId: null };
+const state = { gameId: new URLSearchParams(location.search).get('game_id'), expectedTurn: 1, actionId: null, retryFailed: false };
 const $ = (id) => document.getElementById(id);
 
 async function api(path, options = {}) {
@@ -15,14 +15,17 @@ async function boot() {
     history.replaceState(null, '', `?game_id=${encodeURIComponent(state.gameId)}`);
     await api('/api/v2/opening', { method: 'POST', body: JSON.stringify({ game_id: state.gameId }) });
   }
-  render(await api(`/api/v2/context?game_id=${encodeURIComponent(state.gameId)}`));
+  const context = await api(`/api/v2/context?game_id=${encodeURIComponent(state.gameId)}`);
+  render(context);
+  if (context.job?.status === 'processing') await reconnect(context.job);
   $('status').textContent = '준비되었습니다.';
 }
 
 function render(context) {
   state.expectedTurn = context.state.committed_turn + 1;
+  state.retryFailed = context.job?.status === 'failed';
   const latest = context.turns.at(-1);
-  $('story').textContent = latest?.story_text ?? '';
+  $('story').textContent = context.job?.status === 'processing' ? (context.job.story_text ?? '') : (latest?.story_text ?? '');
   $('summary').textContent = latest?.turn_summary ?? '';
   $('choices').replaceChildren(...(latest?.choices ?? []).map((choice) => {
     const item = document.createElement('li');
@@ -37,14 +40,33 @@ function render(context) {
   }));
 }
 
+async function reconnect(job) {
+  $('status').textContent = '진행 중인 같은 작업에 다시 연결했습니다.';
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const context = await api(`/api/v2/context?game_id=${encodeURIComponent(state.gameId)}`);
+    if (context.job?.status === 'processing') {
+      $('story').textContent = context.job.story_text ?? '';
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      continue;
+    }
+    render(context);
+    return;
+  }
+  $('status').textContent = '같은 서버 작업의 상태를 계속 확인할 수 없습니다.';
+}
+
 async function submit() {
   const literalAction = $('action').value;
   state.actionId = crypto.randomUUID();
   $('send').disabled = true;
   try {
-    const response = await fetch('/api/v2/turn', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: state.gameId, action_id: state.actionId, expected_turn: state.expectedTurn, literal_action: literalAction }) });
+    const response = await fetch('/api/v2/turn', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game_id: state.gameId, action_id: state.actionId, expected_turn: state.expectedTurn, retry_failed: state.retryFailed, literal_action: literalAction }) });
     if (response.headers.get('content-type')?.includes('text/event-stream')) await readStream(response);
-    else render((await response.json()).data.context);
+    else {
+      const data = (await response.json()).data;
+      render(data.context ?? await api(`/api/v2/context?game_id=${encodeURIComponent(state.gameId)}`));
+      if (data.job?.status === 'processing') await reconnect(data.job);
+    }
   } finally { $('send').disabled = false; }
 }
 

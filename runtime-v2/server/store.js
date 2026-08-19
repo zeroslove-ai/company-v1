@@ -1,16 +1,20 @@
 import { clone, createInitialState, requireLiteralAction } from '../domain/contracts.js';
 
+export function createInMemoryPersistence() {
+  return { games: new Map(), states: new Map(), jobs: new Map(), turns: new Map() };
+}
+
 function id() {
   return globalThis.crypto?.randomUUID?.() ?? `v2-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 export class InMemoryV2Store {
-  constructor({ content } = {}) {
+  constructor({ content, persistence = createInMemoryPersistence() } = {}) {
     this.content = content;
-    this.games = new Map();
-    this.states = new Map();
-    this.jobs = new Map();
-    this.turns = new Map();
+    this.games = persistence.games;
+    this.states = persistence.states;
+    this.jobs = persistence.jobs;
+    this.turns = persistence.turns;
   }
 
   createGame({ playerName = '플레이어' } = {}) {
@@ -38,18 +42,32 @@ export class InMemoryV2Store {
     return { game: clone(this.games.get(gameId)), state: clone(state), turns: clone(turns), job: summarizeJob(job) };
   }
 
-  reserveTurn({ gameId, turnNumber, actionId, literalAction }) {
+  reserveTurn({ gameId, turnNumber, actionId, literalAction, retryFailed = false }) {
     requireLiteralAction(literalAction);
     if (!this.games.has(gameId)) throw new Error('game_not_found');
     const key = `${gameId}:${turnNumber}`;
     const existing = this.jobs.get(key);
-    if (existing) return { job: existing, created: false };
+    if (existing) {
+      if (existing.status === 'failed' && retryFailed) {
+        Object.assign(existing, { action_id: actionId, literal_action: literalAction, status: 'processing', story_text: '', error_code: null, attempt_no: existing.attempt_no + 1, updated_at: new Date().toISOString(), running: false });
+        return { job: existing, created: true, retried: true };
+      }
+      return { job: existing, created: false };
+    }
     const job = { game_id: gameId, turn_number: turnNumber, action_id: actionId, literal_action: literalAction, status: 'processing', story_text: '', error_code: null, attempt_no: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), running: false };
     this.jobs.set(key, job);
     return { job, created: true };
   }
 
   getJob(gameId, turnNumber) { return this.jobs.get(`${gameId}:${turnNumber}`) ?? null; }
+
+  updateProgress({ gameId, turnNumber, storyText }) {
+    const job = this.getJob(gameId, turnNumber);
+    if (!job || job.status !== 'processing') throw new Error('job_not_processing');
+    job.story_text = storyText;
+    job.updated_at = new Date().toISOString();
+    return summarizeJob(job);
+  }
 
   commitTurn({ gameId, turnNumber, expectedRevision, storyText, parsedBlocks, choices, summary, mindMonitor, stateAfter }) {
     const state = this.states.get(gameId);

@@ -4,10 +4,17 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createContentAdapter } from '../runtime-v2/domain/content.js';
-import { createV2Worker } from '../runtime-v2/server/worker.js';
+import { createV2Worker as createWorker, createProductionV2Worker } from '../runtime-v2/server/worker.js';
+import { InMemoryV2Store, createInMemoryPersistence } from '../runtime-v2/server/store.js';
+import { SupabaseV2Store } from '../runtime-v2/server/supabase-store.js';
+import { createV2Provider } from '../runtime-v2/server/provider.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const content = createContentAdapter();
+
+function createV2Worker(options = {}) {
+  return createWorker({ content, store: new InMemoryV2Store({ content }), provider: providerFor(), ...options });
+}
 
 function providerFor({ story, observe, delay = 0 } = {}) {
   return {
@@ -27,7 +34,8 @@ async function game(worker) {
 }
 
 async function turn(worker, gameId, literalAction, providerActionId = crypto.randomUUID()) {
-  return worker.fetch(new Request('https://v2.test/api/v2/turn', { method: 'POST', body: JSON.stringify({ game_id: gameId, action_id: providerActionId, expected_turn: 1, literal_action: literalAction }) }));
+  const options = arguments[4] ?? {};
+  return worker.fetch(new Request('https://v2.test/api/v2/turn', { method: 'POST', body: JSON.stringify({ game_id: gameId, action_id: providerActionId, expected_turn: options.expectedTurn ?? 1, retry_failed: options.retryFailed === true, literal_action: literalAction }) }));
 }
 
 test('v2 trees are physically isolated from old gameplay modules', async () => {
@@ -48,7 +56,57 @@ test('v2 persistence source is additive, isolated, and one-boundary', async () =
 test('frontend-v2 submits only literal input to the single v2 turn endpoint', async () => {
   const frontend = await fs.readFile(path.join(root, 'frontend-v2/app.js'), 'utf8');
   assert.match(frontend, /\/api\/v2\/turn/); assert.doesNotMatch(frontend, /\/api\/(?:story|extract|commit)/);
-  assert.doesNotMatch(frontend, /step\s*[:=]\s*["'](?:story|extract|commit)/i); assert.match(frontend, /literal_action/);
+  assert.doesNotMatch(frontend, /step\s*[:=]\s*["'](?:story|extract|commit)/i); assert.match(frontend, /literal_action/); assert.match(frontend, /retry_failed/);
+});
+
+test('production Worker selects DB store and real provider, with no silent test fallback', () => {
+  const env = { SUPABASE_URL: 'https://db.example', SUPABASE_SERVICE_ROLE_KEY: 'service-key', LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'llm-key', STORY_MODEL: 'configured-model' };
+  const worker = createProductionV2Worker({ env, fetchImpl: async () => { throw new Error('network not expected'); } });
+  assert.equal(worker.store instanceof SupabaseV2Store, true); assert.equal(worker.provider.kind, 'v2-llm-provider');
+  assert.throws(() => createProductionV2Worker({ env: {} }), /SUPABASE_URL/);
+});
+
+test('default Worker fails clearly without production configuration', async () => {
+  const response = await (await import('../runtime-v2/server/worker.js')).default.fetch(new Request('https://v2.test/api/v2/context?game_id=missing'), {});
+  assert.equal(response.status, 500); assert.equal((await response.json()).error.code, 'configuration_error');
+});
+
+test('real provider constructs one literal Story request and one typed observation request', async () => {
+  const requests = [];
+  const fetchImpl = async (_url, options) => {
+    const payload = JSON.parse(options.body); requests.push(payload);
+    if (payload.stream) return new Response('data: {"choices":[{"delta":{"content":"[NARRATIVE]\\nhello\\n\\n[CHOICE]\\none\\n[CHOICE]\\ntwo\\n[CHOICE]\\nthree\\n[CHOICE]\\nfour\\n[/CHOICE]"}}]}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{"elapsed_minutes":3,"scene":{"entered":[],"exited":[]},"turn_summary":"ok","mind_monitor":{}}' } }] }), { headers: { 'content-type': 'application/json' } });
+  };
+  const provider = createV2Provider({ env: { LLM_API_URL: 'https://provider.example', LLM_API_KEY: 'key', STORY_MODEL: 'configured-model' }, fetchImpl, content });
+  const story = []; for await (const chunk of provider.story({ literalAction: 'literal 한국어', context: { state: { state: { time: { day: 1, minute: 540 }, scene: { location_id: 'lobby', present_npc_ids: [] } } }, turns: [] } })) story.push(chunk);
+  await provider.observe({ literalAction: 'literal 한국어', storyText: story.join(''), context: { state: { state: {} } } });
+  assert.equal(requests.length, 2); assert.equal(requests[0].stream, true); assert.match(requests[0].messages[1].content, /literal 한국어/); assert.equal(requests[1].stream, false); assert.match(requests[1].messages[0].content, /typed Company v2 observer/); assert.doesNotMatch(requests[1].messages[0].content, /(?:game_actions|save_path)/);
+});
+
+test('reconstructed Worker/store reads the same durable-test-double progress and job', async () => {
+  let release; let released = false;
+  const provider = { async *story() { yield '[NARRATIVE]\nprogress'; await new Promise((resolve) => { release = () => { released = true; resolve(); }; }); yield '\n\n[DIALOGUE id="heroine1"]\nend\n\n[CHOICE]\n1\n[CHOICE]\n2\n[CHOICE]\n3\n[CHOICE]\n4\n[/CHOICE]'; }, async observe() { return { turn_summary: 'done' }; } };
+  const persistence = createInMemoryPersistence(); const worker1 = createWorker({ content, store: new InMemoryV2Store({ content, persistence }), provider }); const { gameId } = await game(worker1); const first = await turn(worker1, gameId, 'durable progress');
+  for (let i = 0; i < 20 && !release; i++) await new Promise((resolve) => setTimeout(resolve, 2));
+  const worker2 = createWorker({ content, store: new InMemoryV2Store({ content, persistence }), provider }); const context = (await (await worker2.fetch(new Request(`https://v2.test/api/v2/context?game_id=${gameId}`))).json()).data;
+  assert.equal(context.job.status, 'processing'); assert.match(context.job.story_text, /progress/); release(); released = true; await first.text(); assert.equal(worker2.store.context(gameId).state.committed_turn, 1);
+});
+
+test('explicit failed-turn retry reopens one canonical row and increments attempt', async () => {
+  let calls = 0; const provider = { async *story() { calls += 1; if (calls === 1) throw new Error('first_story_failed'); yield '[NARRATIVE]\nretry works\n\n[DIALOGUE id="heroine1"]\nok\n\n[CHOICE]\n1\n[CHOICE]\n2\n[CHOICE]\n3\n[CHOICE]\n4\n[/CHOICE]'; }, async observe() { return { turn_summary: 'retry' }; } };
+  const worker = createV2Worker({ provider }); const { gameId } = await game(worker); await (await turn(worker, gameId, 'first attempt')).text(); assert.equal(worker.store.getJob(gameId, 1).status, 'failed');
+  const retry = await turn(worker, gameId, 'explicit second attempt', crypto.randomUUID(), { retryFailed: true }); const text = await retry.text(); const job = worker.store.getJob(gameId, 1);
+  assert.match(text, /"status":"committed"/); assert.equal(job.attempt_no, 2); assert.equal(job.literal_action, 'explicit second attempt'); assert.equal(worker.store.turns.size, 2);
+});
+
+test('simultaneous explicit retries resolve to one processing attempt and reject replacement after commit', async () => {
+  let calls = 0; const provider = { async *story() { calls += 1; if (calls === 1) throw new Error('fail once'); await new Promise((resolve) => setTimeout(resolve, 15)); yield '[NARRATIVE]\nretry\n\n[DIALOGUE id="heroine1"]\nok\n\n[CHOICE]\n1\n[CHOICE]\n2\n[CHOICE]\n3\n[CHOICE]\n4\n[/CHOICE]'; }, async observe() { return { turn_summary: 'retry' }; } };
+  const worker = createV2Worker({ provider }); const { gameId } = await game(worker); await (await turn(worker, gameId, 'failed')).text();
+  const first = await turn(worker, gameId, 'retry one', crypto.randomUUID(), { retryFailed: true }); const second = await turn(worker, gameId, 'retry two', crypto.randomUUID(), { retryFailed: true });
+  const secondData = await second.json(); assert.equal(secondData.data.reconnect, true); assert.equal(secondData.data.job.status, 'processing'); await first.text();
+  const job = worker.store.getJob(gameId, 1); assert.equal(job.attempt_no, 2); assert.equal(job.literal_action, 'retry one'); assert.equal(calls, 2);
+  const committedReplacement = await turn(worker, gameId, 'cannot replace committed'); assert.equal((await committedReplacement.json()).data.reconnect, true); assert.equal(worker.store.getJob(gameId, 1).literal_action, 'retry one');
 });
 
 test('fixture opening is playable and stores exactly four literal choices', async () => {
