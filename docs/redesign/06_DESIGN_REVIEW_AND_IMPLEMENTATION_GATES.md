@@ -21,7 +21,7 @@ Every OPEN_DECISION is explicitly decided, explicitly deferred with no implement
 
 ## 2. Gate 1 — Architecture selection
 
-Perform a bounded source audit comparing Candidate A/B/C from the architecture framework.
+Perform a bounded source audit comparing Candidate A/B/C.
 
 Required output:
 
@@ -50,7 +50,7 @@ Required:
 Not required yet:
 
 - CSA mutation;
-- clothing mechanics beyond what chosen state skeleton needs;
+- clothing mechanics beyond chosen state skeleton;
 - Image/TTS;
 - feedback revision;
 - player meter;
@@ -82,25 +82,31 @@ Owner performs 10–20 turn play focused on scene/conversation/memory quality.
 
 ## 5. Gate 4 — `상식개변` nine-rule MVP
 
-Only after core Story continuity feels correct, implement the accepted CSA MVP from `07_CSA_MVP_CATALOG.md`.
+Before coding Gate 4, resolve the remaining CSA scope OPEN_DECISION from `07_CSA_MVP_CATALOG.md`:
 
-Hard scope:
+- whether each retained template has a fixed subject group;
+- which request-triggered templates need a counterparty selector;
+- exact allowed counterparty values actually exposed in UI/API.
 
-- exactly 3 weak + 3 medium + 3 strong templates;
+Do not default to the historical every-group × every-group selector matrix.
+
+Then implement exactly the accepted MVP:
+
+- 3 weak + 3 medium + 3 strong templates;
 - app apply/change/remove transaction;
-- rule lifecycle and exact scope;
+- rule lifecycle and exact accepted scope;
 - non-turn application;
-- four-slot clothing support only where retained MVP rules require it;
-- no historical non-MVP rule activation path;
-- no generic DSL built for hypothetical future rules.
+- four-slot clothing support only where retained rules require it;
+- no historical non-MVP activation path;
+- no generic DSL for hypothetical future rules.
 
 Owner tests all nine inside real narrative play, including application/removal and representative scope behavior.
 
-**A tenth rule is forbidden until the nine-rule MVP is accepted.** After acceptance, add future rules one at a time with a new owner decision and acceptance scenario before considering the next rule.
+**A tenth rule is forbidden until the nine-rule MVP is accepted.** Future rules enter one at a time with a new owner decision and acceptance scenario.
 
 ## 6. Gate 5 — Secondary mechanics
 
-Only after core product and the nine-rule CSA MVP are accepted:
+Only after core product and nine-rule CSA MVP are accepted:
 
 - feedback revision;
 - player meter if retained;
@@ -115,14 +121,15 @@ Only after core product and the nine-rule CSA MVP are accepted:
 
 Must assert source-of-truth identity and visible requirements, including:
 
-- exact canonical character IDs/names/counts;
+- canonical character IDs/names/counts;
 - map IDs/count;
-- Setup owner-accepted fields;
+- Setup fields;
 - Opening premise/canon;
 - no demo identities;
 - accepted UI surfaces;
 - removed features absent;
-- active CSA catalog is exactly the accepted nine template IDs.
+- active CSA catalog exactly the accepted nine IDs;
+- no unaccepted scope combinations exposed.
 
 ### Structural tests
 
@@ -132,20 +139,20 @@ Test concurrency, transaction, fencing, memory/readback and reducers. Structural
 
 At least prove:
 
-- literal action appears unchanged;
-- relevant actor canon is present;
-- current location description is present;
-- only relevant active rule premises are present;
+- literal action unchanged;
+- relevant actor canon present;
+- current location description present;
+- only relevant accepted active rule premises present;
 - recent raw continuity + older grounded memory fit budget;
-- forbidden generic success/relationship/consent taxonomies are absent.
+- forbidden generic success/relationship/consent taxonomies absent.
 
 ### Visual review
 
-Major UI changes require screenshots/mobile captures and the Golden surface checklist. DOM existence alone is insufficient.
+Major UI changes require screenshots/mobile captures and Golden surface checklist. DOM existence alone is insufficient.
 
 ### Manual acceptance
 
-Owner acceptance is a release gate. A failed owner scenario produces PRODUCT_REJECTED/CHANGES_REQUIRED regardless of CI.
+Owner acceptance is a release gate. Failed owner scenario produces PRODUCT_REJECTED/CHANGES_REQUIRED regardless of CI.
 
 ## 8. Merge rules
 
@@ -188,9 +195,9 @@ Future loop requires:
 
 Progress milestones are:
 
-1. owner recognizes the correct product at Opening;
-2. 5 turns feel like the correct Company game;
+1. owner recognizes correct product at Opening;
+2. 5 turns feel like correct Company game;
 3. 20 turns preserve continuity;
-4. the exact 9-rule `상식개변` MVP works without distorting narrative agency;
+4. exact nine-rule `상식개변` MVP works without distorting narrative agency;
 5. secondary systems attach without destabilizing Story;
-6. only then, rules may expand one by one.
+6. only then rules expand one by one.
