@@ -18,6 +18,8 @@ Read in order:
 
 `07_CSA_MVP_CATALOG.md` specializes the Product Constitution for `상식개변`: the initial active catalog is exactly 9 templates (weak 3 / medium 3 / strong 3), selected from measurable historical TEST play exposure. Historical non-MVP templates are not forward product authority and return only one at a time after explicit owner approval.
 
+The old generic CSA subject/counterparty selector breadth is **not** automatically retained. Historical use is much narrower, so final scope UI/semantics remain an explicit OPEN_DECISION before CSA implementation.
+
 ## Current status
 
 These documents are drafts for owner review. They do not authorize implementation, deployment, DB mutation, or gameplay.
@@ -36,7 +38,7 @@ After owner review:
 
 The product-first hierarchy is retained.
 
-The redesign deliberately rejects both extremes:
+The redesign rejects both extremes:
 
 - do not continue the existing v2 product layer merely because it exists;
 - do not throw away independently useful streaming/concurrency/persistence work merely to claim a clean slate.
