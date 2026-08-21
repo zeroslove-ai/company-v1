@@ -125,6 +125,17 @@ begin
 end;
 $$;
 
+create or replace function public.company_r3_mark_story_complete(p_game_id uuid, p_turn_number integer, p_action_id uuid, p_attempt_no integer, p_story_text text)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare v_job public.company_r3_turn_jobs%rowtype;
+begin
+  update public.company_r3_turn_jobs set story_text = p_story_text, stage = 'story_complete', updated_at = now()
+    where game_id = p_game_id and turn_number = p_turn_number and status = 'processing' and action_id = p_action_id and attempt_no = p_attempt_no returning * into v_job;
+  if not found then raise exception 'company_r3_attempt_fence_conflict'; end if;
+  return to_jsonb(v_job);
+end;
+$$;
+
 create or replace function public.company_r3_fail_turn(p_game_id uuid, p_turn_number integer, p_action_id uuid, p_attempt_no integer, p_error_code text)
 returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
 declare v_job public.company_r3_turn_jobs%rowtype;
@@ -157,8 +168,8 @@ end;
 $$;
 
 revoke all on public.company_r3_games, public.company_r3_state, public.company_r3_turn_jobs, public.company_r3_turns, public.company_r3_system_events from public, anon, authenticated;
-revoke all on function public.company_r3_create_game(text, jsonb, jsonb), public.company_r3_create_opening(uuid, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb), public.company_r3_expire_stale_turn(uuid, integer), public.company_r3_reserve_turn(uuid, integer, uuid, text, boolean), public.company_r3_update_turn_progress(uuid, integer, uuid, integer, text), public.company_r3_fail_turn(uuid, integer, uuid, integer, text), public.company_r3_commit_turn(uuid, integer, uuid, integer, integer, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb) from public, anon, authenticated;
+revoke all on function public.company_r3_create_game(text, jsonb, jsonb), public.company_r3_create_opening(uuid, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb), public.company_r3_expire_stale_turn(uuid, integer), public.company_r3_reserve_turn(uuid, integer, uuid, text, boolean), public.company_r3_update_turn_progress(uuid, integer, uuid, integer, text), public.company_r3_mark_story_complete(uuid, integer, uuid, integer, text), public.company_r3_fail_turn(uuid, integer, uuid, integer, text), public.company_r3_commit_turn(uuid, integer, uuid, integer, integer, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb) from public, anon, authenticated;
 grant select on public.company_r3_games, public.company_r3_state, public.company_r3_turn_jobs, public.company_r3_turns, public.company_r3_system_events to service_role;
-grant execute on function public.company_r3_create_game(text, jsonb, jsonb), public.company_r3_create_opening(uuid, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb), public.company_r3_expire_stale_turn(uuid, integer), public.company_r3_reserve_turn(uuid, integer, uuid, text, boolean), public.company_r3_update_turn_progress(uuid, integer, uuid, integer, text), public.company_r3_fail_turn(uuid, integer, uuid, integer, text), public.company_r3_commit_turn(uuid, integer, uuid, integer, integer, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb) to service_role;
+grant execute on function public.company_r3_create_game(text, jsonb, jsonb), public.company_r3_create_opening(uuid, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb), public.company_r3_expire_stale_turn(uuid, integer), public.company_r3_reserve_turn(uuid, integer, uuid, text, boolean), public.company_r3_update_turn_progress(uuid, integer, uuid, integer, text), public.company_r3_mark_story_complete(uuid, integer, uuid, integer, text), public.company_r3_fail_turn(uuid, integer, uuid, integer, text), public.company_r3_commit_turn(uuid, integer, uuid, integer, integer, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb) to service_role;
 
 commit;

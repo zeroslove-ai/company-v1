@@ -11,11 +11,11 @@ export function assertExpectedTurn(expectedTurn, committedTurn) {
   if (!Number.isInteger(expectedTurn) || expectedTurn !== committedTurn + 1) throw new Error('r3_turn_conflict');
 }
 
-export function createInitialState(profile, locationId) {
+export function createInitialState(profile, locationId, presentActorIds = []) {
   return {
     profile: clone(profile),
     time: { day: 1, minute: 540 },
-    scene: { location_id: locationId ?? null, present_actor_ids: [], scene_note: '' },
+    scene: { location_id: locationId ?? null, present_actor_ids: [...new Set(presentActorIds)], scene_note: '' },
     active_rules: [],
     clothing: {}
   };
