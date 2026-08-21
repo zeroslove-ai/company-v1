@@ -16,7 +16,7 @@ Read in order:
 7. [`07_CSA_MVP_CATALOG.md`](07_CSA_MVP_CATALOG.md)
 8. [`06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`](06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md)
 
-`07_CSA_MVP_CATALOG.md` specializes the Product Constitution for `상식개변`: the initial active catalog is exactly 9 templates (weak 3 / medium 3 / strong 3), selected from measurable historical TEST play exposure. Historical non-MVP templates are `UNSELECTED_CANDIDATE`, not forward/deferred requirements, and may return only one at a time after explicit owner approval.
+`07_CSA_MVP_CATALOG.md` specializes the Product Constitution for `상식개변`: initial active catalog is exactly 9 templates (weak 3 / medium 3 / strong 3), selected from measurable historical TEST play exposure. Historical non-MVP templates are `UNSELECTED_CANDIDATE`, not forward/deferred requirements, and may return only one at a time after explicit owner approval.
 
 The old generic CSA subject/counterparty selector breadth is **not** automatically retained. Historical use is narrower, so final scope UI/semantics remain an explicit OPEN_DECISION before CSA implementation.
 
@@ -29,10 +29,10 @@ These documents are drafts for owner review. They do not authorize implementatio
 After owner review:
 
 1. resolve remaining OPEN_DECISION items;
-2. explicitly accept product/scenario/golden/state authority and the nine-rule CSA MVP;
+2. explicitly accept product/scenario/golden/state authority and nine-rule CSA MVP;
 3. perform a bounded architecture-candidate audit;
-4. create the target Gap Matrix;
-5. only then register the first narrow implementation task.
+4. create target Gap Matrix;
+5. only then register first narrow implementation task.
 
 ## Current design review verdict
 
@@ -40,22 +40,20 @@ The product-first hierarchy is retained.
 
 The redesign rejects both extremes:
 
-- do not continue the existing v2 product layer merely because it exists;
+- do not continue existing v2 product layer merely because it exists;
 - do not discard independently useful streaming/concurrency/persistence work merely to claim a clean slate.
 
-Leading technical candidate: **kernel salvage only**. Audit product-neutral v2 transport/concurrency/persistence pieces, then rewrite Company product/domain/UI around accepted canon. Hospital remains donor/reference. A completely new kernel remains allowed if the bounded audit shows v2 cannot be hidden behind a small, understandable interface.
+Leading technical candidate: **kernel salvage only**. Audit product-neutral v2 transport/concurrency/persistence pieces, then rewrite Company product/domain/UI around accepted canon. Hospital remains donor/reference. A completely new kernel remains allowed if v2 cannot be hidden behind a small, understandable interface.
 
-Story contract should prefer natural player-visible narrative + a small post-Story observer instead of requiring the Story model to be both novelist and fragile semantic-protocol compiler.
+Story contract should prefer natural player-visible narrative + one small post-Story observer instead of requiring Story model to be both novelist and fragile semantic-protocol compiler.
 
 ## Remaining owner decisions before architecture lock
 
-The major unresolved product questions are now deliberately small:
-
 1. choice suggestions: none vs optional four;
-2. generic physical continuity representation: bounded scene snapshot vs minimal extra structure;
+2. physical continuity: bounded scene snapshot alone vs minimal extra structure;
 3. player sexual meter: retain or remove from core;
-4. exact per-template CSA subject/counterparty scope controls for the nine-rule MVP.
+4. exact per-template CSA subject/counterparty scope controls for nine-rule MVP.
 
-None of these may be silently decided by implementation.
+None may be silently decided by implementation.
 
 The technical recommendation remains non-binding until owner architecture review.
