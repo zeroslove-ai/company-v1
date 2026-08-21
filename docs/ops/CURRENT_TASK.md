@@ -6,6 +6,8 @@ Mode: SOURCE/TEST CORRECTION — R3 SUPABASE NATIVE FETCH BINDING ONLY
 Updated: 2026-08-21
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
+Watcher re-kick: 2026-08-21 19:08 KST. The prior READY registration at `f49f2ac623a08895a5e1b8b2d1ca75004df07df5` produced no execution lease, no expected source branch, and no `EXECUTION: STARTED` signal after more than 30 minutes. This is the same Task ID and same scope; do not register a new task. Execute this reused CURRENT_TASK exactly once and stop at the declared source-review boundary.
+
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
 ## 0. Why this task exists
