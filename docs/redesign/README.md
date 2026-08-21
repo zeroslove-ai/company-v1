@@ -1,9 +1,9 @@
 # Company Full Redesign — Canon Index
 
-Status: OWNER-REVIEW DRAFT / PRODUCT DECISIONS LOCKED  
+Status: OWNER-REVIEW DRAFT / PRODUCT LOCKED / ENGINE AUDITED  
 Date: 2026-08-21
 
-This directory is the proposed replacement authority for the failed v1/v2 design chain. It is intentionally product-first.
+This directory is the proposed replacement authority for the failed v1/v2 design chain. It is intentionally product-first and live-play-first.
 
 Read in order:
 
@@ -15,78 +15,93 @@ Read in order:
 6. [`05_ARCHITECTURE_DECISION_FRAMEWORK.md`](05_ARCHITECTURE_DECISION_FRAMEWORK.md)
 7. [`07_CSA_MVP_CATALOG.md`](07_CSA_MVP_CATALOG.md)
 8. [`08_COMPANY_V1_SALVAGE_MATRIX.md`](08_COMPANY_V1_SALVAGE_MATRIX.md)
-9. [`06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`](06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md)
+9. [`09_ENGINE_ARCHITECTURE_DECISION_A_PRIME.md`](09_ENGINE_ARCHITECTURE_DECISION_A_PRIME.md)
+10. [`10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md`](10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md)
+11. [`11_TARGET_GAP_MATRIX_A_PRIME.md`](11_TARGET_GAP_MATRIX_A_PRIME.md)
+12. [`06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`](06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md)
 
 ## Locked product decisions
 
-The four previously open questions are resolved by owner decision on 2026-08-21:
+Owner decisions on 2026-08-21:
 
-1. **Choices** — keep free-form input and exactly four Story-authored natural choices each ordinary turn. The same post-Story Extract/observer structures the four literal choices for UI; no separate choice LLM.
-2. **Physical continuity** — start with one bounded replaceable `scene_note` plus structured location/present actors. No parallel generic physical ontology.
-3. **Player sexual gauge** — remove dynamic arousal/erection/ejaculation gameplay state and its supporting event ledger. Static adult profile/setup facts remain separate.
-4. **CSA scope** — keep the 9-rule MVP but allow flexible supported subject/counterparty scope through one shared finite vocabulary rather than hard-fixing each rule to one historical pairing. Scope flexibility is not a generic execution DSL; if this proves materially too complex, return evidence to owner before narrowing.
+1. ordinary turns keep free-form input plus exactly four natural Story-authored choices; the one post-Story observer projects them for UI;
+2. immediate physical continuity starts with one bounded replaceable `scene_note` plus structured location/present actors;
+3. dynamic player sexual/arousal/erection/ejaculation gauge and supporting ledger are removed;
+4. first `상식개변` product exposes exactly 9 rules with flexible finite subject/counterparty scope;
+5. Company v1 complete presentation is the primary UI donor rather than the reduced `frontend-v2` shell.
 
-## `상식개변` MVP
+## Engine audit result
 
-`07_CSA_MVP_CATALOG.md` specializes the Product Constitution for `상식개변`:
+The bounded source audit selects **A′** as the forward engine recommendation:
 
-- weak: 3
-- medium: 3
-- strong: 3
-- total active templates: exactly 9
+```text
+Company v1 high-parity UI/content salvage
++ new thin frontend controller
++ new minimal Company view model/domain
++ trimmed v2 server-owned turn kernel
++ Story LLM + one small post-Story observer
++ isolated new persistence namespace
+```
 
-The nine were selected from measurable historical TEST play exposure. Historical non-MVP templates are `UNSELECTED_CANDIDATE`, not forward/deferred requirements, and may return only one at a time after explicit owner approval and real-play validation.
+A′ is not “continue v2”. It keeps only the expensive product-neutral infrastructure ideas proven in v2:
 
-## Company v1 salvage is a separate architecture axis
+- one server-owned turn lifecycle;
+- one `(game, turn)` job;
+- attempt fencing;
+- bounded Story progress/reconnect;
+- atomic Commit;
+- explicit retry.
 
-Candidate A/B/C describe **runtime kernel choices only**. They do not mean the Company v1 product/UI is rebuilt from scratch.
+The v2 demo product/domain/frontend are rejected.
 
-`08_COMPANY_V1_SALVAGE_MATRIX.md` records the source audit of the complete Company v1 snapshot `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`.
+Hospital remains a play-feel/prompt reference, especially for natural Story + four Story-authored choices, not the runtime base.
 
-Current leading product composition is:
+## Company v1 salvage
+
+`08_COMPANY_V1_SALVAGE_MATRIX.md` records the source audit of `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`.
+
+Core direction:
 
 ```text
 Company v1 complete presentation shell ----- high-parity transplant
 Company v1 canonical content --------------- keep
-Company v1 render/map/setup components ----- keep / light rewire
-Company v1 CSA modal presentation ---------- transplant, semantics rebuild
-Company v1 TTS/history/media UI ------------ defer-keep
-new thin frontend controller --------------- rebuild
-new minimal view-model/state/domain -------- rebuild
-selected runtime kernel -------------------- choose A / B / C separately
+render/map/setup ---------------------------- keep / light rewire
+CSA modal presentation --------------------- transplant, semantics rebuild
+TTS/history/media UI ----------------------- defer-keep
+old browser turn coordinator --------------- delete
+old large semantic runtime ----------------- delete
 ```
 
-The reduced `frontend-v2/` shell is not the forward UI target.
+## Testing direction
 
-Most of the visible Company v1 UI should remain recognizably the same. Runtime replacement should primarily change **wiring and authority**, not throw away completed presentation work.
+`10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md` explicitly rejects test-count-driven development.
+
+Forward CI protects only catastrophic invariants:
+
+- canonical content/Setup;
+- literal action + fencing + atomic Commit;
+- stream/reconnect;
+- fail-open observer/minimal reducer;
+- 9-rule non-turn CSA transaction;
+- optionally one tiny frontend submission contract.
+
+Old v1/v2 tests are deletion candidates by default when they protect obsolete orchestration, compatibility, removed mechanics, old Story wire, old 44-rule semantics, source-regex assertions or demo behavior.
+
+The primary product gate is real TEST play:
+
+1. Opening immediately;
+2. 3–5 free live turns;
+3. 10–20 turn continuity play;
+4. a few failure/reconnect checks;
+5. all 9 CSA rules in real play;
+6. 20–30+ turn long-play memory check.
+
+If CI is green but live play is bad, the build is bad.
 
 ## Current status
 
-These documents remain drafts for owner review. They do not authorize implementation, deployment, DB mutation, or gameplay.
+These documents are still design/review authority only. They do not authorize runtime/frontend/SQL/DB/deploy/gameplay mutation yet.
 
 `docs/ops/CURRENT_TASK.md` on main remains `WAITING_OWNER_DECISION`.
 
-The product decisions are sufficiently closed to move next to a **bounded architecture + salvage audit**, not source implementation.
-
-Next sequence:
-
-1. owner reviews/accepts this product-first authority set;
-2. audit Candidate A/B/C as kernel alternatives;
-3. finalize the Company v1 file/module salvage matrix;
-4. select the exact composed architecture and write the target Gap Matrix;
-5. only then register the first narrow implementation task.
-
-## Current technical recommendation
-
-The redesign rejects both extremes:
-
-- do not continue the existing v2 product layer merely because it exists;
-- do not discard independently useful streaming/concurrency/persistence work merely to claim a clean slate.
-
-The leading composition is **Company v1 high-parity UI/content salvage + new minimal Company domain + a separately selected runtime kernel**. Candidate A remains a strong kernel possibility because it may preserve hard-earned server-owned streaming/concurrency work, but A is not the product/UI plan.
-
-Hospital remains a donor/reference, especially for natural Story + four-choice play feel. A completely new kernel remains allowed if v2 cannot be hidden behind a small understandable interface.
-
-Story should use natural player-visible narrative + four natural Story choices + one small post-Story observer rather than forcing the Story model to be both novelist and fragile semantic-protocol compiler.
-
-The remaining major unresolved decision is the **kernel architecture selection and exact salvage boundary**, not product behavior.
+The next legitimate step after owner acceptance is the first narrow A′ implementation cut from `11_TARGET_GAP_MATRIX_A_PRIME.md`, followed by TEST deployment and live owner play immediately rather than another long test-only phase.
