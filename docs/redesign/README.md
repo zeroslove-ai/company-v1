@@ -16,9 +16,9 @@ Read in order:
 7. [`07_CSA_MVP_CATALOG.md`](07_CSA_MVP_CATALOG.md)
 8. [`06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`](06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md)
 
-`07_CSA_MVP_CATALOG.md` specializes the Product Constitution for `상식개변`: the initial active catalog is exactly 9 templates (weak 3 / medium 3 / strong 3), selected from measurable historical TEST play exposure. Historical non-MVP templates are not forward product authority and return only one at a time after explicit owner approval.
+`07_CSA_MVP_CATALOG.md` specializes the Product Constitution for `상식개변`: the initial active catalog is exactly 9 templates (weak 3 / medium 3 / strong 3), selected from measurable historical TEST play exposure. Historical non-MVP templates are `UNSELECTED_CANDIDATE`, not forward/deferred requirements, and may return only one at a time after explicit owner approval.
 
-The old generic CSA subject/counterparty selector breadth is **not** automatically retained. Historical use is much narrower, so final scope UI/semantics remain an explicit OPEN_DECISION before CSA implementation.
+The old generic CSA subject/counterparty selector breadth is **not** automatically retained. Historical use is narrower, so final scope UI/semantics remain an explicit OPEN_DECISION before CSA implementation.
 
 ## Current status
 
@@ -41,10 +41,21 @@ The product-first hierarchy is retained.
 The redesign rejects both extremes:
 
 - do not continue the existing v2 product layer merely because it exists;
-- do not throw away independently useful streaming/concurrency/persistence work merely to claim a clean slate.
+- do not discard independently useful streaming/concurrency/persistence work merely to claim a clean slate.
 
-The leading technical candidate remains **kernel salvage only**: audit product-neutral v2 transport/concurrency/persistence pieces, then rewrite Company product/domain/UI around the accepted canon. Hospital remains donor/reference. A completely new kernel remains allowed if the bounded audit shows the v2 kernel cannot be explained behind a small interface.
+Leading technical candidate: **kernel salvage only**. Audit product-neutral v2 transport/concurrency/persistence pieces, then rewrite Company product/domain/UI around accepted canon. Hospital remains donor/reference. A completely new kernel remains allowed if the bounded audit shows v2 cannot be hidden behind a small, understandable interface.
 
-Story contract should prefer natural player-visible narrative + a small post-Story observer instead of requiring the Story model to serve simultaneously as novelist and fragile semantic-protocol compiler.
+Story contract should prefer natural player-visible narrative + a small post-Story observer instead of requiring the Story model to be both novelist and fragile semantic-protocol compiler.
 
-This technical recommendation is not binding until owner architecture review.
+## Remaining owner decisions before architecture lock
+
+The major unresolved product questions are now deliberately small:
+
+1. choice suggestions: none vs optional four;
+2. generic physical continuity representation: bounded scene snapshot vs minimal extra structure;
+3. player sexual meter: retain or remove from core;
+4. exact per-template CSA subject/counterparty scope controls for the nine-rule MVP.
+
+None of these may be silently decided by implementation.
+
+The technical recommendation remains non-binding until owner architecture review.
