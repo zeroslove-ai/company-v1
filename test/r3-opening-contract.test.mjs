@@ -127,6 +127,10 @@ test('R3 Opening context and provider prompts require private premise discovery 
     warnings: []
   });
   const observerSystem = payloads[1].messages[0].content;
+  assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, mind_monitor, choices, and warnings/i);
+  assert.match(observerSystem, /If the current Story explicitly says.*enters, arrives at, moves to, or is now in/i);
+  assert.match(observerSystem, /do not copy the previous location and do not return location_evidence/i);
+  assert.match(observerSystem, /exact Story quote/i);
   assert.match(observerSystem, /exact four final numbered Story action strings/i);
   assert.match(observerSystem, /never invent, mutate, pad, truncate, deduplicate, or use prior-turn choices/i);
 
