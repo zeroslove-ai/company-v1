@@ -1,126 +1,68 @@
 # Company Current Truth
 
-**Current owner architecture decision: rebuild the gameplay runtime as Company v2 clean-room runtime.**
+**Current owner decision: full product-and-runtime redesign is in progress. No Company v1/v2/Hospital gameplay architecture is currently binding as the forward implementation target.**
 
-Before any Company gameplay-runtime implementation/review/deploy decision, read in this order:
+Updated: 2026-08-21
 
-1. [Development Rules](AGENTS.md)
-2. [Company v2 Clean Runtime Canon — 2026-08-19](docs/COMPANY_V2_CLEAN_RUNTIME_CANON_2026-08-19.md)
-3. [Current Task](docs/ops/CURRENT_TASK.md)
-4. Historical architecture/evidence only as needed:
-   - `docs/audit/company-v1-current-truth-2026-08-13/09_CURRENT_TRUTH.md`
-   - `docs/audit/company-v1-current-truth-2026-08-13/10_SOLE_WRITER_DECISION.md`
-   - `docs/COMPANY_V1_MINIMAL_STORY_RUNTIME_RESET_CANON_2026-08-16.md`
-   - `docs/COMPANY_V1_POST_MERGE_GAMEPLAY_SIMPLIFICATION_CANON_2026-08-17.md`
-   - `docs/COMPANY_V1_HOSPITAL_REFERENCE_SPINE_ALIGNMENT_CANON_2026-08-18.md`
+## Read order
 
-The 2026-08-19 Clean Runtime Canon supersedes older fresh gameplay-runtime implementation assumptions wherever they conflict. Older documents remain useful evidence for product requirements and failure history, not implementation authority for Company v2.
+Before any Company implementation/review/deploy decision, read:
 
-## Owner decision — 2026-08-19
+1. `AGENTS.md`
+2. this `CURRENT_TRUTH.md`
+3. `docs/ops/CURRENT_TASK.md`
+4. after owner acceptance, the redesign authority under `docs/redesign/` in its declared hierarchy
+5. prior v1/v2/Hospital documents only as historical product/design/failure evidence
 
-The preserved manual acceptance game `df3045fd-c359-4cdc-8783-357ddfebe398` failed after 7 committed turns with simultaneous defects in turn concurrency/client stage ownership, CSA synthetic-turn semantics, player-vs-NPC identity, summary/Mind Monitor reliability, physical observation, and committed protocol hygiene.
+## Current stop state
 
-The owner therefore ended the existing runtime repair loop.
+The prior Company v1 repair line and Company v2 clean-runtime/product-canon line are both superseded as forward authority.
 
-### Frozen old runtime
+The current task is `company-full-redesign-reset-v1` with `Status: WAITING_OWNER_DECISION`.
 
-The current Company v1 gameplay runtime is historical/reference code during v2 work.
+No runtime/frontend/SQL/DB/deploy/gameplay implementation is authorized until the new redesign canon is owner-accepted.
 
-Do not:
+Draft PR #94 and previous v2 product-canon candidates are historical evidence only and must not be merged/reopened as forward authority.
 
-- continue symptom repair on the old fresh runtime;
-- merge old PR #82 or equivalent old-runtime repair PRs;
-- use old runtime-core/Extract/client pending-stage code as the implementation base;
-- preserve old tests/compatibility merely to make v2 resemble v1;
-- migrate old saves/games into v2 during initial development.
+All preserved manual/QA/evidence games remain read-only.
 
-All preserved manual/QA/evidence games are read-only.
+## Why the authority was reset
 
-### What remains product canon
+The 2026-08-19 clean-runtime rebuild solved or addressed several structural transport/concurrency issues, but it also demonstrated a product-authority failure: runtime/UI work progressed before the actual Company product identity, canonical content, setup, UI surfaces, and owner-visible acceptance scenarios were made hard gates.
 
-Keep the Company product:
+The deployed/implemented v2 line could pass large structural test suites while still presenting a generic office-assistant/demo product instead of `상식개변: 회사편`.
 
-- company setting, departments, roles and character personalities;
-- registered character and location identities;
-- player literal action/choice fidelity;
-- CSA rule/preset product definitions;
-- streaming narrative UX;
-- relevant Mind Monitor presentation;
-- later image/TTS sidecars;
-- player freedom and natural Story-first play.
+Therefore neither current code nor current tests define the product.
 
-These product requirements do not require the old runtime implementation.
+## New authority order
 
-## Company v2 canonical spine
+The redesign is rebuilt in this order:
 
-```text
-literal player action
-→ one server-owned turn request
-→ Story LLM streams narrative
-→ one small typed post-Story observation
-→ small deterministic reducer
-→ one atomic v2 durable commit
-→ next turn/readback
-```
+1. Product Constitution — what game this is.
+2. Executable Acceptance Scenarios — what the player must actually experience.
+3. Golden UI / Content Master — canonical content and deliberate product surfaces.
+4. Gameplay / State / Memory Model — what becomes durable truth.
+5. Architecture Decision Record — choose implementation only after 1–4.
+6. Gap Matrix — compare chosen target to current assets.
+7. CURRENT_TASK — execute a narrow accepted slice only.
 
-The browser never owns Story→Extract→Commit stage progression or automatic LLM retries.
+`CURRENT_TASK.md` is execution authority only. It may not supersede or reinterpret accepted higher-level product/design authority.
 
-The new runtime uses physically separate v2 code and new mutable v2 persistence. Existing static content/catalogs and narrowly proven infrastructure utilities may be reused through explicit clean interfaces. `runtime-v2` must not import old gameplay-engine modules.
+## Existing assets during redesign
 
-## Initial persistence authority
+Treat all existing implementation as candidates, not authority:
 
-V2 durable truth is isolated from old mutable runtime tables:
+- Company v1 runtime: historical/reference only;
+- current Company v2 transport/concurrency/persistence kernel: possible KEEP candidate, not presumed;
+- current v2 product layer/frontend: implementation evidence, not target product definition;
+- Hospital runtime: donor/reference only;
+- `content/*.json`: authoritative established semantic content facts unless owner explicitly redesigns that content;
+- completed prior Company UI: product-surface/golden evidence, not automatically frozen pixel layout.
 
-- `company_v2_games`
-- `company_v2_state`
-- `company_v2_turn_jobs`
-- `company_v2_turns`
+The redesign may KEEP, REWIRE, REBUILD, DELETE, or DEFER any technical asset after owner review.
 
-Exact table names may change once during Phase 1 review, but the isolation rule is binding. V2 gameplay must not be forced through old `game_actions/game_save/game_turns` compatibility contracts.
+## Loop / mutation rule
 
-## Phase order
+The automation loop is intentionally stopped.
 
-### Phase 1
-
-Build only a 5-turn playable vertical slice:
-
-- v2 game fixture/opening;
-- server-owned streaming `/api/v2/turn`;
-- literal action;
-- Story;
-- exactly four choices;
-- minimal scene/time;
-- one typed observation;
-- summary + relevant Mind Monitor;
-- durable v2 state/history;
-- reconnect to the same in-flight job;
-- no automatic retries.
-
-Then deploy TEST and stop for owner 5-turn manual play.
-
-### Phase 2
-
-Only after Phase 1 manual acceptance:
-
-- exact navigation;
-- CSA as a non-gameplay transaction;
-- four-slot clothing.
-
-Then owner 10-turn manual play.
-
-### Phase 3
-
-Only after Phase 2 acceptance:
-
-- player sexual meter if still desired;
-- v2-native feedback revision;
-- image/TTS sidecars;
-- longer manual play.
-
-Do not front-load legacy compatibility or hundreds of old tests before the first playable slice.
-
-## Stop / execution authority
-
-`docs/ops/CURRENT_TASK.md` is the sole execution authority.
-
-`WAITING_OWNER_DECISION` and `WAITING_REVIEW` are stop states. A new v2 task may start only from an explicit READY registration after any previous watcher lease is safely terminal.
+No `CURRENT_TASK_READY` should be generated from the redesign drafts themselves. Future automation must require an explicit owner re-enable plus an accepted implementation task.
