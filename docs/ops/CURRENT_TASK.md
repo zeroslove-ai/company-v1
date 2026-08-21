@@ -1,8 +1,8 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-full-redesign-milestone0-production-boundary-correction-v1
-Mode: SOURCE CORRECTION — A′ MILESTONE 0 PRODUCTION BOUNDARIES
+Task ID: company-full-redesign-milestone0-ui-parity-first-content-correction-v1
+Mode: SOURCE CORRECTION — DONOR UI PARITY + STORY FIRST-CONTENT BOUNDARY
 Updated: 2026-08-21
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -12,218 +12,203 @@ Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another C
 
 Prior task:
 
-`company-full-redesign-milestone0-source-correction-v1`
+`company-full-redesign-milestone0-production-boundary-correction-v1`
 
-Prior terminal:
+Prior terminal / reviewed source:
 
-- Issue #68 terminal: `5366772054`
-- reviewed exact source SHA: `e222783f38579a676d6b8cbb07a0d732786bdbef`
+- Issue #68 terminal: `5367097429`
+- exact reviewed source SHA: `80594a1b9c9c26c007cc72879086b8e6cf962421`
 - Draft PR: #97
 - branch: `company-redesign/milestone0-v1`
 
 Operator review:
 
-- Issue #68 comment: `5366925152`
+- Issue #68 comment: `5367229499`
 - decision: `CHANGES_REQUIRED`
 
-Do not merge/deploy/apply the migration at the reviewed SHA.
+Do not merge, deploy, or apply the migration at `80594a1...`.
 
-Continue the same source branch and Draft PR #97. Do not create a parallel implementation branch or PR.
+Continue the SAME `company-redesign/milestone0-v1` branch and Draft PR #97. Do not create a parallel implementation branch or PR.
 
-Before editing, verify PR #97 is still at `e222783f38579a676d6b8cbb07a0d732786bdbef` or a descendant containing only this authorized correction. If unrelated source appeared, STOP and report the mismatch.
+Before editing, re-check Issue #68 and verify PR #97 exact head is `80594a1b9c9c26c007cc72879086b8e6cf962421` or a descendant containing only this authorized correction. If unrelated source appeared, STOP.
 
 ## 1. Binding authority
 
-Unchanged:
-
 - Product/UI authority: PR #95 @ `9d9aec5a198d8673eb37aba8a0541adbd6c84627`
 - Engine/acceptance authority: PR #96 @ `9d44c4719fa6b098d53cac5cf946b93fafa6786b`
-- UI donor: Company v1 snapshot `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
-- owner redesign decisions in Issue #68, especially `5364770509`
+- exact Company v1 UI donor snapshot: `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
+- owner redesign decisions: Issue #68, especially `5364770509`
 
-Preserve the accepted A′ Milestone 0 direction. This task does not reopen product design.
+This task does NOT reopen product design.
 
-## 2. Preserve accepted work from `e222783...`
+The binding donor boundary is explicit:
+
+- `src/frontend/pages/index.html` + responsive shell/CSS: HIGH-PARITY TRANSPLANT;
+- `render.js`: TRANSPLANT Story/dialogue/history/four-choice presentation; narrow R3 data rewiring only;
+- Setup DOM + `setup.js`: KEEP / near-verbatim; new R3 creation API wiring only;
+- `company-map.js/css`: KEEP / LIGHT REWIRE; clicks only prefill literal action;
+- Mind Monitor presentation: TRANSPLANT; observer supplies new data;
+- `view-model.js`: REBUILD around minimal R3 state;
+- old `app.js` browser Story→Extract→Commit coordinator: DO NOT TRANSPLANT; replace only controller authority with one thin server-turn client.
+
+Do not reinterpret “clean runtime” as permission to redesign or simplify the product UI.
+
+## 2. Preserve accepted work from `80594a1...`
 
 Do not regress:
 
-- canonical Company Story/Opening context;
-- Worker-compatible canonical `content/*.json` binding;
-- real async `SupabaseR3Store` production construction;
-- donor map / Mind Monitor / canonical display-label wiring;
-- one server-owned turn;
+- canonical `content/*.json` binding and real Company characters/locations;
+- canonical Company Opening / Story context;
+- A′ one server-owned turn;
 - Story once + one post-Story Observer;
 - Observer fail-open;
 - one `(game_id, turn_number)` job;
-- action/attempt fencing;
+- literal action identity + action/attempt fencing;
 - bounded progress writes;
 - atomic ordinary-turn Commit;
-- no browser-owned Story → Observer → Commit coordinator;
+- atomic canonical Opening state persistence on Supabase;
+- terminal-required SSE success contract;
+- total Story deadline through streamed body;
+- non-next turn reservation rejection;
+- real async `SupabaseR3Store` production construction;
+- isolated `company_r3_*` namespace source;
 - no v1/v2 compatibility writer;
 - no active CSA/TTS/Image/Feedback runtime in Milestone 0;
-- no dynamic sexual gauges, relationship/event engine, generic physical ontology, or speculative memory engine.
+- no dynamic sexual gauge, relationship/event engine, generic physical ontology, or speculative memory engine.
 
-## 3. Correction A — Opening must persist canonical state atomically on Supabase
+The unapplied migration remains unapplied.
+
+## 3. Correction A — actually transplant the completed Company UI presentation
 
 ### Proven defect
 
-`InMemoryR3Store.createOpening()` applies `stateAfter` to canonical state.
+Current `frontend-r3/app.js` is a new all-in-one renderer. It reimplements:
 
-The unapplied SQL function `company_r3_create_opening(...)` currently inserts turn 0 but does **not** update `company_r3_state.state` to `p_state_after`.
+- Story/history rendering;
+- choice rendering;
+- Setup handling;
+- company map rendering;
+- Mind Monitor rendering.
 
-That makes production readback diverge from the in-memory contract: Opening time/location/present actors/`scene_note`/clothing changes can disappear from canonical state even though turn 0 stores `state_after`.
+Committed `turn.story_text` is currently rendered as one plain paragraph and choices are rebuilt directly from strings. This violates PR #95/#96, which intentionally separated runtime-kernel replacement from Company product/UI salvage.
+
+### Required outcome
+
+Milestone 0 must look and behave like the completed Company donor, not like a new demo shell.
+
+1. Transplant the donor presentation modules/surfaces at high parity into `frontend-r3/` rather than reimplementing them in `app.js`.
+2. Preserve the donor Story/dialogue/history/choice cards and compact four-choice launcher behavior with only the smallest R3 data adaptation.
+3. Preserve donor Setup presentation/fields, including all accepted profile fields, and move Setup presentation/event logic out of the all-in-one controller into the donor-style module boundary.
+4. Preserve donor company-map presentation and interaction. Map/location/NPC clicks may only prefill a literal action; they never mutate movement or scene state directly.
+5. Preserve donor Mind Monitor presentation while feeding it only R3 observer data for currently relevant/present actors.
+6. Keep `frontend-r3/app.js` thin: load context/catalogs, submit one literal action, consume one server-owned SSE turn, update the view. It must not become a second rendering/product implementation or a browser turn coordinator.
+7. Do not activate deferred sidecars. Existing TTS/Image/Feedback/history-download/CSA mutation controls may remain disabled/placeholder exactly as Milestone 0 authority allows; do not invent replacement UX.
+8. Do not import the old v1 runtime/turn coordinator or old semantic engine.
+
+### Plain Story / presentation adapter law
+
+PR #96 deliberately keeps canonical Story as plain player-visible text.
+
+It also explicitly allows a **safe presentation-only parser after Commit** to turn unambiguous visible dialogue / choice text into the existing donor cards/buttons. Therefore:
+
+- implement only a display parser/adapter needed by the donor renderer;
+- it is NOT durable authority and NOT a Story validity gate;
+- parser failure falls back to readable raw Story;
+- no retry/regeneration/provider change because presentation parsing is imperfect;
+- use observer-projected current-turn choices as the canonical button literals;
+- do not create a second semantic parser/protocol or rewrite the literal choices;
+- avoid duplicate display of the trailing four choices in both raw Story and the separate choice UI after Commit.
+
+Recommended visible dialogue convention from A′ remains readable plain text, e.g. `서원희(조금 고개를 기울이며): "대사"`.
+
+## 4. Correction B — first-content deadline must start at Story invocation
+
+### Remaining boundary defect
+
+At `80594a1...`, `storyFirstContentMs` starts inside `readOpenAiStream()` only after `fetch()` has already returned response headers.
+
+A slow header response can therefore exceed the nominal first-content deadline while remaining below the total Story deadline.
 
 ### Required behavior
 
-Correct the existing unapplied migration source `20260821000100_company_r3_milestone0.sql` so Opening is one atomic durable operation:
-
-1. lock/read the canonical R3 state for the game;
-2. if canonical Opening turn 0 already exists, return the existing canonical result without reapplying a new `p_state_after`;
-3. if no Opening exists, insert exactly one turn 0 record and update `company_r3_state.state = p_state_after` in the same transaction/function invocation;
-4. Opening does not advance gameplay `committed_turn` beyond 0 and does not fabricate a gameplay job;
-5. concurrent duplicate Opening requests cannot produce two different canonical Opening states;
-6. stored turn-0 `state_after` and post-Opening `company_r3_state.state` must agree;
-7. no v1/v2 table access or migration/backfill.
-
-Keep the migration source unapplied in this task.
-
-Add the smallest useful source/unit contract proving InMemory and production-store Opening semantics agree at the adapter boundary. Do not build a large SQL-text test suite; exact live DB proof belongs to the later TEST rollout.
-
-## 4. Correction B — SSE EOF is never commit success
-
-### Proven defect
-
-`frontend-r3/r3-client.js::consumeR3Sse()` currently resolves normally when the stream reaches EOF without a terminal event.
-
-`frontend-r3/app.js` then may show `저장되었습니다.` even though no committed terminal was received.
-
-### Required terminal law
-
-For both Opening and ordinary turns:
-
-- a successful stream must produce exactly one terminal event with `status=committed`;
-- `status=failed` is a failure, never success;
-- EOF without terminal is `reconnect/readback required` or an explicit stream failure, never a successful commit;
-- duplicate/malformed terminal framing must not silently become success;
-- the frontend must not display `저장되었습니다.` unless a committed terminal was actually observed;
-- valid Story deltas already shown remain visible if the stream later fails/closes;
-- no automatic Story regeneration/retry is added;
-- reconnect/readback uses canonical server state/job rather than inventing client stage authority.
-
-Implement this with the thinnest possible client contract. Do not reintroduce the old browser turn coordinator.
-
-Add focused tests for:
-
-1. committed terminal → success;
-2. failed terminal → failure;
-3. EOF without terminal → failure/reconnect-required;
-4. no false `저장되었습니다.` path without committed terminal.
-
-## 5. Correction C — provider first-content and total Story deadlines must be real
-
-### Proven defect
-
-Current `runtime-r3/server/provider.js` has two timeout bugs:
-
-1. `request(... storyTotalMs ...)` clears the AbortController timer immediately after `fetch()` returns headers, so the configured 120s Story total deadline does not bound body streaming;
-2. `readOpenAiStream()` starts a 30s first-content timer but does not clear it when the first valid Story delta arrives, so a healthy stream can be cancelled around 30s even after content has started.
-
-### Required behavior
-
-Implement independent deadlines:
-
-- first-content deadline applies only until the first non-empty Story content delta;
-- clear/disable the first-content deadline immediately when that first content is received;
-- total Story deadline spans request + complete streamed body consumption;
-- total deadline remains active after first content and is cleared only when Story stream finishes/fails;
-- Observer timeout remains a bounded non-stream request;
-- timeout failure does not create a committed turn;
+- first-content deadline spans Story invocation/request start through the first non-empty Story content delta;
+- once first non-empty content arrives, only that deadline is cleared;
+- independent total Story deadline still spans request + complete body stream;
 - no hidden retry/regeneration;
-- preserve immediate streaming and existing bounded DB progress policy.
+- Observer timeout behavior remains unchanged.
 
-Add narrow deterministic tests using short injected timeout values proving:
+Add one deterministic slow-header regression proving header latency counts toward first-content timeout, while preserving the already-passing tests for first delta / continued stream / total timeout / one provider call.
 
-1. no first content before deadline → first-content failure;
-2. first content arrives before deadline and stream continues past that first-content duration → it is **not** cancelled by the first-content timer;
-3. a stream exceeding total deadline → total Story failure;
-4. no duplicate provider call/retry is introduced.
+## 5. Product-parity verification before another rollout task
 
-## 6. Review the DB reservation boundary while touching persistence — no broad redesign
+This is still source-only, but UI parity is now a review gate.
 
-Do a narrow consistency review of `company_r3_reserve_turn` against A′ invariants:
+Required evidence:
 
-- one canonical job per `(game_id, turn_number)`;
-- expected committed-turn/revision protection remains server/DB safe under concurrency;
-- literal action remains the reserved canonical action;
-- stale attempts cannot commit.
+1. file/module inventory showing how each binding donor surface maps into `frontend-r3/`;
+2. focused tests proving free-form literal submission and exact four current-turn literals remain unchanged;
+3. focused presentation test/fixture proving a committed plain Story with at least narration + dialogue + four choices renders through the donor-style presentation and raw fallback remains readable;
+4. Setup and map clicks remain presentation/prefill only;
+5. if existing local/headless browser tooling is available without adding a heavy new framework, capture desktop + mobile local screenshots against a deterministic mock R3 context and report artifact paths; otherwise report the exact tooling absence and provide DOM/module parity evidence. Do not deploy merely to obtain screenshots;
+6. exact-head CI, changed JS/MJS syntax, `git diff --check`, and Worker/build dry-run if available with zero network mutation.
 
-If a concrete race allows reservation of a non-next turn despite the accepted server contract, fix it narrowly in the same **unapplied** migration source and add one focused regression. If no such defect is proven, make no speculative change and report that result.
+Do not count broad legacy test totals as product acceptance.
 
-Do not redesign retry law, job schema, or persistence architecture in this task.
-
-## 7. Validation
-
-Run only forward-facing validation:
-
-- focused R3 tests including the new Opening/SSE/timeout regressions;
-- exact-head CI;
-- syntax checks for changed JS/MJS;
-- `git diff --check`;
-- Worker/build dry-run if available with zero deploy/DB/network mutation.
-
-Passing old broad test count is not product acceptance; report it only as supporting evidence if CI runs it.
-
-## 8. Allowed scope
+## 6. Allowed scope
 
 Expected edits only in the existing Milestone 0 family:
 
-- `runtime-r3/**`;
 - `frontend-r3/**`;
-- `test/r3-*.test.mjs`;
-- `supabase/migrations/20260821000100_company_r3_milestone0.sql` (still unapplied);
+- `runtime-r3/server/provider.js` only for the first-content boundary;
+- narrow `test/r3-*.test.mjs` / presentation fixtures;
 - branch copy of `docs/ops/CURRENT_TASK.md` only if runner lifecycle requires it.
+
+Do not touch the R3 migration or persistence unless a direct regression from this task proves it necessary. The accepted production-boundary fixes should remain unchanged.
 
 Do not edit:
 
 - `runtime-v2/` / `frontend-v2/`;
-- old `src/engine/` or old frontend implementation;
-- PR #95/#96 design authority;
-- historical applied migrations.
+- old `src/engine/` or old frontend implementation in place;
+- PR #95/#96 authority docs;
+- historical applied migrations;
+- preserved games/data.
 
-## 9. Operational prohibitions
+Donor files at `5ec1a76...` are read-only source material; transplant/copy into `frontend-r3/` as needed rather than modifying historical authority.
 
-This remains SOURCE ONLY.
+## 7. Operational prohibitions
+
+SOURCE ONLY:
 
 - no merge / auto-merge;
 - no migration apply;
-- no Supabase DB writes;
-- no Worker deploy;
+- no Supabase DB write;
+- no Worker/frontend deploy;
 - no TEST/Production game creation or gameplay;
-- no reset/delete/repair of any game;
-- no Production/hospital access;
+- no reset/delete/repair;
 - no provider/model/temperature/token/secret/config change;
 - no Milestone 1;
-- no CSA/TTS/Image/Feedback runtime activation.
+- no active CSA/TTS/Image/Feedback implementation.
 
 All historical/manual/evidence games remain read-only.
 
-## 10. Completion boundary
+## 8. Completion boundary
 
-Update the existing Draft PR #97 and post one terminal report to Issue #68:
+Update the SAME Draft PR #97 and post one terminal report to Issue #68:
 
-`COMPANY_FULL_REDESIGN_MILESTONE0_PRODUCTION_BOUNDARIES_READY_FOR_SOURCE_REVIEW`
+`COMPANY_FULL_REDESIGN_MILESTONE0_UI_PARITY_READY_FOR_SOURCE_REVIEW`
 
 Include:
 
-- `TASK_ID: company-full-redesign-milestone0-production-boundary-correction-v1`;
-- starting reviewed SHA `e222783f38579a676d6b8cbb07a0d732786bdbef`;
-- final source SHA / PR #97 exact head;
+- Task ID;
+- starting reviewed SHA `80594a1b9c9c26c007cc72879086b8e6cf962421`;
+- final exact PR #97 head;
 - exact changed paths;
-- Opening atomic state/readback correction proof;
-- SSE terminal-required proof;
-- provider first-content + total-timeout proof;
-- reserve-boundary review result and any narrow fix;
-- focused tests / exact-head CI / build results;
+- donor module mapping (`index/CSS`, render, Setup, map, Mind Monitor, thin controller);
+- plain-Story safe presentation adapter/fallback proof;
+- four literal choice identity proof;
+- first-content slow-header timeout proof;
+- focused validation + exact-head CI;
+- screenshot artifact paths if available;
 - migration applies 0;
 - DB writes 0;
 - deploys 0;
@@ -232,4 +217,4 @@ Include:
 
 Then STOP `WAITING_REVIEW`.
 
-Do not merge or register rollout/Milestone 1 automatically.
+Do not merge or register TEST rollout/Milestone 1 automatically.
