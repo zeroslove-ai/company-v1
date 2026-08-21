@@ -1,6 +1,6 @@
 # Company Redesign — Gameplay / State / Memory Model
 
-Status: OWNER-REVIEW DRAFT  
+Status: OWNER-REVIEW DRAFT / CORE STATE DECISIONS LOCKED  
 Date: 2026-08-21
 
 This model separates **what happened in Story** from **what must be machine-readable**. Goal: long-play continuity without giant semantic ontology.
@@ -13,7 +13,7 @@ Owned by accepted repository content: registered characters, locations, setup ca
 
 ### Narrative truth
 
-Owned by committed literal player action + committed Story: dialogue, rejection/acceptance, tone, promises, arguments, open-ended physical/social consequences, scene events.
+Owned by committed literal player action + committed Story: dialogue, rejection/acceptance, tone, promises, arguments, open-ended physical/social consequences, scene events, and the four Story-authored current-turn choices.
 
 Do not force all narrative meaning into enums/ledgers.
 
@@ -25,16 +25,17 @@ Initial minimum:
 - day/time;
 - current registered location;
 - current present registered actors;
-- active accepted CSA rules/lifecycle;
-- four-slot clothing because retained MVP clothing rules need exact continuity;
-- optional owner-approved player mechanic(s);
-- bounded current-scene continuity note.
+- one bounded current `scene_note`;
+- active accepted CSA rules with selected scope/lifecycle;
+- four-slot clothing because retained MVP clothing rules need exact continuity.
+
+There is **no dynamic player sexual/arousal/erection/ejaculation mechanic** in the redesign core.
 
 ### Presentation/interpretation
 
-Mind Monitor, image, TTS, focal/display character, compact UI labels. These may fail locally and do not redefine narrative truth.
+Mind Monitor, extracted choice buttons, image, TTS, focal/display character, compact UI labels. These may fail locally and do not redefine narrative truth.
 
-## 2. Proposed minimal durable state
+## 2. Minimal durable state
 
 Conceptual only:
 
@@ -60,21 +61,32 @@ Conceptual only:
       "updated_turn": 7
     }
   },
-  "active_rules": [],
-  "clothing": {},
-  "player_mechanics": {}
+  "active_rules": [
+    {
+      "template_id": "...",
+      "subject_scope": "...",
+      "counterparty_scope": null,
+      "active": true
+    }
+  ],
+  "clothing": {}
 }
 ```
 
-`active_rules` stores only accepted template identity/scope/lifecycle values; it does not duplicate full arbitrary semantics into save.
+`active_rules` stores accepted template identity, selected scope and lifecycle; it does not copy an arbitrary generic execution plan into save.
 
-`player_mechanics` exists only for explicitly retained mechanics. No compatibility zombie fields.
+Do not retain removed player-meter compatibility fields.
 
-## 3. Current-scene continuity note
+## 3. `scene_note` is the initial physical continuity model
 
-Test a **single replaceable bounded natural-language snapshot** before adopting generic posture/contact ontology.
+The redesign intentionally starts with **one replaceable bounded natural-language scene snapshot**, not a generic posture/contact ontology.
 
-Purpose: carry ongoing pose/contact, important held/placed objects, immediate spatial relationship, and other facts the very next Story must not forget.
+Purpose:
+
+- carry ongoing pose/contact;
+- carry held/placed objects;
+- preserve immediate spatial relationship;
+- keep active conversational/physical situation available to next Story.
 
 Example:
 
@@ -87,13 +99,14 @@ Example:
 
 Rules:
 
-- bounded snapshot, not accumulating fact ledger;
-- grounded only in committed Story/current prior note;
+- one current snapshot, not accumulating fact ledger;
+- grounded only in committed Story and currently supported prior note;
 - rewritten as scene changes;
-- never invent uncertain contact/object/pose;
-- location/presence remain separately structured.
+- uncertain detail is omitted rather than invented;
+- location/presence remain separately structured;
+- no parallel generic posture/contact/action state is built “for later”.
 
-This remains an OPEN implementation choice until `A-SCENE-002` proves it sufficient. If not, add the smallest extra structure actually needed.
+If owner manual play exposes a concrete failure that one scene_note cannot solve, propose only the smallest extra structure tied to that failing scenario.
 
 ## 4. Turn record
 
@@ -104,6 +117,8 @@ turn_number
 revision
 literal_player_action
 story_text
+story_choices_visible_or_source_evidence
+extracted_choices
 structured_speaker_metadata (only if safe parser accepted)
 turn_summary
 mind_monitor
@@ -111,17 +126,31 @@ observation_projection
 committed_at
 ```
 
-Raw committed Story remains recoverable. Feedback revision replaces revision of same chronological turn, not turn number.
+Raw committed Story remains recoverable. Feedback revision replaces revision of the same chronological turn, not turn number.
+
+The four choices belong to the turn that authored them. No prior-turn choice may become current truth.
 
 ## 5. Story authority
 
-Story receives bounded projection of exact player action, accepted relevant profile context, time, current location/description, relevant actor IDs/canon, relevant active premises from accepted nine rules, scene note, recent raw turns, and older grounded memory.
+Story receives bounded projection of:
 
-Story does **not** receive precomputed success/failure, relationship stage, consent matrix, action taxonomy, physical execution plan, or probability roll.
+- exact player action;
+- accepted relevant profile context;
+- time;
+- current location/description;
+- relevant actor IDs/canon;
+- relevant active nine-rule premises with their selected subject/counterparty scope;
+- current scene_note;
+- recent raw turns;
+- older grounded memory.
 
-## 6. Post-Story observation
+Story is also responsible for writing exactly four natural next-action suggestions based on the scene it just authored.
 
-Recommended starting topology: **one small observer call after Story**, combining projections that inspect the same completed narrative:
+Story does **not** receive precomputed success/failure, relationship stage, consent matrix, action taxonomy, physical execution plan, probability roll, dynamic player sexual meter, or historical non-MVP CSA semantics.
+
+## 6. Post-Story Extract/observer
+
+Recommended starting topology: **one small observer call after Story**, reading the completed Story once and projecting:
 
 ```text
 elapsed_minutes
@@ -129,19 +158,24 @@ location_id if Story clearly moved
 entered_actor_ids / exited_actor_ids with evidence
 new scene_note
 ordinary clothing changes with actor/evidence
-optional retained player-mechanic delta
+choices[4] copied from Story evidence
 turn_summary
 mind_monitor
 warnings
 ```
 
-This avoids multiplying LLM seams. If live evidence later proves one field materially harms reliability, split only that proven field.
+Choice rules:
 
-Do not output generic relationship/event/emotion ledgers, arbitrary save paths, generic physical-action taxonomy, CSA attitude/compliance semantics, media authority, or success/failure interpretation.
+- Extract copies/structures the four literal Story-authored suggestions;
+- it does not invent missing replacement choices;
+- partial/malformed choice extraction is local failure only;
+- valid Story can commit without choice buttons, with free input remaining available.
+
+Do not output generic relationship/event/emotion ledgers, arbitrary save paths, generic physical-action taxonomy, CSA attitude/compliance semantics, media authority, success/failure interpretation, or player sexual-meter deltas.
 
 Exact system actions such as retained clothing-rule application bypass open observation only for their encoded finite mechanic.
 
-Observer/MM failure is local and never causes a second Story generation.
+Observer/MM/choice-extraction failure never causes a second Story generation.
 
 ## 7. Memory model
 
@@ -166,7 +200,7 @@ Rules: preserve chronology; summarize committed material only; no invented relat
 
 ### Compaction timing
 
-Do not require a separate memory LLM every turn. Prefer observer summary + deterministic aggregation/raw fallback, or periodic compaction only when material ages out of recent raw context. Choose simplest design passing `A-MEMORY-001`.
+Do not require a separate memory LLM every turn. Prefer observer summary + deterministic aggregation/raw fallback, or periodic compaction when material ages out of recent raw context. Choose simplest design passing `A-MEMORY-001`.
 
 ## 8. Mind Monitor
 
@@ -182,23 +216,47 @@ Machine truth: stable location IDs, current location, present registered actors.
 
 Deterministic navigation only when destination/target is structurally unambiguous. Ambiguous movement remains Story-authored. No generic semantic intent router.
 
-## 11. CSA/rules
+## 11. CSA/rules and flexible scope
 
 Rule state is separate from chronological Story turns.
 
 ```text
 Open app
-→ select/edit accepted template/scope
-→ validate active product definition
+→ choose one of 9 templates
+→ choose supported subject scope
+→ choose supported counterparty scope only where meaningful
+→ validate finite scope IDs
 → atomic apply/change/remove transaction
 → durable rule state changes
 → ordinary Story turn unchanged
-→ next Story reads relevant premise
+→ next Story reads exact template + selected scope premise
 ```
 
-Runtime supports only mechanics needed by retained nine templates. Clothing rules may synchronize exact four slots; request/open behavior remains Story-authored from exact wording/scope; non-MVP IDs rejected; no generic CSA execution DSL.
+Scope flexibility is data, not a generic execution language.
 
-## 12. State deletion law
+Recommended minimal rule instance:
+
+```json
+{
+  "template_id": "masturbate_for_recipient",
+  "subject_scope": "female_employee",
+  "counterparty_scope": "player"
+}
+```
+
+A different supported subject/counterparty combination should not require a new template or new execution DSL. Unary rules omit counterparty. Unknown scope IDs fail structural validation.
+
+Runtime supports only mechanics needed by retained nine templates. Clothing rules may synchronize exact four slots; request/open behavior remains Story-authored from exact wording + selected scope; non-MVP IDs are rejected.
+
+If source audit proves flexible scope causes material complexity or incoherent semantics, stop and return evidence to owner rather than silently hard-fixing templates.
+
+## 12. Removed state law
+
+The redesign does not persist dynamic player sexual/arousal/erection/ejaculation gameplay state or a sexual-event ledger supporting it.
+
+Static setup/profile facts remain separate from removed dynamic mechanics.
+
+## 13. State deletion law
 
 Every durable field must answer:
 
