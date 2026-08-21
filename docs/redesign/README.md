@@ -13,7 +13,10 @@ Read in order:
 4. [`03_GOLDEN_UI_CONTENT_MASTER.md`](03_GOLDEN_UI_CONTENT_MASTER.md)
 5. [`04_GAMEPLAY_STATE_MEMORY_MODEL.md`](04_GAMEPLAY_STATE_MEMORY_MODEL.md)
 6. [`05_ARCHITECTURE_DECISION_FRAMEWORK.md`](05_ARCHITECTURE_DECISION_FRAMEWORK.md)
-7. [`06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`](06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md)
+7. [`07_CSA_MVP_CATALOG.md`](07_CSA_MVP_CATALOG.md)
+8. [`06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`](06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md)
+
+`07_CSA_MVP_CATALOG.md` is a product/content specialization of the Product Constitution: the initial active `상식개변` catalog is exactly 9 templates (weak 3 / medium 3 / strong 3). Historical non-MVP templates are not forward product authority.
 
 ## Current status
 
@@ -24,7 +27,7 @@ These documents are drafts for owner review. They do not authorize implementatio
 After owner review:
 
 1. correct these drafts;
-2. explicitly accept L0–L4 authority;
+2. explicitly accept product/scenario/golden/state authority and the 9-rule CSA MVP;
 3. perform a bounded architecture-candidate audit;
 4. create the target Gap Matrix;
 5. only then register the first narrow implementation task.
@@ -33,6 +36,6 @@ After owner review:
 
 Do not continue the current v2 product layer.
 
-The leading candidate is to salvage only independently useful v2 transport/concurrency/persistence kernel pieces while rewriting the Company product/domain/UI layer from this canon. Hospital remains a donor/reference. A totally new kernel remains an option if the v2 kernel fails the simplicity audit.
+The leading candidate remains to salvage only independently useful v2 transport/concurrency/persistence kernel pieces while rewriting the Company product/domain/UI layer from this canon. Hospital remains donor/reference. A totally new kernel remains allowed if the v2 kernel fails the simplicity audit.
 
 This recommendation is not binding until owner architecture review.
