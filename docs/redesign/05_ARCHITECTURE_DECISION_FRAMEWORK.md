@@ -1,9 +1,11 @@
 # Company Redesign — Architecture Decision Framework
 
-Status: OWNER-REVIEW DRAFT / PRODUCT INPUTS LOCKED  
+Status: SOURCE-AUDITED / OWNER DECISION PENDING
 Date: 2026-08-21
 
 Architecture is chosen only after Product Constitution, Acceptance Scenarios, Golden Master, Gameplay/State/Memory Model, the nine-rule CSA MVP decision, and the Company v1 salvage audit.
+
+The bounded source audit is recorded in [`09_RUNTIME_KERNEL_SOURCE_AUDIT.md`](09_RUNTIME_KERNEL_SOURCE_AUDIT.md). It recommends Candidate A only conditionally and does not authorize implementation.
 
 **Important correction:** Candidates A/B/C below are **runtime-kernel alternatives only**. They are not three complete product/UI architectures.
 

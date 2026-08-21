@@ -1,6 +1,6 @@
 # Company Full Redesign — Canon Index
 
-Status: OWNER-REVIEW DRAFT / PRODUCT DECISIONS LOCKED  
+Status: SOURCE-AUDITED / OWNER DECISION PENDING
 Date: 2026-08-21
 
 This directory is the proposed replacement authority for the failed v1/v2 design chain. It is intentionally product-first.
@@ -16,6 +16,7 @@ Read in order:
 7. [`07_CSA_MVP_CATALOG.md`](07_CSA_MVP_CATALOG.md)
 8. [`08_COMPANY_V1_SALVAGE_MATRIX.md`](08_COMPANY_V1_SALVAGE_MATRIX.md)
 9. [`06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`](06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md)
+10. [`09_RUNTIME_KERNEL_SOURCE_AUDIT.md`](09_RUNTIME_KERNEL_SOURCE_AUDIT.md)
 
 ## Locked product decisions
 
@@ -71,7 +72,7 @@ The product decisions are sufficiently closed to move next to a **bounded archit
 Next sequence:
 
 1. owner reviews/accepts this product-first authority set;
-2. audit Candidate A/B/C as kernel alternatives;
+2. audit Candidate A/B/C as kernel alternatives (recorded in `09_RUNTIME_KERNEL_SOURCE_AUDIT.md`);
 3. finalize the Company v1 file/module salvage matrix;
 4. select the exact composed architecture and write the target Gap Matrix;
 5. only then register the first narrow implementation task.

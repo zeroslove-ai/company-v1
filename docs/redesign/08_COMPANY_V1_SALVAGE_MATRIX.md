@@ -1,8 +1,11 @@
 # Company Redesign — Company v1 Salvage Matrix
 
-Status: OWNER-REVIEW DRAFT / SOURCE-AUDITED  
+Status: SOURCE-AUDITED / OWNER DECISION PENDING
 Date: 2026-08-21  
 Primary UI evidence SHA: `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
+
+The kernel/source evidence and exact A/B/C boundary are recorded in
+[`09_RUNTIME_KERNEL_SOURCE_AUDIT.md`](09_RUNTIME_KERNEL_SOURCE_AUDIT.md).
 
 ## 1. Why this matrix exists
 
