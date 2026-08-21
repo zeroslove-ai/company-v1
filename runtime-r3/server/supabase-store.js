@@ -10,7 +10,8 @@ class R3SupabaseHttp {
     this.base = env.SUPABASE_URL.replace(/\/$/, ''); this.key = env.SUPABASE_SERVICE_ROLE_KEY; this.fetchImpl = fetchImpl;
   }
   async request(path, { method = 'GET', body } = {}) {
-    const response = await this.fetchImpl(`${this.base}/rest/v1/${path}`, { method, headers: { apikey: this.key, authorization: `Bearer ${this.key}`, accept: 'application/json', 'content-type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    const fetchImpl = this.fetchImpl;
+    const response = await fetchImpl(`${this.base}/rest/v1/${path}`, { method, headers: { apikey: this.key, authorization: `Bearer ${this.key}`, accept: 'application/json', 'content-type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     const text = await response.text(); let payload = null; try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
     if (!response.ok) { const detail = Array.isArray(payload) ? payload[0] : payload; const error = new Error(detail?.message ?? `r3_db_${response.status}`); error.code = detail?.code ?? detail?.message; throw error; }
     return payload;
