@@ -1,13 +1,13 @@
 # Company Redesign — Design Review & Implementation Gates
 
-Status: OWNER-REVIEW DRAFT / PRODUCT DECISIONS LOCKED  
+Status: OWNER-REVIEW DRAFT / PRODUCT LOCKED / A′ ENGINE AUDITED  
 Date: 2026-08-21
 
-The previous process accumulated engineering before checking whether the build was still the intended game. This document reverses that order.
+The previous process accumulated engineering and automated tests before checking whether the build was still the intended game. This document reverses that order.
 
-## 1. Gate 0 — Product authority review
+## 1. Gate 0 — Product authority
 
-Owner reviews:
+Binding redesign inputs:
 
 - `00_AUTHORITY_AND_CHANGE_CONTROL.md`
 - `01_PRODUCT_CONSTITUTION.md`
@@ -18,188 +18,218 @@ Owner reviews:
 - `07_CSA_MVP_CATALOG.md`
 - `08_COMPANY_V1_SALVAGE_MATRIX.md`
 
-The locked product decisions include:
+Locked product decisions include:
 
 - four Story-authored choices + free input;
-- one `scene_note` initial physical-continuity model;
+- one bounded `scene_note` initial physical-continuity model;
 - dynamic player sexual gauge removed;
-- flexible supported CSA subject/counterparty scope;
-- complete Company v1 presentation is the primary high-parity UI donor, not the reduced `frontend-v2` shell.
+- flexible finite CSA subject/counterparty scope;
+- complete Company v1 presentation is the primary high-parity UI donor.
 
-No code task may reopen or silently reinterpret these decisions.
+No code task may reopen these decisions for implementation convenience.
 
-## 2. Gate 1 — Composed architecture selection
+## 2. Gate 1 — Engine architecture audit
 
-Gate 1 has **two independent audit outputs**.
+The bounded source audit is recorded in:
 
-### 2.1 Kernel audit
+- `09_ENGINE_ARCHITECTURE_DECISION_A_PRIME.md`
+- `10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md`
+- `11_TARGET_GAP_MATRIX_A_PRIME.md`
 
-Compare Candidate A/B/C as runtime-kernel alternatives only.
-
-Required:
-
-- exact kernel modules/assets KEEP/REPLACE;
-- one-turn sequence including Story-authored choices + Extract projection;
-- failure/reconnect sequence;
-- mutable DB authority;
-- proof retained kernel contains no demo/product semantic authority or removed player-meter baggage;
-- proof flexible CSA scope can be represented simply, or exact blocker/cost returned to owner.
-
-### 2.2 Company v1 salvage audit
-
-Finalize `08_COMPANY_V1_SALVAGE_MATRIX.md` file-by-file/module-by-module using:
-
-- `KEEP`
-- `TRANSPLANT`
-- `REWIRE`
-- `REBUILD`
-- `DELETE`
-- `DEFER_KEEP`
-
-At minimum prove treatment for:
-
-- `index.html` + responsive CSS shell;
-- `render.js`;
-- `setup.js`;
-- `company-map.js/css`;
-- Mind Monitor presentation;
-- `view-model.js`;
-- `app.js` and its old `createTurnCoordinator()`;
-- `api.js` / `sse.js`;
-- `csa-app.js` / `csa-app-state.js`;
-- TTS/history/feedback/image UI;
-- canonical `content/*.json`.
-
-Owner selects the **composed architecture** before implementation:
+Audit result: **A′** is the selected engine recommendation.
 
 ```text
-selected kernel + accepted Company v1 salvage boundary
+Company v1 high-parity UI/content
++ new thin client controller
++ new minimal Company domain/view model
++ trimmed v2 server-owned turn kernel
++ Story + one observer
++ isolated new persistence namespace
 ```
 
-A kernel choice cannot justify replacing the completed Company v1 presentation with a reduced shell.
+A′ keeps only v2's product-neutral concurrency/streaming/commit lessons. The v2 demo product/domain/frontend are rejected. Hospital remains a play-feel/prompt donor only.
 
-## 3. Gate 2 — Milestone 0: recognizably the right game in the salvaged UI
+No source implementation begins until the owner accepts this composed architecture.
+
+## 3. Gate 2 — Milestone 0: recognizable game first
 
 Required:
 
-- Company v1 Story/action/MM/setup presentation transplanted at high parity;
+- Company v1 Story/action/MM/Setup presentation transplanted at high parity;
 - canonical Setup/profile;
 - canonical Company content;
 - correct Opening;
-- one ordinary Story turn;
-- Story-authored four current-turn choices projected by Extract;
+- one ordinary server-owned Story turn;
+- Story-authored four current-turn choices projected by the observer;
 - free-form action always available;
 - one `scene_note` continuity skeleton;
 - committed refresh/readback;
-- visible streaming;
-- no dynamic sexual gauge in state/UI/prompt/observer.
+- visible streaming with no blocking loader;
+- no removed dynamic sexual gauge.
 
-Not required yet: active CSA mutation, Image/TTS, feedback, full memory compaction.
+Not required yet:
+
+- active CSA mutation;
+- Image/TTS;
+- feedback revision;
+- separate memory compactor;
+- speculative physical/relationship systems.
 
 Acceptance order:
 
-1. product-contract tests;
-2. structural tests for changed spine;
-3. desktop/mobile screenshot comparison against `5ec1a76...`;
-4. TEST deploy;
-5. owner Opening review immediately;
-6. owner 3–5 turn play including UI parity, choice quality/extraction and scene_note continuity;
-7. only if accepted, proceed.
+1. small A′ invariant suite only;
+2. desktop/mobile screenshot check against Company v1 donor;
+3. TEST deploy;
+4. **owner Opening review immediately**;
+5. owner 3–5 free live turns;
+6. fix actual product failures before deeper implementation.
 
-Do not spend a milestone rebuilding presentation already available in Company v1.
+Do not spend another long phase growing tests before the owner sees live Story.
 
-## 4. Gate 3 — Core continuity
+## 4. Gate 3 — Core continuity through live play
 
-Add/verify location/presence, `scene_note` continuity, grounded older memory, multi-character conversation, refresh/reconnect, relevant Mind Monitor.
+Verify through 10–20 owner-played turns:
 
-Owner performs 10–20 turn play focused on scene/conversation/memory quality.
+- location/presence;
+- canonical identity;
+- direct question/follow-up continuity;
+- multi-character dialogue;
+- `scene_note` physical/object continuity;
+- recent + older-summary memory;
+- refresh/reconnect;
+- relevant Mind Monitor.
 
-If one scene_note demonstrably fails an acceptance scenario, stop and propose the smallest extra structure. Do not revive a generic physical ontology by default.
+If `scene_note` fails a real scenario, show the exact failure and add only the smallest structure necessary. Do not revive a generic physical ontology by default.
 
-## 5. Gate 4 — `상식개변` nine-rule MVP
+## 5. Gate 4 — Recovery mini-pass
 
-Reuse/transplant the Company v1 app presentation where practical, but replace old CSA semantics/submission flow.
+Before CSA expansion, perform only a few high-value recovery checks on TEST:
+
+- double submit;
+- refresh/reconnect during Story stream;
+- one explicit failed-turn retry;
+- one observer fail-open case where practical.
+
+Pass condition:
+
+- one action never becomes two committed turns;
+- stale attempt never overwrites a newer attempt;
+- successful Story is not silently regenerated because an optional observer field failed;
+- readback equals committed state.
+
+## 6. Gate 5 — `상식개변` nine-rule MVP
+
+Reuse/transplant the Company v1 app presentation but replace old CSA runtime semantics.
 
 Implement exactly:
 
 - 3 weak + 3 medium + 3 strong templates;
-- one shared finite scope vocabulary;
+- one finite shared scope vocabulary;
 - flexible supported subject scope;
 - optional counterparty scope only where meaningful;
-- dedicated app apply/change/remove transaction;
-- durable rule lifecycle + selected scope;
-- non-turn application;
-- four-slot clothing only where retained rules require it;
-- no historical non-MVP activation path;
-- no generic action/execution DSL for hypothetical future rules.
+- dedicated apply/change/remove transaction;
+- durable active-rule lifecycle + selected scope;
+- **zero ordinary Story turns consumed by rule transaction**;
+- exact four-slot clothing mechanic where required;
+- no non-MVP activation path;
+- no generic execution/action/consent DSL.
 
-Owner tests all nine in real narrative play with multiple scope combinations, application/removal, and clothing continuity.
+Owner tests all nine in real narrative play. Use representative scope combinations rather than building a combinatorial automated matrix first.
 
-If flexible scope is materially too complex or semantically incoherent for a retained rule, Gate 4 stops and returns exact evidence/cost to owner. It may not silently hard-fix scope.
+A tenth rule is forbidden until the nine-rule MVP passes live owner play.
 
-**A tenth rule is forbidden until the nine-rule MVP is accepted.** Future rules enter one at a time with new owner decision and acceptance scenario.
+## 7. Gate 6 — 20–30+ turn long play
 
-## 6. Gate 5 — Secondary mechanics
+Only after the core + CSA feel correct, run longer natural play to answer:
 
-Only after core product + nine-rule CSA acceptance:
+- do older important facts survive beyond the raw recent window?;
+- are chronological turn summaries enough?;
+- do character voices remain distinct?;
+- is one `scene_note` enough?;
+- is prompt/context size still reasonable?;
+- does UI remain responsive and readable?
 
-- feedback revision using salvaged Company v1 presentation;
-- image using salvaged media surface;
-- TTS using salvaged TTS UX/controller pieces where compatible;
+Only this evidence may justify a separate memory compactor or additional scene structure.
+
+## 8. Gate 7 — Secondary sidecars
+
+After core acceptance:
+
+- feedback revision;
+- image;
+- TTS;
 - history/export polish;
-- remaining UI/tooling.
+- remaining UI tooling.
 
-The removed dynamic player sexual gauge is not a deferred secondary feature. Reintroducing it requires a new owner product decision.
+These are nonblocking sidecars. They never redefine Story/Commit.
 
-## 7. Test portfolio
+## 9. Minimal automated test policy
 
-### Product tests
+Binding detail: `10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md`.
 
-Assert canonical characters/map/Setup/Opening/UI, high-parity Company v1 surface inventory, four Story-authored choices, free input, scene_note model, removed player gauge, exact nine CSA IDs, and flexible supported scope.
+Forward CI protects only expensive invariants:
 
-### Structural tests
+1. canonical content + Setup;
+2. literal action + fencing + atomic Commit;
+3. stream/reconnect;
+4. observer fail-open + minimal reducer;
+5. 9-rule non-turn CSA transaction;
+6. optionally one tiny frontend literal-submission contract.
 
-Concurrency, transaction, fencing, memory/readback, reducers. Never normalize a demo product through tests.
+No target test count exists.
 
-### Provider tests
+Old tests are deleted/stopped when they protect obsolete v1/v2 orchestration, compatibility, removed mechanics, old Story wire, historical 44-rule semantics, source-regex assertions, prompt snapshots or demo behavior.
 
-Prove literal action unchanged, relevant actor canon/location/accepted active rules + selected scopes present, continuity within budget, exactly four Story-authored choices recoverable in normal cases, and forbidden generic semantic taxonomies absent.
+A new regression test is added only for a catastrophic invariant or a concrete live failure that is cheap and deterministic to protect.
 
-### Visual review
+## 10. Live acceptance outranks CI
 
-Desktop/mobile screenshots + Golden/Salvage checklist against `5ec1a76...`. DOM existence alone is insufficient.
+The release truth is:
 
-### Manual acceptance
+```text
+small structural suite green
+AND
+exact TEST deploy healthy
+AND
+owner live acceptance green
+```
 
-Owner acceptance is release gate. Failure means PRODUCT_REJECTED/CHANGES_REQUIRED regardless of CI.
+A green CI run cannot override bad gameplay.
 
-## 8. Merge rules
+An obsolete old test cannot force the new product backward.
 
-Player-facing PR merges only when requirement/scenario IDs are listed, relevant product + structural tests pass, required artifact exists, salvage/parity differences are explicit, and owner gate is satisfied.
+## 11. Evidence-game safety
 
-## 9. Main branch protection recommendation
+Every redesign smoke/manual test uses a fresh TEST game ID.
 
-Before automation restarts:
+Preserved v1/v2/manual evidence games are read-only. Automation never resets or consumes the owner's preserved gameplay fixture.
 
-- no direct runtime/product push to `main`;
-- PR required;
-- CI required;
-- owner review for Product Constitution/Golden/Salvage changes;
-- product acceptance check/label where practical.
+## 12. Merge rules
 
-Docs-only emergency STOP/current-truth corrections may use a narrow documented owner path.
+Player-facing implementation merges only when:
 
-## 10. Automation restart requirements
+- exact redesign requirement/scenario IDs are cited;
+- the small relevant invariant tests pass;
+- visible UI differences from the Company v1 donor are intentional;
+- the required TEST/live gate for that milestone has passed;
+- owner product rejection is not outstanding.
 
-Do not restart old watcher unchanged.
+Do not require unrelated legacy tests to pass.
 
-Future loop requires `LOOP_CONTROL.enabled`, generation fencing, CURRENT_TASK READY, authority/supersession recheck at each mutation boundary, terminal stop states, and owner supersession checks before mutations.
+## 13. Automation restart
 
-## 11. What counts as progress
+Do not restart the old watcher unchanged.
 
-1. owner recognizes the **same intended Company product UI** at Opening;
-2. 5 turns feel like correct Company game with natural choices + free input;
-3. 20 turns preserve continuity through scene_note + memory;
-4. exact nine-rule `상식개변` MVP works with flexible scope without distorting agency;
-5. secondary systems attach without destabilizing Story;
-6. only then rules expand one by one.
+Future automated execution requires both loop enablement and a READY task plus generation fencing/recheck at mutation boundaries.
+
+Automation may run small structural smoke tests. It does not replace owner live play.
+
+## 14. What counts as progress
+
+1. owner recognizes the intended Company product at Opening;
+2. 3–5 turns feel correct in the real UI;
+3. 10–20 turns preserve identity/scene/conversation continuity;
+4. recovery does not duplicate/corrupt turns;
+5. all nine CSA rules work naturally and consume zero fake Story turns;
+6. 20–30+ turns preserve useful memory;
+7. only then secondary systems and future rules expand.
