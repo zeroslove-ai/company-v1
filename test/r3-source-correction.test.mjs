@@ -8,6 +8,7 @@ import { buildStoryContext } from '../runtime-r3/domain/memory.js';
 import { buildOpeningContext } from '../runtime-r3/domain/story.js';
 import { createInitialState } from '../runtime-r3/domain/contracts.js';
 import { SupabaseR3Store } from '../runtime-r3/server/supabase-store.js';
+import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 
 const content = loadCanonicalCompanyR3Content();
 
@@ -79,4 +80,51 @@ test('Supabase R3 adapter keeps async RPC names and attempt-fenced boundary', as
     'company_r3_create_game', 'company_r3_expire_stale_turn', 'company_r3_reserve_turn', 'company_r3_update_turn_progress', 'company_r3_mark_story_complete', 'company_r3_commit_turn', 'company_r3_expire_stale_turn', 'company_r3_fail_turn', 'company_r3_expire_stale_turn'
   ]);
   assert.equal(calls.find(call => call.name === 'company_r3_reserve_turn').body.p_literal_action, '한국어 입력');
+});
+
+test('Supabase Opening adapter preserves one canonical state across duplicate calls', async () => {
+  const calls = [];
+  const gameId = '33333333-3333-4333-8333-333333333333';
+  const initialState = createInitialState({ name: 'Player' }, content.locations[0].location_id);
+  const canonicalState = { ...initialState, scene: { ...initialState.scene, scene_note: '오프닝에서 확정된 장면 메모' } };
+  const state = { game_id: gameId, revision: 0, committed_turn: 0, state: initialState };
+  let turns = [];
+  const response = payload => new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } });
+  const fetchImpl = async (url, options = {}) => {
+    const path = new URL(url).pathname; const name = path.split('/').at(-1); const body = options.body ? JSON.parse(options.body) : null;
+    calls.push({ name, body });
+    if (path.endsWith('/rpc/company_r3_create_opening')) {
+      const created = !turns.length;
+      if (created) { state.state = body.p_state_after; turns = [{ game_id: gameId, turn_number: 0, state_after: body.p_state_after, story_text: body.p_story_text }]; }
+      return response({ game_id: gameId, turn_number: 0, created });
+    }
+    if (path.endsWith('/rpc/company_r3_expire_stale_turn')) return response(null);
+    if (path.endsWith('/company_r3_games')) return response([{ game_id: gameId, profile: { name: 'Player' } }]);
+    if (path.endsWith('/company_r3_state')) return response([state]);
+    if (path.endsWith('/company_r3_turns')) return response(turns);
+    if (path.endsWith('/company_r3_turn_jobs')) return response([]);
+    throw new Error(`unexpected ${path}`);
+  };
+  const store = new SupabaseR3Store({ env: { SUPABASE_URL: 'https://db.test', SUPABASE_SERVICE_ROLE_KEY: 'service' }, fetchImpl });
+  const first = await store.createOpening(gameId, { storyText: 'Opening', summary: 'Opening', stateAfter: canonicalState });
+  const second = await store.createOpening(gameId, { storyText: 'Different', summary: 'Different', stateAfter: { ...initialState, scene: { ...initialState.scene, scene_note: '덮어쓰면 안 됨' } } });
+  assert.deepEqual(first.state.state, canonicalState);
+  assert.deepEqual(first.turns[0].state_after, canonicalState);
+  assert.deepEqual(second.state.state, canonicalState);
+  assert.equal(second.turns.length, 1);
+  assert.deepEqual(calls.filter(call => call.name === 'company_r3_create_opening').map(call => call.body.p_state_after), [canonicalState, { ...initialState, scene: { ...initialState.scene, scene_note: '덮어쓰면 안 됨' } }]);
+  const memoryStore = new InMemoryR3Store();
+  const memoryGame = memoryStore.createGame({ profile: { name: 'Player' }, locationId: content.locations[0].location_id });
+  const memoryFirst = memoryStore.createOpening(memoryGame.game.game_id, { storyText: 'Opening', summary: 'Opening', stateAfter: canonicalState });
+  const memorySecond = memoryStore.createOpening(memoryGame.game.game_id, { storyText: 'Different', summary: 'Different', stateAfter: { ...initialState, scene: { ...initialState.scene, scene_note: '덮어쓰면 안 됨' } } });
+  assert.deepEqual(memoryFirst.state.state, first.state.state);
+  assert.deepEqual(memorySecond.state.state, memoryFirst.state.state);
+  assert.equal(memorySecond.turns.length, 1);
+});
+
+test('R3 migration source serializes Opening state and rejects non-next reservations', async () => {
+  const migration = await readFile(new URL('../supabase/migrations/20260821000100_company_r3_milestone0.sql', import.meta.url), 'utf8');
+  assert.match(migration, /from public\.company_r3_state where game_id = p_game_id for update/);
+  assert.match(migration, /update public\.company_r3_state set state = p_state_after/);
+  assert.match(migration, /v_state\.committed_turn \+ 1 <> p_turn_number/);
 });

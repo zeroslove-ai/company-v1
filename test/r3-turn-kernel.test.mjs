@@ -76,3 +76,10 @@ test('stale attempt cannot progress or commit after the job fence changes', () =
   assert.throws(() => store.updateProgress({ gameId: game.game.game_id, turnNumber: 1, attempt: { gameId: game.game.game_id, turnNumber: 1, actionId: 'stale', attemptNo: reservation.job.attempt_no, literalAction: '오래된 입력' }, storyText: 'stale' }), /r3_attempt_fence_conflict/);
   assert.equal(store.context(game.game.game_id).state.committed_turn, 0);
 });
+
+test('reservation rejects a non-next turn before creating a job', () => {
+  const store = new InMemoryR3Store();
+  const game = store.createGame({ profile, locationId: content.locations[0].location_id });
+  assert.throws(() => store.reserveTurn({ gameId: game.game.game_id, turnNumber: 2, actionId: 'skipped', literalAction: '건너뛴다.' }), /r3_turn_conflict/);
+  assert.equal(store.context(game.game.game_id).job, null);
+});
