@@ -76,15 +76,6 @@ It may specify exact branch/SHA/scope/tests/deploy boundaries. It MUST NOT:
 
 Every implementation task cites exact requirement/scenario IDs.
 
-Example:
-
-```text
-Implements: P-AGENCY-001, P-STORY-001
-Acceptance: A-TURN-001, A-STREAM-001
-Golden: G-CONTENT-CHARACTERS
-No product decision changes authorized.
-```
-
 ## 3. Decision status vocabulary
 
 ### OWNER_LOCKED
@@ -107,9 +98,20 @@ Deliberately excluded. Historical existence does not create a future requirement
 
 Historical/product candidate intentionally outside the active product. It is not a deferred implementation requirement.
 
-The historical non-MVP CSA rules use this status.
+Historical non-MVP CSA rules use this status.
 
-## 4. Evidence ranking
+## 4. Current owner-locked redesign decisions — 2026-08-21
+
+The following previously-open product decisions are now closed and must be treated as architecture inputs:
+
+1. **Choices** — ordinary turns keep free-form input and also provide exactly four natural choices authored by the same Story LLM; post-Story Extract/observer structures those literal choices for UI. No separate choice LLM. Extract failure does not invalidate Story and never falls back to prior-turn choices.
+2. **Immediate physical continuity** — start with one bounded replaceable natural-language `scene_note` plus separately structured location/present actors. Do not retain a generic posture/contact ontology in parallel. If real play proves this insufficient, return the concrete failing case before adding structure.
+3. **Dynamic player sexual gauge** — remove arousal/erection/ejaculation progress/count and supporting sexual-event-ledger gameplay state from the redesign. Static adult setup/profile facts are unaffected.
+4. **CSA scope** — the 9-rule MVP should support flexible subject/counterparty scope through a small shared canonical scope vocabulary rather than hard-fixing each template to one historical pairing. Scope flexibility is data only; it does not authorize a generic CSA execution/consent/relationship DSL. If this proves materially too complex, return evidence to owner before narrowing.
+
+No implementation task may silently reopen these four decisions.
+
+## 5. Evidence ranking
 
 When recovering prior requirements:
 
@@ -123,7 +125,7 @@ When recovering prior requirements:
 
 A later task comment never outranks accepted product authority.
 
-## 5. Change protocol
+## 6. Change protocol
 
 Any L0–L3 change requires:
 
@@ -137,7 +139,7 @@ No code-first product decision.
 
 A specialized CSA catalog change also requires explicit owner selection of the added/removed rule and scenario coverage. Bulk historical reimport is prohibited.
 
-## 6. Loop safety model
+## 7. Loop safety model
 
 Automation is not authorized merely because a task says READY.
 
@@ -155,7 +157,7 @@ If generation changed or enabled=false, the lease stops without further mutation
 
 Until such a mechanism exists, the loop remains manually disabled.
 
-## 7. Review gates
+## 8. Review gates
 
 No implementation starts until:
 
@@ -168,7 +170,7 @@ No implementation starts until:
 
 Passing CI is necessary but never sufficient for product acceptance.
 
-## 8. Current redesign stop state
+## 9. Current redesign stop state
 
 All prior Company v1/v2 implementation and candidate product-canon work is historical evidence during this review.
 
