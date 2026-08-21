@@ -52,6 +52,28 @@ test('R3 frontend only reaches saved status after consumeR3Sse success', async (
   assert.match(app, /await consumeR3Sse\(await client\.turn[\s\S]*setStatus\('저장되었습니다\.'/);
 });
 
+test('R3 deployment boundary resolves the reviewed entrypoint and isolated configs', async () => {
+  const apiConfig = JSON.parse(await readFile(new URL('../wrangler.r3.api.jsonc', import.meta.url), 'utf8'));
+  const frontendConfig = JSON.parse(await readFile(new URL('../wrangler.r3.frontend.jsonc', import.meta.url), 'utf8'));
+  const entry = await readFile(new URL('../runtime-r3/worker-entry.js', import.meta.url), 'utf8');
+  assert.deepEqual({ name: apiConfig.name, main: apiConfig.main }, { name: 'game-proxy-company-r3', main: 'runtime-r3/worker-entry.js' });
+  assert.deepEqual({ name: frontendConfig.name, directory: frontendConfig.assets.directory }, { name: 'gamebuilder-company-r3', directory: 'frontend-r3' });
+  assert.match(entry, /createProductionR3Worker/);
+  assert.match(entry, /export default/);
+  const { default: worker } = await import('../runtime-r3/worker-entry.js');
+  const response = await worker.fetch(new Request('https://r3.test/api/r3/catalogs'), {
+    SUPABASE_URL: 'https://db.test',
+    SUPABASE_SERVICE_ROLE_KEY: 'service-key',
+    LLM_API_URL: 'https://llm.test',
+    LLM_API_KEY: 'llm-key',
+    STORY_MODEL: 'story-test',
+    EXTRACT_MODEL: 'extract-test'
+  });
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(Array.isArray(payload.data.departments), true);
+});
+
 test('R3 Story first-content deadline clears after first delta and total deadline remains active', async () => {
   let calls = 0;
   const provider = createR3Provider({
