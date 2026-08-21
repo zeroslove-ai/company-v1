@@ -6,6 +6,11 @@ export function text(element, value) { if (element) element.textContent = value 
 export function normalizeNarrativeDisplay(value) { return String(value ?? '').replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim(); }
 
 function strings(value) { return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()).map(item => item.trim()) : []; }
+function canonicalChoices(value) {
+  const choices = strings(value);
+  return choices.length === 4 ? choices : [];
+}
+export function narrativeChoiceItems(choices) { return canonicalChoices(choices); }
 function normalizeInnerThought(value) { return String(value ?? '').replace(/^["“”']+|["“”']+$/gu, '').split('\n').map(line => line.trim()).filter(line => !/^[.．·\-–—]{1,4}$/u.test(line)).join('\n').replace(/\n{3,}/g, '\n\n').trim(); }
 function choiceTail(lines) {
   const last = lines.length - 1; let index = last;
@@ -29,21 +34,22 @@ export function parsePlainStoryForPresentation(storyText, { choices = [], actorN
   const raw = normalizeNarrativeDisplay(storyText);
   const lines = raw ? raw.split('\n') : [];
   const tail = choiceTail(lines);
-  const canonicalChoices = strings(choices).slice(0, 4);
-  const bodyLines = tail && canonicalChoices.length === 4 ? lines.slice(0, tail.end + 1) : lines;
+  const canonical = canonicalChoices(choices);
+  const bodyLines = tail && canonical.length === 4 ? lines.slice(0, tail.end + 1) : lines;
   const blocks = [];
   let paragraph = [];
   const flush = () => { const value = normalizeNarrativeDisplay(paragraph.join('\n')); if (value) blocks.push({ type: 'scene', text: value }); paragraph = []; };
   for (const line of bodyLines) {
-    const quoted = /^\s*(.{1,40}?)\s*(?:\(|:)\s*["“](.+?)["”]\s*$/.exec(line);
+    const quoted = /^\s*(.{1,40}?)\s*(?:\(([^()\n]{1,80})\)\s*)?:\s*["“](.+?)["”]\s*$/.exec(line);
     const speaker = quoted?.[1]?.trim();
+    const direction = quoted?.[2]?.trim() ?? '';
     const known = speaker && (!Object.keys(actorNames).length || Object.values(actorNames).includes(speaker) || speaker === '나' || speaker === '플레이어');
-    if (quoted && known) { flush(); blocks.push({ type: 'dialogue', speaker, text: quoted[2].trim() }); }
+    if (quoted && known) { flush(); blocks.push({ type: 'dialogue', speaker, direction, text: quoted[3].trim() }); }
     else if (line.trim()) paragraph.push(line);
     else flush();
   }
   flush();
-  return { raw, blocks, choices: canonicalChoices, fallback: Boolean(raw && (!blocks.length || (blocks.length === 1 && blocks[0].type === 'scene' && !tail))) };
+  return { raw, blocks, choices: canonical, fallback: Boolean(raw && (!blocks.length || (blocks.length === 1 && blocks[0].type === 'scene' && !tail))) };
 }
 
 export function renderNarrative(container, presentation) {
@@ -56,13 +62,26 @@ export function renderNarrative(container, presentation) {
       const card = document.createElement('article'); card.className = 'narrative-dialogue dialogue-card';
       const meta = document.createElement('header'); meta.className = 'dialogue-meta';
       const speaker = document.createElement('strong'); speaker.className = 'dialogue-speaker'; speaker.textContent = block.speaker;
+      meta.append(speaker);
+      if (block.direction) { const direction = document.createElement('span'); direction.className = 'dialogue-direction'; direction.textContent = block.direction; meta.append(direction); }
       const line = document.createElement('p'); line.className = 'dialogue-text'; line.textContent = normalizeNarrativeDisplay(block.text);
-      meta.append(speaker); card.append(meta, line); container.append(card);
+      card.append(meta, line); container.append(card);
     } else {
       const paragraph = document.createElement('p'); paragraph.className = 'narrative-scene'; paragraph.textContent = normalizeNarrativeDisplay(block.text); container.append(paragraph);
     }
   }
   if (!model.blocks.length) { const fallback = document.createElement('p'); fallback.className = 'narrative-raw-story'; fallback.textContent = model.raw; container.append(fallback); }
+  const choices = narrativeChoiceItems(model.choices);
+  if (choices.length === 4) {
+    const section = document.createElement('section'); section.className = 'narrative-choices';
+    const heading = document.createElement('h3'); heading.textContent = '선택지';
+    const list = document.createElement('ol');
+    for (const [index, choice] of choices.entries()) {
+      const item = document.createElement('li'); item.className = 'narrative-choice-item'; item.textContent = choice;
+      item.dataset.choiceIndex = String(index); item.dataset.choiceLiteral = choice; list.append(item);
+    }
+    section.append(heading, list); container.append(section);
+  }
 }
 
 export function choiceLabel(choice, maxLength = 5) {
@@ -73,7 +92,7 @@ export function choiceLabel(choice, maxLength = 5) {
 export function renderChoices(container, choices, { busy = false, onChoose } = {}) {
   if (!container) return;
   container.replaceChildren();
-  for (const [index, choice] of strings(choices).slice(0, 4).entries()) {
+  for (const [index, choice] of narrativeChoiceItems(choices).entries()) {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'choice-button'; button.textContent = `${index + 1} ${choiceLabel(choice)}`; button.title = choice; button.setAttribute('aria-label', `${index + 1}번 선택지: ${choice}`); button.disabled = busy; button.addEventListener('click', () => onChoose?.(choice)); container.append(button);
   }
 }
