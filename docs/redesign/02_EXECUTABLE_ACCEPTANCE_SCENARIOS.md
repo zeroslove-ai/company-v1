@@ -1,6 +1,6 @@
 # Company Redesign — Executable Acceptance Scenarios
 
-Status: OWNER-REVIEW DRAFT  
+Status: OWNER-REVIEW DRAFT / FOUR OPEN DECISIONS RESOLVED  
 Date: 2026-08-21
 
 These scenarios define whether the product is actually correct. They are not merely unit tests.
@@ -18,7 +18,7 @@ Every implementation task cites the exact scenario IDs it changes.
 
 Level: P0
 
-Given a new adult game, setup deliberately supports every owner-accepted profile field: name, department, position, age, height, weight, penis length, body type, speech style.
+Given a new adult game, setup deliberately supports every accepted profile field: name, department, position, age, height, weight, penis length, body type, speech style.
 
 Pass:
 
@@ -31,18 +31,9 @@ Pass:
 
 Level: P0 / owner manual
 
-Opening must:
+Opening uses real Company location/people, establishes a living scene and private unfamiliar `상식개변` premise, makes clear the app has not automatically changed reality, avoids helpdesk framing/mandatory first-work quest, and leaves the next action to the player.
 
-- show `상식개변: 회사편` identity;
-- use real Company location/registered people;
-- establish a living company scene;
-- establish the private unfamiliar `상식개변` premise;
-- make clear the app has not automatically altered reality;
-- avoid office-assistant/helpdesk framing;
-- avoid a mandatory first-work quest;
-- leave the next action to the player.
-
-Owner must recognize the product before Turn 1.
+Owner recognizes the product before Turn 1.
 
 ## A-CANON-001 — Canonical cast/world only
 
@@ -58,7 +49,7 @@ Level: P0
 
 Level: P0
 
-The exact typed player action is persisted and supplied to Story.
+The exact typed/clicked full player action is persisted and supplied to Story.
 
 Story may determine reaction/outcome but may not replace the requested target/action. A blocked action is narrated as blocked rather than rewritten. Refresh/history shows the same literal input.
 
@@ -69,7 +60,7 @@ Level: P0
 - first Story content appears incrementally;
 - no blocking loader covers arrived Story;
 - disconnect/reconnect does not erase durable/progress text;
-- progress status remains outside the reading surface.
+- progress status stays outside the reading surface.
 
 ## A-STORY-001 — Natural interactive fiction quality
 
@@ -87,33 +78,57 @@ Over five ordinary turns:
 
 Green CI cannot override failure here.
 
-## A-INPUT-001 — Free input is never locked out
+## A-CHOICE-001 — Story authors four natural choices; Extract projects them
 
 Level: P0
 
-Free-form input is always available in ordinary play. If optional choices are later enabled, they remain suggestions only, submit full literal text, never block free input, and never fall back to stale prior-turn choices.
+For every ordinary completed Story turn:
+
+- the same Story LLM that wrote the scene also writes exactly four natural full-action suggestions based on that scene;
+- no separate choice-generation LLM/API call exists;
+- the choices are meaningfully different directions, not four paraphrases;
+- the completed Story remains the source evidence for those choices;
+- post-Story Extract/observer returns the four literal strings for button/UI use;
+- Extract never invents a substitute choice not present in Story;
+- clicking a choice submits the full literal choice text unchanged;
+- free-form input remains available beside the buttons.
+
+Failure behavior:
+
+- if Extract cannot safely recover four current-turn choices, the valid Story still commits;
+- choice buttons may be unavailable for that turn;
+- free input remains usable;
+- no previous-turn choice is reused as fallback;
+- no second Story call is made just to repair choices.
 
 ## A-SCENE-001 — Location/presence continuity
 
 Level: P1
 
-Across movement and multi-character conversation:
+Across movement and multi-character conversation, current registered location remains coherent, actors do not teleport, explicit departure is handled, omission from one Story does not automatically delete a still-present actor, and next Story receives committed scene state.
 
-- current registered location remains coherent;
-- actors do not teleport;
-- exact departure removes an actor when appropriate;
-- omission from one Story does not automatically delete a still-present actor;
-- next Story receives committed scene state.
-
-## A-SCENE-002 — Immediate spatial continuity without giant ontology
+## A-SCENE-002 — Single `scene_note` preserves immediate physical continuity
 
 Level: P1
 
-Material ongoing facts such as lap-sitting/contact, placed documents, held objects, or close conversation survive to the next turn until Story changes them.
+Use one bounded replaceable natural-language `scene_note` plus separately structured location/present actors.
 
-The player can request to stand, move, put someone down, end contact, or otherwise alter the scene unless an actual active rule or physical condition directly prevents it.
+Test material facts such as:
 
-Acceptance is continuity and agency, not a particular posture schema.
+- an NPC remains sitting on the player’s lap;
+- a document remains on the table;
+- someone is still holding an object;
+- ongoing close contact/conversation remains true.
+
+Pass:
+
+- next turns preserve supported facts until Story changes them;
+- scene_note is rewritten rather than accumulated into a ledger;
+- uncertain details are not invented;
+- player can request standing, moving, putting someone down, ending contact, etc. unless a real active rule/physical condition prevents it;
+- no generic posture/contact/action ontology is introduced in parallel.
+
+If owner manual play exposes a concrete continuity failure that one scene_note cannot solve, document that exact failure before proposing extra structure.
 
 ## A-CONVERSATION-001 — Question/answer continuity
 
@@ -125,13 +140,7 @@ If Turn N ends with a direct question/request/decision, Turn N+1 responds to it 
 
 Level: P1 / owner 20+ turn manual
 
-A distinctive earlier committed fact/decision/conflict remains available after it leaves the recent raw window.
-
-Pass:
-
-- older events are available through grounded chronological memory;
-- blank optional summary cannot erase them;
-- memory adds no facts absent from committed Story.
+A distinctive earlier committed fact/decision/conflict remains available after leaving the recent raw window. Older events come through grounded chronological memory; blank optional summary cannot erase them; memory adds no facts absent from committed Story.
 
 ## A-MIND-001 — Relevant character Mind Monitor
 
@@ -143,142 +152,97 @@ Level: P1
 - monitor invents no unestablished event/contact;
 - monitor failure does not fail/regenerate Story.
 
+## A-PLAYER-METER-REMOVED-001 — No dynamic sexual gauge survives redesign
+
+Level: P0/P1 structural product check
+
+Pass only when the active redesigned runtime/frontend/prompt/observer/tests contain no gameplay authority for:
+
+- arousal meter;
+- erection state;
+- ejaculation progress/count;
+- sexual-event ledger used to drive those meters;
+- compatibility-only zombie fields for the removed mechanic.
+
+Static adult setup/profile information such as penis length may remain under the accepted setup contract.
+
 ## A-CSA-CATALOG-001 — Exactly the nine-rule MVP
 
-Level: P2 / hard product gate for CSA phase
+Level: P2 / hard CSA gate
 
-The active `상식개변` catalog is exactly:
+Active catalog contains exactly 3 weak + 3 medium + 3 strong templates from `07_CSA_MVP_CATALOG.md`. Historical non-MVP templates cannot activate through source/runtime/API/stale client/hidden UI/test fixtures. A tenth rule requires a new owner decision and acceptance scenario.
 
-### Weak
-
-- `no_panties_under_work_clothes`
-- `no_bra_under_work_clothes`
-- `target_places_requester_hand_on_waist_or_thigh`
-
-### Medium
-
-- `work_nude`
-- `masturbate_for_recipient`
-- `work_in_underwear_only`
-
-### Strong
-
-- `vaginal_sex_with_recipient`
-- `player_request_executes_immediately`
-- `continue_until_recipient_orgasm`
-
-Pass:
-
-- exactly 3 weak + 3 medium + 3 strong appear in active source/runtime/UI;
-- historical non-MVP templates cannot be activated by API, stale client state, hidden UI, copied SQL, or test fixtures;
-- runtime has no generic machinery implemented solely to support removed historical rules;
-- a future tenth rule requires explicit owner decision and its own acceptance scenario.
-
-## A-CSA-SCOPE-001 — Only accepted scope controls exist
+## A-CSA-SCOPE-001 — Flexible scope without a generic execution DSL
 
 Level: P2
 
-Before CSA implementation, owner accepts the subject/counterparty behavior for each retained template.
+The player may configure retained rules with flexible supported subject/counterparty scope rather than being forced to one historical hard-coded pairing.
 
 Pass:
 
-- affected group is not editable where the retained template has a fixed product subject;
-- request-triggered templates expose only counterparty choices actually approved for that template;
-- no generic every-group × every-group matrix appears merely because historical metadata allowed it;
-- API rejects any scope combination the accepted UI/product contract does not expose;
-- Story receives the exact active scope, not a broadened generic interpretation.
+- UI/API share one finite canonical scope vocabulary;
+- subject scope is selectable where the rule meaning is coherent;
+- rules that need a counterparty allow a supported counterparty scope independently;
+- unary rules do not require meaningless counterparty input;
+- selected scope is persisted literally with the active rule and projected literally to next Story;
+- valid flexible scope is not silently narrowed by template-specific historical defaults;
+- invalid/unknown scope IDs are rejected structurally;
+- scope flexibility does not create a generic action/execution DSL or consent/relationship inference engine.
+
+If source audit shows the intended flexible model has material complexity/semantic problems, implementation stops and returns concrete evidence to owner instead of narrowing scope silently.
 
 ## A-CSA-001 — Rule application is not a fake Story turn
 
 Level: P2
 
-Applying/changing/removing one of the nine valid rules:
+Applying/changing/removing one of the nine valid rules reports transaction success/failure, does not advance ordinary gameplay turn, inserts no fake literal action, and next Story receives the active rule state. NPC emotional response remains character-authored rather than inferred as affection/consent.
 
-- reports transaction success/failure explicitly;
-- does not advance ordinary gameplay turn merely because of the app transaction;
-- inserts no fake literal action into history;
-- next ordinary Story receives active rule state;
-- NPC emotional response remains character-authored, not inferred as affection/consent.
-
-## A-CSA-002 — Rule scope is exact
+## A-CSA-002 — Rule effect stays exact
 
 Level: P2
 
-A retained rule affects only its stated/accepted subject, counterparty, scope, and mechanic.
-
-- no unrelated romance, obedience, comfort, arousal, trust, or generic permission is implied;
-- removal stops future premise enforcement but does not rewrite committed Story history;
-- where wording leaves freedom, player/NPC actions remain natural rather than mechanically overconstrained.
+A retained rule affects only its selected subject/counterparty scope and its stated mechanic/premise. It does not imply unrelated romance, obedience, comfort, arousal, trust or generic permission. Removal stops future premise enforcement without rewriting committed Story history.
 
 ## A-CLOTHING-001 — Four-slot exact continuity
 
 Level: P2
 
-Because retained MVP rules include clothing mechanics:
+For retained clothing rules:
 
-- exact rule-required clothing state synchronizes deterministically;
+- exact rule-required clothing state synchronizes deterministically for affected actors;
 - ordinary clothing changes require Story-grounded observation;
 - one actor’s evidence cannot mutate another actor’s clothing;
 - state persists until Story/rule changes it.
 
 ## A-FEEDBACK-001 — Revise latest turn, do not advance chronology
 
-Level: P2 if retained
+Level: P2 if activated
 
-- original revision remains auditable;
-- replacement Story is generated for the same chronological turn;
-- failure leaves previous committed revision intact;
-- subsequent context uses accepted latest revision.
+Original revision remains auditable, replacement Story belongs to the same chronological turn, failure leaves previous committed revision intact, and subsequent context uses accepted latest revision.
 
 ## A-RESET-001 — Safe new game/reset
 
 Level: P2
 
-- reset/new game affects only selected game;
-- preserved evidence games are never reused/reset;
-- test fixture UUID is fresh where applicable;
-- new game reaches valid Setup/Opening.
+Reset/new game affects only selected game; preserved evidence games are never reused/reset; test UUID is fresh where applicable; new game reaches valid Setup/Opening.
 
 ## A-MEDIA-001 — Media cannot break the game
 
 Level: P2 if Image/TTS activated
 
-- Story commit succeeds despite media failure;
-- TTS OFF causes zero TTS API calls;
-- media never changes world truth.
-
-## A-PLAYER-STATE-001 — Narrow player meter if retained
-
-Level: P2 if retained
-
-- one writer/reducer owns it;
-- grounded Story observation drives changes;
-- no generic event taxonomy/permission inference;
-- refresh/replay is stable;
-- if rejected, UI/state/prompt/tests disappear together.
+Story commit succeeds despite media failure; TTS OFF causes zero TTS API calls; media never changes world truth.
 
 ## A-RECOVERY-001 — One user action cannot become two turns
 
 Level: P3
 
-Under double click, reconnect, stale worker wakeup, explicit retry and interruption:
+Under double click, reconnect, stale worker wakeup, explicit retry and interruption: one `(game, turn)` has one canonical active attempt; stale attempt cannot mutate a newer retry; exactly one successful committed turn results; committed literal action and Story belong to the same attempt; no retry-until-lucky occurs.
 
-- one `(game, turn)` has one active canonical attempt;
-- stale attempt cannot mutate a newer retry;
-- exactly one successful committed turn results;
-- committed literal action and Story belong to same attempt;
-- no automatic retry-until-lucky occurs.
-
-## A-OBSERVE-001 — Optional observation failure is local
+## A-OBSERVE-001 — Observation failure is local
 
 Level: P3
 
-If valid Story succeeds but optional observation/MM/summary projection fails:
-
-- Story remains usable/committable under accepted fallback;
-- no second Story generation occurs;
-- no unrelated state is invented;
-- memory fallback preserves committed Story.
+If valid Story succeeds but optional observation/MM/summary/choice projection partially fails, Story remains usable/committable under accepted fallback, no second Story is generated, unrelated state is not invented, and memory fallback preserves committed Story.
 
 ## A-REFRESH-001 — Refresh/reconnect parity
 
@@ -290,16 +254,15 @@ At Opening, idle, in-flight and post-Commit states, refresh reconstructs the sam
 
 Level: P0/P1 depending surface
 
-Compare deployed UI against Golden UI checklist. A phase may visibly disable an accepted future mechanic, but may not silently delete an accepted surface or claim disabled behavior succeeded.
+Compare deployed UI against Golden UI checklist. It must include Story-authored choice suggestions + free input, must omit the removed dynamic player sexual gauge, and must not silently delete accepted surfaces.
 
 ## Owner manual-play cadence
 
 1. Opening-only review before deep stabilization.
-2. 3–5 turn owner play for base Story/scene/MM.
+2. 3–5 turn owner play for Story + four choices + free input + scene_note + Mind Monitor.
 3. 10–20 turn owner play for continuity/memory.
-4. Resolve exact nine-rule CSA scope UI/semantics.
-5. Add exact 9-rule CSA MVP and test apply/change/remove inside real play.
-6. Only after those 9 are accepted may one additional rule be considered.
-7. Secondary systems follow after core product + CSA stability.
+4. Implement/test the exact 9-rule CSA MVP with flexible scope.
+5. Only after those 9 are accepted may one additional rule be considered.
+6. Secondary media/feedback systems follow after core stability.
 
 Automated long-play is diagnostic only and never substitutes for owner product acceptance.
