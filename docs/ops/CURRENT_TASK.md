@@ -1,416 +1,309 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-full-redesign-milestone0-v1
-Mode: SOURCE IMPLEMENTATION — A′ MILESTONE 0 VERTICAL SLICE
+Task ID: company-full-redesign-milestone0-source-correction-v1
+Mode: SOURCE CORRECTION — A′ MILESTONE 0 REVIEW FIX
 Updated: 2026-08-21
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Owner authorization / supersession
+## 0. Why this correction exists
 
-The previous task `company-redesign-runtime-kernel-bounded-audit-v1` is complete and terminalized in Issue #68 comment `5366175311` with `RECOMMEND_A` evidence.
+Milestone 0 candidate PR #97 was reviewed at exact source SHA:
 
-The owner has now explicitly selected the A′ direction and authorized implementation of Milestone 0.
+`7c0ffda17606fc6ae63f8e3c3822cca1030c5c7f`
 
-This CURRENT_TASK supersedes the prior design-only stop. Product decisions already locked in Issue #68 comment `5364770509` must not be reopened for implementation convenience.
+Operator review comment:
 
-This is the first executable Full Redesign source task.
+`5366531619`
 
-## 1. Binding design authority
+Decision: `CHANGES_REQUIRED`.
 
-Use the following as read-only design authority. Do not require these Draft PRs to be merged before implementation.
+Do not merge or deploy the reviewed candidate. This task is a narrow source correction of Milestone 0 only. Do not start Milestone 1.
 
-### Product / UI canon — PR #95
+Continue the existing source branch / Draft PR rather than opening a parallel implementation line:
 
-PR #95 current reviewed design head at registration:
+- branch: `company-redesign/milestone0-v1`
+- Draft PR: #97
+- exact reviewed starting source head: `7c0ffda17606fc6ae63f8e3c3822cca1030c5c7f`
 
-`9d9aec5a198d8673eb37aba8a0541adbd6c84627`
+Before editing, verify PR #97 still points to that exact head or a descendant containing only this authorized correction work. If unrelated source has appeared, STOP and report the mismatch.
 
-Binding product documents are the `docs/redesign/*` product-first authority set on that head, including:
+## 1. Binding authority remains unchanged
 
-- `00_AUTHORITY_AND_CHANGE_CONTROL.md`
-- `01_PRODUCT_CONSTITUTION.md`
-- `02_EXECUTABLE_ACCEPTANCE_SCENARIOS.md`
-- `03_GOLDEN_UI_CONTENT_MASTER.md`
-- `04_GAMEPLAY_STATE_MEMORY_MODEL.md`
-- `05_ARCHITECTURE_DECISION_FRAMEWORK.md`
-- `06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`
-- `07_CSA_MVP_CATALOG.md`
-- `08_COMPANY_V1_SALVAGE_MATRIX.md`
-- `09_RUNTIME_KERNEL_SOURCE_AUDIT.md`
-- `README.md`
+Product / UI authority:
 
-### Engine / acceptance / target matrix — PR #96
+- PR #95 design head: `9d9aec5a198d8673eb37aba8a0541adbd6c84627`
+- latest locked owner decisions in Issue #68, especially `5364770509`
 
-PR #96 design head at registration:
+Engine / acceptance authority:
 
-`9d44c4719fa6b098d53cac5cf946b93fafa6786b`
+- PR #96 design head: `9d44c4719fa6b098d53cac5cf946b93fafa6786b`
 
-Binding A′ documents:
+Presentation donor:
 
-- `09_ENGINE_ARCHITECTURE_DECISION_A_PRIME.md`
-- `10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md`
-- `11_TARGET_GAP_MATRIX_A_PRIME.md`
+- exact Company v1 snapshot: `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
+- donor presentation root: `src/frontend/pages/*`
 
-For product/UI/content behavior, PR #95 + latest explicit owner decisions control. For engine/testing/implementation architecture, PR #96 A′ documents control. If a real conflict is found, STOP and report the exact conflicting clauses rather than silently inventing a third design.
+Do not reopen product decisions for implementation convenience.
 
-## 2. Product/UI donor is frozen
+## 2. Preserve the accepted Milestone 0 direction
 
-The forward presentation donor is the complete Company v1 snapshot:
+Keep these already-valid properties unless the correction itself requires a narrow mechanical change:
 
-`5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
-
-Especially:
-
-`src/frontend/pages/*`
-
-Milestone 0 must transplant this presentation at high parity. The reduced `frontend-v2/` shell is explicitly NOT the forward UI target.
-
-Binding presentation rules:
-
-- Story is the dominant surface.
-- Streaming remains visible while generation is in progress.
-- No blocking loading overlay may cover the narrative.
-- Keep the accepted Setup experience and canonical Company look/layout.
-- Keep four natural Story-authored choices plus free-form input.
-- Choice click submits the full literal action text.
-- Company map presentation is retained; a map click may prefill literal input but must not become a second navigation/state writer.
-- Mind Monitor presentation is retained and fed only by new observer data.
-- Old browser-owned Story → Extract/Observer → Commit coordinator authority must NOT be transplanted.
-
-## 3. Milestone 0 target composition
-
-Build exactly this first vertical slice:
-
-```text
-Company v1 high-parity UI/content donor
-+ new thin frontend controller
-+ new minimal Company view model/domain
-+ trimmed A′ server-owned turn kernel
-+ Story LLM
-+ one small post-Story Observer
-+ pure minimal reducer
-+ one atomic Commit
-+ isolated company_r3_* persistence
-```
-
-A′ is not “continue v2”. Reuse only proven product-neutral v2 infrastructure ideas/implementation where they fit behind a small clean interface.
-
-## 4. New isolated implementation boundary
-
-Create new redesign implementation roots rather than mutating the old v1/v2 product layers in place.
-
-Preferred binding roots:
-
-- `runtime-r3/` — A′ server/domain/runtime
-- `frontend-r3/` — transplanted Company presentation + thin controller
-
-Small shared build/config helpers may live outside these roots only when necessary and must be listed in the terminal report.
-
-Do not make `runtime-v2/` or `frontend-v2/` the product implementation target.
-
-Historical v1/v2 source may be read/copied selectively as donor evidence, but old product/domain/orchestration authority must not leak into R3.
-
-## 5. Canonical content and Setup
-
-Use repository `content/*.json` as semantic authority. No shadow/demo lists.
-
-Milestone 0 must support the accepted Company Setup/profile fields from the product canon and v1 donor, including the complete approved profile contract.
-
-Server-side validation must be authoritative; frontend values are not trusted merely because they came from the transplanted form.
-
-Persist canonical catalog IDs rather than duplicating labels when appropriate.
-
-No fabricated actor/location identity and no fuzzy character substitution.
-
-## 6. Opening
-
-Implement a real Company Opening, not a generic work-assistant greeting.
-
-Opening must:
-
-- follow the accepted Product Constitution / acceptance scenarios;
-- use canonical Company location and registered actors;
-- establish the private `상식개변` app premise correctly;
-- not imply NPCs know about the app unless the player reveals it;
-- not invent an unrequested player action;
-- return agency to the player;
-- expose free-form input plus four natural Story-authored next actions when Story supplies them;
-- remain valid even if optional observer projection is imperfect.
-
-Opening may use the same Story → Observer pattern in opening mode.
-
-## 7. Ordinary turn — A′ server-owned lifecycle
-
-One player action equals one server-owned operation:
-
-```text
-literal action + action_id + expected_turn
-→ load committed context
-→ reserve one (game, turn) job
-→ Story once, streamed immediately
-→ bounded progress persistence
-→ Story complete
-→ Observer once
-→ normalize Observer fail-open
-→ pure minimal reducer
-→ atomic state + turn commit
-→ terminal committed context
-```
-
-The browser must not call separate Story/Observer/Commit stages.
-
-Preserve proven infrastructure properties from the audited v2 kernel where useful:
-
+- isolated `runtime-r3/` + `frontend-r3/` roots;
+- canonical repository `content/*.json` semantic authority;
+- accepted full Setup/profile contract including `penis_length_cm`;
+- one server-owned player turn;
+- Story once and visibly streamed;
+- one small post-Story Observer;
+- Observer fail-open;
+- pure minimal reducer;
+- one atomic Commit boundary;
 - one job per `(game_id, turn_number)`;
-- action identity;
-- attempt fencing;
-- stale attempt cannot commit;
-- bounded Story progress snapshots, not one DB write per token;
-- reconnect/readback to the same job;
-- explicit retry only;
-- no hidden retry-until-lucky;
-- one atomic Commit boundary.
+- action identity and attempt fencing;
+- bounded Story progress writes;
+- explicit retry only, no hidden regeneration;
+- isolated additive `company_r3_*` namespace;
+- no old v1/v2 game migration or compatibility writer;
+- no browser-owned Story → Observer → Commit coordinator;
+- no active CSA/TTS/Image/Feedback runtime in Milestone 0;
+- no dynamic sexual gauges, relation/event engine, generic physical ontology, or speculative memory system.
 
-Provider/model configuration must remain the existing approved values unless a separate owner decision changes them.
+## 3. Correction A — make Company canon real Story/Opening input
 
-## 8. Story contract
+Current defect:
 
-Story is the only narrative author.
+`runtime-r3/domain/memory.js::buildStoryContext()` currently projects profile/time/scene/clothing/recent history but does not project the actual Company semantic context required by the design.
 
-Story context must include only the bounded accepted inputs needed for play:
+Correct the production Story context so the Story LLM receives a bounded, canonical projection including:
 
-- literal player action verbatim;
-- validated player profile projection;
-- current time;
-- canonical current location;
-- present registered actors;
-- bounded `scene_note`;
-- relevant actor canon/prompt cards;
-- recent raw turns;
-- older chronological turn summaries under a token budget.
+1. literal player action verbatim;
+2. validated player profile projection appropriate to Story;
+3. current company time;
+4. canonical current location:
+   - stable location ID;
+   - user-facing name;
+   - source description;
+   - only bounded relevant adjacency/context if needed;
+5. currently present/relevant registered actor IDs and user-facing names;
+6. compact prompt-card canon for relevant heroines only;
+7. role/department/personality/speech facts needed for relevant general NPCs only;
+8. bounded `scene_note`;
+9. recent raw committed turns;
+10. older chronological summaries under the accepted budget;
+11. the private `상식개변` product premise appropriate to the current phase.
 
-Milestone 0 normal Story output is natural Korean player-visible narrative plus exactly four natural full next-action suggestions.
+Opening must receive an explicit opening-mode product context, not only `opening=true`.
 
-No separate choice LLM. No separate Mind Monitor LLM. No action classifier/outcome engine. No generic relationship/event/physical ontology. No automatic Story repair/regeneration loop.
+Opening contract must make clear to Story that:
 
-If choice extraction/projection fails, valid Story remains valid; free input remains available and stale prior choices must not reappear.
+- this is `상식개변: 회사편`, not a productivity assistant;
+- the player privately discovers/has the unfamiliar `상식개변` app premise defined by the Product Constitution;
+- NPCs do not know that private app premise unless the player reveals it;
+- only registered Company actors may be used as identified NPCs;
+- no unrequested player action is completed for the player;
+- the scene returns agency to free input + Story-authored choices.
 
-## 9. One small post-Story Observer
+Do not hard-code heroine prose or a shadow roster in runtime. Resolve semantic data from the canonical content adapter.
 
-Observer is a projection tool, never a second narrative author.
+Add focused tests that fail if Story/Opening context omits canonical location description, relevant actor canon, registered general-NPC facts, or the private app premise.
 
-Milestone 0 observer scope is limited to the A′ accepted structural projection:
+## 4. Correction B — implement a real Worker-compatible canonical content path
 
-- elapsed time;
-- location evidence;
-- entered/exited/present registered actors;
-- bounded replaceable `scene_note`;
-- four choices copied/structured from completed Story when valid;
-- turn summary;
-- relevant Mind Monitor `{surface, subconscious}`;
-- warnings;
-- only the minimal clothing evidence/state required by the accepted A′ core, without implementing CSA.
+Current defect:
 
-High-risk mutations require finite IDs and Story evidence where specified by the A′ design.
+`runtime-r3/domain/content-loader.js` uses `node:fs`, which is suitable for Node tests but is not the production Cloudflare Worker content-loading path. The default production worker currently receives no `content` object.
 
-Observer failure is fail-open:
+Required result:
 
-- valid Story still commits;
-- literal action still commits;
-- prior structural state remains when optional projection is unavailable;
-- summary may use bounded Story fallback;
-- MM/choices may be absent for that turn;
-- no stale choices;
-- no second Story generation.
+- keep a Node loader for tests if useful;
+- add a Worker-compatible content binding/build path that consumes the same repository `content/*.json` authority without runtime `node:fs`;
+- the actual production R3 Worker entry must construct/receive canonical content deterministically;
+- no copied hand-maintained semantic lists in `runtime-r3`, `frontend-r3`, SQL, or tests;
+- prove finite catalog identity/count parity against repository source in focused tests.
 
-## 10. Minimal state / no speculative ontology
+Do not solve this by moving demo/static names into another JS file.
 
-Initial mutable gameplay state is intentionally small:
+## 5. Correction C — implement the actual async Supabase R3 store
 
-```text
-time
-scene.location_id
-scene.present_actor_ids
-scene.scene_note
-active_rules   # empty / inactive in Milestone 0
-clothing       # only minimal retained structure if required by A′ core
-```
+Current defect:
 
-Do not add in Milestone 0:
+Milestone 0 authored `company_r3_*` tables/RPC SQL but source exposes only `InMemoryR3Store`. Worker methods currently assume synchronous store calls. `createProductionR3Worker()` expects injected `env.R3_STORE`/provider/content, while the default export does not construct a deployable production stack.
 
-- generic posture/contact ontology;
-- relationship meters/relationship engine;
-- generic event ledger;
-- generic action success/risk system;
-- dynamic player arousal/erection/ejaculation gauge;
-- supporting sexual-event-ledger gameplay state;
-- generic CSA execution DSL;
-- speculative memory/vector system;
-- compatibility mirrors for old saves.
+Implement a real Supabase-backed R3 store adapter matching the authored migration/RPC contract.
 
-Memory for the first live build is only recent raw turns + older stored summaries + current `scene_note` as specified by A′.
+The production store must support at minimum:
 
-## 11. New isolated persistence namespace
+- create game / profile + initial state;
+- context read;
+- Opening durable write/readback;
+- get canonical job;
+- reserve turn;
+- bounded progress update;
+- mark Story-complete semantics if required by the chosen store contract;
+- fail turn;
+- fenced atomic commit;
+- chronological committed-turn readback;
+- stale-job expiry/reconnect behavior required by A′.
 
-Author an additive migration for the new R3 namespace only:
+Make the runtime boundary explicitly async where remote persistence is involved. Do not hide network I/O behind fake synchronous APIs.
 
-- `company_r3_games`
-- `company_r3_state`
-- `company_r3_turn_jobs`
-- `company_r3_turns`
-- `company_r3_system_events`
+Production worker construction must be real and reviewable: given the approved environment/bindings it must instantiate the provider, canonical content, and Supabase-backed store rather than requiring an impossible prebuilt JS object on `env`.
 
-Required ownership follows the A′ architecture:
+Preserve:
 
-- games: game identity, content version, validated static profile;
-- state: committed turn, revision, minimal mutable state;
-- turn_jobs: reservation, action/attempt fencing, progress, stage/error metadata;
-- turns: literal action, raw Story, choices, summary, Mind Monitor, observer raw/applied/warnings, state_after, committed timestamp;
-- system_events: reserved audit boundary for later non-Story transactions; no CSA implementation in Milestone 0.
+- exact one-job identity;
+- `action_id` + `attempt_no` fencing;
+- committed-turn/revision conflict protection;
+- literal action stored from the reserved job;
+- one atomic durable commit;
+- no direct browser DB writes;
+- no v1/v2 table access.
 
-Opening is chronological turn 0.
+If the current migration/RPC source lacks a narrow RPC needed for the accepted A′ lifecycle, edit the unapplied R3 migration source in this same PR. Do not create compatibility aliases or touch historical migration files.
 
-Historical v1/v2 tables and all existing games/data are immutable evidence. Do not backfill, migrate, reset, delete, repair or rewrite them.
+### Source-only boundary remains
 
-This source task may AUTHOR the new migration/RPC SQL but MUST NOT APPLY it to any Supabase project.
+Do NOT apply the migration in this task.
+Do NOT write to Supabase.
+Do NOT deploy a Worker.
+Do NOT create/play a game.
 
-Use least-privilege/service-role-only mutation boundaries consistent with the accepted A′ security direction.
+## 6. Correction D — restore real donor presentation wiring, not reduced renderers
 
-## 12. Frontend Milestone 0
+Current defect:
 
-Transplant presentation from exact snapshot `5ec1a76...` at high parity, then replace authority behind it.
+The candidate copied much of the donor HTML/CSS but `frontend-r3/app.js` reconstructs important surfaces in reduced form.
 
-Required now:
+Correct the thin R3 presentation layer so the established donor presentation is actually used at high parity while the old coordinator authority remains excluded.
 
-- real Company shell/layout/responsive behavior;
-- full accepted Setup UI;
-- Story/history/current-stream presentation needed for core play;
-- four-choice presentation;
-- free input and submit;
-- current scene/character presentation;
-- Mind Monitor presentation;
-- player profile/state presentation;
-- Company map presentation/prefill behavior;
-- non-blocking connection/stream status;
-- one rebuilt tiny view model;
-- one thin R3 client that loads context, submits one turn, consumes Story SSE, and renders committed context.
+### Company map
 
-Do not transplant old `createTurnCoordinator()` or any browser-owned gameplay stage machine.
+Do not replace the donor map with a flat location-button list.
 
-Excluded sidecars may retain donor presentation assets only when that preserves layout, but they must not claim working functionality.
+Preserve the donor building/floor/location presentation and current-location indication from snapshot `5ec1a76...`, with only a thin data adapter to canonical R3 catalogs/state.
 
-## 13. Explicit Milestone 0 exclusions
+Map click remains presentation-only intent assistance:
 
-Do NOT implement in this task:
+- it may prefill a literal movement/action sentence;
+- it must not mutate scene/location directly;
+- it must not become a second navigation writer.
 
-- active CSA apply/change/remove transaction or 9-rule mechanics;
-- TTS runtime/API/service binding;
-- Image generation/selection/runtime;
-- Feedback revision runtime/API;
-- standalone NPC search;
-- dynamic sexual gauges/progression;
-- relationship/event engine;
-- generic physical execution system;
-- old 44-rule CSA semantics;
-- Production routing;
-- old-game compatibility/migration.
+### Mind Monitor
 
-History/export polish and other sidecars are not acceptance blockers for Milestone 0 unless required for the core visible shell to remain coherent.
+Preserve the donor tabs/cards/empty-state presentation.
 
-## 14. Tests / proof — small forward suite only
+- never show internal actor IDs to the player;
+- display canonical actor names;
+- only current observer-provided `{surface, subconscious}` data;
+- explicit empty state when no monitor exists;
+- no fabricated monitor entries.
 
-Do not spend time making the historical broad v1/v2 suite green when it protects obsolete architecture.
+### Current character / scene
 
-Create/retain only small forward-facing structural proof for Milestone 0, aligned with PR #96 `10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md`:
+Populate the donor current-character/scene presentation using canonical labels/names rather than raw IDs.
 
-1. canonical content + Setup validation/profile round-trip;
-2. literal action + one-job/attempt fencing + atomic Commit;
-3. Story streaming + bounded progress + reconnect/readback;
-4. Observer fail-open + finite actor/location mutation + `scene_note` replacement + no stale choices;
-5. tiny frontend proof that free input/choice click sends exact literal action and no browser Story→Observer→Commit coordinator exists.
+Do not invent a focal actor when none is authoritative.
 
-CSA transaction test belongs to the later CSA milestone, not this task.
+### Player profile/state
 
-No raw test-count target. Old failing tests are not a reason to reintroduce obsolete architecture.
+Render canonical department/position/body/speech labels from catalog IDs. Internal IDs may remain durable authority but are not the default player-facing text.
 
-Run focused R3 tests, syntax checks, diff checks and build/dry-run checks needed to prove the source candidate is reviewable.
+### Story / choices / input
 
-## 15. Source-task operational boundary
+Preserve current good behavior:
 
-Create one implementation branch from exact current `main` at lease time.
+- streaming Story stays visible;
+- no blocking loading overlay;
+- four valid Story-authored choices render when available;
+- free input always remains available;
+- choice click submits the exact full literal action;
+- no stale prior choices.
 
-Recommended branch:
+### Excluded sidecars
 
-`company-redesign/milestone0-v1`
+CSA/TTS/Image/Feedback remain disabled/nonfunctional in Milestone 0 exactly as the authority requires. Do not activate them while fixing presentation parity.
 
-Open one Draft PR and stop at source review.
+## 7. Strengthen focused forward tests
 
-Allowed:
+Existing test `test/r3-frontend-contract.test.mjs` is insufficient because string-presence assertions can pass a reduced reimplementation.
 
-- new R3 runtime/frontend source;
-- small selective donor copies/ports required by this task;
-- additive R3 migration/RPC source;
-- minimal new R3 tests/config/build wiring;
-- narrow docs needed to explain the implementation boundary.
+Add focused forward tests that directly prove:
 
-Forbidden until a later reviewed rollout task:
+1. Story context contains canonical location name/description and relevant actor canon without shadow lists;
+2. Opening context contains the private `상식개변` premise and registered actor authority;
+3. production entry has Worker-compatible canonical content wiring and no production dependency on `node:fs`;
+4. Supabase R3 store maps each lifecycle operation to the expected `company_r3_*` RPC/read boundary and is awaited by Worker code;
+5. production worker construction does not require injected fake JS store/provider objects;
+6. company map renderer preserves floor/location grouping rather than a flat list;
+7. Mind Monitor and player/scene presentation resolve canonical display names/labels, not internal IDs;
+8. free input and choice click send exact literal actions;
+9. no browser `/story`→`/observer`→`/commit` stage coordinator exists;
+10. excluded runtime features remain absent.
 
-- migration apply;
-- TEST/Production DB write;
-- Worker deploy;
-- game creation/reset/gameplay;
-- mutation of preserved evidence games;
-- Production/hospital access;
-- provider/model/config/secret change;
-- merge;
-- auto-merge.
+Keep tests small and forward-facing. Do not resurrect obsolete v1/v2 architecture merely to satisfy old tests.
 
-PR #95 and PR #96 remain design authority/evidence; do not merge or rewrite them from this implementation task.
+Run:
 
-## 16. Review acceptance gate
+- focused R3 tests;
+- relevant exact-head CI;
+- syntax checks for changed JS/MJS;
+- `git diff --check`;
+- any Worker dry-run/build check that performs no deploy and no DB/network mutation.
 
-Before source acceptance, operator must directly verify more than test counts:
+## 8. Files / scope
 
-- donor UI parity against snapshot `5ec1a76...`;
-- reduced `frontend-v2/` was not used as the product shell;
-- canonical Company content only, no demo/shadow semantic lists;
-- full accepted Setup/profile path exists;
-- real Company Opening premise;
-- literal action preserved end to end;
-- Story is visibly streamed and never covered by a blocking loader;
-- four Story-authored choices + free input behave literally;
-- one Observer only and fail-open behavior;
-- one server-owned turn lifecycle;
-- no browser stage coordinator;
-- minimal state contains no banned speculative domains;
-- `company_r3_*` is isolated and old v1/v2 data is untouched;
-- excluded CSA/TTS/Image/Feedback runtime is absent.
+Expected edits are limited to the existing Milestone 0 source family, such as:
 
-## 17. Completion / stop boundary
+- `runtime-r3/**`;
+- `frontend-r3/**`;
+- `test/r3-*.test.mjs`;
+- the unapplied `supabase/migrations/20260821000100_company_r3_milestone0.sql` only if required to make the accepted R3 persistence contract coherent.
+
+Do not edit old `runtime-v2/`, `frontend-v2/`, `src/engine/`, or old Company frontend implementation except read-only donor inspection.
+
+Do not edit PR #95/#96 design authority from this source correction task.
+
+## 9. Operational prohibitions
+
+Until a later source acceptance and rollout task:
+
+- no merge;
+- no auto-merge;
+- no migration apply;
+- no DB writes;
+- no Worker deploy;
+- no TEST/Production game creation or gameplay;
+- no reset/delete/repair of any existing game;
+- no Production/hospital access;
+- no provider/model/temperature/token/secret changes;
+- no start of Milestone 1;
+- no CSA/TTS/Image/Feedback runtime activation.
+
+## 10. Completion / stop boundary
+
+Update existing Draft PR #97 with the correction and stop for operator source review.
 
 Post one terminal report to Issue #68:
 
-`COMPANY_FULL_REDESIGN_MILESTONE0_READY_FOR_SOURCE_REVIEW`
+`COMPANY_FULL_REDESIGN_MILESTONE0_CORRECTION_READY_FOR_SOURCE_REVIEW`
 
-Include at minimum:
+Include:
 
-- `TASK_ID: company-full-redesign-milestone0-v1`;
-- starting main SHA;
+- `TASK_ID: company-full-redesign-milestone0-source-correction-v1`;
+- starting reviewed source SHA `7c0ffda17606fc6ae63f8e3c3822cca1030c5c7f`;
 - final source SHA;
-- Draft PR number;
+- PR #97 exact head;
 - exact changed paths;
-- exact PR #95 / PR #96 design heads consumed;
-- donor snapshot SHA and transplanted frontend modules;
-- R3 runtime/module inventory;
-- `company_r3_*` migration/RPC inventory;
-- Story/Observer/reducer/commit flow summary;
-- excluded feature confirmation;
-- focused test/build results;
-- confirmation: migrations applied 0, DB writes 0, deploys 0, gameplay 0, preserved games mutated 0.
+- Story/Opening canonical-context proof;
+- Worker-compatible content proof;
+- Supabase R3 store/async lifecycle inventory;
+- donor UI renderer parity proof;
+- focused tests + CI/build results;
+- confirmation: migration applies 0, DB writes 0, deploys 0, gameplay 0, preserved games mutated 0.
 
 Then STOP at `WAITING_REVIEW`.
 
-Do not merge, deploy, apply migration, create a game, or automatically register the rollout task.
+Do not merge or register a rollout/Milestone 1 task automatically.
