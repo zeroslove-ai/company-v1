@@ -170,9 +170,7 @@ Story does not receive precomputed success/failure, relationship stage, consent 
 
 ## 6. Post-Story observation
 
-Default candidate: one small observer/projection boundary after Story.
-
-Candidate outputs:
+Recommended starting topology: **one small observer call after Story**, combining the projections that must look at the same completed narrative:
 
 ```text
 elapsed_minutes
@@ -186,9 +184,13 @@ mind_monitor
 warnings
 ```
 
+This keeps scene/summary/Mind Monitor in one non-authoring observation stage and avoids multiplying LLM seams. If live evidence later proves one field materially harms reliability, split only that proven field rather than pre-fragmenting the pipeline.
+
 Do not output generic relationship/event/emotion ledgers, arbitrary save paths, generic physical-action taxonomy, CSA attitude/compliance semantics, media authority, or success/failure interpretation of open narrative actions.
 
 Exact system actions such as applying a retained clothing rule bypass open-ended observation only for the encoded finite clothing mechanic.
+
+Observer/Mind Monitor failure is local where structurally safe: it does not trigger another Story generation.
 
 ## 7. Memory model
 
@@ -261,7 +263,7 @@ Rule state is separate from chronological Story turns.
 
 ```text
 Open app
-→ select/edit one of the accepted 9 templates/scopes
+→ select/edit one of accepted 9 templates/scopes
 → validate exact active product definition
 → atomic apply/change/remove transaction
 → durable rule state changes
@@ -290,4 +292,4 @@ Every durable field must answer:
 
 If these answers are missing, do not add/retain the field.
 
-Historical compatibility is not a product requirement unless the owner explicitly authorizes save migration.
+Historical compatibility is not a product requirement unless owner explicitly authorizes save migration.
