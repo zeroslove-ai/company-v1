@@ -2,6 +2,18 @@ import { buildStoryContext } from '../domain/memory.js';
 
 export const R3_PROVIDER_TIMEOUTS = Object.freeze({ storyFirstContentMs: 30_000, storyTotalMs: 120_000, observerMs: 75_000 });
 
+const STORY_SYSTEM_PROMPT = 'Write natural Korean Company interactive fiction. The user context contains the canonical product and a story contract; follow that contract as a hard boundary. When opening is true, explicitly show the player discovering or recognizing the unfamiliar private app named in product.app_name/product.title during the scene, while NPCs remain ignorant until the player reveals it. Use only the registered Company setting, location, and actors; include workplace and social context without turning the story into a productivity, helpdesk, or chat-assistant task. Never complete an unrequested player action and return agency to the player. End every Story with one unambiguous final section containing exactly four distinct, natural, complete literal player actions numbered 1 through 4. Those four strings are the only choice source and must be visibly present verbatim in the current Story for the Observer to copy. Do not emit OOC, control markers, semantic taxonomies, outcome classifiers, or a second author voice.';
+const OBSERVER_SYSTEM_PROMPT = 'Return JSON only for the completed current Story. Project elapsed_minutes, location evidence, entered/exited actor evidence, scene_note, clothing_changes, the turn_summary, relevant Mind Monitor surface/subconscious, and warnings. The Story is the only choice authority: return choices as the exact four final numbered Story action strings in their original order, character-for-character. If the current Story does not contain exactly four distinct non-empty literal actions, return an empty choices array; never invent, mutate, pad, truncate, deduplicate, or use prior-turn choices. Never invent choices or unknown IDs. This is not a second narrative.';
+
+function applyR3PromptContract(payload) {
+  const current = payload?.messages?.[0]?.content;
+  const content = current?.startsWith('Write natural Korean Company interactive fiction')
+    ? STORY_SYSTEM_PROMPT
+    : current?.startsWith('Return JSON only.') ? OBSERVER_SYSTEM_PROMPT : null;
+  if (!content) return payload;
+  return { ...payload, messages: [{ ...payload.messages[0], content }, ...payload.messages.slice(1)] };
+}
+
 const deterministicChoices = Object.freeze([
   '주변의 상황을 차분히 살펴본다.', '가까운 누군가에게 인사한다.',
   '현재 장면을 다시 확인한다.', '원하는 행동을 직접 입력한다.'
@@ -31,7 +43,7 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
     const cancelFirst = () => { if (firstTimer) clearTimeout(firstTimer); };
     const cancel = () => { clearTimeout(totalTimer); cancelFirst(); };
     try {
-      const response = await fetchImpl(completionUrl, { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
+      const response = await fetchImpl(completionUrl, { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(applyR3PromptContract(payload)), signal: controller.signal });
       if (!response.ok) throw new Error(`r3_provider_${response.status}`);
       return { response, deadline: Date.now() + timeoutMs, firstDeadline, cancel, cancelFirst, abort: reason => controller.abort(reason), timedOut: () => timedOut };
     } catch (error) { cancel(); throw timedOut ?? error; }

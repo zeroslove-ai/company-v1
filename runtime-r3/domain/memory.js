@@ -9,8 +9,9 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const actorIds = relevantActorIds(content, state, { opening });
   const recent = turns.slice(-8).map(turn => ({ turn_number: turn.turn_number, literal_action: bounded(turn.literal_action, 2000), story_text: bounded(turn.story_text, 4000) }));
   const older = turns.slice(0, -8).map(turn => ({ turn_number: turn.turn_number, turn_summary: bounded(turn.turn_summary || turn.story_text, 600) })).slice(-24);
+  const product = productPremise(content);
   return {
-    product: productPremise(content),
+    product,
     opening,
     literal_action: literalAction,
     profile: state.profile ?? {},
@@ -20,6 +21,25 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     actors: canonicalActors(content, actorIds),
     clothing: state.clothing ?? {},
     active_rules: [],
+    opening_contract: opening ? {
+      product_title: product.title,
+      private_app_name: product.app_name,
+      player_must_discover_private_app: true,
+      npc_ignorance_until_player_reveals: true,
+      canonical_setting_and_registered_actors_only: true,
+      workplace_and_social_context_required: true,
+      never_complete_unrequested_player_action: true,
+      end_with_player_agency: true
+    } : null,
+    next_action_contract: {
+      author: 'story',
+      count: 4,
+      literal_player_actions: true,
+      final_story_section: true,
+      verbatim_observer_copy: true,
+      current_story_only: true,
+      unavailable_on_projection_failure: true
+    },
     recent_turns: recent,
     older_summaries: older
   };
