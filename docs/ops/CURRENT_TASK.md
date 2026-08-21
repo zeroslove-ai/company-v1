@@ -1,281 +1,416 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-redesign-runtime-kernel-bounded-audit-v1
-Mode: DOCS / READ-ONLY SOURCE ARCHITECTURE AUDIT — NO IMPLEMENTATION
+Task ID: company-full-redesign-milestone0-v1
+Mode: SOURCE IMPLEMENTATION — A′ MILESTONE 0 VERTICAL SLICE
 Updated: 2026-08-21
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Authority / why this task is now allowed
+## 0. Owner authorization / supersession
 
-The full Company implementation loop remains stopped. No runtime implementation has been authorized.
+The previous task `company-redesign-runtime-kernel-bounded-audit-v1` is complete and terminalized in Issue #68 comment `5366175311` with `RECOMMEND_A` evidence.
 
-However, the owner has now locked the four previously open redesign product decisions in Issue #68 comment `5364770509`:
+The owner has now explicitly selected the A′ direction and authorized implementation of Milestone 0.
 
-1. ordinary play = free-form input + exactly four natural Story-authored next actions, structured by the same post-Story Extract/observer; no separate choice LLM and no stale fallback;
-2. immediate physical continuity = structured location/present actors + one bounded replaceable natural-language `scene_note`; no parallel generic posture/contact ontology;
-3. remove dynamic player arousal/erection/ejaculation meters and supporting sexual-event-ledger gameplay state;
-4. first CSA product = exact 9-rule MVP with one small finite flexible subject/counterparty scope vocabulary; flexibility is data, not a generic execution/consent DSL.
+This CURRENT_TASK supersedes the prior design-only stop. Product decisions already locked in Issue #68 comment `5364770509` must not be reopened for implementation convenience.
 
-PR #95 remains the docs/design-only redesign PR and remains Draft. The product decisions above must not be reopened for implementation convenience.
+This is the first executable Full Redesign source task.
 
-The remaining major design decision is architecture selection only: runtime kernel A/B/C after bounded source audit.
+## 1. Binding design authority
 
-This task produces the evidence required for that owner architecture decision. It does **not** choose implementation authority by itself.
+Use the following as read-only design authority. Do not require these Draft PRs to be merged before implementation.
 
-## 1. Existing design authority to preserve
+### Product / UI canon — PR #95
 
-Read and treat as design input from current PR #95 head and repository evidence:
+PR #95 current reviewed design head at registration:
 
-- `docs/redesign/00_AUTHORITY_AND_CHANGE_CONTROL.md`
-- `docs/redesign/01_PRODUCT_CONSTITUTION.md`
-- `docs/redesign/02_EXECUTABLE_ACCEPTANCE_SCENARIOS.md`
-- `docs/redesign/03_GOLDEN_UI_CONTENT_MASTER.md`
-- `docs/redesign/04_GAMEPLAY_STATE_MEMORY_MODEL.md`
-- `docs/redesign/05_ARCHITECTURE_DECISION_FRAMEWORK.md`
-- `docs/redesign/06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`
-- `docs/redesign/07_CSA_MVP_CATALOG.md`
-- `docs/redesign/08_COMPANY_V1_SALVAGE_MATRIX.md`
-- `docs/redesign/README.md`
-- Issue #68 owner decision `5364770509`
+`9d9aec5a198d8673eb37aba8a0541adbd6c84627`
 
-Binding product presentation input:
+Binding product documents are the `docs/redesign/*` product-first authority set on that head, including:
 
-- complete Company v1 snapshot at `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
-- especially `src/frontend/pages/*`
-- this complete Company v1 presentation is the forward UI donor regardless of kernel A/B/C
-- reduced `frontend-v2/` is NOT the target UI
+- `00_AUTHORITY_AND_CHANGE_CONTROL.md`
+- `01_PRODUCT_CONSTITUTION.md`
+- `02_EXECUTABLE_ACCEPTANCE_SCENARIOS.md`
+- `03_GOLDEN_UI_CONTENT_MASTER.md`
+- `04_GAMEPLAY_STATE_MEMORY_MODEL.md`
+- `05_ARCHITECTURE_DECISION_FRAMEWORK.md`
+- `06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`
+- `07_CSA_MVP_CATALOG.md`
+- `08_COMPANY_V1_SALVAGE_MATRIX.md`
+- `09_RUNTIME_KERNEL_SOURCE_AUDIT.md`
+- `README.md`
 
-Do not reinterpret kernel choice as permission to redesign or shrink the accepted Company product/UI.
+### Engine / acceptance / target matrix — PR #96
 
-## 2. Execution boundary
+PR #96 design head at registration:
 
-This is a **read-only source audit + docs/design update only**.
+`9d44c4719fa6b098d53cac5cf946b93fafa6786b`
 
-Use the existing redesign branch / Draft PR #95:
+Binding A′ documents:
 
-- branch: `company-redesign/product-first-canon-v1`
-- PR: `#95`
+- `09_ENGINE_ARCHITECTURE_DECISION_A_PRIME.md`
+- `10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md`
+- `11_TARGET_GAP_MATRIX_A_PRIME.md`
 
-Do not create another source/design PR unless the existing PR is technically unusable; if unusable, STOP and report why instead of silently creating a replacement.
+For product/UI/content behavior, PR #95 + latest explicit owner decisions control. For engine/testing/implementation architecture, PR #96 A′ documents control. If a real conflict is found, STOP and report the exact conflicting clauses rather than silently inventing a third design.
 
-Allowed writes on the PR #95 branch:
+## 2. Product/UI donor is frozen
 
-- new audit document under `docs/redesign/`;
-- narrow updates to existing redesign docs to incorporate audited facts/recommendation;
-- no source/runtime/frontend/test/migration/config implementation edits.
+The forward presentation donor is the complete Company v1 snapshot:
 
-Do not merge PR #95.
+`5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
 
-## 3. Candidate A audit — current v2 transport/runtime kernel
+Especially:
 
-Audit actual current source, not prior reports.
+`src/frontend/pages/*`
 
-At minimum inspect the complete active dependency chain under:
+Milestone 0 must transplant this presentation at high parity. The reduced `frontend-v2/` shell is explicitly NOT the forward UI target.
 
-- `runtime-v2/`
-- relevant v2 worker/config/build entrypoints
-- `company_v2_*` migrations/RPC definitions as read-only evidence
-- v2-focused tests only as evidence of current contracts
+Binding presentation rules:
 
-Produce an exact module-level inventory classifying each relevant piece:
+- Story is the dominant surface.
+- Streaming remains visible while generation is in progress.
+- No blocking loading overlay may cover the narrative.
+- Keep the accepted Setup experience and canonical Company look/layout.
+- Keep four natural Story-authored choices plus free-form input.
+- Choice click submits the full literal action text.
+- Company map presentation is retained; a map click may prefill literal input but must not become a second navigation/state writer.
+- Mind Monitor presentation is retained and fed only by new observer data.
+- Old browser-owned Story → Extract/Observer → Commit coordinator authority must NOT be transplanted.
 
-- `KEEP_PRODUCT_NEUTRAL`
-- `KEEP_WITH_THIN_ADAPTER`
-- `REBUILD_PRODUCT_COUPLED`
-- `DELETE/DO_NOT_REUSE`
+## 3. Milestone 0 target composition
 
-For Candidate A explicitly answer with source evidence:
+Build exactly this first vertical slice:
 
-1. Can the server-owned turn/job/SSE/reconnect/fencing/commit machinery be hidden behind a small product-neutral interface without carrying demo product semantics?
-2. What is the minimum interface surface? Prefer concrete operations such as create/setup, context, opening, one turn, reconnect/readback, rule transaction boundary, feedback revision boundary, reset — but report the exact smallest proven set rather than copying this list mechanically.
-3. Which v2 modules currently mix transport with product semantics, and how hard are they to replace without destabilizing transport?
-4. Which DB tables/RPCs are genuinely product-neutral transaction infrastructure and which encode obsolete Phase-1/demo assumptions?
-5. Does keeping A require preserving obsolete choices=[], minimal player profile, demo content, old observer shape, or reduced frontend assumptions? The acceptable answer must be NO with a concrete separation plan, otherwise A fails.
-6. What known solved behavior would be lost if A is discarded: streaming, subrequest budget, job uniqueness, attempt fencing, reconnect, commit/fail semantics, ACL, etc.? Cite exact source/tests/migrations.
-7. Estimate implementation risk using concrete coupling/module evidence, not subjective labels alone.
+```text
+Company v1 high-parity UI/content donor
++ new thin frontend controller
++ new minimal Company view model/domain
++ trimmed A′ server-owned turn kernel
++ Story LLM
++ one small post-Story Observer
++ pure minimal reducer
++ one atomic Commit
++ isolated company_r3_* persistence
+```
 
-## 4. Candidate B audit — Hospital-derived runtime skeleton
+A′ is not “continue v2”. Reuse only proven product-neutral v2 infrastructure ideas/implementation where they fit behind a small clean interface.
 
-Audit only source that is actually available and identifiable from the repository/history/reference material available to Codex.
+## 4. New isolated implementation boundary
 
-Do not invent a Hospital implementation if the exact donor source cannot be proven.
+Create new redesign implementation roots rather than mutating the old v1/v2 product layers in place.
 
-Identify:
+Preferred binding roots:
 
-- exact donor paths/commits if available;
-- the smallest independently reusable runtime ideas/modules for natural Story + four Story-authored choices -> same observer -> commit;
-- streaming/reconnect/concurrency/commit machinery quality compared with Candidate A;
-- Company-incompatible semantic baggage (hypnosis, consent/physical taxonomies, DB identities, hospital-specific state, frontend authority, etc.);
-- what would need to be deleted/rebuilt before Company use.
+- `runtime-r3/` — A′ server/domain/runtime
+- `frontend-r3/` — transplanted Company presentation + thin controller
 
-Explicitly distinguish:
+Small shared build/config helpers may live outside these roots only when necessary and must be listed in the terminal report.
 
-- `PROVEN_REUSABLE_SOURCE`
-- `BEHAVIORAL_REFERENCE_ONLY`
-- `UNAVAILABLE/UNPROVEN`
+Do not make `runtime-v2/` or `frontend-v2/` the product implementation target.
 
-If B cannot be evaluated from concrete source at acceptable confidence, say so and score the uncertainty against B. Do not fill gaps from memory.
+Historical v1/v2 source may be read/copied selectively as donor evidence, but old product/domain/orchestration authority must not leak into R3.
 
-## 5. Candidate C audit — entirely new minimal kernel
+## 5. Canonical content and Setup
 
-Do not write any new runtime code.
+Use repository `content/*.json` as semantic authority. No shadow/demo lists.
 
-Derive the smallest required kernel from the locked redesign contracts and acceptance scenarios.
+Milestone 0 must support the accepted Company Setup/profile fields from the product canon and v1 donor, including the complete approved profile contract.
 
-Produce a concrete component list and interface sketch sufficient for:
+Server-side validation must be authoritative; frontend values are not trusted merely because they came from the transplanted form.
 
-- setup/opening;
-- one server-owned ordinary turn;
-- Story streaming;
-- Story-authored four choices structured by the same observer;
-- minimal observation/state (`location`, `present actors`, `scene_note`, accepted clothing/summary/MM fields only);
-- atomic commit + readback;
-- reconnect/idempotency/concurrency;
-- non-turn CSA transaction boundary;
-- feedback revision boundary;
-- reset/new game.
+Persist canonical catalog IDs rather than duplicating labels when appropriate.
 
-Then compare the amount of infrastructure C would have to re-solve against proven A assets. Do not claim C is simpler merely because it starts empty.
+No fabricated actor/location identity and no fuzzy character substitution.
 
-## 6. Company v1 salvage boundary verification
+## 6. Opening
 
-Kernel selection and product salvage are separate axes.
+Implement a real Company Opening, not a generic work-assistant greeting.
 
-Read the complete Company v1 snapshot at `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84` and verify `08_COMPANY_V1_SALVAGE_MATRIX.md` against actual files/modules.
+Opening must:
 
-At minimum verify exact treatment of:
+- follow the accepted Product Constitution / acceptance scenarios;
+- use canonical Company location and registered actors;
+- establish the private `상식개변` app premise correctly;
+- not imply NPCs know about the app unless the player reveals it;
+- not invent an unrequested player action;
+- return agency to the player;
+- expose free-form input plus four natural Story-authored next actions when Story supplies them;
+- remain valid even if optional observer projection is imperfect.
 
-- `src/frontend/pages/index.html`
-- presentation/responsive CSS stack
-- `render.js`
-- `setup.js`
-- `company-map.js` / map CSS
-- Mind Monitor presentation
-- `csa-app.js` presentation vs semantics
-- `tts.js`
-- history/download/media/feedback presentation assets
-- `view-model.js`
-- `app.js`
-- SSE/API/controller helpers
+Opening may use the same Story → Observer pattern in opening mode.
 
-For each, freeze one of:
+## 7. Ordinary turn — A′ server-owned lifecycle
 
-- KEEP_NEAR_VERBATIM
-- TRANSPLANT_PRESENTATION
-- REWIRE_DATA_CONTRACT
-- REBUILD_CONTROLLER/SEMANTICS
-- DELETE
-- DEFER_KEEP_ASSET
+One player action equals one server-owned operation:
 
-Critical guard:
+```text
+literal action + action_id + expected_turn
+→ load committed context
+→ reserve one (game, turn) job
+→ Story once, streamed immediately
+→ bounded progress persistence
+→ Story complete
+→ Observer once
+→ normalize Observer fail-open
+→ pure minimal reducer
+→ atomic state + turn commit
+→ terminal committed context
+```
 
-- `app.js` / old browser-owned Story -> Extract -> Commit coordinator must not return as gameplay authority;
-- removal of old controller authority must not justify redesigning/deleting the complete Company v1 presentation.
+The browser must not call separate Story/Observer/Commit stages.
 
-## 7. Required deliverable
+Preserve proven infrastructure properties from the audited v2 kernel where useful:
 
-Create one new document on PR #95:
+- one job per `(game_id, turn_number)`;
+- action identity;
+- attempt fencing;
+- stale attempt cannot commit;
+- bounded Story progress snapshots, not one DB write per token;
+- reconnect/readback to the same job;
+- explicit retry only;
+- no hidden retry-until-lucky;
+- one atomic Commit boundary.
 
-`docs/redesign/09_RUNTIME_KERNEL_SOURCE_AUDIT.md`
+Provider/model configuration must remain the existing approved values unless a separate owner decision changes them.
 
-It must include:
+## 8. Story contract
 
-### A. Exact evidence inventory
+Story is the only narrative author.
 
-- audited SHAs/paths;
-- Candidate A source/module table;
-- Candidate B proven/unproven donor table;
-- Candidate C minimal required component table;
-- verified Company v1 salvage module table.
+Story context must include only the bounded accepted inputs needed for play:
 
-### B. Comparable decision matrix
+- literal player action verbatim;
+- validated player profile projection;
+- current time;
+- canonical current location;
+- present registered actors;
+- bounded `scene_note`;
+- relevant actor canon/prompt cards;
+- recent raw turns;
+- older chronological turn summaries under a token budget.
 
-Score A/B/C against the already-locked priorities in `05_ARCHITECTURE_DECISION_FRAMEWORK.md`:
+Milestone 0 normal Story output is natural Korean player-visible narrative plus exactly four natural full next-action suggestions.
 
-1. product fidelity behind Company v1 UI;
-2. conceptual simplicity;
-3. single authority;
-4. long-play continuity without giant ontology;
-5. failure isolation;
-6. streaming correctness;
-7. concurrency correctness;
-8. testability;
-9. operational simplicity;
-10. reuse value last.
+No separate choice LLM. No separate Mind Monitor LLM. No action classifier/outcome engine. No generic relationship/event/physical ontology. No automatic Story repair/regeneration loop.
 
-Every score must cite concrete source/audit evidence.
+If choice extraction/projection fails, valid Story remains valid; free input remains available and stale prior choices must not reappear.
 
-### C. Recommendation
+## 9. One small post-Story Observer
 
-Return exactly one of:
+Observer is a projection tool, never a second narrative author.
 
-- `RECOMMEND_A`
-- `RECOMMEND_B`
-- `RECOMMEND_C`
-- `BLOCKED_INSUFFICIENT_EVIDENCE`
+Milestone 0 observer scope is limited to the A′ accepted structural projection:
 
-If recommending A, specify the exact product-neutral kernel boundary and exact parts to discard/rebuild.
-If recommending B, specify exact donor source and exact foreign semantics removed.
-If recommending C, specify why A/B reuse costs exceed rebuilding solved transport/concurrency behavior.
+- elapsed time;
+- location evidence;
+- entered/exited/present registered actors;
+- bounded replaceable `scene_note`;
+- four choices copied/structured from completed Story when valid;
+- turn summary;
+- relevant Mind Monitor `{surface, subconscious}`;
+- warnings;
+- only the minimal clothing evidence/state required by the accepted A′ core, without implementing CSA.
 
-Recommendation is advisory only; owner acceptance is still required.
+High-risk mutations require finite IDs and Story evidence where specified by the A′ design.
 
-### D. Final target gap-matrix inputs
+Observer failure is fail-open:
 
-List the exact target composition that a later final Gap Matrix should compare against current repository state:
+- valid Story still commits;
+- literal action still commits;
+- prior structural state remains when optional projection is unavailable;
+- summary may use bounded Story fallback;
+- MM/choices may be absent for that turn;
+- no stale choices;
+- no second Story generation.
 
-`accepted Company v1 product/UI salvage + selected/recommended kernel + rebuilt thin controller/view model/domain + locked 9-rule CSA/product decisions`.
+## 10. Minimal state / no speculative ontology
 
-Do not write implementation code.
+Initial mutable gameplay state is intentionally small:
 
-## 8. Narrow updates to existing redesign docs
+```text
+time
+scene.location_id
+scene.present_actor_ids
+scene.scene_note
+active_rules   # empty / inactive in Milestone 0
+clothing       # only minimal retained structure if required by A′ core
+```
 
-After the audit, update only the facts that the source audit resolves in:
+Do not add in Milestone 0:
 
-- `docs/redesign/05_ARCHITECTURE_DECISION_FRAMEWORK.md`
-- `docs/redesign/08_COMPANY_V1_SALVAGE_MATRIX.md` if actual-source verification changes/clarifies classifications
-- `docs/redesign/README.md`
+- generic posture/contact ontology;
+- relationship meters/relationship engine;
+- generic event ledger;
+- generic action success/risk system;
+- dynamic player arousal/erection/ejaculation gauge;
+- supporting sexual-event-ledger gameplay state;
+- generic CSA execution DSL;
+- speculative memory/vector system;
+- compatibility mirrors for old saves.
 
-Do not mark the recommended architecture as owner-accepted. Use explicit status such as `SOURCE-AUDITED / OWNER DECISION PENDING`.
+Memory for the first live build is only recent raw turns + older stored summaries + current `scene_note` as specified by A′.
 
-Do not create the final implementation Gap Matrix yet unless the architecture is already owner-selected by a newer Issue #68 decision that appears after this task registration. If such a new owner selection appears, STOP and return to operator instead of silently extending scope.
+## 11. New isolated persistence namespace
 
-## 9. Validation / stop boundary
+Author an additive migration for the new R3 namespace only:
 
-Before terminal report prove:
+- `company_r3_games`
+- `company_r3_state`
+- `company_r3_turn_jobs`
+- `company_r3_turns`
+- `company_r3_system_events`
 
-- changed files are docs/redesign only;
-- runtime-v2 edits = 0;
-- frontend-v2 edits = 0;
-- src implementation edits = 0;
-- tests/config edits = 0;
-- migration/SQL edits = 0;
-- DB writes = 0;
-- deploys = 0;
-- gameplay/game creation/reset = 0;
-- Production/hospital live access = 0;
-- PR #95 remains Draft and unmerged.
+Required ownership follows the A′ architecture:
+
+- games: game identity, content version, validated static profile;
+- state: committed turn, revision, minimal mutable state;
+- turn_jobs: reservation, action/attempt fencing, progress, stage/error metadata;
+- turns: literal action, raw Story, choices, summary, Mind Monitor, observer raw/applied/warnings, state_after, committed timestamp;
+- system_events: reserved audit boundary for later non-Story transactions; no CSA implementation in Milestone 0.
+
+Opening is chronological turn 0.
+
+Historical v1/v2 tables and all existing games/data are immutable evidence. Do not backfill, migrate, reset, delete, repair or rewrite them.
+
+This source task may AUTHOR the new migration/RPC SQL but MUST NOT APPLY it to any Supabase project.
+
+Use least-privilege/service-role-only mutation boundaries consistent with the accepted A′ security direction.
+
+## 12. Frontend Milestone 0
+
+Transplant presentation from exact snapshot `5ec1a76...` at high parity, then replace authority behind it.
+
+Required now:
+
+- real Company shell/layout/responsive behavior;
+- full accepted Setup UI;
+- Story/history/current-stream presentation needed for core play;
+- four-choice presentation;
+- free input and submit;
+- current scene/character presentation;
+- Mind Monitor presentation;
+- player profile/state presentation;
+- Company map presentation/prefill behavior;
+- non-blocking connection/stream status;
+- one rebuilt tiny view model;
+- one thin R3 client that loads context, submits one turn, consumes Story SSE, and renders committed context.
+
+Do not transplant old `createTurnCoordinator()` or any browser-owned gameplay stage machine.
+
+Excluded sidecars may retain donor presentation assets only when that preserves layout, but they must not claim working functionality.
+
+## 13. Explicit Milestone 0 exclusions
+
+Do NOT implement in this task:
+
+- active CSA apply/change/remove transaction or 9-rule mechanics;
+- TTS runtime/API/service binding;
+- Image generation/selection/runtime;
+- Feedback revision runtime/API;
+- standalone NPC search;
+- dynamic sexual gauges/progression;
+- relationship/event engine;
+- generic physical execution system;
+- old 44-rule CSA semantics;
+- Production routing;
+- old-game compatibility/migration.
+
+History/export polish and other sidecars are not acceptance blockers for Milestone 0 unless required for the core visible shell to remain coherent.
+
+## 14. Tests / proof — small forward suite only
+
+Do not spend time making the historical broad v1/v2 suite green when it protects obsolete architecture.
+
+Create/retain only small forward-facing structural proof for Milestone 0, aligned with PR #96 `10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md`:
+
+1. canonical content + Setup validation/profile round-trip;
+2. literal action + one-job/attempt fencing + atomic Commit;
+3. Story streaming + bounded progress + reconnect/readback;
+4. Observer fail-open + finite actor/location mutation + `scene_note` replacement + no stale choices;
+5. tiny frontend proof that free input/choice click sends exact literal action and no browser Story→Observer→Commit coordinator exists.
+
+CSA transaction test belongs to the later CSA milestone, not this task.
+
+No raw test-count target. Old failing tests are not a reason to reintroduce obsolete architecture.
+
+Run focused R3 tests, syntax checks, diff checks and build/dry-run checks needed to prove the source candidate is reviewable.
+
+## 15. Source-task operational boundary
+
+Create one implementation branch from exact current `main` at lease time.
+
+Recommended branch:
+
+`company-redesign/milestone0-v1`
+
+Open one Draft PR and stop at source review.
+
+Allowed:
+
+- new R3 runtime/frontend source;
+- small selective donor copies/ports required by this task;
+- additive R3 migration/RPC source;
+- minimal new R3 tests/config/build wiring;
+- narrow docs needed to explain the implementation boundary.
+
+Forbidden until a later reviewed rollout task:
+
+- migration apply;
+- TEST/Production DB write;
+- Worker deploy;
+- game creation/reset/gameplay;
+- mutation of preserved evidence games;
+- Production/hospital access;
+- provider/model/config/secret change;
+- merge;
+- auto-merge.
+
+PR #95 and PR #96 remain design authority/evidence; do not merge or rewrite them from this implementation task.
+
+## 16. Review acceptance gate
+
+Before source acceptance, operator must directly verify more than test counts:
+
+- donor UI parity against snapshot `5ec1a76...`;
+- reduced `frontend-v2/` was not used as the product shell;
+- canonical Company content only, no demo/shadow semantic lists;
+- full accepted Setup/profile path exists;
+- real Company Opening premise;
+- literal action preserved end to end;
+- Story is visibly streamed and never covered by a blocking loader;
+- four Story-authored choices + free input behave literally;
+- one Observer only and fail-open behavior;
+- one server-owned turn lifecycle;
+- no browser stage coordinator;
+- minimal state contains no banned speculative domains;
+- `company_r3_*` is isolated and old v1/v2 data is untouched;
+- excluded CSA/TTS/Image/Feedback runtime is absent.
+
+## 17. Completion / stop boundary
 
 Post one terminal report to Issue #68:
 
-`COMPANY_REDESIGN_RUNTIME_KERNEL_AUDIT_READY_FOR_OWNER_DECISION`
+`COMPANY_FULL_REDESIGN_MILESTONE0_READY_FOR_SOURCE_REVIEW`
 
-Include:
+Include at minimum:
 
-- TASK_ID;
-- PR #95 final head SHA;
-- exact changed docs;
-- A/B/C recommendation;
-- Candidate A keep/rebuild/delete summary;
-- Candidate B evidence confidence;
-- Candidate C rebuild-cost summary;
-- Company v1 salvage verification summary;
-- unresolved architecture risks;
-- all zero-mutation confirmations.
+- `TASK_ID: company-full-redesign-milestone0-v1`;
+- starting main SHA;
+- final source SHA;
+- Draft PR number;
+- exact changed paths;
+- exact PR #95 / PR #96 design heads consumed;
+- donor snapshot SHA and transplanted frontend modules;
+- R3 runtime/module inventory;
+- `company_r3_*` migration/RPC inventory;
+- Story/Observer/reducer/commit flow summary;
+- excluded feature confirmation;
+- focused test/build results;
+- confirmation: migrations applied 0, DB writes 0, deploys 0, gameplay 0, preserved games mutated 0.
 
-Then set/leave state `WAITING_OWNER_DECISION` and STOP.
+Then STOP at `WAITING_REVIEW`.
 
-No implementation task may be registered automatically from this audit.
+Do not merge, deploy, apply migration, create a game, or automatically register the rollout task.
