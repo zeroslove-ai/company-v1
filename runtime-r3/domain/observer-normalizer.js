@@ -6,6 +6,12 @@ const text = value => typeof value === 'string' ? value.trim() : '';
 
 function evidenceQuote(value, storyText) { const quote = text(value); return quote && storyText.includes(quote) ? quote : ''; }
 
+function locationIdFromCanonicalName(quote, content) {
+  return (content?.locations ?? [])
+    .filter(location => location?.location_id && typeof location.name === 'string' && quote.includes(location.name))
+    .sort((left, right) => right.name.length - left.name.length)[0]?.location_id ?? null;
+}
+
 export function normalizeObserver(input, { storyText = '', content, currentState } = {}) {
   const observer = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const actors = registeredActorIds(content);
@@ -13,7 +19,14 @@ export function normalizeObserver(input, { storyText = '', content, currentState
   const warnings = [];
   const normalized = { elapsed_minutes: 0, entered: [], exited: [], scene_note: null, clothing_changes: [], choices: null, turn_summary: '', mind_monitor: {}, warnings };
   const location = observer.location && typeof observer.location === 'object' ? observer.location : null;
-  if (location && locations.has(location.location_id) && evidenceQuote(location.quote, storyText)) normalized.location = { location_id: location.location_id, quote: text(location.quote) };
+  const locationQuote = location ? evidenceQuote(location.quote, storyText) : '';
+  const canonicalLocationId = locationQuote ? locationIdFromCanonicalName(locationQuote, content) : null;
+  if (location && locations.has(location.location_id) && locationQuote) {
+    const locationId = canonicalLocationId ?? location.location_id;
+    if (canonicalLocationId && canonicalLocationId !== location.location_id) warnings.push('location_projection_corrected');
+    normalized.location = { location_id: locationId, quote: locationQuote };
+  }
+  else if (location && canonicalLocationId) normalized.location = { location_id: canonicalLocationId, quote: locationQuote };
   else if (location) warnings.push('location_projection_dropped');
   for (const key of ['entered', 'exited']) {
     const source = Array.isArray(observer[key]) ? observer[key] : [];

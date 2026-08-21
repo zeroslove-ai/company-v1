@@ -137,6 +137,10 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /exact four final numbered Story action strings/i);
   assert.match(observerSystem, /never invent, mutate, pad, truncate, deduplicate, or use prior-turn choices/i);
 
+  const correctedLocation = normalizeObserver({ location: { location_id: 'brand_strategy_office', quote: '브랜드전략팀 회의실에 들어선다.' } }, { storyText: '브랜드전략팀 회의실에 들어선다.', content, currentState: state });
+  assert.equal(correctedLocation.location.location_id, 'brand_strategy_meeting_room');
+  assert.ok(correctedLocation.warnings.includes('location_projection_corrected'));
+
   const ordinaryLiteralAction = 'Ask the team lead what changed in the meeting plan.';
   let ordinaryStory = '';
   for await (const delta of provider.story({ opening: false, literalAction: ordinaryLiteralAction, context: { state: { state }, turns: [] }, content })) ordinaryStory += delta;
