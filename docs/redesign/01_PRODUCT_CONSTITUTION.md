@@ -1,6 +1,6 @@
 # Company Redesign — Product Constitution
 
-Status: OWNER-REVIEW DRAFT  
+Status: OWNER-REVIEW DRAFT / FOUR OPEN DECISIONS RESOLVED  
 Date: 2026-08-21
 
 This document defines the game before defining the runtime. Lower-level architecture/tasks may implement these requirements but may not weaken or reinterpret them.
@@ -23,257 +23,255 @@ Status: OWNER_LOCKED
 - It can establish/change/remove rules that affected people accept as ordinary according to the rule’s actual scope.
 - NPCs do not automatically know the app exists.
 - Merely possessing/opening the app does not change reality.
-- Rule activation changes only the rule’s stated institutional/world premise. It does not automatically create affection, comfort, private consent, sexual desire, obedience, trust, romance, or unrelated physical facts.
-- Applying/removing a rule is a system transaction, not automatically a player-authored narrative turn.
+- Rule activation changes only the rule’s stated premise. It does not automatically create affection, comfort, private consent, sexual desire, obedience, trust, romance, or unrelated physical facts.
+- Applying/removing a rule is a system transaction, not a player-authored narrative turn.
 
 ## P-AGENCY-001 — Literal player agency
 
 Status: OWNER_LOCKED
 
-- Free-form player input must always be available during ordinary play.
-- The player’s material actor, target, requested action, direction, request, refusal, self-state, and intent may not be silently substituted by the runtime or Story.
-- Story decides response, feasibility, consequences, NPC reaction, and outcome; it does not rewrite the requested action into a safer/easier/different action.
-- If an action is physically/socially blocked, Story narrates the block/reaction rather than pretending the player requested something else.
-- Ongoing scene states do not become invisible rails. A player may naturally request interruption/change unless an actually active rule or physical condition directly governs that behavior.
+- Free-form player input is always available during ordinary play.
+- The player’s material actor, target, requested action, direction, request, refusal, self-state, and intent may not be silently substituted.
+- Story decides response, feasibility, consequences, NPC reaction, and outcome; it does not rewrite the requested action into another action.
+- If an action is blocked or unwelcome, Story narrates that response rather than pretending the player asked for something else.
+- Ongoing poses/contacts are not invisible rails. The player may naturally request interruption/change unless an active rule or physical condition actually prevents it.
 
 ## P-STORY-001 — Story-first experience
 
 Status: OWNER_LOCKED
 
-- Rich natural narrative is the primary game surface.
-- Story must visibly stream; no blocking loading overlay may cover the narrative while generation is in progress.
-- NPCs have their own personality, work, attention, reactions, and initiative. They are not passive API responders.
-- Multi-character scenes should allow NPC-to-NPC reaction when context warrants it.
-- The world should feel inhabited by ongoing company activity without turning every scene into mandatory work progression.
-- Repetitive scene restart, generic assistant language, protocol/OOC self-repair text, or status-report prose is a product failure.
+- Rich natural narrative is the primary game surface and visibly streams.
+- No blocking loading overlay may cover the narrative while generation is in progress.
+- NPCs have personality, work, attention, reactions, and initiative; they are not passive API responders.
+- Multi-character scenes allow NPC-to-NPC reaction when context warrants it.
+- Company work is living context, not compulsory quest progression.
+- Repeated scene restart, generic assistant language, OOC/self-repair text, or visible protocol garbage is product failure.
 
 ## P-CONTENT-001 — Canonical Company world
 
 Status: OWNER_LOCKED
 
-Repository content is the semantic source of truth for finite established world identity.
+Repository content is semantic truth for established finite world identity:
 
-At redesign start this includes:
+- `content/edition.json`;
+- five heroines in `content/characters.json`: 서원희, 윤민아, 김제나, 한리브, 이메이;
+- `content/general_npcs.json`;
+- `content/map.json`;
+- organization/department, position, body-type and speech-style catalogs;
+- the accepted active CSA catalog governed by `07_CSA_MVP_CATALOG.md`.
 
-- edition/title from `content/edition.json`;
-- five heroines from `content/characters.json`: 서원희, 윤민아, 김제나, 한리브, 이메이;
-- registered general NPC catalog from `content/general_npcs.json`;
-- company map/location catalog from `content/map.json`;
-- organization/department, position, body-type, speech-style catalogs;
-- the **accepted active CSA catalog**, governed by `07_CSA_MVP_CATALOG.md`.
-
-Important CSA correction:
-
-- the historical 44-rule `content/csa_presets.json` is evidence/source material, **not automatically the forward active product catalog**;
-- first playable redesign exposes exactly the owner-approved 9-rule MVP;
-- when implementation begins, there must be one active semantic CSA source rather than a 44-rule source plus scattered 9-rule allowlists.
-
-Runtime/frontend/SQL/tests may not maintain a second hand-written semantic catalog.
+The historical 44-rule CSA file is evidence/source material, not automatically the active forward product. The first playable redesign exposes exactly the approved 9-rule MVP. Runtime/frontend/SQL/tests may not maintain shadow semantic catalogs.
 
 ## P-CHARACTER-001 — Character identity and autonomy
 
 Status: OWNER_LOCKED
 
 - Stable registered character IDs are authoritative for structured identity.
-- Character prompt-card personality, speech, addressing, appearance, role, and distinctive traits must be available to Story when relevant.
-- Character voice must remain recognizably different across long play.
+- Relevant character prompt-card personality, speech, addressing, appearance, role and distinctive traits are available to Story.
+- Character voice remains recognizably different across long play.
 - Work cooperation is not affection; hierarchy is not private submission; rule compliance is not emotional acceptance.
-- Characters may comply institutionally while disliking, resenting, or being embarrassed by a situation.
 - NPCs do not teleport, change identity, or borrow another NPC’s dialogue/state because of name matching or observer ambiguity.
 
 ## P-OPENING-001 — Opening
 
 Status: OWNER_LOCKED
 
-Opening must establish:
+Opening establishes the real Company setting, real registered people/space, a living scene, the player-private unfamiliar `상식개변` premise, the fact that the app has not automatically changed reality, and player freedom to choose the next action.
 
-1. the real Company setting and actual registered people/space;
-2. a living scene rather than a helpdesk greeting;
-3. the player-private `상식개변` premise;
-4. the fact that the app has not automatically changed reality;
-5. player freedom to choose what to do next.
+It does not create a mandatory first-work quest or speak for the player beyond setup facts.
 
-Opening must not invent a mandatory first-work quest or speak for the player beyond setup facts.
+## P-INPUT-001 — Free input + four Story-authored choices
 
-## P-INPUT-001 — Choices vs free input
+Status: OWNER_LOCKED
 
-Status: OPEN_DECISION
+Ordinary turns provide **both**:
 
-Free-form input is mandatory.
+1. unrestricted free-form player input; and
+2. exactly four current-turn suggested actions authored by the same Story LLM that writes the narrative.
 
-Choice buttons, if retained, are optional convenience suggestions only. They can never replace free input, become the only legal next action, alter the literal submitted action, or revive prior-turn options as fake current choices.
+Choice laws:
 
-Whether the final product shows four Story-authored suggestions, no choices, or context-dependent suggestions remains OPEN until UI/experience review.
+- choices are narrative suggestions, not a separate planning/choice LLM;
+- Story outputs four natural full-action choices after the scene in a player-visible form, similar to the proven Hospital play pattern;
+- choices must fit the just-written scene and should provide meaningfully different directions rather than four paraphrases;
+- the post-Story Extract/observer reads the completed Story and returns the four literal choice strings for UI consumption;
+- Extract does **not** invent replacement choices that Story did not write;
+- a choice click submits the full literal action text exactly;
+- UI may shorten a display label later as pure presentation, but the submitted action remains the full extracted choice;
+- if Extract cannot safely recover four current-turn choices, valid Story still commits and free input remains available; stale/prior-turn choices are never used as fallback.
+
+The exact visible formatting of the four Story choices may be tuned during prompt/UI implementation, but no hidden machine-only choice protocol is required merely to support them.
 
 ## P-MIND-001 — Mind Monitor
 
 Status: OWNER_LOCKED
 
-Mind Monitor is a core Company product surface.
+Mind Monitor is a core presentation surface for relevant NPC internal perspective, not objective world truth.
 
-- It represents relevant NPC internal perspective, not objective world truth.
-- Conceptual fields: `surface` and `subconscious`.
-- It is character-specific natural first-person Korean, not state labels/system terminology.
-- It may not invent events, actions, memories, agreements, or contacts that did not occur.
-- It is presentation/interpretation and must not control Story success, Commit, relationship state, or rule execution.
-- Missing/failed Mind Monitor degrades locally and must never destroy a valid Story turn.
-- Only relevant/current-scene characters should normally appear.
+- fields: `surface` and `subconscious`;
+- natural character-specific first-person Korean;
+- no invented events/actions/memories/agreements/contacts;
+- it never controls Story success, Commit, relationship state, or rule execution;
+- failure/missing data degrades locally and never destroys valid Story;
+- normally only relevant/current-scene characters appear.
 
-Exact generation call placement is an architecture decision.
+## P-SCENE-001 — Spatial continuity via one `scene_note`
 
-## P-SCENE-001 — Spatial and interaction continuity
+Status: OWNER_LOCKED FOR INITIAL REDESIGN
 
-Status: OWNER_LOCKED
+The initial redesign deliberately uses one bounded replaceable natural-language `scene_note` as the primary immediate physical/spatial continuity mechanism.
 
-- Location and present actors remain coherent across turns.
-- Story remembers immediately relevant current spatial/interaction facts: who is where, ongoing contact/pose when material, held/placed objects, and active conversation.
-- A turn boundary alone does not reset physical/social continuity.
-- Player action can naturally end/change an ongoing pose/contact unless an actual active world rule/physical condition prevents it.
-- Do not solve this with a giant generic physical-action taxonomy.
+It carries only facts that materially need to survive into the next turn, such as:
 
-The exact durable representation is an L3/L4 decision.
+- ongoing pose/contact;
+- immediate relative position;
+- held/placed objects;
+- active conversational/spatial situation.
+
+Location and present registered actors remain separately structured.
+
+Rules:
+
+- one current snapshot, not an accumulating physical ledger;
+- grounded in committed Story/current supported scene state;
+- rewritten as the scene changes;
+- uncertain detail is omitted rather than invented;
+- a turn boundary never resets supported continuity;
+- no generic posture/contact/action taxonomy is built in parallel “just in case”.
+
+If real manual play proves a single `scene_note` insufficient, the smallest extra structure may be proposed **only after** showing the failing acceptance case to the owner.
 
 ## P-MEMORY-001 — Long-play continuity
 
 Status: OWNER_LOCKED
 
-- Important prior conversations, decisions, rule changes, relationship-relevant events, promises, conflicts, and scene history must survive beyond the recent raw-turn window.
-- Long-term memory remains chronological and grounded in committed Story.
-- Missing optional summary generation cannot erase committed events.
-- Memory must not fabricate a semantic ledger of facts Story never established.
+Important prior conversations, decisions, rule changes, relationship-relevant events, promises, conflicts, and scene history survive beyond the recent raw-turn window.
 
-## P-CSA-001 — `상식개변` MVP behavior
+Long-term memory remains chronological and grounded in committed Story. Missing optional summary generation cannot erase committed events, and memory does not fabricate semantic facts Story never established.
+
+## P-CSA-001 — `상식개변` 9-rule MVP
 
 Status: OWNER_LOCKED
 
-The first playable redesign intentionally uses a **small 9-rule catalog only**.
+First playable redesign uses exactly 9 active templates.
 
-Exact active template IDs are defined by `07_CSA_MVP_CATALOG.md`:
-
-### Weak — exactly 3
-
+### Weak
 - `no_panties_under_work_clothes`
 - `no_bra_under_work_clothes`
 - `target_places_requester_hand_on_waist_or_thigh`
 
-### Medium — exactly 3
-
+### Medium
 - `work_nude`
 - `masturbate_for_recipient`
 - `work_in_underwear_only`
 
-### Strong — exactly 3
-
+### Strong
 - `vaginal_sex_with_recipient`
 - `player_request_executes_immediately`
 - `continue_until_recipient_orgasm`
 
 Product laws:
 
-- rule state is a real durable game mechanic;
-- apply/change/remove actions are explicit transactions with clear success/failure;
-- they do not consume a fake player Story turn;
-- next Story receives the new active rule state;
-- exact finite mechanics explicitly encoded by a retained rule may have deterministic projection;
+- rule state is durable;
+- apply/change/remove is an explicit non-Story transaction;
+- next Story receives relevant active rule state;
+- exact finite mechanics explicitly needed by a retained rule may project deterministically;
 - open-ended consequences remain Story-authored;
-- no generic CSA execution DSL is built for the historical catalog;
-- no tenth rule enters the active product until the 9-rule MVP passes owner play and one explicit new-rule decision is made.
+- no generic CSA execution/action DSL is built for historical rules;
+- historical non-MVP rules are `UNSELECTED_CANDIDATE`, not deferred runtime features;
+- a tenth rule requires a new explicit owner decision after real play of the nine-rule MVP.
 
-Historical non-MVP rules are not `DEFERRED FEATURES`; they are **UNSELECTED CANDIDATES** and must not appear in runtime/UI/API/prompt behavior.
+## P-CSA-SCOPE-001 — Flexible subject/counterparty scope
 
-### P-CSA-SCOPE-001 — Scope controls
+Status: OWNER_LOCKED DIRECTION
 
-Status: OPEN_DECISION
+The 9-rule MVP should **not** hard-fix every retained rule to one historical affected group/counterparty combination.
 
-The historical generic selector model is **not automatically retained**.
+The player should be able to configure subject/counterparty scope flexibly using a small canonical scope vocabulary instead of per-template hard-coded pairings.
 
-Preserved TEST usage of the nine retained rules is much narrower: affected subjects are overwhelmingly company female employees, clothing rules need no counterparty, and request-triggered rules mainly use either male-employee or player counterparties.
+Initial product intent:
 
-Before CSA implementation, owner decides per template:
+- subject scope may be selected from supported canonical player/employee groups where the rule meaning is coherent;
+- request/contact rules may independently select a supported counterparty scope;
+- unary rules such as clothing rules do not require a meaningless counterparty;
+- selected scope is stored explicitly with the active rule and projected literally to Story;
+- UI/API use one shared scope vocabulary and never duplicate semantic labels;
+- flexibility of **who the rule applies to** must not turn into a generic DSL for **how every rule executes**.
 
-- fixed affected group;
-- whether a counterparty selector exists;
-- exact allowed counterparty choices exposed to player/API.
+Architecture should first attempt a simple data model such as `{ template_id, subject_scope, counterparty_scope? }` plus finite scope validation.
 
-Implementation may not default to either an every-group × every-group engine or an over-restricted fixed scope before this decision.
+If source audit proves genuinely free scope combinations cause disproportionate implementation complexity or incoherent rule semantics, do **not** silently narrow them. Return with concrete examples/cost and reopen this owner decision.
 
-## P-CLOTHING-001 — Clothing continuity
+## P-CLOTHING-001 — Four-slot clothing continuity
 
 Status: RETAIN_BY_DEFAULT
 
-The established four-slot model remains the preferred finite clothing mechanic because multiple retained MVP rules directly need exact clothing continuity:
+Because multiple retained rules need exact clothing continuity, prefer:
 
 - uniform_top
 - uniform_bottom
 - underwear_top
 - underwear_bottom
 
-Exact structured CSA clothing requirements may update it deterministically. Ordinary Story changes require Story-grounded observation.
+Exact rule requirements may update these slots deterministically. Ordinary Story changes require Story-grounded observation.
 
-## P-PHYSICAL-001 — Generic physical state
+## P-PHYSICAL-001 — No generic physical ontology in core
 
-Status: OPEN_DECISION
+Status: OWNER_LOCKED FOR INITIAL REDESIGN
 
-The product requirement is continuity, not a specific ontology. Compare at least a bounded natural-language current scene snapshot, minimal structured pose/contact state, and Story/memory-only continuity. Choose only what is necessary to pass acceptance scenarios.
+The initial solution is the `scene_note` model under `P-SCENE-001`. Do not simultaneously retain the old generic posture/position/contact ontology. Add narrow structure later only if manual acceptance demonstrates a concrete gap.
 
-## P-PLAYER-STATE-001 — Player meters
+## P-PLAYER-STATE-001 — Remove dynamic player sexual meter
 
-Status: OPEN_DECISION
+Status: OWNER_LOCKED REMOVAL
 
-Historical player sexual/arousal/erection/ejaculation UI is not automatically part of the redesign core.
+The redesign removes the historical dynamic player sexual/arousal/erection/ejaculation gauge from the active product.
 
-If retained, it must be one narrow explicit mechanic with one writer and no generic event taxonomy. If removed, state/UI/prompt/tests are removed coherently.
+Therefore the new runtime/UI/prompt/observer/tests must not carry:
+
+- arousal meter;
+- erection state;
+- ejaculation progress/count;
+- sexual-event ledger used to drive those meters;
+- compatibility zombie fields for the removed mechanic.
+
+This does not remove static adult setup/profile facts such as penis length; it removes the dynamic gameplay gauge/mechanic.
 
 ## P-SETUP-001 — Player setup
 
 Status: RETAIN_BY_DEFAULT
 
-Established setup currently includes:
+Established setup currently includes name, department, position, age, height, weight, penis length, body type and speech style. All players/characters are adults.
 
-- name;
-- department;
-- position;
-- age;
-- height;
-- weight;
-- penis length;
-- body type;
-- speech style.
-
-All players/characters in this adult game are adults.
-
-Before implementation, L2/L3 classifies each field as profile identity, prompt-only context, UI-visible information, or removable. A field may not disappear merely because a minimal DB schema lacks it.
+Before implementation, each field is classified as profile identity, prompt-only context, UI-visible information, or removable. A field cannot disappear merely because a minimal DB schema lacks it.
 
 ## P-UI-001 — Product surfaces
 
 Status: RETAIN_BY_DEFAULT
 
-The completed Company UI is evidence of intended product surfaces, not a frozen layout.
+The completed Company UI is product-surface evidence, not a frozen layout.
 
-The redesign deliberately accounts for Story/history/current stream, free-form action, player setup, current scene/character state, Mind Monitor, player state, company map, `상식개변` app, media, TTS, history/download, feedback revision, reset, and responsive/mobile information order.
+Redesign accounts deliberately for Story/history/current stream, four Story-authored choice suggestions, free-form action, setup, current scene/character state, Mind Monitor, player profile/state, company map, `상식개변` app, media, TTS, history/download, feedback, reset, and responsive/mobile order.
 
-The `상식개변` UI specifically presents the small 3/3/3 MVP catalog rather than the historical full catalog.
+The old dynamic sexual gauge is explicitly removed and should not retain an empty placeholder solely for parity.
 
 ## P-MEDIA-001 — Image and TTS
 
 Status: RETAIN_BY_DEFAULT
 
-- Image and TTS are presentation sidecars.
-- Their failure never blocks or redefines Story/Commit.
-- TTS OFF means zero TTS API calls.
-- Media selection cannot become narrative truth authority.
+Image/TTS are presentation sidecars. Their failure never blocks or redefines Story/Commit. TTS OFF means zero TTS calls. Media never becomes narrative truth.
 
 ## P-FEEDBACK-001 — Feedback revision
 
 Status: RETAIN_BY_DEFAULT
 
-The player should be able to request correction of the latest committed turn without treating the correction as a new chronological gameplay turn. Exact revision persistence is an architecture decision.
+The player may request correction of the latest committed turn without creating a new chronological gameplay turn. Exact revision persistence is architectural.
 
 ## P-RESET-001 — Reset/new game
 
 Status: RETAIN_BY_DEFAULT
 
-Reset/new-game behavior must be explicit, safe, and game-local. It never mutates preserved evidence games or silently reuses a prior manual-test UUID.
+Reset/new-game behavior is explicit, safe and game-local. It never mutates preserved evidence games or silently reuses a prior manual-test UUID.
 
 ## P-REMOVED-001 — Explicitly removed mechanics
 
@@ -285,6 +283,9 @@ Do not reintroduce without a new owner product decision:
 - bold-choice probability/risk UI and generic success-rate rolls;
 - hypnosis/personal suggestion system from Hospital;
 - generic `physical_reaction` Mind Monitor field;
+- generic posture/contact physical ontology in the initial redesign;
+- dynamic player sexual/arousal/erection/ejaculation gauge;
+- sexual-event ledger supporting that gauge;
 - arbitrary server-generated save patches;
 - automatic retry/regenerate-until-lucky Story behavior;
 - generic assistant/helpdesk framing;
@@ -294,6 +295,4 @@ Do not reintroduce without a new owner product decision:
 
 Status: OWNER_LOCKED
 
-A release is not successful merely because CI, schema validation, source review, or hundreds of unit tests pass.
-
-Relevant manual acceptance scenarios must pass on the exact deployed build. Product rejection blocks progression even when infrastructure tests are green.
+A release is not successful merely because CI/schema/source review/unit tests pass. Relevant manual acceptance scenarios must pass on the exact deployed build. Product rejection blocks progression even when infrastructure tests are green.
