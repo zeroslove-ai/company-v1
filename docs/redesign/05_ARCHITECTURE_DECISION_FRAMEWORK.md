@@ -3,33 +3,31 @@
 Status: OWNER-REVIEW DRAFT / PROVISIONAL RECOMMENDATION  
 Date: 2026-08-21
 
-Architecture is chosen only after Product Constitution, Acceptance Scenarios, Golden Master, and Gameplay/State/Memory Model.
-
-Existing code has no right to survive merely because it exists.
+Architecture is chosen only after Product Constitution, Acceptance Scenarios, Golden Master, Gameplay/State/Memory Model, and the nine-rule CSA MVP decision. Existing code has no right to survive merely because it exists.
 
 ## 1. Architecture success criteria
 
-Score every candidate against these criteria in order:
+Score candidates in this order:
 
-1. **Product fidelity** — easiest path to pass P0/P1 acceptance scenarios.
-2. **Conceptual simplicity** — a new engineer/agent can explain one turn in a few steps.
-3. **Single authority** — no browser/server/DB duplicate gameplay writers.
-4. **Long-play continuity** — grounded memory/scene continuity without giant ontology.
-5. **Failure isolation** — optional MM/media/observer failure cannot destroy good Story.
-6. **Streaming correctness** — Story appears immediately and survives reconnect.
-7. **Concurrency correctness** — one player action cannot become two committed turns.
-8. **Testability** — product and structural tests can assert the right things.
-9. **Operational simplicity** — minimal deploy/migration/cross-worker complexity.
-10. **Reuse value** — only after the above.
+1. Product fidelity — easiest path to pass P0/P1 acceptance.
+2. Conceptual simplicity — one turn explainable in a few steps.
+3. Single authority — no browser/server/DB duplicate gameplay writers.
+4. Long-play continuity without giant ontology.
+5. Failure isolation — optional observer/MM/media cannot destroy good Story.
+6. Streaming correctness.
+7. Concurrency correctness.
+8. Testability of product and structural contracts.
+9. Operational simplicity.
+10. Reuse value — only after the above.
 
 ## 2. Candidate A — Salvage current v2 transport kernel, replace product/runtime domain
 
-Potentially retain only independently useful infrastructure already built/proven:
+Potential KEEP candidates:
 
-- server-owned `/turn` lifecycle;
+- server-owned turn lifecycle;
 - one canonical `(game, turn)` job;
 - attempt fencing;
-- explicit retry rather than automatic regeneration;
+- explicit retry rather than auto regeneration;
 - durable streamed Story progress/reconnect;
 - isolated mutable Company tables;
 - atomic commit boundary;
@@ -37,82 +35,40 @@ Potentially retain only independently useful infrastructure already built/proven
 
 Replace/rebuild:
 
-- demo/current v2 content adapter;
+- v2 demo/product content adapter;
 - Opening;
-- Story prompt/context assembly;
-- observer/domain state projection;
-- current reduced `frontend-v2` product layer;
-- product acceptance tests.
+- Story context/prompt;
+- observer/domain projection;
+- reduced `frontend-v2` product layer;
+- product acceptance tests;
+- historical generic CSA surfaces not needed by the accepted nine rules.
 
-Pros:
-
-- concurrency/streaming infrastructure already has hard-earned failure fixes;
-- avoids recreating Cloudflare lifecycle/subrequest/fencing bugs;
-- can preserve clean separation from v1.
-
-Risks:
-
-- current job/retry machinery may be more complicated than needed;
-- developers may accidentally let v2 product assumptions leak back in;
-- sunk-cost bias may preserve complexity that no longer helps.
+Pros: preserves hard-earned transport/concurrency fixes.  
+Risks: job/retry machinery may still be too complex and sunk-cost bias may leak product assumptions back in.
 
 ## 3. Candidate B — Hospital-derived runtime skeleton, Company product rewritten on top
 
-Reuse Hospital only as an architecture donor where its long-play behavior is independently proven.
+Reuse Hospital only as independently proven donor ideas: simple Story→observe→commit, memory windowing, Mind Monitor approach, proven UI/runtime interaction patterns.
 
-Allowed donor ideas could include:
+Do not inherit Hospital semantic domains, hypnosis, consent/physical taxonomies, DB identities, or hidden assumptions.
 
-- simple Story→observe→commit flow;
-- memory window strategy;
-- Mind Monitor generation approach;
-- proven UI/runtime interaction patterns.
-
-Forbidden shortcut:
-
-- copying Hospital semantic domains/hypnosis/consent/physical taxonomies merely because they exist;
-- inheriting Hospital DB/runtime identities or hidden assumptions;
-- treating donor behavior as Company product authority.
-
-Pros:
-
-- starts from a runtime with proven long-play feel.
-
-Risks:
-
-- Company-specific rule app, company world and modern streaming/recovery needs may not map cleanly;
-- donor code can smuggle old semantics back into the product;
-- may duplicate already-solved v2 infrastructure problems.
+Pros: long-play donor evidence.  
+Risks: may smuggle foreign semantics and duplicate solved streaming/concurrency work.
 
 ## 4. Candidate C — Entirely new minimal runtime
 
-Build a new pipeline from zero with no v1/v2/Hospital implementation base.
+Build from zero without v1/v2/Hospital implementation base.
 
-Pros:
-
-- maximum conceptual cleanliness;
-- no hidden historical assumptions.
-
-Risks:
-
-- repeats solved Worker streaming/concurrency/reconnect problems;
-- largest operational risk;
-- likely slower to first correct gameplay unless scope is extremely small.
+Pros: conceptual cleanliness.  
+Risks: repeats solved Worker streaming/concurrency/reconnect problems and may slow first correct gameplay.
 
 ## 5. Provisional recommendation
 
-**Recommend Candidate A, but only as “kernel salvage / product runtime rewrite”, not “continue v2”.**
+Recommend **Candidate A only as kernel salvage / product runtime rewrite**, not “continue v2”.
 
-Reason:
-
-The strongest evidence so far says the v2 failure was primarily product-canon inheritance/acceptance failure, while the later v2 transport work specifically addressed real Cloudflare streaming, stale-attempt, retry and subrequest-budget defects.
-
-This recommendation is conditional. Before implementation, perform a bounded kernel audit proving the retained kernel can be represented behind a small interface without importing demo/product semantics.
-
-If that audit fails the simplicity criteria, choose B or C rather than preserving v2 by inertia.
+This is conditional on a bounded kernel audit proving the retained kernel can sit behind a small product-neutral interface. If not, choose B or C.
 
 ## 6. Target conceptual architecture
-
-Recommended target regardless of implementation donor:
 
 ```text
 Browser
@@ -122,14 +78,12 @@ Browser
 Game API
   |
   +-- ordinary turn ------------------------------+
-  |                                               |
-  |  Load committed context                       |
-  |      -> reserve one turn attempt              |
-  |      -> Story LLM streams visible narrative   |
-  |      -> small post-Story observer              |
-  |      -> pure reducers                          |
-  |      -> atomic commit                          |
-  |                                               |
+  |  load committed context                       |
+  |  reserve one attempt                          |
+  |  Story LLM streams visible narrative          |
+  |  small post-Story observer                     |
+  |  pure minimal reducers                         |
+  |  atomic commit                                 |
   +-----------------------------------------------+
   |
   +-- rule transaction (no Story turn)
@@ -144,95 +98,59 @@ Committed Context API
   +-- optional Image/TTS sidecars
 ```
 
-Browser does not orchestrate Story→Observer→Commit stages.
+Browser never orchestrates Story→Observer→Commit stages.
 
 ## 7. Functional core / imperative shell
 
-### Imperative shell
+Imperative shell owns HTTP/SSE, LLM/network, DB transaction calls, attempt reservation/fencing, timeout/reconnect, sidecars.
 
-Owns:
-
-- HTTP/SSE;
-- LLM/network calls;
-- DB transaction calls;
-- attempt reservation/fencing;
-- timeout/reconnect;
-- sidecar dispatch.
-
-### Functional core
-
-Pure functions own:
-
-- content projection;
-- Story context construction;
-- observer normalization;
-- scene/rule/clothing/mechanic reducers;
-- memory window construction;
-- UI view-model projection.
-
-Pure domain reducers should be testable without Cloudflare/Supabase/LLM.
+Pure functional core owns content projection, Story context, observer normalization, minimal scene/rule/clothing reducers, memory window, and UI view-model projection.
 
 ## 8. Product/content compiler boundary
 
-Do not hand-code semantic lists in runtime.
-
-Introduce one explicit content boundary, conceptually:
-
 ```text
-content/*.json
+accepted content sources
    -> validate/build CompanyContent
    -> Story/UI/domain readers
 ```
 
-`CompanyContent` includes stable IDs and source facts but no gameplay state.
+`CompanyContent` carries stable source facts but no gameplay state.
 
-Tests must assert parity between source content and compiled projection.
+For CSA, `CompanyContent` exposes **only the accepted nine active templates**. Do not compile the historical 44 and filter them later in runtime/UI.
 
-## 9. Story output redesign — simplify the provider contract
+Tests assert parity between accepted source content and compiled projection.
 
-The old semantic Story wire (`[SCENE]`, `[DIALOGUE]`, `[CHOICE]`, etc.) created protocol fragility and allowed provider self-repair/control text to leak into canonical Story.
+## 9. Story output redesign — simplify provider contract
 
-The redesign should prefer **player-visible narrative as the primary Story output**, not a hidden semantic document.
+Prefer player-visible narrative as the primary Story output rather than a fragile hidden semantic document.
 
-Provisional preferred format:
+Provisional format:
 
 - natural Korean narrative;
-- dialogue uses the product-visible convention `화자명(연기지시): "대사"` where applicable;
-- no OOC/self-repair/control vocabulary in committed visible text;
-- optional deterministic dialogue metadata may be parsed only when exact registered speaker name/ID mapping is unambiguous;
-- uncertain speaker metadata degrades TTS/structured dialogue only, not the narrative turn.
+- dialogue uses product-visible `화자명(연기지시): "대사"` where useful;
+- no OOC/self-repair/control vocabulary in committed Story;
+- optional dialogue metadata is parsed only when exact registered identity is unambiguous;
+- uncertain metadata degrades TTS/structured dialogue only, not narrative.
 
-The post-Story observer extracts machine state from the completed Story.
-
-If implementation chooses another Story envelope, it must prove it improves acceptance without reintroducing protocol garbage or semantic-authority complexity.
+The post-Story observer extracts only accepted machine state.
 
 ## 10. Story call
 
 Story is sole narrative author.
 
-Inputs are bounded to accepted product/state/memory context.
+Inputs are bounded to accepted product/state/memory context, including only relevant active premises from the nine-rule CSA catalog.
 
-Do not provide:
+Do not provide precomputed action success, relation stage, consent/compliance verdict, generic action class, risk probability, generic physical execution plan, or historical non-MVP CSA semantics.
 
-- precomputed action success;
-- relation stage;
-- consent/compliance verdict;
-- generic action class;
-- risk probability;
-- generic physical execution plan;
-- observer interpretation from future/current turn.
-
-No automatic Story retry-until-lucky.
+No automatic retry-until-lucky.
 
 ## 11. Observer call
 
-One small post-Story observer is the default candidate.
+Default: one small post-Story observer.
 
-It reads the committed candidate Story and current state. It may propose only fields accepted by L3.
+It may propose only fields accepted by the Gameplay/State/Memory model. Optional projection failure is fail-open where structurally safe.
 
-Optional projection failure is fail-open where structurally safe.
-
-Mind Monitor may be produced in the same call or another explicitly justified nonblocking mechanism; call topology is not a product law. The architecture review should optimize reliability and simplicity, not preserve prior call counts by habit.
+Mind Monitor may share this call or use another explicitly justified nonblocking mechanism; topology is chosen for reliability/simplicity rather than historical habit.
 
 ## 12. Commit boundary
 
@@ -241,7 +159,7 @@ One transaction commits an accepted ordinary turn:
 - literal action;
 - Story;
 - allowed structural/mechanical reductions;
-- memory/summary artifacts that are already available;
+- already available memory/summary artifacts;
 - optional monitor/presentation payload;
 - turn identity/revision.
 
@@ -249,35 +167,47 @@ No arbitrary full-save submission from browser/LLM.
 
 ## 13. System commands are not ordinary Story turns
 
-Separate APIs/domain commands for:
+Separate domain commands for:
 
-- apply/change/remove `상식개변` rule;
+- apply/change/remove one of the accepted nine `상식개변` rules;
 - feedback revision;
 - reset/new game.
 
-They have their own transaction semantics.
+Never convert them into fake literal player actions.
 
-Do not convert them into fake literal player actions.
+## 14. CSA architecture scope
 
-## 14. UI architecture
+The first CSA implementation supports **exactly the nine retained templates** from `07_CSA_MVP_CATALOG.md`.
 
-Use the accepted Golden UI surface inventory as input.
+Design only the mechanics those nine prove necessary:
 
-Recommended approach:
+- durable rule lifecycle;
+- exact scope validation;
+- non-turn transaction;
+- exact four-slot clothing synchronization for retained clothing rules;
+- Story-premise projection for request-triggered/open-ended rules.
 
-- transplant/rebuild presentation from the complete Company product surfaces;
-- new thin controller talks only to redesigned API/context;
-- frontend does not own gameplay state transitions;
+Do not build a generic historical category/action DSL in anticipation of later rules.
+
+A future rule may add one new narrow mechanic only after owner selection and acceptance-scenario review.
+
+## 15. UI architecture
+
+Use the accepted Golden surface inventory.
+
+- transplant/rebuild complete Company presentation intentionally;
+- thin controller talks to redesigned API/context only;
+- frontend owns no gameplay transition;
 - no frontend semantic catalog duplicates;
-- UI derives display state from one view model/context response.
+- `상식개변` UI displays only the 3/3/3 active catalog.
 
-## 15. Testing architecture
+## 16. Testing architecture
 
-Three distinct test layers:
+Three layers:
 
 ### Product contract tests
 
-Assert content identity, Setup fields, UI surfaces, Story prompt projection, removed features, etc.
+Assert Company content, Setup, UI surfaces, Story context, removed features, and exact nine-rule CSA catalog.
 
 ### Structural runtime tests
 
@@ -285,23 +215,19 @@ Assert transaction/fencing/reconnect/idempotency/commit invariants.
 
 ### Manual acceptance
 
-Opening/5-turn/10-turn/20+ turn scenarios from L1.
+Opening / 3–5 / 10–20 turns, then nine-rule CSA play.
 
-A green structural suite cannot override failed product/manual acceptance.
+Green structural tests cannot override failed product/manual acceptance.
 
-## 16. First implementation milestone after design approval
-
-Do **not** rebuild the whole game first.
+## 17. First implementation milestone after design approval
 
 Milestone 0:
 
 - canonical Setup + real Company content;
 - correct Opening;
 - real UI Story/action/MM shell;
-- one ordinary turn through final selected runtime kernel;
+- one ordinary turn through selected kernel;
 - refresh/readback;
-- no CSA/media/feedback yet unless needed to prove product identity.
+- no active CSA mutation/media/feedback yet unless required for product identity.
 
-Owner reviews Opening + 3–5 turns immediately.
-
-Only after product acceptance should deeper infrastructure/feature completion proceed.
+Owner reviews Opening + 3–5 turns immediately. Core continuity is validated before implementing the nine-rule CSA MVP.
