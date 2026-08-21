@@ -172,7 +172,21 @@ Pass:
 - exactly 3 weak + 3 medium + 3 strong appear in active source/runtime/UI;
 - historical non-MVP templates cannot be activated by API, stale client state, hidden UI, copied SQL, or test fixtures;
 - runtime has no generic machinery implemented solely to support removed historical rules;
-- a future tenth rule requires an explicit owner product decision and its own acceptance scenario.
+- a future tenth rule requires explicit owner decision and its own acceptance scenario.
+
+## A-CSA-SCOPE-001 — Only accepted scope controls exist
+
+Level: P2
+
+Before CSA implementation, owner accepts the subject/counterparty behavior for each retained template.
+
+Pass:
+
+- affected group is not editable where the retained template has a fixed product subject;
+- request-triggered templates expose only counterparty choices actually approved for that template;
+- no generic every-group × every-group matrix appears merely because historical metadata allowed it;
+- API rejects any scope combination the accepted UI/product contract does not expose;
+- Story receives the exact active scope, not a broadened generic interpretation.
 
 ## A-CSA-001 — Rule application is not a fake Story turn
 
@@ -181,19 +195,19 @@ Level: P2
 Applying/changing/removing one of the nine valid rules:
 
 - reports transaction success/failure explicitly;
-- does not advance the ordinary gameplay turn merely because of the app transaction;
+- does not advance ordinary gameplay turn merely because of the app transaction;
 - inserts no fake literal action into history;
-- next ordinary Story receives the active rule state;
+- next ordinary Story receives active rule state;
 - NPC emotional response remains character-authored, not inferred as affection/consent.
 
 ## A-CSA-002 — Rule scope is exact
 
 Level: P2
 
-A retained rule affects only its stated subject/counterparty/scope/mechanic.
+A retained rule affects only its stated/accepted subject, counterparty, scope, and mechanic.
 
 - no unrelated romance, obedience, comfort, arousal, trust, or generic permission is implied;
-- removal stops future premise enforcement but does not rewrite already-realized Story history;
+- removal stops future premise enforcement but does not rewrite committed Story history;
 - where wording leaves freedom, player/NPC actions remain natural rather than mechanically overconstrained.
 
 ## A-CLOTHING-001 — Four-slot exact continuity
@@ -213,14 +227,14 @@ Level: P2 if retained
 
 - original revision remains auditable;
 - replacement Story is generated for the same chronological turn;
-- failure leaves the previous committed revision intact;
-- subsequent context uses the accepted latest revision.
+- failure leaves previous committed revision intact;
+- subsequent context uses accepted latest revision.
 
 ## A-RESET-001 — Safe new game/reset
 
 Level: P2
 
-- reset/new game affects only the selected game;
+- reset/new game affects only selected game;
 - preserved evidence games are never reused/reset;
 - test fixture UUID is fresh where applicable;
 - new game reaches valid Setup/Opening.
@@ -252,7 +266,7 @@ Under double click, reconnect, stale worker wakeup, explicit retry and interrupt
 - one `(game, turn)` has one active canonical attempt;
 - stale attempt cannot mutate a newer retry;
 - exactly one successful committed turn results;
-- committed literal action and Story belong to the same attempt;
+- committed literal action and Story belong to same attempt;
 - no automatic retry-until-lucky occurs.
 
 ## A-OBSERVE-001 — Optional observation failure is local
@@ -276,15 +290,16 @@ At Opening, idle, in-flight and post-Commit states, refresh reconstructs the sam
 
 Level: P0/P1 depending surface
 
-Compare deployed UI against the Golden UI checklist. A phase may visibly disable an accepted future mechanic, but may not silently delete an accepted surface or claim disabled behavior succeeded.
+Compare deployed UI against Golden UI checklist. A phase may visibly disable an accepted future mechanic, but may not silently delete an accepted surface or claim disabled behavior succeeded.
 
 ## Owner manual-play cadence
 
 1. Opening-only review before deep stabilization.
 2. 3–5 turn owner play for base Story/scene/MM.
 3. 10–20 turn owner play for continuity/memory.
-4. Add the exact 9-rule CSA MVP and test apply/change/remove inside real play.
-5. Only after those 9 rules are accepted may one additional rule be considered.
-6. Secondary systems follow after core product + CSA stability.
+4. Resolve exact nine-rule CSA scope UI/semantics.
+5. Add exact 9-rule CSA MVP and test apply/change/remove inside real play.
+6. Only after those 9 are accepted may one additional rule be considered.
+7. Secondary systems follow after core product + CSA stability.
 
 Automated long-play is diagnostic only and never substitutes for owner product acceptance.
