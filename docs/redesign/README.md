@@ -16,7 +16,7 @@ Read in order:
 7. [`07_CSA_MVP_CATALOG.md`](07_CSA_MVP_CATALOG.md)
 8. [`06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md`](06_DESIGN_REVIEW_AND_IMPLEMENTATION_GATES.md)
 
-`07_CSA_MVP_CATALOG.md` is a product/content specialization of the Product Constitution: the initial active `상식개변` catalog is exactly 9 templates (weak 3 / medium 3 / strong 3). Historical non-MVP templates are not forward product authority.
+`07_CSA_MVP_CATALOG.md` specializes the Product Constitution for `상식개변`: the initial active catalog is exactly 9 templates (weak 3 / medium 3 / strong 3), selected from measurable historical TEST play exposure. Historical non-MVP templates are not forward product authority and return only one at a time after explicit owner approval.
 
 ## Current status
 
@@ -26,16 +26,23 @@ These documents are drafts for owner review. They do not authorize implementatio
 
 After owner review:
 
-1. correct these drafts;
-2. explicitly accept product/scenario/golden/state authority and the 9-rule CSA MVP;
+1. resolve remaining OPEN_DECISION items;
+2. explicitly accept product/scenario/golden/state authority and the nine-rule CSA MVP;
 3. perform a bounded architecture-candidate audit;
 4. create the target Gap Matrix;
 5. only then register the first narrow implementation task.
 
-## Provisional technical recommendation
+## Current design review verdict
 
-Do not continue the current v2 product layer.
+The product-first hierarchy is retained.
 
-The leading candidate remains to salvage only independently useful v2 transport/concurrency/persistence kernel pieces while rewriting the Company product/domain/UI layer from this canon. Hospital remains donor/reference. A totally new kernel remains allowed if the v2 kernel fails the simplicity audit.
+The redesign deliberately rejects both extremes:
 
-This recommendation is not binding until owner architecture review.
+- do not continue the existing v2 product layer merely because it exists;
+- do not throw away independently useful streaming/concurrency/persistence work merely to claim a clean slate.
+
+The leading technical candidate remains **kernel salvage only**: audit product-neutral v2 transport/concurrency/persistence pieces, then rewrite Company product/domain/UI around the accepted canon. Hospital remains donor/reference. A completely new kernel remains allowed if the bounded audit shows the v2 kernel cannot be explained behind a small interface.
+
+Story contract should prefer natural player-visible narrative + a small post-Story observer instead of requiring the Story model to serve simultaneously as novelist and fragile semantic-protocol compiler.
+
+This technical recommendation is not binding until owner architecture review.
