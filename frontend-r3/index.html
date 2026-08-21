@@ -1,0 +1,166 @@
+﻿<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>상식개변: 회사편</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./utility.css">
+    <link rel="stylesheet" href="./csa-entry.css">
+    <link rel="stylesheet" href="./hospital-shell.css">
+    <link rel="stylesheet" href="./hospital-panels.css">
+    <link rel="stylesheet" href="./product-contract.css">
+    <link rel="stylesheet" href="./hospital-parity.css">
+    <link rel="stylesheet" href="./recovery-ui.css">
+    <link rel="stylesheet" href="./runtime-hotfix.css">
+  </head>
+  <body data-edition-id="company-v1" data-phase="milestone0-r3">
+    <section id="boot-fallback" class="boot-fallback" role="status" aria-live="polite">
+      <div class="boot-fallback-card">
+        <h1>상식개변: 회사편</h1>
+        <p id="boot-fallback-message">게임 화면을 불러오는 중입니다.</p>
+        <p>화면이 계속 열리지 않으면 네트워크 상태를 확인한 뒤 새로고침해 주세요.</p>
+        <button type="button" onclick="location.reload()">새로고침</button>
+        <noscript><p>이 게임은 JavaScript가 필요합니다. 브라우저에서 JavaScript를 허용해 주세요.</p></noscript>
+      </div>
+    </section>
+
+    <a class="skip-link" href="#story-panel">본문으로 이동</a>
+    <main id="game-main" class="game-shell">
+      <header class="game-header">
+        <div class="title-group"><h1 id="game-title">상식개변: 회사편</h1><p id="day-time" class="time-display"></p></div>
+        <div class="header-status">
+          <span id="turn-number">Turn 0</span>
+          <span class="header-tts" title="음성 설정">
+            <button id="tts-toggle" type="button" aria-pressed="false" disabled class="tts-mini">🔊</button>
+            <button id="tts-replay" type="button" hidden disabled class="tts-mini">▶</button>
+            <span id="tts-status" class="tts-status sr-only" aria-live="polite"></span>
+          </span>
+          <span id="api-status" class="connection-indicator" role="status" aria-label="연결 확인 중" title="연결 확인 중">●</span>
+        </div>
+      </header>
+      <p id="status-banner" class="status-banner" aria-live="polite"></p>
+      <p id="error-banner" class="status-banner error" role="alert" hidden></p>
+
+      <section class="game-layout" aria-label="게임 화면">
+        <section id="story-panel" class="story-panel" aria-label="이야기">
+          <div id="story-history" class="story-history"></div>
+          <div id="current-turn" class="current-turn">
+            <p id="current-action" class="action-chip" hidden></p>
+            <div id="current-story" class="current-story" aria-live="polite"></div>
+          </div>
+        </section>
+        <aside class="status-column" aria-label="캐릭터와 플레이어 상태">
+          <section id="media-panel" class="media-panel" aria-labelledby="media-heading" hidden>
+            <h2 id="media-heading">현재 장면</h2>
+            <img id="character-image" class="character-image" alt="" hidden>
+            <p id="image-status" class="media-status">표시할 이미지가 없습니다.</p>
+
+          </section>
+          <section class="mind-panel" aria-labelledby="mind-heading">
+            <h2 id="mind-heading">Mind Monitor</h2>
+            <div id="mind-monitor" class="mind-monitor"></div>
+          </section>
+          <details id="character-state" class="state-panel">
+            <summary>캐릭터와 현재 상태</summary>
+            <dl id="scene-state" class="state-list"></dl>
+            <section id="focal-character" class="focal-character" hidden></section>
+          </details>
+          <details id="player-panel" class="player-panel">
+            <summary id="player-heading">플레이어 상태 <span id="player-compact-summary"></span></summary>
+            <dl id="player-situation" class="state-list"></dl>
+            <div id="game-time-slot" class="future-slot" hidden></div>
+            <div id="turn-changes-slot" class="future-slot" hidden></div>
+          </details>
+          <details id="company-map-panel" class="company-map-panel">
+            <summary id="company-map-heading" class="company-map-heading">회사 맵</summary>
+            <p class="company-map-hint">장소나 이름을 누르면 입력창에 문장만 채워집니다. 전송을 눌러야 진행돼요.</p>
+            <div id="company-map" class="company-map"></div>
+          </details>
+
+          <section class="csa-entry-panel" aria-labelledby="csa-entry-heading">
+            <h2 id="csa-entry-heading" class="csa-entry-heading">상식개변 도구</h2>
+            <p class="csa-entry-copy">상식개변 도구 화면은 이번 단계에서 표시만 제공하며, 규칙 변경 기능은 아직 활성화되지 않았습니다.</p>
+            <div class="csa-entry-actions">
+              <button id="open-apps" type="button" disabled>📱 상식개변 앱</button>
+              <button id="resume-play" type="button" disabled>▶ 플레이 재개</button>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section id="action-panel" class="action-panel" aria-labelledby="action-heading">
+        <h2 id="action-heading">다음 행동</h2>
+        <div id="choice-list" class="choice-list" aria-label="선택지"></div>
+        <label for="player-action">직접 입력</label>
+        <textarea id="player-action" rows="3" maxlength="2000" placeholder="원하는 행동을 입력하세요"></textarea>
+        <div class="action-controls"><button id="submit-action" type="button">행동 실행</button><button id="recovery-action" type="button" hidden></button></div>
+        <p id="stream-status" aria-live="polite"></p>
+      </section>
+
+      <audio id="audio-player" class="audio-player audio-bar" controls preload="none"></audio>
+      <nav class="utility-toolbar" aria-label="게임 도구">
+        <button id="open-history" type="button" disabled>플레이 기록</button>
+        <button id="send-feedback" type="button" disabled>피드백</button>
+        <button id="reset-game" type="button" disabled>초기화</button>
+      </nav>
+    </main>
+
+    <div id="player-setup-overlay" class="player-setup-overlay" role="dialog" aria-modal="true" aria-labelledby="player-setup-heading" hidden>
+      <p id="setup-error" class="status-banner error" role="alert" aria-live="assertive" hidden></p>
+      <form id="player-setup-form" class="player-setup-form">
+        <h2 id="player-setup-heading">플레이어 설정</h2>
+        <label for="setup-name">이름</label><input id="setup-name" type="text" maxlength="20" required>
+        <label for="setup-department">부서</label><select id="setup-department" required></select>
+        <label for="setup-position">직급</label><select id="setup-position" required></select>
+        <label for="setup-age">나이</label><input id="setup-age" type="number" min="18" max="70" step="1" required>
+        <label for="setup-height">키(cm)</label><input id="setup-height" type="number" min="140" max="220" step="1" required>
+        <label for="setup-weight">몸무게(kg)</label><input id="setup-weight" type="number" min="40" max="180" step="1" required>
+        <label for="setup-penis-length">음경 길이(cm)</label><input id="setup-penis-length" type="number" min="5" max="30" step="1" required>
+        <label for="setup-body-type">체형</label><select id="setup-body-type" required></select>
+        <label for="setup-speech-style">말투</label><select id="setup-speech-style" required></select>
+        <button id="setup-submit" type="submit">설정 완료</button><p id="setup-status" aria-live="polite"></p>
+      </form>
+    </div>
+
+    <div id="csa-app-overlay" class="csa-app-overlay" role="dialog" aria-modal="true" aria-labelledby="csa-app-heading" hidden>
+      <div class="csa-app-modal">
+        <header class="csa-app-header"><h2 id="csa-app-heading">📱 상식개변 앱</h2><button id="csa-app-close" type="button" class="app-manual-close" aria-label="상식개변 앱 닫기">닫기</button></header>
+        <div id="csa-app-tabs" class="csa-app-tabs" role="tablist">
+          <button type="button" class="csa-app-tab" role="tab" data-tab="home">홈</button>
+          <button type="button" class="csa-app-tab" role="tab" data-tab="player">플레이어 정보</button>
+          <button type="button" class="csa-app-tab" role="tab" data-tab="npc">NPC 정보</button>
+          <button type="button" class="csa-app-tab" role="tab" data-tab="csa">상식개변</button>
+          <button type="button" class="csa-app-tab" role="tab" data-tab="manual">매뉴얼</button>
+        </div>
+        <div id="csa-app-body" class="csa-app-body"></div>
+        <div id="csa-app-draft-bar" class="csa-app-draft-bar"></div>
+      </div>
+    </div>
+
+    <div id="history-overlay" class="utility-overlay" role="dialog" aria-modal="true" aria-labelledby="history-heading" hidden>
+      <section class="utility-modal utility-modal-wide">
+        <header class="utility-modal-header"><h2 id="history-heading">플레이 기록</h2><button id="history-close" type="button">닫기</button></header>
+        <p id="history-status" class="utility-status" aria-live="polite"></p>
+        <div class="history-download-actions" aria-label="플레이 기록 다운로드">
+          <button id="history-download-md" type="button">MD 다운로드</button>
+          <button id="history-download-txt" type="button">TXT 다운로드</button>
+        </div>
+        <div id="history-list" class="utility-history-list"></div>
+        <button id="history-more" type="button" hidden>이전 기록 더 보기</button>
+      </section>
+    </div>
+
+    <div id="feedback-overlay" class="utility-overlay" role="dialog" aria-modal="true" aria-labelledby="feedback-heading" hidden>
+      <form id="feedback-form" class="utility-modal">
+        <header class="utility-modal-header"><h2 id="feedback-heading">마지막 턴 피드백</h2><button id="feedback-close" type="button">닫기</button></header>
+        <p>마지막 턴에서 고칠 내용을 적으면 기존 revision 구조로 다시 생성합니다. 저장은 새 결과가 Commit될 때만 바뀝니다.</p>
+        <label for="feedback-text">수정 요청</label><textarea id="feedback-text" rows="6" maxlength="2000" required></textarea>
+        <p id="feedback-status" class="utility-status" aria-live="polite"></p><button type="submit">피드백으로 재생성</button>
+      </form>
+    </div>
+
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

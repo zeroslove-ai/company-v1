@@ -1,0 +1,90 @@
+﻿:root { color-scheme: dark; font-family: system-ui, sans-serif; background: #11151d; color: #eef2f6; }
+* { box-sizing: border-box; } body { margin: 0; } button, textarea { font: inherit; } button { cursor: pointer; } button:disabled { cursor: not-allowed; }
+.skip-link { position: absolute; left: -999px; } .skip-link:focus { left: 1rem; top: 1rem; z-index: 5; }
+.game-shell { max-width: 1280px; margin: 0 auto; padding: 1.25rem; }
+.game-header, .header-status, .action-controls, .utility-toolbar { display: flex; align-items: center; gap: .75rem; }
+.game-header { justify-content: space-between; border-bottom: 1px solid #2e3946; padding-bottom: 1rem; }.title-group h1 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.8rem); }.time-display { margin: .35rem 0 0; color: #aab9c5; font-size: .9rem; }.header-status { color: #b9c9d4; }.connection-indicator { color: #88c8b0; font-size: .8rem; }
+.status-banner { min-height: 1.2rem; margin: .7rem 0 0; color: #bdd6e5; font-size: .9rem; }.status-banner.error { color: #ffc0c0; }
+.game-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, .9fr); align-items: start; gap: 1.25rem; margin-top: 1rem; }
+.story-panel, .state-panel, .player-panel, .action-panel { background: #19212c; border: 1px solid #2f4051; border-radius: .85rem; padding: 1rem; }.story-panel { min-height: 46vh; }.story-history, .current-story { display: grid; gap: 1rem; max-width: 760px; margin: 0 auto; }.current-turn { margin-top: 1rem; }.turn-card { display: grid; gap: .75rem; padding: .9rem; border-radius: .7rem; background: #1e2a37; }.action-chip { width: fit-content; margin: 0 0 .6rem; padding: .3rem .55rem; border-radius: 999px; color: #c8e7f5; background: #294455; font-size: .9rem; }
+.narrative-scene, .narrative-unparsed { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; }.narrative-dialogue { display: grid; gap: .35rem; padding: .9rem; border-left: 3px solid #7daac3; border-radius: .5rem; background: #223241; }.dialogue-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: .5rem; }.dialogue-speaker { color: #d8f0ff; }.dialogue-direction { color: #aab7c2; font-size: .86rem; }.dialogue-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.75; }.turn-summary { margin: 0; color: #bdcbd5; font-size: .9rem; }
+.status-column { display: grid; gap: 1rem; }.state-panel summary { cursor: pointer; font-weight: 700; }.state-panel[open] summary { margin-bottom: .85rem; }.state-list { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .38rem .75rem; margin: 0; }.state-list dt { color: #9fc9df; }.state-list dd { margin: 0; overflow-wrap: anywhere; }.focal-character, .mind-panel { margin-top: 1rem; padding-top: .9rem; border-top: 1px solid #314355; }.mind-panel h2, .player-panel h2 { margin: 0 0 .65rem; font-size: 1rem; }.mind-monitor { display: grid; gap: .6rem; }.mind-card { display: grid; gap: .2rem; padding: .65rem; border-radius: .5rem; background: #212d39; }.mind-card h3 { margin: 0; font-size: .9rem; color: #cce9f8; }.mind-card p { margin: 0; color: #c6d1da; white-space: pre-wrap; overflow-wrap: anywhere; }.player-panel { display: grid; gap: .7rem; }.future-slot { display: none; }
+.action-panel { margin-top: 1.25rem; }.action-panel h2 { margin-top: 0; }.choice-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin-bottom: 1rem; }.choice-button, #submit-action, #recovery-action, .utility-toolbar button { min-height: 3rem; border: 1px solid #4d7188; border-radius: .55rem; background: #243d4e; color: #fff; padding: .6rem .75rem; text-align: left; }.choice-button:disabled, button:disabled { opacity: .52; }.choice-button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.action-controls { justify-content: flex-start; } #submit-action { background: #38677d; } textarea { display: block; width: 100%; resize: vertical; margin: .5rem 0 .75rem; padding: .75rem; color: inherit; background: #111923; border: 1px solid #4d7188; border-radius: .55rem; }
+.utility-toolbar { justify-content: flex-end; margin-top: 1rem; }.utility-toolbar button { min-height: 2.5rem; background: transparent; text-align: center; }
+@media (max-width: 720px) { .game-shell { padding: .75rem; }.game-header { align-items: flex-start; }.game-layout { grid-template-columns: 1fr; gap: .75rem; }.story-panel { min-height: 0; }.choice-list { grid-template-columns: 1fr; }.status-column { gap: .75rem; }.utility-toolbar { justify-content: stretch; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }.utility-toolbar button { width: 100%; }.state-panel:not([open]) + .player-panel { margin-top: 0; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+.player-setup-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 1rem; overflow-y: auto; background: rgb(5 10 16 / .76); backdrop-filter: blur(4px); }
+.player-setup-overlay[hidden] { display: none; }
+.player-setup-form { width: min(100%, 34rem); max-height: calc(100dvh - 2rem); overflow-y: auto; display: grid; grid-template-columns: 1fr; gap: .55rem; padding: 1.25rem; border: 1px solid #4d7188; border-radius: .8rem; color: #e8f2f7; background: #16232e; box-shadow: 0 1.25rem 4rem rgb(0 0 0 / .5); }
+.player-setup-form h2 { margin: 0 0 .35rem; }
+.player-setup-form input, .player-setup-form select, .player-setup-form button { min-height: 2.75rem; box-sizing: border-box; border: 1px solid #4d7188; border-radius: .5rem; color: #f5fbff; background: #111923; padding: .55rem .7rem; }
+.player-setup-form button { margin-top: .4rem; cursor: pointer; background: #38677d; }
+.player-setup-form button:disabled { cursor: wait; }
+.reserved-opening p { margin: 0; line-height: 1.6; color: #c6d1da; }
+@media (max-width: 720px) { .player-setup-overlay { align-items: start; padding: .75rem; }.player-setup-form { width: 100%; max-height: calc(100dvh - 1.5rem); grid-template-columns: 1fr; padding: 1rem; } }
+.csa-app-overlay { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 1rem; background: rgb(5 10 16 / .76); backdrop-filter: blur(4px); }
+.csa-app-overlay[hidden] { display: none; }
+.csa-app-modal { width: min(100%, 40rem); max-height: calc(100dvh - 2rem); display: grid; grid-template-rows: auto auto 1fr auto; border: 1px solid #4d7188; border-radius: .8rem; color: #e8f2f7; background: #16232e; box-shadow: 0 1.25rem 4rem rgb(0 0 0 / .5); overflow: hidden; }
+.csa-app-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.1rem; border-bottom: 1px solid #2f4051; }
+.csa-app-header h2 { margin: 0; font-size: 1.1rem; }
+.app-manual-close { min-height: 2.4rem; padding: .4rem .8rem; border: 1px solid #4d7188; border-radius: .5rem; background: transparent; color: inherit; }
+.csa-app-tabs { display: flex; gap: .4rem; padding: .6rem .9rem; border-bottom: 1px solid #2f4051; overflow-x: auto; }
+.csa-app-tab { min-height: 2.3rem; padding: .4rem .8rem; border: 1px solid #345267; border-radius: .5rem; background: #1e2a37; color: #cfe3ee; white-space: nowrap; }
+.csa-app-tab[aria-selected="true"] { background: #38677d; color: #fff; }
+.csa-app-body { padding: .9rem 1.1rem; overflow-y: auto; display: grid; gap: .75rem; align-content: start; }
+.csa-app-draft-bar { display: flex; justify-content: space-between; align-items: center; gap: .6rem; padding: .75rem 1.1rem; border-top: 1px solid #2f4051; }
+.csa-app-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .6rem; }
+.csa-app-card { display: grid; gap: .2rem; padding: .7rem; border: 1px solid #345267; border-radius: .6rem; background: #1e2a37; text-align: left; color: inherit; }
+.csa-app-card-link { cursor: pointer; }
+.csa-app-card small { color: #9fc9df; } .csa-app-card strong { font-size: 1.05rem; }
+.csa-app-diagnostic { margin: 0; padding: .55rem .7rem; border-radius: .5rem; background: #223241; }
+.csa-app-diagnostic.warning { background: #3a2f22; color: #ffd9a8; } .csa-app-diagnostic.info { background: #223241; }
+.csa-app-effect-card { display: grid; gap: .55rem; padding: .8rem; border: 1px solid #345267; border-radius: .6rem; background: #1c2732; }
+.csa-app-effect-card.pending-delete { opacity: .6; }
+.csa-app-effect-header { display: flex; justify-content: space-between; align-items: center; }
+.csa-app-mode-tabs { display: flex; gap: .4rem; }
+.csa-app-field { display: grid; gap: .3rem; }
+.csa-app-field-label { color: #9fc9df; font-size: .85rem; }
+.csa-app-select, .csa-app-textarea { min-height: 2.6rem; border: 1px solid #4d7188; border-radius: .5rem; color: #f5fbff; background: #111923; padding: .5rem .65rem; }
+.csa-app-textarea { min-height: 5rem; resize: vertical; }
+.csa-app-preview { padding: .6rem .7rem; border-radius: .5rem; background: #223241; }
+.csa-app-preview small { color: #9fc9df; }
+.csa-app-scope-label { margin: 0; color: #c6d1da; font-size: .87rem; }
+.csa-app-error { color: #ffc0c0; }
+.app-manual-section summary { cursor: pointer; font-weight: 600; padding: .3rem 0; }
+.app-manual-list { margin: .3rem 0; padding-left: 1.2rem; }
+.app-manual-active-item { margin: 0; padding: .4rem .6rem; border-radius: .5rem; background: #1c2732; }
+@media (max-width: 720px) { .csa-app-overlay { align-items: start; padding: .5rem; } .csa-app-modal { width: 100%; max-height: calc(100dvh - 1rem); } .csa-app-status-grid { grid-template-columns: 1fr 1fr; } }
+
+/* 모바일: 설정 폼은 중앙 모달로 표시 (게임 화면 위에 떠 있되 화면을 다 가리지 않게) */
+@media (max-width: 768px) {
+  .player-setup-overlay {
+    place-items: center;
+    padding: .75rem;
+    background: rgb(5 10 16 / 62%);
+    backdrop-filter: blur(2px);
+  }
+  .player-setup-overlay .player-setup-form {
+    width: min(100%, 26rem);
+    max-height: 78dvh;
+    border-radius: .9rem;
+    border: 1px solid #4d7188;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+}
+
+/* 대사칸 발화자별 색 구분 — 왼쪽 바 */
+.narrative-dialogue { border-left-color: #7e8a96; }
+.narrative-dialogue.speaker-player { border-left-color: #4d9fff; }
+.narrative-dialogue.speaker-heroine1 { border-left-color: #ff6b8a; }
+.narrative-dialogue.speaker-heroine2 { border-left-color: #b07cff; }
+.narrative-dialogue.speaker-heroine3 { border-left-color: #4dd0a0; }
+.narrative-dialogue.speaker-heroine4 { border-left-color: #ff9f4d; }
+.narrative-dialogue.speaker-heroine5 { border-left-color: #ffd24d; }
+.speaker-player .dialogue-speaker { color: #8cc2ff; }
+.speaker-heroine1 .dialogue-speaker { color: #ff9db2; }
+.speaker-heroine2 .dialogue-speaker { color: #cba6ff; }
+.speaker-heroine3 .dialogue-speaker { color: #7ee0bb; }
+.speaker-heroine4 .dialogue-speaker { color: #ffc08a; }
+.speaker-heroine5 .dialogue-speaker { color: #ffe08a; }
