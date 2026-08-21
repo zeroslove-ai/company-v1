@@ -3,22 +3,35 @@
 Status: OWNER-REVIEW DRAFT / PRODUCT INPUTS LOCKED  
 Date: 2026-08-21
 
-Architecture is chosen only after Product Constitution, Acceptance Scenarios, Golden Master, Gameplay/State/Memory Model, and the nine-rule CSA MVP decision. Existing code has no right to survive merely because it exists.
+Architecture is chosen only after Product Constitution, Acceptance Scenarios, Golden Master, Gameplay/State/Memory Model, the nine-rule CSA MVP decision, and the Company v1 salvage audit.
 
-The previously open product questions are now resolved:
+**Important correction:** Candidates A/B/C below are **runtime-kernel alternatives only**. They are not three complete product/UI architectures.
+
+The forward game is composed from two axes:
+
+```text
+runtime kernel: choose A / B / C
++
+Company v1 product salvage: follow 08_COMPANY_V1_SALVAGE_MATRIX.md
+```
+
+Whichever kernel wins, the complete Company v1 presentation at `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84` remains the primary UI donor. The reduced `frontend-v2/` shell is not the target UI.
+
+The locked product inputs are:
 
 - ordinary turns have free input **and four Story-authored choices**, projected by Extract;
 - immediate physical continuity starts with one bounded `scene_note` only;
 - dynamic player sexual/arousal/erection/ejaculation gauge is removed;
-- retained CSA templates use flexible supported subject/counterparty scope rather than one hard-coded historical pairing.
+- retained CSA templates use flexible supported subject/counterparty scope rather than one hard-coded historical pairing;
+- Company v1 visible presentation is high-parity salvage by default; kernel replacement changes wiring/authority, not the product into a new minimal shell.
 
-Architecture must implement these decisions; it may not reopen them for convenience.
+Architecture may not reopen these for convenience.
 
 ## 1. Architecture success criteria
 
-Score candidates in this order:
+Score kernel candidates in this order:
 
-1. Product fidelity — easiest path to pass P0/P1 acceptance.
+1. Product fidelity — easiest path to pass P0/P1 acceptance behind the Company v1 presentation.
 2. Conceptual simplicity — one turn explainable in a few steps.
 3. Single authority — no browser/server/DB duplicate gameplay writers.
 4. Long-play continuity without giant ontology.
@@ -29,7 +42,7 @@ Score candidates in this order:
 9. Operational simplicity.
 10. Reuse value — only after the above.
 
-## 2. Candidate A — Salvage current v2 transport kernel, replace product/runtime domain
+## 2. Candidate A — Salvage current v2 transport kernel
 
 Potential KEEP candidates:
 
@@ -42,52 +55,68 @@ Potential KEEP candidates:
 - atomic commit boundary;
 - Cloudflare/Supabase wiring.
 
-Replace/rebuild:
+Replace/rebuild around that kernel:
 
 - v2 demo/product content adapter;
 - Opening;
 - Story context/prompt;
 - observer/domain projection;
-- reduced `frontend-v2` product layer;
+- current reduced `frontend-v2` product shell;
 - product acceptance tests;
 - historical generic CSA execution surfaces;
-- any dynamic player sexual-meter state.
+- dynamic player sexual-meter state.
+
+The replacement for `frontend-v2` is **the salvaged Company v1 presentation**, not another new frontend design.
 
 Pros: preserves hard-earned transport/concurrency fixes.  
 Risks: job/retry machinery may still be too complex and sunk-cost bias may leak product assumptions back in.
 
-## 3. Candidate B — Hospital-derived runtime skeleton, Company product rewritten on top
+## 3. Candidate B — Hospital-derived runtime kernel/skeleton
 
-Reuse Hospital only as independently proven donor ideas: natural Story + four choices, Story→observe→commit flow, memory windowing, Mind Monitor approach, and proven UI/runtime interaction patterns.
+Reuse Hospital only as independently proven donor ideas: natural Story + four choices, Story→observe→commit, memory windowing, Mind Monitor approach, and proven interaction patterns.
 
 Do not inherit Hospital semantic domains, hypnosis, consent/physical taxonomies, DB identities, or hidden assumptions.
 
-The Hospital behavior we want to reproduce is specifically the **natural play feel where Story itself writes the next four actions and downstream extraction turns them into UI choices**, not wholesale Hospital runtime copying.
+The Hospital behavior we specifically want is the natural play feel where Story itself writes the next four actions and downstream extraction turns them into UI choices, not wholesale Hospital frontend/runtime copying.
+
+The visible frontend still comes primarily from the Company v1 salvage matrix.
 
 Pros: strong play-feel donor evidence.  
 Risks: may smuggle foreign semantics and duplicate solved streaming/concurrency work.
 
-## 4. Candidate C — Entirely new minimal runtime
+## 4. Candidate C — Entirely new minimal runtime kernel
 
-Build from zero without v1/v2/Hospital implementation base.
+Build the runtime spine from zero without v1/v2/Hospital implementation base.
+
+This still does **not** mean a greenfield UI: Company v1 presentation/content salvage remains the product layer.
 
 Pros: conceptual cleanliness.  
 Risks: repeats solved Worker streaming/concurrency/reconnect problems and may slow first correct gameplay.
 
 ## 5. Provisional recommendation
 
-Recommend **Candidate A only as kernel salvage / product runtime rewrite**, not “continue v2”.
+Recommend **Candidate A as the leading kernel candidate only**, conditional on a bounded audit proving it can sit behind a small product-neutral interface.
 
-This remains conditional on a bounded kernel audit proving the retained kernel can sit behind a small product-neutral interface. If not, choose B or C.
+The leading complete composition is:
+
+```text
+Company v1 high-parity presentation/content
++ new thin client controller / minimal view model
++ new minimal Company state/domain
++ Candidate A kernel if it passes audit
+```
+
+If A fails the simplicity audit, switch the kernel to B or C without throwing away the Company v1 product layer.
 
 ## 6. Target conceptual architecture
 
 ```text
-Browser
+Company v1 presentation shell
   |
   | literal free input OR extracted full choice text
+  | thin redesigned controller only
   v
-Game API
+Game API / selected kernel
   |
   +-- ordinary turn ------------------------------+
   |  load committed context                       |
@@ -109,9 +138,9 @@ Game API
   +-- reset/new game
   |
   v
-Committed Context API
+Committed Context / minimal Company view model
   |
-  +-- UI
+  +-- salvaged Company v1 renderers/panels
   +-- next Story
   +-- optional Image/TTS sidecars
 ```
@@ -120,21 +149,23 @@ Browser never orchestrates Story→Observer→Commit stages.
 
 ## 7. Functional core / imperative shell
 
-Imperative shell owns HTTP/SSE, LLM/network, DB transaction calls, attempt reservation/fencing, timeout/reconnect, sidecars.
+Imperative server shell owns HTTP/SSE, LLM/network, DB transaction calls, attempt reservation/fencing, timeout/reconnect, sidecars.
 
-Pure functional core owns content projection, Story context, observer normalization, minimal scene/rule/clothing reducers, memory window, choice projection validation, and UI view-model projection.
+Pure functional core owns content projection, Story context, observer normalization, minimal scene/rule/clothing reducers, memory window, choice projection validation, and server-to-UI view-model projection.
+
+Frontend owns rendering and literal user intent only.
 
 ## 8. Product/content compiler boundary
 
 ```text
-accepted content sources
+accepted Company content sources
    -> validate/build CompanyContent
    -> Story/UI/domain readers
 ```
 
 `CompanyContent` carries stable source facts but no gameplay state.
 
-For CSA, `CompanyContent` exposes only the accepted nine active templates and one canonical supported scope vocabulary. It does not compile historical 44-rule active semantics and filter them later.
+For CSA, `CompanyContent` exposes only the accepted nine active templates and one canonical supported scope vocabulary. It does not compile the historical 44 as active semantics and filter them later.
 
 ## 9. Story output contract — natural narrative + natural choices
 
@@ -147,13 +178,11 @@ Preferred contract:
 - Story ends with four natural full-action suggestions for the next turn;
 - no OOC/self-repair/control vocabulary in committed Story;
 - no mandatory `[SCENE]/[DIALOGUE]/[CHOICE]` hidden semantic wire merely to make the game work;
-- optional deterministic speaker metadata may be parsed only when identity is unambiguous.
+- optional speaker metadata is accepted only when identity is unambiguous.
 
 The same post-Story Extract reads the completed text and projects the four choices plus minimal machine state.
 
-The choices may be written in a simple natural numbered/footer form that is easy for the model and extractor to recognize. The important law is that **Story authored them** and **Extract copies them**; Extract is not a second choice author.
-
-If a different envelope is proposed, it must prove that it materially improves reliability without reintroducing visible protocol garbage or a second narrative author.
+Choices may use a simple natural numbered/footer form. The binding law is: **Story authored them; Extract copies them.** Extract is not a second choice author.
 
 ## 10. Story call
 
@@ -180,18 +209,18 @@ It may propose only accepted fields:
 - Mind Monitor;
 - warnings.
 
-Extract does not invent replacement choices or narrative consequences. Choice/MM/optional observation failure is local; it never triggers a second Story generation.
+Extract does not invent replacement choices or narrative consequences. Choice/MM/optional observation failure is local and never triggers a second Story generation.
 
 ## 12. Commit boundary
 
-One transaction commits an accepted ordinary turn:
+One transaction commits:
 
 - literal action;
 - raw Story;
 - extracted current-turn choices when valid;
 - allowed structural/mechanical reductions;
 - scene_note;
-- already available memory/summary artifacts;
+- available memory/summary artifacts;
 - optional monitor/presentation payload;
 - turn identity/revision.
 
@@ -219,31 +248,44 @@ Required mechanics:
 - exact four-slot clothing synchronization for retained clothing rules;
 - Story-premise projection for request/open-ended rules.
 
-Scope flexibility is deliberately generic **data**, but rule execution is not a generic DSL. A scope combination changes who the wording applies to; it does not install a new action taxonomy/consent/compliance engine.
+Scope flexibility is generic **data**, but rule execution is not a generic DSL.
 
-If source audit proves a flexible supported scope model is materially too complex or semantically incoherent for some retained rule, stop and return exact evidence/cost to owner before narrowing.
+If source audit proves flexible supported scope is materially too complex or semantically incoherent, stop and return exact evidence/cost to owner before narrowing.
 
-## 15. UI architecture
+## 15. Company v1 UI/product salvage is binding architecture input
 
-Use the accepted Golden surface inventory.
+Detailed file/module classification: `08_COMPANY_V1_SALVAGE_MATRIX.md`.
 
-- complete Company presentation intentionally rebuilt/transplanted;
-- four extracted current-turn choices + free input are first-class action surfaces;
-- thin controller talks to redesigned API/context only;
-- frontend owns no gameplay transition;
-- no frontend semantic catalog duplicates;
-- `상식개변` UI displays only 3/3/3 catalog with flexible supported scope controls;
-- removed dynamic player sexual gauge has no compatibility placeholder.
+Primary rules:
+
+- `src/frontend/pages/*` at `5ec1a76...` is the primary presentation donor;
+- `index.html` + shell/panel/mobile CSS are high-parity transplant, not greenfield redesign;
+- `render.js` narrative/choices/history presentation is transplanted with narrow contract rewiring;
+- `setup.js` is near-verbatim KEEP with new submit API;
+- `company-map.js/css` is KEEP/light-rewire;
+- Mind Monitor presentation is transplanted with new observer data;
+- `csa-app.js` visual/modal UX is transplanted but old 44-rule/state/submit semantics are rebuilt;
+- `tts.js`, history/download/media UI are later donor assets;
+- `view-model.js` pattern is kept but implementation is rebuilt around minimal state;
+- `app.js` is **not** transplanted wholesale because its `createTurnCoordinator()` owns Story→Extract→Commit;
+- legacy API/SSE stage contracts are rewired to one server-owned turn request;
+- current reduced `frontend-v2/` shell is not the forward product.
+
+Choosing B or C instead of A does not change these presentation decisions.
 
 ## 16. Testing architecture
 
 ### Product contract tests
 
-Assert Company content, Setup, UI surfaces, Story context, four Story-authored choices, free input, scene_note model, removed player meter, and exact nine-rule flexible-scope CSA catalog.
+Assert Company content, Setup, salvaged UI surfaces, Story context, four Story-authored choices, free input, scene_note, removed player meter, and exact nine-rule flexible-scope CSA catalog.
 
 ### Structural runtime tests
 
-Assert transaction/fencing/reconnect/idempotency/commit invariants.
+Assert transaction/fencing/reconnect/idempotency/commit invariants of the selected kernel.
+
+### Visual salvage tests/review
+
+Compare actual desktop/mobile result against `5ec1a76...` and `08_COMPANY_V1_SALVAGE_MATRIX.md`. Differences must be intentional, especially removed gauge and changed CSA semantics.
 
 ### Manual acceptance
 
@@ -255,9 +297,9 @@ Green structural tests cannot override failed product/manual acceptance.
 
 Milestone 0:
 
+- transplant the Company v1 Story/action/MM/setup presentation at high parity;
 - canonical Setup + real Company content;
 - correct Opening;
-- real UI Story/action/Mind Monitor shell;
 - one ordinary turn through selected kernel;
 - Story-authored four choices projected by Extract;
 - free input;
@@ -265,10 +307,15 @@ Milestone 0:
 - refresh/readback;
 - no active CSA mutation/media/feedback yet unless required for product identity.
 
-Owner reviews Opening + 3–5 turns immediately.
+Owner reviews the **actual salvaged UI** plus Opening + 3–5 turns immediately.
 
 ## 18. Remaining decision before source implementation
 
-The four product questions previously listed here are resolved by owner decision on 2026-08-21.
+The product behavior questions are closed.
 
-The remaining major decision is **architecture selection** itself: Candidate A kernel salvage vs Candidate B Hospital-derived skeleton vs Candidate C new minimal kernel, based on the bounded source audit required by Gate 1.
+The remaining architecture work is a composed audit:
+
+1. **Kernel:** Candidate A vs B vs C.
+2. **Salvage:** finalize exact Company v1 files/modules under KEEP / TRANSPLANT / REWIRE / REBUILD / DELETE / DEFER_KEEP.
+
+The kernel choice may not be used as justification to discard or redesign the accepted Company v1 presentation.
