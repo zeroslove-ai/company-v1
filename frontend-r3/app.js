@@ -10,6 +10,7 @@ import { createR3CsaUi } from './csa.js';
 const query = new URLSearchParams(location.search);
 const client = createR3Client(query.get('api') || '/api/r3');
 const state = { gameId: query.get('game_id'), context: null, catalogs: null, busy: false };
+const sidecarState = { ttsEnabled: false };
 const $ = id => document.querySelector(`#${id}`);
 const csaUi = createR3CsaUi({ documentRef: document, client, getGameId: () => state.gameId, getContext: () => state.context, getCatalog: () => state.catalogs?.csa_presets, onContext: context => renderContext(context) });
 
@@ -47,9 +48,44 @@ function renderContext(context) {
   renderMindMonitor($('mind-monitor'), view.mindMonitor, { actorNames: view.actorNames });
   renderCompanyMap($('company-map'), buildCompanyMapModel({ scene: view.scene, actors, locations: state.catalogs?.locations ?? [] }), { onFill: literalInput });
   const apps = $('open-apps'); if (apps) apps.disabled = !state.gameId;
+  const history = $('open-history'); if (history) history.disabled = !state.gameId || !view.history.length;
+  const hasStory = Boolean(view.story);
+  const ttsToggle = $('tts-toggle'); if (ttsToggle) { ttsToggle.disabled = !hasStory; ttsToggle.setAttribute('aria-pressed', sidecarState.ttsEnabled ? 'true' : 'false'); }
+  const ttsReplay = $('tts-replay'); if (ttsReplay) { ttsReplay.hidden = !hasStory; ttsReplay.disabled = !hasStory; }
   csaUi.sync();
   setHidden('player-setup-overlay', Boolean(view.profile?.name));
   $('api-status')?.setAttribute('aria-label', '연결 완료');
+}
+
+function latestStory() { return state.context?.turns?.at(-1)?.story_text ?? ''; }
+function speakLatest() {
+  const text = latestStory();
+  if (!text || !sidecarState.ttsEnabled || typeof globalThis.speechSynthesis === 'undefined' || typeof globalThis.SpeechSynthesisUtterance === 'undefined') return;
+  globalThis.speechSynthesis.cancel();
+  const utterance = new globalThis.SpeechSynthesisUtterance(text);
+  utterance.lang = 'ko-KR';
+  globalThis.speechSynthesis.speak(utterance);
+  if ($('tts-status')) $('tts-status').textContent = '현재 Story를 재생합니다.';
+}
+function openHistory() {
+  if (!state.context) return;
+  const view = buildR3ViewModel(state.context, state.catalogs ?? {});
+  renderHistory($('history-list'), view.history, { actors: view.actorNames });
+  if ($('history-status')) $('history-status').textContent = `${view.history.length}개 커밋 턴을 표시합니다.`;
+  setHidden('history-overlay', false);
+}
+function historyExport(extension, contentType, body) {
+  const blob = new Blob([body], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a'); link.href = url; link.download = `company-r3-history-${state.gameId}.${extension}`; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+function exportHistory(markdown = true) {
+  const turns = state.context?.turns ?? [];
+  const body = turns.map(turn => markdown
+    ? [`## Turn ${turn.turn_number ?? 0}`, `**행동:** ${turn.literal_action || 'Opening'}`, '', turn.story_text ?? '', turn.turn_summary ? `\n> ${turn.turn_summary}` : ''].join('\n')
+    : [`Turn ${turn.turn_number ?? 0}`, `행동: ${turn.literal_action || 'Opening'}`, '', turn.story_text ?? '', turn.turn_summary ? `\n요약: ${turn.turn_summary}` : ''].join('\n')).join(markdown ? '\n\n---\n\n' : '\n\n====================\n\n');
+  historyExport(markdown ? 'md' : 'txt', markdown ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8', body);
 }
 function refreshChoices() {
   const view = state.context ? buildR3ViewModel(state.context, state.catalogs ?? {}) : null;
@@ -98,6 +134,12 @@ async function loadContext() {
 $('player-setup-form')?.addEventListener('submit', setup);
 $('submit-action')?.addEventListener('click', () => submit());
 $('player-action')?.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') submit(); });
+$('open-history')?.addEventListener('click', openHistory);
+$('history-close')?.addEventListener('click', () => setHidden('history-overlay', true));
+$('history-download-md')?.addEventListener('click', () => exportHistory(true));
+$('history-download-txt')?.addEventListener('click', () => exportHistory(false));
+$('tts-toggle')?.addEventListener('click', () => { sidecarState.ttsEnabled = !sidecarState.ttsEnabled; renderContext(state.context); if (sidecarState.ttsEnabled) speakLatest(); else globalThis.speechSynthesis?.cancel?.(); });
+$('tts-replay')?.addEventListener('click', speakLatest);
 loadCatalogs().catch(error => { setStatus(error.message, true); setBootFailure(error); });
 
 async function loadCatalogs() { renderCatalogs(await client.catalogs()); await loadContext(); }

@@ -25,6 +25,10 @@ test('R3 frontend sends exact literal input through one server turn endpoint', (
   assert.match(html, /id="player-action"/);
   assert.match(html, /data-phase="milestone0-r3"/);
   assert.match(html, /id="tts-toggle"[^>]*disabled/);
+  assert.match(app, /openHistory/);
+  assert.match(app, /history-download-md/);
+  assert.match(app, /SpeechSynthesisUtterance/);
+  assert.match(app, /historyExport/);
 });
 
 test('R3 boot fallback is dismissed after boot and API origin survives game URL updates', () => {
