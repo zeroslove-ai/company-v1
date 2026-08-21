@@ -3,68 +3,40 @@
 Status: OWNER-REVIEW DRAFT  
 Date: 2026-08-21
 
-This model separates **what happened in Story** from **what must be machine-readable**. The goal is long-play continuity without rebuilding a giant semantic ontology.
+This model separates **what happened in Story** from **what must be machine-readable**. Goal: long-play continuity without giant semantic ontology.
 
 ## 1. Four kinds of truth
 
-### 1.1 Static content truth
+### Static content truth
 
-Owned by accepted repository content.
+Owned by accepted repository content: registered characters, locations, setup catalogs, and active nine-rule CSA MVP. Historical non-MVP rules are not active runtime truth.
 
-Examples:
+### Narrative truth
 
-- registered character IDs/canon;
-- location catalog;
-- organization/setup catalogs;
-- the active 9-rule CSA MVP defined by `07_CSA_MVP_CATALOG.md`.
+Owned by committed literal player action + committed Story: dialogue, rejection/acceptance, tone, promises, arguments, open-ended physical/social consequences, scene events.
 
-Historical non-MVP CSA templates are not active runtime truth.
+Do not force all narrative meaning into enums/ledgers.
 
-### 1.2 Narrative truth
+### Structural/mechanical truth
 
-Owned by committed literal player action + committed Story.
+Initial minimum:
 
-Examples:
-
-- what someone said;
-- whether a request was rejected/accepted;
-- interpersonal tone;
-- promises, arguments, jokes, embarrassment;
-- open-ended physical/social consequences;
-- scene-specific events.
-
-The runtime does not force all narrative meaning into enums/ledgers.
-
-### 1.3 Structural/mechanical truth
-
-Machine-readable state exists only where exact behavior is genuinely needed.
-
-Initial recommended minimum:
-
-- player creation/profile identity;
+- player profile identity;
 - day/time;
 - current registered location;
 - current present registered actors;
-- active `상식개변` rules from the accepted 9-template catalog and their lifecycle;
+- active accepted CSA rules/lifecycle;
 - four-slot clothing because retained MVP clothing rules need exact continuity;
-- optional explicitly approved player meter(s);
+- optional owner-approved player mechanic(s);
 - bounded current-scene continuity note.
 
-### 1.4 Presentation/interpretation
+### Presentation/interpretation
 
-Examples:
+Mind Monitor, image, TTS, focal/display character, compact UI labels. These may fail locally and do not redefine narrative truth.
 
-- Mind Monitor;
-- image choice;
-- TTS;
-- focal/display character;
-- UI compact labels.
+## 2. Proposed minimal durable state
 
-These may fail locally and never redefine narrative truth.
-
-## 2. Proposed minimal durable game state
-
-Conceptual shape, not final DB schema:
+Conceptual only:
 
 ```json
 {
@@ -79,15 +51,12 @@ Conceptual shape, not final DB schema:
     "body_type_id": "...",
     "speech_style_id": "..."
   },
-  "time": {
-    "day": 1,
-    "minute": 540
-  },
+  "time": { "day": 1, "minute": 540 },
   "scene": {
     "location_id": "brand_strategy_office",
     "present_actor_ids": ["heroine1"],
     "scene_note": {
-      "text": "현재 장면에서 다음 턴에 꼭 이어져야 할 임시 공간·행동 사실",
+      "text": "현재 다음 턴에 꼭 이어져야 할 공간·행동 사실",
       "updated_turn": 7
     }
   },
@@ -97,80 +66,62 @@ Conceptual shape, not final DB schema:
 }
 ```
 
-`active_rules` contains only template IDs/scope/lifecycle values derived from the accepted 9-rule catalog. It does not copy arbitrary historical rule semantics into save state.
+`active_rules` stores only accepted template identity/scope/lifecycle values; it does not duplicate full arbitrary semantics into save.
 
-`player_mechanics` exists only for mechanics explicitly retained by owner decision. Empty compatibility fields are not permitted.
+`player_mechanics` exists only for explicitly retained mechanics. No compatibility zombie fields.
 
 ## 3. Current-scene continuity note
 
-Test a **single replaceable natural-language scene note** before adopting a generic posture/contact ontology.
+Test a **single replaceable bounded natural-language snapshot** before adopting generic posture/contact ontology.
 
-Purpose:
-
-- carry ongoing pose/contact that may last many turns;
-- carry important held/placed objects;
-- preserve immediate spatial relationships;
-- give Story a compact “what is physically still true right now” anchor.
+Purpose: carry ongoing pose/contact, important held/placed objects, immediate spatial relationship, and other facts the very next Story must not forget.
 
 Example:
 
 ```json
 {
-  "text": "김제나는 플레이어 무릎 위에 옆으로 앉아 있고, 검토 중인 보고서는 책상 오른쪽에 펼쳐져 있다.",
+  "text": "김제나는 플레이어 무릎 위에 옆으로 앉아 있고, 보고서는 책상 오른쪽에 펼쳐져 있다.",
   "updated_turn": 12
 }
 ```
 
 Rules:
 
-- one bounded current snapshot, not an accumulating fact ledger;
-- derived only from committed Story/current prior scene note;
-- replaces itself as scene changes;
-- never invents contact/object/pose absent from Story;
-- uncertainty preserves the last supported fact or omits uncertain detail;
+- bounded snapshot, not accumulating fact ledger;
+- grounded only in committed Story/current prior note;
+- rewritten as scene changes;
+- never invent uncertain contact/object/pose;
 - location/presence remain separately structured.
 
-Acceptance scenario `A-SCENE-002` decides whether this is sufficient. If not, introduce the smallest extra structure proven necessary.
+This remains an OPEN implementation choice until `A-SCENE-002` proves it sufficient. If not, add the smallest extra structure actually needed.
 
 ## 4. Turn record
 
-Each accepted chronological turn preserves at least:
+Preserve at least:
 
 ```text
 turn_number
 revision
 literal_player_action
 story_text
-structured_speaker_metadata (only if architecture accepts a safe parser)
-turn_summary (optional memory/presentation aid)
-mind_monitor (optional presentation)
-observation_projection (retained machine fields only)
+structured_speaker_metadata (only if safe parser accepted)
+turn_summary
+mind_monitor
+observation_projection
 committed_at
 ```
 
-Raw committed Story remains recoverable.
-
-Feedback revision changes the revision of the same chronological turn rather than creating a new turn number.
+Raw committed Story remains recoverable. Feedback revision replaces revision of same chronological turn, not turn number.
 
 ## 5. Story authority
 
-Story receives a bounded projection of:
+Story receives bounded projection of exact player action, accepted relevant profile context, time, current location/description, relevant actor IDs/canon, relevant active premises from accepted nine rules, scene note, recent raw turns, and older grounded memory.
 
-- exact literal player action;
-- accepted player profile fields relevant to the scene;
-- current day/time;
-- current location + relevant description;
-- present/relevant actor IDs and compact canon;
-- relevant active rule premises from the accepted 9-rule catalog;
-- current scene note;
-- recent raw committed turns;
-- older grounded memory chunks.
-
-Story does not receive precomputed success/failure, relationship stage, consent matrix, action taxonomy, generic physical execution plan, or probability roll.
+Story does **not** receive precomputed success/failure, relationship stage, consent matrix, action taxonomy, physical execution plan, or probability roll.
 
 ## 6. Post-Story observation
 
-Recommended starting topology: **one small observer call after Story**, combining the projections that must look at the same completed narrative:
+Recommended starting topology: **one small observer call after Story**, combining projections that inspect the same completed narrative:
 
 ```text
 elapsed_minutes
@@ -184,27 +135,23 @@ mind_monitor
 warnings
 ```
 
-This keeps scene/summary/Mind Monitor in one non-authoring observation stage and avoids multiplying LLM seams. If live evidence later proves one field materially harms reliability, split only that proven field rather than pre-fragmenting the pipeline.
+This avoids multiplying LLM seams. If live evidence later proves one field materially harms reliability, split only that proven field.
 
-Do not output generic relationship/event/emotion ledgers, arbitrary save paths, generic physical-action taxonomy, CSA attitude/compliance semantics, media authority, or success/failure interpretation of open narrative actions.
+Do not output generic relationship/event/emotion ledgers, arbitrary save paths, generic physical-action taxonomy, CSA attitude/compliance semantics, media authority, or success/failure interpretation.
 
-Exact system actions such as applying a retained clothing rule bypass open-ended observation only for the encoded finite clothing mechanic.
+Exact system actions such as retained clothing-rule application bypass open observation only for their encoded finite mechanic.
 
-Observer/Mind Monitor failure is local where structurally safe: it does not trigger another Story generation.
+Observer/MM failure is local and never causes a second Story generation.
 
 ## 7. Memory model
 
-### 7.1 Recent memory
+### Recent memory
 
-Keep a bounded number of recent committed turns as raw literal action + raw Story.
+Keep bounded recent committed turns as raw literal action + raw Story. Starting recommendation: 6–8 turns.
 
-Recommended starting window: 6–8 turns; exact budget remains an architecture/performance decision.
+### Older memory
 
-### 7.2 Older memory
-
-Older continuity uses chronological grounded memory chunks produced from committed turns.
-
-Conceptual form:
+Use chronological grounded chunks from committed turns:
 
 ```json
 {
@@ -215,47 +162,25 @@ Conceptual form:
 }
 ```
 
-Rules:
+Rules: preserve chronology; summarize committed material only; no invented relation/event classification; blank/invalid summary falls back to bounded raw Story; memory failure cannot erase event.
 
-- preserve chronology;
-- summarize committed material only;
-- no invented relationship stage/event classification;
-- blank/invalid/unavailable summary falls back to bounded raw committed Story;
-- memory failure may reduce convenience but cannot erase the event.
+### Compaction timing
 
-### 7.3 Memory compaction timing
+Do not require a separate memory LLM every turn. Prefer observer summary + deterministic aggregation/raw fallback, or periodic compaction only when material ages out of recent raw context. Choose simplest design passing `A-MEMORY-001`.
 
-Do not require a separate LLM call every turn purely for memory.
+## 8. Mind Monitor
 
-Acceptable candidates:
+Saved with turn for history/UI consistency but not durable world truth. Next Story cannot treat prior monitor as hard fact unless narrative/state also established it. Missing monitor cannot block Commit.
 
-- same observer emits turn summary and periodic chunk material;
-- deterministic aggregation of turn summaries with raw fallback;
-- periodic compaction only as material ages out of recent raw context.
+## 9. Relationship/emotion
 
-Choose the simplest design that passes `A-MEMORY-001`.
-
-## 8. Mind Monitor storage/readback
-
-Mind Monitor is saved with the turn for history/UI consistency but is not durable world truth.
-
-Next Story does not treat prior Mind Monitor as hard fact unless narrative/state also established it. Missing monitor cannot block Commit.
-
-## 9. Character relationship/emotion
-
-Do not create a generic relationship/emotion/event ledger during core redesign.
-
-Long-running relationship change first lives in committed Story + grounded memory. Add specific structured relationship state later only if a concrete accepted mechanic/UI proves it is needed.
+No generic relationship/emotion/event ledger in core redesign. Long-running changes first live in Story + grounded memory. Add specific structured state later only when an accepted mechanic/UI proves need.
 
 ## 10. Location/navigation
 
-Machine truth:
+Machine truth: stable location IDs, current location, present registered actors.
 
-- stable location IDs;
-- current location;
-- present registered actors.
-
-Navigation may be deterministic only when an unambiguous registered destination/target is structurally resolved under the accepted contract. Ambiguous/open movement remains Story-authored. No generic semantic intent router is required.
+Deterministic navigation only when destination/target is structurally unambiguous. Ambiguous movement remains Story-authored. No generic semantic intent router.
 
 ## 11. CSA/rules
 
@@ -263,33 +188,26 @@ Rule state is separate from chronological Story turns.
 
 ```text
 Open app
-→ select/edit one of accepted 9 templates/scopes
-→ validate exact active product definition
+→ select/edit accepted template/scope
+→ validate active product definition
 → atomic apply/change/remove transaction
 → durable rule state changes
-→ ordinary Story turn count unchanged
-→ next Story reads relevant active premise
+→ ordinary Story turn unchanged
+→ next Story reads relevant premise
 ```
 
-Runtime supports only mechanics actually needed by the nine retained templates.
-
-- clothing rules may synchronize exact four-slot state;
-- request-triggered/open-ended behavior remains Story-authored from exact rule wording/scope;
-- no generic CSA execution DSL for historical candidates;
-- no API path accepts non-MVP template IDs.
-
-NPC personal interpretation remains Story-authored.
+Runtime supports only mechanics needed by retained nine templates. Clothing rules may synchronize exact four slots; request/open behavior remains Story-authored from exact wording/scope; non-MVP IDs rejected; no generic CSA execution DSL.
 
 ## 12. State deletion law
 
 Every durable field must answer:
 
 1. Which accepted scenario needs it?
-2. Who is the sole writer?
+2. Who is sole writer?
 3. Who reads it?
 4. What happens if absent?
 5. Can raw Story/memory replace it more safely?
 
-If these answers are missing, do not add/retain the field.
+If answers are missing, do not add/retain the field.
 
 Historical compatibility is not a product requirement unless owner explicitly authorizes save migration.
