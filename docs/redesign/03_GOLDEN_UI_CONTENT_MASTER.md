@@ -3,27 +3,21 @@
 Status: OWNER-REVIEW DRAFT  
 Date: 2026-08-21
 
-This document separates **semantic product identity** from **layout implementation**.
-
-The redesign may change layout and runtime wiring. It may not accidentally replace the Company world with demo content or make established product surfaces disappear without an explicit decision.
+This document separates semantic product identity from layout implementation. Layout may change; product surfaces and canonical content require explicit treatment.
 
 ## G-CONTENT-EDITION — Edition identity
 
 Semantic source: `content/edition.json`
 
-Current canonical values:
-
 - `edition_id = company-v1`
 - title = `상식개변: 회사편`
 - scope = company
 
-The internal future runtime generation name (`v2`, `v3`, etc.) does not change product edition identity unless owner explicitly decides so.
+Runtime generation names such as v2/v3 do not alter product identity.
 
 ## G-CONTENT-CHARACTERS — Heroine catalog
 
 Semantic source: `content/characters.json`
-
-Five canonical heroine IDs/names at redesign start:
 
 - `heroine1` — 서원희
 - `heroine2` — 윤민아
@@ -31,29 +25,21 @@ Five canonical heroine IDs/names at redesign start:
 - `heroine4` — 한리브
 - `heroine5` — 이메이
 
-The source prompt cards define identity/personality/speech/addressing/appearance/distinctive traits and other content facts.
+Prompt cards define identity/personality/speech/addressing/appearance/distinctive traits and other content facts.
 
-Rule:
-
-- runtime must load/compile from this source through an adapter/build artifact;
-- tests compare runtime projection against source IDs/counts/names;
-- no hand-coded demo/default character list may become runtime authority.
+Runtime compiles from source; tests compare IDs/counts/names; no demo/default character list is permitted.
 
 ## G-CONTENT-GENERAL-NPCS — General NPC catalog
 
-Semantic source: `content/general_npcs.json`
+Semantic source: `content/general_npcs.json`.
 
-Current catalog contains the established registered general NPC profiles. Runtime may filter relevant actors but may not replace the catalog with ad-hoc names.
+Runtime may select relevant actors but may not replace registered profiles with ad-hoc semantic identities.
 
 ## G-CONTENT-MAP — Company world map
 
-Semantic source: `content/map.json`
+Semantic source: `content/map.json`.
 
-Current map is the full established Company location catalog (24 locations at redesign start).
-
-Runtime projection should preserve source IDs, labels/descriptions and structural navigation data actually used by gameplay.
-
-No two-location demo map or SQL/frontend shadow catalog is allowed.
+The established map has 24 locations at redesign start. Runtime preserves source IDs and the structural/location facts actually used by gameplay. No two-location demo or SQL/frontend shadow map.
 
 ## G-CONTENT-ORG — Setup/content catalogs
 
@@ -63,13 +49,24 @@ Semantic sources include:
 - `content/positions.json`
 - `content/body_types.json`
 - `content/speech_styles.json`
-- `content/csa_presets.json`
 
-The runtime may validate IDs structurally but should not duplicate semantic labels/meaning in SQL.
+Runtime validates stable IDs without copying semantic labels into SQL.
+
+## G-CONTENT-CSA — Active CSA catalog
+
+Binding product decision: `07_CSA_MVP_CATALOG.md`.
+
+The initial active catalog contains **exactly 9 templates**: 3 weak, 3 medium, 3 strong.
+
+Historical `content/csa_presets.json` currently contains a larger catalog. That larger set is redesign evidence, not forward active product authority.
+
+At implementation time, there must be one active source of CSA semantics. Prefer pruning/rebuilding the active content file to the accepted 9 rather than keeping 44 source rules and distributing allowlists through runtime/UI/tests.
+
+No historical non-MVP rule appears in the product until explicitly re-added one at a time.
 
 ## G-SETUP-001 — Established Setup surface
 
-Historical completed UI evidence: `src/frontend/pages/index.html` at commit `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`.
+Historical complete UI evidence: `src/frontend/pages/index.html` at `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`.
 
 Established input inventory:
 
@@ -83,177 +80,157 @@ Established input inventory:
 8. body type
 9. speech style
 
-Redesign status:
-
-- surface retained by default;
-- exact layout may change;
-- each field must receive an explicit KEEP/CHANGE/REMOVE owner decision before implementation if the redesign wants to alter it;
-- fields selected from catalogs store stable IDs where appropriate, not copied labels as authority.
+Surface is retained by default; layout may change; catalog selections store stable IDs where appropriate.
 
 ## G-UI-BASELINE — Completed Company product-surface evidence
 
-The most complete established Company UI snapshot before the v2 product-identity failure is commit:
+Most complete established Company UI evidence before v2 product-identity failure:
 
 `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
 
-Primary evidence tree:
+Primary tree: `src/frontend/pages/*`.
 
-`src/frontend/pages/*`
-
-Important: this SHA is **not a mandatory pixel-perfect layout**. It is a golden inventory proving which product surfaces had already been built/accepted enough to require deliberate treatment.
-
-The prior historical donor `f4b228f14d3a0e4446b0ae62e441ed659d3609ca` is provenance only and must not replace the more complete snapshot.
+This is a golden **inventory**, not mandatory pixel-perfect layout. Historical `f4b228f...` is provenance only.
 
 ## G-UI-SURFACES — Required decision inventory
 
-Every redesign UI proposal must classify each surface as:
+Every redesign UI proposal classifies each surface as:
 
 - `ACTIVE_VISIBLE`
 - `VISIBLE_DISABLED_UNTIL_FEATURE`
 - `HIDDEN_BY_OWNER_DECISION`
 - `REMOVED_BY_OWNER_DECISION`
 
-No generic `DEFER` may silently erase presentation.
+Generic `DEFER` may not silently erase presentation.
 
 ### Story / history / stream
 
 Status: ACTIVE_VISIBLE / OWNER_LOCKED
 
-Requirements:
-
-- Story is largest/primary reading surface;
-- committed history remains readable in chronology;
+- largest/primary reading surface;
+- committed chronology remains readable;
 - current stream appends visibly without blocking overlay;
-- current literal player action can be presented separately from narrative;
-- protocol/internal IDs are not shown as prose.
+- literal player action may be shown separately;
+- protocol/internal IDs never render as prose.
 
 ### Free-form action
 
 Status: ACTIVE_VISIBLE / OWNER_LOCKED
 
-- always available during ordinary play;
-- desktop/mobile placement may change;
-- send state must not obscure streaming Story.
+Always available during ordinary play.
 
 ### Choice surface
 
 Status: OPEN_DECISION
 
-- may be absent, optional, or exactly-four suggestions after owner review;
-- free input remains authoritative regardless.
+May be absent or optional suggestions. Free input remains authoritative.
 
 ### Character/current-scene panel
 
 Status: ACTIVE_VISIBLE / RETAIN_BY_DEFAULT
 
-Should present accepted current-scene information without frontend invention.
-
-Exact fields are governed by the L3 state model, not old UI leftovers.
+Presents accepted current-scene facts without frontend invention.
 
 ### Mind Monitor
 
 Status: ACTIVE_VISIBLE / OWNER_LOCKED
 
-- relevant NPC tabs/cards where multiple actors are present;
-- real display names, not internal IDs;
-- `surface` and `subconscious`;
-- explicit empty state rather than fabricated monitor data.
+- real character names;
+- relevant actor tabs/cards;
+- `surface` + `subconscious`;
+- explicit empty state instead of fabrication.
 
 ### Player state/profile
 
 Status: ACTIVE_VISIBLE / RETAIN_BY_DEFAULT
 
-Separate immutable/setup profile from mutable gameplay state. Do not expose sensitive fields everywhere merely because they are stored.
+Separate setup profile from mutable gameplay state. Stored sensitive fields are not automatically shown everywhere.
 
 ### Company map
 
 Status: RETAIN_BY_DEFAULT
 
-Presentation should expose the Company spatial model. Navigation authority and exact click behavior are gameplay decisions.
-
-A map click may prefill an action or perform a structural move only if the accepted interaction contract says so; frontend must not become a second movement writer.
+Exposes Company spatial model. Frontend is not a second movement writer.
 
 ### `상식개변` app entry/overlay
 
 Status: ACTIVE PRODUCT SURFACE / OWNER_LOCKED PREMISE
 
-The private app is central to product identity.
+The first active mechanic UI shows only:
 
-If rule mutation is not yet implemented in an early milestone, the app may be visible but mutation controls must be clearly disabled/locked and must not claim a change occurred.
+```text
+약 3
+중 3
+강 3
+```
+
+For each of the 9 templates, UI needs only product-useful information: rule wording, strength, relevant subject/counterparty scope, active state, and transaction result.
+
+No historical 10th+ rule is hidden in another tab or endpoint.
+
+If mutation is not implemented in an earlier milestone, presentation may be visible disabled/locked but cannot fake success.
 
 ### Media/current image
 
 Status: RETAIN_BY_DEFAULT
 
-- visible slot/presentation may be redesigned;
-- image generation/selection is nonblocking sidecar;
-- no image-derived narrative authority.
+Nonblocking presentation sidecar; no narrative authority.
 
 ### TTS controls
 
 Status: RETAIN_BY_DEFAULT
 
-- visible controls may be compact;
-- OFF means no TTS calls;
-- audio must not block Story.
+Compact allowed; OFF means zero calls; audio never blocks Story.
 
 ### History/download
 
 Status: RETAIN_BY_DEFAULT
 
-- supports chronological inspection;
-- turn summary is supplementary, not repeated as main Story;
-- exact export formats can be redesigned.
+Chronological inspection; summaries supplement rather than replace/repeat Story.
 
 ### Feedback revision
 
 Status: RETAIN_BY_DEFAULT
 
-Presentation may remain disabled until v2/redesigned revision runtime exists, but the surface cannot silently disappear without owner decision.
+May remain visibly disabled until actual revision runtime exists.
 
 ### Reset/new game
 
 Status: RETAIN_BY_DEFAULT
 
-Must have an actual safe owner before enabled.
+Enabled only with a real safe owner.
 
 ### Standalone NPC find/search
 
 Status: REMOVED_BY_OWNER_DECISION
 
-Do not restore it. The `NPC 정보` tab inside the private app is a different surface.
+Do not restore. App `NPC 정보` is a different surface.
 
 ## G-UI-MOBILE — Mobile information law
 
-Exact historical ordering is evidence, not permanent pixel law. The redesign must preserve these priorities:
+Priorities:
 
 1. Story readability first.
-2. Player can act without scrolling through all status panels.
-3. Streaming Story is never covered by a loading layer.
-4. Mind Monitor/current scene/player state remain reachable but secondary to Story/action.
-5. Media/TTS/tooling do not dominate the reading flow.
+2. Player can act without crossing all status panels.
+3. Streaming Story is never covered.
+4. Mind Monitor/current scene/player state remain reachable but secondary.
+5. Media/TTS/tooling do not dominate reading flow.
 
-Any new mobile layout should be owner-reviewed with actual screenshots or deployed device view before implementation is considered accepted.
+Owner reviews actual mobile screenshots/device build before acceptance.
 
 ## G-UI-DESKTOP — Desktop information law
 
-Desktop should clearly separate:
+Clearly separate narrative/history, player action, current scene/character insight, and secondary tools. Do not reduce the game to a generic chat column because it is easier to implement.
 
-- narrative/history;
-- player action;
-- current scene/character insight;
-- secondary tools.
+## G-GOLDEN-REVIEW — Visual/content acceptance artifact
 
-Do not compress the game into a generic chat column with a handful of status cards merely because that is easy to implement.
+Before a major frontend rebuild merges, require:
 
-## G-GOLDEN-REVIEW — Visual acceptance artifact
+1. proposed desktop screenshot(s);
+2. proposed mobile screenshot(s);
+3. surface checklist;
+4. explicit differences from the historical complete snapshot;
+5. exact active CSA catalog check: 9 only;
+6. owner acceptance.
 
-Before a major frontend rebuild is merged, require:
-
-1. screenshot(s) of current proposed desktop UI;
-2. screenshot(s) of mobile UI;
-3. surface checklist against this file;
-4. explicit differences from historical complete snapshot;
-5. owner acceptance.
-
-DOM/unit tests alone are insufficient for UI parity or redesign approval.
+DOM/unit tests alone are insufficient.
