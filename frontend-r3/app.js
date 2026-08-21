@@ -47,6 +47,10 @@ function renderContext(context) {
   setHidden('player-setup-overlay', Boolean(view.profile?.name));
   $('api-status')?.setAttribute('aria-label', '연결 완료');
 }
+function refreshChoices() {
+  const view = state.context ? buildR3ViewModel(state.context, state.catalogs ?? {}) : null;
+  renderChoices($('choice-list'), view?.choices ?? [], { busy: state.busy, onChoose: submit });
+}
 
 function handleEvent(event, data) {
   if (event === 'story_delta' && $('current-story')) $('current-story').textContent += data.text ?? '';
@@ -56,7 +60,7 @@ function handleEvent(event, data) {
 async function openOpening() {
   setStatus('오프닝을 불러오는 중입니다.'); state.busy = true;
   try { await consumeR3Sse(await client.opening(state.gameId), handleEvent); setStatus('다음 행동을 직접 입력하거나 제안 중 하나를 고르세요.'); }
-  catch (error) { setStatus(error.message, true); } finally { state.busy = false; }
+  catch (error) { setStatus(error.message, true); } finally { state.busy = false; refreshChoices(); }
 }
 
 async function submit(value = null) {
@@ -69,7 +73,7 @@ async function submit(value = null) {
     if (input) input.value = '';
     setStatus('저장되었습니다.');
   } catch (error) { setStatus(error.message, true); }
-  finally { state.busy = false; }
+  finally { state.busy = false; refreshChoices(); }
 }
 
 async function setup(event) {

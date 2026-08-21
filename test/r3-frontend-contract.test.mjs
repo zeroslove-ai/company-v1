@@ -32,6 +32,7 @@ test('R3 boot fallback is dismissed after boot and API origin survives game URL 
   assert.match(app, /setBootFailure\(error\)/);
   assert.match(app, /query\.has\('api'\)/);
   assert.match(app, /next\.searchParams\.set\('api', query\.get\('api'\)\)/);
+  assert.match(app, /state\.busy = false; refreshChoices\(\)/);
   assert.doesNotMatch(app, /replaceState\(null, '', `\?game_id=/);
 });
 
