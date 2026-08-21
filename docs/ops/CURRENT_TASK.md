@@ -1,203 +1,167 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-full-redesign-milestone0-opening-agency-test-rerun-v1
-Mode: TEST / ONE-FRESH-GAME OPENING PRODUCT ACCEPTANCE ONLY
+Task ID: company-full-redesign-milestone0-owner-live-gate-l1-handoff-v1
+Mode: TEST / OWNER LIVE GATE L1 HANDOFF PREPARATION ONLY
 Updated: 2026-08-21
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Trigger / accepted source
+## 0. Trigger / accepted predecessor
 
-This task follows accepted source correction:
+This task follows accepted Live Gate L0 Opening evidence:
 
-- prior task: `company-full-redesign-milestone0-opening-agency-boundary-correction-v1`
-- terminal: Issue #68 `5369232213`
-- operator source acceptance: Issue #68 `5369286080`
-- reviewed PR: #100
-- exact reviewed source SHA: `4a253756f172862219729429a7e11ceb9ec69254`
-- exact merge main SHA: `af52e198d6f958aa1b97a0a5e0e18699e011806d`
-- exact-head CI: run `32477177006` SUCCESS
+- predecessor task: `company-full-redesign-milestone0-opening-agency-test-rerun-v1`
+- terminal: Issue #68 `5369418168`
+- operator acceptance: Issue #68 `5369499698`
+- accepted source SHA: `4a253756f172862219729429a7e11ceb9ec69254`
+- source merge main SHA: `af52e198d6f958aa1b97a0a5e0e18699e011806d`
+- current main before this registration: `d1c3e80c29822934beec15270bac484988c49a20`
+- accepted API Worker version from L0: `7da2be05-e8e9-4fa1-b121-7157b435202d`
+- accepted L0 evidence game: `10984458-7a23-47ac-9ec0-bb13753ea85a`
 
-The preceding failed Opening acceptance remains immutable evidence:
-
-- failed terminal: `5369127101`
-- operator failure review: `5369164396`
-- failure class: `FAILED_OPENING_COMPLETES_UNREQUESTED_PLAYER_ACTION`
-- evidence game: `80095cdd-c901-4370-8387-66dcb756b72a`
-
-Do not retry, reset, repair, delete, or otherwise mutate that evidence game.
+The L0 evidence game is immutable acceptance evidence. Do not reuse, reset, delete, repair, replay, or mutate it.
 
 ## 1. Binding authority
 
 Obey, in order:
 
 1. PR #95 Product-first redesign canon at owner-locked lineage `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
-2. PR #96 A-prime engine/acceptance canon at `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
-3. Company v1 complete UI/content donor snapshot `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`;
-4. accepted Milestone 0 R3 source on main through merge `af52e198d6f958aa1b97a0a5e0e18699e011806d`;
-5. source review comment `5369286080` and failed-live evidence `5369127101` / `5369164396`.
+2. PR #96 A-prime engine / live-first acceptance canon at `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
+3. especially `docs/redesign/10_TEST_AND_LIVE_ACCEPTANCE_POLICY.md` Live Gate L1 and `11_TARGET_GAP_MATRIX_A_PRIME.md` Cut 1 success definition;
+4. Company v1 complete UI/content donor snapshot `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`;
+5. accepted R3 source on main through merge `af52e198d6f958aa1b97a0a5e0e18699e011806d` and Opening agency correction `4a253756f172862219729429a7e11ceb9ec69254`;
+6. Issue #68 operator acceptance `5369499698`.
 
-Product acceptance outranks green tests.
+Product live acceptance outranks green automated tests.
 
 ## 2. Exact purpose
 
-Run exactly one fresh TEST Setup + Opening against the corrected R3 runtime and answer one product question:
+Prepare the real R3 TEST product for **owner Live Gate L1** only.
 
-> Before the first player input, does Opening preserve player agency by limiting the player to passive perception/exposure while NPC/environment actions proceed, without inventing voluntary player speech, gesture, movement, interaction, task execution, decision, or other intentional action?
+Live Gate L1 is not an automated canary. The owner must personally:
 
-This is not a broad gameplay test and not Milestone 1.
+- open the real Company-looking UI;
+- complete Setup in-browser on a fresh TEST game;
+- see Opening in-browser;
+- play freely for 3–5 ordinary turns using choices and/or free input;
+- judge Story quality, literal agency, four useful choices, identity, Mind Monitor relevance, visible streaming, no blocking loader, and high UI parity with Company v1.
 
-## 3. Preflight — read-only first
+Runner/Codex must **not** create the owner game or perform Setup, Opening, or any ordinary turn. The purpose of this task is only to make the exact live UI/API handoff reachable and trustworthy.
 
-Before any write/deploy/game creation:
+## 3. Race/preflight — read only first
 
-1. re-read latest Issue #68 comments as race/duplicate guard;
-2. confirm `main` contains merge `af52e198d6f958aa1b97a0a5e0e18699e011806d` and PR #100 exact reviewed source ancestry;
-3. confirm current task blob matches this task;
-4. verify TEST migration ledger contains `20260821000100_company_r3_milestone0` exactly once;
-5. do NOT reapply that migration;
-6. read back the isolated `company_r3_*` namespace/RPC/ACL shape sufficiently to confirm the previously accepted R3 persistence boundary is still present;
-7. confirm historical v1/v2/manual/QA/evidence games are not targets.
+Before any deploy:
 
-If migration/RPC/schema state is unexpectedly different, STOP `BLOCKED_TEST_BASELINE_DRIFT` without repairing it in this task.
+1. re-read latest Issue #68 comments as duplicate/race guard;
+2. confirm this exact CURRENT_TASK blob and Task ID are still authoritative;
+3. confirm `main` contains accepted source ancestry through `af52e198...` / `4a253756...` and only later ops/docs descendants unless explicitly reviewed;
+4. confirm API Worker identity remains `game-proxy-company-r3` and inspect whether deployed version/source still matches accepted R3 source;
+5. inspect the R3 frontend deployment identity and exact repository deployment config; expected product is `gamebuilder-company-r3` unless current repository config proves a different accepted name;
+6. verify frontend source on main is the Milestone 0 high-parity Company v1 transplant with thin R3 controller, not `frontend-v2` and not the historical browser-owned Story→Extract→Commit coordinator;
+7. confirm the frontend supports owner-created fresh games through Setup and routes to the R3 API;
+8. do not access/mutate any historical/manual/QA/evidence game.
 
-## 4. Exact deployment authority
+If source ancestry, worker identity, or frontend target is ambiguous, STOP `BLOCKED_HANDOFF_IDENTITY_DRIFT` rather than guessing.
 
-Only the R3 API runtime changed in PR #100.
+## 4. Deployment authority
 
-Authorized:
+This task may deploy **only what is necessary to produce the exact owner handoff**.
 
-- deploy the exact accepted merged R3 API source from main `af52e198d6f958aa1b97a0a5e0e18699e011806d` using `wrangler.r3.api.jsonc`;
-- Worker identity must remain `game-proxy-company-r3`;
-- run dry-run/config/import checks first as appropriate;
-- verify `/api/r3/catalogs` or equivalent health/catalog endpoint after deploy.
+### API
 
-Do NOT redeploy the frontend unless a read-only check proves the existing accepted `gamebuilder-company-r3` deployment is unavailable or cannot target the R3 API. If frontend redeploy appears necessary for a reason other than availability/config parity, STOP and report instead.
+- If read-only verification proves `game-proxy-company-r3` is already serving the accepted source corresponding to the L0 accepted lineage/version, do not redeploy it.
+- If the API deployment is stale/unavailable, deploy exact accepted merged main R3 API source only using the repository's R3 API deployment config.
+- Do not change provider/model/temperature/token/config/secrets.
 
-Do not change provider/model/temperature/token/config/secrets.
+### Frontend
 
-## 5. Exactly one fresh R3 TEST game
+- Verify current `gamebuilder-company-r3` (or exact accepted config-defined R3 frontend identity) deployment against `frontend-r3/` on current accepted main lineage.
+- If stale/unavailable, deploy the exact current accepted `frontend-r3/` source using the repository's R3 frontend deployment config.
+- No frontend source patch is authorized in this task.
+- Do not substitute `frontend-v2/` or redesign the UI.
 
-Create exactly one new R3 TEST game. Do not reuse any prior R3/v2/v1 evidence game.
+After any required deploy, perform only read-only reachability/product-shell checks sufficient to prove:
 
-Use a UTF-8-safe harness/request path and the full accepted Company Setup profile contract from the redesign canon. Do Setup exactly once.
+- frontend loads;
+- R3 catalogs/API are reachable;
+- Setup UI is present;
+- Story area is visible;
+- no blocking loading overlay covers the Story surface;
+- four-choice area + free input surface are present;
+- Company map / Mind Monitor / player-state surfaces match the Milestone 0 accepted shell;
+- the page can begin a fresh Setup without an existing game ID.
 
-Read back and prove:
+Do not submit Setup during these checks.
 
-- exactly one new game ID;
-- full setup profile round-trip, including all active setup fields;
-- canonical Company content IDs/names are used, with no fabricated actor/location;
-- game is in the expected pre-Opening state before Opening.
+## 5. Owner handoff URL
 
-If Setup fails, STOP. Do not create a second game and do not retry until lucky.
+Produce one canonical owner URL for the R3 frontend root **without a game_id**, so the owner creates a fresh manual TEST game through the real Setup UI.
 
-## 6. Opening — exactly once
+Do not pre-create a game for the owner.
 
-Invoke Opening exactly once on that fresh game through the normal R3 API/provider path.
+If API origin must be supplied through a query parameter, use only the repository/deployment-authorized R3 API origin and report the exact resulting URL. Otherwise use the normal root product URL.
 
-Capture/preserve:
+The owner-created game becomes the Live Gate L1 manual fixture. Automation must not consume its 3–5 turns.
 
-- streamed Story text in source order;
-- terminal event/status;
-- Observer output;
-- committed DB turn/state readback;
-- current Story-authored choice literals and committed choice projection;
-- relevant current actor/location/Mind Monitor/summary projection;
-- worker/version identity and game ID.
+## 6. Live Gate L1 criteria to report to owner
 
-No ordinary Turn 1 gameplay is authorized in this task.
+The terminal report must explicitly tell the owner to play 3–5 ordinary turns and evaluate:
 
-### 6.1 Mandatory PASS conditions
+1. rich Company-life Story quality;
+2. literal player action fidelity / no silent action replacement;
+3. exactly four useful current Story-authored choices when available;
+4. free-form input works literally;
+5. registered actor identity and no fabricated/crossed NPC identity;
+6. Mind Monitor relevance and no unrelated NPC projection;
+7. visible Story streaming;
+8. no blocking loader hiding Story;
+9. high-parity Company v1 presentation (Setup, Story, state, map, MM, input);
+10. refresh/reload at least once after a committed turn if natural during play, but do not deliberately induce failure/reconnect yet — that belongs to later gate L3.
 
-Opening passes only if all are true:
-
-1. **Player agency before first input**
-   - environment/NPC actions/dialogue may occur;
-   - private `상식개변` app may be present/appear/be visible/available to notice;
-   - Story does NOT make the player voluntarily speak/reply;
-   - Story does NOT make the player nod/gesture;
-   - Story does NOT make the player move;
-   - Story does NOT make the player touch/click/type/open/close/hide the app or another object;
-   - Story does NOT make the player drink/eat;
-   - Story does NOT make the player review/work/perform a task;
-   - Story does NOT make the player acknowledge/decide/accept/refuse or otherwise complete a choice;
-   - passive perception must not smuggle in a decision or voluntary completion.
-
-2. **Product identity**
-   - clearly `상식개변: 회사편`, not productivity assistant/helpdesk/chatbot framing;
-   - private unfamiliar app premise is visible to the player;
-   - NPCs do not know the private app premise unless revealed by the player;
-   - registered Company setting/location/actors only;
-   - rich workplace/social Opening rather than terse status prose.
-
-3. **Next-action contract**
-   - Story visibly authors exactly four distinct natural complete next actions;
-   - Observer copies those four current-Story literals character-for-character and in order, or if provider Story genuinely fails exact-four, Observer fails open with `choices=[]` without invalidating an otherwise valid Story;
-   - no stale/prior-turn choice fallback, padding, truncation, dedupe rewrite, or second choice author.
-
-4. **Durability/transport**
-   - one Opening Story stream reaches one terminal outcome;
-   - Opening commits exactly one turn-0 record/state transition through the accepted A-prime server-owned path;
-   - no duplicate job/turn/commit residue;
-   - committed Story/Observer/choices/summary/state agree with the observed request result.
-
-### 6.2 Failure handling
-
-If any player-agency violation occurs, classify:
-
-`FAILED_OPENING_COMPLETES_UNREQUESTED_PLAYER_ACTION`
-
-Preserve the new game and exact Story/Observer/DB evidence, then STOP.
-
-If another first product/runtime defect occurs, name the narrowest evidence-based failure class, preserve the game, and STOP.
-
-No source hotfix, no second Opening, no second game, no retry/regeneration, no prompt tweaking, no provider/model/config change in this task.
+Do not instruct the owner to test CSA/TTS/Image/Feedback yet.
 
 ## 7. Hard prohibitions
 
+- no source/runtime/frontend code edits;
 - no migration edit/new migration/reapply;
-- no schema/RPC repair;
+- no DB repair/reset/reseed;
+- no automated game creation;
+- no automated Setup or Opening;
+- no automated ordinary gameplay turn;
+- no mutation of L0 game `10984458-7a23-47ac-9ec0-bb13753ea85a`;
+- no mutation of failed evidence game `80095cdd-c901-4370-8387-66dcb756b72a`;
+- no v1/v2/manual/QA/evidence game access for mutation;
 - no Production access/change;
-- no v1/v2/hospital/manual/QA/evidence game mutation;
-- no reset/delete/repair of failed game `80095cdd-c901-4370-8387-66dcb756b72a`;
-- no source/runtime/frontend patch;
-- no provider/model/temperature/token/config/secret change;
-- no retry-until-pass or hidden regeneration;
-- no ordinary Turn 1 gameplay;
+- no provider/model/config/secret change;
+- no retry/regeneration/harness gameplay;
 - no CSA/TTS/Image/Feedback implementation;
-- no Milestone 1;
-- no merge/PR/source branch creation.
+- no Milestone 1 / Cut 2 continuity work;
+- no new branch or PR for this handoff-only task.
 
 ## 8. Completion / stop boundary
 
-### PASS terminal
-
 Post exactly one Issue #68 terminal report:
 
-`COMPANY_FULL_REDESIGN_MILESTONE0_OPENING_AGENCY_ACCEPTANCE_PASSED`
+`COMPANY_FULL_REDESIGN_MILESTONE0_OWNER_L1_HANDOFF_READY`
 
-Status: `WAITING_REVIEW`
+Status: `WAITING_USER_ACCEPTANCE`
 
 Include:
 
 - Task ID and task blob SHA;
-- accepted source SHA + merge main SHA;
-- API Worker version/deployed source;
-- whether frontend was left untouched;
-- migration readback/apply count=0;
-- fresh game ID;
-- setup field round-trip summary;
-- Opening Story and agency inspection findings;
-- exact four Story choice literals and Observer parity, or valid fail-open evidence;
-- DB turn/state/job counts and committed readback;
-- canonical cast/location/product-premise proof;
-- confirmation no ordinary Turn 1 was performed;
-- confirmation all preserved games untouched.
+- main/source lineage verified;
+- API Worker identity/version and whether redeployed;
+- frontend Worker identity/version and whether redeployed;
+- exact owner root URL;
+- confirmation no game was created by runner;
+- confirmation no Setup/Opening/ordinary turn was executed by runner;
+- read-only UI/reachability checks performed;
+- explicit 3–5-turn Live Gate L1 checklist;
+- confirmation L0 evidence and all preserved games untouched;
+- confirmation no migration/DB/source/provider/Milestone1 change occurred.
 
-Then STOP for operator review. Do not automatically register Milestone 1.
+Then STOP `WAITING_USER_ACCEPTANCE`.
 
-### FAIL terminal
-
-Post exactly one Issue #68 terminal report with `Status: FAILED`, the narrow failure class, exact new game ID, relevant Story/Observer/DB evidence, and STOP. Do not retry or repair.
+Do not register the next task automatically. After the owner reports the 3–5-turn result, operator must inspect that exact fresh game/turn evidence before choosing a narrow correction or advancing to Live Gate L2 / Cut 2.
