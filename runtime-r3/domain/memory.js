@@ -31,6 +31,18 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       never_complete_unrequested_player_action: true,
       end_with_player_agency: true
     } : null,
+    opening_agency_contract: opening ? {
+      phase: 'before_first_player_input',
+      passive_scene_exposure_allowed: true,
+      passive_exposure_examples: ['app_present', 'app_appears', 'app_visible', 'player_can_notice_app'],
+      voluntary_player_action_forbidden: [
+        'speech_or_reply', 'nod_or_gesture', 'movement', 'touching', 'clicking', 'typing',
+        'opening_closing_hiding_app', 'drinking_eating', 'reviewing_work',
+        'acknowledging', 'deciding', 'accepting_refusing', 'other_intentional_action'
+      ],
+      player_choice_must_remain_unmade: true,
+      end_with_player_agency: true
+    } : null,
     next_action_contract: {
       author: 'story',
       count: 4,

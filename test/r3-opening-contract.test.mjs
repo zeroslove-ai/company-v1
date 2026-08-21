@@ -72,6 +72,16 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(openingContext.next_action_contract.count, 4);
   assert.equal(openingContext.next_action_contract.verbatim_observer_copy, true);
   assert.equal(openingContext.next_action_contract.current_story_only, true);
+  assert.equal(openingContext.opening_agency_contract.phase, 'before_first_player_input');
+  assert.equal(openingContext.opening_agency_contract.passive_scene_exposure_allowed, true);
+  assert.deepEqual(openingContext.opening_agency_contract.passive_exposure_examples, ['app_present', 'app_appears', 'app_visible', 'player_can_notice_app']);
+  assert.deepEqual(openingContext.opening_agency_contract.voluntary_player_action_forbidden, [
+    'speech_or_reply', 'nod_or_gesture', 'movement', 'touching', 'clicking', 'typing',
+    'opening_closing_hiding_app', 'drinking_eating', 'reviewing_work',
+    'acknowledging', 'deciding', 'accepting_refusing', 'other_intentional_action'
+  ]);
+  assert.equal(openingContext.opening_agency_contract.player_choice_must_remain_unmade, true);
+  assert.equal(openingContext.opening_agency_contract.end_with_player_agency, true);
 
   const payloads = [];
   const provider = createR3Provider({
@@ -95,8 +105,15 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /productivity, helpdesk, or chat-assistant/i);
   assert.match(storySystem, /exactly four distinct.*numbered 1 through 4/i);
   assert.match(storySystem, /verbatim in the current Story/i);
+  assert.match(storySystem, /Opening-only product and agency law/i);
+  assert.match(storySystem, /passive scene exposure is allowed/i);
+  for (const forbidden of ['speech or reply', 'nod or gesture', 'movement', 'touching', 'clicking', 'typing', 'opening, closing, hiding the app', 'drinking, eating', 'reviewing, working', 'acknowledging, deciding', 'accepting, refusing', 'other intentional player action']) {
+    assert.match(storySystem, new RegExp(forbidden.replace(/[.*+?^${}()|[\\]\\]/g, '\\\\$&'), 'i'));
+  }
+  assert.match(storySystem, /End with the player still free to choose among the four Story-authored actions or free-form input/i);
   const sentContext = JSON.parse(payloads[0].messages[1].content);
   assert.deepEqual(sentContext.opening_contract, openingContext.opening_contract);
+  assert.deepEqual(sentContext.opening_agency_contract, openingContext.opening_agency_contract);
   assert.deepEqual(observed.choices, choices);
   assert.deepEqual(normalizeObserver(observed, { storyText, content, currentState: state }), {
     elapsed_minutes: 0,
@@ -112,6 +129,20 @@ test('R3 Opening context and provider prompts require private premise discovery 
   const observerSystem = payloads[1].messages[0].content;
   assert.match(observerSystem, /exact four final numbered Story action strings/i);
   assert.match(observerSystem, /never invent, mutate, pad, truncate, deduplicate, or use prior-turn choices/i);
+
+  const ordinaryLiteralAction = 'Ask the team lead what changed in the meeting plan.';
+  let ordinaryStory = '';
+  for await (const delta of provider.story({ opening: false, literalAction: ordinaryLiteralAction, context: { state: { state }, turns: [] }, content })) ordinaryStory += delta;
+  assert.equal(ordinaryStory, storyText);
+  assert.equal(payloads.length, 3, 'ordinary Story uses its own single request after Opening Story and Observer');
+  const ordinarySystem = payloads[2].messages[0].content;
+  const ordinaryContext = JSON.parse(payloads[2].messages[1].content);
+  assert.match(ordinarySystem, /For ordinary turns, preserve the submitted literal player action exactly/i);
+  assert.doesNotMatch(ordinarySystem, /Opening-only agency law/i);
+  assert.equal(ordinaryContext.opening, false);
+  assert.equal(ordinaryContext.literal_action, ordinaryLiteralAction);
+  assert.equal(ordinaryContext.opening_contract, null);
+  assert.equal(ordinaryContext.opening_agency_contract, null);
 });
 
 test('R3 choice normalization fails closed for non-verbatim or non-four current Story choices', () => {
