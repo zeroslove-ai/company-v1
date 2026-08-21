@@ -181,6 +181,22 @@ Product laws:
 
 Historical non-MVP rules are not `DEFERRED FEATURES`; they are **UNSELECTED CANDIDATES** and must not appear in runtime/UI/API/prompt behavior.
 
+### P-CSA-SCOPE-001 — Scope controls
+
+Status: OPEN_DECISION
+
+The historical generic selector model is **not automatically retained**.
+
+Preserved TEST usage of the nine retained rules is much narrower: affected subjects are overwhelmingly company female employees, clothing rules need no counterparty, and request-triggered rules mainly use either male-employee or player counterparties.
+
+Before CSA implementation, owner decides per template:
+
+- fixed affected group;
+- whether a counterparty selector exists;
+- exact allowed counterparty choices exposed to player/API.
+
+Implementation may not default to either an every-group × every-group engine or an over-restricted fixed scope before this decision.
+
 ## P-CLOTHING-001 — Clothing continuity
 
 Status: RETAIN_BY_DEFAULT
