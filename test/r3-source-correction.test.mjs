@@ -9,6 +9,7 @@ import { buildOpeningContext } from '../runtime-r3/domain/story.js';
 import { createInitialState } from '../runtime-r3/domain/contracts.js';
 import { SupabaseR3Store } from '../runtime-r3/server/supabase-store.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
+import { createR3Provider } from '../runtime-r3/server/provider.js';
 
 const content = loadCanonicalCompanyR3Content();
 
@@ -127,4 +128,13 @@ test('R3 migration source serializes Opening state and rejects non-next reservat
   assert.match(migration, /from public\.company_r3_state where game_id = p_game_id for update/);
   assert.match(migration, /update public\.company_r3_state set state = p_state_after/);
   assert.match(migration, /v_state\.committed_turn \+ 1 <> p_turn_number/);
+});
+
+test('Story first-content timeout includes slow response headers', async () => {
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    timeouts: { storyFirstContentMs: 5, storyTotalMs: 200, observerMs: 200 },
+    fetchImpl: async () => { await new Promise(resolve => setTimeout(resolve, 25)); return new Response('data: no-content\n\n', { status: 200 }); }
+  });
+  await assert.rejects(provider.story({ context: {}, content, literalAction: '느리게 응답하는 요청' }).next(), error => error?.code === 'r3_story_first_content_timeout');
 });
