@@ -13,6 +13,18 @@ const $ = id => document.querySelector(`#${id}`);
 
 function setStatus(message, error = false) { const node = $('status-banner'); if (node) { node.textContent = message; node.dataset.error = error ? 'true' : 'false'; } }
 function setHidden(id, hidden) { const node = $(id); if (node) node.hidden = hidden; }
+function setBootFailure(error) {
+  const fallback = $('boot-fallback');
+  const message = $('boot-fallback-message');
+  if (message) message.textContent = `게임 화면을 불러오지 못했습니다: ${error?.message ?? '알 수 없는 오류'}`;
+  if (fallback) fallback.hidden = false;
+}
+function replaceGameUrl(gameId) {
+  const next = new URL(location.href);
+  next.searchParams.set('game_id', gameId);
+  if (query.has('api')) next.searchParams.set('api', query.get('api'));
+  history.replaceState(null, '', `${next.pathname}${next.search}${next.hash}`);
+}
 function literalInput(value) { const input = $('player-action'); if (input) { input.value = value; input.focus(); } }
 function actorDirectory(actors) { return Object.fromEntries((actors ?? []).map(actor => [actor.id ?? actor.character_id, actor.name])); }
 
@@ -66,18 +78,18 @@ async function setup(event) {
   if (!checked.valid) { const status = $('setup-status'); if (status) status.textContent = '입력값을 다시 확인해 주세요.'; return; }
   try {
     const created = await client.setup(checked.player); state.gameId = created.game?.game_id ?? created.game_id;
-    history.replaceState(null, '', `?game_id=${encodeURIComponent(state.gameId)}`); setHidden('player-setup-overlay', true); await loadContext();
-  } catch (error) { const status = $('setup-status'); if (status) status.textContent = error.message; }
+    replaceGameUrl(state.gameId); setHidden('player-setup-overlay', true); await loadContext();
+  } catch (error) { const status = $('setup-status'); if (status) status.textContent = error.message; setBootFailure(error); }
 }
 
 async function loadContext() {
-  if (!state.gameId) { setHidden('player-setup-overlay', false); return; }
-  const context = await client.context(state.gameId); renderContext(context); if (!(context.turns ?? []).length) await openOpening();
+  if (!state.gameId) { setHidden('player-setup-overlay', false); setHidden('boot-fallback', true); return; }
+  const context = await client.context(state.gameId); renderContext(context); setHidden('boot-fallback', true); if (!(context.turns ?? []).length) await openOpening();
 }
 
 $('player-setup-form')?.addEventListener('submit', setup);
 $('submit-action')?.addEventListener('click', () => submit());
 $('player-action')?.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') submit(); });
-loadCatalogs().catch(error => setStatus(error.message, true));
+loadCatalogs().catch(error => { setStatus(error.message, true); setBootFailure(error); });
 
 async function loadCatalogs() { renderCatalogs(await client.catalogs()); await loadContext(); }

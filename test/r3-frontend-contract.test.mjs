@@ -27,6 +27,14 @@ test('R3 frontend sends exact literal input through one server turn endpoint', (
   assert.match(html, /id="tts-toggle"[^>]*disabled/);
 });
 
+test('R3 boot fallback is dismissed after boot and API origin survives game URL updates', () => {
+  assert.match(app, /setHidden\('boot-fallback', true\)/);
+  assert.match(app, /setBootFailure\(error\)/);
+  assert.match(app, /query\.has\('api'\)/);
+  assert.match(app, /next\.searchParams\.set\('api', query\.get\('api'\)\)/);
+  assert.doesNotMatch(app, /replaceState\(null, '', `\?game_id=/);
+});
+
 test('R3 presentation adapter preserves raw Story and canonical choice literals', async () => {
   const { narrativeChoiceItems, parsePlainStoryForPresentation, renderChoices, renderNarrative } = await import('../frontend-r3/render.js');
   const choices = ['첫 번째 행동을 한다.', '두 번째 행동을 한다.', '세 번째 행동을 한다.', '네 번째 행동을 한다.'];
