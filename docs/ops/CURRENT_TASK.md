@@ -1,242 +1,210 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-full-redesign-milestone0-opening-contract-correction-v1
-Mode: SOURCE/TEST CORRECTION — R3 OPENING PRODUCT CONTRACT + STORY-AUTHORED FOUR CHOICES
+Task ID: company-full-redesign-milestone0-opening-contract-test-rollout-v1
+Mode: TEST ROLLOUT / OPENING PRODUCT ACCEPTANCE ONLY
 Updated: 2026-08-21
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Trigger / accepted failure evidence
+## 0. Trigger / reviewed source
 
-This task is the narrow source correction after the accepted TEST failure:
+This task follows accepted source correction:
 
-- failed rollout task: `company-full-redesign-milestone0-test-rollout-resume-v1`
-- terminal: Issue #68 `5368850298`
-- operator review: Issue #68 `5368913437`
-- registration main before this task: `f803ec1e582445fa35a110d37bcdbc730a18c845`
+- source task: `company-full-redesign-milestone0-opening-contract-correction-v1`
+- terminal: Issue #68 `5369005518`
+- operator source review: Issue #68 `5369048263`
+- reviewed PR: #99
+- exact reviewed source head: `4462fc9b8b5958d5f3f10630b14869cc174736eb`
+- exact-head CI: Company v1 tests run `32475273462` SUCCESS
+- merge commit on main: `c0b3d30095f7fffaf61722027aa23435b5cb9eb7`
 
-Accepted live facts from that failure:
-
-- UTF-8-safe Setup succeeded far enough to create one valid fresh R3 game and reach Opening;
-- Opening HTTP/SSE and atomic durable commit worked;
-- exactly one Opening Story was generated; no retry/regeneration/second Story/ordinary gameplay occurred;
-- committed Opening omitted the required player-private `상식개변` discovery/premise;
-- no accepted four current Story-authored literal choices were produced/projected: Story/observer/commit choice evidence was empty;
-- preserved v1/v2/hospital/manual/QA/evidence games were untouched.
-
-This is a source-owned Opening product-contract failure. Do not solve it with another TEST retry.
+The prior live failure `5368850298` proved the R3 transport/Opening commit spine worked but the generated Opening omitted the product-private app premise and produced no accepted current Story-authored four-choice projection. This task is the single bounded live closure after the source correction.
 
 ## 1. Binding authority
 
-Read and obey exact accepted redesign authority before editing:
+Obey:
 
-1. PR #95 Product-first redesign canon, accepted owner-decision lineage at `9d9aec5a198d8673eb37aba8a0541adbd6c84627` and later docs-only owner locks in Issue #68;
-2. PR #96 A′ Engine authority at `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
+1. PR #95 Product-first redesign canon at owner-locked lineage `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
+2. PR #96 A′ engine authority `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
 3. Company v1 complete UI/content donor snapshot `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`;
-4. accepted Milestone 0 source from PR #97 head `fed4e05108573bb71bb9086a95b9f85e592ebd29`;
-5. accepted R3 native-fetch correction PR #98 head `b5bb46929cd14850feb7fe30e50f270a8cc279ea`, merged on main;
-6. failure evidence `5368850298` and review `5368913437`.
+4. Milestone 0 source PR #97 accepted head `fed4e05108573bb71bb9086a95b9f85e592ebd29`;
+5. R3 native-fetch correction PR #98 accepted head `b5bb46929cd14850feb7fe30e50f270a8cc279ea`;
+6. Opening contract correction PR #99 exact source `4462fc9b8b5958d5f3f10630b14869cc174736eb` merged as `c0b3d30095f7fffaf61722027aa23435b5cb9eb7`.
 
-Latest locked owner behavior relevant here:
+Product acceptance outranks green unit tests.
 
-- ordinary play supports free-form input plus exactly four natural Story-authored next actions;
-- the same post-Story Observer/Extract structures/copies those four literal choices for UI;
-- no separate choice LLM;
-- no stale/prior-turn fallback;
-- a choice projection failure must not discard an otherwise valid Story;
-- `상식개변` is a private unfamiliar app premise known to the player and unknown to NPCs until revealed by the player.
+## 2. Hard scope
 
-## 2. Exact defect to correct
+TEST only. No source edits.
 
-Current R3 already carries `productPremise(content)` into `buildStoryContext`, but the live provider contract is too weak:
+Authorized operations:
 
-- Opening is not explicitly required to show the player discovering/recognizing the unfamiliar `상식개변` app premise;
-- the generic system line only says the premise is private, so the model can produce a normal office scene and omit the product premise entirely;
-- Story is told to end with four suggestions, but there is no sufficiently explicit Opening/ordinary-turn visible literal boundary for the Observer to copy reliably;
-- `normalizeObserver` correctly fails closed unless exactly four distinct choice strings are present verbatim in Story; do not weaken that evidence rule.
+1. verify main contains exact merged PR #99 correction;
+2. verify TEST migration `20260821000100_company_r3_milestone0.sql` is already applied; **do not reapply it**;
+3. deploy the R3 API Worker `game-proxy-company-r3` from exact current main because PR #99 changed runtime-r3 source;
+4. do not redeploy frontend unless a deployment-integrity check proves the existing `gamebuilder-company-r3` deployment is not the previously accepted Milestone 0 frontend artifact; PR #99 contains zero frontend changes;
+5. verify API `/api/r3/catalogs` returns canonical Company content;
+6. create exactly **one** fresh R3 TEST game using a UTF-8-safe request path and a valid full Setup profile;
+7. invoke Opening exactly **once** on that fresh game;
+8. inspect the complete Opening SSE and durable `company_r3_*` readback;
+9. STOP before ordinary Turn 1 gameplay.
 
-Trace the actual Opening call path before editing and prove this diagnosis against source/tests.
+Forbidden:
 
-Expected owning paths include, but are not limited to:
+- no migration reapply/edit/new migration;
+- no source/test/frontend patch;
+- no second fresh game;
+- no Opening retry/regeneration;
+- no ordinary gameplay turn;
+- no reset/delete/repair/reseed;
+- no mutation of prior failed R3 games or any v1/v2/hospital/manual/QA/evidence game;
+- no provider/model/temperature/token/config/secret change;
+- no deterministic/stale choice fallback, padding/truncation, second choice LLM, second Story generation, or hidden retry;
+- no CSA/TTS/Image/Feedback implementation;
+- no Milestone 1;
+- no Production access;
+- no auto-merge or source work.
 
-- `runtime-r3/domain/content.js`
-- `runtime-r3/domain/memory.js`
-- `runtime-r3/domain/story.js`
-- `runtime-r3/server/provider.js`
-- `runtime-r3/domain/observer-normalizer.js`
-- R3 worker/orchestration path that invokes Opening Story -> Observer -> reducer -> commit
-- focused R3 tests.
+If Setup or Opening fails for any reason, preserve the exact evidence and STOP. Do not retry until lucky.
 
-## 3. Required correction A — explicit Opening product contract
+## 3. UTF-8-safe Setup
 
-Make the Opening Story contract implementation-specific enough that the accepted product cannot collapse into a generic office opening.
+Use a request construction path already proven to preserve Korean UTF-8; do not repeat the earlier PowerShell literal corruption.
 
-Opening must explicitly require all of the following in the single Story generation:
+Create one valid full player profile using canonical catalog IDs and all active Setup fields, including:
 
-1. the scene is `상식개변: 회사편`, not a productivity/helpdesk/chat assistant;
-2. the player is in the canonical Company setting using only registered content;
-3. the player encounters/discovers/notices the unfamiliar private `상식개변` app in a natural player-visible way during Opening;
-4. NPCs do not know the private app premise unless the player later reveals it;
-5. the Opening includes actual workplace/social context and registered actors appropriate to canonical location/context;
-6. the Story does not complete an unrequested player action;
-7. the Story ends by handing agency back to the player.
+- name;
+- department_id;
+- position_id;
+- age;
+- height_cm;
+- weight_kg;
+- penis_length_cm;
+- body_type_id;
+- speech_style_id.
 
-Do not hard-code a full canned Opening story. The LLM remains the narrative author. The correction should strengthen the bounded Story context/prompt contract, not replace Story generation with deterministic prose.
+Prove request and persisted profile retain exact Korean text/codepoints where applicable.
 
-Do not add a second semantic author or a post-hoc narrative repair LLM.
+Record the one fresh game UUID in the terminal report.
 
-## 4. Required correction B — exactly four Story-authored literal next actions
+## 4. Opening transport/runtime acceptance
 
-Align Story generation and the existing post-Story Observer so the owner-locked choice contract is explicit and testable.
+For the single Opening request prove:
 
-Required behavior:
+- HTTP 200 and `text/event-stream`;
+- exactly one Opening Story generation;
+- non-empty real-time `story_delta` sequence before terminal;
+- exactly one terminal event;
+- terminal status `committed`;
+- no retry/regeneration/second Story;
+- one durable turn 0 only;
+- no duplicate turn/job residue;
+- committed state revision/turn numbers are coherent;
+- canonical registered actor/location IDs only.
 
-- the Story itself authors exactly four natural, complete next-action literals at the end of Opening and ordinary Story;
-- these are player actions, not labels, categories, summaries, or UI-only abbreviations;
-- the four literals must be visibly present verbatim in Story in one unambiguous final choice section/boundary that the existing Observer can copy exactly;
-- the Observer must return the exact four Story strings in order under the canonical field expected by `normalizeObserver`;
-- `normalizeObserver` must continue requiring exact Story inclusion, exactly four non-empty values, and uniqueness;
-- committed choices must derive only from that current Story/Observer result.
+## 5. Opening product acceptance — mandatory
 
-The presentation syntax may be a simple natural numbered/list section if consistent with the accepted product/UI, but do not introduce a second semantic choice authority.
+Inspect the actual generated Korean Story, not only structured fields.
 
-Forbidden solutions:
+The Opening must visibly satisfy the Product Constitution:
 
-- no deterministic fallback choices;
-- no previous-turn/stale choice fallback;
-- no truncate/pad/dedupe-to-four repair;
-- no separate choice-generation LLM;
-- no second Story generation;
-- no hidden retry/regeneration-until-four;
-- no weakening `normalizeObserver` to accept choices absent from Story;
-- no frontend invention of missing choices.
+1. unmistakably feels like `상식개변: 회사편`, not a productivity/helpdesk/chat assistant;
+2. establishes a living Company scene using canonical registered setting/actors;
+3. the player encounters/notices/discovers the unfamiliar private `상식개변` app/tool;
+4. the premise remains player-private and NPCs are not portrayed as already knowing it;
+5. it does not imply that merely possessing/opening the app has already changed reality;
+6. it does not invent a mandatory first-work quest or complete an unrequested player action;
+7. narrative is substantial/rich enough to establish workplace/social context and then returns agency to the player;
+8. no OOC/protocol/observer text is visible in Story.
 
-If the Observer fails to project four choices from a valid Story, preserve/commit the Story according to the accepted fail-open contract and expose empty/unavailable choices rather than discarding/regenerating Story.
+If any of these product conditions fails, classify as source/product acceptance failure and STOP. Do not repair live.
 
-## 5. Keep the accepted Milestone 0 architecture intact
+## 6. Four current Story-authored choices acceptance
 
-Do not redesign unrelated layers.
+The same single Opening Story must visibly end with exactly four natural, complete, meaningfully different player-action suggestions authored by Story.
 
-Preserve:
+Prove all of the following:
 
-- A′ server-owned one-turn kernel;
-- Story -> Observer -> reducer -> one atomic commit;
-- Story SSE streaming and first-content/total timeout boundaries;
-- one canonical turn/job owner and fencing/idempotency behavior;
-- `company_r3_*` persistence namespace and already-live migration contract;
-- canonical Company content/catalog adapters;
-- high-parity Company v1 UI donor wiring already accepted in Milestone 0;
-- player Setup/profile contract;
-- R3 Supabase native-fetch correction;
-- current scene model: structured location/present actors + bounded natural-language `scene_note`;
-- no dynamic player arousal/erection/ejaculation gauge or sexual-event ledger.
+- exactly four visible choice actions exist in the current Story;
+- Observer returns exactly four strings in the same order;
+- normalized/committed choices equal those Story action literals exactly, excluding only presentation numbering if numbering is not part of the literal action text;
+- each committed choice is verbatim present in current Story;
+- no stale/prior-turn choices exist or are consulted;
+- no deterministic fallback/pad/truncate/dedupe repair occurred;
+- choices are scene-relevant actions, not generic placeholders such as “상황을 살펴본다 / 직접 입력한다” repeated independent of scene;
+- free-form input remains independently available in the served frontend.
 
-Milestone 0 exclusions remain excluded:
+A choice projection failure may still commit Story by design, but for **this Milestone 0 Opening product acceptance** empty/unavailable choices means acceptance FAIL because the owner-locked normal product requires four current Story-authored choices.
 
-- no CSA mutation implementation;
-- no TTS implementation;
-- no Image implementation;
-- no Feedback implementation;
-- no Milestone 1.
+## 7. Durable readback
 
-## 6. Source/test scope
+Read back the fresh game from `company_r3_*` without mutating it after Opening.
 
-Create one normal source branch from exact current main at lease time. Do not create an ops branch.
+At minimum record:
 
-Recommended branch:
+- game UUID;
+- player profile identity;
+- committed_turn/revision;
+- turn count and turn numbers;
+- job count/status if Opening uses a job row;
+- location_id and present_actor_ids;
+- Story length/text evidence summary;
+- observer/normalized choice count;
+- exact four committed choice strings;
+- turn_summary presence;
+- Mind Monitor shape if present;
+- warnings;
+- no unexpected CSA/TTS/Image/Feedback/dynamic sexual-meter state.
 
-`company-redesign/milestone0-opening-contract-correction-v1`
+Do not delete/reset the accepted or failed fresh game. Preserve it as evidence.
 
-Modify only the smallest R3 source/test set required for this defect.
+## 8. Frontend read-only verification
 
-Likely allowed:
+Do not redeploy frontend unless deployment identity is unexpectedly stale.
 
-- R3 Story context/prompt code;
-- R3 Observer prompt/projection contract if needed;
-- focused R3 tests for Opening premise + exact four literal choices + fail-open behavior;
-- this CURRENT_TASK file only for normal terminal bookkeeping if the runner requires it.
+Read the served `gamebuilder-company-r3` artifact and verify the accepted donor-derived Milestone 0 surfaces remain present:
 
-Do not edit:
+- full Setup surface;
+- Story/current stream surface;
+- four-choice presentation area;
+- free-form input;
+- current scene/character state;
+- Mind Monitor;
+- player profile/state;
+- company map presentation;
+- `상식개변` app presentation boundary;
+- no blocking loading overlay covering Story.
 
-- SQL/migrations;
-- v1/v2/hospital runtime;
-- Company content semantic catalogs unless a direct source inconsistency is proven and reported before changing it;
-- frontend presentation unless a direct choice-render contract defect is proven by tests (this live failure is currently upstream, so default is zero frontend changes);
-- provider/model identity, temperature, token limits, secrets, or deployment config.
-
-Prompt text/source contract changes are allowed because they are the owning defect. Provider/model/configuration changes are not.
-
-## 7. Required tests / acceptance proof before terminal
-
-Add focused tests that prove at minimum:
-
-### Opening premise
-- Opening Story request receives the canonical product premise;
-- Opening prompt explicitly requires player-visible discovery/notice of the unfamiliar `상식개변` app;
-- NPC ignorance boundary is present;
-- generic assistant/helpdesk framing is forbidden;
-- no deterministic canned Story replaces the LLM.
-
-### Four choices
-- a Story containing four distinct natural final action literals can be copied by Observer and normalized with exact text/order parity;
-- choice strings must exist verbatim in Story;
-- 0/3/5/duplicate/mutated-not-verbatim choices fail closed to unavailable choices;
-- no stale/prior choice source is consulted;
-- no deterministic fallback/padding/truncation exists.
-
-### Fail-open Story
-- valid Story remains usable/committable when Observer choice projection is absent/invalid;
-- no retry/regeneration/second Story call is triggered by missing choices.
-
-### Regression
-- literal player action fidelity remains unchanged for ordinary turns;
-- streaming/atomic commit/server-owned orchestration contract remains intact;
-- current Company catalog identities are not replaced by demo content.
-
-Run the focused R3 suite and full repository suite required by current CI. Record exact counts/results and `git diff --check`.
-
-## 8. Forbidden operations
-
-This task is source/test only.
-
-Do not:
-
-- deploy any Worker;
-- apply/reapply/edit migration `20260821000100`;
-- write/reset/delete/reseed TEST or Production DB data;
-- create/play/retry/repair any game;
-- access or mutate preserved manual/QA/evidence games;
-- change provider/model/temperature/token/secrets/config;
-- run live LLM acceptance;
-- merge the PR;
-- start Milestone 1;
-- auto-register another rollout task.
+No UI redesign in this task.
 
 ## 9. Completion / stop boundary
 
-Open/update one Draft PR for this correction and stop at source review.
+On success post exactly one terminal to Issue #68:
 
-Post one immutable Issue #68 terminal:
+`COMPANY_FULL_REDESIGN_MILESTONE0_OPENING_CONTRACT_TEST_ACCEPTED`
 
-`COMPANY_FULL_REDESIGN_MILESTONE0_OPENING_CONTRACT_CORRECTION_READY_FOR_SOURCE_REVIEW`
+Status: `WAITING_OWNER_REVIEW`
 
 Include:
 
-- `STATUS: WAITING_REVIEW`;
 - Task ID;
-- starting main SHA;
-- final exact source SHA;
-- branch and Draft PR number;
-- exact changed files;
-- root-cause trace;
-- Opening premise correction summary;
-- four-choice Story/Observer contract summary;
-- proof no fallback/retry/second choice LLM was introduced;
-- focused test results;
-- full test result;
-- `git diff --check`;
-- confirmation SQL/migration/DB/deploy/gameplay/frontend/provider-config/Milestone1 changes = 0.
+- registration main SHA;
+- deployed API Worker version ID and source main SHA;
+- confirmation migration 20260821000100 was already present and apply count for this task = 0;
+- frontend redeploy count and current version identity;
+- fresh game UUID;
+- exact Setup profile/codepoint proof;
+- Opening SSE event counts;
+- actual product-premise inspection result;
+- actual Story richness/Company identity result;
+- exact four Story-authored/Observer/committed choice strings and parity proof;
+- DB readback summary;
+- confirmation ordinary gameplay turns = 0;
+- confirmation retries/resets/deletes/repairs = 0;
+- confirmation preserved evidence/Production untouched.
 
-Then STOP. Do not merge or register the next CURRENT_TASK automatically.
+On any failure post one immutable FAILED/BLOCKED terminal with exact evidence and STOP. Do not create another task automatically.
+
+After success, do not start Milestone 1 automatically. Owner review comes next.
