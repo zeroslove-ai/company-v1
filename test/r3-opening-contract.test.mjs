@@ -104,6 +104,9 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /NPCs remain ignorant/i);
   assert.match(storySystem, /productivity, helpdesk, or chat-assistant/i);
   assert.match(storySystem, /exactly four distinct.*numbered 1 through 4/i);
+  assert.match(storySystem, /plain text, not JSON/i);
+  assert.match(storySystem, /Never escape quotation marks/i);
+  assert.match(storySystem, /one action per line/i);
   assert.match(storySystem, /verbatim in the current Story/i);
   assert.match(storySystem, /Opening-only product and agency law/i);
   assert.match(storySystem, /passive scene exposure is allowed/i);

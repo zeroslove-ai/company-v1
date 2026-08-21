@@ -17,6 +17,8 @@ export function createInitialState(profile, locationId, presentActorIds = []) {
     time: { day: 1, minute: 540 },
     scene: { location_id: locationId ?? null, present_actor_ids: [...new Set(presentActorIds)], scene_note: '' },
     active_rules: [],
+    csa_active: [],
+    csa_rules: {},
     clothing: {}
   };
 }

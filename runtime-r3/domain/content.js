@@ -21,7 +21,8 @@ export function createCompanyR3Content(raw = {}) {
     departments: array(organization.departments),
     positions,
     bodyTypes,
-    speechStyles
+    speechStyles,
+    csaPresets: raw.csaPresets ?? null
   };
   return validateCompanyR3Content(content);
 }

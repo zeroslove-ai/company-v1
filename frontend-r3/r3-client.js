@@ -13,6 +13,7 @@ export function createR3Client(base = '/api/r3') {
     context(gameId) { return request(`${root}/games/${encodeURIComponent(gameId)}/context`); },
     opening(gameId) { return fetch(`${root}/games/${encodeURIComponent(gameId)}/opening`, { method: 'POST' }); },
     turn(gameId, payload) { return fetch(`${root}/games/${encodeURIComponent(gameId)}/turn`, { method: 'POST', body: JSON.stringify(payload) }); }
+    ,csa(gameId, payload) { return request(`${root}/games/${encodeURIComponent(gameId)}/csa`, { method: 'POST', body: JSON.stringify(payload) }); }
   };
 }
 

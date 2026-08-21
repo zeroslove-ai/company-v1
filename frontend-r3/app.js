@@ -3,6 +3,7 @@ import { buildCompanyMapModel, renderCompanyMap } from './company-map.js';
 import { parsePlainStoryForPresentation, renderChoices, renderFocalCharacter, renderHistory, renderMindMonitor, renderNarrative, renderState } from './render.js';
 import { readSetupForm, renderSetupCatalogs, validateSetupValues } from './setup.js';
 import { buildR3ViewModel } from './r3-view-model.js';
+import { createR3CsaUi } from './csa.js';
 
 // R3 controller: one context load, one literal action, one server-owned SSE
 // turn. Product rendering lives in the transplanted donor-style modules above.
@@ -10,6 +11,7 @@ const query = new URLSearchParams(location.search);
 const client = createR3Client(query.get('api') || '/api/r3');
 const state = { gameId: query.get('game_id'), context: null, catalogs: null, busy: false };
 const $ = id => document.querySelector(`#${id}`);
+const csaUi = createR3CsaUi({ documentRef: document, client, getGameId: () => state.gameId, getContext: () => state.context, getCatalog: () => state.catalogs?.csa_presets, onContext: context => renderContext(context) });
 
 function setStatus(message, error = false) { const node = $('status-banner'); if (node) { node.textContent = message; node.dataset.error = error ? 'true' : 'false'; } }
 function setHidden(id, hidden) { const node = $(id); if (node) node.hidden = hidden; }
@@ -44,6 +46,8 @@ function renderContext(context) {
   renderChoices($('choice-list'), view.choices, { busy: state.busy, onChoose: submit });
   renderMindMonitor($('mind-monitor'), view.mindMonitor, { actorNames: view.actorNames });
   renderCompanyMap($('company-map'), buildCompanyMapModel({ scene: view.scene, actors, locations: state.catalogs?.locations ?? [] }), { onFill: literalInput });
+  const apps = $('open-apps'); if (apps) apps.disabled = !state.gameId;
+  csaUi.sync();
   setHidden('player-setup-overlay', Boolean(view.profile?.name));
   $('api-status')?.setAttribute('aria-label', '연결 완료');
 }

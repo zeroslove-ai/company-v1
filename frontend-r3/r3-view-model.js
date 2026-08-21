@@ -23,6 +23,7 @@ export function buildR3ViewModel(context = {}, catalogs = {}) {
     profile: { ...profile, department: label(catalogs.departments ?? [], 'department_id', profile.department_id), position: label(catalogs.positions ?? [], 'position_id', profile.position_id), body_type: label(catalogs.body_types ?? [], 'body_type_id', profile.body_type_id), speech_style: label(catalogs.speech_styles ?? [], 'speech_style_id', profile.speech_style_id) },
     time: object(state.time),
     scene: { location_id: scene.location_id ?? '', location: locationById.get(scene.location_id) ?? null, present_actor_ids: presentIds, present_actors: presentActors, scene_note: typeof scene.scene_note === 'string' ? scene.scene_note : '', focal_actor: actorById.get(scene.focal_actor_id) ?? null },
+    csa: { active_ids: Array.isArray(state.csa_active) ? state.csa_active : [], rules: object(state.csa_rules), revision: stateEnvelope.revision ?? 0 },
     story: latest.story_text ?? '',
     history: turns,
     choices: latestIsCurrent ? strings(latest.choices).slice(0, 4) : [],

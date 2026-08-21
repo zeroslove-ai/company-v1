@@ -1,6 +1,7 @@
 import { canonicalActors, openingActorIds, registeredActorIds } from '../domain/content.js';
 import { assertExpectedTurn, boundedSummary, requireLiteralAction } from '../domain/contracts.js';
 import { normalizeObserver } from '../domain/observer-normalizer.js';
+import { applyR3Csa, createR3CsaCatalog } from '../domain/csa.js';
 import { reduceObservation } from '../domain/reducer.js';
 import { validateProfile } from '../domain/profile.js';
 import { R3_MAX_PROGRESS_WRITES, R3_PROGRESS_INTERVAL_CHARS } from './job-policy.js';
@@ -21,12 +22,13 @@ export function createR3Worker({ store, provider, content } = {}) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: R3_CORS_HEADERS });
         if (request.method === 'GET' && url.pathname === '/api/r3/catalogs') return json(catalogResponse(content));
         if (request.method === 'POST' && url.pathname === '/api/r3/games') return setup(store, content, await body(request));
-        const match = url.pathname.match(/^\/api\/r3\/games\/([^/]+)(?:\/(context|opening|turn))?$/);
+        const match = url.pathname.match(/^\/api\/r3\/games\/([^/]+)(?:\/(context|opening|turn|csa))?$/);
         if (!match) return errorResponse(new Error('r3_not_found'));
         const gameId = match[1]; const action = match[2] ?? 'context';
         if (request.method === 'GET' && action === 'context') return json(await store.context(gameId));
         if (request.method === 'POST' && action === 'opening') return openingResponse(store, provider, content, gameId);
         if (request.method === 'POST' && action === 'turn') return turnResponse(request, store, provider, content, gameId);
+        if (request.method === 'POST' && action === 'csa') return csaResponse(store, content, gameId, await body(request));
         return errorResponse(new Error('r3_not_found'));
       } catch (error) { return errorResponse(error); }
     }
@@ -53,7 +55,14 @@ function chooseOpeningLocation(content, profile) {
 
 function catalogResponse(content) {
   const actorIds = [...registeredActorIds(content)];
-  return { departments: content.departments ?? [], positions: content.positions ?? [], body_types: content.bodyTypes ?? [], speech_styles: content.speechStyles ?? [], locations: content.locations ?? [], actors: canonicalActors(content, actorIds) };
+  return { departments: content.departments ?? [], positions: content.positions ?? [], body_types: content.bodyTypes ?? [], speech_styles: content.speechStyles ?? [], locations: content.locations ?? [], actors: canonicalActors(content, actorIds), csa_presets: createR3CsaCatalog(content.csaPresets) };
+}
+
+async function csaResponse(store, content, gameId, input) {
+  const before = await store.context(gameId); const expectedRevision = input?.expected_revision;
+  if (!Number.isInteger(expectedRevision) || expectedRevision !== before.state.revision) throw new Error('r3_csa_revision_conflict');
+  const stateAfter = applyR3Csa({ state: before.state.state, content, rawOperations: input?.operations, catalog: createR3CsaCatalog(content.csaPresets) });
+  return json(await store.applyCsa({ gameId, expectedRevision, stateAfter, operations: input.operations }));
 }
 
 function openingResponse(store, provider, content, gameId) {
