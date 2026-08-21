@@ -150,7 +150,7 @@ Default: one small post-Story observer.
 
 It may propose only fields accepted by the Gameplay/State/Memory model. Optional projection failure is fail-open where structurally safe.
 
-Mind Monitor may share this call or use another explicitly justified nonblocking mechanism; topology is chosen for reliability/simplicity rather than historical habit.
+Recommended starting topology for simplicity: Story call + one observer call containing scene projection, summary, and Mind Monitor. Do not split these into multiple LLM stages unless live evidence proves one combined observer is unreliable for a specific reason.
 
 ## 12. Commit boundary
 
@@ -179,10 +179,10 @@ Never convert them into fake literal player actions.
 
 The first CSA implementation supports **exactly the nine retained templates** from `07_CSA_MVP_CATALOG.md`.
 
-Design only the mechanics those nine prove necessary:
+Design only mechanics those nine prove necessary:
 
 - durable rule lifecycle;
-- exact scope validation;
+- exact accepted scope validation;
 - non-turn transaction;
 - exact four-slot clothing synchronization for retained clothing rules;
 - Story-premise projection for request-triggered/open-ended rules.
@@ -231,3 +231,14 @@ Milestone 0:
 - no active CSA mutation/media/feedback yet unless required for product identity.
 
 Owner reviews Opening + 3–5 turns immediately. Core continuity is validated before implementing the nine-rule CSA MVP.
+
+## 18. Remaining architecture/product decisions before lock
+
+Do not start source implementation until owner explicitly resolves or deliberately defers these without implementation assumptions:
+
+1. choice suggestions: none vs optional four;
+2. physical continuity: bounded scene snapshot alone vs minimal extra structure;
+3. player sexual meter: retain or remove from core;
+4. exact per-template CSA subject/counterparty controls for the nine-rule MVP.
+
+These decisions are intentionally small enough to review independently before code resumes.
