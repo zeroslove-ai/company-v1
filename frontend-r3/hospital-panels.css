@@ -1,0 +1,541 @@
+﻿.future-slot[hidden],
+.mind-panel[hidden] {
+  display: none !important;
+}
+
+.future-slot:not([hidden]) {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: var(--hospital-bg-tertiary);
+}
+
+.future-slot-heading {
+  margin: 0;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.future-slot-value {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.player-inner-thought-card .future-slot-value {
+  max-height: 8.4em;
+  overflow-y: auto;
+  padding-left: 9px;
+  border-left: 2px solid var(--hospital-accent);
+  font-style: italic;
+}
+
+.player-progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+}
+
+.player-progress-head strong {
+  color: var(--hospital-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.player-progress-track {
+  position: relative;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid var(--hospital-border);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 7%);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 45%);
+}
+
+.player-progress-fill {
+  height: 100%;
+  width: var(--progress, 0%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #60a5fa 0%, #a78bfa 52%, #f472b6 80%, #fff 100%);
+  box-shadow: 0 0 10px rgb(244 114 182 / 42%);
+  transition: width 0.25s ease;
+}
+
+.player-progress-threshold {
+  position: absolute;
+  inset: -2px auto -2px 50%;
+  width: 2px;
+  background: rgb(255 255 255 / 60%);
+}
+
+.player-progress-card.ready .player-progress-head strong {
+  color: #f9a8d4;
+}
+
+.player-progress-card.maximum .player-progress-fill {
+  filter: brightness(1.35);
+  box-shadow: 0 0 16px rgb(255 255 255 / 68%);
+}
+
+.turn-change-card .future-slot-value {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #cbd5df;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Full choices stay readable inside the narrative; the bottom row is only a compact launcher. */
+.narrative-choices {
+  margin: 18px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: color-mix(in srgb, var(--hospital-bg-tertiary) 78%, transparent);
+}
+
+.narrative-choices h3 {
+  margin: 0 0 8px;
+  color: var(--hospital-text-secondary);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
+.narrative-choices ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.4rem;
+}
+
+.narrative-choices li {
+  padding-left: 3px;
+  color: var(--hospital-text-primary);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.status-column .state-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+  gap: 5px 10px;
+  margin: 10px 0 0;
+}
+
+.status-column .state-list dt,
+.status-column .state-list dd {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.focal-character {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: var(--hospital-bg-tertiary);
+}
+
+.focal-character h2 {
+  margin: 0 0 6px;
+  font-size: 0.76rem;
+}
+
+.physical-relation {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  font-size: 0.86rem;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.player-panel > .state-list {
+  margin-top: 2px;
+}
+
+/* Mind Monitor is a primary gameplay panel, not an optional debug block. */
+.mind-monitor {
+  display: grid;
+  gap: 8px;
+  background: transparent !important;
+}
+
+.mind-monitor-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.mind-monitor-tab {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: 999px;
+  background: var(--hospital-bg-primary);
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.mind-monitor-tab[aria-selected="true"] {
+  border-color: var(--hospital-accent);
+  background: color-mix(in srgb, var(--hospital-accent) 24%, var(--hospital-bg-tertiary));
+  color: var(--hospital-text-primary);
+}
+
+.mind-monitor-content,
+.mind-monitor-body {
+  display: grid;
+  gap: 8px;
+}
+
+.mind-card {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: var(--hospital-bg-tertiary);
+}
+
+.mind-card h3 {
+  margin: 0 0 6px;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.mind-monitor-name {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  font-size: 1rem;
+  line-height: 1.35;
+  order: -1;
+}
+
+.mind-card h4 {
+  margin: 0 0 6px;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.mind-line {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  background: var(--hospital-bg-tertiary);
+}
+
+.mind-line h4 {
+  margin: 0;
+  color: var(--hospital-text-secondary);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+.mind-line p {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.mind-card p,
+.mind-monitor-empty {
+  margin: 0;
+  color: var(--hospital-text-primary);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.mind-monitor-empty {
+  padding: 10px;
+  border: 1px dashed var(--hospital-border);
+  border-radius: var(--hospital-radius);
+  color: var(--hospital-text-secondary);
+}
+
+/* TTS is one compact toolbar. The checkbox controls auto playback only. */
+.media-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.tts-toggle {
+  min-height: 34px;
+  padding: 0 9px;
+  font-size: 0.8rem;
+}
+
+#play-tts {
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.media-status[hidden] {
+  display: none !important;
+}
+
+.choice-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  max-height: none;
+  overflow: visible;
+}
+
+.choice-button {
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 4px;
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-align: center;
+  letter-spacing: -0.03em;
+}
+
+#player-action {
+  height: 46px;
+  min-height: 46px;
+  max-height: 96px;
+  padding: 9px 10px;
+}
+
+#stream-status:empty {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .future-slot:not([hidden]) {
+    padding: 9px;
+  }
+
+  .narrative-choices {
+    margin-top: 14px;
+    padding: 10px 11px;
+  }
+
+  .choice-button {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .action-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 82px;
+    gap: 6px;
+    padding: 7px 8px 8px;
+  }
+
+  .choice-list {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    margin: 0;
+    gap: 4px;
+  }
+
+  .choice-button {
+    min-height: 32px;
+    padding: 5px 2px;
+    font-size: clamp(0.64rem, 2.8vw, 0.72rem);
+  }
+
+  #player-action {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    height: 42px;
+    min-height: 42px;
+    margin: 0;
+    resize: none;
+  }
+
+  .action-panel > .action-controls {
+    grid-column: 2;
+    grid-row: 2;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    align-self: stretch;
+  }
+
+  #submit-action,
+  #recovery-action {
+    width: 100%;
+    height: 100%;
+    min-height: 42px;
+    padding: 5px 6px;
+    font-size: 0.78rem;
+  }
+
+  .action-panel > #stream-status {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: 100%;
+    margin: 0;
+  }
+
+  .status-column .state-list {
+    grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+    gap: 4px 8px;
+  }
+
+  .narrative-choices li {
+    font-size: 0.82rem;
+  }
+
+  .mind-card {
+    padding: 9px;
+  }
+}
+
+
+/* Open-state UI: summaries are records, not teaser text. */
+.turn-summary,
+.turn-change-card .future-slot-value {
+  display: block;
+  max-height: none;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+/* 플레이어 상태창 2열: 모바일에서도 2열 유지 (사용자 요구), 초협소만 1열 */
+@media (max-width: 480px) {
+  .status-column .state-list {
+    grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr);
+  }
+}
+
+/* 인물정보(focal-character)는 전체 2열로 통일 — 긴 문장이 글자 단위로 깨지지 않는다.
+   (PR #30 이후: 좁은 패널에서 "현재 위치" 같은 긴 값이 한 글자씩 세로로 깨지던 문제) */
+.focal-character .state-list,
+.focal-character dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 10px;
+}
+.focal-character .state-list dt,
+.focal-character dl dt {
+  white-space: nowrap;
+}
+.focal-character .state-list dd,
+.focal-character dl dd {
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.45;
+}
+/* 상호작용 인물 착의 — 이름/복장 한 쌍씩 한 행 (가로 스크롤 금지) */
+.focal-character .interacting-character-attire {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 10px;
+  overflow: hidden;
+}
+.focal-character .interacting-character-attire dt {
+  white-space: nowrap;
+}
+.focal-character .interacting-character-attire dd {
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.45;
+}
+
+/* 플레이어 상태창도 긴 값이 패널 전체 남은 폭을 쓰도록 2열 유지 */
+.player-panel > .state-list {
+  grid-template-columns: max-content minmax(0, 1fr);
+}
+.player-panel > .state-list dd {
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.45;
+}
+
+/* 상식개변(활성 규정) 별도 칸 — 전체 폭, 내용 잘림 방지 */
+.player-active-rules {
+  margin-top: .7rem;
+  padding-top: .6rem;
+  border-top: 1px solid var(--hospital-border, #2a2a4a);
+}
+.player-active-rules h3 {
+  margin: 0 0 .35rem;
+  font-size: .76rem;
+  color: #9fc9df;
+}
+.player-active-rules ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: .4rem;
+}
+.player-active-rules li {
+  display: grid;
+  gap: .1rem;
+  min-width: 0;
+  padding: .5rem .6rem;
+  border: 1px solid #345267;
+  border-radius: .45rem;
+  background: #1d2a35;
+  font-size: .72rem;
+  line-height: 1.45;
+}
+.player-active-rules li strong {
+  color: #dceaf2;
+  font-size: .72rem;
+}
+.player-active-rules li span {
+  color: #c9d8e4;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.5;
+}
+
+/* ── 회사 맵 패널 ─────────────────────────────────────────────────────── */
+.company-map-panel { margin-top: 12px; }
+.company-map-heading { font-size: 0.95rem; margin: 0 0 4px; }
+.company-map-hint { font-size: 0.75rem; opacity: 0.7; margin: 0 0 8px; line-height: 1.4; }
+.company-map { display: flex; flex-direction: column; gap: 10px; }
+.company-map-floor { display: flex; flex-direction: column; gap: 4px; }
+.company-map-floor-name { font-size: 0.8rem; margin: 0; opacity: 0.75; font-weight: 600; }
+.company-map-place { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; }
+.company-map-place.is-player-here { background: rgba(120, 170, 255, 0.14); }
+.company-map-place-name { background: none; border: none; padding: 2px 4px; font-size: 0.85rem; cursor: pointer; text-align: left; color: inherit; border-radius: 4px; }
+.company-map-place-name:hover { background: rgba(255, 255, 255, 0.09); }
+.company-map-people { display: flex; flex-wrap: wrap; gap: 4px; }
+.company-map-npc { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; padding: 2px 9px; font-size: 0.78rem; cursor: pointer; color: inherit; }
+.company-map-npc:hover { background: rgba(255, 255, 255, 0.16); }
+.company-map-npc.is-in-scene { border-color: rgba(120, 200, 140, 0.75); background: rgba(120, 200, 140, 0.18); font-weight: 600; }
+.company-map-empty { font-size: 0.8rem; opacity: 0.6; margin: 0; }
+@media (max-width: 768px) {
+  .company-map-place { padding: 3px 4px; }
+  .company-map-npc { font-size: 0.74rem; padding: 2px 8px; }
+  .company-map-hint { font-size: 0.72rem; }
+}

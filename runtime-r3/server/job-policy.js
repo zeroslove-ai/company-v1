@@ -1,0 +1,3 @@
+export const R3_TURN_LEASE_MS = 180_000;
+export const R3_PROGRESS_INTERVAL_CHARS = 512;
+export const R3_MAX_PROGRESS_WRITES = 4;
