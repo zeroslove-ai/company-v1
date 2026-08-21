@@ -16,41 +16,76 @@ Owner reviews:
 - `04_GAMEPLAY_STATE_MEMORY_MODEL.md`
 - `05_ARCHITECTURE_DECISION_FRAMEWORK.md`
 - `07_CSA_MVP_CATALOG.md`
+- `08_COMPANY_V1_SALVAGE_MATRIX.md`
 
-The previously open product questions are now resolved:
+The locked product decisions include:
 
 - four Story-authored choices + free input;
 - one `scene_note` initial physical-continuity model;
 - dynamic player sexual gauge removed;
-- flexible supported CSA subject/counterparty scope.
+- flexible supported CSA subject/counterparty scope;
+- complete Company v1 presentation is the primary high-parity UI donor, not the reduced `frontend-v2` shell.
 
 No code task may reopen or silently reinterpret these decisions.
 
-## 2. Gate 1 — Architecture selection
+## 2. Gate 1 — Composed architecture selection
 
-Perform bounded source audit comparing Candidate A/B/C.
+Gate 1 has **two independent audit outputs**.
 
-Required output:
+### 2.1 Kernel audit
 
-- exact modules/assets KEEP;
-- exact modules/assets REPLACE;
-- one-turn sequence diagram including Story-authored four choices and Extract projection;
-- failure/reconnect sequence;
-- mutable DB authority;
-- conceptual surface estimate;
-- proof retained kernel contains no product/demo semantic authority or removed player-meter baggage;
-- proof flexible CSA scope can be represented simply; if not, exact blocker/cost returned to owner.
-
-Owner selects architecture before implementation.
-
-## 3. Gate 2 — Milestone 0: recognizably the right game
+Compare Candidate A/B/C as runtime-kernel alternatives only.
 
 Required:
 
+- exact kernel modules/assets KEEP/REPLACE;
+- one-turn sequence including Story-authored choices + Extract projection;
+- failure/reconnect sequence;
+- mutable DB authority;
+- proof retained kernel contains no demo/product semantic authority or removed player-meter baggage;
+- proof flexible CSA scope can be represented simply, or exact blocker/cost returned to owner.
+
+### 2.2 Company v1 salvage audit
+
+Finalize `08_COMPANY_V1_SALVAGE_MATRIX.md` file-by-file/module-by-module using:
+
+- `KEEP`
+- `TRANSPLANT`
+- `REWIRE`
+- `REBUILD`
+- `DELETE`
+- `DEFER_KEEP`
+
+At minimum prove treatment for:
+
+- `index.html` + responsive CSS shell;
+- `render.js`;
+- `setup.js`;
+- `company-map.js/css`;
+- Mind Monitor presentation;
+- `view-model.js`;
+- `app.js` and its old `createTurnCoordinator()`;
+- `api.js` / `sse.js`;
+- `csa-app.js` / `csa-app-state.js`;
+- TTS/history/feedback/image UI;
+- canonical `content/*.json`.
+
+Owner selects the **composed architecture** before implementation:
+
+```text
+selected kernel + accepted Company v1 salvage boundary
+```
+
+A kernel choice cannot justify replacing the completed Company v1 presentation with a reduced shell.
+
+## 3. Gate 2 — Milestone 0: recognizably the right game in the salvaged UI
+
+Required:
+
+- Company v1 Story/action/MM/setup presentation transplanted at high parity;
 - canonical Setup/profile;
 - canonical Company content;
 - correct Opening;
-- actual Company Story/Mind Monitor presentation;
 - one ordinary Story turn;
 - Story-authored four current-turn choices projected by Extract;
 - free-form action always available;
@@ -65,10 +100,13 @@ Acceptance order:
 
 1. product-contract tests;
 2. structural tests for changed spine;
-3. TEST deploy;
-4. owner Opening review immediately;
-5. owner 3–5 turn play including choice quality/extraction and scene_note continuity;
-6. only if accepted, proceed.
+3. desktop/mobile screenshot comparison against `5ec1a76...`;
+4. TEST deploy;
+5. owner Opening review immediately;
+6. owner 3–5 turn play including UI parity, choice quality/extraction and scene_note continuity;
+7. only if accepted, proceed.
+
+Do not spend a milestone rebuilding presentation already available in Company v1.
 
 ## 4. Gate 3 — Core continuity
 
@@ -80,13 +118,15 @@ If one scene_note demonstrably fails an acceptance scenario, stop and propose th
 
 ## 5. Gate 4 — `상식개변` nine-rule MVP
 
+Reuse/transplant the Company v1 app presentation where practical, but replace old CSA semantics/submission flow.
+
 Implement exactly:
 
 - 3 weak + 3 medium + 3 strong templates;
 - one shared finite scope vocabulary;
 - flexible supported subject scope;
 - optional counterparty scope only where meaningful;
-- app apply/change/remove transaction;
+- dedicated app apply/change/remove transaction;
 - durable rule lifecycle + selected scope;
 - non-turn application;
 - four-slot clothing only where retained rules require it;
@@ -103,9 +143,9 @@ If flexible scope is materially too complex or semantically incoherent for a ret
 
 Only after core product + nine-rule CSA acceptance:
 
-- feedback revision;
-- image;
-- TTS;
+- feedback revision using salvaged Company v1 presentation;
+- image using salvaged media surface;
+- TTS using salvaged TTS UX/controller pieces where compatible;
 - history/export polish;
 - remaining UI/tooling.
 
@@ -115,7 +155,7 @@ The removed dynamic player sexual gauge is not a deferred secondary feature. Rei
 
 ### Product tests
 
-Assert canonical characters/map/Setup/Opening/UI, four Story-authored choices, free input, scene_note model, removed player gauge, exact nine CSA IDs, and flexible supported scope.
+Assert canonical characters/map/Setup/Opening/UI, high-parity Company v1 surface inventory, four Story-authored choices, free input, scene_note model, removed player gauge, exact nine CSA IDs, and flexible supported scope.
 
 ### Structural tests
 
@@ -127,7 +167,7 @@ Prove literal action unchanged, relevant actor canon/location/accepted active ru
 
 ### Visual review
 
-Screenshots/mobile captures + Golden checklist. DOM existence alone is insufficient.
+Desktop/mobile screenshots + Golden/Salvage checklist against `5ec1a76...`. DOM existence alone is insufficient.
 
 ### Manual acceptance
 
@@ -135,7 +175,7 @@ Owner acceptance is release gate. Failure means PRODUCT_REJECTED/CHANGES_REQUIRE
 
 ## 8. Merge rules
 
-Player-facing PR merges only when requirement/scenario IDs are listed, relevant product + structural tests pass, required artifact exists, and owner gate is satisfied.
+Player-facing PR merges only when requirement/scenario IDs are listed, relevant product + structural tests pass, required artifact exists, salvage/parity differences are explicit, and owner gate is satisfied.
 
 ## 9. Main branch protection recommendation
 
@@ -144,7 +184,7 @@ Before automation restarts:
 - no direct runtime/product push to `main`;
 - PR required;
 - CI required;
-- owner review for Product Constitution/Golden changes;
+- owner review for Product Constitution/Golden/Salvage changes;
 - product acceptance check/label where practical.
 
 Docs-only emergency STOP/current-truth corrections may use a narrow documented owner path.
@@ -157,7 +197,7 @@ Future loop requires `LOOP_CONTROL.enabled`, generation fencing, CURRENT_TASK RE
 
 ## 11. What counts as progress
 
-1. owner recognizes correct product at Opening;
+1. owner recognizes the **same intended Company product UI** at Opening;
 2. 5 turns feel like correct Company game with natural choices + free input;
 3. 20 turns preserve continuity through scene_note + memory;
 4. exact nine-rule `상식개변` MVP works with flexible scope without distorting agency;
