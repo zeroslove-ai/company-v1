@@ -62,7 +62,7 @@ Reuse Hospital only as independently proven donor ideas: natural Story + four ch
 
 Do not inherit Hospital semantic domains, hypnosis, consent/physical taxonomies, DB identities, or hidden assumptions.
 
-The specific Hospital-like behavior desired here is the **natural Story-authored choice experience**, not wholesale Hospital runtime copying.
+The Hospital behavior we want to reproduce is specifically the **natural play feel where Story itself writes the next four actions and downstream extraction turns them into UI choices**, not wholesale Hospital runtime copying.
 
 Pros: strong play-feel donor evidence.  
 Risks: may smuggle foreign semantics and duplicate solved streaming/concurrency work.
@@ -150,6 +150,8 @@ Preferred contract:
 - optional deterministic speaker metadata may be parsed only when identity is unambiguous.
 
 The same post-Story Extract reads the completed text and projects the four choices plus minimal machine state.
+
+The choices may be written in a simple natural numbered/footer form that is easy for the model and extractor to recognize. The important law is that **Story authored them** and **Extract copies them**; Extract is not a second choice author.
 
 If a different envelope is proposed, it must prove that it materially improves reliability without reintroducing visible protocol garbage or a second narrative author.
 
