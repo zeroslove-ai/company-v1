@@ -1,206 +1,201 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-full-redesign-milestone0-choice-dialogue-presentation-correction-v1
-Mode: SOURCE CORRECTION — DONOR CHOICE + DIALOGUE PRESENTATION PARITY
+Task ID: company-full-redesign-milestone0-deployability-correction-v1
+Mode: SOURCE CORRECTION — R3 DEPLOY ENTRY + ISOLATED WRANGLER WIRING
 Updated: 2026-08-21
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
 
-## 0. Review result
+## 0. Review result / why this task exists
 
 Prior task:
 
-`company-full-redesign-milestone0-ui-parity-first-content-correction-v1`
+`company-full-redesign-milestone0-choice-dialogue-presentation-correction-v1`
 
 Prior terminal / reviewed source:
 
-- Issue #68 terminal: `5367420547`
-- exact reviewed source SHA: `a838b8a6f2ca52ba056f9722be7ac0b24ea69e77`
+- Issue #68 terminal: `5367654843`
+- exact reviewed source SHA: `61b106cbd91cf31630db86906969325ec974cdc7`
 - Draft PR: #97
 - branch: `company-redesign/milestone0-v1`
 
 Operator review:
 
-- Issue #68 comment: `5367526714`
-- decision: `CHANGES_REQUIRED`
+- Issue #68 comment: `5367754833`
+- decision: `CHANGES_REQUIRED_DEPLOYABILITY_ONLY`
 
-Do not merge, deploy, or apply the R3 migration at `a838b8a6...`.
+The gameplay/product source at `61b106c...` is accepted except for one deployment-boundary blocker: there is no reviewed Cloudflare R3 Worker entry module or isolated R3 Wrangler configuration. Existing repository Wrangler configs still point to Company v1 source/assets. An exact-reviewed-source TEST rollout would therefore require an unreviewed temporary wrapper/config, which is forbidden.
 
-Continue the SAME `company-redesign/milestone0-v1` branch and SAME Draft PR #97. Do not create a parallel implementation branch or PR.
+Continue the SAME `company-redesign/milestone0-v1` branch and SAME Draft PR #97. Do not create a parallel source branch or PR.
 
-Before editing, re-read latest Issue #68 comments and verify PR #97 head is exactly `a838b8a6f2ca52ba056f9722be7ac0b24ea69e77` or a descendant containing only this authorized correction. If unrelated source appears, STOP.
+Before editing, re-read latest Issue #68 comments and verify PR #97 head is exactly `61b106cbd91cf31630db86906969325ec974cdc7` or a descendant containing only this authorized deployability correction. If unrelated source appears, STOP.
 
 ## 1. Binding authority
 
 - Product/UI authority: PR #95 @ `9d9aec5a198d8673eb37aba8a0541adbd6c84627`
-- Engine/acceptance authority: PR #96 @ `9d44c4719fa6b098d53cac5cf946b93fafa6786b`
-- exact complete Company v1 UI donor snapshot: `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
-- owner redesign decisions: Issue #68, especially `5364770509`
-- operator review finding: `5367526714`
+- Engine/live-acceptance authority: PR #96 @ `9d44c4719fa6b098d53cac5cf946b93fafa6786b`
+- UI donor: `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
+- reviewed Milestone 0 source: PR #97 @ `61b106cbd91cf31630db86906969325ec974cdc7`
+- operator deployability finding: Issue #68 `5367754833`
 
-This task does NOT reopen product design or runtime architecture.
+This task does NOT reopen product design, runtime semantics, provider behavior, persistence semantics, or UI presentation.
 
-## 2. Preserve accepted work from a838b8a6...
+## 2. Preserve accepted Milestone 0 source exactly
 
-Do not regress:
+Do not regress or redesign any accepted behavior at `61b106c...`, including:
 
-- canonical Company `content/*.json` binding and real character/location catalogs;
-- full accepted Setup fields and server-side profile validation;
-- Company map donor presentation and literal-prefill-only interaction;
-- Mind Monitor relevant actor tabs/cards/empty state;
-- thin `frontend-r3/app.js` one-turn controller with no browser Story→Observer→Commit coordinator;
-- A′ server-owned Story once → Observer once → reducer → atomic commit;
-- isolated `company_r3_*` namespace source;
-- literal action identity, one job per turn, attempt fencing, bounded progress writes;
-- atomic Opening/ordinary Commit and non-next reservation rejection;
-- terminal-required SSE success contract;
-- first-content deadline beginning at Story invocation/request start;
-- total Story timeout through streamed body;
-- Observer fail-open and no provider retry/regeneration;
-- no active CSA/TTS/Image/Feedback runtime, no dynamic sexual gauge, no generic physical ontology, no relationship/event engine in Milestone 0;
-- unapplied R3 migration remains unapplied.
+- canonical Company `content/*.json` binding;
+- complete accepted Setup/profile validation and persistence contract;
+- high-parity Company v1 shell/map/Mind Monitor/player presentation;
+- full literal Story-authored four-choice surface plus compact launcher and free input;
+- direction-bearing dialogue presentation;
+- literal action identity;
+- one server-owned Story → Observer → reducer → atomic commit operation;
+- one `(game, turn)` job, action/attempt fencing, bounded progress writes, reconnect/readback;
+- Observer fail-open and no hidden retry/regeneration;
+- minimal R3 state / bounded `scene_note`;
+- isolated `company_r3_*` migration source;
+- no active CSA/TTS/Image/Feedback/dynamic sexual gauge/relation-event/generic physical engine in Milestone 0.
 
-## 3. Correction A — restore BOTH donor choice surfaces
+Do not edit runtime/domain/frontend gameplay logic merely to make deployment convenient.
 
-### Proven defect
+## 3. Required correction A — reviewed Cloudflare R3 API entrypoint
 
-Binding Milestone 0 UI law requires both:
+Add the smallest explicit production Worker entry module under `runtime-r3/`.
 
-1. the donor-style full literal current-turn choice presentation after completed Story; and
-2. the separate compact four-button launcher.
+Recommended path:
 
-At `a838b8a6...`, `parsePlainStoryForPresentation()` removes the terminal four-choice tail and `renderNarrative()` does not render a full-literal choice section. `renderChoices()` then renders only shortened launcher buttons. Therefore the established full literal choice surface was lost.
+`runtime-r3/worker-entry.js`
 
-### Required behavior
+It must:
 
-- After a completed turn, render exactly four **full literal Story-authored current-turn choices** in the donor-style narrative choice surface.
-- Also render exactly four compact launcher buttons below/in the action surface.
-- Both surfaces derive from the SAME canonical current-turn choice array projected by Observer; no stale/prior-turn fallback.
-- Compact labels are presentation only. Clicking a compact button submits the exact full literal string unchanged.
-- Do not render the raw numbered choice tail a third time. The presentation adapter may strip the raw terminal tail only if it replaces it with the full-literal donor choice surface.
-- If canonical current-turn choices are unavailable/incomplete, do not fabricate/fill/pad. Free input remains available and the choice surface may be absent/unavailable for that turn.
-- No separate choice LLM, no retry/regeneration, no provider/model change.
+- export a Cloudflare module-worker default `fetch` handler;
+- construct/use the already-reviewed `createProductionR3Worker({ env, ... })` boundary;
+- pass the incoming Request and Cloudflare env into the existing R3 worker without changing gameplay semantics;
+- perform no provider fallback, retry, demo-provider substitution, DB compatibility routing, or v1/v2 routing;
+- have no imported old `src/engine`, `runtime-v2`, or old frontend authority;
+- expose only the existing `/api/r3/*` contract implemented by reviewed source.
 
-## 4. Correction B — donor dialogue card must support direction-bearing Story lines
+Do not create a second R3 runtime or duplicate turn logic in the entrypoint.
 
-### Proven defect
+## 4. Required correction B — isolated R3 API Wrangler config
 
-The binding A′ visible dialogue convention includes lines such as:
+Add one repository-tracked R3 API Wrangler config, recommended:
 
-`서원희(조금 고개를 기울이며): "대사"`
+`wrangler.r3.api.jsonc`
 
-At `a838b8a6...`, the presentation-only regex does not reliably parse text between `(` and `):`, so direction-bearing dialogue can fall back into ordinary narration instead of the donor dialogue card.
+Binding deployment identity for TEST/dev Worker:
 
-### Required behavior
+- Worker name: `game-proxy-company-r3`
+- main: the reviewed R3 Worker entry module from Section 3
+- workers.dev enabled
+- compatibility date may follow the current repository Worker compatibility baseline unless a concrete syntax requirement needs a later compatible date
 
-Presentation-only parsing must safely recognize at minimum:
+Use the existing approved provider endpoints/models; do not invent new model/provider settings:
 
-- `서원희: "대사"`
-- `서원희(조금 고개를 기울이며): "대사"`
+- `SUPABASE_URL = https://fmcrspgxstsmxxsmkeee.supabase.co`
+- `LLM_API_URL = https://api.deepseek.com`
+- `STORY_MODEL = deepseek-v4-flash`
+- `EXTRACT_MODEL = deepseek-v4-flash`
 
-and project them for display as:
+Required secrets are names only; never commit secret values:
 
-- speaker name;
-- optional direction text;
-- dialogue text.
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `LLM_API_KEY`
 
-The donor card should render speaker + direction + dialogue in their donor-style presentation roles.
+Do NOT add:
 
-Rules:
+- TTS service binding;
+- Image service;
+- Production route/domain;
+- v1/v2 compatibility variables;
+- hidden retry flags;
+- provider/model changes.
 
-- this parser is display-only; it never becomes durable semantic authority;
-- registered actor names may be used as a conservative recognition aid;
-- ambiguous/unknown text remains readable raw/narration fallback;
-- parser imperfection never invalidates Story and never triggers retry/regeneration;
-- do not invent speaker IDs, action outcomes, state, Mind Monitor, or choices from display parsing.
+## 5. Required correction C — isolated R3 frontend Wrangler config
 
-## 5. Focused acceptance proof
+Add one repository-tracked static frontend config, recommended:
 
-Add/adjust only narrow R3 presentation regressions proving:
+`wrangler.r3.frontend.jsonc`
 
-1. a committed Story fixture with narration + `speaker(direction): "text"` + four terminal literal choices produces:
-   - narration block;
-   - dialogue block with exact speaker, exact direction, exact text;
-   - four full literal narrative-choice items;
-   - four compact launcher buttons/models referencing the same exact literal strings;
-   - no duplicated raw numbered choice tail.
-2. simple `speaker: "text"` still works.
-3. ambiguous/plain Story falls back readably and never becomes a validity failure.
-4. compact choice click continues to submit the exact full literal action unchanged.
-5. free-form literal input path remains unchanged.
+Binding identity:
 
-Do not create a large DOM snapshot suite. Protect only these concrete product regressions.
+- Worker/assets name: `gamebuilder-company-r3`
+- static assets directory: `frontend-r3`
+- no Production custom route
 
-## 6. Allowed source scope
+The existing reviewed frontend already supports an explicit `?api=<R3 API base>` override. Milestone 0 TEST rollout may use that exact API URL to avoid creating another frontend proxy/state authority.
 
-Expected edits are narrow:
+Do not hardcode the old v1/v2 API Worker into R3 frontend. Do not add a browser Story→Observer→Commit coordinator.
 
-- `frontend-r3/render.js`;
-- optionally the smallest directly related `frontend-r3/styles.css`/donor-derived CSS only if needed to restore the existing narrative-choice/direction presentation;
-- `test/r3-frontend-contract.test.mjs` and/or one narrow existing `test/r3-*.test.mjs` fixture;
-- branch copy of `docs/ops/CURRENT_TASK.md` only if the runner lifecycle requires it.
+If a tiny static config value is strictly required for deployability, keep it presentation/config-only and report it explicitly. Do not widen product behavior.
 
-Do not edit runtime/provider/persistence/migration for this correction unless a direct regression proves the reviewed finding cannot be fixed in the presentation boundary. If that occurs, STOP and report evidence rather than widening scope.
+## 6. Dry-run / deployability proof
 
-Do not edit:
+This task is SOURCE ONLY. Do not actually deploy.
 
-- `runtime-r3/**` by default;
-- R3 migration SQL;
-- `runtime-v2/` / `frontend-v2/`;
-- old `src/engine/` or historical donor source in place;
-- PR #95/#96 authority docs;
-- historical applied migrations;
-- preserved/manual/evidence games or data.
+Before terminal, prove from the exact PR #97 head:
 
-## 7. Operational prohibitions
+1. API Wrangler config resolves the intended R3 entry module.
+2. Frontend Wrangler config resolves `frontend-r3` assets.
+3. Wrangler dry-run/build for both configs succeeds without modifying remote Workers.
+4. The API entrypoint can be imported/instantiated with test env bindings and exposes the existing R3 fetch contract.
+5. Existing focused R3 tests still pass.
+6. Exact-head CI succeeds.
+7. Diff check/syntax checks pass.
+
+Add at most one very small deployment-boundary regression test if needed. Do not create a broad deployment test framework.
+
+## 7. Allowed changed paths
+
+Expected narrow additions/changes only:
+
+- `runtime-r3/worker-entry.js` (or one equivalently small R3 production entry module);
+- `wrangler.r3.api.jsonc`;
+- `wrangler.r3.frontend.jsonc`;
+- at most one existing narrow R3 production-boundary test if necessary;
+- branch copy of `docs/ops/CURRENT_TASK.md` only if runner lifecycle requires it.
+
+If deployability requires changing Story/Observer/reducer/store/frontend gameplay semantics, STOP and report the exact reason rather than widening this task.
+
+## 8. Operational prohibitions
 
 SOURCE ONLY:
 
-- no merge / auto-merge;
-- no migration apply;
-- no Supabase DB write;
+- no PR merge / auto-merge;
+- no Supabase migration apply;
+- no DB write;
 - no Worker/frontend deploy;
 - no TEST/Production game creation or gameplay;
 - no reset/delete/repair;
-- no provider/model/temperature/token/secret/config change;
+- no preserved/manual/evidence game mutation;
+- no provider/model/temperature/token/secret change;
 - no Milestone 1;
 - no active CSA/TTS/Image/Feedback implementation.
 
-All historical/manual/evidence games remain read-only.
-
-## 8. Validation
-
-Before terminal:
-
-- run the focused R3 presentation tests;
-- run the selected forward CI suite required by PR #96 policy;
-- changed JS/MJS syntax PASS;
-- `git diff --check` PASS;
-- exact PR #97 head CI SUCCESS;
-- prove changed paths remain inside this narrow source scope;
-- explicitly report that first-content/runtime/persistence accepted work was not changed.
-
-Automated test count is not the product acceptance metric.
+Historical v1/v2 data remains read-only.
 
 ## 9. Completion boundary
 
 Update the SAME Draft PR #97 and post exactly one terminal report to Issue #68:
 
-`COMPANY_FULL_REDESIGN_MILESTONE0_CHOICE_DIALOGUE_PARITY_READY_FOR_SOURCE_REVIEW`
+`COMPANY_FULL_REDESIGN_MILESTONE0_DEPLOYABILITY_READY_FOR_SOURCE_REVIEW`
 
 Include:
 
 - Task ID;
-- starting reviewed SHA `a838b8a6f2ca52ba056f9722be7ac0b24ea69e77`;
+- starting reviewed SHA `61b106cbd91cf31630db86906969325ec974cdc7`;
 - final exact PR #97 head;
 - exact changed paths;
-- full-literal narrative choice surface proof;
-- compact launcher exact-literal identity proof;
-- direction-bearing dialogue parser/card proof;
-- raw fallback proof;
-- focused validation and exact-head CI;
+- R3 API Worker entrypoint proof;
+- R3 API Worker name/config summary;
+- R3 frontend Worker name/config summary;
+- Wrangler API dry-run result;
+- Wrangler frontend dry-run result;
+- focused R3 validation + exact-head CI;
+- confirmation accepted gameplay/product semantics unchanged;
 - migration applies 0;
 - DB writes 0;
 - deploys 0;
@@ -209,4 +204,17 @@ Include:
 
 Then STOP `WAITING_REVIEW`.
 
-Do not merge, deploy, apply migration, or register TEST rollout/Milestone 1 automatically.
+Do not merge or deploy automatically.
+
+## 10. Next action after this review passes
+
+This is intended to be the LAST Milestone 0 source correction before live TEST.
+
+On successful operator source review:
+
+1. accept the exact PR #97 head;
+2. merge PR #97 with `expected_head_sha` equal to the exact reviewed head;
+3. register a separate `company-full-redesign-milestone0-test-rollout-l0-v1` CURRENT_TASK;
+4. that rollout task may apply the reviewed `20260821000100_company_r3_milestone0.sql` migration exactly once to TEST, deploy only the reviewed R3 API/frontend Workers, create one fresh R3 TEST game, perform Setup + Opening only, inspect DB/SSE/product evidence, and STOP for owner review before ordinary automated gameplay.
+
+If Opening feels like a helpdesk/demo, uses wrong Company people/location, speaks for the player, misses the private `상식개변` premise, hides streaming, or visibly fails Company v1 UI parity, the build fails immediately and deeper Milestone work must not proceed.
