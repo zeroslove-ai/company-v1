@@ -64,6 +64,8 @@ At implementation time, there must be one active source of CSA semantics. Prefer
 
 No historical non-MVP rule appears in the product until explicitly re-added one at a time.
 
+The old generic subject/counterparty selector breadth is not automatically part of the Golden Master. Final per-template scope controls remain OPEN until owner review of the nine-rule app interaction.
+
 ## G-SETUP-001 — Established Setup surface
 
 Historical complete UI evidence: `src/frontend/pages/index.html` at `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`.
@@ -164,7 +166,9 @@ The first active mechanic UI shows only:
 강 3
 ```
 
-For each of the 9 templates, UI needs only product-useful information: rule wording, strength, relevant subject/counterparty scope, active state, and transaction result.
+For each of the 9 templates, UI presents rule wording, strength, accepted scope controls, active state, and transaction result.
+
+Do not prebuild every historical subject × counterparty combination. If scope selection is retained, expose only the controls explicitly accepted for these nine templates.
 
 No historical 10th+ rule is hidden in another tab or endpoint.
 
@@ -229,7 +233,7 @@ Before a major frontend rebuild merges, require:
 1. proposed desktop screenshot(s);
 2. proposed mobile screenshot(s);
 3. surface checklist;
-4. explicit differences from the historical complete snapshot;
+4. explicit differences from historical complete snapshot;
 5. exact active CSA catalog check: 9 only;
 6. owner acceptance.
 
