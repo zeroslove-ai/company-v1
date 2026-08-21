@@ -1,8 +1,8 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-full-redesign-milestone0-test-rollout-l0-v1
-Mode: TEST ROLLOUT / SETUP + OPENING ACCEPTANCE ONLY
+Task ID: company-full-redesign-milestone0-r3-native-fetch-binding-correction-v1
+Mode: SOURCE/TEST CORRECTION — R3 SUPABASE NATIVE FETCH BINDING ONLY
 Updated: 2026-08-21
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
@@ -10,306 +10,190 @@ Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another C
 
 ## 0. Why this task exists
 
-Company Full Redesign Milestone 0 source has completed operator source review.
+Milestone 0 TEST rollout failed before any R3 game was created.
 
-Accepted source identity:
+Authoritative failure evidence:
 
+- failed rollout task: `company-full-redesign-milestone0-test-rollout-l0-v1`
+- terminal Issue #68 comment: `5368025850`
+- operator review: `5368094133`
+- rollout registration main: `760532a306794c87cf7f1b754e742ba32ef99a3c`
+- accepted Milestone 0 source: PR #97 head `fed4e05108573bb71bb9086a95b9f85e592ebd29`
+- merged source on main: `0106cba1860376d35b830c750ee3173e547c044f`
 - Product/UI authority: PR #95 @ `9d9aec5a198d8673eb37aba8a0541adbd6c84627`
-- Engine/live-acceptance authority: PR #96 @ `9d44c4719fa6b098d53cac5cf946b93fafa6786b`
-- Company v1 UI donor snapshot: `5ec1a76ac782d3a4fc8042f3d6a62854204b1c84`
-- Milestone 0 source PR: #97
-- exact accepted PR #97 head: `fed4e05108573bb71bb9086a95b9f85e592ebd29`
-- source acceptance Issue #68 comment: `5367890436`
-- exact merge commit on `main`: `0106cba1860376d35b830c750ee3173e547c044f`
-- reviewed migration source: `supabase/migrations/20260821000100_company_r3_milestone0.sql`
-- API Wrangler config: `wrangler.r3.api.jsonc`
-- Frontend Wrangler config: `wrangler.r3.frontend.jsonc`
+- A′ Engine authority: PR #96 @ `9d44c4719fa6b098d53cac5cf946b93fafa6786b`
 
-This task is the first live TEST gate for the R3 redesign. It is NOT Milestone 1 and it does not authorize ordinary automated gameplay.
+Live rollout facts already established and MUST NOT be repeated in this source task:
 
-## 1. Hard scope
+- TEST migration `20260821000100_company_r3_milestone0` was applied exactly once and is now live.
+- R3 API Worker deployed as `game-proxy-company-r3`, Version `53b24119-4fbb-47c4-82ca-debb32cb381c`.
+- R3 frontend Worker deployed as `gamebuilder-company-r3`, Version `117650ff-b7bb-42f9-81ea-c0a8969f0b9e`.
+- Catalog GET and frontend root returned HTTP 200.
+- one invalid PowerShell-path Korean Setup attempt became `???`; treat it as harness-invalid evidence only.
+- one separately codepoint-constructed UTF-8-safe Setup profile (`김도윤`) also returned HTTP 500 Cloudflare Worker exception.
+- no R3 game/state/turn/job row was created; final counts remained zero.
+- Opening and ordinary gameplay were not attempted.
 
-Execute only the following bounded rollout:
+## 1. Proven/high-confidence source seam
 
-1. verify TEST DB pre-state and that migration `20260821000100_company_r3_milestone0` has not already been applied;
-2. apply that reviewed migration exactly once to TEST if absent;
-3. verify the exact `company_r3_*` tables, RPC signatures, ACLs, and no mutation of historical v1/v2 namespaces;
-4. deploy only the reviewed R3 API Worker from exact merged source/config;
-5. deploy only the reviewed R3 frontend Worker from exact merged source/config;
-6. verify both deployed Worker identities/health/basic catalog response;
-7. create exactly one fresh R3 TEST game through the reviewed public R3 API;
-8. submit one complete canonical Setup/profile only once;
-9. create/stream Opening exactly once;
-10. inspect DB + SSE + rendered product evidence for Setup and Opening;
-11. STOP `WAITING_OWNER_REVIEW` before any ordinary Turn 1 gameplay.
+Current R3 source:
 
-No free-text action and no choice click after Opening in this task.
+`runtime-r3/server/supabase-store.js`
 
-## 2. Binding product/runtime requirements
+`R3SupabaseHttp.request()` invokes the injected/native fetch as a property call:
 
-The rollout passes only if the deployed product matches the accepted redesign authority, not merely if HTTP succeeds.
+```js
+await this.fetchImpl(url, options)
+```
 
-### 2.1 Product identity
+That binds `this` to the `R3SupabaseHttp` instance.
 
-The screen and Opening must unmistakably be `상식개변: 회사편`, a company-life interactive fiction game.
+The repository's already-corrected production v2 store uses the Cloudflare-safe form:
 
-Immediate FAIL if the product behaves like:
+```js
+const fetchImpl = this.fetchImpl;
+await fetchImpl(url, options);
+```
 
-- a productivity assistant;
-- a generic chat/helpdesk;
-- a blank R3 demo shell;
-- an unrelated company simulator without the private `상식개변` premise.
+The rollout evidence matches this boundary:
 
-### 2.2 UI donor parity
+- `/api/r3/catalogs` succeeds because it does not call Supabase;
+- `POST /api/r3/games` is the first public path that calls `SupabaseR3Store.createGame()` -> `R3SupabaseHttp.rpc()` -> `request()`;
+- the UTF-8-safe Setup still fails at that boundary with a Worker exception and no DB row.
 
-Use the already reviewed `frontend-r3` built from the Company v1 donor snapshot `5ec1a76...`.
+`runtime-r3/server/provider.js` already calls closure `fetchImpl(...)`; do not modify provider fetch semantics in this task.
 
-At Setup/Opening verify, at minimum:
+## 2. Required correction
 
-- title/header/day/time/turn/connectivity hierarchy;
-- Story/history/current-stream area is the primary surface;
-- streaming Story stays visible while generating; no blocking loading overlay covers it;
-- Setup UI exposes the accepted full profile fields, including name, department, position, age, height, weight, `penis_length_cm`, body type, and speech style;
-- company map presentation is present at donor-level information architecture, not a generic flat debug list;
-- Mind Monitor surface exists and never exposes raw actor IDs to the user;
-- current character/scene and player panels use canonical Korean names/labels, not catalog IDs;
-- four-choice presentation and free-input surface are visible only according to the accepted Opening result and product authority; do not submit either in this rollout;
-- disabled/deferred Milestone 0 features do not claim fake functionality.
+Create one source branch from the exact current `main` at lease time.
 
-### 2.3 Canonical Company content
+Recommended branch:
 
-Opening must use repository Company canon:
+`company-redesign/milestone0-r3-native-fetch-binding-correction-v1`
 
-- canonical registered actors only;
-- canonical location ID resolved to the correct Korean location name/context;
-- relevant heroine/general-NPC facts where applicable;
-- no fabricated `서원/다현/민지` demo roster or unknown semantic NPC;
-- no raw internal IDs in visible prose/UI.
+Open one Draft PR and STOP at source review. Do not merge or deploy.
 
-### 2.4 Opening narrative law
+### 2.1 Regression first
 
-Opening must establish a real company scene and the player's private unfamiliar `상식개변` app premise.
+Add a focused regression that is receiver-sensitive and proves the defect rather than merely mocking a permissive fetch.
 
-Immediate FAIL if Opening:
+The regression must exercise the R3 Supabase store/production Setup path with a fetch implementation that fails if invoked with an object receiver and succeeds when invoked as a plain function.
 
-- asks `무슨 업무를 도와드릴까요?` or equivalent assistant/help framing;
-- invents an unregistered person;
-- uses the wrong character identity/name;
-- speaks or chooses an action for the player beyond the accepted opening setup;
-- loses the private-app premise;
-- produces only a terse status/protocol response rather than a meaningful scene;
-- hides Story streaming behind loading UI.
+Required proof:
 
-The four Story-authored next actions may be observed and inspected, but must NOT be clicked in this task.
+1. the pre-fix call shape would fail because `this !== undefined` (or equivalent receiver-sensitive assertion);
+2. after the correction, the same test reaches the expected Supabase RPC/read sequence;
+3. the exact Korean profile values remain JSON/UTF-8-safe in the request body;
+4. the test does not require a real network, DB, Worker deploy, or provider call.
 
-## 3. Migration gate
+Use the existing R3 production/store test suite where appropriate; a new focused R3 test file is acceptable if cleaner.
 
-TEST Supabase project: `fmcrspgxstsmxxsmkeee`.
+If a receiver-sensitive regression does NOT reproduce/prove this source seam, STOP `BLOCKED_SOURCE_ROOT_CAUSE_NOT_PROVEN` and do not broaden the patch.
 
-Before apply:
+### 2.2 Minimal runtime fix
 
-- query `supabase_migrations.schema_migrations` for version `20260821000100`;
-- inventory existing `company_r3_*` relations/functions;
-- if the migration is already present, do NOT apply it again; verify exact expected objects and report that it was pre-existing;
-- if absent, apply exactly the reviewed file from merge source `0106cba...` once;
-- no broad migration push or unrelated migration apply.
+Only after the regression proves the seam, make the minimal production fix in:
 
-After apply verify:
+`runtime-r3/server/supabase-store.js`
 
-Tables:
+Detach the fetch function before invocation so Cloudflare native fetch is not called as an object method.
 
-- `company_r3_games`
-- `company_r3_state`
-- `company_r3_turn_jobs`
-- `company_r3_turns`
-- `company_r3_system_events`
+Do not change:
 
-RPCs:
+- Supabase URL construction;
+- headers/auth;
+- RPC names or payloads;
+- profile schema;
+- game/state schema;
+- provider behavior/models/timeouts;
+- Story/Observer/reducer semantics;
+- frontend behavior;
+- migration `20260821000100`;
+- existing R3 DB/RPC contracts.
 
-- `company_r3_create_game(text,jsonb,jsonb)`
-- `company_r3_create_opening(uuid,text,jsonb,text,jsonb,jsonb,jsonb,jsonb,jsonb)`
-- `company_r3_expire_stale_turn(uuid,integer)`
-- `company_r3_reserve_turn(uuid,integer,uuid,text,boolean)`
-- `company_r3_update_turn_progress(uuid,integer,uuid,integer,text)`
-- `company_r3_mark_story_complete(uuid,integer,uuid,integer,text)`
-- `company_r3_fail_turn(uuid,integer,uuid,integer,text)`
-- `company_r3_commit_turn(uuid,integer,uuid,integer,integer,text,jsonb,text,jsonb,jsonb,jsonb,jsonb,jsonb)`
+Audit all call sites in this file for the same receiver mistake, but do not refactor unrelated code.
 
-ACL requirements:
+## 3. UTF-8 harness finding
 
-- public/anon/authenticated have no table or RPC authority;
-- service_role has SELECT on R3 tables and EXECUTE on the exact R3 RPCs;
-- do not alter historical v1/v2 tables/RPCs/data.
+The first rollout attempt passed literal Korean through a PowerShell command path and produced `???`. This is a TEST harness/operator transport defect, not product evidence.
 
-## 4. Exact deployment gate
+Do NOT add runtime normalization, fallback, repair, or encoding heuristics for this.
 
-Deploy from `main` containing merge commit `0106cba1860376d35b830c750ee3173e547c044f` plus only this CURRENT_TASK registration commit.
+Record in test/ops evidence that the next live rollout must use an ASCII-only temporary Node `.mjs` (or equivalent byte-safe path) that constructs Korean from Unicode escapes/code points and uses native Node `fetch` + `JSON.stringify` directly.
 
-### API Worker
-
-Use:
-
-`wrangler.r3.api.jsonc`
-
-Expected identity:
-
-`game-proxy-company-r3`
-
-Expected entry:
-
-`runtime-r3/worker-entry.js`
-
-Preserve reviewed vars/models and existing authorized secrets. Do not change provider/model/temperature/tokens/secrets.
-
-### Frontend Worker
-
-Use:
-
-`wrangler.r3.frontend.jsonc`
-
-Expected identity:
-
-`gamebuilder-company-r3`
-
-Expected assets:
-
-`frontend-r3`
-
-No Production custom route and no v1/v2 Worker overwrite.
-
-Record exact resulting Worker version/deployment identifiers in the terminal report.
-
-## 5. Fresh TEST game protocol
-
-Create exactly one new R3 TEST game through the deployed R3 API.
-
-Do not reuse, reset, delete, repair, or mutate any historical v1/v2/R3 evidence game.
-
-### Setup
-
-Use one valid canonical profile. Preserve Korean UTF-8 exactly; do not use a shell path that can corrupt Korean text.
-
-The exact chosen profile values must be reported in the terminal evidence. Do not alter the accepted setup schema merely for the smoke.
-
-After Setup, inspect direct DB state for the new game and prove:
-
-- one `company_r3_games` row;
-- one `company_r3_state` row;
-- profile values round-trip exactly;
-- canonical content version stored;
-- committed turn remains 0 before Opening;
-- no job rows created by Setup.
-
-### Opening
-
-Call the deployed Opening endpoint exactly once for that game:
-
-`POST /api/r3/games/{game_id}/opening`
-
-Capture the actual SSE sequence.
-
-Required evidence:
-
-- Story emits one or more `story_delta` events before terminal;
-- exactly one terminal event;
-- terminal is `committed`;
-- no retry/regeneration;
-- no subrequest-exhaustion error;
-- no second Opening request;
-- turn 0 is durably stored once;
-- no gameplay turn job is created by Opening.
-
-After Opening, direct DB read must prove:
-
-- `company_r3_state.committed_turn = 0`;
-- revision remains the reviewed Opening value;
-- exactly one `company_r3_turns` row at turn 0;
-- `literal_action = ''` for Opening;
-- non-empty rich `story_text`;
-- `choices` is an array containing the actual Story-authored Opening choices when extraction succeeds;
-- non-empty `turn_summary`;
-- `state_after` present;
-- canonical location/present actor state is valid;
-- zero `company_r3_turn_jobs` rows for the game.
-
-Observer is fail-open: an Observer failure alone does not invalidate a valid Story, but it must be reported with warnings and must not invent actor/location state.
-
-## 6. Visual/product inspection
-
-This rollout must inspect the deployed frontend using the fresh game, not only API/DB output.
-
-Capture/report whether each gate passes:
-
-1. full Setup surface parity;
-2. Opening Story visibly streams without a blocking overlay;
-3. correct `상식개변: 회사편` identity;
-4. canonical Korean actor/location labels;
-5. no raw IDs in user-facing Mind Monitor/current-character/player surfaces;
-6. company map keeps the accepted donor presentation;
-7. four full natural Story-authored choices are presented when available;
-8. free input remains available;
-9. deferred Milestone 0 features are not falsely active.
-
-If any of these visibly fails, STOP as `FAILED_PRODUCT_ACCEPTANCE`; do not continue to ordinary gameplay and do not patch during rollout.
-
-## 7. Forbidden in this task
-
-- no source/runtime/frontend patch;
-- no migration source edit;
-- no second migration or broad migration push;
-- no ordinary Turn 1 automated gameplay;
-- no choice submission;
-- no free-text action submission;
-- no retries/regeneration unless an existing explicit failed-attempt contract is separately authorized (it is not authorized here);
-- no reset/delete/repair of any existing game;
-- no Production/hospital-v2 access;
-- no v1/v2 Worker deployment or routing change;
-- no active CSA implementation or transaction;
-- no TTS;
-- no Image;
-- no Feedback revision;
-- no standalone NPC search;
-- no dynamic sexual gauge/progression;
-- no relationship/event engine;
-- no generic physical ontology;
-- no provider/model/config/secret change;
+No Korean JSON body may be piped through PowerShell/cmd stdin/here-string/codepage in the next rollout.
+
+## 4. Migration/live state boundary
+
+Migration `20260821000100_company_r3_milestone0` is already applied on TEST exactly once. It is now historical live migration evidence.
+
+In this task:
+
+- do not edit that applied migration;
+- do not apply/reapply any migration;
+- do not write a new migration;
+- do not mutate R3 ACLs/tables/data;
+- do not create, reset, delete, repair, or play any game.
+
+The rollout also observed service_role direct table DML privileges in TEST. Record that observation as follow-up evidence only unless the accepted PR #95/#96 authority explicitly proves it is a blocker for this fetch correction. Do not silently change ACL design inside this task.
+
+## 5. Validation
+
+Required before terminal:
+
+- focused receiver-sensitive R3 Supabase/Setup regression: PASS;
+- existing R3 focused tests: PASS;
+- full repository test suite: PASS if practical;
+- `node --check` on changed JS/test files;
+- `git diff --check`: PASS;
+- API Wrangler dry-run with `wrangler.r3.api.jsonc`: PASS;
+- confirm frontend diff = 0;
+- confirm migration/SQL diff = 0;
+- confirm provider/model/config/secret diff = 0;
+- confirm no live HTTP/DB/deploy/gameplay was performed.
+
+The review report must explicitly compare the corrected R3 fetch invocation with the already-correct v2 fetch-binding pattern and explain why the production boundary is now receiver-safe.
+
+## 6. Forbidden operations
+
+- no migration edit/apply or SQL source change;
+- no DB write/read acceptance run beyond static/source inspection;
+- no Worker deploy;
+- no TEST game creation/Setup/Opening/gameplay;
+- no Production/hospital/v1/v2 game access;
+- no preserved evidence game mutation;
+- no frontend-r3 source change;
+- no provider/model/temperature/token/secret/config change;
+- no Story/Observer/reducer semantic change;
+- no CSA/TTS/Image/Feedback/NPC-search work;
 - no Milestone 1;
-- no new PR/branch/source commit except runner-required evidence outside repository; no merge.
+- no retry-until-pass live behavior;
+- no merge/auto-merge.
 
-If a source defect is found, STOP and report exact evidence. The next task must be a narrow source correction; do not hotfix the deployed Worker in this rollout.
+## 7. Completion boundary
 
-## 8. Completion boundary
+Post one terminal report to Issue #68:
 
-On success post exactly one terminal report to Issue #68:
-
-`COMPANY_FULL_REDESIGN_MILESTONE0_TEST_OPENING_READY_FOR_OWNER`
+`COMPANY_FULL_REDESIGN_MILESTONE0_R3_NATIVE_FETCH_BINDING_READY_FOR_SOURCE_REVIEW`
 
 Status:
 
-`WAITING_OWNER_REVIEW`
+`WAITING_REVIEW`
 
 Include:
 
 - Task ID;
-- registration main SHA/current task blob;
-- accepted source head `fed4e051...` and merge SHA `0106cba...`;
-- migration pre-state and whether apply count was 0 or 1;
-- exact R3 DB object/ACL verification;
-- API Worker version/deployment ID;
-- frontend Worker version/deployment ID;
-- fresh R3 game ID;
-- exact Setup profile used and UTF-8 proof;
-- Setup DB readback;
-- Opening SSE event counts/order/terminal;
-- Opening DB readback;
-- actual Opening Story/product inspection summary;
-- actual Opening choices observed but confirmation none were submitted;
-- UI parity checklist results;
-- confirmation ordinary gameplay turns = 0;
-- confirmation old/preserved game mutations = 0;
-- source changes = 0;
-- provider/model/config changes = 0.
+- starting main SHA;
+- final source SHA;
+- Draft PR number;
+- changed paths;
+- exact pre-fix receiver-sensitive failure proof;
+- exact corrected fetch call form;
+- focused/full test results;
+- API dry-run result;
+- confirmation frontend diff 0;
+- confirmation SQL/migration diff 0;
+- confirmation DB writes/deploy/gameplay 0;
+- confirmation provider/model/config/secret changes 0.
 
-Then STOP. Do not register Milestone 1 automatically.
-
-On failure post one terminal report with exact failure classification and evidence, then STOP. Do not patch or continue deeper rollout.
+Then STOP for operator source review. Do not merge, redeploy, rerun Setup, or register the rollout resume automatically.
