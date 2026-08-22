@@ -72,6 +72,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(openingContext.next_action_contract.count, 4);
   assert.equal(openingContext.next_action_contract.verbatim_observer_copy, true);
   assert.equal(openingContext.next_action_contract.current_story_only, true);
+  assert.equal(openingContext.player_agency_contract.literal_action_is_player_choice, true);
   assert.equal(openingContext.opening_agency_contract.phase, 'before_first_player_input');
   assert.equal(openingContext.opening_agency_contract.passive_scene_exposure_allowed, true);
   assert.deepEqual(openingContext.opening_agency_contract.passive_exposure_examples, ['app_present', 'app_appears', 'app_visible', 'player_can_notice_app']);
@@ -205,8 +206,14 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.doesNotMatch(ordinarySystem, /Opening-only agency law/i);
   assert.equal(ordinaryContext.opening, false);
   assert.equal(ordinaryContext.literal_action, ordinaryLiteralAction);
+  assert.equal(ordinaryContext.player_agency_contract.literal_action_is_player_choice, true);
+  assert.deepEqual(ordinaryContext.player_agency_contract, sentContext.player_agency_contract);
   assert.equal(ordinaryContext.opening_contract, null);
   assert.equal(ordinaryContext.opening_agency_contract, null);
+  assert.match(ordinarySystem, /supplied player_agency_contract is a fixed hard boundary/i);
+  assert.match(ordinarySystem, /actor, target, action, movement\/destination, request, refusal, self-state, topic, and intent/i);
+  assert.match(ordinarySystem, /consequences are allowed.*replace, invert, redirect, or contradict/i);
+  assert.match(ordinarySystem, /not automatic proof of external outcome or NPC compliance/i);
 });
 
 test('R3 choice normalization keeps Story-owned choices when Observer choices are malformed', () => {

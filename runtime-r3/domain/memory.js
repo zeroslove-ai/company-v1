@@ -2,6 +2,15 @@ import { canonicalActors, canonicalLocation, productPremise, relevantActorIds } 
 
 const bounded = (value, max) => String(value ?? '').slice(0, max);
 const REQUEST_TRIGGER_VALUES = new Set(['on_player_request', 'on_counterparty_request']);
+const PLAYER_AGENCY_CONTRACT = Object.freeze({
+  literal_action_is_player_choice: true,
+  preserve_explicit_dimensions: Object.freeze([
+    'actor', 'target', 'action', 'movement/destination', 'request', 'refusal', 'self-state', 'topic', 'intent'
+  ]),
+  choice_boundary: 'Preserve explicit player choices; Story may narrate consequences around or after the chosen beat, but must not replace, invert, redirect, or contradict them.',
+  self_state_boundary: 'An explicit player self-state remains true for the chosen scene beat; do not inject same-beat NPC approach or dialogue that makes that self-state impossible unless the literal permits that interaction.',
+  external_outcome_boundary: 'Player input is not automatic proof of external outcome or NPC compliance.'
+});
 
 export function requestExecutionTiming(rule = {}) {
   const requestTriggered = rule.mode === 'on_player_request' || REQUEST_TRIGGER_VALUES.has(rule.trigger);
@@ -42,6 +51,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     product,
     opening,
     literal_action: literalAction,
+    player_agency_contract: PLAYER_AGENCY_CONTRACT,
     profile: state.profile ?? {},
     time: state.time ?? {},
     location,

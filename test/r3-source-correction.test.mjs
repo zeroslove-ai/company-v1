@@ -160,6 +160,23 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   assert.ok(turn.actors.some(actor => actor.id === npcId && actor.role && actor.age));
 });
 
+test('R3 ordinary Story context carries one fixed generic player agency contract without parsing the literal', () => {
+  const heroine = Object.values(content.characters)[0];
+  const state = createInitialState({ name: 'R3 agency player' }, heroine.default_location_id, [heroine.character_id]);
+  const first = buildStoryContext({ state: { state }, turns: [] }, '한리브 대리와 점심 메뉴에 대해 가볍게 이야기한다.', { content });
+  const second = buildStoryContext({ state: { state }, turns: [] }, '혼자 창가에 서서 오늘 아침의 낯선 앱에 대해 생각한다.', { content });
+  assert.notEqual(first.literal_action, second.literal_action);
+  assert.deepEqual(first.player_agency_contract, second.player_agency_contract);
+  assert.equal(Object.keys(first).filter(key => key === 'player_agency_contract').length, 1);
+  assert.equal(first.player_agency_contract.literal_action_is_player_choice, true);
+  assert.deepEqual(first.player_agency_contract.preserve_explicit_dimensions, [
+    'actor', 'target', 'action', 'movement/destination', 'request', 'refusal', 'self-state', 'topic', 'intent'
+  ]);
+  assert.match(first.player_agency_contract.choice_boundary, /consequences.*replace, invert, redirect, or contradict/i);
+  assert.match(first.player_agency_contract.self_state_boundary, /same-beat NPC approach or dialogue.*impossible.*literal permits/i);
+  assert.match(first.player_agency_contract.external_outcome_boundary, /not automatic proof of external outcome or NPC compliance/i);
+});
+
 test('R3 scene_note is replaceable and clears when current observation has no useful note', () => {
   const state = createInitialState({ name: 'R3 Player' }, 'brand_strategy_office', ['heroine1']);
   state.scene.scene_note = 'old source-scene note';
