@@ -1,230 +1,172 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-same-game-reset-test-rollout-v1
-Mode: APPLY RESET MIGRATION ONCE -> DEPLOY EXACT SOURCE TO TEST -> ONE DISPOSABLE BROWSER RESET PROOF -> STOP
-Updated: 2026-08-23 01:47 KST
+Task ID: company-r3-post-reset-product-stability-v1
+Mode: REUSE EXISTING DISPOSABLE TEST GAME -> SIX HUMAN-LIKE TURNS -> PRODUCT/AGENCY/CONTINUITY REVIEW -> STOP
+Updated: 2026-08-23 02:06 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, reset harness, compatibility layer, or competing execution authority.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, QA framework, replay harness, or competing execution authority.
 
-## 0. Authority / accepted baseline
+## 0. Authority / frozen baseline
 
 Binding authority:
 - product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
 - A-prime engine/live-first canon PR #96 head `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
 - owner lean-development directives `5380380688` and `5380381500`;
-- capability TEST terminal `5381363356` and freeze review `5381387742`;
-- reset source terminal `5381481723`;
-- reset source acceptance review `5381496361`;
-- exact accepted reset source `19a4c2b8d9d2d1e3fc4a93c184d4b52e785af300`;
-- reset migration source `supabase/migrations/20260823000100_company_r3_same_game_reset.sql`;
-- current pre-rollout TEST API `game-proxy-company-r3` version `52439f14-235f-4c1d-ac24-1ca30abc5e95`;
-- current pre-rollout TEST frontend `gamebuilder-company-r3` version `50387103-1a97-4774-ac42-4368844cde58`;
-- existing TEST `R3_GAME_ACCESS_SECRET` must be preserved unchanged;
-- this exact CURRENT_TASK blob after registration.
+- capability TEST freeze review `5381387742`;
+- reset source acceptance `5381496361`;
+- reset rollout terminal `5381578009`;
+- reset rollout acceptance/freeze review `5381592085`;
+- accepted executable source `19a4c2b8d9d2d1e3fc4a93c184d4b52e785af300`;
+- current TEST API `game-proxy-company-r3` version `e4317d6f-9bfe-4774-a744-90789d066d4e`;
+- current TEST frontend `gamebuilder-company-r3` version `e0b654d7-06e1-4851-92a3-02af5cf5ba59`;
+- reset migration `20260823000100_company_r3_same_game_reset` already applied exactly once to TEST; do not reapply;
+- existing disposable TEST game `58d77377-010d-4920-a2ad-a549b8e341bc` only.
 
-Frozen areas:
-- per-game capability architecture remains frozen except proving the new reset route obeys it;
-- feedback revision remains frozen; do not invoke it;
-- image sidecar remains deferred for missing approved media input;
-- CSA7/9 remain frozen provider/model capability exceptions; do not invoke any CSA;
-- no Story/Observer/reducer/provider/model/config/timeout changes.
+Frozen:
+- game capability boundary GREEN/frozen;
+- same-game reset GREEN/frozen; the unavailable live stale-revision negative probe is an accepted coverage limitation, not a reopen trigger;
+- feedback revision GREEN/frozen;
+- image sidecar deferred until approved media input exists;
+- CSA7/9 remain frozen provider/model capability exceptions; do not invoke or tune CSA;
+- no provider/model/config/timeout/prompt/reducer source changes.
 
 ## 1. Purpose
 
-Make the already-reviewed same-game reset live on TEST and prove the real user-visible control once.
+Perform the owner-directed small post-correction browser/product pass, not another QA campaign.
 
-Expected product behavior:
-- same `game_id`;
-- same player profile/setup;
-- same existing game capability;
-- old chronology/current gameplay state removed atomically;
-- state revision increases exactly once for reset;
-- existing Opening path immediately creates exactly one fresh Opening;
-- no setup overlay/new game/new token;
-- refresh remains coherent;
-- the next ordinary action commits again as Turn 1.
+The existing disposable game has already been reset successfully and currently has:
+- fresh post-reset Opening at turn 0;
+- one post-reset ordinary Turn 1 committed;
+- state revision 3 at the rollout terminal;
+- same game/profile/capability retained.
 
-This is a bounded TEST rollout, not a reset/security/QA framework project.
+Continue this exact game for six additional ordinary human-like turns only, ending at committed Turn 7 if all succeed.
+
+Goal: detect real user-visible product defects in narrative continuity, player agency, choice usability, refresh/state continuity, or deterministic transport/commit behavior after the recent capability/reset corrections.
 
 ## 2. Preflight
 
-Before any mutation:
-1. Re-read Issue #68 and this exact task; STOP if a newer competing owner/operator directive or execution lease exists.
-2. Verify `main` is exact accepted reset source `19a4c2b8...` plus this docs-only registration only.
-3. Verify TEST project only: `fmcrspgxstsmxxsmkeee`. Do not access Production.
-4. Read the migration ledger and prove `20260823000100_company_r3_same_game_reset` is not yet applied. Also confirm the previously accepted feedback migration remains present; do not reapply/edit old migrations.
-5. Verify the existing TEST Worker secret binding name `R3_GAME_ACCESS_SECRET` is still present without revealing or replacing its value.
-6. Optionally rerun only the focused reset tests if needed to verify checkout identity. No broad suite ritual.
+Before any gameplay:
+1. Re-read Issue #68 and this exact task; STOP if a newer owner/operator directive or active competing lease exists.
+2. Verify main is accepted source `19a4c2b8...` plus docs-only registrations; no source patch is authorized.
+3. Verify TEST only; do not access Production.
+4. Open only disposable game `58d77377-010d-4920-a2ad-a549b8e341bc` through the existing deployed frontend/browser capability.
+5. Read canonical context and confirm expected starting shape: committed Turn 1, turns 0/1 only, no pending/failed processing job. If the exact start differs materially, STOP `BLOCKED_POST_RESET_STABILITY_PREFLIGHT` rather than resetting or repairing.
 
-If any identity/ledger/target ambiguity exists, STOP `BLOCKED_R3_RESET_TEST_PREFLIGHT` before mutation.
+Do not create a new game and do not reset this game again.
 
-## 3. Apply exactly one TEST migration
+## 3. Six-turn human-like continuation
 
-Apply only:
-`20260823000100_company_r3_same_game_reset.sql`
+Submit exactly six additional ordinary actions, one attempt each, no retry/regeneration for semantic preference.
 
-to TEST project `fmcrspgxstsmxxsmkeee` exactly once.
+Use a natural mix rather than synthetic edge-case spam:
+- at least four free-text actions;
+- up to two current Story-authored choices if useful;
+- vary ordinary office/social behavior, movement/location, conversation/request, and personal intent/self-state/refusal naturally across the six turns;
+- include enough explicit wording across the batch to exercise actor/target/action/movement/request/refusal/self-state/topic/intent fidelity, but do not force every category into every turn.
 
-After apply, verify read-only:
-- migration ledger contains the reset migration once;
-- `public.company_r3_reset_game(uuid, integer, jsonb)` exists;
-- `SECURITY DEFINER` / expected search_path contract remains intact;
-- execute is denied to `public`, `anon`, `authenticated` and allowed to `service_role` only;
-- no unrelated migration/schema/RLS/policy/grant change occurred.
+The player should behave like a person playing the game, not a test harness. Work tasks are background texture, not mandatory helpdesk flow.
 
-If migration apply fails or grants differ, STOP `BLOCKED_R3_RESET_TEST_MIGRATION`. Do not repair in the same task.
+For each turn record compactly:
+- exact literal action submitted;
+- committed turn number;
+- whether Story materially preserved the explicit player actor/target/action/movement/request/refusal/self-state/topic/intent that were actually present;
+- current location/presence coherence;
+- whether choices were usable if present; no-tail is fail-open and free input must remain usable;
+- obvious continuity break, duplicated chronology, wrong NPC identity, or stale prior-reset content if any.
 
-## 4. Deploy exact reviewed source to TEST
+Do not score prose style mechanically.
 
-Deploy exact source `19a4c2b8d9d2d1e3fc4a93c184d4b52e785af300` to:
-- TEST API `game-proxy-company-r3`;
-- TEST frontend `gamebuilder-company-r3`.
+## 4. Lean semantic decision rule
 
-Preserve the already-provisioned `R3_GAME_ACCESS_SECRET`; do not rotate/recreate/print it.
+Owner lean override is binding:
+- one isolated provider semantic miss alone is not a global blocker;
+- log it as provider variance and continue the predeclared six-turn batch unless transport/state corruption occurs;
+- a repeatable material invariant failure (for example 2 or more turns showing the same player-agency substitution/contradiction) is a real blocker;
+- deterministic transport/state/data corruption, duplicate commits, wrong game/capability behavior, chronology resurrection, or stuck unrecoverable job blocks immediately.
 
-Record new API/frontend version IDs and verify public frontend/catalog health.
+Do not tune prompts/provider/model or add guards because of a lone semantic miss.
 
-No Production deploy. No source patch during rollout.
+## 5. One bounded refresh
 
-## 5. Exactly one fresh disposable game
+After any committed turn between Turn 3 and Turn 6, refresh the same browser URL exactly once.
 
-Create exactly one new disposable game through the real deployed frontend.
+Verify:
+- same game/capability resumes;
+- committed chronology is unchanged and ordered once;
+- no duplicate Opening/turn is created;
+- no old pre-reset chronology reappears;
+- current location/state/choices shown after refresh agree with canonical context.
 
-Record the fresh game ID. Never print/store the capability value in Issue evidence.
+Then continue the remaining planned turns normally.
 
-Initial path:
-1. setup/create succeeds;
-2. protected Opening completes normally;
-3. submit exactly one simple human-like ordinary action through the UI, no retry/regeneration;
-4. prove it commits as Turn 1;
-5. capture bounded pre-reset facts only: same game ID/profile, `committed_turn=1`, current state revision, chronology Opening+Turn1.
+Do not reset or reconnect by creating a new action.
 
-Do not use feedback or CSA to add extra state. The ordinary turn is sufficient prior chronology for reset acceptance.
+## 6. Final readback
 
-## 6. Negative reset boundary before successful reset
+At the end, read canonical protected context/DB read-only evidence for this game and confirm:
+- committed_turn is 7 if all six new turns committed;
+- turns are exactly 0 through 7 once each;
+- ordinary jobs for Turns 1 through 7 are committed with no extra duplicate action for this run;
+- state revision advanced consistently from the starting revision;
+- no pending/failed next-turn job remains;
+- no pre-reset old chronology resurfaced;
+- capability/token remains absent from URL/UI/canonical context.
 
-Using only the fresh disposable game plus one already-known disposable TEST game ID for cross-game mismatch, prove without successful mutation:
-- fresh-game reset with no Authorization -> generic 401;
-- malformed/wrong capability -> generic 401;
-- fresh-game capability against known disposable game `6748f720-57e9-41ce-89eb-1498001e7ec9` -> generic 401 and no read/mutation of that other game;
-- fresh-game valid capability with deliberately stale `expected_state_revision` -> reset rejection and unchanged fresh-game canonical context.
+Do not inspect or mutate unrelated games.
 
-Do not test write denial by touching any preserved/manual game. Do not expose capability values.
+## 7. Acceptance / stop conditions
 
-If any wrong/missing/cross-game credential can reset/read protected state, STOP `BLOCKED_R3_RESET_TEST_ACCESS` immediately.
+Success with no material defect:
+`STATUS: COMPLETE_R3_POST_RESET_PRODUCT_STABILITY_GREEN`
 
-## 7. Real browser reset — exactly once
+Success with only isolated non-repeatable provider semantic variance:
+`STATUS: COMPLETE_R3_POST_RESET_PRODUCT_STABILITY_WITH_PROVIDER_VARIANCE`
 
-On the same fresh disposable game:
-1. click the existing `초기화` / `#reset-game` control exactly once;
-2. accept the single confirmation;
-3. verify one authenticated `POST /api/r3/games/:game_id/reset` uses the current exact state revision;
-4. verify the same reset SSE path immediately streams a fresh Opening;
-5. do not manually call a second Opening endpoint after reset.
+Real repeatable player-agency/continuity defect or deterministic transport/state defect:
+`STATUS: BLOCKED_R3_POST_RESET_REAL_PRODUCT_DEFECT`
 
-After terminal commit, verify from canonical protected context/DB readback:
-- game_id is unchanged;
-- player profile/setup is byte/field equivalent to pre-reset profile;
-- browser capability still works and no replacement token is issued;
-- old Turn1 and prior Opening chronology are gone;
-- exactly one new Opening exists at turn_number 0;
-- `committed_turn=0`;
-- state revision = pre-reset revision + 1 exactly;
-- canonical state is reset to initial setup/opening shape rather than retaining prior scene/rules/gameplay residue;
-- turn jobs from prior chronology are gone;
-- revision-history contains only the new Opening lineage for this disposable game;
-- feedback-attempt rows for this game are absent;
-- no setup overlay appears;
-- no capability/token appears in URL/UI/canonical context.
+Preflight mismatch:
+`STATUS: BLOCKED_POST_RESET_STABILITY_PREFLIGHT`
 
-Do not require Story prose to equal the original Opening text; it is a fresh provider call. Judge only structural/product coherence and reset contract.
+If blocked, provide the smallest exact reproduction and stop. Do not patch in this task.
 
-## 8. Refresh + post-reset continuation
-
-Refresh the same browser/game URL once.
-
-Prove:
-- same game opens with the persisted same-game capability;
-- exactly the same fresh Opening/context is shown;
-- no duplicate Opening is created;
-- old pre-reset Turn1 does not return.
-
-Then submit exactly one simple human-like ordinary action, no retry/regeneration.
-
-Prove it commits as the new Turn 1 and state revision advances normally from the post-reset revision. This is the only post-reset ordinary turn.
-
-No longer campaign is authorized.
-
-## 9. Acceptance
-
-GREEN only if all agree:
-- reset migration applied exactly once to TEST and privilege boundary is service_role-only;
-- exact reviewed source deployed to TEST API/frontend;
-- one fresh disposable game only;
-- Opening + pre-reset Turn1 succeeded;
-- missing/wrong/cross-game/stale reset attempts did not mutate state;
-- one real UI reset preserved game/profile/capability;
-- old chronology was removed;
-- exactly one fresh Opening exists with committed_turn 0;
-- reset increments revision exactly once;
-- refresh does not duplicate Opening or resurrect old chronology;
-- one post-reset ordinary action commits as new Turn1;
-- no source/provider/config/CSA/feedback/image/Production/preserved-game mutation occurred.
-
-If the button/route/SQL shows a deterministic source defect, STOP `BLOCKED_R3_RESET_TEST_PRODUCT_DEFECT` with the smallest reproducible evidence. Do not patch during this task.
-
-## 10. Forbidden
+## 8. Forbidden
 
 Do NOT:
-- access/deploy Production;
-- change or expose any secret;
-- apply any migration other than the one reset migration exactly once;
-- edit old migrations;
-- modify source/runtime/frontend/tests/config/content during rollout;
+- modify source/runtime/frontend/tests/content/config/migrations;
+- apply/reapply migrations;
+- deploy/redeploy anything;
+- create another game;
+- reset any game;
+- access Production or preserved/manual games;
 - invoke feedback;
 - invoke CSA or rerun CSA7/9;
-- use preserved/manual games;
-- create more than one fresh disposable game;
+- touch image/media work;
+- expose or extract capability/secret values;
 - retry/regenerate Story for semantic preference;
-- run long gameplay;
-- add auth/reset/test framework or compatibility layer;
-- create a new CURRENT_TASK file or ops branch;
+- run more than six additional turns;
+- create a new harness/framework/document/branch;
 - overwrite CURRENT_TASK after execution.
 
-## 11. Terminal
+## 9. Terminal
 
 Post exactly one terminal comment to Issue #68 and STOP.
 
-Success:
-`STATUS: COMPLETE_R3_RESET_TEST_GREEN`
-
-Preflight blocker:
-`STATUS: BLOCKED_R3_RESET_TEST_PREFLIGHT`
-
-Migration blocker:
-`STATUS: BLOCKED_R3_RESET_TEST_MIGRATION`
-
-Access-boundary blocker:
-`STATUS: BLOCKED_R3_RESET_TEST_ACCESS`
-
-Deterministic product/source blocker:
-`STATUS: BLOCKED_R3_RESET_TEST_PRODUCT_DEFECT`
-
 Terminal must include:
 - Task ID/current task blob/execution lease;
-- start/final main SHA + accepted source SHA;
-- migration ledger pre/post and reset RPC privilege result;
-- TEST API/frontend version IDs;
-- fresh disposable game ID only, never capability/secret;
-- pre-reset committed_turn/revision and Opening+Turn1 proof;
-- negative reset statuses for no-auth/wrong/cross-game/stale;
-- one UI reset request proof;
-- post-reset same game/profile/capability, chronology count/turn numbers, committed_turn/revision proof;
-- refresh proof;
-- post-reset new Turn1 proof;
-- confirmation no source/Production/provider/model/config/CSA/feedback/image/preserved-game mutation;
-- final classification.
+- start/final main SHA;
+- TEST API/frontend identities;
+- game ID `58d77377-010d-4920-a2ad-a549b8e341bc`;
+- starting committed_turn/revision;
+- six exact actions and resulting committed turn numbers;
+- one refresh point and parity result;
+- compact player-agency/continuity findings for the predeclared batch;
+- final committed_turn/revision/turn chronology/job status;
+- any isolated provider variance separately from real deterministic defects;
+- confirmation no source/deploy/migration/reset/new-game/Production/feedback/CSA/image/provider-config mutation occurred;
+- final status/classification.
 
 Then STOP. Do not choose the next task.
