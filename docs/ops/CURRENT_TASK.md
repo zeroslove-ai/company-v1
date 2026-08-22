@@ -1,206 +1,220 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-image-sidecar-binding-audit-v1
-Mode: READ-ONLY CURRENT R3 + ACCEPTED DONOR MEDIA AUDIT -> DEFINE MINIMAL REUSABLE IMAGE BINDING -> STOP
-Updated: 2026-08-23 01:21 KST
+Task ID: company-r3-same-game-reset-source-v1
+Mode: IMPLEMENT CAPABILITY-PROTECTED SAME-GAME RESET -> FOCUSED TESTS -> STOP BEFORE APPLY/DEPLOY
+Updated: 2026-08-23 01:31 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, media framework, asset pipeline, or competing execution authority.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, reset framework, compatibility layer, or competing execution authority.
 
-## 0. Authority / frozen accepted baseline
+## 0. Authority / frozen baseline
 
 Binding authority:
 - product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
 - A-prime engine/live-first canon PR #96 head `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
 - owner lean-development directives `5380380688` and `5380381500`;
-- feedback revision TEST acceptance/freeze through `5381157253`;
-- game-capability TEST terminal `5381363356`;
-- operator capability freeze/product-priority review `5381387742`;
+- capability TEST terminal `5381363356` and operator freeze `5381387742`;
+- image-sidecar audit terminal `5381425374` and operator review `5381439776`;
 - accepted secured executable source `b511b35c3e294f77ecdffdcc2ad870c446a10e7b`;
 - current TEST API `game-proxy-company-r3` version `52439f14-235f-4c1d-ac24-1ca30abc5e95`;
 - current TEST frontend `gamebuilder-company-r3` version `50387103-1a97-4774-ac42-4368844cde58`;
 - this exact CURRENT_TASK blob after registration.
 
 Frozen areas:
-- per-game capability boundary is GREEN/frozen; do not reopen or expand auth/RLS work absent a new real defect;
-- feedback revision is GREEN/frozen;
+- per-game capability boundary remains GREEN/frozen;
+- feedback revision remains GREEN/frozen;
+- image sidecar is deferred until verified approved media input exists; do not touch it here;
 - CSA rules 7/9 remain frozen provider/model capability exceptions;
-- Story/Observer/reducer/provider/model/config/timeouts remain untouched.
+- Story/Observer/reducer/provider/model/config/timeouts remain behaviorally unchanged except reusing the existing Opening path after reset.
 
-## 1. Product purpose
+## 1. Proven user-visible gap
 
-Return to product work after closing the deterministic security blocker.
+Current R3 frontend visibly includes `#reset-game`, but current controller does not wire a reset action and the current secured Worker/store expose no reset route/store operation.
 
-Current R3 already has:
-- committed history/readback;
-- MD/TXT history export;
-- nonblocking TTS sidecar;
-- feedback revision;
-- donor-derived image UI slot in `frontend-r3/index.html`:
-  - `media-panel`;
-  - `character-image`;
-  - `image-status`.
+This is a dead user-visible control. Fix only this gap.
 
-But the current R3 image/media binding is intentionally absent: the panel remains hidden and no accepted image selection/media authority was carried into the current R3 runtime.
+Required product behavior:
+- reset the current game while keeping the same `game_id`;
+- preserve the existing player profile/setup and the same per-game bearer capability;
+- clear prior gameplay chronology/state side effects back to canonical initial game state;
+- immediately start a fresh Opening through the existing normal Opening Story -> Observer -> reducer -> commit path;
+- after reset, the user should see a fresh Opening without being sent back through player setup.
 
-Historical Company donor/accepted work contained an image-sidecar/current-situation image-family concept. This task must determine whether that can be reused exactly and cheaply, without inventing URLs, assets, a new image-generation service, or gameplay semantics.
+Do not create a new game, new token, account/session system, or alternate Opening implementation.
 
-This is a source/history/read-only audit only. It does not authorize implementation.
+## 2. Required reset semantics
 
-## 2. Preflight
+The reset boundary must be explicit and narrow.
 
-Before inspection:
-1. Re-read Issue #68 and this exact CURRENT_TASK; STOP if a newer competing owner/operator directive or active lease exists.
-2. Verify `main` is executable-equivalent to accepted secured source `b511b35...` plus docs-only task registrations.
-3. Verify the current R3 media slot source as actually present on main.
-4. Do not access or mutate TEST/Production data merely for this audit.
-5. Do not deploy anything.
+### Preserve
+- `game_id`;
+- player profile/setup stored for that game;
+- content version / game identity fields required by current R3;
+- existing browser capability token because it is bound to the unchanged game_id;
+- capability security boundary itself.
 
-If the control plane/source lineage is not clear, STOP `BLOCKED_IMAGE_SIDECAR_AUDIT_PREFLIGHT`.
+### Clear/reset atomically before fresh Opening
+At minimum, all current-game chronology and gameplay projections that would make the reset non-fresh must be removed/reset consistently:
+- committed ordinary turns;
+- turn jobs including failed/processing/completed job rows;
+- feedback attempts/revision-history rows belonging to prior chronology;
+- committed_turn back to 0;
+- canonical state body rebuilt from the preserved player profile plus current canonical opening location/presence rules;
+- CSA active state / scene / mind-monitor-derived durable state / other current gameplay state contained in the canonical state body must return to the same initial shape produced by current `createInitialState`/setup semantics.
 
-## 3. Current R3 media inventory
+Do not leave orphan audit rows that can re-enter normal context/history after reset.
 
-Inspect current R3 source and record the exact present/absent contract for:
-- `frontend-r3/index.html` media/image elements;
-- media-related CSS;
-- `frontend-r3/app.js`, render/view-model modules, and client code;
-- canonical context/state/turn shapes for any existing `image_selection`, `image_key`, `image_url`, media family, focal/current actor, scene, clothing, or presentation-only fields;
-- Worker/runtime/store/provider code for any existing media endpoint/binding/service call;
-- Wrangler/config bindings for any image/media storage/service binding.
+If another R3 table added by accepted migrations references the game chronology, inspect it and include it only if required for a truly fresh same-game chronology. Do not broaden to unrelated v1/v2 tables.
 
-Explicitly answer:
-- Is there already a current R3 canonical/presentation field that can drive the image slot?
-- Is the hidden panel just an unwired donor shell, or is a partial binding already present?
-- Would image display require changing durable gameplay state, or can it remain presentation-only?
+### Revision/fencing
+- client sends `expected_state_revision` from current canonical context;
+- reset must reject stale revision;
+- reset must reject/stop safely if a normal turn or feedback operation is actively processing rather than racing it;
+- DB clearing + initial-state replacement must be one atomic service-role transaction/RPC;
+- state revision must remain monotonic across reset (do not rewind revision to an old value). Increment once for the reset transaction; the subsequent fresh Opening may increment according to the existing Opening commit contract.
 
-Do not infer fields that do not exist.
+Do not add hidden retry/regeneration.
 
-## 4. Accepted donor / repository-history media audit
+## 3. Minimal server design
 
-Search repository history and existing docs/source only. Do not browse or scrape external asset sites.
+Add one capability-protected game-scoped reset route, preferred:
+`POST /api/r3/games/:game_id/reset`
 
-Identify the exact historical Company implementation(s) behind prior accepted references to:
-- current-situation image sidecar;
-- image families / character image families;
-- `image_selection` or equivalent;
-- image slot/media UI;
-- any static asset manifest, character-to-family mapping, scene/clothing mapping, storage path convention, or media service binding.
+Requirements:
+- it must pass through the same exact-game bearer capability gate as context/opening/turn/feedback/CSA before any game-specific read/write;
+- request contains only the narrow reset fence data needed, e.g. `expected_state_revision`;
+- no client-supplied profile, state body, opening location, or capability authority;
+- server reads the current game/profile and canonical content, derives the same opening location/presence rules already used by setup, and builds initial state using existing domain helpers;
+- store performs one atomic reset transaction;
+- after the atomic reset succeeds, reuse the existing `openingResponse` / `processOpening` path to stream a fresh Opening immediately;
+- no duplicate Story/Observer implementation for reset.
 
-Candidate historical anchors may include prior accepted Company donor/source commits already referenced in Issue #68, including the donor UI lineage and the previously accepted current-situation image-sidecar lineage. Treat a candidate as reusable only after verifying the exact source/files at an exact commit.
+If the existing response architecture makes a single reset-and-opening SSE route awkward, keep the solution minimal but preserve the user-visible one-click reset -> fresh Opening behavior. Do not add a second orchestration system.
 
-For every relevant candidate record:
-- exact commit SHA;
-- exact file paths;
-- what the code actually does;
-- where image bytes/URLs come from;
-- whether referenced assets still exist in this repository/configuration;
-- whether it depends on retired v1/v2 gameplay semantics, old DB fields, external secrets/services, or hardcoded URLs;
-- whether it was presentation-only or wrote gameplay state.
+## 4. Minimal persistence delta
 
-Do not treat an Issue comment saying an image sidecar existed as proof that the required assets still exist.
+A new additive migration/RPC is authorized in source only if required because the current store has no atomic reset primitive.
 
-## 5. Asset/binding reality check
+Preferred RPC responsibility:
+- lock/verify exact game/state row;
+- enforce `expected_state_revision`;
+- reject an active processing turn/feedback race;
+- clear only the R3 chronology/revision sidecar rows belonging to the target game;
+- replace canonical state with server-computed initial state;
+- set committed_turn=0;
+- increment state revision monotonically;
+- return a compact success result.
 
-Determine which one of these is objectively true:
+Security:
+- `SECURITY DEFINER` only if consistent with current R3 RPC pattern;
+- execute restricted to `service_role` as existing R3 write RPCs are;
+- no anon/authenticated table/RPC exposure expansion;
+- no RLS redesign.
 
-### A. REUSABLE_ACCEPTED_MEDIA_BINDING
-All necessary pieces already exist in accepted repository history/current assets, and a narrow R3 presentation-only binding can be implemented without inventing asset locations or new services.
+Historical already-applied migrations are immutable. Add one new migration file if necessary; never edit/reorder/reapply old migrations in this task.
 
-### B. PARTIAL_BINDING_ASSETS_OR_AUTHORITY_MISSING
-Some old UI/selection code exists, but required actual assets, manifest, storage binding, or accepted selection authority is absent/retired.
+## 5. Store/client/frontend wiring
 
-### C. NO_ACCEPTED_MEDIA_BINDING
-Only placeholder UI or stale references remain; there is no grounded asset/binding contract to implement safely.
+### Store
+Add only the narrow store method needed for reset in both:
+- in-memory R3 store for deterministic tests;
+- Supabase R3 store using the new RPC if required.
 
-If B or C, state the exact missing input. Do not fabricate a replacement.
+Both implementations must share the same externally observable reset contract.
 
-## 6. Minimal R3 design if A is proven
+### Thin client
+Add `reset(gameId, payload)` using the existing stored exact-game capability. Token remains out of URL/body.
 
-If and only if `REUSABLE_ACCEPTED_MEDIA_BINDING` is proven, define the smallest next implementation boundary.
+### Frontend
+Wire the existing `#reset-game` button.
 
-Preferred architecture:
-- presentation sidecar only;
-- no second LLM/provider call;
-- no Story regeneration/retry;
-- no Observer semantic authority expansion;
-- no DB/schema/migration;
-- no write into canonical gameplay state unless an already-accepted current field is proven necessary;
-- no random semantic classifier;
-- no fuzzy person/state matching;
-- image choice derived only from already-canonical current data plus an existing accepted finite manifest/mapping;
-- current focal/present actor and existing canonical scene/state may be read, but player agency/game mechanics must never depend on the selected image;
-- failure/missing image must fail open to hidden panel/status text and never block Story/input;
-- refresh should deterministically reproduce the same display from committed context where the historical accepted contract supports that behavior.
+Required UX:
+- enable only when a game/context exists and no operation is busy/processing;
+- use one simple destructive confirmation before reset if consistent with the current UI/browser primitives; do not build a new modal framework;
+- on confirm, send current `state.revision` as the expected fence;
+- clear stale rendered Story/choices only as presentation state while request is in progress;
+- stream/render the fresh Opening through the existing SSE/render path;
+- on success show canonical refreshed context: same player setup, same game_id, Turn 0/fresh Opening chronology, no old turns;
+- on failure preserve/reload the server-accepted current context and show a clear error; do not fake a local reset.
 
-Specify:
-- exact source files to add/change next;
-- exact existing manifest/assets/binding to reuse;
-- whether API work is required at all;
-- exact focused tests needed;
-- whether only frontend deploy would be sufficient or API deploy is also required.
+No auto-generated new capability and no setup overlay after successful reset.
 
-Keep it small enough for one source task + one bounded TEST rollout.
+## 6. Deterministic focused tests
 
-## 7. Do not overbuild
+Add focused tests proving at minimum:
 
-Do NOT propose or create:
-- new image-generation AI calls;
-- image prompt generation;
-- generic media orchestration service;
-- database media tables;
-- broad asset management UI;
-- CDN migration;
-- account/auth work;
-- automatic internet image search/scraping;
-- semantic image classifier/router;
-- a new durable `image_selection` field merely because an old architecture had one, unless current canon requires and exact reuse proves it necessary;
-- compatibility layers for retired v1/v2 media semantics.
+1. reset route requires valid exact-game capability before any store mutation;
+2. missing/wrong/cross-game capability fails before reset work;
+3. same game_id and same player profile survive reset;
+4. capability token remains usable after reset without replacement;
+5. prior ordinary turns/jobs are gone from canonical context;
+6. prior feedback attempts/revision-history are cleared or otherwise proven incapable of re-entering new chronology according to the chosen exact schema contract;
+7. prior CSA/current scene/gameplay state is replaced by canonical initial state derived server-side;
+8. committed_turn becomes 0;
+9. state revision increases monotonically rather than rewinding;
+10. stale `expected_state_revision` is rejected without mutation;
+11. active processing work is rejected/fenced without partial clearing;
+12. after atomic reset the existing Opening path is invoked exactly once and commits one fresh Opening with no ordinary Turn consumed;
+13. no old turn appears after reset + Opening readback;
+14. frontend client sends bearer header and current revision only;
+15. reset button is wired, remains disabled while busy/processing, and one successful reset re-renders fresh context without showing setup;
+16. failure does not locally erase accepted server history/state.
 
-The owner lean-development override applies: the goal is one useful character/current-situation image sidecar, not a media platform.
+Use current focused R3 route/store/frontend test style. Do not create a reset harness project.
 
-## 8. No mutation in this audit
+## 7. Validation
+
+Run only what this bounded correction needs:
+- new reset tests;
+- directly affected R3 Worker/store/client/frontend tests;
+- migration SQL/static contract checks already used by this repo where applicable;
+- JS/MJS syntax checks for modified files;
+- `git diff --check`.
+
+Under the lean directive, do not run a broad full-repo suite unless the implementation unexpectedly crosses a shared boundary and focused evidence is insufficient. If you do run broader tests, explain why in terminal.
+
+## 8. Forbidden in this task
 
 Do NOT:
-- modify runtime/frontend/tests/content/config/migrations;
-- create an implementation commit;
+- apply any migration to TEST or Production;
 - deploy/redeploy API/frontend;
-- provision/change secrets/bindings;
-- create/reset/play/feedback any game;
-- invoke provider/Story/Observer;
-- invoke CSA;
+- create/reset/play a live TEST game;
 - touch Production;
-- copy in external images/assets;
-- create a new audit document or branch.
-
-Repository/history reads and Issue #68 terminal evidence are sufficient.
+- change `R3_GAME_ACCESS_SECRET` or other secrets;
+- change RLS/grants beyond the exact new RPC execute hardening required in the migration source;
+- change provider/model/temperature/token/timeout/config;
+- change Story/Observer prompts or reducer semantics;
+- invoke feedback/CSA live;
+- rerun CSA7/9;
+- modify image/media work;
+- add account/login/session/auth framework;
+- add semantic gates/classifiers/parsers;
+- create a new CURRENT_TASK file/ops branch;
+- overwrite CURRENT_TASK after execution.
 
 ## 9. Terminal
 
-Post exactly one terminal comment to Issue #68 and STOP.
+Commit and push the source/test/migration-source correction to `main`, then post exactly one terminal comment to Issue #68 and STOP.
 
-If exact reusable binding/assets are proven:
-`STATUS: COMPLETE_IMAGE_SIDECAR_BINDING_AUDIT_IMPLEMENTABLE`
+Success:
+`STATUS: WAITING_REVIEW_R3_RESET_SOURCE_IMPLEMENTED_NOT_APPLIED`
 
-If old code exists but a required accepted asset/binding/authority is missing:
-`STATUS: BLOCKED_IMAGE_SIDECAR_PARTIAL_BINDING_MISSING_INPUT`
-
-If no accepted grounded media binding exists:
-`STATUS: BLOCKED_IMAGE_SIDECAR_NO_ACCEPTED_MEDIA_BINDING`
-
-Preflight failure:
-`STATUS: BLOCKED_IMAGE_SIDECAR_AUDIT_PREFLIGHT`
+If existing schema/contracts make a safe atomic same-game reset require a materially larger architecture decision, STOP:
+`STATUS: BLOCKED_R3_RESET_DESIGN_BOUNDARY`
 
 Terminal must include:
 - Task ID/current task blob/execution lease;
-- start/final main SHA;
-- confirmation zero source/deploy/DB/game/provider/Production mutation;
-- exact current R3 media slot/current media fields/bindings inventory;
-- exact historical donor/image implementation commit(s) + file paths inspected;
-- exact asset/manifest/storage/service reality;
-- classification A/B/C above;
-- if A: one narrow next implementation plan with exact paths/tests/deploy scope;
-- if B/C: exact missing input, without inventing a substitute;
-- confirmation capability boundary, feedback revision, and CSA7/9 remained frozen.
+- start/final main SHA and implementation source commit;
+- exact changed paths;
+- exact same-game reset contract;
+- exact rows/state cleared vs preserved;
+- revision/active-job fencing behavior;
+- proof reset remains capability-protected;
+- proof existing Opening path is reused exactly once after reset;
+- focused test counts + syntax/diff/SQL checks;
+- confirmation migration was source-only and NOT applied;
+- confirmation no deploy/live game/Production/provider/model/CSA/feedback/image mutation occurred;
+- any narrow follow-up required for TEST rollout.
 
 Then STOP. Do not overwrite CURRENT_TASK or choose the next task.
