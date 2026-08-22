@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 import { loadCanonicalCompanyR3Content } from '../runtime-r3/domain/content-loader.js';
 import { loadWorkerCanonicalContent } from '../runtime-r3/domain/worker-content.js';
-import { buildStoryContext } from '../runtime-r3/domain/memory.js';
+import { buildStoryContext, requestExecutionTiming } from '../runtime-r3/domain/memory.js';
 import { buildOpeningContext } from '../runtime-r3/domain/story.js';
 import { createInitialState } from '../runtime-r3/domain/contracts.js';
 import { SupabaseR3Store } from '../runtime-r3/server/supabase-store.js';
@@ -176,6 +176,44 @@ test('R3 Story context projects active CSA rules once with scope and no legacy g
     id: 'r3_csa_1', template_id: 'no_panties_under_work_clothes', content: 'CANONICAL INSTITUTIONAL RULE',
     mode: 'continuous', trigger: 'continuous', strength: 'weak', subject_scope: 'female_employee', counterparty_scope: null
   }]);
+});
+
+test('R3 request-trigger timing projection is generic, bounded, and absent for continuous rules', () => {
+  const requestTiming = requestExecutionTiming({ template_id: 'rule-a', content: 'BEHAVIOR A', mode: 'continuous', trigger: 'on_counterparty_request' });
+  const requestTimingWithDifferentMeaning = requestExecutionTiming({ template_id: 'rule-b', content: 'BEHAVIOR B', mode: 'on_player_request', trigger: 'opaque' });
+  const continuousTiming = requestExecutionTiming({ template_id: 'rule-c', content: 'BEHAVIOR C', mode: 'continuous', trigger: 'continuous' });
+  assert.deepEqual(requestTiming, {
+    request_triggered: true,
+    when_triggered: 'same_story_turn',
+    future_deferral_allowed: false
+  });
+  assert.deepEqual(requestTimingWithDifferentMeaning, requestTiming);
+  assert.equal(continuousTiming, null);
+  assert.deepEqual(Object.keys(requestTiming).sort(), ['future_deferral_allowed', 'request_triggered', 'when_triggered']);
+});
+
+test('R3 Story context adds timing metadata from canonical request mode/trigger without copying rule meaning', () => {
+  const heroine = Object.values(content.characters)[0];
+  const state = createInitialState({ name: 'R3 timing player' }, heroine.default_location_id, [heroine.character_id]);
+  state.csa_active = ['request-rule', 'continuous-rule'];
+  state.csa_rules = {
+    'request-rule': {
+      id: 'request-rule', active: true, template_id: 'arbitrary-template-a', content: 'REQUEST BEHAVIOR MEANING', mode: 'on_player_request', trigger: 'on_player_request', strength: 'strong', subject_scope: 'female_employee', counterparty_scope: null
+    },
+    'continuous-rule': {
+      id: 'continuous-rule', active: true, template_id: 'arbitrary-template-b', content: 'CONTINUOUS BEHAVIOR MEANING', mode: 'continuous', trigger: 'continuous', strength: 'weak', subject_scope: 'female_employee', counterparty_scope: null
+    }
+  };
+  const context = buildStoryContext({ state: { state }, turns: [] }, 'literal request', { content });
+  assert.deepEqual(context.active_rules[0].execution_timing, {
+    request_triggered: true,
+    when_triggered: 'same_story_turn',
+    future_deferral_allowed: false
+  });
+  assert.equal('execution_timing' in context.active_rules[1], false);
+  assert.deepEqual(Object.keys(context.active_rules[0].execution_timing).sort(), ['future_deferral_allowed', 'request_triggered', 'when_triggered']);
+  assert.equal(JSON.stringify(context.active_rules[0].execution_timing).includes('REQUEST BEHAVIOR MEANING'), false);
+  assert.equal(JSON.stringify(context.active_rules[0].execution_timing).includes('arbitrary-template-a'), false);
 });
 
 test('R3 real Story provider sends each active rule once and excludes inactive rules', async () => {

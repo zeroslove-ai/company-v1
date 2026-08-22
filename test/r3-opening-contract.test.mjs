@@ -123,6 +123,9 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /Do not refuse, delay, substitute another action/i);
   assert.match(storySystem, /feelings cannot veto the rule's stated institutional execution/i);
   assert.match(storySystem, /Rule execution alone must not manufacture affection, comfort, consent, desire, romance, obedience-as-personality, trust, relationship/i);
+  assert.match(storySystem, /execution_timing with request_triggered=true/i);
+  assert.match(storySystem, /when_triggered and future_deferral_allowed values are authoritative/i);
+  assert.match(storySystem, /recognized trigger into a future deferral/i);
   assert.doesNotMatch(storySystem, /masturbate_for_recipient|vaginal_sex_with_recipient|player_request_executes_immediately/i);
   assert.match(storySystem, /preserve that exact canonical destination name/i);
   assert.match(storySystem, /Opening-only product and agency law/i);
@@ -178,6 +181,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(ordinarySystem, /mode=on_player_request or request-triggered trigger/i);
   assert.match(ordinarySystem, /NPC reluctance, embarrassment, anger, protest, hesitation, surprise, dislike, or discomfort/i);
   assert.match(ordinarySystem, /must not manufacture affection, comfort, consent, desire, romance, obedience-as-personality, trust, relationship/i);
+  assert.match(ordinarySystem, /execution_timing with request_triggered=true/i);
   assert.doesNotMatch(ordinarySystem, /masturbate_for_recipient|vaginal_sex_with_recipient|player_request_executes_immediately/i);
   assert.doesNotMatch(ordinarySystem, /Opening-only agency law/i);
   assert.equal(ordinaryContext.opening, false);

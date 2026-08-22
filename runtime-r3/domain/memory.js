@@ -1,6 +1,16 @@
 import { canonicalActors, canonicalLocation, productPremise, relevantActorIds } from './content.js';
 
 const bounded = (value, max) => String(value ?? '').slice(0, max);
+const REQUEST_TRIGGER_VALUES = new Set(['on_player_request', 'on_counterparty_request']);
+
+export function requestExecutionTiming(rule = {}) {
+  const requestTriggered = rule.mode === 'on_player_request' || REQUEST_TRIGGER_VALUES.has(rule.trigger);
+  return requestTriggered ? {
+    request_triggered: true,
+    when_triggered: 'same_story_turn',
+    future_deferral_allowed: false
+  } : null;
+}
 
 export function buildStoryContext(context, literalAction, { content, opening = false } = {}) {
   const state = context?.state?.state ?? {};
@@ -14,16 +24,20 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const activeRules = [...new Set(Array.isArray(state.csa_active) ? state.csa_active : [])]
     .map(id => rules[id])
     .filter(rule => rule?.active)
-    .map(rule => ({
-      id: rule.id,
-      template_id: rule.template_id,
-      content: bounded(rule.content, 600),
-      mode: rule.mode,
-      trigger: rule.trigger,
-      strength: rule.strength,
-      subject_scope: rule.subject_scope,
-      counterparty_scope: rule.counterparty_scope ?? null
-    }));
+    .map(rule => {
+      const executionTiming = requestExecutionTiming(rule);
+      return {
+        id: rule.id,
+        template_id: rule.template_id,
+        content: bounded(rule.content, 600),
+        mode: rule.mode,
+        trigger: rule.trigger,
+        strength: rule.strength,
+        subject_scope: rule.subject_scope,
+        counterparty_scope: rule.counterparty_scope ?? null,
+        ...(executionTiming ? { execution_timing: executionTiming } : {})
+      };
+    });
   return {
     product,
     opening,
