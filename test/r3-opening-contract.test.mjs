@@ -156,11 +156,22 @@ test('R3 Opening context and provider prompts require private premise discovery 
     ...content.generalNpcs.map(actor => ({ id: actor.id, name: actor.name }))
   ];
   assert.deepEqual(observerContext.canonical_actor_directory, expectedActorDirectory);
+  const expectedLocationDirectory = content.locations.map(({ location_id, name }) => ({ location_id, name }));
+  assert.deepEqual(observerContext.canonical_location_directory, expectedLocationDirectory);
+  assert.equal(observerContext.canonical_location_directory.length, new Set(observerContext.canonical_location_directory.map(location => location.location_id)).size);
+  assert.deepEqual(observerContext.canonical_location_directory.filter(({ location_id }) => ['brand_strategy_office', 'brand_strategy_meeting_room'].includes(location_id)), [
+    { location_id: 'brand_strategy_office', name: content.locations.find(location => location.location_id === 'brand_strategy_office').name },
+    { location_id: 'brand_strategy_meeting_room', name: content.locations.find(location => location.location_id === 'brand_strategy_meeting_room').name }
+  ]);
   assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, mind_monitor, choices, and warnings/i);
   assert.match(observerSystem, /canonical_actor_directory.*exact registered \{id,name\} pairs/i);
+  assert.match(observerSystem, /canonical_location_directory.*exact registered \{location_id,name\} pairs/i);
+  assert.match(observerSystem, /location\.location_id MUST come from canonical_location_directory/i);
   assert.match(observerSystem, /exact canonical actor IDs.*never actor names/i);
   assert.match(observerSystem, /exact contiguous quote must contain that actor's exact canonical name/i);
   assert.match(observerSystem, /If the current Story explicitly says.*enters, arrives at, moves to, or is now in/i);
+  assert.match(observerSystem, /this evidence overrides merely copying the previous location from current_context/i);
+  assert.match(observerSystem, /player literal action alone is intent\/input, not successful movement evidence/i);
   assert.match(observerSystem, /do not copy the previous location and do not return location_evidence/i);
   assert.match(observerSystem, /exact Story quote/i);
   assert.match(observerSystem, /exact four final numbered Story action strings/i);
