@@ -1,4 +1,4 @@
-export const R3_CORS_HEADERS = Object.freeze({ 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type' });
+export const R3_CORS_HEADERS = Object.freeze({ 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type, authorization' });
 
 export function json(data, status = 200) { return new Response(JSON.stringify({ ok: status < 400, data }), { status, headers: { ...R3_CORS_HEADERS, 'content-type': 'application/json; charset=utf-8' } }); }
 export function sse(name, data) { return `event: ${name}\ndata: ${JSON.stringify(data)}\n\n`; }

@@ -7,6 +7,7 @@ import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 
 const content = loadCanonicalCompanyR3Content();
+const GAME_ACCESS_SECRET = 'r3-test-secret';
 const profile = {
   name: 'R3 Feedback Player', department_id: content.departments[0].department_id, position_id: content.positions[0].position_id,
   age: 28, height_cm: 178, weight_kg: 72, penis_length_cm: 16,
@@ -15,7 +16,11 @@ const profile = {
 const choices = Object.freeze(['1. 주변을 차분히 살핀다.', '2. 가까운 동료에게 말을 건다.', '3. 현재 장면을 다시 확인한다.', '4. 원하는 행동을 직접 입력한다.']);
 
 async function request(worker, path, { method = 'GET', body } = {}) {
-  return worker.fetch(new Request(`https://r3.test${path}`, { method, headers: body ? { 'content-type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined }));
+  const gameId = path.match(/^\/api\/r3\/games\/([^/]+)/)?.[1];
+  const capability = gameId ? worker.gameCapabilities?.get(gameId) : null;
+  const headers = body ? { 'content-type': 'application/json' } : {};
+  if (capability) headers.authorization = `Bearer ${capability}`;
+  return worker.fetch(new Request(`https://r3.test${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined }));
 }
 
 async function events(response) {
@@ -25,7 +30,9 @@ async function events(response) {
 
 async function setupGame(worker) {
   const response = await request(worker, '/api/r3/games', { method: 'POST', body: { profile } });
-  return (await response.json()).data.game.game_id;
+  const payload = await response.json(); const gameId = payload.data.game.game_id;
+  worker.gameCapabilities ??= new Map(); worker.gameCapabilities.set(gameId, payload.data.game_capability);
+  return gameId;
 }
 
 function deterministicRevisionProvider(calls, { failFeedback = false } = {}) {
@@ -53,7 +60,7 @@ async function committedOrdinaryTurn(worker) {
 
 test('R3 feedback revises one logical turn from exact pre-turn state and is idempotent', async () => {
   const calls = { story: [], observe: [] }; const store = new InMemoryR3Store();
-  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content });
+  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content, gameAccessSecret: GAME_ACCESS_SECRET });
   const { gameId, literal } = await committedOrdinaryTurn(worker);
   const before = store.context(gameId); const prior = store.revisionHistory.get(`${gameId}:1:1`);
   const requestId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -81,7 +88,7 @@ test('R3 feedback revises one logical turn from exact pre-turn state and is idem
 
 test('R3 repeated feedback keeps the original pre-turn state boundary through revision 3', async () => {
   const calls = { story: [], observe: [] }; const store = new InMemoryR3Store();
-  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content });
+  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content, gameAccessSecret: GAME_ACCESS_SECRET });
   const { gameId, literal } = await committedOrdinaryTurn(worker);
   const original = store.revisionHistory.get(`${gameId}:1:1`);
   const first = await events(await request(worker, `/api/r3/games/${gameId}/feedback`, { method: 'POST', body: { revision_request_id: 'abababab-abab-4aba-8aba-abababababab', expected_turn: 1, expected_state_revision: 1, feedback_text: '첫 번째 수정' } }));
@@ -104,7 +111,7 @@ test('R3 repeated feedback keeps the original pre-turn state boundary through re
 
 test('R3 feedback rejects stale or later-sidecar fences before provider work', async () => {
   const calls = { story: [], observe: [] }; const store = new InMemoryR3Store();
-  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content });
+  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content, gameAccessSecret: GAME_ACCESS_SECRET });
   const { gameId } = await committedOrdinaryTurn(worker);
   store.applyCsa({ gameId, expectedRevision: 1, stateAfter: store.context(gameId).state.state, operations: [] });
   const failed = await events(await request(worker, `/api/r3/games/${gameId}/feedback`, { method: 'POST', body: { revision_request_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', expected_turn: 1, expected_state_revision: 1, feedback_text: '오래된 상태' } }));
@@ -114,7 +121,7 @@ test('R3 feedback rejects stale or later-sidecar fences before provider work', a
   assert.equal(store.context(gameId).turns.at(-1).revision, 1);
 
   const blockedStore = new InMemoryR3Store(); const blockedCalls = { story: [], observe: [] };
-  const blockedWorker = createR3Worker({ store: blockedStore, provider: deterministicRevisionProvider(blockedCalls), content });
+  const blockedWorker = createR3Worker({ store: blockedStore, provider: deterministicRevisionProvider(blockedCalls), content, gameAccessSecret: GAME_ACCESS_SECRET });
   const blocked = await committedOrdinaryTurn(blockedWorker);
   const nextJob = blockedStore.reserveTurn({ gameId: blocked.gameId, turnNumber: 2, actionId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', literalAction: '다음 행동' });
   const nextBlocked = await events(await request(blockedWorker, `/api/r3/games/${blocked.gameId}/feedback`, { method: 'POST', body: { revision_request_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', expected_turn: 1, expected_state_revision: 1, feedback_text: '다음 턴이 잠겼다.' } }));
@@ -128,7 +135,7 @@ test('R3 feedback rejects stale or later-sidecar fences before provider work', a
 
 test('R3 feedback Story failure keeps the existing projection and only fails the attempt', async () => {
   const calls = { story: [], observe: [] }; const store = new InMemoryR3Store();
-  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls, { failFeedback: true }), content });
+  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls, { failFeedback: true }), content, gameAccessSecret: GAME_ACCESS_SECRET });
   const { gameId } = await committedOrdinaryTurn(worker); const before = store.context(gameId);
   const result = await events(await request(worker, `/api/r3/games/${gameId}/feedback`, { method: 'POST', body: { revision_request_id: 'ffffffff-ffff-4fff-8fff-ffffffffffff', expected_turn: 1, expected_state_revision: 1, feedback_text: '실패해도 기존 결과를 유지한다.' } }));
   assert.equal(result.at(-1).data.status, 'failed');
@@ -144,7 +151,7 @@ test('R3 feedback commit fence failure keeps the existing projection and state',
   class FenceStore extends InMemoryR3Store {
     commitFeedbackRevision() { throw new Error('r3_feedback_revision_conflict'); }
   }
-  const store = new FenceStore(); const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content });
+  const store = new FenceStore(); const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content, gameAccessSecret: GAME_ACCESS_SECRET });
   const { gameId } = await committedOrdinaryTurn(worker); const before = store.context(gameId);
   const result = await events(await request(worker, `/api/r3/games/${gameId}/feedback`, { method: 'POST', body: { revision_request_id: '12121212-1212-4121-8121-121212121212', expected_turn: 1, expected_state_revision: 1, feedback_text: 'commit fence' } }));
   assert.equal(result.at(-1).data.status, 'failed');

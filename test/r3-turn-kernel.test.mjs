@@ -8,6 +8,7 @@ import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { R3_OBSERVER_STAGE_LEASE_MS, R3_STORY_STAGE_LEASE_MS } from '../runtime-r3/server/job-policy.js';
 
 const content = loadCanonicalCompanyR3Content();
+const GAME_ACCESS_SECRET = 'r3-test-secret';
 const profile = {
   name: 'R3 Player', department_id: content.departments[0].department_id, position_id: content.positions[0].position_id,
   age: 28, height_cm: 178, weight_kg: 72, penis_length_cm: 16,
@@ -15,7 +16,11 @@ const profile = {
 };
 
 async function request(worker, path, { method = 'GET', body } = {}) {
-  return worker.fetch(new Request(`https://r3.test${path}`, { method, headers: body ? { 'content-type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined }));
+  const gameId = path.match(/^\/api\/r3\/games\/([^/]+)/)?.[1];
+  const capability = gameId ? worker.gameCapabilities?.get(gameId) : null;
+  const headers = body ? { 'content-type': 'application/json' } : {};
+  if (capability) headers.authorization = `Bearer ${capability}`;
+  return worker.fetch(new Request(`https://r3.test${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined }));
 }
 
 async function events(response) {
@@ -27,12 +32,14 @@ async function setupGame(worker) {
   const response = await request(worker, '/api/r3/games', { method: 'POST', body: { profile } });
   const payload = await response.json();
   assert.equal(payload.ok, true);
-  return payload.data.game.game_id;
+  const gameId = payload.data.game.game_id;
+  worker.gameCapabilities ??= new Map(); worker.gameCapabilities.set(gameId, payload.data.game_capability);
+  return gameId;
 }
 
 test('one R3 turn streams Story, fences the job, reconnects, and atomically commits', async () => {
   const store = new InMemoryR3Store();
-  const worker = createR3Worker({ store, provider: createDeterministicR3Provider(), content });
+  const worker = createR3Worker({ store, provider: createDeterministicR3Provider(), content, gameAccessSecret: GAME_ACCESS_SECRET });
   const gameId = await setupGame(worker);
   const opening = await events(await request(worker, `/api/r3/games/${gameId}/opening`, { method: 'POST' }));
   assert.equal(opening.at(-1).data.status, 'committed');
@@ -61,7 +68,7 @@ test('one R3 turn streams Story, fences the job, reconnects, and atomically comm
 test('observer failure is fail-open and Story-authored choices survive', async () => {
   const base = createDeterministicR3Provider();
   const provider = { story: base.story, async observe() { throw new Error('observer_unavailable'); } };
-  const worker = createR3Worker({ store: new InMemoryR3Store(), provider, content });
+  const worker = createR3Worker({ store: new InMemoryR3Store(), provider, content, gameAccessSecret: GAME_ACCESS_SECRET });
   const gameId = await setupGame(worker);
   const opening = await events(await request(worker, `/api/r3/games/${gameId}/opening`, { method: 'POST' }));
   assert.equal(opening.at(-1).data.status, 'committed');
@@ -85,7 +92,7 @@ test('failed R3 turn is readback-only until one explicit retry reuses the row', 
     },
     observe: base.observe
   };
-  const store = new InMemoryR3Store(); const worker = createR3Worker({ store, provider, content }); const gameId = await setupGame(worker);
+  const store = new InMemoryR3Store(); const worker = createR3Worker({ store, provider, content, gameAccessSecret: GAME_ACCESS_SECRET }); const gameId = await setupGame(worker);
   assert.equal((await events(await request(worker, `/api/r3/games/${gameId}/opening`, { method: 'POST' }))).at(-1).data.status, 'committed');
   const firstAction = '첫 번째 시도는 실패로 남긴다.';
   const first = await events(await request(worker, `/api/r3/games/${gameId}/turn`, { method: 'POST', body: { action_id: 'failed-action', expected_turn: 1, literal_action: firstAction } }));

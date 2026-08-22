@@ -7,6 +7,7 @@ import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import fs from 'node:fs';
 
 const content = loadCanonicalCompanyR3Content();
+const GAME_ACCESS_SECRET = 'r3-test-secret';
 
 test('R3 CSA catalog exposes exactly the owner-locked nine templates with three per strength', () => {
   const catalog = createR3CsaCatalog(content.csaPresets);
@@ -35,7 +36,7 @@ test('R3 CSA entry point is an enabled donor-style control, not a display-only p
 });
 
 test('R3 CSA route applies a non-turn transaction behind an optimistic revision fence', async () => {
-  const worker = createR3Worker({ store: new InMemoryR3Store(), provider: { async *story() {}, async observe() { return {}; } }, content });
+  const worker = createR3Worker({ store: new InMemoryR3Store(), provider: { async *story() {}, async observe() { return {}; } }, content, gameAccessSecret: GAME_ACCESS_SECRET });
   const setupResponse = await worker.fetch(new Request('https://r3.test/api/r3/games', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profile: {
       name: 'CSA route player', department_id: content.departments[0].department_id, position_id: content.positions[0].position_id,
@@ -45,10 +46,11 @@ test('R3 CSA route applies a non-turn transaction behind an optimistic revision 
   }));
   const setupPayload = await setupResponse.json();
   const gameId = setupPayload.data.game.game_id;
-  const initial = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`));
+  const auth = { authorization: `Bearer ${setupPayload.data.game_capability}` };
+  const initial = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`, { headers: auth }));
   const initialPayload = await initial.json();
   const changed = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/csa`, {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
+    method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({
       expected_revision: initialPayload.data.state.revision,
       operations: [{ operation: 'activate', template_id: 'no_bra_under_work_clothes', subject_scope: 'female_employee' }]
     })
@@ -66,7 +68,7 @@ test('R3 Opening/CSA overlap is fenced without a second Story or Observer', asyn
   const store = new InMemoryR3Store();
   let gameId;
   const provider = { storyCalls: 0, observeCalls: 0, async *story({ opening = false }) { this.storyCalls += 1; if (opening) { const before = store.context(gameId); store.applyCsa({ gameId, expectedRevision: before.state.revision, stateAfter: applyR3Csa({ state: before.state.state, content, rawOperations: [{ operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' }] }), operations: [] }); } yield 'Opening'; }, async observe() { this.observeCalls += 1; return { choices: [], turn_summary: 'Opening' }; } };
-  const worker = createR3Worker({ store, provider, content });
+  const worker = createR3Worker({ store, provider, content, gameAccessSecret: GAME_ACCESS_SECRET });
   const setupResponse = await worker.fetch(new Request('https://r3.test/api/r3/games', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profile: {
       name: 'Opening race player', department_id: content.departments[0].department_id, position_id: content.positions[0].position_id,
@@ -74,12 +76,13 @@ test('R3 Opening/CSA overlap is fenced without a second Story or Observer', asyn
       body_type_id: content.bodyTypes[0].body_type_id, speech_style_id: content.speechStyles[0].speech_style_id
     } })
   }));
-  gameId = (await setupResponse.json()).data.game.game_id;
-  const opening = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/opening`, { method: 'POST' }));
+  const setupPayload = await setupResponse.json(); gameId = setupPayload.data.game.game_id;
+  const auth = { authorization: `Bearer ${setupPayload.data.game_capability}` };
+  const opening = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/opening`, { method: 'POST', headers: auth }));
   const openingText = await opening.text();
   assert.match(openingText, /"status":"failed"/);
   assert.match(openingText, /r3_opening_conflict/);
-  const final = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`));
+  const final = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`, { headers: auth }));
   const finalPayload = await final.json();
   assert.equal(finalPayload.data.turns.length, 0);
   assert.equal(finalPayload.data.state.revision, 1);
@@ -91,19 +94,20 @@ test('R3 Opening/CSA overlap is fenced without a second Story or Observer', asyn
 test('R3 normal Opening then CSA sequence preserves active rule into the next turn', async () => {
   const store = new InMemoryR3Store();
   const provider = { async *story({ opening = false }) { yield opening ? 'Opening' : 'Ordinary turn'; }, async observe() { return { choices: [], turn_summary: 'Summary' }; } };
-  const worker = createR3Worker({ store, provider, content });
+  const worker = createR3Worker({ store, provider, content, gameAccessSecret: GAME_ACCESS_SECRET });
   const profile = { name: 'Sequence player', department_id: content.departments[0].department_id, position_id: content.positions[0].position_id, age: 29, height_cm: 178, weight_kg: 72, penis_length_cm: 14, body_type_id: content.bodyTypes[0].body_type_id, speech_style_id: content.speechStyles[0].speech_style_id };
   const setupResponse = await worker.fetch(new Request('https://r3.test/api/r3/games', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profile }) }));
-  const gameId = (await setupResponse.json()).data.game.game_id;
-  const opening = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/opening`, { method: 'POST' }));
+  const setupPayload = await setupResponse.json(); const gameId = setupPayload.data.game.game_id;
+  const auth = { authorization: `Bearer ${setupPayload.data.game_capability}` };
+  const opening = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/opening`, { method: 'POST', headers: auth }));
   assert.match(await opening.text(), /"status":"committed"/);
-  const beforeCsa = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`));
+  const beforeCsa = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`, { headers: auth }));
   const beforeCsaPayload = await beforeCsa.json();
-  const csa = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/csa`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expected_revision: beforeCsaPayload.data.state.revision, operations: [{ operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' }] }) }));
+  const csa = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/csa`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ expected_revision: beforeCsaPayload.data.state.revision, operations: [{ operation: 'activate', template_id: 'work_nude', subject_scope: 'female_employee' }] }) }));
   const csaPayload = await csa.json();
-  const turn = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/turn`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expected_turn: 1, action_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', literal_action: '일상 업무를 계속한다.' }) }));
+  const turn = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/turn`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ expected_turn: 1, action_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', literal_action: '일상 업무를 계속한다.' }) }));
   assert.match(await turn.text(), /"status":"committed"/);
-  const final = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`));
+  const final = await worker.fetch(new Request(`https://r3.test/api/r3/games/${gameId}/context`, { headers: auth }));
   const finalPayload = await final.json();
   assert.equal(finalPayload.data.state.revision, csaPayload.data.state.revision + 1);
   assert.equal(finalPayload.data.state.state.csa_active.length, 1);

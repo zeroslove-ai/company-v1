@@ -10,6 +10,7 @@ import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 
 const content = loadCanonicalCompanyR3Content();
+const GAME_ACCESS_SECRET = 'r3-test-secret';
 const profile = {
   name: 'R3 Opening Player',
   department_id: content.departments[0].department_id,
@@ -48,9 +49,13 @@ function storyStream(text) {
 }
 
 async function request(worker, path, { method = 'GET', body } = {}) {
+  const gameId = path.match(/^\/api\/r3\/games\/([^/]+)/)?.[1];
+  const capability = gameId ? worker.gameCapabilities?.get(gameId) : null;
+  const headers = body ? { 'content-type': 'application/json' } : {};
+  if (capability) headers.authorization = `Bearer ${capability}`;
   return worker.fetch(new Request(`https://r3.test${path}`, {
     method,
-    headers: body ? { 'content-type': 'application/json' } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined
   }));
 }
@@ -238,10 +243,11 @@ test('R3 valid Story remains committed when Observer choice projection is unavai
     async *story() { storyCalls += 1; yield storyText; },
     async observe() { observerCalls += 1; return { choices: [] }; }
   };
-  const worker = createR3Worker({ store: new InMemoryR3Store(), provider, content });
+  const worker = createR3Worker({ store: new InMemoryR3Store(), provider, content, gameAccessSecret: GAME_ACCESS_SECRET });
   const setup = await request(worker, '/api/r3/games', { method: 'POST', body: { profile } });
   const setupPayload = await setup.json();
   const gameId = setupPayload.data.game.game_id;
+  worker.gameCapabilities = new Map([[gameId, setupPayload.data.game_capability]]);
   const opening = await events(await request(worker, `/api/r3/games/${gameId}/opening`, { method: 'POST' }));
   const terminal = opening.at(-1).data;
   assert.equal(terminal.status, 'committed');

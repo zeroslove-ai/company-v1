@@ -91,7 +91,8 @@ test('R3 deployment boundary resolves the reviewed entrypoint and isolated confi
     LLM_API_URL: 'https://llm.test',
     LLM_API_KEY: 'llm-key',
     STORY_MODEL: 'story-test',
-    EXTRACT_MODEL: 'extract-test'
+    EXTRACT_MODEL: 'extract-test',
+    R3_GAME_ACCESS_SECRET: 'r3-test-secret'
   });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('x-r3-request-id'), 'r3-test-correlation');

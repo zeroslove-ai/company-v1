@@ -1,20 +1,37 @@
-async function request(path, options = {}) {
-  const response = await fetch(path, { headers: { 'content-type': 'application/json', ...(options.headers ?? {}) }, ...options });
-  const payload = await response.json();
-  if (!response.ok || payload.ok === false) throw new Error(payload.data?.code ?? payload.data?.message ?? 'r3_request_failed');
-  return payload.data;
+function browserStorage() {
+  try { return globalThis.localStorage ?? null; } catch { return null; }
 }
 
-export function createR3Client(base = '/api/r3') {
+export function createR3Client(base = '/api/r3', { storage = browserStorage(), fetchImpl = globalThis.fetch } = {}) {
   const root = base.replace(/\/$/, '');
+  const capabilityKey = gameId => `company-r3:game-capability:${gameId}`;
+  const saveCapability = (gameId, capability) => { if (storage && gameId && capability) storage.setItem(capabilityKey(gameId), capability); };
+  const readCapability = gameId => storage?.getItem(capabilityKey(gameId)) ?? null;
+  const authHeaders = (gameId, headers = {}) => {
+    const capability = readCapability(gameId);
+    if (!capability) throw new Error('r3_game_access_required');
+    return { ...headers, authorization: `Bearer ${capability}` };
+  };
+  async function request(path, options = {}) {
+    const response = await fetchImpl(path, { headers: { 'content-type': 'application/json', ...(options.headers ?? {}) }, ...options });
+    const payload = await response.json();
+    if (!response.ok || payload.ok === false) throw new Error(payload.data?.code ?? payload.data?.message ?? 'r3_request_failed');
+    return payload.data;
+  }
   return {
     catalogs() { return request(`${root}/catalogs`); },
-    setup(profile) { return request(`${root}/games`, { method: 'POST', body: JSON.stringify({ profile }) }); },
-    context(gameId) { return request(`${root}/games/${encodeURIComponent(gameId)}/context`); },
-    opening(gameId) { return fetch(`${root}/games/${encodeURIComponent(gameId)}/opening`, { method: 'POST' }); },
-    turn(gameId, payload) { return fetch(`${root}/games/${encodeURIComponent(gameId)}/turn`, { method: 'POST', body: JSON.stringify(payload) }); },
-    feedback(gameId, payload) { return fetch(`${root}/games/${encodeURIComponent(gameId)}/feedback`, { method: 'POST', body: JSON.stringify(payload) }); },
-    csa(gameId, payload) { return request(`${root}/games/${encodeURIComponent(gameId)}/csa`, { method: 'POST', body: JSON.stringify(payload) }); }
+    async setup(profile) {
+      const created = await request(`${root}/games`, { method: 'POST', body: JSON.stringify({ profile }) });
+      const gameId = created?.game?.game_id ?? created?.game_id;
+      if (!created?.game_capability) throw new Error('r3_game_capability_missing');
+      saveCapability(gameId, created.game_capability);
+      return created;
+    },
+    context(gameId) { return request(`${root}/games/${encodeURIComponent(gameId)}/context`, { headers: authHeaders(gameId) }); },
+    opening(gameId) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/opening`, { method: 'POST', headers: authHeaders(gameId) }); },
+    turn(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/turn`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); },
+    feedback(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/feedback`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); },
+    csa(gameId, payload) { return request(`${root}/games/${encodeURIComponent(gameId)}/csa`, { method: 'POST', headers: authHeaders(gameId), body: JSON.stringify(payload) }); }
   };
 }
 

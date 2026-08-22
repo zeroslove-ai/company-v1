@@ -6,12 +6,13 @@ import { reduceObservation } from '../domain/reducer.js';
 import { validateProfile } from '../domain/profile.js';
 import { R3_MAX_PROGRESS_WRITES, R3_PROGRESS_INTERVAL_CHARS } from './job-policy.js';
 import { body, errorResponse, json, R3_CORS_HEADERS, sse } from './http.js';
+import { bearerCapability, issueGameCapability, requireGameAccessSecret, verifyGameCapability } from './game-capability.js';
 import { R3_ATTEMPT_FENCE_CONFLICT } from './store.js';
 import { createR3Provider } from './provider.js';
 import { SupabaseR3Store } from './supabase-store.js';
 import { loadWorkerCanonicalContent } from '../domain/worker-content.js';
 
-export function createR3Worker({ store, provider, content } = {}) {
+export function createR3Worker({ store, provider, content, gameAccessSecret } = {}) {
   if (!store || !provider || !content) throw new Error('r3_worker_requires_store_provider_content');
   return {
     store,
@@ -21,10 +22,11 @@ export function createR3Worker({ store, provider, content } = {}) {
         const url = new URL(request.url);
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: R3_CORS_HEADERS });
         if (request.method === 'GET' && url.pathname === '/api/r3/catalogs') return json(catalogResponse(content));
-        if (request.method === 'POST' && url.pathname === '/api/r3/games') return setup(store, content, await body(request));
+        if (request.method === 'POST' && url.pathname === '/api/r3/games') return await setup(store, content, await body(request), gameAccessSecret);
         const match = url.pathname.match(/^\/api\/r3\/games\/([^/]+)(?:\/(context|opening|turn|csa|feedback))?$/);
         if (!match) return errorResponse(new Error('r3_not_found'));
         const gameId = match[1]; const action = match[2] ?? 'context';
+        if (!(await verifyGameCapability(gameId, bearerCapability(request), gameAccessSecret))) return accessDeniedResponse();
         if (request.method === 'GET' && action === 'context') return json(await store.context(gameId));
         if (request.method === 'POST' && action === 'opening') return openingResponse(store, provider, content, gameId);
         if (request.method === 'POST' && action === 'turn') return turnResponse(request, store, provider, content, gameId);
@@ -39,14 +41,17 @@ export function createR3Worker({ store, provider, content } = {}) {
 export function createProductionR3Worker({ env, fetchImpl = fetch, content = loadWorkerCanonicalContent(), store, provider } = {}) {
   const resolvedStore = store ?? new SupabaseR3Store({ env, fetchImpl });
   const resolvedProvider = provider ?? createR3Provider({ env, fetchImpl });
-  return createR3Worker({ store: resolvedStore, provider: resolvedProvider, content });
+  return createR3Worker({ store: resolvedStore, provider: resolvedProvider, content, gameAccessSecret: env?.R3_GAME_ACCESS_SECRET });
 }
 
-async function setup(store, content, input) {
+async function setup(store, content, input, gameAccessSecret) {
+  requireGameAccessSecret(gameAccessSecret);
   const result = validateProfile(input?.profile ?? input?.player, content);
   if (!result.valid) return json({ code: 'r3_profile_invalid', errors: result.errors }, 400);
   const locationId = chooseOpeningLocation(content, result.profile);
-  return json(await store.createGame({ profile: result.profile, locationId, presentActorIds: openingActorIds(content, locationId) }));
+  const created = await store.createGame({ profile: result.profile, locationId, presentActorIds: openingActorIds(content, locationId) });
+  const gameId = created?.game?.game_id ?? created?.game_id;
+  return json({ ...created, game_capability: await issueGameCapability(gameId, gameAccessSecret) });
 }
 
 function chooseOpeningLocation(content, profile) {
@@ -57,6 +62,10 @@ function chooseOpeningLocation(content, profile) {
 function catalogResponse(content) {
   const actorIds = [...registeredActorIds(content)];
   return { departments: content.departments ?? [], positions: content.positions ?? [], body_types: content.bodyTypes ?? [], speech_styles: content.speechStyles ?? [], locations: content.locations ?? [], actors: canonicalActors(content, actorIds), csa_presets: createR3CsaCatalog(content.csaPresets) };
+}
+
+function accessDeniedResponse() {
+  return json({ code: 'r3_game_access_denied', message: 'r3_game_access_denied' }, 401);
 }
 
 async function csaResponse(store, content, gameId, input) {
