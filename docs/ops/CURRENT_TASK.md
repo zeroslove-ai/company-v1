@@ -2,8 +2,8 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: WORK_NUDE CSA STATE-CONTINUITY ROOT CAUSE -> NARROW OPENING/CSA CONCURRENCY CLOSURE IF PROVEN -> ONE FRESH REPLAY -> REMAINING 7 CSA -> FULL OBJECTIVE LIVE-QA MATRIX
-Updated: 2026-08-22 18:21 KST
+Mode: GENERIC ON_PLAYER_REQUEST STORY EXECUTION CONTRACT -> ONE MASTURBATE REPLAY -> REMAINING 3 CSA -> FULL OBJECTIVE LIVE-QA MATRIX
+Updated: 2026-08-22 18:53 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops branch, recovery branch, or competing execution authority.
@@ -16,326 +16,287 @@ Continue the same Task ID under:
 - `docs/redesign/00_*` through `11_*`;
 - `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md`;
 - `docs/ops/LIVE_QA_PRODUCT_REVIEW_2026-08-22.md`;
-- owner UX/CSA directives already recorded in Issue #68;
-- operator review `5379531661`;
+- Issue #68 owner UX/CSA directives;
+- operator review `5379649519`;
 - this exact CURRENT_TASK blob once registered by `CURRENT_TASK_READY`.
 
 Architecture remains:
 `Story 1 call -> Observer 1 call -> small reducer -> atomic commit`.
 
-Do not hand back to owner before the objective matrix is complete. `OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remain forbidden until all objective QA is green.
+`OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remain forbidden until the full objective QA matrix is green.
 
-## 1. Accepted/frozen evidence from previous execution
+## 1. Accepted/frozen evidence
 
 Reviewed terminal:
-- terminal comment `5379509195`;
-- task blob `45d8b0ef703ef610a812524717d22c5b105b5679`;
-- execution start main `594749fba2b946f6b2043195aa3de6ad3b0acde5`;
-- final/current main `58380f864c17e47e603a665c0779b624bacf201b`;
-- operator review `5379531661`.
+- terminal comment `5379630320`;
+- previous task blob `e2f9ad5464ea41742c0447d269e4ad41f2fb09c8`;
+- execution start main `b3c267613b77872b93697afe86357b4a18e5e4d4`;
+- accepted/current executable main `2f30b62d95f85acf93323bd0eaac7a3ede8089cf`;
+- operator review `5379649519`.
 
-Accepted source/live identities:
-- current main/source baseline: `58380f864c17e47e603a665c0779b624bacf201b`;
-- TEST API: `game-proxy-company-r3` version `bad0bbeb-574a-4d82-8875-3ade37df3de8`;
-- TEST frontend: `gamebuilder-company-r3` version `c297425c-3fa8-4025-a514-5ac908606c36`.
+Current TEST identities:
+- API `game-proxy-company-r3` version `aae73c35-3dd9-407a-86fe-63edea2bac08`;
+- frontend `gamebuilder-company-r3` version `c297425c-3fa8-4025-a514-5ac908606c36`.
 
-### 1.1 Generic turn-transport reconciliation — GREEN and frozen
+### 1.1 Opening/CSA stale-snapshot race — CLOSED and frozen
 
-Source `58380f8` is accepted:
-- changed only `frontend-r3/app.js`, `frontend-r3/turn-transport.js`, `test/r3-turn-transport.test.mjs` from prior registration;
-- focused 11/11 and full 473/473 reported PASS;
-- syntax / diff checks PASS;
-- only TEST frontend deployed;
-- no automatic gameplay replay was introduced.
+Accepted root cause:
+`OPENING_CSA_STALE_SNAPSHOT_OVERWRITE_PROVEN`.
 
-Do not reopen this source unless new deterministic evidence directly implicates it.
+Preserved evidence fixture `7138198c-510d-4fb4-879c-fdac2f63465c` proved:
+- CSA system event committed at `2026-08-22T09:15:36.118Z`;
+- Opening turn 0 committed later at `2026-08-22T09:15:46.432668Z`;
+- stale Opening `state_after` contained empty CSA/clothing and overwrote the newer CSA mutation.
 
-### 1.2 Live UX phases already green — preserve, do not rerun for pass-seeking
+Accepted source `2f30b62d...` adds only the generic Opening expected-revision fence plus focused tests and one additive TEST migration.
 
-Freeze as accepted coverage:
-1. B3 movement/reload continuity on `edc5704b-aff7-44d3-92f2-b5882f217e13`.
-2. B4/B5/B6 no-panties clothing campaign on the same fixture.
-3. no-bra campaign `2544b01f-c911-4e1d-afa2-72abfee2ed51`.
-4. two-personality request/contact campaign `2c4ea2ce-e4cf-4401-af11-011bb43c5cca`.
+Accepted TEST migration:
+`20260822000200_company_r3_opening_revision_fence.sql` — already applied exactly once. Do not reapply or edit historical migrations.
 
-Retain the observed `choices_projection_dropped`, `choices_observer_mismatch`, and bounded presence warnings for later matrix triage; do not silently alter choice architecture here.
+Validation accepted:
+- focused 29/29 PASS;
+- full 475/475 PASS;
+- syntax and `git diff --check` PASS.
+
+Do not reopen this concurrency boundary without new deterministic evidence.
+
+### 1.2 Accepted CSA campaigns — GREEN and frozen
+
+Do not rerun for pass seeking:
+1. `no_panties_under_work_clothes` — accepted earlier.
+2. `no_bra_under_work_clothes` — accepted earlier.
+3. `target_places_requester_hand_on_waist_or_thigh` — two-personality request/contact acceptance complete.
+4. `work_nude` fresh replay `e7f30733-b45c-40b1-9b71-40e5c2bd905e` — state continuity + Story premise + remove/post-remove GREEN.
+5. `work_in_underwear_only` fresh replay `3d8fcd49-3f8a-42ab-861f-541a950d0bdc` — same gates GREEN.
+
+Generic frontend transport reconciliation from source `58380f8...` also remains frozen GREEN.
 
 ## 2. Current decisive blocker
 
-Preserved disposable evidence fixture:
-`7138198c-510d-4fb4-879c-fdac2f63465c`
+Disposable evidence fixture:
+`7e6e645f-9678-4d26-a079-ed19153706b0`.
 
-Accepted facts:
-- `work_nude` / `회사 여성 직원은 근무 중 모든 옷을 벗어 나체 상태로 지내야 한다.` was applied once through the real UI;
-- revision `0 -> 1`; committed_turn remained `0`;
-- active `r3_csa_1` was present immediately after apply;
-- scoped finite clothing slots were all `removed`;
-- exactly one relevant UI turn was submitted:
-  `서원희 차장에게 여성 직원 근무 중 복장 규정이 어디까지 적용되는지 묻는다.`
-- one POST, action_id `f7702763-7ffa-4cfb-8ae2-0d6a886361b9`, expected_turn `1`, HTTP 200 event-stream, no loadingFailed;
-- Turn 1 committed once: revision `2`, committed_turn `1`;
-- Story answered with ordinary formal/semi-formal dress-code guidance and did not establish the active all-clothing-removed premise;
-- post-turn canonical readback had `csa_active=[]`, `active_rules=[]`, `csa_rules={}`, `clothing={}` with no remove operation.
+Facts:
+- applied `masturbate_for_recipient` once through the real UI;
+- revision became 1 while committed_turn remained 0;
+- active `r3_csa_1` read back correctly;
+- submitted exactly once through UI the direct eligible request recorded in terminal evidence;
+- one turn committed once;
+- canonical state continuity PASS at revision 2 / committed_turn 1; active rule remained present;
+- Story nevertheless rejected the request as inappropriate and diverted to boundary-setting;
+- no retry, second sample, removal, provider tuning, or pass-seeking occurred after failure.
 
 Classification:
-`BLOCKED_R3_WORK_NUDE_NORMAL_TURN_DROPS_ACTIVE_CSA_STATE_AND_IGNORES_PREMISE`
+`BLOCKED_R3_CSA_STORY_RULE_IGNORED_WITH_STATE_PRESERVED`.
 
-State continuity is the first blocker. Do NOT tune Story/provider/model/config to address the narrative symptom while the active rule disappears from canonical state.
+This is now a Story contract issue, not a persistence issue.
 
-## 3. Static source fact to test, not yet a live root-cause conclusion
+## 3. Proven source contract gap
 
-Current source shows:
-- `reduceObservation()` starts from a structured clone of the supplied current state and only applies bounded observation deltas; it does not intentionally clear CSA top-level keys.
-- `processOpening()` currently holds an early `before` snapshot across Story + Observer generation and reduces Opening against that snapshot.
-- source migration `20260821000100_company_r3_milestone0.sql` defines `company_r3_create_opening(...)` without an expected-revision argument and updates `company_r3_state.state = p_state_after`.
+Current `content/csa_presets.json` defines `masturbate_for_recipient` as:
+- category `sexual_action`;
+- mode `on_player_request`;
+- content: when the counterparty requests it, the scoped employee must perform the stated behavior;
+- execution trigger kind `counterparty_request`;
+- target required.
 
-Therefore a concrete candidate is an Opening/CSA race:
-`Opening begins from pre-CSA state -> CSA commits while Opening is still generating -> late Opening commit writes stale pre-CSA state -> first normal turn no longer sees active rule`.
+Current `runtime-r3/domain/memory.js` already forwards active rule:
+`content`, `mode`, `trigger`, `strength`, `subject_scope`, `counterparty_scope` into Story context.
 
-This is a hypothesis until the preserved fixture timeline and deployed function definitions prove it. Do not patch from assumption alone.
+Current `runtime-r3/server/provider.js` correctly says active rules are authoritative current-world institutional facts and must not manufacture affection/comfort/consent/desire/romance/relationship. However it does not explicitly close the execution semantics for `mode=on_player_request` / request-triggered rules: when the literal eligible request itself satisfies the stated trigger, the rule becomes applicable now and the required behavior must begin in that Story turn.
 
-## 4. PHASE A — read-only root-cause classification of preserved work-nude fixture
+The live failure shows NPC discomfort/boundary reaction can currently be misused as a veto on rule applicability.
 
-Before any source/DB/deploy mutation, inspect read-only:
+## 4. PHASE A — narrow generic Story-contract correction
 
-### A1. Exact live timeline
-For `7138198c-510d-4fb4-879c-fdac2f63465c`, capture exact timestamps and payloads for:
-- game creation if available;
-- Turn 0 `committed_at`, revision, `state_after` CSA/clothing fields;
-- `company_r3_system_events` CSA transaction `created_at` and operation payload;
-- `company_r3_state.updated_at`, revision, committed_turn and current state;
-- Turn 1 `committed_at`, literal, `state_after`, observer raw/applied, warnings;
-- Turn 1 job `created_at` / `updated_at` / attempt / stage / status;
-- any other event that can mutate R3 state in that interval.
+Change only the smallest generic Story system-prompt boundary necessary.
 
-Do not write or replay anything in this fixture.
+Required generic law:
+- every active rule remains authoritative according to its exact content and exact human scope;
+- for an active rule whose own `mode`/`trigger` says it executes on an eligible counterparty request, when the current literal player action is that direct eligible request, the trigger is satisfied in the current turn;
+- the behavior required by the rule must begin in that same Story turn; Story must not silently refuse, delay to a future meeting, substitute another action, or treat ordinary workplace/social norms as overriding the active institutional rule;
+- NPC personality and emotion remain free: reluctance, embarrassment, anger, protest, hesitation in tone, surprise, dislike, or discomfort may be narrated when consistent with the character;
+- those feelings are not a veto on the institutional rule's stated execution;
+- rule execution alone must NOT create personal affection, comfort, consent, desire, romance, obedience-as-personality, trust, relationship, or player sexual state beyond what the rule itself explicitly states.
 
-### A2. Exact deployed persistence contract
-Read the actual TEST definitions/signatures for:
-- `company_r3_create_opening`;
-- `company_r3_apply_csa`;
-- `company_r3_commit_turn`.
+This correction must be rule-generic.
 
-Compare them with current source. Do not assume the deployed DB equals migration source.
+Forbidden:
+- no `template_id === ...` branch;
+- no sexual-keyword detector/classifier;
+- no semantic router/gate;
+- no NER/fuzzy matching;
+- no consent DSL/physical ontology;
+- no second Story/choice LLM;
+- no hidden retry/regeneration;
+- no provider/model/temperature/token/timeout/config change;
+- no content-preset rewrite;
+- no Observer/reducer/DB/state-schema change;
+- no frontend change unless an independently proven dependency requires it.
 
-### A3. Mandatory root-cause classification heartbeat
-Post one `PROGRESS_HEARTBEAT` with exactly one primary classification:
-- `OPENING_CSA_STALE_SNAPSHOT_OVERWRITE_PROVEN`
-- `OPENING_CSA_OVERLAP_NOT_PROVEN`
-- `OTHER_STATE_CONTINUITY_ROOT_CAUSE_PROVEN`
-- `INSUFFICIENT_EVIDENCE_FOR_ROOT_CAUSE`
+## 5. Required source tests
 
-Include the exact timestamp ordering and the smallest source/DB path that explains the loss.
+Add focused regressions proving at minimum:
 
-If evidence proves a different deterministic root cause, follow that evidence and keep the fix bounded to state continuity.
+1. Generic active-rule contract contains an explicit request-trigger execution rule for `mode=on_player_request` / request-triggered active rules.
+2. The contract is template-agnostic and does not name `masturbate_for_recipient` or other specific CSA IDs.
+3. A direct eligible request cannot be converted by Story guidance into refusal/delay/substitution when the active rule itself requires execution.
+4. NPC feeling/personality separation remains explicit: compliance does not imply affection/comfort/consent/desire/romance/relationship/trust.
+5. Continuous-rule wording and existing work_nude/work_in_underwear behavior remain structurally intact.
+6. Literal player action, canonical actor/location, exact-four Story choice law remain intact.
 
-If evidence is genuinely insufficient, build a deterministic source-level reproduction of the suspected concurrency boundary before editing production logic. Do not use repeated live sampling to discover the race.
-
-## 5. PHASE B — minimal generic state-continuity correction, only after proof
-
-Goal invariant:
-**A committed CSA mutation must not be erased by an Opening or ordinary Story turn unless an explicit CSA remove operation says so.**
-
-The correction must also preserve:
-- exactly one Story call for Opening;
-- exactly one Story call per normal turn;
-- exactly one Observer call per Story;
-- no Story regeneration/retry to solve state conflicts;
-- no template-specific `work_nude` branch;
-- no semantic classifier/gate/NER/fuzzy matching;
-- no provider/model/API/temp/token/timeout change.
-
-If Opening/CSA concurrency is proven, close the concurrency structurally. Requirements:
-- do not rely on frontend timing alone;
-- a CSA operation against an unfinished/stale Opening snapshot must either be prevented atomically or reconciled without losing either committed state domain;
-- a late Opening commit must not overwrite a CSA mutation that committed after the Opening's original snapshot;
-- if a state CAS/recomposition retry is necessary, it may retry only the local state composition/DB commit from already-produced normalized Opening evidence; it must never call Story or Observer again;
-- frontend may additionally disable CSA until canonical Opening is committed if useful, but UI gating alone is not sufficient server integrity proof.
-
-DB change policy:
-- at most one new additive migration source is allowed if an atomic DB contract change is actually necessary;
-- historical migrations are immutable;
-- apply only to TEST after source/tests are green;
-- record exact applied migration and verify function ACL/signatures;
-- Production is forbidden.
-
-## 6. Required deterministic regressions before live replay
-
-Add focused tests that prove at minimum:
-
-1. **Normal sequence**
-   Setup -> Opening commit -> CSA apply -> normal turn:
-   - active rule survives;
-   - CSA rule metadata survives;
-   - finite clothing survives except explicit Observer clothing deltas;
-   - normal turn cannot clear CSA state by omission.
-
-2. **Opening/CSA overlap** if this is the proven cause
-   Delay Opening completion deterministically and attempt CSA during the overlap.
-   Acceptance:
-   - no lost CSA state;
-   - no stale Opening overwrite;
-   - no second Story/Observer call;
-   - no hidden gameplay replay;
-   - final canonical Turn 0/current state are coherent.
-
-3. **Explicit removal remains authoritative**
-   A real remove still clears active rule enforcement without requiring rollback of already-materialized clothing facts.
-
-4. **Unrelated state preservation**
-   scene, time, profile, MM/choices persistence surfaces do not regress.
-
-Validation:
+Validation before deploy:
 - relevant focused tests;
 - full `npm test`;
-- `node --check` on every changed JS/MJS;
+- `node --check` for changed JS/MJS;
 - `git diff --check`;
-- inspect changed SQL if any;
-- reread Issue #68 immediately before landing.
+- compare changed paths and confirm no unrelated runtime/config/migration/frontend change.
 
-Land only on `main`; no new branch/PR.
+Land source only on `main`; no branch/PR.
 
-## 7. PHASE C — TEST rollout only for changed surfaces
+## 6. PHASE B — TEST rollout
 
-After source validation:
-- if API/runtime changed, deploy TEST API once and record exact Worker Version ID;
-- if frontend changed, deploy TEST frontend once and record exact Worker Version ID;
-- if one migration was required, apply it to TEST once and verify exact function definitions/ACLs;
-- do not redeploy an unchanged surface;
-- do not change provider/model/config/timeouts;
-- do not access Production.
+After tests:
+- deploy TEST API exactly once only if provider/source changed;
+- record exact Worker Version ID;
+- do not redeploy frontend if unchanged;
+- do not apply any new migration;
+- `/api/r3/catalogs` must return HTTP 200 before live replay;
+- no Production access.
 
-Smoke before semantic replay:
-- `/api/r3/catalogs` healthy;
-- fresh browser Setup + Opening healthy;
-- no duplicate Opening/turn jobs;
-- no transport regression.
+## 7. PHASE C — exactly one fresh masturbate_for_recipient replay
 
-## 8. PHASE D — exactly one fresh work-nude replay
+Do not reuse `7e6e645f...` and do not resubmit its action.
 
-Do not reuse `7138198c...`.
+Use ONE fresh disposable current-R3 TEST game.
 
-Use ONE new disposable current-R3 TEST game.
+1. Setup + canonical Opening once.
+2. Ensure Opening is committed before CSA apply.
+3. Apply `masturbate_for_recipient` once through the real CSA UI with the same eligible scope pattern used by the failed fixture.
+4. Prove revision increases while committed_turn does not; active rule readback must include exact content/mode/trigger/scope.
+5. Submit exactly one direct eligible request through the real gameplay UI. Keep it semantically equivalent to the failed request and do not weaken it to make the model pass.
+6. Capture exact outbound literal/action_id, request/response, SSE Story, Story timing, Observer raw/applied, state_after, canonical context, choices/MM/location/presence/warnings.
 
-1. Complete Setup + canonical Opening.
-2. Prove Opening is terminal/committed before CSA apply unless the fixed contract explicitly supports safe overlap.
-3. Apply `work_nude` once through real CSA UI.
-4. Prove revision increases while gameplay turn does not; active rule + all four removed clothing slots read back.
-5. Submit exactly once:
-   `서원희 차장에게 여성 직원 근무 중 복장 규정이 어디까지 적용되는지 묻는다.`
-6. Capture network/SSE, exact literal, Story, Observer raw/applied, state_after, canonical readback, choices/MM/location/presence/timings.
+### C1. State continuity gate
+Must remain GREEN:
+- same active rule survives the committed turn;
+- no implicit remove;
+- revision/committed_turn coherent.
 
-### D1. State continuity gate
-PASS only if after the committed turn:
-- same active CSA rule remains;
-- `active_rules`, `csa_active`, `csa_rules` remain coherent;
-- finite clothing state remains coherent;
-- no implicit remove occurred.
+If continuity fails:
+STOP `BLOCKED_R3_CSA_STATE_CONTINUITY_REGRESSION_AFTER_TRIGGER_PROMPT_CLOSURE`.
+Do not tune Story further in the same task.
 
-If this fails again:
-STOP `BLOCKED_R3_CSA_STATE_CONTINUITY_AFTER_CONCURRENCY_CLOSURE` with exact state/timeline. No Story tuning and no second replay.
+### C2. Story execution gate
+PASS only if:
+- the requested behavior required by the active rule visibly begins in this same Story turn;
+- Story does not convert it into refusal, delay, substitution, a future discussion, or ordinary-policy veto;
+- exact actor/request semantics are preserved;
+- NPC emotional tone/personality may remain negative/guarded/etc.;
+- no affection/comfort/consent/desire/romance/trust/relationship is manufactured from rule activation/compliance alone.
 
-### D2. Story premise gate — only after D1 passes
-Judge the direct policy-domain Story honestly.
+If a valid committed sample still refuses/delays/substitutes:
+STOP `BLOCKED_R3_GENERIC_ON_PLAYER_REQUEST_STORY_EXECUTION_AFTER_PROMPT_CLOSURE`.
+Capture exact active_rules payload + raw Story. No second prompt edit and no second sample in this task.
 
-PASS:
-- Story is consistent with the active `work_nude` institutional premise and scope;
-- it behaves as an already-current world/company fact rather than system/hypnosis exposition;
-- NPC personality remains individual;
-- no affection/comfort/consent/desire/romance/obedience/trust/relationship is manufactured;
-- literal actor/target/topic is preserved.
-
-If state persists but this valid direct-policy Story still materially denies/ignores the rule:
-STOP `BLOCKED_R3_WORK_NUDE_STORY_PREMISE_WITH_STATE_PRESERVED`.
-Capture exact active_rules Story input + raw Story. Do NOT patch prompt/provider in the same execution and do not sample again.
-
-If both gates pass:
-- remove the rule once through UI;
-- prove revision rises while gameplay turn does not;
-- play one ordinary follow-up turn;
-- prove removed rule is no longer enforced while historical/material facts are not time-rewound.
+If PASS:
+- remove the same rule once via UI;
+- revision increases while gameplay turn remains unchanged;
+- play one different ordinary follow-up turn;
+- prove active rule absent and Story returns to ordinary behavior without time-rewinding historical/material facts.
 
 Then continue automatically.
 
-## 9. PHASE E — remaining objective matrix
+## 8. PHASE D — remaining three canonical CSA campaigns
 
-Continue same Task ID without owner handoff.
+After `masturbate_for_recipient` is accepted, independently cover:
+1. `vaginal_sex_with_recipient`;
+2. `player_request_executes_immediately`;
+3. `continue_until_recipient_orgasm`.
 
-### E1. Remaining seven canonical CSA campaigns
-The already accepted no-panties, no-bra, contact/request campaigns stay frozen. Cover each remaining canonical template independently, one active rule per disposable fixture where practical.
+One active rule per disposable fixture where practical.
 
 For each:
-`apply -> revision up / turn same -> readback -> relevant natural scene -> Story behavior -> Observer/state/MM/choices -> ordinary interleave if useful -> remove -> revision up / turn same -> post-remove Story/readback`.
+`apply -> revision up/turn same -> exact readback -> one materially relevant natural Story turn -> Observer/state/MM/choices -> optional ordinary interleave if needed -> remove -> revision up/turn same -> post-remove Story/readback`.
 
-Never infer affection/consent/romance/etc from rule activation alone.
+For request-triggered rules, use the generic trigger contract above. Do not add rule-specific prompt branches from any failure.
 
-### E2. Four canonical locations
-Fresh fixture. Prove four distinct registered canonical locations full chain:
-`literal -> Story exact destination -> observer_raw -> observer_applied -> state_after -> next Story/context/map`.
+Stop on the first deterministic failure; do not sample until pass.
+
+## 9. PHASE E — remaining objective matrix
+
+Continue under the same Task ID after all 9 canonical CSA templates are objectively green.
+
+### E1. Four canonical locations
+Fresh fixture. Prove four distinct registered locations full chain:
+`literal -> Story exact canonical destination -> observer_raw -> observer_applied -> state_after -> next Story/context/map`.
 No fuzzy/generic destination upgrades.
 
-### E3. Presence / scene_note / player agency
+### E2. Presence / scene_note / agency
 Prove:
-- exact canonical actor evidence;
-- player movement does not fabricate NPC enter/exit;
-- relevant entrant can receive MM;
+- exact canonical actor-name evidence;
+- player movement cannot fabricate NPC enter/exit;
+- grounded entrant may receive MM;
 - no unrelated/off-scene actors;
-- scene_note is a bounded current snapshot and stale ended actions/entities disappear.
+- bounded current scene_note with stale ended entities/actions removed.
 
-Agency probes include:
+Agency probes:
 - 한리브/lunch must not become 김제나/work;
-- `혼자 있고 싶다` must be respected;
+- `혼자 있고 싶다` respected;
 - `허리를 만진다` must not become touching a table edge.
 
-No semantic hard gate/classifier.
+No generic semantic validator/gate.
 
-### E4. Human-like campaigns
+### E3. Human-like campaigns
 Separate fresh fixtures:
-- primary clean ordinary play: 30+ turns;
-- materially different style: 15+ turns;
-- long-memory: 50+ turns.
+- ordinary play 30+ turns;
+- materially different style 15+ turns;
+- long-memory 50+ turns.
 
-Do not use one CSA-mutated fixture to certify ordinary play.
+Do not certify ordinary play from a heavily CSA-mutated game.
 
-### E5. Choices / latency / retained surfaces
+### E4. Choices / latency / retained surfaces
 Collect:
-- Story exact-four valid-tail rate;
+- valid Story exact-four tail rate;
 - no-tail rate + max streak;
 - Observer exact/mismatch counts;
 - zero fabricated/prior fallback;
-- choice literal click parity;
-- latency submit / first Story token / Story complete / Observer complete / commit; p50/p95 when sample permits;
+- choice click literal parity;
+- submit -> first Story token -> Story complete -> Observer complete -> commit timings and p50/p95 when sample permits;
 - history/export/download if retained;
 - reload/reconnect;
-- duplicate submit;
+- double-submit;
 - explicit retry;
 - TTS/feedback if retained;
-- desktop, 390x844, and wider mobile/tablet.
+- desktop, 390x844, wider mobile/tablet.
 
 ## 10. Stop rules
 
 Immediate terminal BLOCKED on the first deterministic failure that invalidates continued matrix work.
 
-Do not:
+Never:
 - retry/sample until pass;
 - mutate preserved historical/manual evidence games;
-- direct-API gameplay as a substitute for browser acceptance;
-- add provider/model/config workarounds;
-- add generic semantic validators, NER, fuzzy mapping, physical ontology, consent DSL, or second LLM;
+- use direct API gameplay as a substitute for browser acceptance;
+- change provider/model/config/timeouts to chase a pass;
+- add semantic validators/NER/fuzzy matching/physical ontology/consent DSL/second LLM;
 - regenerate Story automatically;
 - access Production;
-- create a new CURRENT_TASK file/ops branch/recovery branch.
+- create a new CURRENT_TASK file, ops branch, recovery branch, or competing task.
 
-Heartbeats at phase boundaries and roughly every 15 minutes of active work.
+## 11. Heartbeats / terminal report
 
-A terminal report must include:
-- exact task blob;
-- start/final main;
-- changed paths/commits;
-- test/deploy/migration identities;
-- root-cause classification and evidence;
-- exact fresh replay evidence if reached;
-- accepted/frozen phases;
-- first blocker or full remaining matrix result.
+Post `PROGRESS_HEARTBEAT` at meaningful phase boundaries and about every 15 minutes during long live execution.
 
-Full objective matrix green is the only path to `OWNER_READY`.
+Terminal report must include:
+- Task ID + CURRENT_TASK blob + start/final SHA;
+- exact changed paths and tests;
+- TEST deploy version(s);
+- fresh game IDs and exact literals;
+- active-rule payload and raw Story for any CSA failure;
+- revision / committed_turn / state continuity evidence;
+- choice/MM/location/presence warnings retained for matrix triage;
+- explicit first deterministic stop reason;
+- confirmation that no retry-until-pass, provider/model change, Production access, preserved-game mutation, new CURRENT_TASK file/branch, or owner handoff occurred.
+
+Continue autonomously until first deterministic blocker or the entire objective matrix is green.
