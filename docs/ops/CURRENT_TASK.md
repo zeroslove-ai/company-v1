@@ -1,14 +1,14 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-feedback-revision-test-rollout-v1
-Mode: APPLY FEEDBACK MIGRATION TO TEST -> DEPLOY EXACT SOURCE -> ONE DISPOSABLE LIVE REVISION PROBE -> STOP
-Updated: 2026-08-22 23:39 KST
+Task ID: company-r3-feedback-revision-continuation-proof-v1
+Mode: CONTINUE SAME TEST GAME 5 HUMAN-LIKE TURNS -> PROVE REVISED TURN IS SOLE FUTURE CONTEXT AUTHORITY -> STOP
+Updated: 2026-08-23 00:06 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, QA framework, compatibility layer, or competing execution authority.
 
-## 0. Authority / accepted source
+## 0. Authority / accepted baseline
 
 Binding authority:
 - product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
@@ -16,254 +16,190 @@ Binding authority:
 - `A-FEEDBACK-001 — Revise latest turn, do not advance chronology`;
 - `docs/FEEDBACK_REVISION_CONTRACT.md`;
 - owner lean-development directives `5380380688` and `5380381500`;
-- feedback audit terminal `5380794753` + review `5380805884`;
-- source implementation terminal `5380919544`;
-- source correction review `5380931080`;
-- source-fix terminal `5380951904`;
-- accepted rollout review `5380962542`;
+- feedback source implementation/fix through source head `2898a929db239f210f448bab87579872aae8ec81`;
+- TEST rollout terminal `5381058522`;
+- operator review `5381069587`;
 - this exact CURRENT_TASK blob after registration.
 
-Accepted executable source is exactly:
-`2898a929db239f210f448bab87579872aae8ec81`
+Accepted TEST identities are already live and MUST be reused without redeploy:
+- API `game-proxy-company-r3` version `43179146-b0b3-4be9-b750-781c3ad3b61d`;
+- frontend `gamebuilder-company-r3` version `016422f6-2c1f-4ac5-b4ec-eab7c7f2a5f6`.
 
-The registration commit is docs-only. Runtime/frontend/migration behavior must correspond to the accepted executable source above.
+Accepted TEST migration is already applied exactly once and MUST NOT be reapplied:
+- `20260822000300_company_r3_feedback_revision`.
 
-Core architecture remains:
-`Story 1 call -> Observer 1 call -> small reducer -> atomic commit`.
+Use ONLY the existing disposable feedback game:
+- `ac3706aa-29b2-4a24-8b23-e61ce96a26d7`.
 
-CSA rules 7/9 remain frozen capability exceptions and are completely outside this task.
+Current accepted state of that game:
+- Opening committed;
+- chronological Turn 1 committed once;
+- Turn 1 logical revision is 3 after two accepted feedback revisions;
+- `company_r3_state.committed_turn = 1`;
+- state revision is 3;
+- canonical Turn 1 row appears once;
+- revision-history rows for Turn 1 are exactly revisions 1, 2, 3;
+- same-request replay created no revision 4;
+- original literal action remains `회의 자료를 정리하며 팀원들에게 오늘 일정부터 확인한다.`.
 
-## 1. Goal
+CSA rules 7/9 remain frozen capability exceptions and are outside this task.
 
-Prove the accepted R3 latest-turn feedback revision vertical slice on TEST with one disposable game and real deployed API/frontend.
+## 1. Purpose
 
-Required end state:
-- TEST migration `20260822000300_company_r3_feedback_revision.sql` is applied exactly once and its narrow schema/RPC/ACL shape is verified;
-- TEST API and frontend run the accepted feedback source;
-- one fresh disposable R3 game proves ordinary Turn 1 revision 1, feedback revision 2, feedback revision 3, and same-request replay without revision 4;
-- normal context/browser/history shows one accepted gameplay row for Turn 1 throughout;
-- exact original literal player action remains unchanged;
-- DB revision history preserves exact original pre-Turn-1 state/revision boundary across revisions 1/2/3;
-- refresh renders only accepted latest revision once.
+Close the one remaining live acceptance point for `A-FEEDBACK-001`:
 
-This is a bounded feature rollout/probe, not a general R3 regression campaign.
+> After the latest turn is revised, subsequent normal Story/context/history must use only the accepted latest revision of that chronological turn. Superseded revisions remain audit-only and must not re-enter gameplay context.
 
-## 2. Hard boundaries
+Do this as a lean human-like continuation, not as a new QA framework.
 
-Allowed:
-- read current main and existing TEST deployment/config/migration state;
-- run the focused local feedback test and syntax/diff preflight if useful;
-- inspect TEST migration ledger/schema/RPC ACL;
-- apply only `supabase/migrations/20260822000300_company_r3_feedback_revision.sql` to the existing Company R3 TEST database, exactly once if absent;
-- deploy the accepted R3 API source to TEST `game-proxy-company-r3`;
-- deploy the accepted R3 frontend source to TEST `gamebuilder-company-r3`;
-- create exactly one new disposable `company_r3_*` TEST game for this task;
-- perform Opening, exactly one ordinary Turn 1, two feedback revisions of that same Turn 1, one replay of an already committed feedback request ID, refresh/readback, and read-only DB verification for this disposable game;
-- use browser/network inspection necessary to prove the existing feedback modal behavior.
+No source change is expected or authorized unless a deterministic product defect is first proven and this task stops for review.
 
-Forbidden:
-- Production access/deploy/migration;
-- touching, resetting, revising, or writing any preserved/previous game;
-- any second disposable game unless the first cannot be created due deterministic infrastructure failure; if that happens, STOP instead of silently creating more;
-- CSA sampling or CSA source changes; especially no CSA 7/9 work;
-- provider/model/temperature/token/timeout/config changes;
-- Story retry/regeneration beyond the two explicit user feedback submissions;
-- 30/50-turn campaigns or unrelated gameplay matrices;
-- runtime/frontend/migration/test source changes during rollout;
-- generic semantic validator/router/parser/compatibility work;
-- hidden retry-until-pass.
+## 2. Preflight — read only
 
-If source correction is required, STOP with exact evidence. Do not patch source inside this rollout task.
+Before any new turn:
+1. Verify Issue #68 still has this exact task READY and no competing owner/operator directive or active lease.
+2. Verify repo/main source remains executable-equivalent to accepted source `2898a929db239f210f448bab87579872aae8ec81` plus docs-only registrations.
+3. Verify TEST API/frontend identities above are still active. Do not redeploy merely to refresh identity.
+4. Read the disposable game through canonical context and TEST DB/service-role readback.
+5. Require the starting truth:
+   - committed_turn = 1;
+   - state revision = 3;
+   - exactly one canonical Turn 1 row at logical revision 3;
+   - Turn 1 literal action exact-match;
+   - Turn 1 revision history 1/2/3 remains audit-only and no revision 4 exists;
+   - no pending/failed Turn 2 job.
 
-## 3. Preflight — exact identities first
+If deterministic starting truth differs, STOP and report `BLOCKED_FEEDBACK_CONTINUATION_PREFLIGHT_MISMATCH`. Do not reset or repair the game.
 
-Before any TEST mutation:
-1. verify `origin/main` contains accepted executable source `2898a929db239f210f448bab87579872aae8ec81` plus only this docs registration after it;
-2. verify current `docs/ops/CURRENT_TASK.md` blob matches this registered task;
-3. verify no competing newer owner/operator instruction or active lease exists in Issue #68;
-4. identify the existing Company R3 TEST Supabase project from repository/config/previous accepted deployment evidence; do not guess a project;
-5. inspect migration ledger for `20260822000300_company_r3_feedback_revision`;
-6. identify current TEST API/frontend versions before deployment.
+## 3. Human-like continuation
 
-Migration rule:
-- if `20260822000300_company_r3_feedback_revision` is absent, apply it once to TEST;
-- if it is already present, do NOT reapply; verify the resulting schema/RPCs and continue;
-- if ledger/schema disagree, STOP as deterministic rollout corruption.
+Continue this SAME disposable game naturally from Turn 1 revision 3.
 
-Do not apply any other pending migration merely because it exists.
+Target:
+- Turn 2 through Turn 6 maximum;
+- stop earlier if five committed continuation turns are reached;
+- use ordinary free-input or current Story-authored choices as a normal human player would;
+- inputs should be coherent with the accepted revised Turn 1 scene, not artificial invariant phrases.
 
-## 4. TEST migration acceptance
+Keep the gameplay varied enough to expose continuity without turning this into a semantic torture test. Suitable beats may include ordinary office conversation, a small movement/location change, a personal/non-work topic, a refusal/boundary, or a quiet self-directed beat when naturally available.
 
-After migration state is established, verify read-only:
+For each submitted turn:
+- exactly one user action;
+- exactly one normal Story request;
+- no hidden retry/regeneration;
+- if the turn commits, continue;
+- if a turn deterministically corrupts chronology/projection/state, STOP immediately;
+- if a provider-style timeout occurs and the existing explicit retry contract clearly applies, one existing explicit failed-turn retry may be used at most once for that same turn, exactly as already accepted; do not tune timeouts/provider/model/config;
+- a lone semantic miss is evidence to log, not authorization for retry-until-pass or prompt tuning.
 
-### Tables
-- `company_r3_turn_revision_history` exists;
-- `company_r3_feedback_attempts` exists;
-- no historical R3 turn rows were bulk backfilled/rewritten/deleted by this migration.
+Do NOT submit additional feedback revisions in this task. The object is to prove what normal future turns consume after revision 3.
 
-### RPCs
-Verify canonical service-role-only signatures exist for:
-- `company_r3_begin_feedback_revision`;
-- `company_r3_commit_feedback_revision`;
-- `company_r3_fail_feedback_revision`.
+## 4. Required proof after Turn 2
 
-Verify `company_r3_create_opening` and `company_r3_commit_turn` are the canonical signatures expected by current R3 source and now write exact revision-history snapshots for future commits.
+Immediately after Turn 2 commits, capture enough canonical/API/DB evidence to prove:
+- Turn 1 exists once in normal context/history and is logical revision 3;
+- Turn 1 Story text exposed to normal gameplay is the accepted revision-3 Story, not revision 1 or 2;
+- Turn 1 original literal action remains exact;
+- Turn 1 revision-history 1/2/3 remains separately auditable but none appears as an extra chronological turn;
+- Turn 2 is chronological turn 2, not a revision artifact;
+- committed_turn advanced exactly 1 -> 2;
+- state revision advanced exactly 3 -> 4 for the ordinary Turn 2 commit;
+- no revision 4 was created for Turn 1.
 
-### ACL
-- public/anon/authenticated cannot execute feedback RPCs;
-- service_role can execute them;
-- revision-history/attempt tables are not exposed as public gameplay writers.
+Where observable without instrumentation changes, inspect the server-owned Story context/request evidence or equivalent accepted logs to confirm the `recent_turns`/context passed to Turn 2 contains Turn 1 once with the accepted revision-3 narrative. Do not add diagnostic metadata or a harness solely for this proof.
 
-If migration application or RPC creation fails, STOP. Do not deploy around it.
+## 5. Required proof through final continuation
 
-## 5. Deploy exact source to TEST
+After the final committed continuation turn (Turn 6 maximum), verify:
+- chronology is Opening + Turn 1 + subsequent ordinary turns exactly once each;
+- Turn 1 remains one canonical row at logical revision 3;
+- superseded Turn 1 revisions remain audit-only;
+- all later context/history/readback continue to show only accepted Turn 1 revision 3;
+- no later Story materially regressed to a superseded Turn 1 fact because the old revision re-entered canonical context;
+- every ordinary committed turn advances `committed_turn` exactly once;
+- every ordinary committed turn advances state revision exactly once;
+- literal action parity holds for each new ordinary turn;
+- current location/scene_note/presence/MM remain internally coherent enough for ordinary play; do not reopen already-frozen location/scene/MM clusters for cosmetic variance;
+- refresh at the end reconstructs the same canonical chronology/state without duplicate turns.
 
-Only after migration acceptance:
-- deploy API once to TEST `game-proxy-company-r3` from current main/executable source lineage;
-- deploy frontend once to TEST `gamebuilder-company-r3` from the same lineage;
-- record exact resulting Worker version IDs;
-- verify each deployed TEST surface is healthy and points to TEST, not Production.
+Product judgment:
+- judge obvious deterministic continuity/projection defects strictly;
+- do not classify one stylistic/semantic provider miss as a global blocker;
+- repeatable player-agency substitution or deterministic stale/superseded revision leakage is a real blocker.
 
-Do not redeploy repeatedly to repair provider behavior. A deterministic deploy failure may be retried only as an infrastructure command retry if no new version was created; report exact evidence.
+## 6. Browser/UI check
 
-## 6. One disposable live game
+Use the deployed TEST frontend on this game for the continuation where practical.
 
-Create exactly one fresh TEST game after migration/deploy. Record its `game_id` immediately and mark it disposable evidence for this task.
+Confirm after final refresh:
+- revised Turn 1 appears once;
+- subsequent turns appear once and in order;
+- direct input remains usable;
+- choices reflect current latest Story when present;
+- feedback control can remain enabled for the current latest ordinary turn, but DO NOT invoke it;
+- no blocking loader or duplicate rendering regression was introduced by the already-deployed feedback feature.
 
-Use a normal valid R3 profile. Do not use direct DB semantic seeding.
+Do not run a broad desktop/mobile/TTS/history matrix. One normal browser viewport plus final refresh is enough unless a real UI defect appears.
 
-### Phase A — Opening + ordinary Turn 1
+## 7. RLS advisory — retain, do not fix here
 
-1. Create game through normal TEST product/API flow.
-2. Produce Opening normally.
-3. Submit one ordinary Korean player action through the real TEST UI/input path. Use one clear literal and record it byte-for-byte before submission.
-4. Wait for one committed Turn 1 only.
-5. Record pre-feedback canonical context and DB facts.
+The TEST Supabase project currently emits an RLS-disabled advisory covering existing tables including the two new feedback tables.
 
-Required pre-feedback facts:
-- `committed_turn = 1`;
-- `company_r3_turns` has exactly one Turn 1 row;
-- Turn 1 logical `revision = 1`;
-- stored `literal_action` equals submitted literal exactly;
-- one Turn 1 revision-history row exists at revision 1;
-- that history row has exact non-null `state_before`, `state_after`, `state_revision_before`, `state_revision_after`.
+This task MUST NOT:
+- create/alter RLS policies;
+- change grants;
+- create a security migration;
+- turn the continuation run into a security audit.
 
-Do not continue to Turn 2.
+Record the advisory in terminal as `RLS_ADVISORY_RETAINED_FOR_SEPARATE_REVIEW` only. Explicit anon/auth privilege denial for the feedback tables was already verified during rollout.
 
-### Phase B — first feedback revision via real UI
+## 8. Forbidden
 
-Use the actual TEST feedback button/modal.
+Do NOT:
+- apply/reapply any migration;
+- deploy/redeploy API or frontend;
+- touch Production;
+- create/reset another game;
+- reset this disposable game;
+- mutate preserved historical games;
+- submit feedback again;
+- touch CSA or sample CSA 7/9;
+- change source/runtime/frontend/tests/docs other than the normal terminal report to Issue #68;
+- change provider/model/config/timeout;
+- add semantic parser/classifier/router/verifier/gate;
+- add diagnostics metadata/harness/framework;
+- run 15/20/30/50-turn campaigns;
+- use retry-until-pass.
 
-Submit one concise revision request that asks to improve the latest Story without changing the original player action.
+## 9. Terminal report
 
-Capture the request's `revision_request_id` from the real outbound request/network evidence.
+Post one terminal comment to Issue #68 and STOP.
 
-During streaming, verify presentation behavior:
-- the previously committed Turn 1 Story remains the canonical rendered/history content until terminal success;
-- provisional replacement Story appears only in the feedback preview/status area;
-- one modal submit causes one feedback request;
-- feedback submit/close controls do not permit duplicate active submission.
+If green, status:
+`STATUS: COMPLETE_FEEDBACK_CONTINUATION_GREEN`
 
-After committed terminal + refresh/readback verify:
-- `committed_turn` remains 1;
-- state revision advanced exactly once from the pre-feedback value;
-- Turn 1 logical revision is 2;
-- literal action is byte-for-byte unchanged;
-- `company_r3_turns` still has exactly one Turn 1 row;
-- normal UI/history/context shows revised Turn 1 once;
-- revision-history rows for Turn 1 are exactly revisions 1 and 2;
-- revision 2 `state_before` equals revision 1 `state_before` exactly;
-- revision 2 `state_revision_before` equals revision 1 `state_revision_before` exactly;
-- revision 2 `state_revision_after` equals prior current state revision + 1;
-- revision 2 links to/supersedes revision 1 as implemented.
+If a deterministic real product/data defect is proven:
+`STATUS: BLOCKED_FEEDBACK_CONTINUATION_REAL_DEFECT`
 
-### Phase C — second feedback revision on the same Turn 1
+If an isolated provider/capability event prevents all required continuation after the already-accepted explicit recovery option is exhausted:
+`STATUS: BLOCKED_FEEDBACK_CONTINUATION_PROVIDER_CAPABILITY`
 
-Use the same real feedback feature again with a different concise feedback text and a fresh `revision_request_id`.
+Terminal must include:
+- Task ID and CURRENT_TASK blob;
+- execution lease;
+- start/final repo HEAD (expected unchanged executable source);
+- reused TEST API/frontend identities and confirmation of no deploy/migration;
+- game id;
+- exact starting committed_turn/state revision/Turn1 revision;
+- exact Turn 2 through final submitted literal actions and commit outcomes;
+- any explicit failed-turn retry used, if any, with same-row attempt evidence;
+- Turn 2 proof that canonical context/history used Turn 1 once at revision 3;
+- final chronology and state revision progression;
+- final canonical Turn 1 row/revision/literal-action proof;
+- revision-history 1/2/3 remains audit-only and no new Turn1 feedback revision appeared;
+- final refresh/browser result;
+- any semantic misses clearly separated from deterministic defects;
+- `RLS_ADVISORY_RETAINED_FOR_SEPARATE_REVIEW`;
+- confirmation that Production, CSA, source, provider/model/config, migrations, deploys, other games, and preserved games were untouched.
 
-After commit + refresh/readback verify:
-- chronology remains Turn 1 only; no Turn 2 is created;
-- Turn 1 logical revision is 3;
-- state revision advanced exactly once again;
-- literal action remains byte-for-byte identical to the original ordinary input;
-- one canonical Turn 1 gameplay row only;
-- revision-history rows are exactly 1, 2, 3 for Turn 1;
-- all three rows have identical original `state_before`;
-- all three rows have identical original `state_revision_before`;
-- `state_revision_after` is monotonic across revisions 1 -> 2 -> 3;
-- revision 3 supersedes revision 2;
-- browser/history/context after refresh renders only accepted revision 3 once.
-
-Do not submit any further semantic feedback samples.
-
-### Phase D — idempotent replay of an already committed request
-
-Replay exactly one already committed feedback request using the SAME `(game_id, revision_request_id)` captured from Phase B or C and the original request body for that ID.
-
-This replay may be performed through a direct TEST API request because the browser correctly generates fresh UUIDs for new user submissions.
-
-Required:
-- terminal/readback indicates existing terminal state/replay behavior without a new accepted revision;
-- no Story streaming delta for a newly generated revision is accepted as evidence of a new run;
-- Turn 1 remains revision 3;
-- state revision does not change;
-- no revision 4 history row appears;
-- no second gameplay row appears;
-- feedback-attempt identity remains singular for that request ID.
-
-Do not attempt to infer provider-call counts from style. Use durable revision/attempt/stream evidence.
-
-## 7. Final browser/readback acceptance
-
-On the disposable game's normal TEST frontend after a hard refresh:
-- exactly Opening + one Turn 1 article are rendered;
-- Turn 1 text is the latest accepted revision 3;
-- original player literal remains unchanged wherever action/history is displayed/exported;
-- feedback control is enabled when the latest committed ordinary turn is eligible and no unresolved next-turn job exists;
-- input/normal submit remains usable;
-- no blocking desktop/mobile layout regression needs to be invented or broadly retested; only check that the feedback modal/control did not visibly break the current page.
-
-Do not continue gameplay beyond Turn 1.
-
-## 8. Failure policy
-
-STOP immediately for deterministic product/data defects such as:
-- migration cannot apply/create canonical RPCs;
-- wrong ACL/writer boundary;
-- ordinary Turn 1 lacks an exact history snapshot after migration;
-- feedback advances chronology;
-- literal action changes;
-- canonical gameplay row duplicates;
-- feedback revision loses/changes original pre-turn `state_before` or `state_revision_before`;
-- state revision increments more than once per accepted feedback;
-- duplicate request creates revision 4 or another provider-backed generation/commit;
-- refresh loses or duplicates accepted gameplay;
-- UI replaces committed Story before successful terminal or double-submits one explicit feedback action.
-
-A single stylistic Story miss, missing exact-four choice tail, choices_observer_mismatch, or known provider-capability limitation is NOT authorization to tune provider/model/config or rerun until pass. Record it only if relevant and continue structural acceptance when safe.
-
-## 9. Required terminal report
-
-Post exactly one terminal report to Issue #68 with:
-- Task ID, CURRENT_TASK blob, execution lease;
-- exact start/final main SHA and accepted executable source SHA;
-- migration ledger before/after and whether 00300 was newly applied or already present;
-- TEST Supabase project identifier actually used;
-- verified new table/RPC/ACL facts;
-- TEST API Worker version ID before/after;
-- TEST frontend Worker version ID before/after;
-- disposable game ID;
-- exact ordinary Turn 1 literal action;
-- Turn 1 / state revisions after ordinary commit, feedback 1, feedback 2, and replay;
-- revision-history proof for revisions 1/2/3 including state_revision_before/state_revision_after parity and supersedes linkage;
-- canonical Turn 1 row count after each phase;
-- feedback request IDs used, identifying which one was replayed;
-- real UI evidence for modal preview/old-Story preservation/single submit/success replacement/refresh;
-- final browser/context/history parity;
-- confirmation no Turn 2, preserved game, Production, CSA, CSA 7/9, provider/model/config/timeout, 30/50 campaign, or source patch was touched.
-
-Terminal status:
-- `STATUS: COMPLETE_FEEDBACK_TEST_GREEN` if all required structural/product checks are green; or
-- `STATUS: BLOCKED_FEEDBACK_TEST_DEFECT` with the first deterministic blocker and preserved evidence.
-
-Stop after terminal. Do not overwrite CURRENT_TASK or start another task yourself.
+Then STOP. Do not overwrite CURRENT_TASK or choose the next task.
