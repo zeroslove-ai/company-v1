@@ -1,188 +1,206 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-game-capability-test-rollout-v1
-Mode: PROVISION TEST SECRET -> DEPLOY EXACT SECURED SOURCE -> BOUNDED LIVE ACCESS PROOF -> STOP
-Updated: 2026-08-23 01:03 KST
+Task ID: company-r3-image-sidecar-binding-audit-v1
+Mode: READ-ONLY CURRENT R3 + ACCEPTED DONOR MEDIA AUDIT -> DEFINE MINIMAL REUSABLE IMAGE BINDING -> STOP
+Updated: 2026-08-23 01:21 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, auth framework, compatibility layer, or competing execution authority.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, media framework, asset pipeline, or competing execution authority.
 
-## 0. Authority / accepted baseline
+## 0. Authority / frozen accepted baseline
 
 Binding authority:
 - product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
 - A-prime engine/live-first canon PR #96 head `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
 - owner lean-development directives `5380380688` and `5380381500`;
-- real exposure terminal `5381207635`;
-- capability source terminal `5381298789`;
-- operator source acceptance `5381316051`;
-- accepted secured source `b511b35c3e294f77ecdffdcc2ad870c446a10e7b`;
+- feedback revision TEST acceptance/freeze through `5381157253`;
+- game-capability TEST terminal `5381363356`;
+- operator capability freeze/product-priority review `5381387742`;
+- accepted secured executable source `b511b35c3e294f77ecdffdcc2ad870c446a10e7b`;
+- current TEST API `game-proxy-company-r3` version `52439f14-235f-4c1d-ac24-1ca30abc5e95`;
+- current TEST frontend `gamebuilder-company-r3` version `50387103-1a97-4774-ac42-4368844cde58`;
 - this exact CURRENT_TASK blob after registration.
 
-Frozen product areas remain frozen:
-- feedback revision behavior is TEST-accepted; do not invoke or modify it here;
-- CSA rules 7/9 remain provider/model capability exceptions; do not sample/tune them;
-- no Story/Observer/reducer/provider/model/config/timeout changes.
+Frozen areas:
+- per-game capability boundary is GREEN/frozen; do not reopen or expand auth/RLS work absent a new real defect;
+- feedback revision is GREEN/frozen;
+- CSA rules 7/9 remain frozen provider/model capability exceptions;
+- Story/Observer/reducer/provider/model/config/timeouts remain untouched.
 
-## 1. Purpose
+## 1. Product purpose
 
-Close the proven TEST Worker unauthorized game-context exposure by rolling out the already-reviewed per-game capability source and proving the real browser/API boundary once.
+Return to product work after closing the deterministic security blocker.
 
-This is a bounded deployment/security acceptance task, not a new auth project.
+Current R3 already has:
+- committed history/readback;
+- MD/TXT history export;
+- nonblocking TTS sidecar;
+- feedback revision;
+- donor-derived image UI slot in `frontend-r3/index.html`:
+  - `media-panel`;
+  - `character-image`;
+  - `image-status`.
 
-Accepted source contract:
-- public: `OPTIONS`, `GET /api/r3/catalogs`, `POST /api/r3/games`;
-- protected by exact-game bearer capability: context, opening, turn, feedback, CSA and frontend reconnect/recovery calls;
-- capability is stateless HMAC-SHA256 bound to game_id and signed by dedicated Worker secret `R3_GAME_ACCESS_SECRET`;
-- no DB/schema/migration/RLS/grant change;
-- no legacy bare-game-id bypass.
+But the current R3 image/media binding is intentionally absent: the panel remains hidden and no accepted image selection/media authority was carried into the current R3 runtime.
+
+Historical Company donor/accepted work contained an image-sidecar/current-situation image-family concept. This task must determine whether that can be reused exactly and cheaply, without inventing URLs, assets, a new image-generation service, or gameplay semantics.
+
+This is a source/history/read-only audit only. It does not authorize implementation.
 
 ## 2. Preflight
 
-Before mutation:
-1. Re-read Issue #68 and this exact CURRENT_TASK; STOP if a competing owner/operator directive or active execution lease exists.
-2. Verify main is executable-equivalent to exact source `b511b35c3e294f77ecdffdcc2ad870c446a10e7b` plus this docs-only registration only.
-3. Verify TEST only. Do not access Production.
-4. Verify the already-applied feedback migration ledger read-only; do not apply/reapply/edit any migration.
-5. Re-run only the focused game-capability/directly affected tests if needed to ensure the local checkout matches accepted source. Do not broaden into a full-suite ritual.
+Before inspection:
+1. Re-read Issue #68 and this exact CURRENT_TASK; STOP if a newer competing owner/operator directive or active lease exists.
+2. Verify `main` is executable-equivalent to accepted secured source `b511b35...` plus docs-only task registrations.
+3. Verify the current R3 media slot source as actually present on main.
+4. Do not access or mutate TEST/Production data merely for this audit.
+5. Do not deploy anything.
 
-If source identity or TEST target cannot be established, STOP before deployment.
+If the control plane/source lineage is not clear, STOP `BLOCKED_IMAGE_SIDECAR_AUDIT_PREFLIGHT`.
 
-## 3. Provision TEST capability secret
+## 3. Current R3 media inventory
 
-Provision exactly one dedicated high-entropy secret named:
-`R3_GAME_ACCESS_SECRET`
+Inspect current R3 source and record the exact present/absent contract for:
+- `frontend-r3/index.html` media/image elements;
+- media-related CSS;
+- `frontend-r3/app.js`, render/view-model modules, and client code;
+- canonical context/state/turn shapes for any existing `image_selection`, `image_key`, `image_url`, media family, focal/current actor, scene, clothing, or presentation-only fields;
+- Worker/runtime/store/provider code for any existing media endpoint/binding/service call;
+- Wrangler/config bindings for any image/media storage/service binding.
 
-Requirements:
-- TEST API Worker only;
-- generate using an appropriate cryptographically secure local/runtime mechanism;
-- do not print, echo, commit, log, paste into Issue #68, or include the value in terminal evidence;
-- do not reuse Supabase service-role, provider, model, or unrelated application secrets;
-- after provisioning, verify only that the binding/secret name is present/usable, never reveal its value;
-- do not provision/change any Production secret.
+Explicitly answer:
+- Is there already a current R3 canonical/presentation field that can drive the image slot?
+- Is the hidden panel just an unwired donor shell, or is a partial binding already present?
+- Would image display require changing durable gameplay state, or can it remain presentation-only?
 
-If secure provisioning cannot be completed without exposing the value, STOP `BLOCKED_GAME_CAPABILITY_SECRET_PROVISIONING`.
+Do not infer fields that do not exist.
 
-## 4. Exact TEST deployment
+## 4. Accepted donor / repository-history media audit
 
-Deploy the accepted secured source exactly from `b511b35c3e294f77ecdffdcc2ad870c446a10e7b` to:
-- TEST API `game-proxy-company-r3`;
-- TEST frontend `gamebuilder-company-r3`.
+Search repository history and existing docs/source only. Do not browse or scrape external asset sites.
 
-Do not deploy unrelated source or Production.
+Identify the exact historical Company implementation(s) behind prior accepted references to:
+- current-situation image sidecar;
+- image families / character image families;
+- `image_selection` or equivalent;
+- image slot/media UI;
+- any static asset manifest, character-to-family mapping, scene/clothing mapping, storage path convention, or media service binding.
 
-Record new TEST API/frontend deployment/version identities. Verify API health/public catalog behavior after deployment.
+Candidate historical anchors may include prior accepted Company donor/source commits already referenced in Issue #68, including the donor UI lineage and the previously accepted current-situation image-sidecar lineage. Treat a candidate as reusable only after verifying the exact source/files at an exact commit.
 
-No migration, schema, RLS, policy, grant, DB repair, reset, provider/model/config tuning, or content change is authorized.
+For every relevant candidate record:
+- exact commit SHA;
+- exact file paths;
+- what the code actually does;
+- where image bytes/URLs come from;
+- whether referenced assets still exist in this repository/configuration;
+- whether it depends on retired v1/v2 gameplay semantics, old DB fields, external secrets/services, or hardcoded URLs;
+- whether it was presentation-only or wrote gameplay state.
 
-## 5. Bounded live proof — one fresh disposable game
+Do not treat an Issue comment saying an image sidecar existed as proof that the required assets still exist.
 
-Create exactly one fresh disposable R3 game through the real deployed frontend after the secured deployment.
+## 5. Asset/binding reality check
 
-The frontend/browser must receive and persist its capability naturally from setup. Never expose the capability value in logs, screenshots, terminal comments, URLs, shell history, or artifacts intended for Issue #68.
+Determine which one of these is objectively true:
 
-### A. Valid-client path
-Prove:
-1. public catalogs load without game capability;
-2. setup/create succeeds through frontend;
-3. browser URL contains game_id but no capability/token;
-4. immediate protected context succeeds through the frontend/client;
-5. Opening completes through protected SSE with the same capability path;
-6. refresh the same browser/game URL once and prove context reload succeeds from locally persisted exact-game capability;
-7. after refresh the visible/canonical game state remains the same game and no duplicate Opening/turn is created.
+### A. REUSABLE_ACCEPTED_MEDIA_BINDING
+All necessary pieces already exist in accepted repository history/current assets, and a narrow R3 presentation-only binding can be implemented without inventing asset locations or new services.
 
-Opening is sufficient to prove protected SSE transport. Do NOT submit an ordinary Turn unless Opening cannot provide the transport proof for a deterministic reason. If one Turn is genuinely necessary, use exactly one simple human-like ordinary action and no retry/regeneration.
+### B. PARTIAL_BINDING_ASSETS_OR_AUTHORITY_MISSING
+Some old UI/selection code exists, but required actual assets, manifest, storage binding, or accepted selection authority is absent/retired.
 
-### B. Negative access proof
-Using safe read/nonmutating requests only, prove against protected endpoints:
-1. fresh game context with no Authorization -> generic 401, no protected data;
-2. fresh game context with malformed bearer -> generic 401, no protected data;
-3. fresh game context with a syntactically valid but wrong token -> generic 401, no protected data;
-4. use the fresh game's valid capability against one different known existing TEST game_id -> generic 401, no protected data.
+### C. NO_ACCEPTED_MEDIA_BINDING
+Only placeholder UI or stale references remain; there is no grounded asset/binding contract to implement safely.
 
-For item 4, do not read/mutate the other game's data with a valid credential; only perform the deliberately mismatched capability request. Do not access preserved/manual/Production games.
+If B or C, state the exact missing input. Do not fabricate a replacement.
 
-Do not post token values. Evidence should contain only status/classification and bounded route identity.
+## 6. Minimal R3 design if A is proven
 
-### C. Public boundary
-Also prove:
-- `GET /api/r3/catalogs` remains public;
-- `POST /api/r3/games` remains public but requires the server secret internally and returns a capability only to the creating response;
-- capability does not appear in subsequent canonical context/game/state/turn payloads.
+If and only if `REUSABLE_ACCEPTED_MEDIA_BINDING` is proven, define the smallest next implementation boundary.
 
-## 6. Frontend/browser acceptance
+Preferred architecture:
+- presentation sidecar only;
+- no second LLM/provider call;
+- no Story regeneration/retry;
+- no Observer semantic authority expansion;
+- no DB/schema/migration;
+- no write into canonical gameplay state unless an already-accepted current field is proven necessary;
+- no random semantic classifier;
+- no fuzzy person/state matching;
+- image choice derived only from already-canonical current data plus an existing accepted finite manifest/mapping;
+- current focal/present actor and existing canonical scene/state may be read, but player agency/game mechanics must never depend on the selected image;
+- failure/missing image must fail open to hidden panel/status text and never block Story/input;
+- refresh should deterministically reproduce the same display from committed context where the historical accepted contract supports that behavior.
 
-Focused browser acceptance only:
-- new game creation works normally;
-- game page opens without token in visible URL;
-- same-browser refresh works;
-- protected requests carry Authorization internally;
-- a bare `?game_id=...` opened in a clean/no-capability client fails clearly as access-required and does not make an unauthenticated protected request from the thin client;
-- no capability text appears in UI/status/console output captured for evidence.
+Specify:
+- exact source files to add/change next;
+- exact existing manifest/assets/binding to reuse;
+- whether API work is required at all;
+- exact focused tests needed;
+- whether only frontend deploy would be sufficient or API deploy is also required.
 
-Do not add compatibility for old bare game URLs. Existing old TEST games remain data-preserved.
+Keep it small enough for one source task + one bounded TEST rollout.
 
-## 7. Security classification
+## 7. Do not overbuild
 
-GREEN only if all agree:
-- exact secured API/frontend are deployed to TEST;
-- valid fresh-game capability permits the intended protected flow;
-- missing/malformed/wrong/cross-game capability is denied with generic 401 and no protected context;
-- same-browser refresh preserves access without token in URL;
-- public catalog/setup remain functional;
-- capability is absent from canonical gameplay payloads;
-- no migration/RLS/grant/schema change was needed.
+Do NOT propose or create:
+- new image-generation AI calls;
+- image prompt generation;
+- generic media orchestration service;
+- database media tables;
+- broad asset management UI;
+- CDN migration;
+- account/auth work;
+- automatic internet image search/scraping;
+- semantic image classifier/router;
+- a new durable `image_selection` field merely because an old architecture had one, unless current canon requires and exact reuse proves it necessary;
+- compatibility layers for retired v1/v2 media semantics.
 
-If a protected route still returns data without the correct capability, STOP immediately as `BLOCKED_GAME_CAPABILITY_TEST_EXPOSURE_REMAINS` and report the exact narrow route. Do not patch in the same task.
+The owner lean-development override applies: the goal is one useful character/current-situation image sidecar, not a media platform.
 
-If valid clients fail because of a deterministic source/transport defect, STOP `BLOCKED_GAME_CAPABILITY_TEST_VALID_CLIENT` with exact evidence. Do not self-authorize a source patch.
-
-## 8. Forbidden
+## 8. No mutation in this audit
 
 Do NOT:
-- touch Production or Production secrets;
-- apply/edit/create/revert migrations;
-- change RLS/policies/grants/schema;
-- modify source/runtime/frontend/tests/content/config/provider/model/timeouts during rollout;
-- invoke feedback;
-- invoke CSA or rerun CSA7/9;
-- access/reset/mutate preserved/manual games;
-- run long gameplay campaigns;
-- add auth/account/session framework;
-- add token exchange/recovery-by-game-id compatibility;
-- expose token/secret values in Issue comments, logs, URLs, committed files, or evidence;
-- create another CURRENT_TASK file or ops branch;
-- overwrite CURRENT_TASK after execution.
+- modify runtime/frontend/tests/content/config/migrations;
+- create an implementation commit;
+- deploy/redeploy API/frontend;
+- provision/change secrets/bindings;
+- create/reset/play/feedback any game;
+- invoke provider/Story/Observer;
+- invoke CSA;
+- touch Production;
+- copy in external images/assets;
+- create a new audit document or branch.
+
+Repository/history reads and Issue #68 terminal evidence are sufficient.
 
 ## 9. Terminal
 
 Post exactly one terminal comment to Issue #68 and STOP.
 
-Success:
-`STATUS: COMPLETE_GAME_CAPABILITY_TEST_GREEN`
+If exact reusable binding/assets are proven:
+`STATUS: COMPLETE_IMAGE_SIDECAR_BINDING_AUDIT_IMPLEMENTABLE`
 
-Secret provisioning blocker:
-`STATUS: BLOCKED_GAME_CAPABILITY_SECRET_PROVISIONING`
+If old code exists but a required accepted asset/binding/authority is missing:
+`STATUS: BLOCKED_IMAGE_SIDECAR_PARTIAL_BINDING_MISSING_INPUT`
 
-Remaining unauthorized exposure:
-`STATUS: BLOCKED_GAME_CAPABILITY_TEST_EXPOSURE_REMAINS`
+If no accepted grounded media binding exists:
+`STATUS: BLOCKED_IMAGE_SIDECAR_NO_ACCEPTED_MEDIA_BINDING`
 
-Valid-client/source transport blocker:
-`STATUS: BLOCKED_GAME_CAPABILITY_TEST_VALID_CLIENT`
+Preflight failure:
+`STATUS: BLOCKED_IMAGE_SIDECAR_AUDIT_PREFLIGHT`
 
 Terminal must include:
 - Task ID/current task blob/execution lease;
-- start/final main SHA and accepted source SHA;
-- confirmation dedicated TEST secret was provisioned without revealing its value;
-- TEST API/frontend deployment identities;
-- fresh disposable game ID is allowed, but NEVER capability/token/secret value;
-- public catalog/setup result;
-- valid context/Opening/refresh result;
-- no-auth/malformed/wrong/cross-game negative status results;
-- whether an ordinary Turn was needed (normally no);
-- confirmation capability absent from URL and canonical context payloads;
-- confirmation no source/migration/RLS/grant/schema/Production/provider/CSA/feedback mutation occurred;
-- final classification.
+- start/final main SHA;
+- confirmation zero source/deploy/DB/game/provider/Production mutation;
+- exact current R3 media slot/current media fields/bindings inventory;
+- exact historical donor/image implementation commit(s) + file paths inspected;
+- exact asset/manifest/storage/service reality;
+- classification A/B/C above;
+- if A: one narrow next implementation plan with exact paths/tests/deploy scope;
+- if B/C: exact missing input, without inventing a substitute;
+- confirmation capability boundary, feedback revision, and CSA7/9 remained frozen.
 
 Then STOP. Do not overwrite CURRENT_TASK or choose the next task.
