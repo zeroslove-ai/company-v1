@@ -6,6 +6,13 @@ const text = value => typeof value === 'string' ? value.trim() : '';
 
 function evidenceQuote(value, storyText) { const quote = text(value); return quote && storyText.includes(quote) ? quote : ''; }
 
+function groundedActorEvidence(item, storyText, directory) {
+  const actorId = item?.actor_id;
+  const quote = evidenceQuote(item?.quote, storyText);
+  const actorName = directory[actorId]?.name;
+  return actorId && actorName && quote && quote.includes(actorName) ? { actor_id: actorId, quote } : null;
+}
+
 function storyChoiceTail(storyText) {
   const lines = String(storyText ?? '').replace(/\r\n?/g, '\n').split('\n');
   while (lines.length && !lines.at(-1).trim()) lines.pop();
@@ -51,11 +58,16 @@ export function normalizeObserver(input, { storyText = '', content, currentState
   }
   else if (location && canonicalLocationId) normalized.location = { location_id: canonicalLocationId, quote: locationQuote };
   else if (location) warnings.push('location_projection_dropped');
+  const directory = actorDirectory(content);
+  const eligibleMonitorActors = new Set([...currentState?.scene?.present_actor_ids ?? []].filter(actorId => actors.has(actorId)));
   for (const key of ['entered', 'exited']) {
     const source = Array.isArray(observer[key]) ? observer[key] : [];
     normalized[key] = source.flatMap(item => {
-      if (!actors.has(item?.actor_id) || !evidenceQuote(item?.quote, storyText)) { warnings.push(`${key}_projection_dropped`); return []; }
-      return [{ actor_id: item.actor_id, quote: text(item.quote) }];
+      const grounded = groundedActorEvidence(item, storyText, directory);
+      if (!grounded) { warnings.push(`${key}_projection_dropped`); return []; }
+      if (key === 'entered') eligibleMonitorActors.add(grounded.actor_id);
+      else eligibleMonitorActors.delete(grounded.actor_id);
+      return [grounded];
     });
   }
   if (Array.isArray(observer.present_actor_ids)) {
@@ -71,11 +83,9 @@ export function normalizeObserver(input, { storyText = '', content, currentState
   normalized.turn_summary = text(observer.turn_summary).slice(0, 600);
   const elapsed = Number(observer.elapsed_minutes);
   if (Number.isInteger(elapsed) && elapsed >= 0) normalized.elapsed_minutes = Math.min(elapsed, 1440);
-  const currentIds = new Set(currentState?.scene?.present_actor_ids ?? []);
-  const directory = actorDirectory(content);
   const monitor = observer.mind_monitor && typeof observer.mind_monitor === 'object' ? observer.mind_monitor : {};
   for (const [actorId, value] of Object.entries(monitor)) {
-    if (!currentIds.has(actorId) || !directory[actorId] || !value || typeof value !== 'object') { warnings.push('mind_monitor_projection_dropped'); continue; }
+    if (!eligibleMonitorActors.has(actorId) || !directory[actorId] || !value || typeof value !== 'object') { warnings.push('mind_monitor_projection_dropped'); continue; }
     normalized.mind_monitor[actorId] = { surface: text(value.surface).slice(0, 600), subconscious: text(value.subconscious).slice(0, 600) };
   }
   const clothing = Array.isArray(observer.clothing_changes) ? observer.clothing_changes : [];

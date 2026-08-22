@@ -61,6 +61,82 @@ test('R3 choice tail accepts the existing 1) form without using earlier numbered
   assert.deepEqual(normalizeObserver({ choices }, { storyText: story, content }).choices, choices);
 });
 
+test('R3 mind monitor accepts pre-turn actors and grounded same-turn entrants only', () => {
+  const [currentActor, entrant, offsceneActor] = Object.values(content.characters);
+  const locationId = currentActor.default_location_id;
+  const state = createInitialState({ name: 'Player' }, locationId, [currentActor.character_id]);
+  const story = `${entrant.name} enters the meeting room. ${currentActor.name} watches the doorway.`;
+  const normalized = normalizeObserver({
+    entered: [{ actor_id: entrant.character_id, quote: `${entrant.name} enters the meeting room.` }],
+    present_actor_ids: [entrant.character_id],
+    mind_monitor: {
+      [currentActor.character_id]: { surface: 'current surface', subconscious: 'current subconscious' },
+      [entrant.character_id]: { surface: 'entrant surface', subconscious: 'entrant subconscious' },
+      [offsceneActor.character_id]: { surface: 'offscene surface', subconscious: 'offscene subconscious' },
+      [entrant.name]: { surface: 'name keyed', subconscious: 'must drop' }
+    }
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.entered, [{ actor_id: entrant.character_id, quote: `${entrant.name} enters the meeting room.` }]);
+  assert.deepEqual(Object.keys(normalized.mind_monitor).sort(), [currentActor.character_id, entrant.character_id].sort());
+  assert.equal(normalized.mind_monitor[entrant.character_id].surface, 'entrant surface');
+  assert.equal(normalized.mind_monitor[offsceneActor.character_id], undefined);
+  assert.ok(normalized.warnings.filter(warning => warning === 'mind_monitor_projection_dropped').length >= 2);
+});
+
+test('R3 mind monitor does not infer actor transitions from player movement or Observer present IDs', () => {
+  const [currentActor, entrant, unrelatedActor] = Object.values(content.characters);
+  const state = createInitialState({ name: 'Player' }, currentActor.default_location_id, [currentActor.character_id]);
+  const story = 'Player moves to the lobby while the meeting continues.';
+  const normalized = normalizeObserver({
+    entered: [{ actor_id: entrant.character_id, quote: 'Player moves to the lobby.' }],
+    present_actor_ids: [unrelatedActor.character_id],
+    mind_monitor: {
+      [entrant.character_id]: { surface: 'not grounded', subconscious: 'not grounded' },
+      [unrelatedActor.character_id]: { surface: 'present-only', subconscious: 'present-only' },
+      [currentActor.character_id]: { surface: 'valid current', subconscious: 'valid current' }
+    }
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.entered, []);
+  assert.deepEqual(Object.keys(normalized.mind_monitor), [currentActor.character_id]);
+  assert.ok(normalized.warnings.includes('entered_projection_dropped'));
+  assert.ok(normalized.warnings.includes('mind_monitor_projection_dropped'));
+});
+
+test('R3 mind monitor removes grounded exits and drops unknown or malformed keys fail-open', () => {
+  const [currentActor, exitingActor] = Object.values(content.characters);
+  const state = createInitialState({ name: 'Player' }, currentActor.default_location_id, [currentActor.character_id, exitingActor.character_id]);
+  const story = `${exitingActor.name} exits the meeting room.`;
+  const normalized = normalizeObserver({
+    exited: [{ actor_id: exitingActor.character_id, quote: `${exitingActor.name} exits the meeting room.` }],
+    mind_monitor: {
+      [currentActor.character_id]: { surface: 'still here', subconscious: 'still here' },
+      [exitingActor.character_id]: { surface: 'left', subconscious: 'left' },
+      unknown_actor: { surface: 'unknown', subconscious: 'unknown' },
+      [currentActor.name]: { surface: 'name', subconscious: 'name' },
+      malformed: 'not an object'
+    }
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.exited, [{ actor_id: exitingActor.character_id, quote: `${exitingActor.name} exits the meeting room.` }]);
+  assert.deepEqual(Object.keys(normalized.mind_monitor), [currentActor.character_id]);
+  assert.ok(normalized.warnings.includes('mind_monitor_projection_dropped'));
+});
+
+test('R3 actor evidence requires an exact Story quote containing the canonical actor name', () => {
+  const [currentActor, entrant] = Object.values(content.characters);
+  const state = createInitialState({ name: 'Player' }, currentActor.default_location_id, [currentActor.character_id]);
+  const story = `${entrant.name} enters the meeting room.`;
+  const normalized = normalizeObserver({
+    entered: [
+      { actor_id: entrant.character_id, quote: 'enters the meeting room.' },
+      { actor_id: entrant.character_id, quote: `${entrant.name} enters the meeting room.` }
+    ],
+    mind_monitor: { [entrant.character_id]: { surface: 'grounded entrant', subconscious: 'grounded entrant' } }
+  }, { storyText: story, content, currentState: state });
+  assert.deepEqual(normalized.entered, [{ actor_id: entrant.character_id, quote: `${entrant.name} enters the meeting room.` }]);
+  assert.deepEqual(Object.keys(normalized.mind_monitor), [entrant.character_id]);
+  assert.ok(normalized.warnings.includes('entered_projection_dropped'));
+});
+
 test('R3 Story context carries canonical product, location, heroine cards, and general-NPC facts', () => {
   const heroine = Object.values(content.characters)[0];
   const locationId = heroine.default_location_id;

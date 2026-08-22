@@ -95,7 +95,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   });
   let receivedStory = '';
   for await (const delta of provider.story({ opening: true, context: { state: { state }, turns: [] }, content })) receivedStory += delta;
-  const observed = await provider.observe({ context: { state: { state }, turns: [] }, literalAction: '', storyText: receivedStory });
+  const observed = await provider.observe({ context: { state: { state }, turns: [] }, literalAction: '', storyText: receivedStory, content });
 
   assert.equal(receivedStory, storyText);
   assert.equal(payloads.length, 2, 'one Story request and one Observer request only');
@@ -130,7 +130,16 @@ test('R3 Opening context and provider prompts require private premise discovery 
     warnings: []
   });
   const observerSystem = payloads[1].messages[0].content;
+  const observerContext = JSON.parse(payloads[1].messages[1].content);
+  const expectedActorDirectory = [
+    ...Object.values(content.characters).map(actor => ({ id: actor.character_id, name: actor.name })),
+    ...content.generalNpcs.map(actor => ({ id: actor.id, name: actor.name }))
+  ];
+  assert.deepEqual(observerContext.canonical_actor_directory, expectedActorDirectory);
   assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, mind_monitor, choices, and warnings/i);
+  assert.match(observerSystem, /canonical_actor_directory.*exact registered \{id,name\} pairs/i);
+  assert.match(observerSystem, /exact canonical actor IDs.*never actor names/i);
+  assert.match(observerSystem, /exact contiguous quote must contain that actor's exact canonical name/i);
   assert.match(observerSystem, /If the current Story explicitly says.*enters, arrives at, moves to, or is now in/i);
   assert.match(observerSystem, /do not copy the previous location and do not return location_evidence/i);
   assert.match(observerSystem, /exact Story quote/i);
