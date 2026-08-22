@@ -93,6 +93,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
       return jsonResponse({ choices: [{ message: { content: JSON.stringify({ choices }) } }] });
     }
   });
+  state.scene.scene_note = 'previous opening scene note must not become Observer authority';
   let receivedStory = '';
   for await (const delta of provider.story({ opening: true, context: { state: { state }, turns: [] }, content })) receivedStory += delta;
   const observed = await provider.observe({ context: { state: { state }, turns: [] }, literalAction: '', storyText: receivedStory, content });
@@ -163,6 +164,9 @@ test('R3 Opening context and provider prompts require private premise discovery 
     { location_id: 'brand_strategy_office', name: content.locations.find(location => location.location_id === 'brand_strategy_office').name },
     { location_id: 'brand_strategy_meeting_room', name: content.locations.find(location => location.location_id === 'brand_strategy_meeting_room').name }
   ]);
+  assert.equal(observerContext.current_context.scene.scene_note, undefined);
+  assert.equal(observerContext.current_context.scene.location_id, state.scene.location_id);
+  assert.deepEqual(observerContext.current_context.scene.present_actor_ids, state.scene.present_actor_ids);
   assert.match(observerSystem, /exact top-level keys: elapsed_minutes, location, entered, exited, present_actor_ids, scene_note, clothing_changes, turn_summary, mind_monitor, choices, and warnings/i);
   assert.match(observerSystem, /canonical_actor_directory.*exact registered \{id,name\} pairs/i);
   assert.match(observerSystem, /canonical_location_directory.*exact registered \{location_id,name\} pairs/i);
@@ -176,6 +180,10 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /exact Story quote/i);
   assert.match(observerSystem, /exact four final numbered Story action strings/i);
   assert.match(observerSystem, /never invent, mutate, pad, truncate, deduplicate, or use prior-turn choices/i);
+  assert.match(observerSystem, /scene_note is one bounded natural-language snapshot of the current post-Story scene/i);
+  assert.match(observerSystem, /replacement state, not historical memory/i);
+  assert.match(observerSystem, /Do not copy a previous scene_note merely because it existed in prior context/i);
+  assert.match(observerSystem, /If the current Story does not ground a useful scene_note, return an empty string/i);
 
   const correctedLocation = normalizeObserver({ location: { location_id: 'brand_strategy_office', quote: '브랜드전략팀 회의실에 들어선다.' } }, { storyText: '브랜드전략팀 회의실에 들어선다.', content, currentState: state });
   assert.equal(correctedLocation.location.location_id, 'brand_strategy_meeting_room');

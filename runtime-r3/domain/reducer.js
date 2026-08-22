@@ -10,7 +10,7 @@ export function reduceObservation({ state, observation, turnNumber }) {
   for (const item of observation?.exited ?? []) present.delete(item.actor_id);
   if (Array.isArray(observation?.present_actor_ids)) scene.present_actor_ids = [...new Set(observation.present_actor_ids)];
   else scene.present_actor_ids = [...present];
-  if (typeof observation?.scene_note === 'string' && observation.scene_note.trim()) scene.scene_note = observation.scene_note.trim().slice(0, 1000);
+  scene.scene_note = typeof observation?.scene_note === 'string' ? observation.scene_note.trim().slice(0, 1000) : '';
   if (!next.clothing || typeof next.clothing !== 'object') next.clothing = {};
   for (const change of observation?.clothing_changes ?? []) next.clothing[change.actor_id] = { ...(next.clothing[change.actor_id] ?? {}), ...change.slots };
   return { state: next, applied: observation ?? {}, turnNumber };

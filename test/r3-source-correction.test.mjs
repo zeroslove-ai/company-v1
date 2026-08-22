@@ -11,6 +11,7 @@ import { SupabaseR3Store } from '../runtime-r3/server/supabase-store.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { createR3Provider } from '../runtime-r3/server/provider.js';
 import { normalizeObserver } from '../runtime-r3/domain/observer-normalizer.js';
+import { reduceObservation } from '../runtime-r3/domain/reducer.js';
 
 const content = loadCanonicalCompanyR3Content();
 
@@ -157,6 +158,28 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   assert.equal(turn.scene.scene_note, '현재 장면의 최소 연속성 메모');
   assert.ok(turn.actors.some(actor => actor.id === heroine.character_id && actor.prompt_card.personality));
   assert.ok(turn.actors.some(actor => actor.id === npcId && actor.role && actor.age));
+});
+
+test('R3 scene_note is replaceable and clears when current observation has no useful note', () => {
+  const state = createInitialState({ name: 'R3 Player' }, 'brand_strategy_office', ['heroine1']);
+  state.scene.scene_note = 'old source-scene note';
+  const moved = reduceObservation({
+    state,
+    observation: {
+      location: { location_id: 'brand_strategy_meeting_room', quote: 'The player enters the meeting room.' },
+      present_actor_ids: ['heroine1'],
+      scene_note: 'fresh post-Story meeting-room snapshot',
+      elapsed_minutes: 0
+    },
+    turnNumber: 1
+  });
+  assert.equal(moved.state.scene.location_id, 'brand_strategy_meeting_room');
+  assert.equal(moved.state.scene.scene_note, 'fresh post-Story meeting-room snapshot');
+  const missing = reduceObservation({ state: moved.state, observation: { scene_note: null }, turnNumber: 2 });
+  assert.equal(missing.state.scene.location_id, 'brand_strategy_meeting_room');
+  assert.equal(missing.state.scene.scene_note, '');
+  const empty = reduceObservation({ state: moved.state, observation: { scene_note: '   ' }, turnNumber: 2 });
+  assert.equal(empty.state.scene.scene_note, '');
 });
 
 test('R3 Story context projects active CSA rules once with scope and no legacy global mirror', () => {
