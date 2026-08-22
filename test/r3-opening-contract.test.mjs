@@ -108,6 +108,9 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /Never escape quotation marks/i);
   assert.match(storySystem, /one action per line/i);
   assert.match(storySystem, /verbatim in the current Story/i);
+  assert.match(storySystem, /active_rules contains an institutional rule/i);
+  assert.match(storySystem, /activation alone must never imply personal affection/i);
+  assert.match(storySystem, /preserve that exact canonical destination name/i);
   assert.match(storySystem, /Opening-only product and agency law/i);
   assert.match(storySystem, /passive scene exposure is allowed/i);
   for (const forbidden of ['speech or reply', 'nod or gesture', 'movement', 'touching', 'clicking', 'typing', 'opening, closing, hiding the app', 'drinking, eating', 'reviewing, working', 'acknowledging, deciding', 'accepting, refusing', 'other intentional player action']) {

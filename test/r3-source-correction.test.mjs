@@ -159,6 +159,25 @@ test('R3 Story context carries canonical product, location, heroine cards, and g
   assert.ok(turn.actors.some(actor => actor.id === npcId && actor.role && actor.age));
 });
 
+test('R3 Story context projects active CSA rules once with scope and no legacy global mirror', () => {
+  const heroine = Object.values(content.characters)[0];
+  const state = createInitialState({ name: 'R3 CSA Player' }, heroine.default_location_id, [heroine.character_id]);
+  state.csa_active = ['r3_csa_1', 'inactive'];
+  state.csa_rules = {
+    r3_csa_1: {
+      id: 'r3_csa_1', active: true, template_id: 'no_panties_under_work_clothes',
+      content: 'CANONICAL INSTITUTIONAL RULE', mode: 'continuous', trigger: 'continuous', strength: 'weak',
+      subject_scope: 'female_employee', counterparty_scope: null
+    },
+    inactive: { id: 'inactive', active: false, content: 'MUST NOT APPEAR' }
+  };
+  const context = buildStoryContext({ state: { state }, turns: [] }, 'canonical action', { content });
+  assert.deepEqual(context.active_rules, [{
+    id: 'r3_csa_1', template_id: 'no_panties_under_work_clothes', content: 'CANONICAL INSTITUTIONAL RULE',
+    mode: 'continuous', trigger: 'continuous', strength: 'weak', subject_scope: 'female_employee', counterparty_scope: null
+  }]);
+});
+
 test('Worker content is a bundled canonical JSON path and production wiring selects async Supabase store', async () => {
   const workerContent = loadWorkerCanonicalContent();
   assert.equal(workerContent.edition.edition_id, 'company-v1');

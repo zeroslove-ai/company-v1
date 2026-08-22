@@ -10,6 +10,20 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const recent = turns.slice(-8).map(turn => ({ turn_number: turn.turn_number, literal_action: bounded(turn.literal_action, 2000), story_text: bounded(turn.story_text, 4000) }));
   const older = turns.slice(0, -8).map(turn => ({ turn_number: turn.turn_number, turn_summary: bounded(turn.turn_summary || turn.story_text, 600) })).slice(-24);
   const product = productPremise(content);
+  const rules = state.csa_rules && typeof state.csa_rules === 'object' ? state.csa_rules : {};
+  const activeRules = [...new Set(Array.isArray(state.csa_active) ? state.csa_active : [])]
+    .map(id => rules[id])
+    .filter(rule => rule?.active)
+    .map(rule => ({
+      id: rule.id,
+      template_id: rule.template_id,
+      content: bounded(rule.content, 600),
+      mode: rule.mode,
+      trigger: rule.trigger,
+      strength: rule.strength,
+      subject_scope: rule.subject_scope,
+      counterparty_scope: rule.counterparty_scope ?? null
+    }));
   return {
     product,
     opening,
@@ -20,7 +34,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     scene: { location_id: state.scene?.location_id ?? null, present_actor_ids: actorIds, scene_note: bounded(state.scene?.scene_note, 1000) },
     actors: canonicalActors(content, actorIds),
     clothing: state.clothing ?? {},
-    active_rules: [],
+    active_rules: activeRules,
     opening_contract: opening ? {
       product_title: product.title,
       private_app_name: product.app_name,
