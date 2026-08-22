@@ -4,6 +4,7 @@ import { parsePlainStoryForPresentation, renderChoices, renderFocalCharacter, re
 import { readSetupForm, renderSetupCatalogs, validateSetupValues } from './setup.js';
 import { buildR3ViewModel } from './r3-view-model.js';
 import { createR3CsaUi } from './csa.js';
+import { reconcileTurnTransport } from './turn-transport.js';
 
 // R3 controller: one context load, one literal action, one server-owned SSE
 // turn. Product rendering lives in the transplanted donor-style modules above.
@@ -158,8 +159,9 @@ async function submit(value = null, { retryFailed = false } = {}) {
   const input = $('player-action'); const literalAction = value ?? input?.value ?? '';
   if (!literalAction.trim()) { setStatus('다음 행동을 직접 입력해 주세요.', true); return; }
   state.busy = true; setStatus('Story를 생성하는 중입니다.'); if ($('current-story')) $('current-story').replaceChildren();
+  const expectedTurn = (state.context?.state?.committed_turn ?? 0) + 1;
   try {
-    const payload = { action_id: crypto.randomUUID(), expected_turn: (state.context?.state?.committed_turn ?? 0) + 1, literal_action: literalAction };
+    const payload = { action_id: crypto.randomUUID(), expected_turn: expectedTurn, literal_action: literalAction };
     if (retryFailed) payload.retry_failed = true;
     const turnResponse = await client.turn(state.gameId, payload);
     if (!turnResponse.ok || !turnResponse.body) {
@@ -169,14 +171,17 @@ async function submit(value = null, { retryFailed = false } = {}) {
     if (input) input.value = '';
     setStatus('저장되었습니다.');
   } catch (error) {
-    if (error?.code === 'r3_stream_reconnect_required') {
-      try {
-        const context = await client.context(state.gameId);
-        renderContext(context);
-        if (context.job?.status === 'processing') await recoverPendingTurn();
-        else setStatus(error.message, true);
-      } catch (recoveryError) { setStatus(recoveryError.message, true); }
-    } else setStatus(error.message, true);
+    await reconcileTurnTransport({
+      gameId: state.gameId,
+      client,
+      expectedTurn,
+      literalAction,
+      renderContext,
+      recoverPendingTurn,
+      clearLiteral: () => { if (input) input.value = ''; },
+      setStatus,
+      originalError: error
+    });
   }
   finally { state.busy = false; refreshChoices(); }
 }
