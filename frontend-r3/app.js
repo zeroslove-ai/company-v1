@@ -36,6 +36,11 @@ function actorDirectory(actors) { return Object.fromEntries((actors ?? []).map(a
 
 function renderCatalogs(catalogs) { state.catalogs = catalogs; renderSetupCatalogs(document, catalogs); }
 
+function syncActionControls() {
+  const submitAction = $('submit-action');
+  if (submitAction) submitAction.disabled = state.busy || !state.gameId || state.context?.job?.status === 'failed';
+}
+
 function renderContext(context) {
   state.context = context;
   const view = buildR3ViewModel(context, state.catalogs ?? {});
@@ -70,6 +75,7 @@ function renderContext(context) {
   const ttsToggle = $('tts-toggle'); if (ttsToggle) { ttsToggle.disabled = !hasStory; ttsToggle.setAttribute('aria-pressed', sidecarState.ttsEnabled ? 'true' : 'false'); }
   const ttsReplay = $('tts-replay'); if (ttsReplay) { ttsReplay.hidden = !hasStory; ttsReplay.disabled = !hasStory; }
   csaUi.sync();
+  syncActionControls();
   setHidden('player-setup-overlay', Boolean(view.profile?.name));
   $('api-status')?.setAttribute('aria-label', '연결 완료');
 }
@@ -107,11 +113,13 @@ function exportHistory(markdown = true) {
 function refreshChoices() {
   const view = state.context ? buildR3ViewModel(state.context, state.catalogs ?? {}) : null;
   renderChoices($('choice-list'), view?.choices ?? [], { busy: state.busy || state.context?.job?.status === 'failed', onChoose: submit });
+  syncActionControls();
 }
 
 async function recoverPendingTurn() {
   if (!state.gameId || !state.context?.job || state.context.job.status !== 'processing') return false;
   state.busy = true;
+  syncActionControls();
   setStatus('진행 중인 Story를 복구하는 중입니다.');
   const deadline = Date.now() + RECOVERY_TIMEOUT_MS;
   try {
@@ -145,6 +153,7 @@ function handleEvent(event, data) {
 }
 
 async function openOpening() {
+  state.busy = true; syncActionControls();
   setStatus('오프닝을 불러오는 중입니다.'); state.busy = true;
   try { await consumeR3Sse(await client.opening(state.gameId), handleEvent); setStatus('다음 행동을 직접 입력하거나 제안 중 하나를 고르세요.'); }
   catch (error) { setStatus(error.message, true); } finally { state.busy = false; refreshChoices(); }
@@ -160,6 +169,7 @@ async function submit(value = null, { retryFailed = false } = {}) {
   if (!literalAction.trim()) { setStatus('다음 행동을 직접 입력해 주세요.', true); return; }
   state.busy = true; setStatus('Story를 생성하는 중입니다.'); if ($('current-story')) $('current-story').replaceChildren();
   const expectedTurn = (state.context?.state?.committed_turn ?? 0) + 1;
+  syncActionControls();
   try {
     const payload = { action_id: crypto.randomUUID(), expected_turn: expectedTurn, literal_action: literalAction };
     if (retryFailed) payload.retry_failed = true;

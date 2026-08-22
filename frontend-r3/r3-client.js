@@ -21,6 +21,11 @@ export async function consumeR3Sse(response, onEvent) {
   if (!response.ok || !response.body) throw new Error('r3_stream_failed');
   const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ''; let terminal = null;
   const streamError = (code, data = null) => { const error = new Error(code); error.code = code; if (data) error.terminal = data; return error; };
+  const finishTerminal = async () => {
+    await reader.cancel();
+    if (terminal.status !== 'committed') throw streamError('r3_stream_failed', terminal);
+    return terminal;
+  };
   const handleFrame = frame => {
     if (!frame.trim()) return;
     const event = frame.match(/^event:\s*(.+)$/m)?.[1]; const dataText = frame.match(/^data:\s*(.+)$/m)?.[1];
@@ -32,14 +37,14 @@ export async function consumeR3Sse(response, onEvent) {
       terminal = data;
     }
     onEvent(event, data);
+    return event === 'terminal';
   };
   while (true) {
     const { value, done } = await reader.read(); if (done) break;
     buffer += decoder.decode(value, { stream: true }); const frames = buffer.split(/\r?\n\r?\n/); buffer = frames.pop() ?? '';
-    for (const frame of frames) handleFrame(frame);
+    for (const frame of frames) if (handleFrame(frame)) return finishTerminal();
   }
   handleFrame(buffer);
   if (!terminal) throw streamError('r3_stream_reconnect_required');
-  if (terminal.status !== 'committed') throw streamError('r3_stream_failed', terminal);
-  return terminal;
+  return finishTerminal();
 }

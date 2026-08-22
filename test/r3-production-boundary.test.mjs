@@ -28,6 +28,26 @@ function delayedStoryResponse(chunks) {
 
 function storyChunk(text) { return `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`; }
 
+function neverEndingTerminalResponse() {
+  let cancelled = false;
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('event: terminal\ndata: {"status":"committed","context":{"ok":true}}\n\n'));
+    },
+    cancel() { cancelled = true; }
+  });
+  return { response: new Response(stream, { headers: { 'content-type': 'text/event-stream' } }), wasCancelled: () => cancelled };
+}
+
+test('R3 SSE resolves at a valid terminal without waiting for EOF and delivers it once', async () => {
+  const source = neverEndingTerminalResponse(); const seen = [];
+  const terminal = await consumeR3Sse(source.response, (event, data) => seen.push({ event, data }));
+  assert.equal(terminal.status, 'committed');
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].event, 'terminal');
+  assert.equal(source.wasCancelled(), true);
+});
+
 test('R3 SSE requires exactly one committed terminal before success', async () => {
   const seen = [];
   const terminal = await consumeR3Sse(sseResponse([{ event: 'story_delta', data: { text: '스트림' } }, { event: 'terminal', data: { status: 'committed', context: { ok: true } } }]), (event, data) => seen.push({ event, data }));
@@ -42,8 +62,11 @@ test('R3 SSE failed terminal is never success and EOF without terminal requires 
   assert.equal(seen[0].data.text, '유지할 Story');
 });
 
-test('R3 SSE rejects duplicate or malformed terminal framing', async () => {
-  await assert.rejects(() => consumeR3Sse(sseResponse([{ event: 'terminal', data: { status: 'committed' } }, { event: 'terminal', data: { status: 'committed' } }]), () => {}), error => error.code === 'r3_stream_terminal_duplicate');
+test('R3 SSE completes at the first valid terminal and rejects malformed terminal framing', async () => {
+  const seen = [];
+  const terminal = await consumeR3Sse(sseResponse([{ event: 'terminal', data: { status: 'committed' } }, { event: 'terminal', data: { status: 'committed' } }]), (event, data) => seen.push({ event, data }));
+  assert.equal(terminal.status, 'committed');
+  assert.equal(seen.length, 1);
   await assert.rejects(() => consumeR3Sse(sseResponse([{ event: 'terminal', data: { status: 'processing' } }]), () => {}), error => error.code === 'r3_stream_terminal_invalid');
 });
 

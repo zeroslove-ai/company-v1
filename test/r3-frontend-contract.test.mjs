@@ -44,6 +44,13 @@ test('R3 boot fallback is dismissed after boot and API origin survives game URL 
   assert.doesNotMatch(app, /replaceState\(null, '', `\?game_id=/);
 });
 
+test('R3 free-input submit readiness mirrors the busy and failed guards', () => {
+  assert.match(app, /function syncActionControls\(\)[\s\S]*submitAction\.disabled = state\.busy \|\| !state\.gameId \|\| state\.context\?\.job\?\.status === 'failed'/);
+  assert.match(app, /state\.busy = true; syncActionControls\(\)/);
+  assert.match(app, /finally \{ state\.busy = false; refreshChoices\(\); \}/);
+  assert.doesNotMatch(app, /submit-action\.disabled = false/);
+});
+
 test('R3 action panel reserves its controls above the audio bar after bootstrap', () => {
   assert.match(shell, /\.action-panel\s*\{[\s\S]*?min-height:\s*min-content;/);
 });
