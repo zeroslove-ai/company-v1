@@ -2,8 +2,8 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: PUSH-RACE RECOVERY -> CONTINUOUS TEST LIVE-QA / FIX / REDEPLOY LOOP
-Updated: 2026-08-22
+Mode: LOCAL-DIVERGENCE RECOVERY -> CONTINUOUS TEST LIVE-QA / FIX / REDEPLOY LOOP
+Updated: 2026-08-22 09:57 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
@@ -28,18 +28,20 @@ Binding product/architecture authority remains:
 
 TEST only. No Production access/deploy. Never mutate/reset/delete/replay preserved historical/manual/evidence games.
 
-## 1. Immediate recovery from FAILED terminal 5376803619
+## 1. Immediate recovery from push-race and local-divergence terminals
 
-The prior lease failed because of a Git push race, not because the focused recovery fix was rejected.
+The prior lease first failed because of a Git push race, then the re-kick stopped because the runner checkout still had the verified local-only recovery commit checked out and could not fast-forward to the newly registered remote main. This is a workflow state problem, not a rejection of the narrow recovery fix.
 
 Evidence:
 
-- terminal: Issue #68 comment `5376803619`;
+- first failed terminal: Issue #68 comment `5376803619`;
 - operator review: Issue #68 comment `5376821230`;
+- re-registration: Issue #68 comment `5376837624`;
+- local-divergence terminal: Issue #68 comment `5376844165`;
 - common base: `122ac37135f83198c9b006bef843843d493a235b`;
-- local unpushed fix commit: `f4cc1a84f85393cdf20f618f1e0a5790b68519d4`;
-- remote main at failure: `2734b55ccc2e1e8a4b2f6a35be3f50bdfa57f233`;
-- competing remote delta is docs-only: `docs/ops/LIVE_QA_PRODUCT_REVIEW_2026-08-22.md`.
+- verified local-only fix commit: `f4cc1a84f85393cdf20f618f1e0a5790b68519d4`;
+- remote main at the divergence terminal: `069b02e33e83e223aedba4721d25867cd3cabc8c`;
+- the local commit changes only `frontend-r3/app.js` and `test/r3-frontend-contract.test.mjs` relative to the common base.
 
 The local fix intent was:
 
@@ -48,16 +50,26 @@ The local fix intent was:
 
 This local commit is NOT accepted or deployed merely because it exists.
 
-### Recovery procedure
+### Local checkout recovery authorization
 
-1. Fetch latest `origin/main` and re-read latest Issue #68 comments before any mutation.
-2. Start from the exact latest main containing this CURRENT_TASK registration.
-3. If local commit object `f4cc1a84...` still exists, inspect its exact diff first. Reapply/cherry-pick only the intended executable/test changes above onto latest main. Do not import any stale CURRENT_TASK/docs/operator state from the old local lineage.
-4. If the local object no longer exists, reproduce the same narrow behavior from the terminal evidence; do not broaden scope.
-5. Confirm there is no conflicting newer executable change to the same recovery paths. If there is a semantic conflict, STOP with evidence rather than guessing.
-6. Run focused frontend recovery tests, full test suite, `node --check` for changed JS/MJS, and `git diff --check`.
-7. Push only by fast-forward. Never force-push, reset/rewrite remote history, or silently discard a newer main delta. If main races again, STOP and report the new remote delta precisely.
-8. The landed exact main SHA becomes the only candidate for TEST deployment.
+No new branch is allowed. Do not create a recovery branch, ops branch, alternate CURRENT_TASK file, or force-push anything.
+
+The runner is explicitly authorized to recover its local checkout from the known divergence only under all of these conditions:
+
+1. fetch latest `origin/main` and re-read the latest Issue #68 comments;
+2. verify commit `f4cc1a84...` still exists and its diff from common base `122ac371...` is exactly the two intended paths above with no docs/config/migration/other runtime changes;
+3. verify there are no additional uncommitted tracked changes that would be lost; approved preserved untracked evidence directories remain untouched;
+4. record the local commit SHA and exact diff as evidence;
+5. move the existing local checkout back to the exact latest `origin/main` even if that requires a local hard reset of the checked-out branch. This authorization applies only to discarding the already-recorded local-only `f4cc1a84...` branch state after its diff has been verified and preserved by SHA. It does not authorize rewriting remote history, force-pushing, deleting preserved evidence, or discarding any unexpected local work;
+6. after the checkout is exactly on latest `origin/main`, reapply only the intended two-file recovery change from `f4cc1a84...` (cherry-pick is allowed if the commit still contains exactly those reviewed changes; otherwise reproduce the narrow diff manually);
+7. if any condition above is false, or any unexpected local delta exists, STOP with exact evidence instead of guessing.
+
+### Recovery procedure after checkout normalization
+
+1. Confirm there is no conflicting newer executable change to the same recovery paths on latest main. If there is a semantic conflict, STOP with evidence rather than guessing.
+2. Run focused frontend recovery tests, full test suite, `node --check` for changed JS/MJS, and `git diff --check`.
+3. Push only by fast-forward. Never force-push, reset/rewrite remote history, or silently discard a newer main delta. If main races again, STOP and report the new remote delta precisely.
+4. The landed exact main SHA becomes the only candidate for TEST deployment.
 
 ## 2. Focused deployed reproducer after landing
 
