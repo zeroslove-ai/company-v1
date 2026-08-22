@@ -11,6 +11,8 @@ const query = new URLSearchParams(location.search);
 const client = createR3Client(query.get('api') || '/api/r3');
 const state = { gameId: query.get('game_id'), context: null, catalogs: null, busy: false };
 const sidecarState = { ttsEnabled: false };
+const RECOVERY_POLL_MS = 1500;
+const RECOVERY_TIMEOUT_MS = 120000;
 const $ = id => document.querySelector(`#${id}`);
 const csaUi = createR3CsaUi({ documentRef: document, client, getGameId: () => state.gameId, getContext: () => state.context, getCatalog: () => state.catalogs?.csa_presets, onContext: context => renderContext(context) });
 
@@ -49,6 +51,13 @@ function renderContext(context) {
   renderCompanyMap($('company-map'), buildCompanyMapModel({ scene: view.scene, actors, locations: state.catalogs?.locations ?? [] }), { onFill: literalInput });
   const apps = $('open-apps'); if (apps) apps.disabled = !state.gameId;
   const history = $('open-history'); if (history) history.disabled = !state.gameId || !view.history.length;
+  const recovery = $('recovery-action');
+  if (recovery) {
+    const pending = context?.job?.status === 'processing';
+    recovery.hidden = !pending;
+    recovery.disabled = state.busy;
+    recovery.textContent = pending ? '진행 중인 Story 복구' : '';
+  }
   const hasStory = Boolean(view.story);
   const ttsToggle = $('tts-toggle'); if (ttsToggle) { ttsToggle.disabled = !hasStory; ttsToggle.setAttribute('aria-pressed', sidecarState.ttsEnabled ? 'true' : 'false'); }
   const ttsReplay = $('tts-replay'); if (ttsReplay) { ttsReplay.hidden = !hasStory; ttsReplay.disabled = !hasStory; }
@@ -92,6 +101,36 @@ function refreshChoices() {
   renderChoices($('choice-list'), view?.choices ?? [], { busy: state.busy, onChoose: submit });
 }
 
+async function recoverPendingTurn() {
+  if (!state.gameId || !state.context?.job || state.context.job.status !== 'processing') return false;
+  state.busy = true;
+  setStatus('진행 중인 Story를 복구하는 중입니다.');
+  const deadline = Date.now() + RECOVERY_TIMEOUT_MS;
+  try {
+    while (Date.now() < deadline) {
+      const context = await client.context(state.gameId);
+      renderContext(context);
+      if (!context.job) {
+        setStatus('저장되었습니다.');
+        return true;
+      }
+      if (context.job.status === 'failed') {
+        setStatus(context.job.error_code ?? 'r3_stream_failed', true);
+        return false;
+      }
+      await new Promise(resolve => setTimeout(resolve, RECOVERY_POLL_MS));
+    }
+    setStatus('r3_stream_reconnect_required', true);
+    return false;
+  } catch (error) {
+    setStatus(error.message, true);
+    return false;
+  } finally {
+    state.busy = false;
+    refreshChoices();
+  }
+}
+
 function handleEvent(event, data) {
   if (event === 'story_delta' && $('current-story')) $('current-story').textContent += data.text ?? '';
   if (event === 'terminal' && data.status === 'committed' && data.context) renderContext(data.context);
@@ -112,7 +151,16 @@ async function submit(value = null) {
     await consumeR3Sse(await client.turn(state.gameId, { action_id: crypto.randomUUID(), expected_turn: (state.context?.state?.committed_turn ?? 0) + 1, literal_action: literalAction }), handleEvent);
     if (input) input.value = '';
     setStatus('저장되었습니다.');
-  } catch (error) { setStatus(error.message, true); }
+  } catch (error) {
+    if (error?.code === 'r3_stream_reconnect_required') {
+      try {
+        const context = await client.context(state.gameId);
+        renderContext(context);
+        if (context.job?.status === 'processing') await recoverPendingTurn();
+        else setStatus(error.message, true);
+      } catch (recoveryError) { setStatus(recoveryError.message, true); }
+    } else setStatus(error.message, true);
+  }
   finally { state.busy = false; refreshChoices(); }
 }
 
@@ -128,12 +176,15 @@ async function setup(event) {
 
 async function loadContext() {
   if (!state.gameId) { setHidden('player-setup-overlay', false); setHidden('boot-fallback', true); return; }
-  const context = await client.context(state.gameId); renderContext(context); setHidden('boot-fallback', true); if (!(context.turns ?? []).length) await openOpening();
+  const context = await client.context(state.gameId); renderContext(context); setHidden('boot-fallback', true);
+  if (context.job?.status === 'processing') await recoverPendingTurn();
+  else if (!(context.turns ?? []).length) await openOpening();
 }
 
 $('player-setup-form')?.addEventListener('submit', setup);
 $('submit-action')?.addEventListener('click', () => submit());
 $('player-action')?.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') submit(); });
+$('recovery-action')?.addEventListener('click', () => recoverPendingTurn());
 $('open-history')?.addEventListener('click', openHistory);
 $('history-close')?.addEventListener('click', () => setHidden('history-overlay', true));
 $('history-download-md')?.addEventListener('click', () => exportHistory(true));
