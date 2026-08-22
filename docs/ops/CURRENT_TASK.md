@@ -2,8 +2,8 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: FRONTEND SSE TERMINAL LIFECYCLE CLOSURE -> ONE CLEAN FIRST-TURN REPLAY -> RESUME ORTHOGONAL LIVE QA
-Updated: 2026-08-22 19:49 KST
+Mode: OBSERVER CANONICAL LOCATION DIRECTORY -> ONE CLEAN MOVEMENT REPLAY -> RESUME ORTHOGONAL LIVE QA
+Updated: 2026-08-22 20:07 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops branch, recovery branch, or competing execution authority.
@@ -17,165 +17,229 @@ Continue the same Task ID under:
 - `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md`;
 - `docs/ops/LIVE_QA_PRODUCT_REVIEW_2026-08-22.md`;
 - Issue #68 owner UX/CSA directives;
-- operator review `5379846236`;
+- operator review `5379909490`;
 - this exact CURRENT_TASK blob once registered by `CURRENT_TASK_READY`.
 
 Architecture remains:
 `Story 1 call -> Observer 1 call -> small reducer -> atomic commit`.
 
-Provider/model/config remain frozen. `OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remain forbidden while the known provider capability blocker is open and the objective matrix is incomplete.
+Provider/model/config remain frozen. `OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remain forbidden while the frozen provider capability blocker exists and the objective matrix is incomplete.
 
-## 1. Reviewed terminal / frozen evidence
+## 1. Reviewed terminal / accepted and frozen evidence
 
 Reviewed terminal:
-- terminal `5379835717`;
-- previous task blob `bade6cfd51d7819ee20b91e092e26310ea04012b`;
-- start/final main `278737297949a5e837b73ea3ff899f1a5ad3dd36`;
-- operator review `5379846236`.
+- terminal `5379898520`;
+- previous task blob `80687de3729f4ad56e4a2537468f372953209b4a`;
+- execution start main `cbb4ce4d9c1fff20ed0738006b62d104128dc4ac`;
+- accepted/current executable main `1202b19cda2c6684d6e7ba98e91dedd3feac9ac0`;
+- operator review `5379909490`.
 
-Current TEST identities before this task:
+Current TEST identities:
 - API `game-proxy-company-r3` Worker `e76b936c-f28a-4ec9-aec3-e7968587e9cc`;
-- frontend `gamebuilder-company-r3` Worker `c297425c-3fa8-4025-a514-5ac908606c36`.
+- frontend `gamebuilder-company-r3` Worker `05bf9f88-2c02-4db7-9f6d-eb4429fdf31c`.
 
-Freeze and do not rerun for pass seeking:
-- accepted CSA campaigns: no-panties, no-bra, contact/hand placement, work-nude, work-in-underwear-only, masturbate-for-recipient;
-- `player_request_executes_immediately` fixture `564312c2-eff5-4686-a8bd-67a8e8eae2b8` is GREEN through apply/request/remove/post-remove;
-- known `vaginal_sex_with_recipient` provider/model capability blocker remains `BLOCKED_R3_PROVIDER_OR_MODEL_CANNOT_HONOR_CANONICAL_REQUEST_RULE`;
-- `continue_until_recipient_orgasm` fixture `71a57139-e322-4f89-92de-0dc6ef875923` kept engine/state continuity coherent but Story mismatched recipient/subject; retain as the same provider-capability family, not a local transaction defect;
-- request-timing source `e646fb9664878b81020e4fedaa5e587149b82851` remains frozen. No further prompt/context/provider/model tuning.
+### 1.1 Frontend SSE terminal/control race — CLOSED and frozen
+
+Accepted source `1202b19c...` changed only:
+- `frontend-r3/app.js`;
+- `frontend-r3/r3-client.js`;
+- `test/r3-frontend-contract.test.mjs`;
+- `test/r3-production-boundary.test.mjs`.
+
+Accepted validation:
+- focused 16/16 PASS;
+- full 479/479 PASS;
+- syntax and `git diff --check` PASS;
+- TEST frontend deployed exactly once;
+- API unchanged.
+
+Fresh replay `d70445a9-c482-4c54-b410-6b6424a0c68f` proves the previous enabled-control submit no-op is closed:
+- Opening rendered;
+- submit was enabled only when actionable;
+- exact literal `브랜드전략팀 회의실로 이동한다.`;
+- one click -> exactly one `/turn` POST -> HTTP 200;
+- exact literal persisted;
+- exactly one Turn 1 committed;
+- input cleared; no retry/resubmit.
+
+Do not reopen the frontend lifecycle correction without new evidence.
+
+### 1.2 CSA evidence remains frozen
+
+Do not rerun for pass seeking:
+- accepted: no-panties, no-bra, hand/contact, work-nude, work-in-underwear-only, masturbate-for-recipient;
+- `player_request_executes_immediately` fixture `564312c2-eff5-4686-a8bd-67a8e8eae2b8` is GREEN;
+- `vaginal_sex_with_recipient` remains frozen `BLOCKED_R3_PROVIDER_OR_MODEL_CANNOT_HONOR_CANONICAL_REQUEST_RULE`;
+- `continue_until_recipient_orgasm` recipient/subject mismatch remains provider-capability-family evidence;
+- request-timing source remains frozen; no further CSA prompt/context/provider/model tuning.
 
 ## 2. Current decisive local blocker
 
-Fresh clean ordinary fixture, no CSA mutation:
-`b0443068-8b78-455d-ada6-f8f30a69df7f`.
+Fresh replay fixture:
+`d70445a9-c482-4c54-b410-6b6424a0c68f`.
 
-Observed once, no retry:
-- Opening visibly rendered at Turn 0;
-- free-input field usable;
-- exact literal entered: `브랜드전략팀 회의실로 이동한다.`;
-- exactly one enabled `행동 실행` button was resolved and clicked once;
-- after 45 seconds, UI still showed Turn 0 and the literal still in the textbox;
-- no Story append;
-- read-only context remained revision=0 / committed_turn=0 / Opening-only / job=null;
-- no player action persisted;
-- console error/warning empty.
+Transport/literal/commit were GREEN, but location continuity failed:
+- exact literal: `브랜드전략팀 회의실로 이동한다.`;
+- Story explicitly described movement to `브랜드전략팀 회의실`;
+- `observer_raw.location` remained `brand_strategy_office`;
+- `observer_applied.location` remained `brand_strategy_office`;
+- committed `state_after.scene.location_id` remained `brand_strategy_office`;
+- `scene_note` remained the stale Opening office snapshot;
+- warnings were empty.
 
 Classification:
-`BLOCKED_R3_ORTHOGONAL_MOVEMENT_SUBMIT_NOOP_WITH_ENABLED_CONTROL`.
+`BLOCKED_R3_FIRST_TURN_STORED_LOCATION_DOES_NOT_FOLLOW_STORY_MOVEMENT`.
 
-This is not a movement-semantic failure because `/turn` was never sent.
+This is now the `Story -> Observer -> normalized observation -> reducer` location boundary. Do not write player intent directly into canonical state.
 
-## 3. Proven frontend lifecycle cause
+## 3. Proven structural gap
 
-Current `frontend-r3/app.js`:
-- `openOpening()` sets `state.busy=true`;
-- a committed terminal event immediately calls `renderContext(data.context)`, making committed Turn 0 visible;
-- `state.busy=false` is only set after `consumeR3Sse()` returns in `finally`;
-- free submit control is not synchronized to `state.busy`;
-- `submit()` begins with a silent `if (state.busy || !state.gameId) return`.
+Current `OBSERVER_SYSTEM_PROMPT` already requires:
+- location = null or `{location_id, quote}`;
+- exact contiguous Story quote;
+- if current Story explicitly says player enters/arrives/moves to/is now in a registered location, project that destination;
+- do not copy the previous location.
 
-Current `frontend-r3/r3-client.js`:
-- `consumeR3Sse()` records a valid `terminal` event;
-- but it continues `reader.read()` until response-body EOF before returning.
+However current `createR3Provider().observe()` sends only:
+- `literal_action`;
+- `story_text`;
+- pre-turn `current_context`;
+- `canonical_actor_directory`.
 
-Therefore a valid committed terminal can already be rendered while the operation is still client-busy waiting for EOF. During that interval the UI can expose an enabled submit button whose click is silently discarded by the busy guard. The live fixture matches this boundary exactly.
+It does **not** send a canonical location `{location_id,name}` directory.
 
-## 4. PHASE A — minimal generic frontend correction
+The Observer therefore has explicit access to the previous location ID from current_context, but no bounded authoritative mapping from a newly named Story destination such as `브랜드전략팀 회의실` to `brand_strategy_meeting_room`.
 
-Correct only this generic client lifecycle/control boundary.
+Existing downstream behavior is already suitable when Observer provides correct evidence:
+- `normalizeObserver()` validates exact Story quotes and canonical catalog location IDs/names, and can correct a mismatched ID when the supplied quote itself names a canonical location;
+- `reduceObservation()` assigns a valid normalized location to `scene.location_id`.
 
-Required invariants:
-1. A valid terminal SSE frame is the protocol completion boundary for the current Opening/Turn operation. The client must not remain indefinitely busy solely waiting for later network EOF after a valid terminal has already been received.
-2. Preserve terminal validation: terminal must still be valid `committed`/`failed`; missing terminal remains reconnect failure. Do not invent another protocol or hidden retry.
-3. Free-input submit readiness must truthfully reflect whether submit would be accepted. A visible enabled `행동 실행` control must not intentionally fall through the silent `state.busy` return path.
-4. A click while legitimately busy must not be queued, replayed, or automatically resubmitted later.
-5. Literal input must remain intact until an actual submitted turn succeeds or existing explicit recovery semantics say otherwise.
-6. Preserve choice buttons' current busy behavior, explicit Retry, transport reconciliation, CSA UI, setup/opening, reload/reconnect, history and TTS boundaries.
-7. No automatic Story replay/regeneration and no duplicate `/turn` POST.
+Do not add a second movement authority before first closing this missing Observer input contract.
 
-Preferred smallest implementation shape:
-- make `consumeR3Sse()` complete/cancel the reader once a valid terminal frame has been fully handled, rather than waiting for EOF;
-- centralize/synchronize `submit-action.disabled` (and only other directly relevant free-input readiness if necessary) with `state.busy`, failed-job state, and game readiness so rendered control state matches the submit guard.
+## 4. PHASE A — smallest canonical location-directory correction
 
-Do not broaden beyond evidence if a smaller equivalent implementation is cleaner.
+Change only the bounded Observer input/contract needed to provide repository location identity.
+
+Required implementation:
+1. Build a canonical location directory directly from `content.locations` for Observer use, containing at minimum exact registered `{location_id, name}` pairs for every registered location.
+2. Add it to the Observer user payload as `canonical_location_directory` or an equivalently explicit bounded field.
+3. Update the Observer system contract minimally:
+   - `location.location_id` must come from the supplied canonical location directory;
+   - the exact quote must come from current Story;
+   - when current Story explicitly establishes movement/arrival/current presence in a directory location, use that destination ID;
+   - do not copy pre-turn location merely because it appears in current_context.
+4. Keep exact Story evidence authoritative; current player literal is intent/input, not automatic proof of successful movement.
+5. Do not change normalizer/reducer unless deterministic source tests independently prove they cannot consume a correct Observer `{location_id,quote}` result. Current reviewed source indicates they can.
+
+Preferred smallest source shape:
+- a small provider-local `canonicalLocationDirectory(content)` helper or equally bounded catalog helper;
+- `provider.js` Observer payload + minimal prompt wording;
+- focused tests.
 
 Forbidden:
-- API/runtime/Observer/reducer/CSA semantic changes;
-- DB/schema/migration changes;
-- provider/model/temperature/token/timeout/config changes;
-- semantic gate/classifier/NER/fuzzy matching;
-- deterministic movement resolver as a response to this no-request defect;
-- click queue, automatic replay/resubmit, second Story call, hidden retry;
-- Production access.
+- no player-literal movement parser;
+- no input-text -> state success write;
+- no fuzzy/nearest location matching or aliases;
+- no semantic router/gate/classifier;
+- no movement ontology/DSL;
+- no location-specific `if (brand_strategy_meeting_room)` branches;
+- no second Observer/Story LLM;
+- no hidden retry/regeneration;
+- no provider/model/temperature/token/timeout/config changes;
+- no DB/schema/migration changes;
+- no frontend changes;
+- no CSA semantic changes;
+- no Production access.
 
 ## 5. Required deterministic tests
 
-Add focused frontend/client regressions proving at minimum:
-1. SSE with a valid terminal frame followed by a reader that never reaches EOF resolves at terminal and does not hang waiting for EOF.
-2. Terminal event is delivered exactly once to the application handler before completion.
-3. A stream that ends without terminal remains `r3_stream_reconnect_required`.
-4. Invalid/failed terminal semantics remain handled according to existing contract.
-5. During true busy state, free submit is disabled or otherwise visibly non-actionable; after terminal completion it becomes actionable.
-6. No enabled-control path can be deterministically swallowed only by the initial `state.busy` guard.
-7. Literal preservation and existing `turn-transport.js` reconciliation tests remain green.
-8. Explicit failed Retry remains explicit and user-triggered.
-9. No automatic duplicate POST/replay is introduced.
+Add focused regressions proving at minimum:
+1. Observer payload contains a canonical location directory derived from repository `content.locations`.
+2. The directory contains every registered location exactly once with exact `{location_id,name}` identity; no fuzzy alias generation.
+3. Both `brand_strategy_office` / `브랜드전략팀 사무실` and `brand_strategy_meeting_room` / `브랜드전략팀 회의실` are distinct supplied entries.
+4. Observer prompt explicitly binds `location_id` to the supplied directory rather than pre-turn context.
+5. Observer prompt explicitly says exact current-Story movement/arrival/current-location evidence overrides merely copying prior location.
+6. Player literal alone is not declared successful movement evidence.
+7. Existing `normalizeObserver()` exact Story quote/catalog correction remains green for a correct destination quote and rejects non-Story/fabricated evidence.
+8. Existing reducer moves scene location when normalized location is valid.
+9. Existing actor/MM, choices, CSA, literal-action, frontend transport tests remain green.
+10. No template/location-specific runtime branch or semantic matcher is introduced.
 
-Validation:
-- focused frontend/R3 tests;
+Validation before deploy:
+- relevant focused R3/provider/observer tests;
 - full `npm test`;
 - `node --check` for changed JS/MJS;
 - `git diff --check`;
-- changed-path review proving frontend-only scope unless an independently required test helper changes.
+- changed-path review proving no unrelated frontend/config/migration/runtime-semantic change.
 
 Land source directly on `main`; no branch/PR.
 
-## 6. PHASE B — TEST frontend rollout only
+## 6. PHASE B — TEST API rollout only
 
-After tests are green:
-- deploy TEST frontend exactly once from the accepted source commit;
+After validation:
+- deploy TEST API exactly once if provider/source changed;
 - record exact Worker Version ID;
-- do not redeploy API;
-- do not apply migrations;
-- confirm frontend source assets and `/api/r3/catalogs` health;
-- Production forbidden.
+- keep frontend exactly `05bf9f88-2c02-4db7-9f6d-eb4429fdf31c` if unchanged;
+- no migration;
+- `/api/r3/catalogs` HTTP 200 gate;
+- no Production.
 
-## 7. PHASE C — exactly one fresh clean first-turn replay
+## 7. PHASE C — exactly one fresh clean movement replay
 
-Do not reuse `b0443068...`.
+Do not reuse/mutate `d70445a9...`.
 
-Use one new disposable current-R3 TEST game through the real browser UI.
+Use ONE fresh disposable current-R3 TEST game through the real browser.
 
-1. Fresh Setup once.
-2. Opening once.
-3. As soon as committed Turn 0 is visibly ready, verify `행동 실행` readiness is truthful.
-4. Enter exactly: `브랜드전략팀 회의실로 이동한다.`
-5. Click `행동 실행` exactly once.
-6. Capture DOM/control state and network.
-7. Require exactly one `/turn` request.
-8. Require exact stored literal parity.
-9. Require one committed Turn 1 and coherent revision/committed_turn.
-10. Capture Story/Observer/state/location/presence/choices/MM/warnings, but movement semantics are judged only after submission transport is proven.
-11. No retry/resubmit if the first click fails.
+1. Setup once.
+2. Opening once; wait until committed/actionable UI.
+3. Enter exactly: `브랜드전략팀 회의실로 이동한다.`
+4. Click `행동 실행` exactly once.
+5. Require exactly one `/turn` POST and no retry/resubmit.
+6. Require exact stored literal parity.
+7. Require exactly one committed Turn 1.
+8. Require Story to contain explicit exact canonical destination evidence for `브랜드전략팀 회의실` before location acceptance is judged.
+9. Capture Observer request payload sufficiently to prove `canonical_location_directory` includes both office and meeting-room identities.
+10. Require `observer_raw.location.location_id = brand_strategy_meeting_room` with an exact contiguous current-Story quote naming/establishing that destination.
+11. Require `observer_applied.location.location_id = brand_strategy_meeting_room`.
+12. Require committed `state_after.scene.location_id = brand_strategy_meeting_room`.
+13. Require refresh/context/map to show meeting room and the next Story context to use meeting room.
+14. Inspect scene_note/presence for obvious stale source-location leakage, but do not broaden the fix unless a new deterministic defect is proven.
 
-If no `/turn` is sent again despite an enabled control:
-STOP `BLOCKED_R3_FRONTEND_SUBMIT_NOOP_AFTER_SSE_TERMINAL_CLOSURE`.
+If Story itself fails to establish the requested exact destination, classify the Story agency/location failure separately; do not force state from literal input.
 
-If transport submits once but a distinct local movement/location/presence defect appears, STOP on that new concrete blocker.
+If Story establishes the destination but Observer/state still remain old despite the supplied directory:
+STOP exactly:
+`BLOCKED_R3_OBSERVER_LOCATION_STALE_DESPITE_CANONICAL_DIRECTORY`
+
+Capture the full Observer user payload location directory, raw Observer JSON, exact Story, normalized observation, and committed state. No second prompt/normalizer workaround or second sample in this task.
 
 If GREEN, continue automatically.
 
 ## 8. PHASE D — resume orthogonal objective matrix
 
-Resume from the location phase; do not rerun accepted CSA capability fixtures.
+Resume from the interrupted location phase. Do not rerun accepted CSA fixtures.
 
 ### D1. Four canonical locations
-Fresh ordinary non-CSA fixture if needed. Prove four distinct registered locations through:
-`literal -> Story exact canonical destination -> observer_raw -> observer_applied -> state_after -> refresh/context -> next Story`.
-No fuzzy/generic destination upgrade.
+Use fresh ordinary non-CSA fixture(s) as needed. Prove four distinct registered canonical locations through:
+`exact literal -> Story exact canonical destination -> observer_raw -> observer_applied -> state_after -> refresh/context/map -> next Story context`.
 
-### D2. Presence / MM / scene_note
-Prove exact registered actor evidence, no movement-only NPC teleport, correct MM actor IDs, no off-scene MM, no wrong-person quotes, and stale scene_note cleanup.
+Requirements:
+- exact destination identities;
+- no fuzzy/generic-room upgrades;
+- no stale previous location after valid Story movement evidence;
+- no player-movement-only NPC teleport.
+
+Stop on first NEW deterministic local defect.
+
+### D2. Presence / Mind Monitor / scene_note
+Prove:
+- exact actor-name evidence;
+- no movement-only NPC enter/exit fabrication;
+- grounded entrants/current actors may receive MM;
+- no unrelated/off-scene MM;
+- no wrong-person quote tied to an actor ID;
+- bounded current scene_note;
+- stale source-location/action/entity state disappears after valid scene change.
 
 ### D3. Player agency
 One-shot probes:
@@ -185,7 +249,7 @@ One-shot probes:
 - explicit movement/destination preserved;
 - explicit refusal not silently inverted.
 
-Stop on first NEW deterministic locally actionable defect.
+Stop on first NEW deterministic agency substitution.
 
 ### D4. Independent human-like campaigns
 Separate fresh fixtures:
@@ -193,28 +257,42 @@ Separate fresh fixtures:
 - materially different 15+;
 - long-memory 50+.
 
-Collect literal parity, Story fidelity, location/presence, choices, MM IDs, warnings, revision/turn and timing. Inspect older-summary continuity after the recent raw-turn window rolls over.
+Collect literal parity, Story fidelity, location/presence, choices, MM IDs, warnings, revision/turn and timing. Inspect older-summary continuity after recent raw-turn rollover.
 
-### D5. Choice reliability / latency / retained surfaces
-Measure exact-four Story-tail rate, no-tail rate/streak, Observer exact/mismatch, zero fabricated/prior fallback, click literal parity, lifecycle timing p50/p95 where useful, duplicate-submit/idempotence, explicit failed Retry, reload/reconnect, history/export/download, TTS/feedback if retained, desktop 390x844 and wider mobile/tablet.
+### D5. Choice reliability / latency / lifecycle / retained surfaces
+Measure:
+- exact-four Story-tail rate;
+- no-tail rate + max streak;
+- Observer exact/mismatch;
+- fabricated/prior fallback = 0;
+- displayed-choice click literal parity;
+- submit -> first Story token -> Story complete -> Observer complete -> commit, p50/p95 where useful;
+- duplicate-submit/idempotence;
+- explicit failed Retry;
+- reload/reconnect;
+- history/export/download;
+- TTS/feedback if retained;
+- desktop, 390x844, wider mobile/tablet.
 
-Known provider CSA capability failures remain recorded and skipped; they do not authorize prompt/model tuning and still prevent all-green acceptance.
+Known provider CSA capability failures remain recorded and skipped; they do not authorize provider/model tuning and still prevent objective all-green.
 
 ## 9. Stop rules
 
-STOP immediately on the first NEW deterministic local defect after the replay correction.
+STOP immediately on the first NEW deterministic local defect after the focused replay.
 
 Never:
-- sample/retry until pass;
+- retry/sample until pass;
 - mutate preserved evidence/manual games;
-- use direct API gameplay instead of browser acceptance;
+- use direct API gameplay as a substitute for browser acceptance;
+- write player intent directly into successful canonical location;
+- add fuzzy/semantic movement resolution;
 - change provider/model/config/timeouts;
-- add semantic validators, fuzzy matching, physical/consent DSL, deterministic behavior executor, or second LLM;
-- auto-regenerate/replay Story;
+- add physical/consent DSL, deterministic behavior executor, or second LLM;
+- automatically regenerate/replay Story;
 - access Production;
 - create another CURRENT_TASK file/branch.
 
-If all orthogonal local QA completes with no new local defect, terminal status is still BLOCKED because the frozen provider capability blocker prevents objective all-green. `OWNER_READY` remains forbidden.
+If all orthogonal local QA completes with no new local defect, terminal remains BLOCKED because the frozen provider capability blocker prevents objective all-green. `OWNER_READY` remains forbidden.
 
 ## 10. Heartbeats / terminal report
 
@@ -223,12 +301,12 @@ Post `PROGRESS_HEARTBEAT` at meaningful phase boundaries and during long campaig
 Terminal report must include:
 - Task ID + CURRENT_TASK blob + start/final SHA;
 - exact changed paths/tests;
-- TEST frontend version and proof API remained unchanged;
+- TEST API version and proof frontend remained unchanged;
 - fresh replay game ID and exact literal;
-- submit control readiness before click;
-- `/turn` request count and exact literal persistence;
-- revision/committed_turn and Story/Observer/state evidence;
+- Observer request canonical location directory evidence;
+- raw Story + raw/applied location evidence;
+- revision/committed_turn + state_after/context/map location;
 - subsequent orthogonal matrix progress and first new blocker if any;
-- confirmation of no provider/model/config change, retry-until-pass, Production access, preserved-game mutation, new task file/branch, or owner handoff.
+- confirmation of no retry-until-pass, player-intent state forcing, fuzzy/semantic resolver, provider/model/config change, Production access, preserved-game mutation, new task file/branch, or owner handoff.
 
 Continue autonomously until the first NEW deterministic local blocker or all orthogonal QA is exhausted.
