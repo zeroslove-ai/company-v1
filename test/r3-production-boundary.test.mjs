@@ -87,6 +87,19 @@ test('R3 Story first-content deadline clears after first delta and total deadlin
   assert.equal(calls, 1);
 });
 
+test('R3 provider exposes response and first-delta timing hooks without changing Story output', async () => {
+  const seen = [];
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    timeouts: { storyFirstContentMs: 40, storyTotalMs: 80 },
+    fetchImpl: async () => delayedStoryResponse([{ afterMs: 5, text: storyChunk('첫 내용') }])
+  });
+  let text = '';
+  for await (const delta of provider.story({ context, content, onTiming: stage => seen.push(stage) })) text += delta;
+  assert.equal(text, '첫 내용');
+  assert.deepEqual(seen, ['story_response_headers', 'story_first_delta']);
+});
+
 test('R3 Story first-content and total deadlines fail without retry', async () => {
   let calls = 0;
   const firstTimeoutProvider = createR3Provider({

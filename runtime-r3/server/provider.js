@@ -32,7 +32,7 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
   if (!baseUrl || !apiKey || !storyModel || !observerModel) throw new Error('r3_provider_configuration_invalid');
   const completionUrl = baseUrl.endsWith('/chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
 
-  async function request(payload, timeoutMs, code, { firstContentMs = null, promptContent = null } = {}) {
+  async function request(payload, timeoutMs, code, { firstContentMs = null, promptContent = null, onResponseHeaders = null } = {}) {
     const controller = new AbortController(); let timedOut = null;
     const totalTimer = setTimeout(() => { timedOut = timeoutError(code); controller.abort(timedOut); }, timeoutMs);
     const firstDeadline = firstContentMs === null ? null : Date.now() + firstContentMs;
@@ -42,17 +42,18 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
     try {
       const response = await fetchImpl(completionUrl, { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(withPromptContent(payload, promptContent)), signal: controller.signal });
       if (!response.ok) throw new Error(`r3_provider_${response.status}`);
+      onResponseHeaders?.();
       return { response, deadline: Date.now() + timeoutMs, firstDeadline, cancel, cancelFirst, abort: reason => controller.abort(reason), timedOut: () => timedOut };
     } catch (error) { cancel(); throw timedOut ?? error; }
   }
 
   return {
-    async *story({ context, literalAction = '', opening = false, content }) {
+    async *story({ context, literalAction = '', opening = false, content, onTiming = null }) {
       const handle = await request({ model: storyModel, stream: true, thinking: { type: 'disabled' }, max_tokens: 5000, messages: [
         { role: 'system', content: STORY_SYSTEM_PROMPT },
         { role: 'user', content: JSON.stringify({ opening, ...buildStoryContext(context, literalAction, { content, opening }) }) }
-      ] }, timeouts.storyTotalMs, 'r3_story_timeout', { firstContentMs: timeouts.storyFirstContentMs, promptContent: opening && !literalAction ? OPENING_STORY_SYSTEM_PROMPT : STORY_SYSTEM_PROMPT });
-      try { yield* readOpenAiStream(handle.response, { firstDeadline: handle.firstDeadline, totalDeadline: handle.deadline, cancelFirst: handle.cancelFirst, abort: handle.abort }); }
+      ] }, timeouts.storyTotalMs, 'r3_story_timeout', { firstContentMs: timeouts.storyFirstContentMs, promptContent: opening && !literalAction ? OPENING_STORY_SYSTEM_PROMPT : STORY_SYSTEM_PROMPT, onResponseHeaders: () => onTiming?.('story_response_headers') });
+      try { yield* readOpenAiStream(handle.response, { firstDeadline: handle.firstDeadline, totalDeadline: handle.deadline, cancelFirst: handle.cancelFirst, abort: handle.abort, onFirstDelta: () => onTiming?.('story_first_delta') }); }
       catch (error) { throw handle.timedOut() ?? error; }
       finally { handle.cancel(); }
     },
@@ -70,7 +71,7 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
 function timeoutError(code) { const error = new Error(code); error.code = code; return error; }
 function timeoutPromise(ms, code, onTimeout) { let timer; const promise = new Promise((_, reject) => { timer = setTimeout(() => { onTimeout?.(); reject(timeoutError(code)); }, Math.max(0, ms)); }); return { promise, cancel: () => clearTimeout(timer) }; }
 
-async function* readOpenAiStream(response, { firstDeadline, totalDeadline, cancelFirst, abort } = {}) {
+async function* readOpenAiStream(response, { firstDeadline, totalDeadline, cancelFirst, abort, onFirstDelta = null } = {}) {
   if (!response.body) throw new Error('r3_story_empty_stream');
   const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = ''; let received = false; let firstExpired = false; let totalExpired = false;
   const cancelReader = reason => { try { const pending = reader.cancel(reason); pending?.catch?.(() => {}); } catch {} };
@@ -80,7 +81,7 @@ async function* readOpenAiStream(response, { firstDeadline, totalDeadline, cance
     while (true) {
       const result = await Promise.race([reader.read(), first.promise, total.promise]); if (result.done) break;
       buffer += decoder.decode(result.value, { stream: true }); const lines = buffer.split(/\r?\n/); buffer = lines.pop() ?? '';
-      for (const line of lines) { if (!line.startsWith('data:')) continue; const data = line.slice(5).trim(); if (data === '[DONE]') continue; const payload = JSON.parse(data); const delta = payload?.choices?.[0]?.delta?.content; if (typeof delta === 'string' && delta) { received = true; first.cancel(); cancelFirst?.(); yield delta; } }
+      for (const line of lines) { if (!line.startsWith('data:')) continue; const data = line.slice(5).trim(); if (data === '[DONE]') continue; const payload = JSON.parse(data); const delta = payload?.choices?.[0]?.delta?.content; if (typeof delta === 'string' && delta) { if (!received) onFirstDelta?.(); received = true; first.cancel(); cancelFirst?.(); yield delta; } }
     }
   } catch (error) { if (totalExpired) throw timeoutError('r3_story_timeout'); if (firstExpired && !received) throw timeoutError('r3_story_first_content_timeout'); throw error; }
   finally { first.cancel(); total.cancel(); }

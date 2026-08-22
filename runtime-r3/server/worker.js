@@ -71,14 +71,20 @@ function openingResponse(store, provider, content, gameId) {
   return new Response(stream, { status: 200, headers: { ...R3_CORS_HEADERS, 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache' } });
 }
 
+function timingMark(emit, startedAt, stage, details = {}) {
+  emit('timing', { stage, elapsed_ms: Math.max(0, Date.now() - startedAt), ...details });
+}
+
 async function processOpening({ store, provider, content, gameId, emit }) {
-  const before = await store.context(gameId); if (before.turns.length) { emit('terminal', { status: 'committed', context: before }); return; }
-  emit('meta', { game_id: gameId, turn_number: 0 }); let storyText = '';
-  for await (const delta of provider.story({ opening: true, context: before, content })) { storyText += String(delta); emit('story_delta', { text: String(delta) }); }
-  let observer = {}; let observerFailed = false; try { observer = await provider.observe({ context: before, literalAction: '', storyText }); } catch { observerFailed = true; }
+  const startedAt = Date.now(); const mark = (stage, details) => timingMark(emit, startedAt, stage, details);
+  const before = await store.context(gameId); if (before.turns.length) { mark('terminal_commit', { replay: true }); emit('terminal', { status: 'committed', context: before }); return; }
+  emit('meta', { game_id: gameId, turn_number: 0 }); let storyText = ''; mark('story_request_start');
+  for await (const delta of provider.story({ opening: true, context: before, content, onTiming: mark })) { storyText += String(delta); emit('story_delta', { text: String(delta) }); }
+  mark('story_complete'); let observer = {}; let observerFailed = false; mark('observer_start'); try { observer = await provider.observe({ context: before, literalAction: '', storyText }); mark('observer_complete'); } catch { observerFailed = true; mark('observer_failed'); }
   const normalized = normalizeObserver(observer, { storyText, content, currentState: before.state.state }); if (observerFailed) normalized.warnings.unshift('observer_failed');
   const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: 0 });
   const context = await store.createOpening(gameId, { storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: observer, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
+  mark('terminal_commit');
   emit('terminal', { status: 'committed', context });
 }
 
@@ -98,15 +104,17 @@ function streamTurn({ store, provider, content, gameId, job }) {
 }
 
 async function processTurn({ store, provider, content, gameId, job, emit }) {
+  const startedAt = Date.now(); const mark = (stage, details) => timingMark(emit, startedAt, stage, details);
   const before = await store.context(gameId); const attempt = { gameId, turnNumber: job.turn_number, actionId: job.action_id, attemptNo: job.attempt_no, literalAction: job.literal_action }; let storyText = ''; let lastProgress = 0; let writes = 0;
-  emit('meta', { game_id: gameId, turn_number: job.turn_number, action_id: job.action_id });
+  emit('meta', { game_id: gameId, turn_number: job.turn_number, action_id: job.action_id }); mark('story_request_start');
   try {
-    for await (const delta of provider.story({ literalAction: attempt.literalAction, context: before, content })) { const text = String(delta); storyText += text; emit('story_delta', { text }); if (writes < R3_MAX_PROGRESS_WRITES && (writes === 0 || storyText.length - lastProgress >= R3_PROGRESS_INTERVAL_CHARS)) { await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText }); writes += 1; lastProgress = storyText.length; } }
-    await store.markStoryComplete({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
-    let rawObserver = {}; let observerFailed = false; try { rawObserver = await provider.observe({ literalAction: attempt.literalAction, storyText, context: before }); } catch { observerFailed = true; }
+    for await (const delta of provider.story({ literalAction: attempt.literalAction, context: before, content, onTiming: mark })) { const text = String(delta); storyText += text; emit('story_delta', { text }); if (writes < R3_MAX_PROGRESS_WRITES && (writes === 0 || storyText.length - lastProgress >= R3_PROGRESS_INTERVAL_CHARS)) { await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText }); writes += 1; lastProgress = storyText.length; } }
+    mark('story_complete'); await store.markStoryComplete({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
+    let rawObserver = {}; let observerFailed = false; mark('observer_start'); try { rawObserver = await provider.observe({ literalAction: attempt.literalAction, storyText, context: before }); mark('observer_complete'); } catch { observerFailed = true; mark('observer_failed'); }
     const normalized = normalizeObserver(rawObserver, { storyText, content, currentState: before.state.state }); if (observerFailed) normalized.warnings.unshift('observer_failed');
     const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: attempt.turnNumber });
     const context = await store.commitTurn({ gameId, turnNumber: attempt.turnNumber, attempt, expectedRevision: before.state.revision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: rawObserver, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
+    mark('terminal_commit');
     emit('terminal', { status: 'committed', context });
   } catch (error) {
     if (error?.code === R3_ATTEMPT_FENCE_CONFLICT || error?.message === R3_ATTEMPT_FENCE_CONFLICT) return;

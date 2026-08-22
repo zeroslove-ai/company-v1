@@ -35,11 +35,17 @@ test('one R3 turn streams Story, fences the job, reconnects, and atomically comm
   const gameId = await setupGame(worker);
   const opening = await events(await request(worker, `/api/r3/games/${gameId}/opening`, { method: 'POST' }));
   assert.equal(opening.at(-1).data.status, 'committed');
+  assert.deepEqual(opening.filter(item => item.event === 'timing').map(item => item.data.stage), [
+    'story_request_start', 'story_complete', 'observer_start', 'observer_complete', 'terminal_commit'
+  ]);
   const literal = '브랜드 전략 회의실로 이동해 서원희에게 인사한다.';
   const turn = await events(await request(worker, `/api/r3/games/${gameId}/turn`, { method: 'POST', body: { action_id: 'action-1', expected_turn: 1, literal_action: literal } }));
   assert.equal(turn[0].event, 'meta');
   assert.ok(turn.some(item => item.event === 'story_delta'));
   assert.equal(turn.at(-1).data.status, 'committed');
+  assert.deepEqual(turn.filter(item => item.event === 'timing').map(item => item.data.stage), [
+    'story_request_start', 'story_complete', 'observer_start', 'observer_complete', 'terminal_commit'
+  ]);
   assert.equal(turn.at(-1).data.context.state.committed_turn, 1);
   assert.equal(turn.at(-1).data.context.turns.at(-1).literal_action, literal);
   assert.equal(turn.at(-1).data.context.turns.at(-1).choices.length, 4);
