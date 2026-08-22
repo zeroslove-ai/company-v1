@@ -130,6 +130,17 @@ test('R3 migration source serializes Opening state and rejects non-next reservat
   assert.match(migration, /v_state\.committed_turn \+ 1 <> p_turn_number/);
 });
 
+test('R3 additive lease migration is stage-aware and keeps the provider budgets unchanged', async () => {
+  const migration = await readFile(new URL('../supabase/migrations/20260822000100_company_r3_failed_retry_stage_leases.sql', import.meta.url), 'utf8');
+  assert.match(migration, /add column if not exists stage_started_at timestamptz/i);
+  assert.match(migration, /stage in \('reserved', 'story_streaming'\) then interval '130 seconds'/i);
+  assert.match(migration, /stage = 'story_complete' then interval '85 seconds'/i);
+  assert.match(migration, /p_retry_failed boolean default false/i);
+  assert.match(migration, /attempt_no = attempt_no \+ 1/i);
+  assert.doesNotMatch(migration, /120 seconds/);
+  assert.doesNotMatch(migration, /75 seconds/);
+});
+
 test('Story first-content timeout includes slow response headers', async () => {
   const provider = createR3Provider({
     env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
@@ -137,4 +148,18 @@ test('Story first-content timeout includes slow response headers', async () => {
     fetchImpl: async () => { await new Promise(resolve => setTimeout(resolve, 25)); return new Response('data: no-content\n\n', { status: 200 }); }
   });
   await assert.rejects(provider.story({ context: {}, content, literalAction: '느리게 응답하는 요청' }).next(), error => error?.code === 'r3_story_first_content_timeout');
+});
+
+test('Story total deadline starts at invocation and includes response-header latency', async () => {
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    timeouts: { storyFirstContentMs: 100, storyTotalMs: 40 },
+    fetchImpl: async () => {
+      await new Promise(resolve => setTimeout(resolve, 30));
+      let timer;
+      const stream = new ReadableStream({ start(controller) { timer = setTimeout(() => { controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"late"}}]}\\n\\n')); controller.close(); }, 20); }, cancel() { clearTimeout(timer); } });
+      return new Response(stream, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }
+  });
+  await assert.rejects(async () => { for await (const _ of provider.story({ context: {}, content, literalAction: 'header latency' })) {} }, error => error?.code === 'r3_story_timeout');
 });

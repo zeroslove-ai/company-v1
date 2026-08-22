@@ -38,6 +38,9 @@ function renderCatalogs(catalogs) { state.catalogs = catalogs; renderSetupCatalo
 function renderContext(context) {
   state.context = context;
   const view = buildR3ViewModel(context, state.catalogs ?? {});
+  const failedJob = context?.job?.status === 'failed';
+  const input = $('player-action');
+  if (failedJob && input && !input.value.trim() && typeof context.job.literal_action === 'string') input.value = context.job.literal_action;
   const actors = state.catalogs?.actors ?? [];
   renderState({ scene: $('scene-state'), player: $('player-situation') }, view);
   renderFocalCharacter($('focal-character'), view.scene.focal_actor);
@@ -46,7 +49,7 @@ function renderContext(context) {
   if ($('day-time')) $('day-time').textContent = `Day ${view.time.day ?? 1} · ${String(Math.floor((view.time.minute ?? 0) / 60)).padStart(2, '0')}:${String((view.time.minute ?? 0) % 60).padStart(2, '0')}`;
   const latest = view.history.at(-1);
   if (latest?.story_text) renderNarrative($('current-story'), parsePlainStoryForPresentation(latest.story_text, { choices: view.choices, actorNames: view.actorNames }));
-  renderChoices($('choice-list'), view.choices, { busy: state.busy, onChoose: submit });
+  renderChoices($('choice-list'), view.choices, { busy: state.busy || failedJob, onChoose: submit });
   renderMindMonitor($('mind-monitor'), view.mindMonitor, { actorNames: view.actorNames });
   renderCompanyMap($('company-map'), buildCompanyMapModel({ scene: view.scene, actors, locations: state.catalogs?.locations ?? [] }), { onFill: literalInput });
   const apps = $('open-apps'); if (apps) apps.disabled = !state.gameId;
@@ -54,9 +57,13 @@ function renderContext(context) {
   const recovery = $('recovery-action');
   if (recovery) {
     const pending = context?.job?.status === 'processing';
-    recovery.hidden = !pending;
+    recovery.hidden = !pending && !failedJob;
     recovery.disabled = state.busy;
     recovery.textContent = pending ? '진행 중인 Story 복구' : '';
+  }
+  if (failedJob) {
+    if (recovery) recovery.textContent = 'Retry failed action';
+    setStatus('r3_turn_failed: edit the action and retry explicitly', true);
   }
   const hasStory = Boolean(view.story);
   const ttsToggle = $('tts-toggle'); if (ttsToggle) { ttsToggle.disabled = !hasStory; ttsToggle.setAttribute('aria-pressed', sidecarState.ttsEnabled ? 'true' : 'false'); }
@@ -98,7 +105,7 @@ function exportHistory(markdown = true) {
 }
 function refreshChoices() {
   const view = state.context ? buildR3ViewModel(state.context, state.catalogs ?? {}) : null;
-  renderChoices($('choice-list'), view?.choices ?? [], { busy: state.busy, onChoose: submit });
+  renderChoices($('choice-list'), view?.choices ?? [], { busy: state.busy || state.context?.job?.status === 'failed', onChoose: submit });
 }
 
 async function recoverPendingTurn() {
@@ -142,13 +149,19 @@ async function openOpening() {
   catch (error) { setStatus(error.message, true); } finally { state.busy = false; refreshChoices(); }
 }
 
-async function submit(value = null) {
+async function submit(value = null, { retryFailed = false } = {}) {
   if (state.busy || !state.gameId) return;
+  if (state.context?.job?.status === 'failed' && !retryFailed) {
+    setStatus('r3_turn_failed: use the explicit retry control', true);
+    return;
+  }
   const input = $('player-action'); const literalAction = value ?? input?.value ?? '';
   if (!literalAction.trim()) { setStatus('다음 행동을 직접 입력해 주세요.', true); return; }
   state.busy = true; setStatus('Story를 생성하는 중입니다.'); if ($('current-story')) $('current-story').replaceChildren();
   try {
-    const turnResponse = await client.turn(state.gameId, { action_id: crypto.randomUUID(), expected_turn: (state.context?.state?.committed_turn ?? 0) + 1, literal_action: literalAction });
+    const payload = { action_id: crypto.randomUUID(), expected_turn: (state.context?.state?.committed_turn ?? 0) + 1, literal_action: literalAction };
+    if (retryFailed) payload.retry_failed = true;
+    const turnResponse = await client.turn(state.gameId, payload);
     if (!turnResponse.ok || !turnResponse.body) {
       const error = new Error('r3_stream_reconnect_required'); error.code = 'r3_stream_reconnect_required'; throw error;
     }
@@ -188,7 +201,7 @@ async function loadContext() {
 $('player-setup-form')?.addEventListener('submit', setup);
 $('submit-action')?.addEventListener('click', () => submit());
 $('player-action')?.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') submit(); });
-$('recovery-action')?.addEventListener('click', () => recoverPendingTurn());
+$('recovery-action')?.addEventListener('click', () => state.context?.job?.status === 'failed' ? submit(null, { retryFailed: true }) : recoverPendingTurn());
 $('open-history')?.addEventListener('click', openHistory);
 $('history-close')?.addEventListener('click', () => setHidden('history-overlay', true));
 $('history-download-md')?.addEventListener('click', () => exportHistory(true));

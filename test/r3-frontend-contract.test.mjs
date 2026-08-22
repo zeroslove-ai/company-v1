@@ -43,6 +43,17 @@ test('R3 boot fallback is dismissed after boot and API origin survives game URL 
   assert.doesNotMatch(app, /replaceState\(null, '', `\?game_id=/);
 });
 
+test('R3 failed job exposes editable literal and an explicit retry-only control', () => {
+  assert.match(app, /context\?\.job\?\.status === 'failed'/);
+  assert.match(app, /context\.job\.literal_action/);
+  assert.match(app, /Retry failed action/);
+  assert.match(app, /retryFailed = false/);
+  assert.match(app, /payload\.retry_failed = true/);
+  assert.match(app, /use the explicit retry control/);
+  assert.match(app, /recovery-action.*submit\(null, \{ retryFailed: true \}\)/s);
+  assert.doesNotMatch(app, /loadContext[\s\S]{0,500}retryFailed: true/);
+});
+
 test('R3 presentation adapter preserves raw Story and canonical choice literals', async () => {
   const { narrativeChoiceItems, parsePlainStoryForPresentation, renderChoices, renderNarrative } = await import('../frontend-r3/render.js');
   const choices = ['첫 번째 행동을 한다.', '두 번째 행동을 한다.', '세 번째 행동을 한다.', '네 번째 행동을 한다.'];

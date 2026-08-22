@@ -91,7 +91,7 @@ async function processOpening({ store, provider, content, gameId, emit }) {
 async function turnResponse(request, store, provider, content, gameId) {
   const input = await body(request); const literalAction = requireLiteralAction(input.literal_action); const actionId = String(input.action_id ?? ''); if (!actionId) throw new Error('r3_action_id_required');
   const before = await store.context(gameId); const expectedTurn = input.expected_turn; const existing = Number.isInteger(expectedTurn) ? await store.getJob(gameId, expectedTurn) : null;
-  if (existing) return json({ status: existing.status, reconnect: true, job: existing, context: existing.status === 'committed' ? await store.context(gameId) : undefined });
+  if (existing && !(existing.status === 'failed' && input.retry_failed === true)) return json({ status: existing.status, reconnect: true, job: existing, context: existing.status === 'committed' ? await store.context(gameId) : undefined });
   assertExpectedTurn(expectedTurn, before.state.committed_turn);
   const reservation = await store.reserveTurn({ gameId, turnNumber: expectedTurn, actionId, literalAction, retryFailed: input.retry_failed === true });
   if (!reservation.created) return json({ status: reservation.job.status, reconnect: true, job: reservation.job, context: reservation.job.status === 'committed' ? await store.context(gameId) : undefined });

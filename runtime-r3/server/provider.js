@@ -34,7 +34,8 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
 
   async function request(payload, timeoutMs, code, { firstContentMs = null, promptContent = null, onResponseHeaders = null } = {}) {
     const controller = new AbortController(); let timedOut = null;
-    const totalTimer = setTimeout(() => { timedOut = timeoutError(code); controller.abort(timedOut); }, timeoutMs);
+    const totalDeadline = Date.now() + timeoutMs;
+    const totalTimer = setTimeout(() => { timedOut = timeoutError(code); controller.abort(timedOut); }, Math.max(0, totalDeadline - Date.now()));
     const firstDeadline = firstContentMs === null ? null : Date.now() + firstContentMs;
     const firstTimer = firstContentMs === null ? null : setTimeout(() => { timedOut = timeoutError('r3_story_first_content_timeout'); controller.abort(timedOut); }, firstContentMs);
     const cancelFirst = () => { if (firstTimer) clearTimeout(firstTimer); };
@@ -43,7 +44,7 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
       const response = await fetchImpl(completionUrl, { method: 'POST', headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' }, body: JSON.stringify(withPromptContent(payload, promptContent)), signal: controller.signal });
       if (!response.ok) throw new Error(`r3_provider_${response.status}`);
       onResponseHeaders?.();
-      return { response, deadline: Date.now() + timeoutMs, firstDeadline, cancel, cancelFirst, abort: reason => controller.abort(reason), timedOut: () => timedOut };
+      return { response, deadline: totalDeadline, firstDeadline, cancel, cancelFirst, abort: reason => controller.abort(reason), timedOut: () => timedOut };
     } catch (error) { cancel(); throw timedOut ?? error; }
   }
 
