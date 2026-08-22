@@ -1,173 +1,209 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-test-rls-exposure-audit-v1
-Mode: READ-ONLY TEST DATA-EXPOSURE AUDIT -> CLASSIFY ADVISORY VS REAL EXPOSURE -> STOP
-Updated: 2026-08-23 00:24 KST
+Task ID: company-r3-game-capability-source-fix-v1
+Mode: IMPLEMENT MINIMAL PER-GAME CAPABILITY SOURCE FIX -> FOCUSED TESTS -> STOP BEFORE DEPLOY
+Updated: 2026-08-23 00:42 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, security framework, compatibility layer, or competing execution authority.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, auth framework, compatibility layer, or competing execution authority.
 
-## 0. Authority / frozen product baseline
+## 0. Authority / accepted baseline
 
 Binding authority:
 - product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
 - A-prime engine/live-first canon PR #96 head `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
 - owner lean-development directives `5380380688` and `5380381500`;
-- feedback rollout terminal `5381058522`;
-- feedback continuation terminal `5381140991`;
-- operator freeze/review `5381157253`;
-- accepted executable source `2898a929db239f210f448bab87579872aae8ec81`;
+- accepted executable source before this correction `2898a929db239f210f448bab87579872aae8ec81`;
+- feedback revision is fully TEST-accepted/frozen by review `5381157253`;
+- RLS exposure audit terminal `5381207635`;
+- operator review `5381230270`;
 - this exact CURRENT_TASK blob after registration.
 
-Feedback revision is now TEST-accepted and FROZEN. Do not reopen it absent a new real defect.
-
-Accepted TEST identities remain fixed:
-- API `game-proxy-company-r3` version `43179146-b0b3-4be9-b750-781c3ad3b61d`;
-- frontend `gamebuilder-company-r3` version `016422f6-2c1f-4ac5-b4ec-eab7c7f2a5f6`;
-- applied migration `20260822000300_company_r3_feedback_revision`.
-
-Known unrelated capability exceptions remain frozen:
-- CSA rule 7;
-- CSA rule 9.
+Known frozen unrelated exceptions:
+- CSA rule 7 provider/model capability exception;
+- CSA rule 9 provider/model capability exception.
 Do not sample, tune, or reinterpret them.
 
-## 1. Purpose
+## 1. Proven defect
 
-During the accepted feedback rollout, Supabase CLI reported an existing critical `RLS disabled` advisory covering 11 TEST tables, including the new feedback revision tables.
+The TEST read-only audit proved a real Worker API access-control defect:
+- Supabase table/RPC privilege boundaries themselves were not anonymously open;
+- but `GET /api/r3/games/:game_id/context` returned the full canonical gameplay context with HTTP 200 when called with no API key/token;
+- source confirms `runtime-r3/server/worker.js` calls `store.context(gameId)` without a game access check;
+- the same game-scoped route spine also exposes opening/turn/feedback/CSA without a credential boundary;
+- `frontend-r3/r3-client.js` currently sends no game credential.
 
-The new feedback tables already proved explicit `anon` / `authenticated` table privileges denied and service-role-only RPC execution. The advisory therefore must be classified before any security mutation:
+This is deterministic protected-data exposure and must be fixed before further product rollout.
 
-A. advisory-only / no practical unauthorized access under current grants/API boundary; or
-B. real unauthorized read/write exposure reachable without service-role authority.
+This defect does NOT authorize:
+- Supabase RLS/grant redesign;
+- user accounts/login/OAuth;
+- generic auth middleware/framework;
+- semantic/runtime/gameplay changes;
+- compatibility bypass for old bare `game_id` URLs.
 
-This task is READ ONLY. It does not authorize remediation.
+## 2. Required minimal design
 
-## 2. Preflight
+Implement a narrow **per-game bearer capability** for R3.
 
-Before any probe:
-1. Re-read Issue #68 and this exact CURRENT_TASK; STOP if a competing owner/operator directive or active lease exists.
-2. Verify `main` remains executable-equivalent to accepted source `2898a929...` plus docs-only task registrations.
-3. Verify the TEST project only. Do not inspect or touch Production.
-4. Verify current migration ledger read-only; do not apply/revert/re-run any migration.
-5. Verify no deploy is needed; reuse current TEST API/frontend identities.
+Preferred shape:
+- stateless, versioned HMAC-SHA256 token bound to exactly one `game_id`;
+- signed with a dedicated Worker secret named `R3_GAME_ACCESS_SECRET` (or an equivalently narrow dedicated R3 game-access secret if repository conventions require a different exact env name);
+- no DB/schema/migration required;
+- no raw secret or token written to logs, Issue comments, source, tests, URLs, Story context, DB rows, or error payloads.
 
-If the TEST project or identities cannot be verified safely, STOP `BLOCKED_RLS_AUDIT_PREFLIGHT`.
+Do not reuse the Supabase service-role key as the capability-signing secret if a dedicated secret can be used. Source may require the dedicated secret, but this task MUST NOT provision or deploy it.
 
-## 3. Read-only inventory
+Fail closed:
+- production Worker setup/game access must not silently fall back to bare `game_id` when the signing secret is missing;
+- no insecure development fallback may be active in deployed code.
 
-Using TEST metadata/read-only SQL or equivalent safe introspection, identify the exact tables covered by the current Supabase RLS-disabled advisory.
+Keep the implementation small. A tiny R3-specific capability helper/module is allowed if cleaner than embedding crypto in `worker.js`; do not create a general authentication subsystem.
 
-For each advisory table, record only what is needed to classify exposure:
-- schema/table name;
-- RLS enabled/disabled;
-- owner if useful;
-- effective privileges for `anon`, `authenticated`, `public`, and `service_role` for SELECT/INSERT/UPDATE/DELETE;
-- whether the table is exposed through the project's PostgREST/API schema under current configuration;
-- relevant callable RPCs and their execute privileges if they can reach that table.
+## 3. Public vs protected routes
 
-Pay special attention to all active `company_r3_*` gameplay tables and specifically:
-- `company_r3_turn_revision_history`;
-- `company_r3_feedback_attempts`;
-- `company_r3_games`;
-- `company_r3_state`;
-- `company_r3_turns`;
-- `company_r3_turn_jobs`;
-- `company_r3_system_events` if present/current.
+Remain public:
+- `OPTIONS` transport handling;
+- `GET /api/r3/catalogs`;
+- `POST /api/r3/games` game creation/setup.
 
-Do not create a generic security inventory framework or new repository audit document. Terminal evidence is enough.
+`POST /api/r3/games` must return the newly created game plus its bearer capability to the creating client. The capability is transport authority only; it must not become gameplay/domain state.
 
-## 4. Safe external reachability probes
+Require a valid capability bound to the path `game_id` BEFORE any store/provider/game mutation/read for every game-scoped route:
+- `GET /api/r3/games/:game_id/context`;
+- `POST /api/r3/games/:game_id/opening`;
+- `POST /api/r3/games/:game_id/turn`;
+- `POST /api/r3/games/:game_id/feedback`;
+- `POST /api/r3/games/:game_id/csa`;
+- any reconnect/recovery frontend call that reaches the above routes.
 
-Where possible without mutation, test the actual TEST REST/API boundary using unauthenticated and/or anon-equivalent requests.
+Credential transport:
+- use `Authorization: Bearer <game capability>` unless an equally standard bearer header is already established in this R3 source;
+- capability for game A must never authorize game B;
+- malformed/missing/wrong/other-game token must return one generic access-denied response (401 preferred; 403 acceptable if existing error conventions strongly require it), without revealing whether the game exists;
+- rejection must happen before `store.context`, job lookup, provider Story/Observer, feedback begin, CSA mutation, or any other game-specific call.
 
-Allowed probes are READ ONLY, e.g.:
-- GET/HEAD/select-equivalent requests against advisory tables;
-- calls to read-only RPCs if any are publicly executable;
-- OPTIONS/schema reachability only when useful.
+Do not protect catalogs/setup with this capability.
 
-For each meaningful probe record:
-- target table/RPC;
-- auth context: no auth vs anon-equivalent;
-- HTTP/status/error classification;
-- whether any row data/metadata beyond normal API errors was returned.
+## 4. Frontend/client behavior
 
-Do not include secrets, service-role keys, auth tokens, or private row contents in Issue #68. If a response proves exposure, report only bounded structural evidence such as table name, row count >0, exposed column names if necessary, and status code.
+Update the thin R3 client/app only as needed to carry the capability.
 
-### Absolutely forbidden write probes
+Requirements:
+- setup receives the capability from the server;
+- client sends it on every protected game-scoped request, including SSE opening/turn/feedback and context/recovery/CSA;
+- persist it locally keyed by the exact `game_id` so an ordinary same-browser refresh of the existing `?game_id=...` URL can resume the game;
+- do NOT place the bearer token in the query string/hash or visible URL;
+- do NOT print it in status/UI/console;
+- if a `game_id` URL has no matching local capability (for example an old link or another browser), fail clearly as access-required instead of silently calling the API without a token or creating a compatibility bypass;
+- setup for a new game should save the capability before the first context/opening request.
 
-Do NOT attempt INSERT/UPDATE/DELETE/UPSERT/RPC mutations merely to see whether they fail.
+Use the smallest browser storage approach already compatible with this frontend. Do not add account/session UI.
 
-Classify write exposure from grants/function privileges/static authority only. No destructive or synthetic security test writes.
+## 5. Historical games / compatibility
 
-## 5. Classification
+Do NOT add a bare-ID compatibility escape hatch.
 
-### GREEN / advisory-only
-
-Classify `ADVISORY_ONLY_NO_PRACTICAL_ANON_EXPOSURE` only if all relevant evidence agrees that:
-- anon/unauth/public cannot read gameplay/revision rows through the exposed API boundary;
-- no public/anon executable RPC provides equivalent data access or mutation authority;
-- write privileges are absent for unauthorized roles;
-- service-role remains the effective privileged boundary.
-
-An RLS-disabled scanner warning alone is not a product blocker if privileges/API reachability prevent unauthorized access.
-
-### BLOCKED / real exposure
-
-Classify `REAL_UNAUTHORIZED_DATA_EXPOSURE` if any unauthorized context can actually read protected gameplay/revision data, or static privileges prove a real unauthorized write path.
-
-On first real exposure:
-- stop additional breadth once enough evidence identifies the boundary;
-- do not patch grants/RLS/source;
-- report the exact narrow root surface;
-- recommend the smallest follow-up correction task.
-
-Do not broaden into a security redesign.
-
-## 6. No product/game mutation
+Existing pre-capability TEST URLs may stop being resumable after the future secured deployment unless the browser possesses a valid newly issued capability. That is acceptable for this correction boundary.
 
 Do NOT:
-- create/reset/mutate any game;
-- continue the disposable feedback game;
-- touch preserved games;
-- submit turns or feedback;
-- sample CSA;
-- run Story/Observer/provider calls;
-- deploy API/frontend;
-- apply migration/DDL/RLS/policy/grant changes;
-- change source/runtime/frontend/tests/config/provider/model/timeouts;
+- backfill tokens into DB;
+- add token-exchange-by-game-id endpoints;
+- infer ownership from game UUID;
+- retain unauthenticated read-only context for legacy games.
+
+Future TEST rollout should use a fresh disposable game created after the secured deployment.
+
+## 6. Scope
+
+Expected source areas only:
+- `runtime-r3/server/worker.js`;
+- optionally one narrowly named R3 game-capability helper under `runtime-r3/server/`;
+- `frontend-r3/r3-client.js`;
+- `frontend-r3/app.js`;
+- focused R3 worker/client/access tests and only minimal existing test-fixture adjustments required by the new explicit credential boundary.
+
+Do not edit Company content, Story/Observer prompts, reducer, CSA behavior, feedback semantics, provider/model/config/timeouts, DB store semantics, migrations, or unrelated UI.
+
+No new dependencies unless Web Crypto/runtime primitives genuinely cannot express the small HMAC/token contract. Prefer platform Web Crypto and existing primitives.
+
+## 7. Focused acceptance tests
+
+Add/adjust focused deterministic tests proving at minimum:
+
+### Server capability
+1. catalogs remains public;
+2. setup remains public and returns a non-empty capability without exposing the signing secret;
+3. valid token + matching game_id allows context;
+4. missing token denies context before store access;
+5. malformed/wrong token denies before store access;
+6. game-A token denies game-B path before store access;
+7. the same missing/wrong/mismatched cases deny opening, turn, feedback, and CSA before provider/store mutation;
+8. valid matching capability preserves existing opening/turn/feedback/CSA route behavior;
+9. capability is not embedded in returned canonical context/turn state or persisted gameplay objects;
+10. missing production signing secret fails closed rather than enabling bare-id access.
+
+### Frontend/client
+11. setup capability is retained keyed to its game id;
+12. context/opening/turn/feedback/CSA requests carry the bearer header;
+13. recovery polling uses the same credential path;
+14. same-browser reload with game_id + stored capability can load normally;
+15. game_id with no stored capability does not issue an unauthenticated protected request and produces a clear access-required failure;
+16. capability is not appended to the visible URL.
+
+Use narrow mocks/spies to prove denied calls do not reach store/provider. Do not build a security harness project.
+
+## 8. Validation
+
+Run only what this small correction needs:
+- focused R3 game-capability/worker/client tests;
+- directly affected existing R3 route/frontend tests;
+- JS/MJS syntax checks for modified files;
+- `git diff --check`.
+
+Under the owner lean directive, do NOT run a broad full-repo suite unless this correction unexpectedly crosses a shared runtime boundary and focused evidence is insufficient. If a broader suite becomes necessary, explain why in terminal rather than creating another QA layer.
+
+## 9. Forbidden in this task
+
+Do NOT:
+- provision/change Worker secrets;
+- deploy/redeploy API or frontend;
+- apply/edit/create migrations;
+- change RLS/policies/grants/DB schema;
+- mutate/create/reset/play any TEST game;
 - touch Production;
-- add security middleware, compatibility code, or new audit harnesses.
+- access preserved games;
+- alter provider/model/config/timeouts;
+- alter Story/Observer/reducer/CSA/feedback product behavior;
+- rerun CSA7/9;
+- add user accounts/login/OAuth/session service;
+- add a generic auth/security framework;
+- add bare-game-id legacy compatibility;
+- put capability tokens in URLs/logs/Issue terminal evidence;
+- overwrite CURRENT_TASK after execution.
 
-This task should leave repo executable source and TEST data unchanged.
+## 10. Terminal report
 
-## 7. Terminal report
+Commit and push the source/test correction to `main`, then post one terminal comment to Issue #68 and STOP.
 
-Post exactly one terminal comment to Issue #68 and STOP.
+Expected success status:
+`STATUS: WAITING_REVIEW_GAME_CAPABILITY_SOURCE_IMPLEMENTED_NOT_DEPLOYED`
 
-If no practical unauthorized exposure is found:
-`STATUS: COMPLETE_RLS_AUDIT_ADVISORY_ONLY_GREEN`
-
-If real unauthorized exposure is proven:
-`STATUS: BLOCKED_RLS_AUDIT_REAL_EXPOSURE`
-
-If the boundary cannot be safely determined read-only:
-`STATUS: BLOCKED_RLS_AUDIT_INCONCLUSIVE`
+If the minimal capability design cannot be implemented without a schema migration/account system or another material architecture change, STOP:
+`STATUS: BLOCKED_GAME_CAPABILITY_DESIGN_BOUNDARY`
 
 Terminal must include:
 - Task ID and CURRENT_TASK blob;
 - execution lease;
-- start/final repo HEAD;
-- confirmation no source/deploy/migration/DB/game/Production mutation occurred;
-- TEST project identity and reused Worker identities;
-- exact advisory table list or the subset actually returned by current scanner if advisory output changes;
-- compact privilege matrix for unauthorized roles vs service_role;
-- compact real REST/API read-probe outcomes;
-- any publicly executable RPC boundary relevant to protected data;
-- final classification;
-- if BLOCKED real exposure: smallest recommended correction boundary only;
-- if GREEN: state that no RLS/grant mutation is justified by this audit and return control to product work.
-
-CSA 7/9 and feedback revision remain frozen throughout.
+- start/final main SHA and source commit;
+- exact changed paths;
+- concise capability contract and credential transport (never token/secret values);
+- proof all game-scoped routes reject missing/wrong/mismatched capabilities before store/provider access;
+- proof valid capability preserves expected route behavior;
+- frontend persistence/header/reload behavior;
+- focused test counts + syntax/diff results;
+- confirmation no secret provisioning/deploy/migration/RLS/grant/DB/game/Production/provider/CSA mutation occurred;
+- any explicit follow-up deployment requirement, especially provisioning `R3_GAME_ACCESS_SECRET` in TEST before deploying the secured source.
 
 Then STOP. Do not overwrite CURRENT_TASK or choose the next task.
