@@ -144,6 +144,7 @@ declare
   v_state public.company_r3_state%rowtype;
   v_turn public.company_r3_turns%rowtype;
   v_history public.company_r3_turn_revision_history%rowtype;
+  v_job public.company_r3_turn_jobs%rowtype;
   v_attempt public.company_r3_feedback_attempts%rowtype;
   v_next_revision integer;
   v_next_state_revision integer;
@@ -211,7 +212,7 @@ begin
     v_attempt.feedback_text, v_attempt.original_literal_action, p_story_text, p_choices,
     btrim(p_turn_summary), coalesce(p_mind_monitor, '{}'::jsonb), coalesce(p_observer_raw, '{}'::jsonb),
     coalesce(p_observer_applied, '{}'::jsonb), coalesce(p_warnings, '[]'::jsonb),
-    v_history.state_before, p_state_after, v_state.revision, v_next_state_revision, v_history.revision_id
+    v_history.state_before, p_state_after, v_history.state_revision_before, v_next_state_revision, v_history.revision_id
   ) returning revision_id into v_revision_id;
 
   update public.company_r3_state set revision = v_next_state_revision, state = p_state_after, updated_at = now() where game_id = p_game_id;

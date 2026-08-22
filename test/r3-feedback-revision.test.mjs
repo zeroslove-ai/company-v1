@@ -79,6 +79,29 @@ test('R3 feedback revises one logical turn from exact pre-turn state and is idem
   assert.equal((await (await request(worker, `/api/r3/games/${gameId}/context`)).json()).data.turns.at(-1).revision, 2);
 });
 
+test('R3 repeated feedback keeps the original pre-turn state boundary through revision 3', async () => {
+  const calls = { story: [], observe: [] }; const store = new InMemoryR3Store();
+  const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content });
+  const { gameId, literal } = await committedOrdinaryTurn(worker);
+  const original = store.revisionHistory.get(`${gameId}:1:1`);
+  const first = await events(await request(worker, `/api/r3/games/${gameId}/feedback`, { method: 'POST', body: { revision_request_id: 'abababab-abab-4aba-8aba-abababababab', expected_turn: 1, expected_state_revision: 1, feedback_text: '첫 번째 수정' } }));
+  assert.equal(first.at(-1).data.status, 'committed');
+  const second = await events(await request(worker, `/api/r3/games/${gameId}/feedback`, { method: 'POST', body: { revision_request_id: 'acacacac-acac-4aca-8aca-acacacacacac', expected_turn: 1, expected_state_revision: 2, feedback_text: '두 번째 수정' } }));
+  assert.equal(second.at(-1).data.status, 'committed');
+  const revisions = [1, 2, 3].map(revision => store.revisionHistory.get(`${gameId}:1:${revision}`));
+  assert.deepEqual(revisions.map(item => item.revision), [1, 2, 3]);
+  assert.deepEqual(revisions.map(item => item.state_before), [original.state_before, original.state_before, original.state_before]);
+  assert.deepEqual(revisions.map(item => item.state_revision_before), [0, 0, 0]);
+  assert.deepEqual(revisions.map(item => item.state_revision_after), [1, 2, 3]);
+  assert.equal(store.context(gameId).state.committed_turn, 1);
+  assert.equal(store.context(gameId).state.revision, 3);
+  assert.equal(store.context(gameId).turns.filter(item => item.turn_number === 1).length, 1);
+  assert.equal(store.context(gameId).turns.at(-1).revision, 3);
+  assert.equal(store.context(gameId).turns.at(-1).literal_action, literal);
+  assert.equal(calls.story.filter(args => args.feedbackText).length, 2);
+  assert.equal(calls.observe.filter(args => args.literalAction === literal).length, 3);
+});
+
 test('R3 feedback rejects stale or later-sidecar fences before provider work', async () => {
   const calls = { story: [], observe: [] }; const store = new InMemoryR3Store();
   const worker = createR3Worker({ store, provider: deterministicRevisionProvider(calls), content });
@@ -143,6 +166,9 @@ test('R3 feedback source exposes the narrow migration, endpoint, and existing-mo
   assert.match(migration, /company_r3_commit_feedback_revision/);
   assert.match(migration, /company_r3_fail_feedback_revision/);
   assert.match(migration, /grant execute on function public\.company_r3_begin_feedback_revision[\s\S]*to service_role/);
+  const feedbackCommit = migration.match(/create or replace function public\.company_r3_commit_feedback_revision[\s\S]*?\n\$\$;/i)?.[0] ?? '';
+  assert.match(feedbackCommit, /v_job public\.company_r3_turn_jobs%rowtype/);
+  assert.match(feedbackCommit, /v_history\.state_revision_before, v_next_state_revision/);
   assert.match(worker, /context\|opening\|turn\|csa\|feedback/);
   assert.match(worker, /provider\.story\(\{ context: before, content, literalAction, feedbackText/);
   assert.match(client, /feedback\(gameId, payload\)/);
