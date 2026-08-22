@@ -22,8 +22,11 @@ function choiceParityKey(value) { return value.replace(/\\"/g, '"'); }
 function projectChoices(storyText, observerChoices) {
   const storyChoices = storyChoiceTail(storyText);
   const choices = Array.isArray(observerChoices) ? observerChoices.map(text) : [];
-  if (!storyChoices || choices.length !== 4 || new Set(choices).size !== 4 || choices.some(choice => !choice)) return null;
-  return choices.every((choice, index) => choiceParityKey(choice) === choiceParityKey(storyChoices[index])) ? storyChoices : null;
+  if (!storyChoices) return { choices: null, warning: observerChoices !== undefined ? 'choices_projection_dropped' : null };
+  const observerMatches = choices.length === 4
+    && new Set(choices).size === 4
+    && choices.every((choice, index) => choice && choiceParityKey(choice) === choiceParityKey(storyChoices[index]));
+  return { choices: storyChoices, warning: observerMatches ? null : 'choices_observer_mismatch' };
 }
 
 function locationIdFromCanonicalName(quote, content) {
@@ -63,8 +66,8 @@ export function normalizeObserver(input, { storyText = '', content, currentState
   const note = text(observer.scene_note);
   if (note) normalized.scene_note = note.slice(0, 1000);
   const projectedChoices = projectChoices(storyText, observer.choices);
-  if (projectedChoices) normalized.choices = projectedChoices;
-  else if (observer.choices !== undefined) warnings.push('choices_projection_dropped');
+  if (projectedChoices.choices) normalized.choices = projectedChoices.choices;
+  if (projectedChoices.warning) warnings.push(projectedChoices.warning);
   normalized.turn_summary = text(observer.turn_summary).slice(0, 600);
   const elapsed = Number(observer.elapsed_minutes);
   if (Number.isInteger(elapsed) && elapsed >= 0) normalized.elapsed_minutes = Math.min(elapsed, 1440);

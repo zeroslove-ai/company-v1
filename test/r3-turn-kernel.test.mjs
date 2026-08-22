@@ -58,21 +58,21 @@ test('one R3 turn streams Story, fences the job, reconnects, and atomically comm
   assert.equal((await catalog.json()).data.locations.length, content.locations.length);
 });
 
-test('observer failure is fail-open and stale choices do not survive', async () => {
+test('observer failure is fail-open and Story-authored choices survive', async () => {
   const base = createDeterministicR3Provider();
   const provider = { story: base.story, async observe() { throw new Error('observer_unavailable'); } };
   const worker = createR3Worker({ store: new InMemoryR3Store(), provider, content });
   const gameId = await setupGame(worker);
   const opening = await events(await request(worker, `/api/r3/games/${gameId}/opening`, { method: 'POST' }));
   assert.equal(opening.at(-1).data.status, 'committed');
-  assert.deepEqual(opening.at(-1).data.context.turns[0].choices, []);
+  assert.equal(opening.at(-1).data.context.turns[0].choices.length, 4);
   assert.ok(opening.at(-1).data.context.turns[0].warnings.includes('observer_failed'));
   const literal = '현재 장면을 다시 확인한다.';
   const turn = await events(await request(worker, `/api/r3/games/${gameId}/turn`, { method: 'POST', body: { action_id: 'action-fail-open', expected_turn: 1, literal_action: literal } }));
   const terminal = turn.at(-1).data;
   assert.equal(terminal.status, 'committed');
   assert.ok(terminal.context.turns.at(-1).story_text.includes(literal));
-  assert.deepEqual(terminal.context.turns.at(-1).choices, []);
+  assert.equal(terminal.context.turns.at(-1).choices.length, 4);
   assert.ok(terminal.context.turns.at(-1).warnings.includes('observer_failed'));
 });
 

@@ -156,7 +156,7 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.equal(ordinaryContext.opening_agency_contract, null);
 });
 
-test('R3 choice normalization fails closed for non-verbatim or non-four current Story choices', () => {
+test('R3 choice normalization keeps Story-owned choices when Observer choices are malformed', () => {
   const invalidChoices = [
     [],
     choices.slice(0, 3),
@@ -166,12 +166,12 @@ test('R3 choice normalization fails closed for non-verbatim or non-four current 
   ];
   for (const candidate of invalidChoices) {
     const normalized = normalizeObserver({ choices: candidate, previous_choices: choices }, { storyText, content, currentState: {} });
-    assert.equal(normalized.choices, null);
-    assert.ok(normalized.warnings.includes('choices_projection_dropped'));
+    assert.deepEqual(normalized.choices, choices);
+    assert.ok(normalized.warnings.includes('choices_observer_mismatch'));
   }
 });
 
-test('R3 valid Story remains committed when choice projection is unavailable without a second Story', async () => {
+test('R3 valid Story remains committed when Observer choice projection is unavailable without a second Story', async () => {
   let storyCalls = 0;
   let observerCalls = 0;
   const provider = {
@@ -188,6 +188,6 @@ test('R3 valid Story remains committed when choice projection is unavailable wit
   assert.equal(storyCalls, 1);
   assert.equal(observerCalls, 1);
   assert.equal(terminal.context.turns[0].story_text, storyText);
-  assert.deepEqual(terminal.context.turns[0].choices, []);
-  assert.ok(terminal.context.turns[0].warnings.includes('choices_projection_dropped'));
+  assert.deepEqual(terminal.context.turns[0].choices, choices);
+  assert.ok(terminal.context.turns[0].warnings.includes('choices_observer_mismatch'));
 });

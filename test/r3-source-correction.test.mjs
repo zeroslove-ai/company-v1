@@ -24,15 +24,35 @@ test('R3 choice projection binds only the terminal Story tail and preserves exac
   assert.deepEqual(normalizeObserver({ choices: exact }, { storyText: story, content }).choices, exact);
   assert.deepEqual(normalizeObserver({ choices: exact }, { storyText: storyWithChoices(exact.map(choice => choice.replace('"', '\\"'))), content }).choices, exact.map(choice => choice.replace('"', '\\"')));
   assert.deepEqual(normalizeObserver({ choices: exact.map(choice => choice.replace('"', '\\"')) }, { storyText: story, content }).choices, exact);
-  assert.deepEqual(normalizeObserver({ choices: ['inspect  the desk', ...exact.slice(1)] }, { storyText: story, content }).choices, null);
-  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk!', ...exact.slice(1)] }, { storyText: story, content }).choices, null);
-  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk', 'ask “hello”', ...exact.slice(2)] }, { storyText: story, content }).choices, null);
-  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk', 'say goodbye', ...exact.slice(2)] }, { storyText: story, content }).choices, null);
-  assert.deepEqual(normalizeObserver({ choices: exact.slice(0, 3) }, { storyText: story, content }).choices, null);
-  assert.deepEqual(normalizeObserver({ choices: [...exact, 'extra'] }, { storyText: story, content }).choices, null);
-  assert.deepEqual(normalizeObserver({ choices: [exact[0], exact[0], exact[2], exact[3]] }, { storyText: story, content }).choices, null);
-  assert.deepEqual(normalizeObserver({ choices: [exact[1], exact[0], exact[2], exact[3]] }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: ['inspect  the desk', ...exact.slice(1)] }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk!', ...exact.slice(1)] }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk', 'ask “hello”', ...exact.slice(2)] }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk', 'say goodbye', ...exact.slice(2)] }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: exact.slice(0, 3) }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: [...exact, 'extra'] }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: [exact[0], exact[0], exact[2], exact[3]] }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: [exact[1], exact[0], exact[2], exact[3]] }, { storyText: story, content }).choices, exact);
   assert.deepEqual(normalizeObserver({ choices: exact }, { storyText: 'Narrative only', content }).choices, null);
+});
+
+test('R3 Observer choice mismatches are diagnostic-only when Story authored the tail', () => {
+  const storyChoices = ['one', 'two', 'three', 'four'];
+  const story = storyWithChoices(storyChoices);
+  for (const observerChoices of [
+    storyChoices.map((choice, index) => `${index + 1}. ${choice}`),
+    ['unrelated one', 'unrelated two', 'unrelated three', 'unrelated four'],
+    [],
+    [storyChoices[1], storyChoices[0], storyChoices[2], storyChoices[3]],
+    [storyChoices[0], storyChoices[0], storyChoices[2], storyChoices[3]],
+  ]) {
+    const normalized = normalizeObserver({ choices: observerChoices }, { storyText: story, content });
+    assert.deepEqual(normalized.choices, storyChoices);
+    assert.ok(normalized.warnings.includes('choices_observer_mismatch'));
+    assert.equal(normalized.warnings.includes('choices_projection_dropped'), false);
+  }
+  const missing = normalizeObserver({}, { storyText: story, content });
+  assert.deepEqual(missing.choices, storyChoices);
+  assert.ok(missing.warnings.includes('choices_observer_mismatch'));
 });
 
 test('R3 choice tail accepts the existing 1) form without using earlier numbered prose', () => {
