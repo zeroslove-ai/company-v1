@@ -10,8 +10,36 @@ import { createInitialState } from '../runtime-r3/domain/contracts.js';
 import { SupabaseR3Store } from '../runtime-r3/server/supabase-store.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { createR3Provider } from '../runtime-r3/server/provider.js';
+import { normalizeObserver } from '../runtime-r3/domain/observer-normalizer.js';
 
 const content = loadCanonicalCompanyR3Content();
+
+function storyWithChoices(choices, { body = 'Current Story' } = {}) {
+  return `${body}\n1. ${choices[0]}\n2. ${choices[1]}\n3. ${choices[2]}\n4. ${choices[3]}`;
+}
+
+test('R3 choice projection binds only the terminal Story tail and preserves exact Story literals', () => {
+  const exact = ['inspect the desk', 'ask "hello"', 'write a note', 'leave the room'];
+  const story = storyWithChoices(exact, { body: 'Earlier list\n1. stale one\n2. stale two\n3. stale three\n4. stale four\n\nCurrent Story' });
+  assert.deepEqual(normalizeObserver({ choices: exact }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: exact }, { storyText: storyWithChoices(exact.map(choice => choice.replace('"', '\\"'))), content }).choices, exact.map(choice => choice.replace('"', '\\"')));
+  assert.deepEqual(normalizeObserver({ choices: exact.map(choice => choice.replace('"', '\\"')) }, { storyText: story, content }).choices, exact);
+  assert.deepEqual(normalizeObserver({ choices: ['inspect  the desk', ...exact.slice(1)] }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk!', ...exact.slice(1)] }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk', 'ask “hello”', ...exact.slice(2)] }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: ['inspect the desk', 'say goodbye', ...exact.slice(2)] }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: exact.slice(0, 3) }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: [...exact, 'extra'] }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: [exact[0], exact[0], exact[2], exact[3]] }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: [exact[1], exact[0], exact[2], exact[3]] }, { storyText: story, content }).choices, null);
+  assert.deepEqual(normalizeObserver({ choices: exact }, { storyText: 'Narrative only', content }).choices, null);
+});
+
+test('R3 choice tail accepts the existing 1) form without using earlier numbered prose', () => {
+  const choices = ['one', 'two', 'three', 'four'];
+  const story = `Body\n1. earlier\n2. list\n\nNow\n1) ${choices[0]}\n2) ${choices[1]}\n3) ${choices[2]}\n4) ${choices[3]}\n`;
+  assert.deepEqual(normalizeObserver({ choices }, { storyText: story, content }).choices, choices);
+});
 
 test('R3 Story context carries canonical product, location, heroine cards, and general-NPC facts', () => {
   const heroine = Object.values(content.characters)[0];

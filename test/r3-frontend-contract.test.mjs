@@ -102,3 +102,26 @@ test('R3 presentation adapter preserves raw Story and canonical choice literals'
     assert.equal(narrativeChoiceItems(['only one']).length, 0);
   } finally { globalThis.document = previousDocument; }
 });
+
+test('R3 choice labels are presentation-only and clicks preserve the complete Story literal', async () => {
+  const { renderChoices } = await import('../frontend-r3/render.js');
+  const canonical = [String.raw`full \\"quoted\\" literal`, 'second complete action', 'third complete action', 'fourth complete action'];
+  class FakeNode {
+    constructor(tag) { this.tag = tag; this.children = []; this.attributes = {}; this.listeners = new Map(); this.textContent = ''; this.title = ''; this.disabled = false; }
+    append(...nodes) { this.children.push(...nodes); }
+    replaceChildren(...nodes) { this.children = nodes; }
+    setAttribute(name, value) { this.attributes[name] = value; }
+    addEventListener(name, listener) { this.listeners.set(name, listener); }
+  }
+  const previousDocument = globalThis.document;
+  globalThis.document = { createElement: tag => new FakeNode(tag) };
+  try {
+    const container = new FakeNode('choices'); let chosen = null;
+    renderChoices(container, canonical, { onChoose: value => { chosen = value; } });
+    assert.equal(container.children.length, 4);
+    assert.deepEqual(container.children.map(button => button.title), canonical);
+    assert.notEqual(container.children[0].textContent, canonical[0]);
+    container.children[0].listeners.get('click')();
+    assert.equal(chosen, canonical[0]);
+  } finally { globalThis.document = previousDocument; }
+});

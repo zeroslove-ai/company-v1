@@ -5,7 +5,7 @@ function displayValue(value) { return typeof value === 'string' || typeof value 
 export function text(element, value) { if (element) element.textContent = value ?? ''; }
 export function normalizeNarrativeDisplay(value) { return String(value ?? '').replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim(); }
 
-function strings(value) { return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()).map(item => item.trim()) : []; }
+function strings(value) { return Array.isArray(value) ? value.filter(item => typeof item === 'string' && item.trim()) : []; }
 function canonicalChoices(value) {
   const choices = strings(value);
   return choices.length === 4 ? choices : [];

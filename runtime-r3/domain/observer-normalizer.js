@@ -6,6 +6,26 @@ const text = value => typeof value === 'string' ? value.trim() : '';
 
 function evidenceQuote(value, storyText) { const quote = text(value); return quote && storyText.includes(quote) ? quote : ''; }
 
+function storyChoiceTail(storyText) {
+  const lines = String(storyText ?? '').replace(/\r\n?/g, '\n').split('\n');
+  while (lines.length && !lines.at(-1).trim()) lines.pop();
+  if (lines.length < 4) return null;
+  const choices = lines.slice(-4).map((line, index) => {
+    const match = new RegExp(`^\\s*${index + 1}[.)]\\s+(.+?)\\s*$`).exec(line);
+    return match?.[1] ?? null;
+  });
+  return choices.every(choice => choice) && new Set(choices).size === 4 ? choices : null;
+}
+
+function choiceParityKey(value) { return value.replace(/\\"/g, '"'); }
+
+function projectChoices(storyText, observerChoices) {
+  const storyChoices = storyChoiceTail(storyText);
+  const choices = Array.isArray(observerChoices) ? observerChoices.map(text) : [];
+  if (!storyChoices || choices.length !== 4 || new Set(choices).size !== 4 || choices.some(choice => !choice)) return null;
+  return choices.every((choice, index) => choiceParityKey(choice) === choiceParityKey(storyChoices[index])) ? storyChoices : null;
+}
+
 function locationIdFromCanonicalName(quote, content) {
   return (content?.locations ?? [])
     .filter(location => location?.location_id && typeof location.name === 'string' && quote.includes(location.name))
@@ -42,8 +62,8 @@ export function normalizeObserver(input, { storyText = '', content, currentState
   }
   const note = text(observer.scene_note);
   if (note) normalized.scene_note = note.slice(0, 1000);
-  const choices = Array.isArray(observer.choices) ? observer.choices.map(text) : [];
-  if (choices.length === 4 && new Set(choices).size === 4 && choices.every(choice => choice && storyText.includes(choice))) normalized.choices = choices;
+  const projectedChoices = projectChoices(storyText, observer.choices);
+  if (projectedChoices) normalized.choices = projectedChoices;
   else if (observer.choices !== undefined) warnings.push('choices_projection_dropped');
   normalized.turn_summary = text(observer.turn_summary).slice(0, 600);
   const elapsed = Number(observer.elapsed_minutes);
