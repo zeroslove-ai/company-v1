@@ -2,336 +2,340 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: GENERIC TURN-TRANSPORT RECONCILIATION -> ONE B3 REPLACEMENT -> CLOTHING CSA B4-B6 -> ALL 9 CSA / LOCATION / AGENCY / 30+ / 15+ / 50+ OBJECTIVE LIVE QA
-Updated: 2026-08-22 17:43 KST
+Mode: WORK_NUDE CSA STATE-CONTINUITY ROOT CAUSE -> NARROW OPENING/CSA CONCURRENCY CLOSURE IF PROVEN -> ONE FRESH REPLAY -> REMAINING 7 CSA -> FULL OBJECTIVE LIVE-QA MATRIX
+Updated: 2026-08-22 18:21 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/task-registration branch, recovery branch, alternate execution authority, or competing Task ID.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops branch, recovery branch, or competing execution authority.
 
-## 0. Binding authority / architecture
+## 0. Binding authority
 
-Continue the same autonomous R3 objective-QA program. Automation owns objective QA until the full deployed matrix is green; `OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remains forbidden before then.
-
-Binding authority remains:
+Continue the same Task ID under:
 - owner product canon PR #95 `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
 - A-prime engine canon PR #96 `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
 - `docs/redesign/00_*` through `11_*`;
 - `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md`;
 - `docs/ops/LIVE_QA_PRODUCT_REVIEW_2026-08-22.md`;
-- owner UX directive Issue #68 `5379158664`;
-- owner CSA addendum Issue #68 `5379172519`;
-- prior operator review `5379246156`;
-- latest operator review `5379384917`;
+- owner UX/CSA directives already recorded in Issue #68;
+- operator review `5379531661`;
 - this exact CURRENT_TASK blob once registered by `CURRENT_TASK_READY`.
 
-A-prime architecture remains exactly:
+Architecture remains:
 `Story 1 call -> Observer 1 call -> small reducer -> atomic commit`.
 
-The server committed context is canonical. Browser code may present, stream and reconcile transport state but must never become a semantic/gameplay writer.
+Do not hand back to owner before the objective matrix is complete. `OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remain forbidden until all objective QA is green.
 
-## 1. Reviewed terminal and frozen progress
+## 1. Accepted/frozen evidence from previous execution
 
-Latest terminal:
-- terminal comment `5379369533`;
-- terminal task blob `6862475dfb439f77910528d23f2025ceb1080908`;
-- start/final main `948079fd4627dd1d4ac36fd41847b5ad60cc168a`;
-- operator review `5379384917`.
+Reviewed terminal:
+- terminal comment `5379509195`;
+- task blob `45d8b0ef703ef610a812524717d22c5b105b5679`;
+- execution start main `594749fba2b946f6b2043195aa3de6ad3b0acde5`;
+- final/current main `58380f864c17e47e603a665c0779b624bacf201b`;
+- operator review `5379531661`.
 
-Accepted executable before this registration remains:
-`dd62988a121d586d333e7297b5b7cb4b4d8841d1`.
+Accepted source/live identities:
+- current main/source baseline: `58380f864c17e47e603a665c0779b624bacf201b`;
+- TEST API: `game-proxy-company-r3` version `bad0bbeb-574a-4d82-8875-3ade37df3de8`;
+- TEST frontend: `gamebuilder-company-r3` version `c297425c-3fa8-4025-a514-5ac908606c36`.
 
-Accepted TEST baseline at terminal:
-- API `game-proxy-company-r3` version `bad0bbeb-574a-4d82-8875-3ade37df3de8`;
-- frontend `gamebuilder-company-r3` version `012186e3-9144-43bb-8c48-521a7bd944bb`.
+### 1.1 Generic turn-transport reconciliation — GREEN and frozen
 
-No source/test/config/deploy change occurred during the terminal lease. Main stayed at the task-registration SHA.
+Source `58380f8` is accepted:
+- changed only `frontend-r3/app.js`, `frontend-r3/turn-transport.js`, `test/r3-turn-transport.test.mjs` from prior registration;
+- focused 11/11 and full 473/473 reported PASS;
+- syntax / diff checks PASS;
+- only TEST frontend deployed;
+- no automatic gameplay replay was introduced.
 
-### 1.1 Reference calibration is COMPLETE for this QA cycle
+Do not reopen this source unless new deterministic evidence directly implicates it.
 
-Phase A Hospital/Gamebuilder v2 and old Company V1 reference calibration was completed under the prior lease and reported in Issue #68 `5379321494`.
+### 1.2 Live UX phases already green — preserve, do not rerun for pass-seeking
 
-Do NOT repeat reference discovery/play merely because later R3 transport blocked. Preserve the accepted `REFERENCE_KEEP` / `REFERENCE_REJECT` / `R3_GAPS_TO_REPLAY` evidence and continue current R3 work.
+Freeze as accepted coverage:
+1. B3 movement/reload continuity on `edc5704b-aff7-44d3-92f2-b5882f217e13`.
+2. B4/B5/B6 no-panties clothing campaign on the same fixture.
+3. no-bra campaign `2544b01f-c911-4e1d-afa2-72abfee2ed51`.
+4. two-personality request/contact campaign `2c4ea2ce-e4cf-4401-af11-011bb43c5cca`.
 
-Reference systems remain read-only historical UX calibration; do not repair/redeploy/mutate them.
+Retain the observed `choices_projection_dropped`, `choices_observer_mismatch`, and bounded presence warnings for later matrix triage; do not silently alter choice architecture here.
 
-### 1.2 Current clothing campaign progress
+## 2. Current decisive blocker
 
-Disposable current-R3 fixture:
-`edc5704b-aff7-44d3-92f2-b5882f217e13`.
+Preserved disposable evidence fixture:
+`7138198c-510d-4fb4-879c-fdac2f63465c`
 
-Accepted progress:
-- Setup + Opening completed;
-- one ordinary Turn 1 committed through the real UI;
-- exact Turn 1 literal:
-  `서원희 차장에게 오늘 회의 자료를 검토해 달라고 조심스럽게 건넨다.`
-- canonical `no_panties_under_work_clothes` / `r3_csa_1` applied once through browser UI;
-- active rule/readback and finite clothing state were coherent;
-- no unrelated sexual/relationship state was manufactured.
+Accepted facts:
+- `work_nude` / `회사 여성 직원은 근무 중 모든 옷을 벗어 나체 상태로 지내야 한다.` was applied once through the real UI;
+- revision `0 -> 1`; committed_turn remained `0`;
+- active `r3_csa_1` was present immediately after apply;
+- scoped finite clothing slots were all `removed`;
+- exactly one relevant UI turn was submitted:
+  `서원희 차장에게 여성 직원 근무 중 복장 규정이 어디까지 적용되는지 묻는다.`
+- one POST, action_id `f7702763-7ffa-4cfb-8ae2-0d6a886361b9`, expected_turn `1`, HTTP 200 event-stream, no loadingFailed;
+- Turn 1 committed once: revision `2`, committed_turn `1`;
+- Story answered with ordinary formal/semi-formal dress-code guidance and did not establish the active all-clothing-removed premise;
+- post-turn canonical readback had `csa_active=[]`, `active_rules=[]`, `csa_rules={}`, `clothing={}` with no remove operation.
 
-B3 attempted movement:
-`회의실로 이동해 창가 자리에 앉는다.`
+Classification:
+`BLOCKED_R3_WORK_NUDE_NORMAL_TURN_DROPS_ACTIVE_CSA_STATE_AND_IGNORES_PREMISE`
 
-The movement was submitted exactly once through the real browser UI, then browser showed `Failed to fetch`.
+State continuity is the first blocker. Do NOT tune Story/provider/model/config to address the narrative symptom while the active rule disappears from canonical state.
 
-Immediate read-only context after the error proved:
-- same game id;
-- `revision=2`;
-- `committed_turn=1`;
-- only Turn 0 / Turn 1;
-- `job={}`;
-- no Turn 2 reservation/action/job/commit/failed attempt.
+## 3. Static source fact to test, not yet a live root-cause conclusion
 
-One refresh restored the same game and active rule. The movement literal remained in the input field and was NOT resubmitted.
+Current source shows:
+- `reduceObservation()` starts from a structured clone of the supplied current state and only applies bounded observation deltas; it does not intentionally clear CSA top-level keys.
+- `processOpening()` currently holds an early `before` snapshot across Story + Observer generation and reduces Opening against that snapshot.
+- source migration `20260821000100_company_r3_milestone0.sql` defines `company_r3_create_opening(...)` without an expected-revision argument and updates `company_r3_state.state = p_state_after`.
 
-Therefore this failed request has **zero durable server footprint** and is not a Story/Observer/CSA result.
+Therefore a concrete candidate is an Opening/CSA race:
+`Opening begins from pre-CSA state -> CSA commits while Opening is still generating -> late Opening commit writes stale pre-CSA state -> first normal turn no longer sees active rule`.
 
-## 2. Deterministic frontend gap proven by the terminal
+This is a hypothesis until the preserved fixture timeline and deployed function definitions prove it. Do not patch from assumption alone.
 
-Current `frontend-r3/app.js` reconciles server state after `r3_stream_reconnect_required`, but a raw browser `fetch()` rejection such as `TypeError: Failed to fetch` falls through to merely showing the error.
+## 4. PHASE A — read-only root-cause classification of preserved work-nude fixture
 
-This is now a proven generic product/recovery gap because the browser cannot distinguish:
-- request never reached server;
-- server has a processing job but response/connection was lost;
-- server committed but response/stream was lost;
-- server has a failed job.
+Before any source/DB/deploy mutation, inspect read-only:
 
-The fix is **transport reconciliation only**, not automatic retry.
+### A1. Exact live timeline
+For `7138198c-510d-4fb4-879c-fdac2f63465c`, capture exact timestamps and payloads for:
+- game creation if available;
+- Turn 0 `committed_at`, revision, `state_after` CSA/clothing fields;
+- `company_r3_system_events` CSA transaction `created_at` and operation payload;
+- `company_r3_state.updated_at`, revision, committed_turn and current state;
+- Turn 1 `committed_at`, literal, `state_after`, observer raw/applied, warnings;
+- Turn 1 job `created_at` / `updated_at` / attempt / stage / status;
+- any other event that can mutate R3 state in that interval.
 
-### Required behavior after a turn transport/stream error
+Do not write or replay anything in this fixture.
 
-After any network/stream transport failure from the turn submission path, perform at most ONE read-only context reconciliation for the current game before deciding UI state.
+### A2. Exact deployed persistence contract
+Read the actual TEST definitions/signatures for:
+- `company_r3_create_opening`;
+- `company_r3_apply_csa`;
+- `company_r3_commit_turn`.
 
-Classify canonical server result:
+Compare them with current source. Do not assume the deployed DB equals migration source.
 
-A. committed turn advanced / committed context available
-- render canonical committed context;
-- clear input only when the exact action is durably committed;
-- report saved/recovered state.
+### A3. Mandatory root-cause classification heartbeat
+Post one `PROGRESS_HEARTBEAT` with exactly one primary classification:
+- `OPENING_CSA_STALE_SNAPSHOT_OVERWRITE_PROVEN`
+- `OPENING_CSA_OVERLAP_NOT_PROVEN`
+- `OTHER_STATE_CONTINUITY_ROOT_CAUSE_PROVEN`
+- `INSUFFICIENT_EVIDENCE_FOR_ROOT_CAUSE`
 
-B. next-turn job is `processing`
-- render context;
-- call the already-existing bounded `recoverPendingTurn()` path;
-- do not POST again.
+Include the exact timestamp ordering and the smallest source/DB path that explains the loss.
 
-C. next-turn job is `failed`
-- render failed context and existing explicit Retry control;
-- do not POST again automatically.
+If evidence proves a different deterministic root cause, follow that evidence and keep the fix bounded to state continuity.
 
-D. no new job and committed_turn unchanged
-- classify `TURN_NOT_SENT_NO_SERVER_FOOTPRINT`;
-- preserve exact literal in the input;
-- show clear non-technical user status that the action was not sent/saved and can be explicitly submitted again;
-- do not auto-resubmit.
+If evidence is genuinely insufficient, build a deterministic source-level reproduction of the suspected concurrency boundary before editing production logic. Do not use repeated live sampling to discover the race.
 
-E. reconciliation GET itself fails
-- keep the original transport failure visible and preserve the literal;
-- do not guess server state;
-- do not auto-resubmit.
+## 5. PHASE B — minimal generic state-continuity correction, only after proof
 
-This behavior must remain generic. Do not special-case Cloudflare, a specific rule, action text, location or template id.
+Goal invariant:
+**A committed CSA mutation must not be erased by an Opening or ordinary Story turn unless an explicit CSA remove operation says so.**
 
-## 3. Hard prohibitions
+The correction must also preserve:
+- exactly one Story call for Opening;
+- exactly one Story call per normal turn;
+- exactly one Observer call per Story;
+- no Story regeneration/retry to solve state conflicts;
+- no template-specific `work_nude` branch;
+- no semantic classifier/gate/NER/fuzzy matching;
+- no provider/model/API/temp/token/timeout change.
 
-Do NOT:
-- automatically replay/resubmit a failed action;
-- add exponential retry, hidden retry or retry-until-pass;
-- add second Story/Observer/choice LLM;
-- change provider/model/API key/API URL/temperature/token limits/Story or Observer timeouts;
-- add semantic classifier/gate, NER, fuzzy matching, physical ontology or consent DSL;
-- add Cloudflare compatibility flags, route rewrites, service bindings or deployment workarounds without new deterministic routing evidence;
-- change Story/CSA semantics as part of the transport fix;
-- mutate/reset preserved/manual/historical evidence games;
-- use direct API gameplay as live acceptance;
-- access/deploy Production;
-- create a new task/ops/recovery branch.
+If Opening/CSA concurrency is proven, close the concurrency structurally. Requirements:
+- do not rely on frontend timing alone;
+- a CSA operation against an unfinished/stale Opening snapshot must either be prevented atomically or reconciled without losing either committed state domain;
+- a late Opening commit must not overwrite a CSA mutation that committed after the Opening's original snapshot;
+- if a state CAS/recomposition retry is necessary, it may retry only the local state composition/DB commit from already-produced normalized Opening evidence; it must never call Story or Observer again;
+- frontend may additionally disable CSA until canonical Opening is committed if useful, but UI gating alone is not sufficient server integrity proof.
 
-Provider budgets stay Story first-content 30s / total 120s / Observer 75s.
+DB change policy:
+- at most one new additive migration source is allowed if an atomic DB contract change is actually necessary;
+- historical migrations are immutable;
+- apply only to TEST after source/tests are green;
+- record exact applied migration and verify function ACL/signatures;
+- Production is forbidden.
 
-## 4. Phase T1 — implement the narrow generic frontend correction
+## 6. Required deterministic regressions before live replay
 
-Primary expected source:
-- `frontend-r3/app.js`
+Add focused tests that prove at minimum:
 
-Tests may change as needed. Avoid unrelated refactors.
+1. **Normal sequence**
+   Setup -> Opening commit -> CSA apply -> normal turn:
+   - active rule survives;
+   - CSA rule metadata survives;
+   - finite clothing survives except explicit Observer clothing deltas;
+   - normal turn cannot clear CSA state by omission.
 
-Implementation expectations:
-1. Keep the generated action id / expected turn / literal available across the single submission attempt and reconciliation.
-2. Normalize transport failure handling at the controller boundary, not in Story/provider/domain semantics.
-3. On turn fetch rejection or stream transport failure, reconcile context once.
-4. Never generate a second POST from reconciliation.
-5. Preserve literal input for no-footprint/unknown cases.
-6. Do not clear literal merely because a request was attempted.
-7. If context proves commit, render server canonical result and clear appropriately.
-8. If context proves processing, use existing recovery polling only; no second Story request.
-9. If context proves failed, expose existing explicit failed-action Retry UX.
-10. Keep choice authority, CSA UI, MM, history, TTS and location/map behavior unchanged.
+2. **Opening/CSA overlap** if this is the proven cause
+   Delay Opening completion deterministically and attempt CSA during the overlap.
+   Acceptance:
+   - no lost CSA state;
+   - no stale Opening overwrite;
+   - no second Story/Observer call;
+   - no hidden gameplay replay;
+   - final canonical Turn 0/current state are coherent.
 
-If a smaller helper extraction is useful for testability, keep it within the frontend controller boundary and generic.
+3. **Explicit removal remains authoritative**
+   A real remove still clears active rule enforcement without requiring rollback of already-materialized clothing facts.
 
-## 5. Phase T2 — deterministic tests before deploy
+4. **Unrelated state preservation**
+   scene, time, profile, MM/choices persistence surfaces do not regress.
 
-Add/extend focused frontend/controller tests proving at minimum:
-1. raw `fetch` rejection + context no footprint => exactly one original POST, exactly one context read, input preserved, no second POST;
-2. transport/stream failure + context committed => canonical committed context rendered, no second POST;
-3. transport/stream failure + context processing => existing recovery path used, no second POST;
-4. transport/stream failure + context failed => failed state / explicit Retry preserved, no automatic POST;
-5. context reconciliation itself fails => literal preserved, no guessed commit, no second POST;
-6. successful ordinary turn behavior unchanged;
-7. explicit Retry failed action still requires user action and remains same-row semantics;
-8. choice clicks still submit exactly one literal POST;
-9. free Korean input still submits exactly one literal POST;
-10. no Story/provider/model/config/timeout code changed.
-
-Run:
-- focused frontend/controller tests;
+Validation:
+- relevant focused tests;
 - full `npm test`;
-- `node --check` for changed JS/MJS;
-- `git diff --check`.
+- `node --check` on every changed JS/MJS;
+- `git diff --check`;
+- inspect changed SQL if any;
+- reread Issue #68 immediately before landing.
 
-Reread Issue #68 immediately before landing.
+Land only on `main`; no new branch/PR.
 
-Land fast-forward only on `main`.
+## 7. PHASE C — TEST rollout only for changed surfaces
 
-If only frontend source changed:
-- deploy TEST frontend only;
-- do NOT redeploy API;
-- record exact frontend Worker Version ID;
-- verify TEST API version remains the accepted API baseline unless independently changed by a newer authorized task (which would invalidate this lease).
+After source validation:
+- if API/runtime changed, deploy TEST API once and record exact Worker Version ID;
+- if frontend changed, deploy TEST frontend once and record exact Worker Version ID;
+- if one migration was required, apply it to TEST once and verify exact function definitions/ACLs;
+- do not redeploy an unchanged surface;
+- do not change provider/model/config/timeouts;
+- do not access Production.
 
-## 6. Phase T3 — deployed transport acceptance before semantic QA resumes
+Smoke before semantic replay:
+- `/api/r3/catalogs` healthy;
+- fresh browser Setup + Opening healthy;
+- no duplicate Opening/turn jobs;
+- no transport regression.
 
-After TEST frontend deploy, attach browser instrumentation BEFORE the action:
-- request URL/method/resource type;
-- response status where available;
-- `requestfailed` failure/error text;
-- browser console/pageerror;
-- current game id;
-- expected_turn/action_id if observable from the client harness;
-- post-error canonical context readback.
+## 8. PHASE D — exactly one fresh work-nude replay
 
-Do not use direct API gameplay as acceptance.
+Do not reuse `7138198c...`.
 
-### 6.1 Bounded non-mutating browser-origin transport diagnostics
+Use ONE new disposable current-R3 TEST game.
 
-Before mutating the clothing fixture, it is permitted to issue a very small bounded set of browser-origin network diagnostics against the current TEST API solely to distinguish browser/CORS/platform transport from gameplay semantics. Prefer non-mutating routes (`catalogs`, OPTIONS, or a nonexistent disposable game id that cannot reserve/commit a turn). Do not invoke a real Story merely for diagnosis.
+1. Complete Setup + canonical Opening.
+2. Prove Opening is terminal/committed before CSA apply unless the fixed contract explicitly supports safe overlap.
+3. Apply `work_nude` once through real CSA UI.
+4. Prove revision increases while gameplay turn does not; active rule + all four removed clothing slots read back.
+5. Submit exactly once:
+   `서원희 차장에게 여성 직원 근무 중 복장 규정이 어디까지 적용되는지 묻는다.`
+6. Capture network/SSE, exact literal, Story, Observer raw/applied, state_after, canonical readback, choices/MM/location/presence/timings.
 
-Record exact success/failure and stop diagnostics once the boundary is classified. Do not stress/sample indefinitely.
-
-### 6.2 Exactly one B3 replacement is authorized
-
-Because terminal evidence already proved the prior B3 request created **zero server footprint**, exactly ONE explicit replacement submission of the same movement literal is authorized after the new frontend reconciliation deploy:
-`회의실로 이동해 창가 자리에 앉는다.`
-
-Use the same disposable fixture `edc5704b-aff7-44d3-92f2-b5882f217e13` if its readback still exactly matches the frozen terminal state and no newer action/job exists. Otherwise preserve it and use one fresh equivalent disposable clothing fixture; explain why.
-
-This replacement is not provider pass-seeking because there was no prior server action. It is nevertheless bounded to ONE attempt.
-
-Acceptance if it commits:
-- exactly one POST for the replacement;
-- literal parity exact;
-- canonical location movement/Story/readback coherent enough to continue B3;
-- refresh once after commit;
-- same game/save returns;
-- active rule persists;
+### D1. State continuity gate
+PASS only if after the committed turn:
+- same active CSA rule remains;
+- `active_rules`, `csa_active`, `csa_rules` remain coherent;
 - finite clothing state remains coherent;
-- no unrelated/off-scene female enumeration caused by broad scope.
+- no implicit remove occurred.
 
-If the replacement transport fails again:
-- allow the new reconciliation behavior to run;
-- capture browser/network evidence and canonical result;
-- if no footprint again, STOP `BLOCKED_R3_REPEATED_BROWSER_TRANSPORT_AFTER_RECONCILIATION_FIX`;
-- do not submit again and do not sample a second replacement.
+If this fails again:
+STOP `BLOCKED_R3_CSA_STATE_CONTINUITY_AFTER_CONCURRENCY_CLOSURE` with exact state/timeline. No Story tuning and no second replay.
 
-If server footprint exists, follow canonical committed/processing/failed state; never blindly replay.
-
-## 7. Resume clothing CSA campaign B4-B6 only after B3 transport is green
-
-Do not rerun Phase A references.
-
-### B4 — behaviorally decisive active policy conversation
-
-With the clothing rule still active, submit exactly one natural direct domain inquiry:
-`서원희 차장에게 요즘 여성 직원 근무복 규정에서 속옷 관련 기준이 있는지 묻는다.`
-
-Capture literal/request, Story input active_rules if diagnostics expose it, raw Story, Observer raw/applied, state_after/readback, clothing/MM/choices/location/presence, timings, screenshot and console/network evidence.
+### D2. Story premise gate — only after D1 passes
+Judge the direct policy-domain Story honestly.
 
 PASS:
-- Story is consistent with the active institutional premise;
-- exact scope preserved;
-- no mechanical system/hypnosis exposition;
-- hidden facts are not visually invented, but direct policy discussion does not deny/evade the active rule;
-- NPC personality remains specific;
-- no affection/comfort/consent/desire/romance/obedience/trust/relationship state manufactured merely from CSA;
-- player target/topic/request preserved.
+- Story is consistent with the active `work_nude` institutional premise and scope;
+- it behaves as an already-current world/company fact rather than system/hypnosis exposition;
+- NPC personality remains individual;
+- no affection/comfort/consent/desire/romance/obedience/trust/relationship is manufactured;
+- literal actor/target/topic is preserved.
 
-Deterministic FAIL here may authorize only the previously bounded smallest generic Story-contract correction. One semantic replay maximum after such a correction. No model/provider/config tuning.
+If state persists but this valid direct-policy Story still materially denies/ignores the rule:
+STOP `BLOCKED_R3_WORK_NUDE_STORY_PREMISE_WITH_STATE_PRESERVED`.
+Capture exact active_rules Story input + raw Story. Do NOT patch prompt/provider in the same execution and do not sample again.
 
-### B5 — ordinary interleaving
+If both gates pass:
+- remove the rule once through UI;
+- prove revision rises while gameplay turn does not;
+- play one ordinary follow-up turn;
+- prove removed rule is no longer enforced while historical/material facts are not time-rewound.
 
-If B4 passes, submit one different mundane/nonsexual company-life turn.
-Prove Story naturally returns to ordinary life and does not become permanently CSA-focused.
+Then continue automatically.
 
-### B6 — remove semantics
+## 9. PHASE E — remaining objective matrix
 
-Remove the same rule once through browser UI.
-Prove revision increases while gameplay turn does not and active rule disappears from future Story context/readback.
+Continue same Task ID without owner handoff.
 
-Then play one or two ordinary follow-up turns.
+### E1. Remaining seven canonical CSA campaigns
+The already accepted no-panties, no-bra, contact/request campaigns stay frozen. Cover each remaining canonical template independently, one active rule per disposable fixture where practical.
 
-Removal law:
-- stops future enforcement;
-- is NOT memory wipe/time rewind;
-- prior historical conversation may remain remembered;
-- physical slot need not instantly revert merely because rule was removed;
-- new Story must not treat the removed rule as currently binding.
+For each:
+`apply -> revision up / turn same -> readback -> relevant natural scene -> Story behavior -> Observer/state/MM/choices -> ordinary interleave if useful -> remove -> revision up / turn same -> post-remove Story/readback`.
 
-Post Phase-B heartbeat with transcript/evidence and `CLOTHING_CSA_UX: PASS` or exact blocker.
+Never infer affection/consent/romance/etc from rule activation alone.
 
-## 8. Continue the full objective matrix automatically when clothing is green
+### E2. Four canonical locations
+Fresh fixture. Prove four distinct registered canonical locations full chain:
+`literal -> Story exact destination -> observer_raw -> observer_applied -> state_after -> next Story/context/map`.
+No fuzzy/generic destination upgrades.
 
-Do not terminal merely because clothing CSA passes.
+### E3. Presence / scene_note / player agency
+Prove:
+- exact canonical actor evidence;
+- player movement does not fabricate NPC enter/exit;
+- relevant entrant can receive MM;
+- no unrelated/off-scene actors;
+- scene_note is a bounded current snapshot and stale ended actions/entities disappear.
 
-Continue SAME Task ID through:
-1. all 9 canonical CSA live-UX campaigns, one rule per clean fixture where practical;
-2. request/interaction CSA special axis;
-3. four canonical locations;
-4. presence exact-name evidence and grounded entrant MM;
-5. bounded current `scene_note` with stale ended entities/actions disappearing;
-6. semantic agency regressions:
-   - ask 한리브 about lunch must not become 김제나/work;
-   - `혼자 있고 싶다` must be respected;
-   - `허리를 만진다` must not become touching a table edge;
-7. fresh primary ordinary campaign 30+ committed turns;
-8. materially different independent campaign 15+;
-9. long-memory campaign 50+;
-10. Story exact-four choice reliability stats without fabricated/prior fallback;
-11. latency submit -> first Story token -> Story complete -> Observer -> commit, derive p50/p95 when sample permits;
-12. history/export/download;
-13. reconnect/reload;
-14. duplicate-submit and explicit failed-job retry;
-15. TTS and feedback if retained by current product canon;
-16. desktop, 390x844 and wider mobile/tablet viewports.
+Agency probes include:
+- 한리브/lunch must not become 김제나/work;
+- `혼자 있고 싶다` must be respected;
+- `허리를 만진다` must not become touching a table edge.
 
-For each CSA template prove:
-`apply -> revision increases while gameplay turn unchanged -> relevant multi-turn Story UX -> observer/readback/structured state as applicable -> remove -> future Story no longer treats rule as active`.
+No semantic hard gate/classifier.
 
-RPC/state success alone is not acceptance.
+### E4. Human-like campaigns
+Separate fresh fixtures:
+- primary clean ordinary play: 30+ turns;
+- materially different style: 15+ turns;
+- long-memory: 50+ turns.
 
-No retry/sample-until-pass. Harness/no-server-footprint transport replacement is allowed only where this task explicitly grants a bounded replacement after proving absence.
+Do not use one CSA-mutated fixture to certify ordinary play.
 
-## 9. Terminal / heartbeat policy
+### E5. Choices / latency / retained surfaces
+Collect:
+- Story exact-four valid-tail rate;
+- no-tail rate + max streak;
+- Observer exact/mismatch counts;
+- zero fabricated/prior fallback;
+- choice literal click parity;
+- latency submit / first Story token / Story complete / Observer complete / commit; p50/p95 when sample permits;
+- history/export/download if retained;
+- reload/reconnect;
+- duplicate submit;
+- explicit retry;
+- TTS/feedback if retained;
+- desktop, 390x844, and wider mobile/tablet.
 
-Post `PROGRESS_HEARTBEAT` at major phase boundaries and roughly every 15 minutes during long execution.
+## 10. Stop rules
 
-Terminal reports must include:
+Immediate terminal BLOCKED on the first deterministic failure that invalidates continued matrix work.
+
+Do not:
+- retry/sample until pass;
+- mutate preserved historical/manual evidence games;
+- direct-API gameplay as a substitute for browser acceptance;
+- add provider/model/config workarounds;
+- add generic semantic validators, NER, fuzzy mapping, physical ontology, consent DSL, or second LLM;
+- regenerate Story automatically;
+- access Production;
+- create a new CURRENT_TASK file/ops branch/recovery branch.
+
+Heartbeats at phase boundaries and roughly every 15 minutes of active work.
+
+A terminal report must include:
 - exact task blob;
-- start/final main SHA;
-- changed paths and source commit;
-- focused/full test results and syntax/diff checks;
-- TEST API/frontend Worker versions;
-- exact transport classification and number of POSTs;
-- fixture IDs, literals, action/job/readback evidence;
-- Story/Observer/state evidence for semantic phases;
-- remaining matrix.
+- start/final main;
+- changed paths/commits;
+- test/deploy/migration identities;
+- root-cause classification and evidence;
+- exact fresh replay evidence if reached;
+- accepted/frozen phases;
+- first blocker or full remaining matrix result.
 
-`OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` is forbidden until the full objective matrix above is green.
+Full objective matrix green is the only path to `OWNER_READY`.
