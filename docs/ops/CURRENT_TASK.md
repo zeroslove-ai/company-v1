@@ -2,8 +2,8 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: EXISTING-GAME BOOTSTRAP READINESS -> CSA STORY-EFFECT -> ACTIVE-CSA RELOAD REPRO IF NEEDED -> FOUR-LOCATION / SCENE / AGENCY -> 15 / 50 / 9-CSA CONTINUOUS TEST LIVE-QA
-Updated: 2026-08-22 14:37 KST
+Mode: POST-RELOAD TURN TRANSPORT DURABLE CLASSIFICATION -> NARROW RECOVERY -> CSA STORY-EFFECT -> FOUR-LOCATION / SCENE / AGENCY -> 15 / 50 / 9-CSA CONTINUOUS TEST LIVE-QA
+Updated: 2026-08-22 15:37 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/task-registration branch, recovery branch, or alternate execution authority.
@@ -18,213 +18,231 @@ Binding authority remains:
 - owner-locked product canon PR #95 `9d9aec5a198d8673eb37aba8a0541adbd6c84627`
 - A-prime canon PR #96 `9d44c4719fa6b098d53cac5cf946b93fafa6786b`
 - `docs/redesign/00_*` through `11_*`
-- current accepted R3 source on main
-- latest Issue #68 operator decisions.
+- latest accepted R3 source on main
+- latest explicit Issue #68 operator decisions.
 
 Architecture remains exactly:
 `Story 1 call -> Observer 1 call -> small reducer -> atomic commit`.
 
-Forbidden unless a deterministic defect in this task specifically proves otherwise:
+Forbidden unless this task proves a narrow defect:
 - provider/model/API URL/key/config/temperature/token/timeout changes;
 - automatic Story retry/regeneration or second Story/choice LLM;
-- generic NER/fuzzy/nearest/semantic actor or location matching;
+- generic NER/fuzzy/nearest/semantic actor/location matching;
 - physical ontology or consent DSL;
 - browser-owned Story/Observer/Commit orchestration;
 - migration/history repair or Production access/deploy;
 - preserved historical/manual/evidence game reset/mutation;
-- direct-API substitution for a browser acceptance that is explicitly testing the browser path.
+- direct-API substitution for browser acceptance;
+- resubmitting an action merely because the browser lost the response.
 
 Provider budgets remain Story first-content 30s / Story total 120s / Observer 75s.
 
-## 1. Accepted progress / frozen GREEN
+## 1. Accepted terminal / frozen progress
 
 Latest terminal:
-- terminal `5378229372`
-- operator review `5378239095`
-- terminal task blob `dc81810e3d450ca01c792f71343f1fafe9cd189f`
-- terminal workflow head `78c51b8e1dee43eed9b4e11e91b1ec31f94e7682`
-- reviewed runtime `a4608ff7710468dd34ca7858ccaaf869eb9908bd`
+- terminal comment `5378339600`
+- operator review `5378566209`
+- terminal task blob `5f27561d65da467562128f68f07fe78db390591d`
+- registration main `8d229236cbb6b225819f61f8009ef294a545127b`
+- verified terminal/final main `77d1391a16e891793a0682833bc5ce9ac88c5dfd`
 
-Current TEST baselines:
-- API `game-proxy-company-r3` version `6e86c32e-22e5-400c-8bdb-9ae4ef7a639a`
-- frontend `gamebuilder-company-r3` version `ba4812c5-3883-4a90-8b9d-5482e4ccfabf`
+Accepted TEST identities:
+- API remains `game-proxy-company-r3` version `6e86c32e-22e5-400c-8bdb-9ae4ef7a639a`
+- frontend after accepted layout correction: `gamebuilder-company-r3` version `012186e3-9144-43bb-8c48-521a7bd944bb`
 
-Freeze as GREEN absent new deterministic evidence:
-1. P0 explicit failed-turn retry / same-row attempt fencing / stale terminalization / reconnect and duplicate transport behavior.
-2. Story is sole canonical current-choice authority. Observer mismatch is diagnostic only when exact Story-tail choices survive. No Story tail => no fabricated/prior fallback and free input remains available.
-3. Clean-30 disposable `4debc85b-2e19-4d0b-96cb-177e7379df1e`: literal parity 30/30; exact-four Story tail 16/30; no-tail 14/30; max no-tail streak 6; fabricated/prior fallback 0. Do not rerun to improve statistics.
-4. Mind Monitor actor-ID closure `480daad8d7255ecbc865af9f4bd4648910afd446`: canonical actor directory, exact-name enter/exit grounding, post-Story entrant eligibility; live canonical-ID MM proven on focused turns.
-5. Exact-name enter/exit fail-closed. `박 팀장` is not canonical `박정우`; do not add alias/fuzzy/title repair.
-6. Active CSA Story-context source `a4608ff...`: active canonical `csa_rules` are projected into Story context once with scopes; inactive rules excluded; institutional scope must not manufacture personal affection/comfort/consent/desire/romance/relationship/player sexual state. Source tests 42/42 and full 466/466 passed before exact TEST API deployment.
-7. Deployed frontend identity is GREEN: live `app.js` is byte-equivalent to accepted repo blob `258d98d3fdfe03a47f4927d047d4564c2c69ebd7` after CRLF/LF normalization; no frontend drift.
-8. Generic deployed browser submit is GREEN: disposable `650a615d-1612-4936-9e21-9adb4aba4cb7` proved one normal `#submit-action` click -> exactly one POST `/turn` -> exact literal -> exactly one commit. Therefore no generic frontend source patch is authorized.
+Accepted final source delta from registration to terminal is exactly one FF commit and exactly two paths:
+- `frontend-r3/hospital-shell.css`
+- `test/r3-frontend-contract.test.mjs`
 
-## 2. Current unresolved boundary
+The accepted correction is narrow: `.action-panel` reserves `min-height: min-content` so action controls remain interactable above the audio bar after bootstrap/reload. Reported full suite is 467/467 PASS; syntax/diff-check/dry-run and TEST frontend deployment passed.
 
-Old disposable active-CSA evidence fixture:
-`a764e547-0eaf-4917-8cc5-e96bbb370c79`
+Do NOT reopen this layout correction absent new deterministic evidence.
 
-Latest read-only state:
-- revision 6
-- committed_turn 5
-- turns 0..5 only
-- no Turn-6 job/action
-- `csa_active=[r3_csa_1]`
-- canonical `no_panties_under_work_clothes`, continuous/weak, female_employee scope
-- scoped clothing state persisted.
+### Frozen GREEN boundaries
 
-A fresh page showed static `#submit-action` visible/enabled and source binding exists, but one click produced zero `/turn`, zero status transition, zero durable mutation.
+Keep frozen absent new deterministic evidence:
+1. P0 explicit failed-turn retry, same-row attempt fencing, stage-aware stale terminalization, invocation-based Story deadline, duplicate/reconnect baseline.
+2. Story is sole canonical current-choice authority; Observer mismatch is diagnostic only when exact Story-tail choices survive; no Story tail => no fabricated/prior fallback.
+3. Clean-30 fixture `4debc85b-2e19-4d0b-96cb-177e7379df1e`: literal parity 30/30; exact-four Story tail 16/30; no-tail 14/30; max no-tail streak 6; fabricated/prior fallback 0. Do not rerun merely to improve statistics.
+4. Mind Monitor canonical actor-ID closure and same-turn grounded entrant mechanics.
+5. Exact canonical-name enter/exit grounding; `박 팀장` is not canonical `박정우`; no alias/fuzzy/title repair.
+6. Active CSA Story-context source `a4608ff7710468dd34ca7858ccaaf869eb9908bd`: active canonical rules are passed once into Story with scopes; source/test/deployment accepted.
+7. Generic deployed browser submit: fresh control `650a615d-1612-4936-9e21-9adb4aba4cb7` proved one button click -> one `/turn` -> one exact literal -> one commit.
+8. Fresh active-CSA same-page path: disposable `490f54c9-1675-421c-ba66-ab9dbfe5ce97` proved baseline submit, CSA apply with revision increase/no gameplay-turn increase, and same-page active-CSA submit.
+9. The old fixture `a764e547-0eaf-4917-8cc5-e96bbb370c79` remains preserved/read-only at revision 6 / committed_turn 5.
 
-This did NOT prove a product frontend defect because `#submit-action` is statically visible/enabled in `index.html` before module/context bootstrap completes. The previous probe did not establish a runtime readiness barrier before clicking.
+## 2. New decisive blocker
 
-Important keyboard contract:
-- plain Enter is not submit;
-- only Ctrl/Cmd+Enter is keyboard submit;
-- normal button click remains the primary acceptance path.
+Fresh replay fixture:
+`017fdee2-ec0d-45e0-a866-1183afab0e74`
 
-## 3. Phase A — prove existing-game browser bootstrap readiness before click
+Proven before blocker:
+- Setup + Opening passed;
+- baseline one-click turn passed;
+- CSA UI apply passed;
+- same-page active-CSA one-click turn passed;
+- one reload passed full readiness barrier;
+- after reload UI showed Turn 2, exact game/API identity, context 200, connected status, overlays hidden, no active job, unique enabled action input/button.
 
-Do not change source before completing this phase.
+Exactly one post-reload action was filled and clicked:
+`자리에서 일어나 서원희 차장에게 팀의 업무 분위기에 대해 가볍게 대화를 나눈다.`
 
-Use a completely NEW browser context/page. Navigate to the deployed frontend for the exact old fixture and TEST API.
+Browser evidence:
+- exactly one `/turn` request was emitted;
+- `literal_action` matched exactly;
+- `expected_turn=3`;
+- request ended as `Network.loadingFailed net::ERR_FAILED`;
+- no response was visible to browser;
+- UI remained Turn 2;
+- no retry was attempted.
 
-Before filling or clicking anything, require all of the following and record them:
-1. final page URL contains exact `game_id=a764e547-0eaf-4917-8cc5-e96bbb370c79` and the intended TEST API binding;
-2. deployed `app.js` module request completes successfully;
-3. successful context request for THIS exact game is observed;
-4. `#api-status` has `aria-label="연결 완료"`;
-5. rendered `#turn-number` is exactly `Turn 5`;
-6. latest committed Turn-5 Story/history content is visible and corresponds to the readback game, not another stale page identity;
-7. `#boot-fallback` is hidden;
-8. CSA overlay and utility overlays are hidden;
-9. no failed/processing job is present in current readback;
-10. no `pageerror`; capture console errors/warnings;
-11. `#submit-action` is visible/enabled AFTER all readiness conditions above, not merely from initial static HTML.
+This browser result alone does NOT establish whether the server received/reserved/processed/committed Turn 3.
 
-If any readiness condition does not become true, STOP and report the exact bootstrap failure. Do not click and do not mutate game data.
+## 3. FIRST ACTION — durable read-only classification before any replay or source mutation
 
-Once all readiness conditions are true:
-- attach request observation for `/turn` and status/banner mutation observation;
-- fill exactly one neutral literal: `회의 자료를 정리하며 팀원들의 설명을 차분히 듣는다.`
-- click `#submit-action` exactly once;
-- do not also press Enter/Ctrl+Enter;
-- do not click again if no request appears.
+Before clicking anything or changing source, inspect TEST durable/readback state for `017fdee2-ec0d-45e0-a866-1183afab0e74`.
 
-Acceptance A:
-- exactly one browser `/turn` request is created;
-- request game ID is exact old fixture;
-- literal bytes equal the filled action;
-- exactly one canonical job/turn is created and committed;
-- Story/Observer/state/readback are captured.
+Record exactly:
+- current `revision`;
+- current `committed_turn`;
+- turns present and whether Turn 3 exists;
+- current `job` readback;
+- Turn-3 action/job row if any;
+- exact `literal_action`;
+- `action_id` if available;
+- `attempt_no`;
+- job `status`, stage, stage_started_at, error_code if present;
+- committed Turn-3 Story / Observer raw / Observer applied / state_after / choices / mind_monitor if present;
+- active CSA readback.
 
-If Acceptance A passes, classify prior no-op attempts as Playwright bootstrap-readiness race. Do NOT patch frontend source. Continue directly to Phase C below without reapplying CSA.
+Post `PROGRESS_HEARTBEAT` with one of these classifications:
+A. `TURN3_COMMITTED_AFTER_BROWSER_LOSS`
+B. `TURN3_PROCESSING_AFTER_BROWSER_LOSS`
+C. `TURN3_FAILED_AFTER_BROWSER_LOSS`
+D. `TURN3_RESERVED_OR_PARTIAL_AFTER_BROWSER_LOSS`
+E. `NO_TURN3_SERVER_FOOTPRINT`
 
-## 4. Phase B — if old fixture still no-ops AFTER readiness, reproduce on one new active-CSA fixture
+Do not mutate the fixture while classifying it.
 
-Enter this phase only if every Phase-A readiness condition was proven and the single click still produced zero `/turn`.
+## 4. Branch A/B/C/D — server footprint exists: diagnose browser transport/reconnect only
 
-Do not repeatedly click/retry the old fixture. Preserve it after the one controlled Phase-A attempt.
+If any Turn-3 server footprint exists, do NOT submit that literal again.
 
-Create ONE new disposable active-CSA reproduction game. This is a diagnostic fixture, not pass-seeking sampling.
+First use read-only evidence to determine whether the server completed, is still processing, failed, or is partial/stale.
 
-Controlled sequence:
-1. Setup + Opening.
-2. Wait for full bootstrap readiness using the same barrier as Phase A.
-3. Submit one ordinary baseline browser turn by `#submit-action`; require exactly one request/commit.
-4. Apply `no_panties_under_work_clothes` through the deployed CSA UI; prove revision increases while committed_turn is unchanged.
-5. Close the CSA overlay and prove it is hidden.
-6. Without reload, wait for rendered context/readiness and submit one neutral browser turn exactly once.
-7. If same-page active-CSA submit succeeds, reload the same game once.
-8. After reload, wait for the full readiness barrier again.
-9. Submit one different neutral browser turn exactly once.
+### 4.1 If already committed
 
-Interpretation:
-- baseline fails => generic browser defect contradicted prior control; STOP with evidence, no broad fix.
-- baseline works + post-CSA same-page fails => deterministic CSA-UI/context client defect.
-- same-page works + post-reload fails => deterministic active-CSA resume/bootstrap defect.
-- both work => old fixture is anomalous/stale evidence; do not patch product code, preserve anomaly and continue CSA certification using the fresh fixture.
+This is a browser response/SSE-loss recovery defect, not gameplay failure.
 
-Before any source correction capture:
-- exact page URL/game identity;
-- all context/opening/turn/CSA requests;
-- pageerror/console;
-- status-banner transitions;
-- overlay hidden state;
-- rendered turn number;
-- active CSA readback;
-- whether click event was observed after readiness.
+Inspect only:
+- `frontend-r3/app.js` submit error handling;
+- `frontend-r3/r3-client.js` fetch/SSE consumption;
+- existing reconnect/recovery tests.
 
-Only a deterministic fresh reproduction may authorize the smallest frontend correction.
+Current known source boundary: submit recovery explicitly performs context/recovery for `r3_stream_reconnect_required`, while a generic browser fetch/stream network exception can fall through to plain error status without durable context reconciliation.
 
-### Allowed correction if and only if Phase B proves one
+Allowed correction only if evidence matches:
+- after a turn request has been attempted and an ambiguous transport/network exception occurs, perform one read-only context reconciliation;
+- if the intended turn is already committed, render committed context and do not resubmit;
+- if the job is processing, use the existing recovery/poll path without a second `/turn` submission;
+- if failed, surface the committed failed-job state and preserve explicit user-controlled retry only;
+- if no corresponding job/turn exists, do not fabricate success and do not auto-resubmit.
 
-Inspect only the narrow frontend bootstrap/submit/CSA state boundary:
-- module readiness/listener attachment;
-- `state.busy` lifecycle;
-- gameId/context identity;
-- stale job state;
-- CSA overlay/context render lifecycle;
-- submit event wiring.
+No second action submission. No hidden retry. No browser-owned Story/Observer/Commit.
 
-Do not change provider/runtime/CSA semantic rules.
-Do not add retry, double-submit fallback, direct API bypass, polling that owns gameplay, or normal-Enter submission merely to make the test pass.
+### 4.2 If processing / partial
 
-Add deterministic regression tests for the exact reproduced state. Run focused frontend/recovery/CSA tests, full npm, changed JS syntax, `git diff --check`. Re-read Issue #68 before FF landing. Deploy TEST frontend only if frontend source actually changes. Replay the single controlled reproduction once on a new disposable fixture.
+Use existing job readback and stage-aware lease behavior. Do not submit again.
+If existing recovery correctly settles it, prove one browser reload/recovery reaches exactly one terminal commit/failure.
+If generic transport error prevents entering existing recovery, the same narrow reconciliation fix above is authorized.
 
-## 5. Phase C — active CSA Story-effect acceptance
+### 4.3 If failed
 
-Use the fixture that is valid after Phase A/B:
-- old fixture if Phase A submits successfully; OR
-- the single fresh Phase-B fixture if the old fixture remains anomalous but fresh active-CSA submit/reload is healthy.
+Do not retry merely for this QA sample. Confirm the failed row/action identity and classify the underlying error separately. Existing explicit retry remains frozen and user-controlled.
 
-Do not reapply a rule already active.
+## 5. Branch E — no Turn-3 server footprint: isolate dispatch/CORS/network once
 
-For an active `r3_csa_1` neutral turn capture:
-- literal action exact storage;
-- Story input/context evidence showing active rule projection where available through existing diagnostics;
-- streamed Story;
+If read-only evidence proves there is no Turn-3 job/action/reservation at all, classify this as browser->API dispatch/transport failure.
+
+Do not click the same fixture again.
+Use ONE new disposable diagnostic game and ONE bounded post-reload action sequence:
+1. Setup + Opening;
+2. one baseline browser turn;
+3. apply the same CSA rule once;
+4. one same-page browser turn;
+5. reload once and pass full readiness barrier;
+6. attach request/response/requestfailed/pageerror/console instrumentation;
+7. submit one different neutral action exactly once.
+
+Capture:
+- exact request URL and method;
+- request headers relevant to CORS/Origin/content-type;
+- whether OPTIONS occurs;
+- requestfailed failure text;
+- whether API sees/reserves the action via immediate read-only context;
+- frontend origin and API origin;
+- status/banner transitions.
+
+Do not change API CORS, client headers, or runtime until this one fresh reproduction proves the boundary.
+
+If the new fixture succeeds, classify the prior net error as a bounded transient/anomalous transport sample and continue without source patch. Do not sample repeatedly until pass.
+
+## 6. Deterministic regression requirements for any frontend transport correction
+
+If a narrow correction is authorized by Branch A/B/C/D, add tests proving at least:
+1. network/stream loss after server commit causes one context reconciliation and zero second `/turn` submissions;
+2. committed context wins and UI advances to the committed turn;
+3. processing job enters existing recovery without duplicate submit;
+4. failed job is surfaced and still requires explicit user retry;
+5. no-job readback after transport loss does not auto-resubmit and keeps user control;
+6. exact literal action bytes are unchanged;
+7. normal successful SSE path remains one submit/one commit;
+8. choice click path remains unchanged;
+9. refresh/reconnect existing contracts remain green;
+10. no generic retry/regeneration or direct API bypass is added.
+
+Run focused frontend/recovery/transport tests, full npm, changed JS syntax and `git diff --check`.
+Re-read Issue #68 before landing. FF only.
+Deploy TEST frontend only if frontend source changes. API deploy only if API source actually changes and a deterministic API defect was proven; otherwise preserve API version.
+
+Use one new disposable replay after deployment. No pass-seeking loop.
+
+## 7. Resume active CSA Story-effect acceptance after transport is green
+
+Use a valid active-CSA fixture after transport classification/recovery. Do not reapply a rule already active.
+
+For active `no_panties_under_work_clothes`, capture:
+- exact literal storage;
+- Story active-rule effect when scene-relevant;
 - Observer raw/applied;
-- state_after and committed readback;
+- state_after/readback;
 - clothing state;
 - MM;
 - choices;
 - scene/location/presence;
-- timing.
+- timings.
 
 Acceptance:
-- active institutional rule affects Story premise/scope when scene-relevant;
-- effect stays inside canonical rule content and subject/counterparty scope;
+- Story reflects the institutional premise/scope when relevant;
 - no invented affection, comfort, consent, desire, romance, obedience, relationship, or player sexual state;
-- RPC/storage activation alone is not sufficient.
+- RPC/storage activation alone is insufficient.
 
-If one neutral sample is not relevant enough to visibly exercise the rule, do not replay/sample until pass. Continue one coherent naturally relevant ordinary action only if justified by the scene and record the miss.
+If one sample is not scene-relevant, record the miss and continue coherently; do not replay/sample until pass.
 
-## 6. Remove + next-Story proof
+Then remove the rule:
+`remove -> revision increases while gameplay turn unchanged -> csa_active absent -> exactly one next ordinary Story -> removed premise no longer applies`.
 
-After a valid active-rule Story sample:
-1. deactivate the same rule through deployed CSA UI/API contract;
-2. revision increases while gameplay turn stays unchanged;
-3. readback shows rule inactive/absent from `csa_active`;
-4. submit exactly one next ordinary browser turn;
-5. next Story/readback no longer carries or applies the removed institutional premise.
+## 8. Four canonical locations / presence / scene_note / semantic agency
 
-No RPC-only acceptance.
+After CSA closure, continue on new disposable fixtures.
 
-## 7. Four canonical locations
-
-After CSA closure, use a NEW disposable fixture.
-Prove at least four distinct registered canonical locations through:
-`literal action -> Story exact canonical destination -> observer_raw -> observer_applied -> state_after -> next Story/context/map`.
-
-No generic room text may be upgraded to a specific canonical location unless the exact canonical name is present in Story evidence. No fuzzy/nearest mapping.
-
-Stop and narrow-fix only the first deterministic divergence.
-
-## 8. Presence / scene_note / semantic player agency
+Four locations full chain:
+`literal action -> Story exact canonical destination name -> observer_raw -> observer_applied -> state_after -> next Story/context/map`.
+No fuzzy/nearest/generic-room upgrade.
 
 Presence:
-- exact canonical actor-name grounding for enter/exit;
-- player movement alone cannot make NPC enter/exit;
+- exact canonical actor-name grounding;
+- player movement alone cannot create NPC enter/exit;
 - same-turn grounded entrant may receive MM;
 - unrelated/off-scene actors cannot be injected.
 
@@ -233,52 +251,52 @@ scene_note:
 - stale ended people/objects/actions must not accumulate indefinitely.
 
 Semantic agency must preserve actor, target/counterparty, action, movement/direction, request/refusal, self-state, and topic/intent.
-Explicit historical regressions remain targets:
+Explicit regression targets remain:
 - ask 한리브 about lunch must not become 김제나/work talk;
-- `혼자 있고 싶다` must be respected narratively;
+- `혼자 있고 싶다` must be narratively respected;
 - `허리를 만진다` must not become touching a table edge.
 
-Do not build a generic semantic classifier to police these.
+Do not build a generic semantic classifier/gate.
 
 ## 9. Remaining objective campaigns
 
-When P1 is green, continue the SAME task through:
-1. materially different independent 15+ turns;
-2. long-memory 50+ turns;
+When P1 is green continue the SAME task through:
+1. materially different independent 15+ turn campaign;
+2. long-memory 50+ turn campaign;
 3. dedicated clothing CSA fixture;
 4. dedicated request/interaction CSA fixture;
 5. all 9 canonical CSA templates.
 
-For each CSA template prove:
+For every CSA template prove:
 `apply -> revision increases while gameplay turn unchanged -> relevant scene -> Story premise/scope effect -> observer/readback/structured state as applicable -> remove -> next Story/readback confirms removal`.
 
-Continue recording Story exact-four choice reliability without retry/regeneration. Frozen clean-30 quality remains 16/30 valid tails, 14/30 no-tail, max no-tail streak 6.
+Continue choice reliability measurement without retry/regeneration/fallback fabrication.
 
 ## 10. Latency / retained surfaces / viewports
 
-Across campaigns capture submit, provider headers when available, first Story token, Story complete, Observer start/complete, commit; derive p50/p95 when sample size permits. Measure before optimize.
+Across campaigns capture submit, response headers when available, first Story token, Story complete, Observer start/complete, commit; derive p50/p95 when sample permits. Measure before optimize.
 
-Retain regression checks for:
+Retain checks for:
 - history/export/download;
 - reconnect/reload;
-- duplicate submit and accepted failed-job explicit retry;
-- TTS behavior where in current product contract;
-- feedback behavior if current canon retains it;
-- desktop plus 390x844 and a wider mobile/tablet viewport.
+- duplicate submit and explicit failed-job retry;
+- TTS where current product contract retains it;
+- feedback if current canon retains it;
+- desktop, 390x844, and wider mobile/tablet viewport.
 
-## 11. Stop / terminal policy
+## 11. Heartbeat / terminal policy
 
-During long QA phases post `PROGRESS_HEARTBEAT` at least about every 15 minutes.
+During long QA phases post `PROGRESS_HEARTBEAT` about every 15 minutes.
 
 On deterministic defect:
-- collect exact deployed evidence;
-- narrow-fix only the proven boundary if authorized here;
-- validate, FF land, exact TEST deploy if needed;
-- use a new disposable fixture for replay when required;
-- no pass-seeking/provider sampling.
+- preserve exact deployed evidence;
+- narrow-fix only the proven boundary;
+- validate and FF land;
+- exact TEST deploy only as needed;
+- no provider pass-seeking or hidden retries.
 
-Before any landing/deploy, re-read Issue #68 and verify no newer execution authority exists.
+Before every landing/deploy re-read Issue #68 and verify no newer execution authority exists.
 
-Terminal must include exact task blob, start/final main, changed paths, tests, TEST versions, fixtures, literal/Story/Observer/applied/state/readback evidence, warnings classified as diagnostic vs blocker, and remaining matrix.
+Terminal must include exact task blob, start/final main, changed paths, tests, TEST versions, fixture IDs, literal/request/job/readback evidence, warnings classified as diagnostic vs blocker, and remaining matrix.
 
 `OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remains forbidden until the full objective matrix is green.
