@@ -2,8 +2,8 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: P1 ACTOR-IDENTITY + POST-STORY MIND-MONITOR CLOSURE -> FOCUSED LIVE ACCEPTANCE -> REMAINING P1 -> 15 / 50 / 9-CSA CONTINUOUS TEST LIVE-QA
-Updated: 2026-08-22 13:27 KST
+Mode: ACCEPT MM -> RECOVER CSA STORY-EFFECT HARNESS -> CLASSIFY ENTER WARNING -> FOUR-LOCATION / SCENE / AGENCY -> 15 / 50 / 9-CSA CONTINUOUS TEST LIVE-QA
+Updated: 2026-08-22 14:02 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/task-registration branch, recovery branch, or alternate execution authority.
@@ -15,307 +15,368 @@ Automation owns objective QA until the deployed exit matrix is green. `WAITING_U
 Binding authority remains:
 - `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md`
 - `docs/ops/LIVE_QA_PRODUCT_REVIEW_2026-08-22.md`
-- PR #95 owner-locked product canon `9d9aec5a198d8673eb37aba8a0541adbd6c84627`
+- PR #95 product canon `9d9aec5a198d8673eb37aba8a0541adbd6c84627`
 - PR #96 A-prime canon `9d44c4719fa6b098d53cac5cf946b93fafa6786b`
 - `docs/redesign/00_*` through `11_*`
-- current accepted R3 source on main
+- current reviewed R3 source on main
 - latest explicit owner decisions and Issue #68 operator review
 
-Architecture stays frozen at A-prime/R3:
+Architecture remains:
 `Story 1 call -> Observer 1 call -> small reducer -> atomic commit`.
 
-Do NOT add a new engine, generic semantic validator, NER/fuzzy mapper, nearest matching, physical ontology, consent DSL, second Story/choice LLM, automatic retry/regeneration, browser-owned Story/Observer/Commit orchestration, timeout inflation, provider/model/config workaround, or a new narrative parser generation.
+Do NOT add generic NER, fuzzy/nearest actor or location matching, semantic classifier/gate, physical ontology, consent DSL, second Story/choice LLM, automatic retry/regeneration, browser-owned Story/Observer/Commit orchestration, timeout inflation, provider/model/config workaround, or a new parser generation.
 
-TEST only. No Production access/deploy. Preserved historical/manual/evidence games are immutable/read-only.
+TEST only. No Production. Preserved historical/manual/evidence games are immutable/read-only.
 
-## 1. Accepted terminal / frozen progress
+## 1. Accepted terminal review and current executable
 
-Accepted terminal:
-- terminal comment: `5377854360`
-- operator review: `5377869934`
-- terminal CURRENT_TASK blob: `c65da12554f8225970eb12ce731d46c8cf24c4ca`
-- verified final executable/main: `39157507419e06477513032b45513b8e6e016f97`
-- registration parent: `cd78a307d821ad209dbb43c3145503db48461318`
+Terminal reviewed:
+- terminal comment: `5378035433`
+- operator review: `5378066264`
+- terminal task blob: `fea0bee3b6ab198789735bd8a332b53e752c482e`
+- terminal/main executable: `a4608ff7710468dd34ca7858ccaaf869eb9908bd`
+- registration main before execution: `7ec82a75edea195f0bf1ac6ba4c617310d8101db`
 
-Accepted and frozen absent new deterministic evidence:
-- Story-only current-choice authority correction at `391575074...`;
-- Story terminal valid `1..4` tail is canonical choice source;
-- Observer may warn but cannot veto a valid Story tail;
-- no Story tail => no fabricated/prior-turn fallback choices; literal free input remains available;
-- P0 failed-turn explicit retry, same-row attempt fencing, stage-aware stale terminalization;
-- invocation-based Story total deadline;
-- same-job duplicate transport and browser refresh/recovery;
-- provider budgets remain Story first-content 30s / Story total 120s / Observer 75s.
+Source lineage is exactly two fast-forward implementation commits:
+1. `480daad8d7255ecbc865af9f4bd4648910afd446` — actor identity / post-Story Mind Monitor closure
+2. `a4608ff7710468dd34ca7858ccaaf869eb9908bd` — active CSA Story context + exact canonical destination-name Story contract
 
-Exact TEST deployment at terminal:
-- API `game-proxy-company-r3`: `f324232c-82c1-418e-8a52-19bdee42c54a`
+Current exact TEST deployment:
+- API `game-proxy-company-r3`: `6e86c32e-22e5-400c-8bdb-9ae4ef7a639a`
 - frontend preserved: `ba4812c5-3883-4a90-8b9d-5482e4ccfabf`
 
-### Accepted focused Story-choice proof
+No Production/provider/model/API URL/key/secret/temperature/timeout/migration change is authorized.
+Story budgets remain first-content 30s / total 120s; Observer remains 75s.
 
-Disposable game `c53ec6f2-b465-44ec-a167-59c5bee57948`:
-- Opening + 5 ordinary committed turns;
-- literal storage parity 5/5;
-- at least two current-choice clicks and two Korean free-input actions;
-- a real Story no-tail turn correctly kept canonical choices empty;
-- a later Observer mismatch did NOT erase the exact Story-authored choices.
+## 2. Frozen accepted progress — do not reopen without new deterministic evidence
 
-### Accepted clean 30 campaign
+### 2.1 P0 / transport
 
-Disposable game `4debc85b-2e19-4d0b-96cb-177e7379df1e`:
-- Opening + 30 ordinary committed turns;
-- literal storage parity 30/30;
-- valid exact-four Story tails 16/30;
-- Story no-tail 14/30; max no-tail streak 6;
-- Observer exact choice matches 15;
-- Observer mismatch with canonical Story choices surviving 1;
-- prior/deterministic fabricated fallback choices 0;
-- one natural Turn-21 stale timeout recovered exactly once through the accepted explicit failed-turn retry path; no pass-seeking retry.
+Accepted:
+- explicit failed-turn retry only, same-row attempt fencing, fresh action id on explicit retry;
+- stage-aware stale terminalization;
+- invocation-based Story total deadline;
+- same-job duplicate/reconnect/refresh behavior;
+- no hidden retry/regeneration.
 
-Do NOT rerun clean 30 merely to improve these statistics. Preserve the 16/30 choice reliability result as an objective quality concern for later P1/final review. Do not hide it via retry/regeneration/provider-model changes.
+### 2.2 Story sole choice authority
 
-## 2. Decisive P1 blocker
+Accepted and non-negotiable:
+- current Story valid terminal numbered `1..4` tail is the sole canonical choice source;
+- normalizer stores the exact Story-tail literals without the numbering prefix;
+- Observer choices are diagnostic only and cannot create, repair, replace, reorder, or veto a valid Story choice set;
+- `choices_observer_mismatch` is therefore **not a gameplay failure by itself**;
+- if Story has no valid terminal exact-four tail, choices remain absent and literal free input remains usable;
+- no previous-turn or deterministic fabricated fallback.
 
-The same clean-30 evidence shows:
-- committed actor-keyed `mind_monitor` non-empty on **0/30 ordinary turns**;
-- all ordinary turns therefore failed to prove the required relevant-NPC Mind Monitor product surface;
-- final scene still contained registered actors, so this is not explained by an empty scene.
+Do NOT add Observer `1.` prefix stripping, whitespace/punctuation normalization, semantic equivalence, fuzzy matching, or another choice adapter merely to silence a diagnostic mismatch.
 
-This is the next deterministic P1 blocker. Do not start the independent 15+, long-memory 50+, or 9-CSA certification campaigns until this boundary is closed and focused-live green.
+Accepted clean-30 evidence remains:
+- game `4debc85b-2e19-4d0b-96cb-177e7379df1e`
+- Opening + 30 ordinary committed turns
+- literal storage parity 30/30
+- valid exact-four Story tails 16/30
+- no-tail 14/30; max no-tail streak 6
+- fabricated/prior fallback 0
+- one natural stale turn recovered exactly once via accepted explicit retry
 
-## 3. Independent source findings that bind the repair
+Do not rerun clean 30 just to improve its statistics.
 
-At accepted main `391575074...`:
+### 2.3 Mind Monitor blocker is CLOSED
 
-### 3.1 Observer lacks canonical actor identity input
+`480daad8...` source repair is accepted:
+- clean-30 raw classification proved 30/30 Observer MM payloads were the old unkeyed `{surface,subconscious}` shape, not canonical actor keyed;
+- Observer now receives compact canonical registered `{id,name}` directory;
+- Observer prompt requires canonical actor-ID MM keys;
+- entered/exited grounding requires registered ID + exact Story quote containing that actor's exact canonical name;
+- MM eligibility is pre-turn present + grounded entered - grounded exited;
+- no name->ID/fuzzy repair.
 
-`runtime-r3/server/provider.js` currently sends Observer only:
-- `literal_action`
-- `story_text`
-- pre-turn `current_context`
+Live game `a764e547-0eaf-4917-8cc5-e96bbb370c79` proves ordinary Turns 1-5 used canonical actor-ID keys in raw/applied MM and literal parity 5/5.
 
-It does **not** send the registered canonical actor directory `{id,name}`.
+The prior systemic MM 0/30 blocker is CLOSED absent new deterministic contrary evidence.
 
-The Observer prompt asks for actor-keyed Mind Monitor but gives the model no explicit canonical ID/name mapping. This can produce empty output or name/noncanonical keys and is not an adequate structural contract.
+## 3. `a4608ff...` source status
 
-### 3.2 Mind Monitor authorization is PRE-TURN only
+`a4608ff...` is accepted as current source/test/deploy baseline:
+- `runtime-r3/domain/memory.js` projects active canonical `csa_rules` into Story context once, preserving stated scope and excluding inactive rules;
+- Story prompt applies only stated institutional rule content/scope and explicitly forbids deriving affection, comfort, consent, desire, romance, obedience, relationship, or player sexual state merely from activation;
+- Story prompt asks for the exact canonical destination name when literal action names one;
+- focused validation 42/42 PASS;
+- full npm 466/466 PASS;
+- syntax and `git diff --check` PASS;
+- exact TEST API deployed as above.
 
-`runtime-r3/domain/observer-normalizer.js` currently builds:
-`currentIds = new Set(currentState?.scene?.present_actor_ids ?? [])`
+Source correctness is accepted, but live acceptance of active-rule Story effect is still pending because the post-activation gameplay request was never actually submitted.
 
-A Mind Monitor entry survives only when its key is already in that PRE-TURN set and exists in the actor directory.
+## 4. Correct the terminal classification before doing work
 
-Therefore a legitimate NPC who enters during the current Story cannot receive Mind Monitor in the same committed turn even when Observer used the correct canonical ID.
+The terminal called three things failures. Treat them separately:
 
-### 3.3 Current enter/exit evidence is not actor-specific enough
+1. Turns 3/4 `choices_observer_mismatch`:
+   - diagnostic only under Story sole-authority;
+   - verify read-only that committed choices equal the exact Story-tail literals and were not erased;
+   - if yes, classify `EXPECTED_DIAGNOSTIC_NONBLOCKING` and do not edit source.
 
-Current entered/exited validation accepts:
-- a registered actor ID, plus
-- any exact quote from Story.
+2. Turn 5 `entered_projection_dropped`:
+   - not automatically a bug;
+   - exact-name grounding is intentionally fail-closed;
+   - inspect exact `actor_id`, canonical actor name, raw quote, Story substring, normalized/applied transition, state_after, and same-turn MM before any source mutation.
 
-The quote does not have to identify that actor. This is too weak to use entered/exited as post-Story relevance authority and violates the existing P1 rule that actor enter/exit evidence must identify that canonical actor by name. Player movement text must never be enough to make an NPC enter/exit.
+3. CSA follow-up:
+   - TEST HARNESS INVALID because modal remained open and no gameplay action was submitted;
+   - not provider/runtime failure and not a gameplay retry;
+   - recover the harness and execute the first real post-activation turn exactly once if preflight proves no Turn-6 action/job exists.
 
-## 4. First action: classify the clean-30 raw MM failure before patching
+Post one `PROGRESS_HEARTBEAT` with these read-only classifications before any new source landing.
 
-Before source mutation, inspect the preserved clean-30 evidence artifact and/or read-only TEST turn rows for disposable game `4debc85b-2e19-4d0b-96cb-177e7379df1e`.
+## 5. Immediate read-only preflight on disposable `a764e547...`
 
-Classify at least a representative sample of `observer_raw.mind_monitor` values across the 30 ordinary turns:
-- truly empty object/absent;
-- keyed by actor names instead of canonical IDs;
-- keyed by canonical IDs but dropped by pre-turn relevance;
-- mixed forms;
-- Observer failure/degraded output.
+Before any mutation:
 
-Post one `PROGRESS_HEARTBEAT` to Issue #68 with the classification before landing any source fix.
+1. Re-read latest Issue #68 and current main.
+2. Verify main is exactly/descends fast-forward from `a4608ff...`; inspect unexpected delta and STOP on conflicting execution authority.
+3. Verify TEST API deployment identity is still the reviewed `6e86c32e-...`; redeploy only if stale relative to exact reviewed main.
+4. Read-only inspect game `a764e547-0eaf-4917-8cc5-e96bbb370c79`:
+   - current `revision`
+   - `committed_turn`
+   - `csa_active`
+   - active rule record including template/content/mode/trigger/strength/subject_scope/counterparty_scope
+   - Turn-6 job/action existence
+   - Turns 3/4 Story tail, observer_raw choices, observer_applied/committed choices
+   - Turn-5 Story, raw `entered` item, actor directory identity, normalized/applied transition, state_after and MM.
 
-Do not mutate this evidence game. Do not infer the cause solely from source when raw evidence can distinguish it.
+Expected preflight from terminal evidence:
+- revision `6`
+- committed_turn `5`
+- `csa_active=[r3_csa_1]`
+- no actual Turn-6 action/job from the invalid modal attempt.
 
-## 5. Required narrow actor/MM contract closure
+If these differ, report the exact durable state and adapt only to what actually exists. Do not manufacture/overwrite history.
 
-The goal is a structural identity/relevance repair, not semantic entity extraction.
+## 6. Classify the Turn-5 entered warning
 
-### 5.1 Pass compact canonical actor directory to Observer
+For each dropped Turn-5 `entered` item:
 
-Give the existing Observer call a compact registered actor directory containing only deterministic canonical identity needed for projection, at minimum:
-`[{ id, name }, ...]`
+### Correct fail-closed
+If any of these are false:
+- actor_id is a registered canonical actor;
+- quote is an exact contiguous Story substring;
+- quote contains that actor's exact canonical name;
+
+then classify:
+`CORRECT_FAIL_CLOSED_ENTER_EVIDENCE_DROP`
+
+Do not edit the normalizer. Do not add aliases, NER, fuzzy matching, name->ID repair, or looser quote semantics.
+
+### Actual deterministic defect
+Only if all three grounding conditions are true but the item was still dropped, OR a fully grounded entrant is omitted from state/MM, then:
+- isolate the exact source boundary;
+- add the smallest deterministic regression;
+- run focused/full/syntax/diff checks;
+- FF-only land;
+- exact TEST API redeploy;
+- replay only the affected narrow acceptance on a new disposable game once.
+
+Do not relax the actor-name evidence law.
+
+## 7. Recover the active-CSA Story-effect acceptance
+
+If read-only preflight confirms `a764e547...` still has active `r3_csa_1`, committed_turn 5, and no Turn-6 job/action:
+
+1. Close/dismiss the stale CSA modal/harness state. Do not re-apply the rule.
+2. Use the current stored active rule record to understand its exact content and scope.
+3. Submit exactly ONE ordinary neutral action relevant to the scene/scope, but **do not repeat the rule text in the player action**. The Story must demonstrate the premise from `active_rules`, not because the literal action restated it.
+4. Record:
+   - literal action / exact storage parity
+   - Story text and exact rule-effect quote
+   - active rule context identity/scope used by Story
+   - Observer raw/applied
+   - committed state/readback
+   - MM
+   - choices diagnostics/canonical choices
+   - timing / terminal status.
+5. Acceptance requires a relevant Story effect consistent with the rule's institutional content and stated scope.
+6. Activation must NOT manufacture personal affection, comfort, consent, desire, romance, relationship, obedience beyond stated institutional mechanics, or player sexual state.
+
+This is the **first actual post-activation gameplay request**, not a retry. Do not call it pass-seeking.
+
+If no request is created again due a harness/UI error, fix only the harness state and make one actual request. Do not sample multiple provider outputs.
+
+If the actual Story request commits but ignores/mis-scopes the active rule, STOP with exact Story/context evidence before changing source.
+
+## 8. Remove the same CSA rule and prove removal
+
+After Section 7 succeeds:
+
+1. Remove `r3_csa_1` through the normal deployed CSA authority.
+2. Verify revision increases while `committed_turn` remains unchanged by the removal operation itself.
+3. Verify `csa_active` no longer contains the rule and active Story context no longer contains it.
+4. Submit exactly one neutral follow-up ordinary turn.
+5. Verify next Story/readback no longer applies the removed rule unless the same fact is independently supported by ordinary scene continuity.
+6. Keep MM/choice/literal parity checks active.
+
+This closes one real canonical CSA apply -> Story effect -> readback -> remove -> next Story/readback sequence.
+
+## 9. Four canonical locations end-to-end
+
+After the CSA harness closure, use a NEW clean disposable location/agency fixture; do not use the CSA-mutated game for broad location certification.
+
+Fetch current catalog and choose at least four distinct registered canonical locations suitable for a coherent route.
+
+For each movement turn use one literal action naming the exact canonical destination and prove:
+`literal -> Story exact canonical destination name -> observer_raw location -> observer_applied -> state_after -> next Story`
 
 Requirements:
-- use repository content/canonical actor catalog only;
-- include canonical IDs and exact names;
-- do not send private/irrelevant character data merely for ID mapping;
-- Observer prompt must explicitly require `mind_monitor` object keys to be canonical actor IDs from that directory;
-- unknown names/IDs must not be invented or mapped;
-- no fuzzy, nearest, transliteration, alias guessing, or name->ID repair in code.
+- at least four distinct committed canonical location IDs;
+- map/context/readback agree;
+- generic `회의실`, `휴게실`, etc. cannot silently substitute a different canonical destination when the literal names an exact registered location;
+- no fuzzy/nearest location mapping;
+- one Story contract miss is evidence; do not replay until a better sample.
 
-Provider/model/API URL/key/temperature/token budgets/timeouts remain unchanged.
+Turn 1 of `a764e547...` already provides positive evidence for `brand_strategy_meeting_room`, but the fresh four-location fixture must independently establish broad current-executable reliability.
 
-### 5.2 Actor-specific entered/exited grounding
+## 10. Scene presence and `scene_note`
 
-For each Observer `entered` / `exited` item:
-- `actor_id` must be registered canonical ID;
-- `quote` must be an exact contiguous Story substring;
-- that exact quote must also contain the exact canonical actor name for `actor_id`;
-- otherwise drop the item with the existing bounded warning style.
+During the location fixture and subsequent campaigns inspect:
+- grounded entered/exited actor transitions;
+- player movement cannot establish NPC enter/exit;
+- same-turn grounded entrants may receive MM;
+- exited actors do not retain MM eligibility;
+- off-scene mentions do not add presence;
+- `scene_note` is a bounded CURRENT scene snapshot, not an accumulating log;
+- ended person/object/location facts disappear when no longer current.
 
-No generic NER or semantic classifier.
-No fuzzy name variants.
-A player movement/location quote that does not identify the NPC by canonical name cannot support NPC enter/exit.
+If `scene_note` demonstrably accumulates stale ended facts, isolate the smallest reducer/Observer contract boundary; do not create a semantic world model.
 
-### 5.3 Derive MM relevance structurally from current + grounded scene transition
+## 11. Semantic player agency P1
 
-Build the Mind Monitor-eligible actor set from deterministic scene facts:
-1. start with PRE-TURN `currentState.scene.present_actor_ids` that are registered;
-2. add only current-turn `entered` actors that passed the actor-name-grounded rule above;
-3. remove only current-turn `exited` actors that passed the same actor-name-grounded rule;
-4. exclude unknown/nonregistered IDs.
+Across every subsequent campaign inspect actual Story semantics, not only stored literal equality.
 
-A same-turn grounded entrant must therefore be eligible for Mind Monitor immediately.
-A grounded exited actor must not remain eligible.
+Story must not silently substitute:
+- player actor
+- target/counterparty
+- action
+- movement/direction
+- request/refusal
+- self-state
+- topic/intent.
 
-Do NOT authorize an unrelated actor solely because Observer placed its ID in `present_actor_ids` without grounded transition evidence. `present_actor_ids` may continue its existing scene-projection role in this bounded task, but it must not become a shortcut for injecting unrelated MM actors.
+Known bad examples remain rejection patterns:
+- asking to talk with one NPC but Story switches to another;
+- asking to be alone while NPC interaction continues as if refused;
+- touching a person's waist transformed into touching furniture.
 
-### 5.4 Mind Monitor projection
+Do not build a generic semantic gate/classifier to enforce this. Use provider contract + human-like campaign evidence and fix only deterministic structural causes when proven.
 
-For each Observer `mind_monitor` entry:
-- key must be an exact canonical actor ID;
-- actor must be in the structurally derived eligible set above;
-- value must remain a plain object with bounded `surface` and `subconscious` text as the existing product shape expects;
-- unrelated/off-scene/unknown/name-keyed entries are dropped fail-open with bounded warning;
-- do not fabricate Mind Monitor text in code when Observer returns none;
-- do not copy prior-turn Mind Monitor as fallback.
+## 12. Independent campaigns after current P1 is stable
 
-The Observer/LLM remains responsible for generating relevant current-character surface/subconscious text. Code only enforces deterministic identity/relevance boundaries.
+Continue this SAME continuous task without waiting for owner merely because a subsection turns green.
 
-## 6. Required deterministic regression proof
+Required independent fixtures:
+1. materially different style 15+ ordinary turns;
+2. long-memory 50+ ordinary turns;
+3. dedicated clothing CSA fixture;
+4. dedicated request/interaction CSA fixture.
 
-Add focused tests proving at least:
+Do not certify 15/50 from the existing clean-30 game.
 
-1. Observer request payload contains compact canonical `{id,name}` actor directory from content.
-2. Observer prompt explicitly requires canonical actor-ID keys for `mind_monitor`.
-3. PRE-TURN present canonical actor + canonical-ID MM entry survives.
-4. Name-keyed MM entry is dropped; no name->ID conversion occurs.
-5. Unknown actor ID MM entry is dropped.
-6. Off-scene registered actor not in the eligible set is dropped even if its name appears elsewhere.
-7. Current-turn entrant with registered ID + exact Story quote containing that actor's exact canonical name is accepted.
-8. That same grounded entrant's canonical-ID MM entry survives in the SAME turn.
-9. Entrant quote that is exact Story text but does not contain the actor's canonical name is dropped.
-10. Player movement/location quote cannot support an NPC entrant unless that NPC's canonical name is in the quote.
-11. Grounded exited actor is removed from MM eligibility in the same turn.
-12. `present_actor_ids` alone cannot grant MM eligibility to an unrelated actor that was not pre-present or grounded-entered.
-13. Multiple valid current relevant actors remain actor-keyed independently; one malformed actor entry does not erase another valid MM entry.
-14. Observer empty MM remains fail-open empty; no deterministic/prior-turn fabrication.
-15. Choice-authority contracts from `391575074...` remain green and unaffected.
-16. Location/scene/clothing projection remains unchanged except the explicitly actor-specific enter/exit evidence requirement.
-17. Production boundary still constructs the real provider; no deterministic provider substitution.
+Long-memory acceptance must inspect:
+- recent-turn continuity;
+- older summary continuity after recent context rolls off;
+- turn summaries/readback actually update;
+- no opening-only summary freeze/mojibake;
+- actor/location/relationship facts remain coherent without deterministic semantic memory invention.
 
-Run:
-- focused Observer/provider/worker/reducer contracts;
-- full `npm` suite;
-- changed JS/MJS syntax checks;
-- `git diff --check`.
+## 13. All 9 CSA templates
 
-## 7. Landing / exact TEST rollout
+For every canonical CSA template prove:
+`apply -> revision increases while gameplay turn unchanged -> relevant scene -> Story premise/scope effect -> Observer/readback/structured state as applicable -> remove -> next Story/readback confirms removal`
 
-1. Re-read latest Issue #68 immediately before landing.
-2. Verify main still descends fast-forward from `39157507419e06477513032b45513b8e6e016f97`; STOP on conflicting execution authority.
-3. Land only the minimal source/test correction, fast-forward only.
-4. No new branch/recovery branch/force push/history rewrite.
-5. No migration/DDL/schema/data change is expected or authorized.
-6. Deploy exact TEST API because backend provider/normalizer/worker source is expected to change.
-7. Deploy frontend only if frontend source actually changes; otherwise preserve current accepted frontend version.
-8. Record exact main SHA and Worker version identities.
-9. Production remains untouched.
+RPC success alone is not acceptance.
 
-Post a `PROGRESS_HEARTBEAT` after validation/landing and another after TEST deployment/live-probe start. During long QA phases, do not leave Issue #68 silent for more than ~15 minutes; heartbeat comments are evidence only and do not replace terminal reports.
+Keep institutional/system premise separate from NPC personal:
+- affection
+- comfort
+- consent
+- desire
+- romance
+- relationship.
 
-## 8. Focused deployed MM acceptance
+No rule activation may manufacture those personal states unless separately established by Story evidence outside the institutional rule itself.
 
-Use one NEW disposable R3 TEST game after exact deployment. Do not reuse clean-30 or preserved evidence fixtures.
+Use separate disposable fixtures where clothing versus request/interaction scopes materially differ. Do not create one heavily mutated mega-game as the sole certification source.
 
-Run Opening plus 5-8 coherent ordinary turns with at least one registered NPC materially participating in the current scene on each inspected turn.
+## 14. Choice reliability and product identity
 
-Required evidence per turn:
-- submitted literal action and exact storage parity;
-- Story relevant NPC identities/names;
-- observer_raw `entered` / `exited` / `present_actor_ids` / `mind_monitor`;
-- normalized/applied actor transition and `mind_monitor`;
-- committed turn `mind_monitor` readback;
-- frontend Mind Monitor surface if browser-visible;
-- no unrelated/off-scene actor MM projection.
+Preserve aggregate choice evidence:
+- clean-30 exact-four rate 16/30 is an unresolved quality concern;
+- do not hide it by retries/regeneration/fallbacks;
+- continue recording exact-four/no-tail rates in 15/50 campaigns.
 
-Acceptance:
-- systemic 0/N Mind Monitor failure must be gone;
-- successful Observer turns with a materially active eligible current NPC must produce grounded actor-keyed MM often enough to demonstrate the product surface is functioning, not a one-off artifact;
-- capture at least THREE non-empty grounded canonical-ID MM samples across the focused probe;
-- if a same-turn NPC entrant naturally occurs, prove its actor-name-grounded enter evidence and same-turn MM eligibility/readback;
-- if no same-turn entrant naturally occurs in this one bounded probe, do NOT sample/retry until one appears: the deterministic regression test is sufficient for entrant mechanics, and live proof may remain current-actor only;
-- unknown/name-keyed/off-scene Observer entries must remain dropped, not repaired;
-- no Story/Observer retry or pass-seeking replay.
+Product identity must remain adult office-life interactive fiction / character simulation:
+- work is background/social texture, not mandatory productivity-assistant funnel;
+- no invented competing app/CSA mechanics;
+- natural non-work/social turns must remain possible.
 
-If the Observer itself still returns empty MM on every well-grounded current-NPC turn despite receiving the actor directory, stop with raw provider evidence. Do not change model, temperature, token budget, timeout, or add a second LLM call. A narrow prompt-contract clarification may be considered only if the evidence proves the model was not instructed to emit MM for materially participating eligible actors.
+## 15. Latency and retained surfaces
 
-## 9. Continue remaining P1 immediately after MM green
+Across meaningful samples record:
+- submit/request start
+- response headers when observable
+- first Story token
+- Story complete
+- Observer start/complete/fail-open
+- commit terminal.
 
-Do not create a new feature task merely because focused MM passes. Continue this SAME continuous task through:
+Derive p50/p95 when sample size permits.
+Measure before changing anything. No second Observer/retry optimization.
 
-1. Active CSA -> Story context: relevant active canonical CSA rule + selected scope actually reaches Story and affects only its authorized premise.
-2. Four-location continuity: at least four canonical locations through `literal -> Story -> observer_raw -> observer_applied -> state_after -> next Story`.
-3. Broader actor presence correctness using the actor-specific enter/exit evidence now established.
-4. `scene_note` is a bounded current-scene snapshot; stale ended facts disappear rather than accumulating.
-5. Semantic player agency: Story may not silently substitute player actor, target/counterparty, action, movement/direction, request/refusal, self-state, or topic/intent.
-6. Product identity: office work is life texture, not mandatory work-assistant/task funnel; no fake competing CSA/app mechanics.
-7. Story choice reliability: preserve the accepted clean-30 16/30 exact-four result; investigate/improve only through the Story contract itself if a deterministic prompt-contract defect is proven. No second Story generation, prior fallback, deterministic fabricated ordinary choices, or retry-until-pass.
+Exercise retained surfaces before owner handoff:
+- history
+- TTS
+- download/export
+- refresh/reconnect
+- duplicate submit
+- failed-turn explicit retry
+- canon-retained feedback/revision surface if present.
 
-No generic semantic classifier/NER/fuzzy/nearest mapper/physical ontology/consent DSL may be introduced.
-
-## 10. Remaining campaigns / CSA / retained surfaces
-
-After P1 is stable enough to proceed:
-- independent materially different 15+ turn campaign;
-- long-memory 50+ turn campaign;
-- dedicated clothing CSA fixture;
-- dedicated request/interaction CSA fixture.
-
-For all 9 canonical CSA templates prove:
-`apply -> revision increases while gameplay turn unchanged -> relevant scene -> Story premise/scope effect -> observer/readback/structured state as applicable -> remove -> next Story/readback confirms removal`.
-
-RPC success alone is not acceptance. Institutional/system CSA premise must never manufacture personal affection, comfort, consent, desire, romance, or relationship state.
-
-Measure latency and derive p50/p95 from meaningful samples. Measure first; no second Observer/retry optimization.
-
-Exercise retained surfaces:
-- history;
-- TTS;
-- download/export;
-- refresh/reconnect;
-- duplicate submit;
-- failed-turn explicit retry;
-- any canon-retained feedback/revision surface.
-
-Required viewport evidence before owner handoff:
-- desktop;
-- `390x844`;
-- one wider mobile/tablet viewport;
+Required visual evidence:
+- desktop
+- 390x844
+- one wider mobile/tablet viewport
 - screenshots visually inspected, not merely counted.
 
-## 11. Safety / exit
+## 16. Execution discipline / safety
 
-- TEST only; no Production.
-- Preserved/manual/evidence games immutable.
-- No provider/model/API URL/key/secret/temperature/token-budget change.
-- Keep Story 30s/120s and Observer 75s budgets unchanged.
-- No automatic retry/regeneration or second Story/Observer/choice LLM.
-- No migration-history repair/rewrite and no schema change for this P1 closure.
-- No generic semantic classifier/NER/fuzzy/nearest mapper/name resolver/physical ontology/consent DSL.
-- No unknown/name -> canonical ID repair; the model must use provided canonical IDs and invalid keys fail-open drop.
-- Actor enter/exit evidence must contain that actor's exact canonical name.
-- `present_actor_ids` alone must not become an ungrounded MM injection path.
-- No previous-turn/fabricated Mind Monitor fallback.
-- Story remains sole current-choice author.
-- No browser-owned orchestration replacing A-prime server authority.
-- Fast-forward only; no force-push/history rewrite.
-- Re-read Issue #68 before each source landing and TEST deployment decision.
+- Re-read latest Issue #68 before every source landing and TEST deployment decision.
+- Post `PROGRESS_HEARTBEAT` at major phase boundaries and at least about every 15 minutes during long live QA so Hermes does not mistake active work for a dead loop.
+- Heartbeats are evidence only and do not alter execution authority.
+- Natural ordinary-turn failure may use the accepted explicit failed-turn retry at most once for that failed canonical turn.
+- A harness-invalid attempt where no action/job was created is not a gameplay retry, but prove absence before resubmitting.
+- No retry-until-pass or provider sampling.
+- No migration-history repair/rewrite.
+- No Production.
+- No preserved-game mutation/reset.
+- Fast-forward only; no force push/history rewrite.
 
-`OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remains forbidden until the full objective P0/P1/P2 exit matrix is green, including remaining P1, independent 15+, long-memory 50+, all 9 CSA behavioral coverage, semantic agency, location/presence/scene continuity, choices/MM quality, recovery, latency, and retained surfaces/viewports.
+## 17. Exit condition
 
-If a safety boundary or ambiguous deterministic failure is reached, post exact evidence and STOP. Otherwise continue this SAME task.
+Continue until objective deployed QA is green across:
+- P0 runtime/transport
+- Story sole choice authority and observed reliability
+- Mind Monitor
+- CSA Story projection/removal
+- four-location continuity
+- presence/scene_note
+- semantic player agency
+- independent 15+
+- long-memory 50+
+- all 9 CSA
+- latency
+- retained surfaces
+- desktop/mobile/tablet visual inspection.
+
+Only then may the runner post an owner-handoff terminal.
+
+`OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remains forbidden before the full objective matrix is green.
