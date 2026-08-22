@@ -2,8 +2,8 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: P1 CHOICE LITERAL ESCAPE-PARITY CLOSURE -> CLEAN 30 -> P1 / 15 / 50 / 9-CSA CONTINUOUS TEST LIVE-QA
-Updated: 2026-08-22 12:21 KST
+Mode: P1 STORY-ONLY CHOICE AUTHORITY CLOSURE -> FOCUSED LIVE ACCEPTANCE -> CLEAN 30 -> P1 / 15 / 50 / 9-CSA CONTINUOUS TEST LIVE-QA
+Updated: 2026-08-22 12:39 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/task-registration branch, recovery branch, or alternate execution authority.
@@ -24,126 +24,119 @@ Binding authority remains:
 Architecture stays frozen at A-prime/R3:
 `Story 1 call -> Observer 1 call -> small reducer -> atomic commit`.
 
-Story is the sole choice author. Observer is not a second choice author; it may only project the current Story choices.
+Choice authority is now explicit and non-negotiable:
+- **Story is the sole choice author.**
+- the current Story's structurally valid terminal `1..4` tail is the only canonical current-choice source;
+- Observer may report choices for diagnostics, but Observer may never author, repair, replace, reorder, or veto a valid Story choice set;
+- frontend is presentation-only and must submit the exact canonical Story literal.
 
-Do NOT add a new engine, generic semantic validator, NER/fuzzy mapper, nearest matching, physical ontology, consent DSL, second Story/choice LLM, automatic retry/regeneration, browser-owned Story/Observer/Commit orchestration, timeout inflation, or provider/model/config workaround.
+Do NOT add a new engine, generic semantic validator, NER/fuzzy mapper, nearest matching, physical ontology, consent DSL, second Story/choice LLM, automatic retry/regeneration, browser-owned Story/Observer/Commit orchestration, timeout inflation, provider/model/config workaround, or a second narrative parser generation.
 
 TEST only. No Production access/deploy. Preserved historical/manual/evidence games are immutable/read-only.
 
-## 1. Accepted terminal / current evidence
+## 1. Accepted terminal / current executable
 
 Accepted terminal:
-- terminal comment: `5377582019`
-- operator review: `5377600162`
-- terminal CURRENT_TASK blob: `e6e8bfe25ad9c0d7dd7603c98d6c03ec51f3493c`
-- verified main at terminal: `c5a667d9f1ba72ec6e3f8380ac638f5e3d344625`
-- accepted executable lineage beneath docs registration: `1b430fb477457a654f1504b29b24122829a20f6b`
+- terminal comment: `5377657800`
+- operator review: `5377669132`
+- terminal CURRENT_TASK blob: `35aea2b9cb864b72720386d6dfec338b8c4947b4`
+- verified executable/main at terminal: `8282dea589757b75f0a9732615433baa0ee793f0`
+- registration parent: `d5018aae16dd4367eb0c4941cc8650e16590506a`
 
-Already accepted and frozen absent new deterministic evidence:
-- P0 failed-turn explicit retry / same-row attempt fencing / stage-aware stale leases;
+Independent Git verification:
+- `8282dea...` is exactly one fast-forward implementation commit after `d5018aae...`;
+- changed paths are only:
+  - `runtime-r3/domain/observer-normalizer.js`
+  - `runtime-r3/server/provider.js`
+  - `frontend-r3/render.js`
+  - `test/r3-source-correction.test.mjs`
+  - `test/r3-frontend-contract.test.mjs`.
+
+Accepted bounded parity correction:
+- current Story terminal 1-4 tail recognition exists;
+- Observer parity accepts only exact equality or the already-authorized presence/absence of a backslash immediately before an ASCII double quote;
+- accepted canonical value is always the exact Story literal;
+- frontend preserves full server literal for click payload while short labels remain presentation-only;
+- focused 15/15, full repository 460/460, changed JS/MJS syntax and `git diff --check` passed per terminal evidence;
+- exact TEST deployment from `8282dea...`:
+  - API `247a5d50-a70d-479c-9e1f-1fd9b53aa8a3`
+  - frontend `ba4812c5-3883-4a90-8b9d-5482e4ccfabf`.
+
+Already green/frozen absent new deterministic evidence:
+- P0 failed-turn explicit retry, same-row attempt fencing, stage-aware stale terminalization;
 - provider Story 30s first-content / 120s total and Observer 75s budgets;
 - invocation-based Story total deadline;
-- same-job reconnect transport and browser refresh/recovery;
-- no provider/model/config/secret or timeout change is justified.
+- same-job duplicate transport and browser refresh/recovery;
+- no provider/model/config/secret/timeout change is justified.
 
-### Current-executable Opening reclassification
+## 2. New deterministic blocker and architecture decision
 
-Exactly three fresh deployed-browser Setup -> Opening samples were run, one attempt each, no retry:
-1. `8381ee31-87ad-4810-80d7-8aad8d21f841` committed normally; first Story 1169ms; four enabled choices.
-2. `8b58ec4d-f461-44fb-a7b4-41be664bee42` received first Story at 1191ms but ended before story_complete/Observer/terminal; no durable Opening row/job; no retry.
-3. `c31d771f-ac3e-4678-8edc-233bc24784a2` committed normally; first Story 999ms; four enabled choices.
+Fresh disposable TEST game `249e38d6-ccdb-4656-b893-68e868ab2e1f`:
+- Setup and Opening committed normally; Opening had four canonical choices and four browser buttons.
+- Turn 1 clicked literal `인턴 자리에서 태블릿 화면을 켜고 「상식개변」 앱을 살펴본다.`; literal storage parity passed; Story/Observer/commit completed.
+- Turn 1 Story had **no valid terminal 1-4 tail**, while Observer returned four unrelated choices. The current normalizer correctly committed no choices. This remains correct fail-open behavior.
+- Turn 2 free input `이메이에게 앱에 대해 조심스럽게 묻는다.` stored exactly and committed.
+- Turn 2 Story DID contain a valid terminal four-line 1-4 choice tail.
+- Observer returned those actions with `1.` through `4.` prefixes. Because current `projectChoices()` still requires Observer parity, it discarded the valid Story tail, committed `choices=[]`, and the UI showed no buttons.
+- No retry/repeat-until-pass/additional campaign was used.
 
-The predeclared proceed rule was met: 2/3 committed inside unchanged provider bounds. Treat the prior single clean-fixture Opening failure as transient for now. Do not reopen timeout/provider/model/config policy from these results.
+This remaining veto is a P1 authority defect. A malformed Observer representation must not erase choices that the sole author — Story — already supplied unambiguously.
 
-### Deterministic P1 blocker
+### Architecture decision
 
-Fresh clean fixture `a650e1ab-b536-41f4-a9f3-2087208ccc74`:
-- Opening committed normally.
-- Turn 1 clicked current Story choice index 0; committed; four buttons remained.
-- Turn 2 used literal free input exactly `자리에서 주변 업무 흐름을 살피고 이메이에게 어젯밤 앱에 대해 조심스럽게 물어본다.`; committed; four buttons remained.
-- Turn 3 clicked current Story choice index 1; Story/Observer/commit completed and committed_turn/revision became 3/3.
-- The Story final choice literals 1 and 2 contained literal backslash-escaped ASCII quote characters (`\"...\"`).
-- `observer_raw.choices` returned the corresponding unescaped ASCII quote characters (`"..."`).
-- Read-only codepoint/substring comparison proved choices 1 and 2 were not exact Story substrings while 3 and 4 matched.
-- Current `normalizeObserver()` therefore emitted `choices_projection_dropped`, produced `observer_applied.choices=null`, and committed no current choices.
-- Frontend then rendered zero interactive action buttons even though four numbered Story choice lines existed.
-- No retry/pass-seeking replay/source workaround occurred.
+Use the **existing** tiny terminal Story-tail recognizer as canonical current-choice authority directly.
 
-This is an objective P1 product defect. It is not a semantic mismatch and does not authorize fuzzy matching.
+If current Story ends with exactly four distinct non-empty terminal numbered choices:
+- `normalized.choices` MUST be those exact Story-tail literals in current order;
+- Observer choices are diagnostic only;
+- exact Observer match or the already-accepted backslash-before-ASCII-double-quote equivalence may count as diagnostic parity;
+- missing, numbered, unrelated, reordered, duplicated, or otherwise malformed Observer choices may emit a bounded warning such as `choices_observer_mismatch`, but MUST NOT erase or mutate the canonical Story choices;
+- never persist or submit Observer text as a choice literal.
 
-## 2. Required narrow choice-literal closure
+If current Story has no valid terminal exact-four tail:
+- canonical choices remain absent/null/empty according to the existing R3 shape;
+- Observer choices cannot create, rescue, infer, or fabricate choices;
+- literal free input remains usable;
+- record the turn as a Story choice-reliability miss for aggregate QA.
 
-### 2.1 Story terminal tail is the structural binding source
+Do not solve the Turn-2 example by stripping `1.` prefixes from Observer. No Observer normalization is needed for correctness once Story is canonical.
 
-Keep Story as sole choice authority. Replace the current broad `storyText.includes(observerChoice)` choice check with a narrow structural binding to the current Story's terminal numbered choice tail.
+## 3. Required narrow source closure
 
-Required Story-tail recognition:
-- consider only the final non-empty contiguous numbered lines at the end of the current Story;
-- accept only exactly four lines numbered 1,2,3,4 in order, using the already-supported `1.` or `1)` style;
-- capture the exact literal text after each number from the Story;
-- all four Story literals must be non-empty and distinct;
-- do not search arbitrary earlier numbered lists or body occurrences as choice authority.
+Prefer the smallest change in `runtime-r3/domain/observer-normalizer.js` and focused tests.
 
-Do not create a generic narrative parser generation. This is a tiny structural four-line tail recognizer for the existing Story choice contract only.
+Required behavior:
+1. Call/reuse the existing terminal `storyChoiceTail(storyText)` recognizer once for current choices.
+2. If it returns four valid Story choices, assign those exact values to `normalized.choices` regardless of Observer `choices` content.
+3. Observer choices may be checked only for diagnostics. Keep the existing exact/escape-only parity helper if useful for this diagnostic; do not broaden it.
+4. If Observer choices are absent or do not match the Story tail, add one bounded warning; no semantic correction and no gameplay failure.
+5. If Story tail is absent/invalid, keep choices absent even if Observer returns 4/40 plausible strings.
+6. Do not use prior turn choices, deterministic defaults, Story body numbered lists, Observer text, nearest match, fuzzy/substring semantics, or frontend reconstruction.
+7. Keep exact Story literal bytes/order as the persisted/clicked value.
+8. No provider prompt change is required for correctness. Do not change model/config/temperature/tokens/timeouts/retry policy.
+9. Frontend source should remain unchanged unless a concrete regression proves the accepted full-literal click path at `8282dea...` is insufficient.
 
-### 2.2 Observer parity remains required, with one bounded transport equivalence
+This is not a new parser generation. The structural terminal 1-4 recognizer already exists and is being made consistent with Story sole-authority.
 
-Observer must still provide exactly four distinct non-empty choice strings in the same order.
+## 4. Required deterministic regression proof
 
-For each Observer choice vs its corresponding exact Story-tail literal:
-- exact equality passes;
-- one narrowly authorized transport equivalence also passes: the two strings may differ only by presence/absence of a backslash immediately before an ASCII double quote (`\"` versus `"`);
-- compare after removing only that specific escape marker for parity purposes;
-- NO other transform is permitted.
+Add/adjust focused tests proving at least:
 
-Explicitly forbidden equivalences include:
-- whitespace trimming beyond the existing outer trim;
-- punctuation substitution;
-- Unicode normalization;
-- curly quote <-> ASCII quote conversion;
-- apostrophe changes;
-- slash/backslash changes except the exact backslash-before-ASCII-double-quote case above;
-- `\n`, `\t`, `\\`, JSON decoding, URL decoding, HTML decoding;
-- case changes;
-- substring/fuzzy/semantic similarity;
-- nearest choice matching;
-- reordering;
-- deduplication/padding/truncation.
-
-If all four pairs pass, `normalized.choices` MUST be the four **exact Story-tail literals**, preserving Story storage bytes/order. Never persist or click Observer-mutated text.
-
-If any pair differs beyond this bounded equivalence, keep current fail-open gameplay behavior: `normalized.choices=null`, warning recorded, Story may still commit, and no current choices are fabricated.
-
-### 2.3 Prompt clarification is secondary, not the correctness mechanism
-
-Strengthen the Observer prompt narrowly so that if a Story choice itself contains a literal backslash before an ASCII quote, the Observer is told to preserve that literal backslash in the semantic JSON string, which may require double escaping in JSON representation.
-
-Do not rely on prompt compliance alone. The deterministic narrow binding above is the product-correctness boundary.
-
-Do not change Story/Observer models, provider URL/key, temperatures, token budgets, timeout values, retry counts, or add a second LLM call.
-
-## 3. Required deterministic regression proof before live rollout
-
-Add focused tests proving at least:
-
-1. Existing exact four Story-tail + exact Observer choices pass unchanged.
-2. Story terminal choices containing `\"quoted\"` and Observer choices containing the otherwise identical `"quoted"` form pass pairwise and normalize to the **exact escaped Story literals**.
-3. The symmetric escape-marker representation case, if implemented, still returns the exact Story literal and does not widen equivalence beyond backslash-before-ASCII-quote.
-4. One whitespace mutation still drops the whole choice projection.
-5. One punctuation mutation still drops it.
-6. Curly quote vs ASCII quote still drops it.
-7. Semantic wording mutation still drops it.
-8. 0 / 3 / 5 Observer choices still drop.
-9. Duplicate Observer choices still drop.
-10. Reordered Observer choices still drop.
-11. Earlier numbered lists in Story body do not become choice authority; only the terminal contiguous 1-4 tail is bound.
-12. Story with no valid terminal exact-four tail never receives fabricated choices.
-13. No prior-turn choices are used.
-14. Frontend receives four canonical exact Story literals and renders four actionable buttons.
-15. Clicking a button sends the complete canonical Story literal unchanged, including any literal backslash character present in the Story value.
-16. Short visible button labeling remains presentation-only and cannot alter the click payload.
-
-Keep existing choice failures fail-open for gameplay. Do not add Story regeneration or fallback choice fabrication to make tests pass.
+1. valid terminal Story 1-4 tail + exact Observer choices -> exact Story choices;
+2. valid Story tail + escape-only Observer representation -> exact Story choices;
+3. valid Story tail + Observer `1.`/`2.`/`3.`/`4.` prefixes -> exact Story choices still survive, with diagnostic mismatch warning;
+4. valid Story tail + unrelated Observer choices -> exact Story choices still survive, warning only;
+5. valid Story tail + missing/empty Observer choices -> exact Story choices still survive;
+6. valid Story tail + reordered/duplicate Observer choices -> exact Story choices still survive, warning only;
+7. Story without a valid terminal tail + Observer four choices -> canonical choices absent; Observer cannot rescue them;
+8. Story with 0/3/5 terminal choice lines -> canonical choices absent;
+9. earlier numbered Story body lists do not become choice authority;
+10. duplicate Story tail literals invalidate the Story tail;
+11. no prior-turn or deterministic fallback choice source exists;
+12. frontend receives four canonical Story literals and renders four buttons when server choices exist;
+13. clicking a button submits the complete canonical literal unchanged, including any literal backslash present in the Story value;
+14. short button labels remain presentation-only;
+15. free input remains available when canonical Story choices are absent.
 
 Run:
 - focused Observer/choice/frontend contracts;
@@ -151,45 +144,45 @@ Run:
 - changed JS/MJS syntax checks;
 - `git diff --check`.
 
-## 4. Landing / TEST rollout
+Do not add a regression that merely encodes Observer prefix stripping or other Observer normalization.
 
-1. Re-read the latest Issue #68 immediately before landing.
-2. Land only the minimal source/test correction, fast-forward only. No new branch/recovery task/force push/history rewrite.
-3. No migration or DB schema change is expected or authorized for this choice fix.
-4. Deploy exact TEST API if backend source changed.
-5. Deploy exact TEST frontend only if frontend source changed.
-6. Record exact main SHA and Worker version identities.
-7. Production remains untouched.
+## 5. Landing / TEST rollout
 
-## 5. Focused deployed acceptance
+1. Re-read latest Issue #68 immediately before source landing.
+2. Verify main still descends fast-forward from `8282dea...`; inspect any unexpected delta and STOP on conflicting execution authority.
+3. Land only the minimal source/test correction, fast-forward only. No new branch, recovery branch, force push, or history rewrite.
+4. No migration/DDL/schema/data change is expected or authorized.
+5. Deploy exact TEST API if backend source changed.
+6. Deploy exact TEST frontend only if frontend source actually changed; otherwise preserve the accepted equivalent deployment.
+7. Record exact main SHA and Worker version identities.
+8. Production remains untouched.
 
-Use fresh disposable R3 TEST games. Do not reuse `a650e1ab-b536-41f4-a9f3-2087208ccc74` as a pass fixture; it remains evidence.
+## 6. Focused deployed acceptance after Story-only choice closure
 
-Acceptance must prove ordinary current-choice functionality after the fix:
-- Setup + Opening normal;
-- at least one click from a current Story-authored choice;
-- at least one literal free input;
-- after every committed turn, Story -> observer_raw -> observer_applied -> committed choices -> current UI is inspected;
-- current committed choices are exactly four or legitimately absent due a real current-Story contract failure;
-- when four are accepted, UI shows four actionable buttons;
-- button click submits the full canonical Story literal, not the shortened label;
-- no previous-turn choices, deterministic fallback choices, or Observer-rewritten payloads.
+Use **one fresh disposable R3 TEST game** first. Do not reuse `249e38d6...`, `a650e1ab...`, or any preserved evidence fixture.
 
-If an actual quote-escape mismatch naturally appears, explicitly prove:
-- Story exact literal;
-- Observer representation;
-- bounded parity classification;
-- normalized exact Story literal;
-- four visible buttons;
-- click payload exactly equals the Story canonical literal.
+Run Setup + Opening and exactly **5 ordinary committed turns** as a bounded deployment/no-regression probe. Do not repeat a failed/missing-choice turn merely to get a better result.
 
-Do NOT retry turns or create repeated games merely until the random quote-escape shape appears. Deterministic regression tests are the direct acceptance for that exact representation case; live play is for deployment/no-regression evidence.
+Play requirements:
+- use at least two current Story choice clicks when valid choices are available;
+- use at least two literal Korean free-input actions;
+- preserve one intended action/intent per turn where practical;
+- after every turn record Story terminal tail, observer_raw.choices, normalized/applied choices, committed choices, browser buttons, submitted literal_action, and terminal status.
 
-If a new deterministic choice failure appears, stop and fix only the proven narrow boundary. Do not add broader normalization.
+Acceptance semantics:
+- if Story has a valid terminal exact-four tail, committed/UI choices MUST be those four exact Story literals regardless of Observer mismatch;
+- if Story lacks a valid tail, committed choices MUST remain absent and no fallback/fabrication may appear;
+- a no-tail turn is a **choice reliability miss**, not an invitation to regenerate Story; continue through literal free input if the rest of the turn committed normally;
+- Observer mismatch is diagnostic only and must not remove a valid Story tail;
+- click payload must equal the complete current canonical Story literal, not the visible shortened label.
 
-## 6. Restart clean 30+ campaign after focused acceptance
+If a deterministic implementation defect remains, fix only that proven boundary, validate, FF land, exact TEST redeploy, and replay this focused probe once on a new disposable game.
 
-Start a NEW disposable clean campaign after Section 5 is green. Do not continue `a650e1ab...` as the clean certification fixture.
+Do not pass-seek through provider sampling. A genuine Story no-tail occurrence is evidence to retain.
+
+## 7. Restart fresh clean 30+ campaign
+
+After Section 6 proves the Story-only choice authority deployment is correct, start a **NEW** disposable clean campaign. Do not continue the five-turn probe as the clean certification fixture.
 
 Run 30+ committed ordinary turns after Opening with coherent human-like play:
 - mix current Story choice clicks and literal Korean free input;
@@ -199,29 +192,40 @@ Run 30+ committed ordinary turns after Opening with coherent human-like play:
 - inspect Story/choices/MM/location/presence/scene continuity, not only commit counts;
 - capture submit -> first Story token -> Story complete -> Observer complete/fail-open -> terminal timing.
 
-Natural ordinary-turn failure may use the already accepted explicit user retry path at most once for that failed canonical turn. No repeated pass-seeking retries.
+Choice quality evidence across the full campaign must include:
+- total ordinary committed turns;
+- count with a valid exact-four terminal Story tail;
+- count with no valid Story tail;
+- count where Observer matched the Story tail;
+- count where Observer mismatched but canonical Story choices still survived;
+- any consecutive Story no-tail streak;
+- no prior/fabricated fallback occurrences.
 
-Do not wait until turn 30 to surface deterministic product defects; stop/fix/replay narrowly when evidence is clear.
+Do not invent an acceptance result from a handful of turns. Preserve the exact reliability rate for later operator/final objective review. A Story no-tail miss alone does not justify retry/regeneration/provider-model changes while literal free input remains functional.
 
-## 7. Continue existing P1 loop
+Natural ordinary-turn job failure may use the already accepted explicit user retry path at most once for that failed canonical turn. No repeated pass-seeking retries.
 
-After/while clean 30 is stable, continue immediately through:
+Do not wait until turn 30 to surface a deterministic product/runtime defect; stop/fix/replay narrowly when evidence is clear.
 
-1. Active CSA rules actually reach Story context as relevant premise + selected scope.
-2. Observer canonical actor `{id,name}` directory; no fuzzy/nearest unknown-name mapping.
-3. Actor-keyed relevant Mind Monitor including post-Story entrants.
-4. Four-location literal -> Story -> observer raw -> observer applied -> state_after -> next Story continuity.
-5. Actor-specific enter/exit evidence tied to that actor's name; player movement cannot support NPC enter/exit.
-6. `scene_note` is a bounded current snapshot, not stale accumulation.
-7. Semantic player agency: actor, target, action, movement, request/refusal, self-state, topic/intent cannot be silently substituted.
-8. Product identity: work is office-life texture, not a mandatory work-assistant funnel; no fake competing CSA mechanics.
-9. Current Story choices remain exactly four at high reliability, mostly one action/intention each; no stale/fabricated fallback; literal free input always available.
+## 8. Continue existing P1 correction loop
 
-No generic semantic classifier/NER/fuzzy mapper/physical ontology/consent DSL may be introduced.
+During/after clean 30 continue immediately through:
 
-## 8. Remaining campaigns / CSA / retained surfaces
+1. Active CSA Story projection: active rules reach Story as relevant premise + selected scope.
+2. Observer receives canonical actor `{id,name}` directory; no fuzzy/nearest mapping of unknown names.
+3. Mind Monitor is actor-keyed for relevant current/post-Story NPCs, including newly entering relevant NPCs.
+4. Canonical location across at least four distinct locations: literal -> Story -> observer raw -> observer applied -> state_after -> next Story.
+5. Actor enter/exit evidence quote identifies that canonical actor; player movement quote cannot support NPC enter/exit.
+6. `scene_note` is a bounded current-scene snapshot rewritten each turn; stale ended facts disappear.
+7. Semantic player agency: Story may not substitute player actor, target/counterparty, action, movement/direction, request/refusal, self-state, or topic/intent.
+8. Product identity: company work is life texture, not a mandatory work-assistant funnel; no invented competing app/CSA mechanics outside the canonical 9-rule `상식개변` authority.
+9. Current Story choices are exact-four at high reliability; Story is sole author; Observer cannot veto; no prior/fabricated fallback; literal free input remains available.
 
-After clean 30+ stabilizes:
+No generic semantic classifier/NER/fuzzy mapper/physical ontology/consent DSL may be introduced to solve these.
+
+## 9. Remaining independent campaigns / CSA / retained surfaces
+
+After the clean 30+ campaign is stable enough to proceed:
 - independent materially different 15+ turn campaign;
 - long-memory 50+ turn campaign;
 - dedicated clothing CSA fixture;
@@ -230,27 +234,42 @@ After clean 30+ stabilizes:
 For all 9 canonical CSA templates prove:
 `apply -> revision increases while gameplay turn unchanged -> relevant scene -> Story premise/scope effect -> observer/readback/structured state as applicable -> remove -> next Story/readback confirms removal`.
 
-RPC success alone is not acceptance. Institutional/system CSA premise must not manufacture personal affection, comfort, consent, or desire.
+RPC success alone is not acceptance. Institutional/system CSA premise must never manufacture personal affection, comfort, consent, desire, romance, or relationship state.
 
-Measure latency and derive p50/p95 when sample size is meaningful. Measure first; no retry/second Observer optimization.
+Measure latency across campaigns and derive p50/p95 when sample size is meaningful. Measure first; no retry/second Observer optimization.
 
-Exercise retained history, TTS, download/export, refresh/reconnect/double-submit, failed explicit retry, and any canon-retained feedback/revision surface. Required viewport evidence includes desktop, `390x844`, and one wider mobile/tablet viewport with visually inspected screenshots.
+Exercise retained user surfaces:
+- history;
+- TTS;
+- download/export;
+- refresh/reconnect;
+- duplicate submit;
+- failed-turn explicit retry;
+- any canon-retained feedback/revision surface.
 
-## 9. Safety / exit
+Required viewport evidence before owner handoff:
+- desktop;
+- `390x844`;
+- one wider mobile/tablet viewport;
+- screenshots visually inspected, not merely counted.
+
+## 10. Safety / exit
 
 - TEST only; no Production.
 - Preserved/manual/evidence games immutable.
 - No provider/model/API URL/key/secret/temperature change.
-- Keep 30s/120s/75s provider budgets unchanged.
+- Keep Story 30s first-content / 120s total and Observer 75s budgets unchanged.
 - No automatic retry/regeneration or second Story/choice LLM.
-- No migration-history repair/rewrite and no schema change for this choice fix.
+- No migration-history repair/rewrite and no schema change for this choice correction.
 - No generic semantic classifier/NER/fuzzy/nearest mapper/physical ontology/consent DSL.
-- No broad escaping adapter; only the explicitly bounded backslash-before-ASCII-double-quote parity equivalence is authorized.
-- Canonical accepted choice value must always be the exact current Story tail literal.
+- No Observer prefix stripping, whitespace/punctuation/Unicode/semantic normalization, or broad escaping adapter.
+- Canonical choices may come only from the exact current Story terminal tail.
+- Observer cannot create choices when Story has none and cannot veto choices when Story has a valid tail.
+- No previous-turn or deterministic fabricated fallback choices.
 - No browser-owned orchestration replacing A-prime server authority.
 - Fast-forward only; no force-push/history rewrite.
 - Re-read Issue #68 before each source landing and TEST deployment decision.
 
-`OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remains forbidden until P0/P1/P2 objective evidence is green, including clean 30 + independent 15 + long-memory 50, all 9 CSA behavioral coverage, reconnect/double-submit/failed-retry recovery, semantic agency, current-scene continuity, choices, and retained surfaces.
+`OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remains forbidden until the full objective P0/P1/P2 exit matrix is green, including clean 30 + independent 15 + long-memory 50, all 9 CSA behavioral coverage, reconnect/double-submit/failed-retry recovery, semantic agency, current-scene continuity, choice reliability, retained surfaces, and viewport evidence.
 
 If a safety boundary or ambiguous deterministic failure is reached, post exact evidence and STOP. Otherwise continue this SAME task; do not create a replacement feature task.
