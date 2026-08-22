@@ -1,7 +1,11 @@
 import { createProductionR3Worker } from './server/index.js';
 
 export default {
-  fetch(request, env) {
-    return createProductionR3Worker({ env }).fetch(request);
+  async fetch(request, env) {
+    const requestId = request.headers.get('x-r3-request-id') || `r3-${crypto.randomUUID()}`;
+    const response = await createProductionR3Worker({ env }).fetch(request);
+    const headers = new Headers(response.headers);
+    headers.set('x-r3-request-id', requestId);
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   }
 };

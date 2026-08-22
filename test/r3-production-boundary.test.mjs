@@ -61,7 +61,7 @@ test('R3 deployment boundary resolves the reviewed entrypoint and isolated confi
   assert.match(entry, /createProductionR3Worker/);
   assert.match(entry, /export default/);
   const { default: worker } = await import('../runtime-r3/worker-entry.js');
-  const response = await worker.fetch(new Request('https://r3.test/api/r3/catalogs'), {
+  const response = await worker.fetch(new Request('https://r3.test/api/r3/catalogs', { headers: { 'x-r3-request-id': 'r3-test-correlation' } }), {
     SUPABASE_URL: 'https://db.test',
     SUPABASE_SERVICE_ROLE_KEY: 'service-key',
     LLM_API_URL: 'https://llm.test',
@@ -70,6 +70,7 @@ test('R3 deployment boundary resolves the reviewed entrypoint and isolated confi
     EXTRACT_MODEL: 'extract-test'
   });
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-r3-request-id'), 'r3-test-correlation');
   const payload = await response.json();
   assert.equal(Array.isArray(payload.data.departments), true);
 });
