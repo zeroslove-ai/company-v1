@@ -148,7 +148,11 @@ async function submit(value = null) {
   if (!literalAction.trim()) { setStatus('다음 행동을 직접 입력해 주세요.', true); return; }
   state.busy = true; setStatus('Story를 생성하는 중입니다.'); if ($('current-story')) $('current-story').replaceChildren();
   try {
-    await consumeR3Sse(await client.turn(state.gameId, { action_id: crypto.randomUUID(), expected_turn: (state.context?.state?.committed_turn ?? 0) + 1, literal_action: literalAction }), handleEvent);
+    const turnResponse = await client.turn(state.gameId, { action_id: crypto.randomUUID(), expected_turn: (state.context?.state?.committed_turn ?? 0) + 1, literal_action: literalAction });
+    if (!turnResponse.ok || !turnResponse.body) {
+      const error = new Error('r3_stream_reconnect_required'); error.code = 'r3_stream_reconnect_required'; throw error;
+    }
+    await consumeR3Sse(turnResponse, handleEvent);
     if (input) input.value = '';
     setStatus('저장되었습니다.');
   } catch (error) {

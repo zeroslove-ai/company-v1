@@ -49,7 +49,8 @@ test('R3 SSE rejects duplicate or malformed terminal framing', async () => {
 
 test('R3 frontend only reaches saved status after consumeR3Sse success', async () => {
   const app = await readFile(new URL('../frontend-r3/app.js', import.meta.url), 'utf8');
-  assert.match(app, /await consumeR3Sse\(await client\.turn[\s\S]*setStatus\('저장되었습니다\.'/);
+  assert.match(app, /const turnResponse = await client\.turn[\s\S]*await consumeR3Sse\(turnResponse, handleEvent\)[\s\S]*setStatus\('저장되었습니다\.'/);
+  assert.match(app, /!turnResponse\.ok \|\| !turnResponse\.body[\s\S]*r3_stream_reconnect_required/);
 });
 
 test('R3 deployment boundary resolves the reviewed entrypoint and isolated configs', async () => {
