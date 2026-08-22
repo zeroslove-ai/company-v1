@@ -32,6 +32,10 @@ export class SupabaseR3Store {
     await this.db.rpc('company_r3_create_opening', { p_game_id: gameId, p_expected_revision: payload.expectedRevision, p_story_text: payload.storyText, p_choices: payload.choices ?? [], p_turn_summary: payload.summary, p_mind_monitor: payload.mindMonitor ?? {}, p_observer_raw: payload.observerRaw ?? {}, p_observer_applied: payload.observerApplied ?? {}, p_warnings: payload.warnings ?? [], p_state_after: payload.stateAfter });
     return this.context(gameId);
   }
+  async resetGame({ gameId, expectedRevision, stateAfter }) {
+    await this.db.rpc('company_r3_reset_game', { p_game_id: gameId, p_expected_revision: expectedRevision, p_state_after: stateAfter });
+    return this.context(gameId);
+  }
   async context(gameId) {
     const [games, states] = await Promise.all([this.db.select('company_r3_games', { game_id: `eq.${gameId}` }), this.db.select('company_r3_state', { game_id: `eq.${gameId}` })]);
     if (!games?.[0] || !states?.[0]) throw new Error('r3_game_not_found');

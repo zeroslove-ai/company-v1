@@ -1,5 +1,5 @@
 import { canonicalActors, openingActorIds, registeredActorIds } from '../domain/content.js';
-import { assertExpectedTurn, boundedSummary, requireLiteralAction } from '../domain/contracts.js';
+import { assertExpectedTurn, boundedSummary, createInitialState, requireLiteralAction } from '../domain/contracts.js';
 import { normalizeObserver } from '../domain/observer-normalizer.js';
 import { applyR3Csa, createR3CsaCatalog } from '../domain/csa.js';
 import { reduceObservation } from '../domain/reducer.js';
@@ -23,7 +23,7 @@ export function createR3Worker({ store, provider, content, gameAccessSecret } = 
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: R3_CORS_HEADERS });
         if (request.method === 'GET' && url.pathname === '/api/r3/catalogs') return json(catalogResponse(content));
         if (request.method === 'POST' && url.pathname === '/api/r3/games') return await setup(store, content, await body(request), gameAccessSecret);
-        const match = url.pathname.match(/^\/api\/r3\/games\/([^/]+)(?:\/(context|opening|turn|csa|feedback))?$/);
+        const match = url.pathname.match(/^\/api\/r3\/games\/([^/]+)(?:\/(context|opening|turn|csa|feedback|reset))?$/);
         if (!match) return errorResponse(new Error('r3_not_found'));
         const gameId = match[1]; const action = match[2] ?? 'context';
         if (!(await verifyGameCapability(gameId, bearerCapability(request), gameAccessSecret))) return accessDeniedResponse();
@@ -32,6 +32,7 @@ export function createR3Worker({ store, provider, content, gameAccessSecret } = 
         if (request.method === 'POST' && action === 'turn') return turnResponse(request, store, provider, content, gameId);
         if (request.method === 'POST' && action === 'feedback') return feedbackResponse(request, store, provider, content, gameId);
         if (request.method === 'POST' && action === 'csa') return csaResponse(store, content, gameId, await body(request));
+        if (request.method === 'POST' && action === 'reset') return await resetResponse(request, store, provider, content, gameId);
         return errorResponse(new Error('r3_not_found'));
       } catch (error) { return errorResponse(error); }
     }
@@ -73,6 +74,19 @@ async function csaResponse(store, content, gameId, input) {
   if (!Number.isInteger(expectedRevision) || expectedRevision !== before.state.revision) throw new Error('r3_csa_revision_conflict');
   const stateAfter = applyR3Csa({ state: before.state.state, content, rawOperations: input?.operations, catalog: createR3CsaCatalog(content.csaPresets) });
   return json(await store.applyCsa({ gameId, expectedRevision, stateAfter, operations: input.operations }));
+}
+
+async function resetResponse(request, store, provider, content, gameId) {
+  const input = await body(request);
+  const expectedRevision = input?.expected_state_revision;
+  if (!Number.isInteger(expectedRevision) || expectedRevision < 0) throw new Error('r3_reset_revision_invalid');
+  const before = await store.context(gameId);
+  if (before.state.revision !== expectedRevision) throw new Error('r3_reset_revision_conflict');
+  const profile = before.game?.profile;
+  const locationId = chooseOpeningLocation(content, profile);
+  const stateAfter = createInitialState(profile, locationId, openingActorIds(content, locationId));
+  await store.resetGame({ gameId, expectedRevision, stateAfter });
+  return openingResponse(store, provider, content, gameId);
 }
 
 function openingResponse(store, provider, content, gameId) {

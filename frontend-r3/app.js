@@ -46,6 +46,8 @@ function syncActionControls() {
   if (feedbackSubmit) feedbackSubmit.disabled = state.feedbackBusy;
   const feedbackClose = $('feedback-close');
   if (feedbackClose) feedbackClose.disabled = state.feedbackBusy;
+  const reset = $('reset-game');
+  if (reset) reset.disabled = state.busy || state.feedbackBusy || !state.gameId || !state.context || state.context.job?.status === 'processing';
 }
 
 function renderContext(context) {
@@ -204,6 +206,28 @@ async function recoverPendingTurn() {
   }
 }
 
+async function resetGame() {
+  if (state.busy || state.feedbackBusy || !state.gameId || !state.context || state.context.job?.status === 'processing') return;
+  if (typeof globalThis.confirm === 'function' && !globalThis.confirm('현재 게임을 초기화하고 Opening부터 다시 시작할까요?')) return;
+  const expectedStateRevision = Number(state.context.state?.revision);
+  if (!Number.isInteger(expectedStateRevision) || expectedStateRevision < 0) { setStatus('r3_reset_revision_invalid', true); return; }
+  state.busy = true;
+  $('current-story')?.replaceChildren();
+  $('story-history')?.replaceChildren();
+  setStatus('게임을 초기화하는 중입니다...');
+  syncActionControls();
+  try {
+    await consumeR3Sse(await client.reset(state.gameId, { expected_state_revision: expectedStateRevision }), handleEvent);
+    setStatus('Opening부터 새 게임을 시작합니다.');
+  } catch (error) {
+    try { renderContext(await client.context(state.gameId)); } catch { /* preserve the last accepted local context */ }
+    setStatus(error.terminal?.error_code ?? error.message, true);
+  } finally {
+    state.busy = false;
+    if (state.context) renderContext(state.context); else syncActionControls();
+  }
+}
+
 function handleEvent(event, data) {
   if (event === 'story_delta' && $('current-story')) $('current-story').textContent += data.text ?? '';
   if (event === 'terminal' && data.status === 'committed' && data.context) renderContext(data.context);
@@ -283,6 +307,7 @@ $('tts-replay')?.addEventListener('click', speakLatest);
 $('send-feedback')?.addEventListener('click', openFeedback);
 $('feedback-close')?.addEventListener('click', closeFeedback);
 $('feedback-form')?.addEventListener('submit', submitFeedback);
+$('reset-game')?.addEventListener('click', resetGame);
 loadCatalogs().catch(error => { setStatus(error.message, true); setBootFailure(error); });
 
 async function loadCatalogs() { renderCatalogs(await client.catalogs()); await loadContext(); }

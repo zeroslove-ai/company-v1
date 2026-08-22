@@ -36,6 +36,22 @@ export class InMemoryR3Store {
     this.states.set(gameId, { game_id: gameId, revision: 0, committed_turn: 0, state: createInitialState(profile, locationId, presentActorIds), updated_at: created });
     return this.context(gameId);
   }
+  resetGame({ gameId, expectedRevision, stateAfter }) {
+    const current = this.states.get(gameId);
+    if (!current || !this.games.has(gameId)) throw new Error('r3_game_not_found');
+    if (!Number.isInteger(expectedRevision) || current.revision !== expectedRevision) throw new Error('r3_reset_revision_conflict');
+    if ([...this.jobs.values()].some(job => job.game_id === gameId && job.status === 'processing')
+      || [...this.feedbackAttempts.values()].some(attempt => attempt.game_id === gameId && attempt.status === 'processing')) {
+      throw new Error('r3_reset_in_flight');
+    }
+    for (const [key, turn] of this.turns) if (turn.game_id === gameId) this.turns.delete(key);
+    for (const [key, job] of this.jobs) if (job.game_id === gameId) this.jobs.delete(key);
+    for (const [key, history] of this.revisionHistory) if (history.game_id === gameId) this.revisionHistory.delete(key);
+    for (const [key, attempt] of this.feedbackAttempts) if (attempt.game_id === gameId) this.feedbackAttempts.delete(key);
+    const updatedAt = this.now();
+    this.states.set(gameId, { ...current, revision: current.revision + 1, committed_turn: 0, state: clone(stateAfter), updated_at: updatedAt });
+    return this.context(gameId);
+  }
   createOpening(gameId, payload) {
     if (!this.games.has(gameId)) throw new Error('r3_game_not_found');
     const key = `${gameId}:0`;
