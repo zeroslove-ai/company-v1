@@ -8,6 +8,7 @@ const html = await readFile(new URL('../frontend-r3/index.html', import.meta.url
 const render = await readFile(new URL('../frontend-r3/render.js', import.meta.url), 'utf8');
 const setup = await readFile(new URL('../frontend-r3/setup.js', import.meta.url), 'utf8');
 const map = await readFile(new URL('../frontend-r3/company-map.js', import.meta.url), 'utf8');
+const shell = await readFile(new URL('../frontend-r3/hospital-shell.css', import.meta.url), 'utf8');
 
 test('R3 frontend sends exact literal input through one server turn endpoint', () => {
   assert.match(app, /literal_action: literalAction/);
@@ -41,6 +42,10 @@ test('R3 boot fallback is dismissed after boot and API origin survives game URL 
   assert.match(app, /context\.job\?\.status === 'processing'/);
   assert.match(app, /r3_stream_reconnect_required/);
   assert.doesNotMatch(app, /replaceState\(null, '', `\?game_id=/);
+});
+
+test('R3 action panel reserves its controls above the audio bar after bootstrap', () => {
+  assert.match(shell, /\.action-panel\s*\{[\s\S]*?min-height:\s*min-content;/);
 });
 
 test('R3 failed job exposes editable literal and an explicit retry-only control', () => {
