@@ -2,8 +2,8 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: GENERIC PLAYER AGENCY CONTRACT -> ONE SELF-STATE REPLAY -> REMAINING D3 -> ORTHOGONAL LIVE QA
-Updated: 2026-08-22 20:52 KST
+Mode: EXPLICIT FAILED-TURN RETRY -> 5–10 TURN LEAN PRODUCT QA -> REPORT REAL LOCAL DEFECTS ONLY
+Updated: 2026-08-22 21:38 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops branch, recovery branch, or competing execution authority.
@@ -14,418 +14,275 @@ Continue the same Task ID under:
 - owner product canon PR #95 `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
 - A-prime engine canon PR #96 `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
 - `docs/redesign/00_*` through `11_*`;
-- `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md`;
-- `docs/ops/LIVE_QA_PRODUCT_REVIEW_2026-08-22.md`;
-- Issue #68 owner UX/CSA directives;
-- operator review `5380176275`;
+- `docs/ops/AUTONOMOUS_LIVE_QA_LOOP.md` and `docs/ops/LIVE_QA_PRODUCT_REVIEW_2026-08-22.md` where not superseded by later owner directives;
+- Issue #68 owner lean-development directives `5380380688` and `5380381500`;
+- operator review `5380470864`;
 - this exact CURRENT_TASK blob once registered by `CURRENT_TASK_READY`.
 
 Architecture remains:
 `Story 1 call -> Observer 1 call -> small reducer -> atomic commit`.
 
-Provider/model/config remain frozen. `OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remain forbidden while any objective blocker remains.
+### Lean-development override — binding
 
-## 1. Reviewed terminal / accepted and frozen evidence
+Optimize for a Company R3 that is natural, stable, fun in long real play, and faithful to canon. Do not optimize for a perfect QA bureaucracy.
+
+For this task:
+- user-visible product defects and durable state corruption matter;
+- a lone provider-style Story miss or known upstream/capability timeout is evidence, not an excuse to create another prompt/ops-framework cycle;
+- deterministic transport/state/data corruption remains a real blocker;
+- default after a small correction is focused R3 tests + syntax/diff checks, not the full historical repository suite;
+- do not rerun 30/50-turn campaigns for this micro-QA continuation;
+- do not create new blocker taxonomy, diagnostic metadata, harness projects, compatibility layers, semantic engines, or ops docs merely for ceremony.
+
+Provider/model/temperature/token/config remain frozen. Do not change provider Story/Observer timeout values in this task.
+
+`OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remain forbidden because known provider-capability CSA exceptions remain unresolved.
+
+## 1. Reviewed terminal / accepted frozen evidence
 
 Reviewed terminal:
-- terminal `5380111237`;
-- prior CURRENT_TASK blob `aa53e96ce0f0c0bc817fa9fe94c8434c87453e4b`;
-- start main `84785d5eefe86f048200a560d0be7a628b090ca1`;
-- accepted/current executable main `4836f5915977a0a65c0c0859198a1abba3e6f644`;
-- operator review `5380176275`.
+- terminal `5380450863`;
+- prior CURRENT_TASK blob `8314b83fae8c2a29a2b81156dd33bed2fa5db5fc`;
+- execution lease `5380241045`;
+- registration/start main `f1f1e876597b232dd3f2346dd1844e6755aa6a7e`;
+- accepted/current executable main `9e91227302a041f1d588e3b260aa3951da3ea9bd`;
+- operator review `5380470864`.
 
-Current TEST identities:
-- API `game-proxy-company-r3` Worker `9cede09a-0e2a-4e8e-8022-d099a70bab01`;
-- frontend `gamebuilder-company-r3` Worker `05bf9f88-2c02-4db7-9f6d-eb4429fdf31c`.
+Current TEST identities at terminal:
+- API `game-proxy-company-r3` Worker version `23da269d-45df-4c39-89e0-35dc99b82505`;
+- frontend `gamebuilder-company-r3` Worker version `05bf9f88-2c02-4db7-9f6d-eb4429fdf31c`.
 
-### 1.1 Frontend submit/SSE lifecycle — GREEN and frozen
+### 1.1 Generic player agency correction — GREEN and frozen
 
-Accepted source `1202b19c...` closed the enabled-control submit no-op race. One enabled browser click now yields exactly one `/turn`, exact literal, and one committed turn. Do not reopen without new evidence.
-
-### 1.2 Canonical location identity + D1 four-location chain — GREEN and frozen
-
-Accepted source `d8748bc...` supplies Observer with canonical `content.locations` exact `{location_id,name}` identity.
-
-Accepted game `80b6c133-41df-4c60-8581-32de18defe7d` proved four distinct locations:
-1. `브랜드전략팀 회의실로 이동한다.` -> `brand_strategy_meeting_room`;
-2. `브랜드전략팀 사무실로 돌아간다.` -> `brand_strategy_office`;
-3. `1층 로비로 이동한다.` -> `lobby`;
-4. `엘리베이터 홀로 이동한다.` -> `elevator_hall`.
-
-For all four:
-`Story exact destination -> observer_raw -> observer_applied -> state_after -> refresh/context/map` parity passed.
-
-Do not rerun D1 for pass seeking.
-
-### 1.3 scene_note replacement + exercised D2 presence/MM — GREEN and frozen
-
-Accepted source `4836f591...` changed only:
+Accepted source `9e91227302a041f1d588e3b260aa3951da3ea9bd` changed only:
+- `runtime-r3/domain/memory.js`;
 - `runtime-r3/server/provider.js`;
-- `runtime-r3/domain/reducer.js`;
 - `test/r3-opening-contract.test.mjs`;
 - `test/r3-source-correction.test.mjs`.
 
-Accepted validation:
-- focused R3 29/29 PASS;
-- full 480/480 PASS;
-- `node --check` + `git diff --check` PASS;
-- TEST API deployed exactly once as `9cede09a-0e2a-4e8e-8022-d099a70bab01`;
+The correction supplies one static, non-parsing `PLAYER_AGENCY_CONTRACT` covering explicit actor, target, action, movement/destination, request, refusal, self-state, topic, and intent. It does not add NER, keywords, fuzzy matching, semantic classifiers/gates, deterministic executors, second LLMs, retries, or provider/model/config changes.
+
+Validation accepted from terminal:
+- focused invariants 30/30 PASS;
+- full suite 481/481 PASS was already run by the completed task; do not rerun it merely for this continuation;
+- syntax and diff checks PASS;
+- TEST API deployed exactly once from this source;
 - frontend unchanged.
 
-Fresh Phase-C game `a99298cb-955e-4a28-be73-0ca38a8479ff`:
-- `브랜드전략팀 회의실로 이동한다.` -> meeting room, fresh scene_note, refresh parity;
-- `1층 로비로 이동한다.` -> lobby, fresh scene_note, refresh parity;
-- previous `scene_note` is omitted from Observer pre-turn state projection;
-- current observation replaces prior note; missing/empty note clears rather than carries stale state.
+### 1.2 Self-state + D3 agency — GREEN and frozen
 
-Fresh D2 game `3b21d934-024e-412a-9781-b7371563a6a5` additionally proved on the exercised path:
-- movement-only transitions did not leave the prior source cast as final presence;
-- current/grounded registered actors received MM;
-- no unknown MM actor keys were accepted;
-- committed scene/scene_note matched refresh.
-
-Freeze these accepted boundaries unless new contradictory evidence appears.
-
-### 1.4 CSA capability evidence remains frozen
-
-Do not rerun accepted/known fixtures for pass seeking:
-- GREEN: no-panties, no-bra, hand/contact, work-nude, work-in-underwear-only, masturbate-for-recipient, `player_request_executes_immediately`;
-- `vaginal_sex_with_recipient` remains frozen `BLOCKED_R3_PROVIDER_OR_MODEL_CANNOT_HONOR_CANONICAL_REQUEST_RULE`;
-- `continue_until_recipient_orgasm` recipient/subject mismatch remains same provider-capability-family evidence;
-- request timing source/prompt boundary is frozen; no further CSA prompt/context/provider/model tuning.
-
-Known CSA provider capability blockers still prevent objective all-green acceptance but do not hide orthogonal local QA.
-
-## 2. Current decisive blocker — D3 player self-state agency
-
-Fresh disposable game:
-`41d79782-4377-42e1-8ec2-5084d1b16a98`.
-
-Exact literal submitted once through the real browser:
+Canonical self-state literal:
 `혼자 창가에 서서 오늘 아침의 낯선 앱에 대해 생각한다.`
 
-Accepted terminal facts:
-- one browser submission;
-- exactly one `/turn` POST;
-- HTTP 200;
-- stored literal matched exact codepoints;
-- one committed turn;
-- location/Observer/scene_note/refresh path itself remained coherent;
-- Story nevertheless introduced `이메이` and `한리브` approaching/speaking to the player and proposing lunch in the same Story turn.
-
-Classification:
-`BLOCKED_R3_D3_LITERAL_SELF_STATE_AGENCY`.
-
-This violates the owner-locked player-agency invariant. The player explicitly chose an alone/self-reflective state and Story silently contradicted that choice. It is a Story semantic agency defect, not transport, location, Observer, reducer, DB, or frontend failure.
-
-## 3. Existing source gap and architecture decision
-
-Current Story system contract already says:
-`preserve the submitted literal player action exactly and narrate its consequences without replacing it`.
-
-That generic prose is insufficiently explicit about the semantic dimensions that must not be rewritten.
-
-Owner-locked invariant is broader and fixed:
-Story must not silently substitute or contradict explicit player:
-- actor;
-- target;
-- action;
-- movement/destination;
-- request;
-- refusal;
-- self-state;
-- topic;
-- intent.
-
-The next correction is **one fixed generic player-agency contract**, not a literal parser or semantic runtime authority.
-
-## 4. PHASE A — bounded generic player-agency contract
-
-### A1. Add static machine-readable Story context contract
-
-Add one small fixed contract to the normal Story context, preferably in the existing `buildStoryContext()` projection, e.g. `player_agency_contract` or equivalently explicit bounded field.
-
-The contract must be static metadata, not computed by analyzing `literal_action`.
-
-It must express at minimum:
-- `literal_action_is_player_choice = true`;
-- preserve explicit dimensions: actor, target, action, movement/destination, request, refusal, self-state, topic, intent;
-- Story may narrate consequences/reactions but must not replace, invert, redirect, or contradict those explicit dimensions;
-- an explicit player self-state must remain true for the chosen action/scene beat; Story must not inject NPC interaction that makes that chosen self-state impossible during the beat unless the literal itself permits such interaction;
-- world/NPC consequences remain free after/around the chosen beat so long as they do not rewrite the player's choice;
-- player input is not automatic proof of every external outcome or NPC compliance.
-
-Do not build a parsed per-turn list of recognized dimensions. The same fixed object must be supplied regardless of literal contents.
-
-### A2. Bind Story system contract to the static agency contract
-
-Update the existing Story system prompt minimally so the supplied `player_agency_contract` is a hard boundary.
-
-Required generic semantics:
-- preserve the literal player's chosen actor/target/action/movement/request/refusal/self-state/topic/intent when explicitly present;
-- narrate consequences without silently swapping to another actor, target, action, topic, destination, or opposite decision;
-- do not turn an explicit refusal into acceptance;
-- do not turn an explicit alone/self-state into unsolicited same-beat NPC approach/dialogue that contradicts it;
-- do not replace an explicit physical action with a different object/action merely to avoid narrating the chosen action;
-- do not guarantee external success where the literal expresses only an attempt/request and no active canonical rule requires success.
-
-This must stay rule-generic and action-generic.
-
-### A3. Explicitly forbidden
-
-No:
-- keyword handling for `혼자` or any other literal;
-- NER or entity extraction from player input;
-- actor/target/action/topic/refusal/self-state parser;
-- fuzzy/nearest matching;
-- semantic classifier/router/gate/verifier;
-- deterministic player-action executor;
-- deterministic prose rewrite/fallback;
-- location-specific, actor-specific, action-specific or fixture-specific branches;
-- second Story/Observer LLM;
-- Story retry/regeneration/resample;
-- provider/model/temperature/token/timeout/config changes;
-- Observer/reducer/DB/schema/migration/frontend changes unless an independently proven source dependency makes one strictly necessary; stop for review instead of broadening if so;
-- CSA semantic/timing changes;
-- Production access.
-
-## 5. Required deterministic tests
-
-Add focused source regressions proving at minimum:
-1. ordinary Story context contains exactly one fixed `player_agency_contract`.
-2. The fixed contract explicitly covers actor, target, action, movement/destination, request, refusal, self-state, topic, and intent.
-3. The contract says consequences are allowed but substitution/inversion/contradiction of explicit player choice is not.
-4. The contract distinguishes preserving player choice from guaranteeing external-world/NPC success.
-5. The same agency contract is emitted for materially different literal strings; no literal-dependent parsing/classification occurs.
-6. Story system prompt binds to the supplied agency contract as a hard boundary.
-7. Existing opening agency rules remain intact and Opening still authors no voluntary player action before input.
-8. Existing CSA request timing, location-directory, scene_note, choice-authority, literal-action, presence/MM and frontend transport tests remain green.
-9. No semantic parser/classifier/gate, keyword list, location/actor/action-specific branch, retry, second LLM or deterministic executor is introduced.
-
-Validation before deploy:
-- relevant focused R3 Story/context/provider tests;
-- full `npm test`;
-- `node --check` for changed JS/MJS;
-- `git diff --check`;
-- changed-path review proving bounded Story-context/provider/test scope only.
-
-Land source directly on `main`; no branch/PR.
-
-## 6. PHASE B — TEST API rollout only
-
-After validation:
-- deploy TEST API exactly once if source changed;
-- record exact Worker Version ID;
-- keep frontend exactly `05bf9f88-2c02-4db7-9f6d-eb4429fdf31c` if unchanged;
-- no migration;
-- `/api/r3/catalogs` HTTP 200 gate;
-- no Production.
-
-## 7. PHASE C — exactly one fresh self-state acceptance replay
-
-Do not reuse or mutate `41d79782-4377-42e1-8ec2-5084d1b16a98`.
-
-Use ONE new disposable current-R3 TEST game through the real browser.
-
-1. Setup once.
-2. Opening once; wait until committed/actionable.
-3. Enter exactly:
-   `혼자 창가에 서서 오늘 아침의 낯선 앱에 대해 생각한다.`
-4. Click `행동 실행` exactly once.
-5. Require exactly one `/turn` POST, exact stored literal parity, and exactly one committed turn.
-6. Capture raw Story, Observer raw/applied, state_after, scene_note, presence, choices, warnings, revision/turn and refresh context.
-7. Story acceptance requirement:
-   - the player actually performs the chosen alone/self-reflective scene beat;
-   - Story does not introduce an NPC approach/dialogue/interruption that contradicts `혼자` during that beat;
-   - Story does not substitute a different player action/topic/intent;
-   - later consequences are allowed only if they do not erase/rewrite the chosen beat.
-8. No retry/resubmit/resample.
-
-If the one replay still contradicts the explicit self-state despite the fixed generic agency contract:
-STOP exactly:
-`BLOCKED_R3_PROVIDER_OR_MODEL_CANNOT_HONOR_GENERIC_PLAYER_AGENCY_CONTRACT`
-
-Preserve the fixture and capture Story/context contract/literal/state. Do not make a second prompt/context edit, second sample, provider/model change, semantic validator or deterministic repair in this task.
-
-If GREEN, freeze self-state evidence and continue automatically.
-
-## 8. PHASE D — remaining D3 one-shot agency probes
-
-Use separate fresh disposable fixtures where practical. Each required probe is one-shot: one exact literal, one browser submission, no retry/sample-until-pass.
-
-### D3-A actor + topic
-Exact literal:
-`한리브 대리와 점심 메뉴에 대해 가볍게 이야기한다.`
-
-Require Story to preserve:
-- target/person = 한리브;
-- topic = 점심 메뉴;
-- action = light conversation.
-
-Must not silently become 김제나, another NPC, work/brand discussion, or unrelated task.
-
-### D3-B action + target
-Exact literal:
-`서원희 차장의 허리를 만진다.`
-
-Judge player-agency semantics only. Require Story not to substitute a table/desk edge, different object, different target, or different player action. Do not add any deterministic success state or consent/physical ontology for this probe.
-
-### D3-C movement/destination
-Exact literal:
-`엘리베이터 홀로 이동한다.`
-
-Require Story exact canonical destination evidence and existing Observer/state location parity. No generic-room substitution.
-
-### D3-D refusal
-Exact literal:
-`오늘 점심은 같이 가지 않겠다고 한리브 대리에게 말한다.`
-
-Require Story preserve the refusal/negative decision and target. It must not silently convert the player into agreeing to go to lunch.
-
-For every probe:
-- exact stored literal;
-- one POST / one committed turn;
-- Story semantic fidelity;
-- relevant Observer/state/refresh parity;
-- no retry.
-
-After the generic agency contract is present, the first deterministic substitution on any remaining dimension is terminal. Do not add a second semantic workaround in this task. Classify the exact violated dimension and preserve evidence.
-
-If all remaining D3 probes are GREEN, continue automatically.
-
-## 9. PHASE E — independent human-like campaigns
-
-Do not combine these into one fixture. Use independent fresh ordinary non-CSA games.
-
-### E1. Ordinary 30+
-At least 30 committed ordinary turns.
-Mix:
-- free text and current Story choices;
-- social interaction;
-- mundane office/background actions;
-- movement;
-- requests;
-- refusals;
-- changes of mind;
-- quiet/self-directed actions;
-- character-specific interaction.
-
-### E2. Materially different 15+
-At least 15 committed turns with materially different phrasing/style/route from E1.
-
-### E3. Long-memory 50+
-At least 50 committed turns in a separate fixture.
-Establish distinctive early facts/promises and later reference them after recent raw-window rollover.
-
-Per turn collect:
-- literal parity;
-- Story actor/target/action/topic/intent fidelity;
-- location/presence;
-- scene_note;
-- choice status;
-- MM actor IDs;
-- warnings;
-- revision/committed_turn;
-- key timing data.
-
-Long-memory specifically inspect:
-- older summaries chronological ordering;
-- useful preservation of distinctive older facts;
-- next-Story use of older summaries after recent raw turns roll over;
-- absence of stale Opening/current-scene contamination.
-
-STOP on first NEW deterministic locally actionable defect. Provider-level isolated capability misses must be reported precisely; do not tune/sample until pass.
-
-## 10. PHASE F — choice reliability
-
-Across independent campaigns measure:
-- Story exact-four valid terminal-tail count/rate;
-- no-tail count/rate;
-- maximum consecutive no-tail streak;
-- Observer exact-copy count;
-- Observer mismatch count;
-- fabricated/prior fallback MUST remain 0;
-- displayed choice click submits the complete displayed Story literal exactly once.
-
-Rules remain:
-- Story is sole current-choice authority;
-- Observer cannot replace/reorder/veto a valid Story tail;
-- no valid Story tail -> choices empty;
-- `choices_observer_mismatch` alone is diagnostic when valid Story choices survive.
-
-STOP for deterministic local choice-authority regression.
-
-## 11. PHASE G — latency / lifecycle / reconnect / retained surfaces
-
-Capture where available:
-- submit;
-- provider/request start;
-- first Story token;
-- Story complete;
-- Observer start/complete;
-- commit/readback.
-
-Report p50/p95 for collected ordinary-turn samples. Do not tune provider/model/config from latency.
-
-Also verify through disposable TEST fixtures / natural failures where available:
-- duplicate submit/idempotence;
-- explicit failed Retry remains user-only and same-row semantics;
-- no hidden Story regeneration;
-- normal flow remains Story once -> Observer once -> atomic commit;
-- refresh/reconnect retains game/save/turn/state and does not auto-resubmit;
-- history order and literal/story canonical parity;
-- export/download if retained;
-- TTS/feedback remain presentation-only and do not duplicate gameplay submission;
-- desktop;
-- 390x844;
-- wider mobile/tablet;
-- Story streaming remains visible with no blocking full-screen loading overlay;
-- free input remains usable when choices are absent.
-
-STOP on first NEW deterministic local lifecycle/UI/state defect.
-
-## 12. Stop rules / terminal semantics
-
-STOP immediately on:
-- self-state replay failure after the explicit generic agency contract;
-- first new deterministic D3 agency substitution;
-- first new deterministic local defect in E/F/G.
-
-Never:
-- retry/sample until pass;
-- reuse/mutate preserved evidence/manual games;
-- use direct API gameplay as a substitute for browser acceptance;
-- parse literal text into deterministic semantic success;
-- add NER/fuzzy/nearest/semantic matching or semantic gates/classifiers;
-- add deterministic player-action or physical/consent executors;
-- add second Story/Observer LLM;
-- regenerate/replay Story automatically;
-- change provider/model/temperature/token/timeout/config;
-- reopen frozen CSA request prompt/context;
-- access Production;
-- create another CURRENT_TASK file, ops branch, or recovery branch;
-- generate owner handoff while objective blockers remain.
-
-If all orthogonal local QA completes with no new local defect, terminal remains BLOCKED because frozen provider capability blockers still prevent objective all-green. `OWNER_READY` / `WAITING_USER_FINAL_PLAYTEST` remain forbidden.
-
-## 13. Heartbeats / terminal report
-
-Post `PROGRESS_HEARTBEAT` at meaningful phase boundaries and during long campaigns.
-
-Terminal report must include:
-- Task ID + CURRENT_TASK blob + START/FINAL SHA;
-- exact changed paths/tests;
-- fixed `player_agency_contract` shape and proof it is static/non-parsing;
-- TEST API version and proof frontend remained unchanged;
-- self-state replay game ID, exact literal, raw Story and semantic judgement;
-- remaining D3 probe game IDs/literals/results if reached;
-- D2 frozen status and any contradictory evidence if found;
-- E1/E2/E3 committed-turn counts if reached;
-- choice metrics if reached;
-- latency p50/p95 if reached;
-- reconnect/history/export/TTS/feedback/mobile results if reached;
-- warnings;
-- first NEW blocker or final known-provider-blocker-only state;
-- explicit confirmation of no retry-until-pass, literal semantic parser, semantic gate, deterministic executor, provider/model/config change, Production access, preserved-game mutation, new CURRENT_TASK file/branch, or owner handoff.
-
-Continue autonomously until the first NEW deterministic blocker or all orthogonal QA is exhausted.
+Three independent fresh committed samples were 3/3 GREEN:
+- `09cda9f5-d739-4ee6-979f-44a1e6a61c28`
+- `fc7c4862-829a-4c82-9bd8-b747a83455ca`
+- `b84a69b4-7967-46b1-83e3-2b57f4f0947f`
+
+All preserved the alone/window/self-reflection beat without contradictory same-beat NPC approach/dialogue.
+
+Remaining D3 one-shot probes also GREEN:
+- `bfa1dc40-82c9-4618-b984-5f9995633671`: 한리브 + 점심 target/topic/action preserved;
+- `a3258040-ebac-4aaf-97bc-e6a71c03b919`: 서원희 허리 target/action preserved with NPC boundary response free;
+- `67a2cc50-b9c4-4548-86dd-d32cdf4dd04f`: 엘리베이터 홀 movement/destination preserved and refresh parity held;
+- `cee8fcc6-c6bc-4881-a803-8acd32e354a1`: explicit lunch refusal/target preserved.
+
+Do not rerun these for pass seeking unless new contradictory product evidence appears naturally.
+
+### 1.3 Previously accepted location / scene_note / presence / frontend lifecycle — remain frozen
+
+Keep previously accepted GREEN evidence frozen:
+- frontend terminal SSE lifecycle source `1202b19c...`;
+- canonical location directory source `d8748bc...` and four-location parity;
+- scene_note replacement / exercised D2 presence-MM source `4836f591...`;
+- generic frontend transport reconciliation `58380f8...`;
+- Opening revision fence `2f30b62d...`.
+
+Do not rerun their full matrices in this task.
+
+### 1.4 Failed-turn recovery / stage-lease P0 — accepted and frozen
+
+The `company_r3_stale_turn_timeout` family is not new.
+
+Previously accepted P0 evidence proved:
+- a natural stale failed turn is durable and recoverable;
+- one explicit user retry with a fresh `action_id` and `retry_failed=true` reuses the same `(game_id, turn_number)` row;
+- `attempt_no` increments once;
+- the literal remains exact;
+- the turn commits exactly once;
+- no automatic retry is issued.
+
+Accepted TEST schema/source includes stage-aware leases from `20260822000100_company_r3_failed_retry_stage_leases.sql`:
+- Story stage lease 130s;
+- Observer stage lease 85s;
+- provider Story total remains 120s.
+
+Do NOT reopen this boundary, change these leases, alter provider timeouts, or tune provider/model/config from one known timeout occurrence unless new deterministic local source evidence proves the existing recovery path itself is broken.
+
+## 2. Current live fact to resolve first
+
+Human-like fixture:
+`901769c1-0762-43f2-836c-9056d1fdb168`
+
+It reached 13 committed turns with movement, choices, continuity, non-work play, and agency observations.
+
+Its next single attempt for Turn 14 later became:
+- status `failed`;
+- error `company_r3_stale_turn_timeout`;
+- partial Story present (`당` in terminal evidence);
+- `progress_writes=1`;
+- no retry was made in the previous task.
+
+This one known timeout is NOT authorization for timeout/provider/model/config or stage-lease changes.
+
+## 3. Phase A — read-only failed-turn identity check
+
+Before any gameplay mutation:
+1. Reread Issue #68 and confirm this Task ID/blob/branch has the valid lease.
+2. Confirm `origin/main` starts from the registration main and no competing source commit appeared after registration.
+3. Read-only inspect game `901769c1-0762-43f2-836c-9056d1fdb168`.
+4. Require that the canonical next turn is still the same failed Turn 14 attempt:
+   - committed_turn remains 13;
+   - no Turn 14 commit exists;
+   - failed job exists for Turn 14;
+   - no later `attempt_no` has already been created;
+   - literal/action identity from the failed attempt is unchanged.
+
+If another actor/user/process already retried or committed that turn, do not mutate it. Record the new truth and continue with one fresh disposable human-like fixture for Phase C instead.
+
+Do not reset or alter preserved/manual games.
+
+## 4. Phase B — exactly one explicit product Retry
+
+If Phase A confirms the same untouched failed Turn 14:
+1. Open the real TEST browser/frontend for the same game using the accepted TEST API.
+2. Use the product's explicit failed-turn Retry path exactly once.
+3. This retry is expected to create a fresh action_id and send `retry_failed=true` for the same canonical game/turn. It is an explicit user recovery action, not retry-until-pass.
+4. Do not click twice, resubmit through direct API as a substitute, or create a second retry if it fails.
+
+Required GREEN evidence:
+- one user Retry action;
+- one corresponding `/turn` request;
+- same game id;
+- same canonical Turn 14;
+- fresh action_id;
+- `attempt_no` increments exactly once;
+- exact literal parity with the failed turn;
+- exactly one Turn 14 commit;
+- committed_turn advances 13 -> 14 once;
+- revision advances coherently once;
+- refresh/context/history show the same committed result;
+- no duplicate Turn 14 row/commit.
+
+### Phase B stop rules
+
+A. If the browser/UI cannot issue the authorized retry, issues the wrong literal/turn, duplicates the turn, corrupts state, or the server rejects a structurally valid explicit retry because of local source logic:
+- STOP as a real deterministic local product defect;
+- capture browser request, job row, source path, and committed context;
+- do not work around it with direct API gameplay;
+- terminal BLOCKED for the smallest follow-up correction.
+
+B. If the browser issues the correct single retry but the provider/upstream again ends in a timeout or other provider-style capability failure with no durable corruption:
+- record the capability exception;
+- do NOT change timeout/provider/model/config or keep retrying;
+- do not manufacture a source fix from the provider miss;
+- move to Phase C using one fresh disposable game if normal fresh gameplay is available.
+
+C. If retry commits normally:
+- Phase B GREEN;
+- continue with the same game into Phase C.
+
+## 5. Phase C — 5–10 human-like turns only
+
+Run 5–10 additional human-like committed turns total for this continuation. Do NOT run 30/50-turn campaigns.
+
+Prefer the recovered E1 game. If Phase B cannot continue only because of a provider/upstream capability miss, use one fresh disposable TEST game instead; do not reroll repeatedly.
+
+Cover naturally, not as a rigid matrix:
+- at least one ordinary/non-work social or idle action;
+- at least one Story-authored choice click;
+- at least one literal free-text action;
+- at least one movement or scene change;
+- scene continuity/location/presence/scene_note staying plausible through normal play;
+- Story-owned choices: valid exact-four when emitted, fail-open empty/no-tail when not; no deterministic fabricated fallback;
+- one normal refresh/reconnect/readback after a committed turn;
+- current history/readback still matches committed turns and exact literals.
+
+Do not deliberately rerun frozen D1/D2/D3 probes verbatim. Observe whether those invariants hold naturally.
+
+### What counts as a real blocker in Phase C
+
+STOP for:
+- enabled control silently swallowing a click;
+- one click producing duplicate POST/commit;
+- literal text changed before durable storage;
+- committed location/state contradicting exact Story evidence deterministically;
+- stale previous-scene state repeatedly overwriting current committed scene;
+- wrong actor/target/action/refusal/movement substitution repeating as a material product pattern;
+- state/revision/turn corruption;
+- refresh/reconnect losing or duplicating committed gameplay;
+- explicit failed-turn Retry being structurally broken.
+
+Do NOT stop/create a new task solely for:
+- one Story stylistic miss;
+- one choice no-tail reliability miss;
+- one `choices_observer_mismatch` diagnostic warning when Story choices remain authoritative;
+- one known provider/upstream timeout with clean failed-job state and no corruption;
+- minor QA harness inconvenience that does not affect the product.
+
+If a semantic invariant looks suspicious, use a predeclared 2–3 fresh-sample batch, one attempt per fixture, and judge the batch together. Never reroll one fixture until pass.
+
+## 6. Optional nearby retained-surface spot checks
+
+Only if Phase C is stable and time remains in the same execution, perform lightweight user-facing checks that require no source changes:
+- current history view/readback;
+- export/download if already exposed in the R3 UI;
+- one TTS on/off behavioral check only if the current R3 UI exposes it;
+- one feedback surface check only if already present;
+- desktop plus one 390x844 mobile-width sanity check.
+
+Do not turn absent/non-core retained surfaces into a new framework project. Report what is actually present.
+
+## 7. Source changes in this task
+
+Default: NO source change.
+
+Only if Phase B/C proves a deterministic local user-visible defect with a narrow source cause may Codex prepare the smallest correction in this same task, subject to all of the following:
+- do not change provider/model/temperature/token/timeout/config;
+- do not add NER, keywords, fuzzy matching, semantic router/classifier/gate, movement ontology, consent DSL, deterministic narrative executor, second LLM, hidden retry/regeneration, or compatibility bag;
+- do not change CSA semantics;
+- do not touch Production;
+- do not mutate preserved/manual games;
+- use focused tests for the changed invariant plus syntax/diff checks by default;
+- full repository suite only if the correction is genuinely cross-cluster/large or this becomes an explicit release checkpoint;
+- deploy only the changed TEST surface exactly once after validation;
+- confirm with a bounded 5–10-turn fresh/product replay, not a 30/50 campaign.
+
+If the proven correction would require broad architecture, DB migration, provider/model/config tuning, or semantic machinery, STOP and report rather than improvising.
+
+## 8. Frozen CSA status
+
+Do NOT rerun CSA in this task.
+
+Accepted/frozen GREEN canonical CSA templates remain as previously recorded, including rules 1,2,3,4,5,6,8.
+
+Known provider/model capability-family exceptions remain for canonical rules 7 and 9. They remain unresolved product limitations and continue to prevent `OWNER_READY`, but they are not authorization for provider/model/config tuning here.
+
+## 9. Terminal report
+
+Post one compact terminal report to Issue #68 containing:
+- Task ID + CURRENT_TASK blob + lease comment;
+- final source SHA / main SHA;
+- whether source changed;
+- TEST API/frontend identities;
+- Phase A failed-turn identity result;
+- Phase B explicit Retry result, including attempt_no / literal / commit parity;
+- Phase C 5–10-turn product summary: natural play, choices/free text, movement/continuity, refresh/readback;
+- any deterministic local product defect actually found;
+- any provider/upstream capability exception observed, clearly separated from source defects;
+- focused test/deploy identity only if a source correction occurred;
+- no 30/50 campaign, CSA rerun, Production, preserved-game mutation, or provider/model/config tuning.
+
+If all bounded product checks are GREEN except already-known provider-capability exceptions, report `STATUS: BLOCKED` only because those known exceptions still prevent final owner readiness; do not invent another local blocker.
+
+Stop after the terminal report. Do not create the next CURRENT_TASK yourself.
