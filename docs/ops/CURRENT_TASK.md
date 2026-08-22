@@ -2,13 +2,13 @@
 
 Status: READY
 Task ID: company-r3-continuous-autonomous-live-qa-v1
-Mode: LOCAL-DIVERGENCE RECOVERY -> CONTINUOUS TEST LIVE-QA / FIX / REDEPLOY LOOP
-Updated: 2026-08-22 09:57 KST
+Mode: PROVIDER FIRST-CONTENT DIAGNOSTIC -> RECONNECT LIVE ACCEPTANCE -> CONTINUOUS TEST LIVE-QA / FIX / REDEPLOY LOOP
+Updated: 2026-08-22 10:09 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file or an ops/task-registration branch.
+Reuse this existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/task-registration branch, recovery branch, or alternate execution authority.
 
-## 0. Binding owner policy
+## 0. Binding owner policy / authority
 
 The owner has explicitly rejected premature `WAITING_USER_FINAL_PLAYTEST` / `OWNER_READY` gates. Automation owns objective QA. Manual owner play begins only after the objective exit matrix is green.
 
@@ -26,155 +26,191 @@ Binding product/architecture authority remains:
 5. current accepted R3 source on main;
 6. latest explicit owner decisions and Issue #68 operator review.
 
+Architecture remains frozen at A-prime/R3. Do not respond to concrete defects by inventing a new engine, generic semantic validator, NER/fuzzy identity mapper, physical ontology, consent DSL, second Story/choice LLM, retry/regeneration layer, or browser-owned Story -> Observer -> Commit orchestration.
+
 TEST only. No Production access/deploy. Never mutate/reset/delete/replay preserved historical/manual/evidence games.
 
-## 1. Immediate recovery from push-race and local-divergence terminals
+## 1. Accepted prior terminal and current executable
 
-The prior lease first failed because of a Git push race, then the re-kick stopped because the runner checkout still had the verified local-only recovery commit checked out and could not fast-forward to the newly registered remote main. This is a workflow state problem, not a rejection of the narrow recovery fix.
+Prior terminal:
 
-Evidence:
+- terminal comment: Issue #68 `5376967647`;
+- operator review: Issue #68 `5376978387`;
+- prior CURRENT_TASK blob: `328a556c495f600fd3b0c41adbf4ccddab142aa5`;
+- executable main at terminal: `ed760bf0fa6a75fb6bcac27f490e074ad99a6b31`;
+- landed reconnect commit changes exactly `frontend-r3/app.js` and `test/r3-frontend-contract.test.mjs` from its registration parent;
+- focused frontend contract 3/3, full suite 451/451, syntax and diff checks passed;
+- TEST API version at terminal: `c2bb5928-7ca3-4870-9fa7-d1f72d2b585e`;
+- TEST Frontend version at terminal: `a7f7a308-a067-41a5-99e0-305b58ea9d57`.
 
-- first failed terminal: Issue #68 comment `5376803619`;
-- operator review: Issue #68 comment `5376821230`;
-- re-registration: Issue #68 comment `5376837624`;
-- local-divergence terminal: Issue #68 comment `5376844165`;
-- common base: `122ac37135f83198c9b006bef843843d493a235b`;
-- verified local-only fix commit: `f4cc1a84f85393cdf20f618f1e0a5790b68519d4`;
-- remote main at the divergence terminal: `069b02e33e83e223aedba4721d25867cd3cabc8c`;
-- the local commit changes only `frontend-r3/app.js` and `test/r3-frontend-contract.test.mjs` relative to the common base.
+Fresh disposable deployed game `90b6528f-8239-42a8-986d-503d14412627` booted correctly, preserved `api=` + `game_id`, hid the fallback shell, and rendered the Korean UI. Opening then produced no Story content before the configured first-content boundary and terminated with `r3_story_first_content_timeout`; committed turn remained 0.
 
-The local fix intent was:
+Current source fact: `runtime-r3/server/provider.js` uses `storyFirstContentMs=30_000`, `storyTotalMs=120_000`, `observerMs=75_000`. The Story first-content deadline starts at provider request invocation and clears only on the first non-empty streamed Story delta.
 
-- `frontend-r3/app.js`: after SSE reconnect loss or refresh, poll the same processing R3 job, render canonical committed context when it completes, and expose the recovery control rather than leaving the user stranded;
-- `test/r3-frontend-contract.test.mjs`: focused recovery contract assertions.
+The BLOCKED result is accepted. It does NOT prove that 30 seconds should simply be increased. It also does not invalidate the reconnect patch; that patch remains source/test-landed but live-unaccepted because the same-job recovery scenario was never reached.
 
-This local commit is NOT accepted or deployed merely because it exists.
+## 2. Immediate first-content latency diagnostic
 
-### Local checkout recovery authorization
+This section explicitly authorizes a bounded live diagnostic that the previous lease could not perform. It is measurement, not retry-until-pass.
 
-No new branch is allowed. Do not create a recovery branch, ops branch, alternate CURRENT_TASK file, or force-push anything.
+### 2.1 Preflight
 
-The runner is explicitly authorized to recover its local checkout from the known divergence only under all of these conditions:
+1. Fetch exact latest `origin/main`; re-read latest Issue #68 comments before any mutation or deploy.
+2. Verify the current main is a descendant of `ed760bf0...` and inspect any newer delta. Never silently overwrite newer source/docs.
+3. Confirm deployed TEST API/frontend identity. Deploy only exact reviewed TEST artifacts when source changes actually require it.
+4. Do not change provider, model, API URL, key/secret, temperature, retry count, or Story semantic contract to make the test pass.
 
-1. fetch latest `origin/main` and re-read the latest Issue #68 comments;
-2. verify commit `f4cc1a84...` still exists and its diff from common base `122ac371...` is exactly the two intended paths above with no docs/config/migration/other runtime changes;
-3. verify there are no additional uncommitted tracked changes that would be lost; approved preserved untracked evidence directories remain untouched;
-4. record the local commit SHA and exact diff as evidence;
-5. move the existing local checkout back to the exact latest `origin/main` even if that requires a local hard reset of the checked-out branch. This authorization applies only to discarding the already-recorded local-only `f4cc1a84...` branch state after its diff has been verified and preserved by SHA. It does not authorize rewriting remote history, force-pushing, deleting preserved evidence, or discarding any unexpected local work;
-6. after the checkout is exactly on latest `origin/main`, reapply only the intended two-file recovery change from `f4cc1a84...` (cherry-pick is allowed if the commit still contains exactly those reviewed changes; otherwise reproduce the narrow diff manually);
-7. if any condition above is false, or any unexpected local delta exists, STOP with exact evidence instead of guessing.
+### 2.2 Timing visibility
 
-### Recovery procedure after checkout normalization
+First inspect existing R3 job/SSE/log diagnostics for whether these boundaries are already observable without a source patch:
 
-1. Confirm there is no conflicting newer executable change to the same recovery paths on latest main. If there is a semantic conflict, STOP with evidence rather than guessing.
-2. Run focused frontend recovery tests, full test suite, `node --check` for changed JS/MJS, and `git diff --check`.
-3. Push only by fast-forward. Never force-push, reset/rewrite remote history, or silently discard a newer main delta. If main races again, STOP and report the new remote delta precisely.
-4. The landed exact main SHA becomes the only candidate for TEST deployment.
+- submit / Story request start;
+- provider response headers received;
+- first non-empty Story delta;
+- Story complete;
+- Observer start/complete;
+- terminal commit.
 
-## 2. Focused deployed reproducer after landing
+If these boundaries are not independently distinguishable, add the smallest non-semantic timing instrumentation needed to expose them in TEST diagnostics/evidence. Timing metadata must not become gameplay state, Story context, semantic authority, or a new durable domain. Never log prompts, secrets, API keys, authorization headers, or private provider payloads merely for timing.
 
-After the recovery fix is independently landed/reviewable on GitHub:
+Any instrumentation source change must receive focused tests, full suite, syntax checks and `git diff --check`, then fast-forward-only landing and exact TEST deployment before live use.
 
-1. Deploy exact reviewed API/frontend TEST artifacts only as required; do not deploy unrelated source.
-2. Use a fresh disposable R3 TEST game.
-3. In a real deployed browser, exercise:
-   - normal Setup -> Opening -> committed turn;
-   - refresh after commit;
-   - refresh/reload while a turn job is actively `processing`;
-   - simulated/real SSE disconnect followed by same-job recovery;
-   - canonical committed context rendering after completion;
-   - recovery control visibility/usability;
-   - preservation of `api=` and `game_id` in URL;
-   - no duplicate Story generation, no duplicate committed turn, no hidden retry/regeneration.
-4. Inspect browser console/network, job/state/turn DB evidence, screenshot-visible UI and exact turn/action identity.
-5. If this reproducer fails, fix narrowly, redeploy exact TEST artifacts and replay. Do not move to broad campaign while this objective defect remains.
+### 2.3 Fixed availability sample — no pass-seeking retries
 
-## 3. Do NOT stop after the reconnect fix
+Against the exact current TEST runtime, run exactly **3** fresh disposable Korean Setup -> Opening samples, one Opening attempt per game.
 
-A focused green reconnect test is not task completion. Continue the autonomous live QA loop.
+For all three samples, regardless of early pass/fail, record:
 
-The current binding product-review priority order is:
+- disposable game id;
+- request start -> headers when observable;
+- request start -> first Story delta, or right-censored `>=30s` timeout;
+- Story completion if any;
+- exact terminal code;
+- committed turn count/state after the attempt.
+
+Do not retry a failed game/job. Do not stop the sample early because one attempt succeeds. Do not use preserved/manual/evidence games.
+
+Decision after the fixed three-sample set:
+
+- If at least 2/3 produce first Story content inside the existing 30s boundary, classify the prior terminal as a transient provider incident for now; do **not** change the timeout from that evidence. Continue to Section 3 on a separate fresh game.
+- If 2/3 or 3/3 hit the 30s boundary, first determine from timing evidence whether delay is before provider headers, after headers before first delta, or not distinguishable. Do not guess.
+- A source change to the 30s first-content boundary is allowed only when existing/new measured evidence demonstrates that the boundary itself is systematically clipping otherwise healthy Story responses. A single timeout is not sufficient. Any new value must be evidence-backed, bounded, separately tested, and must not remove the independent total timeout.
+- If evidence instead indicates provider unavailability/degradation with no implementation defect, do not mask it with a timeout inflation, model switch, secret/config change, or hidden retry. Post exact measurements and STOP BLOCKED for operator review.
+
+The 120s Story total boundary is not authorized for arbitrary expansion. Observer 75s remains a later performance issue; do not change it until actual campaign timing measurements exist unless a deterministic correctness bug independently requires it.
+
+## 3. Reconnect / refresh live acceptance
+
+Once Section 2 demonstrates a usable Story path under an evidence-backed boundary, use a **new fresh disposable R3 TEST game** and complete the previously blocked focused acceptance:
+
+1. Korean Setup -> Opening -> at least one committed ordinary turn;
+2. refresh after commit;
+3. refresh/reload while a turn job is actively `processing`;
+4. real or controlled SSE disconnect followed by recovery of the **same job**;
+5. canonical committed context rendered after completion;
+6. recovery control visible/usable;
+7. `api=` and `game_id` preserved;
+8. no duplicate Story generation, no duplicate committed turn, no hidden retry/regeneration;
+9. browser console/network + job/state/turn DB evidence + screenshot-visible UI inspected together.
+
+If this focused scenario exposes a deterministic implementation defect, fix narrowly, test, fast-forward land, exact TEST deploy, and replay on a new disposable game. Do not certify the reconnect fix merely from unit tests.
+
+## 4. Continue the SAME P1 correction loop
+
+Do not stop after Section 3. Continue this same task through the binding product-review priorities.
 
 ### P1 correctness
 
-1. Active CSA rules must be projected into Story context; `active_rules: []` while rules are active is a defect.
-2. Observer must receive canonical actor `{id,name}` directory and must not fabricate/generalize heroine IDs.
-3. Mind Monitor must use actor-keyed relevant-current-NPC structure and must not be 100% dropped.
-4. Replay movement after the canonical-location correction across at least four distinct canonical locations.
-5. `scene_note` must be a current bounded scene snapshot, rewriting/ending stale facts when Story changes them.
-6. Semantic literal agency must be reviewed beyond byte equality: actor, target/counterparty, action, direction, request/refusal, self-state and topic/intent must not be silently substituted.
-7. Exactly four current Story-authored choices should have high live compliance; failure remains fail-open to free input, with no stale/prior-turn fallback and no deterministic fabricated replacements.
+1. **Active CSA Story projection** — active rules must reach Story as relevant premise + selected scope. `active_rules: []` while a rule is active is a defect.
+2. **Canonical Observer actor contract** — pass canonical `{id,name}` actor directory. Unknown names must not be nearest/fuzzy-mapped to registered actors.
+3. **Mind Monitor** — explicitly actor-keyed output for relevant current/post-Story NPCs; new relevant entrants must not be structurally dropped merely because they were absent pre-turn.
+4. **Canonical location** — replay movement across at least four distinct canonical locations through literal -> Story -> observer raw -> observer applied -> state_after -> next Story.
+5. **Actor enter/exit evidence** — quote must identify the canonical actor; player movement quote cannot be repurposed as NPC enter/exit evidence.
+6. **scene_note** — current bounded scene snapshot, rewritten each turn; remove ended location/counterparty/object facts and retain only continuing facts.
+7. **Semantic player agency** — inspect actor, target/counterparty, action, movement/direction, request/refusal, self-state and topic/intent. Byte-equal stored literal alone is not proof.
+8. **Product identity** — workplace duties are texture, not a mandatory work-assistant funnel. Story must not invent competing fictional app mechanics outside the canonical 9-rule `상식개변` system.
+9. **Choices** — exactly four current Story-authored choices at high reliability; one clear action/intention per choice; no stale/prior-turn fallback or deterministic fabricated replacements. Failure remains fail-open to free input.
 
 ### P2 / long-play / performance
 
-8. Use separate disposable fixtures: clean normal-play, clothing-CSA, request/interaction-CSA, long-memory. Do not certify normal continuity from a heavily CSA-mutated game.
-9. Run one clean 30+ turn primary campaign and one materially different 15+ turn independent campaign.
-10. Run a 50+ turn memory/continuity campaign once the shorter campaigns are clean enough.
-11. Measure submit->first Story token, Story total, observer tail and terminal commit latency where instrumentation permits; investigate objective stalls. Observer is fail-open and must not create an excessive tail.
-12. Exercise refresh-during-stream, same-job reconnect, duplicate-submit/concurrency and stale-attempt protection.
+10. Separate disposable fixtures: clean normal-play, materially different independent play, clothing CSA, request/interaction CSA, long-memory.
+11. Run clean primary campaign **30+ committed turns**.
+12. Run materially different independent campaign **15+ committed turns**.
+13. After shorter campaigns are clean enough, run **50+ committed turn** memory/continuity campaign.
+14. Record submit -> first Story token, Story total, Observer tail and terminal commit timing across campaigns; derive p50/p95 where sample size permits. Do not optimize latency before measuring it.
+15. Exercise refresh-during-stream, same-job reconnect, duplicate-submit/concurrency and stale-attempt protection.
 
-### Product feel / retained surfaces
+### CSA acceptance
 
-13. Detect and correct objective work-task funneling where the game becomes a mandatory campaign/work assistant rather than company-life character simulation.
-14. Inspect choice diversity/mobile readability; prefer one clear action/intention per choice and avoid four near-identical diligent-work options.
-15. Story must not invent a competing fictional app mechanic outside the canonical 9-rule `상식개변` product UI/system authority.
-16. History/TTS/download and other canon-retained sidecars must be actually exercised in deployed UI.
-17. Feedback/revision, if retained by current canon and visibly promised, is unfinished product work until functional or explicitly owner-deferred.
+For each of all 9 canonical CSA templates use a dedicated/appropriate disposable fixture and prove:
 
-## 4. Minimum human-like browser campaign before owner handoff
+`apply -> revision increases while gameplay turn does not -> play an actually relevant scene -> Story premise/scope effect -> observer/readback/structured state as applicable -> remove -> next Story/readback confirms removal`
 
-Do not certify from HTTP 200, RPC success, unit tests, DOM presence, raw turn count, or uninspected screenshots.
+Additionally verify:
 
-Minimum deployed TEST evidence:
+- clothing rules affect structured clothing only when warranted by Story/evidence;
+- CSA institutional/system premise does not manufacture personal affection, comfort, consent or desire;
+- scope stays flexible only within the canonical 9-rule MVP;
+- RPC success alone is never acceptance evidence.
+
+### Retained surfaces
+
+Exercise deployed history, TTS, download and any other canon-retained sidecars. Feedback/revision, if still visibly promised/retained by canon, remains unfinished until functional or explicitly owner-deferred.
+
+## 5. Minimum human-like deployed evidence before owner handoff
+
+Do not certify from HTTP 200, RPC success, unit tests, DOM presence, turn count, deployment success, or uninspected screenshots.
+
+Minimum evidence remains:
 
 - fresh Korean Setup and Opening;
-- 30+ ordinary committed turns in one clean game;
-- independent 15+ turn game with a different route/action style;
-- 50+ turn memory campaign after shorter campaigns stabilize;
-- both Story-authored choices and literal Korean free-form actions;
+- visible nonblocking Story streaming;
+- clean 30 + independent 15 + long-memory 50 campaigns;
+- Story-authored choices and literal Korean free-form actions;
 - refusal/negative/self-directed actions;
 - multiple canonical locations and multi-NPC entry/exit;
 - off-scene canonical NPC references without auto-spawn;
 - object/pose/scene_note continuity including leave/return;
 - relevant-only MM with fail-open behavior;
 - refresh after commit and during active stream;
-- duplicate submit/concurrent duplicate request;
-- exactly four current choices at high reliability; free input remains usable on choice projection failure;
-- all 9 CSA templates apply -> zero-turn revision -> subsequent Story effect -> readback -> remove, using representative valid scopes;
-- desktop plus mobile `390x844` and at least one wider mobile/tablet viewport;
+- same-job reconnect and duplicate-submit protection;
+- high-reliability current four choices; free input always usable on choice projection failure;
+- all 9 CSA apply -> Story effect -> readback -> remove coverage;
+- desktop, mobile `390x844`, and at least one wider mobile/tablet viewport;
 - no permanent loader/fallback or blocking overlay over streaming Story;
-- no uncaught required-path browser/network failure;
+- required browser/network paths free of uncaught failure;
 - no fabricated/crossed identity;
 - committed location/presence/scene_note grounded in Story;
-- literal action stored byte/codepoint-equivalent AND semantically respected by Story.
+- literal action stored byte/codepoint-equivalent **and semantically respected** by Story;
+- DB/state/turn evidence agrees with visible Story/UI;
+- screenshots visually inspected as the user sees them.
 
-Screenshots must be visually inspected as a user would see them.
-
-## 5. Safety / authority boundaries
+## 6. Safety boundaries
 
 - TEST only; no Production.
 - Disposable R3 TEST games are authorized. Preserved/manual/evidence games are read-only forever.
-- No provider/model/config/secret change merely to mask implementation defects without explicit review.
-- No hidden retry/regeneration or second Story/choice LLM.
-- No browser-owned Story -> Observer -> Commit orchestration; preserve A-prime server-owned turn authority.
-- No generic semantic classifier/NER/physical ontology/consent DSL introduced to paper over concrete failures.
-- Migrations, if a proven defect requires one, must be additive and independently reviewed; never rewrite applied history.
-- Re-read latest Issue #68 before every source landing/deploy decision to avoid another race.
+- No provider/model/API URL/key/secret change merely to mask implementation defects.
+- No retry-until-pass, hidden retry/regeneration, or second Story/choice LLM.
+- No generic semantic classifier/NER/fuzzy identity mapper/physical ontology/consent DSL.
+- No browser-owned orchestration replacing the A-prime server-owned turn path.
+- Migrations, if a proven defect truly requires one, must be additive and independently reviewed; never rewrite applied history.
+- Re-read latest Issue #68 before every source landing and TEST deployment decision to avoid races.
+- Fast-forward push only. Never force-push or rewrite remote history.
 
-## 6. Exit criteria
+## 7. Exit criteria
 
 Remain `READY` and continue the same task while any known objective P0/P1/P2 defect or untested canon-retained objective behavior remains.
 
-Do not set `WAITING_USER_FINAL_PLAYTEST` / `OWNER_READY` until all of the following are demonstrated with deployed evidence:
+`WAITING_USER_FINAL_PLAYTEST` / `OWNER_READY` is forbidden until all of these are demonstrated with deployed evidence:
 
 1. clean desktop/mobile boot;
 2. Setup -> Opening -> ordinary play;
-3. visible nonblocking Story streaming;
+3. visible nonblocking Story streaming with acceptable measured first-content behavior;
 4. reliable current 4 choices + literal free input;
 5. clean 30 + independent 15 + 50 turn campaigns;
-6. semantic agency, identity, location/presence, scene_note, MM green;
+6. semantic agency, identity, location/presence, scene_note and MM green;
 7. refresh/reconnect/double-submit green;
-8. all 9 CSA templates narrative/readback/remove coverage green;
+8. all 9 CSA narrative/readback/remove coverage green;
 9. retained sidecars usable or explicitly owner-deferred;
 10. screenshots visually inspected and required console/network paths clean;
 11. DB/state/turn evidence agrees with visible Story/UI;
@@ -182,14 +218,20 @@ Do not set `WAITING_USER_FINAL_PLAYTEST` / `OWNER_READY` until all of the follow
 
 Only genuinely subjective questions such as narrative taste, emotional nuance, character appeal and pacing preference may remain for owner manual play.
 
-## 7. Reporting
+## 8. Reporting
 
-Use Issue #68 for compact iteration evidence. Do not spam the owner per turn.
+Use Issue #68 for compact iteration evidence; do not spam per turn.
 
-For each meaningful iteration report:
+For each meaningful iteration post `AUTONOMOUS_LIVE_QA_ITERATION` with:
 
-`AUTONOMOUS_LIVE_QA_ITERATION`
+- exact source/main SHA;
+- API/frontend TEST versions;
+- disposable game IDs and browser viewports;
+- timing samples;
+- turns/scenarios exercised;
+- concrete defects and exact evidence;
+- fixes landed and regression results;
+- live replay result;
+- remaining objective gaps and next loop action.
 
-Include source/main SHA, API/frontend TEST versions, disposable game IDs, browser/viewports, turns/scenarios, concrete defects, fixes landed, regression results, live replay result, remaining objective gaps and next loop action.
-
-If a push/deploy race or other safety boundary blocks execution, post exact evidence and STOP. Otherwise continue this SAME task; do not create a new feature task merely because one iteration completed.
+If a provider incident, push/deploy race, unexpected local delta, or safety boundary blocks execution, post exact evidence and STOP. Otherwise continue this SAME task; do not create a new feature task merely because one iteration completed.
