@@ -178,6 +178,42 @@ test('R3 Story context projects active CSA rules once with scope and no legacy g
   }]);
 });
 
+test('R3 real Story provider sends each active rule once and excludes inactive rules', async () => {
+  const heroine = Object.values(content.characters)[0];
+  const state = createInitialState({ name: 'R3 provider player' }, heroine.default_location_id, [heroine.character_id]);
+  state.csa_active = ['active-rule', 'inactive-rule'];
+  state.csa_rules = {
+    'active-rule': {
+      id: 'active-rule', active: true, template_id: 'institutional_rule',
+      content: 'ACTIVE RULE CONTENT', mode: 'continuous', trigger: 'during work', strength: 'strong',
+      subject_scope: 'female_employee', counterparty_scope: 'company_employee'
+    },
+    'inactive-rule': { id: 'inactive-rule', active: false, content: 'INACTIVE RULE MUST NOT APPEAR' }
+  };
+  const payloads = [];
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    fetchImpl: async (_url, init) => {
+      const payload = JSON.parse(init.body);
+      payloads.push(payload);
+      const stream = ['data: {"choices":[{"delta":{"content":"[SCENE] Story"}}]}', 'data: {"choices":[{"delta":{"content":"\\n1. one\\n2. two\\n3. three\\n4. four"}}]}', 'data: [DONE]', ''].join('\n\n');
+      return new Response(stream, { headers: { 'content-type': 'text/event-stream' } });
+    }
+  });
+  let story = '';
+  for await (const delta of provider.story({ context: { state: { state }, turns: [] }, content, literalAction: 'observe the work scene' })) story += delta;
+  assert.equal(payloads.length, 1);
+  const requestContext = JSON.parse(payloads[0].messages[1].content);
+  assert.deepEqual(requestContext.active_rules, [{
+    id: 'active-rule', template_id: 'institutional_rule', content: 'ACTIVE RULE CONTENT', mode: 'continuous', trigger: 'during work', strength: 'strong',
+    subject_scope: 'female_employee', counterparty_scope: 'company_employee'
+  }]);
+  assert.equal(JSON.stringify(requestContext).match(/ACTIVE RULE CONTENT/g)?.length, 1);
+  assert.equal(JSON.stringify(requestContext).includes('INACTIVE RULE MUST NOT APPEAR'), false);
+  assert.match(payloads[0].messages[0].content, /authoritative current-world institutional\/system fact already in force/i);
+  assert.equal(story.includes('[SCENE] Story'), true);
+});
+
 test('Worker content is a bundled canonical JSON path and production wiring selects async Supabase store', async () => {
   const workerContent = loadWorkerCanonicalContent();
   assert.equal(workerContent.edition.edition_id, 'company-v1');

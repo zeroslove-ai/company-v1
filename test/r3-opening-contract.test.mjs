@@ -109,6 +109,13 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /one action per line/i);
   assert.match(storySystem, /verbatim in the current Story/i);
   assert.match(storySystem, /active_rules contains an institutional rule/i);
+  assert.match(storySystem, /authoritative current-world institutional\/system fact already in force/i);
+  assert.match(storySystem, /exact stated content and exact subject\/counterparty scope/i);
+  assert.match(storySystem, /materially concerns a rule's scoped premise or observable consequence/i);
+  assert.match(storySystem, /make that premise visibly true in natural narration/i);
+  assert.match(storySystem, /do not silently ignore it/i);
+  assert.match(storySystem, /Do not force exposition when the scene has no meaningful connection/i);
+  assert.match(storySystem, /do not mechanically quote or copy the rule text/i);
   assert.match(storySystem, /activation alone must never imply personal affection/i);
   assert.match(storySystem, /preserve that exact canonical destination name/i);
   assert.match(storySystem, /Opening-only product and agency law/i);
