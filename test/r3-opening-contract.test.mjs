@@ -117,6 +117,13 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(storySystem, /Do not force exposition when the scene has no meaningful connection/i);
   assert.match(storySystem, /do not mechanically quote or copy the rule text/i);
   assert.match(storySystem, /activation alone must never imply personal affection/i);
+  assert.match(storySystem, /mode=on_player_request or request-triggered trigger/i);
+  assert.match(storySystem, /direct eligible request satisfies the trigger in this turn/i);
+  assert.match(storySystem, /begin the rule-required behavior in this same Story turn/i);
+  assert.match(storySystem, /Do not refuse, delay, substitute another action/i);
+  assert.match(storySystem, /feelings cannot veto the rule's stated institutional execution/i);
+  assert.match(storySystem, /Rule execution alone must not manufacture affection, comfort, consent, desire, romance, obedience-as-personality, trust, relationship/i);
+  assert.doesNotMatch(storySystem, /masturbate_for_recipient|vaginal_sex_with_recipient|player_request_executes_immediately/i);
   assert.match(storySystem, /preserve that exact canonical destination name/i);
   assert.match(storySystem, /Opening-only product and agency law/i);
   assert.match(storySystem, /passive scene exposure is allowed/i);
@@ -168,6 +175,10 @@ test('R3 Opening context and provider prompts require private premise discovery 
   const ordinarySystem = payloads[2].messages[0].content;
   const ordinaryContext = JSON.parse(payloads[2].messages[1].content);
   assert.match(ordinarySystem, /For ordinary turns, preserve the submitted literal player action exactly/i);
+  assert.match(ordinarySystem, /mode=on_player_request or request-triggered trigger/i);
+  assert.match(ordinarySystem, /NPC reluctance, embarrassment, anger, protest, hesitation, surprise, dislike, or discomfort/i);
+  assert.match(ordinarySystem, /must not manufacture affection, comfort, consent, desire, romance, obedience-as-personality, trust, relationship/i);
+  assert.doesNotMatch(ordinarySystem, /masturbate_for_recipient|vaginal_sex_with_recipient|player_request_executes_immediately/i);
   assert.doesNotMatch(ordinarySystem, /Opening-only agency law/i);
   assert.equal(ordinaryContext.opening, false);
   assert.equal(ordinaryContext.literal_action, ordinaryLiteralAction);
