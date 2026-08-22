@@ -83,7 +83,7 @@ async function processOpening({ store, provider, content, gameId, emit }) {
   mark('story_complete'); let observer = {}; let observerFailed = false; mark('observer_start'); try { observer = await provider.observe({ context: before, literalAction: '', storyText, content }); mark('observer_complete'); } catch { observerFailed = true; mark('observer_failed'); }
   const normalized = normalizeObserver(observer, { storyText, content, currentState: before.state.state }); if (observerFailed) normalized.warnings.unshift('observer_failed');
   const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: 0 });
-  const context = await store.createOpening(gameId, { storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: observer, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
+  const context = await store.createOpening(gameId, { expectedRevision: before.state.revision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: observer, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
   mark('terminal_commit');
   emit('terminal', { status: 'committed', context });
 }

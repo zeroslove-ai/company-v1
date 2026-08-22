@@ -28,7 +28,7 @@ export class SupabaseR3Store {
     return this.context(result?.game_id ?? result);
   }
   async createOpening(gameId, payload) {
-    await this.db.rpc('company_r3_create_opening', { p_game_id: gameId, p_story_text: payload.storyText, p_choices: payload.choices ?? [], p_turn_summary: payload.summary, p_mind_monitor: payload.mindMonitor ?? {}, p_observer_raw: payload.observerRaw ?? {}, p_observer_applied: payload.observerApplied ?? {}, p_warnings: payload.warnings ?? [], p_state_after: payload.stateAfter });
+    await this.db.rpc('company_r3_create_opening', { p_game_id: gameId, p_expected_revision: payload.expectedRevision, p_story_text: payload.storyText, p_choices: payload.choices ?? [], p_turn_summary: payload.summary, p_mind_monitor: payload.mindMonitor ?? {}, p_observer_raw: payload.observerRaw ?? {}, p_observer_applied: payload.observerApplied ?? {}, p_warnings: payload.warnings ?? [], p_state_after: payload.stateAfter });
     return this.context(gameId);
   }
   async context(gameId) {

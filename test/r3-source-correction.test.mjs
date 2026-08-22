@@ -286,8 +286,8 @@ test('Supabase Opening adapter preserves one canonical state across duplicate ca
     throw new Error(`unexpected ${path}`);
   };
   const store = new SupabaseR3Store({ env: { SUPABASE_URL: 'https://db.test', SUPABASE_SERVICE_ROLE_KEY: 'service' }, fetchImpl });
-  const first = await store.createOpening(gameId, { storyText: 'Opening', summary: 'Opening', stateAfter: canonicalState });
-  const second = await store.createOpening(gameId, { storyText: 'Different', summary: 'Different', stateAfter: { ...initialState, scene: { ...initialState.scene, scene_note: '덮어쓰면 안 됨' } } });
+  const first = await store.createOpening(gameId, { expectedRevision: 0, storyText: 'Opening', summary: 'Opening', stateAfter: canonicalState });
+  const second = await store.createOpening(gameId, { expectedRevision: 0, storyText: 'Different', summary: 'Different', stateAfter: { ...initialState, scene: { ...initialState.scene, scene_note: '덮어쓰면 안 됨' } } });
   assert.deepEqual(first.state.state, canonicalState);
   assert.deepEqual(first.turns[0].state_after, canonicalState);
   assert.deepEqual(second.state.state, canonicalState);
@@ -295,18 +295,23 @@ test('Supabase Opening adapter preserves one canonical state across duplicate ca
   assert.deepEqual(calls.filter(call => call.name === 'company_r3_create_opening').map(call => call.body.p_state_after), [canonicalState, { ...initialState, scene: { ...initialState.scene, scene_note: '덮어쓰면 안 됨' } }]);
   const memoryStore = new InMemoryR3Store();
   const memoryGame = memoryStore.createGame({ profile: { name: 'Player' }, locationId: content.locations[0].location_id });
-  const memoryFirst = memoryStore.createOpening(memoryGame.game.game_id, { storyText: 'Opening', summary: 'Opening', stateAfter: canonicalState });
-  const memorySecond = memoryStore.createOpening(memoryGame.game.game_id, { storyText: 'Different', summary: 'Different', stateAfter: { ...initialState, scene: { ...initialState.scene, scene_note: '덮어쓰면 안 됨' } } });
+  const memoryFirst = memoryStore.createOpening(memoryGame.game.game_id, { expectedRevision: 0, storyText: 'Opening', summary: 'Opening', stateAfter: canonicalState });
+  const memorySecond = memoryStore.createOpening(memoryGame.game.game_id, { expectedRevision: 0, storyText: 'Different', summary: 'Different', stateAfter: { ...initialState, scene: { ...initialState.scene, scene_note: '덮어쓰면 안 됨' } } });
   assert.deepEqual(memoryFirst.state.state, first.state.state);
   assert.deepEqual(memorySecond.state.state, memoryFirst.state.state);
   assert.equal(memorySecond.turns.length, 1);
 });
 
-test('R3 migration source serializes Opening state and rejects non-next reservations', async () => {
+test('R3 migration source fences Opening against stale revisions and rejects non-next reservations', async () => {
   const migration = await readFile(new URL('../supabase/migrations/20260821000100_company_r3_milestone0.sql', import.meta.url), 'utf8');
   assert.match(migration, /from public\.company_r3_state where game_id = p_game_id for update/);
   assert.match(migration, /update public\.company_r3_state set state = p_state_after/);
   assert.match(migration, /v_state\.committed_turn \+ 1 <> p_turn_number/);
+  const closure = await readFile(new URL('../supabase/migrations/20260822000200_company_r3_opening_revision_fence.sql', import.meta.url), 'utf8');
+  assert.match(closure, /drop function if exists public\.company_r3_create_opening\(uuid, text, jsonb, text, jsonb, jsonb, jsonb, jsonb, jsonb\)/i);
+  assert.match(closure, /p_expected_revision integer/);
+  assert.match(closure, /v_state\.revision <> p_expected_revision/);
+  assert.match(closure, /company_r3_opening_conflict/);
 });
 
 test('R3 additive lease migration is stage-aware and keeps the provider budgets unchanged', async () => {
