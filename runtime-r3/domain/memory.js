@@ -21,7 +21,7 @@ export function requestExecutionTiming(rule = {}) {
   } : null;
 }
 
-export function buildStoryContext(context, literalAction, { content, opening = false } = {}) {
+export function buildStoryContext(context, literalAction, { content, opening = false, feedbackText = '' } = {}) {
   const state = context?.state?.state ?? {};
   const turns = Array.isArray(context?.turns) ? context.turns : [];
   const location = canonicalLocation(content, state.scene?.location_id);
@@ -91,6 +91,7 @@ export function buildStoryContext(context, literalAction, { content, opening = f
       unavailable_on_projection_failure: true
     },
     recent_turns: recent,
-    older_summaries: older
+    older_summaries: older,
+    ...(feedbackText ? { feedback_guidance: bounded(feedbackText, 2000) } : {})
   };
 }

@@ -157,6 +157,7 @@
         <header class="utility-modal-header"><h2 id="feedback-heading">마지막 턴 피드백</h2><button id="feedback-close" type="button">닫기</button></header>
         <p>마지막 턴에서 고칠 내용을 적으면 기존 revision 구조로 다시 생성합니다. 저장은 새 결과가 Commit될 때만 바뀝니다.</p>
         <label for="feedback-text">수정 요청</label><textarea id="feedback-text" rows="6" maxlength="2000" required></textarea>
+        <pre id="feedback-preview" class="feedback-preview" aria-live="polite" hidden></pre>
         <p id="feedback-status" class="utility-status" aria-live="polite"></p><button type="submit">피드백으로 재생성</button>
       </form>
     </div>

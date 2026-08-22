@@ -10,7 +10,7 @@ import { reconcileTurnTransport } from './turn-transport.js';
 // turn. Product rendering lives in the transplanted donor-style modules above.
 const query = new URLSearchParams(location.search);
 const client = createR3Client(query.get('api') || '/api/r3');
-const state = { gameId: query.get('game_id'), context: null, catalogs: null, busy: false };
+const state = { gameId: query.get('game_id'), context: null, catalogs: null, busy: false, feedbackBusy: false };
 const sidecarState = { ttsEnabled: false };
 const RECOVERY_POLL_MS = 1500;
 const RECOVERY_TIMEOUT_MS = 120000;
@@ -39,6 +39,13 @@ function renderCatalogs(catalogs) { state.catalogs = catalogs; renderSetupCatalo
 function syncActionControls() {
   const submitAction = $('submit-action');
   if (submitAction) submitAction.disabled = state.busy || !state.gameId || state.context?.job?.status === 'failed';
+  const latestTurn = Number(state.context?.state?.committed_turn ?? 0);
+  const feedback = $('send-feedback');
+  if (feedback) feedback.disabled = state.busy || state.feedbackBusy || !state.gameId || latestTurn <= 0 || Boolean(state.context?.job);
+  const feedbackSubmit = document.querySelector('#feedback-form button[type="submit"]');
+  if (feedbackSubmit) feedbackSubmit.disabled = state.feedbackBusy;
+  const feedbackClose = $('feedback-close');
+  if (feedbackClose) feedbackClose.disabled = state.feedbackBusy;
 }
 
 function renderContext(context) {
@@ -114,6 +121,56 @@ function refreshChoices() {
   const view = state.context ? buildR3ViewModel(state.context, state.catalogs ?? {}) : null;
   renderChoices($('choice-list'), view?.choices ?? [], { busy: state.busy || state.context?.job?.status === 'failed', onChoose: submit });
   syncActionControls();
+}
+
+function openFeedback() {
+  if (!$('send-feedback') || $('send-feedback').disabled) return;
+  const text = $('feedback-text'); if (text) text.value = '';
+  const preview = $('feedback-preview'); if (preview) { preview.textContent = ''; preview.hidden = true; }
+  const status = $('feedback-status'); if (status) status.textContent = '마지막 턴의 수정 요청을 입력하세요.';
+  setHidden('feedback-overlay', false); text?.focus();
+}
+
+function closeFeedback() { if (!state.feedbackBusy) setHidden('feedback-overlay', true); }
+
+function handleFeedbackEvent(event, data) {
+  if (event === 'story_delta') {
+    const preview = $('feedback-preview');
+    if (preview) { preview.hidden = false; preview.textContent += data.text ?? ''; }
+  }
+  if (event === 'terminal') {
+    const status = $('feedback-status');
+    if (data.status === 'committed') {
+      if (data.context) renderContext(data.context);
+      if (status) status.textContent = '새 revision이 저장되었습니다.';
+      setStatus('피드백 revision이 저장되었습니다.');
+      setHidden('feedback-overlay', true);
+    } else if (status) status.textContent = data.error_code ?? '피드백 revision이 저장되지 않았습니다.';
+  }
+}
+
+async function submitFeedback(event) {
+  event.preventDefault();
+  if (state.feedbackBusy || state.busy || !state.gameId) return;
+  const feedbackText = $('feedback-text')?.value?.trim() ?? '';
+  const expectedTurn = Number(state.context?.state?.committed_turn ?? 0);
+  const expectedStateRevision = Number(state.context?.state?.revision ?? -1);
+  const latest = state.context?.turns?.at(-1);
+  if (!feedbackText || expectedTurn <= 0 || !latest || state.context?.job) return;
+  state.feedbackBusy = true;
+  const status = $('feedback-status'); if (status) status.textContent = 'Story를 다시 생성하는 중입니다. 저장 전 미리보기를 확인하세요.';
+  const preview = $('feedback-preview'); if (preview) { preview.textContent = ''; preview.hidden = true; }
+  syncActionControls();
+  try {
+    const response = await client.feedback(state.gameId, { revision_request_id: crypto.randomUUID(), expected_turn: expectedTurn, expected_state_revision: expectedStateRevision, feedback_text: feedbackText });
+    await consumeR3Sse(response, handleFeedbackEvent);
+  } catch (error) {
+    const code = error.terminal?.error_code ?? error.message;
+    if (status) status.textContent = code;
+  } finally {
+    state.feedbackBusy = false;
+    syncActionControls();
+  }
 }
 
 async function recoverPendingTurn() {
@@ -223,6 +280,9 @@ $('history-download-md')?.addEventListener('click', () => exportHistory(true));
 $('history-download-txt')?.addEventListener('click', () => exportHistory(false));
 $('tts-toggle')?.addEventListener('click', () => { sidecarState.ttsEnabled = !sidecarState.ttsEnabled; renderContext(state.context); if (sidecarState.ttsEnabled) speakLatest(); else globalThis.speechSynthesis?.cancel?.(); });
 $('tts-replay')?.addEventListener('click', speakLatest);
+$('send-feedback')?.addEventListener('click', openFeedback);
+$('feedback-close')?.addEventListener('click', closeFeedback);
+$('feedback-form')?.addEventListener('submit', submitFeedback);
 loadCatalogs().catch(error => { setStatus(error.message, true); setBootFailure(error); });
 
 async function loadCatalogs() { renderCatalogs(await client.catalogs()); await loadContext(); }

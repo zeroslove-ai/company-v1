@@ -22,12 +22,13 @@ export function createR3Worker({ store, provider, content } = {}) {
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: R3_CORS_HEADERS });
         if (request.method === 'GET' && url.pathname === '/api/r3/catalogs') return json(catalogResponse(content));
         if (request.method === 'POST' && url.pathname === '/api/r3/games') return setup(store, content, await body(request));
-        const match = url.pathname.match(/^\/api\/r3\/games\/([^/]+)(?:\/(context|opening|turn|csa))?$/);
+        const match = url.pathname.match(/^\/api\/r3\/games\/([^/]+)(?:\/(context|opening|turn|csa|feedback))?$/);
         if (!match) return errorResponse(new Error('r3_not_found'));
         const gameId = match[1]; const action = match[2] ?? 'context';
         if (request.method === 'GET' && action === 'context') return json(await store.context(gameId));
         if (request.method === 'POST' && action === 'opening') return openingResponse(store, provider, content, gameId);
         if (request.method === 'POST' && action === 'turn') return turnResponse(request, store, provider, content, gameId);
+        if (request.method === 'POST' && action === 'feedback') return feedbackResponse(request, store, provider, content, gameId);
         if (request.method === 'POST' && action === 'csa') return csaResponse(store, content, gameId, await body(request));
         return errorResponse(new Error('r3_not_found'));
       } catch (error) { return errorResponse(error); }
@@ -96,6 +97,76 @@ async function turnResponse(request, store, provider, content, gameId) {
   const reservation = await store.reserveTurn({ gameId, turnNumber: expectedTurn, actionId, literalAction, retryFailed: input.retry_failed === true });
   if (!reservation.created) return json({ status: reservation.job.status, reconnect: true, job: reservation.job, context: reservation.job.status === 'committed' ? await store.context(gameId) : undefined });
   return streamTurn({ store, provider, content, gameId, job: reservation.job });
+}
+
+async function feedbackResponse(request, store, provider, content, gameId) {
+  const input = await body(request);
+  const revisionRequestId = String(input?.revision_request_id ?? '');
+  const expectedTurn = input?.expected_turn;
+  const expectedStateRevision = input?.expected_state_revision;
+  const feedbackText = typeof input?.feedback_text === 'string' ? input.feedback_text.trim() : '';
+  let context = null;
+  try {
+    const result = await store.beginFeedbackRevision({ gameId, revisionRequestId, expectedTurn, expectedStateRevision, feedbackText });
+    context = await store.context(gameId);
+    if (!result.created) {
+      const status = result.attempt?.status === 'committed' ? 'committed' : 'failed';
+      return singleFeedbackResponse({ status, errorCode: result.attempt?.error_code ?? (status === 'failed' ? 'r3_feedback_in_flight' : null), context });
+    }
+    return streamFeedback({ store, provider, content, gameId, attempt: normalizeFeedbackAttempt(result.attempt), snapshot: result.snapshot });
+  } catch (error) {
+    try { context = context ?? await store.context(gameId); } catch {}
+    return singleFeedbackResponse({ status: 'failed', errorCode: error.message, context });
+  }
+}
+
+function feedbackResponseHeaders() {
+  return { ...R3_CORS_HEADERS, 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache' };
+}
+
+function singleFeedbackResponse({ status, errorCode = null, context }) {
+  const payload = { status, ...(errorCode ? { error_code: errorCode } : {}), ...(context ? { context } : {}) };
+  return new Response(sse('terminal', payload), { status: 200, headers: feedbackResponseHeaders() });
+}
+
+function normalizeFeedbackAttempt(attempt) {
+  return { ...attempt, attemptId: attempt?.attemptId ?? attempt?.attempt_id, revisionRequestId: attempt?.revisionRequestId ?? attempt?.revision_request_id, targetTurnNumber: attempt?.targetTurnNumber ?? attempt?.target_turn_number, targetRevision: attempt?.targetRevision ?? attempt?.target_revision, expectedStateRevision: attempt?.expectedStateRevision ?? attempt?.expected_state_revision, originalLiteralAction: attempt?.originalLiteralAction ?? attempt?.original_literal_action, feedbackText: attempt?.feedbackText ?? attempt?.feedback_text };
+}
+
+function streamFeedback({ store, provider, content, gameId, attempt, snapshot }) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({ start(controller) {
+    processFeedback({ store, provider, content, gameId, attempt, snapshot, emit: (name, data) => controller.enqueue(encoder.encode(sse(name, data))) })
+      .then(() => controller.close(), error => { controller.enqueue(encoder.encode(sse('terminal', { status: 'failed', error_code: error.message }))); controller.close(); });
+  } });
+  return new Response(stream, { status: 200, headers: feedbackResponseHeaders() });
+}
+
+async function processFeedback({ store, provider, content, gameId, attempt, snapshot, emit }) {
+  const startedAt = Date.now(); const mark = (stage, details) => timingMark(emit, startedAt, stage, details);
+  const before = await store.feedbackContext(gameId, snapshot);
+  const literalAction = attempt.originalLiteralAction;
+  let storyText = '';
+  emit('meta', { game_id: gameId, turn_number: attempt.targetTurnNumber, revision: attempt.targetRevision + 1, revision_request_id: attempt.revisionRequestId });
+  mark('story_request_start');
+  try {
+    for await (const delta of provider.story({ context: before, content, literalAction, feedbackText: attempt.feedbackText, feedbackReferenceStory: snapshot.turn.story_text, onTiming: mark })) {
+      const text = String(delta); storyText += text; emit('story_delta', { text });
+    }
+    mark('story_complete');
+    let rawObserver = {}; let observerFailed = false; mark('observer_start');
+    try { rawObserver = await provider.observe({ context: before, literalAction, storyText, content }); mark('observer_complete'); }
+    catch { observerFailed = true; mark('observer_failed'); }
+    const normalized = normalizeObserver(rawObserver, { storyText, content, currentState: before.state.state });
+    if (observerFailed) normalized.warnings.unshift('observer_failed');
+    const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: attempt.targetTurnNumber });
+    const context = await store.commitFeedbackRevision({ gameId, attemptId: attempt.attemptId, attempt, revisionRequestId: attempt.revisionRequestId, expectedTurn: attempt.targetTurnNumber, expectedStateRevision: attempt.expectedStateRevision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: rawObserver, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
+    mark('terminal_commit'); emit('terminal', { status: 'committed', context });
+  } catch (error) {
+    try { await store.failFeedbackRevision({ gameId, attemptId: attempt.attemptId, revisionRequestId: attempt.revisionRequestId, errorCode: error.message }); } catch {}
+    let context = null; try { context = await store.context(gameId); } catch {}
+    emit('terminal', { status: 'failed', error_code: error.message, ...(context ? { context } : {}) });
+  }
 }
 
 function streamTurn({ store, provider, content, gameId, job }) {
