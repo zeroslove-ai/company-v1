@@ -1,172 +1,106 @@
 # Company — CURRENT TASK
 
-Status: READY
-Task ID: company-r3-post-reset-product-stability-v1
-Mode: REUSE EXISTING DISPOSABLE TEST GAME -> SIX HUMAN-LIKE TURNS -> PRODUCT/AGENCY/CONTINUITY REVIEW -> STOP
-Updated: 2026-08-23 02:06 KST
+Status: WAITING_OWNER_DECISION
+Task ID: company-r3-stable-test-owner-hold-v1
+Mode: HOLD GREEN TEST BASELINE -> WAKE ONLY ON EXPLICIT OWNER INPUT OR REAL DEFECT
+Updated: 2026-08-23 02:23 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK file, ops/recovery branch, QA framework, replay harness, or competing execution authority.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. This is a non-executable hold. Codex/Hermes must not start work from this file while Status is `WAITING_OWNER_DECISION`.
 
-## 0. Authority / frozen baseline
+## 0. Accepted baseline
 
 Binding authority:
 - product-first canon PR #95 head `9d9aec5a198d8673eb37aba8a0541adbd6c84627`;
 - A-prime engine/live-first canon PR #96 head `9d44c4719fa6b098d53cac5cf946b93fafa6786b`;
 - owner lean-development directives `5380380688` and `5380381500`;
 - capability TEST freeze review `5381387742`;
-- reset source acceptance `5381496361`;
-- reset rollout terminal `5381578009`;
 - reset rollout acceptance/freeze review `5381592085`;
+- post-reset stability terminal `5381648347`;
+- post-reset stability acceptance review `5381662701`;
 - accepted executable source `19a4c2b8d9d2d1e3fc4a93c184d4b52e785af300`;
 - current TEST API `game-proxy-company-r3` version `e4317d6f-9bfe-4774-a744-90789d066d4e`;
 - current TEST frontend `gamebuilder-company-r3` version `e0b654d7-06e1-4851-92a3-02af5cf5ba59`;
-- reset migration `20260823000100_company_r3_same_game_reset` already applied exactly once to TEST; do not reapply;
-- existing disposable TEST game `58d77377-010d-4920-a2ad-a549b8e341bc` only.
+- reset migration `20260823000100_company_r3_same_game_reset` applied exactly once to TEST.
 
-Frozen:
-- game capability boundary GREEN/frozen;
-- same-game reset GREEN/frozen; the unavailable live stale-revision negative probe is an accepted coverage limitation, not a reopen trigger;
-- feedback revision GREEN/frozen;
-- image sidecar deferred until approved media input exists;
-- CSA7/9 remain frozen provider/model capability exceptions; do not invoke or tune CSA;
-- no provider/model/config/timeout/prompt/reducer source changes.
+Accepted/frozen TEST surfaces:
+- per-game capability boundary: GREEN/frozen;
+- latest-turn feedback revision + continuation: GREEN/frozen;
+- same-game reset + refresh + post-reset Turn1: GREEN/frozen;
+- ordinary human-like product/agency/continuity play through Turn7: GREEN;
+- history/export and TTS previously accepted;
+- choices remain fail-open: no valid Story tail may yield zero buttons while free input remains usable.
 
-## 1. Purpose
+## 1. Why this is a hold
 
-Perform the owner-directed small post-correction browser/product pass, not another QA campaign.
+The latest six-turn human-like continuation found:
+- no repeatable player-agency substitution or contradiction;
+- coherent NPC identity, movement/location, request/refusal/self-state continuity;
+- no duplicate chronology, stuck job, transport/state corruption, or pre-reset resurrection;
+- one final no-tail choice reliability miss with working free input, which is not a blocker under the frozen choice policy.
 
-The existing disposable game has already been reset successfully and currently has:
-- fresh post-reset Opening at turn 0;
-- one post-reset ordinary Turn 1 committed;
-- state revision 3 at the rollout terminal;
-- same game/profile/capability retained.
+There is currently no evidence-backed source correction to start automatically.
 
-Continue this exact game for six additional ordinary human-like turns only, ending at committed Turn 7 if all succeed.
+Known non-actionable boundaries:
+- image sidecar is deferred because verified approved media bytes/manifest/serving authority are absent;
+- CSA rules 7/9 remain frozen provider/model capability exceptions and must not be rerun or tuned absent explicit owner policy change;
+- Production rollout is not authorized by any current owner instruction.
 
-Goal: detect real user-visible product defects in narrative continuity, player agency, choice usability, refresh/state continuity, or deterministic transport/commit behavior after the recent capability/reset corrections.
+Do not invent work merely to keep the loop busy.
 
-## 2. Preflight
+## 2. Wake conditions
 
-Before any gameplay:
-1. Re-read Issue #68 and this exact task; STOP if a newer owner/operator directive or active competing lease exists.
-2. Verify main is accepted source `19a4c2b8...` plus docs-only registrations; no source patch is authorized.
-3. Verify TEST only; do not access Production.
-4. Open only disposable game `58d77377-010d-4920-a2ad-a549b8e341bc` through the existing deployed frontend/browser capability.
-5. Read canonical context and confirm expected starting shape: committed Turn 1, turns 0/1 only, no pending/failed processing job. If the exact start differs materially, STOP `BLOCKED_POST_RESET_STABILITY_PREFLIGHT` rather than resetting or repairing.
+A new executable CURRENT_TASK may be registered only after one of these occurs:
 
-Do not create a new game and do not reset this game again.
+A. **Explicit owner product/deployment instruction**
+- owner names the next feature, correction, release step, or authorizes a bounded Production action.
 
-## 3. Six-turn human-like continuation
+B. **Approved image/media input arrives**
+- verified approved image bytes/URLs plus finite manifest/binding authority sufficient to implement the existing R3 media slot without inventing assets or semantic authority.
 
-Submit exactly six additional ordinary actions, one attempt each, no retry/regeneration for semantic preference.
+C. **Explicit owner CSA7/9 policy change**
+- owner authorizes provider/model/config work or otherwise changes the frozen capability-exception policy.
 
-Use a natural mix rather than synthetic edge-case spam:
-- at least four free-text actions;
-- up to two current Story-authored choices if useful;
-- vary ordinary office/social behavior, movement/location, conversation/request, and personal intent/self-state/refusal naturally across the six turns;
-- include enough explicit wording across the batch to exercise actor/target/action/movement/request/refusal/self-state/topic/intent fidelity, but do not force every category into every turn.
+D. **New real user-visible defect**
+- reproducible product defect from actual play or deterministic transport/state/data corruption that materially affects the player.
 
-The player should behave like a person playing the game, not a test harness. Work tasks are background texture, not mandatory helpdesk flow.
+A lone provider semantic miss, an isolated no-tail choice, stale scanner advisory already classified, or desire for more QA is not by itself a wake condition.
 
-For each turn record compactly:
-- exact literal action submitted;
-- committed turn number;
-- whether Story materially preserved the explicit player actor/target/action/movement/request/refusal/self-state/topic/intent that were actually present;
-- current location/presence coherence;
-- whether choices were usable if present; no-tail is fail-open and free input must remain usable;
-- obvious continuity break, duplicated chronology, wrong NPC identity, or stale prior-reset content if any.
-
-Do not score prose style mechanically.
-
-## 4. Lean semantic decision rule
-
-Owner lean override is binding:
-- one isolated provider semantic miss alone is not a global blocker;
-- log it as provider variance and continue the predeclared six-turn batch unless transport/state corruption occurs;
-- a repeatable material invariant failure (for example 2 or more turns showing the same player-agency substitution/contradiction) is a real blocker;
-- deterministic transport/state/data corruption, duplicate commits, wrong game/capability behavior, chronology resurrection, or stuck unrecoverable job blocks immediately.
-
-Do not tune prompts/provider/model or add guards because of a lone semantic miss.
-
-## 5. One bounded refresh
-
-After any committed turn between Turn 3 and Turn 6, refresh the same browser URL exactly once.
-
-Verify:
-- same game/capability resumes;
-- committed chronology is unchanged and ordered once;
-- no duplicate Opening/turn is created;
-- no old pre-reset chronology reappears;
-- current location/state/choices shown after refresh agree with canonical context.
-
-Then continue the remaining planned turns normally.
-
-Do not reset or reconnect by creating a new action.
-
-## 6. Final readback
-
-At the end, read canonical protected context/DB read-only evidence for this game and confirm:
-- committed_turn is 7 if all six new turns committed;
-- turns are exactly 0 through 7 once each;
-- ordinary jobs for Turns 1 through 7 are committed with no extra duplicate action for this run;
-- state revision advanced consistently from the starting revision;
-- no pending/failed next-turn job remains;
-- no pre-reset old chronology resurfaced;
-- capability/token remains absent from URL/UI/canonical context.
-
-Do not inspect or mutate unrelated games.
-
-## 7. Acceptance / stop conditions
-
-Success with no material defect:
-`STATUS: COMPLETE_R3_POST_RESET_PRODUCT_STABILITY_GREEN`
-
-Success with only isolated non-repeatable provider semantic variance:
-`STATUS: COMPLETE_R3_POST_RESET_PRODUCT_STABILITY_WITH_PROVIDER_VARIANCE`
-
-Real repeatable player-agency/continuity defect or deterministic transport/state defect:
-`STATUS: BLOCKED_R3_POST_RESET_REAL_PRODUCT_DEFECT`
-
-Preflight mismatch:
-`STATUS: BLOCKED_POST_RESET_STABILITY_PREFLIGHT`
-
-If blocked, provide the smallest exact reproduction and stop. Do not patch in this task.
-
-## 8. Forbidden
+## 3. Forbidden while held
 
 Do NOT:
-- modify source/runtime/frontend/tests/content/config/migrations;
+- start another QA/playtest campaign;
+- create new games, reset games, or mutate existing TEST games;
+- patch source/runtime/frontend/tests/content/config;
+- deploy/redeploy API/frontend;
 - apply/reapply migrations;
-- deploy/redeploy anything;
-- create another game;
-- reset any game;
-- access Production or preserved/manual games;
-- invoke feedback;
-- invoke CSA or rerun CSA7/9;
-- touch image/media work;
-- expose or extract capability/secret values;
-- retry/regenerate Story for semantic preference;
-- run more than six additional turns;
-- create a new harness/framework/document/branch;
-- overwrite CURRENT_TASK after execution.
+- change RLS/grants/schema/secrets;
+- touch Production;
+- rerun CSA7/9 or tune provider/model/prompt/timeouts;
+- fabricate image assets/URLs/manifest;
+- create an auth/security/ops/test framework;
+- create another CURRENT_TASK file or ops branch;
+- overwrite this hold without a valid wake condition and operator review.
 
-## 9. Terminal
+Read-only inspection is allowed only when needed to classify a genuine wake event.
 
-Post exactly one terminal comment to Issue #68 and STOP.
+## 4. Hold protocol
 
-Terminal must include:
-- Task ID/current task blob/execution lease;
-- start/final main SHA;
-- TEST API/frontend identities;
-- game ID `58d77377-010d-4920-a2ad-a549b8e341bc`;
-- starting committed_turn/revision;
-- six exact actions and resulting committed turn numbers;
-- one refresh point and parity result;
-- compact player-agency/continuity findings for the predeclared batch;
-- final committed_turn/revision/turn chronology/job status;
-- any isolated provider variance separately from real deterministic defects;
-- confirmation no source/deploy/migration/reset/new-game/Production/feedback/CSA/image/provider-config mutation occurred;
-- final status/classification.
+If a watcher notification arrives while no wake condition exists:
+- re-read Issue #68;
+- confirm this hold is still current;
+- do not mutate CURRENT_TASK or runtime;
+- report `WAITING_OWNER_DECISION`.
 
-Then STOP. Do not choose the next task.
+If a wake condition exists:
+- operator must first review the exact new evidence/instruction in Issue #68;
+- then overwrite this same file in place with one narrowly scoped executable task;
+- verify the registration is docs-only and exactly one existing path changed;
+- post the new READY registration comment;
+- then STOP and allow the watcher to execute it.
+
+## 5. Current classification
+
+`STATUS: WAITING_OWNER_DECISION`
+
+The current TEST baseline is accepted and stable enough that autonomous development should stop here until owner input or a real defect provides new product authority.
