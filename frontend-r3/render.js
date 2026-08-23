@@ -17,6 +17,10 @@ export function renderPlayerInnerThought(container, thought) {
   const value = normalizeInnerThought(thought);
   container.replaceChildren();
   container.hidden = !value;
+  if (value && typeof container.closest === 'function') {
+    const panel = container.closest('#player-panel');
+    if (panel) panel.open = true;
+  }
   if (!value) return;
   const heading = document.createElement('h3'); heading.className = 'future-slot-heading'; heading.textContent = '플레이어 속마음';
   const body = document.createElement('p'); body.className = 'future-slot-value'; body.textContent = value;

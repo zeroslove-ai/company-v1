@@ -60,6 +60,31 @@ test('R3 refresh view model reconstructs the latest committed player thought', a
   assert.equal(view.playerInnerThought, '지금은 먼저 상황을 살펴보자.');
 });
 
+test('R3 player thought renderer opens its dedicated player panel without touching Story or NPC Monitor', async () => {
+  const { renderPlayerInnerThought } = await import('../frontend-r3/render.js');
+  class ThoughtNode {
+    constructor(tag) { this.tag = tag; this.children = []; this.hidden = true; this.textContent = ''; this.className = ''; }
+    replaceChildren(...nodes) { this.children = nodes; }
+    append(...nodes) { this.children.push(...nodes); }
+    closest(selector) { assert.equal(selector, '#player-panel'); return this.panel; }
+  }
+  class ChildNode {
+    constructor(tag) { this.tag = tag; this.textContent = ''; this.className = ''; }
+  }
+  const previousDocument = globalThis.document;
+  globalThis.document = { createElement: tag => new ChildNode(tag) };
+  try {
+    const playerPanel = { open: false };
+    const thought = new ThoughtNode('div');
+    thought.panel = playerPanel;
+    renderPlayerInnerThought(thought, '상황을 먼저 살펴보자.');
+    assert.equal(playerPanel.open, true);
+    assert.equal(thought.hidden, false);
+    assert.equal(thought.children.length, 2);
+    assert.equal(thought.children[1].textContent, '상황을 먼저 살펴보자.');
+  } finally { globalThis.document = previousDocument; }
+});
+
 test('R3 public frontend resolves its split TEST API origin without overriding explicit api query binding', () => {
   assert.equal(
     resolveR3ApiBase({ protocol: 'https:', hostname: 'gamebuilder-company-r3.zeroslove.workers.dev' }),
