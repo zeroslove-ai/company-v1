@@ -1,444 +1,349 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-approved-media-image-character-tts-v1
-Mode: REUSE APPROVED MEDIA CONTRACTS -> R3 PRESENTATION-ONLY IMAGE PROJECTION + CHARACTER-AWARE SERVER TTS -> TEST DEPLOY -> BARE-PUBLIC ACCEPTANCE
-Updated: 2026-08-23 23:48 KST
+Status: READY
+Task ID: company-r3-media-focal-dialogue-projection-v1
+Mode: FREEZE ACCEPTED MEDIA PLUMBING -> ADD GROUNDED COMMITTED PRESENTATION PROJECTION -> RETEST IMAGE/TTS LIVE
+Updated: 2026-08-24 00:27 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5386591995`
-Operator review: Issue #68 comment `5386633620`
+Previous terminal: Issue #68 comment `5386778945`
+Operator review: Issue #68 comment `5386804081`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
-Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path and do not create a new ops/recovery branch.
+Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery branch. Work on `main` only.
 
-## 0. Accepted baseline — preserve
+## 0. Accepted baseline and exact failure
 
-Accepted executable/source before this cut:
-- `fad4d7f5cd637cf77b9613335eeaef2302c03853`
+Current main before registration:
+- `f01a871c9effab941028b61f06acf380dd6af4c5`
 
-Current main before this registration:
-- `ec36fc0820c613872bf433beb6b5a1e34dfd1dff`
-- docs-only descendant recording reset runtime acceptance; no executable drift from the accepted source.
+Accepted media source foundation from the previous cut:
+- `25688dd4c478b72ace1ad514e99498fc3469cfc0`
 
-Current TEST artifacts remain:
-- API `game-proxy-company-r3` version `c7b0f0fe-9c20-4cec-8af0-8e27508b44ff`
-- Frontend `gamebuilder-company-r3` version `74f14b2c-fcb0-47ce-b14d-ecb90ece7ff1`
-- bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
+`f01a871...` is a docs-only descendant of `25688dd...`; there is no later executable drift.
 
-Freeze the already accepted product/runtime behavior:
-- first-day/first-arrival Opening and selected department/rank preservation;
-- exact player agency/navigation/action literal authority;
-- committed player inner thought and character-specific first-person Mind Monitor;
-- Story-owned four choices and accepted terminal choice formatting variants;
-- chronological CSA APPLY/CHANGE/REMOVE, one operation = one normal Story turn;
-- high-parity five-tab CSA draft UI and one-pending-operation behavior;
-- ordinary post-CSA turns free of stale `csa_operation`;
-- same-game reset runtime: same game Turn3 -> fresh Turn0 -> refresh/re-entry -> clean Turn1 GREEN;
-- mobile core controls and refresh/re-entry outside deferred native-confirm automation.
+Freeze the bounded implementation already accepted in operator review `5386804081`:
+- deterministic approved `image_library`/canonical media selection;
+- current-character/presence eligibility and fail-open behavior;
+- R3 image/TTS server routes and frontend media controllers;
+- `TTS_WORKER` Service Binding to existing service `fancy-dust-7f8c`;
+- canonical `character_id -> voice_id` server eligibility;
+- TTS OFF => zero synthesis calls;
+- narrator/player/player-inner-thought/Mind Monitor/unknown speaker ineligibility;
+- stale image/audio fencing, dedup/cache/replay lifecycle;
+- browser `speechSynthesis` / `SpeechSynthesisUtterance` removed from the R3 product path;
+- media remains presentation-only and fail-open.
 
-Reset native-confirm browser automation remains `DEFERRED_ENVIRONMENT`; do not reopen reset runtime in this task.
+Previous deterministic verification was GREEN:
+- focused R3 media: 5/5;
+- R3 frontend contract: 14/14;
+- full npm: 526/526;
+- changed JS/MJS syntax, `git diff --check`, Wrangler dry-runs: PASS.
 
-Do not change provider/model/temperature/token/timeout, Story/Observer semantics, CSA semantics, gameplay persistence/schema, reset, navigation, choice parsing, or unrelated timeline/history UI.
+Current TEST artifacts from that source:
+- API `game-proxy-company-r3` version `e1135324-20ba-4410-91bf-c3c31b59a10f`;
+- frontend `gamebuilder-company-r3` version `1efd7d4a-b9b6-48af-9b07-baab0f2f6000`;
+- bare public `https://gamebuilder-company-r3.zeroslove.workers.dev`.
 
-## 1. Owner media requirement
+Previous live fixture — READ ONLY, never reset/revise/retry/mutate:
+- `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1`.
 
-Issue #68 owner authority `5384780073` superseded earlier owner-ready assumptions and requires real image/TTS sidecars before owner readiness.
+Exact prior product failure:
+- Setup/Opening + three ordinary turns committed successfully;
+- five registered heroines were present in committed scene state;
+- there was no committed canonical focal/relevant heroine field usable by media;
+- Story direct dialogue appeared as natural quoted prose, not reliably as deterministic speaker-prefixed lines;
+- media code correctly refused to choose one of five heroines or assign a bare quote to a guessed speaker;
+- therefore live image Gate A and character-aware server TTS Gate C/D could not become eligible;
+- TTS OFF gate remained GREEN with zero `/media/tts` calls.
 
-Current R3 is incomplete:
-- `frontend-r3/index.html` already contains `#media-panel`, `#character-image`, `#audio-player`, `#tts-toggle`, `#tts-replay`, and status shells;
-- `frontend-r3/app.js` still uses generic browser `speechSynthesis` / whole-Story `SpeechSynthesisUtterance`, which is NOT the accepted product TTS path;
-- R3 currently has no dedicated approved-media server plumbing.
+This is a committed presentation-projection defect. It is NOT evidence that image data, `TTS_WORKER`, voice IDs, media selectors, or media frontend plumbing are broken.
 
-Existing Company assets/contracts already present on main and must be treated as donor/reference, not blindly copied gameplay authority:
-- `src/engine/media/image-selector.js` — deterministic zero-LLM curated image selector;
-- `src/engine/media/tts-contract.js` — server eligibility gate resolving `character_id -> voice_id`, rejecting narrator/unknown/no-voice;
-- `src/api/media-routes.js` — existing Service Binding TTS transport pattern;
-- `src/frontend/pages/tts.js` — character-dialogue batching/dedup/cancel/replay behavior;
-- `src/frontend/pages/utility-ui.js` — stale-safe image request/render behavior;
-- `content/characters.json` — canonical heroine voice IDs and image storage metadata;
-- `test/content-media-contract.test.mjs` — established media behavior tests.
+Do not roll back or redesign the accepted media foundation merely because eligibility correctly failed closed.
 
-Existing non-R3 API config already proves the intended TTS service identity:
-- binding `TTS_WORKER`
-- service `fancy-dust-7f8c`
-- current legacy URL var `https://fancy-dust-7f8c.zeroslove.workers.dev/`
+## 1. Product/architecture boundary
 
-R3 `wrangler.r3.api.jsonc` does not yet bind that service.
+R3 remains:
+- Story LLM;
+- one small post-Story Observer;
+- committed turn + `observer_raw`/`observer_applied`;
+- minimal reducer/state;
+- presentation sidecars derived from committed evidence.
 
-Goal: connect the smallest presentation-only R3 media path using the approved Company metadata/contracts. Do not create another media provider, another LLM call, or a second gameplay authority.
+This cut may extend the EXISTING Observer response with narrowly scoped presentation-only evidence because the previous live gate proved that the current committed projection structurally lacks the information necessary for truthful character image/TTS routing.
 
-## 2. Mandatory pre-edit inventory
+No new model call.
+No second observer.
+No provider/model/temperature/token/timeout change.
+No DB schema/RPC/migration.
+No new gameplay durable authority.
+No new client gameplay state.
+No arbitrary/fuzzy speaker guessing.
+No semantic rewrite of Story.
 
-Before source changes, read and record the exact current boundaries.
+The presentation projection must live in the existing turn Observer projection (`observer_raw` -> strict normalizer -> `observer_applied`) and be consumed from the latest committed turn. Do NOT make it a writer for player agency, location, presence, relationships, CSA, clothing, time, or any other gameplay fact.
 
-### A. Image data/source inventory
+Do not add `scene.focal_actor_id` as a new gameplay-state authority in the reducer merely to satisfy media. If a presentation field needs a focal actor, keep that field turn-scoped in validated `observer_applied` unless an already-existing canonical field is discovered during inventory.
 
-Read-only only:
-1. inspect current TEST `image_library` availability/schema/access through the existing service-role/server path where available;
-2. inspect active curated rows for registered Company heroines (`heroine1` ... `heroine5`) by character and pool, without dumping secrets or bulk catalog contents;
-3. verify whether stored `image_url` values are directly renderable and/or whether canonical `storage_bucket`, `storage_prefix`, `primary_image_path`, `adult_image_prefix` in `content/characters.json` already provide the established general-image fallback;
-4. identify which source is the current approved source of truth for general and sex images.
+## 2. Mandatory pre-edit boundary trace
 
-No DB writes, no migration, no new media table in this cut.
+Before editing source, inspect the previous failed fixture `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1` READ ONLY and record for its Opening/latest ordinary turns:
+1. exact raw Story dialogue shape;
+2. `observer_raw` actor-related evidence;
+3. `observer_applied` actor-related evidence;
+4. post-turn `state.scene.present_actor_ids`;
+5. `mind_monitor` target IDs;
+6. current `projectCurrentMedia()` inputs/outputs;
+7. whether any existing committed field already encodes relevant/focal speaker identity.
 
-If `image_library` is absent but canonical primary image metadata points to an already-existing readable object, a bounded general-image fallback to that canonical primary image is allowed. Do not manufacture new media records.
+Do not infer from DOM alone. Do not mutate the fixture.
 
-If neither curated rows nor canonical readable image objects exist, STOP `BLOCKED_MEDIA_DATA` with evidence. Do not create fake placeholders or a new media persistence system.
+If an existing committed, strictly grounded focal/speaker projection already exists and the only defect is that media failed to read it, use that existing field instead of creating a duplicate Observer key.
 
-### B. R3 committed projection inventory
+Otherwise proceed with the bounded Observer extension below.
 
-Determine exactly which already-committed facts can drive presentation without new inference/model calls:
-- current canonical scene location;
-- present NPC IDs;
-- focal actor / relevant current character;
-- latest committed Story text and current turn/revision identity;
-- any already-committed physical/clothing/sexual evidence available in the R3 context;
-- deterministic speaker/dialogue segmentation already available from R3 presentation parsing.
+## 3. Bounded Observer presentation projection
 
-Do not add a Story/Observer field solely to serve media unless the existing committed projection genuinely lacks a structurally necessary value and the change is demonstrably presentation-only. Prefer deriving media from current committed context plus deterministic parser output.
+Use the existing single Observer call. Add only the minimum presentation keys needed for current image/TTS routing.
 
-### C. TTS transport inventory
+Preferred normalized shape unless existing canon provides an equivalent:
 
-Verify before edit/deploy:
-- canonical `voice_id` exists for each registered heroine used in acceptance;
-- `fancy-dust-7f8c` service is still an existing TEST-accessible Worker/service binding target;
-- the existing TTS Worker request/response contract is still `{ voice_id, text, direction } -> { url }` or document the exact current compatible shape;
-- no additional secret is required beyond the Service Binding.
+```json
+{
+  "focal_actor": {
+    "actor_id": "heroineN",
+    "quote": "exact contiguous Story evidence containing the canonical actor name"
+  },
+  "dialogue_lines": [
+    {
+      "speaker_id": "heroineN",
+      "text": "exact spoken dialogue text from Story",
+      "direction": "optional short delivery direction",
+      "evidence_quote": "exact contiguous Story span grounding speaker attribution and the dialogue"
+    }
+  ]
+}
+```
 
-Do not print, rotate, recreate, or migrate secrets.
+Names may be adjusted only to fit an already-existing R3 contract cleanly; semantics must remain this narrow.
 
-## 3. Image projection contract
+### Focal actor rules
 
-Image is presentation only. It must never become gameplay authority.
+A focal/relevant actor projection is valid only when:
+- `actor_id` is a registered canonical Company heroine;
+- that actor is present in the post-Story scene after applying entered/exited/present evidence;
+- `quote` is an exact contiguous substring of the current Story;
+- the quote contains that actor's exact canonical name and materially grounds that actor as current/relevant to the scene.
 
-### Character selection
+Invalid focal evidence is dropped locally to `null` with a warning. It must never fail the Story turn.
 
-For each committed current turn/opening:
-1. only registered Company heroine IDs are eligible;
-2. eligible character must be present in the committed current scene;
-3. prefer the committed focal heroine when eligible;
-4. otherwise use a deterministic present registered heroine only if the selection is unambiguous/relevant under existing committed projection;
-5. never show a remote/not-present character merely because that character has an image.
+Do not select the first present heroine, alphabetically lowest heroine, or arbitrary heroine when five are present.
 
-### Pool/tags
+### Dialogue-line rules
 
-- Default to `general` unless existing committed evidence explicitly supports another approved pool.
-- Do NOT treat raw player intent/attempt alone as proof that a sexual act occurred.
-- A `sex` pool request is permitted only when already-committed scene/physical/sexual evidence supports a sexual scene under the existing product contract.
-- Reuse the existing image tag allowlist/selector semantics where compatible; do not add an LLM image classifier.
-- Unknown/unproven tags are discarded, not guessed.
+Each projected line is valid only when:
+- `speaker_id` is a registered canonical Company heroine;
+- the speaker is present in the post-Story scene;
+- `text` is non-empty and occurs verbatim as spoken dialogue in the current Story;
+- `evidence_quote` is an exact contiguous substring of the current Story and provides bounded attribution evidence tying that canonical actor to that spoken text;
+- no narrator/player/inner-thought/Mind-Monitor text is projected as NPC dialogue.
 
-### Server selection
+Normalize exact text, do not paraphrase or translate it. Do not merge different speakers.
 
-Use a bounded deterministic server path:
-- query only the requested eligible character + pool;
-- active curated candidates only;
-- bounded candidate count (existing donor uses at most 8 ordered by curation rank);
-- deterministic `selectImage`-equivalent scoring;
-- return one approved image or `null`;
-- no Story prompt contamination and zero additional model calls.
+If the Observer returns invalid/fabricated/remote speaker evidence, drop only that line and record a bounded warning. The Story/commit remains usable.
 
-Prefer transplanting the small pure media contract into the R3 namespace or otherwise isolating it from legacy gameplay runtime. Do not make R3 depend on the old v1 turn engine as an active gameplay authority merely to reuse media helpers.
+Natural bare-quote Story prose is allowed. Do NOT require a Story rewrite just to make TTS work in this cut. The Observer is already the one post-Story projection step and may identify speaker attribution, but strict server-side grounding must reject unsupported mappings.
 
-### Frontend behavior
+Do not add a fuzzy heuristic that assigns anonymous quotes to the nearest actor name without validated Observer evidence.
 
-Use the existing R3 shells:
-- `#media-panel`
-- `#character-image`
-- `#image-status`
+### Prompt scope
 
-Require:
-- successful current request renders one approved URL with appropriate alt/status;
-- no eligible image => panel is hidden/empty without erroring the game;
-- stale prior-turn/revision success or failure cannot overwrite the latest committed turn image;
-- same committed identity is deduplicated;
-- image failure is fail-open and does not block input/choices/Story/commit;
-- refresh/re-entry reconstructs media from committed server context, not client gameplay state.
+If the Observer system/product prompt must be updated:
+- add only these presentation extraction requirements;
+- preserve all existing player-agency, choices, time, scene, Mind Monitor, CSA/private-emotion and navigation instructions verbatim in meaning;
+- do not change Story generation prompts in this cut.
 
-No autoplay slideshow, no image generation, no LLM ranking.
+## 4. Persistence/reducer boundary
 
-## 4. Character-aware server TTS contract
-
-The generic whole-Story browser TTS in `frontend-r3/app.js` must be removed from the product path.
-
-### Eligibility
-
-Only character dialogue is eligible:
-- registered known Company heroine speaker;
-- current speaker must be present in committed scene;
-- exact non-empty dialogue text;
-- canonical character must have a non-empty `voice_id`.
-
-Always reject/skip:
-- narrator;
-- player narration/dialogue as a character voice;
-- player inner thought;
-- Mind Monitor/private thought;
-- unknown/general generated speaker without a canonical voice ID;
-- remote/not-present character.
-
-Server remains the final voice eligibility authority even if the client sends a character ID.
-
-### Dialogue extraction
-
-Reuse/transplant existing deterministic speaker parsing/presentation structures. No LLM call is allowed for TTS segmentation.
-
-Preserve exact spoken dialogue text except bounded TTS pronunciation normalization already established by the donor contract. Do not rewrite meaning or merge different speakers.
-
-If several present NPCs speak:
-- prefer focal/current selected relevant canonical character when that character has dialogue;
-- otherwise deterministically choose the primary present speaker using established donor behavior;
-- never synthesize all Story narration as one voice.
-
-### Transport
-
-Add the R3 server TTS route under the existing R3 API namespace and use Service Binding:
-- `TTS_WORKER` -> existing service `fancy-dust-7f8c`;
-- add only the R3 Worker service binding/config required to match the already-established Company contract;
-- no browser direct call to the external TTS Worker;
-- no new API secret;
-- upstream returns a direct audio URL consumed by persistent `#audio-player`.
-
-If the Service Binding cannot be configured or the existing service contract is unavailable, STOP `BLOCKED_TTS_ENVIRONMENT`; do NOT fall back to browser `speechSynthesis`.
-
-### Toggle/replay lifecycle
-
-R3 TTS is default OFF for a fresh browser/session unless the existing R3 product preference explicitly says otherwise. Preserve the critical rule:
-- TTS OFF => zero server TTS API calls.
-
-Also require:
-- never call TTS during Story streaming before commit;
-- only committed turn/revision dialogue can enqueue;
-- dedupe same committed identity + speaker + exact text;
-- new turn cancels/drops stale prior-turn queued/active playback as donor contract does;
-- same-turn feedback revision supersedes old queued revision audio;
-- replay may reuse cached returned audio URL without another synthesis request;
-- TTS failure is presentation-only: status error + controls recover, gameplay remains usable;
-- turning TTS off stops playback and prevents late responses from starting audio.
-
-No `speechSynthesis` or `SpeechSynthesisUtterance` product fallback may remain after this cut.
-
-## 5. R3 API/security boundary
-
-Add only read-only/presentation media endpoints required by the R3 frontend, following the existing R3 route/capability conventions.
+The new validated presentation fields may be stored in the existing per-turn `observer_applied` JSON that is already persisted with the turn.
 
 Requirements:
-- media endpoints do not create turns/jobs/actions/revisions;
-- no game state mutation;
-- validate the requested game through the existing R3 game/capability boundary rather than exposing an unauthenticated arbitrary voice/image proxy;
-- character requests must be grounded in registered canonical content and current committed presence where the endpoint has enough context to enforce it;
-- errors are bounded JSON errors and never corrupt SSE/gameplay state.
+- no DB migration;
+- no new table/column;
+- reducer must not use dialogue/focal presentation fields to mutate gameplay state;
+- readback/refresh obtains them from the committed latest turn;
+- old turns without the fields remain valid and simply produce no eligible media unless deterministic legacy speaker parsing already proves eligibility.
 
-Do not add DB schema or RPCs for media in this cut.
+The failing previous fixture may be used only to test backward-compatible fail-open behavior; never revise its committed turns.
+
+## 5. Rewire current media projection — minimal only
+
+Update `runtime-r3/domain/media.js` and frontend/view-model plumbing only as necessary so current media consumes validated committed presentation evidence.
+
+Character priority:
+1. explicitly requested character only if currently present and registered;
+2. latest validated `observer_applied.focal_actor` when currently present;
+3. validated current committed dialogue speaker when unambiguous/relevant;
+4. single present registered heroine if exactly one exists;
+5. otherwise no image character — never arbitrary choice.
+
+Dialogue/TTS priority:
+- use validated committed `dialogue_lines` first;
+- deterministic explicit speaker-prefix parsing may remain as a compatibility fallback only when it independently proves canonical speaker identity;
+- never synthesize anonymous quotes by guessing.
+
+All existing media constraints remain:
+- image pool is general unless already-committed evidence proves sex pool eligibility;
+- no raw player intent as sexual success proof;
+- no LLM image ranking;
+- no media state mutation;
+- server is final TTS voice/presence eligibility authority;
+- TTS OFF remains zero calls;
+- no speech synthesis browser fallback.
 
 ## 6. Deterministic regressions
 
-Add focused R3 media tests before live deployment. At minimum prove:
+Add exact tests before live deploy.
 
-### Image
-1. only registered present heroine can be selected;
-2. focal present heroine wins deterministic selection;
-3. remote/not-present heroine cannot be rendered;
-4. general image selection uses approved active/canonical media only;
-5. sexual pool is not selected from player intent alone;
-6. stale older image success/failure cannot overwrite current turn/revision;
-7. no candidate/image error returns fail-open presentation state and does not alter gameplay context;
-8. media request does not call Story/Observer/provider or reserve a turn.
+At minimum prove:
+1. five present heroines + validated focal heroine => exact focal image character;
+2. five present heroines + no focal + one validated dialogue speaker => that speaker is eligible;
+3. five present heroines + no grounded focal/dialogue => no arbitrary character;
+4. focal actor with non-Story quote is dropped;
+5. focal actor not present after Story is dropped;
+6. dialogue text not verbatim in Story is dropped;
+7. dialogue attribution evidence not exact/current is dropped;
+8. remote/unknown/player/narrator dialogue is dropped;
+9. valid bare-quote Story plus strictly grounded Observer speaker projection yields canonical dialogue line;
+10. invalid media projection never blocks turn commit;
+11. presentation fields do not alter reduced gameplay scene/location/presence/time/CSA state;
+12. committed readback/refresh can reconstruct current media projection;
+13. TTS server still maps exact registered speaker to canonical voice ID;
+14. TTS OFF still makes zero API calls;
+15. TTS ON uses only validated committed dialogue;
+16. replay cache/dedup/stale fencing from `25688dd...` remains green;
+17. image stale fencing from `25688dd...` remains green;
+18. source scan still finds no R3 product `speechSynthesis` / `SpeechSynthesisUtterance`;
+19. frozen agency/navigation/choice/CSA/draft/reset regressions remain green.
 
-### TTS
-9. narrator/player/inner-thought/Mind-Monitor are ineligible;
-10. unknown or no-voice speaker is rejected;
-11. registered present heroine maps to exact canonical `voice_id`;
-12. server route calls Service Binding with exact character voice + dialogue text + bounded direction;
-13. TTS OFF makes zero API calls;
-14. streaming delta alone makes zero TTS calls;
-15. committed dialogue generates at most one synthesis for the dedup key;
-16. replay reuses cached URL where available;
-17. new turn and feedback revision fence stale audio;
-18. TTS failure/late response cannot block gameplay or start after OFF;
-19. source scan confirms no R3 product use of `speechSynthesis` / `SpeechSynthesisUtterance` remains.
+Run focused tests, full `npm.cmd test`, changed JS/MJS `node --check`, and `git diff --check`.
 
-### Frozen regressions
-20. existing agency/navigation/choice-tail/CSA/draft/reset contracts remain green.
+## 7. TEST deploy
 
-Run:
-- focused R3 media/frontend/server tests;
-- full `npm.cmd test`;
-- changed JS/MJS `node --check`;
-- `git diff --check`.
+Deploy exact affected TEST artifacts only.
 
-## 7. TEST deployment
+Likely API changes:
+- Observer prompt/normalizer/applied projection;
+- media projection consumption.
 
-Deploy exact changed source to TEST only.
+Likely frontend changes only if view-model/controller requires the newly committed fields. If frontend source is unchanged, do not redeploy it merely for symmetry.
 
-Expected affected artifacts if implementation follows the proven boundaries:
-- API `game-proxy-company-r3` — media endpoints + TTS Service Binding + deterministic image/TTS presentation plumbing;
-- Frontend `gamebuilder-company-r3` — image request/render + character dialogue TTS controller replacing browser TTS.
-
-If only one artifact actually changes, deploy only that one.
-
-For R3 API config, preserve all existing vars/bindings/secrets and add only the already-established TTS Service Binding/URL configuration required by the current service contract.
+Preserve the existing `TTS_WORKER` binding and all current vars/secrets exactly.
 
 No Production.
-No secret printing/rotation.
 No migration.
+No secret rotation/printing.
+No provider/model/config change beyond the already accepted media binding.
 
-Record exact source SHA and exact Worker version IDs.
+Record source SHA and exact Worker version IDs.
 
 ## 8. Mandatory bare-public acceptance
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-No `?api=` override, no storage preseed, no direct-API gameplay substitute.
+No `?api=` override.
+No storage preseed.
+No direct-API gameplay substitute.
 Fresh disposable TEST games only.
+Never mutate owner game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`.
+Never mutate previous failure fixture `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1`.
 
-### Gate A — image projection
+### Gate A — grounded image
 
-Create visible Setup -> Opening and reach a scene containing at least one registered heroine with approved media.
+Create visible Setup -> Opening and ordinary company/social turns that materially involve a registered heroine.
 
 Require:
-- current/present/focal heroine identity is visible/readable from committed context;
-- image request uses that exact eligible character;
-- returned image is demonstrably from approved canonical/active media for that character;
-- image panel renders without blocking Story/choices/input;
-- a subsequent committed turn/location/focal change cannot be overwritten by a late stale previous image request;
-- if the next scene has no eligible image character, stale old image does not remain authoritative.
-
-If no approved image can be obtained despite verified data/config, stop with exact first boundary. Do not use a web placeholder or generated image.
+- committed latest turn contains strictly validated relevant/focal and/or dialogue speaker projection;
+- chosen image character equals that grounded present heroine;
+- server returns an approved image for that exact heroine;
+- visible image renders without blocking Story/choices/input;
+- no arbitrary heroine is selected when evidence is ambiguous;
+- refresh/re-entry reconstructs the same current eligible heroine/image from committed context;
+- stale prior response cannot overwrite a later committed media projection.
 
 ### Gate B — TTS OFF
 
-Before enabling TTS:
-- commit at least one ordinary turn containing registered NPC dialogue;
-- prove zero R3 TTS synthesis request occurs while toggle is OFF;
-- narrator/player/inner-thought are never sent.
+With fresh/session TTS OFF:
+- commit a turn containing validated registered heroine dialogue;
+- prove zero `/media/tts` synthesis calls;
+- narrator/player/private thought/Mind Monitor remain unsent.
 
-### Gate C — character-aware server TTS
+### Gate C — TTS ON character routing
 
-Enable TTS through the visible R3 control, then commit or replay a committed turn with registered present NPC dialogue.
-
-Require:
-- frontend sends only eligible character dialogue with canonical `character_id`;
-- server resolves that character to the canonical voice ID under deterministic tests/diagnostics;
-- request goes through R3 API -> `TTS_WORKER` Service Binding, not browser speech synthesis and not direct browser-to-TTS-worker;
-- successful upstream result provides a playable audio URL to `#audio-player`;
-- UI remains responsive while audio is synthesized/played;
-- no duplicate Story/turn/TTS synthesis for the same committed batch.
-
-Live automation does not need to judge subjective voice acting quality by microphone. It must prove the character-specific server routing/mapping and playable returned audio transport. If audio is actually audible/verifiable through the browser harness, record it as additional evidence only.
-
-### Gate D — replay / transition / refresh
+Enable through the visible TTS control and use a committed turn with validated present heroine dialogue.
 
 Require:
-- replay of already cached latest batch does not create another synthesis request when donor cache contract applies;
-- next committed turn does not allow stale previous audio/image to become current authority;
-- refresh/re-entry reconstructs current image eligibility from server context;
-- TTS remains a UI preference/presentation sidecar and does not replay old speech automatically unless current product preference explicitly calls for it.
+- frontend sends exact validated dialogue + canonical character ID only;
+- R3 server resolves exact canonical voice ID;
+- transport is R3 API -> `TTS_WORKER` Service Binding -> audio URL;
+- `#audio-player` receives a playable returned URL;
+- no direct browser-to-TTS-worker call;
+- no browser speechSynthesis;
+- no duplicate synthesis for same committed batch;
+- UI/gameplay stays responsive.
 
-### Gate E — failure-safe spot check
+If live dialogue projection is invalid, stop on that exact projection failure. Do not retry/regenerate until a better sample appears.
 
-Do not sabotage the live provider. Use deterministic tests plus normal UI inspection to prove:
-- image/TTS status areas can show bounded failure;
-- input, four choices, CSA app, reset, history remain usable after media failure paths;
-- no turn/job/state mutation is caused by media calls.
+### Gate D — replay/transition/refresh
 
-### Gate F — mobile
+Require:
+- replay uses cached URL without duplicate synthesis where existing contract specifies;
+- next committed turn fences old image/audio;
+- refresh/re-entry reconstructs media eligibility from committed turn evidence;
+- gameplay state/turn count is unchanged by media actions.
 
-At approximately 390x844:
-- image panel does not cover Story/actions;
-- image uses contained responsive sizing;
-- TTS toggle/replay/audio controls remain reachable;
-- four choices and direct input remain reachable;
-- no blocking overlay/overflow regression.
+### Gate E — mobile
 
-## 9. GREEN criteria
+Approx `390x844`:
+- image panel is usable/non-blocking;
+- TTS toggle/replay/audio remain reachable;
+- choices and direct input remain reachable;
+- no overflow/overlay blocker.
+
+## 9. Stop conditions
 
 GREEN only if:
-- approved image source/data boundary is evidenced;
-- R3 renders the correct eligible current character image and safely clears/fences stale media;
-- generic browser whole-Story TTS is removed from the R3 product path;
-- TTS OFF produces zero synthesis calls;
-- eligible character dialogue uses canonical character voice through R3 server + `TTS_WORKER` Service Binding;
-- narrator/player/private thought are not synthesized as character dialogue;
-- media is presentation-only/fail-open and cannot mutate/block gameplay;
-- focused/full tests pass;
-- exact changed TEST artifacts are deployed and live accepted;
-- no Production/schema/provider/model/owner-game/forbidden work occurs.
+- committed presentation projection is strictly grounded and fail-open;
+- live image Gate A passes with an approved image for the exact relevant present heroine;
+- TTS OFF zero-call gate passes;
+- TTS ON server character routing/audio URL passes;
+- replay/transition/refresh passes;
+- mobile passes;
+- no gameplay authority or provider/model/schema drift.
 
-Do NOT claim owner-ready after this cut.
+If the existing Observer cannot reliably produce exact grounded speaker attribution without inventing data, STOP `FAILED_PRODUCT` with raw Story + observer raw/applied evidence. Do not add another model call, fuzzy quote-speaker heuristic, or arbitrary fallback.
 
-## 10. After this cut
+If `TTS_WORKER` or approved media data newly becomes unavailable, STOP with the exact environment/data boundary; do not fall back to browser TTS or placeholders.
 
-Only after media/TTS is GREEN, resume owner-remediation order:
-1. timeline/current-scene presentation residue;
-2. deferred native-confirm live automation limitation if still materially relevant;
-3. final holistic owner-style long-play acceptance across all repaired surfaces.
+Do not claim owner-ready.
+Do not start timeline cleanup or holistic owner play in this task.
 
-## 12. Terminal evidence (2026-08-24 KST)
+## 10. Completion report
 
-TERMINAL_OUTCOME: FAILED_PRODUCT
-SOURCE_IMPLEMENTATION_SHA: 25688dd4c478b72ace1ad514e99498fc3469cfc0
-TERMINAL_CONTROL_COMMIT: bb40371
-
-### Implementation and verification
-
-Implemented and pushed the presentation-only R3 media path in source commit `25688dd4c478b72ace1ad514e99498fc3469cfc0`:
-
-- `frontend-r3/app.js`
-- `frontend-r3/media.js`
-- `frontend-r3/r3-client.js`
-- `frontend-r3/r3-view-model.js`
-- `frontend-r3/tts.js`
-- `runtime-r3/domain/media.js`
-- `runtime-r3/server/store.js`
-- `runtime-r3/server/supabase-store.js`
-- `runtime-r3/server/worker.js`
-- `test/r3-approved-media.test.mjs`
-- `test/r3-frontend-contract.test.mjs`
-- `wrangler.r3.api.jsonc`
-
-The implementation is deterministic and presentation-only: approved active image rows are selected through the R3 server path; sexual-pool selection requires committed sexual evidence; TTS accepts only registered present heroine dialogue and resolves the canonical voice through the existing `TTS_WORKER` Service Binding; media failures fail open; browser `speechSynthesis` and `SpeechSynthesisUtterance` are absent from the R3 product path. No gameplay state, schema, migration, provider/model, Production, preserved game, or existing data was changed.
-
-Focused tests passed: `node --test test/r3-approved-media.test.mjs` (5/5) and `node --test test/r3-frontend-contract.test.mjs` (14/14). Full `npm.cmd test` passed (526/526). Changed JS/MJS `node --check` passed and `git diff --check` passed. Wrangler dry-runs passed.
-
-### TEST inventory, deploy, and live evidence
-
-Read-only TEST inventory found `public.image_library` and `storage.objects`; active `company-v1` image rows for heroine1..5 were present (14, 22, 21, 23, 22), with one general row per heroine and populated sex rows. General primary URLs were readable. Corrected heroine3 storage HEAD was HTTP 200, `image/jpeg`, 275914 bytes at `https://fmcrspgxstsmxxsmkeee.supabase.co/storage/v1/object/public/Image/Heroine3/jena_main.jpg`.
-
-Exact TEST deployments:
-
-- API `game-proxy-company-r3`, version `e1135324-20ba-4410-91bf-c3c31b59a10f`.
-- Frontend `gamebuilder-company-r3`, version `1efd7d4a-b9b6-48af-9b07-baab0f2f6000`.
-- API binding `TTS_WORKER` -> `fancy-dust-7f8c`, with the established `{voice_id,text,direction}` transport.
-
-Fresh disposable visible TEST fixture: `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1`. Opening plus three ordinary visible Korean-input turns were committed through the bare public frontend. Desktop high-parity layout and mobile `390x844` controls were inspected; four choices, direct input, image/TTS shells, and TTS controls remained reachable. TTS OFF produced zero `/media/tts` calls, including after explicit visible toggle true/false interaction.
-
-### Gate result and first boundary
-
-- Gate A: NOT MET. The fresh committed context contained five present heroines but no focal/relevant heroine field, and stored Story dialogue used natural quoted text rather than the deterministic canonical speaker form. The implementation correctly refused to guess an image character, so no live image request/render was claimed.
-- Gate B: MET for OFF behavior: zero TTS synthesis calls while OFF; no narrator/player/private thought was sent.
-- Gate C: NOT MET. No eligible canonical present-character dialogue existed in the fresh committed context, so no live server synthesis/audio URL could be honestly claimed.
-- Gate D: NOT MET as a full live gate; no eligible media batch existed to exercise replay/transition media behavior. Deterministic stale fencing/cache tests passed.
-- Gate E: MET by deterministic fail-open implementation/tests and normal UI inspection; media calls are read-only and cannot block gameplay.
-- Gate F: MET by `390x844` inspection; no blocking overlay/overflow evidence, and choices/direct input/TTS controls remained reachable.
-
-This is an objective product/Story-Observer contract boundary, not a harness retry condition. Stop as `FAILED_PRODUCT`; do not claim owner-ready, do not mutate the fresh or preserved games, and do not create or start a next task. Owner/product authority must decide whether the committed projection should expose a focal/relevant heroine and canonical speaker identity before a truthful A/C retest.
-
-## 11. Terminal report
-
-Post one terminal report to Issue #68 with:
-- status `WAITING_REVIEW`, `FAILED_PRODUCT`, `BLOCKED_MEDIA_DATA`, or `BLOCKED_TTS_ENVIRONMENT`;
-- source/final main SHA and CURRENT_TASK blob;
-- pre-edit image-library/storage inventory result;
-- exact image selection/projection implementation and approved source proof;
-- exact TTS eligibility/route/Service Binding implementation;
-- proof generic browser speech synthesis is removed/not used;
-- focused/full tests;
-- TEST API/frontend version IDs and binding verification;
+Post to Issue #68:
+- final source/main SHA;
+- exact changed files;
+- focused/full validation counts;
+- TEST API/frontend version IDs;
 - fresh fixture IDs;
-- Gate A-F evidence;
-- media failure/fail-open evidence;
-- remaining objective defects.
+- sampled raw Story dialogue + normalized focal/dialogue projection evidence;
+- Gate A image character/source/render result;
+- Gate B zero-call evidence;
+- Gate C canonical character/voice/server-binding/audio URL evidence without exposing secrets;
+- Gate D replay/transition/refresh evidence;
+- mobile result;
+- any dropped invalid projection warnings;
+- confirmation that gameplay state/turn authority was unchanged;
+- remaining defect: timeline/current-scene residue and final holistic owner-style acceptance only if this cut is GREEN.
 
-Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not generate the next task.
+Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and stop. Do not create or start the next task.
