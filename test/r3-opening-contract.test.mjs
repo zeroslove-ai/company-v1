@@ -204,6 +204,14 @@ test('R3 Opening context and provider prompts require private premise discovery 
   assert.match(observerSystem, /natural first-person Korean/i);
   assert.match(observerSystem, /player_inner_thought/i);
   assert.match(observerSystem, /required and must be non-empty/i);
+  assert.match(observerSystem, /completeness is mandatory for safely supported heroine speech/i);
+  assert.match(observerSystem, /must return every such supported heroine line in dialogue_lines/i);
+  assert.match(observerSystem, /dialogue_lines must not be \[\] in that case/i);
+  assert.match(observerSystem, /do not omit a supported heroine line because focal_actor is null, general NPCs speak more often, or presentation metadata is otherwise optional/i);
+  assert.match(observerSystem, /larger exact contiguous evidence_quote may span back to the nearest explicit canonical heroine-name attribution/i);
+  assert.match(observerSystem, /never infer a speaker across an ambiguous speaker change/i);
+  assert.match(observerSystem, /this completeness rule applies to registered heroines only/i);
+  assert.match(observerSystem, /do not add general-NPC, player, narrator, thought, anonymous, or ambiguous lines/i);
 
   const correctedLocation = normalizeObserver({ location: { location_id: 'brand_strategy_office', quote: '브랜드전략팀 회의실에 들어선다.' } }, { storyText: '브랜드전략팀 회의실에 들어선다.', content, currentState: state });
   assert.equal(correctedLocation.location.location_id, 'brand_strategy_meeting_room');
