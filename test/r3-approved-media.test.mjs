@@ -41,6 +41,43 @@ test('R3 Observer presentation projection is strictly grounded and outside gamep
   assert.ok(invalid.warnings.includes('dialogue_projection_dropped'));
 });
 
+test('Observer preserves exact dialogue evidence across escaped quote representation', () => {
+  const heroine5 = content.characters.heroine5;
+  const line1 = '오늘은 제가 먼저 안내할게요.';
+  const line2 = '자리는 창가 쪽으로 안내해 드릴게요.';
+  const line3 = '점심은 제가 골라볼게요.';
+  const story = [
+    `${heroine.name} 차장이 말했다. "${line1}"`,
+    `${heroine.name} 차장이 웃으며 덧붙였다. "${line2}"`,
+    `${heroine5.name} 사원이 말했다. "${line3}"`
+  ].join('\n');
+  const escapedEvidence = (prefix, line) => String.raw`${prefix} \"${line}\"`;
+  const observation = normalizeObserver({
+    present_actor_ids: ['heroine1', 'heroine5'],
+    dialogue_lines: [
+      { speaker_id: 'heroine1', text: line1, evidence_quote: escapedEvidence(`${heroine.name} 차장이 말했다.`, line1) },
+      { speaker_id: 'heroine1', text: line2, evidence_quote: escapedEvidence(`${heroine.name} 차장이 웃으며 덧붙였다.`, line2) },
+      { speaker_id: 'heroine5', text: line3, evidence_quote: escapedEvidence(`${heroine5.name} 사원이 말했다.`, line3) }
+    ]
+  }, { storyText: story, content, currentState: { scene: { present_actor_ids: [] } } });
+  assert.equal(observation.dialogue_lines.length, 3);
+  assert.deepEqual(observation.dialogue_lines.map(line => line.speaker_id), ['heroine1', 'heroine1', 'heroine5']);
+  assert.deepEqual(observation.dialogue_lines.map(line => line.text), [line1, line2, line3]);
+  assert.equal(observation.warnings.includes('dialogue_projection_dropped'), false);
+});
+
+test('dialogue quote parity changes only repeated escapes before quotation marks', () => {
+  const line = 'Exact quoted dialogue.';
+  const story = `${heroine.name}: "${line}"`;
+  const repeatedEscapes = '\\\\\\\\"';
+  const observation = normalizeObserver({
+    present_actor_ids: ['heroine1'],
+    dialogue_lines: [{ speaker_id: 'heroine1', text: line, evidence_quote: `${heroine.name}: ${repeatedEscapes}${line}${repeatedEscapes}` }]
+  }, { storyText: story, content, currentState: { scene: { present_actor_ids: [] } } });
+  assert.equal(observation.dialogue_lines.length, 1);
+  assert.equal(observation.dialogue_lines[0].evidence_quote, `${heroine.name}: "${line}"`);
+});
+
 test('R3 media consumes committed grounded presentation before rejecting ambiguous presence', () => {
   const story = '서원희 차장이 말했다. “오늘은 제가 먼저 안내할게요.”';
   const observerApplied = { focal_actor: { actor_id: 'heroine1', quote: story }, dialogue_lines: [{ speaker_id: 'heroine1', text: '오늘은 제가 먼저 안내할게요.', evidence_quote: story }] };

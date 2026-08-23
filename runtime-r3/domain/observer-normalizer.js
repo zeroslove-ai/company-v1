@@ -5,6 +5,12 @@ const CLOTHING_VALUES = new Set(['worn', 'removed', 'unknown']);
 const text = value => typeof value === 'string' ? value.trim() : '';
 
 function evidenceQuote(value, storyText) { const quote = text(value); return quote && storyText.includes(quote) ? quote : ''; }
+function dialogueEvidenceQuote(value, storyText) {
+  const quote = text(value);
+  const normalizedQuote = String(quote).replace(/\\+"/g, '"');
+  const normalizedStory = String(storyText ?? '').replace(/\\+"/g, '"');
+  return normalizedQuote && normalizedStory.includes(normalizedQuote) ? normalizedQuote : '';
+}
 
 function groundedActorEvidence(item, storyText, directory) {
   const actorId = item?.actor_id;
@@ -30,7 +36,7 @@ function groundedDialogueLine(item, storyText, content, presentActorIds, order) 
   const speakerId = item?.speaker_id;
   const name = directory[speakerId]?.name;
   const spokenText = text(item?.text);
-  const evidence = evidenceQuote(item?.evidence_quote, storyText);
+  const evidence = dialogueEvidenceQuote(item?.evidence_quote, storyText);
   if (!speakerId || !presentActorIds.has(speakerId) || !name || !spokenText || !storyText.includes(spokenText) || !evidence || !evidence.includes(name) || !evidence.includes(spokenText)) return null;
   return { speaker_id: speakerId, speaker_name: name, text: spokenText, direction: text(item?.direction).slice(0, 80), evidence_quote: evidence, order: Number.isInteger(item?.order) ? item.order : order };
 }
