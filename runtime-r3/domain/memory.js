@@ -9,7 +9,9 @@ const PLAYER_AGENCY_CONTRACT = Object.freeze({
   ]),
   choice_boundary: 'Preserve explicit player choices; Story may narrate consequences around or after the chosen beat, but must not replace, invert, redirect, or contradict them.',
   self_state_boundary: 'An explicit player self-state remains true for the chosen scene beat; do not inject same-beat NPC approach or dialogue that makes that self-state impossible unless the literal permits that interaction.',
-  external_outcome_boundary: 'Player input is not automatic proof of external outcome or NPC compliance.'
+  external_outcome_boundary: 'Player input is not automatic proof of external outcome or NPC compliance.',
+  app_topic_boundary: 'Mentioning the private app, a rule, or a topic is not a player app interaction.',
+  app_interaction_boundary: 'Opening, scrolling, reading, applying, changing, or closing the app requires that voluntary action to be explicit in the submitted literal.'
 });
 
 export function requestExecutionTiming(rule = {}) {

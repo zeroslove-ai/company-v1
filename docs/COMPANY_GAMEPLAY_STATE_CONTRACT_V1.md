@@ -66,6 +66,23 @@ Fresh Story parsing is authoritative for verbatim `player_inner_thought`, dialog
 
 `deriveTurnChanges(beforeSave, afterSave)` runs only after a guarded merge and derives display summaries from actual persisted before/after values. LLM text is never a direct source of turn-change display data. Before Commit changes are provisional; after Commit they are authoritative.
 
+## Owner override 2026-08-23 — CSA and first-arrival state
+
+Issue #68 comment `5384780073` supersedes conflicting assumptions for future
+owner acceptance:
+
+- New games begin at the player's first arrival / first day at the company;
+  selected rank does not imply prior tenure or relationships.
+- CSA APPLY/CHANGE/REMOVE is a chronological, streamed enactment turn with a
+  scoped in-world institutional mechanism. It must not silently rewrite the
+  past or mutate durable state in zero turns. This remains a later scoped
+  implementation task.
+- CSA rule compliance is a world/policy fact and must remain separate from
+  affection, comfort, consent, trust, desire, romance, or unrelated obedience.
+- Exact player action dimensions and exact canonical movement destination are
+  preserved through Story/Observer/Commit; source-location actors do not leak
+  into the destination without destination evidence.
+
 ## Mind Monitor and hydration
 
 The canonical Mind Monitor shape is per NPC:

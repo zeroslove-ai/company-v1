@@ -1,6 +1,7 @@
 import { advanceTime, clone } from './contracts.js';
+import { applyNavigationPostcondition } from './navigation.js';
 
-export function reduceObservation({ state, observation, turnNumber }) {
+export function reduceObservation({ state, observation, turnNumber, navigationIntent = null, content = null }) {
   const next = clone(state);
   next.time = advanceTime(next.time, observation?.elapsed_minutes);
   const scene = next.scene ?? (next.scene = { location_id: null, present_actor_ids: [], scene_note: '' });
@@ -13,5 +14,5 @@ export function reduceObservation({ state, observation, turnNumber }) {
   scene.scene_note = typeof observation?.scene_note === 'string' ? observation.scene_note.trim().slice(0, 1000) : '';
   if (!next.clothing || typeof next.clothing !== 'object') next.clothing = {};
   for (const change of observation?.clothing_changes ?? []) next.clothing[change.actor_id] = { ...(next.clothing[change.actor_id] ?? {}), ...change.slots };
-  return { state: next, applied: observation ?? {}, turnNumber };
+  return { state: applyNavigationPostcondition(next, observation, navigationIntent, content), applied: observation ?? {}, turnNumber };
 }

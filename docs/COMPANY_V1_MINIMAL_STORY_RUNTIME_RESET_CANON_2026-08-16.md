@@ -340,6 +340,33 @@ Do not split the same root cause into an overnight chain of tiny P0/P1 compatibi
 
 ---
 
+## Owner override 2026-08-23 — product authority supersession
+
+The owner manual-play override recorded in Issue #68 comment `5384780073` is
+the current product authority where it conflicts with this historical canon.
+It adds these non-optional product invariants:
+
+- Every new game begins on the player's first day / first arrival at the
+  company, regardless of selected rank or position.
+- The player discovers the private `상식개변` app and may be curious or tempted
+  to use it, but app use is never a mandatory quest or an implied action.
+- Player inner thought is a first-class visible surface. NPC Mind Monitor
+  surface/subconscious text is natural, character-specific, and first-person;
+  compliance with a CSA rule never implies affection, comfort, trust, desire,
+  romance, or unrelated obedience.
+- CSA APPLY/CHANGE/REMOVE is a chronological, visibly streamed enactment turn
+  with an in-world institutional mechanism. It is not an invisible zero-turn
+  mutation; implementation remains a later explicitly scoped cut.
+- The mature Company-v1 donor UI, approved-media image sidecar, and
+  character-aware server TTS are owner-required acceptance surfaces, not
+  deferred owner-ready exceptions.
+- Explicit player actor/target/action/request/refusal/self-state/topic/intent
+  must survive Story projection. Exact canonical navigation must survive
+  Story, Observer, Commit, and refresh without source-location presence leak.
+
+This section supersedes only conflicting product assumptions; it does not
+authorize implementation outside the active `CURRENT_TASK`.
+
 ## 15. Supersession
 
 This canon refines the existing Story-first authority reset. It does **not** discard proven transaction/replay/readback/identity work.

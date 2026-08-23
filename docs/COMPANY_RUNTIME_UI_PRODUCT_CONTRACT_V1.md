@@ -441,6 +441,32 @@ their explicit compatibility boundary.
 
 ---
 
+## Owner override 2026-08-23 — UI and narrative acceptance
+
+Issue #68 comment `5384780073` is the current owner product authority for
+these surfaces. The existing UI contract is therefore read with the following
+explicit additions:
+
+- Player inner thought is a first-class visible product surface, separate from
+  NPC Mind Monitor.
+- NPC Mind Monitor `surface` and `subconscious` remain natural,
+  character-specific, first-person conversational Korean. Blank or missing
+  entries degrade locally; third-person analyst prose and copied text are not
+  accepted as a product pass.
+- The complete Company-v1 donor-style CSA shell is required before the next
+  owner-ready handoff: tabs, player/NPC information, rule management, draft
+  apply flow, unsaved-change protection, and mobile overlay behavior. The
+  current minimal list is not a sufficient acceptance surface.
+- Approved-media image projection and character-aware server TTS are required
+  sidecars. Browser speech synthesis of the whole Story is not equivalent to
+  the retained speaker/voice/dialogue TTS contract.
+- Live scene presentation must not retain stale Opening/early-turn cards as
+  duplicate current-scene content; history remains the deliberate historical
+  presentation path.
+
+These are owner acceptance decisions, not permission to expand the active
+implementation task into CSA, image, TTS, or timeline work.
+
 ## 12. 이번 감사에서 확인한 실제 상태
 
 Company Supabase 최근 3턴 기준:
