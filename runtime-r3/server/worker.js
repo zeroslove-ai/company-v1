@@ -32,7 +32,7 @@ export function createR3Worker({ store, provider, content, gameAccessSecret } = 
         if (request.method === 'POST' && action === 'opening') return openingResponse(store, provider, content, gameId);
         if (request.method === 'POST' && action === 'turn') return turnResponse(request, store, provider, content, gameId);
         if (request.method === 'POST' && action === 'feedback') return feedbackResponse(request, store, provider, content, gameId);
-        if (request.method === 'POST' && action === 'csa') return csaResponse(store, content, gameId, await body(request));
+        if (request.method === 'POST' && action === 'csa') return csaResponse(store, provider, content, gameId, await body(request));
         if (request.method === 'POST' && action === 'reset') return await resetResponse(request, store, provider, content, gameId);
         return errorResponse(new Error('r3_not_found'));
       } catch (error) { return errorResponse(error); }
@@ -70,11 +70,22 @@ function accessDeniedResponse() {
   return json({ code: 'r3_game_access_denied', message: 'r3_game_access_denied' }, 401);
 }
 
-async function csaResponse(store, content, gameId, input) {
+async function csaResponse(store, provider, content, gameId, input) {
   const before = await store.context(gameId); const expectedRevision = input?.expected_revision;
   if (!Number.isInteger(expectedRevision) || expectedRevision !== before.state.revision) throw new Error('r3_csa_revision_conflict');
-  const stateAfter = applyR3Csa({ state: before.state.state, content, rawOperations: input?.operations, catalog: createR3CsaCatalog(content.csaPresets) });
-  return json(await store.applyCsa({ gameId, expectedRevision, stateAfter, operations: input.operations }));
+  const operations = Array.isArray(input?.operations) ? input.operations : [];
+  if (operations.length !== 1) throw new Error('r3_csa_operations_invalid');
+  const csaOperation = operations[0];
+  const literalAction = requireLiteralAction(input?.literal_action ?? csaLiteralAction(csaOperation, content));
+  return startTurn(store, provider, content, gameId, { action_id: String(input?.action_id ?? globalThis.crypto?.randomUUID?.() ?? `r3-csa-${Date.now()}`), expected_turn: before.state.committed_turn + 1, literal_action: literalAction, csa_operation: csaOperation });
+}
+
+function csaLiteralAction(operation, content) {
+  const catalog = createR3CsaCatalog(content?.csaPresets); const item = catalog.items.find(candidate => candidate.id === operation?.template_id);
+  const verb = operation?.operation === 'activate' ? 'Apply' : operation?.operation === 'update' ? 'Change' : 'Remove';
+  const label = item?.label ?? operation?.id ?? 'CSA rule';
+  const scope = operation?.subject_scope ? ` for ${operation.subject_scope}` : '';
+  return `${verb} ${label}${scope}`;
 }
 
 async function resetResponse(request, store, provider, content, gameId) {
@@ -114,13 +125,19 @@ async function processOpening({ store, provider, content, gameId, emit }) {
 }
 
 async function turnResponse(request, store, provider, content, gameId) {
-  const input = await body(request); const literalAction = requireLiteralAction(input.literal_action); const actionId = String(input.action_id ?? ''); if (!actionId) throw new Error('r3_action_id_required');
+  return startTurn(store, provider, content, gameId, await body(request));
+}
+
+async function startTurn(store, provider, content, gameId, input) {
+  const literalAction = requireLiteralAction(input.literal_action); const actionId = String(input.action_id ?? ''); if (!actionId) throw new Error('r3_action_id_required');
+  const csaOperation = input?.csa_operation ?? null;
   const before = await store.context(gameId); const expectedTurn = input.expected_turn; const existing = Number.isInteger(expectedTurn) ? await store.getJob(gameId, expectedTurn) : null;
   if (existing && !(existing.status === 'failed' && input.retry_failed === true)) return json({ status: existing.status, reconnect: true, job: existing, context: existing.status === 'committed' ? await store.context(gameId) : undefined });
+  if (csaOperation) applyR3Csa({ state: before.state.state, content, rawOperations: [csaOperation], catalog: createR3CsaCatalog(content.csaPresets) });
   assertExpectedTurn(expectedTurn, before.state.committed_turn);
-  const reservation = await store.reserveTurn({ gameId, turnNumber: expectedTurn, actionId, literalAction, retryFailed: input.retry_failed === true });
+  const reservation = await store.reserveTurn({ gameId, turnNumber: expectedTurn, actionId, literalAction, csaOperation, retryFailed: input.retry_failed === true });
   if (!reservation.created) return json({ status: reservation.job.status, reconnect: true, job: reservation.job, context: reservation.job.status === 'committed' ? await store.context(gameId) : undefined });
-  return streamTurn({ store, provider, content, gameId, job: reservation.job });
+  return streamTurn({ store, provider, content, gameId, job: { ...reservation.job, ...(csaOperation ? { csa_operation: csaOperation } : {}) } });
 }
 
 async function feedbackResponse(request, store, provider, content, gameId) {
@@ -200,16 +217,17 @@ function streamTurn({ store, provider, content, gameId, job }) {
 
 async function processTurn({ store, provider, content, gameId, job, emit }) {
   const startedAt = Date.now(); const mark = (stage, details) => timingMark(emit, startedAt, stage, details);
-  const before = await store.context(gameId); const attempt = { gameId, turnNumber: job.turn_number, actionId: job.action_id, attemptNo: job.attempt_no, literalAction: job.literal_action }; const navigationIntent = resolvePlayerNavigationIntent({ content, state: before.state.state, literalAction: attempt.literalAction }); const storyContext = projectNavigationContext(before, navigationIntent, content); let storyText = ''; let lastProgress = 0; let writes = 0;
+  const before = await store.context(gameId); const csaOperation = job.csa_operation ?? null; const attempt = { gameId, turnNumber: job.turn_number, actionId: job.action_id, attemptNo: job.attempt_no, literalAction: job.literal_action, ...(csaOperation ? { csaOperation } : {}) }; const navigationIntent = resolvePlayerNavigationIntent({ content, state: before.state.state, literalAction: attempt.literalAction }); const storyContext = projectNavigationContext(before, navigationIntent, content); let storyText = ''; let lastProgress = 0; let writes = 0;
   emit('meta', { game_id: gameId, turn_number: job.turn_number, action_id: job.action_id }); mark('story_request_start');
   try {
-    for await (const delta of provider.story({ literalAction: attempt.literalAction, context: storyContext, content, onTiming: mark })) { const text = String(delta); storyText += text; emit('story_delta', { text }); if (writes < R3_MAX_PROGRESS_WRITES && (writes === 0 || storyText.length - lastProgress >= R3_PROGRESS_INTERVAL_CHARS)) { await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText }); writes += 1; lastProgress = storyText.length; } }
+    for await (const delta of provider.story({ literalAction: attempt.literalAction, context: storyContext, csaOperation, content, onTiming: mark })) { const text = String(delta); storyText += text; emit('story_delta', { text }); if (writes < R3_MAX_PROGRESS_WRITES && (writes === 0 || storyText.length - lastProgress >= R3_PROGRESS_INTERVAL_CHARS)) { await store.updateProgress({ gameId, turnNumber: attempt.turnNumber, attempt, storyText }); writes += 1; lastProgress = storyText.length; } }
     mark('story_complete'); await store.markStoryComplete({ gameId, turnNumber: attempt.turnNumber, attempt, storyText });
-    let rawObserver = {}; let observerFailed = false; mark('observer_start'); try { rawObserver = await provider.observe({ literalAction: attempt.literalAction, storyText, context: storyContext, content }); mark('observer_complete'); } catch { observerFailed = true; mark('observer_failed'); }
+    let rawObserver = {}; let observerFailed = false; mark('observer_start'); try { rawObserver = await provider.observe({ literalAction: attempt.literalAction, storyText, context: storyContext, csaOperation, content }); mark('observer_complete'); } catch { observerFailed = true; mark('observer_failed'); }
     const normalized = normalizeObserver(rawObserver, { storyText, content, currentState: storyContext.state.state }); if (observerFailed) normalized.warnings.unshift('observer_failed');
     if (navigationIntent) normalized.warnings.unshift('canonical_navigation_applied');
     const reduced = reduceObservation({ state: before.state.state, observation: normalized, turnNumber: attempt.turnNumber, navigationIntent, content });
-    const context = await store.commitTurn({ gameId, turnNumber: attempt.turnNumber, attempt, expectedRevision: before.state.revision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: rawObserver, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter: reduced.state });
+    const stateAfter = csaOperation ? applyR3Csa({ state: reduced.state, content, rawOperations: [csaOperation], catalog: createR3CsaCatalog(content.csaPresets) }) : reduced.state;
+    const context = await store.commitTurn({ gameId, turnNumber: attempt.turnNumber, attempt, expectedRevision: before.state.revision, storyText, choices: normalized.choices ?? [], summary: boundedSummary(storyText, normalized.turn_summary), mindMonitor: normalized.mind_monitor, observerRaw: rawObserver, observerApplied: reduced.applied, warnings: normalized.warnings, stateAfter });
     mark('terminal_commit');
     emit('terminal', { status: 'committed', context });
   } catch (error) {

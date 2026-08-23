@@ -23,7 +23,7 @@ export function requestExecutionTiming(rule = {}) {
   } : null;
 }
 
-export function buildStoryContext(context, literalAction, { content, opening = false, feedbackText = '' } = {}) {
+export function buildStoryContext(context, literalAction, { content, opening = false, feedbackText = '', csaOperation = null } = {}) {
   const state = context?.state?.state ?? {};
   const turns = Array.isArray(context?.turns) ? context.turns : [];
   const location = canonicalLocation(content, state.scene?.location_id);
@@ -61,6 +61,13 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     actors: canonicalActors(content, actorIds),
     clothing: state.clothing ?? {},
     active_rules: activeRules,
+    ...(csaOperation ? {
+      pending_csa_operation: {
+        type: 'csa_operation',
+        operation: csaOperation,
+        boundary: 'This exact visible app operation is the player action for this turn; enact its immediate world consequence naturally, then return to the player\'s literal intent.'
+      }
+    } : {}),
     opening_contract: opening ? {
       product_title: product.title,
       private_app_name: product.app_name,

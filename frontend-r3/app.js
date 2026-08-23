@@ -16,7 +16,7 @@ const sidecarState = { ttsEnabled: false };
 const RECOVERY_POLL_MS = 1500;
 const RECOVERY_TIMEOUT_MS = 120000;
 const $ = id => document.querySelector(`#${id}`);
-const csaUi = createR3CsaUi({ documentRef: document, client, getGameId: () => state.gameId, getContext: () => state.context, getCatalog: () => state.catalogs?.csa_presets, onContext: context => renderContext(context) });
+const csaUi = createR3CsaUi({ documentRef: document, getContext: () => state.context, getCatalog: () => state.catalogs?.csa_presets, getBusy: () => state.busy, onOperation: operation => { const { literal_action: literalAction, ...csaOperation } = operation; submit(literalAction, { csaOperation }); } });
 
 function setStatus(message, error = false) { const node = $('status-banner'); if (node) { node.textContent = message; node.dataset.error = error ? 'true' : 'false'; } }
 function setHidden(id, hidden) { const node = $(id); if (node) node.hidden = hidden; }
@@ -241,7 +241,7 @@ async function openOpening() {
   catch (error) { setStatus(error.message, true); } finally { state.busy = false; refreshChoices(); }
 }
 
-async function submit(value = null, { retryFailed = false } = {}) {
+async function submit(value = null, { retryFailed = false, csaOperation = null } = {}) {
   if (state.busy || !state.gameId) return;
   if (state.context?.job?.status === 'failed' && !retryFailed) {
     setStatus('r3_turn_failed: use the explicit retry control', true);
@@ -250,11 +250,14 @@ async function submit(value = null, { retryFailed = false } = {}) {
   const input = $('player-action'); const literalAction = value ?? input?.value ?? '';
   if (!literalAction.trim()) { setStatus('다음 행동을 직접 입력해 주세요.', true); return; }
   state.busy = true; setStatus('Story를 생성하는 중입니다.'); if ($('current-story')) $('current-story').replaceChildren();
+  csaUi.sync();
   const expectedTurn = (state.context?.state?.committed_turn ?? 0) + 1;
   syncActionControls();
   try {
     const payload = { action_id: crypto.randomUUID(), expected_turn: expectedTurn, literal_action: literalAction };
     if (retryFailed) payload.retry_failed = true;
+    const pendingOperation = csaOperation ?? (retryFailed ? state.context?.job?.csa_operation : null);
+    if (pendingOperation) payload.csa_operation = pendingOperation;
     const turnResponse = await client.turn(state.gameId, payload);
     if (!turnResponse.ok || !turnResponse.body) {
       const error = new Error('r3_stream_reconnect_required'); error.code = 'r3_stream_reconnect_required'; throw error;
