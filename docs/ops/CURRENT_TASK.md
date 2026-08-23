@@ -1,276 +1,292 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-csa-post-apply-next-interaction-v1
-Mode: CLASSIFY POST-APPLY STALL -> FIX NEXT-INTERACTION LIFECYCLE -> REDEPLOY TEST -> RESUME CSA LIVE ACCEPTANCE
-Updated: 2026-08-23 18:56 KST
+Status: READY
+Task ID: company-r3-first-arrival-thought-mm-progression-v1
+Mode: OWNER NARRATIVE SURFACE -> FIRST-ARRIVAL OPENING -> PLAYER INNER THOUGHT -> CHARACTER-SPECIFIC MIND MONITOR -> CHOICE/TIME QUALITY -> BARE-PUBLIC ACCEPTANCE
+Updated: 2026-08-23 19:22 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5385389844`
-Operator review: Issue #68 comment `5385402397`
+Previous terminal: Issue #68 comment `5385490403`
+Operator review: Issue #68 comment `5385514066`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path and do not create a new ops/recovery branch.
 
-## 0. Accepted baseline — preserve unless this task proves a direct regression
+## 0. Accepted baseline — freeze unless contradictory live evidence appears
 
-Accepted CSA chronology implementation source:
-- `fc0aace9df2a2e99d233d757b7964bc4aa9d9033`
+Accepted executable/source baseline:
+- `cbb4f3581e692e67e7849591bee280e967e99b7f`
 
-Current deployed TEST artifacts from the failed acceptance:
+Current TEST artifacts:
 - API Worker `game-proxy-company-r3` version `c8c0b390-db3e-45cf-900d-70a91cbab231`
-- Frontend Worker `gamebuilder-company-r3` version `e59b4c67-a183-4b3a-adc3-e0bd507d16d2`
+- Frontend Worker `gamebuilder-company-r3` version `28ff4453-962a-4d2e-bb95-611c76329b1b`
 - public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Already-accepted deterministic validation:
-- focused R3 CSA contract/frontend/turn tests: 24/24 PASS
-- full `npm.cmd test`: 506/506 PASS
-- changed-JS syntax checks: PASS
-- `git diff --check`: PASS
+Frozen GREEN behavior:
+- bare-public cold start;
+- exact player actor/target/action/request/refusal/self-state/topic/intent preservation;
+- exact canonical navigation and refresh persistence;
+- visible choice dispatch on desktop/mobile;
+- CSA APPLY / CHANGE / REMOVE are each one chronological streamed Story/Observer/commit turn;
+- CSA state transition is atomic with the successful turn;
+- ordinary post-CSA turns do not inherit stale `csa_operation`;
+- CSA modal closes before the next interaction and operation controls recover after busy clears;
+- compliance alone does not justify unsupported positive private emotion;
+- current 10-turn CSA acceptance sequence and refresh/re-entry are accepted for that bounded cut.
 
-Already-proven live behavior on disposable fixture `d738c97f-8e66-4e83-9c66-849bc13f63c6`:
-- Opening = Turn 0;
-- ordinary Korean free input = Turn 1;
-- visible CSA APPLY = one visible streamed Story/Observer/commit to Turn 2;
-- active CSA count changed 0 -> 1 only with that committed turn;
-- immediate Story represented the app action/world consequence naturally;
-- no separate zero-turn write was observed;
-- choices immediately after APPLY were four distinct company-life continuations rather than CSA-only escalation.
+Do not reopen or redesign these surfaces without direct contradictory evidence.
 
-Do not rewrite the chronological CSA architecture or reopen these facts without contradictory evidence.
+## 1. Binding owner product requirements for this cut
 
-Frozen earlier GREEN surfaces also remain binding:
-- exact player-agency literal preservation;
-- canonical player navigation;
-- visible choice-button dispatch on desktop/mobile;
-- bare-public cold start.
+Issue #68 owner override `5384780073`, already synchronized into the canon documents, requires:
 
-## 1. Decisive live failure to investigate first
+1. Every new game begins on the player's first day / first arrival at the company, regardless of selected rank or position.
+2. The private `상식개변` app may be discovered and may provoke curiosity, but using it is never a mandatory quest, implied action, or pre-completed choice.
+3. Player inner thought is a first-class visible product surface, separate from NPC Mind Monitor.
+4. NPC Mind Monitor surface/subconscious text must be natural, character-specific, first-person Korean rather than third-person analyst prose, labels, or copied dialogue.
+5. Four Story-authored choices remain exact literal actions but must also be meaningfully different next actions in actual play.
+6. Canonical game time should progress believably as scenes/actions consume time rather than remaining effectively frozen across normal play.
 
-On the accepted deployed build, immediately after the successful APPLY Turn 2, the unrelated free input:
+This task implements only those narrative-surface requirements. It does not authorize the later donor-parity CSA UI, image/TTS, reset, timeline residue, or final owner-ready work.
 
-`윤민아 대리를 따라 복도로 나가 괜찮은지 조용히 확인한다.`
+## 2. Proven current gaps before implementation
 
-failed to advance beyond Turn 2 during a bounded 110-second observation.
+Current source at the accepted baseline shows:
 
-Observed:
-- input remained present;
-- submit control eventually appeared enabled;
-- no bounded useful UI error was visible;
-- browser console error/warn logs were empty;
-- network-level request/SSE evidence was not captured;
-- run correctly stopped without retry;
-- CHANGE/REMOVE/refresh/private-emotion remainder was therefore not executed.
+- `OPENING_STORY_SYSTEM_PROMPT` requires private-app discovery/recognition and player-agency preservation, but does not bind the Opening to first day / first arrival for every selected rank.
+- `buildStoryContext(... opening=true ...)` has no first-arrival/first-day contract field.
+- R3 has no dedicated player-inner-thought value in the committed view model or DOM. `frontend-r3/index.html` contains NPC Mind Monitor and player state, but no player-thought card.
+- Observer output currently has `mind_monitor` but no `player_inner_thought` key.
+- Observer receives canonical actor IDs/names but no bounded character personality/speech context specifically for Mind Monitor quality.
+- `normalizeObserver()` accepts `surface/subconscious` text but does not enforce or guide first-person character voice.
+- The prior live CSA acceptance produced Mind Monitor strings such as `차분함` and `실용적`; those are acceptable as evidence that the field exists, but not as owner-level natural first-person character writing.
+- Story requires four distinct choices, but the runtime has no product-facing semantic diversity instruction beyond distinct strings.
+- Observer allows `elapsed_minutes = 0`; this is valid for truly instantaneous beats, but ordinary multi-action play must not remain at the same clock because the model habitually emits zero.
 
-This is a real user-visible continuity blocker. Do not assume the cause.
+Audit these exact paths before editing:
+- `runtime-r3/server/provider.js`
+- `runtime-r3/domain/memory.js`
+- `runtime-r3/domain/observer-normalizer.js`
+- `runtime-r3/domain/reducer.js`
+- `runtime-r3/domain/contracts.js`
+- `runtime-r3/server/store.js` and `supabase-store.js` only to confirm persistence shape
+- `frontend-r3/r3-view-model.js`
+- `frontend-r3/render.js`
+- `frontend-r3/app.js`
+- `frontend-r3/index.html` and relevant CSS
+- focused R3 provider/observer/frontend/turn tests.
 
-## 2. Required first step — classify the exact broken boundary before source edits
+## 3. Required implementation shape
 
-Use a fresh disposable bare-public TEST game. Do not mutate owner/preserved games.
+### A. First-arrival Opening
 
-Reproduce exactly enough to reach:
-1. Setup -> Opening;
-2. one ordinary turn;
-3. one visible CSA APPLY that commits successfully;
-4. one unrelated ordinary free-input turn immediately afterward.
+Strengthen the existing Story/context contract, without a new pre-Story router:
 
-For that fourth action capture, as available from the browser/runtime diagnostics:
-- click/submit event actually fired or not;
-- POST `/api/r3/games/:id/turn` actually issued or not;
-- request URL/origin/method;
-- request body `expected_turn`, `literal_action`, presence/absence of `csa_operation`;
-- HTTP status, response content-type and whether body is SSE;
-- timing to response headers, first SSE frame, first `story_delta`, Observer stage and terminal;
-- server context immediately before submit;
-- server context immediately after failure/timeout;
-- `committed_turn`, state revision and next job identity/status/stage/error_code;
-- whether a Turn 3 job row exists;
-- whether the job is `reserved`, `story_streaming`, `story_complete`, `failed`, `committed`, expired, or absent;
-- whether Story provider was actually called;
-- whether the frontend entered transport reconciliation and what classification it chose.
+- every fresh Setup -> Opening explicitly establishes that today is the player's first day / first arrival / first appointment at this company in the selected department and position;
+- selected rank remains true. A senior/executive profile is a newly arrived/appointed senior/executive, not silently rewritten as a junior new hire;
+- do not invent prior tenure, prior company relationships, completed onboarding, or old office memories that contradict first arrival;
+- provide a plausible immediate reason/context for being there: arrival, reception/onboarding, first introduction, first assignment context, etc., appropriate to the selected role;
+- the private `상식개변` app may appear/be noticed as unfamiliar and private;
+- Opening must not click/open/use/hide the app, speak, nod, move, decide, accept/refuse, or complete another voluntary player action before the first player input;
+- end with four genuinely different available actions plus free-input freedom.
 
-Classify the first broken boundary as exactly one primary root category:
-A. UI dispatch/control/overlay/focus prevented POST;
-B. POST/HTTP/CORS/origin/body failure before reservation;
-C. turn reservation/job identity/state-revision conflict;
-D. Story request/first-content/stream timeout or provider transport failure;
-E. Observer/reducer/commit failure;
-F. terminal SSE parsing/reconciliation/render lifecycle failure;
-G. another concrete boundary with direct evidence.
+Do not add deterministic prose that replaces Story. Keep Story as the writer.
 
-Do not patch until this classification has evidence. No stochastic repeated submissions to make a flaky turn pass.
+### B. Player inner thought — one committed presentation projection, no new LLM call
 
-## 3. Source-proven lifecycle defect to close in this same narrow cut
+Add a bounded `player_inner_thought` projection to the existing single Observer response.
 
-Independent of the failed Turn 3 root cause, current frontend source has a deterministic post-operation control lifecycle defect:
-- `submit()` sets `state.busy = true`;
-- committed terminal calls `renderContext(context)` while busy is still true;
-- `renderContext()` calls `csaUi.sync()`;
-- CSA APPLY/CHANGE/REMOVE buttons therefore render disabled because `getBusy()` is true;
-- `submit()` finally changes `state.busy = false` and calls `refreshChoices()` only;
-- CSA UI is not re-synced after busy clears.
+Required semantics:
+- natural first-person Korean from the player's immediate perspective;
+- short but substantive, normally one to three natural sentences rather than a one-word mood label;
+- grounded in the submitted literal action, completed Story, current situation and profile;
+- may express uncertainty, curiosity, reluctance, resolve, embarrassment, irritation, etc. when supported;
+- must not invent an unchosen player action, decision, consent, desire, relationship, or external outcome;
+- during Opening it may register perception/uncertainty/curiosity about the first arrival or unfamiliar app, but must not state that the player decided to use it;
+- it is a side/readback projection, not a new semantic authority or Story gate.
 
-Result: CHANGE/REMOVE can remain stale-disabled after a successful operation turn until another render happens.
+Persistence/presentation boundary:
+- do not add a DB column or migration for this task;
+- retain it inside an already persisted per-turn JSON projection, preferably `observer_applied.player_inner_thought`, or an equally existing committed JSON surface if source audit proves a cleaner equivalent;
+- refresh/re-entry must reconstruct the latest committed player thought from server context, not frontend-only cache;
+- render it in a dedicated visible `플레이어 속마음` card/surface separate from NPC Mind Monitor and separate from the basic player state list;
+- do not duplicate the same thought inside main Story text.
 
-Fix this with the smallest lifecycle correction. Do not redesign the CSA app.
+### C. Character-specific first-person NPC Mind Monitor
 
-## 4. Implementation boundaries
+Keep the existing one Observer; do not add another model call or sentiment engine.
 
-After root classification, make the smallest source correction that closes the proven broken boundary plus the stale-disabled CSA control lifecycle.
+Strengthen Observer context/prompt so relevant current/post-Story NPCs can be written from their actual character canon:
+- provide only the bounded registered character information needed for Mind Monitor quality (identity/role/personality/speech/distinctive traits as already available in canonical content); do not expose unrelated semantic state;
+- `surface` = what that NPC is consciously thinking now, in natural first-person Korean;
+- `subconscious` = deeper/private first-person thought that remains plausible for that character and scene;
+- avoid third-person analyst prose such as `윤민아는 긴장하고 있다`;
+- avoid one-word labels such as `차분함`, `실용적`, `긴장` as the complete product output;
+- avoid copying the NPC's spoken line verbatim into both fields;
+- do not homogenize all NPCs into the same voice;
+- compliance with a CSA rule remains separate from affection/comfort/desire/arousal/attraction/trust/liking;
+- missing/invalid entry degrades only that NPC locally and must not fail the Story turn.
 
-Required invariants:
-- ordinary post-CSA free input must use the same normal turn path as any ordinary turn;
-- an active CSA rule must not inject a stale `csa_operation` into an unrelated turn;
-- no duplicate turn writer;
-- no hidden retry/regeneration;
-- no provider/model/temperature/token/timeout tuning to mask a transport/state bug;
-- no architecture redesign;
-- no generic new retry framework;
+Do not make Mind Monitor a durable gameplay-state writer. It remains committed side/readback data.
+
+### D. Four-choice semantic diversity without a runtime classifier
+
+Strengthen the existing Story choice instruction only as needed:
+- exactly four full literal player actions remain Story-authored and are copied verbatim by Observer;
+- the four must differ in meaningful intent, not just wording;
+- when scene context supports it, prefer a spread across e.g. conversation/social follow-up, movement/scene change, work/context action, self-directed/non-work/refusal/change-of-mind/exploration rather than four near-paraphrases of the same beat;
+- do not force all categories every turn when nonsensical;
+- active CSA must not collapse choices into four CSA/sexual escalation variants;
+- no deterministic semantic classifier, rewrite layer, label generator, or second author is allowed at runtime.
+
+Product-play qualitative inspection, not a hard semantic gate, decides diversity.
+
+### E. Believable elapsed-time progression
+
+Keep the existing numeric clock/reducer authority.
+
+Strengthen Observer instructions so `elapsed_minutes` reflects the completed scene/action:
+- 0 is allowed only when essentially no meaningful time elapsed;
+- conversation, walking between locations, checking/working on something, eating/drinking, meetings and comparable actions should usually consume plausible positive minutes;
+- do not use a fixed per-turn constant;
+- do not use deterministic action taxonomies or a new time classifier;
+- reducer continues to own arithmetic and day rollover.
+
+Acceptance should prove that a normal multi-turn play sequence advances the displayed clock in a believable direction and does not remain frozen at 09:00.
+
+## 4. Focused deterministic regressions
+
+Add/update only tests needed for this bounded cut. At minimum prove:
+
+1. Opening Story/context contract explicitly binds every profile to first day/first arrival while preserving selected rank/department.
+2. Opening still forbids voluntary pre-first-input player action and app use.
+3. Observer contract contains `player_inner_thought` and its agency boundary.
+4. `player_inner_thought` survives normalization and is persisted/read back through an existing per-turn JSON projection without migration.
+5. frontend view/render exposes a dedicated player-thought surface and refresh can reconstruct it from committed context.
+6. Observer receives bounded relevant character canon needed for character-specific MM.
+7. MM prompt contract requires natural first-person surface/subconscious and preserves the compliance-vs-private-emotion boundary.
+8. invalid/missing one NPC MM entry remains local fail-open.
+9. Story prompt requires meaningfully different four actions while retaining exact literal/Observer parity.
+10. Observer elapsed-time contract distinguishes instantaneous zero from normal positive elapsed time; reducer arithmetic/day rollover remains unchanged.
+11. frozen agency/navigation/choice/CSA chronology contracts remain green where touched.
+
+Run relevant focused R3 provider/observer/frontend/turn suites, full `npm test`, changed JS/MJS syntax checks and `git diff --check`.
+
+Do not create a migration merely for player thought. If the implementation appears to require schema change, STOP and report why rather than adding one silently.
+
+## 5. TEST-only deployment
+
+Deploy only affected R3 TEST artifacts from the exact reviewed source.
+
+Likely affected artifacts may include API and frontend; determine from actual diff.
+
+Hard boundaries:
+- preserve all current bindings/secrets including `R3_GAME_ACCESS_SECRET`;
+- no Production;
+- no provider/model/temperature/token/timeout tuning;
 - no migration/schema/RLS/grant change;
 - no reset work;
-- no Production;
+- no donor-parity CSA UI redesign;
+- no image/TTS implementation;
 - no owner/preserved-game mutation.
 
-If the primary root is provider first-content/stream behavior caused by the new prompt/context shape, correct only the concrete request/context defect. Do not solve it by increasing timeout or changing model.
+Record exact executable SHA and Worker version IDs.
 
-If the primary root is frontend transport/reconciliation, ensure a user-visible bounded error remains when a turn truly fails; silent return-to-enabled with no useful state is not acceptable.
-
-## 5. Focused deterministic regressions
-
-Add/update only tests needed for the proven lifecycle. At minimum cover:
-1. successful CSA APPLY followed immediately by ordinary free input creates the next expected turn with no `csa_operation`;
-2. post-APPLY ordinary turn preserves exact literal action;
-3. post-APPLY next-turn reservation is not blocked by the committed CSA job;
-4. if transport fails, reconciliation reports processing/failed/committed/not-sent truthfully rather than silently appearing successful;
-5. after successful CSA operation terminal and `state.busy` clearing, CHANGE/REMOVE controls are enabled again;
-6. operation controls remain disabled while genuinely busy to prevent duplicates;
-7. APPLY itself remains exactly one streamed committed turn;
-8. failed CSA Story remains atomic and cannot half-apply state;
-9. earlier choice dispatch and player-agency/navigation contracts remain green where touched.
-
-Prefer a regression that exercises the same store shape used by deployed Supabase behavior if the root lives at store/job parity. Do not add a migration merely to make a test convenient.
-
-Run:
-- focused R3 CSA/turn/frontend/transport tests;
-- full `npm test`;
-- changed JS/MJS syntax checks;
-- `git diff --check`.
-
-## 6. TEST-only deployment
-
-If source changes, deploy only affected R3 TEST artifact(s) from the exact reviewed source.
-
-Preserve all existing bindings/secrets including `R3_GAME_ACCESS_SECRET`.
-Do not print, rotate, recreate, request, or transfer secrets.
-No Production.
-No provider/model/config tuning.
-No migration/schema/reset changes.
-
-Record exact source SHA and Worker version IDs.
-
-## 7. Mandatory bare-public acceptance after the fix
+## 6. Mandatory bare-public live acceptance
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
 No `?api=` override, no preseeded storage, no direct-API gameplay substitute for acceptance.
+Use fresh disposable TEST games only.
 
-### Gate 1 — reproduce the failed sequence
-Fresh desktop disposable game:
-1. Setup -> Opening;
-2. ordinary Turn 1;
-3. visible CSA APPLY -> exactly one streamed Turn 2;
-4. immediately submit unrelated free input `윤민아 대리를 따라 복도로 나가 괜찮은지 조용히 확인한다.`;
-5. require actual POST/SSE, visible Story stream and exactly one committed Turn 3;
-6. require exact action/target/movement/social intent preservation;
-7. require no stale `csa_operation` on Turn 3;
-8. require no silent stall/errorless return-to-ready.
+### Fixture A — first-arrival Opening across rank extremes
 
-### Gate 2 — CSA control lifecycle
-After APPLY commit:
-- CHANGE/REMOVE controls must become usable once the turn is terminal and busy clears;
-- no duplicate operation submission;
-- mobile controls must also remain reachable.
+Create at least two independent fresh games using materially different positions, including a low/junior position and a high/senior position available in the current catalog.
 
-### Gate 3 — resume the original CSA acceptance
-Only after Gates 1–2 pass, continue the original unfinished coverage:
-- visible CHANGE = one streamed committed turn;
-- one unrelated ordinary continuation;
-- visible REMOVE = one streamed committed turn;
-- refresh/re-entry preserves chronology and active rule state;
-- at least two visible choice clicks across the campaign;
-- one movement/social action;
-- one refusal or explicit self-state action;
-- inspect choices for diversity and no CSA tutorial/escalation collapse;
-- inspect Mind Monitor/private state: compliance alone must not create affection/comfort/desire/arousal/attraction/excitement/trust/liking;
-- desktop + approximately 390x844 mobile coverage;
-- total 8–12 committed turns across fresh disposable fixtures.
+For each:
+- Setup -> Opening through visible UI;
+- Story visibly establishes first day/first arrival/first appointment at this company while preserving the selected rank and department;
+- no invented old tenure or prior company relationship;
+- private app is unfamiliar/private and optional;
+- no voluntary player action is completed before first input;
+- four choices are visibly different in intent;
+- dedicated player inner-thought surface is visible and natural first-person Korean;
+- any visible NPC MM is natural first-person and character-specific rather than a mood label/analyst sentence.
 
-Inspect complete Story text and committed context, not only DOM shape.
+Qualitatively inspect screenshots for both openings.
 
-## 8. GREEN criteria
+### Fixture B — 8–10-turn ordinary narrative-quality campaign
+
+Use a fresh game and commit at least 8 ordinary turns after Opening, mixing:
+- free input and at least three visible choice clicks;
+- direct NPC conversation and follow-up;
+- movement/location change;
+- work-context action;
+- non-work/social action;
+- one refusal/change-of-mind or explicit self-state action.
+
+For every sampled committed turn inspect:
+- exact player literal remains the narrative center;
+- player inner thought is present when appropriate, first-person, non-duplicative, and does not invent a different action/decision;
+- relevant NPC MM surface/subconscious is first-person, character-specific and not copied dialogue or one-word labels;
+- no unsupported positive private emotion from CSA compliance;
+- four choices remain exact literals and are meaningfully different, not near-paraphrases or all work/CSA escalation;
+- elapsed time is plausible for the described action and displayed game time advances over the campaign;
+- location/presence/scene remain coherent;
+- Story streaming remains visible and non-blocking.
+
+Refresh/re-enter mid-campaign and again at the end:
+- chronology remains intact;
+- latest player thought and NPC MM reconstruct from committed server context;
+- displayed time matches committed state;
+- choices remain usable.
+
+### Fixture C — mobile presentation
+
+At approximately 390x844 on a fresh or continued disposable game verify:
+- player-thought card is readable and does not cover Story/actions;
+- NPC MM remains reachable/readable;
+- four choice controls and direct input remain reachable;
+- no horizontal overflow or blocking overlay regression;
+- no console/page/network errors.
+
+## 7. GREEN criteria
 
 GREEN only if:
-- exact post-APPLY Turn 3 blocker has a proven root cause and is fixed;
-- unrelated post-CSA free input commits normally with visible streaming;
-- no stale operation leaks into ordinary turn payload/context;
-- CSA operation controls recover from busy state correctly;
-- APPLY/CHANGE/REMOVE each remain exactly one chronological committed turn;
-- state transitions remain atomic;
-- unrelated turns remain player-action-first instead of CSA tutorial/demo loops;
-- choices remain meaningfully diverse;
-- compliance alone does not produce unsupported positive private emotion;
-- refresh/re-entry coherent;
-- agency/navigation/choice-dispatch remain healthy;
-- no silent blocking error path;
-- no forbidden Production/provider-model/migration/schema/reset/secret work.
+- fresh low-rank and high-rank games both visibly begin as first arrival/first day while preserving selected role;
+- Opening leaves the player's first action unchosen and app use optional;
+- dedicated player inner thought is visible, committed, refresh-safe and agency-safe;
+- relevant NPC MM is natural first-person, character-specific, non-label prose and locally fail-open;
+- four choices are exact Story literals and qualitatively meaningfully diverse across sampled turns;
+- normal multi-turn play advances canonical time plausibly rather than remaining frozen;
+- agency/navigation/choice dispatch/CSA chronology remain healthy;
+- desktop/mobile rendering is usable;
+- no blocking loader, fallback, uncaught console error or required network failure;
+- no forbidden Production/provider-model/migration/schema/reset/CSA-UI/image/TTS work occurred.
 
 Do NOT claim owner-ready after this task.
+
+## 8. Remaining owner-remediation phases after this cut
+
+Do not implement these here:
+1. high-parity Company donor CSA UI and draft/unsaved-change behavior;
+2. approved-media image projection + character-aware server TTS;
+3. deployed same-game reset integration failure;
+4. timeline/current-scene presentation residue;
+5. final holistic owner-style long-play acceptance.
 
 ## 9. Completion report
 
 Post to Issue #68:
-- primary root classification A–G with exact evidence;
-- failed request/job/SSE/context evidence before fix;
-- exact changed files/source SHA;
+- exact audited gaps and changed files;
+- executable source SHA;
 - focused/full tests actually run;
-- deployed TEST Worker version IDs;
-- disposable fixture IDs;
-- APPLY -> unrelated Turn 3 proof;
-- CSA control re-enable proof;
-- CHANGE/REMOVE proof;
-- refresh/re-entry proof;
-- anti-hijack choice-diversity findings;
-- private-emotion findings;
-- desktop/mobile console/network findings;
-- remaining objective defects.
+- TEST API/frontend version IDs;
+- Fixture A game IDs/selected rank evidence and Opening qualitative findings;
+- Fixture B game ID and turn-by-turn sampled literals/Story/player-thought/MM/choices/time findings;
+- refresh/re-entry evidence;
+- mobile screenshot/controls findings;
+- console/network findings;
+- any remaining objective defect.
 
-Then overwrite this SAME file to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK yourself.
-
-## 10. Remaining owner-remediation phases after this cut
-
-Do not implement these inside this task:
-1. first-arrival Opening motivation + player inner thought + natural character-specific first-person Mind Monitor + broader choice diversity/time progression;
-2. high-parity Company donor CSA UI;
-3. approved-media image projection + character-aware server TTS;
-4. deployed same-game reset integration failure;
-5. timeline/current-scene UI residue;
-6. final holistic owner-style long-play acceptance.
-
-## 11. Watcher terminal evidence
-
-Result: GREEN for this bounded cut; owner-ready is not claimed.
-
-- Primary root classification: A (UI dispatch/control/overlay/focus prevented POST). On preserved failed fixture `c7ef0a23-0513-44c0-ab6c-7f02711487b9`, the post-APPLY unrelated action did not emit a click/submit network request. Hit-testing the submit center returned `#csa-app-overlay` (`role=dialog`) over `#submit-action`; there was no POST, no SSE, and no Turn 3 job. The visible input remained and no useful error was shown. No retry was performed.
-- Exact source correction: `frontend-r3/csa.js` hides the CSA overlay before dispatching an operation; `frontend-r3/app.js` calls `csaUi.sync()` after `state.busy` clears. Regression coverage was added in `test/r3-frontend-contract.test.mjs`.
-- Source commit: `cbb4f3581e692e67e7849591bee280e967e99b7f` (pushed to `origin/main`).
-- TEST frontend deployment: `gamebuilder-company-r3` version `28ff4453-962a-4d2e-bb95-611c76329b1b`. API remained accepted version `c8c0b390-db3e-45cf-900d-70a91cbab231`.
-- Fresh bare-public disposable fixture: `be06c9f2-d08c-47c4-803d-c53e07536c2a`. Preserved failed fixture was not modified.
-- Gate 1: Opening Turn 0; ordinary free-input Turn 1; visible APPLY produced exactly one streamed committed Turn 2; the unrelated exact literal `윤민아 대리를 따라 복도로 나가 괜찮은지 조용히 확인한다.` produced an actual POST/SSE and committed Turn 3 in about 15.6 seconds with no `csa_operation`, visible Story, cleared input, and enabled submit control. The request used the ordinary path and preserved the literal action.
-- Gate 2: after the APPLY terminal, CHANGE and REMOVE were reachable and enabled after busy cleared. CHANGE produced exactly one streamed committed Turn 4; the CSA app reopened with the active card controls usable.
-- Gate 3: visible choice Turn 5, REMOVE produced exactly one streamed committed Turn 6, refresh/re-entry restored Turn 0 through Turn 6 and active rule count 0 with zero active effect cards, then visible choices continued through Turns 7 and 8. An explicit player self-state free input committed Turn 9 with the exact literal preserved. This provides 10 chronological turns (Turn 0 through Turn 9), two-plus visible choice clicks, movement/social interaction, and explicit self-state agency.
-- Story/choice findings: post-operation Story remained workplace/social and supplied four distinct choices; no CSA tutorial/escalation collapse was observed. Mind Monitor after the sequence showed neutral/private text such as `차분함` and `실용적`, with no affection, comfort, desire, arousal, attraction, excitement, trust, or liking claim caused by compliance alone.
-- Mobile: with a temporary 390x844 viewport, the fresh DOM exposed four enabled choice buttons plus visible/enabled direct-input, execute, and CSA-app controls. The viewport override was reset before completion.
-- Diagnostics: browser console error/warn logs were empty after the live sequence. Gate 1 captured HTTP 200 `text/event-stream` for the ordinary Turn 3 request; client abort after terminal SSE was the expected stream cleanup. No stale CSA operation was present on the ordinary request.
-- Deterministic validation: focused suite 54/54 PASS; full `npm.cmd test` 507/507 PASS; changed JS/MJS syntax checks PASS; `git diff --check` PASS.
-- Forbidden operations not performed: Production, provider/model/config tuning, timeout changes, migration/schema/RLS/grant changes, reset, secret changes, and owner/preserved-game mutation.
-- Remaining objective defects for this cut: none observed. Further owner-remediation phases remain explicitly out of scope in section 10.
+Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK yourself.
