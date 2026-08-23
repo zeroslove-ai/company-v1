@@ -10,6 +10,8 @@ const setup = await readFile(new URL('../frontend-r3/setup.js', import.meta.url)
 const map = await readFile(new URL('../frontend-r3/company-map.js', import.meta.url), 'utf8');
 const shell = await readFile(new URL('../frontend-r3/hospital-shell.css', import.meta.url), 'utf8');
 
+const { resolveR3ApiBase } = await import('../frontend-r3/r3-config.js');
+
 test('R3 frontend sends exact literal input through one server turn endpoint', () => {
   assert.match(app, /literal_action: literalAction/);
   assert.match(app, /choice-list/);
@@ -42,6 +44,15 @@ test('R3 boot fallback is dismissed after boot and API origin survives game URL 
   assert.match(app, /context\.job\?\.status === 'processing'/);
   assert.match(app, /r3_stream_reconnect_required/);
   assert.doesNotMatch(app, /replaceState\(null, '', `\?game_id=/);
+});
+
+test('R3 public frontend resolves its split TEST API origin without overriding explicit api query binding', () => {
+  assert.equal(
+    resolveR3ApiBase({ protocol: 'https:', hostname: 'gamebuilder-company-r3.zeroslove.workers.dev' }),
+    'https://game-proxy-company-r3.zeroslove.workers.dev/api/r3'
+  );
+  assert.equal(resolveR3ApiBase({ protocol: 'http:', hostname: 'localhost' }), '/api/r3');
+  assert.match(app, /query\.get\('api'\) \|\| resolveR3ApiBase\(\)/);
 });
 
 test('R3 free-input submit readiness mirrors the busy and failed guards', () => {

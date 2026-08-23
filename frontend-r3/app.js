@@ -5,11 +5,12 @@ import { readSetupForm, renderSetupCatalogs, validateSetupValues } from './setup
 import { buildR3ViewModel } from './r3-view-model.js';
 import { createR3CsaUi } from './csa.js';
 import { reconcileTurnTransport } from './turn-transport.js';
+import { resolveR3ApiBase } from './r3-config.js';
 
 // R3 controller: one context load, one literal action, one server-owned SSE
 // turn. Product rendering lives in the transplanted donor-style modules above.
 const query = new URLSearchParams(location.search);
-const client = createR3Client(query.get('api') || '/api/r3');
+const client = createR3Client(query.get('api') || resolveR3ApiBase());
 const state = { gameId: query.get('game_id'), context: null, catalogs: null, busy: false, feedbackBusy: false };
 const sidecarState = { ttsEnabled: false };
 const RECOVERY_POLL_MS = 1500;
