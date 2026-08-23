@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-same-game-reset-deployed-integration-v1
 Mode: TRACE DEPLOYED SAME-GAME RESET BOUNDARY -> MINIMAL FIX -> DEPLOY AFFECTED TEST ARTIFACTS -> BARE-PUBLIC RESET ACCEPTANCE
-Updated: 2026-08-23 22:46 KST
+Updated: 2026-08-23 23:24 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5386310717`
 Operator review: Issue #68 comment `5386362005`
@@ -268,3 +268,17 @@ Post one terminal report to Issue #68 with:
 - remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not generate the next task.
+
+## 11. Terminal evidence — BLOCKED
+
+- Terminal status: `BLOCKED` at boundary A (visible reset control / confirmation handling).
+- Source start/final main SHA: `92de3780321f8b03c93a38f2ea286082c8595d5f` / unchanged.
+- CURRENT_TASK blob before terminal update: `64868973e89f7ed8cad366a8ff5eb88a2c71faaf`.
+- Changed source files: none. TEST deployment: none. Migration: none. Production: untouched.
+- Fresh disposable TEST fixture: `3e1522ab-65ac-40f8-91f2-617a9929d3bc`.
+- Opening completed at visible Turn 0 with story, four choices, free input, and Mind Monitor.
+- Three ordinary turns completed visibly at Turn 1, Turn 2, and Turn 3 using the intended literals:
+  `오늘의 업무와 팀을 확인하며 자리에 앉는다.`, `팀장님께 오전 업무 배정을 묻는다.`, `브랜드전략팀 회의실 위치를 확인한다.`
+- The visible `초기화` control was clicked exactly once. The native confirmation dialog then blocked the in-app browser harness; the dialog API, DOM read, and keyboard dismissal each timed out. Therefore no reliable B–H evidence exists and no second reset attempt was made.
+- Before-reset readback: same game URL carried `game_id=3e1522ab-65ac-40f8-91f2-617a9929d3bc`; visible state was Turn 3 and not loading. After-reset server/readback, reset SSE/result, refresh/re-entry, and post-reset Turn 1 are unverified.
+- Objective result: reset behavior is not judged as a runtime defect because the harness could not complete the confirmation interaction. Re-run requires a functioning native-confirm control path; do not retry-until-pass in this run.
