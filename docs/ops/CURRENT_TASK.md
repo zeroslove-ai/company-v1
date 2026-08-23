@@ -1,312 +1,359 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-csa-active-rule-preset-change-v1
-Mode: FREEZE R3 CSA CHRONOLOGY -> RESTORE ACTIVE-RULE PRESET CHANGE UX -> FRONTEND TEST DEPLOY -> BARE-PUBLIC APPLY/CHANGE/REMOVE ACCEPTANCE
-Updated: 2026-08-24 02:36 KST
+Status: READY
+Task ID: company-r3-final-holistic-owner-style-long-play-v2
+Mode: SOURCE-FROZEN FINAL PRODUCT ACCEPTANCE -> NEW CLEAN OWNER-STYLE LONG PLAY -> CROSS-FEATURE EXIT MATRIX
+Updated: 2026-08-24 02:37 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5387276200`
-Operator review: Issue #68 comment `5387302655`
+Previous terminal: Issue #68 comment `5387491499`
+Previous holistic failure: Issue #68 comment `5387276200`
+Operator review: Issue #68 comment `5387503664`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery branch. Work on `main` only.
 
-## 0. Accepted baseline and failure fixture
+## 0. Source-frozen baseline
 
-Current main before registration:
-- `99296e1b742e935c3f673014d41a16801a7957b5`
+Accepted executable/source for this holistic retest:
+- `ef52695668ab8548ed89b2eeb68c21ea95d836ba`
 
-Accepted executable/source before this repair:
-- `79a9921b0248912bd8453a26c83443f8da481cb4`
+Current main before this registration:
+- `10181f521b1ec5159f978ee9c0a9effff09f0e2e`
+- direct docs-only descendant of `ef526956...`.
 
-`99296e1...` is a docs-only descendant of the accepted executable. There is no later executable drift.
-
-Accepted TEST artifacts before this repair:
+Accepted TEST artifacts:
 - API `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`
-- Frontend `gamebuilder-company-r3` version `cac2033d-aa56-4a99-aa02-92c8087222d3`
-- bare public frontend: `https://gamebuilder-company-r3.zeroslove.workers.dev`
+- Frontend `gamebuilder-company-r3` version `71416b75-9cca-45ee-9b32-7cf209f16395`
+- Bare public frontend: `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Preserved final-holistic failure fixture — READ ONLY, never reset/revise/retry/mutate:
-- `f84aa0f0-6658-41a2-8fed-c307d4d2e219`
-- stopped at committed Turn 10 after chronological CSA APPLY at Turn 9 plus one unrelated ordinary Turn 10.
+Accepted validation at this baseline:
+- focused CSA/UI: 22/22 PASS;
+- full `npm.cmd test`: 531/531 PASS;
+- changed JS/MJS syntax: PASS;
+- `git diff --check`: PASS.
 
-Owner game — READ ONLY:
-- `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`
+Preserved games — READ ONLY, never reset/revise/retry/mutate:
+- owner manual game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`;
+- failed holistic V1 fixture `f84aa0f0-6658-41a2-8fed-c307d4d2e219`;
+- CSA repair acceptance fixture `f1285f4c-4719-4dc2-a18d-9fa5ad86d40c`.
 
-## 1. Exact proven product defect
+Create entirely NEW disposable TEST games for this task.
+Do not resume any prior holistic campaign.
 
-Final holistic acceptance `company-r3-final-holistic-owner-style-long-play-v1` stopped `FAILED_PRODUCT` at the first decisive boundary.
+## 1. Why V2 exists
 
-Observed live behavior after APPLY:
-- active CSA rule card exposed only one visible action: `해제`;
-- its `대상 범위` select exposed exactly one selected option, `여성 직원`;
-- there was no visible CHANGE/EDIT/preset-replacement path;
-- no-op re-selection was correctly not counted as CHANGE;
-- no hidden writer, direct API, DOM mutation, retry, or bypass was used.
+Holistic V1 was source-frozen and stopped correctly at the first decisive product failure: an active CSA rule with fixed scope exposed only `해제` and no meaningful CHANGE path.
 
-Source boundary at accepted executable:
-- `runtime-r3/domain/csa.js::applyR3Csa()` already supports `operation: 'update'` with an existing rule `id` and a different valid `template_id`;
-- update preserves the same rule id and rewrites its template/content/strength/scopes in one canonical CSA operation;
-- `frontend-r3/csa.js::activeCard()` exposes `update` only through subject/counterparty scope changes;
-- when a preset has only one allowed scope, there is no meaningful user-visible CHANGE affordance.
+The isolated repair `company-r3-csa-active-rule-preset-change-v1` is now operator-accepted GREEN:
+- active rules expose a bounded replacement-preset CHANGE affordance;
+- CHANGE stages locally as one pending draft;
+- Revert performs zero gameplay requests;
+- Apply emits one canonical `operation:'update'` turn;
+- the same rule id survives while the template changes;
+- duplicate/current/no-op/custom/batch/deactivate+activate workarounds remain absent;
+- bare-public APPLY -> CHANGE -> unrelated -> REMOVE -> unrelated passed;
+- API/runtime CSA chronology was unchanged.
 
-Therefore this is a frontend product/UX defect, not a missing CSA runtime capability.
+Therefore V2 must restart the complete holistic matrix from new clean campaigns and determine whether the whole product is now ready for the owner's final manual playtest.
 
-## 2. Frozen contracts — do not reopen
+This task is ACCEPTANCE ONLY.
 
-Freeze all previously accepted behavior:
-- every APPLY/CHANGE/REMOVE is one chronological normal Story turn;
-- local draft changes perform zero gameplay requests/writes before explicit Apply;
-- exactly one pending CSA operation at a time;
-- `frontend-r3/app.js -> submit() -> client.turn() -> SSE -> commit/reconciliation` remains the sole CSA gameplay transport;
-- no direct legacy `/csa`, `/api/app-state`, `/api/app-validate`, or batch transaction;
-- ordinary later turns carry no stale `csa_operation`;
-- CSA compliance cannot manufacture affection/comfort/consent/desire/romance/trust/personality obedience;
-- current nine-preset R3 catalog only; no custom/freeform authoring;
-- all accepted agency/navigation/choice/time/thought/MM/reset/media/TTS/timeline behavior remains frozen.
+## 2. Hard freeze / fail-fast rules
 
-Do not change:
-- `runtime-r3/**` unless pre-edit inspection unexpectedly proves the existing update contract is not actually sufficient. If that happens, STOP for operator review before broadening scope.
-- API route/turn semantics;
-- `content/csa_presets.json` semantics;
-- DB/schema/RPC/migration/RLS/grants;
-- provider/model/config/secrets;
-- Production;
-- preserved fixtures/owner game.
+Do not edit runtime/frontend/test/content/config/provider code during this task.
+Do not commit product/source changes.
+Do not deploy merely to manufacture a pass.
+Do not retry or regenerate a Story/turn to manufacture a pass.
+Do not change provider/model/temperature/token/timeout/config/secrets.
+Do not change DB schema/RPC/migration/RLS/grants.
+Do not access Production.
+Do not mutate any preserved game listed above.
+Do not use direct gameplay API calls as a substitute for visible product actions.
+Do not use `?api=` override, storage preseed, DOM mutation, or hidden writer to bypass UI.
 
-Expected implementation boundary is frontend-only.
+If a decisive product failure occurs:
+1. preserve that fresh disposable fixture at the failure turn;
+2. capture exact literal action, visible Story, committed/readback state, relevant DOM/network evidence;
+3. STOP `FAILED_PRODUCT` / `WAITING_REVIEW` immediately;
+4. do not patch it and do not continue collecting unrelated failures.
 
-## 3. Mandatory pre-edit trace
+If the deployed artifact lineage does not match the accepted versions, STOP `BLOCKED_DEPLOYMENT_DRIFT` before product play. Do not silently redeploy from an uncertain head.
 
-Before editing:
-1. inspect `frontend-r3/csa.js`, `frontend-r3/csa-draft.js`, relevant CSA frontend tests, and `runtime-r3/domain/csa.js` read-only;
-2. prove the existing update operation accepts a replacement `template_id` on the same active rule id;
-3. prove `stageCsaOperation()` treats repeated edits to the same `update:<rule id>` as one pending operation rather than a second distinct draft;
-4. inspect the nine catalog items and active rule rendering behavior;
-5. record why the failing fixture's exercised rule had no meaningful scope-only change.
+## 3. Frozen product contracts under final review
 
-Do not mutate the preserved fixture during this trace.
+Evaluate these together as one game:
 
-## 4. Product correction — active rule preset replacement
+### Opening / identity
+- every new game begins on the player's first day / first arrival / first appointment regardless selected rank;
+- selected department/rank remains authoritative, including executive/senior and low/junior profiles;
+- private CSA app discovery is optional/curious/tempting, never a forced quest or player action authored by Story;
+- player inner thought is visible natural first-person Korean and does not invent player decisions/outcomes;
+- relevant NPC Mind Monitor is character-specific natural first-person Korean.
 
-Add a bounded, visible CHANGE path to each active CSA rule.
+### Player agency / scene
+- exact player actor/target/action/request/refusal/change-of-mind/self-state/topic/intent remains central;
+- Story may resolve external success/refusal naturally but may not replace the attempted action with a different player action;
+- player intent is not automatic NPC consent/affection/comfort/desire/romance/trust;
+- canonical navigation/location/presence must match literal destination intent and narrated scene;
+- remote/off-scene NPC mentions must not make them present;
+- scene note must describe the current scene rather than stale old-location activity.
 
-The user must be able to replace an active rule's preset with another allowed R3 preset while retaining the existing active rule id.
+### Choices / presentation
+- current choices are Story-owned; when Story emits a supported terminal 1–4 choice block, UI exposes exactly four actionable choices;
+- no fabricated fallback/resurrected previous choices;
+- each visible choice button dispatches its exact full literal once;
+- current normal Story surface is latest/current scene only;
+- full committed chronology remains in History overlay/export, not as stale normal-surface cards.
 
-### Required UX
+### Time / continuity
+- meaningful ordinary conversation/movement/work/social beats advance time plausibly;
+- obvious frozen-time or chronology contradictions are failures;
+- refresh/re-entry reconstructs committed server truth rather than stale client cache.
 
-For an active rule card, expose an explicit control labeled naturally in Korean, e.g. `규칙 변경` / `변경할 프리셋`.
+### CSA
+- local draft/replacement edits perform zero gameplay writes before explicit Apply;
+- exactly one pending operation at a time;
+- APPLY/CHANGE/REMOVE are each exactly one chronological normal Story turn;
+- CHANGE is one `update` on the same rule id, not deactivate+activate;
+- active rule replacement uses only the bounded existing preset catalog;
+- later unrelated ordinary turns are literal-action-first and contain no stale `csa_operation`;
+- CSA institutional compliance must not mechanically create affection/comfort/consent/desire/romance/trust/personality obedience in Mind Monitor.
 
-The replacement choices must:
-- come only from the existing nine R3 catalog presets;
-- exclude the current rule's current `template_id`;
-- exclude any template already active under a different active rule id, so CHANGE cannot accidentally create duplicate active presets;
-- show catalog labels rather than raw IDs;
-- never expose custom/freeform input.
+### Media / TTS
+- approved image selection is deterministic, present-character/focal-evidence grounded, and fail-open when ambiguous;
+- TTS OFF means zero synthesis calls;
+- TTS ON sends only eligible committed canonical present-NPC dialogue through browser -> R3 API -> server `TTS_WORKER` binding;
+- narrator/player/player-inner-thought/Mind Monitor text is never synthesized as character dialogue;
+- replay/cache/stale fencing works and browser `speechSynthesis` remains absent.
 
-Do not auto-stage a replacement merely by opening the UI.
+### Existing accepted infrastructure
+- same-game reset runtime is already separately GREEN; native-confirm browser automation remains a deferred environment limitation and is not a required destructive step in this holistic run;
+- all accepted agency/navigation/reset/media/timeline/CSA behavior is frozen and may not be redesigned here.
 
-A user selection/explicit change action must stage exactly one local operation shaped as:
+## 4. Preflight — exact deployed lineage only
 
-```js
-{
-  operation: 'update',
-  id: existingRuleId,
-  template_id: replacementTemplateId,
-  subject_scope: replacementSubjectScope,
-  counterparty_scope: replacementCounterpartyScope
-}
-```
+Before gameplay:
+1. verify main is a docs-only descendant of executable `ef526956...`;
+2. verify TEST API exactly `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`;
+3. verify TEST frontend exactly `71416b75-9cca-45ee-9b32-7cf209f16395`;
+4. if versions match, perform zero deployment;
+5. run full `npm.cmd test` on the exact accepted source lineage and record result without modifying source;
+6. use only bare public `https://gamebuilder-company-r3.zeroslove.workers.dev` for gameplay.
 
-Use the replacement preset's own allowed/default scopes. Do not carry an invalid scope from the old preset into the replacement.
+If any preflight identity is uncertain, stop before play.
 
-### Pending replacement presentation
+## 5. Campaign A — executive/senior owner-style long play
 
-Once staged:
-- draft bar shows `미적용 변경 1건`;
-- active card clearly shows current -> pending replacement state, e.g. `변경 예정: <label>`;
-- preview/content/strength/category where currently displayed must correspond to the pending replacement, not lie about the committed rule;
-- scope controls must be based on the pending replacement preset;
-- subsequent subject/counterparty edits update the same `update:<rule id>` draft operation, not create a second pending operation;
-- Revert restores the exact committed original rule/preset/scopes with zero gameplay request;
-- trying to edit another distinct rule/preset while this draft is dirty must continue to be blocked by the existing one-pending-operation contract.
+Create one fresh disposable game with an executive/senior profile. Use a natural company-life sequence rather than disconnected probes.
 
-Do not claim the committed server rule changed until Apply succeeds.
+Run Opening plus at least **15 committed chronological turns** without retry/regeneration.
 
-### Apply behavior
+Across the campaign require:
+- at least 6 free-form ordinary inputs;
+- at least 4 visible choice-button clicks;
+- at least one direct named-NPC conversation and a follow-up with the same NPC/topic;
+- at least one work/context action;
+- at least one non-work/social action;
+- at least one explicit refusal/change-of-mind;
+- at least one self-state action such as wanting quiet, pausing, fatigue, or ending an interaction;
+- at least one canonical movement/scene change;
+- at least one action explicitly addressed to a named NPC.
 
-On explicit Apply:
-- close/yield overlay before Story dispatch as currently designed;
-- call `onOperation` exactly once;
-- emit one existing R3 `update` csa_operation using the same active rule id and replacement template/scopes;
-- emit deterministic natural Korean literal beginning/meaning `상식개변 변경`, using catalog labels and selected scopes rather than raw IDs where possible;
-- use the existing `submit()` / `client.turn()` / SSE / reconciliation path only;
-- exactly one Story turn commits;
-- after success draft clears/rebases from committed context;
-- reopening CSA shows the replacement preset as the active committed rule and the old template no longer active for that rule;
-- after failure/not-sent, do not claim success or auto-resubmit; preserve truthful draft/error behavior.
+For sampled actions compare:
+`literal input -> Story enactment -> committed/readback scene/state`.
 
-REMOVE remains a separate distinct pending operation. Do not combine CHANGE+REMOVE or auto-remove/activate in two turns.
+Fail immediately on actor/target/action/topic/refusal/self-state substitution or wrong canonical destination.
 
-## 5. No-op and duplicate protections
+### Choice quality
 
-Add deterministic protections:
-- selecting the same current template is impossible or produces no dirty draft;
-- replacement with a template already active under another rule is unavailable/blocked;
-- an update that results in exactly the same template + same scopes as committed state must not be presented as a meaningful CHANGE;
-- no sequential deactivate+activate implementation; CHANGE must be one `update` operation and one turn;
-- rule id must remain identical across committed CHANGE.
+Whenever current Story visibly has a supported terminal 1–4 block:
+- exactly four buttons must be available;
+- click dispatch must equal the full exact choice literal once;
+- buttons may show shortened labels but title/aria/full transport authority must remain intact;
+- sampled choices should be meaningfully distinct when the scene supports diversity rather than four near-paraphrases of the same escalation.
 
-## 6. Deterministic tests
+If Story genuinely has no supported terminal choice tail, free input must remain usable and no old/fabricated choices may appear.
 
-Add/adjust focused tests proving at minimum:
-1. active fixed-scope rule visibly exposes a meaningful preset CHANGE path;
-2. replacement list excludes current template;
-3. replacement list excludes templates active in other rule ids;
-4. staging replacement performs zero `onOperation` / zero gameplay dispatch;
-5. dirty bar = exactly one pending change;
-6. staged replacement uses existing rule id + replacement template id;
-7. replacement defaults to valid scopes from the replacement preset;
-8. changing replacement scopes rewrites the same pending update operation;
-9. Revert restores original committed rule and zero dispatch;
-10. second distinct edit remains blocked, no batch/silent replacement;
-11. Apply emits exactly one `update` operation and one Korean literal;
-12. no deactivate+activate sequence is emitted for CHANGE;
-13. successful reconciliation/reopen reflects replacement committed rule with same rule id;
-14. failure does not claim applied/auto-resubmit;
-15. REMOVE after committed CHANGE still emits exactly one deactivate;
-16. legacy/direct/batch/custom paths remain absent;
-17. old CSA chronology/atomicity/duplicate/post-CSA contracts remain GREEN;
-18. frozen agency/navigation/choice/reset/media/timeline frontend regressions remain GREEN.
+### Time / scene sampling
 
-Run:
-- focused CSA draft/UI tests;
-- full `npm.cmd test`;
-- changed JS/MJS `node --check`;
-- `git diff --check`.
+Read visible/server projection at multiple points after conversation, work, movement and social beats:
+- time should usually advance positively;
+- location/presence must match current narrative;
+- off-scene mentions do not create presence;
+- scene note should update coherently.
 
-Do not weaken tests that encode one-operation chronology or truthful local-draft behavior.
+Do not require a fixed minutes-per-turn constant.
 
-## 7. TEST deployment
+## 6. CSA sequence inside Campaign A — repaired CHANGE must be exercised
 
-Expected deployment: frontend only.
+After several ordinary turns, use the visible high-parity CSA app.
 
-If only frontend/test code changes:
-- keep API exactly at `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`;
-- deploy exact source to TEST `gamebuilder-company-r3`;
-- record new frontend Worker version.
+### A. Five-tab/draft behavior
+Open and inspect Home / Player / NPC / CSA / Manual.
+Then:
+- stage a local CSA draft;
+- prove no gameplay request/turn/revision change caused by staging itself;
+- Revert once and prove zero gameplay request and committed state unchanged;
+- one pending operation only.
 
-Do not redeploy API merely for symmetry.
-No Production.
-No migration.
-No provider/model/config/secret changes.
+Native dirty-close confirmation is not a required live gate if the browser automation cannot accept the native dialog. Record that limitation separately; do not treat it as a runtime failure and do not bypass it by changing product source.
 
-## 8. Mandatory bare-public acceptance
+### B. Chronological visible sequence
+Perform in this exact broad order, using normal visible product controls:
+1. APPLY one representative preset;
+2. one unrelated ordinary company/social action;
+3. CHANGE the same active rule to a **different preset** using the repaired active-rule replacement UI;
+4. one unrelated ordinary action;
+5. REMOVE the changed rule;
+6. one final unrelated ordinary action.
 
-Use only:
-`https://gamebuilder-company-r3.zeroslove.workers.dev`
+Require:
+- APPLY = exactly one `/turn` and one `activate` operation;
+- CHANGE staging before Apply = zero gameplay request;
+- CHANGE = exactly one `/turn`, one `operation:'update'`, same rule id, different template id;
+- reopen/readback after CHANGE shows the replacement committed under that same rule id;
+- REMOVE = exactly one `/turn`, one `deactivate`;
+- reopen/readback after REMOVE shows no active instance of that rule;
+- ordinary turns surrounding CSA have no stale `csa_operation` and remain literal-action-first;
+- no deactivate+activate CHANGE workaround;
+- no duplicate/current/no-op/custom preset path;
+- Mind Monitor does not turn rule compliance into automatic affection/comfort/consent/desire/romance/trust.
 
-No `?api=` override.
-No storage preseed.
-No direct gameplay API substitute.
-Fresh disposable TEST game only.
-Do not mutate `f84aa0f0-6658-41a2-8fed-c307d4d2e219` or owner game.
+## 7. Media / TTS / History in the same Campaign A
 
-Run one coherent visible sequence:
+Reach at least one committed scene with a grounded present registered heroine and eligible dialogue.
 
-1. Setup -> Opening -> enough ordinary play to open CSA naturally.
-2. APPLY one preset through visible draft/apply UX.
-   - prove exactly one `/turn` POST;
-   - exactly one csa_operation activate;
-   - exactly one committed chronological turn.
-3. Submit one unrelated ordinary Korean action.
-   - prove no stale csa_operation;
-   - literal-action-first Story;
-   - one ordinary committed turn.
-4. Open CSA active rule.
-   - visible meaningful CHANGE/preset replacement path must exist even if current rule scopes are fixed;
-   - stage replacement;
-   - before Apply: zero gameplay POST, committed rule unchanged, `미적용 변경 1건` visible;
-   - Revert once and prove committed rule unchanged;
-   - stage replacement again.
-5. Apply CHANGE once.
-   - exactly one `/turn` POST;
-   - exactly one `operation:'update'`;
-   - same rule id;
-   - different replacement template_id;
-   - one chronological Story turn;
-   - reopen/refresh shows replacement committed and original replaced.
-6. Submit another unrelated ordinary Korean action.
-   - zero stale csa_operation;
-   - exact ordinary literal remains central.
-7. REMOVE the changed rule through visible UI.
-   - exactly one `/turn` POST;
-   - exactly one deactivate;
-   - one chronological Story turn;
-   - reopen/refresh shows rule inactive.
-8. Submit one final ordinary action.
-   - removed rule does not hijack the turn without independent cause.
+### Image
+Require:
+- chosen image character matches committed grounded focal/relevant present heroine;
+- returned image is approved for that exact character;
+- ambiguous/no-grounded scene fails open rather than choosing arbitrarily;
+- stale image response cannot overwrite later committed projection.
 
-Also inspect approximately 390x844:
-- replacement selector/control, pending preview, Revert, Apply, Remove reachable;
-- no horizontal overflow/blocking overlay;
-- after Apply/close normal Story/choices/input remain usable.
+### TTS
+Before enabling:
+- capture zero `/media/tts` synthesis calls while TTS is OFF.
 
-No forced failure testing required live; deterministic tests cover failure path.
+Then enable visible TTS on an eligible committed NPC-dialogue turn:
+- only validated canonical present-NPC dialogue is sent;
+- request goes through R3 `/media/tts`, not direct browser-to-worker and not browser speech synthesis;
+- audio element receives returned URL;
+- narrator/player/private thought/Mind Monitor text is absent from synthesis payloads;
+- Replay of current cached audio creates zero additional synthesis calls where the accepted cache contract applies;
+- next committed turn fences stale prior audio.
 
-## 9. GREEN definition
+### Current scene / History
+At multiple points, including after CSA and after refresh:
+- normal `#story-history` is empty/non-authoritative;
+- `#current-story` shows only current/latest Story;
+- History overlay contains Opening + every committed turn exactly once in canonical order;
+- closing History returns to unchanged current scene;
+- History opening/closing performs no gameplay mutation.
 
-GREEN only if:
-- a fixed-scope active rule has a real visible CHANGE affordance;
-- CHANGE can replace that active rule with another bounded preset;
-- CHANGE remains one local draft + one chronological `update` Story turn;
-- same active rule id persists across CHANGE;
-- no duplicate template/no-op/batch/deactivate+activate workaround;
-- Revert and one-pending-operation rules remain truthful;
-- APPLY -> unrelated -> CHANGE -> unrelated -> REMOVE -> unrelated sequence is clean with no stale csa_operation;
-- frontend-only tests/full suite/mobile/live acceptance pass;
-- accepted API/runtime semantics remain unchanged.
+## 8. Mid-campaign refresh / feedback
 
-Do NOT claim owner-ready on completion.
+At approximately Turn 8–11, refresh/re-enter the same Campaign A game.
+Require coherent reconstruction of:
+- committed turn;
+- current Story;
+- location/presence/time;
+- current choices;
+- player inner thought;
+- Mind Monitor;
+- CSA state;
+- current media eligibility/state;
+- complete History.
 
-If GREEN, stop at WAITING_REVIEW. The next operator task will restart the holistic owner-style long-play from a NEW clean campaign; do not resume the preserved failed holistic fixture.
+No Opening/early turn cards may reappear in normal current scene.
+Continue for at least 3 further committed turns after refresh.
 
-If the pre-edit trace proves frontend-only replacement cannot be expressed with the existing canonical `update` contract, STOP `BLOCKED_CONTRACT` before changing runtime/API and report the exact mismatch.
+If visible feedback/revision control is enabled and usable in the accepted product state, perform one bounded feedback revision of the latest ordinary turn and require:
+- revision replaces the latest current Story without advancing turn number;
+- old/new revisions are not duplicated on normal current surface;
+- subsequent ordinary turn continues from revised committed truth.
 
-## 10. Terminal protocol
+If feedback is intentionally unavailable/disabled, record that exact product state and continue. Do not bypass via direct API.
 
-At completion:
-- record source SHA and exact changed files;
-- record focused/full/syntax/diff results;
-- record TEST frontend version and frozen API version;
-- record fresh disposable fixture only;
-- record APPLY/CHANGE/REMOVE committed turn numbers, operation payload identity, rule id/template transitions, network counts, Revert/no-network evidence, post-CSA ordinary no-stale evidence, and mobile evidence;
-- overwrite this SAME `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW` in place;
-- post terminal report to Issue #68;
-- stop.
+## 9. Campaign B — independent low/junior smoke
 
-Do not create/start the next task.
+Create a second fresh disposable game with a low/junior profile.
 
-## 11. Terminal handoff — frontend repair GREEN, owner review required
+Run Opening + at least **4 ordinary committed turns** without retry/regeneration, including:
+- one visible choice click;
+- one free-form NPC conversation;
+- one movement or scene/context change;
+- one refusal/change-of-mind/self-directed action.
 
-- Starting HEAD: `68c1a465c0eb5c6454724adfe82c577d9defcd63`
-- Final source HEAD: `ef52695668ab8548ed89b2eeb68c21ea95d836ba`
-- Branch: `main`, pushed to `origin/main`.
-- Reviewed executable/source baseline remained `79a9921b0248912bd8453a26c83443f8da481cb4`; the repair is frontend-only.
-- Changed files: `frontend-r3/csa.js`, `frontend-r3/csa-entry.css`, `test/r3-csa-draft.test.mjs`, `test/r3-frontend-contract.test.mjs`.
-- Focused tests: 22 passed (`test/r3-csa-draft.test.mjs`, `test/r3-frontend-contract.test.mjs`).
-- Full `npm.cmd test`: 531 passed, 0 failed.
-- Syntax: `node --check` passed for both changed frontend modules and both changed MJS tests.
-- `git diff --check`: passed.
-- TEST frontend deployment: `gamebuilder-company-r3` version `71416b75-9cca-45ee-9b32-7cf209f16395`.
-- Frozen API unchanged: `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`.
-- Fresh disposable live fixture: `f1285f4c-4719-4dc2-a18d-9fa5ad86d40c`; preserved failed fixture and owner game were not opened, reset, retried, or mutated.
-- Live sequence on bare public URL: APPLY Turn 1 (`activate`, one `/turn` POST); CHANGE Turn 2 (`update`, one `/turn` POST, same rule id `r3_csa_1`, template `no_panties_under_work_clothes` → `no_bra_under_work_clothes`); unrelated Turn 3 (one ordinary `/turn` POST with no `csa_operation`); REMOVE Turn 4 (`deactivate`, one `/turn` POST); final unrelated Turn 5 (one ordinary `/turn` POST with no `csa_operation`).
-- Reopen after CHANGE showed the replacement under the same active rule id; reopen after REMOVE showed `현재 활성 규칙 0개`.
-- CHANGE staging showed current → pending content/strength/category/scopes and exactly one pending change; Revert produced zero gameplay requests and restored the committed rule.
-- Live POST literals were Korean natural labels, including `상식개변 변경: 회사 여성 직원은 근무 중 브래지어 없이 근무복을 입어야 한다. · 대상 여성 직원`; no direct gameplay API substitute was used.
-- Mobile check at 390×844: CSA dialog, replacement controls, Revert/Apply/Remove surfaces were reachable; `innerWidth=390` and `scrollWidth=390` (no horizontal overflow); viewport override was restored.
-- Evidence: `.tmp/evidence-company-r3-csa-active-rule-preset-change-v1.md`.
-- No Production access, DB writes, migrations, provider/model/config/secret changes, API deployment, retry-until-pass, or preserved-game mutation.
+Require:
+- first-arrival framing;
+- selected low/junior rank and department preserved;
+- exact literal agency/navigation;
+- four choices where supported;
+- natural player thought and character-specific Mind Monitor where available;
+- time progression;
+- latest-only normal Story;
+- complete History overlay;
+- no executive-profile-specific assumptions leaking into the junior game.
 
-Stop state: `WAITING_REVIEW`. Do not claim owner-ready or start the next task; the next operator review must restart the holistic owner-style long-play from a new clean campaign.
+## 10. Mobile and interaction quality
+
+On substantive Campaign A progress, inspect approximately 390x844 and a normal/wider desktop viewport.
+
+Require:
+- no horizontal overflow or blocking overlay;
+- Story remains readable while streaming and after commit;
+- no full-screen loading layer obscures Story streaming;
+- current image/player thought/Mind Monitor/choices/direct input/CSA/TTS/History controls remain reachable when eligible;
+- repaired CSA replacement selector + pending preview + Revert + Apply + Remove remain usable at 390x844;
+- choice buttons preserve full literal authority;
+- no automatic scroll behavior makes the currently-read Story unusable.
+
+Restore viewport after evidence capture.
+
+## 11. Objective exit matrix
+
+GREEN requires ALL of the following in this exact source-frozen deployment:
+- Campaign A Opening + >=15 committed chronological turns, no retry/regeneration;
+- Campaign B Opening + >=4 ordinary committed turns, no retry/regeneration;
+- >=6 Campaign A free inputs and >=4 visible choice clicks;
+- no P0 player agency/action/target/topic/refusal/self-state substitution;
+- no wrong canonical navigation/location/presence;
+- no supported Story choice tail losing buttons and no fabricated/stale choices;
+- sampled choice diversity acceptable;
+- first-arrival and selected rank/department identity correct for both profiles;
+- player inner thought visible/natural where projected;
+- Mind Monitor first-person/character-specific and CSA-emotion boundary respected;
+- time not effectively frozen;
+- repaired CSA draft/APPLY/CHANGE/REMOVE sequence works chronologically with same rule id across CHANGE and clean unrelated turns;
+- approved image projection works and ambiguity fails open;
+- TTS OFF=0 and character-aware server TTS ON/replay works;
+- latest-only current scene + complete History survives refresh;
+- desktop + 390x844 usable;
+- no blocking console/network/runtime error;
+- no source/Production/migration/provider/model/config change during acceptance.
+
+Only if every item is GREEN may the terminal report:
+`OWNER_READY_CANDIDATE_FOR_USER_FINAL_PLAYTEST`
+
+That phrase means the automated holistic gate passed and the product can be handed back for the owner's final manual playtest. It does NOT authorize Production deployment or mutation of the preserved owner game.
+
+Any decisive failure => `FAILED_PRODUCT`, preserve fixture, report first boundary, stop.
+
+## 12. Terminal / stop protocol
+
+At completion record:
+- exact executable source/main SHA and deployed Worker versions;
+- fresh Campaign A/B fixture IDs only;
+- turn-by-turn action category/literal summary sufficient for audit;
+- choice-click/free-input counts;
+- refresh point and post-refresh continuation;
+- CSA operation turn numbers, request counts, operation types, same rule id/template transition, Revert/no-network evidence, and surrounding ordinary no-stale evidence;
+- media/TTS network evidence;
+- History/latest-only evidence;
+- mobile/desktop evidence;
+- feedback state/evidence if applicable;
+- any environment-only automation limitation separately from product failures.
+
+Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW` in place, post the terminal report to Issue #68, and stop.
+
+Do not create or start a next task.
