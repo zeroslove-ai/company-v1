@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-observer-dialogue-quote-escape-parity-v1
 Mode: FREEZE ACCEPTED R3 -> REPRODUCE VALID DIALOGUE PROJECTION DROP -> FIX QUOTE-ESCAPE PARITY ONLY -> API TEST DEPLOY -> BARE-PUBLIC PROJECTION+TTS ACCEPTANCE
-Updated: 2026-08-24 05:40 KST
+Updated: 2026-08-24 06:12 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5388331463`
 Operator review: Issue #68 comment `5388366958`
@@ -269,6 +269,31 @@ Do not start holistic V5 inside this task.
 Do not claim owner-ready.
 
 ## 10. Completion protocol
+
+## 10a. Watcher terminal evidence — FAILED_PRODUCT_DIALOGUE_PROJECTION
+
+Implementation source commit: `cd16dfb44115a5b70ec67ba3e079b48d9b040237` (pushed to `origin/main`).
+TEST API deploy: `game-proxy-company-r3@b1da918b-269c-4724-8a12-18b9deaca78a`.
+Frontend remained frozen at `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`; frontend deploy count: 0.
+
+Validation before live acceptance:
+- deterministic pre-fix quote-parity reproduction: 9/10 focused observer tests passed and the new parity case failed as expected;
+- focused observer/media/choice/frontend-TTS suite: 27/27 PASS;
+- full `npm.cmd test`: 541/541 PASS;
+- changed-file syntax checks: PASS;
+- `git diff --check`: PASS.
+
+Fresh disposable bare-public game: `be0a3e57-e36d-4f5a-86b9-75d60e2dfbef`.
+The opening and Turn 1 were visible in the public UI. Turn 1 literal action was `박정우 팀장에게 인사 수속과 관련해 물어본다.`; the Story UI visibly rendered five quoted dialogue lines from 박정우 팀장/윤민아 대리. Read-only committed context for the same Turn 1 proved:
+- registered/present scene actor IDs included `heroine1` through `heroine5`;
+- `observer_raw.dialogue_lines = []`;
+- `observer_applied.dialogue_lines = []`;
+- no committed heroine dialogue line existed to authorize media, so projection-first acceptance failed;
+- the committed warning set included `choices_projection_dropped` and `mind_monitor_projection_dropped`, with no accepted dialogue line.
+
+TTS was not enabled for acceptance. The previously persisted UI state showed TTS pressed on opening; it was visibly switched OFF before the first ordinary turn. Opening/Turn 1 network observation showed zero `/media/tts` requests. No TTS worker/audio/replay evidence was collected because the mandatory projection gate failed first.
+
+Terminal disposition: `FAILED_PRODUCT_DIALOGUE_PROJECTION`. The fresh disposable game is preserved for review. All preserved fixtures remained READ ONLY; no retry/regeneration of the failed semantic action, provider/model/config/frontend/DB/migration/Production change was made.
 
 At completion post to Issue #68:
 - source SHA and final main SHA;
