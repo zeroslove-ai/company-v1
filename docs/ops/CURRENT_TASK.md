@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-tts-end-to-end-live-acceptance-v2
 Mode: SOURCE-FROZEN PROJECTION-FIRST TTS END-TO-END LIVE ACCEPTANCE
-Updated: 2026-08-24 07:27 KST
+Updated: 2026-08-24 07:37 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5388801366`
 Operator review: Issue #68 comment `5388819983`
@@ -283,3 +283,17 @@ Post a NEW Issue #68 terminal comment recording:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal, and stop.
 
 Do not create the next task yourself. Do not start holistic V5. Do not claim owner-ready.
+
+## 13. Terminal acceptance record
+
+- Execution identity: `company-r3-tts-end-to-end-live-acceptance-v2` / CURRENT_TASK blob at start `194796b091e1144bf498fc4d0dae649e29681d81` / expected branch `main`.
+- Start main: `04ad7d1792876cb37c8f78b0c47fda5065b4ce6e`; accepted source: `71f87b63c9405bdc2e41ff272c0448c0b41384b7`; no source/config/test/content/migration changes and no deployment/rollback was performed.
+- Active TEST versions remained exactly R3 API `game-proxy-company-r3@2a6419bb-9147-443d-8552-cf2fd309ae2c`, R3 frontend `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`, legacy rollback preimage `game-proxy-company-v1@7ea46aaf-493f-4323-bc1f-f5ab8d47477d`; deployment counts API/frontend/legacy: zero.
+- Validation remained `npm.cmd test`: 546/546 PASS; `git diff --check`: PASS; tracked worktree clean except preserved/untracked `.tmp/` and `supabase/.temp/` paths, which were not committed or reset.
+- Fresh disposable TEST game: `6f7e4d23-b413-45f0-9b7a-f57e01f1bc78`, created through visible Setup and Opening only, profile `TTS 진단 사용자`, content version `company-r3-m0`.
+- Projection-search turn 1: visible action `서원희 차장에게 오늘 맡을 일이 무엇인지 물어본다.`; browser emitted one `/api/r3/games/6f7e4d23-b413-45f0-9b7a-f57e01f1bc78/turn` POST with `expected_turn:1` and this exact literal action; DB job was `turn_number:1`, `attempt_no:1`, `status:committed`, `stage:committed`, `error_code:null`; exactly one durable turn commit.
+- Turn 1 Story contained a direct heroine1/서원희 line: `오늘 맡을 일이라면, 아직 큰 업무보다는 적응이 우선이에요. 다만 오후에 1차 브랜드 캠페인 회의가 잡혀 있어서, 그 전에 팀 자료를 한번 훑어보시면 도움이 될 거예요.`; committed `present_actor_ids` were `[general_park_jungwoo, heroine1, heroine2, heroine3, heroine4, heroine5]`.
+- Turn 1 `observer_raw`: `{}` / no `dialogue_lines`; `observer_applied.dialogue_lines`: `[]`; applied warnings: `[observer_failed, r3_observer_json_invalid, r3_observer_finish_length, choices_observer_mismatch]`; `state_after.scene_note` was empty and the committed state otherwise retained the same scene. Canonical source voice mapping for the candidate is `heroine1`/서원희 -> `259d7fde62cd445fbde3ce2d8d4f2f3b`; because Observer failed, no TTS qualification was made.
+- Visible TTS state at Opening was `aria-pressed=false`; one visible toggle click changed it to `aria-pressed=true` before turn 1. No valid TTS-OFF baseline was claimed after that click. Network evidence for the failed turn nevertheless contained zero `/media/tts` requests and no direct browser provider/worker request. TTS ON, server authorization, `TTS_WORKER`, audio URL/cache, Replay, and next-turn stale fencing were not attempted after the decisive Observer failure.
+- No source/deploy/provider/model/prompt/token/timeout/DB/migration/Production mutation; preserved fixtures untouched.
+- Exact bounded disposition: `DIAGNOSED_OBSERVER_JSON_INVALID` with sanitized finish warning `r3_observer_finish_length` (and recorded `choices_observer_mismatch`). Per the task, stop immediately on Observer fail-open; no same-action retry, regeneration, or additional turn was made.
