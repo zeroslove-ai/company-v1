@@ -85,6 +85,25 @@ test('successful Observer output is unchanged and performs one call', async () =
   assert.equal(calls, 1);
 });
 
+test('R3 provider keeps Story at 5000 tokens and raises only Observer to 2400', async () => {
+  const requests = [];
+  const provider = createR3Provider({
+    env: { LLM_API_URL: 'https://llm.test', LLM_API_KEY: 'key', STORY_MODEL: 'story', EXTRACT_MODEL: 'observer' },
+    fetchImpl: async (_url, options) => {
+      const payload = JSON.parse(options.body); requests.push(payload);
+      if (payload.stream) return new Response('data: {"choices":[{"delta":{"content":"Story"}}]}\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
+      return observerResponse(JSON.stringify({ elapsed_minutes: 1, choices: ['one', 'two', 'three', 'four'] }));
+    }
+  });
+  const story = [];
+  for await (const delta of provider.story({ context: { state: { state: {} } }, content })) story.push(delta);
+  await provider.observe({ context: { state: { state: {} } }, literalAction: '현재 장면을 확인한다.', storyText: story.join(''), content });
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].max_tokens, 5000);
+  assert.equal(requests[1].max_tokens, 2400);
+  assert.equal(requests[1].response_format.type, 'json_object');
+});
+
 test('worker fail-open persists sanitized Observer provenance while committing Story choices', async () => {
   const base = createDeterministicR3Provider();
   const provider = { story: base.story, async observe() { throw new Error('private raw provider failure'); } };

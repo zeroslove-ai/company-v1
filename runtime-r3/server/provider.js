@@ -94,7 +94,7 @@ export function createR3Provider({ env, fetchImpl = fetch, timeouts: overrides =
     async observe({ context, literalAction, storyText, content, csaOperation = null }) {
       let handle = null;
       try {
-        handle = await request({ model: observerModel, stream: false, thinking: { type: 'disabled' }, temperature: 0, max_tokens: 1600, response_format: { type: 'json_object' }, messages: [
+        handle = await request({ model: observerModel, stream: false, thinking: { type: 'disabled' }, temperature: 0, max_tokens: 2400, response_format: { type: 'json_object' }, messages: [
           { role: 'system', content: OBSERVER_SYSTEM_PROMPT },
           { role: 'user', content: JSON.stringify({ literal_action: literalAction, ...(csaOperation ? { pending_csa_operation: csaOperation } : {}), story_text: storyText, current_context: observerCurrentState(context?.state?.state), canonical_actor_directory: canonicalActorDirectory(content), canonical_location_directory: canonicalLocationDirectory(content) }) }
         ] }, timeouts.observerMs, 'r3_observer_timeout', { promptContent: OBSERVER_ACCEPTANCE_PROMPT });
