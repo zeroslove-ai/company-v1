@@ -32,7 +32,9 @@ export function createR3Client(base = '/api/r3', { storage = browserStorage(), f
     turn(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/turn`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); },
     feedback(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/feedback`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); },
     csa(gameId, payload) { return request(`${root}/games/${encodeURIComponent(gameId)}/csa`, { method: 'POST', headers: authHeaders(gameId), body: JSON.stringify(payload) }); },
-    reset(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/reset`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); }
+    reset(gameId, payload) { return fetchImpl(`${root}/games/${encodeURIComponent(gameId)}/reset`, { method: 'POST', headers: authHeaders(gameId, { 'content-type': 'application/json' }), body: JSON.stringify(payload) }); },
+    image(gameId, payload = {}) { const query = new URLSearchParams(Object.entries(payload).filter(([, value]) => value !== null && value !== undefined && value !== '').map(([key, value]) => [key, Array.isArray(value) ? value.join(',') : String(value)])); return request(`${root}/games/${encodeURIComponent(gameId)}/media/image?${query}`, { headers: authHeaders(gameId) }); },
+    tts(gameId, payload = {}) { const query = new URLSearchParams(Object.entries(payload).filter(([, value]) => value !== null && value !== undefined && value !== '').map(([key, value]) => [key, String(value)])); return request(`${root}/games/${encodeURIComponent(gameId)}/media/tts?${query}`, { headers: authHeaders(gameId) }); }
   };
 }
 

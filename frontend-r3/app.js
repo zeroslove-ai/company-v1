@@ -6,17 +6,20 @@ import { buildR3ViewModel } from './r3-view-model.js';
 import { createR3CsaUi } from './csa.js';
 import { reconcileTurnTransport } from './turn-transport.js';
 import { resolveR3ApiBase } from './r3-config.js';
+import { createR3MediaUi } from './media.js';
+import { createCompanyTts } from './tts.js';
 
 // R3 controller: one context load, one literal action, one server-owned SSE
 // turn. Product rendering lives in the transplanted donor-style modules above.
 const query = new URLSearchParams(location.search);
 const client = createR3Client(query.get('api') || resolveR3ApiBase());
-const state = { gameId: query.get('game_id'), context: null, catalogs: null, busy: false, feedbackBusy: false };
-const sidecarState = { ttsEnabled: false };
+const state = { gameId: query.get('game_id'), context: null, view: null, catalogs: null, busy: false, feedbackBusy: false };
 const RECOVERY_POLL_MS = 1500;
 const RECOVERY_TIMEOUT_MS = 120000;
 const $ = id => document.querySelector(`#${id}`);
 const csaUi = createR3CsaUi({ documentRef: document, getContext: () => state.context, getCatalog: () => ({ ...(state.catalogs?.csa_presets ?? {}), ...(state.catalogs ?? {}) }), getBusy: () => state.busy, onOperation: operation => { const { literal_action: literalAction, ...csaOperation } = operation; return submit(literalAction, { csaOperation }); } });
+const mediaUi = createR3MediaUi({ documentRef: document, api: { image: payload => client.image(state.gameId, payload) }, getViewModel: () => state.view });
+const ttsUi = createCompanyTts({ documentRef: document, api: { tts: payload => client.tts(state.gameId, payload) }, getViewModel: () => state.view, getCommittedTurnIdentity: () => { const turn = state.view?.turn ?? {}; return `${turn.committed_turn}:${turn.turn_id}:${turn.revision}`; } });
 
 function setStatus(message, error = false) { const node = $('status-banner'); if (node) { node.textContent = message; node.dataset.error = error ? 'true' : 'false'; } }
 function setHidden(id, hidden) { const node = $(id); if (node) node.hidden = hidden; }
@@ -54,6 +57,7 @@ function syncActionControls() {
 function renderContext(context) {
   state.context = context;
   const view = buildR3ViewModel(context, state.catalogs ?? {});
+  state.view = view;
   const failedJob = context?.job?.status === 'failed';
   const input = $('player-action');
   if (failedJob && input && !input.value.trim() && typeof context.job.literal_action === 'string') input.value = context.job.literal_action;
@@ -83,24 +87,16 @@ function renderContext(context) {
     setStatus('r3_turn_failed: edit the action and retry explicitly', true);
   }
   const hasStory = Boolean(view.story);
-  const ttsToggle = $('tts-toggle'); if (ttsToggle) { ttsToggle.disabled = !hasStory; ttsToggle.setAttribute('aria-pressed', sidecarState.ttsEnabled ? 'true' : 'false'); }
+  const ttsToggle = $('tts-toggle'); if (ttsToggle) { ttsToggle.disabled = !hasStory; ttsToggle.setAttribute('aria-pressed', ttsUi.state.enabled ? 'true' : 'false'); }
   const ttsReplay = $('tts-replay'); if (ttsReplay) { ttsReplay.hidden = !hasStory; ttsReplay.disabled = !hasStory; }
+  void mediaUi.load();
+  ttsUi.onCommittedTurn();
   csaUi.sync();
   syncActionControls();
   setHidden('player-setup-overlay', Boolean(view.profile?.name));
   $('api-status')?.setAttribute('aria-label', '연결 완료');
 }
 
-function latestStory() { return state.context?.turns?.at(-1)?.story_text ?? ''; }
-function speakLatest() {
-  const text = latestStory();
-  if (!text || !sidecarState.ttsEnabled || typeof globalThis.speechSynthesis === 'undefined' || typeof globalThis.SpeechSynthesisUtterance === 'undefined') return;
-  globalThis.speechSynthesis.cancel();
-  const utterance = new globalThis.SpeechSynthesisUtterance(text);
-  utterance.lang = 'ko-KR';
-  globalThis.speechSynthesis.speak(utterance);
-  if ($('tts-status')) $('tts-status').textContent = '현재 Story를 재생합니다.';
-}
 function openHistory() {
   if (!state.context) return;
   const view = buildR3ViewModel(state.context, state.catalogs ?? {});
@@ -310,8 +306,6 @@ $('open-history')?.addEventListener('click', openHistory);
 $('history-close')?.addEventListener('click', () => setHidden('history-overlay', true));
 $('history-download-md')?.addEventListener('click', () => exportHistory(true));
 $('history-download-txt')?.addEventListener('click', () => exportHistory(false));
-$('tts-toggle')?.addEventListener('click', () => { sidecarState.ttsEnabled = !sidecarState.ttsEnabled; renderContext(state.context); if (sidecarState.ttsEnabled) speakLatest(); else globalThis.speechSynthesis?.cancel?.(); });
-$('tts-replay')?.addEventListener('click', speakLatest);
 $('send-feedback')?.addEventListener('click', openFeedback);
 $('feedback-close')?.addEventListener('click', closeFeedback);
 $('feedback-form')?.addEventListener('submit', submitFeedback);

@@ -34,7 +34,7 @@ test('R3 frontend sends exact literal input through one server turn endpoint', (
   assert.match(html, /id="tts-toggle"[^>]*disabled/);
   assert.match(app, /openHistory/);
   assert.match(app, /history-download-md/);
-  assert.match(app, /SpeechSynthesisUtterance/);
+  assert.doesNotMatch(app, /speechSynthesis|SpeechSynthesisUtterance/);
   assert.match(app, /historyExport/);
 });
 

@@ -12,19 +12,28 @@ import { R3_ATTEMPT_FENCE_CONFLICT } from './store.js';
 import { createR3Provider } from './provider.js';
 import { SupabaseR3Store } from './supabase-store.js';
 import { loadWorkerCanonicalContent } from '../domain/worker-content.js';
+import { projectCurrentMedia, resolveCommittedTtsBatch, resolveCommittedTtsVoice, selectApprovedImage } from '../domain/media.js';
 
-export function createR3Worker({ store, provider, content, gameAccessSecret } = {}) {
+export function createR3Worker({ store, provider, content, gameAccessSecret, env = {} } = {}) {
   if (!store || !provider || !content) throw new Error('r3_worker_requires_store_provider_content');
   return {
     store,
     provider,
-    async fetch(request) {
+    async fetch(request, requestEnv = env) {
       try {
         const url = new URL(request.url);
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: R3_CORS_HEADERS });
         if (request.method === 'GET' && url.pathname === '/api/r3/catalogs') return json(catalogResponse(content));
         if (request.method === 'POST' && url.pathname === '/api/r3/games') return await setup(store, content, await body(request), gameAccessSecret);
         const match = url.pathname.match(/^\/api\/r3\/games\/([^/]+)(?:\/(context|opening|turn|csa|feedback|reset))?$/);
+        const mediaMatch = url.pathname.match(/^\/api\/r3\/games\/([^/]+)\/media\/(image|tts)$/);
+        if (mediaMatch) {
+          const gameId = mediaMatch[1];
+          if (!(await verifyGameCapability(gameId, bearerCapability(request), gameAccessSecret))) return accessDeniedResponse();
+          return mediaMatch[2] === 'image'
+            ? imageMediaResponse({ request, url, store, content, gameId })
+            : ttsMediaResponse({ request, url, store, content, gameId, env: requestEnv });
+        }
         if (!match) return errorResponse(new Error('r3_not_found'));
         const gameId = match[1]; const action = match[2] ?? 'context';
         if (!(await verifyGameCapability(gameId, bearerCapability(request), gameAccessSecret))) return accessDeniedResponse();
@@ -43,7 +52,39 @@ export function createR3Worker({ store, provider, content, gameAccessSecret } = 
 export function createProductionR3Worker({ env, fetchImpl = fetch, content = loadWorkerCanonicalContent(), store, provider } = {}) {
   const resolvedStore = store ?? new SupabaseR3Store({ env, fetchImpl });
   const resolvedProvider = provider ?? createR3Provider({ env, fetchImpl });
-  return createR3Worker({ store: resolvedStore, provider: resolvedProvider, content, gameAccessSecret: env?.R3_GAME_ACCESS_SECRET });
+  return createR3Worker({ store: resolvedStore, provider: resolvedProvider, content, gameAccessSecret: env?.R3_GAME_ACCESS_SECRET, env });
+}
+
+async function imageMediaResponse({ url, store, content, gameId }) {
+  const context = await (store.presentationContext?.(gameId) ?? store.context(gameId));
+  const projection = projectCurrentMedia({ context, content, requestedCharacterId: url.searchParams.get('character_id') ?? '', requestedPool: url.searchParams.get('pool') ?? 'general' });
+  if (!projection.character_id) return json({ character_id: null, image: null, pool: projection.pool, reason: projection.reason });
+  try {
+    const candidates = await (store.listImageCandidates?.(projection.character_id, projection.pool) ?? []);
+    return json({ character_id: projection.character_id, pool: projection.pool, image: selectApprovedImage({ candidates, projection }) });
+  } catch {
+    return json({ character_id: projection.character_id, pool: projection.pool, image: null, reason: 'media_fail_open' });
+  }
+}
+
+async function ttsMediaResponse({ url, store, content, gameId, env }) {
+  const context = await (store.presentationContext?.(gameId) ?? store.context(gameId));
+  const speakerId = url.searchParams.get('speaker_id') ?? url.searchParams.get('character_id') ?? '';
+  const spokenText = url.searchParams.get('text') ?? '';
+  const batch = resolveCommittedTtsBatch({ context, content, speakerId, spokenText });
+  if (!batch) return json({ url: null, reason: 'dialogue_not_committed' }, 400);
+  const eligibility = resolveCommittedTtsVoice({ content, speakerId, spokenText: batch.text });
+  if (!eligibility.eligible) return json({ url: null, reason: eligibility.code }, 400);
+  if (!env?.TTS_WORKER?.fetch) throw new Error('r3_tts_service_binding_missing');
+  const direction = url.searchParams.get('direction') ?? batch.direction ?? '';
+  const response = await env.TTS_WORKER.fetch(env.TTS_WORKER_URL || 'https://fancy-dust-7f8c.zeroslove.workers.dev/', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ voice_id: eligibility.voice_id, text: batch.text, direction })
+  });
+  if (!response.ok) throw new Error('r3_tts_upstream_failed');
+  const payload = await response.json(); const audioUrl = typeof payload?.url === 'string' ? payload.url : '';
+  if (!/^https?:\/\//i.test(audioUrl) && !/^data:audio\//i.test(audioUrl)) throw new Error('r3_tts_url_invalid');
+  return json({ url: audioUrl, speaker_id: speakerId, text: batch.text, direction });
 }
 
 async function setup(store, content, input, gameAccessSecret) {

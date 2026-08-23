@@ -73,6 +73,8 @@ export class InMemoryR3Store {
     const job = [...this.jobs.values()].find(item => item.game_id === gameId && item.turn_number === state.committed_turn + 1) ?? null;
     return { game: clone(this.games.get(gameId)), state: clone(state), turns: clone(turns), job: job ? clone(job) : null };
   }
+  presentationContext(gameId) { return this.context(gameId); }
+  listImageCandidates() { return []; }
   feedbackContext(gameId, snapshot) { return buildFeedbackContext(this.context(gameId), snapshot); }
   getJob(gameId, turnNumber) { this.expireStaleJob(gameId, turnNumber); return clone(this.jobs.get(`${gameId}:${turnNumber}`) ?? null); }
   reserveTurn({ gameId, turnNumber, actionId, literalAction, csaOperation = null, retryFailed = false }) {
