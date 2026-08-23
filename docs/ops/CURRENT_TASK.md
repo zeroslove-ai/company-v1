@@ -1,227 +1,211 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-choice-tail-format-and-narrative-acceptance-v1
-Mode: FIX TERMINAL CHOICE FORMAT TOLERANCE -> REDEPLOY TEST -> RESUME NARRATIVE SURFACE ACCEPTANCE
-Updated: 2026-08-23 19:50 KST
+Task ID: company-r3-player-inner-thought-commit-boundary-v1
+Mode: TRACE PLAYER THOUGHT LOSS -> MINIMAL COMMIT/PROJECTION FIX -> REDEPLOY TEST -> RESUME NARRATIVE ACCEPTANCE
+Updated: 2026-08-23 20:04 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5385603627`
+Previous terminal: Issue #68 comment `5385660241`
 Operator review: Issue #68 comment `5385619025`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path and do not create a new ops/recovery branch.
 
-## 0. Accepted baseline — preserve
+## 0. Frozen accepted baseline
 
-Current reviewed source/main:
-- `a33874201457ccc964d38447853de87562f640b9`
+Current reviewed executable/source:
+- `fe00bf5943b991b737b3a82ac6bd5d146d59bc91`
 
 Current TEST artifacts:
-- API `game-proxy-company-r3` version `e3ae7e9c-d058-4ee2-ba5b-0277ec1a19a5`
-- Frontend `gamebuilder-company-r3` version `2592437d-1af2-48d3-9a96-bb36afd3b773`
+- API `game-proxy-company-r3` version `21efa7c9-f8b0-4c43-8dd7-066dca212b58`
+- Frontend `gamebuilder-company-r3` version `40f7acc5-1b80-47bd-b836-257b71f3d1f7`
 - bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Keep the narrative-surface implementation already landed:
-- first-day / first-arrival Opening contract for every selected rank while preserving department/position;
-- private `상식개변` app discovery remains optional and does not pre-complete a player action;
-- committed `observer_applied.player_inner_thought` projection and dedicated visible player-thought UI;
-- bounded character canon supplied to the single Observer for character-specific first-person Mind Monitor;
-- Story choice-diversity guidance;
-- Observer elapsed-time guidance;
-- final prompt-only tightening in `a338742...` requesting a non-empty grounded player thought without making omission turn-fatal.
+Freeze as GREEN unless direct contradictory evidence appears:
+- first-day / first-arrival Opening while preserving selected department/rank;
+- private `상식개변` app remains unfamiliar/private/optional and Opening does not pre-complete a voluntary player action;
+- character-specific first-person NPC Mind Monitor direction and current live Opening proof;
+- choice semantic-diversity and elapsed-time guidance already landed;
+- choice-tail structural fix in `fe00bf...`: plain numbered tails plus only symmetric whole-line `**...**` / `__...__` wrappers; exact inner literal preserved;
+- fresh Gate A fixture rendered exactly four usable choice buttons with full literal titles;
+- bare-public cold start, exact player agency, canonical navigation, choice dispatch, CSA chronological APPLY/CHANGE/REMOVE and post-CSA continuation remain frozen GREEN.
 
-Frozen earlier GREEN surfaces also remain binding:
-- bare-public cold start;
-- exact player actor/target/action/request/refusal/self-state/topic/intent preservation;
-- exact canonical navigation + refresh persistence;
-- choice-button dispatch desktop/mobile;
-- CSA APPLY/CHANGE/REMOVE each one chronological streamed atomic turn;
-- post-CSA ordinary continuation/control lifecycle;
-- compliance does not manufacture unsupported positive private emotion.
+Do not reopen the choice-format fix or redesign these surfaces.
 
-Do not reopen these without contradictory evidence.
+## 1. Decisive remaining failure
 
-## 1. Decisive live failure
+Fresh final-build disposable fixture:
+- `351a0619-f153-4551-9a0e-7990772cb8b0`
 
-Fresh post-final-deploy disposable game:
-- `a7f22f04-119a-4b86-a477-726d11fdd2d1`
+Observed through bare public UI:
+- Opening committed successfully at Day 1 09:05;
+- correct first-arrival brand-strategy assistant-manager context;
+- four visible usable choice buttons;
+- character-specific first-person Mind Monitor present;
+- no console error/warn blocker;
+- `#player-inner-thought` was empty.
 
-Observed Opening:
-- committed successfully at Day 1 09:05;
-- visibly established first-day/first-arrival brand-strategy assistant-manager context;
-- character-specific Mind Monitor was present;
-- Story visibly contained four numbered choices, but each numbered line was wrapped in Markdown bold/emphasis;
-- `#choice-list` contained zero buttons;
-- free input remained usable;
-- console error/warn logs were empty;
-- no retry-until-pass was used.
+Because player inner thought is a mandatory owner narrative surface, Gate A failed. Gate B low/high-rank final-build Opening, Gate C 8–10-turn narrative campaign, refresh/re-entry and Gate D mobile were correctly not claimed.
 
-The mandatory 8–10-turn campaign, refresh/re-entry and mobile acceptance therefore did not run on the final deployed build.
+Important: DOM emptiness alone does NOT identify the source boundary. Do not patch from assumption.
 
-Independent source evidence:
-- `runtime-r3/domain/observer-normalizer.js::storyChoiceTail()` accepts only plain terminal `1. action` / `1) action` lines;
-- `frontend-r3/render.js::choiceTail()` has the same plain-only assumption;
-- therefore an unambiguous final line such as `**1. 행동한다.**` remains visible Story prose but is not projected as canonical choices, so committed `latest.choices` becomes empty and no action buttons render.
+## 2. Required first step — trace the exact failed committed Opening read-only
 
-This is a structural presentation-format compatibility defect, not a semantic-choice or model-quality failure.
+Before any source edit, inspect fixture `351a0619-f153-4551-9a0e-7990772cb8b0` read-only through the existing TEST context/persistence surfaces.
 
-## 2. Required narrow correction
+Capture the exact value/presence at each available stage:
+1. provider Observer raw JSON (`player_inner_thought`: missing / null / empty / non-empty);
+2. `normalizeObserver()` result / `observer_applied.player_inner_thought`;
+3. committed turn persistence/readback value;
+4. `/context` or normal server context latest turn value after refresh/re-entry;
+5. `buildR3ViewModel(...).playerInnerThought`;
+6. rendered `#player-inner-thought` hidden/value state.
 
-Before editing, reproduce the exact structural failure in focused deterministic tests.
+Also inspect the earlier final-build campaign fixture `3e5611e5-f09e-450d-9fd3-8aa040f45246` read-only if still available, because Turns 1–2 previously showed empty player thoughts. Do not mutate or retry either fixture.
 
-Correct only the terminal-four-choice structural boundary.
+Classify the first loss exactly:
+A. Observer provider omitted/returned empty `player_inner_thought` despite grounded Story;
+B. raw value exists but normalizer drops/corrupts it;
+C. normalized value exists but persistence/commit/readback drops it;
+D. committed value exists but server context omits it;
+E. context has it but view model loses it;
+F. view model has it but renderer/DOM hides or clears it;
+G. another concrete boundary with direct evidence.
 
-Required behavior:
-- plain `1. 행동` / `1) 행동` remains accepted unchanged;
-- an unambiguous symmetric presentation wrapper around the whole terminal numbered line, such as `**1. 행동**` or `__1. 행동__`, is accepted as the same structural choice;
-- if the exact failed Story proves an additional conventional outer list marker is present, tolerate only that narrow outer marker as well;
-- strip only the structural wrapper/numbering needed to recover the inner action;
-- preserve the inner literal player-action text character-for-character apart from existing outer whitespace trimming;
-- require exactly four ordered, distinct, non-empty terminal choices;
-- malformed/unbalanced emphasis, wrong numbering, embedded prose, duplicate/empty lines, or non-terminal pseudo-choices must still fail closed to no canonical choices;
-- server projection and frontend Story presentation must agree so recovered choices render as buttons and those same terminal choice lines are not duplicated as current narrative body content.
+Post the evidence in the terminal report. Do not edit source until this classification is established.
 
-Also strengthen the existing Story prompt to say the final four choice lines should be plain numbered text with no Markdown emphasis/bullets/fences. This is output guidance only; runtime correctness must not depend on perfect provider formatting.
+## 3. Minimal correction rules
 
-Forbidden:
-- no general Markdown parser;
-- no semantic classifier/matcher/rewriter;
-- no fallback authored choices;
-- no second Story/observer call;
-- no retry/regeneration;
-- no provider/model/temperature/token/timeout change;
-- no DB/migration/schema/RLS/grant change;
-- no reset work;
-- no donor-parity CSA UI, image or TTS work;
-- no Production;
-- no owner/preserved-game mutation.
+Fix only the proven first-loss boundary.
 
-## 3. Focused regressions
+### If A — Observer raw missing/empty
 
-At minimum prove:
-1. server `storyChoiceTail`/choice projection accepts plain four-line choice tail exactly as before;
-2. server accepts the exact bold/emphasis shape seen in the failed Opening and projects the four inner literals in order;
-3. observer mismatch may warn but cannot erase structurally valid Story-authored choices;
-4. malformed or partial Markdown wrappers do not create choices;
-5. duplicate/wrong-number/non-terminal lines remain rejected;
-6. frontend presentation recognizes the same supported structural wrappers and removes the terminal choice tail from narrative body when canonical choices exist;
-7. `renderChoices` receives four recovered literals and click payload remains the full literal action;
-8. existing player thought/MM/Opening/time contracts remain green;
-9. frozen agency/navigation/choice-dispatch/CSA chronology tests remain green where touched.
+Do NOT solve by adding another LLM call, retry/regeneration, model change, timeout increase, or stochastic resubmission.
 
-Run focused R3 observer/provider/frontend/turn tests, full `npm test`, changed JS/MJS syntax checks and `git diff --check`.
+First inspect why the existing single Observer contract still permits an empty/missing product projection. Use the smallest existing-call correction available.
 
-## 4. TEST-only deployment
+Preferred constraints:
+- retain exactly one Observer call;
+- retain JSON response path;
+- player thought remains presentation/readback side data, not gameplay semantic authority;
+- no DB column/migration;
+- no deterministic semantic classifier;
+- no invented player action/decision/consent/desire/relationship/outcome;
+- Opening thought must remain first-person, short/substantive and safely grounded in first-arrival/app-perception context;
+- ordinary-turn thought must remain grounded in literal action + completed Story and must not replace player intent.
+
+If strict structured response-shape enforcement is supported by the existing provider boundary without changing provider/model, it may be used only for presence/type of the existing key; do not introduce a semantic validator or second author. If the provider boundary cannot structurally require the key, use the smallest evidence-backed local fail-open completion that is demonstrably agency-safe and grounded; do not create generic mood/action inference.
+
+### If B–F
+
+Correct only that normalizer/persistence/context/view/render defect. Do not touch the Observer prompt/provider unless the trace proves A.
+
+## 4. Deterministic regressions
+
+Add/update only tests required by the proven root. At minimum cover:
+1. grounded Opening commits a non-empty `player_inner_thought` through the corrected boundary;
+2. ordinary grounded turn also preserves/readbacks the field;
+3. player thought survives normalization, persistence/context shape and view-model reconstruction as applicable to the root;
+4. refresh/re-entry reconstructs from committed server context, not frontend cache;
+5. dedicated `플레이어 속마음` renderer is separate from Story and NPC Mind Monitor;
+6. thought cannot invent a different player action/decision in deterministic fixture coverage;
+7. missing/invalid NPC MM remains local fail-open and does not erase player thought;
+8. current choice-tail plain/bold wrapper tests stay green;
+9. first-arrival, elapsed-time, agency/navigation/choice-dispatch/CSA chronology contracts remain green where touched.
+
+Run relevant focused R3 provider/observer/turn/frontend tests, full `npm test`, changed JS/MJS syntax checks and `git diff --check`.
+
+## 5. TEST-only deployment
 
 If source changes, deploy only affected R3 TEST artifact(s) from the exact reviewed source.
 
-Likely API + frontend are affected because both server projection and frontend presentation own the same structural tail assumption; confirm from actual diff.
-
-Preserve all existing bindings/secrets. Do not print/rotate/request/transfer secrets.
-No Production or provider/model/config tuning.
+Preserve all existing bindings/secrets. Do not print, rotate, request or transfer secrets.
+No Production.
+No provider/model/temperature/token/timeout tuning.
+No migration/schema/RLS/grant/reset work.
+No donor-parity CSA UI, image or TTS work.
+No owner/preserved-game mutation.
 
 Record exact source SHA and Worker version IDs.
 
-## 5. Mandatory bare-public acceptance
+## 6. Mandatory bare-public acceptance after correction
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-No `?api=` override, storage preseed or direct-API gameplay substitute.
-Fresh disposable TEST games only.
+No `?api=` override, storage preseed or direct-API gameplay substitute. Fresh disposable TEST games only.
 
-### Gate A — exact failure closure
+### Gate A — player-thought closure + choice regression
 
-Create one fresh game after deployment.
-
-Require:
+Fresh game on exact deployed source:
 - Setup -> Opening through visible UI;
-- Opening first-arrival contract still holds;
-- Story contains exactly four final choices;
-- whether provider outputs plain or supported harmless emphasis, four visible choice buttons render;
-- committed/readback `choices` contains the same four inner literal actions;
-- no duplicate choice tail remains as narrative body content after presentation parsing;
-- click one visible choice and require exactly one POST/SSE/commit with exact literal payload;
-- player-thought surface and relevant MM remain present/natural;
+- first-arrival/selected role preserved;
+- four usable choices render and committed choices match exact literals;
+- dedicated player-thought surface is visible, non-empty, natural first-person Korean and does not invent app use or another voluntary player action;
+- relevant NPC MM remains natural character-specific first-person;
+- click one visible choice -> exactly one POST/SSE/commit with exact literal;
+- resulting ordinary turn has a grounded non-empty player thought when the completed Story provides a player perspective;
+- readback/refresh preserves the thought;
 - no console/network blocker.
 
-If this gate fails, STOP without retries and report the exact raw final Story tail, observer raw/applied choices, committed choices and rendered DOM.
+If Gate A fails, STOP without retry and capture raw Observer/applied/context/DOM values.
 
 ### Gate B — final-build low/high-rank Opening
 
-On the exact final deployed source create two fresh independent games using materially different rank extremes available in the catalog.
+Two new games using materially different low/junior and high/senior/executive positions:
+- both explicitly first arrival/first appointment;
+- selected department/rank preserved;
+- no prior tenure/relationship invented;
+- app optional/private;
+- four usable choices;
+- visible natural first-person player thought;
+- relevant NPC MM natural character-specific first-person prose.
 
-For both require:
-- first day/first arrival/first appointment is explicit;
-- selected department and rank remain true, including high-rank newly appointed context;
-- no invented prior tenure/relationship;
-- unfamiliar private app remains optional and no voluntary player action is pre-completed;
-- four visible usable choices;
-- visible natural first-person player inner thought;
-- relevant NPC Mind Monitor surface/subconscious are natural character-specific first-person Korean, not one-word labels or third-person analyst prose.
+### Gate C — resume original 8–10-turn narrative campaign
 
-### Gate C — resume original 8–10-turn narrative-quality campaign
-
-Use a fresh game and commit at least 8 ordinary turns after Opening, with:
-- free input and at least three visible choice clicks;
-- direct NPC conversation + follow-up;
+Fresh game, at least 8 ordinary turns after Opening, mixing:
+- free input + at least three visible choice clicks;
+- direct NPC conversation/follow-up;
 - movement/location change;
 - work-context action;
 - non-work/social action;
 - refusal/change-of-mind or explicit self-state action.
 
-Inspect sampled complete turn text and committed context for:
-- exact player literal remains the narrative center;
-- player inner thought is first-person, substantive, refresh-safe and does not invent a different action/decision;
-- relevant NPC MM is first-person, character-specific, non-label prose, non-copied dialogue;
-- compliance alone creates no unsupported affection/comfort/desire/arousal/attraction/trust/liking;
-- four choices remain exact and meaningfully different rather than near-paraphrases/all-work/all-CSA escalation;
-- displayed/committed time advances plausibly over normal conversation/movement/work/social actions instead of remaining frozen;
-- location/presence remain coherent;
-- streaming is visible/non-blocking.
+Inspect complete Story + committed context for:
+- exact player literal remains center;
+- player thought is first-person, substantive, action-safe, non-duplicative and refresh-safe;
+- relevant NPC MM first-person/character-specific/non-label/non-copied;
+- no unsupported positive private emotion from CSA compliance;
+- four choices exact and meaningfully diverse;
+- canonical time advances plausibly over normal actions;
+- location/presence coherent;
+- streaming visible/non-blocking.
 
-Refresh/re-enter mid-campaign and at the end; latest player thought/MM/time/choices must reconstruct from committed server context.
+Refresh/re-enter mid-campaign and at end; latest player thought/MM/time/choices must reconstruct from committed server context.
 
 ### Gate D — mobile
 
-At approximately 390x844 verify:
-- player-thought and MM are readable/reachable;
-- four choice controls + direct input remain reachable;
-- no horizontal overflow/blocking overlay;
+At ~390x844 verify:
+- player-thought and MM readable/reachable;
+- four choices + direct input reachable;
+- no blocking overlay/horizontal overflow;
 - no console/page/network errors.
 
-## 6. GREEN criteria
+## 7. GREEN criteria
 
 GREEN only if:
-- exact bold/emphasized terminal-choice failure is structurally fixed without semantic parsing;
-- final deployed build renders four usable buttons and exact literal click round-trip;
-- low/high-rank first-arrival Openings pass on the final build;
-- player inner thought is visible, substantive, first-person and refresh-safe;
-- relevant NPC MM is natural character-specific first-person prose;
-- choices are qualitatively diverse across the campaign;
-- normal play advances canonical time plausibly;
-- refresh/re-entry/mobile pass;
-- agency/navigation/choice-dispatch/CSA chronology remain healthy;
+- the exact first-loss boundary is proven and minimally fixed;
+- fresh final-build Opening and first ordinary turn both show/read back appropriate non-empty player thought;
+- no thought invents a different action/decision or mandatory app use;
+- choice-tail fix remains green;
+- low/high Opening, 8–10-turn campaign, refresh/re-entry and mobile pass;
+- first-arrival/MM/choice diversity/time progression remain qualitatively acceptable;
+- frozen agency/navigation/choice-dispatch/CSA chronology remain healthy;
 - no forbidden work occurred.
 
 Do NOT claim owner-ready after this task.
 
-## 7. Completion report
-
-Post to Issue #68:
-- exact root and supported structural formats;
-- exact changed files/source SHA;
-- focused/full tests run;
-- TEST Worker versions;
-- Gate A fixture ID + raw Story tail/committed choices/button/click evidence;
-- Gate B low/high fixture IDs and qualitative findings;
-- Gate C fixture ID, committed-turn coverage, sampled thought/MM/choice/time findings;
-- refresh/re-entry/mobile diagnostics;
-- remaining objective defects.
-
-Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK.
-
-## 8. Remaining owner-remediation phases after this cut
+## 8. Remaining owner-remediation after this cut
 
 Do not implement here:
 1. high-parity Company donor CSA UI + draft/unsaved-change behavior;
@@ -229,3 +213,18 @@ Do not implement here:
 3. deployed same-game reset integration failure;
 4. timeline/current-scene presentation residue;
 5. final holistic owner-style long-play acceptance.
+
+## 9. Completion report
+
+Post to Issue #68:
+- A–G first-loss classification with failed fixture evidence;
+- exact changed files/source SHA;
+- focused/full tests run;
+- TEST Worker versions;
+- Gate A fixture + Observer raw/applied/readback/view/DOM proof;
+- Gate B low/high fixtures;
+- Gate C turn coverage and sampled Story/thought/MM/choice/time findings;
+- refresh/re-entry/mobile diagnostics;
+- remaining objective defects.
+
+Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK.
