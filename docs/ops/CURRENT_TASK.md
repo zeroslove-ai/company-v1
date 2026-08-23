@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-observer-dialogue-completeness-contract-v1
 Mode: FREEZE ACCEPTED QUOTE-PARITY + TTS AUTH -> STRENGTHEN SINGLE OBSERVER DIALOGUE COMPLETENESS CONTRACT -> API TEST DEPLOY -> PROJECTION-FIRST TTS ACCEPTANCE
-Updated: 2026-08-24 06:04 KST
+Updated: 2026-08-24 06:34 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5388433835`
 Operator review: Issue #68 comment `5388458753`
@@ -248,3 +248,31 @@ At completion post Issue #68 with:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal report, and stop.
 
 Do not generate the next task yourself.
+
+## 11. Terminal evidence — FAILED_PRODUCT_OBSERVER_DIALOGUE_OMISSION
+
+Source correction:
+- Source commit: `16835882d55a11c10b47d1bc60e2e034eecec4d4`
+- Final main SHA at terminalization: `16835882d55a11c10b47d1bc60e2e034eecec4d4`
+- Changed files: `runtime-r3/server/provider.js`, `test/r3-opening-contract.test.mjs`
+- The existing single Observer `promptContent: OBSERVER_ACCEPTANCE_PROMPT` boundary was preserved; no normalizer, media, frontend, provider option, or persistence changes were made.
+
+Validation:
+- Pre-edit new completeness assertions failed because the actual Observer prompt had validity/evidence rules but no completeness requirement.
+- Focused opening contract: 4/4 passed.
+- Focused Observer/provider/media/source correction set: 35/35 passed.
+- Full `npm.cmd test`: 541/541 passed.
+- Syntax checks for both changed JS/MJS files: passed.
+- `git diff --check`: passed.
+- TEST API deploy: `game-proxy-company-r3`, version `23d5ccee-004a-4923-9717-cb715222267c`.
+- Frozen TEST frontend unchanged: `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`.
+
+Fresh projection-first live gate:
+- New disposable TEST game: `dad18276-dfff-4eb5-9277-90cc12f7a41e`.
+- Turn 1 visible Story contains registered heroine `heroine2` / `서원희` direct speech, including: `"어서 오세요. 박지훈 씨, 그렇죠?"` and later exact direct quoted lines attributed by contiguous Story context.
+- Read-only committed `/context` after visible UI setup and visible ordinary action showed `present_actor_ids` including `heroine2`.
+- `observer_raw` was `{}`; `observer_applied.dialogue_lines` was `[]` with `warnings: ["observer_failed", "choices_observer_mismatch"]`.
+- Therefore the qualifying heroine dialogue was absent at the raw Observer boundary. TTS was not enabled or tested after this gate failure.
+- No preserved game was reset, revised, retried, or mutated; no Production/DB/migration/config/model operation occurred.
+
+Disposition: `FAILED_PRODUCT_OBSERVER_DIALOGUE_OMISSION`. Preserve the disposable game for review; do not add parser fallback, retry, or broader architecture in this task.
