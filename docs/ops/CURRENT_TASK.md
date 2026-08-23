@@ -1,210 +1,166 @@
 # Company — CURRENT TASK
 
 Status: READY
-Task ID: company-r3-choice-number-token-format-and-narrative-acceptance-v1
-Mode: FIX NUMBER-TOKEN MARKDOWN CHOICE TAIL -> REDEPLOY TEST -> RESUME NARRATIVE ACCEPTANCE
-Updated: 2026-08-23 20:29 KST
+Task ID: company-r3-narrative-acceptance-browser-recovery-v1
+Mode: FREEZE ACCEPTED SOURCE -> CLEAN BROWSER RECOVERY -> COMPLETE HIGH-RANK/CAMPAIGN/MOBILE ACCEPTANCE
+Updated: 2026-08-23 21:01 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5385745211`
+Previous terminal: Issue #68 comment `5385871423`
+Operator review: Issue #68 comment `5385903330`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path and do not create a new ops/recovery branch.
 
-## 0. Accepted baseline — preserve
+## 0. Accepted source/deploy baseline — freeze
 
-Current reviewed executable/source:
-- `3de671aaee21afd91599dae065d864e804e7f253`
+Accepted executable/source:
+- `4d84b12b2733f9510f5a4b92bef22041976cca5d`
 
-Current TEST artifacts:
-- API `game-proxy-company-r3` version `21efa7c9-f8b0-4c43-8dd7-066dca212b58`
-- Frontend `gamebuilder-company-r3` version `36e9e618-ccc1-4ea9-b6cd-ca5a4bb0da0f`
+Current TEST artifacts from that exact source:
+- API `game-proxy-company-r3` version `279cbde2-fe76-4816-81f0-8f3fc27a9f1b`
+- Frontend `gamebuilder-company-r3` version `e139f60f-00b6-49ed-891b-070dd2143f57`
 - bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Freeze as GREEN unless direct contradictory evidence appears:
+Freeze as GREEN unless new contradictory product evidence appears:
 - first-day / first-arrival Opening while preserving selected department/rank;
 - private `상식개변` app remains unfamiliar/private/optional and Opening does not pre-complete voluntary player action;
-- committed `player_inner_thought` pipeline from Observer raw through applied/persistence/context/view model;
-- player-thought visibility F-boundary correction in `3de671aa...`: non-empty thought opens existing `#player-panel`; fresh live fixture proved visible natural first-person Korean;
+- committed player-inner-thought pipeline and visible player-panel F-boundary correction;
 - character-specific first-person NPC Mind Monitor direction;
 - choice semantic-diversity and elapsed-time guidance;
-- existing choice-tail forms: plain `1. 행동` / `1) 행동`, symmetric whole-line `**1. 행동**` / `__1. 행동__`;
+- choice-tail structural formats now accepted on server/frontend: plain numbering, symmetric whole-line `**...**` / `__...__`, and symmetric number-token-only emphasis such as `**1.** 행동` / underscore equivalent;
+- exact choice literal click round-trip;
 - bare-public cold start, exact player agency, canonical navigation, choice dispatch, CSA chronological APPLY/CHANGE/REMOVE and post-CSA continuation.
 
-Do not reopen the player-thought pipeline or redesign these surfaces.
+Validation already accepted for `4d84b12...`:
+- focused source/frontend tests 36/36 PASS;
+- full npm test 514/514 PASS;
+- changed JS/MJS syntax PASS;
+- git diff --check PASS.
 
-## 1. Decisive new failure
+Do not change source, tests, provider/model/config or deployments merely because the previous browser automation session timed out.
 
-Fresh final-build disposable fixture:
-- `a426b1e9-0eda-45e0-9fbe-9c6cea31063e`
+## 1. Accepted live evidence — do not rerun for more green proof
 
-Observed through bare-public UI:
-- Opening committed at Day 1 09:05 with `brand_strategy` + `intern` preserved;
-- player thought is now visibly GREEN: `#player-panel.open === true`, non-empty first-person Korean;
-- relevant NPC Mind Monitor rendered character-specific first-person text;
-- UI choice button count was 0;
-- committed `choices=[]`;
-- raw committed Story visibly contained four terminal choice lines whose numbering token alone was Markdown-emphasized: `**1.** 행동...` through `**4.** 행동...`;
-- browser console had no blocking warn/error;
-- no retry was performed.
-
-This is not a semantic/model failure and not a regression of the previously accepted whole-line wrapper fix. It is one additional conventional structural representation: emphasis around only the numeric list token.
-
-Independent source proof at `3de671aa...`:
-- `runtime-r3/domain/observer-normalizer.js::choiceLine()` accepts plain numbering or a wrapper enclosing the entire numbered choice line, but not `**1.** action` / `__1)__ action`;
-- `frontend-r3/render.js::choiceTail()` has the same limitation.
-
-## 2. Required narrow correction
-
-Before editing, reproduce the exact `**1.** 행동` through `**4.** 행동` shape deterministically in server and frontend tests.
-
-Correct only this structural choice-tail representation.
-
-Required accepted forms:
-1. existing plain: `1. 행동` / `1) 행동`;
-2. existing whole-line wrapper: `**1. 행동**`, `__1) 행동__`;
-3. newly evidenced number-token-only wrapper: `**1.** 행동`, `**1)** 행동`, `__1.__ 행동`, `__1)__ 행동`.
-
-Rules:
-- only symmetric `**` or `__` emphasis around exactly the numbering token may be newly tolerated;
-- recover only the action text after the emphasized number token;
-- preserve that inner action literal character-for-character apart from existing outer whitespace trim;
-- require exactly four ordered, distinct, non-empty terminal choices numbered 1→4;
-- server projection and frontend presentation must implement the same supported forms;
-- terminal choice lines must disappear from narrative body only when the same canonical four choices are actually available;
-- observer mismatch may warn but cannot erase structurally valid Story-authored choices.
-
-Remain fail-closed for:
-- unbalanced/mixed emphasis;
-- emphasis around arbitrary prose;
-- malformed or wrong numbering;
-- missing/extra choices;
-- duplicate/empty actions;
-- non-terminal pseudo-choice lines;
-- bullets/fences/general Markdown constructs not explicitly listed above.
-
-Also keep Story prompt guidance requesting plain numbered final lines without Markdown. Runtime correctness must not depend on provider compliance.
-
-Forbidden:
-- no general Markdown parser;
-- no semantic classifier/matcher/rewriter;
-- no fallback-authored choices;
-- no second Story/Observer call;
-- no retry/regeneration;
-- no provider/model/temperature/token/timeout change;
-- no DB/migration/schema/RLS/grant/reset work;
-- no donor CSA UI/image/TTS work;
-- no Production;
-- no owner/preserved-game mutation.
-
-## 3. Deterministic regressions
-
-At minimum prove:
-1. all previously accepted plain forms stay unchanged;
-2. all previously accepted whole-line wrapper forms stay unchanged;
-3. exact live failure `**1.** 행동` ... `**4.** 행동` projects four exact action literals server-side;
-4. underscore number-token form behaves equivalently;
-5. malformed/mixed/unbalanced token wrappers fail closed;
-6. wrong numbering, duplicate/empty and non-terminal lines fail closed;
-7. Observer mismatch cannot erase structurally valid Story choices;
-8. frontend `choiceTail()` recognizes exactly the same structural set and strips the tail only with canonical choices;
-9. `renderChoices()` receives four exact full literals and click submits the same literal;
-10. player-thought panel correction stays green;
-11. first-arrival/MM/time/agency/navigation/choice-dispatch/CSA chronology regressions remain green where touched.
-
-Run focused R3 observer/provider/frontend/turn tests, full `npm test`, changed JS/MJS `node --check`, and `git diff --check`.
-
-## 4. TEST-only deployment
-
-If source changes, deploy only affected R3 TEST artifacts from the exact reviewed source.
-
-Because the same structural assumption exists in server projection and frontend presentation, expect API + frontend deployment if both files change; confirm from actual diff.
-
-Preserve existing bindings/secrets. Do not print, rotate, request or transfer secrets.
-No Production or provider/model/config tuning.
-Record exact source SHA and Worker version IDs.
-
-## 5. Mandatory bare-public acceptance
-
-Use only:
-`https://gamebuilder-company-r3.zeroslove.workers.dev`
-
-No `?api=` override, storage preseed, or direct-API gameplay substitute. Fresh disposable TEST games only.
-
-### Gate A — exact new failure closure
-
-Create one fresh game after deployment.
-
-Require:
-- Setup -> Opening through visible UI;
-- first-arrival/selected role remains correct;
-- Story ends in exactly four final choices;
-- whether the provider emits plain, whole-line emphasis, or supported number-token emphasis, four usable choice buttons render;
-- committed/readback `choices` contains the same four inner literals;
-- no duplicate terminal choice lines remain as narrative body content;
-- visible player-thought surface remains non-empty, natural first-person Korean and action-safe;
-- relevant NPC MM remains natural character-specific first-person;
-- click one visible choice once -> exactly one POST/SSE/commit with exact literal payload;
-- resulting ordinary turn preserves a grounded player thought and four usable choices;
-- refresh/re-entry preserves current thought/MM/time/choices;
-- no console/network blocker.
-
-If Gate A fails, STOP without retries and capture exact raw Story tail, observer raw/applied choices, persisted choices, presentation parse result and rendered DOM.
-
-### Gate B — low/high-rank Opening
-
-On exact final deployed source create two independent fresh games using materially different low/junior and high/senior/executive positions.
-
-Both must show:
-- explicit first arrival/first appointment;
-- selected department/rank preserved;
-- no invented prior tenure/relationship;
-- private app remains optional/unfamiliar;
-- four usable choices;
+Gate A is GREEN on fresh disposable game:
+- `53a0fefe-479c-42ec-8969-8521d40ecd01`
+- visible Setup -> Opening through bare public UI;
+- four usable canonical choices;
 - visible natural first-person player thought;
-- relevant NPC MM as natural character-specific first-person prose.
+- relevant character-specific NPC MM;
+- one visible choice click produced the intended committed Turn 1;
+- refresh/re-entry preserved Turn 1/time/thought/MM/four choices.
 
-### Gate C — resume original narrative-quality campaign
+Low/junior Gate B is GREEN on fresh disposable game:
+- `457c1960-6d82-44a4-8b55-869ebf8f4b0f`
+- brand-strategy/intern first-arrival Opening;
+- selected role preserved;
+- four choices, player thought and relevant NPC MM present.
 
-Use a fresh game and commit at least 8 ordinary turns after Opening, mixing:
-- free input and at least three visible choice clicks;
-- direct NPC conversation + follow-up;
-- movement/location change;
+Do not rerun Gate A or the low-rank fixture merely to accumulate evidence.
+
+## 2. Previous blocker — environment only
+
+High/executive disposable game created in prior task:
+- `0888980b-fd86-41de-8798-eaaed1ae6f6d`
+
+No product result is claimed for it.
+
+The prior runner lost Chrome DOM/CUA/Playwright read access on that tab and then on other live tabs. Reconnect/fresh-tab attempts also timed out. Because direct API gameplay substitution and guessed UI state were forbidden, the task correctly stopped BLOCKED before high-rank Gate B, Gate C and Gate D.
+
+This is not evidence of an R3 runtime/frontend defect.
+
+## 3. Required first step — clean browser acceptance recovery
+
+Before touching gameplay:
+1. confirm main/source remains `4d84b12...` or a docs-only descendant with no executable drift;
+2. confirm the deployed TEST API/frontend versions above are still active/reachable;
+3. start a clean browser/automation session rather than reusing the poisoned prior tab/session;
+4. navigate only to the bare public URL with no `?api=` override and no storage preseed;
+5. verify basic DOM read/click/network observation works before creating the first new game.
+
+If browser automation/control itself still cannot reliably read/click a fresh bare-public page, STOP `BLOCKED_ENVIRONMENT` with exact tooling symptoms. Do not patch source and do not use direct API gameplay as a substitute.
+
+Do not modify/redeploy source in this task unless the operator has explicitly rearmed a separate source-fix task. This task is acceptance-only.
+
+## 4. Gate B remainder — high/executive Opening
+
+Create one NEW fresh disposable game using a materially high/senior/executive position available in the visible Setup catalog. Do not rely on the prior inaccessible high-rank fixture.
+
+Require through visible UI:
+- explicit first arrival / first appointment / first day framing appropriate to a newly appointed high-rank employee;
+- selected department and high rank preserved exactly;
+- no invented prior tenure, prior office routine, or pre-existing personal relationship;
+- private app unfamiliar/private/optional; no voluntary app action pre-completed;
+- exactly four visible usable choices;
+- visible natural first-person player thought;
+- relevant NPC MM natural character-specific first-person prose, not labels/third-person analyst text;
+- no blocking console/page/network error.
+
+If this product gate fails, capture Story, committed/readback state, thought/MM/choices/DOM and STOP without retry-until-pass or source patch.
+
+## 5. Gate C — 8–10-turn narrative-quality campaign
+
+Use a separate NEW fresh disposable game on the accepted deployed source.
+
+After Opening commit at least 8 ordinary turns, mixing all of:
+- free input;
+- at least three actual visible choice-button clicks;
+- direct NPC conversation and follow-up;
+- explicit movement/location change;
 - work-context action;
 - non-work/social action;
 - refusal/change-of-mind or explicit self-state action.
 
-Inspect complete Story + committed context for:
-- exact player literal remains narrative center;
-- player thought remains first-person, substantive, action-safe, non-duplicative, refresh-safe;
-- relevant NPC MM remains first-person, character-specific, non-label, non-copied dialogue;
-- CSA compliance alone creates no unsupported affection/comfort/desire/arousal/attraction/trust/liking;
-- four choices are exact and meaningfully different rather than near-paraphrases/all-work/all-CSA escalation;
-- canonical time advances plausibly;
-- location/presence remain coherent;
-- streaming remains visible/non-blocking.
+For every sampled turn inspect the complete Story and committed server context, not only summaries.
 
-Refresh/re-enter mid-campaign and at end; committed server context must reconstruct latest thought/MM/time/choices.
+Require:
+- exact player literal remains the narrative center; no actor/target/action/topic/request/refusal/self-state/intent substitution;
+- explicit navigation updates canonical destination/presence coherently and persists through refresh;
+- player thought remains first-person, substantive, action-safe, non-duplicative and does not invent a different action/decision/app use;
+- relevant NPC MM remains first-person, character-specific, non-label and not copied dialogue;
+- CSA compliance alone never manufactures unsupported affection/comfort/desire/arousal/attraction/trust/liking;
+- four choices remain exact full literals and are meaningfully different, not four near-paraphrases, not all-work, not all-CSA escalation;
+- canonical time advances plausibly across conversation/movement/work/social actions rather than remaining frozen;
+- streaming remains visible and non-blocking;
+- no duplicate requests/jobs/turns or blocking console/network errors.
 
-### Gate D — mobile
+Refresh/re-enter once mid-campaign and once at the end. Latest player thought, MM, canonical time/location/presence and four current choices must reconstruct from committed server context with no resubmission.
 
-At approximately 390x844 verify player thought/MM/four choices/direct input are reachable and readable, with no blocking overlay, horizontal overflow, console/page/network errors.
+Do not retry/regenerate a failed provider turn merely to seek a better sample. A real product defect is terminal evidence for this acceptance task.
 
-## 6. GREEN criteria
+## 6. Gate D — mobile
+
+In a clean approximately 390x844 viewport on the same accepted deployed frontend, verify:
+- Setup/gameplay shell usable;
+- player-thought surface readable/reachable;
+- Mind Monitor readable/reachable;
+- four choice controls and direct input reachable;
+- choice click works once with exact literal submission;
+- no horizontal overflow hiding controls;
+- no blocking overlay/tool bar interception;
+- no console/page/network blocker.
+
+Use a fresh disposable game if needed. Do not mutate owner/preserved games.
+
+## 7. GREEN criteria
 
 GREEN only if:
-- exact number-token emphasis failure is fixed structurally without general Markdown/semantic parsing;
-- source/runtime/frontend agree on recovered literals;
-- player-thought F correction remains live GREEN;
-- Gate A click round-trip passes;
-- low/high Opening passes;
-- 8–10-turn campaign, refresh/re-entry and mobile pass;
-- first-arrival/MM/choice diversity/time progression remain qualitatively acceptable;
-- frozen agency/navigation/choice-dispatch/CSA chronology remain healthy;
-- no forbidden work occurred.
+- browser automation recovered on a clean session;
+- high/executive Opening passes;
+- Gate C completes at least 8 ordinary committed turns with all required action classes;
+- at least three visible choice clicks in the campaign produce exact literal single commits;
+- narrative agency, navigation, player thought, character-specific MM, choice diversity and plausible time progression remain qualitatively acceptable;
+- refresh/re-entry reconstructs committed state correctly;
+- ~390x844 mobile passes;
+- accepted number-token choice fix remains healthy;
+- no source/config/provider/model/migration/reset/Production/owner-game mutation occurred.
+
+If browser tooling fails before product evidence is obtainable, report `BLOCKED_ENVIRONMENT`, not a product failure.
+If a genuine product defect appears, report `FAILED_PRODUCT` with the first decisive fixture/turn and STOP; do not repair it in this acceptance-only task.
 
 Do NOT claim owner-ready after this task.
 
-## 7. Remaining owner-remediation after this cut
+## 8. Remaining owner-remediation after narrative-surface GREEN
 
 Do not implement here:
 1. high-parity Company donor CSA UI + draft/unsaved-change behavior;
@@ -213,17 +169,16 @@ Do not implement here:
 4. timeline/current-scene presentation residue;
 5. final holistic owner-style long-play acceptance.
 
-## 8. Completion report
+## 9. Completion report
 
 Post to Issue #68:
-- exact number-token format root and supported forms;
-- exact changed files/source SHA;
-- focused/full tests;
-- TEST Worker versions;
-- Gate A fixture/raw tail/observer/persisted/button/click evidence;
-- Gate B low/high fixture IDs;
-- Gate C turn coverage and sampled Story/thought/MM/choice/time findings;
-- refresh/re-entry/mobile diagnostics;
+- exact source/deployed version verification;
+- browser recovery method/result;
+- high-rank fixture ID and qualitative Opening evidence;
+- Gate C fixture ID, every committed action literal/type and sampled complete Story/thought/MM/choice/time/location findings;
+- mid/end refresh evidence;
+- Gate D viewport/fixture/click diagnostics;
+- console/page/network diagnostics;
 - remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK.
