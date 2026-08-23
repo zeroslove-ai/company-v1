@@ -178,7 +178,7 @@ Execution identity:
 - expected branch: `main`
 - starting main/source HEAD: `536f93bd782d449673a8f675ccea586ef61e7f5f`
 - accepted executable/source SHA: `2511ce2a741a769d06aae2f71996185189f30480`
-- final main HEAD: docs-only checkpoint to be recorded with this terminal report
+- final main HEAD: `b251daa9fb0af8dc61359c02900f33f3bf6ce9d1` (this docs-only terminal checkpoint)
 
 Campaign evidence:
 - Campaign A mobile fresh bare URL game: `057628e5-21a0-488c-b65b-91fac36db549`; 8 ordinary committed turns. Setup, Opening, mobile controls, choice/free-input mixing, direct NPC conversation and follow-up, non-work/social action, refusal/self-state, movement, refresh/re-entry, and mid-game screenshot inspection were completed.
