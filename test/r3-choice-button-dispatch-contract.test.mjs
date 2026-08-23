@@ -58,7 +58,7 @@ test('busy choice controls are disabled and rerender does not duplicate controls
   assert.deepEqual(submitted, [currentChoices[1]]);
 }));
 
-test('desktop shell reserves separate rows for all visible gameplay surfaces', () => {
+test('desktop shell reserves separate rows for the visible gameplay surfaces', () => {
   const css = fs.readFileSync('frontend-r3/hospital-shell.css', 'utf8');
-  assert.match(css, /grid-template-rows:\s*auto auto minmax\(0, 1fr\) auto auto auto;/);
+  assert.match(css, /grid-template-rows:\s*auto minmax\(0, 1fr\) auto auto auto;/);
 });
