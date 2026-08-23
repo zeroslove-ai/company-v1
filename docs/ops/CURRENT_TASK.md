@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-bare-public-owner-readiness-v1
 Mode: BARE PUBLIC URL INDEPENDENT END-TO-END QA -> ROOT-FIX OBJECTIVE DEFECTS -> OWNER-READY GATE
-Updated: 2026-08-23 15:42 KST
+Updated: 2026-08-23 15:45 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5384668398`
 Operator review: accepted mobile cold-start P0 root fix and mandatory self-acceptance.
@@ -169,3 +169,33 @@ Report in Issue #68:
 - screenshot visual-inspection findings;
 - any source/test/deploy changes made and why;
 - final classification and any remaining objective defect.
+
+## 8. Execution result — WAITING_REVIEW
+
+Execution identity:
+- TASK_ID: `company-r3-bare-public-owner-readiness-v1`
+- CURRENT_TASK blob at lease: `4caf00aa95dcacb138a8986ae745c93815c7ed2a`
+- expected branch: `main`
+- starting main/source HEAD: `536f93bd782d449673a8f675ccea586ef61e7f5f`
+- accepted executable/source SHA: `2511ce2a741a769d06aae2f71996185189f30480`
+- final main HEAD: docs-only checkpoint to be recorded with this terminal report
+
+Campaign evidence:
+- Campaign A mobile fresh bare URL game: `057628e5-21a0-488c-b65b-91fac36db549`; 8 ordinary committed turns. Setup, Opening, mobile controls, choice/free-input mixing, direct NPC conversation and follow-up, non-work/social action, refusal/self-state, movement, refresh/re-entry, and mid-game screenshot inspection were completed.
+- Campaign B desktop fresh bare URL game: `51efe18b-1bc3-435f-a178-bb2d8ee223e4`; 10 ordinary committed turns before the reset gate. The campaign included a materially different choice/free-input route, refresh/re-entry, feedback revision plus one continuation turn, representative non-frozen CSA apply/effect/removal/readback, history/export presentation, and TTS toggle/replay.
+- Combined ordinary committed turns before the failed reset gate: 18. The required post-reset Turn 1 was not performed because retry-until-pass is forbidden and the reset gate failed.
+- TEST artifacts exercised: API `game-proxy-company-r3` version `e4317d6f-9bfe-4774-a744-90789d066d4e`; frontend `gamebuilder-company-r3` version `731cc702-2451-442a-895c-2d10c38dccc9`.
+
+Reset gate failure:
+- In Campaign B, the visible `초기화` control and confirmation were used once. The reset stream did not return the UI to a canonical new Opening/Turn 0; the original tab became unresponsive during reset processing.
+- Independent same-game re-entry/read-only verification of game `51efe18b-1bc3-435f-a178-bb2d8ee223e4` after approximately 5 seconds and again after approximately 18 seconds still showed the prior `Turn 10`, the original Opening, old chronology, and no reset Opening. The reset acceptance condition therefore FAILED.
+- Static source tracing shows the intended path is frontend `resetGame()` -> `POST /games/:id/reset` -> `resetResponse()` -> `store.resetGame()` -> `company_r3_reset_game` RPC -> Opening stream. The local reset contract tests pass, but deployed TEST behavior contradicts that contract. The remaining boundary is TEST runtime/RPC/deployment integration; no deterministic source-only defect was isolated, and schema/migration or deployed-state changes require operator investigation and re-scope.
+
+Other required evidence:
+- Visible Story continuity and controls were reviewed on both campaigns; A had the required mobile bottom controls visible. B feedback revision/continuation, CSA apply/effect/ordinary-turn/remove/active-zero readback, history dialog with MD/TXT controls, and TTS toggle/replay were exercised. Browser download events were not observed by the harness after clicking the visible MD/TXT controls, so export is not claimed as a fully green file-download assertion.
+- App dev-log reads were empty for the exercised tabs. The CDP Network event buffer retained no events, so this run does not claim a complete event-level origin proof; the campaigns did start from the bare canonical public URL and completed visible API-backed Setup/Opening/turn flows without the prior frontend-origin 404 bootstrap failure.
+- Screenshots were captured and visually inspected for mobile Setup/Opening/mid-game and desktop Setup/Opening/CSA before/after/history states.
+- No preserved v1/v2/historical game was modified. No Production access, migration apply, deployment, provider/model change, source/test change, or retry loop was performed. The focused/full local test result was `495 passed, 0 failed`; this does not override the deployed reset failure.
+
+Final classification:
+- `WAITING_REVIEW` — owner-ready gate FAILED at same-game reset/post-reset Turn 1. Do not report GREEN or owner-ready. Issue #68 owner manual override `5384780073` also invalidates the prior owner-ready assumptions and requires product-canon remediation before a later handoff; do not create that next task here.
