@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-story-choice-tail-loss-boundary-v1
 Mode: TRACE TURN-7 CHOICE LOSS -> BOUNDED STRUCTURAL FIX ONLY IF PROVEN -> RESUME NARRATIVE ACCEPTANCE
-Updated: 2026-08-23 21:29 KST
+Updated: 2026-08-23 22:52 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5385982766`
 Operator review: Issue #68 comment `5386002999`
@@ -239,3 +239,57 @@ Post to Issue #68:
 - any remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not create the next CURRENT_TASK.
+
+## Terminal evidence — 2026-08-23
+
+Classification: B — the preserved Turn 7 Story contained an unambiguous terminal four-choice block, but the server `storyChoiceTail()` accepted only four adjacent physical lines and rejected the exact blank-line-separated layout. `observer_raw.choices` already held four literals; `projectChoices()` therefore emitted `choices_projection_dropped` and `observer_applied.choices: null` before persistence. This was not an Observer-mismatch, persistence, frontend lifecycle, or provider-contract loss.
+
+Preserved fixture read-only evidence (`2241e4e8-559f-42b4-ae7d-962c93d006d3`, Turn 7):
+
+```text
+[33] <BLANK>
+[34] 한리브 대리는 아무 말 없이 자리에서 일어나 커피포트 쪽으로 걸어갔다. 사무실 안은 여전히 부드러운 오후의 공기가 흐르고 있었다.
+[35] <BLANK>
+[36] ---
+[37] <BLANK>
+[38] 1. "감사합니다. 꼭 빌려서 읽어보고 싶어요"라고 답하며 윤민아 대리에게 책을 빌려 달라고 부탁한다.
+[39] <BLANK>
+[40] 2. "마케팅 에세이면 저도 관심 있어요. 어떤 내용인지 조금 더 들려주실 수 있나요?"라고 이어서 물어본다.
+[41] <BLANK>
+[42] 3. 고개를 끄덕이며 "관심 있습니다"라고 짧게 답하고, 그다음에 자리로 돌아가 오후 업무를 계속 파악한다.
+[43] <BLANK>
+[44] 4. 사무실 문쪽에서 손목 진동이 다시 느껴져, 잠시 자리를 비워 상식개변 앱을 확인한다.
+```
+
+- `observer_raw.choices`: the four exact literals above.
+- `observer_applied.choices`: `null`; warnings: `choices_projection_dropped`.
+- committed Turn 7 `choices`: `[]`.
+- The preserved browser observation recorded zero current choice buttons with free input still available. A later stale capability prevented a new context fetch for that old fixture (`JWT issued at future`), but the read-only TEST DB row plus the preserved DOM observation fully proved B.
+- Existing frontend `frontend-r3/render.js::choiceTail()` already skips blank separators. The deterministic frontend regression confirms it returns the same four exact literals when canonical choices are present; the zero-button result was downstream of the server loss.
+
+Bounded correction:
+
+- `runtime-r3/domain/observer-normalizer.js`: terminal choice-tail scanning now skips only blank structural separators while requiring ordered 1–4, distinct, non-empty lines. No fuzzy/semantic matching, normalization sweep, fallback, retry, or provider change.
+- `test/r3-source-correction.test.mjs`: exact preserved Turn 7 literals and malformed/previously accepted forms.
+- `test/r3-frontend-contract.test.mjs`: exact frontend parity for the same blank-line-separated tail and full-literal presentation.
+- No frontend runtime source change was needed because its existing reader was already structurally symmetric.
+
+Validation:
+
+- focused choice-tail/frontend suite: 38/38 PASS;
+- full `npm.cmd test`: 516/516 PASS;
+- changed JS/MJS `node --check`: PASS;
+- `git diff --check`: PASS;
+- exact-head CI for final main `475f0a01c1b31c1b3e9bc124b26e6f4691b893d8`: run `32640373861`, SUCCESS;
+- source executable deployed to TEST from `2a3611f5de3906d7c797259173fa0d5ed19977d0`; API `game-proxy-company-r3` version `c7b0f0fe-9c20-4cec-8af0-8e27508b44ff`; frontend remained `e139f60f-00b6-49ed-891b-070dd2143f57`.
+
+Fresh bare-public acceptance:
+
+- disposable game `f2d7de4a-7705-4322-9416-3b95a62e8a57` at the bare public URL only;
+- Opening plus 9 ordinary committed turns; scenario steps were recorded separately from committed turn numbers;
+- 4 visible choice clicks and 5 free-input turns, including direct NPC follow-up, social/work context, explicit movement to lunch, refusal/self-state, and continued work conversation;
+- every committed turn read back `choices` count 4, `observer_raw.choices` count 4, and `observer_applied.choices` count 4; no recurrence of the zero-button loss;
+- final browser state: committed Turn 9, 4 visible choice buttons, saved status, no error, zero console error/warn entries;
+- no retry/regeneration, reset, migration, Production access, provider/model/config tuning, or preserved-game mutation.
+
+Final state: source/test work is complete enough for operator review. Do not claim owner-ready; remaining owner-remediation items in this task remain out of scope.
