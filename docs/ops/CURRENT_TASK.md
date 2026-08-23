@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-csa-active-rule-preset-change-v1
 Mode: FREEZE R3 CSA CHRONOLOGY -> RESTORE ACTIVE-RULE PRESET CHANGE UX -> FRONTEND TEST DEPLOY -> BARE-PUBLIC APPLY/CHANGE/REMOVE ACCEPTANCE
-Updated: 2026-08-24 02:15 KST
+Updated: 2026-08-24 02:36 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5387276200`
 Operator review: Issue #68 comment `5387302655`
@@ -286,3 +286,27 @@ At completion:
 - stop.
 
 Do not create/start the next task.
+
+## 11. Terminal handoff — frontend repair GREEN, owner review required
+
+- Starting HEAD: `68c1a465c0eb5c6454724adfe82c577d9defcd63`
+- Final source HEAD: `ef52695668ab8548ed89b2eeb68c21ea95d836ba`
+- Branch: `main`, pushed to `origin/main`.
+- Reviewed executable/source baseline remained `79a9921b0248912bd8453a26c83443f8da481cb4`; the repair is frontend-only.
+- Changed files: `frontend-r3/csa.js`, `frontend-r3/csa-entry.css`, `test/r3-csa-draft.test.mjs`, `test/r3-frontend-contract.test.mjs`.
+- Focused tests: 22 passed (`test/r3-csa-draft.test.mjs`, `test/r3-frontend-contract.test.mjs`).
+- Full `npm.cmd test`: 531 passed, 0 failed.
+- Syntax: `node --check` passed for both changed frontend modules and both changed MJS tests.
+- `git diff --check`: passed.
+- TEST frontend deployment: `gamebuilder-company-r3` version `71416b75-9cca-45ee-9b32-7cf209f16395`.
+- Frozen API unchanged: `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`.
+- Fresh disposable live fixture: `f1285f4c-4719-4dc2-a18d-9fa5ad86d40c`; preserved failed fixture and owner game were not opened, reset, retried, or mutated.
+- Live sequence on bare public URL: APPLY Turn 1 (`activate`, one `/turn` POST); CHANGE Turn 2 (`update`, one `/turn` POST, same rule id `r3_csa_1`, template `no_panties_under_work_clothes` → `no_bra_under_work_clothes`); unrelated Turn 3 (one ordinary `/turn` POST with no `csa_operation`); REMOVE Turn 4 (`deactivate`, one `/turn` POST); final unrelated Turn 5 (one ordinary `/turn` POST with no `csa_operation`).
+- Reopen after CHANGE showed the replacement under the same active rule id; reopen after REMOVE showed `현재 활성 규칙 0개`.
+- CHANGE staging showed current → pending content/strength/category/scopes and exactly one pending change; Revert produced zero gameplay requests and restored the committed rule.
+- Live POST literals were Korean natural labels, including `상식개변 변경: 회사 여성 직원은 근무 중 브래지어 없이 근무복을 입어야 한다. · 대상 여성 직원`; no direct gameplay API substitute was used.
+- Mobile check at 390×844: CSA dialog, replacement controls, Revert/Apply/Remove surfaces were reachable; `innerWidth=390` and `scrollWidth=390` (no horizontal overflow); viewport override was restored.
+- Evidence: `.tmp/evidence-company-r3-csa-active-rule-preset-change-v1.md`.
+- No Production access, DB writes, migrations, provider/model/config/secret changes, API deployment, retry-until-pass, or preserved-game mutation.
+
+Stop state: `WAITING_REVIEW`. Do not claim owner-ready or start the next task; the next operator review must restart the holistic owner-style long-play from a new clean campaign.
