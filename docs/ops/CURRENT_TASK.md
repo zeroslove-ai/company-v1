@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-same-game-reset-runtime-separation-v1
 Mode: PREFER REAL STANDALONE DIALOG ACCEPT -> FALLBACK ONE-SHOT CONFIRM SHIM FOR RUNTIME B-H ONLY -> MINIMAL FIX IF PROVEN -> RESET RUNTIME CLOSURE
-Updated: 2026-08-23 23:31 KST
+Updated: 2026-08-23 23:47 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5386520534`
 Operator review: Issue #68 comment `5386535078`
@@ -349,3 +349,21 @@ Post one terminal report to Issue #68 with:
 - remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not generate the next task.
+
+## 10. Terminal evidence — RESET_RUNTIME_GREEN
+
+- Disposition: `RESET_RUNTIME_GREEN`; `NATIVE_DIALOG_AUTOMATION: DEFERRED_ENVIRONMENT`.
+- Starting main: `d6d91037b794a6f49071131629129cdbfa440eaf`.
+- CURRENT_TASK blob before terminal update: `efbaf9cfa3cfc297db938afc26b62a06b15c7c04`.
+- Standalone Playwright package/control path was unavailable in the local environment after the prior in-app CDP failure, so the task-authorized ephemeral fallback was used. The fallback was installed in the fresh page immediately before the visible reset click through a main-world CDP evaluation, saved the original `window.confirm`, required the exact Korean reset message, returned `true` once, and restored the original immediately. Invocation count was 1; observed message was `현재 게임을 초기화하고 Opening부터 다시 시작할까요?`; restored was true. This is not native-dialog acceptance evidence.
+- Fresh disposable fixture: `30e3c955-26b4-4ea7-9d42-3ceceb30c569`; the two prior blocked fixtures and all preserved games were untouched.
+- Gate A: visible Setup/Opening completed, fresh Turn 0 rendered with four choices/free input/Mind Monitor, and three ordinary visible turns committed through Turn 3. Profile remained `R3 Runtime QA 김도윤`, brand_strategy / intern / 29 / 178 / 72 / polite.
+- Gate B: the real visible `초기화` button was clicked exactly once after shim installation. Main-world performance resource evidence recorded exactly one `POST` target resource at `/api/r3/games/30e3c955-26b4-4ea7-9d42-3ceceb30c569/reset`; no second reset/reset path was used.
+- B–H: no divergence was observed. The deployed path returned a non-busy fresh Turn 0 with the same game ID, four choices, player inner thought, Mind Monitor, and no old Turn 3 marker. The result is consistent with the existing `resetGame -> client.reset -> resetResponse -> store.resetGame -> company_r3_reset_game -> Opening -> reconciliation` authority path; no source/runtime correction was justified.
+- Gate C: same game URL remained in use; reset UI showed Turn 0, four choices, free input, Mind Monitor, and no permanent busy state. The pre-reset current Story marker was absent after reset.
+- Gate D: refresh/re-entry preserved the same URL/game ID and reconstructed fresh Turn 0 with four choices, no old Turn 3 marker, and no busy state.
+- Gate E: one clear Korean free input, `새로운 시작 후 오늘 업무를 확인한다.`, committed a clean visible `Turn 1`; the literal remained visible in the resulting Story/context and the UI was not busy.
+- Gate F: at 390x844, Turn 1, reset control, direct input, and four choices were reachable; no busy residue blocked controls. Viewport was restored without another reset.
+- Source files changed: none. TEST deployment: none. Migration apply: none. Production/provider/model/config: untouched. Preserved evidence: untouched.
+- Read-only confidence: `npm.cmd test` 521/521 passed; `git diff --check` passed. No JS/MJS source changed, so no changed-source syntax check was required.
+- Native dialog automation remains an environment-only deferred limitation; this runtime-green result must not be reported as native-confirm automation GREEN. Stop here; do not generate the next task.
