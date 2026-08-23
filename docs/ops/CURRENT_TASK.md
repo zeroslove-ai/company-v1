@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-story-canonical-player-identity-v1
 Mode: FREEZE CANONICAL PROFILE/PERSISTENCE -> PROJECT EXACT PLAYER IDENTITY ON EVERY STORY TURN -> API TEST DEPLOY -> EXECUTIVE/JUNIOR LIVE IDENTITY ACCEPTANCE
-Updated: 2026-08-24 03:00 KST
+Updated: 2026-08-24 03:22 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5387578154`
 Operator review: Issue #68 comment `5387600560`
@@ -291,3 +291,17 @@ At completion report:
 
 Overwrite this SAME `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW` in place and post the terminal report to Issue #68.
 Stop. Do not create or start the next task.
+
+## Terminal result — WAITING_REVIEW
+
+- Source branch: `company-r3-story-canonical-player-identity-v1`
+- Source SHA: `8199c8b7b4b86ac936b9785b19f2340a40336ef1`
+- Source PR: Draft PR #101
+- TEST API: `game-proxy-company-r3@53a91cb4-9317-4198-8d7c-52a9e8e34571`
+- TEST frontend unchanged: `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`
+- Fresh executive game: `a78b91bd-4216-4e31-91ab-fd2705f0a99c`; setup/readback and every post-save view remained `서윤호 / 신사업TF / 임원` through Opening + 6 ordinary turns, including refresh after Turn 3 and free input after refresh. Play History showed Opening + Turns 1–6.
+- Fresh junior game: `6b8ba038-50f0-408b-8210-20fed28bd0bc`; setup/readback and every post-save view remained `홍길동 / 브랜드전략팀 / 인턴` through Opening + 3 ordinary turns. Play History showed Opening + Turns 1–3.
+- Focused identity/opening/turn tests: 44/44 PASS. Full `npm.cmd test`: 536/536 PASS. Changed JS/MJS syntax checks and `git diff --check`: PASS.
+- Live evidence: `.tmp/company-r3-story-canonical-player-identity-v1-live-evidence.md`.
+- Preserved failure fixture `4b050667-cca3-43a0-b483-d16c86a2873e` was not opened, reset, or modified. No Production, migration, frontend deployment, provider/model/config change, retry, or regeneration.
+- No alternate formal rank appeared in either fresh game. Stop for owner/operator review; do not claim owner-ready and do not start the next task.
