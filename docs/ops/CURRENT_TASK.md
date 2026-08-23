@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-same-game-reset-dialog-recovery-v1
 Mode: RECOVER NATIVE-CONFIRM HARNESS -> TRACE RESET B-H -> MINIMAL FIX ONLY IF PROVEN -> SAME-GAME RESET ACCEPTANCE
-Updated: 2026-08-23 23:10 KST
+Updated: 2026-08-23 23:30 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5386426213`
 Operator review: Issue #68 comment `5386475570`
@@ -287,3 +287,17 @@ Post one terminal report to Issue #68 with:
 - remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not generate the next task.
+
+## 10. Terminal evidence — BLOCKED_ENVIRONMENT
+
+- Terminal status: `BLOCKED_ENVIRONMENT`; no product failure classification was made.
+- Starting main: `44075e2d1d97380cba3ffcca5011a70ff3d7e630`.
+- CURRENT_TASK blob before terminal update: `d8fed4f5dd2023677d8fc9fc678330b77cb26143`.
+- Fresh disposable fixture: `f356c603-3aa5-4304-832a-984c0229cd75`; the prior blocked fixture and all preserved games were untouched.
+- The fresh bare-public app completed visible Setup, Opening Turn 0 with four choices/free input/Mind Monitor, and three ordinary turns through Turn 3. The visible game URL retained the same fresh game ID.
+- Before the reset click, a real browser-level CDP mechanism was prepared: `Page.enable`, `Network.enable`, and a polling handler for `Page.javascriptDialogOpening` registered before the click, with `Page.handleJavaScriptDialog({accept:true})` as the accept path.
+- The visible `초기화` control was attempted exactly once after handler registration. Playwright's visible click timed out at `Input.dispatchMouseEvent`; no network event was observed. A subsequent DOM read reported that a confirm JavaScript dialog was active, proving the browser-native modal had opened, but the dialog event did not surface to the handler. The late CDP accept call and subsequent DOM/keyboard recovery also timed out. Exact dialog text/type could not be observed through the available browser bridge.
+- No second click or reset request was made. Reset POST/SSE, Worker/store/RPC, durable post-reset state, Opening restart, refresh/re-entry, and post-reset Turn 1 are unverified. The fresh fixture remains evidence and must not be reset/deleted/repaired in a later run without a new authorized task.
+- Source changes: none. TEST deployment: none. Migration: none. Production/provider/model/config: untouched. No source-only harness workaround was added.
+- Read-only confidence: `npm.cmd test` 521/521 passed; `git diff --check` passed. No JS/MJS source changed, so no changed-source syntax check was required.
+- Final main SHA and final CURRENT_TASK blob are recorded in the Issue #68 terminal report. Stop here; do not create the next CURRENT_TASK.
