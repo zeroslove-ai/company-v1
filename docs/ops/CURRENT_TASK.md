@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-final-holistic-owner-style-long-play-v2
 Mode: SOURCE-FROZEN FINAL PRODUCT ACCEPTANCE -> NEW CLEAN OWNER-STYLE LONG PLAY -> CROSS-FEATURE EXIT MATRIX
-Updated: 2026-08-24 02:37 KST
+Updated: 2026-08-24 02:55 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5387491499`
 Previous holistic failure: Issue #68 comment `5387276200`
@@ -357,3 +357,15 @@ At completion record:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `Status: WAITING_REVIEW` in place, post the terminal report to Issue #68, and stop.
 
 Do not create or start a next task.
+
+## Terminal result — FAILED_PRODUCT
+
+- Terminal status: `FAILED_PRODUCT`
+- Fresh Campaign A: `4b050667-cca3-43a0-b483-d16c86a2873e`
+- Campaign A stopped at committed Turn 5 on the first decisive rank-preservation failure.
+- Setup/readback: `department=신사업TF`, `position=임원`.
+- Turn 5 Story: authored the visible business card as `서윤호 / 신사업TF 팀장`.
+- This contradicts the committed/read-back `임원` rank and violates the task's exact agency/rank invariant.
+- Evidence: `.tmp/company-r3-final-holistic-owner-style-long-play-v2-failure.md`
+- Campaign B was not created. No source, deploy, retry/regeneration, provider/model, DB, migration, or Production operation was performed.
+- Stop condition: preserve the fresh fixture and await operator review; do not continue the campaign or start another task.
