@@ -201,6 +201,15 @@ test('R3 presentation adapter mirrors the server number-token choice-tail forms'
   assert.match(malformed.blocks[0].text, /\*\*3\.__/);
 });
 
+test('R3 presentation adapter mirrors blank-line-separated terminal choice tails', async () => {
+  const { parsePlainStoryForPresentation } = await import('../frontend-r3/render.js');
+  const choices = ['one', 'two', 'three', 'four'];
+  const story = `Scene body.\n\n1. ${choices[0]}\n\n2. ${choices[1]}\n\n3. ${choices[2]}\n\n4. ${choices[3]}`;
+  const parsed = parsePlainStoryForPresentation(story, { choices });
+  assert.deepEqual(parsed.choices, choices);
+  assert.equal(parsed.blocks.some(block => block.text.includes('1. one')), false);
+});
+
 test('R3 choice labels are presentation-only and clicks preserve the complete Story literal', async () => {
   const { renderChoices } = await import('../frontend-r3/render.js');
   const canonical = [String.raw`full \\"quoted\\" literal`, 'second complete action', 'third complete action', 'fourth complete action'];

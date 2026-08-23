@@ -27,7 +27,15 @@ function storyChoiceTail(storyText) {
   const lines = String(storyText ?? '').replace(/\r\n?/g, '\n').split('\n');
   while (lines.length && !lines.at(-1).trim()) lines.pop();
   if (lines.length < 4) return null;
-  const choices = lines.slice(-4).map((line, index) => choiceLine(line, index + 1));
+  const choices = [];
+  let index = lines.length - 1;
+  for (let number = 4; number >= 1; number -= 1) {
+    while (index >= 0 && !lines[index].trim()) index -= 1;
+    const choice = index >= 0 ? choiceLine(lines[index], number) : null;
+    if (!choice) return null;
+    choices.unshift(choice);
+    index -= 1;
+  }
   return choices.every(choice => choice) && new Set(choices).size === 4 ? choices : null;
 }
 

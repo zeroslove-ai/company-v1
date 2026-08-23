@@ -62,6 +62,15 @@ test('R3 choice tail accepts the existing 1) form without using earlier numbered
   assert.deepEqual(normalizeObserver({ choices }, { storyText: story, content }).choices, choices);
 });
 
+test('R3 choice tail preserves the exact four choices when Story separates terminal lines with blank lines', () => {
+  const choices = ['one', 'two', 'three', 'four'];
+  const story = `Body\n\n1. ${choices[0]}\n\n2. ${choices[1]}\n\n3. ${choices[2]}\n\n4. ${choices[3]}`;
+  const normalized = normalizeObserver({ choices: [] }, { storyText: story, content });
+  assert.deepEqual(normalized.choices, choices);
+  assert.ok(normalized.warnings.includes('choices_observer_mismatch'));
+  assert.equal(normalized.warnings.includes('choices_projection_dropped'), false);
+});
+
 test('R3 choice tail accepts only the evidenced symmetric number-token emphasis forms', () => {
   const choices = ['one', 'two', 'three', 'four'];
   const lines = ['**1.** one', '**2)** two', '__3.__ three', '__4)__ four'];
