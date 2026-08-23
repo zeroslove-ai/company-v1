@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-media-focal-dialogue-projection-v1
 Mode: FREEZE ACCEPTED MEDIA PLUMBING -> ADD GROUNDED COMMITTED PRESENTATION PROJECTION -> RETEST IMAGE/TTS LIVE
 Updated: 2026-08-24 00:27 KST
@@ -8,6 +8,23 @@ Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5386778945`
 Operator review: Issue #68 comment `5386804081`
 Owner manual-play authority: Issue #68 comment `5384780073`
+
+## Terminal evidence — 2026-08-24
+
+TERMINAL_OUTCOME: COMPLETE
+
+- Source implementation: `dd3eef3df57707cfc801c93f4b5444d49a822319` (pushed to `origin/main`); final control-file commit is the descendant of this source commit.
+- Changed files: `runtime-r3/domain/observer-normalizer.js`, `runtime-r3/server/provider.js`, `runtime-r3/domain/media.js`, `frontend-r3/r3-view-model.js`, `frontend-r3/media.js`, `test/r3-approved-media.test.mjs`, `test/r3-opening-contract.test.mjs`.
+- Validation: focused `test/r3-approved-media.test.mjs` 7/7; full `npm.cmd test` 528/528; changed JS/MJS `node --check` PASS; `git diff --check` PASS.
+- TEST deploy: API `game-proxy-company-r3` version `82be1bb0-34f6-4c0d-87a8-5db34fdb288b`; frontend `gamebuilder-company-r3` version `3f4b6c4f-4201-4ca5-8800-cbf2fe9137a0`; bare public URL used exactly: `https://gamebuilder-company-r3.zeroslove.workers.dev`.
+- Fresh disposable TEST fixture: `04408c93-13e7-4fb6-a840-06e11fabe870`; prior failure fixture `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1` and owner game were not modified.
+- Live sample: Opening plus ordinary turns 1–4 committed. Turn 3 raw Story contained the grounded heroine dialogue beginning `서원희 차장이 서류에서 고개를 들어...`; normalized `observer_applied` persisted `focal_actor: {actor_id: "heroine1", quote: "서원희 차장이 서류에서 고개를 들어 당신을 바라본다."}` and three verbatim `dialogue_lines` for `heroine1`/`heroine2`. Turn 4 Observer failure remained fail-open with `focal_actor: null`, `dialogue_lines: []`, and no gameplay-state replacement.
+- Gate A: PASS — committed `heroine1` focal projection selected the exact present heroine; server image route returned approved `Heroine1/one_main.jpg`, and the visible image rendered without blocking Story, choices, or input. Opening ambiguity was not guessed; its invalid focal/dialogue projections were dropped with warnings.
+- Gate B: PASS — TTS was initially OFF (`aria-pressed=false`); captured ordinary-turn network evidence contained zero `/media/tts` calls before enabling TTS, and no narrator/player/private-thought/Mind Monitor text was sent.
+- Gate C: PASS — visible TTS ON sent the committed `speaker_id=heroine1` and exact validated dialogue through R3 `/media/tts`; the route returned HTTP 200 with an audio URL, and the audio element received the returned URL. No direct TTS-worker call or browser `speechSynthesis` path was used.
+- Gate D: PASS — replay produced zero additional `/media/tts` or image calls and reused the cached audio URL; refresh/re-entry reconstructed turn 3's grounded image, while the later turn 4 fail-open projection cleared media after committed-context reload; committed turn authority remained unchanged.
+- Gate E: PASS — at viewport 390x844, image/media, TTS toggle/replay/audio, choices, and direct input controls remained present; `innerWidth=390`, `innerHeight=844`, `bodyScrollWidth=390`, `clientWidth=390`, no horizontal overflow.
+- No production, migration, provider/model/config, schema/RPC, preserved-game, owner-game, or secret changes. Remaining scope is timeline/current-scene residue and final holistic owner-style acceptance.
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery branch. Work on `main` only.
 
