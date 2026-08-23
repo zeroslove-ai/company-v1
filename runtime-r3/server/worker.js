@@ -19,7 +19,7 @@ export function createR3Worker({ store, provider, content, gameAccessSecret, env
   return {
     store,
     provider,
-    async fetch(request, requestEnv = env) {
+    async fetch(request, requestEnv = env, executionCtx = null) {
       try {
         const url = new URL(request.url);
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: R3_CORS_HEADERS });
@@ -39,7 +39,7 @@ export function createR3Worker({ store, provider, content, gameAccessSecret, env
         if (!(await verifyGameCapability(gameId, bearerCapability(request), gameAccessSecret))) return accessDeniedResponse();
         if (request.method === 'GET' && action === 'context') return json(await store.context(gameId));
         if (request.method === 'POST' && action === 'opening') return openingResponse(store, provider, content, gameId);
-        if (request.method === 'POST' && action === 'turn') return turnResponse(request, store, provider, content, gameId);
+        if (request.method === 'POST' && action === 'turn') return turnResponse(request, store, provider, content, gameId, executionCtx);
         if (request.method === 'POST' && action === 'feedback') return feedbackResponse(request, store, provider, content, gameId);
         if (request.method === 'POST' && action === 'csa') return csaResponse(store, provider, content, gameId, await body(request));
         if (request.method === 'POST' && action === 'reset') return await resetResponse(request, store, provider, content, gameId);
@@ -165,11 +165,11 @@ async function processOpening({ store, provider, content, gameId, emit }) {
   emit('terminal', { status: 'committed', context });
 }
 
-async function turnResponse(request, store, provider, content, gameId) {
-  return startTurn(store, provider, content, gameId, await body(request));
+async function turnResponse(request, store, provider, content, gameId, executionCtx) {
+  return startTurn(store, provider, content, gameId, await body(request), executionCtx);
 }
 
-async function startTurn(store, provider, content, gameId, input) {
+async function startTurn(store, provider, content, gameId, input, executionCtx = null) {
   const literalAction = requireLiteralAction(input.literal_action); const actionId = String(input.action_id ?? ''); if (!actionId) throw new Error('r3_action_id_required');
   const csaOperation = input?.csa_operation ?? null;
   const before = await store.context(gameId); const expectedTurn = input.expected_turn; const existing = Number.isInteger(expectedTurn) ? await store.getJob(gameId, expectedTurn) : null;
@@ -178,7 +178,7 @@ async function startTurn(store, provider, content, gameId, input) {
   assertExpectedTurn(expectedTurn, before.state.committed_turn);
   const reservation = await store.reserveTurn({ gameId, turnNumber: expectedTurn, actionId, literalAction, csaOperation, retryFailed: input.retry_failed === true });
   if (!reservation.created) return json({ status: reservation.job.status, reconnect: true, job: reservation.job, context: reservation.job.status === 'committed' ? await store.context(gameId) : undefined });
-  return streamTurn({ store, provider, content, gameId, job: { ...reservation.job, ...(csaOperation ? { csa_operation: csaOperation } : {}) } });
+  return streamTurn({ store, provider, content, gameId, job: { ...reservation.job, ...(csaOperation ? { csa_operation: csaOperation } : {}) }, executionCtx });
 }
 
 async function feedbackResponse(request, store, provider, content, gameId) {
@@ -251,8 +251,17 @@ async function processFeedback({ store, provider, content, gameId, attempt, snap
   }
 }
 
-function streamTurn({ store, provider, content, gameId, job }) {
-  const encoder = new TextEncoder(); const stream = new ReadableStream({ start(controller) { processTurn({ store, provider, content, gameId, job, emit: (name, data) => controller.enqueue(encoder.encode(sse(name, data))) }).then(() => controller.close(), error => { controller.enqueue(encoder.encode(sse('terminal', { status: 'failed', error_code: error.message }))); controller.close(); }); } });
+function streamTurn({ store, provider, content, gameId, job, executionCtx = null }) {
+  const encoder = new TextEncoder(); let cancelled = false;
+  const stream = new ReadableStream({
+    start(controller) {
+      const emit = (name, data) => { if (!cancelled) controller.enqueue(encoder.encode(sse(name, data))); };
+      const task = processTurn({ store, provider, content, gameId, job, emit });
+      executionCtx?.waitUntil?.(task);
+      task.then(() => { if (!cancelled) controller.close(); }, error => { if (!cancelled) { emit('terminal', { status: 'failed', error_code: error.message }); controller.close(); } });
+    },
+    cancel() { cancelled = true; }
+  });
   return new Response(stream, { status: 200, headers: { ...R3_CORS_HEADERS, 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache' } });
 }
 
