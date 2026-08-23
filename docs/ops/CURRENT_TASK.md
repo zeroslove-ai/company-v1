@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-story-canonical-player-identity-main-landing-v1
 Mode: ACCEPT GREEN IDENTITY SOURCE -> LAND EXACT SOURCE ON MAIN -> PROVE SOURCE EQUIVALENCE -> NO REDEPLOY/REPLAY
-Updated: 2026-08-24 03:26 KST
+Updated: 2026-08-24 03:34 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5387708812`
 Operator review: Issue #68 comment `5387727514`
@@ -179,3 +179,16 @@ At completion report:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, post the terminal report to Issue #68, and stop.
 
 Do not create/start the holistic task yourself.
+
+## Terminal result — MAIN_SOURCE_LANDING_GREEN
+
+- Starting main: `c0929a1790cff6e6fb7f4fced534adf97fa5eef4`.
+- Accepted source: `8199c8b7b4b86ac936b9785b19f2340a40336ef1`.
+- Exact clean cherry-pick landing: `5d033404a411683ca7afbd2f97a5e274c034498c`; final main is the same SHA.
+- Landing paths: `runtime-r3/domain/memory.js`, `runtime-r3/server/provider.js`, `test/r3-player-identity-contract.test.mjs`.
+- Source equivalence: PASS. The three landed blobs are byte-identical to `8199c8b...`; `git diff 8199c8b... --` over those paths is empty. No second identity implementation or unrelated product source was added.
+- Focused identity/opening/turn tests: 44/44 PASS. Full `npm.cmd test`: 536/536 PASS. Changed JS/MJS `node --check` and `git diff --check`: PASS.
+- TEST API remains `game-proxy-company-r3@53a91cb4-9317-4198-8d7c-52a9e8e34571`; frontend remains `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`. Deployment count for this landing: 0.
+- Gameplay, reset, retry, regeneration count for this landing: 0. Preserved and accepted fixtures were not opened or mutated.
+- Draft PR #101 remains open/draft as source evidence; it was not merged or rewritten.
+- Disposition: `MAIN_SOURCE_LANDING_GREEN`. Stop for owner/operator review; do not start holistic acceptance or the next task.
