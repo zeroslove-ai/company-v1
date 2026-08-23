@@ -8,6 +8,26 @@ function object(value) { return value !== null && typeof value === 'object' && !
 function heroineIds(content) { return new Set(Object.values(content?.characters ?? {}).map(character => character?.character_id).filter(id => typeof id === 'string' && id)); }
 function actorNames(content) { return Object.fromEntries(Object.values(content?.characters ?? {}).map(character => [character.character_id, character.name]).filter(([id, name]) => id && text(name))); }
 
+function committedPresentation(turn, content, presentActorIds) {
+  const names = actorNames(content);
+  const heroines = new Set(Object.keys(content?.characters ?? {}));
+  const present = new Set(Array.isArray(presentActorIds) ? presentActorIds : []);
+  const storyText = String(turn?.story_text ?? '');
+  const applied = object(turn?.observer_applied);
+  const focal = applied.focal_actor;
+  const focalActor = focal && heroines.has(focal.actor_id) && present.has(focal.actor_id) && text(focal.quote) && storyText.includes(focal.quote) && focal.quote.includes(names[focal.actor_id]) ? { actor_id: focal.actor_id, quote: focal.quote } : null;
+  const projected = Array.isArray(applied.dialogue_lines) ? applied.dialogue_lines : null;
+  const dialogueLines = projected
+    ? projected.flatMap((line, order) => {
+      const speakerId = line?.speaker_id; const spokenText = text(line?.text); const evidence = text(line?.evidence_quote);
+      return heroines.has(speakerId) && present.has(speakerId) && names[speakerId] && spokenText && storyText.includes(spokenText) && evidence && storyText.includes(evidence) && evidence.includes(names[speakerId]) && evidence.includes(spokenText)
+        ? [{ speaker_id: speakerId, speaker_name: names[speakerId], text: spokenText, direction: text(line?.direction), evidence_quote: evidence, order: Number.isInteger(line?.order) ? line.order : order }]
+        : [];
+    })
+    : parseCommittedDialogue(storyText, content);
+  return { focalActor, dialogueLines };
+}
+
 export function parseCommittedDialogue(storyText, content) {
   const names = actorNames(content);
   const idByName = new Map(Object.entries(names).map(([id, name]) => [name, id]));
@@ -82,8 +102,9 @@ export function projectCurrentMedia({ context, content, requestedCharacterId = '
   const present = [...new Set(Array.isArray(scene.present_actor_ids) ? scene.present_actor_ids : [])];
   const presentHeroines = present.filter(id => registered.has(id));
   const turn = latestCommittedTurn(context);
-  const dialogueLines = parseCommittedDialogue(turn?.story_text, content);
-  const focal = registered.has(scene.focal_actor_id) && presentHeroines.includes(scene.focal_actor_id) ? scene.focal_actor_id : '';
+  const presentation = committedPresentation(turn, content, present);
+  const dialogueLines = presentation.dialogueLines;
+  const focal = presentation.focalActor?.actor_id || (registered.has(scene.focal_actor_id) && presentHeroines.includes(scene.focal_actor_id) ? scene.focal_actor_id : '');
   const dialogueSpeakers = [...new Set(dialogueLines.map(line => line.speaker_id).filter(id => presentHeroines.includes(id)))];
   let characterId = '';
   if (requestedCharacterId) {

@@ -7,16 +7,46 @@ import { projectCurrentMedia, selectApprovedImage, resolveCommittedTtsBatch, res
 import { createR3Worker } from '../runtime-r3/server/worker.js';
 import { InMemoryR3Store } from '../runtime-r3/server/store.js';
 import { parseR3DialogueLines, projectR3Media } from '../frontend-r3/media.js';
+import { normalizeObserver } from '../runtime-r3/domain/observer-normalizer.js';
+import { reduceObservation } from '../runtime-r3/domain/reducer.js';
 
 const content = loadCanonicalCompanyR3Content();
 const heroine = content.characters.heroine1;
 const secret = 'r3-media-test-secret';
 
-function contextFor({ present = ['heroine1'], story = `${heroine.name}: "Hello"`, sexual = undefined } = {}) {
+function contextFor({ present = ['heroine1'], story = `${heroine.name}: "Hello"`, sexual = undefined, observerApplied = {} } = {}) {
   const state = { scene: { location_id: 'office_floor_1', present_actor_ids: present, scene_note: 'desk' } };
   if (sexual !== undefined) state.sexual = sexual;
-  return { state: { committed_turn: 1, state }, turns: [{ turn_number: 1, revision: 1, story_text: story, observer_applied: {} }] };
+  return { state: { committed_turn: 1, state }, turns: [{ turn_number: 1, revision: 1, story_text: story, observer_applied: observerApplied }] };
 }
+
+test('R3 Observer presentation projection is strictly grounded and outside gameplay state', () => {
+  const story = '서원희 차장이 고개를 끄덕였다.\n\n“오늘은 제가 먼저 안내할게요.”';
+  const observation = normalizeObserver({
+    present_actor_ids: ['heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5'],
+    focal_actor: { actor_id: 'heroine1', quote: '서원희 차장이 고개를 끄덕였다.' },
+    dialogue_lines: [{ speaker_id: 'heroine1', text: '오늘은 제가 먼저 안내할게요.', evidence_quote: '서원희 차장이 고개를 끄덕였다.\n\n“오늘은 제가 먼저 안내할게요.”' }]
+  }, { storyText: story, content, currentState: { scene: { present_actor_ids: ['heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5'] } } });
+  assert.deepEqual(observation.focal_actor, { actor_id: 'heroine1', quote: '서원희 차장이 고개를 끄덕였다.' });
+  assert.equal(observation.dialogue_lines[0].speaker_id, 'heroine1');
+  assert.equal(observation.dialogue_lines[0].text, '오늘은 제가 먼저 안내할게요.');
+  const reduced = reduceObservation({ state: { scene: { location_id: 'office_floor_1', present_actor_ids: ['heroine1'] }, time: { day: 1, minute: 1 } }, observation, turnNumber: 1 });
+  assert.equal(reduced.state.scene.focal_actor_id, undefined);
+  assert.equal(reduced.applied.focal_actor.actor_id, 'heroine1');
+  assert.equal(reduced.applied.dialogue_lines.length, 1);
+  const invalid = normalizeObserver({ focal_actor: { actor_id: 'heroine2', quote: 'not in Story' }, dialogue_lines: [{ speaker_id: 'heroine2', text: 'invented', evidence_quote: '윤민아가 말했다. invented' }] }, { storyText: story, content, currentState: { scene: { present_actor_ids: ['heroine1', 'heroine2'] } } });
+  assert.equal(invalid.focal_actor, null);
+  assert.deepEqual(invalid.dialogue_lines, []);
+  assert.ok(invalid.warnings.includes('focal_actor_projection_dropped'));
+  assert.ok(invalid.warnings.includes('dialogue_projection_dropped'));
+});
+
+test('R3 media consumes committed grounded presentation before rejecting ambiguous presence', () => {
+  const story = '서원희 차장이 말했다. “오늘은 제가 먼저 안내할게요.”';
+  const observerApplied = { focal_actor: { actor_id: 'heroine1', quote: story }, dialogue_lines: [{ speaker_id: 'heroine1', text: '오늘은 제가 먼저 안내할게요.', evidence_quote: story }] };
+  assert.equal(projectCurrentMedia({ context: contextFor({ present: ['heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5'], story, observerApplied }), content }).character_id, 'heroine1');
+  assert.equal(projectCurrentMedia({ context: contextFor({ present: ['heroine1', 'heroine2', 'heroine3', 'heroine4', 'heroine5'], story }), content }).character_id, null);
+});
 
 test('R3 media projection requires a present registered heroine and defaults sex requests to general', () => {
   const context = contextFor();

@@ -20,13 +20,14 @@ export function buildR3ViewModel(context = {}, catalogs = {}) {
   const committedTurn = stateEnvelope.committed_turn ?? context.state?.committed_turn ?? 0;
   const latestIsCurrent = latest.turn_number === committedTurn;
   const observerApplied = object(latest.observer_applied);
-  const dialogueLines = latestIsCurrent ? parseR3DialogueLines(latest.story_text, actorNames) : [];
+  const dialogueLines = latestIsCurrent ? (Array.isArray(observerApplied.dialogue_lines) ? observerApplied.dialogue_lines : parseR3DialogueLines(latest.story_text, actorNames)) : [];
+  const focalActorId = observerApplied.focal_actor?.actor_id ?? scene.focal_actor_id ?? '';
   const view = {
     gameId: context.game?.game_id ?? '',
     committedTurn,
     profile: { ...profile, department: label(catalogs.departments ?? [], 'department_id', profile.department_id), position: label(catalogs.positions ?? [], 'position_id', profile.position_id), body_type: label(catalogs.body_types ?? [], 'body_type_id', profile.body_type_id), speech_style: label(catalogs.speech_styles ?? [], 'speech_style_id', profile.speech_style_id) },
     time: object(state.time),
-    scene: { location_id: scene.location_id ?? '', location: locationById.get(scene.location_id) ?? null, present_actor_ids: presentIds, present_npc_ids: presentIds, present_actors: presentActors, scene_note: typeof scene.scene_note === 'string' ? scene.scene_note : '', focal_actor: actorById.get(scene.focal_actor_id) ?? null, focal_character: actorById.get(scene.focal_actor_id) ?? null },
+    scene: { location_id: scene.location_id ?? '', location: locationById.get(scene.location_id) ?? null, present_actor_ids: presentIds, present_npc_ids: presentIds, present_actors: presentActors, scene_note: typeof scene.scene_note === 'string' ? scene.scene_note : '', focal_actor: actorById.get(focalActorId) ?? null, focal_character: actorById.get(focalActorId) ?? null },
     csa: { active_ids: Array.isArray(state.csa_active) ? state.csa_active : [], rules: object(state.csa_rules), revision: stateEnvelope.revision ?? 0 },
     story: latest.story_text ?? '',
     history: turns,
@@ -35,9 +36,10 @@ export function buildR3ViewModel(context = {}, catalogs = {}) {
     mindMonitor,
     actorNames,
     dialogue_lines: dialogueLines,
+    presentation: { focal_actor: observerApplied.focal_actor ?? null, dialogue_lines: dialogueLines },
     turn: { committed_turn: committedTurn, turn_id: latestIsCurrent ? `${committedTurn}:${latest.revision ?? 0}` : '', revision: latestIsCurrent ? Number(latest.revision ?? 0) : 0, action_id: latest.action_id ?? '' },
     job: context.job ?? null
   };
-  view.media = projectR3Media({ ...view, media: { dialogue_lines: dialogueLines } });
+  view.media = projectR3Media({ ...view, presentation: view.presentation, media: { dialogue_lines: dialogueLines } });
   return view;
 }

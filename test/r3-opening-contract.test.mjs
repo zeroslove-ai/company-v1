@@ -162,6 +162,8 @@ test('R3 Opening context and provider prompts require private premise discovery 
     turn_summary: '',
     player_inner_thought: '',
     mind_monitor: {},
+    focal_actor: null,
+    dialogue_lines: [],
     warnings: []
   });
   const observerSystem = payloads[1].messages[0].content;

@@ -13,6 +13,28 @@ function groundedActorEvidence(item, storyText, directory) {
   return actorId && actorName && quote && quote.includes(actorName) ? { actor_id: actorId, quote } : null;
 }
 
+function heroineDirectory(content) {
+  return Object.fromEntries(Object.entries(content?.characters ?? {}).filter(([id, actor]) => actor?.character_id === id && text(actor?.name)).map(([id, actor]) => [id, actor]));
+}
+
+function groundedFocalActor(item, storyText, content, presentActorIds) {
+  const directory = heroineDirectory(content);
+  const actorId = item?.actor_id;
+  const quote = evidenceQuote(item?.quote, storyText);
+  const name = directory[actorId]?.name;
+  return actorId && presentActorIds.has(actorId) && name && quote && quote.includes(name) ? { actor_id: actorId, quote } : null;
+}
+
+function groundedDialogueLine(item, storyText, content, presentActorIds, order) {
+  const directory = heroineDirectory(content);
+  const speakerId = item?.speaker_id;
+  const name = directory[speakerId]?.name;
+  const spokenText = text(item?.text);
+  const evidence = evidenceQuote(item?.evidence_quote, storyText);
+  if (!speakerId || !presentActorIds.has(speakerId) || !name || !spokenText || !storyText.includes(spokenText) || !evidence || !evidence.includes(name) || !evidence.includes(spokenText)) return null;
+  return { speaker_id: speakerId, speaker_name: name, text: spokenText, direction: text(item?.direction).slice(0, 80), evidence_quote: evidence, order: Number.isInteger(item?.order) ? item.order : order };
+}
+
 function choiceLine(line, expectedNumber) {
   const wrapped = new RegExp(`^\\s*(\\*\\*|__)(?:${expectedNumber})[.)]\\s+(.+?)\\1\\s*$`).exec(line);
   if (wrapped?.[2]) return wrapped[2];
@@ -90,6 +112,16 @@ export function normalizeObserver(input, { storyText = '', content, currentState
     if (valid.length === observer.present_actor_ids.length) normalized.present_actor_ids = [...new Set(valid)];
     else warnings.push('present_actor_projection_dropped');
   }
+  const postStoryPresentActors = new Set(normalized.present_actor_ids ?? [...eligibleMonitorActors]);
+  const focal = observer.focal_actor === null || observer.focal_actor === undefined ? null : groundedFocalActor(observer.focal_actor, storyText, content, postStoryPresentActors);
+  normalized.focal_actor = focal;
+  if (observer.focal_actor && !focal) warnings.push('focal_actor_projection_dropped');
+  const rawDialogue = Array.isArray(observer.dialogue_lines) ? observer.dialogue_lines : [];
+  normalized.dialogue_lines = rawDialogue.flatMap((item, order) => {
+    const line = groundedDialogueLine(item, storyText, content, postStoryPresentActors, order);
+    if (!line) warnings.push('dialogue_projection_dropped');
+    return line ? [line] : [];
+  });
   const note = text(observer.scene_note);
   if (note) normalized.scene_note = note.slice(0, 1000);
   const projectedChoices = projectChoices(storyText, observer.choices);
