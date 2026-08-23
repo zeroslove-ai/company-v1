@@ -1,12 +1,12 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-same-game-reset-dialog-recovery-v1
-Mode: RECOVER NATIVE-CONFIRM HARNESS -> TRACE RESET B-H -> MINIMAL FIX ONLY IF PROVEN -> SAME-GAME RESET ACCEPTANCE
-Updated: 2026-08-23 23:30 KST
+Status: READY
+Task ID: company-r3-same-game-reset-runtime-separation-v1
+Mode: PREFER REAL STANDALONE DIALOG ACCEPT -> FALLBACK ONE-SHOT CONFIRM SHIM FOR RUNTIME B-H ONLY -> MINIMAL FIX IF PROVEN -> RESET RUNTIME CLOSURE
+Updated: 2026-08-23 23:31 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5386426213`
-Operator review: Issue #68 comment `5386475570`
+Previous terminal: Issue #68 comment `5386520534`
+Operator review: Issue #68 comment `5386535078`
 Priority override: Issue #68 comment `5386179970`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
@@ -17,11 +17,11 @@ Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create ano
 Accepted executable/source:
 - `fad4d7f5cd637cf77b9613335eeaef2302c03853`
 
-Current main before this registration:
-- `d68ce4e93a8fd8edc9580dc6f18eefda89e12d6a`
+Previous terminal main:
+- `0455878462978d0cef41b85dfe5890fdcad40f05`
 - docs-only terminal descendant; no executable drift.
 
-Current TEST artifacts remain:
+Current TEST artifacts remain unchanged:
 - API `game-proxy-company-r3` version `c7b0f0fe-9c20-4cec-8af0-8e27508b44ff`
 - Frontend `gamebuilder-company-r3` version `74f14b2c-fcb0-47ce-b14d-ecb90ece7ff1`
 - bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
@@ -30,274 +30,322 @@ Freeze unless direct contradictory evidence appears:
 - first-day/first-arrival Opening and selected department/rank preservation;
 - exact player agency/navigation;
 - committed player inner thought and character-specific Mind Monitor;
-- four Story-owned choices and accepted choice-tail variants;
+- Story-owned four choices and accepted choice-tail formatting variants;
 - chronological CSA APPLY/CHANGE/REMOVE and high-parity five-tab draft UI;
 - ordinary post-CSA turns free of stale `csa_operation`;
-- prior refresh/re-entry/mobile acceptance outside reset.
+- prior refresh/re-entry/mobile acceptance outside reset;
+- high-parity CSA draft source accepted at the executable SHA above.
 
-Do not touch image/TTS, timeline/history residue, provider/model/config, CSA semantics, Story/Observer semantics, or unrelated presentation.
+Do not touch image/TTS, timeline/history residue, provider/model/config, CSA semantics, Story/Observer semantics, or unrelated presentation in this task.
 
-## 1. Previous BLOCKED disposition
+## 1. Why this task exists
 
-Previous fresh disposable fixture, now READ-ONLY:
-- `3e1522ab-65ac-40f8-91f2-617a9929d3bc`
+Two consecutive reset-acceptance attempts were blocked before any reset request was sent because the current in-app browser bridge could not accept a native JavaScript confirm.
 
-What is proven:
-- Opening was visible and healthy at Turn0;
-- three ordinary turns committed visibly to Turn3;
-- visible `초기화` was clicked exactly once;
-- the browser-native confirm then blocked the current in-app Chrome harness;
-- dialog retrieval, DOM read and keyboard dismissal all timed out;
-- no second reset attempt occurred;
-- no source/test/deploy/migration change occurred.
+Read-only evidence fixtures:
+- first blocked fixture: `3e1522ab-65ac-40f8-91f2-617a9929d3bc`
+- second blocked fixture: `f356c603-3aa5-4304-832a-984c0229cd75`
 
-What is NOT proven:
-- whether confirmation was accepted;
-- whether `POST /api/r3/games/:id/reset` was sent;
-- Worker/store/RPC behavior;
-- durable post-reset state;
-- Opening restart;
-- frontend reconciliation.
+What those runs proved:
+- visible bare-public Setup/Opening worked;
+- each fresh game reached Turn 3 through ordinary visible play;
+- the visible `초기화` control invokes a real browser-native confirm;
+- on the second run, CDP `Page.enable`, `Network.enable` and a `Page.javascriptDialogOpening` handler were established before the click;
+- the native confirm still failed to surface through the available bridge;
+- no reset network request was observed in either run;
+- source/deploy/migration changes were zero;
+- full tests remained 521/521.
 
-Therefore the prior task is `ACCEPTED_BLOCKED_ENVIRONMENT`, not product FAIL and not reset GREEN.
+Therefore:
+- native-confirm *presentation* is proven to exist;
+- native-confirm automated *acceptance* is still an environment limitation;
+- reset runtime B-H is still completely untested;
+- do not infer a product reset failure from either blocked run;
+- do not repeat the same in-app CDP strategy a third time.
 
-Historical owner-readiness reset evidence remains open/read-only:
+Historical owner-readiness reset evidence remains OPEN/read-only:
 - `51efe18b-1bc3-435f-a178-bb2d8ee223e4`
 
 Preserved owner manual game remains immutable:
 - `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`
 
-## 2. Mandatory first step — establish a real browser-level confirmation path
+## 2. Mandatory evidence strategy — split dialog UX from reset runtime
 
-Do not edit product source before this step.
+This task explicitly separates:
 
-Use a fresh disposable bare-public TEST game only.
+A. native-confirm UX/presentation evidence; and
+B. post-confirmation reset runtime B-H.
 
-Before clicking the visible `초기화` control, establish a browser-level native-dialog handler using an available automation mechanism such as Playwright/CDP or equivalent browser automation outside the repository.
+A is already proven to the extent available in automation: the visible reset control opens a real native confirm. Real automated acceptance remains unproven because of the browser bridge.
 
-Requirements:
-- handler is registered BEFORE the reset click;
-- it observes the real browser-native confirmation generated by the visible product UI;
-- it accepts exactly one reset confirmation;
-- record the observed dialog text/type and the fact that exactly one dialog was accepted;
-- the visible reset button itself must be clicked in the actual bare-public app.
+The goal now is to reach B-H without allowing that environment limitation to consume another lease.
 
-Forbidden harness workarounds:
-- no `window.confirm = () => true` or page-script monkeypatch;
-- no direct API reset request as a substitute for the visible UI click;
-- no storage/localStorage/session preseed;
-- no `?api=` override;
-- no repository harness/test file solely to bypass the dialog;
-- no product-source change solely because the current harness cannot control a native confirm.
+### 2.1 Preferred path — standalone real-dialog browser
 
-A temporary automation script outside the repository is acceptable only as a browser driver if it opens the bare-public URL, clicks the real visible reset control, and handles the real native dialog through browser automation APIs.
+Before using any fallback, attempt a standalone Playwright/Chromium browser process outside the in-app browser bridge if the local environment supports it.
 
-If no functioning browser-level native-dialog handler is available:
-- STOP `BLOCKED_ENVIRONMENT`;
-- make zero product source/deploy/migration changes;
-- do not retry the same reset click through the broken harness.
+Preferred mechanism:
+- launch/connect a standalone Chromium instance from a temporary automation script outside the repository;
+- open only the bare-public frontend;
+- attach `page.once('dialog', async dialog => { ... await dialog.accept(); })` before clicking reset;
+- observe the exact reset confirmation text/type;
+- click the real visible `초기화` button exactly once;
+- accept exactly one real dialog;
+- continue B-H trace.
 
-## 3. After confirmation is genuinely accepted — trace B through H
+No repository file may be added for this browser driver.
 
-Known intended path:
-`frontend resetGame() -> POST /api/r3/games/:id/reset -> resetResponse() -> store.resetGame() -> company_r3_reset_game RPC -> existing Opening stream -> frontend reconciliation`
+If this real-dialog path works, no confirm shim is needed and full reset acceptance may include native-dialog acceptance GREEN.
 
-Once the dialog is accepted, capture the first actual divergence in this order:
+### 2.2 Bounded fallback — one-shot confirm return shim for runtime evidence only
 
-B. network `POST /api/r3/games/:id/reset`
-- exactly one request;
-- request identity/capability/revision fields as currently designed;
-- HTTP/SSE status and terminal/error lifecycle.
+If a standalone browser executable/control path is unavailable, or it fails before POST `/reset` for the same environment-only native-dialog reason, do **not** report BLOCKED_ENVIRONMENT a third time.
 
-C. Worker `resetResponse()`
-- route reached exactly once;
-- no wrong route/method/capability rejection.
+For B-H runtime evidence only, a temporary page-level one-shot confirm shim is now explicitly allowed under all of these constraints:
 
-D. store `resetGame()`
-- exact canonical call only;
+- it exists only in the fresh disposable automation page/session;
+- it is installed immediately before the single reset click;
+- save the original `globalThis.confirm` first;
+- intercept only the exact reset confirmation call from the real visible reset handler;
+- require the expected Korean reset-confirm message;
+- return `true` exactly once;
+- restore the original `confirm` immediately after that first intercepted call, including on failure if possible;
+- record invocation count and intercepted message;
+- then click the same real visible `초기화` button exactly once;
+- the remainder must execute the actual deployed `frontend-r3/app.js::resetGame()` path unchanged.
+
+This fallback may **not** be used to claim that native-confirm automated acceptance is GREEN. If B-H passes using it, report:
+- `RESET_RUNTIME_GREEN`
+- `NATIVE_DIALOG_AUTOMATION: DEFERRED_ENVIRONMENT`
+
+The fallback is not a source/product fix and must never appear in git, Worker deployment, browser persistent storage, or product runtime.
+
+Still forbidden:
+- direct API reset as a substitute for the visible reset button;
+- calling store/RPC directly to manufacture acceptance;
+- storage/localStorage/session preseed;
+- `?api=` override;
+- repository test/harness files for confirm bypass;
+- product-source changes merely to help automation.
+
+## 3. Authentic reset runtime path to trace after confirmation branch
+
+Current source contract in `frontend-r3/app.js` is:
+
+`visible reset button -> resetGame() -> confirm branch -> client.reset(game_id, expected_state_revision) -> consumeR3Sse -> Worker resetResponse() -> store.resetGame() -> company_r3_reset_game RPC -> existing Opening stream -> terminal context -> renderContext()/busy release`
+
+After the real dialog accept OR bounded one-shot shim allows execution past the confirm branch, trace the first actual divergence in this order:
+
+B. network reset request
+- exactly one `POST /api/r3/games/:id/reset`;
+- same fresh game_id;
+- intended expected_state_revision/capability semantics;
+- HTTP/SSE lifecycle and terminal/error result.
+
+C. Worker route
+- `resetResponse()` reached once;
+- no wrong route/method/capability/revision rejection unless that is the proven defect.
+
+D. store layer
+- canonical `store.resetGame()` only;
 - intended RPC invoked exactly once.
 
-E. TEST `company_r3_reset_game`
-- existing function/signature/grants present;
-- durable state after RPC matches current reset contract;
-- old turns/actions/jobs/CSA/current chronology cleared as specified;
-- same game/profile/capability semantics preserved.
+E. TEST RPC/durable mutation
+- existing `company_r3_reset_game` function/signature/grants;
+- same game/profile/capability contract preserved;
+- old turn/action/job/current chronology cleared according to current reset contract;
+- old active CSA cleared if the canonical reset contract specifies it;
+- no parallel writer.
 
 F. existing Opening restart
-- reset uses the existing Opening pipeline, not a second writer/fallback;
-- canonical first-arrival Opening starts once.
+- existing Opening pipeline invoked once after reset;
+- no new fallback/opening writer.
 
-G. Opening commit/readback
-- fresh Turn0 context/history/current state is committed/readable;
-- four choices, player inner thought, Mind Monitor present as normally required.
+G. committed fresh Turn0/readback
+- canonical new Opening Turn0 exists;
+- four usable choices;
+- player inner thought and Mind Monitor;
+- old chronology is not current authority.
 
 H. frontend reconciliation
 - busy state releases;
-- fresh Turn0 renders;
-- stale old Story/choices/current-turn state does not remain authoritative.
+- new Turn0 renders;
+- old Story/choices/current-turn UI does not remain authoritative;
+- reset failure, if any, releases busy and exposes a bounded error.
 
-Do not infer the root from historical symptoms. Identify the first evidence-backed divergence.
+Do not infer root cause from the historical hang. Capture the first evidence-backed runtime divergence.
 
-## 4. Source correction policy
+## 4. Product correction policy
 
-If B-H all pass end-to-end on the fresh game:
-- do NOT invent a source fix;
-- classify the historical reset defect as currently non-reproduced under the present deployed lineage;
-- complete refresh/re-entry and post-reset Turn1 acceptance below;
-- no deployment is needed when source did not change.
+If B-H all pass on the current deployed lineage:
+- make zero source changes;
+- make zero deployments;
+- classify the historical reset runtime defect as currently non-reproduced / likely prior deployment-state drift or intermittent evidence;
+- finish same-game fresh Turn0 -> refresh/re-entry -> clean Turn1;
+- if one-shot shim was needed, keep native-dialog automation as deferred environment evidence only.
 
-If a deterministic B-H product defect is proven:
-- make the smallest fix at that exact boundary only;
-- preserve the existing same-game reset authority/path;
-- run focused tests for touched components and full suite if impact crosses functional clusters;
+If a deterministic product/runtime defect is proven after the confirm branch:
+- fix only the first proven boundary;
+- preserve the same reset authority/path;
+- no second endpoint, fallback reset writer, or fake client-only reset;
+- run focused tests for touched components;
+- run full npm suite when the change crosses a functional cluster or focused tests expose wider coupling;
 - deploy only actually changed TEST artifact(s);
-- rerun ONE fresh acceptance from the beginning after deployment.
+- rerun one fresh disposable acceptance from the beginning using the same dialog strategy.
 
-Allowed evidence-backed correction classes:
+Allowed correction classes only when evidence requires them:
 - frontend reset busy/reconciliation/error lifecycle;
-- existing reset route/response plumbing;
-- existing store/RPC call plumbing;
-- deployed artifact correction;
-- only if exact TEST evidence proves the deployed RPC itself defective, a forward-only additive function migration.
+- existing reset request/response plumbing;
+- existing Worker reset route;
+- existing store/RPC plumbing;
+- exact TEST artifact deployment correction;
+- only if exact TEST RPC evidence proves the deployed function itself is defective, one forward-only additive function migration.
 
-DB constraints:
-- historical migration `20260823000100_company_r3_same_game_reset` must never be edited or blindly reapplied;
+DB rules:
+- never edit or blindly reapply `20260823000100_company_r3_same_game_reset`;
 - no schema redesign/new reset namespace/parallel writer;
-- if a new migration appears necessary, prove the exact function defect first and record why the non-DB layers cannot fix it.
+- if a DB correction appears necessary, prove the exact function defect first.
 
 Forbidden:
-- second reset endpoint or fallback reset path;
-- fake client-only reset;
-- direct table writes as workaround;
-- provider retry/regeneration or provider/model/config changes;
+- provider retry/regeneration;
+- provider/model/temperature/token/timeout/config changes;
 - Story/Observer/CSA redesign;
+- image/TTS/timeline work;
 - Production;
-- preserved/historical-game mutation.
+- owner/preserved/historical evidence-game mutation.
 
 ## 5. Fresh bare-public acceptance
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Fresh disposable TEST game only.
+Use a new disposable TEST game. The two prior blocked fixtures are read-only evidence.
 
-### Gate A — establish pre-reset chronology
+### Gate A — pre-reset chronology
 
 Through visible Setup -> Opening:
 - reach canonical Turn0;
-- commit at least 3 ordinary turns using the visible game controls;
-- record game_id/profile/current turn/latest Story/choices and independent server readback needed to distinguish old/new chronology.
+- commit at least 3 ordinary visible turns;
+- record game_id/profile/current turn/latest Story/choices;
+- obtain independent server readback sufficient to distinguish old/new chronology.
 
-Optional: one visible CSA operation may be used only if stable and useful for proving reset clears prior CSA; do not let CSA become the focus.
+Optional CSA activation is allowed only if it is quick/stable and useful to prove reset clearing; it is not required.
 
-### Gate B — visible reset with real native confirmation
+### Gate B — execute reset exactly once
 
-With the browser-level dialog handler already registered:
-1. click visible `초기화` exactly once;
-2. observe and accept the real native confirmation exactly once;
-3. require exactly one reset network request;
-4. trace B-H above.
+1. First try the standalone real-dialog path from §2.1.
+2. If unavailable for the same environment reason, use the bounded one-shot shim from §2.2.
+3. Click the real visible reset control exactly once.
+4. Require exactly one reset request after the confirmation branch.
+5. Trace B-H.
 
-If a product failure occurs, STOP without retry and capture the first boundary.
+Do not retry a failed product reset in the same fixture.
 
-### Gate C — same-game fresh Turn0
+### Gate C — fresh same-game Turn0
 
-Require after successful reset:
+Require:
 - same game_id remains in use;
 - canonical fresh Opening/Turn0 visible;
-- old chronology/current Story/choices are not current authority;
-- old turn/action/job/CSA residue is absent according to canonical reset contract;
-- fresh Opening has four usable choices, player inner thought and Mind Monitor;
-- UI is not permanently busy/unresponsive;
+- old chronology/current Story/choices absent as current authority;
+- reset-cleared state agrees with independent readback;
+- four usable choices, natural player inner thought and Mind Monitor;
+- no permanent busy/unresponsive screen;
 - no console/page/network blocker.
 
 ### Gate D — refresh/re-entry
 
 Refresh/re-enter the same bare-public game URL:
-- same fresh Turn0 reconstructs from committed server context;
-- stale pre-reset chronology does not resurrect.
+- reconstruct the same fresh Turn0 from server state;
+- stale pre-reset chronology must not resurrect.
 
 ### Gate E — first post-reset Turn1
 
-Click one visible choice or submit one clear Korean free input:
+Use one visible choice OR clear Korean free input:
 - exactly one ordinary `/turn` request/SSE/commit;
-- exact literal stays Story center;
+- exact literal preserved;
 - committed turn becomes Turn1;
-- no stale `csa_operation`, reset flag, old action identity or old chronology leaks.
+- no stale `csa_operation`, reset marker, old action identity or old chronology leaks.
 
 ### Gate F — mobile non-destructive spot-check
 
-At approximately 390x844 after the desktop reset proof:
-- reset control is reachable;
-- no reset-overlay/busy residue blocks normal controls;
-- Turn0/Turn1 choices/direct input remain reachable.
+At approximately 390x844 after desktop reset proof:
+- reset control remains reachable;
+- no reset/busy residue blocks controls;
+- current choices/direct input reachable.
 
 Do not perform a second destructive reset solely for mobile.
 
-## 6. Tests/deployment
+## 6. Existing source confidence and tests
 
-If no source changes:
+Current source-level reset confidence before this lease:
+- `frontend-r3/app.js::resetGame()` uses one native confirm, one `client.reset`, SSE consumption, error readback, and finally releases busy;
+- existing local reset contract tests have passed repeatedly;
+- previous full suite: 521/521.
+
+If no source change:
 - no deployment;
-- deterministic existing reset/frontend tests may be run as read-only confidence checks;
-- live bare-public reset result is decisive.
+- existing tests may be rerun as confidence only;
+- live B-H reset evidence is decisive.
 
-If source changes after a proven B-H defect:
-- focused R3 reset/store/API/frontend tests for touched boundary;
-- full `npm.cmd test` if change crosses a functional cluster or focused tests expose wider coupling;
+If source changes after a proven runtime defect:
+- focused R3 reset/store/API/frontend tests;
+- full `npm.cmd test` as appropriate;
 - changed JS/MJS `node --check`;
 - `git diff --check`;
-- deploy exact affected TEST artifact(s) only and record version(s).
+- deploy exact affected TEST artifact(s) only and record versions.
 
 No Production.
 
-## 7. GREEN criteria
+## 7. Acceptance disposition
 
-GREEN only if:
-- a real browser-level native confirmation is observed and accepted exactly once;
-- visible reset dispatches exactly one canonical reset request;
-- B-H either all pass or one proven product defect is minimally corrected and then passes on a fresh game;
-- same game returns to canonical fresh Opening/Turn0;
-- independent readback and refresh/re-entry agree;
-- stale old chronology does not reappear;
-- first clean post-reset Turn1 commits normally;
-- no parallel reset authority or forbidden work is introduced.
+### Full reset GREEN
 
-Do NOT claim owner-ready after this task.
+Only when a real native dialog was accepted through standalone browser automation and B-H + Turn0 + refresh + Turn1 all pass.
 
-## 8. After reset GREEN
+### Runtime GREEN with dialog automation deferred
 
-Resume remaining owner-remediation order:
+Allowed when:
+- native confirm presentation was already independently proven in the two prior attempts;
+- standalone real-dialog control is unavailable due environment;
+- bounded one-shot shim is used only to cross the confirm branch;
+- authentic deployed B-H path passes;
+- same-game fresh Turn0, refresh/re-entry and clean Turn1 pass.
+
+Report exactly:
+- `RESET_RUNTIME_GREEN`
+- `NATIVE_DIALOG_AUTOMATION: DEFERRED_ENVIRONMENT`
+
+This disposition is sufficient to move the owner-remediation sequence past the reset runtime blocker. The native-dialog automation limitation remains a deferred UX/manual-acceptance item and must not be silently called GREEN.
+
+### Product failure
+
+If B-H exposes a deterministic runtime defect, STOP at the first boundary before speculative repair unless the task explicitly permits the minimal correction above. After a correction, one fresh rerun is allowed.
+
+## 8. After reset runtime closure
+
+Once reset runtime is GREEN (full or runtime-green/dialog-deferred), resume:
 1. approved-media image projection + character-aware server TTS;
 2. timeline/current-scene presentation residue;
-3. deferred CSA dirty-close live-confirm limitation if still materially relevant;
+3. deferred native-dialog/CSA dirty-close confirmation UX if still materially relevant;
 4. final holistic owner-style long-play acceptance.
+
+Do NOT claim owner-ready from this task alone.
 
 ## 9. Terminal report
 
 Post one terminal report to Issue #68 with:
-- status `WAITING_REVIEW`, `FAILED_PRODUCT`, or `BLOCKED_ENVIRONMENT`;
+- status `WAITING_REVIEW`, `FAILED_PRODUCT`, or `BLOCKED_ENVIRONMENT` only if even B-H cannot be exercised for a new non-dialog environmental reason;
 - source/final main SHA and final CURRENT_TASK blob;
-- browser automation/dialog mechanism used and exact dialog evidence;
+- whether standalone real-dialog or bounded one-shot shim path was used;
+- exact shim invocation/message/restoration evidence if fallback used;
 - fresh fixture id;
+- reset request/SSE facts;
 - B-H first divergence or all-pass evidence;
 - before-reset vs after-reset readback;
 - refresh/re-entry result;
 - post-reset Turn1 result;
 - source/test/deployment changes, if any;
+- exact disposition: FULL_RESET_GREEN, RESET_RUNTIME_GREEN_WITH_DIALOG_DEFERRED, FAILED_PRODUCT, or BLOCKED_ENVIRONMENT;
 - remaining objective defects.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` to `WAITING_REVIEW` and STOP. Do not generate the next task.
-
-## 10. Terminal evidence — BLOCKED_ENVIRONMENT
-
-- Terminal status: `BLOCKED_ENVIRONMENT`; no product failure classification was made.
-- Starting main: `44075e2d1d97380cba3ffcca5011a70ff3d7e630`.
-- CURRENT_TASK blob before terminal update: `d8fed4f5dd2023677d8fc9fc678330b77cb26143`.
-- Fresh disposable fixture: `f356c603-3aa5-4304-832a-984c0229cd75`; the prior blocked fixture and all preserved games were untouched.
-- The fresh bare-public app completed visible Setup, Opening Turn 0 with four choices/free input/Mind Monitor, and three ordinary turns through Turn 3. The visible game URL retained the same fresh game ID.
-- Before the reset click, a real browser-level CDP mechanism was prepared: `Page.enable`, `Network.enable`, and a polling handler for `Page.javascriptDialogOpening` registered before the click, with `Page.handleJavaScriptDialog({accept:true})` as the accept path.
-- The visible `초기화` control was attempted exactly once after handler registration. Playwright's visible click timed out at `Input.dispatchMouseEvent`; no network event was observed. A subsequent DOM read reported that a confirm JavaScript dialog was active, proving the browser-native modal had opened, but the dialog event did not surface to the handler. The late CDP accept call and subsequent DOM/keyboard recovery also timed out. Exact dialog text/type could not be observed through the available browser bridge.
-- No second click or reset request was made. Reset POST/SSE, Worker/store/RPC, durable post-reset state, Opening restart, refresh/re-entry, and post-reset Turn 1 are unverified. The fresh fixture remains evidence and must not be reset/deleted/repaired in a later run without a new authorized task.
-- Source changes: none. TEST deployment: none. Migration: none. Production/provider/model/config: untouched. No source-only harness workaround was added.
-- Read-only confidence: `npm.cmd test` 521/521 passed; `git diff --check` passed. No JS/MJS source changed, so no changed-source syntax check was required.
-- Final main SHA and final CURRENT_TASK blob are recorded in the Issue #68 terminal report. Stop here; do not create the next CURRENT_TASK.
