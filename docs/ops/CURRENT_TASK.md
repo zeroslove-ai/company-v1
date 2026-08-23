@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-tts-end-to-end-live-acceptance-v3
 Mode: SOURCE-FROZEN STRICT-PROJECTION-AWARE TTS END-TO-END LIVE ACCEPTANCE
 Updated: 2026-08-24 07:59 KST
@@ -288,3 +288,39 @@ Post a NEW Issue #68 terminal comment recording:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal, and stop.
 
 Do not create the next task yourself. Do not start holistic V5. Do not claim owner-ready.
+
+## 14. Terminal record — TTS_END_TO_END_GREEN
+
+- Execution lease: Issue #68 comment `5388976751`
+- Start HEAD: `9ab06db8448957fa4228253325f4aa77f2915454`
+- Accepted executable/source: `5709c4a894430b74cf5a985da57747c1cafcfd15`
+- Source drift after accepted source: none; this task changed no source, test, content, config, migration, or script files.
+- Final control-file status: `WAITING_REVIEW`; final main is the docs-only descendant after this record is pushed.
+- Deterministic preflight: full `npm.cmd test` `547/547 PASS`; `git diff --check` PASS; R3 `/api/r3/catalogs` HTTP 200. Active versions stayed exact and this task deployment counts were API `0`, frontend `0`, legacy `0`:
+  - R3 API `game-proxy-company-r3@bee01bf9-b79f-433e-9cfb-6fc09a2379cc`
+  - R3 frontend `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`
+  - legacy `game-proxy-company-v1@7ea46aaf-493f-4323-bc1f-f5ab8d47477d`
+- Fresh disposable TEST game: `48562807-6664-4562-91f5-1a8a79ee354f`. Preserved fixtures `6f7e4d23-b413-45f0-9b7a-f57e01f1bc78` and `bb6a318a-ccd4-4158-a691-64d9ffdbd72c` remained READ ONLY.
+
+### Projection and TTS evidence
+
+- TTS was visibly OFF before projection search (`aria-pressed=false`); Turn 1 action was submitted exactly once:
+  - literal: `윤민아 대리에게 오늘 업무 지시를 받기 위해 말을 건다.`
+  - network: exactly one `/api/r3/games/48562807-6664-4562-91f5-1a8a79ee354f/turn` POST, action `803ba549-e00f-4267-a5ba-6c07020431f3`, `expected_turn=1`; job `attempt_no=1`, status/stage `committed`, progress writes `2`; state revision `1`, committed turn `1`.
+  - Story directly contained heroine2/윤민아 speech. Raw dialogue had four items: lines 1, 2, and 4 had exact Story text plus exact contiguous evidence spans containing canonical `윤민아`; line 3 (`지금 회의 중인 내용이 브랜드 전략 자료라서...`) had an evidence span beginning with pronoun attribution (`그녀가`) and no canonical actor name, so it was correctly invalid under the frozen strict predicate.
+  - `observer_applied.dialogue_lines` retained valid raw lines 1, 2, and 4; `focal_actor_projection_dropped` and one `dialogue_projection_dropped` warning were non-primary strict-projection warnings, not a failure. No `observer_failed`, `r3_observer_json_invalid`, or `r3_observer_finish_length` occurred.
+  - Qualifying heroine: `heroine2` / `윤민아`, canonical voice `85ac82e33b014a16abe9d0b4b9b0cb68`, present in committed scene.
+- Frozen frontend contract derived one expected primary batch: `speaker_id=heroine2`, `speaker_name=윤민아`, `tone=neutral`, direction `윤민아 대리가 상체를 돌리며 말을 꺼냈다.`, orders `[0,1,3]`, exact merged text length `144`:
+  - `네, 말씀하세요. 오늘 첫날이니까 특별한 업무 지시보다는 현황 파악부터 하면 돼요. 오전에 팀장님이 돌아오시면 인사드리고, 오후에 간단한 자료 정리를 맡기실 거예요. 혹시 오늘 오전에 먼저 보고 싶은 자료가 있으면 말해 주세요. 카테고리를 보고 골라드릴게요.`
+- TTS OFF baseline since Turn 1 commit: `/media/tts` `0`.
+- Visible TTS ON was clicked exactly once. Network emitted exactly one R3 `/media/tts` GET (one OPTIONS preflight) for the expected `heroine2` batch; response was HTTP `200`, JSON `ok=true`, exact speaker/text/direction, and a valid signed audio URL at R2 object `tts/7c524f30-a37a-4741-b100-894da5c581e2.mp3`; audio fetch returned HTTP `206`, `audio/mpeg`. Source/config readback proves the server route used the existing `env.TTS_WORKER` service binding `fancy-dust-7f8c`; no browser-direct provider/worker request and no `speechSynthesis` reference exists in the frozen frontend.
+- Visible Replay was clicked exactly once after the successful audio/cache result; `/media/tts` synthesis delta was `0`.
+
+### Next-turn stale fence
+
+- TTS was visibly switched OFF exactly once (`aria-pressed=true -> false`). Distinct Turn 2 action was submitted exactly once:
+  - literal: `윤민아 대리에게 오늘 올라온 자료 목록을 보여달라고 한다.`
+  - network: exactly one `/api/r3/games/48562807-6664-4562-91f5-1a8a79ee354f/turn` POST, action `46fd9d9b-c239-477f-ad0d-adf001aef370`, `expected_turn=2`; job `attempt_no=1`, status/stage `committed`, progress writes `2`; state revision `2`, committed turn `2`.
+  - Turn 2 advanced the Story/context to the new committed turn; `/media/tts` requests while OFF were `0`. Existing non-primary projection warnings did not prevent commit, and no late prior-turn audio/TTS result overwrote the new turn. Stale fence: PASS.
+- No source/deploy/provider/model/prompt/token/timeout/DB/schema/migration/Production change occurred. No TEST reset or preserved-fixture mutation occurred.
+- Exact disposition: `TTS_END_TO_END_GREEN`. Stop at `WAITING_REVIEW`; do not start holistic V5 or create the next task.
