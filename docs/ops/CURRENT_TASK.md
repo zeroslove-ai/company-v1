@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-final-holistic-owner-style-long-play-v3
 Mode: SOURCE-FROZEN FINAL PRODUCT ACCEPTANCE -> NEW CLEAN OWNER-STYLE LONG PLAY -> CROSS-FEATURE EXIT MATRIX
-Updated: 2026-08-24 03:32 KST
+Updated: 2026-08-24 04:19 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5387750570`
 Operator review: Issue #68 comment `5387761862`
@@ -381,3 +381,17 @@ If deployment lineage drift blocks the run, use `BLOCKED_DEPLOYMENT_DRIFT`.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, post terminal report to Issue #68, and stop.
 Do not create/start a next task.
+
+## 13. Terminal result — FAILED_PRODUCT
+
+Terminal status: `FAILED_PRODUCT` / `WAITING_REVIEW`
+
+- Fresh Campaign A fixture preserved read-only: `1ebc90a9-2957-4e00-bcbd-32287cd918bc`.
+- Profile: `서윤호` / `신사업TF` / `임원`.
+- Opening plus Turns 1–10 committed; 4 free-form inputs and 5 visible choice clicks were completed before the failure boundary.
+- The first ordinary visible choice after the CSA CHANGE sequence was clicked exactly once: `네, 좋습니다. 초안을 이리 주시면 같이 확인하겠습니다. 그리고 방금 정리한 위험 항목 질문들도 함께 맞춰보지요.`
+- After more than 80 seconds, the visible UI remained at `Day 1 · 09:52`, `Turn 10`, retained the prior Story and four prior choices, and showed `진행 중인 Story 복구`; no new committed turn or ready next-action state appeared.
+- CSA staging/revert had zero captured gameplay requests and no turn/clock/URL change. APPLY had exactly one POST `/turn` with `operation=activate`; CHANGE had exactly one POST `/turn` with `operation=update`, same rule id `r3_csa_1`, and a different template.
+- Preserved games were not opened or mutated. No retry, regeneration, second click, direct API substitute, reset, deploy, source/config/provider/model change, DB/migration operation, or Production access occurred.
+- Evidence: `.tmp/company-r3-final-holistic-owner-style-long-play-v3-failure.md`.
+- Stop here for operator review; do not continue Campaign A, create Campaign B, run full acceptance, or generate a next task.
