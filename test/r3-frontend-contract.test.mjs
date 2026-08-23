@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
 const app = await readFile(new URL('../frontend-r3/app.js', import.meta.url), 'utf8');
+const csa = await readFile(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8');
 const client = await readFile(new URL('../frontend-r3/r3-client.js', import.meta.url), 'utf8');
 const html = await readFile(new URL('../frontend-r3/index.html', import.meta.url), 'utf8');
 const render = await readFile(new URL('../frontend-r3/render.js', import.meta.url), 'utf8');
@@ -39,7 +40,7 @@ test('R3 boot fallback is dismissed after boot and API origin survives game URL 
   assert.match(app, /setBootFailure\(error\)/);
   assert.match(app, /query\.has\('api'\)/);
   assert.match(app, /next\.searchParams\.set\('api', query\.get\('api'\)\)/);
-  assert.match(app, /state\.busy = false; refreshChoices\(\)/);
+  assert.match(app, /state\.busy = false; csaUi\.sync\(\); refreshChoices\(\)/);
   assert.match(app, /recoverPendingTurn/);
   assert.match(app, /context\.job\?\.status === 'processing'/);
   assert.match(app, /r3_stream_reconnect_required/);
@@ -58,8 +59,13 @@ test('R3 public frontend resolves its split TEST API origin without overriding e
 test('R3 free-input submit readiness mirrors the busy and failed guards', () => {
   assert.match(app, /function syncActionControls\(\)[\s\S]*submitAction\.disabled = state\.busy \|\| !state\.gameId \|\| state\.context\?\.job\?\.status === 'failed'/);
   assert.match(app, /state\.busy = true; syncActionControls\(\)/);
-  assert.match(app, /finally \{ state\.busy = false; refreshChoices\(\); \}/);
+  assert.match(app, /finally \{ state\.busy = false; csaUi\.sync\(\); refreshChoices\(\); \}/);
   assert.doesNotMatch(app, /submit-action\.disabled = false/);
+});
+
+test('R3 CSA operation closes its modal before the normal turn can stream and re-syncs controls after busy clears', () => {
+  assert.match(csa, /function transact\(operation\) \{[\s\S]*overlay\.hidden = true;[\s\S]*onOperation/);
+  assert.match(app, /finally \{ state\.busy = false; csaUi\.sync\(\); refreshChoices\(\); \}/);
 });
 
 test('R3 action panel reserves its controls above the audio bar after bootstrap', () => {

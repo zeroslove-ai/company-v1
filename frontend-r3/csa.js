@@ -12,7 +12,7 @@ export function createR3CsaUi({ documentRef = document, getContext, getCatalog, 
     const scope = operation?.subject_scope ? ` for ${operation.subject_scope}` : '';
     return `${verb} ${label}${scope}`;
   }
-  function transact(operation) { if (getBusy?.()) return; onOperation?.({ ...operation, literal_action: operation.literal_action ?? literalFor(operation) }); }
+  function transact(operation) { if (getBusy?.()) return; overlay.hidden = true; onOperation?.({ ...operation, literal_action: operation.literal_action ?? literalFor(operation) }); }
   function scopeFields(item, current = {}) {
     const wrap = el(documentRef, 'div'); const subjects = item.subject_scopes ?? []; const counters = item.counterparty_scopes ?? [];
     const subject = select(documentRef, subjects, current.subject_scope ?? item.default_subject_scope); wrap.append(el(documentRef, 'label', '대상 범위 '), subject);

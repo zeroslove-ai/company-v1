@@ -278,7 +278,7 @@ async function submit(value = null, { retryFailed = false, csaOperation = null }
       originalError: error
     });
   }
-  finally { state.busy = false; refreshChoices(); }
+  finally { state.busy = false; csaUi.sync(); refreshChoices(); }
 }
 
 async function setup(event) {
