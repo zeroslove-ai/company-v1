@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-tts-committed-dialogue-authorization-v1
 Mode: FREEZE ACCEPTED R3 -> REPRODUCE FRONTEND/SERVER TTS AUTHORITY SPLIT -> FIX EXACT COMMITTED DIALOGUE AUTHORIZATION -> API TEST DEPLOY -> BARE-PUBLIC TTS ACCEPTANCE
-Updated: 2026-08-24 05:20 KST
+Updated: 2026-08-24 05:45 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5388235183`
 Operator review: Issue #68 comment `5388261594`
@@ -298,3 +298,18 @@ At completion post to Issue #68:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal report, and stop.
 
 Do not create the next holistic task yourself.
+
+## 11. Terminal disposition — FAILED_PRODUCT
+
+Source repair and deterministic validation were green, but the fresh bare-public product gate failed and this task stops here for owner review.
+
+- Source commit pushed to `main`: `dc91e06897d17f3759773023abdff8abb39abe58`.
+- TEST API deployment succeeded: `game-proxy-company-r3` version `074ed8b6-58a5-4648-a0da-e387f427761b`.
+- Frontend remained frozen at `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`; frontend deploy count `0`.
+- Fresh disposable bare-public game: `e675437c-4dfe-4dd0-b542-d52ae224f98e`; setup profile was the normal brand-strategy/intern profile for `박지훈`.
+- Turn 1 committed with TTS visibly OFF and `/media/tts` request count `0`. The committed current view visibly contained registered heroine `heroine1` (`서원희`), current-scene image `heroine1`, and exact dialogue lines `"자리 마음에 드세요? 모니터 높이나 의자 높이 조절은 자유롭게 하셔도 돼요. 오늘은 우선 팀 자료와 업무 흐름을 익히는 날이라, 부담 가지실 것 없어요."` and `"혹시 필요한 게 있으면 언제든지 저나 윤민아 대리에게 말해 주세요. 점심 전까지는 대략적인 팀 현황을 정리해 드릴게요."`; repository canonical voice mapping is `heroine1 -> 259d7fde62cd445fbde3ce2d8d4f2f3b`.
+- Visible TTS ON was clicked once on that committed turn. No `/media/tts` request, response, audio URL, or audio source was observed. The visible replay control was clicked once and also produced `0` new `/media/tts` requests. The UI did not show `Voice unavailable`, but the required successful authorization/audio gate was never reached.
+- One distinct ordinary subsequent action committed exactly once as Turn 2 while TTS was ON; it produced fresh multi-speaker story dialogue and no TTS request, so no stale prior audio was inherited.
+- The preserved failure fixture `e7e7025c-539a-4139-9348-cac597b9c688` and every other preserved game remained READ ONLY. No retry/regeneration, provider/model/config/secret, DB/migration, Production, or frontend change occurred.
+
+Owner decision required: investigate why the frozen browser TTS path did not enqueue the visibly committed heroine batch after the bounded server authorization repair. Do not start holistic V5 from this failure.
