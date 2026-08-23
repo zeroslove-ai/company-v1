@@ -16,7 +16,7 @@ const sidecarState = { ttsEnabled: false };
 const RECOVERY_POLL_MS = 1500;
 const RECOVERY_TIMEOUT_MS = 120000;
 const $ = id => document.querySelector(`#${id}`);
-const csaUi = createR3CsaUi({ documentRef: document, getContext: () => state.context, getCatalog: () => state.catalogs?.csa_presets, getBusy: () => state.busy, onOperation: operation => { const { literal_action: literalAction, ...csaOperation } = operation; return submit(literalAction, { csaOperation }); } });
+const csaUi = createR3CsaUi({ documentRef: document, getContext: () => state.context, getCatalog: () => ({ ...(state.catalogs?.csa_presets ?? {}), ...(state.catalogs ?? {}) }), getBusy: () => state.busy, onOperation: operation => { const { literal_action: literalAction, ...csaOperation } = operation; return submit(literalAction, { csaOperation }); } });
 
 function setStatus(message, error = false) { const node = $('status-banner'); if (node) { node.textContent = message; node.dataset.error = error ? 'true' : 'false'; } }
 function setHidden(id, hidden) { const node = $(id); if (node) node.hidden = hidden; }
