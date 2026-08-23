@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-mobile-cold-start-p0-v1
 Mode: P0 CLEAN-SESSION BOOT RECOVERY -> TEST DEPLOY -> SELF-ACCEPTANCE -> HUMAN-LIKE REPLAY
-Updated: 2026-08-23 15:19 KST
+Updated: 2026-08-23 16:58 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Owner defect evidence / operator review: Issue #68 comment `5384590975`
 
