@@ -16,6 +16,9 @@ function groundedActorEvidence(item, storyText, directory) {
 function choiceLine(line, expectedNumber) {
   const wrapped = new RegExp(`^\\s*(\\*\\*|__)(?:${expectedNumber})[.)]\\s+(.+?)\\1\\s*$`).exec(line);
   if (wrapped?.[2]) return wrapped[2];
+  const tokenWrapped = new RegExp(`^\\s*(\\*\\*|__)(?:${expectedNumber})[.)]\\1\\s+(.+?)\\s*$`).exec(line);
+  const tokenAction = tokenWrapped?.[2]?.trim() ?? '';
+  if (tokenAction && !/^(?:\*\*|__)/.test(tokenAction) && !/(?:\*\*|__)$/.test(tokenAction)) return tokenAction;
   const plain = new RegExp(`^\\s*${expectedNumber}[.)]\\s+(.+?)\\s*$`).exec(line);
   return plain?.[1] ?? null;
 }

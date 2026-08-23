@@ -187,6 +187,20 @@ test('R3 presentation adapter strips the supported symmetric emphasis choice tai
   assert.match(malformed.raw, /\*4\./);
 });
 
+test('R3 presentation adapter mirrors the server number-token choice-tail forms', async () => {
+  const { parsePlainStoryForPresentation } = await import('../frontend-r3/render.js');
+  const choices = ['one', 'two', 'three', 'four'];
+  const variants = ['**1.** one', '**2)** two', '__3.__ three', '__4)__ four'];
+  const parsed = parsePlainStoryForPresentation(`Scene body.\n${variants.join('\n')}`, { choices });
+  assert.deepEqual(parsed.choices, choices);
+  assert.equal(parsed.blocks.some(block => block.text.includes('**1.**')), false);
+  assert.equal(parsed.blocks.some(block => block.text.includes('__4)__')), false);
+
+  const malformed = parsePlainStoryForPresentation('Scene body.\n**1.** one\n**2.** two\n**3.__ three\n**4.** four', { choices: [] });
+  assert.deepEqual(malformed.choices, []);
+  assert.match(malformed.blocks[0].text, /\*\*3\.__/);
+});
+
 test('R3 choice labels are presentation-only and clicks preserve the complete Story literal', async () => {
   const { renderChoices } = await import('../frontend-r3/render.js');
   const canonical = [String.raw`full \\"quoted\\" literal`, 'second complete action', 'third complete action', 'fourth complete action'];

@@ -35,7 +35,10 @@ function choiceTail(lines) {
     const line = index >= 0 ? lines[index] : '';
     const wrapped = new RegExp(`^\\s*(\\*\\*|__)(?:${number})[.)]\\s+(.+?)\\1\\s*$`).exec(line);
     const plain = new RegExp(`^\\s*${number}[.)]\\s+(.+?)\\s*$`).exec(line);
-    const choice = wrapped?.[2] ?? plain?.[1] ?? null;
+    const tokenWrapped = new RegExp(`^\\s*(\\*\\*|__)(?:${number})[.)]\\1\\s+(.+?)\\s*$`).exec(line);
+    const tokenAction = tokenWrapped?.[2]?.trim() ?? '';
+    const tokenChoice = tokenAction && !/^(?:\*\*|__)/.test(tokenAction) && !/(?:\*\*|__)$/.test(tokenAction) ? tokenAction : null;
+    const choice = wrapped?.[2] ?? tokenChoice ?? plain?.[1] ?? null;
     if (!choice) return null;
     found.unshift(choice); index -= 1;
     while (index >= 0 && !lines[index].trim()) index -= 1;

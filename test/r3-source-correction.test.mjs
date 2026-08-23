@@ -62,6 +62,24 @@ test('R3 choice tail accepts the existing 1) form without using earlier numbered
   assert.deepEqual(normalizeObserver({ choices }, { storyText: story, content }).choices, choices);
 });
 
+test('R3 choice tail accepts only the evidenced symmetric number-token emphasis forms', () => {
+  const choices = ['one', 'two', 'three', 'four'];
+  const lines = ['**1.** one', '**2)** two', '__3.__ three', '__4)__ four'];
+  const story = `Body\n${lines.join('\n')}`;
+  const normalized = normalizeObserver({ choices: [] }, { storyText: story, content });
+  assert.deepEqual(normalized.choices, choices);
+  assert.ok(normalized.warnings.includes('choices_observer_mismatch'));
+  assert.equal(normalized.warnings.includes('choices_projection_dropped'), false);
+
+  const malformed = [
+    ['**1.** one', '**2.** two', '**3.__ three', '**4.** four'],
+    ['**1.** one', '**2.** two', '**3.** three', '**4. four'],
+    ['**1.** one', '**3.** two', '**3.** three', '**4.** four'],
+    ['**1.** one', '**2.** one', '**3.** three', '**4.** four']
+  ];
+  for (const candidate of malformed) assert.equal(normalizeObserver({ choices }, { storyText: candidate.join('\n'), content }).choices, null);
+});
+
 test('R3 mind monitor accepts pre-turn actors and grounded same-turn entrants only', () => {
   const [currentActor, entrant, offsceneActor] = Object.values(content.characters);
   const locationId = currentActor.default_location_id;
