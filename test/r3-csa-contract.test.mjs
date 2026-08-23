@@ -113,7 +113,8 @@ test('ordinary free input stays Story-first after a CSA operation', async () => 
 
 test('frontend CSA controls submit a structured operation through the normal turn client', () => {
   const source = fs.readFileSync(new URL('../frontend-r3/csa.js', import.meta.url), 'utf8'); const app = fs.readFileSync(new URL('../frontend-r3/app.js', import.meta.url), 'utf8');
-  assert.match(source, /onOperation/); assert.doesNotMatch(source, /client\.csa/); assert.match(source, /각 변경은 Story 턴을 사용합니다/); assert.match(app, /csa_operation/); assert.match(app, /client\.turn/);
+  const html = fs.readFileSync(new URL('../frontend-r3/index.html', import.meta.url), 'utf8');
+  assert.match(source, /onOperation/); assert.doesNotMatch(source, /client\.csa/); assert.match(source, /각 변경은 Story 턴을 사용합니다/); assert.match(html, /각 변경은 다음 Story 턴으로 기록됩니다/); assert.doesNotMatch(html, /턴을 만들지 않습니다/); assert.match(app, /csa_operation/); assert.match(app, /client\.turn/);
 });
 
 test('Story/Observer boundary states that compliance does not prove private positive emotion', () => {
