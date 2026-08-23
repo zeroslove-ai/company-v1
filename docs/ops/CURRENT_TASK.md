@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-observer-output-budget-headroom-v1
 Mode: NARROW OBSERVER OUTPUT-BUDGET REPAIR -> API-ONLY TEST -> PROJECTION-FIRST TTS ACCEPTANCE
 Updated: 2026-08-24 07:43 KST
@@ -270,3 +270,28 @@ Post a NEW Issue #68 terminal report with:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal, and stop.
 
 Do not create the next task yourself. Do not start holistic V5. Do not claim owner-ready.
+
+## 11. Terminal record — FAILED_PRODUCT_DIALOGUE_NORMALIZATION
+
+- Execution lease: Issue #68 comment `5388895165`
+- Start HEAD: `5fcbd13a05462f562b3902a3c7419781a2e0e8a9`
+- Source commit pushed to `main`: `5709c4a` (`fix: add observer output headroom`)
+- Final source HEAD before this control-file update: `5709c4a`
+- Accepted executable/source baseline: `71f87b63c9405bdc2e41ff272c0448c0b41384b7`
+- Final control-file status: `WAITING_REVIEW`
+- Changed source/test files only:
+  - `runtime-r3/server/provider.js`: Observer `max_tokens` exactly `1600 -> 2400`.
+  - `test/r3-observer-failure-provenance.test.mjs`: focused Story `5000` / Observer `2400` request-budget invariant.
+- Validation: focused R3/media/frontend/turn tests `39/39 PASS`; full `npm.cmd test` `547/547 PASS`; both changed JS/MJS `node --check` PASS; `git diff --check` PASS; Wrangler R3 API dry-run PASS.
+- TEST deployment: exact `wrangler.r3.api.jsonc` API-only deployment; new R3 version `bee01bf9-b79f-433e-9cfb-6fc09a2379cc`, deployment `77ae81a2-b981-40e9-941b-1d23cff76fb9`; `GET /api/r3/catalogs` returned HTTP 200. Frontend remained `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`; legacy remained `game-proxy-company-v1@7ea46aaf-493f-4323-bc1f-f5ab8d47477d`; no frontend/legacy deployment.
+- Fresh disposable TEST game: `bb6a318a-ccd4-4158-a691-64d9ffdbd72c`. TTS was visibly OFF before the search. One distinct visible action was submitted once:
+  - literal: `옆자리의 김제나 사원에게 조용히 인사를 건넨다.`
+  - browser network: one `POST /api/r3/games/bb6a318a-ccd4-4158-a691-64d9ffdbd72c/turn`, `expected_turn=1`, one `attempt_no=1`, one durable commit; no `/media/tts` request. The UI also made the expected current-turn image request only.
+  - Story contained direct 김제나 (`heroine3`) speech.
+  - `company_r3_turns` revision `1`: `observer_raw.dialogue_lines` count `3`; `observer_applied.dialogue_lines` count `1`.
+  - Raw lines included `아, 네. 안녕하세요.`, `오늘 첫 출근이시죠? 저는 옆자리 김제나라고 합니다. 브랜드전략팀 사원이에요.`, and `아까 팀장님이 말씀하신 것처럼, 오늘은 천천히 적응하시면 돼요. 혹시 모르는 거 있으면... 저한테 물어보셔도 괜찮아요.`
+  - Applied retained only the second line (with `speaker_id=heroine3`, `speaker_name=김제나`, `order=1`); the first and third raw lines were dropped.
+  - Durable `warnings` and `observer_applied.warnings`: `dialogue_projection_dropped` twice plus five `mind_monitor_projection_dropped` entries. Job status/stage were both `committed` with `attempt_no=1`; no Observer retry or second call.
+- Terminal disposition: `FAILED_PRODUCT_DIALOGUE_NORMALIZATION`. The exact valid raw heroine dialogue projection was durably reduced by the existing raw-to-applied projection path after the 2400-token budget repair. Per task authority, no further gameplay turns, TTS ON, Replay, or stale-fence turn were attempted.
+- No prompt/model/provider/temperature/thinking/response_format/timeout/retry/normalizer/media/TTS/frontend/DB/schema/migration/Production changes were made. Preserved fixture `6f7e4d23-b413-45f0-9b7a-f57e01f1bc78` was not touched.
+- Required next action: operator review only. Do not raise the Observer cap in this task and do not start holistic V5.
