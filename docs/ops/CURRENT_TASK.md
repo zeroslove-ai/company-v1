@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-turn-stream-timeout-terminalization-v1
 Mode: FREEZE ACCEPTED PRODUCT -> REPRODUCE PARTIAL-STREAM ORPHAN -> FIX ONE TURN-LIFECYCLE TERMINALIZATION BOUNDARY -> TEST API LIVE SMOKE
-Updated: 2026-08-24 03:54 KST
+Updated: 2026-08-24 04:08 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5387850977`
 Operator review: Issue #68 comment `5387879263`
@@ -332,3 +332,17 @@ At completion post to Issue #68:
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal report, and stop.
 
 Do not create the next holistic task yourself.
+
+## 11. Terminal evidence — GREEN / WAITING_REVIEW
+
+- Source commit: `7961a3ceab638f43e7959123025b6cedd96f5898` on `main`; `origin/main` matched after push. Final lifecycle-doc update is the only remaining commit.
+- First proven boundary: `streamTurn()` started `processTurn()` from `ReadableStream.start()` without Cloudflare execution-context retention; downstream reader cancellation closed the controller while the turn continued, producing `ERR_INVALID_STATE` during terminal emission and leaving stale expiry as the eventual durable terminalizer.
+- Bounded correction: pass the Worker execution context from `worker-entry.js` through the R3 worker turn path, register `processTurn()` with `waitUntil()`, and fence SSE enqueue/close after downstream cancellation. No timeout/provider/model/config/prompt/schema/RPC semantics changed.
+- Before reproduction: focused test observed zero retained execution promises and the cancelled-stream `ERR_INVALID_STATE` failure. Deterministic compressed reproduction used a partial Story delta, a short provider timeout, and downstream cancellation.
+- After reproduction: one `waitUntil` promise retained the turn; the job durably ended `failed` with `r3_story_timeout`, progress remained observable, state/revision stayed unchanged, no partial committed turn was written, and provider attempt remained 1 with no retry.
+- Changed source/test files: `runtime-r3/server/worker.js`, `runtime-r3/worker-entry.js`, and `test/r3-turn-stream-timeout-terminalization.test.mjs`.
+- Validation: focused R3 set `21/21`; full `npm.cmd test` `537/537`; syntax checks for worker/entry/test; `git diff --check` passed.
+- TEST API deployment: Worker version `09dac4f4-1131-41c4-94a8-dfd59e5d02d8` at `https://game-proxy-company-r3.zeroslove.workers.dev`; existing frontend version `71416b75-9cca-45ee-9b32-7cf209f16395` unchanged; catalog read-only check returned HTTP 200. Existing bindings/secrets were preserved.
+- Fresh bare-public smoke fixture: `8dec6dcf-df4a-426b-b4c0-7a9d66e1d351`; Opening plus Turns 1–5 completed, with two visible choice clicks, two free-form inputs, same-NPC follow-up, ordinary work/social action, and refresh/re-entry. Final refresh reconstructed Turn 5 with canonical identity `서윤호`, no setup dialog, no pending processing, and no failure/retry state.
+- Preserved V3 fixture `1ebc90a9-2957-4e00-bcbd-32287cd918bc` remained read-only. No preserved-game reset, Production change, migration/schema/RPC apply, provider/model/config change, or automatic retry was performed.
+- Disposition: `WAITING_REVIEW`; no next task generated.
