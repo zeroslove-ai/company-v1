@@ -1,300 +1,300 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-media-tts-choice-evidence-correction-v1
-Mode: SOURCE-FROZEN ACCEPTANCE -> CORRECT V4 EVIDENCE CLASSIFICATION -> PROVE ELIGIBLE HEROINE MEDIA/TTS -> PROVE ONE EXACT VISIBLE CHOICE DISPATCH
-Updated: 2026-08-24 04:59 KST
+Status: READY
+Task ID: company-r3-tts-committed-dialogue-authorization-v1
+Mode: FREEZE ACCEPTED R3 -> REPRODUCE FRONTEND/SERVER TTS AUTHORITY SPLIT -> FIX EXACT COMMITTED DIALOGUE AUTHORIZATION -> API TEST DEPLOY -> BARE-PUBLIC TTS ACCEPTANCE
+Updated: 2026-08-24 05:20 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5388131299`
-Operator review: Issue #68 comment `5388157931`
+Previous terminal: Issue #68 comment `5388235183`
+Operator review: Issue #68 comment `5388261594`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery/source branch. Work on `main` only.
 
-## 0. Source-frozen baseline
+## 0. Accepted baseline — freeze
 
-Accepted executable/source:
+Accepted executable/source before this repair:
 - `7961a3ceab638f43e7959123025b6cedd96f5898`
 
-Reviewed main before this registration:
-- `1c4906796b89a8fc60c1df42088d2b5afa62b0bc`
-- docs-only terminal descendant of the accepted executable.
+Current main before this registration:
+- `790a17a2b0f1a71e4235cb230e92dc830330c334`
+- docs-only terminal descendant of the accepted executable; the preceding evidence-correction task made no product/source/deploy change.
 
-Accepted TEST artifacts:
+Accepted TEST artifacts before this repair:
 - API `game-proxy-company-r3` version `09dac4f4-1131-41c4-94a8-dfd59e5d02d8`
 - Frontend `gamebuilder-company-r3` version `71416b75-9cca-45ee-9b32-7cf209f16395`
 - bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Accepted repository validation before V4:
-- timeout/lifecycle focused: 21/21 PASS
+Accepted repository validation before the failure:
+- focused media/choice contracts: 23/23 PASS
 - full `npm.cmd test`: 537/537 PASS
-- syntax/diff checks PASS
+- `git diff --check`: PASS
 
-Freeze all accepted product behavior. This task is evidence correction / acceptance only.
+Freeze as already GREEN:
+- exact visible choice dispatch: enabled button -> one native click -> one exact full-literal `/turn` POST -> one durable attempt/commit;
+- player agency/navigation/identity;
+- Story-owned exact-four choices;
+- CSA draft/Revert/APPLY/CHANGE/REMOVE chronology;
+- same-game reset runtime;
+- current-scene/History behavior;
+- image grounding/fail-open behavior;
+- turn timeout/terminalization fix;
+- TTS fresh-session OFF => zero calls;
+- generic browser `speechSynthesis` remains absent.
 
 Preserved games — READ ONLY, never reset/revise/retry/mutate:
 - owner manual game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`
-- holistic V1 failure `f84aa0f0-6658-41a2-8fed-c307d4d2e219`
-- CSA repair `f1285f4c-4719-4dc2-a18d-9fa5ad86d40c`
-- holistic V2 identity failure `4b050667-cca3-43a0-b483-d16c86a2873e`
-- identity executive acceptance `a78b91bd-4216-4e31-91ab-fd2705f0a99c`
-- identity junior acceptance `6b8ba038-50f0-408b-8210-20fed28bd0bc`
-- holistic V3 timeout failure `1ebc90a9-2957-4e00-bcbd-32287cd918bc`
-- timeout-repair smoke `8dec6dcf-df4a-426b-b4c0-7a9d66e1d351`
-- holistic V4 evidence fixture `ec8a906c-e540-4be4-b959-0ec0208c076d`
+- holistic V4 fixture `ec8a906c-e540-4be4-b959-0ec0208c076d`
+- this exact TTS failure fixture `e7e7025c-539a-4139-9348-cac597b9c688`
+- all previously listed holistic/repair/identity evidence fixtures.
 
-Create one entirely NEW disposable TEST game for mutable acceptance.
+Use a NEW disposable TEST game for mutable live acceptance.
 
-## 1. Why V4 FAILED_PRODUCT is rejected
+## 1. Exact accepted product defect
 
-V4 terminal `5388131299` labelled TTS as the first decisive product failure because TTS was enabled on committed Turn 17 where 서혜진 spoke, yet the browser made zero `/media/tts` calls.
+The evidence-correction task first corrected the invalid V4 TTS classification, then produced a real eligible TTS failure.
 
-Independent operator review disproves that classification:
-- `서혜진` is `general_seo_hyejin`, a general NPC from `content/general_npcs.json`;
-- general NPC catalog entries do not carry the canonical heroine `voice_id` mappings used by Company R3 TTS;
-- READ ONLY Turn 17 evidence for `ec8a906c-e540-4be4-b959-0ec0208c076d` shows:
-  - `present_actor_ids=[general_choi_yujin,general_jung_daeun,general_seo_hyejin]`;
-  - `observer_applied.warnings` includes `observer_failed`;
-  - `focal_actor=null`;
-  - `dialogue_lines=[]`;
-- R3 committed media/TTS projection only accepts grounded registered heroine dialogue;
-- server voice eligibility rejects unknown/unvoiced speakers.
+Fresh failure fixture:
+- game `e7e7025c-539a-4139-9348-cac597b9c688`
+- Turn 2 committed successfully;
+- `present_actor_ids` included `heroine2` and `heroine5`;
+- committed Observer `focal_actor.actor_id = heroine5`;
+- committed `observer_applied.dialogue_lines` contained exact registered-heroine dialogue for both heroine2 and heroine5;
+- exact heroine5 line:
+  `오, 벌써 적응 모드네요. 저도 첫날엔 그 문서만 세 번 읽었어요. 근데 사실 실전으로 부딪히는 게 제일 빨라요.`
+- heroine5 / 이메이 has canonical voice_id in repository content.
 
-Therefore zero `/media/tts` calls and replay no-op on that exact turn are correct fail-open behavior, not a TTS defect.
+Visible product evidence:
+- TTS OFF before enabling: zero `/media/tts` requests;
+- visible TTS toggle clicked ON once on committed Turn 2;
+- browser sent exactly one R3 `/api/r3/games/<id>/media/tts` request with `speaker_id=heroine5`, `character_id=heroine5`, and the exact committed heroine5 text;
+- no direct external TTS provider request and no browser `speechSynthesis`;
+- R3 API returned HTTP 400 `{ "url": null, "reason": "dialogue_not_committed" }`;
+- no audio URL/cache entry was created, so replay was correctly not claimed.
 
-The later V4 Turn 18 observation also does not prove a timeout defect:
-- READ ONLY DB after the run shows `max_job_turn=17` and zero Turn 18 jobs;
-- therefore no Turn 18 reserve/processing attempt existed;
-- the terminal evidence does not prove that an enabled native choice click actually dispatched `/turn`;
-- browser-automation click non-execution and product choice-dispatch failure remain unresolved.
+This is a product/server media-authorization failure, not a provider/TTS_WORKER outage.
 
-Per V4 fail-fast rules, evidence collected after the asserted first decisive failure must not be promoted into another product failure without a new bounded gate.
+## 2. Independently proven first source boundary
 
-## 2. Hard freeze
+Current source:
 
-Do NOT:
-- edit runtime/frontend/test/content/config/provider source;
-- deploy if preflight artifact identity already matches;
-- retry/regenerate a Story to manufacture eligibility;
-- click the same choice twice;
-- use direct gameplay API calls as a substitute for visible browser actions;
-- invoke internal JS submit functions, dispatch synthetic click events, or mutate DOM to fake a browser click;
-- use `?api=` override or storage preseed;
-- change provider/model/temperature/tokens/timeouts/config/secrets;
-- change DB schema/RPC/migration/RLS/grants;
-- access Production;
-- mutate any preserved game.
+### Frontend presentation selection
+`frontend-r3/tts.js`
+- selects primary dialogue from the committed view only;
+- uses `view.scene.focal_actor?.id` when that focal actor has committed present dialogue;
+- in the failing fixture this selects focal heroine5 and sends her exact committed line.
 
-READ ONLY DB/context inspection is allowed only to verify the new disposable fixture after visible browser actions.
+### Server media authorization
+`runtime-r3/server/worker.js::ttsMediaResponse()`
+- re-reads `presentationContext()`;
+- calls `resolveCommittedTtsBatch({ context, content, speakerId, spokenText })`;
+- rejects with `dialogue_not_committed` when that helper returns null;
+- only after a valid batch does it resolve voice eligibility and call `env.TTS_WORKER.fetch(...)`.
 
-If exact deployed artifact identity differs from the accepted versions, STOP `BLOCKED_DEPLOYMENT_DRIFT`; do not silently redeploy.
+### Faulty helper seam
+`runtime-r3/domain/media.js::resolveCommittedTtsBatch()` currently:
+1. builds `projection = projectCurrentMedia(...)`;
+2. calls `selectPrimaryDialogueLines(...)` again;
+3. but supplies `focalActorId: context.state.state.scene.focal_actor_id` rather than the committed presentation focal/projected character authority;
+4. batches only that independently selected primary speaker;
+5. then searches for the requested speaker/text inside that one-speaker subset.
 
-## 3. Preflight
+The failing Turn 2 has one committed line each for heroine2 and heroine5. The committed presentation focal is heroine5, but canonical scene state does not supply the equivalent `scene.focal_actor_id`. The server-side re-selection therefore ties and falls to the first dialogue speaker, heroine2. It subsequently rejects the exact committed heroine5 request as `dialogue_not_committed`.
 
-Before mutable play:
-1. verify current main is a docs-only descendant of executable `7961a3ceab638f43e7959123025b6cedd96f5898`;
-2. verify V4 terminal changed only existing `docs/ops/CURRENT_TASK.md` after registration;
-3. verify TEST API exactly `09dac4f4-1131-41c4-94a8-dfd59e5d02d8`;
-4. verify TEST frontend exactly `71416b75-9cca-45ee-9b32-7cf209f16395`;
-5. deploy ZERO artifacts when versions match;
-6. run current source-frozen media/TTS/choice contract tests plus full `npm.cmd test`; require GREEN;
-7. use only bare public `https://gamebuilder-company-r3.zeroslove.workers.dev`.
+`SupabaseR3Store.presentationContext()` and the durable Turn 2 data are not the problem; READ ONLY DB evidence confirms the exact heroine5 line and focal evidence are present.
 
-Do not alter source if any test fails; record the exact existing failure and STOP for operator review.
+## 3. Required authority correction
 
-## 4. Fresh disposable browser setup
+Fix only the server committed-dialogue authorization seam.
 
-Create one NEW disposable game through the visible Setup UI.
-Use a normal profile; rank is not the target of this cut.
+Role separation after the correction:
+- frontend/presentation may choose which eligible committed heroine dialogue to auto-play;
+- server authorization does NOT need to reproduce that presentation-choice algorithm;
+- server must independently prove that the requested `speaker_id + exact text` corresponds to a grounded dialogue batch in the LATEST committed turn, for a registered present heroine;
+- then existing `resolveTtsEligibility()` resolves that exact heroine voice_id;
+- only then may `TTS_WORKER` be called.
 
-Run only enough distinct ordinary turns to reach the two evidence gates below. Maximum target is Opening + 8 committed turns.
-No Story retry/regeneration.
+Preferred bounded implementation:
+- keep `projectCurrentMedia()` as the committed evidence gate;
+- batch the projection's validated committed heroine `dialogue_lines` without discarding all speakers except a separately re-selected primary;
+- find an exact batch whose character/speaker id equals requested `speakerId` and whose normalized exact batch text equals requested `spokenText`;
+- return null otherwise.
 
-A new distinct action after a normally committed turn is allowed; submitting the same failed action again is not.
+Do NOT weaken evidence checks in `committedPresentation()` / `projectCurrentMedia()` merely to make the fixture pass.
 
-## 5. Gate A — grounded registered heroine media/TTS
+## 4. Security/fail-open invariants that must remain
 
-The target must be a registered heroine from canonical `content/characters.json`, not a general NPC.
-Known registered heroine examples include:
-- heroine1 서원희
-- heroine2 윤민아
-- heroine3 김제나
-- heroine4 한리브
-- heroine5 이메이
+Server must still reject:
+- text not present in latest committed dialogue projection;
+- altered/paraphrased/substring-only text;
+- dialogue from an older stale turn when it is not current committed dialogue;
+- absent actor dialogue;
+- non-registered general NPCs such as `general_seo_hyejin`;
+- narrator text;
+- player dialogue / player inner thought;
+- Mind Monitor text;
+- arbitrary Story prose that was not grounded as committed heroine dialogue;
+- unknown speaker id;
+- registered character without eligible voice mapping;
+- mismatched speaker id with another heroine's committed text.
 
-Use natural visible free-form play to reach one of these heroines, for example by moving to the appropriate current scene and starting an ordinary conversation. Do not inject expected media metadata into the game.
+Do not add generic-NPC TTS voices in this task.
+Do not synthesize all dialogue indiscriminately.
+Do not accept a client-provided voice_id.
+Do not let the browser call TTS_WORKER directly.
 
-### Eligibility must be proven before enabling TTS
+## 5. Hard scope freeze
 
-A turn is TTS-eligible for this gate only if committed/readback evidence proves all of:
-1. the heroine's canonical actor id is in current `present_actor_ids`;
-2. the committed Story contains that heroine's actual dialogue;
-3. committed media projection exposes non-empty `dialogue_lines` for that same heroine;
-4. the heroine exists in `content/characters.json` with a non-empty canonical `voice_id`;
-5. the selected primary/focal dialogue batch refers to that same heroine.
+Do NOT change unless pre-edit proof independently requires it:
+- Story/Observer prompts or semantics;
+- provider/model/temperature/thinking/max_tokens/timeouts;
+- player agency/identity/navigation;
+- choice extraction/render/dispatch;
+- CSA behavior;
+- image selection semantics;
+- frontend TTS primary-selection UX;
+- reset/history/current-scene behavior;
+- DB schema/table/RPC/migration/RLS/grants;
+- TTS provider identity/config/secrets/binding;
+- Production.
 
-If a turn has `observer_failed`, `dialogue_lines=[]`, ambiguous/no heroine projection, or only general-NPC dialogue, classify that turn as INELIGIBLE/FAIL-OPEN. It is not a TTS failure.
-You may continue with a different ordinary committed action to reach eligibility, within the bounded 8-turn target. Never regenerate/retry the same turn.
+Expected source boundary:
+- `runtime-r3/domain/media.js`
+- focused R3 media/TTS tests.
 
-If visible Story contains clear registered-heroine dialogue on multiple committed turns but the committed media projection repeatedly suppresses all eligible dialogue, preserve the new fixture and STOP `FAILED_PRODUCT_MEDIA_PROJECTION` with exact Story/projection evidence.
+`runtime-r3/server/worker.js` should remain unchanged unless a focused failing test proves the thin route itself must change.
+Frontend should remain unchanged unless pre-edit proof disproves the accepted frontend behavior.
 
-### Image acceptance on the eligible heroine scene
+No new branch.
+No new service.
+No retry/regeneration system.
+No compatibility fallback that trusts raw client text.
 
-Once grounded heroine evidence exists:
-- image character must equal the grounded heroine;
-- approved image source must belong to that heroine;
-- image must not use a general NPC or another heroine as fallback;
-- if image endpoint naturally fails, UI must fail open without stale wrong-character image.
+## 6. Mandatory deterministic tests
 
-For this focused gate, at least one successful approved heroine image is required. If the eligible grounded heroine is established but the product cannot load the approved image path, STOP `FAILED_PRODUCT_IMAGE` with network/projection evidence.
+Before editing, encode the failing multi-speaker case so it FAILS on the accepted source:
+- latest committed turn has present heroine2 + heroine5;
+- both have one valid committed projected dialogue line;
+- committed presentation focal is heroine5;
+- durable scene has no equivalent `scene.focal_actor_id`;
+- request exact heroine5 text;
+- current implementation returns null / route returns `dialogue_not_committed`.
 
-### TTS OFF -> ON -> replay
+After correction prove at minimum:
+1. exact committed heroine5 batch in the multi-speaker/tie fixture is authorized;
+2. exact committed heroine2 batch is also server-authorizable if requested, because server authorization validates evidence rather than presentation preference;
+3. heroine5 request resolves heroine5 canonical voice_id, never heroine2 voice;
+4. exact TTS_WORKER payload is `{ voice_id, text, direction }` for the matched batch;
+5. one successful route call invokes TTS_WORKER exactly once;
+6. altered heroine5 text is rejected before TTS_WORKER;
+7. heroine5 speaker id + heroine2 text is rejected;
+8. absent heroine is rejected;
+9. general/unvoiced NPC is rejected;
+10. narrator/player/inner-thought/Mind Monitor text is rejected;
+11. stale previous-turn dialogue is rejected;
+12. no-dialogue / observer-fail-open turn remains zero-call fail-open;
+13. one-speaker normal heroine case remains GREEN;
+14. multi-line same-speaker batching remains exact and bounded;
+15. image projection/selection tests remain unchanged GREEN;
+16. frontend TTS OFF/cache/stale-fencing tests remain GREEN;
+17. visible choice dispatch regressions remain GREEN;
+18. full accepted R3 suite remains GREEN.
 
-Before enabling TTS on the eligible committed turn:
-- confirm visible toggle is OFF;
-- observe zero browser `/media/tts` requests while OFF.
+Do not weaken tests to accept arbitrary Story text.
 
-Then:
-1. begin browser Network observation;
-2. click the visible TTS toggle once to ON;
-3. require browser request to the R3 API `/media/tts` route for the exact eligible heroine speaker/text;
-4. require no direct browser call to the external TTS worker/provider;
-5. require returned audio URL to populate the persistent audio element;
-6. require browser `speechSynthesis` to remain unused.
+Run:
+- focused R3 media/TTS/server route tests;
+- relevant frontend TTS contract tests even if frontend is unchanged;
+- full `npm.cmd test`;
+- `node --check` for changed JS/MJS;
+- `git diff --check`.
 
-If browser autoplay policy prevents audible playback but a valid server-generated audio URL is attached after the user click, record the browser policy separately; do not misclassify it as synthesis-path failure unless the product itself reports/causes the failure.
+## 7. Deployment boundary
 
-Replay:
-- after one successful synthesis/cache fill, click visible replay once;
-- require the same cached audio to be reused with ZERO additional `/media/tts` synthesis request where the current cache contract applies.
+If the expected backend-only boundary holds:
+- deploy exact corrected source to TEST API `game-proxy-company-r3`;
+- preserve existing environment/secrets/bindings, including `TTS_WORKER`;
+- record the exact new API Worker version;
+- keep frontend exactly `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`;
+- frontend deploy count must be zero.
 
-Any TTS product failure must include exact eligible heroine id, voice-id presence, committed dialogue line, browser request count, API response/status, audio src, and replay behavior.
+No Production.
+No DB migration.
+No provider/model/config/secret change.
 
-## 6. Gate B — exact visible choice dispatch proof
+## 8. Fresh bare-public acceptance
 
-This gate is independent from Gate A and may use the next normal committed turn.
+Use only:
+`https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Wait for a committed Story with exactly four visible `.choice-button` controls.
-Choose one enabled button exactly once.
+Create one NEW disposable game. Never mutate/retry/reset the preserved failure fixture.
 
-Before click record:
-- committed turn number;
-- button index;
-- visible shortened label;
-- full `title`;
-- full `aria-label`;
-- `disabled=false`;
-- current job absent/ready;
-- current full choice literal from committed view/readback.
+Reach a naturally grounded committed registered heroine dialogue through ordinary visible gameplay. You may use distinct ordinary turns to reach the gate, but:
+- do not retry/regenerate the same failed semantic action until a favorable Observer result appears;
+- do not use direct gameplay API calls or DOM mutation;
+- do not preseed storage/state;
+- do not use `?api=` override.
 
-Then start browser Network observation and perform exactly ONE normal/native browser automation click on that button.
-Do not call `submit()` directly, do not evaluate JS to trigger click, and do not dispatch a synthetic event.
+Before enabling TTS require evidence in the SAME committed turn:
+- registered heroine id among committed present_actor_ids;
+- non-empty exact committed heroine dialogue projection;
+- repository canonical voice_id for that heroine;
+- browser view selects that exact committed dialogue batch.
 
-A product dispatch is proven only when all of these line up:
-1. automation reports that it actually activated the enabled target button;
-2. UI leaves ready state / shows normal generation activity or equivalent submission feedback;
-3. exactly one browser POST reaches `/api/r3/games/<fresh-game-id>/turn`;
-4. request body `literal_action` equals the button's full pre-click `title`/canonical choice literal exactly, including Korean codepoints;
-5. exactly one new durable turn job exists for expected_turn, attempt_no=1;
-6. the attempt reaches one terminal state under the existing lifecycle contract;
-7. on success, exactly one committed turn stores the same literal and the next ready state appears;
-8. there is no second `/turn`, duplicate attempt, or second click.
+Then prove:
+1. TTS OFF baseline => zero `/media/tts` calls;
+2. click visible TTS ON once;
+3. browser makes exactly one R3 `/media/tts` request for exact committed heroine speaker/text;
+4. R3 returns success with an audio URL, not `dialogue_not_committed`;
+5. server binding path is exercised; no browser-direct provider request;
+6. audio element receives the returned URL and attempts/enters playback as browser policy permits;
+7. UI must not show `Voice unavailable` for this successful eligible request;
+8. click visible replay once after cache is populated;
+9. replay uses cached URL and causes ZERO new `/media/tts` synthesis request;
+10. no `speechSynthesis` usage;
+11. image/media behavior for the grounded heroine remains non-regressed/fail-open-correct;
+12. one ordinary subsequent turn still commits once and does not inherit stale TTS dialogue.
 
-### Classification if no POST appears
+If browser autoplay policy blocks actual audible playback after a valid URL is loaded, classify that playback-policy boundary separately; do not call the server authorization fix failed if request/response/cache are correct.
 
-Do NOT wait 145 seconds and call it a timeout when no durable job exists.
+## 9. Failure handling
 
-If the browser automation cannot prove it activated the target (target detached, click API error, obscured/unsupported interaction, browser bridge limitation), STOP:
-`BLOCKED_BROWSER_CLICK_EVIDENCE`
-This is an environment/harness limitation, not product failure.
+GREEN only if:
+- deterministic pre-fix reproduction proves the authority split;
+- exact bounded server authorization correction fixes it;
+- uncommitted/absent/general/stale/mismatched dialogue remains rejected;
+- TTS_WORKER is called only after exact committed authorization;
+- focused/full/syntax/diff tests pass;
+- TEST API exact corrected source deploy succeeds;
+- fresh bare-public eligible heroine TTS ON returns audio URL;
+- replay uses cache with zero new synthesis request;
+- frontend remains unchanged if backend-only boundary holds;
+- no DB/provider/model/Production drift.
 
-If the automation proves a real enabled native click occurred and normal click feedback/event activation is visible, but zero `/turn` POST is emitted and no job is reserved, STOP:
-`FAILED_PRODUCT_CHOICE_DISPATCH`
-Capture exact DOM/button/network evidence. Do not click another button to work around it.
+If correction requires broad redesign, new voice catalog, DB migration, provider/model change, or frontend semantic rewrite, STOP `BLOCKED_REQUIRES_BROADER_MEDIA_CHANGE` and report exact evidence.
 
-If one POST/job exists but it later fails/gets stuck, classify according to the existing turn-lifecycle contract, not as click dispatch.
+If exact committed heroine dialogue still gets `dialogue_not_committed` after the bounded correction, STOP `FAILED_PRODUCT`.
 
-## 7. No broad holistic claims in this cut
+Do not start holistic V5 inside this task.
+Do not claim owner-ready.
 
-This task does NOT need to repeat:
-- full 15-turn Campaign A;
-- CSA APPLY/CHANGE/REMOVE chronology;
-- executive identity artifact probes;
-- Campaign B;
-- full mobile matrix;
-- feedback revision.
+## 10. Completion protocol
 
-Those remain for holistic V5 only after this evidence correction is GREEN.
-
-Existing V4 positive evidence may be cited as historical evidence but must not be used to bypass this fresh focused gate.
-
-## 8. GREEN / failure disposition
-
-GREEN only if all are true:
-- V4 TTS misclassification is independently documented;
-- fresh registered heroine eligibility is proven from committed state;
-- approved image succeeds for that heroine;
-- TTS OFF produces zero calls;
-- TTS ON uses browser -> R3 API -> server TTS path and attaches an audio URL;
-- replay uses cache without a new synthesis call where contract applies;
-- one exact visible choice native click produces exactly one `/turn` POST with the full literal;
-- exactly one durable attempt/commit follows;
-- no source/deploy/provider/model/DB/Production mutation occurred.
-
-On GREEN:
-- disposition `ACCEPTED_GREEN_EVIDENCE_CORRECTION`;
-- do NOT claim owner-ready;
-- holistic V5 is a later operator task.
-
-On genuine product failure:
-- preserve the fresh fixture READ ONLY;
-- stop immediately at the first complete product-failure proof;
-- do not patch in this task.
-
-On browser automation limitation:
-- preserve evidence;
-- stop with the exact `BLOCKED_*` classification;
-- do not modify source to accommodate the harness.
-
-## 9. Completion protocol
-
-Post terminal evidence to Issue #68 including:
-- current/final main SHA;
-- accepted executable SHA;
-- API/frontend deployed versions;
-- fresh disposable game id;
-- exact turns/actions used to reach heroine eligibility;
-- heroine id/name and canonical voice-id presence;
-- committed present/focal/dialogue projection evidence;
-- image projection/result;
-- TTS OFF request count;
-- TTS ON exact browser/API path, response, audio src;
-- replay request delta;
-- exact chosen button index/label/title/aria/disabled state;
-- exact `/turn` request body and request count;
-- durable job/turn attempt/readback result;
-- explicit confirmation no retry/regeneration/source/deploy/provider/model/DB migration/Production change;
+At completion post to Issue #68:
+- source SHA and final main SHA;
+- exact pre-fix reproduction and root boundary;
+- changed files and why;
+- focused/full/syntax/diff results;
+- TEST API and unchanged frontend versions;
+- fresh disposable acceptance game id/turn;
+- exact heroine id, exact committed text, canonical voice id mapping check;
+- `/media/tts` request count/status and TTS_WORKER evidence;
+- audio URL/playback state;
+- replay request delta (must be zero new synthesis request after cache fill);
+- confirmation failure fixture remained READ ONLY;
+- confirmation no retry/regeneration/provider/model/DB/migration/Production change;
 - exact disposition.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal report, and stop.
-Do not generate holistic V5 yourself.
 
-## Terminal evidence — 2026-08-24 05:00 KST
-
-Disposition: FAILED_PRODUCT_MEDIA_PROJECTION
-
-- Final main before this docs-only update: e294d2559dbcf8d660bc10e2f18fd66362c99525.
-- Accepted executable/source: 7961a3ceab638f43e7959123025b6cedd96f5898.
-- TEST API/frontend remained exact: 09dac4f4-1131-41c4-94a8-dfd59e5d02d8 / 71416b75-9cca-45ee-9b32-7cf209f16395.
-- Focused media/choice contracts: 23/23 PASS. Full npm.cmd test: 537/537 PASS.
-- No source, deploy, provider/model, config, DB/migration, Production, or preserved-game mutation occurred. No retry/regeneration occurred after the first complete product failure.
-- Fresh disposable game: e7e7025c-539a-4139-9348-cac597b9c688, created through the visible Setup UI. Opening committed as Turn 0. The distinct free-form action 서원희 차장에게 첫 출근일 업무와 팀의 적응 방법을 묻고 자리를 정하는 안내를 부탁한다. committed Turn 1 but was ineligible/fail-open (observer_failed, empty applied dialogue projection); it was not retried.
-- Grounded registered heroine evidence on committed Turn 2: present_actor_ids=["heroine2","heroine5"]; focal actor heroine5; observer_applied.dialogue_lines contained non-empty verbatim 이메이 lines, including: 오, 벌써 적응 모드네요. 저도 첫날엔 그 문서만 세 번 읽었어요. 근데 사실 실전으로 부딪히는 게 제일 빨라요.; content/characters.json has heroine5 with non-empty canonical voice_id=03a79d68ca184930a1215f9b1b8eb5b5 and mapping_status=resolved.
-- Approved image evidence: the earlier grounded heroine1 Opening projection loaded a heroine1 image URL from the heroine1 storage path with natural dimensions 832x1216; no wrong-character fallback was used.
-- TTS OFF evidence: visible toggle was confirmed aria-pressed=false, audio source null, and zero /media/tts calls were observed before the single ON click.
-- TTS failure evidence: the visible toggle was clicked once to ON on the eligible Turn 2. Browser emitted exactly one R3 API GET /api/r3/games/e7e7025c-539a-4139-9348-cac597b9c688/media/tts (plus one CORS OPTIONS preflight), with speaker_id=heroine5, character_id=heroine5, and the exact committed heroine dialogue text. No direct external provider call and no speechSynthesis use were observed. The API response was HTTP 400 JSON {"url":null,"reason":"dialogue_not_committed"}; the persistent audio element remained src=null, readyState=0, and the UI displayed Voice unavailable.
-- Replay was not attempted because synthesis/cache fill never succeeded; no further /media/tts request was generated. This is a complete first product-failure proof, not a provider or browser autoplay classification.
-- Independent Gate B evidence (completed before the TTS failure): Turn 2 had exactly four enabled .choice-button controls. Button index 0 was clicked exactly once via the visible native locator; shortened label 1 창가쪽자리, full title/literal 창가 쪽 자리로 이동해 컴퓨터를 켜고 로그인하며 팀 공유폴더 구조를 살펴본다., full aria-label 1번 선택지: 창가 쪽 자리로 이동해 컴퓨터를 켜고 로그인하며 팀 공유폴더 구조를 살펴본다., disabled=false. Exactly one /turn POST was emitted with {"action_id":"7dd8b593-8baf-41d8-9a47-920e9c3be0e5","expected_turn":2,"literal_action":"창가 쪽 자리로 이동해 컴퓨터를 켜고 로그인하며 팀 공유폴더 구조를 살펴본다."}; the SSE response committed Turn 2 at 2026-08-23T20:07:48.671092+00:00 and the next ready state appeared. No second click or /turn POST occurred.
-- Preserved-games rule was maintained. Fresh fixture is preserved for operator review; no more actions are authorized in this run.
-
-Operator review required. Do not start holistic V5 or patch this source-frozen cut.
+Do not create the next holistic task yourself.
