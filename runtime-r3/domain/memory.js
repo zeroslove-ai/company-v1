@@ -13,6 +13,12 @@ const PLAYER_AGENCY_CONTRACT = Object.freeze({
   app_topic_boundary: 'Mentioning the private app, a rule, or a topic is not a player app interaction.',
   app_interaction_boundary: 'Opening, scrolling, reading, applying, changing, or closing the app requires that voluntary action to be explicit in the submitted literal.'
 });
+const PLAYER_IDENTITY_CONTRACT = Object.freeze({
+  canonical_facts_are_authoritative: true,
+  preserve_exactly: Object.freeze(['name', 'department', 'formal_position/rank']),
+  formal_identity_boundary: 'The canonical player name, department, and formal position/rank supplied in canonical_player_identity are authoritative Story facts on every turn. Do not replace, normalize, downgrade, upgrade, or invent a different formal department, rank, title, business-card identity, badge identity, introduction, signature, or address. If Story mentions one of those identity artifacts, use the exact canonical labels supplied here.',
+  no_inference_boundary: 'Do not derive the player formal department, rank, or title from department names, NPC roles, scene context, seniority stereotypes, or model inference. Do not let Observer or any post-processing change player identity.'
+});
 
 export function requestExecutionTiming(rule = {}) {
   const requestTriggered = rule.mode === 'on_player_request' || REQUEST_TRIGGER_VALUES.has(rule.trigger);
@@ -33,6 +39,11 @@ export function buildStoryContext(context, literalAction, { content, opening = f
   const product = productPremise(content);
   const department = (content?.departments ?? []).find(item => item?.department_id === state.profile?.department_id);
   const position = (content?.positions ?? []).find(item => item?.position_id === state.profile?.position_id);
+  const canonicalPlayerIdentity = {
+    name: state.profile?.name ?? null,
+    department: { id: state.profile?.department_id ?? null, name: department?.name ?? null },
+    position: { id: state.profile?.position_id ?? null, name: position?.name ?? null }
+  };
   const rules = state.csa_rules && typeof state.csa_rules === 'object' ? state.csa_rules : {};
   const activeRules = [...new Set(Array.isArray(state.csa_active) ? state.csa_active : [])]
     .map(id => rules[id])
@@ -56,6 +67,8 @@ export function buildStoryContext(context, literalAction, { content, opening = f
     opening,
     literal_action: literalAction,
     player_agency_contract: PLAYER_AGENCY_CONTRACT,
+    canonical_player_identity: canonicalPlayerIdentity,
+    player_identity_contract: PLAYER_IDENTITY_CONTRACT,
     profile: state.profile ?? {},
     time: state.time ?? {},
     location,
