@@ -1,212 +1,285 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-worker-deployment-hygiene-rollback-v1
-Mode: SOURCE-FROZEN DEPLOYMENT HYGIENE -> PROVE LEGACY WORKER PREIMAGE -> CONDITIONAL EXACT ROLLBACK -> VERIFY R3 ARTIFACT
-Updated: 2026-08-24 07:23 KST
+Status: READY
+Task ID: company-r3-tts-end-to-end-live-acceptance-v2
+Mode: SOURCE-FROZEN PROJECTION-FIRST TTS END-TO-END LIVE ACCEPTANCE
+Updated: 2026-08-24 07:27 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5388744342`
-Operator review: Issue #68 comment `5388768658`
+Previous terminal: Issue #68 comment `5388801366`
+Operator review: Issue #68 comment `5388819983`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery/source branch. Work on `main` only.
 
-## 0. Accepted source — freeze
+## 0. Frozen accepted baseline
 
 Accepted executable/source:
 - `71f87b63c9405bdc2e41ff272c0448c0b41384b7`
 
 Reviewed final main before this registration:
-- `e394db6b35d5c65342092cd666f08c7d93e7960f`
-- direct docs-only child of accepted source.
+- `5f9f0ed418be52fadeec3d256f90e5fe1614408a`
+- source remains frozen; intervening commits are ops/CURRENT_TASK only.
 
-Accepted source scope:
-- `runtime-r3/server/provider.js`
-- `runtime-r3/server/worker.js`
-- `test/r3-observer-failure-provenance.test.mjs`
-- sanitized Observer failure + finish-reason provenance only.
+Accepted TEST deployment state:
+- R3 API `game-proxy-company-r3@2a6419bb-9147-443d-8552-cf2fd309ae2c`
+- R3 frontend `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`
+- bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
+
+Deployment-hygiene closure already GREEN:
+- accidental legacy `game-proxy-company-v1@991cf884-fb35-4c67-8152-b19e7a155b23` was rolled back exactly once to proven preimage `7ea46aaf-493f-4323-bc1f-f5ab8d47477d`;
+- rollback deployment `63adc570-a107-476e-bb51-d139016eb9b1` is 100% on that preimage;
+- R3 API remained exactly `2a6419bb...`, R3 redeploy count 0;
+- legacy `/health` and R3 `/api/r3/catalogs` returned 200.
 
 Accepted validation:
-- focused: 46/46 PASS
-- full `npm.cmd test`: 546/546 PASS
-- changed JS/MJS syntax: PASS
-- `git diff --check`: PASS
-- Wrangler R3 API dry-run: PASS
+- focused Observer finish-provenance: 46/46 PASS;
+- full `npm.cmd test`: 546/546 PASS;
+- syntax/diff/dry-run: PASS;
+- Observer JSON-invalid diagnostic disposition: `OBSERVER_JSON_INVALID_NOT_REPRODUCED` after three fresh ordinary committed turns.
 
-Accepted diagnostic disposition:
-- `OBSERVER_JSON_INVALID_NOT_REPRODUCED`
-- fresh game `7307c77b-f4bd-46df-ac45-4c5cbee190d5` completed three distinct ordinary committed turns with non-empty Observer raw/applied output and no Observer failure.
-- Do NOT change `max_tokens`, model, prompt, timeout, retry, parser/normalizer, media/TTS, frontend, DB, or gameplay semantics based on the non-reproduction.
+Freeze as already accepted:
+- Story agency/canonical identity/navigation/time/choices;
+- CSA chronology/UI;
+- Observer dialogue completeness contract;
+- dialogue quote-escape parity;
+- Observer fail-open primary provenance and sanitized finish-reason instrumentation;
+- server exact committed-dialogue TTS authorization;
+- heroine voice mappings and server `TTS_WORKER` binding;
+- frontend TTS queue/cache/stale fencing source contract;
+- image grounding;
+- current-scene/History/reset/turn terminalization;
+- deployment hygiene.
 
-## 1. Deployment exception that must be closed
+Preserved READ ONLY fixtures include all prior preserved games plus:
+- `7307c77b-f4bd-46df-ac45-4c5cbee190d5` — successful Observer diagnostic;
+- `08a6fe64-1e61-4b7c-a07f-73c2aa3cbdcf` — prior `r3_observer_json_invalid` fixture.
 
-During the preceding diagnostic, the runner disclosed two unintended deployments before the final correct R3 deployment:
+Never reset/revise/retry/regenerate/mutate preserved fixtures.
 
-1. Wrong legacy worker deployment:
-- `game-proxy-company-v1@991cf884-fb35-4c67-8152-b19e7a155b23`
-- config/entrypoint family: `wrangler.api.jsonc` -> `src/api/index.js`
-- this is a separate legacy Company worker, not the R3 worker.
+## 1. Purpose
 
-2. Wrong entrypoint under R3 name:
-- `game-proxy-company-r3@383c1836-7e2a-4290-b165-dfa0879cf591`
-- superseded later in the same run.
+Close the remaining owner-ready media requirement with one source-frozen live acceptance:
 
-Final intended R3 deployment:
-- `game-proxy-company-r3@2a6419bb-9147-443d-8552-cf2fd309ae2c`
-- correct config/entrypoint: `wrangler.r3.api.jsonc` -> `runtime-r3/worker-entry.js`.
+`committed registered heroine dialogue -> frontend R3 view model -> visible TTS ON -> R3 /media/tts -> server committed-dialogue authorization -> TTS_WORKER -> audio URL/cache -> Replay cache -> next-turn stale fencing`.
 
-Frontend remained:
-- `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`.
+This task is acceptance only. Do not patch source.
 
-The R3 source is accepted. This task is operational hygiene only.
+Do not start holistic V5 inside this task.
 
-## 2. Goal
+## 2. Important correction — do NOT require a dialogue DOM card
 
-Prove the current Cloudflare deployment state and remove only the proven accidental legacy-worker deployment if it is still current.
+Previous acceptance incorrectly treated `.narrative-dialogue` / projected dialogue-card DOM nodes as a required frontend projection surface. That is not the current R3 contract.
 
-Required outcome:
-- `game-proxy-company-r3` remains exactly on the intended R3 artifact `2a6419bb-9147-443d-8552-cf2fd309ae2c` with no redeploy if already correct;
-- `game-proxy-company-v1` must not remain on accidental `991cf884-fb35-4c67-8152-b19e7a155b23` if the exact immediately preceding deployment/version can be independently identified and restored safely;
-- no guess-based rollback.
+Canonical current source path is:
+1. `buildR3ViewModel()` reads the latest committed `observer_applied.dialogue_lines` into `view.dialogue_lines`;
+2. `createCompanyTts().onCommittedTurn()` reads `view.dialogue_lines` (or media dialogue lines);
+3. `selectPrimaryTtsLines()` filters to current present actors and selects focal speaker when grounded, otherwise the speaker with the highest dialogue-line count;
+4. `batchDialogueLines()` creates exact speaker/text batches;
+5. `playBatch()` calls R3 `api.tts()` only for those batches.
 
-## 3. Mandatory read-only preflight
+Therefore:
+- do NOT require `.narrative-dialogue`, `data-speaker-id`, or any invented dialogue-card selector;
+- prove committed projection via read-only context/DB evidence;
+- prove frontend consumption through the exact browser `/media/tts` request identity and the frozen source contract above.
 
-Before any deployment mutation:
+Do not mutate DOM, inspect hidden application state by injection, or call gameplay/media APIs directly.
 
-1. Verify current `main` is a docs-only descendant of source `71f87b63...` and product source is unchanged.
-2. Read Cloudflare version/deployment history for BOTH:
-   - `game-proxy-company-v1`
-   - `game-proxy-company-r3`
-3. Record for each:
-   - currently active version/deployment id;
-   - immediately preceding deployment/version where available;
-   - deployment timestamps/order;
-   - script/config identity or metadata sufficient to distinguish legacy `src/api/index.js` from R3 `runtime-r3/worker-entry.js`.
-4. For `game-proxy-company-v1`, prove whether `991cf884-fb35-4c67-8152-b19e7a155b23` is still the active deployment.
-5. If it is active, prove the exact version immediately before it. Do not infer the preimage from commit history alone.
-6. For `game-proxy-company-r3`, prove the active deployment is exactly `2a6419bb-9147-443d-8552-cf2fd309ae2c`.
+## 3. Preflight — zero source/deploy drift
 
-If Cloudflare history cannot identify the exact legacy preimage, STOP:
-`BLOCKED_LEGACY_WORKER_PREIMAGE_UNKNOWN`
+Before gameplay prove:
+1. current `main` is a docs-only descendant of accepted source `71f87b63...`;
+2. no product source/config/test/content/migration drift exists after that accepted source;
+3. R3 API active version is exactly `2a6419bb-9147-443d-8552-cf2fd309ae2c`;
+4. R3 frontend active version is exactly `71416b75-9cca-45ee-9b32-7cf209f16395`;
+5. legacy worker remains on proven rollback preimage `7ea46aaf-493f-4323-bc1f-f5ab8d47477d`;
+6. deployment count for API/frontend/legacy in this task must remain ZERO;
+7. run full `npm.cmd test` and expect 546/546;
+8. `git diff --check` PASS.
 
-If R3 current deployment is not `2a6419bb-9147-443d-8552-cf2fd309ae2c`, STOP:
-`BLOCKED_R3_DEPLOYMENT_DRIFT`
+If any deployed artifact drifts, stop `BLOCKED_DEPLOYMENT_DRIFT`; do not redeploy inside this acceptance task.
 
-Do not repair either blocker by guessing.
-
-## 4. Conditional legacy rollback only
-
-Only if ALL are proven:
-- current `game-proxy-company-v1` is accidental version `991cf884-fb35-4c67-8152-b19e7a155b23`;
-- an exact immediately preceding deployment/version is identifiable from Cloudflare history;
-- that preimage is demonstrably the prior active `game-proxy-company-v1` artifact;
-
-then restore exactly that prior version using the narrowest Cloudflare version/deployment rollback mechanism available.
-
-Requirements:
-- rollback/deploy count for `game-proxy-company-v1`: at most 1;
-- no source rebuild when exact version rollback is available;
-- do not deploy `main` source to reconstruct an assumed legacy artifact;
-- after rollback, re-read deployment history/current state and prove active version equals the exact preimage.
-
-If `game-proxy-company-v1` is already no longer on `991cf884...`, perform ZERO mutation and record the current active version plus why no rollback is needed.
-
-## 5. R3 verification
-
-For `game-proxy-company-r3`:
-- expected current version is exactly `2a6419bb-9147-443d-8552-cf2fd309ae2c`;
-- if exact, deploy count = 0;
-- verify health/bare endpoint only if available without gameplay mutation;
-- do not redeploy just to refresh timestamps.
-
-Do not touch frontend deployment.
-
-## 6. Hard prohibitions
+## 4. Hard prohibitions
 
 Do NOT:
-- edit product source, tests, content, configs, migrations, or scripts;
-- change Observer/Story prompt/model/options/max_tokens/timeouts;
+- edit source/tests/content/config/migration/script;
+- deploy or rollback any Worker;
+- change Story/Observer prompt, model, provider options, `max_tokens`, timeout, temperature, thinking, response format;
+- add retry/regeneration or a second Observer;
+- add JSON repair/parser/fallback/fuzzy logic;
 - change normalizer/media/TTS/frontend behavior;
-- run gameplay turns, reset/retry/regenerate games, or mutate preserved fixtures;
-- write DB state or apply migrations/DDL;
+- change DB schema/RPC/migration/RLS/grants;
 - touch Production;
-- create a new branch or CURRENT_TASK path;
-- use force deployment, arbitrary version reconstruction, or guessed rollback target;
-- start TTS acceptance or holistic V5 inside this task.
+- reset/retry/regenerate preserved games;
+- use `?api=` override, localStorage preseed, DOM mutation, synthetic/direct JS submit, direct gameplay API, direct media API, direct provider/TTS API;
+- repeat the same semantic action to manufacture a favorable projection.
 
-This task may perform only the one proven legacy-worker rollback described above.
+Visible browser interaction plus read-only context/DB verification is allowed.
 
-## 7. Repository validation
+## 5. Fresh game and bounded projection-first qualification
 
-Because source is frozen:
-- run full `npm.cmd test` and expect 546/546 unless the environment itself prevents it;
-- `git diff --check` PASS;
-- source diff from accepted `71f87b63...` must remain zero;
-- only final `docs/ops/CURRENT_TASK.md` status update may be committed by this task.
+Create ONE NEW disposable TEST game through the bare-public visible Setup and Opening.
 
-## 8. GREEN exit
+If TTS persisted ON, visibly switch it OFF before any qualifying ordinary turn. Do not modify storage directly.
+
+Use up to THREE distinct natural ordinary turns, each submitted visibly exactly once, to obtain a qualifying registered-heroine committed dialogue projection. Prefer natural actions that address or visit a currently canonical registered heroine, but do not require or manufacture NPC compliance.
+
+For EACH attempted turn record:
+- exact visible literal action;
+- durable turn number / one attempt / one commit;
+- Story text and whether it contains a clearly attributable direct quote from a registered heroine;
+- committed `present_actor_ids`;
+- `observer_raw.dialogue_lines`;
+- `observer_applied.dialogue_lines`;
+- warnings / Observer provenance;
+- canonical heroine voice mapping if a candidate exists.
+
+Stop immediately on any Observer fail-open and classify by existing provenance:
+- `DIAGNOSED_OBSERVER_TIMEOUT`
+- `DIAGNOSED_OBSERVER_PROVIDER_HTTP`
+- `DIAGNOSED_OBSERVER_RESPONSE_JSON_INVALID`
+- `DIAGNOSED_OBSERVER_MESSAGE_MISSING`
+- `DIAGNOSED_OBSERVER_JSON_INVALID` plus sanitized finish warning when present
+- `DIAGNOSED_OBSERVER_UNKNOWN`.
+
+If Story contains a clearly qualifying registered/present heroine direct line but `observer_raw.dialogue_lines` omits it, stop:
+`FAILED_PRODUCT_OBSERVER_DIALOGUE_OMISSION`.
+
+If raw contains an exact valid candidate but `observer_applied.dialogue_lines` drops it, stop:
+`FAILED_PRODUCT_DIALOGUE_NORMALIZATION`.
+
+A qualifying TTS turn requires all of:
+- registered heroine direct dialogue candidate exists in Story;
+- heroine is current committed present actor;
+- raw contains exact candidate;
+- applied contains accepted exact same speaker/text;
+- no Observer failure warning;
+- canonical repository `voice_id` exists.
+
+If no qualifying projection is observed after all three distinct turns and no proven product defect occurred, stop:
+`BLOCKED_TTS_PRECONDITION_NOT_OBSERVED`.
+
+Do not classify that bounded non-observation as a product failure and do not patch source.
+
+## 6. Compute the exact expected frontend TTS batch
+
+Once a qualifying turn exists, derive the expected browser batch from the frozen frontend contract, not from a guessed DOM structure:
+
+1. `dialogueLines = observer_applied.dialogue_lines` for the current committed turn;
+2. filter to lines whose `speaker_id` is in committed current `present_actor_ids` and whose text is non-empty;
+3. sort by numeric `order`;
+4. if committed focal actor is present and has dialogue, select that speaker; otherwise choose the speaker with the greatest accepted line count using the existing stable insertion/tie behavior;
+5. keep only that primary speaker's lines;
+6. apply existing `batchDialogueLines()` rules: same speaker + same tone + combined text <=350 chars may merge; otherwise separate batches.
+
+Record the exact expected batch list `{speaker_id,text,direction/tone}` before enabling TTS.
+
+Do not invent a different primary speaker selection rule.
+
+## 7. TTS OFF baseline
+
+With the qualifying committed turn current and visible TTS OFF:
+- browser `/media/tts` request count since that turn committed must be 0;
+- no browser-direct external TTS worker/provider request;
+- no browser `speechSynthesis`;
+- no stale prior-game audio may be represented as current-turn synthesis.
+
+## 8. Visible TTS ON end-to-end
+
+After the projection and expected batch are proven:
+1. click visible TTS toggle ON exactly once;
+2. capture browser Network evidence;
+3. every generated R3 `/media/tts` request must correspond exactly to one expected current-turn batch;
+4. no request may use raw Story parsing, an absent actor, narrator/player text, Mind Monitor, or a non-projected line;
+5. server must authorize each request as current committed dialogue;
+6. server route must use the existing `TTS_WORKER` binding; browser must not call external provider/worker directly;
+7. each required uncached batch must return a valid audio URL;
+8. returned URL must be accepted by the persistent audio/cache path;
+9. `Voice unavailable` must not be the terminal result for an eligible successful batch.
+
+Request count need not be arbitrarily forced to 1: it must equal the number of uncached batches produced by the frozen batching contract for the selected primary speaker.
+
+Failure classifications:
+- qualifying projection + visible ON + zero R3 requests => `FAILED_PRODUCT_TTS_ENQUEUE`;
+- request identity differs from expected committed batch => `FAILED_PRODUCT_TTS_BATCH_IDENTITY`;
+- R3 returns `dialogue_not_committed` for an exact expected committed batch => `FAILED_PRODUCT_TTS_AUTHORIZATION`;
+- authorized R3 request reaches service path but binding/upstream fails => `FAILED_PRODUCT_TTS_SERVICE` with exact bounded status/error;
+- valid URL/cache exists and only audible autoplay is blocked => `BROWSER_AUTOPLAY_LIMITATION`, not product authorization failure.
+
+Stop on first decisive failure; do not repair it in this task.
+
+## 9. Replay cache
+
+After at least one successful current-turn audio URL is cached:
+- record `/media/tts` request count immediately before Replay;
+- click visible Replay exactly once;
+- existing contract replays `lastBatch` from cache;
+- `/media/tts` synthesis request delta for Replay must be 0;
+- replay identity must remain the same current committed heroine batch;
+- no `speechSynthesis`.
+
+If Replay causes new synthesis for an identical cached batch, stop:
+`FAILED_PRODUCT_TTS_REPLAY_CACHE`.
+
+## 10. Next-turn stale fencing
+
+After successful Replay:
+1. visibly switch TTS OFF;
+2. submit one distinct natural ordinary action through the public UI exactly once;
+3. require one durable next-turn commit and no duplicate `/turn`;
+4. if Observer fails, record exact provenance and stop without retry;
+5. current Story/context must advance to the new turn;
+6. TTS OFF on the new turn => zero new `/media/tts` requests;
+7. no late prior-turn audio/TTS async completion may overwrite or relabel the new turn's current state.
+
+If stale prior-turn async state becomes current, stop:
+`FAILED_PRODUCT_TTS_STALE_FENCE`.
+
+## 11. GREEN exit
 
 GREEN disposition:
-`WORKER_DEPLOYMENT_HYGIENE_GREEN`
+`TTS_END_TO_END_GREEN`.
 
-Requires:
-- exact current R3 version `2a6419bb-9147-443d-8552-cf2fd309ae2c` verified, zero R3 redeploy;
-- legacy worker accidental version not left active:
-  - either it was already superseded and no mutation was needed, OR
-  - exact previous version was proven and restored once;
-- no source/config/frontend/DB/gameplay/Production changes;
-- repository source remains frozen;
-- preserved fixtures untouched.
+Requires in one fresh disposable game:
+- qualifying committed heroine projection proven from raw -> applied -> present actor + voice mapping;
+- expected primary/batch derived from frozen frontend contract;
+- TTS OFF = 0 requests;
+- visible TTS ON emits only exact expected R3 batch request(s);
+- server authorization succeeds;
+- server-side TTS binding returns valid audio URL(s);
+- no direct browser provider call;
+- Replay adds zero synthesis requests;
+- subsequent distinct turn commits exactly once;
+- next-turn TTS OFF = 0 new requests;
+- no stale prior-turn overwrite;
+- no source/deploy/provider/model/prompt/token/timeout/DB/Production change;
+- full tests remain GREEN.
 
-If GREEN, stop WAITING_REVIEW. The next operator task should return to source-frozen projection-first TTS end-to-end acceptance. Do not start it yourself.
+If GREEN, stop `WAITING_REVIEW`. Do not start holistic V5 and do not claim owner-ready. The operator will register holistic V5 separately.
 
-## 9. Completion report
+## 12. Completion report
 
 Post a NEW Issue #68 terminal comment recording:
-- start main / final main / final task blob;
-- accepted source `71f87b63...`;
-- Cloudflare current/history evidence for both worker names;
-- accidental legacy version current/not-current determination;
-- exact legacy preimage version if identified;
-- rollback count and exact rollback target if rollback occurred;
-- final active version of both workers;
-- R3 deploy count 0 unless task correctly BLOCKED before mutation;
-- frontend deploy count 0;
+- start/final main and final CURRENT_TASK blob;
+- accepted source and exact API/frontend/legacy active versions;
+- deployment counts all zero;
 - full test count and diff check;
-- source/config/DB/gameplay/Production mutation counts;
+- fresh game id;
+- each projection-search turn/action and durable outcome;
+- qualifying heroine id/name/voice mapping;
+- exact raw/applied dialogue evidence and Observer warnings;
+- exact expected primary speaker and batch list derived from frozen frontend contract;
+- TTS OFF request count;
+- TTS ON R3 request count/identity/status;
+- server authorization/TTS_WORKER/audio URL evidence;
+- proof of no direct browser provider call;
+- Replay request delta;
+- next-turn commit and TTS-OFF request count;
+- stale-fencing evidence;
+- any autoplay-only limitation separately;
 - preserved fixtures untouched;
+- zero source/deploy/provider/model/prompt/token/timeout/DB/migration/Production changes;
 - exact disposition.
 
-Then overwrite this SAME file in place to `Status: WAITING_REVIEW`, push main, post terminal, and stop.
+Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal, and stop.
 
-## 10. Terminal evidence (deployment hygiene complete; review required)
-
-Execution identity:
-- TASK_ID: `company-r3-worker-deployment-hygiene-rollback-v1`
-- CURRENT_TASK blob at lease: `a294a65bdce432fa03837d3a7fef33fac68cb977`
-- expected branch: `main`
-- start main: `9f6ed8590e47131bed8e64e3774e45a8c59e0c46`
-- accepted executable/source: `71f87b63c9405bdc2e41ff272c0448c0b41384b7`
-- final main before this control-file update: `9f6ed8590e47131bed8e64e3774e45a8c59e0c46`
-
-Read-only preflight and proof:
-- `game-proxy-company-v1` history ended at accidental version `991cf884-fb35-4c67-8152-b19e7a155b23` (version created `2026-08-23T22:03:12.282Z`, deployment `d0ed99f7-799e-4fda-b4d4-aebe02fed91f`, 100%).
-- The immediately preceding v1 deployment was version `7ea46aaf-493f-4323-bc1f-f5ab8d47477d` (version created `2026-08-19T05:29:34.673Z`, deployment `3ca187c9-c72b-4e40-9294-d9dfb5878064`, 100%).
-- Cloudflare `versions view` proved both v1 versions have the identical script etag `1f665e2b302ffda4a8ae6985a7a06bace14fc1203251966cdf8058e426e8c72e`, handlers, compatibility date, and legacy bindings. The repository `wrangler.api.jsonc` identifies this worker family as `src/api/index.js`; the R3 artifact has a distinct etag and R3 binding set. The preimage was therefore exact and independently ordered, not reconstructed from source.
-- `game-proxy-company-r3` history ended at intended version `2a6419bb-9147-443d-8552-cf2fd309ae2c` (version created `2026-08-23T22:05:59.647Z`, deployment `feb075b6-cb37-4d58-a927-bd9248ccf1bb`, 100%), with R3 etag `cb48e4ceb4acb2f80eb3fd4a97f358bae0fd2dcc15379540d136a40d0565e901` and `R3_GAME_ACCESS_SECRET`; no R3 redeploy was performed in this task.
-
-Authorized mutation and final verification:
-- exactly one Cloudflare rollback was performed: `game-proxy-company-v1` -> exact version `7ea46aaf-493f-4323-bc1f-f5ab8d47477d`;
-- rollback deployment `63adc570-a107-476e-bb51-d139016eb9b1`, created `2026-08-23T22:22:52.449Z`, is 100% on the proven preimage;
-- post-rollback history confirms v1 active version `7ea46aaf...` and R3 active version remains exactly `2a6419bb...`;
-- health checks were read-only: R3 `/api/r3/catalogs` = 200 and legacy `/health` = 200;
-- R3 deployment count in this task: 0; frontend deployment count: 0; v1 rollback count: 1.
-
-Repository and scope validation:
-- full `npm.cmd test`: `546 passed, 0 failed`;
-- `git diff --check`: PASS;
-- product source diff from accepted `71f87b63c9405bdc2e41ff272c0448c0b41384b7`: zero; only this existing control file is being updated;
-- no source/config/test/content/frontend/DB/gameplay/provider/model/prompt/token/timeout/Production changes; no migration or DB write;
-- preserved fixtures were not read or mutated in this task; no gameplay turn, reset, retry, or regeneration was run.
-- terminal disposition: `WORKER_DEPLOYMENT_HYGIENE_GREEN`.
-- final task blob SHA: record after this in-place update and push.
+Do not create the next task yourself. Do not start holistic V5. Do not claim owner-ready.
