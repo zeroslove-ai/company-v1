@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-approved-media-image-character-tts-v1
 Mode: REUSE APPROVED MEDIA CONTRACTS -> R3 PRESENTATION-ONLY IMAGE PROJECTION + CHARACTER-AWARE SERVER TTS -> TEST DEPLOY -> BARE-PUBLIC ACCEPTANCE
 Updated: 2026-08-23 23:48 KST
@@ -374,6 +374,56 @@ Only after media/TTS is GREEN, resume owner-remediation order:
 1. timeline/current-scene presentation residue;
 2. deferred native-confirm live automation limitation if still materially relevant;
 3. final holistic owner-style long-play acceptance across all repaired surfaces.
+
+## 12. Terminal evidence (2026-08-24 KST)
+
+TERMINAL_OUTCOME: FAILED_PRODUCT
+SOURCE_IMPLEMENTATION_SHA: 25688dd4c478b72ace1ad514e99498fc3469cfc0
+TERMINAL_CONTROL_COMMIT: pending
+
+### Implementation and verification
+
+Implemented and pushed the presentation-only R3 media path in source commit `25688dd4c478b72ace1ad514e99498fc3469cfc0`:
+
+- `frontend-r3/app.js`
+- `frontend-r3/media.js`
+- `frontend-r3/r3-client.js`
+- `frontend-r3/r3-view-model.js`
+- `frontend-r3/tts.js`
+- `runtime-r3/domain/media.js`
+- `runtime-r3/server/store.js`
+- `runtime-r3/server/supabase-store.js`
+- `runtime-r3/server/worker.js`
+- `test/r3-approved-media.test.mjs`
+- `test/r3-frontend-contract.test.mjs`
+- `wrangler.r3.api.jsonc`
+
+The implementation is deterministic and presentation-only: approved active image rows are selected through the R3 server path; sexual-pool selection requires committed sexual evidence; TTS accepts only registered present heroine dialogue and resolves the canonical voice through the existing `TTS_WORKER` Service Binding; media failures fail open; browser `speechSynthesis` and `SpeechSynthesisUtterance` are absent from the R3 product path. No gameplay state, schema, migration, provider/model, Production, preserved game, or existing data was changed.
+
+Focused tests passed: `node --test test/r3-approved-media.test.mjs` (5/5) and `node --test test/r3-frontend-contract.test.mjs` (14/14). Full `npm.cmd test` passed (526/526). Changed JS/MJS `node --check` passed and `git diff --check` passed. Wrangler dry-runs passed.
+
+### TEST inventory, deploy, and live evidence
+
+Read-only TEST inventory found `public.image_library` and `storage.objects`; active `company-v1` image rows for heroine1..5 were present (14, 22, 21, 23, 22), with one general row per heroine and populated sex rows. General primary URLs were readable. Corrected heroine3 storage HEAD was HTTP 200, `image/jpeg`, 275914 bytes at `https://fmcrspgxstsmxxsmkeee.supabase.co/storage/v1/object/public/Image/Heroine3/jena_main.jpg`.
+
+Exact TEST deployments:
+
+- API `game-proxy-company-r3`, version `e1135324-20ba-4410-91bf-c3c31b59a10f`.
+- Frontend `gamebuilder-company-r3`, version `1efd7d4a-b9b6-48af-9b07-baab0f2f6000`.
+- API binding `TTS_WORKER` -> `fancy-dust-7f8c`, with the established `{voice_id,text,direction}` transport.
+
+Fresh disposable visible TEST fixture: `e0238ff2-9cfb-4c60-a74c-ab03a0c732d1`. Opening plus three ordinary visible Korean-input turns were committed through the bare public frontend. Desktop high-parity layout and mobile `390x844` controls were inspected; four choices, direct input, image/TTS shells, and TTS controls remained reachable. TTS OFF produced zero `/media/tts` calls, including after explicit visible toggle true/false interaction.
+
+### Gate result and first boundary
+
+- Gate A: NOT MET. The fresh committed context contained five present heroines but no focal/relevant heroine field, and stored Story dialogue used natural quoted text rather than the deterministic canonical speaker form. The implementation correctly refused to guess an image character, so no live image request/render was claimed.
+- Gate B: MET for OFF behavior: zero TTS synthesis calls while OFF; no narrator/player/private thought was sent.
+- Gate C: NOT MET. No eligible canonical present-character dialogue existed in the fresh committed context, so no live server synthesis/audio URL could be honestly claimed.
+- Gate D: NOT MET as a full live gate; no eligible media batch existed to exercise replay/transition media behavior. Deterministic stale fencing/cache tests passed.
+- Gate E: MET by deterministic fail-open implementation/tests and normal UI inspection; media calls are read-only and cannot block gameplay.
+- Gate F: MET by `390x844` inspection; no blocking overlay/overflow evidence, and choices/direct input/TTS controls remained reachable.
+
+This is an objective product/Story-Observer contract boundary, not a harness retry condition. Stop as `FAILED_PRODUCT`; do not claim owner-ready, do not mutate the fresh or preserved games, and do not create or start a next task. Owner/product authority must decide whether the committed projection should expose a focal/relevant heroine and canonical speaker identity before a truthful A/C retest.
 
 ## 11. Terminal report
 
