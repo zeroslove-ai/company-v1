@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: FAILED
 Task ID: company-r3-csa-chronological-enactment-boundary-v1
 Mode: REMOVE ZERO-TURN CSA MUTATION -> STREAMED CHRONOLOGICAL ENACTMENT -> ANTI-HIJACK / PRIVATE-EMOTION BOUNDARY -> BARE-PUBLIC ACCEPTANCE
-Updated: 2026-08-23 18:23 KST
+Updated: 2026-08-23 19:05 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5385142173`
 Terminal truth correction: Issue #68 comment `5385143109`
@@ -11,6 +11,22 @@ Operator review: Issue #68 comment `5385289539`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path or an ops/recovery branch.
+
+## Terminal result — live acceptance failed
+
+- Executable source HEAD: `fc0aace9df2a2e99d233d757b7964bc4aa9d9033` (pushed to `origin/main`; no unpushed commit).
+- Focused R3 CSA contract tests: `24/24` pass. Full `npm.cmd test`: `506/506` pass. Syntax checks for all changed JS files and `git diff --check`: pass.
+- TEST API deployed as `game-proxy-company-r3`, version `c8c0b390-db3e-45cf-900d-70a91cbab231`.
+- TEST frontend deployed as `gamebuilder-company-r3`, final version `e59b4c67-a183-4b3a-adc3-e0bd507d16d2`.
+- Fresh bare-public disposable fixture: `d738c97f-8e66-4e83-9c66-849bc13f63c6`.
+- Opening committed as Turn 0. Ordinary Korean free input committed as Turn 1; visible four-choice list remained diverse and company-life oriented.
+- Visible CSA APPLY of the first current catalog item then produced one streamed Story/Observer/commit transition to Turn 2; active-rule count changed from 0 to 1. The Story visibly represented the app action and immediate workplace consequence. No direct zero-turn writer was observed in this path.
+- The required unrelated post-CSA free-input action (`윤민아 대리를 따라 복도로 나가 괜찮은지 조용히 확인한다.`) did not advance beyond Turn 2 during the bounded 110-second wait. The input remained present, the submit button returned enabled, no bounded UI error was shown, and browser console error/warn logs were empty. Per the no-retry-until-pass rule, no further gameplay request or Fixture B/C attempt was made.
+- Therefore mandatory GREEN acceptance was not achieved: CHANGE/REMOVE, refresh/re-entry, duplicate-operation, 8–12-turn cross-fixture, and private-emotion acceptance evidence remain unverified.
+
+### Remaining objective defect
+
+The deployed bare-public runtime currently fails to complete an unrelated ordinary turn immediately after a successful chronological CSA APPLY turn, without surfacing a useful UI error. This blocks the required post-CSA Story-first continuity acceptance and requires a separately authorized follow-up investigation; no retry, migration, schema change, provider/model change, Production access, or preserved-game mutation was performed here.
 
 ## 0. Accepted baseline — do not reopen without contradictory real evidence
 
