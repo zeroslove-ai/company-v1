@@ -62,8 +62,13 @@ test('R3 choice tail accepts the existing 1) form without using earlier numbered
   assert.deepEqual(normalizeObserver({ choices }, { storyText: story, content }).choices, choices);
 });
 
-test('R3 choice tail preserves the exact four choices when Story separates terminal lines with blank lines', () => {
-  const choices = ['one', 'two', 'three', 'four'];
+test('R3 choice tail preserves the exact Turn 7 choices when Story separates terminal lines with blank lines', () => {
+  const choices = [
+    '"감사합니다. 꼭 빌려서 읽어보고 싶어요"라고 답하며 윤민아 대리에게 책을 빌려 달라고 부탁한다.',
+    '"마케팅 에세이면 저도 관심 있어요. 어떤 내용인지 조금 더 들려주실 수 있나요?"라고 이어서 물어본다.',
+    '고개를 끄덕이며 "관심 있습니다"라고 짧게 답하고, 그다음에 자리로 돌아가 오후 업무를 계속 파악한다.',
+    '사무실 문쪽에서 손목 진동이 다시 느껴져, 잠시 자리를 비워 상식개변 앱을 확인한다.'
+  ];
   const story = `Body\n\n1. ${choices[0]}\n\n2. ${choices[1]}\n\n3. ${choices[2]}\n\n4. ${choices[3]}`;
   const normalized = normalizeObserver({ choices: [] }, { storyText: story, content });
   assert.deepEqual(normalized.choices, choices);
