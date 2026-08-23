@@ -1,9 +1,9 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-owner-canon-p0-agency-navigation-v1
 Mode: OWNER CANON SYNC -> P0 AGENCY/NAVIGATION ROOT FIX -> TEST DEPLOY -> BARE-PUBLIC REPLAY
-Updated: 2026-08-23 16:17 KST
+Updated: 2026-08-23 17:08 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
 Previous terminal: Issue #68 comment `5384792909`
 Owner manual-play override: Issue #68 comment `5384780073`
