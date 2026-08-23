@@ -1,317 +1,250 @@
 # Company — CURRENT TASK
 
-Status: WAITING_REVIEW
-Task ID: company-r3-observer-dialogue-quote-escape-parity-v1
-Mode: FREEZE ACCEPTED R3 -> REPRODUCE VALID DIALOGUE PROJECTION DROP -> FIX QUOTE-ESCAPE PARITY ONLY -> API TEST DEPLOY -> BARE-PUBLIC PROJECTION+TTS ACCEPTANCE
-Updated: 2026-08-24 06:12 KST
+Status: READY
+Task ID: company-r3-observer-dialogue-completeness-contract-v1
+Mode: FREEZE ACCEPTED QUOTE-PARITY + TTS AUTH -> STRENGTHEN SINGLE OBSERVER DIALOGUE COMPLETENESS CONTRACT -> API TEST DEPLOY -> PROJECTION-FIRST TTS ACCEPTANCE
+Updated: 2026-08-24 06:04 KST
 Ops channel: GitHub Issue #68 — `Company v1 agent ops loop`
-Previous terminal: Issue #68 comment `5388331463`
-Operator review: Issue #68 comment `5388366958`
+Previous terminal: Issue #68 comment `5388433835`
+Operator review: Issue #68 comment `5388458753`
 Owner manual-play authority: Issue #68 comment `5384780073`
 
 Reuse this exact existing `docs/ops/CURRENT_TASK.md` in place. Do not create another CURRENT_TASK path. Do not create a new ops/recovery/source branch. Work on `main` only.
 
 ## 0. Accepted baseline — freeze
 
-Accepted executable/source before this repair:
-- `dc91e06897d17f3759773023abdff8abb39abe58`
+Accepted executable/source:
+- `cd16dfb44115a5b70ec67ba3e079b48d9b040237`
 
-Current reviewed main before this registration:
-- `8d4dfc2632d546a75388555919d0fdd0a6660db7`
-- direct docs-only terminal child of accepted source `dc91e068...`.
+Reviewed main before this registration:
+- `367be43437f7cacaf1e8b53d57f370989e440dc7`
+- direct docs-only terminal child of accepted source `cd16dfb...`.
 
-Accepted TEST artifacts before this repair:
-- API `game-proxy-company-r3` version `074ed8b6-58a5-4648-a0da-e387f427761b`
+Accepted TEST artifacts:
+- API `game-proxy-company-r3` version `b1da918b-269c-4724-8a12-18b9deaca78a`
 - Frontend `gamebuilder-company-r3` version `71416b75-9cca-45ee-9b32-7cf209f16395`
 - bare public frontend `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Accepted validation from the immediately preceding server-authorization repair:
-- deterministic pre-fix multi-speaker TTS authority split reproduced;
-- focused R3 media/TTS/server-route + choice tests: 25/25 PASS;
-- full `npm.cmd test`: 539/539 PASS;
-- changed JS/MJS syntax: PASS;
-- `git diff --check`: PASS;
-- changed source was only `runtime-r3/domain/media.js` + `test/r3-approved-media.test.mjs`;
-- server now authorizes exact current committed present registered-heroine speaker/text rather than re-selecting a different primary speaker.
-
-Freeze as already GREEN:
+Freeze as GREEN:
+- quote-escape evidence parity in `observer-normalizer.js`;
+- server exact committed-dialogue TTS authorization;
+- registered heroine voice mapping / TTS_WORKER binding;
+- TTS fresh-session OFF => zero calls;
 - exact visible choice dispatch;
-- agency/navigation/canonical player identity;
+- player agency/navigation/canonical identity;
 - Story-owned exact-four choices;
 - CSA draft/Revert/APPLY/CHANGE/REMOVE chronology;
-- same-game reset runtime;
-- latest-only current Story + History chronology;
-- approved image grounding/fail-open behavior;
-- turn timeout/terminalization lifecycle;
-- server TTS committed-dialogue authorization at source/unit-route level;
-- TTS fresh-session OFF => zero calls;
+- reset, current-scene/History, image grounding, turn timeout/terminalization;
 - browser `speechSynthesis` absent.
 
 Preserved games — READ ONLY, never reset/revise/retry/mutate:
 - owner manual game `9fcd5ab5-eb13-4971-8fca-9fec20a1d531`
-- holistic V4 fixture `ec8a906c-e540-4be4-b959-0ec0208c076d`
+- holistic V4 `ec8a906c-e540-4be4-b959-0ec0208c076d`
 - prior TTS authorization failure `e7e7025c-539a-4139-9348-cac597b9c688`
-- new dialogue-projection failure `e675437c-4dfe-4dd0-b542-d52ae224f98e`
-- every previously preserved holistic/repair/identity fixture.
+- prior quote-projection failure `e675437c-4dfe-4dd0-b542-d52ae224f98e`
+- current Observer-omission fixture `be0a3e57-e36d-4f5a-86b9-75d60e2dfbef`
+- all previously preserved fixtures.
 
 Use a NEW disposable TEST game for mutable live acceptance.
 
-## 1. Correct classification of terminal 5388331463
+## 1. Exact accepted defect
 
-Do NOT treat the fresh live result as a frontend TTS enqueue defect.
+The previous quote-parity source correction passed deterministic and full validation, but fresh live failed before normalization.
 
-Independent READ ONLY DB evidence for game `e675437c-4dfe-4dd0-b542-d52ae224f98e`, Turn 1:
-- committed `focal_actor.actor_id = heroine1`;
-- committed `observer_applied.dialogue_lines = []`;
-- warnings include `dialogue_projection_dropped` three times;
-- `observer_raw.dialogue_lines` contains exactly three grounded candidates:
-  - heroine1 / 서원희 line 1;
-  - heroine1 / 서원희 line 2;
-  - heroine5 / 이메이 line 1;
-- each raw line has speaker id, exact spoken text, direction, and evidence_quote;
-- Story visibly contains the same spoken dialogue.
+READ ONLY evidence for game `be0a3e57-e36d-4f5a-86b9-75d60e2dfbef`, Turn 1:
+- Story contains five direct quoted dialogue lines;
+- four are from general NPC `general_park_jungwoo` / 박정우;
+- one is clearly attributed to registered heroine `heroine2` / 윤민아:
+  `박지훈 씨, 인사팀 가시기 전에 명함판에 이름 적어 놓으셔야 해요. 담당자한테 말하면 프린트해 줘요.`
+- committed present_actor_ids includes `heroine2`;
+- Observer returned other fields normally, including location, present_actor_ids, scene_note, summary, player thought, and mind monitor;
+- but `observer_raw.dialogue_lines = []`;
+- therefore `observer_applied.dialogue_lines = []` by correct fail-open behavior.
 
-The frozen frontend TTS controller intentionally queues only committed `dialogue_lines`. Therefore `/media/tts` request count 0 on that turn was correct fail-open behavior. The previous task enabled TTS before satisfying its own mandatory precondition of non-empty committed heroine dialogue projection.
+This is NOT a normalizer failure and NOT a frontend TTS enqueue failure. There was no raw candidate to normalize or enqueue.
 
-The real product defect is one layer earlier: valid exact Observer dialogue evidence is dropped during normalization.
+## 2. Independently proven source boundary
 
-## 2. Independently proven first source boundary
+`runtime-r3/server/provider.js` uses the existing single post-Story Observer call with:
+- temperature 0;
+- JSON object response;
+- `OBSERVER_ACCEPTANCE_PROMPT`, which includes `OBSERVER_PRESENTATION_PROMPT`.
 
-Current source:
-`runtime-r3/domain/observer-normalizer.js`
+Current presentation prompt defines validity for `focal_actor` and `dialogue_lines`, but only says to "also return" them. It does not impose a completeness invariant when at least one clearly supported registered/present heroine direct-speech line exists.
 
-Relevant flow:
-- `groundedDialogueLine()` requires registered/present heroine speaker id;
-- requires non-empty exact spoken text;
-- requires exact evidence via `evidenceQuote(item.evidence_quote, storyText)`;
-- `evidenceQuote()` currently performs raw `storyText.includes(quote)` only;
-- it then also requires evidence to contain canonical speaker name + spoken text.
+Consequently an otherwise valid Observer response with `dialogue_lines: []` is accepted even when Story contains a safe, exact heroine dialogue candidate.
 
-The preserved Turn 1 Story and Observer evidence differ in the representation of escaped quote characters surrounding dialogue, while speaker identity and spoken text are otherwise exact. Raw substring matching therefore rejects all three candidates.
+## 3. Required correction — completeness contract only
 
-This is analogous to an already-bounded representation parity handled elsewhere: choice comparison uses `choiceParityKey()` to tolerate escaped-quote representation without semantic/fuzzy rewriting. Dialogue evidence currently has no equivalent bounded quote parity.
+Strengthen only the existing single Observer presentation prompt/contract.
 
-## 3. Required correction — quote representation only
+Required behavior:
+- if the completed current Story contains one or more clearly attributable direct quoted speech lines by registered heroines;
+- and the heroine is present after the Story;
+- and an exact contiguous Story evidence span can contain both the canonical heroine name and the exact spoken text;
+- then `dialogue_lines` MUST include every such supported heroine line;
+- it MUST NOT return `[]` merely because `focal_actor` is null, general NPCs speak more often, the heroine is not the focal actor, or presentation metadata is otherwise optional.
 
-Fix only the dialogue/evidence grounding seam so semantically identical quote escaping representation does not cause valid exact evidence to be dropped.
+For consecutive same-speaker dialogue where the immediate local sentence uses a pronoun such as `그녀는`, the Observer may use a larger exact contiguous evidence_quote spanning back to the nearest explicit canonical heroine-name attribution, provided the span still contains the exact spoken text. Do not infer across ambiguous speaker changes.
 
-Required contract:
-- speaker id must still be a registered heroine;
-- speaker must still be present in the committed post-Story scene projection;
-- spoken text must still occur exactly in Story content;
-- evidence must still contain the canonical speaker name;
-- evidence must still contain the exact spoken text;
-- evidence must still correspond to a contiguous Story substring after ONLY a bounded quote-escape representation normalization.
+The existing strict normalizer remains the authority that accepts/drops each raw candidate.
 
-Allowed parity examples:
-- literal `"..."` representation vs normal `"..."` quote representation where the only difference is escape characters used to encode the same quote;
-- repeated backslash escaping around quotation marks caused by transport/model string representation, provided normalization changes quote-escape representation only.
+## 4. Hard prohibitions
 
-Do NOT normalize arbitrary content.
+Do NOT add:
+- a new Story dialogue parser as canonical/fallback authority;
+- frontend parsing of raw Story to synthesize TTS;
+- a second Observer/LLM call;
+- retry/regeneration to obtain a favorable Observer result;
+- fuzzy speaker attribution;
+- proximity-only attribution;
+- generic NPC TTS voices;
+- client-provided voice trust;
+- whitespace/punctuation/edit-distance semantic matching;
+- provider/model/temperature/thinking/max_tokens/timeout changes;
+- DB/schema/RPC/migration/RLS/grant changes;
+- Production changes.
 
-Forbidden:
-- whitespace-insensitive matching;
-- punctuation-insensitive matching;
-- Unicode fuzzy matching beyond existing exact text behavior;
-- substring matching that omits speaker context;
-- edit distance / semantic similarity;
-- name inference;
-- speaker guessing;
-- arbitrary backslash stripping;
-- JSON parse/unparse of Story prose as a general fallback;
-- parsing raw Story in frontend to bypass committed Observer projection;
-- accepting raw dialogue solely because `spokenText` exists somewhere in Story;
-- generic NPC TTS enablement;
-- client-provided voice trust.
-
-Prefer one small parity helper used only by exact evidence containment comparison. If a more precise bounded implementation is proven necessary by the failing fixture, keep it restricted to quote-escape representation.
-
-## 4. Deterministic pre-fix reproduction — mandatory
-
-Before editing, encode the preserved failure shape so it FAILS on accepted source `dc91e068...`:
-- Story contains the exact preserved 서원희 dialogue and surrounding speaker context with the escaped quote representation seen in live data;
-- Observer raw candidate uses the equivalent evidence quote representation seen in live data;
-- speaker `heroine1` is registered and present;
-- exact spoken text is unchanged;
-- current normalizer returns no committed dialogue line and emits `dialogue_projection_dropped`.
-
-Also include the preserved heroine5 line if useful to prove this is representation-wide rather than one speaker special case.
-
-After the bounded correction require:
-1. preserved heroine1 line 1 projects;
-2. preserved heroine1 line 2 projects;
-3. preserved heroine5 line projects when heroine5 is present;
-4. canonical speaker names remain exact;
-5. exact spoken text remains byte/content exact after normal trimming already defined by the source;
-6. direction remains presentation-only and bounded as before;
-7. evidence_quote stored after normalization remains auditable and tied to Story;
-8. ordinary unescaped quote evidence still passes unchanged;
-9. wrong speaker id still fails;
-10. absent heroine still fails;
-11. speaker name missing from evidence still fails;
-12. altered spoken text still fails;
-13. evidence containing same speaker but different dialogue still fails;
-14. evidence from an older/different Story still fails;
-15. generic NPC still does not become heroine dialogue;
-16. focal actor grounding remains unchanged;
-17. choices/choice parity remain unchanged GREEN;
-18. Mind Monitor/clothing/location grounding remain unchanged GREEN;
-19. media/TTS server authorization tests remain GREEN;
-20. frontend TTS tests remain GREEN;
-21. full accepted suite remains GREEN.
-
-Do not modify tests to accept fuzzy evidence.
-
-## 5. Hard scope freeze
+Do not change `observer-normalizer.js`, `media.js`, frontend TTS, or TTS route unless a deterministic regression proves the expected provider-prompt boundary is false. If that happens, stop before broadening.
 
 Expected source boundary:
-- `runtime-r3/domain/observer-normalizer.js`
-- focused observer/media regression tests.
+- `runtime-r3/server/provider.js`
+- focused provider/observer contract tests.
 
-Do NOT change unless a failing test proves unavoidable:
-- `runtime-r3/domain/media.js` accepted server TTS authorization repair;
-- `runtime-r3/server/worker.js` media route;
-- frontend TTS/media/view-model code;
-- Story/Observer prompt semantics;
-- provider/model/temperature/thinking/max_tokens/timeouts;
-- choice parser/render/dispatch;
-- player identity/agency/navigation;
-- CSA;
-- reset/history/current-scene;
-- DB schema/table/RPC/migration/RLS/grants;
-- content voice mappings;
-- TTS_WORKER binding/provider/config/secrets;
-- Production.
+## 5. Mandatory pre-edit proof and deterministic tests
 
-No new branch.
-No new service.
-No retry/regeneration system.
-No compatibility path that trusts ungrounded client text.
+Before editing, prove and record:
+1. `OBSERVER_ACCEPTANCE_PROMPT` is the actual prompt used by `observe()`;
+2. current prompt defines validity but not mandatory completeness;
+3. current normalizer correctly cannot create dialogue when raw `dialogue_lines=[]`;
+4. current fresh fixture contains a qualifying heroine2 direct dialogue line and present heroine2.
 
-## 6. Validation
+Add focused tests that lock the new prompt contract without mocking away the real boundary:
+- Observer prompt explicitly requires all safely supported registered/present heroine direct-speech lines;
+- prompt explicitly forbids empty `dialogue_lines` when at least one qualifying heroine line exists;
+- prompt states general-NPC dominance/focal null is not a reason to omit heroine dialogue;
+- prompt preserves exact contiguous evidence + canonical name + exact spoken text requirements;
+- prompt allows larger contiguous evidence for an explicitly named speaker followed by pronoun continuation, but forbids ambiguous attribution;
+- no requirement to project general NPC dialogue;
+- unsupported/player/narrator/thought dialogue remains excluded.
 
-Run at minimum:
-- new focused observer quote-parity regression;
-- existing observer-normalizer/choice/media tests;
-- R3 media/TTS/server-route tests;
-- relevant frontend TTS tests even if frontend unchanged;
+Also keep GREEN:
+- quote-escape parity regressions;
+- observer normalizer strict rejection cases;
+- server TTS authorization multi-speaker cases;
+- frontend TTS OFF/cache/stale fencing;
+- choice dispatch;
+- image media tests;
+- full accepted suite.
+
+Run:
+- focused provider/observer/media/TTS tests;
 - full `npm.cmd test`;
 - `node --check` for changed JS/MJS;
 - `git diff --check`.
 
 Record exact counts.
 
-## 7. TEST deployment boundary
+## 6. Deployment boundary
 
-If the expected backend-only boundary holds:
+If provider-prompt-only boundary holds:
 - deploy exact corrected source to TEST API `game-proxy-company-r3` only;
-- preserve existing environment/secrets/bindings including `TTS_WORKER`;
-- record new API Worker version;
-- frontend must remain exactly `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`;
-- frontend deploy count 0.
+- preserve existing environment, model, temperature, token limits, timeouts, secrets, and TTS_WORKER binding;
+- record exact API Worker version;
+- frontend remains exactly `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`;
+- frontend deploy count = 0.
 
-No Production.
-No DB migration.
-No provider/model/config/secret change.
+No Production. No migration. No config/model change.
 
-## 8. Fresh bare-public acceptance — projection first, TTS second
+## 7. Fresh bare-public acceptance — projection first
 
 Use only:
 `https://gamebuilder-company-r3.zeroslove.workers.dev`
 
-Create one NEW disposable game.
-Do not mutate/retry/reset preserved failure fixtures.
-Do not use direct gameplay API, DOM mutation, storage preseed, or `?api=` override.
-Do not retry/regenerate the same semantic action to manufacture a favorable Observer result.
+Create one NEW disposable game through visible setup.
+No `?api=` override, storage preseed, DOM mutation, direct gameplay API, reset of preserved games, retry, or regeneration.
 
-Reach a natural committed turn with visible registered heroine dialogue.
+If persisted TTS state opens ON, visibly switch it OFF before the qualifying ordinary turn; do not mutate localStorage directly.
 
-BEFORE touching the TTS toggle, prove from the SAME committed turn:
-- heroine id is registered and present;
-- `observer_raw.dialogue_lines` contains the candidate;
-- `observer_applied.dialogue_lines` is NON-EMPTY and contains the exact same heroine speaker/text;
-- no `dialogue_projection_dropped` warning applies to that accepted line;
-- frontend `view.dialogue_lines` contains that committed line;
-- repository canonical voice_id exists for that heroine.
+Reach a natural committed ordinary turn containing at least one clearly attributed direct quoted dialogue line by a registered/present heroine.
 
-If Story has visible heroine dialogue but committed projection is still empty/drop-only, STOP `FAILED_PRODUCT_DIALOGUE_PROJECTION` immediately. Do NOT enable TTS and do NOT misclassify it as frontend TTS.
+BEFORE touching TTS ON, prove same-turn:
+- exact Story dialogue text;
+- heroine canonical id/name;
+- heroine is in committed present_actor_ids;
+- `observer_raw.dialogue_lines` contains that exact speaker/text;
+- raw evidence_quote is exact contiguous Story evidence satisfying canonical-name + exact-text contract;
+- `observer_applied.dialogue_lines` contains the same accepted speaker/text;
+- frontend `view.dialogue_lines` contains it;
+- canonical voice_id exists.
 
-Only after projection preconditions are proven:
-1. TTS OFF baseline => zero `/media/tts` calls;
+Failure classification:
+- qualifying heroine line exists but `observer_raw.dialogue_lines=[]` or omits it => `FAILED_PRODUCT_OBSERVER_DIALOGUE_OMISSION`;
+- raw candidate exists but applied drops => `FAILED_PRODUCT_DIALOGUE_NORMALIZATION`;
+- do not test TTS after either failure.
+
+## 8. TTS acceptance after projection is proven
+
+Only after Section 7 is GREEN:
+1. confirm TTS OFF => zero `/media/tts` calls;
 2. click visible TTS ON once;
-3. browser sends exactly one R3 `/media/tts` request for exact committed heroine speaker/text;
-4. API returns success with audio URL;
-5. server `TTS_WORKER` path is exercised, no browser-direct provider call;
-6. audio element receives returned URL;
-7. autoplay policy may be recorded separately if audible play is blocked;
-8. UI must not show `Voice unavailable` for a successful eligible request;
+3. browser sends exactly one R3 `/media/tts` request for exact committed heroine speaker/text batch;
+4. API returns success audio URL;
+5. server TTS_WORKER path is used; no browser-direct provider request;
+6. audio element receives URL;
+7. browser autoplay limitation, if any, is recorded separately after valid URL/cache;
+8. UI does not show `Voice unavailable` for successful eligible request;
 9. click replay once after cache fill;
-10. replay adds zero new `/media/tts` synthesis request;
-11. no browser `speechSynthesis`;
+10. replay adds zero new synthesis request;
+11. no `speechSynthesis`;
 12. one distinct ordinary subsequent turn commits once;
-13. stale prior dialogue/audio does not leak into new turn;
-14. approved image/fail-open behavior remains non-regressed.
+13. prior dialogue/audio does not leak into new turn;
+14. image/fail-open behavior remains correct.
 
-## 9. Failure handling
+If projection succeeds but visible ON emits zero request, stop `FAILED_PRODUCT_TTS_ENQUEUE`.
+If request is sent but rejected as uncommitted, stop `FAILED_PRODUCT_TTS_AUTHORIZATION`.
+If authorized request reaches service but upstream fails, classify exact service boundary.
 
-GREEN only if BOTH are green:
-A. valid quote-escaped Observer dialogue is committed into `observer_applied.dialogue_lines` under the strict exact-evidence contract;
-B. that committed heroine dialogue then traverses frontend -> R3 `/media/tts` -> TTS_WORKER -> audio URL and replay cache.
+## 9. GREEN criteria
 
-If A fails, classify `FAILED_PRODUCT_DIALOGUE_PROJECTION` and stop before TTS.
-If A passes but visible TTS ON still produces zero `/media/tts`, classify `FAILED_PRODUCT_TTS_ENQUEUE` with exact view/identity/DOM evidence.
-If `/media/tts` is sent but exact committed dialogue is again rejected, classify `FAILED_PRODUCT_TTS_AUTHORIZATION`.
-If upstream/binding fails after correct authorization, classify the exact TTS service boundary separately.
-If browser autoplay blocks only audible playback after valid URL/cache, classify `BROWSER_AUTOPLAY_LIMITATION`, not server/product authorization failure.
+GREEN only if:
+- completeness boundary is proven pre-edit;
+- correction is limited to existing single Observer contract;
+- focused/full/syntax/diff pass;
+- API-only TEST deploy succeeds;
+- fresh qualifying heroine dialogue appears in observer_raw and observer_applied;
+- frontend sees the committed line;
+- TTS OFF=0;
+- TTS ON traverses R3 -> TTS_WORKER -> audio URL;
+- replay uses cache with zero new synthesis;
+- one subsequent turn commits without stale TTS state;
+- no frozen subsystem regression or forbidden operation occurs.
 
-Do not patch a second unrelated defect in the same task after the first decisive failure.
+If prompt strengthening still produces raw omission on a fresh qualifying heroine turn, preserve fixture and stop `FAILED_PRODUCT_OBSERVER_DIALOGUE_OMISSION`. Do not add parser fallback or retry in this task.
+
 Do not start holistic V5 inside this task.
 Do not claim owner-ready.
 
 ## 10. Completion protocol
 
-## 10a. Watcher terminal evidence — FAILED_PRODUCT_DIALOGUE_PROJECTION
-
-Implementation source commit: `cd16dfb44115a5b70ec67ba3e079b48d9b040237` (pushed to `origin/main`).
-TEST API deploy: `game-proxy-company-r3@b1da918b-269c-4724-8a12-18b9deaca78a`.
-Frontend remained frozen at `gamebuilder-company-r3@71416b75-9cca-45ee-9b32-7cf209f16395`; frontend deploy count: 0.
-
-Validation before live acceptance:
-- deterministic pre-fix quote-parity reproduction: 9/10 focused observer tests passed and the new parity case failed as expected;
-- focused observer/media/choice/frontend-TTS suite: 27/27 PASS;
-- full `npm.cmd test`: 541/541 PASS;
-- changed-file syntax checks: PASS;
-- `git diff --check`: PASS.
-
-Fresh disposable bare-public game: `be0a3e57-e36d-4f5a-86b9-75d60e2dfbef`.
-The opening and Turn 1 were visible in the public UI. Turn 1 literal action was `박정우 팀장에게 인사 수속과 관련해 물어본다.`; the Story UI visibly rendered five quoted dialogue lines from 박정우 팀장/윤민아 대리. Read-only committed context for the same Turn 1 proved:
-- registered/present scene actor IDs included `heroine1` through `heroine5`;
-- `observer_raw.dialogue_lines = []`;
-- `observer_applied.dialogue_lines = []`;
-- no committed heroine dialogue line existed to authorize media, so projection-first acceptance failed;
-- the committed warning set included `choices_projection_dropped` and `mind_monitor_projection_dropped`, with no accepted dialogue line.
-
-TTS was not enabled for acceptance. The previously persisted UI state showed TTS pressed on opening; it was visibly switched OFF before the first ordinary turn. Opening/Turn 1 network observation showed zero `/media/tts` requests. No TTS worker/audio/replay evidence was collected because the mandatory projection gate failed first.
-
-Terminal disposition: `FAILED_PRODUCT_DIALOGUE_PROJECTION`. The fresh disposable game is preserved for review. All preserved fixtures remained READ ONLY; no retry/regeneration of the failed semantic action, provider/model/config/frontend/DB/migration/Production change was made.
-
-At completion post to Issue #68:
-- source SHA and final main SHA;
-- exact pre-fix reproduction and quote representation boundary;
-- changed files and why;
-- focused/full/syntax/diff results;
-- TEST API and unchanged frontend versions;
-- fresh disposable game id/turn;
-- observer_raw vs observer_applied exact speaker/text evidence;
-- dialogue projection warnings;
-- heroine canonical voice mapping;
+At completion post Issue #68 with:
+- source SHA / final main SHA / final task blob;
+- pre-edit boundary proof;
+- exact changed files;
+- focused/full/syntax/diff counts;
+- TEST API + unchanged frontend versions;
+- fresh game id/turn;
+- exact heroine Story line;
+- observer_raw and observer_applied line evidence;
+- canonical voice mapping;
 - `/media/tts` request count/status;
-- TTS_WORKER/audio URL evidence;
+- TTS_WORKER/audio URL/playback evidence;
 - replay request delta;
-- confirmation all preserved fixtures remained READ ONLY;
-- confirmation no retry/regeneration/provider/model/DB/migration/Production/frontend drift;
+- subsequent-turn stale-state result;
+- preserved fixture confirmation;
+- forbidden operation counts;
 - exact disposition.
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal report, and stop.
 
-Do not create the next task yourself.
+Do not generate the next task yourself.
