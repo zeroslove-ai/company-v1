@@ -1,6 +1,6 @@
 # Company — CURRENT TASK
 
-Status: READY
+Status: WAITING_REVIEW
 Task ID: company-r3-media-tts-choice-evidence-correction-v1
 Mode: SOURCE-FROZEN ACCEPTANCE -> CORRECT V4 EVIDENCE CLASSIFICATION -> PROVE ELIGIBLE HEROINE MEDIA/TTS -> PROVE ONE EXACT VISIBLE CHOICE DISPATCH
 Updated: 2026-08-24 04:59 KST
@@ -278,3 +278,23 @@ Post terminal evidence to Issue #68 including:
 
 Then overwrite this SAME `docs/ops/CURRENT_TASK.md` in place to `Status: WAITING_REVIEW`, push main, post terminal report, and stop.
 Do not generate holistic V5 yourself.
+
+## Terminal evidence — 2026-08-24 05:00 KST
+
+Disposition: FAILED_PRODUCT_MEDIA_PROJECTION
+
+- Final main before this docs-only update: e294d2559dbcf8d660bc10e2f18fd66362c99525.
+- Accepted executable/source: 7961a3ceab638f43e7959123025b6cedd96f5898.
+- TEST API/frontend remained exact: 09dac4f4-1131-41c4-94a8-dfd59e5d02d8 / 71416b75-9cca-45ee-9b32-7cf209f16395.
+- Focused media/choice contracts: 23/23 PASS. Full npm.cmd test: 537/537 PASS.
+- No source, deploy, provider/model, config, DB/migration, Production, or preserved-game mutation occurred. No retry/regeneration occurred after the first complete product failure.
+- Fresh disposable game: e7e7025c-539a-4139-9348-cac597b9c688, created through the visible Setup UI. Opening committed as Turn 0. The distinct free-form action 서원희 차장에게 첫 출근일 업무와 팀의 적응 방법을 묻고 자리를 정하는 안내를 부탁한다. committed Turn 1 but was ineligible/fail-open (observer_failed, empty applied dialogue projection); it was not retried.
+- Grounded registered heroine evidence on committed Turn 2: present_actor_ids=["heroine2","heroine5"]; focal actor heroine5; observer_applied.dialogue_lines contained non-empty verbatim 이메이 lines, including: 오, 벌써 적응 모드네요. 저도 첫날엔 그 문서만 세 번 읽었어요. 근데 사실 실전으로 부딪히는 게 제일 빨라요.; content/characters.json has heroine5 with non-empty canonical voice_id=03a79d68ca184930a1215f9b1b8eb5b5 and mapping_status=resolved.
+- Approved image evidence: the earlier grounded heroine1 Opening projection loaded a heroine1 image URL from the heroine1 storage path with natural dimensions 832x1216; no wrong-character fallback was used.
+- TTS OFF evidence: visible toggle was confirmed aria-pressed=false, audio source null, and zero /media/tts calls were observed before the single ON click.
+- TTS failure evidence: the visible toggle was clicked once to ON on the eligible Turn 2. Browser emitted exactly one R3 API GET /api/r3/games/e7e7025c-539a-4139-9348-cac597b9c688/media/tts (plus one CORS OPTIONS preflight), with speaker_id=heroine5, character_id=heroine5, and the exact committed heroine dialogue text. No direct external provider call and no speechSynthesis use were observed. The API response was HTTP 400 JSON {"url":null,"reason":"dialogue_not_committed"}; the persistent audio element remained src=null, readyState=0, and the UI displayed Voice unavailable.
+- Replay was not attempted because synthesis/cache fill never succeeded; no further /media/tts request was generated. This is a complete first product-failure proof, not a provider or browser autoplay classification.
+- Independent Gate B evidence (completed before the TTS failure): Turn 2 had exactly four enabled .choice-button controls. Button index 0 was clicked exactly once via the visible native locator; shortened label 1 창가쪽자리, full title/literal 창가 쪽 자리로 이동해 컴퓨터를 켜고 로그인하며 팀 공유폴더 구조를 살펴본다., full aria-label 1번 선택지: 창가 쪽 자리로 이동해 컴퓨터를 켜고 로그인하며 팀 공유폴더 구조를 살펴본다., disabled=false. Exactly one /turn POST was emitted with {"action_id":"7dd8b593-8baf-41d8-9a47-920e9c3be0e5","expected_turn":2,"literal_action":"창가 쪽 자리로 이동해 컴퓨터를 켜고 로그인하며 팀 공유폴더 구조를 살펴본다."}; the SSE response committed Turn 2 at 2026-08-23T20:07:48.671092+00:00 and the next ready state appeared. No second click or /turn POST occurred.
+- Preserved-games rule was maintained. Fresh fixture is preserved for operator review; no more actions are authorized in this run.
+
+Operator review required. Do not start holistic V5 or patch this source-frozen cut.
